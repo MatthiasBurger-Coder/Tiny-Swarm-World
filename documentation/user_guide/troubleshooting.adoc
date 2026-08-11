@@ -33,6 +33,46 @@ The quality gate configures this automatically.
 The architecture lint gate expects `.importlinter` in the repository root.
 Run the gate from the repository root, not from a source or test subdirectory.
 
+== Common Failure Decision Path
+
+Start with the newest evidence directory and the first failed phase. Do not
+repeat a mutating command until the named prerequisite is corrected and live
+consent is still intentional. Use the detailed section named in the table for
+the bounded commands and evidence interpretation.
+
+[options="header"]
+|===
+| Symptom or marker | First bounded action | Detailed source
+
+| `REFUSED_LIVE_CONSENT_MISSING`
+| Add `--live` only when local mutation is intentional; otherwise keep the run static.
+| `REFUSED_LIVE_CONSENT_MISSING` below
+
+| Incus/LXD command unavailable, daemon denied, or profile/storage not ready
+| From the installer shell, run `incus version` and `incus info` without `sudo`, then run static preflight.
+| LXC Native Provider Is Not Ready below
+
+| `managed_nodes_reset_blocked` or `unsafe_instance_config`
+| Inspect the named node/profile markers and guarded settings; never use broad container cleanup.
+| `REFUSED_WORKFLOW_CONFIRMATION_MISSING` below
+
+| `platform init: failed_to_apply` with `apt_repository_unreachable`
+| Run read-only network diagnosis, then configure only LXC-reachable APT mirrors if needed.
+| Docker Installation Fails During Platform Init below
+
+| Occupied ports or `WINDOWS-WSL-BRIDGE`
+| Inspect expected ownership and bridge status; repair only service-owned state with explicit approval.
+| WSL2 Setup Stops At WINDOWS-WSL-BRIDGE below
+
+| Service endpoint unavailable after setup
+| Verify profile, managed-node services, routing ports, and current WSL forwarding; do not infer live success from static configuration.
+| Service Access Is Not Reachable below
+|===
+
+The default quality gate and static preflight do not perform these live recovery
+actions. Never paste secrets, join tokens, or host-specific IPs into shared
+evidence.
+
 == LXC Native Provider Is Not Ready
 
 The default node provider is `lxc_native` through Incus. Check the

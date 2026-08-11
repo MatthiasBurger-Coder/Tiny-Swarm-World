@@ -437,120 +437,17 @@ incus exec swarm-manager -- docker service ls
 
 == Troubleshooting Checklist
 
-If `setup run` prints `REFUSED_LIVE_CONSENT_MISSING`, rerun with `--live` and
-answer the confirmation prompt only when mutation is intentional.
+Use the concise decision path in
+`documentation/user_guide/troubleshooting.adoc#_common_failure_decision_path`
+to classify the first failed phase. That page is the canonical source for
+bounded Incus profile/reset actions, APT/network recovery, WSL bridge repair,
+port ownership, service reachability, and the install debugger.
 
-If `install.sh` stops during fresh-install reset with
-`managed_nodes_reset_blocked`, inspect the newest `reset-run.log` for
-`first_failure_node`, `first_failure_mismatch_reasons`, and
-`first_failure_unsafe_instance_settings` when present. A mismatch reason of
-`unsafe_instance_config` means the named Incus/LXC instance has guarded config
-such as `security.privileged=true` or `raw.*`; reset will not delete it just
-because the marker fields match. Keep the instance if it is unrelated, or
-rename/remove/recreate it only after you intentionally confirm that the local
-resource is yours.
-
-For `first_failure_unsafe_instance_settings: security.privileged`, inspect
-both the node instance and the shared profile because profile settings can be
-visible on every configured node:
-
-[source,bash]
-----
-for node in swarm-manager swarm-worker-1 swarm-worker-2; do
-  printf '\n== %s ==\n' "$node"
-  incus config get "$node" user.tiny_swarm_world.managed
-  incus config get "$node" user.tiny_swarm_world.node
-  incus config get "$node" user.tiny_swarm_world.image_alias
-  incus config get "$node" security.privileged
-done
-incus profile get docker-swarm security.privileged
-----
-
-If the nodes are disposable Tiny Swarm World state and the profile or
-instances report `true`, remove only that privileged setting before rerunning
-the installer. Do not remove unrelated Incus containers.
-
-If `install.sh` stops during live setup with `platform init:
-failed_to_apply` and the setup evidence reports
-`first_failure_reason: apt_repository_unreachable`, the managed LXC nodes were
-created but Docker Engine installation could not reach the Ubuntu or Docker
-APT repositories from inside the containers. The registry mirror value is not
-an APT mirror. Verify container egress or configure LXC-reachable APT mirrors
-with:
-
-[source,bash]
-----
-export TSW_LXC_UBUNTU_APT_MIRROR=http://<lxc-reachable-host>:8081/repository/ubuntu-apt-proxy
-export TSW_LXC_UBUNTU_SECURITY_APT_MIRROR=http://<lxc-reachable-host>:8081/repository/ubuntu-security-apt-proxy
-export TSW_LXC_DOCKER_APT_MIRROR=http://<lxc-reachable-host>:8081/repository/docker-apt-proxy
-export TSW_LXC_DOCKER_APT_GPG_URL=http://<lxc-reachable-host>:8081/repository/docker-apt-proxy/gpg
-./install.sh --headless --confirm-reset --non-interactive-live-approval
-----
-
-Use an address reachable from inside the Incus containers, not `localhost` or
-`127.0.0.1`.
-
-If the LXC backend is not ready, verify from the same shell:
-
-[source,bash]
-----
-incus version
-incus info
-lxc version
-lxc info
-----
-
-If a service port is occupied, the preflight accepts it only when the listener
-matches the expected Tiny Swarm World service. Unknown listeners must be
-stopped or remapped before live setup.
-
-On WSL hosts, diagnose Windows forwarding through the managed bridge first.
-When preflight reports `PORT-80`, `PORT-443`, or `WINDOWS-WSL-BRIDGE`, open an
-Administrator PowerShell in the repository root and repair the service-owned
-state before rerunning `./install.sh`:
-
-[source,powershell]
-----
-Set-ExecutionPolicy -Scope Process Bypass
-.\tools\windows\tws-wsl-bridge.ps1 -Action status
-.\tools\windows\tws-wsl-bridge.ps1 -Action install
-----
-
-Do not delete the managed `0.0.0.0` mappings created from
-`infra/config/ports.yaml`. Only when inspection proves that separate legacy
-rules still occupy `127.0.0.1:80` or `127.0.0.1:443`, inspect those exact rules
-without mutation:
-
-[source,powershell]
-----
-.\tools\live\clear-wsl-traefik-portproxy.ps1 -ShowOnly
-----
-
-Use the cleanup action only for those confirmed unmanaged legacy loopback
-rules, then immediately rerun the bridge `install` action so the service state
-and heartbeat are authoritative again.
-
-If Portainer initialization returns HTTP 409, check whether the configured
-Portainer username and password authenticate. A rejected initialization is
-accepted only when those same requested credentials work immediately
-afterward.
-
-If Service Access is not reachable through `http://localhost:10000`, verify that the
-service-access profile was deployed, Traefik ports `80` and `443` are exposed,
-and WSL localhost forwarding is current. The Swarm node IP can be used for
-diagnosis, but documentation should not commit host-specific IPs.
-
-For deeper troubleshooting, use:
-
-[source,bash]
-----
-python3 tools/install_debugger.py
-python3 tools/install_debugger.py --live
-----
-
-The debugger reports checkout, host-runtime, service-definition, permission,
-and evidence-log findings. Use `--fix-permissions` only for the narrow
-installer execute-bit and local secret-file mode repair.
+The handbook keeps only the operator rule: inspect the newest evidence, correct
+the named prerequisite, and rerun the same guarded command only when live
+mutation remains intentional. Do not use broad Incus cleanup, copy secrets or
+join tokens into reports, or treat a static configuration check as live service
+success.
 
 == Reference Pages
 
