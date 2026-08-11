@@ -113,8 +113,16 @@ class EnsureServiceStack:
         )
 
     async def _stack_is_registered_after_apply_error(self) -> bool:
-        verification = await self.verify()
-        return verification.status == VerificationStatus.VERIFIED
+        await asyncio.sleep(0)
+        try:
+            return self.deployment_gateway.stack_registered(self.service_stack.stack_name)
+        except Exception as exc:
+            self.logger.warning(
+                "Stack registration recovery lookup failed for '%s': %s",
+                self.service_stack.stack_name,
+                exc.__class__.__name__,
+            )
+            return False
 
 
 def _stack_registration_evidence(

@@ -121,6 +121,8 @@ class TestEnsureServiceStack(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(TimeoutError):
             await service.run()
 
+        self.assertEqual(deployment_gateway.registration_checks, ["swagger"])
+
     async def test_verify_reports_registered_stack_without_claiming_readiness(self):
         stack_definition = StackDefinition(name="sonarqube", compose_content="services: {}")
         compose_repository = _FakeComposeRepository(stack_definition)
