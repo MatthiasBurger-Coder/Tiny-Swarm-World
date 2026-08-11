@@ -40,6 +40,7 @@ class PortainerHttpClient(PortPortainerClient, PortDeploymentGateway):
         self.deployment_endpoint_name = deployment_endpoint_name
         self.logger = LoggerFactory.get_logger(self.__class__)
         self._jwt_token: str | None = None
+        self._applied_stack_snapshot: str | None = None
 
     def ensure_local_endpoint(self, endpoint_name: str) -> int:
         endpoints = self._fetch_endpoints(f"ensure Portainer endpoint '{endpoint_name}'")
@@ -129,6 +130,7 @@ class PortainerHttpClient(PortPortainerClient, PortDeploymentGateway):
         self._ensure_success(response, f"update Portainer stack '{stack_definition.name}'")
 
     def apply_stack(self, request: DeploymentStackRequest) -> None:
+        self._applied_stack_snapshot = None
         endpoint_id = self.get_endpoint_id_by_name(self.deployment_endpoint_name)
         stack_id = self.find_stack_id_by_name(request.stack_definition.name)
         if stack_id is None:
@@ -137,6 +139,7 @@ class PortainerHttpClient(PortPortainerClient, PortDeploymentGateway):
                 endpoint_id,
                 request.stack_environment,
             )
+            self._applied_stack_snapshot = request.stack_definition.name
             return
         self.update_stack(
             stack_id,
@@ -144,8 +147,12 @@ class PortainerHttpClient(PortPortainerClient, PortDeploymentGateway):
             endpoint_id,
             request.stack_environment,
         )
+        self._applied_stack_snapshot = request.stack_definition.name
 
     def stack_registered(self, stack_name: str) -> bool:
+        if self._applied_stack_snapshot == stack_name:
+            self._applied_stack_snapshot = None
+            return True
         return self.find_stack_id_by_name(stack_name) is not None
 
     def _fetch_endpoints(self, action: str) -> tuple[Mapping[str, object], ...]:
