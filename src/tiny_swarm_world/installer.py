@@ -1143,6 +1143,13 @@ def _write_infisical_secret_file(path: Path, env: Mapping[str, str]) -> None:
 
 
 def _configure_native_linux_command_group(host_runtime: HostRuntime, env: dict[str, str]) -> None:
+    """Keep native group switching caller-controlled and probe-free.
+
+    The installer does not infer host identity or group membership. A caller
+    that explicitly supplies ``TSW_INSTALL_COMMAND_GROUP`` may use it in the
+    phase runner, while this bootstrap boundary performs no host mutation and
+    does not persist membership state across invocations.
+    """
     return
 
 

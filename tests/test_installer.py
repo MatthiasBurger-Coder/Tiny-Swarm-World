@@ -444,6 +444,17 @@ class TestInstaller(unittest.TestCase):
                     expected,
                 )
 
+    def test_native_group_boundary_does_not_probe_or_mutate_host_state(self):
+        env = {"TSW_INSTALL_COMMAND_GROUP": "lxd"}
+        with patch.object(installer.subprocess, "run") as run:
+            installer._configure_native_linux_command_group(
+                installer.HostRuntime("native_linux", "test"),
+                env,
+            )
+
+        run.assert_not_called()
+        self.assertEqual(env, {"TSW_INSTALL_COMMAND_GROUP": "lxd"})
+
     def test_required_installer_secret_entries_come_from_manifest(self):
         entries = installer._required_installer_secret_entries(
             Path("infra/config/secrets/infisical-secrets.yaml")
