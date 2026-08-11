@@ -634,6 +634,64 @@ services:
             ),
         )
 
+    def test_all_active_compose_ports_match_registry_contract(self):
+        repository_root = Path(__file__).resolve().parents[4]
+        repository = ComposeFileRepositoryYaml()
+        expected = {
+            ("portainer", "portainer", 9000): ("portainer-http", 10001),
+            ("jenkins", "jenkins", 8080): ("jenkins-http", 11080),
+            ("jenkins", "jenkins", 50000): ("jenkins-agent", 11050),
+            ("nexus", "nexus", 8081): ("nexus-http", 13081),
+            ("nexus", "nexus", 5000): ("nexus-docker-http", 13500),
+            ("nexus", "nexus", 5001): ("nexus-docker-https", 13501),
+            ("infisical", "infisical", 8080): ("infisical-http", 17080),
+            ("pulsar", "pulsar", 6650): ("pulsar-broker", 14001),
+            ("pulsar", "pulsar", 8080): ("pulsar-admin-api", 14080),
+            ("pulsar", "pulsar-manager", 9527): ("pulsar-manager-gui", 14081),
+            ("sonarqube", "sonarqube", 9000): ("sonarqube-http", 12000),
+            ("swagger", "swagger-ui", 8080): ("swagger-ui", 16080),
+            ("swagger", "swagger-nginx", 8084): ("openapi-aggregator", 16081),
+            ("traefik", "traefik", 80): ("traefik-http", 80),
+            ("traefik", "traefik", 443): ("traefik-https", 443),
+            ("service-access", "service-access-nginx", 80): (
+                "service-access-http",
+                10000,
+            ),
+            ("service-access", "service-access-nginx", 8086): (
+                "service-access-legacy-http",
+                8086,
+            ),
+        }
+        registry_by_id = {
+            mapping.port_id: mapping
+            for mapping in PortRegistryYamlRepository().load().mappings
+        }
+        actual = set()
+        for stack_name in sorted({key[0] for key in expected}):
+            compose_data = YAML(typ="safe").load(
+                repository.get_compose_of(stack_name).compose_content
+            )
+            for service_name, service_payload in compose_data["services"].items():
+                for entry in service_payload.get("ports", ()):
+                    if isinstance(entry, dict) and isinstance(entry.get("target"), int):
+                        actual.add((stack_name, service_name, entry["target"]))
+
+        self.assertEqual(actual, set(expected))
+        for key, (port_id, published) in expected.items():
+            with self.subTest(port_id=port_id):
+                mapping = registry_by_id[port_id]
+                self.assertEqual(mapping.internal_port, key[2])
+                self.assertEqual(mapping.external_port, published)
+
+        compose_root = repository_root / "infra" / "config" / "compose"
+        for absent_stack in ("prometheus", "grafana"):
+            with self.subTest(absent_stack=absent_stack):
+                self.assertFalse((compose_root / absent_stack / "docker-compose.yml").exists())
+                self.assertNotIn(
+                    f"{absent_stack}-http",
+                    {port_id for port_id, _ in expected.values()},
+                )
+
     def test_committed_health_checks_align_with_services_and_contracts(self):
         repository_root = Path(__file__).resolve().parents[4]
         health_checks = YAML(typ="safe").load(
