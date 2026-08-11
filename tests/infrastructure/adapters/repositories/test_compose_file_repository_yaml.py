@@ -123,6 +123,127 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
             compose_data = YAML(typ="safe").load(stack_definition.compose_content)
 
         self.assertEqual(compose_data["services"]["jenkins"]["ports"][0]["published"], 18080)
+        self.assertEqual(compose_data["services"]["jenkins"]["ports"][0]["target"], 8080)
+
+    def test_direct_published_port_rewrite_resolves_service_access_registry_mapping(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            compose_root = Path(temp_dir) / "compose"
+            stack_root = compose_root / "service-access"
+            stack_root.mkdir(parents=True)
+            stack_root.joinpath("docker-compose.yml").write_text(
+                "\n".join(
+                    (
+                        "services:",
+                        "  service-access-nginx:",
+                        "    image: nginx:latest",
+                        "    deploy: {}",
+                        "    ports:",
+                        "      - target: 80",
+                        "        published: 10000",
+                        "        protocol: tcp",
+                        "        mode: host",
+                    )
+                ),
+                encoding="utf-8",
+            )
+            registry = PortRegistry(
+                ranges=(),
+                mappings=(
+                    ServicePortMapping(
+                        service_id="service-access",
+                        port_id="service-access-http",
+                        internal_port=80,
+                        external_port=10080,
+                        exposure=PortExposureClass.DIRECT,
+                    ),
+                ),
+            )
+            repository = ComposeFileRepositoryYaml(
+                base_directories=[compose_root],
+                port_registry=registry,
+            )
+
+            with patch.object(repository, "render_service_access_dashboard", return_value=""):
+                stack_definition = repository.get_compose_of("service-access")
+            compose_data = YAML(typ="safe").load(stack_definition.compose_content)
+
+        port = compose_data["services"]["service-access-nginx"]["ports"][0]
+        self.assertEqual(port["published"], 10080)
+        self.assertEqual(port["target"], 80)
+
+    def test_direct_published_port_rewrite_rejects_missing_known_registry_mapping(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            compose_root = Path(temp_dir) / "compose"
+            stack_root = compose_root / "jenkins"
+            stack_root.mkdir(parents=True)
+            stack_root.joinpath("docker-compose.yml").write_text(
+                "\n".join(
+                    (
+                        "services:",
+                        "  jenkins:",
+                        "    image: jenkins/jenkins:lts",
+                        "    deploy: {}",
+                        "    ports:",
+                        "      - target: 8080",
+                        "        published: 8080",
+                        "        protocol: tcp",
+                        "        mode: host",
+                    )
+                ),
+                encoding="utf-8",
+            )
+            repository = ComposeFileRepositoryYaml(
+                base_directories=[compose_root],
+                port_registry=PortRegistry(ranges=(), mappings=()),
+            )
+
+            with self.assertRaisesRegex(ValueError, "jenkins-http.*missing"):
+                repository.get_compose_of("jenkins")
+
+    def test_direct_published_port_rewrite_preserves_optional_unpublished_mapping(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            compose_root = Path(temp_dir) / "compose"
+            stack_root = compose_root / "jenkins"
+            stack_root.mkdir(parents=True)
+            stack_root.joinpath("docker-compose.yml").write_text(
+                "\n".join(
+                    (
+                        "services:",
+                        "  jenkins:",
+                        "    image: jenkins/jenkins:lts",
+                        "    deploy: {}",
+                        "    ports:",
+                        "      - target: 8080",
+                        "        published: 11080",
+                        "        protocol: tcp",
+                        "        mode: host",
+                    )
+                ),
+                encoding="utf-8",
+            )
+            registry = PortRegistry(
+                ranges=(),
+                mappings=(
+                    ServicePortMapping(
+                        service_id="jenkins",
+                        port_id="jenkins-http",
+                        internal_port=8080,
+                        external_port=None,
+                        exposure=PortExposureClass.DIAGNOSTIC,
+                    ),
+                ),
+            )
+            repository = ComposeFileRepositoryYaml(
+                base_directories=[compose_root],
+                port_registry=registry,
+            )
+
+            stack_definition = repository.get_compose_of("jenkins")
+            compose_data = YAML(typ="safe").load(stack_definition.compose_content)
+
+        port = compose_data["services"]["jenkins"]["ports"][0]
+        self.assertEqual(port["published"], 11080)
+        self.assertEqual(port["target"], 8080)
 
     def test_extracts_service_names_and_published_ports_from_compose_file(self):
         with tempfile.TemporaryDirectory() as temp_dir:
