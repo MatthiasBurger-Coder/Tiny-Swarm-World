@@ -45,6 +45,7 @@ from tiny_swarm_world.infrastructure.adapters.host import (
     WslHostSignalReader,
 )
 from tiny_swarm_world.infrastructure.adapters.preflight import HostPreflightProbe
+from tiny_swarm_world.infrastructure.adapters.network import wsl_socat_exposure
 
 
 def _required_infisical_bootstrap_env() -> dict[str, str]:
@@ -2654,6 +2655,10 @@ class TestComposition(unittest.TestCase):
         self.assertIsInstance(socat_step, composition._WslSocatExposeStep)
         self.assertIs(step.service, services.lxc_service_exposure)
         self.assertIs(socat_step.socat_manager, services.socat_manager)
+        self.assertIsInstance(
+            socat_step.socat_exposure,
+            composition.WslSocatExposureAdapter,
+        )
         self.assertEqual(step.service.gateway_node.name, "swarm-manager")
         self.assertEqual(
             composition.DEFAULT_LXC_MANAGER_PROXY_PROFILE,
@@ -2677,13 +2682,12 @@ class TestComposition(unittest.TestCase):
         self.assertEqual(result.evidence["classification"], "not_required")
 
     def test_composed_wsl_socat_expose_skips_missing_optional_socat(self):
-        services = composition.build_platform_services(
-            live_consent=LiveConsent(live_flag=True, confirmed=True)
-        )
-        socat_step = services.workflows.expose.steps[1]
-        socat_step.os_type = composition.OsTypes.WSL_LINUX
-
-        with patch.object(composition.shutil, "which", return_value=None):
+        with patch.object(wsl_socat_exposure.shutil, "which", return_value=None):
+            services = composition.build_platform_services(
+                live_consent=LiveConsent(live_flag=True, confirmed=True)
+            )
+            socat_step = services.workflows.expose.steps[1]
+            socat_step.os_type = composition.OsTypes.WSL_LINUX
             result = asyncio.run(socat_step.run())
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)

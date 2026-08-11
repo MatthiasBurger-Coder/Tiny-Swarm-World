@@ -15,6 +15,7 @@ from uuid import uuid4
 import requests
 
 from tiny_swarm_world.application.ports.host import PortHostEnvironmentDetector
+from tiny_swarm_world.application.ports.network import PortWslSocatExposure
 from tiny_swarm_world.application.ports.method_trace import PortMethodTrace
 from tiny_swarm_world.application.services.artifacts import (
     ArtifactPrepareStep,
@@ -221,6 +222,7 @@ from tiny_swarm_world.infrastructure.adapters.host.preflight_evidence_writer imp
 from tiny_swarm_world.infrastructure.adapters.network import (
     SubprocessNetworkProbe,
     SubprocessNetworkRepair,
+    WslSocatExposureAdapter,
 )
 from tiny_swarm_world.infrastructure.adapters.repositories.compose_file_repository_yaml import (
     ComposeFileRepositoryYaml,
@@ -562,12 +564,14 @@ class _WslSocatExposeStep:
     def __init__(
         self,
         socat_manager: SocatManager,
+        socat_exposure: PortWslSocatExposure,
         *,
         service_profile: ServiceStackProfile,
         live_consent: LiveConsent | None,
         os_type: OsTypes | None = None,
     ) -> None:
         self.socat_manager = socat_manager
+        self.socat_exposure = socat_exposure
         self.service_profile = service_profile
         self.live_consent = live_consent
         self.os_type = os_type
@@ -599,7 +603,7 @@ class _WslSocatExposeStep:
                     "planned_forward_count": str(len(commands)),
                 },
             )
-        if shutil.which("socat") is None:
+        if not await self.socat_exposure.is_available():
             return VerificationResult(
                 target_id=self.verification_target_id,
                 status=VerificationStatus.VERIFIED,
@@ -618,10 +622,10 @@ class _WslSocatExposeStep:
         failed_count = 0
         for command in commands:
             pattern = command.shell_command
-            if await _wsl_socat_process_exists(pattern):
+            if await self.socat_exposure.process_exists(pattern):
                 existing_count += 1
                 continue
-            if await _start_wsl_socat_command(pattern):
+            if await self.socat_exposure.start(pattern):
                 started_count += 1
             else:
                 failed_count += 1
@@ -1082,6 +1086,7 @@ def build_platform_services(
         listen_address=_lxc_proxy_listen_address(),
     )
     socat_manager = SocatManager()
+    socat_exposure = WslSocatExposureAdapter()
     init_steps = _platform_init_steps(
         provider_request=provider_request,
         node_provider_selection=node_provider_selection,
@@ -1123,6 +1128,7 @@ def build_platform_services(
             _platform_expose_steps(
                 lxc_service_exposure,
                 socat_manager,
+                socat_exposure,
                 service_profile=ServiceStackProfile(service_profile),
                 live_consent=live_consent,
             ),
@@ -2066,6 +2072,7 @@ def _platform_reconcile_steps(
 def _platform_expose_steps(
     lxc_service_exposure: LxcServiceExposureService,
     socat_manager: SocatManager,
+    socat_exposure: PortWslSocatExposure,
     *,
     service_profile: ServiceStackProfile,
     live_consent: LiveConsent | None,
@@ -2074,6 +2081,7 @@ def _platform_expose_steps(
         LxcServiceExposureStep(lxc_service_exposure),
         _WslSocatExposeStep(
             socat_manager,
+            socat_exposure,
             service_profile=ServiceStackProfile(service_profile),
             live_consent=live_consent,
         ),
@@ -2160,28 +2168,6 @@ def _wsl_socat_forwarding_plans(
             service_profile=service_profile
         ).required_ports
     )
-
-
-async def _wsl_socat_process_exists(pattern: str) -> bool:
-    process = await asyncio.create_subprocess_exec(
-        "pgrep",
-        "-f",
-        pattern,
-        stdout=asyncio.subprocess.DEVNULL,
-        stderr=asyncio.subprocess.DEVNULL,
-    )
-    return await process.wait() == 0
-
-
-async def _start_wsl_socat_command(command: str) -> bool:
-    process = await asyncio.create_subprocess_exec(
-        "sh",
-        "-lc",
-        f"nohup {command} >/dev/null 2>&1 &",
-        stdout=asyncio.subprocess.DEVNULL,
-        stderr=asyncio.subprocess.DEVNULL,
-    )
-    return await process.wait() == 0
 
 
 def _wsl_socat_expose_message(status: VerificationStatus) -> str:
