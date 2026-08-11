@@ -1,3 +1,4 @@
+import asyncio
 import unittest
 from tests.support.async_helpers import async_checkpoint
 
@@ -19,6 +20,62 @@ from tiny_swarm_world.domain.node_provider import (
 
 
 class TestLxcDockerInstallService(unittest.IsolatedAsyncioTestCase):
+    async def test_one_node_failure_is_isolated_and_results_keep_configured_order(self):
+        runtime = _OutOfOrderFailureRuntime()
+
+        results = await LxcDockerInstallService(
+            runtime,
+            max_concurrency=3,
+        ).ensure_docker_installed(
+            (_node(), _worker(), _worker_2()),
+        )
+
+        self.assertEqual(
+            [result.evidence["node"] for result in results],
+            [
+                "swarm-manager",
+                "swarm-manager",
+                "swarm-worker-1",
+                "swarm-worker-2",
+                "swarm-worker-2",
+            ],
+        )
+        result_groups = [
+            [result for result in results if result.evidence["node"] == node_name]
+            for node_name in ("swarm-manager", "swarm-worker-1", "swarm-worker-2")
+        ]
+        self.assertEqual(
+            [result.status for result in result_groups[0]],
+            [VerificationStatus.VERIFIED, VerificationStatus.VERIFIED],
+        )
+        self.assertEqual(len(result_groups[1]), 1)
+        self.assertEqual(VerificationStatus.FAILED_TO_APPLY, result_groups[1][0].status)
+        self.assertEqual(result_groups[1][0].evidence["role"], NodeRole.WORKER.value)
+        self.assertEqual(result_groups[1][0].evidence["operation_phase"], "install")
+        self.assertIn("RuntimeError", result_groups[1][0].evidence["failure_reason"])
+        self.assertEqual(
+            [result.status for result in result_groups[2]],
+            [VerificationStatus.VERIFIED, VerificationStatus.VERIFIED],
+        )
+
+    async def test_node_lifecycles_are_bounded_by_configured_concurrency(self):
+        runtime = _ConcurrencyRuntime()
+        service = LxcDockerInstallService(runtime, max_concurrency=2)
+
+        results = await service.ensure_docker_installed(
+            (_node(), _worker(), _worker_2()),
+        )
+
+        self.assertEqual(
+            [result.evidence["node"] for result in results],
+            ["swarm-manager", "swarm-worker-1", "swarm-worker-2"],
+        )
+        self.assertEqual(runtime.max_active, 2)
+
+    def test_node_concurrency_must_be_positive(self):
+        with self.assertRaises(ValueError):
+            LxcDockerInstallService(_ConcurrencyRuntime(), max_concurrency=0)
+
     async def test_already_ready_node_does_not_run_install(self):
         runtime = _DockerRuntime(
             initial=ContainerDockerReadiness(
@@ -216,6 +273,63 @@ class _DockerRuntime:
         if self.verified is None:
             raise AssertionError("verify_docker was not expected")
         return self.verified
+
+
+class _ConcurrencyRuntime:
+    def __init__(self) -> None:
+        self.active = 0
+        self.max_active = 0
+
+    async def inspect_docker(self, node: NodeSpec) -> ContainerDockerReadiness:
+        await self._checkpoint()
+        return ContainerDockerReadiness(
+            node=node,
+            observed=True,
+            engine_state=DockerEngineState.READY,
+        )
+
+    async def install_docker(self, node: NodeSpec) -> ContainerDockerInstallOutcome:
+        raise AssertionError(f"install_docker was not expected for {node.name}")
+
+    async def verify_docker(self, node: NodeSpec) -> ContainerDockerReadiness:
+        raise AssertionError(f"verify_docker was not expected for {node.name}")
+
+    async def _checkpoint(self) -> None:
+        self.active += 1
+        self.max_active = max(self.max_active, self.active)
+        await async_checkpoint()
+        self.active -= 1
+
+
+class _OutOfOrderFailureRuntime:
+    async def inspect_docker(self, node: NodeSpec) -> ContainerDockerReadiness:
+        if node.name == "swarm-manager":
+            await asyncio.sleep(0.01)
+        else:
+            await asyncio.sleep(0)
+        return ContainerDockerReadiness(
+            node=node,
+            observed=True,
+            engine_state=DockerEngineState.MISSING,
+        )
+
+    async def install_docker(self, node: NodeSpec) -> ContainerDockerInstallOutcome:
+        await asyncio.sleep(0)
+        if node.name == "swarm-worker-1":
+            raise RuntimeError("node operation failed")
+        return ContainerDockerInstallOutcome(
+            node=node,
+            state=DockerInstallState.INSTALLED,
+            verified=True,
+        )
+
+    async def verify_docker(self, node: NodeSpec) -> ContainerDockerReadiness:
+        await asyncio.sleep(0)
+        return ContainerDockerReadiness(
+            node=node,
+            observed=True,
+            engine_state=DockerEngineState.READY,
+        )
 
 
 def _node() -> NodeSpec:

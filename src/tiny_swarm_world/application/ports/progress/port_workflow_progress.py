@@ -52,6 +52,40 @@ class PortWorkflowProgress(ABC):
         pass
 
 
+def report_readiness_wait(
+    progress: PortWorkflowProgress,
+    *,
+    workflow: str,
+    phase: str,
+    target: str,
+    task: str,
+    attempt: int,
+    max_attempts: int,
+    wait_seconds: float,
+) -> None:
+    """Publish a safe, deterministic event before an asynchronous retry wait."""
+
+    if attempt < 1 or max_attempts < attempt:
+        raise ValueError("Readiness progress attempt must be within its limit.")
+    if wait_seconds < 0:
+        raise ValueError("Readiness progress wait must not be negative.")
+    progress.report(
+        WorkflowProgressEvent(
+            workflow=workflow,
+            phase=phase,
+            target=target,
+            task=task,
+            step=f"readiness wait {attempt}/{max_attempts}",
+            status="running",
+            result="pending",
+            safe_message=(
+                f"{target} is not ready; waiting {wait_seconds:g} seconds "
+                "before the next attempt."
+            ),
+        )
+    )
+
+
 class NullWorkflowProgress(PortWorkflowProgress):
     def report(self, event: WorkflowProgressEvent) -> None:
         return None

@@ -3,9 +3,9 @@ metadata:
   workflow_id: workflow-install-order-and-port-allocation-20260620
   readiness_policy: "Static registry data must not claim observed runtime readiness."
   port_policy: >
-    Port IDs reference infra/config/ports.yaml target allocations. Legacy
-    published Compose ports remain classified as compatibility until a
-    dedicated deployment migration changes stack publication.
+    Port IDs reference infra/config/ports.yaml target allocations. Published
+    Compose values resolve from the central registry; compatibility values are
+    retained as explicit legacy metadata and do not create new direct routes.
 services:
   portainer:
     enabled: true

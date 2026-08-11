@@ -123,6 +123,127 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
             compose_data = YAML(typ="safe").load(stack_definition.compose_content)
 
         self.assertEqual(compose_data["services"]["jenkins"]["ports"][0]["published"], 18080)
+        self.assertEqual(compose_data["services"]["jenkins"]["ports"][0]["target"], 8080)
+
+    def test_direct_published_port_rewrite_resolves_service_access_registry_mapping(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            compose_root = Path(temp_dir) / "compose"
+            stack_root = compose_root / "service-access"
+            stack_root.mkdir(parents=True)
+            stack_root.joinpath("docker-compose.yml").write_text(
+                "\n".join(
+                    (
+                        "services:",
+                        "  service-access-nginx:",
+                        "    image: nginx:latest",
+                        "    deploy: {}",
+                        "    ports:",
+                        "      - target: 80",
+                        "        published: 10000",
+                        "        protocol: tcp",
+                        "        mode: host",
+                    )
+                ),
+                encoding="utf-8",
+            )
+            registry = PortRegistry(
+                ranges=(),
+                mappings=(
+                    ServicePortMapping(
+                        service_id="service-access",
+                        port_id="service-access-http",
+                        internal_port=80,
+                        external_port=10080,
+                        exposure=PortExposureClass.DIRECT,
+                    ),
+                ),
+            )
+            repository = ComposeFileRepositoryYaml(
+                base_directories=[compose_root],
+                port_registry=registry,
+            )
+
+            with patch.object(repository, "render_service_access_dashboard", return_value=""):
+                stack_definition = repository.get_compose_of("service-access")
+            compose_data = YAML(typ="safe").load(stack_definition.compose_content)
+
+        port = compose_data["services"]["service-access-nginx"]["ports"][0]
+        self.assertEqual(port["published"], 10080)
+        self.assertEqual(port["target"], 80)
+
+    def test_direct_published_port_rewrite_rejects_missing_known_registry_mapping(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            compose_root = Path(temp_dir) / "compose"
+            stack_root = compose_root / "jenkins"
+            stack_root.mkdir(parents=True)
+            stack_root.joinpath("docker-compose.yml").write_text(
+                "\n".join(
+                    (
+                        "services:",
+                        "  jenkins:",
+                        "    image: jenkins/jenkins:lts",
+                        "    deploy: {}",
+                        "    ports:",
+                        "      - target: 8080",
+                        "        published: 8080",
+                        "        protocol: tcp",
+                        "        mode: host",
+                    )
+                ),
+                encoding="utf-8",
+            )
+            repository = ComposeFileRepositoryYaml(
+                base_directories=[compose_root],
+                port_registry=PortRegistry(ranges=(), mappings=()),
+            )
+
+            with self.assertRaisesRegex(ValueError, "jenkins-http.*missing"):
+                repository.get_compose_of("jenkins")
+
+    def test_direct_published_port_rewrite_preserves_optional_unpublished_mapping(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            compose_root = Path(temp_dir) / "compose"
+            stack_root = compose_root / "jenkins"
+            stack_root.mkdir(parents=True)
+            stack_root.joinpath("docker-compose.yml").write_text(
+                "\n".join(
+                    (
+                        "services:",
+                        "  jenkins:",
+                        "    image: jenkins/jenkins:lts",
+                        "    deploy: {}",
+                        "    ports:",
+                        "      - target: 8080",
+                        "        published: 11080",
+                        "        protocol: tcp",
+                        "        mode: host",
+                    )
+                ),
+                encoding="utf-8",
+            )
+            registry = PortRegistry(
+                ranges=(),
+                mappings=(
+                    ServicePortMapping(
+                        service_id="jenkins",
+                        port_id="jenkins-http",
+                        internal_port=8080,
+                        external_port=None,
+                        exposure=PortExposureClass.DIAGNOSTIC,
+                    ),
+                ),
+            )
+            repository = ComposeFileRepositoryYaml(
+                base_directories=[compose_root],
+                port_registry=registry,
+            )
+
+            stack_definition = repository.get_compose_of("jenkins")
+            compose_data = YAML(typ="safe").load(stack_definition.compose_content)
+
+        port = compose_data["services"]["jenkins"]["ports"][0]
+        self.assertEqual(port["published"], 11080)
+        self.assertEqual(port["target"], 8080)
 
     def test_extracts_service_names_and_published_ports_from_compose_file(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -485,6 +606,92 @@ services:
             with self.subTest(stack_name=stack_name):
                 self.assertLessEqual(published_ports, classified_ports)
 
+    def test_service_access_legacy_port_is_explicit_compatibility_metadata(self):
+        repository_root = Path(__file__).resolve().parents[4]
+        repository = ComposeFileRepositoryYaml()
+        registry = PortRegistryYamlRepository().load()
+        legacy = next(
+            mapping
+            for mapping in registry.mappings
+            if mapping.port_id == "service-access-legacy-http"
+        )
+        compose_data = YAML(typ="safe").load(
+            repository.get_compose_of("service-access").compose_content
+        )
+        legacy_entry = compose_data["services"]["service-access-nginx"]["ports"][1]
+
+        self.assertEqual(legacy.exposure, PortExposureClass.COMPATIBILITY)
+        self.assertEqual(legacy.internal_port, 8086)
+        self.assertEqual(legacy.external_port, 8086)
+        self.assertEqual(legacy_entry["target"], legacy.internal_port)
+        self.assertEqual(legacy_entry["published"], legacy.external_port)
+        self.assertNotIn(
+            "rabbitmq",
+            "\n".join(
+                path.read_text(encoding="utf-8").lower()
+                for path in (repository_root / "infra" / "config").rglob("*")
+                if path.is_file()
+            ),
+        )
+
+    def test_all_active_compose_ports_match_registry_contract(self):
+        repository_root = Path(__file__).resolve().parents[4]
+        repository = ComposeFileRepositoryYaml()
+        expected = {
+            ("portainer", "portainer", 9000): ("portainer-http", 10001),
+            ("jenkins", "jenkins", 8080): ("jenkins-http", 11080),
+            ("jenkins", "jenkins", 50000): ("jenkins-agent", 11050),
+            ("nexus", "nexus", 8081): ("nexus-http", 13081),
+            ("nexus", "nexus", 5000): ("nexus-docker-http", 13500),
+            ("nexus", "nexus", 5001): ("nexus-docker-https", 13501),
+            ("infisical", "infisical", 8080): ("infisical-http", 17080),
+            ("pulsar", "pulsar", 6650): ("pulsar-broker", 14001),
+            ("pulsar", "pulsar", 8080): ("pulsar-admin-api", 14080),
+            ("pulsar", "pulsar-manager", 9527): ("pulsar-manager-gui", 14081),
+            ("sonarqube", "sonarqube", 9000): ("sonarqube-http", 12000),
+            ("swagger", "swagger-ui", 8080): ("swagger-ui", 16080),
+            ("swagger", "swagger-nginx", 8084): ("openapi-aggregator", 16081),
+            ("traefik", "traefik", 80): ("traefik-http", 80),
+            ("traefik", "traefik", 443): ("traefik-https", 443),
+            ("service-access", "service-access-nginx", 80): (
+                "service-access-http",
+                10000,
+            ),
+            ("service-access", "service-access-nginx", 8086): (
+                "service-access-legacy-http",
+                8086,
+            ),
+        }
+        registry_by_id = {
+            mapping.port_id: mapping
+            for mapping in PortRegistryYamlRepository().load().mappings
+        }
+        actual = set()
+        for stack_name in sorted({key[0] for key in expected}):
+            compose_data = YAML(typ="safe").load(
+                repository.get_compose_of(stack_name).compose_content
+            )
+            for service_name, service_payload in compose_data["services"].items():
+                for entry in service_payload.get("ports", ()):
+                    if isinstance(entry, dict) and isinstance(entry.get("target"), int):
+                        actual.add((stack_name, service_name, entry["target"]))
+
+        self.assertEqual(actual, set(expected))
+        for key, (port_id, published) in expected.items():
+            with self.subTest(port_id=port_id):
+                mapping = registry_by_id[port_id]
+                self.assertEqual(mapping.internal_port, key[2])
+                self.assertEqual(mapping.external_port, published)
+
+        compose_root = repository_root / "infra" / "config" / "compose"
+        for absent_stack in ("prometheus", "grafana"):
+            with self.subTest(absent_stack=absent_stack):
+                self.assertFalse((compose_root / absent_stack / "docker-compose.yml").exists())
+                self.assertNotIn(
+                    f"{absent_stack}-http",
+                    {port_id for port_id, _ in expected.values()},
+                )
+
     def test_committed_health_checks_align_with_services_and_contracts(self):
         repository_root = Path(__file__).resolve().parents[4]
         health_checks = YAML(typ="safe").load(
@@ -597,6 +804,189 @@ services:
             nexus["deploy"]["placement"]["constraints"],
             ["node.role == manager"],
         )
+
+    def test_core_compose_stacks_render_registry_ports_without_changing_targets(self):
+        registry = PortRegistry(
+            ranges=(),
+            mappings=(
+                ServicePortMapping(
+                    service_id="portainer",
+                    port_id="portainer-http",
+                    internal_port=9000,
+                    external_port=20001,
+                    exposure=PortExposureClass.DIRECT,
+                ),
+                ServicePortMapping(
+                    service_id="jenkins",
+                    port_id="jenkins-http",
+                    internal_port=8080,
+                    external_port=20002,
+                    exposure=PortExposureClass.DIRECT,
+                ),
+                ServicePortMapping(
+                    service_id="jenkins",
+                    port_id="jenkins-agent",
+                    internal_port=50000,
+                    external_port=20003,
+                    exposure=PortExposureClass.DIRECT,
+                ),
+                ServicePortMapping(
+                    service_id="sonarqube",
+                    port_id="sonarqube-http",
+                    internal_port=9000,
+                    external_port=20004,
+                    exposure=PortExposureClass.DIRECT,
+                ),
+                ServicePortMapping(
+                    service_id="nexus",
+                    port_id="nexus-http",
+                    internal_port=8081,
+                    external_port=20005,
+                    exposure=PortExposureClass.DIRECT,
+                ),
+                ServicePortMapping(
+                    service_id="nexus",
+                    port_id="nexus-docker-http",
+                    internal_port=5000,
+                    external_port=None,
+                    exposure=PortExposureClass.DIAGNOSTIC,
+                ),
+                ServicePortMapping(
+                    service_id="nexus",
+                    port_id="nexus-docker-https",
+                    internal_port=5001,
+                    external_port=None,
+                    exposure=PortExposureClass.DIAGNOSTIC,
+                ),
+            ),
+        )
+        repository = ComposeFileRepositoryYaml(port_registry=registry)
+
+        expected_ports = {
+            "portainer": [(9000, 20001)],
+            "jenkins": [(8080, 20002), (50000, 20003)],
+            "sonarqube": [(9000, 20004)],
+            "nexus": [(8081, 20005), (5000, 13500), (5001, 13501)],
+        }
+        for stack_name, expected in expected_ports.items():
+            with self.subTest(stack_name=stack_name):
+                stack_definition = repository.get_compose_of(stack_name)
+                compose_data = YAML(typ="safe").load(stack_definition.compose_content)
+                service_name = next(iter(compose_data["services"]))
+                actual = [
+                    (port["target"], port["published"])
+                    for port in compose_data["services"][service_name]["ports"]
+                ]
+                self.assertEqual(actual, expected)
+
+    def test_messaging_gateway_swagger_and_access_stacks_render_registry_ports(self):
+        registry = PortRegistry(
+            ranges=(),
+            mappings=(
+                ServicePortMapping(
+                    service_id="pulsar",
+                    port_id="pulsar-broker",
+                    internal_port=6650,
+                    external_port=24001,
+                    exposure=PortExposureClass.DIRECT,
+                ),
+                ServicePortMapping(
+                    service_id="pulsar",
+                    port_id="pulsar-admin-api",
+                    internal_port=8080,
+                    external_port=24080,
+                    exposure=PortExposureClass.DIRECT,
+                ),
+                ServicePortMapping(
+                    service_id="pulsar-manager",
+                    port_id="pulsar-manager-gui",
+                    internal_port=9527,
+                    external_port=24081,
+                    exposure=PortExposureClass.DIRECT,
+                ),
+                ServicePortMapping(
+                    service_id="traefik",
+                    port_id="traefik-http",
+                    internal_port=80,
+                    external_port=80,
+                    exposure=PortExposureClass.PUBLIC_INGRESS,
+                ),
+                ServicePortMapping(
+                    service_id="traefik",
+                    port_id="traefik-https",
+                    internal_port=443,
+                    external_port=443,
+                    exposure=PortExposureClass.PUBLIC_INGRESS,
+                ),
+                ServicePortMapping(
+                    service_id="swagger",
+                    port_id="swagger-ui",
+                    internal_port=8080,
+                    external_port=26080,
+                    exposure=PortExposureClass.DIRECT,
+                ),
+                ServicePortMapping(
+                    service_id="swagger",
+                    port_id="openapi-aggregator",
+                    internal_port=8084,
+                    external_port=26081,
+                    exposure=PortExposureClass.DIRECT,
+                ),
+                ServicePortMapping(
+                    service_id="service-access",
+                    port_id="service-access-http",
+                    internal_port=80,
+                    external_port=21080,
+                    exposure=PortExposureClass.DIRECT,
+                ),
+                ServicePortMapping(
+                    service_id="infisical",
+                    port_id="infisical-http",
+                    internal_port=8080,
+                    external_port=27080,
+                    exposure=PortExposureClass.DIRECT,
+                ),
+            ),
+        )
+        repository = ComposeFileRepositoryYaml(port_registry=registry)
+        expected_ports = {
+            "pulsar": {
+                "pulsar": [(6650, 24001), (8080, 24080)],
+                "pulsar-manager": [(9527, 24081)],
+            },
+            "traefik": {"traefik": [(80, 80), (443, 443)]},
+            "swagger": {
+                "swagger-ui": [(8080, 26080)],
+                "swagger-nginx": [(8084, 26081)],
+            },
+            "service-access": {
+                "service-access-nginx": [(80, 21080), (8086, 8086)],
+            },
+            "infisical": {"infisical": [(8080, 27080)]},
+        }
+
+        for stack_name, expected_services in expected_ports.items():
+            with self.subTest(stack_name=stack_name):
+                if stack_name == "service-access":
+                    with patch.object(repository, "render_service_access_dashboard", return_value=""):
+                        stack_definition = repository.get_compose_of(stack_name)
+                else:
+                    stack_definition = repository.get_compose_of(stack_name)
+                compose_data = YAML(typ="safe").load(stack_definition.compose_content)
+                for service_name, expected in expected_services.items():
+                    actual = [
+                        (port["target"], port["published"])
+                        for port in compose_data["services"][service_name]["ports"]
+                    ]
+                    self.assertEqual(actual, expected)
+
+    def test_active_config_does_not_reintroduce_rabbitmq(self):
+        repository_root = Path(__file__).resolve().parents[4]
+        config_root = repository_root / "infra" / "config"
+        for config_path in config_root.rglob("*"):
+            if config_path.is_file():
+                with self.subTest(config_path=config_path):
+                    self.assertNotIn("rabbitmq", config_path.read_text(encoding="utf-8").lower())
 
     def test_committed_pulsar_compose_uses_standalone_with_non_conflicting_admin_port(self):
         repository_root = Path(__file__).resolve().parents[4]

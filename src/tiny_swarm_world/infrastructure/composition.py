@@ -15,6 +15,7 @@ from uuid import uuid4
 import requests
 
 from tiny_swarm_world.application.ports.host import PortHostEnvironmentDetector
+from tiny_swarm_world.application.ports.network import PortWslSocatExposure
 from tiny_swarm_world.application.ports.method_trace import PortMethodTrace
 from tiny_swarm_world.application.services.artifacts import (
     ArtifactPrepareStep,
@@ -221,6 +222,7 @@ from tiny_swarm_world.infrastructure.adapters.host.preflight_evidence_writer imp
 from tiny_swarm_world.infrastructure.adapters.network import (
     SubprocessNetworkProbe,
     SubprocessNetworkRepair,
+    WslSocatExposureAdapter,
 )
 from tiny_swarm_world.infrastructure.adapters.repositories.compose_file_repository_yaml import (
     ComposeFileRepositoryYaml,
@@ -562,12 +564,14 @@ class _WslSocatExposeStep:
     def __init__(
         self,
         socat_manager: SocatManager,
+        socat_exposure: PortWslSocatExposure,
         *,
         service_profile: ServiceStackProfile,
         live_consent: LiveConsent | None,
         os_type: OsTypes | None = None,
     ) -> None:
         self.socat_manager = socat_manager
+        self.socat_exposure = socat_exposure
         self.service_profile = service_profile
         self.live_consent = live_consent
         self.os_type = os_type
@@ -599,7 +603,7 @@ class _WslSocatExposeStep:
                     "planned_forward_count": str(len(commands)),
                 },
             )
-        if shutil.which("socat") is None:
+        if not await self.socat_exposure.is_available():
             return VerificationResult(
                 target_id=self.verification_target_id,
                 status=VerificationStatus.VERIFIED,
@@ -618,10 +622,10 @@ class _WslSocatExposeStep:
         failed_count = 0
         for command in commands:
             pattern = command.shell_command
-            if await _wsl_socat_process_exists(pattern):
+            if await self.socat_exposure.process_exists(pattern):
                 existing_count += 1
                 continue
-            if await _start_wsl_socat_command(pattern):
+            if await self.socat_exposure.start(pattern):
                 started_count += 1
             else:
                 failed_count += 1
@@ -1082,6 +1086,7 @@ def build_platform_services(
         listen_address=_lxc_proxy_listen_address(),
     )
     socat_manager = SocatManager()
+    socat_exposure = WslSocatExposureAdapter()
     init_steps = _platform_init_steps(
         provider_request=provider_request,
         node_provider_selection=node_provider_selection,
@@ -1123,6 +1128,7 @@ def build_platform_services(
             _platform_expose_steps(
                 lxc_service_exposure,
                 socat_manager,
+                socat_exposure,
                 service_profile=ServiceStackProfile(service_profile),
                 live_consent=live_consent,
             ),
@@ -1217,11 +1223,12 @@ def build_platform_services(
 def build_artifact_services_for_provider(
     node_provider_request: NodeProviderSelectionRequest | None = None,
     ui: PortUI | None = None,
+    progress: PortWorkflowProgress | None = None,
 ) -> ArtifactServices:
     provider_request = node_provider_request or _default_node_provider_request()
     backend = _lxc_backend_for_provider_request(provider_request)
     if backend is not None:
-        return build_lxc_artifact_services(backend=backend, ui=ui)
+        return build_lxc_artifact_services(backend=backend, ui=ui, progress=progress)
     return ArtifactServices(
         workflows=ArtifactWorkflows(
             prepare=cast(
@@ -1246,6 +1253,7 @@ def build_lxc_artifact_services(
     *,
     backend: ManagedLxcBackend,
     ui: PortUI | None = None,
+    progress: PortWorkflowProgress | None = None,
 ) -> ArtifactServices:
     project_paths = default_project_paths()
     process_runner = build_process_runner()
@@ -1267,6 +1275,7 @@ def build_lxc_artifact_services(
         nexus_client=nexus_client,
         max_attempts=60,
         wait_seconds=10,
+        progress=progress,
     )
     ensure_nexus_admin_access = EnsureNexusAdminAccess(
         nexus_client=nexus_client,
@@ -1278,6 +1287,7 @@ def build_lxc_artifact_services(
         max_attempts=60,
         wait_seconds=10,
         ui=ui,
+        progress=progress,
     )
     nexus_repository_steps = (
         EnsureNexusDockerHostedRepository(
@@ -1338,6 +1348,7 @@ def build_deployment_services_for_provider(
     service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
     node_provider_request: NodeProviderSelectionRequest | None = None,
     ui: PortUI | None = None,
+    progress: PortWorkflowProgress | None = None,
 ) -> DeploymentServices:
     provider_request = node_provider_request or _default_node_provider_request()
     backend = _lxc_backend_for_provider_request(provider_request)
@@ -1347,6 +1358,7 @@ def build_deployment_services_for_provider(
             service_profile=service_profile,
             backend=backend,
             ui=ui,
+            progress=progress,
         )
     return DeploymentServices(
         workflows=DeploymentWorkflows(
@@ -1380,6 +1392,7 @@ def build_lxc_deployment_services(
     backend: ManagedLxcBackend,
     service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
     ui: PortUI | None = None,
+    progress: PortWorkflowProgress | None = None,
 ) -> DeploymentServices:
     project_paths = default_project_paths()
     local_file_storage = LocalFileStorage()
@@ -1468,6 +1481,7 @@ def build_lxc_deployment_services(
         ),
         username=_operator_config_value("TSW_SONARQUBE_ADMIN_USERNAME", "admin"),
         password=_operator_secret_value("TSW_SONARQUBE_ADMIN_PASSWORD"),
+        progress=progress,
     )
     application_steps = _with_post_stack_steps(
         application_steps,
@@ -1648,6 +1662,7 @@ def build_setup_services(
     artifact_readiness_gate = _build_artifact_readiness_gate(project_paths)
     host_preparation = build_host_preparation_service(live_consent)
     trace_correlation_id = _new_installation_trace_correlation_id()
+    workflow_progress = _build_workflow_progress_sink(ui)
     platform = _build_platform_services_for_request(
         service_profile,
         live_consent,
@@ -1659,13 +1674,14 @@ def build_setup_services(
     artifacts = build_artifact_services_for_provider(
         node_provider_request=node_provider_request,
         ui=ui,
+        progress=workflow_progress,
     )
     deployment = _build_deployment_services_for_request(
         service_profile=service_profile,
         node_provider_request=node_provider_request,
         ui=ui,
+        progress=workflow_progress,
     )
-    workflow_progress = _build_workflow_progress_sink(ui)
     method_trace = _build_method_trace_sink(ui)
     static_preflight_result: PreflightResult | None = None
     artifact_bootstrap_result: ArtifactWorkflowResult | None = None
@@ -1767,6 +1783,11 @@ def build_setup_services(
                     30.0,
                     minimum=1.0,
                 ),
+                max_concurrency=_operator_config_int(
+                    "TSW_SETUP_MAX_CONCURRENCY",
+                    2,
+                    minimum=1,
+                ),
             )
         )
     )
@@ -1841,16 +1862,30 @@ def _build_deployment_services_for_request(
     service_profile: ServiceStackProfile | str,
     node_provider_request: NodeProviderSelectionRequest | None,
     ui: PortUI | None = None,
+    progress: PortWorkflowProgress | None = None,
 ) -> DeploymentServices:
     if ui is None:
+        if progress is None:
+            return build_deployment_services_for_provider(
+                service_profile=service_profile,
+                node_provider_request=node_provider_request,
+            )
         return build_deployment_services_for_provider(
             service_profile=service_profile,
             node_provider_request=node_provider_request,
+            progress=progress,
+        )
+    if progress is None:
+        return build_deployment_services_for_provider(
+            service_profile=service_profile,
+            node_provider_request=node_provider_request,
+            ui=ui,
         )
     return build_deployment_services_for_provider(
         service_profile=service_profile,
         node_provider_request=node_provider_request,
         ui=ui,
+        progress=progress,
     )
 
 
@@ -2066,6 +2101,7 @@ def _platform_reconcile_steps(
 def _platform_expose_steps(
     lxc_service_exposure: LxcServiceExposureService,
     socat_manager: SocatManager,
+    socat_exposure: PortWslSocatExposure,
     *,
     service_profile: ServiceStackProfile,
     live_consent: LiveConsent | None,
@@ -2074,6 +2110,7 @@ def _platform_expose_steps(
         LxcServiceExposureStep(lxc_service_exposure),
         _WslSocatExposeStep(
             socat_manager,
+            socat_exposure,
             service_profile=ServiceStackProfile(service_profile),
             live_consent=live_consent,
         ),
@@ -2160,28 +2197,6 @@ def _wsl_socat_forwarding_plans(
             service_profile=service_profile
         ).required_ports
     )
-
-
-async def _wsl_socat_process_exists(pattern: str) -> bool:
-    process = await asyncio.create_subprocess_exec(
-        "pgrep",
-        "-f",
-        pattern,
-        stdout=asyncio.subprocess.DEVNULL,
-        stderr=asyncio.subprocess.DEVNULL,
-    )
-    return await process.wait() == 0
-
-
-async def _start_wsl_socat_command(command: str) -> bool:
-    process = await asyncio.create_subprocess_exec(
-        "sh",
-        "-lc",
-        f"nohup {command} >/dev/null 2>&1 &",
-        stdout=asyncio.subprocess.DEVNULL,
-        stderr=asyncio.subprocess.DEVNULL,
-    )
-    return await process.wait() == 0
 
 
 def _wsl_socat_expose_message(status: VerificationStatus) -> str:

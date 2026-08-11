@@ -17,10 +17,13 @@ state. Console reporting also must not control installer behavior.
 
 == Decision
 
-Tiny Swarm World uses the console exclusively for human-readable installer
+Tiny Swarm World uses the default console channel for human-readable installer
 progress, diagnostics, and recovery guidance. Structured machine-readable data
 such as JSON must be written to report files and must not be printed to stdout
-or stderr during normal, verbose, or CI execution.
+or stderr during normal execution. An explicit operator or automation opt-in
+(`--json` or `TSW_DEBUG_JSON=true`) may select the structured CLI channel; this
+opt-in is never implicit. `TSW_DEBUG_JSON=false` retains the human-readable
+default.
 
 Console output is an infrastructure adapter concern. Installer state is owned
 by the application layer. The console reporter renders application-level
@@ -31,8 +34,12 @@ interactive menu controller for live installation.
 
 == Consequences
 
-Normal and verbose console output remains human-readable. CI output, when
-introduced, must remain line-based text such as:
+Normal, verbose, and CI console output remains human-readable unless the
+explicit structured opt-in is selected. Setup summaries expose workflow,
+phase/status counts, phase-group timing, final status, and available evidence
+paths. When a failure log contains a structured block, the console identifies
+the omission and points to the full evidence log rather than dumping it.
+CI output, when introduced, must remain line-based text such as:
 
 ----
 INSTALL preflight SUCCESS

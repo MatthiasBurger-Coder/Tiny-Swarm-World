@@ -1,6 +1,7 @@
+import asyncio
 import unittest
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from tests.support.sonar_safe_literals import sample_text
 
@@ -19,27 +20,71 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[4]
 
 
 class TestWaitForNexusReady(unittest.TestCase):
-    @patch("tiny_swarm_world.application.services.nexus.wait_for_nexus_ready.time.sleep")
+    def test_progress_is_reported_before_each_retry_wait(self):
+        nexus_client = MagicMock()
+        nexus_client.is_available.side_effect = [False, False, True]
+        progress = MagicMock()
+        service = WaitForNexusReady(
+            nexus_client,
+            max_attempts=3,
+            wait_seconds=0,
+            progress=progress,
+        )
+
+        asyncio.run(service.run())
+
+        self.assertEqual(progress.report.call_count, 2)
+        first_event = progress.report.call_args_list[0].args[0]
+        self.assertEqual(first_event.step, "readiness wait 1/3")
+
+    def test_retry_wait_yields_to_the_event_loop(self):
+        nexus_client = MagicMock()
+        nexus_client.is_available.side_effect = [False, True]
+        service = WaitForNexusReady(nexus_client, max_attempts=2, wait_seconds=0)
+        observed: list[str] = []
+
+        async def marker() -> None:
+            await asyncio.sleep(0)
+            observed.append("marker")
+
+        async def run() -> None:
+            marker_task = asyncio.create_task(marker())
+            await service.run()
+            await marker_task
+
+        asyncio.run(run())
+        self.assertEqual(["marker"], observed)
+
+    @patch(
+        "tiny_swarm_world.application.services.shared.readiness_wait.asyncio.sleep",
+        new_callable=AsyncMock,
+    )
     def test_retries_until_nexus_is_ready(self, _mock_sleep):
         nexus_client = MagicMock()
         nexus_client.is_available.side_effect = [False, False, True]
 
         service = WaitForNexusReady(nexus_client, max_attempts=3, wait_seconds=1)
-        service.run()
+        asyncio.run(service.run())
 
         self.assertEqual(nexus_client.is_available.call_count, 3)
 
-    @patch("tiny_swarm_world.application.services.nexus.wait_for_nexus_ready.time.sleep")
+    @patch(
+        "tiny_swarm_world.application.services.shared.readiness_wait.asyncio.sleep",
+        new_callable=AsyncMock,
+    )
     def test_retries_transient_connection_errors_until_nexus_is_ready(self, _mock_sleep):
         nexus_client = MagicMock()
         nexus_client.is_available.side_effect = [ConnectionError("connection refused"), True]
 
         service = WaitForNexusReady(nexus_client, max_attempts=2, wait_seconds=1)
-        service.run()
+        asyncio.run(service.run())
 
         self.assertEqual(nexus_client.is_available.call_count, 2)
 
-    @patch("tiny_swarm_world.application.services.nexus.wait_for_nexus_ready.time.sleep")
+    @patch(
+        "tiny_swarm_world.application.services.shared.readiness_wait.asyncio.sleep",
+        new_callable=AsyncMock,
+    )
     def test_raises_timeout_when_nexus_never_becomes_ready(self, _mock_sleep):
         nexus_client = MagicMock()
         nexus_client.is_available.return_value = False
@@ -47,9 +92,12 @@ class TestWaitForNexusReady(unittest.TestCase):
         service = WaitForNexusReady(nexus_client, max_attempts=2, wait_seconds=1)
 
         with self.assertRaises(TimeoutError):
-            service.run()
+            asyncio.run(service.run())
 
-    @patch("tiny_swarm_world.application.services.nexus.wait_for_nexus_ready.time.sleep")
+    @patch(
+        "tiny_swarm_world.application.services.shared.readiness_wait.asyncio.sleep",
+        new_callable=AsyncMock,
+    )
     def test_raises_timeout_from_last_connection_error(self, _mock_sleep):
         nexus_client = MagicMock()
         nexus_client.is_available.side_effect = ConnectionError("connection refused")
@@ -57,13 +105,16 @@ class TestWaitForNexusReady(unittest.TestCase):
         service = WaitForNexusReady(nexus_client, max_attempts=2, wait_seconds=1)
 
         with self.assertRaises(TimeoutError) as raised:
-            service.run()
+            asyncio.run(service.run())
 
         self.assertIsInstance(raised.exception.__cause__, ConnectionError)
 
 
 class TestEnsureNexusAdminAccess(unittest.TestCase):
-    @patch("tiny_swarm_world.application.services.nexus.ensure_nexus_admin_access.time.sleep")
+    @patch(
+        "tiny_swarm_world.application.services.shared.readiness_wait.asyncio.sleep",
+        new_callable=AsyncMock,
+    )
     def test_skips_rotation_when_credentials_are_already_valid(self, _mock_sleep):
         nexus_client = MagicMock()
         nexus_client.can_authenticate.return_value = True
@@ -80,12 +131,15 @@ class TestEnsureNexusAdminAccess(unittest.TestCase):
             max_attempts=2,
             wait_seconds=1,
         )
-        service.run()
+        asyncio.run(service.run())
 
         container_runtime.find_container_names.assert_not_called()
         nexus_client.change_password.assert_not_called()
 
-    @patch("tiny_swarm_world.application.services.nexus.ensure_nexus_admin_access.time.sleep")
+    @patch(
+        "tiny_swarm_world.application.services.shared.readiness_wait.asyncio.sleep",
+        new_callable=AsyncMock,
+    )
     def test_activates_admin_and_rotates_password(self, _mock_sleep):
         nexus_client = MagicMock()
         nexus_client.can_authenticate.side_effect = [False, False, True]
@@ -107,7 +161,7 @@ class TestEnsureNexusAdminAccess(unittest.TestCase):
             max_attempts=2,
             wait_seconds=1,
         )
-        service.run()
+        asyncio.run(service.run())
 
         nexus_client.get_user.assert_called_once_with("admin", initial_value, "admin")
         nexus_client.change_password.assert_called_once_with("admin", initial_value, "admin", active_value)
@@ -115,7 +169,10 @@ class TestEnsureNexusAdminAccess(unittest.TestCase):
         updated_user = nexus_client.update_user.call_args.args[2]
         self.assertEqual(updated_user.status, "active")
 
-    @patch("tiny_swarm_world.application.services.nexus.ensure_nexus_admin_access.time.sleep")
+    @patch(
+        "tiny_swarm_world.application.services.shared.readiness_wait.asyncio.sleep",
+        new_callable=AsyncMock,
+    )
     def test_retries_transient_admin_rotation_failures(self, _mock_sleep):
         nexus_client = MagicMock()
         nexus_client.can_authenticate.side_effect = [False, False, True]
@@ -140,7 +197,7 @@ class TestEnsureNexusAdminAccess(unittest.TestCase):
             max_attempts=2,
             wait_seconds=1,
         )
-        service.run()
+        asyncio.run(service.run())
 
         self.assertEqual(nexus_client.get_user.call_count, 2)
         nexus_client.change_password.assert_called_once_with("admin", initial_value, "admin", active_value)
@@ -178,7 +235,10 @@ class TestEnsureNexusAdminAccess(unittest.TestCase):
         self.assertNotIn(leaked_value, result.message)
         self.assertNotIn("auth", str(result.evidence))
 
-    @patch("tiny_swarm_world.application.services.nexus.ensure_nexus_admin_access.time.sleep")
+    @patch(
+        "tiny_swarm_world.application.services.shared.readiness_wait.asyncio.sleep",
+        new_callable=AsyncMock,
+    )
     def test_run_logs_and_updates_ui_when_initial_password_is_unavailable(self, _mock_sleep):
         nexus_client = MagicMock()
         nexus_client.can_authenticate.return_value = False
@@ -200,7 +260,7 @@ class TestEnsureNexusAdminAccess(unittest.TestCase):
 
         with self.assertLogs("EnsureNexusAdminAccess", level="ERROR") as captured:
             with self.assertRaises(NexusAdminAccessRecoveryBlocked) as raised:
-                service.run()
+                asyncio.run(service.run())
 
         self.assertEqual(raised.exception.diagnostic, "initial_admin_value_unavailable")
         self.assertIn("NexusAdminAccessRecoveryBlocked", captured.output[0])
@@ -231,7 +291,7 @@ class TestBootstrapNexus(unittest.TestCase):
             ensure_nexus_admin_access=ensure_nexus_admin_access,
             enable_nexus_anonymous_access=enable_nexus_anonymous_access,
         )
-        bootstrapper.run()
+        asyncio.run(bootstrapper.run())
 
         self.assertEqual(execution_order, ["stack", "wait", "admin"])
         enable_nexus_anonymous_access.run.assert_not_called()
@@ -255,7 +315,7 @@ class TestBootstrapNexus(unittest.TestCase):
             enable_nexus_anonymous_access=enable_nexus_anonymous_access,
             enable_anonymous_access=True,
         )
-        bootstrapper.run()
+        asyncio.run(bootstrapper.run())
 
         self.assertEqual(execution_order, ["stack", "wait", "admin", "anonymous"])
 

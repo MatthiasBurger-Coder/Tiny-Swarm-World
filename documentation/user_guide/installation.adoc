@@ -176,9 +176,51 @@ initialize Swarm; the cluster phases own those operations. If a cluster phase
 is blocked or fails, later routing, artifact, and deployment phases are marked
 `not_run`.
 
+The operator-facing installation order is therefore:
+
+. prepare and verify the Linux/WSL host and the Incus daemon;
+. select and verify the managed `lxc_native` provider resources;
+. create or reconcile the three configured managed LXC nodes;
+. install or verify Docker Engine *inside* those managed nodes;
+. initialize and verify Docker Swarm inside the managed nodes;
+. expose the configured routing/proxy boundary;
+. prepare artifacts, apply selected service stacks, and verify readiness.
+
+Host Docker is not the workload runtime for this path. A host Docker CLI may
+be installed for diagnostics, local cache helpers, or evidence probes, but the
+setup workflow installs and verifies the service workload Docker Engine inside
+the Incus-managed nodes. Do not interpret `docker info` on the host as proof
+that node-local Docker or Swarm is ready; use the managed-node checks in the
+runtime verification section.
+
 == LXC Native Provider Baseline
 
-The default provider is `lxc_native`. Prepare Incus before a live setup run.
+=== Hard Host Prerequisite Boundary
+
+The default provider is `lxc_native` through the managed Incus backend. An
+Incus/LXD host management layer is therefore a hard prerequisite before a live
+Tiny Swarm World run. Incus/LXD installation, daemon initialization, storage
+pool and bridge creation, profile changes, daemon repair, and group membership
+are host-operator responsibilities. Tiny Swarm World does not install or
+initialize Incus/LXD automatically.
+
+From the same Linux/WSL shell that will run `./install.sh`, the current user
+must be able to run the provider client without `sudo`:
+
+[source,bash]
+----
+incus version
+incus info
+----
+
+If the host operator changed `incus-admin` or another provider-access group,
+close and reopen the shell before running these checks. Do not hide a missing
+permission behind `sudo`; the installer and preflight must observe the same
+user-level access that the live workflow will use.
+
+The ready-for-install checklist below is the operator path. The technical
+provider boundary and optional target-specific smoke are maintained in
+`documentation/system/lxc-native-setup.adoc`.
 
 Backend selection first honors an explicit `--lxc-backend incus` override,
 then `backend_selection.preferred_backend` in
@@ -216,6 +258,33 @@ the protected bridge-state file before running preflight.
 
 See `documentation/system/lxc-native-setup.adoc` for the full WSL2 and
 Incus setup notes and official references.
+
+== Ready-For-Install Checklist
+
+Complete this checklist from the same Linux/WSL shell that will run
+`./install.sh`. The first items are static/read-only checks. The optional
+temporary-container smoke is a small live provider check and requires explicit
+operator approval; it is not part of the repository quality gate.
+
+* [ ] The shell is native Linux or WSL2 with the required systemd/cgroup/user-
+  namespace capabilities.
+* [ ] The repository is on a Linux-native path when running under WSL2, or the
+  explicit filesystem override is intentionally approved.
+* [ ] Incus is installed and initialized by the host operator; the current user
+  runs `incus version` and `incus info` without `sudo`.
+* [ ] The selected Incus storage pool, network bridge, and required profile
+  state are available to that same user.
+* [ ] Python dependencies are installed and `python3 tools/quality_gate.py
+  quality` is green when local development verification is required.
+* [ ] `PYTHONPATH=src python3 -m tiny_swarm_world --preflight` passes its static
+  checks before any live consent is supplied.
+* [ ] Required local secrets/configuration are present in ignored files and no
+  secret values are copied into commands, logs, or documentation.
+
+The detailed optional smoke appears in the Incus baseline below. After this
+checklist, continue with the ordered runtime path: host preparation and
+verification, managed LXC nodes, Docker Engine inside those nodes, Swarm
+bootstrap, routing, artifacts, deployment, and final verification.
 
 == Runtime Environment Green Path
 
@@ -270,7 +339,7 @@ Then run the local quality gate before live infrastructure work:
 .venv/bin/python tools/quality_gate.py quality
 ----
 
-=== 3. Verify Incus Baseline
+=== 3. Verify Incus Baseline And Optional Smoke
 
 The default provider is Incus-backed `lxc_native`. Verify the daemon and create
 one temporary container before running Tiny Swarm World automation:
@@ -283,6 +352,10 @@ incus launch images:ubuntu/24.04 test-incus
 incus exec test-incus -- cat /etc/os-release
 incus delete test-incus --force
 ----
+
+Run the temporary-container block only when a live provider smoke is approved.
+If `incus launch` succeeds but a later command fails, delete the named
+`test-incus` container before retrying. Do not use broad container cleanup.
 
 The normal project setup creates and owns the managed nodes. Do not manually
 create `swarm-manager`, `swarm-worker-1`, or `swarm-worker-2` unless a
@@ -879,12 +952,14 @@ Operators who intentionally want only the older base service set can pass
 
 The service-access setup profile exposes Traefik ingress ports `80` and `443`
 through the LXC/WSL exposure workflow. The service-access NGINX compose
-service publishes ports `10000` and `8086` as stack metadata parsed from
-`infra/config/compose/service-access/docker-compose.yml`. WSL `localhost`
-forwarding is a separate host-network concern. Endpoint defaults are
-configuration hints, not service-health evidence. If localhost forwarding is
-stale, use the current Swarm node IP only for manual diagnosis until the
-forwarding issue is repaired.
+service publishes registry-backed dashboard port `10000` and explicit
+compatibility/rollback port `8086` as stack metadata parsed from
+`infra/config/compose/service-access/docker-compose.yml`. The Compose target
+ports remain the image-compatible internal ports. WSL `localhost` forwarding
+is a separate host-network concern. Endpoint defaults are configuration hints,
+not service-health evidence, and local effective-port evidence is not live
+readiness evidence. If localhost forwarding is stale, use the current Swarm
+node IP only for manual diagnosis until the forwarding issue is repaired.
 
 The service-access dashboard is a generated management table. It lists
 service links, users and Infisical item references from the effective access

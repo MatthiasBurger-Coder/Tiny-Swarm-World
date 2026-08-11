@@ -1,0 +1,22 @@
+{
+  "workflow_id": "issue-144-20260809",
+  "workflow_version": "issue-144-v1.0.0",
+  "issue": 144,
+  "branch": "feature/workflow-issue-chain-163-156-197-152-144-146-147-148-145-151-153-20260809",
+  "baseline_commit": "b8c64eaa50839fcbf4581ca819286ad13ee88300",
+  "execution_profile": "FULL_PATH",
+  "process_strand": "workflow-create-to-workflow-execute",
+  "affected_areas": ["Nexus readiness", "SonarQube readiness", "Infisical bootstrap", "async progress"],
+  "forbidden_areas": ["nested event loops", "busy waiting", "ad hoc threads", "live service dependency"],
+  "required_roles": ["Senior Requirement Engineer", "Senior System Architect", "Senior Python Automation Developer", "Senior Tester"],
+  "conditional_roles": ["Console/status UI reviewer", "Senior Documentation Engineer", "Resilience Engineering", "Issue Completion Auditor"],
+  "quality_commands": ["git diff --check", "PYTHONPATH=src python3 -m unittest tests.application.services.nexus.test_bootstrap_nexus", "PYTHONPATH=src python3 -m unittest tests.application.services.deployment.test_ensure_sonarqube_admin_access", "python3 tools/quality_gate.py quality"],
+  "source_issue": "https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/144",
+  "governing_hashes": {
+    "AGENTS.md": "BC0E6E0C09AC3D61A450A7FE16C3E4DE9E6FBB8BDC688AAD58F10A3D18B31041",
+    "QUALITY.md": "7F8DD247FD989FBB72588A48B00846EDCB2A9AA748BB1954DC22B75952EFAA4C",
+    "documentation/process/issue-completion-discipline.md": "3DB2D080B7CFBBC3737907A61C67CE6A361485C8993CF4A20C1C5FE2DC743BC3",
+    "documentation/process/verification-state-policy.md": "5B6E2EEFDE66A1B8492AFAFC2976E59AC40F16E7100F79F730B97B254FEBDCFD",
+    "documentation/arc42/10_quality_requirements.adoc": "1C7F4810F44DA68A22D18731820E9458B027C9994B809D114BA3D45B38877930"
+  }
+}

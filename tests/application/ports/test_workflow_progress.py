@@ -2,7 +2,9 @@ import unittest
 
 from tiny_swarm_world.application.ports.progress import (
     NullWorkflowProgress,
+    PortWorkflowProgress,
     WorkflowProgressEvent,
+    report_readiness_wait,
 )
 
 
@@ -127,3 +129,42 @@ class TestNullWorkflowProgress(unittest.TestCase):
         )
 
         self.assertIsNone(progress.report(event))
+
+
+class TestReadinessProgress(unittest.TestCase):
+    def test_readiness_wait_reports_safe_attempt_metadata(self):
+        class RecordingProgress(PortWorkflowProgress):
+            def __init__(self):
+                self.events = []
+
+            def report(self, event):
+                self.events.append(event)
+
+        progress = RecordingProgress()
+        report_readiness_wait(
+            progress,
+            workflow="setup run",
+            phase="deployment",
+            target="nexus",
+            task="Nexus readiness",
+            attempt=2,
+            max_attempts=3,
+            wait_seconds=1.5,
+        )
+
+        self.assertEqual(len(progress.events), 1)
+        self.assertEqual(progress.events[0].step, "readiness wait 2/3")
+        self.assertEqual(progress.events[0].status, "running")
+
+    def test_readiness_wait_rejects_out_of_range_attempt(self):
+        with self.assertRaises(ValueError):
+            report_readiness_wait(
+                NullWorkflowProgress(),
+                workflow="setup run",
+                phase="deployment",
+                target="nexus",
+                task="Nexus readiness",
+                attempt=3,
+                max_attempts=2,
+                wait_seconds=1,
+            )

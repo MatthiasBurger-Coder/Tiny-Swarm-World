@@ -5,7 +5,7 @@ from dataclasses import fields
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import cast
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 from tests.support.async_helpers import async_checkpoint
 from tests.support.sonar_safe_literals import ipv4_address, sample_http_url, sample_text
 
@@ -45,6 +45,7 @@ from tiny_swarm_world.infrastructure.adapters.host import (
     WslHostSignalReader,
 )
 from tiny_swarm_world.infrastructure.adapters.preflight import HostPreflightProbe
+from tiny_swarm_world.infrastructure.adapters.network import wsl_socat_exposure
 
 
 def _required_infisical_bootstrap_env() -> dict[str, str]:
@@ -1937,10 +1938,15 @@ class TestComposition(unittest.TestCase):
             trace_correlation_id=services.workflows.run.trace_correlation_id,
             allow_wsl_windows_filesystem=True,
         )
-        build_artifacts.assert_called_once_with(node_provider_request=None, ui=None)
+        build_artifacts.assert_called_once_with(
+            node_provider_request=None,
+            ui=None,
+            progress=services.workflows.run.progress,
+        )
         build_deployment.assert_called_once_with(
             service_profile=ServiceStackProfile.SERVICE_ACCESS,
             node_provider_request=None,
+            progress=services.workflows.run.progress,
         )
         build_preflight.return_value.run.assert_not_called()
         build_platform.return_value.workflows.init.run.assert_not_called()
@@ -1973,10 +1979,12 @@ class TestComposition(unittest.TestCase):
             service_profile: object,
             node_provider_request: object | None = None,
             ui: object | None = None,
+            progress: object | None = None,
         ):
             captured["deployment_service_profile"] = service_profile
             captured["deployment_node_provider_request"] = node_provider_request
             captured["deployment_ui"] = ui
+            captured["deployment_progress"] = progress
             return _deployment_phase_bundle()
 
         with patch.object(
@@ -2010,6 +2018,7 @@ class TestComposition(unittest.TestCase):
 
         self.assertIs(ui, captured["ui"])
         self.assertIs(ui, captured["deployment_ui"])
+        self.assertIs(progress_sink, captured["deployment_progress"])
         self.assertIs(live_consent, captured["live_consent"])
         self.assertEqual(
             ServiceStackProfile.SERVICE_ACCESS, captured["deployment_service_profile"]
@@ -2654,6 +2663,10 @@ class TestComposition(unittest.TestCase):
         self.assertIsInstance(socat_step, composition._WslSocatExposeStep)
         self.assertIs(step.service, services.lxc_service_exposure)
         self.assertIs(socat_step.socat_manager, services.socat_manager)
+        self.assertIsInstance(
+            socat_step.socat_exposure,
+            composition.WslSocatExposureAdapter,
+        )
         self.assertEqual(step.service.gateway_node.name, "swarm-manager")
         self.assertEqual(
             composition.DEFAULT_LXC_MANAGER_PROXY_PROFILE,
@@ -2676,14 +2689,32 @@ class TestComposition(unittest.TestCase):
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
         self.assertEqual(result.evidence["classification"], "not_required")
 
-    def test_composed_wsl_socat_expose_skips_missing_optional_socat(self):
-        services = composition.build_platform_services(
-            live_consent=LiveConsent(live_flag=True, confirmed=True)
-        )
+    def test_composed_wsl_socat_expose_blocks_without_live_consent_before_adapter(self):
+        services = composition.build_platform_services()
         socat_step = services.workflows.expose.steps[1]
         socat_step.os_type = composition.OsTypes.WSL_LINUX
 
-        with patch.object(composition.shutil, "which", return_value=None):
+        with patch.object(
+            socat_step.socat_exposure,
+            "is_available",
+            new=AsyncMock(side_effect=AssertionError("consent guard must run first")),
+        ):
+            result = asyncio.run(socat_step.run())
+
+        self.assertEqual(VerificationStatus.BLOCKED, result.status)
+        self.assertEqual(
+            result.evidence["classification"],
+            "live_mutation_required",
+        )
+        self.assertEqual(result.evidence["planned_forward_count"], "18")
+
+    def test_composed_wsl_socat_expose_skips_missing_optional_socat(self):
+        with patch.object(wsl_socat_exposure.shutil, "which", return_value=None):
+            services = composition.build_platform_services(
+                live_consent=LiveConsent(live_flag=True, confirmed=True)
+            )
+            socat_step = services.workflows.expose.steps[1]
+            socat_step.os_type = composition.OsTypes.WSL_LINUX
             result = asyncio.run(socat_step.run())
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
@@ -2747,6 +2778,25 @@ def _accepted_live_consent() -> LiveConsent:
         environment_value=LIVE_CONSENT_ENVIRONMENT_VALUE,
         typed_phrase=LIVE_CONSENT_PHRASE,
     )
+
+
+    def test_setup_max_concurrency_operator_config_is_positive_and_configurable(self):
+        with patch.dict("os.environ", {"TSW_SETUP_MAX_CONCURRENCY": "3"}):
+            self.assertEqual(
+                composition._operator_config_int(
+                    "TSW_SETUP_MAX_CONCURRENCY",
+                    2,
+                    minimum=1,
+                ),
+                3,
+            )
+        with patch.dict("os.environ", {"TSW_SETUP_MAX_CONCURRENCY": "0"}):
+            with self.assertRaisesRegex(ValueError, "at least 1"):
+                composition._operator_config_int(
+                    "TSW_SETUP_MAX_CONCURRENCY",
+                    2,
+                    minimum=1,
+                )
 
 
 class _RecordingEvidenceRepository:

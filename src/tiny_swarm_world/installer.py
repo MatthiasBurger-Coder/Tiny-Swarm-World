@@ -93,6 +93,28 @@ class InstallerPaths:
 
 
 @dataclass(frozen=True)
+class _ExportFileSnapshot:
+    values: dict[str, str]
+    duplicate_keys: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class _GitProbeResult:
+    inside_worktree: bool
+    path_ignored: bool
+    status: str
+
+
+@dataclass(frozen=True)
+class _EvidenceProbeSnapshot:
+    git_branch: str
+    git_head: str
+    platform_system: str
+    kernel_release: str
+    proc_osrelease: str
+
+
+@dataclass(frozen=True)
 class _InstallRunContext:
     run_id: str
     service_profile: str
@@ -107,6 +129,8 @@ class _InstallRunContext:
     terminal_recording_mode: str
     cwd: Path
     env: Mapping[str, str]
+    git_probe: _GitProbeResult
+    evidence_probes: _EvidenceProbeSnapshot
 
 
 @dataclass(frozen=True)
@@ -312,8 +336,10 @@ def run(
     _ensure_private_file(paths.secret_env_file)
     _ensure_private_file(paths.infisical_secret_env_file)
     _ensure_private_file(paths.generated_secret_env_file)
-    install_env.update(_load_export_file(paths.secret_env_file))
-    install_env.update(_load_export_file(paths.infisical_secret_env_file))
+    secret_env_snapshot = _parse_export_file(paths.secret_env_file)
+    infisical_env_snapshot = _parse_export_file(paths.infisical_secret_env_file)
+    install_env.update(secret_env_snapshot.values)
+    install_env.update(infisical_env_snapshot.values)
 
     required_entries = _required_installer_secret_entries(
         cwd / DEFAULT_SECRET_MANIFEST_PATH,
@@ -339,17 +365,31 @@ def run(
                 generated,
             )
             install_env.update(generated)
+            secret_env_snapshot = _snapshot_with_exports(secret_env_snapshot, generated)
             secrets_generated_count = len(missing)
 
-    _normalize_infisical_login_email(paths, install_env)
-    _ensure_sonarqube_password_policy(options, paths, install_env)
-    _ensure_default_config_exports(paths, install_env)
-    _normalize_export_file_if_duplicate_keys(paths.secret_env_file)
+    secret_env_snapshot = _snapshot_with_exports(
+        secret_env_snapshot,
+        _normalize_infisical_login_email(paths, install_env),
+    )
+    secret_env_snapshot = _snapshot_with_exports(
+        secret_env_snapshot,
+        _ensure_sonarqube_password_policy(options, paths, install_env),
+    )
+    secret_env_snapshot = _snapshot_with_exports(
+        secret_env_snapshot,
+        _ensure_default_config_exports(paths, install_env),
+    )
+    _normalize_export_file_if_duplicate_keys(
+        paths.secret_env_file,
+        snapshot=secret_env_snapshot,
+    )
     _write_infisical_secret_file(paths.infisical_secret_env_file, install_env)
     install_env.setdefault("TSW_SEED_INFISICAL_ITEMS", "0")
     _configure_native_linux_command_group(host_runtime, install_env)
 
-    if _inside_git_worktree(cwd) and not _git_check_ignore(cwd, ".tiny-swarm-world/"):
+    git_probe = _probe_git_ignore(cwd, ".tiny-swarm-world/")
+    if git_probe.inside_worktree and not git_probe.path_ignored:
         print(
             "WARN: .tiny-swarm-world/ is not ignored by git; do not commit local evidence or generated secrets.",
             file=sys.stderr,
@@ -360,6 +400,7 @@ def run(
     evidence_dir.mkdir(parents=True, exist_ok=True)
     live_mode, approval_source, approval_argument = _live_approval(options)
     terminal_mode = "headless" if options.headless else "terminal_recorder"
+    evidence_probes = _collect_evidence_probe_snapshot(cwd, git_probe)
     _write_context(
         evidence_dir,
         context=_InstallRunContext(
@@ -376,6 +417,8 @@ def run(
             terminal_recording_mode=terminal_mode,
             cwd=cwd,
             env=install_env,
+            git_probe=git_probe,
+            evidence_probes=evidence_probes,
         ),
     )
 
@@ -507,8 +550,7 @@ def run(
                 evidence_path=evidence_dir,
             )
         )
-        print("Installation completed successfully.")
-        print(f"Evidence directory: {evidence_dir.as_posix()}")
+        _print_install_completion_summary(0, evidence_dir, stream=sys.stdout)
     else:
         install_reporter.report(
             _phase_event(
@@ -519,8 +561,7 @@ def run(
                 evidence_path=evidence_dir,
             )
         )
-        print(f"Installation failed with exit code {setup_exit}.", file=sys.stderr)
-        print(f"Evidence directory: {evidence_dir.as_posix()}", file=sys.stderr)
+        _print_install_completion_summary(setup_exit, evidence_dir, stream=sys.stderr)
         _print_tail(evidence_dir / _SETUP_RUN_LOG_FILE, "Last log lines")
         _print_setup_failure_guidance(evidence_dir / _SETUP_RUN_LOG_FILE)
     return setup_exit
@@ -939,44 +980,58 @@ def _installer_subprocess_timeout_seconds(env: Mapping[str, str]) -> float:
     return timeout
 
 
-def _load_export_file(path: Path) -> dict[str, str]:
+def _parse_export_file(path: Path) -> _ExportFileSnapshot:
     if not path.exists():
-        return {}
+        return _ExportFileSnapshot({}, ())
     values: dict[str, str] = {}
-    for raw_line in path.read_text(encoding="utf-8").splitlines():
-        assignment = _export_assignment_from_line(raw_line)
-        if assignment is None:
-            continue
-        name, raw_value = assignment
-        values[name] = _parse_export_value(raw_value)
-    return values
-
-
-def _normalize_export_file_if_duplicate_keys(path: Path) -> None:
-    duplicates = _duplicate_export_keys(path)
-    if not duplicates:
-        return
-    _write_exports(
-        path,
-        f"Normalized by install.sh after duplicate key cleanup at {_utc_timestamp()} UTC",
-        _load_export_file(path),
-    )
-
-
-def _duplicate_export_keys(path: Path) -> tuple[str, ...]:
-    if not path.exists():
-        return ()
-    seen: set[str] = set()
     duplicates: set[str] = set()
     for raw_line in path.read_text(encoding="utf-8").splitlines():
         assignment = _export_assignment_from_line(raw_line)
         if assignment is None:
             continue
-        name, _ = assignment
-        if name in seen:
+        name, raw_value = assignment
+        if name in values:
             duplicates.add(name)
-        seen.add(name)
-    return tuple(sorted(duplicates))
+        values[name] = _parse_export_value(raw_value)
+    return _ExportFileSnapshot(values, tuple(sorted(duplicates)))
+
+
+def _load_export_file(path: Path) -> dict[str, str]:
+    return _parse_export_file(path).values
+
+
+def _snapshot_with_exports(
+    snapshot: _ExportFileSnapshot,
+    exports: Mapping[str, str],
+) -> _ExportFileSnapshot:
+    if not exports:
+        return snapshot
+    values = dict(snapshot.values)
+    duplicates = set(snapshot.duplicate_keys)
+    for name, value in exports.items():
+        if name in values:
+            duplicates.add(name)
+        values[name] = value
+    return _ExportFileSnapshot(values, tuple(sorted(duplicates)))
+
+
+def _normalize_export_file_if_duplicate_keys(
+    path: Path,
+    *,
+    snapshot: _ExportFileSnapshot | None = None,
+) -> None:
+    parsed = snapshot or _parse_export_file(path)
+    if not parsed.duplicate_keys:
+        return
+    _write_exports(
+        path,
+        f"Normalized by install.sh after duplicate key cleanup at {_utc_timestamp()} UTC",
+        parsed.values,
+    )
+
+
+def _duplicate_export_keys(path: Path) -> tuple[str, ...]:
+    return _parse_export_file(path).duplicate_keys
 
 
 def _export_assignment_from_line(raw_line: str) -> tuple[str, str] | None:
@@ -1058,10 +1113,10 @@ def _ensure_sonarqube_password_policy(
     options: InstallerOptions,
     paths: InstallerPaths,
     env: dict[str, str],
-) -> None:
+) -> dict[str, str]:
     current = env.get("TSW_SONARQUBE_ADMIN_PASSWORD", "")
     if len(current) >= 12 and any(character in current for character in "!@#$%^&*()_+"):
-        return
+        return {}
     if options.secrets_mode != "generated" or not options.generate_secrets:
         raise InstallerError("TSW_SONARQUBE_ADMIN_PASSWORD must be at least 12 characters and contain a special character.")
     value = f"{secrets.token_urlsafe(32)}!"
@@ -1070,35 +1125,38 @@ def _ensure_sonarqube_password_policy(
     label = f"Regenerated by install.sh for SonarQube password policy at {_utc_timestamp()} UTC"
     _append_exports(paths.secret_env_file, label, exports)
     _append_exports(paths.generated_secret_env_file, label, exports)
+    return exports
 
 
-def _ensure_default_config_exports(paths: InstallerPaths, env: dict[str, str]) -> None:
+def _ensure_default_config_exports(paths: InstallerPaths, env: dict[str, str]) -> dict[str, str]:
     exports: dict[str, str] = {}
     if not env.get("TSW_TRAEFIK_TLS_CERT_SECRET_NAME"):
         exports["TSW_TRAEFIK_TLS_CERT_SECRET_NAME"] = "tsw_traefik_tls_cert"
     if not env.get("TSW_TRAEFIK_TLS_KEY_SECRET_NAME"):
         exports["TSW_TRAEFIK_TLS_KEY_SECRET_NAME"] = "tsw_traefik_tls_key"
     if not exports:
-        return
+        return {}
     env.update(exports)
     _append_exports(
         paths.secret_env_file,
         f"Default non-secret config values written by install.sh at {_utc_timestamp()} UTC",
         exports,
     )
+    return exports
 
 
-def _normalize_infisical_login_email(paths: InstallerPaths, env: dict[str, str]) -> None:
+def _normalize_infisical_login_email(paths: InstallerPaths, env: dict[str, str]) -> dict[str, str]:
     current = env.get("TSW_INFISICAL_LOGIN_EMAIL", "")
     normalized = _normalized_email_value(current)
     if not normalized or normalized == current:
-        return
+        return {}
     env["TSW_INFISICAL_LOGIN_EMAIL"] = normalized
     _append_exports(
         paths.secret_env_file,
         f"Corrected Infisical login email shell quoting at {_utc_timestamp()} UTC",
         {"TSW_INFISICAL_LOGIN_EMAIL": normalized},
     )
+    return {"TSW_INFISICAL_LOGIN_EMAIL": normalized}
 
 
 def _normalized_email_value(value: str) -> str:
@@ -1123,6 +1181,13 @@ def _write_infisical_secret_file(path: Path, env: Mapping[str, str]) -> None:
 
 
 def _configure_native_linux_command_group(host_runtime: HostRuntime, env: dict[str, str]) -> None:
+    """Keep native group switching caller-controlled and probe-free.
+
+    The installer does not infer host identity or group membership. A caller
+    that explicitly supplies ``TSW_INSTALL_COMMAND_GROUP`` may use it in the
+    phase runner, while this bootstrap boundary performs no host mutation and
+    does not persist membership state across invocations.
+    """
     return
 
 
@@ -1340,28 +1405,49 @@ def _suggested_checks_for_phase(name: str, *, log_text: str = "") -> tuple[str, 
 def _render_fallback_install_event(event: _FallbackInstallEvent) -> tuple[str, ...]:
     lines: list[str]
     if event.event_type == "INSTALL_STARTED":
-        lines = ["Tiny Swarm World Installer", f"  RUNNING {event.message or event.step}"]
+        lines = [
+            "Tiny Swarm World Installer",
+            f"  RUNNING {_safe_installer_line_value(event.message or event.step)}",
+        ]
         return tuple(lines)
     if event.status == "STARTED":
-        header = f"[{event.sequence}/{event.total}] {event.step}" if event.sequence and event.total else event.step
-        lines = [header, f"  RUNNING {event.message or event.target}"]
+        header = (
+            f"[{event.sequence}/{event.total}] {event.step}"
+            if event.sequence and event.total
+            else event.step
+        )
+        lines = [
+            header,
+            f"  RUNNING {_safe_installer_line_value(event.message or event.target)}",
+        ]
         return tuple(lines)
     if event.status == "SUCCEEDED":
-        lines = [f"  OK      {event.message or event.target}"]
+        lines = [
+            f"  OK      {_safe_installer_line_value(event.message or event.target)}"
+        ]
         return tuple(lines)
     if event.status in {"FAILED", "TIMED_OUT", "INTERRUPTED"}:
         target = f" on {event.target}" if event.target else ""
         lines = [f"FAILED {event.step}{target}"]
         if event.reason:
-            lines.extend(("", "Reason:", f"  {event.reason}"))
+            lines.extend(("", "Reason:", f"  {_safe_installer_line_value(event.reason)}"))
         if event.evidence_path:
             lines.extend(("", "Evidence:", f"  {event.evidence_path.as_posix()}"))
         if event.suggested_commands:
             lines.extend(("", "Suggested checks:"))
             lines.extend(f"  {command}" for command in event.suggested_commands)
         return tuple(lines)
-    lines = [f"  {event.status:<8}{event.message or event.target}"]
+    lines = [
+        f"  {event.status:<8}{_safe_installer_line_value(event.message or event.target)}"
+    ]
     return tuple(lines)
+
+
+def _safe_installer_line_value(value: str) -> str:
+    text = " ".join(value.replace("\r", " ").replace("\n", " ").split())
+    if text.startswith(("{", "[")) and text.endswith(("}", "]")):
+        return "structured event details recorded in evidence"
+    return text
 
 
 def _write_context(
@@ -1373,8 +1459,8 @@ def _write_context(
         "run_id": context.run_id,
         "started_utc": _utc_timestamp(),
         "repo": context.cwd.as_posix(),
-        "git_branch": _run_text(("git", "branch", "--show-current"), cwd=context.cwd),
-        "git_head": _run_text(("git", "rev-parse", "--short", "HEAD"), cwd=context.cwd),
+        "git_branch": context.evidence_probes.git_branch,
+        "git_head": context.evidence_probes.git_head,
         "service_profile": context.service_profile,
         "fresh_install_reset": "required",
         "secrets_mode": context.secrets_mode,
@@ -1388,9 +1474,9 @@ def _write_context(
         "live_execution_mode": context.live_execution_mode,
         "live_approval_source": context.live_approval_source,
         "terminal_recording_mode": context.terminal_recording_mode,
-        "platform_system": _run_text(("uname", "-s")),
-        "kernel_release": _run_text(("uname", "-r")),
-        "proc_osrelease": _read_text(Path("/proc/sys/kernel/osrelease")).strip(),
+        "platform_system": context.evidence_probes.platform_system,
+        "kernel_release": context.evidence_probes.kernel_release,
+        "proc_osrelease": context.evidence_probes.proc_osrelease,
         "wsl_distro_name_present": "yes" if context.env.get("WSL_DISTRO_NAME") else "no",
         "wsl_interop_present": "yes" if context.env.get("WSL_INTEROP") else "no",
     }
@@ -1402,6 +1488,52 @@ def _append_context(evidence_dir: Path, values: Mapping[str, str], *, replace: b
     with (evidence_dir / "context.txt").open(mode, encoding="utf-8") as context:
         for key, value in values.items():
             context.write(f"{key}={value}\n")
+
+
+def _collect_evidence_probe_snapshot(
+    cwd: Path,
+    git_probe: _GitProbeResult,
+) -> _EvidenceProbeSnapshot:
+    git_branch, git_head = _git_revision_metadata(cwd, git_probe)
+    system_metadata = _run_optional_text(("uname", "-srm"))
+    if system_metadata == "unknown":
+        platform_system = "unknown"
+        kernel_release = "unknown"
+    else:
+        system_parts = system_metadata.split(maxsplit=2)
+        platform_system = system_parts[0] if system_parts else "unknown"
+        kernel_release = system_parts[1] if len(system_parts) > 1 else "unknown"
+    proc_osrelease = _read_text(Path("/proc/sys/kernel/osrelease")).strip() or "unknown"
+    return _EvidenceProbeSnapshot(
+        git_branch=git_branch,
+        git_head=git_head,
+        platform_system=platform_system,
+        kernel_release=kernel_release,
+        proc_osrelease=proc_osrelease,
+    )
+
+
+def _git_revision_metadata(cwd: Path, git_probe: _GitProbeResult) -> tuple[str, str]:
+    if not git_probe.inside_worktree:
+        return "unknown", "unknown"
+    metadata = _run_optional_text(
+        ("git", "show", "-s", "--format=%D%x00%h", "HEAD"),
+        cwd=cwd,
+    )
+    if metadata == "unknown":
+        return "unknown", "unknown"
+    decorations, separator, short_head = metadata.partition("\x00")
+    if not separator:
+        return "unknown", "unknown"
+    branch = ""
+    for decoration in decorations.split(","):
+        candidate = decoration.strip()
+        if candidate.startswith("HEAD -> "):
+            branch = candidate.removeprefix("HEAD -> ")
+            break
+        if candidate.startswith("refs/heads/"):
+            branch = candidate.removeprefix("refs/heads/")
+    return branch, short_head or "unknown"
 
 
 def _windows_wsl_bridge_context(
@@ -1486,6 +1618,19 @@ def _print_install_plan(cwd: Path, options: InstallerOptions, evidence_dir: Path
     )
 
 
+def _print_install_completion_summary(
+    exit_code: int,
+    evidence_dir: Path,
+    *,
+    stream: IO[str],
+) -> None:
+    if exit_code == 0:
+        print("Installation completed successfully.", file=stream)
+    else:
+        print(f"Installation failed with exit code {exit_code}.", file=stream)
+    print(f"Evidence directory: {evidence_dir.as_posix()}", file=stream)
+
+
 def _print_missing_secrets(missing: Sequence[str]) -> None:
     print("Missing required secrets:", file=sys.stderr)
     for name in missing:
@@ -1496,9 +1641,44 @@ def _print_tail(path: Path, title: str) -> None:
     print(f"\n{title}:", file=sys.stderr)
     if not path.exists():
         return
-    lines = path.read_text(encoding="utf-8", errors="replace").splitlines()[-80:]
-    for line in lines:
+    print(f"Full log retained at: {path.as_posix()}", file=sys.stderr)
+    for line in _safe_log_tail_lines(path):
         print(line, file=sys.stderr)
+
+
+def _safe_log_tail_lines(path: Path) -> tuple[str, ...]:
+    lines = path.read_text(encoding="utf-8", errors="replace").splitlines()[-80:]
+    rendered: list[str] = []
+    structured_depth = 0
+    for line in lines:
+        stripped = line.strip()
+        if structured_depth:
+            structured_depth += _structured_delimiter_delta(stripped)
+            if structured_depth <= 0:
+                structured_depth = 0
+            continue
+        if _starts_structured_log_value(stripped):
+            rendered.append(
+                "[structured log block omitted from console; full content is in the evidence log]"
+            )
+            structured_depth = max(0, _structured_delimiter_delta(stripped))
+            continue
+        rendered.append(line)
+    return tuple(rendered)
+
+
+def _starts_structured_log_value(value: str) -> bool:
+    if value.startswith("{"):
+        return True
+    return (
+        value.startswith("[")
+        and len(value) > 1
+        and value[1] in "\"'{0123456789-]"
+    )
+
+
+def _structured_delimiter_delta(value: str) -> int:
+    return value.count("{") + value.count("[") - value.count("}") - value.count("]")
 
 
 def _print_reset_failure_guidance(path: Path) -> None:
@@ -1617,26 +1797,33 @@ def _run_text(command: tuple[str, ...], *, cwd: Path | None = None) -> str:
     ).stdout.strip()
 
 
-def _inside_git_worktree(cwd: Path) -> bool:
-    return subprocess.run(
-        ["git", "rev-parse", "--is-inside-work-tree"],
-        cwd=cwd,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        check=False,
-        timeout=DEFAULT_INSTALLER_PROBE_TIMEOUT_SECONDS,
-    ).returncode == 0
+def _run_optional_text(command: tuple[str, ...], *, cwd: Path | None = None) -> str:
+    try:
+        result = _run_text(command, cwd=cwd)
+    except (OSError, subprocess.SubprocessError):
+        return "unknown"
+    return result or "unknown"
 
 
-def _git_check_ignore(cwd: Path, path: str) -> bool:
-    return subprocess.run(
-        ["git", "check-ignore", "-q", path],
-        cwd=cwd,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        check=False,
-        timeout=DEFAULT_INSTALLER_PROBE_TIMEOUT_SECONDS,
-    ).returncode == 0
+def _probe_git_ignore(cwd: Path, path: str) -> _GitProbeResult:
+    try:
+        result = subprocess.run(
+            ["git", "check-ignore", "-q", "--", path],
+            cwd=cwd,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+            timeout=DEFAULT_INSTALLER_PROBE_TIMEOUT_SECONDS,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return _GitProbeResult(False, False, "unknown")
+    if result.returncode == 0:
+        return _GitProbeResult(True, True, "ignored")
+    if result.returncode == 1:
+        return _GitProbeResult(True, False, "not_ignored")
+    if result.returncode == 128:
+        return _GitProbeResult(False, False, "outside_worktree")
+    return _GitProbeResult(False, False, f"unknown_{result.returncode}")
 
 
 def _utc_timestamp() -> str:

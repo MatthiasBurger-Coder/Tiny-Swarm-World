@@ -5,6 +5,7 @@ from contextlib import suppress
 import inspect
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Protocol
 
@@ -46,6 +47,7 @@ class SetupWorkflowStatus(str, Enum):
 
 
 RUN_SETUP_WORKFLOW_TASK = "Run setup workflow"
+DEFAULT_SETUP_MAX_CONCURRENCY = 2
 
 
 class SetupPhase(Protocol):
@@ -79,6 +81,21 @@ class SetupWorkflowPhase:
 
 
 @dataclass(frozen=True)
+class _SetupPhaseGroup:
+    group_id: str
+    phase_ids: tuple[str, ...]
+    phases: tuple[SetupWorkflowPhase, ...]
+    maximum_concurrency: int
+
+
+@dataclass(frozen=True)
+class _SetupPhaseExecution:
+    phase_result: "SetupPhaseResult"
+    terminal_reason: str | None = None
+    completion_message: str = "Setup phase completed."
+
+
+@dataclass(frozen=True)
 class SetupPhaseResult:
     name: str
     status: str
@@ -93,6 +110,30 @@ class SetupPhaseResult:
 
 
 @dataclass(frozen=True)
+class SetupPhaseGroupResult:
+    group_id: str
+    phase_ids: tuple[str, ...]
+    phase_names: tuple[str, ...]
+    status: str
+    maximum_concurrency: int
+    duration_seconds: float
+    started_at: str
+    finished_at: str
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "duration_seconds": self.duration_seconds,
+            "group_id": self.group_id,
+            "maximum_concurrency": self.maximum_concurrency,
+            "phase_ids": list(self.phase_ids),
+            "phase_names": list(self.phase_names),
+            "status": self.status,
+            "started_at": self.started_at,
+            "finished_at": self.finished_at,
+        }
+
+
+@dataclass(frozen=True)
 class SetupWorkflowResult:
     kind: SetupWorkflowKind
     status: SetupWorkflowStatus
@@ -100,6 +141,7 @@ class SetupWorkflowResult:
     reason: str
     executed: bool = False
     phase_results: tuple[SetupPhaseResult, ...] = ()
+    phase_group_results: tuple[SetupPhaseGroupResult, ...] = ()
 
     @property
     def workflow_name(self) -> str:
@@ -109,6 +151,9 @@ class SetupWorkflowResult:
         return {
             "executed": self.executed,
             "message": self.message,
+            "phase_group_results": [
+                group.to_dict() for group in self.phase_group_results
+            ],
             "phase_results": [phase.to_dict() for phase in self.phase_results],
             "reason": self.reason,
             "status": self.status.value,
@@ -127,6 +172,7 @@ class SetupWorkflow:
         installation_plan: InstallationPlan | None = None,
         timeout_seconds: float | None = None,
         heartbeat_interval_seconds: float | None = None,
+        max_concurrency: int = DEFAULT_SETUP_MAX_CONCURRENCY,
     ):
         self.phases = tuple(phases)
         self.live_consent = live_consent
@@ -140,6 +186,9 @@ class SetupWorkflow:
         if heartbeat_interval_seconds is not None and heartbeat_interval_seconds <= 0:
             raise ValueError("Setup workflow heartbeat interval must be positive.")
         self.heartbeat_interval_seconds = heartbeat_interval_seconds
+        if not isinstance(max_concurrency, int) or max_concurrency <= 0:
+            raise ValueError("Setup workflow maximum concurrency must be positive.")
+        self.max_concurrency = max_concurrency
 
     async def run(self) -> SetupWorkflowResult:
         runner = MethodTraceWrapper(
@@ -228,118 +277,47 @@ class SetupWorkflow:
                 reason="setup orchestration phases are missing",
             )
 
+        phase_groups = self._ordered_phase_groups()
         phase_results: list[SetupPhaseResult] = []
-        for phase in phases:
-            self._report_phase_progress(
-                phase_name=phase.name,
-                status="started",
-                result="pending",
-                safe_message="Setup phase started.",
+        phase_group_results: list[SetupPhaseGroupResult] = []
+        for group_index, group in enumerate(phase_groups):
+            executions, group_result = await self._run_phase_group(group)
+            phase_group_results.append(group_result)
+            phase_results.extend(execution.phase_result for execution in executions)
+            failed_execution = next(
+                (
+                    execution
+                    for execution in executions
+                    if not _is_success_status(execution.phase_result.status)
+                ),
+                None,
             )
-            try:
-                phase_output = await self._run_phase_with_heartbeat(phase)
-            except Exception as exc:
-                failed_phase = SetupPhaseResult(
-                    name=phase.name,
-                    status=SetupWorkflowStatus.FAILED.value,
-                    result={
-                        "status": SetupWorkflowStatus.FAILED.value,
-                        "reason": "setup phase failed",
-                    },
-                )
-                phase_results.append(failed_phase)
-                not_run_phase_results = _not_run_phase_results(
-                    phases[len(phase_results) :]
-                )
-                self._report_phase_progress(
-                    phase_name=phase.name,
-                    status=SetupWorkflowStatus.FAILED.value,
-                    result=SetupWorkflowStatus.FAILED.value,
-                    safe_message=f"Setup phase failed with {exc.__class__.__name__}.",
-                    recovery_hint="Inspect the failed phase evidence before retrying.",
-                )
-                self._report_not_run_phase_progress(not_run_phase_results)
-                self._report_stopped_progress(SetupWorkflowStatus.FAILED.value)
-                return SetupWorkflowResult(
-                    kind=SetupWorkflowKind.RUN,
-                    status=SetupWorkflowStatus.FAILED,
-                    message=f"setup run failed during phase '{phase.name}'.",
-                    reason=f"phase '{phase.name}' failed with {exc.__class__.__name__}",
-                    executed=True,
-                    phase_results=(
-                        *phase_results,
-                        *not_run_phase_results,
-                    ),
-                )
-
-            try:
-                _result_to_dict(phase_output)
-            except ValueError:
-                failed_phase = SetupPhaseResult(
-                    name=phase.name,
-                    status=SetupWorkflowStatus.FAILED.value,
-                    result={
-                        "status": SetupWorkflowStatus.FAILED.value,
-                        "reason": "unsafe phase result payload",
-                    },
-                )
-                phase_results.append(failed_phase)
-                not_run_phase_results = _not_run_phase_results(
-                    phases[len(phase_results) :]
-                )
-                self._report_phase_progress(
-                    phase_name=phase.name,
-                    status=SetupWorkflowStatus.FAILED.value,
-                    result=SetupWorkflowStatus.FAILED.value,
-                    safe_message="Setup phase result was unsafe.",
-                    recovery_hint="Inspect the phase result contract before retrying.",
-                )
-                self._report_not_run_phase_progress(not_run_phase_results)
-                self._report_stopped_progress(SetupWorkflowStatus.FAILED.value)
-                return SetupWorkflowResult(
-                    kind=SetupWorkflowKind.RUN,
-                    status=SetupWorkflowStatus.FAILED,
-                    message=f"setup run failed during phase '{phase.name}'.",
-                    reason=f"phase '{phase.name}' returned unsafe result payload",
-                    executed=True,
-                    phase_results=(
-                        *phase_results,
-                        *not_run_phase_results,
-                    ),
-                )
-
-            phase_status = _result_status_value(phase_output)
-            phase_result = SetupPhaseResult(
-                name=phase.name,
-                status=phase_status,
-                result=phase_output,
-            )
-            phase_results.append(phase_result)
-            self._report_phase_progress(
-                phase_name=phase.name,
-                status=phase_status,
-                result=phase_status,
-                safe_message=f"Setup phase {phase_status}.",
-            )
-            if _is_success_status(phase_status):
+            if failed_execution is None:
                 continue
 
-            setup_status = _setup_status_for_phase_status(phase_status)
+            failed_phase = failed_execution.phase_result
+            setup_status = _setup_status_for_phase_status(failed_phase.status)
+            remaining_phases = tuple(
+                phase
+                for later_group in phase_groups[group_index + 1 :]
+                for phase in later_group.phases
+            )
             not_run_phase_results = _not_run_phase_results(
-                phases[len(phase_results) :]
+                remaining_phases,
+                reason=f"dependency group '{group.group_id}' did not complete",
             )
             self._report_not_run_phase_progress(not_run_phase_results)
             self._report_stopped_progress(setup_status.value)
             return SetupWorkflowResult(
                 kind=SetupWorkflowKind.RUN,
                 status=setup_status,
-                message=f"setup run stopped during phase '{phase.name}'.",
-                reason=f"phase '{phase.name}' returned {phase_status}",
-                executed=True,
-                phase_results=(
-                    *phase_results,
-                    *not_run_phase_results,
+                message=f"setup run stopped during phase '{failed_phase.name}'.",
+                reason=failed_execution.terminal_reason or (
+                    f"phase '{failed_phase.name}' returned {failed_phase.status}"
                 ),
+                executed=True,
+                phase_results=(*phase_results, *not_run_phase_results),
+                phase_group_results=tuple(phase_group_results),
             )
 
         self._report_progress(
@@ -358,6 +336,7 @@ class SetupWorkflow:
             reason="preflight, platform, artifacts, deployment, and verification phases completed",
             executed=True,
             phase_results=tuple(phase_results),
+            phase_group_results=tuple(phase_group_results),
         )
 
     async def _run_phase_with_heartbeat(self, phase: SetupWorkflowPhase) -> object:
@@ -389,10 +368,176 @@ class SetupWorkflow:
             with suppress(asyncio.CancelledError):
                 await phase_task
 
+    async def _run_phase_group(
+        self,
+        group: "_SetupPhaseGroup",
+    ) -> tuple[tuple[_SetupPhaseExecution, ...], SetupPhaseGroupResult]:
+        started_monotonic = asyncio.get_running_loop().time()
+        started_at = _utc_timestamp()
+        if len(group.phases) > 1:
+            self._report_progress(
+                phase="setup",
+                target=group.group_id,
+                task="Run setup phase group",
+                step="phase group started",
+                status="running",
+                result="pending",
+                safe_message="Setup phase group started.",
+            )
+        for phase in group.phases:
+            self._report_phase_progress(
+                phase_name=phase.name,
+                status="started",
+                result="pending",
+                safe_message="Setup phase started.",
+            )
+        semaphore = asyncio.Semaphore(group.maximum_concurrency)
+
+        async def run_bounded(phase: SetupWorkflowPhase) -> _SetupPhaseExecution:
+            async with semaphore:
+                return await self._execute_phase(phase)
+
+        executions = tuple(
+            await asyncio.gather(*(run_bounded(phase) for phase in group.phases))
+        )
+        for execution in executions:
+            phase_result = execution.phase_result
+            self._report_phase_progress(
+                phase_name=phase_result.name,
+                status=phase_result.status,
+                result=phase_result.status,
+                safe_message=execution.completion_message,
+                recovery_hint=(
+                    "Inspect the failed phase evidence before retrying."
+                    if not _is_success_status(phase_result.status)
+                    else None
+                ),
+            )
+        failed_execution = next(
+            (
+                execution
+                for execution in executions
+                if not _is_success_status(execution.phase_result.status)
+            ),
+            None,
+        )
+        group_status = (
+            "completed"
+            if failed_execution is None
+            else _setup_status_for_phase_status(
+                failed_execution.phase_result.status
+            ).value
+        )
+        group_result = SetupPhaseGroupResult(
+            group_id=group.group_id,
+            phase_ids=group.phase_ids,
+            phase_names=tuple(phase.name for phase in group.phases),
+            status=group_status,
+            maximum_concurrency=group.maximum_concurrency,
+            duration_seconds=max(
+                0.0,
+                asyncio.get_running_loop().time() - started_monotonic,
+            ),
+            started_at=started_at,
+            finished_at=_utc_timestamp(),
+        )
+        if len(group.phases) > 1:
+            self._report_progress(
+                phase="setup",
+                target=group.group_id,
+                task="Run setup phase group",
+                step="phase group completed",
+                status=group_status,
+                result=group_status,
+                safe_message="Setup phase group completed.",
+            )
+        return executions, group_result
+
+    async def _execute_phase(self, phase: SetupWorkflowPhase) -> _SetupPhaseExecution:
+        try:
+            phase_output = await self._run_phase_with_heartbeat(phase)
+        except Exception as exc:
+            return _SetupPhaseExecution(
+                phase_result=SetupPhaseResult(
+                    name=phase.name,
+                    status=SetupWorkflowStatus.FAILED.value,
+                    result={
+                        "status": SetupWorkflowStatus.FAILED.value,
+                        "reason": "setup phase failed",
+                    },
+                ),
+                terminal_reason=f"phase '{phase.name}' failed with {exc.__class__.__name__}",
+                completion_message=f"Setup phase failed with {exc.__class__.__name__}.",
+            )
+
+        try:
+            _result_to_dict(phase_output)
+        except ValueError:
+            return _SetupPhaseExecution(
+                phase_result=SetupPhaseResult(
+                    name=phase.name,
+                    status=SetupWorkflowStatus.FAILED.value,
+                    result={
+                        "status": SetupWorkflowStatus.FAILED.value,
+                        "reason": "unsafe phase result payload",
+                    },
+                ),
+                terminal_reason=f"phase '{phase.name}' returned unsafe result payload",
+                completion_message="Setup phase result was unsafe.",
+            )
+
+        phase_status = _result_status_value(phase_output)
+        return _SetupPhaseExecution(
+            phase_result=SetupPhaseResult(
+                name=phase.name,
+                status=phase_status,
+                result=phase_output,
+            ),
+            terminal_reason=(
+                f"phase '{phase.name}' returned {phase_status}"
+                if not _is_success_status(phase_status)
+                else None
+            ),
+            completion_message=f"Setup phase {phase_status}.",
+        )
+
     def _ordered_phases(self) -> tuple[SetupWorkflowPhase, ...]:
+        return tuple(
+            phase
+            for group in self._ordered_phase_groups()
+            for phase in group.phases
+        )
+
+    def _ordered_phase_groups(self) -> tuple["_SetupPhaseGroup", ...]:
         if self.installation_plan is None:
-            return self.phases
-        return self.installation_plan.arrange_workflow_phases(self.phases)
+            return tuple(
+                _SetupPhaseGroup(phase.name, (phase.name,), (phase,), 1)
+                for phase in self.phases
+            )
+        self.installation_plan.arrange_workflow_phases(self.phases)
+        by_name = {phase.name: phase for phase in self.phases}
+        by_plan_phase_id = {
+            phase.phase_id: phase
+            for phase in self.installation_plan.ordered_phases()
+        }
+        groups: list[_SetupPhaseGroup] = []
+        for plan_group in self.installation_plan.phase_groups(self.max_concurrency):
+            runnable_phases = tuple(
+                by_name[name]
+                for phase_id in plan_group.phase_ids
+                for name in by_plan_phase_id[phase_id].workflow_phase_names
+                if name in by_name
+            )
+            if runnable_phases:
+                groups.append(
+                    _SetupPhaseGroup(
+                        plan_group.group_id,
+                        plan_group.phase_ids,
+                        runnable_phases,
+                        plan_group.maximum_concurrency,
+                    )
+                )
+        return tuple(groups)
 
     def _report_phase_progress(
         self,
@@ -547,12 +692,20 @@ def _setup_status_for_phase_status(status: str) -> SetupWorkflowStatus:
     return SetupWorkflowStatus.FAILED
 
 
-def _not_run_phase_results(phases: Sequence[SetupWorkflowPhase]) -> tuple[SetupPhaseResult, ...]:
+def _not_run_phase_results(
+    phases: Sequence[SetupWorkflowPhase],
+    *,
+    reason: str = "previous phase stopped setup run",
+) -> tuple[SetupPhaseResult, ...]:
     return tuple(
         SetupPhaseResult(
             name=phase.name,
             status="not_run",
-            result={"status": "not_run", "reason": "previous phase stopped setup run"},
+            result={"status": "not_run", "reason": reason},
         )
         for phase in phases
     )
+
+
+def _utc_timestamp() -> str:
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")

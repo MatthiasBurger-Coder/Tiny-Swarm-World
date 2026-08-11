@@ -33,10 +33,13 @@ def render_install_event(event: InstallEvent) -> tuple[str, ...]:
     header = _step_header(event)
     lines: list[str]
     if event.event_type is InstallEventType.INSTALL_STARTED:
-        lines = ["Tiny Swarm World Installer", _detail_line("RUNNING", event.message or event.step)]
+        lines = [
+            "Tiny Swarm World Installer",
+            _detail_line("RUNNING", _safe_line_value(event.message or event.step)),
+        ]
         return tuple(lines)
     if event.event_type is InstallEventType.INSTALL_FINISHED:
-        lines = [_detail_line(prefix, event.message or event.step)]
+        lines = [_detail_line(prefix, _safe_line_value(event.message or event.step))]
         return tuple(lines)
     if event.status is InstallStatus.STARTED:
         lines = [header, _detail_line("RUNNING", _target_message(event))]
@@ -59,7 +62,7 @@ def _failure_lines(event: InstallEvent) -> tuple[str, ...]:
     target = f" on {event.target}" if event.target else ""
     lines = [f"{_status_label(event.status)} {event.step}{target}"]
     if event.reason:
-        lines.extend(("", "Reason:", f"  {event.reason}"))
+        lines.extend(("", "Reason:", f"  {_safe_line_value(event.reason)}"))
     evidence = _path_text(event.evidence_path)
     if evidence:
         lines.extend(("", "Evidence:", f"  {evidence}"))
@@ -77,12 +80,19 @@ def _step_header(event: InstallEvent) -> str:
 
 def _target_message(event: InstallEvent) -> str:
     if event.message:
-        return event.message
-    return event.target if event.target else event.step
+        return _safe_line_value(event.message)
+    return _safe_line_value(event.target if event.target else event.step)
 
 
 def _detail_line(status: str, message: str) -> str:
     return f"  {status:<8}{message}"
+
+
+def _safe_line_value(value: str) -> str:
+    text = " ".join(value.replace("\r", " ").replace("\n", " ").split())
+    if text.startswith(("{", "[")) and text.endswith(("}", "]")):
+        return "structured event details recorded in evidence"
+    return text
 
 
 def _status_label(status: InstallStatus) -> str:

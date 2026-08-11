@@ -18,6 +18,7 @@ class InstallationPhase:
     depends_on: tuple[str, ...] = ()
     services: tuple[str, ...] = ()
     workflow_phase_names: tuple[str, ...] = ()
+    parallel_group: str | None = None
 
     def __post_init__(self) -> None:
         _validate_phase_identifier(self.phase_id, "phase_id")
@@ -33,6 +34,12 @@ class InstallationPhase:
             "workflow_phase_names",
             _normalized_non_empty_tuple(self.workflow_phase_names, "workflow_phase_names"),
         )
+        if self.parallel_group is not None:
+            object.__setattr__(
+                self,
+                "parallel_group",
+                _normalized_identifier(self.parallel_group, "parallel_group"),
+            )
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -42,6 +49,34 @@ class InstallationPhase:
             "depends_on": list(self.depends_on),
             "services": list(self.services),
             "workflow_phases": list(self.workflow_phase_names),
+            "parallel_group": self.parallel_group,
+        }
+
+
+@dataclass(frozen=True)
+class InstallationPhaseGroup:
+    group_id: str
+    phase_ids: tuple[str, ...]
+    maximum_concurrency: int
+    serial_barrier: bool = True
+
+    def __post_init__(self) -> None:
+        _validate_phase_identifier(self.group_id, "group_id")
+        phase_ids = tuple(_normalized_identifier(item, "phase_ids") for item in self.phase_ids)
+        if not phase_ids:
+            raise ValueError("installation phase group must contain phases")
+        if len(set(phase_ids)) != len(phase_ids):
+            raise ValueError("installation phase group contains duplicate phases")
+        if not isinstance(self.maximum_concurrency, int) or self.maximum_concurrency <= 0:
+            raise ValueError("installation phase group concurrency must be positive")
+        object.__setattr__(self, "phase_ids", phase_ids)
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "id": self.group_id,
+            "phase_ids": list(self.phase_ids),
+            "maximum_concurrency": self.maximum_concurrency,
+            "serial_barrier": self.serial_barrier,
         }
 
 
@@ -95,6 +130,59 @@ class InstallationPlan:
             for workflow_phase in phase.workflow_phase_names
         )
 
+    def phase_groups(self, maximum_concurrency: int = 2) -> tuple[InstallationPhaseGroup, ...]:
+        if not isinstance(maximum_concurrency, int) or maximum_concurrency <= 0:
+            raise ValueError("maximum phase concurrency must be positive")
+        phases_by_id = {phase.phase_id: phase for phase in self.phases}
+        group_phase_ids: dict[str, list[str]] = {}
+        for phase in self.ordered_phases():
+            group_id = phase.parallel_group or phase.phase_id
+            group_phase_ids.setdefault(group_id, []).append(phase.phase_id)
+        phase_to_group = {
+            phase_id: group_id
+            for group_id, phase_ids in group_phase_ids.items()
+            for phase_id in phase_ids
+        }
+        dependencies: dict[str, set[str]] = {group_id: set() for group_id in group_phase_ids}
+        for phase in phases_by_id.values():
+            group_id = phase_to_group[phase.phase_id]
+            for dependency in phase.depends_on:
+                dependency_group = phase_to_group[dependency]
+                if dependency_group == group_id:
+                    raise ValueError(
+                        f"installation phase group '{group_id}' contains a dependency edge"
+                    )
+                dependencies[group_id].add(dependency_group)
+
+        pending = set(group_phase_ids)
+        ordered_group_ids: list[str] = []
+        while pending:
+            ready = sorted(
+                (
+                    group_id
+                    for group_id in pending
+                    if dependencies[group_id].isdisjoint(pending)
+                ),
+                key=lambda group_id: (
+                    min(phases_by_id[phase_id].order for phase_id in group_phase_ids[group_id]),
+                    group_id,
+                ),
+            )
+            if not ready:
+                raise ValueError("installation phase group dependency graph contains a cycle")
+            group_id = ready[0]
+            ordered_group_ids.append(group_id)
+            pending.remove(group_id)
+
+        return tuple(
+            InstallationPhaseGroup(
+                group_id=group_id,
+                phase_ids=tuple(group_phase_ids[group_id]),
+                maximum_concurrency=min(maximum_concurrency, len(group_phase_ids[group_id])),
+            )
+            for group_id in ordered_group_ids
+        )
+
     def arrange_workflow_phases(
         self,
         phases: tuple[WorkflowPhase, ...],
@@ -134,6 +222,7 @@ class InstallationPlan:
             "required_phase_ids": list(self.required_phase_ids),
             "required_services": list(self.required_services),
             "phases": [phase.to_dict() for phase in self.phases],
+            "phase_groups": [group.to_dict() for group in self.phase_groups()],
         }
 
 
@@ -199,18 +288,21 @@ def default_installation_plan() -> InstallationPlan:
                 order=60,
                 depends_on=("artifacts", "secrets"),
                 services=("jenkins",),
+                parallel_group="independent-services",
             ),
             InstallationPhase(
                 phase_id="quality",
                 order=70,
                 depends_on=("artifacts", "secrets"),
                 services=("sonarqube",),
+                parallel_group="independent-services",
             ),
             InstallationPhase(
                 phase_id="messaging",
                 order=80,
                 depends_on=("secrets",),
                 services=("pulsar",),
+                parallel_group="independent-services",
             ),
             InstallationPhase(
                 phase_id="observability",
@@ -218,6 +310,7 @@ def default_installation_plan() -> InstallationPlan:
                 required=False,
                 depends_on=("network-routing",),
                 services=("prometheus", "grafana", "loki", "alertmanager"),
+                parallel_group="independent-services",
             ),
             InstallationPhase(
                 phase_id="control",

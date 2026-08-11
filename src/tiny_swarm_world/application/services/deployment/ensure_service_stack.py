@@ -38,9 +38,11 @@ class EnsureServiceStack:
         self.deployment_target_id = service_stack.stack_target_id
         self.verification_target_id = service_stack.stack_target_id
         self.logger = logging.getLogger(self.__class__.__name__)
+        self._registration_snapshot: VerificationResult | None = None
 
     async def run(self) -> None:
         await asyncio.sleep(0)
+        self._registration_snapshot = None
         stack_definition = self.compose_repository.get_compose_of(self.service_stack.stack_name)
         if stack_definition.name != self.service_stack.stack_name:
             raise ValueError("compose stack definition name does not match the service stack contract")
@@ -58,6 +60,11 @@ class EnsureServiceStack:
                 raise
 
     async def verify(self) -> VerificationResult:
+        if self._registration_snapshot is not None:
+            snapshot = self._registration_snapshot
+            self._registration_snapshot = None
+            return snapshot
+
         last_exception: Exception | None = None
         for attempt in range(1, self.verify_attempts + 1):
             await asyncio.sleep(0 if attempt == 1 else self.verify_wait_seconds)
@@ -113,8 +120,31 @@ class EnsureServiceStack:
         )
 
     async def _stack_is_registered_after_apply_error(self) -> bool:
-        verification = await self.verify()
-        return verification.status == VerificationStatus.VERIFIED
+        await asyncio.sleep(0)
+        try:
+            registered = self.deployment_gateway.stack_registered(self.service_stack.stack_name)
+        except Exception as exc:
+            self.logger.warning(
+                "Stack registration recovery lookup failed for '%s': %s",
+                self.service_stack.stack_name,
+                exc.__class__.__name__,
+            )
+            return False
+        if registered:
+            self._registration_snapshot = VerificationResult(
+                target_id=self.verification_target_id,
+                status=VerificationStatus.VERIFIED,
+                message=(
+                    "Deployment stack registration was observed during apply recovery; "
+                    "service readiness remains a separate observed-state verification."
+                ),
+                evidence=_stack_registration_evidence(
+                    self.service_stack,
+                    stack_registered="true",
+                    verify_attempt=1,
+                ),
+            )
+        return registered
 
 
 def _stack_registration_evidence(

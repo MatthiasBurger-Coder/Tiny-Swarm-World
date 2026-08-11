@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 from tiny_swarm_world.application.ports.clients.port_infisical_bootstrap_client import (
     InfisicalBootstrapResult,
     InfisicalBootstrapState,
@@ -31,8 +33,9 @@ class EnsureInfisicalBootstrap:
         self.organization = organization
         self._last_result: InfisicalBootstrapResult | None = None
 
-    def run(self) -> None:
-        self._last_result = self.infisical_client.bootstrap_instance(
+    async def run(self) -> None:
+        self._last_result = await asyncio.to_thread(
+            self.infisical_client.bootstrap_instance,
             email=self.login_email,
             password=self.password,
             organization=self.organization,

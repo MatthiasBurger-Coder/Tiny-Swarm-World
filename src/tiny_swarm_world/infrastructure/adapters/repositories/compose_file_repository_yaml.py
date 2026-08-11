@@ -710,7 +710,9 @@ def _apply_direct_published_port(
     if port_id is None:
         return False
     mapping = ports_by_id.get(port_id)
-    if mapping is None or mapping.external_port is None:
+    if mapping is None:
+        raise ValueError(f"direct port '{port_id}' is missing from the port registry")
+    if mapping.external_port is None:
         return False
     if entry.get("published") == mapping.external_port:
         return False
@@ -737,6 +739,7 @@ _DIRECT_PUBLISHED_PORT_IDS: dict[tuple[str, str, int], str] = {
     ("nexus", "nexus", 5000): "nexus-docker-http",
     ("nexus", "nexus", 5001): "nexus-docker-https",
     ("infisical", "infisical", 8080): "infisical-http",
+    ("service-access", "service-access-nginx", 80): "service-access-http",
     ("pulsar", "pulsar", 6650): "pulsar-broker",
     ("pulsar", "pulsar", 8080): "pulsar-admin-api",
     ("pulsar", "pulsar-manager", 9527): "pulsar-manager-gui",

@@ -4,7 +4,7 @@ import stat
 import subprocess
 import tempfile
 import unittest
-from contextlib import redirect_stderr
+from contextlib import redirect_stderr, redirect_stdout
 from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import patch
@@ -389,6 +389,129 @@ class TestInstaller(unittest.TestCase):
         self.assertEqual(content.count("TSW_EXAMPLE="), 1)
         self.assertIn("Normalized by install.sh", content)
 
+    def test_normalize_export_file_reuses_snapshot_without_rereading(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            path = Path(tempdir) / "live.env"
+            path.write_text(
+                "export TSW_EXAMPLE='first'\nexport TSW_EXAMPLE='second'\n",
+                encoding="utf-8",
+            )
+            snapshot = installer._parse_export_file(path)
+
+            with patch.object(Path, "read_text", side_effect=AssertionError("unexpected reread")):
+                installer._normalize_export_file_if_duplicate_keys(
+                    path,
+                    snapshot=snapshot,
+                )
+
+            self.assertEqual(
+                installer._load_export_file(path),
+                {"TSW_EXAMPLE": "second"},
+            )
+
+    def test_snapshot_with_exports_preserves_appended_values_and_duplicates(self):
+        snapshot = installer._ExportFileSnapshot({"TSW_EXISTING": "old"}, ())
+
+        updated = installer._snapshot_with_exports(
+            snapshot,
+            {"TSW_EXISTING": "new", "TSW_ADDED": "value"},
+        )
+
+        self.assertEqual(
+            updated,
+            installer._ExportFileSnapshot(
+                {"TSW_EXISTING": "new", "TSW_ADDED": "value"},
+                ("TSW_EXISTING",),
+            ),
+        )
+
+    def test_git_ignore_probe_batches_worktree_and_ignore_decision(self):
+        completed = subprocess.CompletedProcess(
+            ["git", "check-ignore"],
+            returncode=0,
+        )
+        with patch.object(installer.subprocess, "run", return_value=completed) as run:
+            result = installer._probe_git_ignore(Path("/tmp/repository"), ".tiny-swarm-world/")
+
+        run.assert_called_once()
+        self.assertEqual(
+            result,
+            installer._GitProbeResult(True, True, "ignored"),
+        )
+
+    def test_git_ignore_probe_classifies_optional_failures(self):
+        for returncode, expected in (
+            (1, (True, False, "not_ignored")),
+            (128, (False, False, "outside_worktree")),
+        ):
+            with self.subTest(returncode=returncode):
+                completed = subprocess.CompletedProcess(
+                    ["git", "check-ignore"],
+                    returncode=returncode,
+                )
+                with patch.object(installer.subprocess, "run", return_value=completed):
+                    result = installer._probe_git_ignore(
+                        Path("/tmp/repository"),
+                        ".tiny-swarm-world/",
+                    )
+
+                self.assertEqual(
+                    (result.inside_worktree, result.path_ignored, result.status),
+                    expected,
+                )
+
+    def test_native_group_boundary_does_not_probe_or_mutate_host_state(self):
+        env = {"TSW_INSTALL_COMMAND_GROUP": "lxd"}
+        with patch.object(installer.subprocess, "run") as run:
+            installer._configure_native_linux_command_group(
+                installer.HostRuntime("native_linux", "test"),
+                env,
+            )
+
+        run.assert_not_called()
+        self.assertEqual(env, {"TSW_INSTALL_COMMAND_GROUP": "lxd"})
+
+    def test_evidence_probe_snapshot_coalesces_git_and_system_metadata(self):
+        calls = []
+
+        def optional_text(command, *, cwd=None):
+            calls.append((command, cwd))
+            if command[0] == "git":
+                return "HEAD -> main, origin/main\x001234567"
+            return "Linux 6.18.33-test x86_64"
+
+        git_probe = installer._GitProbeResult(True, True, "ignored")
+        with patch.object(installer, "_run_optional_text", side_effect=optional_text):
+            with patch.object(installer, "_read_text", return_value="6.18.33-test\n"):
+                snapshot = installer._collect_evidence_probe_snapshot(
+                    Path("/tmp/repository"),
+                    git_probe,
+                )
+
+        self.assertEqual(snapshot.git_branch, "main")
+        self.assertEqual(snapshot.git_head, "1234567")
+        self.assertEqual(snapshot.platform_system, "Linux")
+        self.assertEqual(snapshot.kernel_release, "6.18.33-test")
+        self.assertEqual(snapshot.proc_osrelease, "6.18.33-test")
+        self.assertEqual([command for command, _ in calls], [
+            ("git", "show", "-s", "--format=%D%x00%h", "HEAD"),
+            ("uname", "-srm"),
+        ])
+
+    def test_evidence_probe_snapshot_uses_unknown_for_optional_failures(self):
+        git_probe = installer._GitProbeResult(True, True, "ignored")
+        with patch.object(installer, "_run_optional_text", return_value="unknown"):
+            with patch.object(installer, "_read_text", return_value=""):
+                snapshot = installer._collect_evidence_probe_snapshot(
+                    Path("/tmp/repository"),
+                    git_probe,
+                )
+
+        self.assertEqual(
+            snapshot,
+            installer._EvidenceProbeSnapshot("unknown", "unknown", "unknown", "unknown", "unknown"),
+        )
+
     def test_required_installer_secret_entries_come_from_manifest(self):
         entries = installer._required_installer_secret_entries(
             Path("infra/config/secrets/infisical-secrets.yaml")
@@ -618,6 +741,76 @@ class TestInstaller(unittest.TestCase):
         )
         self.assertEqual(installer._render_fallback_install_event(succeeded), ("  OK      done",))
         self.assertEqual(installer._render_fallback_install_event(unknown), ("  SKIPPED host",))
+
+    def test_default_install_completion_summary_is_line_based(self):
+        output = io.StringIO()
+
+        with redirect_stdout(output):
+            installer._print_install_completion_summary(
+                0,
+                Path(".tiny-swarm-world/evidence/install"),
+                stream=output,
+            )
+
+        rendered = output.getvalue()
+        self.assertEqual(
+            rendered.splitlines(),
+            [
+                "Installation completed successfully.",
+                "Evidence directory: .tiny-swarm-world/evidence/install",
+            ],
+        )
+        self.assertNotIn("{", rendered)
+        self.assertNotIn("[", rendered)
+
+    def test_confirm_reset_default_output_is_a_readable_line(self):
+        options = installer.InstallerOptions(
+            service_profile="service-access",
+            generate_secrets=False,
+            secrets_mode="fixed",
+            confirm_reset=True,
+            non_interactive_live_approval=False,
+            headless=True,
+            allow_wsl_windows_filesystem=False,
+        )
+        output = io.StringIO()
+
+        with redirect_stdout(output):
+            installer._confirm_reset(options)
+
+        rendered = output.getvalue()
+        self.assertEqual(
+            rendered.strip(),
+            "Fresh-install reset confirmed by explicit --confirm-reset flag.",
+        )
+        self.assertNotIn("{", rendered)
+        self.assertNotIn("[", rendered)
+
+    def test_log_tail_suppresses_structured_blocks_but_keeps_evidence_reference(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            log_path = Path(temporary_directory) / "setup-run.log"
+            log_path.write_text(
+                "\n".join(
+                    (
+                        "human-readable failure detail",
+                        "{",
+                        '  \"secret\": \"retain only in evidence\",',
+                        '  \"status\": \"failed\"',
+                        "}",
+                    )
+                ),
+                encoding="utf-8",
+            )
+            output = io.StringIO()
+
+            with redirect_stderr(output):
+                installer._print_tail(log_path, "Last log lines")
+
+        rendered = output.getvalue()
+        self.assertIn("human-readable failure detail", rendered)
+        self.assertIn("structured log block omitted from console", rendered)
+        self.assertIn(log_path.as_posix(), rendered)
+        self.assertNotIn('"secret":', rendered)
 
     def test_run_phase_emits_distinct_timeout_and_terminates_process(self):
         class Reporter:

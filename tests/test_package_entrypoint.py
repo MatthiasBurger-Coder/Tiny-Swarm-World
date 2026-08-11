@@ -2,6 +2,7 @@ import asyncio
 import ast
 import io
 import json
+import os
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
@@ -21,6 +22,7 @@ from tiny_swarm_world.application.services.deployment import (
 )
 from tiny_swarm_world.application.services.setup import (
     SetupPhaseResult,
+    SetupPhaseGroupResult,
     SetupWorkflowKind,
     SetupWorkflowResult,
     SetupWorkflowStatus,
@@ -328,6 +330,28 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         args = entrypoint.parse_args(["--json"])
 
         self.assertTrue(args.json)
+
+    def test_debug_json_environment_is_explicit_opt_in(self):
+        args = entrypoint.parse_args([])
+
+        with patch.dict(os.environ, {"TSW_DEBUG_JSON": "true"}):
+            self.assertTrue(entrypoint._should_emit_json(args))
+        with patch.dict(os.environ, {"TSW_DEBUG_JSON": "false"}):
+            self.assertFalse(entrypoint._should_emit_json(args))
+
+    async def test_debug_json_environment_emits_structured_result_without_flag(self):
+        services, workflows = _application_services_with_platform_workflows()
+        output = io.StringIO()
+
+        with patch.dict(os.environ, {"TSW_DEBUG_JSON": "true"}):
+            with patch.object(entrypoint, "build_application_services", return_value=services):
+                with redirect_stdout(output):
+                    await entrypoint.main(["platform", "verify"])
+
+        workflows.verify.run.assert_awaited_once_with()
+        payload = _json_payload_from_output(output.getvalue())
+        self.assertEqual("platform verify", payload["workflow"])
+        self.assertNotIn("Workflow: platform verify", output.getvalue())
 
     def test_lxc_backend_option_is_forwarded_as_provider_preference(self):
         args = entrypoint.parse_args(["--lxc-backend", "incus"])
@@ -962,6 +986,66 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         self.assertIn("platform:init:lxc-container-runtime: failed_to_apply", rendered)
         self.assertIn("- first_failure_node: swarm-manager", rendered)
         self.assertIn("- first_failure_reason: apt_repository_unreachable", rendered)
+
+    def test_setup_summary_contains_counts_and_stable_group_fields(self):
+        result = SetupWorkflowResult(
+            kind=SetupWorkflowKind.RUN,
+            status=SetupWorkflowStatus.BLOCKED,
+            message="setup run is blocked.",
+            reason="a required phase did not complete",
+            executed=True,
+            phase_results=(
+                SetupPhaseResult(name="preflight", status="completed", result={}),
+                SetupPhaseResult(name="platform init", status="blocked", result={}),
+            ),
+            phase_group_results=(
+                SetupPhaseGroupResult(
+                    group_id="SERIAL-BASELINE",
+                    phase_ids=("preflight",),
+                    phase_names=("preflight",),
+                    status="completed",
+                    maximum_concurrency=1,
+                    duration_seconds=0.25,
+                    started_at="2026-08-11T10:00:00Z",
+                    finished_at="2026-08-11T10:00:00Z",
+                ),
+            ),
+        )
+
+        rendered = "\n".join(entrypoint._format_setup_installation_summary(result))
+
+        self.assertIn("Phases: 2", rendered)
+        self.assertIn("Status counts: blocked=1, completed=1", rendered)
+        self.assertIn(
+            "- SERIAL-BASELINE: completed (phases=preflight; max-concurrency=1; duration=0.250s)",
+            rendered,
+        )
+        self.assertIn("Final setup status: blocked", rendered)
+
+    def test_workflow_summary_redacts_nested_evidence_objects(self):
+        result = SimpleNamespace(
+            workflow_name="platform init",
+            status=PlatformWorkflowStatus.BLOCKED,
+            message="workflow blocked.",
+            executed=False,
+            verification_results=(
+                SimpleNamespace(
+                    target_id="platform:init:preflight",
+                    status=VerificationStatus.BLOCKED,
+                    evidence={
+                        "nested": {"secret": "must remain in evidence"},
+                        "evidence_path": ".tiny-swarm-world/evidence/init.json",
+                    },
+                ),
+            ),
+        )
+
+        rendered = "\n".join(entrypoint._format_workflow_summary(result))
+
+        self.assertIn("Verification counts: blocked=1", rendered)
+        self.assertIn("nested: structured value persisted to evidence", rendered)
+        self.assertIn("evidence_path: .tiny-swarm-world/evidence/init.json", rendered)
+        self.assertNotIn("{'secret': 'must remain in evidence'}", rendered)
 
     async def test_static_preflight_runs_without_live_consent(self):
         preflight = SimpleNamespace(run=AsyncMock(return_value=_FakePreflightResult(True)))

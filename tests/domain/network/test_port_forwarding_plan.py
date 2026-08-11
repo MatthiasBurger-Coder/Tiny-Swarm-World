@@ -1,6 +1,11 @@
 import unittest
 
-from tests.support.sonar_safe_literals import sample_http_url, sample_text, sample_url
+from tests.support.sonar_safe_literals import (
+    ipv4_address,
+    sample_http_url,
+    sample_text,
+    sample_url,
+)
 from tiny_swarm_world.domain.network.port_forwarding_plan import (
     ForwardingStrategy,
     PortExposureClass,
@@ -162,8 +167,8 @@ class TestPortRegistry(unittest.TestCase):
 
     def test_rejects_host_specific_addresses_and_credential_metadata(self):
         unsafe_metadata = (
-            {"host_ip": "192.168.1.10"},
-            {"listen_address": "10.0.0.5"},
+            {"host_ip": ipv4_address(192, 168, 1, 10)},
+            {"listen_address": ipv4_address(10, 0, 0, 5)},
             {
                 "endpoint": sample_url(
                     "http",
@@ -191,7 +196,7 @@ class TestPortRegistry(unittest.TestCase):
 
     def test_rejects_host_specific_route_hosts_and_urls(self):
         for route_host in (
-            "192.168.1.10",
+            ipv4_address(192, 168, 1, 10),
             sample_url(
                 "http",
                 sample_text("sample", "-", "name", ":", "sample", "-", "value"),

@@ -1,3 +1,4 @@
+import asyncio
 import unittest
 from contextlib import redirect_stdout
 from io import StringIO
@@ -727,6 +728,147 @@ class TestSetupWorkflow(unittest.IsolatedAsyncioTestCase):
         heartbeats = [event for event in progress.events if event.step == "heartbeat"]
         self.assertGreaterEqual(len(heartbeats), 1)
         self.assertTrue(all(event.status == "running" for event in heartbeats))
+
+    async def test_dependency_group_runs_ready_phases_with_bounded_concurrency(self):
+        active = 0
+        maximum_active = 0
+        calls: list[str] = []
+
+        async def run_phase(name: str) -> ArtifactWorkflowResult:
+            nonlocal active, maximum_active
+            active += 1
+            maximum_active = max(maximum_active, active)
+            await asyncio.sleep(0.02)
+            active -= 1
+            calls.append(name)
+            return _completed_result(name, [])
+
+        plan = InstallationPlan(
+            phases=(
+                InstallationPhase("preflight", 0, workflow_phase_names=("preflight",)),
+                InstallationPhase(
+                    "alpha",
+                    10,
+                    depends_on=("preflight",),
+                    workflow_phase_names=("alpha",),
+                    parallel_group="workers",
+                ),
+                InstallationPhase(
+                    "beta",
+                    10,
+                    depends_on=("preflight",),
+                    workflow_phase_names=("beta",),
+                    parallel_group="workers",
+                ),
+                InstallationPhase(
+                    "gamma",
+                    10,
+                    depends_on=("preflight",),
+                    workflow_phase_names=("gamma",),
+                    parallel_group="workers",
+                ),
+                InstallationPhase(
+                    "validation",
+                    20,
+                    depends_on=("alpha", "beta", "gamma"),
+                    workflow_phase_names=("validation",),
+                ),
+            )
+        )
+        workflow = SetupWorkflow(
+            tuple(
+                SetupWorkflowPhase(name, lambda name=name: run_phase(name))
+                for name in ("preflight", "alpha", "beta", "gamma", "validation")
+            ),
+            live_consent=_accepted_live_consent(),
+            installation_plan=plan,
+            max_concurrency=2,
+        )
+
+        result = await workflow.run()
+
+        self.assertEqual(SetupWorkflowStatus.COMPLETED, result.status)
+        self.assertEqual(
+            [phase.name for phase in result.phase_results],
+            ["preflight", "alpha", "beta", "gamma", "validation"],
+        )
+        self.assertEqual(maximum_active, 2)
+        self.assertEqual(set(calls), {"preflight", "alpha", "beta", "gamma", "validation"})
+        self.assertEqual(
+            [group.group_id for group in result.phase_group_results],
+            ["preflight", "workers", "validation"],
+        )
+        worker_group = result.phase_group_results[1]
+        self.assertEqual(worker_group.maximum_concurrency, 2)
+        self.assertEqual(worker_group.phase_ids, ("alpha", "beta", "gamma"))
+        self.assertTrue(worker_group.started_at.endswith("Z"))
+        self.assertTrue(worker_group.finished_at.endswith("Z"))
+        self.assertGreaterEqual(worker_group.duration_seconds, 0.0)
+        self.assertEqual(
+            result.to_dict()["phase_group_results"][1]["phase_names"],
+            ["alpha", "beta", "gamma"],
+        )
+
+    async def test_failed_group_member_keeps_independent_result_and_blocks_dependents(self):
+        calls: list[str] = []
+        plan = InstallationPlan(
+            phases=(
+                InstallationPhase("preflight", 0, workflow_phase_names=("preflight",)),
+                InstallationPhase(
+                    "alpha",
+                    10,
+                    depends_on=("preflight",),
+                    workflow_phase_names=("alpha",),
+                    parallel_group="workers",
+                ),
+                InstallationPhase(
+                    "beta",
+                    10,
+                    depends_on=("preflight",),
+                    workflow_phase_names=("beta",),
+                    parallel_group="workers",
+                ),
+                InstallationPhase(
+                    "validation",
+                    20,
+                    depends_on=("alpha", "beta"),
+                    workflow_phase_names=("validation",),
+                ),
+            )
+        )
+
+        async def fail_alpha() -> ArtifactWorkflowResult:
+            calls.append("alpha")
+            return _blocked_result("alpha", [])
+
+        async def complete_beta() -> ArtifactWorkflowResult:
+            await asyncio.sleep(0.01)
+            calls.append("beta")
+            return _completed_result("beta", [])
+
+        workflow = SetupWorkflow(
+            (
+                SetupWorkflowPhase("preflight", lambda: _completed_result("preflight", calls)),
+                SetupWorkflowPhase("alpha", fail_alpha),
+                SetupWorkflowPhase("beta", complete_beta),
+                SetupWorkflowPhase("validation", lambda: _completed_result("validation", calls)),
+            ),
+            live_consent=_accepted_live_consent(),
+            installation_plan=plan,
+            max_concurrency=2,
+        )
+
+        result = await workflow.run()
+
+        self.assertEqual(SetupWorkflowStatus.BLOCKED, result.status)
+        statuses = {phase.name: phase.status for phase in result.phase_results}
+        self.assertEqual(statuses["alpha"], "blocked")
+        self.assertEqual(statuses["beta"], "completed")
+        self.assertEqual(statuses["validation"], "not_run")
+        self.assertIn("dependency group", str(result.phase_results[-1].result))
+        self.assertEqual(set(calls), {"preflight", "alpha", "beta"})
+        self.assertEqual(result.phase_group_results[1].status, "blocked")
+        self.assertGreaterEqual(result.phase_group_results[1].duration_seconds, 0.0)
 
 
 def _completed_result(name: str, calls: list[str]) -> ArtifactWorkflowResult:

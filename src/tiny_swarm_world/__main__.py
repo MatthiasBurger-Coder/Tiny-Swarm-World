@@ -2,9 +2,10 @@ import asyncio
 import json
 import os
 from argparse import ArgumentParser, Namespace
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
 
 from tiny_swarm_world.application.services.artifacts import ArtifactWorkflowResult
 from tiny_swarm_world.application.services.deployment import DeploymentWorkflowResult
@@ -393,11 +394,11 @@ async def _run_host_preparation_command(args: Namespace) -> None:
     else:
         print(f"Host preparation: {result.operation}")
         print(f"Status: {result.status.value}")
-        print(result.message)
+        print(_console_text(result.message))
         if result.evidence:
             print("Evidence:")
             for key, value in sorted(result.evidence.items()):
-                print(f"- {key}: {value}")
+                print(f"- {key}: {_safe_console_value(value)}")
     if not result.succeeded:
         raise SystemExit(1)
 
@@ -674,30 +675,57 @@ def _print_blocked_workflow_summary(payload: dict[str, object]) -> None:
 
 
 def _print_workflow_summary(result: WorkflowResult) -> None:
-    print()
-    print(f"Workflow: {_workflow_name(result)}")
-    print(f"Status: {_workflow_status_value(result)}")
-    print(f"Executed: {'yes' if result.executed else 'no'}")
+    for line in _format_workflow_summary(result):
+        print(line)
+
+
+def _format_workflow_summary(result: WorkflowResult) -> tuple[str, ...]:
+    lines = [
+        "",
+        f"Workflow: {_workflow_name(result)}",
+        f"Status: {_workflow_status_value(result)}",
+        f"Executed: {'yes' if result.executed else 'no'}",
+    ]
     message = getattr(result, "message", "")
     if message:
-        print(f"Message: {message}")
+        lines.append(f"Message: {_console_text(message)}")
     reason = getattr(result, "reason", "")
     if reason:
-        print(f"Reason: {reason}")
+        lines.append(f"Reason: {_console_text(reason)}")
     verification_results = getattr(result, "verification_results", ())
     if verification_results:
-        print("Verification summary:")
-        for verification in verification_results:
-            print(f"- {verification.target_id}: {verification.status.value}")
-            evidence = getattr(verification, "evidence", {})
-            if evidence:
-                print("  Evidence:")
-                for key, value in sorted(evidence.items()):
-                    print(f"  - {key}: {value}")
+        lines.extend(_format_verification_summary(verification_results))
+    return tuple(lines)
+
+
+def _format_verification_summary(
+    verification_results: Sequence[object],
+    *,
+    indent: str = "",
+) -> tuple[str, ...]:
+    lines = [
+        f"{indent}Verification counts: {_format_status_counts(verification_results)}",
+        f"{indent}Verification summary:",
+    ]
+    for verification in verification_results:
+        target_id = _console_text(getattr(verification, "target_id", "unknown"))
+        status = _console_enum(getattr(verification, "status", "unknown"))
+        lines.append(f"{indent}- {target_id}: {status}")
+        evidence = getattr(verification, "evidence", {})
+        if evidence:
+            lines.append(f"{indent}  Evidence:")
+            for key, value in sorted(evidence.items()):
+                lines.append(
+                    f"{indent}  - {key}: {_safe_console_value(value)}"
+                )
+    return tuple(lines)
 
 
 def _workflow_name(result: WorkflowResult) -> str:
-    return getattr(result, "workflow_name", _workflow_result_to_dict(result).get("workflow", "workflow"))
+    workflow_name = getattr(result, "workflow_name", None)
+    if workflow_name:
+        return _console_text(workflow_name)
+    return str(_workflow_result_to_dict(result).get("workflow", "workflow"))
 
 
 def _live_consent_from_args(args: Namespace) -> LiveConsent:
@@ -827,53 +855,134 @@ def _format_compose_published_ports(
 
 
 def _print_setup_installation_summary(result: SetupWorkflowResult) -> None:
-    print()
-    print("Setup phase summary:")
+    for line in _format_setup_installation_summary(result):
+        print(line)
+
+
+def _format_setup_installation_summary(
+    result: SetupWorkflowResult,
+) -> tuple[str, ...]:
+    lines = [
+        "",
+        "Setup summary:",
+        f"Workflow: {result.workflow_name}",
+        f"Phases: {len(result.phase_results)}",
+        f"Status counts: {_format_phase_status_counts(result.phase_results)}",
+        f"Phase groups: {len(result.phase_group_results)}",
+    ]
+    if result.phase_group_results:
+        lines.append("Phase group summary:")
+        for group in result.phase_group_results:
+            phase_names = ", ".join(group.phase_names) or "none"
+            lines.append(
+                f"- {group.group_id}: {group.status} "
+                f"(phases={phase_names}; max-concurrency={group.maximum_concurrency}; "
+                f"duration={group.duration_seconds:.3f}s)"
+            )
+    lines.append("Setup phase summary:")
     for phase in result.phase_results:
-        print(f"- {phase.name}: {phase.status}")
-        _print_setup_phase_diagnostics(phase.result)
-    print(f"Final setup status: {result.status.value}")
-    print()
+        lines.append(f"- {phase.name}: {phase.status}")
+        lines.extend(_format_setup_phase_diagnostics(phase.result))
+    if result.message:
+        lines.append(f"Message: {_console_text(result.message)}")
+    if result.reason:
+        lines.append(f"Reason: {_console_text(result.reason)}")
+    lines.append(f"Final setup status: {result.status.value}")
+    lines.append("")
+    return tuple(lines)
 
 
-def _print_setup_phase_diagnostics(phase_result: object) -> None:
+def _format_setup_phase_diagnostics(phase_result: object) -> tuple[str, ...]:
     if isinstance(phase_result, PreflightResult):
         if not phase_result.failed_checks:
-            return
-        print("  Failed preflight checks:")
+            return ()
+        lines = ["  Failed preflight checks:"]
         for check in phase_result.failed_checks:
-            print(f"  - {check.check_id}: {check.message}")
+            lines.append(
+                f"  - {check.check_id}: {_console_text(check.message)}"
+            )
             if check.remediation and check.remediation != "None":
-                print(f"    Action: {check.remediation}")
-        return
+                lines.append(f"    Action: {_console_text(check.remediation)}")
+        return tuple(lines)
     if isinstance(
         phase_result,
         PlatformWorkflowResult | ArtifactWorkflowResult | DeploymentWorkflowResult,
     ):
         if _workflow_status_value(phase_result) in {"completed", "passed", "verified"}:
-            return
-        _print_setup_nested_workflow_diagnostics(phase_result)
+            return ()
+        return _format_setup_nested_workflow_diagnostics(phase_result)
+    return ()
 
 
 def _print_setup_nested_workflow_diagnostics(result: WorkflowResult) -> None:
-    print(f"  Workflow: {_workflow_name(result)}")
+    for line in _format_setup_nested_workflow_diagnostics(result):
+        print(line)
+
+
+def _format_setup_nested_workflow_diagnostics(
+    result: WorkflowResult,
+) -> tuple[str, ...]:
+    lines = [f"  Workflow: {_workflow_name(result)}"]
     message = getattr(result, "message", "")
     if message:
-        print(f"  Message: {message}")
+        lines.append(f"  Message: {_console_text(message)}")
     reason = getattr(result, "reason", "")
     if reason:
-        print(f"  Reason: {reason}")
+        lines.append(f"  Reason: {_console_text(reason)}")
     verification_results = getattr(result, "verification_results", ())
     if not verification_results:
-        return
-    print("  Verification summary:")
-    for verification in verification_results:
-        print(f"  - {verification.target_id}: {verification.status.value}")
-        evidence = getattr(verification, "evidence", {})
-        if evidence:
-            print("    Evidence:")
-            for key, value in sorted(evidence.items()):
-                print(f"    - {key}: {value}")
+        return tuple(lines)
+    lines.extend(_format_verification_summary(verification_results, indent="  "))
+    return tuple(lines)
+
+
+def _format_phase_status_counts(phase_results: Sequence[object]) -> str:
+    return _format_status_counts(
+        (getattr(phase, "status", "unknown") for phase in phase_results)
+    )
+
+
+def _format_status_counts(values: Sequence[object]) -> str:
+    counts: dict[str, int] = {}
+    for value in values:
+        status = _console_enum(getattr(value, "status", value))
+        counts[status] = counts.get(status, 0) + 1
+    return ", ".join(
+        f"{status}={count}" for status, count in sorted(counts.items())
+    ) or "none"
+
+
+def _console_enum(value: object) -> str:
+    if isinstance(value, Enum):
+        return _console_text(value.value)
+    return _console_text(value)
+
+
+def _console_text(value: object) -> str:
+    text = str(value).replace("\r", " ").replace("\n", " ").strip()
+    return " ".join(text.split())
+
+
+def _safe_console_value(value: object) -> str:
+    if isinstance(value, Path):
+        return value.as_posix()
+    if isinstance(value, Enum):
+        return _console_text(value.value)
+    if isinstance(value, Mapping):
+        return "structured value persisted to evidence"
+    if isinstance(value, (list, tuple, set, frozenset)):
+        return f"{len(value)} item(s) persisted to evidence"
+    if isinstance(value, str):
+        text = _console_text(value)
+        if (
+            text.startswith(("{", "["))
+            and text.endswith(("}", "]"))
+        ):
+            return "structured value persisted to evidence"
+        return text
+    if isinstance(value, (bool, int, float)):
+        return str(value)
+    return f"{type(value).__name__} persisted to evidence"
 
 
 if __name__ == "__main__":
