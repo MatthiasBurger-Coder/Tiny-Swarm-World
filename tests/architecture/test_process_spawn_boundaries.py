@@ -71,6 +71,9 @@ ALLOWED_DIRECT_PROCESS_BOUNDARIES = {
     "src/tiny_swarm_world/infrastructure/adapters/network/host_network_repair.py": {
         "subprocess.run",
     },
+    "src/tiny_swarm_world/infrastructure/adapters/network/wsl_socat_exposure.py": {
+        "asyncio.create_subprocess_exec",
+    },
     "src/tiny_swarm_world/infrastructure/adapters/ui/windows_ui.py": {
         "os.system",
     },
@@ -78,7 +81,6 @@ ALLOWED_DIRECT_PROCESS_BOUNDARIES = {
         "subprocess.run",
     },
     "src/tiny_swarm_world/infrastructure/composition.py": {
-        "asyncio.create_subprocess_exec",
         "subprocess.run",
     },
     "src/tiny_swarm_world/installer.py": {

@@ -5,7 +5,7 @@ from dataclasses import fields
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import cast
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 from tests.support.async_helpers import async_checkpoint
 from tests.support.sonar_safe_literals import ipv4_address, sample_http_url, sample_text
 
@@ -2680,6 +2680,25 @@ class TestComposition(unittest.TestCase):
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
         self.assertEqual(result.evidence["classification"], "not_required")
+
+    def test_composed_wsl_socat_expose_blocks_without_live_consent_before_adapter(self):
+        services = composition.build_platform_services()
+        socat_step = services.workflows.expose.steps[1]
+        socat_step.os_type = composition.OsTypes.WSL_LINUX
+
+        with patch.object(
+            socat_step.socat_exposure,
+            "is_available",
+            new=AsyncMock(side_effect=AssertionError("consent guard must run first")),
+        ):
+            result = asyncio.run(socat_step.run())
+
+        self.assertEqual(VerificationStatus.BLOCKED, result.status)
+        self.assertEqual(
+            result.evidence["classification"],
+            "live_mutation_required",
+        )
+        self.assertEqual(result.evidence["planned_forward_count"], "18")
 
     def test_composed_wsl_socat_expose_skips_missing_optional_socat(self):
         with patch.object(wsl_socat_exposure.shutil, "which", return_value=None):
