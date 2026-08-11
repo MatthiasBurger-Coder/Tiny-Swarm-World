@@ -8,6 +8,7 @@ from tiny_swarm_world.application.services.platform.docker_swarm_lxc_contract im
 )
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
 from tiny_swarm_world.domain.node_provider import NodeSpec
+from tiny_swarm_world.domain.sanitized_evidence import sanitized_evidence
 
 
 class LxcDockerInstallService:
@@ -27,14 +28,7 @@ class LxcDockerInstallService:
         self,
         nodes: tuple[NodeSpec, ...],
     ) -> tuple[VerificationResult, ...]:
-        semaphore = asyncio.Semaphore(self.max_concurrency)
-
-        async def run_node(node: NodeSpec) -> tuple[VerificationResult, ...]:
-            async with semaphore:
-                return await self._ensure_node_docker_installed(node)
-
-        per_node_results = await asyncio.gather(*(run_node(node) for node in nodes))
-        return tuple(result for node_results in per_node_results for result in node_results)
+        return await self._run_bounded(nodes, self._ensure_node_docker_installed)
 
     async def _ensure_node_docker_installed(
         self,
@@ -42,7 +36,10 @@ class LxcDockerInstallService:
     ) -> tuple[VerificationResult, ...]:
         """Run the complete inspect/install/verify lifecycle for one node."""
 
-        readiness = await self.runtime.inspect_docker(node)
+        try:
+            readiness = await self.runtime.inspect_docker(node)
+        except Exception as exc:
+            return (_node_operation_failure(node, "inspect", exc),)
         readiness_result = self.contract_service.verify_container_docker_readiness(readiness)
         if readiness_result.status in {
             VerificationStatus.VERIFIED,
@@ -50,14 +47,20 @@ class LxcDockerInstallService:
         }:
             return (readiness_result,)
 
-        install_outcome = await self.runtime.install_docker(node)
+        try:
+            install_outcome = await self.runtime.install_docker(node)
+        except Exception as exc:
+            return (_node_operation_failure(node, "install", exc),)
         install_result = self.contract_service.verify_container_docker_install(
             install_outcome,
         )
         if install_result.status != VerificationStatus.VERIFIED:
             return (install_result,)
 
-        verified_readiness = await self.runtime.verify_docker(node)
+        try:
+            verified_readiness = await self.runtime.verify_docker(node)
+        except Exception as exc:
+            return (_node_operation_failure(node, "verify", exc),)
         return (
             install_result,
             self.contract_service.verify_container_docker_readiness(
@@ -69,13 +72,31 @@ class LxcDockerInstallService:
         self,
         nodes: tuple[NodeSpec, ...],
     ) -> tuple[VerificationResult, ...]:
-        results: list[VerificationResult] = []
-        for node in nodes:
+        return await self._run_bounded(nodes, self._verify_node_docker_runtime)
+
+    async def _verify_node_docker_runtime(
+        self,
+        node: NodeSpec,
+    ) -> tuple[VerificationResult, ...]:
+        try:
             readiness = await self.runtime.inspect_docker(node)
-            results.append(
-                self.contract_service.verify_container_docker_readiness(readiness)
-            )
-        return tuple(results)
+        except Exception as exc:
+            return (_node_operation_failure(node, "inspect", exc),)
+        return (self.contract_service.verify_container_docker_readiness(readiness),)
+
+    async def _run_bounded(
+        self,
+        nodes: tuple[NodeSpec, ...],
+        lifecycle,
+    ) -> tuple[VerificationResult, ...]:
+        semaphore = asyncio.Semaphore(self.max_concurrency)
+
+        async def run_node(node: NodeSpec) -> tuple[VerificationResult, ...]:
+            async with semaphore:
+                return await lifecycle(node)
+
+        per_node_results = await asyncio.gather(*(run_node(node) for node in nodes))
+        return tuple(result for node_results in per_node_results for result in node_results)
 
 
 class LxcDockerInstallStep:
@@ -269,3 +290,46 @@ def _aggregate_status(results: tuple[VerificationResult, ...]) -> VerificationSt
     if VerificationStatus.BLOCKED in statuses:
         return VerificationStatus.BLOCKED
     return VerificationStatus.FAILED_TO_VERIFY
+
+
+def _node_operation_failure(
+    node: NodeSpec,
+    operation_phase: str,
+    exc: Exception,
+) -> VerificationResult:
+    status = (
+        VerificationStatus.FAILED_TO_APPLY
+        if operation_phase == "install"
+        else VerificationStatus.FAILED_TO_VERIFY
+    )
+    target_id = (
+        f"platform:container-docker-install:{node.name}"
+        if operation_phase == "install"
+        else f"platform:container-docker:{node.name}"
+    )
+    return VerificationResult(
+        target_id=target_id,
+        status=status,
+        message="Node lifecycle operation failed; diagnostics are redacted.",
+        evidence={
+            "phase": "verify",
+            "classification": "node_docker_operation_failed",
+            "node": node.name,
+            "role": node.role.value,
+            "operation_phase": operation_phase,
+            "failure_class": exc.__class__.__name__,
+            "failure_reason": _safe_exception_summary(exc),
+        },
+    )
+
+
+def _safe_exception_summary(exc: Exception) -> str:
+    detail = str(exc).strip()
+    if detail:
+        try:
+            sanitized_evidence({"detail": detail})
+        except ValueError:
+            detail = ""
+    if detail:
+        return f"{exc.__class__.__name__}: {detail}"
+    return f"{exc.__class__.__name__}. Diagnostic payload redacted."
