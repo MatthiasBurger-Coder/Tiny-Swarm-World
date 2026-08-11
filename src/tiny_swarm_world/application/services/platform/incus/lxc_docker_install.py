@@ -23,30 +23,37 @@ class LxcDockerInstallService:
     ) -> tuple[VerificationResult, ...]:
         results: list[VerificationResult] = []
         for node in nodes:
-            readiness = await self.runtime.inspect_docker(node)
-            readiness_result = self.contract_service.verify_container_docker_readiness(readiness)
-            if readiness_result.status == VerificationStatus.VERIFIED:
-                results.append(readiness_result)
-                continue
-            if readiness_result.status == VerificationStatus.BLOCKED:
-                results.append(readiness_result)
-                continue
-
-            install_outcome = await self.runtime.install_docker(node)
-            install_result = self.contract_service.verify_container_docker_install(
-                install_outcome,
-            )
-            results.append(install_result)
-            if install_result.status != VerificationStatus.VERIFIED:
-                continue
-
-            verified_readiness = await self.runtime.verify_docker(node)
-            results.append(
-                self.contract_service.verify_container_docker_readiness(
-                    verified_readiness,
-                )
-            )
+            results.extend(await self._ensure_node_docker_installed(node))
         return tuple(results)
+
+    async def _ensure_node_docker_installed(
+        self,
+        node: NodeSpec,
+    ) -> tuple[VerificationResult, ...]:
+        """Run the complete inspect/install/verify lifecycle for one node."""
+
+        readiness = await self.runtime.inspect_docker(node)
+        readiness_result = self.contract_service.verify_container_docker_readiness(readiness)
+        if readiness_result.status in {
+            VerificationStatus.VERIFIED,
+            VerificationStatus.BLOCKED,
+        }:
+            return (readiness_result,)
+
+        install_outcome = await self.runtime.install_docker(node)
+        install_result = self.contract_service.verify_container_docker_install(
+            install_outcome,
+        )
+        if install_result.status != VerificationStatus.VERIFIED:
+            return (install_result,)
+
+        verified_readiness = await self.runtime.verify_docker(node)
+        return (
+            install_result,
+            self.contract_service.verify_container_docker_readiness(
+                verified_readiness,
+            ),
+        )
 
     async def verify_docker_runtime(
         self,
