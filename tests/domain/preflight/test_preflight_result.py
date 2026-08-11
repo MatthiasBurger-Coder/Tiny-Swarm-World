@@ -4,6 +4,7 @@ from tests.support.sonar_safe_literals import sample_text, token_marker
 
 from tiny_swarm_world.domain.preflight import (
     InstallationPhase,
+    InstallationPhaseGroup,
     InstallationPlan,
     LIVE_CONSENT_ENVIRONMENT_VALUE,
     LIVE_CONSENT_PHRASE,
@@ -461,3 +462,66 @@ class TestInstallationPlan(unittest.TestCase):
                 phases=(InstallationPhase("artifacts", 10, services=("nexus",)),),
                 required_services=("nexus", "jenkins"),
             )
+
+    def test_installation_plan_derives_bounded_parallel_groups(self):
+        plan = InstallationPlan(
+            phases=(
+                InstallationPhase("preflight", 0),
+                InstallationPhase(
+                    "alpha",
+                    10,
+                    depends_on=("preflight",),
+                    services=("alpha",),
+                    parallel_group="workers",
+                ),
+                InstallationPhase(
+                    "beta",
+                    10,
+                    depends_on=("preflight",),
+                    services=("beta",),
+                    parallel_group="workers",
+                ),
+                InstallationPhase("validation", 20, depends_on=("alpha", "beta")),
+            ),
+        )
+
+        groups = plan.phase_groups(maximum_concurrency=3)
+
+        self.assertEqual(
+            [(group.group_id, group.phase_ids, group.maximum_concurrency) for group in groups],
+            [
+                ("preflight", ("preflight",), 1),
+                ("workers", ("alpha", "beta"), 2),
+                ("validation", ("validation",), 1),
+            ],
+        )
+        self.assertTrue(all(group.serial_barrier for group in groups))
+
+    def test_default_installation_plan_declares_independent_service_group(self):
+        groups = default_installation_plan().phase_groups(maximum_concurrency=2)
+
+        independent = next(group for group in groups if group.group_id == "independent-services")
+
+        self.assertEqual(
+            independent.phase_ids,
+            ("cicd", "quality", "messaging", "observability"),
+        )
+        self.assertEqual(independent.maximum_concurrency, 2)
+
+    def test_installation_plan_rejects_dependency_inside_parallel_group(self):
+        with self.assertRaisesRegex(ValueError, "contains a dependency edge"):
+            InstallationPlan(
+                phases=(
+                    InstallationPhase("alpha", 0, parallel_group="workers"),
+                    InstallationPhase(
+                        "beta",
+                        1,
+                        depends_on=("alpha",),
+                        parallel_group="workers",
+                    ),
+                )
+            ).phase_groups()
+
+    def test_installation_phase_group_rejects_non_positive_limit(self):
+        with self.assertRaisesRegex(ValueError, "concurrency must be positive"):
+            InstallationPhaseGroup("workers", ("alpha",), 0)

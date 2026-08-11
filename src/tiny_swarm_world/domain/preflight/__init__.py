@@ -39,6 +39,7 @@ from tiny_swarm_world.domain.preflight.preflight_configuration import (
 from tiny_swarm_world.domain.preflight.preflight_result import PreflightResult
 from tiny_swarm_world.domain.preflight.installation_plan import (
     InstallationPhase,
+    InstallationPhaseGroup,
     InstallationPlan,
     default_installation_plan,
 )
@@ -94,6 +95,7 @@ __all__ = [
     "HostRuntimeReadiness",
     "HostRuntimeReadinessStatus",
     "InstallationPhase",
+    "InstallationPhaseGroup",
     "InstallationPlan",
     "LiveConsent",
     "PreflightCategory",
