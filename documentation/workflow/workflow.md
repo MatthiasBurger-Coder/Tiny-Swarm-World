@@ -6,7 +6,7 @@ Authoring branch: `architecture/workflow-composition-root-refactor-20260811`
 
 Issue: [#249](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/249)
 
-Status: `READY_FOR_WORKFLOW`
+Status: `COMPLETED`
 
 ## Executive Summary
 
@@ -393,7 +393,7 @@ quality_gates:
 documentation:
   arc42: required; no planned behavior may be written as implemented
   adr: record reviewed/no-new-ADR status
-stop_conditions: [open requirement, missing evidence file, failed quality gate, unavailable external gate misreported as success]
+stop_conditions: [open requirement, missing evidence file, failed quality gate, unavailable external gate must not be called success]
 ```
 
 Done criteria: all required issue evidence files exist, the requirement matrix

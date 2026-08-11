@@ -80,7 +80,7 @@ ALLOWED_DIRECT_PROCESS_BOUNDARIES = {
     "src/tiny_swarm_world/infrastructure/adapters/clients/infisical_cli_client.py": {
         "subprocess.run",
     },
-    "src/tiny_swarm_world/infrastructure/composition.py": {
+    "src/tiny_swarm_world/infrastructure/composition_probes.py": {
         "subprocess.run",
     },
     "src/tiny_swarm_world/installer.py": {
