@@ -455,6 +455,47 @@ class TestInstaller(unittest.TestCase):
         run.assert_not_called()
         self.assertEqual(env, {"TSW_INSTALL_COMMAND_GROUP": "lxd"})
 
+    def test_evidence_probe_snapshot_coalesces_git_and_system_metadata(self):
+        calls = []
+
+        def optional_text(command, *, cwd=None):
+            calls.append((command, cwd))
+            if command[0] == "git":
+                return "HEAD -> main, origin/main\x001234567"
+            return "Linux 6.18.33-test x86_64"
+
+        git_probe = installer._GitProbeResult(True, True, "ignored")
+        with patch.object(installer, "_run_optional_text", side_effect=optional_text):
+            with patch.object(installer, "_read_text", return_value="6.18.33-test\n"):
+                snapshot = installer._collect_evidence_probe_snapshot(
+                    Path("/tmp/repository"),
+                    git_probe,
+                )
+
+        self.assertEqual(snapshot.git_branch, "main")
+        self.assertEqual(snapshot.git_head, "1234567")
+        self.assertEqual(snapshot.platform_system, "Linux")
+        self.assertEqual(snapshot.kernel_release, "6.18.33-test")
+        self.assertEqual(snapshot.proc_osrelease, "6.18.33-test")
+        self.assertEqual([command for command, _ in calls], [
+            ("git", "show", "-s", "--format=%D%x00%h", "HEAD"),
+            ("uname", "-srm"),
+        ])
+
+    def test_evidence_probe_snapshot_uses_unknown_for_optional_failures(self):
+        git_probe = installer._GitProbeResult(True, True, "ignored")
+        with patch.object(installer, "_run_optional_text", return_value="unknown"):
+            with patch.object(installer, "_read_text", return_value=""):
+                snapshot = installer._collect_evidence_probe_snapshot(
+                    Path("/tmp/repository"),
+                    git_probe,
+                )
+
+        self.assertEqual(
+            snapshot,
+            installer._EvidenceProbeSnapshot("unknown", "unknown", "unknown", "unknown", "unknown"),
+        )
+
     def test_required_installer_secret_entries_come_from_manifest(self):
         entries = installer._required_installer_secret_entries(
             Path("infra/config/secrets/infisical-secrets.yaml")

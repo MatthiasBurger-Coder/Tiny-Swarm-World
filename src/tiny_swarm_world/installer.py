@@ -106,6 +106,15 @@ class _GitProbeResult:
 
 
 @dataclass(frozen=True)
+class _EvidenceProbeSnapshot:
+    git_branch: str
+    git_head: str
+    platform_system: str
+    kernel_release: str
+    proc_osrelease: str
+
+
+@dataclass(frozen=True)
 class _InstallRunContext:
     run_id: str
     service_profile: str
@@ -121,6 +130,7 @@ class _InstallRunContext:
     cwd: Path
     env: Mapping[str, str]
     git_probe: _GitProbeResult
+    evidence_probes: _EvidenceProbeSnapshot
 
 
 @dataclass(frozen=True)
@@ -380,6 +390,7 @@ def run(
     evidence_dir.mkdir(parents=True, exist_ok=True)
     live_mode, approval_source, approval_argument = _live_approval(options)
     terminal_mode = "headless" if options.headless else "terminal_recorder"
+    evidence_probes = _collect_evidence_probe_snapshot(cwd, git_probe)
     _write_context(
         evidence_dir,
         context=_InstallRunContext(
@@ -397,6 +408,7 @@ def run(
             cwd=cwd,
             env=install_env,
             git_probe=git_probe,
+            evidence_probes=evidence_probes,
         ),
     )
 
@@ -1400,8 +1412,8 @@ def _write_context(
         "run_id": context.run_id,
         "started_utc": _utc_timestamp(),
         "repo": context.cwd.as_posix(),
-        "git_branch": _run_text(("git", "branch", "--show-current"), cwd=context.cwd),
-        "git_head": _run_text(("git", "rev-parse", "--short", "HEAD"), cwd=context.cwd),
+        "git_branch": context.evidence_probes.git_branch,
+        "git_head": context.evidence_probes.git_head,
         "service_profile": context.service_profile,
         "fresh_install_reset": "required",
         "secrets_mode": context.secrets_mode,
@@ -1415,9 +1427,9 @@ def _write_context(
         "live_execution_mode": context.live_execution_mode,
         "live_approval_source": context.live_approval_source,
         "terminal_recording_mode": context.terminal_recording_mode,
-        "platform_system": _run_text(("uname", "-s")),
-        "kernel_release": _run_text(("uname", "-r")),
-        "proc_osrelease": _read_text(Path("/proc/sys/kernel/osrelease")).strip(),
+        "platform_system": context.evidence_probes.platform_system,
+        "kernel_release": context.evidence_probes.kernel_release,
+        "proc_osrelease": context.evidence_probes.proc_osrelease,
         "wsl_distro_name_present": "yes" if context.env.get("WSL_DISTRO_NAME") else "no",
         "wsl_interop_present": "yes" if context.env.get("WSL_INTEROP") else "no",
     }
@@ -1429,6 +1441,52 @@ def _append_context(evidence_dir: Path, values: Mapping[str, str], *, replace: b
     with (evidence_dir / "context.txt").open(mode, encoding="utf-8") as context:
         for key, value in values.items():
             context.write(f"{key}={value}\n")
+
+
+def _collect_evidence_probe_snapshot(
+    cwd: Path,
+    git_probe: _GitProbeResult,
+) -> _EvidenceProbeSnapshot:
+    git_branch, git_head = _git_revision_metadata(cwd, git_probe)
+    system_metadata = _run_optional_text(("uname", "-srm"))
+    if system_metadata == "unknown":
+        platform_system = "unknown"
+        kernel_release = "unknown"
+    else:
+        system_parts = system_metadata.split(maxsplit=2)
+        platform_system = system_parts[0] if system_parts else "unknown"
+        kernel_release = system_parts[1] if len(system_parts) > 1 else "unknown"
+    proc_osrelease = _read_text(Path("/proc/sys/kernel/osrelease")).strip() or "unknown"
+    return _EvidenceProbeSnapshot(
+        git_branch=git_branch,
+        git_head=git_head,
+        platform_system=platform_system,
+        kernel_release=kernel_release,
+        proc_osrelease=proc_osrelease,
+    )
+
+
+def _git_revision_metadata(cwd: Path, git_probe: _GitProbeResult) -> tuple[str, str]:
+    if not git_probe.inside_worktree:
+        return "unknown", "unknown"
+    metadata = _run_optional_text(
+        ("git", "show", "-s", "--format=%D%x00%h", "HEAD"),
+        cwd=cwd,
+    )
+    if metadata == "unknown":
+        return "unknown", "unknown"
+    decorations, separator, short_head = metadata.partition("\x00")
+    if not separator:
+        return "unknown", "unknown"
+    branch = ""
+    for decoration in decorations.split(","):
+        candidate = decoration.strip()
+        if candidate.startswith("HEAD -> "):
+            branch = candidate.removeprefix("HEAD -> ")
+            break
+        if candidate.startswith("refs/heads/"):
+            branch = candidate.removeprefix("refs/heads/")
+    return branch, short_head or "unknown"
 
 
 def _windows_wsl_bridge_context(
@@ -1644,15 +1702,26 @@ def _run_text(command: tuple[str, ...], *, cwd: Path | None = None) -> str:
     ).stdout.strip()
 
 
+def _run_optional_text(command: tuple[str, ...], *, cwd: Path | None = None) -> str:
+    try:
+        result = _run_text(command, cwd=cwd)
+    except (OSError, subprocess.SubprocessError):
+        return "unknown"
+    return result or "unknown"
+
+
 def _probe_git_ignore(cwd: Path, path: str) -> _GitProbeResult:
-    result = subprocess.run(
-        ["git", "check-ignore", "-q", "--", path],
-        cwd=cwd,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        check=False,
-        timeout=DEFAULT_INSTALLER_PROBE_TIMEOUT_SECONDS,
-    )
+    try:
+        result = subprocess.run(
+            ["git", "check-ignore", "-q", "--", path],
+            cwd=cwd,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+            timeout=DEFAULT_INSTALLER_PROBE_TIMEOUT_SECONDS,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return _GitProbeResult(False, False, "unknown")
     if result.returncode == 0:
         return _GitProbeResult(True, True, "ignored")
     if result.returncode == 1:
