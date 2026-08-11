@@ -31,6 +31,17 @@ Tiny Swarm World Installer
 [setup] deployment apply          START
 ```
 
+The completed setup summary remains line-based and includes the workflow,
+phase count, status counts, phase-group status/limit/duration, each phase
+status, final status, and available evidence paths. Reset, deployment, and
+verification commands use the same readable workflow/status pattern.
+
+The default channel is human-readable on native Linux, WSL2, and the
+LXC-native setup path. On failure, a structured block in a captured log is
+represented by an omission marker; the full log path is printed so the details
+remain available in evidence. Recovery hints and suggested checks remain in
+the console.
+
 Failure diagnostics include the failed phase, reason, evidence path, and
 suggested commands when available. Suggested commands are printed for operator
 use; the reporter does not execute them.
@@ -41,4 +52,6 @@ or truncated fragments such as partial phase names.
 
 Console output must not contain raw JSON, raw Python dictionaries, YAML payloads,
 or internal event object representations. Machine-readable JSON belongs in
-generated report files, not stdout or stderr.
+generated report files, not the default stdout or stderr. An operator may opt
+into the structured CLI channel explicitly with `--json` or
+`TSW_DEBUG_JSON=true`; `TSW_DEBUG_JSON=false` preserves the default summary.

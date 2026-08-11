@@ -763,6 +763,29 @@ class TestInstaller(unittest.TestCase):
         self.assertNotIn("{", rendered)
         self.assertNotIn("[", rendered)
 
+    def test_confirm_reset_default_output_is_a_readable_line(self):
+        options = installer.InstallerOptions(
+            service_profile="service-access",
+            generate_secrets=False,
+            secrets_mode="fixed",
+            confirm_reset=True,
+            non_interactive_live_approval=False,
+            headless=True,
+            allow_wsl_windows_filesystem=False,
+        )
+        output = io.StringIO()
+
+        with redirect_stdout(output):
+            installer._confirm_reset(options)
+
+        rendered = output.getvalue()
+        self.assertEqual(
+            rendered.strip(),
+            "Fresh-install reset confirmed by explicit --confirm-reset flag.",
+        )
+        self.assertNotIn("{", rendered)
+        self.assertNotIn("[", rendered)
+
     def test_log_tail_suppresses_structured_blocks_but_keeps_evidence_reference(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             log_path = Path(temporary_directory) / "setup-run.log"
