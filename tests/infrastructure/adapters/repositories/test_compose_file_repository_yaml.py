@@ -606,6 +606,34 @@ services:
             with self.subTest(stack_name=stack_name):
                 self.assertLessEqual(published_ports, classified_ports)
 
+    def test_service_access_legacy_port_is_explicit_compatibility_metadata(self):
+        repository_root = Path(__file__).resolve().parents[4]
+        repository = ComposeFileRepositoryYaml()
+        registry = PortRegistryYamlRepository().load()
+        legacy = next(
+            mapping
+            for mapping in registry.mappings
+            if mapping.port_id == "service-access-legacy-http"
+        )
+        compose_data = YAML(typ="safe").load(
+            repository.get_compose_of("service-access").compose_content
+        )
+        legacy_entry = compose_data["services"]["service-access-nginx"]["ports"][1]
+
+        self.assertEqual(legacy.exposure, PortExposureClass.COMPATIBILITY)
+        self.assertEqual(legacy.internal_port, 8086)
+        self.assertEqual(legacy.external_port, 8086)
+        self.assertEqual(legacy_entry["target"], legacy.internal_port)
+        self.assertEqual(legacy_entry["published"], legacy.external_port)
+        self.assertNotIn(
+            "rabbitmq",
+            "\n".join(
+                path.read_text(encoding="utf-8").lower()
+                for path in (repository_root / "infra" / "config").rglob("*")
+                if path.is_file()
+            ),
+        )
+
     def test_committed_health_checks_align_with_services_and_contracts(self):
         repository_root = Path(__file__).resolve().parents[4]
         health_checks = YAML(typ="safe").load(

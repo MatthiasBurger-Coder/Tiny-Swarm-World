@@ -129,6 +129,18 @@ settings such as distro selection, listen address, hosts address, discovery
 interval, and additional hostname aliases. Do not maintain a separate Windows
 port list.
 
+== Published Port Classification
+
+`infra/config/ports.yaml` is the source of truth for registry-backed external
+published ports. In Compose, `target` remains the image-compatible internal
+container port and `published` is the external host/service port resolved from
+the registry. Traefik owns public ingress on `80` and `443`; direct diagnostic
+ports remain stack-local fallback access. The service-access NGINX `8086`
+listener is retained only as an explicit compatibility/rollback path and is
+not a preferred route. RabbitMQ is not an active messaging service; Apache
+Pulsar remains the supported messaging path. These are desired static
+configuration facts, not live readiness evidence.
+
 Use the older portproxy scripts only for focused Windows-side diagnosis or
 manual repair:
 

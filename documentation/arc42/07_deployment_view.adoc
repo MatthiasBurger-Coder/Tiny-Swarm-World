@@ -62,9 +62,12 @@ The deployment configuration model is now split across committed registries:
   targets without running live checks or being loaded by default deployment
   verification.
 
-Current compose files still publish some legacy host ports. Those ports are
-classified as compatibility in the service registry and are not presented as a
-completed port migration.
+Active directly published Compose values resolve from `infra/config/ports.yaml`.
+The Compose `target` is the image-compatible internal port; `published` is the
+effective external port. The service-access NGINX `8086` listener remains an
+explicit compatibility/rollback port, while Traefik owns the public ingress
+ports `80` and `443`. Compatibility metadata does not create new direct routes
+and this static state is not live deployment evidence.
 
 == Service Access And Traefik Routing Baseline
 
@@ -87,7 +90,8 @@ The active routing baseline is Traefik-backed local ingress:
   target ports while sharing the `tiny-swarm` upstream service;
 * the service-access stack remains the dashboard stack and may publish its own
   NGINX compatibility ports from compose metadata;
-* the Swagger/NGINX stack uses published port `8084`;
+* the Swagger/NGINX stack uses registry-backed published ports `16080` for the
+  UI and `16081` for NGINX, with internal targets `8080` and `8084`;
 * live route success, hostname resolution and browser-visible HTTPS behavior
   remain opt-in verification concerns, not static documentation claims.
 
@@ -169,10 +173,11 @@ the explicit proxy-drift repair workflow after equivalent manager-profile
 devices are verified.
 
 Apache Pulsar is deployed in standalone mode for local development. Its broker
-protocol uses port `6650`, and its Admin API uses internal port `8080` with
-host mapping `8087` to avoid collisions with Jenkins and service-access
-components. Production-like Pulsar clustering with separate brokers, bookies,
-and metadata services is deferred.
+uses internal target `6650` and registry-backed published port `14001`; its
+Admin API uses internal target `8080` and published port `14080`; and Pulsar
+Manager uses internal target `9527` and published port `14081`. Production-like
+Pulsar clustering with separate brokers, bookies, and metadata services is
+deferred.
 
 == Autonomous Setup Deployment Contract
 
