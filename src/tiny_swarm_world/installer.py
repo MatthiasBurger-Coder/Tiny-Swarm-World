@@ -1405,28 +1405,49 @@ def _suggested_checks_for_phase(name: str, *, log_text: str = "") -> tuple[str, 
 def _render_fallback_install_event(event: _FallbackInstallEvent) -> tuple[str, ...]:
     lines: list[str]
     if event.event_type == "INSTALL_STARTED":
-        lines = ["Tiny Swarm World Installer", f"  RUNNING {event.message or event.step}"]
+        lines = [
+            "Tiny Swarm World Installer",
+            f"  RUNNING {_safe_installer_line_value(event.message or event.step)}",
+        ]
         return tuple(lines)
     if event.status == "STARTED":
-        header = f"[{event.sequence}/{event.total}] {event.step}" if event.sequence and event.total else event.step
-        lines = [header, f"  RUNNING {event.message or event.target}"]
+        header = (
+            f"[{event.sequence}/{event.total}] {event.step}"
+            if event.sequence and event.total
+            else event.step
+        )
+        lines = [
+            header,
+            f"  RUNNING {_safe_installer_line_value(event.message or event.target)}",
+        ]
         return tuple(lines)
     if event.status == "SUCCEEDED":
-        lines = [f"  OK      {event.message or event.target}"]
+        lines = [
+            f"  OK      {_safe_installer_line_value(event.message or event.target)}"
+        ]
         return tuple(lines)
     if event.status in {"FAILED", "TIMED_OUT", "INTERRUPTED"}:
         target = f" on {event.target}" if event.target else ""
         lines = [f"FAILED {event.step}{target}"]
         if event.reason:
-            lines.extend(("", "Reason:", f"  {event.reason}"))
+            lines.extend(("", "Reason:", f"  {_safe_installer_line_value(event.reason)}"))
         if event.evidence_path:
             lines.extend(("", "Evidence:", f"  {event.evidence_path.as_posix()}"))
         if event.suggested_commands:
             lines.extend(("", "Suggested checks:"))
             lines.extend(f"  {command}" for command in event.suggested_commands)
         return tuple(lines)
-    lines = [f"  {event.status:<8}{event.message or event.target}"]
+    lines = [
+        f"  {event.status:<8}{_safe_installer_line_value(event.message or event.target)}"
+    ]
     return tuple(lines)
+
+
+def _safe_installer_line_value(value: str) -> str:
+    text = " ".join(value.replace("\r", " ").replace("\n", " ").split())
+    if text.startswith(("{", "[")) and text.endswith(("}", "]")):
+        return "structured event details recorded in evidence"
+    return text
 
 
 def _write_context(
@@ -1620,9 +1641,44 @@ def _print_tail(path: Path, title: str) -> None:
     print(f"\n{title}:", file=sys.stderr)
     if not path.exists():
         return
-    lines = path.read_text(encoding="utf-8", errors="replace").splitlines()[-80:]
-    for line in lines:
+    print(f"Full log retained at: {path.as_posix()}", file=sys.stderr)
+    for line in _safe_log_tail_lines(path):
         print(line, file=sys.stderr)
+
+
+def _safe_log_tail_lines(path: Path) -> tuple[str, ...]:
+    lines = path.read_text(encoding="utf-8", errors="replace").splitlines()[-80:]
+    rendered: list[str] = []
+    structured_depth = 0
+    for line in lines:
+        stripped = line.strip()
+        if structured_depth:
+            structured_depth += _structured_delimiter_delta(stripped)
+            if structured_depth <= 0:
+                structured_depth = 0
+            continue
+        if _starts_structured_log_value(stripped):
+            rendered.append(
+                "[structured log block omitted from console; full content is in the evidence log]"
+            )
+            structured_depth = max(0, _structured_delimiter_delta(stripped))
+            continue
+        rendered.append(line)
+    return tuple(rendered)
+
+
+def _starts_structured_log_value(value: str) -> bool:
+    if value.startswith("{"):
+        return True
+    return (
+        value.startswith("[")
+        and len(value) > 1
+        and value[1] in "\"'{0123456789-]"
+    )
+
+
+def _structured_delimiter_delta(value: str) -> int:
+    return value.count("{") + value.count("[") - value.count("}") - value.count("]")
 
 
 def _print_reset_failure_guidance(path: Path) -> None:

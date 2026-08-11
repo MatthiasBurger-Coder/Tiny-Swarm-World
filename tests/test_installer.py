@@ -763,6 +763,32 @@ class TestInstaller(unittest.TestCase):
         self.assertNotIn("{", rendered)
         self.assertNotIn("[", rendered)
 
+    def test_log_tail_suppresses_structured_blocks_but_keeps_evidence_reference(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            log_path = Path(temporary_directory) / "setup-run.log"
+            log_path.write_text(
+                "\n".join(
+                    (
+                        "human-readable failure detail",
+                        "{",
+                        '  \"secret\": \"retain only in evidence\",',
+                        '  \"status\": \"failed\"',
+                        "}",
+                    )
+                ),
+                encoding="utf-8",
+            )
+            output = io.StringIO()
+
+            with redirect_stderr(output):
+                installer._print_tail(log_path, "Last log lines")
+
+        rendered = output.getvalue()
+        self.assertIn("human-readable failure detail", rendered)
+        self.assertIn("structured log block omitted from console", rendered)
+        self.assertIn(log_path.as_posix(), rendered)
+        self.assertNotIn('"secret":', rendered)
+
     def test_run_phase_emits_distinct_timeout_and_terminates_process(self):
         class Reporter:
             def __init__(self) -> None:
