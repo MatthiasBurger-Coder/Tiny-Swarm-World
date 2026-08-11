@@ -245,7 +245,8 @@ Quality scenarios:
   parsed from the selected stacks, while `--service-profile default` can omit
   the management stack intentionally;
 * committed service-access YAML loads through the compose repository and
-  publishes only the service-access NGINX ports `10000` and `8086`;
+  publishes registry-backed dashboard port `10000` plus the explicit
+  compatibility port `8086`; internal Compose targets remain unchanged;
 * Portainer and direct Swarm deployment paths propagate only allowlisted stack
   environment values, and verification evidence records no literal token,
   secret, password or credential names;
@@ -263,8 +264,11 @@ Quality scenarios:
 
 Effective routing-model evidence must satisfy these additional scenarios:
 
-* one public effective-model port feeds compose labels, dashboard links,
-  health targets, routing evidence and browser expectation consumers;
+* one effective registry mapping feeds Compose published-port resolution,
+  routed labels, dashboard links, health targets, routing evidence and browser
+  expectation consumers;
+* effective direct published-port evidence records the external value and
+  classification while keeping internal targets and routed URLs distinct;
 * the evidence document has the fixed required top-level schema and contains
   only credential labels plus Infisical item references;
 * route, health, link, fallback and skip collections plus JSON keys are
@@ -276,7 +280,8 @@ Effective routing-model evidence must satisfy these additional scenarios:
   target on failure, and cleans temporary files;
 * evidence failure stops deployment before stack apply without changing setup
   phase order;
-* `result: generated` never satisfies live service readiness.
+* `result: generated` never satisfies live service readiness, and local quality
+  or routing evidence never claims live, browser or external SonarQube success.
 
 Dashboard and browser verification must satisfy these scenarios:
 

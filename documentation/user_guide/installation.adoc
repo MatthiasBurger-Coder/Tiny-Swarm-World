@@ -879,12 +879,14 @@ Operators who intentionally want only the older base service set can pass
 
 The service-access setup profile exposes Traefik ingress ports `80` and `443`
 through the LXC/WSL exposure workflow. The service-access NGINX compose
-service publishes ports `10000` and `8086` as stack metadata parsed from
-`infra/config/compose/service-access/docker-compose.yml`. WSL `localhost`
-forwarding is a separate host-network concern. Endpoint defaults are
-configuration hints, not service-health evidence. If localhost forwarding is
-stale, use the current Swarm node IP only for manual diagnosis until the
-forwarding issue is repaired.
+service publishes registry-backed dashboard port `10000` and explicit
+compatibility/rollback port `8086` as stack metadata parsed from
+`infra/config/compose/service-access/docker-compose.yml`. The Compose target
+ports remain the image-compatible internal ports. WSL `localhost` forwarding
+is a separate host-network concern. Endpoint defaults are configuration hints,
+not service-health evidence, and local effective-port evidence is not live
+readiness evidence. If localhost forwarding is stale, use the current Swarm
+node IP only for manual diagnosis until the forwarding issue is repaired.
 
 The service-access dashboard is a generated management table. It lists
 service links, users and Infisical item references from the effective access
