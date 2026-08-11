@@ -793,6 +793,115 @@ services:
                 ]
                 self.assertEqual(actual, expected)
 
+    def test_messaging_gateway_swagger_and_access_stacks_render_registry_ports(self):
+        registry = PortRegistry(
+            ranges=(),
+            mappings=(
+                ServicePortMapping(
+                    service_id="pulsar",
+                    port_id="pulsar-broker",
+                    internal_port=6650,
+                    external_port=24001,
+                    exposure=PortExposureClass.DIRECT,
+                ),
+                ServicePortMapping(
+                    service_id="pulsar",
+                    port_id="pulsar-admin-api",
+                    internal_port=8080,
+                    external_port=24080,
+                    exposure=PortExposureClass.DIRECT,
+                ),
+                ServicePortMapping(
+                    service_id="pulsar-manager",
+                    port_id="pulsar-manager-gui",
+                    internal_port=9527,
+                    external_port=24081,
+                    exposure=PortExposureClass.DIRECT,
+                ),
+                ServicePortMapping(
+                    service_id="traefik",
+                    port_id="traefik-http",
+                    internal_port=80,
+                    external_port=80,
+                    exposure=PortExposureClass.PUBLIC_INGRESS,
+                ),
+                ServicePortMapping(
+                    service_id="traefik",
+                    port_id="traefik-https",
+                    internal_port=443,
+                    external_port=443,
+                    exposure=PortExposureClass.PUBLIC_INGRESS,
+                ),
+                ServicePortMapping(
+                    service_id="swagger",
+                    port_id="swagger-ui",
+                    internal_port=8080,
+                    external_port=26080,
+                    exposure=PortExposureClass.DIRECT,
+                ),
+                ServicePortMapping(
+                    service_id="swagger",
+                    port_id="openapi-aggregator",
+                    internal_port=8084,
+                    external_port=26081,
+                    exposure=PortExposureClass.DIRECT,
+                ),
+                ServicePortMapping(
+                    service_id="service-access",
+                    port_id="service-access-http",
+                    internal_port=80,
+                    external_port=21080,
+                    exposure=PortExposureClass.DIRECT,
+                ),
+                ServicePortMapping(
+                    service_id="infisical",
+                    port_id="infisical-http",
+                    internal_port=8080,
+                    external_port=27080,
+                    exposure=PortExposureClass.DIRECT,
+                ),
+            ),
+        )
+        repository = ComposeFileRepositoryYaml(port_registry=registry)
+        expected_ports = {
+            "pulsar": {
+                "pulsar": [(6650, 24001), (8080, 24080)],
+                "pulsar-manager": [(9527, 24081)],
+            },
+            "traefik": {"traefik": [(80, 80), (443, 443)]},
+            "swagger": {
+                "swagger-ui": [(8080, 26080)],
+                "swagger-nginx": [(8084, 26081)],
+            },
+            "service-access": {
+                "service-access-nginx": [(80, 21080), (8086, 8086)],
+            },
+            "infisical": {"infisical": [(8080, 27080)]},
+        }
+
+        for stack_name, expected_services in expected_ports.items():
+            with self.subTest(stack_name=stack_name):
+                if stack_name == "service-access":
+                    with patch.object(repository, "render_service_access_dashboard", return_value=""):
+                        stack_definition = repository.get_compose_of(stack_name)
+                else:
+                    stack_definition = repository.get_compose_of(stack_name)
+                compose_data = YAML(typ="safe").load(stack_definition.compose_content)
+                for service_name, expected in expected_services.items():
+                    actual = [
+                        (port["target"], port["published"])
+                        for port in compose_data["services"][service_name]["ports"]
+                    ]
+                    self.assertEqual(actual, expected)
+
+    def test_active_config_does_not_reintroduce_rabbitmq(self):
+        repository_root = Path(__file__).resolve().parents[4]
+        config_root = repository_root / "infra" / "config"
+        for config_path in config_root.rglob("*"):
+            if config_path.is_file():
+                with self.subTest(config_path=config_path):
+                    self.assertNotIn("rabbitmq", config_path.read_text(encoding="utf-8").lower())
+
     def test_committed_pulsar_compose_uses_standalone_with_non_conflicting_admin_port(self):
         repository_root = Path(__file__).resolve().parents[4]
         compose_path = (
