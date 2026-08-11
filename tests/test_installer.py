@@ -4,7 +4,7 @@ import stat
 import subprocess
 import tempfile
 import unittest
-from contextlib import redirect_stderr
+from contextlib import redirect_stderr, redirect_stdout
 from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import patch
@@ -741,6 +741,27 @@ class TestInstaller(unittest.TestCase):
         )
         self.assertEqual(installer._render_fallback_install_event(succeeded), ("  OK      done",))
         self.assertEqual(installer._render_fallback_install_event(unknown), ("  SKIPPED host",))
+
+    def test_default_install_completion_summary_is_line_based(self):
+        output = io.StringIO()
+
+        with redirect_stdout(output):
+            installer._print_install_completion_summary(
+                0,
+                Path(".tiny-swarm-world/evidence/install"),
+                stream=output,
+            )
+
+        rendered = output.getvalue()
+        self.assertEqual(
+            rendered.splitlines(),
+            [
+                "Installation completed successfully.",
+                "Evidence directory: .tiny-swarm-world/evidence/install",
+            ],
+        )
+        self.assertNotIn("{", rendered)
+        self.assertNotIn("[", rendered)
 
     def test_run_phase_emits_distinct_timeout_and_terminates_process(self):
         class Reporter:

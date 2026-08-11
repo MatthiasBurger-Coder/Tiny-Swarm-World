@@ -550,8 +550,7 @@ def run(
                 evidence_path=evidence_dir,
             )
         )
-        print("Installation completed successfully.")
-        print(f"Evidence directory: {evidence_dir.as_posix()}")
+        _print_install_completion_summary(0, evidence_dir, stream=sys.stdout)
     else:
         install_reporter.report(
             _phase_event(
@@ -562,8 +561,7 @@ def run(
                 evidence_path=evidence_dir,
             )
         )
-        print(f"Installation failed with exit code {setup_exit}.", file=sys.stderr)
-        print(f"Evidence directory: {evidence_dir.as_posix()}", file=sys.stderr)
+        _print_install_completion_summary(setup_exit, evidence_dir, stream=sys.stderr)
         _print_tail(evidence_dir / _SETUP_RUN_LOG_FILE, "Last log lines")
         _print_setup_failure_guidance(evidence_dir / _SETUP_RUN_LOG_FILE)
     return setup_exit
@@ -1597,6 +1595,19 @@ def _print_install_plan(cwd: Path, options: InstallerOptions, evidence_dir: Path
             )
         )
     )
+
+
+def _print_install_completion_summary(
+    exit_code: int,
+    evidence_dir: Path,
+    *,
+    stream: IO[str],
+) -> None:
+    if exit_code == 0:
+        print("Installation completed successfully.", file=stream)
+    else:
+        print(f"Installation failed with exit code {exit_code}.", file=stream)
+    print(f"Evidence directory: {evidence_dir.as_posix()}", file=stream)
 
 
 def _print_missing_secrets(missing: Sequence[str]) -> None:
