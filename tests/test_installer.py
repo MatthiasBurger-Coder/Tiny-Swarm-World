@@ -409,6 +409,41 @@ class TestInstaller(unittest.TestCase):
                 {"TSW_EXAMPLE": "second"},
             )
 
+    def test_git_ignore_probe_batches_worktree_and_ignore_decision(self):
+        completed = subprocess.CompletedProcess(
+            ["git", "check-ignore"],
+            returncode=0,
+        )
+        with patch.object(installer.subprocess, "run", return_value=completed) as run:
+            result = installer._probe_git_ignore(Path("/tmp/repository"), ".tiny-swarm-world/")
+
+        run.assert_called_once()
+        self.assertEqual(
+            result,
+            installer._GitProbeResult(True, True, "ignored"),
+        )
+
+    def test_git_ignore_probe_classifies_optional_failures(self):
+        for returncode, expected in (
+            (1, (True, False, "not_ignored")),
+            (128, (False, False, "outside_worktree")),
+        ):
+            with self.subTest(returncode=returncode):
+                completed = subprocess.CompletedProcess(
+                    ["git", "check-ignore"],
+                    returncode=returncode,
+                )
+                with patch.object(installer.subprocess, "run", return_value=completed):
+                    result = installer._probe_git_ignore(
+                        Path("/tmp/repository"),
+                        ".tiny-swarm-world/",
+                    )
+
+                self.assertEqual(
+                    (result.inside_worktree, result.path_ignored, result.status),
+                    expected,
+                )
+
     def test_required_installer_secret_entries_come_from_manifest(self):
         entries = installer._required_installer_secret_entries(
             Path("infra/config/secrets/infisical-secrets.yaml")

@@ -99,6 +99,13 @@ class _ExportFileSnapshot:
 
 
 @dataclass(frozen=True)
+class _GitProbeResult:
+    inside_worktree: bool
+    path_ignored: bool
+    status: str
+
+
+@dataclass(frozen=True)
 class _InstallRunContext:
     run_id: str
     service_profile: str
@@ -113,6 +120,7 @@ class _InstallRunContext:
     terminal_recording_mode: str
     cwd: Path
     env: Mapping[str, str]
+    git_probe: _GitProbeResult
 
 
 @dataclass(frozen=True)
@@ -360,7 +368,8 @@ def run(
     install_env.setdefault("TSW_SEED_INFISICAL_ITEMS", "0")
     _configure_native_linux_command_group(host_runtime, install_env)
 
-    if _inside_git_worktree(cwd) and not _git_check_ignore(cwd, ".tiny-swarm-world/"):
+    git_probe = _probe_git_ignore(cwd, ".tiny-swarm-world/")
+    if git_probe.inside_worktree and not git_probe.path_ignored:
         print(
             "WARN: .tiny-swarm-world/ is not ignored by git; do not commit local evidence or generated secrets.",
             file=sys.stderr,
@@ -387,6 +396,7 @@ def run(
             terminal_recording_mode=terminal_mode,
             cwd=cwd,
             env=install_env,
+            git_probe=git_probe,
         ),
     )
 
@@ -1627,26 +1637,22 @@ def _run_text(command: tuple[str, ...], *, cwd: Path | None = None) -> str:
     ).stdout.strip()
 
 
-def _inside_git_worktree(cwd: Path) -> bool:
-    return subprocess.run(
-        ["git", "rev-parse", "--is-inside-work-tree"],
+def _probe_git_ignore(cwd: Path, path: str) -> _GitProbeResult:
+    result = subprocess.run(
+        ["git", "check-ignore", "-q", "--", path],
         cwd=cwd,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
         check=False,
         timeout=DEFAULT_INSTALLER_PROBE_TIMEOUT_SECONDS,
-    ).returncode == 0
-
-
-def _git_check_ignore(cwd: Path, path: str) -> bool:
-    return subprocess.run(
-        ["git", "check-ignore", "-q", path],
-        cwd=cwd,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        check=False,
-        timeout=DEFAULT_INSTALLER_PROBE_TIMEOUT_SECONDS,
-    ).returncode == 0
+    )
+    if result.returncode == 0:
+        return _GitProbeResult(True, True, "ignored")
+    if result.returncode == 1:
+        return _GitProbeResult(True, False, "not_ignored")
+    if result.returncode == 128:
+        return _GitProbeResult(False, False, "outside_worktree")
+    return _GitProbeResult(False, False, f"unknown_{result.returncode}")
 
 
 def _utc_timestamp() -> str:
