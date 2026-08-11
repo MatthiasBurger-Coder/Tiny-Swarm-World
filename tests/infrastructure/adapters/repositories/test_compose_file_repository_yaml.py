@@ -719,6 +719,80 @@ services:
             ["node.role == manager"],
         )
 
+    def test_core_compose_stacks_render_registry_ports_without_changing_targets(self):
+        registry = PortRegistry(
+            ranges=(),
+            mappings=(
+                ServicePortMapping(
+                    service_id="portainer",
+                    port_id="portainer-http",
+                    internal_port=9000,
+                    external_port=20001,
+                    exposure=PortExposureClass.DIRECT,
+                ),
+                ServicePortMapping(
+                    service_id="jenkins",
+                    port_id="jenkins-http",
+                    internal_port=8080,
+                    external_port=20002,
+                    exposure=PortExposureClass.DIRECT,
+                ),
+                ServicePortMapping(
+                    service_id="jenkins",
+                    port_id="jenkins-agent",
+                    internal_port=50000,
+                    external_port=20003,
+                    exposure=PortExposureClass.DIRECT,
+                ),
+                ServicePortMapping(
+                    service_id="sonarqube",
+                    port_id="sonarqube-http",
+                    internal_port=9000,
+                    external_port=20004,
+                    exposure=PortExposureClass.DIRECT,
+                ),
+                ServicePortMapping(
+                    service_id="nexus",
+                    port_id="nexus-http",
+                    internal_port=8081,
+                    external_port=20005,
+                    exposure=PortExposureClass.DIRECT,
+                ),
+                ServicePortMapping(
+                    service_id="nexus",
+                    port_id="nexus-docker-http",
+                    internal_port=5000,
+                    external_port=None,
+                    exposure=PortExposureClass.DIAGNOSTIC,
+                ),
+                ServicePortMapping(
+                    service_id="nexus",
+                    port_id="nexus-docker-https",
+                    internal_port=5001,
+                    external_port=None,
+                    exposure=PortExposureClass.DIAGNOSTIC,
+                ),
+            ),
+        )
+        repository = ComposeFileRepositoryYaml(port_registry=registry)
+
+        expected_ports = {
+            "portainer": [(9000, 20001)],
+            "jenkins": [(8080, 20002), (50000, 20003)],
+            "sonarqube": [(9000, 20004)],
+            "nexus": [(8081, 20005), (5000, 13500), (5001, 13501)],
+        }
+        for stack_name, expected in expected_ports.items():
+            with self.subTest(stack_name=stack_name):
+                stack_definition = repository.get_compose_of(stack_name)
+                compose_data = YAML(typ="safe").load(stack_definition.compose_content)
+                service_name = next(iter(compose_data["services"]))
+                actual = [
+                    (port["target"], port["published"])
+                    for port in compose_data["services"][service_name]["ports"]
+                ]
+                self.assertEqual(actual, expected)
+
     def test_committed_pulsar_compose_uses_standalone_with_non_conflicting_admin_port(self):
         repository_root = Path(__file__).resolve().parents[4]
         compose_path = (
