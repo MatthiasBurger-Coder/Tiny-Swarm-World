@@ -23,4 +23,3 @@ PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint tests.applicati
 ```
 
 Result: `PASS` — 95 tests.
-

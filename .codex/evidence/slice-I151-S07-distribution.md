@@ -18,4 +18,3 @@ remaining risks, and live/external verification states are in
 `.tiny-swarm/evidence/issue-151/audit_report.md`.
 
 Handoff: the serial chain may advance to Issue #153.
-

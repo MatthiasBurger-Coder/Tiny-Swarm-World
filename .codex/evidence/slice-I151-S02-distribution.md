@@ -35,4 +35,3 @@ Result: `PASS` — 60 tests.
 
 S03 may route the installer/default paths through this formatter contract while
 preserving exit codes, logs, and evidence directories.
-

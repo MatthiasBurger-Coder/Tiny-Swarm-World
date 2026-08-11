@@ -1,6 +1,6 @@
 # Slice Distribution — I145-S03
 
-Primary role: Senior Python Automation Developer  
+Primary role: Senior Python Automation Developer
 Review roles: Senior Tester, Senior System Architect, Resilience Engineering
 
 Distribution mode: role-based fallback review; no visible Codex subagent

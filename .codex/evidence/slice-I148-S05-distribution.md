@@ -1,6 +1,6 @@
 # Slice Distribution — I148-S05
 
-Primary role: Senior Python Automation Developer  
+Primary role: Senior Python Automation Developer
 Review roles: Senior Tester, Senior System Architect
 
 Distribution mode: role-based fallback review; no visible Codex subagent

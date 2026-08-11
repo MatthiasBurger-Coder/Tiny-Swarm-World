@@ -12,4 +12,3 @@
 - Quality: `git diff --check`; documentation/static checks; full gate when practical, with no live claim by default.
 - Evidence: `.tiny-swarm/evidence/issue-153/` and documentation review artifacts.
 - Source: https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/153
-

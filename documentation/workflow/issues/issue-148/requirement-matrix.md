@@ -15,4 +15,3 @@ Status at workflow authoring: `PLANNED`.
 | REQ-148-07 | Required probe failures remain loud; optional failures degrade to `unknown`. | resilience | probe classification | S148-03/S148-04/S148-05 | failure tests | PLANNED |
 | REQ-148-08 | Cache only stable metadata within one installer invocation; never persist host identity/Git/group state across runs. | safety | installer lifecycle | S148-02/S148-05 | scope/static review | PLANNED |
 | REQ-148-09 | Bootstrap timing evidence is separate from governed live workflow timing. | performance evidence | shared #152 contract | S148-06 | evidence artifact | PLANNED |
-

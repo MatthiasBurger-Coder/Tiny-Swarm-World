@@ -15,4 +15,3 @@ Status at workflow authoring: `PLANNED`.
 | REQ-144-07 | Tests prove at least one progress callback runs between two retry waits. | testability | deterministic test doubles | S144-06/S144-07 | async test evidence | PLANNED |
 | REQ-144-08 | Performance evidence records old/new wait-loop behavior or new non-blocking timing behavior. | performance evidence | shared #152 contract | S144-07 | evidence artifact | PLANNED |
 | REQ-144-09 | Do not add nested event loops, busy waiting or ad hoc background threads. | architecture constraint | async implementation | S144-02/S144-08 | architecture/test review | PLANNED |
-

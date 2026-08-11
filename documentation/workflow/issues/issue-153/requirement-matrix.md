@@ -16,4 +16,3 @@ Status at workflow authoring: `PLANNED`.
 | REQ-153-08 | Common failure cases and user actions are documented. | documentation | troubleshooting/handbook | S153-05 | failure-case checklist | PLANNED |
 | REQ-153-09 | Existing documentation is updated instead of unnecessary duplication. | documentation governance | existing docs inventory | S153-01/S153-06 | duplicate/overlap review | PLANNED |
 | REQ-153-10 | No source behavior changes unless strictly required by a verified contradiction. | non-goal | no `src/` change by default | S153-01/S153-07 | changed-files audit | PLANNED |
-

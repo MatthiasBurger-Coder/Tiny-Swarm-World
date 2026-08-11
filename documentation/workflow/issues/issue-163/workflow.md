@@ -342,4 +342,3 @@ result is classified, and the branch is ready for the next indexed workflow.
 Promote only `issue-163-20260809` explicitly, run S3/S3D preflight, execute
 I163-S01 through I163-S05 in order, and do not begin #156 unless I163-S05 is
 `PASS`.
-

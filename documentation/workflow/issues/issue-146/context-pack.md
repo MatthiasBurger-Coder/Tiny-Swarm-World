@@ -12,4 +12,3 @@
 - Quality: `git diff --check`; `PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_lxc_docker_install`; full gate.
 - Evidence: `.tiny-swarm/evidence/issue-146/` using #152 performance measurements.
 - Source: https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/146
-

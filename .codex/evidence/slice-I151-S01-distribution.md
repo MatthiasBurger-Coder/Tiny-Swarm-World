@@ -29,4 +29,3 @@ recorded each required review perspective.
 The formatter and integration slices may proceed. The known raw-output paths
 are explicitly captured in `stdout_inventory.md` and must be closed or
 classified by S02-S05.
-

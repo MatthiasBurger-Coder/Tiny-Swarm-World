@@ -13,4 +13,3 @@ Status at workflow authoring: `PLANNED`.
 | REQ-147-05 | Cache/snapshot invalidation rules are explicit and step-scoped. | resilience | state object/docs | S147-03/S147-04 | stale-data test and code docs | PLANNED |
 | REQ-147-06 | Stale step-local data cannot suppress a required retry refresh. | safety | lookup refresh policy | S147-04/S147-05 | negative test | PLANNED |
 | REQ-147-07 | Success and failure paths assert expected stack-registration lookup counts. | quality gate | deployment tests | S147-05 | unit test evidence | PLANNED |
-

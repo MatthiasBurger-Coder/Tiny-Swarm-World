@@ -29,4 +29,3 @@ git diff --check
 ```
 
 Result: `PASS`. Live smoke was not run.
-

@@ -31,4 +31,3 @@ git diff --check
 
 Result: `PASS`. Facts are sourced from the existing installation order,
 provider ADR, deployment view, and current setup workflow documentation.
-

@@ -1,6 +1,6 @@
 # Slice Distribution — I145-S05
 
-Primary role: Console/status UI Developer  
+Primary role: Console/status UI Developer
 Review roles: Senior Python Automation Developer, Senior Tester, Senior System
 Architect
 

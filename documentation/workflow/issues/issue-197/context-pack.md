@@ -12,4 +12,3 @@
 - Quality: `git diff --check`; `PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition`; architecture/full gate.
 - Evidence: `.tiny-swarm/evidence/issue-197/` plus slice distribution/consolidation evidence.
 - Source: https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/197
-

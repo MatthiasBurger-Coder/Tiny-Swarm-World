@@ -1,6 +1,6 @@
 # S05 Evidence Contract Correction — I145-S05
 
-Primary role: Senior Python Automation Developer  
+Primary role: Senior Python Automation Developer
 Review roles: Senior Tester, Issue Completion Auditor
 
 `SetupPhaseGroupResult` now includes stable `phase_ids`, `phase_names`,

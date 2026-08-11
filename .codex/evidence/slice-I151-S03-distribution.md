@@ -30,4 +30,3 @@ Result: `PASS` — 104 tests.
 
 No live installer, Incus, Docker Swarm, compose, or service bootstrap command
 was executed.
-

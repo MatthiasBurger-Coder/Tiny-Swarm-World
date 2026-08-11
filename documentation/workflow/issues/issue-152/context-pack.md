@@ -12,4 +12,3 @@
 - Quality: `git diff --check`; targeted serialization/template tests; `python3 tools/quality_gate.py quality`.
 - Evidence: `.tiny-swarm/evidence/issue-152/` and shared performance evidence paths defined by the contract.
 - Source: https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/152
-

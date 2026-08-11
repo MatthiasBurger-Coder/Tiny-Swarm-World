@@ -12,4 +12,3 @@
 - Quality: `git diff --check`; `tests.application.services.deployment.test_ensure_service_stack`; full gate.
 - Evidence: `.tiny-swarm/evidence/issue-147/` using #152 call-count measurements.
 - Source: https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/147
-

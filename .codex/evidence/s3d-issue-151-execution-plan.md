@@ -26,4 +26,3 @@ and console-reporting contract.
 Each slice is reviewed through the declared owner and secondary roles in the
 workflow. The main execution thread remains final integration owner and an
 independent completion-auditor review is required for S07.
-

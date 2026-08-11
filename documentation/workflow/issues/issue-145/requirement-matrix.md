@@ -14,4 +14,3 @@ Status at workflow authoring: `PLANNED`.
 | REQ-145-06 | Configurable maximum concurrency exists and is tested. | performance | scheduler configuration | S145-03/S145-06 | limit test | PLANNED |
 | REQ-145-07 | Duration evidence is produced per phase group, not only as one final total. | performance evidence | shared #152 contract | S145-05/S145-06 | evidence artifact | PLANNED |
 | REQ-145-08 | Single-computer and future multi-node/worker registration modes remain compatible. | scalability | plan and scheduler contracts | S145-01/S145-06 | compatibility fixtures | PLANNED |
-

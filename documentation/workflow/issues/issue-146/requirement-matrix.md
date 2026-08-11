@@ -14,4 +14,3 @@ Status at workflow authoring: `PLANNED`.
 | REQ-146-06 | Isolate one node failure and report node, role, operation phase and original error. | resilience | per-node failure result | S146-04 | mixed success/failure tests | PLANNED |
 | REQ-146-07 | Keep Swarm-level operations and shared host package-manager work outside the scope. | non-goal/safety | workflow boundary | S146-01/S146-06 | changed-files audit | PLANNED |
 | REQ-146-08 | Produce timing evidence comparing serial-equivalent assumptions with concurrent duration where practical. | performance evidence | shared #152 contract | S146-05 | evidence artifact | PLANNED |
-

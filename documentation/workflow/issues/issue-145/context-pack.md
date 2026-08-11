@@ -12,4 +12,3 @@
 - Quality: `git diff --check`; setup workflow and installation-plan tests; full gate.
 - Evidence: `.tiny-swarm/evidence/issue-145/` using #152 phase-group timing evidence.
 - Source: https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/145
-

@@ -39,4 +39,3 @@ skipped; `125.275s`).
   records the default-vs-opt-in distinction and evidence preservation.
 - No live, browser, SonarQube, Incus, Docker Swarm, or compose validation was
   claimed or executed.
-

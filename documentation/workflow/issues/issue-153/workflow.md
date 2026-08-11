@@ -318,4 +318,3 @@ evidenced; no source behavior changed unnecessarily; S07 is `PASS`.
 Promote #153 only after I151-S07 and execute S01–S07 serially. This is the last
 workflow in the requested chain; completion still requires the independent
 Issue Completion Auditor decision.
-

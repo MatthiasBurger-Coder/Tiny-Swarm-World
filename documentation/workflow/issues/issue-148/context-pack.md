@@ -12,4 +12,3 @@
 - Quality: `git diff --check`; focused installer tests; `python3 tools/quality_gate.py quality`.
 - Evidence: `.tiny-swarm/evidence/issue-148/` using #152 bootstrap timing evidence.
 - Source: https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/148
-

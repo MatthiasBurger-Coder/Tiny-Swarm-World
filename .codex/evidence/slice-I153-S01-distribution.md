@@ -29,4 +29,3 @@ review perspectives.
 S02 may consolidate the hard prerequisite boundary. S03 must add the concise
 checklist/smoke path without claiming live success. Duplicate detailed guidance
 must be reduced or redirected in S06.
-

@@ -1,6 +1,6 @@
 # Slice Distribution — I148-S01
 
-Primary role: Senior Requirement Engineer  
+Primary role: Senior Requirement Engineer
 Review roles: Senior System Architect, Senior Python Automation Developer,
 Senior Tester
 

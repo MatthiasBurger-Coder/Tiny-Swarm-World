@@ -1,6 +1,6 @@
 # Slice Distribution — I145-S02
 
-Primary role: Senior System Architect  
+Primary role: Senior System Architect
 Review roles: Senior Python Automation Developer, Senior Requirement
 Engineer, Senior Tester
 

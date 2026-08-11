@@ -30,4 +30,3 @@ git diff --check
 ```
 
 Result: `PASS`. No `src/` files changed.
-

@@ -1,6 +1,6 @@
 # Slice Distribution — I148-S07
 
-Primary role: Issue Completion Auditor  
+Primary role: Issue Completion Auditor
 Review roles: Senior Requirement Engineer, Senior System Architect, Senior
 Tester
 

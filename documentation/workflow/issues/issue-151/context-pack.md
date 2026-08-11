@@ -12,4 +12,3 @@
 - Quality: `git diff --check`; CLI/reporter tests; `python3 tools/quality_gate.py quality`.
 - Evidence: `.tiny-swarm/evidence/issue-151/` and deterministic console fixtures.
 - Source: https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/151
-

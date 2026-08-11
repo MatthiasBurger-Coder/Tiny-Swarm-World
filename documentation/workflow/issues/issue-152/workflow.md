@@ -302,4 +302,3 @@ limitations guidance and required evidence exist; S06 is `PASS`.
 
 Promote #152 only after I197-S06. Execute S01–S06 serially and require the
 shared schema before starting #144.
-

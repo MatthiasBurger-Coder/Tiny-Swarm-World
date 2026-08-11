@@ -12,4 +12,3 @@
 - Quality: `git diff --check`; focused Nexus/SonarQube/Infisical tests; `python3 tools/quality_gate.py quality`.
 - Evidence: `.tiny-swarm/evidence/issue-144/` using the #152 performance contract.
 - Source: https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/144
-

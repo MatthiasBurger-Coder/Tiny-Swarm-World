@@ -309,4 +309,3 @@ human-readable, debug JSON remains explicit and S07 is `PASS`.
 
 Promote #151 after I145-S07, execute S01–S07 serially and begin #153 only
 after the independent audit passes.
-

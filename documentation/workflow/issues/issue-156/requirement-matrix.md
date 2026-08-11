@@ -20,4 +20,3 @@ Status at workflow authoring: `PLANNED`.
 | REQ-156-12 | Gateway and Swagger direct ports use 10080/10443 and 16080/16081 as applicable. | functional | Traefik/Swagger Compose | S156-04/S156-07 | Compose contract test | PLANNED |
 | REQ-156-13 | Scope excludes Incus/LXC setup, Docker installation, Swarm bootstrap, install order, Traefik routing redesign and local DNS. | non-goal | all touched files | S156-01/S156-08 | scope review and changed-files audit | PLANNED |
 | REQ-156-14 | Quality gate passes or environment blockers are classified under `QUALITY.md`. | quality gate | repository gate | S156-07/S156-09 | targeted/full gate evidence | PLANNED |
-

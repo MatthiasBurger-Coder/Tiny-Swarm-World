@@ -27,4 +27,3 @@ git diff --check
 ```
 
 Result: `PASS`. No source behavior changed and no live recovery action ran.
-

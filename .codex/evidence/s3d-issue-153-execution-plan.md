@@ -34,4 +34,3 @@ operator guidance.
 ## Slice order
 
 `I153-S01 -> I153-S02 -> I153-S03 -> I153-S04 -> I153-S05 -> I153-S06 -> I153-S07`
-

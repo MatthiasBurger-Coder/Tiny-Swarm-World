@@ -14,4 +14,3 @@ baseline and is not evidence of completion.
 | REQ-163-05 | Run the focused port-forwarding test. | quality gate | `tests/domain/network/test_port_forwarding_plan.py` | S163-04 | `PYTHONPATH=src python3 -m unittest tests.domain.network.test_port_forwarding_plan` | PLANNED |
 | REQ-163-06 | Run the full local quality gate or record an exact environment blocker. | quality gate | repository gate | S163-04/S163-05 | `python3 tools/quality_gate.py quality` and evidence | PLANNED |
 | REQ-163-07 | Keep external Sonar state separate from local verification and never claim unavailable remote success. | evidence integrity | issue evidence package | S163-01/S163-04/S163-05 | external state classification | PLANNED |
-

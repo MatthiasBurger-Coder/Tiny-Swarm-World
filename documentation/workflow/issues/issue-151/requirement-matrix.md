@@ -14,4 +14,3 @@ Status at workflow authoring: `PLANNED`.
 | REQ-151-06 | Output works in WSL2, native Linux and LXC-native setup paths. | platform | console adapters | S151-03/S151-06 | deterministic adapter tests | PLANNED |
 | REQ-151-07 | Success/reset output tests reject raw JSON object dumps and assert important phase/status lines. | quality gate | `tests/test_package_entrypoint.py`, installer tests | S151-06 | focused unittest | PLANNED |
 | REQ-151-08 | Errors retain recovery actions and evidence paths without hiding failure details. | resilience | summary/error formatter | S151-05 | failure fixture tests | PLANNED |
-

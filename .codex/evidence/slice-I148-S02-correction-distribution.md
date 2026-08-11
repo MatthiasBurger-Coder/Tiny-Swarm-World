@@ -1,6 +1,6 @@
 # S02 Correction Review — I148-S02
 
-Primary role: Senior Python Automation Developer  
+Primary role: Senior Python Automation Developer
 Review roles: Senior Tester, Issue Completion Auditor
 
 The audit found that later bootstrap helpers can append exports after the

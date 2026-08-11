@@ -15,4 +15,3 @@
 
 This pack is navigation context only. The issue body, matrix, root
 governance, quality policy and workflow remain authoritative.
-

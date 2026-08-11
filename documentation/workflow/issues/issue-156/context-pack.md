@@ -12,4 +12,3 @@
 - Quality: `git diff --check`; targeted Compose/config tests; `python3 tools/quality_gate.py quality`.
 - Evidence: `.tiny-swarm/evidence/issue-156/` plus slice distribution/consolidation evidence.
 - Source: https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/156
-

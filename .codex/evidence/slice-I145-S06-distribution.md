@@ -1,6 +1,6 @@
 # Slice Distribution — I145-S06
 
-Primary role: Senior Tester  
+Primary role: Senior Tester
 Review roles: Senior Requirement Engineer, Senior System Architect, Senior
 Python Automation Developer, Console/status UI Developer
 
