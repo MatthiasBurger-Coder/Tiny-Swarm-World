@@ -93,6 +93,12 @@ class InstallerPaths:
 
 
 @dataclass(frozen=True)
+class _ExportFileSnapshot:
+    values: dict[str, str]
+    duplicate_keys: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class _InstallRunContext:
     run_id: str
     service_profile: str
@@ -312,8 +318,10 @@ def run(
     _ensure_private_file(paths.secret_env_file)
     _ensure_private_file(paths.infisical_secret_env_file)
     _ensure_private_file(paths.generated_secret_env_file)
-    install_env.update(_load_export_file(paths.secret_env_file))
-    install_env.update(_load_export_file(paths.infisical_secret_env_file))
+    secret_env_snapshot = _parse_export_file(paths.secret_env_file)
+    infisical_env_snapshot = _parse_export_file(paths.infisical_secret_env_file)
+    install_env.update(secret_env_snapshot.values)
+    install_env.update(infisical_env_snapshot.values)
 
     required_entries = _required_installer_secret_entries(
         cwd / DEFAULT_SECRET_MANIFEST_PATH,
@@ -344,7 +352,10 @@ def run(
     _normalize_infisical_login_email(paths, install_env)
     _ensure_sonarqube_password_policy(options, paths, install_env)
     _ensure_default_config_exports(paths, install_env)
-    _normalize_export_file_if_duplicate_keys(paths.secret_env_file)
+    _normalize_export_file_if_duplicate_keys(
+        paths.secret_env_file,
+        snapshot=secret_env_snapshot,
+    )
     _write_infisical_secret_file(paths.infisical_secret_env_file, install_env)
     install_env.setdefault("TSW_SEED_INFISICAL_ITEMS", "0")
     _configure_native_linux_command_group(host_runtime, install_env)
@@ -939,44 +950,43 @@ def _installer_subprocess_timeout_seconds(env: Mapping[str, str]) -> float:
     return timeout
 
 
-def _load_export_file(path: Path) -> dict[str, str]:
+def _parse_export_file(path: Path) -> _ExportFileSnapshot:
     if not path.exists():
-        return {}
+        return _ExportFileSnapshot({}, ())
     values: dict[str, str] = {}
-    for raw_line in path.read_text(encoding="utf-8").splitlines():
-        assignment = _export_assignment_from_line(raw_line)
-        if assignment is None:
-            continue
-        name, raw_value = assignment
-        values[name] = _parse_export_value(raw_value)
-    return values
-
-
-def _normalize_export_file_if_duplicate_keys(path: Path) -> None:
-    duplicates = _duplicate_export_keys(path)
-    if not duplicates:
-        return
-    _write_exports(
-        path,
-        f"Normalized by install.sh after duplicate key cleanup at {_utc_timestamp()} UTC",
-        _load_export_file(path),
-    )
-
-
-def _duplicate_export_keys(path: Path) -> tuple[str, ...]:
-    if not path.exists():
-        return ()
-    seen: set[str] = set()
     duplicates: set[str] = set()
     for raw_line in path.read_text(encoding="utf-8").splitlines():
         assignment = _export_assignment_from_line(raw_line)
         if assignment is None:
             continue
-        name, _ = assignment
-        if name in seen:
+        name, raw_value = assignment
+        if name in values:
             duplicates.add(name)
-        seen.add(name)
-    return tuple(sorted(duplicates))
+        values[name] = _parse_export_value(raw_value)
+    return _ExportFileSnapshot(values, tuple(sorted(duplicates)))
+
+
+def _load_export_file(path: Path) -> dict[str, str]:
+    return _parse_export_file(path).values
+
+
+def _normalize_export_file_if_duplicate_keys(
+    path: Path,
+    *,
+    snapshot: _ExportFileSnapshot | None = None,
+) -> None:
+    parsed = snapshot or _parse_export_file(path)
+    if not parsed.duplicate_keys:
+        return
+    _write_exports(
+        path,
+        f"Normalized by install.sh after duplicate key cleanup at {_utc_timestamp()} UTC",
+        parsed.values,
+    )
+
+
+def _duplicate_export_keys(path: Path) -> tuple[str, ...]:
+    return _parse_export_file(path).duplicate_keys
 
 
 def _export_assignment_from_line(raw_line: str) -> tuple[str, str] | None:

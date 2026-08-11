@@ -389,6 +389,26 @@ class TestInstaller(unittest.TestCase):
         self.assertEqual(content.count("TSW_EXAMPLE="), 1)
         self.assertIn("Normalized by install.sh", content)
 
+    def test_normalize_export_file_reuses_snapshot_without_rereading(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            path = Path(tempdir) / "live.env"
+            path.write_text(
+                "export TSW_EXAMPLE='first'\nexport TSW_EXAMPLE='second'\n",
+                encoding="utf-8",
+            )
+            snapshot = installer._parse_export_file(path)
+
+            with patch.object(Path, "read_text", side_effect=AssertionError("unexpected reread")):
+                installer._normalize_export_file_if_duplicate_keys(
+                    path,
+                    snapshot=snapshot,
+                )
+
+            self.assertEqual(
+                installer._load_export_file(path),
+                {"TSW_EXAMPLE": "second"},
+            )
+
     def test_required_installer_secret_entries_come_from_manifest(self):
         entries = installer._required_installer_secret_entries(
             Path("infra/config/secrets/infisical-secrets.yaml")
