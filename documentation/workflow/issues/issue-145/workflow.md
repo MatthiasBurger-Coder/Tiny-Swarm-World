@@ -36,6 +36,15 @@ Python impact is `FULL_PATH`; Console/status UI is conditional because progress
 ordering changes; browser React is forbidden. Live setup remains opt-in and is
 not part of default verification.
 
+## Shared #152 performance evidence handoff
+
+Use `documentation/process/performance-evidence-contract.md` and write
+consumer evidence below `.tiny-swarm/evidence/issue-145/`. The stable segment
+ID is `setup-phase-group`; record phase-group duration, phase count, bounded
+maximum concurrency and stable target IDs with comparable baseline/new values
+where available. Local scheduler timing is not globally absolute, and no live
+setup claim is implied.
+
 ## Ordered Slices
 
 ### Slice 01 — Freeze phase dependency graph

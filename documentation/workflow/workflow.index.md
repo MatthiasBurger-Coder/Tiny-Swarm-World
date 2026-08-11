@@ -92,6 +92,24 @@ the prerequisite for the next issue's first slice.
 
 Total: **74 granular executable slices**.
 
+## Shared #152 performance evidence contract
+
+The executed #152 contract is documented at
+`documentation/process/performance-evidence-contract.md`. Consumer workflows
+record local or mocked measurements below
+`.tiny-swarm/evidence/<issue-id>/` using the typed schema's issue/workflow/
+segment identity, safe context, optional timestamps/duration, counters,
+baseline/new values and explicit limitations. Local timing is comparative only
+and never a globally absolute benchmark; no external service is required.
+
+| Consumer | Segment ID |
+|---|---|
+| #144 | `install-readiness-wait` |
+| #146 | `lxc-node-install` |
+| #147 | `stack-apply-registration` |
+| #148 | `installer-bootstrap` |
+| #145 | `setup-phase-group` |
+
 ## Dependency Graph
 
 ```text

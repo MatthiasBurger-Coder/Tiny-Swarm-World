@@ -33,6 +33,15 @@ Upstream dependency: `I147-S06`. The named installer regions are verified in
 Non-goals are governed live workflow changes, broad Windows behavior and
 silent probe failures. Confidence 92%, `READY_FOR_WORKFLOW`.
 
+## Shared #152 performance evidence handoff
+
+Use `documentation/process/performance-evidence-contract.md` and write
+consumer evidence below `.tiny-swarm/evidence/issue-148/`. The stable segment
+ID is `installer-bootstrap`; record file-read, subprocess-probe and related
+bootstrap-duration counters with explicit baseline/new comparison limits.
+Bootstrap timing remains separate from governed live workflow timing, and
+redacted safe context must be used.
+
 ## Ordered Slices
 
 ### Slice 01 — Bootstrap inventory and measurement plan
@@ -306,4 +315,3 @@ is deterministic and S07 is `PASS`.
 
 Promote #148 after I147-S06, execute S01–S07 serially, then start #145 only
 after the independent audit passes.
-

@@ -32,6 +32,15 @@ LXC Swarm runtime lookup methods. No live Portainer/LXC calls are permitted;
 tests use mocks/fakes and #152 call-count evidence. Confidence 92%,
 `READY_FOR_WORKFLOW`.
 
+## Shared #152 performance evidence handoff
+
+Use `documentation/process/performance-evidence-contract.md` and write
+consumer evidence below `.tiny-swarm/evidence/issue-147/`. The stable segment
+ID is `stack-apply-registration`; record API/registration lookup counters and
+comparable baseline/new values without persisting raw responses or identities.
+Mocked call counts are local contract evidence and do not claim live Portainer
+or LXC performance.
+
 ## Ordered Slices
 
 ### Slice 01 — Freeze call graph and observed-state contract

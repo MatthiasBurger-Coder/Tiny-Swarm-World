@@ -31,6 +31,15 @@ existing tests use deterministic runtime doubles. Requirements are in the
 chosen by S146-S01/S146-S03. No live LXC/Docker command is authorized.
 Confidence 93%, `READY_FOR_WORKFLOW`.
 
+## Shared #152 performance evidence handoff
+
+Use `documentation/process/performance-evidence-contract.md` and write
+consumer evidence below `.tiny-swarm/evidence/issue-146/`. The stable segment
+ID is `lxc-node-install`; record per-node duration, ordered stable target IDs,
+success/failure counters and comparable baseline/new values where practical.
+Use redacted safe context only. Mocked local timing does not claim live LXC or
+Docker performance.
+
 ## Ordered Slices
 
 ### Slice 01 — Verify independence and concurrency contract

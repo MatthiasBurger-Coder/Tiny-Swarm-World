@@ -37,6 +37,15 @@ Python impact is `FULL_PATH`; frontend is `NOT_APPLICABLE`; console review is
 conditional only for progress-event changes. Resilience requires equivalent
 retry/failure semantics and redacted evidence.
 
+## Shared #152 performance evidence handoff
+
+Use `documentation/process/performance-evidence-contract.md` and write
+consumer evidence below `.tiny-swarm/evidence/issue-144/`. The stable segment
+ID is `install-readiness-wait`; record wait duration, attempts, waits and
+progress-callback counters with comparable baseline/new values where available.
+Use redacted safe context only. Local or mocked timing is comparative evidence,
+not a globally absolute benchmark or live-service result.
+
 ## Ordered Slices
 
 ### Slice 01 — Inventory blocking loops and acceptance matrix
