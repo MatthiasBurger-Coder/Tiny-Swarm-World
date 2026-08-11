@@ -1783,6 +1783,11 @@ def build_setup_services(
                     30.0,
                     minimum=1.0,
                 ),
+                max_concurrency=_operator_config_int(
+                    "TSW_SETUP_MAX_CONCURRENCY",
+                    2,
+                    minimum=1,
+                ),
             )
         )
     )

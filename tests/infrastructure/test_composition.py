@@ -2780,6 +2780,25 @@ def _accepted_live_consent() -> LiveConsent:
     )
 
 
+    def test_setup_max_concurrency_operator_config_is_positive_and_configurable(self):
+        with patch.dict("os.environ", {"TSW_SETUP_MAX_CONCURRENCY": "3"}):
+            self.assertEqual(
+                composition._operator_config_int(
+                    "TSW_SETUP_MAX_CONCURRENCY",
+                    2,
+                    minimum=1,
+                ),
+                3,
+            )
+        with patch.dict("os.environ", {"TSW_SETUP_MAX_CONCURRENCY": "0"}):
+            with self.assertRaisesRegex(ValueError, "at least 1"):
+                composition._operator_config_int(
+                    "TSW_SETUP_MAX_CONCURRENCY",
+                    2,
+                    minimum=1,
+                )
+
+
 class _RecordingEvidenceRepository:
     def __init__(self) -> None:
         self.results: list[VerificationResult] = []
