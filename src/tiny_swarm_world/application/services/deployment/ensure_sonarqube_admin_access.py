@@ -1,11 +1,14 @@
 from __future__ import annotations
 
-import time
 from collections.abc import Callable
 from dataclasses import dataclass
 
 from tiny_swarm_world.application.ports.clients.port_sonarqube_client import (
     PortSonarqubeClient,
+)
+from tiny_swarm_world.application.services.shared import (
+    ReadinessRetry,
+    wait_for_readiness_retry,
 )
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
 
@@ -45,12 +48,12 @@ class EnsureSonarqubeAdminAccess:
             raise ValueError("SonarQube admin password must not be empty.")
         return value
 
-    def run(self) -> None:
-        self._wait_until_available()
+    async def run(self) -> None:
+        await self._wait_until_available()
         if self._can_authenticate_once(self.password):
             self._status = "already_configured"
             return
-        if not self._can_authenticate_with_retry(self.initial_credential):
+        if not await self._can_authenticate_with_retry(self.initial_credential):
             self._status = "blocked"
             raise RuntimeError("SonarQube admin access is unavailable.")
         self.sonarqube_client.change_password(
@@ -60,8 +63,8 @@ class EnsureSonarqubeAdminAccess:
         )
         self._status = "rotated"
 
-    def verify(self) -> VerificationResult:
-        configured = self._can_authenticate_with_retry(self.password)
+    async def verify(self) -> VerificationResult:
+        configured = await self._can_authenticate_with_retry(self.password)
         return VerificationResult(
             target_id=self.verification_target_id,
             status=VerificationStatus.VERIFIED if configured else VerificationStatus.BLOCKED,
@@ -73,12 +76,12 @@ class EnsureSonarqubeAdminAccess:
             },
         )
 
-    def _wait_until_available(self) -> None:
+    async def _wait_until_available(self) -> None:
         for attempt in range(1, self.max_attempts + 1):
             if self.sonarqube_client.is_available():
                 return
             if attempt < self.max_attempts:
-                time.sleep(self.wait_seconds)
+                await self._wait_for_retry(attempt)
         self._status = "blocked"
         raise RuntimeError("SonarQube did not become available.")
 
@@ -88,13 +91,13 @@ class EnsureSonarqubeAdminAccess:
         except RuntimeError:
             return False
 
-    def _can_authenticate_with_retry(self, password: str) -> bool:
+    async def _can_authenticate_with_retry(self, password: str) -> bool:
         for attempt in range(1, self.max_attempts + 1):
             try:
                 authenticated = self.sonarqube_client.can_authenticate(self.username, password)
             except RuntimeError:
                 if attempt < self.max_attempts:
-                    time.sleep(self.wait_seconds)
+                    await self._wait_for_retry(attempt)
                     continue
                 self._status = "blocked"
                 raise RuntimeError(
@@ -103,8 +106,17 @@ class EnsureSonarqubeAdminAccess:
             if authenticated:
                 return True
             if attempt < self.max_attempts:
-                time.sleep(self.wait_seconds)
+                await self._wait_for_retry(attempt)
         return False
+
+    async def _wait_for_retry(self, attempt: int) -> None:
+        await wait_for_readiness_retry(
+            ReadinessRetry(
+                attempt=attempt,
+                max_attempts=self.max_attempts,
+                wait_seconds=self.wait_seconds,
+            )
+        )
 
 
 @dataclass(frozen=True)

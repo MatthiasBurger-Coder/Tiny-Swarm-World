@@ -1,3 +1,4 @@
+import asyncio
 import unittest
 
 from tests.support.sonar_safe_literals import operator_credential, sample_text
@@ -16,8 +17,8 @@ class TestEnsureSonarqubeAdminAccess(unittest.TestCase):
         client = _FakeSonarqubeClient(configured_valid=True, initial_valid=False)
         step = _step(client)
 
-        step.run()
-        verification = step.verify()
+        asyncio.run(step.run())
+        verification = asyncio.run(step.verify())
 
         self.assertEqual(VerificationStatus.VERIFIED, verification.status)
         self.assertEqual(verification.evidence["status"], "already_configured")
@@ -27,7 +28,7 @@ class TestEnsureSonarqubeAdminAccess(unittest.TestCase):
         client = _FakeSonarqubeClient(configured_valid=False, initial_valid=True)
         step = _step(client)
 
-        step.run()
+        asyncio.run(step.run())
 
         self.assertEqual(client.changed_passwords, [("admin", "admin", operator_credential())])
 
@@ -36,7 +37,7 @@ class TestEnsureSonarqubeAdminAccess(unittest.TestCase):
         step = _step(client)
 
         with self.assertRaises(RuntimeError):
-            step.run()
+            asyncio.run(step.run())
 
     def test_retries_transient_authentication_transport_failures(self):
         client = _FakeSonarqubeClient(
@@ -46,7 +47,7 @@ class TestEnsureSonarqubeAdminAccess(unittest.TestCase):
         )
         step = _step(client)
 
-        step.run()
+        asyncio.run(step.run())
 
         self.assertEqual(client.changed_passwords, [("admin", "admin", operator_credential())])
 
@@ -58,7 +59,7 @@ class TestEnsureSonarqubeAdminAccess(unittest.TestCase):
         )
         step = _step(client)
 
-        step.run()
+        asyncio.run(step.run())
 
         self.assertEqual(client.changed_passwords, [("admin", "admin", operator_credential())])
         self.assertEqual(client.password_auth_attempts["admin"], 3)
