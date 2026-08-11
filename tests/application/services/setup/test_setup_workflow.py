@@ -800,6 +800,9 @@ class TestSetupWorkflow(unittest.IsolatedAsyncioTestCase):
         )
         worker_group = result.phase_group_results[1]
         self.assertEqual(worker_group.maximum_concurrency, 2)
+        self.assertEqual(worker_group.phase_ids, ("alpha", "beta", "gamma"))
+        self.assertTrue(worker_group.started_at.endswith("Z"))
+        self.assertTrue(worker_group.finished_at.endswith("Z"))
         self.assertGreaterEqual(worker_group.duration_seconds, 0.0)
         self.assertEqual(
             result.to_dict()["phase_group_results"][1]["phase_names"],

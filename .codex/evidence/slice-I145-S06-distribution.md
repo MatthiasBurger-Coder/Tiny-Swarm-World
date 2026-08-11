@@ -32,12 +32,12 @@ Verification policy consistency: PASS
 Ruff: PASS
 Architecture lint: 3 kept, 0 broken
 Mypy: Success, no issues found in 612 source files
-Ran 1743 tests in 124.536s
+Ran 1743 tests in 124.999s
 OK (skipped=28)
 ```
 
 The #152 `setup-phase-group` evidence pair validates successfully. Per-group
-duration is emitted by the result contract; aggregate timing remains explicitly
+duration, IDs and timestamps are emitted by the result contract; aggregate timing remains explicitly
 unmeasured because live setup was not authorized.
 
 Decision: `PASS_LOCAL`; S07 independent audit may begin.

@@ -5,6 +5,7 @@ from contextlib import suppress
 import inspect
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Protocol
 
@@ -82,6 +83,7 @@ class SetupWorkflowPhase:
 @dataclass(frozen=True)
 class _SetupPhaseGroup:
     group_id: str
+    phase_ids: tuple[str, ...]
     phases: tuple[SetupWorkflowPhase, ...]
     maximum_concurrency: int
 
@@ -110,18 +112,24 @@ class SetupPhaseResult:
 @dataclass(frozen=True)
 class SetupPhaseGroupResult:
     group_id: str
+    phase_ids: tuple[str, ...]
     phase_names: tuple[str, ...]
     status: str
     maximum_concurrency: int
     duration_seconds: float
+    started_at: str
+    finished_at: str
 
     def to_dict(self) -> dict[str, object]:
         return {
             "duration_seconds": self.duration_seconds,
             "group_id": self.group_id,
             "maximum_concurrency": self.maximum_concurrency,
+            "phase_ids": list(self.phase_ids),
             "phase_names": list(self.phase_names),
             "status": self.status,
+            "started_at": self.started_at,
+            "finished_at": self.finished_at,
         }
 
 
@@ -364,7 +372,8 @@ class SetupWorkflow:
         self,
         group: "_SetupPhaseGroup",
     ) -> tuple[tuple[_SetupPhaseExecution, ...], SetupPhaseGroupResult]:
-        started_at = asyncio.get_running_loop().time()
+        started_monotonic = asyncio.get_running_loop().time()
+        started_at = _utc_timestamp()
         if len(group.phases) > 1:
             self._report_progress(
                 phase="setup",
@@ -421,13 +430,16 @@ class SetupWorkflow:
         )
         group_result = SetupPhaseGroupResult(
             group_id=group.group_id,
+            phase_ids=group.phase_ids,
             phase_names=tuple(phase.name for phase in group.phases),
             status=group_status,
             maximum_concurrency=group.maximum_concurrency,
             duration_seconds=max(
                 0.0,
-                asyncio.get_running_loop().time() - started_at,
+                asyncio.get_running_loop().time() - started_monotonic,
             ),
+            started_at=started_at,
+            finished_at=_utc_timestamp(),
         )
         if len(group.phases) > 1:
             self._report_progress(
@@ -499,7 +511,7 @@ class SetupWorkflow:
     def _ordered_phase_groups(self) -> tuple["_SetupPhaseGroup", ...]:
         if self.installation_plan is None:
             return tuple(
-                _SetupPhaseGroup(phase.name, (phase,), 1)
+                _SetupPhaseGroup(phase.name, (phase.name,), (phase,), 1)
                 for phase in self.phases
             )
         self.installation_plan.arrange_workflow_phases(self.phases)
@@ -520,6 +532,7 @@ class SetupWorkflow:
                 groups.append(
                     _SetupPhaseGroup(
                         plan_group.group_id,
+                        plan_group.phase_ids,
                         runnable_phases,
                         plan_group.maximum_concurrency,
                     )
@@ -692,3 +705,7 @@ def _not_run_phase_results(
         )
         for phase in phases
     )
+
+
+def _utc_timestamp() -> str:
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
