@@ -1223,11 +1223,12 @@ def build_platform_services(
 def build_artifact_services_for_provider(
     node_provider_request: NodeProviderSelectionRequest | None = None,
     ui: PortUI | None = None,
+    progress: PortWorkflowProgress | None = None,
 ) -> ArtifactServices:
     provider_request = node_provider_request or _default_node_provider_request()
     backend = _lxc_backend_for_provider_request(provider_request)
     if backend is not None:
-        return build_lxc_artifact_services(backend=backend, ui=ui)
+        return build_lxc_artifact_services(backend=backend, ui=ui, progress=progress)
     return ArtifactServices(
         workflows=ArtifactWorkflows(
             prepare=cast(
@@ -1252,6 +1253,7 @@ def build_lxc_artifact_services(
     *,
     backend: ManagedLxcBackend,
     ui: PortUI | None = None,
+    progress: PortWorkflowProgress | None = None,
 ) -> ArtifactServices:
     project_paths = default_project_paths()
     process_runner = build_process_runner()
@@ -1273,6 +1275,7 @@ def build_lxc_artifact_services(
         nexus_client=nexus_client,
         max_attempts=60,
         wait_seconds=10,
+        progress=progress,
     )
     ensure_nexus_admin_access = EnsureNexusAdminAccess(
         nexus_client=nexus_client,
@@ -1284,6 +1287,7 @@ def build_lxc_artifact_services(
         max_attempts=60,
         wait_seconds=10,
         ui=ui,
+        progress=progress,
     )
     nexus_repository_steps = (
         EnsureNexusDockerHostedRepository(
@@ -1344,6 +1348,7 @@ def build_deployment_services_for_provider(
     service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
     node_provider_request: NodeProviderSelectionRequest | None = None,
     ui: PortUI | None = None,
+    progress: PortWorkflowProgress | None = None,
 ) -> DeploymentServices:
     provider_request = node_provider_request or _default_node_provider_request()
     backend = _lxc_backend_for_provider_request(provider_request)
@@ -1353,6 +1358,7 @@ def build_deployment_services_for_provider(
             service_profile=service_profile,
             backend=backend,
             ui=ui,
+            progress=progress,
         )
     return DeploymentServices(
         workflows=DeploymentWorkflows(
@@ -1386,6 +1392,7 @@ def build_lxc_deployment_services(
     backend: ManagedLxcBackend,
     service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
     ui: PortUI | None = None,
+    progress: PortWorkflowProgress | None = None,
 ) -> DeploymentServices:
     project_paths = default_project_paths()
     local_file_storage = LocalFileStorage()
@@ -1474,6 +1481,7 @@ def build_lxc_deployment_services(
         ),
         username=_operator_config_value("TSW_SONARQUBE_ADMIN_USERNAME", "admin"),
         password=_operator_secret_value("TSW_SONARQUBE_ADMIN_PASSWORD"),
+        progress=progress,
     )
     application_steps = _with_post_stack_steps(
         application_steps,
@@ -1654,6 +1662,7 @@ def build_setup_services(
     artifact_readiness_gate = _build_artifact_readiness_gate(project_paths)
     host_preparation = build_host_preparation_service(live_consent)
     trace_correlation_id = _new_installation_trace_correlation_id()
+    workflow_progress = _build_workflow_progress_sink(ui)
     platform = _build_platform_services_for_request(
         service_profile,
         live_consent,
@@ -1665,13 +1674,14 @@ def build_setup_services(
     artifacts = build_artifact_services_for_provider(
         node_provider_request=node_provider_request,
         ui=ui,
+        progress=workflow_progress,
     )
     deployment = _build_deployment_services_for_request(
         service_profile=service_profile,
         node_provider_request=node_provider_request,
         ui=ui,
+        progress=workflow_progress,
     )
-    workflow_progress = _build_workflow_progress_sink(ui)
     method_trace = _build_method_trace_sink(ui)
     static_preflight_result: PreflightResult | None = None
     artifact_bootstrap_result: ArtifactWorkflowResult | None = None
@@ -1847,16 +1857,30 @@ def _build_deployment_services_for_request(
     service_profile: ServiceStackProfile | str,
     node_provider_request: NodeProviderSelectionRequest | None,
     ui: PortUI | None = None,
+    progress: PortWorkflowProgress | None = None,
 ) -> DeploymentServices:
     if ui is None:
+        if progress is None:
+            return build_deployment_services_for_provider(
+                service_profile=service_profile,
+                node_provider_request=node_provider_request,
+            )
         return build_deployment_services_for_provider(
             service_profile=service_profile,
             node_provider_request=node_provider_request,
+            progress=progress,
+        )
+    if progress is None:
+        return build_deployment_services_for_provider(
+            service_profile=service_profile,
+            node_provider_request=node_provider_request,
+            ui=ui,
         )
     return build_deployment_services_for_provider(
         service_profile=service_profile,
         node_provider_request=node_provider_request,
         ui=ui,
+        progress=progress,
     )
 
 

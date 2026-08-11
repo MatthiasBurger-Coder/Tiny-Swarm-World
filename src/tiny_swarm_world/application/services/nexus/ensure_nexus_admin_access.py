@@ -3,6 +3,11 @@ import logging
 
 from tiny_swarm_world.application.ports.clients.port_container_runtime import PortContainerRuntime
 from tiny_swarm_world.application.ports.clients.port_nexus_client import PortNexusClient
+from tiny_swarm_world.application.ports.progress import (
+    NullWorkflowProgress,
+    PortWorkflowProgress,
+    report_readiness_wait,
+)
 from tiny_swarm_world.application.ports.ui.port_ui import AGGREGATE_INSTANCE, PortUI
 from tiny_swarm_world.application.services.shared import (
     ReadinessRetry,
@@ -32,6 +37,7 @@ class EnsureNexusAdminAccess:
         max_attempts: int,
         wait_seconds: int,
         ui: PortUI | None = None,
+        progress: PortWorkflowProgress | None = None,
     ):
         self.nexus_client = nexus_client
         self.container_runtime = container_runtime
@@ -42,6 +48,7 @@ class EnsureNexusAdminAccess:
         self.max_attempts = max_attempts
         self.wait_seconds = wait_seconds
         self.ui = ui
+        self.progress = progress or NullWorkflowProgress()
         self.logger = logging.getLogger(self.__class__.__name__)
 
     async def run(self) -> None:
@@ -181,7 +188,20 @@ class EnsureNexusAdminAccess:
                 attempt=attempt,
                 max_attempts=self.max_attempts,
                 wait_seconds=self.wait_seconds,
-            )
+            ),
+            on_wait=self._report_wait,
+        )
+
+    def _report_wait(self, retry: ReadinessRetry) -> None:
+        report_readiness_wait(
+            self.progress,
+            workflow="artifacts prepare",
+            phase="nexus admin access",
+            target=self.verification_target_id,
+            task="Nexus admin readiness",
+            attempt=retry.attempt,
+            max_attempts=retry.max_attempts,
+            wait_seconds=retry.wait_seconds,
         )
 
     async def verify(self) -> VerificationResult:

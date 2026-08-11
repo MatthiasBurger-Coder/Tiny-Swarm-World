@@ -6,6 +6,11 @@ from dataclasses import dataclass
 from tiny_swarm_world.application.ports.clients.port_sonarqube_client import (
     PortSonarqubeClient,
 )
+from tiny_swarm_world.application.ports.progress import (
+    NullWorkflowProgress,
+    PortWorkflowProgress,
+    report_readiness_wait,
+)
 from tiny_swarm_world.application.services.shared import (
     ReadinessRetry,
     wait_for_readiness_retry,
@@ -26,6 +31,7 @@ class EnsureSonarqubeAdminAccess:
         initial_credential: str = "admin",
         max_attempts: int = 60,
         wait_seconds: float = 5.0,
+        progress: PortWorkflowProgress | None = None,
     ) -> None:
         if not username:
             raise ValueError("SonarQube admin username must not be empty.")
@@ -37,6 +43,7 @@ class EnsureSonarqubeAdminAccess:
         self.initial_credential = initial_credential
         self.max_attempts = max_attempts
         self.wait_seconds = wait_seconds
+        self.progress = progress or NullWorkflowProgress()
         self._status = "not_run"
         self.service_stack = _SyntheticServiceStack("sonarqube-admin-access")
         self.stack_environment: dict[str, str] = {}
@@ -115,7 +122,20 @@ class EnsureSonarqubeAdminAccess:
                 attempt=attempt,
                 max_attempts=self.max_attempts,
                 wait_seconds=self.wait_seconds,
-            )
+            ),
+            on_wait=self._report_wait,
+        )
+
+    def _report_wait(self, retry: ReadinessRetry) -> None:
+        report_readiness_wait(
+            self.progress,
+            workflow="deployment apply",
+            phase="sonarqube readiness",
+            target=self.verification_target_id,
+            task="SonarQube admin readiness",
+            attempt=retry.attempt,
+            max_attempts=retry.max_attempts,
+            wait_seconds=retry.wait_seconds,
         )
 
 

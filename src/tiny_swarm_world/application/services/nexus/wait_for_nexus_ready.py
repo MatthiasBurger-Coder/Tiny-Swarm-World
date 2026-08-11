@@ -2,6 +2,11 @@ import asyncio
 import logging
 
 from tiny_swarm_world.application.ports.clients.port_nexus_client import PortNexusClient
+from tiny_swarm_world.application.ports.progress import (
+    NullWorkflowProgress,
+    PortWorkflowProgress,
+    report_readiness_wait,
+)
 from tiny_swarm_world.application.services.shared import (
     ReadinessRetry,
     wait_for_readiness_retry,
@@ -12,10 +17,17 @@ from tiny_swarm_world.domain.inventory import VerificationResult, VerificationSt
 class WaitForNexusReady:
     verification_target_id = "artifacts:nexus-ready"
 
-    def __init__(self, nexus_client: PortNexusClient, max_attempts: int, wait_seconds: int):
+    def __init__(
+        self,
+        nexus_client: PortNexusClient,
+        max_attempts: int,
+        wait_seconds: int,
+        progress: PortWorkflowProgress | None = None,
+    ):
         self.nexus_client = nexus_client
         self.max_attempts = max_attempts
         self.wait_seconds = wait_seconds
+        self.progress = progress or NullWorkflowProgress()
         self.logger = logging.getLogger(self.__class__.__name__)
 
     async def run(self) -> None:
@@ -38,7 +50,8 @@ class WaitForNexusReady:
                         attempt=attempt,
                         max_attempts=self.max_attempts,
                         wait_seconds=self.wait_seconds,
-                    )
+                    ),
+                    on_wait=self._report_wait,
                 )
 
         error = TimeoutError(
@@ -47,6 +60,18 @@ class WaitForNexusReady:
         if last_exception is not None:
             raise error from last_exception
         raise error
+
+    def _report_wait(self, retry: ReadinessRetry) -> None:
+        report_readiness_wait(
+            self.progress,
+            workflow="artifacts prepare",
+            phase="nexus readiness",
+            target=self.verification_target_id,
+            task="Nexus readiness",
+            attempt=retry.attempt,
+            max_attempts=retry.max_attempts,
+            wait_seconds=retry.wait_seconds,
+        )
 
     async def verify(self) -> VerificationResult:
         await asyncio.sleep(0)

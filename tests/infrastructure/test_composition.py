@@ -1938,10 +1938,15 @@ class TestComposition(unittest.TestCase):
             trace_correlation_id=services.workflows.run.trace_correlation_id,
             allow_wsl_windows_filesystem=True,
         )
-        build_artifacts.assert_called_once_with(node_provider_request=None, ui=None)
+        build_artifacts.assert_called_once_with(
+            node_provider_request=None,
+            ui=None,
+            progress=services.workflows.run.progress,
+        )
         build_deployment.assert_called_once_with(
             service_profile=ServiceStackProfile.SERVICE_ACCESS,
             node_provider_request=None,
+            progress=services.workflows.run.progress,
         )
         build_preflight.return_value.run.assert_not_called()
         build_platform.return_value.workflows.init.run.assert_not_called()
@@ -1974,10 +1979,12 @@ class TestComposition(unittest.TestCase):
             service_profile: object,
             node_provider_request: object | None = None,
             ui: object | None = None,
+            progress: object | None = None,
         ):
             captured["deployment_service_profile"] = service_profile
             captured["deployment_node_provider_request"] = node_provider_request
             captured["deployment_ui"] = ui
+            captured["deployment_progress"] = progress
             return _deployment_phase_bundle()
 
         with patch.object(
@@ -2011,6 +2018,7 @@ class TestComposition(unittest.TestCase):
 
         self.assertIs(ui, captured["ui"])
         self.assertIs(ui, captured["deployment_ui"])
+        self.assertIs(progress_sink, captured["deployment_progress"])
         self.assertIs(live_consent, captured["live_consent"])
         self.assertEqual(
             ServiceStackProfile.SERVICE_ACCESS, captured["deployment_service_profile"]

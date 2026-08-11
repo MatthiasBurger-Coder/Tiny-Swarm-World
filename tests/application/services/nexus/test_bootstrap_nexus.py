@@ -20,6 +20,23 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[4]
 
 
 class TestWaitForNexusReady(unittest.TestCase):
+    def test_progress_is_reported_before_each_retry_wait(self):
+        nexus_client = MagicMock()
+        nexus_client.is_available.side_effect = [False, False, True]
+        progress = MagicMock()
+        service = WaitForNexusReady(
+            nexus_client,
+            max_attempts=3,
+            wait_seconds=0,
+            progress=progress,
+        )
+
+        asyncio.run(service.run())
+
+        self.assertEqual(progress.report.call_count, 2)
+        first_event = progress.report.call_args_list[0].args[0]
+        self.assertEqual(first_event.step, "readiness wait 1/3")
+
     def test_retry_wait_yields_to_the_event_loop(self):
         nexus_client = MagicMock()
         nexus_client.is_available.side_effect = [False, True]
