@@ -60,7 +60,8 @@ Use a Linux or WSL2 shell from the repository root. Prepare:
 * `incus`/`lxc` usable without `sudo` from the same Linux/WSL shell that runs
   `./install.sh`;
 * `socat` when WSL localhost forwarding is required.
-* Optional Docker CLI access for host-side diagnostics and cache helpers.
+* Optional Docker CLI access for host-side diagnostics and cache helpers; host
+  Docker is not the managed Swarm workload runtime.
 
 Incus/LXD installation, initialization, storage, networks, profiles, daemon
 repair, and group membership are host responsibilities. Tiny Swarm World does

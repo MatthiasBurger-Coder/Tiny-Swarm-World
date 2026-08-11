@@ -22,6 +22,28 @@ same-directory temporary writing and atomic replacement are adapter concerns.
 This JSON is generated configuration evidence, not observed deployment or
 service-readiness evidence.
 
+== Host Docker And Managed-Node Docker Boundary
+
+The default deployment topology has two distinct Docker contexts. A Docker CLI
+on the Linux/WSL host is optional and is used only for diagnostics, cache
+helpers, or evidence probes. It is not the service workload runtime and host
+`docker info` is not evidence that the managed Swarm is ready.
+
+The workload Docker Engine runs inside the Incus-managed LXC nodes. The
+verified order is:
+
+. host and Incus readiness;
+. managed LXC node creation/reconciliation;
+. Docker Engine installation or readiness checks inside those nodes;
+. Swarm manager initialization and worker join/verification inside those nodes;
+. routing exposure;
+. artifact preparation, service-stack deployment, and readiness verification.
+
+This distinction keeps host preparation responsibility separate from the
+provider-native platform and deployment responsibilities. It also prevents an
+operator from treating an optional host Docker installation as a substitute
+for the node-local Docker/Swarm phases.
+
 == Deployment Contracts
 
 The in-process CLI now has explicit artifact and deployment workflow contracts.

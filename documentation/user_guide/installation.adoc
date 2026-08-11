@@ -176,6 +176,23 @@ initialize Swarm; the cluster phases own those operations. If a cluster phase
 is blocked or fails, later routing, artifact, and deployment phases are marked
 `not_run`.
 
+The operator-facing installation order is therefore:
+
+. prepare and verify the Linux/WSL host and the Incus daemon;
+. select and verify the managed `lxc_native` provider resources;
+. create or reconcile the three configured managed LXC nodes;
+. install or verify Docker Engine *inside* those managed nodes;
+. initialize and verify Docker Swarm inside the managed nodes;
+. expose the configured routing/proxy boundary;
+. prepare artifacts, apply selected service stacks, and verify readiness.
+
+Host Docker is not the workload runtime for this path. A host Docker CLI may
+be installed for diagnostics, local cache helpers, or evidence probes, but the
+setup workflow installs and verifies the service workload Docker Engine inside
+the Incus-managed nodes. Do not interpret `docker info` on the host as proof
+that node-local Docker or Swarm is ready; use the managed-node checks in the
+runtime verification section.
+
 == LXC Native Provider Baseline
 
 === Hard Host Prerequisite Boundary
