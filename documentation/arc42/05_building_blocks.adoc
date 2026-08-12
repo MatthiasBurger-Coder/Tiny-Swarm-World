@@ -16,11 +16,12 @@ Tiny Swarm World now separates three repository roles explicitly.
 The canonical development import root is `src`, and commands that execute the
 Python package use `PYTHONPATH=src`.
 
-`src/tiny_swarm_world/infrastructure/composition.py` is the local composition
-root for the Python automation. It wires concrete infrastructure adapters into
-application services and keeps `src/tiny_swarm_world/__main__.py` thin. Services
-are constructed with explicit ports and repositories instead of creating
-infrastructure adapters inside the application layer.
+`src/tiny_swarm_world/infrastructure/composition.py` is the stable public
+composition facade for the Python automation. It routes construction to
+focused infrastructure composition modules and keeps
+`src/tiny_swarm_world/__main__.py` thin. Services are constructed with explicit
+ports and repositories instead of creating infrastructure adapters inside the
+application layer.
 Repository-relative path configuration is centralized as the immutable
 `ProjectPaths` infrastructure value object. `composition.py` creates the default
 path configuration and passes it to adapters that need repository, infra,
@@ -40,6 +41,18 @@ application responsibilities:
 * `composition_lxc_runtimes.py` contains provider-selected LXC runtime
   adapters that delegate to concrete Docker, Swarm, and proxy-device adapters
   only after composed provider selection allows it.
+* `composition_configuration.py` owns operator environment keys, defaults,
+  secret lookup, and typed validation helpers.
+* `composition_probes.py` owns bounded, read-only endpoint and host readiness
+  probes, including their fail-soft evidence mapping.
+* `composition_platform.py`, `composition_artifacts.py`,
+  `composition_deployment.py`, and `composition_setup.py` are explicit
+  construction boundaries that own the corresponding concrete service-builder
+  bodies. They preserve the established public behavior through the facade and
+  private runtime compatibility bridges.
+* `composition_runtime.py` is the private compatibility implementation for
+  shared helpers and legacy builder entry points. It is not a public import
+  surface and is the next extraction seam for further helper reduction.
 
 ==== Issue #183 LXC Client Decomposition — Local Implementation Status
 
@@ -58,7 +71,8 @@ facades/aliases only; the historical duplicate implementations have been
 removed. The approved live Selenium browser suite now verifies all nine
 routed service pages, including authenticated SonarQube navigation. The
 external SonarCloud gate remains red and is not claimed as accepted.
-`infrastructure/composition.py` remains the concrete-adapter wiring root.
+`infrastructure/composition.py` remains the public composition root; concrete
+compatibility wiring is internal to the focused composition modules.
 This split stays inside the existing infrastructure layer and does not create
 an independently deployable service or microservice. Bounded command
 execution, timeout/retry, redaction, cleanup, and live-consent behavior remain

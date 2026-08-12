@@ -18,11 +18,16 @@ builds a dedicated `SetupServices` bundle only after accepted live consent and
 delegates all sequencing to the setup application workflow.
 
 The public composition facade delegates focused internal structure to
-`composition_models.py`, `composition_blocked_workflows.py`, and
-`composition_lxc_runtimes.py`. These modules are still infrastructure wiring:
-they do not change CLI behavior, do not move adapter construction into
-application services, and do not execute live commands during service bundle
-construction.
+`composition_models.py`, `composition_blocked_workflows.py`,
+`composition_lxc_runtimes.py`, `composition_configuration.py`,
+`composition_probes.py`, and the platform, artifact, deployment, and setup
+composition boundaries. Configuration parsing and readiness probing are no
+longer implemented in the public facade. These modules are still
+infrastructure wiring: they do not change CLI behavior, do not move adapter
+construction into application services, and do not execute live commands
+during service bundle construction. The private `composition_runtime.py`
+module preserves shared helper and legacy-entry-point compatibility while
+follow-up extraction can reduce its size further.
 
 === Read-only Host Detection Flow
 

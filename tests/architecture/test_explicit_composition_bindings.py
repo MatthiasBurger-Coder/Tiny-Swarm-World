@@ -23,6 +23,29 @@ class TestExplicitCompositionBindings(unittest.TestCase):
         self.assertTrue(callable(composition.build_platform_services))
         self.assertTrue(callable(composition.build_setup_services))
 
+    def test_public_facade_contains_no_probe_or_environment_implementation(self) -> None:
+        source_path = (
+            Path(__file__).parents[2]
+            / "src"
+            / "tiny_swarm_world"
+            / "infrastructure"
+            / "composition.py"
+        )
+        source = source_path.read_text(encoding="utf-8")
+
+        self.assertNotIn("os.environ", source)
+        self.assertNotIn("subprocess.run", source)
+        self.assertNotIn("time.sleep", source)
+        self.assertIn(
+            "composition_configuration",
+            source_path.parent.joinpath("composition_runtime.py").read_text(encoding="utf-8"),
+        )
+        self.assertTrue(source_path.parent.joinpath("composition_probes.py").is_file())
+        self.assertTrue(source_path.parent.joinpath("composition_platform.py").is_file())
+        self.assertTrue(source_path.parent.joinpath("composition_artifacts.py").is_file())
+        self.assertTrue(source_path.parent.joinpath("composition_deployment.py").is_file())
+        self.assertTrue(source_path.parent.joinpath("composition_setup.py").is_file())
+
     def test_runtime_source_contains_no_legacy_global_di_symbols(self) -> None:
         findings: list[str] = []
         for source_file in sorted(SOURCE_ROOT.rglob("*.py")):

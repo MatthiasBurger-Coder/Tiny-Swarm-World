@@ -1,24 +1,23 @@
-# Context Pack — Indexed Issue Chain #163 → #156 → #197 → #152 → #144 → #146 → #147 → #148 → #145 → #151 → #153
+# Context Pack — Issue #249
 
-- Workflow family: `issue-chain-163-156-197-152-144-146-147-148-145-151-153-20260809` (`v1.0.0`).
-- Index: `documentation/workflow/workflow.index.md`.
-- Authoring branch: `feature/workflow-issue-chain-163-156-197-152-144-146-147-148-145-151-153-20260809`.
-- Baseline commit: `b8c64eaa50839fcbf4581ca819286ad13ee88300`.
-- Execution profile: `FULL_PATH`.
-- Process strand: `workflow-create-to-workflow-execute`.
-- Scope: eleven ordered issue-local workflows with 74 granular implementation slices.
-- Forbidden: live infrastructure by default, issue mutation, PR merge/cleanup,
-  browser React, silent scope reduction and unverified live/external claims.
-- Required roles: Senior Requirement Engineer, Senior System Architect, Senior Python Automation Developer, Senior Tester.
-- Conditional roles: Senior Workflow Architect, Senior Documentation Engineer,
-  Console/status UI Developer, Linux Host Preparation, Resilience Engineering,
-  Quality Gate Governance and Issue Completion Auditor.
-- Quality commands: `git diff --check`, targeted commands in each issue-local
-  workflow and `python3 tools/quality_gate.py quality` from WSL/Linux.
-- Issue-local packs: `documentation/workflow/issues/issue-<number>/`.
-- Existing `documentation/workflow/workflow.md`: completed Issue #217 record,
-  intentionally preserved and not the execution target for this index.
+- Workflow id: `issue-249-composition-root-refactor-20260811`
+- Issue: `#249`
+- Branch: `architecture/workflow-composition-root-refactor-20260811`
+- Baseline: `d56df8d856529a65d6a8cf2de0ad02eb026993e5`
+- Process strand: issue-driven composition-root refactor
+- Execution profile: `FULL_PATH`
+- Affected areas: infrastructure composition, configuration, probes/readiness,
+  platform/artifact/deployment/setup wiring, tests, arc42
+- Forbidden areas: domain/application dependency direction, live infrastructure,
+  new service boundaries, browser React, Java/Maven/Spring, unrelated cleanup
+- Required roles: Senior Requirement Engineer, Senior System Architect, Senior
+  Python Automation Developer, Senior Tester
+- Conditional roles: Senior Documentation Engineer for arc42/evidence; Senior
+  DevOps for read-only runtime safety review
+- Targeted verification: focused composition/wiring tests, architecture tests,
+  `git diff --check`
+- Required verification: `python3 tools/quality_gate.py quality`
+- Evidence path: `.tiny-swarm/evidence/issue-249/`
 
-This pack is navigation context only. The index, issue-local workflows,
-requirement matrices, root governance, quality policy, issue bodies, ADRs,
-arc42 and repository behavior remain authoritative.
+This pack is navigation only. `AGENTS.md`, `QUALITY.md`, the issue, arc42, ADRs,
+and skill files remain authoritative.
