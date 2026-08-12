@@ -75,6 +75,11 @@ def _sync_compatibility_overrides() -> None:
     original runtime callable and never create a recursive alias.
     """
 
+    _sync_runtime_overrides()
+    _refresh_loaded_boundary_modules()
+
+
+def _sync_runtime_overrides() -> None:
     for name, original in _RUNTIME_ORIGINALS.items():
         facade_value = globals().get(name, original)
         if facade_value is _FACADE_DEFAULTS[name]:
@@ -87,6 +92,8 @@ def _sync_compatibility_overrides() -> None:
             continue
         setattr(_runtime, name, globals().get(name, original))
 
+
+def _refresh_loaded_boundary_modules() -> None:
     for module_name in set(_BOUNDARY_MODULES.values()):
         module = sys.modules.get(f"{__package__}.{module_name}")
         if module is None:
@@ -94,13 +101,17 @@ def _sync_compatibility_overrides() -> None:
         refresh = getattr(module, "_refresh_runtime_symbols", None)
         if refresh is not None:
             refresh()
-        boundary_defaults = getattr(module, "_BOUNDARY_DEFAULTS", {})
-        for name, default in boundary_defaults.items():
-            facade_value = globals().get(name)
-            if facade_value is _FACADE_DEFAULTS.get(name, default):
-                setattr(module, name, default)
-            else:
-                setattr(module, name, facade_value)
+        _sync_boundary_overrides(module)
+
+
+def _sync_boundary_overrides(module: Any) -> None:
+    boundary_defaults = getattr(module, "_BOUNDARY_DEFAULTS", {})
+    for name, default in boundary_defaults.items():
+        facade_value = globals().get(name)
+        if facade_value is _FACADE_DEFAULTS.get(name, default):
+            setattr(module, name, default)
+        else:
+            setattr(module, name, facade_value)
 
 
 def __getattr__(name: str) -> Any:

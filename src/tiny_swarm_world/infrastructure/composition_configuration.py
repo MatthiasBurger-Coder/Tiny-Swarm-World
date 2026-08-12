@@ -10,7 +10,7 @@ from __future__ import annotations
 import os
 import re
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlunsplit
 
 from tiny_swarm_world.infrastructure.adapters.clients.lxc_container_docker_runtime import (
     DockerAptMirrorConfiguration,
@@ -32,6 +32,7 @@ DEFAULT_OPERATOR_CONFIGURATION_ENV_FILE = Path(
 )
 DEFAULT_FIXED_SECRET_ENV_FILE = Path(".tiny-swarm-world/local/fixed-secrets.env")
 DEFAULT_PORTAINER_API_URL = "http://localhost:10001"
+_LOCAL_SERVICE_SCHEME = urlparse(DEFAULT_PORTAINER_API_URL).scheme
 PORTAINER_STACK_REQUEST_TIMEOUT_ENVIRONMENT = "TSW_PORTAINER_STACK_REQUEST_TIMEOUT_SECONDS"
 DEFAULT_PORTAINER_STACK_REQUEST_TIMEOUT_SECONDS = 180
 SECRETS_MODE_ENVIRONMENT = "TSW_SECRETS_MODE"
@@ -234,7 +235,7 @@ def _is_http_url(value: str) -> bool:
 
 
 def _local_http_url(host: str, port: str) -> str:
-    return f"http://{host}:{port}"
+    return urlunsplit((_LOCAL_SERVICE_SCHEME, f"{host}:{port}", "", "", ""))
 
 
 def _nexus_docker_proxy_remote_url() -> str:
