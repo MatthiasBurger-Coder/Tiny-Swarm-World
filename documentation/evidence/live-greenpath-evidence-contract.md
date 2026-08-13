@@ -18,9 +18,13 @@ Each run writes only to an ignored local evidence root such as
   secrets, artifacts, Jenkins, SonarQube, Pulsar, Swagger, Service Access,
   readiness and browser verification;
 - per-phase state, bounded retry count, result classification, redacted
-  summary, evidence file references and rollback/cleanup result;
-- a SHA-256 checksum manifest over every redacted evidence file and the
-  manifest itself;
+  summary, evidence file references and rollback/cleanup result. Each phase
+  records `attempts`, `max_attempts`, `retryable`, `exhausted` and an explicit
+  result classification;
+- a two-level SHA-256 checksum chain: `checksums.sha256` hashes every redacted
+  payload file and excludes checksum files, while
+  `checksums.sha256.sha256` hashes `checksums.sha256`. The terminal hash file
+  is deliberately not recursively self-hashed;
 - independent reviewer identity, review timestamp, findings and final
   decision.
 
@@ -38,13 +42,19 @@ implicit pass.
 
 ## State semantics
 
-Use the exact states from
+Use the exact live states from
 [`verification-state-policy.md`](../process/verification-state-policy.md):
 `LIVE_NOT_APPLICABLE`, `LIVE_CONSENT_MISSING`,
 `LIVE_PREREQUISITE_MISSING`, `LIVE_BLOCKED_BEFORE_MUTATION`,
 `LIVE_FAILED_AFTER_MUTATION`, `LIVE_PARTIAL`, `LIVE_DEGRADED` and
 `LIVE_VERIFIED`. Only `LIVE_VERIFIED` is a live success claim. A phase failure
 must stop dependent phases and preserve its failure classification.
+
+Each phase also records exactly one result classification independent of live
+state: `passed`, `refused`, `blocked`, `resource-gated`, `failed-to-apply`,
+`failed-to-prepare`, `failed-to-verify`, `partial` or `degraded`. Retryable
+failures use bounded attempts; once `max_attempts` is reached, `exhausted` is
+true and the phase remains failed/blocked rather than becoming a pass.
 
 External results use the policy's `EXTERNAL_GATE_*` states. A local quality
 gate does not become a SonarQube or external-gate result.
