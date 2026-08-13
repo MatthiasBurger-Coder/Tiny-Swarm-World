@@ -248,6 +248,14 @@ def default_configuration_contract() -> ConfigurationContract:
                 default="tsw_traefik_tls_key",
                 description="External Docker secret name for Traefik TLS private key material.",
             ),
+            ConfigurationRequirement(
+                key="TSW_TRAEFIK_GUI_USERS_SECRET_NAME",
+                scope="traefik",
+                value_kind=ConfigurationValueKind.SECRET_NAME,
+                required=False,
+                default="tsw_traefik_gui_users",
+                description="External Docker secret name for Traefik dashboard htpasswd entries.",
+            ),
         ),
     )
 

@@ -7,3 +7,19 @@ tls:
       defaultCertificate:
         certFile: /run/secrets/tsw_traefik_tls_cert
         keyFile: /run/secrets/tsw_traefik_tls_key
+
+http:
+  routers:
+    traefik-dashboard:
+      rule: Host(`traefik.tsw.local`)
+      entryPoints:
+        - websecure
+      service: api@internal
+      middlewares:
+        - traefik-dashboard-auth
+      tls: {}
+  middlewares:
+    traefik-dashboard-auth:
+      basicAuth:
+        usersFile: /run/secrets/tsw_traefik_gui_users
+        realm: Tiny Swarm World Traefik Dashboard

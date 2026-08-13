@@ -502,6 +502,7 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
 
         self.assertIn("- key: TSW_TRAEFIK_TLS_CERT_SECRET_NAME", manifest)
         self.assertIn("- key: TSW_TRAEFIK_TLS_KEY_SECRET_NAME", manifest)
+        self.assertIn("- key: TSW_TRAEFIK_GUI_USERS_SECRET_NAME", manifest)
         self.assertIn("source: external_user_secret", manifest)
         self.assertNotIn("-----BEGIN", manifest)
         self.assertNotIn("PRIVATE KEY", manifest)
