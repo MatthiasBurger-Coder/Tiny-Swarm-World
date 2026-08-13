@@ -8,6 +8,8 @@ Authoring branch: `docs/workflow-public-beta-roadmap-20260812`
 
 Planned execution branch: `docs/issue-121-audit-evidence-20260812`
 
+Execution branch: `docs/issue-121-audit-evidence-20260812`
+
 Status: `AUTHORED_INDEXED`
 
 ## Executive Summary
