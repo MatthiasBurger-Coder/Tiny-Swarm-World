@@ -65,6 +65,22 @@ for the active migration workflow, subject to these rules:
 * Live verification remains opt-in and must write only redacted evidence under
   ignored `.tiny-swarm-world/evidence/**` paths.
 
+The administrative dashboard follows the same local HTTPS boundary. The
+implemented desired state exposes `api@internal` only through the dedicated
+`Host(traefik.tsw.local)` router on `websecure`. The router uses BasicAuth with
+the operator-provided Docker secret named by
+`TSW_TRAEFIK_GUI_USERS_SECRET_NAME`; the secret is mounted as a users file and
+its values are never represented in repository configuration or evidence.
+There is no additional dashboard port and `--api.insecure=true` remains
+forbidden. This is an operator/admin surface, not a public service route, and
+it remains behind the local manager ingress boundary.
+
+The route is fail-closed: an absent TLS reference, absent external users
+secret, invalid route configuration, or failed readiness check must prevent a
+successful deployment claim. Rollback removes the dashboard router and its
+authentication reference while retaining the existing HTTPS ingress and
+Service Access routes.
+
 == Considered Options
 
 === Keep Service Access NGINX As The Only Router

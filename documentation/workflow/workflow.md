@@ -1,226 +1,297 @@
-# Workflow: Issue #126 — OWASP ASVS and Admin-Surface Model
+# Workflow: Issue #150 — Secure Traefik GUI
 
-Workflow id: `issue-126-owasp-asvs-admin-surface-20260812`
+Workflow id: `issue-150-secure-traefik-gui-20260812`
 
-Issue: [#126](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/126)
+Issue: [#150](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/150)
 
 Authoring branch: `docs/workflow-public-beta-roadmap-20260812`
 
-Planned execution branch: `docs/issue-126-owasp-asvs-admin-surface-20260812`
+Planned execution branch: `feature/issue-150-secure-traefik-gui-20260812`
 
-Execution branch: `docs/issue-126-owasp-asvs-admin-surface-20260812`
+Execution branch: `feature/issue-150-secure-traefik-gui-20260812`
 
-Status: `COMPLETED`
+Status: `IN_PROGRESS`
 
 ## Executive Summary
 
-Map the applicable OWASP ASVS areas to Tiny Swarm World's local infrastructure
-and administrative surfaces and define the admin-surface/RBAC and Service
-Access threat model needed before #150. This is a scoped local-infrastructure
-mapping, not a web-application certification claim.
+Enable a secure, documented and verifiable Traefik dashboard path only after
+#123 ISMS, #128 branch/CI governance and #126 ASVS/admin-surface decisions are
+complete. The feature must preserve the Docker Swarm/Traefik architecture,
+existing Service Access routes and TLS direction. `--api.insecure=true`, raw
+credentials and unsecured host exposure remain forbidden.
 
 ## Requirement Clarification Gate
 
-- Original request: execute #126 before enabling the Traefik GUI.
-- Interpreted intent: create the three required security documents, classify
-  applicability and establish authentication, authorization, logging,
-  transport, data-protection and secret-handling expectations for all listed
-  surfaces.
-- Change type: security architecture/governance documentation.
-- Affected process strand: surface -> threat/control -> evidence -> secure
-  feature decision.
-- Affected architecture area: CLI consent, compose assets, Traefik, service
-  stacks, Infisical, Service Access and evidence.
-- Explicit requirements: map V1/V2/V3/V4/V5/V6/V7/V8/V9/V10/V12/V13/V14;
-  cover the listed surfaces and status categories applicable, partially
-  applicable, not applicable and future.
-- Implicit requirements: do not force unrelated web-app requirements onto
-  local infrastructure; link #123 risks and #121 evidence; protect #150 route
-  and credential decisions.
-- Assumptions: #123 and #128 provide security/merge context; current Traefik
-  ADR is the canonical path under `documentation/arc42/09_decisions/`.
-- Non-goals: active scans, live commands, real secrets, ASVS certification and
-  runtime changes in the mapping slice.
-- Risks: misclassifying admin surfaces, vague auth ownership or unsupported
-  control claims.
-- Open/blocking questions: exact #150 route/auth is intentionally a downstream
-  architecture decision; mapping must mark unresolved decisions as open/future.
-- Confidence: 91%.
-- Decision: `READY_FOR_WORKFLOW`.
+- Original request: build #150 after the security and governance foundations.
+- Interpreted intent: make Traefik's already-enabled dashboard reachable only
+  through an explicitly secured, owned and tested admin route.
+- Change type: security-sensitive infrastructure/configuration feature with
+  architecture and documentation updates.
+- Affected process strand: admin-surface decision -> desired state/config ->
+  local tests -> explicit live/browser verification.
+- Affected architecture area: `infra/config/compose/traefik/`, domain ingress
+  models, compose rendering/adapters, TLS/secret references, arc42 ADR/runtime
+  and routing tests.
+- Explicit requirements: secure explicit route; existing TLS compatibility;
+  Linux/WSL-first operation; no insecure API, raw secrets or unsecured host
+  ports; no silent general frontend; preserve Service Access; no live success
+  claim before verification.
+- Implicit requirements: authentication and authorization must have a clear
+  owner; route must be manager/operator/diagnostic scoped; missing TLS/auth
+  evidence fails closed; rollback must remove the GUI route without weakening
+  existing services.
+- Assumptions: current canonical ADR is
+  `documentation/arc42/09_decisions/adr-traefik-https-ingress-existing-ca.adoc`
+  (the older path in the issue is stale); the existing desired-ingress model
+  and route tests remain the architecture entry points.
+- Non-goals: `--api.insecure=true`, raw secrets, open ports, general React
+  frontend, unrelated service-access redesign and live deployment by default.
+- Risks: dashboard route accidentally public, auth middleware not owned, TLS
+  secret name/value confusion, route collision or regression of Service Access.
+- Open questions: the exact route hostname/path, auth mechanism and exposure
+  boundary must be decided in S150-01 from #123/#126 and the ADR; they must not
+  be guessed in S150-02.
+- Blocking questions: none for authoring; implementation is blocked if S150-01
+  cannot produce an approved decision.
+- Confidence: 88%.
+- Decision: `PROCEED_WITH_ACCEPTED_ASSUMPTIONS` because implementation details
+  are intentionally delegated to the architecture gate.
 
 ## Target Picture
 
 ```text
-ASVS applicability -> admin surface/RBAC model -> Service Access threat model
-                                             |
-                                             v
-                                  secure Traefik GUI decision gate
+Traefik dashboard enabled internally
+          |
+          v
+approved TLS + auth/authorization + operator boundary
+          |
+          v
+explicit HTTPS route, tested as desired state
+          |
+          v
+live/browser verification only with explicit consent and evidence
 ```
 
-## Verified Baseline, Scope and Assessments
+## Verified Baseline and Scope
 
-The three required mapping files are absent. Existing routing, secret and
-Traefik ADR/tests are evidence inputs, not proof of live security. Python is
-not required unless implementation changes emerge; frontend is not applicable.
-Resilience means unresolved/future controls stay open and no admin exposure is
-accepted without transport/auth/authorization evidence.
+Verified inputs include `infra/config/compose/traefik/docker-compose.yml`, the
+canonical Traefik HTTPS ADR, `src/tiny_swarm_world/domain/ingress/desired_state.py`,
+`src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py`,
+the ingress/domain tests, compose repository tests and routing integration
+contracts. The dashboard flag exists; an approved secure GUI route is not
+treated as implemented. Scope includes those config/model/adapter/test/docs
+surfaces only after S150-01 confirms the exact files. No live commands.
+
+## Architecture, Python, Frontend and Resilience Assessment
+
+- Architecture: keep Traefik as Deployment responsibility and preserve
+  hexagonal domain/application boundaries; use desired-state models and
+  infrastructure adapters rather than shell details in application code.
+- Python automation: likely affected if route/auth data is rendered or
+  validated; use existing ports/adapters, typed models, deterministic tests and
+  no constructor-time live calls.
+- Frontend: no React/browser frontend is authorized. The Traefik built-in
+  admin surface may receive a browser/live verification contract only.
+- Resilience: missing/invalid TLS or auth references, forbidden insecure mode,
+  route collision or incomplete readiness evidence fail closed; rollback means
+  the GUI route is absent while existing ingress/service-access paths remain
+  valid.
 
 ## Ordered Slices
 
-### Slice 01 — Matrix, surface inventory and applicability rules
+### Slice 01 — Requirement matrix, threat model and architecture decision
 
 ```yaml
-slice_id: S126-01
+slice_id: S150-01
 profile: SECURITY_ARCHITECTURE
 owner: Senior System Architect
-secondary_reviewers: [OWASP ASVS Local Infrastructure Expert, ISMS-light Security Governance Expert, Security And Threat Modeling, Senior Requirement Engineer]
-affected_files: [.tiny-swarm/evidence/issue-126/requirement_matrix.md, documentation/arc42/09_decisions/adr-traefik-https-ingress-existing-ca.adoc]
-affected_modules: [admin-surface governance, Traefik ingress]
-affected_contracts: [ASVS applicability status, admin-surface inventory]
-dependencies: [S123-02, S128-02]
-parallel_group: SERIAL-126
-file_locks: [.tiny-swarm/evidence/issue-126/requirement_matrix.md]
-contract_locks: [asvs-applicability-contract, admin-surface-contract]
-architecture_locks: [traefik-https-ingress, local-admin-boundary]
+secondary_reviewers: [ISMS-light Security Governance Expert, OWASP ASVS Local Infrastructure Expert, Security And Threat Modeling, Senior Requirement Engineer, Senior Tester]
+affected_files: [.tiny-swarm/evidence/issue-150/requirement_matrix.md, documentation/arc42/09_decisions/adr-traefik-https-ingress-existing-ca.adoc, documentation/arc42/05_building_blocks.adoc, documentation/arc42/06_runtime_view.adoc]
+affected_modules: [Traefik ingress, admin surface, security governance]
+affected_contracts: [GUI route/auth/TLS decision, exposure boundary, rollback contract]
+dependencies: [S123-02, S126-02, S128-02]
+parallel_group: SERIAL-150
+file_locks: [.tiny-swarm/evidence/issue-150/requirement_matrix.md, documentation/arc42/09_decisions/adr-traefik-https-ingress-existing-ca.adoc]
+contract_locks: [traefik-admin-surface-contract, secure-route-contract]
+architecture_locks: [traefik-https-ingress, no-insecure-dashboard, service-access-preservation]
 quality_gates:
   targeted: [git diff --check]
   required: [python3 tools/quality_gate.py quality]
 documentation:
-  arc42: required review of context, deployment and decisions
-  adr: update only if the verified admin-surface decision changes
-stop_conditions: [unclear ownership, insecure exposure proposal, ASVS web-app overreach, secret-bearing evidence]
+  arc42: required; planned decision must not be written as implemented behavior
+  adr: required review; extend existing ADR or add a complementary ADR if needed
+stop_conditions: [auth/authorization ambiguity, route owner unclear, insecure exposure, secret value in evidence, missing rollback]
 ```
 
-Done: all required ASVS areas/surfaces have stable requirements and explicit
-status/owner/evidence fields.
+Done: the matrix and reviewed ADR decision fix route, auth, authorization,
+TLS, exposure, ownership, rollback and verification semantics.
 
-### Slice 02 — Mapping, RBAC model and threat model
+### Slice 02 — Desired-state/configuration implementation and regression tests
 
 ```yaml
-slice_id: S126-02
-profile: SECURITY_ARCHITECTURE
-owner: OWASP ASVS Local Infrastructure Expert
-secondary_reviewers: [ISMS-light Security Governance Expert, Security And Threat Modeling, Senior Documentation Engineer, Senior Tester]
-affected_files: [documentation/security/owasp-asvs-mapping.md, documentation/security/admin-surface-rbac.md, documentation/security/service-access-threat-model.md]
-affected_modules: [ASVS mapping, admin surfaces, Service Access]
-affected_contracts: [ASVS matrix, RBAC expectations, threat model]
-dependencies: [S126-01]
-parallel_group: SERIAL-126
-file_locks: [documentation/security/owasp-asvs-mapping.md, documentation/security/admin-surface-rbac.md, documentation/security/service-access-threat-model.md]
-contract_locks: [asvs-mapping-contract, admin-rbac-contract, threat-model-contract]
-architecture_locks: [secure-admin-surface]
+slice_id: S150-02
+profile: FULL_PATH
+owner: Senior Python Automation Developer
+secondary_reviewers: [Senior System Architect, Security And Threat Modeling, Senior Tester, Senior DevOps]
+affected_files: [infra/config/compose/traefik/docker-compose.yml, infra/config/compose/traefik/dynamic/tls.yml, src/tiny_swarm_world/domain/ingress/desired_state.py, src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py, tests/domain/ingress/test_desired_state.py, tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py, tests/integration/test_optional_service_routing.py]
+affected_modules: [Traefik compose config, ingress desired state, compose renderer, routing tests]
+affected_contracts: [secure GUI route, auth/TLS secret references, no-insecure invariant, existing route contracts]
+dependencies: [S150-01]
+parallel_group: SERIAL-150
+file_locks: [infra/config/compose/traefik/, src/tiny_swarm_world/domain/ingress/, src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py]
+contract_locks: [traefik-config-contract, ingress-rendering-contract]
+architecture_locks: [domain-no-infrastructure-imports, secure-admin-route]
 quality_gates:
-  targeted: [git diff --check]
+  targeted: [PYTHONPATH=src python3 -m unittest tests.domain.ingress.test_desired_state tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml, PYTHONPATH=src python3 -m unittest tests.integration.test_optional_service_routing]
   required: [python3 tools/quality_gate.py quality]
 documentation:
-  arc42: synchronize verified admin-surface/ingress decision references
-  adr: record reviewed/no-new-ADR or required #150 decision
-stop_conditions: [certification claim, missing surface, auth/authorization ambiguity, route ownership conflict]
+  arc42: update only after verified config/model behavior
+  adr: implementation must match S150-01 decision
+stop_conditions: [api.insecure, raw credential, route collision, existing service-access regression, live command in tests, secret value persistence]
 ```
 
-Done: required mappings and threat model are complete, scoped, redacted and
-provide explicit inputs to #150.
+Done: desired state and configuration produce only the approved secure path;
+forbidden mode, missing references, route collisions and existing routes are
+covered by deterministic tests; full local quality passes or has an explicit
+blocker recorded.
+
+### Slice 03 — Evidence contract, docs and explicit live handoff
+
+```yaml
+slice_id: S150-03
+profile: FULL_PATH
+owner: Senior Tester
+secondary_reviewers: [Live Evidence Validation Expert, Senior Documentation Engineer, Senior System Architect, Issue Completion Auditor]
+affected_files: [documentation/arc42/05_building_blocks.adoc, documentation/arc42/06_runtime_view.adoc, documentation/evidence/live-greenpath-evidence-contract.md, .tiny-swarm/evidence/issue-150/implementation_summary.md, .tiny-swarm/evidence/issue-150/test_results.md, .tiny-swarm/evidence/issue-150/acceptance_checklist.md]
+affected_modules: [Traefik evidence and documentation]
+affected_contracts: [no-live-default, browser/live verification state, issue evidence]
+dependencies: [S150-02]
+parallel_group: SERIAL-150-FINAL
+file_locks: [documentation/arc42/05_building_blocks.adoc, documentation/arc42/06_runtime_view.adoc, .tiny-swarm/evidence/issue-150/]
+contract_locks: [live-admin-surface-evidence]
+architecture_locks: [verified-vs-planned-documentation]
+quality_gates:
+  targeted: [git diff --check, python3 tools/quality_gate.py quality]
+  required: [python3 tools/quality_gate.py quality]
+documentation:
+  arc42: required and evidence-backed
+  adr: record final decision reference
+stop_conditions: [live success inferred from static tests, missing redaction, missing evidence is not live verified, arc42 overclaim]
+```
+
+Done: docs describe the implemented route, local evidence is complete, live and
+browser verification are clearly marked not run unless explicitly authorized,
+and the independent auditor reviews the full matrix.
 
 ## Dependency Graph
 
-`S123-02 -> S128-02 -> S126-01 -> S126-02`
+`S123-02 -> S128-02 -> S126-02 -> S150-01 -> S150-02 -> S150-03`
 
 ## Parallel Execution
 
-Implementation is serialized because ASVS status and admin-surface ownership
-feed #150. Read-only control review may parallelize after S126-01. Isolated
-worktree required; no live validation. Conflicts: security/route changes.
+No implementation parallelism. All slices share security/route contracts and
+the admin-surface ADR. Isolated worktree required; any live/browser validation
+is serialized and separately consented. Conflicts: ingress, Traefik, security,
+Service Access and routing workflows. Merge strictly in order.
 
 ## Automatic Work Distribution Policy
 
-Use standard distribution/consolidation evidence. Security, architecture,
-documentation and test reviewers may advise in parallel only with disjoint
-locks. Do not parallelize route ownership, auth model, secret handling or ADR
-decisions.
+Analyze each slice across backend, runtime, tests, documentation, quality,
+architecture and security. Use real subagents or documented fallback; create
+distribution/consolidation evidence. Frontend stream is not applicable. Do not
+parallelize route/auth/secret/ADR decisions or overlapping compose/model files.
 
 ## Git Worktree Execution Rule
 
-Use isolated worktree `docs/issue-126-owasp-asvs-admin-surface-20260812`; verify
-#123/#128 evidence and current ADR path before writing.
+Use isolated worktree `feature/issue-150-secure-traefik-gui-20260812`. No worker
+may run compose, Swarm or live browser commands by default. Codex owns
+consolidation, final tests and evidence.
 
 ## Issue Completion Discipline
 
-- Requirement matrix path: `.tiny-swarm/evidence/issue-126/requirement_matrix.md`.
-- Required evidence path: `.tiny-swarm/evidence/issue-126/`.
+- Requirement matrix path: `.tiny-swarm/evidence/issue-150/requirement_matrix.md`.
+- Required evidence path: `.tiny-swarm/evidence/issue-150/`.
 - Required evidence files: matrix, implementation summary, changed files,
   test results, remaining risks and acceptance checklist.
-- Requirement Lead review: S126-01 and final.
-- System Architect Reviewer review: S126-01/S126-02 and final.
-- Test / Evidence Reviewer review: S126-02 and final.
+- Requirement Lead review: S150-01 and final.
+- System Architect Reviewer review: all slices and final.
+- Test / Evidence Reviewer review: S150-02/S150-03 and final.
 - Issue Completion Auditor review: required before `DONE`.
-- DONE blocking rule: open or unverified security/control requirement forces
-  `INCOMPLETE`, `BLOCKED` or `FAILED`.
+- DONE blocking rule: any open security, route, test or evidence requirement
+  forces `INCOMPLETE`, `BLOCKED` or `FAILED`.
 
 ## Quality, Documentation and Handoff
 
-Run `git diff --check`; add route/config tests only if this issue changes
-executable behavior. No live security scan is implied. Handoff to #150 must
-include applicable controls, admin-surface owner, auth/authorization
-expectations, TLS boundary, threat scenarios, residual risks and ADR status.
+Run targeted tests first, then `python3 tools/quality_gate.py quality` and
+`git diff --check` inside WSL/Linux. Never claim live/browser/Sonar success from
+local checks. Handoff to #124 includes final route/auth/TLS requirement IDs,
+changed files and tests. Handoff to #125 includes required live evidence fields.
 
-Definition of Done: all required ASVS areas/surfaces are mapped, admin/RBAC and
-Service Access threats are explicit, and no unresolved decision is hidden.
+Definition of Done: approved secure route is implemented and tested, insecure
+mode and secret exposure are impossible in the declared surface, Service Access
+is preserved, docs/evidence are synchronized and the auditor returns `PASS`.
 
-Arc42 Check Status: current context/deployment/Traefik ADR reviewed; update only
-for verified architecture decision changes.
+Arc42 Check Status: existing Traefik HTTPS ADR, building blocks and runtime
+view reviewed; update only from verified S150-02 behavior.
 
 ## Scope
 
-Only ASVS applicability, admin/RBAC expectations, Service Access threat model
-and required architecture references are in scope.
+Only the approved Traefik dashboard route, auth/TLS desired state, associated
+tests, ADR/arc42 updates and evidence handoff are in scope.
 
 ## Target Outcome
 
-#150 has a bounded, reviewable security decision space for auth, authorization,
-TLS, logging, data protection and secret handling.
+An operator-scoped HTTPS GUI route exists with approved authentication and
+authorization, no insecure mode or raw secret, preserved Service Access and
+explicitly classified live/browser evidence.
 
 ## Architecture Constraints
 
-Use local-infrastructure applicability, preserve Traefik HTTPS and do not
-introduce a new service or web-application security model by analogy.
+Traefik remains a deployment concern; domain models stay technology-neutral;
+application services depend on ports; existing ingress/TLS/consent boundaries
+and Service Access contracts remain intact.
 
 ## Python Automation Assessment
 
-Documentation-only by default; route/config behavior changes require Python
-automation and deterministic test review in a separate implementation slice.
+Potentially affected in desired-state validation/rendering. Any implementation
+must use typed models/adapters, deterministic tests, no import-time/live side
+effects and the full WSL/Linux quality gate.
 
 ## Frontend Assessment
 
-No React frontend; the admin surface is a deployment/routing concern with
-conditional browser verification.
+No React frontend. Browser verification is a conditional live-evidence check of
+the Traefik admin surface, not a frontend build task.
 
 ## Test Strategy
 
-Check every required ASVS area/surface, applicability state, owner, gap,
-evidence and `git diff --check`.
+Run focused ingress desired-state, compose repository and routing tests, then
+`python3 tools/quality_gate.py quality`, `git diff --check` and only separately
+authorized browser/live checks.
 
 ## Resilience Requirements
 
-Future/open controls and unresolved auth/route ownership remain blockers; no
-admin exposure is accepted without transport and authorization evidence.
+Missing auth/TLS references, insecure flags, collisions or failed readiness
+fail closed; rollback removes only the GUI route and preserves existing service
+routes. Reconcile/update behavior must be represented in later live evidence.
 
 ## Role and Ownership Map
 
-ASVS expert owns mapping; ISMS expert owns risk treatment; Threat Modeler owns
-scenarios; Architect owns ADR/route boundary; Tester verifies coverage;
-Requirement Lead and Auditor control completion.
+Architect owns S150-01/ADR; Python Automation owns desired state/rendering;
+Security/ASVS/Threat Modeling own exposure/auth review; Tester owns regression
+and evidence; DevOps reviews deployment safety; Auditor decides completion.
 
 ## Commit and Push Plan
 
-One issue-scoped security-documentation commit after #123/#128 review; no active
-scan, live command, secret or certification claim.
+One issue-scoped implementation commit per slice on the feature branch after
+targeted/full quality gates. No live deployment, PR merge or secret mutation is
+implied by this workflow.
 
 ## Handoff to workflow execute
 
-Promote only with #123/#128 evidence and a complete matrix; pass the approved
-admin-surface, auth/TLS and residual-risk decisions to #150.
+Promote only after #123/#126/#128 evidence and S3D locks are verified. S150-02
+cannot begin without the approved S150-01 route/auth decision.
 
 ## Arc42 Check Status
 
-Context, deployment and Traefik decision references were reviewed; update only
-verified architecture decisions.
+Existing Traefik HTTPS ADR, building blocks and runtime view are the required
+architecture sources; implementation updates must be evidence-backed.

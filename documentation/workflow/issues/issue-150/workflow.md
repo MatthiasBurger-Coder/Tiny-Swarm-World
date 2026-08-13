@@ -8,7 +8,9 @@ Authoring branch: `docs/workflow-public-beta-roadmap-20260812`
 
 Planned execution branch: `feature/issue-150-secure-traefik-gui-20260812`
 
-Status: `AUTHORED_INDEXED`
+Execution branch: `feature/issue-150-secure-traefik-gui-20260812`
+
+Status: `IN_PROGRESS`
 
 ## Executive Summary
 
@@ -114,7 +116,7 @@ contract_locks: [traefik-admin-surface-contract, secure-route-contract]
 architecture_locks: [traefik-https-ingress, no-insecure-dashboard, service-access-preservation]
 quality_gates:
   targeted: [git diff --check]
-  required: []
+  required: [python3 tools/quality_gate.py quality]
 documentation:
   arc42: required; planned decision must not be written as implemented behavior
   adr: required review; extend existing ADR or add a complementary ADR if needed

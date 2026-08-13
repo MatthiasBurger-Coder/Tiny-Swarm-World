@@ -247,6 +247,22 @@ Renderer output is the primary test source. The committed default HTML remains
 an image/fallback asset and is guarded by an explicit byte-for-byte drift test
 against the default-profile renderer output.
 
+==== Secure Traefik Dashboard Boundary
+
+The Traefik stack declares a dedicated HTTPS dashboard router for
+`Host(traefik.tsw.local)` on `websecure`. It targets Traefik's internal
+`api@internal` service and is protected by BasicAuth backed by the external
+Docker secret `TSW_TRAEFIK_GUI_USERS_SECRET_NAME`, mounted as
+`/run/secrets/tsw_traefik_gui_users`. The repository contains only the secret
+name and mount contract, never htpasswd values. No insecure API flag or extra
+dashboard port is part of the desired state, and the existing Service Access
+routes remain unchanged.
+
+Static repository tests verify this desired state. They do not prove that a
+live Swarm has converged, that DNS or a local hosts entry resolves the
+hostname, or that a browser can complete TLS and authentication. Those facts
+belong to the explicit live evidence contract.
+
 The default Artifacts and Deployment workflow bundles are intentional
 fail-closed building blocks. They create stable composition boundaries for
 Nexus, registry, image publication, Portainer and service-access work, and
