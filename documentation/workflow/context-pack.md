@@ -1,18 +1,19 @@
-# Context Pack — Issue #126
+# Context Pack — Issue #150
 
-- Workflow id: `issue-126-owasp-asvs-admin-surface-20260812`
-- Issue: `#126`; predecessors: `#123`, `#128`
-- Workflow path: `documentation/workflow/issues/issue-126/workflow.md`
+- Workflow id: `issue-150-secure-traefik-gui-20260812`
+- Issue: `#150`; predecessors: `#123`, `#126`, `#128`
+- Workflow path: `documentation/workflow/issues/issue-150/workflow.md`
 - Authoring branch: `docs/workflow-public-beta-roadmap-20260812`
-- Planned execution branch: `docs/issue-126-owasp-asvs-admin-surface-20260812`
-- Execution branch: `docs/issue-126-owasp-asvs-admin-surface-20260812`
-- Process strand: ASVS/admin-surface security architecture
-- Execution profile: `SECURITY_ARCHITECTURE`
-- Affected areas: ASVS mapping, admin/RBAC model, Service Access threat model
-- Forbidden areas: ASVS certification claims, active scans, live commands, real
-  secrets and unrelated web-application requirements
+- Planned execution branch: `feature/issue-150-secure-traefik-gui-20260812`
+- Execution branch: `feature/issue-150-secure-traefik-gui-20260812`
+- Process strand: secure Traefik admin-surface feature
+- Execution profile: `SECURITY_ARCHITECTURE` then `FULL_PATH`
+- Affected areas: Traefik compose/config, ingress desired state, renderers,
+  routing tests, arc42/ADR and live-evidence handoff
+- Forbidden areas: `api.insecure`, raw credentials, open ports, unapproved auth,
+  general React frontend and live commands by default
 - Required roles: Senior Requirement Engineer, Senior System Architect, Senior Python Automation Developer, Senior Tester
-- Conditional roles: OWASP ASVS Expert, ISMS Expert, Security Threat Modeling, Senior Documentation Engineer
-- Quality commands: `git diff --check`; `python3 tools/quality_gate.py quality`
-- Evidence path: `.tiny-swarm/evidence/issue-126/`
+- Conditional roles: ISMS/ASVS, Security Threat Modeling, Senior DevOps, Live Evidence Validation, Documentation Engineer
+- Quality commands: targeted ingress/compose/routing tests; `python3 tools/quality_gate.py quality`; `git diff --check`
+- Evidence path: `.tiny-swarm/evidence/issue-150/`
 - Governing-file hashes: see `context-pack.json`

@@ -185,6 +185,16 @@ desired runtime configuration, not live deployment evidence. Live route
 success, LXC public port convergence, hostname resolution, and browser-visible
 HTTPS behavior remain opt-in validation concerns.
 
+The secure Traefik dashboard is part of this same desired deployment state. It
+uses the existing `websecure` port and a dedicated
+`traefik.tsw.local` route to `api@internal`, protected by BasicAuth from the
+external Docker secret named by `TSW_TRAEFIK_GUI_USERS_SECRET_NAME`. No
+additional published port is required. The operator must provision the
+htpasswd secret separately; its value is not generated, committed, logged, or
+written to evidence by the repository. Static checks confirm the contract,
+while live convergence and browser authentication remain unverified until an
+explicit live run.
+
 For the service-access setup profile, the setup manifest and LXC exposure
 workflow now treat Traefik ports `80` and `443` as the complete public manager
 profile proxy set. Direct service ports for Portainer, Nexus, Jenkins,
