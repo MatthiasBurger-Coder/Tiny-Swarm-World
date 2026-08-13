@@ -8,9 +8,9 @@
   "execution_profile": "DOCS_GOVERNANCE",
   "affected_areas": ["documentation/audit", "audit links", "issue evidence"],
   "forbidden_areas": ["live infrastructure", "runtime code", "certification claims", "raw secrets"],
-  "required_roles": ["Senior Requirement Engineer", "Senior System Architect", "Senior Python Automation Developer", "Senior Tester"],
-  "conditional_roles": ["Audit Evidence Manager", "Senior Documentation Engineer"],
-  "quality_commands": ["git diff --check"],
+  "required_roles": ["Senior Requirement Engineer", "Senior System Architect", "Senior Tester"],
+  "conditional_roles": ["Senior Python Automation Developer", "Audit Evidence Manager", "Senior Documentation Engineer"],
+  "quality_commands": ["git diff --check", "python3 tools/quality_gate.py quality"],
   "evidence_path": ".tiny-swarm/evidence/issue-121/",
   "governing_file_hashes": {
     "AGENTS.md": "BC0E6E0C09AC3D61A450A7FE16C3E4DE9E6FBB8BDC688AAD58F10A3D18B31041",

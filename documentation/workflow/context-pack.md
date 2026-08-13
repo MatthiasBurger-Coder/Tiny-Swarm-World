@@ -11,9 +11,10 @@
 - Affected areas: `documentation/audit/`, audit links and issue evidence
 - Forbidden areas: live infrastructure, runtime code, certification claims,
   raw secrets and unverified finding closure
-- Required roles: Senior Requirement Engineer, Senior System Architect, Senior Python Automation Developer, Senior Tester
+- Required roles: Senior Requirement Engineer, Senior System Architect, Senior Tester
+- Conditional roles: Senior Python Automation Developer when executable tooling is changed
 - Conditional roles: Audit Evidence Manager, Senior Documentation Engineer
-- Quality commands: `git diff --check`; full Python gate only if executable tooling changes
+- Quality commands: `git diff --check`; `python3 tools/quality_gate.py quality`
 - Evidence path: `.tiny-swarm/evidence/issue-121/`
 - Governing-file hashes: see `context-pack.json`
 
