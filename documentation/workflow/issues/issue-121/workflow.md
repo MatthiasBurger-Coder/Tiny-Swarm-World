@@ -10,12 +10,14 @@ Planned execution branch: `docs/issue-121-audit-evidence-20260812`
 
 Execution branch: `docs/issue-121-audit-evidence-20260812`
 
-Status: `INCOMPLETE`
+Integration branch: `docs/workflow-public-beta-roadmap-20260812`
+
+Status: `PENDING_FINAL_AUDIT`
 
 Execution result: S121-01 and S121-02 are locally implemented, validated and
-checkpoint-pushed. The issue remains incomplete because the checkpoint is not
-merged and the independent completion audit found open EPIC/audit-summary
-traceability questions. Successor workflow #122 is not authorized to start.
+checkpoint-pushed. They are locally integrated by merge `2e3ccaab`. The
+independent completion audit is the remaining gate; successor workflow #122 is
+not authorized to start until it returns `PASS`.
 
 ## Executive Summary
 

@@ -3,13 +3,14 @@
 - Issue: [#121](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/121)
 - Parent roadmap: [#120](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/120)
 - Workflow: `issue-121-audit-evidence-20260812`
-- Branch: `docs/issue-121-audit-evidence-20260812`
-- Current completion state: `INCOMPLETE_PENDING_INDEPENDENT_AUDIT`
+- Execution branch: `docs/issue-121-audit-evidence-20260812`
+- Integration branch: `docs/workflow-public-beta-roadmap-20260812`
+- Current completion state: `PENDING_FINAL_INDEPENDENT_AUDIT`
 
 ## Delivered
 
 S121-01 created the stable requirement and evidence matrix with IDs
-`REQ-121-001` through `REQ-121-106` and the S121-01 execution contract. It also
+`REQ-121-001` through `REQ-121-109` and the S121-01 execution contract. It also
 reconciled the workflow lock, quality-gate authority and role applicability.
 
 S121-02 created the canonical audit documentation:
@@ -35,8 +36,8 @@ the issue-scoped evidence paths under `.codex/evidence/issue-121/`.
 
 ## Remaining completion conditions
 
-The local artifacts and checks are ready for independent audit. Final #121
-closure still depends on the guarded branch publication/merge requirement and
-on resolving or explicitly accepting the source-completeness and EPIC
-traceability questions recorded in the matrix. Those conditions must not be
-silently converted into a pass.
+The execution branch was integrated into the authoring branch by merge commit
+`2e3ccaab`. The local System Unification EPIC is explicitly linked, and the
+finding scope is bounded to the major/minor list enumerated by authoritative
+issue #121 because no separate local audit-summary artifact exists. Final #121
+closure still requires the fresh independent completion-audit decision.

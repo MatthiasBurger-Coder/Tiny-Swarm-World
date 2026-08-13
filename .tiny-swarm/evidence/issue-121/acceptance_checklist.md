@@ -15,10 +15,11 @@
 | No live infrastructure or external service command executed | `implementation_summary.md`, `test_results.md` | PASS |
 | Required local quality checks pass | `test_results.md` | PASS |
 | Remaining gaps are explicit and non-pass | `remaining_risks.md`, matrix | PASS |
-| Branch changes are merged into the shared integration line | Guarded publication state | BLOCKED / NOT VERIFIED |
+| Branch changes are merged into the shared integration line | Integration merge `2e3ccaab` on `docs/workflow-public-beta-roadmap-20260812` | PASS |
 | Independent Issue Completion Auditor returns `PASS` | [`completion_audit.md`](completion_audit.md) | INCOMPLETE |
 
 ## Decision
 
-The implementation and local evidence package are complete for review, but the
-issue is not marked `DONE` until the two final rows are independently satisfied.
+The implementation and local evidence package are complete for review. The
+issue remains pending only the independent completion-auditor decision; remote
+publication or pull-request merge is not inferred from the local integration.

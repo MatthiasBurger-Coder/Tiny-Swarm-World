@@ -6,6 +6,7 @@
 - Authoring branch: `docs/workflow-public-beta-roadmap-20260812`
 - Planned execution branch: `docs/issue-121-audit-evidence-20260812`
 - Execution branch: `docs/issue-121-audit-evidence-20260812`
+- Integration branch: `docs/workflow-public-beta-roadmap-20260812`
 - Process strand: audit evidence governance
 - Execution profile: `DOCS_GOVERNANCE`
 - Affected areas: `documentation/audit/`, audit links and issue evidence

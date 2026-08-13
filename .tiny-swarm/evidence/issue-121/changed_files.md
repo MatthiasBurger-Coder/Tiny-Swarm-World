@@ -11,11 +11,11 @@ Commit `a4314a95` — `docs(issue-121): establish audit requirement matrix`
 - `.codex/evidence/issue-121/slice-S121-01-distribution.md`
 - `.codex/evidence/issue-121/slice-S121-01-consolidation.md`
 - `.tiny-swarm/evidence/issue-121/requirement_matrix.md`
-- active and issue-local #121 workflow/context metadata
+- issue-local #121 workflow/context metadata
 
 ### S121-02
 
-Pending its own single-slice commit:
+Commit `f45e031f` — `docs(issue-121): add audit evidence structure`
 
 - `.codex/evidence/issue-121/slice-S121-02-distribution.md`
 - `.codex/evidence/issue-121/slice-S121-02-consolidation.md`
@@ -31,6 +31,11 @@ Pending its own single-slice commit:
 - `documentation/audit/evidence-matrix.md`
 - `documentation/audit/remediation-plan.md`
 - `documentation/README.adoc`
+
+The two slice commits were integrated into the authoring branch by merge
+commit `2e3ccaab`. The current evidence reconciliation is recorded in the
+issue-level files below; it is not a claim that the remote branch or a pull
+request has been merged.
 
 ## Scope audit
 
