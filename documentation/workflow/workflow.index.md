@@ -184,8 +184,8 @@ QMS (#122) -> ISMS (#123) -> Branch/CI governance (#128)
 |---:|---|---|---|---|
 | 01 | #121 Audit Evidence Structure | `issues/issue-121/workflow.md` | none | completed |
 | 02 | #122 QMS-light | `issues/issue-122/workflow.md` | #121 | completed |
-| 03 | #123 ISMS-light | `issues/issue-123/workflow.md` | #121; #122 | in progress |
-| 04 | #128 Branch Protection / CI Governance | `issues/issue-128/workflow.md` | #121; #122 | authored |
+| 03 | #123 ISMS-light | `issues/issue-123/workflow.md` | #121; #122 | completed |
+| 04 | #128 Branch Protection / CI Governance | `issues/issue-128/workflow.md` | #121; #122; #123 | in progress |
 | 05 | #126 OWASP ASVS / Admin Surface | `issues/issue-126/workflow.md` | #121; #123; #128 governance context | authored |
 | 06 | #150 Secure Traefik GUI | `issues/issue-150/workflow.md` | #123; #126; #128 | authored |
 | 07 | #124 Traceability Matrix | `issues/issue-124/workflow.md` | #121; all stabilized implementation context | authored |

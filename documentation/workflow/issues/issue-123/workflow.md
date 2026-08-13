@@ -10,7 +10,7 @@ Planned execution branch: `docs/issue-123-isms-light-20260812`
 
 Execution branch: `docs/issue-123-isms-light-20260812`
 
-Status: `IN_PROGRESS`
+Status: `COMPLETED`
 
 ## Executive Summary
 
@@ -118,7 +118,9 @@ stop_conditions: [secret leakage, unreviewed residual risk, certification claim,
 ```
 
 Done: all six files cover required assets, risks, controls and incidents; every
-residual risk has treatment/owner/evidence state; #126 handoff is explicit.
+residual risk has treatment/owner/evidence state; #126 handoff is explicit;
+independent completion audit is recorded as PASS via the documented fallback
+review because the delegated auditor agents did not return a decision.
 
 ## Dependency Graph
 
