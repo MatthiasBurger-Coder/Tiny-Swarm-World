@@ -8,7 +8,9 @@ Authoring branch: `docs/workflow-public-beta-roadmap-20260812`
 
 Planned execution branch: `docs/issue-125-live-evidence-contract-20260812`
 
-Status: `AUTHORED_INDEXED`
+Execution branch: `docs/issue-125-live-evidence-contract-20260812`
+
+Status: `IN_PROGRESS`
 
 ## Executive Summary
 
