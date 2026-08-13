@@ -29,4 +29,7 @@ rows are intentionally carried forward to #125 and the Public-Beta gate.
 | REQ-124-21 | Keep missing, blocked and refused states visible | #121 evidence policy; verification policy | status vocabulary review | all four docs | VERIFIED_LOCAL |
 | REQ-124-22 | Provide handoff IDs and canonical navigation targets | #125 and #129 workflows | link/path review | matrix and maps | VERIFIED_LOCAL |
 
+| REQ-124-23 | Include external quality-gate state | verification-state policy | no external result accessed | `live-evidence-map.md` | EXTERNAL_GATE_UNAVAILABLE |
+| REQ-124-24 | Keep evidence and navigation handoffs separate and explicit | #125/#129 workflows | path/link review | matrix and maps | VERIFIED_LOCAL |
+
 No row marked `LIVE_CONSENT_MISSING` or `EXTERNAL_GATE_UNAVAILABLE` is a pass.
