@@ -47,6 +47,7 @@ python3 tools/quality_gate.py quality
 
 This executes, in order:
 
+- `verification-policy`
 - `lint`
 - `arch-lint`
 - `arch-tests`

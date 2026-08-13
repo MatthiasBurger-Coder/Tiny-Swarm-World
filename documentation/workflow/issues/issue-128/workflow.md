@@ -8,7 +8,9 @@ Authoring branch: `docs/workflow-public-beta-roadmap-20260812`
 
 Planned execution branch: `docs/issue-128-branch-ci-governance-20260812`
 
-Status: `AUTHORED_INDEXED`
+Execution branch: `docs/issue-128-branch-ci-governance-20260812`
+
+Status: `IN_PROGRESS`
 
 ## Executive Summary
 
@@ -76,7 +78,7 @@ contract_locks: [branch-protection-status-vocabulary]
 architecture_locks: [QUALITY.md-authority]
 quality_gates:
   targeted: [git diff --check]
-  required: []
+  required: [python3 tools/quality_gate.py quality]
 documentation:
   arc42: no runtime change; check quality requirements links
   adr: none expected
@@ -102,7 +104,7 @@ contract_locks: [branch-policy-contract, ci-quality-contract, review-policy-cont
 architecture_locks: [no-direct-github-mutation]
 quality_gates:
   targeted: [git diff --check]
-  required: []
+  required: [python3 tools/quality_gate.py quality]
 documentation:
   arc42: link quality/release governance only when verified
   adr: none expected
