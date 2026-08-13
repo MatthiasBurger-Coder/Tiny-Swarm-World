@@ -189,7 +189,7 @@ QMS (#122) -> ISMS (#123) -> Branch/CI governance (#128)
 | 05 | #126 OWASP ASVS / Admin Surface | `issues/issue-126/workflow.md` | #121; #123; #128 governance context | completed |
 | 06 | #150 Secure Traefik GUI | `issues/issue-150/workflow.md` | #123; #126; #128 | blocked: local complete; live consent pending |
 | 07 | #124 Traceability Matrix | `issues/issue-124/workflow.md` | #121; all stabilized implementation context | blocked: local complete; live/external rows open |
-| 08 | #125 Live Evidence Contract | `issues/issue-125/workflow.md` | #121; #124; #150 | blocked: final audit record pending; live deferred |
+| 08 | #125 Live Evidence Contract | `issues/issue-125/workflow.md` | #121; #124; #150 | completed local contract; live deferred |
 | 09 | #129 Documentation Navigation | `issues/issue-129/workflow.md` | #121-#126; #128; #150; #124; #125; #127 already closed | completed local navigation |
 | 10 | Public-Beta Green-Path gate | `public-beta-green-path.md` | #125; #129; explicit live consent | **BLOCKED / live consent missing** |
 | 11 | #120 Roadmap closure and re-audit | `issues/issue-120/workflow.md` | all above, including Green-Path PASS | blocked by Green-Path and fresh main audit |
