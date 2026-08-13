@@ -10,7 +10,7 @@ Planned execution branch: `docs/issue-124-traceability-matrix-20260812`
 
 Execution branch: `docs/issue-124-traceability-matrix-20260812`
 
-Status: `IN_PROGRESS`
+Status: `BLOCKED` (traceability complete; live and external rows remain open)
 
 ## Executive Summary
 
