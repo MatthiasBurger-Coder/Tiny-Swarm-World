@@ -25,6 +25,7 @@ reader entry points are:
 | `user-handbook.adoc` | Canonical operator handbook with step-by-step use cases.
 | `user_guide/` | Detailed user-guide source pages used by the handbook.
 | `system/` | Runtime, LXC-native, networking, and live-operation reference pages.
+| `audit/` | Versioned audit evidence index, findings register, evidence matrix, and remediation plan. This is governance evidence, not certification evidence.
 | `deployment/` | Legacy deployment workspace. Current deployment system references live under `arc42/07_deployment/`; Infisical setup configuration lives under `arc42/08_deployment_configuration/`.
 | `configuration/` | Legacy configuration workspace. Current operator configuration contracts live under `arc42/08_configuration/`.
 | `architecture/` | Legacy architecture workspace. Current ADRs, analyses, and migration plans live under `arc42/`; process execution plans live under `process/`.

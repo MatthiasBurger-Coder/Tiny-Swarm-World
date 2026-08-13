@@ -8,7 +8,14 @@ Authoring branch: `docs/workflow-public-beta-roadmap-20260812`
 
 Planned execution branch: `docs/issue-121-audit-evidence-20260812`
 
-Status: `AUTHORED_INDEXED`
+Execution branch: `docs/issue-121-audit-evidence-20260812`
+
+Status: `INCOMPLETE`
+
+Execution result: S121-01 and S121-02 are locally implemented, validated and
+checkpoint-pushed. The issue remains incomplete because the checkpoint is not
+merged and the independent completion audit found open EPIC/audit-summary
+traceability questions. Successor workflow #122 is not authorized to start.
 
 ## Executive Summary
 
@@ -67,7 +74,7 @@ audit README -> audit register -> findings register -> evidence matrix
 
 - Architecture: documentation is a governance boundary, not an alternative
   source of runtime truth. Planned behavior must remain labeled planned.
-- Python automation: not applicable; no scripts or adapters are required.
+- Python automation source changes: not applicable; the repository quality-gate command remains required by issue acceptance.
 - Frontend: not applicable; no browser or React module is in scope.
 - Resilience: status vocabulary must preserve blocked, refused, resource-gated,
   failed-to-apply and failed-to-verify as non-pass states; redaction rules must
@@ -82,17 +89,17 @@ slice_id: S121-01
 profile: DOCS_GOVERNANCE
 owner: Senior Requirement Engineer
 secondary_reviewers: [Audit Evidence Manager, Senior System Architect, Senior Tester]
-affected_files: [.tiny-swarm/evidence/issue-121/requirement_matrix.md, documentation/workflow/issues/issue-121/workflow.md]
+affected_files: [.tiny-swarm/evidence/issue-121/requirement_matrix.md, documentation/workflow/workflow.md, documentation/workflow/issues/issue-121/workflow.md]
 affected_modules: [audit governance]
 affected_contracts: [issue-121 requirement matrix, verification-state vocabulary]
 dependencies: []
 parallel_group: SERIAL-121
-file_locks: [.tiny-swarm/evidence/issue-121/requirement_matrix.md]
+file_locks: [.tiny-swarm/evidence/issue-121/requirement_matrix.md, documentation/workflow/workflow.md, documentation/workflow/issues/issue-121/workflow.md]
 contract_locks: [audit-status-contract]
 architecture_locks: [documentation-as-governance-evidence]
 quality_gates:
   targeted: [git diff --check]
-  required: []
+  required: [python3 tools/quality_gate.py quality]
 documentation:
   arc42: checked; no runtime change expected
   adr: none expected
@@ -119,7 +126,7 @@ contract_locks: [audit-evidence-schema]
 architecture_locks: [verification-state-policy]
 quality_gates:
   targeted: [git diff --check]
-  required: []
+  required: [python3 tools/quality_gate.py quality]
 documentation:
   arc42: link only if a verified navigation target is needed
   adr: none expected
@@ -165,6 +172,9 @@ and locks before writing and must not merge directly.
 - Required evidence files: `requirement_matrix.md`, `implementation_summary.md`,
   `changed_files.md`, `test_results.md`, `remaining_risks.md`,
   `acceptance_checklist.md`.
+- These six issue-level evidence files are executor-owned completion evidence;
+  they are maintained outside worker slice locks and are intentionally tracked
+  even when local ignore rules cover the `.tiny-swarm/` directory.
 - Requirement Lead review: S121-01 and final review.
 - System Architect Reviewer review: S121-01 and final review.
 - Test / Evidence Reviewer review: S121-02 and final review.
@@ -174,8 +184,9 @@ and locks before writing and must not merge directly.
 
 ## Quality, Documentation and Handoff
 
-Use `git diff --check`; the full Python gate is not required for this
-documentation-only slice unless changed content affects executable tooling.
+Use `git diff --check` and the full local quality gate required by issue #121.
+If the full gate is unavailable or fails, record that state explicitly and do
+not claim a quality pass.
 Synchronize only verified links and keep arc42 unchanged unless a current
 architecture statement is actually affected. Stop on missing source evidence,
 conflicting status authority or any certification overclaim. Commit one issue
@@ -205,8 +216,9 @@ it must not become a second runtime source of truth.
 
 ## Python Automation Assessment
 
-Not applicable unless a separately approved validator is added; no Python
-source or command execution is required by this issue.
+No Python source or runtime behavior changes are in scope. The repository
+quality-gate command remains required by issue acceptance and its result must
+be recorded as pass, fail or an explicit environment blocker.
 
 ## Frontend Assessment
 

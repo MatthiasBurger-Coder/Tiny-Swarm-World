@@ -1,23 +1,22 @@
-# Context Pack — Issue #249
+# Context Pack — Issue #121
 
-- Workflow id: `issue-249-composition-root-refactor-20260811`
-- Issue: `#249`
-- Branch: `architecture/workflow-composition-root-refactor-20260811`
-- Baseline: `d56df8d856529a65d6a8cf2de0ad02eb026993e5`
-- Process strand: issue-driven composition-root refactor
-- Execution profile: `FULL_PATH`
-- Affected areas: infrastructure composition, configuration, probes/readiness,
-  platform/artifact/deployment/setup wiring, tests, arc42
-- Forbidden areas: domain/application dependency direction, live infrastructure,
-  new service boundaries, browser React, Java/Maven/Spring, unrelated cleanup
-- Required roles: Senior Requirement Engineer, Senior System Architect, Senior
-  Python Automation Developer, Senior Tester
-- Conditional roles: Senior Documentation Engineer for arc42/evidence; Senior
-  DevOps for read-only runtime safety review
-- Targeted verification: focused composition/wiring tests, architecture tests,
-  `git diff --check`
-- Required verification: `python3 tools/quality_gate.py quality`
-- Evidence path: `.tiny-swarm/evidence/issue-249/`
+- Workflow id: `issue-121-audit-evidence-20260812`
+- Issue: `#121`
+- Workflow path: `documentation/workflow/issues/issue-121/workflow.md`
+- Authoring branch: `docs/workflow-public-beta-roadmap-20260812`
+- Planned execution branch: `docs/issue-121-audit-evidence-20260812`
+- Execution branch: `docs/issue-121-audit-evidence-20260812`
+- Process strand: audit evidence governance
+- Execution profile: `DOCS_GOVERNANCE`
+- Affected areas: `documentation/audit/`, audit links and issue evidence
+- Forbidden areas: live infrastructure, runtime code, certification claims,
+  raw secrets and unverified finding closure
+- Required roles: Senior Requirement Engineer, Senior System Architect, Senior Tester
+- Conditional roles: Senior Python Automation Developer when executable tooling is changed
+- Conditional roles: Audit Evidence Manager, Senior Documentation Engineer
+- Quality commands: `git diff --check`; `python3 tools/quality_gate.py quality`
+- Evidence path: `.tiny-swarm/evidence/issue-121/`
+- Governing-file hashes: see `context-pack.json`
 
-This pack is navigation only. `AGENTS.md`, `QUALITY.md`, the issue, arc42, ADRs,
-and skill files remain authoritative.
+This pack is navigation only. Root governance, issue #121, `QUALITY.md`, the
+verification-state policy and the issue-local workflow remain authoritative.
