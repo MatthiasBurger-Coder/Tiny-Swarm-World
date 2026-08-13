@@ -1,18 +1,17 @@
-# Context Pack — Issue #122
+# Context Pack — Issue #123
 
-- Workflow id: `issue-122-qms-light-20260812`
-- Issue: `#122`; predecessor: `#121`
-- Workflow path: `documentation/workflow/issues/issue-122/workflow.md`
+- Workflow id: `issue-123-isms-light-20260812`
+- Issue: `#123`; predecessors: `#121` and completed `#122`
+- Workflow path: `documentation/workflow/issues/issue-123/workflow.md`
 - Authoring branch: `docs/workflow-public-beta-roadmap-20260812`
-- Planned execution branch: `docs/issue-122-qms-light-20260812`
-- Execution branch: `docs/issue-122-qms-light-20260812`
-- Process strand: QMS-light quality governance
-- Execution profile: `DOCS_GOVERNANCE`
-- Affected areas: `documentation/qms/`, quality navigation and issue evidence
-- Forbidden areas: certification claims, quality-gate weakening, live commands,
-  unrelated runtime changes
+- Planned execution branch: `docs/issue-123-isms-light-20260812`
+- Process strand: ISMS-light security governance
+- Execution profile: `SECURITY_GOVERNANCE`
+- Affected areas: `documentation/security/` ISMS files, risk/control/evidence links
+- Forbidden areas: real secrets, active attacks/scans, live commands,
+  certification claims and weakened redaction/consent guards
 - Required roles: Senior Requirement Engineer, Senior System Architect, Senior Python Automation Developer, Senior Tester
-- Conditional roles: QMS-light Governance Expert, Senior Documentation Engineer, Audit Evidence Manager
+- Conditional roles: ISMS-light Security Governance Expert, Security And Threat Modeling, OWASP ASVS Expert, Senior Documentation Engineer
 - Quality commands: `git diff --check`; `python3 tools/quality_gate.py quality`
-- Evidence path: `.tiny-swarm/evidence/issue-122/`
+- Evidence path: `.tiny-swarm/evidence/issue-123/`
 - Governing-file hashes: see `context-pack.json`
