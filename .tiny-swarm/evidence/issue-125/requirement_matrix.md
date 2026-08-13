@@ -20,10 +20,10 @@ and is internally consistent; future runtime states remain `PLANNED` or
 | REQ-125-11 | Cover Nexus/artifacts and service readiness | phase contract/checklist | category review | VERIFIED_LOCAL |
 | REQ-125-12 | Cover Jenkins, SonarQube, Pulsar and Swagger | phase/checklist categories | category review | VERIFIED_LOCAL |
 | REQ-125-13 | Cover Service Access | contract/checklist | category review | VERIFIED_LOCAL |
-| REQ-125-14 | Define phase result and retry semantics | template phases, attempts and policy states | field/state review | VERIFIED_LOCAL |
-| REQ-125-15 | Define blocked/refused/resource/failure states | verification policy references | exact state review | VERIFIED_LOCAL |
-| REQ-125-16 | Define checksum manifest | SHA-256 contract and template | field/review procedure | VERIFIED_LOCAL |
-| REQ-125-17 | Define independent review | template review fields and closeout | field review | VERIFIED_LOCAL |
+| REQ-125-14 | Define phase result and retry semantics | template phases, attempts, bounds, exhaustion and classifications | field/state review | VERIFIED_LOCAL |
+| REQ-125-15 | Define blocked/refused/resource/failure states | exact live states plus result classifications | exact state review | VERIFIED_LOCAL |
+| REQ-125-16 | Define checksum manifest | two-level SHA-256 contract and template | field/review procedure | VERIFIED_LOCAL |
+| REQ-125-17 | Define independent review | template review fields and recorded audit decision | field/review audit | VERIFIED_LOCAL |
 | REQ-125-18 | Define cleanup, rollback and dependent-phase stop | contract/checklist | resilience review | VERIFIED_LOCAL |
 | REQ-125-19 | Prevent raw secrets, tokens, env and command dumps | redaction rules | content review | VERIFIED_LOCAL |
 | REQ-125-20 | Keep future live success distinct from contract existence | explicit `PLANNED` wording and policy states | status review | VERIFIED_LOCAL |
