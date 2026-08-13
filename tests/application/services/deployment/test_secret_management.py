@@ -68,6 +68,24 @@ class TestSecretManagement(unittest.TestCase):
                 self.assertNotIn("BEGIN", entry.description)
                 self.assertNotIn("REDACTED", entry.description)
 
+    def test_missing_traefik_gui_external_secret_reference_blocks(self):
+        entries = SecretManifestRenderer(
+            _STORAGE,
+            Path("infra/config/secrets/infisical-secrets.yaml"),
+        ).run()
+        gui_entry = next(
+            entry for entry in entries if entry.key == "TSW_TRAEFIK_GUI_USERS_SECRET_NAME"
+        )
+        sync = InfisicalSecretSyncStep(
+            cli=_FakeInfisicalCli(),
+            storage=_STORAGE,
+            manifest_entries=(gui_entry,),
+            mode="infisical",
+        )
+
+        with self.assertRaises(SecretManagementBlocker):
+            sync.run()
+
     def test_committed_manifest_keeps_infisical_bootstrap_token_optional(self):
         entries = SecretManifestRenderer(
             _STORAGE,

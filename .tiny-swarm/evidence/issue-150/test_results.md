@@ -9,7 +9,7 @@ PYTHONPATH=src python3 -m unittest \
   tests.test_install_script \
   tests.application.services.deployment.test_secret_management \
   tests.architecture.test_repository_hygiene
-Ran 203 tests ... OK
+Ran 204 tests ... OK
 ```
 
 ## Full WSL quality gate
@@ -21,7 +21,7 @@ ruff: PASS
 import-linter: 3 kept, 0 broken
 architecture tests: PASS
 mypy: Success, no issues found in 622 source files
-tests: Ran 1760 tests ... OK (skipped=28)
+tests: Ran 1761 tests ... OK (skipped=28)
 ```
 
 These are local/static or mocked checks. They are not live, browser, TLS, DNS,
