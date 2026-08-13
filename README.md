@@ -14,6 +14,12 @@ This README gives you a practical operator entry point:
 4. Run the guarded Tiny Swarm World installer.
 5. Diagnose common local setup problems.
 
+Audience manuals: [operator](documentation/manuals/operator-manual.md) ·
+[developer](documentation/manuals/developer-manual.md) ·
+[security](documentation/manuals/security-manual.md) ·
+[audit](documentation/manuals/audit-manual.md) ·
+[live validation](documentation/manuals/live-validation-manual.md).
+
 ---
 
 ## Overview
