@@ -59,7 +59,7 @@ partial applicability remain explicit in the documents.
 | REQ-126-037 | Keep documentation-only scope: no active scan, live command, secret or certification claim. | Safety | evidence and changed-file audit | No-live review | VERIFIED_LOCAL |
 | REQ-126-038 | Use dedicated branch and serial S126-01 -> S126-02 after #123/#128. | Process | workflow/context | Order review | VERIFIED_LOCAL |
 | REQ-126-039 | Run git diff --check and python3 tools/quality_gate.py quality. | Quality | test_results.md | Command review | VERIFIED_LOCAL |
-| REQ-126-040 | Provide six issue evidence files and independent completion audit. | Completion | .tiny-swarm/evidence/issue-126 | Required-file/audit review | EVIDENCE_PENDING |
+| REQ-126-040 | Provide six issue evidence files and independent completion audit. | Completion | .tiny-swarm/evidence/issue-126 | Required-file/audit review | VERIFIED_LOCAL |
 
 ## Boundary decisions
 
