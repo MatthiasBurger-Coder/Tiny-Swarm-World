@@ -5,6 +5,7 @@
 - Workflow path: `documentation/workflow/issues/issue-122/workflow.md`
 - Authoring branch: `docs/workflow-public-beta-roadmap-20260812`
 - Planned execution branch: `docs/issue-122-qms-light-20260812`
+- Execution branch: `docs/issue-122-qms-light-20260812`
 - Process strand: QMS-light quality governance
 - Execution profile: `DOCS_GOVERNANCE`
 - Affected areas: `documentation/qms/`, quality navigation and issue evidence
