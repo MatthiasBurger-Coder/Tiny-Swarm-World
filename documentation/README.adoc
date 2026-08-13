@@ -17,6 +17,12 @@ reader entry points are:
 * xref:qms/qms-light.md[QMS-light] for quality objectives, CAPA, change control
   and internal audit guidance. This is governance guidance, not certification
   evidence.
+* xref:governance/branch-protection.md[Branch protection] for main-branch
+  protection expectations.
+* xref:governance/ci-quality-gates.md[CI quality gates] for the canonical local
+  gate and actual-vs-target CI status.
+* xref:governance/pr-review-policy.md[PR review policy] for review triggers and
+  required evidence.
 
 == Documentation Structure
 
@@ -30,6 +36,7 @@ reader entry points are:
 | `system/` | Runtime, LXC-native, networking, and live-operation reference pages.
 | `audit/` | Versioned audit evidence index, findings register, evidence matrix, and remediation plan. This is governance evidence, not certification evidence.
 | `qms/` | QMS-light quality objectives, CAPA, change-control and internal-audit guidance. |
+| `governance/` | Branch protection, CI quality-gate and pull-request review policy. |
 | `deployment/` | Legacy deployment workspace. Current deployment system references live under `arc42/07_deployment/`; Infisical setup configuration lives under `arc42/08_deployment_configuration/`.
 | `configuration/` | Legacy configuration workspace. Current operator configuration contracts live under `arc42/08_configuration/`.
 | `architecture/` | Legacy architecture workspace. Current ADRs, analyses, and migration plans live under `arc42/`; process execution plans live under `process/`.
