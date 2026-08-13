@@ -16,7 +16,7 @@ deployment, browser, TLS, DNS, or SonarQube success.
 | R150-08 | Insecure API mode is forbidden | no `api.insecure` flag/configuration | compose/static tests | VERIFIED_LOCAL |
 | R150-09 | No additional dashboard port is introduced | existing `80`/`443` ingress only | compose inspection/tests | VERIFIED_LOCAL |
 | R150-10 | Service Access remains intact | existing stack/routes untouched by dashboard addition | regression tests/docs | VERIFIED_LOCAL |
-| R150-11 | TLS/auth prerequisites fail closed | external secret and TLS references are required | contract/docs evidence | VERIFIED_LOCAL |
+| R150-11 | TLS/auth prerequisites fail closed | external secret and TLS references are required | manifest-required and `external: true` tests | VERIFIED_LOCAL |
 | R150-12 | Rollback is bounded | remove dashboard router/auth reference; retain ingress and Service Access | ADR/docs | VERIFIED_LOCAL |
 | R150-13 | Architecture boundaries are preserved | Traefik remains infrastructure/deployment concern | ADR/arc42 review | VERIFIED_LOCAL |
 | R150-14 | Security model aligns with #123/#126/#128 | admin-surface, secret, and review governance referenced | workflow/ADR review | VERIFIED_LOCAL |
