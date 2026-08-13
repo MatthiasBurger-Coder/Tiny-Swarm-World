@@ -10,7 +10,7 @@ Planned execution branch: `feature/issue-150-secure-traefik-gui-20260812`
 
 Execution branch: `feature/issue-150-secure-traefik-gui-20260812`
 
-Status: `IN_PROGRESS`
+Status: `BLOCKED` (local implementation complete; live consent and evidence pending)
 
 ## Executive Summary
 

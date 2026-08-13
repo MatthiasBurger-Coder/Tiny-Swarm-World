@@ -22,9 +22,10 @@ deployment, browser, TLS, DNS, or SonarQube success.
 | R150-14 | Security model aligns with #123/#126/#128 | admin-surface, secret, and review governance referenced | workflow/ADR review | VERIFIED_LOCAL |
 | R150-15 | Static and targeted regression coverage exists | compose, composition, installer, secret-management tests | WSL test results | VERIFIED_LOCAL |
 | R150-16 | Full local quality gate passes | required WSL quality command | `quality_gate.py quality` | VERIFIED_LOCAL |
-| R150-17 | Live TLS/DNS/browser behavior is proven | requires explicit live run | live evidence contract | NOT_VERIFIED |
-| R150-18 | Fresh/reconcile/update behavior is proven live | requires explicit live run | #125 contract handoff | NOT_VERIFIED |
+| R150-17 | Live TLS/DNS/browser behavior is proven | requires explicit live run | live evidence contract | LIVE_CONSENT_MISSING |
+| R150-18 | Fresh/reconcile/update behavior is proven live | requires explicit live run | #125 contract handoff | LIVE_CONSENT_MISSING |
 | R150-19 | No live mutation occurs in default execution | workflow and tests use static/mocked checks | workflow review | VERIFIED_LOCAL |
 
-The two live requirements remain intentionally unverified until explicit live
-consent and a disposable/recoverable Linux or WSL2 target are available.
+The two live requirements remain blocked by missing explicit live consent and a
+disposable/recoverable Linux or WSL2 target. They are not represented as local
+success.
