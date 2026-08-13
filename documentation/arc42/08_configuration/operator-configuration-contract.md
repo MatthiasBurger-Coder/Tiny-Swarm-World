@@ -91,6 +91,7 @@ The default contract requires these keys before setup execution:
 | `TSW_PULSAR_MANAGER_ADMIN_PASSWORD` | generated | secret value | Pulsar Manager UI admin password. |
 | `TSW_TRAEFIK_TLS_CERT_SECRET_NAME` | `tsw_traefik_tls_cert` | secret name | External Docker secret name for Traefik TLS certificate material. |
 | `TSW_TRAEFIK_TLS_KEY_SECRET_NAME` | `tsw_traefik_tls_key` | secret name | External Docker secret name for Traefik TLS private key material. |
+| `TSW_TRAEFIK_GUI_USERS_SECRET_NAME` | `tsw_traefik_gui_users` | secret name | External Docker secret name containing operator-provided htpasswd entries for the secure Traefik dashboard. |
 
 ## Registry Bootstrap Model
 

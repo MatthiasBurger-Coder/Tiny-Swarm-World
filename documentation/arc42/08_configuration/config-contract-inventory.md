@@ -154,6 +154,7 @@ distinguish service images, secret values, secret names, paths, and defaults.
 | `TSW_TRAEFIK_IMAGE` | `traefik:v3.7.4` | image reference | Traefik compose |
 | `TSW_TRAEFIK_TLS_CERT_SECRET_NAME` | `tsw_traefik_tls_cert` | external secret name | Traefik compose, installer |
 | `TSW_TRAEFIK_TLS_KEY_SECRET_NAME` | `tsw_traefik_tls_key` | external secret name | Traefik compose, installer |
+| `TSW_TRAEFIK_GUI_USERS_SECRET_NAME` | `tsw_traefik_gui_users` | external secret name | Traefik compose, installer, dashboard BasicAuth |
 | `TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET` | legacy/opt-in Vaultwarden surfaces only | external secret name | not part of the current service-access compose contract |
 
 ## Documentation-Only Or Drifted Keys

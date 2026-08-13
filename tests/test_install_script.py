@@ -297,6 +297,7 @@ class TestInstallScript(unittest.TestCase):
             secret_content = secret_file.read_text()
             self.assertIn("TSW_TRAEFIK_TLS_CERT_SECRET_NAME=tsw_traefik_tls_cert", secret_content)
             self.assertIn("TSW_TRAEFIK_TLS_KEY_SECRET_NAME=tsw_traefik_tls_key", secret_content)
+            self.assertIn("TSW_TRAEFIK_GUI_USERS_SECRET_NAME=tsw_traefik_gui_users", secret_content)
 
     def test_interactive_install_does_not_pipe_live_consent_into_cli_prompt(self):
         with _install_script_fixture() as fixture:
@@ -707,6 +708,7 @@ def _required_fixed_secret_environment() -> dict[str, str]:
         **_required_secret_environment(),
         "TSW_TRAEFIK_TLS_CERT_SECRET_NAME": "tsw_traefik_tls_cert",
         "TSW_TRAEFIK_TLS_KEY_SECRET_NAME": "tsw_traefik_tls_key",
+        "TSW_TRAEFIK_GUI_USERS_SECRET_NAME": "tsw_traefik_gui_users",
     }
 
 
@@ -715,6 +717,7 @@ def _install_secret_environment_names() -> tuple[str, ...]:
         *tuple(_required_secret_environment()),
         "TSW_TRAEFIK_TLS_CERT_SECRET_NAME",
         "TSW_TRAEFIK_TLS_KEY_SECRET_NAME",
+        "TSW_TRAEFIK_GUI_USERS_SECRET_NAME",
     )
 
 

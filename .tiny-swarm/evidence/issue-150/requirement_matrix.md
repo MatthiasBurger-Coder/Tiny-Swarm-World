@@ -21,7 +21,7 @@ deployment, browser, TLS, DNS, or SonarQube success.
 | R150-13 | Architecture boundaries are preserved | Traefik remains infrastructure/deployment concern | ADR/arc42 review | VERIFIED_LOCAL |
 | R150-14 | Security model aligns with #123/#126/#128 | admin-surface, secret, and review governance referenced | workflow/ADR review | VERIFIED_LOCAL |
 | R150-15 | Static and targeted regression coverage exists | compose, composition, installer, secret-management tests | WSL test results | VERIFIED_LOCAL |
-| R150-16 | Full local quality gate passes | required WSL quality command | final evidence | PENDING |
+| R150-16 | Full local quality gate passes | required WSL quality command | `quality_gate.py quality` | VERIFIED_LOCAL |
 | R150-17 | Live TLS/DNS/browser behavior is proven | requires explicit live run | live evidence contract | NOT_VERIFIED |
 | R150-18 | Fresh/reconcile/update behavior is proven live | requires explicit live run | #125 contract handoff | NOT_VERIFIED |
 | R150-19 | No live mutation occurs in default execution | workflow and tests use static/mocked checks | workflow review | VERIFIED_LOCAL |

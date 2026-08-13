@@ -1134,6 +1134,8 @@ def _ensure_default_config_exports(paths: InstallerPaths, env: dict[str, str]) -
         exports["TSW_TRAEFIK_TLS_CERT_SECRET_NAME"] = "tsw_traefik_tls_cert"
     if not env.get("TSW_TRAEFIK_TLS_KEY_SECRET_NAME"):
         exports["TSW_TRAEFIK_TLS_KEY_SECRET_NAME"] = "tsw_traefik_tls_key"
+    if not env.get("TSW_TRAEFIK_GUI_USERS_SECRET_NAME"):
+        exports["TSW_TRAEFIK_GUI_USERS_SECRET_NAME"] = "tsw_traefik_gui_users"
     if not exports:
         return {}
     env.update(exports)

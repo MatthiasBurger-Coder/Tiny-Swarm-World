@@ -32,6 +32,8 @@ services:
         target: tsw_traefik_tls_cert
       - source: traefik_tls_key
         target: tsw_traefik_tls_key
+      - source: traefik_gui_users
+        target: tsw_traefik_gui_users
     networks:
       - service_access_link
     deploy:
@@ -51,6 +53,9 @@ secrets:
     external: true
   traefik_tls_key:
     name: ${TSW_TRAEFIK_TLS_KEY_SECRET_NAME:-tsw_traefik_tls_key}
+    external: true
+  traefik_gui_users:
+    name: ${TSW_TRAEFIK_GUI_USERS_SECRET_NAME:-tsw_traefik_gui_users}
     external: true
 
 networks:

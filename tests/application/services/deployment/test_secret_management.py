@@ -57,6 +57,7 @@ class TestSecretManagement(unittest.TestCase):
         for key in (
             "TSW_TRAEFIK_TLS_CERT_SECRET_NAME",
             "TSW_TRAEFIK_TLS_KEY_SECRET_NAME",
+            "TSW_TRAEFIK_GUI_USERS_SECRET_NAME",
         ):
             with self.subTest(key=key):
                 entry = entries_by_key[key]

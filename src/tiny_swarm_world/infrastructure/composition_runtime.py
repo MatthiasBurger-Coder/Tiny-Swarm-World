@@ -286,6 +286,7 @@ from tiny_swarm_world.infrastructure.composition_configuration import (
     DEFAULT_PULSAR_MANAGER_IMAGE,
     DEFAULT_SETUP_SERVICE_PROFILE,
     DEFAULT_TRAEFIK_TLS_CERT_SECRET_NAME,
+    DEFAULT_TRAEFIK_GUI_USERS_SECRET_NAME,
     DEFAULT_TRAEFIK_TLS_KEY_SECRET_NAME,
     DEPLOYMENT_VERIFY_TIMEOUT_ENVIRONMENT,
     INFISICAL_ADMIN_FIRST_NAME_ENVIRONMENT,
@@ -315,6 +316,7 @@ from tiny_swarm_world.infrastructure.composition_configuration import (
     SERVICE_ACCESS_NGINX_IMAGE_ENVIRONMENT,
     TRAEFIK_IMAGE_ENVIRONMENT,
     TRAEFIK_TLS_CERT_SECRET_NAME_ENVIRONMENT,
+    TRAEFIK_GUI_USERS_SECRET_NAME_ENVIRONMENT,
     TRAEFIK_TLS_KEY_SECRET_NAME_ENVIRONMENT,
     WINDOWS_EXPOSURE_ENVIRONMENT,
     _add_optional_config,
@@ -1327,6 +1329,10 @@ def _deployment_stack_environment(
             TRAEFIK_TLS_KEY_SECRET_NAME_ENVIRONMENT: _operator_config_value(
                 TRAEFIK_TLS_KEY_SECRET_NAME_ENVIRONMENT,
                 DEFAULT_TRAEFIK_TLS_KEY_SECRET_NAME,
+            ),
+            TRAEFIK_GUI_USERS_SECRET_NAME_ENVIRONMENT: _operator_config_value(
+                TRAEFIK_GUI_USERS_SECRET_NAME_ENVIRONMENT,
+                DEFAULT_TRAEFIK_GUI_USERS_SECRET_NAME,
             ),
         },
         "nexus": {
