@@ -68,4 +68,3 @@ verification -> internal audit -> objective review`
 
 QMS-light is a readiness and governance aid. It is not a certification,
 conformity assessment or statement that all audit findings are closed.
-

@@ -15,7 +15,7 @@ Commit `5a9f155d` — `docs(issue-122): establish qms requirement matrix`
 
 ### S122-02
 
-Final checkpoint commit is created by this slice execution:
+Final checkpoint commit: `ae18d044` — `docs(issue-122): implement qms-light governance`
 
 - `.codex/evidence/issue-122/slice-S122-02-distribution.md`
 - `.codex/evidence/issue-122/slice-S122-02-consolidation.md`
