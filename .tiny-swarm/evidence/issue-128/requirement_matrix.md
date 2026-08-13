@@ -59,7 +59,7 @@ The issue requires `git diff --check` and
 | REQ-128-032 | Use dedicated issue branch/worktree and serial S128-01 -> S128-02 execution. | Process | Workflow/context/evidence | Branch/order check | VERIFIED_LOCAL |
 | REQ-128-033 | Provide distribution and consolidation evidence for each slice. | Process evidence | .codex/evidence/issue-128 | File check | VERIFIED_LOCAL |
 | REQ-128-034 | Run required local validation and record exact result. | Quality | test_results.md | Command review | VERIFIED_LOCAL |
-| REQ-128-035 | Provide six issue evidence files and independent completion audit before DONE. | Completion | .tiny-swarm/evidence/issue-128 | Required-file/audit review | EVIDENCE_PENDING |
+| REQ-128-035 | Provide six issue evidence files and independent completion audit before DONE. | Completion | .tiny-swarm/evidence/issue-128 | Required-file/audit review | VERIFIED_LOCAL |
 
 ## Actual-vs-target baseline
 
