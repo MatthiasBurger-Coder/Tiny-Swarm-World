@@ -16,10 +16,10 @@
 | Required local quality checks pass | `test_results.md` | PASS |
 | Remaining gaps are explicit and non-pass | `remaining_risks.md`, matrix | PASS |
 | Branch changes are merged into the shared integration line | Integration merge `2e3ccaab` on `docs/workflow-public-beta-roadmap-20260812` | PASS |
-| Independent Issue Completion Auditor returns `PASS` | [`completion_audit.md`](completion_audit.md) | INCOMPLETE |
+| Independent Issue Completion Auditor returns `PASS` | [`completion_audit.md`](completion_audit.md) | PASS |
 
 ## Decision
 
-The implementation and local evidence package are complete for review. The
-issue remains pending only the independent completion-auditor decision; remote
-publication or pull-request merge is not inferred from the local integration.
+The implementation and local evidence package are complete. The independent
+auditor returned `PASS`; remote publication or pull-request merge is not
+inferred from the local integration.

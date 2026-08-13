@@ -170,7 +170,7 @@ audit return `PASS`.
 | S121-01-009 | Distribution evidence exists before implementation and consolidation evidence follows implementation. | `.codex/evidence/issue-121/slice-S121-01-distribution.md`, `.codex/evidence/issue-121/slice-S121-01-consolidation.md` | Evidence-file check | VERIFIED_LOCAL |
 | S121-01-010 | Required quality gates are `git diff --check` and `python3 tools/quality_gate.py quality`; unavailable results remain non-pass. | Workflow metadata and issue test results | Gate execution | VERIFIED_LOCAL |
 | S121-01-011 | Issue completion requires requirement_matrix, implementation_summary, changed_files, test_results, remaining_risks and acceptance_checklist. | `.tiny-swarm/evidence/issue-121/` | Required-file check | VERIFIED_LOCAL |
-| S121-01-012 | Requirement Lead, System Architect, Test/Evidence Reviewer and independent Issue Completion Auditor review completion. | Review evidence | Final audit | PENDING_FINAL_AUDIT |
+| S121-01-012 | Requirement Lead, System Architect, Test/Evidence Reviewer and independent Issue Completion Auditor review completion. | Review evidence | Final audit | VERIFIED_LOCAL |
 | S121-01-013 | Any open or unverified requirement blocks `DONE`. | This matrix and acceptance checklist | Final audit | IMPLEMENTED |
 
 ## Verification-state and data-protection contract

@@ -1,6 +1,6 @@
 # Issue #121 Completion Audit
 
-Decision: `PENDING_REAUDIT`
+Decision: `PASS`
 
 Auditor: independent `quality_reviewer` / Issue Completion Auditor role
 Workflow: `issue-121-audit-evidence-20260812`
@@ -48,5 +48,7 @@ Integration branch: `docs/workflow-public-beta-roadmap-20260812`
 
 ## Final decision
 
-Awaiting fresh independent review on the integrated branch. No live-green-path
-claim is made by this documentation-only completion audit.
+The independent Issue Completion Auditor returned `PASS` on the clean
+integrated branch at `36a0293c`. Issue #121 is complete for its
+documentation/governance scope. No live-green-path, browser, external-quality,
+installation or certification claim is made by this documentation-only audit.

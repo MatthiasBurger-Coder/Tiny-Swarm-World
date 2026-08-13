@@ -5,7 +5,7 @@
 - Workflow: `issue-121-audit-evidence-20260812`
 - Execution branch: `docs/issue-121-audit-evidence-20260812`
 - Integration branch: `docs/workflow-public-beta-roadmap-20260812`
-- Current completion state: `PENDING_FINAL_INDEPENDENT_AUDIT`
+- Current completion state: `COMPLETED`
 
 ## Delivered
 
@@ -37,7 +37,8 @@ the issue-scoped evidence paths under `.codex/evidence/issue-121/`.
 ## Remaining completion conditions
 
 The execution branch was integrated into the authoring branch by merge commit
-`2e3ccaab`. The local System Unification EPIC is explicitly linked, and the
-finding scope is bounded to the major/minor list enumerated by authoritative
-issue #121 because no separate local audit-summary artifact exists. Final #121
-closure still requires the fresh independent completion-audit decision.
+`2e3ccaab`; the evidence reconciliation is finalized by `36a0293c`. The local
+System Unification EPIC is explicitly linked, and the finding scope is bounded
+to the major/minor list enumerated by authoritative issue #121 because no
+separate local audit-summary artifact exists. The independent completion audit
+returned `PASS`.
