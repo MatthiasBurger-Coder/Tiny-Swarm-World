@@ -13,6 +13,6 @@
   unrelated runtime changes
 - Required roles: Senior Requirement Engineer, Senior System Architect, Senior Python Automation Developer, Senior Tester
 - Conditional roles: QMS-light Governance Expert, Senior Documentation Engineer, Audit Evidence Manager
-- Quality commands: `git diff --check`; full Python gate if executable tooling changes
+- Quality commands: `git diff --check`; `python3 tools/quality_gate.py quality`
 - Evidence path: `.tiny-swarm/evidence/issue-122/`
 - Governing-file hashes: see `context-pack.json`
