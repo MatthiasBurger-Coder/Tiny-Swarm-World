@@ -8,7 +8,9 @@ Authoring branch: `docs/workflow-public-beta-roadmap-20260812`
 
 Planned execution branch: `docs/issue-123-isms-light-20260812`
 
-Status: `AUTHORED_INDEXED`
+Execution branch: `docs/issue-123-isms-light-20260812`
+
+Status: `IN_PROGRESS`
 
 ## Executive Summary
 
@@ -75,14 +77,14 @@ secondary_reviewers: [ISMS-light Security Governance Expert, Security And Threat
 affected_files: [.tiny-swarm/evidence/issue-123/requirement_matrix.md, documentation/workflow/issues/issue-123/workflow.md]
 affected_modules: [ISMS governance]
 affected_contracts: [security scope, risk status, residual-risk ownership]
-dependencies: [S121-02]
+dependencies: [S121-02, S122-02]
 parallel_group: SERIAL-123
 file_locks: [.tiny-swarm/evidence/issue-123/requirement_matrix.md]
 contract_locks: [isms-scope-contract]
 architecture_locks: [local-infrastructure-trust-boundaries]
 quality_gates:
   targeted: [git diff --check]
-  required: []
+  required: [python3 tools/quality_gate.py quality]
 documentation:
   arc42: review context, constraints and risks sections
   adr: review Traefik HTTPS ADR; no new ADR for documentation alone
@@ -108,7 +110,7 @@ contract_locks: [isms-documentation-contract, secret-redaction-contract]
 architecture_locks: [security-boundary-and-admin-surface]
 quality_gates:
   targeted: [git diff --check]
-  required: []
+  required: [python3 tools/quality_gate.py quality]
 documentation:
   arc42: synchronize only verified scope/risk statements
   adr: record reviewed ADRs and any required future decision
@@ -120,7 +122,7 @@ residual risk has treatment/owner/evidence state; #126 handoff is explicit.
 
 ## Dependency Graph
 
-`S121-02 -> S123-01 -> S123-02`
+`S121-02 -> S122-02 -> S123-01 -> S123-02`
 
 ## Parallel Execution
 
@@ -138,7 +140,7 @@ decisions; Codex remains integration owner.
 ## Git Worktree Execution Rule
 
 Use `docs/issue-123-isms-light-20260812` in an isolated worktree. Verify
-predecessor #121 evidence and branch ownership before writing.
+completed predecessor #121/#122 evidence and branch ownership before writing.
 
 ## Issue Completion Discipline
 
@@ -155,11 +157,10 @@ predecessor #121 evidence and branch ownership before writing.
 
 ## Quality, Documentation and Handoff
 
-Run `git diff --check`; run targeted/full Python gates only if executable
-security behavior or tooling is changed. Never represent planned controls as
-implemented runtime controls. Handoff to #126 includes risk IDs, control IDs,
-secret policy and residual-risk states. Commit only scoped documentation and
-evidence.
+Run `git diff --check` and the full WSL/Linux quality gate required by the
+original issue. This is local evidence only; it does not verify deployed
+security controls, live infrastructure or external quality services. Never
+represent planned controls as implemented runtime controls.
 
 Definition of Done: the six files are complete, redacted, cross-linked and
 independently reviewed with no unsupported security pass claim.
@@ -214,8 +215,8 @@ active scan, live command or certification claim.
 
 ## Handoff to workflow execute
 
-Promote only after #121 evidence, branch/worktree checks and a complete ISMS
-matrix are present; pass control IDs and residual risks to #126.
+Promote only after #121/#122 evidence, branch/worktree checks and a complete
+ISMS matrix are present; pass control IDs and residual risks to #126.
 
 ## Arc42 Check Status
 
