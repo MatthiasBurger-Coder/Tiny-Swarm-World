@@ -1,255 +1,225 @@
-# Workflow: Issue #121 — Audit Evidence Structure
+# Workflow: Issue #122 — QMS-light Documentation
 
-Workflow id: `issue-121-audit-evidence-20260812`
+Workflow id: `issue-122-qms-light-20260812`
 
-Issue: [#121](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/121)
+Issue: [#122](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/122)
 
 Authoring branch: `docs/workflow-public-beta-roadmap-20260812`
 
-Planned execution branch: `docs/issue-121-audit-evidence-20260812`
+Planned execution branch: `docs/issue-122-qms-light-20260812`
 
-Execution branch: `docs/issue-121-audit-evidence-20260812`
+Execution branch: `docs/issue-122-qms-light-20260812`
 
-Status: `INCOMPLETE`
-
-Execution result: S121-01 and S121-02 are locally implemented, validated and
-checkpoint-pushed. The issue remains incomplete because the checkpoint is not
-merged and the independent completion audit found open EPIC/audit-summary
-traceability questions. Successor workflow #122 is not authorized to start.
+Status: `COMPLETED`
 
 ## Executive Summary
 
-Create the canonical versioned audit evidence backbone under
-`documentation/audit/`. It must connect findings, standards, owners, planned
-actions and evidence while keeping repository, planned, live and missing
-evidence distinct. This is documentation/governance work and does not close
-findings or run live infrastructure.
+Create a lightweight, evidence-driven quality management structure without
+claiming ISO 9001 certification or weakening `QUALITY.md`. It consumes the
+canonical audit evidence vocabulary from #121 and defines measurable quality
+objectives, CAPA, change control and internal audits.
 
 ## Requirement Clarification Gate
 
-- Original request: implement the complete scope and acceptance criteria of
-  issue #121 as the first child of roadmap #120.
-- Interpreted intent: create the five required audit files, populate the
-  registers and establish status/redaction rules usable by later issues.
-- Change type: documentation and audit-governance workflow.
-- Affected process strand: audit finding -> remediation -> evidence -> review.
-- Affected architecture area: repository documentation and verification-state
-  policy; no runtime boundary changes.
-- Explicit requirements: create `README.md`, `audit-register.md`,
-  `findings-register.md`, `evidence-matrix.md`, `remediation-plan.md`; cover
-  the listed standards/findings/evidence categories; never claim unresolved
-  findings closed.
-- Implicit requirements: all paths must be canonical or explicitly planned;
-  sensitive live data stays redacted; later issues link to this structure.
-- Assumptions: the issue body and #120 are authoritative; existing arc42 and
-  `QUALITY.md` remain authoritative for local verification.
-- Non-goals: live commands, certification, finding downgrade/closure without
-  evidence, runtime changes and unreviewed navigation rewrites.
-- Risks: duplicated registers, stale links and pass claims without evidence.
-- Open questions: none blocking for authoring.
-- Blocking questions: none.
+- Original request: implement issue #122 after #121.
+- Interpreted intent: create the five QMS files and connect quality decisions
+  to branches, PRs, quality gates, reviews, evidence and baselines.
+- Change type: documentation/governance.
+- Affected process strand: quality objective -> change/CAPA -> audit -> evidence.
+- Affected architecture area: process governance only; no runtime boundary.
+- Explicit requirements: create `qms-light.md`, `quality-objectives.md`,
+  `capa-process.md`, `change-control.md`, `internal-audit-process.md`; define
+  measurable objectives, CAPA triggers/effectiveness, branch/PR/gate/review
+  control and audit cadence.
+- Implicit requirements: reference #121 registers; never turn skipped or
+  missing evidence into a pass; preserve Linux/WSL and no-live-default rules.
+- Assumptions: #121 exists or its paths are linked as planned during a safe
+  sequential execution.
+- Non-goals: certification, runtime changes, live commands and quality-gate
+  weakening.
+- Risks: objectives without evidence sources and CAPA closure without
+  effectiveness review.
+- Open/blocking questions: none for authoring; #121 completion is a runtime
+  dependency for execution.
 - Confidence: 94%.
 - Decision: `READY_FOR_WORKFLOW`.
 
 ## Target Picture
 
 ```text
-audit README -> audit register -> findings register -> evidence matrix
-                                      |
-                                      v
-                              remediation plan
+quality objectives -> change control -> quality gate/review evidence
+        |                    |
+        v                    v
+     CAPA triggers -> effectiveness -> internal audit cadence
 ```
 
-## Verified Baseline and Scope
+## Verified Baseline, Scope and Assessments
 
-- `documentation/audit/` is not present in the verified baseline.
-- The repository already has `QUALITY.md`, arc42, issue evidence discipline
-  and verification-state policy to reference.
-- In scope: only the five issue-required files and short, directly required
-  cross-links.
-- Out of scope: Python source, CI settings, live evidence collection and
-  certification language.
-
-## Architecture, Python, Frontend and Resilience Assessment
-
-- Architecture: documentation is a governance boundary, not an alternative
-  source of runtime truth. Planned behavior must remain labeled planned.
-- Python automation source changes: not applicable; the repository quality-gate command remains required by issue acceptance.
-- Frontend: not applicable; no browser or React module is in scope.
-- Resilience: status vocabulary must preserve blocked, refused, resource-gated,
-  failed-to-apply and failed-to-verify as non-pass states; redaction rules must
-  survive future live runs.
+`documentation/qms/` is absent in the verified baseline. Scope is the five
+issue-required documents plus direct navigation links. Python and frontend work
+are not applicable. Resilience means CAPA preserves failed/blocked states and
+requires objective effectiveness evidence before closure. Architecture remains
+hexagonal and documentation remains subordinate to verified repository
+behavior.
 
 ## Ordered Slices
 
-### Slice 01 — Requirement matrix and evidence model
+### Slice 01 — Matrix and QMS control model
 
 ```yaml
-slice_id: S121-01
+slice_id: S122-01
 profile: DOCS_GOVERNANCE
 owner: Senior Requirement Engineer
-secondary_reviewers: [Audit Evidence Manager, Senior System Architect, Senior Tester]
-affected_files: [.tiny-swarm/evidence/issue-121/requirement_matrix.md, documentation/workflow/workflow.md, documentation/workflow/issues/issue-121/workflow.md]
-affected_modules: [audit governance]
-affected_contracts: [issue-121 requirement matrix, verification-state vocabulary]
-dependencies: []
-parallel_group: SERIAL-121
-file_locks: [.tiny-swarm/evidence/issue-121/requirement_matrix.md, documentation/workflow/workflow.md, documentation/workflow/issues/issue-121/workflow.md]
-contract_locks: [audit-status-contract]
-architecture_locks: [documentation-as-governance-evidence]
+secondary_reviewers: [QMS-light Governance Expert, Senior System Architect, Senior Tester]
+affected_files: [.tiny-swarm/evidence/issue-122/requirement_matrix.md, documentation/workflow/issues/issue-122/workflow.md]
+affected_modules: [QMS governance]
+affected_contracts: [quality objective IDs, CAPA status and closure semantics]
+dependencies: [S121-02]
+parallel_group: SERIAL-122
+file_locks: [.tiny-swarm/evidence/issue-122/requirement_matrix.md]
+contract_locks: [qms-control-model]
+architecture_locks: [quality-governance-authority]
 quality_gates:
   targeted: [git diff --check]
   required: [python3 tools/quality_gate.py quality]
 documentation:
-  arc42: checked; no runtime change expected
+  arc42: check quality requirements links
   adr: none expected
-stop_conditions: [missing issue requirement, ambiguous evidence status, unverified path treated as present]
+stop_conditions: [conflict with QUALITY.md, non-measurable objective, CAPA closure without evidence]
 ```
 
-Done: every issue sentence and required path has a stable requirement ID and
-an implementation/evidence mapping.
+Done: each requirement maps to a QMS section, evidence source and review
+owner; #121 dependency is explicit.
 
-### Slice 02 — Audit structure, registers and review evidence
+### Slice 02 — QMS documents and navigation
 
 ```yaml
-slice_id: S121-02
+slice_id: S122-02
 profile: DOCS_GOVERNANCE
-owner: Audit Evidence Manager
-secondary_reviewers: [Senior Documentation Engineer, Senior Requirement Engineer, Senior Tester]
-affected_files: [documentation/audit/README.md, documentation/audit/audit-register.md, documentation/audit/findings-register.md, documentation/audit/evidence-matrix.md, documentation/audit/remediation-plan.md, documentation/README.adoc]
-affected_modules: [audit documentation]
-affected_contracts: [audit register, findings register, evidence matrix, remediation plan]
-dependencies: [S121-01]
-parallel_group: SERIAL-121
-file_locks: [documentation/audit/, documentation/README.adoc]
-contract_locks: [audit-evidence-schema]
-architecture_locks: [verification-state-policy]
+owner: QMS-light Governance Expert
+secondary_reviewers: [Senior Documentation Engineer, Senior Tester, Audit Evidence Manager]
+affected_files: [documentation/qms/qms-light.md, documentation/qms/quality-objectives.md, documentation/qms/capa-process.md, documentation/qms/change-control.md, documentation/qms/internal-audit-process.md, documentation/README.adoc]
+affected_modules: [QMS documentation]
+affected_contracts: [quality objectives, CAPA process, change-control and audit cadence]
+dependencies: [S122-01]
+parallel_group: SERIAL-122
+file_locks: [documentation/qms/, documentation/README.adoc]
+contract_locks: [qms-documentation-contract]
+architecture_locks: [QUALITY.md-authority]
 quality_gates:
   targeted: [git diff --check]
   required: [python3 tools/quality_gate.py quality]
 documentation:
-  arc42: link only if a verified navigation target is needed
+  arc42: update only verified quality-governance links
   adr: none expected
-stop_conditions: [secret-bearing evidence, missing required finding, stale canonical link, closure claimed without evidence]
+stop_conditions: [certification claim, quality gate weakening, undocumented owner, stale link]
 ```
 
-Done: all five files exist, all required columns/entries/status rules are
-present, documentation links resolve or are explicitly marked planned, and the
-issue evidence package is complete.
+Done: five files are internally consistent, measurable objectives have metric,
+target, source, cadence and owner, CAPA has effectiveness/closure rules and
+required evidence exists.
 
 ## Dependency Graph
 
-`S121-01 -> S121-02`
+`S121-02 -> S122-01 -> S122-02`
 
 ## Parallel Execution
 
-- Can run in parallel? No; the matrix defines the schema consumed by Slice 02.
-- Conflicting workflows: any concurrent audit-register or evidence-policy edit.
-- Shared files: `documentation/README.adoc`, audit references and issue #120.
-- Shared infrastructure: repository only; no live systems.
-- Requires isolated worktree: yes.
-- Requires serialized live validation: not applicable; no live validation.
-- Merge order: S121-01 before S121-02.
+No implementation parallelism: #121 paths and shared documentation navigation
+are dependencies. Isolated worktree required; no live validation. Conflicts are
+other QMS/quality-policy changes. Merge in slice order.
 
 ## Automatic Work Distribution Policy
 
-`workflow execute` must analyze the slices for documentation, quality,
-architecture, security and test streams, create distribution evidence before
-implementation and consolidation evidence afterwards. Use real subagents where
-available, otherwise record role-based fallback. No stream may write outside
-the locks; Codex owns consolidation.
+`workflow execute` must perform the standard documentation, quality, architecture
+and test distribution analysis, create per-slice distribution/consolidation
+evidence and keep Codex as final integrator. Do not parallelize shared QMS,
+QUALITY.md, audit links or contradictory quality rules.
 
 ## Git Worktree Execution Rule
 
-Execute only in an isolated worktree on
-`docs/issue-121-audit-evidence-20260812`. Workers must verify branch identity
-and locks before writing and must not merge directly.
+Use an isolated worktree on `docs/issue-122-qms-light-20260812`; verify branch,
+locks and predecessor evidence before writing.
 
 ## Issue Completion Discipline
 
-- Requirement matrix path: `.tiny-swarm/evidence/issue-121/requirement_matrix.md`.
-- Required evidence path: `.tiny-swarm/evidence/issue-121/`.
-- Required evidence files: `requirement_matrix.md`, `implementation_summary.md`,
-  `changed_files.md`, `test_results.md`, `remaining_risks.md`,
-  `acceptance_checklist.md`.
-- These six issue-level evidence files are executor-owned completion evidence;
-  they are maintained outside worker slice locks and are intentionally tracked
-  even when local ignore rules cover the `.tiny-swarm/` directory.
-- Requirement Lead review: S121-01 and final review.
-- System Architect Reviewer review: S121-01 and final review.
-- Test / Evidence Reviewer review: S121-02 and final review.
+- Requirement matrix path: `.tiny-swarm/evidence/issue-122/requirement_matrix.md`.
+- Required evidence path: `.tiny-swarm/evidence/issue-122/`.
+- Required evidence files: all six files required by the indexed workflow
+  contract: matrix, implementation summary, changed files, test results,
+  remaining risks and acceptance checklist.
+- Requirement Lead review: S122-01 and final.
+- System Architect Reviewer review: S122-01 and final.
+- Test / Evidence Reviewer review: S122-02 and final.
 - Issue Completion Auditor review: required before `DONE`.
-- DONE blocking rule: any open or unverified requirement forces `INCOMPLETE`,
+- DONE blocking rule: open/unverified requirements force `INCOMPLETE`,
   `BLOCKED` or `FAILED`.
 
 ## Quality, Documentation and Handoff
 
-Use `git diff --check` and the full local quality gate required by issue #121.
-If the full gate is unavailable or fails, record that state explicitly and do
-not claim a quality pass.
-Synchronize only verified links and keep arc42 unchanged unless a current
-architecture statement is actually affected. Stop on missing source evidence,
-conflicting status authority or any certification overclaim. Commit one issue
-workflow implementation per issue branch and publish only through the normal
-guarded branch process. Handoff to `workflow execute` requires S3/S3D preflight,
-the requirement matrix, locks and independent completion audit.
+Run `git diff --check` and the full WSL/Linux quality gate required by the
+original issue. The gate is local evidence only; it is not live, browser or
+external-service evidence.
+Keep `QUALITY.md` authoritative, update only verified navigation and do not
+claim certification. Commit only issue-scoped files; hand off after S3/S3D,
+predecessor evidence and independent audit are ready.
 
-Definition of Done: all issue files and required entries exist, statuses are
-evidence-honest, local documentation checks pass and the auditor returns
-`PASS`.
+Definition of Done: QMS documents, measurable objectives, CAPA effectiveness,
+change-control and audit cadence are complete and independently evidenced.
 
-Arc42 Check Status: reviewed; no runtime architecture change expected.
+Arc42 Check Status: quality requirements reviewed; no runtime architecture
+change expected.
 
 ## Scope
 
-Only the canonical audit documentation and issue evidence are in scope.
+Only the five QMS documents and directly required navigation/evidence are in
+scope.
 
 ## Target Outcome
 
-Future audit findings can be traced to owners, actions and evidence without
-claiming unresolved work closed.
+Quality objectives, CAPA, change control and internal audits have measurable,
+evidence-backed governance without certification overclaim.
 
 ## Architecture Constraints
 
-Documentation is a governance adapter around verified repository/runtime facts;
-it must not become a second runtime source of truth.
+`QUALITY.md` remains authoritative; QMS documents cannot weaken gates or change
+application/domain/infrastructure boundaries.
 
 ## Python Automation Assessment
 
-No Python source or runtime behavior changes are in scope. The repository
-quality-gate command remains required by issue acceptance and its result must
-be recorded as pass, fail or an explicit environment blocker.
+Not applicable for documentation-only execution; executable quality changes
+require a new scoped slice and Python review.
 
 ## Frontend Assessment
 
-Not applicable; no browser or React surface is changed.
+Not applicable; no browser or React module is in scope.
 
 ## Test Strategy
 
-Verify required files, columns, issue links and status vocabulary, then run
+Check required files, objective fields, CAPA closure/effectiveness, links and
 `git diff --check`.
 
 ## Resilience Requirements
 
-Evidence states remain fail-closed and redacted; missing or blocked evidence is
-never converted to a pass.
+Failed gates and audit findings remain CAPA triggers until effectiveness is
+verified; skipped evidence cannot close an action.
 
 ## Role and Ownership Map
 
-Requirement Engineer owns the matrix; Audit Evidence Manager owns registers;
-Documentation Engineer owns links; Tester reviews evidence; Architect checks
-governance fit; Auditor decides completion.
+Requirement Engineer owns scope; QMS expert owns objectives/CAPA; Tester checks
+evidence; Documentation Engineer checks links; Architect reviews authority;
+Auditor decides completion.
 
 ## Commit and Push Plan
 
-One issue-scoped documentation commit on the planned branch; publish through
-the guarded workflow process only after diff and evidence review.
+One issue-scoped documentation commit on the planned branch after predecessor
+evidence and governance checks; no live or CI-setting mutation.
 
 ## Handoff to workflow execute
 
-Promote this indexed workflow only after predecessor context, S3/S3D preflight,
-branch/worktree verification and the requirement matrix are ready.
+Promote only after #121 evidence is available, S3/S3D passes and the QMS matrix
+is created in the isolated worktree.
 
 ## Arc42 Check Status
 
-Reviewed; no runtime architecture change is expected.
+Quality-governance references were reviewed; update only verified behavior.

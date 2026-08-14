@@ -8,7 +8,9 @@ Authoring branch: `docs/workflow-public-beta-roadmap-20260812`
 
 Planned execution branch: `docs/issue-122-qms-light-20260812`
 
-Status: `AUTHORED_INDEXED`
+Execution branch: `docs/issue-122-qms-light-20260812`
+
+Status: `COMPLETED`
 
 ## Executive Summary
 
@@ -79,7 +81,7 @@ contract_locks: [qms-control-model]
 architecture_locks: [quality-governance-authority]
 quality_gates:
   targeted: [git diff --check]
-  required: []
+  required: [python3 tools/quality_gate.py quality]
 documentation:
   arc42: check quality requirements links
   adr: none expected
@@ -106,7 +108,7 @@ contract_locks: [qms-documentation-contract]
 architecture_locks: [QUALITY.md-authority]
 quality_gates:
   targeted: [git diff --check]
-  required: []
+  required: [python3 tools/quality_gate.py quality]
 documentation:
   arc42: update only verified quality-governance links
   adr: none expected
@@ -155,8 +157,9 @@ locks and predecessor evidence before writing.
 
 ## Quality, Documentation and Handoff
 
-Run `git diff --check`; run the full Python quality gate if implementation or
-quality tooling changes, otherwise record the documentation-only rationale.
+Run `git diff --check` and the full WSL/Linux quality gate required by the
+original issue. The gate is local evidence only; it is not live, browser or
+external-service evidence.
 Keep `QUALITY.md` authoritative, update only verified navigation and do not
 claim certification. Commit only issue-scoped files; hand off after S3/S3D,
 predecessor evidence and independent audit are ready.
