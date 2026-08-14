@@ -52,6 +52,15 @@ operator service access and credential visibility. Repository assets and
 contracts exist, but provider-native live deployment, persistence hardening,
 service readiness, and default `lxc_native` live evidence remain incomplete.
 
+The audit evidence backbone also extends this EPIC:
+
+- [Workflow #121 — Audit Evidence Structure](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/121)
+- [`documentation/audit/`](../../audit/)
+
+This extension owns the repository-level evidence structure, finding
+traceability and review-state vocabulary. It does not own live infrastructure
+execution, certification, or closure of the findings it records.
+
 ## Intent
 
 Tiny Swarm World remains one Linux/WSL-only Python automation system for a

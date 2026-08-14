@@ -10,7 +10,7 @@ Planned execution branch: `docs/issue-125-live-evidence-contract-20260812`
 
 Execution branch: `docs/issue-125-live-evidence-contract-20260812`
 
-Status: `IN_PROGRESS`
+Status: `COMPLETED_LOCAL_CONTRACT` (live execution deferred)
 
 ## Executive Summary
 
