@@ -1348,6 +1348,13 @@ services:
             },
         )
         self.assertEqual(
+            compose_data["secrets"]["traefik_gui_users"],
+            {
+                "name": "${TSW_TRAEFIK_GUI_USERS_SECRET_NAME:-tsw_traefik_gui_users}",
+                "external": True,
+            },
+        )
+        self.assertEqual(
             traefik["secrets"][0]["source"],
             "traefik_tls_cert",
         )
@@ -1357,6 +1364,8 @@ services:
             "traefik_tls_key",
         )
         self.assertEqual(traefik["secrets"][1]["target"], "tsw_traefik_tls_key")
+        self.assertEqual(traefik["secrets"][2]["source"], "traefik_gui_users")
+        self.assertEqual(traefik["secrets"][2]["target"], "tsw_traefik_gui_users")
 
     def test_committed_traefik_dynamic_tls_config_references_secret_mounts_only(self):
         repository_root = Path(__file__).resolve().parents[4]
@@ -1372,6 +1381,20 @@ services:
         self.assertEqual(default_certificate["keyFile"], "/run/secrets/tsw_traefik_tls_key")
         self.assertNotIn("BEGIN", tls_content)
         self.assertNotIn("PRIVATE KEY", tls_content)
+
+        dashboard_router = tls_data["http"]["routers"]["traefik-dashboard"]
+        self.assertEqual(dashboard_router["rule"], "Host(`traefik.tsw.local`)")
+        self.assertEqual(dashboard_router["service"], "api@internal")
+        self.assertEqual(dashboard_router["entryPoints"], ["websecure"])
+        self.assertEqual(dashboard_router["middlewares"], ["traefik-dashboard-auth"])
+        self.assertIn("tls", dashboard_router)
+        dashboard_auth = tls_data["http"]["middlewares"]["traefik-dashboard-auth"]
+        self.assertEqual(
+            dashboard_auth["basicAuth"]["usersFile"],
+            "/run/secrets/tsw_traefik_gui_users",
+        )
+        self.assertNotIn("users:", tls_content)
+        self.assertNotIn("api.insecure", tls_content)
 
     def test_committed_service_stacks_define_traefik_swarm_route_labels(self):
         expected = {

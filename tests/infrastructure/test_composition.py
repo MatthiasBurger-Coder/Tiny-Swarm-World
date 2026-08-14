@@ -1179,6 +1179,7 @@ class TestComposition(unittest.TestCase):
                 "TSW_TRAEFIK_IMAGE": "traefik:v3.7.4",
                 "TSW_TRAEFIK_TLS_CERT_SECRET_NAME": "tsw_traefik_tls_cert",
                 "TSW_TRAEFIK_TLS_KEY_SECRET_NAME": "tsw_traefik_tls_key",
+                "TSW_TRAEFIK_GUI_USERS_SECRET_NAME": "tsw_traefik_gui_users",
             },
         )
         sonarqube_admin_step = next(
