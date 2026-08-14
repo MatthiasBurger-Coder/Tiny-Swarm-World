@@ -29,6 +29,19 @@ reader entry points are:
 * xref:security/service-access-threat-model.md[Service Access threat model] for
   dashboard and admin-routing risks.
 
+The audience-specific manuals provide concise entry points:
+
+* xref:manuals/operator-manual.md[Operator Manual] for guarded installation,
+  operation, secrets and recovery boundaries.
+* xref:manuals/developer-manual.md[Developer Manual] for architecture,
+  workflow slices, tests and quality gates.
+* xref:manuals/security-manual.md[Security Manual] for ISMS, ASVS, secrets and
+  admin-surface controls.
+* xref:manuals/audit-manual.md[Audit Manual] for evidence, traceability and
+  review state.
+* xref:manuals/live-validation-manual.md[Live Validation Manual] for explicit
+  consent-gated A/B/C validation and redacted evidence.
+
 == Documentation Structure
 
 [options="header"]
@@ -51,6 +64,7 @@ reader entry points are:
 | `process/agent-tasks/` | Import-ready agent task lists.
 | `workflow/` | Active and issue-scoped workflow records. These are execution artifacts, not the primary user handbook.
 | `process/skills/audit/` | Skill registry and ownership audit artifacts.
+| `manuals/` | Audience-specific entry points that link to canonical sources.
 |===
 
 == Consolidation Rules
