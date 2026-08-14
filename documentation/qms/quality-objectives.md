@@ -22,4 +22,3 @@ The owner records the observed value, source path, status and reviewer. A
 missing source is `Evidence pending`, `Missing` or another applicable
 non-pass state. A skipped test or unavailable external service is never counted
 as a successful objective result.
-
