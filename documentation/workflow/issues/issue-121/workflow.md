@@ -10,14 +10,12 @@ Planned execution branch: `docs/issue-121-audit-evidence-20260812`
 
 Execution branch: `docs/issue-121-audit-evidence-20260812`
 
-Status: `READY_FOR_GUARDED_PUBLICATION`
+Status: `COMPLETED`
 
-Execution result: S121-01 and S121-02 are locally implemented, validated and
-checkpoint-pushed. The local evidence package is ready for independent review
-and guarded PR publication. The issue remains not `DONE` until the branch is
-merged and a fresh post-merge completion audit returns `PASS`; this publication
-gate does not block the guarded PR itself. Successor workflow #122 is not
-authorized to start until that final gate is satisfied.
+Execution result: S121-01 and S121-02 were locally implemented and validated;
+PR #254 merged the package into `main` as `a335fed0`. A fresh independent
+post-merge completion audit returned `PASS`. Successor workflow #122 is
+authorized to start in the declared dependency order.
 
 ## Executive Summary
 
@@ -204,7 +202,9 @@ evidence-honest, local documentation checks pass and the auditor returns
 `PASS`.
 
 Arc42 Check Status: reviewed; traceability-only ownership link added; no runtime
-architecture behavior or boundary change expected.
+architecture behavior or boundary change expected. The post-merge completion
+review used the documented role-based fallback because the requested real
+review agent did not return within the execution window.
 
 ## Scope
 

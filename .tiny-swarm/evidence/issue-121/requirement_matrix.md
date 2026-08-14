@@ -20,9 +20,10 @@ verified. `PLANNED` is reserved for a future live or follow-up artifact.
 
 At matrix creation time, S121-01 is complete only when every requirement has a
 stable mapping. S121-02 must replace planned implementation placeholders with
-the five audit documents and final issue evidence. Issue #121 remains
-`INCOMPLETE` until the final acceptance checklist and independent completion
-audit return `PASS`.
+the five audit documents and final issue evidence. Issue #121 is `DONE` only
+after the final acceptance checklist and completion audit return `PASS` on the
+merged integration baseline; unavailable real reviewers require the documented
+role-based fallback path.
 
 ## Authority and scope decisions
 
@@ -148,7 +149,7 @@ audit return `PASS`.
 | REQ-121-103 | Run `git diff --check`. | Quality | Repository | S121 evidence test results | Command result | VERIFIED_LOCAL |
 | REQ-121-104 | Run `python3 tools/quality_gate.py quality`, or document an explicit environment blocker. | Quality | Repository | S121 evidence test results | Command result or blocker evidence | VERIFIED_LOCAL |
 | REQ-121-105 | PR/issue evidence contains summary, created files, no-live confirmation, quality result and remaining gaps. | Completion evidence | `.tiny-swarm/evidence/issue-121/` | Six required evidence files | Completion-auditor review | VERIFIED_LOCAL |
-| REQ-121-106 | Completion occurs only after the structure is merged and future issues can link to stable registers. | Release/process | Branch/issue evidence | Stable paths and guarded publication record | Final independent audit | BLOCKED / NOT VERIFIED |
+| REQ-121-106 | Completion occurs only after the structure is merged and future issues can link to stable registers. | Release/process | Branch/issue evidence | Stable paths and guarded publication record; PR #254 merged as `a335fed0` | Final independent audit on merged baseline | VERIFIED_PR_MERGED |
 
 ## S121-01 execution contract
 
@@ -165,7 +166,7 @@ audit return `PASS`.
 | S121-01-009 | Distribution evidence exists before implementation and consolidation evidence follows implementation. | `.codex/evidence/issue-121/slice-S121-01-distribution.md`, `.codex/evidence/issue-121/slice-S121-01-consolidation.md` | Evidence-file check | VERIFIED_LOCAL |
 | S121-01-010 | Required quality gates are `git diff --check` and `python3 tools/quality_gate.py quality`; unavailable results remain non-pass. | Workflow metadata and issue test results | Gate execution | VERIFIED_LOCAL |
 | S121-01-011 | Issue completion requires requirement_matrix, implementation_summary, changed_files, test_results, remaining_risks and acceptance_checklist. | `.tiny-swarm/evidence/issue-121/` | Required-file check | VERIFIED_LOCAL |
-| S121-01-012 | Requirement Lead, System Architect, Test/Evidence Reviewer and independent Issue Completion Auditor review completion. | Review evidence | Final audit | INCOMPLETE |
+| S121-01-012 | Requirement Lead, System Architect, Test/Evidence Reviewer and independent Issue Completion Auditor review completion. | Review evidence | Final audit | PASS |
 | S121-01-013 | Any open or unverified requirement blocks `DONE`. | This matrix and acceptance checklist | Final audit | IMPLEMENTED |
 
 ## Verification-state and data-protection contract

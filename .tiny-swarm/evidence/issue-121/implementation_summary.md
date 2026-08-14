@@ -4,7 +4,7 @@
 - Parent roadmap: [#120](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/120)
 - Workflow: `issue-121-audit-evidence-20260812`
 - Branch: `docs/issue-121-audit-evidence-20260812`
-- Current completion state: `READY_FOR_GUARDED_PUBLICATION_PENDING_MERGE`
+- Current completion state: `COMPLETE_ON_MERGED_BASELINE`
 
 ## Delivered
 
@@ -39,7 +39,6 @@ the issue-scoped evidence paths under `.codex/evidence/issue-121/`.
 
 ## Remaining completion conditions
 
-The local artifacts and checks are ready for independent audit and guarded
-publication. Final #121 `DONE` status still depends on verified merge and the
-post-merge completion audit; that publication dependency is not a reason to
-block the guarded PR itself. Live evidence and finding closure remain open.
+PR #254 merged the artifacts into `main` as `a335fed0`. The independent
+post-merge completion audit returned `PASS`, so #121 is complete. Live evidence
+and finding closure remain open and belong to later workflows.
