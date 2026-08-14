@@ -1,0 +1,22 @@
+{
+  "workflow_id": "issue-124-traceability-matrix-20260812",
+  "issue": "124",
+  "workflow_path": "documentation/workflow/issues/issue-124/workflow.md",
+  "branch": "docs/workflow-public-beta-roadmap-20260812",
+  "process_strand": "requirement-to-evidence traceability",
+  "execution_profile": "TRACEABILITY",
+  "affected_areas": ["documentation/traceability", "arc42/ADR/source/test/evidence maps"],
+  "forbidden_areas": ["runtime changes", "fake tests/evidence", "live commands", "committed local evidence"],
+  "required_roles": ["Senior Requirement Engineer", "Senior System Architect", "Senior Python Automation Developer", "Senior Tester"],
+  "conditional_roles": ["Traceability Engineer", "Live Evidence Validation Expert", "Senior Documentation Engineer"],
+  "quality_commands": ["git diff --check"],
+  "evidence_path": ".tiny-swarm/evidence/issue-124/",
+  "governing_file_hashes": {
+    "AGENTS.md": "BC0E6E0C09AC3D61A450A7FE16C3E4DE9E6FBB8BDC688AAD58F10A3D18B31041",
+    "QUALITY.md": "7F8DD247FD989FBB72588A48B00846EDCB2A9AA748BB1954DC22B75952EFAA4C",
+    "documentation/process/issue-completion-discipline.md": "3DB2D080B7CFBBC3737907A61C67CE6A361485C8993CF4A20C1C5FE2DC743BC3",
+    ".agents/skills/workflow-authoring/SKILL.md": "5733F64086F113D578544B4D2D0297554237296ADF0DC2DF5EBE641E50DEC9E5",
+    ".agents/skills/three-amigos-requirement-gatekeeper/SKILL.md": "76659E618CB706E8990CDF44441AEAED219465044175826ADCA5357AE8ACC5B4",
+    ".agents/skills/requirement-engineering/SKILL.md": "C1A96BC652DC8800ABE9DC6F4B7AFF79418ED5350ACDA6CF920CA7DD27B75A26"
+  }
+}
