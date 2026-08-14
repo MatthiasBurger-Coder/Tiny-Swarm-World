@@ -23,6 +23,11 @@ reader entry points are:
   gate and actual-vs-target CI status.
 * xref:governance/pr-review-policy.md[PR review policy] for review triggers and
   required evidence.
+* xref:security/owasp-asvs-mapping.md[OWASP ASVS mapping] for local
+  infrastructure applicability.
+* xref:security/admin-surface-rbac.md[Admin-surface RBAC] for role boundaries.
+* xref:security/service-access-threat-model.md[Service Access threat model] for
+  dashboard and admin-routing risks.
 
 == Documentation Structure
 

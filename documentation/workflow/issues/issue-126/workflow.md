@@ -8,7 +8,9 @@ Authoring branch: `docs/workflow-public-beta-roadmap-20260812`
 
 Planned execution branch: `docs/issue-126-owasp-asvs-admin-surface-20260812`
 
-Status: `AUTHORED_INDEXED`
+Execution branch: `docs/issue-126-owasp-asvs-admin-surface-20260812`
+
+Status: `COMPLETED`
 
 ## Executive Summary
 
@@ -82,7 +84,7 @@ contract_locks: [asvs-applicability-contract, admin-surface-contract]
 architecture_locks: [traefik-https-ingress, local-admin-boundary]
 quality_gates:
   targeted: [git diff --check]
-  required: []
+  required: [python3 tools/quality_gate.py quality]
 documentation:
   arc42: required review of context, deployment and decisions
   adr: update only if the verified admin-surface decision changes
@@ -109,7 +111,7 @@ contract_locks: [asvs-mapping-contract, admin-rbac-contract, threat-model-contra
 architecture_locks: [secure-admin-surface]
 quality_gates:
   targeted: [git diff --check]
-  required: []
+  required: [python3 tools/quality_gate.py quality]
 documentation:
   arc42: synchronize verified admin-surface/ingress decision references
   adr: record reviewed/no-new-ADR or required #150 decision
