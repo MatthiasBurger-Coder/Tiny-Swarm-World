@@ -202,9 +202,8 @@ evidence-honest, local documentation checks pass and the auditor returns
 `PASS`.
 
 Arc42 Check Status: reviewed; traceability-only ownership link added; no runtime
-architecture behavior or boundary change expected. The post-merge completion
-review used the documented role-based fallback because the requested real
-review agent did not return within the execution window.
+architecture behavior or boundary change expected. The fresh independent
+post-merge reviewer returned `PASS` on the merged baseline.
 
 ## Scope
 

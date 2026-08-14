@@ -21,9 +21,8 @@ verified. `PLANNED` is reserved for a future live or follow-up artifact.
 At matrix creation time, S121-01 is complete only when every requirement has a
 stable mapping. S121-02 must replace planned implementation placeholders with
 the five audit documents and final issue evidence. Issue #121 is `DONE` only
-after the final acceptance checklist and completion audit return `PASS` on the
-merged integration baseline; unavailable real reviewers require the documented
-role-based fallback path.
+after the final acceptance checklist and independent completion audit return
+`PASS` on the merged integration baseline.
 
 ## Authority and scope decisions
 

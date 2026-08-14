@@ -2,9 +2,8 @@
 
 Decision: `PASS`
 
-Auditor: role-based fallback `quality_reviewer` / Issue Completion Auditor
-review (real subagent was requested but did not return within the execution
-window)
+Auditor: independent real `quality_reviewer` / Issue Completion Auditor
+reviewer (subagent Zeno)
 Workflow: `issue-121-audit-evidence-20260812`
 Branch: `main` after PR #254 merge (`a335fed0`)
 
@@ -48,10 +47,9 @@ Branch: `main` after PR #254 merge (`a335fed0`)
   branch was deleted after merge.
 - The acceptance checklist and requirement matrix now show the merge and final
   completion review as PASS.
-- Fallback review independently rechecked the merged SHA, the two completion
-  gates and the retained live/finding-closure non-pass states. No blocker was
-  found. This is role-based fallback evidence, not a claim of external or live
-  verification.
+- The independent reviewer rechecked the merged SHA, the two completion gates
+  and the retained live/finding-closure non-pass states. No blocker was found.
+  This remains repository evidence, not external or live verification.
 
 ## Open requirements
 
