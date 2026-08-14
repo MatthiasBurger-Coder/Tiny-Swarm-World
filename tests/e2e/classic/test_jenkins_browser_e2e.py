@@ -1,6 +1,6 @@
 import unittest
 
-from tests.live.browser_e2e_contract import BrowserRouteE2EContract
+from tests.e2e.classic.browser_e2e_contract import BrowserRouteE2EContract
 
 
 class TestJenkinsBrowserE2E(BrowserRouteE2EContract, unittest.TestCase):

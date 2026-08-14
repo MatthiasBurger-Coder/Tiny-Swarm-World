@@ -2,7 +2,7 @@
 
 import unittest
 
-from tests.live.browser_e2e_contract import BrowserRouteE2EContractStaticTest
+from tests.e2e.classic.browser_e2e_contract import BrowserRouteE2EContractStaticTest
 
 
 class BrowserRouteE2EContractDiscoveryTest(unittest.TestCase):

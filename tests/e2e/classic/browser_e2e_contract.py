@@ -35,7 +35,7 @@ else:
 
 
 RUN_LIVE_ENV = "TSW_RUN_POST_INSTALL_BROWSER_LIVE"
-E2E_EVIDENCE_ROOT = Path(".tiny-swarm-world/evidence/solid-lxc-swarm-runtime/e2e")
+E2E_EVIDENCE_ROOT = Path(".tiny-swarm-world/evidence/classic-public-beta-rc1")
 LOGIN_REQUIRED_ROUTES = frozenset(
     {
         "infisical",
@@ -264,7 +264,7 @@ class BrowserRouteE2EContractStaticTest(unittest.TestCase):
     def test_post_login_wait_rechecks_spa_landing_state(self) -> None:
         sleep_calls: list[float] = []
         with patch(
-            "tests.live.browser_e2e_contract._page_text_and_title",
+            "tests.e2e.classic.browser_e2e_contract._page_text_and_title",
             side_effect=[("Sign in", "SonarQube"), ("Projects", "SonarQube")],
         ):
             actual = _wait_for_post_login_success(
@@ -537,7 +537,7 @@ def _browser_navigation_reached_expected_host(current_url: str, expected_url: st
 
 def _assert_evidence_target(testcase: Any) -> None:
     testcase.assertEqual(
-        ".tiny-swarm-world/evidence/solid-lxc-swarm-runtime/e2e",
+        ".tiny-swarm-world/evidence/classic-public-beta-rc1",
         E2E_EVIDENCE_ROOT.as_posix(),
     )
 

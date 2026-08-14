@@ -4,7 +4,11 @@ The default quality gate runs only static safety tests in this module. The
 live checks run only with:
 
 TSW_RUN_POST_INSTALL_BROWSER_LIVE=1 PYTHONPATH=src python3 -m unittest \
-  tests.live.test_post_install_browser_live
+  tests.e2e.classic.test_post_install_browser_live
+
+This is the canonical Classic post-install browser/API suite. It absorbs the
+former integration runner's installed-surface and dashboard-route contract;
+the former Playwright runner is not retained as a second browser framework.
 """
 
 from __future__ import annotations
@@ -39,7 +43,7 @@ from tiny_swarm_world.domain.ingress import desired_https_ingress_for_profile
 from tiny_swarm_world.infrastructure.adapters.repositories.port_registry_yaml_repository import (
     PortRegistryYamlRepository,
 )
-from tests.live.browser_e2e_contract import browser_route_expectations
+from tests.e2e.classic.browser_e2e_contract import browser_route_expectations
 from tests.support.effective_access_model_fixture import effective_access_model_fixture
 from tests.support.sonar_safe_literals import sample_text, sample_url
 
@@ -49,7 +53,8 @@ DEFAULT_ENV_FILE = Path(".tiny-swarm-world/local/live-installation.env")
 MISSING_TEST_ENV_FILE = ".tiny-swarm-world/local/missing-live-installation.env"
 MISSING_TEST_CA_BUNDLE = ".tiny-swarm-world/local/missing-ca-bundle.pem"
 TEST_CA_BUNDLE = "/etc/ssl/certs/tiny-swarm-world-ca.pem"
-DEFAULT_EVIDENCE_ROOT = Path(".tiny-swarm-world/evidence/solid-lxc-swarm-runtime/e2e")
+DEFAULT_EVIDENCE_ROOT = Path(".tiny-swarm-world/evidence/classic-public-beta-rc1")
+EVIDENCE_ROOT_ENV = "TSW_CLASSIC_EVIDENCE_ROOT"
 SERVICE_ACCESS_DASHBOARD = Path("infra/config/compose/service-access/dashboard/index.html")
 INFISICAL_SECRET_MANIFEST = Path("infra/config/secrets/infisical-secrets.yaml")
 EXPECTED_INFISICAL_ITEMS = (
@@ -324,10 +329,10 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
         self.assertEqual(evidence["tls_status"], "blocked_hostname_resolution")
         self.assertNotIn("url", evidence)
 
-    def test_live_evidence_root_uses_issue_183_target(self) -> None:
+    def test_live_evidence_root_uses_classic_rc1_target(self) -> None:
         self.assertEqual(
             DEFAULT_EVIDENCE_ROOT.as_posix(),
-            ".tiny-swarm-world/evidence/solid-lxc-swarm-runtime/e2e",
+            ".tiny-swarm-world/evidence/classic-public-beta-rc1",
         )
 
     def test_live_config_rejects_non_local_operator_urls(self) -> None:
@@ -519,7 +524,9 @@ class PostInstallBrowserLiveTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.config = LivePostInstallConfig.from_environment()
-        cls.evidence = _EvidenceRecorder(DEFAULT_EVIDENCE_ROOT)
+        cls.evidence = _EvidenceRecorder(
+            Path(os.environ.get(EVIDENCE_ROOT_ENV, str(DEFAULT_EVIDENCE_ROOT)))
+        )
 
     @classmethod
     def tearDownClass(cls) -> None:
