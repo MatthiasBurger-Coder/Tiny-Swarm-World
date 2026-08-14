@@ -14,6 +14,11 @@ artifacts as sources of truth.
   establishes this evidence structure.
 - Later child issues use the stable IDs and paths here. A link to a planned
   artifact is not evidence that the artifact exists.
+- The repository-local [`audit-summary.md`](audit-summary.md) snapshots the
+  explicitly enumerated #120/#121 finding set and is the local source for
+  completeness checks. It does not claim that findings are closed.
+- The [System Unification EPIC](../arc42/01_introduction/system-unification.md)
+  explicitly owns this audit-evidence backbone as a governance extension.
 
 The current documentation baseline is an evidence-management structure, not a
 certification, conformity assessment or completed audit. Applicability of a
