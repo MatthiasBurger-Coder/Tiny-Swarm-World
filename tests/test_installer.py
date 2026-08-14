@@ -36,6 +36,26 @@ class TestInstaller(unittest.TestCase):
             "tsw_traefik_gui_users",
         )
 
+    def test_ensure_default_config_exports_keeps_existing_secret_names(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            root = Path(tempdir)
+            paths = installer.InstallerPaths(
+                secret_env_file=root / "local.env",
+                fixed_secret_env_file=root / "fixed.env",
+                infisical_secret_env_file=root / "infisical.env",
+                generated_secret_env_file=root / "generated.env",
+                native_linux_venv=root / "install-venv",
+            )
+            env = {
+                "TSW_TRAEFIK_TLS_CERT_SECRET_NAME": "custom-cert",
+                "TSW_TRAEFIK_TLS_KEY_SECRET_NAME": "custom-key",
+                "TSW_TRAEFIK_GUI_USERS_SECRET_NAME": "custom-users",
+            }
+
+            exports = installer._ensure_default_config_exports(paths, env)
+
+        self.assertEqual(exports, {})
+
     def test_parse_args_defaults_to_service_access_and_secret_generation(self):
         options = installer.parse_args(())
 
