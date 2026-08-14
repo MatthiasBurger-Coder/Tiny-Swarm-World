@@ -10,7 +10,7 @@ Planned execution branch: `docs/issue-129-documentation-navigation-20260812`
 
 Execution branch: `docs/issue-129-documentation-navigation-20260812`
 
-Status: `IN_PROGRESS`
+Status: `COMPLETED_LOCAL_NAVIGATION` (live validation remains separate)
 
 ## Executive Summary
 

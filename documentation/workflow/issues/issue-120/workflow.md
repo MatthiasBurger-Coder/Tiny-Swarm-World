@@ -8,7 +8,7 @@ Authoring branch: `docs/workflow-public-beta-roadmap-20260812`
 
 Planned execution branch: `docs/issue-120-roadmap-reassessment-20260812`
 
-Status: `AUTHORED_INDEXED_EXECUTION_BLOCKED`
+Status: `BLOCKED` (Public-Beta Green-Path is not live-verified)
 
 ## Executive Summary
 
