@@ -42,6 +42,7 @@ or external-service evidence.
 | `EVD-121-019` | Review and completion evidence | review | `.tiny-swarm/evidence/issue-121/` | REQ-121-105; MIN-08 | Present | No raw logs or private data | Matrix, implementation summary, checks, risks and acceptance evidence. |
 | `EVD-121-020` | Release/baseline evidence | release | Expected: release/baseline artifact defined by #120 | REQ-121-097, REQ-121-106; MIN-06 | Planned | Redacted release metadata only | Planned until release/baseline governance is executed. |
 | `EVD-121-021` | Supply-chain prerequisite evidence | security; release | `documentation/security/supply-chain-security.md`, `documentation/security/sbom-policy.md`, `documentation/security/dependency-scan-policy.md`, `documentation/security/container-image-scan-policy.md`, `tools/security_gate.py` | MIN-02; #127 prerequisite | Present | Never copy credentials or registry output. | The workflow index records #127 as closed; this row does not re-close it. |
+| `EVD-121-022` | Audit summary snapshot | repository documentation; review | `documentation/audit/audit-summary.md` | REQ-121-051, REQ-121-052; MAJ-01 through MAJ-05; MIN-01 through MIN-08 | Present | No raw issue payloads or private data | Local source snapshot for the explicitly enumerated #120/#121 finding set; no closure claim. |
 
 ## Evidence review rules
 

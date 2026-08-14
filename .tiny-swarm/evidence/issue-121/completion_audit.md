@@ -2,6 +2,8 @@
 
 Decision: `INCOMPLETE`
 
+Publication decision: `READY_FOR_GUARDED_PUBLICATION`
+
 Auditor: independent `quality_reviewer` / Issue Completion Auditor role
 Workflow: `issue-121-audit-evidence-20260812`
 Branch: `docs/issue-121-audit-evidence-20260812`
@@ -19,6 +21,8 @@ Branch: `docs/issue-121-audit-evidence-20260812`
 - `slice-S121-02-distribution.md`
 - `slice-S121-02-consolidation.md`
 - all five `documentation/audit/` files
+- `documentation/audit/audit-summary.md`
+- `documentation/arc42/01_introduction/system-unification.md`
 - `documentation/README.adoc`
 - active/indexed workflow and context packs
 
@@ -35,6 +39,10 @@ Branch: `docs/issue-121-audit-evidence-20260812`
 - `git diff --check` and the full WSL quality gate are recorded as PASS.
 - No runtime, live infrastructure, browser, external quality or certification
   claim is present.
+- The bounded audit-summary snapshot explicitly names #120/#121 as its source
+  and does not claim completeness beyond those issue bodies.
+- The System Unification EPIC explicitly owns the repository-level audit-
+  evidence backbone without closing findings or authorizing live work.
 - Generic `.codex/evidence/slice-01-*` artifacts were excluded as #188 data.
 
 ## Open requirements
@@ -43,12 +51,11 @@ Branch: `docs/issue-121-audit-evidence-20260812`
   shared integration line. A workflow checkpoint push is not a merge.
 - `S121-01-012`: the final independent completion evidence is an
   `INCOMPLETE` decision, not a PASS.
-- EPIC ownership/traceability for #121 remains open.
-- Completeness beyond the five listed major findings cannot be verified
-  without the referenced local audit-summary source.
+- The merge and a fresh independent completion audit are still pending.
 
 ## Final decision
 
-`INCOMPLETE`. The implementation is locally validated and safely checkpointed,
-but the logical workflow sequence must stop before #122. No `DONE`, merge or
-live-green-path claim is authorized from this branch state.
+`INCOMPLETE` pending merge. The implementation is locally validated and safely
+checkpointed for guarded PR publication. No `DONE` or live-green-path claim is
+authorized until the merge and fresh independent completion audit are verified;
+guarded publication is authorized by the separate publication decision above.

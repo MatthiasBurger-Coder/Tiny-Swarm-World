@@ -30,6 +30,8 @@ Pending its own single-slice commit:
 - `documentation/audit/findings-register.md`
 - `documentation/audit/evidence-matrix.md`
 - `documentation/audit/remediation-plan.md`
+- `documentation/audit/audit-summary.md`
+- `documentation/arc42/01_introduction/system-unification.md`
 - `documentation/README.adoc`
 
 ## Scope audit

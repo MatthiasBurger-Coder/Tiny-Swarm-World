@@ -15,10 +15,13 @@
 | No live infrastructure or external service command executed | `implementation_summary.md`, `test_results.md` | PASS |
 | Required local quality checks pass | `test_results.md` | PASS |
 | Remaining gaps are explicit and non-pass | `remaining_risks.md`, matrix | PASS |
-| Branch changes are merged into the shared integration line | Guarded publication state | BLOCKED / NOT VERIFIED |
-| Independent Issue Completion Auditor returns `PASS` | [`completion_audit.md`](completion_audit.md) | INCOMPLETE |
+| Bounded audit-summary snapshot is sourced explicitly from #120/#121 | `documentation/audit/audit-summary.md` | PASS |
+| System Unification EPIC owns the audit-evidence backbone with a governance-only boundary | `system-unification.md`, matrix | PASS |
+| Branch changes are merged into the shared integration line | Guarded publication state | PENDING MERGE |
+| Independent Issue Completion Auditor returns `PASS` | [`completion_audit.md`](completion_audit.md) | PENDING POST-MERGE AUDIT |
 
 ## Decision
 
-The implementation and local evidence package are complete for review, but the
-issue is not marked `DONE` until the two final rows are independently satisfied.
+The implementation and local evidence package are ready for guarded PR
+publication. The issue is not marked `DONE` until merge and the fresh
+independent completion audit satisfy the two final rows.

@@ -30,9 +30,9 @@ audit return `PASS`.
 - `AGENTS.md`, `QUALITY.md` and
   `documentation/process/verification-state-policy.md` govern repository
   behavior and verification-state wording.
-- The System Unification EPIC appears compatible with this documentation-only
-  change, but no local EPIC explicitly owns #121. That traceability gap is
-  recorded as `OPEN`; it is not silently inferred as resolved.
+- The [System Unification EPIC](../../documentation/arc42/01_introduction/system-unification.md)
+  explicitly owns the repository-level audit-evidence backbone as a governance
+  extension. This ownership does not close findings or authorize live work.
 - `documentation/audit/` is a governance index and pointer layer. It is not a
   replacement for runtime, deployment, test or live-system sources of truth.
 - No live command, browser check, external service check, certification
@@ -187,8 +187,8 @@ but this matrix contains no live output.
 
 | Finding | Why it remains open | Required treatment |
 | --- | --- | --- |
-| EPIC traceability | No local EPIC explicitly owns #121; System Unification is only a compatibility observation. | Keep `OPEN` until an authoritative issue/EPIC link is verified. |
-| Audit-summary completeness | The issue references all major findings from an audit summary, but a local summary source was not found during preflight. | Populate the listed findings, mark additional completeness `failed-to-verify` until the source is available. |
+| EPIC traceability | System Unification explicitly owns the repository-level audit-evidence backbone. | `VERIFIED_LOCAL`; preserve the ownership link and its governance-only boundary. |
+| Audit-summary completeness | `documentation/audit/audit-summary.md` snapshots the five major and eight minor findings explicitly supplied by #120/#121. | `VERIFIED_LOCAL` against those sources; new findings require a reviewed authoritative source and are not silently excluded. |
 | Operator contract path drift | The issue path is absent; the verified repository path is under `documentation/arc42/08_configuration/`. | Record both paths and their distinct states; never treat the stale path as present. |
 | Quality-gate authority | Issue #121 requires the full gate or an explicit blocker; `QUALITY.md` allows a documented skip for documentation-only work. | The active workflow now declares the full gate required for this issue; record PASS, FAIL or BLOCKED/FAILED_TO_VERIFY. |
 | Root navigation choice | A short pointer is conditional on appropriateness. | Inspect `documentation/README.adoc`; add only a concise verified pointer in S121-02. |

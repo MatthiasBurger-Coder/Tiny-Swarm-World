@@ -2,8 +2,8 @@
 
 | Risk or open point | State | Treatment |
 | --- | --- | --- |
-| No local authoritative EPIC link explicitly owns #121. | OPEN | Keep the traceability gap visible; do not infer ownership from compatibility. |
-| The issue refers to all major findings from an audit summary, but that local summary source was not available during execution. | FAILED_TO_VERIFY | The listed five major findings are captured; completeness beyond the supplied list remains unverified. |
+| EPIC ownership | RESOLVED_AS_GOVERNANCE_LINK | System Unification explicitly owns the repository-level audit-evidence backbone; this does not close findings or authorize live work. |
+| Audit-summary source | RESOLVED_AS_LOCAL_SNAPSHOT | `documentation/audit/audit-summary.md` snapshots the five major and eight minor findings explicitly supplied by #120/#121; findings outside those sources require a new reviewed source. |
 | The issue-named operator contract path is stale/missing. | RESOLVED_AS_PATH_DRIFT | The stale path and verified canonical `documentation/arc42/08_configuration/operator-configuration-contract.md` path are both recorded distinctly. |
 | Live green-path evidence does not exist. | PLANNED | Remains owned by #125 and the later Public-Beta gate; no live claim is made. |
 | Docker socket exposure risk remains open. | OPEN | Owned by #123, #126 and #150 security/admin-surface work. |

@@ -4,7 +4,7 @@
 - Parent roadmap: [#120](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/120)
 - Workflow: `issue-121-audit-evidence-20260812`
 - Branch: `docs/issue-121-audit-evidence-20260812`
-- Current completion state: `INCOMPLETE_PENDING_INDEPENDENT_AUDIT`
+- Current completion state: `READY_FOR_GUARDED_PUBLICATION_PENDING_MERGE`
 
 ## Delivered
 
@@ -19,11 +19,15 @@ S121-02 created the canonical audit documentation:
 - `documentation/audit/findings-register.md`
 - `documentation/audit/evidence-matrix.md`
 - `documentation/audit/remediation-plan.md`
+- `documentation/audit/audit-summary.md`
 - a concise `audit/` pointer in `documentation/README.adoc`
+- an explicit ownership link from the System Unification EPIC
 
 The documents contain the nine audit IDs, five major findings, eight minor
 findings, all required schemas, all ten #120 remediation workflows, evidence
-categories, explicit planned/missing/live states and redaction rules.
+categories, explicit planned/missing/live states and redaction rules. The
+local audit-summary snapshot makes the explicit #120/#121 finding source
+reviewable without inventing completeness beyond those issue bodies.
 
 ## Safety and scope
 
@@ -35,8 +39,7 @@ the issue-scoped evidence paths under `.codex/evidence/issue-121/`.
 
 ## Remaining completion conditions
 
-The local artifacts and checks are ready for independent audit. Final #121
-closure still depends on the guarded branch publication/merge requirement and
-on resolving or explicitly accepting the source-completeness and EPIC
-traceability questions recorded in the matrix. Those conditions must not be
-silently converted into a pass.
+The local artifacts and checks are ready for independent audit and guarded
+publication. Final #121 `DONE` status still depends on verified merge and the
+post-merge completion audit; that publication dependency is not a reason to
+block the guarded PR itself. Live evidence and finding closure remain open.
