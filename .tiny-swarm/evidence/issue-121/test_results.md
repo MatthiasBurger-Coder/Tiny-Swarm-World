@@ -9,6 +9,7 @@
 | Evidence-matrix column and finding-link check | PowerShell read-only inspection | PASS | Every EVD row has eight columns; MIN-02, MIN-03, MIN-05 and MIN-08 link to evidence. |
 | Verification-policy consistency | WSL/Linux via `python3 tools/quality_gate.py quality` | PASS | Policy checker passed. |
 | Full `python3 tools/quality_gate.py quality` | WSL/Linux | PASS | Ruff, import-linter, architecture tests, mypy and 1760 unittest tests passed; 28 tests skipped. |
+| Full quality-gate rerun after publication-readiness reconciliation (2026-08-14) | WSL/Linux | PASS | Ruff, import-linter, architecture tests, mypy and 1760 unittest tests passed in 152.477 seconds; 28 tests skipped. |
 
 The full gate was run after S121-02 documentation changes. The test suite emits
 redacted simulated failure diagnostics in tests and still exits `OK`; those
