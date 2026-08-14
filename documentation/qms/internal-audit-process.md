@@ -49,4 +49,3 @@ conformity or compliance claim from their mention.
 Each audit record includes audit ID, scope, criteria, owner, auditor, date,
 evidence links, findings, CAPA links, decision, open risks and follow-up date.
 The audit record links to the canonical #121 registers and evidence matrix.
-

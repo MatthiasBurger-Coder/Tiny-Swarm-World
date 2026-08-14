@@ -15,11 +15,13 @@
 | No live infrastructure or external service command executed | `implementation_summary.md`, `test_results.md` | PASS |
 | Required local quality checks pass | `test_results.md` | PASS |
 | Remaining gaps are explicit and non-pass | `remaining_risks.md`, matrix | PASS |
-| Branch changes are merged into the shared integration line | Integration merge `2e3ccaab` on `docs/workflow-public-beta-roadmap-20260812` | PASS |
-| Independent Issue Completion Auditor returns `PASS` | [`completion_audit.md`](completion_audit.md) | PASS |
+| Bounded audit-summary snapshot is sourced explicitly from #120/#121 | `documentation/audit/audit-summary.md` | PASS |
+| System Unification EPIC owns the audit-evidence backbone with a governance-only boundary | `system-unification.md`, matrix | PASS |
+| Branch changes are merged into the shared integration line | PR #254, merge SHA `a335fed0` | PASS |
+| Independent Issue Completion Auditor review returns `PASS` | [`completion_audit.md`](completion_audit.md), merged-baseline reviewer report | PASS |
 
 ## Decision
 
-The implementation and local evidence package are complete. The independent
-auditor returned `PASS`; remote publication or pull-request merge is not
-inferred from the local integration.
+The implementation and local evidence package are complete on the merged
+integration baseline. The independent post-merge audit returned `PASS`; live
+evidence and finding closure remain separate follow-up work.

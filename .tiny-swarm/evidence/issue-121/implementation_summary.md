@@ -3,14 +3,13 @@
 - Issue: [#121](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/121)
 - Parent roadmap: [#120](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/120)
 - Workflow: `issue-121-audit-evidence-20260812`
-- Execution branch: `docs/issue-121-audit-evidence-20260812`
-- Integration branch: `docs/workflow-public-beta-roadmap-20260812`
-- Current completion state: `COMPLETED`
+- Branch: `docs/issue-121-audit-evidence-20260812`
+- Current completion state: `COMPLETE_ON_MERGED_BASELINE`
 
 ## Delivered
 
 S121-01 created the stable requirement and evidence matrix with IDs
-`REQ-121-001` through `REQ-121-109` and the S121-01 execution contract. It also
+`REQ-121-001` through `REQ-121-106` and the S121-01 execution contract. It also
 reconciled the workflow lock, quality-gate authority and role applicability.
 
 S121-02 created the canonical audit documentation:
@@ -20,11 +19,15 @@ S121-02 created the canonical audit documentation:
 - `documentation/audit/findings-register.md`
 - `documentation/audit/evidence-matrix.md`
 - `documentation/audit/remediation-plan.md`
+- `documentation/audit/audit-summary.md`
 - a concise `audit/` pointer in `documentation/README.adoc`
+- an explicit ownership link from the System Unification EPIC
 
 The documents contain the nine audit IDs, five major findings, eight minor
 findings, all required schemas, all ten #120 remediation workflows, evidence
-categories, explicit planned/missing/live states and redaction rules.
+categories, explicit planned/missing/live states and redaction rules. The
+local audit-summary snapshot makes the explicit #120/#121 finding source
+reviewable without inventing completeness beyond those issue bodies.
 
 ## Safety and scope
 
@@ -36,9 +39,6 @@ the issue-scoped evidence paths under `.codex/evidence/issue-121/`.
 
 ## Remaining completion conditions
 
-The execution branch was integrated into the authoring branch by merge commit
-`2e3ccaab`; the evidence reconciliation is finalized by `36a0293c`. The local
-System Unification EPIC is explicitly linked, and the finding scope is bounded
-to the major/minor list enumerated by authoritative issue #121 because no
-separate local audit-summary artifact exists. The independent completion audit
-returned `PASS`.
+PR #254 merged the artifacts into `main` as `a335fed0`. The independent
+post-merge completion audit returned `PASS`, so #121 is complete. Live evidence
+and finding closure remain open and belong to later workflows.
