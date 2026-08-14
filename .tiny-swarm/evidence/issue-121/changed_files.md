@@ -11,11 +11,11 @@ Commit `a4314a95` — `docs(issue-121): establish audit requirement matrix`
 - `.codex/evidence/issue-121/slice-S121-01-distribution.md`
 - `.codex/evidence/issue-121/slice-S121-01-consolidation.md`
 - `.tiny-swarm/evidence/issue-121/requirement_matrix.md`
-- issue-local #121 workflow/context metadata
+- active and issue-local #121 workflow/context metadata
 
 ### S121-02
 
-Commit `f45e031f` — `docs(issue-121): add audit evidence structure`
+Pending its own single-slice commit:
 
 - `.codex/evidence/issue-121/slice-S121-02-distribution.md`
 - `.codex/evidence/issue-121/slice-S121-02-consolidation.md`
@@ -30,15 +30,19 @@ Commit `f45e031f` — `docs(issue-121): add audit evidence structure`
 - `documentation/audit/findings-register.md`
 - `documentation/audit/evidence-matrix.md`
 - `documentation/audit/remediation-plan.md`
+- `documentation/audit/audit-summary.md`
+- `documentation/arc42/01_introduction/system-unification.md`
 - `documentation/README.adoc`
-
-The two slice commits were integrated into the authoring branch by merge
-commit `2e3ccaab`. The current evidence reconciliation is recorded in the
-issue-level files below; it is not a claim that the remote branch or a pull
-request has been merged.
 
 ## Scope audit
 
 No `src/`, `tests/`, `infra/config`, service stack, CI, secret or live-host
 files are included in S121-02. The unrelated generic `.codex/evidence/`
 artifacts were not modified.
+
+## Post-merge completion audit
+
+- PR #254 merged to `main` as `a335fed0`.
+- The remote execution branch was deleted after merge and the local branch was
+  cleaned up.
+- The merged-baseline independent completion audit returned `PASS`.

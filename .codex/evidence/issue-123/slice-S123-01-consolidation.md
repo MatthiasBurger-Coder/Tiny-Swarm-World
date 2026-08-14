@@ -39,4 +39,3 @@ Slice: S123-01 — Security requirement matrix and threat boundary
 
 S123-01 is ready for its single-slice checkpoint after the independent security
 review confirms the refinements. S123-02 remains strictly serial.
-
