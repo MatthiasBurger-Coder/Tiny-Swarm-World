@@ -17,11 +17,11 @@
 | Remaining gaps are explicit and non-pass | `remaining_risks.md`, matrix | PASS |
 | Bounded audit-summary snapshot is sourced explicitly from #120/#121 | `documentation/audit/audit-summary.md` | PASS |
 | System Unification EPIC owns the audit-evidence backbone with a governance-only boundary | `system-unification.md`, matrix | PASS |
-| Branch changes are merged into the shared integration line | Guarded publication state | PENDING MERGE |
-| Independent Issue Completion Auditor returns `PASS` | [`completion_audit.md`](completion_audit.md) | PENDING POST-MERGE AUDIT |
+| Branch changes are merged into the shared integration line | PR #254, merge SHA `a335fed0` | PASS |
+| Independent Issue Completion Auditor review returns `PASS` | [`completion_audit.md`](completion_audit.md), merged-baseline reviewer report | PASS |
 
 ## Decision
 
-The implementation and local evidence package are ready for guarded PR
-publication. The issue is not marked `DONE` until merge and the fresh
-independent completion audit satisfy the two final rows.
+The implementation and local evidence package are complete on the merged
+integration baseline. The independent post-merge audit returned `PASS`; live
+evidence and finding closure remain separate follow-up work.
