@@ -40,4 +40,3 @@ After implementation Codex will validate objective fields, CAPA closure
 semantics, change-control flow, audit cadence, links, redaction and scope;
 then create consolidation and six issue-level evidence files before the
 independent completion audit.
-

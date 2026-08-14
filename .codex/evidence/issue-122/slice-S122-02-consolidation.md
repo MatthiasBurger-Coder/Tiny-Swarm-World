@@ -53,4 +53,3 @@ Slice: `S122-02` — QMS documents and navigation
 S122-02 is complete locally and ready for the independent Issue Completion
 Auditor. The slice must be checkpointed only after the final evidence package
 and audit decision are recorded.
-

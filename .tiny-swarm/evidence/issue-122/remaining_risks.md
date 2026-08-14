@@ -11,4 +11,3 @@
 
 These risks do not block the documentation scope, but they must be revisited by
 the later ISMS, ASVS, live-evidence and release workflows.
-

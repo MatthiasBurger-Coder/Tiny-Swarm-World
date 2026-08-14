@@ -36,4 +36,3 @@ only and does not verify deployed controls or live security.
 After reviews, Codex will consolidate the matrix, record accepted/deferred
 findings, create S123-01 consolidation evidence and checkpoint exactly this
 slice before S123-02.
-
