@@ -10,15 +10,12 @@ Planned execution branch: `docs/issue-121-audit-evidence-20260812`
 
 Execution branch: `docs/issue-121-audit-evidence-20260812`
 
-Integration branch: `docs/workflow-public-beta-roadmap-20260812`
-
 Status: `COMPLETED`
 
-Execution result: S121-01 and S121-02 are implemented, locally validated and
-integrated by merge `2e3ccaab`; evidence reconciliation is recorded in
-`36a0293c`. The independent Issue Completion Auditor returned `PASS`.
-Successor workflow #122 is authorized to start. Remote publication or pull
-request merge is not inferred from local integration.
+Execution result: S121-01 and S121-02 were locally implemented and validated;
+PR #254 merged the package into `main` as `a335fed0`. A fresh independent
+post-merge completion audit returned `PASS`. Successor workflow #122 is
+authorized to start in the declared dependency order.
 
 ## Executive Summary
 
@@ -68,8 +65,9 @@ audit README -> audit register -> findings register -> evidence matrix
 - `documentation/audit/` is not present in the verified baseline.
 - The repository already has `QUALITY.md`, arc42, issue evidence discipline
   and verification-state policy to reference.
-- In scope: only the five issue-required files and short, directly required
-  cross-links.
+- In scope: the five issue-required files, the bounded audit-summary snapshot,
+  short directly required cross-links and the traceability-only ownership link
+  in the System Unification EPIC.
 - Out of scope: Python source, CI settings, live evidence collection and
   certification language.
 
@@ -104,7 +102,7 @@ quality_gates:
   targeted: [git diff --check]
   required: [python3 tools/quality_gate.py quality]
 documentation:
-  arc42: checked; no runtime change expected
+  arc42: traceability-only ownership link; no runtime behavior or boundary change
   adr: none expected
 stop_conditions: [missing issue requirement, ambiguous evidence status, unverified path treated as present]
 ```
@@ -119,19 +117,19 @@ slice_id: S121-02
 profile: DOCS_GOVERNANCE
 owner: Audit Evidence Manager
 secondary_reviewers: [Senior Documentation Engineer, Senior Requirement Engineer, Senior Tester]
-affected_files: [documentation/audit/README.md, documentation/audit/audit-register.md, documentation/audit/findings-register.md, documentation/audit/evidence-matrix.md, documentation/audit/remediation-plan.md, documentation/README.adoc]
+affected_files: [documentation/audit/README.md, documentation/audit/audit-register.md, documentation/audit/findings-register.md, documentation/audit/evidence-matrix.md, documentation/audit/remediation-plan.md, documentation/audit/audit-summary.md, documentation/README.adoc, documentation/arc42/01_introduction/system-unification.md]
 affected_modules: [audit documentation]
 affected_contracts: [audit register, findings register, evidence matrix, remediation plan]
 dependencies: [S121-01]
 parallel_group: SERIAL-121
-file_locks: [documentation/audit/, documentation/README.adoc]
+file_locks: [documentation/audit/, documentation/README.adoc, documentation/arc42/01_introduction/system-unification.md]
 contract_locks: [audit-evidence-schema]
 architecture_locks: [verification-state-policy]
 quality_gates:
   targeted: [git diff --check]
   required: [python3 tools/quality_gate.py quality]
 documentation:
-  arc42: link only if a verified navigation target is needed
+  arc42: traceability-only ownership link; no runtime behavior or boundary change
   adr: none expected
 stop_conditions: [secret-bearing evidence, missing required finding, stale canonical link, closure claimed without evidence]
 ```
@@ -183,7 +181,9 @@ and locks before writing and must not merge directly.
 - Test / Evidence Reviewer review: S121-02 and final review.
 - Issue Completion Auditor review: required before `DONE`.
 - DONE blocking rule: any open or unverified requirement forces `INCOMPLETE`,
-  `BLOCKED` or `FAILED`.
+  `BLOCKED` or `FAILED`. A locally complete package may still enter guarded
+  PR publication while merge and the fresh independent completion audit remain
+  pending.
 
 ## Quality, Documentation and Handoff
 
@@ -201,16 +201,21 @@ Definition of Done: all issue files and required entries exist, statuses are
 evidence-honest, local documentation checks pass and the auditor returns
 `PASS`.
 
-Arc42 Check Status: reviewed; no runtime architecture change expected.
+Arc42 Check Status: reviewed; traceability-only ownership link added; no runtime
+architecture behavior or boundary change expected. The fresh independent
+post-merge reviewer returned `PASS` on the merged baseline.
 
 ## Scope
 
-Only the canonical audit documentation and issue evidence are in scope.
+Only the canonical audit documentation, issue evidence and the traceability-only
+System Unification EPIC ownership link are in scope.
 
 ## Target Outcome
 
 Future audit findings can be traced to owners, actions and evidence without
-claiming unresolved work closed.
+claiming unresolved work closed. The bounded audit-summary snapshot makes the
+explicit #120/#121 source set reviewable without claiming completeness beyond
+those sources.
 
 ## Architecture Constraints
 
@@ -255,4 +260,5 @@ branch/worktree verification and the requirement matrix are ready.
 
 ## Arc42 Check Status
 
-Reviewed; no runtime architecture change is expected.
+Reviewed; traceability-only ownership link added; no runtime architecture
+behavior or boundary change is expected.

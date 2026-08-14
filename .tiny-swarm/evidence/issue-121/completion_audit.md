@@ -2,10 +2,10 @@
 
 Decision: `PASS`
 
-Auditor: independent `quality_reviewer` / Issue Completion Auditor role
+Auditor: independent real `quality_reviewer` / Issue Completion Auditor
+reviewer (subagent Zeno)
 Workflow: `issue-121-audit-evidence-20260812`
-Execution branch: `docs/issue-121-audit-evidence-20260812`
-Integration branch: `docs/workflow-public-beta-roadmap-20260812`
+Branch: `main` after PR #254 merge (`a335fed0`)
 
 ## Reviewed evidence
 
@@ -20,6 +20,8 @@ Integration branch: `docs/workflow-public-beta-roadmap-20260812`
 - `slice-S121-02-distribution.md`
 - `slice-S121-02-consolidation.md`
 - all five `documentation/audit/` files
+- `documentation/audit/audit-summary.md`
+- `documentation/arc42/01_introduction/system-unification.md`
 - `documentation/README.adoc`
 - active/indexed workflow and context packs
 
@@ -36,19 +38,27 @@ Integration branch: `docs/workflow-public-beta-roadmap-20260812`
 - `git diff --check` and the full WSL quality gate are recorded as PASS.
 - No runtime, live infrastructure, browser, external quality or certification
   claim is present.
+- The bounded audit-summary snapshot explicitly names #120/#121 as its source
+  and does not claim completeness beyond those issue bodies.
+- The System Unification EPIC explicitly owns the repository-level audit-
+  evidence backbone without closing findings or authorizing live work.
 - Generic `.codex/evidence/slice-01-*` artifacts were excluded as #188 data.
+- PR #254 is merged into `main` with merge SHA `a335fed0`; the remote execution
+  branch was deleted after merge.
+- The acceptance checklist and requirement matrix now show the merge and final
+  completion review as PASS.
+- The independent reviewer rechecked the merged SHA, the two completion gates
+  and the retained live/finding-closure non-pass states. No blocker was found.
+  This remains repository evidence, not external or live verification.
 
-## Previously open requirements addressed before re-audit
+## Open requirements
 
-- `REQ-121-106`: addressed by integration merge `2e3ccaab`.
-- EPIC traceability: addressed by `EVD-121-023` and the local System
-  Unification EPIC link.
-- Findings completeness: bounded explicitly to the issue-enumerated list by
-  `REQ-121-109`/`EVD-121-024`; no unlisted finding is claimed.
+- No #121 completion requirements remain open.
+- Live Green-Path evidence, security/admin-surface remediation and finding
+  closure remain intentionally open follow-up work owned by later workflows.
 
 ## Final decision
 
-The independent Issue Completion Auditor returned `PASS` on the clean
-integrated branch at `36a0293c`. Issue #121 is complete for its
-documentation/governance scope. No live-green-path, browser, external-quality,
-installation or certification claim is made by this documentation-only audit.
+`PASS`. Issue #121 is complete on the merged integration baseline. This does
+not claim live infrastructure, external certification or closure of the
+findings recorded by the audit structure.
