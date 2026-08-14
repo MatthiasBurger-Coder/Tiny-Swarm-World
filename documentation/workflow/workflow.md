@@ -1,297 +1,993 @@
-# Workflow: Issue #150 — Secure Traefik GUI
+# Workflow: Issue #252 — Classic Profile Stabilization / Public Beta RC1
 
-Workflow id: `issue-150-secure-traefik-gui-20260812`
+Workflow id: issue-252-classic-public-beta-rc1-20260814
 
-Issue: [#150](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/150)
+Source issue: https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/252
 
-Authoring branch: `docs/workflow-public-beta-roadmap-20260812`
+Execution profile: FULL_PATH
 
-Planned execution branch: `feature/issue-150-secure-traefik-gui-20260812`
+Authoring branch: docs/workflow-issue-252-classic-public-beta-20260814
 
-Execution branch: `feature/issue-150-secure-traefik-gui-20260812`
+Planned execution branch: release/classic-public-beta-rc1-stabilization
 
-Status: `BLOCKED` (local implementation complete; live consent and evidence pending)
+Status: AUTHORED_NOT_EXECUTED
+
+No live installation, infrastructure mutation, browser check, credential test,
+release claim or RC1_ACCEPTED decision is produced by workflow authoring.
 
 ## Executive Summary
 
-Enable a secure, documented and verifiable Traefik dashboard path only after
-#123 ISMS, #128 branch/CI governance and #126 ASVS/admin-surface decisions are
-complete. The feature must preserve the Docker Swarm/Traefik architecture,
-existing Service Access routes and TLS direction. `--api.insecure=true`, raw
-credentials and unsecured host exposure remain forbidden.
+Issue #252 qualifies the current Classic profile for Public Beta RC1 through a
+repeatable, evidence-backed lifecycle on current main:
+
+~~~text
+Fresh Install
+  -> Post-install acceptance
+  -> Re-run/Reconcile
+  -> Post-reconcile acceptance
+  -> Update
+  -> Post-update acceptance
+  -> Failure/Recovery
+  -> RC1 decision
+~~~
+
+The supported reference path remains:
+
+~~~text
+Linux / WSL2
+  -> managed Incus/LXC
+      -> manager + workers
+          -> Docker Engine
+              -> Docker Swarm
+                  -> routing -> secrets -> artifacts -> services
+~~~
+
+This is release qualification, not a new runtime implementation. Assertion-
+heavy acceptance tests stay under tests/, the existing post-install browser
+test is reused or migrated without duplication, and native Linux and WSL2
+remain separate evidence targets.
+
+The requested administrator-PowerShell access is not a repository workflow
+capability and cannot be granted by this workflow. Project Python, test and
+quality commands remain Linux/WSL commands. A live operator must independently
+possess required permissions on the explicitly selected target; missing
+permissions are a prerequisite blocker, never authorization inferred by this
+workflow.
 
 ## Requirement Clarification Gate
 
-- Original request: build #150 after the security and governance foundations.
-- Interpreted intent: make Traefik's already-enabled dashboard reachable only
-  through an explicitly secured, owned and tested admin route.
-- Change type: security-sensitive infrastructure/configuration feature with
-  architecture and documentation updates.
-- Affected process strand: admin-surface decision -> desired state/config ->
-  local tests -> explicit live/browser verification.
-- Affected architecture area: `infra/config/compose/traefik/`, domain ingress
-  models, compose rendering/adapters, TLS/secret references, arc42 ADR/runtime
-  and routing tests.
-- Explicit requirements: secure explicit route; existing TLS compatibility;
-  Linux/WSL-first operation; no insecure API, raw secrets or unsecured host
-  ports; no silent general frontend; preserve Service Access; no live success
-  claim before verification.
-- Implicit requirements: authentication and authorization must have a clear
-  owner; route must be manager/operator/diagnostic scoped; missing TLS/auth
-  evidence fails closed; rollback must remove the GUI route without weakening
-  existing services.
-- Assumptions: current canonical ADR is
-  `documentation/arc42/09_decisions/adr-traefik-https-ingress-existing-ca.adoc`
-  (the older path in the issue is stale); the existing desired-ingress model
-  and route tests remain the architecture entry points.
-- Non-goals: `--api.insecure=true`, raw secrets, open ports, general React
-  frontend, unrelated service-access redesign and live deployment by default.
-- Risks: dashboard route accidentally public, auth middleware not owned, TLS
-  secret name/value confusion, route collision or regression of Service Access.
-- Open questions: the exact route hostname/path, auth mechanism and exposure
-  boundary must be decided in S150-01 from #123/#126 and the ADR; they must not
-  be guessed in S150-02.
-- Blocking questions: none for authoring; implementation is blocked if S150-01
-  cannot produce an approved decision.
-- Confidence: 88%.
-- Decision: `PROCEED_WITH_ACCEPTED_ASSUMPTIONS` because implementation details
-  are intentionally delegated to the architecture gate.
+### Original request
+
+Create a workflow for GitHub Issue #252, with full access including an
+administrator PowerShell console.
+
+### Interpreted intent
+
+Author an executable, governance-compliant RC1 stabilization workflow for the
+Classic profile. It covers the complete lifecycle, inventories current tools
+and acceptance tests, decides canonical test ownership, executes explicit WSL2
+and native-Linux qualification scenarios only with live consent, collects
+redacted evidence, and makes the final RC1 decision from observed results.
+
+The PowerShell request is treated as an operator-environment request. It does
+not authorize privilege escalation, change the repository Linux/WSL-only model,
+or permit project commands through Windows Python or PowerShell path invocation.
+
+### Change type
+
+Release-qualification workflow with Python test/harness impact, live runtime
+validation, platform/deployment evidence, recovery checks, security-sensitive
+redaction, and release-governance consequences.
+
+### Affected process strand
+
+issue -> requirement matrix -> Three-Amigos decision -> asset inventory ->
+deterministic acceptance coverage -> local gates -> explicit live consent ->
+host/scenario evidence -> defect classification -> independent completion audit
+-> RC1 decision
+
+### Affected architecture area
+
+- Linux/WSL2 host classification and filesystem policy.
+- Managed Incus/LXC provider, manager/worker lifecycle and Docker readiness.
+- Docker Swarm bootstrap, routing, Service Access, secrets and artifacts.
+- Jenkins, Nexus, SonarQube, Pulsar, Swagger/OpenAPI and other current
+  Classic-profile services.
+- Existing Python hexagonal boundaries, workflow guards, reconcile/update
+  behavior and local evidence repositories.
+- tools/ diagnostics/runners versus assertion-heavy tests under tests/.
+- Live/browser evidence contract and Public Beta release decision.
+
+### Explicit requirements
+
+1. Qualify the current Classic profile as Public Beta RC1 only through repeatable
+   observed lifecycle evidence on current main.
+2. Preserve the Linux/WSL2 -> Incus/LXC -> Docker Engine -> Docker Swarm path;
+   Podman, Kubernetes and new orchestration abstractions are out of scope.
+3. Execute and evidence Fresh Install, post-install acceptance,
+   Re-run/Reconcile, post-reconcile acceptance, Update, post-update acceptance,
+   Failure/Recovery and the final RC1 decision.
+4. Keep executable utilities, diagnostics, recovery helpers and optional runners
+   in tools/; keep assertion-heavy acceptance tests under tests/.
+5. Inventory named tools/tests and classify every asset as REUSE_AS_IS,
+   EXTEND, MOVE_TO_TESTS, WRAP_IN_RC1_SCENARIO, REPLACE_WITH_REASON or
+   NOT_APPLICABLE.
+6. Reuse or migrate tests/integration/test_post_install_browser_live.py and
+   do not create a duplicate live-test framework.
+7. Create the Three-Amigos decision before live execution, including
+   environments, scenarios, required services, state transitions, evidence,
+   timeouts, stop conditions, defect severity and release decision.
+8. Derive the authoritative current Classic service list from current
+   configuration and classify every service RC1_REQUIRED, RC1_OPTIONAL or
+   NOT_IN_CLASSIC_PROFILE.
+9. Make required service, routing, secret, artifact, readiness, idempotence,
+   update, failure and recovery checks observable and redaction-safe.
+10. Do not treat blocked, degraded, partial, skipped, failed-to-apply or
+    failed-to-verify scenarios as RC1 success.
+11. Require complete redacted evidence and exactly one final decision:
+    RC1_ACCEPTED, RC1_REJECTED_BLOCKERS or RC1_REJECTED_EVIDENCE_INCOMPLETE.
+
+### Implicit requirements
+
+- Current main is the baseline; authoring and implementation use dedicated
+  branches/worktrees and never write to main.
+- Native Linux and WSL2 evidence are separate; one host cannot substitute for
+  the other.
+- A second run proves idempotence and absence of unintended destruction.
+- Update proves convergence while preserving unrelated healthy state.
+- Live phases stop dependents after a failed or unverifiable phase.
+- Raw secrets, tokens, credentials, full environment files, authorization
+  headers, private keys and unredacted host output never enter evidence.
+- LIVE_VERIFIED requires authorized execution plus complete redacted evidence.
+- Every blocker/major defect gets smallest-root-cause handling and regression
+  coverage; there is no blocker waiver.
+- Exact reconcile/update commands and one reversible update change are selected
+  by the Three-Amigos decision from current behavior, not guessed here.
+- Administrative host access is an external prerequisite, not granted by a
+  workflow document.
+
+### Assumptions
+
+- The GitHub Issue #252 body is the requirement source because no local EPIC
+  directly owns Classic RC1 qualification.
+- Current service membership is derived from current main configuration in
+  S252-01.
+- tests/live/test_post_install_browser_live.py and
+  tests/integration/test_post_install_browser_live.py are candidate assets;
+  S252-01/S252-02 decide which is canonical.
+- Existing live-run and green-path evidence contracts are reusable and remain
+  planned contracts until an authorized run produces evidence.
+- A disposable or recoverable target can be provided for each host class.
+
+### Non-goals
+
+- No Podman, Kubernetes, alternate runtime, new orchestration abstraction,
+  microservice extraction or broad refactor.
+- No Java, Maven, Spring Boot or Windows-native project behavior.
+- No administrator PowerShell privilege escalation or PowerShell project
+  execution.
+- No live commands during authoring.
+- No automatic host package installation, daemon repair, firewall/bridge change,
+  broad mount, privileged-profile change or silent reset.
+- No duplicate live-test framework or silent reduction of the scenario matrix.
+- No RC1 claim from static tests, planned commands, configuration or skipped
+  scenarios.
+- No raw secret/token/password/join-token or unredacted evidence storage.
+- No GitHub branch-protection mutation, PR merge, release tag or public-beta
+  claim during workflow authoring.
+
+### Risks
+
+- Current service membership or canonical commands may differ from historical
+  docs; S252-01 derives them from current configuration.
+- Live failures can leave partial state; ownership-safe cleanup and evidence
+  are mandatory.
+- WSL2 and native Linux can diverge in Incus, systemd, filesystem, networking
+  or resource behavior.
+- Fresh install can conceal reconcile, update, restart or recovery defects.
+- Browser/API checks can leak credentials unless summaries are redacted first.
+- Existing integration/live suites may overlap; duplication is a stop condition.
+- A branch or local quality pass is not live or external release evidence.
+
+### Open questions and execution blockers
+
+S252-01 must decide: current required/optional service membership; canonical
+test location; exact supported reconcile command; exact reversible update
+change; browser/API checks; target ownership, prerequisites and resource
+contracts. These are not authoring blockers, but execution cannot continue while
+any remains unresolved.
+
+Execution also stops for missing explicit live consent, missing host access or
+permissions, failed preflight, unsafe filesystem, missing credentials/reference,
+missing redaction/evidence path, unclear recovery ownership, or any architecture
+decision that would require bypassing fail-closed guards.
+
+### Confidence and decision
+
+Confidence: 91 percent.
+
+Decision: READY_FOR_WORKFLOW.
+
+The issue supplies a detailed objective, lifecycle, scenario list, non-goals and
+acceptance criteria. Remaining facts are intentionally derived from current
+repository behavior in the first execution slice and are not silently treated
+as implemented or live-verified.
 
 ## Target Picture
 
-```text
-Traefik dashboard enabled internally
+~~~text
+Current main + verified Classic config
           |
           v
-approved TLS + auth/authorization + operator boundary
+Requirement matrix + service inventory + Three-Amigos decision
           |
           v
-explicit HTTPS route, tested as desired state
+Canonical tests/tools with no duplication
           |
           v
-live/browser verification only with explicit consent and evidence
-```
+Local quality + static/pre-live diagnostics
+          |
+          v
+WSL2: fresh -> accept -> reconcile -> accept -> update -> accept
+          |
+          v
+Native Linux: fresh -> accept -> reconcile -> accept -> update -> accept
+          |
+          v
+Failure/recovery/restart + redacted evidence + defect regression
+          |
+          v
+Independent audit -> RC1_ACCEPTED or explicit rejection
+~~~
 
-## Verified Baseline and Scope
+## Verified Baseline
 
-Verified inputs include `infra/config/compose/traefik/docker-compose.yml`, the
-canonical Traefik HTTPS ADR, `src/tiny_swarm_world/domain/ingress/desired_state.py`,
-`src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py`,
-the ingress/domain tests, compose repository tests and routing integration
-contracts. The dashboard flag exists; an approved secure GUI route is not
-treated as implemented. Scope includes those config/model/adapter/test/docs
-surfaces only after S150-01 confirms the exact files. No live commands.
+- Worktree was clean on main; the dedicated authoring branch was created and
+  verified before workflow artifacts were regenerated.
+- QUALITY.md defines git diff --check and python3 tools/quality_gate.py quality.
+- tools/install_debugger.py, tools/preflight.py, tools/quality_gate.py and
+  tools/security_gate.py exist.
+- An opt-in live browser suite exists at
+  tests/live/test_post_install_browser_live.py and an integration suite exists
+  at tests/integration/test_post_install_browser_live.py; their canonical
+  relationship must be decided before adding coverage.
+- documentation/evidence/live-run-template.md,
+  documentation/evidence/live-greenpath-evidence-contract.md and the
+  verification-state policy define redaction, checksums, exact live states and
+  no-live-default semantics.
+- Arc42 and ADRs confirm Linux/WSL2-only operation, managed Incus/LXC,
+  Docker Swarm-first deployment, explicit live consent, fail-closed mutation,
+  verify-after-apply behavior, hexagonal boundaries and ignored local evidence.
+- No live, browser, credential, external-gate or RC1 evidence is inferred.
 
-## Architecture, Python, Frontend and Resilience Assessment
+## Scope
 
-- Architecture: keep Traefik as Deployment responsibility and preserve
-  hexagonal domain/application boundaries; use desired-state models and
-  infrastructure adapters rather than shell details in application code.
-- Python automation: likely affected if route/auth data is rendered or
-  validated; use existing ports/adapters, typed models, deterministic tests and
-  no constructor-time live calls.
-- Frontend: no React/browser frontend is authorized. The Traefik built-in
-  admin surface may receive a browser/live verification contract only.
-- Resilience: missing/invalid TLS or auth references, forbidden insecure mode,
-  route collision or incomplete readiness evidence fail closed; rollback means
-  the GUI route is absent while existing ingress/service-access paths remain
-  valid.
+In scope: the issue requirement matrix and Three-Amigos decision; current asset
+inventory and service classification; canonical acceptance-test placement;
+deterministic lifecycle/fail-closed/recovery tests; explicit WSL2 and native
+Linux pre-live, fresh, reconcile, update, failure/recovery/restart and
+service/browser/API runs; redacted scenario evidence; defect classification;
+independent completion audit; final RC1 decision; Arc42/ADR consistency review.
+
+Product architecture changes occur only when verified behavior requires them and
+only in the declared defect/fix scope. Workflow authoring itself does not
+change product runtime behavior.
+
+## Architecture Constraints
+
+- Preserve domain -> application -> infrastructure direction.
+- Keep command, filesystem, HTTP/browser, Docker, Incus, Swarm, YAML and
+  credential details in infrastructure adapters or test support.
+- Keep infrastructure wiring in src/tiny_swarm_world/infrastructure/composition.py
+  and keep __main__.py thin.
+- Preserve the lxc_native/Incus direction; no Multipass fallback.
+- Preserve explicit --live --approve-live or approved interactive consent for
+  non-interactive live mutation. Consent is per invocation and does not satisfy
+  reset/destroy confirmation.
+- Keep observed runtime evidence in ignored local state and serialize only
+  allowlisted redacted summaries.
+- Fail closed before mutation when host, filesystem, provider, credential,
+  resource, ownership or verification contracts are absent.
+- Verify after every mutating phase and stop dependents on failure.
+- Do not use PowerShell as the project execution environment.
+
+## Python Automation Assessment
+
+Expected work is acceptance coverage and evidence orchestration, not a new
+product service. Python changes must use existing ports/services/adapters, keep
+live execution out of constructors/import-time effects, use asyncio for
+asynchronous orchestration, use deterministic fixtures for local scenarios,
+preserve timeout/retry/redaction/cleanup/verify-after-apply contracts, and add
+focused tests before the full WSL/Linux quality gate.
+
+## Frontend Assessment
+
+No React or browser frontend implementation is authorized. Browser checks are
+conditional acceptance checks against existing service/admin surfaces. The
+Console/status UI reviewer is N/A for authoring because no terminal presentation
+change is requested; it becomes required if a slice changes progress/status
+output or terminal interaction.
+
+## Test Strategy
+
+S252-01 creates the stable matrix, service inventory and Three-Amigos decision
+before implementation or live execution. S252-02 selects exactly one canonical
+acceptance-test location. S252-03 covers deterministic prerequisite failure,
+partial state, reconcile, update, restart classification and redaction. Live
+checks use one approved host at a time, explicit consent, bounded retries,
+redacted evidence and serialized mutation. Final audit maps every requirement
+to implementation, verification and evidence.
+
+## Resilience Requirements
+
+Preflight is read-only and fail-closed. Apply phases are bounded, observable
+and followed by verification. Retries are explicit and bounded; destructive
+operations are not blindly retried. Reconcile reuses valid managed state,
+avoids duplicate state and avoids unintended destruction. Update preserves
+unrelated healthy state and retains rollback evidence. Ambiguous/corrupt state
+stops before mutation. Failure after mutation remains
+LIVE_FAILED_AFTER_MUTATION until repaired and re-verified.
+
+## Service and Runtime Contract
+
+S252-01 records one authoritative row for every configured Classic service:
+service_id, profile membership, RC1 classification, owner/boundary,
+endpoint/readiness contract, credential/reference requirement, evidence file,
+timeout, failure severity and dependent scenarios.
+
+At minimum review Service Access/routing, Infisical/secrets, Nexus/artifacts,
+Jenkins, SonarQube, Apache Pulsar/Pulsar Manager when configured,
+Swagger/OpenAPI, Portainer and every additional selected-profile service.
+Historical names are not silently treated as current.
+
+## Asset Inventory Contract
+
+The inventory covers at least tools/install_debugger.py, tools/preflight.py,
+tools/quality_gate.py, tools/security_gate.py, tools/live/** and
+tests/integration/test_post_install_browser_live.py. It also inspects
+tests/live/**, current integration tests, support fixtures and any existing
+e2e directory. Every asset receives one of the six issue classifications, a
+reason, owner, duplication risk, target scenarios and write scope.
+
+## Scenario Contract
+
+Every RC1 scenario record contains stable ID, host/environment, precondition,
+exact commands and consent mode, expected transition, assertions, required
+services, timeout, bounded retries, cleanup/rollback, evidence references,
+checksum status, defect severity and final verification-state classification.
+
+Required IDs:
+
+| ID | Scenario |
+|---|---|
+| RC1-S01 | Local baseline |
+| RC1-S02 | WSL2 pre-live diagnostics |
+| RC1-S03 | WSL2 fresh install |
+| RC1-S04 | Post-install browser/API/service acceptance |
+| RC1-S05 | WSL2 re-run/reconcile |
+| RC1-S06 | WSL2 update |
+| RC1-S07 | Missing prerequisite fail-closed |
+| RC1-S08 | Partial-state recovery |
+| RC1-S09 | Restart resilience |
+| RC1-S10 | Native Linux fresh install |
+| RC1-S11 | Native Linux reconcile |
+| RC1-S12 | Native Linux update |
 
 ## Ordered Slices
 
-### Slice 01 — Requirement matrix, threat model and architecture decision
+### Slice 01 — Requirement matrix, inventory and Three-Amigos gate
 
-```yaml
-slice_id: S150-01
-profile: SECURITY_ARCHITECTURE
-owner: Senior System Architect
-secondary_reviewers: [ISMS-light Security Governance Expert, OWASP ASVS Local Infrastructure Expert, Security And Threat Modeling, Senior Requirement Engineer, Senior Tester]
-affected_files: [.tiny-swarm/evidence/issue-150/requirement_matrix.md, documentation/arc42/09_decisions/adr-traefik-https-ingress-existing-ca.adoc, documentation/arc42/05_building_blocks.adoc, documentation/arc42/06_runtime_view.adoc]
-affected_modules: [Traefik ingress, admin surface, security governance]
-affected_contracts: [GUI route/auth/TLS decision, exposure boundary, rollback contract]
-dependencies: [S123-02, S126-02, S128-02]
-parallel_group: SERIAL-150
-file_locks: [.tiny-swarm/evidence/issue-150/requirement_matrix.md, documentation/arc42/09_decisions/adr-traefik-https-ingress-existing-ca.adoc]
-contract_locks: [traefik-admin-surface-contract, secure-route-contract]
-architecture_locks: [traefik-https-ingress, no-insecure-dashboard, service-access-preservation]
+Purpose: extract every issue requirement, derive the current Classic service
+contract, classify tools/tests, choose canonical test ownership and approve
+live scenario/evidence decisions before live execution.
+
+Prerequisites: verified authoring branch and clean baseline.
+
+Allowed write scope: .tiny-swarm/evidence/issue-252/,
+.tiny-swarm-world/evidence/classic-public-beta-rc1/ and the workflow-local
+requirement baseline. No product source, live state or host configuration.
+
+~~~yaml
+slice_id: S252-01
+profile: FULL_PATH
+owner: Senior Requirement Engineer
+secondary_reviewers: [Senior System Architect, Senior Python Automation Developer, Senior Tester, Live Evidence Validation Expert, Senior DevOps]
+affected_files: [.tiny-swarm/evidence/issue-252/requirement_matrix.md, .tiny-swarm-world/evidence/classic-public-beta-rc1/three-amigos.md, .tiny-swarm-world/evidence/classic-public-beta-rc1/service-inventory.yaml, documentation/workflow/requirement-matrix.md]
+affected_modules: [issue requirements, Classic service inventory, live scenario contract, evidence governance]
+affected_contracts: [requirement matrix, RC1 service classification, RC1-S01..RC1-S12, redaction contract, live consent contract]
+dependencies: []
+parallel_group: SERIAL-252-GATE
+file_locks: [.tiny-swarm/evidence/issue-252/, .tiny-swarm-world/evidence/classic-public-beta-rc1/, documentation/workflow/requirement-matrix.md]
+contract_locks: [issue-252-matrix, classic-service-inventory, three-amigos-live-decision]
+architecture_locks: [linux-wsl2-only, incus-lxc-provider, docker-swarm-first, explicit-live-consent, fail-closed-evidence]
 quality_gates:
   targeted: [git diff --check]
-  required: [python3 tools/quality_gate.py quality]
+  required: [git diff --check, python3 tools/quality_gate.py quality]
 documentation:
-  arc42: required; planned decision must not be written as implemented behavior
-  adr: required review; extend existing ADR or add a complementary ADR if needed
-stop_conditions: [auth/authorization ambiguity, route owner unclear, insecure exposure, secret value in evidence, missing rollback]
-```
+  arc42: reviewed; update only for verified architecture consequence
+  adr: reviewed; no new decision by assumption
+stop_conditions: [missing requirement row, unresolved service ownership, unknown canonical test owner, missing redaction contract, missing consent model, guessed command or update semantics]
+~~~
 
-Done: the matrix and reviewed ADR decision fix route, auth, authorization,
-TLS, exposure, ownership, rollback and verification semantics.
+Done: every issue sentence, bullet, path, command, service, scenario and
+acceptance criterion has a stable matrix ID; every service is classified
+exactly once; every named asset has one owner/classification; and the
+Three-Amigos record is complete. No live command runs in this slice.
 
-### Slice 02 — Desired-state/configuration implementation and regression tests
+### Slice 02 — Canonical test layout and tool/test separation
 
-```yaml
-slice_id: S150-02
+Purpose: implement the inventory decision. Keep tools as utilities,
+diagnostics, recovery helpers or thin optional runners; keep assertions under
+the selected tests/ location.
+
+Prerequisites: S252-01 PASS and canonical location recorded.
+
+Allowed write scope: named tool files, tools/live/, tests/live/,
+tests/integration/, tests/e2e/classic/, tests/support/ and directly required
+test documentation. Do not create a second framework.
+
+~~~yaml
+slice_id: S252-02
 profile: FULL_PATH
 owner: Senior Python Automation Developer
-secondary_reviewers: [Senior System Architect, Security And Threat Modeling, Senior Tester, Senior DevOps]
-affected_files: [infra/config/compose/traefik/docker-compose.yml, infra/config/compose/traefik/dynamic/tls.yml, src/tiny_swarm_world/domain/ingress/desired_state.py, src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py, tests/domain/ingress/test_desired_state.py, tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py, tests/integration/test_optional_service_routing.py]
-affected_modules: [Traefik compose config, ingress desired state, compose renderer, routing tests]
-affected_contracts: [secure GUI route, auth/TLS secret references, no-insecure invariant, existing route contracts]
-dependencies: [S150-01]
-parallel_group: SERIAL-150
-file_locks: [infra/config/compose/traefik/, src/tiny_swarm_world/domain/ingress/, src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py]
-contract_locks: [traefik-config-contract, ingress-rendering-contract]
-architecture_locks: [domain-no-infrastructure-imports, secure-admin-route]
+secondary_reviewers: [Senior Tester, Senior System Architect, Senior Documentation Engineer]
+affected_files: [tools/install_debugger.py, tools/preflight.py, tools/quality_gate.py, tools/security_gate.py, tools/live/, tests/live/test_post_install_browser_live.py, tests/integration/test_post_install_browser_live.py, tests/e2e/classic/, tests/support/]
+affected_modules: [diagnostics, static preflight, quality/security utilities, live runner, Classic acceptance tests]
+affected_contracts: [tool/test boundary, canonical browser suite, no-duplication contract]
+dependencies: [S252-01]
+parallel_group: SERIAL-252-TEST-BASE
+file_locks: [tools/, tests/live/, tests/integration/, tests/e2e/classic/, tests/support/]
+contract_locks: [canonical-classic-test-layout, existing-live-suite-reuse]
+architecture_locks: [tools-not-test-assertions, tests-no-live-mutation-by-default]
 quality_gates:
-  targeted: [PYTHONPATH=src python3 -m unittest tests.domain.ingress.test_desired_state tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml, PYTHONPATH=src python3 -m unittest tests.integration.test_optional_service_routing]
+  targeted: [git diff --check, python3 tools/quality_gate.py lint, python3 tools/quality_gate.py test]
   required: [python3 tools/quality_gate.py quality]
 documentation:
-  arc42: update only after verified config/model behavior
-  adr: implementation must match S150-01 decision
-stop_conditions: [api.insecure, raw credential, route collision, existing service-access regression, live command in tests, secret value persistence]
-```
+  arc42: no update unless source behavior changes
+  adr: none
+stop_conditions: [duplicate live framework, assertion-heavy logic left in tools without reason, unreviewed relocation, live mutation in default tests]
+~~~
 
-Done: desired state and configuration produce only the approved secure path;
-forbidden mode, missing references, route collisions and existing routes are
-covered by deterministic tests; full local quality passes or has an explicit
-blocker recorded.
+Done: inventory classifications are reflected, one canonical post-install
+browser/API suite exists, any migration preserves coverage and removes the
+duplicate path, thin runners only resolve options/environment, and default
+tests remain non-mutating.
 
-### Slice 03 — Evidence contract, docs and explicit live handoff
+### Slice 03 — Deterministic lifecycle, fail-closed and recovery coverage
 
-```yaml
-slice_id: S150-03
+Purpose: add or extend mocked/static tests for prerequisite failure, partial
+state, ownership, idempotent reconcile, safe update, restart classification,
+redaction and evidence completeness.
+
+Prerequisites: S252-02 PASS. No live commands.
+
+~~~yaml
+slice_id: S252-03
 profile: FULL_PATH
 owner: Senior Tester
-secondary_reviewers: [Live Evidence Validation Expert, Senior Documentation Engineer, Senior System Architect, Issue Completion Auditor]
-affected_files: [documentation/arc42/05_building_blocks.adoc, documentation/arc42/06_runtime_view.adoc, documentation/evidence/live-greenpath-evidence-contract.md, .tiny-swarm/evidence/issue-150/implementation_summary.md, .tiny-swarm/evidence/issue-150/test_results.md, .tiny-swarm/evidence/issue-150/acceptance_checklist.md]
-affected_modules: [Traefik evidence and documentation]
-affected_contracts: [no-live-default, browser/live verification state, issue evidence]
-dependencies: [S150-02]
-parallel_group: SERIAL-150-FINAL
-file_locks: [documentation/arc42/05_building_blocks.adoc, documentation/arc42/06_runtime_view.adoc, .tiny-swarm/evidence/issue-150/]
-contract_locks: [live-admin-surface-evidence]
-architecture_locks: [verified-vs-planned-documentation]
+secondary_reviewers: [Senior Python Automation Developer, Senior System Architect, Live Evidence Validation Expert]
+affected_files: [tests/e2e/classic/, tests/live/, tests/integration/, tests/support/, documentation/evidence/]
+affected_modules: [acceptance assertions, failure/recovery fixtures, evidence validation]
+affected_contracts: [fail-closed state, reconcile idempotence, update preservation, evidence redaction]
+dependencies: [S252-02]
+parallel_group: SERIAL-252-TEST-COVERAGE
+file_locks: [tests/e2e/classic/, tests/live/, tests/integration/, tests/support/, documentation/evidence/]
+contract_locks: [scenario-record-schema, evidence-redaction-schema, lifecycle-state-classification]
+architecture_locks: [default-tests-no-live-mutation, observed-vs-static-evidence]
+quality_gates:
+  targeted: [python3 tools/quality_gate.py test, python3 tools/quality_gate.py arch-tests, git diff --check]
+  required: [python3 tools/quality_gate.py quality]
+documentation:
+  arc42: update only for verified runtime contract change
+  adr: none unless a safety decision is required
+stop_conditions: [test requires live infrastructure by default, missing negative assertion, evidence accepts raw secret, idempotence inferred without state comparison]
+~~~
+
+Done: representative missing prerequisites fail early; partial/ambiguous state
+fails closed; reconcile proves no duplicate/destructive drift; update proves
+preservation; restart/evidence/redaction and exact RC1 states are testable.
+
+### Slice 04 — WSL2 diagnostics and fresh install
+
+Purpose: execute RC1-S02 and RC1-S03 on an approved disposable/recoverable
+WSL2 target after explicit consent.
+
+Prerequisites: S252-03 PASS; Three-Amigos PASS; explicit consent; WSL2,
+systemd, filesystem, Incus and resource prerequisites; target ownership;
+redaction and cleanup plan.
+
+Commands are executed from WSL/Linux, never Windows PowerShell:
+
+~~~bash
+python3 tools/install_debugger.py --live
+# Explicit operator consent is required for this mutating command.
+./install.sh --headless --confirm-reset --non-interactive-live-approval
+~~~
+
+The second command is mutating and is never run automatically by workflow
+authoring or by a default quality gate.
+
+~~~yaml
+slice_id: S252-04
+profile: FULL_PATH
+owner: Senior DevOps
+secondary_reviewers: [Senior Python Automation Developer, Senior System Architect, Senior Tester, Live Evidence Validation Expert]
+affected_files: [.tiny-swarm-world/evidence/classic-public-beta-rc1/wsl2/RC1-S02/, .tiny-swarm-world/evidence/classic-public-beta-rc1/wsl2/RC1-S03/]
+affected_modules: [WSL2 diagnostics, Incus/LXC, Docker Engine, Swarm, routing, secrets, artifacts, services]
+affected_contracts: [WSL2 consent, fresh-install phase order, redacted evidence, cleanup/rollback]
+dependencies: [S252-03]
+parallel_group: SERIAL-252-LIVE-WSL2
+file_locks: [.tiny-swarm-world/evidence/classic-public-beta-rc1/wsl2/]
+contract_locks: [live-run-template, live-greenpath-evidence-contract, wsl2-fresh-install]
+architecture_locks: [explicit-live-consent, lxc-native-only, verify-after-apply, no-raw-secrets]
+quality_gates:
+  targeted: [python3 tools/install_debugger.py, python3 tools/preflight.py]
+  required: [python3 tools/quality_gate.py quality]
+documentation:
+  arc42: no update from evidence alone
+  adr: none
+stop_conditions: [missing-consent, missing-prerequisite, unsupported-host, unsafe-filesystem, ownership-mismatch, unredacted-output, failed-preflight, mutation-without-verification]
+~~~
+
+Done: WSL2 diagnostics and the full phase sequence are recorded; topology,
+Docker, Swarm, required services, routing and evidence are observed or the
+exact blocker state is recorded. No LIVE_VERIFIED claim exists without a
+complete redacted bundle.
+
+### Slice 05 — WSL2 post-install acceptance and reconcile
+
+Purpose: execute RC1-S04 and RC1-S05 on the controlled WSL2 installation.
+
+Prerequisites: S252-04 result, canonical suite, service inventory, explicit
+consent for re-run/browser/API checks.
+
+~~~yaml
+slice_id: S252-05
+profile: FULL_PATH
+owner: Senior Tester
+secondary_reviewers: [Senior DevOps, Senior Python Automation Developer, Live Evidence Validation Expert, Senior System Architect]
+affected_files: [.tiny-swarm-world/evidence/classic-public-beta-rc1/wsl2/RC1-S04/, .tiny-swarm-world/evidence/classic-public-beta-rc1/wsl2/RC1-S05/]
+affected_modules: [post-install service acceptance, browser/API checks, reconcile]
+affected_contracts: [canonical browser suite, service readiness, idempotent rerun, no-drift evidence]
+dependencies: [S252-04]
+parallel_group: SERIAL-252-LIVE-WSL2
+file_locks: [.tiny-swarm-world/evidence/classic-public-beta-rc1/wsl2/]
+contract_locks: [service-acceptance, reconcile, redaction]
+architecture_locks: [service-boundary-ownership, observed-readiness, no-duplicate-state]
+quality_gates:
+  targeted: [python3 tools/quality_gate.py test]
+  required: [python3 tools/quality_gate.py quality]
+documentation:
+  arc42: no update unless verified behavior changes architecture
+  adr: none
+stop_conditions: [missing-required-service, credential-leak, duplicate-suite-execution, drift, unintended-destruction, partial-evidence]
+~~~
+
+Done: every required service is checked; browser/API output is summarized and
+redacted; the exact current reconcile command is recorded; the second run
+proves no duplicate nodes/stacks, no unintended destruction, preserved
+routes/secrets/services and converged verification.
+
+### Slice 06 — WSL2 update and post-update acceptance
+
+Purpose: execute RC1-S06 with one safe, reversible, Three-Amigos-approved
+change on healthy WSL2 state.
+
+~~~yaml
+slice_id: S252-06
+profile: FULL_PATH
+owner: Senior DevOps
+secondary_reviewers: [Senior Python Automation Developer, Senior Tester, Senior System Architect, Live Evidence Validation Expert]
+affected_files: [.tiny-swarm-world/evidence/classic-public-beta-rc1/wsl2/RC1-S06/]
+affected_modules: [update/reconcile workflow, service readiness, rollback]
+affected_contracts: [safe-update, preservation, rollback-evidence]
+dependencies: [S252-05]
+parallel_group: SERIAL-252-LIVE-WSL2
+file_locks: [.tiny-swarm-world/evidence/classic-public-beta-rc1/wsl2/]
+contract_locks: [update-contract, rollback-contract]
+architecture_locks: [non-destructive-reconcile, verify-after-apply]
+quality_gates:
+  targeted: [python3 tools/quality_gate.py test]
+  required: [python3 tools/quality_gate.py quality]
+documentation:
+  arc42: no update unless verified deployment/runtime behavior changes
+  adr: no new policy without architecture review
+stop_conditions: [unsafe-change, missing-rollback, unrelated-state-loss, failed-readiness, unverified-update, secret-exposure]
+~~~
+
+Done: exact update command/change is recorded; selected change converges;
+unrelated healthy state remains valid; post-update acceptance and cleanup/
+rollback evidence are complete.
+
+### Slice 07 — WSL2 failure, recovery and restart resilience
+
+Purpose: execute RC1-S07, RC1-S08 and RC1-S09 where safe; otherwise record the
+exact non-passed state.
+
+~~~yaml
+slice_id: S252-07
+profile: FULL_PATH
+owner: Senior DevOps
+secondary_reviewers: [Senior Tester, Senior Python Automation Developer, Senior System Architect, Live Evidence Validation Expert]
+affected_files: [.tiny-swarm-world/evidence/classic-public-beta-rc1/wsl2/RC1-S07/, .tiny-swarm-world/evidence/classic-public-beta-rc1/wsl2/RC1-S08/, .tiny-swarm-world/evidence/classic-public-beta-rc1/wsl2/RC1-S09/]
+affected_modules: [fail-closed preflight, partial-state recovery, restart resilience, diagnostics]
+affected_contracts: [failure-state, recovery, restart, cleanup]
+dependencies: [S252-06]
+parallel_group: SERIAL-252-LIVE-WSL2-RECOVERY
+file_locks: [.tiny-swarm-world/evidence/classic-public-beta-rc1/wsl2/]
+contract_locks: [fail-closed-contract, recovery-contract, restart-evidence]
+architecture_locks: [ownership-scoped-cleanup, no-unsafe-repair, live-state-classification]
+quality_gates:
+  targeted: [python3 tools/quality_gate.py test]
+  required: [python3 tools/quality_gate.py quality]
+documentation:
+  arc42: update only after verified recovery/runtime behavior
+  adr: required if a new safety decision is proposed
+stop_conditions: [failure-after-mutation-without-recovery, ambiguous-state-repair, restart-not-safe, cleanup-unclear, evidence-incomplete]
+~~~
+
+Done: prerequisite failures stop before unsafe mutation; controlled partial
+state reuses valid state or fails closed; restart evidence covers Incus,
+nodes, Docker, Swarm, routing and required services; defects receive severity
+and regression disposition.
+
+### Slice 08 — Native Linux fresh install and acceptance
+
+Purpose: execute RC1-S10 and native-Linux post-install acceptance on a separate
+native-Linux target. WSL2 evidence cannot substitute.
+
+~~~yaml
+slice_id: S252-08
+profile: FULL_PATH
+owner: Senior DevOps
+secondary_reviewers: [Senior Python Automation Developer, Senior Tester, Senior System Architect, Live Evidence Validation Expert]
+affected_files: [.tiny-swarm-world/evidence/classic-public-beta-rc1/native_linux/RC1-S10/, .tiny-swarm-world/evidence/classic-public-beta-rc1/native_linux/RC1-S04/]
+affected_modules: [native Linux host, Incus/LXC, Docker, Swarm, services and acceptance]
+affected_contracts: [native-linux-fresh-install, service-acceptance, redacted-evidence]
+dependencies: [S252-03]
+parallel_group: SERIAL-252-LIVE-NATIVE
+file_locks: [.tiny-swarm-world/evidence/classic-public-beta-rc1/native_linux/]
+contract_locks: [native-linux-live, service-acceptance]
+architecture_locks: [native-linux-supported-target, lxc-native-only, explicit-live-consent]
+quality_gates:
+  targeted: [python3 tools/install_debugger.py, python3 tools/preflight.py, python3 tools/quality_gate.py test]
+  required: [python3 tools/quality_gate.py quality]
+documentation:
+  arc42: no update from runtime evidence alone
+  adr: none
+stop_conditions: [missing-consent, missing-prerequisite, unsupported-target, failed-preflight, mutation-without-verification, unredacted-evidence]
+~~~
+
+Done: native fresh install follows canonical phases and independently
+evidences required services, routing, secrets, artifacts, readiness and
+acceptance.
+
+### Slice 09 — Native Linux reconcile and acceptance
+
+Purpose: execute RC1-S11 on healthy native-Linux state.
+
+~~~yaml
+slice_id: S252-09
+profile: FULL_PATH
+owner: Senior Tester
+secondary_reviewers: [Senior DevOps, Senior Python Automation Developer, Live Evidence Validation Expert, Senior System Architect]
+affected_files: [.tiny-swarm-world/evidence/classic-public-beta-rc1/native_linux/RC1-S11/]
+affected_modules: [native Linux reconcile, service/browser/API acceptance]
+affected_contracts: [native-reconcile, service-readiness, no-drift-evidence]
+dependencies: [S252-08]
+parallel_group: SERIAL-252-LIVE-NATIVE
+file_locks: [.tiny-swarm-world/evidence/classic-public-beta-rc1/native_linux/]
+contract_locks: [reconcile-contract, service-acceptance]
+architecture_locks: [idempotent-reconcile, observed-state-only]
+quality_gates:
+  targeted: [python3 tools/quality_gate.py test]
+  required: [python3 tools/quality_gate.py quality]
+documentation:
+  arc42: no update unless verified behavior changes runtime/deployment
+  adr: none
+stop_conditions: [duplicate-state, unintended-destruction, service-regression, missing-evidence, credential-leak]
+~~~
+
+Done: re-run preserves healthy state, routes, secrets and services; no
+duplicates or unintended destruction; required acceptance is rerun and
+independently evidenced.
+
+### Slice 10 — Native Linux update and acceptance
+
+Purpose: execute RC1-S12 with the same approved safe/reversible update contract.
+
+~~~yaml
+slice_id: S252-10
+profile: FULL_PATH
+owner: Senior DevOps
+secondary_reviewers: [Senior Python Automation Developer, Senior Tester, Senior System Architect, Live Evidence Validation Expert]
+affected_files: [.tiny-swarm-world/evidence/classic-public-beta-rc1/native_linux/RC1-S12/]
+affected_modules: [native Linux update, service readiness, rollback]
+affected_contracts: [native-update, preservation, rollback-evidence]
+dependencies: [S252-09]
+parallel_group: SERIAL-252-LIVE-NATIVE
+file_locks: [.tiny-swarm-world/evidence/classic-public-beta-rc1/native_linux/]
+contract_locks: [update-contract, rollback-contract]
+architecture_locks: [non-destructive-update, verify-after-apply]
+quality_gates:
+  targeted: [python3 tools/quality_gate.py test]
+  required: [python3 tools/quality_gate.py quality]
+documentation:
+  arc42: no update unless verified deployment/runtime behavior changes
+  adr: none unless new safety decision is required
+stop_conditions: [unsafe-change, missing-rollback, unrelated-state-loss, failed-readiness, unverified-update, evidence-incomplete]
+~~~
+
+Done: selected change converges; unrelated healthy state remains valid;
+post-update acceptance is complete and redacted; update failure remains an
+explicit blocker/rejection.
+
+### Slice 11 — Defect classification, fixes and dependent reruns
+
+Purpose: consolidate defects, classify them RC1_BLOCKER, RC1_MAJOR,
+RC1_MINOR or RC1_OBSERVATION, add regression coverage for actionable defects
+and rerun failed/dependent scenarios.
+
+Prerequisites: S04-S10 evidence and test results. No unrelated refactor.
+
+~~~yaml
+slice_id: S252-11
+profile: FULL_PATH
+owner: Senior Python Automation Developer
+secondary_reviewers: [Senior Tester, Senior System Architect, Senior Requirement Engineer, Senior DevOps, Live Evidence Validation Expert]
+affected_files: [.tiny-swarm-world/evidence/classic-public-beta-rc1/defects/, tests/e2e/classic/, tests/live/, tests/integration/, tests/support/]
+affected_modules: [defect fixes, regression tests, scenario reruns, evidence consolidation]
+affected_contracts: [RC1 defect policy, regression evidence, rerun dependency map]
+dependencies: [S252-07, S252-10]
+parallel_group: SERIAL-252-REMEDIATION
+file_locks: [.tiny-swarm-world/evidence/classic-public-beta-rc1/defects/, tests/e2e/classic/, tests/live/, tests/integration/, tests/support/]
+contract_locks: [defect-severity, regression-evidence, rerun-contract]
+architecture_locks: [smallest-root-cause-fix, no-guard-weakening, hexagonal-boundaries]
+quality_gates:
+  targeted: [python3 tools/quality_gate.py test, python3 tools/quality_gate.py typecheck, git diff --check]
+  required: [python3 tools/quality_gate.py quality]
+documentation:
+  arc42: update only for verified architecture/runtime consequences
+  adr: required before changing accepted safety boundary
+stop_conditions: [unowned-defect, blocker-waiver, unrelated-refactor, guard-weakening, missing-regression-test, failed-dependent-rerun, unresolved-live-failure]
+~~~
+
+Done: every discovery links to evidence; every blocker/major fix has regression
+coverage or remains an explicit blocker; dependent scenarios rerun; no failure
+is hidden. A fix needing new architecture or outside ownership stops BLOCKED.
+
+### Slice 12 — Evidence audit and final RC1 decision
+
+Purpose: independently audit matrix, service/asset inventories, local quality,
+host/scenario bundles, defects/reruns, redaction/checksums and final decision.
+
+~~~yaml
+slice_id: S252-12
+profile: FULL_PATH
+owner: Issue Completion Auditor
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Senior Tester, Live Evidence Validation Expert, Release Baseline Governance Expert]
+affected_files: [.tiny-swarm/evidence/issue-252/, .tiny-swarm-world/evidence/classic-public-beta-rc1/, documentation/arc42/]
+affected_modules: [issue completion, release qualification, evidence audit, architecture synchronization]
+affected_contracts: [issue-completion-discipline, live-state-policy, RC1-final-decision]
+dependencies: [S252-11]
+parallel_group: SERIAL-252-FINAL
+file_locks: [.tiny-swarm/evidence/issue-252/, .tiny-swarm-world/evidence/classic-public-beta-rc1/, documentation/arc42/]
+contract_locks: [requirement-to-evidence, final-rc1-decision]
+architecture_locks: [planned-vs-implemented, observed-vs-inferred, arc42-consistency]
 quality_gates:
   targeted: [git diff --check, python3 tools/quality_gate.py quality]
   required: [python3 tools/quality_gate.py quality]
 documentation:
-  arc42: required and evidence-backed
-  adr: record final decision reference
-stop_conditions: [live success inferred from static tests, missing redaction, missing evidence is not live verified, arc42 overclaim]
-```
+  arc42: required review; update only from verified behavior or explicit ADR
+  adr: review affected decisions; do not rewrite history
+stop_conditions:
+  - open-requirement
+  - missing-evidence
+  - unverifiable-live-success
+  - raw-secret
+  - missing-review
+  - inconsistent-arc42
+  - external-gate-overclaim
+~~~
 
-Done: docs describe the implemented route, local evidence is complete, live and
-browser verification are clearly marked not run unless explicitly authorized,
-and the independent auditor reviews the full matrix.
+Done: all issue evidence files exist; every requirement maps to implementation
+and verification evidence; every required scenario has host-specific redacted
+evidence; exact final decision and four independent reviews are recorded.
 
 ## Dependency Graph
 
-`S123-02 -> S128-02 -> S126-02 -> S150-01 -> S150-02 -> S150-03`
+~~~text
+S252-01 -> S252-02 -> S252-03
+                       | \
+                       |  -> S252-04 -> S252-05 -> S252-06 -> S252-07
+                       |
+                       -> S252-08 -> S252-09 -> S252-10
+
+S252-07 and S252-10 -> S252-11 -> S252-12
+~~~
+
+The host tracks are logically independent only after S252-03, but live
+validation remains serialized because targets, credentials, ports, state,
+evidence semantics and operator decisions are not assumed isolated.
 
 ## Parallel Execution
 
-No implementation parallelism. All slices share security/route contracts and
-the admin-surface ADR. Isolated worktree required; any live/browser validation
-is serialized and separately consented. Conflicts: ingress, Traefik, security,
-Service Access and routing workflows. Merge strictly in order.
+- Can this workflow run in parallel? Only limited read-only/local review.
+- Conflicting workflows: any workflow changing Classic commands, provider
+  lifecycle, Docker/Swarm setup, routing, secrets, artifacts, service stacks,
+  live evidence or release governance.
+- Shared files: selected Python/configuration surfaces, tools/, tests/,
+  documentation/evidence/, documentation/arc42/, requirement/evidence paths
+  and runtime targets.
+- Shared infrastructure: Incus, managed nodes, Docker Engine/Swarm, ports,
+  routes, services, credentials, browser endpoints and evidence roots.
+- Requires isolated worktree: yes, for authoring and every implementation
+  stream.
+- Requires serialized live validation: yes, one approved target/run at a time.
+- Merge order: S252-01 -> S252-02 -> S252-03; host tracks then S252-11;
+  S252-12 is last.
+- No parallel live run shares ports, state, credentials or evidence paths.
+- Overlapping locks, unclear ownership, contradictory requirements, unsafe
+  recovery or unstable contracts force serial execution or a stop.
 
 ## Automatic Work Distribution Policy
 
-Analyze each slice across backend, runtime, tests, documentation, quality,
-architecture and security. Use real subagents or documented fallback; create
-distribution/consolidation evidence. Frontend stream is not applicable. Do not
-parallelize route/auth/secret/ADR decisions or overlapping compose/model files.
+workflow execute automatically analyzes every slice for safe specialist stream
+decomposition across backend, frontend, tests, runtime, documentation, quality,
+architecture and security.
+
+It uses real Codex subagents where supported. If unavailable or not visible,
+it performs explicit role-based fallback review in the main thread and records
+.codex/evidence/slice-<number>-distribution.md before implementation. After
+each implemented slice it records .codex/evidence/slice-<number>-consolidation.md.
+Codex remains final integration owner for consolidation, tests, evidence,
+publication readiness and the RC1 handoff.
+
+Stream map: backend/Python -> Senior Python Automation Developer; frontend ->
+N/A; tests -> Senior Tester; runtime/live -> Senior DevOps and Live Evidence
+Validation; documentation/arc42 -> Senior Documentation Engineer and
+Requirement Lead; quality -> Senior Tester/quality-gate owner; architecture ->
+Senior System Architect; security/redaction -> Live Evidence Validation and
+security governance; release/completion -> Release Baseline Governance and
+Issue Completion Auditor.
+
+Do not parallelize overlapping files, unclear architecture, contradictory
+requirements, mandatory ordering, shared migrations, generated-file conflicts,
+unclear secrets, weakened safety guards, a Three-Amigos not-safe decision,
+shared live infrastructure or live validation without isolated resources.
 
 ## Git Worktree Execution Rule
 
-Use isolated worktree `feature/issue-150-secure-traefik-gui-20260812`. No worker
-may run compose, Swarm or live browser commands by default. Codex owns
-consolidation, final tests and evidence.
+Every implementation uses a dedicated issue worktree and the planned branch
+release/classic-public-beta-rc1-stabilization, after verifying that the branch
+is not shared or conflicting. If it exists, verify ownership/base; otherwise
+create it from approved current-main baseline.
+
+Workers verify active branch/worktree and locks before writing. No worker
+implements on main, master, develop or another shared branch. Workers do not
+merge directly; Codex consolidates accepted results after evidence and gates.
+
+Live validation is serialized. Execution stops before live mutation when
+consent, target ownership, prerequisites, evidence path, redaction and rollback
+are not verified.
 
 ## Issue Completion Discipline
 
-- Requirement matrix path: `.tiny-swarm/evidence/issue-150/requirement_matrix.md`.
-- Required evidence path: `.tiny-swarm/evidence/issue-150/`.
-- Required evidence files: matrix, implementation summary, changed files,
-  test results, remaining risks and acceptance checklist.
-- Requirement Lead review: S150-01 and final.
-- System Architect Reviewer review: all slices and final.
-- Test / Evidence Reviewer review: S150-02/S150-03 and final.
-- Issue Completion Auditor review: required before `DONE`.
-- DONE blocking rule: any open security, route, test or evidence requirement
-  forces `INCOMPLETE`, `BLOCKED` or `FAILED`.
+- Requirement matrix path: .tiny-swarm/evidence/issue-252/requirement_matrix.md
+- Required evidence path: .tiny-swarm/evidence/issue-252/
+- Required evidence files: requirement_matrix.md, implementation_summary.md,
+  changed_files.md, test_results.md, remaining_risks.md and
+  acceptance_checklist.md
+- Live evidence path:
+  .tiny-swarm-world/evidence/classic-public-beta-rc1/<host>/<scenario>/
+- Requirement Lead review: S252-01 and S252-12
+- System Architect Reviewer: S252-01, every fix slice and S252-12
+- Test/Evidence Reviewer: S252-02, S252-03, every scenario and S252-12
+- Issue Completion Auditor: S252-12, independent of implementer
+- DONE blocking rule: any open/unverified requirement, missing evidence,
+  missing redaction/checksum, failed/unverified scenario, ambiguous service
+  inventory or unresolved architecture/security blocker forces INCOMPLETE,
+  BLOCKED or FAILED, never DONE.
 
-## Quality, Documentation and Handoff
+## Quality-Gate Expectations
 
-Run targeted tests first, then `python3 tools/quality_gate.py quality` and
-`git diff --check` inside WSL/Linux. Never claim live/browser/Sonar success from
-local checks. Handoff to #124 includes final route/auth/TLS requirement IDs,
-changed files and tests. Handoff to #125 includes required live evidence fields.
+Authoritative commands from QUALITY.md:
 
-Definition of Done: approved secure route is implemented and tested, insecure
-mode and secret exposure are impossible in the declared surface, Service Access
-is preserved, docs/evidence are synchronized and the auditor returns `PASS`.
+~~~bash
+git diff --check
+python3 tools/quality_gate.py lint
+python3 tools/quality_gate.py arch-tests
+python3 tools/quality_gate.py typecheck
+python3 tools/quality_gate.py test
+python3 tools/quality_gate.py quality
+~~~
 
-Arc42 Check Status: existing Traefik HTTPS ADR, building blocks and runtime
-view reviewed; update only from verified S150-02 behavior.
+Run Python commands from Linux/WSL with POSIX paths. Local green is local
+evidence only, never live/browser/SonarQube evidence. Live and external states
+follow documentation/process/verification-state-policy.md.
 
-## Scope
+## Documentation Synchronization
 
-Only the approved Traefik dashboard route, auth/TLS desired state, associated
-tests, ADR/arc42 updates and evidence handoff are in scope.
+Arc42 introduction/goals, constraints, solution strategy, building blocks,
+runtime, deployment, quality and risk sections plus the explicit-live-consent
+and LXC-native-provider ADRs were reviewed. No Arc42/ADR change is claimed by
+this authoring turn because the workflow validates existing behavior and does
+not decide a new architecture. Verified drift during execution requires a
+reviewed documentation/ADR slice before RC1.
 
-## Target Outcome
+## Stop Conditions
 
-An operator-scoped HTTPS GUI route exists with approved authentication and
-authorization, no insecure mode or raw secret, preserved Service Access and
-explicitly classified live/browser evidence.
+Stop rather than guess when repository/branch/baseline cannot be verified;
+matrix is incomplete; service list or test ownership is ambiguous; target,
+permissions, prerequisites, credentials, resource contract, consent, evidence,
+redaction or rollback is missing; host behavior is inferred across classes;
+mutation occurs without explicit consent; reset/destroy scope is unclear;
+command/update semantics are unverified; raw output is persisted; tests
+duplicate coverage; post-mutation recovery is incomplete; architecture or
+ownership is unclear; quality gates fail without classification; required
+external status is unavailable for a claim; or an open requirement is hidden.
 
-## Architecture Constraints
+## Definition of Done
 
-Traefik remains a deployment concern; domain models stay technology-neutral;
-application services depend on ports; existing ingress/TLS/consent boundaries
-and Service Access contracts remain intact.
+The independent auditor confirms:
 
-## Python Automation Assessment
+1. Matrix and all issue bullets/paths/commands are traced.
+2. Tool/test inventory and canonical test ownership are recorded.
+3. Deterministic lifecycle, fail-closed, recovery and redaction tests pass.
+4. WSL2 and native Linux Fresh/Reconcile/Update execute when required with
+   host-specific redacted evidence.
+5. Every RC1_REQUIRED service passes required service/browser/API acceptance.
+6. Failure/recovery/restart scenarios pass or are explicitly non-passed; none
+   is silently skipped.
+7. Every blocker/major defect has regression coverage and dependent reruns.
+8. Full local quality is green and external status is reported honestly.
+9. Final decision is exactly RC1_ACCEPTED, RC1_REJECTED_BLOCKERS or
+   RC1_REJECTED_EVIDENCE_INCOMPLETE.
+10. Evidence is complete, redacted, checksummed and independently reviewed.
+11. Arc42/ADR references match verified behavior.
 
-Potentially affected in desired-state validation/rendering. Any implementation
-must use typed models/adapters, deterministic tests, no import-time/live side
-effects and the full WSL/Linux quality gate.
-
-## Frontend Assessment
-
-No React frontend. Browser verification is a conditional live-evidence check of
-the Traefik admin surface, not a frontend build task.
-
-## Test Strategy
-
-Run focused ingress desired-state, compose repository and routing tests, then
-`python3 tools/quality_gate.py quality`, `git diff --check` and only separately
-authorized browser/live checks.
-
-## Resilience Requirements
-
-Missing auth/TLS references, insecure flags, collisions or failed readiness
-fail closed; rollback removes only the GUI route and preserves existing service
-routes. Reconcile/update behavior must be represented in later live evidence.
-
-## Role and Ownership Map
-
-Architect owns S150-01/ADR; Python Automation owns desired state/rendering;
-Security/ASVS/Threat Modeling own exposure/auth review; Tester owns regression
-and evidence; DevOps reviews deployment safety; Auditor decides completion.
+RC1 acceptance is impossible with an open, blocked, partial, degraded, skipped,
+failed-to-apply or failed-to-verify required scenario.
 
 ## Commit and Push Plan
 
-One issue-scoped implementation commit per slice on the feature branch after
-targeted/full quality gates. No live deployment, PR merge or secret mutation is
-implied by this workflow.
+Workflow authoring is published as a guarded documentation commit on
+docs/workflow-issue-252-classic-public-beta-20260814, pushing only HEAD
+to the matching origin branch. It must not create/merge a PR, delete a branch,
+force-push or run live infrastructure.
+
+Later implementation uses one issue-scoped commit per executable slice after
+targeted checks, the full local quality gate and git diff --check. The
+implementation branch is not published or merged by this authoring turn.
 
 ## Handoff to workflow execute
 
-Promote only after #123/#126/#128 evidence and S3D locks are verified. S150-02
-cannot begin without the approved S150-01 route/auth decision.
+1. Verify current main, authoring branch, implementation branch/worktree, locks
+   and S3/S3D preflight.
+2. Promote documentation/workflow/workflow.md as the active workflow.
+3. Execute S252-01 first and materialize the requirement matrix before product
+   implementation or live execution.
+4. Do not execute S252-04 through S252-10 without Three-Amigos approval,
+   explicit live consent and evidence readiness per target.
+5. Keep live validation serialized.
+6. Run issue-completion-auditor in S252-12; it alone decides PASS/DONE or
+   INCOMPLETE/BLOCKED/FAILED.
+7. A later push auto request keeps workflow-only publication guarded; PR merge
+   and branch cleanup require explicit confirmation after the guard is reported.
 
 ## Arc42 Check Status
 
-Existing Traefik HTTPS ADR, building blocks and runtime view are the required
-architecture sources; implementation updates must be evidence-backed.
+CHECKED_NO_CHANGE.
+
+Arc42 introduction, constraints, strategy, building blocks, runtime,
+deployment, quality and risk sections and the accepted explicit-live-consent
+and LXC-native-provider ADRs were reviewed. Issue #252 validates the existing
+Linux/WSL2, Incus/LXC, Docker Swarm and fail-closed architecture; it does not
+establish a new service boundary or architecture decision. Verified drift must
+be handled before RC1 and cannot be hidden here.
+
+## Final Authoring State
+
+This workflow is authored and ready for controlled workflow execute. It is not
+implementation evidence, live evidence, a release decision or a grant of
+administrator PowerShell access.

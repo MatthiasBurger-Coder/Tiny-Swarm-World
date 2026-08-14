@@ -1,22 +1,83 @@
 {
-  "workflow_id": "issue-150-secure-traefik-gui-20260812",
-  "issue": "150",
-  "workflow_path": "documentation/workflow/issues/issue-150/workflow.md",
-  "branch": "feature/issue-150-secure-traefik-gui-20260812",
-  "process_strand": "secure Traefik admin-surface feature",
-  "execution_profile": "SECURITY_ARCHITECTURE then FULL_PATH",
-  "affected_areas": ["Traefik compose/config", "ingress desired state", "renderers", "routing tests", "arc42/ADR", "live evidence handoff"],
-  "forbidden_areas": ["api.insecure", "raw credentials", "open ports", "unapproved auth", "general React frontend", "default live commands"],
-  "required_roles": ["Senior Requirement Engineer", "Senior System Architect", "Senior Python Automation Developer", "Senior Tester"],
-  "conditional_roles": ["ISMS/ASVS", "Security Threat Modeling", "Senior DevOps", "Live Evidence Validation", "Senior Documentation Engineer"],
-  "quality_commands": ["PYTHONPATH=src python3 -m unittest tests.domain.ingress.test_desired_state tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml", "PYTHONPATH=src python3 -m unittest tests.integration.test_optional_service_routing", "python3 tools/quality_gate.py quality", "git diff --check"],
-  "evidence_path": ".tiny-swarm/evidence/issue-150/",
-  "governing_file_hashes": {
-    "AGENTS.md": "BC0E6E0C09AC3D61A450A7FE16C3E4DE9E6FBB8BDC688AAD58F10A3D18B31041",
-    "QUALITY.md": "7097FF31C68F178FE685C1D7D5CBC18C257A7CF5D2F727979FB2B5AB9C029C7E",
-    "documentation/process/issue-completion-discipline.md": "3DB2D080B7CFBBC3737907A61C67CE6A361485C8993CF4A20C1C5FE2DC743BC3",
-    ".agents/skills/workflow-authoring/SKILL.md": "5733F64086F113D578544B4D2D0297554237296ADF0DC2DF5EBE641E50DEC9E5",
-    ".agents/skills/three-amigos-requirement-gatekeeper/SKILL.md": "76659E618CB706E8990CDF44441AEAED219465044175826ADCA5357AE8ACC5B4",
-    ".agents/skills/requirement-engineering/SKILL.md": "C1A96BC652DC8800ABE9DC6F4B7AFF79418ED5350ACDA6CF920CA7DD27B75A26"
+  "workflow_version": "issue-252-classic-public-beta-rc1-20260814",
+  "workflow_path": "documentation/workflow/workflow.md",
+  "requirement_baseline_path": "documentation/workflow/requirement-matrix.md",
+  "authoring_branch": "docs/workflow-issue-252-classic-public-beta-20260814",
+  "planned_execution_branch": "release/classic-public-beta-rc1-stabilization",
+  "status": "AUTHORED_NOT_EXECUTED",
+  "issue": {
+    "number": 252,
+    "title": "RC1: Classic Profile Stabilization / Public Beta Acceptance",
+    "url": "https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/252"
+  },
+  "process_strand": "issue -> requirement matrix -> Three-Amigos -> asset inventory -> local tests -> explicit live evidence -> completion audit",
+  "execution_profile": "FULL_PATH",
+  "affected_areas": [
+    "Linux and WSL2 host readiness",
+    "managed Incus/LXC nodes",
+    "Docker Engine and Docker Swarm",
+    "routing, secrets, artifacts and configured services",
+    "Python acceptance tests and evidence",
+    "live/browser/API verification and RC1 release decision"
+  ],
+  "forbidden_areas": [
+    "Podman and Kubernetes",
+    "Java, Maven and Spring Boot",
+    "Windows-native project execution",
+    "administrator PowerShell privilege escalation",
+    "live mutation without explicit consent",
+    "raw sensitive evidence",
+    "RC1 acceptance from skipped or inferred results"
+  ],
+  "required_roles": [
+    "Senior Requirement Engineer",
+    "Senior System Architect",
+    "Senior Python Automation Developer",
+    "Senior Tester",
+    "Senior Workflow Architect",
+    "Issue Completion Auditor"
+  ],
+  "conditional_roles": [
+    "Senior DevOps",
+    "Live Evidence Validation Expert",
+    "Senior Documentation Engineer",
+    "Release Baseline Governance Expert",
+    "Console/status UI reviewer when terminal behavior changes"
+  ],
+  "quality_commands": [
+    "git diff --check",
+    "python3 tools/quality_gate.py lint",
+    "python3 tools/quality_gate.py arch-tests",
+    "python3 tools/quality_gate.py typecheck",
+    "python3 tools/quality_gate.py test",
+    "python3 tools/quality_gate.py quality"
+  ],
+  "governing_file_sha256": {
+    "AGENTS.md": "bc0e6e0c09ac3d61a450a7fe16c3e4de9e6fbb8bdc688aad58f10a3d18b31041",
+    "QUALITY.md": "7097ff31c68f178fe685c1d7d5cbc18c257a7cf5d2f727979fb2b5ab9c029c7e",
+    "documentation/process/issue-completion-discipline.md": "3db2d080b7cfbbc3737907a61c67ce6a361485c8993cf4a20c1c5fe2dc743bc3",
+    "documentation/process/verification-state-policy.md": "5b6e2eefde66a1b8492afafc2976e59ac40f16e7100f79f730b97b254febdcfd",
+    "documentation/arc42/01_introduction.adoc": "dd7918e16c71110827a9ad11c1bd84b51057995a4c588e254d2ff090a4522b7e",
+    "documentation/arc42/02_constraints.adoc": "be261e3ef5dc8a0c65115e3247502c4858b20619133c01cd6ace3cf4be42a8e9",
+    "documentation/arc42/03_solution_strategy.adoc": "f62ef552e081c9a2ea3b51efd8c5734cd2f480c73b5f40341a8d8d8f29e57dd7",
+    "documentation/arc42/05_building_blocks.adoc": "3862268436c86abfaba26c10bdfaed9a26fe313335bfaf3f2929e23b31626a90",
+    "documentation/arc42/06_runtime_view.adoc": "aec3b5871665b07d334e8e88a23848de6036784aa34a537d3cb24ebc2c720fe8",
+    "documentation/arc42/07_deployment_view.adoc": "fb161c56a9705105a2a7078481a0337e4f68400a19cfc7b8a502e265f5d4b7a1",
+    "documentation/arc42/10_quality_requirements.adoc": "50d3030a4f2dac227ce1f1918354f766ffd059a9f0cc427fd853f1f99574148d",
+    "documentation/arc42/11_risks_and_debt.adoc": "c9174c01abb7505a10058d2110abdc217b17f8b589b3afbb84f9fb86ac46cbb6",
+    "documentation/arc42/09_decisions/adr-explicit-non-interactive-live-consent.adoc": "e0a455b4ad79f59ce99f881d07c7fcaee46cea41f8c44ff50fc59a2e7b5e5476",
+    "documentation/arc42/09_decisions/adr-autonomous-setup-safety.adoc": "f82783073d3e7c91fb5014901bea93eede3a9c79ab41a1213cd38b88e624575b",
+    "documentation/arc42/09_decisions/adr-lxc-native-node-provider.adoc": "d88225223e62de4744d5cec7d5703af1bff62ec178b9794a606472cbc83da901",
+    ".agents/skills/workflow-authoring/SKILL.md": "5733f64086f113d578544b4d2d0297554237296adf0dc2df5ebe641e50dec9e5",
+    ".agents/skills/requirement-engineering/SKILL.md": "c1a96bc652dc8800abe9dc6f4b7aff79418ed5350acda6cf920ca7dd27b75a26",
+    ".agents/skills/three-amigos-requirement-gatekeeper/SKILL.md": "76659e618cb706e8990cdf44441aeaed219465044175826adca5357ae8acc5b4",
+    ".agents/skills/execution-profile-router/SKILL.md": "45cf509082e3d9036379228a4c1a195cb22a05f11487e10a5c4000e8aad9608e",
+    ".agents/skills/live-evidence-validation-expert/SKILL.md": "b1065698eb9a626179ec83499771c02d60b15eca1fb043f3b159466a463bdf51",
+    ".agents/skills/platform-verification/SKILL.md": "57ce910c5ae850079a4ac157b2c41abd935ab53fbf3e8cbb8170a0633a432eff",
+    ".agents/roles/senior-requirement-engineer/SKILL.md": "425160e925ccf0edb8983133d95e0fe17bad80ddcc78b8f51d0908ea59ecd1c0",
+    ".agents/roles/senior-system-architect.md": "234a2024e989253d1da22057883bf2928a129e843608c66fc67ee352af187f47",
+    ".agents/roles/senior-python-automation-developer.md": "7174fa24bec72f0ecc4babdf27c304b7111a5a7d9f1a08d27b86057d70245ebf",
+    ".agents/roles/senior-tester.md": "e2e245c58dd6d142901755d6ea97c255145f051bc1c129802fcb4fab5f61d79d",
+    ".agents/roles/senior-workflow-architect/SKILL.md": "4b1acc3e27105b7216b3992c468c6bc8cde8a5d6722323ff0cfff047a739175c"
   }
 }
