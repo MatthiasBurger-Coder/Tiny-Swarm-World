@@ -15,16 +15,14 @@ that the required artifact exists in the execution change and has an explicit
 verification route; it does not mean that live evidence or a certification
 exists. `VERIFIED_LOCAL` means that a repository-local artifact or check was
 verified. `PLANNED` is reserved for a future live or follow-up artifact.
-`OPEN`, `EVIDENCE_PENDING`, `BLOCKED`, `REFUSED`, `RESOURCE-GATED`,
+`OPEN`, `BLOCKED`, `REFUSED`, `RESOURCE-GATED`,
 `failed-to-apply` and `failed-to-verify` are non-pass states.
-`VERIFIED_LOCAL` is the local repository-evidence state; it is not live or
-external verification.
 
 At matrix creation time, S121-01 is complete only when every requirement has a
 stable mapping. S121-02 must replace planned implementation placeholders with
-the five audit documents and final issue evidence. Issue #121 remains
-`INCOMPLETE` until the final acceptance checklist and independent completion
-audit return `PASS`.
+the five audit documents and final issue evidence. Issue #121 is `DONE` only
+after the final acceptance checklist and independent completion audit return
+`PASS` on the merged integration baseline.
 
 ## Authority and scope decisions
 
@@ -32,10 +30,9 @@ audit return `PASS`.
 - `AGENTS.md`, `QUALITY.md` and
   `documentation/process/verification-state-policy.md` govern repository
   behavior and verification-state wording.
-- The System Unification EPIC is the local architectural context for this
-  documentation-only change. It does not formally own #121; issue-level
-  authority remains #120/#121 and that distinction is explicit in
-  `EVD-121-023`.
+- The [System Unification EPIC](../../documentation/arc42/01_introduction/system-unification.md)
+  explicitly owns the repository-level audit-evidence backbone as a governance
+  extension. This ownership does not close findings or authorize live work.
 - `documentation/audit/` is a governance index and pointer layer. It is not a
   replacement for runtime, deployment, test or live-system sources of truth.
 - No live command, browser check, external service check, certification
@@ -121,8 +118,6 @@ audit return `PASS`.
 | REQ-121-074 | Prepopulate `.importlinter` as architecture-quality evidence. | Evidence entry | `evidence-matrix.md` | Repository row | Path/status check | VERIFIED_LOCAL |
 | REQ-121-075 | Prepopulate `tools/quality_gate.py` as static quality-gate evidence. | Evidence entry | `evidence-matrix.md` | Repository row | Path/status check | VERIFIED_LOCAL |
 | REQ-121-107 | Prepopulate `tests/architecture/test_hexagonal_imports.py` as architecture-test evidence. | Evidence entry | `evidence-matrix.md` | Architecture-test row | Path/status check | VERIFIED_LOCAL |
-| REQ-121-108 | Record the local System Unification EPIC as the architectural context for #121 and keep issue-level ownership explicit. | Architecture/traceability | `documentation/arc42/01_introduction/system-unification.md`, `evidence-matrix.md` | EVD-121-023 and this matrix | Source-path check and architecture review | VERIFIED_LOCAL |
-| REQ-121-109 | Bound finding completeness to the major/minor findings explicitly enumerated by authoritative issue #121 when no separate local audit-summary artifact exists; do not invent additional findings. | Assumption/source governance | Issue #121, `findings-register.md`, `remaining_risks.md` | EVD-121-024 and bounded-scope statement | Scope and source review | VERIFIED_LOCAL |
 | REQ-121-076 | Prepopulate `documentation/arc42.adoc`. | Evidence entry | `evidence-matrix.md` | Issue-named path and availability state | Path-drift check | VERIFIED_LOCAL |
 | REQ-121-077 | Prepopulate `documentation/arc42/10_quality_requirements.adoc`. | Evidence entry | `evidence-matrix.md` | Repository row | Path/status check | VERIFIED_LOCAL |
 | REQ-121-078 | Prepopulate `documentation/arc42/11_risks_and_debt.adoc`. | Evidence entry | `evidence-matrix.md` | Repository row | Path/status check | VERIFIED_LOCAL |
@@ -153,7 +148,7 @@ audit return `PASS`.
 | REQ-121-103 | Run `git diff --check`. | Quality | Repository | S121 evidence test results | Command result | VERIFIED_LOCAL |
 | REQ-121-104 | Run `python3 tools/quality_gate.py quality`, or document an explicit environment blocker. | Quality | Repository | S121 evidence test results | Command result or blocker evidence | VERIFIED_LOCAL |
 | REQ-121-105 | PR/issue evidence contains summary, created files, no-live confirmation, quality result and remaining gaps. | Completion evidence | `.tiny-swarm/evidence/issue-121/` | Six required evidence files | Completion-auditor review | VERIFIED_LOCAL |
-| REQ-121-106 | Completion occurs only after the structure is merged and future issues can link to stable registers. | Release/process | Branch/issue evidence | Integration merge `2e3ccaab` on `docs/workflow-public-beta-roadmap-20260812` | Final independent audit | VERIFIED_LOCAL |
+| REQ-121-106 | Completion occurs only after the structure is merged and future issues can link to stable registers. | Release/process | Branch/issue evidence | Stable paths and guarded publication record; PR #254 merged as `a335fed0` | Final independent audit on merged baseline | VERIFIED_PR_MERGED |
 
 ## S121-01 execution contract
 
@@ -170,7 +165,7 @@ audit return `PASS`.
 | S121-01-009 | Distribution evidence exists before implementation and consolidation evidence follows implementation. | `.codex/evidence/issue-121/slice-S121-01-distribution.md`, `.codex/evidence/issue-121/slice-S121-01-consolidation.md` | Evidence-file check | VERIFIED_LOCAL |
 | S121-01-010 | Required quality gates are `git diff --check` and `python3 tools/quality_gate.py quality`; unavailable results remain non-pass. | Workflow metadata and issue test results | Gate execution | VERIFIED_LOCAL |
 | S121-01-011 | Issue completion requires requirement_matrix, implementation_summary, changed_files, test_results, remaining_risks and acceptance_checklist. | `.tiny-swarm/evidence/issue-121/` | Required-file check | VERIFIED_LOCAL |
-| S121-01-012 | Requirement Lead, System Architect, Test/Evidence Reviewer and independent Issue Completion Auditor review completion. | Review evidence | Final audit | VERIFIED_LOCAL |
+| S121-01-012 | Requirement Lead, System Architect, Test/Evidence Reviewer and independent Issue Completion Auditor review completion. | Review evidence | Final audit | PASS |
 | S121-01-013 | Any open or unverified requirement blocks `DONE`. | This matrix and acceptance checklist | Final audit | IMPLEMENTED |
 
 ## Verification-state and data-protection contract
@@ -192,8 +187,8 @@ but this matrix contains no live output.
 
 | Finding | Why it remains open | Required treatment |
 | --- | --- | --- |
-| EPIC traceability | The local System Unification EPIC is now linked explicitly; issue-level ownership remains #120/#121. | `VERIFIED_LOCAL`; retain the local EPIC link and do not infer certification scope. |
-| Audit-summary completeness | No separate local audit-summary artifact exists. The authoritative #121 issue list is the bounded scope for this execution; no additional findings are invented. | `VERIFIED_LOCAL` as an explicit scope boundary; compare any future authoritative summary in a follow-up audit. |
+| EPIC traceability | System Unification explicitly owns the repository-level audit-evidence backbone. | `VERIFIED_LOCAL`; preserve the ownership link and its governance-only boundary. |
+| Audit-summary completeness | `documentation/audit/audit-summary.md` snapshots the five major and eight minor findings explicitly supplied by #120/#121. | `VERIFIED_LOCAL` against those sources; new findings require a reviewed authoritative source and are not silently excluded. |
 | Operator contract path drift | The issue path is absent; the verified repository path is under `documentation/arc42/08_configuration/`. | Record both paths and their distinct states; never treat the stale path as present. |
 | Quality-gate authority | Issue #121 requires the full gate or an explicit blocker; `QUALITY.md` allows a documented skip for documentation-only work. | The active workflow now declares the full gate required for this issue; record PASS, FAIL or BLOCKED/FAILED_TO_VERIFY. |
 | Root navigation choice | A short pointer is conditional on appropriateness. | Inspect `documentation/README.adoc`; add only a concise verified pointer in S121-02. |
