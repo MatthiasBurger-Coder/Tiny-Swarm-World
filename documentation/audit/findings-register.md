@@ -5,6 +5,11 @@ does not close, downgrade or accept a finding merely because a document was
 created. Each row needs an owner, a remediation route, a disposition and an
 evidence link before closure can be considered.
 
+The enumerated baseline is sourced from the repository-local
+[`audit-summary.md`](audit-summary.md), which snapshots the explicit finding
+set in Workflow #121 and roadmap #120. The snapshot is complete only against
+those stated sources; it does not assert that no additional finding exists.
+
 ## Severity and disposition contract
 
 Severity values are `Major`, `Minor`, `Observation` and `Positive finding`.

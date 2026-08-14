@@ -61,4 +61,3 @@ does not grant that approval.
 No secrets, tokens, raw environment payloads, private host paths/IPs or
 unredacted command output may be committed. A suspected leak is a Security CAPA
 and blocks the change until handled.
-

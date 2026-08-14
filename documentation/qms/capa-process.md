@@ -56,4 +56,3 @@ Skipped, missing, refused, resource-gated, failed-to-apply and failed-to-verify
 evidence cannot close a CAPA. Documentation presence alone cannot close an
 audit finding. Link applicable actions to
 `documentation/audit/findings-register.md` and its evidence matrix.
-
