@@ -59,7 +59,7 @@
   "governing_file_sha256": {
     "AGENTS.md": "bc0e6e0c09ac3d61a450a7fe16c3e4de9e6fbb8bdc688aad58f10a3d18b31041",
     "QUALITY.md": "7097ff31c68f178fe685c1d7d5cbc18c257a7cf5d2f727979fb2b5ab9c029c7e",
-    "documentation/workflow/workflow.md": "ceb127535759f70ba75be4c8c53abc91eafca75ad36018bbd1cfc3067e82430b",
+    "documentation/workflow/workflow.md": "2e986385655999b25ce82c7a33a7d6bbc2df1431255f3265cef05b75c834a25c",
     "documentation/workflow/requirement-matrix.md": "8021555f972dd790fefc8a76d5cc000a7315d9f8b8359332a76c89c78c0d3128",
     "documentation/governance/ci-quality-gates.md": "23e6ef7a13f79377ba71a424c30aaf579d41079c4c812c63ea3d573e8c7d9e3d",
     "documentation/process/issue-completion-discipline.md": "3db2d080b7cfbbc3737907a61c67ce6a361485c8993cf4a20c1c5fe2dc743bc3",

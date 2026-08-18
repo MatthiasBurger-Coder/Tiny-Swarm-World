@@ -1236,3 +1236,15 @@ be handled before RC1 and cannot be hidden here.
 This workflow is authored and ready for controlled workflow execute. It is not
 implementation evidence, live evidence, a release decision or a grant of
 administrator PowerShell access.
+
+## Authoring Publication Handoff
+
+- Branch: `docs/workflow-issue-252-ci-live-addendum-20260818`
+- Commit: `bd45f537`
+- Push target: `origin/docs/workflow-issue-252-ci-live-addendum-20260818`
+- Publication verification: `git diff --check` PASS; Context-Pack JSON parse
+  PASS; push completed successfully.
+- Pull request/merge: not created by workflow authoring.
+- Live/CI execution: not performed by workflow authoring.
+- Formal workflow status remains `AUTHORED_NOT_EXECUTED` until controlled
+  `workflow execute` runs the CI and live slices.
