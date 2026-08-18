@@ -74,3 +74,21 @@ skips/blockers and redaction treatment. Raw secrets, tokens, host data and
 unredacted logs are forbidden. The default CI path must not create VMs, modify
 networking, deploy stacks or bootstrap Infisical, Nexus, Jenkins, Pulsar,
 SonarQube, Portainer, Swagger or Traefik.
+
+## Issue #252 S252-13 implementation contract
+
+`python-quality-gate.yml` is the required PR/push check. It installs the
+hashed runtime lock, explicitly pinned quality tools, runs
+`python3 tools/quality_gate.py quality`, and publishes the generated
+`coverage.xml` as a short-lived handoff artifact.
+
+`sonar_external_gate.yml` is triggered only after the trusted default-branch
+quality workflow completes. It fails closed when the quality workflow was not
+successful, the coverage handoff is missing, or the SonarCloud token is
+unavailable. It does not run the canonical Python quality gate a second time
+and does not present a skipped scan as green.
+
+The workflows are configuration and contract evidence only until an actual
+GitHub Actions run provides run ID, commit, trigger, runner, duration,
+artifacts and external-gate status. A local test pass does not create that
+external evidence.

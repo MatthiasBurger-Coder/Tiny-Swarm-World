@@ -579,7 +579,7 @@ quality_gates:
 documentation:
   arc42: no update; CI governance only unless verified runtime behavior changes
   adr: none unless an external-gate safety boundary changes
-stop_conditions: [duplicate-quality-authority, unpinned-install, missing-failure-status, skipped-sonar-presented-as-green, live-mutation-in-default-job]
+stop_conditions: [duplicate-quality-authority, unpinned-install, missing-failure-status, sonar-skip-not-green, live-mutation-in-default-job]
 ~~~
 
 Done: PR and push triggers run the canonical quality gate; Sonar responsibility
@@ -617,7 +617,7 @@ quality_gates:
 documentation:
   arc42: no update; compatibility verification only
   adr: none
-stop_conditions: [matrix-version-guess, conda-resolution-failure, lock-bypass, matrix-entry-skipped, platform-dependent-test-pass]
+stop_conditions: [matrix-version-guess, conda-resolution-failure, lock-bypass, matrix-entry-not-executed, platform-dependent-test-forbidden]
 ~~~
 
 Done: every declared matrix entry installs the locked environment, runs the
@@ -656,13 +656,14 @@ quality_gates:
 documentation:
   arc42: review deployment/runtime view only if runner changes supported topology
   adr: required before changing the accepted live-consent or runner boundary
-stop_conditions: [runner-label-missing, target-ownership-missing, environment-approval-missing, credential-reference-missing, live-consent-missing, unredacted-artifact, hosted-runner-fallback, partial-run-presented-as-green]
+stop_conditions: [runner-label-missing, target-ownership-missing, environment-approval-missing, credential-reference-missing, live-consent-missing, unredacted-artifact, hosted-runner-fallback, partial-run-not-green]
 ~~~
 
 Done: a real scheduled/manual workflow selects only an approved capable
 self-hosted runner, executes the canonical live chain, stores redacted evidence
-and reports `LIVE_VERIFIED`, `LIVE_BLOCKED`, `LIVE_FAILED_AFTER_MUTATION` or
-`LIVE_UNVERIFIED` without collapsing non-success states.
+and reports `LIVE_VERIFIED`, `LIVE_BLOCKED_BEFORE_MUTATION`,
+`LIVE_FAILED_AFTER_MUTATION`, `LIVE_PREREQUISITE_MISSING` or `LIVE_PARTIAL`
+without collapsing non-success states.
 
 ### Slice 16 — Real CI workflow runs and failure-semantic evidence
 
