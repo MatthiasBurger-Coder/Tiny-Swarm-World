@@ -1,15 +1,15 @@
 # Workflow Context Pack: Issue #252
 
-Workflow version: issue-252-classic-public-beta-rc1-20260814
+Workflow version: issue-252-classic-public-beta-rc1-20260818
 Workflow path: documentation/workflow/workflow.md
 Requirement baseline: documentation/workflow/requirement-matrix.md
-Authoring branch: docs/workflow-issue-252-classic-public-beta-20260814
+Authoring branch: docs/workflow-issue-252-ci-live-addendum-20260818
 Planned execution branch: release/classic-public-beta-rc1-stabilization
 Status: AUTHORED_NOT_EXECUTED
 
 ## Process
 
-- Process strand: issue -> requirement matrix -> Three-Amigos -> asset inventory -> local tests -> explicit live evidence -> completion audit
+- Process strand: issue -> requirement matrix -> Three-Amigos -> asset inventory -> local tests -> CI gates -> explicit live evidence -> completion audit
 - Execution profile: FULL_PATH
 - Issue: GitHub #252, RC1 Classic Profile Stabilization / Public Beta Acceptance
 - Current baseline: current main commit, verified before authoring branch creation
@@ -23,6 +23,8 @@ Status: AUTHORED_NOT_EXECUTED
 - Routing, Service Access, Infisical/secrets, artifacts and configured services
 - Python hexagonal automation and deterministic acceptance tests
 - Live/browser/API evidence, redaction, checksums and RC1 release decision
+- GitHub Actions quality/compatibility/Sonar workflows and self-hosted Classic
+  live runner qualification
 
 ## Forbidden or gated areas
 
@@ -34,6 +36,9 @@ Status: AUTHORED_NOT_EXECUTED
 - Raw credentials, tokens, authorization headers, full environment files and
   unredacted sensitive evidence
 - RC1 acceptance from static tests, planned commands, skipped or partial runs
+- CI workflow presence without real run evidence
+- GitHub-hosted runner substituted for a verified Classic-capable self-hosted
+  runner
 
 ## Required roles
 
@@ -70,7 +75,8 @@ The full local gate is not live, browser, SonarQube or release evidence.
 S252-01 -> S252-02 -> S252-03
 S252-03 -> S252-04 -> S252-05 -> S252-06 -> S252-07
 S252-03 -> S252-08 -> S252-09 -> S252-10
-S252-07 and S252-10 -> S252-11 -> S252-12
+S252-03 -> S252-13 -> S252-14 -> S252-15 -> S252-16
+S252-07, S252-10 and S252-16 -> S252-11 -> S252-12
 
 Live slices are serialized. Each executable slice requires distribution and
 consolidation evidence under .codex/evidence/.

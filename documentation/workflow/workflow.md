@@ -1,12 +1,12 @@
 # Workflow: Issue #252 — Classic Profile Stabilization / Public Beta RC1
 
-Workflow id: issue-252-classic-public-beta-rc1-20260814
+Workflow id: issue-252-classic-public-beta-rc1-20260818
 
 Source issue: https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/252
 
 Execution profile: FULL_PATH
 
-Authoring branch: docs/workflow-issue-252-classic-public-beta-20260814
+Authoring branch: docs/workflow-issue-252-ci-live-addendum-20260818
 
 Planned execution branch: release/classic-public-beta-rc1-stabilization
 
@@ -28,6 +28,7 @@ Fresh Install
   -> Update
   -> Post-update acceptance
   -> Failure/Recovery
+  -> CI/External-Gate qualification
   -> RC1 decision
 ~~~
 
@@ -47,6 +48,22 @@ heavy acceptance tests stay under tests/, the existing post-install browser
 test is reused or migrated without duplication, and native Linux and WSL2
 remain separate evidence targets.
 
+Issue #252 now includes a mandatory CI/release-gate addendum. The required
+automation path is:
+
+~~~text
+PR/Push Python quality gate
+  -> Conda compatibility matrix
+  -> Sonar workflow reconciliation
+  -> scheduled/dispatchable Classic live workflow
+  -> real workflow-run and failure-semantic evidence
+~~~
+
+The CI layer is part of this issue, not a follow-up. Standard hosted runners
+must remain free of Incus, Docker, Swarm, service bootstrap and credentialed
+live mutation. The Classic live workflow therefore requires a verified,
+dedicated self-hosted runner strategy or must remain explicitly blocked.
+
 The requested administrator-PowerShell access is not a repository workflow
 capability and cannot be granted by this workflow. Project Python, test and
 quality commands remain Linux/WSL commands. A live operator must independently
@@ -58,16 +75,17 @@ workflow.
 
 ### Original request
 
-Create a workflow for GitHub Issue #252, with full access including an
-administrator PowerShell console.
+Create or extend the workflow for GitHub Issue #252, including the mandatory
+CI/release-gate addendum, with full access including an administrator
+PowerShell console.
 
 ### Interpreted intent
 
 Author an executable, governance-compliant RC1 stabilization workflow for the
-Classic profile. It covers the complete lifecycle, inventories current tools
-and acceptance tests, decides canonical test ownership, executes explicit WSL2
-and native-Linux qualification scenarios only with live consent, collects
-redacted evidence, and makes the final RC1 decision from observed results.
+Classic profile. It covers the complete lifecycle, the mandatory CI workflows,
+real workflow-run evidence, runner qualification, current tool/test inventory,
+canonical test ownership, explicit WSL2 and native-Linux qualification,
+redacted evidence and the final RC1 decision from observed results.
 
 The PowerShell request is treated as an operator-environment request. It does
 not authorize privilege escalation, change the repository Linux/WSL-only model,
@@ -97,6 +115,8 @@ host/scenario evidence -> defect classification -> independent completion audit
   behavior and local evidence repositories.
 - tools/ diagnostics/runners versus assertion-heavy tests under tests/.
 - Live/browser evidence contract and Public Beta release decision.
+- GitHub Actions quality, compatibility, SonarCloud and Classic-live runner
+  qualification.
 
 ### Explicit requirements
 
@@ -126,6 +146,20 @@ host/scenario evidence -> defect classification -> independent completion audit
     failed-to-verify scenarios as RC1 success.
 11. Require complete redacted evidence and exactly one final decision:
     RC1_ACCEPTED, RC1_REJECTED_BLOCKERS or RC1_REJECTED_EVIDENCE_INCOMPLETE.
+12. Provide `python-quality-gate.yml` for PR and push quality validation using
+    the locked repository gate and fail-closed result reporting.
+13. Provide `python-compatibility.yml` with the supported Conda Python matrix;
+    the initial matrix is Python 3.12 and 3.13, subject to implementation-time
+    verification against the supported package/runtime contract.
+14. Reconcile `sonar_check.yml` as the external SonarCloud gate without
+    duplicating or weakening the canonical Python quality gate. Missing or
+    unavailable Sonar status is not green evidence.
+15. Provide `nightly-classic-live.yml` with schedule and manual dispatch,
+    explicit environment/consent gates, redacted evidence publication and a
+    verified self-hosted Classic-capable runner strategy.
+16. Execute real CI workflow runs and prove failure semantics: failed,
+    skipped, blocked, unauthorized, unavailable or unverified required gates
+    must not aggregate to RC1 success.
 
 ### Implicit requirements
 
@@ -145,6 +179,13 @@ host/scenario evidence -> defect classification -> independent completion audit
   by the Three-Amigos decision from current behavior, not guessed here.
 - Administrative host access is an external prerequisite, not granted by a
   workflow document.
+- A repository/org administrator can provide or approve a self-hosted runner
+  with documented labels and access to the selected Classic live target; its
+  availability is an execution prerequisite, not an inferred capability.
+- Conda can resolve the supported Python matrix against the locked runtime and
+  development requirements without changing the product's Linux/WSL model.
+- GitHub Actions status, artifacts and SonarCloud status are externally
+  observable for the final audit.
 
 ### Assumptions
 
@@ -188,14 +229,20 @@ host/scenario evidence -> defect classification -> independent completion audit
 - Browser/API checks can leak credentials unless summaries are redacted first.
 - Existing integration/live suites may overlap; duplication is a stop condition.
 - A branch or local quality pass is not live or external release evidence.
+- A GitHub-hosted runner cannot satisfy the Classic live environment merely by
+  installing Python; missing self-hosted capability is a blocker.
+- CI workflows can pass their own YAML/static checks while never having run a
+  real scheduled/manual workflow; execution evidence is mandatory.
 
 ### Open questions and execution blockers
 
 S252-01 must decide: current required/optional service membership; canonical
 test location; exact supported reconcile command; exact reversible update
 change; browser/API checks; target ownership, prerequisites and resource
-contracts. These are not authoring blockers, but execution cannot continue while
-any remains unresolved.
+contracts; exact CI matrix package/install contract; self-hosted runner labels
+and target ownership; Sonar responsibility and required external status.
+These are not authoring blockers when recorded as executable prerequisites, but
+execution cannot continue while any remains unresolved.
 
 Execution also stops for missing explicit live consent, missing host access or
 permissions, failed preflight, unsafe filesystem, missing credentials/reference,
@@ -204,7 +251,7 @@ decision that would require bypassing fail-closed guards.
 
 ### Confidence and decision
 
-Confidence: 91 percent.
+Confidence: 92 percent.
 
 Decision: READY_FOR_WORKFLOW.
 
@@ -226,6 +273,9 @@ Canonical tests/tools with no duplication
           |
           v
 Local quality + static/pre-live diagnostics
+          |
+          v
+CI quality + compatibility + Sonar + Classic-live runner qualification
           |
           v
 WSL2: fresh -> accept -> reconcile -> accept -> update -> accept
@@ -258,7 +308,12 @@ Independent audit -> RC1_ACCEPTED or explicit rejection
 - Arc42 and ADRs confirm Linux/WSL2-only operation, managed Incus/LXC,
   Docker Swarm-first deployment, explicit live consent, fail-closed mutation,
   verify-after-apply behavior, hexagonal boundaries and ignored local evidence.
-- No live, browser, credential, external-gate or RC1 evidence is inferred.
+- Historical local workflow records exist for S252-01 through S252-03 and a
+  redacted WSL2 recovery/post-install run exists for S252-04. They remain
+  bounded evidence, not proof that the full issue lifecycle or CI addendum is
+  complete.
+- No reconcile, update, restart, Native-Linux, CI-run, external SonarCloud or
+  final RC1 evidence is inferred.
 
 ## Scope
 
@@ -267,7 +322,9 @@ inventory and service classification; canonical acceptance-test placement;
 deterministic lifecycle/fail-closed/recovery tests; explicit WSL2 and native
 Linux pre-live, fresh, reconcile, update, failure/recovery/restart and
 service/browser/API runs; redacted scenario evidence; defect classification;
-independent completion audit; final RC1 decision; Arc42/ADR consistency review.
+independent completion audit; final RC1 decision; Arc42/ADR consistency review;
+PR/push quality, Conda compatibility, Sonar reconciliation, scheduled/manual
+Classic-live automation and real CI-run evidence.
 
 Product architecture changes occur only when verified behavior requires them and
 only in the declared defect/fix scope. Workflow authoring itself does not
@@ -372,6 +429,11 @@ Required IDs:
 | RC1-S10 | Native Linux fresh install |
 | RC1-S11 | Native Linux reconcile |
 | RC1-S12 | Native Linux update |
+| RC1-CI01 | PR/Push Python quality gate |
+| RC1-CI02 | Conda Python compatibility matrix |
+| RC1-CI03 | Sonar workflow reconciliation and external status |
+| RC1-CI04 | Scheduled/manual Classic live workflow and runner qualification |
+| RC1-CI05 | Real CI workflow-run and failure-semantic evidence |
 
 ## Ordered Slices
 
@@ -486,6 +548,156 @@ stop_conditions: [test requires live infrastructure by default, missing negative
 Done: representative missing prerequisites fail early; partial/ambiguous state
 fails closed; reconcile proves no duplicate/destructive drift; update proves
 preservation; restart/evidence/redaction and exact RC1 states are testable.
+
+### Slice 13 — Python quality gate and Sonar workflow reconciliation
+
+Purpose: implement the mandatory PR/Push Python quality workflow and reconcile
+the existing Sonar workflow into a non-duplicating external analysis gate.
+
+The canonical command remains `python3 tools/quality_gate.py quality` in a
+locked Linux CI environment. `sonar_check.yml` must either consume the same
+verified quality/coverage contract or clearly own only the external SonarCloud
+publication step. A missing token, skipped scan, unavailable status or failed
+quality stage is recorded as non-success and cannot satisfy RC1.
+
+~~~yaml
+slice_id: S252-13
+profile: FULL_PATH
+owner: Senior Tester
+secondary_reviewers: [Senior Python Automation Developer, Senior System Architect, Senior Documentation Engineer, Release Baseline Governance Expert]
+affected_files: [.github/workflows/python-quality-gate.yml, .github/workflows/sonar_check.yml, documentation/governance/ci-quality-gates.md, tests/test_ci_workflow_contract.py]
+affected_modules: [GitHub Actions quality gate, coverage handoff, SonarCloud external analysis]
+affected_contracts: [QUALITY.md gate contract, PR/push status contract, external-gate state contract]
+dependencies: [S252-03]
+parallel_group: SERIAL-252-CI
+file_locks: [.github/workflows/, documentation/governance/ci-quality-gates.md, tests/test_ci_workflow_contract.py]
+contract_locks: [python-quality-gate, sonar-external-status, ci-failure-semantics]
+architecture_locks: [no-live-mutation-in-default-ci, locked-dependencies, observed-vs-inferred-status]
+quality_gates:
+  targeted: [git diff --check, python3 tools/quality_gate.py test]
+  required: [python3 tools/quality_gate.py quality]
+documentation:
+  arc42: no update; CI governance only unless verified runtime behavior changes
+  adr: none unless an external-gate safety boundary changes
+stop_conditions: [duplicate-quality-authority, unpinned-install, missing-failure-status, skipped-sonar-presented-as-green, live-mutation-in-default-job]
+~~~
+
+Done: PR and push triggers run the canonical quality gate; Sonar responsibility
+is explicit; coverage and external status are observable; no hosted default
+job mutates Incus, Docker, Swarm, networking or service state.
+
+### Slice 14 — Conda Python compatibility matrix
+
+Purpose: provide `python-compatibility.yml` as a real Conda-based matrix for
+the supported Python versions and prove locked dependency installation and
+the full deterministic test contract on each matrix entry.
+
+The initial matrix is Python 3.12 and 3.13 because the project declares
+`requires-python >=3.12`, the lock was generated with Python 3.12, and the
+current local environment is Python 3.13. The implementation must verify this
+against actual package resolution; unsupported entries fail the slice rather
+than being silently removed.
+
+~~~yaml
+slice_id: S252-14
+profile: FULL_PATH
+owner: Senior Python Automation Developer
+secondary_reviewers: [Senior Tester, Senior System Architect, Senior Requirement Engineer]
+affected_files: [.github/workflows/python-compatibility.yml, environment.yml, tests/test_ci_workflow_contract.py, documentation/governance/ci-quality-gates.md]
+affected_modules: [Conda environment, Python compatibility matrix, locked dependency installation]
+affected_contracts: [supported-python-matrix, requirements-lock, deterministic-test-suite]
+dependencies: [S252-13]
+parallel_group: SERIAL-252-CI
+file_locks: [.github/workflows/python-compatibility.yml, environment.yml, tests/test_ci_workflow_contract.py]
+contract_locks: [conda-matrix, locked-install, version-support]
+architecture_locks: [python-312-baseline, no-runtime-architecture-change, no-unpinned-ci-dependencies]
+quality_gates:
+  targeted: [git diff --check, python3 tools/quality_gate.py test]
+  required: [python3 tools/quality_gate.py quality]
+documentation:
+  arc42: no update; compatibility verification only
+  adr: none
+stop_conditions: [matrix-version-guess, conda-resolution-failure, lock-bypass, matrix-entry-skipped, platform-dependent-test-pass]
+~~~
+
+Done: every declared matrix entry installs the locked environment, runs the
+required deterministic suite and publishes an explicit result; a failed or
+unavailable entry blocks the compatibility gate.
+
+### Slice 15 — Scheduled/manual Classic live workflow and runner qualification
+
+Purpose: provide `nightly-classic-live.yml` for the automatable Classic live
+chain while proving that the selected runner is actually capable of the
+required Linux/WSL2 or native-Linux target.
+
+GitHub-hosted runners are not treated as Classic-capable by assumption. The
+workflow requires a documented self-hosted runner label set, protected
+environment approval, target ownership, credentials/reference inputs, redacted
+artifact storage and an explicit stop/fail-closed contract. The schedule and
+`workflow_dispatch` paths must make disabled or unavailable live execution
+visible as `BLOCKED`/`UNVERIFIED`, never as a green run.
+
+~~~yaml
+slice_id: S252-15
+profile: FULL_PATH
+owner: Senior DevOps
+secondary_reviewers: [Senior Tester, Senior System Architect, Live Evidence Validation Expert, Senior Requirement Engineer]
+affected_files: [.github/workflows/nightly-classic-live.yml, tools/live/, tests/e2e/classic/, documentation/evidence/live-greenpath-evidence-contract.md, documentation/governance/ci-quality-gates.md]
+affected_modules: [GitHub Actions live orchestration, self-hosted runner, Classic E2E, redacted evidence]
+affected_contracts: [live-consent, runner-capability, live-evidence, failure-state-classification]
+dependencies: [S252-13, S252-14]
+parallel_group: SERIAL-252-CI-LIVE
+file_locks: [.github/workflows/nightly-classic-live.yml, tools/live/, tests/e2e/classic/, documentation/evidence/]
+contract_locks: [classic-live-runner, explicit-live-approval, redacted-evidence, no-live-success-on-skip]
+architecture_locks: [linux-wsl2-only, no-hosted-runner-substitution, serialized-live-mutation, no-raw-secrets]
+quality_gates:
+  targeted: [git diff --check, python3 tools/quality_gate.py test]
+  required: [python3 tools/quality_gate.py quality]
+documentation:
+  arc42: review deployment/runtime view only if runner changes supported topology
+  adr: required before changing the accepted live-consent or runner boundary
+stop_conditions: [runner-label-missing, target-ownership-missing, environment-approval-missing, credential-reference-missing, live-consent-missing, unredacted-artifact, hosted-runner-fallback, partial-run-presented-as-green]
+~~~
+
+Done: a real scheduled/manual workflow selects only an approved capable
+self-hosted runner, executes the canonical live chain, stores redacted evidence
+and reports `LIVE_VERIFIED`, `LIVE_BLOCKED`, `LIVE_FAILED_AFTER_MUTATION` or
+`LIVE_UNVERIFIED` without collapsing non-success states.
+
+### Slice 16 — Real CI workflow runs and failure-semantic evidence
+
+Purpose: execute the new PR/push, Conda, Sonar and Classic-live workflows and
+capture their actual run IDs, commit, trigger, runner, duration, statuses,
+artifacts, external-gate state and failure classification.
+
+Prerequisites: S252-13 through S252-15 implemented; CI permissions and protected
+environment are verified; no required job remains only YAML-static evidence.
+
+~~~yaml
+slice_id: S252-16
+profile: FULL_PATH
+owner: Release Baseline Governance Expert
+secondary_reviewers: [Senior Tester, Senior DevOps, Senior System Architect, Live Evidence Validation Expert, Issue Completion Auditor]
+affected_files: [.tiny-swarm-world/evidence/issue-252/, .tiny-swarm-world/evidence/classic-public-beta-rc1/ci/, documentation/workflow/]
+affected_modules: [GitHub Actions run evidence, external status, RC1 gate aggregation]
+affected_contracts: [ci-run-evidence, required-checks, sonar-status, live-state-classification, final-rc1-gate]
+dependencies: [S252-13, S252-14, S252-15]
+parallel_group: SERIAL-252-CI-EVIDENCE
+file_locks: [.tiny-swarm-world/evidence/issue-252/, .tiny-swarm-world/evidence/classic-public-beta-rc1/ci/]
+contract_locks: [run-evidence, failure-semantics, external-gate-verification]
+architecture_locks: [observed-vs-inferred, no-green-on-unverified, evidence-redaction]
+quality_gates:
+  targeted: [git diff --check, python3 tools/quality_gate.py test]
+  required: [python3 tools/quality_gate.py quality]
+documentation:
+  arc42: no update from CI status alone
+  adr: none
+stop_conditions: [missing-run-id, missing-commit, unknown-check, unavailable-sonar-status, skipped-required-job, missing-runner-proof, missing-redaction, non-success-aggregated-as-green]
+~~~
+
+Done: real workflow-run evidence exists for every required CI path; all
+required checks and Sonar status are observable; missing, skipped, blocked,
+failed or unverified paths remain non-success and feed the final RC1 decision.
 
 ### Slice 04 — WSL2 diagnostics and fresh install
 
@@ -738,7 +950,7 @@ secondary_reviewers: [Senior Tester, Senior System Architect, Senior Requirement
 affected_files: [.tiny-swarm-world/evidence/classic-public-beta-rc1/defects/, tests/e2e/classic/, tests/live/, tests/integration/, tests/support/]
 affected_modules: [defect fixes, regression tests, scenario reruns, evidence consolidation]
 affected_contracts: [RC1 defect policy, regression evidence, rerun dependency map]
-dependencies: [S252-07, S252-10]
+dependencies: [S252-07, S252-10, S252-16]
 parallel_group: SERIAL-252-REMEDIATION
 file_locks: [.tiny-swarm-world/evidence/classic-public-beta-rc1/defects/, tests/e2e/classic/, tests/live/, tests/integration/, tests/support/]
 contract_locks: [defect-severity, regression-evidence, rerun-contract]
@@ -769,7 +981,7 @@ secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Seni
 affected_files: [.tiny-swarm/evidence/issue-252/, .tiny-swarm-world/evidence/classic-public-beta-rc1/, documentation/arc42/]
 affected_modules: [issue completion, release qualification, evidence audit, architecture synchronization]
 affected_contracts: [issue-completion-discipline, live-state-policy, RC1-final-decision]
-dependencies: [S252-11]
+dependencies: [S252-11, S252-16]
 parallel_group: SERIAL-252-FINAL
 file_locks: [.tiny-swarm/evidence/issue-252/, .tiny-swarm-world/evidence/classic-public-beta-rc1/, documentation/arc42/]
 contract_locks: [requirement-to-evidence, final-rc1-decision]
@@ -802,30 +1014,37 @@ S252-01 -> S252-02 -> S252-03
                        |  -> S252-04 -> S252-05 -> S252-06 -> S252-07
                        |
                        -> S252-08 -> S252-09 -> S252-10
+                       |
+                       -> S252-13 -> S252-14 -> S252-15 -> S252-16
 
-S252-07 and S252-10 -> S252-11 -> S252-12
+S252-07, S252-10 and S252-16 -> S252-11 -> S252-12
 ~~~
 
-The host tracks are logically independent only after S252-03, but live
+The host and CI tracks are logically independent only after S252-03, but live
 validation remains serialized because targets, credentials, ports, state,
-evidence semantics and operator decisions are not assumed isolated.
+evidence semantics and operator decisions are not assumed isolated. CI
+workflow publication and live-run evidence still converge before defect
+classification and the final audit.
 
 ## Parallel Execution
 
-- Can this workflow run in parallel? Only limited read-only/local review.
+- Can this workflow run in parallel? CI design and static contract work may
+  proceed beside the host tracks after S252-03 only with disjoint worktrees;
+  live validation and final evidence remain serialized.
 - Conflicting workflows: any workflow changing Classic commands, provider
   lifecycle, Docker/Swarm setup, routing, secrets, artifacts, service stacks,
   live evidence or release governance.
-- Shared files: selected Python/configuration surfaces, tools/, tests/,
-  documentation/evidence/, documentation/arc42/, requirement/evidence paths
-  and runtime targets.
+- Shared files: selected Python/configuration surfaces, `.github/workflows/`,
+  `environment.yml`, tools/, tests/, documentation/evidence/,
+  documentation/arc42/, requirement/evidence paths and runtime targets.
 - Shared infrastructure: Incus, managed nodes, Docker Engine/Swarm, ports,
   routes, services, credentials, browser endpoints and evidence roots.
 - Requires isolated worktree: yes, for authoring and every implementation
   stream.
 - Requires serialized live validation: yes, one approved target/run at a time.
-- Merge order: S252-01 -> S252-02 -> S252-03; host tracks then S252-11;
-  S252-12 is last.
+- Merge order: S252-01 -> S252-02 -> S252-03; CI slices S252-13..16 and host
+  tracks S252-04..10 may be prepared only in disjoint worktrees; S252-11
+  follows all required host/CI evidence; S252-12 is last.
 - No parallel live run shares ports, state, credentials or evidence paths.
 - Overlapping locks, unclear ownership, contradictory requirements, unsafe
   recovery or unstable contracts force serial execution or a stop.
@@ -878,6 +1097,10 @@ are not verified.
 - Required evidence files: requirement_matrix.md, implementation_summary.md,
   changed_files.md, test_results.md, remaining_risks.md and
   acceptance_checklist.md
+- Required CI evidence: real run summaries for `python-quality-gate.yml`,
+  `python-compatibility.yml`, reconciled `sonar_check.yml` and
+  `nightly-classic-live.yml`, including run ID, commit, trigger, runner,
+  status, artifacts, redaction and failure classification.
 - Live evidence path:
   .tiny-swarm-world/evidence/classic-public-beta-rc1/<host>/<scenario>/
 - Requirement Lead review: S252-01 and S252-12
@@ -905,6 +1128,22 @@ python3 tools/quality_gate.py quality
 Run Python commands from Linux/WSL with POSIX paths. Local green is local
 evidence only, never live/browser/SonarQube evidence. Live and external states
 follow documentation/process/verification-state-policy.md.
+
+CI-specific required gates are part of #252 and are not satisfied by YAML
+presence alone:
+
+- `.github/workflows/python-quality-gate.yml` must execute the same locked
+  `python3 tools/quality_gate.py quality` contract on PR and push events.
+- `.github/workflows/python-compatibility.yml` must execute the declared Conda
+  matrix and fail when any matrix entry is missing, skipped or unresolved.
+- `.github/workflows/sonar_check.yml` must report external SonarCloud state
+  separately and honestly; a missing token or unavailable status is not green.
+- `.github/workflows/nightly-classic-live.yml` must use a verified
+  self-hosted Classic-capable runner and protected live environment. It must
+  never fall back silently to a hosted runner or treat a blocked live job as a
+  pass.
+- S252-16 must capture real GitHub Actions run evidence, not only local or
+  static workflow inspection.
 
 ## Documentation Synchronization
 
@@ -941,10 +1180,13 @@ The independent auditor confirms:
    is silently skipped.
 7. Every blocker/major defect has regression coverage and dependent reruns.
 8. Full local quality is green and external status is reported honestly.
-9. Final decision is exactly RC1_ACCEPTED, RC1_REJECTED_BLOCKERS or
+9. PR/Push quality, Conda compatibility, Sonar reconciliation and the
+   scheduled/manual Classic-live workflow have real successful or explicitly
+   non-success evidence; no required CI status is unknown.
+10. Final decision is exactly RC1_ACCEPTED, RC1_REJECTED_BLOCKERS or
    RC1_REJECTED_EVIDENCE_INCOMPLETE.
-10. Evidence is complete, redacted, checksummed and independently reviewed.
-11. Arc42/ADR references match verified behavior.
+11. Evidence is complete, redacted, checksummed and independently reviewed.
+12. Arc42/ADR references match verified behavior.
 
 RC1 acceptance is impossible with an open, blocked, partial, degraded, skipped,
 failed-to-apply or failed-to-verify required scenario.
@@ -952,8 +1194,8 @@ failed-to-apply or failed-to-verify required scenario.
 ## Commit and Push Plan
 
 Workflow authoring is published as a guarded documentation commit on
-docs/workflow-issue-252-classic-public-beta-20260814, pushing only HEAD
-to the matching origin branch. It must not create/merge a PR, delete a branch,
+docs/workflow-issue-252-ci-live-addendum-20260818, pushing only HEAD to the
+matching origin branch. It must not create/merge a PR, delete a branch,
 force-push or run live infrastructure.
 
 Later implementation uses one issue-scoped commit per executable slice after
@@ -962,17 +1204,20 @@ implementation branch is not published or merged by this authoring turn.
 
 ## Handoff to workflow execute
 
-1. Verify current main, authoring branch, implementation branch/worktree, locks
-   and S3/S3D preflight.
+1. Verify current main, the addendum authoring branch,
+   `release/classic-public-beta-rc1-stabilization` implementation worktree,
+   locks and S3/S3D preflight.
 2. Promote documentation/workflow/workflow.md as the active workflow.
 3. Execute S252-01 first and materialize the requirement matrix before product
    implementation or live execution.
-4. Do not execute S252-04 through S252-10 without Three-Amigos approval,
+4. Execute S252-13 through S252-16 as the mandatory CI layer; do not claim CI
+   completion from workflow files without real run evidence.
+5. Do not execute S252-04 through S252-10 without Three-Amigos approval,
    explicit live consent and evidence readiness per target.
-5. Keep live validation serialized.
-6. Run issue-completion-auditor in S252-12; it alone decides PASS/DONE or
+6. Keep live validation serialized and keep hosted CI free of live mutation.
+7. Run issue-completion-auditor in S252-12; it alone decides PASS/DONE or
    INCOMPLETE/BLOCKED/FAILED.
-7. A later push auto request keeps workflow-only publication guarded; PR merge
+8. A later push auto request keeps workflow-only publication guarded; PR merge
    and branch cleanup require explicit confirmation after the guard is reported.
 
 ## Arc42 Check Status

@@ -38,6 +38,24 @@ required gates are non-pass states and block merge. A live smoke run requires
 its own applicability, explicit consent, prerequisites, redacted evidence and
 state-specific result.
 
+## Issue #252 CI/release-gate addendum
+
+Issue #252 extends the current CI contract with four required workflow
+surfaces. Their presence is planned scope until real GitHub Actions runs
+produce evidence:
+
+| Workflow | Required responsibility | Non-success rule |
+| --- | --- | --- |
+| `python-quality-gate.yml` | PR/push execution of the locked Python quality gate | Any failed, skipped or unavailable stage blocks the required check. |
+| `python-compatibility.yml` | Conda matrix for the supported Python versions | Every matrix entry must run; missing entries are not compatible. |
+| `sonar_check.yml` | External SonarCloud analysis and status publication | Missing token/status is unavailable, not green. |
+| `nightly-classic-live.yml` | Scheduled/manual Classic live chain on a verified self-hosted runner | Missing runner capability, consent or evidence is blocked/unverified, never success. |
+
+The Classic-live workflow is not part of the default hosted quality path. It
+requires a protected environment, explicit target ownership, redacted
+evidence and a self-hosted runner whose labels and capabilities are proven by a
+real run. A workflow file or local test pass does not satisfy this addendum.
+
 ## Repository and target checks
 
 | Check | Current repository evidence | Classification |
