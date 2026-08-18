@@ -25,3 +25,31 @@
 - Resume condition: the user explicitly authorizes the WSL2 live slice and
   provides or confirms the required target, prerequisites, redaction path and
   rollback/cleanup plan. Then rerun S3/S3D and this gate before execution.
+
+## Resume gate — 2026-08-15
+
+- Explicit live authorization: `GRANTED` by the user in the current turn,
+  including reset-capable WSL2 installation authority.
+- Target: user-controlled local WSL2 instance at the current checkout; live
+  validation remains serialized because it shares Incus, Docker, ports,
+  credentials and evidence paths.
+- Redaction: protected local evidence paths are used; raw secrets and raw
+  service output are not copied into public evidence.
+- Preflight: `python3 tools/install_debugger.py --live` exit `0`;
+  `python3 -m tiny_swarm_world --preflight
+  --allow-wsl-windows-filesystem` with the ignored local environment loaded
+  exit `0` (`PASSED`). The wrapper `tools/preflight.py` cannot forward the
+  filesystem override and therefore remains blocked by design.
+- Stream review: Senior DevOps, Senior System Architect and Senior Tester
+  review-only agents returned their findings. The reviews are now superseded
+  for consent by the explicit user authorization; their safety findings remain
+  applicable.
+- Execution mode remains `sequential`; no parallel live stream or worktree is
+  allowed for this target.
+- Branch note: the prescribed hierarchical branch cannot be created because
+  the repository already owns the local `release` ref. No branch ref was
+  renamed or deleted; the live run is being kept on the clean issue workflow
+  branch and no product source changes are made.
+- Next mutating command, if the live gate is still green:
+  `./install.sh --headless --confirm-reset --non-interactive-live-approval
+  --allow-wsl-windows-filesystem`.

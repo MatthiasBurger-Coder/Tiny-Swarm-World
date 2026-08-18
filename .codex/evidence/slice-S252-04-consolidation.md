@@ -34,3 +34,28 @@ S252-05 through S252-12 are not started because they depend on the WSL2 live
 evidence chain. Resume only after explicit WSL2 live authorization and a fresh
 S3/S3D preflight. Native-Linux slices remain separately gated and cannot use
 WSL2 evidence as a substitute.
+
+## Live execution result — 2026-08-15
+
+- Branch: `docs/workflow-issue-252-classic-public-beta-20260814` (clean issue
+  workflow branch; the prescribed hierarchical branch could not be created
+  because local ref `release` already exists and was not renamed or deleted).
+- Commit: `fd4ad5cb9110e322f2ced90b5150f5d47f498619`
+- Host: WSL2/Linux userspace
+- Consent: explicit user authorization, including reset-capable live work
+- `install_debugger.py --live`: exit `0`
+- Final preflight with authorized filesystem override and loaded ignored local
+  environment: exit `0`
+- Fresh Install attempt 1: reset `0`, setup `1`; blocked by missing LXC APT
+  egress. Targeted forwarding repair was applied and `doctor network` returned
+  `NETWORK_OK`.
+- Fresh Install attempt 2: reset `0`, setup `1`; cluster, Swarm, secrets
+  bootstrap and artifacts completed, but Traefik deployment failed because
+  required external Docker secret `tsw_traefik_gui_users` was absent.
+- Final slice state: `S252-04_BLOCKED_RC1_BLOCKER` /
+  `LIVE_FAILED_AFTER_MUTATION`.
+- Redacted scenario evidence:
+  `.tiny-swarm-world/evidence/classic-public-beta-rc1/wsl2/RC1-S02/summary.md`
+  and `RC1-S03/summary.md`.
+- No browser/API/E2E acceptance, reconcile, update, restart or native-Linux
+  run was started; dependent slices remain blocked.
