@@ -1,8 +1,8 @@
 {
-  "workflow_version": "issue-252-classic-public-beta-rc1-20260814",
+  "workflow_version": "issue-252-classic-public-beta-rc1-20260818",
   "workflow_path": "documentation/workflow/workflow.md",
   "requirement_baseline_path": "documentation/workflow/requirement-matrix.md",
-  "authoring_branch": "docs/workflow-issue-252-classic-public-beta-20260814",
+  "authoring_branch": "docs/workflow-issue-252-ci-live-addendum-20260818",
   "planned_execution_branch": "release/classic-public-beta-rc1-stabilization",
   "status": "AUTHORED_NOT_EXECUTED",
   "issue": {
@@ -10,7 +10,7 @@
     "title": "RC1: Classic Profile Stabilization / Public Beta Acceptance",
     "url": "https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/252"
   },
-  "process_strand": "issue -> requirement matrix -> Three-Amigos -> asset inventory -> local tests -> explicit live evidence -> completion audit",
+  "process_strand": "issue -> requirement matrix -> Three-Amigos -> asset inventory -> local tests -> CI gates -> explicit live evidence -> completion audit",
   "execution_profile": "FULL_PATH",
   "affected_areas": [
     "Linux and WSL2 host readiness",
@@ -18,7 +18,8 @@
     "Docker Engine and Docker Swarm",
     "routing, secrets, artifacts and configured services",
     "Python acceptance tests and evidence",
-    "live/browser/API verification and RC1 release decision"
+    "live/browser/API verification and RC1 release decision",
+    "GitHub Actions quality, Conda compatibility, Sonar reconciliation and self-hosted Classic-live runner qualification"
   ],
   "forbidden_areas": [
     "Podman and Kubernetes",
@@ -27,7 +28,9 @@
     "administrator PowerShell privilege escalation",
     "live mutation without explicit consent",
     "raw sensitive evidence",
-    "RC1 acceptance from skipped or inferred results"
+    "RC1 acceptance from skipped or inferred results",
+    "CI workflow presence without real run evidence",
+    "GitHub-hosted runner substituted for a verified Classic-capable self-hosted runner"
   ],
   "required_roles": [
     "Senior Requirement Engineer",
@@ -50,11 +53,15 @@
     "python3 tools/quality_gate.py arch-tests",
     "python3 tools/quality_gate.py typecheck",
     "python3 tools/quality_gate.py test",
-    "python3 tools/quality_gate.py quality"
+    "python3 tools/quality_gate.py quality",
+    "real GitHub Actions runs for python-quality-gate.yml, python-compatibility.yml, sonar_check.yml and nightly-classic-live.yml"
   ],
   "governing_file_sha256": {
     "AGENTS.md": "bc0e6e0c09ac3d61a450a7fe16c3e4de9e6fbb8bdc688aad58f10a3d18b31041",
     "QUALITY.md": "7097ff31c68f178fe685c1d7d5cbc18c257a7cf5d2f727979fb2b5ab9c029c7e",
+    "documentation/workflow/workflow.md": "ceb127535759f70ba75be4c8c53abc91eafca75ad36018bbd1cfc3067e82430b",
+    "documentation/workflow/requirement-matrix.md": "8021555f972dd790fefc8a76d5cc000a7315d9f8b8359332a76c89c78c0d3128",
+    "documentation/governance/ci-quality-gates.md": "23e6ef7a13f79377ba71a424c30aaf579d41079c4c812c63ea3d573e8c7d9e3d",
     "documentation/process/issue-completion-discipline.md": "3db2d080b7cfbbc3737907a61c67ce6a361485c8993cf4a20c1c5fe2dc743bc3",
     "documentation/process/verification-state-policy.md": "5b6e2eefde66a1b8492afafc2976e59ac40f16e7100f79f730b97b254febdcfd",
     "documentation/arc42/01_introduction.adoc": "dd7918e16c71110827a9ad11c1bd84b51057995a4c588e254d2ff090a4522b7e",
