@@ -1,10 +1,9 @@
-name: SonarCloud
+name: SonarCloud External Gate
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  workflow_run:
+    workflows: [Python Quality Gate]
+    types: [completed]
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -12,10 +11,23 @@ concurrency:
 
 permissions:
   contents: read
+  actions: read
+  pull-requests: read
 
 jobs:
+  quality-prerequisite:
+    name: Require successful Python quality gate
+    if: ${{ github.event.workflow_run.conclusion != 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail closed when the quality gate is not successful
+        run: |
+          echo "Python Quality Gate conclusion: ${{ github.event.workflow_run.conclusion }}"
+          exit 1
+
   sonarcloud:
-    name: Python Quality And SonarCloud
+    name: SonarCloud external analysis
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -25,6 +37,7 @@ jobs:
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
           fetch-depth: 0
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Set Up Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
@@ -51,23 +64,19 @@ jobs:
           python3 -m pip check
           python3 -c "import tiny_swarm_world"
 
-      - name: Install Development Tools
-        run: |
-          python3 -m pip install -r requirements-dev.txt
+      - name: Download Quality-Gate Coverage Handoff
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: sonar-coverage-${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.event.workflow_run.repository.full_name }}
+          run-id: ${{ github.event.workflow_run.id }}
 
-      - name: Quality Gate
-        run: python3 tools/quality_gate.py quality
-
-      - name: Generate Coverage Report
-        run: |
-          PYTHONPATH=src python3 -m coverage run --branch -m unittest discover -s tests -t .
-          coverage xml -o coverage.xml
-
-      - name: SonarCloud Scan
-        if: ${{ env.SONAR_TOKEN != '' }}
-        uses: SonarSource/sonarqube-scan-action@713881670b6b3676cda39549040e2d88c70d582e # v8
-
-      - name: Skip SonarCloud Scan
+      - name: Require SonarCloud Token
         if: ${{ env.SONAR_TOKEN == '' }}
         run: |
-          echo "SONAR_TOKEN or SONAR_CLOUD_TOKEN is not configured; skipping SonarCloud upload."
+          echo "SONAR_TOKEN or SONAR_CLOUD_TOKEN is unavailable; external gate is not green."
+          exit 1
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarqube-scan-action@713881670b6b3676cda39549040e2d88c70d582e # v8

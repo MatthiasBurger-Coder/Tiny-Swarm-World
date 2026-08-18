@@ -60,11 +60,11 @@ real run. A workflow file or local test pass does not satisfy this addendum.
 
 | Check | Current repository evidence | Classification |
 | --- | --- | --- |
-| Python quality gate | `tools/quality_gate.py` and `.github/workflows/sonar_check.yml` reference it | Current repository contract; hosted result must be observed. |
+| Python quality gate | `tools/quality_gate.py` and `.github/workflows/python-quality-gate.yml` execute the canonical local gate | Current repository contract; hosted result must be observed. |
 | Dependency audit | #127 policy artifacts | Policy/current documentation; execution evidence is separate. |
 | SBOM generation | #127 policy artifacts | Target/release evidence when accepted by the release workflow. |
 | Container image scan | #127 policy artifacts | Target/release evidence; no scan claim here. |
-| SonarQube/SonarCloud | Existing workflow is present and token-gated | Repository-configured; external result unknown until observed. |
+| SonarQube/SonarCloud | `.github/workflows/sonar_check.yml` consumes the successful quality workflow's coverage artifact and owns only external analysis | Missing token, missing handoff or unavailable status is a failed/non-green external gate. |
 | Documentation link/schema check | Governance/documentation review | Recommended target; no new CI job is introduced by #128. |
 
 ## Evidence and security boundaries
@@ -74,3 +74,20 @@ skips/blockers and redaction treatment. Raw secrets, tokens, host data and
 unredacted logs are forbidden. The default CI path must not create VMs, modify
 networking, deploy stacks or bootstrap Infisical, Nexus, Jenkins, Pulsar,
 SonarQube, Portainer, Swagger or Traefik.
+
+## Issue #252 S252-13 implementation contract
+
+`python-quality-gate.yml` is the required PR/push check. It installs the
+hashed runtime lock, explicitly pinned quality tools, runs
+`python3 tools/quality_gate.py quality`, and publishes the generated
+`coverage.xml` as a short-lived handoff artifact.
+
+`sonar_check.yml` is triggered only after that workflow completes. It fails
+closed when the quality workflow was not successful, the coverage handoff is
+missing, or the SonarCloud token is unavailable. It does not run the canonical
+Python quality gate a second time and does not present a skipped scan as green.
+
+The workflows are configuration and contract evidence only until an actual
+GitHub Actions run provides run ID, commit, trigger, runner, duration,
+artifacts and external-gate status. A local test pass does not create that
+external evidence.
