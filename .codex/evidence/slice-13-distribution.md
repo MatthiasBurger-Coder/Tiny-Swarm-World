@@ -27,7 +27,7 @@ Expected touched files/directories:
   workflow distribution artifact from the same execution attempt; no unrelated
   product or user file changes were present.
 - `S3_BRANCH`: PASS; active branch is
-  `release/classic-public-beta-rc1-stabilization`, matching the workflow's
+  `feature/classic-public-beta-rc1-stabilization`, matching the workflow's
   planned execution branch and backed by a local ref.
 - `S3_SCOPE`: PASS; the user requested execution of the active Issue #252
   workflow and S252-13 is in its declared scope.

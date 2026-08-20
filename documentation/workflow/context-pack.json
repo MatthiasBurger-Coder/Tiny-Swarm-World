@@ -3,7 +3,7 @@
   "workflow_path": "documentation/workflow/workflow.md",
   "requirement_baseline_path": "documentation/workflow/requirement-matrix.md",
   "authoring_branch": "docs/workflow-issue-252-ci-live-addendum-20260818",
-  "planned_execution_branch": "release/classic-public-beta-rc1-stabilization",
+  "planned_execution_branch": "feature/classic-public-beta-rc1-stabilization",
   "status": "AUTHORED_NOT_EXECUTED",
   "issue": {
     "number": 252,
@@ -59,9 +59,9 @@
   "governing_file_sha256": {
     "AGENTS.md": "bc0e6e0c09ac3d61a450a7fe16c3e4de9e6fbb8bdc688aad58f10a3d18b31041",
     "QUALITY.md": "7097ff31c68f178fe685c1d7d5cbc18c257a7cf5d2f727979fb2b5ab9c029c7e",
-    "documentation/workflow/workflow.md": "2e986385655999b25ce82c7a33a7d6bbc2df1431255f3265cef05b75c834a25c",
+    "documentation/workflow/workflow.md": "d29882fe7525f8b4900ea9952b57236395218fa13067f5ecd5cc371c4c35d0a5",
     "documentation/workflow/requirement-matrix.md": "8021555f972dd790fefc8a76d5cc000a7315d9f8b8359332a76c89c78c0d3128",
-    "documentation/governance/ci-quality-gates.md": "23e6ef7a13f79377ba71a424c30aaf579d41079c4c812c63ea3d573e8c7d9e3d",
+    "documentation/governance/ci-quality-gates.md": "8a691eb5b59597173e74e0ff746a42fc96ab05b5b5bf7c76280f526ada04195f",
     "documentation/process/issue-completion-discipline.md": "3db2d080b7cfbbc3737907a61c67ce6a361485c8993cf4a20c1c5fe2dc743bc3",
     "documentation/process/verification-state-policy.md": "5b6e2eefde66a1b8492afafc2976e59ac40f16e7100f79f730b97b254febdcfd",
     "documentation/arc42/01_introduction.adoc": "dd7918e16c71110827a9ad11c1bd84b51057995a4c588e254d2ff090a4522b7e",
