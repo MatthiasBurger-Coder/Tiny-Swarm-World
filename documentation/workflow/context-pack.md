@@ -4,7 +4,7 @@ Workflow version: issue-252-classic-public-beta-rc1-20260818
 Workflow path: documentation/workflow/workflow.md
 Requirement baseline: documentation/workflow/requirement-matrix.md
 Authoring branch: docs/workflow-issue-252-ci-live-addendum-20260818
-Planned execution branch: release/classic-public-beta-rc1-stabilization
+Planned execution branch: feature/classic-public-beta-rc1-stabilization
 Status: AUTHORED_NOT_EXECUTED
 
 ## Process

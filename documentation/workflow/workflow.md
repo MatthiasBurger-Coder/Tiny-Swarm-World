@@ -8,7 +8,7 @@ Execution profile: FULL_PATH
 
 Authoring branch: docs/workflow-issue-252-ci-live-addendum-20260818
 
-Planned execution branch: release/classic-public-beta-rc1-stabilization
+Planned execution branch: feature/classic-public-beta-rc1-stabilization
 
 Status: AUTHORED_NOT_EXECUTED
 
@@ -1079,7 +1079,7 @@ shared live infrastructure or live validation without isolated resources.
 ## Git Worktree Execution Rule
 
 Every implementation uses a dedicated issue worktree and the planned branch
-release/classic-public-beta-rc1-stabilization, after verifying that the branch
+feature/classic-public-beta-rc1-stabilization, after verifying that the branch
 is not shared or conflicting. If it exists, verify ownership/base; otherwise
 create it from approved current-main baseline.
 
@@ -1206,7 +1206,7 @@ implementation branch is not published or merged by this authoring turn.
 ## Handoff to workflow execute
 
 1. Verify current main, the addendum authoring branch,
-   `release/classic-public-beta-rc1-stabilization` implementation worktree,
+   `feature/classic-public-beta-rc1-stabilization` implementation worktree,
    locks and S3/S3D preflight.
 2. Promote documentation/workflow/workflow.md as the active workflow.
 3. Execute S252-01 first and materialize the requirement matrix before product
