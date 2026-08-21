@@ -82,6 +82,46 @@ class CiWorkflowContractTests(unittest.TestCase):
         self.assertNotIn("docker swarm", workflow.lower())
         self.assertNotIn("incus", workflow.lower())
 
+    def test_classic_live_workflow_is_protected_and_fail_closed(self) -> None:
+        workflow = self._workflow("nightly-classic-live.yml")
+
+        self.assertIn("name: Nightly Classic Live", workflow)
+        self.assertIn("schedule:", workflow)
+        self.assertIn("workflow_dispatch:", workflow)
+        self.assertIn("live_approval:", workflow)
+        self.assertIn("options: [approve, block]", workflow)
+        self.assertIn("runs-on: [self-hosted, linux, tsw-classic]", workflow)
+        self.assertIn("environment:", workflow)
+        self.assertIn("tiny-swarm-world-classic-live", workflow)
+        self.assertIn("needs: qualify-runner", workflow)
+        self.assertIn("test -n \"${TARGET_OWNER}\"", workflow)
+        self.assertIn("run_classic_acceptance.py --approve-live", workflow)
+        self.assertIn("actions/upload-artifact@", workflow)
+        self.assertIn("if-no-files-found: error", workflow)
+        self.assertNotIn("runs-on: ubuntu-latest", workflow)
+        self.assertNotIn("docker swarm", workflow.lower())
+
+    def test_classic_live_runner_records_only_redacted_terminal_evidence(self) -> None:
+        runner = (REPOSITORY_ROOT / "tools/live/run_classic_acceptance.py").read_text(
+            encoding="utf-8"
+        )
+
+        for marker in (
+            "LIVE_CONSENT_MISSING",
+            "LIVE_PREREQUISITE_MISSING",
+            "LIVE_FAILED_AFTER_MUTATION",
+            "LIVE_VERIFIED",
+            "checksums.sha256",
+            "raw stdout, stderr, credentials and environment values were not written",
+            "tools/install_debugger.py",
+            '"classic_e2e"',
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, runner)
+        self.assertIn("capture_output=True", runner)
+        self.assertNotIn("print(completed.stdout", runner)
+        self.assertNotIn("print(completed.stderr", runner)
+
     def _workflow(self, name: str) -> str:
         return (WORKFLOW_ROOT / name).read_text(encoding="utf-8")
 
