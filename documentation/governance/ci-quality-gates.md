@@ -92,3 +92,10 @@ The workflows are configuration and contract evidence only until an actual
 GitHub Actions run provides run ID, commit, trigger, runner, duration,
 artifacts and external-gate status. A local test pass does not create that
 external evidence.
+
+`python-compatibility.yml` runs the declared Conda matrix for Python 3.12 and
+3.13. Each matrix entry creates the environment from `environment.yml`,
+installs `requirements.lock` with hash verification, installs the editable
+package without dependency drift, runs `pip check` and executes the complete
+deterministic unittest contract. A missing or failed matrix entry is not
+compatible evidence.
