@@ -98,3 +98,11 @@ installs `requirements.lock` with hash verification, installs the editable
 package without dependency drift, runs `pip check` and executes the complete
 deterministic unittest contract. A missing or failed matrix entry is not
 compatible evidence.
+
+`nightly-classic-live.yml` is intentionally separate from the hosted quality
+path. It accepts only the `self-hosted`, `linux`, `tsw-classic` runner label,
+requires a protected `tiny-swarm-world-classic-live` environment and explicit
+target ownership, and invokes `tools/live/run_classic_acceptance.py` with live
+approval. The runner must already hold the private ignored operator env file;
+the workflow never prints or uploads it. Missing runner capability, approval,
+ownership, credentials or redacted evidence is a blocked/non-success state.

@@ -1,0 +1,86 @@
+name: Nightly Classic Live
+
+on:
+  schedule:
+    - cron: "17 2 * * *"
+  workflow_dispatch:
+    inputs:
+      live_approval:
+        description: "Explicitly authorize the protected Classic live target"
+        required: true
+        type: choice
+        options: [approve, block]
+      target_owner:
+        description: "Redacted target-owner reference"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: classic-live-${{ github.repository }}
+  cancel-in-progress: false
+
+env:
+  CLASSIC_LIVE_RUNNER_LABEL: tsw-classic
+
+jobs:
+  qualify-runner:
+    name: Qualify Classic live runner
+    if: ${{ github.event_name == 'schedule' || inputs.live_approval == 'approve' }}
+    runs-on: [self-hosted, linux, tsw-classic]
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          fetch-depth: 0
+
+      - name: Require Linux and owned live target
+        env:
+          TARGET_OWNER: ${{ inputs.target_owner || vars.TSW_CLASSIC_TARGET_OWNER }}
+        run: |
+          set -Eeuo pipefail
+          test "${RUNNER_OS}" = Linux
+          test -n "${RUNNER_NAME}"
+          test -n "${TARGET_OWNER}"
+          test -f .tiny-swarm-world/local/live-installation.env
+          test "$(stat -c '%a' .tiny-swarm-world/local/live-installation.env)" = 600
+          python3 - <<'PY'
+          import platform
+          import sys
+
+          if platform.system() != "Linux":
+              raise SystemExit("Classic live runner must be Linux")
+          print("runner-capability=linux")
+          print(f"python={sys.version_info.major}.{sys.version_info.minor}")
+          PY
+
+  classic-live:
+    name: Execute Classic live chain
+    needs: qualify-runner
+    if: ${{ needs.qualify-runner.result == 'success' }}
+    runs-on: [self-hosted, linux, tsw-classic]
+    environment:
+      name: tiny-swarm-world-classic-live
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          fetch-depth: 0
+
+      - name: Run redacted Classic live chain
+        run: |
+          set -Eeuo pipefail
+          python3 tools/live/run_classic_acceptance.py --approve-live
+
+      - name: Upload redacted live evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: classic-live-evidence-${{ github.run_id }}
+          path: .tiny-swarm-world/evidence/live-greenpath/
+          if-no-files-found: error
+          retention-days: 14
