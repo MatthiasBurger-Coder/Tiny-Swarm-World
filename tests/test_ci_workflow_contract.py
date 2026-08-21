@@ -65,6 +65,23 @@ class CiWorkflowContractTests(unittest.TestCase):
         self.assertIn("pip install --no-deps -e .", workflow)
         self.assertIn("python3 -m pip check", workflow)
 
+    def test_python_compatibility_workflow_runs_the_declared_conda_matrix(self) -> None:
+        workflow = self._workflow("python-compatibility.yml")
+
+        self.assertIn("name: Python Compatibility", workflow)
+        self.assertIn("  push:", workflow)
+        self.assertIn("  pull_request:", workflow)
+        self.assertIn("fail-fast: false", workflow)
+        self.assertIn('python-version: ["3.12", "3.13"]', workflow)
+        self.assertIn("conda-incubator/setup-miniconda@835234971496cad1653abb28a638a281cf32541f", workflow)
+        self.assertIn("environment-file: environment.yml", workflow)
+        self.assertIn("python-version: ${{ matrix.python-version }}", workflow)
+        self.assertIn("python -m pip install --require-hashes -r requirements.lock", workflow)
+        self.assertIn("PYTHONPATH=src python -m unittest discover -s tests -t .", workflow)
+        self.assertNotIn("install.sh", workflow)
+        self.assertNotIn("docker swarm", workflow.lower())
+        self.assertNotIn("incus", workflow.lower())
+
     def _workflow(self, name: str) -> str:
         return (WORKFLOW_ROOT / name).read_text(encoding="utf-8")
 
