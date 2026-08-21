@@ -42,6 +42,7 @@ jobs:
           set -Eeuo pipefail
           python --version
           python -m pip install --require-hashes -r requirements.lock
+          python -m pip install "packaging==25.0"
           python -m pip install --no-deps -e .
           python -m pip check
 
