@@ -77,6 +77,7 @@ class CiWorkflowContractTests(unittest.TestCase):
         self.assertIn("environment-file: environment.yml", workflow)
         self.assertIn("python-version: ${{ matrix.python-version }}", workflow)
         self.assertIn("python -m pip install --require-hashes -r requirements.lock", workflow)
+        self.assertIn('python -m pip install "packaging==25.0"', workflow)
         self.assertIn("PYTHONPATH=src python -m unittest discover -s tests -t .", workflow)
         self.assertNotIn("install.sh", workflow)
         self.assertNotIn("docker swarm", workflow.lower())
