@@ -8,4 +8,3 @@ dependencies:
   - pip
   - pip:
       - -r requirements.lock
-      - -r requirements-dev.txt
