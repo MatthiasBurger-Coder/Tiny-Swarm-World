@@ -19,13 +19,14 @@ import requests
 import socket
 import ssl
 import subprocess
+import time
 import unittest
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from email.message import Message
 from html.parser import HTMLParser
 from pathlib import Path
-from typing import Any, ClassVar
+from typing import Any, Callable, ClassVar
 from unittest.mock import Mock, patch
 from urllib.error import HTTPError
 from urllib.parse import urljoin, urlparse
@@ -36,12 +37,28 @@ from ruamel.yaml import YAML
 from tiny_swarm_world.application.ports.repositories.port_effective_access_model_repository import (
     PortEffectiveAccessModelRepository,
 )
+from tiny_swarm_world.application.ports.port_tls_contract_resolver import (
+    PortTlsContractResolver,
+)
 from tiny_swarm_world.domain.deployment import (
     ServiceStackProfile,
 )
 from tiny_swarm_world.domain.ingress import desired_https_ingress_for_profile
 from tiny_swarm_world.infrastructure.adapters.repositories.port_registry_yaml_repository import (
     PortRegistryYamlRepository,
+)
+from tiny_swarm_world.infrastructure.adapters.ingress.local_tls_contract_resolver import (
+    LocalTlsContractResolver,
+    TlsContractConfigurationError,
+)
+from tiny_swarm_world.infrastructure.adapters.ingress.tls_state import (
+    canonical_tls_state_root,
+)
+from tiny_swarm_world.infrastructure.composition_configuration import (
+    DEFAULT_TRAEFIK_TLS_CERT_SECRET_NAME,
+    DEFAULT_TRAEFIK_TLS_KEY_SECRET_NAME,
+    TRAEFIK_TLS_CERT_SECRET_NAME_ENVIRONMENT,
+    TRAEFIK_TLS_KEY_SECRET_NAME_ENVIRONMENT,
 )
 from tests.e2e.classic.browser_e2e_contract import browser_route_expectations
 from tests.support.effective_access_model_fixture import effective_access_model_fixture
@@ -125,6 +142,35 @@ class HttpProbeResult:
 
 
 @dataclass(frozen=True)
+class ReadinessSummary:
+    attempts: int
+    duration_seconds: float
+    pending_services: tuple[str, ...]
+
+    def to_evidence(self) -> dict[str, object]:
+        return {
+            "attempts": self.attempts,
+            "duration_seconds": round(self.duration_seconds, 3),
+            "pending_services": list(self.pending_services),
+            "result": "passed" if not self.pending_services else "failed",
+        }
+
+
+class ReadinessDeadlineExceeded(AssertionError):
+    def __init__(
+        self,
+        summary: ReadinessSummary,
+        results: tuple[HttpProbeResult, ...],
+    ) -> None:
+        self.summary = summary
+        self.results = results
+        super().__init__(
+            "post_install_browser_readiness_timeout: pending="
+            + ",".join(summary.pending_services)
+        )
+
+
+@dataclass(frozen=True)
 class HttpsRouteProbeResult:
     service: str
     hostname: str
@@ -164,7 +210,10 @@ class LivePostInstallConfig:
     tls_ca_bundle: str | None
 
     @classmethod
-    def from_environment(cls) -> "LivePostInstallConfig":
+    def from_environment(
+        cls,
+        tls_contract_resolver: PortTlsContractResolver | None = None,
+    ) -> "LivePostInstallConfig":
         local_env = _load_shell_environment(
             Path(os.environ.get("TSW_LIVE_INSTALLATION_ENV", DEFAULT_ENV_FILE))
         )
@@ -202,9 +251,9 @@ class LivePostInstallConfig:
             sonarqube_username=_env_value(local_env, "TSW_SONARQUBE_ADMIN_USERNAME", "admin"),
             sonarqube_password=_env_optional(local_env, "TSW_SONARQUBE_ADMIN_PASSWORD"),
             timeout_seconds=float(os.environ.get("TSW_POST_INSTALL_BROWSER_TIMEOUT", "45")),
-            tls_ca_bundle=_validated_tls_ca_bundle(
-                os.environ.get("TSW_LIVE_TLS_CA_BUNDLE")
-                or local_env.get("TSW_LIVE_TLS_CA_BUNDLE")
+            tls_ca_bundle=_canonical_live_trust_bundle(
+                tls_contract_resolver
+                or _canonical_tls_contract_resolver({**local_env, **os.environ})
             ),
         )
 
@@ -379,6 +428,8 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
                 LivePostInstallConfig.from_environment()
 
     def test_live_config_accepts_operator_ca_bundle_path(self) -> None:
+        resolver = Mock()
+        resolver.resolve.return_value.trust_bundle = Path(TEST_CA_BUNDLE)
         with (
             patch.dict(
                 os.environ,
@@ -389,11 +440,15 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
             ),
             patch.object(Path, "is_file", return_value=True),
         ):
-            config = LivePostInstallConfig.from_environment()
+            config = LivePostInstallConfig.from_environment(resolver)
 
         self.assertEqual(config.tls_ca_bundle, TEST_CA_BUNDLE)
 
     def test_live_config_rejects_missing_operator_ca_bundle(self) -> None:
+        resolver = Mock()
+        resolver.resolve.side_effect = TlsContractConfigurationError(
+            "TLS material is missing"
+        )
         with (
             patch.dict(
                 os.environ,
@@ -408,7 +463,23 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
                 AssertionError,
                 "post_install_browser_setup_blocker: invalid_tls_ca_bundle",
             ):
-                LivePostInstallConfig.from_environment()
+                LivePostInstallConfig.from_environment(resolver)
+
+    def test_live_config_uses_canonical_resolver_trust_bundle(self) -> None:
+        resolver = Mock()
+        resolver.resolve.return_value.trust_bundle = Path(TEST_CA_BUNDLE)
+
+        with (
+            patch.dict(
+                os.environ,
+                {"TSW_LIVE_INSTALLATION_ENV": MISSING_TEST_ENV_FILE},
+            ),
+            patch.object(Path, "is_file", return_value=True),
+        ):
+            config = LivePostInstallConfig.from_environment(resolver)
+
+        self.assertEqual(config.tls_ca_bundle, TEST_CA_BUNDLE)
+        resolver.resolve.assert_called_once_with()
 
     def test_http_probe_passes_operator_ca_bundle_to_https_request(self) -> None:
         check = ServiceCheck("service-access", "https://service-access.tsw.local/")
@@ -468,6 +539,178 @@ class StaticPostInstallLiveSuiteTest(unittest.TestCase):
         self.assertEqual(
             [call.args[0].get_method() for call in opener.open.call_args_list],
             ["HEAD", "GET"],
+        )
+
+    def test_readiness_returns_immediately_when_all_services_are_ready(self) -> None:
+        clock = _FakeMonotonicClock()
+        checks = (ServiceCheck("dashboard", "https://dashboard.tsw.local"),)
+        probe = Mock(return_value=_ready_probe_result(checks[0]))
+
+        results, summary = _wait_for_service_readiness(
+            checks,
+            10.0,
+            tls_ca_bundle=TEST_CA_BUNDLE,
+            probe=probe,
+            monotonic=clock,
+            sleep=clock.sleep,
+        )
+
+        self.assertTrue(results[0].reachable)
+        self.assertEqual(summary.attempts, 1)
+        self.assertEqual(summary.pending_services, ())
+        probe.assert_called_once_with(
+            checks[0],
+            5.0,
+            tls_ca_bundle=TEST_CA_BUNDLE,
+        )
+
+    def test_readiness_retries_pending_service_until_it_is_ready(self) -> None:
+        clock = _FakeMonotonicClock()
+        check = ServiceCheck("dashboard", "https://dashboard.tsw.local")
+        probe = Mock(
+            side_effect=(
+                _failed_probe_result(check, "connection_error"),
+                _ready_probe_result(check),
+            )
+        )
+
+        _results, summary = _wait_for_service_readiness(
+            (check,),
+            10.0,
+            probe=probe,
+            monotonic=clock,
+            sleep=clock.sleep,
+            retry_interval_seconds=1.0,
+        )
+
+        self.assertEqual(summary.attempts, 2)
+        self.assertEqual(summary.duration_seconds, 1.0)
+
+    def test_readiness_caps_each_probe_by_remaining_global_deadline(self) -> None:
+        clock = _FakeMonotonicClock()
+        checks = (
+            ServiceCheck("dashboard", "https://dashboard.tsw.local"),
+            ServiceCheck("jenkins", "https://jenkins.tsw.local"),
+        )
+        observed_timeouts: list[float] = []
+
+        def probe(
+            check: ServiceCheck,
+            timeout_seconds: float,
+            **_kwargs: object,
+        ) -> HttpProbeResult:
+            observed_timeouts.append(timeout_seconds)
+            if check is checks[0]:
+                clock.current += 4.0
+            return _ready_probe_result(check)
+
+        _wait_for_service_readiness(
+            checks,
+            6.0,
+            per_probe_timeout_seconds=5.0,
+            probe=probe,
+            monotonic=clock,
+            sleep=clock.sleep,
+        )
+
+        self.assertEqual(observed_timeouts, [5.0, 2.0])
+
+    def test_readiness_rejects_ready_result_returned_after_global_deadline(self) -> None:
+        clock = _FakeMonotonicClock()
+        check = ServiceCheck("dashboard", "https://dashboard.tsw.local")
+
+        def late_ready_probe(
+            selected_check: ServiceCheck,
+            _timeout_seconds: float,
+            **_kwargs: object,
+        ) -> HttpProbeResult:
+            clock.current = 2.1
+            return _ready_probe_result(selected_check)
+
+        with self.assertRaises(ReadinessDeadlineExceeded) as raised:
+            _wait_for_service_readiness(
+                (check,),
+                2.0,
+                probe=late_ready_probe,
+                monotonic=clock,
+                sleep=clock.sleep,
+            )
+
+        self.assertEqual(raised.exception.summary.pending_services, ("dashboard",))
+        self.assertEqual(raised.exception.results[0].result, "failed")
+        self.assertEqual(
+            raised.exception.results[0].redacted_failure_reason,
+            "global_deadline_exceeded",
+        )
+
+    def test_readiness_empty_check_matrix_is_immediate_success(self) -> None:
+        clock = _FakeMonotonicClock()
+
+        results, summary = _wait_for_service_readiness(
+            (),
+            2.0,
+            monotonic=clock,
+            sleep=clock.sleep,
+        )
+
+        self.assertEqual(results, ())
+        self.assertEqual(summary, ReadinessSummary(0, 0.0, ()))
+
+    def test_readiness_global_timeout_is_a_failure_with_redacted_summary(self) -> None:
+        clock = _FakeMonotonicClock()
+        check = ServiceCheck("dashboard", "https://dashboard.tsw.local")
+
+        with self.assertRaises(ReadinessDeadlineExceeded) as raised:
+            _wait_for_service_readiness(
+                (check,),
+                2.0,
+                probe=Mock(return_value=_failed_probe_result(check, "connection_error")),
+                monotonic=clock,
+                sleep=clock.sleep,
+                retry_interval_seconds=1.0,
+            )
+
+        self.assertEqual(raised.exception.summary.pending_services, ("dashboard",))
+        self.assertEqual(raised.exception.summary.duration_seconds, 2.0)
+        self.assertGreaterEqual(raised.exception.summary.attempts, 1)
+        self.assertTrue(_evidence_safe(raised.exception.summary.to_evidence()))
+
+    def test_readiness_probe_exception_is_redacted_and_remains_failure(self) -> None:
+        clock = _FakeMonotonicClock()
+        check = ServiceCheck("dashboard", "https://dashboard.tsw.local")
+
+        with self.assertRaises(ReadinessDeadlineExceeded) as raised:
+            _wait_for_service_readiness(
+                (check,),
+                1.0,
+                probe=Mock(side_effect=RuntimeError("credential=do-not-record")),
+                monotonic=clock,
+                sleep=clock.sleep,
+            )
+
+        self.assertEqual(
+            raised.exception.results[0].redacted_failure_reason,
+            "probe_exception_RuntimeError",
+        )
+        self.assertNotIn("do-not-record", str(raised.exception))
+
+    def test_readiness_tls_failure_never_becomes_skip_or_success(self) -> None:
+        clock = _FakeMonotonicClock()
+        check = ServiceCheck("dashboard", "https://dashboard.tsw.local")
+
+        with self.assertRaises(ReadinessDeadlineExceeded) as raised:
+            _wait_for_service_readiness(
+                (check,),
+                1.0,
+                probe=Mock(return_value=_failed_probe_result(check, "SSLCertVerificationError")),
+                monotonic=clock,
+                sleep=clock.sleep,
+            )
+
+        self.assertEqual(raised.exception.results[0].result, "failed")
+        self.assertEqual(
+            raised.exception.results[0].redacted_failure_reason,
+            "SSLCertVerificationError",
         )
 
     def test_redacted_evidence_rejects_secret_like_keys_and_values(self) -> None:
@@ -534,24 +777,23 @@ class PostInstallBrowserLiveTest(unittest.TestCase):
             cls.evidence.write()
 
     def test_01_service_routes_return_browser_relevant_http_responses(self) -> None:
-        failures: list[HttpProbeResult] = []
-        for check in _service_checks(self.config.dashboard_url):
-            with self.subTest(service=check.name):
-                result = _probe_http(
-                    check,
-                    self.config.timeout_seconds,
-                    tls_ca_bundle=self.config.tls_ca_bundle,
-                )
-                self.evidence.record("service", result.to_evidence())
-                if not result.reachable:
-                    failures.append(result)
-
-        if failures:
-            failed_services = ",".join(result.service for result in failures)
-            raise AssertionError(
-                "post_install_browser_route_failed: "
-                f"{failed_services}; evidence={self.evidence.path.as_posix()}"
+        try:
+            results, summary = _wait_for_service_readiness(
+                _service_checks(self.config.dashboard_url),
+                self.config.timeout_seconds,
+                tls_ca_bundle=self.config.tls_ca_bundle,
             )
+        except ReadinessDeadlineExceeded as exc:
+            for result in exc.results:
+                self.evidence.record("service", result.to_evidence())
+            self.evidence.record("service_readiness", exc.summary.to_evidence())
+            raise AssertionError(
+                f"{exc}; evidence={self.evidence.path.as_posix()}"
+            ) from None
+
+        for result in results:
+            self.evidence.record("service", result.to_evidence())
+        self.evidence.record("service_readiness", summary.to_evidence())
 
     def test_02_https_ingress_hostnames_resolve(self) -> None:
         unresolved: list[str] = []
@@ -924,6 +1166,86 @@ def _hostname_resolution_evidence(
     }
 
 
+def _wait_for_service_readiness(
+    checks: tuple[ServiceCheck, ...],
+    timeout_seconds: float,
+    *,
+    tls_ca_bundle: str | None = None,
+    per_probe_timeout_seconds: float = 5.0,
+    retry_interval_seconds: float = 0.25,
+    probe: Callable[..., HttpProbeResult] | None = None,
+    monotonic: Callable[[], float] = time.monotonic,
+    sleep: Callable[[float], None] = time.sleep,
+) -> tuple[tuple[HttpProbeResult, ...], ReadinessSummary]:
+    if timeout_seconds <= 0 or per_probe_timeout_seconds <= 0:
+        raise ValueError("readiness timeouts must be positive")
+    if retry_interval_seconds < 0:
+        raise ValueError("readiness retry interval must not be negative")
+
+    started_at = monotonic()
+    deadline = started_at + timeout_seconds
+    selected_probe = probe or _probe_http
+    pending = {check.name: check for check in checks}
+    results: dict[str, HttpProbeResult] = {}
+    attempts = 0
+
+    if not pending:
+        return (), ReadinessSummary(0, 0.0, ())
+
+    while pending:
+        if deadline - monotonic() <= 0:
+            break
+        attempts += 1
+        for service, check in tuple(pending.items()):
+            remaining = deadline - monotonic()
+            if remaining <= 0:
+                break
+            try:
+                result = selected_probe(
+                    check,
+                    min(per_probe_timeout_seconds, remaining),
+                    tls_ca_bundle=tls_ca_bundle,
+                )
+            except Exception as exc:  # The live boundary must preserve a redacted failure.
+                result = _failed_probe_result(
+                    check,
+                    f"probe_exception_{type(exc).__name__}",
+                )
+            if monotonic() >= deadline:
+                results[service] = _failed_probe_result(
+                    check,
+                    "global_deadline_exceeded",
+                )
+                break
+            results[service] = result
+            if result.reachable:
+                pending.pop(service)
+
+        if not pending:
+            duration = max(0.0, monotonic() - started_at)
+            return (
+                tuple(results[check.name] for check in checks),
+                ReadinessSummary(attempts, duration, ()),
+            )
+
+        remaining = deadline - monotonic()
+        if remaining <= 0:
+            break
+        sleep(min(retry_interval_seconds, remaining))
+
+    duration = min(timeout_seconds, max(0.0, monotonic() - started_at))
+    pending_services = tuple(check.name for check in checks if check.name in pending)
+    summary = ReadinessSummary(attempts, duration, pending_services)
+    failure_results = tuple(
+        results.get(
+            check.name,
+            _failed_probe_result(check, "global_deadline_exhausted_before_probe"),
+        )
+        for check in checks
+    )
+    raise ReadinessDeadlineExceeded(summary, failure_results)
+
+
 def _probe_http(
     check: ServiceCheck,
     timeout_seconds: float,
@@ -957,6 +1279,32 @@ def _probe_http(
         content_type=content_type,
         result="passed" if reachable else "failed",
         redacted_failure_reason="" if reachable else "http_status_out_of_range",
+    )
+
+
+def _ready_probe_result(check: ServiceCheck) -> HttpProbeResult:
+    return HttpProbeResult(
+        service=check.name,
+        url=check.url,
+        reachable=True,
+        status_code=200,
+        content_type="text/html",
+        result="passed",
+    )
+
+
+def _failed_probe_result(
+    check: ServiceCheck,
+    redacted_failure_reason: str,
+) -> HttpProbeResult:
+    return HttpProbeResult(
+        service=check.name,
+        url=check.url,
+        reachable=False,
+        status_code=None,
+        content_type="",
+        result="failed",
+        redacted_failure_reason=redacted_failure_reason,
     )
 
 
@@ -1697,6 +2045,40 @@ def _validated_tls_ca_bundle(raw_path: str | None) -> str | None:
     return raw_path
 
 
+def _canonical_tls_contract_resolver(
+    environment: dict[str, str],
+) -> PortTlsContractResolver:
+    return LocalTlsContractResolver(
+        state_root=canonical_tls_state_root(environment),
+        certificate_secret_name=environment.get(
+            TRAEFIK_TLS_CERT_SECRET_NAME_ENVIRONMENT,
+            DEFAULT_TRAEFIK_TLS_CERT_SECRET_NAME,
+        )
+        or DEFAULT_TRAEFIK_TLS_CERT_SECRET_NAME,
+        private_key_secret_name=environment.get(
+            TRAEFIK_TLS_KEY_SECRET_NAME_ENVIRONMENT,
+            DEFAULT_TRAEFIK_TLS_KEY_SECRET_NAME,
+        )
+        or DEFAULT_TRAEFIK_TLS_KEY_SECRET_NAME,
+        environment=environment,
+    )
+
+
+def _canonical_live_trust_bundle(
+    tls_contract_resolver: PortTlsContractResolver,
+) -> str:
+    try:
+        trust_bundle = tls_contract_resolver.resolve().trust_bundle
+    except TlsContractConfigurationError as exc:
+        raise AssertionError(
+            "post_install_browser_setup_blocker: invalid_tls_ca_bundle"
+        ) from exc
+    validated = _validated_tls_ca_bundle(str(trust_bundle))
+    if validated is None:
+        raise AssertionError("post_install_browser_setup_blocker: invalid_tls_ca_bundle")
+    return validated
+
+
 def _ssl_context_for_url(url: str, tls_ca_bundle: str | None = None) -> ssl.SSLContext | None:
     if not url.startswith("https://"):
         return None
@@ -1826,6 +2208,17 @@ def _evidence_safe(value: object) -> bool:
         return all(_evidence_safe(item) for item in value)
     text = str(value).casefold()
     return not any(fragment.casefold() in text for fragment in FORBIDDEN_EVIDENCE_FRAGMENTS)
+
+
+class _FakeMonotonicClock:
+    def __init__(self) -> None:
+        self.current = 0.0
+
+    def __call__(self) -> float:
+        return self.current
+
+    def sleep(self, seconds: float) -> None:
+        self.current += seconds
 
 
 if __name__ == "__main__":
