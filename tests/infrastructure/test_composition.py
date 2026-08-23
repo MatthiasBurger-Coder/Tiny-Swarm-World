@@ -2025,6 +2025,65 @@ class TestComposition(unittest.TestCase):
         build_artifacts.return_value.workflows.prepare.run.assert_not_called()
         build_deployment.return_value.workflows.apply.run.assert_not_called()
 
+    def test_issue_252_remediation_wiring_shares_selected_incus_request(self):
+        request = composition.NodeProviderSelectionRequest(
+            requested_provider=composition.NodeProviderKind.LXC_NATIVE,
+            preferred_backend=composition.ManagedLxcBackend.INCUS,
+            backend_candidates=(composition.ManagedLxcBackend.INCUS,),
+        )
+        consent = _accepted_live_consent()
+
+        with (
+            patch.object(
+                composition,
+                "_build_preflight_service_for_request",
+                return_value=_phase_bundle(),
+            ) as build_preflight,
+            patch.object(
+                composition,
+                "_build_artifact_readiness_gate",
+                return_value=Mock(),
+            ) as build_artifact_readiness,
+            patch.object(
+                composition,
+                "build_host_preparation_service",
+                return_value=Mock(),
+            ) as build_host_preparation,
+            patch.object(
+                composition,
+                "_build_platform_services_for_request",
+                return_value=_platform_phase_bundle(),
+            ) as build_platform,
+            patch.object(
+                composition,
+                "build_artifact_services_for_provider",
+                return_value=_artifact_phase_bundle(),
+            ) as build_artifacts,
+            patch.object(
+                composition,
+                "_build_deployment_services_for_request",
+                return_value=_deployment_phase_bundle(),
+            ) as build_deployment,
+        ):
+            services = composition.build_setup_services(
+                consent,
+                node_provider_request=request,
+            )
+
+        self.assertIsInstance(services.workflows.run, composition.SetupWorkflow)
+        self.assertIs(request, build_preflight.call_args.args[1])
+        self.assertIs(request, build_artifact_readiness.call_args.args[1])
+        self.assertIs(request, build_platform.call_args.args[2])
+        self.assertIs(
+            request,
+            build_artifacts.call_args.kwargs["node_provider_request"],
+        )
+        self.assertIs(
+            request,
+            build_deployment.call_args.kwargs["node_provider_request"],
+        )
+        build_host_preparation.assert_called_once_with(consent)
+
     def test_build_setup_services_passes_ui_to_platform_and_setup_terminal_sinks(self):
         live_consent = _accepted_live_consent()
         ui = _RecordingUI()
