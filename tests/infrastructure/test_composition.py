@@ -1255,6 +1255,24 @@ class TestComposition(unittest.TestCase):
         )
         compose_repository.return_value.render_service_access_dashboard.assert_not_called()
 
+    def test_build_deployment_services_injects_canonical_tls_resolver(self):
+        with (
+            patch.object(composition, "ComposeFileRepositoryYaml"),
+            patch.object(composition, "LxcSwarmRuntime") as swarm_runtime,
+            patch(
+                "tiny_swarm_world.infrastructure.adapters.ingress."
+                "local_tls_contract_resolver.LocalTlsContractResolver"
+            ) as resolver,
+        ):
+            composition.build_lxc_deployment_services(
+                backend=composition.ManagedLxcBackend.INCUS,
+            )
+
+        self.assertIs(
+            resolver.return_value,
+            swarm_runtime.call_args.kwargs["tls_contract_resolver"],
+        )
+
     def test_build_deployment_services_keeps_service_access_assets_out_of_default_profile(
         self,
     ):

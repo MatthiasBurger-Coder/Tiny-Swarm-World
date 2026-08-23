@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import shlex
 import subprocess
+import base64
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from typing import Protocol
 
 from tiny_swarm_world.domain.deployment import StackDefinition
+from tiny_swarm_world.application.ports.port_tls_contract_resolver import PortTlsContractResolver
 from tiny_swarm_world.infrastructure.adapters.clients.lxc.swarm.swarm_stack_runtime import (
     _external_overlay_network_names,
 )
@@ -132,20 +134,24 @@ class StackPrerequisiteRegistry:
         *,
         external_secret_exists: SecretExists,
         run_manager_shell: ManagerShell,
+        tls_contract_resolver: PortTlsContractResolver,
     ) -> None:
         if external_secret_exists(cert_secret_name) and external_secret_exists(key_secret_name):
             return
+        contract = tls_contract_resolver.resolve()
+        certificate = base64.b64encode(contract.certificate_bytes).decode("ascii")
+        private_key = base64.b64encode(contract.private_key_bytes).decode("ascii")
         script = (
             "set -e; "
             "tmpdir=$(mktemp -d); "
             "trap 'rm -rf \"$tmpdir\"' EXIT; "
-            "openssl req -x509 -nodes -newkey rsa:2048 -days 365 "
-            "-subj '/CN=tsw.local' "
-            "-addext 'subjectAltName=DNS:tsw.local,DNS:*.tsw.local,DNS:localhost' "
-            "-keyout \"$tmpdir/tls.key\" -out \"$tmpdir/tls.crt\" >/dev/null 2>&1; "
+            "umask 077; IFS= read -r cert; IFS= read -r key; "
+            "printf '%s' \"$cert\" | base64 -d >\"$tmpdir/tls.crt\"; "
+            "printf '%s' \"$key\" | base64 -d >\"$tmpdir/tls.key\"; "
+            "chmod 600 \"$tmpdir/tls.crt\" \"$tmpdir/tls.key\"; "
             f"docker secret inspect -- {shlex.quote(cert_secret_name)} >/dev/null 2>&1 "
             f"|| docker secret create -- {shlex.quote(cert_secret_name)} \"$tmpdir/tls.crt\" >/dev/null; "
             f"docker secret inspect -- {shlex.quote(key_secret_name)} >/dev/null 2>&1 "
             f"|| docker secret create -- {shlex.quote(key_secret_name)} \"$tmpdir/tls.key\" >/dev/null"
         )
-        run_manager_shell(script)
+        run_manager_shell(script, input_text=f"{certificate}\n{private_key}\n")

@@ -2,7 +2,7 @@ import subprocess
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import requests
 from tests.support.sonar_safe_literals import (
@@ -17,13 +17,14 @@ from tiny_swarm_world.application.ports.clients.port_portainer_admin_client impo
 )
 from tiny_swarm_world.domain.deployment.stack_definition import StackDefinition
 from tiny_swarm_world.domain.node_provider import ManagedLxcBackend
+from tiny_swarm_world.domain.ingress import ResolvedTlsContract, TlsAuthorityMode
 from tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime import (
     ImagePublisherOperationRejected,
     LxcContainerRuntime,
     LxcContainerImagePublisher,
     LxcNexusHttpClient,
     LxcPortainerAdminClient,
-    LxcSwarmRuntime,
+    LxcSwarmRuntime as _ProductionLxcSwarmRuntime,
     PublicImagePullRejected,
     _external_overlay_network_names,
     _lxc_manager_ip,
@@ -32,6 +33,40 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime import (
 )
 from tiny_swarm_world.domain.artifacts import ContainerImageContract
 from tiny_swarm_world.infrastructure.project_paths import ProjectPaths
+
+
+class _FakeTlsResolver:
+    def __init__(self):
+        self._temporary = TemporaryDirectory()
+        root = Path(self._temporary.name)
+        self.ca = root / "ca.crt"
+        self.certificate = root / "tls.crt"
+        self.key = root / "tls.key"
+        self.ca.write_bytes(b"ca")
+        self.certificate.write_bytes(b"certificate")
+        self.key.write_bytes(b"private-key")
+
+    def resolve(self):
+        return ResolvedTlsContract(
+            mode=TlsAuthorityMode.EXTERNAL,
+            ca_certificate=self.ca,
+            leaf_certificate=self.certificate,
+            leaf_private_key=self.key,
+            trust_bundle=self.ca,
+            certificate_secret_name="custom_tls_cert",
+            private_key_secret_name="custom_tls_key",
+            lifecycle_fingerprint="0" * 64,
+            certificate_bytes=b"certificate",
+            private_key_bytes=b"private-key",
+        )
+
+    def close(self):
+        self._temporary.cleanup()
+
+
+def LxcSwarmRuntime(**kwargs):
+    kwargs.setdefault("tls_contract_resolver", Mock())
+    return _ProductionLxcSwarmRuntime(**kwargs)
 
 
 class TestLxcSwarmRuntime(unittest.TestCase):
@@ -179,22 +214,33 @@ class TestLxcSwarmRuntime(unittest.TestCase):
         compose_repository.return_value.render_service_access_dashboard.assert_called_once_with()
 
     def test_traefik_tls_secret_generation_covers_local_ingress_hostnames(self):
+        tls_resolver = _FakeTlsResolver()
+        self.addCleanup(tls_resolver.close)
         runtime = LxcSwarmRuntime(
             backend=ManagedLxcBackend.LXD,
             traefik_tls_cert_secret_name="custom_tls_cert",
             traefik_tls_key_secret_name="custom_tls_key",
+            tls_contract_resolver=tls_resolver,
         )
+        tls_resolver.certificate.write_bytes(b"replacement-certificate")
+        tls_resolver.key.write_bytes(b"replacement-private-key")
 
         with patch.object(runtime, "external_secret_exists", return_value=False):
             with patch.object(runtime, "_run_manager_shell") as run_manager_shell:
                 runtime._ensure_traefik_tls_secrets()
 
         script = run_manager_shell.call_args.args[0]
-        self.assertIn("-subj '/CN=tsw.local'", script)
-        self.assertIn("DNS:*.tsw.local", script)
-        self.assertIn("DNS:localhost", script)
+        self.assertIn("base64 -d", script)
         self.assertIn("custom_tls_cert", script)
         self.assertIn("custom_tls_key", script)
+        self.assertIn("umask 077", script)
+        self.assertIn("chmod 600", script)
+        self.assertEqual(
+            run_manager_shell.call_args.kwargs["input_text"],
+            "Y2VydGlmaWNhdGU=\ncHJpdmF0ZS1rZXk=\n",
+        )
+        self.assertNotIn("private-key", script)
+        self.assertNotIn("certificate", script)
 
     def test_reconcile_published_ports_preserves_declared_host_mode(self):
         runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.LXD)

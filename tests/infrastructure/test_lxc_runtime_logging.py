@@ -1,7 +1,7 @@
 import logging
 import subprocess
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from tests.support.async_helpers import async_checkpoint
 
@@ -197,7 +197,10 @@ class TestLxcRuntimeLogging(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(lxc_node_provider._safe_log_text("short"), "short")
 
     async def test_swarm_runtime_logs_bounded_manager_shell_output(self):
-        runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.LXD)
+        runtime = LxcSwarmRuntime(
+            backend=ManagedLxcBackend.LXD,
+            tls_contract_resolver=Mock(),
+        )
 
         with patch(
             "tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime.subprocess.run",

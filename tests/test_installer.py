@@ -50,11 +50,28 @@ class TestInstaller(unittest.TestCase):
                 "TSW_TRAEFIK_TLS_CERT_SECRET_NAME": "custom-cert",
                 "TSW_TRAEFIK_TLS_KEY_SECRET_NAME": "custom-key",
                 "TSW_TRAEFIK_GUI_USERS_SECRET_NAME": "custom-users",
+                "TSW_LIVE_TLS_CA_BUNDLE": "/custom/ca-bundle.pem",
             }
 
             exports = installer._ensure_default_config_exports(paths, env)
 
         self.assertEqual(exports, {})
+
+    def test_default_trust_bundle_uses_external_ca_when_configured(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            root = Path(tempdir)
+            paths = installer.InstallerPaths(
+                secret_env_file=root / "local.env",
+                fixed_secret_env_file=root / "fixed.env",
+                infisical_secret_env_file=root / "infisical.env",
+                generated_secret_env_file=root / "generated.env",
+                native_linux_venv=root / "install-venv",
+            )
+            env = {"TSW_TRAEFIK_CA_CERT_PATH": "/operator/ca.crt"}
+
+            exports = installer._ensure_default_config_exports(paths, env)
+
+        self.assertEqual(exports["TSW_LIVE_TLS_CA_BUNDLE"], "/operator/ca.crt")
 
     def test_parse_args_defaults_to_service_access_and_secret_generation(self):
         options = installer.parse_args(())
