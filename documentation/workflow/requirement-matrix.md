@@ -2,7 +2,7 @@
 
 Source: https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/252
 
-Workflow: issue-252-classic-public-beta-rc1-20260818
+Workflow: issue-252-classic-public-beta-rc1-remediation-20260823
 
 Status at authoring: OPEN_FOR_EXECUTION
 
@@ -28,7 +28,7 @@ or marked complete from static workflow text.
 | REQ-252-013 | Keep assertion-heavy acceptance tests under tests/. | testability | S02/S03 | test layout review | OPEN |
 | REQ-252-014 | Classify every named asset using the six allowed labels. | governance | S01 inventory | Requirement review | OPEN |
 | REQ-252-015 | Reuse or migrate existing integration browser test; no duplicate framework. | testability | S02 | canonical-suite review | OPEN |
-| REQ-252-016 | Create Three-Amigos decision before live execution. | governance | S01 evidence | four-role review | OPEN |
+| REQ-252-016 | Create Three-Amigos decision before live execution. | governance | S01 evidence | five-role review including dependency/deadlock validation | OPEN |
 | REQ-252-017 | Record environments, scenarios, services, transitions, timeouts, evidence, stops, severity and decision. | governance | Three-Amigos record | completeness review | OPEN |
 | REQ-252-018 | Derive and classify every current Classic service. | functional | service inventory | config comparison | OPEN |
 | REQ-252-019 | Document sufficient prerequisites. | functional | preflight/inventory | S01/S02/S03/S10 | OPEN |
@@ -63,8 +63,21 @@ or marked complete from static workflow text.
 | REQ-252-048 | Classic live automation uses schedule/manual dispatch and a verified self-hosted runner strategy. | live/CI | S252-15 / runner evidence | real workflow run | OPEN |
 | REQ-252-049 | Failed, skipped, blocked, unauthorized, unavailable or unverified CI paths cannot aggregate to RC1 success. | safety/release | S252-16 / final audit | failure-semantic evidence | OPEN |
 | REQ-252-050 | CI evidence records run ID, commit, trigger, runner, duration, status, artifacts, external status, redaction and defects. | evidence | S252-16 / CI evidence bundle | schema audit | OPEN |
+| REQ-252-051 | Resolve exactly one canonical TLS contract with external CA precedence and managed CA fallback. | architecture/security | S252-R01 | contract and composition tests | OPEN |
+| REQ-252-052 | Fail closed on incomplete external CA configuration and never mix external and managed material. | security/resilience | S252-R01 | negative configuration tests | OPEN |
+| REQ-252-053 | Generate a managed CA and separately signed ingress leaf with required SAN, validity and chain checks. | security | S252-R01 | synthetic certificate tests | OPEN |
+| REQ-252-054 | Reuse valid managed CA and leaf material without silent rotation and protect private keys with owner-only permissions. | resilience/security | S252-R01 | rerun fingerprint and permission tests | OPEN |
+| REQ-252-055 | Installer, runtime, Traefik and E2E consume one canonical trust-bundle reference. | architecture | S252-R01/S252-R06 | wiring and E2E configuration tests | OPEN |
+| REQ-252-056 | Reconcile Traefik certificate/key Docker secrets as a recoverable logical pair. | resilience | S252-R02 | partial-state, rollback and retry tests | OPEN |
+| REQ-252-057 | Provision and verify operator-owned Traefik htpasswd before stack apply without logging or evidencing its value. | security/functional | S252-R02 | installer, deployment ordering and redaction tests | OPEN |
+| REQ-252-058 | Wait for Incus readiness before provider inspection and preserve bounded typed failure states. | resilience | S252-R03 | order and timeout tests | OPEN |
+| REQ-252-059 | Execute Docker/storage artifact probes inside the managed manager node and classify TimeoutExpired deterministically. | resilience/architecture | S252-R04 | command construction and timeout tests | OPEN |
+| REQ-252-060 | Verify Native-Linux bridge and forwarding controls without implicit host mutation. | operating constraint | S252-R05 | proc-sys fixture tests and documentation review | OPEN |
+| REQ-252-061 | Bound post-install service readiness by one monotonic deadline and retain timeout as failure. | resilience/quality | S252-R06 | readiness deadline and evidence tests | OPEN |
+| REQ-252-062 | Synchronize Arc42, operator configuration and issue evidence to the exact implemented candidate without reusing stale evidence. | governance/evidence | S252-R07 | documentation, SHA and redaction audit | OPEN |
+| REQ-252-063 | Run targeted and complete local quality gates on the exact candidate before dependent live reruns. | quality | S252-R08 | exact commands and test-results evidence | OPEN |
 
-## Current evidence state — 2026-08-18
+## Current evidence state — 2026-08-23 authoring baseline
 
 - `RC1-S02`: `LIVE_VERIFIED` for WSL2 diagnostics/preflight.
 - `RC1-S03`: `LIVE_FAILED_AFTER_MUTATION` for the historical Fresh Install
@@ -72,7 +85,20 @@ or marked complete from static workflow text.
   Install replacement.
 - `RC1-S04`: `LIVE_VERIFIED` for the redacted post-install Classic
   browser/API/E2E acceptance after recovery (`92/92`).
-- `RC1-S05` through `RC1-S12`: `OPEN`; no reconcile, update, restart,
-  Native-Linux or final audit result is inferred.
-- `RC1-CI01` through `RC1-CI05`: `OPEN`; no real GitHub Actions, Conda,
-  SonarCloud or self-hosted Classic-live runner evidence is present yet.
+- `RC1-S05`: historical tracked consolidation reports WSL2 reconcile
+  `LIVE_VERIFIED` for its recorded SHA.
+- `RC1-S06`: historical tracked consolidation reports WSL2 update and
+  post-update acceptance `LIVE_VERIFIED` for its recorded SHA.
+- `RC1-S07` through `RC1-S09`: historical tracked consolidation reports
+  failure/recovery and restart work; these results require canonical scenario
+  mapping and rerun on the remediation candidate before final acceptance.
+- `RC1-S10` through `RC1-S12`: `OPEN`; no Native-Linux lifecycle or final
+  audit result is inferred.
+- Historical WSL2 evidence is not attributed to uncommitted remediation code
+  or to a future candidate SHA.
+- `RC1-CI01` and `RC1-CI02`: historical tracked evidence reports successful
+  hosted Quality and Conda runs `32529068741` and `32529073364` for SHA
+  `a552a8fa`; those passes are not transferred to the remediation candidate.
+- `RC1-CI03` through `RC1-CI05`: `OPEN`; no qualifying SonarCloud status,
+  protected self-hosted Classic-live runner or complete real live-workflow
+  evidence is present yet.

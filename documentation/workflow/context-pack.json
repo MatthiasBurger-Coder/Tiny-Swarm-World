@@ -1,10 +1,10 @@
 {
-  "workflow_version": "issue-252-classic-public-beta-rc1-20260818",
+  "workflow_version": "issue-252-classic-public-beta-rc1-remediation-20260823",
   "workflow_path": "documentation/workflow/workflow.md",
   "requirement_baseline_path": "documentation/workflow/requirement-matrix.md",
-  "authoring_branch": "docs/workflow-issue-252-ci-live-addendum-20260818",
+  "authoring_branch": "feature/workflow-issue-252-remediation-20260823",
   "planned_execution_branch": "feature/classic-public-beta-rc1-stabilization",
-  "status": "AUTHORED_NOT_EXECUTED",
+  "status": "REMEDIATION_AUTHORED_NOT_EXECUTED",
   "issue": {
     "number": 252,
     "title": "RC1: Classic Profile Stabilization / Public Beta Acceptance",
@@ -19,7 +19,10 @@
     "routing, secrets, artifacts and configured services",
     "Python acceptance tests and evidence",
     "live/browser/API verification and RC1 release decision",
-    "GitHub Actions quality, Conda compatibility, Sonar reconciliation and self-hosted Classic-live runner qualification"
+    "GitHub Actions quality, Conda compatibility, Sonar reconciliation and self-hosted Classic-live runner qualification",
+    "canonical external-or-managed TLS contract and protected PKI lifecycle",
+    "atomic Traefik secret reconciliation",
+    "bounded Incus, artifact, Native-Linux and Classic E2E readiness remediation"
   ],
   "forbidden_areas": [
     "Podman and Kubernetes",
@@ -47,6 +50,16 @@
     "Release Baseline Governance Expert",
     "Console/status UI reviewer when terminal behavior changes"
   ],
+  "remediation_slices": [
+    "S252-R01 canonical TLS contract and CA lifecycle",
+    "S252-R02 atomic Traefik secret reconciliation and GUI input recovery",
+    "S252-R03 Incus provider readiness and restart classification",
+    "S252-R04 managed-LXC artifact readiness and timeout semantics",
+    "S252-R05 Native-Linux kernel prerequisite verification",
+    "S252-R06 bounded E2E readiness and composition integration",
+    "S252-R07 documentation, requirement and evidence synchronization",
+    "S252-R08 local candidate acceptance and dependent rerun handoff"
+  ],
   "quality_commands": [
     "git diff --check",
     "python3 tools/quality_gate.py lint",
@@ -59,9 +72,9 @@
   "governing_file_sha256": {
     "AGENTS.md": "bc0e6e0c09ac3d61a450a7fe16c3e4de9e6fbb8bdc688aad58f10a3d18b31041",
     "QUALITY.md": "7097ff31c68f178fe685c1d7d5cbc18c257a7cf5d2f727979fb2b5ab9c029c7e",
-    "documentation/workflow/workflow.md": "d29882fe7525f8b4900ea9952b57236395218fa13067f5ecd5cc371c4c35d0a5",
-    "documentation/workflow/requirement-matrix.md": "8021555f972dd790fefc8a76d5cc000a7315d9f8b8359332a76c89c78c0d3128",
-    "documentation/governance/ci-quality-gates.md": "8a691eb5b59597173e74e0ff746a42fc96ab05b5b5bf7c76280f526ada04195f",
+    "documentation/workflow/workflow.md": "f7f984603dcdd48611d0ed68422a10c730b482184fc6730a48b517cb0e3f162a",
+    "documentation/workflow/requirement-matrix.md": "3d60d8dcb747ff21999e5275824e00b331db61e90a233ed447c651b9359c29bd",
+    "documentation/governance/ci-quality-gates.md": "b6bc937d74cf3997677d2fc17ad762385196322cead424a122baed63cf9343c1",
     "documentation/process/issue-completion-discipline.md": "3db2d080b7cfbbc3737907a61c67ce6a361485c8993cf4a20c1c5fe2dc743bc3",
     "documentation/process/verification-state-policy.md": "5b6e2eefde66a1b8492afafc2976e59ac40f16e7100f79f730b97b254febdcfd",
     "documentation/arc42/01_introduction.adoc": "dd7918e16c71110827a9ad11c1bd84b51057995a4c588e254d2ff090a4522b7e",
@@ -75,6 +88,8 @@
     "documentation/arc42/09_decisions/adr-explicit-non-interactive-live-consent.adoc": "e0a455b4ad79f59ce99f881d07c7fcaee46cea41f8c44ff50fc59a2e7b5e5476",
     "documentation/arc42/09_decisions/adr-autonomous-setup-safety.adoc": "f82783073d3e7c91fb5014901bea93eede3a9c79ab41a1213cd38b88e624575b",
     "documentation/arc42/09_decisions/adr-lxc-native-node-provider.adoc": "d88225223e62de4744d5cec7d5703af1bff62ec178b9794a606472cbc83da901",
+    "documentation/arc42/09_decisions/adr-traefik-https-ingress-existing-ca.adoc": "4bf899559241c3cd1493e8e61ce61cc7875e891d6fbd55ed1561ecf60e9c74a5",
+    "documentation/arc42/09_decisions/adr-traefik-managed-or-operator-ca.adoc": "a079025c70df08a3fb59473b1ac5c56fbe380f4949bd8af88908362f604b0922",
     ".agents/skills/workflow-authoring/SKILL.md": "5733f64086f113d578544b4d2d0297554237296adf0dc2df5ebe641e50dec9e5",
     ".agents/skills/requirement-engineering/SKILL.md": "c1a96bc652dc8800abe9dc6f4b7aff79418ed5350acda6cf920ca7dd27b75a26",
     ".agents/skills/three-amigos-requirement-gatekeeper/SKILL.md": "76659e618cb706e8990cdf44441aeaed219465044175826adca5357ae8acc5b4",
