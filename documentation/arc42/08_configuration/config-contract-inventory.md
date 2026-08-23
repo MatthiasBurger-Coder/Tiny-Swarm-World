@@ -121,6 +121,13 @@ logic. Defaults are listed only when visible from committed source.
 | `TSW_NEXUS_READINESS_BASE_URL` | `http://127.0.0.1:13081` | Optional | credential-free HTTP readiness base URL | artifact readiness composition |
 | `TSW_PUBLIC_PULL_READINESS_URL` | `https://registry-1.docker.io/v2/` | Optional | credential-free HTTP readiness URL | artifact readiness composition |
 | `TSW_MANAGER_STORAGE_PATH` | `/var/lib/docker` | Optional | POSIX directory path for manager storage readiness | artifact readiness composition |
+| `TSW_LOCAL_TLS_STATE_ROOT` | XDG state directory below `tiny-swarm-world/tls/traefik` | Optional | protected local path | canonical TLS state resolver |
+| `TSW_TRAEFIK_CA_CERT_PATH` | unset | Optional as a complete external tuple | local CA certificate path | canonical TLS resolver |
+| `TSW_TRAEFIK_CA_KEY_PATH` | unset | Optional | local CA private-key path | canonical TLS resolver |
+| `TSW_TRAEFIK_TLS_CERT_PATH` | unset | Optional as a complete external tuple | local ingress certificate path | canonical TLS resolver |
+| `TSW_TRAEFIK_TLS_KEY_PATH` | unset | Optional as a complete external tuple | local ingress private-key path | canonical TLS resolver |
+| `TSW_LIVE_TLS_CA_BUNDLE` | canonical selected trust bundle | Optional compatibility alias | local CA bundle path | installer, Classic live tests |
+| `TSW_TRAEFIK_GUI_USERS_HTPASSWD` | unset | Required before Traefik apply | secret value; bcrypt recommended, recognized legacy formats accepted | installer, deployment composition |
 | `TSW_INFISICAL_URL` | `http://localhost:17080` | Optional | URL | `infisical_cli_client.py`, `composition_configuration.py` |
 | `REQUESTS_CA_BUNDLE` | system trust store | Optional | CA bundle path for HTTPS Infisical bootstrap verification | `requests`, `infisical_bootstrap_http_client.py` |
 | `TSW_INFISICAL_INTERNAL_URL` | implementation default | Optional | URL | `composition_configuration.py` |
@@ -156,6 +163,12 @@ distinguish service images, secret values, secret names, paths, and defaults.
 | `TSW_TRAEFIK_TLS_KEY_SECRET_NAME` | `tsw_traefik_tls_key` | external secret name | Traefik compose, installer |
 | `TSW_TRAEFIK_GUI_USERS_SECRET_NAME` | `tsw_traefik_gui_users` | external secret name | Traefik compose, installer, dashboard BasicAuth |
 | `TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET` | legacy/opt-in Vaultwarden surfaces only | external secret name | not part of the current service-access compose contract |
+
+The canonical resolver treats any partially configured external TLS tuple as
+an error and never mixes it with managed material. Managed private keys remain
+owner-only local state. The Traefik certificate/key Docker secrets are an
+ownership- and lifecycle-labelled logical pair; dashboard htpasswd and TLS
+secret contents are never configuration or evidence output.
 
 ## Documentation-Only Or Drifted Keys
 

@@ -4,6 +4,16 @@
 *Status:* Accepted; supersedes `adr-traefik-https-ingress-existing-ca.adoc`
 *Decision makers:* Tiny Swarm World architecture governance
 
+== Implementation Alignment
+
+The decision is implemented on the Issue #252 remediation baseline
+`60d5d09f`: R01 provides canonical external-precedence/managed-fallback TLS
+resolution and protected reuse, R02 provides pre-apply atomic Traefik secret
+pair and htpasswd verification, and R06 connects the canonical Classic E2E
+trust bundle. Deterministic local tests and the repository quality gate passed
+for those slices. Live TLS, browser, host-trust and secret-store convergence
+remain separate opt-in evidence and are not established by this alignment.
+
 == Context
 
 The previous Traefik HTTPS ADR required an existing operator-provided CA and

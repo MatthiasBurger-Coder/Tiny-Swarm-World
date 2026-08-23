@@ -273,7 +273,17 @@ container smoke, static preflight, and the handoff to live setup.
 
 ## 8. Host Kernel and Bridge Settings
 
-For LXC, Docker, and Swarm networking, enable forwarding and bridge netfilter settings where available.
+For native Linux, Tiny Swarm World checks the following kernel controls before
+later setup phases and fails closed unless all three are active:
+
+- `net.bridge.bridge-nf-call-iptables=1`
+- `net.bridge.bridge-nf-call-ip6tables=1`
+- `net.ipv4.ip_forward=1`
+
+The automation only reads these controls. It does not load kernel modules,
+change `sysctl` values, create persistence files, or remove operator-owned
+settings during cleanup. If activation is required, the host operator may
+apply and review the following commands outside Tiny Swarm World:
 
 ```bash
 sudo modprobe br_netfilter 2>/dev/null || true
@@ -292,6 +302,7 @@ Verify:
 ```bash
 sysctl net.ipv4.ip_forward
 sysctl net.bridge.bridge-nf-call-iptables
+sysctl net.bridge.bridge-nf-call-ip6tables
 ```
 
 Expected:
@@ -299,9 +310,13 @@ Expected:
 ```text
 net.ipv4.ip_forward = 1
 net.bridge.bridge-nf-call-iptables = 1
+net.bridge.bridge-nf-call-ip6tables = 1
 ```
 
-If bridge sysctls are unavailable in WSL, document the host evidence and continue only if the Tiny Swarm World preflight accepts the environment.
+The persistence file is operator-owned. Tiny Swarm World cleanup leaves it
+untouched. After a change, rerun the read-only check only through an explicitly
+authorized live setup. If bridge controls are unavailable under WSL, record
+that actual non-success state; do not treat it as Native Linux success.
 
 ---
 

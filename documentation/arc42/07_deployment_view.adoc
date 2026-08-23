@@ -136,12 +136,14 @@ to equal the default renderer output.
 
 == Traefik HTTPS Ingress Architecture And Live Boundary
 
-The accepted migration direction in
-`documentation/arc42/09_decisions/adr-traefik-https-ingress-existing-ca.adoc` is to
-use centralized local HTTPS ingress through Traefik with an existing
-operator-provided CA. The repository desired state, route labels, effective
-model, dashboard links and static tests implement that direction. This does
-not by itself verify a live deployment.
+The accepted direction in
+`documentation/arc42/09_decisions/adr-traefik-managed-or-operator-ca.adoc`
+uses centralized local HTTPS ingress through Traefik. A complete
+operator-provided CA contract has precedence; otherwise Tiny Swarm World owns
+a protected managed CA and separately signed ingress leaf. The superseded
+existing-CA-only ADR remains architectural history. The repository desired
+state, route labels, effective model, dashboard links and local tests implement
+the replacement decision. This does not by itself verify a live deployment.
 
 The ingress deployment keeps Tiny Swarm World Docker Swarm-first and
 LXC-native. Traefik belongs to the Deployment responsibility boundary. It is
@@ -155,8 +157,11 @@ The migration must preserve these deployment constraints:
 * HTTP redirects to HTTPS;
 * `exposedByDefault=false` is required;
 * `--api.insecure=true` is forbidden;
-* existing CA and certificate private material are operator-owned secrets and
-  must not be committed or persisted in evidence;
+* external CA material remains operator-owned; managed CA and leaf private
+  keys remain in protected local state, and no private material may be
+  committed or persisted in evidence;
+* installer, runtime, Traefik and Classic E2E use one canonical resolved trust
+  bundle rather than subsystem-specific path conventions;
 * hostname resolution through DNS or hosts fallback requires explicit
   verification, and any host mutation requires consent and rollback;
 * live browser and TLS checks remain opt-in and write only redacted local
@@ -189,11 +194,22 @@ The secure Traefik dashboard is part of this same desired deployment state. It
 uses the existing `websecure` port and a dedicated
 `traefik.tsw.local` route to `api@internal`, protected by BasicAuth from the
 external Docker secret named by `TSW_TRAEFIK_GUI_USERS_SECRET_NAME`. No
-additional published port is required. The operator must provision the
-htpasswd secret separately; its value is not generated, committed, logged, or
+additional published port is required. The operator must provide the htpasswd
+value; deployment automation provisions and verifies its external Docker
+secret before stack apply. The value is not generated, committed, logged, or
 written to evidence by the repository. Static checks confirm the contract,
 while live convergence and browser authentication remain unverified until an
 explicit live run.
+
+Before stack apply, the certificate and key Docker secrets are reconciled as a
+logical pair labelled with Tiny Swarm World ownership and the same TLS
+lifecycle fingerprint. Partial owned state can be repaired; unknown,
+unlabelled or mismatched state fails closed. A failed pair creation removes
+only the opaque secret IDs created by that invocation. The dashboard htpasswd
+is also validated and verified before apply. Bcrypt is the recommended
+operator format. Recognized legacy htpasswd formats remain accepted for
+compatibility and are a residual hardening consideration, not the preferred
+choice.
 
 For the service-access setup profile, the setup manifest and LXC exposure
 workflow now treat Traefik ports `80` and `443` as the complete public manager
@@ -261,6 +277,13 @@ satisfied. Host
 package installation, provider daemon repair, bridge or firewall mutation,
 group membership repair, and privileged container profile changes are live
 host mutations and are not deployment defaults in this slice.
+
+On Native Linux, host preparation reads the bridge-netfilter controls for IPv4
+and IPv6 plus IPv4 forwarding from procfs and fails closed unless each is
+active. It does not load modules or write kernel controls. Temporary activation
+and persistent `sysctl.d` configuration remain explicit operator actions, and
+their success requires a later live recheck rather than inference from local
+fixture tests.
 
 Published service port exposure is deployed through manager-profile LXC proxy
 devices. Direct instance-level `tsw-proxy-*` devices on `swarm-manager` are

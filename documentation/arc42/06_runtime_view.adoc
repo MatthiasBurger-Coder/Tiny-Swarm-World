@@ -171,6 +171,14 @@ Any mandatory non-success stops the later phases. The direct
 `artifacts prepare` command retains its complete explicit workflow semantics;
 the bootstrap/readiness split is the setup sequencing boundary.
 
+For the selected `lxc_native` provider, Docker-daemon and manager-storage
+observations execute inside the selected `swarm-manager` container through the
+Incus/LXC command boundary. Repository-local build-input checks remain on the
+host. An unresolved managed backend fails closed instead of substituting a
+host Docker or host-storage observation. Command execution is bounded;
+timeouts, missing executables, non-zero results and unavailable backends are
+converted into typed, summary-only evidence without retaining command output.
+
 * `artifacts prepare` requires live consent and dispatches to
   `ArtifactPrepareWorkflow`. The workflow can run configured artifact steps
   only when each step provides verify-after-prepare evidence. Missing live
@@ -433,6 +441,13 @@ Swarm membership, LXC proxy-device, and Portainer endpoint checks. The default
 candidate selection, and Docker-in-container profile requirements through the
 platform init provider guard before mutation.
 
+Provider inspection is ordered behind a bounded `admin waitready` call for
+the selected Incus/LXC CLI. A wait timeout, unavailable daemon, permission
+failure, missing executable or unknown launch failure stops subsequent
+`version` and `info` inspection and is reported as a typed, redacted preflight
+state. This local contract does not establish that a real provider daemon or a
+restart scenario is healthy.
+
 === Autonomous Setup Runtime Flow
 
 Autonomous setup now has one canonical workflow-level CLI contract:
@@ -497,7 +512,18 @@ The repository desired-state flow for the administrative dashboard is:
 . The `Host(traefik.tsw.local)` router selects `api@internal`.
 . BasicAuth reads operator-managed htpasswd entries from the external Docker
   secret named by `TSW_TRAEFIK_GUI_USERS_SECRET_NAME`.
-. TLS uses the existing operator-provided certificate contract.
+. TLS resolution selects a complete operator-provided CA contract first and
+  otherwise reuses or creates the protected managed-CA contract defined by
+  `adr-traefik-managed-or-operator-ca.adoc`; incomplete external configuration
+  fails before managed-state mutation.
+. The separately signed ingress leaf certificate and key are reconciled as one
+  ownership- and lifecycle-fingerprint-labelled Docker secret pair. Unknown or
+  mismatched existing secrets fail closed; a failed create rolls back only
+  secrets created by that invocation.
+. Installer, runtime, Traefik and the canonical Classic E2E suite obtain the
+  trust bundle from the same resolved TLS contract.
+. The operator htpasswd value is validated and verified before stack apply. It
+  remains absent from command text, errors, logs and evidence.
 . Missing authentication or TLS material fails closed; no dashboard port is
   added and the insecure API mode is not enabled.
 
@@ -505,3 +531,17 @@ This flow is statically and locally test-backed as configuration behavior. It
 is not live-readiness, TLS, DNS, browser, or credential-validation evidence.
 The latter must be collected separately with redacted evidence and explicit
 operator consent.
+
+=== Canonical Classic Post-install Readiness
+
+The single canonical Classic post-install suite resolves the canonical TLS
+trust bundle and evaluates all configured service probes within one monotonic
+global deadline. Each request timeout is capped by the remaining budget. A
+timeout, probe exception, TLS failure, pending service, or response that
+becomes ready only at or after the deadline remains a failure. Evidence is
+limited to attempts, bounded duration, pending service names and stable
+failure classifications. An empty readiness matrix returns immediately.
+
+These deterministic tests verify deadline and redaction semantics only. The
+live browser/API suite remains opt-in and no skipped or mocked execution is
+reported as live success.

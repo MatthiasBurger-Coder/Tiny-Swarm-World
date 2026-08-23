@@ -135,6 +135,13 @@ host-specific sensitive details. `LIVE_VERIFIED` is reserved for an
 explicitly authorized scenario with redacted evidence; missing consent or
 prerequisites remain non-success states.
 
+For managed LXC, Docker and manager-storage probes run inside the selected
+manager container. Host execution remains correct only for repository-local
+build inputs or an explicitly non-managed provider. An unresolved managed
+backend cannot fall back to host observations. Incus provider inspection is
+similarly ordered behind bounded daemon readiness, with timeout and launch
+failures represented by stable typed states.
+
 === Health And Validation Evidence
 
 `infra/config/health-checks.yaml` and `infra/config/validation-plan.yaml`
@@ -145,10 +152,15 @@ not yet load them as YAML. The application validation plan evaluates actual
 evidence is missing, blocked, failed, or lacks observed Swarm service fields
 such as stack name, required services, and replica summary.
 
-=== Ingress Desired State And Certificate Summaries
+=== Ingress TLS Authority, Desired State And Certificate Summaries
 
 The Traefik HTTPS ingress workflow now has provider-neutral domain contracts
-for desired HTTPS route state and existing-CA certificate summaries.
+for desired HTTPS route state, canonical TLS resolution and certificate
+summaries. A complete external CA configuration wins; incomplete external
+configuration fails closed, and absence of external configuration selects the
+managed CA. Valid managed CA and leaf files are reused without silent rotation.
+The managed leaf is separately signed, and private-key files require
+owner-only permissions.
 
 `DesiredHttpsIngress` records the intended HTTPS route catalog, public ingress
 ports, HTTP-to-HTTPS redirect requirement, `exposedByDefault=false`, and the
@@ -169,6 +181,34 @@ mutate LXC, change hostname resolution, or claim live TLS success. Adapters
 that later collect runtime certificate facts must convert external output into
 these summary models without persisting PEM payloads, private key material,
 local IP addresses, host-specific absolute paths, or raw command output.
+
+The resolved TLS contract is the single source for installer, runtime,
+Traefik-secret provisioning and Classic E2E trust. Certificate and key Docker
+secrets form an atomic logical pair identified by ownership and the same
+lifecycle fingerprint. Dashboard htpasswd material is operator-owned,
+validated before mutation and never retained in evidence. Bcrypt is the
+recommended format; accepted legacy formats remain a compatibility and
+hardening risk.
+
+=== Native Linux Kernel Prerequisite Ownership
+
+Native Linux host preparation reads
+`net.bridge.bridge-nf-call-iptables`,
+`net.bridge.bridge-nf-call-ip6tables`, and `net.ipv4.ip_forward` from procfs and
+requires each control to be active. Missing, disabled or unreadable controls
+fail closed with stable control names and summary statuses. The adapter does
+not run `modprobe`, `sysctl`, or write procfs; activation and persistent
+`sysctl.d` configuration remain operator-owned live actions followed by a
+separate recheck. Local fixture tests verify this read-only contract but do not
+claim Native Linux host success.
+
+=== Bounded Classic Acceptance Evidence
+
+The canonical post-install acceptance suite uses one monotonic deadline for
+the complete service matrix and caps each request by the remaining time. Late
+readiness, TLS failure, exceptions and pending services remain failures.
+Attempts, bounded duration and pending service names are retained as redacted
+evidence; skipped or mocked execution is never live evidence.
 
 === Verify After Apply
 
