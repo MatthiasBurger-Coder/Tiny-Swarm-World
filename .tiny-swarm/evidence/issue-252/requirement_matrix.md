@@ -18,7 +18,7 @@ not replaced by remediation unit tests.
 | REQ-252-016, REQ-252-017 | Three-Amigos workflow records exist, but issue-level completion remains pending final audit and dependent execution. | OPEN |
 | REQ-252-018, REQ-252-019, REQ-252-021, REQ-252-022, REQ-252-023, REQ-252-024, REQ-252-025, REQ-252-027, REQ-252-028 | Service/prerequisite/topology readiness requires exact-host observed evidence; local contract tests are not live proof. | OPEN |
 | REQ-252-026, REQ-252-031, REQ-252-032, REQ-252-039, REQ-252-040, REQ-252-049, REQ-252-050 | Redaction and non-success semantics are locally exercised, but complete scenario and CI/live evidence audits remain open. | OPEN |
-| REQ-252-033 | Earlier local baseline evidence exists; R08 must run and record the complete gate on the exact post-R07 candidate. | OPEN |
+| REQ-252-033 | Exact-candidate local baseline executed honestly on `36ba799738ffb8db4175b7347a6aa8a7f907fa05`; targeted gates and full quality PASS, with 1,833 tests and 18 expected skips. | LOCAL_VERIFIED |
 | REQ-252-034, REQ-252-035 | WSL2 diagnostics and lifecycle evidence must be rerun or retain an explicit non-success state for the remediation candidate. | OPEN |
 | REQ-252-036 | Native Linux Fresh/Reconcile/Update and acceptance have not executed. | OPEN |
 | REQ-252-045, REQ-252-046, REQ-252-047, REQ-252-048 | PR/push quality, Conda, SonarQube and protected self-hosted Classic-live runner evidence remains external and open. | OPEN |
@@ -39,7 +39,7 @@ not replaced by remediation unit tests.
 | REQ-252-060 | R05 read-only procfs verification of bridge netfilter and IPv4 forwarding | Focused 8 tests; documentation review; full quality 1,823/18 skipped | LOCAL_VERIFIED |
 | REQ-252-061 | R06 one monotonic deadline, capped requests and explicit late-ready/error failures | Focused 136/8 expected live skips; full quality 1,833/18 skipped | LOCAL_VERIFIED |
 | REQ-252-062 | R07 Arc42/config/ADR alignment plus six issue evidence files reference baseline `60d5d09f` and reject historical transfer | `git diff --check`, sensitive-marker and governing-hash reviews passed; final quality passed 1,833 tests with 18 expected skips; independent R07 reviews passed | LOCAL_VERIFIED |
-| REQ-252-063 | R08 exact-candidate targeted and full local quality evidence | Not executed for the post-R07 candidate | OPEN |
+| REQ-252-063 | R08 exact-candidate targeted and full local quality evidence | Clean candidate `36ba799738ffb8db4175b7347a6aa8a7f907fa05`; diff, lint, three import contracts, 18 architecture tests, typecheck, 1,833 tests / 18 skips and full quality PASS | LOCAL_VERIFIED |
 
 `LOCAL_VERIFIED` never means live, Native Linux host, browser, CI, SonarQube or
 runner success. The issue remains `INCOMPLETE` while any mandatory row is open.

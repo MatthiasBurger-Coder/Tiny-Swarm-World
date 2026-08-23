@@ -2,6 +2,8 @@
 
 Implementation baseline: `60d5d09f`
 
+Exact R08 local candidate: `36ba799738ffb8db4175b7347a6aa8a7f907fa05`
+
 - [x] R01 canonical TLS behavior locally verified.
 - [x] R02 Traefik pair/htpasswd behavior locally verified and redacted.
 - [x] R03 bounded Incus readiness locally verified.
@@ -10,7 +12,7 @@ Implementation baseline: `60d5d09f`
 - [x] R06 global Classic deadline and composition join locally verified.
 - [x] R07 architecture, configuration and issue evidence synchronized to the
   implementation baseline without importing stale live evidence.
-- [ ] R08 exact post-documentation candidate gates executed and recorded.
+- [x] R08 exact post-documentation candidate gates executed and recorded.
 - [ ] Authorized WSL2 dependent live reruns executed on the exact candidate.
 - [ ] Native Linux lifecycle matrix executed on the exact candidate.
 - [ ] Required CI, SonarQube and self-hosted runner evidence verified.

@@ -45,7 +45,7 @@ or marked complete from static workflow text.
 | REQ-252-030 | Update preserves healthy unrelated state and converges. | resilience | update/rollback evidence | RC1-S06/S12 | OPEN |
 | REQ-252-031 | Failures are actionable/evidenced; non-success states are not passes. | release | defect/state records | final audit | OPEN |
 | REQ-252-032 | Each scenario has all required fields. | quality | scenario bundles | schema audit | OPEN |
-| REQ-252-033 | Local quality/preflight baseline is executed honestly. | quality | S03 evidence | QUALITY.md commands | OPEN |
+| REQ-252-033 | Local quality/preflight baseline is executed honestly. | quality | S03 evidence plus S252-R08 exact-candidate rerun | exact candidate `36ba799738ffb8db4175b7347a6aa8a7f907fa05`; declared targeted gates and full quality PASS | LOCAL_VERIFIED |
 | REQ-252-034 | WSL2 pre-live diagnostics execute or are blocked explicitly. | live | RC1-S02 | command/evidence review | OPEN |
 | REQ-252-035 | WSL2 Fresh/Reconcile/Update and acceptance are green for RC1. | live | RC1-S03-S06 | final audit | OPEN |
 | REQ-252-036 | Native Linux Fresh/Reconcile/Update and acceptance are green for RC1. | live | RC1-S10-S12 | final audit | OPEN |
@@ -75,7 +75,7 @@ or marked complete from static workflow text.
 | REQ-252-060 | Verify Native-Linux bridge and forwarding controls without implicit host mutation. | operating constraint | S252-R05; baseline `60d5d09f` | procfs fixture tests and operator/Arc42 review; R05 consolidation | LOCAL_VERIFIED |
 | REQ-252-061 | Bound post-install service readiness by one monotonic deadline and retain timeout as failure. | resilience/quality | S252-R06; baseline `60d5d09f` | deadline, late-ready, TLS/error and evidence tests; R06 consolidation | LOCAL_VERIFIED |
 | REQ-252-062 | Synchronize Arc42, operator configuration and issue evidence to the exact implemented candidate without reusing stale evidence. | governance/evidence | S252-R07; implementation baseline `60d5d09f` | Arc42/config/ADR diff, six issue evidence files, SHA/redaction audit | LOCAL_VERIFIED |
-| REQ-252-063 | Run targeted and complete local quality gates on the exact candidate before dependent live reruns. | quality | S252-R08 | exact commands and test-results evidence | OPEN |
+| REQ-252-063 | Run targeted and complete local quality gates on the exact candidate before dependent live reruns. | quality | S252-R08 | exact candidate `36ba799738ffb8db4175b7347a6aa8a7f907fa05`; diff, lint, import, architecture, type, 1,833-test and full quality evidence | LOCAL_VERIFIED |
 
 ## Current evidence state — 2026-08-23 authoring baseline
 

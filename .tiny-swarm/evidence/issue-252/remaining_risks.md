@@ -1,6 +1,10 @@
 # Issue #252 Remediation Remaining Risks
 
-- R08 exact-candidate targeted and full local acceptance is still open.
+- Exact R08 local candidate:
+  `36ba799738ffb8db4175b7347a6aa8a7f907fa05`.
+- R08 targeted and full local acceptance passed on that exact clean candidate;
+  its evidence-only commit and final guarded PR/CI lifecycle necessarily
+  follow the frozen SHA.
 - WSL2 Fresh/Reconcile/Update, recovery and restart reruns have not executed on
   the remediation candidate. Historical live evidence is not transferred.
 - Native Linux lifecycle evidence remains open. Local procfs fixtures verify

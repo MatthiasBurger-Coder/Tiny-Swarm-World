@@ -10,7 +10,7 @@ Authoring branch: feature/workflow-issue-252-remediation-20260823
 
 Planned execution branch: feature/classic-public-beta-rc1-stabilization
 
-Status: REMEDIATION_AUTHORED_NOT_EXECUTED
+Status: REMEDIATION_R01_R08_LOCAL_VERIFIED_LIVE_EXTERNAL_OPEN
 
 No live installation, infrastructure mutation, browser check, credential test,
 release claim or RC1_ACCEPTED decision is produced by workflow authoring.
@@ -1608,5 +1608,6 @@ administrator PowerShell access.
   after publication.
 - Pull request/merge: not created by workflow authoring.
 - Live/CI execution: not performed by workflow authoring.
-- Formal workflow status remains `REMEDIATION_AUTHORED_NOT_EXECUTED` until controlled
-  `workflow execute` runs the CI and live slices.
+- Formal workflow status is `REMEDIATION_R01_R08_LOCAL_VERIFIED_LIVE_EXTERNAL_OPEN`:
+  controlled local remediation executed, while CI and live slices retain their
+  actual open or non-success states.
