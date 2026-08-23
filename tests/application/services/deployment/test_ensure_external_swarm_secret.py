@@ -29,6 +29,17 @@ class TestEnsureExternalSwarmSecret(unittest.TestCase):
         with self.assertRaises(ValueError):
             EnsureExternalSwarmSecret(_FakeSwarmRuntime(), "tsw_vaultwarden_admin_token", "")
 
+    def test_supports_a_specific_redaction_safe_verification_target(self):
+        service = EnsureExternalSwarmSecret(
+            _FakeSwarmRuntime(),
+            "tsw_traefik_gui_users",
+            "admin:$2y$12$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            verification_target_id="deployment:traefik-gui-input",
+        )
+
+        self.assertEqual("deployment:traefik-gui-input", service.verification_target_id)
+        self.assertEqual("deployment:traefik-gui-input", service.deployment_target_id)
+
 
 class _FakeSwarmRuntime:
     def __init__(self):

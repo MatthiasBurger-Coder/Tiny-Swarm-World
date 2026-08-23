@@ -13,6 +13,20 @@ from tiny_swarm_world import installer
 
 
 class TestInstaller(unittest.TestCase):
+    def test_fresh_install_requires_operator_provisioned_traefik_htpasswd(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            secret_env_file = Path(tempdir) / "live-installation.env"
+            with self.assertRaisesRegex(
+                installer.InstallerError,
+                "TSW_TRAEFIK_GUI_USERS_HTPASSWD",
+            ):
+                installer._require_operator_provisioned_traefik_gui_users({}, secret_env_file)
+
+            installer._require_operator_provisioned_traefik_gui_users(
+                {"TSW_TRAEFIK_GUI_USERS_HTPASSWD": "admin:$2y$12$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},
+                secret_env_file,
+            )
+
     def test_ensure_default_config_exports_adds_traefik_dashboard_secret_name(self):
         with tempfile.TemporaryDirectory() as tempdir:
             root = Path(tempdir)

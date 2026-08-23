@@ -38,6 +38,9 @@ from tiny_swarm_world.infrastructure.adapters.repositories.project_filesystem_ev
     ProjectFilesystemEvidenceLocalRepository,
 )
 from tiny_swarm_world.infrastructure.adapters.ingress.tls_state import canonical_tls_state_root
+from tiny_swarm_world.domain.configuration.configuration_contract import (
+    validate_traefik_htpasswd,
+)
 
 RESET_CONFIRMATION = "RESET_TINY_SWARM_PLATFORM"
 _RESET_RUN_LOG_FILE = "reset-run.log"
@@ -50,6 +53,7 @@ DEFAULT_INFISICAL_SECRET_ENV_FILE = ".tiny-swarm/secrets/bootstrap.local.env"
 DEFAULT_GENERATED_SECRET_ENV_FILE = ".tiny-swarm/secrets/generated.local.env"
 DEFAULT_NATIVE_LINUX_VENV = ".tiny-swarm-world/install-venv"
 DEFAULT_SECRET_MANIFEST_PATH = Path("infra/config/secrets/infisical-secrets.yaml")
+TRAEFIK_GUI_USERS_HTPASSWD_ENVIRONMENT = "TSW_TRAEFIK_GUI_USERS_HTPASSWD"
 INSTALLER_SUBPROCESS_TIMEOUT_ENVIRONMENT = "TSW_INSTALL_SUBPROCESS_TIMEOUT_SECONDS"
 DEFAULT_INSTALLER_SUBPROCESS_TIMEOUT_SECONDS = 900.0
 DEFAULT_INSTALLER_PROBE_TIMEOUT_SECONDS = 10.0
@@ -381,6 +385,7 @@ def run(
         secret_env_snapshot,
         _ensure_default_config_exports(paths, install_env),
     )
+    _require_operator_provisioned_traefik_gui_users(install_env, paths.secret_env_file)
     _normalize_export_file_if_duplicate_keys(
         paths.secret_env_file,
         snapshot=secret_env_snapshot,
@@ -1151,6 +1156,23 @@ def _ensure_default_config_exports(paths: InstallerPaths, env: dict[str, str]) -
         exports,
     )
     return exports
+
+
+def _require_operator_provisioned_traefik_gui_users(
+    env: Mapping[str, str],
+    secret_env_file: Path,
+) -> None:
+    if env.get(TRAEFIK_GUI_USERS_HTPASSWD_ENVIRONMENT, "").strip():
+        try:
+            validate_traefik_htpasswd(env[TRAEFIK_GUI_USERS_HTPASSWD_ENVIRONMENT])
+        except ValueError as exc:
+            raise InstallerError("Traefik htpasswd material is invalid.") from exc
+        return
+    raise InstallerError(
+        f"Required operator secret is missing: {TRAEFIK_GUI_USERS_HTPASSWD_ENVIRONMENT}. "
+        f"Provide complete Traefik htpasswd content in {secret_env_file.as_posix()} "
+        "before starting a fresh reset."
+    )
 
 
 def _normalize_infisical_login_email(paths: InstallerPaths, env: dict[str, str]) -> dict[str, str]:

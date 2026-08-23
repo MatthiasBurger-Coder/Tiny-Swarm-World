@@ -225,18 +225,32 @@ class TestLxcSwarmRuntime(unittest.TestCase):
         tls_resolver.certificate.write_bytes(b"replacement-certificate")
         tls_resolver.key.write_bytes(b"replacement-private-key")
 
-        with patch.object(runtime, "external_secret_exists", return_value=False):
-            with patch.object(runtime, "_run_manager_shell") as run_manager_shell:
+        with patch.object(
+            runtime,
+            "external_secret_exists",
+            side_effect=(False, False, True, True),
+        ):
+            owned_labels = "tiny-swarm-world|" + "0" * 64 + "\n"
+            with patch.object(
+                runtime,
+                "_run_manager_shell",
+                side_effect=(
+                    subprocess.CompletedProcess([], 0, stdout="idcert|idkey\n"),
+                    subprocess.CompletedProcess([], 0, stdout=owned_labels),
+                    subprocess.CompletedProcess([], 0, stdout=owned_labels),
+                ),
+            ) as run_manager_shell:
                 runtime._ensure_traefik_tls_secrets()
 
-        script = run_manager_shell.call_args.args[0]
+        reconciliation_call = run_manager_shell.call_args_list[0]
+        script = reconciliation_call.args[0]
         self.assertIn("base64 -d", script)
         self.assertIn("custom_tls_cert", script)
         self.assertIn("custom_tls_key", script)
         self.assertIn("umask 077", script)
         self.assertIn("chmod 600", script)
         self.assertEqual(
-            run_manager_shell.call_args.kwargs["input_text"],
+            reconciliation_call.kwargs["input_text"],
             "Y2VydGlmaWNhdGU=\ncHJpdmF0ZS1rZXk=\n",
         )
         self.assertNotIn("private-key", script)

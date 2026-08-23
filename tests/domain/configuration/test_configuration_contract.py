@@ -9,9 +9,32 @@ from tiny_swarm_world.domain.configuration import (
     ConfigurationValueKind,
     default_configuration_contract,
 )
+from tiny_swarm_world.domain.configuration.configuration_contract import (
+    validate_traefik_htpasswd,
+)
 
 
 class TestConfigurationContract(unittest.TestCase):
+    def test_traefik_htpasswd_accepts_supported_hashes(self):
+        validate_traefik_htpasswd(
+            "admin:$2y$12$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n"
+            "operator:{SHA}qvTGHdzF6KLavt4PO0gs2a6pQ00="
+        )
+
+    def test_traefik_htpasswd_rejects_unsafe_or_malformed_material(self):
+        invalid_values = (
+            "<replace-with-complete-traefik-htpasswd-content>",
+            "admin:\rhash",
+            "admin:\x00hash",
+            "",
+            "\n",
+            ":{SHA}qvTGHdzF6KLavt4PO0gs2a6pQ00=",
+            "admin:plain-text",
+        )
+        for value in invalid_values:
+            with self.subTest(value=repr(value)), self.assertRaises(ValueError):
+                validate_traefik_htpasswd(value)
+
     def test_required_secret_missing_fails_without_leaking_value(self):
         contract = ConfigurationContract(
             schema_version="1",
@@ -110,6 +133,7 @@ class TestConfigurationContract(unittest.TestCase):
 
         self.assertIn("TSW_SONARQUBE_POSTGRES_PASSWORD", keys)
         self.assertIn("TSW_INFISICAL_REDIS_PASSWORD", keys)
+        self.assertIn("TSW_TRAEFIK_GUI_USERS_HTPASSWD", keys)
 
     def test_default_contract_uses_pulsar_urls_without_legacy_messaging_secret(self):
         requirements = {requirement.key: requirement for requirement in default_configuration_contract().requirements}
