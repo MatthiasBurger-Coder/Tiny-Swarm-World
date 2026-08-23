@@ -1,16 +1,16 @@
 # Workflow: Issue #252 — Classic Profile Stabilization / Public Beta RC1
 
-Workflow id: issue-252-classic-public-beta-rc1-20260818
+Workflow id: issue-252-classic-public-beta-rc1-remediation-20260823
 
 Source issue: https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/252
 
 Execution profile: FULL_PATH
 
-Authoring branch: docs/workflow-issue-252-ci-live-addendum-20260818
+Authoring branch: feature/workflow-issue-252-remediation-20260823
 
 Planned execution branch: feature/classic-public-beta-rc1-stabilization
 
-Status: AUTHORED_NOT_EXECUTED
+Status: REMEDIATION_AUTHORED_NOT_EXECUTED
 
 No live installation, infrastructure mutation, browser check, credential test,
 release claim or RC1_ACCEPTED decision is produced by workflow authoring.
@@ -260,6 +260,29 @@ acceptance criteria. Remaining facts are intentionally derived from current
 repository behavior in the first execution slice and are not silently treated
 as implemented or live-verified.
 
+### Remediation clarification — 2026-08-23
+
+- Original request: adopt the updated TLS ADR, add the possible RC1 fixes, and
+  authorize a remediation workflow or scope extension with separate slices.
+- Interpreted intent: preserve Issue #252 Classic RC1 scope while repairing
+  defects discovered by WSL2 live stabilization before repeating dependent
+  host and external gates.
+- Accepted assumption source: the user's explicit instructions immediately
+  after remote ADR synchronization.
+- EPIC fit question: yes; the requested implementation still matches Issue
+  #252 and its accepted managed-or-operator CA decision.
+- Non-goals: Kubernetes, Podman, new PKI service, implicit trust-store/sysctl/
+  firewall mutation, broad composition refactoring, stale-evidence promotion,
+  or RC1 acceptance without Native Linux and external-gate evidence.
+- Decision: `READY_FOR_WORKFLOW` with 95 percent confidence after the separate
+  remediation scopes, locks, dependencies, acceptance checks and stop paths
+  below are applied.
+- Five-role gate: Senior Requirement Engineer, Senior System Architect, Senior
+  Python Automation Developer, Senior Tester, and Senior Workflow Architect as
+  dependency/deadlock validator. The fifth role validates the complete DAG,
+  file/contract locks and serialized merge order; it does not replace any of
+  the four implementation perspectives.
+
 ## Target Picture
 
 ~~~text
@@ -292,8 +315,9 @@ Independent audit -> RC1_ACCEPTED or explicit rejection
 
 ## Verified Baseline
 
-- Worktree was clean on main; the dedicated authoring branch was created and
-  verified before workflow artifacts were regenerated.
+- The remediation authoring worktree was created cleanly from execution-branch
+  baseline `f02d14d3` (`origin/feature/classic-public-beta-rc1-stabilization`).
+  This is not represented as the current `main` commit.
 - QUALITY.md defines git diff --check and python3 tools/quality_gate.py quality.
 - tools/install_debugger.py, tools/preflight.py, tools/quality_gate.py and
   tools/security_gate.py exist.
@@ -312,8 +336,11 @@ Independent audit -> RC1_ACCEPTED or explicit rejection
   redacted WSL2 recovery/post-install run exists for S252-04. They remain
   bounded evidence, not proof that the full issue lifecycle or CI addendum is
   complete.
-- No reconcile, update, restart, Native-Linux, CI-run, external SonarCloud or
-  final RC1 evidence is inferred.
+- Historical tracked consolidation evidence reports WSL2 reconcile (S252-05),
+  update (S252-06), and failure/recovery/restart work (S252-07). Those results
+  remain historical evidence for their recorded SHAs and are not transferred
+  to the new remediation candidate. Native-Linux, required self-hosted CI,
+  external SonarCloud and final RC1 evidence remain open.
 
 ## Scope
 
@@ -935,6 +962,330 @@ Done: selected change converges; unrelated healthy state remains valid;
 post-update acceptance is complete and redacted; update failure remains an
 explicit blocker/rejection.
 
+## Authorized RC1 Remediation Addendum — 2026-08-23
+
+The user confirmed that implementation remains within Issue #252 Classic RC1
+stabilization and must follow the accepted
+`adr-traefik-managed-or-operator-ca.adoc`. Existing uncommitted changes are
+candidate patches only. Each remediation slice must adopt, repair or reject
+them through its declared file scope; no candidate evidence is success evidence
+until verified on the exact committed candidate.
+
+### Slice R01 — Canonical TLS contract and CA lifecycle
+
+Purpose: implement one typed TLS resolution contract with external-CA
+precedence, managed-CA fallback, a separately signed ingress leaf, canonical
+trust-bundle discovery, protected local state and deterministic reuse without
+silent rotation.
+
+Prerequisites: S252-03 PASS and the accepted managed-or-operator CA ADR. The
+listed `domain/ingress/`, `application/ports/` and `adapters/ingress/` paths are
+explicitly authorized create scopes when no suitable existing module exists.
+
+```yaml
+slice_id: S252-R01
+profile: FULL_PATH
+owner: Senior Python Automation Developer
+secondary_reviewers: [Senior System Architect, Senior Tester, Senior Security Sandbox Engineer]
+affected_files: [src/tiny_swarm_world/domain/ingress/, src/tiny_swarm_world/application/ports/, src/tiny_swarm_world/application/services/deployment/, src/tiny_swarm_world/infrastructure/adapters/ingress/, src/tiny_swarm_world/infrastructure/adapters/clients/lxc/swarm/stack_prerequisite_registry.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc_swarm_runtime.py, src/tiny_swarm_world/infrastructure/composition_configuration.py, src/tiny_swarm_world/infrastructure/composition_runtime.py, src/tiny_swarm_world/installer.py, tests/domain/ingress/, tests/application/services/deployment/, tests/infrastructure/adapters/ingress/, tests/infrastructure/adapters/clients/lxc/swarm/test_stack_prerequisite_registry.py, tests/infrastructure/adapters/clients/test_lxc_swarm_runtime.py, tests/test_installer.py]
+affected_modules: [TLS domain contract, TLS resolution port, managed PKI adapter, installer and runtime composition]
+affected_contracts: [canonical-tls-contract, external-ca-precedence, managed-ca-idempotent-reuse, canonical-trust-bundle]
+dependencies: [S252-03]
+prerequisites: [S252-03 PASS, accepted managed-or-operator CA ADR]
+issue_completion_evidence_path: .tiny-swarm/evidence/issue-252/
+requirement_to_verification: [REQ-252-051..REQ-252-055 -> focused TLS contract and lifecycle tests]
+shared_files: [src/tiny_swarm_world/infrastructure/adapters/clients/lxc/swarm/stack_prerequisite_registry.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc_swarm_runtime.py, src/tiny_swarm_world/infrastructure/composition_configuration.py, src/tiny_swarm_world/infrastructure/composition_runtime.py, src/tiny_swarm_world/installer.py]
+shared_infrastructure: [managed TLS local state, Traefik Docker secret names]
+isolated_worktree_required: true
+serialized_live_validation_required: true
+merge_order_constraints: [before S252-R02 and S252-R06]
+parallelization_status: SERIAL_FILE_AND_CONTRACT_LOCKS
+parallel_group: SERIAL-252-REMEDIATION
+file_locks: [src/tiny_swarm_world/domain/ingress/, src/tiny_swarm_world/application/ports/, src/tiny_swarm_world/application/services/deployment/, src/tiny_swarm_world/infrastructure/adapters/ingress/, src/tiny_swarm_world/infrastructure/adapters/clients/lxc/swarm/stack_prerequisite_registry.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc_swarm_runtime.py, src/tiny_swarm_world/infrastructure/composition_configuration.py, src/tiny_swarm_world/infrastructure/composition_runtime.py, src/tiny_swarm_world/installer.py, tests/domain/ingress/, tests/application/services/deployment/, tests/infrastructure/adapters/ingress/, tests/infrastructure/adapters/clients/lxc/swarm/test_stack_prerequisite_registry.py, tests/infrastructure/adapters/clients/test_lxc_swarm_runtime.py, tests/test_installer.py]
+contract_locks: [canonical-tls-contract, external-ca-precedence, managed-ca-idempotent-reuse]
+architecture_locks: [hexagonal-boundaries, single-tls-resolution-owner, protected-local-state, no-raw-secrets]
+quality_gates:
+  targeted: [PYTHONPATH=src python3 -m unittest tests.test_installer tests.infrastructure.adapters.clients.lxc.swarm.test_stack_prerequisite_registry tests.infrastructure.adapters.clients.test_lxc_swarm_runtime, python3 tools/quality_gate.py lint, python3 tools/quality_gate.py typecheck]
+  required: [python3 tools/quality_gate.py quality]
+documentation:
+  arc42: required in S252-R07
+  adr: implement accepted adr-traefik-managed-or-operator-ca.adoc; do not rewrite history
+stop_conditions: [incomplete-external-config-falls-back, mixed-external-managed-material, silent-key-rotation, self-signed-leaf-used-as-ca, private-key-or-pem-in-evidence, ambiguous-canonical-state-path]
+```
+
+Done: complete external configuration wins; incomplete external configuration
+fails before mutation; managed CA and leaf material validate for chain, SAN and
+expiry, persist with owner-only private-key permissions, and are reused
+unchanged on rerun; installer, runtime and E2E resolve one trust bundle.
+
+### Slice R02 — Atomic Traefik secret reconciliation and GUI input recovery
+
+Purpose: reconcile the TLS certificate/key pair and operator-owned dashboard
+htpasswd as ordered, redaction-safe pre-apply inputs without irreparable partial
+state.
+
+```yaml
+slice_id: S252-R02
+profile: FULL_PATH
+owner: Senior Python Automation Developer
+secondary_reviewers: [Senior Tester, Senior System Architect, Senior Security Sandbox Engineer]
+affected_files: [.env.example, src/tiny_swarm_world/domain/configuration/configuration_contract.py, src/tiny_swarm_world/application/services/deployment/ensure_external_swarm_secret.py, src/tiny_swarm_world/application/services/deployment/verify_external_swarm_input.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc/swarm/stack_prerequisite_registry.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc_swarm_runtime.py, src/tiny_swarm_world/infrastructure/composition_configuration.py, src/tiny_swarm_world/infrastructure/composition_deployment.py, src/tiny_swarm_world/installer.py, tests/domain/configuration/test_configuration_contract.py, tests/application/services/deployment/test_ensure_external_swarm_secret.py, tests/application/services/deployment/test_verify_external_swarm_input.py, tests/infrastructure/adapters/clients/lxc/swarm/test_stack_prerequisite_registry.py, tests/infrastructure/adapters/clients/test_lxc_swarm_runtime.py, tests/test_install_script.py, tests/test_installer.py]
+affected_modules: [configuration contract, external Swarm input services, LXC Swarm prerequisites, deployment composition, installer reset guard]
+affected_contracts: [atomic-secret-pair, traefik-gui-operator-secret, secret-redaction, verify-before-apply]
+dependencies: [S252-R01]
+prerequisites: [S252-R01 PASS, canonical TLS contract available]
+issue_completion_evidence_path: .tiny-swarm/evidence/issue-252/
+requirement_to_verification: [REQ-252-056..REQ-252-057 -> partial-state, ordering and redaction tests]
+shared_files: [stack_prerequisite_registry.py, lxc_swarm_runtime.py, composition_configuration.py, installer.py]
+shared_infrastructure: [Docker Swarm secret store, Traefik deployment]
+isolated_worktree_required: true
+serialized_live_validation_required: true
+merge_order_constraints: [after S252-R01, before S252-R06]
+parallelization_status: SERIAL_SHARED_TLS_LOCKS
+parallel_group: SERIAL-252-REMEDIATION
+file_locks: [.env.example, src/tiny_swarm_world/domain/configuration/configuration_contract.py, src/tiny_swarm_world/application/services/deployment/ensure_external_swarm_secret.py, src/tiny_swarm_world/application/services/deployment/verify_external_swarm_input.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc/swarm/stack_prerequisite_registry.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc_swarm_runtime.py, src/tiny_swarm_world/infrastructure/composition_configuration.py, src/tiny_swarm_world/infrastructure/composition_deployment.py, src/tiny_swarm_world/installer.py, tests/domain/configuration/test_configuration_contract.py, tests/application/services/deployment/, tests/infrastructure/adapters/clients/lxc/swarm/test_stack_prerequisite_registry.py, tests/infrastructure/adapters/clients/test_lxc_swarm_runtime.py, tests/test_install_script.py, tests/test_installer.py]
+contract_locks: [atomic-secret-pair, traefik-gui-operator-secret, secret-redaction]
+architecture_locks: [verify-before-apply, protected-local-state, no-raw-secrets]
+quality_gates:
+  targeted: [PYTHONPATH=src python3 -m unittest tests.application.services.deployment.test_ensure_external_swarm_secret tests.application.services.deployment.test_verify_external_swarm_input tests.domain.configuration.test_configuration_contract tests.infrastructure.adapters.clients.lxc.swarm.test_stack_prerequisite_registry tests.infrastructure.adapters.clients.test_lxc_swarm_runtime tests.test_install_script tests.test_installer]
+  required: [python3 tools/quality_gate.py quality]
+documentation:
+  arc42: required in S252-R07
+  adr: no new decision unless rollback semantics exceed the accepted TLS ADR
+stop_conditions: [partial-secret-state-not-recoverable, stack-apply-before-input-verification, htpasswd-value-in-log-command-or-evidence, missing-value-after-destructive-reset]
+```
+
+Done: none/both/cert-only/key-only/second-create failure and retry paths are
+deterministic and recoverable or explicitly fail closed; the stack never
+applies with an invalid pair; htpasswd material remains operator-owned and
+redacted.
+
+### Slice R03 — Incus provider readiness and restart classification
+
+Purpose: make daemon readiness bounded and ordered before provider inspection,
+with typed and redacted timeout, unavailable, permission and unknown states.
+
+```yaml
+slice_id: S252-R03
+profile: FULL_PATH
+owner: Senior DevOps
+secondary_reviewers: [Senior Python Automation Developer, Senior Tester]
+affected_files: [src/tiny_swarm_world/infrastructure/adapters/preflight/lxc_provider_preflight.py, tests/infrastructure/adapters/preflight/test_lxc_provider_preflight.py]
+affected_modules: [Incus/LXC provider preflight]
+affected_contracts: [bounded-provider-readiness, waitready-before-inspection, typed-provider-failure]
+dependencies: [S252-03]
+prerequisites: [S252-03 PASS, Incus and LXC commands remain non-mutating in tests]
+issue_completion_evidence_path: .tiny-swarm/evidence/issue-252/
+requirement_to_verification: [REQ-252-058 -> waitready order and typed timeout tests]
+shared_files: []
+shared_infrastructure: [Incus daemon state]
+isolated_worktree_required: true
+serialized_live_validation_required: true
+merge_order_constraints: [before S252-R04 and dependent restart rerun]
+parallelization_status: SERIAL_SHARED_PROVIDER_STATE
+parallel_group: SERIAL-252-REMEDIATION
+file_locks: [src/tiny_swarm_world/infrastructure/adapters/preflight/lxc_provider_preflight.py, tests/infrastructure/adapters/preflight/test_lxc_provider_preflight.py]
+contract_locks: [bounded-provider-readiness, provider-error-classification]
+architecture_locks: [no-live-mutation-by-preflight, redacted-diagnostics]
+quality_gates:
+  targeted: [PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.preflight.test_lxc_provider_preflight]
+  required: [python3 tools/quality_gate.py quality]
+documentation:
+  arc42: review in S252-R07
+  adr: none
+stop_conditions: [unbounded-wait, provider-inspection-before-waitready, raw-output-in-evidence, timeout-classification-unknown]
+```
+
+### Slice R04 — Managed-LXC artifact readiness and timeout semantics
+
+Purpose: execute Docker/storage probes inside the selected manager container,
+preserve host ownership for local build inputs and classify
+`subprocess.TimeoutExpired` as a bounded typed result.
+
+```yaml
+slice_id: S252-R04
+profile: FULL_PATH
+owner: Senior Python Automation Developer
+secondary_reviewers: [Senior Tester, Senior DevOps]
+affected_files: [src/tiny_swarm_world/infrastructure/adapters/preflight/__init__.py, src/tiny_swarm_world/infrastructure/adapters/preflight/artifact_readiness.py, src/tiny_swarm_world/infrastructure/composition_runtime.py, src/tiny_swarm_world/infrastructure/composition_setup.py, tests/infrastructure/adapters/preflight/test_artifact_readiness.py]
+affected_modules: [artifact readiness adapters, provider-aware composition]
+affected_contracts: [artifact-probe-location, timeout-classification, read-only-probe]
+dependencies: [S252-R03]
+prerequisites: [S252-R03 PASS, provider timeout taxonomy fixed]
+issue_completion_evidence_path: .tiny-swarm/evidence/issue-252/
+requirement_to_verification: [REQ-252-059 -> managed command, timeout and redaction tests]
+shared_files: [src/tiny_swarm_world/infrastructure/composition_runtime.py, src/tiny_swarm_world/infrastructure/composition_setup.py]
+shared_infrastructure: [managed LXC manager node]
+isolated_worktree_required: true
+serialized_live_validation_required: true
+merge_order_constraints: [after S252-R03, before S252-R06]
+parallelization_status: SERIAL_PROVIDER_AND_COMPOSITION_LOCKS
+parallel_group: SERIAL-252-REMEDIATION
+file_locks: [src/tiny_swarm_world/infrastructure/adapters/preflight/__init__.py, src/tiny_swarm_world/infrastructure/adapters/preflight/artifact_readiness.py, src/tiny_swarm_world/infrastructure/composition_runtime.py, src/tiny_swarm_world/infrastructure/composition_setup.py, tests/infrastructure/adapters/preflight/test_artifact_readiness.py]
+contract_locks: [artifact-probe-location, timeout-classification]
+architecture_locks: [bounded-provider-readiness, no-readiness-mutation, no-raw-command-output]
+quality_gates:
+  targeted: [PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.preflight.test_artifact_readiness]
+  required: [python3 tools/quality_gate.py quality]
+documentation:
+  arc42: review in S252-R07
+  adr: none
+stop_conditions: [host-probe-substituted-for-managed-node, timeout-escapes-untyped, readiness-probe-mutates, stdout-or-stderr-persisted]
+```
+
+### Slice R05 — Native-Linux kernel prerequisite verification
+
+Purpose: verify bridge-netfilter and forwarding controls without silently
+mutating operator-owned host state.
+
+```yaml
+slice_id: S252-R05
+profile: FULL_PATH
+owner: Senior DevOps
+secondary_reviewers: [Senior Python Automation Developer, Senior Tester, Senior Documentation Engineer]
+affected_files: [src/tiny_swarm_world/infrastructure/adapters/host/native_linux_host_preparation.py, tests/infrastructure/adapters/host/test_host_preparation.py, documentation/user_guide/installation.adoc]
+affected_modules: [native Linux host preparation, operator remediation documentation]
+affected_contracts: [native-kernel-prerequisites, fail-closed-host-check, operator-owned-host-mutation]
+dependencies: [S252-03]
+prerequisites: [S252-03 PASS, read-only native host contract retained]
+issue_completion_evidence_path: .tiny-swarm/evidence/issue-252/
+requirement_to_verification: [REQ-252-060 -> proc-sys fixture tests and operator documentation]
+shared_files: []
+shared_infrastructure: [native Linux kernel controls]
+isolated_worktree_required: true
+serialized_live_validation_required: true
+merge_order_constraints: [before Native-Linux live slices and S252-R06]
+parallelization_status: SERIAL_HOST_SAFETY_LOCK
+parallel_group: SERIAL-252-REMEDIATION
+file_locks: [src/tiny_swarm_world/infrastructure/adapters/host/native_linux_host_preparation.py, tests/infrastructure/adapters/host/test_host_preparation.py, documentation/user_guide/installation.adoc]
+contract_locks: [native-kernel-prerequisites, operator-owned-host-mutation]
+architecture_locks: [read-only-default-preflight, explicit-live-consent]
+quality_gates:
+  targeted: [PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.host.test_host_preparation]
+  required: [python3 tools/quality_gate.py quality]
+documentation:
+  arc42: review in S252-R07
+  adr: none unless automatic host mutation is proposed
+stop_conditions: [implicit-sysctl-or-module-mutation, missing-remediation, cleanup-claims-unperformed-rollback, host-value-leak]
+```
+
+### Slice R06 — Bounded E2E readiness and composition integration
+
+Purpose: validate the combined wiring and keep the canonical Classic live suite
+bounded by one monotonic deadline while consuming the canonical TLS contract.
+
+```yaml
+slice_id: S252-R06
+profile: FULL_PATH
+owner: Senior Tester
+secondary_reviewers: [Senior Python Automation Developer, Senior System Architect, Live Evidence Validation Expert]
+affected_files: [tests/e2e/classic/test_post_install_browser_live.py, tests/infrastructure/test_composition.py]
+affected_modules: [Classic post-install acceptance, composition integration]
+affected_contracts: [canonical-classic-suite, monotonic-readiness-deadline, canonical-trust-bundle, combined-remediation-wiring]
+dependencies: [S252-R01, S252-R02, S252-R04, S252-R05]
+prerequisites: [S252-R01 PASS, S252-R02 PASS, S252-R04 PASS, S252-R05 PASS]
+issue_completion_evidence_path: .tiny-swarm/evidence/issue-252/
+requirement_to_verification: [REQ-252-055 and REQ-252-061 -> composition and bounded E2E tests]
+shared_files: [tests/e2e/classic/test_post_install_browser_live.py, tests/infrastructure/test_composition.py]
+shared_infrastructure: [Classic service endpoints when live rerun is later authorized]
+isolated_worktree_required: true
+serialized_live_validation_required: true
+merge_order_constraints: [after all product remediation slices, before documentation consolidation]
+parallelization_status: SERIAL_INTEGRATION_JOIN
+parallel_group: SERIAL-252-REMEDIATION
+file_locks: [tests/e2e/classic/test_post_install_browser_live.py, tests/infrastructure/test_composition.py]
+contract_locks: [canonical-classic-suite, monotonic-readiness-deadline, combined-remediation-wiring]
+architecture_locks: [one-live-test-framework, no-live-mutation-by-default, observed-vs-inferred]
+quality_gates:
+  targeted: [PYTHONPATH=src python3 -m unittest tests.e2e.classic.test_post_install_browser_live tests.infrastructure.test_composition]
+  required: [python3 tools/quality_gate.py quality]
+documentation:
+  arc42: review in S252-R07
+  adr: verify canonical TLS contract only
+stop_conditions: [per-service-timeouts-exceed-global-deadline, timeout-aggregated-as-skip-or-pass, duplicate-live-framework, composition-test-requires-live-system]
+```
+
+### Slice R07 — Documentation, requirement and evidence synchronization
+
+Purpose: reconcile Arc42, operator configuration, the complete requirement
+matrix and all six issue evidence files with the accepted implementations and
+exact candidate SHA. Candidate `.codex/evidence/**` is reviewed and redacted,
+never accepted blindly.
+
+```yaml
+slice_id: S252-R07
+profile: FULL_PATH
+owner: Senior Documentation Engineer
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Senior Tester, Live Evidence Validation Expert]
+affected_files: [documentation/arc42/06_runtime_view.adoc, documentation/arc42/07_deployment_view.adoc, documentation/arc42/08_configuration/config-contract-inventory.md, documentation/arc42/08_configuration/operator-configuration-contract.md, documentation/arc42/08_concepts.adoc, documentation/arc42/09_decisions/, documentation/workflow/requirement-matrix.md, .tiny-swarm/evidence/issue-252/, .codex/evidence/]
+affected_modules: [architecture documentation, operator contract, issue traceability and evidence]
+affected_contracts: [requirement-to-implementation, planned-vs-implemented, evidence-redaction, canonical-tls-documentation]
+dependencies: [S252-R01, S252-R02, S252-R03, S252-R04, S252-R05, S252-R06]
+prerequisites: [all S252-R01..S252-R06 consolidation evidence accepted]
+issue_completion_evidence_path: .tiny-swarm/evidence/issue-252/
+requirement_to_verification: [REQ-252-062 -> documentation, SHA and redaction audit]
+shared_files: [documentation/arc42/, documentation/workflow/requirement-matrix.md, .tiny-swarm/evidence/issue-252/, .codex/evidence/]
+shared_infrastructure: []
+isolated_worktree_required: true
+serialized_live_validation_required: false
+merge_order_constraints: [after S252-R06, before exact-candidate acceptance]
+parallelization_status: SERIAL_EVIDENCE_JOIN
+parallel_group: SERIAL-252-REMEDIATION
+file_locks: [documentation/arc42/, documentation/workflow/requirement-matrix.md, .tiny-swarm/evidence/issue-252/, .codex/evidence/]
+contract_locks: [requirement-to-implementation, evidence-redaction, canonical-tls-documentation]
+architecture_locks: [arc42-adr-consistency, observed-vs-inferred, no-raw-secrets]
+quality_gates:
+  targeted: [git diff --check]
+  required: [python3 tools/quality_gate.py quality]
+documentation:
+  arc42: required synchronization
+  adr: preserve both superseded history and accepted replacement
+stop_conditions: [stale-requirement-row, old-evidence-attributed-to-new-code, raw-secret-or-private-key, documented-behavior-not-implemented, adr-history-rewritten]
+```
+
+### Slice R08 — Local candidate acceptance and dependent rerun handoff
+
+Purpose: freeze the exact candidate, run targeted gates followed by the full
+local quality gate, then authorize only explicitly consented WSL2 reruns.
+Native Linux and external CI/Sonar/runner paths keep their actual non-success
+state until separately executed.
+
+```yaml
+slice_id: S252-R08
+profile: FULL_PATH
+owner: Senior Tester
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Senior DevOps, Issue Completion Auditor]
+affected_files: [.tiny-swarm/evidence/issue-252/test_results.md, .tiny-swarm/evidence/issue-252/acceptance_checklist.md, .tiny-swarm/evidence/issue-252/remaining_risks.md, .tiny-swarm-world/evidence/classic-public-beta-rc1/wsl2/]
+affected_modules: [local quality evidence, WSL2 dependent rerun evidence, completion handoff]
+affected_contracts: [exact-candidate-verification, local-vs-live-state, dependent-rerun, no-rc1-overclaim]
+dependencies: [S252-R07]
+prerequisites: [S252-R07 PASS, exact candidate SHA frozen, clean candidate worktree]
+issue_completion_evidence_path: .tiny-swarm/evidence/issue-252/
+requirement_to_verification: [REQ-252-063 -> targeted and full quality evidence]
+shared_files: [.tiny-swarm/evidence/issue-252/, .tiny-swarm-world/evidence/classic-public-beta-rc1/wsl2/]
+shared_infrastructure: [controlled WSL2 Classic target for explicitly consented reruns]
+isolated_worktree_required: true
+serialized_live_validation_required: true
+merge_order_constraints: [after S252-R07, before S252-11 final defect consolidation]
+parallelization_status: SERIAL_ACCEPTANCE_GATE
+parallel_group: SERIAL-252-REMEDIATION
+file_locks: [.tiny-swarm/evidence/issue-252/, .tiny-swarm-world/evidence/classic-public-beta-rc1/wsl2/]
+contract_locks: [exact-candidate-verification, local-vs-live-state, dependent-rerun]
+architecture_locks: [explicit-live-consent, observed-vs-inferred, no-rc1-overclaim]
+quality_gates:
+  targeted: [git diff --check, python3 tools/quality_gate.py lint, python3 tools/quality_gate.py arch-lint, python3 tools/quality_gate.py arch-tests, python3 tools/quality_gate.py typecheck, python3 tools/quality_gate.py test]
+  required: [python3 tools/quality_gate.py quality]
+documentation:
+  arc42: verify synchronized state
+  adr: verify accepted TLS decision implementation
+stop_conditions: [dirty-candidate-after-verification, failed-required-gate, live-command-without-consent, stale-sha, unavailable-native-or-external-check-reported-green]
+```
+
+Done: local quality is green on the exact candidate or remains an explicit
+failure; WSL2 reruns use explicit consent; Native Linux S252-08..10 and CI
+S252-15..16 remain mandatory independent paths before S252-11/S252-12 may
+produce final acceptance.
+
 ### Slice 11 — Defect classification, fixes and dependent reruns
 
 Purpose: consolidate defects, classify them RC1_BLOCKER, RC1_MAJOR,
@@ -951,7 +1302,7 @@ secondary_reviewers: [Senior Tester, Senior System Architect, Senior Requirement
 affected_files: [.tiny-swarm-world/evidence/classic-public-beta-rc1/defects/, tests/e2e/classic/, tests/live/, tests/integration/, tests/support/]
 affected_modules: [defect fixes, regression tests, scenario reruns, evidence consolidation]
 affected_contracts: [RC1 defect policy, regression evidence, rerun dependency map]
-dependencies: [S252-07, S252-10, S252-16]
+dependencies: [S252-R08, S252-07, S252-10, S252-16]
 parallel_group: SERIAL-252-REMEDIATION
 file_locks: [.tiny-swarm-world/evidence/classic-public-beta-rc1/defects/, tests/e2e/classic/, tests/live/, tests/integration/, tests/support/]
 contract_locks: [defect-severity, regression-evidence, rerun-contract]
@@ -1005,23 +1356,30 @@ stop_conditions:
 
 Done: all issue evidence files exist; every requirement maps to implementation
 and verification evidence; every required scenario has host-specific redacted
-evidence; exact final decision and four independent reviews are recorded.
+evidence; exact final decision and the required independent requirement,
+architecture, implementation, test/evidence and dependency/deadlock reviews
+are recorded.
 
 ## Dependency Graph
 
 ~~~text
 S252-01 -> S252-02 -> S252-03
                        | \
+                       |  -> S252-R01 -> S252-R02 --\
+                       |  -> S252-R03 -> S252-R04 ---+-> S252-R06 -> S252-R07 -> S252-R08
+                       |  -> S252-R05 ---------------/
+                       |
                        |  -> S252-04 -> S252-05 -> S252-06 -> S252-07
                        |
                        -> S252-08 -> S252-09 -> S252-10
                        |
                        -> S252-13 -> S252-14 -> S252-15 -> S252-16
 
-S252-07, S252-10 and S252-16 -> S252-11 -> S252-12
+S252-R08, S252-07, S252-10 and S252-16 -> S252-11 -> S252-12
 ~~~
 
-The host and CI tracks are logically independent only after S252-03, but live
+The remediation tracks start after S252-03 and converge before any dependent
+live rerun. The host and CI tracks are logically independent only after S252-03, but live
 validation remains serialized because targets, credentials, ports, state,
 evidence semantics and operator decisions are not assumed isolated. CI
 workflow publication and live-run evidence still converge before defect
@@ -1195,7 +1553,7 @@ failed-to-apply or failed-to-verify required scenario.
 ## Commit and Push Plan
 
 Workflow authoring is published as a guarded documentation commit on
-docs/workflow-issue-252-ci-live-addendum-20260818, pushing only HEAD to the
+feature/workflow-issue-252-remediation-20260823, pushing only HEAD to the
 matching origin branch. It must not create/merge a PR, delete a branch,
 force-push or run live infrastructure.
 
@@ -1205,13 +1563,14 @@ implementation branch is not published or merged by this authoring turn.
 
 ## Handoff to workflow execute
 
-1. Verify current main, the addendum authoring branch,
+1. Verify execution baseline `f02d14d3`, the remediation authoring branch,
    `feature/classic-public-beta-rc1-stabilization` implementation worktree,
    locks and S3/S3D preflight.
-2. Promote documentation/workflow/workflow.md as the active workflow.
-3. Execute S252-01 first and materialize the requirement matrix before product
-   implementation or live execution.
-4. Execute S252-13 through S252-16 as the mandatory CI layer; do not claim CI
+2. Promote the remediation workflow commit onto the declared implementation
+   branch without absorbing unrelated worktree changes.
+3. Verify completed historical slices, then execute S252-R01 through S252-R08
+   in dependency order with one slice per commit.
+4. Execute or verify S252-13 through S252-16 as the mandatory CI layer; do not claim CI
    completion from workflow files without real run evidence.
 5. Do not execute S252-04 through S252-10 without Three-Amigos approval,
    explicit live consent and evidence readiness per target.
@@ -1223,14 +1582,15 @@ implementation branch is not published or merged by this authoring turn.
 
 ## Arc42 Check Status
 
-CHECKED_NO_CHANGE.
+CHECKED_UPDATED_ADR_BASELINE.
 
 Arc42 introduction, constraints, strategy, building blocks, runtime,
 deployment, quality and risk sections and the accepted explicit-live-consent
-and LXC-native-provider ADRs were reviewed. Issue #252 validates the existing
-Linux/WSL2, Incus/LXC, Docker Swarm and fail-closed architecture; it does not
-establish a new service boundary or architecture decision. Verified drift must
-be handled before RC1 and cannot be hidden here.
+and LXC-native-provider ADRs were reviewed. The accepted
+`adr-traefik-managed-or-operator-ca.adoc` and its superseded predecessor are
+included in the context pack. Issue #252 preserves Linux/WSL2, Incus/LXC,
+Docker Swarm and fail-closed architecture and authorizes only the bounded
+remediation scopes above.
 
 ## Final Authoring State
 
@@ -1240,12 +1600,13 @@ administrator PowerShell access.
 
 ## Authoring Publication Handoff
 
-- Branch: `docs/workflow-issue-252-ci-live-addendum-20260818`
-- Commit: `bd45f537`
-- Push target: `origin/docs/workflow-issue-252-ci-live-addendum-20260818`
-- Publication verification: `git diff --check` PASS; Context-Pack JSON parse
-  PASS; push completed successfully.
+- Branch: `feature/workflow-issue-252-remediation-20260823`
+- Commit: recorded after the guarded authoring commit is created.
+- Push target: `origin/feature/workflow-issue-252-remediation-20260823`
+- Publication verification: `git diff --check` and Context-Pack JSON/hash
+  validation must pass before the guarded branch push; push result is recorded
+  after publication.
 - Pull request/merge: not created by workflow authoring.
 - Live/CI execution: not performed by workflow authoring.
-- Formal workflow status remains `AUTHORED_NOT_EXECUTED` until controlled
+- Formal workflow status remains `REMEDIATION_AUTHORED_NOT_EXECUTED` until controlled
   `workflow execute` runs the CI and live slices.
