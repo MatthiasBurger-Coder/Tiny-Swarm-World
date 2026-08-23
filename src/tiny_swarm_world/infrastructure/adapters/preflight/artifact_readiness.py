@@ -9,11 +9,15 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from tiny_swarm_world.application.ports.preflight import PortLiveReadiness
+from tiny_swarm_world.domain.node_provider import ManagedLxcBackend
 from tiny_swarm_world.domain.preflight import (
     ARTIFACT_READINESS_TARGETS,
     ReadinessCheckResult,
     ReadinessProbeRequest,
     ReadinessStatus,
+)
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.backend_cli import (
+    backend_cli,
 )
 
 
@@ -56,7 +60,7 @@ class BoundedArtifactReadinessAdapter(PortLiveReadiness):
             )
         try:
             result = probe(request)
-        except (TimeoutError, socket.timeout):
+        except (TimeoutError, socket.timeout, subprocess.TimeoutExpired):
             return _result(
                 request,
                 ReadinessStatus.TIMED_OUT,
@@ -157,6 +161,63 @@ class DockerManagerReadinessProbe:
         )
 
 
+class UnavailableArtifactReadinessProbe:
+    """Fail-closed probe used when the managed execution backend is unresolved."""
+
+    def __init__(self, *, probe_kind: str) -> None:
+        self.probe_kind = probe_kind
+
+    def __call__(self, request: ReadinessProbeRequest) -> ReadinessCheckResult:
+        return _result(
+            request,
+            ReadinessStatus.UNAVAILABLE,
+            "The managed readiness execution backend is unavailable.",
+            "Resolve exactly one managed LXC backend before artifact mutation.",
+            evidence={"probe_kind": self.probe_kind},
+        )
+
+
+class ManagedLxcDockerManagerReadinessProbe:
+    """Read-only Docker probe executed inside the managed manager container."""
+
+    def __init__(
+        self,
+        backend: ManagedLxcBackend,
+        *,
+        node_name: str = "swarm-manager",
+        runner: Callable[[tuple[str, ...], float], int] | None = None,
+    ) -> None:
+        self.backend = backend
+        self.node_name = node_name
+        self.runner = runner or self._run
+
+    def __call__(self, request: ReadinessProbeRequest) -> ReadinessCheckResult:
+        returncode = self.runner(
+            ("docker", "info", "--format", "{{.ServerVersion}}"),
+            request.timeout_seconds,
+        )
+        status = ReadinessStatus.READY if returncode == 0 else ReadinessStatus.FAILED
+        return _result(
+            request,
+            status,
+            "Managed manager Docker readiness was observed."
+            if status is ReadinessStatus.READY
+            else "Managed manager Docker readiness failed.",
+            "No remediation required."
+            if status is ReadinessStatus.READY
+            else "Restore manager Docker readiness before artifact mutation.",
+            evidence={"probe_kind": "managed_lxc_docker_info"},
+        )
+
+    def _run(self, command: tuple[str, ...], timeout_seconds: float) -> int:
+        return _run_managed_lxc_command(
+            self.backend,
+            self.node_name,
+            command,
+            timeout_seconds,
+        )
+
+
 class LocalDirectoryReadinessProbe:
     """Read-only directory probe for local build or storage prerequisites."""
 
@@ -179,6 +240,63 @@ class LocalDirectoryReadinessProbe:
         )
 
 
+class ManagedLxcDirectoryReadinessProbe:
+    """Read-only directory probe executed inside a managed manager container."""
+
+    def __init__(
+        self,
+        backend: ManagedLxcBackend,
+        path: str,
+        *,
+        node_name: str = "swarm-manager",
+        runner: Callable[[tuple[str, ...], float], int] | None = None,
+    ) -> None:
+        self.backend = backend
+        self.path = path
+        self.node_name = node_name
+        self.runner = runner or self._run
+
+    def __call__(self, request: ReadinessProbeRequest) -> ReadinessCheckResult:
+        returncode = self.runner(("test", "-d", self.path), request.timeout_seconds)
+        status = ReadinessStatus.READY if returncode == 0 else ReadinessStatus.FAILED
+        return _result(
+            request,
+            status,
+            "The bounded managed directory check passed."
+            if status is ReadinessStatus.READY
+            else "The bounded managed directory check failed.",
+            "No remediation required."
+            if status is ReadinessStatus.READY
+            else "Restore the required manager directory before artifact mutation.",
+            evidence={"probe_kind": "managed_lxc_directory"},
+        )
+
+    def _run(self, command: tuple[str, ...], timeout_seconds: float) -> int:
+        return _run_managed_lxc_command(
+            self.backend,
+            self.node_name,
+            command,
+            timeout_seconds,
+        )
+
+
+def _run_managed_lxc_command(
+    backend: ManagedLxcBackend,
+    node_name: str,
+    command: tuple[str, ...],
+    timeout_seconds: float,
+) -> int:
+    completed = subprocess.run(
+        (backend_cli(backend), "exec", node_name, "--", *command),
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        check=False,
+        shell=False,
+        timeout=timeout_seconds,
+    )
+    return completed.returncode
+
+
 def _response_status(response: object) -> int:
     status = getattr(response, "status", None)
     if status is None:
@@ -192,8 +310,8 @@ def _response_status(response: object) -> int:
 def _run_docker_info(timeout_seconds: float) -> int:
     completed = subprocess.run(
         ("docker", "info", "--format", "{{.ServerVersion}}"),
-        capture_output=True,
-        text=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
         check=False,
         shell=False,
         timeout=timeout_seconds,

@@ -43,6 +43,18 @@ _EXPORTS = {
         "tiny_swarm_world.infrastructure.adapters.preflight.artifact_readiness",
         "LocalDirectoryReadinessProbe",
     ),
+    "ManagedLxcDirectoryReadinessProbe": (
+        "tiny_swarm_world.infrastructure.adapters.preflight.artifact_readiness",
+        "ManagedLxcDirectoryReadinessProbe",
+    ),
+    "ManagedLxcDockerManagerReadinessProbe": (
+        "tiny_swarm_world.infrastructure.adapters.preflight.artifact_readiness",
+        "ManagedLxcDockerManagerReadinessProbe",
+    ),
+    "UnavailableArtifactReadinessProbe": (
+        "tiny_swarm_world.infrastructure.adapters.preflight.artifact_readiness",
+        "UnavailableArtifactReadinessProbe",
+    ),
 }
 
 __all__ = list(_EXPORTS)
