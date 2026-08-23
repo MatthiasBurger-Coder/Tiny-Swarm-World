@@ -164,6 +164,13 @@ def build_lxc_deployment_services(
         TRAEFIK_TLS_KEY_SECRET_NAME_ENVIRONMENT,
         DEFAULT_TRAEFIK_TLS_KEY_SECRET_NAME,
     )
+    from tiny_swarm_world.infrastructure.adapters.ingress.local_tls_contract_resolver import (
+        LocalTlsContractResolver,
+    )
+    from tiny_swarm_world.infrastructure.adapters.ingress.tls_state import (
+        canonical_tls_state_root,
+    )
+
     swarm_runtime = LxcSwarmRuntime(
         backend=backend,
         process_runner=build_process_runner(),
@@ -171,6 +178,11 @@ def build_lxc_deployment_services(
         service_access_dashboard_renderer=compose_repository.render_service_access_dashboard,
         traefik_tls_cert_secret_name=traefik_tls_cert_secret_name,
         traefik_tls_key_secret_name=traefik_tls_key_secret_name,
+        tls_contract_resolver=LocalTlsContractResolver(
+            state_root=canonical_tls_state_root(),
+            certificate_secret_name=traefik_tls_cert_secret_name,
+            private_key_secret_name=traefik_tls_key_secret_name,
+        ),
     )
     stack_environment = _deployment_stack_environment(selected_service_profile)
     secret_manifest_entries = SecretManifestRenderer(local_file_storage).run()

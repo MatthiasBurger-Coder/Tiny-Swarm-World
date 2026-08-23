@@ -37,6 +37,7 @@ from tiny_swarm_world.infrastructure.adapters.host import (
 from tiny_swarm_world.infrastructure.adapters.repositories.project_filesystem_evidence_local_repository import (
     ProjectFilesystemEvidenceLocalRepository,
 )
+from tiny_swarm_world.infrastructure.adapters.ingress.tls_state import canonical_tls_state_root
 
 RESET_CONFIRMATION = "RESET_TINY_SWARM_PLATFORM"
 _RESET_RUN_LOG_FILE = "reset-run.log"
@@ -1136,6 +1137,11 @@ def _ensure_default_config_exports(paths: InstallerPaths, env: dict[str, str]) -
         exports["TSW_TRAEFIK_TLS_KEY_SECRET_NAME"] = "tsw_traefik_tls_key"
     if not env.get("TSW_TRAEFIK_GUI_USERS_SECRET_NAME"):
         exports["TSW_TRAEFIK_GUI_USERS_SECRET_NAME"] = "tsw_traefik_gui_users"
+    if not env.get("TSW_LIVE_TLS_CA_BUNDLE"):
+        external_ca = env.get("TSW_TRAEFIK_CA_CERT_PATH", "").strip()
+        exports["TSW_LIVE_TLS_CA_BUNDLE"] = external_ca or (
+            canonical_tls_state_root(env) / "ca-bundle.pem"
+        ).as_posix()
     if not exports:
         return {}
     env.update(exports)
