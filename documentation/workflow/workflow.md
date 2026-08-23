@@ -1202,7 +1202,7 @@ quality_gates:
 documentation:
   arc42: review in S252-R07
   adr: verify canonical TLS contract only
-stop_conditions: [per-service-timeouts-exceed-global-deadline, timeout-aggregated-as-skip-or-pass, duplicate-live-framework, composition-test-requires-live-system]
+stop_conditions: [per-service-timeouts-exceed-global-deadline, timeout-misclassified-as-success, duplicate-live-framework, composition-test-requires-live-system]
 ```
 
 ### Slice R07 — Documentation, requirement and evidence synchronization
