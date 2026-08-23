@@ -46,6 +46,19 @@ class TestVerifyExternalSwarmInput(unittest.IsolatedAsyncioTestCase):
         self.assertIn("RuntimeError", verification.message)
         self.assertNotIn("token", str(verification.to_dict()).casefold())
 
+    async def test_supports_specific_target_without_evidencing_name_or_value(self):
+        verification = await VerifyExternalSwarmInput(
+            _FakeSwarmRuntime(present=True),
+            "tsw_traefik_gui_users",
+            source_ref="operator_env",
+            verification_target_id="deployment:traefik-gui-input",
+        ).verify()
+
+        serialized = str(verification.to_dict())
+        self.assertEqual("deployment:traefik-gui-input", verification.target_id)
+        self.assertNotIn("tsw_traefik_gui_users", serialized)
+        self.assertNotIn("htpasswd", serialized.casefold())
+
 
 class _FakeSwarmRuntime:
     def __init__(

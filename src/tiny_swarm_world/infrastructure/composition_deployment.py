@@ -7,12 +7,24 @@ calls so legacy facade patch points remain effective.
 
 from __future__ import annotations
 
+from tiny_swarm_world.application.services.deployment.ensure_external_swarm_secret import (
+    EnsureExternalSwarmSecret,
+)
+from tiny_swarm_world.application.services.deployment.verify_external_swarm_input import (
+    VerifyExternalSwarmInput,
+)
+from tiny_swarm_world.domain.configuration.configuration_contract import (
+    validate_traefik_htpasswd,
+)
+
+from .composition_configuration import TRAEFIK_GUI_USERS_HTPASSWD_ENVIRONMENT
 from .composition_runtime import (
     ComposeFileRepositoryYaml,
     DEFAULT_DEPLOYMENT_VERIFY_TIMEOUT_SECONDS,
     DEFAULT_PORTAINER_ENDPOINT_NAME,
     DEFAULT_PORTAINER_STACK_REQUEST_TIMEOUT_SECONDS,
     DEFAULT_SETUP_SERVICE_PROFILE,
+    DEFAULT_TRAEFIK_GUI_USERS_SECRET_NAME,
     DEFAULT_TRAEFIK_TLS_CERT_SECRET_NAME,
     DEFAULT_TRAEFIK_TLS_KEY_SECRET_NAME,
     DEPLOYMENT_VERIFY_TIMEOUT_ENVIRONMENT,
@@ -48,6 +60,7 @@ from .composition_runtime import (
     SecretManifestRenderer,
     ServiceStackProfile,
     SonarqubeHttpClient,
+    TRAEFIK_GUI_USERS_SECRET_NAME_ENVIRONMENT,
     TRAEFIK_TLS_CERT_SECRET_NAME_ENVIRONMENT,
     TRAEFIK_TLS_KEY_SECRET_NAME_ENVIRONMENT,
     WriteEffectiveAccessModelEvidence,
@@ -81,7 +94,8 @@ from .composition_runtime import (
 from . import composition_runtime as _runtime
 
 _BOUNDARY_FUNCTION_NAMES = frozenset(["build_deployment_services_for_provider","build_lxc_deployment_services"])
-_RUNTIME_SYMBOL_NAMES = frozenset(["ComposeFileRepositoryYaml","DEFAULT_DEPLOYMENT_VERIFY_TIMEOUT_SECONDS","DEFAULT_PORTAINER_ENDPOINT_NAME","DEFAULT_PORTAINER_STACK_REQUEST_TIMEOUT_SECONDS","DEFAULT_SETUP_SERVICE_PROFILE","DEFAULT_TRAEFIK_TLS_CERT_SECRET_NAME","DEFAULT_TRAEFIK_TLS_KEY_SECRET_NAME","DEPLOYMENT_VERIFY_TIMEOUT_ENVIRONMENT","DeploymentApplyStep","DeploymentApplyWorkflow","DeploymentPreApplyStep","DeploymentServices","DeploymentVerifyWorkflow","DeploymentWorkflowKind","DeploymentWorkflows","EndpointReadinessCheck","EnsureNexusAdminAccess","EnsurePortainerAdminAccess","EnsurePortainerEndpoint","EnsureSonarqubeAdminAccess","EnsureSwarmStack","InfisicalCliClient","InfisicalSecretSyncStep","LXC_BACKEND_REQUIRED_REASON","LocalFileStorage","LxcPortainerAdminClient","LxcPortainerHttpClient","LxcSwarmRuntime","ManagedLxcBackend","NodeProviderSelectionRequest","PORTAINER_STACK_REQUEST_TIMEOUT_ENVIRONMENT","PortUI","PortWorkflowProgress","RoutingEvidenceLocalRepository","SecretConsumptionVerifier","SecretDiscoveryStep","SecretEvidenceWriter","SecretManifestRenderer","ServiceStackProfile","SonarqubeHttpClient","TRAEFIK_TLS_CERT_SECRET_NAME_ENVIRONMENT","TRAEFIK_TLS_KEY_SECRET_NAME_ENVIRONMENT","WriteEffectiveAccessModelEvidence","_BlockedDeploymentWorkflow","_LXC_SUPPORTED_BACKENDS","_PrepareLxcStackAssets","_default_node_provider_request","_deployment_stack_environment","_fixed_secret_env_file","_infisical_apply_readiness_steps","_infisical_bootstrap_steps","_infisical_secret_seed_steps","_local_http_url","_lxc_backend_for_provider_request","_operator_config_float","_operator_config_int","_operator_config_value","_operator_secret_value","_prioritize_infisical_apply_steps","_secret_mode","_with_infisical_post_apply_steps","_with_post_stack_steps","backend_cli","build_process_runner","cast","default_project_paths","os","service_stack_contracts_for_profile","shutil","build_deployment_services_for_provider","build_lxc_deployment_services"])
+_TRAEFIK_GUI_USERS_EXTERNAL_SECRET_TARGET = "deployment:traefik-gui-input"
+_RUNTIME_SYMBOL_NAMES = frozenset(["ComposeFileRepositoryYaml","DEFAULT_DEPLOYMENT_VERIFY_TIMEOUT_SECONDS","DEFAULT_PORTAINER_ENDPOINT_NAME","DEFAULT_PORTAINER_STACK_REQUEST_TIMEOUT_SECONDS","DEFAULT_SETUP_SERVICE_PROFILE","DEFAULT_TRAEFIK_GUI_USERS_SECRET_NAME","DEFAULT_TRAEFIK_TLS_CERT_SECRET_NAME","DEFAULT_TRAEFIK_TLS_KEY_SECRET_NAME","DEPLOYMENT_VERIFY_TIMEOUT_ENVIRONMENT","DeploymentApplyStep","DeploymentApplyWorkflow","DeploymentPreApplyStep","DeploymentServices","DeploymentVerifyWorkflow","DeploymentWorkflowKind","DeploymentWorkflows","EndpointReadinessCheck","EnsureNexusAdminAccess","EnsurePortainerAdminAccess","EnsurePortainerEndpoint","EnsureSonarqubeAdminAccess","EnsureSwarmStack","InfisicalCliClient","InfisicalSecretSyncStep","LXC_BACKEND_REQUIRED_REASON","LocalFileStorage","LxcPortainerAdminClient","LxcPortainerHttpClient","LxcSwarmRuntime","ManagedLxcBackend","NodeProviderSelectionRequest","PORTAINER_STACK_REQUEST_TIMEOUT_ENVIRONMENT","PortUI","PortWorkflowProgress","RoutingEvidenceLocalRepository","SecretConsumptionVerifier","SecretDiscoveryStep","SecretEvidenceWriter","SecretManifestRenderer","ServiceStackProfile","SonarqubeHttpClient","TRAEFIK_GUI_USERS_SECRET_NAME_ENVIRONMENT","TRAEFIK_TLS_CERT_SECRET_NAME_ENVIRONMENT","TRAEFIK_TLS_KEY_SECRET_NAME_ENVIRONMENT","WriteEffectiveAccessModelEvidence","_BlockedDeploymentWorkflow","_LXC_SUPPORTED_BACKENDS","_PrepareLxcStackAssets","_default_node_provider_request","_deployment_stack_environment","_fixed_secret_env_file","_infisical_apply_readiness_steps","_infisical_bootstrap_steps","_infisical_secret_seed_steps","_local_http_url","_lxc_backend_for_provider_request","_operator_config_float","_operator_config_int","_operator_config_value","_operator_secret_value","_prioritize_infisical_apply_steps","_secret_mode","_with_infisical_post_apply_steps","_with_post_stack_steps","backend_cli","build_process_runner","cast","default_project_paths","os","service_stack_contracts_for_profile","shutil","build_deployment_services_for_provider","build_lxc_deployment_services"])
 
 
 def _refresh_runtime_symbols() -> None:
@@ -306,6 +320,35 @@ def build_lxc_deployment_services(
         _PrepareLxcStackAssets(swarm_runtime, "traefik"),
         _PrepareLxcStackAssets(swarm_runtime, "swagger"),
     ]
+    pre_apply_checks: tuple[VerifyExternalSwarmInput, ...] = ()
+    if "traefik" in service_stack_by_name:
+        traefik_gui_users_secret_name = _operator_config_value(
+            TRAEFIK_GUI_USERS_SECRET_NAME_ENVIRONMENT,
+            DEFAULT_TRAEFIK_GUI_USERS_SECRET_NAME,
+        )
+        traefik_gui_users_htpasswd = os.environ.get(
+            TRAEFIK_GUI_USERS_HTPASSWD_ENVIRONMENT,
+            "",
+        ).strip()
+        if traefik_gui_users_htpasswd:
+            validate_traefik_htpasswd(traefik_gui_users_htpasswd)
+            pre_apply_steps.insert(
+                0,
+                EnsureExternalSwarmSecret(
+                    swarm_runtime,
+                    traefik_gui_users_secret_name,
+                    traefik_gui_users_htpasswd,
+                    verification_target_id=_TRAEFIK_GUI_USERS_EXTERNAL_SECRET_TARGET,
+                ),
+            )
+        pre_apply_checks = (
+            VerifyExternalSwarmInput(
+                swarm_runtime,
+                traefik_gui_users_secret_name,
+                source_ref="operator_env",
+                verification_target_id=_TRAEFIK_GUI_USERS_EXTERNAL_SECRET_TARGET,
+            ),
+        )
     if selected_service_profile is ServiceStackProfile.SERVICE_ACCESS:
         pre_apply_steps.append(_PrepareLxcStackAssets(swarm_runtime, "service-access"))
 
@@ -328,6 +371,7 @@ def build_lxc_deployment_services(
                     ),
                 ),
                 pre_apply_steps=tuple(pre_apply_steps),
+                pre_apply_checks=pre_apply_checks,
             ),
             verify=DeploymentVerifyWorkflow(
                 readiness_checks,

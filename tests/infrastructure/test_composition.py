@@ -5,7 +5,7 @@ from dataclasses import fields
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import cast
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
 from tests.support.async_helpers import async_checkpoint
 from tests.support.sonar_safe_literals import ipv4_address, sample_http_url, sample_text
 
@@ -1115,6 +1115,45 @@ class TestComposition(unittest.TestCase):
                 "deployment:nexus-stack",
             ),
         )
+
+    def test_traefik_gui_operator_input_is_prepared_then_verified_without_disclosure(self):
+        operator_value = (
+            "admin:$2y$12$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+        )
+        environment = {
+            **_required_infisical_bootstrap_env(),
+            "TSW_TRAEFIK_GUI_USERS_HTPASSWD": operator_value,
+        }
+        with patch.dict("os.environ", environment, clear=True):
+            with patch.object(composition, "ComposeFileRepositoryYaml"):
+                services = composition.build_lxc_deployment_services(
+                    backend=composition.ManagedLxcBackend.INCUS,
+                )
+
+        ensure_step = services.workflows.apply.pre_apply_steps[0]
+        verifier = services.workflows.apply.pre_apply_checks[0]
+        self.assertEqual(ensure_step.verification_target_id, "deployment:traefik-gui-input")
+        self.assertEqual(verifier.verification_target_id, "deployment:traefik-gui-input")
+        ensure_runtime = Mock()
+        ensure_step.swarm_runtime = ensure_runtime
+        ensure_step.run()
+        ensure_runtime.ensure_external_secret.assert_called_once_with(
+            "tsw_traefik_gui_users", operator_value
+        )
+
+        verifier.swarm_runtime = Mock(external_secret_exists=Mock(return_value=False))
+        verification = asyncio.run(verifier.verify())
+        serialized = str(verification.to_dict())
+        self.assertNotIn(operator_value, serialized)
+        self.assertNotIn("AAAAAAAA", serialized)
+        stack_apply = Mock()
+        blocked_workflow = composition.DeploymentApplyWorkflow(
+            steps=(stack_apply,),
+            pre_apply_checks=(verifier,),
+        )
+        blocked_result = asyncio.run(blocked_workflow.run())
+        stack_apply.run.assert_not_called()
+        self.assertNotIn(operator_value, str(blocked_result))
         self.assertEqual(
             tuple(
                 step.verification_target_id for step in services.workflows.apply.steps
@@ -1224,13 +1263,20 @@ class TestComposition(unittest.TestCase):
                 "deployment:service-access-service-readiness",
             ),
         )
-        self.assertEqual(services.workflows.apply.pre_apply_checks, ())
+        self.assertEqual(
+            tuple(
+                check.verification_target_id
+                for check in services.workflows.apply.pre_apply_checks
+            ),
+            ("deployment:traefik-gui-input",),
+        )
         self.assertEqual(
             tuple(
                 step.deployment_target_id
                 for step in services.workflows.apply.pre_apply_steps
             ),
             (
+                "deployment:traefik-gui-input",
                 "deployment:effective-access-model-evidence",
                 "deployment:traefik-stack-assets",
                 "deployment:swagger-stack-assets",
@@ -1481,7 +1527,13 @@ class TestComposition(unittest.TestCase):
                 "TSW_INFISICAL_REDIS_PASSWORD": sample_text("redis", "-secret"),
             },
         )
-        self.assertEqual(services.workflows.apply.pre_apply_checks, ())
+        self.assertEqual(
+            tuple(
+                check.verification_target_id
+                for check in services.workflows.apply.pre_apply_checks
+            ),
+            ("deployment:traefik-gui-input",),
+        )
         self.assertEqual(
             tuple(
                 step.deployment_target_id

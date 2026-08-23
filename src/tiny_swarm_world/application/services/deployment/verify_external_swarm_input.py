@@ -16,12 +16,14 @@ class VerifyExternalSwarmInput:
         swarm_runtime: PortSwarmStackRuntime,
         resource_name: str,
         source_ref: str = "default",
+        verification_target_id: str | None = None,
     ):
         if not resource_name:
             raise ValueError("external Swarm input name must not be empty")
         self.swarm_runtime = swarm_runtime
         self.resource_name = resource_name
         self.source_ref = _safe_source_ref(source_ref)
+        self.verification_target_id = verification_target_id or type(self).verification_target_id
 
     async def verify(self) -> VerificationResult:
         await asyncio.sleep(0)
