@@ -1255,21 +1255,21 @@ slice_id: S252-R08
 profile: FULL_PATH
 owner: Senior Tester
 secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Senior DevOps, Issue Completion Auditor]
-affected_files: [documentation/workflow/requirement-matrix.md, documentation/workflow/context-pack.json, .tiny-swarm/evidence/issue-252/test_results.md, .tiny-swarm/evidence/issue-252/acceptance_checklist.md, .tiny-swarm/evidence/issue-252/remaining_risks.md, .tiny-swarm/evidence/issue-252/requirement_matrix.md, .tiny-swarm-world/evidence/classic-public-beta-rc1/wsl2/, .codex/evidence/]
+affected_files: [documentation/workflow/workflow.md, documentation/workflow/requirement-matrix.md, documentation/workflow/context-pack.md, documentation/workflow/context-pack.json, .tiny-swarm/evidence/issue-252/test_results.md, .tiny-swarm/evidence/issue-252/acceptance_checklist.md, .tiny-swarm/evidence/issue-252/remaining_risks.md, .tiny-swarm/evidence/issue-252/requirement_matrix.md, .tiny-swarm-world/evidence/classic-public-beta-rc1/wsl2/, .codex/evidence/]
 affected_modules: [local quality evidence, WSL2 dependent rerun evidence, completion handoff]
 affected_contracts: [exact-candidate-verification, local-vs-live-state, dependent-rerun, no-rc1-overclaim]
 dependencies: [S252-R07]
 prerequisites: [S252-R07 PASS, exact candidate SHA frozen, clean candidate worktree]
 issue_completion_evidence_path: .tiny-swarm/evidence/issue-252/
 requirement_to_verification: [REQ-252-063 -> targeted and full quality evidence]
-shared_files: [documentation/workflow/requirement-matrix.md, documentation/workflow/context-pack.json, .tiny-swarm/evidence/issue-252/, .tiny-swarm-world/evidence/classic-public-beta-rc1/wsl2/, .codex/evidence/]
+shared_files: [documentation/workflow/workflow.md, documentation/workflow/requirement-matrix.md, documentation/workflow/context-pack.md, documentation/workflow/context-pack.json, .tiny-swarm/evidence/issue-252/, .tiny-swarm-world/evidence/classic-public-beta-rc1/wsl2/, .codex/evidence/]
 shared_infrastructure: [controlled WSL2 Classic target for explicitly consented reruns]
 isolated_worktree_required: true
 serialized_live_validation_required: true
 merge_order_constraints: [after S252-R07, before S252-11 final defect consolidation]
 parallelization_status: SERIAL_ACCEPTANCE_GATE
 parallel_group: SERIAL-252-REMEDIATION
-file_locks: [documentation/workflow/requirement-matrix.md, documentation/workflow/context-pack.json, .tiny-swarm/evidence/issue-252/, .tiny-swarm-world/evidence/classic-public-beta-rc1/wsl2/, .codex/evidence/]
+file_locks: [documentation/workflow/workflow.md, documentation/workflow/requirement-matrix.md, documentation/workflow/context-pack.md, documentation/workflow/context-pack.json, .tiny-swarm/evidence/issue-252/, .tiny-swarm-world/evidence/classic-public-beta-rc1/wsl2/, .codex/evidence/]
 contract_locks: [exact-candidate-verification, local-vs-live-state, dependent-rerun]
 architecture_locks: [explicit-live-consent, observed-vs-inferred, no-rc1-overclaim]
 quality_gates:
