@@ -1217,21 +1217,21 @@ slice_id: S252-R07
 profile: FULL_PATH
 owner: Senior Documentation Engineer
 secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Senior Tester, Live Evidence Validation Expert]
-affected_files: [documentation/arc42/06_runtime_view.adoc, documentation/arc42/07_deployment_view.adoc, documentation/arc42/08_configuration/config-contract-inventory.md, documentation/arc42/08_configuration/operator-configuration-contract.md, documentation/arc42/08_concepts.adoc, documentation/arc42/09_decisions/, documentation/workflow/requirement-matrix.md, .tiny-swarm/evidence/issue-252/, .codex/evidence/]
+affected_files: [README.md, documentation/arc42/06_runtime_view.adoc, documentation/arc42/07_deployment_view.adoc, documentation/arc42/08_configuration/config-contract-inventory.md, documentation/arc42/08_configuration/operator-configuration-contract.md, documentation/arc42/08_concepts.adoc, documentation/arc42/09_architecture_decisions.adoc, documentation/arc42/09_decisions/, documentation/process/skills/audit/skill-registry.json, documentation/workflow/requirement-matrix.md, .tiny-swarm/evidence/issue-252/, .codex/evidence/]
 affected_modules: [architecture documentation, operator contract, issue traceability and evidence]
 affected_contracts: [requirement-to-implementation, planned-vs-implemented, evidence-redaction, canonical-tls-documentation]
 dependencies: [S252-R01, S252-R02, S252-R03, S252-R04, S252-R05, S252-R06]
 prerequisites: [all S252-R01..S252-R06 consolidation evidence accepted]
 issue_completion_evidence_path: .tiny-swarm/evidence/issue-252/
 requirement_to_verification: [REQ-252-062 -> documentation, SHA and redaction audit]
-shared_files: [documentation/arc42/, documentation/workflow/requirement-matrix.md, .tiny-swarm/evidence/issue-252/, .codex/evidence/]
+shared_files: [README.md, documentation/arc42/, documentation/process/skills/audit/skill-registry.json, documentation/workflow/requirement-matrix.md, .tiny-swarm/evidence/issue-252/, .codex/evidence/]
 shared_infrastructure: []
 isolated_worktree_required: true
 serialized_live_validation_required: false
 merge_order_constraints: [after S252-R06, before exact-candidate acceptance]
 parallelization_status: SERIAL_EVIDENCE_JOIN
 parallel_group: SERIAL-252-REMEDIATION
-file_locks: [documentation/arc42/, documentation/workflow/requirement-matrix.md, .tiny-swarm/evidence/issue-252/, .codex/evidence/]
+file_locks: [README.md, documentation/arc42/, documentation/process/skills/audit/skill-registry.json, documentation/workflow/requirement-matrix.md, .tiny-swarm/evidence/issue-252/, .codex/evidence/]
 contract_locks: [requirement-to-implementation, evidence-redaction, canonical-tls-documentation]
 architecture_locks: [arc42-adr-consistency, observed-vs-inferred, no-raw-secrets]
 quality_gates:
