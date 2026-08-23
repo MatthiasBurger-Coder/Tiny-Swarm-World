@@ -4,7 +4,7 @@
   "requirement_baseline_path": "documentation/workflow/requirement-matrix.md",
   "authoring_branch": "feature/workflow-issue-252-remediation-20260823",
   "planned_execution_branch": "feature/classic-public-beta-rc1-stabilization",
-  "status": "REMEDIATION_AUTHORED_NOT_EXECUTED",
+  "status": "REMEDIATION_R01_R08_LOCAL_VERIFIED_LIVE_EXTERNAL_OPEN",
   "issue": {
     "number": 252,
     "title": "RC1: Classic Profile Stabilization / Public Beta Acceptance",
@@ -72,8 +72,8 @@
   "governing_file_sha256": {
     "AGENTS.md": "bc0e6e0c09ac3d61a450a7fe16c3e4de9e6fbb8bdc688aad58f10a3d18b31041",
     "QUALITY.md": "7097ff31c68f178fe685c1d7d5cbc18c257a7cf5d2f727979fb2b5ab9c029c7e",
-    "documentation/workflow/workflow.md": "b09c8b9a7a02b94a96cf9a22d958c57a824ee7181a6b884e04cf6c305d4f968c",
-    "documentation/workflow/requirement-matrix.md": "a0eb9e1e5fe3a474e7a301385c35d3735aaa1ead51acbbcbf517ba56d8a466c3",
+    "documentation/workflow/workflow.md": "d7285ecd05aa0233caed1b55624d89a50ab313a63572cf3744f1ef6d40443dd7",
+    "documentation/workflow/requirement-matrix.md": "c756e086650f764556a2b8029ef670486c5145fe22be2bf11a1d4cd7ee183adf",
     "documentation/governance/ci-quality-gates.md": "b6bc937d74cf3997677d2fc17ad762385196322cead424a122baed63cf9343c1",
     "documentation/process/issue-completion-discipline.md": "3db2d080b7cfbbc3737907a61c67ce6a361485c8993cf4a20c1c5fe2dc743bc3",
     "documentation/process/verification-state-policy.md": "5b6e2eefde66a1b8492afafc2976e59ac40f16e7100f79f730b97b254febdcfd",

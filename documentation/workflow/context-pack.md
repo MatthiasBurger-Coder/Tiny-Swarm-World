@@ -5,7 +5,7 @@ Workflow path: documentation/workflow/workflow.md
 Requirement baseline: documentation/workflow/requirement-matrix.md
 Authoring branch: feature/workflow-issue-252-remediation-20260823
 Planned execution branch: feature/classic-public-beta-rc1-stabilization
-Status: REMEDIATION_AUTHORED_NOT_EXECUTED
+Status: REMEDIATION_R01_R08_LOCAL_VERIFIED_LIVE_EXTERNAL_OPEN
 
 ## Process
 
