@@ -90,7 +90,7 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_python_312_ci_clean_installs_locked_editable_project(self):
         lock_text = (REPOSITORY_ROOT / "requirements.lock").read_text(encoding="utf-8")
-        workflow_text = (REPOSITORY_ROOT / ".github/workflows/sonar_check.yml").read_text(
+        workflow_text = (REPOSITORY_ROOT / ".github/workflows/python-quality-gate.yml").read_text(
             encoding="utf-8"
         )
 
