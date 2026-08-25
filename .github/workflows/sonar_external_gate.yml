@@ -1,0 +1,140 @@
+name: SonarCloud Trusted External Gate
+
+on:
+  workflow_run:
+    workflows: [Python Quality Gate]
+    types: [completed]
+
+concurrency:
+  group: sonar-${{ github.event.workflow_run.id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  reject-untrusted-pull-request:
+    name: Reject untrusted SonarCloud request
+    if: >-
+      ${{
+        github.event.workflow_run.event == 'pull_request' &&
+        github.event.workflow_run.head_repository.full_name != github.repository
+      }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail closed without repository credentials
+        run: |
+          echo "SonarCloud credentials are unavailable to untrusted pull requests; the external gate is not green."
+          exit 1
+
+  require-pull-request-metadata:
+    name: Require SonarCloud pull-request metadata
+    if: >-
+      ${{
+        github.event.workflow_run.event == 'pull_request' &&
+        github.event.workflow_run.head_repository.full_name == github.repository &&
+        (github.event.workflow_run.pull_requests[0].number == null ||
+         github.event.workflow_run.pull_requests[0].head.ref == '' ||
+         github.event.workflow_run.pull_requests[0].base.ref == '')
+      }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail closed when pull-request metadata is unavailable
+        run: |
+          echo "The workflow_run payload lacks required pull-request metadata; the external gate is not green."
+          exit 1
+
+  quality-prerequisite:
+    name: Require successful Python quality gate
+    if: >-
+      ${{
+        github.event.workflow_run.head_repository.full_name == github.repository &&
+        (github.event.workflow_run.event == 'pull_request' ||
+         (github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main')) &&
+        github.event.workflow_run.conclusion != 'success'
+      }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail closed when the quality gate is not successful
+        run: |
+          echo "Python Quality Gate conclusion: ${{ github.event.workflow_run.conclusion }}"
+          exit 1
+
+  sonarcloud:
+    name: SonarCloud external analysis
+    if: >-
+      ${{
+        github.event.workflow_run.head_repository.full_name == github.repository &&
+        ((github.event.workflow_run.event == 'pull_request' &&
+          github.event.workflow_run.pull_requests[0].number != null &&
+          github.event.workflow_run.pull_requests[0].head.ref != '' &&
+          github.event.workflow_run.pull_requests[0].base.ref != '') ||
+         (github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main')) &&
+        github.event.workflow_run.conclusion == 'success'
+      }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout verified candidate
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Download quality-gate coverage handoff
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: sonar-coverage-${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Require SonarCloud token
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN || secrets.SONAR_CLOUD_TOKEN }}
+        run: |
+          if [ -z "${SONAR_TOKEN}" ]; then
+            echo "SONAR_TOKEN or SONAR_CLOUD_TOKEN is unavailable; external gate is not green."
+            exit 1
+          fi
+
+      - name: SonarCloud pull-request scan and quality-gate wait
+        if: ${{ github.event.workflow_run.event == 'pull_request' }}
+        uses: SonarSource/sonarqube-scan-action@713881670b6b3676cda39549040e2d88c70d582e # v8
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN || secrets.SONAR_CLOUD_TOKEN }}
+        with:
+          args: >-
+            -Dsonar.host.url=https://sonarcloud.io
+            -Dsonar.projectKey=MatthiasBurger-Coder_Tiny-Swarm-World
+            -Dsonar.organization=matthiasburger-coder
+            -Dsonar.sources=src
+            -Dsonar.tests=tests
+            -Dsonar.python.version=3.12,3.13
+            -Dsonar.python.coverage.reportPaths=coverage.xml
+            -Dsonar.sourceEncoding=UTF-8
+            -Dsonar.pullrequest.key=${{ github.event.workflow_run.pull_requests[0].number }}
+            -Dsonar.pullrequest.branch=${{ github.event.workflow_run.pull_requests[0].head.ref }}
+            -Dsonar.pullrequest.base=${{ github.event.workflow_run.pull_requests[0].base.ref }}
+            -Dsonar.qualitygate.wait=true
+            -Dsonar.qualitygate.timeout=300
+
+      - name: SonarCloud main scan and quality-gate wait
+        if: ${{ github.event.workflow_run.event == 'push' }}
+        uses: SonarSource/sonarqube-scan-action@713881670b6b3676cda39549040e2d88c70d582e # v8
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN || secrets.SONAR_CLOUD_TOKEN }}
+        with:
+          args: >-
+            -Dsonar.host.url=https://sonarcloud.io
+            -Dsonar.projectKey=MatthiasBurger-Coder_Tiny-Swarm-World
+            -Dsonar.organization=matthiasburger-coder
+            -Dsonar.sources=src
+            -Dsonar.tests=tests
+            -Dsonar.python.version=3.12,3.13
+            -Dsonar.python.coverage.reportPaths=coverage.xml
+            -Dsonar.sourceEncoding=UTF-8
+            -Dsonar.qualitygate.wait=true
+            -Dsonar.qualitygate.timeout=300

@@ -42,11 +42,11 @@ state-specific result.
 
 | Check | Current repository evidence | Classification |
 | --- | --- | --- |
-| Python quality gate | `tools/quality_gate.py` and `.github/workflows/sonar_check.yml` reference it | Current repository contract; hosted result must be observed. |
+| Python quality gate | `tools/quality_gate.py` and `.github/workflows/python-quality-gate.yml` define it | Current repository contract; hosted result must be observed. |
 | Dependency audit | #127 policy artifacts | Policy/current documentation; execution evidence is separate. |
 | SBOM generation | #127 policy artifacts | Target/release evidence when accepted by the release workflow. |
 | Container image scan | #127 policy artifacts | Target/release evidence; no scan claim here. |
-| SonarQube/SonarCloud | Existing workflow is present and token-gated | Repository-configured; external result unknown until observed. |
+| SonarQube/SonarCloud | `.github/workflows/sonar_external_gate.yml` consumes successful quality runs from the trusted default-branch definition and fails closed | Repository-configured; external result unknown until observed. The legacy `sonar_check.yml` PR path remains only for the serialized bootstrap and must be removed by its follow-up slice. |
 | Documentation link/schema check | Governance/documentation review | Recommended target; no new CI job is introduced by #128. |
 
 ## Evidence and security boundaries

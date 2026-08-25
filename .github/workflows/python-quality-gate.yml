@@ -1,0 +1,72 @@
+name: Python Quality Gate
+
+on:
+  push:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: python-quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Locked Python quality gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Set Up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+            requirements.lock
+
+      - name: Install Locked Runtime
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install --require-hashes -r requirements.lock
+          python3 -m pip install --no-deps -e .
+          python3 -m pip check
+          python3 -c "import tiny_swarm_world"
+
+      - name: Install Pinned Quality Tools
+        run: |
+          python3 -m pip install \
+            "coverage==7.15.4" \
+            "import-linter==2.13" \
+            "mypy==2.3.1" \
+            "pip-audit==2.10.1" \
+            "pip-tools==7.6.1" \
+            "ruff==0.15.22" \
+            "types-PyYAML==6.0.12.20260518" \
+            "types-requests==2.33.0.20260712"
+
+      - name: Run Canonical Quality Gate
+        run: python3 tools/quality_gate.py quality
+
+      - name: Generate Sonar Coverage Handoff
+        run: |
+          PYTHONPATH=src python3 -m coverage run --branch -m unittest discover -s tests -t .
+          python3 -m coverage xml -o coverage.xml
+
+      - name: Upload Sonar Coverage Handoff
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: sonar-coverage-${{ github.run_id }}
+          path: coverage.xml
+          if-no-files-found: error
+          retention-days: 7
