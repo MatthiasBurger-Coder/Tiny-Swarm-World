@@ -130,7 +130,10 @@ def build_setup_services(
         ),
         storage=LocalFileStorage(),
     )
-    artifact_readiness_gate = _build_artifact_readiness_gate(project_paths)
+    artifact_readiness_gate = _build_artifact_readiness_gate(
+        project_paths,
+        node_provider_request,
+    )
     host_preparation = build_host_preparation_service(live_consent)
     trace_correlation_id = _new_installation_trace_correlation_id()
     workflow_progress = _build_workflow_progress_sink(ui)

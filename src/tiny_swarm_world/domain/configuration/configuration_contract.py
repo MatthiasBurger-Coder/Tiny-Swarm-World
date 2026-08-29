@@ -14,6 +14,10 @@ IDENTIFIER_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.@-]*$")
 IMAGE_REFERENCE_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/@+-]*$")
 WINDOWS_PATH_PATTERN = re.compile(r"^[A-Za-z]:\\")
 BOOLEAN_VALUES = frozenset({"0", "1", "false", "true"})
+HTPASSWD_HASH_PATTERN = re.compile(
+    r"^(?:\$2[abxy]\$\d{2}\$[./A-Za-z0-9]{53}|\$apr1\$[^$:\s]+\$[^:\s]+|"
+    r"\$[156]\$[^:\s]+\$[^:\s]+|\{SHA\}[A-Za-z0-9+/=]+|\{CRYPT\}[^:\s]+)$"
+)
 
 
 class ConfigurationValueKind(str, Enum):
@@ -32,6 +36,25 @@ class ConfigurationValueKind(str, Enum):
 class ConfigurationStatus(str, Enum):
     PASSED = "PASSED"
     FAILED = "FAILED"
+
+
+def validate_traefik_htpasswd(value: str) -> None:
+    """Validate operator htpasswd material without retaining or reporting it."""
+    if not value or "\r" in value or "\x00" in value or "<replace-" in value.casefold():
+        raise ValueError("Traefik htpasswd material is invalid.")
+    lines = value.split("\n")
+    if any(not line for line in lines):
+        raise ValueError("Traefik htpasswd material is invalid.")
+    for line in lines:
+        username, separator, password_hash = line.partition(":")
+        if (
+            not separator
+            or not username.strip()
+            or username != username.strip()
+            or ":" in password_hash
+            or not HTPASSWD_HASH_PATTERN.fullmatch(password_hash)
+        ):
+            raise ValueError("Traefik htpasswd material is invalid.")
 
 
 @dataclass(frozen=True)
@@ -184,6 +207,16 @@ def default_configuration_contract() -> ConfigurationContract:
                 "Infisical PostgreSQL password.",
             ),
             _required_secret("TSW_INFISICAL_REDIS_PASSWORD", "infisical", "Infisical Redis password."),
+            ConfigurationRequirement(
+                key="TSW_TRAEFIK_GUI_USERS_HTPASSWD",
+                scope="traefik",
+                value_kind=ConfigurationValueKind.SECRET_VALUE,
+                required=False,
+                description=(
+                    "Operator-owned complete htpasswd material used to provision the "
+                    "Traefik dashboard Docker secret when it is absent."
+                ),
+            ),
             ConfigurationRequirement(
                 key="TSW_PORTAINER_STACK_REQUEST_TIMEOUT_SECONDS",
                 scope="deployment",

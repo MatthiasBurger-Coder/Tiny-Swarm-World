@@ -4,14 +4,12 @@ on:
   push:
   pull_request:
     types: [opened, synchronize, reopened]
-
 concurrency:
   group: python-quality-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: read
-
 jobs:
   quality:
     name: Locked Python quality gate

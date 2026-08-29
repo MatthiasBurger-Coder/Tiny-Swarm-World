@@ -213,6 +213,9 @@ from tiny_swarm_world.infrastructure.adapters.preflight import (
     HttpEndpointReadinessProbe,
     LxcProviderPreflightProbe,
     LocalDirectoryReadinessProbe,
+    ManagedLxcDirectoryReadinessProbe,
+    ManagedLxcDockerManagerReadinessProbe,
+    UnavailableArtifactReadinessProbe,
 )
 from tiny_swarm_world.infrastructure.adapters.host.wsl_resource_inspector import WslResourceInspector
 from tiny_swarm_world.infrastructure.adapters.host.hang_diagnostics import ReadOnlyHangDiagnostics
@@ -789,19 +792,41 @@ def build_lxc_deployment_services(*args, **kwargs):
     return implementation(*args, **kwargs)
 
 
-def _build_artifact_readiness_gate(project_paths: ProjectPaths) -> ArtifactReadinessGate:
+def _build_artifact_readiness_gate(
+    project_paths: ProjectPaths,
+    node_provider_request: NodeProviderSelectionRequest | None = None,
+) -> ArtifactReadinessGate:
     nexus_base_url = os.getenv(
         "TSW_NEXUS_READINESS_BASE_URL",
         f"{_LOCAL_READINESS_SCHEME}://127.0.0.1:13081",
     ).rstrip("/")
     registry_base_url = _http_readiness_base_url(_swarm_registry_endpoint())
-    manager_storage_path = Path(
-        os.getenv("TSW_MANAGER_STORAGE_PATH", "/var/lib/docker")
-    )
+    manager_storage_path = os.getenv("TSW_MANAGER_STORAGE_PATH", "/var/lib/docker")
+    provider_request = node_provider_request or _default_node_provider_request()
+    managed_backend = _artifact_readiness_backend(provider_request)
+    if provider_request.requested_provider is not NodeProviderKind.LXC_NATIVE:
+        docker_probe = DockerManagerReadinessProbe()
+        storage_probe = LocalDirectoryReadinessProbe(
+            Path(manager_storage_path),
+            probe_kind="manager_storage",
+        )
+    elif managed_backend is None:
+        docker_probe = UnavailableArtifactReadinessProbe(
+            probe_kind="managed_lxc_docker_info",
+        )
+        storage_probe = UnavailableArtifactReadinessProbe(
+            probe_kind="managed_lxc_directory",
+        )
+    else:
+        docker_probe = ManagedLxcDockerManagerReadinessProbe(managed_backend)
+        storage_probe = ManagedLxcDirectoryReadinessProbe(
+            managed_backend,
+            manager_storage_path,
+        )
     return ArtifactReadinessGate(
         BoundedArtifactReadinessAdapter(
             {
-                "docker:manager": DockerManagerReadinessProbe(),
+                "docker:manager": docker_probe,
                 "registry:endpoint": HttpEndpointReadinessProbe(
                     f"{registry_base_url}/v2/",
                     probe_kind="registry_endpoint",
@@ -814,10 +839,7 @@ def _build_artifact_readiness_gate(project_paths: ProjectPaths) -> ArtifactReadi
                     f"{nexus_base_url}/service/rest/v1/repositories",
                     probe_kind="nexus_repositories",
                 ),
-                "storage:manager": LocalDirectoryReadinessProbe(
-                    manager_storage_path,
-                    probe_kind="manager_storage",
-                ),
+                "storage:manager": storage_probe,
                 "build:inputs": LocalDirectoryReadinessProbe(
                     project_paths.repository_root,
                     probe_kind="build_inputs",
@@ -832,6 +854,18 @@ def _build_artifact_readiness_gate(project_paths: ProjectPaths) -> ArtifactReadi
             }
         )
     )
+
+
+def _artifact_readiness_backend(
+    provider_request: NodeProviderSelectionRequest,
+) -> ManagedLxcBackend | None:
+    if provider_request.requested_provider is not NodeProviderKind.LXC_NATIVE:
+        return None
+    if provider_request.preferred_backend is not None:
+        return provider_request.preferred_backend
+    if len(provider_request.backend_candidates) == 1:
+        return provider_request.backend_candidates[0]
+    return _lxc_backend_for_provider_request(provider_request)
 
 
 def _http_readiness_base_url(endpoint: str) -> str:

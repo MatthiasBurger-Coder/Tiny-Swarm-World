@@ -34,6 +34,7 @@ fails closed on duplicate `TSW_*` keys or unsupported shell syntax.
 | Generated recovery file | Secret sync service | `.tiny-swarm/secrets/generated.local.env` | Stores generated values needed for idempotent Infisical sync or recovery; ignored by Git and mode `0600` when written by automation. |
 | Infisical-managed values | Infisical sync service | Infisical project/environment | Synchronized from generated or operator-supplied local values; existing Infisical values are kept unless a manifest entry explicitly requests rotation. |
 | External Docker secret names | Operator | `.tiny-swarm-world/local/live-installation.env`, process environment, or defaults | Names identify externally managed Docker secrets and are not secret material. |
+| Canonical TLS state | Python TLS resolver | `TSW_LOCAL_TLS_STATE_ROOT`, otherwise the XDG state directory below `tiny-swarm-world/tls/traefik` | Complete external material takes precedence. Otherwise managed CA and leaf material are created once and reused while valid; private keys require owner-only permissions. |
 
 The Python installer derives required local bootstrap values from
 `infra/config/secrets/infisical-secrets.yaml`. Installer code must not keep a
@@ -92,6 +93,13 @@ The default contract requires these keys before setup execution:
 | `TSW_TRAEFIK_TLS_CERT_SECRET_NAME` | `tsw_traefik_tls_cert` | secret name | External Docker secret name for Traefik TLS certificate material. |
 | `TSW_TRAEFIK_TLS_KEY_SECRET_NAME` | `tsw_traefik_tls_key` | secret name | External Docker secret name for Traefik TLS private key material. |
 | `TSW_TRAEFIK_GUI_USERS_SECRET_NAME` | `tsw_traefik_gui_users` | secret name | External Docker secret name containing operator-provided htpasswd entries for the secure Traefik dashboard. |
+| `TSW_TRAEFIK_GUI_USERS_HTPASSWD` | unset; required before Traefik apply | secret value | Complete operator-owned dashboard htpasswd content. Bcrypt is recommended. Recognized legacy hashes remain accepted for compatibility but are a residual hardening concern. |
+| `TSW_LOCAL_TLS_STATE_ROOT` | XDG state directory | local path | Optional canonical managed-TLS state root; must be ignored local state, not committed configuration. |
+| `TSW_TRAEFIK_CA_CERT_PATH` | unset | local path | External CA certificate. Setting any external TLS path requires the complete external certificate and leaf-key tuple. |
+| `TSW_TRAEFIK_CA_KEY_PATH` | unset | local path | Optional external CA private key used only when local signing ownership is required. |
+| `TSW_TRAEFIK_TLS_CERT_PATH` | unset | local path | External ingress leaf certificate. |
+| `TSW_TRAEFIK_TLS_KEY_PATH` | unset | local path | External ingress leaf private key. |
+| `TSW_LIVE_TLS_CA_BUNDLE` | canonical resolved trust bundle | local path | Compatibility alias consumed by live/E2E clients; it must equal the selected CA trust bundle and is not a second authority. |
 
 ## Registry Bootstrap Model
 
@@ -107,6 +115,12 @@ before live mutation. The readiness-only URLs and manager storage path above
 are optional bounded-check inputs; they must not contain credentials, tokens or
 secret material. Configuration is not readiness evidence: the gate must observe
 each target before the setup workflow may prepare or publish images.
+
+The Traefik certificate and key secret names must differ. Their contents are
+reconciled as one owned pair with a shared TLS lifecycle fingerprint, and the
+pair plus the dashboard htpasswd are verified before stack apply. Unknown,
+unlabelled or mismatched existing TLS secrets fail closed. Errors, logs and
+evidence contain neither PEM/private-key material nor htpasswd values.
 
 Pulsar runs in local standalone mode with token authentication enabled. The
 Admin API credential is a generated bearer token stored as `platform/pulsar`.

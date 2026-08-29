@@ -2,10 +2,9 @@ name: tiny-swarm-world
 channels:
   - conda-forge
 dependencies:
-  - python=3.12
+  - python>=3.12,<3.14
   - ruff
   - mypy
   - pip
   - pip:
       - -r requirements.lock
-      - -r requirements-dev.txt

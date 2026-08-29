@@ -61,7 +61,7 @@ class TestPackageMetadata(unittest.TestCase):
             for dependency in environment["dependencies"]
             if isinstance(dependency, dict) and "pip" in dependency
         )
-        self.assertEqual(pip_dependencies, ["-r requirements.lock", "-r requirements-dev.txt"])
+        self.assertEqual(pip_dependencies, ["-r requirements.lock"])
 
     def test_hashed_runtime_lock_satisfies_direct_requirements(self):
         lock_text = (REPOSITORY_ROOT / "requirements.lock").read_text(encoding="utf-8")

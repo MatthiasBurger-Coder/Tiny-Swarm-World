@@ -5,7 +5,7 @@ from dataclasses import fields
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import cast
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
 from tests.support.async_helpers import async_checkpoint
 from tests.support.sonar_safe_literals import ipv4_address, sample_http_url, sample_text
 
@@ -1115,6 +1115,45 @@ class TestComposition(unittest.TestCase):
                 "deployment:nexus-stack",
             ),
         )
+
+    def test_traefik_gui_operator_input_is_prepared_then_verified_without_disclosure(self):
+        operator_value = (
+            "admin:$2y$12$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+        )
+        environment = {
+            **_required_infisical_bootstrap_env(),
+            "TSW_TRAEFIK_GUI_USERS_HTPASSWD": operator_value,
+        }
+        with patch.dict("os.environ", environment, clear=True):
+            with patch.object(composition, "ComposeFileRepositoryYaml"):
+                services = composition.build_lxc_deployment_services(
+                    backend=composition.ManagedLxcBackend.INCUS,
+                )
+
+        ensure_step = services.workflows.apply.pre_apply_steps[0]
+        verifier = services.workflows.apply.pre_apply_checks[0]
+        self.assertEqual(ensure_step.verification_target_id, "deployment:traefik-gui-input")
+        self.assertEqual(verifier.verification_target_id, "deployment:traefik-gui-input")
+        ensure_runtime = Mock()
+        ensure_step.swarm_runtime = ensure_runtime
+        ensure_step.run()
+        ensure_runtime.ensure_external_secret.assert_called_once_with(
+            "tsw_traefik_gui_users", operator_value
+        )
+
+        verifier.swarm_runtime = Mock(external_secret_exists=Mock(return_value=False))
+        verification = asyncio.run(verifier.verify())
+        serialized = str(verification.to_dict())
+        self.assertNotIn(operator_value, serialized)
+        self.assertNotIn("AAAAAAAA", serialized)
+        stack_apply = Mock()
+        blocked_workflow = composition.DeploymentApplyWorkflow(
+            steps=(stack_apply,),
+            pre_apply_checks=(verifier,),
+        )
+        blocked_result = asyncio.run(blocked_workflow.run())
+        stack_apply.run.assert_not_called()
+        self.assertNotIn(operator_value, str(blocked_result))
         self.assertEqual(
             tuple(
                 step.verification_target_id for step in services.workflows.apply.steps
@@ -1224,13 +1263,20 @@ class TestComposition(unittest.TestCase):
                 "deployment:service-access-service-readiness",
             ),
         )
-        self.assertEqual(services.workflows.apply.pre_apply_checks, ())
+        self.assertEqual(
+            tuple(
+                check.verification_target_id
+                for check in services.workflows.apply.pre_apply_checks
+            ),
+            ("deployment:traefik-gui-input",),
+        )
         self.assertEqual(
             tuple(
                 step.deployment_target_id
                 for step in services.workflows.apply.pre_apply_steps
             ),
             (
+                "deployment:traefik-gui-input",
                 "deployment:effective-access-model-evidence",
                 "deployment:traefik-stack-assets",
                 "deployment:swagger-stack-assets",
@@ -1254,6 +1300,24 @@ class TestComposition(unittest.TestCase):
             swarm_runtime.call_args.kwargs["service_access_dashboard_renderer"],
         )
         compose_repository.return_value.render_service_access_dashboard.assert_not_called()
+
+    def test_build_deployment_services_injects_canonical_tls_resolver(self):
+        with (
+            patch.object(composition, "ComposeFileRepositoryYaml"),
+            patch.object(composition, "LxcSwarmRuntime") as swarm_runtime,
+            patch(
+                "tiny_swarm_world.infrastructure.adapters.ingress."
+                "local_tls_contract_resolver.LocalTlsContractResolver"
+            ) as resolver,
+        ):
+            composition.build_lxc_deployment_services(
+                backend=composition.ManagedLxcBackend.INCUS,
+            )
+
+        self.assertIs(
+            resolver.return_value,
+            swarm_runtime.call_args.kwargs["tls_contract_resolver"],
+        )
 
     def test_build_deployment_services_keeps_service_access_assets_out_of_default_profile(
         self,
@@ -1463,7 +1527,13 @@ class TestComposition(unittest.TestCase):
                 "TSW_INFISICAL_REDIS_PASSWORD": sample_text("redis", "-secret"),
             },
         )
-        self.assertEqual(services.workflows.apply.pre_apply_checks, ())
+        self.assertEqual(
+            tuple(
+                check.verification_target_id
+                for check in services.workflows.apply.pre_apply_checks
+            ),
+            ("deployment:traefik-gui-input",),
+        )
         self.assertEqual(
             tuple(
                 step.deployment_target_id
@@ -1954,6 +2024,65 @@ class TestComposition(unittest.TestCase):
         build_platform.return_value.workflows.expose.run.assert_not_called()
         build_artifacts.return_value.workflows.prepare.run.assert_not_called()
         build_deployment.return_value.workflows.apply.run.assert_not_called()
+
+    def test_issue_252_remediation_wiring_shares_selected_incus_request(self):
+        request = composition.NodeProviderSelectionRequest(
+            requested_provider=composition.NodeProviderKind.LXC_NATIVE,
+            preferred_backend=composition.ManagedLxcBackend.INCUS,
+            backend_candidates=(composition.ManagedLxcBackend.INCUS,),
+        )
+        consent = _accepted_live_consent()
+
+        with (
+            patch.object(
+                composition,
+                "_build_preflight_service_for_request",
+                return_value=_phase_bundle(),
+            ) as build_preflight,
+            patch.object(
+                composition,
+                "_build_artifact_readiness_gate",
+                return_value=Mock(),
+            ) as build_artifact_readiness,
+            patch.object(
+                composition,
+                "build_host_preparation_service",
+                return_value=Mock(),
+            ) as build_host_preparation,
+            patch.object(
+                composition,
+                "_build_platform_services_for_request",
+                return_value=_platform_phase_bundle(),
+            ) as build_platform,
+            patch.object(
+                composition,
+                "build_artifact_services_for_provider",
+                return_value=_artifact_phase_bundle(),
+            ) as build_artifacts,
+            patch.object(
+                composition,
+                "_build_deployment_services_for_request",
+                return_value=_deployment_phase_bundle(),
+            ) as build_deployment,
+        ):
+            services = composition.build_setup_services(
+                consent,
+                node_provider_request=request,
+            )
+
+        self.assertIsInstance(services.workflows.run, composition.SetupWorkflow)
+        self.assertIs(request, build_preflight.call_args.args[1])
+        self.assertIs(request, build_artifact_readiness.call_args.args[1])
+        self.assertIs(request, build_platform.call_args.args[2])
+        self.assertIs(
+            request,
+            build_artifacts.call_args.kwargs["node_provider_request"],
+        )
+        self.assertIs(
+            request,
+            build_deployment.call_args.kwargs["node_provider_request"],
+        )
+        build_host_preparation.assert_called_once_with(consent)
 
     def test_build_setup_services_passes_ui_to_platform_and_setup_terminal_sinks(self):
         live_consent = _accepted_live_consent()

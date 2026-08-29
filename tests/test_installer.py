@@ -13,6 +13,20 @@ from tiny_swarm_world import installer
 
 
 class TestInstaller(unittest.TestCase):
+    def test_fresh_install_requires_operator_provisioned_traefik_htpasswd(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            secret_env_file = Path(tempdir) / "live-installation.env"
+            with self.assertRaisesRegex(
+                installer.InstallerError,
+                "TSW_TRAEFIK_GUI_USERS_HTPASSWD",
+            ):
+                installer._require_operator_provisioned_traefik_gui_users({}, secret_env_file)
+
+            installer._require_operator_provisioned_traefik_gui_users(
+                {"TSW_TRAEFIK_GUI_USERS_HTPASSWD": "admin:$2y$12$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},
+                secret_env_file,
+            )
+
     def test_ensure_default_config_exports_adds_traefik_dashboard_secret_name(self):
         with tempfile.TemporaryDirectory() as tempdir:
             root = Path(tempdir)
@@ -50,11 +64,28 @@ class TestInstaller(unittest.TestCase):
                 "TSW_TRAEFIK_TLS_CERT_SECRET_NAME": "custom-cert",
                 "TSW_TRAEFIK_TLS_KEY_SECRET_NAME": "custom-key",
                 "TSW_TRAEFIK_GUI_USERS_SECRET_NAME": "custom-users",
+                "TSW_LIVE_TLS_CA_BUNDLE": "/custom/ca-bundle.pem",
             }
 
             exports = installer._ensure_default_config_exports(paths, env)
 
         self.assertEqual(exports, {})
+
+    def test_default_trust_bundle_uses_external_ca_when_configured(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            root = Path(tempdir)
+            paths = installer.InstallerPaths(
+                secret_env_file=root / "local.env",
+                fixed_secret_env_file=root / "fixed.env",
+                infisical_secret_env_file=root / "infisical.env",
+                generated_secret_env_file=root / "generated.env",
+                native_linux_venv=root / "install-venv",
+            )
+            env = {"TSW_TRAEFIK_CA_CERT_PATH": "/operator/ca.crt"}
+
+            exports = installer._ensure_default_config_exports(paths, env)
+
+        self.assertEqual(exports["TSW_LIVE_TLS_CA_BUNDLE"], "/operator/ca.crt")
 
     def test_parse_args_defaults_to_service_access_and_secret_generation(self):
         options = installer.parse_args(())

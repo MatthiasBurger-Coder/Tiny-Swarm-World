@@ -355,6 +355,16 @@ def _forwarding_script() -> str:
 set -euo pipefail
 
 BRIDGE="${1:-incusbr0}"
+attempt=0
+while ! ip link show dev "$BRIDGE" >/dev/null 2>&1; do
+  attempt=$((attempt + 1))
+  if [ "$attempt" -ge 30 ]; then
+    echo "Incus bridge $BRIDGE did not become available within 60 seconds." >&2
+    exit 1
+  fi
+  sleep 2
+done
+
 BRIDGE_NETWORK="$(ip -4 -o addr show dev "$BRIDGE" | sed -n 's/.* inet \([^ ]*\).*/\1/p')"
 if [ -z "$BRIDGE_NETWORK" ]; then
   echo "Could not determine the IPv4 network for $BRIDGE." >&2
@@ -381,6 +391,7 @@ Wants=network-online.target
 [Service]
 Type=oneshot
 ExecStart=/usr/local/bin/tsw-apply-incus-forwarding.sh
+TimeoutStartSec=75s
 RemainAfterExit=yes
 
 [Install]

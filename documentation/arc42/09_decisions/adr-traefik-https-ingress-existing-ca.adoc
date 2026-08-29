@@ -1,177 +1,91 @@
 = ADR: Traefik HTTPS Ingress With Existing CA
 
 *Date:* 2026-06-09
-*Status:* Accepted as migration direction; implementation pending workflow
-execution
+*Status:* Superseded on 2026-08-23 by `adr-traefik-managed-or-operator-ca.adoc`
 *Decision makers:* Tiny Swarm World architecture governance; original named
 decision makers were not recorded in this ADR.
 
-== Implementation Status
+== Supersession Note
 
-This ADR accepts Traefik HTTPS ingress with an operator-provided existing CA as
-the migration direction for the active workflow
-`traefik-https-ingress-existing-ca-20260609`.
+This ADR originally required an operator-provided existing CA and rejected
+automatic CA generation. Classic Public Beta RC1 live/E2E stabilization showed
+that this restriction no longer matches the installation goal: a fresh local
+installation must be able to converge to trusted HTTPS without a separate
+manual PKI bootstrap step.
 
-At the time this ADR is created, Traefik routing, certificate validation,
-Swarm label migration, LXC proxy reconciliation, hostname resolution, and live
-greenpath verification are not yet implemented by this ADR alone. The active
-workflow must implement and verify those changes in ordered slices before
-documentation may claim live success.
+The replacement decision is
+`documentation/arc42/09_decisions/adr-traefik-managed-or-operator-ca.adoc`.
+It keeps the Traefik ingress and security boundaries defined here, but changes
+certificate ownership to the following precedence:
 
-== Context
+. explicit operator CA configuration has priority;
+. otherwise Tiny Swarm World generates and manages a local CA;
+. private keys remain in protected local state or an approved secret store;
+. installer, runtime, Traefik and E2E consume one canonical certificate/trust
+  contract.
+
+This file remains as architectural history. New implementation and review work
+MUST use the superseding ADR.
+
+== Original Context
 
 Tiny Swarm World is a Linux/WSL-only Python automation project for local
-Docker Swarm infrastructure on the LXC-native provider path. The current
-service-access baseline uses a service-access NGINX stack for central local
-HTTP routing and keeps TLS automation and Traefik deferred.
+Docker Swarm infrastructure on the LXC-native provider path. The migration
+changes routing ownership and TLS behavior:
 
-The requested migration changes routing ownership and TLS behavior:
-
-* Traefik becomes the planned central ingress component.
-* HTTP should redirect to HTTPS.
-* HTTPS should use certificate material issued by an existing operator CA.
-* LXC public exposure should converge on ports `80` and `443`.
-* Docker Swarm service routing should be represented through explicit Traefik
+* Traefik becomes the centralized ingress component.
+* HTTP redirects to HTTPS.
+* LXC public exposure converges on ports `80` and `443`.
+* Docker Swarm service routing is represented through explicit Traefik
   configuration or labels.
 
-This touches deployment topology, credential and certificate handling,
-observability evidence, rollback, and live host mutation safety. It therefore
-requires an architecture decision before implementation work.
+== Still-Valid Security And Ingress Decisions
 
-== Decision
-
-Tiny Swarm World accepts Traefik as the target centralized local HTTPS ingress
-for the active migration workflow, subject to these rules:
+The following constraints remain valid under the superseding ADR:
 
 * The migration remains Docker Swarm-first and LXC-native.
-* Traefik is a Deployment responsibility, not a new product microservice and
-  not a browser frontend project.
-* The service-access NGINX routing baseline may be replaced, bypassed, or
-  reduced only by an implementation slice that has tests and rollback notes.
+* Traefik is a Deployment responsibility, not a product microservice.
 * Public LXC exposure for the ingress path is limited to ports `80` and `443`.
-* Traefik must define `web` on `:80` and `websecure` on `:443`.
-* HTTP traffic must redirect to HTTPS.
+* Traefik defines `web` on `:80` and `websecure` on `:443`.
+* HTTP traffic redirects to HTTPS.
 * `exposedByDefault=false` is required.
 * `--api.insecure=true` is forbidden.
-* Existing CA material must be operator-provided through ignored local
-  configuration, Docker/Swarm secrets, or approved secret-management inputs.
 * CA private keys, certificate private keys, raw PEM payloads, credential
-  values, local resolver files, local IP addresses, and host-specific absolute
+  values, local resolver files, local IP addresses and host-specific absolute
   paths must not be committed or persisted in evidence.
-* Certificate validation must record summary fields only: CN, SAN DNS names,
-  issuer, validity, KeyUsage, ExtendedKeyUsage, and chain verification result.
-* Hostname resolution may use DNS or hosts fallback, but any host mutation
-  requires explicit operator consent and rollback.
-* Live verification remains opt-in and must write only redacted evidence under
+* Certificate validation records summary fields only: CN, SAN DNS names,
+  issuer, validity, KeyUsage, ExtendedKeyUsage and chain verification result.
+* Hostname/trust-store mutation requires explicit operator consent and
+  rollback.
+* Live verification remains opt-in and writes only redacted evidence under
   ignored `.tiny-swarm-world/evidence/**` paths.
 
-The administrative dashboard follows the same local HTTPS boundary. The
-implemented desired state exposes `api@internal` only through the dedicated
-`Host(traefik.tsw.local)` router on `websecure`. The router uses BasicAuth with
-the operator-provided Docker secret named by
-`TSW_TRAEFIK_GUI_USERS_SECRET_NAME`; the secret is mounted as a users file and
-its values are never represented in repository configuration or evidence.
-There is no additional dashboard port and `--api.insecure=true` remains
-forbidden. This is an operator/admin surface, not a public service route, and
-it remains behind the local manager ingress boundary.
+The administrative dashboard remains available only through the dedicated
+`Host(traefik.tsw.local)` HTTPS router on `websecure`. It uses BasicAuth with
+the Docker secret named by `TSW_TRAEFIK_GUI_USERS_SECRET_NAME`. There is no
+additional insecure dashboard port.
 
-The route is fail-closed: an absent TLS reference, absent external users
-secret, invalid route configuration, or failed readiness check must prevent a
-successful deployment claim. Rollback removes the dashboard router and its
-authentication reference while retaining the existing HTTPS ingress and
-Service Access routes.
+== Superseded Certificate Ownership Decision
 
-== Considered Options
+The original decision required existing CA material to be operator-provided and
+rejected generated CA material. That part of this ADR is no longer normative.
 
-=== Keep Service Access NGINX As The Only Router
-
-*Pros:*
-
-* preserves the existing service-access routing baseline.
-
-*Cons:*
-
-Rejected for this workflow because the requested target is centralized HTTPS
-ingress through Traefik. The current NGINX baseline remains the rollback and
-comparison point until migration slices verify Traefik.
-
-=== Enable Traefik Insecure Dashboard
-
-*Pros:*
-
-* would make the Traefik dashboard immediately reachable.
-
-*Cons:*
-
-Rejected. `--api.insecure=true` would create an unnecessary administrative
-exposure and is explicitly forbidden by the workflow.
-
-=== Generate Or Commit CA Material
-
-*Pros:*
-
-* would reduce operator setup for certificate material.
-
-*Cons:*
-
-Rejected. CA and private key material are operator-owned secrets and must not
-be generated silently or committed to the repository.
-
-=== ACME Or Public Internet Exposure
-
-*Pros:*
-
-* would align with common public TLS automation patterns.
-
-*Cons:*
-
-Rejected for this workflow. The accepted scope is local HTTPS ingress using an
-existing CA.
+The superseding ADR permits managed local CA generation when no complete
+external CA configuration is present, while preserving external/operator CA
+precedence and all private-key/redaction boundaries.
 
 == Consequences
 
-The active workflow may add Traefik configuration, routing labels, certificate
-validation, hostname verification, LXC exposure reconciliation, and live
-browser/TLS checks as separate guarded slices.
-
-Implementation must preserve hexagonal architecture:
-
-* domain may model ingress desired state, certificate summaries, route
-  expectations, and redacted verification results;
-* application services may orchestrate ports and domain objects;
-* infrastructure owns Docker Swarm, LXC, OpenSSL, DNS/hosts, HTTP/TLS, YAML,
-  and evidence file handling.
-
-Default quality gates must remain static or mocked. They must not deploy
-Traefik, mutate LXC, change resolver state, initialize Docker Swarm, or run
-live browser/TLS checks unless explicitly enabled by workflow execution.
-
-Documentation must distinguish accepted migration direction, implemented
-repository behavior, and verified live behavior.
-
-== Risks And Follow-Up
-
-Traefik migration can create partial route drift if labels/configuration and
-service readiness are not reconciled atomically. LXC proxy changes can break
-local access if rollback is missing. Hostname fallback can mutate host state.
-Certificate validation can leak path or PEM details if evidence is not
-redacted.
-
-The active workflow must provide:
-
-* route and certificate desired-state tests;
-* forbidden-config tests for insecure Traefik settings;
-* LXC port reconciliation tests;
-* opt-in live browser/TLS evidence;
-* a final report with verified facts, blockers, rollback references, and
-  residual risks.
+Implementation must follow the replacement ADR for CA selection, managed PKI,
+canonical trust-bundle resolution, installer/runtime consistency and RC1 E2E
+verification. The security rules above continue to apply.
 
 == References
 
+* Superseded by: `documentation/arc42/09_decisions/adr-traefik-managed-or-operator-ca.adoc`
 * Affects: `documentation/arc42/04_context_and_scope.adoc`
 * Affects: `documentation/arc42/06_runtime_view.adoc`
 * Affects: `documentation/arc42/07_deployment_view.adoc`
 * Affects: `documentation/arc42/08_concepts.adoc`
-* Related concept: centralized local HTTPS ingress.
 * Related code: `infra/config/compose`
 * Related code: `src/tiny_swarm_world/application/services/deployment`

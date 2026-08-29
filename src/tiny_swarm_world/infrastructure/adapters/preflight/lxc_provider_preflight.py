@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import asyncio
+import math
 import os
 import shutil
 from collections.abc import Callable, Sequence
 from contextlib import suppress
 from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
 from typing import Protocol
 
@@ -33,9 +35,17 @@ DEFAULT_LXC_PROVIDER_TIMEOUT_SECONDS = 5.0
 COMMON_LXC_EXECUTABLE_DIRECTORIES = (Path("/snap/bin"),)
 
 
-def _readiness_commands(backend: ManagedLxcBackend) -> tuple[tuple[str, tuple[str, str]], ...]:
+def _readiness_commands(
+    backend: ManagedLxcBackend,
+    timeout_seconds: float,
+) -> tuple[tuple[str, tuple[str, ...]], ...]:
     cli = backend_cli(backend)
-    return (("version", (cli, "version")), ("info", (cli, "info")))
+    waitready_timeout = max(1, math.ceil(timeout_seconds))
+    return (
+        ("waitready", (cli, "admin", "waitready", f"--timeout={waitready_timeout}")),
+        ("version", (cli, "version")),
+        ("info", (cli, "info")),
+    )
 
 @dataclass(frozen=True)
 class LxcProviderProbeResult:
@@ -43,6 +53,13 @@ class LxcProviderProbeResult:
     stdout: str = ""
     stderr: str = ""
     timed_out: bool = False
+    failure_hint: LxcProviderProbeFailureHint | None = None
+
+
+class LxcProviderProbeFailureHint(str, Enum):
+    EXECUTABLE_MISSING = "launch_executable_missing"
+    PERMISSION_DENIED = "launch_permission_denied"
+    OS_ERROR = "launch_os_error"
 
 
 class LxcProviderProbeRunner(Protocol):
@@ -61,11 +78,27 @@ class AsyncLxcProviderProbeRunner:
         args: Sequence[str],
         timeout_seconds: float,
     ) -> LxcProviderProbeResult:
-        process = await asyncio.create_subprocess_exec(
-            *args,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
+        try:
+            process = await asyncio.create_subprocess_exec(
+                *args,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+        except FileNotFoundError:
+            return LxcProviderProbeResult(
+                returncode=127,
+                failure_hint=LxcProviderProbeFailureHint.EXECUTABLE_MISSING,
+            )
+        except PermissionError:
+            return LxcProviderProbeResult(
+                returncode=126,
+                failure_hint=LxcProviderProbeFailureHint.PERMISSION_DENIED,
+            )
+        except OSError:
+            return LxcProviderProbeResult(
+                returncode=-1,
+                failure_hint=LxcProviderProbeFailureHint.OS_ERROR,
+            )
         try:
             stdout, stderr = await asyncio.wait_for(
                 process.communicate(),
@@ -179,7 +212,7 @@ class LxcProviderPreflightProbe(PortNodeProviderReadiness):
         backend: ManagedLxcBackend,
         host_environment: HostEnvironmentReport,
     ) -> _BackendProbeReadiness:
-        for probe_name, args in _readiness_commands(backend):
+        for probe_name, args in _readiness_commands(backend, self.timeout_seconds):
             result = await self.runner.run(args, self.timeout_seconds)
             if result.returncode == 0 and not result.timed_out:
                 continue
@@ -298,6 +331,7 @@ def _ready_readiness(
         EvidenceBuilder()
         .add("host_kind", host_environment.environment.value)
         .add("backend", backend.value)
+        .add("waitready_probe", "passed")
         .add("version_probe", "passed")
         .add("info_probe", "passed")
         .add("selected_backend", backend.value)
@@ -337,6 +371,8 @@ def _failure_readiness(
     )
     if result.timed_out:
         builder.add("classification_source", "timeout")
+    elif result.failure_hint is not None:
+        builder.add("classification_source", result.failure_hint.value)
     evidence = builder.build()
     return ProviderReadiness(
         provider=NodeProviderKind.LXC_NATIVE,
@@ -354,6 +390,12 @@ def _failure_readiness(
 def _failure_status(result: LxcProviderProbeResult) -> ProviderReadinessStatus:
     if result.timed_out:
         return ProviderReadinessStatus.TIMEOUT
+    if result.failure_hint == LxcProviderProbeFailureHint.EXECUTABLE_MISSING:
+        return ProviderReadinessStatus.EXECUTABLE_MISSING
+    if result.failure_hint == LxcProviderProbeFailureHint.PERMISSION_DENIED:
+        return ProviderReadinessStatus.PERMISSION_DENIED
+    if result.failure_hint == LxcProviderProbeFailureHint.OS_ERROR:
+        return ProviderReadinessStatus.UNKNOWN_FAILURE
     output = f"{result.stdout}\n{result.stderr}".casefold()
     if "permission denied" in output or "access denied" in output or "not authorized" in output:
         return ProviderReadinessStatus.PERMISSION_DENIED
@@ -379,6 +421,8 @@ def _failure_remediation(
         return f"Grant the current Linux user access to the {backend_name} provider daemon."
     if status == ProviderReadinessStatus.DAEMON_UNAVAILABLE:
         return f"Start or repair the {backend_name} provider daemon before live setup."
+    if status == ProviderReadinessStatus.EXECUTABLE_MISSING:
+        return f"Install the {backend_name} CLI and make it available to the current process."
     return f"Repair {backend_name} provider readiness before live setup."
 
 

@@ -9,6 +9,7 @@ from tiny_swarm_world.application.ports.clients.port_swarm_stack_runtime import 
     PortSwarmStackRuntime,
     SwarmServiceStatus,
 )
+from tiny_swarm_world.application.ports.port_tls_contract_resolver import PortTlsContractResolver
 from tiny_swarm_world.domain.deployment import StackDefinition
 from tiny_swarm_world.domain.node_provider import ManagedLxcBackend
 from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.diagnostics import (
@@ -83,6 +84,7 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
         traefik_tls_key_secret_name: str = DEFAULT_TRAEFIK_TLS_KEY_SECRET_NAME,
         shell_gateway: LxcManagerShellGateway | None = None,
         process_runner: ProcessRunner | None = None,
+        tls_contract_resolver: PortTlsContractResolver,
     ):
         if timeout_seconds <= 0:
             raise ValueError("Swarm runtime timeout must be positive.")
@@ -99,6 +101,7 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
         self.service_access_dashboard_renderer = service_access_dashboard_renderer
         self.traefik_tls_cert_secret_name = traefik_tls_cert_secret_name.strip()
         self.traefik_tls_key_secret_name = traefik_tls_key_secret_name.strip()
+        self.tls_contract_resolver = tls_contract_resolver
         self.logger = LoggerFactory.get_logger(self.__class__)
         self.process_runner = process_runner
         self.shell_gateway = shell_gateway or LxcManagerShellGateway(
@@ -171,6 +174,7 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
             self.traefik_tls_key_secret_name,
             external_secret_exists=lambda name: self.external_secret_exists(name),
             run_manager_shell=lambda *args, **kwargs: self._run_manager_shell(*args, **kwargs),
+            tls_contract_resolver=self.tls_contract_resolver,
         )
 
     def _ensure_external_overlay_network(self, name: str) -> None:

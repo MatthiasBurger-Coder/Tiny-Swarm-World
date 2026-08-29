@@ -16,6 +16,10 @@ from tiny_swarm_world.domain.ingress.discovery import (
     IngressDiscoveryFinding,
     IngressDiscoverySnapshot,
 )
+from tiny_swarm_world.domain.ingress.tls_contract import (
+    ResolvedTlsContract,
+    TlsAuthorityMode,
+)
 
 __all__ = [
     "CertificateSummary",
@@ -28,6 +32,8 @@ __all__ = [
     "IngressDiscoveryFinding",
     "IngressDiscoverySnapshot",
     "RouteDefinition",
+    "ResolvedTlsContract",
     "SkippedRoute",
+    "TlsAuthorityMode",
     "desired_https_ingress_for_profile",
 ]

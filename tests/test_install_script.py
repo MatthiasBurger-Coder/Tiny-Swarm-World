@@ -14,6 +14,8 @@ INSTALLER_BOOTSTRAP_SOURCE_FILES = (
     Path("__init__.py"),
     Path("installer.py"),
     Path("domain/__init__.py"),
+    Path("domain/configuration/__init__.py"),
+    Path("domain/configuration/configuration_contract.py"),
     Path("domain/host_environment.py"),
     Path("domain/project_filesystem.py"),
     Path("domain/sanitized_evidence.py"),
@@ -26,6 +28,8 @@ INSTALLER_BOOTSTRAP_SOURCE_FILES = (
     Path("application/ports/repositories/port_project_filesystem_evidence_repository.py"),
     Path("infrastructure/__init__.py"),
     Path("infrastructure/adapters/__init__.py"),
+    Path("infrastructure/adapters/ingress/__init__.py"),
+    Path("infrastructure/adapters/ingress/tls_state.py"),
     Path("infrastructure/adapters/preflight/__init__.py"),
     Path("infrastructure/adapters/preflight/windows_wsl_bridge_state.py"),
     Path("infrastructure/adapters/host/__init__.py"),
@@ -700,6 +704,7 @@ def _required_secret_environment() -> dict[str, str]:
         "TSW_INFISICAL_AUTH_SECRET": "infisical-auth-secret",
         "TSW_INFISICAL_POSTGRES_PASSWORD": "infisical-postgres-password",
         "TSW_INFISICAL_REDIS_PASSWORD": "infisical-redis-password",
+        "TSW_TRAEFIK_GUI_USERS_HTPASSWD": "admin:$2y$12$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
     }
 
 

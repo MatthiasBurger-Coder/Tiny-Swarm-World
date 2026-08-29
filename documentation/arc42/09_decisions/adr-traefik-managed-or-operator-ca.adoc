@@ -1,0 +1,180 @@
+= ADR: Traefik HTTPS Ingress With Operator CA Override And Managed CA Fallback
+
+*Date:* 2026-08-23
+*Status:* Accepted; supersedes `adr-traefik-https-ingress-existing-ca.adoc`
+*Decision makers:* Tiny Swarm World architecture governance
+
+== Implementation Alignment
+
+The decision is implemented on the Issue #252 remediation baseline
+`60d5d09f`: R01 provides canonical external-precedence/managed-fallback TLS
+resolution and protected reuse, R02 provides pre-apply atomic Traefik secret
+pair and htpasswd verification, and R06 connects the canonical Classic E2E
+trust bundle. Deterministic local tests and the repository quality gate passed
+for those slices. Live TLS, browser, host-trust and secret-store convergence
+remain separate opt-in evidence and are not established by this alignment.
+
+== Context
+
+The previous Traefik HTTPS ADR required an existing operator-provided CA and
+explicitly rejected automatic CA generation. RC1 live/E2E stabilization exposed
+that this ownership model no longer matches the installation goal: a fresh
+local Tiny Swarm World installation must be able to converge to a usable HTTPS
+state without an additional manual PKI bootstrap step.
+
+The same RC1 work also exposed a second class of defect: installer, runtime,
+Traefik and E2E verification can drift when they infer or hard-code different
+CA bundle paths. Certificate ownership and trust discovery therefore need one
+canonical contract rather than subsystem-specific path conventions.
+
+This is an RC1 architecture finding, not a reason to stop stabilization. The
+implementation demonstrated that the earlier decision was too restrictive for
+the current product goal. The decision is updated and the affected slice must
+continue through implementation, regression verification and the normal RC1
+gates.
+
+== Decision
+
+Tiny Swarm World owns a canonical local TLS certificate/trust contract with the
+following precedence and lifecycle rules.
+
+=== CA Selection Precedence
+
+. If an explicit operator CA is configured, Tiny Swarm World MUST use that CA.
+  Operator configuration always takes precedence over generated material.
+. If no operator CA is configured, Tiny Swarm World MUST create and manage a
+  local Tiny Swarm World CA for the installation.
+. A rerun MUST reuse valid managed CA material. It MUST NOT silently rotate the
+  CA or leaf keys merely because installation is repeated.
+. Rotation is an explicit lifecycle operation and must preserve rollback and
+  trust-store reconciliation semantics.
+
+The effective modes are therefore:
+
+* `external`: operator-supplied CA material is authoritative;
+* `managed`: Tiny Swarm World generated local CA material is authoritative.
+
+An implementation may expose `auto` as the user-facing selection behavior, but
+`auto` MUST resolve deterministically to `external` when a complete external CA
+configuration is present and to `managed` otherwise.
+
+=== Canonical Certificate And Trust Contract
+
+Installer, runtime composition, Traefik deployment and live/E2E verification
+MUST consume the same resolved TLS contract. No subsystem may invent a second
+CA bundle location or silently fall back to a hard-coded trust path.
+
+The resolved contract must provide, at minimum:
+
+* effective CA mode (`external` or `managed`);
+* CA certificate reference;
+* CA private-key reference when signing is owned by the local installation;
+* ingress leaf certificate reference;
+* ingress leaf private-key reference;
+* trust-bundle reference used by runtime and E2E clients;
+* Docker/Swarm secret names used to present the leaf certificate and key to
+  Traefik;
+* certificate subject/SAN policy for `*.tsw.local` and explicitly required
+  local ingress hostnames;
+* lifecycle metadata sufficient to distinguish reuse from explicit rotation.
+
+The contract is authoritative. Environment variables, ignored local files and
+secret-store references are inputs to this contract; they are not independent
+runtime contracts.
+
+=== Secret And Local-State Boundary
+
+CA private keys and leaf private keys MUST remain exclusively in protected
+local state or an approved secret store. They MUST NOT be committed to Git,
+written to normal documentation, included in evidence, printed to logs or
+embedded as raw PEM in generated reports.
+
+Managed private-key files MUST be created with owner-only permissions. Public
+CA certificates and trust bundles may be installed into an OS trust store when
+required for local browser/runtime trust, but their corresponding private keys
+must never leave the protected secret/local-state boundary.
+
+The canonical managed state belongs below ignored Tiny Swarm World local state
+rather than below committed `infra/config`. Host-specific absolute paths must
+not be persisted in committed evidence.
+
+=== Traefik Boundary
+
+Traefik continues to be the centralized HTTPS ingress. It receives only the
+resolved leaf certificate and private key through the governed Docker/Swarm
+secret contract. Traefik does not generate the CA.
+
+The existing ingress security rules remain unchanged:
+
+* `web` listens on `:80` and redirects to HTTPS;
+* `websecure` listens on `:443`;
+* `exposedByDefault=false` is required;
+* `--api.insecure=true` is forbidden;
+* the dashboard remains HTTPS-only and authenticated;
+* public LXC exposure for this ingress path remains limited to ports `80` and
+  `443`.
+
+=== Runtime And E2E Trust
+
+Runtime HTTPS clients and Classic RC1 E2E checks MUST obtain their trust bundle
+from the resolved TLS contract. `TSW_LIVE_TLS_CA_BUNDLE`, where retained for
+operator/test compatibility, is an override/input alias to the canonical trust
+bundle and not a second source of truth.
+
+A live verification must fail closed when the resolved trust bundle is missing,
+unreadable, inconsistent with the selected CA, or unable to validate the
+presented ingress certificate.
+
+=== Host Trust Installation
+
+Where browser or host-native tooling requires installation into a Linux or
+Windows trust store, that mutation remains explicit, auditable and reversible.
+Only the public CA certificate is installed. Trust-store mutation requires the
+same live/operator-consent boundary as other host mutations.
+
+== Superseded Decision
+
+`adr-traefik-https-ingress-existing-ca.adoc` required an operator-provided CA
+and rejected automatic CA generation. That restriction is superseded by this
+ADR. Its remaining Traefik ingress, dashboard, redaction and live-verification
+security constraints remain valid unless this ADR explicitly changes them.
+
+== Consequences
+
+A fresh Classic installation can converge to HTTPS without a manual PKI setup
+step while enterprise/operator PKI remains fully supported and has precedence.
+
+The implementation must:
+
+* resolve the effective CA mode exactly once;
+* generate managed CA and leaf material only when external material is absent;
+* reuse existing valid managed material on rerun;
+* provision Traefik secrets from the resolved leaf material;
+* expose one canonical trust-bundle reference to runtime and E2E verification;
+* reconcile optional Linux/Windows public-CA trust installation separately
+  from private-key storage;
+* test external-CA precedence, managed fallback, idempotent reuse, incomplete
+  external configuration, invalid/expired material, SAN coverage, secret
+  redaction and trust-bundle consistency.
+
+An incomplete external CA configuration MUST fail closed rather than silently
+mixing external and managed certificate material.
+
+== RC1 Workflow Rule
+
+A mismatch between implementation and an accepted ADR discovered by RC1
+live/E2E testing is classified first as a product/architecture finding. When
+current product goals justify changing the decision, governance updates the ADR
+and the same RC1 defect slice proceeds through implementation and regression
+verification. The finding does not by itself justify freezing unrelated writes
+or abandoning the E2E stabilization path.
+
+== References
+
+* Supersedes: `documentation/arc42/09_decisions/adr-traefik-https-ingress-existing-ca.adoc`
+* Affects: `documentation/arc42/08_configuration/operator-configuration-contract.md`
+* Affects: `documentation/arc42/08_configuration/config-contract-inventory.md`
+* Affects: `src/tiny_swarm_world/installer.py`
+* Affects: `src/tiny_swarm_world/infrastructure/composition_configuration.py`
+* Affects: `infra/config/compose/traefik/**`
+* Affects: `tests/e2e/classic/test_post_install_browser_live.py`

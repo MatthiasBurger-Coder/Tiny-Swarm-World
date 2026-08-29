@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 from tests.support.async_helpers import async_checkpoint
 from tests.support.sonar_safe_literals import ipv4_address
 
@@ -15,11 +16,67 @@ from tiny_swarm_world.domain.preflight import (
 )
 from tiny_swarm_world.infrastructure.adapters.preflight import LxcProviderPreflightProbe
 from tiny_swarm_world.infrastructure.adapters.preflight.lxc_provider_preflight import (
+    AsyncLxcProviderProbeRunner,
+    LxcProviderProbeFailureHint,
     LxcProviderProbeResult,
 )
 
 
 class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
+    async def test_launch_file_not_found_is_typed_without_exception_text(self):
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.preflight.lxc_provider_preflight."
+            "asyncio.create_subprocess_exec",
+            side_effect=FileNotFoundError("secret executable path"),
+        ):
+            readiness = await _probe(
+                available=("incus",), runner=AsyncLxcProviderProbeRunner()
+            ).provider_readiness(NodeProviderKind.LXC_NATIVE)
+
+        self.assertEqual(ProviderReadinessStatus.EXECUTABLE_MISSING, readiness.status)
+        self.assertEqual(
+            LxcProviderProbeFailureHint.EXECUTABLE_MISSING.value,
+            readiness.evidence["classification_source"],
+        )
+        self.assertNotIn("secret executable path", repr(readiness.to_dict()))
+        self.assertEvidenceIsSummaryOnly(readiness)
+
+    async def test_launch_permission_error_is_typed_without_exception_text(self):
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.preflight.lxc_provider_preflight."
+            "asyncio.create_subprocess_exec",
+            side_effect=PermissionError("private operator detail"),
+        ):
+            readiness = await _probe(
+                available=("incus",), runner=AsyncLxcProviderProbeRunner()
+            ).provider_readiness(NodeProviderKind.LXC_NATIVE)
+
+        self.assertEqual(ProviderReadinessStatus.PERMISSION_DENIED, readiness.status)
+        self.assertEqual(
+            LxcProviderProbeFailureHint.PERMISSION_DENIED.value,
+            readiness.evidence["classification_source"],
+        )
+        self.assertNotIn("private operator detail", repr(readiness.to_dict()))
+        self.assertEvidenceIsSummaryOnly(readiness)
+
+    async def test_launch_os_error_is_unknown_without_exception_text(self):
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.preflight.lxc_provider_preflight."
+            "asyncio.create_subprocess_exec",
+            side_effect=OSError("private operating system detail"),
+        ):
+            readiness = await _probe(
+                available=("incus",), runner=AsyncLxcProviderProbeRunner()
+            ).provider_readiness(NodeProviderKind.LXC_NATIVE)
+
+        self.assertEqual(ProviderReadinessStatus.UNKNOWN_FAILURE, readiness.status)
+        self.assertEqual(
+            LxcProviderProbeFailureHint.OS_ERROR.value,
+            readiness.evidence["classification_source"],
+        )
+        self.assertNotIn("private operating system detail", repr(readiness.to_dict()))
+        self.assertEvidenceIsSummaryOnly(readiness)
+
     async def test_missing_incus_executable_returns_backend_missing_without_probe(self):
         runner = _FakeRunner()
 
@@ -33,8 +90,8 @@ class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(runner.calls, [])
         self.assertEqual(readiness.backend_selection.evidence["incus_cli"], "absent")
 
-    async def test_ready_incus_backend_uses_version_and_info_with_timeout(self):
-        runner = _FakeRunner(_ok(), _ok())
+    async def test_ready_incus_backend_waits_before_version_and_info_with_timeout(self):
+        runner = _FakeRunner(_ok(), _ok(), _ok())
 
         readiness = await _probe(available=("incus",), runner=runner).provider_readiness(
             NodeProviderKind.LXC_NATIVE
@@ -45,10 +102,12 @@ class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             runner.calls,
             [
+                (("incus", "admin", "waitready", "--timeout=5"), 5.0),
                 (("incus", "version"), 5.0),
                 (("incus", "info"), 5.0),
             ],
         )
+        self.assertEqual(readiness.evidence["waitready_probe"], "passed")
         self.assertEvidenceIsSummaryOnly(readiness)
 
     async def test_lxc_cli_without_incus_is_not_selected_by_default(self):
@@ -79,8 +138,50 @@ class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(readiness.evidence["classification_source"], "timeout")
         self.assertEvidenceIsSummaryOnly(readiness)
 
+    async def test_waitready_daemon_unavailable_stops_before_provider_inspection(self):
+        runner = _FakeRunner(
+            LxcProviderProbeResult(returncode=1, stderr="daemon is not running")
+        )
+
+        readiness = await _probe(available=("incus",), runner=runner).provider_readiness(
+            NodeProviderKind.LXC_NATIVE
+        )
+
+        self.assertEqual(ProviderReadinessStatus.DAEMON_UNAVAILABLE, readiness.status)
+        self.assertEqual(
+            runner.calls,
+            [(("incus", "admin", "waitready", "--timeout=5"), 5.0)],
+        )
+        self.assertEqual(readiness.evidence["probe"], "waitready")
+        self.assertEvidenceIsSummaryOnly(readiness)
+
+    async def test_waitready_permission_denied_is_typed_and_stops_inspection(self):
+        runner = _FakeRunner(
+            LxcProviderProbeResult(returncode=1, stderr="permission denied for operator")
+        )
+
+        readiness = await _probe(available=("incus",), runner=runner).provider_readiness(
+            NodeProviderKind.LXC_NATIVE
+        )
+
+        self.assertEqual(ProviderReadinessStatus.PERMISSION_DENIED, readiness.status)
+        self.assertEqual(len(runner.calls), 1)
+        self.assertEvidenceIsSummaryOnly(readiness)
+
+    async def test_waitready_unknown_failure_is_typed_and_stops_inspection(self):
+        runner = _FakeRunner(LxcProviderProbeResult(returncode=9, stderr="unexpected failure"))
+
+        readiness = await _probe(available=("incus",), runner=runner).provider_readiness(
+            NodeProviderKind.LXC_NATIVE
+        )
+
+        self.assertEqual(ProviderReadinessStatus.UNKNOWN_FAILURE, readiness.status)
+        self.assertEqual(len(runner.calls), 1)
+        self.assertEvidenceIsSummaryOnly(readiness)
+
     async def test_info_daemon_unavailable_maps_to_daemon_unavailable(self):
         runner = _FakeRunner(
+            _ok(),
             _ok(),
             LxcProviderProbeResult(
                 returncode=2,
@@ -98,6 +199,7 @@ class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
 
     async def test_info_permission_denied_maps_to_permission_denied(self):
         runner = _FakeRunner(
+            _ok(),
             _ok(),
             LxcProviderProbeResult(
                 returncode=1,
@@ -117,6 +219,7 @@ class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
     async def test_unknown_nonzero_failure_is_summary_only(self):
         runner = _FakeRunner(
             _ok(),
+            _ok(),
             LxcProviderProbeResult(
                 returncode=9,
                 stderr=f"unexpected /home/example failure for {ipv4_address(10, 0, 0, 2)}",
@@ -131,7 +234,7 @@ class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
         self.assertEvidenceIsSummaryOnly(readiness)
 
     async def test_incus_first_candidate_order_selects_ready_incus_before_lxd(self):
-        runner = _FakeRunner(_ok(), _ok(), _ok(), _ok())
+        runner = _FakeRunner(_ok(), _ok(), _ok(), _ok(), _ok(), _ok())
 
         readiness = await _probe(
             available=("incus", "lxc"),
@@ -146,8 +249,10 @@ class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             runner.calls,
             [
+                (("incus", "admin", "waitready", "--timeout=5"), 5.0),
                 (("incus", "version"), 5.0),
                 (("incus", "info"), 5.0),
+                (("lxc", "admin", "waitready", "--timeout=5"), 5.0),
                 (("lxc", "version"), 5.0),
                 (("lxc", "info"), 5.0),
             ],
@@ -164,7 +269,7 @@ class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
         )
 
     async def test_lxd_first_candidate_order_selects_ready_lxd_before_incus(self):
-        runner = _FakeRunner(_ok(), _ok(), _ok(), _ok())
+        runner = _FakeRunner(_ok(), _ok(), _ok(), _ok(), _ok(), _ok())
 
         readiness = await _probe(
             available=("incus", "lxc"),
@@ -179,8 +284,10 @@ class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             runner.calls,
             [
+                (("lxc", "admin", "waitready", "--timeout=5"), 5.0),
                 (("lxc", "version"), 5.0),
                 (("lxc", "info"), 5.0),
+                (("incus", "admin", "waitready", "--timeout=5"), 5.0),
                 (("incus", "version"), 5.0),
                 (("incus", "info"), 5.0),
             ],
@@ -197,7 +304,7 @@ class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
         )
 
     async def test_preferred_backend_resolves_ambiguous_availability(self):
-        runner = _FakeRunner(_ok(), _ok())
+        runner = _FakeRunner(_ok(), _ok(), _ok())
 
         readiness = await _probe(
             available=("incus", "lxc"),
@@ -213,13 +320,14 @@ class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             runner.calls,
             [
+                (("lxc", "admin", "waitready", "--timeout=5"), 5.0),
                 (("lxc", "version"), 5.0),
                 (("lxc", "info"), 5.0),
             ],
         )
 
     async def test_unavailable_first_candidate_uses_next_available_backend(self):
-        runner = _FakeRunner(_ok(), _ok())
+        runner = _FakeRunner(_ok(), _ok(), _ok())
 
         readiness = await _probe(
             available=("lxc",),
@@ -234,6 +342,7 @@ class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             runner.calls,
             [
+                (("lxc", "admin", "waitready", "--timeout=5"), 5.0),
                 (("lxc", "version"), 5.0),
                 (("lxc", "info"), 5.0),
             ],
@@ -259,6 +368,7 @@ class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
 
     async def test_wsl2_systemd_present_but_provider_daemon_unavailable_is_daemon_unavailable(self):
         runner = _FakeRunner(
+            _ok(),
             _ok(),
             LxcProviderProbeResult(
                 returncode=2,
@@ -351,7 +461,7 @@ class _FakeRunner:
 def _probe(
     *,
     available: tuple[str, ...],
-    runner: _FakeRunner,
+    runner: _FakeRunner | AsyncLxcProviderProbeRunner,
     host_environment: HostEnvironmentReport | None = None,
     systemd: bool = True,
     wsl_capability: bool = True,
@@ -414,8 +524,10 @@ def _assert_read_only_command(args) -> None:
     if any(token in self_mutating_tokens for token in argv):
         raise AssertionError(f"mutating provider command was called: {argv!r}")
     if argv not in {
+        ("incus", "admin", "waitready", "--timeout=5"),
         ("incus", "version"),
         ("incus", "info"),
+        ("lxc", "admin", "waitready", "--timeout=5"),
         ("lxc", "version"),
         ("lxc", "info"),
     }:

@@ -30,7 +30,11 @@ class TestHostNetworkRepair(unittest.TestCase):
         self.assertIn('iptables -C FORWARD -i "$BRIDGE" -j ACCEPT', script)
         self.assertIn('iptables -C FORWARD -o "$BRIDGE" -m conntrack', script)
         self.assertIn('iptables -t nat -C POSTROUTING -s "$BRIDGE_NETWORK"', script)
+        self.assertIn('ip link show dev "$BRIDGE"', script)
+        self.assertIn("sleep 2", script)
+        self.assertIn("did not become available within 60 seconds", script)
         self.assertIn("tsw-apply-incus-forwarding.sh", service)
+        self.assertIn("TimeoutStartSec=75s", service)
         self.assertIn("RemainAfterExit=yes", service)
 
     def test_incus_runtime_file_guard_accepts_only_expected_pid_path(self):

@@ -363,8 +363,15 @@ documented recovery step tells you to do so.
 
 === 4. Prepare Kernel And Bridge Networking
 
-Enable bridge netfilter and IPv4 forwarding on hosts that expose these
-controls:
+Tiny Swarm World reads the native Linux kernel controls during host preparation
+and verification, but never changes operator-owned kernel state. The check
+fails closed when a required control is missing, disabled, or unreadable. Its
+evidence contains only the stable control name and one of `active`, `missing`,
+`disabled`, or `read_error`; it does not record the observed value or procfs
+path.
+
+If the native Linux check is not ready, the host operator can temporarily load
+bridge netfilter and activate the required controls for the current boot:
 
 [source,bash]
 ----
@@ -374,7 +381,12 @@ sudo sysctl -w net.bridge.bridge-nf-call-ip6tables=1
 sudo sysctl -w net.ipv4.ip_forward=1
 ----
 
-Persist the settings when the host supports them:
+These commands mutate host state and therefore remain outside Tiny Swarm World
+automation. Run them only after reviewing them for the host. Temporary
+activation is not persistent and Tiny Swarm World does not claim to roll it
+back during cleanup.
+
+Separately configure persistence when the host supports `sysctl.d`:
 
 [source,bash]
 ----
@@ -386,7 +398,13 @@ EOF
 sudo sysctl --system
 ----
 
-Verify the effective values:
+The persistence file is operator-owned. Remove or change it only through the
+host's normal administration process; Tiny Swarm World cleanup leaves it
+untouched.
+
+After either temporary activation or persistence, inspect the effective
+controls directly. The next explicitly authorized `setup run --live` also
+rechecks them before later setup phases:
 
 [source,bash]
 ----
