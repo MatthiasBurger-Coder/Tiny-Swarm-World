@@ -46,7 +46,7 @@ state-specific result.
 | Dependency audit | #127 policy artifacts | Policy/current documentation; execution evidence is separate. |
 | SBOM generation | #127 policy artifacts | Target/release evidence when accepted by the release workflow. |
 | Container image scan | #127 policy artifacts | Target/release evidence; no scan claim here. |
-| SonarQube/SonarCloud | `.github/workflows/sonar_external_gate.yml` consumes successful quality runs from the trusted default-branch definition and fails closed | Repository-configured; external result unknown until observed. The legacy `sonar_check.yml` PR path remains only for the serialized bootstrap and must be removed by its follow-up slice. |
+| SonarQube/SonarCloud | `.github/workflows/sonar_external_gate.yml` consumes successful quality runs from the trusted default-branch definition and fails closed | Repository-configured; external result unknown until observed. |
 | Documentation link/schema check | Governance/documentation review | Recommended target; no new CI job is introduced by #128. |
 
 ## Evidence and security boundaries

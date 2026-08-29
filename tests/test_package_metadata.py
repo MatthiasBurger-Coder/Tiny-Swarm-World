@@ -99,6 +99,18 @@ class TestPackageMetadata(unittest.TestCase):
         self.assertIn("pip install --require-hashes -r requirements.lock", workflow_text)
         self.assertIn("pip install --no-deps -e .", workflow_text)
 
+    def test_trusted_sonar_gate_pins_the_triggering_quality_revision(self):
+        workflow_text = (
+            REPOSITORY_ROOT / ".github/workflows/sonar_external_gate.yml"
+        ).read_text(encoding="utf-8")
+
+        revision_argument = (
+            "-Dsonar.scm.revision="
+            "${{ github.event.workflow_run.head_sha }}"
+        )
+        self.assertEqual(2, workflow_text.count(revision_argument))
+        self.assertIn("-Dsonar.qualitygate.wait=true", workflow_text)
+
     def test_package_versions_are_aligned(self):
         pyproject = tomllib.loads((REPOSITORY_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
         setup_version = ast.literal_eval(self._setup_keyword_values()["version"])
