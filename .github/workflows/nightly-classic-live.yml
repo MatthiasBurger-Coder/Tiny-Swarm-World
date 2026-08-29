@@ -28,7 +28,7 @@ env:
 jobs:
   qualify-runner:
     name: Qualify Classic live runner
-    if: ${{ github.event_name == 'schedule' || inputs.live_approval == 'approve' }}
+    if: ${{ always() }}
     runs-on: [self-hosted, linux, tsw-classic]
     timeout-minutes: 10
     steps:
@@ -36,6 +36,13 @@ jobs:
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
           fetch-depth: 0
+
+      - name: Reject blocked manual execution
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.live_approval != 'approve' }}
+        run: |
+          set -Eeuo pipefail
+          echo "Classic live execution was explicitly blocked; required live evidence is not green."
+          exit 1
 
       - name: Require Linux and owned live target
         env:
@@ -56,6 +63,10 @@ jobs:
           print("runner-capability=linux")
           print(f"python={sys.version_info.major}.{sys.version_info.minor}")
           PY
+          command -v incus
+          command -v docker
+          incus version
+          docker version --format '{{.Server.Version}}'
 
   classic-live:
     name: Execute Classic live chain

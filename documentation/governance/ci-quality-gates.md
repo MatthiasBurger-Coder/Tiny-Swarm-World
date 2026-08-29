@@ -93,6 +93,23 @@ GitHub Actions run provides run ID, commit, trigger, runner, duration,
 artifacts and external-gate status. A local test pass does not create that
 external evidence.
 
+## Stable status-check names
+
+The intended branch-protection check names are the workflow and job display
+names below. Matrix entries remain independently required checks:
+
+| Responsibility | Intended status check |
+| --- | --- |
+| PR/push quality | `Python Quality Gate / Locked Python quality gate` |
+| Python 3.12 compatibility | `Python Compatibility / Conda Python 3.12` |
+| Python 3.13 compatibility | `Python Compatibility / Conda Python 3.13` |
+| Trusted SonarCloud result | `SonarCloud Trusted External Gate / SonarCloud external analysis` |
+| Classic live qualification | `Nightly Classic Live / Execute Classic live chain` |
+
+Only checks from an observed workflow run may satisfy the corresponding RC1
+gate. A missing, skipped, blocked, failed or unavailable check is not green
+evidence.
+
 `python-compatibility.yml` runs the declared Conda matrix for Python 3.12 and
 3.13. Each matrix entry creates the environment from `environment.yml`,
 installs `requirements.lock` with hash verification, installs the editable
