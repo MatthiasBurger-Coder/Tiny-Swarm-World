@@ -192,6 +192,12 @@ values. Process environment values override this file. If `./install.sh` runs
 with secret generation enabled, missing generated local secrets are created and
 kept in ignored local files instead of being printed.
 
+For an authorized WSL2 live run from a checkout under `/mnt/<drive>`, keep the
+source checkout there for traceability but set `TSW_INSTALL_ENV_FILE` to a
+WSL-native `0600` file outside the checkout. Use the same native boundary for
+`TSW_LIVE_EVIDENCE_ROOT`; see
+`documentation/evidence/wsl2-secure-live-path.md` for the guarded live path.
+
 The required values are defined by
 `infra/config/secrets/infisical-secrets.yaml` and summarized in
 `documentation/arc42/08_configuration/operator-configuration-contract.md`. The important

@@ -23,11 +23,18 @@ ignored by Git, and must not be committed. The parser accepts simple
 `KEY=value` and `export KEY=value` assignments, ignores non-`TSW_*` keys, and
 fails closed on duplicate `TSW_*` keys or unsupported shell syntax.
 
+For an authorized WSL2 live run from a `/mnt/<drive>` checkout,
+`TSW_INSTALL_ENV_FILE` must explicitly point to a WSL-native file outside the
+checkout. The source-tree override used to qualify that checkout does not make
+its DrvFS files safe for credentials. Live evidence must likewise use the
+WSL-native path documented in
+`documentation/evidence/wsl2-secure-live-path.md`.
+
 ## Ownership And Lifecycle
 
 | Value group | Owner | Storage | Lifecycle |
 |---|---|---|---|
-| Operator runtime secrets | Operator | `.tiny-swarm-world/local/live-installation.env` or process environment | Created before install, reused across reruns, edited or rotated by the operator. |
+| Operator runtime secrets | Operator | `.tiny-swarm-world/local/live-installation.env` or process environment; WSL2 live runs use the WSL-native `TSW_INSTALL_ENV_FILE` path | Created before install, reused across reruns, edited or rotated by the operator. |
 | Fixed local secrets | Operator | `.tiny-swarm-world/local/fixed-secrets.env` by default | Used only when `secrets.mode=fixed`; every required manifest key must exist and contain a non-empty value. |
 | Generated local bootstrap secrets | Python installer | `.tiny-swarm-world/local/live-installation.env` | Generated only when missing and secret generation is enabled; existing values are kept. |
 | Infisical bootstrap runtime file | Python installer | `.tiny-swarm/secrets/bootstrap.local.env` | Rewritten from the resolved local values for the self-hosted Infisical stack; ignored by Git. |

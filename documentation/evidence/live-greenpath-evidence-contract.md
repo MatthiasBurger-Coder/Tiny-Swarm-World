@@ -40,6 +40,22 @@ Each scenario must be evaluated on native Linux and WSL2 when both hosts are
 in scope. A missing host scenario is `LIVE_PREREQUISITE_MISSING`, never an
 implicit pass.
 
+## WSL2 mounted-checkout security boundary
+
+When a WSL2 checkout is under `/mnt/<drive>`, the checkout is classified as a
+source location only. It must not be used for mutable live environment files
+or protected evidence. The canonical strategy is to point
+`TSW_INSTALL_ENV_FILE` and `TSW_LIVE_EVIDENCE_ROOT` at WSL-native state under
+`$HOME/.local/state` (or another verified Linux-native path). Preflight checks
+the source classification separately from secret-storage classification and
+fails before mutation when the secret file or evidence root cannot verify
+effective ownership and the required owner-only modes.
+
+The source override `--allow-wsl-windows-filesystem` therefore never weakens
+secret or evidence checks. A live run must also provide a non-secret reference
+that the credential exposed by an earlier failed attempt was rotated or
+revoked. Only the presence of that reference is recorded in the bundle.
+
 ## State semantics
 
 Use the exact live states from

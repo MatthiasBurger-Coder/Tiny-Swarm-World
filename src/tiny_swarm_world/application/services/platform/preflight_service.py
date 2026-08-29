@@ -7,6 +7,7 @@ from tiny_swarm_world.application.ports.configuration import ConfigurationSource
 from tiny_swarm_world.application.ports.preflight import (
     PortArtifactSourceReadiness,
     PortHostPreflightProbe,
+    PortSecretStorageProbe,
 )
 from tiny_swarm_world.application.services.configuration import ConfigurationValidationService
 from tiny_swarm_world.application.services.platform.host.authorize_project_filesystem import (
@@ -28,6 +29,8 @@ from tiny_swarm_world.domain.preflight import (
     PreflightSeverity,
     PreflightStatus,
     RequiredPort,
+    SecretStorageAssessment,
+    assess_secret_storage,
     default_preflight_configuration,
 )
 from tiny_swarm_world.domain.project_filesystem import ProjectFilesystemAssessment
@@ -53,6 +56,8 @@ class PreflightService:
         resource_inspector: object | None = None,
         evidence_writer: object | None = None,
         artifact_source_readiness: PortArtifactSourceReadiness | None = None,
+        secret_storage_probe: PortSecretStorageProbe | None = None,
+        secret_storage_path: str | None = None,
         include_secret_checks: bool = True,
         include_port_checks: bool = True,
     ):
@@ -67,6 +72,8 @@ class PreflightService:
         self.resource_inspector = resource_inspector
         self.evidence_writer = evidence_writer
         self.artifact_source_readiness = artifact_source_readiness
+        self.secret_storage_probe = secret_storage_probe
+        self.secret_storage_path = secret_storage_path
         self.include_secret_checks = include_secret_checks
         self.include_port_checks = include_port_checks
 
@@ -93,6 +100,17 @@ class PreflightService:
         if filesystem_assessment is not None:
             checks.append(self._project_filesystem_check(filesystem_assessment))
             if filesystem_assessment.blocked:
+                return self._result(
+                    tuple(checks),
+                    write_evidence=_live_evidence_enabled(live_consent),
+                )
+        secret_storage_assessment = self._secret_storage_assessment(
+            host_environment,
+            live_consent,
+        )
+        if secret_storage_assessment is not None:
+            checks.append(self._secret_storage_check(secret_storage_assessment))
+            if not secret_storage_assessment.allowed:
                 return self._result(
                     tuple(checks),
                     write_evidence=_live_evidence_enabled(live_consent),
@@ -310,6 +328,56 @@ class PreflightService:
             PreflightCategory.FILESYSTEM,
             "Project filesystem blocks live setup.",
             remediation,
+            evidence,
+        )
+
+    def _secret_storage_assessment(
+        self,
+        host_environment: HostEnvironmentReport,
+        live_consent: LiveConsent | None,
+    ) -> SecretStorageAssessment | None:
+        if (
+            live_consent is None
+            or not live_consent.accepted
+            or self.secret_storage_probe is None
+            or self.secret_storage_path is None
+        ):
+            return None
+        inspection = self.secret_storage_probe.inspect(
+            self.secret_storage_path,
+            host_environment.environment,
+        )
+        uid, gid = self.secret_storage_probe.effective_identity()
+        return assess_secret_storage(
+            host_environment.environment,
+            inspection,
+            expected_uid=uid,
+            expected_gid=gid,
+            require_existing_file=host_environment.environment is HostEnvironmentKind.WSL2,
+        )
+
+    def _secret_storage_check(
+        self,
+        assessment: SecretStorageAssessment,
+    ) -> PreflightCheck:
+        safe = assessment.to_safe_dict()
+        evidence = {
+            key: ",".join(value) if isinstance(value, list) else str(value)
+            for key, value in safe.items()
+            if key != "remediation"
+        }
+        if assessment.allowed:
+            return _passed(
+                "SECRET-STORAGE",
+                PreflightCategory.SECRET,
+                "Mutable live secret storage is Linux-native and owner-only.",
+                evidence,
+            )
+        return _failed(
+            "SECRET-STORAGE",
+            PreflightCategory.SECRET,
+            "Mutable live secret storage cannot be verified safely.",
+            " ".join(assessment.remediation),
             evidence,
         )
 

@@ -9,12 +9,25 @@ import re
 import shutil
 import stat
 import subprocess
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
+LIVE_TOOLS_ROOT = REPOSITORY_ROOT / "tools" / "live"
+if str(REPOSITORY_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPOSITORY_ROOT))
+if str(LIVE_TOOLS_ROOT) not in sys.path:
+    sys.path.insert(0, str(LIVE_TOOLS_ROOT))
+
+from tools.live.secure_runtime_paths import (  # noqa: E402
+    assess_evidence_directory,
+    assess_secret_file,
+    host_classification,
+)
+
 INSTALL_SCRIPT = "install.sh"
 SECRET_ENV_FILE = ".tiny-swarm-world/local/live-installation.env"
 EVIDENCE_ROOT = ".tiny-swarm-world/evidence/installation-tests"
@@ -94,13 +107,23 @@ def main(argv: list[str] | None = None) -> int:
             "and local secret file mode 600. Ownership is reported, not changed."
         ),
     )
+    parser.add_argument(
+        "--env-file",
+        default=None,
+        help=(
+            "Explicit operator environment file. Relative paths are resolved from the "
+            "repository root; live WSL runs require a WSL-native absolute path."
+        ),
+    )
     args = parser.parse_args(argv)
 
     repo_root = Path(args.repo_root).resolve()
+    env_file = _resolve_env_file(repo_root, args.env_file)
     findings = diagnose(
         repo_root,
         live=args.live,
         fix_permissions=args.fix_permissions,
+        env_file=env_file,
     )
     print_report(repo_root, findings, log_guidance(repo_root))
     return 1 if any(finding.status == "FAIL" for finding in findings) else 0
@@ -111,6 +134,7 @@ def diagnose(
     *,
     live: bool = False,
     fix_permissions: bool = False,
+    env_file: Path | None = None,
 ) -> list[Finding]:
     findings: list[Finding] = []
     if fix_permissions and not live:
@@ -126,7 +150,22 @@ def diagnose(
 
     findings.extend(check_repository_shape(repo_root))
     findings.extend(check_install_script(repo_root, live=live, fix_permissions=fix_permissions))
-    findings.extend(check_permissions(repo_root, live=live, fix_permissions=fix_permissions))
+    configured_env_file = env_file or _resolve_env_file(repo_root, None)
+    findings.extend(
+        check_permissions(
+            repo_root,
+            live=live,
+            fix_permissions=fix_permissions,
+            env_file=configured_env_file,
+        )
+    )
+    findings.extend(
+        check_secure_runtime_paths(
+            repo_root,
+            live=live,
+            env_file=configured_env_file,
+        )
+    )
     systemd_state, systemd_findings = check_systemd(live=live)
     findings.extend(systemd_findings)
     findings.extend(check_service_definitions(repo_root, systemd_state))
@@ -233,16 +272,100 @@ def check_permissions(
     *,
     live: bool,
     fix_permissions: bool,
+    env_file: Path | None = None,
 ) -> list[Finding]:
     findings = _filesystem_permission_findings(repo_root)
+    secret_file = env_file or repo_root / SECRET_ENV_FILE
     findings.append(
         _secret_file_mode_finding(
-            repo_root / SECRET_ENV_FILE,
+            secret_file,
             live=live,
             fix_permissions=fix_permissions,
         )
     )
     return findings
+
+
+def check_secure_runtime_paths(
+    repo_root: Path,
+    *,
+    live: bool,
+    env_file: Path,
+) -> list[Finding]:
+    """Check mutable secret/evidence paths independently of source-tree safety."""
+    host = host_classification()
+    source = assess_evidence_directory(repo_root, host=host)
+    if not live:
+        return [
+            Finding(
+                "INFO",
+                "Secure live secret storage",
+                "Live secret-storage qualification is deferred until --live; source "
+                f"filesystem classification is {source.filesystem_classification}.",
+            )
+        ]
+
+    secret = assess_secret_file(env_file, host=host)
+    evidence = assess_evidence_directory(
+        _default_live_evidence_root(repo_root),
+        host=host,
+    )
+    findings = [
+        _runtime_path_finding(
+            "Secure live secret storage",
+            secret,
+            "Use TSW_INSTALL_ENV_FILE to point at a WSL-native 0600 secret file.",
+        ),
+        _runtime_path_finding(
+            "Secure live evidence storage",
+            evidence,
+            "Use XDG_STATE_HOME on the WSL-native filesystem for protected evidence.",
+        ),
+    ]
+    if source.filesystem_classification == "windows_mounted":
+        findings.insert(
+            0,
+            Finding(
+                "INFO",
+                "Source-tree filesystem",
+                "The source tree is Windows-mounted; this is allowed only when "
+                "secret and evidence storage pass their independent native checks.",
+            ),
+        )
+    return findings
+
+
+def _runtime_path_finding(title: str, assessment, remediation: str) -> Finding:
+    safe = assessment.to_safe_dict()
+    if assessment.allowed:
+        return Finding("OK", title, "; ".join(f"{key}={value}" for key, value in safe.items()))
+    reasons = ",".join(assessment.reasons()) or "qualification_failed"
+    return Finding(
+        "FAIL",
+        title,
+        f"Secure runtime path qualification failed ({reasons}); path contents were not read.",
+        (
+            remediation,
+            "Suggested WSL command: install -d -m 700 \"$HOME/.local/state/tiny-swarm-world\"; "
+            "export TSW_INSTALL_ENV_FILE=\"$HOME/.local/state/tiny-swarm-world/live-installation.env\"; "
+            "chmod 600 \"$TSW_INSTALL_ENV_FILE\"",
+        ),
+    )
+
+
+def _resolve_env_file(repo_root: Path, configured: str | None) -> Path:
+    value = configured or os.environ.get("TSW_INSTALL_ENV_FILE") or SECRET_ENV_FILE
+    path = Path(value).expanduser()
+    return path if path.is_absolute() else repo_root / path
+
+
+def _default_live_evidence_root(repo_root: Path) -> Path:
+    configured_root = os.environ.get("TSW_LIVE_EVIDENCE_ROOT", "").strip()
+    if configured_root:
+        return Path(configured_root).expanduser()
+    configured = os.environ.get("XDG_STATE_HOME", "").strip()
+    state_root = Path(configured).expanduser() if configured else Path.home() / ".local" / "state"
+    return state_root / "tiny-swarm-world" / "evidence" / "installation-tests"
 
 
 def _filesystem_permission_findings(repo_root: Path) -> list[Finding]:
@@ -294,7 +417,24 @@ def _secret_file_mode_finding(
     if not mode & 0o077:
         return Finding("OK", SECRET_FILE_MODE_LABEL, f"{SECRET_ENV_FILE} is private.")
     if live and fix_permissions:
+        if host_classification() == "wsl2" and secret_file.as_posix().startswith("/mnt/"):
+            return Finding(
+                "FAIL",
+                SECRET_FILE_MODE_LABEL,
+                "A Windows-mounted secret file cannot be repaired into a trustworthy "
+                "owner-only live secret store.",
+                ("Move the secret file to a WSL-native filesystem and set TSW_INSTALL_ENV_FILE.",),
+            )
         secret_file.chmod(0o600)
+        try:
+            secret_file.parent.chmod(0o700)
+        except OSError:
+            return Finding(
+                "FAIL",
+                SECRET_FILE_MODE_LABEL,
+                "The secret directory mode could not be verified safely.",
+                ("Create the secret directory on a WSL-native filesystem with mode 0700.",),
+            )
         return Finding("FIXED", SECRET_FILE_MODE_LABEL, f"Set {SECRET_ENV_FILE} mode to 0600.")
     return Finding(
         "WARN",

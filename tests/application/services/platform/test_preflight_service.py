@@ -35,6 +35,7 @@ from tiny_swarm_world.domain.preflight import (
     SetupProfile,
     SetupSecretRequirement,
     SetupServiceRequirement,
+    SecretStorageInspection,
     WindowsWslBridgeStatus,
     default_preflight_configuration,
 )
@@ -959,6 +960,65 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         failed_by_id = {check.check_id: check for check in result.failed_checks}
         self.assertIn("PYTHON", failed_by_id)
         self.assertEqual("3.11.9", failed_by_id["PYTHON"].evidence["actual"])
+
+    async def test_live_preflight_blocks_mounted_secret_storage_before_runtime_checks(self):
+        result = await PreflightService(
+            _fake_probe(host_environment=_wsl2_environment()),
+            secret_storage_probe=_SecretStorageProbe(
+                _secret_storage_inspection(ProjectFilesystemKind.WINDOWS_MOUNTED)
+            ),
+            secret_storage_path="/mnt/d/project/live-installation.env",
+        ).run(LiveConsent(live_flag=True, confirmed=True))
+
+        failed = next(check for check in result.failed_checks if check.check_id == "SECRET-STORAGE")
+        self.assertEqual(PreflightStatus.FAILED, failed.status)
+        self.assertIn("storage_filesystem_not_linux_native", failed.evidence["reasons"])
+        self.assertNotIn("/mnt/d/project", str(result.to_dict()))
+        self.assertFalse(any(check.check_id.startswith("RUNTIME-") for check in result.checks))
+
+    async def test_live_preflight_accepts_wsl_native_owner_only_secret_storage(self):
+        result = await PreflightService(
+            _fake_probe(host_environment=_wsl2_environment()),
+            secret_storage_probe=_SecretStorageProbe(
+                _secret_storage_inspection(ProjectFilesystemKind.WSL_LINUX)
+            ),
+            secret_storage_path="/home/test/live-installation.env",
+        ).run(LiveConsent(live_flag=True, confirmed=True))
+
+        check = next(item for item in result.checks if item.check_id == "SECRET-STORAGE")
+        self.assertEqual(PreflightStatus.PASSED, check.status)
+        self.assertEqual("true", check.evidence["accepted"])
+
+
+class _SecretStorageProbe:
+    def __init__(self, inspection: SecretStorageInspection) -> None:
+        self.inspection = inspection
+
+    def effective_identity(self) -> tuple[int, int]:
+        return 1000, 1000
+
+    def inspect(self, path: str, host_environment: HostEnvironmentKind) -> SecretStorageInspection:
+        return self.inspection
+
+
+def _secret_storage_inspection(
+    filesystem_kind: ProjectFilesystemKind,
+) -> SecretStorageInspection:
+    return SecretStorageInspection(
+        resolved_path="/mnt/d/project/live-installation.env",
+        filesystem_kind=filesystem_kind,
+        filesystem_type="9p" if filesystem_kind is ProjectFilesystemKind.WINDOWS_MOUNTED else "ext4",
+        exists=True,
+        is_regular_file=True,
+        owner_uid=1000,
+        group_gid=1000,
+        mode=0o600,
+        parent_exists=True,
+        parent_owner_uid=1000,
+        parent_group_gid=1000,
+        parent_mode=0o700,
+        classification_source="test_fixture",
+    )
 
 
 class _ProjectFilesystemService:

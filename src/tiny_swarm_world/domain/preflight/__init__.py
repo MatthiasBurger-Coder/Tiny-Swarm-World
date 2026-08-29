@@ -81,6 +81,12 @@ from tiny_swarm_world.domain.preflight.readiness import (
     ReadinessProbeRequest,
     ReadinessStatus,
 )
+from tiny_swarm_world.domain.preflight.secret_storage import (
+    SecretStorageAssessment,
+    SecretStorageDecision,
+    SecretStorageInspection,
+    assess_secret_storage,
+)
 
 __all__ = [
     "LIVE_CONSENT_ENVIRONMENT_VARIABLE",
@@ -144,4 +150,8 @@ __all__ = [
     "ReadinessCheckResult",
     "ReadinessProbeRequest",
     "ReadinessStatus",
+    "SecretStorageAssessment",
+    "SecretStorageDecision",
+    "SecretStorageInspection",
+    "assess_secret_storage",
 ]
