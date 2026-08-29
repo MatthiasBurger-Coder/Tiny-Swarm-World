@@ -1,36 +1,52 @@
 # Open-Branches Consolidation Report
 
 Date: 2026-08-29
-Integration branch: `integration/open-branches-consolidation`
-Authoritative baseline: `origin/main` at `b7b1f23ab7e6bf6125aa1285c0bd371f52738df`
+Integration branch: `integration/all-open-branches-to-main-20260829`
+Authoritative baseline: `origin/main` at `aec79e498ec8edb2cd63d6d31b8e07a0ea769e58`
 
 ## Consolidation status
 
-`CONSOLIDATION STATUS: BLOCKED`
+`CONSOLIDATION STATUS: MERGE-CANDIDATE`
 
-The repository has one coherent local implementation on the integration
-branch, but the requested GREEN gate is not satisfied: exact-candidate
-external CI/Sonar evidence, Native Linux lifecycle evidence and an independent
-final issue-completion audit remain open. The existing Issue #252 evidence
-explicitly records `INCOMPLETE`; historical live evidence was not transferred
-to this new candidate.
+The current `main` tree is the authoritative coherent implementation. The
+remaining branch tips were reconciled into the merge candidate's ancestry
+without reintroducing superseded behavior. The requested RC1 GREEN gate is
+still not satisfied: exact-candidate external CI/Sonar evidence, Native Linux
+lifecycle evidence and an independent final issue-completion audit remain
+open. The existing Issue #252 evidence explicitly records `INCOMPLETE`.
 
 ## Branch inventory
 
 | Branch | Purpose and evidence | Disposition |
 | --- | --- | --- |
 | `origin/main` / `main` | Authoritative current baseline; contains the trusted external Sonar bootstrap from PR #266. | KEEP as base |
-| `feature/classic-public-beta-rc1-stabilization` / PR #265 | Issue #252 remediation: R01–R08, TLS, Traefik secrets, readiness, host checks, live workflow, tests, docs and evidence; 33 commits ahead of the baseline. | KEEP + ADAPT; integrated selectively |
+| `feature/classic-public-beta-rc1-stabilization` / PR #265 | Issue #252 remediation: R01–R08, TLS, Traefik secrets, readiness, host checks, live workflow, tests, docs and evidence; 33 commits ahead of the baseline. | MERGED AS RECONCILED HISTORY; current `main` tree retained |
 | `ci/remove-legacy-sonar-pr-gate` / PR #267 | Removes the legacy `sonar_check.yml` authority and pins the trusted Sonar revision to the exact workflow-run SHA; 2 commits. | KEEP + RECONCILE |
-| `feature/workflow-issue-252-remediation-20260823` | Workflow authoring branch; its committed history is an ancestor/subset of PR #265. | SUPERSEDED as an independent source; represented by PR #265 |
-| `docs/workflow-issue-252-ci-live-addendum-20260818` | Documentation addendum; its committed history is an ancestor/subset of PR #265. | SUPERSEDED as an independent source; represented by PR #265 |
+| `feature/workflow-issue-252-remediation-20260823` | Workflow authoring branch; its committed history overlaps the remediation branch but is not an ancestor by hash. | MERGED AS HISTORY-CLOSURE; no stale tree content selected |
+| `docs/workflow-issue-252-ci-live-addendum-20260818` | Documentation addendum; its committed history is included through the remediation branch. | MERGED THROUGH REMEDIATION HISTORY; current documentation retained |
 | `preserve/issue-252-candidate-20260823` | Preserve branch whose committed history is an ancestor/subset of PR #265; its dirty worktree was reviewed separately. | SUPERSEDED as an independent source; worktree preserved |
 | `release` | Stale release baseline, 310 commits behind `origin/main`; not an open development source. | EXCLUDED / DROP from consolidation |
 | `origin/public/main` | Separate stale public reference, 151 commits behind `origin/main`; not authoritative for this repository. | EXCLUDED / DROP from consolidation |
 | `origin/ci/sonar-trusted-bootstrap` | Former PR #266 source; already merged into `origin/main` and removed by fetch/prune. | ALREADY REPRESENTED |
 
 All original branches and worktrees remain intact. No remote branch was
-deleted, closed, force-pushed or merged by this consolidation.
+deleted, closed or force-pushed. The consolidation candidate contains explicit
+merge parents for the remaining development branches; the final tree is
+unchanged from the current authoritative `main` tree.
+
+## Merge execution
+
+- `79a7bb76` reconciles `feature/classic-public-beta-rc1-stabilization` with
+  the current `main` tree. The source branch's obsolete `sonar_check.yml`
+  variant and related stale references were not selected.
+- `b5a52632` closes the independent
+  `feature/workflow-issue-252-remediation-20260823` history with the already
+  reconciled tree.
+- `git diff origin/main HEAD` is empty after both merges, proving that no
+  additional stale implementation was introduced.
+- `release` was not merged as a source branch. Its old commits are already
+  historical ancestors of `main`; no `release` content was selected or
+  updated by this operation.
 
 ## Change matrix
 
