@@ -42,7 +42,7 @@ class CiWorkflowContractTests(unittest.TestCase):
                 self.assertIn(f'"{requirement}"', workflow)
 
     def test_sonar_workflow_owns_external_analysis_only(self) -> None:
-        workflow = self._workflow("sonar_check.yml")
+        workflow = self._workflow("sonar_external_gate.yml")
 
         self.assertIn("workflow_run:", workflow)
         self.assertIn("workflows: [Python Quality Gate]", workflow)
@@ -50,20 +50,22 @@ class CiWorkflowContractTests(unittest.TestCase):
         self.assertIn("sonar-coverage-${{ github.event.workflow_run.id }}", workflow)
         self.assertIn("github.event.workflow_run.conclusion != 'success'", workflow)
         self.assertIn("github.event.workflow_run.conclusion == 'success'", workflow)
-        self.assertIn("Require SonarCloud Token", workflow)
+        self.assertIn("Require SonarCloud token", workflow)
         self.assertIn("external gate is not green", workflow)
         self.assertIn("exit 1", workflow)
         self.assertIn("SonarSource/sonarqube-scan-action@", workflow)
         self.assertNotIn("tools/quality_gate.py quality", workflow)
         self.assertNotIn("Skip SonarCloud Scan", workflow)
 
-    def test_sonar_workflow_requires_the_locked_runtime_contract(self) -> None:
-        workflow = self._workflow("sonar_check.yml")
+    def test_sonar_workflow_does_not_duplicate_the_locked_runtime_gate(self) -> None:
+        workflow = self._workflow("sonar_external_gate.yml")
 
-        self.assertIn('python-version: "3.12"', workflow)
-        self.assertIn("pip install --require-hashes -r requirements.lock", workflow)
-        self.assertIn("pip install --no-deps -e .", workflow)
-        self.assertIn("python3 -m pip check", workflow)
+        self.assertIn("persist-credentials: false", workflow)
+        self.assertIn("ref: ${{ github.event.workflow_run.head_sha }}", workflow)
+        self.assertIn("-Dsonar.scm.revision=${{ github.event.workflow_run.head_sha }}", workflow)
+        self.assertIn("-Dsonar.qualitygate.wait=true", workflow)
+        self.assertNotIn("tools/quality_gate.py quality", workflow)
+        self.assertNotIn("pip install --require-hashes -r requirements.lock", workflow)
 
     def test_python_compatibility_workflow_runs_the_declared_conda_matrix(self) -> None:
         workflow = self._workflow("python-compatibility.yml")

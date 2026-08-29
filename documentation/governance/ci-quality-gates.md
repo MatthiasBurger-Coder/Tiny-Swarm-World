@@ -48,7 +48,7 @@ produce evidence:
 | --- | --- | --- |
 | `python-quality-gate.yml` | PR/push execution of the locked Python quality gate | Any failed, skipped or unavailable stage blocks the required check. |
 | `python-compatibility.yml` | Conda matrix for the supported Python versions | Every matrix entry must run; missing entries are not compatible. |
-| `sonar_check.yml` | External SonarCloud analysis and status publication | Missing token/status is unavailable, not green. |
+| `sonar_external_gate.yml` | Trusted external SonarCloud analysis and status publication | Missing token/status is unavailable, not green. |
 | `nightly-classic-live.yml` | Scheduled/manual Classic live chain on a verified self-hosted runner | Missing runner capability, consent or evidence is blocked/unverified, never success. |
 
 The Classic-live workflow is not part of the default hosted quality path. It

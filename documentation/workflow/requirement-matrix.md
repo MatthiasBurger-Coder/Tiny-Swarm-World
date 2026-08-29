@@ -59,7 +59,7 @@ or marked complete from static workflow text.
 | REQ-252-044 | Project checks remain Linux/WSL; workflow does not grant admin PowerShell access. | operating constraint | workflow/branch rules | command review | OPEN |
 | REQ-252-045 | PR and push events execute the locked Python quality gate through `python-quality-gate.yml`. | quality-gate | S252-13 / CI run evidence | real PR/push run | OPEN |
 | REQ-252-046 | Supported Python versions run through a Conda compatibility matrix. | compatibility | S252-14 / CI run evidence | every matrix entry | OPEN |
-| REQ-252-047 | `sonar_check.yml` has one explicit external-gate responsibility and missing status is not green. | quality-gate | S252-13 / Sonar evidence | real external status | OPEN |
+| REQ-252-047 | `sonar_external_gate.yml` has one explicit trusted external-gate responsibility and missing status is not green. | quality-gate | S252-13 / Sonar evidence | real external status | OPEN |
 | REQ-252-048 | Classic live automation uses schedule/manual dispatch and a verified self-hosted runner strategy. | live/CI | S252-15 / runner evidence | real workflow run | OPEN |
 | REQ-252-049 | Failed, skipped, blocked, unauthorized, unavailable or unverified CI paths cannot aggregate to RC1 success. | safety/release | S252-16 / final audit | failure-semantic evidence | OPEN |
 | REQ-252-050 | CI evidence records run ID, commit, trigger, runner, duration, status, artifacts, external status, redaction and defects. | evidence | S252-16 / CI evidence bundle | schema audit | OPEN |

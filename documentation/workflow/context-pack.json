@@ -67,7 +67,7 @@
     "python3 tools/quality_gate.py typecheck",
     "python3 tools/quality_gate.py test",
     "python3 tools/quality_gate.py quality",
-    "real GitHub Actions runs for python-quality-gate.yml, python-compatibility.yml, sonar_check.yml and nightly-classic-live.yml"
+    "real GitHub Actions runs for python-quality-gate.yml, python-compatibility.yml, sonar_external_gate.yml and nightly-classic-live.yml"
   ],
   "governing_file_sha256": {
     "AGENTS.md": "bc0e6e0c09ac3d61a450a7fe16c3e4de9e6fbb8bdc688aad58f10a3d18b31041",

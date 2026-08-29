@@ -151,7 +151,7 @@ host/scenario evidence -> defect classification -> independent completion audit
 13. Provide `python-compatibility.yml` with the supported Conda Python matrix;
     the initial matrix is Python 3.12 and 3.13, subject to implementation-time
     verification against the supported package/runtime contract.
-14. Reconcile `sonar_check.yml` as the external SonarCloud gate without
+14. Reconcile `sonar_external_gate.yml` as the trusted external SonarCloud gate without
     duplicating or weakening the canonical Python quality gate. Missing or
     unavailable Sonar status is not green evidence.
 15. Provide `nightly-classic-live.yml` with schedule and manual dispatch,
@@ -582,7 +582,7 @@ Purpose: implement the mandatory PR/Push Python quality workflow and reconcile
 the existing Sonar workflow into a non-duplicating external analysis gate.
 
 The canonical command remains `python3 tools/quality_gate.py quality` in a
-locked Linux CI environment. `sonar_check.yml` must either consume the same
+locked Linux CI environment. `sonar_external_gate.yml` must consume the same
 verified quality/coverage contract or clearly own only the external SonarCloud
 publication step. A missing token, skipped scan, unavailable status or failed
 quality stage is recorded as non-success and cannot satisfy RC1.
@@ -592,7 +592,7 @@ slice_id: S252-13
 profile: FULL_PATH
 owner: Senior Tester
 secondary_reviewers: [Senior Python Automation Developer, Senior System Architect, Senior Documentation Engineer, Release Baseline Governance Expert]
-affected_files: [.github/workflows/python-quality-gate.yml, .github/workflows/sonar_check.yml, documentation/governance/ci-quality-gates.md, tests/test_ci_workflow_contract.py]
+affected_files: [.github/workflows/python-quality-gate.yml, .github/workflows/sonar_external_gate.yml, documentation/governance/ci-quality-gates.md, tests/test_ci_workflow_contract.py]
 affected_modules: [GitHub Actions quality gate, coverage handoff, SonarCloud external analysis]
 affected_contracts: [QUALITY.md gate contract, PR/push status contract, external-gate state contract]
 dependencies: [S252-03]
@@ -1457,7 +1457,7 @@ are not verified.
   changed_files.md, test_results.md, remaining_risks.md and
   acceptance_checklist.md
 - Required CI evidence: real run summaries for `python-quality-gate.yml`,
-  `python-compatibility.yml`, reconciled `sonar_check.yml` and
+  `python-compatibility.yml`, reconciled `sonar_external_gate.yml` and
   `nightly-classic-live.yml`, including run ID, commit, trigger, runner,
   status, artifacts, redaction and failure classification.
 - Live evidence path:
@@ -1495,7 +1495,7 @@ presence alone:
   `python3 tools/quality_gate.py quality` contract on PR and push events.
 - `.github/workflows/python-compatibility.yml` must execute the declared Conda
   matrix and fail when any matrix entry is missing, skipped or unresolved.
-- `.github/workflows/sonar_check.yml` must report external SonarCloud state
+- `.github/workflows/sonar_external_gate.yml` must report trusted external SonarCloud state
   separately and honestly; a missing token or unavailable status is not green.
 - `.github/workflows/nightly-classic-live.yml` must use a verified
   self-hosted Classic-capable runner and protected live environment. It must
