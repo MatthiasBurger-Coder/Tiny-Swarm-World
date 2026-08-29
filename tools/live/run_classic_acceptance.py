@@ -102,6 +102,8 @@ def main() -> int:
         (
             "classic_e2e",
             (
+                "env",
+                "TSW_RUN_POST_INSTALL_BROWSER_LIVE=1",
                 "python3",
                 "-m",
                 "unittest",
