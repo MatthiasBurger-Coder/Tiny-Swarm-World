@@ -45,6 +45,11 @@ when secret generation is enabled. Values whose source is
 `external_user_secret` identify external resources and are not generated as
 secret values by the installer.
 
+The Traefik htpasswd value is intentionally outside the Infisical manifest: it
+is required by the configuration contract for fresh-install provisioning but
+must remain an operator-owned Docker-secret input rather than an Infisical
+managed item.
+
 In `fixed` mode, the installer reads fixed values from
 `TSW_FIXED_SECRET_ENV_FILE` or `.tiny-swarm-world/local/fixed-secrets.env`,
 fails if the file is missing, fails if any required manifest key is missing or
@@ -70,6 +75,14 @@ The default contract requires these keys before setup execution:
 | `TSW_INFISICAL_AUTH_SECRET` | secret value | Infisical |
 | `TSW_INFISICAL_POSTGRES_PASSWORD` | secret value | Infisical |
 | `TSW_INFISICAL_REDIS_PASSWORD` | secret value | Infisical |
+| `TSW_TRAEFIK_GUI_USERS_HTPASSWD` | secret value | Traefik |
+
+`TSW_TRAEFIK_GUI_USERS_HTPASSWD` is the complete htpasswd file content, not a
+clear-text dashboard password. For a fresh install it must be present in the
+operator-owned local environment or process environment before reset. The
+installer and deployment workflow use it only to recreate and verify the
+named external Docker secret; it is never generated, logged, committed, or
+written to evidence.
 
 ## Optional Overrides
 
