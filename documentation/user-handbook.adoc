@@ -189,8 +189,8 @@ chmod 600 .tiny-swarm-world/local/live-installation.env
 
 Edit `.tiny-swarm-world/local/live-installation.env` and replace placeholder
 values. Process environment values override this file. If `./install.sh` runs
-with secret generation enabled, missing generated local secrets are created and
-kept in ignored local files instead of being printed.
+with secret generation enabled, and in `generated` mode, missing generated local
+secrets are created and kept in ignored local files instead of being printed.
 
 For an authorized WSL2 live run from a checkout under `/mnt/<drive>`, keep the
 source checkout there for traceability but set `TSW_INSTALL_ENV_FILE` to a

@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 from tiny_swarm_world.infrastructure.composition_configuration import (
     DEFAULT_SWARM_REGISTRY_ENDPOINT,
+    _secret_mode,
     _lxc_proxy_listen_address,
     _operator_config_float,
     _operator_config_int,
@@ -51,6 +52,17 @@ class TestCompositionConfiguration(unittest.TestCase):
         with patch.dict(os.environ, {"TSW_LXC_PROXY_LISTEN_ADDRESS": "localhost"}, clear=True):
             with self.assertRaisesRegex(ValueError, "listen address"):
                 _lxc_proxy_listen_address()
+
+    def test_secret_mode_prefers_internal_test_with_no_file_dependency(self):
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertEqual("generated", _secret_mode())
+
+        with patch.dict(os.environ, {"TSW_SECRETS_MODE": "internal-test"}, clear=True):
+            self.assertEqual("internal-test", _secret_mode())
+
+        with patch.dict(os.environ, {"TSW_SECRETS_MODE": "bad-mode"}, clear=True):
+            with self.assertRaisesRegex(ValueError, "internal-test"):
+                _secret_mode()
 
 
 if __name__ == "__main__":

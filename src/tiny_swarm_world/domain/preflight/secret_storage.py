@@ -90,6 +90,29 @@ def assess_secret_storage(
         ProjectFilesystemKind.NATIVE_LINUX,
         ProjectFilesystemKind.WSL_LINUX,
     }
+    if not require_existing_file and not inspection.exists:
+        if host_environment not in {
+            HostEnvironmentKind.NATIVE_LINUX,
+            HostEnvironmentKind.WSL2,
+        }:
+            return SecretStorageAssessment(
+                host_environment=host_environment,
+                inspection=inspection,
+                expected_uid=expected_uid,
+                expected_gid=expected_gid,
+                decision=SecretStorageDecision.BLOCKED,
+                reasons=("host_unsupported",),
+                remediation=(
+                    "Run preflight from a supported host profile for secret storage checks.",
+                ),
+            )
+        return SecretStorageAssessment(
+            host_environment=host_environment,
+            inspection=inspection,
+            expected_uid=expected_uid,
+            expected_gid=expected_gid,
+            decision=SecretStorageDecision.ALLOWED,
+        )
     if host_environment not in {
         HostEnvironmentKind.NATIVE_LINUX,
         HostEnvironmentKind.WSL2,

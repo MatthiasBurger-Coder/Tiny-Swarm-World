@@ -87,12 +87,12 @@ class TestInstaller(unittest.TestCase):
 
         self.assertEqual(exports["TSW_LIVE_TLS_CA_BUNDLE"], "/operator/ca.crt")
 
-    def test_parse_args_defaults_to_service_access_and_secret_generation(self):
+    def test_parse_args_defaults_to_service_access_and_internal_test_credentials(self):
         options = installer.parse_args(())
 
         self.assertEqual(options.service_profile, "service-access")
         self.assertTrue(options.generate_secrets)
-        self.assertEqual(options.secrets_mode, "generated")
+        self.assertEqual(options.secrets_mode, "internal-test")
         self.assertFalse(options.confirm_reset)
         self.assertFalse(options.non_interactive_live_approval)
         self.assertFalse(options.headless)

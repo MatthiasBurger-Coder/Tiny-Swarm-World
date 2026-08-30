@@ -454,9 +454,9 @@ chmod 600 .tiny-swarm-world/local/live-installation.env
 
 Edit `.tiny-swarm-world/local/live-installation.env` and replace placeholder
 values. The installer may also write generated bootstrap values to the same
-local secret file and recovery values to
-`.tiny-swarm/secrets/generated.local.env`. Do not paste values from either
-file into logs, issues, chat, commits, or documentation.
+local secret file and recovery values to `.tiny-swarm/secrets/generated.local.env`
+in `generated` mode. Do not paste values from either file into logs, issues,
+chat, commits, or documentation.
 
 For an authorized WSL2 live run from a checkout under `/mnt/<drive>`, set
 `TSW_INSTALL_ENV_FILE` to a WSL-native `0600` file outside the checkout and

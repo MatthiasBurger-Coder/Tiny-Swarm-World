@@ -315,6 +315,7 @@ from tiny_swarm_world.infrastructure.composition_configuration import (
     PULSAR_IMAGE_ENVIRONMENT,
     PULSAR_MANAGER_BOOTSTRAP_IMAGE_ENVIRONMENT,
     PULSAR_MANAGER_IMAGE_ENVIRONMENT,
+    INTERNAL_TEST_SECRET_MODE,
     SEED_INFISICAL_ITEMS_ENVIRONMENT,
     SERVICE_ACCESS_DASHBOARD_IMAGE_ENVIRONMENT,
     SERVICE_ACCESS_NGINX_IMAGE_ENVIRONMENT,
@@ -627,6 +628,9 @@ def build_preflight_service(
         artifact_source_readiness=HttpArtifactSourceReadiness(),
         secret_storage_probe=build_secret_storage_probe(),
         secret_storage_path=_operator_configuration_env_file().as_posix(),
+        require_existing_secret_storage_file=(
+            _secret_mode() != INTERNAL_TEST_SECRET_MODE
+        ),
         include_secret_checks=include_secret_checks,
         include_port_checks=include_port_checks,
     )
@@ -1011,6 +1015,9 @@ def _build_preflight_service_for_request(
         artifact_source_readiness=HttpArtifactSourceReadiness(),
         secret_storage_probe=build_secret_storage_probe(),
         secret_storage_path=_operator_configuration_env_file().as_posix(),
+        require_existing_secret_storage_file=(
+            _secret_mode() != INTERNAL_TEST_SECRET_MODE
+        ),
     )
 
 
@@ -1038,6 +1045,9 @@ def _build_post_install_preflight_service_for_request(
         allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
         secret_storage_probe=build_secret_storage_probe(),
         secret_storage_path=_operator_configuration_env_file().as_posix(),
+        require_existing_secret_storage_file=(
+            _secret_mode() != INTERNAL_TEST_SECRET_MODE
+        ),
     )
 
 

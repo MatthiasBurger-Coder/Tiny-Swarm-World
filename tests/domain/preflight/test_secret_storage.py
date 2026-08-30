@@ -60,18 +60,57 @@ class TestSecretStoragePolicy(unittest.TestCase):
         self.assertIn("secret_file_owner_mismatch", assessment.reasons)
         self.assertIn("secret_file_mode_not_0600", assessment.reasons)
 
+    def test_missing_file_is_allowed_when_not_required(self) -> None:
+        inspection = _inspection(
+            ProjectFilesystemKind.WSL_LINUX,
+            exists=False,
+            owner_uid=1001,
+            mode=0o644,
+        )
+
+        assessment = assess_secret_storage(
+            HostEnvironmentKind.WSL2,
+            inspection,
+            expected_uid=1000,
+            expected_gid=1000,
+            require_existing_file=False,
+        )
+
+        self.assertTrue(assessment.allowed)
+        self.assertEqual("allowed", assessment.decision.value)
+
+    def test_missing_file_is_blocked_when_required(self) -> None:
+        inspection = _inspection(
+            ProjectFilesystemKind.WSL_LINUX,
+            exists=False,
+            owner_uid=1001,
+            mode=0o644,
+        )
+
+        assessment = assess_secret_storage(
+            HostEnvironmentKind.WSL2,
+            inspection,
+            expected_uid=1000,
+            expected_gid=1000,
+            require_existing_file=True,
+        )
+
+        self.assertFalse(assessment.allowed)
+        self.assertIn("secret_file_missing", assessment.reasons)
+
 
 def _inspection(
     filesystem_kind: ProjectFilesystemKind,
     *,
     owner_uid: int = 1000,
     mode: int = 0o600,
+    exists: bool = True,
 ) -> SecretStorageInspection:
     return SecretStorageInspection(
         resolved_path="/mnt/c/Users/private/live-installation.env",
         filesystem_kind=filesystem_kind,
         filesystem_type="9p" if filesystem_kind is ProjectFilesystemKind.WINDOWS_MOUNTED else "ext4",
-        exists=True,
+        exists=exists,
         is_regular_file=True,
         owner_uid=owner_uid,
         group_gid=1000,

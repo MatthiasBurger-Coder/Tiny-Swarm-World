@@ -60,6 +60,7 @@ class PreflightService:
         secret_storage_path: str | None = None,
         include_secret_checks: bool = True,
         include_port_checks: bool = True,
+        require_existing_secret_storage_file: bool = True,
     ):
         self.host_probe = host_probe
         self.configuration = configuration or default_preflight_configuration()
@@ -76,6 +77,9 @@ class PreflightService:
         self.secret_storage_path = secret_storage_path
         self.include_secret_checks = include_secret_checks
         self.include_port_checks = include_port_checks
+        self.require_existing_secret_storage_file = (
+            require_existing_secret_storage_file
+        )
 
     async def run(self, live_consent: LiveConsent | None = None) -> PreflightResult:
         await asyncio.sleep(0)
@@ -353,7 +357,10 @@ class PreflightService:
             inspection,
             expected_uid=uid,
             expected_gid=gid,
-            require_existing_file=host_environment.environment is HostEnvironmentKind.WSL2,
+            require_existing_file=(
+                self.require_existing_secret_storage_file
+                and host_environment.environment is HostEnvironmentKind.WSL2
+            ),
         )
 
     def _secret_storage_check(

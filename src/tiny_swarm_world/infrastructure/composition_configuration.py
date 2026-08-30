@@ -37,7 +37,8 @@ PORTAINER_STACK_REQUEST_TIMEOUT_ENVIRONMENT = "TSW_PORTAINER_STACK_REQUEST_TIMEO
 DEFAULT_PORTAINER_STACK_REQUEST_TIMEOUT_SECONDS = 180
 SECRETS_MODE_ENVIRONMENT = "TSW_SECRETS_MODE"
 FIXED_SECRET_ENV_FILE_ENVIRONMENT = "TSW_FIXED_SECRET_ENV_FILE"
-SECRET_MODES = ("generated", "fixed", "infisical")
+INTERNAL_TEST_SECRET_MODE = "internal-test"
+SECRET_MODES = ("generated", "fixed", "infisical", INTERNAL_TEST_SECRET_MODE)
 SEED_INFISICAL_ITEMS_ENVIRONMENT = "TSW_SEED_INFISICAL_ITEMS"
 INFISICAL_LOGIN_EMAIL_ENVIRONMENT = "TSW_INFISICAL_LOGIN_EMAIL"
 INFISICAL_PASSWORD_ENVIRONMENT = "TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD"
@@ -142,7 +143,9 @@ def _operator_config_float(name: str, default: float, *, minimum: float) -> floa
 def _secret_mode() -> str:
     mode = _operator_config_value(SECRETS_MODE_ENVIRONMENT, "generated").strip()
     if mode not in SECRET_MODES:
-        raise ValueError("TSW_SECRETS_MODE must be one of generated, fixed, or infisical.")
+        raise ValueError(
+            "TSW_SECRETS_MODE must be one of generated, fixed, infisical, or internal-test."
+        )
     return mode
 
 

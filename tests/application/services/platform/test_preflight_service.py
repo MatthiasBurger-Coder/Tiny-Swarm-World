@@ -976,6 +976,41 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("/mnt/d/project", str(result.to_dict()))
         self.assertFalse(any(check.check_id.startswith("RUNTIME-") for check in result.checks))
 
+    async def test_live_preflight_allows_missing_secret_storage_with_internal_test_mode(self):
+        result = await PreflightService(
+            _fake_probe(host_environment=_wsl2_environment()),
+            secret_storage_probe=_SecretStorageProbe(
+                _secret_storage_inspection(
+                    ProjectFilesystemKind.WINDOWS_MOUNTED,
+                    exists=False,
+                )
+            ),
+            secret_storage_path="/mnt/d/project/live-installation.env",
+            require_existing_secret_storage_file=False,
+        ).run(LiveConsent(live_flag=True, confirmed=True))
+
+        check = next(item for item in result.checks if item.check_id == "SECRET-STORAGE")
+        self.assertEqual(PreflightStatus.PASSED, check.status)
+        self.assertEqual("true", check.evidence["accepted"])
+        self.assertIn("SECRET-STORAGE", {check.check_id for check in result.checks})
+
+    async def test_internal_test_mode_blocks_existing_mounted_secret_storage(self):
+        result = await PreflightService(
+            _fake_probe(host_environment=_wsl2_environment()),
+            secret_storage_probe=_SecretStorageProbe(
+                _secret_storage_inspection(
+                    ProjectFilesystemKind.WINDOWS_MOUNTED,
+                    exists=True,
+                )
+            ),
+            secret_storage_path="/mnt/d/project/live-installation.env",
+            require_existing_secret_storage_file=False,
+        ).run(LiveConsent(live_flag=True, confirmed=True))
+
+        failed = next(check for check in result.failed_checks if check.check_id == "SECRET-STORAGE")
+        self.assertEqual(PreflightStatus.FAILED, failed.status)
+        self.assertIn("storage_filesystem_not_linux_native", failed.evidence["reasons"])
+
     async def test_live_preflight_accepts_wsl_native_owner_only_secret_storage(self):
         result = await PreflightService(
             _fake_probe(host_environment=_wsl2_environment()),
@@ -1003,12 +1038,14 @@ class _SecretStorageProbe:
 
 def _secret_storage_inspection(
     filesystem_kind: ProjectFilesystemKind,
+    *,
+    exists: bool = True,
 ) -> SecretStorageInspection:
     return SecretStorageInspection(
         resolved_path="/mnt/d/project/live-installation.env",
         filesystem_kind=filesystem_kind,
         filesystem_type="9p" if filesystem_kind is ProjectFilesystemKind.WINDOWS_MOUNTED else "ext4",
-        exists=True,
+        exists=exists,
         is_regular_file=True,
         owner_uid=1000,
         group_gid=1000,

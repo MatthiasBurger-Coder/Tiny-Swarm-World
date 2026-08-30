@@ -33,9 +33,11 @@ or compatibility access for bootstrap and recovery workflows.
 
 == Required Environment
 
-`./install.sh` generates missing values unless `--no-generate-secrets` is used.
-For strict non-generation runs, provide these values through the ignored local
-environment files:
+`./install.sh` generates missing values in `generated` mode unless
+`--no-generate-secrets` is used. In `internal-test` mode, deterministic
+defaults are resolved from the internal-test catalog when values are missing.
+For strict non-generation runs (generated mode only), provide these values
+through the ignored local environment files:
 
 * `TSW_INFISICAL_LOGIN_EMAIL`
 * `TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD`

@@ -386,6 +386,46 @@ class TestSecretManagement(unittest.TestCase):
 
             self.assertEqual(first, env_file.read_text(encoding="utf-8"))
 
+    def test_internal_test_mode_skips_recovery_file_and_syncs_from_process_values(self):
+        with tempfile.TemporaryDirectory() as directory:
+            env_file = Path(directory) / "generated.local.env"
+            cli = _FakeInfisicalCli()
+            sync = InfisicalSecretSyncStep(
+                cli=cli,
+                storage=_STORAGE,
+                manifest_entries=(
+                    _entry("TSW_INTERNAL_TEST_PASSWORD"),
+                ),
+                generated_local_env=env_file,
+                mode="internal-test",
+                process_environment={"TSW_INTERNAL_TEST_PASSWORD": "from-installer"},
+            )
+
+            sync.run()
+
+        self.assertEqual(cli.values["TSW_INTERNAL_TEST_PASSWORD"], "from-installer")
+        self.assertEqual(sync.results[0]["sync_status"], "created")
+        self.assertFalse(env_file.exists())
+
+    def test_internal_test_mode_rejects_missing_required_value_without_generation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            env_file = Path(directory) / "generated.local.env"
+            sync = InfisicalSecretSyncStep(
+                cli=_FakeInfisicalCli(),
+                storage=_STORAGE,
+                manifest_entries=(
+                    _entry("TSW_INTERNAL_TEST_PASSWORD"),
+                ),
+                generated_local_env=env_file,
+                mode="internal-test",
+                process_environment={},
+            )
+
+            with self.assertRaises(SecretManagementBlocker):
+                sync.run()
+
+            self.assertFalse(env_file.exists())
+
     def test_rendered_env_files_are_gitignored(self):
         gitignore = Path(".gitignore").read_text(encoding="utf-8")
 

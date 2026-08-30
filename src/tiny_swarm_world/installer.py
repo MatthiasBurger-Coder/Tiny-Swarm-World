@@ -67,7 +67,6 @@ WINDOWS_WSL_BRIDGE_TEST_STATE_ENVIRONMENT = (
     "TSW_INSTALL_TEST_WINDOWS_WSL_BRIDGE_STATE_PATH"
 )
 INSTALLER_REQUIRED_SOURCES = frozenset({"generated_local_secret", "placeholder_only"})
-SECRET_MODES = ("generated", "fixed", "infisical")
 INTERNAL_TEST_SECRET_MODE = "internal-test"
 SECRET_MODES = (INTERNAL_TEST_SECRET_MODE, "generated", "fixed", "infisical")
 DEFAULT_LOCAL_SERVICE_URL_EXPORTS = {
@@ -258,7 +257,9 @@ def parse_args(argv: Sequence[str] | None = None) -> InstallerOptions:
     )
     args = parser.parse_args(argv)
     if args.secrets_mode not in SECRET_MODES:
-        parser.error("--secrets-mode must be one of generated, fixed, or infisical")
+        parser.error(
+            "--secrets-mode must be one of internal-test, generated, fixed, or infisical"
+        )
     return InstallerOptions(
         service_profile=args.service_profile,
         generate_secrets=not args.no_generate_secrets,
@@ -667,7 +668,9 @@ def _installer_secret_entry(item: object) -> InstallerSecretEntry:
 
 def _secret_mode(options: InstallerOptions) -> str:
     if options.secrets_mode not in SECRET_MODES:
-        raise InstallerError("secrets mode must be generated, fixed, or infisical.")
+        raise InstallerError(
+            "secrets mode must be internal-test, generated, fixed, or infisical."
+        )
     return options.secrets_mode
 
 

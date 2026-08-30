@@ -16,6 +16,7 @@ INSTALLER_BOOTSTRAP_SOURCE_FILES = (
     Path("domain/__init__.py"),
     Path("domain/configuration/__init__.py"),
     Path("domain/configuration/configuration_contract.py"),
+    Path("domain/configuration/internal_test_credentials.py"),
     Path("domain/host_environment.py"),
     Path("domain/project_filesystem.py"),
     Path("domain/sanitized_evidence.py"),
@@ -216,7 +217,10 @@ class TestInstallScript(unittest.TestCase):
     def test_install_requires_infisical_encryption_key_value(self):
         secret_environment = _required_secret_environment()
         secret_environment.pop("TSW_INFISICAL_ENCRYPTION_KEY")
-        with _install_script_fixture(secret_environment=secret_environment) as fixture:
+        with _install_script_fixture(
+            secret_environment=secret_environment,
+            extra_args=("--secrets-mode", "infisical"),
+        ) as fixture:
             result = fixture.run()
 
             self.assertEqual(result.returncode, 1)
@@ -233,6 +237,7 @@ class TestInstallScript(unittest.TestCase):
         with _install_script_fixture(
             secret_environment=secret_environment,
             generate_secrets=True,
+            extra_args=("--secrets-mode", "generated"),
         ) as fixture:
             result = fixture.run()
 
@@ -268,6 +273,7 @@ class TestInstallScript(unittest.TestCase):
         with _install_script_fixture(
             secret_environment=secret_environment,
             generate_secrets=True,
+            extra_args=("--secrets-mode", "generated"),
         ) as fixture:
             result = fixture.run()
 
@@ -285,7 +291,10 @@ class TestInstallScript(unittest.TestCase):
     def test_install_refuses_invalid_sonarqube_password_without_secret_generation(self):
         secret_environment = _required_secret_environment()
         secret_environment["TSW_SONARQUBE_ADMIN_PASSWORD"] = "sonarqube-password"
-        with _install_script_fixture(secret_environment=secret_environment) as fixture:
+        with _install_script_fixture(
+            secret_environment=secret_environment,
+            extra_args=("--secrets-mode", "generated"),
+        ) as fixture:
             result = fixture.run()
 
             self.assertEqual(result.returncode, 1)
@@ -293,7 +302,9 @@ class TestInstallScript(unittest.TestCase):
             self.assertIn("TSW_SONARQUBE_ADMIN_PASSWORD must be", result.stderr)
 
     def test_install_writes_default_traefik_tls_secret_names(self):
-        with _install_script_fixture() as fixture:
+        with _install_script_fixture(
+            extra_args=("--secrets-mode", "generated"),
+        ) as fixture:
             result = fixture.run()
 
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -302,6 +313,25 @@ class TestInstallScript(unittest.TestCase):
             self.assertIn("TSW_TRAEFIK_TLS_CERT_SECRET_NAME=tsw_traefik_tls_cert", secret_content)
             self.assertIn("TSW_TRAEFIK_TLS_KEY_SECRET_NAME=tsw_traefik_tls_key", secret_content)
             self.assertIn("TSW_TRAEFIK_GUI_USERS_SECRET_NAME=tsw_traefik_gui_users", secret_content)
+
+    def test_internal_test_mode_skips_generated_recovery_file(self):
+        with _install_script_fixture(secret_environment={}) as fixture:
+            result = fixture.run()
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(len(fixture.recorded_commands()), 2)
+            self.assertIn("--live --confirm RESET_TINY_SWARM_PLATFORM --service-profile service-access", fixture.recorded_commands()[0])
+            self.assertIn("setup run --live --service-profile service-access", fixture.recorded_commands()[1])
+            evidence_dir = fixture.single_evidence_dir()
+            context = (evidence_dir / "context.txt").read_text()
+            self.assertIn("secrets_mode=internal-test", context)
+            self.assertIn("secrets_generated_count=0", context)
+            self.assertFalse(
+                (fixture.root / ".tiny-swarm-world" / "local" / "live-installation.env").exists()
+            )
+            self.assertFalse(
+                (fixture.root / ".tiny-swarm" / "secrets" / "generated.local.env").exists()
+            )
 
     def test_interactive_install_does_not_pipe_live_consent_into_cli_prompt(self):
         with _install_script_fixture() as fixture:
