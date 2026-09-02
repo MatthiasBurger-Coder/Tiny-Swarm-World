@@ -213,8 +213,9 @@ def default_configuration_contract() -> ConfigurationContract:
                 value_kind=ConfigurationValueKind.SECRET_VALUE,
                 required=False,
                 description=(
-                    "Operator-owned complete htpasswd material used to provision the "
-                    "Traefik dashboard Docker secret when it is absent."
+                    "Complete htpasswd material used to provision the Traefik dashboard "
+                    "Docker secret; internal-test resolves the deterministic catalog "
+                    "exception and other profiles may supply an operator override."
                 ),
             ),
             ConfigurationRequirement(

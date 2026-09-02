@@ -194,12 +194,13 @@ The secure Traefik dashboard is part of this same desired deployment state. It
 uses the existing `websecure` port and a dedicated
 `traefik.tsw.local` route to `api@internal`, protected by BasicAuth from the
 external Docker secret named by `TSW_TRAEFIK_GUI_USERS_SECRET_NAME`. No
-additional published port is required. The operator must provide the htpasswd
-value; deployment automation provisions and verifies its external Docker
-secret before stack apply. The value is not generated, committed, logged, or
-written to evidence by the repository. Static checks confirm the contract,
-while live convergence and browser authentication remain unverified until an
-explicit live run.
+additional published port is required. The `internal-test` catalog supplies its
+deterministic bcrypt test record; custom profiles must provide the htpasswd
+value as an operator-owned override. Deployment automation provisions and
+verifies its external Docker secret before stack apply. The value is not
+generated for custom profiles, committed, logged, or written to evidence by the
+repository. Static checks confirm the contract, while live convergence and
+browser authentication remain unverified until an explicit live run.
 
 Before stack apply, the certificate and key Docker secrets are reconciled as a
 logical pair labelled with Tiny Swarm World ownership and the same TLS

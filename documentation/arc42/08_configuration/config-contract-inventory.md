@@ -132,7 +132,7 @@ logic. Defaults are listed only when visible from committed source.
 | `TSW_TRAEFIK_TLS_CERT_PATH` | unset | Optional as a complete external tuple | local ingress certificate path | canonical TLS resolver |
 | `TSW_TRAEFIK_TLS_KEY_PATH` | unset | Optional as a complete external tuple | local ingress private-key path | canonical TLS resolver |
 | `TSW_LIVE_TLS_CA_BUNDLE` | canonical selected trust bundle | Optional compatibility alias | local CA bundle path | installer, Classic live tests |
-| `TSW_TRAEFIK_GUI_USERS_HTPASSWD` | unset | Required before Traefik apply | secret value; bcrypt recommended, recognized legacy formats accepted | installer, deployment composition |
+| `TSW_TRAEFIK_GUI_USERS_HTPASSWD` | CRED-01 catalog bcrypt record in `internal-test`; unset in custom profiles | Required before Traefik apply; catalog supplies the standard test value | secret value; catalog uses bcrypt, recognized legacy formats remain accepted for custom compatibility | installer, deployment composition |
 | `TSW_INFISICAL_URL` | `http://localhost:17080` | Optional | URL | `infisical_cli_client.py`, `composition_configuration.py` |
 | `REQUESTS_CA_BUNDLE` | system trust store | Optional | CA bundle path for HTTPS Infisical bootstrap verification | `requests`, `infisical_bootstrap_http_client.py` |
 | `TSW_INFISICAL_INTERNAL_URL` | implementation default | Optional | URL | `composition_configuration.py` |

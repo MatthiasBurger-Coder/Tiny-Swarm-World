@@ -7,9 +7,11 @@ execution. The committed template is `.env.example`; local secret-bearing
 values belong in `.tiny-swarm-world/local/live-installation.env` or in the
 process environment.
 
-Secret synchronization is controlled by `TSW_SECRETS_MODE` or
-`./install.sh --secrets-mode`. Supported modes are `internal-test`, `generated`,
-`fixed`, and `infisical`. The default is `internal-test`.
+Secret synchronization for the legacy/direct installer is controlled by
+`TSW_SECRETS_MODE` or `./install.sh --secrets-mode`. Supported legacy modes are
+`internal-test`, `generated`, `fixed`, and `infisical`; the default is
+`internal-test`. The normal `install.sh` path is catalog-backed `internal-test`
+and does not expose legacy mode selection.
 
 ## Source Precedence
 
@@ -54,8 +56,10 @@ secret values by the installer.
 
 The Traefik htpasswd value is intentionally outside the Infisical manifest: it
 is required by the configuration contract for fresh-install provisioning but
-must remain an operator-owned Docker-secret input rather than an Infisical
-managed item.
+is not an Infisical-managed item. In the standard `internal-test` profile, the
+credential catalog supplies one deterministic bcrypt exception. In generated,
+fixed, infisical, or other custom profiles, an operator-owned override remains
+required.
 
 In `fixed` mode, the installer reads fixed values from
 `TSW_FIXED_SECRET_ENV_FILE` or `.tiny-swarm-world/local/fixed-secrets.env`,
@@ -87,8 +91,9 @@ required before setup execution:
 | `TSW_TRAEFIK_GUI_USERS_HTPASSWD` | secret value | Traefik |
 
 `TSW_TRAEFIK_GUI_USERS_HTPASSWD` is the complete htpasswd file content, not a
-clear-text dashboard password. For a fresh install it must be present in the
-operator-owned local environment or process environment before reset. The
+clear-text dashboard password. In `internal-test`, the catalog resolves the
+fixed bcrypt test record before reset; custom/legacy profiles must provide it
+through an operator-owned local environment or process environment. The
 installer and deployment workflow use it only to recreate and verify the
 named external Docker secret; it is never generated, logged, committed, or
 written to evidence.
@@ -115,7 +120,7 @@ written to evidence.
 | `TSW_TRAEFIK_TLS_CERT_SECRET_NAME` | `tsw_traefik_tls_cert` | secret name | External Docker secret name for Traefik TLS certificate material. |
 | `TSW_TRAEFIK_TLS_KEY_SECRET_NAME` | `tsw_traefik_tls_key` | secret name | External Docker secret name for Traefik TLS private key material. |
 | `TSW_TRAEFIK_GUI_USERS_SECRET_NAME` | `tsw_traefik_gui_users` | secret name | External Docker secret name containing operator-provided htpasswd entries for the secure Traefik dashboard. |
-| `TSW_TRAEFIK_GUI_USERS_HTPASSWD` | unset; required before Traefik apply | secret value | Complete operator-owned dashboard htpasswd content. Bcrypt is recommended. Recognized legacy hashes remain accepted for compatibility but are a residual hardening concern. |
+| `TSW_TRAEFIK_GUI_USERS_HTPASSWD` | CRED-01 catalog bcrypt record in `internal-test`; unset in custom profiles | secret value | Complete dashboard htpasswd content. Bcrypt is required by the catalog exception and recommended for operator overrides. Recognized legacy hashes remain accepted for compatibility but are a residual hardening concern. |
 | `TSW_LOCAL_TLS_STATE_ROOT` | XDG state directory | local path | Optional canonical managed-TLS state root; must be ignored local state, not committed configuration. |
 | `TSW_TRAEFIK_CA_CERT_PATH` | unset | local path | External CA certificate. Setting any external TLS path requires the complete external certificate and leaf-key tuple. |
 | `TSW_TRAEFIK_CA_KEY_PATH` | unset | local path | Optional external CA private key used only when local signing ownership is required. |
