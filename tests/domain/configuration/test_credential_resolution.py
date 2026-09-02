@@ -48,22 +48,19 @@ class TestCredentialResolution(unittest.TestCase):
 
         self.assertEqual(CredentialSource.DEFAULT, resolved.source)
 
-    def test_available_vault_value_has_highest_precedence_after_bootstrap(self):
-        resolved = self.resolver.resolve(
-            "TSW_PORTAINER_ADMIN_PASSWORD",
-            operator_value="operator-value",
-            secure_value="vault-value",
-            secure_source=SecureCredentialSource.SELF_HOSTED_INFISICAL,
-            phase=CredentialResolutionPhase.POST_BOOTSTRAP,
-        )
-
-        self.assertEqual(CredentialSource.VAULT, resolved.source)
-        self.assertEqual("vault-value", resolved.value)
+    def test_conflicting_vault_and_operator_values_are_rejected(self):
+        with self.assertRaisesRegex(CredentialResolutionError, "Conflicting operator and secure values"):
+            self.resolver.resolve(
+                "TSW_PORTAINER_ADMIN_PASSWORD",
+                operator_value="operator-value",
+                secure_value="vault-value",
+                secure_source=SecureCredentialSource.SELF_HOSTED_INFISICAL,
+                phase=CredentialResolutionPhase.POST_BOOTSTRAP,
+            )
 
     def test_external_vault_value_can_be_used_during_bootstrap_when_identified(self):
         resolved = self.resolver.resolve(
             "TSW_PORTAINER_ADMIN_PASSWORD",
-            operator_value="operator-value",
             secure_value="external-value",
             secure_source=SecureCredentialSource.EXTERNAL_INFISICAL,
             phase=CredentialResolutionPhase.BOOTSTRAP,

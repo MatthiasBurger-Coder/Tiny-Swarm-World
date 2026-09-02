@@ -69,7 +69,6 @@ from .composition_runtime import (
     _PrepareLxcStackAssets,
     _default_node_provider_request,
     _deployment_stack_environment,
-    _fixed_secret_env_file,
     _infisical_apply_readiness_steps,
     _infisical_bootstrap_steps,
     _infisical_secret_seed_steps,
@@ -80,7 +79,7 @@ from .composition_runtime import (
     _operator_config_value,
     _operator_secret_value,
     _prioritize_infisical_apply_steps,
-    _secret_mode,
+    _self_hosted_infisical_url,
     _with_infisical_post_apply_steps,
     _with_post_stack_steps,
     backend_cli,
@@ -95,7 +94,7 @@ from . import composition_runtime as _runtime
 
 _BOUNDARY_FUNCTION_NAMES = frozenset(["build_deployment_services_for_provider","build_lxc_deployment_services"])
 _TRAEFIK_GUI_USERS_EXTERNAL_SECRET_TARGET = "deployment:traefik-gui-input"
-_RUNTIME_SYMBOL_NAMES = frozenset(["ComposeFileRepositoryYaml","DEFAULT_DEPLOYMENT_VERIFY_TIMEOUT_SECONDS","DEFAULT_PORTAINER_ENDPOINT_NAME","DEFAULT_PORTAINER_STACK_REQUEST_TIMEOUT_SECONDS","DEFAULT_SETUP_SERVICE_PROFILE","DEFAULT_TRAEFIK_GUI_USERS_SECRET_NAME","DEFAULT_TRAEFIK_TLS_CERT_SECRET_NAME","DEFAULT_TRAEFIK_TLS_KEY_SECRET_NAME","DEPLOYMENT_VERIFY_TIMEOUT_ENVIRONMENT","DeploymentApplyStep","DeploymentApplyWorkflow","DeploymentPreApplyStep","DeploymentServices","DeploymentVerifyWorkflow","DeploymentWorkflowKind","DeploymentWorkflows","EndpointReadinessCheck","EnsureNexusAdminAccess","EnsurePortainerAdminAccess","EnsurePortainerEndpoint","EnsureSonarqubeAdminAccess","EnsureSwarmStack","InfisicalCliClient","InfisicalSecretSyncStep","LXC_BACKEND_REQUIRED_REASON","LocalFileStorage","LxcPortainerAdminClient","LxcPortainerHttpClient","LxcSwarmRuntime","ManagedLxcBackend","NodeProviderSelectionRequest","PORTAINER_STACK_REQUEST_TIMEOUT_ENVIRONMENT","PortUI","PortWorkflowProgress","RoutingEvidenceLocalRepository","SecretConsumptionVerifier","SecretDiscoveryStep","SecretEvidenceWriter","SecretManifestRenderer","ServiceStackProfile","SonarqubeHttpClient","TRAEFIK_GUI_USERS_SECRET_NAME_ENVIRONMENT","TRAEFIK_TLS_CERT_SECRET_NAME_ENVIRONMENT","TRAEFIK_TLS_KEY_SECRET_NAME_ENVIRONMENT","WriteEffectiveAccessModelEvidence","_BlockedDeploymentWorkflow","_LXC_SUPPORTED_BACKENDS","_PrepareLxcStackAssets","_default_node_provider_request","_deployment_stack_environment","_fixed_secret_env_file","_infisical_apply_readiness_steps","_infisical_bootstrap_steps","_infisical_secret_seed_steps","_local_http_url","_lxc_backend_for_provider_request","_operator_config_float","_operator_config_int","_operator_config_value","_operator_secret_value","_prioritize_infisical_apply_steps","_secret_mode","_with_infisical_post_apply_steps","_with_post_stack_steps","backend_cli","build_process_runner","cast","default_project_paths","os","service_stack_contracts_for_profile","shutil","build_deployment_services_for_provider","build_lxc_deployment_services"])
+_RUNTIME_SYMBOL_NAMES = frozenset(["ComposeFileRepositoryYaml","DEFAULT_DEPLOYMENT_VERIFY_TIMEOUT_SECONDS","DEFAULT_PORTAINER_ENDPOINT_NAME","DEFAULT_PORTAINER_STACK_REQUEST_TIMEOUT_SECONDS","DEFAULT_SETUP_SERVICE_PROFILE","DEFAULT_TRAEFIK_GUI_USERS_SECRET_NAME","DEFAULT_TRAEFIK_TLS_CERT_SECRET_NAME","DEFAULT_TRAEFIK_TLS_KEY_SECRET_NAME","DEPLOYMENT_VERIFY_TIMEOUT_ENVIRONMENT","DeploymentApplyStep","DeploymentApplyWorkflow","DeploymentPreApplyStep","DeploymentServices","DeploymentVerifyWorkflow","DeploymentWorkflowKind","DeploymentWorkflows","EndpointReadinessCheck","EnsureNexusAdminAccess","EnsurePortainerAdminAccess","EnsurePortainerEndpoint","EnsureSonarqubeAdminAccess","EnsureSwarmStack","InfisicalCliClient","InfisicalSecretSyncStep","LXC_BACKEND_REQUIRED_REASON","LocalFileStorage","LxcPortainerAdminClient","LxcPortainerHttpClient","LxcSwarmRuntime","ManagedLxcBackend","NodeProviderSelectionRequest","PORTAINER_STACK_REQUEST_TIMEOUT_ENVIRONMENT","PortUI","PortWorkflowProgress","RoutingEvidenceLocalRepository","SecretConsumptionVerifier","SecretDiscoveryStep","SecretEvidenceWriter","SecretManifestRenderer","ServiceStackProfile","SonarqubeHttpClient","TRAEFIK_GUI_USERS_SECRET_NAME_ENVIRONMENT","TRAEFIK_TLS_CERT_SECRET_NAME_ENVIRONMENT","TRAEFIK_TLS_KEY_SECRET_NAME_ENVIRONMENT","WriteEffectiveAccessModelEvidence","_BlockedDeploymentWorkflow","_LXC_SUPPORTED_BACKENDS","_PrepareLxcStackAssets","_default_node_provider_request","_deployment_stack_environment","_infisical_apply_readiness_steps","_infisical_bootstrap_steps","_infisical_secret_seed_steps","_local_http_url","_lxc_backend_for_provider_request","_operator_config_float","_operator_config_int","_operator_config_value","_operator_secret_value","_prioritize_infisical_apply_steps","_self_hosted_infisical_url","_with_infisical_post_apply_steps","_with_post_stack_steps","backend_cli","build_process_runner","cast","default_project_paths","os","service_stack_contracts_for_profile","shutil","build_deployment_services_for_provider","build_lxc_deployment_services"])
 
 
 def _refresh_runtime_symbols() -> None:
@@ -261,52 +260,55 @@ def build_lxc_deployment_services(
         "sonarqube",
         (sonarqube_admin_step,),
     )
-    infisical_cli_client = InfisicalCliClient()
     service_stack_by_name = {contract.stack_name: contract for contract in service_stack_contracts}
     infisical_apply_readiness_steps = _infisical_apply_readiness_steps(
         selected_service_profile,
         service_stack_by_name=service_stack_by_name,
     )
-    infisical_bootstrap_steps = _infisical_bootstrap_steps(
-        selected_service_profile,
-        cli=infisical_cli_client,
-        swarm_runtime=swarm_runtime,
-    )
-    secret_discovery_step = SecretDiscoveryStep(
-        storage=local_file_storage,
-        manifest_entries=secret_manifest_entries,
-    )
-    infisical_secret_sync_step = InfisicalSecretSyncStep(
-        cli=infisical_cli_client,
-        storage=local_file_storage,
-        manifest_entries=secret_manifest_entries,
-        fixed_env_file=_fixed_secret_env_file(),
-        mode=_secret_mode(),  # type: ignore[arg-type]
-        process_environment=os.environ,
-    )
-    secret_consumption_step = SecretConsumptionVerifier(
-        manifest_entries=secret_manifest_entries,
-        stack_environment=stack_environment,
-        non_stack_consumer_refs={
-            "TSW_NEXUS_ADMIN_PASSWORD": EnsureNexusAdminAccess.verification_target_id,
-            "TSW_PORTAINER_ADMIN_PASSWORD": EnsurePortainerAdminAccess.verification_target_id,
-            "TSW_SONARQUBE_ADMIN_PASSWORD": EnsureSonarqubeAdminAccess.verification_target_id,
-        },
-    )
-    secret_evidence_step = SecretEvidenceWriter(
-        storage=local_file_storage,
-        discovery=secret_discovery_step,
-        sync=infisical_secret_sync_step,
-        consumption=secret_consumption_step,
-    )
-    infisical_secret_management_steps = (
-        secret_discovery_step,
-        *infisical_bootstrap_steps,
-        infisical_secret_sync_step,
-        secret_consumption_step,
-        secret_evidence_step,
-    )
-    infisical_seed_steps = _infisical_secret_seed_steps(selected_service_profile)
+    infisical_secret_management_steps: tuple[object, ...] = ()
+    infisical_seed_steps: tuple[object, ...] = ()
+    if selected_service_profile is ServiceStackProfile.SERVICE_ACCESS:
+        infisical_cli_client = InfisicalCliClient(base_url=_self_hosted_infisical_url())
+        infisical_bootstrap_steps = _infisical_bootstrap_steps(
+            selected_service_profile,
+            cli=infisical_cli_client,
+            swarm_runtime=swarm_runtime,
+        )
+        secret_discovery_step = SecretDiscoveryStep(
+            storage=local_file_storage,
+            manifest_entries=secret_manifest_entries,
+        )
+        infisical_secret_sync_step = InfisicalSecretSyncStep(
+            cli=infisical_cli_client,
+            storage=local_file_storage,
+            manifest_entries=secret_manifest_entries,
+            process_environment=os.environ,
+        )
+        secret_consumption_step = SecretConsumptionVerifier(
+            manifest_entries=secret_manifest_entries,
+            stack_environment=stack_environment,
+            non_stack_consumer_refs={
+                "TSW_NEXUS_ADMIN_PASSWORD": EnsureNexusAdminAccess.verification_target_id,
+                "TSW_PORTAINER_ADMIN_PASSWORD": EnsurePortainerAdminAccess.verification_target_id,
+                "TSW_SONARQUBE_ADMIN_PASSWORD": EnsureSonarqubeAdminAccess.verification_target_id,
+            },
+        )
+        secret_evidence_step = SecretEvidenceWriter(
+            storage=local_file_storage,
+            discovery=secret_discovery_step,
+            sync=infisical_secret_sync_step,
+            consumption=secret_consumption_step,
+        )
+        infisical_secret_management_steps = (
+            secret_discovery_step,
+            *infisical_bootstrap_steps,
+            infisical_secret_sync_step,
+            secret_consumption_step,
+            secret_evidence_step,
+        )
+        infisical_seed_steps = tuple(
+            _infisical_secret_seed_steps(selected_service_profile)
+        )
     readiness_checks = tuple(
         EndpointReadinessCheck(
             service_stack=contract,

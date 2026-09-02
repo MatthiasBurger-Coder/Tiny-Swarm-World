@@ -6,7 +6,6 @@ from pathlib import Path
 from tests.support.sonar_safe_literals import operator_credential, sample_text
 
 from tiny_swarm_world.application.services.deployment.secret_management import (
-    FixedEnvSecretSource,
     InfisicalSecretSyncStep,
     InfisicalSecretStore,
     SecretConsumptionVerifier,
@@ -34,10 +33,10 @@ class TestSecretManagement(unittest.TestCase):
                 "secrets:\n"
                 "  - key: TSW_POSTGRES_PASSWORD\n"
                 "    service: postgres\n"
-                "    type: generated_secret\n"
+                "    type: managed_secret\n"
                 "    environment: local\n"
                 "    description: PostgreSQL password\n"
-                "    source: generated_local_secret\n"
+                "    source: internal_test_catalog\n"
                 "    required: true\n",
                 encoding="utf-8",
             )
@@ -46,6 +45,41 @@ class TestSecretManagement(unittest.TestCase):
 
             self.assertEqual(entries[0].key, "TSW_POSTGRES_PASSWORD")
             self.assertEqual(entries[0].policy, "keep_existing")
+
+    def test_removed_manifest_types_are_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            manifest = Path(directory) / "infisical-secrets.yaml"
+            manifest.write_text(
+                "secrets:\n"
+                "  - key: TSW_OLD_PASSWORD\n"
+                "    service: old\n"
+                "    type: generated_secret\n"
+                "    source: obsolete\n"
+                "    required: false\n",
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(SecretManagementBlocker, "Invalid secret type"):
+                SecretManifestRenderer(_STORAGE, manifest).run()
+
+    def test_unknown_manifest_source_defaults_to_unknown_ownership(self):
+        with tempfile.TemporaryDirectory() as directory:
+            manifest = Path(directory) / "infisical-secrets.yaml"
+            manifest.write_text(
+                "secrets:\n"
+                "  - key: TSW_RESERVED_PASSWORD\n"
+                "    service: reserved\n"
+                "    type: managed_secret\n"
+                "    source: reserved_source\n"
+                "    required: false\n",
+                encoding="utf-8",
+            )
+
+            entry = SecretManifestRenderer(_STORAGE, manifest).run()[0]
+
+        self.assertEqual(entry.owner, "unknown")
+        self.assertEqual(entry.storage, "unknown")
+        self.assertEqual(entry.lifecycle, "unknown")
 
     def test_committed_manifest_tracks_traefik_tls_secret_names_without_values(self):
         entries = SecretManifestRenderer(
@@ -80,23 +114,10 @@ class TestSecretManagement(unittest.TestCase):
             cli=_FakeInfisicalCli(),
             storage=_STORAGE,
             manifest_entries=(gui_entry,),
-            mode="infisical",
         )
 
         with self.assertRaises(SecretManagementBlocker):
             sync.run()
-
-    def test_committed_manifest_keeps_infisical_bootstrap_token_optional(self):
-        entries = SecretManifestRenderer(
-            _STORAGE,
-            Path("infra/config/secrets/infisical-secrets.yaml"),
-        ).run()
-        entries_by_key = {entry.key: entry for entry in entries}
-
-        entry = entries_by_key["TSW_INFISICAL_BOOTSTRAP_TOKEN"]
-
-        self.assertEqual(entry.source, "infisical_bootstrap_identity")
-        self.assertFalse(entry.required)
 
     def test_committed_manifest_marks_infisical_redis_password_required(self):
         entries = SecretManifestRenderer(
@@ -108,8 +129,8 @@ class TestSecretManagement(unittest.TestCase):
         entry = entries_by_key["TSW_INFISICAL_REDIS_PASSWORD"]
 
         self.assertEqual(entry.service, "infisical")
-        self.assertEqual(entry.type, "generated_secret")
-        self.assertEqual(entry.source, "generated_local_secret")
+        self.assertEqual(entry.type, "managed_secret")
+        self.assertEqual(entry.source, "internal_test_catalog")
         self.assertTrue(entry.required)
 
     def test_manifest_entries_expose_ownership_storage_and_lifecycle(self):
@@ -121,17 +142,17 @@ class TestSecretManagement(unittest.TestCase):
 
         generated = entries_by_key["TSW_NEXUS_ADMIN_PASSWORD"]
         external = entries_by_key["TSW_TRAEFIK_TLS_CERT_SECRET_NAME"]
-        bootstrap = entries_by_key["TSW_INFISICAL_BOOTSTRAP_TOKEN"]
+        bootstrap = entries_by_key["TSW_INFISICAL_LOGIN_EMAIL"]
 
-        self.assertEqual(generated.owner, "python_installer")
-        self.assertEqual(generated.storage, ".tiny-swarm-world/local/live-installation.env")
-        self.assertEqual(generated.lifecycle, "generated_when_missing_and_kept_existing")
+        self.assertEqual(generated.owner, "credential_catalog")
+        self.assertEqual(generated.storage, "catalog_or_operator_override")
+        self.assertEqual(generated.lifecycle, "deterministic_catalog_value_or_explicit_override")
         self.assertEqual(external.owner, "operator")
         self.assertEqual(external.storage, "external_docker_secret_or_operator_env")
         self.assertEqual(external.lifecycle, "operator_created_and_rotated")
-        self.assertEqual(bootstrap.owner, "infisical_sync")
-        self.assertEqual(bootstrap.storage, ".tiny-swarm/secrets/generated.local.env")
-        self.assertEqual(bootstrap.lifecycle, "created_during_infisical_sync_and_reused")
+        self.assertEqual(bootstrap.owner, "credential_catalog")
+        self.assertEqual(bootstrap.storage, "catalog_or_operator_override")
+        self.assertEqual(bootstrap.lifecycle, "deterministic_catalog_value_or_explicit_override")
 
     def test_committed_manifest_tracks_required_infisical_login_identity(self):
         entries = SecretManifestRenderer(
@@ -143,8 +164,8 @@ class TestSecretManagement(unittest.TestCase):
         entry = entries_by_key["TSW_INFISICAL_LOGIN_EMAIL"]
 
         self.assertEqual(entry.service, "infisical")
-        self.assertEqual(entry.type, "placeholder_only")
-        self.assertEqual(entry.source, "placeholder_only")
+        self.assertEqual(entry.type, "managed_secret")
+        self.assertEqual(entry.source, "internal_test_catalog")
         self.assertTrue(entry.required)
 
     def test_pulsar_compose_bootstrap_does_not_create_secret_inventory_blocker(self):
@@ -183,7 +204,7 @@ class TestSecretManagement(unittest.TestCase):
                 discovery.run()
 
             classifications = {finding.classification for finding in discovery.findings}
-            self.assertIn("generated_secret", classifications)
+            self.assertIn("managed_secret", classifications)
             self.assertIn("blocker", classifications)
 
     def test_secret_discovery_treats_credential_item_refs_as_references(self):
@@ -214,8 +235,7 @@ class TestSecretManagement(unittest.TestCase):
         self.assertEqual(redacted["safe"], "hello")
 
     def test_infisical_sync_creates_missing_and_keeps_existing(self):
-        with tempfile.TemporaryDirectory() as directory:
-            env_file = Path(directory) / "generated.local.env"
+        with tempfile.TemporaryDirectory():
             cli = _FakeInfisicalCli(existing={"TSW_EXISTING_PASSWORD"})
             sync = InfisicalSecretSyncStep(
                 cli=cli,
@@ -224,7 +244,10 @@ class TestSecretManagement(unittest.TestCase):
                     _entry("TSW_NEW_PASSWORD"),
                     _entry("TSW_EXISTING_PASSWORD"),
                 ),
-                generated_local_env=env_file,
+                process_environment={
+                    "TSW_NEW_PASSWORD": "new-value",
+                    "TSW_EXISTING_PASSWORD": "existing-value",
+                },
             )
 
             sync.run()
@@ -235,14 +258,13 @@ class TestSecretManagement(unittest.TestCase):
             self.assertIn("TSW_NEW_PASSWORD", cli.values)
 
     def test_infisical_sync_uses_api_client_even_when_local_cli_is_missing(self):
-        with tempfile.TemporaryDirectory() as directory:
-            env_file = Path(directory) / "generated.local.env"
+        with tempfile.TemporaryDirectory():
             cli = _FakeInfisicalCli(available=False)
             sync = InfisicalSecretSyncStep(
                 cli=cli,
                 storage=_STORAGE,
                 manifest_entries=(_entry("TSW_API_SYNC_PASSWORD"),),
-                generated_local_env=env_file,
+                process_environment={"TSW_API_SYNC_PASSWORD": "api-value"},
             )
 
             sync.run()
@@ -250,96 +272,17 @@ class TestSecretManagement(unittest.TestCase):
             self.assertEqual(cli.ensured, [("tiny-swarm-world", "local")])
             self.assertIn("TSW_API_SYNC_PASSWORD", cli.values)
 
-    def test_fixed_mode_syncs_complete_file(self):
-        with tempfile.TemporaryDirectory() as directory:
-            fixed_file = Path(directory) / "fixed.env"
-            fixed_file.write_text(
-                "export TSW_FIXED_ONE_PASSWORD='fixed-one'\n"
-                "export TSW_FIXED_TWO_PASSWORD='fixed-two'\n",
-                encoding="utf-8",
-            )
-            cli = _FakeInfisicalCli()
-            sync = InfisicalSecretSyncStep(
-                cli=cli,
-                storage=_STORAGE,
-                manifest_entries=(
-                    _entry("TSW_FIXED_ONE_PASSWORD"),
-                    _entry("TSW_FIXED_TWO_PASSWORD"),
-                ),
-                fixed_env_file=fixed_file,
-                mode="fixed",
-            )
-
-            sync.run()
-            result = sync.verify()
-
-        self.assertEqual(cli.values["TSW_FIXED_ONE_PASSWORD"], "fixed-one")
-        self.assertEqual(cli.values["TSW_FIXED_TWO_PASSWORD"], "fixed-two")
-        self.assertEqual(
-            sync.checked_secret_keys,
-            ("TSW_FIXED_ONE_PASSWORD", "TSW_FIXED_TWO_PASSWORD"),
-        )
-        self.assertEqual(result.evidence["selected_mode"], "fixed")
-        self.assertEqual(result.evidence["synchronized_entry_count"], "2")
-        self.assertNotIn("fixed-one", str(result.evidence))
-
-    def test_fixed_mode_blocks_missing_key(self):
-        with tempfile.TemporaryDirectory() as directory:
-            fixed_file = Path(directory) / "fixed.env"
-            fixed_file.write_text(
-                "export TSW_PRESENT_PASSWORD='fixed-one'\n",
-                encoding="utf-8",
-            )
-            sync = InfisicalSecretSyncStep(
-                cli=_FakeInfisicalCli(),
-                storage=_STORAGE,
-                manifest_entries=(
-                    _entry("TSW_PRESENT_PASSWORD"),
-                    _entry("TSW_MISSING_PASSWORD"),
-                ),
-                fixed_env_file=fixed_file,
-                mode="fixed",
-            )
-
-            with self.assertRaisesRegex(SecretManagementBlocker, "TSW_MISSING_PASSWORD"):
-                sync.run()
-
-    def test_fixed_mode_blocks_empty_value(self):
-        with tempfile.TemporaryDirectory() as directory:
-            fixed_file = Path(directory) / "fixed.env"
-            fixed_file.write_text(
-                "export TSW_EMPTY_PASSWORD=''\n",
-                encoding="utf-8",
-            )
-            sync = InfisicalSecretSyncStep(
-                cli=_FakeInfisicalCli(),
-                storage=_STORAGE,
-                manifest_entries=(_entry("TSW_EMPTY_PASSWORD"),),
-                fixed_env_file=fixed_file,
-                mode="fixed",
-            )
-
-            with self.assertRaisesRegex(SecretManagementBlocker, "TSW_EMPTY_PASSWORD"):
-                sync.run()
-
     def test_infisical_sync_failure_blocks_without_secret_value(self):
         fixed_value = operator_credential()
-        with tempfile.TemporaryDirectory() as directory:
-            fixed_file = Path(directory) / "fixed.env"
-            fixed_file.write_text(
-                f"export TSW_FAILING_PASSWORD='{fixed_value}'\n",
-                encoding="utf-8",
-            )
-            sync = SecretSyncUseCase(
-                store=InfisicalSecretStore(_FailingInfisicalCli()),
-                storage=_STORAGE,
-                manifest_entries=(_entry("TSW_FAILING_PASSWORD"),),
-                fixed_source=FixedEnvSecretSource(_STORAGE, fixed_file),
-                mode="fixed",
-            )
+        sync = SecretSyncUseCase(
+            store=InfisicalSecretStore(_FailingInfisicalCli()),
+            storage=_STORAGE,
+            manifest_entries=(_entry("TSW_FAILING_PASSWORD"),),
+            process_environment={"TSW_FAILING_PASSWORD": fixed_value},
+        )
 
-            with self.assertRaises(SecretManagementBlocker) as raised:
-                sync.run()
+        with self.assertRaises(SecretManagementBlocker) as raised:
+            sync.run()
 
         self.assertIn("TSW_FAILING_PASSWORD", str(raised.exception))
         self.assertNotIn(fixed_value, str(raised.exception))
@@ -364,31 +307,8 @@ class TestSecretManagement(unittest.TestCase):
         with self.assertRaises(SecretManagementBlocker):
             sync.run()
 
-    def test_generated_secret_stable_reuse(self):
-        with tempfile.TemporaryDirectory() as directory:
-            env_file = Path(directory) / "generated.local.env"
-            cli = _FakeInfisicalCli()
-            sync = InfisicalSecretSyncStep(
-                cli=cli,
-                storage=_STORAGE,
-                manifest_entries=(_entry("TSW_STABLE_PASSWORD"),),
-                generated_local_env=env_file,
-            )
-            sync.run()
-            first = env_file.read_text(encoding="utf-8")
-            sync_again = InfisicalSecretSyncStep(
-                cli=_FakeInfisicalCli(),
-                storage=_STORAGE,
-                manifest_entries=(_entry("TSW_STABLE_PASSWORD"),),
-                generated_local_env=env_file,
-            )
-            sync_again.run()
-
-            self.assertEqual(first, env_file.read_text(encoding="utf-8"))
-
-    def test_internal_test_mode_skips_recovery_file_and_syncs_from_process_values(self):
-        with tempfile.TemporaryDirectory() as directory:
-            env_file = Path(directory) / "generated.local.env"
+    def test_catalog_path_syncs_from_process_values_without_recovery_file(self):
+        with tempfile.TemporaryDirectory():
             cli = _FakeInfisicalCli()
             sync = InfisicalSecretSyncStep(
                 cli=cli,
@@ -396,8 +316,6 @@ class TestSecretManagement(unittest.TestCase):
                 manifest_entries=(
                     _entry("TSW_INTERNAL_TEST_PASSWORD"),
                 ),
-                generated_local_env=env_file,
-                mode="internal-test",
                 process_environment={"TSW_INTERNAL_TEST_PASSWORD": "from-installer"},
             )
 
@@ -405,27 +323,19 @@ class TestSecretManagement(unittest.TestCase):
 
         self.assertEqual(cli.values["TSW_INTERNAL_TEST_PASSWORD"], "from-installer")
         self.assertEqual(sync.results[0]["sync_status"], "created")
-        self.assertFalse(env_file.exists())
 
     def test_internal_test_mode_prefers_existing_infisical_value_after_bootstrap(self):
-        with tempfile.TemporaryDirectory() as directory:
-            env_file = Path(directory) / "generated.local.env"
-            cli = _FakeInfisicalCli(existing={"TSW_INTERNAL_TEST_PASSWORD"})
-            cli.values["TSW_INTERNAL_TEST_PASSWORD"] = "vault-value"
-            sync = InfisicalSecretSyncStep(
-                cli=cli,
-                storage=_STORAGE,
-                manifest_entries=(_entry("TSW_INTERNAL_TEST_PASSWORD"),),
-                generated_local_env=env_file,
-                mode="internal-test",
-                process_environment={"TSW_INTERNAL_TEST_PASSWORD": "operator-value"},
-            )
+        cli = _FakeInfisicalCli(existing={"TSW_INTERNAL_TEST_PASSWORD"})
+        cli.values["TSW_INTERNAL_TEST_PASSWORD"] = "vault-value"
+        sync = InfisicalSecretSyncStep(
+            cli=cli,
+            storage=_STORAGE,
+            manifest_entries=(_entry("TSW_INTERNAL_TEST_PASSWORD"),),
+            process_environment={"TSW_INTERNAL_TEST_PASSWORD": "operator-value"},
+        )
 
+        with self.assertRaisesRegex(SecretManagementBlocker, "Conflicting operator and secure values"):
             sync.run()
-
-        self.assertEqual(sync.results[0]["source"], "vault")
-        self.assertEqual(sync.results[0]["sync_status"], "kept_existing")
-        self.assertEqual(cli.values["TSW_INTERNAL_TEST_PASSWORD"], "vault-value")
 
     def test_internal_test_honors_default_source_metadata_over_transport_value(self):
         cli = _FakeInfisicalCli()
@@ -433,7 +343,6 @@ class TestSecretManagement(unittest.TestCase):
             cli=cli,
             storage=_STORAGE,
             manifest_entries=(_entry("TSW_PORTAINER_ADMIN_PASSWORD"),),
-            mode="internal-test",
             process_environment={
                 "TSW_PORTAINER_ADMIN_PASSWORD": "transport-value",
                 "TSW_CREDENTIAL_SOURCE_MAP": (
@@ -451,55 +360,13 @@ class TestSecretManagement(unittest.TestCase):
             cli=_FailingReadInfisicalCli(),
             storage=_STORAGE,
             manifest_entries=(_entry("TSW_PORTAINER_ADMIN_PASSWORD"),),
-            mode="internal-test",
             process_environment={"TSW_PORTAINER_ADMIN_PASSWORD": "operator-value"},
         )
 
         with self.assertRaisesRegex(SecretManagementBlocker, "reading key"):
             sync.run()
 
-    def test_fixed_mode_records_missing_optional_source(self):
-        with tempfile.TemporaryDirectory() as directory:
-            fixed_file = Path(directory) / "fixed.env"
-            fixed_file.write_text("", encoding="utf-8")
-            sync = InfisicalSecretSyncStep(
-                cli=_FakeInfisicalCli(),
-                storage=_STORAGE,
-                manifest_entries=(
-                    SecretManifestEntry(
-                        key="TSW_OPTIONAL_PASSWORD",
-                        service="service",
-                        type="generated_secret",
-                        environment="local",
-                        description="Optional secret",
-                        source="generated_local_secret",
-                        required=False,
-                    ),
-                ),
-                fixed_env_file=fixed_file,
-                mode="fixed",
-            )
-
-            sync.run()
-
-        self.assertEqual(sync.results[0]["source"], "operator")
-        self.assertEqual(sync.results[0]["sync_status"], "skipped_missing_optional")
-
-    def test_infisical_mode_reports_existing_values_as_vault_source(self):
-        cli = _FakeInfisicalCli(existing={"TSW_REQUIRED_PASSWORD"})
-        sync = InfisicalSecretSyncStep(
-            cli=cli,
-            storage=_STORAGE,
-            manifest_entries=(_entry("TSW_REQUIRED_PASSWORD"),),
-            mode="infisical",
-        )
-
-        sync.run()
-
-        self.assertEqual(sync.results[0]["source"], "vault")
-        self.assertEqual(sync.results[0]["sync_status"], "verified_existing")
-
-    def test_internal_test_full_manifest_keeps_optional_token_and_external_refs_out_of_vault(self):
+    def test_internal_test_full_manifest_keeps_external_refs_out_of_vault(self):
         entries = SecretManifestRenderer(
             _STORAGE,
             Path("infra/config/secrets/infisical-secrets.yaml"),
@@ -518,13 +385,11 @@ class TestSecretManagement(unittest.TestCase):
             cli=cli,
             storage=_STORAGE,
             manifest_entries=entries,
-            mode="internal-test",
             process_environment=process_environment,
         )
 
         sync.run()
 
-        self.assertNotIn("TSW_INFISICAL_BOOTSTRAP_TOKEN", cli.values)
         self.assertTrue(external_keys.isdisjoint(cli.values))
         self.assertEqual(
             {
@@ -534,25 +399,6 @@ class TestSecretManagement(unittest.TestCase):
             },
             external_keys,
         )
-
-    def test_internal_test_mode_rejects_missing_required_value_without_generation(self):
-        with tempfile.TemporaryDirectory() as directory:
-            env_file = Path(directory) / "generated.local.env"
-            sync = InfisicalSecretSyncStep(
-                cli=_FakeInfisicalCli(),
-                storage=_STORAGE,
-                manifest_entries=(
-                    _entry("TSW_INTERNAL_TEST_PASSWORD"),
-                ),
-                generated_local_env=env_file,
-                mode="internal-test",
-                process_environment={},
-            )
-
-            with self.assertRaises(SecretManagementBlocker):
-                sync.run()
-
-            self.assertFalse(env_file.exists())
 
     def test_rendered_env_files_are_gitignored(self):
         gitignore = Path(".gitignore").read_text(encoding="utf-8")
@@ -612,7 +458,6 @@ class TestSecretManagement(unittest.TestCase):
                 cli=_FakeInfisicalCli(),
                 storage=_STORAGE,
                 manifest_entries=(_entry("TSW_POSTGRES_PASSWORD"),),
-                generated_local_env=root / "generated.local.env",
             )
             sync.run()
             consumption = SecretConsumptionVerifier(manifest_entries=(_entry("TSW_POSTGRES_PASSWORD"),), stack_environment={"postgres": {"TSW_POSTGRES_PASSWORD": operator_credential()}})
@@ -628,7 +473,6 @@ class TestSecretManagement(unittest.TestCase):
             writer.run()
 
             evidence = json.loads((root / "evidence" / "infisical-sync-result.json").read_text(encoding="utf-8"))
-            self.assertEqual(evidence["mode"], "generated")
             self.assertIn("TSW_POSTGRES_PASSWORD", evidence["checked_secret_keys"])
             self.assertIn("TSW_POSTGRES_PASSWORD", evidence["synchronized_secret_keys"])
             self.assertNotIn("value", evidence["results"][0])
@@ -639,10 +483,10 @@ def _entry(key: str) -> SecretManifestEntry:
     return SecretManifestEntry(
         key=key,
         service="service",
-        type="generated_secret",
+        type="managed_secret",
         environment="local",
-        description="Generated secret",
-        source="generated_local_secret",
+        description="Catalog-backed managed secret",
+        source="internal_test_catalog",
         required=True,
     )
 

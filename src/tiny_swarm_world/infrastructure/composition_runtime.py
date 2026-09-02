@@ -314,7 +314,6 @@ from tiny_swarm_world.infrastructure.composition_configuration import (
     PULSAR_IMAGE_ENVIRONMENT,
     PULSAR_MANAGER_BOOTSTRAP_IMAGE_ENVIRONMENT,
     PULSAR_MANAGER_IMAGE_ENVIRONMENT,
-    INTERNAL_TEST_SECRET_MODE,
     SEED_INFISICAL_ITEMS_ENVIRONMENT,
     SERVICE_ACCESS_DASHBOARD_IMAGE_ENVIRONMENT,
     SERVICE_ACCESS_NGINX_IMAGE_ENVIRONMENT,
@@ -325,7 +324,6 @@ from tiny_swarm_world.infrastructure.composition_configuration import (
     WINDOWS_EXPOSURE_ENVIRONMENT,
     _add_optional_config,
     _container_image_contracts_from_environment,
-    _fixed_secret_env_file,
     _lxc_docker_apt_mirror_configuration,
     _lxc_docker_registry_mirror_configuration,
     _lxc_proxy_listen_address,
@@ -340,7 +338,6 @@ from tiny_swarm_world.infrastructure.composition_configuration import (
     _infisical_provider_mode,
     _self_hosted_infisical_url,
     _required_operator_secret_value,
-    _secret_mode,
     _swarm_registry_endpoint,
 )
 from tiny_swarm_world.infrastructure.composition_configuration import (  # noqa: F401
@@ -629,9 +626,7 @@ def build_preflight_service(
         artifact_source_readiness=HttpArtifactSourceReadiness(),
         secret_storage_probe=build_secret_storage_probe(),
         secret_storage_path=_operator_configuration_env_file().as_posix(),
-        require_existing_secret_storage_file=(
-            _secret_mode() != INTERNAL_TEST_SECRET_MODE
-        ),
+        require_existing_secret_storage_file=False,
         include_secret_checks=include_secret_checks,
         include_port_checks=include_port_checks,
     )
@@ -1016,9 +1011,7 @@ def _build_preflight_service_for_request(
         artifact_source_readiness=HttpArtifactSourceReadiness(),
         secret_storage_probe=build_secret_storage_probe(),
         secret_storage_path=_operator_configuration_env_file().as_posix(),
-        require_existing_secret_storage_file=(
-            _secret_mode() != INTERNAL_TEST_SECRET_MODE
-        ),
+        require_existing_secret_storage_file=False,
     )
 
 
@@ -1046,9 +1039,7 @@ def _build_post_install_preflight_service_for_request(
         allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
         secret_storage_probe=build_secret_storage_probe(),
         secret_storage_path=_operator_configuration_env_file().as_posix(),
-        require_existing_secret_storage_file=(
-            _secret_mode() != INTERNAL_TEST_SECRET_MODE
-        ),
+        require_existing_secret_storage_file=False,
     )
 
 

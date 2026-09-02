@@ -1,8 +1,8 @@
 # Installer Console Output
 
-`./install.sh` delegates to `python3 -m tiny_swarm_world.installer`. The
+`./install.sh` delegates to `python3 -m tiny_swarm_world.simple_installer`. The
 installer prints human-readable progress and diagnostics while it writes logs
-and evidence to generated local directories.
+and evidence to local evidence directories.
 
 Example:
 

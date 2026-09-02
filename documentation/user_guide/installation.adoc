@@ -453,10 +453,9 @@ chmod 600 .tiny-swarm-world/local/live-installation.env
 ----
 
 Edit `.tiny-swarm-world/local/live-installation.env` and replace placeholder
-values. The installer may also write generated bootstrap values to the same
-local secret file and recovery values to `.tiny-swarm/secrets/generated.local.env`
-in `generated` mode. Do not paste values from either file into logs, issues,
-chat, commits, or documentation.
+values. This file is an optional operator override input; the normal installer
+does not generate or rotate credential files. Do not paste values from it into
+logs, issues, chat, commits, or documentation.
 
 For an authorized WSL2 live run from a checkout under `/mnt/<drive>`, set
 `TSW_INSTALL_ENV_FILE` to a WSL-native `0600` file outside the checkout and
@@ -666,7 +665,7 @@ PYTHONPATH=src python3 -m tiny_swarm_world platform repair-lxc-proxy-drift --liv
 ----
 
 Do not commit `.tiny-swarm-world/`, `.tiny-swarm/`, `.venv/`, coverage files,
-or any generated local secret file.
+or any local secret file.
 
 == Repository Runtime Model
 
@@ -784,9 +783,8 @@ Linux. The run `context.txt` records `host_runtime_type`,
 `live_execution_mode`, `live_approval_source`, and `terminal_recording_mode`
 alongside `reset-run.log`, `reset-run.exit`, `setup-run.log`, and
 `setup-run.exit`.
-It loads or generates local `TSW_*` secrets in
-`.tiny-swarm-world/local/live-installation.env` without printing secret
-values.
+It resolves catalog-backed `TSW_*` credentials and optional operator overrides
+without printing secret values. It does not generate a local credential file.
 Required local bootstrap values are derived from
 `infra/config/secrets/infisical-secrets.yaml`; installer code does not maintain
 a separate required-secret list.

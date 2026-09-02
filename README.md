@@ -495,13 +495,16 @@ or:
 native_linux
 ```
 
-Local generated secrets are stored in:
+Optional operator credential overrides are read from:
 
 ```text
 .tiny-swarm-world/local/live-installation.env
 ```
 
-This file must not be committed.
+The normal installer resolves missing internal-test credentials from the
+committed catalog and does not generate this file. If used, the file must be
+user-owned, mode `0600`, and stored on a Linux-native filesystem; it must not be
+committed.
 
 ---
 

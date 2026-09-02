@@ -42,7 +42,6 @@ from tiny_swarm_world.application.services.deployment.infisical_silent_install i
     redact_mapping,
 )
 from tiny_swarm_world.application.services.deployment.secret_management import (
-    FixedEnvSecretSource,
     InfisicalBootstrapStep,
     InfisicalSecretStore,
     InfisicalSecretSyncStep,
@@ -100,7 +99,6 @@ __all__ = [
     "EnsureSonarqubeAdminAccess",
     "EnsureSwarmStack",
     "EnsureSwarmServiceReadiness",
-    "FixedEnvSecretSource",
     "InfisicalBootstrapStep",
     "InfisicalInstallBlocker",
     "InfisicalSecretItem",

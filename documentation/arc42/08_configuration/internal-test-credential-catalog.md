@@ -9,16 +9,17 @@ deterministic so that disposable local acceptance fixtures can be reproduced
 without a credential file or live secret-management service. They are public
 test material, have intentionally low secret entropy, and must never be used
 for production, a shared environment, or an operator's real local deployment.
-Production and normal local operation must use generated, operator-owned, or
-externally managed credentials and must follow
+Production and normal local operation must use operator-owned or externally
+managed credentials and must follow
 [`secret-handling-policy.md`](../../security/secret-handling-policy.md).
 
 The single authoritative implementation is
 `src/tiny_swarm_world/domain/configuration/internal_test_credentials.py`.
 Consumers resolve values through `internal_test_credential(key)` or
 `internal_test_credentials()`; they do not maintain another internal-test
-default list. The existing generated, fixed, and Infisical modes remain
-separate credential sources and are outside this catalog.
+default list. The catalog is the only default source for the normal installer;
+operator overrides and ready secure-provider values are handled by the
+centralized lifecycle resolver.
 
 ## Active Classic inventory
 
@@ -43,7 +44,7 @@ currently wired consumer from a reserved manifest entry.
 | `TSW_INFISICAL_ENCRYPTION_KEY` | Infisical service administrator | Infisical `ENCRYPTION_KEY` setting | `encryption_key` | yes | yes | First 32 hex characters of `SHA-256(UTF-8(TSW1234STW5678:infisical-encryption))` | Lowercase hex ASCII; exactly 32 characters/16 decoded bytes; changing it invalidates encrypted material. |
 | `TSW_INFISICAL_AUTH_SECRET` | Infisical service administrator | Infisical `AUTH_SECRET` setting | `signing_key` | yes | yes | Lowercase hex `SHA-256(UTF-8(TSW1234STW5678:infisical-auth))` | Exactly 64 hex characters/32 decoded bytes; read before authentication and used to sign auth material. |
 | `TSW_INFISICAL_POSTGRES_PASSWORD` | Infisical PostgreSQL service owner | Infisical PostgreSQL container and `DB_CONNECTION_URI` | `machine_password` | yes | yes | `TSW1234STW5678` | 12–128 alphanumeric ASCII characters safe in the connection value; initialized on a new data directory and reused. |
-| `TSW_INFISICAL_REDIS_PASSWORD` | Infisical service administrator | Infisical secret manifest and recovery configuration | `machine_password` | yes | yes | `TSW1234STW5678` | 12–128 alphanumeric ASCII characters; retained as the Redis credential contract although current Compose Redis auth is disabled. |
+| `TSW_INFISICAL_REDIS_PASSWORD` | Infisical service administrator | Infisical secret manifest and service configuration | `machine_password` | yes | yes | `TSW1234STW5678` | 12–128 alphanumeric ASCII characters; retained as the Redis credential contract although current Compose Redis auth is disabled. |
 | `TSW_TRAEFIK_GUI_USERS_HTPASSWD` | Traefik ingress administrator | Traefik dashboard external Docker secret | `htpasswd` | yes | yes | bcrypt cost 12 for `admin` and `TSW1234STW5678` with the fixed catalog salt | ASCII `admin:<bcrypt>` record, exactly 66 bytes; complete hash only, never clear-text material. |
 
 ## Reserved and explicitly inactive entries
@@ -64,10 +65,9 @@ Classic consumers and are not evidence that those stacks are deployed.
 The following are credentials or credential-bearing resources but deliberately
 do not receive deterministic catalog values:
 
-- `TSW_INFISICAL_BOOTSTRAP_TOKEN` and `TSW_INFISICAL_TOKEN` are optional
-  operator- or Infisical-issued runtime tokens. They cannot be invented by a
-  test catalog and are not required by the current internal-test setup
-  contract.
+- `TSW_INFISICAL_TOKEN` is an optional operator- or Infisical-issued runtime
+  token. It cannot be invented by a test catalog and is not required by the
+  current internal-test setup contract.
 - Traefik TLS certificate and private-key contents are external or managed
   cryptographic material. `TSW_TRAEFIK_TLS_CERT_SECRET_NAME`,
   `TSW_TRAEFIK_TLS_KEY_SECRET_NAME`, and
@@ -93,4 +93,3 @@ Tests in
 completeness, deterministic derivation, JWT signing, bcrypt format, encoded
 key lengths, metadata validation, immutable resolution, and missing-entry
 failure. No infrastructure is required.
-

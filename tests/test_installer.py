@@ -1,6 +1,5 @@
 import io
 import json
-import stat
 import subprocess
 import tempfile
 import unittest
@@ -28,18 +27,10 @@ class TestInstaller(unittest.TestCase):
             )
 
     def test_ensure_default_config_exports_adds_traefik_dashboard_secret_name(self):
-        with tempfile.TemporaryDirectory() as tempdir:
-            root = Path(tempdir)
-            paths = installer.InstallerPaths(
-                secret_env_file=root / "local.env",
-                fixed_secret_env_file=root / "fixed.env",
-                infisical_secret_env_file=root / "infisical.env",
-                generated_secret_env_file=root / "generated.env",
-                native_linux_venv=root / "install-venv",
-            )
+        with tempfile.TemporaryDirectory():
             env: dict[str, str] = {}
 
-            exports = installer._ensure_default_config_exports(paths, env)
+            exports = installer._ensure_default_config_exports(env)
 
         self.assertEqual(
             exports["TSW_TRAEFIK_GUI_USERS_SECRET_NAME"],
@@ -51,15 +42,7 @@ class TestInstaller(unittest.TestCase):
         )
 
     def test_ensure_default_config_exports_keeps_existing_secret_names(self):
-        with tempfile.TemporaryDirectory() as tempdir:
-            root = Path(tempdir)
-            paths = installer.InstallerPaths(
-                secret_env_file=root / "local.env",
-                fixed_secret_env_file=root / "fixed.env",
-                infisical_secret_env_file=root / "infisical.env",
-                generated_secret_env_file=root / "generated.env",
-                native_linux_venv=root / "install-venv",
-            )
+        with tempfile.TemporaryDirectory():
             env = {
                 "TSW_TRAEFIK_TLS_CERT_SECRET_NAME": "custom-cert",
                 "TSW_TRAEFIK_TLS_KEY_SECRET_NAME": "custom-key",
@@ -67,23 +50,15 @@ class TestInstaller(unittest.TestCase):
                 "TSW_LIVE_TLS_CA_BUNDLE": "/custom/ca-bundle.pem",
             }
 
-            exports = installer._ensure_default_config_exports(paths, env)
+            exports = installer._ensure_default_config_exports(env)
 
         self.assertEqual(exports, {})
 
     def test_default_trust_bundle_uses_external_ca_when_configured(self):
-        with tempfile.TemporaryDirectory() as tempdir:
-            root = Path(tempdir)
-            paths = installer.InstallerPaths(
-                secret_env_file=root / "local.env",
-                fixed_secret_env_file=root / "fixed.env",
-                infisical_secret_env_file=root / "infisical.env",
-                generated_secret_env_file=root / "generated.env",
-                native_linux_venv=root / "install-venv",
-            )
+        with tempfile.TemporaryDirectory():
             env = {"TSW_TRAEFIK_CA_CERT_PATH": "/operator/ca.crt"}
 
-            exports = installer._ensure_default_config_exports(paths, env)
+            exports = installer._ensure_default_config_exports(env)
 
         self.assertEqual(exports["TSW_LIVE_TLS_CA_BUNDLE"], "/operator/ca.crt")
 
@@ -91,8 +66,6 @@ class TestInstaller(unittest.TestCase):
         options = installer.parse_args(())
 
         self.assertEqual(options.service_profile, "service-access")
-        self.assertTrue(options.generate_secrets)
-        self.assertEqual(options.secrets_mode, "internal-test")
         self.assertFalse(options.confirm_reset)
         self.assertFalse(options.non_interactive_live_approval)
         self.assertFalse(options.headless)
@@ -103,9 +76,6 @@ class TestInstaller(unittest.TestCase):
             (
                 "--service-profile",
                 "default",
-                "--no-generate-secrets",
-                "--secrets-mode",
-                "fixed",
                 "--confirm-reset",
                 "--non-interactive-live-approval",
                 "--allow-wsl-windows-filesystem",
@@ -114,8 +84,6 @@ class TestInstaller(unittest.TestCase):
         )
 
         self.assertEqual(options.service_profile, "default")
-        self.assertFalse(options.generate_secrets)
-        self.assertEqual(options.secrets_mode, "fixed")
         self.assertTrue(options.confirm_reset)
         self.assertTrue(options.non_interactive_live_approval)
         self.assertTrue(options.allow_wsl_windows_filesystem)
@@ -125,7 +93,7 @@ class TestInstaller(unittest.TestCase):
         entries = (
             installer.InstallerSecretEntry(
                 key="TSW_PORTAINER_ADMIN_PASSWORD",
-                source="generated_local_secret",
+                source="internal_test_catalog",
                 required=True,
             ),
         )
@@ -159,7 +127,7 @@ class TestInstaller(unittest.TestCase):
         entries = (
             installer.InstallerSecretEntry(
                 key="TSW_PORTAINER_ADMIN_PASSWORD",
-                source="generated_local_secret",
+                source="internal_test_catalog",
                 required=True,
             ),
         )
@@ -184,7 +152,6 @@ class TestInstaller(unittest.TestCase):
                         return_value=entries,
                     ),
                     patch.object(installer, "_normalize_infisical_login_email", return_value={}),
-                    patch.object(installer, "_ensure_sonarqube_password_policy", return_value={}),
                     patch.object(installer, "_ensure_default_config_exports", return_value={}),
                     patch.object(installer, "_require_operator_provisioned_traefik_gui_users"),
                     patch.object(
@@ -323,7 +290,6 @@ class TestInstaller(unittest.TestCase):
                 side_effect=installer.InstallerError("unsupported host"),
             ),
             patch.object(installer, "ensure_python_environment") as ensure_python,
-            patch.object(installer, "_ensure_private_file") as ensure_private_file,
         ):
             with self.assertRaises(installer.InstallerError):
                 installer.run(
@@ -333,7 +299,6 @@ class TestInstaller(unittest.TestCase):
                 )
 
         ensure_python.assert_not_called()
-        ensure_private_file.assert_not_called()
 
     def test_installer_stops_blocked_wsl_filesystem_before_bootstrap_or_file_writes(self):
         runtime = installer.HostRuntime("wsl2", "test")
@@ -347,7 +312,6 @@ class TestInstaller(unittest.TestCase):
                 ),
             ) as authorize,
             patch.object(installer, "ensure_python_environment") as ensure_python,
-            patch.object(installer, "_ensure_private_file") as ensure_private_file,
             patch.object(installer.subprocess, "run") as run_process,
         ):
             with self.assertRaises(installer.InstallerError):
@@ -364,7 +328,6 @@ class TestInstaller(unittest.TestCase):
             env={},
         )
         ensure_python.assert_not_called()
-        ensure_private_file.assert_not_called()
         run_process.assert_not_called()
 
     def test_installer_orders_host_filesystem_before_dependency_bootstrap(self):
@@ -401,9 +364,6 @@ class TestInstaller(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tempdir:
             paths = installer.InstallerPaths(
                 secret_env_file=Path(tempdir) / "local.env",
-                fixed_secret_env_file=Path(tempdir) / "fixed.env",
-                infisical_secret_env_file=Path(tempdir) / "infisical.env",
-                generated_secret_env_file=Path(tempdir) / "generated.env",
                 native_linux_venv=Path(tempdir) / "install-venv",
             )
 
@@ -420,9 +380,6 @@ class TestInstaller(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tempdir:
             paths = installer.InstallerPaths(
                 secret_env_file=Path(tempdir) / "local.env",
-                fixed_secret_env_file=Path(tempdir) / "fixed.env",
-                infisical_secret_env_file=Path(tempdir) / "infisical.env",
-                generated_secret_env_file=Path(tempdir) / "generated.env",
                 native_linux_venv=Path(tempdir) / "install-venv",
             )
             venv_python = paths.native_linux_venv / "bin" / "python"
@@ -504,118 +461,10 @@ class TestInstaller(unittest.TestCase):
                     timeout_seconds=1,
                 )
 
-    def test_load_export_file_parses_shell_quoted_values(self):
-        with tempfile.TemporaryDirectory() as tempdir:
-            path = Path(tempdir) / "live.env"
-            path.write_text(
-                "\n".join(
-                    (
-                        "# local secrets",
-                        "export TSW_ONE='quoted value'",
-                        "TSW_TWO=plain",
-                        "not an assignment",
-                    )
-                ),
-                encoding="utf-8",
-            )
-
-            values = installer._load_export_file(path)
-
-        self.assertEqual(
-            values,
-            {
-                "TSW_ONE": "quoted value",
-                "TSW_TWO": "plain",
-            },
-        )
-
-    def test_load_export_file_rejects_invalid_shell_quoting_without_value_leak(self):
-        with tempfile.TemporaryDirectory() as tempdir:
-            path = Path(tempdir) / "live.env"
-            path.write_text(
-                "export TSW_INFISICAL_LOGIN_EMAIL='admin@tiny-swarm-world.local\n",
-                encoding="utf-8",
-            )
-
-            with self.assertRaises(installer.InstallerError) as raised:
-                installer._load_export_file(path)
-
-        self.assertIn("invalid shell quoting", str(raised.exception))
-        self.assertNotIn("admin@tiny-swarm-world.local", str(raised.exception))
-
     def test_normalized_email_value_removes_accidental_literal_quote(self):
         self.assertEqual(
             installer._normalized_email_value("'admin@tiny-swarm-world.local"),
             "admin@tiny-swarm-world.local",
-        )
-
-    def test_normalize_export_file_collapses_duplicate_keys(self):
-        with tempfile.TemporaryDirectory() as tempdir:
-            path = Path(tempdir) / "live.env"
-            path.write_text(
-                "\n".join(
-                    (
-                        "# local operator values",
-                        "export TSW_EXAMPLE='first-secret'",
-                        "export TSW_OTHER='other-secret'",
-                        "export TSW_EXAMPLE='second-secret'",
-                    )
-                )
-                + "\n",
-                encoding="utf-8",
-            )
-
-            installer._normalize_export_file_if_duplicate_keys(path)
-
-            content = path.read_text(encoding="utf-8")
-            values = installer._load_export_file(path)
-            mode = stat.S_IMODE(path.stat().st_mode)
-
-        self.assertEqual(
-            values,
-            {
-                "TSW_EXAMPLE": "second-secret",
-                "TSW_OTHER": "other-secret",
-            },
-        )
-        self.assertEqual(mode, 0o600)
-        self.assertEqual(content.count("TSW_EXAMPLE="), 1)
-        self.assertIn("Normalized by install.sh", content)
-
-    def test_normalize_export_file_reuses_snapshot_without_rereading(self):
-        with tempfile.TemporaryDirectory() as tempdir:
-            path = Path(tempdir) / "live.env"
-            path.write_text(
-                "export TSW_EXAMPLE='first'\nexport TSW_EXAMPLE='second'\n",
-                encoding="utf-8",
-            )
-            snapshot = installer._parse_export_file(path)
-
-            with patch.object(Path, "read_text", side_effect=AssertionError("unexpected reread")):
-                installer._normalize_export_file_if_duplicate_keys(
-                    path,
-                    snapshot=snapshot,
-                )
-
-            self.assertEqual(
-                installer._load_export_file(path),
-                {"TSW_EXAMPLE": "second"},
-            )
-
-    def test_snapshot_with_exports_preserves_appended_values_and_duplicates(self):
-        snapshot = installer._ExportFileSnapshot({"TSW_EXISTING": "old"}, ())
-
-        updated = installer._snapshot_with_exports(
-            snapshot,
-            {"TSW_EXISTING": "new", "TSW_ADDED": "value"},
-        )
-
-        self.assertEqual(
-            updated,
-            installer._ExportFileSnapshot(
-                {"TSW_EXISTING": "new", "TSW_ADDED": "value"},
-                ("TSW_EXISTING",),
-            ),
         )
 
     def test_git_ignore_probe_batches_worktree_and_ignore_decision(self):
@@ -714,37 +563,10 @@ class TestInstaller(unittest.TestCase):
         self.assertIn("TSW_PORTAINER_ADMIN_PASSWORD", keys)
         self.assertIn("TSW_INFISICAL_REDIS_PASSWORD", keys)
         self.assertNotIn("TSW_TRAEFIK_TLS_CERT_SECRET_NAME", keys)
-        self.assertTrue(
-            all(entry.source in installer.INSTALLER_REQUIRED_SOURCES for entry in entries)
-        )
-
-    def test_required_installer_secret_entries_can_include_external_required_keys(self):
-        entries = installer._required_installer_secret_entries(
-            Path("infra/config/secrets/infisical-secrets.yaml"),
-            sources=None,
-        )
-        keys = {entry.key for entry in entries}
-
-        self.assertIn("TSW_TRAEFIK_TLS_CERT_SECRET_NAME", keys)
-        self.assertIn("TSW_TRAEFIK_TLS_KEY_SECRET_NAME", keys)
-
-    def test_fixed_installer_secret_values_rejects_missing_key(self):
-        with tempfile.TemporaryDirectory() as tempdir:
-            fixed_file = Path(tempdir) / "fixed.env"
-            fixed_file.write_text("export TSW_PRESENT_PASSWORD='fixed'\n", encoding="utf-8")
-            entries = (
-                installer.InstallerSecretEntry("TSW_PRESENT_PASSWORD", "generated_local_secret", True),
-                installer.InstallerSecretEntry("TSW_MISSING_PASSWORD", "generated_local_secret", True),
-            )
-
-            with self.assertRaisesRegex(installer.InstallerError, "TSW_MISSING_PASSWORD"):
-                installer._fixed_installer_secret_values(fixed_file, entries)
 
     def test_confirm_reset_reports_missing_noninteractive_input(self):
         options = installer.InstallerOptions(
             service_profile="service-access",
-            generate_secrets=False,
-            secrets_mode="generated",
             confirm_reset=False,
             non_interactive_live_approval=False,
             headless=False,
@@ -959,8 +781,6 @@ class TestInstaller(unittest.TestCase):
     def test_confirm_reset_default_output_is_a_readable_line(self):
         options = installer.InstallerOptions(
             service_profile="service-access",
-            generate_secrets=False,
-            secrets_mode="fixed",
             confirm_reset=True,
             non_interactive_live_approval=False,
             headless=True,
@@ -1016,8 +836,6 @@ class TestInstaller(unittest.TestCase):
         reporter = Reporter()
         options = installer.InstallerOptions(
             service_profile="service-access",
-            generate_secrets=False,
-            secrets_mode="fixed",
             confirm_reset=True,
             non_interactive_live_approval=True,
             headless=True,

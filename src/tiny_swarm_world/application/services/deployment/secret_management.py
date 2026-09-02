@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import re
-import secrets
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -27,38 +26,25 @@ from tiny_swarm_world.domain.inventory import VerificationResult, VerificationSt
 
 SecretClassification = Literal[
     "managed_secret",
-    "generated_secret",
     "external_user_secret",
     "placeholder_only",
     "false_positive",
     "blocker",
 ]
 SecretPolicy = Literal["keep_existing", "rotate"]
-SecretMode = Literal["generated", "fixed", "infisical", "internal-test"]
-
 REDACTED = "<redacted>"
 DEFAULT_MANIFEST_PATH = Path("infra/config/secrets/infisical-secrets.yaml")
-DEFAULT_FIXED_LOCAL_ENV = Path(".tiny-swarm-world/local/fixed-secrets.env")
-DEFAULT_BOOTSTRAP_LOCAL_ENV = Path(".tiny-swarm/secrets/bootstrap.local.env")
-DEFAULT_GENERATED_LOCAL_ENV = Path(".tiny-swarm/secrets/generated.local.env")
 DEFAULT_EVIDENCE_DIR = Path(".tiny-swarm/evidence/secrets")
-SECRET_MODES: tuple[SecretMode, ...] = (
-    "generated",
-    "fixed",
-    "infisical",
-    "internal-test",
-)
 SECRET_KEY_PATTERN = re.compile(r"\b[A-Z][A-Z0-9_]*(?:PASSWORD|TOKEN|SECRET|API_KEY|CREDENTIAL|HTPASSWD|KEY)[A-Z0-9_]*\b")
 SECRET_ASSIGNMENT_PATTERN = re.compile(
     r"(?P<key>[a-z_][a-z0-9_-]*)\s*[:=]\s*(?P<value>[^\n#]+)",
     re.IGNORECASE,
 )
 PLACEHOLDER_MARKERS = ("${", "{{", "<", "redacted", "placeholder", "changeme", "fake", "sample", "-password", "-secret", "-value")
-SOURCE_MARKERS = ("generated_local_secret", "external_user_secret", "managed_secret", "placeholder_only")
+SOURCE_MARKERS = ("internal_test_catalog", "external_user_secret", "managed_secret", "placeholder_only")
 CONSUMER_REF_PATTERN = re.compile(r"^[a-z0-9][a-z0-9:._-]*$")
 FALSE_POSITIVE_KEYS = ("PUBLIC_KEY", "RESOURCE_KEYS", "RAW_EVIDENCE_KEYS")
 FALSE_POSITIVE_ASSIGNMENTS = (
-    "GENERATE_SECRETS",
     "INITIAL_PASSWORD",
     "KEY",
     "MISSING_SECRETS",
@@ -66,11 +52,9 @@ FALSE_POSITIVE_ASSIGNMENTS = (
     "SECRET_ENV_FILE",
     "SECRET_ENVIRONMENT",
     "SECRET_FILE",
-    "SECRET_MODE",
     "SECRET_NAME",
     "CREDENTIAL_NOTE",
     "SECRETS",
-    "SECRETS_GENERATED_COUNT",
 )
 SCAN_SUFFIXES = {".env", ".yml", ".yaml", ".sh", ".py", ".groovy", ".conf", ".json", ".template", ".tpl"}
 SCAN_DIRS = (".",)
@@ -121,29 +105,6 @@ class SecretManagementBlocker(RuntimeError):
     def __init__(self, classification: str, message: str):
         super().__init__(message)
         self.classification = classification
-
-
-class FixedEnvSecretSource:
-    def __init__(self, storage: PortLocalFileStorage, env_file: Path = DEFAULT_FIXED_LOCAL_ENV) -> None:
-        self.storage = storage
-        self.env_file = env_file
-
-    def values_for(self, manifest_entries: tuple[SecretManifestEntry, ...]) -> dict[str, str]:
-        if not self.storage.exists(self.env_file):
-            raise SecretManagementBlocker(
-                "fixed_secret_file_missing",
-                f"Fixed secret file is missing: {self.env_file.as_posix()}",
-            )
-        values = _read_env_file(self.storage, self.env_file)
-        entries_by_key = {entry.key: entry for entry in manifest_entries}
-        required_keys = tuple(entry.key for entry in manifest_entries if entry.required)
-        missing = [key for key in required_keys if key not in values]
-        if missing:
-            raise SecretManagementBlocker("fixed_secret_key_missing", f"Fixed secret key is missing: {missing[0]}")
-        empty = [key for key, value in values.items() if key in entries_by_key and not value.strip()]
-        if empty:
-            raise SecretManagementBlocker("fixed_secret_value_empty", f"Fixed secret value is empty: {empty[0]}")
-        return {key: value for key, value in values.items() if key in entries_by_key}
 
 
 class InfisicalSecretStore:
@@ -281,9 +242,6 @@ class InfisicalSecretSyncStep:
         cli: PortInfisicalCli,
         storage: PortLocalFileStorage,
         manifest_entries: tuple[SecretManifestEntry, ...],
-        generated_local_env: Path = DEFAULT_GENERATED_LOCAL_ENV,
-        fixed_env_file: Path = DEFAULT_FIXED_LOCAL_ENV,
-        mode: SecretMode = "generated",
         project: str = "tiny-swarm-world",
         environment: str = "local",
         process_environment: Mapping[str, str] | None = None,
@@ -292,15 +250,11 @@ class InfisicalSecretSyncStep:
             store=InfisicalSecretStore(cli),
             storage=storage,
             manifest_entries=manifest_entries,
-            generated_local_env=generated_local_env,
-            fixed_source=FixedEnvSecretSource(storage, fixed_env_file),
-            mode=mode,
             project=project,
             environment=environment,
             process_environment=process_environment,
         )
         self.results: list[dict[str, str]] = []
-        self.mode = mode
         self.checked_secret_keys: tuple[str, ...] = ()
         self.synchronized_secret_keys: tuple[str, ...] = ()
         self.credential_sources: dict[str, CredentialSource] = {}
@@ -323,21 +277,13 @@ class SecretSyncUseCase:
         store: InfisicalSecretStore,
         storage: PortLocalFileStorage,
         manifest_entries: tuple[SecretManifestEntry, ...],
-        generated_local_env: Path = DEFAULT_GENERATED_LOCAL_ENV,
-        fixed_source: FixedEnvSecretSource | None = None,
-        mode: SecretMode = "generated",
         project: str = "tiny-swarm-world",
         environment: str = "local",
         process_environment: Mapping[str, str] | None = None,
     ) -> None:
-        if mode not in SECRET_MODES:
-            raise ValueError(f"Unsupported secret mode: {mode}")
         self.store = store
         self.storage = storage
         self.manifest_entries = manifest_entries
-        self.generated_local_env = generated_local_env
-        self.fixed_source = fixed_source or FixedEnvSecretSource(storage)
-        self.mode = mode
         self.project = project
         self.environment = environment
         self.process_environment = process_environment or {}
@@ -358,14 +304,7 @@ class SecretSyncUseCase:
                 "infisical_sync_failed",
                 "Infisical secret sync failed while preparing scope.",
             ) from exc
-        if self.mode == "fixed":
-            self._run_fixed()
-        elif self.mode == "infisical":
-            self._run_infisical_only()
-        elif self.mode == "internal-test":
-            self._run_internal_test()
-        else:
-            self._run_generated()
+        self._run_internal_test()
 
     def _run_internal_test(self) -> None:
         checked = []
@@ -388,7 +327,7 @@ class SecretSyncUseCase:
                     )
                 )
             else:
-                self._sync_entry(entry, value, {}, source=resolution.source)
+                self._sync_entry(entry, value, source=resolution.source)
             checked.append(entry.key)
         self.checked_secret_keys = tuple(checked)
         self.synchronized_secret_keys = tuple(
@@ -432,78 +371,10 @@ class SecretSyncUseCase:
                 f"Infisical secret sync failed while reading key: {entry.key}",
             ) from exc
 
-    def _entry_value(self, entry: SecretManifestEntry, generated_values: dict[str, str]) -> str:
-        value = self.process_environment.get(entry.key) or generated_values.get(entry.key, "")
-        if not value and entry.source == "generated_local_secret":
-            value = _generate_secret(entry.key)
-            generated_values[entry.key] = value
-        if value and entry.source in {"generated_local_secret", "infisical_bootstrap_identity"}:
-            generated_values.setdefault(entry.key, value)
-        return value
-
-    def _run_generated(self) -> None:
-        generated_values = _read_env_file(self.storage, self.generated_local_env)
-        self.checked_secret_keys = tuple(entry.key for entry in self.manifest_entries if entry.required)
-        for entry in self.manifest_entries:
-            value = self._entry_value(entry, generated_values)
-            if entry.required and not value:
-                raise SecretManagementBlocker("blocker", f"Required secret value is missing: {entry.key}")
-            self.credential_sources[entry.key] = CredentialSource.OPERATOR
-            self._sync_entry(entry, value, generated_values, source=CredentialSource.OPERATOR)
-        _write_env_file(self.storage, self.generated_local_env, generated_values)
-        self.synchronized_secret_keys = tuple(
-            result["key"]
-            for result in self.results
-            if result["sync_status"] in {"created", "updated", "kept_existing"}
-        )
-
-    def _run_fixed(self) -> None:
-        fixed_values = self.fixed_source.values_for(self.manifest_entries)
-        self.checked_secret_keys = tuple(entry.key for entry in self.manifest_entries if entry.required)
-        for entry in self.manifest_entries:
-            value = fixed_values.get(entry.key, "")
-            if not value:
-                self.credential_sources[entry.key] = CredentialSource.OPERATOR
-                self.results.append(
-                    _sync_result(entry, "skipped_missing_optional", source=CredentialSource.OPERATOR)
-                )
-                continue
-            self.credential_sources[entry.key] = CredentialSource.OPERATOR
-            self._set_entry(
-                entry,
-                value,
-                status_if_existing="updated",
-                source=CredentialSource.OPERATOR,
-            )
-        self.synchronized_secret_keys = tuple(
-            result["key"]
-            for result in self.results
-            if result["sync_status"] in {"created", "updated"}
-        )
-
-    def _run_infisical_only(self) -> None:
-        checked: list[str] = []
-        for entry in self.manifest_entries:
-            if not entry.required:
-                continue
-            checked.append(entry.key)
-            if not self._secret_exists(entry):
-                raise SecretManagementBlocker(
-                    "infisical_secret_missing",
-                    f"Required Infisical secret is missing: {entry.key}",
-                )
-            self.credential_sources[entry.key] = CredentialSource.VAULT
-            self.results.append(
-                _sync_result(entry, "verified_existing", source=CredentialSource.VAULT)
-            )
-        self.checked_secret_keys = tuple(checked)
-        self.synchronized_secret_keys = ()
-
     def _sync_entry(
         self,
         entry: SecretManifestEntry,
         value: str,
-        generated_values: dict[str, str],
         *,
         source: CredentialSource = CredentialSource.OPERATOR,
     ) -> None:
@@ -516,9 +387,6 @@ class SecretSyncUseCase:
         if exists and entry.policy == "keep_existing":
             self.results.append(_sync_result(entry, "kept_existing", source=source))
             return
-        if exists and entry.policy == "rotate":
-            value = _generate_secret(entry.key)
-            generated_values[entry.key] = value
         self._set_entry(
             entry,
             value,
@@ -572,7 +440,6 @@ class SecretSyncUseCase:
             message="Infisical managed entries were synchronized idempotently.",
             evidence={
                 "phase": "verify",
-                "selected_mode": self.mode,
                 "checked_entry_count": str(len(self.checked_secret_keys)),
                 "synchronized_entry_count": str(len(self.synchronized_secret_keys)),
                 "synced_entry_count": str(len(synced)),
@@ -699,7 +566,6 @@ class SecretEvidenceWriter:
                 for key, source in sorted(self.sync.credential_sources.items())
             },
             "generated_at": now,
-            "mode": self.sync.mode,
             "results": self.sync.results,
             "synchronized_secret_keys": list(self.sync.synchronized_secret_keys),
         }
@@ -743,7 +609,7 @@ def _manifest_entry(item: object) -> SecretManifestEntry:
     if not re.fullmatch(r"TSW_[A-Z0-9]+(?:_[A-Z0-9]+)+", key):
         raise SecretManagementBlocker("manifest_schema_invalid", f"Invalid TSW secret key: {key}")
     entry_type = str(item.get("type", ""))
-    if entry_type not in {"managed_secret", "generated_secret", "external_user_secret", "placeholder_only"}:
+    if entry_type not in {"managed_secret", "external_user_secret", "placeholder_only"}:
         raise SecretManagementBlocker("manifest_schema_invalid", f"Invalid secret type for {key}: {entry_type}")
     policy = str(item.get("policy", "keep_existing"))
     if policy not in {"keep_existing", "rotate"}:
@@ -767,32 +633,24 @@ def _manifest_entry(item: object) -> SecretManifestEntry:
 def _manifest_owner(source: str) -> str:
     if source == "external_user_secret":
         return "operator"
-    if source == "infisical_bootstrap_identity":
-        return "infisical_sync"
-    if source in {"generated_local_secret", "placeholder_only"}:
-        return "python_installer"
+    if source == "internal_test_catalog":
+        return "credential_catalog"
     return "unknown"
 
 
 def _manifest_storage(source: str) -> str:
     if source == "external_user_secret":
         return "external_docker_secret_or_operator_env"
-    if source == "infisical_bootstrap_identity":
-        return ".tiny-swarm/secrets/generated.local.env"
-    if source in {"generated_local_secret", "placeholder_only"}:
-        return ".tiny-swarm-world/local/live-installation.env"
+    if source == "internal_test_catalog":
+        return "catalog_or_operator_override"
     return "unknown"
 
 
 def _manifest_lifecycle(source: str) -> str:
     if source == "external_user_secret":
         return "operator_created_and_rotated"
-    if source == "infisical_bootstrap_identity":
-        return "created_during_infisical_sync_and_reused"
-    if source == "generated_local_secret":
-        return "generated_when_missing_and_kept_existing"
-    if source == "placeholder_only":
-        return "operator_supplied_and_kept_existing"
+    if source == "internal_test_catalog":
+        return "deterministic_catalog_value_or_explicit_override"
     return "unknown"
 
 
@@ -876,39 +734,6 @@ def _is_sensitive_key_or_assignment(value: str) -> bool:
 
 def _redact_assignment(value: str) -> str:
     return SECRET_ASSIGNMENT_PATTERN.sub(lambda match: f"{match.group('key')}={REDACTED}", value)
-
-
-def _read_env_file(storage: PortLocalFileStorage, path: Path) -> dict[str, str]:
-    text = storage.read_text(path)
-    if text is None:
-        return {}
-    values: dict[str, str] = {}
-    for line in text.splitlines():
-        line = line.strip()
-        if not line or line.startswith("#"):
-            continue
-        if line.startswith("export "):
-            line = line[len("export "):]
-        if "=" not in line:
-            continue
-        key, value = line.split("=", 1)
-        values[key.strip()] = value.strip().strip('"\'')
-    return values
-
-
-def _write_env_file(storage: PortLocalFileStorage, path: Path, values: dict[str, str]) -> None:
-    lines = ["# Generated by Tiny Swarm World. Do not commit."]
-    for key in sorted(values):
-        lines.append(f"export {key}='{values[key]}'")
-    storage.write_text(path, "\n".join(lines) + "\n", private=True)
-
-
-def _generate_secret(key: str) -> str:
-    if key.endswith("ENCRYPTION_KEY"):
-        return secrets.token_hex(16)
-    if key.endswith("HTPASSWD"):
-        return secrets.token_urlsafe(48)
-    return secrets.token_urlsafe(32)
 
 
 def _sync_result(

@@ -1,12 +1,8 @@
 from __future__ import annotations
 
 import argparse
-import base64
-import hashlib
-import hmac
 import json
 import os
-import secrets
 import shlex
 import shutil
 import subprocess
@@ -41,9 +37,6 @@ from tiny_swarm_world.infrastructure.adapters.ingress.tls_state import canonical
 from tiny_swarm_world.domain.configuration.configuration_contract import (
     validate_traefik_htpasswd,
 )
-from tiny_swarm_world.domain.configuration.internal_test_credentials import (
-    INTERNAL_TEST_LOGIN_EMAIL,
-)
 from tiny_swarm_world.domain.configuration.credential_resolution import (
     CredentialResolutionError,
     CredentialSource,
@@ -59,11 +52,7 @@ RESET_CONFIRMATION = "RESET_TINY_SWARM_PLATFORM"
 _RESET_RUN_LOG_FILE = "reset-run.log"
 _SETUP_RUN_LOG_FILE = "setup-run.log"
 DEFAULT_SERVICE_PROFILE = "service-access"
-DEFAULT_INFISICAL_LOGIN_EMAIL = INTERNAL_TEST_LOGIN_EMAIL
 DEFAULT_SECRET_ENV_FILE = ".tiny-swarm-world/local/live-installation.env"
-DEFAULT_FIXED_SECRET_ENV_FILE = ".tiny-swarm-world/local/fixed-secrets.env"
-DEFAULT_INFISICAL_SECRET_ENV_FILE = ".tiny-swarm/secrets/bootstrap.local.env"
-DEFAULT_GENERATED_SECRET_ENV_FILE = ".tiny-swarm/secrets/generated.local.env"
 DEFAULT_NATIVE_LINUX_VENV = ".tiny-swarm-world/install-venv"
 DEFAULT_SECRET_MANIFEST_PATH = Path("infra/config/secrets/infisical-secrets.yaml")
 TRAEFIK_GUI_USERS_HTPASSWD_ENVIRONMENT = "TSW_TRAEFIK_GUI_USERS_HTPASSWD"
@@ -75,27 +64,11 @@ WINDOWS_EXPOSURE_ENVIRONMENT = "TSW_WINDOWS_EXPOSURE"
 WINDOWS_WSL_BRIDGE_TEST_STATE_ENVIRONMENT = (
     "TSW_INSTALL_TEST_WINDOWS_WSL_BRIDGE_STATE_PATH"
 )
-INSTALLER_REQUIRED_SOURCES = frozenset({"generated_local_secret", "placeholder_only"})
-INTERNAL_TEST_SECRET_MODE = "internal-test"
-SECRET_MODES = (INTERNAL_TEST_SECRET_MODE, "generated", "fixed", "infisical")
-DEFAULT_LOCAL_SERVICE_URL_EXPORTS = {
-    "TSW_DASHBOARD_URL": "http://localhost:10000",
-    "TSW_INFISICAL_URL": "http://localhost:17080",
-    "TSW_JENKINS_URL": "http://localhost:11080",
-    "TSW_NEXUS_URL": "http://localhost:13081",
-    "TSW_PORTAINER_URL": "http://localhost:10001",
-    "TSW_PULSAR_PUBLIC_ADMIN_URL": "http://localhost:14080",
-    "TSW_PULSAR_MANAGER_URL": "http://localhost:14081",
-    "TSW_SONARQUBE_URL": "http://localhost:12000",
-    "TSW_SWAGGER_URL": "http://localhost:16081",
-}
 
 
 @dataclass(frozen=True)
 class InstallerOptions:
     service_profile: str
-    generate_secrets: bool
-    secrets_mode: str
     confirm_reset: bool
     non_interactive_live_approval: bool
     headless: bool
@@ -105,16 +78,7 @@ class InstallerOptions:
 @dataclass(frozen=True)
 class InstallerPaths:
     secret_env_file: Path
-    fixed_secret_env_file: Path
-    infisical_secret_env_file: Path
-    generated_secret_env_file: Path
     native_linux_venv: Path
-
-
-@dataclass(frozen=True)
-class _ExportFileSnapshot:
-    values: dict[str, str]
-    duplicate_keys: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -137,11 +101,8 @@ class _EvidenceProbeSnapshot:
 class _InstallRunContext:
     run_id: str
     service_profile: str
-    secrets_mode: str
     secret_env_file: Path
-    fixed_secret_env_file: Path
     checked_secret_keys: tuple[str, ...]
-    secrets_generated_count: int
     host_runtime: HostRuntime
     live_execution_mode: str
     live_approval_source: str
@@ -228,20 +189,6 @@ def parse_args(argv: Sequence[str] | None = None) -> InstallerOptions:
         help="Service profile passed to setup run.",
     )
     parser.add_argument(
-        "--no-generate-secrets",
-        action="store_true",
-        help="Fail if required TSW_* secrets are missing.",
-    )
-    parser.add_argument(
-        "--secrets-mode",
-        choices=SECRET_MODES,
-        default=os.environ.get("TSW_SECRETS_MODE", INTERNAL_TEST_SECRET_MODE),
-        help=(
-            "Secret source mode: internal-test (deterministic, no local credential "
-            "file), generated, fixed, or infisical."
-        ),
-    )
-    parser.add_argument(
         "--confirm-reset",
         action="store_true",
         help="Confirm the governed fresh-install reset without prompting.",
@@ -265,14 +212,8 @@ def parse_args(argv: Sequence[str] | None = None) -> InstallerOptions:
         ),
     )
     args = parser.parse_args(argv)
-    if args.secrets_mode not in SECRET_MODES:
-        parser.error(
-            "--secrets-mode must be one of internal-test, generated, fixed, or infisical"
-        )
     return InstallerOptions(
         service_profile=args.service_profile,
-        generate_secrets=not args.no_generate_secrets,
-        secrets_mode=args.secrets_mode,
         confirm_reset=args.confirm_reset,
         non_interactive_live_approval=args.non_interactive_live_approval,
         headless=args.headless or os.environ.get("TSW_INSTALL_HEADLESS") == "1",
@@ -353,94 +294,27 @@ def run(
     )
     python_bin = ensure_python_environment(host_runtime, paths, env)
     install_env = dict(env)
-    secret_mode = _secret_mode(options)
-    install_env["TSW_SECRETS_MODE"] = secret_mode
-    install_env["TSW_FIXED_SECRET_ENV_FILE"] = paths.fixed_secret_env_file.as_posix()
-
-    persist_local_credentials = secret_mode != INTERNAL_TEST_SECRET_MODE
-    if persist_local_credentials:
-        _ensure_private_file(paths.secret_env_file)
-        _ensure_private_file(paths.infisical_secret_env_file)
-        _ensure_private_file(paths.generated_secret_env_file)
-        secret_env_snapshot = _parse_export_file(paths.secret_env_file)
-        infisical_env_snapshot = _parse_export_file(paths.infisical_secret_env_file)
-        install_env.update(secret_env_snapshot.values)
-        install_env.update(infisical_env_snapshot.values)
-    else:
-        secret_env_snapshot = _ExportFileSnapshot({}, ())
-
-    required_entries = _required_installer_secret_entries(
-        cwd / DEFAULT_SECRET_MANIFEST_PATH,
-        sources=None if secret_mode == "fixed" else INSTALLER_REQUIRED_SOURCES,
-    )
-    secrets_generated_count = 0
-    if secret_mode == "fixed":
-        fixed_values = _fixed_installer_secret_values(paths.fixed_secret_env_file, required_entries)
-        install_env.update(fixed_values)
-    elif secret_mode == INTERNAL_TEST_SECRET_MODE:
-        try:
-            resolutions = _resolve_internal_test_installer_values(
-                install_env,
-                required_entries,
-            )
-        except CredentialResolutionError as error:
-            raise InstallerError(str(error)) from error
-        install_env.update(resolutions.values)
-        install_env[CREDENTIAL_SOURCE_MAP_ENVIRONMENT] = resolutions.source_metadata()
-    else:
-        missing = [entry for entry in required_entries if not install_env.get(entry.key)]
-        if missing and (secret_mode == "infisical" or not options.generate_secrets):
-            _print_missing_secrets([entry.key for entry in missing])
-            raise InstallerError(
-                f"Provide the missing values in {paths.secret_env_file.as_posix()} "
-                "or use --secrets-mode generated with secret generation enabled."
-            )
-        if missing:
-            generated = _generated_secret_values(missing, install_env)
-            _append_exports(paths.secret_env_file, f"Generated by install.sh at {_utc_timestamp()} UTC", generated)
-            install_env.update(generated)
-            secret_env_snapshot = _snapshot_with_exports(secret_env_snapshot, generated)
-            secrets_generated_count = len(missing)
-
-    secret_env_snapshot = _snapshot_with_exports(
-        secret_env_snapshot,
-        _normalize_infisical_login_email(
-            paths,
+    required_entries = _required_installer_secret_entries(cwd / DEFAULT_SECRET_MANIFEST_PATH)
+    try:
+        resolutions = _resolve_internal_test_installer_values(
             install_env,
-            persist=persist_local_credentials,
-        ),
-    )
-    secret_env_snapshot = _snapshot_with_exports(
-        secret_env_snapshot,
-        _ensure_sonarqube_password_policy(
-            options,
-            paths,
-            install_env,
-            persist=persist_local_credentials,
-        ),
-    )
-    secret_env_snapshot = _snapshot_with_exports(
-        secret_env_snapshot,
-        _ensure_default_config_exports(
-            paths,
-            install_env,
-            persist=persist_local_credentials,
-        ),
-    )
-    _require_operator_provisioned_traefik_gui_users(install_env, paths.secret_env_file)
-    if persist_local_credentials:
-        _normalize_export_file_if_duplicate_keys(
-            paths.secret_env_file,
-            snapshot=secret_env_snapshot,
+            required_entries,
         )
-        _write_infisical_secret_file(paths.infisical_secret_env_file, install_env)
+    except CredentialResolutionError as error:
+        raise InstallerError(str(error)) from error
+    install_env.update(resolutions.values)
+    install_env[CREDENTIAL_SOURCE_MAP_ENVIRONMENT] = resolutions.source_metadata()
+
+    _normalize_infisical_login_email(install_env)
+    _ensure_default_config_exports(install_env)
+    _require_operator_provisioned_traefik_gui_users(install_env, paths.secret_env_file)
     install_env.setdefault("TSW_SEED_INFISICAL_ITEMS", "0")
     _configure_native_linux_command_group(host_runtime, install_env)
 
     git_probe = _probe_git_ignore(cwd, ".tiny-swarm-world/")
     if git_probe.inside_worktree and not git_probe.path_ignored:
         print(
-            "WARN: .tiny-swarm-world/ is not ignored by git; do not commit local evidence or generated secrets.",
+            "WARN: .tiny-swarm-world/ is not ignored by git; do not commit local evidence or credential overrides.",
             file=sys.stderr,
         )
 
@@ -455,11 +329,8 @@ def run(
         context=_InstallRunContext(
             run_id=run_id,
             service_profile=options.service_profile,
-            secrets_mode=secret_mode,
             secret_env_file=paths.secret_env_file,
-            fixed_secret_env_file=paths.fixed_secret_env_file,
             checked_secret_keys=tuple(entry.key for entry in required_entries),
-            secrets_generated_count=secrets_generated_count,
             host_runtime=host_runtime,
             live_execution_mode=live_mode,
             live_approval_source=approval_source,
@@ -475,8 +346,6 @@ def run(
         cwd,
         options,
         evidence_dir,
-        paths.secret_env_file,
-        secrets_mode=secret_mode,
     )
     install_reporter.report(
         _phase_event(
@@ -629,9 +498,6 @@ def _paths_from_env(env: Mapping[str, str], cwd: Path) -> InstallerPaths:
 
     return InstallerPaths(
         secret_env_file=resolve(env.get("TSW_INSTALL_ENV_FILE", DEFAULT_SECRET_ENV_FILE)),
-        fixed_secret_env_file=resolve(env.get("TSW_FIXED_SECRET_ENV_FILE", DEFAULT_FIXED_SECRET_ENV_FILE)),
-        infisical_secret_env_file=resolve(env.get("TSW_INFISICAL_SECRET_ENV_FILE", DEFAULT_INFISICAL_SECRET_ENV_FILE)),
-        generated_secret_env_file=resolve(env.get("TSW_GENERATED_SECRET_ENV_FILE", DEFAULT_GENERATED_SECRET_ENV_FILE)),
         native_linux_venv=resolve(env.get("TSW_NATIVE_LINUX_VENV", DEFAULT_NATIVE_LINUX_VENV)),
     )
 
@@ -643,8 +509,6 @@ def _require_repository(cwd: Path) -> None:
 
 def _required_installer_secret_entries(
     manifest_path: Path,
-    *,
-    sources: frozenset[str] | None = INSTALLER_REQUIRED_SOURCES,
 ) -> tuple[InstallerSecretEntry, ...]:
     try:
         import yaml
@@ -658,7 +522,7 @@ def _required_installer_secret_entries(
     return tuple(
         entry
         for entry in entries
-        if entry.required and (sources is None or entry.source in sources)
+        if entry.required and entry.source != "external_user_secret"
     )
 
 
@@ -674,14 +538,6 @@ def _installer_secret_entry(item: object) -> InstallerSecretEntry:
         source=source,
         required=bool(item.get("required", False)),
     )
-
-
-def _secret_mode(options: InstallerOptions) -> str:
-    if options.secrets_mode not in SECRET_MODES:
-        raise InstallerError(
-            "secrets mode must be internal-test, generated, fixed, or infisical."
-        )
-    return options.secrets_mode
 
 
 def _resolve_internal_test_installer_values(
@@ -711,20 +567,6 @@ def _resolve_internal_test_installer_values(
         resolution_keys,
         operator_values=operator_values,
     )
-
-
-def _fixed_installer_secret_values(path: Path, required_entries: Sequence[InstallerSecretEntry]) -> dict[str, str]:
-    if not path.exists():
-        raise InstallerError(f"Fixed secret file is missing: {path.as_posix()}")
-    values = _load_export_file(path)
-    required_keys = tuple(entry.key for entry in required_entries)
-    missing = [key for key in required_keys if key not in values]
-    if missing:
-        raise InstallerError(f"Fixed secret key is missing: {missing[0]}")
-    empty = [key for key in required_keys if not values.get(key, "").strip()]
-    if empty:
-        raise InstallerError(f"Fixed secret value is empty: {empty[0]}")
-    return {key: values[key] for key in required_keys}
 
 
 def detect_host_runtime(
@@ -1066,162 +908,8 @@ def _installer_subprocess_timeout_seconds(env: Mapping[str, str]) -> float:
     return timeout
 
 
-def _parse_export_file(path: Path) -> _ExportFileSnapshot:
-    if not path.exists():
-        return _ExportFileSnapshot({}, ())
-    values: dict[str, str] = {}
-    duplicates: set[str] = set()
-    for raw_line in path.read_text(encoding="utf-8").splitlines():
-        assignment = _export_assignment_from_line(raw_line)
-        if assignment is None:
-            continue
-        name, raw_value = assignment
-        if name in values:
-            duplicates.add(name)
-        values[name] = _parse_export_value(raw_value)
-    return _ExportFileSnapshot(values, tuple(sorted(duplicates)))
-
-
-def _load_export_file(path: Path) -> dict[str, str]:
-    return _parse_export_file(path).values
-
-
-def _snapshot_with_exports(
-    snapshot: _ExportFileSnapshot,
-    exports: Mapping[str, str],
-) -> _ExportFileSnapshot:
-    if not exports:
-        return snapshot
-    values = dict(snapshot.values)
-    duplicates = set(snapshot.duplicate_keys)
-    for name, value in exports.items():
-        if name in values:
-            duplicates.add(name)
-        values[name] = value
-    return _ExportFileSnapshot(values, tuple(sorted(duplicates)))
-
-
-def _normalize_export_file_if_duplicate_keys(
-    path: Path,
-    *,
-    snapshot: _ExportFileSnapshot | None = None,
-) -> None:
-    parsed = snapshot or _parse_export_file(path)
-    if not parsed.duplicate_keys:
-        return
-    _write_exports(
-        path,
-        f"Normalized by install.sh after duplicate key cleanup at {_utc_timestamp()} UTC",
-        parsed.values,
-    )
-
-
-def _duplicate_export_keys(path: Path) -> tuple[str, ...]:
-    return _parse_export_file(path).duplicate_keys
-
-
-def _export_assignment_from_line(raw_line: str) -> tuple[str, str] | None:
-    line = raw_line.strip()
-    if not line or line.startswith("#"):
-        return None
-    if line.startswith("export "):
-        line = line.removeprefix("export ").strip()
-    if "=" not in line:
-        return None
-    name, raw_value = line.split("=", 1)
-    if not name.isidentifier():
-        return None
-    return name, raw_value
-
-
-def _parse_export_value(raw_value: str) -> str:
-    try:
-        parsed = shlex.split(raw_value, posix=True)
-    except ValueError as exc:
-        raise InstallerError("Local installer environment file contains invalid shell quoting.") from exc
-    return parsed[0] if parsed else ""
-
-
-def _generated_secret_values(
-    entries: Sequence[InstallerSecretEntry],
-    current_env: Mapping[str, str] | None = None,
-) -> dict[str, str]:
-    current_values = dict(current_env or {})
-    generated: dict[str, str] = {}
-    for entry in entries:
-        name = entry.key
-        if name == "TSW_INFISICAL_ENCRYPTION_KEY":
-            generated[name] = secrets.token_hex(16)
-        elif name == "TSW_INFISICAL_LOGIN_EMAIL":
-            generated[name] = DEFAULT_INFISICAL_LOGIN_EMAIL
-        elif name == "TSW_SONARQUBE_ADMIN_PASSWORD":
-            generated[name] = f"{secrets.token_urlsafe(32)}!"
-        elif name == "TSW_PULSAR_TOKEN_SECRET_KEY":
-            generated[name] = _generated_pulsar_token_secret_key()
-            generated["TSW_PULSAR_ADMIN_TOKEN"] = _generated_pulsar_admin_token(
-                generated[name],
-            )
-        elif name == "TSW_PULSAR_ADMIN_TOKEN":
-            secret_key = (
-                generated.get("TSW_PULSAR_TOKEN_SECRET_KEY")
-                or current_values.get("TSW_PULSAR_TOKEN_SECRET_KEY")
-                or _generated_pulsar_token_secret_key()
-            )
-            generated.setdefault("TSW_PULSAR_TOKEN_SECRET_KEY", secret_key)
-            generated[name] = _generated_pulsar_admin_token(secret_key)
-        else:
-            generated[name] = secrets.token_urlsafe(32)
-    return generated
-
-
-def _generated_pulsar_token_secret_key() -> str:
-    return base64.b64encode(secrets.token_bytes(32)).decode("ascii")
-
-
-def _generated_pulsar_admin_token(secret_key: str) -> str:
-    key = base64.b64decode(secret_key)
-    header = _base64url_json({"alg": "HS256", "typ": "JWT"})
-    payload = _base64url_json({"sub": "admin"})
-    signing_input = f"{header}.{payload}".encode("ascii")
-    signature = hmac.new(key, signing_input, hashlib.sha256).digest()
-    return f"{header}.{payload}.{_base64url(signature)}"
-
-
-def _base64url_json(payload: Mapping[str, str]) -> str:
-    return _base64url(json.dumps(payload, separators=(",", ":")).encode("utf-8"))
-
-
-def _base64url(payload: bytes) -> str:
-    return base64.urlsafe_b64encode(payload).decode("ascii").rstrip("=")
-
-
-def _ensure_sonarqube_password_policy(
-    options: InstallerOptions,
-    paths: InstallerPaths,
-    env: dict[str, str],
-    *,
-    persist: bool = True,
-) -> dict[str, str]:
-    current = env.get("TSW_SONARQUBE_ADMIN_PASSWORD", "")
-    if len(current) >= 12 and any(character in current for character in "!@#$%^&*()_+"):
-        return {}
-    if options.secrets_mode != "generated" or not options.generate_secrets:
-        raise InstallerError("TSW_SONARQUBE_ADMIN_PASSWORD must be at least 12 characters and contain a special character.")
-    value = f"{secrets.token_urlsafe(32)}!"
-    env["TSW_SONARQUBE_ADMIN_PASSWORD"] = value
-    exports = {"TSW_SONARQUBE_ADMIN_PASSWORD": value}
-    label = f"Regenerated by install.sh for SonarQube password policy at {_utc_timestamp()} UTC"
-    if persist:
-        _append_exports(paths.secret_env_file, label, exports)
-        _append_exports(paths.generated_secret_env_file, label, exports)
-    return exports
-
-
 def _ensure_default_config_exports(
-    paths: InstallerPaths,
     env: dict[str, str],
-    *,
-    persist: bool = True,
 ) -> dict[str, str]:
     exports: dict[str, str] = {}
     if not env.get("TSW_TRAEFIK_TLS_CERT_SECRET_NAME"):
@@ -1238,12 +926,6 @@ def _ensure_default_config_exports(
     if not exports:
         return {}
     env.update(exports)
-    if persist:
-        _append_exports(
-            paths.secret_env_file,
-            f"Default non-secret config values written by install.sh at {_utc_timestamp()} UTC",
-            exports,
-        )
     return exports
 
 
@@ -1264,23 +946,12 @@ def _require_operator_provisioned_traefik_gui_users(
     )
 
 
-def _normalize_infisical_login_email(
-    paths: InstallerPaths,
-    env: dict[str, str],
-    *,
-    persist: bool = True,
-) -> dict[str, str]:
+def _normalize_infisical_login_email(env: dict[str, str]) -> dict[str, str]:
     current = env.get("TSW_INFISICAL_LOGIN_EMAIL", "")
     normalized = _normalized_email_value(current)
     if not normalized or normalized == current:
         return {}
     env["TSW_INFISICAL_LOGIN_EMAIL"] = normalized
-    if persist:
-        _append_exports(
-            paths.secret_env_file,
-            f"Corrected Infisical login email shell quoting at {_utc_timestamp()} UTC",
-            {"TSW_INFISICAL_LOGIN_EMAIL": normalized},
-        )
     return {"TSW_INFISICAL_LOGIN_EMAIL": normalized}
 
 
@@ -1290,19 +961,6 @@ def _normalized_email_value(value: str) -> str:
     if quote_stripped and "@" in quote_stripped and "." in quote_stripped.partition("@")[2]:
         return quote_stripped
     return stripped
-
-
-def _write_infisical_secret_file(path: Path, env: Mapping[str, str]) -> None:
-    exports = {
-        **DEFAULT_LOCAL_SERVICE_URL_EXPORTS,
-        "TSW_INFISICAL_ENCRYPTION_KEY": env["TSW_INFISICAL_ENCRYPTION_KEY"],
-        "TSW_INFISICAL_AUTH_SECRET": env["TSW_INFISICAL_AUTH_SECRET"],
-        "TSW_INFISICAL_POSTGRES_PASSWORD": env["TSW_INFISICAL_POSTGRES_PASSWORD"],
-        "TSW_INFISICAL_REDIS_PASSWORD": env["TSW_INFISICAL_REDIS_PASSWORD"],
-        "TSW_INFISICAL_LOGIN_EMAIL": env["TSW_INFISICAL_LOGIN_EMAIL"],
-        "TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD": env["TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD"],
-    }
-    _write_exports(path, "Generated by install.sh. Do not commit.", exports)
 
 
 def _configure_native_linux_command_group(host_runtime: HostRuntime, env: dict[str, str]) -> None:
@@ -1588,12 +1246,9 @@ def _write_context(
         "git_head": context.evidence_probes.git_head,
         "service_profile": context.service_profile,
         "fresh_install_reset": "required",
-        "secrets_mode": context.secrets_mode,
         "secret_env_file": context.secret_env_file.as_posix(),
-        "fixed_secret_env_file": context.fixed_secret_env_file.as_posix(),
         "checked_secret_keys": ",".join(context.checked_secret_keys),
         "credential_sources": _safe_credential_source_metadata(context.env),
-        "secrets_generated_count": str(context.secrets_generated_count),
         "host_runtime_type": context.host_runtime.name,
         "host_runtime_detection_source": context.host_runtime.detection_source,
         "selected_evidence_directory": evidence_dir.as_posix(),
@@ -1741,15 +1396,7 @@ def _print_install_plan(
     cwd: Path,
     options: InstallerOptions,
     evidence_dir: Path,
-    secret_env_file: Path,
-    *,
-    secrets_mode: str,
 ) -> None:
-    secret_source = (
-        "deterministic internal-test defaults (no credential file)"
-        if secrets_mode == INTERNAL_TEST_SECRET_MODE
-        else secret_env_file.as_posix()
-    )
     print(
         "\n".join(
             (
@@ -1757,9 +1404,8 @@ def _print_install_plan(
                 "",
                 f"Repository:      {cwd.as_posix()}",
                 f"Service profile: {options.service_profile}",
-                f"Secrets mode:    {options.secrets_mode}",
                 f"Evidence:        {evidence_dir.as_posix()}",
-                f"Secret source:   {secret_source}",
+                "Credentials:     deterministic catalog defaults plus explicit operator overrides",
                 "",
                 "This will run live infrastructure automation. It may create or change VMs,",
                 "Docker resources, local service state, networks, and deployment artifacts.",
@@ -1780,12 +1426,6 @@ def _print_install_completion_summary(
     else:
         print(f"Installation failed with exit code {exit_code}.", file=stream)
     print(f"Evidence directory: {evidence_dir.as_posix()}", file=stream)
-
-
-def _print_missing_secrets(missing: Sequence[str]) -> None:
-    print("Missing required secrets:", file=sys.stderr)
-    for name in missing:
-        print(f"  {name}", file=sys.stderr)
 
 
 def _print_tail(path: Path, title: str) -> None:
@@ -1899,30 +1539,6 @@ def _setup_failure_guidance_lines(log_text: str) -> tuple[str, ...]:
         "  rerunning install.sh. The installer does not change iptables, Incus runtime",
         "  files, WSL mode, Windows portproxy, or Windows Firewall automatically.",
     )
-
-
-def _append_exports(path: Path, label: str, values: Mapping[str, str]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("a", encoding="utf-8") as file:
-        file.write(f"\n# {label}\n")
-        for key, value in values.items():
-            file.write(f"export {key}={shlex.quote(value)}\n")
-    path.chmod(0o600)
-
-
-def _write_exports(path: Path, label: str, values: Mapping[str, str]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8") as file:
-        file.write(f"# {label}\n")
-        for key, value in values.items():
-            file.write(f"export {key}={shlex.quote(value)}\n")
-    path.chmod(0o600)
-
-
-def _ensure_private_file(path: Path) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.touch(exist_ok=True)
-    path.chmod(0o600)
 
 
 def _write_text(path: Path, value: str) -> None:

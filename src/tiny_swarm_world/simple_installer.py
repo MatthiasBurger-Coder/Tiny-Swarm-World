@@ -9,16 +9,14 @@ from pathlib import Path
 
 from tiny_swarm_world import installer as legacy
 from tiny_swarm_world.domain.configuration.internal_test_credentials import (
-    INTERNAL_TEST_PROFILE,
     validate_internal_test_consumers,
 )
 from tiny_swarm_world.application.services.credential_resolution import (
     CREDENTIAL_SOURCE_MAP_ENVIRONMENT,
     CredentialResolutionService,
 )
-from tiny_swarm_world.infrastructure.adapters.configuration import (
-    ConfigurationSourceError,
-    ShellEnvFileConfigurationSource,
+from tiny_swarm_world.infrastructure.composition_operator_configuration import (
+    load_operator_configuration,
 )
 
 DEFAULT_BOOTSTRAP_SECRET_FILE = "bootstrap-secrets.env"
@@ -35,8 +33,6 @@ def main(argv: Sequence[str] | None = None) -> int:
         env = _prepare_bootstrap_environment(os.environ, Path.cwd())
         options = legacy.InstallerOptions(
             service_profile=args.service_profile,
-            generate_secrets=False,
-            secrets_mode=INTERNAL_TEST_PROFILE,
             confirm_reset=args.confirm_reset,
             non_interactive_live_approval=args.non_interactive_live_approval,
             headless=args.headless or env.get("TSW_INSTALL_HEADLESS") == "1",
@@ -99,7 +95,6 @@ def _prepare_bootstrap_environment(
 
     required_entries = legacy._required_installer_secret_entries(
         cwd / legacy.DEFAULT_SECRET_MANIFEST_PATH,
-        sources=legacy.INSTALLER_REQUIRED_SOURCES,
     )
     required_keys = tuple(entry.key for entry in required_entries)
     validate_internal_test_consumers(required_keys)
@@ -112,9 +107,8 @@ def _prepare_bootstrap_environment(
     )
     env.update(resolutions.values)
     _ensure_default_secret_names(env)
-    # The standard internal-test path is catalog-backed and stateless. Explicit
-    # operator values remain in `env`; CRED-03 defines their full precedence.
-    env["TSW_SECRETS_MODE"] = INTERNAL_TEST_PROFILE
+    # The standard path is catalog-backed and stateless. Explicit operator
+    # values remain in `env`; CRED-03 defines their full precedence.
     env[CREDENTIAL_SOURCE_MAP_ENVIRONMENT] = resolutions.source_metadata()
     return env
 
@@ -131,8 +125,8 @@ def _load_operator_install_file(
         return {}
     _validate_secure_override_path(path)
     try:
-        return dict(ShellEnvFileConfigurationSource(path).load())
-    except (OSError, ConfigurationSourceError) as error:
+        return load_operator_configuration(path)
+    except (OSError, ValueError) as error:
         raise SimpleInstallerError(
             f"Operator credential source is invalid: {path.as_posix()}"
         ) from error
@@ -164,8 +158,8 @@ def _load_explicit_bootstrap_override(
         )
     _validate_secure_override_path(path)
     try:
-        return dict(ShellEnvFileConfigurationSource(path).load())
-    except (OSError, ConfigurationSourceError) as error:
+        return load_operator_configuration(path)
+    except (OSError, ValueError) as error:
         raise SimpleInstallerError(
             f"Explicit bootstrap credential override is invalid: {path.as_posix()}"
         ) from error
@@ -234,7 +228,7 @@ def _print_operator_credentials(env: Mapping[str, str]) -> None:
     print(f"  URL:      {infisical_url}")
     print(f"  User:     {env['TSW_INFISICAL_LOGIN_EMAIL']}")
     print(f"  Password: {env['TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD']}")
-    print("\nAll other generated secrets are internal and are not printed.")
+    print("\nAll other catalog-managed secrets are internal and are not printed.")
 
 
 if __name__ == "__main__":  # pragma: no cover
