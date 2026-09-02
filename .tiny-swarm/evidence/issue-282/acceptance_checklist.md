@@ -10,9 +10,10 @@
 - [x] Operator values, conflicts, and evidence remain redaction-safe.
 - [x] Obsolete docs, examples, and behavior tests were rewritten or removed.
 - [x] `python3 tools/quality_gate.py quality` passed.
-- [x] The full repository test execution passed with 1,895 tests and 18 skips.
-- [x] The affected-slice branch-aware test execution passed with 243 tests.
-- [x] Added non-comment production lines were covered by the branch-aware run;
-      the change-specific result is above the 95% threshold.
+- [x] The full repository test execution passed with 1,899 tests and 18 skips.
+- [x] The affected-slice branch-aware test execution passed with 247 tests.
+- [x] Added executable production lines and source branch arcs were covered by
+      the branch-aware run; the reproducible change-specific result is above
+      the 95% threshold.
 - [x] No live infrastructure was run; live WSL2/native Linux proof remains
       explicitly assigned to #285 / CRED-07.

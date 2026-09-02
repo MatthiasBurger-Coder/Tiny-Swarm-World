@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Report branch coverage for non-comment lines added by a Git diff."""
+"""Report branch coverage for executable lines added by a Git diff."""
 
 from __future__ import annotations
 
@@ -26,17 +26,10 @@ def main() -> int:
     total_arcs = 0
 
     for relative_path, line_numbers in sorted(added_lines.items()):
-        source_path = Path(relative_path)
-        source_lines = source_path.read_text(encoding="utf-8").splitlines()
-        executable_lines = {
-            line_number
-            for line_number in line_numbers
-            if 0 < line_number <= len(source_lines)
-            and source_lines[line_number - 1].strip()
-            and not source_lines[line_number - 1].lstrip().startswith("#")
-        }
         file_coverage = coverage.get("files", {}).get(relative_path, {})
         executed = set(file_coverage.get("executed_lines", []))
+        missing = set(file_coverage.get("missing_lines", []))
+        executable_lines = line_numbers & (executed | missing)
         covered_lines += len(executable_lines & executed)
         total_lines += len(executable_lines)
 
@@ -52,7 +45,7 @@ def main() -> int:
         covered_arcs += len(added_arcs & executed_arcs)
         total_arcs += len(added_arcs)
 
-    _print_metric("Added non-comment production lines", covered_lines, total_lines)
+    _print_metric("Added executable production lines", covered_lines, total_lines)
     _print_metric("Added source branch arcs", covered_arcs, total_arcs)
     return 0 if _passes(covered_lines, total_lines) and _passes(covered_arcs, total_arcs) else 1
 

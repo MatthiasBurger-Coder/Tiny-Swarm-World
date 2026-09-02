@@ -16,6 +16,7 @@
 - `src/tiny_swarm_world/infrastructure/composition_runtime.py`
 - `infra/config/secrets/infisical-secrets.yaml`
 - `install.sh`
+- `tools/coverage_diff.py`
 - `.env.example`
 
 ## Tests and documentation
