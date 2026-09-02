@@ -1,8 +1,14 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+installer_module="tiny_swarm_world.simple_installer"
+# Compatibility for isolated legacy installer fixtures and emergency rollback.
+if [[ ! -f src/tiny_swarm_world/simple_installer.py ]]; then
+  installer_module="tiny_swarm_world.installer"
+fi
+
 usage() {
-  PYTHONPATH=src python3 -m tiny_swarm_world.installer --help
+  PYTHONPATH=src python3 -m "$installer_module" --help
 }
 
 fail() {
@@ -27,4 +33,4 @@ cd "$SCRIPT_DIR"
 command -v python3 >/dev/null 2>&1 || fail "Required command 'python3' is not available."
 
 export PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}src"
-exec python3 -m tiny_swarm_world.installer "$@"
+exec python3 -m "$installer_module" "$@"
