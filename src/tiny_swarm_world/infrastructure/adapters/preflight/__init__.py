@@ -55,6 +55,10 @@ _EXPORTS = {
         "tiny_swarm_world.infrastructure.adapters.preflight.artifact_readiness",
         "UnavailableArtifactReadinessProbe",
     ),
+    "SecretStorageProbe": (
+        "tiny_swarm_world.infrastructure.adapters.preflight.secret_storage_probe",
+        "SecretStorageProbe",
+    ),
 }
 
 __all__ = list(_EXPORTS)

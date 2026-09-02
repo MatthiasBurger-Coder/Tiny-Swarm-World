@@ -66,12 +66,17 @@ class PreflightResult:
             (check for check in self.checks if check.check_id == "WINDOWS-WSL-BRIDGE"),
             None,
         )
+        secret_storage = next(
+            (check for check in self.checks if check.check_id == "SECRET-STORAGE"),
+            None,
+        )
         return {
             "status": self.status,
             "host_environment": dict(host.evidence) if host else {},
             "host_resources": dict(resource.evidence) if resource else {},
             "resource_assessment": resource.evidence.get("assessment") if resource else "UNKNOWN",
             "network_preparation": dict(bridge.evidence) if bridge else {},
+            "secret_storage": dict(secret_storage.evidence) if secret_storage else {},
             "overrides": [
                 "allow-wsl-windows-filesystem"
                 for check in self.checks

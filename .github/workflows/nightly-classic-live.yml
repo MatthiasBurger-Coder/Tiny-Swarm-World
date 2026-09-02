@@ -24,6 +24,9 @@ concurrency:
 
 env:
   CLASSIC_LIVE_RUNNER_LABEL: tsw-classic
+  TSW_INSTALL_ENV_FILE: ${{ vars.TSW_CLASSIC_LIVE_ENV_FILE }}
+  TSW_LIVE_EVIDENCE_ROOT: ${{ vars.TSW_CLASSIC_LIVE_EVIDENCE_ROOT }}
+  TSW_CLASSIC_CREDENTIAL_ROTATION_REFERENCE: ${{ vars.TSW_CLASSIC_CREDENTIAL_ROTATION_REFERENCE }}
 
 jobs:
   qualify-runner:
@@ -52,8 +55,10 @@ jobs:
           test "${RUNNER_OS}" = Linux
           test -n "${RUNNER_NAME}"
           test -n "${TARGET_OWNER}"
-          test -f .tiny-swarm-world/local/live-installation.env
-          test "$(stat -c '%a' .tiny-swarm-world/local/live-installation.env)" = 600
+          test -n "${TSW_INSTALL_ENV_FILE}"
+          test -n "${TSW_LIVE_EVIDENCE_ROOT}"
+          test -n "${TSW_CLASSIC_CREDENTIAL_ROTATION_REFERENCE}"
+          python3 tools/install_debugger.py --live --env-file "${TSW_INSTALL_ENV_FILE}"
           python3 - <<'PY'
           import platform
           import sys
@@ -85,13 +90,15 @@ jobs:
       - name: Run redacted Classic live chain
         run: |
           set -Eeuo pipefail
-          python3 tools/live/run_classic_acceptance.py --approve-live
+          python3 tools/live/run_classic_acceptance.py --approve-live \
+            --env-file "${TSW_INSTALL_ENV_FILE}" \
+            --credential-rotation-reference "${TSW_CLASSIC_CREDENTIAL_ROTATION_REFERENCE}"
 
       - name: Upload redacted live evidence
         if: ${{ always() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: classic-live-evidence-${{ github.run_id }}
-          path: .tiny-swarm-world/evidence/live-greenpath/
+          path: ${{ env.TSW_LIVE_EVIDENCE_ROOT }}/
           if-no-files-found: error
           retention-days: 14

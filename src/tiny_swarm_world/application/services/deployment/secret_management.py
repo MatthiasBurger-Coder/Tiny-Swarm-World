@@ -23,7 +23,7 @@ SecretClassification = Literal[
     "blocker",
 ]
 SecretPolicy = Literal["keep_existing", "rotate"]
-SecretMode = Literal["generated", "fixed", "infisical"]
+SecretMode = Literal["generated", "fixed", "infisical", "internal-test"]
 
 REDACTED = "<redacted>"
 DEFAULT_MANIFEST_PATH = Path("infra/config/secrets/infisical-secrets.yaml")
@@ -31,7 +31,12 @@ DEFAULT_FIXED_LOCAL_ENV = Path(".tiny-swarm-world/local/fixed-secrets.env")
 DEFAULT_BOOTSTRAP_LOCAL_ENV = Path(".tiny-swarm/secrets/bootstrap.local.env")
 DEFAULT_GENERATED_LOCAL_ENV = Path(".tiny-swarm/secrets/generated.local.env")
 DEFAULT_EVIDENCE_DIR = Path(".tiny-swarm/evidence/secrets")
-SECRET_MODES: tuple[SecretMode, ...] = ("generated", "fixed", "infisical")
+SECRET_MODES: tuple[SecretMode, ...] = (
+    "generated",
+    "fixed",
+    "infisical",
+    "internal-test",
+)
 SECRET_KEY_PATTERN = re.compile(r"\b[A-Z][A-Z0-9_]*(?:PASSWORD|TOKEN|SECRET|API_KEY|CREDENTIAL|HTPASSWD|KEY)[A-Z0-9_]*\b")
 SECRET_ASSIGNMENT_PATTERN = re.compile(
     r"(?P<key>[a-z_][a-z0-9_-]*)\s*[:=]\s*(?P<value>[^\n#]+)",
@@ -336,8 +341,31 @@ class SecretSyncUseCase:
             self._run_fixed()
         elif self.mode == "infisical":
             self._run_infisical_only()
+        elif self.mode == "internal-test":
+            self._run_internal_test()
         else:
             self._run_generated()
+
+    def _run_internal_test(self) -> None:
+        checked = []
+        for entry in self.manifest_entries:
+            value = self._entry_value_internal_test(entry)
+            if entry.required and not value:
+                raise SecretManagementBlocker(
+                    "blocker",
+                    f"Required secret value is missing: {entry.key}",
+                )
+            self._sync_entry(entry, value, {})
+            checked.append(entry.key)
+        self.checked_secret_keys = tuple(checked)
+        self.synchronized_secret_keys = tuple(
+            result["key"]
+            for result in self.results
+            if result["sync_status"] in {"created", "updated", "kept_existing"}
+        )
+
+    def _entry_value_internal_test(self, entry: SecretManifestEntry) -> str:
+        return self.process_environment.get(entry.key, "")
 
     def _entry_value(self, entry: SecretManifestEntry, generated_values: dict[str, str]) -> str:
         value = self.process_environment.get(entry.key) or generated_values.get(entry.key, "")

@@ -7,6 +7,22 @@ from tiny_swarm_world.domain.configuration.configuration_contract import (
     ConfigurationValueKind,
     default_configuration_contract,
 )
+from tiny_swarm_world.domain.configuration.internal_test_credentials import (
+    INTERNAL_TEST_CREDENTIAL_CATALOG,
+    INTERNAL_TEST_LOGIN_EMAIL,
+    INTERNAL_TEST_PASSWORD,
+    INTERNAL_TEST_PROFILE,
+    CredentialCatalog,
+    CredentialCatalogError,
+    CredentialConstraint,
+    CredentialDefinition,
+    CredentialType,
+    internal_test_catalog,
+    internal_test_credential,
+    internal_test_credentials,
+    validate_internal_test_catalog,
+    validate_internal_test_consumers,
+)
 
 __all__ = [
     "ConfigurationContract",
@@ -16,4 +32,18 @@ __all__ = [
     "ConfigurationValidationResult",
     "ConfigurationValueKind",
     "default_configuration_contract",
+    "INTERNAL_TEST_CREDENTIAL_CATALOG",
+    "INTERNAL_TEST_LOGIN_EMAIL",
+    "INTERNAL_TEST_PASSWORD",
+    "INTERNAL_TEST_PROFILE",
+    "CredentialCatalog",
+    "CredentialCatalogError",
+    "CredentialConstraint",
+    "CredentialDefinition",
+    "CredentialType",
+    "internal_test_catalog",
+    "internal_test_credential",
+    "internal_test_credentials",
+    "validate_internal_test_catalog",
+    "validate_internal_test_consumers",
 ]

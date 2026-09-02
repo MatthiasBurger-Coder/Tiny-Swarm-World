@@ -16,4 +16,6 @@ from tiny_swarm_world.__main__ import main  # noqa: E402
 
 
 if __name__ == "__main__":
-    raise SystemExit(asyncio.run(main(["--preflight"])))
+    # Preserve the safe static default while allowing an explicitly requested
+    # live preflight to use the same secure source/secret-path checks.
+    raise SystemExit(asyncio.run(main(["--preflight", *sys.argv[1:]])))

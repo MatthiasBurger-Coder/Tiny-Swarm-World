@@ -322,13 +322,13 @@ DEFAULT_CONTAINER_IMAGE_CONTRACTS = (
     ),
     ContainerImageContract(
         image_name="portainer/portainer-ce",
-        tag="2.39.2",
+        tag="2.45.0",
         build_context="portainer",
         source="pull",
     ),
     ContainerImageContract(
         image_name="portainer/agent",
-        tag="2.39.2",
+        tag="2.45.0",
         build_context="portainer-agent",
         source="pull",
     ),

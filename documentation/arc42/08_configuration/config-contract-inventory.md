@@ -15,6 +15,11 @@ kinds, and requiredness only. It must not contain local secret values, local
 host paths, local IP addresses, user names, raw environment payloads, or live
 evidence.
 
+The deterministic `internal-test` credential source is defined separately in
+[`internal-test-credential-catalog.md`](internal-test-credential-catalog.md).
+That catalog is the only authority for disposable test-profile values; this
+inventory continues to describe operator configuration and source contracts.
+
 ## Repository Evidence
 
 The current configuration surface is spread across these repository areas:
@@ -191,11 +196,12 @@ documented separately from runtime service configuration.
 
 | Key | Default | Value kind | Notes |
 |---|---|---|---|
-| `TSW_INSTALL_ENV_FILE` | `.tiny-swarm-world/local/live-installation.env` | local path | Ignored local runtime secret file. |
+| `TSW_INSTALL_ENV_FILE` | `.tiny-swarm-world/local/live-installation.env` | local path | Ignored local runtime secret file; authorized WSL2 live runs must point to a WSL-native `0600` file outside `/mnt/*`. |
+| `TSW_LIVE_EVIDENCE_ROOT` | XDG state directory below `tiny-swarm-world/evidence/live-greenpath` | local path | Optional WSL-native live evidence root; it must be owner-only and must not be on `/mnt/*`. |
 | `TSW_FIXED_SECRET_ENV_FILE` | `.tiny-swarm-world/local/fixed-secrets.env` | local path | Ignored fixed-mode secret source file. |
 | `TSW_INFISICAL_SECRET_ENV_FILE` | `.tiny-swarm/secrets/bootstrap.local.env` | local path | Ignored local bootstrap secret file. |
 | `TSW_GENERATED_SECRET_ENV_FILE` | `.tiny-swarm/secrets/generated.local.env` | local path | Ignored generated secret recovery file. |
-| `TSW_SECRETS_MODE` | `generated` | enum | Selects `generated`, `fixed`, or `infisical` secret handling before Infisical sync. |
+| `TSW_SECRETS_MODE` | `internal-test` | enum | Selects `internal-test`, `generated`, `fixed`, or `infisical` secret handling before Infisical sync. |
 | `TSW_NATIVE_LINUX_VENV` | `.tiny-swarm-world/install-venv` | local path | Installer virtual environment path for Linux or WSL dependency bootstrap. |
 | `TSW_INSTALL_SKIP_NATIVE_DEPENDENCY_BOOTSTRAP` | `0` | boolean flag as `0`/`1` | Installer-only dependency bootstrap control. |
 | `TSW_INSTALL_SKIP_NATIVE_GROUP_SWITCH` | `0` | boolean flag as `0`/`1` | Installer-only control. |

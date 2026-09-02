@@ -215,6 +215,7 @@ from tiny_swarm_world.infrastructure.adapters.preflight import (
     LocalDirectoryReadinessProbe,
     ManagedLxcDirectoryReadinessProbe,
     ManagedLxcDockerManagerReadinessProbe,
+    SecretStorageProbe,
     UnavailableArtifactReadinessProbe,
 )
 from tiny_swarm_world.infrastructure.adapters.host.wsl_resource_inspector import WslResourceInspector
@@ -314,6 +315,7 @@ from tiny_swarm_world.infrastructure.composition_configuration import (
     PULSAR_IMAGE_ENVIRONMENT,
     PULSAR_MANAGER_BOOTSTRAP_IMAGE_ENVIRONMENT,
     PULSAR_MANAGER_IMAGE_ENVIRONMENT,
+    INTERNAL_TEST_SECRET_MODE,
     SEED_INFISICAL_ITEMS_ENVIRONMENT,
     SERVICE_ACCESS_DASHBOARD_IMAGE_ENVIRONMENT,
     SERVICE_ACCESS_NGINX_IMAGE_ENVIRONMENT,
@@ -578,6 +580,10 @@ def build_project_filesystem_inspector() -> ProjectFilesystemInspector:
     return ProjectFilesystemInspector()
 
 
+def build_secret_storage_probe() -> SecretStorageProbe:
+    return SecretStorageProbe(build_project_filesystem_inspector())
+
+
 def _build_project_filesystem_services() -> tuple[
     EvaluateProjectFilesystem,
     AuthorizeProjectFilesystem,
@@ -620,6 +626,11 @@ def build_preflight_service(
         resource_inspector=WslResourceInspector(),
         evidence_writer=build_preflight_evidence_writer(),
         artifact_source_readiness=HttpArtifactSourceReadiness(),
+        secret_storage_probe=build_secret_storage_probe(),
+        secret_storage_path=_operator_configuration_env_file().as_posix(),
+        require_existing_secret_storage_file=(
+            _secret_mode() != INTERNAL_TEST_SECRET_MODE
+        ),
         include_secret_checks=include_secret_checks,
         include_port_checks=include_port_checks,
     )
@@ -639,6 +650,11 @@ def build_configuration_validation_service(
             )
         )
     )
+
+
+def _operator_configuration_env_file() -> Path:
+    configured = os.environ.get("TSW_INSTALL_ENV_FILE", "").strip()
+    return Path(configured) if configured else DEFAULT_OPERATOR_CONFIGURATION_ENV_FILE
 
 
 def build_compose_file_repository() -> PortComposeFileRepository:
@@ -668,7 +684,18 @@ def build_read_only_hang_diagnostics() -> ReadOnlyHangDiagnostics:
 
 
 def build_preflight_evidence_writer() -> PreflightEvidenceWriter:
-    return PreflightEvidenceWriter(default_project_paths().repository_root)
+    configured = os.environ.get("TSW_LIVE_EVIDENCE_ROOT", "").strip()
+    if configured:
+        root = Path(configured).expanduser()
+    else:
+        configured_state = os.environ.get("XDG_STATE_HOME", "").strip()
+        state_root = (
+            Path(configured_state).expanduser()
+            if configured_state
+            else Path.home() / ".local" / "state"
+        )
+        root = state_root / "tiny-swarm-world" / "evidence" / "live-installation"
+    return PreflightEvidenceWriter(root)
 
 
 def build_process_runner() -> ProcessRunner:
@@ -986,6 +1013,11 @@ def _build_preflight_service_for_request(
         resource_inspector=WslResourceInspector(),
         evidence_writer=build_preflight_evidence_writer(),
         artifact_source_readiness=HttpArtifactSourceReadiness(),
+        secret_storage_probe=build_secret_storage_probe(),
+        secret_storage_path=_operator_configuration_env_file().as_posix(),
+        require_existing_secret_storage_file=(
+            _secret_mode() != INTERNAL_TEST_SECRET_MODE
+        ),
     )
 
 
@@ -1011,6 +1043,11 @@ def _build_post_install_preflight_service_for_request(
         project_filesystem_authorizer=authorizer,
         project_path=paths.repository_root.as_posix(),
         allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
+        secret_storage_probe=build_secret_storage_probe(),
+        secret_storage_path=_operator_configuration_env_file().as_posix(),
+        require_existing_secret_storage_file=(
+            _secret_mode() != INTERNAL_TEST_SECRET_MODE
+        ),
     )
 
 
