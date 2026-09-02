@@ -7,11 +7,9 @@ execution. The committed template is `.env.example`; local secret-bearing
 values belong in `.tiny-swarm-world/local/live-installation.env` or in the
 process environment.
 
-Secret synchronization for the legacy/direct installer is controlled by
-`TSW_SECRETS_MODE` or `./install.sh --secrets-mode`. Supported legacy modes are
-`internal-test`, `generated`, `fixed`, and `infisical`; the default is
-`internal-test`. The normal `install.sh` path is catalog-backed `internal-test`
-and does not expose legacy mode selection.
+The normal `install.sh` path uses the deterministic `internal-test` catalog
+plus explicit operator overrides. It has no secret-source selector and does
+not create generated, fixed, or recovery credential files.
 
 ## Source Precedence
 
@@ -22,8 +20,8 @@ precedence is:
 1. an applicable ready secure/Infisical source (`vault`);
 2. explicit operator values (`operator`), with process environment values
    overriding the approved local file;
-3. the deterministic internal-test catalog (`default`) when the selected
-   profile is `internal-test`.
+3. the deterministic internal-test catalog (`default`) on the normal
+   catalog-backed installer path.
 
 The local env file is operator-owned, ignored by Git, and must not be committed.
 The parser accepts simple `KEY=value` and `export KEY=value` assignments,
@@ -43,43 +41,30 @@ WSL-native path documented in
 | Value group | Owner | Storage | Lifecycle |
 |---|---|---|---|
 | Operator runtime secrets | Operator | `.tiny-swarm-world/local/live-installation.env` or process environment; WSL2 live runs use the WSL-native `TSW_INSTALL_ENV_FILE` path | Created before install, reused across reruns, edited or rotated by the operator. |
-| Fixed local secrets | Operator | `.tiny-swarm-world/local/fixed-secrets.env` by default | Used only when `secrets.mode=fixed`; every required manifest key must exist and contain a non-empty value. |
-| Generated local bootstrap secrets | Python installer | `.tiny-swarm-world/local/live-installation.env` | Generated only in `generated` mode when missing and secret generation is enabled; existing values are kept. |
-| Infisical bootstrap runtime file | Legacy installer compatibility path | `.tiny-swarm/secrets/bootstrap.local.env` | Optional ignored compatibility input; the standard catalog-backed path does not create it. |
-| Generated recovery file | Secret sync service | `.tiny-swarm/secrets/generated.local.env` | Stores generated values needed for idempotent Infisical sync/recovery in non-`internal-test` modes; ignored by Git and mode `0600` when written by automation. |
-| Infisical-managed values | Infisical sync service | Infisical project/environment | Synchronized from generated or operator-supplied local values; existing Infisical values are kept unless a manifest entry explicitly requests rotation. |
+| Catalog defaults | CRED-01 catalog | Repository Python module | Resolved deterministically for the normal internal-test path; never written to a credential file. |
+| Explicit bootstrap override | Operator | Protected file selected by `TSW_BOOTSTRAP_SECRET_ENV_FILE` or its `TSW_BOOTSTRAP_STATE_DIR` alias | Optional input only; the installer never creates it. |
+| Infisical-managed values | Infisical sync service | Infisical project/environment | Used only after self-hosted readiness; existing values are retained when compatible, otherwise the resolver fails closed on conflict. |
 | Credential source metadata | Credential resolver | Protected run context and sanitized sync evidence | Records only `default`, `operator`, or `vault` by key; never stores raw values. |
 | External Docker secret names | Operator | `.tiny-swarm-world/local/live-installation.env`, process environment, or defaults | Names identify externally managed Docker secrets and are not secret material. |
 | Canonical TLS state | Python TLS resolver | `TSW_LOCAL_TLS_STATE_ROOT`, otherwise the XDG state directory below `tiny-swarm-world/tls/traefik` | Complete external material takes precedence. Otherwise managed CA and leaf material are created once and reused while valid; private keys require owner-only permissions. |
 
 The Python installer derives required local bootstrap values from
 `infra/config/secrets/infisical-secrets.yaml`. Installer code must not keep a
-separate required-secret list. Values whose manifest source is
-`generated_local_secret` or `placeholder_only` and whose entry is required must
-be present before live setup; in `generated` mode, missing generated values may be
-created locally when secret generation is enabled. Values whose source is
-`external_user_secret` identify external resources and are not generated as
-secret values by the installer.
+separate required-secret list. Required `internal_test_catalog` entries resolve
+from the CRED-01 catalog; `external_user_secret` entries identify resources
+that the operator must provide and are never invented by the installer.
 
 The Traefik htpasswd value is intentionally outside the Infisical manifest: it
 is required by the configuration contract for fresh-install provisioning but
-is not an Infisical-managed item. In the standard `internal-test` profile, the
-credential catalog supplies one deterministic bcrypt exception. In generated,
-fixed, infisical, or other custom profiles, an operator-owned override remains
-required.
-
-In `fixed` mode, the installer reads fixed values from
-`TSW_FIXED_SECRET_ENV_FILE` or `.tiny-swarm-world/local/fixed-secrets.env`,
-fails if the file is missing, fails if any required manifest key is missing or
-empty, and passes the same mode to setup so the pre-deployment Infisical sync
-writes those fixed values. Evidence records the mode, checked key names, and
-synchronized key names only.
+is not an Infisical-managed item. The internal-test catalog supplies its
+deterministic bcrypt record; an operator override may replace it. Evidence
+records only key names, source labels, and synchronization status.
 
 ## Required Values
 
-The default `internal-test` contract derives many required values from the
-deterministic catalog; in `generated`/`fixed`/`infisical` modes these keys are
-required before setup execution:
+The normal catalog-backed contract derives the required values from the
+deterministic catalog; an operator override may replace them before setup
+execution:
 
 | Key | Kind | Scope |
 |---|---|---|
@@ -112,8 +97,9 @@ written to evidence.
 | `TSW_PORTAINER_STACK_REQUEST_TIMEOUT_SECONDS` | `180` | positive integer | Portainer stack request timeout in seconds. |
 | `TSW_DEPLOYMENT_VERIFY_TIMEOUT_SECONDS` | `300` | positive integer | Total timeout for read-only deployment verification. |
 | `TSW_SEED_INFISICAL_ITEMS` | `0` | boolean flag | Enables optional legacy Infisical item seeding. |
-| `TSW_SECRETS_MODE` | `internal-test` | enum | Selects `internal-test`, `generated`, `fixed`, or `infisical` secret handling. |
-| `TSW_FIXED_SECRET_ENV_FILE` | `.tiny-swarm-world/local/fixed-secrets.env` | local path | Fixed-mode local secret source; ignored by Git. |
+| `TSW_INSTALL_ENV_FILE` | `.tiny-swarm-world/local/live-installation.env` | local path | Optional operator override file; WSL2 live runs must point to a WSL-native `0600` file. |
+| `TSW_BOOTSTRAP_SECRET_ENV_FILE` | unset | local path | Optional protected bootstrap override file; mutually exclusive with `TSW_BOOTSTRAP_STATE_DIR`. |
+| `TSW_BOOTSTRAP_STATE_DIR` | unset | local path | Supported alias whose `bootstrap-secrets.env` file is an explicit input, never generated. |
 | `TSW_INFISICAL_PROVIDER_MODE` | `self_hosted` | enum | Identifies the Infisical deployment boundary. `external` is rejected until a separate external integration is implemented. |
 | `TSW_LXC_DOCKER_REGISTRY_MIRROR` | unset | URL | External Docker registry or Nexus proxy reachable from managed LXC nodes; used for Docker daemon mirrors and as the internal Tiny Swarm World Nexus Docker proxy upstream. |
 | `TSW_SWARM_REGISTRY_ENDPOINT` | implementation default | endpoint | Registry endpoint used by the selected artifact and deployment contracts. |
@@ -122,9 +108,9 @@ written to evidence.
 | `TSW_MANAGER_STORAGE_PATH` | `/var/lib/docker` | POSIX directory path | Manager storage directory checked by the bounded artifact readiness gate. |
 | `TSW_PULSAR_ADMIN_URL` | unset | URL | Internal Pulsar Admin API URL for local standalone mode. |
 | `TSW_PULSAR_PUBLIC_ADMIN_URL` | unset | URL | Host-accessible Pulsar Admin API URL for browser/live checks. |
-| `TSW_PULSAR_TOKEN_SECRET_KEY` | generated | secret value | Base64 encoded signing key for local Pulsar Admin API tokens. |
-| `TSW_PULSAR_ADMIN_TOKEN` | generated | secret value | JWT bearer token used by live checks and operators for the local Pulsar Admin API. |
-| `TSW_PULSAR_MANAGER_ADMIN_PASSWORD` | generated | secret value | Pulsar Manager UI admin password. |
+| `TSW_PULSAR_TOKEN_SECRET_KEY` | catalog-derived | secret value | Base64 encoded signing key for local Pulsar Admin API tokens. |
+| `TSW_PULSAR_ADMIN_TOKEN` | catalog-derived | secret value | JWT bearer token used by live checks and operators for the local Pulsar Admin API. |
+| `TSW_PULSAR_MANAGER_ADMIN_PASSWORD` | catalog-derived | secret value | Pulsar Manager UI admin password. |
 | `TSW_TRAEFIK_TLS_CERT_SECRET_NAME` | `tsw_traefik_tls_cert` | secret name | External Docker secret name for Traefik TLS certificate material. |
 | `TSW_TRAEFIK_TLS_KEY_SECRET_NAME` | `tsw_traefik_tls_key` | secret name | External Docker secret name for Traefik TLS private key material. |
 | `TSW_TRAEFIK_GUI_USERS_SECRET_NAME` | `tsw_traefik_gui_users` | secret name | External Docker secret name containing operator-provided htpasswd entries for the secure Traefik dashboard. |
@@ -158,8 +144,9 @@ unlabelled or mismatched existing TLS secrets fail closed. Errors, logs and
 evidence contain neither PEM/private-key material nor htpasswd values.
 
 Pulsar runs in local standalone mode with token authentication enabled. The
-Admin API credential is a generated bearer token stored as `platform/pulsar`.
-The Pulsar Manager UI uses a separate generated admin password stored as
+Admin API credential is a catalog-derived bearer token stored as
+`platform/pulsar`. The Pulsar Manager UI uses a separate catalog-derived admin
+password stored as
 `platform/pulsar-manager` when item seeding is enabled.
 
 ## Redaction

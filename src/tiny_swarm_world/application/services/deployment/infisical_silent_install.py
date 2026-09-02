@@ -44,7 +44,6 @@ class InfisicalSilentInstallConfig:
     postgres_password: str
     redis_password: str = ""
     evidence_dir: Path = Path(".tiny-swarm/evidence/infisical")
-    secret_file: Path = Path(".tiny-swarm/secrets/bootstrap.local.env")
 
     def validate(self) -> None:
         required = {
@@ -134,7 +133,6 @@ class EnsureInfisicalSilentInstall:
     async def run(self) -> None:
         self.config.validate()
         self.storage.ensure_directory(self.config.evidence_dir, private=True)
-        self.storage.ensure_directory(self.config.secret_file.parent, private=True)
         if not self.service_running or not self.http_ready:
             self._status = "blocked"
             self._classification = "infisical_readiness_timeout"

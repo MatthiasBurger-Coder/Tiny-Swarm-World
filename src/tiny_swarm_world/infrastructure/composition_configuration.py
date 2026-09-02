@@ -30,15 +30,10 @@ DEFAULT_SETUP_SERVICE_PROFILE = ServiceStackProfile.SERVICE_ACCESS
 DEFAULT_OPERATOR_CONFIGURATION_ENV_FILE = Path(
     ".tiny-swarm-world/local/live-installation.env"
 )
-DEFAULT_FIXED_SECRET_ENV_FILE = Path(".tiny-swarm-world/local/fixed-secrets.env")
 DEFAULT_PORTAINER_API_URL = "http://localhost:10001"
 _LOCAL_SERVICE_SCHEME = urlparse(DEFAULT_PORTAINER_API_URL).scheme
 PORTAINER_STACK_REQUEST_TIMEOUT_ENVIRONMENT = "TSW_PORTAINER_STACK_REQUEST_TIMEOUT_SECONDS"
 DEFAULT_PORTAINER_STACK_REQUEST_TIMEOUT_SECONDS = 180
-SECRETS_MODE_ENVIRONMENT = "TSW_SECRETS_MODE"
-FIXED_SECRET_ENV_FILE_ENVIRONMENT = "TSW_FIXED_SECRET_ENV_FILE"
-INTERNAL_TEST_SECRET_MODE = "internal-test"
-SECRET_MODES = ("generated", "fixed", "infisical", INTERNAL_TEST_SECRET_MODE)
 SEED_INFISICAL_ITEMS_ENVIRONMENT = "TSW_SEED_INFISICAL_ITEMS"
 INFISICAL_LOGIN_EMAIL_ENVIRONMENT = "TSW_INFISICAL_LOGIN_EMAIL"
 INFISICAL_PASSWORD_ENVIRONMENT = "TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD"
@@ -145,15 +140,6 @@ def _operator_config_float(name: str, default: float, *, minimum: float) -> floa
     return value
 
 
-def _secret_mode() -> str:
-    mode = _operator_config_value(SECRETS_MODE_ENVIRONMENT, "generated").strip()
-    if mode not in SECRET_MODES:
-        raise ValueError(
-            "TSW_SECRETS_MODE must be one of generated, fixed, infisical, or internal-test."
-        )
-    return mode
-
-
 def _infisical_provider_mode() -> str:
     """Validate the deployment identity before any Infisical workflow is built."""
     mode = _operator_config_value(
@@ -188,15 +174,6 @@ def _self_hosted_infisical_url() -> str:
             "when self-hosted Infisical is selected."
         )
     return value.rstrip("/")
-
-
-def _fixed_secret_env_file() -> Path:
-    return Path(
-        _operator_config_value(
-            FIXED_SECRET_ENV_FILE_ENVIRONMENT,
-            DEFAULT_FIXED_SECRET_ENV_FILE.as_posix(),
-        )
-    )
 
 
 def _lxc_proxy_listen_address() -> str:

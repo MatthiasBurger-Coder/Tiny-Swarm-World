@@ -149,12 +149,16 @@ class TestInfisicalCliClient(unittest.TestCase):
             )
         )
 
-    def test_bootstrap_token_stays_on_client_and_out_of_process_environment(self):
+    def test_bootstrap_token_stays_on_client_and_legacy_environment_name_is_ignored(self):
         calls: list[tuple[str, str]] = []
         session = _FakeSession(calls, self)
         client = InfisicalCliClient(base_url="http://localhost:17080", session=session)
 
-        with patch.dict(os.environ, {}, clear=True):
+        with patch.dict(
+            os.environ,
+            {"TSW_INFISICAL_BOOTSTRAP_TOKEN": "legacy-token"},
+            clear=True,
+        ):
             with patch(
                 "tiny_swarm_world.infrastructure.adapters.clients.infisical_cli_client._run",
                 return_value=InfisicalCliResult(
@@ -163,7 +167,6 @@ class TestInfisicalCliClient(unittest.TestCase):
                 ),
             ):
                 client.run_bootstrap(("infisical", "bootstrap"))
-            self.assertNotIn("TSW_INFISICAL_BOOTSTRAP_TOKEN", os.environ)
             self.assertEqual(client._access_token(), "client-only-token")
 
 

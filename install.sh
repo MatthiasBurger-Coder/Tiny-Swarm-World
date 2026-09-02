@@ -2,10 +2,6 @@
 set -Eeuo pipefail
 
 installer_module="tiny_swarm_world.simple_installer"
-# Compatibility for isolated legacy installer fixtures and emergency rollback.
-if [[ ! -f src/tiny_swarm_world/simple_installer.py ]]; then
-  installer_module="tiny_swarm_world.installer"
-fi
 
 usage() {
   PYTHONPATH=src python3 -m "$installer_module" --help

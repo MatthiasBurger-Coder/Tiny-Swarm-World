@@ -89,7 +89,6 @@ class TestInfisicalSilentInstall(unittest.TestCase):
             service = _service(
                 cli=_FakeCli(available=False),
                 evidence_dir=Path(directory) / "evidence",
-                secret_file=Path(directory) / "secrets" / "bootstrap.local.env",
             )
 
             with self.assertRaises(InfisicalInstallBlocker) as raised:
@@ -111,7 +110,6 @@ class TestInfisicalSilentInstall(unittest.TestCase):
                 cli=_FakeCli(available=False),
                 bootstrap_client=bootstrap_client,
                 evidence_dir=Path(directory) / "evidence",
-                secret_file=Path(directory) / "secrets" / "bootstrap.local.env",
             )
 
             asyncio.run(service.run())
@@ -136,7 +134,6 @@ class TestInfisicalSilentInstall(unittest.TestCase):
                 cli=_FakeCli(available=False),
                 bootstrap_client=_FailingBootstrapClient(),
                 evidence_dir=Path(directory) / "evidence",
-                secret_file=Path(directory) / "secrets" / "bootstrap.local.env",
             )
 
             with self.assertRaises(_BootstrapUnavailable):
@@ -154,7 +151,6 @@ class TestInfisicalSilentInstall(unittest.TestCase):
                 service_running=True,
                 http_ready=False,
                 evidence_dir=Path(directory) / "evidence",
-                secret_file=Path(directory) / "secrets" / "bootstrap.local.env",
             )
 
             with self.assertRaises(InfisicalInstallBlocker) as raised:
@@ -170,7 +166,6 @@ class TestInfisicalSilentInstall(unittest.TestCase):
             service = _service(
                 cli=_FakeCli(result=InfisicalCliResult(0, "Already bootstrapped", "")),
                 evidence_dir=Path(directory) / "evidence",
-                secret_file=Path(directory) / "secrets" / "bootstrap.local.env",
             )
 
             asyncio.run(service.run())
@@ -188,7 +183,6 @@ class TestInfisicalSilentInstall(unittest.TestCase):
             service = _service(
                 cli=_FakeCli(result=InfisicalCliResult(2, "", "bootstrap failed")),
                 evidence_dir=Path(directory) / "evidence",
-                secret_file=Path(directory) / "secrets" / "bootstrap.local.env",
             )
 
             with self.assertRaises(InfisicalInstallBlocker) as raised:
@@ -208,7 +202,6 @@ def _service(
     cli: "_FakeCli | None" = None,
     bootstrap_client: "_FakeBootstrapClient | None" = None,
     evidence_dir: Path = Path(".tiny-swarm/evidence/infisical"),
-    secret_file: Path = Path(".tiny-swarm/secrets/bootstrap.local.env"),
     service_running: bool = True,
     http_ready: bool = True,
 ) -> Any:
@@ -231,7 +224,6 @@ def _service(
                 sample_text("redis_", "pass", "word"): "redis",
             },
             evidence_dir=evidence_dir,
-            secret_file=secret_file,
         ),
         service_running=service_running,
         http_ready=http_ready,

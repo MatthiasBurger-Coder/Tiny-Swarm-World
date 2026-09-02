@@ -49,20 +49,14 @@ not read those inputs from itself. After readiness, the sync step may read an
 existing managed value and keep it as the secure source; a missing value is
 written from the bootstrap resolution.
 
-## Legacy mode mapping
+## Installer contract
 
-| Legacy mode | Current lifecycle meaning | CRED-03 status |
-|---|---|---|
-| `internal-test` | Bootstrap: operator then catalog; post-bootstrap: existing Infisical then operator/catalog; no generated recovery file | Standard path |
-| `generated` | Bootstrap: generated local file values; post-bootstrap synchronization | Retained temporarily; removal/isolation is CRED-04 |
-| `fixed` | Bootstrap: operator-owned fixed file values; post-bootstrap synchronization | Retained temporarily; removal/isolation is CRED-04 |
-| `infisical` | Post-bootstrap verification of already managed values; it cannot bootstrap a self-hosted instance without pre-existing startup inputs | Retained temporarily; removal/isolation is CRED-04 |
-
-The standard `internal-test` path is the single active resolver authority.
-Legacy modes are isolated compatibility paths pending CRED-04; their existing
-file and generation semantics are not presented as equivalent to the standard
-resolver. Unsupported combinations fail closed with the source names and
-phase in the error, never with raw values.
+The normal installer has one credential path: deterministic catalog defaults
+plus explicit operator overrides, with a ready secure provider consulted only
+in its applicable post-bootstrap phase. Secret-source mode selection and
+generated/fixed/recovery credential files are not supported. Unsupported
+combinations fail closed with source names and lifecycle phase, never with raw
+values.
 
 ## Reruns and synchronization
 

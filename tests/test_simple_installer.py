@@ -52,20 +52,16 @@ class TestSimpleInstallerSecretBootstrap(unittest.TestCase):
                 internal_test_credential("TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD"),
             )
             self.assertEqual(first, second)
-            self.assertEqual(first["TSW_SECRETS_MODE"], "internal-test")
+            self.assertNotIn("TSW_SECRETS_MODE", first)
             sources = decode_source_metadata(first[CREDENTIAL_SOURCE_MAP_ENVIRONMENT])
             self.assertEqual(sources["TSW_PORTAINER_ADMIN_PASSWORD"], CredentialSource.DEFAULT)
 
     def test_resolves_catalog_traefik_htpasswd_without_random_generation(self):
         with tempfile.TemporaryDirectory() as temporary_dir:
-            with patch(
-                "tiny_swarm_world.simple_installer.legacy._generated_secret_values",
-                side_effect=AssertionError("catalog path must not generate secrets"),
-            ):
-                env = _prepare_bootstrap_environment(
-                    {"HOME": temporary_dir},
-                    REPOSITORY_ROOT,
-                )
+            env = _prepare_bootstrap_environment(
+                {"HOME": temporary_dir},
+                REPOSITORY_ROOT,
+            )
 
             value = env["TSW_TRAEFIK_GUI_USERS_HTPASSWD"]
             validate_traefik_htpasswd(value)
@@ -191,14 +187,13 @@ class TestSimpleInstallerSecretBootstrap(unittest.TestCase):
         env = _prepare_bootstrap_environment({}, REPOSITORY_ROOT)
         entries = installer._required_installer_secret_entries(
             REPOSITORY_ROOT / installer.DEFAULT_SECRET_MANIFEST_PATH,
-            sources=installer.INSTALLER_REQUIRED_SOURCES,
         )
 
         for entry in entries:
             with self.subTest(key=entry.key):
                 self.assertEqual(env[entry.key], internal_test_credential(entry.key))
 
-    def test_main_passes_internal_test_options_to_legacy_execution(self):
+    def test_main_passes_single_credential_contract_to_legacy_execution(self):
         with (
             tempfile.TemporaryDirectory() as temporary_dir,
             patch.dict(os.environ, {"HOME": temporary_dir}, clear=True),
@@ -210,9 +205,8 @@ class TestSimpleInstallerSecretBootstrap(unittest.TestCase):
 
         self.assertEqual(result, 0)
         options = run.call_args.args[0]
-        self.assertEqual(options.secrets_mode, "internal-test")
-        self.assertFalse(options.generate_secrets)
-        self.assertEqual(run.call_args.kwargs["env"]["TSW_SECRETS_MODE"], "internal-test")
+        self.assertEqual(options.service_profile, "service-access")
+        self.assertNotIn("TSW_SECRETS_MODE", run.call_args.kwargs["env"])
 
     def test_main_returns_execution_failure_without_printing_credentials(self):
         with (
@@ -326,11 +320,12 @@ class TestSimpleInstallerSecretBootstrap(unittest.TestCase):
         self.assertIn("infisical-visible", rendered)
         self.assertNotIn("must-stay-hidden", rendered)
         self.assertNotIn("also-hidden", rendered)
-        self.assertIn("All other generated secrets are internal", rendered)
+        self.assertIn("All other catalog-managed secrets are internal", rendered)
 
     def test_normal_cli_no_longer_exposes_secret_modes(self):
         install_script = (REPOSITORY_ROOT / "install.sh").read_text(encoding="utf-8")
         self.assertIn("tiny_swarm_world.simple_installer", install_script)
+        self.assertNotIn("tiny_swarm_world.installer", install_script)
         simple_source = (
             REPOSITORY_ROOT / "src/tiny_swarm_world/simple_installer.py"
         ).read_text(encoding="utf-8")

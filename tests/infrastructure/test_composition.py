@@ -1795,11 +1795,9 @@ class TestComposition(unittest.TestCase):
             composition.EndpointReadinessCheck,
         )
 
-    def test_build_deployment_services_forwards_fixed_secret_mode_to_sync_step(self):
+    def test_service_access_sync_uses_catalog_backed_credentials(self):
         env = {
             **_required_infisical_bootstrap_env(),
-            "TSW_SECRETS_MODE": "fixed",
-            "TSW_FIXED_SECRET_ENV_FILE": ".tiny-swarm-world/local/fixed-secrets.env",
         }
         with patch.dict("os.environ", env, clear=True):
             with patch.object(composition, "ComposeFileRepositoryYaml"):
@@ -1813,7 +1811,23 @@ class TestComposition(unittest.TestCase):
             for step in services.workflows.apply.steps
             if step.verification_target_id == "deployment:infisical-sync"
         )
-        self.assertEqual(sync_step.mode, "fixed")
+        self.assertEqual(
+            env["TSW_INFISICAL_LOGIN_EMAIL"],
+            sync_step.use_case.process_environment["TSW_INFISICAL_LOGIN_EMAIL"],
+        )
+
+    def test_default_profile_does_not_construct_infisical_sync(self):
+        with patch.dict("os.environ", {}, clear=True):
+            with patch.object(composition, "ComposeFileRepositoryYaml"):
+                services = composition.build_lxc_deployment_services(
+                    backend=composition.ManagedLxcBackend.INCUS,
+                    service_profile=ServiceStackProfile.DEFAULT,
+                )
+
+        target_ids = tuple(
+            step.verification_target_id for step in services.workflows.apply.steps
+        )
+        self.assertNotIn("deployment:infisical-sync", target_ids)
 
     def test_build_deployment_services_uses_configurable_infisical_readiness_window(
         self,

@@ -443,11 +443,11 @@ def _build_catalog() -> CredentialCatalog:
             CredentialDefinition(
                 key="TSW_INFISICAL_REDIS_PASSWORD",
                 owner="Infisical service administrator",
-                consumer="Infisical local secret manifest and recovery configuration",
+                consumer="Infisical local secret manifest and service configuration",
                 credential_type=CredentialType.MACHINE_PASSWORD,
                 value=INTERNAL_TEST_PASSWORD,
-                constraints=_machine_password_constraint("Retained as the local Redis credential contract for recovery compatibility; current compose Redis auth remains disabled."),
-                derivation="canonical password; reserved Redis-auth compatibility value",
+                constraints=_machine_password_constraint("Retained as the local Redis credential contract; current compose Redis auth remains disabled."),
+                derivation="canonical password; reserved Redis-auth value",
             ),
             CredentialDefinition(
                 key="TSW_TRAEFIK_GUI_USERS_HTPASSWD",

@@ -8,9 +8,9 @@
 :icons: font
 
 This handbook explains how to operate Tiny Swarm World from a Linux or WSL
-shell without reading source code or generated local files as the normal
+shell without reading source code or raw local credential files as the normal
 navigation method. It references local ignored files only where an operator
-must intentionally provide or recover local secrets.
+must intentionally provide an override.
 
 == Operating Model
 
@@ -188,9 +188,9 @@ chmod 600 .tiny-swarm-world/local/live-installation.env
 ----
 
 Edit `.tiny-swarm-world/local/live-installation.env` and replace placeholder
-values. Process environment values override this file. If `./install.sh` runs
-with secret generation enabled, and in `generated` mode, missing generated local
-secrets are created and kept in ignored local files instead of being printed.
+values. Process environment values override this optional operator file. The
+normal installer resolves missing internal-test credentials from the catalog
+and does not generate or rotate local credential files.
 
 For an authorized WSL2 live run from a checkout under `/mnt/<drive>`, keep the
 source checkout there for traceability but set `TSW_INSTALL_ENV_FILE` to a
@@ -208,9 +208,8 @@ operator groups are:
 * Infisical bootstrap values;
 * Traefik TLS Docker secret names for certificate and key material.
 
-Do not commit `.tiny-swarm-world/local/live-installation.env`,
-`.tiny-swarm/secrets/bootstrap.local.env`,
-`.tiny-swarm/secrets/generated.local.env`, or evidence files.
+Do not commit `.tiny-swarm-world/local/live-installation.env` or evidence
+files.
 
 == Run The Guided Installation
 
@@ -383,15 +382,9 @@ https://infisical.tsw.local
 The direct `http://localhost:17080` URL remains a diagnostic compatibility
 target when provider forwarding exposes it.
 
-The installer also writes Infisical runtime bootstrap material to:
-
-[source,text]
-----
-.tiny-swarm/secrets/bootstrap.local.env
-----
-
-That file is for the self-hosted Infisical stack and recovery workflows, not
-for routine browsing. Keep its mode at `0600`.
+The installer uses the resolved catalog values and optional operator overrides
+for Infisical bootstrap. It does not write a separate Infisical credential or
+recovery file.
 
 After signing in, use the Infisical UI to reveal or copy service secret values.
 The Service Access dashboard intentionally shows only users and Infisical item
@@ -410,8 +403,8 @@ export TSW_SEED_INFISICAL_ITEMS=1
 ----
 
 The default installer value is `TSW_SEED_INFISICAL_ITEMS=0`, so do not assume
-that every generated service credential has already been copied into Infisical
-unless the setup evidence confirms it.
+that every catalog-managed service credential has already been copied into
+Infisical unless the setup evidence confirms it.
 
 == Verify A Finished Installation
 

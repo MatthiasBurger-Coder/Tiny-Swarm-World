@@ -163,7 +163,6 @@ class InfisicalCliClient(PortInfisicalCli):
     def _access_token(self) -> str:
         token = (
             os.environ.get("TSW_INFISICAL_TOKEN")
-            or os.environ.get("TSW_INFISICAL_BOOTSTRAP_TOKEN")
             or os.environ.get("INFISICAL_TOKEN")
         )
         if token:
