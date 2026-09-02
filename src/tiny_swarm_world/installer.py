@@ -43,7 +43,16 @@ from tiny_swarm_world.domain.configuration.configuration_contract import (
 )
 from tiny_swarm_world.domain.configuration.internal_test_credentials import (
     INTERNAL_TEST_LOGIN_EMAIL,
-    internal_test_credential,
+)
+from tiny_swarm_world.domain.configuration.credential_resolution import (
+    CredentialResolutionError,
+    CredentialSource,
+)
+from tiny_swarm_world.application.services.credential_resolution import (
+    CREDENTIAL_SOURCE_MAP_ENVIRONMENT,
+    CredentialResolutionService,
+    CredentialResolutionSnapshot,
+    decode_source_metadata,
 )
 
 RESET_CONFIRMATION = "RESET_TINY_SWARM_PLATFORM"
@@ -369,8 +378,15 @@ def run(
         fixed_values = _fixed_installer_secret_values(paths.fixed_secret_env_file, required_entries)
         install_env.update(fixed_values)
     elif secret_mode == INTERNAL_TEST_SECRET_MODE:
-        missing = [entry for entry in required_entries if not install_env.get(entry.key)]
-        install_env.update({entry.key: internal_test_credential(entry.key) for entry in missing})
+        try:
+            resolutions = _resolve_internal_test_installer_values(
+                install_env,
+                required_entries,
+            )
+        except CredentialResolutionError as error:
+            raise InstallerError(str(error)) from error
+        install_env.update(resolutions.values)
+        install_env[CREDENTIAL_SOURCE_MAP_ENVIRONMENT] = resolutions.source_metadata()
     else:
         missing = [entry for entry in required_entries if not install_env.get(entry.key)]
         if missing and (secret_mode == "infisical" or not options.generate_secrets):
@@ -385,12 +401,6 @@ def run(
             install_env.update(generated)
             secret_env_snapshot = _snapshot_with_exports(secret_env_snapshot, generated)
             secrets_generated_count = len(missing)
-
-    if secret_mode == INTERNAL_TEST_SECRET_MODE:
-        install_env.setdefault(
-            TRAEFIK_GUI_USERS_HTPASSWD_ENVIRONMENT,
-            internal_test_credential(TRAEFIK_GUI_USERS_HTPASSWD_ENVIRONMENT),
-        )
 
     secret_env_snapshot = _snapshot_with_exports(
         secret_env_snapshot,
@@ -672,6 +682,35 @@ def _secret_mode(options: InstallerOptions) -> str:
             "secrets mode must be internal-test, generated, fixed, or infisical."
         )
     return options.secrets_mode
+
+
+def _resolve_internal_test_installer_values(
+    install_env: Mapping[str, str],
+    required_entries: Sequence[InstallerSecretEntry],
+) -> CredentialResolutionSnapshot:
+    resolution_keys = tuple(
+        dict.fromkeys(
+            (
+                *(entry.key for entry in required_entries),
+                TRAEFIK_GUI_USERS_HTPASSWD_ENVIRONMENT,
+            )
+        )
+    )
+    source_metadata = decode_source_metadata(
+        install_env.get(CREDENTIAL_SOURCE_MAP_ENVIRONMENT)
+    )
+    operator_values = {
+        key: (
+            ""
+            if source_metadata.get(key) is CredentialSource.DEFAULT
+            else install_env.get(key, "")
+        )
+        for key in resolution_keys
+    }
+    return CredentialResolutionService().resolve_bootstrap(
+        resolution_keys,
+        operator_values=operator_values,
+    )
 
 
 def _fixed_installer_secret_values(path: Path, required_entries: Sequence[InstallerSecretEntry]) -> dict[str, str]:
@@ -1553,6 +1592,7 @@ def _write_context(
         "secret_env_file": context.secret_env_file.as_posix(),
         "fixed_secret_env_file": context.fixed_secret_env_file.as_posix(),
         "checked_secret_keys": ",".join(context.checked_secret_keys),
+        "credential_sources": _safe_credential_source_metadata(context.env),
         "secrets_generated_count": str(context.secrets_generated_count),
         "host_runtime_type": context.host_runtime.name,
         "host_runtime_detection_source": context.host_runtime.detection_source,
@@ -1567,6 +1607,19 @@ def _write_context(
         "wsl_interop_present": "yes" if context.env.get("WSL_INTEROP") else "no",
     }
     _append_context(evidence_dir, values, replace=True)
+
+
+def _safe_credential_source_metadata(env: Mapping[str, str]) -> str:
+    """Serialize only source labels for operator-readable run context."""
+    try:
+        sources = decode_source_metadata(env.get(CREDENTIAL_SOURCE_MAP_ENVIRONMENT))
+    except CredentialResolutionError:
+        return "invalid"
+    return json.dumps(
+        {key: source.value for key, source in sorted(sources.items())},
+        separators=(",", ":"),
+        sort_keys=True,
+    )
 
 
 def _append_context(evidence_dir: Path, values: Mapping[str, str], *, replace: bool = False) -> None:

@@ -116,7 +116,7 @@ services:
       admin_email: "admin@tiny-swarm.local"
       admin_first_name: "Tiny"
       admin_last_name: "Admin"
-      password_source: "generated_local_secret"
+      password_source: "resolved_bootstrap_input"
     endpoint:
       internal_url: "http://infisical:8080"
       external_url: "http://localhost:17080"

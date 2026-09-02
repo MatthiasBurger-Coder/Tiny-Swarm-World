@@ -12,6 +12,12 @@ from tiny_swarm_world.application.services.deployment.ensure_external_swarm_secr
 from tiny_swarm_world.application.services.deployment.ensure_infisical_bootstrap import (
     EnsureInfisicalBootstrap,
 )
+from tiny_swarm_world.application.services.credential_resolution import (
+    CREDENTIAL_SOURCE_MAP_ENVIRONMENT,
+    CredentialResolutionService,
+    CredentialResolutionSnapshot,
+    decode_source_metadata,
+)
 from tiny_swarm_world.application.services.deployment.ensure_infisical_secret_items import (
     EnsureInfisicalSecretItems,
     InfisicalSecretItem,
@@ -80,6 +86,10 @@ __all__ = [
     "DeploymentWorkflowStatus",
     "EnsureExternalSwarmSecret",
     "EnsureInfisicalBootstrap",
+    "CREDENTIAL_SOURCE_MAP_ENVIRONMENT",
+    "CredentialResolutionService",
+    "CredentialResolutionSnapshot",
+    "decode_source_metadata",
     "EnsureInfisicalSecretItems",
     "EnsureInfisicalSilentInstall",
     "EnsureNexusStack",

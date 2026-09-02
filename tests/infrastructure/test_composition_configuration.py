@@ -9,6 +9,8 @@ from tiny_swarm_world.infrastructure.composition_configuration import (
     _operator_config_float,
     _operator_config_int,
     _operator_secret_value,
+    _infisical_provider_mode,
+    _self_hosted_infisical_url,
     _required_operator_secret_value,
     _swarm_registry_endpoint,
 )
@@ -63,6 +65,31 @@ class TestCompositionConfiguration(unittest.TestCase):
         with patch.dict(os.environ, {"TSW_SECRETS_MODE": "bad-mode"}, clear=True):
             with self.assertRaisesRegex(ValueError, "internal-test"):
                 _secret_mode()
+
+    def test_infisical_provider_mode_rejects_unsupported_external_mixing(self):
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertEqual("self_hosted", _infisical_provider_mode())
+
+        with patch.dict(os.environ, {"TSW_INFISICAL_PROVIDER_MODE": "external"}, clear=True):
+            with self.assertRaisesRegex(ValueError, "not supported"):
+                _infisical_provider_mode()
+
+        with patch.dict(os.environ, {"TSW_INFISICAL_PROVIDER_MODE": "invalid"}, clear=True):
+            with self.assertRaisesRegex(ValueError, "self_hosted or external"):
+                _infisical_provider_mode()
+
+    def test_self_hosted_infisical_url_rejects_unclassified_remote_endpoint(self):
+        with patch.dict(
+            os.environ,
+            {"TSW_INFISICAL_URL": "https://infisical.example.test"},
+            clear=True,
+        ):
+            with self.assertRaisesRegex(ValueError, "must target localhost"):
+                _self_hosted_infisical_url()
+
+    def test_self_hosted_infisical_url_uses_local_default(self):
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertEqual("http://localhost:17080", _self_hosted_infisical_url())
 
 
 if __name__ == "__main__":

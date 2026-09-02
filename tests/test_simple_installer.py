@@ -12,11 +12,18 @@ from tiny_swarm_world.domain.configuration.internal_test_credentials import (
     INTERNAL_TEST_PASSWORD,
     internal_test_credential,
 )
+from tiny_swarm_world.domain.configuration.credential_resolution import CredentialSource
+from tiny_swarm_world.application.services.credential_resolution import (
+    CREDENTIAL_SOURCE_MAP_ENVIRONMENT,
+    decode_source_metadata,
+)
 from tiny_swarm_world.simple_installer import (
+    SimpleInstallerError,
     _load_explicit_bootstrap_override,
     main,
     _prepare_bootstrap_environment,
     _print_operator_credentials,
+    _validate_secure_override_path,
 )
 
 
@@ -46,6 +53,8 @@ class TestSimpleInstallerSecretBootstrap(unittest.TestCase):
             )
             self.assertEqual(first, second)
             self.assertEqual(first["TSW_SECRETS_MODE"], "internal-test")
+            sources = decode_source_metadata(first[CREDENTIAL_SOURCE_MAP_ENVIRONMENT])
+            self.assertEqual(sources["TSW_PORTAINER_ADMIN_PASSWORD"], CredentialSource.DEFAULT)
 
     def test_resolves_catalog_traefik_htpasswd_without_random_generation(self):
         with tempfile.TemporaryDirectory() as temporary_dir:
@@ -83,6 +92,100 @@ class TestSimpleInstallerSecretBootstrap(unittest.TestCase):
             env["TSW_JENKINS_ADMIN_PASSWORD"],
             INTERNAL_TEST_PASSWORD,
         )
+        sources = decode_source_metadata(env[CREDENTIAL_SOURCE_MAP_ENVIRONMENT])
+        self.assertEqual(sources["TSW_PORTAINER_ADMIN_PASSWORD"], CredentialSource.OPERATOR)
+        self.assertEqual(sources["TSW_JENKINS_ADMIN_PASSWORD"], CredentialSource.DEFAULT)
+
+    def test_process_environment_overrides_operator_install_file(self):
+        with tempfile.TemporaryDirectory() as temporary_dir:
+            operator_file = Path(temporary_dir) / "operator.env"
+            operator_file.write_text(
+                "export TSW_PORTAINER_ADMIN_PASSWORD='file-portainer-password'\n"
+                "export TSW_JENKINS_ADMIN_PASSWORD='file-jenkins-password'\n",
+                encoding="utf-8",
+            )
+            operator_file.chmod(0o600)
+            env = _prepare_bootstrap_environment(
+                {
+                    "TSW_INSTALL_ENV_FILE": operator_file.as_posix(),
+                    "TSW_PORTAINER_ADMIN_PASSWORD": "process-portainer-password",
+                },
+                REPOSITORY_ROOT,
+            )
+
+        self.assertEqual(env["TSW_PORTAINER_ADMIN_PASSWORD"], "process-portainer-password")
+        self.assertEqual(env["TSW_JENKINS_ADMIN_PASSWORD"], "file-jenkins-password")
+        sources = decode_source_metadata(env[CREDENTIAL_SOURCE_MAP_ENVIRONMENT])
+        self.assertEqual(sources["TSW_PORTAINER_ADMIN_PASSWORD"], CredentialSource.OPERATOR)
+        self.assertEqual(sources["TSW_JENKINS_ADMIN_PASSWORD"], CredentialSource.OPERATOR)
+
+    def test_rejects_unprotected_operator_install_file_before_reading(self):
+        with tempfile.TemporaryDirectory() as temporary_dir:
+            operator_file = Path(temporary_dir) / "operator.env"
+            operator_file.write_text(
+                "export TSW_PORTAINER_ADMIN_PASSWORD='file-portainer-password'\n",
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(SimpleInstallerError, "0600"):
+                _prepare_bootstrap_environment(
+                    {"TSW_INSTALL_ENV_FILE": operator_file.as_posix()},
+                    REPOSITORY_ROOT,
+                )
+
+    def test_rejects_invalid_operator_file_syntax(self):
+        with tempfile.TemporaryDirectory() as temporary_dir:
+            operator_file = Path(temporary_dir) / "operator.env"
+            operator_file.write_text("export TSW_PASSWORD=$(unsafe)\n", encoding="utf-8")
+            operator_file.chmod(0o600)
+
+            with self.assertRaisesRegex(SimpleInstallerError, "invalid"):
+                _prepare_bootstrap_environment(
+                    {"TSW_INSTALL_ENV_FILE": operator_file.as_posix()},
+                    REPOSITORY_ROOT,
+                )
+
+    def test_rejects_invalid_explicit_bootstrap_file_syntax(self):
+        with tempfile.TemporaryDirectory() as temporary_dir:
+            override_file = Path(temporary_dir) / "bootstrap.env"
+            override_file.write_text("export TSW_PASSWORD=$(unsafe)\n", encoding="utf-8")
+            override_file.chmod(0o600)
+
+            with self.assertRaisesRegex(SimpleInstallerError, "invalid"):
+                _load_explicit_bootstrap_override(
+                    {"TSW_BOOTSTRAP_SECRET_ENV_FILE": override_file.as_posix()},
+                    REPOSITORY_ROOT,
+                )
+
+    def test_rejects_symlinked_bootstrap_override(self):
+        with tempfile.TemporaryDirectory() as temporary_dir:
+            root = Path(temporary_dir)
+            target = root / "target.env"
+            target.write_text("export TSW_PORTAINER_ADMIN_PASSWORD='value'\n", encoding="utf-8")
+            target.chmod(0o600)
+            link = root / "link.env"
+            link.symlink_to(target)
+
+            with self.assertRaisesRegex(SimpleInstallerError, "symbolic links"):
+                _validate_secure_override_path(link)
+
+    def test_rejects_windows_mounted_override_path(self):
+        with self.assertRaisesRegex(SimpleInstallerError, "WSL-native"):
+            _validate_secure_override_path(Path("/mnt/d/credential-override.env"))
+
+    def test_rejects_override_when_metadata_cannot_be_verified(self):
+        with tempfile.TemporaryDirectory() as temporary_dir:
+            override_file = Path(temporary_dir) / "override.env"
+            override_file.write_text("export TSW_PASSWORD='value'\n", encoding="utf-8")
+            override_file.chmod(0o600)
+
+            with (
+                patch.object(Path, "resolve", return_value=override_file),
+                patch.object(Path, "is_symlink", return_value=False),
+                patch.object(Path, "stat", side_effect=OSError("stat failed")),
+            ):
+                with self.assertRaisesRegex(SimpleInstallerError, "metadata"):
+                    _validate_secure_override_path(override_file)
 
     def test_populates_every_required_manifest_key_from_catalog(self):
         env = _prepare_bootstrap_environment({}, REPOSITORY_ROOT)
@@ -150,12 +253,15 @@ class TestSimpleInstallerSecretBootstrap(unittest.TestCase):
                 "export TSW_PORTAINER_ADMIN_PASSWORD='relative-file-password'\n",
                 encoding="utf-8",
             )
+            override_file.chmod(0o600)
             state_file = root / "state" / "bootstrap-secrets.env"
             state_file.parent.mkdir()
+            state_file.parent.chmod(0o700)
             state_file.write_text(
                 "export TSW_PORTAINER_ADMIN_PASSWORD='relative-state-password'\n",
                 encoding="utf-8",
             )
+            state_file.chmod(0o600)
 
             file_values = _load_explicit_bootstrap_override(
                 {"TSW_BOOTSTRAP_SECRET_ENV_FILE": "override.env"},
@@ -176,6 +282,7 @@ class TestSimpleInstallerSecretBootstrap(unittest.TestCase):
                 "export TSW_PORTAINER_ADMIN_PASSWORD='file-portainer-password'\n",
                 encoding="utf-8",
             )
+            override_file.chmod(0o600)
 
             env = _prepare_bootstrap_environment(
                 {"TSW_BOOTSTRAP_SECRET_ENV_FILE": override_file.as_posix()},
@@ -188,6 +295,16 @@ class TestSimpleInstallerSecretBootstrap(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "(?i)explicit bootstrap credential override"):
             _prepare_bootstrap_environment(
                 {"TSW_BOOTSTRAP_SECRET_ENV_FILE": "/missing/bootstrap.env"},
+                REPOSITORY_ROOT,
+            )
+
+    def test_conflicting_explicit_bootstrap_override_paths_fail(self):
+        with self.assertRaisesRegex(RuntimeError, "mutually exclusive"):
+            _prepare_bootstrap_environment(
+                {
+                    "TSW_BOOTSTRAP_SECRET_ENV_FILE": "/tmp/bootstrap.env",
+                    "TSW_BOOTSTRAP_STATE_DIR": "/tmp/bootstrap-state",
+                },
                 REPOSITORY_ROOT,
             )
 

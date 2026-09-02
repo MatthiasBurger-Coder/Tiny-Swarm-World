@@ -37,6 +37,7 @@ class InfisicalCliClient(PortInfisicalCli):
         self.retry_attempts = retry_attempts
         self.retry_wait_seconds = retry_wait_seconds
         self._bootstrap_payload: dict[str, object] = {}
+        self._bootstrap_token = ""
         self._project_ids: dict[str, str] = {}
         self._session_token = ""
 
@@ -55,7 +56,7 @@ class InfisicalCliClient(PortInfisicalCli):
                 self._bootstrap_payload = payload
                 token = _bootstrap_token(payload)
                 if token:
-                    os.environ["TSW_INFISICAL_BOOTSTRAP_TOKEN"] = token
+                    self._bootstrap_token = token
         return result
 
     def ensure_project_environment(self, project: str, environment: str) -> None:
@@ -63,14 +64,19 @@ class InfisicalCliClient(PortInfisicalCli):
         self._ensure_environment(project_id, environment)
 
     def secret_exists(self, key: str, *, project: str, environment: str) -> bool:
+        return self.get_secret(key, project=project, environment=environment) is not None
+
+    def get_secret(self, key: str, *, project: str, environment: str) -> str | None:
         project_id = self._project_ids.get(project) or self._ensure_project(project)
         response = self._request(
             "GET",
             f"/api/v3/secrets/raw?workspaceId={project_id}&environment={environment}&secretPath=%2F",
         )
+        if response.status_code == 404:
+            return None
         if response.status_code >= 400:
-            return False
-        return key in _secret_keys(response.json())
+            raise RuntimeError("Infisical managed entry read failed with redacted output.")
+        return _secret_value(response.json(), key)
 
     def set_secret(self, key: str, value: str, *, project: str, environment: str) -> None:
         project_id = self._project_ids.get(project) or self._ensure_project(project)
@@ -162,6 +168,8 @@ class InfisicalCliClient(PortInfisicalCli):
         )
         if token:
             return token
+        if self._bootstrap_token:
+            return self._bootstrap_token
         if self._session_token:
             return self._session_token
         identity = self._bootstrap_payload.get("identity")
@@ -284,20 +292,21 @@ def _project_id_by_name(payload: object, project: str) -> str:
     return ""
 
 
-def _secret_keys(payload: object) -> set[str]:
+def _secret_value(payload: object, key: str) -> str | None:
     if not isinstance(payload, dict):
-        return set()
+        return None
     secrets = payload.get("secrets")
     if not isinstance(secrets, list):
-        return set()
-    keys: set[str] = set()
+        return None
     for item in secrets:
         if not isinstance(item, dict):
             continue
-        key = item.get("secretKey") or item.get("key")
-        if isinstance(key, str):
-            keys.add(key)
-    return keys
+        item_key = item.get("secretKey") or item.get("key")
+        if item_key != key:
+            continue
+        value = item.get("secretValue")
+        return value if isinstance(value, str) else None
+    return None
 
 
 def _access_token(payload: object) -> str:
