@@ -36,6 +36,12 @@ phase count, status counts, phase-group status/limit/duration, each phase
 status, final status, and available evidence paths. Reset, deployment, and
 verification commands use the same readable workflow/status pattern.
 
+After a successful run the installer prints the Portainer and Infisical URLs,
+the applicable login identifiers, and the `INTERNAL/TEST ONLY` catalog
+convention. It deliberately does not print password values or derived secret
+material. Read the canonical catalog for disposable defaults, or read a
+protected operator override privately when one was supplied.
+
 The default channel is human-readable on native Linux, WSL2, and the
 LXC-native setup path. On failure, a structured block in a captured log is
 represented by an omission marker; the full log path is printed so the details

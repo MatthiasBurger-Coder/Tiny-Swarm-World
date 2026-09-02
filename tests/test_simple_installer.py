@@ -302,7 +302,7 @@ class TestSimpleInstallerSecretBootstrap(unittest.TestCase):
                 REPOSITORY_ROOT,
             )
 
-    def test_completion_output_exposes_only_operator_credentials(self):
+    def test_completion_output_exposes_targets_without_printing_credential_values(self):
         env = {
             "TSW_PORTAINER_ADMIN_PASSWORD": "portainer-visible",
             "TSW_INFISICAL_LOGIN_EMAIL": "admin@example.invalid",
@@ -316,8 +316,13 @@ class TestSimpleInstallerSecretBootstrap(unittest.TestCase):
             _print_operator_credentials(env)
 
         rendered = output.getvalue()
-        self.assertIn("portainer-visible", rendered)
-        self.assertIn("infisical-visible", rendered)
+        self.assertIn("http://localhost:10001", rendered)
+        self.assertIn("admin@example.invalid", rendered)
+        self.assertIn("INTERNAL/TEST ONLY", rendered)
+        self.assertIn("catalog default or protected operator override", rendered)
+        self.assertIn("internal-test-credential-catalog.md", rendered)
+        self.assertNotIn("portainer-visible", rendered)
+        self.assertNotIn("infisical-visible", rendered)
         self.assertNotIn("must-stay-hidden", rendered)
         self.assertNotIn("also-hidden", rendered)
         self.assertIn("All other catalog-managed secrets are internal", rendered)

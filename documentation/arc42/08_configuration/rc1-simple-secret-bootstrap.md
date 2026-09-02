@@ -12,10 +12,9 @@ intentionally reduced to one catalog-backed lifecycle.
 3. Bootstrap Infisical from the resolved values; Infisical is not queried for
    its own startup inputs.
 4. Run the existing governed reset/setup workflow.
-5. After successful setup, print only the credentials an operator needs to
-   enter manually:
-   - Portainer admin password
-   - Infisical login email and bootstrap admin password
+5. After successful setup, print service URLs, login identifiers, and the
+   `INTERNAL/TEST ONLY` catalog convention. Password values are intentionally
+   not printed; operators use the catalog or their protected override source.
 
 All database passwords, service passwords, encryption keys, auth secrets, tokens
 and derived Traefik dashboard material remain internal and are not printed.
@@ -55,7 +54,7 @@ recovery credential file.
 
 ## Lifecycle rules
 
-- **Fresh install:** resolve catalog defaults and explicit overrides, bootstrap services, and print Portainer and Infisical access credentials.
+- **Fresh install:** resolve catalog defaults and explicit overrides, bootstrap services, and print Portainer and Infisical access targets without password values.
 - **Rerun:** resolve the same catalog defaults; no implicit rotation or recovery-file dependency.
 - **Failure:** no default credential state is written; a retry resolves the same defaults again.
 - **Rotation/reset of credentials:** must be an explicit future workflow; the normal installer never rotates secrets merely because it is run again.

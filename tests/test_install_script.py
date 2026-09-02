@@ -235,7 +235,8 @@ class TestInstallScript(unittest.TestCase):
             context = (evidence_dir / "context.txt").read_text()
             self.assertNotIn("secrets_mode=", context)
             self.assertNotIn("secrets_generated_count=", context)
-            self.assertIn("Password: TSW1234STW5678", result.stdout)
+            self.assertIn("Credential convention: INTERNAL/TEST ONLY catalog defaults", result.stdout)
+            self.assertNotIn("Password: TSW1234STW5678", result.stdout)
             self.assertIn("User:     admin@tiny-swarm-world.local", result.stdout)
             self.assertFalse(
                 (fixture.root / ".tiny-swarm-world" / "local" / "live-installation.env").exists()

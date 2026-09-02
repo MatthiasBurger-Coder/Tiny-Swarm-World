@@ -442,8 +442,12 @@ Replace `<backend-bridge>` with the bridge resolved from
 
 === 5. Configure Local Secrets Without Printing Values
 
-Local runtime secret files are ignored by Git and must stay local. Start from
-the tracked placeholder file:
+The standard internal-test path requires no credential preparation. It resolves
+the deterministic `INTERNAL/TEST ONLY` catalog values documented in the
+canonical [credential catalog](../arc42/08_configuration/internal-test-credential-catalog.md)
+and prints service targets after a successful run without printing passwords.
+Copy `.env.example` only when you need to provide an explicit operator
+override:
 
 [source,bash]
 ----
@@ -452,10 +456,10 @@ cp .env.example .tiny-swarm-world/local/live-installation.env
 chmod 600 .tiny-swarm-world/local/live-installation.env
 ----
 
-Edit `.tiny-swarm-world/local/live-installation.env` and replace placeholder
-values. This file is an optional operator override input; the normal installer
-does not generate or rotate credential files. Do not paste values from it into
-logs, issues, chat, commits, or documentation.
+Uncomment and edit only the values you intentionally override. This file is an
+optional operator override input; the normal installer resolves all other
+values from the catalog and does not generate or rotate credential files. Do
+not paste values from it into logs, issues, chat, commits, or documentation.
 
 For an authorized WSL2 live run from a checkout under `/mnt/<drive>`, set
 `TSW_INSTALL_ENV_FILE` to a WSL-native `0600` file outside the checkout and
@@ -631,11 +635,12 @@ Use routed HTTPS URLs for browser access:
 * Swagger/NGINX: `https://swagger.tsw.local`
 * Infisical: `https://infisical.tsw.local`
 
-Use `TSW_PORTAINER_USERNAME` and `TSW_PORTAINER_ADMIN_PASSWORD` for
-Portainer. Use the Pulsar Manager admin user and
-`TSW_PULSAR_MANAGER_ADMIN_PASSWORD` for Pulsar Manager. Do not use copied
-password values from chat history or logs; read them from the local secret
-source for the current installation.
+For the standard internal-test path, use the catalog's canonical login
+convention: `admin` with the documented `TSW1234STW5678` password for
+Portainer, Nexus, Jenkins, Infisical bootstrap and most component passwords;
+SonarQube's catalog exception is documented alongside it. For an explicit
+override, use the protected local source or process environment. Do not use
+copied password values from chat history or logs.
 
 === 10. Re-run And Recovery Rules
 

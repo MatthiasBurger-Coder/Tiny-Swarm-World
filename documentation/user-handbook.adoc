@@ -49,6 +49,20 @@ Access --> Infisical : credential references
 @enduml
 ----
 
+== Intended Identity Boundary
+
+Tiny Swarm World is an internal development and test environment tool. The
+deterministic catalog values are `INTERNAL/TEST ONLY` material for disposable
+local acceptance; unchanged defaults are not suitable for production, shared,
+public, or untrusted exposure.
+
+Enterprise identity and reachability remain outside the bootstrap path. AD,
+LDAP, SSO, VPN, firewall, network segmentation, and IAM policy are supplied
+and governed by the surrounding organization. When stronger or environment-
+specific credentials are required, provide them through the documented
+protected operator override or applicable Infisical path; do not edit the
+catalog or copy passwords into evidence.
+
 == Before You Start
 
 Use a Linux or WSL2 shell from the repository root. Prepare:
@@ -177,8 +191,11 @@ PYTHONPATH=src python3 -m tiny_swarm_world --preflight
 
 == Prepare Operator Configuration
 
-The tracked template is `.env.example`. Copy the keys you want to provide into
-the ignored local runtime file:
+The standard internal-test path requires no credential preparation. It resolves
+the deterministic `INTERNAL/TEST ONLY` catalog values documented in the
+canonical credential catalog and prints service targets after a successful run
+without printing passwords. Copy `.env.example` only when you need to provide
+an explicit operator override:
 
 [source,bash]
 ----
@@ -187,10 +204,10 @@ cp .env.example .tiny-swarm-world/local/live-installation.env
 chmod 600 .tiny-swarm-world/local/live-installation.env
 ----
 
-Edit `.tiny-swarm-world/local/live-installation.env` and replace placeholder
-values. Process environment values override this optional operator file. The
-normal installer resolves missing internal-test credentials from the catalog
-and does not generate or rotate local credential files.
+Uncomment and edit only the values you intentionally override. Process
+environment values override this optional operator file. The normal installer
+resolves all other values from the catalog and does not generate or rotate
+local credential files.
 
 For an authorized WSL2 live run from a checkout under `/mnt/<drive>`, keep the
 source checkout there for traceability but set `TSW_INSTALL_ENV_FILE` to a
@@ -354,15 +371,21 @@ Infisical has two distinct credential concerns:
 * service credential entries synchronized into or referenced from Infisical.
 
 The bootstrap login email and initial admin password are resolved during
-installation from the process environment or from:
+installation from the deterministic catalog unless explicitly overridden in
+the process environment or protected local source. The canonical internal-test
+login identifier is `admin@tiny-swarm-world.local`; the catalog documents the
+disposable password convention. The installer prints the URL and identifier,
+but intentionally does not print password values.
+
+For an explicit override, the protected local source is:
 
 [source,text]
 ----
 .tiny-swarm-world/local/live-installation.env
 ----
 
-Check that the expected keys are present without printing password values into
-logs or tickets:
+If an explicit override file is configured, check that the expected keys are
+present without printing password values into logs or tickets:
 
 [source,bash]
 ----
@@ -370,9 +393,11 @@ grep -q '^TSW_INFISICAL_LOGIN_EMAIL=' .tiny-swarm-world/local/live-installation.
 grep -q '^TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD=' .tiny-swarm-world/local/live-installation.env
 ----
 
-Open the ignored local file in a private terminal or editor to read the
-bootstrap email and password, then use those values to sign in to Infisical at
-the configured Infisical route. The default external URL is:
+For the standard internal-test path, use the catalog's documented disposable
+login convention. For an explicit override, open the ignored local file in a
+private terminal or editor to read the bootstrap email and password, then use
+those values to sign in to Infisical at the configured Infisical route. The
+default external URL is:
 
 [source,text]
 ----
