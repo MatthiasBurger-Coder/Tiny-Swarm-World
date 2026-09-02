@@ -20,8 +20,8 @@ precedence is:
 1. an applicable ready secure/Infisical source (`vault`);
 2. explicit operator values (`operator`), with process environment values
    overriding the approved local file;
-3. the deterministic internal-test catalog (`default`) when the selected
-   profile is `internal-test`.
+3. the deterministic internal-test catalog (`default`) on the normal
+   catalog-backed installer path.
 
 The local env file is operator-owned, ignored by Git, and must not be committed.
 The parser accepts simple `KEY=value` and `export KEY=value` assignments,
@@ -62,7 +62,7 @@ records only key names, source labels, and synchronization status.
 
 ## Required Values
 
-The default `internal-test` contract derives the required values from the
+The normal catalog-backed contract derives the required values from the
 deterministic catalog; an operator override may replace them before setup
 execution:
 

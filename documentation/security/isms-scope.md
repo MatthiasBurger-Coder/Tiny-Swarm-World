@@ -15,7 +15,7 @@ prove that a control is deployed.
 - Infisical, Portainer, Nexus, Jenkins, SonarQube, Apache Pulsar,
   Swagger/NGINX and Traefik surfaces.
 - LXC/LXD/Incus provider interactions, node identity, network and host metadata.
-- Credentials, tokens, generated secrets, local environment files, logs and
+- Credentials, tokens, managed cryptographic material, local environment files, logs and
   redacted screenshots/evidence.
 - Dependencies, container images and artifact sources.
 
@@ -31,7 +31,7 @@ external service is running or secured.
 | Class | Examples | Protection concern |
 | --- | --- | --- |
 | Source and configuration | Python, YAML, compose, workflow and ADR files | integrity, review and path safety |
-| Credentials and secrets | Infisical bootstrap material, admin credentials, tokens, generated secrets | confidentiality, rotation and redaction |
+| Credentials and secrets | Infisical bootstrap material, catalog/admin credentials, tokens and managed cryptographic material | confidentiality, rotation and redaction |
 | Infrastructure control surfaces | Docker socket, Incus/LXC provider, Traefik, Portainer | unauthorized mutation and privilege |
 | Service data/metadata | Nexus, Jenkins, Pulsar, SonarQube, Swagger and access metadata | access control, integrity and exposure |
 | Evidence artifacts | logs, summaries, screenshots, checksums and audit records | redaction, provenance and retention |

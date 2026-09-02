@@ -89,6 +89,19 @@ class TestInstaller(unittest.TestCase):
         self.assertTrue(options.allow_wsl_windows_filesystem)
         self.assertTrue(options.headless)
 
+    def test_parse_args_rejects_removed_credential_options(self):
+        for argv in (("--secrets-mode", "generated"), ("--no-generate-secrets",)):
+            with self.subTest(argv=argv), patch.dict("os.environ", {"TSW_SECRETS_MODE": "generated"}):
+                with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                    installer.parse_args(argv)
+
+    def test_removed_credential_environment_selector_is_ignored(self):
+        with patch.dict("os.environ", {"TSW_SECRETS_MODE": "generated"}):
+            options = installer.parse_args(())
+
+        self.assertFalse(hasattr(options, "secrets_mode"))
+        self.assertFalse(hasattr(options, "generate_secrets"))
+
     def test_internal_test_installer_resolution_preserves_source_identity(self):
         entries = (
             installer.InstallerSecretEntry(
@@ -563,6 +576,21 @@ class TestInstaller(unittest.TestCase):
         self.assertIn("TSW_PORTAINER_ADMIN_PASSWORD", keys)
         self.assertIn("TSW_INFISICAL_REDIS_PASSWORD", keys)
         self.assertNotIn("TSW_TRAEFIK_TLS_CERT_SECRET_NAME", keys)
+
+    def test_required_installer_secret_entries_reject_type_source_mismatch(self):
+        with tempfile.TemporaryDirectory() as directory:
+            manifest = Path(directory) / "infisical-secrets.yaml"
+            manifest.write_text(
+                "secrets:\n"
+                "  - key: TSW_MISMATCHED_PASSWORD\n"
+                "    type: external_user_secret\n"
+                "    source: internal_test_catalog\n"
+                "    required: true\n",
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(installer.InstallerError, "type/source mismatch"):
+                installer._required_installer_secret_entries(manifest)
 
     def test_confirm_reset_reports_missing_noninteractive_input(self):
         options = installer.InstallerOptions(

@@ -7,7 +7,7 @@ claiming certification.
 | Control ID | Control theme | Applicability | Rationale | Existing implementation/evidence | Gap | Related risk |
 | --- | --- | --- | --- | --- | --- | --- |
 | SEC-01 | Access control and admin surfaces | Applicable | Portainer, Traefik and service access can mutate or expose local systems | local-only scope; route/admin docs; #126 planned | authn/authz and route decision require #126/#150 | RISK-123-DOCKER-SOCKET; RISK-123-ADMIN-CREDENTIAL |
-| SEC-02 | Secret handling | Applicable | bootstrap material, tokens and generated secrets exist in the workflow | secret policy and Infisical references | authorized runtime rotation evidence pending | RISK-123-SECRET-LEAK; RISK-123-INFISICAL-BOOTSTRAP |
+| SEC-02 | Secret handling | Applicable | bootstrap material, tokens, catalog credentials and managed cryptographic material exist in the workflow | secret policy and Infisical references | authorized runtime rotation evidence pending | RISK-123-SECRET-LEAK; RISK-123-INFISICAL-BOOTSTRAP |
 | SEC-03 | Evidence redaction | Applicable | logs, screenshots and command summaries may carry sensitive values | #121 evidence rules and redaction policy | live evidence contract still pending | RISK-123-SECRET-LEAK |
 | SEC-04 | Change control | Applicable | security-sensitive changes require ordered review and quality gates | #122 QMS change-control document | branch protection and CI enforcement require #128 | all risks |
 | SEC-05 | Logging and trace safety | Applicable | diagnostics can disclose tokens, paths or payloads | redaction rules and existing diagnostic conventions | live logging review pending | RISK-123-SECRET-LEAK; RISK-123-PULSAR-TOKEN |

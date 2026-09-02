@@ -42,6 +42,11 @@ SECRET_ASSIGNMENT_PATTERN = re.compile(
 )
 PLACEHOLDER_MARKERS = ("${", "{{", "<", "redacted", "placeholder", "changeme", "fake", "sample", "-password", "-secret", "-value")
 SOURCE_MARKERS = ("internal_test_catalog", "external_user_secret", "managed_secret", "placeholder_only")
+MANIFEST_TYPE_BY_SOURCE = {
+    "internal_test_catalog": "managed_secret",
+    "external_user_secret": "external_user_secret",
+    "placeholder_only": "placeholder_only",
+}
 CONSUMER_REF_PATTERN = re.compile(r"^[a-z0-9][a-z0-9:._-]*$")
 FALSE_POSITIVE_KEYS = ("PUBLIC_KEY", "RESOURCE_KEYS", "RAW_EVIDENCE_KEYS")
 FALSE_POSITIVE_ASSIGNMENTS = (
@@ -615,6 +620,12 @@ def _manifest_entry(item: object) -> SecretManifestEntry:
     if policy not in {"keep_existing", "rotate"}:
         raise SecretManagementBlocker("manifest_schema_invalid", f"Invalid secret policy for {key}: {policy}")
     source = str(item.get("source", ""))
+    expected_type = MANIFEST_TYPE_BY_SOURCE.get(source)
+    if expected_type is not None and entry_type != expected_type:
+        raise SecretManagementBlocker(
+            "manifest_schema_invalid",
+            f"Secret type/source mismatch for {key}: {entry_type}/{source}",
+        )
     return SecretManifestEntry(
         key=key,
         service=str(item.get("service", "")),

@@ -62,6 +62,22 @@ class TestSecretManagement(unittest.TestCase):
             with self.assertRaisesRegex(SecretManagementBlocker, "Invalid secret type"):
                 SecretManifestRenderer(_STORAGE, manifest).run()
 
+    def test_manifest_type_and_source_contract_is_enforced(self):
+        with tempfile.TemporaryDirectory() as directory:
+            manifest = Path(directory) / "infisical-secrets.yaml"
+            manifest.write_text(
+                "secrets:\n"
+                "  - key: TSW_MISMATCHED_PASSWORD\n"
+                "    service: test\n"
+                "    type: external_user_secret\n"
+                "    source: internal_test_catalog\n"
+                "    required: false\n",
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(SecretManagementBlocker, "type/source mismatch"):
+                SecretManifestRenderer(_STORAGE, manifest).run()
+
     def test_unknown_manifest_source_defaults_to_unknown_ownership(self):
         with tempfile.TemporaryDirectory() as directory:
             manifest = Path(directory) / "infisical-secrets.yaml"
