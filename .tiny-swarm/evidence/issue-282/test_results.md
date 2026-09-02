@@ -8,7 +8,7 @@ Command:
 PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition tests.infrastructure.adapters.clients.test_infisical_cli_client tests.application.services.deployment.test_secret_management tests.test_simple_installer tests.test_install_script
 ```
 
-Result: PASS — 170 tests, 0 failures.
+Result: PASS — 173 tests, 0 failures.
 
 Branch-aware affected-slice command:
 
@@ -34,7 +34,7 @@ python3 -m coverage erase
 PYTHONPATH=src python3 -m coverage run --branch -m unittest discover -s tests -t .
 ```
 
-Result: PASS — 1,899 tests, 18 expected skips.
+Result: PASS — 1,900 tests, 18 expected skips.
 
 The change-specific report from `tools/coverage_diff.py` measures 56/56 added
 executable production lines and 16/16 added source branch arcs against the
@@ -56,7 +56,7 @@ Result: PASS.
 - Import-linter: 3 contracts kept, 0 broken.
 - Hexagonal architecture tests: 18 passed.
 - mypy: no issues in 646 checked files.
-- Full test suite: 1,899 passed, 18 expected skips.
+- Full test suite: 1,900 passed, 18 expected skips.
 
 No live infrastructure action was run. The local verification state is the
 applicable authority for CRED-04.

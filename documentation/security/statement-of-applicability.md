@@ -13,7 +13,7 @@ claiming certification.
 | SEC-05 | Logging and trace safety | Applicable | diagnostics can disclose tokens, paths or payloads | redaction rules and existing diagnostic conventions | live logging review pending | RISK-123-SECRET-LEAK; RISK-123-PULSAR-TOKEN |
 | SEC-06 | Supplier and dependency security | Applicable | Python dependencies and images are external inputs | #127 supply-chain policy artifacts | current scan/baseline evidence pending | RISK-123-DEPENDENCY; RISK-123-IMAGE |
 | SEC-07 | Incident handling | Applicable | secret, admin, socket and partial setup incidents need response | incident-response.md and QMS CAPA link | rehearsal/live evidence pending | all Critical/High risks |
-| SEC-08 | Backup and restore of local secret material | Applicable | local bootstrap and generated secret loss can block recovery | secret policy describes no raw backup in repo | authorized backup/restore procedure pending | RISK-123-INFISICAL-BOOTSTRAP |
+| SEC-08 | Backup and restore of local secret material | Applicable | local bootstrap and operator-override loss can block recovery | secret policy describes no raw backup in repo | authorized backup/restore procedure pending | RISK-123-INFISICAL-BOOTSTRAP |
 | SEC-09 | Risk acceptance | Applicable | residual risks remain during staged public-beta work | risk register owner/treatment fields | independent acceptance records pending | all open residual risks |
 
 ## Status rules

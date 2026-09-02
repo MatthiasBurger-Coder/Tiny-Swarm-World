@@ -13,5 +13,7 @@ requested changes; its findings were addressed in the follow-up commit:
 evidence is versioned, test counts are taken from the executed commands, the
 diff-coverage calculation is reproducible through `tools/coverage_diff.py`,
 stale credential wording is corrected, and direct CLI/manifest contract tests
-were added. No live infrastructure claim is made; WSL2/native Linux E2E
-remains CRED-07 / #285.
+were added. A post-merge audit also added coverage for the equal-value
+operator/secure branch and removed the last stale generated-secret recovery
+statement. No live infrastructure claim is made; WSL2/native Linux E2E remains
+CRED-07 / #285.
