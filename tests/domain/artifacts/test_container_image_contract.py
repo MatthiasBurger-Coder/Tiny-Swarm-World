@@ -86,8 +86,8 @@ class TestContainerImageContract(unittest.TestCase):
             "python:3.12.13-alpine3.23",
         )
         self.assertEqual(contracts_by_context["swagger-nginx"].image_ref, "nginx:1.29.8-alpine")
-        self.assertEqual(contracts_by_context["portainer"].image_ref, "portainer/portainer-ce:2.39.2")
-        self.assertEqual(contracts_by_context["portainer-agent"].image_ref, "portainer/agent:2.39.2")
+        self.assertEqual(contracts_by_context["portainer"].image_ref, "portainer/portainer-ce:2.45.0")
+        self.assertEqual(contracts_by_context["portainer-agent"].image_ref, "portainer/agent:2.45.0")
         self.assertEqual(contracts_by_context["nexus"].image_ref, "sonatype/nexus3:3.75.1")
         self.assertEqual(
             contracts_by_context["swagger-api"].image_ref,
