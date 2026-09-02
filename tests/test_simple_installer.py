@@ -179,7 +179,11 @@ class TestSimpleInstallerSecretBootstrap(unittest.TestCase):
             override_file.write_text("export TSW_PASSWORD='value'\n", encoding="utf-8")
             override_file.chmod(0o600)
 
-            with patch.object(Path, "stat", side_effect=OSError("stat failed")):
+            with (
+                patch.object(Path, "resolve", return_value=override_file),
+                patch.object(Path, "is_symlink", return_value=False),
+                patch.object(Path, "stat", side_effect=OSError("stat failed")),
+            ):
                 with self.assertRaisesRegex(SimpleInstallerError, "metadata"):
                     _validate_secure_override_path(override_file)
 
