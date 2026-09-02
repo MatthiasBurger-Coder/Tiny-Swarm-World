@@ -12,6 +12,17 @@ from tiny_swarm_world.application.ports.clients.port_infisical_cli import PortIn
 from tiny_swarm_world.application.ports.file_management.port_local_file_storage import (
     PortLocalFileStorage,
 )
+from tiny_swarm_world.domain.configuration.credential_resolution import (
+    CredentialResolutionError,
+    CredentialSource,
+    ResolvedCredential,
+)
+from tiny_swarm_world.application.services.credential_resolution import (
+    CREDENTIAL_SOURCE_MAP_ENVIRONMENT,
+    CredentialResolutionService,
+    CredentialResolutionSnapshot,
+    decode_source_metadata,
+)
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
 
 SecretClassification = Literal[
@@ -144,6 +155,9 @@ class InfisicalSecretStore:
 
     def secret_exists(self, key: str, *, project: str, environment: str) -> bool:
         return self.cli.secret_exists(key, project=project, environment=environment)
+
+    def get_secret(self, key: str, *, project: str, environment: str) -> str | None:
+        return self.cli.get_secret(key, project=project, environment=environment)
 
     def set_secret(self, key: str, value: str, *, project: str, environment: str) -> None:
         self.cli.set_secret(key, value, project=project, environment=environment)
@@ -289,12 +303,14 @@ class InfisicalSecretSyncStep:
         self.mode = mode
         self.checked_secret_keys: tuple[str, ...] = ()
         self.synchronized_secret_keys: tuple[str, ...] = ()
+        self.credential_sources: dict[str, CredentialSource] = {}
 
     def run(self) -> None:
         self.use_case.run()
         self.results = self.use_case.results
         self.checked_secret_keys = self.use_case.checked_secret_keys
         self.synchronized_secret_keys = self.use_case.synchronized_secret_keys
+        self.credential_sources = dict(self.use_case.credential_sources)
 
     def verify(self) -> VerificationResult:
         return self.use_case.verify()
@@ -325,9 +341,14 @@ class SecretSyncUseCase:
         self.project = project
         self.environment = environment
         self.process_environment = process_environment or {}
+        self.credential_resolution_service = CredentialResolutionService()
+        self.source_metadata = decode_source_metadata(
+            self.process_environment.get(CREDENTIAL_SOURCE_MAP_ENVIRONMENT)
+        )
         self.results: list[dict[str, str]] = []
         self.checked_secret_keys: tuple[str, ...] = ()
         self.synchronized_secret_keys: tuple[str, ...] = ()
+        self.credential_sources: dict[str, CredentialSource] = {}
 
     def run(self) -> None:
         try:
@@ -349,13 +370,25 @@ class SecretSyncUseCase:
     def _run_internal_test(self) -> None:
         checked = []
         for entry in self.manifest_entries:
-            value = self._entry_value_internal_test(entry)
+            snapshot = self._resolve_internal_test_entry(entry)
+            resolution = snapshot.resolutions[entry.key]
+            value = resolution.value
             if entry.required and not value:
                 raise SecretManagementBlocker(
                     "blocker",
                     f"Required secret value is missing: {entry.key}",
                 )
-            self._sync_entry(entry, value, {})
+            self.credential_sources[entry.key] = resolution.source
+            if entry.type == "external_user_secret":
+                self.results.append(
+                    _sync_result(
+                        entry,
+                        "verified_external_reference",
+                        source=resolution.source,
+                    )
+                )
+            else:
+                self._sync_entry(entry, value, {}, source=resolution.source)
             checked.append(entry.key)
         self.checked_secret_keys = tuple(checked)
         self.synchronized_secret_keys = tuple(
@@ -364,8 +397,40 @@ class SecretSyncUseCase:
             if result["sync_status"] in {"created", "updated", "kept_existing"}
         )
 
-    def _entry_value_internal_test(self, entry: SecretManifestEntry) -> str:
-        return self.process_environment.get(entry.key, "")
+    def _resolve_internal_test_entry(self, entry: SecretManifestEntry) -> CredentialResolutionSnapshot:
+        operator_value = self.process_environment.get(entry.key, "")
+        if self.source_metadata.get(entry.key) is CredentialSource.DEFAULT:
+            operator_value = ""
+        secure_value = None if entry.type == "external_user_secret" else self._get_vault_value(entry)
+        try:
+            return self.credential_resolution_service.resolve_post_bootstrap(
+                (entry.key,),
+                operator_values={entry.key: operator_value},
+                secure_values=({entry.key: secure_value} if secure_value else None),
+            )
+        except CredentialResolutionError as error:
+            if not entry.required and not operator_value and not secure_value:
+                return CredentialResolutionSnapshot({
+                    entry.key: ResolvedCredential(
+                        entry.key,
+                        "",
+                        CredentialSource.DEFAULT,
+                    )
+                })
+            raise SecretManagementBlocker("blocker", str(error)) from error
+
+    def _get_vault_value(self, entry: SecretManifestEntry) -> str | None:
+        try:
+            return self.store.get_secret(
+                entry.key,
+                project=self.project,
+                environment=self.environment,
+            )
+        except Exception as exc:
+            raise SecretManagementBlocker(
+                "infisical_sync_failed",
+                f"Infisical secret sync failed while reading key: {entry.key}",
+            ) from exc
 
     def _entry_value(self, entry: SecretManifestEntry, generated_values: dict[str, str]) -> str:
         value = self.process_environment.get(entry.key) or generated_values.get(entry.key, "")
@@ -383,7 +448,8 @@ class SecretSyncUseCase:
             value = self._entry_value(entry, generated_values)
             if entry.required and not value:
                 raise SecretManagementBlocker("blocker", f"Required secret value is missing: {entry.key}")
-            self._sync_entry(entry, value, generated_values)
+            self.credential_sources[entry.key] = CredentialSource.OPERATOR
+            self._sync_entry(entry, value, generated_values, source=CredentialSource.OPERATOR)
         _write_env_file(self.storage, self.generated_local_env, generated_values)
         self.synchronized_secret_keys = tuple(
             result["key"]
@@ -397,9 +463,18 @@ class SecretSyncUseCase:
         for entry in self.manifest_entries:
             value = fixed_values.get(entry.key, "")
             if not value:
-                self.results.append(_sync_result(entry, "skipped_missing_optional"))
+                self.credential_sources[entry.key] = CredentialSource.OPERATOR
+                self.results.append(
+                    _sync_result(entry, "skipped_missing_optional", source=CredentialSource.OPERATOR)
+                )
                 continue
-            self._set_entry(entry, value, status_if_existing="updated")
+            self.credential_sources[entry.key] = CredentialSource.OPERATOR
+            self._set_entry(
+                entry,
+                value,
+                status_if_existing="updated",
+                source=CredentialSource.OPERATOR,
+            )
         self.synchronized_secret_keys = tuple(
             result["key"]
             for result in self.results
@@ -417,7 +492,10 @@ class SecretSyncUseCase:
                     "infisical_secret_missing",
                     f"Required Infisical secret is missing: {entry.key}",
                 )
-            self.results.append(_sync_result(entry, "verified_existing"))
+            self.credential_sources[entry.key] = CredentialSource.VAULT
+            self.results.append(
+                _sync_result(entry, "verified_existing", source=CredentialSource.VAULT)
+            )
         self.checked_secret_keys = tuple(checked)
         self.synchronized_secret_keys = ()
 
@@ -426,18 +504,27 @@ class SecretSyncUseCase:
         entry: SecretManifestEntry,
         value: str,
         generated_values: dict[str, str],
+        *,
+        source: CredentialSource = CredentialSource.OPERATOR,
     ) -> None:
         if not value:
-            self.results.append(_sync_result(entry, "skipped_missing_optional"))
+            self.results.append(
+                _sync_result(entry, "skipped_missing_optional", source=source)
+            )
             return
         exists = self._secret_exists(entry)
         if exists and entry.policy == "keep_existing":
-            self.results.append(_sync_result(entry, "kept_existing"))
+            self.results.append(_sync_result(entry, "kept_existing", source=source))
             return
         if exists and entry.policy == "rotate":
             value = _generate_secret(entry.key)
             generated_values[entry.key] = value
-        self._set_entry(entry, value, status_if_existing="updated" if exists else "created")
+        self._set_entry(
+            entry,
+            value,
+            status_if_existing="updated" if exists else "created",
+            source=source,
+        )
 
     def _secret_exists(self, entry: SecretManifestEntry) -> bool:
         try:
@@ -448,7 +535,14 @@ class SecretSyncUseCase:
                 f"Infisical secret sync failed while checking key: {entry.key}",
             ) from exc
 
-    def _set_entry(self, entry: SecretManifestEntry, value: str, *, status_if_existing: str) -> None:
+    def _set_entry(
+        self,
+        entry: SecretManifestEntry,
+        value: str,
+        *,
+        status_if_existing: str,
+        source: CredentialSource = CredentialSource.OPERATOR,
+    ) -> None:
         try:
             exists = self.store.secret_exists(entry.key, project=self.project, environment=self.environment)
             self.store.set_secret(entry.key, value, project=self.project, environment=self.environment)
@@ -457,7 +551,13 @@ class SecretSyncUseCase:
                 "infisical_sync_failed",
                 f"Infisical secret sync failed while writing key: {entry.key}",
             ) from exc
-        self.results.append(_sync_result(entry, status_if_existing if exists else "created"))
+        self.results.append(
+            _sync_result(
+                entry,
+                status_if_existing if exists else "created",
+                source=source,
+            )
+        )
 
     def verify(self) -> VerificationResult:
         synced = [
@@ -479,6 +579,16 @@ class SecretSyncUseCase:
                 "optional_missing_count": str(len(missing)),
                 "project": self.project,
                 "scope_name": self.environment,
+                "source_counts": json.dumps(
+                    {
+                        source.value: sum(
+                            selected is source
+                            for selected in self.credential_sources.values()
+                        )
+                        for source in CredentialSource
+                    },
+                    sort_keys=True,
+                ),
             },
         )
 
@@ -584,6 +694,10 @@ class SecretEvidenceWriter:
         }
         sync_result = {
             "checked_secret_keys": list(self.sync.checked_secret_keys),
+            "credential_sources": {
+                key: source.value
+                for key, source in sorted(self.sync.credential_sources.items())
+            },
             "generated_at": now,
             "mode": self.sync.mode,
             "results": self.sync.results,
@@ -797,10 +911,16 @@ def _generate_secret(key: str) -> str:
     return secrets.token_urlsafe(32)
 
 
-def _sync_result(entry: SecretManifestEntry, status: str) -> dict[str, str]:
+def _sync_result(
+    entry: SecretManifestEntry,
+    status: str,
+    *,
+    source: CredentialSource = CredentialSource.OPERATOR,
+) -> dict[str, str]:
     return {
         "key": entry.key,
         "service": entry.service,
+        "source": source.value,
         "source_type": entry.source,
         "sync_status": status,
     }

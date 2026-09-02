@@ -46,6 +46,7 @@ INFISICAL_READINESS_ATTEMPTS_ENVIRONMENT = "TSW_INFISICAL_READINESS_ATTEMPTS"
 INFISICAL_READINESS_INTERVAL_ENVIRONMENT = "TSW_INFISICAL_READINESS_INTERVAL_SECONDS"
 INFISICAL_URL_ENVIRONMENT = "TSW_INFISICAL_URL"
 INFISICAL_INTERNAL_URL_ENVIRONMENT = "TSW_INFISICAL_INTERNAL_URL"
+DEFAULT_INFISICAL_URL = "http://localhost:17080"
 INFISICAL_ORGANIZATION_ENVIRONMENT = "TSW_INFISICAL_ORGANIZATION"
 INFISICAL_ADMIN_FIRST_NAME_ENVIRONMENT = "TSW_INFISICAL_ADMIN_FIRST_NAME"
 INFISICAL_ADMIN_LAST_NAME_ENVIRONMENT = "TSW_INFISICAL_ADMIN_LAST_NAME"
@@ -96,6 +97,10 @@ INFISICAL_ENCRYPTION_KEY_ENVIRONMENT = "TSW_INFISICAL_ENCRYPTION_KEY"
 INFISICAL_AUTH_SECRET_ENVIRONMENT = "TSW_INFISICAL_AUTH_SECRET"
 INFISICAL_POSTGRES_PASSWORD_ENVIRONMENT = "TSW_INFISICAL_POSTGRES_PASSWORD"
 INFISICAL_REDIS_PASSWORD_ENVIRONMENT = "TSW_INFISICAL_REDIS_PASSWORD"
+INFISICAL_PROVIDER_MODE_ENVIRONMENT = "TSW_INFISICAL_PROVIDER_MODE"
+INFISICAL_PROVIDER_MODES = ("self_hosted", "external")
+DEFAULT_INFISICAL_PROVIDER_MODE = "self_hosted"
+_SELF_HOSTED_INFISICAL_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
 REGISTRY_ENDPOINT_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*(?::\d{1,5})?$")
 
 
@@ -147,6 +152,42 @@ def _secret_mode() -> str:
             "TSW_SECRETS_MODE must be one of generated, fixed, infisical, or internal-test."
         )
     return mode
+
+
+def _infisical_provider_mode() -> str:
+    """Validate the deployment identity before any Infisical workflow is built."""
+    mode = _operator_config_value(
+        INFISICAL_PROVIDER_MODE_ENVIRONMENT,
+        DEFAULT_INFISICAL_PROVIDER_MODE,
+    ).strip().lower()
+    if mode not in INFISICAL_PROVIDER_MODES:
+        raise ValueError(
+            f"{INFISICAL_PROVIDER_MODE_ENVIRONMENT} must be one of self_hosted or external."
+        )
+    if mode == "external":
+        raise ValueError(
+            "External Infisical is not supported by the self-hosted service-access "
+            "workflow; use self_hosted or a separate external integration."
+        )
+    return mode
+
+
+def _self_hosted_infisical_url() -> str:
+    """Return only a local endpoint for the self-hosted bootstrap boundary."""
+    _infisical_provider_mode()
+    value = _operator_config_value(INFISICAL_URL_ENVIRONMENT, DEFAULT_INFISICAL_URL).strip()
+    parsed = urlparse(value)
+    if (
+        parsed.scheme not in {"http", "https"}
+        or parsed.hostname not in _SELF_HOSTED_INFISICAL_HOSTS
+        or parsed.username is not None
+        or parsed.password is not None
+    ):
+        raise ValueError(
+            f"{INFISICAL_URL_ENVIRONMENT} must target localhost, 127.0.0.1, or ::1 "
+            "when self-hosted Infisical is selected."
+        )
+    return value.rstrip("/")
 
 
 def _fixed_secret_env_file() -> Path:

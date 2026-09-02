@@ -23,6 +23,14 @@ from tiny_swarm_world.domain.configuration.internal_test_credentials import (
     validate_internal_test_catalog,
     validate_internal_test_consumers,
 )
+from tiny_swarm_world.domain.configuration.credential_resolution import (
+    CredentialResolutionError,
+    CredentialResolutionPhase,
+    CredentialResolver,
+    CredentialSource,
+    ResolvedCredential,
+    SecureCredentialSource,
+)
 
 __all__ = [
     "ConfigurationContract",
@@ -46,4 +54,10 @@ __all__ = [
     "internal_test_credentials",
     "validate_internal_test_catalog",
     "validate_internal_test_consumers",
+    "CredentialResolutionError",
+    "CredentialResolutionPhase",
+    "CredentialResolver",
+    "CredentialSource",
+    "ResolvedCredential",
+    "SecureCredentialSource",
 ]

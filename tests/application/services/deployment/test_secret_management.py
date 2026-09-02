@@ -407,6 +407,134 @@ class TestSecretManagement(unittest.TestCase):
         self.assertEqual(sync.results[0]["sync_status"], "created")
         self.assertFalse(env_file.exists())
 
+    def test_internal_test_mode_prefers_existing_infisical_value_after_bootstrap(self):
+        with tempfile.TemporaryDirectory() as directory:
+            env_file = Path(directory) / "generated.local.env"
+            cli = _FakeInfisicalCli(existing={"TSW_INTERNAL_TEST_PASSWORD"})
+            cli.values["TSW_INTERNAL_TEST_PASSWORD"] = "vault-value"
+            sync = InfisicalSecretSyncStep(
+                cli=cli,
+                storage=_STORAGE,
+                manifest_entries=(_entry("TSW_INTERNAL_TEST_PASSWORD"),),
+                generated_local_env=env_file,
+                mode="internal-test",
+                process_environment={"TSW_INTERNAL_TEST_PASSWORD": "operator-value"},
+            )
+
+            sync.run()
+
+        self.assertEqual(sync.results[0]["source"], "vault")
+        self.assertEqual(sync.results[0]["sync_status"], "kept_existing")
+        self.assertEqual(cli.values["TSW_INTERNAL_TEST_PASSWORD"], "vault-value")
+
+    def test_internal_test_honors_default_source_metadata_over_transport_value(self):
+        cli = _FakeInfisicalCli()
+        sync = InfisicalSecretSyncStep(
+            cli=cli,
+            storage=_STORAGE,
+            manifest_entries=(_entry("TSW_PORTAINER_ADMIN_PASSWORD"),),
+            mode="internal-test",
+            process_environment={
+                "TSW_PORTAINER_ADMIN_PASSWORD": "transport-value",
+                "TSW_CREDENTIAL_SOURCE_MAP": (
+                    '{"TSW_PORTAINER_ADMIN_PASSWORD":"default"}'
+                ),
+            },
+        )
+
+        sync.run()
+
+        self.assertEqual(sync.results[0]["source"], "default")
+
+    def test_internal_test_blocks_when_infisical_read_fails(self):
+        sync = InfisicalSecretSyncStep(
+            cli=_FailingReadInfisicalCli(),
+            storage=_STORAGE,
+            manifest_entries=(_entry("TSW_PORTAINER_ADMIN_PASSWORD"),),
+            mode="internal-test",
+            process_environment={"TSW_PORTAINER_ADMIN_PASSWORD": "operator-value"},
+        )
+
+        with self.assertRaisesRegex(SecretManagementBlocker, "reading key"):
+            sync.run()
+
+    def test_fixed_mode_records_missing_optional_source(self):
+        with tempfile.TemporaryDirectory() as directory:
+            fixed_file = Path(directory) / "fixed.env"
+            fixed_file.write_text("", encoding="utf-8")
+            sync = InfisicalSecretSyncStep(
+                cli=_FakeInfisicalCli(),
+                storage=_STORAGE,
+                manifest_entries=(
+                    SecretManifestEntry(
+                        key="TSW_OPTIONAL_PASSWORD",
+                        service="service",
+                        type="generated_secret",
+                        environment="local",
+                        description="Optional secret",
+                        source="generated_local_secret",
+                        required=False,
+                    ),
+                ),
+                fixed_env_file=fixed_file,
+                mode="fixed",
+            )
+
+            sync.run()
+
+        self.assertEqual(sync.results[0]["source"], "operator")
+        self.assertEqual(sync.results[0]["sync_status"], "skipped_missing_optional")
+
+    def test_infisical_mode_reports_existing_values_as_vault_source(self):
+        cli = _FakeInfisicalCli(existing={"TSW_REQUIRED_PASSWORD"})
+        sync = InfisicalSecretSyncStep(
+            cli=cli,
+            storage=_STORAGE,
+            manifest_entries=(_entry("TSW_REQUIRED_PASSWORD"),),
+            mode="infisical",
+        )
+
+        sync.run()
+
+        self.assertEqual(sync.results[0]["source"], "vault")
+        self.assertEqual(sync.results[0]["sync_status"], "verified_existing")
+
+    def test_internal_test_full_manifest_keeps_optional_token_and_external_refs_out_of_vault(self):
+        entries = SecretManifestRenderer(
+            _STORAGE,
+            Path("infra/config/secrets/infisical-secrets.yaml"),
+        ).run()
+        external_keys = {
+            "TSW_TRAEFIK_TLS_CERT_SECRET_NAME",
+            "TSW_TRAEFIK_TLS_KEY_SECRET_NAME",
+            "TSW_TRAEFIK_GUI_USERS_SECRET_NAME",
+        }
+        process_environment = {
+            key: f"managed-{key.lower()}"
+            for key in external_keys
+        }
+        cli = _FakeInfisicalCli()
+        sync = InfisicalSecretSyncStep(
+            cli=cli,
+            storage=_STORAGE,
+            manifest_entries=entries,
+            mode="internal-test",
+            process_environment=process_environment,
+        )
+
+        sync.run()
+
+        self.assertNotIn("TSW_INFISICAL_BOOTSTRAP_TOKEN", cli.values)
+        self.assertTrue(external_keys.isdisjoint(cli.values))
+        self.assertEqual(
+            {
+                result["key"]
+                for result in sync.results
+                if result["sync_status"] == "verified_external_reference"
+            },
+            external_keys,
+        )
+
     def test_internal_test_mode_rejects_missing_required_value_without_generation(self):
         with tempfile.TemporaryDirectory() as directory:
             env_file = Path(directory) / "generated.local.env"
@@ -534,6 +662,7 @@ class _FakeInfisicalCli:
         self.available = available
         self.values: dict[str, str] = {}
         self.ensured: list[tuple[str, str]] = []
+        self.reads: list[str] = []
 
     def is_available(self) -> bool:
         return self.available
@@ -545,7 +674,11 @@ class _FakeInfisicalCli:
         self.ensured.append((project, environment))
 
     def secret_exists(self, key: str, *, project: str, environment: str) -> bool:
-        return key in self.existing
+        return key in self.existing or key in self.values
+
+    def get_secret(self, key: str, *, project: str, environment: str) -> str | None:
+        self.reads.append(key)
+        return self.values.get(key)
 
     def set_secret(self, key: str, value: str, *, project: str, environment: str) -> None:
         self.values[key] = value
@@ -555,6 +688,11 @@ class _FakeInfisicalCli:
 class _FailingInfisicalCli(_FakeInfisicalCli):
     def set_secret(self, key: str, value: str, *, project: str, environment: str) -> None:
         raise RuntimeError(f"sync failed for {key}")
+
+
+class _FailingReadInfisicalCli(_FakeInfisicalCli):
+    def get_secret(self, key: str, *, project: str, environment: str) -> str | None:
+        raise RuntimeError(f"read failed for {key}")
 
 
 if __name__ == "__main__":

@@ -199,7 +199,7 @@ documented separately from runtime service configuration.
 | `TSW_INSTALL_ENV_FILE` | `.tiny-swarm-world/local/live-installation.env` | local path | Ignored local runtime secret file; authorized WSL2 live runs must point to a WSL-native `0600` file outside `/mnt/*`. |
 | `TSW_LIVE_EVIDENCE_ROOT` | XDG state directory below `tiny-swarm-world/evidence/live-greenpath` | local path | Optional WSL-native live evidence root; it must be owner-only and must not be on `/mnt/*`. |
 | `TSW_FIXED_SECRET_ENV_FILE` | `.tiny-swarm-world/local/fixed-secrets.env` | local path | Ignored fixed-mode secret source file. |
-| `TSW_INFISICAL_SECRET_ENV_FILE` | `.tiny-swarm/secrets/bootstrap.local.env` | local path | Ignored local bootstrap secret file. |
+| `TSW_INFISICAL_SECRET_ENV_FILE` | `.tiny-swarm/secrets/bootstrap.local.env` | local path | Legacy compatibility bootstrap file; the standard catalog-backed path does not create it. |
 | `TSW_GENERATED_SECRET_ENV_FILE` | `.tiny-swarm/secrets/generated.local.env` | local path | Ignored generated secret recovery file. |
 | `TSW_SECRETS_MODE` | `internal-test` | enum | Selects `internal-test`, `generated`, `fixed`, or `infisical` secret handling before Infisical sync. |
 | `TSW_NATIVE_LINUX_VENV` | `.tiny-swarm-world/install-venv` | local path | Installer virtual environment path for Linux or WSL dependency bootstrap. |

@@ -7,7 +7,7 @@ import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from datetime import UTC, datetime
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from tiny_swarm_world import installer
 
@@ -120,6 +120,125 @@ class TestInstaller(unittest.TestCase):
         self.assertTrue(options.non_interactive_live_approval)
         self.assertTrue(options.allow_wsl_windows_filesystem)
         self.assertTrue(options.headless)
+
+    def test_internal_test_installer_resolution_preserves_source_identity(self):
+        entries = (
+            installer.InstallerSecretEntry(
+                key="TSW_PORTAINER_ADMIN_PASSWORD",
+                source="generated_local_secret",
+                required=True,
+            ),
+        )
+        resolved = installer._resolve_internal_test_installer_values(
+            {
+                "TSW_PORTAINER_ADMIN_PASSWORD": "operator-value",
+                installer.CREDENTIAL_SOURCE_MAP_ENVIRONMENT: '{"TSW_PORTAINER_ADMIN_PASSWORD":"operator"}',
+            },
+            entries,
+        )
+
+        self.assertEqual("operator-value", resolved.values["TSW_PORTAINER_ADMIN_PASSWORD"])
+        self.assertEqual("operator", resolved.sources["TSW_PORTAINER_ADMIN_PASSWORD"].value)
+
+    def test_installer_source_context_is_redacted_to_source_labels(self):
+        metadata = installer._safe_credential_source_metadata(
+            {
+                installer.CREDENTIAL_SOURCE_MAP_ENVIRONMENT: '{"TSW_PORTAINER_ADMIN_PASSWORD":"default"}',
+            }
+        )
+
+        self.assertEqual('{"TSW_PORTAINER_ADMIN_PASSWORD":"default"}', metadata)
+        self.assertEqual(
+            "invalid",
+            installer._safe_credential_source_metadata(
+                {installer.CREDENTIAL_SOURCE_MAP_ENVIRONMENT: "not-json"}
+            ),
+        )
+
+    def test_internal_test_run_routes_resolution_and_maps_resolution_errors(self):
+        entries = (
+            installer.InstallerSecretEntry(
+                key="TSW_PORTAINER_ADMIN_PASSWORD",
+                source="generated_local_secret",
+                required=True,
+            ),
+        )
+
+        class StopAfterResolution(RuntimeError):
+            pass
+
+        for resolution_error in (False, True):
+            with self.subTest(resolution_error=resolution_error), tempfile.TemporaryDirectory() as tempdir:
+                patches = [
+                    patch.object(installer, "_require_repository"),
+                    patch.object(
+                        installer,
+                        "detect_host_runtime",
+                        return_value=installer.HostRuntime("native_linux", "test"),
+                    ),
+                    patch.object(installer, "authorize_project_filesystem"),
+                    patch.object(installer, "ensure_python_environment", return_value="python3"),
+                    patch.object(
+                        installer,
+                        "_required_installer_secret_entries",
+                        return_value=entries,
+                    ),
+                    patch.object(installer, "_normalize_infisical_login_email", return_value={}),
+                    patch.object(installer, "_ensure_sonarqube_password_policy", return_value={}),
+                    patch.object(installer, "_ensure_default_config_exports", return_value={}),
+                    patch.object(installer, "_require_operator_provisioned_traefik_gui_users"),
+                    patch.object(
+                        installer,
+                        "_probe_git_ignore",
+                        return_value=installer._GitProbeResult(False, False, "outside_worktree"),
+                    ),
+                    patch.object(
+                        installer,
+                        "_collect_evidence_probe_snapshot",
+                        return_value=installer._EvidenceProbeSnapshot(
+                            "unknown", "unknown", "Linux", "test", "test"
+                        ),
+                    ),
+                ]
+                if resolution_error:
+                    patches.append(
+                        patch.object(
+                            installer,
+                            "_resolve_internal_test_installer_values",
+                            side_effect=installer.CredentialResolutionError("invalid source metadata"),
+                        )
+                    )
+                else:
+                    patches.append(
+                        patch.object(
+                            installer,
+                            "_write_context",
+                            side_effect=StopAfterResolution,
+                        )
+                    )
+                for active_patch in patches:
+                    active_patch.start()
+                try:
+                    options = installer.parse_args(("--confirm-reset", "--headless"))
+                    if resolution_error:
+                        with self.assertRaisesRegex(installer.InstallerError, "invalid source metadata"):
+                            installer.run(
+                                options,
+                                env={},
+                                cwd=Path(tempdir),
+                                reporter=Mock(),
+                            )
+                    else:
+                        with self.assertRaises(StopAfterResolution):
+                            installer.run(
+                                options,
+                                env={},
+                                cwd=Path(tempdir),
+                                reporter=Mock(),
+                            )
+                finally:
+                    for active_patch in reversed(patches):
+                        active_patch.stop()
 
     def test_detect_host_runtime_maps_typed_wsl2(self):
         with tempfile.TemporaryDirectory() as temporary_directory:

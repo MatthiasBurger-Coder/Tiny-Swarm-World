@@ -15,15 +15,21 @@ and does not expose legacy mode selection.
 
 ## Source Precedence
 
-Configuration sources are loaded in this order:
+Credential values use the centralized lifecycle resolver documented in
+[`credential-source-precedence.md`](credential-source-precedence.md). Its
+precedence is:
 
-1. `.tiny-swarm-world/local/live-installation.env`
-2. process environment variables
+1. an applicable ready secure/Infisical source (`vault`);
+2. explicit operator values (`operator`), with process environment values
+   overriding the approved local file;
+3. the deterministic internal-test catalog (`default`) when the selected
+   profile is `internal-test`.
 
-Later sources override earlier sources. The local env file is operator-owned,
-ignored by Git, and must not be committed. The parser accepts simple
-`KEY=value` and `export KEY=value` assignments, ignores non-`TSW_*` keys, and
-fails closed on duplicate `TSW_*` keys or unsupported shell syntax.
+The local env file is operator-owned, ignored by Git, and must not be committed.
+The parser accepts simple `KEY=value` and `export KEY=value` assignments,
+ignores non-`TSW_*` keys, and fails closed on duplicate `TSW_*` keys or
+unsupported shell syntax. Self-hosted Infisical is never consulted during its
+own bootstrap; it may act as the `vault` source only after readiness.
 
 For an authorized WSL2 live run from a `/mnt/<drive>` checkout,
 `TSW_INSTALL_ENV_FILE` must explicitly point to a WSL-native file outside the
@@ -39,9 +45,10 @@ WSL-native path documented in
 | Operator runtime secrets | Operator | `.tiny-swarm-world/local/live-installation.env` or process environment; WSL2 live runs use the WSL-native `TSW_INSTALL_ENV_FILE` path | Created before install, reused across reruns, edited or rotated by the operator. |
 | Fixed local secrets | Operator | `.tiny-swarm-world/local/fixed-secrets.env` by default | Used only when `secrets.mode=fixed`; every required manifest key must exist and contain a non-empty value. |
 | Generated local bootstrap secrets | Python installer | `.tiny-swarm-world/local/live-installation.env` | Generated only in `generated` mode when missing and secret generation is enabled; existing values are kept. |
-| Infisical bootstrap runtime file | Python installer | `.tiny-swarm/secrets/bootstrap.local.env` | Rewritten from the resolved local values for the self-hosted Infisical stack; ignored by Git. |
+| Infisical bootstrap runtime file | Legacy installer compatibility path | `.tiny-swarm/secrets/bootstrap.local.env` | Optional ignored compatibility input; the standard catalog-backed path does not create it. |
 | Generated recovery file | Secret sync service | `.tiny-swarm/secrets/generated.local.env` | Stores generated values needed for idempotent Infisical sync/recovery in non-`internal-test` modes; ignored by Git and mode `0600` when written by automation. |
 | Infisical-managed values | Infisical sync service | Infisical project/environment | Synchronized from generated or operator-supplied local values; existing Infisical values are kept unless a manifest entry explicitly requests rotation. |
+| Credential source metadata | Credential resolver | Protected run context and sanitized sync evidence | Records only `default`, `operator`, or `vault` by key; never stores raw values. |
 | External Docker secret names | Operator | `.tiny-swarm-world/local/live-installation.env`, process environment, or defaults | Names identify externally managed Docker secrets and are not secret material. |
 | Canonical TLS state | Python TLS resolver | `TSW_LOCAL_TLS_STATE_ROOT`, otherwise the XDG state directory below `tiny-swarm-world/tls/traefik` | Complete external material takes precedence. Otherwise managed CA and leaf material are created once and reused while valid; private keys require owner-only permissions. |
 
@@ -107,6 +114,7 @@ written to evidence.
 | `TSW_SEED_INFISICAL_ITEMS` | `0` | boolean flag | Enables optional legacy Infisical item seeding. |
 | `TSW_SECRETS_MODE` | `internal-test` | enum | Selects `internal-test`, `generated`, `fixed`, or `infisical` secret handling. |
 | `TSW_FIXED_SECRET_ENV_FILE` | `.tiny-swarm-world/local/fixed-secrets.env` | local path | Fixed-mode local secret source; ignored by Git. |
+| `TSW_INFISICAL_PROVIDER_MODE` | `self_hosted` | enum | Identifies the Infisical deployment boundary. `external` is rejected until a separate external integration is implemented. |
 | `TSW_LXC_DOCKER_REGISTRY_MIRROR` | unset | URL | External Docker registry or Nexus proxy reachable from managed LXC nodes; used for Docker daemon mirrors and as the internal Tiny Swarm World Nexus Docker proxy upstream. |
 | `TSW_SWARM_REGISTRY_ENDPOINT` | implementation default | endpoint | Registry endpoint used by the selected artifact and deployment contracts. |
 | `TSW_NEXUS_READINESS_BASE_URL` | `http://127.0.0.1:13081` | credential-free URL | Base URL for bounded Nexus endpoint and repository readiness observations. |

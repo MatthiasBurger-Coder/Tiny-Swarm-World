@@ -308,7 +308,6 @@ from tiny_swarm_world.infrastructure.composition_configuration import (
     INFISICAL_READINESS_INTERVAL_ENVIRONMENT,
     INFISICAL_REDIS_IMAGE_ENVIRONMENT,
     INFISICAL_REDIS_PASSWORD_ENVIRONMENT,
-    INFISICAL_URL_ENVIRONMENT,
     JENKINS_IMAGE_ENVIRONMENT,
     NEXUS_IMAGE_ENVIRONMENT,
     PORTAINER_STACK_REQUEST_TIMEOUT_ENVIRONMENT,
@@ -338,6 +337,8 @@ from tiny_swarm_world.infrastructure.composition_configuration import (
     _operator_config_int,
     _operator_config_value,
     _operator_secret_value,
+    _infisical_provider_mode,
+    _self_hosted_infisical_url,
     _required_operator_secret_value,
     _secret_mode,
     _swarm_registry_endpoint,
@@ -1444,6 +1445,8 @@ def _deployment_stack_environment(
     if service_profile is not ServiceStackProfile.SERVICE_ACCESS:
         return environment
 
+    _infisical_provider_mode()
+
     environment["service-access"] = {
         SERVICE_ACCESS_DASHBOARD_IMAGE_ENVIRONMENT: _operator_config_value(
             SERVICE_ACCESS_DASHBOARD_IMAGE_ENVIRONMENT,
@@ -1508,10 +1511,7 @@ def _infisical_secret_seed_steps(
     return [
         EnsureInfisicalSecretItems(
             infisical_client=PlaywrightInfisicalClient(
-                base_url=_operator_config_value(
-                    INFISICAL_URL_ENVIRONMENT,
-                    "https://localhost",
-                ),
+                base_url=_self_hosted_infisical_url(),
             ),
             login_email=_operator_secret_value(INFISICAL_LOGIN_EMAIL_ENVIRONMENT),
             password=_operator_secret_value(INFISICAL_PASSWORD_ENVIRONMENT),
@@ -1563,15 +1563,13 @@ def _infisical_bootstrap_steps(
 ) -> list[EnsureInfisicalSilentInstall]:
     if service_profile is not ServiceStackProfile.SERVICE_ACCESS:
         return []
+    infisical_url = _self_hosted_infisical_url()
     return [
         EnsureInfisicalSilentInstall(
-            cli=cli or InfisicalCliClient(),
+            cli=cli or InfisicalCliClient(base_url=infisical_url),
             storage=LocalFileStorage(),
             bootstrap_client=InfisicalBootstrapHttpClient(
-                base_url=_operator_config_value(
-                    INFISICAL_URL_ENVIRONMENT,
-                    _local_http_url("localhost", "17080"),
-                ),
+                base_url=infisical_url,
                 readiness_attempts=_operator_config_int(
                     INFISICAL_READINESS_ATTEMPTS_ENVIRONMENT,
                     DEFAULT_INFISICAL_READINESS_ATTEMPTS,
@@ -1589,10 +1587,7 @@ def _infisical_bootstrap_steps(
                 ),
             ),
             config=InfisicalSilentInstallConfig(
-                external_url=_operator_config_value(
-                    INFISICAL_URL_ENVIRONMENT,
-                    _local_http_url("localhost", "17080"),
-                ),
+                external_url=infisical_url,
                 internal_url=_operator_config_value(
                     INFISICAL_INTERNAL_URL_ENVIRONMENT,
                     _local_http_url("infisical", "8080"),

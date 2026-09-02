@@ -21,7 +21,7 @@ services:
       admin_email: "admin@tiny-swarm.local"
       admin_first_name: "Tiny"
       admin_last_name: "Admin"
-      password_source: "generated_local_secret"
+      password_source: "resolved_bootstrap_input"
     endpoint:
       internal_url: "http://infisical:8080"
       external_url: "http://localhost:17080"
@@ -29,13 +29,20 @@ services:
 
 The preferred operator browser route is `https://infisical.tsw.local` through
 Traefik. The direct `http://localhost:17080` endpoint is retained as diagnostic
-or compatibility access for bootstrap and recovery workflows.
+or compatibility access for bootstrap and recovery workflows. In the current
+self-hosted service-access workflow, `TSW_INFISICAL_URL` must resolve to
+`localhost`, `127.0.0.1`, or `::1`; a remote endpoint is an external-provider
+configuration and is rejected until a separate integration exists.
 
 == Required Environment
 
-`./install.sh` generates missing values in `generated` mode unless
-`--no-generate-secrets` is used. In `internal-test` mode, deterministic
-defaults are resolved from the internal-test catalog when values are missing.
+`./install.sh` uses the `internal-test` catalog-backed path by default.
+Credential resolution is centralized: an applicable ready secure source wins,
+then an explicit operator value, then the deterministic catalog default.
+Self-hosted Infisical is never queried for the values needed to start itself.
+The legacy `generated`, `fixed`, and `infisical` modes remain temporarily
+available through the compatibility installer and are mapped in the CRED-03
+source contract.
 For strict non-generation runs (generated mode only), provide these values
 through the ignored local environment files:
 
@@ -53,9 +60,11 @@ For reproducible fixed-password installs, set `TSW_SECRETS_MODE=fixed` or pass
 Missing files, missing keys, empty values, and Infisical write failures abort
 the run before deployment can continue.
 
-== Generated Local Files
+== Legacy Generated Local Files
 
-Infisical secrets are written only to ignored local files:
+The standard catalog-backed `internal-test` path does not create a recovery
+file. Non-`internal-test` compatibility modes may write Infisical material only
+to these ignored local files:
 
 * `.tiny-swarm-world/local/live-installation.env`
 * `.tiny-swarm-world/local/fixed-secrets.env`
@@ -85,6 +94,14 @@ The `--ignore-if-bootstrapped` flag keeps reruns idempotent. If the instance is
 already initialized, the run records `already_bootstrapped` instead of
 recreating users.
 
+After the service is ready, the post-bootstrap synchronization phase may read
+existing Infisical values and retain them as the `vault` source. It is separate
+from bootstrap and cannot supply self-hosted startup inputs retroactively.
+
+`TSW_INFISICAL_PROVIDER_MODE=external` is rejected by the current
+self-hosted service-access workflow. An external Infisical deployment requires
+a separate adapter and readiness/deployment contract before it can be used.
+
 == Evidence
 
 Sanitized evidence is written under `.tiny-swarm/evidence/infisical/`:
@@ -100,9 +117,9 @@ database connection secrets.
 
 The governed fresh-install reset is still controlled by `./install.sh
 --confirm-reset` or the interactive `RESET_TINY_SWARM_PLATFORM` confirmation.
-Resetting managed platform state may remove containers and volumes, after which
-the next install generates or reuses local ignored secrets and bootstraps
-Infisical again.
+Resetting managed platform state may remove containers and volumes. The next
+install reuses operator values or catalog defaults for bootstrap; legacy modes
+may additionally generate or reuse their ignored local files.
 
 == Security Notes
 

@@ -29,5 +29,10 @@ class PortInfisicalCli(ABC):
         pass
 
     @abstractmethod
+    def get_secret(self, key: str, *, project: str, environment: str) -> str | None:
+        """Return one managed value without logging or exposing it in evidence."""
+        pass
+
+    @abstractmethod
     def set_secret(self, key: str, value: str, *, project: str, environment: str) -> None:
         pass
