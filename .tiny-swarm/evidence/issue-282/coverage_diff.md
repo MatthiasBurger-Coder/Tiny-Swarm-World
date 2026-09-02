@@ -6,7 +6,7 @@ Command:
 python3 -m coverage erase
 PYTHONPATH=src python3 -m coverage run --branch -m unittest tests.infrastructure.test_composition tests.infrastructure.adapters.clients.test_infisical_cli_client tests.application.services.deployment.test_secret_management tests.test_simple_installer tests.test_install_script tests.test_installer tests.domain.configuration.test_credential_resolution tests.infrastructure.test_composition_configuration tests.application.services.deployment.test_infisical_silent_install
 python3 -m coverage json -o /tmp/tsw-cred04-coverage-full-final.json
-python3 tools/coverage_diff.py --base main --coverage-json /tmp/tsw-cred04-coverage-full-final.json
+python3 tools/coverage_diff.py --base b8d557c9 --coverage-json /tmp/tsw-cred04-coverage-full-final.json
 ```
 
 The resulting coverage data was compared with the zero-context Git diff for
@@ -21,5 +21,6 @@ multiline expression continuations, and deleted legacy lines are not counted.
 | Added executable production lines | 56 | 56 | 100.0% |
 | Added source branch arcs | 16 | 16 | 100.0% |
 
-The result exceeds the CRED-04 threshold of 95%. The complete repository
+The result exceeds the CRED-04 threshold of 95%. The immutable base
+`b8d557c9` is the parent of the CRED-04 implementation branch. The complete repository
 branch-aware run is recorded in `test_results.md`.

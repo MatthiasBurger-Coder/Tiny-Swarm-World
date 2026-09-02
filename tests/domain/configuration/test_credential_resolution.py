@@ -58,6 +58,18 @@ class TestCredentialResolution(unittest.TestCase):
                 phase=CredentialResolutionPhase.POST_BOOTSTRAP,
             )
 
+    def test_equal_vault_and_operator_values_use_vault_source(self):
+        resolved = self.resolver.resolve(
+            "TSW_PORTAINER_ADMIN_PASSWORD",
+            operator_value="same-value",
+            secure_value="same-value",
+            secure_source=SecureCredentialSource.SELF_HOSTED_INFISICAL,
+            phase=CredentialResolutionPhase.POST_BOOTSTRAP,
+        )
+
+        self.assertEqual(CredentialSource.VAULT, resolved.source)
+        self.assertEqual("same-value", resolved.value)
+
     def test_external_vault_value_can_be_used_during_bootstrap_when_identified(self):
         resolved = self.resolver.resolve(
             "TSW_PORTAINER_ADMIN_PASSWORD",
