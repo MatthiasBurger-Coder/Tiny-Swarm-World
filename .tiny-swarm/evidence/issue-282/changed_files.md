@@ -26,6 +26,8 @@ Infisical bootstrap/client behavior, composition profile wiring, installer
 options and output, simple-installer overrides, install-script behavior, and
 secret-file removal. The affected operator contract, catalog, bootstrap,
 Infisical, handbook, README, and console-output documentation was updated.
+The post-merge audit also extends the resolver regression test and corrects the
+security applicability wording in `documentation/security/statement-of-applicability.md`.
 
 No generated runtime artifact, raw environment file, credential value, token,
 authorization header, or private endpoint is part of this evidence package.
