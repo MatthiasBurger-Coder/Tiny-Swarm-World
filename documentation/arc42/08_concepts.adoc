@@ -185,10 +185,11 @@ local IP addresses, host-specific absolute paths, or raw command output.
 The resolved TLS contract is the single source for installer, runtime,
 Traefik-secret provisioning and Classic E2E trust. Certificate and key Docker
 secrets form an atomic logical pair identified by ownership and the same
-lifecycle fingerprint. Dashboard htpasswd material is operator-owned,
-validated before mutation and never retained in evidence. Bcrypt is the
-recommended format; accepted legacy formats remain a compatibility and
-hardening risk.
+lifecycle fingerprint. Dashboard htpasswd material is validated before
+mutation and never retained in evidence. The internal-test profile uses the
+catalogued deterministic bcrypt exception; custom profiles keep the material
+operator-owned. Accepted legacy formats remain a compatibility and hardening
+risk.
 
 === Native Linux Kernel Prerequisite Ownership
 

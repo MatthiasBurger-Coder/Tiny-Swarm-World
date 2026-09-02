@@ -13,6 +13,7 @@ INSTALL_SCRIPT = REPOSITORY_ROOT / "install.sh"
 INSTALLER_BOOTSTRAP_SOURCE_FILES = (
     Path("__init__.py"),
     Path("installer.py"),
+    Path("simple_installer.py"),
     Path("domain/__init__.py"),
     Path("domain/configuration/__init__.py"),
     Path("domain/configuration/configuration_contract.py"),
@@ -326,6 +327,8 @@ class TestInstallScript(unittest.TestCase):
             context = (evidence_dir / "context.txt").read_text()
             self.assertIn("secrets_mode=internal-test", context)
             self.assertIn("secrets_generated_count=0", context)
+            self.assertIn("Password: TSW1234STW5678", result.stdout)
+            self.assertIn("User:     admin@tiny-swarm-world.local", result.stdout)
             self.assertFalse(
                 (fixture.root / ".tiny-swarm-world" / "local" / "live-installation.env").exists()
             )
@@ -607,7 +610,11 @@ class _InstallScriptFixture:
                     *_wsl_environment_names(),
                 )
             },
-            **(self.secret_environment or _required_secret_environment()),
+            **(
+                _required_secret_environment()
+                if self.secret_environment is None
+                else self.secret_environment
+            ),
             "PATH": f"{self.fake_bin}:{os.environ['PATH']}",
             "TSW_FAKE_SCRIPT_COMMANDS": str(self.commands_file),
             "TSW_FAKE_RESET_EXIT": str(self.reset_exit),
@@ -629,7 +636,11 @@ class _InstallScriptFixture:
             [
                 "bash",
                 str(self.root / "install.sh"),
-                *(() if self.generate_secrets else ("--no-generate-secrets",)),
+                *(
+                    ("--no-generate-secrets",)
+                    if not self.generate_secrets and self._uses_legacy_installer()
+                    else ()
+                ),
                 *self.extra_args,
             ],
             cwd=self.root,
@@ -676,6 +687,8 @@ class _InstallScriptFixture:
         package_source = REPOSITORY_ROOT / "src" / "tiny_swarm_world"
         package_target = self.root / "src" / "tiny_swarm_world"
         for relative_path in INSTALLER_BOOTSTRAP_SOURCE_FILES:
+            if relative_path == Path("simple_installer.py") and self._uses_legacy_installer():
+                continue
             target = package_target / relative_path
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(package_source / relative_path, target)
@@ -691,6 +704,9 @@ class _InstallScriptFixture:
         if self.fixed_secret_environment is not None:
             fixed_file = self.root / ".tiny-swarm-world" / "local" / "fixed-secrets.env"
             _write_env_file(fixed_file, self.fixed_secret_environment)
+
+    def _uses_legacy_installer(self) -> bool:
+        return "--secrets-mode" in self.extra_args or "--no-generate-secrets" in self.extra_args
 
 
 def _install_script_fixture(
@@ -831,6 +847,9 @@ SH
           exit 0
         fi
         if [[ "${1:-}" == "-m" && "${2:-}" == "tiny_swarm_world.installer" ]]; then
+          exec "${TSW_TEST_REAL_PYTHON:-/usr/bin/python3}" "$@"
+        fi
+        if [[ "${1:-}" == "-m" && "${2:-}" == "tiny_swarm_world.simple_installer" ]]; then
           exec "${TSW_TEST_REAL_PYTHON:-/usr/bin/python3}" "$@"
         fi
         if [[ "${1:-}" == "-m" && "${2:-}" == "tiny_swarm_world" ]]; then
