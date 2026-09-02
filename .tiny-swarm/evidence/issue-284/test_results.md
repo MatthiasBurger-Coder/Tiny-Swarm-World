@@ -17,7 +17,7 @@ documentation edits:
 python3 tools/quality_gate.py quality
 ```
 
-Result: PASS — 1,899 tests, 18 expected skips; verification-policy, lint,
+Result: PASS — 1,900 tests, 18 expected skips; verification-policy, lint,
 architecture lint/tests, typecheck, and test stages all passed.
 
 No live infrastructure, browser E2E, or external service bootstrap was run.

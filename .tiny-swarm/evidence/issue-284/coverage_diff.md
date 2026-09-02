@@ -14,4 +14,7 @@ The utility counts only executable production statement lines and source branch
 arcs added by the branch diff. Documentation, test code, comments, imports,
 multiline expression continuations, and deleted legacy lines are excluded.
 
-Result: pending final branch-aware run on the committed CRED-06 branch.
+Result: PASS — 7/7 added executable production lines (100.0%) and 0/0 added
+source branch arcs (100.0%), measured on the committed CRED-06 branch against
+the current `main` base. The full branch-aware run completed with 1,900 tests
+and 18 expected skips.
