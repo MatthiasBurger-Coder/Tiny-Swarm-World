@@ -35,6 +35,7 @@
 - `.tiny-swarm/evidence/issue-284/stale_reference_search.md`
 - `.tiny-swarm/evidence/issue-284/three_amigos.md`
 - `.tiny-swarm/evidence/issue-284/completion_audit.md`
+- `.tiny-swarm/evidence/issue-284/review.md`
 
 No raw credential, token, authorization header, private endpoint, or generated
 runtime artifact is part of this evidence package.
