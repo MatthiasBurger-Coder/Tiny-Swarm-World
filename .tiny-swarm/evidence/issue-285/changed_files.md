@@ -29,6 +29,7 @@
 - `.tiny-swarm/evidence/issue-285/completion_audit.md`
 - `.tiny-swarm/evidence/issue-285/review.md`
 - `.tiny-swarm/evidence/issue-285/changed_files.md`
+- `.tiny-swarm/evidence/issue-285/service_authentication.md`
 
 The raw live bundle is ignored and stored outside the checkout at the protected
 WSL-native path documented in `test_results.md`; raw credentials are not part

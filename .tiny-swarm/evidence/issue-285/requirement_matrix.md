@@ -10,10 +10,10 @@ The issue remains blocked while any required live scope is open.
 | CRED-07-REQ-001 | WSL2 checkout under `/mnt/<drive>` is exercised with a fresh install. | live | Protected run `20260903T072101Z`, reset/setup both 0 | VERIFIED |
 | CRED-07-REQ-002 | WSL2 standard internal-test path is supported. | live | Default source labels and completed setup | VERIFIED |
 | CRED-07-REQ-003 | Native Linux fresh install is exercised. | live | No native-Linux target discovered | BLOCKED |
-| CRED-07-REQ-004 | Portainer login succeeds in each applicable environment. | live/auth | WSL2 deployment apply completed its Portainer access step; native target absent | PARTIAL |
-| CRED-07-REQ-005 | Infisical bootstrap/login succeeds in each applicable environment. | live/auth | WSL2 deployment bootstrap and Infisical item flow completed; native target absent | PARTIAL |
-| CRED-07-REQ-006 | Other catalog human-facing services are checked where feasible. | live/auth | WSL2 deployment apply plus service/API smokes; native target absent | PARTIAL |
-| CRED-07-REQ-007 | Post-install service/UI/API acceptance is recorded. | live | WSL2 readiness and endpoint matrix recorded below | PARTIAL |
+| CRED-07-REQ-004 | Portainer login succeeds in each applicable environment. | live/auth | `service_authentication.md` direct WSL2 auth plus deployment access; native target absent | PARTIAL |
+| CRED-07-REQ-005 | Infisical bootstrap/login succeeds in each applicable environment. | live/auth | `service_authentication.md` direct WSL2 auth plus bootstrap/consumption; native target absent | PARTIAL |
+| CRED-07-REQ-006 | Other catalog human-facing services are checked where feasible. | live/auth | `service_authentication.md` direct WSL2 auth for Nexus/Jenkins/SonarQube/Pulsar; native target absent | PARTIAL |
+| CRED-07-REQ-007 | Post-install service/UI/API acceptance is recorded. | live | `service_authentication.md` and endpoint matrix below | PARTIAL |
 | CRED-07-REQ-008 | Rerun/reconcile does not cause credential drift. | live | WSL2 reconcile completed, but no source/value drift comparison was recorded | BLOCKED |
 | CRED-07-REQ-009 | Environment recreation resolves deterministic defaults again. | live | WSL2 fresh reset recreated all-default source metadata | PARTIAL |
 | CRED-07-REQ-010 | A supported custom or Infisical override replaces the default. | live/auth | Protected override file and rotation reference unavailable | BLOCKED |
@@ -21,7 +21,7 @@ The issue remains blocked while any required live scope is open.
 | CRED-07-REQ-012 | Update is tested only if a canonical update workflow exists. | applicability | No canonical `update` workflow exists; `reconcile` remains distinct | NOT_APPLICABLE |
 | CRED-07-REQ-013 | Evidence contains no raw passwords, tokens, or authorization headers. | security | Protected-root redaction scan PASS; installer output prints labels only | VERIFIED |
 | CRED-07-REQ-014 | Blocked/skipped/degraded scenarios are never reported as PASS. | governance | Earlier failures and missing targets retain explicit non-pass states | VERIFIED |
-| CRED-07-REQ-015 | Full local quality gate is green on the final candidate. | local | `python3 tools/quality_gate.py quality`: 1904 tests, 18 skips, OK | VERIFIED |
+| CRED-07-REQ-015 | Full local quality gate is green on the final candidate. | local | `python3 tools/quality_gate.py quality`: 1908 tests, 18 skips, OK | VERIFIED |
 | CRED-07-REQ-016 | Final acceptance matrix maps every parent EPIC criterion to evidence. | governance | Matrix is complete; native/override evidence remains open | BLOCKED |
 | CRED-07-REQ-017 | Three-Amigos WSL2 fresh-install scenario is observed. | live | Protected WSL2 run completed all configured phases | VERIFIED |
 | CRED-07-REQ-018 | Three-Amigos native-Linux parity scenario is observed. | live | No native-Linux target | BLOCKED |
@@ -70,6 +70,6 @@ response bodies or credentials:
 | Installer output provides URL/login information | WSL2 output contains URLs/users and no values | VERIFIED |
 | Obsolete modes/files/abstractions are removed or isolated | CRED-04/CRED-06 plus WSL2 normal path | VERIFIED |
 | Unit/integration tests cover resolution and precedence | Full local quality gate | VERIFIED |
-| Live/E2E default logins succeed | WSL2 deployment access steps completed; native absent | PARTIAL |
+| Live/E2E default logins succeed | `service_authentication.md` plus deployment access steps; native absent | PARTIAL |
 | Live/E2E override succeeds | No protected override run | BLOCKED |
 | Architecture/configuration documentation matches behavior | Catalog, compose, installer, tests and WSL2 run | PARTIAL |

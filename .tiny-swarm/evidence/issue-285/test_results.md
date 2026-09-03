@@ -3,7 +3,7 @@
 ## Local verification
 
 - `PYTHONPATH=src python3 -m unittest tests.test_install_script`: PASS, 20 tests.
-- `python3 tools/quality_gate.py quality`: PASS, 1904 tests, 18 expected skips;
+- `python3 tools/quality_gate.py quality`: PASS, 1908 tests, 18 expected skips;
   verification policy, lint, architecture lint/tests, typecheck and full test
   stages passed.
 - `git diff --check`: PASS.
@@ -26,6 +26,7 @@ Credential values are intentionally omitted.
 | Separate `platform reconcile` with in-process catalog defaults | PASS; exit 0, three nodes verified |
 | Portainer forced restart and recovery | PASS; service `1/1`, status endpoint HTTP 200 |
 | Deployment readiness verification | PASS; 9 deployment verification targets |
+| Direct catalog-backed service authentication | PASS; Portainer, Infisical, Nexus, Jenkins, SonarQube, Pulsar and Pulsar Manager |
 
 The protected run is stored outside the checkout at:
 `/home/micro/.local/state/tiny-swarm-world/evidence/cred07-wsl2-secure-20260903/wsl2/20260903T072101Z`.
@@ -40,5 +41,5 @@ The protected run is stored outside the checkout at:
 - Credential-drift comparison: not verified; reconcile passed but no
   before/after comparison was recorded.
 
-Earlier bounded failures are summarized in `preflight.md`; none is reported as
-a pass.
+The direct authentication trace is in `service_authentication.md`. Earlier
+bounded failures are summarized in `preflight.md`; none is reported as a pass.
