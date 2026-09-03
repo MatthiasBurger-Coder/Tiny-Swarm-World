@@ -233,7 +233,7 @@ The default mode analyzes the `install.sh` bootstrap contract, repository
 permissions, ownership markers, WSL2/systemd indicators, systemd unit
 definitions, and the newest installation evidence directory across supported
 host directories. `install.sh` must delegate to
-`python3 -m tiny_swarm_world.installer`; the Python installer owns the reset,
+`python3 -m tiny_swarm_world.simple_installer`; the Python installer owns the reset,
 setup, terminal recording, headless logging, and evidence policy. The debugger
 also prints exact `grep`, `tail`, `systemctl`, and `journalctl` commands for
 finding the abort point after a `Service` log line.

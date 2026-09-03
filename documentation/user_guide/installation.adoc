@@ -456,8 +456,8 @@ cp .env.example .tiny-swarm-world/local/live-installation.env
 chmod 600 .tiny-swarm-world/local/live-installation.env
 ----
 
-Uncomment and edit only the values you intentionally override. This file is an
-optional operator override input; the normal installer resolves all other
+Leave entries empty to use the catalog; replace only values you intentionally
+override. This file is an optional operator override input; the normal installer resolves all other
 values from the catalog and does not generate or rotate credential files. Do
 not paste values from it into logs, issues, chat, commits, or documentation.
 
@@ -636,11 +636,12 @@ Use routed HTTPS URLs for browser access:
 * Infisical: `https://infisical.tsw.local`
 
 For the standard internal-test path, use the catalog's canonical login
-convention: `admin` with the documented `TSW1234STW5678` password for
-Portainer, Nexus, Jenkins, Infisical bootstrap and most component passwords;
-SonarQube's catalog exception is documented alongside it. For an explicit
-override, use the protected local source or process environment. Do not use
-copied password values from chat history or logs.
+convention: `admin` plus the password documented in the
+[credential catalog](../arc42/08_configuration/internal-test-credential-catalog.md).
+That catalog also documents the SonarQube exception and all component-specific
+derivations. For an explicit override, use the protected local source or
+process environment. Do not use copied password values from chat history or
+logs.
 
 === 10. Re-run And Recovery Rules
 
@@ -741,7 +742,7 @@ For repeatable Linux or WSL operator runs with local evidence capture, use:
 ----
 
 `install.sh` is intentionally a minimal Linux/WSL bootstrapper. The
-authoritative installer policy is `python3 -m tiny_swarm_world.installer`:
+authoritative installer policy is `python3 -m tiny_swarm_world.simple_installer`:
 that Python entry point owns secret handling, host-runtime detection, evidence
 layout, reset/setup sequencing, dependency bootstrap, and headless
 execution. The shell wrapper only verifies the repository shape and delegates.

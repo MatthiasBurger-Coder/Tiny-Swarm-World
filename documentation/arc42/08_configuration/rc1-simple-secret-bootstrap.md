@@ -19,11 +19,11 @@ intentionally reduced to one catalog-backed lifecycle.
 All database passwords, service passwords, encryption keys, auth secrets, tokens
 and derived Traefik dashboard material remain internal and are not printed.
 
-The standard path uses the deterministic CRED-01 catalog. The canonical
-human-facing internal-test password is `TSW1234STW5678`; component-specific
-formats such as Pulsar tokens, Infisical keys, and Traefik `htpasswd` are
-derived by that catalog. These values are `INTERNAL/TEST ONLY` and must never
-be reused for production or publicly exposed environments.
+The standard path uses the deterministic CRED-01 catalog. The catalog defines
+the canonical human-facing internal-test password and component-specific
+formats such as Pulsar tokens, Infisical keys, and Traefik `htpasswd`. These
+values are `INTERNAL/TEST ONLY` and must never be reused for production or
+publicly exposed environments.
 
 ## Canonical state
 

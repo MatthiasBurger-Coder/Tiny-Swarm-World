@@ -8,6 +8,8 @@ Remaining recovery wording is limited to explicit negative statements (the
 normal path does not create recovery files) or unrelated operational/TLS
 recovery. It is not an instruction to create deleted credential state.
 
-The canonical catalog remains the sole location for the disposable internal-
-test convention; component exceptions link back to it rather than duplicating
-values in the installer output or templates.
+The canonical catalog remains the authoritative location for the disposable
+internal-test convention. User-facing guidance links to it for password
+values and component derivations; the installer output and `.env.example` do
+not duplicate raw credential values. Architecture text may name the contract
+without becoming a second source of truth.

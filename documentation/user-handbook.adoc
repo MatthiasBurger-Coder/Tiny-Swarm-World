@@ -204,8 +204,8 @@ cp .env.example .tiny-swarm-world/local/live-installation.env
 chmod 600 .tiny-swarm-world/local/live-installation.env
 ----
 
-Uncomment and edit only the values you intentionally override. Process
-environment values override this optional operator file. The normal installer
+Leave entries empty to use the catalog; replace only values you intentionally
+override. Process environment values override this optional operator file. The normal installer
 resolves all other values from the catalog and does not generate or rotate
 local credential files.
 
