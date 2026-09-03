@@ -30,3 +30,34 @@ local tests or tool availability.
 
 The issue cannot be marked complete until all live requirements have
 `LIVE_VERIFIED` evidence and the final quality/review gates pass.
+
+## Parent EPIC #277 traceability
+
+The following parent criteria are explicitly carried into the final acceptance
+scope. Existing CRED-01 through CRED-06 work supplies the implementation
+baseline where noted; CRED-07 must supply the missing observed live evidence.
+
+| Parent criterion from #277 | CRED-07 evidence mapping | Status |
+|---|---|---|
+| Canonical `TSW1234STW5678` default | catalog plus live login evidence | BLOCKED |
+| Universal default for technically compatible human-facing services | catalog/service acceptance matrix | BLOCKED |
+| Centralized deterministic alternatives for incompatible components | catalog plus feasible service checks | BLOCKED |
+| Machine/bootstrap credentials need no manual preparation | fresh-install evidence | BLOCKED |
+| Special-format values satisfy consumers | service/API acceptance evidence | BLOCKED |
+| Random default-password generation absent from normal path | inherited CRED-04 implementation; live fresh-install result | BLOCKED |
+| Random-default recovery persistence absent from normal path | inherited CRED-04 implementation; recreation result | BLOCKED |
+| Reinstall/reconcile is deterministic | CRED-07-REQ-008 | BLOCKED |
+| Fresh checkout installs without a password file | CRED-07-REQ-001 and REQ-003 | BLOCKED |
+| WSL2 `/mnt/d` is not blocked by unnecessary credential-state permissions | CRED-07-REQ-001 and REQ-002 | BLOCKED |
+| Native Linux has equivalent behavior | CRED-07-REQ-003 and REQ-018 | BLOCKED |
+| Infisical override can replace defaults | CRED-07-REQ-010 and REQ-020 | BLOCKED |
+| Explicit operator overrides are supported | CRED-07-REQ-010 and REQ-020 | BLOCKED |
+| Self-hosted Infisical has no circular bootstrap dependency | CRED-07-REQ-005 | BLOCKED |
+| Documentation marks defaults `INTERNAL/TEST ONLY` | inherited CRED-06 documentation; live output evidence | BLOCKED |
+| Enterprise AD/LDAP/SSO/network/IAM boundary is external | inherited CRED-06 documentation; evidence review | VERIFIED |
+| Installer output provides URL/login information | CRED-07-REQ-002 and REQ-007 | BLOCKED |
+| Obsolete modes/files/abstractions are removed or isolated | inherited CRED-04/CRED-06 implementation; live smoke confirms path | BLOCKED |
+| Unit/integration tests cover resolution and precedence | inherited CRED-01–CRED-06 quality evidence | VERIFIED |
+| Live/E2E default logins succeed | CRED-07-REQ-004 through REQ-007 | BLOCKED |
+| Live/E2E override succeeds | CRED-07-REQ-010 and REQ-020 | BLOCKED |
+| Architecture/configuration documentation matches behavior | inherited CRED-01–CRED-06 evidence; live result | BLOCKED |
