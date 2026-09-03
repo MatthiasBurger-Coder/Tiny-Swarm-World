@@ -218,16 +218,19 @@ def _ensure_default_secret_names(env: dict[str, str]) -> None:
 def _print_operator_credentials(env: Mapping[str, str]) -> None:
     portainer_url = env.get("TSW_PORTAINER_URL", "http://localhost:10001")
     infisical_url = env.get("TSW_INFISICAL_URL", "http://localhost:17080")
-    print("\nTiny Swarm World access credentials")
-    print("-----------------------------------")
+    print("\nTiny Swarm World access targets")
+    print("--------------------------------")
+    print("Credential convention: INTERNAL/TEST ONLY catalog defaults")
+    print("  Password values are intentionally not printed; see the credential catalog.")
     print("Portainer")
     print(f"  URL:      {portainer_url}")
     print("  User:     admin")
-    print(f"  Password: {env['TSW_PORTAINER_ADMIN_PASSWORD']}")
+    print("  Password: catalog default or protected operator override")
     print("\nInfisical")
     print(f"  URL:      {infisical_url}")
     print(f"  User:     {env['TSW_INFISICAL_LOGIN_EMAIL']}")
-    print(f"  Password: {env['TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD']}")
+    print("  Password: catalog default or protected operator override")
+    print("See: documentation/arc42/08_configuration/internal-test-credential-catalog.md")
     print("\nAll other catalog-managed secrets are internal and are not printed.")
 
 

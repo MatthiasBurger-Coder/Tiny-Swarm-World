@@ -11,6 +11,12 @@ The normal `install.sh` path uses the deterministic `internal-test` catalog
 plus explicit operator overrides. It has no secret-source selector and does
 not create generated, fixed, or recovery credential files.
 
+This is an internal development/test contract. AD/LDAP/SSO, VPN, firewall,
+network segmentation, and IAM remain enterprise responsibilities outside the
+bootstrap path. Catalog defaults are disposable `INTERNAL/TEST ONLY` material;
+public, shared, or untrusted exposure requires an approved stronger override
+and the surrounding organization's identity and network controls.
+
 ## Source Precedence
 
 Credential values use the centralized lifecycle resolver documented in

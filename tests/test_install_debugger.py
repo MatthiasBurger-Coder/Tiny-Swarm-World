@@ -166,6 +166,6 @@ def _install_script_text() -> str:
             "#!/usr/bin/env bash",
             "set -Eeuo pipefail",
             "export PYTHONPATH=\"${PYTHONPATH:+$PYTHONPATH:}src\"",
-            "exec python3 -m tiny_swarm_world.installer \"$@\"",
+            "exec python3 -m tiny_swarm_world.simple_installer \"$@\"",
         )
     )

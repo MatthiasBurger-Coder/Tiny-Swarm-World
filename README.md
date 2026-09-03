@@ -20,6 +20,25 @@ Audience manuals: [operator](documentation/manuals/operator-manual.md) ·
 [audit](documentation/manuals/audit-manual.md) ·
 [live validation](documentation/manuals/live-validation-manual.md).
 
+## Quick start: clone -> install -> login
+
+After the [Linux/WSL prerequisites](documentation/user_guide/installation.adoc)
+and Incus host setup are ready, run the normal path from the Linux/WSL shell:
+
+```bash
+git clone https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World.git
+cd Tiny-Swarm-World
+./install.sh
+```
+
+No credential file is required for the ordinary internal-test installation.
+The installer resolves the deterministic `INTERNAL/TEST ONLY` catalog, prints
+the Portainer and Infisical URLs plus login identifiers, and intentionally does
+not print password values. Use the [canonical credential
+catalog](documentation/arc42/08_configuration/internal-test-credential-catalog.md)
+for the disposable login convention. Public or shared exposure with these
+defaults is outside the supported boundary.
+
 ---
 
 ## Overview

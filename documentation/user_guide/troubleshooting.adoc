@@ -212,9 +212,10 @@ Use the concrete host runtime and run ID printed by the wrapper. Supported
 host runtime directories are `wsl2` and `native_linux`; the run context file
 also records `host_runtime_type` and `selected_evidence_directory`.
 
-Then verify that the operator-provided `TSW_PORTAINER_USERNAME` and
+Then verify that the resolved `TSW_PORTAINER_USERNAME` and
 `TSW_PORTAINER_ADMIN_PASSWORD` values are the intended values for this local
-installation. Do not paste password values into issue reports, logs, or
+installation. They may come from the disposable catalog or an explicit
+operator override. Do not paste password values into issue reports, logs, or
 committed documentation.
 
 == Installation Debugger For WSL2
@@ -232,7 +233,7 @@ The default mode analyzes the `install.sh` bootstrap contract, repository
 permissions, ownership markers, WSL2/systemd indicators, systemd unit
 definitions, and the newest installation evidence directory across supported
 host directories. `install.sh` must delegate to
-`python3 -m tiny_swarm_world.installer`; the Python installer owns the reset,
+`python3 -m tiny_swarm_world.simple_installer`; the Python installer owns the reset,
 setup, terminal recording, headless logging, and evidence policy. The debugger
 also prints exact `grep`, `tail`, `systemctl`, and `journalctl` commands for
 finding the abort point after a `Service` log line.
