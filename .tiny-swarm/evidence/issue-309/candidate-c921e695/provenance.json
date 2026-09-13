@@ -1,0 +1,12 @@
+{
+  "candidate_sha": "c921e69533450fba86d908e2990c106bef87769a",
+  "profile": "isolated internal-test service-access",
+  "live_snapshots": "Actual native and WSL snapshots after their successful authenticated host-restart suites",
+  "scan_input_revision": "8eb5db338aed9965a49ed6879198fd1053b97dcc",
+  "scan_whole_tree_equals_candidate": true,
+  "scan_evidence": "issue-300/candidate-c921e695",
+  "consent": "existing explicit full disposable-test authorization",
+  "scanning_scope": "13 locked Python packages and CycloneDX SBOM; three custom Dockerfiles; built image vulnerability scanning was not performed and is not claimed",
+  "live_scope": "20 running task images per host, resolved digests, socket access, bounded worker-to-manager TCP and unprivileged-agent authorization probes",
+  "limits": "No blanket LAN isolation or production-hardening claim; internal agent TLS identity excluded from authorization-only probe"
+}
