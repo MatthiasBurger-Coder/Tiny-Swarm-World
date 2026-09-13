@@ -39,3 +39,28 @@ candidate-matched rescan. Internal-test-only deterministic credentials may be
 retained only with their non-production scope and override boundary recorded.
 No scanner rule is disabled and no external scanner is added to the default
 quality gate by this procedure.
+
+
+## Candidate c921e695 observations (2026-09-13)
+
+The [candidate inventory](../../.tiny-swarm/evidence/issue-309/candidate-c921e695/image-inventory.json)
+contains each actual running task's host/node/service, image ID, resolved digest,
+user, socket mounts and network names. The paired native/WSL snapshots were taken
+after complete authenticated reboot acceptance. This records retained version tags
+at observation time; it does not pin every future deployment automatically.
+
+For a repeat authorized release check, qualify the target and exact source revision,
+execute the existing three security_gate commands above, and capture only selected
+fields from managed-node Docker service/task/image inspection. Never publish raw
+container inspection, environment, credentials or credential fingerprints. Compare
+root/unprivileged socket access, intended worker-to-manager ports and an anonymous
+agent administrative request against a reachable positive control; retain source,
+time, exit/status and the specific network vantage point. Run the canonical complete
+authenticated suite separately for actual direct/routed service access.
+
+The required Trivy gate here scans container configuration, not all packages inside
+built images. A missing applicable check remains non-pass. The current [reviewed
+residuals](../../.tiny-swarm/evidence/issue-309/risk-dispositions.md) include powerful
+admin sockets, retained tags and the intentionally isolated credential/exposure
+scope. No production-hardening, blanket network isolation or vulnerability-free
+image claim follows from these checks. Reassess on input, exposure or scope changes.

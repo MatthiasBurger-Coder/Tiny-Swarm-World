@@ -1,0 +1,432 @@
+{
+  "candidate": "c921e69533450fba86d908e2990c106bef87769a",
+  "kernel": "6.18.33.2-microsoft-standard-WSL2",
+  "started_at": "2026-09-13T00:40:31.676162+00:00",
+  "finished_at": "2026-09-13T00:40:35.711787+00:00",
+  "operator_script_sha256": "c5127804fa6443cece0aeff13bdec1951e4a609e6434d8f28de167f57f9de56b",
+  "containers": [
+    {
+      "node": "swarm-manager",
+      "service": "swagger_swagger-nginx",
+      "container_id": "5ec3495951ac386dbccd94f19c232bc7c71d0e793b14b7a01cc25878eead17c6",
+      "configured_image": "nginx:1.29.8-alpine",
+      "running_image_id": "sha256:812d47f806db497c53f9b47e76bdab38bcf5d724c69d3986df5ee4336c210559",
+      "repository_digests": [
+        "nginx@sha256:5616878291a2eed594aee8db4dade5878cf7edcb475e59193904b198d9b830de"
+      ],
+      "user": "",
+      "read_only_rootfs": false,
+      "networks": [
+        "service_access_link"
+      ],
+      "docker_socket_mounts": []
+    },
+    {
+      "node": "swarm-manager",
+      "service": "portainer_portainer",
+      "container_id": "1d68bf6de8351775f86a72d258a7340c0e197176910e3160425f28f02e137dbb",
+      "configured_image": "portainer/portainer-ce:2.45.0",
+      "running_image_id": "sha256:10edf44092c94c2f4d9aa81517efba8347ec21d597255ef8ba62d784d2ba5513",
+      "repository_digests": [
+        "portainer/portainer-ce@sha256:511f3f06c96fe3b993ebeaafde311c1959cae73a7ef825dba6397d51b450dffa"
+      ],
+      "user": "",
+      "read_only_rootfs": false,
+      "networks": [
+        "service_access_link"
+      ],
+      "docker_socket_mounts": [
+        {
+          "destination": "/var/run/docker.sock",
+          "read_only": false
+        }
+      ]
+    },
+    {
+      "node": "swarm-manager",
+      "service": "pulsar_pulsar-manager",
+      "container_id": "4fe400b3ba54471b44c930e132196661f4b0a34794c4ab5327672f0367da4fb2",
+      "configured_image": "apachepulsar/pulsar-manager:v0.4.0",
+      "running_image_id": "sha256:abfb1d1a0452ab3c7f2d35443c709af9487434318db83b86ddb5ecb204451558",
+      "repository_digests": [
+        "apachepulsar/pulsar-manager@sha256:607d00d088474d5f961ebf2749b149693cdf6eb4cdadb352bafab9c093eb37d2"
+      ],
+      "user": "",
+      "read_only_rootfs": false,
+      "networks": [
+        "service_access_link"
+      ],
+      "docker_socket_mounts": []
+    },
+    {
+      "node": "swarm-manager",
+      "service": "swagger_swagger-ui",
+      "container_id": "e737855e296f2d0cef8dde39b08812401553b580a1cac90f490b07fe5577b757",
+      "configured_image": "swaggerapi/swagger-ui:v5.32.6",
+      "running_image_id": "sha256:e552c15fa0b43c4a21530539e06557bf0cba0d3277e6767bbdc0e2d7da797694",
+      "repository_digests": [
+        "swaggerapi/swagger-ui@sha256:135a9ced4005a947bbb1757bc509309d88519d985aa0f5616f4fdfab1eba6ff6"
+      ],
+      "user": "",
+      "read_only_rootfs": false,
+      "networks": [
+        "service_access_link"
+      ],
+      "docker_socket_mounts": []
+    },
+    {
+      "node": "swarm-manager",
+      "service": "traefik_traefik",
+      "container_id": "b1334e3f2649f51a5f5c87287a9f90128621d78212ae76b6c72e9274cf3233fa",
+      "configured_image": "traefik:v3.7.4",
+      "running_image_id": "sha256:f66893ac132535099f7ef6c40ca1636f6a89f2c373c0eef28dd84537928ec0b6",
+      "repository_digests": [
+        "traefik@sha256:fcdef599e6259359833dd2e1d49f9e964f66825d69bd3dd468f51102ce013d03"
+      ],
+      "user": "",
+      "read_only_rootfs": false,
+      "networks": [
+        "service_access_link"
+      ],
+      "docker_socket_mounts": [
+        {
+          "destination": "/var/run/docker.sock",
+          "read_only": true
+        }
+      ]
+    },
+    {
+      "node": "swarm-manager",
+      "service": "swagger_swagger-editor",
+      "container_id": "51b14c852bbac8563656c397a8cbfd27a7f4458f15ad1c18595cf3e56cfb36f8",
+      "configured_image": "swaggerapi/swagger-editor:v5.6.2-unprivileged",
+      "running_image_id": "sha256:666a723df1fffeec40c01d9d4d0bbf46c4f26ac35630394c81058d690ede0cfe",
+      "repository_digests": [
+        "swaggerapi/swagger-editor@sha256:12ea42bbfb9e3ef2d3d0cf56d527feed3287970539c5abf4e9911fc97550fd7e"
+      ],
+      "user": "101",
+      "read_only_rootfs": false,
+      "networks": [
+        "service_access_link"
+      ],
+      "docker_socket_mounts": []
+    },
+    {
+      "node": "swarm-manager",
+      "service": "nexus_nexus",
+      "container_id": "ce35df5bc61747b43f1f3ab9bea0fd4372afc8bcab338cbd4e477023c9e527dc",
+      "configured_image": "sonatype/nexus3:3.75.1",
+      "running_image_id": "sha256:d3df1178e8d739d9dad1fe796aee8b9d19789b850289e2b01c9edc587f4464ad",
+      "repository_digests": [
+        "sonatype/nexus3@sha256:aac80ef14735e30cc473c115787903fc0bfa44b738b6e6f8d921f35ff968606f"
+      ],
+      "user": "nexus",
+      "read_only_rootfs": false,
+      "networks": [
+        "service_access_link"
+      ],
+      "docker_socket_mounts": []
+    },
+    {
+      "node": "swarm-manager",
+      "service": "infisical_infisical",
+      "container_id": "7dc511b7f1c0997958e93f10190c447737c1009f692af497cfa0b967091c3f09",
+      "configured_image": "infisical/infisical:v0.159.1",
+      "running_image_id": "sha256:a520efccc791aaba7f007e3f8da7c09acbeb1bbee135ad83538e6c2d9b563b02",
+      "repository_digests": [
+        "infisical/infisical@sha256:67d7d33c9275edc1098a1b220356a7715045f50013910c3d3a84f7809b3f32fb"
+      ],
+      "user": "non-root-user",
+      "read_only_rootfs": false,
+      "networks": [
+        "service_access_link"
+      ],
+      "docker_socket_mounts": []
+    },
+    {
+      "node": "swarm-manager",
+      "service": "sonarqube_sonarqube",
+      "container_id": "22f533aa1d38d23bea0c0ee8e526ff0dae6203284d640c3d31ffcd4e926bd6c5",
+      "configured_image": "sonarqube:26.6.0.123539-community",
+      "running_image_id": "sha256:981143c6fa3814389d52fe4ee845742d4db587806a13c7a3292aceae0ec5d82f",
+      "repository_digests": [
+        "sonarqube@sha256:1ddbad7b16f754bc3985f336b8ef3ebe885c1655101bdb9cb4156c9560526f58"
+      ],
+      "user": "sonarqube",
+      "read_only_rootfs": false,
+      "networks": [
+        "service_access_link"
+      ],
+      "docker_socket_mounts": []
+    },
+    {
+      "node": "swarm-manager",
+      "service": "portainer_agent",
+      "container_id": "34b5f772104181034e63b3b7f160444f7d37af23fd69c6d43514c90ba1a3d027",
+      "configured_image": "portainer/agent:2.45.0",
+      "running_image_id": "sha256:301c1d744ec8f4268056ba749c51af9dbdddbdc9d5cce05b4cb8a9163a9e2c20",
+      "repository_digests": [
+        "portainer/agent@sha256:d63bfe57a106070fa5c0e73de0758f33aea018ed3cb6c8610c6663a4ac3a82ba"
+      ],
+      "user": "",
+      "read_only_rootfs": false,
+      "networks": [
+        "service_access_link"
+      ],
+      "docker_socket_mounts": [
+        {
+          "destination": "/var/run/docker.sock",
+          "read_only": false
+        }
+      ]
+    },
+    {
+      "node": "swarm-manager",
+      "service": "pulsar_pulsar",
+      "container_id": "dad2a5410e34de45d86ed4f47350c528baf4841a588b5f9341c0908bcecebfe7",
+      "configured_image": "apachepulsar/pulsar:3.0.17",
+      "running_image_id": "sha256:d5c27ab98ead9c5cd5c655b3ca28af36865a503a3aaf771c5184144fb3e57fbb",
+      "repository_digests": [
+        "apachepulsar/pulsar@sha256:937db1605b8a7716cfc19b930a9ec3c997bc88e46da5cc936f56e93717f7a80d"
+      ],
+      "user": "10000",
+      "read_only_rootfs": false,
+      "networks": [
+        "service_access_link"
+      ],
+      "docker_socket_mounts": []
+    },
+    {
+      "node": "swarm-manager",
+      "service": "service-access_service-access-nginx",
+      "container_id": "4975154895faff2e5e822d6cd0de7ee9e92b5e321a9efa3fac854febfcfcbfa1",
+      "configured_image": "127.0.0.1:13500/service-access-nginx:0.2.0",
+      "running_image_id": "sha256:6ff6cd31af2a51f07eaf63fe3f20921e21b0a04d7dc23a70a1bc0d354f27cafa",
+      "repository_digests": [
+        "127.0.0.1:13500/service-access-nginx@sha256:5165573055c8ac6323b7308de096423638061ed983a440f06f42bc30619d6779"
+      ],
+      "user": "nginx",
+      "read_only_rootfs": false,
+      "networks": [
+        "service_access_link"
+      ],
+      "docker_socket_mounts": []
+    },
+    {
+      "node": "swarm-manager",
+      "service": "service-access_service-access-dashboard",
+      "container_id": "2f6dce2c50ece2bf5845d31510d712fbed613f3d6473ecbb9b6b45026b4b37c3",
+      "configured_image": "127.0.0.1:13500/service-access-dashboard:0.2.0",
+      "running_image_id": "sha256:83fa1138e3ee93484571abb49624f530c2f441ed535118a7d47e7dee641a6927",
+      "repository_digests": [
+        "127.0.0.1:13500/service-access-dashboard@sha256:ecc414ef76916de8a08abd2cab10201c229b2a5cd1fc4ba1b5484f7984dd8567"
+      ],
+      "user": "nginx",
+      "read_only_rootfs": false,
+      "networks": [
+        "service_access_link"
+      ],
+      "docker_socket_mounts": []
+    },
+    {
+      "node": "swarm-manager",
+      "service": "jenkins_jenkins",
+      "container_id": "eb0d10f10b0316b3485954406c22bcd342226334cc6a827c9d1c21b245048f26",
+      "configured_image": "127.0.0.1:13500/jenkins:0.2.0",
+      "running_image_id": "sha256:468ac52db3f4da845eabe25fc941ac1c84988a3eb950e036d0c20ae863164545",
+      "repository_digests": [
+        "127.0.0.1:13500/jenkins@sha256:00e1f4319a21ffaf06de8bfb51682929164fa104851c5fcb09d8764d15085a17"
+      ],
+      "user": "jenkins",
+      "read_only_rootfs": false,
+      "networks": [
+        "service_access_link"
+      ],
+      "docker_socket_mounts": []
+    },
+    {
+      "node": "swarm-manager",
+      "service": "swagger_swagger-api",
+      "container_id": "10f4cd7ebaa0af095aef13cd10ac9b9b8190d61ee18d518878c133992c70d825",
+      "configured_image": "danielgtaylor/apisprout@sha256:6c07143937e57095d8478efc8ab7eab52b44e67c7673285f8c0a2bf4a7b137ad",
+      "running_image_id": "sha256:5525e5a317bebdfa056721e6870ccc90eb5dc1bedfc7be82a1c0eec60bd91d77",
+      "repository_digests": [
+        "danielgtaylor/apisprout@sha256:6c07143937e57095d8478efc8ab7eab52b44e67c7673285f8c0a2bf4a7b137ad"
+      ],
+      "user": "",
+      "read_only_rootfs": false,
+      "networks": [
+        "service_access_link"
+      ],
+      "docker_socket_mounts": []
+    },
+    {
+      "node": "swarm-worker-1",
+      "service": "portainer_agent",
+      "container_id": "77f64634e5d4280f9af3b410415e2f138d8345a2921abea3206372417b2c250a",
+      "configured_image": "portainer/agent:2.45.0",
+      "running_image_id": "sha256:301c1d744ec8f4268056ba749c51af9dbdddbdc9d5cce05b4cb8a9163a9e2c20",
+      "repository_digests": [
+        "portainer/agent@sha256:d63bfe57a106070fa5c0e73de0758f33aea018ed3cb6c8610c6663a4ac3a82ba"
+      ],
+      "user": "",
+      "read_only_rootfs": false,
+      "networks": [
+        "service_access_link"
+      ],
+      "docker_socket_mounts": [
+        {
+          "destination": "/var/run/docker.sock",
+          "read_only": false
+        }
+      ]
+    },
+    {
+      "node": "swarm-worker-1",
+      "service": "infisical_infisical-db",
+      "container_id": "2ef83766e6ffbbfc53e2055a28041afe16dc704eb1c0e2bf1866268c1d2c81e0",
+      "configured_image": "postgres:14.23-alpine3.23",
+      "running_image_id": "sha256:192b5cabdf961eac548aaa21d41f9a1aa789f7e444c4f5238b2db9b612d6f5d3",
+      "repository_digests": [
+        "postgres@sha256:1f6da103cb45087fa1b1a64062d15c92e8dda8c40c47be8c99342456ca40b15b"
+      ],
+      "user": "",
+      "read_only_rootfs": false,
+      "networks": [
+        "service_access_link"
+      ],
+      "docker_socket_mounts": []
+    },
+    {
+      "node": "swarm-worker-1",
+      "service": "infisical_infisical-redis",
+      "container_id": "23c831230366123e6a8cbbc671801eb31bea5a41105f660650dc1ffd1aaf9925",
+      "configured_image": "redis:7.4.9-alpine3.21",
+      "running_image_id": "sha256:487efc0616382465781b8fdc3d6d1db449e6fd80ae23bf48432a2da6b6929908",
+      "repository_digests": [
+        "redis@sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99"
+      ],
+      "user": "",
+      "read_only_rootfs": false,
+      "networks": [
+        "service_access_link"
+      ],
+      "docker_socket_mounts": []
+    },
+    {
+      "node": "swarm-worker-2",
+      "service": "portainer_agent",
+      "container_id": "52b049f0a6169f6409993f2e824df369ad2bcaf5b1fb15a95becee7ec9ffef13",
+      "configured_image": "portainer/agent:2.45.0",
+      "running_image_id": "sha256:301c1d744ec8f4268056ba749c51af9dbdddbdc9d5cce05b4cb8a9163a9e2c20",
+      "repository_digests": [
+        "portainer/agent@sha256:d63bfe57a106070fa5c0e73de0758f33aea018ed3cb6c8610c6663a4ac3a82ba"
+      ],
+      "user": "",
+      "read_only_rootfs": false,
+      "networks": [
+        "service_access_link"
+      ],
+      "docker_socket_mounts": [
+        {
+          "destination": "/var/run/docker.sock",
+          "read_only": false
+        }
+      ]
+    },
+    {
+      "node": "swarm-worker-2",
+      "service": "sonarqube_sonar_db",
+      "container_id": "3ad67e245826b205b71b602e55f57f49aaba82076768947013839e92cc9adbae",
+      "configured_image": "postgres:13.23",
+      "running_image_id": "sha256:264e9dea325c61b96546c4065848e3ecaa85333b750506f783eced0a1830e37e",
+      "repository_digests": [
+        "postgres@sha256:4689940c683801b4ab839ab3b0a0a3555a5fe425371422310944e89eca7d8068"
+      ],
+      "user": "",
+      "read_only_rootfs": false,
+      "networks": [
+        "service_access_link"
+      ],
+      "docker_socket_mounts": []
+    }
+  ],
+  "worker_to_manager": [
+    {
+      "port": 2375,
+      "state": "REFUSED"
+    },
+    {
+      "port": 2376,
+      "state": "REFUSED"
+    },
+    {
+      "port": 2377,
+      "state": "CONNECTED"
+    },
+    {
+      "port": 5432,
+      "state": "REFUSED"
+    },
+    {
+      "port": 6379,
+      "state": "REFUSED"
+    },
+    {
+      "port": 9001,
+      "state": "REFUSED"
+    },
+    {
+      "port": 80,
+      "state": "CONNECTED"
+    },
+    {
+      "port": 443,
+      "state": "CONNECTED"
+    }
+  ],
+  "docker_socket": [
+    {
+      "uid": 0,
+      "state": "CONNECTED",
+      "mode": "0o660"
+    },
+    {
+      "uid": 65534,
+      "state": "PERMISSION_DENIED",
+      "mode": "0o660"
+    }
+  ],
+  "agent_http": [
+    {
+      "source": "unprivileged service-access dashboard",
+      "path": "/ping",
+      "http_status": 204,
+      "exit_code": 0,
+      "tls_identity_checked": false,
+      "scope": "agent authorization only; self-signed internal TLS identity excluded",
+      "response_body_retained": false
+    },
+    {
+      "source": "unprivileged service-access dashboard",
+      "path": "/containers/json",
+      "http_status": 403,
+      "exit_code": 1,
+      "tls_identity_checked": false,
+      "scope": "agent authorization only; self-signed internal TLS identity excluded",
+      "response_body_retained": false
+    }
+  ],
+  "checks": {
+    "all_running_task_images_observed": true,
+    "docker_tcp_2375_2376_refused": true,
+    "swarm_control_2377_reachable": true,
+    "database_cache_ports_refused": true,
+    "root_socket_connects": true,
+    "unprivileged_socket_denied": true,
+    "dashboard_has_no_docker_socket": true,
+    "agent_anonymous_container_inventory_denied": true
+  },
+  "status": "LIVE_VERIFIED",
+  "limits": "bounded image/socket/network observations; candidate scan and authenticated service acceptance are separate evidence"
+}
