@@ -1,0 +1,20 @@
+{
+  "scenario": "planned Docker-quiesced WSL distribution restart",
+  "distribution": "TSW-RC1-Isolated",
+  "started_at": "2026-09-13T00:36:16.013510+00:00",
+  "primary_project_pids_before": {
+    "23929": true,
+    "69797": true,
+    "175641": true
+  },
+  "global_boot_id_before": "933df521-505f-49bb-a700-4c118206b4d8",
+  "interop_before": true,
+  "termination_exit": 0,
+  "terminated_at": "2026-09-13T00:36:16.542755+00:00",
+  "interop_after_termination": true,
+  "primary_project_pids_after_termination": {
+    "23929": true,
+    "69797": true,
+    "175641": true
+  }
+}

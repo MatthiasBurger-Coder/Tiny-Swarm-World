@@ -1,0 +1,185 @@
+{
+  "candidate": "c921e69533450fba86d908e2990c106bef87769a",
+  "started_at": "2026-09-13T00:25:30.227337+00:00",
+  "readiness_attempts": [
+    {
+      "operation": "platform_verify",
+      "started_at": "2026-09-13T00:25:30.227435Z",
+      "finished_at": "2026-09-13T00:25:33.240874Z",
+      "duration_seconds": 3.013,
+      "exit_code": 0,
+      "summary": {
+        "result": "passed",
+        "status": "completed",
+        "message": "verify workflow completed.",
+        "reason": null,
+        "phase_results": {
+          "count": 0,
+          "failed": []
+        },
+        "verification": "verified",
+        "mutation": "not_applicable",
+        "result_count": 6,
+        "verification_results": []
+      }
+    },
+    {
+      "operation": "classic_e2e",
+      "started_at": "2026-09-13T00:25:33.241213Z",
+      "finished_at": "2026-09-13T00:26:21.477489Z",
+      "duration_seconds": 48.236,
+      "exit_code": 1,
+      "summary": {
+        "result": "failed",
+        "reason": "readiness_count_or_result_failed",
+        "tests": 8,
+        "expected_tests": 8,
+        "runtime_seconds": 47.833,
+        "skipped": 0,
+        "failure_types": [
+          "AssertionError"
+        ]
+      }
+    },
+    {
+      "operation": "platform_verify",
+      "started_at": "2026-09-13T00:26:26.478960Z",
+      "finished_at": "2026-09-13T00:26:29.326383Z",
+      "duration_seconds": 2.847,
+      "exit_code": 0,
+      "summary": {
+        "result": "passed",
+        "status": "completed",
+        "message": "verify workflow completed.",
+        "reason": null,
+        "phase_results": {
+          "count": 0,
+          "failed": []
+        },
+        "verification": "verified",
+        "mutation": "not_applicable",
+        "result_count": 6,
+        "verification_results": []
+      }
+    },
+    {
+      "operation": "classic_e2e",
+      "started_at": "2026-09-13T00:26:29.326794Z",
+      "finished_at": "2026-09-13T00:27:20.381215Z",
+      "duration_seconds": 51.054,
+      "exit_code": 1,
+      "summary": {
+        "result": "failed",
+        "reason": "readiness_count_or_result_failed",
+        "tests": 8,
+        "expected_tests": 8,
+        "runtime_seconds": 50.661,
+        "skipped": 0,
+        "failure_types": [
+          "AssertionError"
+        ]
+      }
+    },
+    {
+      "operation": "platform_verify",
+      "started_at": "2026-09-13T00:27:25.382479Z",
+      "finished_at": "2026-09-13T00:27:28.287170Z",
+      "duration_seconds": 2.905,
+      "exit_code": 0,
+      "summary": {
+        "result": "passed",
+        "status": "completed",
+        "message": "verify workflow completed.",
+        "reason": null,
+        "phase_results": {
+          "count": 0,
+          "failed": []
+        },
+        "verification": "verified",
+        "mutation": "not_applicable",
+        "result_count": 6,
+        "verification_results": []
+      }
+    },
+    {
+      "operation": "classic_e2e",
+      "started_at": "2026-09-13T00:27:28.287626Z",
+      "finished_at": "2026-09-13T00:28:19.323028Z",
+      "duration_seconds": 51.035,
+      "exit_code": 1,
+      "summary": {
+        "result": "failed",
+        "reason": "readiness_count_or_result_failed",
+        "tests": 8,
+        "expected_tests": 8,
+        "runtime_seconds": 50.632,
+        "skipped": 0,
+        "failure_types": [
+          "AssertionError"
+        ]
+      }
+    },
+    {
+      "operation": "platform_verify",
+      "started_at": "2026-09-13T00:28:24.323696Z",
+      "finished_at": "2026-09-13T00:28:27.133081Z",
+      "duration_seconds": 2.809,
+      "exit_code": 0,
+      "summary": {
+        "result": "passed",
+        "status": "completed",
+        "message": "verify workflow completed.",
+        "reason": null,
+        "phase_results": {
+          "count": 0,
+          "failed": []
+        },
+        "verification": "verified",
+        "mutation": "not_applicable",
+        "result_count": 6,
+        "verification_results": []
+      }
+    },
+    {
+      "operation": "classic_e2e",
+      "started_at": "2026-09-13T00:28:27.133462Z",
+      "finished_at": "2026-09-13T00:29:18.158175Z",
+      "duration_seconds": 51.025,
+      "exit_code": 1,
+      "summary": {
+        "result": "failed",
+        "reason": "readiness_count_or_result_failed",
+        "tests": 8,
+        "expected_tests": 8,
+        "runtime_seconds": 50.625,
+        "skipped": 0,
+        "failure_types": [
+          "AssertionError"
+        ]
+      }
+    },
+    {
+      "operation": "platform_verify",
+      "started_at": "2026-09-13T00:29:23.158739Z",
+      "finished_at": "2026-09-13T00:29:25.918968Z",
+      "duration_seconds": 2.76,
+      "exit_code": 0,
+      "summary": {
+        "result": "passed",
+        "status": "completed",
+        "message": "verify workflow completed.",
+        "reason": null,
+        "phase_results": {
+          "count": 0,
+          "failed": []
+        },
+        "verification": "verified",
+        "mutation": "not_applicable",
+        "result_count": 6,
+        "verification_results": []
+      }
+    }
+  ],
+  "manual_repair_performed": false,
+  "readiness_scope": "Canonical platform verification and all eight service readiness checks; platform readiness alone is insufficient"
+}

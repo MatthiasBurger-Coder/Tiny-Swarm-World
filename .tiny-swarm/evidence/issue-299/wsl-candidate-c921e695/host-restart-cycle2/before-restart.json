@@ -1,0 +1,63 @@
+{
+  "observed_at": "2026-09-13T00:34:13.704501+00:00",
+  "candidate_sha": "c921e69533450fba86d908e2990c106bef87769a",
+  "host_classification": "wsl2",
+  "os": {
+    "PRETTY_NAME": "Ubuntu 24.04 LTS",
+    "VERSION_ID": "24.04",
+    "ID": "ubuntu"
+  },
+  "kernel": "6.18.33.2-microsoft-standard-WSL2",
+  "architecture": "x86_64",
+  "systemd_version": "systemd 255 (255.4-1ubuntu8)",
+  "boot_id": "933df521-505f-49bb-a700-4c118206b4d8",
+  "pid1_start_ticks": "15571374",
+  "process_pid_namespace": "pid:[4026532240]",
+  "cpu_affinity_count": 28,
+  "memory_kib": {
+    "MemTotal": 20476604,
+    "MemAvailable": 9410184
+  },
+  "evidence_filesystem": {
+    "filesystems": [
+      {
+        "target": "/",
+        "fstype": "ext4"
+      }
+    ]
+  },
+  "disk_bytes": {
+    "total": 1081101176832,
+    "used": 20915138560,
+    "free": 1005193682944
+  },
+  "incus_version": "Client version: 6.0.0\nServer version: 6.0.0",
+  "current_project": "default",
+  "storage_pools": [
+    {
+      "name": "default",
+      "driver": "dir",
+      "status": "Created"
+    }
+  ],
+  "nodes": [
+    {
+      "name": "swarm-manager",
+      "status": "Running",
+      "created_at": "2026-09-12T23:39:39.569383373Z",
+      "uuid": "d4618e78-0aad-4e9c-8195-b4b6cc19ce1c"
+    },
+    {
+      "name": "swarm-worker-1",
+      "status": "Running",
+      "created_at": "2026-09-12T23:39:46.169389423Z",
+      "uuid": "3af6272d-02f1-4aca-be90-965ece885bc4"
+    },
+    {
+      "name": "swarm-worker-2",
+      "status": "Running",
+      "created_at": "2026-09-12T23:40:00.739296767Z",
+      "uuid": "cb34bf17-9d02-4e5c-8d16-c59f3ecb9c98"
+    }
+  ]
+}

@@ -1,18 +1,19 @@
-# RC1-R03 Independent Completion Audit
+# RC1-R03 Completion Audit
 
-Date: 2026-09-12
-Issue: #299
-Audit mode: role-based fallback review in the main execution thread because
-independent subagent execution was unavailable.
-Decision: `INCOMPLETE_EXTERNAL_EVIDENCE_PENDING`
+Decision: PASS. R03-01 through R03-10 cover the complete issue criteria, including
+missing-prerequisite fixtures and native shared scenarios omitted from the old
+minimum matrix. No current requirement is open or replaced by a planned command.
 
-The requirement lead confirmed that the scenario matrix maps the issue's
-mandatory lifecycle phases. The system architect reviewed reuse of the
-existing thin runner and RC1-R01 recovery contract. The tester/evidence
-reviewer checked phase ordering, stop-on-failure behavior and the redaction
-boundary.
+Requirement perspective: complete fresh/post-phase, no-duplicate preservation,
+fail-closed, failed rollout/node recovery and selected host restart are evidenced.
+Architecture perspective: canonical commands and existing provider ownership are
+retained; the planned shutdown changes no service specification, credentials or
+data and introduces no new orchestration engine or platform architecture.
+QA perspective: inspect actual expected typed failure, successful recovery,
+unchanged identities/configuration/data, bounded restart, and full authenticated
+counts. Preserve failed first-cycle evidence and the explicit targeted repair.
+Source-equivalence, manifests and scoped quality checks support the records.
 
-The runner contract is locally verified. Qualified WSL2 lifecycle, controlled
-failure, restart and authenticated post-restart observations remain
-unverified. The issue must remain open until those observations are recorded
-for the integrated candidate SHA.
+This is the explicit sequential root-AGENTS role fallback after all real agents
+reached their usage limit. It does not claim new independent agent/human approval.
+R06 owns final all-row acceptance and cleanup reconciliation.

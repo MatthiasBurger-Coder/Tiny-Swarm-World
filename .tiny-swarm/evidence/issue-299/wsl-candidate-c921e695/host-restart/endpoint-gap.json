@@ -1,0 +1,18 @@
+{
+  "observed_at": "2026-09-13T00:29:28.572557+00:00",
+  "candidate": "c921e69533450fba86d908e2990c106bef87769a",
+  "classification": "LIVE_FAILED_AFTER_MUTATION",
+  "service": "pulsar_pulsar-manager",
+  "container_id": "1ca9a818d2265dcbe4d79697d7d53d5bdf272024ea47ed841d9e46a811aaa90f",
+  "running": true,
+  "pid": 1463,
+  "networks": {
+    "service_access_link": {
+      "EndpointID": "",
+      "IPAddress": ""
+    }
+  },
+  "docker_version": "28.5.2",
+  "observed_failure": "Pulsar Manager published HTTP connection closes without a response; active container lacks overlay endpoint ID/address",
+  "scope": "Read-only diagnosis; cause within Docker startup not independently established; no credential or data loss observed"
+}

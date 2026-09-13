@@ -1,0 +1,8 @@
+{
+  "native_host": "TSW-RC1-Ubuntu; Ubuntu 26.04.1; kernel 7.0.0-31-generic",
+  "host_reboot_executed_sha": "c921e69533450fba86d908e2990c106bef87769a",
+  "node_and_rollout_failure_executed_sha": "bedb0c9f1d5f2fdfddf6f14624242a18fce55f25",
+  "equivalence": "Only documentation and .codex/evidence differ; full differing-path ledger is issue-297/native-candidate-bedb0c9f/provenance.json",
+  "consent": "Existing explicit full disposable-test authorization",
+  "limits": "Actual native host reboot and scoped failed rollout/node recovery; no WSL-hosted container substituted for native Linux"
+}

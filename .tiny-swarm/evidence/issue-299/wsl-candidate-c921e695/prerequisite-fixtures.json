@@ -1,0 +1,19 @@
+{
+  "kind": "APPLICABLE_LOCAL; mocked prerequisite tests, no live infrastructure mutations",
+  "candidate": "c921e69533450fba86d908e2990c106bef87769a",
+  "execution_tree": "e77b66113b2a737e1a8d50f8df1f2893890843ec; documentation-only descendant",
+  "command": "PYTHONPATH=src python -m unittest tests.application.services.platform.test_preflight_service tests.infrastructure.adapters.preflight.test_lxc_provider_preflight tests.infrastructure.adapters.preflight.test_artifact_source_readiness tests.infrastructure.adapters.preflight.test_artifact_readiness tests.tools.test_secure_runtime_paths tests.infrastructure.adapters.host.test_project_filesystem_inspector",
+  "tests": 116,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "log_sha256": "484aeddc41eade84fc9e40e09ef09e9eae60d6830985fa34cd98b30555a18ee4",
+  "representative_cases": {
+    "Incus": "test_missing_incus_executable_returns_backend_missing_without_probe; test_waitready_daemon_unavailable_stops_before_provider_inspection",
+    "storage": "test_live_preflight_blocks_mounted_secret_storage_before_runtime_checks; test_wsl_resource_checks_reject_insufficient_and_critical_pressure",
+    "network": "test_wsl2_live_preflight_blocks_when_windows_bridge_state_is_missing; test_occupied_unknown_port_still_fails_preflight",
+    "artifacts": "test_offline_mode_requires_a_manifest; test_offline_mode_rejects_checksum_mismatch",
+    "configuration": "test_missing_configuration_contract_value_blocks_preflight",
+    "secret_protection": "test_drvfs_path_is_rejected_even_when_stat_reports_0600; test_existing_non_private_evidence_directory_is_not_rewritten"
+  }
+}
