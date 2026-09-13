@@ -24,7 +24,7 @@ Source files: context.txt, reset-run.exit, setup-run.exit. Raw setup/reset logs,
 credentials, private paths, connection strings and environment contents are not
 published. The SSH session was closed after inspection. Historical no-op reconcile
 and 37/37 before/after manager restart are recorded in
-[the native continuation](../issue-296/history-before-completion/CRED-09B-native-linux-live.md).
+[the native continuation](../../../documentation/evidence/credential-transition-verification.md).
 That 37-test suite contains eight live HTTP/API/TLS plus 29 static checks, not
 37 Selenium logins. Current UI proof comes from CRED-08.
 
@@ -91,3 +91,9 @@ existing unresolved analyzer findings, not newly repaired or dismissed by this
 audit. #300 requires independent final-main qualification; the parent completion
 claim remains scoped to its original credential requirements and the actual
 local/live/PR evidence above. No quality rule or reported status was changed.
+
+## Link reconciliation — 2026-09-13
+
+The missing issue-296 local-history link now points to the published credential
+transition record with original native/WSL run identities and its linked cold-start
+record. Current c921 full reboot acceptance is separately recorded under issue-298.

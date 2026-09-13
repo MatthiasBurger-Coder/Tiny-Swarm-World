@@ -1,12 +1,15 @@
-# RC1-R06 Implementation Summary
+# R06 implementation summary
 
-Status: INCOMPLETE_EXTERNAL_AND_LIVE_EVIDENCE_PENDING.
+Completed the full final-candidate evidence audit and superseded the former
+evidence-incomplete release matrix with RC1_ACCEPTED. The source inventory retains
+175 original body/CI list entries, twelve scenarios and five non-list invariants;
+ten R06 requirements and the 25-row credential parent remain explicit.
+Restored missing CRED-09 issue entrypoints from already executed published proof,
+preserved historical closures and appended current credential applicability.
+Published the requested indexed workflow, nine issue workflows/context packs,
+execution history and final ledger. Added release notes/checklist and truthful
+cleanup records. No product, test, runtime configuration or CI behavior changed.
 
-The release decision matrix now names every RC1-R01 through RC1-R09 work
-package, its owner issue, implementation PR and required live/external
-evidence. It preserves the already-closed RC1-R02 result as a historical
-baseline and prevents historical green runs from qualifying a changed
-candidate automatically.
-
-The resulting decision is RC1_REJECTED_EVIDENCE_INCOMPLETE until the required
-candidate-specific lifecycle, runner, security and Sonar evidence exists.
+Both-host live evidence is actual; source comparisons justify bounded reuse.
+Exact main Quality/Conda/Sonar are observed. Final publication SHA/checks are
+bound externally after merge; no self-referential or guessed commit is recorded.

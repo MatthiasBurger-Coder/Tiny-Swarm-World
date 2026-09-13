@@ -1,0 +1,9 @@
+{
+  "failed_attempt": "post-restart-verification.json",
+  "cause": "The operator selected a /mnt checkout without the explicit documented filesystem override; HOST-FILESYSTEM correctly failed closed",
+  "correction": "Use an isolated clean Linux-native checkout of exact c921 product candidate; no guard or configuration is weakened",
+  "read_only_retry_stopped": [
+    1113437
+  ],
+  "runtime_mutation_by_failed_attempt": false
+}

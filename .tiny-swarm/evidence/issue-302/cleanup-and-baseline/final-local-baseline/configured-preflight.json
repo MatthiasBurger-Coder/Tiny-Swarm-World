@@ -1,0 +1,14 @@
+{
+  "candidate": "c921e69533450fba86d908e2990c106bef87769a",
+  "command": "python3 tools/preflight.py (protected operator environment loaded)",
+  "started_at": "2026-09-13T01:09:44.184179+00:00",
+  "finished_at": "2026-09-13T01:09:44.955974+00:00",
+  "duration_seconds": 0.771795,
+  "exit_code": 0,
+  "summary": [
+    "Preflight summary: PASSED"
+  ],
+  "previous_unconfigured_exit": 1,
+  "previous_reason": "No operator environment loaded; required runtime secret sources correctly reported missing",
+  "raw_output_published": false
+}

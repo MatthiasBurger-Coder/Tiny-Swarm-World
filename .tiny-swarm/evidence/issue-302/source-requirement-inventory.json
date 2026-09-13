@@ -1,0 +1,2235 @@
+[
+  {
+    "id": "252-B001",
+    "section": "Existing asset inventory",
+    "source_line": 72,
+    "requirement": "`REUSE_AS_IS`",
+    "state": "VERIFIED_CONTRACT_OPTION",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      ".codex/evidence/slice-S252-01-consolidation.md",
+      ".codex/evidence/slice-S252-02-consolidation.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately",
+    "disposition": "Allowed classification/decision vocabulary, not a demand to execute mutually exclusive alternatives; selection and reasons are documented."
+  },
+  {
+    "id": "252-B002",
+    "section": "Existing asset inventory",
+    "source_line": 73,
+    "requirement": "`EXTEND`",
+    "state": "VERIFIED_CONTRACT_OPTION",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      ".codex/evidence/slice-S252-01-consolidation.md",
+      ".codex/evidence/slice-S252-02-consolidation.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately",
+    "disposition": "Allowed classification/decision vocabulary, not a demand to execute mutually exclusive alternatives; selection and reasons are documented."
+  },
+  {
+    "id": "252-B003",
+    "section": "Existing asset inventory",
+    "source_line": 74,
+    "requirement": "`MOVE_TO_TESTS`",
+    "state": "VERIFIED_CONTRACT_OPTION",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      ".codex/evidence/slice-S252-01-consolidation.md",
+      ".codex/evidence/slice-S252-02-consolidation.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately",
+    "disposition": "Allowed classification/decision vocabulary, not a demand to execute mutually exclusive alternatives; selection and reasons are documented."
+  },
+  {
+    "id": "252-B004",
+    "section": "Existing asset inventory",
+    "source_line": 75,
+    "requirement": "`WRAP_IN_RC1_SCENARIO`",
+    "state": "VERIFIED_CONTRACT_OPTION",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      ".codex/evidence/slice-S252-01-consolidation.md",
+      ".codex/evidence/slice-S252-02-consolidation.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately",
+    "disposition": "Allowed classification/decision vocabulary, not a demand to execute mutually exclusive alternatives; selection and reasons are documented."
+  },
+  {
+    "id": "252-B005",
+    "section": "Existing asset inventory",
+    "source_line": 76,
+    "requirement": "`REPLACE_WITH_REASON`",
+    "state": "VERIFIED_CONTRACT_OPTION",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      ".codex/evidence/slice-S252-01-consolidation.md",
+      ".codex/evidence/slice-S252-02-consolidation.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately",
+    "disposition": "Allowed classification/decision vocabulary, not a demand to execute mutually exclusive alternatives; selection and reasons are documented."
+  },
+  {
+    "id": "252-B006",
+    "section": "Existing asset inventory",
+    "source_line": 77,
+    "requirement": "`NOT_APPLICABLE`",
+    "state": "VERIFIED_CONTRACT_OPTION",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      ".codex/evidence/slice-S252-01-consolidation.md",
+      ".codex/evidence/slice-S252-02-consolidation.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately",
+    "disposition": "Allowed classification/decision vocabulary, not a demand to execute mutually exclusive alternatives; selection and reasons are documented."
+  },
+  {
+    "id": "252-B007",
+    "section": "Requirement/Product view",
+    "source_line": 104,
+    "requirement": "documented prerequisites are sufficient;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-308/journey-c921e695.json",
+      ".tiny-swarm/evidence/issue-308/requirement_matrix.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B008",
+    "section": "Requirement/Product view",
+    "source_line": 105,
+    "requirement": "missing prerequisites fail early with remediation;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-299/scenario_matrix.md",
+      ".tiny-swarm/evidence/issue-299/wsl-candidate-c921e695/prerequisite-fixtures.json",
+      ".tiny-swarm/evidence/issue-297/test_results.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B009",
+    "section": "Requirement/Product view",
+    "source_line": 106,
+    "requirement": "fresh install completes without undocumented manual repair;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-308/journey-c921e695.json",
+      ".tiny-swarm/evidence/issue-308/requirement_matrix.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B010",
+    "section": "Requirement/Product view",
+    "source_line": 107,
+    "requirement": "expected Incus/LXC topology is created;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-301/hosted-candidate-8eb5db33/run-summary.json",
+      ".tiny-swarm/evidence/issue-297/requirement_matrix.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B011",
+    "section": "Requirement/Product view",
+    "source_line": 108,
+    "requirement": "Docker runs inside managed nodes;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-301/hosted-candidate-8eb5db33/run-summary.json",
+      ".tiny-swarm/evidence/issue-297/requirement_matrix.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B012",
+    "section": "Requirement/Product view",
+    "source_line": 109,
+    "requirement": "Swarm topology is correct;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-301/hosted-candidate-8eb5db33/run-summary.json",
+      ".tiny-swarm/evidence/issue-297/requirement_matrix.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B013",
+    "section": "Requirement/Product view",
+    "source_line": 110,
+    "requirement": "routing, secrets, artifacts and services become ready in dependency order;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-301/hosted-candidate-8eb5db33/run-summary.json",
+      ".tiny-swarm/evidence/issue-297/requirement_matrix.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B014",
+    "section": "Requirement/Product view",
+    "source_line": 111,
+    "requirement": "operator URLs and required credentials work;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-301/test_results.md",
+      ".tiny-swarm/evidence/issue-298/test_results.md",
+      ".tiny-swarm/evidence/issue-296/test_results.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B015",
+    "section": "Requirement/Product view",
+    "source_line": 112,
+    "requirement": "second execution reconciles instead of duplicating/destroying;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-297/requirement_matrix.md",
+      ".tiny-swarm/evidence/issue-297/test_results.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B016",
+    "section": "Requirement/Product view",
+    "source_line": 113,
+    "requirement": "update preserves valid state and converges changes;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-297/requirement_matrix.md",
+      ".tiny-swarm/evidence/issue-297/test_results.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B017",
+    "section": "Requirement/Product view",
+    "source_line": 114,
+    "requirement": "failures are actionable and evidenced;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-299/scenario_matrix.md",
+      ".tiny-swarm/evidence/issue-299/wsl-candidate-c921e695/prerequisite-fixtures.json",
+      ".tiny-swarm/evidence/issue-297/test_results.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B018",
+    "section": "Requirement/Product view",
+    "source_line": 115,
+    "requirement": "blocked/degraded/partial/skipped required scenarios are not RC1 success.",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/completion_audit.md",
+      ".tiny-swarm/evidence/issue-302/requirement_matrix.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B019",
+    "section": "Requirement/Product view",
+    "source_line": 119,
+    "requirement": "`RC1_REQUIRED`",
+    "state": "VERIFIED_CONTRACT_OPTION",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      ".codex/evidence/slice-S252-01-consolidation.md",
+      ".codex/evidence/slice-S252-02-consolidation.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately",
+    "disposition": "Allowed classification/decision vocabulary, not a demand to execute mutually exclusive alternatives; selection and reasons are documented."
+  },
+  {
+    "id": "252-B020",
+    "section": "Requirement/Product view",
+    "source_line": 120,
+    "requirement": "`RC1_OPTIONAL`",
+    "state": "VERIFIED_CONTRACT_OPTION",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      ".codex/evidence/slice-S252-01-consolidation.md",
+      ".codex/evidence/slice-S252-02-consolidation.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately",
+    "disposition": "Allowed classification/decision vocabulary, not a demand to execute mutually exclusive alternatives; selection and reasons are documented."
+  },
+  {
+    "id": "252-B021",
+    "section": "Requirement/Product view",
+    "source_line": 121,
+    "requirement": "`NOT_IN_CLASSIC_PROFILE`",
+    "state": "VERIFIED_CONTRACT_OPTION",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      ".codex/evidence/slice-S252-01-consolidation.md",
+      ".codex/evidence/slice-S252-02-consolidation.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately",
+    "disposition": "Allowed classification/decision vocabulary, not a demand to execute mutually exclusive alternatives; selection and reasons are documented."
+  },
+  {
+    "id": "252-B022",
+    "section": "Developer/System Architect view",
+    "source_line": 126,
+    "requirement": "WSL2/native Linux host detection and fail-closed unsupported hosts;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-299/scenario_matrix.md",
+      ".tiny-swarm/evidence/issue-299/wsl-candidate-c921e695/prerequisite-fixtures.json",
+      ".tiny-swarm/evidence/issue-297/test_results.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B023",
+    "section": "Developer/System Architect view",
+    "source_line": 127,
+    "requirement": "filesystem policy and Incus prerequisite boundary;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-299/scenario_matrix.md",
+      ".tiny-swarm/evidence/issue-299/wsl-candidate-c921e695/prerequisite-fixtures.json",
+      ".tiny-swarm/evidence/issue-297/test_results.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B024",
+    "section": "Developer/System Architect view",
+    "source_line": 128,
+    "requirement": "managed nodes and roles;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-301/hosted-candidate-8eb5db33/run-summary.json",
+      ".tiny-swarm/evidence/issue-297/requirement_matrix.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B025",
+    "section": "Developer/System Architect view",
+    "source_line": 129,
+    "requirement": "Docker readiness on every node;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-301/hosted-candidate-8eb5db33/run-summary.json",
+      ".tiny-swarm/evidence/issue-297/requirement_matrix.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B026",
+    "section": "Developer/System Architect view",
+    "source_line": 130,
+    "requirement": "Swarm manager/worker membership and Ready/Active state;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-301/hosted-candidate-8eb5db33/run-summary.json",
+      ".tiny-swarm/evidence/issue-297/requirement_matrix.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B027",
+    "section": "Developer/System Architect view",
+    "source_line": 131,
+    "requirement": "central ports and routing;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-301/hosted-candidate-8eb5db33/run-summary.json",
+      ".tiny-swarm/evidence/issue-297/requirement_matrix.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B028",
+    "section": "Developer/System Architect view",
+    "source_line": 132,
+    "requirement": "Service Access;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-301/hosted-candidate-8eb5db33/run-summary.json",
+      ".tiny-swarm/evidence/issue-297/requirement_matrix.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B029",
+    "section": "Developer/System Architect view",
+    "source_line": 133,
+    "requirement": "Infisical/secrets;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-301/hosted-candidate-8eb5db33/run-summary.json",
+      ".tiny-swarm/evidence/issue-297/requirement_matrix.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B030",
+    "section": "Developer/System Architect view",
+    "source_line": 134,
+    "requirement": "Nexus/artifacts;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-301/hosted-candidate-8eb5db33/run-summary.json",
+      ".tiny-swarm/evidence/issue-297/requirement_matrix.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B031",
+    "section": "Developer/System Architect view",
+    "source_line": 135,
+    "requirement": "Jenkins;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-301/hosted-candidate-8eb5db33/run-summary.json",
+      ".tiny-swarm/evidence/issue-297/requirement_matrix.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B032",
+    "section": "Developer/System Architect view",
+    "source_line": 136,
+    "requirement": "SonarQube;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-301/hosted-candidate-8eb5db33/run-summary.json",
+      ".tiny-swarm/evidence/issue-297/requirement_matrix.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B033",
+    "section": "Developer/System Architect view",
+    "source_line": 137,
+    "requirement": "Pulsar;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-301/hosted-candidate-8eb5db33/run-summary.json",
+      ".tiny-swarm/evidence/issue-297/requirement_matrix.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B034",
+    "section": "Developer/System Architect view",
+    "source_line": 138,
+    "requirement": "Swagger/OpenAPI;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-301/hosted-candidate-8eb5db33/run-summary.json",
+      ".tiny-swarm/evidence/issue-297/requirement_matrix.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B035",
+    "section": "Developer/System Architect view",
+    "source_line": 139,
+    "requirement": "every additional `RC1_REQUIRED` service;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-301/hosted-candidate-8eb5db33/run-summary.json",
+      ".tiny-swarm/evidence/issue-297/requirement_matrix.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B036",
+    "section": "Developer/System Architect view",
+    "source_line": 140,
+    "requirement": "idempotent re-run;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-297/requirement_matrix.md",
+      ".tiny-swarm/evidence/issue-297/test_results.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B037",
+    "section": "Developer/System Architect view",
+    "source_line": 141,
+    "requirement": "safe update/reconcile behavior.",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-297/requirement_matrix.md",
+      ".tiny-swarm/evidence/issue-297/test_results.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B038",
+    "section": "Test/QA view",
+    "source_line": 146,
+    "requirement": "scenario ID;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/completion_audit.md",
+      ".tiny-swarm/evidence/issue-302/requirement_matrix.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B039",
+    "section": "Test/QA view",
+    "source_line": 147,
+    "requirement": "environment;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/completion_audit.md",
+      ".tiny-swarm/evidence/issue-302/requirement_matrix.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B040",
+    "section": "Test/QA view",
+    "source_line": 148,
+    "requirement": "precondition;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/completion_audit.md",
+      ".tiny-swarm/evidence/issue-302/requirement_matrix.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B041",
+    "section": "Test/QA view",
+    "source_line": 149,
+    "requirement": "command(s);",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/completion_audit.md",
+      ".tiny-swarm/evidence/issue-302/requirement_matrix.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B042",
+    "section": "Test/QA view",
+    "source_line": 150,
+    "requirement": "expected state;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/completion_audit.md",
+      ".tiny-swarm/evidence/issue-302/requirement_matrix.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B043",
+    "section": "Test/QA view",
+    "source_line": 151,
+    "requirement": "assertions;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/completion_audit.md",
+      ".tiny-swarm/evidence/issue-302/requirement_matrix.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B044",
+    "section": "Test/QA view",
+    "source_line": 152,
+    "requirement": "timeout;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/completion_audit.md",
+      ".tiny-swarm/evidence/issue-302/requirement_matrix.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B045",
+    "section": "Test/QA view",
+    "source_line": 153,
+    "requirement": "cleanup/rollback;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/completion_audit.md",
+      ".tiny-swarm/evidence/issue-302/requirement_matrix.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B046",
+    "section": "Test/QA view",
+    "source_line": 154,
+    "requirement": "evidence;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/completion_audit.md",
+      ".tiny-swarm/evidence/issue-302/requirement_matrix.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B047",
+    "section": "Test/QA view",
+    "source_line": 155,
+    "requirement": "severity on failure.",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/completion_audit.md",
+      ".tiny-swarm/evidence/issue-302/requirement_matrix.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B048",
+    "section": "RC1-S05 WSL2 Re-run/Reconcile",
+    "source_line": 203,
+    "requirement": "no duplicate nodes/stacks;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-297/requirement_matrix.md",
+      ".tiny-swarm/evidence/issue-297/test_results.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B049",
+    "section": "RC1-S05 WSL2 Re-run/Reconcile",
+    "source_line": 204,
+    "requirement": "no unintended destruction;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-297/requirement_matrix.md",
+      ".tiny-swarm/evidence/issue-297/test_results.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B050",
+    "section": "RC1-S05 WSL2 Re-run/Reconcile",
+    "source_line": 205,
+    "requirement": "cluster, ports, routes and secrets remain valid;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-297/requirement_matrix.md",
+      ".tiny-swarm/evidence/issue-297/test_results.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B051",
+    "section": "RC1-S05 WSL2 Re-run/Reconcile",
+    "source_line": 206,
+    "requirement": "services remain ready;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-297/requirement_matrix.md",
+      ".tiny-swarm/evidence/issue-297/test_results.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B052",
+    "section": "RC1-S05 WSL2 Re-run/Reconcile",
+    "source_line": 207,
+    "requirement": "final evidence is successful.",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-297/requirement_matrix.md",
+      ".tiny-swarm/evidence/issue-297/test_results.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B053",
+    "section": "RC1-S09 Restart resilience",
+    "source_line": 231,
+    "requirement": "WSL shutdown/restart; and/or",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-299/wsl-candidate-c921e695/host-restart-cycle2/post-restart-verification.json",
+      ".tiny-swarm/evidence/issue-298/native-fresh-c921e695/host-restart/post-restart-verification.json",
+      ".codex/evidence/slice-RC1-E03-restart-three-amigos.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately",
+    "disposition": "Selected planned owned-distribution restart with Docker quiescence; shared WSL kernel and unrelated Ubuntu remain running; failed first attempt retained."
+  },
+  {
+    "id": "252-B054",
+    "section": "RC1-S09 Restart resilience",
+    "source_line": 232,
+    "requirement": "native Linux reboot where practical.",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-299/wsl-candidate-c921e695/host-restart-cycle2/post-restart-verification.json",
+      ".tiny-swarm/evidence/issue-298/native-fresh-c921e695/host-restart/post-restart-verification.json",
+      ".codex/evidence/slice-RC1-E03-restart-three-amigos.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B055",
+    "section": "Defect policy",
+    "source_line": 248,
+    "requirement": "`RC1_BLOCKER` \u2014 prevents install/reconcile/update, required service use, safety/security, or valid evidence.",
+    "state": "VERIFIED_CONTRACT_OPTION",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-299/scenario_matrix.md",
+      ".tiny-swarm/evidence/issue-299/wsl-candidate-c921e695/prerequisite-fixtures.json",
+      ".tiny-swarm/evidence/issue-297/test_results.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately",
+    "disposition": "Allowed classification/decision vocabulary, not a demand to execute mutually exclusive alternatives; selection and reasons are documented."
+  },
+  {
+    "id": "252-B056",
+    "section": "Defect policy",
+    "source_line": 249,
+    "requirement": "`RC1_MAJOR` \u2014 requires undocumented repair/workaround or materially harms reliability.",
+    "state": "VERIFIED_CONTRACT_OPTION",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-299/scenario_matrix.md",
+      ".tiny-swarm/evidence/issue-299/wsl-candidate-c921e695/prerequisite-fixtures.json",
+      ".tiny-swarm/evidence/issue-297/test_results.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately",
+    "disposition": "Allowed classification/decision vocabulary, not a demand to execute mutually exclusive alternatives; selection and reasons are documented."
+  },
+  {
+    "id": "252-B057",
+    "section": "Defect policy",
+    "source_line": 250,
+    "requirement": "`RC1_MINOR` \u2014 non-blocking issue with safe workaround.",
+    "state": "VERIFIED_CONTRACT_OPTION",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-299/scenario_matrix.md",
+      ".tiny-swarm/evidence/issue-299/wsl-candidate-c921e695/prerequisite-fixtures.json",
+      ".tiny-swarm/evidence/issue-297/test_results.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately",
+    "disposition": "Allowed classification/decision vocabulary, not a demand to execute mutually exclusive alternatives; selection and reasons are documented."
+  },
+  {
+    "id": "252-B058",
+    "section": "Defect policy",
+    "source_line": 251,
+    "requirement": "`RC1_OBSERVATION` \u2014 improvement not required for RC1.",
+    "state": "VERIFIED_CONTRACT_OPTION",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-299/scenario_matrix.md",
+      ".tiny-swarm/evidence/issue-299/wsl-candidate-c921e695/prerequisite-fixtures.json",
+      ".tiny-swarm/evidence/issue-297/test_results.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately",
+    "disposition": "Allowed classification/decision vocabulary, not a demand to execute mutually exclusive alternatives; selection and reasons are documented."
+  },
+  {
+    "id": "252-B059",
+    "section": "Defect policy",
+    "source_line": 254,
+    "requirement": "no unrelated refactors;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-299/scenario_matrix.md",
+      ".tiny-swarm/evidence/issue-299/wsl-candidate-c921e695/prerequisite-fixtures.json",
+      ".tiny-swarm/evidence/issue-297/test_results.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B060",
+    "section": "Defect policy",
+    "source_line": 255,
+    "requirement": "smallest root-cause fix;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-299/scenario_matrix.md",
+      ".tiny-swarm/evidence/issue-299/wsl-candidate-c921e695/prerequisite-fixtures.json",
+      ".tiny-swarm/evidence/issue-297/test_results.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B061",
+    "section": "Defect policy",
+    "source_line": 256,
+    "requirement": "regression test under `tests/`;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-299/scenario_matrix.md",
+      ".tiny-swarm/evidence/issue-299/wsl-candidate-c921e695/prerequisite-fixtures.json",
+      ".tiny-swarm/evidence/issue-297/test_results.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B062",
+    "section": "Defect policy",
+    "source_line": 257,
+    "requirement": "rerun failed and dependent scenarios;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-299/scenario_matrix.md",
+      ".tiny-swarm/evidence/issue-299/wsl-candidate-c921e695/prerequisite-fixtures.json",
+      ".tiny-swarm/evidence/issue-297/test_results.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B063",
+    "section": "Defect policy",
+    "source_line": 258,
+    "requirement": "no blocker waiver.",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-299/scenario_matrix.md",
+      ".tiny-swarm/evidence/issue-299/wsl-candidate-c921e695/prerequisite-fixtures.json",
+      ".tiny-swarm/evidence/issue-297/test_results.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B064",
+    "section": "Evidence",
+    "source_line": 263,
+    "requirement": "scenario ID;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/candidate-provenance.json",
+      ".tiny-swarm/evidence/issue-302/history-and-applicability.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B065",
+    "section": "Evidence",
+    "source_line": 264,
+    "requirement": "commit SHA;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/candidate-provenance.json",
+      ".tiny-swarm/evidence/issue-302/history-and-applicability.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B066",
+    "section": "Evidence",
+    "source_line": 265,
+    "requirement": "host classification;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/candidate-provenance.json",
+      ".tiny-swarm/evidence/issue-302/history-and-applicability.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B067",
+    "section": "Evidence",
+    "source_line": 266,
+    "requirement": "executed command;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/candidate-provenance.json",
+      ".tiny-swarm/evidence/issue-302/history-and-applicability.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B068",
+    "section": "Evidence",
+    "source_line": 267,
+    "requirement": "start/end/duration;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/candidate-provenance.json",
+      ".tiny-swarm/evidence/issue-302/history-and-applicability.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B069",
+    "section": "Evidence",
+    "source_line": 268,
+    "requirement": "canonical LIVE_* state;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/candidate-provenance.json",
+      ".tiny-swarm/evidence/issue-302/history-and-applicability.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B070",
+    "section": "Evidence",
+    "source_line": 269,
+    "requirement": "node/cluster summary;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/candidate-provenance.json",
+      ".tiny-swarm/evidence/issue-302/history-and-applicability.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B071",
+    "section": "Evidence",
+    "source_line": 270,
+    "requirement": "required service readiness;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/candidate-provenance.json",
+      ".tiny-swarm/evidence/issue-302/history-and-applicability.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B072",
+    "section": "Evidence",
+    "source_line": 271,
+    "requirement": "exit code;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/candidate-provenance.json",
+      ".tiny-swarm/evidence/issue-302/history-and-applicability.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B073",
+    "section": "Evidence",
+    "source_line": 272,
+    "requirement": "evidence files;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/candidate-provenance.json",
+      ".tiny-swarm/evidence/issue-302/history-and-applicability.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B074",
+    "section": "Evidence",
+    "source_line": 273,
+    "requirement": "redaction confirmation;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/candidate-provenance.json",
+      ".tiny-swarm/evidence/issue-302/history-and-applicability.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B075",
+    "section": "Evidence",
+    "source_line": 274,
+    "requirement": "discovered defects.",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/candidate-provenance.json",
+      ".tiny-swarm/evidence/issue-302/history-and-applicability.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B076",
+    "section": "RC1 release gates",
+    "source_line": 299,
+    "requirement": "`RC1_ACCEPTED`",
+    "state": "VERIFIED_CONTRACT_OPTION",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/completion_audit.md",
+      ".tiny-swarm/evidence/issue-302/requirement_matrix.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately",
+    "disposition": "Allowed classification/decision vocabulary, not a demand to execute mutually exclusive alternatives; selection and reasons are documented."
+  },
+  {
+    "id": "252-B077",
+    "section": "RC1 release gates",
+    "source_line": 300,
+    "requirement": "`RC1_REJECTED_BLOCKERS`",
+    "state": "VERIFIED_CONTRACT_OPTION",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/completion_audit.md",
+      ".tiny-swarm/evidence/issue-302/requirement_matrix.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately",
+    "disposition": "Allowed classification/decision vocabulary, not a demand to execute mutually exclusive alternatives; selection and reasons are documented."
+  },
+  {
+    "id": "252-B078",
+    "section": "RC1 release gates",
+    "source_line": 301,
+    "requirement": "`RC1_REJECTED_EVIDENCE_INCOMPLETE`",
+    "state": "VERIFIED_CONTRACT_OPTION",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/completion_audit.md",
+      ".tiny-swarm/evidence/issue-302/requirement_matrix.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately",
+    "disposition": "Allowed classification/decision vocabulary, not a demand to execute mutually exclusive alternatives; selection and reasons are documented."
+  },
+  {
+    "id": "252-B079",
+    "section": "Suggested slices",
+    "source_line": 306,
+    "requirement": "Inventory current tools/tests and Classic service contract.",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      ".codex/evidence/slice-S252-01-consolidation.md",
+      ".codex/evidence/slice-S252-02-consolidation.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B080",
+    "section": "Suggested slices",
+    "source_line": 307,
+    "requirement": "Three-Amigos scenario/test-layout decision.",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      ".codex/evidence/slice-S252-01-consolidation.md",
+      ".codex/evidence/slice-S252-02-consolidation.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B081",
+    "section": "Suggested slices",
+    "source_line": 308,
+    "requirement": "Move/organize assertion-heavy live tests under `tests/` without duplication.",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      ".codex/evidence/slice-S252-01-consolidation.md",
+      ".codex/evidence/slice-S252-02-consolidation.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B082",
+    "section": "Suggested slices",
+    "source_line": 309,
+    "requirement": "Add missing E2E support/harness.",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      ".codex/evidence/slice-S252-01-consolidation.md",
+      ".codex/evidence/slice-S252-02-consolidation.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B083",
+    "section": "Suggested slices",
+    "source_line": 310,
+    "requirement": "WSL2 baseline + fresh install.",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-301/hosted-candidate-8eb5db33/run-summary.json",
+      ".tiny-swarm/evidence/issue-297/requirement_matrix.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B084",
+    "section": "Suggested slices",
+    "source_line": 311,
+    "requirement": "Fix discovered blockers and rerun.",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-299/scenario_matrix.md",
+      ".tiny-swarm/evidence/issue-299/wsl-candidate-c921e695/prerequisite-fixtures.json",
+      ".tiny-swarm/evidence/issue-297/test_results.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B085",
+    "section": "Suggested slices",
+    "source_line": 312,
+    "requirement": "WSL2 reconcile.",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-297/requirement_matrix.md",
+      ".tiny-swarm/evidence/issue-297/test_results.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B086",
+    "section": "Suggested slices",
+    "source_line": 313,
+    "requirement": "WSL2 update.",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-297/requirement_matrix.md",
+      ".tiny-swarm/evidence/issue-297/test_results.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B087",
+    "section": "Suggested slices",
+    "source_line": 314,
+    "requirement": "Failure/recovery/restart scenarios.",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-299/scenario_matrix.md",
+      ".tiny-swarm/evidence/issue-299/wsl-candidate-c921e695/prerequisite-fixtures.json",
+      ".tiny-swarm/evidence/issue-297/test_results.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B088",
+    "section": "Suggested slices",
+    "source_line": 315,
+    "requirement": "Native Linux fresh/reconcile/update.",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-298/native-fresh-c921e695/lifecycle/20260912T235814.253797Z/run-summary.json",
+      ".tiny-swarm/evidence/issue-298/requirement_matrix.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B089",
+    "section": "Suggested slices",
+    "source_line": 316,
+    "requirement": "Consolidated acceptance/evidence audit.",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/completion_audit.md",
+      ".tiny-swarm/evidence/issue-302/requirement_matrix.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B090",
+    "section": "Suggested slices",
+    "source_line": 317,
+    "requirement": "Final Three-Amigos RC1 decision.",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/completion_audit.md",
+      ".tiny-swarm/evidence/issue-302/requirement_matrix.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B091",
+    "section": "Acceptance criteria",
+    "source_line": 323,
+    "requirement": "Three-Amigos decision exists.",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/completion_audit.md",
+      ".tiny-swarm/evidence/issue-302/requirement_matrix.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B092",
+    "section": "Acceptance criteria",
+    "source_line": 324,
+    "requirement": "Existing live tools/tests are inventoried and reused.",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      ".codex/evidence/slice-S252-01-consolidation.md",
+      ".codex/evidence/slice-S252-02-consolidation.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B093",
+    "section": "Acceptance criteria",
+    "source_line": 325,
+    "requirement": "Tool/test responsibilities are cleanly separated.",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      ".codex/evidence/slice-S252-01-consolidation.md",
+      ".codex/evidence/slice-S252-02-consolidation.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B094",
+    "section": "Acceptance criteria",
+    "source_line": 326,
+    "requirement": "Full-lifecycle assertions live under `tests/`.",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      ".codex/evidence/slice-S252-01-consolidation.md",
+      ".codex/evidence/slice-S252-02-consolidation.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B095",
+    "section": "Acceptance criteria",
+    "source_line": 327,
+    "requirement": "WSL2 Fresh/Reconcile/Update are executed and green.",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-301/hosted-candidate-8eb5db33/run-summary.json",
+      ".tiny-swarm/evidence/issue-297/requirement_matrix.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B096",
+    "section": "Acceptance criteria",
+    "source_line": 328,
+    "requirement": "Native Linux Fresh/Reconcile/Update are executed and green.",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-298/native-fresh-c921e695/lifecycle/20260912T235814.253797Z/run-summary.json",
+      ".tiny-swarm/evidence/issue-298/requirement_matrix.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B097",
+    "section": "Acceptance criteria",
+    "source_line": 329,
+    "requirement": "Required browser/API/service checks are green.",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-301/test_results.md",
+      ".tiny-swarm/evidence/issue-298/test_results.md",
+      ".tiny-swarm/evidence/issue-296/test_results.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B098",
+    "section": "Acceptance criteria",
+    "source_line": 330,
+    "requirement": "Required fail-closed/recovery tests are green.",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-299/scenario_matrix.md",
+      ".tiny-swarm/evidence/issue-299/wsl-candidate-c921e695/prerequisite-fixtures.json",
+      ".tiny-swarm/evidence/issue-297/test_results.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B099",
+    "section": "Acceptance criteria",
+    "source_line": 331,
+    "requirement": "Every blocker has regression coverage.",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-299/scenario_matrix.md",
+      ".tiny-swarm/evidence/issue-299/wsl-candidate-c921e695/prerequisite-fixtures.json",
+      ".tiny-swarm/evidence/issue-297/test_results.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B100",
+    "section": "Acceptance criteria",
+    "source_line": 332,
+    "requirement": "Evidence is complete/redacted.",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/completion_audit.md",
+      ".tiny-swarm/evidence/issue-302/requirement_matrix.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B101",
+    "section": "Acceptance criteria",
+    "source_line": 333,
+    "requirement": "final quality gate is green.",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/local-quality.json",
+      ".tiny-swarm/evidence/issue-302/cleanup-and-baseline/final-local-baseline/configured-preflight.json"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-B102",
+    "section": "Acceptance criteria",
+    "source_line": 334,
+    "requirement": "final decision is explicitly `RC1_ACCEPTED` before Public Beta RC1 may be claimed.",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/completion_audit.md",
+      ".tiny-swarm/evidence/issue-302/requirement_matrix.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C001",
+    "section": "1. PR/Push quality workflow",
+    "source_line": 15,
+    "requirement": "trigger on pull requests targeting `main`;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      "documentation/governance/ci-quality-gates.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C002",
+    "section": "1. PR/Push quality workflow",
+    "source_line": 16,
+    "requirement": "trigger on pushes to `main`;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      "documentation/governance/ci-quality-gates.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C003",
+    "section": "1. PR/Push quality workflow",
+    "source_line": 17,
+    "requirement": "use the repository-supported primary Python version;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      "documentation/governance/ci-quality-gates.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C004",
+    "section": "1. PR/Push quality workflow",
+    "source_line": 18,
+    "requirement": "install Tiny Swarm World and required quality/test dependencies reproducibly;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      "documentation/governance/ci-quality-gates.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C005",
+    "section": "1. PR/Push quality workflow",
+    "source_line": 19,
+    "requirement": "execute the repository-owned canonical quality command, preferably `python tools/quality_gate.py quality`;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      "documentation/governance/ci-quality-gates.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C006",
+    "section": "1. PR/Push quality workflow",
+    "source_line": 20,
+    "requirement": "fail whenever the canonical gate fails;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/failure-semantics.json",
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      "tests/test_ci_workflow_contract.py"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C007",
+    "section": "1. PR/Push quality workflow",
+    "source_line": 21,
+    "requirement": "keep workflow permissions least-privilege (`contents: read` unless more is proven necessary);",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      "documentation/governance/ci-quality-gates.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C008",
+    "section": "1. PR/Push quality workflow",
+    "source_line": 22,
+    "requirement": "do not duplicate Ruff/mypy/test configuration in YAML;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      "documentation/governance/ci-quality-gates.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C009",
+    "section": "1. PR/Push quality workflow",
+    "source_line": 23,
+    "requirement": "preserve useful redacted failure evidence.",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      "documentation/governance/ci-quality-gates.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C010",
+    "section": "2. Python compatibility matrix using Conda",
+    "source_line": 35,
+    "requirement": "derive the supported Python-version matrix from authoritative project metadata/documentation; do not guess versions;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      "documentation/governance/ci-quality-gates.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C011",
+    "section": "2. Python compatibility matrix using Conda",
+    "source_line": 36,
+    "requirement": "use `conda-incubator/setup-miniconda` or the current maintained equivalent;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      "documentation/governance/ci-quality-gates.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C012",
+    "section": "2. Python compatibility matrix using Conda",
+    "source_line": 37,
+    "requirement": "create one isolated Conda environment per matrix entry;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      "documentation/governance/ci-quality-gates.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C013",
+    "section": "2. Python compatibility matrix using Conda",
+    "source_line": 38,
+    "requirement": "install Tiny Swarm World from the checked-out source;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      "documentation/governance/ci-quality-gates.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C014",
+    "section": "2. Python compatibility matrix using Conda",
+    "source_line": 39,
+    "requirement": "call repository-owned canonical unit/compatibility commands;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      "documentation/governance/ci-quality-gates.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C015",
+    "section": "2. Python compatibility matrix using Conda",
+    "source_line": 40,
+    "requirement": "set `strategy.fail-fast: false` so every supported Python version produces a result;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/failure-semantics.json",
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      "tests/test_ci_workflow_contract.py"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C016",
+    "section": "2. Python compatibility matrix using Conda",
+    "source_line": 41,
+    "requirement": "expose every Python version as an independently visible GitHub job;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      "documentation/governance/ci-quality-gates.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C017",
+    "section": "2. Python compatibility matrix using Conda",
+    "source_line": 42,
+    "requirement": "never silently turn an unsupported/failing version green;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/failure-semantics.json",
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      "tests/test_ci_workflow_contract.py"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C018",
+    "section": "2. Python compatibility matrix using Conda",
+    "source_line": 43,
+    "requirement": "treat compatibility failures as RC1 release evidence.",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/failure-semantics.json",
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      "tests/test_ci_workflow_contract.py"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C019",
+    "section": "3. Nightly Classic live / RC1 workflow",
+    "source_line": 55,
+    "requirement": "scheduled nightly trigger;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-301/hosted-candidate-8eb5db33/run-summary.json",
+      ".tiny-swarm/evidence/issue-301/requirement_matrix.md",
+      ".github/workflows/nightly-classic-live.yml"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately",
+    "disposition": "Cron declaration verified; actual controlled manual lifecycle used for allowed nightly/manual acceptance, not a claimed cron execution."
+  },
+  {
+    "id": "252-C020",
+    "section": "3. Nightly Classic live / RC1 workflow",
+    "source_line": 56,
+    "requirement": "`workflow_dispatch` for controlled manual execution;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-301/hosted-candidate-8eb5db33/run-summary.json",
+      ".tiny-swarm/evidence/issue-301/requirement_matrix.md",
+      ".github/workflows/nightly-classic-live.yml"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C021",
+    "section": "3. Nightly Classic live / RC1 workflow",
+    "source_line": 57,
+    "requirement": "invoke canonical Classic live runners/tests rather than reproducing installer logic in YAML;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-301/hosted-candidate-8eb5db33/run-summary.json",
+      ".tiny-swarm/evidence/issue-301/requirement_matrix.md",
+      ".github/workflows/nightly-classic-live.yml"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C022",
+    "section": "3. Nightly Classic live / RC1 workflow",
+    "source_line": 58,
+    "requirement": "execute only on a runner capable of Classic requirements: Incus/LXC, Docker inside managed nodes, Swarm, networking and required privileges;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-301/hosted-candidate-8eb5db33/run-summary.json",
+      ".tiny-swarm/evidence/issue-301/requirement_matrix.md",
+      ".github/workflows/nightly-classic-live.yml"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C023",
+    "section": "3. Nightly Classic live / RC1 workflow",
+    "source_line": 59,
+    "requirement": "if GitHub-hosted runners cannot provide that safely, define/document a self-hosted runner strategy;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-301/hosted-candidate-8eb5db33/run-summary.json",
+      ".tiny-swarm/evidence/issue-301/requirement_matrix.md",
+      ".github/workflows/nightly-classic-live.yml"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C024",
+    "section": "3. Nightly Classic live / RC1 workflow",
+    "source_line": 60,
+    "requirement": "an unevaluated live path must never count as green RC1 evidence;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/failure-semantics.json",
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      "tests/test_ci_workflow_contract.py"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C025",
+    "section": "3. Nightly Classic live / RC1 workflow",
+    "source_line": 61,
+    "requirement": "cover the automatable lifecycle subset: Fresh Install -> Post-install acceptance -> Reconcile -> Post-reconcile acceptance -> Update -> Post-update acceptance -> Recovery;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-301/hosted-candidate-8eb5db33/run-summary.json",
+      ".tiny-swarm/evidence/issue-301/requirement_matrix.md",
+      ".github/workflows/nightly-classic-live.yml"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C026",
+    "section": "3. Nightly Classic live / RC1 workflow",
+    "source_line": 62,
+    "requirement": "use bounded timeouts;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-301/hosted-candidate-8eb5db33/run-summary.json",
+      ".tiny-swarm/evidence/issue-301/requirement_matrix.md",
+      ".github/workflows/nightly-classic-live.yml"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C027",
+    "section": "3. Nightly Classic live / RC1 workflow",
+    "source_line": 63,
+    "requirement": "use concurrency protection so destructive/live jobs cannot overlap on the same environment;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-301/hosted-candidate-8eb5db33/run-summary.json",
+      ".tiny-swarm/evidence/issue-301/requirement_matrix.md",
+      ".github/workflows/nightly-classic-live.yml"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C028",
+    "section": "3. Nightly Classic live / RC1 workflow",
+    "source_line": 64,
+    "requirement": "upload only redacted RC1 evidence/artifacts.",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-301/hosted-candidate-8eb5db33/run-summary.json",
+      ".tiny-swarm/evidence/issue-301/requirement_matrix.md",
+      ".github/workflows/nightly-classic-live.yml"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C029",
+    "section": "4. Reconcile existing Sonar workflow",
+    "source_line": 74,
+    "requirement": "`REUSE_AS_IS`",
+    "state": "VERIFIED_CONTRACT_OPTION",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      ".codex/evidence/slice-S252-01-consolidation.md",
+      ".codex/evidence/slice-S252-02-consolidation.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately",
+    "disposition": "Allowed classification/decision vocabulary, not a demand to execute mutually exclusive alternatives; selection and reasons are documented."
+  },
+  {
+    "id": "252-C030",
+    "section": "4. Reconcile existing Sonar workflow",
+    "source_line": 75,
+    "requirement": "`EXTEND`",
+    "state": "VERIFIED_CONTRACT_OPTION",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      ".codex/evidence/slice-S252-01-consolidation.md",
+      ".codex/evidence/slice-S252-02-consolidation.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately",
+    "disposition": "Allowed classification/decision vocabulary, not a demand to execute mutually exclusive alternatives; selection and reasons are documented."
+  },
+  {
+    "id": "252-C031",
+    "section": "4. Reconcile existing Sonar workflow",
+    "source_line": 76,
+    "requirement": "`MERGE`",
+    "state": "VERIFIED_CONTRACT_OPTION",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      ".codex/evidence/slice-S252-01-consolidation.md",
+      ".codex/evidence/slice-S252-02-consolidation.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately",
+    "disposition": "Allowed classification/decision vocabulary, not a demand to execute mutually exclusive alternatives; selection and reasons are documented."
+  },
+  {
+    "id": "252-C032",
+    "section": "4. Reconcile existing Sonar workflow",
+    "source_line": 77,
+    "requirement": "`REPLACE_WITH_REASON`",
+    "state": "VERIFIED_CONTRACT_OPTION",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      ".codex/evidence/slice-S252-01-consolidation.md",
+      ".codex/evidence/slice-S252-02-consolidation.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately",
+    "disposition": "Allowed classification/decision vocabulary, not a demand to execute mutually exclusive alternatives; selection and reasons are documented."
+  },
+  {
+    "id": "252-C033",
+    "section": "4. Reconcile existing Sonar workflow",
+    "source_line": 80,
+    "requirement": "no duplicate Sonar analysis;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      ".codex/evidence/slice-S252-01-consolidation.md",
+      ".codex/evidence/slice-S252-02-consolidation.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C034",
+    "section": "4. Reconcile existing Sonar workflow",
+    "source_line": 81,
+    "requirement": "no contradictory second quality gate;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      ".codex/evidence/slice-S252-01-consolidation.md",
+      ".codex/evidence/slice-S252-02-consolidation.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C035",
+    "section": "4. Reconcile existing Sonar workflow",
+    "source_line": 82,
+    "requirement": "preserve required Sonar/SonarCloud behavior;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      "documentation/governance/ci-quality-gates.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C036",
+    "section": "4. Reconcile existing Sonar workflow",
+    "source_line": 83,
+    "requirement": "document which stable job/status-check names are intended for branch protection;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      "documentation/governance/ci-quality-gates.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C037",
+    "section": "4. Reconcile existing Sonar workflow",
+    "source_line": 84,
+    "requirement": "never expose Sonar/GitHub/Infisical credentials in logs or uploaded evidence.",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      "documentation/governance/ci-quality-gates.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C038",
+    "section": "6. Workflow validation",
+    "source_line": 108,
+    "requirement": "valid YAML;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      "documentation/governance/ci-quality-gates.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C039",
+    "section": "6. Workflow validation",
+    "source_line": 109,
+    "requirement": "all referenced actions exist and are intentionally version-pinned according to repository security policy;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      "documentation/governance/ci-quality-gates.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C040",
+    "section": "6. Workflow validation",
+    "source_line": 110,
+    "requirement": "every invoked repository command exists and has the expected CLI contract;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      "documentation/governance/ci-quality-gates.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C041",
+    "section": "6. Workflow validation",
+    "source_line": 111,
+    "requirement": "PR trigger works;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      "documentation/governance/ci-quality-gates.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C042",
+    "section": "6. Workflow validation",
+    "source_line": 112,
+    "requirement": "push trigger works;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      "documentation/governance/ci-quality-gates.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C043",
+    "section": "6. Workflow validation",
+    "source_line": 113,
+    "requirement": "Python matrix expands to every supported version;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      "documentation/governance/ci-quality-gates.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C044",
+    "section": "6. Workflow validation",
+    "source_line": 114,
+    "requirement": "a deliberately failing test/quality command makes the workflow fail;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/failure-semantics.json",
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      "tests/test_ci_workflow_contract.py"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately",
+    "disposition": "Executed deliberate failing unittest through unchanged canonical dispatch/exact workflow shell; exit propagates and downstream marker absent. This local proof is distinguished from the actual hosted blocked dispatch."
+  },
+  {
+    "id": "252-C045",
+    "section": "6. Workflow validation",
+    "source_line": 115,
+    "requirement": "failed matrix jobs cannot be masked by successful jobs;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/failure-semantics.json",
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      "tests/test_ci_workflow_contract.py"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C046",
+    "section": "6. Workflow validation",
+    "source_line": 116,
+    "requirement": "nightly/manual live jobs cannot overlap destructively;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/failure-semantics.json",
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      "tests/test_ci_workflow_contract.py"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C047",
+    "section": "6. Workflow validation",
+    "source_line": 117,
+    "requirement": "timeouts and cleanup are bounded;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/failure-semantics.json",
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      "tests/test_ci_workflow_contract.py"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C048",
+    "section": "6. Workflow validation",
+    "source_line": 118,
+    "requirement": "artifacts/evidence contain no secrets;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      "documentation/governance/ci-quality-gates.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C049",
+    "section": "6. Workflow validation",
+    "source_line": 119,
+    "requirement": "status-check names are stable enough for branch protection.",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      "documentation/governance/ci-quality-gates.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C050",
+    "section": "7. CI evidence required for final RC1 candidate",
+    "source_line": 123,
+    "requirement": "workflow file and commit SHA;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      "documentation/governance/ci-quality-gates.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C051",
+    "section": "7. CI evidence required for final RC1 candidate",
+    "source_line": 124,
+    "requirement": "workflow run ID/URL where applicable;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      "documentation/governance/ci-quality-gates.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C052",
+    "section": "7. CI evidence required for final RC1 candidate",
+    "source_line": 125,
+    "requirement": "trigger type;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      "documentation/governance/ci-quality-gates.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C053",
+    "section": "7. CI evidence required for final RC1 candidate",
+    "source_line": 126,
+    "requirement": "Python/matrix version;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      "documentation/governance/ci-quality-gates.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C054",
+    "section": "7. CI evidence required for final RC1 candidate",
+    "source_line": 127,
+    "requirement": "canonical command executed;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      "documentation/governance/ci-quality-gates.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C055",
+    "section": "7. CI evidence required for final RC1 candidate",
+    "source_line": 128,
+    "requirement": "result and duration;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      "documentation/governance/ci-quality-gates.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C056",
+    "section": "7. CI evidence required for final RC1 candidate",
+    "source_line": 129,
+    "requirement": "evidence/artifact location;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      "documentation/governance/ci-quality-gates.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C057",
+    "section": "7. CI evidence required for final RC1 candidate",
+    "source_line": 130,
+    "requirement": "secret-redaction confirmation;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      "documentation/governance/ci-quality-gates.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C058",
+    "section": "7. CI evidence required for final RC1 candidate",
+    "source_line": 131,
+    "requirement": "intended required status-check name.",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      "documentation/governance/ci-quality-gates.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C059",
+    "section": "8. Additional implementation slices for #252",
+    "source_line": 146,
+    "requirement": "Inventory current `.github/workflows/` together with current tools/tests.",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      ".codex/evidence/slice-S252-01-consolidation.md",
+      ".codex/evidence/slice-S252-02-consolidation.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C060",
+    "section": "8. Additional implementation slices for #252",
+    "source_line": 147,
+    "requirement": "Three-Amigos CI layout and supported-Python matrix decision.",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      ".codex/evidence/slice-S252-01-consolidation.md",
+      ".codex/evidence/slice-S252-02-consolidation.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C061",
+    "section": "8. Additional implementation slices for #252",
+    "source_line": 148,
+    "requirement": "Reconcile `sonar_check.yml` and define stable status checks.",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      ".codex/evidence/slice-S252-01-consolidation.md",
+      ".codex/evidence/slice-S252-02-consolidation.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C062",
+    "section": "8. Additional implementation slices for #252",
+    "source_line": 149,
+    "requirement": "Create `python-quality-gate.yml`.",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      ".codex/evidence/slice-S252-01-consolidation.md",
+      ".codex/evidence/slice-S252-02-consolidation.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C063",
+    "section": "8. Additional implementation slices for #252",
+    "source_line": 150,
+    "requirement": "Create Conda-based `python-compatibility.yml`.",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      ".codex/evidence/slice-S252-01-consolidation.md",
+      ".codex/evidence/slice-S252-02-consolidation.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C064",
+    "section": "8. Additional implementation slices for #252",
+    "source_line": 151,
+    "requirement": "Create `nightly-classic-live.yml` with valid runner strategy/concurrency/timeouts/evidence.",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-301/hosted-candidate-8eb5db33/run-summary.json",
+      ".tiny-swarm/evidence/issue-301/requirement_matrix.md",
+      ".github/workflows/nightly-classic-live.yml"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C065",
+    "section": "8. Additional implementation slices for #252",
+    "source_line": 152,
+    "requirement": "Execute and verify all mandatory GitHub Actions gates before final RC1 decision.",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      "documentation/governance/ci-quality-gates.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C066",
+    "section": "252 cannot be `RC1_ACCEPTED` until all are true:",
+    "source_line": 156,
+    "requirement": "existing GitHub workflows have been inventoried and reconciled;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      ".codex/evidence/slice-S252-01-consolidation.md",
+      ".codex/evidence/slice-S252-02-consolidation.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C067",
+    "section": "252 cannot be `RC1_ACCEPTED` until all are true:",
+    "source_line": 157,
+    "requirement": "`python-quality-gate.yml` exists and is green on required triggers;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      "documentation/governance/ci-quality-gates.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C068",
+    "section": "252 cannot be `RC1_ACCEPTED` until all are true:",
+    "source_line": 158,
+    "requirement": "Conda-based `python-compatibility.yml` exists and is green for every supported Python version;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      "documentation/governance/ci-quality-gates.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C069",
+    "section": "252 cannot be `RC1_ACCEPTED` until all are true:",
+    "source_line": 159,
+    "requirement": "`nightly-classic-live.yml` exists and has a proven execution path on a valid Classic-capable runner;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-301/hosted-candidate-8eb5db33/run-summary.json",
+      ".tiny-swarm/evidence/issue-301/requirement_matrix.md",
+      ".github/workflows/nightly-classic-live.yml"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C070",
+    "section": "252 cannot be `RC1_ACCEPTED` until all are true:",
+    "source_line": 160,
+    "requirement": "Sonar analysis is not duplicated;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      ".codex/evidence/slice-S252-01-consolidation.md",
+      ".codex/evidence/slice-S252-02-consolidation.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C071",
+    "section": "252 cannot be `RC1_ACCEPTED` until all are true:",
+    "source_line": 161,
+    "requirement": "branch-protection status-check names are documented;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      "documentation/governance/ci-quality-gates.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C072",
+    "section": "252 cannot be `RC1_ACCEPTED` until all are true:",
+    "source_line": 162,
+    "requirement": "workflow failure semantics, permissions, concurrency, timeouts and secret redaction are verified;",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/failure-semantics.json",
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      "tests/test_ci_workflow_contract.py"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  },
+  {
+    "id": "252-C073",
+    "section": "252 cannot be `RC1_ACCEPTED` until all are true:",
+    "source_line": 163,
+    "requirement": "all mandatory GitHub Actions release gates are green.",
+    "state": "VERIFIED",
+    "evidence": [
+      ".tiny-swarm/evidence/issue-302/final-ci.json",
+      ".tiny-swarm/evidence/issue-302/inventory-and-ci-contract.md",
+      "documentation/governance/ci-quality-gates.md"
+    ],
+    "review": "Sequential requirement/architecture/QA review; actual independent historical reviews retained separately"
+  }
+]

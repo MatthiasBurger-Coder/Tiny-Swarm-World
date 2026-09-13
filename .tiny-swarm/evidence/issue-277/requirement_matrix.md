@@ -40,3 +40,13 @@ documentation/test references are repository-relative.
 | E02-23 | All six Three-Amigos scenarios and desired clone/install/login flow satisfied | Rows 01-22 jointly cover fresh/recreated/component-specific/stronger/enterprise/WSL scenarios | Child scenario matrices, historical installations, current resolver tests and CRED-08/09 affected-path reruns | VERIFIED |
 | E02-24 | Definition of Done: deterministic model is actual standard path, not extra legacy mode | CRED-02 routing plus CRED-04 removal, CRED-06 docs and CRED-08/09 acceptance | Child implementation/audit chain; historical applicability in implementation_summary.md; independent parent review | VERIFIED |
 | E02-25 | Preserve historical limits and complete independent parent evidence audit | Parent synthesis; no blanket main/native/RC1 claim from old runs | Six parent files and completion_audit.md; original child failed/partial results unchanged | VERIFIED |
+
+## RC1 reconciliation — 2026-09-13
+
+The preceding table is retained as its dated historical assessment. Current
+credential acceptance is provided by #295/#296 and current c921 both-host
+fresh/reconcile/update/recovery/restart results under #297/#298/#299/#301.
+See [R06 history and applicability](../issue-302/history-and-applicability.md)
+and [the source comparison](../issue-302/credential-applicability.json).
+The GitHub issue is now deleted (HTTP 410); the original 25-row requirements
+and independent audit remain authoritative historical sources.

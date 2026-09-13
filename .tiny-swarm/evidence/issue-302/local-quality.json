@@ -1,0 +1,24 @@
+{
+  "command": "python3 tools/quality_gate.py quality",
+  "python": "3.12.14",
+  "worktree": "/mnt/d/Projects/Tiny-Swarm-World-rc1-r06-final-audit-20260913",
+  "integrated_base": "69f040a75fa8a7bc9b9c01bf5eb62f53abeb6a6e",
+  "exit_code": 0,
+  "discovered_tests": 2066,
+  "skipped_tests": 18,
+  "executed_non_skipped_tests": 2048,
+  "test_runtime_seconds": 143.341,
+  "architecture_tests": 18,
+  "import_contracts_kept": 3,
+  "typed_files": 674,
+  "stages": [
+    "verification-policy",
+    "lint",
+    "arch-lint",
+    "arch-tests",
+    "typecheck",
+    "test"
+  ],
+  "log_sha256": "c76326caa079bbe399b906593a513e34b763f745ed7c17169dc98dd8de1e6cd5",
+  "scope": "Local full gate; live/browser and external states are recorded separately"
+}
