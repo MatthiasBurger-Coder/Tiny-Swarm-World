@@ -11,6 +11,17 @@ from tiny_swarm_world.domain.inventory.observed_inventory import (
     SwarmObservedState,
     VmObservedState,
 )
+from tiny_swarm_world.domain.inventory.reconciliation import (
+    CurrentState,
+    DesiredState,
+    ReconcileAction,
+    ReconcileActionKind,
+    ReconcilePlan,
+    ReconcilePlanner,
+    ReconcileResourceKind,
+    ReconcileResult,
+    ReconcileResultStatus,
+)
 from tiny_swarm_world.domain.inventory.verification import (
     VerificationResult,
     VerificationEvidenceScope,
@@ -32,4 +43,13 @@ __all__ = [
     "VerificationStatus",
     "VmDesiredState",
     "VmObservedState",
+    "CurrentState",
+    "DesiredState",
+    "ReconcileAction",
+    "ReconcileActionKind",
+    "ReconcilePlan",
+    "ReconcilePlanner",
+    "ReconcileResourceKind",
+    "ReconcileResult",
+    "ReconcileResultStatus",
 ]
