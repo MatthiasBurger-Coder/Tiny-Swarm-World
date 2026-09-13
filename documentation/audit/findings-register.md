@@ -42,7 +42,7 @@ supports a `Closed` disposition by itself.
 | `MIN-02` | Minor | Supply-chain security; ISO/IEC 27001 | Missing SBOM, SCA and dependency-security evidence. | Vulnerable or unreviewed dependencies may enter a release. | Retain the existing #127 prerequisite evidence and verify its current scope in the release baseline. | Supply-chain Security Owner | Open | Evidence pending in [`evidence-matrix.md`](evidence-matrix.md) | #127 closed prerequisite; #120 |
 | `MIN-03` | Minor | ISO/IEC 25010 | Missing performance and resource metrics. | Capacity, repeatability and host suitability remain unverified. | Define the required metrics and capture them in the appropriate acceptance evidence. | Performance/Runtime Owner | Open | Planned evidence in [`evidence-matrix.md`](evidence-matrix.md) | #120 |
 | `MIN-04` | Minor | ISO 9001; ISO/IEC 12207 | Operational-readiness checklist is not evidence-based. | Readiness may be asserted without observable proof. | Convert checklist items to requirement, evidence and reviewer mappings. | Release Readiness Owner | Open | Evidence pending in [`evidence-matrix.md`](evidence-matrix.md) | #124, #125; #120 |
-| `MIN-05` | Minor | Release governance | Missing repository license. | Redistribution and usage expectations are unclear. | Decide and add the repository license through a dedicated reviewed change. | Release Governance Owner | Open | Missing; see [`evidence-matrix.md`](evidence-matrix.md) | #120 |
+| `MIN-05` | Minor | Release governance | Historical missing-license finding; the repository contains Apache-2.0 LICENSE. | The original absence is no longer present. | Repository presence and documentation reviewed on 2026-09-13. | Release Governance Owner / RC1 integration owner | Closed | [LICENSE](../../LICENSE); [R07 review](../../.tiny-swarm/evidence/issue-308/implementation_summary.md) | #120; #308 |
 | `MIN-06` | Minor | ISO/IEC 12207; release governance | Release and baseline process is incomplete. | Reproducibility and rollback evidence may be inconsistent. | Define baseline identity, release evidence, rollback and change approval rules. | Release Baseline Owner | Open | Planned in [`remediation-plan.md`](remediation-plan.md) | #120 |
 | `MIN-07` | Minor | OWASP ASVS | Missing ASVS control matrix. | Admin-surface security requirements cannot be traced to verification. | Map applicable ASVS controls to the local infrastructure/admin surfaces and evidence. | Security Architecture Owner | Open | Planned in [`evidence-matrix.md`](evidence-matrix.md) | #126; #150 |
 | `MIN-08` | Minor | ISO 20246; ISO/IEC/IEEE 26514 | Review records are not formalized. | Decisions and dissent may not be reproducible. | Use named reviewers, date, scope, decision, evidence and remaining-risk records. | Review/Evidence Owner | Open | Starting structure: [`evidence-matrix.md`](evidence-matrix.md) | #121; #124 |
@@ -60,3 +60,12 @@ Update a row only when the underlying evidence, owner decision or review state
 changes. Keep the old evidence reference available through the normal repository
 history. Do not replace an open finding with a new row to make the register
 appear green.
+
+## RC1 review on 2026-09-13
+
+MIN-05 is corrected from the actual repository file, not from a plan to add a
+license. The root-AGENTS requirement/architecture/QA fallback review is recorded
+in the R07 package after real-agent usage limits. This narrow correction does
+not close the ISMS/QMS, socket-security or global audit findings. Current bounded
+RC1 lifecycle and scan evidence are reviewed through issues #297–#310 and the
+[release decision](../release/rc1-decision.md); historical rows retain their scope.

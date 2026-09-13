@@ -18,6 +18,19 @@ Incus installation, initialization, host networking and permissions are
 operator prerequisites. Tiny Swarm World installs Docker inside managed LXC
 nodes; it does not prepare the Incus host daemon for you.
 
+An empty Incus project can still share a host network with another project.
+Check that the configured node names and published ports are available across
+that shared network. Stopped containers can retain their DNS names: a second
+`swarm-manager` can therefore fail to start even when its project is empty.
+Use an isolated prepared target or have the host operator resolve the ownership
+conflict while preserving existing data before starting the installation.
+
+On a dedicated WSL distribution, qualify the Windows bridge from that same
+distribution and retain the Windows interoperability tools in the protected
+runner's command search path. Follow the
+[host preparation instructions](../user_guide/installation.adoc); a bridge
+configuration selecting another distribution does not qualify the new target.
+
 **The installer wrapper resets the managed environment before setup.** Read the
 reset scope before running it on a machine with data you want to keep. Use
 `platform verify` to inspect an existing installation first.

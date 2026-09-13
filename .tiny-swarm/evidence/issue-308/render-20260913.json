@@ -1,0 +1,16 @@
+{
+  "renderer": "asciidoctor/docker-asciidoctor@sha256:23c022800c00bd7b73fe4e3deca49c77500f0fb34035b131cfed3f835e8d9de9",
+  "network": "none",
+  "source_read_only": true,
+  "result": "PASS",
+  "failure_level": "WARN",
+  "initial_operator_error": "First command used nonexistent documentation/system.adoc; corrected to documentation/system/system.adoc and all four rendered with exit 0",
+  "manual_link_and_explicit_anchor_check": "PASS",
+  "html_sha256": {
+    "arc42.html": "7e594d58120a5a313656362869d4cc6ef4649713d24dff5d0a7a7253d0207e53",
+    "installation.html": "52e15c838d422ab39abaa3ac724caefe98f999c434d81a3934008b61b7c309e0",
+    "system.html": "412fd9003a63383b1bdd97889d68f7842773d0641bd6ed1bffd3ece1ce1dfb75",
+    "usage.html": "f118dc1095399aeb82c108f46ec5c2badb0a8e1fec3eff08a4beffbe50d97bb3"
+  },
+  "latest_render": "After current arc42/Vaultwarden disposition correction, same pinned Linux container command completed with exit 0 and failure-level WARN"
+}

@@ -1,0 +1,654 @@
+{
+  "candidate_sha": "c921e69533450fba86d908e2990c106bef87769a",
+  "operator": "Codex integration owner using existing guides; no invented human first-user claim",
+  "consent": "existing full disposable-test authorization",
+  "starting_state": "Qualified hosts with no managed workload in the selected target; immutable base-image/cache reuse only, no prior service volumes copied",
+  "guides": [
+    "documentation/user_guide/installation.adoc",
+    "documentation/user_guide/usage.adoc",
+    "documentation/manuals/operator-manual.md"
+  ],
+  "path": "Existing Python/dependencies and Incus/bridge/storage prerequisites, canonical setup run on the empty target, platform readiness and authenticated first use, reconcile, selected image update and recovery",
+  "wrapper_limit": "The live runner executes the documented canonical setup entrypoint directly on an empty target; it does not claim an additional install.sh reset execution",
+  "observed_gaps": [
+    {
+      "host": "wsl2",
+      "gap": "Dedicated distro bridge selection and Windows executable PATH missing in first attempt",
+      "correction": "Qualified same-distro bridge and retained interop tools before successful fresh retry; documented in operator manual",
+      "failed_run": 34725789727
+    },
+    {
+      "host": "native_linux",
+      "gap": "Stopped old-project nodes retained DNS names on the shared bridge",
+      "correction": "Preserved UUID/storage, renamed retained old nodes, verified zero new instances before successful fresh retry; documented in operator manual"
+    }
+  ],
+  "hosts": [
+    {
+      "host": "wsl2",
+      "executed_sha": "8eb5db338aed9965a49ed6879198fd1053b97dcc",
+      "run_id": "20260912T233918.107391Z",
+      "started_at": "2026-09-12T23:39:18.107391Z",
+      "finished_at": "2026-09-13T00:15:06.731016Z",
+      "total_seconds": 2148.624,
+      "setup_seconds": 1723.846,
+      "operations": [
+        {
+          "operation": "diagnostics",
+          "exit_code": 0,
+          "duration_seconds": 0.135,
+          "summary": {
+            "result": "completed_without_structured_summary"
+          }
+        },
+        {
+          "operation": "setup",
+          "exit_code": 0,
+          "duration_seconds": 1723.846,
+          "summary": {
+            "message": "setup run completed all configured phases.",
+            "mutation": null,
+            "phase_results": {
+              "count": 18,
+              "failed": []
+            },
+            "reason": "preflight, platform, artifacts, deployment, and verification phases completed",
+            "result": "passed",
+            "result_count": 0,
+            "status": "completed",
+            "verification": null,
+            "verification_results": []
+          }
+        },
+        {
+          "operation": "platform_verify",
+          "exit_code": 0,
+          "duration_seconds": 2.957,
+          "summary": {
+            "message": "verify workflow completed.",
+            "mutation": "not_applicable",
+            "phase_results": {
+              "count": 0,
+              "failed": []
+            },
+            "reason": null,
+            "result": "passed",
+            "result_count": 6,
+            "status": "completed",
+            "verification": "verified",
+            "verification_results": []
+          }
+        },
+        {
+          "operation": "classic_e2e",
+          "exit_code": 0,
+          "duration_seconds": 4.314,
+          "summary": {
+            "expected_tests": 8,
+            "failure_types": [],
+            "reason": null,
+            "result": "passed",
+            "runtime_seconds": 3.91,
+            "skipped": 0,
+            "tests": 8
+          }
+        },
+        {
+          "operation": "classic_authenticated",
+          "exit_code": 0,
+          "duration_seconds": 134.594,
+          "summary": {
+            "api_checks": 7,
+            "browser_tests": 9,
+            "errors": 0,
+            "expected_api_checks": 7,
+            "expected_browser_tests": 9,
+            "failure_types": [],
+            "failures": 0,
+            "live_tests": 25,
+            "readiness_after_tests": 8,
+            "readiness_before_tests": 8,
+            "reason": null,
+            "result": "passed",
+            "skipped": 0
+          }
+        },
+        {
+          "operation": "reconcile",
+          "exit_code": 0,
+          "duration_seconds": 1.257,
+          "summary": {
+            "message": "reconcile workflow completed.",
+            "mutation": "no_op",
+            "phase_results": {
+              "count": 0,
+              "failed": []
+            },
+            "reason": null,
+            "result": "passed",
+            "result_count": 3,
+            "status": "completed",
+            "verification": "verified",
+            "verification_results": []
+          }
+        },
+        {
+          "operation": "reconcile_e2e",
+          "exit_code": 0,
+          "duration_seconds": 1.788,
+          "summary": {
+            "expected_tests": 8,
+            "failure_types": [],
+            "reason": null,
+            "result": "passed",
+            "runtime_seconds": 1.354,
+            "skipped": 0,
+            "tests": 8
+          }
+        },
+        {
+          "operation": "reconcile_authenticated",
+          "exit_code": 0,
+          "duration_seconds": 80.841,
+          "summary": {
+            "api_checks": 7,
+            "browser_tests": 9,
+            "errors": 0,
+            "expected_api_checks": 7,
+            "expected_browser_tests": 9,
+            "failure_types": [],
+            "failures": 0,
+            "live_tests": 25,
+            "readiness_after_tests": 8,
+            "readiness_before_tests": 8,
+            "reason": null,
+            "result": "passed",
+            "skipped": 0
+          }
+        },
+        {
+          "operation": "update",
+          "exit_code": 0,
+          "duration_seconds": 13.346,
+          "summary": {
+            "message": "update workflow completed.",
+            "mutation": "converged",
+            "phase_results": {
+              "count": 0,
+              "failed": []
+            },
+            "reason": null,
+            "result": "passed",
+            "result_count": 2,
+            "status": "completed",
+            "verification": "verified",
+            "verification_results": []
+          }
+        },
+        {
+          "operation": "update_e2e",
+          "exit_code": 0,
+          "duration_seconds": 7.963,
+          "summary": {
+            "expected_tests": 8,
+            "failure_types": [],
+            "reason": null,
+            "result": "passed",
+            "runtime_seconds": 7.567,
+            "skipped": 0,
+            "tests": 8
+          }
+        },
+        {
+          "operation": "update_authenticated",
+          "exit_code": 0,
+          "duration_seconds": 79.961,
+          "summary": {
+            "api_checks": 7,
+            "browser_tests": 9,
+            "errors": 0,
+            "expected_api_checks": 7,
+            "expected_browser_tests": 9,
+            "failure_types": [],
+            "failures": 0,
+            "live_tests": 25,
+            "readiness_after_tests": 8,
+            "readiness_before_tests": 8,
+            "reason": null,
+            "result": "passed",
+            "skipped": 0
+          }
+        },
+        {
+          "operation": "recovery",
+          "exit_code": 0,
+          "duration_seconds": 13.256,
+          "summary": {
+            "message": "update workflow completed.",
+            "mutation": "converged",
+            "phase_results": {
+              "count": 0,
+              "failed": []
+            },
+            "reason": null,
+            "result": "passed",
+            "result_count": 2,
+            "status": "completed",
+            "verification": "verified",
+            "verification_results": []
+          }
+        },
+        {
+          "operation": "recovery_e2e",
+          "exit_code": 0,
+          "duration_seconds": 1.974,
+          "summary": {
+            "expected_tests": 8,
+            "failure_types": [],
+            "reason": null,
+            "result": "passed",
+            "runtime_seconds": 1.549,
+            "skipped": 0,
+            "tests": 8
+          }
+        },
+        {
+          "operation": "recovery_authenticated",
+          "exit_code": 0,
+          "duration_seconds": 82.317,
+          "summary": {
+            "api_checks": 7,
+            "browser_tests": 9,
+            "errors": 0,
+            "expected_api_checks": 7,
+            "expected_browser_tests": 9,
+            "failure_types": [],
+            "failures": 0,
+            "live_tests": 25,
+            "readiness_after_tests": 8,
+            "readiness_before_tests": 8,
+            "reason": null,
+            "result": "passed",
+            "skipped": 0
+          }
+        }
+      ],
+      "resource_snapshot": {
+        "timestamp": "2026-09-12T23:30:43.408683+00:00",
+        "host_profile": "WSL2 dedicated disposable distro",
+        "distro": "TSW-RC1-Isolated",
+        "kernel": "6.18.33.2-microsoft-standard-WSL2",
+        "python": "3.12.3",
+        "pid1": "systemd",
+        "pid1_stat": "1 (systemd) S 0 1 1 0 -1 4194560 15660 171649 13 247 80 54 282 142 20 0 1 0 15122376 22790144 3272 18446744073709551615 1 1 0 0 0 0 671173123 4096 1260 0 0 0 17 6 0 0 0 0 0 0 0 0 0 0 0 0 0\n",
+        "pid_namespace": "pid:[4026534856]",
+        "kernel_boot_id": "933df521-505f-49bb-a700-4c118206b4d8",
+        "source_sha": "eef5008ff4deef4b8e0e28dbf16c4d6a77dd1550",
+        "instance_count": 0,
+        "workload_volumes_copied": false,
+        "cache": "immutable Ubuntu 24.04 Incus base image only",
+        "memory_total": "20476604 kB",
+        "memory_available": "18018664 kB",
+        "cpu_affinity_count": 28,
+        "disk_free_bytes": 1022318776320,
+        "checks": [
+          {
+            "command": [
+              "incus",
+              "version"
+            ],
+            "exit_code": 0
+          },
+          {
+            "command": [
+              "docker",
+              "version",
+              "--format",
+              "{{.Server.Version}}"
+            ],
+            "exit_code": 0
+          },
+          {
+            "command": [
+              "/home/ubuntu/.local/state/tiny-swarm-world/rc1-live-venv/bin/python",
+              "tools/install_debugger.py",
+              "--live",
+              "--env-file",
+              "/home/ubuntu/.local/state/tiny-swarm-world/live-installation.env"
+            ],
+            "exit_code": 0
+          }
+        ],
+        "result": "LIVE_PREREQUISITES_VERIFIED"
+      },
+      "status": "LIVE_VERIFIED"
+    },
+    {
+      "host": "native_linux",
+      "executed_sha": "c921e69533450fba86d908e2990c106bef87769a",
+      "run_id": "20260912T235814.253797Z",
+      "started_at": "2026-09-12T23:58:14.253797Z",
+      "finished_at": "2026-09-13T00:27:36.341390Z",
+      "total_seconds": 1762.088,
+      "setup_seconds": 1476.238,
+      "operations": [
+        {
+          "operation": "diagnostics",
+          "exit_code": 0,
+          "duration_seconds": 0.109,
+          "summary": {
+            "result": "completed_without_structured_summary"
+          }
+        },
+        {
+          "operation": "setup",
+          "exit_code": 0,
+          "duration_seconds": 1476.238,
+          "summary": {
+            "message": "setup run completed all configured phases.",
+            "mutation": null,
+            "phase_results": {
+              "count": 18,
+              "failed": []
+            },
+            "reason": "preflight, platform, artifacts, deployment, and verification phases completed",
+            "result": "passed",
+            "result_count": 0,
+            "status": "completed",
+            "verification": null,
+            "verification_results": []
+          }
+        },
+        {
+          "operation": "platform_verify",
+          "exit_code": 0,
+          "duration_seconds": 2.68,
+          "summary": {
+            "message": "verify workflow completed.",
+            "mutation": "not_applicable",
+            "phase_results": {
+              "count": 0,
+              "failed": []
+            },
+            "reason": null,
+            "result": "passed",
+            "result_count": 6,
+            "status": "completed",
+            "verification": "verified",
+            "verification_results": []
+          }
+        },
+        {
+          "operation": "classic_e2e",
+          "exit_code": 0,
+          "duration_seconds": 1.406,
+          "summary": {
+            "expected_tests": 8,
+            "failure_types": [],
+            "reason": null,
+            "result": "passed",
+            "runtime_seconds": 1.001,
+            "skipped": 0,
+            "tests": 8
+          }
+        },
+        {
+          "operation": "classic_authenticated",
+          "exit_code": 0,
+          "duration_seconds": 62.623,
+          "summary": {
+            "api_checks": 7,
+            "browser_tests": 9,
+            "errors": 0,
+            "expected_api_checks": 7,
+            "expected_browser_tests": 9,
+            "failure_types": [],
+            "failures": 0,
+            "live_tests": 25,
+            "readiness_after_tests": 8,
+            "readiness_before_tests": 8,
+            "reason": null,
+            "result": "passed",
+            "skipped": 0
+          }
+        },
+        {
+          "operation": "reconcile",
+          "exit_code": 0,
+          "duration_seconds": 1.116,
+          "summary": {
+            "message": "reconcile workflow completed.",
+            "mutation": "no_op",
+            "phase_results": {
+              "count": 0,
+              "failed": []
+            },
+            "reason": null,
+            "result": "passed",
+            "result_count": 3,
+            "status": "completed",
+            "verification": "verified",
+            "verification_results": []
+          }
+        },
+        {
+          "operation": "reconcile_e2e",
+          "exit_code": 0,
+          "duration_seconds": 1.648,
+          "summary": {
+            "expected_tests": 8,
+            "failure_types": [],
+            "reason": null,
+            "result": "passed",
+            "runtime_seconds": 1.208,
+            "skipped": 0,
+            "tests": 8
+          }
+        },
+        {
+          "operation": "reconcile_authenticated",
+          "exit_code": 0,
+          "duration_seconds": 59.443,
+          "summary": {
+            "api_checks": 7,
+            "browser_tests": 9,
+            "errors": 0,
+            "expected_api_checks": 7,
+            "expected_browser_tests": 9,
+            "failure_types": [],
+            "failures": 0,
+            "live_tests": 25,
+            "readiness_after_tests": 8,
+            "readiness_before_tests": 8,
+            "reason": null,
+            "result": "passed",
+            "skipped": 0
+          }
+        },
+        {
+          "operation": "update",
+          "exit_code": 0,
+          "duration_seconds": 12.368,
+          "summary": {
+            "message": "update workflow completed.",
+            "mutation": "converged",
+            "phase_results": {
+              "count": 0,
+              "failed": []
+            },
+            "reason": null,
+            "result": "passed",
+            "result_count": 3,
+            "status": "completed",
+            "verification": "verified",
+            "verification_results": []
+          }
+        },
+        {
+          "operation": "update_e2e",
+          "exit_code": 0,
+          "duration_seconds": 7.541,
+          "summary": {
+            "expected_tests": 8,
+            "failure_types": [],
+            "reason": null,
+            "result": "passed",
+            "runtime_seconds": 7.169,
+            "skipped": 0,
+            "tests": 8
+          }
+        },
+        {
+          "operation": "update_authenticated",
+          "exit_code": 0,
+          "duration_seconds": 58.393,
+          "summary": {
+            "api_checks": 7,
+            "browser_tests": 9,
+            "errors": 0,
+            "expected_api_checks": 7,
+            "expected_browser_tests": 9,
+            "failure_types": [],
+            "failures": 0,
+            "live_tests": 25,
+            "readiness_after_tests": 8,
+            "readiness_before_tests": 8,
+            "reason": null,
+            "result": "passed",
+            "skipped": 0
+          }
+        },
+        {
+          "operation": "recovery",
+          "exit_code": 0,
+          "duration_seconds": 12.405,
+          "summary": {
+            "message": "update workflow completed.",
+            "mutation": "converged",
+            "phase_results": {
+              "count": 0,
+              "failed": []
+            },
+            "reason": null,
+            "result": "passed",
+            "result_count": 3,
+            "status": "completed",
+            "verification": "verified",
+            "verification_results": []
+          }
+        },
+        {
+          "operation": "recovery_e2e",
+          "exit_code": 0,
+          "duration_seconds": 6.212,
+          "summary": {
+            "expected_tests": 8,
+            "failure_types": [],
+            "reason": null,
+            "result": "passed",
+            "runtime_seconds": 5.858,
+            "skipped": 0,
+            "tests": 8
+          }
+        },
+        {
+          "operation": "recovery_authenticated",
+          "exit_code": 0,
+          "duration_seconds": 59.897,
+          "summary": {
+            "api_checks": 7,
+            "browser_tests": 9,
+            "errors": 0,
+            "expected_api_checks": 7,
+            "expected_browser_tests": 9,
+            "failure_types": [],
+            "failures": 0,
+            "live_tests": 25,
+            "readiness_after_tests": 8,
+            "readiness_before_tests": 8,
+            "reason": null,
+            "result": "passed",
+            "skipped": 0
+          }
+        }
+      ],
+      "resource_snapshot": {
+        "observed_at": "2026-09-13T00:04:30.118081+00:00",
+        "candidate_sha": "c921e69533450fba86d908e2990c106bef87769a",
+        "host_classification": "native_linux",
+        "os": {
+          "PRETTY_NAME": "Ubuntu 26.04.1 LTS",
+          "VERSION_ID": "26.04",
+          "ID": "ubuntu"
+        },
+        "kernel": "7.0.0-31-generic",
+        "architecture": "x86_64",
+        "systemd_version": "systemd 259 (259.5-0ubuntu3.4)",
+        "boot_id": "da4621d5-fb43-410a-bf5a-c0320dbcf201",
+        "pid1_start_ticks": "10",
+        "pid1_namespace": "",
+        "cpu_affinity_count": 8,
+        "memory_kib": {
+          "MemTotal": 24078420,
+          "MemAvailable": 20219660
+        },
+        "evidence_filesystem": {
+          "filesystems": [
+            {
+              "target": "/",
+              "fstype": "ext4"
+            }
+          ]
+        },
+        "disk_bytes": {
+          "total": 260663508992,
+          "used": 38532251648,
+          "free": 210991529984
+        },
+        "incus_version": "Client version: 6.0.5\nServer version: 6.0.5",
+        "current_project": "rc1-native-20260913",
+        "storage_pools": [
+          {
+            "name": "default",
+            "driver": "dir",
+            "status": "Created"
+          }
+        ],
+        "nodes": [
+          {
+            "name": "swarm-manager",
+            "status": "Running",
+            "created_at": "2026-09-12T23:58:20.190701418Z",
+            "uuid": "bbb9b170-464e-476e-88bb-90798c902f51"
+          },
+          {
+            "name": "swarm-worker-1",
+            "status": "Running",
+            "created_at": "2026-09-12T23:58:40.611652718Z",
+            "uuid": "dd2f6a90-bca8-4e37-85af-d83bb360f500"
+          },
+          {
+            "name": "swarm-worker-2",
+            "status": "Running",
+            "created_at": "2026-09-12T23:58:42.659772467Z",
+            "uuid": "03ec44b9-c843-4d05-ad4e-3ea54cfe9dd0"
+          }
+        ]
+      },
+      "status": "LIVE_VERIFIED"
+    }
+  ],
+  "resource_measurement_limit": "Snapshots of host capacity and available memory, not measured peaks; WSL host memory includes other shared-host work",
+  "profile_resource_contract": {
+    "service-access": {
+      "minimum_cpu_threads": 8,
+      "minimum_memory_gib": 16,
+      "minimum_free_disk_gib": 150,
+      "recommended_cpu_threads": 12,
+      "recommended_memory_gib": 24,
+      "recommended_free_disk_gib": 250
+    },
+    "source": "src/tiny_swarm_world/domain/preflight/resources.py; selected composition profile"
+  },
+  "maintenance": "Original host resources retained, native original names/project restored and poweroff requested; dedicated WSL test distro stopped and original target restoration recorded separately"
+}
