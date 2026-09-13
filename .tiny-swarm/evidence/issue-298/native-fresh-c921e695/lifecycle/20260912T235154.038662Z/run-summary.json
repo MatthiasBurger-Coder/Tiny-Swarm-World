@@ -1,0 +1,169 @@
+{
+  "consent_state": "LIVE_APPROVED",
+  "credential_rotation": {
+    "reference_present": false,
+    "reference_value": "not_recorded",
+    "status": "not_applicable_test_only"
+  },
+  "evidence_storage": {
+    "accepted": "true",
+    "directory": "true",
+    "exists": "true",
+    "filesystem_classification": "native_linux",
+    "group_verified": "true",
+    "mode_verified": "true",
+    "owner_verified": "true",
+    "parent_exists": "true",
+    "parent_group_verified": "true",
+    "parent_mode_verified": "true",
+    "parent_owner_verified": "true",
+    "purpose": "evidence_directory",
+    "reasons": "",
+    "regular_file": "false"
+  },
+  "execution_profile": "disposable_test",
+  "finished_at_utc": "2026-09-12T23:52:04.018780Z",
+  "host": {
+    "class": "native_linux",
+    "kernel_release": "7.0.0-31-generic",
+    "pid1": "systemd",
+    "systemd_directory_present": true
+  },
+  "host_class": "native_linux",
+  "operations": [
+    {
+      "command": "python3 tools/install_debugger.py --live",
+      "duration_seconds": 0.132,
+      "evidence_directory": "diagnostics",
+      "exit_code": 0,
+      "finished_at_utc": "2026-09-12T23:51:54.171790Z",
+      "operation": "diagnostics",
+      "started_at_utc": "2026-09-12T23:51:54.040099Z",
+      "summary": {
+        "result": "completed_without_structured_summary"
+      }
+    },
+    {
+      "command": "bash tsw --live --approve-live --json setup run",
+      "duration_seconds": 9.846,
+      "evidence_directory": "setup",
+      "exit_code": 1,
+      "finished_at_utc": "2026-09-12T23:52:04.018757Z",
+      "operation": "setup",
+      "started_at_utc": "2026-09-12T23:51:54.172328Z",
+      "summary": {
+        "message": "setup run stopped during phase 'platform init'.",
+        "mutation": null,
+        "phase_results": {
+          "count": 18,
+          "failed": [
+            {
+              "name": "platform init",
+              "verification_results": [
+                {
+                  "status": "failed_to_apply",
+                  "target_id": "platform:node:swarm-manager"
+                }
+              ]
+            },
+            {
+              "name": "platform reconcile",
+              "verification_results": [
+                {
+                  "status": "failed_to_apply",
+                  "target_id": "platform:node:swarm-manager"
+                }
+              ]
+            },
+            {
+              "name": "cluster docker"
+            },
+            {
+              "name": "cluster swarm bootstrap"
+            },
+            {
+              "name": "cluster verify"
+            },
+            {
+              "name": "platform expose"
+            },
+            {
+              "name": "deployment bootstrap"
+            },
+            {
+              "name": "artifact bootstrap"
+            },
+            {
+              "name": "artifact readiness gate"
+            },
+            {
+              "name": "artifacts prepare"
+            },
+            {
+              "name": "artifacts verify"
+            },
+            {
+              "name": "deployment apply"
+            },
+            {
+              "name": "deployment verify"
+            },
+            {
+              "name": "platform verify"
+            }
+          ]
+        },
+        "reason": "phase 'platform init' returned failed_to_apply",
+        "result": "failed_to_apply",
+        "result_count": 0,
+        "status": "failed_to_apply",
+        "verification": null,
+        "verification_results": []
+      }
+    }
+  ],
+  "reason": null,
+  "redaction": "raw stdout, stderr, credentials and environment values were not written",
+  "repository_commit": "c921e69533450fba86d908e2990c106bef87769a",
+  "run_id": "20260912T235154.038662Z",
+  "runner": {
+    "label": "native-manual",
+    "name": "tsw-native-manual",
+    "target_owner_reference_present": true
+  },
+  "scenario": "classic_live_chain",
+  "secret_storage": {
+    "accepted": "true",
+    "directory": "false",
+    "exists": "true",
+    "filesystem_classification": "native_linux",
+    "group_verified": "true",
+    "mode_verified": "true",
+    "owner_verified": "true",
+    "parent_exists": "true",
+    "parent_group_verified": "true",
+    "parent_mode_verified": "true",
+    "parent_owner_verified": "true",
+    "purpose": "secret_file",
+    "reasons": "",
+    "regular_file": "true"
+  },
+  "source_filesystem": {
+    "accepted": "false",
+    "directory": "true",
+    "exists": "true",
+    "filesystem_classification": "native_linux",
+    "group_verified": "true",
+    "mode_verified": "false",
+    "owner_verified": "true",
+    "parent_exists": "true",
+    "parent_group_verified": "true",
+    "parent_mode_verified": "true",
+    "parent_owner_verified": "true",
+    "purpose": "evidence_directory",
+    "reasons": "evidence_mode_not_0700",
+    "regular_file": "false"
+  },
+  "started_at_utc": "2026-09-12T23:51:54.038662Z",
+  "status": "LIVE_FAILED_AFTER_MUTATION"
+}

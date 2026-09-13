@@ -1,0 +1,40 @@
+{
+  "timestamp": "2026-09-12T23:47:58.907155+00:00",
+  "candidate": "c921e69533450fba86d908e2990c106bef87769a",
+  "original_project": "default",
+  "fresh_project": "rc1-native-20260913",
+  "original_node_identities": {
+    "swarm-manager": {
+      "created_at": "2026-09-11T08:43:53.968392452Z",
+      "uuid": "e9acfc91-f222-460e-897c-b4c8d3fb7432"
+    },
+    "swarm-worker-1": {
+      "created_at": "2026-09-11T08:43:55.855961539Z",
+      "uuid": "df805f55-0975-45c8-aa4c-9581312500ba"
+    },
+    "swarm-worker-2": {
+      "created_at": "2026-09-11T08:43:57.903327128Z",
+      "uuid": "3bf9e5ad-1f66-4ee8-ae08-ae2c4a3b3d7a"
+    }
+  },
+  "original_data_retained": true,
+  "stops": [
+    {
+      "name": "swarm-worker-2",
+      "exit_code": 0
+    },
+    {
+      "name": "swarm-worker-1",
+      "exit_code": 0
+    },
+    {
+      "name": "swarm-manager",
+      "exit_code": 0
+    }
+  ],
+  "resume_reason": "Project CLI waited for inherited SSH stdin; no project was created. Retry supplies closed stdin and a deadline.",
+  "fresh_instance_count": 0,
+  "prerequisites_reused": "Incus daemon, immutable base images, operator profiles/network/storage pool, Python/browser tools and approved credential/TLS inputs; no workload volumes copied",
+  "protected_config_mode": "0600",
+  "fresh_update_state_separate": true
+}

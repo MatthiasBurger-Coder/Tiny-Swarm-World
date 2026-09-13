@@ -1,0 +1,30 @@
+{
+  "timestamp": "2026-09-12T23:57:56.827829+00:00",
+  "reason": "Incus shared-network DNS names remain reserved by stopped instances in the default project",
+  "classification": "LIVE_PREREQUISITE_MISSING",
+  "renames": [
+    {
+      "before": "swarm-manager",
+      "after": "rc1-retained-swarm-manager",
+      "uuid": "e9acfc91-f222-460e-897c-b4c8d3fb7432"
+    },
+    {
+      "before": "swarm-worker-1",
+      "after": "rc1-retained-swarm-worker-1",
+      "uuid": "df805f55-0975-45c8-aa4c-9581312500ba"
+    },
+    {
+      "before": "swarm-worker-2",
+      "after": "rc1-retained-swarm-worker-2",
+      "uuid": "3bf9e5ad-1f66-4ee8-ae08-ae2c4a3b3d7a"
+    }
+  ],
+  "never_started_fresh_instance": {
+    "uuid": "1c935b31-58a8-46a7-bd16-59fc1830e0da",
+    "last_used_at": "1970-01-01T00:00:00Z"
+  },
+  "fresh_instance_count": 0,
+  "original_data_retained": true,
+  "state": "PREREQUISITE_CORRECTED",
+  "cleanup": "Stop fresh instances, restore default names, then restore the original target and shut down the VM"
+}

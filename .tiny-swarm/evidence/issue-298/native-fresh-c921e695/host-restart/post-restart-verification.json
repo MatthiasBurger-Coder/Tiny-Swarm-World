@@ -1,0 +1,136 @@
+{
+  "candidate": "c921e69533450fba86d908e2990c106bef87769a",
+  "started_at": "2026-09-13T00:41:11.221242+00:00",
+  "readiness_attempts": [
+    {
+      "operation": "platform_verify",
+      "started_at": "2026-09-13T00:41:11.221352Z",
+      "finished_at": "2026-09-13T00:41:19.813111Z",
+      "duration_seconds": 8.592,
+      "exit_code": 0,
+      "summary": {
+        "result": "passed",
+        "status": "completed",
+        "message": "verify workflow completed.",
+        "reason": null,
+        "phase_results": {
+          "count": 0,
+          "failed": []
+        },
+        "verification": "verified",
+        "mutation": "not_applicable",
+        "result_count": 6,
+        "verification_results": []
+      }
+    },
+    {
+      "operation": "classic_e2e",
+      "started_at": "2026-09-13T00:41:19.813349Z",
+      "finished_at": "2026-09-13T00:42:08.269950Z",
+      "duration_seconds": 48.457,
+      "exit_code": 1,
+      "summary": {
+        "result": "failed",
+        "reason": "readiness_count_or_result_failed",
+        "tests": 8,
+        "expected_tests": 8,
+        "runtime_seconds": 47.909,
+        "skipped": 0,
+        "failure_types": [
+          "AssertionError"
+        ]
+      }
+    },
+    {
+      "operation": "platform_verify",
+      "started_at": "2026-09-13T00:42:13.270374Z",
+      "finished_at": "2026-09-13T00:42:16.585773Z",
+      "duration_seconds": 3.315,
+      "exit_code": 0,
+      "summary": {
+        "result": "passed",
+        "status": "completed",
+        "message": "verify workflow completed.",
+        "reason": null,
+        "phase_results": {
+          "count": 0,
+          "failed": []
+        },
+        "verification": "verified",
+        "mutation": "not_applicable",
+        "result_count": 6,
+        "verification_results": []
+      }
+    },
+    {
+      "operation": "classic_e2e",
+      "started_at": "2026-09-13T00:42:16.586030Z",
+      "finished_at": "2026-09-13T00:42:51.648008Z",
+      "duration_seconds": 35.062,
+      "exit_code": 0,
+      "summary": {
+        "result": "passed",
+        "reason": null,
+        "tests": 8,
+        "expected_tests": 8,
+        "runtime_seconds": 34.621,
+        "skipped": 0,
+        "failure_types": []
+      }
+    }
+  ],
+  "manual_repair_performed_by_this_read_only_verifier": false,
+  "readiness_scope": "Canonical platform verification and all eight service readiness checks; platform readiness alone is insufficient",
+  "readiness_wait_seconds": 100.427,
+  "continuity_exit_code": 0,
+  "continuity": {
+    "phase": "after-host-restart",
+    "timestamp": "2026-09-13T00:42:54.384338+00:00",
+    "candidate": "c921e69533450fba86d908e2990c106bef87769a",
+    "script_sha256": "be04670e115b8bf4e1c6d798cb5b20009b2f5ab22e2bd1574447de416221f09d",
+    "fixture": "tsw-rc1-continuity-20260913",
+    "original_build": 1,
+    "artifact_sha256": "ab8559f89c39c3bce463d214dd92efbf79d8bd129ed1f1fddd33a50bef5aecab",
+    "preserved": {
+      "service_ids": true,
+      "node_ids": true,
+      "cluster_id": true,
+      "home": true,
+      "storage_node": true,
+      "private_home_configuration": true,
+      "private_job_inventory": true,
+      "fixture_configuration": true,
+      "fixture_artifact": true
+    },
+    "changed_service_configurations": [],
+    "desired_image": "127.0.0.1:13500/jenkins:0.2.0",
+    "running_image_id": "sha256:9dcfd7c5f3b33436b85e4eae38dc5b4ae7aea51b4478effc165e0e1449278ef3",
+    "task_id": "nrs96fp39ye5",
+    "container_id": "32ad1881320f",
+    "passed": true
+  },
+  "authenticated": {
+    "operation": "recovery_authenticated",
+    "started_at": "2026-09-13T00:42:54.451220Z",
+    "finished_at": "2026-09-13T00:43:54.615213Z",
+    "duration_seconds": 60.164,
+    "exit_code": 0,
+    "summary": {
+      "result": "passed",
+      "reason": null,
+      "readiness_before_tests": 8,
+      "readiness_after_tests": 8,
+      "expected_browser_tests": 9,
+      "browser_tests": 9,
+      "expected_api_checks": 7,
+      "api_checks": 7,
+      "live_tests": 25,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "failure_types": []
+    }
+  },
+  "passed": true,
+  "finished_at": "2026-09-13T00:43:54.615255+00:00"
+}

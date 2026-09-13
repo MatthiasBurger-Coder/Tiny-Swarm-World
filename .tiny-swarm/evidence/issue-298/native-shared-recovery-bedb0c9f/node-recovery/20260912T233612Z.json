@@ -1,0 +1,34 @@
+{
+  "candidate": "bedb0c9f1d5f2fdfddf6f14624242a18fce55f25",
+  "host": "7.0.0-31-generic",
+  "started_at": "2026-09-12T23:36:12.509550+00:00",
+  "node": "swarm-worker-2",
+  "operations": [
+    {
+      "operation": "reconcile",
+      "started_at": "2026-09-12T23:36:14.166075Z",
+      "finished_at": "2026-09-12T23:36:14.728685Z",
+      "duration_seconds": 0.563,
+      "exit_code": 1,
+      "summary": {
+        "result": "failed"
+      }
+    }
+  ],
+  "provider_identities_before": {
+    "swarm-manager": {
+      "created_at": "2026-09-11T08:43:53.968392452Z",
+      "uuid": "e9acfc91-f222-460e-897c-b4c8d3fb7432"
+    },
+    "swarm-worker-1": {
+      "created_at": "2026-09-11T08:43:55.855961539Z",
+      "uuid": "df805f55-0975-45c8-aa4c-9581312500ba"
+    },
+    "swarm-worker-2": {
+      "created_at": "2026-09-11T08:43:57.903327128Z",
+      "uuid": "3bf9e5ad-1f66-4ee8-ae08-ae2c4a3b3d7a"
+    }
+  },
+  "stop_exit_code": 0,
+  "stopped_observed": true
+}
