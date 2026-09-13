@@ -188,6 +188,7 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc.services.lxc_portainer
     LxcPortainerHttpClient,
 )
 from tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime import LxcSwarmRuntime
+from tiny_swarm_world.infrastructure.adapters.clients.docker_swarm_runtime import DockerSwarmRuntime
 from tiny_swarm_world.infrastructure.adapters.clients.infisical_playwright_client import (
     PlaywrightInfisicalClient,
 )

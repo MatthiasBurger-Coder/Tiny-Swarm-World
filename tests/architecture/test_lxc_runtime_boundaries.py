@@ -4,9 +4,22 @@ import re
 import unittest
 
 import tiny_swarm_world.infrastructure.composition as composition
+from tiny_swarm_world.application.ports.clients.port_swarm_stack_runtime import (
+    PortSwarmStackRuntime,
+)
+from tiny_swarm_world.infrastructure.adapters.clients.docker_swarm_runtime import (
+    DockerSwarmRuntime,
+)
 
 
 class TestLxcRuntimeBoundaries(unittest.TestCase):
+    def test_docker_swarm_adapter_is_the_application_runtime_boundary(self):
+        self.assertTrue(issubclass(DockerSwarmRuntime, PortSwarmStackRuntime))
+        self.assertIs(
+            composition.DockerSwarmRuntime,
+            DockerSwarmRuntime,
+        )
+
     def test_backend_cli_mapping_has_one_infrastructure_source(self):
         infrastructure_root = (
             Path(__file__).parents[2]

@@ -19,6 +19,8 @@ class SwarmServiceStatus:
 
 
 class PortSwarmStackRuntime(ABC):
+    """Application port for the proven Docker Swarm deployment operations."""
+
     @abstractmethod
     def deploy_stack(
         self,

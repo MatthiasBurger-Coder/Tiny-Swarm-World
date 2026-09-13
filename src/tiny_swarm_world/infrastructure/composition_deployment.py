@@ -16,6 +16,7 @@ from tiny_swarm_world.application.services.deployment.verify_host_prerequisites 
 from tiny_swarm_world.domain.host_environment import HostEnvironmentKind
 from tiny_swarm_world.infrastructure.adapters.host import NativeLinuxHostPreparation
 from tiny_swarm_world.infrastructure.adapters.host.host_environment_detector import HostEnvironmentDetector
+from tiny_swarm_world.infrastructure.adapters.clients.docker_swarm_runtime import DockerSwarmRuntime
 
 from tiny_swarm_world.application.services.deployment.ensure_external_swarm_secret import (
     EnsureExternalSwarmSecret,
@@ -218,7 +219,7 @@ def build_lxc_deployment_services(
         canonical_tls_state_root,
     )
 
-    swarm_runtime = LxcSwarmRuntime(
+    lxc_swarm_runtime = LxcSwarmRuntime(
         backend=backend,
         process_runner=build_process_runner(),
         project_paths=project_paths,
@@ -232,6 +233,7 @@ def build_lxc_deployment_services(
             private_key_secret_name=traefik_tls_key_secret_name,
         ),
     )
+    swarm_runtime = DockerSwarmRuntime(delegate=lxc_swarm_runtime)
     stack_environment = _deployment_stack_environment(selected_service_profile)
     for environment_name, image_ref in (image_overrides or {}).items():
         if update_stack_name is not None:
@@ -338,7 +340,7 @@ def build_lxc_deployment_services(
         infisical_bootstrap_steps = _infisical_bootstrap_steps(
             selected_service_profile,
             cli=infisical_cli_client,
-            swarm_runtime=swarm_runtime,
+            swarm_runtime=lxc_swarm_runtime,
         )
         secret_discovery_step = SecretDiscoveryStep(
             storage=local_file_storage,
@@ -382,12 +384,12 @@ def build_lxc_deployment_services(
         pre_apply_steps.extend(
             (
                 routing_evidence_step,
-                _PrepareLxcStackAssets(swarm_runtime, "traefik"),
-                _PrepareLxcStackAssets(swarm_runtime, "swagger"),
+                _PrepareLxcStackAssets(lxc_swarm_runtime, "traefik"),
+                _PrepareLxcStackAssets(lxc_swarm_runtime, "swagger"),
             )
         )
     elif update_stack_name in {"traefik", "swagger", "service-access"}:
-        pre_apply_steps.append(_PrepareLxcStackAssets(swarm_runtime, update_stack_name))
+        pre_apply_steps.append(_PrepareLxcStackAssets(lxc_swarm_runtime, update_stack_name))
     pre_apply_checks: tuple[VerifyExternalSwarmInput, ...] = ()
     if "traefik" in service_stack_by_name:
         traefik_gui_users_secret_name = _operator_config_value(
@@ -418,7 +420,7 @@ def build_lxc_deployment_services(
             ),
         )
     if selected_service_profile is ServiceStackProfile.SERVICE_ACCESS and update_stack_name is None:
-        pre_apply_steps.append(_PrepareLxcStackAssets(swarm_runtime, "service-access"))
+        pre_apply_steps.append(_PrepareLxcStackAssets(lxc_swarm_runtime, "service-access"))
 
     return DeploymentServices(
         workflows=DeploymentWorkflows(
