@@ -18,6 +18,7 @@ from uuid import uuid4
 from tiny_swarm_world.application.ports.host import PortHostEnvironmentDetector
 from tiny_swarm_world.application.ports.network import PortWslSocatExposure
 from tiny_swarm_world.application.ports.method_trace import PortMethodTrace
+from tiny_swarm_world.application.ports.preflight import PortPlatformPreflight
 from tiny_swarm_world.application.services.artifacts import (
     ArtifactPrepareStep,
     ArtifactPrepareWorkflow,
@@ -1344,7 +1345,7 @@ def _platform_destroy_steps(
 
 
 async def _platform_init_pre_apply_guard(
-    preflight: PreflightService,
+    preflight: PortPlatformPreflight,
     node_provider_selection: NodeProviderSelectionService,
     provider_request: NodeProviderSelectionRequest,
     live_consent: LiveConsent | None,

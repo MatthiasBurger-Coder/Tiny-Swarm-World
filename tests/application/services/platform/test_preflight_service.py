@@ -6,7 +6,10 @@ from unittest.mock import Mock
 from tests.support.sonar_safe_literals import token_marker
 
 from tiny_swarm_world.application.ports.configuration import ConfigurationSourceLoadError
-from tiny_swarm_world.application.ports.preflight import PortHostPreflightProbe
+from tiny_swarm_world.application.ports.preflight import (
+    PortHostPreflightProbe,
+    PortPlatformPreflight,
+)
 from tiny_swarm_world.application.services.platform.preflight_service import PreflightService
 from tiny_swarm_world.domain.configuration import (
     ConfigurationFinding,
@@ -49,6 +52,9 @@ from tiny_swarm_world.domain.preflight.resources import HostResources, MemoryPre
 
 
 class TestPreflightService(unittest.IsolatedAsyncioTestCase):
+    def test_preflight_service_implements_platform_preflight_port(self):
+        self.assertIsInstance(PreflightService(_fake_probe()), PortPlatformPreflight)
+
     def test_wsl_resource_checks_cover_supported_and_pressure_paths(self):
         service = PreflightService(_fake_probe())
         service.resource_inspector = _ResourceInspector()

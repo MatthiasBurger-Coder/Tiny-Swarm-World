@@ -7,6 +7,7 @@ from tiny_swarm_world.application.ports.configuration import ConfigurationSource
 from tiny_swarm_world.application.ports.preflight import (
     PortArtifactSourceReadiness,
     PortHostPreflightProbe,
+    PortPlatformPreflight,
     PortSecretStorageProbe,
 )
 from tiny_swarm_world.application.services.configuration import ConfigurationValidationService
@@ -42,7 +43,7 @@ from tiny_swarm_world.domain.preflight.resources import (
 )
 
 
-class PreflightService:
+class PreflightService(PortPlatformPreflight):
     def __init__(
         self,
         host_probe: PortHostPreflightProbe,

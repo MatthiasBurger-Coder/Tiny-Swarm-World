@@ -11,11 +11,15 @@ from tiny_swarm_world.application.ports.preflight.port_artifact_contract_invento
 from tiny_swarm_world.application.ports.preflight.port_secret_storage_probe import (
     PortSecretStorageProbe,
 )
+from tiny_swarm_world.application.ports.preflight.port_platform_preflight import (
+    PortPlatformPreflight,
+)
 
 __all__ = [
     "PortArtifactContractInventory",
     "PortArtifactSourceReadiness",
     "PortHostPreflightProbe",
     "PortLiveReadiness",
+    "PortPlatformPreflight",
     "PortSecretStorageProbe",
 ]
