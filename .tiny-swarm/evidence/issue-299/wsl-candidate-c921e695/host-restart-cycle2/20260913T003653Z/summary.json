@@ -1,0 +1,296 @@
+{
+  "generated_utc": "2026-09-13T00:37:38Z",
+  "records": [
+    {
+      "content_type": "text/html",
+      "kind": "service",
+      "reachable": true,
+      "redacted_failure_reason": "",
+      "result": "passed",
+      "service": "service-access",
+      "status_code": 200,
+      "url": "http://localhost:10000"
+    },
+    {
+      "content_type": "",
+      "kind": "service",
+      "reachable": false,
+      "redacted_failure_reason": "HTTPError",
+      "result": "failed",
+      "service": "service-access-route:infisical",
+      "status_code": null,
+      "url": "https://infisical.tsw.local"
+    },
+    {
+      "content_type": "text/html;charset=utf-8",
+      "kind": "service",
+      "reachable": true,
+      "redacted_failure_reason": "",
+      "result": "passed",
+      "service": "service-access-route:jenkins",
+      "status_code": 403,
+      "url": "https://jenkins.tsw.local"
+    },
+    {
+      "content_type": "",
+      "kind": "service",
+      "reachable": false,
+      "redacted_failure_reason": "HTTPError",
+      "result": "failed",
+      "service": "service-access-route:nexus",
+      "status_code": null,
+      "url": "https://nexus.tsw.local"
+    },
+    {
+      "content_type": "text/html; charset=utf-8",
+      "kind": "service",
+      "reachable": true,
+      "redacted_failure_reason": "",
+      "result": "passed",
+      "service": "service-access-route:portainer",
+      "status_code": 200,
+      "url": "https://portainer.tsw.local"
+    },
+    {
+      "content_type": "text/html;charset=iso-8859-1",
+      "kind": "service",
+      "reachable": true,
+      "redacted_failure_reason": "",
+      "result": "passed",
+      "service": "service-access-route:pulsar-admin-api",
+      "status_code": 401,
+      "url": "https://pulsar-api.tsw.local/admin/v2/clusters"
+    },
+    {
+      "content_type": "text/html",
+      "kind": "service",
+      "reachable": true,
+      "redacted_failure_reason": "",
+      "result": "passed",
+      "service": "service-access-route:pulsar-manager",
+      "status_code": 200,
+      "url": "https://pulsar.tsw.local"
+    },
+    {
+      "content_type": "text/html",
+      "kind": "service",
+      "reachable": true,
+      "redacted_failure_reason": "",
+      "result": "passed",
+      "service": "service-access-route:service-access",
+      "status_code": 200,
+      "url": "https://service-access.tsw.local"
+    },
+    {
+      "content_type": "",
+      "kind": "service",
+      "reachable": false,
+      "redacted_failure_reason": "HTTPError",
+      "result": "failed",
+      "service": "service-access-route:sonarqube",
+      "status_code": null,
+      "url": "https://sonarqube.tsw.local"
+    },
+    {
+      "content_type": "text/html",
+      "kind": "service",
+      "reachable": true,
+      "redacted_failure_reason": "",
+      "result": "passed",
+      "service": "service-access-route:swagger",
+      "status_code": 302,
+      "url": "https://swagger.tsw.local"
+    },
+    {
+      "attempts": 125,
+      "duration_seconds": 45.0,
+      "kind": "service_readiness",
+      "pending_services": [
+        "service-access-route:infisical",
+        "service-access-route:nexus",
+        "service-access-route:sonarqube"
+      ],
+      "result": "failed"
+    },
+    {
+      "hostname": "infisical.tsw.local",
+      "kind": "hostname_resolution",
+      "redacted_failure_reason": "",
+      "result": "passed",
+      "service": "infisical"
+    },
+    {
+      "hostname": "jenkins.tsw.local",
+      "kind": "hostname_resolution",
+      "redacted_failure_reason": "",
+      "result": "passed",
+      "service": "jenkins"
+    },
+    {
+      "hostname": "nexus.tsw.local",
+      "kind": "hostname_resolution",
+      "redacted_failure_reason": "",
+      "result": "passed",
+      "service": "nexus"
+    },
+    {
+      "hostname": "portainer.tsw.local",
+      "kind": "hostname_resolution",
+      "redacted_failure_reason": "",
+      "result": "passed",
+      "service": "portainer"
+    },
+    {
+      "hostname": "pulsar-api.tsw.local",
+      "kind": "hostname_resolution",
+      "redacted_failure_reason": "",
+      "result": "passed",
+      "service": "pulsar-admin-api"
+    },
+    {
+      "hostname": "pulsar.tsw.local",
+      "kind": "hostname_resolution",
+      "redacted_failure_reason": "",
+      "result": "passed",
+      "service": "pulsar-manager"
+    },
+    {
+      "hostname": "service-access.tsw.local",
+      "kind": "hostname_resolution",
+      "redacted_failure_reason": "",
+      "result": "passed",
+      "service": "service-access"
+    },
+    {
+      "hostname": "sonarqube.tsw.local",
+      "kind": "hostname_resolution",
+      "redacted_failure_reason": "",
+      "result": "passed",
+      "service": "sonarqube"
+    },
+    {
+      "hostname": "swagger.tsw.local",
+      "kind": "hostname_resolution",
+      "redacted_failure_reason": "",
+      "result": "passed",
+      "service": "swagger"
+    },
+    {
+      "hostname": "infisical.tsw.local",
+      "kind": "https_route",
+      "reachable": false,
+      "redacted_failure_reason": "HTTPError",
+      "result": "failed",
+      "service": "infisical",
+      "status_code": null,
+      "tls_status": "tls_or_http_unreachable"
+    },
+    {
+      "hostname": "jenkins.tsw.local",
+      "kind": "https_route",
+      "reachable": true,
+      "redacted_failure_reason": "",
+      "result": "passed",
+      "service": "jenkins",
+      "status_code": 403,
+      "tls_status": "https_reachable_verified"
+    },
+    {
+      "hostname": "nexus.tsw.local",
+      "kind": "https_route",
+      "reachable": false,
+      "redacted_failure_reason": "HTTPError",
+      "result": "failed",
+      "service": "nexus",
+      "status_code": null,
+      "tls_status": "tls_or_http_unreachable"
+    },
+    {
+      "hostname": "portainer.tsw.local",
+      "kind": "https_route",
+      "reachable": true,
+      "redacted_failure_reason": "",
+      "result": "passed",
+      "service": "portainer",
+      "status_code": 200,
+      "tls_status": "https_reachable_verified"
+    },
+    {
+      "hostname": "pulsar-api.tsw.local",
+      "kind": "https_route",
+      "reachable": true,
+      "redacted_failure_reason": "",
+      "result": "passed",
+      "service": "pulsar-admin-api",
+      "status_code": 401,
+      "tls_status": "https_reachable_verified"
+    },
+    {
+      "hostname": "pulsar.tsw.local",
+      "kind": "https_route",
+      "reachable": true,
+      "redacted_failure_reason": "",
+      "result": "passed",
+      "service": "pulsar-manager",
+      "status_code": 200,
+      "tls_status": "https_reachable_verified"
+    },
+    {
+      "hostname": "service-access.tsw.local",
+      "kind": "https_route",
+      "reachable": true,
+      "redacted_failure_reason": "",
+      "result": "passed",
+      "service": "service-access",
+      "status_code": 200,
+      "tls_status": "https_reachable_verified"
+    },
+    {
+      "hostname": "sonarqube.tsw.local",
+      "kind": "https_route",
+      "reachable": false,
+      "redacted_failure_reason": "HTTPError",
+      "result": "failed",
+      "service": "sonarqube",
+      "status_code": null,
+      "tls_status": "tls_or_http_unreachable"
+    },
+    {
+      "hostname": "swagger.tsw.local",
+      "kind": "https_route",
+      "reachable": true,
+      "redacted_failure_reason": "",
+      "result": "passed",
+      "service": "swagger",
+      "status_code": 200,
+      "tls_status": "https_reachable_verified"
+    },
+    {
+      "expected_credential_count": 11,
+      "installed": false,
+      "kind": "infisical_management",
+      "present_credential_count": 0,
+      "project_present": false,
+      "redacted_failure_reason": "ConnectionError",
+      "result": "failed",
+      "service": "infisical",
+      "super_admin_present": false
+    },
+    {
+      "configured_login_valid": true,
+      "kind": "pulsar_management",
+      "redacted_failure_reason": "",
+      "result": "passed",
+      "service": "pulsar",
+      "unauthenticated_rejected": true
+    },
+    {
+      "configured_login_valid": false,
+      "csrf_available": false,
+      "kind": "pulsar_manager_management",
+      "redacted_failure_reason": "managed_login_inactive",
+      "result": "failed",
+      "service": "pulsar-manager"
+    }
+  ]
+}

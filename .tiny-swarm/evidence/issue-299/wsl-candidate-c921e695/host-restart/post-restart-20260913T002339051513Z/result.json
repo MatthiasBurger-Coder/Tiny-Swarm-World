@@ -1,0 +1,57 @@
+{
+  "acceptance_summary": {
+    "api_checks": 0,
+    "browser_tests": 0,
+    "errors": 2,
+    "expected_api_checks": 0,
+    "expected_browser_tests": 0,
+    "failure_types": [
+      "AssertionError",
+      "ConnectionError"
+    ],
+    "failures": 4,
+    "live_tests": 8,
+    "passed": false,
+    "readiness_after_tests": 0,
+    "readiness_before_tests": 8,
+    "schema": "classic_authenticated_acceptance_v1",
+    "skipped": 0
+  },
+  "artifacts": "value-free JSON only; screenshots, traces and raw runner output excluded",
+  "cleanup": "browser sessions closed; no service configuration or credential changes",
+  "command": "python -m tests.e2e.classic.run_authenticated_acceptance_live --approve-live --phase post-restart",
+  "consent": "explicit_operator_complete_issue_run",
+  "dirty_checkout": false,
+  "duration_seconds": 47.771,
+  "exit_code": 1,
+  "failure_type": "RuntimeError",
+  "finished_at_utc": "2026-09-13T00:24:26.822286+00:00",
+  "host": "wsl2",
+  "phase": "post-restart",
+  "profile": "service-access",
+  "readiness_before": {
+    "duration_seconds": 47.589,
+    "errors": [
+      "tests.e2e.classic.test_post_install_browser_live.PostInstallBrowserLiveTest.test_04_infisical_contains_required_credential_items",
+      "tests.e2e.classic.test_post_install_browser_live.PostInstallBrowserLiveTest.test_06_sonarqube_admin_credential_is_configured"
+    ],
+    "failure_types": [
+      "AssertionError",
+      "ConnectionError"
+    ],
+    "failures": [
+      "tests.e2e.classic.test_post_install_browser_live.PostInstallBrowserLiveTest.test_01_service_routes_return_browser_relevant_http_responses",
+      "tests.e2e.classic.test_post_install_browser_live.PostInstallBrowserLiveTest.test_03_https_ingress_routes_return_browser_relevant_responses",
+      "tests.e2e.classic.test_post_install_browser_live.PostInstallBrowserLiveTest.test_05_infisical_secret_management_is_bootstrapped",
+      "tests.e2e.classic.test_post_install_browser_live.PostInstallBrowserLiveTest.test_08_pulsar_manager_admin_login_is_configured"
+    ],
+    "passed": false,
+    "skipped": [],
+    "tests": 8
+  },
+  "restart": "externally orchestrated; this phase alone does not prove task replacement",
+  "revision": "c921e69533450fba86d908e2990c106bef87769a",
+  "started_at_utc": "2026-09-13T00:23:39.051513+00:00",
+  "status": "LIVE_PARTIAL",
+  "storage_qualified_before_browser": true
+}

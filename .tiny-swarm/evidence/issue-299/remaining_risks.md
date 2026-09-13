@@ -1,9 +1,16 @@
 # RC1-R03 Remaining Risks
 
-- No qualified protected WSL2 runner/target was available for this branch.
-- Host restart and managed partial-failure recovery remain unobserved.
-- The full runner now includes the required phases, but its success state can
-  only be established by a real candidate run.
-- Native-Linux parity is owned by RC1-R02, which is already closed as a
-  historical baseline and must be checked for applicability to the integrated
-  candidate.
+No open requirement remains for the selected planned distribution-restart scope.
+Hard power loss and a shared WSL-kernel restart are not qualified. Original Ubuntu
+and unrelated running project sessions were preserved. The first WSL Docker endpoint
+failure remains explicit; orderly shutdown is the tested procedure, not a proven
+universal root-cause fix. No Docker API/network/data deletion guard is weakened.
+
+Native failure/node evidence uses bedb with verified identical product inputs;
+actual native reboot and WSL second reboot use c921. Private fingerprints and
+credentials stay outside this package. Cleanup is recorded by the host owner
+and final R06 integration; a successful live test does not establish a release.
+
+Real-agent session limits require the root-AGENTS sequential requirement,
+architecture and QA fallback. This is not a newly obtained independent-agent
+or human review; prior real reviews retain their original scope.

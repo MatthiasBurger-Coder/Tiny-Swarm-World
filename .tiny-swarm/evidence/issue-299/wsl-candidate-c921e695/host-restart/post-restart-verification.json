@@ -1,0 +1,83 @@
+{
+  "candidate": "c921e69533450fba86d908e2990c106bef87769a",
+  "started_at": "2026-09-13T00:23:17.906843+00:00",
+  "readiness_attempts": [
+    {
+      "operation": "platform_verify",
+      "started_at": "2026-09-13T00:23:17.907133Z",
+      "finished_at": "2026-09-13T00:23:24.471746Z",
+      "duration_seconds": 6.565,
+      "exit_code": 0,
+      "summary": {
+        "result": "passed",
+        "status": "completed",
+        "message": "verify workflow completed.",
+        "reason": null,
+        "phase_results": {
+          "count": 0,
+          "failed": []
+        },
+        "verification": "verified",
+        "mutation": "not_applicable",
+        "result_count": 6,
+        "verification_results": []
+      }
+    }
+  ],
+  "manual_repair_performed": false,
+  "readiness_wait_seconds": 6.565,
+  "continuity_exit_code": 0,
+  "continuity": {
+    "phase": "after-host-restart",
+    "timestamp": "2026-09-13T00:23:38.615341+00:00",
+    "candidate": "c921e69533450fba86d908e2990c106bef87769a",
+    "script_sha256": "737f232b19c4d941ab7c7682147a02b7675aa04ec18a85e683973ae96c524ef8",
+    "fixture": "tsw-rc1-continuity-20260913",
+    "original_build": 1,
+    "artifact_sha256": "ab8559f89c39c3bce463d214dd92efbf79d8bd129ed1f1fddd33a50bef5aecab",
+    "preserved": {
+      "service_ids": true,
+      "node_ids": true,
+      "cluster_id": true,
+      "home": true,
+      "storage_node": true,
+      "private_home_configuration": true,
+      "private_job_inventory": true,
+      "fixture_configuration": true,
+      "fixture_artifact": true
+    },
+    "changed_service_configurations": [],
+    "desired_image": "127.0.0.1:13500/jenkins:0.2.0",
+    "running_image_id": "sha256:468ac52db3f4da845eabe25fc941ac1c84988a3eb950e036d0c20ae863164545",
+    "task_id": "pq658f98nn08",
+    "container_id": "28dc4eabfe5f",
+    "passed": true
+  },
+  "authenticated": {
+    "operation": "recovery_authenticated",
+    "started_at": "2026-09-13T00:23:38.697333Z",
+    "finished_at": "2026-09-13T00:24:26.907264Z",
+    "duration_seconds": 48.21,
+    "exit_code": 1,
+    "summary": {
+      "result": "failed",
+      "reason": "authenticated_checks_failed",
+      "readiness_before_tests": 8,
+      "readiness_after_tests": 0,
+      "expected_browser_tests": 0,
+      "browser_tests": 0,
+      "expected_api_checks": 0,
+      "api_checks": 0,
+      "live_tests": 8,
+      "failures": 4,
+      "errors": 2,
+      "skipped": 0,
+      "failure_types": [
+        "AssertionError",
+        "ConnectionError"
+      ]
+    }
+  },
+  "passed": false,
+  "finished_at": "2026-09-13T00:24:26.907397+00:00"
+}

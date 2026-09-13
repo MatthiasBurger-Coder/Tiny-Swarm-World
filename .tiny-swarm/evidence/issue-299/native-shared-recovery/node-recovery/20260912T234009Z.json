@@ -1,0 +1,71 @@
+{
+  "candidate": "bedb0c9f1d5f2fdfddf6f14624242a18fce55f25",
+  "host": "7.0.0-31-generic",
+  "started_at": "2026-09-12T23:40:09.977112+00:00",
+  "node": "swarm-worker-2",
+  "operations": [
+    {
+      "operation": "reconcile",
+      "started_at": "2026-09-12T23:40:11.716029Z",
+      "finished_at": "2026-09-12T23:40:13.013178Z",
+      "duration_seconds": 1.297,
+      "exit_code": 0,
+      "summary": {
+        "result": "passed",
+        "status": "completed",
+        "message": "reconcile workflow completed.",
+        "reason": null,
+        "phase_results": {
+          "count": 0,
+          "failed": []
+        },
+        "verification": "verified",
+        "mutation": "no_op",
+        "result_count": 3,
+        "verification_results": []
+      }
+    },
+    {
+      "operation": "recovery_authenticated",
+      "started_at": "2026-09-12T23:40:13.049732Z",
+      "finished_at": "2026-09-12T23:41:21.420620Z",
+      "duration_seconds": 68.371,
+      "exit_code": 0,
+      "summary": {
+        "result": "passed",
+        "reason": null,
+        "readiness_before_tests": 8,
+        "readiness_after_tests": 8,
+        "expected_browser_tests": 9,
+        "browser_tests": 9,
+        "expected_api_checks": 7,
+        "api_checks": 7,
+        "live_tests": 25,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "failure_types": []
+      }
+    }
+  ],
+  "provider_identities_before": {
+    "swarm-manager": {
+      "created_at": "2026-09-11T08:43:53.968392452Z",
+      "uuid": "e9acfc91-f222-460e-897c-b4c8d3fb7432"
+    },
+    "swarm-worker-1": {
+      "created_at": "2026-09-11T08:43:55.855961539Z",
+      "uuid": "df805f55-0975-45c8-aa4c-9581312500ba"
+    },
+    "swarm-worker-2": {
+      "created_at": "2026-09-11T08:43:57.903327128Z",
+      "uuid": "3bf9e5ad-1f66-4ee8-ae08-ae2c4a3b3d7a"
+    }
+  },
+  "stop_exit_code": 0,
+  "stopped_observed": true,
+  "provider_identities_preserved": true,
+  "all_nodes_running": true,
+  "node_recovery_seconds": 3.036,
+  "passed": true
+}

@@ -1,0 +1,8 @@
+{
+  "candidate": "c921e69533450fba86d908e2990c106bef87769a",
+  "pid1_start_changed": true,
+  "pid_namespace_changed": true,
+  "shared_kernel_boot_id_unchanged": true,
+  "provider_identities_preserved": true,
+  "scope": "Actual dedicated WSL distribution restart; no shared-kernel reboot claimed. Initial post-start node states were observed during asynchronous automatic startup."
+}

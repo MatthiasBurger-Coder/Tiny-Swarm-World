@@ -1,0 +1,71 @@
+{
+  "candidate": "c921e69533450fba86d908e2990c106bef87769a",
+  "host": "6.18.33.2-microsoft-standard-WSL2",
+  "started_at": "2026-09-13T00:19:09.244019+00:00",
+  "node": "swarm-worker-2",
+  "operations": [
+    {
+      "operation": "reconcile",
+      "started_at": "2026-09-13T00:19:12.415528Z",
+      "finished_at": "2026-09-13T00:19:13.959999Z",
+      "duration_seconds": 1.544,
+      "exit_code": 0,
+      "summary": {
+        "result": "passed",
+        "status": "completed",
+        "message": "reconcile workflow completed.",
+        "reason": null,
+        "phase_results": {
+          "count": 0,
+          "failed": []
+        },
+        "verification": "verified",
+        "mutation": "no_op",
+        "result_count": 3,
+        "verification_results": []
+      }
+    },
+    {
+      "operation": "recovery_authenticated",
+      "started_at": "2026-09-13T00:19:13.997164Z",
+      "finished_at": "2026-09-13T00:20:49.964565Z",
+      "duration_seconds": 95.967,
+      "exit_code": 0,
+      "summary": {
+        "result": "passed",
+        "reason": null,
+        "readiness_before_tests": 8,
+        "readiness_after_tests": 8,
+        "expected_browser_tests": 9,
+        "browser_tests": 9,
+        "expected_api_checks": 7,
+        "api_checks": 7,
+        "live_tests": 25,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "failure_types": []
+      }
+    }
+  ],
+  "provider_identities_before": {
+    "swarm-manager": {
+      "created_at": "2026-09-12T23:39:39.569383373Z",
+      "uuid": "d4618e78-0aad-4e9c-8195-b4b6cc19ce1c"
+    },
+    "swarm-worker-1": {
+      "created_at": "2026-09-12T23:39:46.169389423Z",
+      "uuid": "3af6272d-02f1-4aca-be90-965ece885bc4"
+    },
+    "swarm-worker-2": {
+      "created_at": "2026-09-12T23:40:00.739296767Z",
+      "uuid": "cb34bf17-9d02-4e5c-8d16-c59f3ecb9c98"
+    }
+  },
+  "stop_exit_code": 0,
+  "stopped_observed": true,
+  "provider_identities_preserved": true,
+  "all_nodes_running": true,
+  "node_recovery_seconds": 4.714,
+  "passed": true
+}

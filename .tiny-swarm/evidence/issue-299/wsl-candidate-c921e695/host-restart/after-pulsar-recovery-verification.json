@@ -1,0 +1,97 @@
+{
+  "candidate": "c921e69533450fba86d908e2990c106bef87769a",
+  "started_at": "2026-09-13T00:33:26.655074+00:00",
+  "readiness_attempts": [
+    {
+      "operation": "platform_verify",
+      "started_at": "2026-09-13T00:33:26.655175Z",
+      "finished_at": "2026-09-13T00:33:29.497587Z",
+      "duration_seconds": 2.842,
+      "exit_code": 0,
+      "summary": {
+        "result": "passed",
+        "status": "completed",
+        "message": "verify workflow completed.",
+        "reason": null,
+        "phase_results": {
+          "count": 0,
+          "failed": []
+        },
+        "verification": "verified",
+        "mutation": "not_applicable",
+        "result_count": 6,
+        "verification_results": []
+      }
+    },
+    {
+      "operation": "classic_e2e",
+      "started_at": "2026-09-13T00:33:29.497903Z",
+      "finished_at": "2026-09-13T00:33:31.559700Z",
+      "duration_seconds": 2.062,
+      "exit_code": 0,
+      "summary": {
+        "result": "passed",
+        "reason": null,
+        "tests": 8,
+        "expected_tests": 8,
+        "runtime_seconds": 1.675,
+        "skipped": 0,
+        "failure_types": []
+      }
+    }
+  ],
+  "manual_repair_performed": false,
+  "readiness_scope": "Canonical platform verification and all eight service readiness checks; platform readiness alone is insufficient",
+  "readiness_wait_seconds": 4.905,
+  "continuity_exit_code": 0,
+  "continuity": {
+    "phase": "after-host-restart",
+    "timestamp": "2026-09-13T00:33:34.151729+00:00",
+    "candidate": "c921e69533450fba86d908e2990c106bef87769a",
+    "script_sha256": "737f232b19c4d941ab7c7682147a02b7675aa04ec18a85e683973ae96c524ef8",
+    "fixture": "tsw-rc1-continuity-20260913",
+    "original_build": 1,
+    "artifact_sha256": "ab8559f89c39c3bce463d214dd92efbf79d8bd129ed1f1fddd33a50bef5aecab",
+    "preserved": {
+      "service_ids": true,
+      "node_ids": true,
+      "cluster_id": true,
+      "home": true,
+      "storage_node": true,
+      "private_home_configuration": true,
+      "private_job_inventory": true,
+      "fixture_configuration": true,
+      "fixture_artifact": true
+    },
+    "changed_service_configurations": [],
+    "desired_image": "127.0.0.1:13500/jenkins:0.2.0",
+    "running_image_id": "sha256:468ac52db3f4da845eabe25fc941ac1c84988a3eb950e036d0c20ae863164545",
+    "task_id": "pq658f98nn08",
+    "container_id": "28dc4eabfe5f",
+    "passed": true
+  },
+  "authenticated": {
+    "operation": "recovery_authenticated",
+    "started_at": "2026-09-13T00:33:34.222998Z",
+    "finished_at": "2026-09-13T00:35:02.034039Z",
+    "duration_seconds": 87.811,
+    "exit_code": 0,
+    "summary": {
+      "result": "passed",
+      "reason": null,
+      "readiness_before_tests": 8,
+      "readiness_after_tests": 8,
+      "expected_browser_tests": 9,
+      "browser_tests": 9,
+      "expected_api_checks": 7,
+      "api_checks": 7,
+      "live_tests": 25,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "failure_types": []
+    }
+  },
+  "passed": true,
+  "finished_at": "2026-09-13T00:35:02.034111+00:00"
+}

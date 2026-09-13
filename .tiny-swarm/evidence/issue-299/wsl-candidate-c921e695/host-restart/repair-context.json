@@ -1,0 +1,16 @@
+{
+  "recorded_at": "2026-09-13T00:35:26.159477+00:00",
+  "prior_failed_container": "1ca9a818d226",
+  "action": "docker restart --time 30 1ca9a818d226",
+  "action_scope": "owned pulsar_pulsar-manager container only; no ServiceSpec edit",
+  "direct_command_exit": "not retained by operator; no inferred success",
+  "observed_outcome": "Swarm replaced failed task; intermediate port-allocation failures retained in task history",
+  "healthy_replacement": "b420eca1bef9",
+  "healthy_task": "or30z64ha3tbpf85z7hdr5k2i",
+  "endpoint_id": "5967348c57034a22b91996e09bd95adf36f5de3960f5f31656a3c9e770c35ace",
+  "endpoint_ip": "10.240.1.49",
+  "verification": "after-pulsar-recovery-verification.json",
+  "manual_repair_performed": true,
+  "scope_correction": "manual_repair_performed:false in the verifier output refers only to that read-only helper; this overall recovery required the explicit container restart",
+  "original_restart_outcome": "LIVE_PARTIAL; not an automatic or bounded successful restart"
+}

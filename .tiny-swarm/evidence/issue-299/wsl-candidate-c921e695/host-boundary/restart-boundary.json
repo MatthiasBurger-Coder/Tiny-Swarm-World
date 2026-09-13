@@ -1,0 +1,21 @@
+{
+  "started_at": "2026-09-13T00:22:24.657567+00:00",
+  "distribution": "TSW-RC1-Isolated",
+  "scenario": "controlled distribution restart after successful fresh/update/fault/node recovery",
+  "shutdown_preparation": "Stop and disable temporary runner, stop incus-startup.service to gracefully stop owned LXC nodes before terminating only the dedicated distribution",
+  "primary_project_pids_before": {
+    "23929": true,
+    "69797": true,
+    "175641": true
+  },
+  "global_boot_id_before": "933df521-505f-49bb-a700-4c118206b4d8",
+  "interop_before": true,
+  "operator_approval": "existing full user approval",
+  "terminated_at": "2026-09-13T00:22:36.327706+00:00",
+  "interop_after_termination": true,
+  "primary_project_pids_after_termination": {
+    "23929": true,
+    "69797": true,
+    "175641": true
+  }
+}

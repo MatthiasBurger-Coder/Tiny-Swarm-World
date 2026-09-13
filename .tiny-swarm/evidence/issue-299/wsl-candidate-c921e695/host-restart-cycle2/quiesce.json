@@ -1,0 +1,41 @@
+{
+  "scenario": "planned WSL distribution restart with Docker stopped before Incus shutdown",
+  "consent": "existing full disposable-test approval",
+  "candidate": "c921e69533450fba86d908e2990c106bef87769a",
+  "steps": [
+    {
+      "node": "swarm-manager",
+      "started_at": "2026-09-13T00:35:26.436884+00:00",
+      "finished_at": "2026-09-13T00:35:38.156450+00:00",
+      "exit_code": 0,
+      "unit_states": [
+        "inactive",
+        "inactive",
+        "inactive"
+      ]
+    },
+    {
+      "node": "swarm-worker-1",
+      "started_at": "2026-09-13T00:35:38.156684+00:00",
+      "finished_at": "2026-09-13T00:35:40.135402+00:00",
+      "exit_code": 0,
+      "unit_states": [
+        "inactive",
+        "inactive",
+        "inactive"
+      ]
+    },
+    {
+      "node": "swarm-worker-2",
+      "started_at": "2026-09-13T00:35:40.135626+00:00",
+      "finished_at": "2026-09-13T00:35:41.968168+00:00",
+      "exit_code": 0,
+      "unit_states": [
+        "inactive",
+        "inactive",
+        "inactive"
+      ]
+    }
+  ],
+  "passed": true
+}

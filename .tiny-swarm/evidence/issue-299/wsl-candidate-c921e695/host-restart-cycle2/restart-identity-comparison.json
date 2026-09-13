@@ -1,0 +1,7 @@
+{
+  "source": "actual before/after host observations",
+  "pid1_start_changed": true,
+  "pid_namespace_changed": true,
+  "shared_kernel_boot_id_unchanged": true,
+  "provider_identity_unchanged": true
+}

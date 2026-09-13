@@ -1,21 +1,15 @@
-# RC1-R03 WSL2 Lifecycle Scenario Matrix
+# RC1-R03 Scenario Matrix
 
-The protected runner must execute these phases in order against one declared
-clean target and one candidate SHA:
+- R03-01: Define fresh, every post-phase, fail-closed, partial recovery and restart scenarios. Evidence: scenario_matrix.md; canonical 14-operation runner; first failed and corrected restart records.
+- R03-02: Qualify source, protected native runtime/evidence, consent and redaction. Evidence: Hosted R05 protected storage; 116 mocked source/storage/prerequisite tests; actual ext4 WSL host snapshots. /mnt source support is fixture evidence, not the native-path live checkout.
+- R03-03: Execute Fresh → acceptance → Reconcile → acceptance → Update → acceptance without duplicate resources. Evidence: Hosted 34725969899 on exact candidate-equivalent 8eb; issue-297 continuity and unchanged provider UUIDs.
+- R03-04: Exercise controlled partial deployment and managed service/node recovery without losing healthy state. Evidence: Typed rollout_failed and canonical recovery in issue-297; WSL worker stop/reconcile/full auth; observed Pulsar endpoint failure and targeted recovery retained.
+- R03-05: Selected WSL restart restores identities, Docker/Swarm/routes and application readiness in bounded time. Evidence: Cycle2 planned Docker-quiesced distribution restart: 133.629 seconds startup verification, changed PID identity, unchanged kernel boot ID/provider UUIDs.
+- R03-06: Run authenticated service operations after restart. Evidence: Cycle2 complete 25 live tests and seven API checks; 87.931 seconds, zero errors/failures/skips.
+- R03-07: Retain exact SHA, profile/host, commands, timing, exits and protected redacted results. Evidence: Checksummed WSL/native packages and provenance; secret/configuration comparisons expose equality only.
+- R03-08: Retain failed attempts and rerun affected/dependent scenarios after fixes. Evidence: First boot LIVE_PARTIAL; targeted repair followed by full authentication; separate planned cycle2 passes without post-start repair.
+- R03-09: Cover missing Incus, storage/network, artifact/configuration and secret-protection prerequisites safely. Evidence: prerequisite-fixtures.json maps exact cases; 116 tests pass, zero skips. These are local fixtures, not live fault injection.
+- R03-10: Apply shared failure/recovery checks on native Linux where host semantics differ. Evidence: Native bedb product-equivalent rollout/node recovery; c921 actual VM reboot, changed boot ID and full 25+7 authenticated acceptance.
 
-| Phase | Required observation | Failure behavior |
-|---|---|---|
-| Diagnostics | Host class, source/evidence storage and prerequisites | Stop before mutation |
-| Fresh setup | Fresh managed installation completes | Stop and retain redacted terminal evidence |
-| Fresh acceptance | Authenticated service/browser/API checks pass | Stop before reconcile |
-| Reconcile | Desired state converges without reset | Stop before post-reconcile acceptance |
-| Reconcile acceptance | Authenticated checks remain valid; credentials and routes do not drift | Stop before update |
-| Update | Selected service moves from declared source image to target image | Stop before post-update acceptance |
-| Update acceptance | Updated service and dependent routes remain authenticated and ready | Stop before recovery |
-| Recovery | Persisted rollback state reverses the selected update | Stop if source state does not match |
-| Recovery acceptance | Services remain usable after recovery | Retain state and diagnostics |
-| Restart boundary | Qualified WSL2 restart restores node identity, Swarm, routes and readiness | Non-pass; no inferred success |
-
-`classic_e2e`, `reconcile_e2e`, `update_e2e` and `recovery_e2e` use the same
-assertion-heavy test discovery command. A service restart is not evidence of
-the host restart boundary. Native-Linux parity is consumed from RC1-R02.
+The first failed WSL restart remains LIVE_PARTIAL; only the separate planned
+cycle2 is LIVE_VERIFIED. Local fixtures and actual live scenarios are distinct.
