@@ -47,6 +47,29 @@ KNOWN_MIXED_BOUNDARY_FILES = (
     "src/tiny_swarm_world/infrastructure/composition.py",
     "src/tiny_swarm_world/__main__.py",
 )
+ROOT_BOUNDARY_EXCEPTION_IMPORTS = {
+    "src/tiny_swarm_world/installer.py": {
+        "tiny_swarm_world.infrastructure.adapters.host",
+        "tiny_swarm_world.infrastructure.adapters.repositories",
+        "tiny_swarm_world.infrastructure.adapters.ingress.tls_state",
+        "tiny_swarm_world.infrastructure.adapters.ui.install_reporter",
+        "tiny_swarm_world.infrastructure.adapters.preflight.windows_wsl_bridge_state",
+    },
+    "src/tiny_swarm_world/simple_installer.py": {
+        "tiny_swarm_world.installer",
+        "tiny_swarm_world.infrastructure.composition_operator_configuration",
+    },
+}
+ROOT_ENTRYPOINTS = {
+    "src/tiny_swarm_world/__main__.py": {
+        "tiny_swarm_world.infrastructure.composition",
+    },
+}
+CLI_MODULES = (
+    "tiny_swarm_world.__main__",
+    "tiny_swarm_world.installer",
+    "tiny_swarm_world.simple_installer",
+)
 FORBIDDEN_APPLICATION_TECHNOLOGY_IMPORTS = ("os", "yaml")
 DIRECT_FILESYSTEM_METHODS = {
     "chmod",
@@ -108,6 +131,59 @@ class TestHexagonalImports(unittest.TestCase):
 
         self.assertEqual(technology_imports, [])
         self.assertEqual(filesystem_calls, [])
+
+    def test_application_does_not_import_cli_or_bootstrap_modules(self):
+        violations = [
+            violation
+            for forbidden_prefix in CLI_MODULES
+            for violation in _find_forbidden_imports(
+                root=APPLICATION_ROOT,
+                forbidden_prefix=forbidden_prefix,
+            )
+        ]
+
+        self.assertEqual([], violations)
+
+    def test_root_entrypoints_use_only_the_composition_boundary(self):
+        violations = []
+        for relative_path, allowed_imports in ROOT_ENTRYPOINTS.items():
+            source_file = REPOSITORY_ROOT / relative_path
+            for imported, line_number in _direct_imports(source_file):
+                if imported.startswith("tiny_swarm_world.infrastructure") and not any(
+                    imported == allowed or imported.startswith(f"{allowed}.")
+                    for allowed in allowed_imports
+                ):
+                    violations.append((relative_path, imported, line_number))
+
+        self.assertEqual([], violations)
+
+    def test_legacy_root_exceptions_are_explicit_and_traceable(self):
+        for relative_path, allowed_imports in ROOT_BOUNDARY_EXCEPTION_IMPORTS.items():
+            source_file = REPOSITORY_ROOT / relative_path
+            observed = {
+                imported
+                for imported, _line_number in _direct_imports(source_file)
+                if imported.startswith("tiny_swarm_world.infrastructure")
+                or imported == "tiny_swarm_world.installer"
+            }
+            unexpected = {
+                imported
+                for imported in observed
+                if not any(
+                    imported == allowed or imported.startswith(f"{allowed}.")
+                    for allowed in allowed_imports
+                )
+            }
+            self.assertEqual(set(), unexpected, (relative_path, unexpected))
+
+    def test_forbidden_import_probe_fails_closed(self):
+        forbidden = "tiny_swarm_world.infrastructure.adapters.command_runner"
+        imported = _direct_imports_from_source(
+            "from tiny_swarm_world.infrastructure.adapters.command_runner import CommandWorkflow"
+        )
+
+        self.assertIn(forbidden, imported)
+        self.assertTrue(_is_forbidden_import(forbidden, "tiny_swarm_world.infrastructure"))
 
 
 class TestResponsibilityBoundaryDocumentation(unittest.TestCase):
@@ -352,7 +428,14 @@ def _module_name(source_file: Path) -> str:
 
 
 def _direct_imports(source_file: Path) -> list[tuple[str, int]]:
-    tree = ast.parse(source_file.read_text(encoding="utf-8"))
+    return _direct_imports_from_tree(ast.parse(source_file.read_text(encoding="utf-8")))
+
+
+def _direct_imports_from_source(source: str) -> list[str]:
+    return [imported for imported, _line_number in _direct_imports_from_tree(ast.parse(source))]
+
+
+def _direct_imports_from_tree(tree: ast.AST) -> list[tuple[str, int]]:
     imports: list[tuple[str, int]] = []
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):

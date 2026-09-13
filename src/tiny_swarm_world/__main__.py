@@ -60,7 +60,7 @@ from tiny_swarm_world.infrastructure.composition import (
     build_application_logger,
     run_setup_with_terminal_status,
 )
-from tiny_swarm_world.infrastructure.adapters.preflight import ensure_common_executable_paths
+from tiny_swarm_world.infrastructure.composition import ensure_common_executable_paths
 from tiny_swarm_world.domain.update import ClassicUpdatePlan
 
 WorkflowResult = (

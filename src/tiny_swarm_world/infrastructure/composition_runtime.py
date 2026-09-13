@@ -217,6 +217,7 @@ from tiny_swarm_world.infrastructure.adapters.preflight import (
     ManagedLxcDockerManagerReadinessProbe,
     SecretStorageProbe,
     UnavailableArtifactReadinessProbe,
+    ensure_common_executable_paths,
 )
 from tiny_swarm_world.infrastructure.adapters.host.wsl_resource_inspector import WslResourceInspector
 from tiny_swarm_world.infrastructure.adapters.host.hang_diagnostics import ReadOnlyHangDiagnostics

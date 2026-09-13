@@ -20,6 +20,15 @@ forbidden_modules =
     tiny_swarm_world.application
 allow_indirect_imports = True
 
+[importlinter:contract:domain_no_interfaces_imports]
+name = Domain layer does not import interface adapters
+type = forbidden
+source_modules =
+    tiny_swarm_world.domain
+forbidden_modules =
+    tiny_swarm_world.interfaces
+allow_indirect_imports = True
+
 [importlinter:contract:application_no_infrastructure_imports]
 name = Application layer does not import infrastructure
 type = forbidden
@@ -27,4 +36,15 @@ source_modules =
     tiny_swarm_world.application
 forbidden_modules =
     tiny_swarm_world.infrastructure
+allow_indirect_imports = True
+
+[importlinter:contract:application_no_cli_imports]
+name = Application layer does not import CLI or bootstrap entrypoints
+type = forbidden
+source_modules =
+    tiny_swarm_world.application
+forbidden_modules =
+    tiny_swarm_world.__main__
+    tiny_swarm_world.installer
+    tiny_swarm_world.simple_installer
 allow_indirect_imports = True
