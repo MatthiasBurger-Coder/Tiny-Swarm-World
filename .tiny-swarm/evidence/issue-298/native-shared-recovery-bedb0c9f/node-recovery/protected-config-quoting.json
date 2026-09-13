@@ -1,0 +1,9 @@
+{
+  "literal_values_unchanged": true,
+  "shell_and_reader_equal": true,
+  "previous_shell_mismatch_keys": [
+    "TSW_REGISTRY_HTPASSWD",
+    "TSW_TRAEFIK_GUI_USERS_HTPASSWD"
+  ],
+  "mode": "0o600"
+}

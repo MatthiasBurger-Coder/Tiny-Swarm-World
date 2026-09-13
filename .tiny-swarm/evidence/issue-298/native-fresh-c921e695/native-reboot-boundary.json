@@ -1,0 +1,12 @@
+{
+  "scenario": "controlled native VM systemd reboot",
+  "target": "TSW-RC1-Ubuntu",
+  "consent": "existing explicit full disposable-test user approval",
+  "started_at": "2026-09-13T00:40:32.595453+00:00",
+  "before_boot_id": "da4621d5-fb43-410a-bf5a-c0320dbcf201",
+  "reboot_command_exit": 0,
+  "command_returned_at": "2026-09-13T00:40:33.434381+00:00",
+  "after_boot_id": "b7cde7a8-4085-45ad-9e0e-5dfab99ba743",
+  "ssh_recovered_at": "2026-09-13T00:41:10.874357+00:00",
+  "operator_probe_note": "Optional extra pre-reboot probe failed before observation because PYTHONPATH was omitted; retained successful fresh-post-recovery is the continuity baseline. Post-reboot verifier supplies PYTHONPATH."
+}

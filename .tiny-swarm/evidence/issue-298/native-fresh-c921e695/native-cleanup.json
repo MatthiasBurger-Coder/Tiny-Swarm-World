@@ -1,0 +1,52 @@
+{
+  "started_at": "2026-09-13T00:47:01.379263+00:00",
+  "consent": "existing full disposable-test approval and VM shutdown instruction",
+  "actions": [
+    {
+      "node": "swarm-manager",
+      "action": "stopped fresh node and retained it as rc1-final-swarm-manager"
+    },
+    {
+      "node": "swarm-worker-1",
+      "action": "stopped fresh node and retained it as rc1-final-swarm-worker-1"
+    },
+    {
+      "node": "swarm-worker-2",
+      "action": "stopped fresh node and retained it as rc1-final-swarm-worker-2"
+    },
+    {
+      "node": "swarm-manager",
+      "action": "restored original node name with UUID and storage preserved"
+    },
+    {
+      "node": "swarm-worker-1",
+      "action": "restored original node name with UUID and storage preserved"
+    },
+    {
+      "node": "swarm-worker-2",
+      "action": "restored original node name with UUID and storage preserved"
+    }
+  ],
+  "original_nodes": [
+    {
+      "name": "swarm-manager",
+      "uuid": "e9acfc91-f222-460e-897c-b4c8d3fb7432",
+      "status": "Running"
+    },
+    {
+      "name": "swarm-worker-1",
+      "uuid": "df805f55-0975-45c8-aa4c-9581312500ba",
+      "status": "Running"
+    },
+    {
+      "name": "swarm-worker-2",
+      "uuid": "3bf9e5ad-1f66-4ee8-ae08-ae2c4a3b3d7a",
+      "status": "Running"
+    }
+  ],
+  "original_project_restored": true,
+  "fresh_data_retained": true,
+  "original_data_retained": true,
+  "ready_for_vm_shutdown": true,
+  "finished_at": "2026-09-13T00:47:36.107919+00:00"
+}

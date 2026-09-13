@@ -1,0 +1,39 @@
+{
+  "host_environment": {
+    "allows_live_setup": "true",
+    "classification": "native_linux",
+    "distribution": "Ubuntu 26.04.1 LTS",
+    "environment": "native_linux",
+    "kernel_family": "linux",
+    "kernel_release": "7.0.0-31-generic",
+    "kernel_signal": "present",
+    "sandbox_signal": "absent",
+    "setup_path": "native_linux",
+    "static_validation_only": "false",
+    "supported": "true",
+    "windows_interop_available": "false"
+  },
+  "host_resources": {},
+  "network_preparation": {},
+  "overrides": [],
+  "resource_assessment": "UNKNOWN",
+  "secret_storage": {
+    "accepted": "true",
+    "classification_source": "native_host",
+    "decision": "allowed",
+    "exists": "true",
+    "file_mode_private": "verified",
+    "filesystem_type": "native",
+    "group_matches": "true",
+    "host_environment": "native_linux",
+    "owner_matches": "true",
+    "parent_exists": "true",
+    "parent_group_matches": "true",
+    "parent_mode_private": "verified",
+    "parent_owner_matches": "true",
+    "reasons": "",
+    "regular_file": "true",
+    "storage_classification": "native_linux"
+  },
+  "status": "PASSED"
+}

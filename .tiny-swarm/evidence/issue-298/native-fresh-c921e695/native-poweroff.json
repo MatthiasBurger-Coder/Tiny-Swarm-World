@@ -1,0 +1,7 @@
+{
+  "target": "TSW-RC1-Ubuntu",
+  "action": "systemctl poweroff",
+  "command_exit": 0,
+  "requested_at": "2026-09-13T00:48:46.430367+00:00",
+  "consent": "explicit user instruction to shut down VM when no longer needed"
+}
