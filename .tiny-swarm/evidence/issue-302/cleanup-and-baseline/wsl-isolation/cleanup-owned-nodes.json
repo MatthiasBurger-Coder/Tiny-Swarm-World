@@ -1,0 +1,27 @@
+{
+  "started_at": "2026-09-13T00:49:14.207721+00:00",
+  "distribution": "TSW-RC1-Isolated",
+  "consent": "existing full disposable-test cleanup approval",
+  "actions": [
+    {
+      "node": "swarm-manager",
+      "stopped": true,
+      "uuid": "d4618e78-0aad-4e9c-8195-b4b6cc19ce1c",
+      "data_retained": true
+    },
+    {
+      "node": "swarm-worker-1",
+      "stopped": true,
+      "uuid": "3af6272d-02f1-4aca-be90-965ece885bc4",
+      "data_retained": true
+    },
+    {
+      "node": "swarm-worker-2",
+      "stopped": true,
+      "uuid": "cb34bf17-9d02-4e5c-8d16-c59f3ecb9c98",
+      "data_retained": true
+    }
+  ],
+  "finished_at": "2026-09-13T00:49:32.942372+00:00",
+  "passed": true
+}

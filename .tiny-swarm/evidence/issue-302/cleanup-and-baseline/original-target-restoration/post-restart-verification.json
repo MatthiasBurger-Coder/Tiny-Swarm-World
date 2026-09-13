@@ -1,0 +1,164 @@
+{
+  "candidate": "d63ca5668a9bf419be55d6bd9caadab5e3f9639c",
+  "started_at": "2026-09-13T00:53:27.312376+00:00",
+  "readiness_attempts": [
+    {
+      "operation": "platform_verify",
+      "started_at": "2026-09-13T00:53:27.312519Z",
+      "finished_at": "2026-09-13T00:54:25.466917Z",
+      "duration_seconds": 58.154,
+      "exit_code": 1,
+      "summary": {
+        "result": "failed_to_verify",
+        "status": "failed_to_verify",
+        "message": "verify verification failed.",
+        "reason": null,
+        "phase_results": {
+          "count": 0,
+          "failed": []
+        },
+        "verification": "failed_to_verify",
+        "mutation": "not_applicable",
+        "result_count": 1,
+        "verification_results": [
+          {
+            "status": "failed_to_verify",
+            "target_id": "platform:preflight"
+          }
+        ]
+      }
+    },
+    {
+      "operation": "platform_verify",
+      "started_at": "2026-09-13T00:54:30.467385Z",
+      "finished_at": "2026-09-13T00:55:27.113643Z",
+      "duration_seconds": 56.646,
+      "exit_code": 1,
+      "summary": {
+        "result": "failed_to_verify",
+        "status": "failed_to_verify",
+        "message": "verify verification failed.",
+        "reason": null,
+        "phase_results": {
+          "count": 0,
+          "failed": []
+        },
+        "verification": "failed_to_verify",
+        "mutation": "not_applicable",
+        "result_count": 1,
+        "verification_results": [
+          {
+            "status": "failed_to_verify",
+            "target_id": "platform:preflight"
+          }
+        ]
+      }
+    },
+    {
+      "operation": "platform_verify",
+      "started_at": "2026-09-13T00:55:32.114088Z",
+      "finished_at": "2026-09-13T00:56:28.728651Z",
+      "duration_seconds": 56.615,
+      "exit_code": 1,
+      "summary": {
+        "result": "failed_to_verify",
+        "status": "failed_to_verify",
+        "message": "verify verification failed.",
+        "reason": null,
+        "phase_results": {
+          "count": 0,
+          "failed": []
+        },
+        "verification": "failed_to_verify",
+        "mutation": "not_applicable",
+        "result_count": 1,
+        "verification_results": [
+          {
+            "status": "failed_to_verify",
+            "target_id": "platform:preflight"
+          }
+        ]
+      }
+    },
+    {
+      "operation": "platform_verify",
+      "started_at": "2026-09-13T00:56:33.729582Z",
+      "finished_at": "2026-09-13T00:57:30.337517Z",
+      "duration_seconds": 56.608,
+      "exit_code": 1,
+      "summary": {
+        "result": "failed_to_verify",
+        "status": "failed_to_verify",
+        "message": "verify verification failed.",
+        "reason": null,
+        "phase_results": {
+          "count": 0,
+          "failed": []
+        },
+        "verification": "failed_to_verify",
+        "mutation": "not_applicable",
+        "result_count": 1,
+        "verification_results": [
+          {
+            "status": "failed_to_verify",
+            "target_id": "platform:preflight"
+          }
+        ]
+      }
+    },
+    {
+      "operation": "platform_verify",
+      "started_at": "2026-09-13T00:57:35.338320Z",
+      "finished_at": "2026-09-13T00:58:33.627850Z",
+      "duration_seconds": 58.29,
+      "exit_code": 1,
+      "summary": {
+        "result": "failed_to_verify",
+        "status": "failed_to_verify",
+        "message": "verify verification failed.",
+        "reason": null,
+        "phase_results": {
+          "count": 0,
+          "failed": []
+        },
+        "verification": "failed_to_verify",
+        "mutation": "not_applicable",
+        "result_count": 1,
+        "verification_results": [
+          {
+            "status": "failed_to_verify",
+            "target_id": "platform:preflight"
+          }
+        ]
+      }
+    },
+    {
+      "operation": "platform_verify",
+      "started_at": "2026-09-13T00:58:38.628487Z",
+      "finished_at": "2026-09-13T00:59:33.855101Z",
+      "duration_seconds": 55.227,
+      "exit_code": 1,
+      "summary": {
+        "result": "failed_to_verify",
+        "status": "failed_to_verify",
+        "message": "verify verification failed.",
+        "reason": null,
+        "phase_results": {
+          "count": 0,
+          "failed": []
+        },
+        "verification": "failed_to_verify",
+        "mutation": "not_applicable",
+        "result_count": 1,
+        "verification_results": [
+          {
+            "status": "failed_to_verify",
+            "target_id": "platform:preflight"
+          }
+        ]
+      }
+    }
+  ],
+  "manual_repair_performed_by_this_read_only_verifier": false,
+  "readiness_scope": "Canonical platform verification and all eight service readiness checks; platform readiness alone is insufficient"
+}

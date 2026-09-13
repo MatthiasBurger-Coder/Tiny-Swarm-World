@@ -1,0 +1,29 @@
+{
+  "observed_at": "2026-09-13T01:06:42.960458+00:00",
+  "restored_variables": {
+    "TSW_CLASSIC_LIVE_ENV_FILE": true,
+    "TSW_CLASSIC_LIVE_EVIDENCE_ROOT": true,
+    "TSW_CLASSIC_TARGET_OWNER": true,
+    "TSW_CLASSIC_UPDATE_STACK": true,
+    "TSW_CLASSIC_UPDATE_SERVICE": true,
+    "TSW_CLASSIC_UPDATE_FROM_IMAGE": true,
+    "TSW_CLASSIC_UPDATE_TO_IMAGE": true
+  },
+  "runners": [
+    {
+      "id": 23,
+      "name": "tsw-protected-wsl2",
+      "status": "offline",
+      "busy": false
+    }
+  ],
+  "runner_executed_restoration_check": {
+    "run_id": 34729909225,
+    "runner_id": 23,
+    "runner_name": "tsw-protected-wsl2",
+    "started_at": "2026-09-13T01:11:39Z",
+    "completed_at": "2026-09-13T01:11:47Z",
+    "outcome": "Expected rejection of blocked manual dispatch before live mutation; proves restored runner receives and completes jobs"
+  },
+  "runner_api_status_note": "List API still reported offline while the actual job executed on runner 23; record both observations, not a fabricated online status."
+}

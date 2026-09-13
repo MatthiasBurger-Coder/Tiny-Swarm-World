@@ -1,0 +1,15 @@
+{
+  "started_at": "2026-09-13T01:12:28.078816+00:00",
+  "finished_at": "2026-09-13T01:12:28.268407+00:00",
+  "scope": "LOCAL executed deliberate failing unittest through unchanged canonical quality dispatch and the exact compatibility shell failure options; this is not a synthetic hosted Quality run",
+  "source": "tools/quality_gate.py:_run_named_command; .github/workflows/python-quality-gate.yml and python-compatibility.yml",
+  "test_subprocess_exit": 1,
+  "canonical_quality_process_exit": 1,
+  "compatibility_shell_exit": 1,
+  "downstream_success_marker_absent": true,
+  "canonical_saw_intended_failure": true,
+  "matrix_failure_unmasked_by_contract": "fail-fast: false and no continue-on-error in compatibility YAML; each matrix result is independent",
+  "actual_hosted_negative": "34729909225: explicit blocked manual dispatch fails qualification and skips live job before mutation; 34727197058 retains original equivalent proof",
+  "repository_mutated": false,
+  "temporary_fixture_cleaned": true
+}

@@ -1,0 +1,74 @@
+[
+  {
+    "command": [
+      "tools/install_debugger.py"
+    ],
+    "candidate": "c921e69533450fba86d908e2990c106bef87769a",
+    "started_at": "2026-09-13T01:09:11.106790+00:00",
+    "finished_at": "2026-09-13T01:09:11.218328+00:00",
+    "duration_seconds": 0.112,
+    "exit_code": 0,
+    "summary": [
+      "[OK] Repository identity",
+      "[OK] install.sh shell",
+      "[OK] install.sh Python installer entry point",
+      "[OK] install.sh source checkout Python path",
+      "[OK] install.sh executable",
+      "[OK] Owner mismatch",
+      "[OK] Unreadable files",
+      "[OK] Unwritable directories",
+      "[OK] systemd availability",
+      "[INFO] Secret file mode",
+      "[INFO] Secure live secret storage",
+      "[INFO] WSL detection",
+      "[INFO] systemd unit definitions",
+      "[INFO] Installation evidence",
+      "[WARN] Shell scripts without execute bit"
+    ],
+    "raw_output_published": false
+  },
+  {
+    "command": [
+      "tools/preflight.py"
+    ],
+    "candidate": "c921e69533450fba86d908e2990c106bef87769a",
+    "started_at": "2026-09-13T01:09:11.220709+00:00",
+    "finished_at": "2026-09-13T01:09:11.969398+00:00",
+    "duration_seconds": 0.749,
+    "exit_code": 1,
+    "summary": [],
+    "raw_output_published": false
+  },
+  {
+    "command": [
+      "tools/install_debugger.py",
+      "--live",
+      "--env-file",
+      "/home/micro/.local/state/tiny-swarm-world/live-installation.env"
+    ],
+    "candidate": "c921e69533450fba86d908e2990c106bef87769a",
+    "started_at": "2026-09-13T01:09:11.971775+00:00",
+    "finished_at": "2026-09-13T01:09:12.096012+00:00",
+    "duration_seconds": 0.124,
+    "exit_code": 0,
+    "summary": [
+      "[OK] Repository identity",
+      "[OK] install.sh shell",
+      "[OK] install.sh Python installer entry point",
+      "[OK] install.sh source checkout Python path",
+      "[OK] install.sh executable",
+      "[OK] Owner mismatch",
+      "[OK] Unreadable files",
+      "[OK] Unwritable directories",
+      "[OK] Secret file mode",
+      "[OK] Secure live secret storage",
+      "[OK] Secure live evidence storage",
+      "[OK] systemd availability",
+      "[INFO] WSL detection",
+      "[INFO] systemd unit definitions",
+      "[INFO] Installation evidence",
+      "[WARN] Shell scripts without execute bit"
+    ],
+    "raw_output_published": false
+  }
+]

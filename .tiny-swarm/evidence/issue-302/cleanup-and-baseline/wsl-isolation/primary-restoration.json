@@ -1,0 +1,16 @@
+{
+  "started_at": "2026-09-13T00:52:33.730693+00:00",
+  "original_provider_identities": {
+    "swarm-manager": "1ff7a013-03f5-40f0-a541-26c23258996d",
+    "swarm-worker-1": "7b6bfa36-c837-48a2-acd8-34e577941de6",
+    "swarm-worker-2": "ba321358-7724-4dea-9e05-cf012817d1f2"
+  },
+  "original_network_ipv4": "10.85.194.1/24",
+  "original_network_ipv6": "fd42:d5f0:745a:aec1::1/64",
+  "docker0_restored": true,
+  "host_runtime_units_active": true,
+  "notes": "The extra dnsmasq cleanup probe encountered an Incus YAML pid file; stopping the owned daemon/distribution had already removed its DNS process and bridge. Absence was verified before restoring the original runtime.",
+  "original_nodes_running": true,
+  "identities_preserved": true,
+  "finished_at": "2026-09-13T00:52:52.575892+00:00"
+}

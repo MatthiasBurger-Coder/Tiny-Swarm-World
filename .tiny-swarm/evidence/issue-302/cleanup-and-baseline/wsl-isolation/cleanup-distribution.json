@@ -1,0 +1,12 @@
+{
+  "terminated_at": "2026-09-13T00:51:02.030972+00:00",
+  "exit_code": 0,
+  "interop_preserved": true,
+  "unrelated_pids_preserved": {
+    "23929": true,
+    "69797": true,
+    "175641": true
+  },
+  "fresh_nodes_and_data_retained": true,
+  "temporary_runtime_services_disabled": true
+}

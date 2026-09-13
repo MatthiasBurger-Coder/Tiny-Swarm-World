@@ -73,3 +73,13 @@ response bodies or credentials:
 | Live/E2E default logins succeed | `service_authentication.md` plus deployment access steps; native absent | PARTIAL |
 | Live/E2E override succeeds | Jenkins identity verified with override; default HTTP 401; restoration passed | VERIFIED |
 | Architecture/configuration documentation matches behavior | Catalog, compose, installer, tests and WSL2 run | PARTIAL |
+
+## RC1 reconciliation — 2026-09-13
+
+The preceding table is retained as its dated historical assessment. Current
+credential acceptance is provided by #295/#296 and current c921 both-host
+fresh/reconcile/update/recovery/restart results under #297/#298/#299/#301.
+See [R06 history and applicability](../issue-302/history-and-applicability.md)
+and [the source comparison](../issue-302/credential-applicability.json).
+The earlier native/browser gaps are superseded by those executed results;
+no old partial run is relabeled as a new successful execution.

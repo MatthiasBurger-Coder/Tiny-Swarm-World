@@ -43,3 +43,26 @@ The scan covers 13 locked Python dependencies and three Dockerfiles (60 successf
 checks, no HIGH/CRITICAL configuration findings). Built-image vulnerability status
 and live acceptance are separate. RC1-E09 owns the final all-row decision and
 records required hosted checks for the final evidence integration revision.
+
+## Final evidence integration, 2026-09-13
+
+All final dependent packages are integrated at `69f040a75fa8a7bc9b9c01bf5eb62f53abeb6a6e` (after PRs
+#336/#337/#338/#339/#340/#341/#342 and independent R09 PR #332).
+No product/CI input changed from c921. [Exact comparison](../../.tiny-swarm/evidence/issue-302/candidate-provenance.json).
+
+| Actual analyzed/executed SHA | Gate | Result | Run |
+|---|---|---|---|
+| 69f040a75fa8a7bc9b9c01bf5eb62f53abeb6a6e | Main canonical Quality | PASS | [34729686799](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/actions/runs/34729686799) |
+| 69f040a75fa8a7bc9b9c01bf5eb62f53abeb6a6e | Conda Python 3.12 and 3.13 | PASS independently | [34729686818](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/actions/runs/34729686818) |
+| 69f040a75fa8a7bc9b9c01bf5eb62f53abeb6a6e | SonarCloud waited main gate | PASS, actual SCM revision verified | [34729827923](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/actions/runs/34729827923) |
+| 69f040a75fa8a7bc9b9c01bf5eb62f53abeb6a6e | Deliberately blocked hosted dispatch on original runner 23 | EXPECTED FAILURE before mutation; live job skipped | [34729909225](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/actions/runs/34729909225) |
+
+[Machine-readable CI metadata](../../.tiny-swarm/evidence/issue-302/final-ci.json)
+retains triggers, timestamps, job names, artifacts and scanner observations.
+Intermediate main push jobs for 58c712c0/e0d85cbb were cancelled by newer main
+pushes; their Sonar prerequisite rejection remains non-success and is not used
+as candidate analysis. The separate actual 69f040a7 scan above passed.
+
+The R06 audit publication head and its merge must independently pass their own
+external checks. Final PR/#294/#302 integration records bind those actual SHAs
+after they exist, without relabeling the qualified live revisions.

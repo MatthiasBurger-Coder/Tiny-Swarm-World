@@ -1,0 +1,8 @@
+{
+  "action": "Additional read-only elevated Hyper-V Get-VM status query",
+  "exit_code": 1,
+  "result": "Windows elevation cancelled by user; no Hyper-V Off observation obtained",
+  "poweroff_command_evidence": "native-poweroff.json",
+  "retry_performed": false,
+  "scope": "Poweroff was already requested successfully from the authenticated guest after evidence archival; this query is not a live-test gate."
+}
