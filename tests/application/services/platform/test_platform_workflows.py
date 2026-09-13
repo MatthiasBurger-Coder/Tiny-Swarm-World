@@ -24,6 +24,7 @@ from tiny_swarm_world.application.services.platform import (
     PlatformWorkflowResult,
     PlatformWorkflowStatus,
 )
+from tiny_swarm_world.application.ports.preflight import PortPlatformPreflight
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
 from tiny_swarm_world.domain.preflight import (
     PreflightCategory,
@@ -105,6 +106,23 @@ class TestPlatformWorkflowTaxonomy(unittest.TestCase):
 
 
 class TestPlatformWorkflows(unittest.IsolatedAsyncioTestCase):
+    async def test_platform_preflight_port_can_guard_mutation_independently(self):
+        class ReadOnlyPreflight(PortPlatformPreflight):
+            async def run(self, live_consent=None):
+                return PreflightResult(())
+
+        preflight = ReadOnlyPreflight()
+        guard = _PreflightAction(await preflight.run())
+        mutation = _RecordingAction("init")
+
+        result = await PlatformInitWorkflow(
+            [mutation],
+            pre_apply_guard=guard,
+        ).run()
+
+        self.assertEqual(PlatformWorkflowStatus.COMPLETED, result.status)
+        self.assertEqual(["init"], mutation.calls)
+
     async def test_init_reconcile_expose_and_repair_run_configured_safe_steps(self):
         init_step = _RecordingAction("init")
         reconcile_step = _RecordingAction("reconcile")

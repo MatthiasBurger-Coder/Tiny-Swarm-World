@@ -22,9 +22,9 @@ from tiny_swarm_world.application.services.platform import (
     PlatformRepairLxcProxyDriftWorkflow,
     PlatformResetWorkflow,
     PlatformVerifyWorkflow,
-    PreflightService,
     SocatManager,
 )
+from tiny_swarm_world.application.ports.preflight import PortPlatformPreflight
 from tiny_swarm_world.application.services.setup import SetupWorkflow
 from tiny_swarm_world.infrastructure.adapters.clients.lxc_node_provider import LxcNodeProvider
 from tiny_swarm_world.infrastructure.adapters.command_runner.command_workflow import CommandWorkflow
@@ -57,7 +57,7 @@ class PlatformServices:
     lxc_proxy_drift_repair: LxcProxyDriftRepairService
     lxc_service_exposure: LxcServiceExposureService
     lxc_swarm_bootstrap: LxcSwarmBootstrapService
-    preflight: PreflightService
+    preflight: PortPlatformPreflight
     lxc_node_provider: LxcNodeProvider
     node_provider_selection: NodeProviderSelectionService
     socat_manager: SocatManager
@@ -104,7 +104,7 @@ class ApplicationServices:
     deployment: DeploymentServices
 
     @property
-    def preflight(self) -> PreflightService:
+    def preflight(self) -> PortPlatformPreflight:
         return self.platform.preflight
 
     @property
