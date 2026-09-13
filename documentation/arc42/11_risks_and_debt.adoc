@@ -132,9 +132,37 @@ Remaining risks and debt:
   per-invocation contract in
   `adr-explicit-non-interactive-live-consent.adoc`.
 
-=== Service Access Dashboard And Vaultwarden Baseline Risks
+=== Current RC1 Service Access Disposition (2026-09-13)
 
-The service-access dashboard and Vaultwarden baseline is implemented as
+The current service-access profile uses Infisical and the intentional internal-test
+credential catalog with optional protected operator overrides. The prior
+Vaultwarden/password-input statements below describe the historical baseline;
+they are not current installation prerequisites. The current contracts are
+`adr-test-only-credential-override.adoc` and the internal-test credential catalog.
+Production exposure, enterprise identity and general disaster recovery remain
+outside this isolated-test acceptance.
+
+The candidate c921e695 has actual fresh WSL2 and native-Linux lifecycle evidence,
+including canonical update/recovery and complete authenticated acceptance. Exact
+executed revisions, preserved-state assertions and host-specific limits are in
+issues #297, #298, #299 and #301. These observations replace earlier absence of
+those scoped results; they do not make historical or skipped checks successful.
+The planned WSL restart needs orderly Docker shutdown before Incus shutdown;
+the first failed attempt and its targeted repair remain issue-299 evidence.
+
+Docker socket capability and mutable upstream image tags remain explicit
+internal-test risks. R04/R08 record dependency/SBOM/container-configuration scans,
+resolved image identities and bounded live authorization/network observations.
+A read-only socket mount is not an API authorization boundary. The final RC1
+release decision remains owned by #302 and must consume each exact proof.
+
+=== Historical Service Access Dashboard And Vaultwarden Baseline Risks
+
+This subsection preserves the earlier design and unresolved items at that time.
+It is superseded for the current credential provider and defaults by the dated
+RC1 disposition above; it must not be read as current operator instructions.
+
+The service-access dashboard and Vaultwarden baseline was implemented as
 repository compose assets, image-packaged dashboard/NGINX assets, setup
 profile contracts, setup manifest requirements and static tests.
 The current central `http://localhost` route requires a fresh

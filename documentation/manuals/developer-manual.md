@@ -15,7 +15,7 @@ independent of application and infrastructure; concrete adapters are wired in
 
 ## Workflow and changes
 
-Use the [workflow index](../workflow/workflow.index.md),
+Use the [workflow documents](../workflow/),
 [issue-completion discipline](../process/issue-completion-discipline.md) and
 [branch/CI governance](../governance/branch-protection.md). The repository
 [AGENTS.md](../../AGENTS.md) and [QUALITY.md](../../QUALITY.md) are the root
