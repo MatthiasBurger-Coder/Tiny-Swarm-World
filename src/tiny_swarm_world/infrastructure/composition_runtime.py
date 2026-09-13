@@ -101,6 +101,9 @@ from tiny_swarm_world.application.services.platform import (
     PlatformVerifyWorkflow,
     PortainerEndpointVerifyStep,
     PreflightService,
+    ResolvedRuntimeProfile,
+    RuntimeProfileResolutionRequest,
+    RuntimeProfileResolver,
     SocatManager,
 )
 from tiny_swarm_world.application.services.platform.host import (
@@ -128,6 +131,7 @@ from tiny_swarm_world.application.services.setup import (
     SetupWorkflowPhase,
     SetupWorkflowResult,
 )
+from tiny_swarm_world.domain.host_environment import HostEnvironmentKind
 from tiny_swarm_world.domain.deployment import (
     ServiceStackContract,
     ServiceStackProfile,
@@ -1061,18 +1065,39 @@ def _build_post_install_preflight_service_for_request(
 def _lxc_backend_for_provider_request(
     provider_request: NodeProviderSelectionRequest,
 ) -> ManagedLxcBackend | None:
-    if provider_request.requested_provider != NodeProviderKind.LXC_NATIVE:
-        return None
-    if provider_request.preferred_backend is not None:
-        if provider_request.preferred_backend in _LXC_SUPPORTED_BACKENDS:
-            return provider_request.preferred_backend
-        return None
-    for backend in provider_request.backend_candidates:
-        if backend not in _LXC_SUPPORTED_BACKENDS:
-            continue
-        if shutil.which(backend_cli(backend)):
-            return backend
-    return None
+    return resolve_runtime_profile(
+        DEFAULT_SETUP_SERVICE_PROFILE,
+        provider_request,
+    ).backend
+
+
+def resolve_runtime_profile(
+    service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
+    provider_request: NodeProviderSelectionRequest | None = None,
+    host_environment: HostEnvironmentKind | None = None,
+) -> ResolvedRuntimeProfile:
+    """Resolve profile and runtime capability inputs through one canonical owner."""
+
+    request = provider_request or _default_node_provider_request()
+    available_backends = tuple(
+        sorted(
+            (
+                backend
+                for backend in _LXC_SUPPORTED_BACKENDS
+                if shutil.which(backend_cli(backend))
+            ),
+            key=lambda backend: backend.value,
+        )
+    )
+    return RuntimeProfileResolver().resolve(
+        RuntimeProfileResolutionRequest(
+            service_profile=service_profile,
+            provider_request=request,
+            host_environment=host_environment,
+            available_backends=available_backends,
+            supported_backends=tuple(sorted(_LXC_SUPPORTED_BACKENDS, key=lambda backend: backend.value)),
+        )
+    )
 
 
 def _default_node_provider_request() -> NodeProviderSelectionRequest:
@@ -1096,15 +1121,12 @@ def _preflight_configuration_for_provider(
     service_profile: ServiceStackProfile | str,
     node_provider_request: NodeProviderSelectionRequest | None,
 ) -> PreflightConfiguration:
+    resolved_profile = resolve_runtime_profile(service_profile, node_provider_request)
     configuration = replace(
-        default_preflight_configuration(service_profile=service_profile),
+        default_preflight_configuration(service_profile=resolved_profile.service_profile),
         windows_wsl_bridge_required=_windows_wsl_bridge_required(),
     )
-    profile_name = (
-        service_profile.value
-        if isinstance(service_profile, ServiceStackProfile)
-        else str(service_profile)
-    )
+    profile_name = resolved_profile.service_profile.value
     profiles = default_resource_profiles()
     resource_profile = profiles.get(profile_name, profiles["default"])
     configuration = replace(
@@ -1125,7 +1147,7 @@ def _preflight_configuration_for_provider(
                 generic_checks=configuration.provider_metadata.generic_checks,
             ),
         )
-    backend = _lxc_backend_for_provider_request(provider_request)
+    backend = resolved_profile.backend
     if backend is None:
         if not provider_request.backend_candidates:
             raise ValueError(

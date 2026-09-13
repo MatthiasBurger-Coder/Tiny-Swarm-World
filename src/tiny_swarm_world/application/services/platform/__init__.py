@@ -26,6 +26,12 @@ from tiny_swarm_world.application.services.platform.incus.lxc_swarm_bootstrap im
     LxcSwarmVerifyStep,
 )
 from tiny_swarm_world.application.services.platform.preflight_service import PreflightService
+from tiny_swarm_world.application.services.platform.runtime_profile import (
+    ResolvedRuntimeProfile,
+    RuntimeProfileResolutionRequest,
+    RuntimeProfileResolutionStatus,
+    RuntimeProfileResolver,
+)
 from tiny_swarm_world.application.services.platform.portainer_verify import (
     PortainerEndpointVerifyStep,
 )
@@ -85,6 +91,10 @@ __all__ = [
     "NodeProviderSelectionService",
     "NodeProviderVerifyNodeStep",
     "PreflightService",
+    "ResolvedRuntimeProfile",
+    "RuntimeProfileResolutionRequest",
+    "RuntimeProfileResolutionStatus",
+    "RuntimeProfileResolver",
     "DESTROY_TINY_SWARM_PLATFORM_CONFIRMATION",
     "PLATFORM_WORKFLOW_TAXONOMY",
     "RESET_TINY_SWARM_PLATFORM_CONFIRMATION",
