@@ -19,6 +19,7 @@ from tiny_swarm_world.application.ports.ui.port_ui import (
     PortUI,
 )
 from tiny_swarm_world.application.services.platform import PlatformWorkflowStatus
+from tiny_swarm_world.application.services.platform import PlatformLifecycleOrchestrator
 from tiny_swarm_world.application.services.platform.preflight_service import (
     PreflightService,
 )
@@ -140,6 +141,15 @@ class TestComposition(unittest.TestCase):
         self.assertNotEqual(
             composition.ArtifactServices, composition.DeploymentServices
         )
+
+    def test_platform_bundle_exposes_typed_lifecycle_orchestrator(self):
+        services = composition.build_platform_services()
+
+        self.assertIsInstance(
+            services.lifecycle,
+            PlatformLifecycleOrchestrator,
+        )
+        self.assertIs(services.lifecycle.workflows.init, services.workflows.init)
 
     def test_build_application_services_aggregates_separate_builders(self):
         platform = object()
