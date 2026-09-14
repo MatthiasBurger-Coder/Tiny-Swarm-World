@@ -7,6 +7,11 @@ calls so legacy facade patch points remain effective.
 
 from __future__ import annotations
 
+from tiny_swarm_world.application.services.platform import (
+    PlatformLifecycleOrchestrator,
+    PlatformLifecycleWorkflows,
+)
+
 from .composition_runtime import (
     AsyncLxcNodeCommandRunner,
     ClusterWorkflows,
@@ -375,6 +380,18 @@ def build_platform_services(
         ),
     )
 
+    lifecycle = PlatformLifecycleOrchestrator(
+        PlatformLifecycleWorkflows(
+            init=workflows.init,
+            reconcile=workflows.reconcile,
+            expose=workflows.expose,
+            repair_lxc_proxy_drift=workflows.repair_lxc_proxy_drift,
+            verify=workflows.verify,
+            reset=workflows.reset,
+            destroy=workflows.destroy,
+        )
+    )
+
     return PlatformServices(
         command_workflow=command_workflow,
         lxc_docker_install=lxc_docker_install,
@@ -386,6 +403,7 @@ def build_platform_services(
         node_provider_selection=node_provider_selection,
         socat_manager=socat_manager,
         workflows=workflows,
+        lifecycle=lifecycle,
     )
 
 

@@ -23,6 +23,7 @@ from tiny_swarm_world.application.services.platform import (
     PlatformResetWorkflow,
     PlatformVerifyWorkflow,
     SocatManager,
+    PlatformLifecycleOrchestrator,
 )
 from tiny_swarm_world.application.ports.preflight import PortPlatformPreflight
 from tiny_swarm_world.application.services.setup import SetupWorkflow
@@ -62,6 +63,7 @@ class PlatformServices:
     node_provider_selection: NodeProviderSelectionService
     socat_manager: SocatManager
     workflows: PlatformWorkflows
+    lifecycle: PlatformLifecycleOrchestrator
 
 
 @dataclass(frozen=True)

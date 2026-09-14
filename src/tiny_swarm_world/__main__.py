@@ -20,6 +20,11 @@ from tiny_swarm_world.application.services.platform.workflow.types import (
     PlatformWorkflowKind,
     PlatformWorkflowStatus,
 )
+from tiny_swarm_world.application.services.platform import (
+    PlatformLifecycleOrchestrator,
+    PlatformLifecycleRequest,
+    PlatformLifecycleWorkflows,
+)
 from tiny_swarm_world.application.ports.repositories.port_compose_file_repository import (
     PortComposeFileRepository,
 )
@@ -657,24 +662,25 @@ async def run_platform_workflow(
     kind: PlatformWorkflowKind | None,
     confirmation: str | None,
 ) -> PlatformWorkflowResult:
-    workflows = services.platform.workflows
-    match kind:
-        case PlatformWorkflowKind.INIT:
-            return await workflows.init.run()
-        case PlatformWorkflowKind.RECONCILE:
-            return await workflows.reconcile.run()
-        case PlatformWorkflowKind.EXPOSE:
-            return await workflows.expose.run()
-        case PlatformWorkflowKind.REPAIR_LXC_PROXY_DRIFT:
-            return await workflows.repair_lxc_proxy_drift.run()
-        case PlatformWorkflowKind.VERIFY:
-            return await workflows.verify.run()
-        case PlatformWorkflowKind.RESET:
-            return await workflows.reset.run(confirmation)
-        case PlatformWorkflowKind.DESTROY:
-            return await workflows.destroy.run(confirmation)
-        case _:
-            raise ValueError(f"Unsupported platform workflow: {kind}")
+    if kind is None:
+        raise ValueError("Unsupported platform workflow: None")
+    lifecycle = getattr(services.platform, "lifecycle", None)
+    if lifecycle is None:
+        workflows = services.platform.workflows
+        lifecycle = PlatformLifecycleOrchestrator(
+            PlatformLifecycleWorkflows(
+                init=workflows.init,
+                reconcile=workflows.reconcile,
+                expose=workflows.expose,
+                repair_lxc_proxy_drift=workflows.repair_lxc_proxy_drift,
+                verify=workflows.verify,
+                reset=workflows.reset,
+                destroy=workflows.destroy,
+            )
+        )
+    return await lifecycle.run(
+        PlatformLifecycleRequest(kind=kind, confirmation=confirmation)
+    )
 
 
 async def run_artifact_workflow(
