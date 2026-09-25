@@ -652,3 +652,10 @@ Publication branch and target are the Branch above and `origin/<Branch>`.
 Record exact commit SHA and remote-ref comparison in the final publication
 handoff; resolve the authoring commit from Git rather than embedding a
 self-referential commit hash in this file.
+
+## Execution Progress
+
+- S352-01: inventory accepted; architecture tests and diff check passed.
+- S352-02–S352-06: NOT STARTED. Issue remains INCOMPLETE.
+- User execution preference: normal project checkout and branches only; no new worktrees or parallel writes.
+- Normal-checkout Windows bridge assets: 11 tests passed; prior path blocker resolved without code changes.
