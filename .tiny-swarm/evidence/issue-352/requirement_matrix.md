@@ -33,3 +33,11 @@ Hardened command, provider, inventory, port-registry and operator-source parsing
 Verification: Targeted unittest suite PASS: 156 tests. Final python3 tools/quality_gate.py quality PASS: 2128 tests, 18 skipped; lint/typecheck, five import contracts, 22 architecture tests and verification policy passed. Final log: /tmp/tsw352-s03-final-quality.log. git diff --check PASS. Independent architecture and test reviews ACCEPT after retry1 compatibility repairs.
 
 Matrix rows remain OPEN until integrated acceptance, rather than treating a partial boundary as complete.
+
+## S352-04 incremental evidence
+
+Validated service catalogue and TSW-consumed Compose structures with sanitized failures, preserving supported anchors/extensions/interpolation/port forms. Added immutable typed selected-stack snapshots and atomic cached content/service metadata; changed or deleted source files cannot replace selected snapshots.
+
+Verification: Targeted Compose suite PASS: 67 tests. python3 tools/quality_gate.py quality PASS: 2137 tests, 18 skipped; lint/typecheck, five import contracts, 22 architecture tests and verification policy passed. Log: /tmp/tsw352-s04-quality.log. git diff --check PASS. Independent architecture and test reviewers ACCEPT.
+
+Matrix rows remain OPEN until integrated acceptance, rather than treating a partial boundary as complete.

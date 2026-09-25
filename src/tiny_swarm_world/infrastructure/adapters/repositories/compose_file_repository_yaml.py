@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, cast
 
 from ruamel.yaml import YAML
+from ruamel.yaml.error import YAMLError
 from ruamel.yaml.scalarstring import LiteralScalarString
 
 from tiny_swarm_world.application.ports.repositories.port_compose_file_repository import PortComposeFileRepository
@@ -23,6 +24,7 @@ from tiny_swarm_world.application.ports.repositories.port_effective_access_model
 from tiny_swarm_world.domain.deployment.stack_definition import (
     ComposeServiceDefinition,
     StackDefinition,
+    StackConfigurationSnapshot,
 )
 from tiny_swarm_world.domain.deployment import ServiceStackProfile
 from tiny_swarm_world.domain.deployment import service_stack_contracts_for_profile
@@ -33,6 +35,7 @@ from tiny_swarm_world.domain.ingress import (
 )
 from tiny_swarm_world.domain.network import PortRegistry, ServicePortMapping
 from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
+from tiny_swarm_world.infrastructure.adapters.configuration.configuration_sources import validate_configuration_tree
 from tiny_swarm_world.infrastructure.project_paths import ProjectPaths, default_project_paths
 from tiny_swarm_world.infrastructure.adapters.repositories.port_registry_yaml_repository import (
     PortRegistryYamlRepository,
@@ -89,14 +92,33 @@ class ComposeFileRepositoryYaml(
         )
         self.enabled_service_names = _enabled_service_names(paths.config_root / "services.yml")
         self.logger = LoggerFactory.get_logger(self.__class__)
+        self._validated_stacks: dict[str, StackDefinition] = {}
+        self._validated_services: dict[str, tuple[ComposeServiceDefinition, ...]] = {}
+
+    def validate_and_snapshot(self, stack_names: tuple[str, ...]) -> StackConfigurationSnapshot:
+        definitions: dict[str, StackDefinition] = {}
+        services: dict[str, tuple[ComposeServiceDefinition, ...]] = {}
+        for name in dict.fromkeys(stack_names):
+            definition = self.get_compose_of(name)
+            definitions[name] = definition
+            services[name] = self._services_from(definition)
+        snapshot = StackConfigurationSnapshot(stacks=tuple(definitions.values()))
+        self._validated_stacks.update(definitions)
+        self._validated_services.update(services)
+        return snapshot
 
     def get_compose_of(self, stack_name: str) -> StackDefinition:
+        if stack_name in self._validated_stacks:
+            return self._validated_stacks[stack_name]
         if not STACK_NAME_PATTERN.fullmatch(stack_name):
             raise ValueError("compose stack name contains invalid characters")
 
         for base_directory in self.base_directories:
             for compose_path in self._compose_paths_for(base_directory, stack_name):
-                compose_content = compose_path.read_text(encoding="utf-8")
+                try:
+                    compose_content = compose_path.read_text(encoding="utf-8")
+                except (OSError, UnicodeError):
+                    raise ValueError("Selected Compose configuration could not be read.") from None
                 _validate_swarm_stack_compose(stack_name, compose_content)
                 compose_content = _resolve_direct_published_ports(
                     stack_name,
@@ -113,6 +135,7 @@ class ComposeFileRepositoryYaml(
                     compose_content,
                     self.render_service_access_dashboard() if stack_name == "service-access" else "",
                 )
+                _validate_swarm_stack_compose(stack_name, compose_content)
                 self.logger.info("Loaded compose file for stack '%s'.", stack_name)
                 return StackDefinition(
                     name=stack_name,
@@ -122,25 +145,19 @@ class ComposeFileRepositoryYaml(
         raise FileNotFoundError(f"No docker-compose.yml found for stack '{stack_name}' in {self.base_directories}.")
 
     def get_services_of(self, stack_name: str) -> tuple[ComposeServiceDefinition, ...]:
-        stack_definition = self.get_compose_of(stack_name)
-        payload = _YAML.load(stack_definition.compose_content) or {}
-        if not isinstance(payload, Mapping):
-            return ()
-        services = payload.get("services", {})
-        if not isinstance(services, Mapping):
-            return ()
+        if stack_name in self._validated_services:
+            return self._validated_services[stack_name]
+        return self._services_from(self.get_compose_of(stack_name))
 
+    def _services_from(self, definition: StackDefinition) -> tuple[ComposeServiceDefinition, ...]:
+        payload = _validated_compose_payload(definition.compose_content)
         return tuple(
             ComposeServiceDefinition(
                 name=service_name,
-                image_ref=_effective_compose_image_ref(
-                    service_payload.get("image", ""),
-                    self.environment,
-                ),
+                image_ref=_effective_compose_image_ref(service_payload["image"], self.environment),
                 published_ports=_published_ports_from_service(service_payload),
             )
-            for service_name, service_payload in services.items()
-            if isinstance(service_name, str) and isinstance(service_payload, Mapping)
+            for service_name, service_payload in payload["services"].items()
         )
 
     def get_image_inventory(self) -> ArtifactImageInventory:
@@ -278,30 +295,126 @@ def _published_ports_from_service(service_payload: Mapping[object, object]) -> t
     return tuple(dict.fromkeys(published_ports))
 
 
+def _load_configuration_yaml(content: str) -> Any:
+    try:
+        payload = _YAML.load(content)
+    except (YAMLError, RecursionError):
+        raise ValueError("Configuration is not a valid YAML document.") from None
+    validate_configuration_tree(payload)
+    return payload
+
+
 def _validate_swarm_stack_compose(stack_name: str, compose_content: str) -> None:
-    payload = _YAML.load(compose_content) or {}
-    if not isinstance(payload, Mapping):
-        raise ValueError(f"compose stack '{stack_name}' must be a YAML mapping")
+    _validated_compose_payload(compose_content)
 
+
+def _validated_compose_payload(compose_content: str) -> dict[str, Any]:
+    payload = _load_configuration_yaml(compose_content)
+    if not isinstance(payload, dict):
+        raise ValueError("Compose stack must be a YAML mapping.")
     services = payload.get("services")
-    if not isinstance(services, Mapping) or not services:
-        raise ValueError(f"compose stack '{stack_name}' must define a non-empty services mapping")
+    if not isinstance(services, dict) or not services:
+        raise ValueError("Compose stack must define a non-empty services mapping.")
+    for field in ("networks", "configs", "secrets", "volumes"):
+        if field in payload:
+            if not isinstance(payload[field], dict):
+                raise ValueError("Compose resource declarations must be mappings.")
+            if not all(value is None or isinstance(value, dict) for value in payload[field].values()):
+                raise ValueError("Compose resource members must be mappings.")
+    for name, service in services.items():
+        if not name.strip() or not isinstance(service, dict):
+            raise ValueError("Compose services require non-empty names and mapping members.")
+        if not isinstance(service.get("deploy"), dict):
+            raise ValueError("Compose service requires a deploy mapping.")
+        image_ref = service.get("image")
+        if not isinstance(image_ref, str) or not image_ref.strip():
+            raise ValueError("Compose service requires a non-empty image string.")
+        if "ports" in service:
+            if not isinstance(service["ports"], list):
+                raise ValueError("Compose service ports must be a list.")
+            for port in service["ports"]:
+                _validate_port_entry(port)
+        for field in ("environment", "labels"):
+            if field in service:
+                _validate_scalar_collection(service[field])
+        if "labels" in service["deploy"]:
+            _validate_scalar_collection(service["deploy"]["labels"])
+        if "networks" in service:
+            networks = service["networks"]
+            if isinstance(networks, list):
+                if not all(isinstance(network, str) and network.strip() for network in networks):
+                    raise ValueError("Compose service networks must contain names.")
+            elif isinstance(networks, dict):
+                if not all(value is None or isinstance(value, dict) for value in networks.values()):
+                    raise ValueError("Compose service network options must be mappings.")
+            else:
+                raise ValueError("Compose service networks must be a list or mapping.")
+        for field in ("configs", "secrets"):
+            if field in service:
+                references = service[field]
+                if not isinstance(references, list):
+                    raise ValueError("Compose resource references must be lists.")
+                for reference in references:
+                    source = reference.get("source") if isinstance(reference, dict) else reference
+                    if not isinstance(source, str) or not source.strip():
+                        raise ValueError("Compose resource references require a source name.")
+    return payload
 
-    invalid_services: list[str] = []
-    for service_name, service_payload in services.items():
-        if not isinstance(service_name, str):
-            invalid_services.append(str(service_name))
-            continue
-        if not isinstance(service_payload, Mapping):
-            invalid_services.append(service_name)
-            continue
-        deploy = service_payload.get("deploy")
-        if not isinstance(deploy, Mapping):
-            invalid_services.append(service_name)
 
-    if invalid_services:
-        invalid = ", ".join(sorted(invalid_services))
-        raise ValueError(f"compose stack '{stack_name}' has services without a deploy mapping: {invalid}")
+def _validate_scalar_collection(value: object) -> None:
+    if isinstance(value, list) and all(isinstance(item, str) for item in value):
+        return
+    if isinstance(value, dict) and all(item is None or isinstance(item, (str, int, float, bool)) for item in value.values()):
+        return
+    raise ValueError("Compose labels and environment must be scalar mappings or string lists.")
+
+
+def _validate_port_number(value: object, *, published: bool = False) -> None:
+    if isinstance(value, bool) or not isinstance(value, (str, int)):
+        raise ValueError("Compose port values must be integers or strings.")
+    text = re.sub(r"\$\{[^}]+\}|\$[A-Za-z_][A-Za-z0-9_]*", "1", str(value))
+    if not re.fullmatch(r"[0-9]+(?:-[0-9]+)?", text):
+        raise ValueError("Compose port values must be port numbers or ranges.")
+    bounds = [int(part) for part in text.split("-")]
+    if any(port < (0 if published else 1) or port > 65535 for port in bounds) or bounds[0] > bounds[-1]:
+        raise ValueError("Compose port values are outside the supported range.")
+
+
+def _validate_port_entry(value: object) -> None:
+    if isinstance(value, dict):
+        _validate_port_number(value.get("target"))
+        if "published" in value:
+            _validate_port_number(value["published"], published=True)
+        for field, allowed in (("protocol", {"tcp", "udp", "sctp"}), ("mode", {"host", "ingress"})):
+            if field in value and (not isinstance(value[field], str) or (value[field] not in allowed and not re.fullmatch(r"\$\{[^}]+\}", value[field]))):
+                raise ValueError("Compose port protocol or mode is invalid.")
+        if "host_ip" in value and not isinstance(value["host_ip"], str):
+            raise ValueError("Compose port host address must be a string.")
+        return
+    if isinstance(value, int) and not isinstance(value, bool):
+        _validate_port_number(value)
+        return
+    if not isinstance(value, str):
+        raise ValueError("Compose port entries must use supported short or long syntax.")
+    normalized = re.sub(r"\$\{[^}]+\}|\$[A-Za-z_][A-Za-z0-9_]*", "1", value)
+    if "/" in normalized:
+        normalized, protocol = normalized.rsplit("/", 1)
+        if protocol not in {"tcp", "udp", "sctp"}:
+            raise ValueError("Compose port protocol is invalid.")
+    if normalized.startswith("["):
+        if "]:" not in normalized:
+            raise ValueError("Compose port host address is invalid.")
+        normalized = normalized.split("]:", 1)[1]
+    parts = normalized.split(":")
+    if len(parts) == 3:
+        if not parts[0]:
+            raise ValueError("Compose port host address must not be empty.")
+        parts = parts[1:]
+    if len(parts) not in {1, 2}:
+        raise ValueError("Compose port short syntax is invalid.")
+    _validate_port_number(parts[-1])
+    if len(parts) == 2:
+        _validate_port_number(parts[0], published=True)
 
 
 def _published_port_from_entry(port_entry: object) -> int | None:
@@ -339,7 +452,7 @@ def _resolve_direct_published_ports(
     compose_content: str,
     port_registry: PortRegistry,
 ) -> str:
-    payload = _YAML.load(compose_content) or {}
+    payload = _load_configuration_yaml(compose_content)
     if not isinstance(payload, Mapping):
         return compose_content
     services = payload.get("services")
@@ -359,7 +472,7 @@ def _resolve_traefik_route_labels(
     compose_content: str,
     routes: tuple[DesiredHttpsRoute, ...],
 ) -> str:
-    payload = _YAML.load(compose_content) or {}
+    payload = _load_configuration_yaml(compose_content)
     if not isinstance(payload, Mapping):
         return compose_content
     services = payload.get("services")
@@ -406,8 +519,11 @@ def _apply_traefik_labels(
 
     networks = service_payload.setdefault("networks", [])
     network_added = False
-    if isinstance(networks, list) and TRAEFIK_INGRESS_NETWORK_NAME not in networks:
-        networks.append(TRAEFIK_INGRESS_NETWORK_NAME)
+    if TRAEFIK_INGRESS_NETWORK_NAME not in networks:
+        if isinstance(networks, list):
+            networks.append(TRAEFIK_INGRESS_NETWORK_NAME)
+        elif isinstance(networks, dict):
+            networks[TRAEFIK_INGRESS_NETWORK_NAME] = None
         network_added = True
 
     deploy = service_payload.setdefault("deploy", {})
@@ -415,8 +531,10 @@ def _apply_traefik_labels(
         return network_added
 
     labels = deploy.setdefault("labels", [])
-    if not isinstance(labels, list):
-        return network_added
+    label_items = (
+        [f"{key}={value}" for key, value in labels.items()]
+        if isinstance(labels, dict) else labels
+    )
 
     router_names = tuple(_router_name_for(route) for route in service_routes)
     rendered_labels = list(
@@ -428,7 +546,7 @@ def _apply_traefik_labels(
     )
     retained_labels = [
         label
-        for label in labels
+        for label in label_items
         if not (
             isinstance(label, str)
             and (
@@ -446,7 +564,11 @@ def _apply_traefik_labels(
             )
         )
     ]
-    new_labels = retained_labels + rendered_labels
+    new_labels: list[str] | dict[str, object] = retained_labels + rendered_labels
+    if isinstance(labels, dict):
+        retained_keys = {label.split("=", 1)[0] for label in retained_labels}
+        new_labels = {key: value for key, value in labels.items() if key in retained_keys}
+        new_labels.update(dict(label.split("=", 1) for label in rendered_labels))
     if labels != new_labels:
         deploy["labels"] = new_labels
         return True
@@ -460,7 +582,7 @@ def _resolve_service_access_dashboard_config(
 ) -> str:
     if stack_name != "service-access":
         return compose_content
-    payload = _YAML.load(compose_content) or {}
+    payload = _load_configuration_yaml(compose_content)
     if not isinstance(payload, Mapping):
         return compose_content
     services = payload.get("services")
@@ -482,9 +604,15 @@ def _resolve_service_access_dashboard_config(
             "target": "/usr/share/nginx/html/index.html",
         }
     ]
-    dashboard_service.setdefault("environment", {})[
-        "TSW_SERVICE_ACCESS_DASHBOARD_SHA256"
-    ] = hashlib.sha256(dashboard_html.encode("utf-8")).hexdigest()
+    environment = dashboard_service.setdefault("environment", {})
+    digest_key = "TSW_SERVICE_ACCESS_DASHBOARD_SHA256"
+    digest = hashlib.sha256(dashboard_html.encode("utf-8")).hexdigest()
+    if isinstance(environment, list):
+        dashboard_service["environment"] = [
+            value for value in environment if value.split("=", 1)[0] != digest_key
+        ] + [f"{digest_key}={digest}"]
+    else:
+        environment[digest_key] = digest
 
     return _dump_yaml_payload(payload)
 
@@ -535,21 +663,24 @@ def _router_name_for(route: DesiredHttpsRoute) -> str:
 
 
 def _enabled_service_names(services_path: Path) -> frozenset[str]:
-    if not services_path.is_file():
+    if not services_path.exists():
         return frozenset()
-    payload = _YAML.load(services_path.read_text(encoding="utf-8")) or {}
-    if not isinstance(payload, Mapping):
-        return frozenset()
-    services = payload.get("services", {})
-    if not isinstance(services, Mapping):
-        return frozenset()
-    return frozenset(
-        service_name
-        for service_name, service_payload in services.items()
-        if isinstance(service_name, str)
-        and isinstance(service_payload, Mapping)
-        and service_payload.get("enabled") is True
-    )
+    try:
+        payload = _load_configuration_yaml(services_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError):
+        raise ValueError("Service catalogue could not be read.") from None
+    if not isinstance(payload, dict) or not isinstance(payload.get("services"), dict):
+        raise ValueError("Service catalogue must contain a services mapping.")
+    enabled: set[str] = set()
+    for name, service in payload["services"].items():
+        if not name.strip() or not isinstance(service, dict):
+            raise ValueError("Service catalogue entries require names and mappings.")
+        value = service.get("enabled", False)
+        if not isinstance(value, bool):
+            raise ValueError("Service catalogue enabled must be a boolean.")
+        if value:
+            enabled.add(str(name))
+    return frozenset(enabled)
 
 
 def _conditional_route_names(

@@ -2,7 +2,7 @@
 
 Workflow ID: issue-352-configuration-parsing-boundary
 workflowVersion: 1.0
-Status: EXECUTING; implementation tracked in Execution Progress
+Status: BLOCKED_SCOPE_APPROVAL; S352-01 through S352-04 accepted
 Issue: [#352](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/352)
 Parent: [EPIC #313](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/313)
 Branch: `architecture/workflow-352-config-parsing-20260925`
@@ -656,10 +656,16 @@ self-referential commit hash in this file.
 ## Execution Progress
 
 - S352-01: inventory accepted; architecture tests and diff check passed.
-- S352-04–S352-06: NOT STARTED. Issue remains INCOMPLETE.
+- S352-05–S352-06: NOT STARTED. Issue remains INCOMPLETE.
 - User execution preference: normal project checkout and branches only; no new worktrees or parallel writes.
 - Normal-checkout Windows bridge assets: 11 tests passed; prior path blocker resolved without code changes.
 
 - S352-02: ACCEPTED — Typed immutable secret-manifest model and repository port; PyYAML adapter validates syntax, shape, duplicate keys and scalar types with safe errors. Renderer and installer consume typed entries; raw load_yaml removed. Supported defaults, unknown sources and YAML merge/boolean compatibility retained.
 
 - S352-03: ACCEPTED — Hardened command, provider, inventory, port-registry and operator-source parsing with safe diagnostics, duplicate/cycle/type rejection and immutable opt-in provider snapshots. Installer bridge ports use the typed registry. Required port lists and supported numeric-string indexes remain compatible.
+
+- S352-04: ACCEPTED — Validated service catalogue and TSW-consumed Compose structures with sanitized failures, preserving supported anchors/extensions/interpolation/port forms. Added immutable typed selected-stack snapshots and atomic cached content/service metadata; changed or deleted source files cannot replace selected snapshots.
+
+### Execution blocker before S352-05
+
+Independent architecture and requirement review identified a necessary scope correction: add `src/tiny_swarm_world/infrastructure/adapters/repositories/installer_configuration_repository.py` and `tests/infrastructure/adapters/repositories/test_installer_configuration_repository.py` to S352-05. The cohesive adapter validates staged selected installer configuration before reset, using existing typed repositories and validators. It avoids forbidden installer imports and avoids assigning unrelated provider/environment validation to the Compose repository. No ADR or architecture allowlist change is needed. User approval requested; allowed files/locks remain unchanged until approved. S352-05 and S352-06 are not started.

@@ -39,3 +39,11 @@
 - tests/infrastructure/adapters/repositories/test_node_provider_config_yaml_repository.py
 - tests/infrastructure/adapters/repositories/test_port_registry_yaml_repository.py
 - tests/test_installer.py
+
+## S352-04
+
+- .codex/evidence/slice-04-distribution.md
+- src/tiny_swarm_world/application/ports/repositories/port_compose_file_repository.py
+- src/tiny_swarm_world/domain/deployment/stack_definition.py
+- src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py
+- tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py
