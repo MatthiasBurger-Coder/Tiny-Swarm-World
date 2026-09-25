@@ -32,6 +32,8 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc.node.evidence import E
 
 
 DEFAULT_LXC_PROVIDER_TIMEOUT_SECONDS = 5.0
+DEFAULT_LXC_STARTUP_TIMEOUT_SECONDS = 60.0
+LXC_WAITREADY_EXIT_GRACE_SECONDS = 5.0
 COMMON_LXC_EXECUTABLE_DIRECTORIES = (Path("/snap/bin"),)
 
 
@@ -128,6 +130,7 @@ class LxcProviderPreflightProbe(PortNodeProviderReadiness):
         systemd_available: Callable[[], bool] | None = None,
         wsl_lxc_capability_available: Callable[[], bool] | None = None,
         timeout_seconds: float = DEFAULT_LXC_PROVIDER_TIMEOUT_SECONDS,
+        startup_timeout_seconds: float = DEFAULT_LXC_STARTUP_TIMEOUT_SECONDS,
         executable_fallback_directories: Sequence[Path] = COMMON_LXC_EXECUTABLE_DIRECTORIES,
     ):
         self.host_environment_provider = (
@@ -142,6 +145,7 @@ class LxcProviderPreflightProbe(PortNodeProviderReadiness):
             wsl_lxc_capability_available or _default_wsl_lxc_capability_available
         )
         self.timeout_seconds = timeout_seconds
+        self.startup_timeout_seconds = startup_timeout_seconds
 
     async def provider_readiness(
         self,
@@ -212,8 +216,15 @@ class LxcProviderPreflightProbe(PortNodeProviderReadiness):
         backend: ManagedLxcBackend,
         host_environment: HostEnvironmentReport,
     ) -> _BackendProbeReadiness:
-        for probe_name, args in _readiness_commands(backend, self.timeout_seconds):
-            result = await self.runner.run(args, self.timeout_seconds)
+        for probe_name, args in _readiness_commands(backend, self.startup_timeout_seconds):
+            # Socket activation can take longer than an ordinary API request.
+            # Let waitready finish its own deadline before killing the client.
+            timeout = (
+                max(1, math.ceil(self.startup_timeout_seconds)) + LXC_WAITREADY_EXIT_GRACE_SECONDS
+                if probe_name == "waitready"
+                else self.timeout_seconds
+            )
+            result = await self.runner.run(args, timeout)
             if result.returncode == 0 and not result.timed_out:
                 continue
             return _BackendProbeReadiness(

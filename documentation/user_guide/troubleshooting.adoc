@@ -260,6 +260,12 @@ in `documentation/user_guide/installation.adoc` before applying a recovery
 action. If the optional temporary-container smoke is needed, follow the
 bounded sequence in that checklist and delete only its named test container.
 
+Provider preflight allows up to 60 seconds for daemon startup via `admin
+waitready`, plus five seconds for the client to exit. Version and info checks
+retain their five-second timeouts. This accommodates socket activation on a
+cold WSL2 host. A timeout still blocks reset/setup before mutation; inspect
+`systemctl status incus.service incus.socket` if startup does not complete.
+
 For Incus:
 
 [source,bash]

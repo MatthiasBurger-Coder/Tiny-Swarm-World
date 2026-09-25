@@ -102,13 +102,31 @@ class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             runner.calls,
             [
-                (("incus", "admin", "waitready", "--timeout=5"), 5.0),
+                (("incus", "admin", "waitready", "--timeout=60"), 65.0),
                 (("incus", "version"), 5.0),
                 (("incus", "info"), 5.0),
             ],
         )
         self.assertEqual(readiness.evidence["waitready_probe"], "passed")
         self.assertEvidenceIsSummaryOnly(readiness)
+
+    async def test_cold_wsl_daemon_can_take_twenty_seconds_to_become_ready(self):
+        class ColdStartRunner(_FakeRunner):
+            async def run(self, args, timeout_seconds):
+                result = await super().run(args, timeout_seconds)
+                if "waitready" in args and (
+                    timeout_seconds < 20 or int(args[-1].split("=")[1]) < 20
+                ):
+                    return LxcProviderProbeResult(returncode=124, timed_out=True)
+                return result
+
+        runner = ColdStartRunner(_ok(), _ok(), _ok())
+        readiness = await _probe(
+            available=("incus",), runner=runner, host_environment=_wsl2_report()
+        ).provider_readiness(NodeProviderKind.LXC_NATIVE)
+
+        self.assertTrue(readiness.ready)
+        self.assertEqual([timeout for _, timeout in runner.calls], [65.0, 5.0, 5.0])
 
     async def test_lxc_cli_without_incus_is_not_selected_by_default(self):
         runner = _FakeRunner()
@@ -150,7 +168,7 @@ class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(ProviderReadinessStatus.DAEMON_UNAVAILABLE, readiness.status)
         self.assertEqual(
             runner.calls,
-            [(("incus", "admin", "waitready", "--timeout=5"), 5.0)],
+            [(("incus", "admin", "waitready", "--timeout=60"), 65.0)],
         )
         self.assertEqual(readiness.evidence["probe"], "waitready")
         self.assertEvidenceIsSummaryOnly(readiness)
@@ -249,10 +267,10 @@ class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             runner.calls,
             [
-                (("incus", "admin", "waitready", "--timeout=5"), 5.0),
+                (("incus", "admin", "waitready", "--timeout=60"), 65.0),
                 (("incus", "version"), 5.0),
                 (("incus", "info"), 5.0),
-                (("lxc", "admin", "waitready", "--timeout=5"), 5.0),
+                (("lxc", "admin", "waitready", "--timeout=60"), 65.0),
                 (("lxc", "version"), 5.0),
                 (("lxc", "info"), 5.0),
             ],
@@ -284,10 +302,10 @@ class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             runner.calls,
             [
-                (("lxc", "admin", "waitready", "--timeout=5"), 5.0),
+                (("lxc", "admin", "waitready", "--timeout=60"), 65.0),
                 (("lxc", "version"), 5.0),
                 (("lxc", "info"), 5.0),
-                (("incus", "admin", "waitready", "--timeout=5"), 5.0),
+                (("incus", "admin", "waitready", "--timeout=60"), 65.0),
                 (("incus", "version"), 5.0),
                 (("incus", "info"), 5.0),
             ],
@@ -320,7 +338,7 @@ class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             runner.calls,
             [
-                (("lxc", "admin", "waitready", "--timeout=5"), 5.0),
+                (("lxc", "admin", "waitready", "--timeout=60"), 65.0),
                 (("lxc", "version"), 5.0),
                 (("lxc", "info"), 5.0),
             ],
@@ -342,7 +360,7 @@ class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             runner.calls,
             [
-                (("lxc", "admin", "waitready", "--timeout=5"), 5.0),
+                (("lxc", "admin", "waitready", "--timeout=60"), 65.0),
                 (("lxc", "version"), 5.0),
                 (("lxc", "info"), 5.0),
             ],
@@ -524,10 +542,10 @@ def _assert_read_only_command(args) -> None:
     if any(token in self_mutating_tokens for token in argv):
         raise AssertionError(f"mutating provider command was called: {argv!r}")
     if argv not in {
-        ("incus", "admin", "waitready", "--timeout=5"),
+        ("incus", "admin", "waitready", "--timeout=60"),
         ("incus", "version"),
         ("incus", "info"),
-        ("lxc", "admin", "waitready", "--timeout=5"),
+        ("lxc", "admin", "waitready", "--timeout=60"),
         ("lxc", "version"),
         ("lxc", "info"),
     }:
