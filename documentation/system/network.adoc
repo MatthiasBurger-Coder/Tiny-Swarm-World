@@ -165,7 +165,17 @@ review the dry-run first:
 ----
 
 The Linux forwarding repair is scoped to the Incus bridge and persists through
-`tsw-incus-forwarding.service`.
+`tsw-incus-forwarding.service`. The service retries failed starts every 15 seconds,
+including when the bridge appears only after its initial 60-second wait. Applying
+the repair updates and restarts an existing service. Reapply the explicit repair
+command above to upgrade an older installed unit; updating the repository alone
+does not update host files. Repair verification checks HTTP on the selected node,
+not installation readiness of every cluster node.
+
+If firewall commands cannot run (for example, insufficient permissions), the
+network doctor reports `FORWARDING_UNVERIFIED` and forwarding state `UNKNOWN`.
+It does not infer healthy forwarding or missing NAT from unreadable rules.
+Repeat the diagnosis with sufficient privileges before choosing a repair.
 
 == Verification
 

@@ -150,11 +150,10 @@ class SubprocessNetworkProbe:
     async def forwarding(self) -> ForwardingObservation:
         ip_forward, iptables_forward, iptables_nat, nft_rules = await asyncio.gather(
             self._run("sysctl net.ipv4.ip_forward", timeout_seconds=5),
-            self._run("iptables -S FORWARD 2>/dev/null || true", timeout_seconds=8),
-            self._run("iptables -t nat -S 2>/dev/null || true", timeout_seconds=8),
+            self._run("iptables -S FORWARD", timeout_seconds=8),
+            self._run("iptables -t nat -S", timeout_seconds=8),
             self._run(
-                "nft list ruleset 2>/dev/null | "
-                "grep -Ei 'incus|docker|masquerade|forward' -C 3 || true",
+                "nft list ruleset",
                 timeout_seconds=10,
             ),
         )

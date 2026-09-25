@@ -145,6 +145,20 @@ class TestHostNetworkProbe(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(forwarding.ip_forward.ok)
         self.assertIn("sysctl", forwarding.ip_forward.command)
 
+    async def test_firewall_probe_preserves_failures_and_stderr(self):
+        executor = _MappingExecutor({
+            "sysctl": _ok("sysctl", "net.ipv4.ip_forward = 1"),
+            "iptables": _failed("iptables", "Permission denied"),
+            "nft": _failed("nft", "Operation not permitted"),
+        })
+        observation = await SubprocessNetworkProbe(executor=executor).forwarding()
+        for result in (observation.iptables_forward, observation.iptables_nat, observation.nft_rules):
+            self.assertFalse(result.ok)
+            self.assertTrue(result.stderr)
+            self.assertNotIn("|| true", result.command)
+            self.assertNotIn("2>/dev/null", result.command)
+            self.assertNotIn("|", result.command)
+
     async def test_service_ports_reads_listening_tcp_sockets(self):
         probe = SubprocessNetworkProbe(
             executor=_MappingExecutor({"ss -ltnH": _ok("ss", "LISTEN 0 4096 *:10000 *:*")})

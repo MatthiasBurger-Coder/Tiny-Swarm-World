@@ -1,3 +1,6 @@
+import os
+import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -36,6 +39,38 @@ class TestHostNetworkRepair(unittest.TestCase):
         self.assertIn("tsw-apply-incus-forwarding.sh", service)
         self.assertIn("TimeoutStartSec=75s", service)
         self.assertIn("RemainAfterExit=yes", service)
+        self.assertIn("Restart=on-failure", service)
+        self.assertIn("RestartSec=15s", service)
+        self.assertIn("StartLimitIntervalSec=0", service)
+        self.assertIn("Wants=network-online.target incus.service", service)
+
+    def test_forwarding_script_recovers_on_retry_after_bridge_appears(self):
+        # Execute only stub commands, never host networking tools.
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            commands = {
+                "ip": '#!/bin/bash\nif [ "$1" = link ]; then test -e "$TEST_BRIDGE"; else echo "inet 10.0.0.1/24"; fi\n',
+                "sleep": "#!/bin/bash\nexit 0\n",
+                "iptables": '#!/bin/bash\necho "$*" >> "$TEST_RULES"\n',
+                "sed": "#!/bin/bash\necho 10.0.0.1/24\n",
+            }
+            for name, content in commands.items():
+                path = root / name
+                path.write_text(content)
+                path.chmod(0o755)
+            env = dict(os.environ, PATH=directory, TEST_BRIDGE=str(root / "bridge"),
+                       TEST_RULES=str(root / "rules"))
+            script = host_network_repair._forwarding_script()
+            failed = subprocess.run(["/bin/bash", "-c", script], env=env,
+                                    capture_output=True, text=True, timeout=5)
+            self.assertNotEqual(failed.returncode, 0)
+            self.assertIn("did not become available", failed.stderr)
+            self.assertFalse((root / "rules").exists())
+            (root / "bridge").touch()
+            recovered = subprocess.run(["/bin/bash", "-c", script], env=env,
+                                       capture_output=True, text=True, timeout=5)
+            self.assertEqual(recovered.returncode, 0, recovered.stderr)
+            self.assertIn("FORWARD -i incusbr0", (root / "rules").read_text())
 
     def test_incus_runtime_file_guard_accepts_only_expected_pid_path(self):
         self.assertTrue(
@@ -200,8 +235,23 @@ class TestHostNetworkRepair(unittest.TestCase):
         self.assertTrue(result.success)
         commands = tuple(command.command for command in result.commands)
         self.assertTrue(any("install -m 0755" in command for command in commands))
-        self.assertTrue(any("systemctl enable --now tsw-incus-forwarding.service" in command for command in commands))
+        self.assertTrue(any("systemctl enable tsw-incus-forwarding.service" in command for command in commands))
         self.assertTrue(any("incus exec swarm-manager -- curl" in command for command in commands))
+        self.assertTrue(any("systemctl restart tsw-incus-forwarding.service" in command for command in commands))
+        self.assertTrue(any("--fail" in command and "--max-time" in command for command in commands))
+
+    def test_linux_forwarding_repair_does_not_claim_success_when_restart_or_http_fails(self):
+        for failed_command in ("systemctl restart", "curl"):
+            with self.subTest(failed_command=failed_command):
+                def executor(command, timeout):
+                    if failed_command in command:
+                        return _failed(command)
+                    return _ok(command)
+
+                result = SubprocessNetworkRepair(executor=executor)._apply_linux_forwarding(
+                    "incusbr0", "swarm-manager"
+                )
+                self.assertFalse(result.success)
 
     def test_linux_forwarding_repair_reports_failed_install(self):
         executor = _MappingExecutor(

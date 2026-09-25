@@ -1,4 +1,6 @@
 import unittest
+from dataclasses import replace
+from unittest.mock import AsyncMock
 
 from tiny_swarm_world.application.ports.network import (
     CommandObservation,
@@ -41,6 +43,22 @@ class TestNetworkDoctorService(unittest.IsolatedAsyncioTestCase):
         self.assertIn("LXC swarm-manager DNS: OK", rendered)
         self.assertIn("LXC swarm-manager HTTP egress: OK", rendered)
         self.assertIn("Docker/Incus forwarding: OK", rendered)
+
+    async def test_unavailable_firewall_checks_never_report_success_or_missing_nat(self):
+        for field in ("ip_forward", "iptables_forward", "iptables_nat", "nft_rules"):
+            with self.subTest(field=field):
+                probe = _HealthyProbe()
+                observation = await probe.forwarding()
+                probe.forwarding = AsyncMock(return_value=replace(
+                    observation, **{field: _failed(field, "Permission denied")}
+                ))
+                report = await NetworkDoctorService(probe, _sample_port_registry()).run()
+                rendered = report.render()
+                self.assertFalse(report.passed)
+                self.assertIn("FORWARDING_UNVERIFIED", rendered)
+                self.assertIn("Docker/Incus forwarding: UNKNOWN", rendered)
+                self.assertNotIn("FORWARDING_OK", rendered)
+                self.assertNotIn("INCUS_NAT_MISSING", rendered)
 
     async def test_lxc_http_blocked_with_docker_forward_drop_suggests_forwarding_repair(self):
         report = await NetworkDoctorService(

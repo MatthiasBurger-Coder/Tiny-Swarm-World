@@ -514,6 +514,24 @@ def _forwarding_section(
     observation: ForwardingObservation,
     lxc_section: NetworkDiagnosticSection | None,
 ) -> NetworkDiagnosticSection:
+    probes = (
+        observation.ip_forward,
+        observation.iptables_forward,
+        observation.iptables_nat,
+        observation.nft_rules,
+    )
+    unavailable = tuple(probe for probe in probes if not probe.ok)
+    if unavailable:
+        return NetworkDiagnosticSection(
+            "Docker/iptables",
+            ("Docker/Incus forwarding: UNKNOWN",)
+            + tuple(f"Unavailable check: {probe.command} (exit {probe.return_code})" for probe in unavailable),
+            (_fail(
+                "FORWARDING_UNVERIFIED",
+                "Cannot inspect forwarding rules. Check command availability and permissions; "
+                "repeat the diagnosis with sufficient privileges.",
+            ),),
+        )
     ip_forward_ok = " = 1" in observation.ip_forward.stdout or observation.ip_forward.stdout.strip().endswith("= 1")
     forward_policy_drop = "-P FORWARD DROP" in observation.iptables_forward.stdout
     docker_rules_present = "DOCKER" in observation.iptables_forward.stdout

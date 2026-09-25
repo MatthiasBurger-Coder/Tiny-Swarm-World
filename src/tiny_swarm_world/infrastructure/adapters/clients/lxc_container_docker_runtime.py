@@ -420,6 +420,18 @@ def _docker_install_failure_reason(result: LxcNodeCommandResult) -> str:
     output = _combined_output(result)
     if result.timed_out:
         return "docker_install_timed_out"
+    # These exit codes belong to explicit failure boundaries in our install script.
+    explicit_reasons = {
+        42: "apt_repository_unreachable",
+        43: "docker_apt_gpg_unreachable",
+        44: "docker_apt_repository_unreachable",
+    }
+    if result.returncode in explicit_reasons:
+        return explicit_reasons[result.returncode]
+    if "could not resolve" in output or "temporary failure resolving" in output:
+        return "apt_dns_resolution_failed"
+    if "no route to host" in output:
+        return "apt_no_route_to_host"
     if (
         "failed to fetch" in output
         or "could not connect to archive.ubuntu.com" in output
@@ -428,10 +440,6 @@ def _docker_install_failure_reason(result: LxcNodeCommandResult) -> str:
         or "connection timed out" in output
     ):
         return "apt_repository_unreachable"
-    if "could not resolve" in output or "temporary failure resolving" in output:
-        return "apt_dns_resolution_failed"
-    if "no route to host" in output:
-        return "apt_no_route_to_host"
     return "docker_install_command_failed"
 
 

@@ -797,6 +797,50 @@ the targeted forwarding repair:
 ./tsw network repair --linux-forwarding --apply
 ----
 
+=== Forwarding Service Failed Before the Incus Bridge Appeared
+
+If the WSL host has internet access but LXC nodes cannot reach repository
+addresses, inspect the existing forwarding service and rules:
+
+[source,bash]
+----
+systemctl status tsw-incus-forwarding.service --no-pager
+journalctl -u tsw-incus-forwarding.service -n 30 --no-pager
+sudo iptables -S FORWARD
+----
+
+A service error such as `Incus bridge incusbr0 did not become available within
+60 seconds`, together with a `FORWARD DROP` policy and no applicable bridge
+allowances, indicates that the forwarding repair did not activate. Older
+installed units do not automatically retry when the bridge later appears.
+
+From the repository root, install the updated repair and verify networking:
+
+[source,bash]
+----
+sudo -v
+./tsw network repair --linux-forwarding --apply
+sudo env PYTHONPATH=src .venv/bin/python -m tiny_swarm_world doctor network
+----
+
+The last command uses the repository's existing `.venv` and reads firewall
+rules with elevated privileges. Without sufficient permissions, the current
+network doctor reports `FORWARDING_UNVERIFIED` and `UNKNOWN`; older versions
+could incorrectly report `FORWARDING_OK` or missing NAT.
+
+The repair updates and restarts the installed service. Failed starts retry
+every 15 seconds; updating the repository alone does not update the host unit.
+The service does not continuously monitor rules after a successful start.
+Verify successful service startup and container DNS/HTTP access before retrying
+the installer. A fresh installer run resets managed nodes again.
+
+`docker_apt_gpg_unreachable` identifies a failed Docker signing-key download;
+`docker_apt_repository_unreachable` identifies the Docker repository update.
+Earlier Ubuntu APT warnings can coexist with these failures. Neither result
+establishes that an external Nexus application-artifact source is unavailable.
+
+=== Configuring Reachable APT Mirrors
+
 If outbound internet is intentionally blocked or unreliable, configure APT
 mirrors that are reachable from inside the Incus containers. The example below
 then performs a *deliberate fresh reset*: use it only when the managed

@@ -1046,6 +1046,20 @@ class TestInstaller(unittest.TestCase):
         self.assertIn("./tsw network repair --linux-forwarding --apply", rendered)
         self.assertIn("does not change iptables", rendered)
 
+    def test_setup_network_guidance_covers_precise_install_failure_reasons(self):
+        for reason in (
+            "docker_apt_gpg_unreachable", "docker_apt_repository_unreachable",
+            "apt_dns_resolution_failed", "apt_no_route_to_host",
+        ):
+            with self.subTest(reason=reason):
+                log = f"first_failure_reason: {reason}"
+                self.assertIn("./tsw doctor network", "\n".join(
+                    installer._setup_failure_guidance_lines(log)
+                ))
+                self.assertIn("./tsw doctor network", installer._suggested_checks_for_phase(
+                    "live setup", log_text=log
+                ))
+
     def test_setup_failure_guidance_stays_silent_for_other_setup_blocks(self):
         self.assertEqual(installer._setup_failure_guidance_lines("failed_to_apply"), ())
 

@@ -184,6 +184,33 @@ class TestLxcContainerDockerRuntime(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("token=secret", repr(readiness))
         self.assertNotIn("/home/alice", repr(readiness))
 
+    async def test_explicit_install_failure_overrides_earlier_apt_warnings(self):
+        for code, reason in (
+            (42, "apt_repository_unreachable"),
+            (43, "docker_apt_gpg_unreachable"),
+            (44, "docker_apt_repository_unreachable"),
+        ):
+            with self.subTest(code=code):
+                runner = _FakeRunner(LxcNodeCommandResult(
+                    returncode=code,
+                    stderr="W: Failed to fetch Ubuntu: connection timed out\n"
+                    f"first_failure_reason: {reason}",
+                ))
+                outcome = await _runtime(runner, allow_live_mutation=True).install_docker(_node())
+                self.assertEqual(outcome.failure_reason, reason)
+
+    async def test_apt_warnings_preserve_dns_and_route_failure_reasons(self):
+        for detail, reason in (
+            ("Temporary failure resolving archive.ubuntu.com", "apt_dns_resolution_failed"),
+            ("No route to host", "apt_no_route_to_host"),
+        ):
+            with self.subTest(reason=reason):
+                runner = _FakeRunner(LxcNodeCommandResult(
+                    returncode=100, stderr=f"W: Failed to fetch Ubuntu: {detail}",
+                ))
+                outcome = await _runtime(runner, allow_live_mutation=True).install_docker(_node())
+                self.assertEqual(outcome.failure_reason, reason)
+
     async def test_failed_install_classifies_apt_repository_reachability(self):
         runner = _FakeRunner(
             LxcNodeCommandResult(

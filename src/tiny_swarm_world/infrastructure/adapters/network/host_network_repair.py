@@ -220,19 +220,23 @@ class SubprocessNetworkRepair:
             _sudo_command(
                 f"{shlex.quote(FORWARDING_SCRIPT_PATH.as_posix())} {shlex.quote(bridge)}"
             ),
-            10,
+            75,
         )
         daemon_reload = self.executor(_sudo_command("systemctl daemon-reload"), 20)
         enable_service = self.executor(
-            _sudo_command("systemctl enable --now tsw-incus-forwarding.service"),
+            _sudo_command("systemctl enable tsw-incus-forwarding.service"),
             30,
+        )
+        restart_service = self.executor(
+            _sudo_command("systemctl restart tsw-incus-forwarding.service"),
+            90,
         )
         verify = self.executor(
             f"incus exec {shlex.quote(node_name)} -- "
-            "curl -4 -I --connect-timeout 8 http://archive.ubuntu.com",
+            "curl -4 --fail -I --connect-timeout 8 --max-time 10 http://archive.ubuntu.com",
             12,
         )
-        commands.extend((apply_rules, daemon_reload, enable_service, verify))
+        commands.extend((apply_rules, daemon_reload, enable_service, restart_service, verify))
         success = all(command.ok for command in commands)
         details.extend(
             (
@@ -386,13 +390,16 @@ def _forwarding_service() -> str:
     return """[Unit]
 Description=Tiny-Swarm-World Incus forwarding rules
 After=network-online.target docker.service incus.service
-Wants=network-online.target
+Wants=network-online.target incus.service
+StartLimitIntervalSec=0
 
 [Service]
 Type=oneshot
 ExecStart=/usr/local/bin/tsw-apply-incus-forwarding.sh
 TimeoutStartSec=75s
 RemainAfterExit=yes
+Restart=on-failure
+RestartSec=15s
 
 [Install]
 WantedBy=multi-user.target

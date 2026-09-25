@@ -1220,7 +1220,7 @@ def _suggested_checks_for_phase(name: str, *, log_text: str = "") -> tuple[str, 
     normalized = name.casefold()
     commands: list[str]
     if "setup" in normalized:
-        if "apt_repository_unreachable" in log_text:
+        if _has_setup_network_failure(log_text):
             commands = [
                 "./tsw doctor network",
                 "./tsw network repair --linux-forwarding --apply",
@@ -1580,12 +1580,21 @@ def _print_setup_failure_guidance(path: Path) -> None:
         print(line, file=sys.stderr)
 
 
+def _has_setup_network_failure(log_text: str) -> bool:
+    return any(reason in log_text for reason in (
+        "apt_repository_unreachable",
+        "docker_apt_gpg_unreachable",
+        "apt_dns_resolution_failed",
+        "apt_no_route_to_host",
+    ))
+
+
 def _setup_failure_guidance_lines(log_text: str) -> tuple[str, ...]:
-    if "apt_repository_unreachable" not in log_text:
+    if not _has_setup_network_failure(log_text):
         return ()
     return (
         "Setup recovery hint:",
-        "  Docker Engine installation inside the LXC nodes cannot reach APT repositories.",
+        "  Docker Engine installation inside the LXC nodes cannot reach APT repositories or the Docker signing-key endpoint.",
         "  Run the read-only network diagnosis first:",
         "    ./tsw doctor network",
         "  If the diagnosis reports Docker blocking incusbr0 forwarding, apply only",
