@@ -654,6 +654,21 @@ class TestInstaller(unittest.TestCase):
         self.assertIn("TSW_INFISICAL_REDIS_PASSWORD", keys)
         self.assertNotIn("TSW_TRAEFIK_TLS_CERT_SECRET_NAME", keys)
 
+    def test_installer_manifest_rejects_non_boolean_required(self):
+        with tempfile.TemporaryDirectory() as directory:
+            manifest = Path(directory) / "manifest.yaml"
+            manifest.write_text("secrets:\n- key: TSW_TEST_PASSWORD\n  type: managed_secret\n  source: internal_test_catalog\n  required: 'false'\n", encoding="utf-8")
+            with self.assertRaisesRegex(installer.InstallerError, "boolean"):
+                installer._required_installer_secret_entries(manifest)
+
+    def test_installer_manifest_parser_error_does_not_echo_content(self):
+        with tempfile.TemporaryDirectory() as directory:
+            manifest = Path(directory) / "manifest.yaml"
+            manifest.write_text("secrets: [sensitive-marker", encoding="utf-8")
+            with self.assertRaises(installer.InstallerError) as caught:
+                installer._required_installer_secret_entries(manifest)
+            self.assertNotIn("sensitive-marker", str(caught.exception))
+
     def test_required_installer_secret_entries_reject_type_source_mismatch(self):
         with tempfile.TemporaryDirectory() as directory:
             manifest = Path(directory) / "infisical-secrets.yaml"

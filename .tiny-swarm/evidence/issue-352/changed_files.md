@@ -4,3 +4,20 @@
 - .codex/evidence/slice-01-{distribution,consolidation}.md: S3/S3D, reviews and decisions.
 - .tiny-swarm/evidence/issue-352/: initial six-file issue evidence package, all implementation requirements OPEN.
 - documentation/workflow/{workflow.md,context-pack.json}: execution progress/context refresh.
+
+## S352-02
+
+- .codex/evidence/slice-02-distribution.md
+- src/tiny_swarm_world/application/ports/file_management/port_local_file_storage.py
+- src/tiny_swarm_world/application/ports/repositories/port_secret_manifest_repository.py
+- src/tiny_swarm_world/application/services/deployment/secret_management.py
+- src/tiny_swarm_world/domain/configuration/secret_manifest.py
+- src/tiny_swarm_world/infrastructure/adapters/file_management/local_file_storage.py
+- src/tiny_swarm_world/infrastructure/adapters/repositories/secret_manifest_yaml_repository.py
+- src/tiny_swarm_world/infrastructure/composition_deployment.py
+- src/tiny_swarm_world/infrastructure/composition_runtime.py
+- src/tiny_swarm_world/installer.py
+- tests/application/services/deployment/test_secret_management.py
+- tests/domain/configuration/test_secret_manifest.py
+- tests/infrastructure/adapters/repositories/test_secret_manifest_yaml_repository.py
+- tests/test_installer.py

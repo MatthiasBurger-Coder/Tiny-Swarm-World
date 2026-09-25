@@ -4,8 +4,6 @@ import os
 import tempfile
 from pathlib import Path
 
-import yaml
-
 from tiny_swarm_world.application.ports.file_management.port_local_file_storage import (
     PortLocalFileStorage,
     TextFileSnapshot,
@@ -14,9 +12,6 @@ from tiny_swarm_world.application.ports.file_management.port_local_file_storage 
 
 class LocalFileStorage(PortLocalFileStorage):
     """POSIX-oriented storage adapter for installer configuration and evidence."""
-
-    def load_yaml(self, path: Path) -> object:
-        return yaml.safe_load(path.read_text(encoding="utf-8"))
 
     def read_text(self, path: Path) -> str | None:
         if not path.exists():

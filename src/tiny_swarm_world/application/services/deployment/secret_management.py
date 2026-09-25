@@ -23,6 +23,11 @@ from tiny_swarm_world.application.services.credential_resolution import (
     decode_source_metadata,
 )
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
+from tiny_swarm_world.domain.configuration.secret_manifest import (
+    SecretManifestEntry as SecretManifestEntry,
+    SecretManifestValidationError,
+)
+from tiny_swarm_world.application.ports.repositories.port_secret_manifest_repository import PortSecretManifestRepository
 
 SecretClassification = Literal[
     "managed_secret",
@@ -42,11 +47,6 @@ SECRET_ASSIGNMENT_PATTERN = re.compile(
 )
 PLACEHOLDER_MARKERS = ("${", "{{", "<", "redacted", "placeholder", "changeme", "fake", "sample", "-password", "-secret", "-value")
 SOURCE_MARKERS = ("internal_test_catalog", "external_user_secret", "managed_secret", "placeholder_only")
-MANIFEST_TYPE_BY_SOURCE = {
-    "internal_test_catalog": "managed_secret",
-    "external_user_secret": "external_user_secret",
-    "placeholder_only": "placeholder_only",
-}
 CONSUMER_REF_PATTERN = re.compile(r"^[a-z0-9][a-z0-9:._-]*$")
 FALSE_POSITIVE_KEYS = ("PUBLIC_KEY", "RESOURCE_KEYS", "RAW_EVIDENCE_KEYS")
 FALSE_POSITIVE_ASSIGNMENTS = (
@@ -79,21 +79,6 @@ SKIP_PARTS = {
     ".tiny-swarm-world",
     ".idea",
 }
-
-
-@dataclass(frozen=True)
-class SecretManifestEntry:
-    key: str
-    service: str
-    type: SecretClassification
-    environment: str
-    description: str
-    source: str
-    required: bool
-    policy: SecretPolicy = "keep_existing"
-    owner: str = ""
-    storage: str = ""
-    lifecycle: str = ""
 
 
 @dataclass(frozen=True)
@@ -152,20 +137,14 @@ class SecretRedactor:
 
 
 class SecretManifestRenderer:
-    def __init__(self, storage: PortLocalFileStorage, manifest_path: Path = DEFAULT_MANIFEST_PATH) -> None:
-        self.storage = storage
-        self.manifest_path = manifest_path
+    def __init__(self, repository: PortSecretManifestRepository) -> None:
+        self.repository = repository
 
     def run(self) -> tuple[SecretManifestEntry, ...]:
-        payload = self.storage.load_yaml(self.manifest_path)
-        if not isinstance(payload, dict) or not isinstance(payload.get("secrets"), list):
-            raise SecretManagementBlocker("manifest_schema_invalid", "Secret manifest must contain a secrets list.")
-        entries = tuple(_manifest_entry(item) for item in payload["secrets"])
-        keys = [entry.key for entry in entries]
-        duplicates = sorted({key for key in keys if keys.count(key) > 1})
-        if duplicates:
-            raise SecretManagementBlocker("manifest_schema_invalid", f"Duplicate secret keys: {', '.join(duplicates)}")
-        return entries
+        try:
+            return self.repository.load()
+        except SecretManifestValidationError as error:
+            raise SecretManagementBlocker("manifest_schema_invalid", str(error)) from None
 
 
 class SecretDiscoveryStep:
@@ -631,64 +610,6 @@ class SecretEvidenceWriter:
             message="Sanitized managed config evidence files were written.",
             evidence={"phase": "verify", "artifact_count": str(len(existing))},
         )
-
-
-def _manifest_entry(item: object) -> SecretManifestEntry:
-    if not isinstance(item, dict):
-        raise SecretManagementBlocker("manifest_schema_invalid", "Secret manifest entries must be mappings.")
-    key = str(item.get("key", ""))
-    if not re.fullmatch(r"TSW_[A-Z0-9]+(?:_[A-Z0-9]+)+", key):
-        raise SecretManagementBlocker("manifest_schema_invalid", f"Invalid TSW secret key: {key}")
-    entry_type = str(item.get("type", ""))
-    if entry_type not in {"managed_secret", "external_user_secret", "placeholder_only"}:
-        raise SecretManagementBlocker("manifest_schema_invalid", f"Invalid secret type for {key}: {entry_type}")
-    policy = str(item.get("policy", "keep_existing"))
-    if policy not in {"keep_existing", "rotate"}:
-        raise SecretManagementBlocker("manifest_schema_invalid", f"Invalid secret policy for {key}: {policy}")
-    source = str(item.get("source", ""))
-    expected_type = MANIFEST_TYPE_BY_SOURCE.get(source)
-    if expected_type is not None and entry_type != expected_type:
-        raise SecretManagementBlocker(
-            "manifest_schema_invalid",
-            f"Secret type/source mismatch for {key}: {entry_type}/{source}",
-        )
-    return SecretManifestEntry(
-        key=key,
-        service=str(item.get("service", "")),
-        type=entry_type,  # type: ignore[arg-type]
-        environment=str(item.get("environment", "local")),
-        description=str(item.get("description", "")),
-        source=source,
-        required=bool(item.get("required", False)),
-        policy=policy,  # type: ignore[arg-type]
-        owner=str(item.get("owner", _manifest_owner(source))),
-        storage=str(item.get("storage", _manifest_storage(source))),
-        lifecycle=str(item.get("lifecycle", _manifest_lifecycle(source))),
-    )
-
-
-def _manifest_owner(source: str) -> str:
-    if source == "external_user_secret":
-        return "operator"
-    if source == "internal_test_catalog":
-        return "credential_catalog"
-    return "unknown"
-
-
-def _manifest_storage(source: str) -> str:
-    if source == "external_user_secret":
-        return "external_docker_secret_or_operator_env"
-    if source == "internal_test_catalog":
-        return "catalog_or_operator_override"
-    return "unknown"
-
-
-def _manifest_lifecycle(source: str) -> str:
-    if source == "external_user_secret":
-        return "operator_created_and_rotated"
-    if source == "internal_test_catalog":
-        return "deterministic_catalog_value_or_explicit_override"
-    return "unknown"
 
 
 def _classify_line(path: Path, repo_root: Path, line_number: int, line: str, managed_keys: dict[str, SecretManifestEntry]) -> list[SecretFinding]:

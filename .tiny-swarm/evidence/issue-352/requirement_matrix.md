@@ -17,3 +17,11 @@ All requirements are OPEN: planning is not implementation or verification. Paren
 | R11 | Parsing/validation tests cover malformed and valid configurations. | Quality | Slice 02–06 exact scopes in workflow.md | PLANNED: slice 02–06 | PLANNED: Syntax, schema, required-field and supported-fixture tests | OPEN |
 
 At execution, copy this matrix to .tiny-swarm/evidence/issue-352/requirement_matrix.md and replace planned entries with exact files, symbols, test names, commands and results. Inherited EPIC constraints: preserve supported Classic behavior, Linux/WSL, Incus/Swarm, consent, destructive-operation guards, credential precedence, redaction, exit/evidence semantics and hexagonal ownership. No unrelated domain redesign or generic framework.
+
+## S352-02 incremental evidence
+
+Typed immutable secret-manifest model and repository port; PyYAML adapter validates syntax, shape, duplicate keys and scalar types with safe errors. Renderer and installer consume typed entries; raw load_yaml removed. Supported defaults, unknown sources and YAML merge/boolean compatibility retained.
+
+Verification: 202 targeted manifest/model/renderer/composition/installer tests PASS; lint PASS; typecheck PASS (688 files); python3 tools/quality_gate.py quality PASS (2110 tests, 18 skipped); git diff --check PASS.
+
+Matrix rows remain OPEN until integrated acceptance, rather than treating a partial boundary as complete.

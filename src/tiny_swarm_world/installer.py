@@ -64,11 +64,6 @@ WINDOWS_EXPOSURE_ENVIRONMENT = "TSW_WINDOWS_EXPOSURE"
 WINDOWS_WSL_BRIDGE_TEST_STATE_ENVIRONMENT = (
     "TSW_INSTALL_TEST_WINDOWS_WSL_BRIDGE_STATE_PATH"
 )
-_MANIFEST_TYPE_BY_SOURCE = {
-    "internal_test_catalog": "managed_secret",
-    "external_user_secret": "external_user_secret",
-    "placeholder_only": "placeholder_only",
-}
 
 
 @dataclass(frozen=True)
@@ -556,41 +551,17 @@ def _require_repository(cwd: Path) -> None:
 def _required_installer_secret_entries(
     manifest_path: Path,
 ) -> tuple[InstallerSecretEntry, ...]:
-    try:
-        import yaml
+    from tiny_swarm_world.domain.configuration.secret_manifest import SecretManifestValidationError
+    from tiny_swarm_world.infrastructure.adapters.repositories.secret_manifest_yaml_repository import SecretManifestYamlRepository
 
-        payload = yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
-    except (OSError, ValueError) as error:
-        raise InstallerError(f"Secret manifest is invalid: {error}") from error
-    if not isinstance(payload, dict) or not isinstance(payload.get("secrets"), list):
-        raise InstallerError("Secret manifest is invalid: expected a secrets list.")
-    entries = tuple(_installer_secret_entry(item) for item in payload["secrets"])
+    try:
+        entries = SecretManifestYamlRepository(manifest_path).load()
+    except SecretManifestValidationError as error:
+        raise InstallerError(f"Secret manifest is invalid: {error}") from None
     return tuple(
-        entry
+        InstallerSecretEntry(key=entry.key, source=entry.source, required=entry.required, type=entry.type)
         for entry in entries
         if entry.required and entry.source != "external_user_secret"
-    )
-
-
-def _installer_secret_entry(item: object) -> InstallerSecretEntry:
-    if not isinstance(item, dict):
-        raise InstallerError("Secret manifest is invalid: secret entries must be mappings.")
-    key = str(item.get("key", ""))
-    source = str(item.get("source", ""))
-    entry_type = str(item.get("type", ""))
-    if not key.startswith("TSW_"):
-        raise InstallerError(f"Secret manifest is invalid: unsupported key {key!r}.")
-    expected_type = _MANIFEST_TYPE_BY_SOURCE.get(source)
-    if expected_type is not None and entry_type != expected_type:
-        raise InstallerError(
-            f"Secret manifest is invalid: type/source mismatch for {key}: "
-            f"{entry_type}/{source}."
-        )
-    return InstallerSecretEntry(
-        key=key,
-        source=source,
-        required=bool(item.get("required", False)),
-        type=entry_type,
     )
 
 

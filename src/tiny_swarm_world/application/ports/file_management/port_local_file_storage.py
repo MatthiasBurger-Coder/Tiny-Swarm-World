@@ -15,10 +15,6 @@ class PortLocalFileStorage(ABC):
     """Application boundary for local configuration and evidence files."""
 
     @abstractmethod
-    def load_yaml(self, path: Path) -> object:
-        """Load one YAML document without exposing the parser to application code."""
-
-    @abstractmethod
     def read_text(self, path: Path) -> str | None:
         """Return UTF-8 text, or ``None`` when the file does not exist."""
 

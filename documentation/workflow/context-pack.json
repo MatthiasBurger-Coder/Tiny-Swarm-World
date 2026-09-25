@@ -5,8 +5,8 @@
   "baseline": "33aaafd5b80a3f316f4d650a9a831734dc7077e0",
   "processStrand": "workflow execute",
   "executionProfile": "FULL_PATH",
-  "status": "READY_FOR_WORKFLOW",
-  "implementationStatus": "SLICE_01_INVENTORY_ACCEPTED",
+  "status": "EXECUTING",
+  "implementationStatus": "S352-02_ACCEPTED",
   "affectedAreas": [
     "configuration boundary",
     "composition",
@@ -54,7 +54,7 @@
     "documentation/arc42/08_configuration/operator-configuration-contract.md": "5d1ef8a3d8af0655ad50c82e845ba56efc2d00610e5021cfcafc1c1606d909d0",
     "documentation/arc42/09_decisions/adr-explicit-non-interactive-live-consent.adoc": "e0a455b4ad79f59ce99f881d07c7fcaee46cea41f8c44ff50fc59a2e7b5e5476",
     "documentation/arc42/09_decisions/adr-lxc-native-node-provider.adoc": "d88225223e62de4744d5cec7d5703af1bff62ec178b9794a606472cbc83da901",
-    "documentation/workflow/workflow.md": "c86c1d02dfc673e78969c611ddc0e099bbfa40b9523c6a99d7a87b1115155fbb",
+    "documentation/workflow/workflow.md": "6086542aa61e24186bf3712fe5659203ef47c59f9015f4e709fc22c6bced4189",
     "documentation/workflow/requirement-matrix.md": "730d4e6417f9a1e0d629bd2b7365c175548fc245f003860dce61196abf1ab658",
     "documentation/arc42/05_analysis/arch-03-09-configuration-parsing-boundary.md": "459cf957ca2ff4e4266872e3f3d03f7cf637f91bb9f94df77736a12548c03d07",
     "documentation/workflow/authoring-review.md": "a7454e81481aa018704caab1b142e90708cb78d8cd6249d0eb13766f61ae91a0"

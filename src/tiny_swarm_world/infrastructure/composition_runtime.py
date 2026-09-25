@@ -9,6 +9,8 @@ import os
 import shutil
 import requests  # noqa: F401
 import subprocess  # noqa: F401
+from tiny_swarm_world.infrastructure.adapters.repositories.secret_manifest_yaml_repository import SecretManifestYamlRepository
+
 from dataclasses import replace
 from pathlib import Path
 from typing import cast

@@ -1,8 +1,8 @@
 # Workflow context pack
 
 Workflow: issue-352-configuration-parsing-boundary; version 1.0; branch `architecture/workflow-352-config-parsing-20260925`.
-Process: workflow create; profile FULL_PATH; status READY_FOR_WORKFLOW.
-Implementation: NOT_STARTED. Source baseline: `33aaafd5b80a3f316f4d650a9a831734dc7077e0`.
+Process: workflow execute; profile FULL_PATH; status EXECUTING.
+Implementation: see Execution Progress in workflow.md. Source baseline: `33aaafd5b80a3f316f4d650a9a831734dc7077e0`.
 
 Affected areas: configuration adapters/models/ports, composition, selected
 setup/platform/deployment and installer validation consumers. Forbidden: live

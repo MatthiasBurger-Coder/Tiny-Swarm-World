@@ -2,7 +2,7 @@
 
 Workflow ID: issue-352-configuration-parsing-boundary
 workflowVersion: 1.0
-Status: READY_FOR_WORKFLOW; implementation NOT STARTED
+Status: EXECUTING; implementation tracked in Execution Progress
 Issue: [#352](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/352)
 Parent: [EPIC #313](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/313)
 Branch: `architecture/workflow-352-config-parsing-20260925`
@@ -642,7 +642,7 @@ the same workflow branch after required gates.
 Verify workflowVersion, branch, actual published authoring commit and clean
 worktree; refresh governing hashes; run S3/S3D and lock preflight. Start Slice 01
 before product implementation. Reconcile current source inventory with the
-baseline and stop on substantive drift. All six slices remain NOT STARTED. The authoring baseline full quality run has
+baseline and stop on substantive drift. Initial authoring state: all six slices NOT STARTED; Execution Progress below records later checkpoints. The authoring baseline full quality run has
 one Windows-bridge/Pester path-translation failure; inspect authoring-review.md.
 Execution must resolve or formally classify this environment prerequisite before
 claiming a full implementation quality pass.
@@ -656,6 +656,8 @@ self-referential commit hash in this file.
 ## Execution Progress
 
 - S352-01: inventory accepted; architecture tests and diff check passed.
-- S352-02–S352-06: NOT STARTED. Issue remains INCOMPLETE.
+- S352-03–S352-06: NOT STARTED. Issue remains INCOMPLETE.
 - User execution preference: normal project checkout and branches only; no new worktrees or parallel writes.
 - Normal-checkout Windows bridge assets: 11 tests passed; prior path blocker resolved without code changes.
+
+- S352-02: ACCEPTED — Typed immutable secret-manifest model and repository port; PyYAML adapter validates syntax, shape, duplicate keys and scalar types with safe errors. Renderer and installer consume typed entries; raw load_yaml removed. Supported defaults, unknown sources and YAML merge/boolean compatibility retained.
