@@ -948,7 +948,9 @@ replaced by an explicit flag:
 ----
 
 The CLI live-infrastructure prompt is separate from the reset prompt. Normal
-wrapper runs keep that prompt interactive inside the terminal recorder. For
+wrapper runs keep that prompt interactive inside the terminal recorder, which
+inherits the calling terminal's standard input. Answer `y` when prompted in
+the reset and setup phases. For
 deliberate non-interactive automation, pass an explicit live-approval flag:
 
 [source,bash]

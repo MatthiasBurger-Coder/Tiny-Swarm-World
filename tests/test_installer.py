@@ -1,6 +1,10 @@
 import io
 import json
+import os
+import shlex
+import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
@@ -956,6 +960,52 @@ class TestInstaller(unittest.TestCase):
 
         self.assertEqual(124, exit_code)
         self.assertEqual("TIMED_OUT", getattr(reporter.events[-1], "status").value)
+
+    @unittest.skipUnless(shutil.which("script"), "terminal recorder is required")
+    def test_run_phase_preserves_interactive_consent_input(self):
+        repository = Path(__file__).resolve().parents[1]
+        consent_command = shlex.join([
+            sys.executable,
+            "-c",
+            "import sys\n"
+            "try:\n"
+            "    answer = input('Continue? [y/N]: ')\n"
+            "except EOFError:\n"
+            "    answer = ''\n"
+            "sys.exit(0 if answer.strip().lower() == 'y' else 2)\n",
+        ])
+        for headless, answer, expected in (
+            (False, "y\n", 0),
+            (False, "n\n", 2),
+            (True, "y\n", 2),
+        ):
+            with self.subTest(headless=headless, answer=answer):
+                with tempfile.TemporaryDirectory() as temporary_directory:
+                    log_file = Path(temporary_directory) / "consent.log"
+                    harness = (
+                        "import os; from pathlib import Path; "
+                        "from tiny_swarm_world import installer; "
+                        "options = installer.InstallerOptions("
+                        "service_profile='service-access', confirm_reset=True, "
+                        "non_interactive_live_approval=False, "
+                        f"headless={headless}, allow_wsl_windows_filesystem=False); "
+                        "raise SystemExit(installer._run_phase("
+                        f"'consent probe', {consent_command!r}, Path({str(log_file)!r}), "
+                        "options, dict(os.environ, TSW_INSTALL_PHASE_TIMEOUT_SECONDS='5'), "
+                        "Path.cwd()))"
+                    )
+                    result = subprocess.run(
+                        [sys.executable, "-c", harness],
+                        cwd=repository,
+                        env=dict(os.environ, PYTHONPATH=str(repository / "src")),
+                        input=answer,
+                        capture_output=True,
+                        text=True,
+                        timeout=15,
+                        check=False,
+                    )
+                    self.assertEqual(expected, result.returncode, result.stdout + result.stderr)
+                    self.assertIn("Continue? [y/N]:", log_file.read_text())
 
     def test_reset_failure_guidance_explains_privileged_lxc_block(self):
         log_text = "\n".join(

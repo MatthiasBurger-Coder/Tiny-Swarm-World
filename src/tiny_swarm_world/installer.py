@@ -1106,6 +1106,7 @@ def _run_phase(
             cwd=cwd,
             env=env,
             timeout_seconds=timeout_seconds,
+            stdin=None,
         )
     if timed_out or interrupted:
         status = "TIMED_OUT" if timed_out else "INTERRUPTED"
@@ -1168,6 +1169,7 @@ def _run_bounded_process(
     env: Mapping[str, str],
     timeout_seconds: float,
     stdout: int | IO[str] | None = None,
+    stdin: int | IO[str] | None = subprocess.DEVNULL,
 ) -> tuple[int, bool, bool]:
     process = subprocess.Popen(
         list(command),
@@ -1175,7 +1177,7 @@ def _run_bounded_process(
         env=dict(env),
         stdout=stdout,
         stderr=subprocess.STDOUT if stdout is not None else None,
-        stdin=subprocess.DEVNULL,
+        stdin=stdin,
         shell=False,
         start_new_session=True,
     )
