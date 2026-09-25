@@ -179,6 +179,22 @@ or:
 "distro": "Debian"
 ```
 
+## Installation fails with the exact-state ACL error
+
+If every prerequisite reports `PREREQUISITE OK` but installation stops with
+`The Windows bridge service ACL did not reach the required exact state.`,
+a leftover `.bridge-state.json.<id>.bak` file in
+`%ProgramData%\TinySwarmWorld\WslBridge` can trigger the failure. The final
+check rejects unexpected files as well as incorrect permissions.
+
+Follow the [bridge ACL recovery steps](../../documentation/user_guide/troubleshooting.adoc#windows-wsl-bridge-acl):
+open Windows PowerShell as Administrator, list the backup files, confirm that
+the regular `bridge-state.json` remains present, delete only the exact leftover
+backup, and rerun `-Action install`. Then check bridge readiness and return to
+the WSL installer. The linked procedure includes copyable commands for each
+step and the observed backup filename as an example. Do not delete the regular
+state file or recursively clear the service directory.
+
 ## Automatic discovery after WSL restart
 
 The Windows service starts automatically, reconciles immediately, and then runs

@@ -691,6 +691,15 @@ disable that contract explicitly in the WSL shell before installation:
 export TSW_WINDOWS_EXPOSURE=disabled
 ----
 
+If all prerequisites pass but `-Action install` reports
+`The Windows bridge service ACL did not reach the required exact state.`,
+inspect for a leftover `.bridge-state.json.<id>.bak` file using
+link:{user-guide-prefix}troubleshooting.adoc#windows-wsl-bridge-acl[the bridge ACL recovery steps].
+That procedure explains the Windows administrator commands, deletion of the
+confirmed backup, bridge reinstallation, and return to the WSL installer.
+The filesystem exception `--allow-wsl-windows-filesystem` does not bypass or
+repair bridge preparation.
+
 See `tools/windows/README.windows-wsl-bridge.md` for distro selection, repair,
 status, verification, and uninstall details.
 

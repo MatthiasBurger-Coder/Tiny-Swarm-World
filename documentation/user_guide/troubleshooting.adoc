@@ -33,6 +33,7 @@ tiny-swarm-world --preflight
 [options="header"]
 |===
 | What you see | Next check
+| `windows-wsl-bridge` / `state_invalid`, followed by an exact-state ACL error during bridge installation | Follow <<windows-wsl-bridge-acl,Windows bridge ACL recovery>> and inspect for a leftover state backup.
 | `ModuleNotFoundError` or missing CLI | Activate `.venv` and complete link:{user-guide-prefix}installation.adoc#_python_environment[Python Environment]; do not reset the platform.
 | Override permission error | Verify file ownership, `0600` file and `0700` parent on a Linux-native filesystem; see link:{user-guide-prefix}installation.adoc#operator-credential-overrides[optional overrides].
 | No password file after installation | Normal for the default path. Use the link:{user-reference-prefix}arc42/08_configuration/internal-test-credential-catalog.md[credential catalog].
@@ -63,6 +64,113 @@ proof that the logs describe the current environment.
 
 The detailed sections below cover individual failures. Development quality
 tools are needed only when running the corresponding developer checks.
+
+[[windows-wsl-bridge-acl]]
+== Windows Bridge Installation Fails With An Exact-State ACL Error
+
+This procedure covers the following sequence:
+
+. In WSL, `./install.sh --allow-wsl-windows-filesystem` stops at
+  `windows-wsl-bridge`, reports `Reason: state_invalid`, and lists missing
+  bridge ports.
+. In elevated Windows PowerShell, `-Action install` reports
+  `PREREQUISITE OK` for all prerequisites, including WSL2, systemd, and IPv4.
+. Bridge installation then stops with:
+
+[source,text]
+----
+The Windows bridge service ACL did not reach the required exact state.
+----
+
+The final service-tree check rejects unexpected files as well as incorrect
+access permissions. A leftover `.bridge-state.json.<id>.bak` backup in
+`%ProgramData%\TinySwarmWorld\WslBridge` is one confirmed trigger. The bridge
+creates these backups when atomically replacing its state file and normally
+removes them afterwards. The error alone does not prove that a backup is the
+cause; inspect the directory first.
+
+=== 1. Open Windows PowerShell As Administrator
+
+The application installer runs in WSL, but bridge repair runs on Windows.
+From your WSL terminal, open an elevated Windows PowerShell:
+
+[source,bash]
+----
+powershell.exe -NoProfile -Command "Start-Process powershell.exe -Verb RunAs"
+----
+
+Accept the Windows elevation prompt. Run the following PowerShell commands in
+the *new window*. Adjust the repository path if your checkout is elsewhere:
+
+[source,powershell]
+----
+cd D:\Projects\Tiny-Swarm-World
+Set-ExecutionPolicy -Scope Process Bypass
+$bridgeRoot = Join-Path $env:ProgramData 'TinySwarmWorld\WslBridge'
+Get-Item -LiteralPath (Join-Path $bridgeRoot 'bridge-state.json') -Force
+Get-ChildItem -LiteralPath $bridgeRoot -Force -File -Filter '.bridge-state.json.*.bak' |
+    Select-Object Name, LastWriteTime, Length
+----
+
+Confirm that the regular `bridge-state.json` exists and identify the leftover
+backup from the failed run. Do not remove a backup while another bridge
+installation or state update is in progress. If there is no matching leftover
+backup, or the regular state file is missing, this cleanup procedure does not
+establish the cause; retain the error and directory listing for diagnosis.
+
+=== 2. Delete Only The Confirmed Leftover Backup
+
+The observed failure included the filename below. Replace it with the exact
+filename from your listing if the identifier differs:
+
+[source,powershell]
+----
+$backupName = '.bridge-state.json.4de6f050ea0640bc8a02edc3014855f0.bak'
+Remove-Item -LiteralPath (Join-Path $bridgeRoot $backupName) -Force
+----
+
+This deletes the leftover backup; keep the regular `bridge-state.json`,
+`installation-manifest.json`, service executable, configuration, and bundle.
+Do not use wildcard deletion, delete the whole directory, or loosen its ACLs.
+
+=== 3. Install And Check The Bridge Again
+
+In the same elevated Windows PowerShell window:
+
+[source,powershell]
+----
+.\tools\windows\tws-wsl-bridge.ps1 -Action install
+----
+
+After that command succeeds, check the service and discovery state:
+
+[source,powershell]
+----
+Get-Service -Name TinySwarmWorldWslBridge
+.\tools\windows\tws-wsl-bridge.ps1 -Action discover
+----
+
+Expect the service to be `Running` and discovery to report `READY`. If the
+ACL error persists or the backup reappears, retain the new output and directory
+listing for diagnosis instead of deleting additional files. A TCP `verify`
+can fail before the application services are deployed; it is not the readiness
+check for this pre-installation repair.
+
+=== 4. Return To WSL And Retry The Intended Fresh Installation
+
+Once the bridge is ready, return to the original WSL terminal:
+
+[source,bash]
+----
+cd /mnt/d/Projects/Tiny-Swarm-World
+./install.sh --allow-wsl-windows-filesystem
+----
+
+This retries the fresh installation and asks for `RESET_TINY_SWARM_PLATFORM`;
+confirm only when the intended operation is to reset managed platform state.
+The filesystem flag permits a Windows-mounted checkout and does not repair
+or disable the bridge. For an existing deployment that only needed bridge
+repair, complete step 3 without starting a fresh platform reset.
 
 == Quality Gate Fails: Missing Tool
 

@@ -40,6 +40,15 @@ the installer:
   [Windows bridge prework](documentation/user_guide/installation.adoc#windows-wsl-prework).
   Native Linux does not need that bridge.
 
+If WSL setup reports `windows-wsl-bridge` / `state_invalid`, prepare the bridge
+in Windows PowerShell as Administrator. If that preparation passes all
+prerequisites but fails with `The Windows bridge service ACL did not reach the
+required exact state.`, a leftover `.bridge-state.json.<id>.bak` file can be
+the cause. Follow the [step-by-step bridge recovery](documentation/user_guide/troubleshooting.adoc#windows-wsl-bridge-acl)
+to inspect and delete only the confirmed leftover backup, reinstall the bridge,
+and return to the WSL installer. `--allow-wsl-windows-filesystem` only permits
+the checkout location; it does not prepare the bridge.
+
 The installer creates managed nodes and their Docker runtime. **It does not
 install or initialize the host's Incus daemon.** A host Docker installation
 does not replace Docker inside the managed nodes.
