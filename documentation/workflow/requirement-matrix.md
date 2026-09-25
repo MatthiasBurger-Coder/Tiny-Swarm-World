@@ -1,104 +1,19 @@
-# Issue #252 Requirement Matrix Baseline
+# Issue #352 requirement matrix
 
-Source: https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/252
+All requirements are OPEN: planning is not implementation or verification. Parent: EPIC #313.
 
-Workflow: issue-252-classic-public-beta-rc1-remediation-20260823
+| ID | Requirement from issue | Type | Files likely affected | Implementation evidence | Test evidence | Status |
+|---|---|---|---|---|---|---|
+| R01 | Parse and validate external YAML/configuration before core consumption. | Architecture / functional | Slice 01–05 exact scopes in workflow.md | PLANNED: slice 01–05 | PLANNED: Surface inventory and adapter-to-consumer tests | OPEN |
+| R02 | Isolate ruamel.yaml concerns. | Architecture | Slice 02,03,04,06 exact scopes in workflow.md | PLANNED: slice 02,03,04,06 | PLANNED: Parser ownership scan and negative import probes | OPEN |
+| R03 | Isolate raw external mapping concerns. | Architecture | Slice 02–05 exact scopes in workflow.md | PLANNED: slice 02–05 | PLANNED: Typed port contracts and recursive boundary assertions | OPEN |
+| R04 | Validate required values before mutation starts. | Resilience / security | Slice 03–05 exact scopes in workflow.md | PLANNED: slice 03–05 | PLANNED: Missing-value fixtures and zero-mutation spies | OPEN |
+| R05 | Convert external config into typed/internal models. | Functional / architecture | Slice 02–04 exact scopes in workflow.md | PLANNED: slice 02–04 | PLANNED: Direct model and adapter conversion tests | OPEN |
+| R06 | Prevent unchecked raw configuration propagating through orchestration. | Architecture | Slice 02–05 exact scopes in workflow.md | PLANNED: slice 02–05 | PLANNED: Consumer inventory and snapshot tests | OPEN |
+| R07 | Application services do not depend on ruamel.yaml objects. | Architecture / quality | Slice 02,06 exact scopes in workflow.md | PLANNED: slice 02,06 | PLANNED: Import regression probes and nested returned-object assertions | OPEN |
+| R08 | Invalid configuration fails before mutating lifecycle operations. | Resilience | Slice 05 exact scopes in workflow.md | PLANNED: slice 05 | PLANNED: Malformed later-phase input prevents all earlier mutation | OPEN |
+| R09 | Internal configuration models are explicit and testable. | Architecture / quality | Slice 02–04 exact scopes in workflow.md | PLANNED: slice 02–04 | PLANNED: Direct invariant and model contract tests | OPEN |
+| R10 | Supported configuration stays compatible or migration is documented. | Compatibility | Slice 01–06 exact scopes in workflow.md | PLANNED: slice 01–06 | PLANNED: Committed/synthetic fixtures, defaults and migration record | OPEN |
+| R11 | Parsing/validation tests cover malformed and valid configurations. | Quality | Slice 02–06 exact scopes in workflow.md | PLANNED: slice 02–06 | PLANNED: Syntax, schema, required-field and supported-fixture tests | OPEN |
 
-Status at authoring: OPEN_FOR_EXECUTION
-
-The execution matrix must be materialized at
-.tiny-swarm/evidence/issue-252/requirement_matrix.md in S252-01. It must add
-exact implementation/evidence paths and results. No row may be silently deleted
-or marked complete from static workflow text.
-
-| ID | Requirement | Type | Planned slice/evidence | Verification | Status |
-|---|---|---|---|---|---|
-| REQ-252-001 | Qualify Classic for Public Beta RC1 on current main. | release | S04-S12 bundles | final audit | OPEN |
-| REQ-252-002 | Preserve Linux/WSL2 -> Incus/LXC -> Docker -> Swarm path. | architecture | existing contracts + host evidence | architecture/live review | OPEN |
-| REQ-252-003 | Exclude Podman, Kubernetes and multi-runtime work. | scope | workflow locks | changed-file review | OPEN |
-| REQ-252-004 | Execute Fresh Install. | functional | RC1-S03 and RC1-S10 | live evidence | OPEN |
-| REQ-252-005 | Execute post-install acceptance. | functional | RC1-S04 | canonical suite | OPEN |
-| REQ-252-006 | Execute Re-run/Reconcile. | functional | RC1-S05 and RC1-S11 | no-drift evidence | OPEN |
-| REQ-252-007 | Execute post-reconcile acceptance. | functional | RC1-S05 and RC1-S11 | service acceptance | OPEN |
-| REQ-252-008 | Execute Update. | functional | RC1-S06 and RC1-S12 | update evidence | OPEN |
-| REQ-252-009 | Execute post-update acceptance. | functional | RC1-S06 and RC1-S12 | readiness/browser/API | OPEN |
-| REQ-252-010 | Cover Failure/Recovery. | resilience | RC1-S07/S08 | failure/recovery evidence | OPEN |
-| REQ-252-011 | Cover restart resilience. | resilience | RC1-S09 | restart evidence | OPEN |
-| REQ-252-012 | Keep tools for utilities/diagnostics/recovery/runners. | architecture | S01/S02 inventory | source review | OPEN |
-| REQ-252-013 | Keep assertion-heavy acceptance tests under tests/. | testability | S02/S03 | test layout review | OPEN |
-| REQ-252-014 | Classify every named asset using the six allowed labels. | governance | S01 inventory | Requirement review | OPEN |
-| REQ-252-015 | Reuse or migrate existing integration browser test; no duplicate framework. | testability | S02 | canonical-suite review | OPEN |
-| REQ-252-016 | Create Three-Amigos decision before live execution. | governance | S01 evidence | five-role review including dependency/deadlock validation | OPEN |
-| REQ-252-017 | Record environments, scenarios, services, transitions, timeouts, evidence, stops, severity and decision. | governance | Three-Amigos record | completeness review | OPEN |
-| REQ-252-018 | Derive and classify every current Classic service. | functional | service inventory | config comparison | OPEN |
-| REQ-252-019 | Document sufficient prerequisites. | functional | preflight/inventory | S01/S02/S03/S10 | OPEN |
-| REQ-252-020 | Missing prerequisites fail early with remediation. | resilience | deterministic/live tests | RC1-S07 | OPEN |
-| REQ-252-021 | Fresh install needs no undocumented manual repair. | functional | fresh-install runs | RC1-S03/S10 | OPEN |
-| REQ-252-022 | Expected Incus/LXC topology is created. | runtime | host evidence | fresh-install review | OPEN |
-| REQ-252-023 | Docker is ready on every required node. | runtime | node/Docker evidence | fresh-install review | OPEN |
-| REQ-252-024 | Swarm manager/worker topology is correct and Ready/Active. | runtime | Swarm evidence | fresh-install review | OPEN |
-| REQ-252-025 | Routing and Service Access become ready in order. | runtime | phase/readiness evidence | service matrix | OPEN |
-| REQ-252-026 | Secrets/Infisical work without leakage. | security | redacted service evidence | redaction audit | OPEN |
-| REQ-252-027 | Nexus/artifacts/registry are ready. | runtime | artifact evidence | phase checks | OPEN |
-| REQ-252-028 | Jenkins, SonarQube, Pulsar, Swagger and every required service are ready. | runtime | required-service matrix | final audit | OPEN |
-| REQ-252-029 | Re-run has no duplicates or unintended destruction. | resilience | reconcile comparison | RC1-S05/S11 | OPEN |
-| REQ-252-030 | Update preserves healthy unrelated state and converges. | resilience | update/rollback evidence | RC1-S06/S12 | OPEN |
-| REQ-252-031 | Failures are actionable/evidenced; non-success states are not passes. | release | defect/state records | final audit | OPEN |
-| REQ-252-032 | Each scenario has all required fields. | quality | scenario bundles | schema audit | OPEN |
-| REQ-252-033 | Local quality/preflight baseline is executed honestly. | quality | S03 evidence plus S252-R08 exact-candidate rerun | exact candidate `36ba799738ffb8db4175b7347a6aa8a7f907fa05`; declared targeted gates and full quality PASS | LOCAL_VERIFIED |
-| REQ-252-034 | WSL2 pre-live diagnostics execute or are blocked explicitly. | live | RC1-S02 | command/evidence review | OPEN |
-| REQ-252-035 | WSL2 Fresh/Reconcile/Update and acceptance are green for RC1. | live | RC1-S03-S06 | final audit | OPEN |
-| REQ-252-036 | Native Linux Fresh/Reconcile/Update and acceptance are green for RC1. | live | RC1-S10-S12 | final audit | OPEN |
-| REQ-252-037 | Prerequisite, partial, recovery and restart scenarios pass or remain non-passed. | resilience | RC1-S07-S09 | final audit | OPEN |
-| REQ-252-038 | Blocker/major defects have root-cause handling or explicit blocker plus regression. | release | S11 defect package | rerun/test evidence | OPEN |
-| REQ-252-039 | Evidence records commit, host, time, state, readiness, exit, files, redaction and defects. | evidence | run bundles | evidence audit | OPEN |
-| REQ-252-040 | No raw passwords, tokens, join tokens, auth headers, env files or sensitive output. | security | redaction/checksum | redaction review | OPEN |
-| REQ-252-041 | Final gates include quality, both host matrices, services, browser/API, recovery and evidence. | release | S12 checklist | independent audit | OPEN |
-| REQ-252-042 | Final decision is exactly RC1_ACCEPTED, RC1_REJECTED_BLOCKERS or RC1_REJECTED_EVIDENCE_INCOMPLETE. | release | final decision record | auditor review | OPEN |
-| REQ-252-043 | RC1_ACCEPTED is forbidden with any required non-success scenario. | safety | decision guard | final audit | OPEN |
-| REQ-252-044 | Project checks remain Linux/WSL; workflow does not grant admin PowerShell access. | operating constraint | workflow/branch rules | command review | OPEN |
-| REQ-252-045 | PR and push events execute the locked Python quality gate through `python-quality-gate.yml`. | quality-gate | S252-13 / CI run evidence | real PR/push run | OPEN |
-| REQ-252-046 | Supported Python versions run through a Conda compatibility matrix. | compatibility | S252-14 / CI run evidence | every matrix entry | OPEN |
-| REQ-252-047 | `sonar_external_gate.yml` has one explicit trusted external-gate responsibility and missing status is not green. | quality-gate | S252-13 / Sonar evidence | real external status | OPEN |
-| REQ-252-048 | Classic live automation uses schedule/manual dispatch and a verified self-hosted runner strategy. | live/CI | S252-15 / runner evidence | real workflow run | OPEN |
-| REQ-252-049 | Failed, skipped, blocked, unauthorized, unavailable or unverified CI paths cannot aggregate to RC1 success. | safety/release | S252-16 / final audit | failure-semantic evidence | OPEN |
-| REQ-252-050 | CI evidence records run ID, commit, trigger, runner, duration, status, artifacts, external status, redaction and defects. | evidence | S252-16 / CI evidence bundle | schema audit | OPEN |
-| REQ-252-051 | Resolve exactly one canonical TLS contract with external CA precedence and managed CA fallback. | architecture/security | S252-R01; baseline `60d5d09f` | focused TLS contract/composition tests; R01 consolidation | LOCAL_VERIFIED |
-| REQ-252-052 | Fail closed on incomplete external CA configuration and never mix external and managed material. | security/resilience | S252-R01; baseline `60d5d09f` | negative TLS configuration tests; R01 consolidation | LOCAL_VERIFIED |
-| REQ-252-053 | Generate a managed CA and separately signed ingress leaf with required SAN, validity and chain checks. | security | S252-R01; baseline `60d5d09f` | synthetic certificate tests; R01 consolidation | LOCAL_VERIFIED |
-| REQ-252-054 | Reuse valid managed CA and leaf material without silent rotation and protect private keys with owner-only permissions. | resilience/security | S252-R01; baseline `60d5d09f` | reuse, fingerprint and permission tests; R01 consolidation | LOCAL_VERIFIED |
-| REQ-252-055 | Installer, runtime, Traefik and E2E consume one canonical trust-bundle reference. | architecture | S252-R01/S252-R06; baseline `60d5d09f` | composition and canonical E2E configuration tests; R01/R06 consolidation | LOCAL_VERIFIED |
-| REQ-252-056 | Reconcile Traefik certificate/key Docker secrets as a recoverable logical pair. | resilience | S252-R02; baseline `60d5d09f` | partial-state, ownership, rollback and retry tests; R02 consolidation | LOCAL_VERIFIED |
-| REQ-252-057 | Provision and verify operator-owned Traefik htpasswd before stack apply without logging or evidencing its value. | security/functional | S252-R02; baseline `60d5d09f` | installer, ordering, validation and redaction tests; R02 consolidation | LOCAL_VERIFIED |
-| REQ-252-058 | Wait for Incus readiness before provider inspection and preserve bounded typed failure states. | resilience | S252-R03; baseline `60d5d09f` | order, timeout and launch-classification tests; R03 consolidation | LOCAL_VERIFIED |
-| REQ-252-059 | Execute Docker/storage artifact probes inside the managed manager node and classify TimeoutExpired deterministically. | resilience/architecture | S252-R04; baseline `60d5d09f` | managed-command, fallback and timeout tests; R04 consolidation | LOCAL_VERIFIED |
-| REQ-252-060 | Verify Native-Linux bridge and forwarding controls without implicit host mutation. | operating constraint | S252-R05; baseline `60d5d09f` | procfs fixture tests and operator/Arc42 review; R05 consolidation | LOCAL_VERIFIED |
-| REQ-252-061 | Bound post-install service readiness by one monotonic deadline and retain timeout as failure. | resilience/quality | S252-R06; baseline `60d5d09f` | deadline, late-ready, TLS/error and evidence tests; R06 consolidation | LOCAL_VERIFIED |
-| REQ-252-062 | Synchronize Arc42, operator configuration and issue evidence to the exact implemented candidate without reusing stale evidence. | governance/evidence | S252-R07; implementation baseline `60d5d09f` | Arc42/config/ADR diff, six issue evidence files, SHA/redaction audit | LOCAL_VERIFIED |
-| REQ-252-063 | Run targeted and complete local quality gates on the exact candidate before dependent live reruns. | quality | S252-R08 | exact candidate `36ba799738ffb8db4175b7347a6aa8a7f907fa05`; diff, lint, import, architecture, type, 1,833-test and full quality evidence | LOCAL_VERIFIED |
-
-## Current evidence state — 2026-08-23 authoring baseline
-
-- `RC1-S02`: `LIVE_VERIFIED` for WSL2 diagnostics/preflight.
-- `RC1-S03`: `LIVE_FAILED_AFTER_MUTATION` for the historical Fresh Install
-  attempt; the later secret-provisioned idempotent recovery is not a Fresh
-  Install replacement.
-- `RC1-S04`: `LIVE_VERIFIED` for the redacted post-install Classic
-  browser/API/E2E acceptance after recovery (`92/92`).
-- `RC1-S05`: historical tracked consolidation reports WSL2 reconcile
-  `LIVE_VERIFIED` for its recorded SHA.
-- `RC1-S06`: historical tracked consolidation reports WSL2 update and
-  post-update acceptance `LIVE_VERIFIED` for its recorded SHA.
-- `RC1-S07` through `RC1-S09`: historical tracked consolidation reports
-  failure/recovery and restart work; these results require canonical scenario
-  mapping and rerun on the remediation candidate before final acceptance.
-- `RC1-S10` through `RC1-S12`: `OPEN`; no Native-Linux lifecycle or final
-  audit result is inferred.
-- Historical WSL2 evidence is not attributed to uncommitted remediation code
-  or to a future candidate SHA.
-- `RC1-CI01` and `RC1-CI02`: historical tracked evidence reports successful
-  hosted Quality and Conda runs `32529068741` and `32529073364` for SHA
-  `a552a8fa`; those passes are not transferred to the remediation candidate.
-- `RC1-CI03` through `RC1-CI05`: `OPEN`; no qualifying SonarCloud status,
-  protected self-hosted Classic-live runner or complete real live-workflow
-  evidence is present yet.
+At execution, copy this matrix to .tiny-swarm/evidence/issue-352/requirement_matrix.md and replace planned entries with exact files, symbols, test names, commands and results. Inherited EPIC constraints: preserve supported Classic behavior, Linux/WSL, Incus/Swarm, consent, destructive-operation guards, credential precedence, redaction, exit/evidence semantics and hexagonal ownership. No unrelated domain redesign or generic framework.

@@ -1,105 +1,62 @@
 {
-  "workflow_version": "issue-252-classic-public-beta-rc1-remediation-20260823",
-  "workflow_path": "documentation/workflow/workflow.md",
-  "requirement_baseline_path": "documentation/workflow/requirement-matrix.md",
-  "authoring_branch": "feature/workflow-issue-252-remediation-20260823",
-  "planned_execution_branch": "feature/classic-public-beta-rc1-stabilization",
-  "status": "REMEDIATION_R01_R08_LOCAL_VERIFIED_LIVE_EXTERNAL_OPEN",
-  "issue": {
-    "number": 252,
-    "title": "RC1: Classic Profile Stabilization / Public Beta Acceptance",
-    "url": "https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/252"
-  },
-  "process_strand": "issue -> requirement matrix -> Three-Amigos -> asset inventory -> local tests -> CI gates -> explicit live evidence -> completion audit",
-  "execution_profile": "FULL_PATH",
-  "affected_areas": [
-    "Linux and WSL2 host readiness",
-    "managed Incus/LXC nodes",
-    "Docker Engine and Docker Swarm",
-    "routing, secrets, artifacts and configured services",
-    "Python acceptance tests and evidence",
-    "live/browser/API verification and RC1 release decision",
-    "GitHub Actions quality, Conda compatibility, Sonar reconciliation and self-hosted Classic-live runner qualification",
-    "canonical external-or-managed TLS contract and protected PKI lifecycle",
-    "atomic Traefik secret reconciliation",
-    "bounded Incus, artifact, Native-Linux and Classic E2E readiness remediation"
+  "workflowId": "issue-352-configuration-parsing-boundary",
+  "workflowVersion": "1.0",
+  "branch": "architecture/workflow-352-config-parsing-20260925",
+  "baseline": "33aaafd5b80a3f316f4d650a9a831734dc7077e0",
+  "processStrand": "workflow create",
+  "executionProfile": "FULL_PATH",
+  "status": "READY_FOR_WORKFLOW",
+  "implementationStatus": "NOT_STARTED",
+  "affectedAreas": [
+    "configuration boundary",
+    "composition",
+    "setup/platform/deployment validation",
+    "installer configuration consumers"
   ],
-  "forbidden_areas": [
-    "Podman and Kubernetes",
-    "Java, Maven and Spring Boot",
-    "Windows-native project execution",
-    "administrator PowerShell privilege escalation",
-    "live mutation without explicit consent",
-    "raw sensitive evidence",
-    "RC1 acceptance from skipped or inferred results",
-    "CI workflow presence without real run evidence",
-    "GitHub-hosted runner substituted for a verified Classic-capable self-hosted runner"
+  "forbiddenAreas": [
+    "live infrastructure",
+    "provider/runtime replacement",
+    "credential policy",
+    "unrelated workflows",
+    "Java/React/Kubernetes expansion"
   ],
-  "required_roles": [
+  "requiredRoles": [
     "Senior Requirement Engineer",
     "Senior System Architect",
     "Senior Python Automation Developer",
-    "Senior Tester",
-    "Senior Workflow Architect",
-    "Issue Completion Auditor"
+    "Senior Tester"
   ],
-  "conditional_roles": [
+  "conditionalRoles": [
     "Senior DevOps",
-    "Live Evidence Validation Expert",
-    "Senior Documentation Engineer",
-    "Release Baseline Governance Expert",
-    "Console/status UI reviewer when terminal behavior changes"
+    "Senior Security Sandbox Engineer",
+    "Console/status UI reviewer"
   ],
-  "remediation_slices": [
-    "S252-R01 canonical TLS contract and CA lifecycle",
-    "S252-R02 atomic Traefik secret reconciliation and GUI input recovery",
-    "S252-R03 Incus provider readiness and restart classification",
-    "S252-R04 managed-LXC artifact readiness and timeout semantics",
-    "S252-R05 Native-Linux kernel prerequisite verification",
-    "S252-R06 bounded E2E readiness and composition integration",
-    "S252-R07 documentation, requirement and evidence synchronization",
-    "S252-R08 local candidate acceptance and dependent rerun handoff"
-  ],
-  "quality_commands": [
+  "qualityCommands": [
     "git diff --check",
-    "python3 tools/quality_gate.py lint",
-    "python3 tools/quality_gate.py arch-tests",
-    "python3 tools/quality_gate.py typecheck",
-    "python3 tools/quality_gate.py test",
-    "python3 tools/quality_gate.py quality",
-    "real GitHub Actions runs for python-quality-gate.yml, python-compatibility.yml, sonar_external_gate.yml and nightly-classic-live.yml"
+    "python3 tools/quality_gate.py quality"
   ],
-  "governing_file_sha256": {
+  "governingFileHashes": {
     "AGENTS.md": "bc0e6e0c09ac3d61a450a7fe16c3e4de9e6fbb8bdc688aad58f10a3d18b31041",
     "QUALITY.md": "7097ff31c68f178fe685c1d7d5cbc18c257a7cf5d2f727979fb2b5ab9c029c7e",
-    "documentation/workflow/workflow.md": "d7285ecd05aa0233caed1b55624d89a50ab313a63572cf3744f1ef6d40443dd7",
-    "documentation/workflow/requirement-matrix.md": "c756e086650f764556a2b8029ef670486c5145fe22be2bf11a1d4cd7ee183adf",
-    "documentation/governance/ci-quality-gates.md": "b6bc937d74cf3997677d2fc17ad762385196322cead424a122baed63cf9343c1",
+    ".importlinter": "c2e94e0c74b0683f77a4bcf29e6dcea33f081c0932695d44714f9cfe82fd39a6",
     "documentation/process/issue-completion-discipline.md": "3db2d080b7cfbbc3737907a61c67ce6a361485c8993cf4a20c1c5fe2dc743bc3",
     "documentation/process/verification-state-policy.md": "5b6e2eefde66a1b8492afafc2976e59ac40f16e7100f79f730b97b254febdcfd",
-    "documentation/arc42/01_introduction.adoc": "dd7918e16c71110827a9ad11c1bd84b51057995a4c588e254d2ff090a4522b7e",
-    "documentation/arc42/02_constraints.adoc": "be261e3ef5dc8a0c65115e3247502c4858b20619133c01cd6ace3cf4be42a8e9",
-    "documentation/arc42/03_solution_strategy.adoc": "f62ef552e081c9a2ea3b51efd8c5734cd2f480c73b5f40341a8d8d8f29e57dd7",
-    "documentation/arc42/05_building_blocks.adoc": "3862268436c86abfaba26c10bdfaed9a26fe313335bfaf3f2929e23b31626a90",
-    "documentation/arc42/06_runtime_view.adoc": "aa7b52bce75d09b8578c0cfeb34510e1fdc9083a6384a1f34f8ed6a20e927a5b",
-    "documentation/arc42/07_deployment_view.adoc": "ec4a612cb54fa43da1740a5d6dcd60b11a9f7547d4d01cf441f273f12e89b7b4",
-    "documentation/arc42/10_quality_requirements.adoc": "50d3030a4f2dac227ce1f1918354f766ffd059a9f0cc427fd853f1f99574148d",
-    "documentation/arc42/11_risks_and_debt.adoc": "c9174c01abb7505a10058d2110abdc217b17f8b589b3afbb84f9fb86ac46cbb6",
-    "documentation/arc42/09_decisions/adr-explicit-non-interactive-live-consent.adoc": "e0a455b4ad79f59ce99f881d07c7fcaee46cea41f8c44ff50fc59a2e7b5e5476",
-    "documentation/arc42/09_decisions/adr-autonomous-setup-safety.adoc": "f82783073d3e7c91fb5014901bea93eede3a9c79ab41a1213cd38b88e624575b",
-    "documentation/arc42/09_decisions/adr-lxc-native-node-provider.adoc": "d88225223e62de4744d5cec7d5703af1bff62ec178b9794a606472cbc83da901",
-    "documentation/arc42/09_decisions/adr-traefik-https-ingress-existing-ca.adoc": "4bf899559241c3cd1493e8e61ce61cc7875e891d6fbd55ed1561ecf60e9c74a5",
-    "documentation/arc42/09_decisions/adr-traefik-managed-or-operator-ca.adoc": "dad0eb237461a7a2988546e742883b5d793573c79ef3c1a165eacff6411f1a9f",
+    "documentation/process/workflow-create.md": "5df5fb70ddc25ef2d8ad2129590e780bfee610521860fb0991e57c38dab3542f",
+    "documentation/process/branch-governance.md": "1472428b96f84aacb988d55a06c310dca38b64dc12c146c4f5d81dafb1e8375c",
+    ".agents/orchestrator/routing-rules.md": "3accea3112bc207eda96e02b3fe4831b79669f7c8f6a5668f577fca7d0fed050",
     ".agents/skills/workflow-authoring/SKILL.md": "5733f64086f113d578544b4d2d0297554237296adf0dc2df5ebe641e50dec9e5",
-    ".agents/skills/requirement-engineering/SKILL.md": "c1a96bc652dc8800abe9dc6f4b7aff79418ed5350acda6cf920ca7dd27b75a26",
-    ".agents/skills/three-amigos-requirement-gatekeeper/SKILL.md": "76659e618cb706e8990cdf44441aeaed219465044175826adca5357ae8acc5b4",
     ".agents/skills/execution-profile-router/SKILL.md": "45cf509082e3d9036379228a4c1a195cb22a05f11487e10a5c4000e8aad9608e",
-    ".agents/skills/live-evidence-validation-expert/SKILL.md": "b1065698eb9a626179ec83499771c02d60b15eca1fb043f3b159466a463bdf51",
-    ".agents/skills/platform-verification/SKILL.md": "57ce910c5ae850079a4ac157b2c41abd935ab53fbf3e8cbb8170a0633a432eff",
-    ".agents/roles/senior-requirement-engineer/SKILL.md": "425160e925ccf0edb8983133d95e0fe17bad80ddcc78b8f51d0908ea59ecd1c0",
-    ".agents/roles/senior-system-architect.md": "234a2024e989253d1da22057883bf2928a129e843608c66fc67ee352af187f47",
-    ".agents/roles/senior-python-automation-developer.md": "7174fa24bec72f0ecc4babdf27c304b7111a5a7d9f1a08d27b86057d70245ebf",
-    ".agents/roles/senior-tester.md": "e2e245c58dd6d142901755d6ea97c255145f051bc1c129802fcb4fab5f61d79d",
-    ".agents/roles/senior-workflow-architect/SKILL.md": "4b1acc3e27105b7216b3992c468c6bc8cde8a5d6722323ff0cfff047a739175c"
+    ".agents/skills/three-amigos-requirement-gatekeeper/SKILL.md": "76659e618cb706e8990cdf44441aeaed219465044175826adca5357ae8acc5b4",
+    "documentation/arc42/05_analysis/arch-03-02-layer-contracts.md": "c5d197593c44a06fc6310f7209be7d22352c679380f7964e4ca6ddf04facee3a",
+    "documentation/arc42/05_analysis/arch-03-08-platform-lifecycle-orchestrator.md": "e4494f2f5ac312a1d464b1dada96bc298fd982a1d13e137f21ca41cb29f6b37f",
+    "documentation/arc42/05_building_blocks.adoc": "3862268436c86abfaba26c10bdfaed9a26fe313335bfaf3f2929e23b31626a90",
+    "documentation/arc42/08_concepts.adoc": "0932280ad51278c58a44b4f0389d669a3f64d3ea8ba47dcb7f92e8fc1357fd98",
+    "documentation/arc42/08_configuration/operator-configuration-contract.md": "5d1ef8a3d8af0655ad50c82e845ba56efc2d00610e5021cfcafc1c1606d909d0",
+    "documentation/arc42/09_decisions/adr-explicit-non-interactive-live-consent.adoc": "e0a455b4ad79f59ce99f881d07c7fcaee46cea41f8c44ff50fc59a2e7b5e5476",
+    "documentation/arc42/09_decisions/adr-lxc-native-node-provider.adoc": "d88225223e62de4744d5cec7d5703af1bff62ec178b9794a606472cbc83da901",
+    "documentation/workflow/workflow.md": "749bdf67934ccb3ee246b66293e98ba188adc394ad33988d46bd3ed893c075bd",
+    "documentation/workflow/requirement-matrix.md": "730d4e6417f9a1e0d629bd2b7365c175548fc245f003860dce61196abf1ab658",
+    "documentation/arc42/05_analysis/arch-03-09-configuration-parsing-boundary.md": "459cf957ca2ff4e4266872e3f3d03f7cf637f91bb9f94df77736a12548c03d07",
+    "documentation/workflow/authoring-review.md": "a7454e81481aa018704caab1b142e90708cb78d8cd6249d0eb13766f61ae91a0"
   }
 }
