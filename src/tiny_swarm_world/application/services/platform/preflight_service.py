@@ -3,7 +3,10 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Mapping
 
-from tiny_swarm_world.application.ports.configuration import ConfigurationSourceLoadError
+from tiny_swarm_world.application.ports.configuration import (
+    ConfigurationSourceLoadError,
+    PortConfigurationSource,
+)
 from tiny_swarm_world.application.ports.preflight import (
     PortArtifactSourceReadiness,
     PortHostPreflightProbe,
@@ -62,10 +65,12 @@ class PreflightService(PortPlatformPreflight):
         include_secret_checks: bool = True,
         include_port_checks: bool = True,
         require_existing_secret_storage_file: bool = True,
+        secret_source: PortConfigurationSource | None = None,
     ):
         self.host_probe = host_probe
         self.configuration = configuration or default_preflight_configuration()
         self.configuration_validation = configuration_validation
+        self.secret_source = secret_source
         self.port_registry = port_registry
         self.project_filesystem_evaluator = project_filesystem_evaluator
         self.project_filesystem_authorizer = project_filesystem_authorizer
@@ -838,6 +843,20 @@ class PreflightService(PortPlatformPreflight):
         )
 
     def _secret_checks(self) -> tuple[PreflightCheck, ...]:
+        values: Mapping[str, str] | None = None
+        if self.secret_source is not None:
+            try:
+                values = self.secret_source.load()
+            except (ConfigurationSourceLoadError, OSError):
+                return (
+                    _failed(
+                        "SECRET-SOURCE",
+                        PreflightCategory.SECRET,
+                        "Operator secret configuration could not be loaded.",
+                        "Check TSW_INSTALL_ENV_FILE, file readability and environment file syntax.",
+                        {"classification": "configuration_source_error"},
+                    ),
+                )
         checks: list[PreflightCheck] = []
         static_secrets = {
             static_secret.name: static_secret
@@ -845,7 +864,12 @@ class PreflightService(PortPlatformPreflight):
             if static_secret.value
         }
         for secret in self.configuration.required_secrets:
-            if self.host_probe.secret_available(secret.name):
+            available = (
+                bool(values.get(secret.name, "").strip())
+                if values is not None
+                else self.host_probe.secret_available(secret.name)
+            )
+            if available:
                 checks.append(
                     _passed(
                         f"SECRET-{secret.name}",
@@ -854,7 +878,7 @@ class PreflightService(PortPlatformPreflight):
                         {
                             "secret": secret.name,
                             "service": secret.service,
-                            "source": "environment",
+                            "source": "operator_configuration" if values is not None else "environment",
                             "value_kind": secret.value_kind,
                         },
                     )

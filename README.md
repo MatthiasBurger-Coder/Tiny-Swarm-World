@@ -76,6 +76,42 @@ tiny-swarm-world --list-workflows
 tiny-swarm-world --preflight
 ```
 
+For a checkout on the Linux filesystem (for example
+`~/projects/Tiny-Swarm-World`), use the commands above. If you deliberately keep
+the checkout on a Windows mount under WSL2 (for example `/mnt/d/Projects/`),
+use the explicit filesystem exception:
+
+```bash
+tiny-swarm-world --allow-wsl-windows-filesystem --preflight
+```
+
+For **either checkout location**, if preflight reports missing `SECRET-TSW_*`
+values and you already have a protected credential file, select it explicitly
+before rerunning preflight:
+
+```bash
+export TSW_INSTALL_ENV_FILE="$HOME/.local/state/tiny-swarm-world/live-installation.env"
+
+# Linux filesystem checkout:
+tiny-swarm-world --preflight
+
+# Alternatively, a deliberate Windows-mounted checkout under WSL2:
+tiny-swarm-world --allow-wsl-windows-filesystem --preflight
+```
+
+The export selects an existing file; it does not create or populate one. Keep
+it exported in the same terminal for subsequent setup commands, and repeat it
+in a new terminal. Preflight reads the selected file directly; sourcing it is
+not necessary. Exported `TSW_*` values take precedence over file entries.
+Preserve existing credentials. If you need to prepare an
+override file, follow the
+[optional credential setup](documentation/user_guide/installation.adoc#operator-credential-overrides).
+The credential file must remain on the Linux filesystem with mode `0600` in
+a user-owned `0700` directory, even when the checkout is on a Windows mount.
+The filesystem exception does not provide missing secrets. The standard
+`./install.sh` internal-test defaults described below are a separate installer
+path; standalone preflight can require an explicit secret source.
+
 Resolve reported blockers before installing. Static preflight does not prove
 that services are running. Development tools and the full quality gate are
 described in the [Developer Manual](documentation/manuals/developer-manual.md);

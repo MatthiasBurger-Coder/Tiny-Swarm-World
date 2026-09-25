@@ -633,6 +633,12 @@ def build_preflight_service(
         artifact_source_readiness=HttpArtifactSourceReadiness(),
         secret_storage_probe=build_secret_storage_probe(),
         secret_storage_path=_operator_configuration_env_file().as_posix(),
+        secret_source=CombinedConfigurationSource(
+            (
+                ShellEnvFileConfigurationSource(_operator_configuration_env_file()),
+                EnvironmentConfigurationSource(),
+            )
+        ),
         require_existing_secret_storage_file=False,
         include_secret_checks=include_secret_checks,
         include_port_checks=include_port_checks,

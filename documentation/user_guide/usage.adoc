@@ -327,6 +327,22 @@ does not repair networking, change Incus limits, or modify deployments.
 
 == Check The Project Filesystem
 
+For either checkout location, preflight reads operator secrets from the file
+selected by `TSW_INSTALL_ENV_FILE`, or from
+`.tiny-swarm-world/local/live-installation.env` when that variable is unset.
+Exported `TSW_*` values take precedence over file entries. Select an existing
+protected file without sourcing it:
+
+[source,bash]
+----
+export TSW_INSTALL_ENV_FILE="$HOME/.local/state/tiny-swarm-world/live-installation.env"
+----
+
+Keep this export in the terminal used for preflight and setup. The file must
+remain on the Linux filesystem with mode `0600` in a user-owned `0700`
+directory. Missing values still block preflight; an unreadable or malformed
+file produces a `SECRET-SOURCE` blocker without exposing its contents.
+
 Static preflight evaluates the repository filesystem immediately after the
 typed host result without live-infrastructure consent:
 

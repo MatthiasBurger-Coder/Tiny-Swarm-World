@@ -283,6 +283,47 @@ class TestComposition(unittest.TestCase):
             },
         )
 
+    def test_preflight_loads_required_secrets_from_selected_file_without_exporting_values(self):
+        with TemporaryDirectory() as temporary_directory:
+            env_file = Path(temporary_directory) / "operator.env"
+            with patch.dict(os.environ, {"TSW_INSTALL_ENV_FILE": str(env_file)}, clear=True):
+                service = composition.build_preflight_service()
+                secrets = service.configuration.required_secrets
+                env_file.write_text(
+                    "\n".join(f"{secret.name}='file-only-test-value'" for secret in secrets)
+                    + "\n",
+                    encoding="utf-8",
+                )
+                checks = service._secret_checks()
+                self.assertTrue(checks)
+                self.assertTrue(all(check.status.value == "PASSED" for check in checks))
+                self.assertNotIn("file-only-test-value", repr(checks))
+                self.assertTrue(all(secret.name not in os.environ for secret in secrets))
+
+                # An explicitly empty environment override must not fall back to the file.
+                with patch.dict(os.environ, {secrets[0].name: ""}):
+                    checks = service._secret_checks()
+                first = next(c for c in checks if c.check_id == f"SECRET-{secrets[0].name}")
+                self.assertEqual("FAILED", first.status.value)
+
+    def test_preflight_rejects_invalid_secret_file_without_exposing_contents(self):
+        with TemporaryDirectory() as temporary_directory:
+            env_file = Path(temporary_directory) / "operator.env"
+            env_file.write_text("TSW_NEXUS_ADMIN_PASSWORD=$(private-marker)\n", encoding="utf-8")
+            with patch.dict(os.environ, {"TSW_INSTALL_ENV_FILE": str(env_file)}, clear=True):
+                checks = composition.build_preflight_service()._secret_checks()
+            self.assertEqual("SECRET-SOURCE", checks[0].check_id)
+            self.assertEqual("FAILED", checks[0].status.value)
+            self.assertNotIn("private-marker", repr(checks))
+
+    def test_preflight_missing_secret_file_retains_required_secret_blockers(self):
+        with TemporaryDirectory() as temporary_directory:
+            env_file = Path(temporary_directory) / "missing.env"
+            with patch.dict(os.environ, {"TSW_INSTALL_ENV_FILE": str(env_file)}, clear=True):
+                checks = composition.build_preflight_service()._secret_checks()
+            nexus = next(c for c in checks if c.check_id == "SECRET-TSW_NEXUS_ADMIN_PASSWORD")
+            self.assertEqual("FAILED", nexus.status.value)
+
     def test_build_preflight_service_loads_port_registry(self):
         registry = PortRegistry(ranges=(), mappings=())
         provider_request = composition.NodeProviderSelectionRequest(
