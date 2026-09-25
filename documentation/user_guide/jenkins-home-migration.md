@@ -1,5 +1,11 @@
 # Jenkins home persistence and existing-installation migration
 
+The controller image uses Jenkins 2.568.3 LTS with Java 21
+(`jenkins/jenkins:2.568.3-lts-jdk21`). Rebuild the project Jenkins image before
+deploying this version; changing the Dockerfile alone does not update a running
+controller. Review the [Jenkins LTS upgrade guides](https://www.jenkins.io/doc/upgrade-guide/)
+and verify agent Java compatibility before upgrading an existing installation.
+
 The Jenkins image uses `/var/jenkins_home`. The service must mount its named
 `jenkins_home` volume there. Older configuration mounted that volume at
 `/var/lib/jenkins`, leaving the actual home in an anonymous Docker volume.

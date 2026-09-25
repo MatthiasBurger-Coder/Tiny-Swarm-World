@@ -1,4 +1,4 @@
-FROM jenkins/jenkins:2.492.3-lts-jdk17
+FROM jenkins/jenkins:2.568.3-lts-jdk21
 
 ENV JAVA_OPTS="-Djenkins.install.runSetupWizard=false -XX:ActiveProcessorCount=2 -Xms256m -Xmx1024m"
 
