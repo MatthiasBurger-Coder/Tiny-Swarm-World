@@ -21,3 +21,21 @@
 - tests/domain/configuration/test_secret_manifest.py
 - tests/infrastructure/adapters/repositories/test_secret_manifest_yaml_repository.py
 - tests/test_installer.py
+
+## S352-03
+
+- .codex/evidence/slice-03-distribution.md
+- src/tiny_swarm_world/domain/inventory/desired_inventory.py
+- src/tiny_swarm_world/infrastructure/adapters/configuration/configuration_sources.py
+- src/tiny_swarm_world/infrastructure/adapters/repositories/command_repository_yaml.py
+- src/tiny_swarm_world/infrastructure/adapters/repositories/desired_inventory_yaml_repository.py
+- src/tiny_swarm_world/infrastructure/adapters/repositories/node_provider_config_yaml_repository.py
+- src/tiny_swarm_world/infrastructure/adapters/repositories/port_registry_yaml_repository.py
+- src/tiny_swarm_world/installer.py
+- tests/domain/inventory/test_inventory_model.py
+- tests/infrastructure/adapters/configuration/test_configuration_sources.py
+- tests/infrastructure/adapters/repositories/test_command_repository_yaml_contract.py
+- tests/infrastructure/adapters/repositories/test_inventory_repositories.py
+- tests/infrastructure/adapters/repositories/test_node_provider_config_yaml_repository.py
+- tests/infrastructure/adapters/repositories/test_port_registry_yaml_repository.py
+- tests/test_installer.py

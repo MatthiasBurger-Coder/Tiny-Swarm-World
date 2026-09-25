@@ -25,3 +25,11 @@ Typed immutable secret-manifest model and repository port; PyYAML adapter valida
 Verification: 202 targeted manifest/model/renderer/composition/installer tests PASS; lint PASS; typecheck PASS (688 files); python3 tools/quality_gate.py quality PASS (2110 tests, 18 skipped); git diff --check PASS.
 
 Matrix rows remain OPEN until integrated acceptance, rather than treating a partial boundary as complete.
+
+## S352-03 incremental evidence
+
+Hardened command, provider, inventory, port-registry and operator-source parsing with safe diagnostics, duplicate/cycle/type rejection and immutable opt-in provider snapshots. Installer bridge ports use the typed registry. Required port lists and supported numeric-string indexes remain compatible.
+
+Verification: Targeted unittest suite PASS: 156 tests. Final python3 tools/quality_gate.py quality PASS: 2128 tests, 18 skipped; lint/typecheck, five import contracts, 22 architecture tests and verification policy passed. Final log: /tmp/tsw352-s03-final-quality.log. git diff --check PASS. Independent architecture and test reviews ACCEPT after retry1 compatibility repairs.
+
+Matrix rows remain OPEN until integrated acceptance, rather than treating a partial boundary as complete.

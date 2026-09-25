@@ -290,5 +290,46 @@ def _contains_forbidden_inventory_key(value: object) -> bool:
     return False
 
 
+class TestDesiredInventoryBoundary(unittest.TestCase):
+    def test_non_recursive_yaml_aliases_remain_supported(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "inventory.yaml"
+            path.write_text("expected_stacks: &services [portainer]\nvms: [{name: node, stacks: *services}]", encoding="utf-8")
+            inventory = DesiredInventoryYamlRepository(path).load()
+            self.assertEqual(inventory.vms[0].stacks, inventory.expected_stacks)
+
+    def test_invalid_yaml_shapes_and_scalars_are_rejected_safely(self):
+        import traceback
+        for text in (
+            "vms: [boundary-marker-secret",
+            "vms: []\nvms: [boundary-marker-secret]",
+            "vms: &loop [*loop]",
+            "vms: [{name: node, cpu_count: true}]",
+            "vms: [{name: node, cpu_count: boundary-marker-secret}]",
+            "vms: [{name: [boundary-marker-secret]}]",
+            "expected_stacks: [[boundary-marker-secret]]",
+            "schema_version: true",
+            "1: boundary-marker-secret\nother: x",
+        ):
+            with self.subTest(text=text), tempfile.TemporaryDirectory() as directory:
+                path = Path(directory) / "inventory.yaml"
+                path.write_text(text, encoding="utf-8")
+                try:
+                    DesiredInventoryYamlRepository(path).load()
+                except ValueError as error:
+                    self.assertNotIn("boundary-marker-secret", str(error))
+                    self.assertNotIn("boundary-marker-secret", "".join(traceback.format_exception(error)))
+                else:
+                    self.fail("Malformed inventory accepted")
+
+    def test_null_defaults_and_numeric_strings_are_preserved(self):
+        for text in ("", "null", "vms: null\nexpected_stacks: null", "{}"):
+            with self.subTest(text=text), tempfile.TemporaryDirectory() as directory:
+                path = Path(directory) / "inventory.yaml"
+                path.write_text(text, encoding="utf-8")
+                self.assertEqual(DesiredInventoryYamlRepository(path).load(), DesiredInventory())
+        self.assertEqual(DesiredInventory.from_dict({"vms": [{"name": "node", "cpu_count": "2"}]}).vms[0].cpu_count, 2)
+
+
 if __name__ == "__main__":
     unittest.main()

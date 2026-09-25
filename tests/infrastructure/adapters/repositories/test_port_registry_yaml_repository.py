@@ -85,3 +85,58 @@ ports: []
 
             with self.assertRaisesRegex(ValueError, "root must be a mapping"):
                 PortRegistryYamlRepository(registry_file).load()
+
+
+class TestPortRegistryBoundary(unittest.TestCase):
+    def test_invalid_yaml_shapes_and_scalars_are_rejected_safely(self):
+        import traceback
+        base = "ranges: []\nports: [{id: one, service_id: one, internal_port: 80, exposure: diagnostic, required_for_preflight: false}]"
+        for text in (
+            "ports: [boundary-marker-secret",
+            "ports: []\nports: [boundary-marker-secret]",
+            "ports: &loop [*loop]",
+            base.replace("internal_port: 80", "internal_port: true"),
+            base.replace("required_for_preflight: false", "required_for_preflight: 'false'"),
+            base.replace("exposure: diagnostic", "exposure: boundary-marker-secret"),
+            base + "\nmetadata: {note: [boundary-marker-secret]}",
+            base + "\nmetadata: {1: boundary-marker-secret}",
+        ):
+            with self.subTest(text=text), tempfile.TemporaryDirectory() as directory:
+                path = Path(directory) / "ports.yaml"
+                path.write_text(text, encoding="utf-8")
+                try:
+                    PortRegistryYamlRepository(path).load()
+                except ValueError as error:
+                    self.assertNotIn("boundary-marker-secret", str(error))
+                    self.assertNotIn("boundary-marker-secret", "".join(traceback.format_exception(error)))
+                else:
+                    self.fail("Malformed port registry accepted")
+
+    def test_empty_documents_default_and_metadata_is_preserved(self):
+        for text in ("", "null", "ranges: []\nports: []", "ranges: []\nports: []\nmetadata: {release: 2, owner: platform}"):
+            with self.subTest(text=text), tempfile.TemporaryDirectory() as directory:
+                path = Path(directory) / "ports.yaml"
+                path.write_text(text, encoding="utf-8")
+                registry = PortRegistryYamlRepository(path).load()
+                self.assertEqual(registry.ranges, ())
+                self.assertEqual(registry.mappings, ())
+                if "metadata" in text:
+                    self.assertEqual(dict(registry.metadata), {"release": "2", "owner": "platform"})
+
+
+    def test_missing_null_or_misspelled_collections_are_rejected(self):
+        for text in (
+            "{}",
+            "ranges: []",
+            "ports: []",
+            "ranges: null\nports: []",
+            "ranges: []\nports: null",
+            "ranges: null\nports: null",
+            "range: []\nports: []",
+            "ranges: []\nport: []",
+        ):
+            with self.subTest(text=text), tempfile.TemporaryDirectory() as directory:
+                path = Path(directory) / "ports.yaml"
+                path.write_text(text, encoding="utf-8")
+                with self.assertRaisesRegex(ValueError, "must be a list"):
+                    PortRegistryYamlRepository(path).load()

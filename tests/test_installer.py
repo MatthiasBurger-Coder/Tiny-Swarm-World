@@ -1089,6 +1089,7 @@ def _write_ports_registry(root: Path, ports: tuple[int, ...]) -> None:
     registry = root / "infra" / "config" / "ports.yaml"
     registry.parent.mkdir(parents=True, exist_ok=True)
     lines = [
+        "ranges: []",
         "ports:",
     ]
     for index, port in enumerate(ports):
@@ -1144,6 +1145,29 @@ def _write_windows_bridge_state(root: Path, wsl_ip: str, ports: tuple[int, ...])
         ],
     }
     state_path.write_text(json.dumps(state), encoding="utf-8")
+
+
+class TestInstallerPortConfigurationBoundary(unittest.TestCase):
+    def test_bridge_ports_are_loaded_from_structured_yaml(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / "infra/config/ports.yaml"
+            path.parent.mkdir(parents=True)
+            path.write_text(
+                "ranges: []\nports: [{external_port: 10080, protocol: tcp, id: web, service_id: web, internal_port: 80, exposure: diagnostic}, "
+                "{id: udp, service_id: udp, internal_port: 53, external_port: 10053, protocol: udp, exposure: diagnostic}]",
+                encoding="utf-8",
+            )
+            self.assertEqual(installer._windows_wsl_bridge_expected_ports(root), (10080,))
+
+    def test_bridge_ports_reject_malformed_registry_instead_of_partial_result(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / "infra/config/ports.yaml"
+            path.parent.mkdir(parents=True)
+            path.write_text("ranges: []\nports: [{external_port: 10080}]", encoding="utf-8")
+            with self.assertRaisesRegex(installer.InstallerError, "Port registry configuration is invalid"):
+                installer._windows_wsl_bridge_expected_ports(root)
 
 
 if __name__ == "__main__":

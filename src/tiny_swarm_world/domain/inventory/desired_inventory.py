@@ -59,11 +59,11 @@ class VmDesiredState:
     def from_dict(cls, data: Mapping[str, object]) -> "VmDesiredState":
         _reject_unknown_fields(data, VM_DESIRED_STATE_FIELDS, "desired VM state")
         return cls(
-            name=str(data.get("name", "")),
-            role=str(data.get("role", "manager")),
-            image=str(data.get("image", "")),
-            memory=str(data.get("memory", "")),
-            disk=str(data.get("disk", "")),
+            name=_string(data.get("name", "")),
+            role=_string(data.get("role", "manager")),
+            image=_string(data.get("image", "")),
+            memory=_string(data.get("memory", "")),
+            disk=_string(data.get("disk", "")),
             cpu_count=_optional_int(data.get("cpu_count")),
             networks=_string_sequence(data.get("networks", ())),
             stacks=_string_sequence(data.get("stacks", ())),
@@ -98,7 +98,7 @@ class DesiredInventory:
     def from_dict(cls, data: Mapping[str, object]) -> "DesiredInventory":
         _reject_unknown_fields(data, DESIRED_INVENTORY_FIELDS, "desired inventory")
         return cls(
-            schema_version=str(data.get("schema_version", "1")),
+            schema_version=_schema_version(data.get("schema_version", "1")),
             vms=tuple(VmDesiredState.from_dict(vm) for vm in _mapping_sequence(data.get("vms", ()))),
             expected_stacks=_string_sequence(data.get("expected_stacks", ())),
             expected_artifact_registries=_string_sequence(
@@ -110,7 +110,7 @@ class DesiredInventory:
 def _string_tuple(values: Sequence[object]) -> tuple[str, ...]:
     if isinstance(values, str):
         raise ValueError("inventory collection fields must not be strings")
-    return tuple(str(value) for value in values)
+    return tuple(_string(value) for value in values)
 
 
 def _object_sequence(value: object) -> tuple[object, ...]:
@@ -122,7 +122,7 @@ def _object_sequence(value: object) -> tuple[object, ...]:
 
 
 def _string_sequence(value: object) -> tuple[str, ...]:
-    return tuple(str(item) for item in _object_sequence(value))
+    return tuple(_string(item) for item in _object_sequence(value))
 
 
 def _mapping_sequence(value: object) -> tuple[Mapping[str, object], ...]:
@@ -137,16 +137,30 @@ def _reject_unknown_fields(
     allowed_fields: frozenset[str],
     context: str,
 ) -> None:
-    unknown_fields = sorted(str(key) for key in data if str(key) not in allowed_fields)
-    if unknown_fields:
-        raise ValueError(f"{context} contains unsupported fields: {unknown_fields}")
+    if any(not isinstance(key, str) or key not in allowed_fields for key in data):
+        raise ValueError(f"{context} contains unsupported fields")
 
 
 def _optional_int(value: object) -> int | None:
     if value is None:
         return None
-    if isinstance(value, int):
+    if isinstance(value, int) and not isinstance(value, bool):
         return value
     if isinstance(value, str):
-        return int(value)
+        try:
+            return int(value)
+        except ValueError:
+            raise ValueError("integer inventory fields must contain an integer") from None
     raise ValueError("integer inventory fields must be integers or strings")
+
+
+def _string(value: object) -> str:
+    if not isinstance(value, str):
+        raise ValueError("inventory text fields and collection entries must be strings")
+    return value
+
+
+def _schema_version(value: object) -> str:
+    if isinstance(value, bool) or not isinstance(value, (str, int)) or str(value) != "1":
+        raise ValueError("unsupported desired inventory schema version")
+    return str(value)

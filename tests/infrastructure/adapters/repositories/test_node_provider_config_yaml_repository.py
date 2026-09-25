@@ -431,5 +431,83 @@ def _load_committed_config_data() -> object:
     return YAML(typ="safe").load(config_path.read_text(encoding="utf-8"))
 
 
+class TestProviderParsingBoundary(unittest.TestCase):
+    def test_invalid_yaml_has_safe_neutral_diagnostics(self):
+        import traceback
+        for text in ("nodes: [boundary-marker-secret", "nodes: []\nnodes: [boundary-marker-secret]", "nodes: &loop [*loop]", "1: boundary-marker-secret\nother: x"):
+            with self.subTest(text=text), tempfile.TemporaryDirectory() as directory:
+                path = Path(directory) / "provider.yaml"
+                path.write_text(text, encoding="utf-8")
+                try:
+                    NodeProviderConfigYamlRepository(path).load()
+                except NodeProviderConfigError as error:
+                    self.assertNotIn("boundary-marker-secret", str(error))
+                    self.assertNotIn("boundary-marker-secret", "".join(traceback.format_exception(error)))
+                else:
+                    self.fail("Malformed provider configuration accepted")
+
+    def test_invalid_owned_scalar_types_and_errors_do_not_echo_values(self):
+        import traceback
+        for field, value in (("timeout", True), ("timeout", "boundary-marker-secret"), ("resource", {"boundary-marker-secret": "nested"}), ("resource", True), ("name", 123), ("role", "boundary-marker-secret"), ("provider", "boundary-marker-secret")):
+            with self.subTest(field=field, value=value):
+                data = _valid_config()
+                if field == "timeout":
+                    data["verification_metadata"]["readiness_timeout_seconds"] = value
+                elif field == "resource":
+                    data["nodes"][0]["resources"]["cpu"] = value
+                else:
+                    data["nodes"][0][field] = value
+                repository = _repository_for(data)
+                self.addCleanup(repository.path.unlink)
+                try:
+                    repository.load()
+                except NodeProviderConfigError as error:
+                    self.assertNotIn("boundary-marker-secret", "".join(traceback.format_exception(error)))
+                else:
+                    self.fail("Malformed provider scalar accepted")
+
+    def test_snapshot_freezes_validated_nested_maps_and_does_not_cache_failure(self):
+        repository = _repository_for(_valid_config_with_resource_resolution())
+        self.addCleanup(repository.path.unlink)
+        frozen = NodeProviderConfigYamlRepository(repository.path, freeze_on_load=True)
+        repository.path.write_text("nodes: [broken", encoding="utf-8")
+        with self.assertRaises(NodeProviderConfigError):
+            frozen.load()
+        invalid = _valid_config_with_resource_resolution()
+        invalid["verification_metadata"]["readiness_timeout_seconds"] = True
+        with repository.path.open("w", encoding="utf-8") as handle:
+            YAML().dump(invalid, handle)
+        with self.assertRaises(NodeProviderConfigError):
+            frozen.load()
+        with repository.path.open("w", encoding="utf-8") as handle:
+            YAML().dump(_valid_config_with_resource_resolution(), handle)
+        snapshot = frozen.load()
+        with self.assertRaises(TypeError):
+            snapshot.nodes[0].resources["cpu"] = "99"
+        with self.assertRaises(TypeError):
+            snapshot.provider_resource_resolution.backends[ManagedLxcBackend.INCUS].network_mappings["control"] = "changed"
+        with self.assertRaises(TypeError):
+            snapshot.provider_resource_resolution.backends[ManagedLxcBackend.INCUS] = None
+        changed = _valid_config_with_resource_resolution()
+        changed["nodes"][0]["resources"]["cpu"] = "4"
+        with repository.path.open("w", encoding="utf-8") as handle:
+            YAML().dump(changed, handle)
+        self.assertEqual(repository.load().nodes[0].resources["cpu"], "4")
+        self.assertEqual(frozen.load().nodes[0].resources["cpu"], "2")
+        self.assertEqual(NodeProviderConfigYamlRepository(repository.path, freeze_on_load=True).load().nodes[0].resources["cpu"], "4")
+        repository.path.write_text("nodes: [broken", encoding="utf-8")
+        self.assertIs(frozen.load(), snapshot)
+        with self.assertRaises(NodeProviderConfigError):
+            repository.load()
+
+    def test_provider_supported_numeric_strings_and_integer_resources(self):
+        data = _valid_config()
+        data["verification_metadata"]["readiness_timeout_seconds"] = "5"
+        data["nodes"][0]["resources"]["cpu"] = 2
+        repository = _repository_for(data)
+        self.addCleanup(repository.path.unlink)
+        self.assertEqual(repository.load().nodes[0].resources["cpu"], "2")
+
+
 if __name__ == "__main__":
     unittest.main()

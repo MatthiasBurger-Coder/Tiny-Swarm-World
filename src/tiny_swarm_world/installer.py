@@ -737,55 +737,20 @@ def _filesystem_override_argument(options: InstallerOptions) -> str:
 
 
 def _windows_wsl_bridge_expected_ports(cwd: Path) -> tuple[int, ...]:
+    from tiny_swarm_world.infrastructure.adapters.repositories.port_registry_yaml_repository import (
+        PortRegistryYamlRepository,
+    )
+
     registry_path = cwd / "infra" / "config" / "ports.yaml"
-    ports: set[int] = set()
-    current: dict[str, str] | None = None
-    in_ports = False
-    ports_indent = 0
-
-    def commit_current() -> None:
-        if current is None or "external_port" not in current:
-            return
-        protocol = current.get("protocol", "tcp").casefold()
-        if protocol != "tcp":
-            return
-        port_value = current["external_port"].strip()
-        if not port_value.isdigit():
-            return
-        ports.add(int(port_value))
-
-    for raw_line in _read_text(registry_path).splitlines():
-        if not in_ports:
-            if raw_line.strip() == "ports:":
-                in_ports = True
-                ports_indent = len(raw_line) - len(raw_line.lstrip(" "))
-            continue
-        indent = len(raw_line) - len(raw_line.lstrip(" "))
-        if not raw_line:
-            continue
-        if indent <= ports_indent:
-            break
-        if raw_line.lstrip().startswith("- id:"):
-            commit_current()
-            current = {"id": _clean_yaml_scalar(raw_line.lstrip()[4:].strip())}
-            continue
-        if current is None:
-            continue
-        if raw_line.lstrip().startswith("external_port:"):
-            _, _, value = raw_line.lstrip().partition(":")
-            current["external_port"] = _clean_yaml_scalar(value)
-            continue
-        if raw_line.lstrip().startswith("protocol:"):
-            _, _, value = raw_line.lstrip().partition(":")
-            current["protocol"] = _clean_yaml_scalar(value)
-            continue
-
-    commit_current()
-    return tuple(sorted(ports))
-
-
-def _clean_yaml_scalar(value: str) -> str:
-    return value.strip().strip('"').strip("'")
+    try:
+        registry = PortRegistryYamlRepository(registry_path).load()
+    except ValueError:
+        raise InstallerError("Port registry configuration is invalid.") from None
+    return tuple(sorted({
+        mapping.external_port
+        for mapping in registry.mappings
+        if mapping.protocol == "tcp" and mapping.external_port is not None
+    }))
 
 
 def ensure_python_environment(

@@ -656,8 +656,10 @@ self-referential commit hash in this file.
 ## Execution Progress
 
 - S352-01: inventory accepted; architecture tests and diff check passed.
-- S352-03–S352-06: NOT STARTED. Issue remains INCOMPLETE.
+- S352-04–S352-06: NOT STARTED. Issue remains INCOMPLETE.
 - User execution preference: normal project checkout and branches only; no new worktrees or parallel writes.
 - Normal-checkout Windows bridge assets: 11 tests passed; prior path blocker resolved without code changes.
 
 - S352-02: ACCEPTED — Typed immutable secret-manifest model and repository port; PyYAML adapter validates syntax, shape, duplicate keys and scalar types with safe errors. Renderer and installer consume typed entries; raw load_yaml removed. Supported defaults, unknown sources and YAML merge/boolean compatibility retained.
+
+- S352-03: ACCEPTED — Hardened command, provider, inventory, port-registry and operator-source parsing with safe diagnostics, duplicate/cycle/type rejection and immutable opt-in provider snapshots. Installer bridge ports use the typed registry. Required port lists and supported numeric-string indexes remain compatible.

@@ -183,5 +183,40 @@ class _FakeFileManager:
         return self.content
 
 
+class TestCommandParsingBoundary(unittest.TestCase):
+    def test_supported_numeric_string_indexes_remain_accepted(self):
+        for index in ("1", " 1 ", "+1", "1.0"):
+            with self.subTest(index=index):
+                text = _catalog_yaml(_command_yaml(command_id="read.001")).replace("index: 1", f"index: '{index}'")
+                self.assertEqual(_repository_for(text).get_all_commands()[1].index, 1)
+
+    def test_valid_synthetic_catalog_keeps_typed_command_output(self):
+        commands = _repository_for(_catalog_yaml(_command_yaml(command_id="read.001"))).get_all_commands()
+        self.assertEqual(commands[1].id, "read.001")
+        self.assertEqual(commands[1].command, "docker ps")
+
+    def test_invalid_yaml_and_shapes_have_safe_neutral_diagnostics(self):
+        import traceback
+        for text in (
+            "commands: [boundary-marker-secret",
+            "commands: []\ncommands: [boundary-marker-secret]",
+            "commands: &loop [*loop]",
+            "commands: []\n1: boundary-marker-secret\nother: x",
+            _catalog_yaml(_command_yaml(command_id="valid.001").replace("index: 1", "index: true")),
+            _catalog_yaml(_command_yaml(command_id="valid.001").replace("index: 1", "index: 1.0")),
+            _catalog_yaml(_command_yaml(command_id="valid.001").replace("index: 1", "index: 'boundary-marker-secret'")),
+            _catalog_yaml(_command_yaml(command_id="valid.001").replace("intent: test_command", "intent: [boundary-marker-secret]")),
+            _catalog_yaml(_command_yaml(command_id="valid.001")) + "    evidence_policy: {redact_output: 'false'}\n",
+        ):
+            with self.subTest(text=text):
+                try:
+                    _repository_for(text).get_all_commands()
+                except CommandCatalogValidationError as error:
+                    self.assertNotIn("boundary-marker-secret", str(error))
+                    self.assertNotIn("boundary-marker-secret", "".join(traceback.format_exception(error)))
+                else:
+                    self.fail("Malformed command configuration accepted")
+
+
 if __name__ == "__main__":
     unittest.main()

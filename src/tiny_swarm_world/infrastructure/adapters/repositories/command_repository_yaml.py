@@ -3,6 +3,9 @@ from typing import Dict
 
 from pydantic import ValidationError
 from ruamel.yaml import YAML
+from ruamel.yaml.error import YAMLError
+
+from tiny_swarm_world.infrastructure.adapters.configuration.configuration_sources import validate_configuration_tree
 
 from tiny_swarm_world.application.ports.repositories.port_command_repository import PortCommandRepository
 
@@ -26,8 +29,13 @@ class PortCommandRepositoryYaml(PortCommandRepository):
         self.filename = filename
         self.logger = LoggerFactory.get_logger(self.__class__)
         self.file_manager = file_manager or FileManager()
-        self.yaml = YAML()
-        self.data = self.yaml.load(self.file_manager.load(path=Path(filename))) or {}
+        self.yaml = YAML(typ="safe")
+        self.yaml.allow_duplicate_keys = False
+        try:
+            self.data = self.yaml.load(self.file_manager.load(path=Path(filename)))
+            validate_configuration_tree(self.data)
+        except (YAMLError, ValueError, OSError, UnicodeError, RecursionError):
+            raise CommandCatalogValidationError("command catalog is not valid readable YAML") from None
 
     def get_all_commands(self) -> Dict[int, CommandEntity]:
         """
@@ -41,7 +49,7 @@ class PortCommandRepositoryYaml(PortCommandRepository):
         unknown_root_fields = set(self.data) - {"commands"}
         if unknown_root_fields:
             raise CommandCatalogValidationError(
-                f"{self.filename}: unsupported root fields: {sorted(unknown_root_fields)}"
+                f"{self.filename}: unsupported root fields"
             )
 
         commands = self.data.get("commands")
@@ -59,22 +67,36 @@ class PortCommandRepositoryYaml(PortCommandRepository):
                 )
 
             try:
+                _validate_scalar_types(command)
                 command_entity = CommandEntity(**command)
-            except (ValidationError, TypeError) as exc:
+            except (ValidationError, TypeError, ValueError):
                 raise CommandCatalogValidationError(
-                    f"{self.filename}: command entry {position} failed validation: {exc}"
-                ) from exc
+                    f"command entry {position} failed validation"
+                ) from None
 
             if command_entity.id in seen_ids:
                 raise CommandCatalogValidationError(
-                    f"{self.filename}: duplicate command id '{command_entity.id}'"
+                    f"command entry {position}: duplicate command id"
                 )
             if command_entity.index in task_dict:
                 raise CommandCatalogValidationError(
-                    f"{self.filename}: duplicate command index '{command_entity.index}'"
+                    f"command entry {position}: duplicate command index"
                 )
 
             seen_ids.add(command_entity.id)
             task_dict[command_entity.index] = command_entity
 
         return task_dict
+
+
+def _validate_scalar_types(command: dict) -> None:
+    index = command.get("index", 0)
+    if isinstance(index, bool) or not isinstance(index, (int, str)):
+        raise ValueError("command index must be an integer or numeric string")
+    policy = command.get("evidence_policy")
+    if policy is not None:
+        if not isinstance(policy, dict):
+            raise ValueError("command evidence policy must be a mapping")
+        for field in ("redact_output", "store_raw_output"):
+            if field in policy and not isinstance(policy[field], bool):
+                raise ValueError("command evidence flags must be booleans")
