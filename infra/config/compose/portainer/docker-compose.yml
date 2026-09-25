@@ -1,6 +1,6 @@
 services:
   portainer:
-    image: portainer/portainer-ce:2.45.0
+    image: portainer/portainer-ce:2.45.1
     command:
       - --admin-password-file
       - /run/secrets/portainer_admin_password
@@ -26,7 +26,7 @@ services:
         constraints:
           - node.role == manager
   agent:
-    image: portainer/agent:2.45.0
+    image: portainer/agent:2.45.1
     environment:
       AGENT_CLUSTER_ADDR: tasks.agent # Swarm communication.
     volumes:
