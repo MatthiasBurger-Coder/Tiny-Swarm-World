@@ -1,26 +1,17 @@
-# Workflow context pack
+# ARCH-03.12 workflow context
 
-Workflow: issue-352-configuration-parsing-boundary; version 1.0; branch `architecture/workflow-352-config-parsing-20260925`.
-Process: workflow execute; profile FULL_PATH; status COMPLETE.
-Implementation: see Execution Progress in workflow.md. Source baseline: `33aaafd5b80a3f316f4d650a9a831734dc7077e0`.
+Workflow issue-355-operation-results, version 1.0; process strand workflow create;
+profile FULL_PATH. Branch `architecture/workflow-355-operation-results-20260926`; baseline `3487ce322bb2b251a45695fc88a70ffa8132b0de`.
+Status READY_FOR_WORKFLOW; implementation NOT STARTED.
 
-Affected areas: configuration adapters/models/ports, composition, selected
-setup/platform/deployment and installer validation consumers. Forbidden: live
-infrastructure, runtime/provider replacement, credential-policy changes,
-unrelated work, Java/React/Kubernetes expansion.
+Read [workflow](workflow.md), [requirements](requirement-matrix.md),
+[authoring review](authoring-review.md) and [machine context](context-pack.json).
+The JSON records required/conditional roles, affected/forbidden areas, quality
+commands and SHA-256 governing-file hashes. Recompute every hash at execution;
+any change makes this context stale. No context pack replaces AGENTS.md, QUALITY.md,
+ADRs, routing or skills. S355-01 must accept the ADR and inventory before code work.
 
-Required roles: Senior Requirement Engineer, Senior System Architect, Senior Python Automation Developer, Senior Tester.
-Conditional: DevOps for runtime contracts, security for secrets/error changes,
-Console/status UI only for verified interaction/output impact.
-Quality: `git diff --check`, `python3 tools/quality_gate.py quality`;
-per-slice targeted commands are in workflow.md.
-
-[context-pack.json](context-pack.json) records SHA-256 hashes for governing
-files, checked architecture references and workflow artifacts. It is a navigation
-aid, not authority. Any hash change, governance edit or conflict invalidates it;
-reread changed authority and refresh only after review. Root AGENTS.md,
-QUALITY.md, ADRs and skills remain authoritative.
-
-Execution status: S352-01 through S352-06 accepted. S352-05 two-file scope correction approved by user on 2026-09-26; S352-05 and S352-06 have completed in order.
-
-S352-06 locally verified; independent issue-completion-auditor PASS; R01–R11 verified.
+Execution requires an isolated worktree and declared branch; specialist write
+streams require distinct branches/worktrees and disjoint reviewed scopes. Reviews
+are read-only. Product slices require targeted tests plus full local quality.
+Authoring publication is commit and branch push only. No PR or merge is requested.

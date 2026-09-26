@@ -1,0 +1,79 @@
+= ADR: Explicit Operation Results and Failure Ownership
+
+== Status
+
+Proposed for ARCH-03.12 / issue #355. Authoring does not accept or implement this
+contract. S355-01 requires System Architect and Four-Role review before acceptance;
+S355-02 cannot begin until the decision and migration inventory are accepted.
+
+== Context
+
+Platform, artifacts, deployment and setup already return capability-specific
+results. Expected errors cross some ports as infrastructure-owned or generic
+exceptions, while broad orchestration catches lose actionable context. CLI
+consumers depend on existing status strings, JSON fields and exit codes.
+ARCH-03.11 centralizes process execution but leaves capability translation to adapters.
+
+== Proposed decision
+
+Own the immutable shared contract in application/ports/operation_result.py,
+independent of application services and concrete infrastructure. Existing workflow
+result wrappers expose it additively as operation_result; retain existing status,
+outcome, message, reason, executed and verification fields and constructor defaults.
+Domain remains independent of application. No new service engine is introduced.
+
+Define success, failed, partial and rolled_back outcomes, with blocked and refused
+kept distinct. Only refusal or blocking before execution establishes no execution.
+A legacy blocked status may follow mutation: preserve it, classify confirmed prior
+work as partial, and retain uncertain effects rather than asserting no mutation. A success obeys the capability's existing
+verification contract. Partial means confirmed completed work and an incomplete
+request; attempted execution alone is insufficient. Track confirmed work separately
+from uncertain effects after timeout or interruption. Rolled_back requires the
+existing recover path to observe restoration to the recorded original image.
+Stored recovery state, a recommendation or an attempted rollback cannot prove it.
+
+Failure values carry stable operation and component identifiers, safe cause code,
+recoverability (recoverable, nonrecoverable or unknown), and recommended action.
+They never contain raw exception objects, credentials, commands, stdout/stderr or
+unchecked exception text. Unknown recoverability is explicit; it does not promise
+safe retries. Nested aggregation preserves originating failures and completed-work
+evidence; if recovery fails, retain both original failure context when available
+and recovery failure without claiming restoration.
+
+Expected technology errors are translated by adapters to application-owned failure
+values or typed port exceptions carrying those values. Preserve existing port
+signatures using compatible error bridges where needed. Workflow services catch
+only declared expected failures for normal result classification. Programming
+faults remain distinguishable and are not silently relabeled as expected failures.
+Cancellation, KeyboardInterrupt and SystemExit retain their existing propagation
+or explicit entrypoint exit mapping. Do not catch BaseException for translation.
+Suppress unsafe cause chains at outward error boundaries while preserving safe
+classified context. Reuse ARCH-03.11 runners rather than redesigning process control.
+
+Legacy CLI behavior remains authoritative: completed is exit 0; other returned
+workflow statuses exit 1; missing consent/destructive confirmation exits 2.
+Verified recovery keeps completed/exit 0 with an additive rolled_back outcome;
+a failed original apply stays nonzero. Installer child exits and 124/130 timeout
+and interruption mappings remain unchanged. Human-readable output is default;
+JSON remains explicit opt-in. Rendering never performs recommended actions.
+
+== Alternatives and rationale
+
+Replacing all status enums would break consumers. Keeping only free-form messages
+loses machine-readable failure context. Putting shared types under services would
+violate the ports dependency contract. An additive port-owned value contract lets
+adapters translate failures without coupling domain or ports to workflow services.
+
+== Consequences
+
+Migration must cover actual lifecycle producers and consumers, including installer
+compatibility, rather than only introducing types. S355-01 fixes the per-boundary
+mapping and expected/unexpected error policy before implementation. No new retry,
+automatic rollback, idempotency policy, provider, process framework or persistence
+schema is authorized. ARCH-03.13 / #356 owns new resilience behavior.
+
+== Verification
+
+Contract invariants, adapter mappings, partial progress, verified recovery,
+cancellation, redaction and CLI compatibility use deterministic tests. Existing
+architecture rules remain in force. Local verification does not claim live success.

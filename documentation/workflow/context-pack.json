@@ -1,35 +1,36 @@
 {
-  "workflowId": "issue-352-configuration-parsing-boundary",
+  "workflowId": "issue-355-operation-results",
   "workflowVersion": "1.0",
-  "branch": "architecture/workflow-352-config-parsing-20260925",
-  "baseline": "33aaafd5b80a3f316f4d650a9a831734dc7077e0",
-  "processStrand": "workflow execute",
+  "branch": "architecture/workflow-355-operation-results-20260926",
+  "baseline": "3487ce322bb2b251a45695fc88a70ffa8132b0de",
+  "processStrand": "workflow create",
   "executionProfile": "FULL_PATH",
-  "status": "COMPLETE",
-  "implementationStatus": "S352-06_ACCEPTED",
+  "status": "READY_FOR_WORKFLOW",
+  "implementationStatus": "NOT_STARTED",
   "affectedAreas": [
-    "configuration boundary",
-    "composition",
-    "setup/platform/deployment validation",
-    "installer configuration consumers"
+    "application result contracts",
+    "lifecycle adapters",
+    "platform/artifacts/deployment/setup",
+    "CLI/installer compatibility"
   ],
   "forbiddenAreas": [
     "live infrastructure",
-    "provider/runtime replacement",
-    "credential policy",
-    "unrelated workflows",
+    "new retry/rollback/idempotency policy",
+    "provider/process replacement",
+    "persistence redesign",
     "Java/React/Kubernetes expansion"
   ],
   "requiredRoles": [
     "Senior Requirement Engineer",
     "Senior System Architect",
     "Senior Python Automation Developer",
-    "Senior Tester"
+    "Senior Tester",
+    "Console/status UI reviewer"
   ],
   "conditionalRoles": [
     "Senior DevOps",
     "Senior Security Sandbox Engineer",
-    "Console/status UI reviewer"
+    "Senior Documentation Engineer"
   ],
   "qualityCommands": [
     "git diff --check",
@@ -49,16 +50,13 @@
     ".agents/skills/three-amigos-requirement-gatekeeper/SKILL.md": "76659e618cb706e8990cdf44441aeaed219465044175826adca5357ae8acc5b4",
     "documentation/arc42/05_analysis/arch-03-02-layer-contracts.md": "c5d197593c44a06fc6310f7209be7d22352c679380f7964e4ca6ddf04facee3a",
     "documentation/arc42/05_analysis/arch-03-08-platform-lifecycle-orchestrator.md": "e4494f2f5ac312a1d464b1dada96bc298fd982a1d13e137f21ca41cb29f6b37f",
-    "documentation/arc42/05_building_blocks.adoc": "08ff15bda4610fceb5bf6be0058f9acda024125e24431ae6bfcb454150e27d05",
-    "documentation/arc42/08_concepts.adoc": "6946d62703692a436ee01e93c46827279bc8175f1cae2d1ae9c7888ad1e90c83",
-    "documentation/arc42/08_configuration/operator-configuration-contract.md": "cc1ca70974a244cf424b51b166deb02451a265ae18e8a8f74af89ac7f116e072",
-    "documentation/arc42/09_decisions/adr-explicit-non-interactive-live-consent.adoc": "e0a455b4ad79f59ce99f881d07c7fcaee46cea41f8c44ff50fc59a2e7b5e5476",
-    "documentation/arc42/09_decisions/adr-lxc-native-node-provider.adoc": "d88225223e62de4744d5cec7d5703af1bff62ec178b9794a606472cbc83da901",
-    "documentation/workflow/workflow.md": "cff855f2fb86c0a4af84fcf4a62e4b35646c65868a8cf569fd467bae4ee90798",
-    "documentation/workflow/requirement-matrix.md": "bf4ffa354d30b6bc95e0385f3a9adc7242cce278d725bb11d1f8a943f400ee14",
-    "documentation/arc42/05_analysis/arch-03-09-configuration-parsing-boundary.md": "e4b443f0e9274197c16a53e4c25f68340509b9e690b8890504f5997f03f4006b",
-    "documentation/workflow/authoring-review.md": "a7454e81481aa018704caab1b142e90708cb78d8cd6249d0eb13766f61ae91a0"
-  },
-  "executionCheckout": "existing project checkout; branches only by user instruction",
-  "issueAudit": "PASS"
+    "documentation/arc42/05_analysis/arch-03-11-process-execution.md": "9fe907db4b9c420e49539f8348dd3463179de1d273db12060f966e06c0392b77",
+    "documentation/arc42/09_decisions/adr-classic-update-contract.adoc": "50fab597b07c8eb15bc839df7283214d7dc72e01f096f0e18fba021772a841d2",
+    "documentation/arc42/09_decisions/adr-installer-console-reporting-policy.adoc": "f510c8470d57b7b763496db5ddef93b167276adf9c78958394c8b0a75a8bdf8c",
+    "documentation/arc42/09_decisions/adr-explicit-operation-results.adoc": "9b2d2a122fc08625317e7bc422c6375fa1ee45b06433067cebddc8b38f15fa8b",
+    "documentation/arc42/05_analysis/arch-03-12-operation-results.md": "53be9516decef330a251a8d39ed804907c337512e792d22f58e590157776577f",
+    "documentation/workflow/workflow.md": "afe6519e8f97473bc460b60f3d8c1a630ae0b81031f3a0d38bd6cbff3c30f0f5",
+    "documentation/workflow/requirement-matrix.md": "80782ab10d1a86648ec983b354e9dca651b0f031cb511415c84df37c5c95ad51",
+    "documentation/workflow/authoring-review.md": "21a9b5aa5635e080e41be82643cb22f67ce47713d6f51b5febec0904f44f5080"
+  }
 }
