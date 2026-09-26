@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from tiny_swarm_world.application.ports.operation_result import OperationError
+
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, Sequence
 
@@ -86,3 +88,7 @@ class PortHostPreflightProbe(ABC):
         fingerprints: Mapping[str, str],
     ) -> Sequence[str]:
         pass
+
+
+class HostPreflightError(OperationError, OSError):
+    """Declared capability failure with safe operation context."""

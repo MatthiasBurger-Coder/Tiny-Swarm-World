@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from tiny_swarm_world.application.ports.operation_result import OperationError
+from tiny_swarm_world.infrastructure.process import ProcessLaunchError, ProcessTimeoutError
+
 from tiny_swarm_world.infrastructure.process.runner import run_process
 
 import socket
@@ -62,19 +65,28 @@ class BoundedArtifactReadinessAdapter(PortLiveReadiness):
             )
         try:
             result = probe(request)
-        except (TimeoutError, socket.timeout, subprocess.TimeoutExpired):
+        except OperationError as exc:
+            return _result(
+                request, ReadinessStatus.UNKNOWN,
+                "The readiness boundary reported a classified failure.",
+                exc.failure.recommended_action,
+                evidence={"failure_cause": exc.failure.cause, "failure_operation": exc.failure.operation, "failure_component": exc.failure.component},
+            )
+        except (TimeoutError, socket.timeout, subprocess.TimeoutExpired, ProcessTimeoutError):
             return _result(
                 request,
                 ReadinessStatus.TIMED_OUT,
                 "The bounded readiness observation timed out.",
                 "Retry the bounded observation after the prerequisite is available.",
+                evidence={"failure_cause": "process_timeout"},
             )
-        except (ConnectionError, OSError):
+        except (ConnectionError, OSError, ProcessLaunchError):
             return _result(
                 request,
                 ReadinessStatus.UNAVAILABLE,
                 "The readiness target was unavailable.",
                 "Restore the prerequisite endpoint or runtime and retry.",
+                evidence={"failure_cause": "dependency_unavailable"},
             )
         except Exception:
             return _result(
@@ -82,6 +94,7 @@ class BoundedArtifactReadinessAdapter(PortLiveReadiness):
                 ReadinessStatus.UNKNOWN,
                 "The readiness observation could not be classified safely.",
                 "Inspect the phase-local diagnostic evidence before retrying.",
+                evidence={"failure_cause": "unexpected_failure"},
             )
         if not isinstance(result, ReadinessCheckResult):
             return _result(

@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from tiny_swarm_world.application.ports.preflight.port_host_preflight_probe import HostPreflightError
+from tiny_swarm_world.application.ports.operation_result import OperationError, OperationFailure
+
 import hashlib
 import os
 import platform
@@ -88,7 +91,12 @@ class HostPreflightProbe(PortHostPreflightProbe):
         return self.host_environment_report().platform_family == "linux"
 
     def host_environment_report(self) -> HostEnvironmentReport:
-        return self.host_environment_detector.detect()
+        try:
+            return self.host_environment_detector.detect()
+        except OperationError:
+            raise
+        except OSError:
+            raise HostPreflightError(OperationFailure.for_cause("host.inspect", "host_preflight", "filesystem_error")) from None
 
     def python_version(self) -> str:
         return ".".join(str(part) for part in sys.version_info[:3])
@@ -103,19 +111,34 @@ class HostPreflightProbe(PortHostPreflightProbe):
         return os.cpu_count() or 0
 
     def memory_bytes(self) -> int:
-        meminfo = Path("/proc/meminfo")
-        if not meminfo.exists():
+        try:
+            meminfo = Path("/proc/meminfo")
+            if not meminfo.exists():
+                return 0
+            for line in meminfo.read_text(encoding="utf-8").splitlines():
+                if line.startswith("MemTotal:"):
+                    parts = line.split()
+                    if len(parts) >= 2:
+                        try:
+                            return int(parts[1]) * 1024
+                        except ValueError:
+                            raise HostPreflightError(OperationFailure.for_cause("host.inspect", "host_preflight", "observation_unavailable")) from None
             return 0
-        for line in meminfo.read_text(encoding="utf-8").splitlines():
-            if line.startswith("MemTotal:"):
-                parts = line.split()
-                if len(parts) >= 2:
-                    return int(parts[1]) * 1024
-        return 0
+        except OperationError:
+            raise
+        except UnicodeError:
+            raise HostPreflightError(OperationFailure.for_cause("host.inspect", "host_preflight", "observation_unavailable")) from None
+        except OSError:
+            raise HostPreflightError(OperationFailure.for_cause("host.inspect", "host_preflight", "filesystem_error")) from None
 
     def disk_free_bytes(self, path: str) -> int:
-        target = self.root / path
-        return shutil.disk_usage(target).free
+        try:
+            target = self.root / path
+            return shutil.disk_usage(target).free
+        except OperationError:
+            raise
+        except OSError:
+            raise HostPreflightError(OperationFailure.for_cause("host.inspect", "host_preflight", "filesystem_error")) from None
 
     def port_available(self, port: int) -> bool:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
@@ -154,14 +177,19 @@ class HostPreflightProbe(PortHostPreflightProbe):
         self,
         fingerprints: Mapping[str, str],
     ) -> Sequence[str]:
-        found: set[str] = set()
-        for source_file in self._tracked_text_files():
-            text = source_file.read_text(encoding="utf-8", errors="ignore")
-            text_fingerprints = set(_token_fingerprints(text))
-            for identifier, fingerprint in fingerprints.items():
-                if fingerprint in text_fingerprints:
-                    found.add(identifier)
-        return tuple(sorted(found))
+        try:
+            found: set[str] = set()
+            for source_file in self._tracked_text_files():
+                text = source_file.read_text(encoding="utf-8", errors="ignore")
+                text_fingerprints = set(_token_fingerprints(text))
+                for identifier, fingerprint in fingerprints.items():
+                    if fingerprint in text_fingerprints:
+                        found.add(identifier)
+            return tuple(sorted(found))
+        except OperationError:
+            raise
+        except OSError:
+            raise HostPreflightError(OperationFailure.for_cause("host.inspect", "host_preflight", "filesystem_error")) from None
 
     def windows_wsl_bridge_status(
         self,

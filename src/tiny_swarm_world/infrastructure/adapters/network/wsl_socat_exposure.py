@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from tiny_swarm_world.application.ports.network.port_wsl_socat_exposure import SocatExposureError
+from tiny_swarm_world.infrastructure.adapters.exceptions.operation_failure_mapping import process_failure, process_result_failure
+
 import shutil
 from collections.abc import Awaitable, Callable
 
@@ -35,14 +38,22 @@ class WslSocatExposureAdapter(PortWslSocatExposure):
         return self._executable_finder("socat") is not None
 
     async def process_exists(self, command: str) -> bool:
-        return await self._process_probe(command)
+        try:
+            return await self._process_probe(command)
+        except OSError as exc:
+            raise SocatExposureError(process_failure(exc, "exposure.observe", "socat")) from None
 
     async def start(self, command: str) -> bool:
-        return await self._process_starter(command)
+        try:
+            return await self._process_starter(command)
+        except OSError as exc:
+            raise SocatExposureError(process_failure(exc, "exposure.start", "socat")) from None
 
 
 async def _process_exists(pattern: str) -> bool:
     result = await run_async_process(("pgrep", "-f", pattern), discard_output=True)
+    if result.timed_out or result.failure_hint or result.returncode not in (0, 1):
+        raise SocatExposureError(process_result_failure("exposure.observe", "socat", timed_out=result.timed_out, failure_hint=result.failure_hint)) from None
     return result.returncode == 0
 
 
@@ -50,4 +61,6 @@ async def _start_process(command: str) -> bool:
     result = await run_async_process(
         ("sh", "-lc", f"nohup {command} >/dev/null 2>&1 &"), discard_output=True,
     )
-    return result.returncode == 0
+    if result.timed_out or result.failure_hint or result.returncode != 0:
+        raise SocatExposureError(process_result_failure("exposure.start", "socat", timed_out=result.timed_out, failure_hint=result.failure_hint)) from None
+    return True

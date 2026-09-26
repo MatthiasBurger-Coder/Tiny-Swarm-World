@@ -405,8 +405,10 @@ class TestPortainerHttpClient(unittest.TestCase):
         with self.assertRaises(RuntimeError) as raised:
             client.get_endpoint_id_by_name("local")
 
-        self.assertIn("endpoint 'local'", str(raised.exception))
-        self.assertIn("Available endpoints: remote", str(raised.exception))
+        self.assertEqual("request_failed", raised.exception.failure.cause)
+        self.assertNotIn("endpoint 'local'", str(raised.exception))
+        self.assertIn("Check service readiness", str(raised.exception))
+        self.assertNotIn("Available endpoints: remote", str(raised.exception))
 
     def test_find_stack_id_by_name_returns_matching_stack_id(self):
         session = _FakeSession(

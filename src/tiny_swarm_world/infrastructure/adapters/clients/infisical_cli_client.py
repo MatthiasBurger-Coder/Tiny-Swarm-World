@@ -1,8 +1,14 @@
 from __future__ import annotations
 
+from tiny_swarm_world.application.ports.clients.port_infisical_cli import InfisicalCliError
+from tiny_swarm_world.application.ports.operation_result import OperationFailure
+from tiny_swarm_world.infrastructure.adapters.exceptions.operation_failure_mapping import process_failure, request_failure
+from tiny_swarm_world.infrastructure.process import ProcessLaunchError, ProcessTimeoutError
+
 from tiny_swarm_world.infrastructure.process.runner import run_process
 
 import json
+import subprocess
 import os
 import shutil
 import time
@@ -76,8 +82,8 @@ class InfisicalCliClient(PortInfisicalCli):
         if response.status_code == 404:
             return None
         if response.status_code >= 400:
-            raise RuntimeError("Infisical managed entry read failed with redacted output.")
-        return _secret_value(response.json(), key)
+            raise InfisicalCliError(OperationFailure.for_cause("secret.request", "infisical", "request_failed")) from None
+        return _secret_value(_response_payload(response), key)
 
     def set_secret(self, key: str, value: str, *, project: str, environment: str) -> None:
         project_id = self._project_ids.get(project) or self._ensure_project(project)
@@ -100,7 +106,7 @@ class InfisicalCliClient(PortInfisicalCli):
                 json=payload,
             )
         if response.status_code >= 400:
-            raise RuntimeError("Infisical managed entry set failed with redacted output.")
+            raise InfisicalCliError(OperationFailure.for_cause("secret.request", "infisical", "request_failed")) from None
 
     def _ensure_project(self, project: str) -> str:
         if project in self._project_ids:
@@ -124,10 +130,10 @@ class InfisicalCliClient(PortInfisicalCli):
             if existing:
                 self._project_ids[project] = existing
                 return existing
-            raise RuntimeError("Infisical project ensure failed with redacted output.")
-        project_id = _project_id(response.json())
+            raise InfisicalCliError(OperationFailure.for_cause("secret.request", "infisical", "request_failed")) from None
+        project_id = _project_id(_response_payload(response))
         if not project_id:
-            raise RuntimeError("Infisical project ensure failed with redacted output.")
+            raise InfisicalCliError(OperationFailure.for_cause("secret.request", "infisical", "request_failed")) from None
         self._project_ids[project] = project_id
         return project_id
 
@@ -135,7 +141,7 @@ class InfisicalCliClient(PortInfisicalCli):
         response = self._request("GET", "/api/v1/projects")
         if response.status_code >= 400:
             return ""
-        return _project_id_by_name(response.json(), project)
+        return _project_id_by_name(_response_payload(response), project)
 
     def _ensure_environment(self, project_id: str, environment: str) -> None:
         response = self._request(
@@ -145,7 +151,7 @@ class InfisicalCliClient(PortInfisicalCli):
         )
         if response.status_code in {200, 201, 400, 409, 422}:
             return
-        raise RuntimeError("Infisical environment ensure failed with redacted output.")
+        raise InfisicalCliError(OperationFailure.for_cause("secret.request", "infisical", "request_failed")) from None
 
     def _request(self, method: str, path: str, **kwargs) -> requests.Response:
         return self._request_with_retry(
@@ -187,7 +193,7 @@ class InfisicalCliClient(PortInfisicalCli):
         email = os.environ.get("TSW_INFISICAL_LOGIN_EMAIL", "")
         password = os.environ.get("TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD", "")
         if not email or not password:
-            raise RuntimeError(INFISICAL_SYNC_SESSION_UNAVAILABLE)
+            raise InfisicalCliError(OperationFailure.for_cause("secret.request", "infisical", "request_failed")) from None
         response = self._request_with_retry(
             lambda: self.session.post(
                 f"{self.base_url}/api/v3/auth/login",
@@ -197,10 +203,10 @@ class InfisicalCliClient(PortInfisicalCli):
             )
         )
         if response.status_code >= 400:
-            raise RuntimeError(INFISICAL_SYNC_SESSION_UNAVAILABLE)
-        token = _access_token(response.json())
+            raise InfisicalCliError(OperationFailure.for_cause("secret.request", "infisical", "request_failed")) from None
+        token = _access_token(_response_payload(response))
         if not token:
-            raise RuntimeError(INFISICAL_SYNC_SESSION_UNAVAILABLE)
+            raise InfisicalCliError(OperationFailure.for_cause("secret.request", "infisical", "request_failed")) from None
         self._session_token = self._organization_token(token)
         return self._session_token
 
@@ -217,10 +223,10 @@ class InfisicalCliClient(PortInfisicalCli):
             )
         )
         if response.status_code >= 400:
-            raise RuntimeError(INFISICAL_SYNC_SESSION_UNAVAILABLE)
-        organization_id = _first_organization_id(response.json())
+            raise InfisicalCliError(OperationFailure.for_cause("secret.request", "infisical", "request_failed")) from None
+        organization_id = _first_organization_id(_response_payload(response))
         if not organization_id:
-            raise RuntimeError(INFISICAL_SYNC_SESSION_UNAVAILABLE)
+            raise InfisicalCliError(OperationFailure.for_cause("secret.request", "infisical", "request_failed")) from None
         response = self._request_with_retry(
             lambda: self.session.post(
                 f"{self.base_url}/api/v3/auth/select-organization",
@@ -230,10 +236,10 @@ class InfisicalCliClient(PortInfisicalCli):
             )
         )
         if response.status_code >= 400:
-            raise RuntimeError(INFISICAL_SYNC_SESSION_UNAVAILABLE)
-        token = _selected_organization_token(response.json())
+            raise InfisicalCliError(OperationFailure.for_cause("secret.request", "infisical", "request_failed")) from None
+        token = _selected_organization_token(_response_payload(response))
         if not token:
-            raise RuntimeError(INFISICAL_SYNC_SESSION_UNAVAILABLE)
+            raise InfisicalCliError(OperationFailure.for_cause("secret.request", "infisical", "request_failed")) from None
         self._session_token = token
         return token
 
@@ -243,9 +249,9 @@ class InfisicalCliClient(PortInfisicalCli):
                 return request()
             except requests.RequestException as exc:
                 if attempt >= self.retry_attempts:
-                    raise RuntimeError("Infisical HTTP request failed with redacted output.") from exc
+                    raise InfisicalCliError(request_failure(exc, "secret.request", "infisical")) from None
                 time.sleep(self.retry_wait_seconds)
-        raise RuntimeError("Infisical HTTP request failed with redacted output.")
+        raise InfisicalCliError(OperationFailure.for_cause("secret.request", "infisical", "request_failed")) from None
 
 
 def _project_id(payload: object) -> str:
@@ -337,15 +343,26 @@ def _first_organization_id(payload: object) -> str:
 
 
 def _run(args: tuple[str, ...]) -> InfisicalCliResult:
-    result = run_process(
-        args,
-        capture_output=True,
-        check=False,
-        text=True,
-        timeout=300,
-    )
+    try:
+        result = run_process(
+            args,
+            capture_output=True,
+            check=False,
+            text=True,
+            timeout=300,
+        )
+    except (ProcessLaunchError, ProcessTimeoutError, subprocess.TimeoutExpired, OSError) as exc:
+        raise InfisicalCliError(process_failure(exc, "secret.bootstrap", "infisical_cli")) from None
     return InfisicalCliResult(
         return_code=result.returncode,
         stdout=result.stdout,
         stderr=result.stderr,
+        failure=OperationFailure.for_cause("secret.bootstrap", "infisical_cli", "process_exit_failed") if result.returncode != 0 else None,
     )
+
+
+def _response_payload(response: requests.Response):
+    try:
+        return response.json()
+    except ValueError:
+        raise InfisicalCliError(OperationFailure.for_cause("secret.decode", "infisical", "request_failed")) from None

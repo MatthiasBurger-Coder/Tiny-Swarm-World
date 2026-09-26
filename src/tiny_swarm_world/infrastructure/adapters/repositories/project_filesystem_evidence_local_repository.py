@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import sys
+
 import json
 import os
 import stat
@@ -103,10 +105,10 @@ class ProjectFilesystemEvidenceLocalRepository(
             _sync_directory(self.path.parent)
         except ProjectFilesystemEvidenceError:
             raise
-        except (OSError, ValueError) as error:
+        except (OSError, ValueError):
             raise ProjectFilesystemEvidenceError(
                 "Protected project-filesystem evidence could not be stored."
-            ) from error
+            ) from None
         finally:
             if descriptor >= 0:
                 try:
@@ -114,17 +116,22 @@ class ProjectFilesystemEvidenceLocalRepository(
                 except OSError:
                     pass
             if temporary_path is not None:
-                temporary_path.unlink(missing_ok=True)
+                active_error = sys.exception()
+                try:
+                    temporary_path.unlink(missing_ok=True)
+                except OSError:
+                    if active_error is None:
+                        raise ProjectFilesystemEvidenceError("Protected evidence cleanup failed.") from None
 
 
 def _set_private_mode(path: Path, mode: int) -> None:
     try:
         path.chmod(mode)
         actual = stat.S_IMODE(path.stat().st_mode)
-    except OSError as error:
+    except OSError:
         raise ProjectFilesystemEvidenceError(
             "Protected evidence permissions could not be enforced."
-        ) from error
+        ) from None
     if actual != mode:
         raise ProjectFilesystemEvidenceError(
             "Protected evidence permissions do not match the required owner-only mode."

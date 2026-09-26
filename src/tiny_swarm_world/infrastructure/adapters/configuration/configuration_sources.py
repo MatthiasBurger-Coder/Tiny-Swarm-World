@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from tiny_swarm_world.application.ports.operation_result import OperationFailure
+
 from collections.abc import Iterable, Mapping
 import os
 from pathlib import Path
@@ -12,8 +14,8 @@ from tiny_swarm_world.application.ports.configuration import (
 
 
 class ConfigurationSourceError(ConfigurationSourceLoadError):
-    def __init__(self, message: str) -> None:
-        super().__init__(message, safe_detail=message)
+    def __init__(self, message: str, *, failure: OperationFailure | None = None) -> None:
+        super().__init__(message, safe_detail=message, failure=failure)
 
 
 class EnvironmentConfigurationSource(PortConfigurationSource):
@@ -38,13 +40,19 @@ class ShellEnvFileConfigurationSource(PortConfigurationSource):
         self.path = path
 
     def load(self) -> Mapping[str, str]:
-        if not self.path.exists():
+        try:
+            exists = self.path.exists()
+        except OSError:
+            raise ConfigurationSourceError("Operator configuration could not be read.", failure=OperationFailure.for_cause("configuration.load", "configuration_source", "filesystem_error")) from None
+        if not exists:
             return {}
         values: dict[str, str] = {}
         line_numbers: dict[str, int] = {}
         try:
             content = self.path.read_text(encoding="utf-8")
-        except (OSError, UnicodeError):
+        except OSError:
+            raise ConfigurationSourceError("Operator configuration could not be read.", failure=OperationFailure.for_cause("configuration.load", "configuration_source", "filesystem_error")) from None
+        except UnicodeError:
             raise ConfigurationSourceError("Operator configuration could not be read.") from None
         for line_number, raw_line in enumerate(content.splitlines(), start=1):
             parsed = _parse_env_line(raw_line, line_number)

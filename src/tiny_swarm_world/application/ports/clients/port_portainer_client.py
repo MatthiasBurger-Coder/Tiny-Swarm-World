@@ -1,3 +1,5 @@
+from tiny_swarm_world.application.ports.operation_result import OperationError
+
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
 
@@ -35,3 +37,16 @@ class PortPortainerClient(ABC):
         stack_environment: Mapping[str, str] | None = None,
     ) -> None:
         pass
+
+
+class PortainerClientError(OperationError, RuntimeError):
+    """Declared capability failure with safe operation context."""
+
+    def __init__(self, failure, *, status_code: int | None = None, detail: str = ""):
+        super().__init__(failure)
+        if detail not in {"", "Portainer did not report a Swarm cluster ID.", "Portainer authentication succeeded without returning a JWT.", "Selected Portainer endpoint was not found."}:
+            raise ValueError("Client error detail must be a declared safe message.")
+        if status_code is not None and type(status_code) is not int:
+            raise TypeError("HTTP status must be numeric.")
+        self.status_code = status_code
+        self.args = (f"{self.args[0]} {detail}" + (f" HTTP {status_code}." if status_code is not None else ""),)

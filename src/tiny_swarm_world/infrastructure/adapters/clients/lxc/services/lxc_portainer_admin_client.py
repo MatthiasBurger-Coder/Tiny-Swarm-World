@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from tiny_swarm_world.application.ports.clients.port_portainer_client import PortainerClientError
+from tiny_swarm_world.infrastructure.adapters.exceptions.operation_failure_mapping import request_failure
+
 from collections.abc import Callable
 
 import requests
@@ -65,7 +68,7 @@ class LxcPortainerAdminClient(PortPortainerAdminClient):
             )
             self._clear_session_cookies()
         except requests.RequestException as exc:
-            raise RuntimeError("Failed to initialize Portainer admin user.") from exc
+            raise PortainerClientError(request_failure(exc, "service.bootstrap", "portainer")) from None
         if response.status_code >= 400 and not self.can_authenticate(username, password):
             raise PortainerAdminInitializationRejected(
                 f"Failed to initialize Portainer admin user. HTTP {response.status_code}.",

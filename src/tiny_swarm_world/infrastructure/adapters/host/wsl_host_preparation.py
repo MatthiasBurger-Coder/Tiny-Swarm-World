@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from tiny_swarm_world.application.ports.host.port_host_preparation import HostPreparationError
+from tiny_swarm_world.infrastructure.adapters.exceptions.operation_failure_mapping import process_failure
+from tiny_swarm_world.infrastructure.process import ProcessLaunchError, ProcessTimeoutError, ProcessExecutionError
+
 from pathlib import Path
 
 from tiny_swarm_world.application.ports.host import (
@@ -28,7 +32,7 @@ class WslHostPreparation(PortHostPreparation):
         self.timeout_seconds = timeout_seconds
 
     def prepare(self) -> HostPreparationResult:
-        verification = self.runner.run(
+        verification = self._run_command(
             "verify",
             script_path=self.script_path,
             config_path=self.config_path,
@@ -62,7 +66,7 @@ class WslHostPreparation(PortHostPreparation):
         return self._run("cleanup", "uninstall")
 
     def _run(self, operation: str, action: str) -> HostPreparationResult:
-        result = self.runner.run(
+        result = self._run_command(
             action,
             script_path=self.script_path,
             config_path=self.config_path,
@@ -70,6 +74,12 @@ class WslHostPreparation(PortHostPreparation):
             timeout_seconds=self.timeout_seconds,
         )
         return self._result(operation, action, result)
+
+    def _run_command(self, action: str, **kwargs):
+        try:
+            return self.runner.run(action, **kwargs)
+        except (ProcessLaunchError, ProcessTimeoutError, ProcessExecutionError, OSError) as exc:
+            raise HostPreparationError(process_failure(exc, "host.prepare", "wsl_host")) from None
 
     def _result(
         self,

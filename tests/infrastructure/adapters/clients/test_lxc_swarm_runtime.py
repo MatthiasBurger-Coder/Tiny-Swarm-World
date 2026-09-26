@@ -615,7 +615,7 @@ networks:
 
         run_node_shell.assert_not_called()
 
-    def test_node_shell_timeout_identifies_the_target_worker(self):
+    def test_node_shell_timeout_classifies_failure_without_exposing_target(self):
         runtime = LxcSwarmRuntime(
             backend=ManagedLxcBackend.INCUS,
             timeout_seconds=1,
@@ -625,8 +625,11 @@ networks:
             "tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime.subprocess.run",
             side_effect=subprocess.TimeoutExpired(["incus", "exec"], 1),
         ):
-            with self.assertRaisesRegex(RuntimeError, "swarm-worker-1"):
+            with self.assertRaises(RuntimeError) as caught:
                 runtime._run_node_shell("swarm-worker-1", "true")
+        self.assertEqual("process_timeout", caught.exception.failure.cause)
+        self.assertNotIn("swarm-worker-1", str(caught.exception))
+        self.assertNotIn("incus", str(caught.exception))
 
     def test_list_stack_services_parses_replica_counts(self):
         runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.LXD)

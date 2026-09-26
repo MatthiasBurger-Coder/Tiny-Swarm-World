@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+from tiny_swarm_world.application.ports.clients.port_swarm_stack_runtime import SwarmRuntimeError
+from tiny_swarm_world.application.ports.operation_result import OperationFailure
+from tiny_swarm_world.infrastructure.adapters.exceptions.operation_failure_mapping import process_failure
+from tiny_swarm_world.infrastructure.process import ProcessLaunchError
+
 import subprocess
 import time
 from collections.abc import Callable
@@ -103,9 +108,9 @@ class LxcManagerShellGateway:
             if not self._retry_if_needed(result, attempt, node_name, sleeper):
                 break
         if result is None:
-            raise RuntimeError("LXC node Swarm operation did not execute.")
+            raise SwarmRuntimeError(OperationFailure.for_cause("swarm.execute", "lxc_gateway", "unexpected_failure"))
         if check and result.returncode != 0:
-            raise RuntimeError(f"LXC node Swarm operation failed with exit code {result.returncode}.")
+            raise SwarmRuntimeError(OperationFailure.for_cause("swarm.execute", "lxc_gateway", "process_exit_failed"), exit_code=result.returncode)
         return result
 
     def _run_once(
@@ -137,10 +142,8 @@ class LxcManagerShellGateway:
                 shell=False,
                 timeout=timeout,
             )
-        except (ProcessTimeoutError, subprocess.TimeoutExpired) as exc:
-            raise RuntimeError(
-                f"LXC Swarm operation timed out on node '{node_name}'."
-            ) from exc
+        except (ProcessTimeoutError, ProcessLaunchError, subprocess.TimeoutExpired, OSError) as exc:
+            raise SwarmRuntimeError(process_failure(exc, "swarm.execute", "lxc_gateway")) from None
 
     def _log_result(
         self,

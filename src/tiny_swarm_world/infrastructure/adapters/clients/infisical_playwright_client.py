@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from tiny_swarm_world.application.ports.clients.port_infisical_client import InfisicalClientError
+from tiny_swarm_world.application.ports.operation_result import OperationFailure
+
 from typing import Any
 
 from tiny_swarm_world.application.ports.clients.port_infisical_client import (
@@ -53,29 +56,33 @@ class PlaywrightInfisicalClient(PortInfisicalClient):
 
     def _with_logged_in_page(self, email: str, password: str, callback):
         try:
-            from playwright.sync_api import sync_playwright  # type: ignore[import-not-found]
-        except ImportError as exc:
-            raise RuntimeError("Playwright is required for Infisical item seeding.") from exc
+            from playwright.sync_api import Error as PlaywrightError, sync_playwright  # type: ignore[import-not-found]
+        except ImportError:
+            raise InfisicalClientError(OperationFailure.for_cause("secret.browser", "infisical", "dependency_unavailable")) from None
 
-        with sync_playwright() as playwright:
-            browser = playwright.chromium.launch(headless=True)
-            page = browser.new_page(ignore_https_errors=True, base_url=self.base_url)
-            try:
-                page.goto("/", wait_until="domcontentloaded", timeout=int(self.timeout_seconds * 1000))
-                _create_first_admin_if_required(page, email, password)
-                if _text_visible(page, "Secrets", timeout=5_000):
+        try:
+            with sync_playwright() as playwright:
+                browser = playwright.chromium.launch(headless=True)
+                page = browser.new_page(ignore_https_errors=True, base_url=self.base_url)
+                try:
+                    page.goto("/", wait_until="domcontentloaded", timeout=int(self.timeout_seconds * 1000))
+                    _create_first_admin_if_required(page, email, password)
+                    if _text_visible(page, "Secrets", timeout=5_000):
+                        return callback(page)
+                    _fill_first(page, ("Email", "Email address"), email)
+                    _fill_first(page, ("Password",), password)
+                    _click_first(page, ("Log in", "Login", "Sign in"))
+                    page.get_by_text("Secrets", exact=False).first.wait_for(timeout=20_000)
                     return callback(page)
-                _fill_first(page, ("Email", "Email address"), email)
-                _fill_first(page, ("Password",), password)
-                _click_first(page, ("Log in", "Login", "Sign in"))
-                page.get_by_text("Secrets", exact=False).first.wait_for(timeout=20_000)
-                return callback(page)
-            finally:
-                browser.close()
+                finally:
+                    browser.close()
+
+        except PlaywrightError:
+            raise InfisicalClientError(OperationFailure.for_cause("secret.browser", "infisical", "request_failed")) from None
 
 
 def _fill_first(page: Any, labels: tuple[str, ...], value: str) -> None:
-    last_error: Exception | None = None
+    failures: list[Exception] = []
     for label in labels:
         for locator in (
             page.get_by_label(label, exact=False),
@@ -85,19 +92,19 @@ def _fill_first(page: Any, labels: tuple[str, ...], value: str) -> None:
                 locator.fill(value, timeout=5_000)
                 return
             except Exception as exc:
-                last_error = exc
-    raise RuntimeError(f"could not fill field: {labels}; last={type(last_error).__name__}")
+                failures.append(exc)
+    raise InfisicalClientError(OperationFailure.for_cause("secret.browser", "infisical", _locator_failure_cause(failures))) from None
 
 
 def _click_first(page: Any, names: tuple[str, ...]) -> None:
-    last_error: Exception | None = None
+    failures: list[Exception] = []
     for name in names:
         try:
             page.get_by_role("button", name=name, exact=False).first.click(timeout=5_000)
             return
         except Exception as exc:
-            last_error = exc
-    raise RuntimeError(f"could not click button: {names}; last={type(last_error).__name__}")
+            failures.append(exc)
+    raise InfisicalClientError(OperationFailure.for_cause("secret.browser", "infisical", _locator_failure_cause(failures))) from None
 
 
 def _create_first_admin_if_required(page: Any, email: str, password: str) -> None:
@@ -119,3 +126,11 @@ def _text_visible(page: Any, text: str, *, timeout: int) -> bool:
     except Exception:
         return False
     return True
+
+
+def _locator_failure_cause(failures: list[Exception]) -> str:
+    try:
+        from playwright.sync_api import Error as PlaywrightError  # type: ignore[import-not-found]
+    except ImportError:
+        return "unexpected_failure"
+    return "request_failed" if failures and all(isinstance(error, PlaywrightError) for error in failures) else "unexpected_failure"

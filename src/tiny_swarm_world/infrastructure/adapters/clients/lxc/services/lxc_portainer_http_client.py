@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+from tiny_swarm_world.application.ports.clients.port_portainer_client import PortainerClientError
+from tiny_swarm_world.application.ports.operation_result import OperationFailure
+from tiny_swarm_world.infrastructure.adapters.exceptions.operation_failure_mapping import process_failure
+from tiny_swarm_world.infrastructure.process import ProcessLaunchError, ProcessTimeoutError
+
 from tiny_swarm_world.infrastructure.process.runner import run_process
 
 import shlex
@@ -143,12 +148,10 @@ class LxcPortainerHttpClient(PortPortainerClient, PortDeploymentGateway):
                 shell=False,
                 timeout=self.timeout_seconds,
             )
-        except subprocess.TimeoutExpired as exc:
-            raise RuntimeError("LXC manager Portainer prerequisite operation timed out.") from exc
+        except (subprocess.TimeoutExpired, ProcessLaunchError, ProcessTimeoutError, OSError) as exc:
+            raise PortainerClientError(process_failure(exc, "service.prerequisites", "portainer")) from None
         if check and result.returncode != 0:
-            raise RuntimeError(
-                f"LXC manager Portainer prerequisite operation failed with exit code {result.returncode}."
-            )
+            raise PortainerClientError(OperationFailure.for_cause("service.prerequisites", "portainer", "process_exit_failed")) from None
         return result
 
     def _client(self) -> PortainerHttpClient:

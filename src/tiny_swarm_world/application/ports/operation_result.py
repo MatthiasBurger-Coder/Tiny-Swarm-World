@@ -35,6 +35,8 @@ _FAILURE_CATALOGUE = MappingProxyType({
     "observation_unavailable": (Recoverability.UNKNOWN, "Refresh observed state before deciding whether to retry."),
     "observation_changed": (Recoverability.UNKNOWN, "Refresh observed state before deciding whether to retry."),
     "dependency_unavailable": (Recoverability.UNKNOWN, "Check service readiness and connection settings."),
+    "request_timeout": (Recoverability.UNKNOWN, "Inspect service state and connectivity before retrying; effects may be incomplete."),
+    "registry_rate_limited": (Recoverability.NONRECOVERABLE, "Configure registry authentication or an approved mirror before retrying."),
     "request_failed": (Recoverability.UNKNOWN, "Check service readiness and connection settings."),
     "verification_failed": (Recoverability.UNKNOWN, "Inspect verification evidence and actual target state."),
     "refused": (Recoverability.NONRECOVERABLE, "Review required consent before rerunning."),

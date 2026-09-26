@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+from tiny_swarm_world.application.ports.clients.port_container_image_publisher import ImagePublisherError
+from tiny_swarm_world.application.ports.operation_result import OperationFailure
+from tiny_swarm_world.infrastructure.adapters.exceptions.operation_failure_mapping import process_failure
+
 import io
 import shlex
 import subprocess
@@ -161,7 +165,7 @@ class LxcContainerImagePublisher(PortContainerImagePublisher):
                 diagnostic="registry_rate_limited",
                 operator_action=REGISTRY_RATE_LIMITED_OPERATOR_ACTION,
             )
-        raise RuntimeError("Public container image pull failed.")
+        raise ImagePublisherError(OperationFailure.for_cause("image.pull", "image_publisher", "process_exit_failed"))
 
     def _load_host_cached_image(self, contract: ContainerImageContract) -> bool:
         try:
@@ -174,6 +178,8 @@ class LxcContainerImagePublisher(PortContainerImagePublisher):
             )
         except ProcessLaunchError:
             return False
+        except (ProcessTimeoutError, OSError) as exc:
+            raise ImagePublisherError(process_failure(exc, "image.cache", "image_publisher")) from None
         if inspect_result.returncode != 0:
             return False
 
@@ -182,13 +188,16 @@ class LxcContainerImagePublisher(PortContainerImagePublisher):
             f"docker save {shlex.quote(contract.image_ref)} | "
             f"{shlex.quote(backend_cli(self.backend))} exec {shlex.quote(self.manager_node)} -- docker load"
         )
-        load_result = self.process_runner.run_text(
-            ["bash", "-lc", command],
-            capture_output=True,
-            check=False,
-            shell=False,
-            timeout=self.timeout_seconds,
-        )
+        try:
+            load_result = self.process_runner.run_text(
+                ["bash", "-lc", command],
+                capture_output=True,
+                check=False,
+                shell=False,
+                timeout=self.timeout_seconds,
+            )
+        except (ProcessTimeoutError, ProcessLaunchError, OSError) as exc:
+            raise ImagePublisherError(process_failure(exc, "image.cache", "image_publisher")) from None
         return load_result.returncode == 0
 
     def _context_path(self, contract: ContainerImageContract) -> Path:
@@ -204,10 +213,13 @@ class LxcContainerImagePublisher(PortContainerImagePublisher):
 
     def _transfer_context(self, context_path: Path, remote_context_path: str) -> None:
         archive = io.BytesIO()
-        with tarfile.open(fileobj=archive, mode="w") as tar:
-            for source_file in sorted(context_path.iterdir()):
-                if source_file.is_file():
-                    tar.add(source_file, arcname=source_file.name)
+        try:
+            with tarfile.open(fileobj=archive, mode="w") as tar:
+                for source_file in sorted(context_path.iterdir()):
+                    if source_file.is_file():
+                        tar.add(source_file, arcname=source_file.name)
+        except (OSError, tarfile.TarError):
+            raise ImagePublisherError(OperationFailure.for_cause("image.context", "image_publisher", "filesystem_error")) from None
         archive.seek(0)
         self._run_manager_shell_bytes(
             f"set -e; mkdir -p {_quote_remote_path(remote_context_path)}; "
@@ -254,15 +266,17 @@ class LxcContainerImagePublisher(PortContainerImagePublisher):
                 operator_action=(
                     "Inspect the manager node Docker daemon and retry the artifact prepare phase."
                 ),
-            ) from exc
-        except ProcessLaunchError as exc:
+                failure=process_failure(exc, "image.publish", "image_publisher"),
+            ) from None
+        except (ProcessLaunchError, OSError) as exc:
             raise ImagePublisherOperationRejected(
                 operation=operation,
                 diagnostic="operation_unavailable",
                 operator_action=(
                     "Inspect the manager node Docker daemon and retry the artifact prepare phase."
                 ),
-            ) from exc
+                failure=process_failure(exc, "image.publish", "image_publisher"),
+            ) from None
         if check and result.returncode != 0:
             raise ImagePublisherOperationRejected(
                 operation=operation,
@@ -288,12 +302,8 @@ class LxcContainerImagePublisher(PortContainerImagePublisher):
                 shell=False,
                 timeout=timeout_seconds,
             )
-        except ProcessTimeoutError as exc:
-            raise RuntimeError("LXC manager image transfer timed out.") from exc
-        except ProcessLaunchError as exc:
-            raise RuntimeError("LXC manager image transfer could not start.") from exc
+        except (ProcessTimeoutError, ProcessLaunchError, OSError) as exc:
+            raise ImagePublisherError(process_failure(exc, "image.transfer", "image_publisher")) from None
         if result.returncode != 0:
-            raise RuntimeError(
-                f"LXC manager image transfer failed with exit code {result.returncode}."
-            )
+            raise ImagePublisherError(OperationFailure.for_cause("image.transfer", "image_publisher", "process_exit_failed"), exit_code=result.returncode)
         return result

@@ -159,3 +159,35 @@ Additional edge cases: pgrep exit 1 means absent process, not launch failure;
 missing update state returns None; changed observation preserves bounded reread;
 existing bool readiness probes retain boolean contracts and require mapping of
 safe known status rather than new exceptions for ordinary unready state.
+
+## S355-03 implementation reconciliation
+
+LXC command facts now retain available failure_hint; gateway, container, image and
+service operations translate expected technical failures. Domain-returning
+provider/Docker/Swarm/proxy facts retain existing collapsed classifications; S04/S05
+map those truthfully and must not claim exact missing/permission causes that are
+not available. Update observation preserves its changed subtype and originating
+failure; state errors retain ValueError/OSError compatibility. HTTP/CLI/browser
+remote data parsing uses safe capability errors. Configuration, evidence and local
+storage translate expected failures without changing stored formats; atomic failure
+preserves prior data and cleanup preserves active cancellation/control flow.
+Host/preflight and Socat expected failures carry safe causes. Socat absence (pgrep 1)
+remains false; composition catches typed startup failures and preserves counts/status.
+
+Existing compliance/exclusions above remain: unreachable repositories, optional
+command repository, domain secret-manifest validation, endpoint readiness facts
+and transparent runtime delegation are preserved. This is not a claim of new
+classification detail in unchanged domain facts.
+
+Intentional diagnostic corrections: gateway timeout omits raw worker identity;
+missing Portainer endpoint omits resource names; storage omits raw OS messages.
+Numeric HTTP status and safe static JWT/Swarm messages are retained. Direct Socat
+execution failures are now typed, with compatible workflow handling.
+
+Test evidence: metadata targets (86, 84, 18), expanded adapter family (172),
+configuration repositories (105); suites overlap. Named tests include
+tests.infrastructure.adapters.exceptions.test_operation_failure_mapping,
+tests.infrastructure.adapters.file_management.test_local_file_storage and
+tests.infrastructure.test_composition; individual boundary coverage is backed by
+the full gate and existing matching suites. Final application result aggregation
+remains S04/S05; issue completion remains S07.

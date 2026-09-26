@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from tiny_swarm_world.application.ports.clients.port_swarm_stack_runtime import SwarmRuntimeError
+from tiny_swarm_world.application.ports.operation_result import OperationFailure
+
 import shlex
 import subprocess
 import base64
@@ -172,10 +175,10 @@ class StackPrerequisiteRegistry:
         if certificate_exists and private_key_exists:
             if certificate_labels == expected_labels and private_key_labels == expected_labels:
                 return
-            raise RuntimeError("Existing Traefik TLS secrets are not a verified owned pair.")
+            raise SwarmRuntimeError(OperationFailure.for_cause("stack.prerequisites", "lxc_stack_runtime", "verification_failed"), detail='Existing Traefik TLS secrets are not a verified owned pair.')
         existing_labels = certificate_labels or private_key_labels
         if existing_labels is not None and existing_labels != expected_labels:
-            raise RuntimeError("Partial Traefik TLS secret state is not verified as TSW-owned.")
+            raise SwarmRuntimeError(OperationFailure.for_cause("stack.prerequisites", "lxc_stack_runtime", "verification_failed"), detail='Partial Traefik TLS secret state is not verified as TSW-owned.')
         certificate = base64.b64encode(contract.certificate_bytes).decode("ascii")
         private_key = base64.b64encode(contract.private_key_bytes).decode("ascii")
         remove_orphan = ""
@@ -209,12 +212,12 @@ class StackPrerequisiteRegistry:
         created_ids = _created_secret_ids(create_result.stdout)
         try:
             if not external_secret_exists(cert_secret_name) or not external_secret_exists(key_secret_name):
-                raise RuntimeError("Traefik TLS secret-pair reconciliation could not be verified.")
+                raise SwarmRuntimeError(OperationFailure.for_cause("stack.prerequisites", "lxc_stack_runtime", "verification_failed"), detail='Traefik TLS secret-pair reconciliation could not be verified.')
             if (
                 _read_secret_labels(cert_secret_name, run_manager_shell) != expected_labels
                 or _read_secret_labels(key_secret_name, run_manager_shell) != expected_labels
             ):
-                raise RuntimeError("Traefik TLS secret-pair ownership could not be verified.")
+                raise SwarmRuntimeError(OperationFailure.for_cause("stack.prerequisites", "lxc_stack_runtime", "verification_failed"), detail='Traefik TLS secret-pair ownership could not be verified.')
         except Exception:
             _rollback_created_secrets(created_ids, run_manager_shell)
             raise
@@ -234,13 +237,13 @@ def _read_secret_labels(name: str, run_manager_shell: ManagerShell) -> tuple[str
 
 def _created_secret_ids(stdout: str | None) -> tuple[str, str]:
     if stdout is None:
-        raise RuntimeError("Created Traefik TLS secret identifiers could not be verified.")
+        raise SwarmRuntimeError(OperationFailure.for_cause("stack.prerequisites", "lxc_stack_runtime", "verification_failed"), detail='Created Traefik TLS secret identifiers could not be verified.')
     certificate_id, separator, private_key_id = stdout.strip().partition("|")
     if not separator or not all(
         re.fullmatch(r"[a-zA-Z0-9]+", secret_id)
         for secret_id in (certificate_id, private_key_id)
     ):
-        raise RuntimeError("Created Traefik TLS secret identifiers could not be verified.")
+        raise SwarmRuntimeError(OperationFailure.for_cause("stack.prerequisites", "lxc_stack_runtime", "verification_failed"), detail='Created Traefik TLS secret identifiers could not be verified.')
     return certificate_id, private_key_id
 
 

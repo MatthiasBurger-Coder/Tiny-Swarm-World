@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from tiny_swarm_world.application.ports.repositories.port_repository_failure import RepositoryConfigurationError
+from tiny_swarm_world.application.ports.operation_result import OperationFailure
+
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -104,7 +107,7 @@ _SECRET_ASSIGNMENT_PATTERN = re.compile(
 _SAFE_IDENTIFIER_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_.-]*$")
 
 
-class NodeProviderConfigError(ValueError):
+class NodeProviderConfigError(RepositoryConfigurationError):
     pass
 
 
@@ -201,12 +204,18 @@ class NodeProviderConfigYamlRepository:
     def load(self) -> NodeProviderConfig:
         if self._snapshot is not None:
             return self._snapshot
-        if not self.path.exists():
+        try:
+            exists = self.path.exists()
+        except OSError:
+            raise NodeProviderConfigError("node provider config could not be inspected", failure=OperationFailure.for_cause("configuration.load", "node_provider_config", "filesystem_error")) from None
+        if not exists:
             raise NodeProviderConfigError("node provider config file is missing")
 
         try:
             data = self.yaml.load(self.path.read_text(encoding="utf-8"))
-        except (YAMLError, OSError, UnicodeError, RecursionError):
+        except OSError:
+            raise NodeProviderConfigError("node provider config YAML is invalid or unreadable", failure=OperationFailure.for_cause("configuration.load", "node_provider_config", "filesystem_error")) from None
+        except (YAMLError, UnicodeError, RecursionError):
             raise NodeProviderConfigError("node provider config YAML is invalid or unreadable") from None
         try:
             validate_configuration_tree(data)

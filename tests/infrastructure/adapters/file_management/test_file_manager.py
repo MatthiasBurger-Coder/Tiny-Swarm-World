@@ -58,9 +58,10 @@ class TestFileManager(unittest.TestCase):
             expected_path.write_text("value: placeholder\n", encoding="utf-8")
             observed_directories: list[tuple[str, ...]] = []
 
-            def controlled_walk(path, *, topdown):
+            def controlled_walk(path, *, topdown, onerror=None):
                 self.assertEqual(root, path)
                 self.assertTrue(topdown)
+                self.assertTrue(callable(onerror))
                 directory_names = ["src", ".tiny-swarm-world", ".git"]
                 yield str(root), directory_names, []
                 observed_directories.append(tuple(directory_names))

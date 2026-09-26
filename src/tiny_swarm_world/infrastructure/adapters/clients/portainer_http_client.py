@@ -1,3 +1,6 @@
+from tiny_swarm_world.application.ports.clients.port_portainer_client import PortainerClientError
+from tiny_swarm_world.application.ports.operation_result import OperationFailure
+from tiny_swarm_world.infrastructure.adapters.exceptions.operation_failure_mapping import request_failure
 from collections.abc import Mapping, Sequence
 from urllib.parse import urlparse
 
@@ -42,6 +45,12 @@ class PortainerHttpClient(PortPortainerClient, PortDeploymentGateway):
         self._jwt_token: str | None = None
         self._applied_stack_snapshot: str | None = None
 
+    def _request(self, method: str, *args, **kwargs) -> requests.Response:
+        try:
+            return getattr(self.session, method)(*args, **kwargs)
+        except requests.RequestException as exc:
+            raise PortainerClientError(request_failure(exc, "service.request", "portainer")) from None
+
     def ensure_local_endpoint(self, endpoint_name: str) -> int:
         endpoints = self._fetch_endpoints(f"ensure Portainer endpoint '{endpoint_name}'")
         endpoint_id = _endpoint_id_by_name_or_local_fallback(endpoint_name, endpoints)
@@ -52,10 +61,7 @@ class PortainerHttpClient(PortPortainerClient, PortDeploymentGateway):
         endpoints = self._fetch_endpoints(f"verify Portainer endpoint '{endpoint_name}'")
         endpoint_id = _endpoint_id_by_name_or_local_fallback(endpoint_name, endpoints)
         if endpoint_id is None:
-            raise RuntimeError(
-                f"Portainer endpoint '{endpoint_name}' could not be created. "
-                f"Available endpoints: {_available_endpoint_names(endpoints)}."
-            )
+            raise PortainerClientError(OperationFailure.for_cause("service.request", "portainer", "request_failed")) from None
         return endpoint_id
 
     def get_endpoint_id_by_name(self, endpoint_name: str) -> int:
@@ -64,18 +70,21 @@ class PortainerHttpClient(PortPortainerClient, PortDeploymentGateway):
         if endpoint_id is not None:
             return endpoint_id
 
-        raise RuntimeError(
-            f"Portainer endpoint '{endpoint_name}' was not found. "
-            f"Available endpoints: {_available_endpoint_names(endpoints)}."
-        )
+        raise PortainerClientError(OperationFailure.for_cause("service.request", "portainer", "request_failed")) from None
 
     def find_stack_id_by_name(self, stack_name: str) -> int | None:
         response = self._send("GET", "/api/stacks")
         self._ensure_success(response, f"fetch Portainer stack '{stack_name}'")
 
-        for stack in response.json():
+        payload = _response_payload(response)
+        if not isinstance(payload, list) or any(not isinstance(stack, dict) for stack in payload):
+            raise PortainerClientError(OperationFailure.for_cause("service.decode", "portainer", "request_failed")) from None
+        for stack in payload:
             if stack.get("Name") == stack_name:
-                return int(stack["Id"])
+                identifier = _endpoint_id(stack)
+                if identifier is None:
+                    raise PortainerClientError(OperationFailure.for_cause("service.decode", "portainer", "request_failed")) from None
+                return identifier
         return None
 
     def create_stack(
@@ -158,7 +167,7 @@ class PortainerHttpClient(PortPortainerClient, PortDeploymentGateway):
     def _fetch_endpoints(self, action: str) -> tuple[Mapping[str, object], ...]:
         response = self._send("GET", "/api/endpoints")
         self._ensure_success(response, action)
-        return _endpoint_mappings(response.json())
+        return _endpoint_mappings(_response_payload(response))
 
     def _create_local_docker_endpoint(self, endpoint_name: str) -> None:
         response = self._send(
@@ -177,7 +186,7 @@ class PortainerHttpClient(PortPortainerClient, PortDeploymentGateway):
         headers = kwargs.pop("headers", {})
         timeout_seconds = kwargs.pop("timeout", self.request_timeout_seconds)
         headers["Authorization"] = f"Bearer {self._get_jwt_token()}"
-        response = self.session.request(
+        response = self._request("request",
             method,
             f"{self.base_url}{path}",
             headers=dict(headers),
@@ -189,7 +198,7 @@ class PortainerHttpClient(PortPortainerClient, PortDeploymentGateway):
 
         self._jwt_token = None
         headers["Authorization"] = f"Bearer {self._get_jwt_token()}"
-        return self.session.request(
+        return self._request("request",
             method,
             f"{self.base_url}{path}",
             headers=dict(headers),
@@ -201,16 +210,17 @@ class PortainerHttpClient(PortPortainerClient, PortDeploymentGateway):
         if self._jwt_token is not None:
             return self._jwt_token
 
-        response = self.session.post(
+        response = self._request("post",
             f"{self.base_url}/api/auth",
             json={"Username": self.username, "Password": self.password},
             timeout=self.request_timeout_seconds,
         )
         self._ensure_success(response, "authenticate against Portainer")
 
-        token = response.json().get("jwt")
-        if not token:
-            raise RuntimeError("Portainer authentication succeeded without returning a JWT.")
+        payload = _response_payload(response)
+        token = payload.get("jwt") if isinstance(payload, dict) else None
+        if not isinstance(token, str) or not token:
+            raise PortainerClientError(OperationFailure.for_cause("service.request", "portainer", "request_failed"), detail="Portainer authentication succeeded without returning a JWT.") from None
 
         self._jwt_token = token
         self._clear_session_cookies()
@@ -225,17 +235,15 @@ class PortainerHttpClient(PortPortainerClient, PortDeploymentGateway):
     def _get_swarm_id_by_endpoint_id(self, endpoint_id: int) -> str:
         response = self._send("GET", f"/api/endpoints/{endpoint_id}/docker/info")
         self._ensure_success(response, f"fetch Swarm identity for Portainer endpoint '{endpoint_id}'")
-        swarm_id = _extract_swarm_id(response.json())
+        swarm_id = _extract_swarm_id(_response_payload(response))
         if not swarm_id:
-            raise RuntimeError(
-                f"Portainer endpoint '{endpoint_id}' did not report a Swarm cluster ID."
-            )
+            raise PortainerClientError(OperationFailure.for_cause("service.request", "portainer", "request_failed"), detail="Portainer did not report a Swarm cluster ID.") from None
         return swarm_id
 
     @staticmethod
     def _ensure_success(response: requests.Response, action: str) -> None:
         if response.status_code >= 400:
-            raise RuntimeError(f"Failed to {action}. HTTP {response.status_code}.")
+            raise PortainerClientError(OperationFailure.for_cause("service.request", "portainer", "request_failed"), status_code=response.status_code) from None
 
 
 def _portainer_environment(
@@ -290,7 +298,10 @@ def _endpoint_id(endpoint: Mapping[str, object]) -> int | None:
     if isinstance(value, int):
         return value
     if isinstance(value, str) and value.isdecimal():
-        return int(value)
+        try:
+            return int(value)
+        except ValueError:
+            return None
     return None
 
 
@@ -318,3 +329,10 @@ def _extract_swarm_id(payload: object) -> str:
     if not isinstance(cluster_id, str):
         return ""
     return cluster_id
+
+
+def _response_payload(response: requests.Response):
+    try:
+        return response.json()
+    except ValueError:
+        raise PortainerClientError(OperationFailure.for_cause("service.decode", "portainer", "request_failed")) from None

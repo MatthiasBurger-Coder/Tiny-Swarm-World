@@ -1,3 +1,5 @@
+from tiny_swarm_world.application.ports.repositories.port_repository_failure import RepositoryConfigurationError, RepositoryStorageError, RepositoryNotFoundError
+from tiny_swarm_world.application.ports.operation_result import OperationError, OperationFailure
 import hashlib
 import os
 import re
@@ -108,17 +110,27 @@ class ComposeFileRepositoryYaml(
         return snapshot
 
     def get_compose_of(self, stack_name: str) -> StackDefinition:
+        try:
+            return self._load_compose(stack_name)
+        except OperationError:
+            raise
+        except OSError:
+            raise RepositoryStorageError(OperationFailure.for_cause("configuration.load", "compose_repository", "filesystem_error")) from None
+
+    def _load_compose(self, stack_name: str) -> StackDefinition:
         if stack_name in self._validated_stacks:
             return self._validated_stacks[stack_name]
         if not STACK_NAME_PATTERN.fullmatch(stack_name):
-            raise ValueError("compose stack name contains invalid characters")
+            raise RepositoryConfigurationError("compose stack name contains invalid characters")
 
         for base_directory in self.base_directories:
             for compose_path in self._compose_paths_for(base_directory, stack_name):
                 try:
                     compose_content = compose_path.read_text(encoding="utf-8")
-                except (OSError, UnicodeError):
-                    raise ValueError("Selected Compose configuration could not be read.") from None
+                except OSError:
+                    raise RepositoryConfigurationError("Selected Compose configuration could not be read.", failure=OperationFailure.for_cause("configuration.load", "compose_repository", "filesystem_error")) from None
+                except UnicodeError:
+                    raise RepositoryConfigurationError("Selected Compose configuration could not be read.") from None
                 _validate_swarm_stack_compose(stack_name, compose_content)
                 compose_content = _resolve_direct_published_ports(
                     stack_name,
@@ -142,7 +154,7 @@ class ComposeFileRepositoryYaml(
                     compose_content=compose_content,
                 )
 
-        raise FileNotFoundError(f"No docker-compose.yml found for stack '{stack_name}' in {self.base_directories}.")
+        raise RepositoryNotFoundError(OperationFailure.for_cause("configuration.load", "compose_repository", "configuration_invalid")) from None
 
     def get_services_of(self, stack_name: str) -> tuple[ComposeServiceDefinition, ...]:
         if stack_name in self._validated_services:
@@ -193,8 +205,8 @@ class ComposeFileRepositoryYaml(
         }
         try:
             return context_paths[build_context]
-        except KeyError as exc:
-            raise ValueError("unknown approved build context") from exc
+        except KeyError:
+            raise RepositoryConfigurationError("unknown approved build context") from None
 
     def _compose_paths_for(self, base_directory: Path, stack_name: str) -> list[Path]:
         if not base_directory.is_dir():
@@ -299,8 +311,11 @@ def _load_configuration_yaml(content: str) -> Any:
     try:
         payload = _YAML.load(content)
     except (YAMLError, RecursionError):
-        raise ValueError("Configuration is not a valid YAML document.") from None
-    validate_configuration_tree(payload)
+        raise RepositoryConfigurationError("Configuration is not a valid YAML document.") from None
+    try:
+        validate_configuration_tree(payload)
+    except ValueError:
+        raise RepositoryConfigurationError("Selected configuration contains invalid structure.") from None
     return payload
 
 
@@ -311,27 +326,27 @@ def _validate_swarm_stack_compose(stack_name: str, compose_content: str) -> None
 def _validated_compose_payload(compose_content: str) -> dict[str, Any]:
     payload = _load_configuration_yaml(compose_content)
     if not isinstance(payload, dict):
-        raise ValueError("Compose stack must be a YAML mapping.")
+        raise RepositoryConfigurationError("Compose stack must be a YAML mapping.")
     services = payload.get("services")
     if not isinstance(services, dict) or not services:
-        raise ValueError("Compose stack must define a non-empty services mapping.")
+        raise RepositoryConfigurationError("Compose stack must define a non-empty services mapping.")
     for field in ("networks", "configs", "secrets", "volumes"):
         if field in payload:
             if not isinstance(payload[field], dict):
-                raise ValueError("Compose resource declarations must be mappings.")
+                raise RepositoryConfigurationError("Compose resource declarations must be mappings.")
             if not all(value is None or isinstance(value, dict) for value in payload[field].values()):
-                raise ValueError("Compose resource members must be mappings.")
+                raise RepositoryConfigurationError("Compose resource members must be mappings.")
     for name, service in services.items():
         if not name.strip() or not isinstance(service, dict):
-            raise ValueError("Compose services require non-empty names and mapping members.")
+            raise RepositoryConfigurationError("Compose services require non-empty names and mapping members.")
         if not isinstance(service.get("deploy"), dict):
-            raise ValueError("Compose service requires a deploy mapping.")
+            raise RepositoryConfigurationError("Compose service requires a deploy mapping.")
         image_ref = service.get("image")
         if not isinstance(image_ref, str) or not image_ref.strip():
-            raise ValueError("Compose service requires a non-empty image string.")
+            raise RepositoryConfigurationError("Compose service requires a non-empty image string.")
         if "ports" in service:
             if not isinstance(service["ports"], list):
-                raise ValueError("Compose service ports must be a list.")
+                raise RepositoryConfigurationError("Compose service ports must be a list.")
             for port in service["ports"]:
                 _validate_port_entry(port)
         for field in ("environment", "labels"):
@@ -343,21 +358,21 @@ def _validated_compose_payload(compose_content: str) -> dict[str, Any]:
             networks = service["networks"]
             if isinstance(networks, list):
                 if not all(isinstance(network, str) and network.strip() for network in networks):
-                    raise ValueError("Compose service networks must contain names.")
+                    raise RepositoryConfigurationError("Compose service networks must contain names.")
             elif isinstance(networks, dict):
                 if not all(value is None or isinstance(value, dict) for value in networks.values()):
-                    raise ValueError("Compose service network options must be mappings.")
+                    raise RepositoryConfigurationError("Compose service network options must be mappings.")
             else:
-                raise ValueError("Compose service networks must be a list or mapping.")
+                raise RepositoryConfigurationError("Compose service networks must be a list or mapping.")
         for field in ("configs", "secrets"):
             if field in service:
                 references = service[field]
                 if not isinstance(references, list):
-                    raise ValueError("Compose resource references must be lists.")
+                    raise RepositoryConfigurationError("Compose resource references must be lists.")
                 for reference in references:
                     source = reference.get("source") if isinstance(reference, dict) else reference
                     if not isinstance(source, str) or not source.strip():
-                        raise ValueError("Compose resource references require a source name.")
+                        raise RepositoryConfigurationError("Compose resource references require a source name.")
     return payload
 
 
@@ -366,18 +381,18 @@ def _validate_scalar_collection(value: object) -> None:
         return
     if isinstance(value, dict) and all(item is None or isinstance(item, (str, int, float, bool)) for item in value.values()):
         return
-    raise ValueError("Compose labels and environment must be scalar mappings or string lists.")
+    raise RepositoryConfigurationError("Compose labels and environment must be scalar mappings or string lists.")
 
 
 def _validate_port_number(value: object, *, published: bool = False) -> None:
     if isinstance(value, bool) or not isinstance(value, (str, int)):
-        raise ValueError("Compose port values must be integers or strings.")
+        raise RepositoryConfigurationError("Compose port values must be integers or strings.")
     text = re.sub(r"\$\{[^}]+\}|\$[A-Za-z_][A-Za-z0-9_]*", "1", str(value))
     if not re.fullmatch(r"[0-9]+(?:-[0-9]+)?", text):
-        raise ValueError("Compose port values must be port numbers or ranges.")
+        raise RepositoryConfigurationError("Compose port values must be port numbers or ranges.")
     bounds = [int(part) for part in text.split("-")]
     if any(port < (0 if published else 1) or port > 65535 for port in bounds) or bounds[0] > bounds[-1]:
-        raise ValueError("Compose port values are outside the supported range.")
+        raise RepositoryConfigurationError("Compose port values are outside the supported range.")
 
 
 def _validate_port_entry(value: object) -> None:
@@ -387,31 +402,31 @@ def _validate_port_entry(value: object) -> None:
             _validate_port_number(value["published"], published=True)
         for field, allowed in (("protocol", {"tcp", "udp", "sctp"}), ("mode", {"host", "ingress"})):
             if field in value and (not isinstance(value[field], str) or (value[field] not in allowed and not re.fullmatch(r"\$\{[^}]+\}", value[field]))):
-                raise ValueError("Compose port protocol or mode is invalid.")
+                raise RepositoryConfigurationError("Compose port protocol or mode is invalid.")
         if "host_ip" in value and not isinstance(value["host_ip"], str):
-            raise ValueError("Compose port host address must be a string.")
+            raise RepositoryConfigurationError("Compose port host address must be a string.")
         return
     if isinstance(value, int) and not isinstance(value, bool):
         _validate_port_number(value)
         return
     if not isinstance(value, str):
-        raise ValueError("Compose port entries must use supported short or long syntax.")
+        raise RepositoryConfigurationError("Compose port entries must use supported short or long syntax.")
     normalized = re.sub(r"\$\{[^}]+\}|\$[A-Za-z_][A-Za-z0-9_]*", "1", value)
     if "/" in normalized:
         normalized, protocol = normalized.rsplit("/", 1)
         if protocol not in {"tcp", "udp", "sctp"}:
-            raise ValueError("Compose port protocol is invalid.")
+            raise RepositoryConfigurationError("Compose port protocol is invalid.")
     if normalized.startswith("["):
         if "]:" not in normalized:
-            raise ValueError("Compose port host address is invalid.")
+            raise RepositoryConfigurationError("Compose port host address is invalid.")
         normalized = normalized.split("]:", 1)[1]
     parts = normalized.split(":")
     if len(parts) == 3:
         if not parts[0]:
-            raise ValueError("Compose port host address must not be empty.")
+            raise RepositoryConfigurationError("Compose port host address must not be empty.")
         parts = parts[1:]
     if len(parts) not in {1, 2}:
-        raise ValueError("Compose port short syntax is invalid.")
+        raise RepositoryConfigurationError("Compose port short syntax is invalid.")
     _validate_port_number(parts[-1])
     if len(parts) == 2:
         _validate_port_number(parts[0], published=True)
@@ -663,21 +678,32 @@ def _router_name_for(route: DesiredHttpsRoute) -> str:
 
 
 def _enabled_service_names(services_path: Path) -> frozenset[str]:
+    try:
+        return _parse_enabled_service_names(services_path)
+    except OperationError:
+        raise
+    except OSError:
+        raise RepositoryStorageError(OperationFailure.for_cause("configuration.load", "compose_repository", "filesystem_error")) from None
+
+
+def _parse_enabled_service_names(services_path: Path) -> frozenset[str]:
     if not services_path.exists():
         return frozenset()
     try:
         payload = _load_configuration_yaml(services_path.read_text(encoding="utf-8"))
-    except (OSError, UnicodeError):
-        raise ValueError("Service catalogue could not be read.") from None
+    except OSError:
+        raise RepositoryConfigurationError("Service catalogue could not be read.", failure=OperationFailure.for_cause("configuration.load", "compose_repository", "filesystem_error")) from None
+    except UnicodeError:
+        raise RepositoryConfigurationError("Service catalogue could not be read.") from None
     if not isinstance(payload, dict) or not isinstance(payload.get("services"), dict):
-        raise ValueError("Service catalogue must contain a services mapping.")
+        raise RepositoryConfigurationError("Service catalogue must contain a services mapping.")
     enabled: set[str] = set()
     for name, service in payload["services"].items():
         if not name.strip() or not isinstance(service, dict):
-            raise ValueError("Service catalogue entries require names and mappings.")
+            raise RepositoryConfigurationError("Service catalogue entries require names and mappings.")
         value = service.get("enabled", False)
         if not isinstance(value, bool):
-            raise ValueError("Service catalogue enabled must be a boolean.")
+            raise RepositoryConfigurationError("Service catalogue enabled must be a boolean.")
         if value:
             enabled.add(str(name))
     return frozenset(enabled)
@@ -842,7 +868,7 @@ def _apply_direct_published_port(
         return False
     mapping = ports_by_id.get(port_id)
     if mapping is None:
-        raise ValueError(f"direct port '{port_id}' is missing from the port registry")
+        raise RepositoryConfigurationError(f"direct port '{port_id}' is missing from the port registry")
     if mapping.external_port is None:
         return False
     if entry.get("published") == mapping.external_port:

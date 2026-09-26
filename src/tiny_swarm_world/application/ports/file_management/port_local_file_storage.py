@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from tiny_swarm_world.application.ports.operation_result import OperationError
+
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
@@ -43,3 +45,11 @@ class PortLocalFileStorage(ABC):
     @abstractmethod
     def directory_exists(self, path: Path) -> bool:
         """Return whether the local path exists and is a directory."""
+
+
+class LocalFileStorageError(OperationError, OSError):
+    """Expected local storage failure with compatible OSError behavior."""
+
+
+class LocalFileContentError(OperationError, ValueError):
+    """Selected text could not be decoded safely."""

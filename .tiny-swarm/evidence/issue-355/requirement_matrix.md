@@ -26,3 +26,8 @@ Before execution, copy this matrix to `.tiny-swarm/evidence/issue-355/requiremen
 
 Immutable safe operation contract, compatible application-owned command errors with cause preservation, and conservative real platform factory integration.
 Targeted: 64 tests PASS. Full quality PASS: 2188 tests in 294.844s, 18 skipped. Partial evidence only; requirement rows remain OPEN until complete lifecycle coverage and final audit.
+
+## S355-03 incremental evidence
+
+Translated lifecycle adapter failures through compatible safe capability errors; preserved control flow, storage atomicity and legacy workflow status.
+Targeted: metadata suites 86, 84, 18 PASS; regression repair 40 PASS; expanded 172 and repository 105 PASS (overlap). Full quality PASS: 2208 tests in 241.374s, 18 skipped. Partial evidence only; requirement rows remain OPEN until complete lifecycle coverage and final audit.

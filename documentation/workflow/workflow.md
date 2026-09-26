@@ -2,7 +2,7 @@
 
 Workflow ID: issue-355-operation-results
 workflowVersion: 1.0
-Status: EXECUTING; S355-02 accepted; later slices pending
+Status: EXECUTING; S355-03 accepted; later slices pending
 Issue: [#355](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/355)
 Parent: [#313](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/313)
 Branch: `architecture/workflow-355-operation-results-20260926`
@@ -346,7 +346,13 @@ Allowed write scope and locks:
     "src/tiny_swarm_world/infrastructure/adapters/host/wsl_host_preparation.py",
     "src/tiny_swarm_world/application/ports/host/port_host_preparation.py",
     "tests/infrastructure/adapters/host/test_host_preparation.py",
-    "src/tiny_swarm_world/application/ports/preflight/port_host_preflight_probe.py"
+    "src/tiny_swarm_world/application/ports/preflight/port_host_preflight_probe.py",
+    "src/tiny_swarm_world/infrastructure/adapters/exceptions/operation_failure_mapping.py",
+    "tests/infrastructure/adapters/exceptions/__init__.py",
+    "tests/infrastructure/adapters/exceptions/test_operation_failure_mapping.py",
+    "src/tiny_swarm_world/application/ports/operation_result.py",
+    "tests/application/ports/test_operation_result.py",
+    "tests/infrastructure/adapters/file_management/test_file_manager.py"
   ],
   "affected_modules": [
     "operation results",
@@ -396,7 +402,13 @@ Allowed write scope and locks:
     "src/tiny_swarm_world/infrastructure/adapters/host/wsl_host_preparation.py",
     "src/tiny_swarm_world/application/ports/host/port_host_preparation.py",
     "tests/infrastructure/adapters/host/test_host_preparation.py",
-    "src/tiny_swarm_world/application/ports/preflight/port_host_preflight_probe.py"
+    "src/tiny_swarm_world/application/ports/preflight/port_host_preflight_probe.py",
+    "src/tiny_swarm_world/infrastructure/adapters/exceptions/operation_failure_mapping.py",
+    "tests/infrastructure/adapters/exceptions/__init__.py",
+    "tests/infrastructure/adapters/exceptions/test_operation_failure_mapping.py",
+    "src/tiny_swarm_world/application/ports/operation_result.py",
+    "tests/application/ports/test_operation_result.py",
+    "tests/infrastructure/adapters/file_management/test_file_manager.py"
   ],
   "contract_locks": [
     "operation-result-contract",
@@ -408,7 +420,8 @@ Allowed write scope and locks:
   "quality_gates": {
     "targeted": [
       "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.lxc.command.test_node_command tests.infrastructure.adapters.clients.test_docker_swarm_runtime tests.infrastructure.adapters.clients.test_lxc_node_provider tests.infrastructure.adapters.update.test_lxc_runtime_observer tests.infrastructure.adapters.update.test_json_state_store tests.infrastructure.process.test_execution_contract",
-      "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.file_management.test_local_file_storage tests.infrastructure.adapters.preflight.test_host_preflight_probe tests.infrastructure.adapters.preflight.test_artifact_readiness tests.infrastructure.adapters.network.test_wsl_socat_exposure tests.infrastructure.adapters.host.test_host_preparation tests.infrastructure.test_composition_probes tests.infrastructure.test_composition_configuration"
+      "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.file_management.test_local_file_storage tests.infrastructure.adapters.preflight.test_host_preflight_probe tests.infrastructure.adapters.preflight.test_artifact_readiness tests.infrastructure.adapters.network.test_wsl_socat_exposure tests.infrastructure.adapters.host.test_host_preparation tests.infrastructure.test_composition_probes tests.infrastructure.test_composition_configuration",
+      "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.exceptions.test_operation_failure_mapping tests.application.ports.test_operation_result"
     ],
     "required": [
       "git diff --check",
@@ -943,4 +956,18 @@ Four-Role acceptance before any product edits. See lifecycle-failure-inventory.m
 - S355-01 ACCEPTED: complete lifecycle inventory, concrete schema, reviewed scope amendments and accepted ADR. Four independent role reviews PASS; arch-tests 26 PASS; diff/path checks PASS. Product implementation starts in S355-02.
 - Execution worktree: /mnt/d/Projects/Tiny-Swarm-World-worktrees/issue-355; workflow branch unchanged.
 
-- S355-02 ACCEPTED: Immutable safe operation contract, compatible application-owned command errors with cause preservation, and conservative real platform factory integration. Targeted 64 tests PASS; full quality PASS: 2188 tests in 294.844s, 18 skipped; independent architecture/test review PASS.
+- S355-02 ACCEPTED: Immutable safe operation contract, compatible application-owned command errors with cause preservation, and conservative real platform factory integration. Targeted 64 tests PASS; full quality PASS: 2188 tests in 294.844s; independent architecture/test review PASS.
+  Excluded test cases: 18 (reported by unittest).
+
+## S355-03 reviewed helper scope
+
+Architect approved a new pure operation_failure_mapping infrastructure helper and
+its test package, plus catalogue/error-bridge additions in the shared port contract
+and its tests. Exact paths are in S355-03 metadata. No decorators, catch-all wrappers,
+I/O, retry changes or outcome redesign in the helper. Adapters catch narrow technical
+errors at actual operations; expected RuntimeError raise sites are replaced directly.
+
+S355-03 additional reviewed test scope: Architect approved test_file_manager.py
+controlled_walk fixture accepting standard onerror keyword; preserve pruning assertions.
+
+- S355-03 ACCEPTED: Translated lifecycle adapter failures through compatible safe capability errors; preserved control flow, storage atomicity and legacy workflow status. Targeted metadata suites 86, 84, 18 PASS; regression repair 40 PASS; expanded 172 and repository 105 PASS (overlap); full quality PASS: 2208 tests in 241.374s; independent architecture/test review PASS. Test exclusions: 18.

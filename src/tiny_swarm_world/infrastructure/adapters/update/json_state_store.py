@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+from tiny_swarm_world.application.ports.operation_result import OperationFailure
+from tiny_swarm_world.application.ports.update.port_update_state_store import UpdateStateStorageError, UpdateStateInvalidError
+
 import json
+import sys
 import os
 import re
 from datetime import UTC, datetime
@@ -18,6 +22,14 @@ class JsonUpdateStateStore(PortUpdateStateStore):
         self.root = root
 
     def save(self, plan: ClassicUpdatePlan) -> ClassicUpdateState:
+        try:
+            return self._save(plan)
+        except OSError:
+            raise UpdateStateStorageError(OperationFailure.for_cause(
+                "update.state.save", "update_state_store", "filesystem_error",
+            )) from None
+
+    def _save(self, plan: ClassicUpdatePlan) -> ClassicUpdateState:
         self.root.mkdir(parents=True, exist_ok=True)
         self.root.chmod(0o700)
         state = ClassicUpdateState(plan=plan, recorded_at=datetime.now(UTC).isoformat())
@@ -39,7 +51,12 @@ class JsonUpdateStateStore(PortUpdateStateStore):
             os.replace(temporary_path, path)
         finally:
             if temporary_path is not None:
-                temporary_path.unlink(missing_ok=True)
+                active_error = sys.exception()
+                try:
+                    temporary_path.unlink(missing_ok=True)
+                except OSError:
+                    if active_error is None:
+                        raise
         return state
 
     def load(self, stack_name: str, service_name: str) -> ClassicUpdateState | None:
@@ -48,6 +65,14 @@ class JsonUpdateStateStore(PortUpdateStateStore):
             content = path.read_text(encoding="utf-8")
         except FileNotFoundError:
             return None
+        except OSError:
+            raise UpdateStateStorageError(OperationFailure.for_cause(
+                "update.state.load", "update_state_store", "filesystem_error",
+            )) from None
+        except UnicodeError:
+            raise UpdateStateInvalidError(OperationFailure.for_cause(
+                "update.state.load", "update_state_store", "state_invalid",
+            )) from None
         try:
             payload = json.loads(content)
             if not isinstance(payload, dict) or not isinstance(
@@ -77,17 +102,17 @@ class JsonUpdateStateStore(PortUpdateStateStore):
                     "Update state identity does not match its selected service."
                 )
             return state
-        except (KeyError, TypeError, ValueError) as exc:
-            raise ValueError(
-                "Stored update state is invalid; preserve it for diagnosis."
-            ) from exc
+        except (KeyError, TypeError, ValueError):
+            raise UpdateStateInvalidError(OperationFailure.for_cause(
+                "update.state.load", "update_state_store", "state_invalid",
+            )) from None
 
     def _path(self, stack_name: str, service_name: str) -> Path:
         if not all(
             re.fullmatch(r"[a-z0-9][a-z0-9_.-]*", name)
             for name in (stack_name, service_name)
         ):
-            raise ValueError("Invalid update state identity.")
+            raise UpdateStateInvalidError(OperationFailure.for_cause("update.state.select", "update_state_store", "state_invalid"))
         return self.root / f"{stack_name}__{service_name}.json"
 
 
