@@ -2,7 +2,7 @@
 
 Workflow ID: issue-355-operation-results
 workflowVersion: 1.0
-Status: READY_FOR_WORKFLOW after authoring review; implementation NOT STARTED
+Status: EXECUTING; S355-01 accepted, S355-02 through S355-07 not started
 Issue: [#355](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/355)
 Parent: [#313](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/313)
 Branch: `architecture/workflow-355-operation-results-20260926`
@@ -327,7 +327,26 @@ Allowed write scope and locks:
     "tests/infrastructure/adapters/repositories/**",
     "src/tiny_swarm_world/application/ports/configuration/**",
     "src/tiny_swarm_world/infrastructure/adapters/configuration/**",
-    "tests/infrastructure/adapters/configuration/**"
+    "tests/infrastructure/adapters/configuration/**",
+    "src/tiny_swarm_world/application/ports/file_management/port_local_file_storage.py",
+    "src/tiny_swarm_world/infrastructure/adapters/file_management/local_file_storage.py",
+    "tests/infrastructure/adapters/file_management/test_local_file_storage.py",
+    "src/tiny_swarm_world/infrastructure/adapters/preflight/host_preflight_probe.py",
+    "src/tiny_swarm_world/infrastructure/adapters/preflight/artifact_readiness.py",
+    "tests/infrastructure/adapters/preflight/test_host_preflight_probe.py",
+    "tests/infrastructure/adapters/preflight/test_artifact_readiness.py",
+    "src/tiny_swarm_world/application/ports/network/port_wsl_socat_exposure.py",
+    "src/tiny_swarm_world/infrastructure/adapters/network/wsl_socat_exposure.py",
+    "tests/infrastructure/adapters/network/test_wsl_socat_exposure.py",
+    "src/tiny_swarm_world/infrastructure/composition_runtime.py",
+    "src/tiny_swarm_world/infrastructure/composition_probes.py",
+    "tests/infrastructure/test_composition.py",
+    "tests/infrastructure/test_composition_configuration.py",
+    "tests/infrastructure/test_composition_probes.py",
+    "src/tiny_swarm_world/infrastructure/adapters/host/wsl_host_preparation.py",
+    "src/tiny_swarm_world/application/ports/host/port_host_preparation.py",
+    "tests/infrastructure/adapters/host/test_host_preparation.py",
+    "src/tiny_swarm_world/application/ports/preflight/port_host_preflight_probe.py"
   ],
   "affected_modules": [
     "operation results",
@@ -358,7 +377,26 @@ Allowed write scope and locks:
     "documentation/workflow/**",
     "src/tiny_swarm_world/application/ports/configuration/**",
     "src/tiny_swarm_world/infrastructure/adapters/configuration/**",
-    "tests/infrastructure/adapters/configuration/**"
+    "tests/infrastructure/adapters/configuration/**",
+    "src/tiny_swarm_world/application/ports/file_management/port_local_file_storage.py",
+    "src/tiny_swarm_world/infrastructure/adapters/file_management/local_file_storage.py",
+    "tests/infrastructure/adapters/file_management/test_local_file_storage.py",
+    "src/tiny_swarm_world/infrastructure/adapters/preflight/host_preflight_probe.py",
+    "src/tiny_swarm_world/infrastructure/adapters/preflight/artifact_readiness.py",
+    "tests/infrastructure/adapters/preflight/test_host_preflight_probe.py",
+    "tests/infrastructure/adapters/preflight/test_artifact_readiness.py",
+    "src/tiny_swarm_world/application/ports/network/port_wsl_socat_exposure.py",
+    "src/tiny_swarm_world/infrastructure/adapters/network/wsl_socat_exposure.py",
+    "tests/infrastructure/adapters/network/test_wsl_socat_exposure.py",
+    "src/tiny_swarm_world/infrastructure/composition_runtime.py",
+    "src/tiny_swarm_world/infrastructure/composition_probes.py",
+    "tests/infrastructure/test_composition.py",
+    "tests/infrastructure/test_composition_configuration.py",
+    "tests/infrastructure/test_composition_probes.py",
+    "src/tiny_swarm_world/infrastructure/adapters/host/wsl_host_preparation.py",
+    "src/tiny_swarm_world/application/ports/host/port_host_preparation.py",
+    "tests/infrastructure/adapters/host/test_host_preparation.py",
+    "src/tiny_swarm_world/application/ports/preflight/port_host_preflight_probe.py"
   ],
   "contract_locks": [
     "operation-result-contract",
@@ -369,7 +407,8 @@ Allowed write scope and locks:
   ],
   "quality_gates": {
     "targeted": [
-      "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.lxc.command.test_node_command tests.infrastructure.adapters.clients.test_docker_swarm_runtime tests.infrastructure.adapters.clients.test_lxc_node_provider tests.infrastructure.adapters.update.test_lxc_runtime_observer tests.infrastructure.adapters.update.test_json_state_store tests.infrastructure.process.test_execution_contract"
+      "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.lxc.command.test_node_command tests.infrastructure.adapters.clients.test_docker_swarm_runtime tests.infrastructure.adapters.clients.test_lxc_node_provider tests.infrastructure.adapters.update.test_lxc_runtime_observer tests.infrastructure.adapters.update.test_json_state_store tests.infrastructure.process.test_execution_contract",
+      "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.file_management.test_local_file_storage tests.infrastructure.adapters.preflight.test_host_preflight_probe tests.infrastructure.adapters.preflight.test_artifact_readiness tests.infrastructure.adapters.network.test_wsl_socat_exposure tests.infrastructure.adapters.host.test_host_preparation tests.infrastructure.test_composition_probes tests.infrastructure.test_composition_configuration"
     ],
     "required": [
       "git diff --check",
@@ -889,3 +928,17 @@ Begin S355-01; do not skip the inventory/ADR decision. All implementation slices
 remain NOT STARTED. Context packs are navigation aids, never authority. Final
 publication SHA and remote verification are recorded in the authoring handoff;
 resolve the commit containing this file rather than embedding a self-reference.
+
+## S355-01 inventory scope amendment
+
+The lifecycle inventory identifies additional existing file-storage, preflight, WSL
+exposure/preparation and composition-helper boundaries. S355-03 metadata includes
+the exact translation-only paths and tests. NEW file: tests/infrastructure/adapters/
+file_management/test_local_file_storage.py. No new platform behavior is authorized.
+Architecture review accepted the narrow additions; final inventory review records
+Four-Role acceptance before any product edits. See lifecycle-failure-inventory.md.
+
+## Execution progress
+
+- S355-01 ACCEPTED: complete lifecycle inventory, concrete schema, reviewed scope amendments and accepted ADR. Four independent role reviews PASS; arch-tests 26 PASS; diff/path checks PASS. Product implementation starts in S355-02.
+- Execution worktree: /mnt/d/Projects/Tiny-Swarm-World-worktrees/issue-355; workflow branch unchanged.

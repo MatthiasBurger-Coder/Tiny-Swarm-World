@@ -2,9 +2,9 @@
 
 == Status
 
-Proposed for ARCH-03.12 / issue #355. Authoring does not accept or implement this
-contract. S355-01 requires System Architect and Four-Role review before acceptance;
-S355-02 cannot begin until the decision and migration inventory are accepted.
+Accepted for implementation in S355-01 on 2026-09-26 after independent Requirement,
+System Architect, Python and Test reviews. The concrete inventory and schema are
+accepted; this decision does not claim product implementation or live verification.
 
 == Context
 
@@ -77,3 +77,14 @@ schema is authorized. ARCH-03.13 / #356 owns new resilience behavior.
 Contract invariants, adapter mappings, partial progress, verified recovery,
 cancellation, redaction and CLI compatibility use deterministic tests. Existing
 architecture rules remain in force. Local verification does not claim live success.
+
+== S355-01 concrete schema and compatibility review
+
+The accepted implementation schema is defined in
+`documentation/workflow/lifecycle-failure-inventory.md`: OperationOutcome,
+Recoverability, frozen OperationFailure, frozen OperationResult with failures and
+completed/pending/uncertain operation tuples plus rollback_verified, and OperationError.
+The inventory fixes invariants, adapter mappings, exclusions and safe cause/action
+catalogue. Domain facts remain domain-only. Existing broad fallback behavior is
+preserved with explicit unexpected_failure classification; composition defects
+which previously propagated continue to propagate.

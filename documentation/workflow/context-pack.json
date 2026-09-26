@@ -3,10 +3,10 @@
   "workflowVersion": "1.0",
   "branch": "architecture/workflow-355-operation-results-20260926",
   "baseline": "3487ce322bb2b251a45695fc88a70ffa8132b0de",
-  "processStrand": "workflow create",
+  "processStrand": "workflow execute",
   "executionProfile": "FULL_PATH",
-  "status": "READY_FOR_WORKFLOW",
-  "implementationStatus": "NOT_STARTED",
+  "status": "EXECUTING",
+  "implementationStatus": "S355-01_ACCEPTED",
   "affectedAreas": [
     "application result contracts",
     "lifecycle adapters",
@@ -53,10 +53,11 @@
     "documentation/arc42/05_analysis/arch-03-11-process-execution.md": "9fe907db4b9c420e49539f8348dd3463179de1d273db12060f966e06c0392b77",
     "documentation/arc42/09_decisions/adr-classic-update-contract.adoc": "50fab597b07c8eb15bc839df7283214d7dc72e01f096f0e18fba021772a841d2",
     "documentation/arc42/09_decisions/adr-installer-console-reporting-policy.adoc": "f510c8470d57b7b763496db5ddef93b167276adf9c78958394c8b0a75a8bdf8c",
-    "documentation/arc42/09_decisions/adr-explicit-operation-results.adoc": "9b2d2a122fc08625317e7bc422c6375fa1ee45b06433067cebddc8b38f15fa8b",
+    "documentation/arc42/09_decisions/adr-explicit-operation-results.adoc": "bb6807463c58aae5e62e20a199c6937d3d0b8a616660909241d772dae72603ff",
     "documentation/arc42/05_analysis/arch-03-12-operation-results.md": "53be9516decef330a251a8d39ed804907c337512e792d22f58e590157776577f",
-    "documentation/workflow/workflow.md": "afe6519e8f97473bc460b60f3d8c1a630ae0b81031f3a0d38bd6cbff3c30f0f5",
+    "documentation/workflow/workflow.md": "2df15659992deb3466777232e132dd12db87dfb45c43f1e086c9615f7a135c50",
     "documentation/workflow/requirement-matrix.md": "80782ab10d1a86648ec983b354e9dca651b0f031cb511415c84df37c5c95ad51",
-    "documentation/workflow/authoring-review.md": "21a9b5aa5635e080e41be82643cb22f67ce47713d6f51b5febec0904f44f5080"
+    "documentation/workflow/authoring-review.md": "21a9b5aa5635e080e41be82643cb22f67ce47713d6f51b5febec0904f44f5080",
+    "documentation/workflow/lifecycle-failure-inventory.md": "4153226c1c466fc86e3ac3d82a91f73f866b61620ab22692d5fc07cc7b577434"
   }
 }
