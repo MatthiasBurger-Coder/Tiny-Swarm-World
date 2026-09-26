@@ -6,6 +6,11 @@ import tempfile
 import unittest
 from pathlib import Path
 from typing import Any
+from unittest.mock import MagicMock
+from tiny_swarm_world.application.ports.operation_result import OperationError, OperationFailure, OperationOutcome
+from tiny_swarm_world.application.services.deployment.workflows import DeploymentApplyWorkflow
+from tiny_swarm_world.application.services.setup import SetupWorkflow, SetupWorkflowPhase
+from tiny_swarm_world.domain.preflight import LiveConsent
 
 from tiny_swarm_world.application.ports.clients.port_infisical_cli import InfisicalCliResult
 from tiny_swarm_world.application.ports.clients.port_infisical_bootstrap_client import (
@@ -49,6 +54,63 @@ PASSWORD_OPTION = "--" + sample_text("pass", "word") + "="
 
 
 class TestInfisicalSilentInstall(unittest.TestCase):
+    def test_cli_failure_origin_reaches_setup_and_failed_run_does_not_poison_success(self):
+        failure = OperationFailure.for_cause("cli.bootstrap", "infisical", "process_timeout")
+        service = _service(cli=_FakeCli(result=InfisicalCliResult(124, failure=failure)))
+        service.storage = MagicMock()
+        deployment = DeploymentApplyWorkflow((service,))
+        result = asyncio.run(SetupWorkflow((SetupWorkflowPhase("bootstrap", deployment.run),), live_consent=LiveConsent(True, confirmed=True)).run())
+        self.assertEqual((failure,), result.operation_result.failures)
+        service.cli.result = InfisicalCliResult(0)
+        succeeded = asyncio.run(deployment.run())
+        self.assertEqual(OperationOutcome.SUCCESS, succeeded.operation_result.outcome)
+
+    def test_bootstrap_and_evidence_failure_both_reach_deployment_safely(self):
+        failure = OperationFailure.for_cause("service.ready", "infisical", "request_failed")
+        storage_failure = OperationFailure.for_cause("file.write", "local_storage", "filesystem_error")
+        error = OperationError(failure)
+        error.reason = "private-value-4827"
+        service = _service(cli=_FakeCli(available=False))
+        service.bootstrap_client = MagicMock()
+        service.bootstrap_client.bootstrap_instance.side_effect = error
+        service.storage = MagicMock()
+        service.storage.write_text.side_effect = OperationError(storage_failure)
+        result = asyncio.run(DeploymentApplyWorkflow((service,)).run())
+        self.assertEqual((failure, storage_failure), result.operation_result.failures)
+        self.assertNotIn("private-value-4827", repr(result.to_dict()))
+        self.assertNotIn("private-value-4827", repr(service.verify().to_dict()))
+        self.assertNotIn("private-value-4827", repr(service.storage.write_text.call_args_list))
+        self.assertIsNone(error.__cause__)
+        self.assertTrue(error.__suppress_context__)
+
+    def test_successful_bootstrap_is_retained_when_final_evidence_write_fails(self):
+        failure = OperationFailure.for_cause("file.write", "local_storage", "filesystem_error")
+        service = _service()
+        service.storage = MagicMock()
+        service.storage.write_text.side_effect = OperationError(failure)
+        result = asyncio.run(DeploymentApplyWorkflow((service,)).run())
+        self.assertEqual(OperationOutcome.PARTIAL, result.operation_result.outcome)
+        self.assertEqual((failure,), result.operation_result.failures)
+        self.assertEqual(("deployment.apply.step.1.bootstrap",), result.operation_result.completed_operations)
+        self.assertEqual(("deployment.apply.step.1.evidence",), result.operation_result.uncertain_operations)
+
+    def test_known_blockers_and_cli_exit_have_expected_classification(self):
+        for service, cause in (
+            (_service(cli=_FakeCli(available=False)), "launch_executable_missing"),
+            (_service(service_running=False), "dependency_unavailable"),
+            (_service(cli=_FakeCli(result=InfisicalCliResult(1))), "process_exit_failed"),
+        ):
+            service.storage = MagicMock()
+            result = asyncio.run(DeploymentApplyWorkflow((service,)).run())
+            self.assertEqual(cause, result.operation_result.failures[0].cause)
+        service = _service()
+        from dataclasses import replace
+        service.config = replace(service.config, organization="")
+        result = asyncio.run(DeploymentApplyWorkflow((service,)).run())
+        self.assertEqual("configuration_invalid", result.operation_result.failures[0].cause)
+        self.assertEqual((), result.operation_result.uncertain_operations)
+
+
     def test_renders_environment_without_losing_required_values(self):
         service = _service()
 

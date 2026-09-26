@@ -123,3 +123,38 @@ def aggregate_operation(
         outcome, tuple(failures), completed_values, pending_values, uncertain_values,
         rollback_verified=rollback_verified,
     )
+
+
+def verification_failures(
+    evidence: Mapping[str, str], *, verified: bool, operation: str, component: str,
+    failure: OperationFailure | None = None, blocked: bool = False,
+    allowed_origins: frozenset[tuple[str, str]] = frozenset(),
+) -> tuple[OperationFailure, ...]:
+    """Interpret a verification boundary without trusting serialized origin IDs."""
+    origins = allowed_origins | (frozenset({(failure.operation, failure.component)}) if failure else frozenset())
+    try:
+        decoded = failures_from_evidence(
+            evidence, allowed_origins=origins,
+            fallback_operation=operation, fallback_component=component,
+        )
+    except ValueError:
+        invalid = OperationFailure.for_cause(operation, component, "unexpected_failure")
+        return (failure, invalid) if failure is not None else (invalid,)
+    if failure is not None:
+        if decoded and decoded != (failure,):
+            return (failure, OperationFailure.for_cause(operation, component, "unexpected_failure"))
+        return (failure,)
+    if decoded or verified:
+        return decoded
+    return (OperationFailure.for_cause(operation, component, "blocked" if blocked else "verification_failed"),)
+
+
+def prefixed_operation_result(result: OperationResult, prefix: str) -> OperationResult:
+    """Namespace requested work, retaining the original failure origins."""
+    return OperationResult(
+        result.outcome, result.failures,
+        tuple(f"{prefix}.{value}" for value in result.completed_operations),
+        tuple(f"{prefix}.{value}" for value in result.pending_operations),
+        tuple(f"{prefix}.{value}" for value in result.uncertain_operations),
+        rollback_verified=result.rollback_verified,
+    )

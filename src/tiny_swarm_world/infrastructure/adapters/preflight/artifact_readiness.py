@@ -70,7 +70,7 @@ class BoundedArtifactReadinessAdapter(PortLiveReadiness):
                 request, ReadinessStatus.UNKNOWN,
                 "The readiness boundary reported a classified failure.",
                 exc.failure.recommended_action,
-                evidence={"failure_cause": exc.failure.cause, "failure_operation": exc.failure.operation, "failure_component": exc.failure.component},
+                evidence={f"failure_1_{key}": value for key, value in exc.failure.to_dict().items()},
             )
         except (TimeoutError, socket.timeout, subprocess.TimeoutExpired, ProcessTimeoutError):
             return _result(

@@ -1,5 +1,7 @@
 import asyncio
 import unittest
+from unittest.mock import MagicMock
+from tiny_swarm_world.application.services.deployment.workflows import DeploymentApplyWorkflow
 
 from tests.support.sonar_safe_literals import operator_credential
 from tiny_swarm_world.application.services.deployment.ensure_infisical_secret_items import (
@@ -10,6 +12,17 @@ from tiny_swarm_world.domain.inventory import VerificationStatus
 
 
 class TestEnsureInfisicalSecretItems(unittest.TestCase):
+    def test_authentication_exhaustion_is_expected_without_new_retries(self):
+        client = MagicMock()
+        client.can_authenticate.return_value = False
+        service = EnsureInfisicalSecretItems(client, "admin@example.com", operator_credential(), (InfisicalSecretItem("item", "admin", operator_credential()),), max_attempts=2, wait_seconds=0)
+        result = asyncio.run(DeploymentApplyWorkflow((service,)).run())
+        self.assertEqual("dependency_unavailable", result.operation_result.failures[0].cause)
+        self.assertEqual("deployment.infisical.authenticate", result.operation_result.failures[0].operation)
+        self.assertEqual(2, client.can_authenticate.call_count)
+        client.create_secret_item.assert_not_called()
+
+
     def test_creates_only_missing_items(self):
         existing = {"platform/jenkins"}
         client = _FakeInfisicalClient(existing)

@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
+from tiny_swarm_world.application.ports.operation_result import OperationError, OperationFailure, OperationOutcome, OperationResult
+from tiny_swarm_world.application.services.shared.operation_results import failure_from_exception
 from tiny_swarm_world.application.ports.clients.port_infisical_bootstrap_client import (
     InfisicalBootstrapState,
     PortInfisicalBootstrapClient,
@@ -64,9 +66,16 @@ class InfisicalSilentInstallConfig:
             )
 
 
-class InfisicalInstallBlocker(RuntimeError):
-    def __init__(self, classification: str, message: str):
-        super().__init__(message)
+class InfisicalInstallBlocker(OperationError, RuntimeError):
+    def __init__(self, classification: str, message: str, *, failure: OperationFailure | None = None):
+        causes = {
+            "required_environment_missing": "configuration_invalid",
+            "infisical_readiness_timeout": "dependency_unavailable",
+            "infisical_cli_missing": "launch_executable_missing",
+            "infisical_bootstrap_failed": "process_exit_failed",
+        }
+        super().__init__(failure or OperationFailure.for_cause("deployment.infisical.bootstrap", "deployment", causes.get(classification, "unexpected_failure")))
+        self.args = (message,)
         self.classification = classification
 
 
@@ -131,16 +140,27 @@ class EnsureInfisicalSilentInstall:
         )
 
     async def run(self) -> None:
-        self.config.validate()
-        self.storage.ensure_directory(self.config.evidence_dir, private=True)
+        self.operation_result: OperationResult | None = None
+        self._bootstrap_diagnostic = {}
+        self._status = "not_run"
+        self._classification = ""
+        self._bootstrap_method = "not_run"
+        try:
+            self.config.validate()
+        except InfisicalInstallBlocker as exc:
+            self.operation_result = OperationResult(OperationOutcome.FAILED, (exc.failure,), pending_operations=("bootstrap",))
+            raise
+        try:
+            self.storage.ensure_directory(self.config.evidence_dir, private=True)
+        except Exception as exc:
+            self.operation_result = OperationResult(OperationOutcome.FAILED, (failure_from_exception(exc, "deployment.infisical.evidence", "deployment"),), pending_operations=("bootstrap",), uncertain_operations=("evidence.directory",))
+            raise exc from None
         if not self.service_running or not self.http_ready:
             self._status = "blocked"
             self._classification = "infisical_readiness_timeout"
-            self._write_evidence("blocked")
-            raise InfisicalInstallBlocker(
-                self._classification,
-                "Infisical service did not become ready before bootstrap.",
-            )
+            error = InfisicalInstallBlocker(self._classification, "Infisical service did not become ready before bootstrap.")
+            self._write_failure_evidence(error, "blocked")
+            raise error from None
 
         if self.cli.is_available():
             await asyncio.to_thread(self._run_cli_bootstrap)
@@ -157,8 +177,8 @@ class EnsureInfisicalSilentInstall:
                 self._status = "failed"
                 self._classification = "infisical_bootstrap_api_unavailable"
                 self._bootstrap_diagnostic = _bootstrap_error_diagnostic(exc)
-                self._write_evidence("failed")
-                raise
+                self._write_failure_evidence(exc, "failed")
+                raise exc from None
             self._status = (
                 "already_bootstrapped"
                 if bootstrap_result.state is InfisicalBootstrapState.ALREADY_INITIALIZED
@@ -167,18 +187,23 @@ class EnsureInfisicalSilentInstall:
         else:
             self._status = "blocked"
             self._classification = "infisical_cli_missing"
-            self._write_evidence("blocked")
-            raise InfisicalInstallBlocker(
-                self._classification,
-                "Infisical CLI is missing and no admin API bootstrap fallback is configured.",
+            error = InfisicalInstallBlocker(self._classification, "Infisical CLI is missing and no admin API bootstrap fallback is configured.")
+            self._write_failure_evidence(error, "blocked")
+            raise error from None
+        try:
+            self._write_evidence(self._status)
+        except Exception as exc:
+            self.operation_result = OperationResult(
+                OperationOutcome.PARTIAL, (failure_from_exception(exc, "deployment.infisical.evidence", "deployment"),),
+                completed_operations=("bootstrap",), uncertain_operations=("evidence",),
             )
-        self._write_evidence(self._status)
+            raise exc from None
 
     def _run_cli_bootstrap(self) -> None:
         self._bootstrap_method = "cli"
         result = self.cli.run_bootstrap(self.bootstrap_command())
         output = f"{result.stdout}\n{result.stderr}".lower()
-        if result.return_code == 0:
+        if result.return_code == 0 and result.failure is None:
             self._status = (
                 "already_bootstrapped"
                 if "already" in output and "bootstrap" in output
@@ -188,11 +213,12 @@ class EnsureInfisicalSilentInstall:
 
         self._status = "failed"
         self._classification = "infisical_bootstrap_failed"
-        self._write_evidence("failed")
-        raise InfisicalInstallBlocker(
-            self._classification,
-            "Infisical CLI bootstrap failed with redacted output.",
+        error = InfisicalInstallBlocker(
+            self._classification, "Infisical CLI bootstrap failed with redacted output.",
+            failure=result.failure,
         )
+        self._write_failure_evidence(error, "failed")
+        raise error from None
 
     def verify(self) -> VerificationResult:
         status = VerificationStatus.VERIFIED
@@ -211,6 +237,19 @@ class EnsureInfisicalSilentInstall:
                 "setup_screen_required": str(self.setup_screen_required).lower(),
                 **self._bootstrap_diagnostic,
             },
+        )
+
+    def _write_failure_evidence(self, error: Exception, status: str) -> None:
+        failures = [failure_from_exception(error, "deployment.infisical.bootstrap", "deployment")]
+        pending = ["bootstrap"] if status == "blocked" else []
+        uncertain = [] if status == "blocked" else ["bootstrap"]
+        try:
+            self._write_evidence(status)
+        except Exception as evidence_error:
+            failures.append(failure_from_exception(evidence_error, "deployment.infisical.evidence", "deployment"))
+            uncertain.append("evidence")
+        self.operation_result = OperationResult(
+            OperationOutcome.FAILED, tuple(failures), pending_operations=tuple(pending), uncertain_operations=tuple(uncertain),
         )
 
     def _write_evidence(self, status: str) -> None:
@@ -278,9 +317,9 @@ def _bootstrap_error_diagnostic(exc: Exception) -> dict[str, str]:
         "bootstrap_error_class": exc.__class__.__name__,
     }
     status_code = getattr(exc, "status_code", None)
-    if isinstance(status_code, int):
+    if type(status_code) is int and 100 <= status_code <= 599:
         diagnostic["bootstrap_http_status"] = str(status_code)
     reason = getattr(exc, "reason", None)
-    if isinstance(reason, str) and reason:
+    if reason in ("not_ready", "Timeout", "ConnectTimeout", "ReadTimeout", "ConnectionError", "RequestException"):
         diagnostic["bootstrap_failure_reason"] = reason
     return diagnostic

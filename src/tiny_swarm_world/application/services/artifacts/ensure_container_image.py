@@ -3,6 +3,8 @@ from __future__ import annotations
 import asyncio
 import logging
 
+from tiny_swarm_world.application.ports.operation_result import OperationFailure
+from tiny_swarm_world.application.services.shared.operation_results import failure_from_exception
 from tiny_swarm_world.application.ports.clients.port_container_image_publisher import (
     PortContainerImagePublisher,
 )
@@ -31,11 +33,13 @@ class EnsureContainerImage:
         self.image_publisher.publish_image(self.contract)
 
     async def verify(self) -> VerificationResult:
+        self.operation_failure: OperationFailure | None = None
         await asyncio.sleep(0)
         try:
             self.logger.info("Verifying EnsureContainerImage.")
             available = self.image_publisher.image_available(self.contract)
         except Exception as exc:
+            self.operation_failure = failure_from_exception(exc, "artifacts.verify", "artifacts")
             verification = VerificationResult(
                 target_id=self.verification_target_id,
                 status=VerificationStatus.FAILED_TO_VERIFY,

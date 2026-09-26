@@ -2,6 +2,8 @@ import asyncio
 import unittest
 from pathlib import Path
 from unittest.mock import MagicMock
+from tiny_swarm_world.application.ports.operation_result import OperationFailure
+from tiny_swarm_world.application.ports.repositories.port_repository_failure import RepositoryConfigurationError
 
 from tiny_swarm_world.application.services.artifacts.static_contract_preflight import (
     StaticArtifactContractPreflight,
@@ -16,6 +18,20 @@ from tiny_swarm_world.domain.preflight import LiveConsent
 
 
 class TestStaticArtifactContractPreflight(unittest.TestCase):
+    def test_typed_configuration_failure_retains_finding_and_stops_setup(self):
+        failure = OperationFailure.for_cause("configuration.load", "compose_repository", "filesystem_error")
+        contract = ContainerImageContract("registry.local/example", "1.0.0", "example")
+        compose = MagicMock()
+        compose.get_image_inventory.return_value = ArtifactImageInventory(profile="default", requirements=(ArtifactImageRequirement(service_name="example:worker", image_ref=contract.image_ref, build_context="example", source="build"),), contracts=(contract,))
+        compose.get_build_context_path.side_effect = RepositoryConfigurationError("Unavailable", failure=failure)
+        service = StaticArtifactContractPreflight(compose, MagicMock())
+        later = MagicMock()
+        result = asyncio.run(SetupWorkflow((SetupWorkflowPhase("static", service.run), SetupWorkflowPhase("later", later)), live_consent=LiveConsent(True, confirmed=True)).run())
+        self.assertEqual((failure,), result.operation_result.failures)
+        self.assertIn("build_context_unapproved", result.phase_results[0].result.checks[0].evidence["issue_codes"])
+        later.assert_not_called()
+
+
     def test_success_checks_build_context_without_invoking_external_clients(self):
         contract = ContainerImageContract("registry.local/example", "1.0.0", "example")
         inventory = ArtifactImageInventory(

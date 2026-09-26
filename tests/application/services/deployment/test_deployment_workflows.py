@@ -155,7 +155,7 @@ class TestDeploymentWorkflows(unittest.IsolatedAsyncioTestCase):
         )
         self.assertIn("remediation_hint", result.verification_results[0].evidence)
 
-    async def test_apply_workflow_preserves_actionable_safe_apply_failure_summary(self):
+    async def test_apply_workflow_redacts_untyped_apply_failure_summary(self):
         class FailingStep:
             verification_target_id = "deployment:jenkins-stack"
 
@@ -172,15 +172,15 @@ class TestDeploymentWorkflows(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(DeploymentWorkflowStatus.FAILED_TO_APPLY, result.status)
         self.assertIn(
-            "RuntimeError. Failed to create Portainer stack 'jenkins'. HTTP 500.",
+            "RuntimeError. Diagnostic payload redacted.",
             captured.output[0],
         )
         self.assertIn(
-            "RuntimeError. Failed to create Portainer stack 'jenkins'. HTTP 500.",
+            "RuntimeError. Diagnostic payload redacted.",
             result.verification_results[0].message,
         )
         self.assertIn(
-            "RuntimeError. Failed to create Portainer stack 'jenkins'. HTTP 500.",
+            "RuntimeError. Diagnostic payload redacted.",
             result.reason,
         )
 

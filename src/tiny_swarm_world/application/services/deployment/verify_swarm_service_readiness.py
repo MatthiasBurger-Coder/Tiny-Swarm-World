@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import asyncio
 
+from tiny_swarm_world.application.ports.operation_result import OperationFailure
+from tiny_swarm_world.application.services.shared.operation_results import failure_from_exception
 from tiny_swarm_world.application.ports.clients.port_swarm_stack_runtime import (
     PortSwarmStackRuntime,
     SwarmServiceStatus,
@@ -25,6 +27,7 @@ class VerifySwarmServiceReadiness:
         self.verification_target_id = service_stack.service_readiness_target_id
 
     async def verify(self) -> VerificationResult:
+        self.operation_failure: OperationFailure | None = None
         last_services: tuple[SwarmServiceStatus, ...] = ()
         last_exception_name = ""
         for attempt in range(1, self.max_attempts + 1):
@@ -35,6 +38,7 @@ class VerifySwarmServiceReadiness:
                 if attempt < self.max_attempts:
                     await asyncio.sleep(self.wait_seconds)
                     continue
+                self.operation_failure = failure_from_exception(exc, "deployment.verify", "deployment")
                 return VerificationResult(
                     target_id=self.verification_target_id,
                     status=VerificationStatus.FAILED_TO_VERIFY,
@@ -101,7 +105,9 @@ class EnsureSwarmServiceReadiness:
         )
 
     async def run(self) -> None:
+        self.operation_failure: OperationFailure | None = None
         verification = await self._readiness.verify()
+        self.operation_failure = self._readiness.operation_failure
         self._verification = VerificationResult(
             target_id=self.verification_target_id,
             status=verification.status,

@@ -3,11 +3,21 @@ import unittest
 from tiny_swarm_world.application.ports.operation_result import OperationError, OperationFailure, OperationOutcome
 from tiny_swarm_world.application.services.shared.operation_results import (
     aggregate_operation, failure_from_exception, failures_from_evidence,
-    progress_from_evidence, progress_to_evidence,
+    progress_from_evidence, progress_to_evidence, verification_failures, failures_to_evidence,
 )
 
 
 class TestOperationAggregation(unittest.TestCase):
+    def test_malformed_or_conflicting_evidence_preserves_typed_companion(self):
+        failure = OperationFailure.for_cause("service.request", "nexus", "request_failed")
+        contradictory = OperationFailure.for_cause("service.request", "nexus", "process_timeout")
+        for evidence in ({"failure_1_operation": "private-value-4827"}, failures_to_evidence((contradictory,))):
+            failures = verification_failures(evidence, verified=False, operation="parent.verify", component="artifacts", failure=failure)
+            self.assertEqual(failure, failures[0])
+            self.assertEqual("unexpected_failure", failures[1].cause)
+            self.assertNotIn("private-value-4827", repr(failures))
+
+
     def test_origin_failure_and_order_survive_parent_aggregation(self):
         first = OperationFailure.for_cause("image.publish", "image_publisher", "process_timeout")
         second = OperationFailure.for_cause("evidence.write", "repository", "filesystem_error")

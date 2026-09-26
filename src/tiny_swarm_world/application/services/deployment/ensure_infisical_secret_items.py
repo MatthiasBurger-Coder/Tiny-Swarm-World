@@ -4,8 +4,9 @@ import asyncio
 from dataclasses import dataclass
 
 from tiny_swarm_world.application.ports.clients.port_infisical_client import (
-    PortInfisicalClient,
+    PortInfisicalClient, InfisicalClientError,
 )
+from tiny_swarm_world.application.ports.operation_result import OperationFailure
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
 
 
@@ -60,7 +61,7 @@ class EnsureInfisicalSecretItems:
                 return
             if attempt < self.max_attempts:
                 await asyncio.sleep(self.wait_seconds)
-        raise RuntimeError("Infisical login material could not authenticate.")
+        raise InfisicalClientError(OperationFailure.for_cause("deployment.infisical.authenticate", "deployment", "dependency_unavailable")) from None
 
     async def verify(self) -> VerificationResult:
         await asyncio.sleep(0)

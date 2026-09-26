@@ -3,6 +3,8 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Callable, Mapping
 
+from tiny_swarm_world.application.ports.operation_result import OperationFailure
+from tiny_swarm_world.application.services.shared.operation_results import failure_from_exception
 from tiny_swarm_world.application.services.credential_resolution import CredentialResolutionSnapshot
 
 from tiny_swarm_world.application.ports.clients.port_swarm_stack_runtime import (
@@ -78,6 +80,7 @@ class EnsureSwarmStack:
         self._applied = True
 
     async def verify(self) -> VerificationResult:
+        self.operation_failure: OperationFailure | None = None
         await asyncio.sleep(0)
         if self._applied:
             return VerificationResult(
@@ -102,6 +105,7 @@ class EnsureSwarmStack:
                 self.swarm_runtime.list_stack_services(self.service_stack.stack_name),
             )
         except Exception as exc:
+            self.operation_failure = failure_from_exception(exc, "deployment.verify", "deployment")
             return VerificationResult(
                 target_id=self.verification_target_id,
                 status=VerificationStatus.FAILED_TO_VERIFY,

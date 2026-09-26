@@ -52,3 +52,46 @@ legacy verification/prerequisite inference. Producer regression evidence pending
 ## S355-04
 
 S355-04: targeted declared/helper 161 PASS; complete platform 221 PASS (overlap); full gate TMPDIR=/home/micro/.cache/issue355-tmp python3 tools/quality_gate.py quality — PASS: 2227 tests in 241.428s, 18 skipped. Log: /home/micro/.cache/issue355-s04-quality.log. git diff --check PASS.
+
+## S355-05 resumed review
+
+User authorized adoption of the in-progress changes. Existing declared target
+suites: 185 tests passed in 11.503s (independent Tester); these do not establish
+the new common-result behavior. Architect/Tester identified inconsistent setup
+phase classification, deployment pre-apply uncertainty and contradictory
+verification aggregation. TYPE: TEST_FAILURE; owner Python implementation;
+correction pass 1. Add focused regressions, preserve compatibility, then rerun
+targeted suites and the full local gate. Slice acceptance remains pending.
+
+S05 correction pass 2, TEST_FAILURE, Python owner: independent Tester found
+EnsureSwarmServiceReadiness discarded the underlying typed failure companion.
+The first full gate passed lint, architecture and typecheck but was interrupted
+during tests because source correction was required; it is not a successful gate.
+Add wrapper failure-to-success regression and aggregation edge checks; rerun
+expanded targets and the full gate on the final source.
+
+## S355-05 accepted verification
+
+Expanded targets: 232 tests passed in 12.214s; correction-pass targets independently
+verified: 31 tests passed in 0.656s (overlapping suites). Final command:
+`TMPDIR=/home/micro/.cache/issue355-tmp python3 tools/quality_gate.py quality`
+completed with exit 0: verification policy, lint, five import contracts, 26
+architecture tests, typecheck (703 files), and 2243 tests in 256.751s.
+Test exclusions: 18. Log: `/home/micro/.cache/issue355-s05-quality-final.log`.
+`git diff --check` passed. Architect, Security and Tester final reviews PASS.
+Live/browser NOT_APPLICABLE; external verification not claimed.
+
+## S355-05 complete inventory audit correction
+
+Before checkpoint the user explicitly required complete implementation review.
+Architect audited all inventory rows and identified six S05 gaps: Infisical CLI
+failure loss; unchecked bootstrap diagnostics/secondary-storage failure loss;
+readiness origin loss; typed static configuration failure loss; provider-blocked
+producer results missing; untyped Infisical authentication exhaustion.
+Correction pass 3 (TEST_FAILURE), Python owner, narrow scope amendment reviewed
+by Architect. Earlier full gate remains historical evidence only; acceptance
+is reopened until regression review and a new full gate complete.
+Endpoint evidence collapse is allowed by the accepted inventory; a composed
+preservation test is required, not a new transport-classification contract.
+
+Final expanded S355-05 gate: `TMPDIR=/home/micro/.cache/issue355-tmp python3 tools/quality_gate.py quality` exited 0. All sub-gates passed; 2251 tests in 277.050s, 18 exclusions. Log: `/home/micro/.cache/issue355-s05-complete-quality.log`. Final architecture/inventory, security and test reviews PASS. Independent targets 36 and 35 passed; final guard/block targets 15 passed (overlap).

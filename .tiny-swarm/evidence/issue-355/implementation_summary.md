@@ -29,3 +29,31 @@ validated within the invocation. Domain return types remain independent.
 ## S355-04
 
 S355-04: Platform producers retain explicit requested progress, safe origins, uncertainty and verified recovery through the shared result contract.
+
+## S355-05
+
+Artifacts, deployment and setup now expose the common operation contract.
+Workflow aggregation retains confirmed requested work, pending work, uncertain
+effects and typed origin failures. Timeout snapshots and concurrent results keep
+plan order. Contradictory evidence stops dependent work. Run-only preparation
+retains existing success semantics. Verified child recovery history is preserved
+nested, while setup reports active failure state without claiming global rollback.
+Portainer/Sonar readiness exhaustion is typed; Nexus recovery subtypes and retries
+remain compatible. Swarm readiness forwards and resets its typed failure companion.
+Legacy diagnostic fields use safe values; unchecked text/attributes are redacted.
+
+Independent Architecture, Security and Tester reviews accepted the source; the
+full local quality gate passed (2243 tests; 18 test exclusions). No live actions were performed.
+
+### Complete inventory corrections in S355-05
+
+The independent inventory audit required six additional corrections before the
+checkpoint: Infisical CLI/error classifications, safe persisted diagnostics and
+multiple failure retention, indexed readiness origins, typed static configuration
+findings, real provider-blocked common results, and typed authentication exhaustion.
+These are implemented and tested within the reviewed scope. Confirmed bootstrap
+survives a later evidence-write failure; pre-execution blocking has pending rather
+than uncertain work; repeat calls clear prior state. No-work preflight guards do
+not erase a subsequent blocked outcome or count as confirmed mutation.
+Architect, Security and Tester accepted the corrected source. Final full gate passed: 2251 tests, 18 exclusions. Endpoint status evidence remains intentionally detailed in legacy
+evidence with common verification_failed, as permitted by the accepted inventory.

@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from tiny_swarm_world.application.ports.preflight import PortLiveReadiness
+from tiny_swarm_world.application.ports.operation_result import OperationError
+from tiny_swarm_world.application.services.shared.operation_results import failures_to_evidence, verification_failures
 from tiny_swarm_world.application.services.artifacts.workflows import (
     ArtifactWorkflowResult,
     ArtifactWorkflowStatus,
@@ -20,6 +22,16 @@ from tiny_swarm_world.domain.preflight import (
     ReadinessStatus,
 )
 
+
+ARTIFACT_FAILURE_ORIGINS = frozenset({
+    ("swarm.execute", "lxc_gateway"),
+    ("container.execute", "lxc_container_runtime"),
+    ("configuration.load", "compose_repository"),
+    ("configuration.load", "repository"),
+    ("service.request", "nexus"), ("service.decode", "nexus"),
+    ("service.request", "portainer"), ("service.decode", "portainer"),
+    ("artifacts.readiness", "artifacts"),
+})
 
 DEFAULT_ARTIFACT_READINESS_TIMEOUT_SECONDS = 5.0
 DEFAULT_ARTIFACT_READINESS_ATTEMPTS = 1
@@ -89,13 +101,20 @@ class ArtifactReadinessGate:
     def _check(self, request: ReadinessProbeRequest) -> PreflightCheck:
         try:
             result = self.readiness.check(request)
+        except OperationError as exc:
+            result = ReadinessCheckResult(
+                target_id=request.target_id, status=ReadinessStatus.UNKNOWN,
+                message="The readiness boundary reported a classified failure.",
+                remediation="Inspect the bounded readiness evidence before retrying.",
+                evidence=failures_to_evidence((exc.failure,)),
+            )
         except Exception:
             result = ReadinessCheckResult(
                 target_id=request.target_id,
                 status=ReadinessStatus.UNKNOWN,
                 message="The live readiness observation could not be classified safely.",
                 remediation="Inspect the bounded readiness adapter before retrying.",
-                evidence={"evidence_scope": "live"},
+                evidence={"evidence_scope": "live", "failure_cause": "unexpected_failure"},
             )
         if not isinstance(result, ReadinessCheckResult):
             result = ReadinessCheckResult(
@@ -103,7 +122,7 @@ class ArtifactReadinessGate:
                 status=ReadinessStatus.UNKNOWN,
                 message="The live readiness adapter returned no typed result.",
                 remediation="Return a typed readiness result before artifact mutation.",
-                evidence={"evidence_scope": "live"},
+                evidence={"evidence_scope": "live", "failure_cause": "unexpected_failure"},
             )
         if result.target_id != request.target_id:
             result = ReadinessCheckResult(
@@ -111,12 +130,17 @@ class ArtifactReadinessGate:
                 status=ReadinessStatus.UNKNOWN,
                 message="The live readiness adapter returned an invalid target identity.",
                 remediation="Align the readiness target identity before retrying.",
-                evidence={"evidence_scope": "live"},
+                evidence={"evidence_scope": "live", "failure_cause": "unexpected_failure"},
             )
+        failures = verification_failures(
+            result.evidence, verified=result.ready, operation="artifacts.readiness", component="artifacts",
+            allowed_origins=ARTIFACT_FAILURE_ORIGINS,
+        )
+        safe_evidence = {key: value for key, value in result.evidence.items() if not key.startswith("failure_")}
         return PreflightCheck(
             check_id=f"ARTIFACT-READINESS-{request.target_id.upper().replace(':', '-')}",
             category=PreflightCategory.RUNTIME,
-            status=PreflightStatus.PASSED if result.ready else PreflightStatus.FAILED,
+            status=PreflightStatus.PASSED if result.ready and not failures else PreflightStatus.FAILED,
             severity=PreflightSeverity.MANDATORY,
             message=result.message,
             remediation=result.remediation,
@@ -124,7 +148,8 @@ class ArtifactReadinessGate:
                 "evidence_scope": "live",
                 "live_state": _readiness_live_state(result.status).value,
                 "readiness_status": result.status.value,
-                **dict(result.evidence),
+                **safe_evidence,
+                **failures_to_evidence(failures),
             },
         )
 

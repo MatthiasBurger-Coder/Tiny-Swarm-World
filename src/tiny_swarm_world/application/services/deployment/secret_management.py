@@ -7,6 +7,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Literal, Mapping
 
+from tiny_swarm_world.application.ports.operation_result import OperationError, OperationFailure
+from tiny_swarm_world.application.services.shared.operation_results import failure_from_exception
 from tiny_swarm_world.application.ports.clients.port_infisical_cli import PortInfisicalCli
 from tiny_swarm_world.application.ports.file_management.port_local_file_storage import (
     PortLocalFileStorage,
@@ -92,9 +94,10 @@ class SecretFinding:
     reason: str = ""
 
 
-class SecretManagementBlocker(RuntimeError):
-    def __init__(self, classification: str, message: str):
-        super().__init__(message)
+class SecretManagementBlocker(OperationError, RuntimeError):
+    def __init__(self, classification: str, message: str, *, failure: OperationFailure | None = None):
+        super().__init__(failure or OperationFailure.for_cause("deployment.configuration", "deployment", "configuration_invalid"))
+        self.args = (message,)
         self.classification = classification
 
 
@@ -309,7 +312,8 @@ class SecretSyncUseCase:
             raise SecretManagementBlocker(
                 "infisical_sync_failed",
                 "Infisical secret sync failed while preparing scope.",
-            ) from exc
+                failure=failure_from_exception(exc, "deployment.config.sync", "deployment"),
+            ) from None
         self._run_internal_test()
 
     def _run_internal_test(self) -> None:
@@ -366,7 +370,7 @@ class SecretSyncUseCase:
                         CredentialSource.DEFAULT,
                     )
                 })
-            raise SecretManagementBlocker("blocker", str(error)) from error
+            raise SecretManagementBlocker("blocker", str(error)) from None
 
     def _get_vault_value(self, entry: SecretManifestEntry) -> str | None:
         try:
@@ -379,7 +383,8 @@ class SecretSyncUseCase:
             raise SecretManagementBlocker(
                 "infisical_sync_failed",
                 f"Infisical secret sync failed while reading key: {entry.key}",
-            ) from exc
+                failure=failure_from_exception(exc, "deployment.config.sync", "deployment"),
+            ) from None
 
     def _sync_entry(
         self,
@@ -411,7 +416,8 @@ class SecretSyncUseCase:
             raise SecretManagementBlocker(
                 "infisical_sync_failed",
                 f"Infisical secret sync failed while checking key: {entry.key}",
-            ) from exc
+                failure=failure_from_exception(exc, "deployment.config.sync", "deployment"),
+            ) from None
 
     def _set_entry(
         self,
@@ -428,7 +434,8 @@ class SecretSyncUseCase:
             raise SecretManagementBlocker(
                 "infisical_sync_failed",
                 f"Infisical secret sync failed while writing key: {entry.key}",
-            ) from exc
+                failure=failure_from_exception(exc, "deployment.config.sync", "deployment"),
+            ) from None
         self.results.append(
             _sync_result(
                 entry,

@@ -3,6 +3,9 @@ from __future__ import annotations
 import asyncio
 import logging
 
+from tiny_swarm_world.application.ports.operation_result import OperationFailure
+from tiny_swarm_world.application.ports.clients.port_portainer_client import PortainerClientError
+from tiny_swarm_world.application.services.shared.operation_results import failure_from_exception
 from tiny_swarm_world.application.ports.clients.port_portainer_admin_client import (
     PortainerAdminInitializationRejected,
     PortPortainerAdminClient,
@@ -41,7 +44,7 @@ class EnsurePortainerAdminAccess:
             if attempt < self.max_attempts:
                 await asyncio.sleep(self.wait_seconds)
 
-        raise RuntimeError("Portainer admin access could not be initialized.")
+        raise PortainerClientError(OperationFailure.for_cause("deployment.portainer.admin", "deployment", "dependency_unavailable")) from None
 
     def _initialize_admin_access(self, attempt: int) -> bool:
         try:
@@ -78,6 +81,7 @@ class EnsurePortainerAdminAccess:
         raise exc
 
     async def verify(self) -> VerificationResult:
+        self.operation_failure: OperationFailure | None = None
         last_exception: Exception | None = None
         for attempt in range(1, self.max_attempts + 1):
             try:
@@ -96,6 +100,7 @@ class EnsurePortainerAdminAccess:
                 await asyncio.sleep(self.wait_seconds)
 
         if last_exception is not None:
+            self.operation_failure = failure_from_exception(last_exception, "deployment.verify", "deployment")
             return VerificationResult(
                 target_id=self.verification_target_id,
                 status=VerificationStatus.FAILED_TO_VERIFY,
@@ -118,6 +123,6 @@ class EnsurePortainerAdminAccess:
 
 def _safe_exception_summary(exc: Exception) -> str:
     status_code = getattr(exc, "status_code", None)
-    if status_code is not None:
+    if type(status_code) is int and 100 <= status_code <= 599:
         return f"{exc.__class__.__name__} HTTP {status_code}. Diagnostic payload redacted."
     return f"{exc.__class__.__name__}. Diagnostic payload redacted."

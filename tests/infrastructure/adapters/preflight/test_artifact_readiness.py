@@ -1,4 +1,10 @@
 import unittest
+import asyncio
+from tiny_swarm_world.application.ports.operation_result import OperationError, OperationFailure
+from tiny_swarm_world.application.services.artifacts.readiness_gate import ArtifactReadinessGate
+from tiny_swarm_world.application.services.artifacts.workflows import ArtifactWorkflowResult, ArtifactWorkflowKind, ArtifactWorkflowStatus
+from tiny_swarm_world.application.services.setup import SetupWorkflow, SetupWorkflowPhase
+from tiny_swarm_world.domain.preflight import PreflightCheck, PreflightCategory, PreflightSeverity, PreflightStatus, PreflightResult, LiveConsent
 import subprocess
 import tempfile
 from pathlib import Path
@@ -28,6 +34,26 @@ from tiny_swarm_world.infrastructure.project_paths import ProjectPaths
 
 
 class TestArtifactReadiness(unittest.TestCase):
+    def test_indexed_adapter_and_direct_typed_gate_origins_reach_setup(self):
+        failure = OperationFailure.for_cause("swarm.execute", "lxc_gateway", "process_timeout")
+        static = PreflightResult((PreflightCheck("STATIC", PreflightCategory.CONFIGURATION, PreflightStatus.PASSED, PreflightSeverity.MANDATORY, "Ready", ""),))
+        bootstrap = ArtifactWorkflowResult(ArtifactWorkflowKind.PREPARE, ArtifactWorkflowStatus.COMPLETED, "Ready", "Ready", executed=True)
+        def failing(request):
+            raise OperationError(failure)
+        adapter = BoundedArtifactReadinessAdapter({target: failing for target in ARTIFACT_READINESS_TARGETS})
+        direct = MagicMock()
+        direct.check.side_effect = OperationError(failure)
+        for readiness in (adapter, direct):
+            gate = ArtifactReadinessGate(readiness)
+            result = asyncio.run(SetupWorkflow((SetupWorkflowPhase("readiness", lambda: gate.run(static_preflight=static, artifact_bootstrap=bootstrap)),), live_consent=LiveConsent(True, confirmed=True)).run())
+            self.assertEqual((failure,) * len(ARTIFACT_READINESS_TARGETS), result.operation_result.failures)
+        untrusted = OperationFailure.for_cause("private.value", "private.component", "process_timeout")
+        direct.check.side_effect = OperationError(untrusted)
+        result = ArtifactReadinessGate(direct).run(static_preflight=static, artifact_bootstrap=bootstrap)
+        self.assertNotIn("private.value", repr(result.to_dict()))
+        self.assertEqual("unexpected_failure", result.checks[0].evidence["failure_1_cause"])
+
+
     def test_all_required_targets_are_explicit_and_receive_bounded_request(self):
         calls = []
 

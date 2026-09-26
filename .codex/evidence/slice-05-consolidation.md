@@ -1,44 +1,52 @@
-# S352-05 consolidation / CP_RECORD
+# S355-05 consolidation
 
-Workflow issue-352-configuration-parsing-boundary; workflowVersion 1.0.
-Stream results: sequential Python implementation and root consolidation.
-Validated selected deployment/setup inputs before managed lifecycle mutation and retained actual provider, Compose and operator values. Installer securely stages and validates selected configuration, then shares it with reset/setup; original/staged secret-storage checks and credential timing remain enforced. Approved installer adapter/test and reviewed complete shell-fixture correction included.
+Workflow issue-355-operation-results v1.0. Sequential source/test implementation
+in the existing isolated worktree, root-owned metadata, independent Requirement,
+Architect, Tester and Security review. User authorized resuming existing edits.
+No parallel write conflicts or fallback role reviews.
 
-Accepted findings: independent Architect and Tester accepted scoped behavior.
-Rejected findings: none. Conflict resolution: no overlapping task edits; user
-authorized excluding unrelated Jenkins files (now separately committed by another actor).
-No new worktrees. Real subagents used; no fallback. No parallel writers.
-Files changed per stream:
-- .codex/evidence/slice-05-distribution.md
-- .tiny-swarm/evidence/issue-352/remaining_risks.md
-- documentation/workflow/context-pack.json
-- documentation/workflow/context-pack.md
-- documentation/workflow/workflow.md
-- src/tiny_swarm_world/application/services/configuration/configuration_validation_service.py
-- src/tiny_swarm_world/application/services/deployment/ensure_service_stack.py
-- src/tiny_swarm_world/application/services/deployment/ensure_swarm_stack.py
-- src/tiny_swarm_world/application/services/deployment/workflows.py
-- src/tiny_swarm_world/infrastructure/adapters/repositories/installer_configuration_repository.py
-- src/tiny_swarm_world/infrastructure/composition_deployment.py
-- src/tiny_swarm_world/infrastructure/composition_platform.py
-- src/tiny_swarm_world/infrastructure/composition_runtime.py
-- src/tiny_swarm_world/infrastructure/composition_setup.py
-- src/tiny_swarm_world/installer.py
-- tests/application/services/deployment/test_deployment_workflows.py
-- tests/application/services/deployment/test_ensure_service_stack.py
-- tests/application/services/deployment/test_ensure_swarm_stack.py
-- tests/infrastructure/adapters/repositories/test_installer_configuration_repository.py
-- tests/infrastructure/test_composition.py
-- tests/test_install_script.py
-- tests/test_installer.py
+Accepted corrections: computed setup phase results control dependency execution;
+normal run-only preparation confirms its declared work; contradictory verification
+retains confirmed siblings and cannot report success; timeout keeps confirmed,
+uncertain and pending work distinct. Typed service failures retain origin; generic
+diagnostic attributes are redacted. Existing Nexus recovery codes remain allowlisted.
+Verified child recovery history remains nested while parent failures describe
+active failures; no parent rollback or pending work is invented.
 
-Tests executed: Targeted lifecycle/repository/installer suite PASS: 321 tests; isolated shell-installer suite PASS: 20 tests. Final python3 tools/quality_gate.py quality PASS: 2159 tests, 18 skipped; lint/typecheck690 files, five import contracts, 22 architecture tests and verification policy passed. Log: /tmp/tsw352-s05-final-quality.log. git diff --check PASS. Independent architecture/test reviews ACCEPT. Initial full gate failed only incomplete shell fixtures (18 failures, one downstream error); reviewed TEST_FAILURE retry1 fixture repair preserved all assertions and mocked lifecycle boundaries; final full gate rerun passed.
-SonarQube: external gate not executed; no external success claim.
-Documentation: issue matrix, workflow progress/context and execution evidence.
-Final integration decision: ACCEPT S352-05 only; later requirements remain OPEN.
-Rollback reference: 273c2951. arc42Updated=false; adrUpdated=false.
-Root commit readiness: READY for exactly listed slice files with green local gates.
-Checkpoint SHA/push: Git history and next checkpoint record identify exact SHA;
-branch push only, no PR, merge or cleanup.
+Architecture accepts the shared failure_from_exception helper: OperationError is
+classified first, and legacy broad fallback remains explicitly unexpected_failure.
+Requirement and Tester concur with nested resolved-history semantics. No rejected
+findings; all reported corrections addressed, final reviews PASS.
 
-Review repairs: corrected staging error classification/host detection, enforced original and staged file safety, captured selected bridge override and delayed Docker mirror readers, preserved exact static option semantics and selected manifest consumers. Architecture and Test/Evidence reviewers accepted final repairs. Concrete new adapter/test scope was approved by user; existing shell-fixture scope correction was reviewed as necessary verification maintenance. No gate weakened.
+Targeted expanded suite: 232 tests passed in 12.214s. Full local quality passed: 2243 tests in 256.751s, 18 exclusions; all sub-gates passed.
+Final integration ACCEPTED after complete-inventory correction and final quality.
+D8 PASS permits one S355-05 checkpoint on the user-approved recovery branch.
+Live/browser NOT_APPLICABLE; no live execution. SonarQube not required for the
+branch-only checkpoint; no external verification claimed.
+
+## CP_RECORD
+
+sliceId: S355-05
+workflowVersion: 1.0
+branch: recovery/issue-355-20260926
+owner: Senior Python Automation Developer; root integration
+changedFiles: .tiny-swarm/evidence/issue-355/changed_files.md, S355-05 inventory
+qualityCommands: expanded target suites; corrective targets; TMPDIR=/home/micro/.cache/issue355-tmp python3 tools/quality_gate.py quality; git diff --check
+qualityResult: PASS (2251 tests in 277.050s; 18 exclusions)
+rollbackReference: a9a594661f9a5f396dcbfcb1f66d5e354b39ebfc
+arc42Updated: false; final implemented documentation belongs to S355-07
+adrUpdated: false; accepted S355-01 contract preserved
+publication: pending final commit readiness review on user-approved recovery branch
+
+The branch mismatch paused publication after code validation. User explicitly
+authorized the recovery branch; D8 technical evidence remains valid because only
+workflow/evidence metadata changed after the full gate.
+
+## Complete inventory audit
+
+All six additional findings resolved and independently reviewed. Narrow new files
+are limited to blocked composition and artifact readiness translation plus tests.
+Expanded targets 251, six-gap targets 40 (overlap); independent Tester targets
+36 and 35 passed. Final no-work-guard/blocked correction: 15 focused tests passed.
+Architecture/inventory and Security final PASS; full gate rerun PASS: 2251 tests in 277.050s, 18 exclusions.
+Prior READY was explicitly withdrawn while the audit corrections were made.

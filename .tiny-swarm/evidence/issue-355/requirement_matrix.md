@@ -36,3 +36,19 @@ Targeted: metadata suites 86, 84, 18 PASS; regression repair 40 PASS; expanded 1
 
 Platform producers retain explicit requested progress, safe origins, uncertainty and verified recovery through the shared result contract.
 Targeted: declared/helper 161 PASS; complete platform 221 PASS (overlap). Full quality PASS: 2227 tests in 241.428s, 18 skipped. Partial evidence only; requirement rows remain OPEN until complete lifecycle coverage and final audit.
+
+## S355-05 incremental evidence
+
+All four lifecycle families now expose common results.
+`tests.application.services.setup.test_operation_result_integration` verifies
+nested origins, partial/uncertain work, timeout, cancellation, deterministic
+concurrency, contradictory evidence, recovery history and redaction.
+`test_verify_swarm_service_readiness` verifies typed companion propagation/reset.
+Expanded targets 232 and corrective targets 31 passed (overlap). Full quality
+passed: 2243 tests, 18 exclusions. Final CLI and independent issue audit remain open.
+
+S05 complete-inventory correction evidence: `test_infisical_silent_install`,
+`test_ensure_infisical_secret_items`, `test_static_contract_preflight`,
+`test_artifact_readiness`, `test_readiness_gate`, and composition blocked-result
+tests retain typed origins, multiple causes and safe/accurate progress. Final
+full quality passed: 2251 tests, 18 exclusions. Final issue audit remains open.

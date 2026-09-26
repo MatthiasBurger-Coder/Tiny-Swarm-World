@@ -191,3 +191,22 @@ tests.infrastructure.adapters.file_management.test_local_file_storage and
 tests.infrastructure.test_composition; individual boundary coverage is backed by
 the full gate and existing matching suites. Final application result aggregation
 remains S04/S05; issue completion remains S07.
+
+## S355-05 full-inventory reconciliation
+
+Independent source audit revisited every boundary row before checkpoint.
+Infisical bootstrap and authentication now retain typed failures; secondary
+evidence-write failures retain the original and confirmed bootstrap progress.
+Known bootstrap blockers are explicit; diagnostics use declared safe values.
+Artifact-readiness adapter/gate/setup preserve indexed, allowlisted origins;
+static configuration findings retain typed configuration causes. Real provider-
+blocked artifact/deployment producers expose common blocked results. Their
+legacy constructor defaults remain compatible. Tests cover repeated calls,
+pre-execution pending state, cancellation and no-work guards followed by blocking.
+
+Endpoint readiness retains known endpoint_statuses in verification evidence;
+common verification_failed is an intentional compatible collapse. Existing
+domain-fact collapse and listed unreachable/diagnostic exclusions remain valid.
+No additional S02-S05 product gaps were confirmed by the completed audit.
+S06 presentation compatibility and S07 final architecture/evidence audit remain
+required. No live or external success follows from this source review.

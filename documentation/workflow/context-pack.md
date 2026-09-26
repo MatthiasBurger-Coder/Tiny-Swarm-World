@@ -1,8 +1,8 @@
 # ARCH-03.12 workflow context
 
 Workflow issue-355-operation-results, version 1.0; process strand workflow execute;
-profile FULL_PATH. Branch `architecture/workflow-355-operation-results-20260926`; baseline `3487ce322bb2b251a45695fc88a70ffa8132b0de`.
-Status EXECUTING; S355-04 accepted; later slices pending.
+profile FULL_PATH. Branch `recovery/issue-355-20260926`; baseline `3487ce322bb2b251a45695fc88a70ffa8132b0de`.
+Status EXECUTING; S355-05 accepted; S355-06/07 pending.
 
 Read [workflow](workflow.md), [requirements](requirement-matrix.md),
 [authoring review](authoring-review.md) and [machine context](context-pack.json).

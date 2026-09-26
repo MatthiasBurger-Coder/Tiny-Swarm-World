@@ -98,7 +98,7 @@ class TestWaitForNexusReady(unittest.TestCase):
         "tiny_swarm_world.application.services.shared.readiness_wait.asyncio.sleep",
         new_callable=AsyncMock,
     )
-    def test_raises_timeout_from_last_connection_error(self, _mock_sleep):
+    def test_timeout_suppresses_untyped_connection_error_chain(self, _mock_sleep):
         nexus_client = MagicMock()
         nexus_client.is_available.side_effect = ConnectionError("connection refused")
 
@@ -107,7 +107,9 @@ class TestWaitForNexusReady(unittest.TestCase):
         with self.assertRaises(TimeoutError) as raised:
             asyncio.run(service.run())
 
-        self.assertIsInstance(raised.exception.__cause__, ConnectionError)
+        self.assertIsNone(raised.exception.__cause__)
+        self.assertTrue(raised.exception.__suppress_context__)
+        self.assertEqual("unexpected_failure", raised.exception.failure.cause)
 
 
 class TestEnsureNexusAdminAccess(unittest.TestCase):

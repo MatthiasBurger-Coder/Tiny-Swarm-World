@@ -1,5 +1,8 @@
 import asyncio
 import unittest
+from unittest.mock import MagicMock
+
+from tiny_swarm_world.application.ports.operation_result import OperationFailure
 
 from tests.support.sonar_safe_literals import operator_credential, sample_text
 
@@ -7,12 +10,26 @@ from tiny_swarm_world.application.services.deployment.ensure_sonarqube_admin_acc
     EnsureSonarqubeAdminAccess,
 )
 from tiny_swarm_world.application.ports.clients.port_sonarqube_client import (
-    PortSonarqubeClient,
+    PortSonarqubeClient, SonarqubeClientError,
 )
 from tiny_swarm_world.domain.inventory import VerificationStatus
 
 
 class TestEnsureSonarqubeAdminAccess(unittest.TestCase):
+    def test_retry_exhaustion_retains_typed_origin_without_cause_chain(self):
+        failure = OperationFailure.for_cause("service.request", "sonarqube", "request_failed")
+        client = MagicMock()
+        client.is_available.return_value = True
+        client.can_authenticate.side_effect = SonarqubeClientError(failure)
+        service = EnsureSonarqubeAdminAccess(sonarqube_client=client, username="admin", password=operator_credential(), max_attempts=2, wait_seconds=0)
+        with self.assertRaises(SonarqubeClientError) as raised:
+            asyncio.run(service.run())
+        self.assertEqual(failure, raised.exception.failure)
+        self.assertIsNone(raised.exception.__cause__)
+        self.assertTrue(raised.exception.__suppress_context__)
+        self.assertEqual(3, client.can_authenticate.call_count)
+
+
     def test_keeps_existing_configured_password(self):
         client = _FakeSonarqubeClient(configured_valid=True, initial_valid=False)
         step = _step(client)

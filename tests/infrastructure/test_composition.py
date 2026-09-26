@@ -3429,3 +3429,26 @@ class TestSocatStructuredFailureComposition(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("process_timeout", result.evidence["failure_1_cause"])
         self.assertEqual("exposure.start", result.evidence["failure_1_operation"])
         self.assertNotIn("unused", str(result.evidence))
+
+
+class TestBlockedOperationResults(unittest.IsolatedAsyncioTestCase):
+    async def test_real_blocked_producers_expose_results_through_setup(self):
+        from tiny_swarm_world.infrastructure.composition_blocked_workflows import BlockedArtifactWorkflow, BlockedDeploymentWorkflow
+        from tiny_swarm_world.application.services.artifacts.workflows import ArtifactWorkflowKind
+        from tiny_swarm_world.application.services.deployment.workflows import DeploymentWorkflowKind
+        from tiny_swarm_world.application.services.setup import SetupWorkflow, SetupWorkflowPhase
+        from tiny_swarm_world.domain.preflight import LiveConsent
+        from tiny_swarm_world.application.ports.operation_result import OperationOutcome
+        for producer in (BlockedArtifactWorkflow(ArtifactWorkflowKind.PREPARE, "Unavailable"), BlockedDeploymentWorkflow(DeploymentWorkflowKind.APPLY, "Unavailable")):
+            child = await producer.run()
+            self.assertEqual(OperationOutcome.BLOCKED, child.operation_result.outcome)
+            result = await SetupWorkflow((SetupWorkflowPhase("blocked", producer.run),), live_consent=LiveConsent(True, confirmed=True)).run()
+            self.assertEqual(child.operation_result.failures, result.operation_result.failures)
+            self.assertEqual(OperationOutcome.BLOCKED, result.operation_result.outcome)
+            from tiny_swarm_world.domain.preflight import PreflightResult
+            from unittest.mock import MagicMock
+            later = MagicMock()
+            guarded = await SetupWorkflow((SetupWorkflowPhase("guard", lambda: PreflightResult(())), SetupWorkflowPhase("blocked", producer.run), SetupWorkflowPhase("later", later)), live_consent=LiveConsent(True, confirmed=True)).run()
+            self.assertEqual(OperationOutcome.BLOCKED, guarded.operation_result.outcome)
+            self.assertEqual((), guarded.operation_result.completed_operations)
+            later.assert_not_called()

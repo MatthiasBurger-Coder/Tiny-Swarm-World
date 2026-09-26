@@ -2,10 +2,10 @@
 
 Workflow ID: issue-355-operation-results
 workflowVersion: 1.0
-Status: EXECUTING; S355-04 accepted; later slices pending
+Status: EXECUTING; S355-05 accepted; S355-06/07 pending
 Issue: [#355](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/355)
 Parent: [#313](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/313)
-Branch: `architecture/workflow-355-operation-results-20260926`
+Branch: `recovery/issue-355-20260926`
 Baseline: `3487ce322bb2b251a45695fc88a70ffa8132b0de`
 Execution profile: FULL_PATH — shared application contracts, adapter translation and lifecycle compatibility.
 
@@ -76,8 +76,8 @@ and control-flow exceptions propagate through adapters/workflows; existing entry
 interruption mappings remain intact. Unexpected defects are distinguishable.
 No blanket BaseException translation. Suppress unsafe exception chains at adapters.
 
-New ADR is proposed, not accepted: S355-01 accepts or rejects it with architecture
-review before product work. Existing layer, process, provider, consent, Classic
+The ADR was accepted in S355-01 after architecture review; subsequent slices
+implement its contract. Existing layer, process, provider, consent, Classic
 update and installer-reporting ADRs remain authoritative.
 
 ## Python Automation Assessment
@@ -116,7 +116,8 @@ No live or external success follows from local tests.
 
 `S355-01 -> S355-02 -> S355-03 -> S355-04 -> S355-05 -> S355-06 -> S355-07`
 
-All slices NOT STARTED. Every slice has exactly one checkpoint commit. Common
+S355-01 through S355-05 are accepted. S355-06/07 remain
+pending. Every slice has exactly one checkpoint commit. Common
 allowed evidence/status writes: `.tiny-swarm/evidence/issue-355/**`, that slice's
 `.codex/evidence/slice-<number>-distribution.md` and consolidation file, plus active
 workflow status, matrix and context-pack refresh. Serialize these shared files.
@@ -578,7 +579,15 @@ Allowed write scope and locks:
     "src/tiny_swarm_world/infrastructure/composition_setup.py",
     "tests/infrastructure/test_composition.py",
     "src/tiny_swarm_world/application/services/shared/operation_results.py",
-    "tests/application/services/shared/test_operation_results.py"
+    "tests/application/services/shared/test_operation_results.py",
+    "src/tiny_swarm_world/application/services/nexus/wait_for_nexus_ready.py",
+    "src/tiny_swarm_world/application/services/nexus/ensure_nexus_admin_access.py",
+    "src/tiny_swarm_world/application/services/nexus/ensure_nexus_repository.py",
+    "tests/application/services/nexus/test_bootstrap_nexus.py",
+    "tests/application/services/nexus/test_nexus_repository_contracts.py",
+    "src/tiny_swarm_world/infrastructure/composition_blocked_workflows.py",
+    "src/tiny_swarm_world/infrastructure/adapters/preflight/artifact_readiness.py",
+    "tests/infrastructure/adapters/preflight/test_artifact_readiness.py"
   ],
   "affected_modules": [
     "operation results",
@@ -608,7 +617,15 @@ Allowed write scope and locks:
     ".codex/evidence/slice-*-consolidation.md",
     "documentation/workflow/**",
     "src/tiny_swarm_world/application/services/shared/operation_results.py",
-    "tests/application/services/shared/test_operation_results.py"
+    "tests/application/services/shared/test_operation_results.py",
+    "src/tiny_swarm_world/application/services/nexus/wait_for_nexus_ready.py",
+    "src/tiny_swarm_world/application/services/nexus/ensure_nexus_admin_access.py",
+    "src/tiny_swarm_world/application/services/nexus/ensure_nexus_repository.py",
+    "tests/application/services/nexus/test_bootstrap_nexus.py",
+    "tests/application/services/nexus/test_nexus_repository_contracts.py",
+    "src/tiny_swarm_world/infrastructure/composition_blocked_workflows.py",
+    "src/tiny_swarm_world/infrastructure/adapters/preflight/artifact_readiness.py",
+    "tests/infrastructure/adapters/preflight/test_artifact_readiness.py"
   ],
   "contract_locks": [
     "operation-result-contract",
@@ -881,7 +898,7 @@ exact files are disjoint. Shared evidence integration remains serial.
 Use the declared workflow branch in an isolated execution worktree; verify clean
 state and branch ownership before moving a checked-out branch. Do not create a
 replacement workflow branch. Stream branches are
-`architecture/workflow-355-operation-results-20260926-slice-<number>-<stream>` in separate worktrees. Workers never merge directly
+`recovery/issue-355-20260926-slice-<number>-<stream>` in separate worktrees. Workers never merge directly
 to the workflow branch. Codex consolidates after review and tests. Recheck branch,
 source baseline drift and locks before every write-capable assignment.
 
@@ -937,7 +954,7 @@ evidence complete and arc42 accurate. Live/external state remains separate.
 
 Workflow-create publication uses git-commit-preparation and message-preparation:
 review only regenerated workflow files, planned analysis and proposed ADR, commit,
-then push HEAD only to `origin/architecture/workflow-355-operation-results-20260926`. No PR, merge, force-push, branch deletion
+then push HEAD only to `origin/recovery/issue-355-20260926`. No PR, merge, force-push, branch deletion
 or cleanup. Workflow-create-only push auto remains guarded. Later workflow execute
 creates exactly one commit and branch checkpoint push per accepted slice.
 
@@ -962,7 +979,7 @@ Four-Role acceptance before any product edits. See lifecycle-failure-inventory.m
 ## Execution progress
 
 - S355-01 ACCEPTED: complete lifecycle inventory, concrete schema, reviewed scope amendments and accepted ADR. Four independent role reviews PASS; arch-tests 26 PASS; diff/path checks PASS. Product implementation starts in S355-02.
-- Execution worktree: /mnt/d/Projects/Tiny-Swarm-World-worktrees/issue-355; workflow branch unchanged.
+- Execution worktree: /mnt/d/Projects/Tiny-Swarm-World-worktrees/issue-355; execution branch now follows the user-approved recovery branch.
 
 - S355-02 ACCEPTED: Immutable safe operation contract, compatible application-owned command errors with cause preservation, and conservative real platform factory integration. Targeted 64 tests PASS; full quality PASS: 2188 tests in 294.844s; independent architecture/test review PASS.
   Excluded test cases: 18 (reported by unittest).
@@ -989,3 +1006,41 @@ no I/O, retries, silent identity conflicts or discarded uncertainty. Workflow ow
 requested-work versus prerequisite semantics; recovery requires observed evidence.
 
 - S355-04 ACCEPTED: Platform producers retain explicit requested progress, safe origins, uncertainty and verified recovery through the shared result contract. Targeted declared/helper 161 PASS; complete platform 221 PASS (overlap); full quality PASS: 2227 tests in 241.428s; independent architecture/test review PASS. Test exclusions: 18.
+
+S05 reviewed Nexus scope: three composed artifact steps and two existing suites
+are approved for structured propagation only. Preserve retry counts/delays and
+NexusAdminAccessRecoveryBlocked subtype, diagnostic and operator_action semantics.
+
+S05 aggregation clarification (Architect and Requirement concurrence): parent
+setup failures describe active failures. A verified rolled_back child retains its
+complete historical failure context in SetupPhaseResult.operation_result and
+nested serialization, but resolved history does not fail an otherwise completed
+setup request. Parent success requires no active failures, pending or uncertain
+work and never asserts parent rollback_verified. Failed/unverified recovery is
+not excluded. Regression tests must cover a later active failure with both
+contexts still observable. Existing completed/continue behavior is preserved.
+
+- S355-05 ACCEPTED: four-family propagation, safe diagnostics and deterministic progress; expanded 232 and correction 31 targets passed (overlap); full quality passed, 2243 tests in 256.751s, 18 exclusions. Independent Architect/Security/Tester reviews PASS.
+
+## Authorized branch continuation
+
+The user explicitly selected `recovery/issue-355-20260926` after the external
+branch change. This existing branch retains checkpoint a9a59466 and all S05
+changes. All subsequent slice checkpoints target this branch on origin.
+Historical authoring records retain their original publication context.
+
+S355-05 completeness audit reopened acceptance before checkpoint: Infisical CLI
+bootstrap failure context and known endpoint-readiness failure classifications
+require verification/correction. No checkpoint is authorized until the complete
+inventory review, focused regressions and a new full gate pass.
+
+S05 reviewed completeness correction: Architect approved the blocked-workflow
+composition producer and artifact_readiness adapter/test paths in S05 metadata.
+Scope is additive blocked results and trust-safe indexed origin propagation only;
+existing deployment/artifact/setup scopes cover consumer corrections. No domain
+imports, arbitrary legacy-origin trust, retries or runtime policy changes.
+Endpoint-readiness evidence already preserves timeout/connection/HTTP status;
+common verification_failed is an intentional compatible collapse. Verify that
+composed evidence remains intact instead of inventing a granularity requirement.
+
+S355-05 complete-inventory corrections ACCEPTED: all six findings and progress edges verified; full quality 2251 tests in 277.050s, 18 exclusions; architecture/inventory, Security and Tester PASS. Checkpoint resumes on recovery branch.

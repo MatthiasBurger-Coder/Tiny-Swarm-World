@@ -4,11 +4,15 @@ import asyncio
 from contextlib import suppress
 import inspect
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import Enum
 from typing import Protocol
 
+from tiny_swarm_world.application.ports.operation_result import OperationFailure, OperationOutcome, OperationResult
+from tiny_swarm_world.application.services.shared.operation_results import aggregate_operation, failure_from_exception, verification_failures, prefixed_operation_result
+from tiny_swarm_world.application.services.platform.workflow.runtime import PLATFORM_FAILURE_ORIGINS
+from tiny_swarm_world.application.services.artifacts.readiness_gate import ARTIFACT_FAILURE_ORIGINS
 from tiny_swarm_world.application.ports.method_trace import (
     NullMethodTrace,
     PortMethodTrace,
@@ -100,9 +104,11 @@ class SetupPhaseResult:
     name: str
     status: str
     result: object
+    operation_result: OperationResult | None = None
 
     def to_dict(self) -> dict[str, object]:
         return {
+            "operation_result": self.operation_result.to_dict() if self.operation_result else None,
             "name": self.name,
             "result": _result_to_dict(self.result),
             "status": self.status,
@@ -142,6 +148,7 @@ class SetupWorkflowResult:
     executed: bool = False
     phase_results: tuple[SetupPhaseResult, ...] = ()
     phase_group_results: tuple[SetupPhaseGroupResult, ...] = ()
+    operation_result: OperationResult | None = None
 
     @property
     def workflow_name(self) -> str:
@@ -149,6 +156,7 @@ class SetupWorkflowResult:
 
     def to_dict(self) -> dict[str, object]:
         return {
+            "operation_result": self.operation_result.to_dict() if self.operation_result else None,
             "executed": self.executed,
             "message": self.message,
             "phase_group_results": [
@@ -159,6 +167,43 @@ class SetupWorkflowResult:
             "status": self.status.value,
             "workflow": self.workflow_name,
         }
+
+
+@dataclass
+class _SetupSnapshot:
+    phases: tuple[SetupWorkflowPhase, ...] = ()
+    started: set[int] = field(default_factory=set)
+    executions: dict[int, _SetupPhaseExecution] = field(default_factory=dict)
+    groups: list[SetupPhaseGroupResult] = field(default_factory=list)
+
+    def operation_result(self, *, timeout: bool = False) -> OperationResult:
+        completed: list[str] = []
+        pending: list[str] = []
+        uncertain: list[str] = []
+        failures: list[OperationFailure] = []
+        for index in range(1, len(self.phases) + 1):
+            execution = self.executions.get(index)
+            if execution is None:
+                (uncertain if index in self.started else pending).append(f"setup.phase.{index}")
+                continue
+            child = execution.phase_result.operation_result
+            if child is not None:
+                completed.extend(child.completed_operations)
+                pending.extend(child.pending_operations)
+                uncertain.extend(child.uncertain_operations)
+                if child.outcome != OperationOutcome.ROLLED_BACK:
+                    failures.extend(child.failures)
+        if timeout:
+            failures.append(OperationFailure.for_cause("setup.run", "setup", "process_timeout"))
+        if (pending or uncertain) and not failures:
+            failures.append(OperationFailure.for_cause("setup.run", "setup", "verification_failed"))
+        outcome = OperationOutcome.SUCCESS if not failures and not pending and not uncertain else OperationOutcome.FAILED
+        children = tuple(execution.phase_result.operation_result for execution in self.executions.values())
+        if not timeout and children and not completed and not uncertain:
+            if all(child is not None and child.outcome in (OperationOutcome.SUCCESS, OperationOutcome.BLOCKED, OperationOutcome.REFUSED) for child in children) and any(child is not None and child.outcome in (OperationOutcome.BLOCKED, OperationOutcome.REFUSED) for child in children):
+                outcome = OperationOutcome.REFUSED if any(child is not None and child.outcome == OperationOutcome.REFUSED for child in children) else OperationOutcome.BLOCKED
+        return aggregate_operation(outcome,
+            completed=completed, pending=pending, uncertain=uncertain, failures=failures)
 
 
 class SetupWorkflow:
@@ -191,6 +236,7 @@ class SetupWorkflow:
         self.max_concurrency = max_concurrency
 
     async def run(self) -> SetupWorkflowResult:
+        snapshot = _SetupSnapshot()
         runner = MethodTraceWrapper(
             self.method_trace,
             component="setup",
@@ -199,8 +245,8 @@ class SetupWorkflow:
         ).wrap_async(self._run, method_name="run", result_classifier=_setup_trace_result)
         try:
             if self.timeout_seconds is None:
-                return await runner()
-            return await asyncio.wait_for(runner(), timeout=self.timeout_seconds)
+                return await runner(snapshot)
+            return await asyncio.wait_for(runner(snapshot), timeout=self.timeout_seconds)
         except asyncio.TimeoutError:
             self._report_progress(
                 phase="setup",
@@ -218,9 +264,14 @@ class SetupWorkflow:
                 message="setup workflow timed out.",
                 reason=f"outer timeout exceeded after {self.timeout_seconds:g} seconds",
                 executed=True,
+                phase_results=tuple(snapshot.executions[index].phase_result if index in snapshot.executions else SetupPhaseResult(
+                    phase.name, "timed_out" if index in snapshot.started else "not_run", {"status": "timed_out" if index in snapshot.started else "not_run"},
+                ) for index, phase in enumerate(snapshot.phases, 1)),
+                phase_group_results=tuple(snapshot.groups),
+                operation_result=snapshot.operation_result(timeout=True),
             )
 
-    async def _run(self) -> SetupWorkflowResult:
+    async def _run(self, snapshot: _SetupSnapshot) -> SetupWorkflowResult:
         if self.live_consent is None or not self.live_consent.accepted:
             self._report_progress(
                 phase="setup",
@@ -237,6 +288,7 @@ class SetupWorkflow:
                 status=SetupWorkflowStatus.REFUSED,
                 message="setup run refused because live infrastructure consent is incomplete.",
                 reason="live consent is required before setup orchestration can run",
+                operation_result=aggregate_operation(OperationOutcome.REFUSED, pending=("setup.run",), failures=(OperationFailure.for_cause("setup.run", "setup", "refused"),)),
             )
 
         try:
@@ -257,6 +309,7 @@ class SetupWorkflow:
                 status=SetupWorkflowStatus.BLOCKED,
                 message="setup run is blocked by the installation phase plan.",
                 reason=str(exc),
+                operation_result=aggregate_operation(OperationOutcome.BLOCKED, pending=("setup.run",), failures=(OperationFailure.for_cause("setup.plan", "setup", "configuration_invalid"),)),
             )
 
         if not phases:
@@ -275,20 +328,25 @@ class SetupWorkflow:
                 status=SetupWorkflowStatus.BLOCKED,
                 message="setup run is blocked until setup phases are configured.",
                 reason="setup orchestration phases are missing",
+                operation_result=aggregate_operation(OperationOutcome.BLOCKED, pending=("setup.run",), failures=(OperationFailure.for_cause("setup.plan", "setup", "blocked"),)),
             )
 
+        snapshot.phases = phases
         phase_groups = self._ordered_phase_groups()
         phase_results: list[SetupPhaseResult] = []
         phase_group_results: list[SetupPhaseGroupResult] = []
+        offset = 0
         for group_index, group in enumerate(phase_groups):
-            executions, group_result = await self._run_phase_group(group)
+            executions, group_result = await self._run_phase_group(group, snapshot, offset)
+            offset += len(group.phases)
+            snapshot.groups.append(group_result)
             phase_group_results.append(group_result)
             phase_results.extend(execution.phase_result for execution in executions)
             failed_execution = next(
                 (
                     execution
                     for execution in executions
-                    if not _is_success_status(execution.phase_result.status)
+                    if _execution_failed(execution)
                 ),
                 None,
             )
@@ -318,6 +376,7 @@ class SetupWorkflow:
                 executed=True,
                 phase_results=(*phase_results, *not_run_phase_results),
                 phase_group_results=tuple(phase_group_results),
+                operation_result=snapshot.operation_result(),
             )
 
         self._report_progress(
@@ -337,6 +396,7 @@ class SetupWorkflow:
             executed=True,
             phase_results=tuple(phase_results),
             phase_group_results=tuple(phase_group_results),
+            operation_result=snapshot.operation_result(),
         )
 
     async def _run_phase_with_heartbeat(self, phase: SetupWorkflowPhase) -> object:
@@ -371,6 +431,8 @@ class SetupWorkflow:
     async def _run_phase_group(
         self,
         group: "_SetupPhaseGroup",
+        snapshot: _SetupSnapshot,
+        offset: int,
     ) -> tuple[tuple[_SetupPhaseExecution, ...], SetupPhaseGroupResult]:
         started_monotonic = asyncio.get_running_loop().time()
         started_at = _utc_timestamp()
@@ -393,12 +455,15 @@ class SetupWorkflow:
             )
         semaphore = asyncio.Semaphore(group.maximum_concurrency)
 
-        async def run_bounded(phase: SetupWorkflowPhase) -> _SetupPhaseExecution:
+        async def run_bounded(index: int, phase: SetupWorkflowPhase) -> _SetupPhaseExecution:
             async with semaphore:
-                return await self._execute_phase(phase)
+                snapshot.started.add(index)
+                execution = await self._execute_phase(phase, f"setup.phase.{index}")
+                snapshot.executions[index] = execution
+                return execution
 
         executions = tuple(
-            await asyncio.gather(*(run_bounded(phase) for phase in group.phases))
+            await asyncio.gather(*(run_bounded(index, phase) for index, phase in enumerate(group.phases, offset + 1)))
         )
         for execution in executions:
             phase_result = execution.phase_result
@@ -417,7 +482,7 @@ class SetupWorkflow:
             (
                 execution
                 for execution in executions
-                if not _is_success_status(execution.phase_result.status)
+                if _execution_failed(execution)
             ),
             None,
         )
@@ -453,13 +518,14 @@ class SetupWorkflow:
             )
         return executions, group_result
 
-    async def _execute_phase(self, phase: SetupWorkflowPhase) -> _SetupPhaseExecution:
+    async def _execute_phase(self, phase: SetupWorkflowPhase, identity: str) -> _SetupPhaseExecution:
         try:
             phase_output = await self._run_phase_with_heartbeat(phase)
         except Exception as exc:
             return _SetupPhaseExecution(
                 phase_result=SetupPhaseResult(
                     name=phase.name,
+                    operation_result=aggregate_operation(OperationOutcome.FAILED, uncertain=(identity,), failures=(failure_from_exception(exc, identity, "setup"),)),
                     status=SetupWorkflowStatus.FAILED.value,
                     result={
                         "status": SetupWorkflowStatus.FAILED.value,
@@ -476,6 +542,7 @@ class SetupWorkflow:
             return _SetupPhaseExecution(
                 phase_result=SetupPhaseResult(
                     name=phase.name,
+                    operation_result=aggregate_operation(OperationOutcome.FAILED, uncertain=(identity,), failures=(OperationFailure.for_cause(identity, "setup", "unexpected_failure"),)),
                     status=SetupWorkflowStatus.FAILED.value,
                     result={
                         "status": SetupWorkflowStatus.FAILED.value,
@@ -492,6 +559,7 @@ class SetupWorkflow:
                 name=phase.name,
                 status=phase_status,
                 result=phase_output,
+                operation_result=_phase_operation_result(phase_output, identity),
             ),
             terminal_reason=(
                 f"phase '{phase.name}' returned {phase_status}"
@@ -709,3 +777,37 @@ def _not_run_phase_results(
 
 def _utc_timestamp() -> str:
     return datetime.now(UTC).isoformat().replace("+00:00", "Z")
+
+
+def _execution_failed(execution: _SetupPhaseExecution) -> bool:
+    result = execution.phase_result
+    child = result.operation_result
+    return not _is_success_status(result.status) or (
+        isinstance(child, OperationResult) and child.outcome not in (OperationOutcome.SUCCESS, OperationOutcome.ROLLED_BACK)
+    )
+
+
+def _phase_operation_result(output: object, identity: str) -> OperationResult:
+    child = getattr(output, "operation_result", None)
+    if isinstance(child, OperationResult):
+        return prefixed_operation_result(child, identity)
+    if isinstance(output, PreflightResult):
+        failures = tuple(failure for check in output.checks for failure in verification_failures(
+            check.evidence, verified=check.passed, operation=identity, component="setup", allowed_origins=PLATFORM_FAILURE_ORIGINS | ARTIFACT_FAILURE_ORIGINS,
+        ))
+        return aggregate_operation(OperationOutcome.SUCCESS if output.passed and not failures else OperationOutcome.BLOCKED,
+            pending=() if output.passed and not failures else (identity,), failures=failures)
+    if isinstance(output, HostPreparationResult):
+        failures = verification_failures(output.evidence, verified=output.succeeded and output.verified, operation=identity, component="setup", allowed_origins=PLATFORM_FAILURE_ORIGINS)
+        return aggregate_operation(OperationOutcome.SUCCESS if not failures else OperationOutcome.BLOCKED if output.status.value == "BLOCKED" else OperationOutcome.FAILED,
+            completed=(identity + ".verify",) if output.succeeded and output.verified and not failures else (),
+            pending=(identity + ".verify",) if failures else (), uncertain=(identity + ".apply",) if output.changed and failures else (), failures=failures)
+    # Legacy phase constructors and mapping results retain their status contract.
+    status = _result_status_value(output)
+    if _is_success_status(status):
+        return aggregate_operation(OperationOutcome.SUCCESS, completed=(identity,))
+    return aggregate_operation(
+        OperationOutcome.BLOCKED if status == "blocked" else OperationOutcome.REFUSED if status == "refused" else OperationOutcome.FAILED,
+        pending=(identity,),
+        failures=(OperationFailure.for_cause(identity, "setup", "blocked" if status == "blocked" else "refused" if status == "refused" else "verification_failed"),),
+    )

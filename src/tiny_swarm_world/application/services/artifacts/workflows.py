@@ -3,10 +3,12 @@ from __future__ import annotations
 import inspect
 import logging
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import Enum
 from typing import Protocol
 
+from tiny_swarm_world.application.ports.operation_result import OperationFailure, OperationOutcome, OperationResult
+from tiny_swarm_world.application.services.shared.operation_results import aggregate_operation, failure_from_exception, verification_failures
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
 
 
@@ -46,6 +48,7 @@ class ArtifactWorkflowResult:
     reason: str
     executed: bool = False
     verification_results: tuple[VerificationResult, ...] = ()
+    operation_result: OperationResult | None = None
 
     @property
     def workflow_name(self) -> str:
@@ -53,6 +56,7 @@ class ArtifactWorkflowResult:
 
     def to_dict(self) -> dict[str, object]:
         return {
+            "operation_result": self.operation_result.to_dict() if self.operation_result else None,
             "executed": self.executed,
             "message": self.message,
             "reason": self.reason,
@@ -115,21 +119,41 @@ class ArtifactPrepareWorkflow:
         if (
             bootstrap_result is None
             or bootstrap_result.status is not ArtifactWorkflowStatus.COMPLETED
+            or (bootstrap_result.operation_result is not None and bootstrap_result.operation_result.outcome != OperationOutcome.SUCCESS)
         ):
             return ArtifactWorkflowResult(
                 kind=ArtifactWorkflowKind.PREPARE,
                 status=ArtifactWorkflowStatus.BLOCKED,
                 message="artifacts prepare is blocked until artifact bootstrap succeeds.",
                 reason="artifact bootstrap result is missing or unsuccessful",
+                operation_result=aggregate_operation(
+                    OperationOutcome.BLOCKED,
+                    completed=bootstrap_result.operation_result.completed_operations if bootstrap_result and bootstrap_result.operation_result else (),
+                    pending=("artifacts.prepare.bootstrap",),
+                    uncertain=bootstrap_result.operation_result.uncertain_operations if bootstrap_result and bootstrap_result.operation_result else (),
+                    failures=bootstrap_result.operation_result.failures if bootstrap_result and bootstrap_result.operation_result and bootstrap_result.operation_result.failures else (OperationFailure.for_cause("artifacts.prepare.bootstrap", "artifacts", "blocked"),),
+                ),
             )
-        return await self._run_steps(self.mutation_steps)
+        return await self._run_steps(self.mutation_steps, offset=len(self.bootstrap_steps))
 
     async def _run_steps(
         self,
         steps: Sequence[ArtifactPrepareStep],
+        *, offset: int = 0,
     ) -> ArtifactWorkflowResult:
+        completed: list[str] = []
+        pending = [f"artifacts.prepare.step.{index}.verify" for index in range(offset + 1, offset + len(steps) + 1)]
+        uncertain: list[str] = []
+        failures: list[OperationFailure] = []
+
+        def result(**kwargs) -> ArtifactWorkflowResult:
+            status = kwargs["status"]
+            outcome = OperationOutcome.SUCCESS if status == ArtifactWorkflowStatus.COMPLETED else OperationOutcome.BLOCKED if status == ArtifactWorkflowStatus.BLOCKED else OperationOutcome.FAILED
+            context = failures or (() if outcome == OperationOutcome.SUCCESS else (OperationFailure.for_cause("artifacts.prepare", "artifacts", "blocked" if outcome == OperationOutcome.BLOCKED else "verification_failed"),))
+            return ArtifactWorkflowResult(**kwargs, operation_result=aggregate_operation(outcome, completed=completed, pending=pending, uncertain=uncertain, failures=context))
+
         if not steps:
-            return ArtifactWorkflowResult(
+            return result(
                 kind=ArtifactWorkflowKind.PREPARE,
                 status=ArtifactWorkflowStatus.BLOCKED,
                 message=ARTIFACT_PREPARE_CONTRACTS_BLOCKED_MESSAGE,
@@ -137,7 +161,8 @@ class ArtifactPrepareWorkflow:
             )
 
         verification_results: list[VerificationResult] = []
-        for step in steps:
+        for index, step in enumerate(steps, offset + 1):
+            identity = f"artifacts.prepare.step.{index}"
             target_id = _verification_target_id(step, "artifacts:prepare-step")
             if not _step_has_verification(step):
                 blocked_verification = VerificationResult(
@@ -147,7 +172,7 @@ class ArtifactPrepareWorkflow:
                     evidence={"phase": "pre_prepare", "reason": "verify_after_prepare_missing"},
                 )
                 verification_results.append(blocked_verification)
-                return ArtifactWorkflowResult(
+                return result(
                     kind=ArtifactWorkflowKind.PREPARE,
                     status=ArtifactWorkflowStatus.BLOCKED,
                     message=ARTIFACT_PREPARE_CONTRACTS_BLOCKED_MESSAGE,
@@ -155,18 +180,20 @@ class ArtifactPrepareWorkflow:
                     verification_results=tuple(verification_results),
                 )
 
+            uncertain.append(identity + ".apply")
             try:
                 prepare_result = step.run()
                 if inspect.isawaitable(prepare_result):
                     await prepare_result
             except Exception as exc:
+                failures.append(failure_from_exception(exc, identity + ".apply", "artifacts"))
                 safe_error = _safe_exception_summary(exc)
                 self.logger.error(
                     "Failed to prepare artifact target '%s'. Error: %s",
                     target_id,
                     safe_error,
                 )
-                return ArtifactWorkflowResult(
+                return result(
                     kind=ArtifactWorkflowKind.PREPARE,
                     status=ArtifactWorkflowStatus.FAILED_TO_PREPARE,
                     message="artifacts prepare failed for a configured artifact contract.",
@@ -183,10 +210,15 @@ class ArtifactPrepareWorkflow:
                     ),
                 )
 
-            verification = await _verify_step(step, target_id)
+            verification, step_failures = await _verify_step(step, target_id, identity + ".verify")
+            failures.extend(step_failures)
+            if verification.status == VerificationStatus.VERIFIED and not step_failures:
+                completed.append(identity + ".verify")
+                pending.remove(identity + ".verify")
+                uncertain.remove(identity + ".apply")
             verification_results.append(verification)
             if verification.status == VerificationStatus.BLOCKED:
-                return ArtifactWorkflowResult(
+                return result(
                     kind=ArtifactWorkflowKind.PREPARE,
                     status=ArtifactWorkflowStatus.BLOCKED,
                     message="artifacts prepare is blocked until artifact preparation contracts are wired.",
@@ -195,7 +227,7 @@ class ArtifactPrepareWorkflow:
                     verification_results=tuple(verification_results),
                 )
             if verification.status != VerificationStatus.VERIFIED:
-                return ArtifactWorkflowResult(
+                return result(
                     kind=ArtifactWorkflowKind.PREPARE,
                     status=ArtifactWorkflowStatus.FAILED_TO_VERIFY,
                     message="artifacts prepare failed verification for a configured artifact contract.",
@@ -204,7 +236,7 @@ class ArtifactPrepareWorkflow:
                     verification_results=tuple(verification_results),
                 )
 
-        return ArtifactWorkflowResult(
+        return result(
             kind=ArtifactWorkflowKind.PREPARE,
             status=ArtifactWorkflowStatus.COMPLETED,
             message="artifacts prepare completed for configured artifact contracts.",
@@ -224,8 +256,18 @@ class ArtifactVerifyWorkflow:
         self.blocked_reason = blocked_reason
 
     async def run(self) -> ArtifactWorkflowResult:
+        completed: list[str] = []
+        pending = [f"artifacts.verify.step.{index}" for index in range(1, len(self.checks) + 1)]
+        failures: list[OperationFailure] = []
+
+        def result(**kwargs) -> ArtifactWorkflowResult:
+            status = kwargs["status"]
+            outcome = OperationOutcome.SUCCESS if status == ArtifactWorkflowStatus.COMPLETED else OperationOutcome.BLOCKED if status == ArtifactWorkflowStatus.BLOCKED else OperationOutcome.FAILED
+            context = failures or (() if outcome == OperationOutcome.SUCCESS else (OperationFailure.for_cause("artifacts.verify", "artifacts", "blocked" if outcome == OperationOutcome.BLOCKED else "verification_failed"),))
+            return ArtifactWorkflowResult(**kwargs, operation_result=aggregate_operation(outcome, completed=completed, pending=pending, failures=context))
+
         if not self.checks:
-            return ArtifactWorkflowResult(
+            return result(
                 kind=ArtifactWorkflowKind.VERIFY,
                 status=ArtifactWorkflowStatus.BLOCKED,
                 message="artifacts verify is blocked until artifact verification contracts are wired.",
@@ -233,12 +275,17 @@ class ArtifactVerifyWorkflow:
             )
 
         verification_results: list[VerificationResult] = []
-        for check in self.checks:
+        for index, check in enumerate(self.checks, 1):
+            identity = f"artifacts.verify.step.{index}"
             target_id = _verification_target_id(check, "artifacts:verify-check")
-            verification = await _verify_step(check, target_id)
+            verification, step_failures = await _verify_step(check, target_id, identity)
+            failures.extend(step_failures)
+            if verification.status == VerificationStatus.VERIFIED and not step_failures:
+                completed.append(identity)
+                pending.remove(identity)
             verification_results.append(verification)
             if verification.status == VerificationStatus.BLOCKED:
-                return ArtifactWorkflowResult(
+                return result(
                     kind=ArtifactWorkflowKind.VERIFY,
                     status=ArtifactWorkflowStatus.BLOCKED,
                     message="artifacts verify is blocked until artifact verification contracts are wired.",
@@ -246,7 +293,7 @@ class ArtifactVerifyWorkflow:
                     verification_results=tuple(verification_results),
                 )
             if verification.status != VerificationStatus.VERIFIED:
-                return ArtifactWorkflowResult(
+                return result(
                     kind=ArtifactWorkflowKind.VERIFY,
                     status=ArtifactWorkflowStatus.FAILED_TO_VERIFY,
                     message="artifacts verify failed for a configured artifact contract.",
@@ -254,7 +301,7 @@ class ArtifactVerifyWorkflow:
                     verification_results=tuple(verification_results),
                 )
 
-        return ArtifactWorkflowResult(
+        return result(
             kind=ArtifactWorkflowKind.VERIFY,
             status=ArtifactWorkflowStatus.COMPLETED,
             message="artifacts verify completed for configured artifact contracts.",
@@ -280,9 +327,22 @@ def _verification_target_id(
     return fallback
 
 
-async def _verify_step(
+async def _verify_step(step, target_id: str, identity: str) -> tuple[VerificationResult, tuple[OperationFailure, ...]]:
+    caught: list[OperationFailure] = []
+    verification = await _verify_output(step, target_id, caught)
+    companion = getattr(step, "operation_failure", None)
+    failure = caught[0] if caught else companion if isinstance(companion, OperationFailure) else None
+    failures = verification_failures(verification.evidence, verified=verification.status == VerificationStatus.VERIFIED,
+        operation=identity, component="artifacts", failure=failure, blocked=verification.status == VerificationStatus.BLOCKED)
+    if failures and verification.status == VerificationStatus.VERIFIED:
+        verification = replace(verification, status=VerificationStatus.FAILED_TO_VERIFY, message="Artifact verification contains contradictory failure evidence.")
+    return verification, failures
+
+
+async def _verify_output(
     step: ArtifactPrepareStep | ArtifactVerifyCheck,
     target_id: str,
+    caught: list[OperationFailure],
 ) -> VerificationResult:
     verify = getattr(step, "verify", None)
     if not callable(verify):
@@ -297,6 +357,7 @@ async def _verify_step(
         if inspect.isawaitable(verification_output):
             verification_output = await verification_output
     except Exception as exc:
+        caught.append(failure_from_exception(exc, "artifacts.verify", "artifacts"))
         return VerificationResult(
             target_id=target_id,
             status=VerificationStatus.FAILED_TO_VERIFY,
@@ -314,40 +375,42 @@ async def _verify_step(
 
 
 def _safe_exception_summary(exc: Exception) -> str:
-    diagnostic = getattr(exc, "diagnostic", None)
+    diagnostic = _safe_diagnostic(exc)
     if diagnostic:
         return f"{exc.__class__.__name__}. Diagnostic: {diagnostic}."
     status_code = getattr(exc, "status_code", None)
-    if status_code is not None:
+    if type(status_code) is int and 100 <= status_code <= 599:
         return f"{exc.__class__.__name__} HTTP {status_code}. Diagnostic payload redacted."
     return f"{exc.__class__.__name__}. Diagnostic payload redacted."
 
 
 def _prepare_failure_reason(target_id: str, exc: Exception) -> str:
-    if getattr(exc, "diagnostic", None):
+    if _safe_diagnostic(exc):
         return f"prepare failed for {target_id}: {_safe_exception_summary(exc)}"
     return f"prepare failed with {exc.__class__.__name__}"
 
 
 def _prepare_failure_evidence(exc: Exception) -> dict[str, str]:
     evidence = {"phase": "prepare", "failure_class": exc.__class__.__name__}
-    diagnostic = getattr(exc, "diagnostic", None)
+    diagnostic = _safe_diagnostic(exc)
     if diagnostic:
         evidence["diagnostic"] = str(diagnostic)
     operator_action = getattr(exc, "operator_action", None)
     if operator_action:
         evidence["operator_action_code"] = _safe_operator_action_code(exc)
     status_code = getattr(exc, "status_code", None)
-    if status_code is not None:
+    if type(status_code) is int and 100 <= status_code <= 599:
         evidence["http_status"] = str(status_code)
     return evidence
 
 
+def _safe_diagnostic(exc: Exception) -> str:
+    diagnostic = getattr(exc, "diagnostic", None)
+    return diagnostic if diagnostic in (
+        "rotated_credentials_inactive", "nexus_container_not_found", "initial_admin_value_unavailable",
+    ) else ""
+
+
 def _safe_operator_action_code(exc: Exception) -> str:
-    operation = getattr(exc, "operation", "")
-    diagnostic = getattr(exc, "diagnostic", "")
-    if operation:
-        return f"{operation}_recovery"
-    if diagnostic:
-        return f"{diagnostic}_recovery"
-    return "operator_recovery"
+    diagnostic = _safe_diagnostic(exc)
+    return f"{diagnostic}_recovery" if diagnostic else "operator_recovery"

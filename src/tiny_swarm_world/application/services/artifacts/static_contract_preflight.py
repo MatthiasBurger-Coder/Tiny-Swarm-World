@@ -6,6 +6,8 @@ from tiny_swarm_world.application.ports.file_management.port_local_file_storage 
 from tiny_swarm_world.application.ports.preflight import (
     PortArtifactContractInventory,
 )
+from tiny_swarm_world.application.ports.operation_result import OperationError
+from tiny_swarm_world.application.services.shared.operation_results import failures_to_evidence
 from tiny_swarm_world.domain.artifacts import ArtifactContractIssue
 from tiny_swarm_world.domain.preflight import (
     PreflightCategory,
@@ -30,6 +32,7 @@ class StaticArtifactContractPreflight:
     def run(self) -> PreflightResult:
         inventory = self.compose_repository.get_image_inventory()
         issues = list(inventory.validate())
+        failures = []
         for requirement in inventory.requirements:
             if requirement.source != "build":
                 continue
@@ -49,7 +52,9 @@ class StaticArtifactContractPreflight:
                 context_path = self.compose_repository.get_build_context_path(
                     requirement.build_context
                 )
-            except ValueError:
+            except ValueError as exc:
+                if isinstance(exc, OperationError):
+                    failures.append(exc.failure)
                 issues.append(
                     ArtifactContractIssue(
                         code="build_context_unapproved",
@@ -76,6 +81,7 @@ class StaticArtifactContractPreflight:
             "issue_count": str(len(issues)),
             "issue_codes": ",".join(issue.code for issue in issues) or "none",
             "evidence_scope": "static",
+            **failures_to_evidence(failures),
         }
         check = PreflightCheck(
             check_id="ARTIFACT-CONTRACTS",
