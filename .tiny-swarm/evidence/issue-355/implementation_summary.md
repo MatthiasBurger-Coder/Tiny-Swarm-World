@@ -57,3 +57,11 @@ than uncertain work; repeat calls clear prior state. No-work preflight guards do
 not erase a subsequent blocked outcome or count as confirmed mutation.
 Architect, Security and Tester accepted the corrected source. Final full gate passed: 2251 tests, 18 exclusions. Endpoint status evidence remains intentionally detailed in legacy
 evidence with common verification_failed, as permitted by the accepted inventory.
+
+## S355-06
+
+Pure CLI operation summaries expose safe outcome/progress and actionable origin
+failures. Additive JSON and legacy status/exit control flow remain unchanged.
+Installer/simple-installer regressions cover child codes, 124/130 and credentials
+only on success. Console guide updated. Source accepted by Console, Architect and Tester;
+full gate passed:2255 tests,18 exclusions.

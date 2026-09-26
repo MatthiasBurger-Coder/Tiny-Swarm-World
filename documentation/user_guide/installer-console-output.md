@@ -61,3 +61,17 @@ or internal event object representations. Machine-readable JSON belongs in
 generated report files, not the default stdout or stderr. An operator may opt
 into the structured CLI channel explicitly with `--json` or
 `TSW_DEBUG_JSON=true`; `TSW_DEBUG_JSON=false` preserves the default summary.
+
+When a workflow supplies structured operation context, its summary also shows
+the operation outcome, confirmed completed work, pending or uncertain work, and
+each originating failure's component, cause, recoverability, and recommended
+action. These actions are guidance for the operator; rendering never retries or
+starts recovery. A verified recovery shows `rolled_back` and retains the legacy
+`completed` status and exit code 0. Unsuccessful workflows retain exit code 1;
+missing consent or confirmation retains exit code 2. Installer child exit codes
+are preserved, including timeout 124 and interruption 130.
+
+Explicit JSON output includes the additive `operation_result` field, which is
+`null` for older results without structured context. Existing status and evidence
+fields remain available. The setup command retains its installation-plan preamble
+before the JSON result.

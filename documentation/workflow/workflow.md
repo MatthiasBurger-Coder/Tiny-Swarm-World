@@ -2,7 +2,7 @@
 
 Workflow ID: issue-355-operation-results
 workflowVersion: 1.0
-Status: EXECUTING; S355-05 accepted; S355-06/07 pending
+Status: EXECUTING; S355-06 accepted; S355-07 pending
 Issue: [#355](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/355)
 Parent: [#313](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/313)
 Branch: `recovery/issue-355-20260926`
@@ -1044,3 +1044,7 @@ common verification_failed is an intentional compatible collapse. Verify that
 composed evidence remains intact instead of inventing a granularity requirement.
 
 S355-05 complete-inventory corrections ACCEPTED: all six findings and progress edges verified; full quality 2251 tests in 277.050s, 18 exclusions; architecture/inventory, Security and Tester PASS. Checkpoint resumes on recovery branch.
+
+S355-05 checkpoint published: bd7516589db36251a40530d7ac2849ef7a9e7342; origin/recovery/issue-355-20260926 verified. S355-06 starts after clean-state validation.
+
+S355-06 ACCEPTED: pure operation summaries and CLI/installer compatibility regressions;161 declared targets and65 package targets passed (overlap); full quality2255 tests in244.572s,18 exclusions; Console/Architect/Tester PASS.

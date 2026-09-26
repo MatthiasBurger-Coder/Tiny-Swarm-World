@@ -1,6 +1,5 @@
 # Remaining risks
 
-S355-05 complete-inventory corrections, targeted/full verification and independent
-reviews passed. S355-06 CLI compatibility and S355-07 architecture/documentation
-and independent issue completion audit remain required. Local tests do not
-establish live, browser or external verification.
+S355-01 through S355-06 implementation and local checks are accepted. S355-07
+architecture probes, documentation synchronization and final independent issue
+audit remain. No live, browser or external verification is claimed.

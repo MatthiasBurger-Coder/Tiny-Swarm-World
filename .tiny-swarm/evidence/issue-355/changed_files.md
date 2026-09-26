@@ -183,3 +183,22 @@ No product, runtime configuration or test changes in S355-01.
 - `tests/application/services/shared/test_operation_results.py`
 - `tests/infrastructure/adapters/preflight/test_artifact_readiness.py`
 - `tests/infrastructure/test_composition.py`
+
+## S355-06 file inventory
+
+- `.codex/evidence/slice-06-consolidation.md`
+- `.codex/evidence/slice-06-distribution.md`
+- `.tiny-swarm/evidence/issue-355/acceptance_checklist.md`
+- `.tiny-swarm/evidence/issue-355/changed_files.md`
+- `.tiny-swarm/evidence/issue-355/implementation_summary.md`
+- `.tiny-swarm/evidence/issue-355/remaining_risks.md`
+- `.tiny-swarm/evidence/issue-355/requirement_matrix.md`
+- `.tiny-swarm/evidence/issue-355/test_results.md`
+- `documentation/user_guide/installer-console-output.md`
+- `documentation/workflow/context-pack.json`
+- `documentation/workflow/context-pack.md`
+- `documentation/workflow/workflow.md`
+- `src/tiny_swarm_world/__main__.py`
+- `tests/test_installer.py`
+- `tests/test_package_entrypoint.py`
+- `tests/test_simple_installer.py`

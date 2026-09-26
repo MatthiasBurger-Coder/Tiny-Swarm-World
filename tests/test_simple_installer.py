@@ -208,18 +208,19 @@ class TestSimpleInstallerSecretBootstrap(unittest.TestCase):
         self.assertEqual(options.service_profile, "service-access")
         self.assertNotIn("TSW_SECRETS_MODE", run.call_args.kwargs["env"])
 
-    def test_main_returns_execution_failure_without_printing_credentials(self):
-        with (
-            tempfile.TemporaryDirectory() as temporary_dir,
-            patch.dict(os.environ, {"HOME": temporary_dir}, clear=True),
-            patch("tiny_swarm_world.simple_installer.Path.cwd", return_value=REPOSITORY_ROOT),
-            patch("tiny_swarm_world.simple_installer.legacy.run", return_value=2),
-            patch("tiny_swarm_world.simple_installer._print_operator_credentials") as print_credentials,
-        ):
-            result = main(("--headless",))
-
-        self.assertEqual(result, 2)
-        print_credentials.assert_not_called()
+    def test_main_preserves_child_exit_and_only_prints_credentials_on_success(self):
+        for exit_code in (0, 1, 2, 124, 130):
+            with (
+                self.subTest(exit_code=exit_code),
+                tempfile.TemporaryDirectory() as temporary_dir,
+                patch.dict(os.environ, {"HOME": temporary_dir}, clear=True),
+                patch("tiny_swarm_world.simple_installer.Path.cwd", return_value=REPOSITORY_ROOT),
+                patch("tiny_swarm_world.simple_installer.legacy.run", return_value=exit_code),
+                patch("tiny_swarm_world.simple_installer._print_operator_credentials") as print_credentials,
+            ):
+                result = main(("--headless",))
+            self.assertEqual(result, exit_code)
+            self.assertEqual(print_credentials.call_count, 1 if exit_code == 0 else 0)
 
     def test_main_reports_installer_error_without_exposing_values(self):
         stderr = io.StringIO()

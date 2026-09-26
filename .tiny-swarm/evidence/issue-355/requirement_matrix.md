@@ -52,3 +52,13 @@ S05 complete-inventory correction evidence: `test_infisical_silent_install`,
 `test_artifact_readiness`, `test_readiness_gate`, and composition blocked-result
 tests retain typed origins, multiple causes and safe/accurate progress. Final
 full quality passed: 2251 tests, 18 exclusions. Final issue audit remains open.
+
+## S355-06 incremental evidence
+
+`test_operation_context_is_additive_in_json_for_every_result_family`,
+`test_operation_renderer_is_pure_and_preserves_legacy_absence`,
+`test_operation_outcome_does_not_replace_legacy_cli_exit_status`, installer
+`test_run_phase_preserves_child_exits_timeout_and_interruption`, and simple
+installer `test_main_preserves_child_exit_and_only_prints_credentials_on_success`
+verify compatibility and safe actionable presentation. Full local quality passed
+2255 tests,18 exclusions. Final architecture/docs/completion audit remains S07.

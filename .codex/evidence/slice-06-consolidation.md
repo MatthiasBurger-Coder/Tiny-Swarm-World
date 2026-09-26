@@ -1,34 +1,25 @@
-# S352-06 consolidation / CP_RECORD
+# S355-06 consolidation / CP_RECORD
 
-Workflow issue-352-configuration-parsing-boundary; workflowVersion 1.0.
-Rollback reference: 4ed53794.
-Streams: serial Test/Evidence writer, then serial documentation writer, root evidence integration. Real subagents used; no fallback, new worktrees, or parallel writers.
+Workflow issue-355-operation-results; workflowVersion: 1.0; sliceId: S355-06.
+Branch: recovery/issue-355-20260926. Rollback reference: bd7516589db36251a40530d7ac2849ef7a9e7342.
+Responsible role: Senior Python Automation Developer; root integration.
+Sequential source/test/guide writer; root evidence; real Console and Tester
+reviewers. No parallel write conflicts; no fallback.
 
-Implementation: whole-domain/application yaml and ruamel import guards with alias/nested/TYPE_CHECKING probes; recursive runtime model inspection before serialization; five updated arc42/migration documents; one provenance hash refresh. Existing architecture rules unchanged.
+The pure entrypoint formatter renders validated operation outcomes/progress,
+origin failures, recoverability and static guidance. Existing JSON opt-in and
+status/exit control flow remain unchanged. Installer/simple-installer product
+code is unchanged; tests verify child exit/status compatibility and credentials
+only after success. Guide documents additive output and existing setup preamble.
 
-Accepted findings: independent Architecture and Test/Evidence ACCEPT. Explicit Compose fixture paths prevent ambient root substitution; operator migration wording precisely distinguishes null documents from required port lists. Rejected findings: none. No merge conflict.
-
-Verification: arch-tests26PASS, arch-lint5contractsPASS, registry integrity5PASS; final full quality 2163 tests with18skipped PASS; lint/typecheck690files and verification policy PASS. Initial stale registry hash classified DOC_GOVERNANCE_FAILURE retry1, repaired without guard changes and fully rerun.
-
-Files changed per stream:
-- .codex/evidence/slice-06-distribution.md
-- .tiny-swarm/evidence/issue-352/acceptance_checklist.md
-- .tiny-swarm/evidence/issue-352/implementation_summary.md
-- .tiny-swarm/evidence/issue-352/remaining_risks.md
-- .tiny-swarm/evidence/issue-352/requirement_matrix.md
-- .tiny-swarm/evidence/issue-352/test_results.md
-- documentation/arc42/05_analysis/arch-03-09-configuration-parsing-boundary.md
-- documentation/arc42/05_building_blocks.adoc
-- documentation/arc42/08_concepts.adoc
-- documentation/arc42/08_configuration/config-contract-inventory.md
-- documentation/arc42/08_configuration/operator-configuration-contract.md
-- documentation/process/skills/audit/skill-registry.json
-- documentation/workflow/context-pack.json
-- documentation/workflow/requirement-matrix.md
-- documentation/workflow/workflow.md
-- tests/architecture/test_hexagonal_imports.py
-
-Issue requirements: R01–R11 have implementation and executed local evidence in both matrices. Independent issue-completion-auditor decision PASS: every R01–R11 row implemented/verified; no open requirement. See .tiny-swarm/evidence/issue-352/completion_audit.md.
-Integration decision: ACCEPT S352-06 and COMPLETE issue implementation; independent completion audit PASS. arc42Updated=true; adrUpdated=false. SonarQube/external gates not executed; no external success claim. Branch checkpoint only, no PR/merge/cleanup.
-
-Final evidence verification: documentation-only wording correction separates skipped cases from suite success; verification-policy rerun passed without policy changes.
+Console review ACCEPT; Test review PASS, 161 declared tests in 12.846s. Final
+combined setup rendering regression passed in 65 package tests (overlap).
+Full quality gate PASS:2255 tests in244.572s,18 exclusions; all sub-gates passed.
+Architect review PASS; final D8 integration ACCEPTED.
+qualityCommands: declared S06 targets; python3 tools/quality_gate.py quality; git diff --check
+qualityResult: PASS;2255 tests,18 exclusions
+changedFiles: .tiny-swarm/evidence/issue-355/changed_files.md S355-06 inventory
+arc42Updated: false; final synchronization S355-07
+adrUpdated: false; accepted decision preserved
+publication: pending checkpoint review
+Live/browser NOT_APPLICABLE. External result not claimed; branch-only checkpoint.

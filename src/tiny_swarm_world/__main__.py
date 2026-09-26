@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 
+from tiny_swarm_world.application.ports.operation_result import OperationResult
 from tiny_swarm_world.application.services.artifacts import ArtifactWorkflowResult
 from tiny_swarm_world.application.services.deployment import DeploymentWorkflowResult
 from tiny_swarm_world.application.services.setup import SetupWorkflowResult
@@ -809,6 +810,31 @@ def _format_workflow_summary(result: WorkflowResult) -> tuple[str, ...]:
     verification_results = getattr(result, "verification_results", ())
     if verification_results:
         lines.extend(_format_verification_summary(verification_results))
+    lines.extend(_format_operation_summary(getattr(result, "operation_result", None)))
+    return tuple(lines)
+
+
+def _format_operation_summary(result: OperationResult | None) -> tuple[str, ...]:
+    """Render validated operation context without performing recommended actions."""
+    if result is None:
+        return ()
+    lines = [f"Operation outcome: {result.outcome.value}"]
+    for label, operations in (
+        ("Completed operations", result.completed_operations),
+        ("Pending operations", result.pending_operations),
+        ("Uncertain operations", result.uncertain_operations),
+    ):
+        if operations:
+            lines.append(f"{label}: {', '.join(operations)}")
+    if result.rollback_verified:
+        lines.append("Rollback verified: yes")
+    for failure in result.failures:
+        lines.extend((
+            f"Failure: {failure.operation} ({failure.component})",
+            f"  Cause: {failure.cause}",
+            f"  Recoverability: {failure.recoverability.value}",
+            f"  Recommended action: {failure.recommended_action}",
+        ))
     return tuple(lines)
 
 
@@ -1001,6 +1027,7 @@ def _format_setup_installation_summary(
         lines.append(f"Message: {_console_text(result.message)}")
     if result.reason:
         lines.append(f"Reason: {_console_text(result.reason)}")
+    lines.extend(_format_operation_summary(result.operation_result))
     lines.append(f"Final setup status: {result.status.value}")
     lines.append("")
     return tuple(lines)

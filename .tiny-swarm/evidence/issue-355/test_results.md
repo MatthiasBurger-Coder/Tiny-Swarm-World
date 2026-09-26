@@ -95,3 +95,8 @@ Endpoint evidence collapse is allowed by the accepted inventory; a composed
 preservation test is required, not a new transport-classification contract.
 
 Final expanded S355-05 gate: `TMPDIR=/home/micro/.cache/issue355-tmp python3 tools/quality_gate.py quality` exited 0. All sub-gates passed; 2251 tests in 277.050s, 18 exclusions. Log: `/home/micro/.cache/issue355-s05-complete-quality.log`. Final architecture/inventory, security and test reviews PASS. Independent targets 36 and 35 passed; final guard/block targets 15 passed (overlap).
+
+## S355-06
+
+Declared target command: `PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint tests.test_classic_update_cli tests.test_installer tests.test_simple_installer tests.infrastructure.adapters.ui.test_install_reporter` passed 161 tests (independent Tester:12.846s). Final combined setup rendering test passed in 65 package tests (overlap).
+Full command `TMPDIR=/home/micro/.cache/issue355-tmp python3 tools/quality_gate.py quality` exited0: all sub-gates passed;2255 tests in244.572s,18 exclusions. Log `/home/micro/.cache/issue355-s06-quality.log`. Console, Architect and Tester reviews PASS. No live/external verification claimed.

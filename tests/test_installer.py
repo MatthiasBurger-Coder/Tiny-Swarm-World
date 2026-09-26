@@ -1100,6 +1100,34 @@ class TestInstaller(unittest.TestCase):
         self.assertIn(log_path.as_posix(), rendered)
         self.assertNotIn('"secret":', rendered)
 
+    def test_run_phase_preserves_child_exits_timeout_and_interruption(self):
+        options = installer.InstallerOptions(
+            service_profile="service-access", confirm_reset=True,
+            non_interactive_live_approval=True, headless=True,
+            allow_wsl_windows_filesystem=True,
+        )
+        for process_result, expected_code, expected_status in (
+            ((0, False, False), 0, "SUCCEEDED"),
+            ((1, False, False), 1, "FAILED"),
+            ((2, False, False), 2, "FAILED"),
+            ((37, False, False), 37, "FAILED"),
+            ((-15, True, False), 124, "TIMED_OUT"),
+            ((-2, False, True), 130, "INTERRUPTED"),
+        ):
+            with (
+                self.subTest(process_result=process_result),
+                tempfile.TemporaryDirectory() as directory,
+                patch.object(installer, "_run_bounded_process", return_value=process_result) as run_process,
+                redirect_stdout(io.StringIO()),
+            ):
+                reporter = Mock()
+                root = Path(directory)
+                code = installer._run_phase("setup", "unused", root / "phase.log", options, {}, root, reporter)
+                event = reporter.report.call_args.args[0]
+                self.assertEqual(expected_code, code)
+                self.assertEqual(expected_status, event.status.value)
+                run_process.assert_called_once()
+
     def test_run_phase_emits_distinct_timeout_and_terminates_process(self):
         class Reporter:
             def __init__(self) -> None:

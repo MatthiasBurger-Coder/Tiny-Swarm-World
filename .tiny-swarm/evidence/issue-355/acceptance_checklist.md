@@ -23,3 +23,10 @@ S355-04: accepted after targeted/full local checks and independent architecture/
 - [x] Safe diagnostics and legacy recovery/status semantics reviewed.
 - [x] Required local gate and independent reviews passed.
 - [ ] S355-06 compatibility and S355-07 completion audit.
+
+## S355-06
+
+- [x] Additive JSON and safe human operation summaries.
+- [x] Legacy statuses/exits, installer124/130 and success-only credentials.
+- [x] Console/architecture/test reviews and full local quality passed.
+- [ ] S355-07 architecture/documentation and independent completion audit.
