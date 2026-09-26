@@ -202,3 +202,28 @@ No product, runtime configuration or test changes in S355-01.
 - `tests/test_installer.py`
 - `tests/test_package_entrypoint.py`
 - `tests/test_simple_installer.py`
+
+## S355-07 file inventory
+
+- `.codex/evidence/slice-07-consolidation.md`
+- `.codex/evidence/slice-07-distribution.md`
+- `.importlinter`
+- `.tiny-swarm/evidence/issue-355/acceptance_checklist.md`
+- `.tiny-swarm/evidence/issue-355/changed_files.md`
+- `.tiny-swarm/evidence/issue-355/completion_audit.md`
+- `.tiny-swarm/evidence/issue-355/implementation_summary.md`
+- `.tiny-swarm/evidence/issue-355/remaining_risks.md`
+- `.tiny-swarm/evidence/issue-355/requirement_matrix.md`
+- `.tiny-swarm/evidence/issue-355/test_results.md`
+- `documentation/arc42/05_analysis/arch-03-12-operation-results.md`
+- `documentation/arc42/05_building_blocks.adoc`
+- `documentation/arc42/06_runtime_view.adoc`
+- `documentation/arc42/08_concepts.adoc`
+- `documentation/arc42/09_architecture_decisions.adoc`
+- `documentation/arc42/09_decisions/adr-explicit-operation-results.adoc`
+- `documentation/process/skills/audit/skill-registry.json`
+- `documentation/workflow/context-pack.json`
+- `documentation/workflow/context-pack.md`
+- `documentation/workflow/requirement-matrix.md`
+- `documentation/workflow/workflow.md`
+- `tests/architecture/test_hexagonal_imports.py`

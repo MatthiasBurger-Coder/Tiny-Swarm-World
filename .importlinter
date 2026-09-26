@@ -48,3 +48,11 @@ forbidden_modules =
     tiny_swarm_world.installer
     tiny_swarm_world.simple_installer
 allow_indirect_imports = True
+
+[importlinter:contract:ports_no_services_imports]
+name = Application ports do not depend on application services
+type = forbidden
+source_modules =
+    tiny_swarm_world.application.ports
+forbidden_modules =
+    tiny_swarm_world.application.services

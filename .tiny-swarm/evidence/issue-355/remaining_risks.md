@@ -1,5 +1,10 @@
 # Remaining risks
 
-S355-01 through S355-06 implementation and local checks are accepted. S355-07
-architecture probes, documentation synchronization and final independent issue
-audit remain. No live, browser or external verification is claimed.
+No known product implementation gap remains after complete inventory and
+requirement reviews. Final S07 full quality passed. Independent completion audit passed; no requirement is open.
+
+Known limits: current causes do not justify RECOVERABLE or automatic retries;
+legacy domain/endpoint facts retain documented collapsed classifications.
+Detailed endpoint evidence remains available. No new recovery policy or stored
+schema was introduced. Local tests do not establish live/browser/external success.
+PR checks/merge are outside this branch checkpoint workflow.

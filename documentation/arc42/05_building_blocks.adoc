@@ -120,6 +120,26 @@ ownership is enforced by the three-module AST allowlist. Standalone tooling
 has separate lifecycle ownership. See
 `05_analysis/arch-03-11-process-execution.md` for diagnostics and verification.
 
+==== Explicit Operation Results (ARCH-03.12)
+
+`application/ports/operation_result.py` owns the immutable shared result and failure
+values, outcome/recoverability enums and typed `OperationError`. Infrastructure
+adapters translate expected technical failures into these application-owned values
+or compatible typed port exceptions. Domain facts remain domain-owned; process
+creation remains in `infrastructure/process/`.
+
+`application/services/shared/operation_results.py` aggregates confirmed, pending
+and uncertain work and preserves originating failures. Caller-owned allowlists
+validate serialized operation and failure identities. Platform, artifacts,
+deployment and setup result wrappers expose the additive `operation_result` field;
+legacy constructors and status fields remain available.
+
+`application/services/platform/workflow/update.py` owns observed recovery outcomes.
+`__main__.py` formats validated context for workflow and setup summaries; formatting
+does not execute recommended actions. Composition remains in infrastructure.
+The accepted ADR and `05_analysis/arch-03-12-operation-results.md` record scope,
+compatibility, inventory exclusions and verification limits.
+
 ==== Dedicated Host Detection Boundary
 
 Host detection is an in-process Platform sub-boundary, not a new deployable

@@ -88,3 +88,17 @@ The inventory fixes invariants, adapter mappings, exclusions and safe cause/acti
 catalogue. Domain facts remain domain-only. Existing broad fallback behavior is
 preserved with explicit unexpected_failure classification; composition defects
 which previously propagated continue to propagate.
+
+== Implementation note — S355-02 through S355-06
+
+The accepted contract, adapter translations, lifecycle aggregation and CLI rendering
+are implemented. See `../05_analysis/arch-03-12-operation-results.md` for the current
+ownership, compatibility and boundary exclusions. Recoverability remains conservative:
+the enum includes recoverable, but the current cause catalogue selects nonrecoverable
+or unknown. A recovered child's resolved history remains nested rather than becoming
+an unresolved setup failure. Rendering guidance never executes recovery or retry.
+
+This note preserves the S355-01 decision and its acceptance history. S355-07 final
+architecture and local quality checks passed; independent completion audit passed. Exact local
+verification belongs in `.tiny-swarm/evidence/issue-355/`; no live or external
+verification is asserted.

@@ -98,5 +98,26 @@ Final expanded S355-05 gate: `TMPDIR=/home/micro/.cache/issue355-tmp python3 too
 
 ## S355-06
 
-Declared target command: `PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint tests.test_classic_update_cli tests.test_installer tests.test_simple_installer tests.infrastructure.adapters.ui.test_install_reporter` passed 161 tests (independent Tester:12.846s). Final combined setup rendering test passed in 65 package tests (overlap).
-Full command `TMPDIR=/home/micro/.cache/issue355-tmp python3 tools/quality_gate.py quality` exited0: all sub-gates passed;2255 tests in244.572s,18 exclusions. Log `/home/micro/.cache/issue355-s06-quality.log`. Console, Architect and Tester reviews PASS. No live/external verification claimed.
+Declared target command: `PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint tests.test_classic_update_cli tests.test_installer tests.test_simple_installer tests.infrastructure.adapters.ui.test_install_reporter` passed 161 tests (independent Tester: 12.846s). Final combined setup rendering test passed in 65 package tests (overlap).
+Full command `TMPDIR=/home/micro/.cache/issue355-tmp python3 tools/quality_gate.py quality` exited 0: all sub-gates passed; 2255 tests in 244.572s, 18 exclusions. Log `/home/micro/.cache/issue355-s06-quality.log`. Console, Architect and Tester reviews PASS. No live/external verification claimed.
+
+## S355-07 targeted verification
+
+`python3 tools/quality_gate.py arch-lint`: 6 contracts kept, 0 broken.
+`TMPDIR=/home/micro/.cache/issue355-tmp python3 tools/quality_gate.py arch-tests`: 30 tests passed 17.893s.
+Independent Tester: `PYTHONPATH=src python3 -m unittest tests.architecture.test_hexagonal_imports tests.application.ports.test_operation_result`: 34 tests passed 18.643s; independent arch-lint also passed.
+Lint and typecheck passed 703 files. All37 named matrix test references exist;
+both matrices match. Final full gate is running; no completed result claimed yet.
+
+## S355-07 final local verification
+
+`TMPDIR=/home/micro/.cache/issue355-tmp python3 tools/quality_gate.py quality`
+completed with exit 0. Verification policy, lint, six import contracts, 30
+architecture tests, typecheck 703 files and2259 tests in 242.316s passed.
+Test exclusions: 18. Log:`/home/micro/.cache/issue355-s07-quality.log`.
+This is the final integrated source/test verification. Independent issue audit
+awaits this updated evidence; no live/browser/external success claimed.
+
+Final independent issue-completion audit: PASS. All R355-01–15 implemented,
+verified and evidenced; no open requirement or unrelated change. See
+completion_audit.md. Final publication remains a branch checkpoint, not a PR merge.

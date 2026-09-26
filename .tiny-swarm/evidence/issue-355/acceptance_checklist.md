@@ -1,32 +1,15 @@
-# Acceptance
+# Issue355 acceptance checklist
 
-- S355-01 inventory/ADR gate: PASS (Requirement, Architect, Python, Test).
-- R355-01 through R355-15 implementation: OPEN.
-- Final independent issue completion audit: pending.
+- [x] R355-01–15 extracted and mapped to concrete implementation/tests.
+- [x] Shared immutable contract integrated into all four lifecycle families.
+- [x] Expected boundaries and all inventory rows independently reconciled.
+- [x] Safe origin/cause/action and completed/pending/uncertain work preserved.
+- [x] Rollback requires observed restoration; nested resolved history retained.
+- [x] CLI/installer statuses, output, consent and exit compatibility tested.
+- [x] Architecture probes and docs updated; targeted checks passed.
+- [x] Independent Requirement/Architect/Tester reviews found no product gaps.
+- [x] Final S07 full quality gate recorded: 2259 tests, 18 exclusions.
+- [x] Independent issue-completion-auditor PASS: completion_audit.md.
+- [ ] S07 checkpoint published and remote verified.
 
-## S355-02
-
-S355-02: accepted after targeted/full local checks and independent architecture/test review. Issue remains INCOMPLETE until S355-07 audit.
-
-## S355-03
-
-S355-03: accepted after targeted/full local checks and independent architecture/test review. Issue remains INCOMPLETE until S355-07 audit.
-
-## S355-04
-
-S355-04: accepted after targeted/full local checks and independent architecture/test review. Issue remains INCOMPLETE until S355-07 audit.
-
-## S355-05
-
-- [x] Four result families integrated, nested failures/progress retained.
-- [x] Dependency blocking, timeout, cancellation and ordering tested.
-- [x] Safe diagnostics and legacy recovery/status semantics reviewed.
-- [x] Required local gate and independent reviews passed.
-- [ ] S355-06 compatibility and S355-07 completion audit.
-
-## S355-06
-
-- [x] Additive JSON and safe human operation summaries.
-- [x] Legacy statuses/exits, installer124/130 and success-only credentials.
-- [x] Console/architecture/test reviews and full local quality passed.
-- [ ] S355-07 architecture/documentation and independent completion audit.
+Live/browser NOT_APPLICABLE. External verification not claimed.

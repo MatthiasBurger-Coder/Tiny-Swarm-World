@@ -1,6 +1,10 @@
 import ast
+import asyncio
 from collections.abc import Mapping
 from dataclasses import fields, is_dataclass
+import json
+import sys
+from types import SimpleNamespace, TracebackType
 
 from pydantic import BaseModel
 import unittest
@@ -94,6 +98,67 @@ DIRECT_FILESYSTEM_METHODS = {
 
 
 class TestHexagonalImports(unittest.TestCase):
+    def test_operation_contract_depends_only_on_standard_library(self):
+        source = (APPLICATION_PORTS_ROOT / "operation_result.py").read_text(encoding="utf-8")
+        self.assertEqual([], _non_stdlib_imports(source))
+
+    def test_operation_contract_import_probe_rejects_hidden_dependencies(self):
+        for source in (
+            "from tiny_swarm_world.application.services import setup",
+            "def run():\n    import requests as http",
+            "from . import operation_result",
+            "from typing import TYPE_CHECKING\nif TYPE_CHECKING:\n    import tiny_swarm_world.infrastructure",
+        ):
+            with self.subTest(source=source):
+                self.assertTrue(_non_stdlib_imports(source))
+        self.assertEqual([], _non_stdlib_imports("from dataclasses import dataclass\nimport enum"))
+
+    def test_actual_operation_boundaries_contain_no_raw_failures(self):
+        from tiny_swarm_world.application.ports.operation_result import OperationError, OperationFailure
+        from tiny_swarm_world.application.services.deployment.workflows import DeploymentApplyWorkflow
+        from tiny_swarm_world.application.services.setup.workflow import SetupWorkflow, SetupWorkflowPhase
+        from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
+        from tiny_swarm_world.domain.preflight import LiveConsent
+
+        sentinel = "private-boundary-value-4827"
+        typed = OperationError(OperationFailure.for_cause("service.request", "portainer", "request_failed"))
+        typed.private_detail = sentinel
+
+        async def exercise(error):
+            def fail():
+                raise error
+            step = SimpleNamespace(
+                run=fail,
+                verify=lambda: VerificationResult("deployment:probe", VerificationStatus.VERIFIED, "Ready"),
+            )
+            deployment = DeploymentApplyWorkflow((step,))
+            setup = SetupWorkflow(
+                (SetupWorkflowPhase("deployment", deployment.run),),
+                live_consent=LiveConsent(live_flag=True, confirmed=True),
+            )
+            return await setup.run()
+
+        for error, cause in ((typed, "request_failed"), (RuntimeError(sentinel), "unexpected_failure")):
+            with self.subTest(cause=cause), self.assertLogs("DeploymentApplyWorkflow", level="ERROR"):
+                result = asyncio.run(exercise(error))
+                self.assertEqual(cause, result.operation_result.failures[0].cause)
+                self.assertEqual([], _find_unsafe_operation_objects(result))
+                self.assertNotIn(sentinel, json.dumps(result.to_dict()))
+
+    def test_operation_boundary_probe_detects_nested_exception_and_traceback(self):
+        from dataclasses import dataclass
+
+        @dataclass(frozen=True)
+        class Boundary:
+            value: object
+
+        try:
+            raise RuntimeError("private")
+        except RuntimeError as error:
+            value = Boundary({"nested": ([error, error.__traceback__],)})
+            self.assertEqual(["RuntimeError", "traceback"], _find_unsafe_operation_objects(value))
+        self.assertEqual([], _find_unsafe_operation_objects(Boundary({"safe": ("text", 1)})))
+
     def test_domain_has_no_infrastructure_imports(self):
         violations = _find_forbidden_imports(
             root=DOMAIN_ROOT,
@@ -569,6 +634,48 @@ def _is_storage_port_call(receiver: ast.expr) -> bool:
 
 def _architecture_document(document_name: str) -> str:
     return REQUIRED_ARCHITECTURE_DOCUMENTS[document_name].read_text(encoding="utf-8")
+
+
+def _non_stdlib_imports(source: str) -> list[str]:
+    violations: list[str] = []
+    for node in ast.walk(ast.parse(source)):
+        if isinstance(node, ast.Import):
+            names = [alias.name for alias in node.names]
+        elif isinstance(node, ast.ImportFrom):
+            if node.level:
+                violations.append("relative import")
+                continue
+            names = [node.module or ""]
+        else:
+            continue
+        violations.extend(name for name in names if name.split(".")[0] not in sys.stdlib_module_names)
+    return violations
+
+
+def _find_unsafe_operation_objects(value: object) -> list[str]:
+    """Inspect real boundary objects before serialization can hide unsafe values."""
+    violations: list[str] = []
+    visited: set[int] = set()
+
+    def visit(item: object) -> None:
+        if id(item) in visited:
+            return
+        visited.add(id(item))
+        if isinstance(item, (BaseException, TracebackType)):
+            violations.append(type(item).__name__)
+        elif is_dataclass(item) and not isinstance(item, type):
+            for field in fields(item):
+                visit(getattr(item, field.name))
+        elif isinstance(item, Mapping):
+            for key, member in item.items():
+                visit(key)
+                visit(member)
+        elif isinstance(item, (tuple, list, set, frozenset)):
+            for member in item:
+                visit(member)
+
+    visit(value)
+    return violations
 
 
 def _find_parser_objects(value: object) -> list[str]:

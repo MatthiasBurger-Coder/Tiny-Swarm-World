@@ -29,6 +29,33 @@ during service bundle construction. The private `composition_runtime.py`
 module preserves shared helper and legacy-entry-point compatibility while
 follow-up extraction can reduce its size further.
 
+=== Explicit Operation Outcome Flow (ARCH-03.12)
+
+Expected technical failure travels from an adapter through an application-owned
+failure value or typed port exception to the workflow result. The workflow retains
+originating operation/component/cause and explicit requested-work evidence. Legacy
+status and verification fields coexist with the common result.
+
+Pre-execution blockers and refusals carry no confirmed or uncertain execution.
+After confirmed work, an incomplete request becomes partial even when its legacy
+status is blocked. Attempted work alone remains uncertain. Setup snapshots completed
+phases, started phases and pending phases so timeout does not erase earlier work.
+Nested failure metadata is checked against the caller's declared origins before
+being accepted as structured evidence.
+
+Classic recovery reports `rolled_back` only after observing the recorded original
+image. Failed recovery retains available original and recovery failures. Resolved
+history remains in the recovered child's result; setup does not turn that history
+into an unresolved parent failure or infer a whole-setup rollback.
+
+The CLI renders safe operation context alongside existing human-readable summaries.
+Explicit JSON adds `operation_result`; absent legacy context serializes as `null`.
+Setup retains counts, group timing, evidence paths and its installation-plan preamble.
+Completed status remains exit 0, unsuccessful returned statuses exit 1, and missing
+consent/confirmation exit 2. Verified recovery keeps completed/exit 0; installer
+child exits, timeout 124 and interruption 130 retain their existing mappings.
+Rendering recommended actions does not start retries or recovery.
+
 === Read-only Host Detection Flow
 
 `host detect` is an early, non-mutating CLI path. It builds only

@@ -2,7 +2,7 @@
 
 Workflow issue-355-operation-results, version 1.0; process strand workflow execute;
 profile FULL_PATH. Branch `recovery/issue-355-20260926`; baseline `3487ce322bb2b251a45695fc88a70ffa8132b0de`.
-Status EXECUTING; S355-06 accepted; S355-07 pending.
+Status DONE locally; all seven slices accepted and independent audit PASS. Final checkpoint publication follows.
 
 Read [workflow](workflow.md), [requirements](requirement-matrix.md),
 [authoring review](authoring-review.md) and [machine context](context-pack.json).

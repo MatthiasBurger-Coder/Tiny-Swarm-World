@@ -2,7 +2,7 @@
 
 Workflow ID: issue-355-operation-results
 workflowVersion: 1.0
-Status: EXECUTING; S355-06 accepted; S355-07 pending
+Status: DONE locally; S355-01–07 accepted; final checkpoint publication pending
 Issue: [#355](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/355)
 Parent: [#313](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/313)
 Branch: `recovery/issue-355-20260926`
@@ -116,8 +116,7 @@ No live or external success follows from local tests.
 
 `S355-01 -> S355-02 -> S355-03 -> S355-04 -> S355-05 -> S355-06 -> S355-07`
 
-S355-01 through S355-05 are accepted. S355-06/07 remain
-pending. Every slice has exactly one checkpoint commit. Common
+S355-01 through S355-07 are accepted. Every slice has exactly one checkpoint commit. Common
 allowed evidence/status writes: `.tiny-swarm/evidence/issue-355/**`, that slice's
 `.codex/evidence/slice-<number>-distribution.md` and consolidation file, plus active
 workflow status, matrix and context-pack refresh. Serialize these shared files.
@@ -958,7 +957,7 @@ then push HEAD only to `origin/recovery/issue-355-20260926`. No PR, merge, force
 or cleanup. Workflow-create-only push auto remains guarded. Later workflow execute
 creates exactly one commit and branch checkpoint push per accepted slice.
 
-## Handoff to workflow execute
+## Historical authoring handoff to workflow execute
 
 Verify publication commit from Git and matching remote ref; check workflowVersion,
 branch, clean state, all governing hashes, actual source/issue drift and S3/S3D locks.
@@ -1047,4 +1046,17 @@ S355-05 complete-inventory corrections ACCEPTED: all six findings and progress e
 
 S355-05 checkpoint published: bd7516589db36251a40530d7ac2849ef7a9e7342; origin/recovery/issue-355-20260926 verified. S355-06 starts after clean-state validation.
 
-S355-06 ACCEPTED: pure operation summaries and CLI/installer compatibility regressions;161 declared targets and65 package targets passed (overlap); full quality2255 tests in244.572s,18 exclusions; Console/Architect/Tester PASS.
+S355-06 ACCEPTED: pure operation summaries and CLI/installer compatibility regressions; 161 declared targets and65 package targets passed (overlap); full quality 2255 tests in 244.572s, 18 exclusions; Console/Architect/Tester PASS.
+
+S355-06 checkpoint published 296171fc07ccd5e52328dd28f2f8a93e09c959df; remote recovery ref verified clean. S355-07 begins with serial documentation then architecture/evidence work.
+
+S355-07 local verification PASS: 30 architecture tests and6 import rules, final quality 2259 tests in 242.316s, 18 exclusions. Requirement/Architect/Tester source reviews PASS. Independent issue completion audit is next.
+
+## Final issue completion
+
+Independent issue-completion-auditor PASS. All R355-01–15 implemented, verified
+and evidenced; no open requirement. Final quality 2259 tests in 242.316s, 18
+exclusions; 6 import contracts and30 architecture tests passed. Local DONE.
+Final audit: .tiny-swarm/evidence/issue-355/completion_audit.md. No live/browser
+or external success claimed. Final S07 checkpoint publishes to the approved
+recovery branch; no PR/merge/cleanup is part of this workflow.

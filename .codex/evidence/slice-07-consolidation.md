@@ -1,25 +1,30 @@
-# Issue #188 — S07 Consolidation
+# S355-07 consolidation / CP_RECORD
 
-- Workflow: `issue-188-20260809` / `issue-188-v1.0.0`
-- Slice: `S07` — Migrate `HostPreflightProbe` Git probes
-- Status: `ACCEPTED_FOR_CHECKPOINT`
-- Execution: sequential; no callable subagent surface was available
+workflowVersion: 1.0
+sliceId: S355-07
+branch: recovery/issue-355-20260926
+owner: Senior Tester / root integration; Senior Documentation Engineer
+rollbackReference: 296171fc07ccd5e52328dd28f2f8a93e09c959df
+changedFiles: .tiny-swarm/evidence/issue-355/changed_files.md S355-07 inventory
+qualityCommands: arch-lint; arch-tests; lint; typecheck; full quality; git diff --check
+qualityResult: PASS; 2259 tests in 242.316s, 18 exclusions; all sub-gates
+arc42Updated: true
+adrUpdated: true; acceptance history preserved, implementation note appended
+publication: final audit PASS; checkpoint awaits commit review
 
-## Result
+Sequential docs then root architecture/evidence writes; no parallel conflicts.
+Real Architect/Requirement/Tester and completion auditor; no fallback.
+Six import contracts, 30 architecture tests 17.893s,lint and typecheck 703 files
+passed. Architect accepted probes; recovery documentation clarified that only
+available original failure context can be retained. No rejected findings.
+Requirement review found no missing product requirement; independent final audit PASS.
+Full issue matrix maps every requirement to implementation and named tests.
+Live/browser NOT_APPLICABLE; no external result claimed. D8 PASS; final independent issue audit PASS. Integration ACCEPTED.
 
-`HostPreflightProbe` now uses the shared runner for both Git inspection
-operations. Missing or unresponsive Git is still fail-soft, and tracked-file
-fallback scanning remains available. No live mutation or policy migration was
-introduced.
+Three-Amigos final source perspectives: Requirement Lead found no product gaps
+across R355-01–15; Architect accepted contract/probe/documentation changes after
+precise recovery wording correction; Tester verified34 architecture/contract
+tests, 6 import contracts and all 37 named test references. Matrices are identical.
+Final integrated full quality passed 2259 tests; 18 exclusions.
 
-## Verification
-
-- Focused HostPreflightProbe tests: **PASS** (`41` tests).
-- `python3 tools/quality_gate.py lint`: **PASS**.
-- `python3 tools/quality_gate.py typecheck`: **PASS**.
-- `git diff --check`: **PASS**.
-- No live Git or infrastructure command executed.
-- External/browser/SonarQube checks: not required and not run.
-
-The final repository-wide quality gate is recorded in S08 and is green after
-the Arc42 governing hash was synchronized.
+Final issue-completion auditor PASS: all 15 requirements complete; no open requirements. Report: .tiny-swarm/evidence/issue-355/completion_audit.md.
