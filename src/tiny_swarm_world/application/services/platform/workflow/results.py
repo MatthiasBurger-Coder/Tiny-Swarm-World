@@ -16,7 +16,7 @@ from tiny_swarm_world.application.services.platform.workflow.types import (
     PlatformWorkflowKind,
     PlatformWorkflowStatus,
 )
-from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
+from tiny_swarm_world.domain.inventory import VerificationResult
 
 
 @dataclass(frozen=True)
@@ -52,19 +52,11 @@ class PlatformWorkflowResult:
         *,
         executed: bool,
         verification_results: tuple[VerificationResult, ...] = (),
+        operation_result: OperationResult | None = None,
     ) -> PlatformWorkflowResult:
         return cls(
             kind=semantics.kind,
-            operation_result=(
-                OperationResult(
-                    OperationOutcome.SUCCESS,
-                    completed_operations=(f"platform.{semantics.kind.value}",),
-                )
-                if semantics.kind != PlatformWorkflowKind.UPDATE
-                and verification_results
-                and all(item.status == VerificationStatus.VERIFIED for item in verification_results)
-                else None
-            ),
+            operation_result=operation_result,
             status=PlatformWorkflowStatus.COMPLETED,
             message=f"{semantics.kind.value} workflow completed.",
             executed=executed,

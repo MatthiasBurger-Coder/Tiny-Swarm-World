@@ -36,3 +36,19 @@ Architect approved narrow test_file_manager controlled_walk onerror fixture scop
 ## S355-03
 
 S355-03: targeted metadata suites 86, 84, 18 PASS; regression repair 40 PASS; expanded 172 and repository 105 PASS (overlap); full gate TMPDIR=/home/micro/.cache/issue355-tmp python3 tools/quality_gate.py quality — PASS: 2208 tests in 241.374s, 18 skipped. Log: /home/micro/.cache/issue355-s03-quality-final.log. git diff --check PASS.
+
+## S355-04 in progress
+
+Architecture source review correction pass 1: validate full metadata, reject
+orphan fields/unsupported versions/duplicate work IDs, and require producer
+evidence rather than legacy-status inference. Typed origin defaults remain
+caller-owned. Implementation and verification pending.
+
+S355-04 source review correction pass 2: reject contradictory failure metadata
+before guard-authorized mutation; preserve both guard and persistence failures;
+retain typed child completion and selected-apply uncertainty in update; avoid
+legacy verification/prerequisite inference. Producer regression evidence pending.
+
+## S355-04
+
+S355-04: targeted declared/helper 161 PASS; complete platform 221 PASS (overlap); full gate TMPDIR=/home/micro/.cache/issue355-tmp python3 tools/quality_gate.py quality — PASS: 2227 tests in 241.428s, 18 skipped. Log: /home/micro/.cache/issue355-s04-quality.log. git diff --check PASS.

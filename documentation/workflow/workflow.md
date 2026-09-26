@@ -2,7 +2,7 @@
 
 Workflow ID: issue-355-operation-results
 workflowVersion: 1.0
-Status: EXECUTING; S355-03 accepted; later slices pending
+Status: EXECUTING; S355-04 accepted; later slices pending
 Issue: [#355](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/355)
 Parent: [#313](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/313)
 Branch: `architecture/workflow-355-operation-results-20260926`
@@ -477,7 +477,9 @@ Allowed write scope and locks:
     "tests/application/services/platform/test_classic_update_workflow.py",
     "tests/application/services/platform/test_lxc_docker_install.py",
     "src/tiny_swarm_world/application/services/platform/preflight_service.py",
-    "tests/application/services/platform/test_preflight_service.py"
+    "tests/application/services/platform/test_preflight_service.py",
+    "src/tiny_swarm_world/application/services/shared/operation_results.py",
+    "tests/application/services/shared/test_operation_results.py"
   ],
   "affected_modules": [
     "operation results",
@@ -504,7 +506,9 @@ Allowed write scope and locks:
     ".codex/evidence/slice-*-consolidation.md",
     "documentation/workflow/**",
     "src/tiny_swarm_world/application/services/platform/preflight_service.py",
-    "tests/application/services/platform/test_preflight_service.py"
+    "tests/application/services/platform/test_preflight_service.py",
+    "src/tiny_swarm_world/application/services/shared/operation_results.py",
+    "tests/application/services/shared/test_operation_results.py"
   ],
   "contract_locks": [
     "operation-result-contract",
@@ -572,7 +576,9 @@ Allowed write scope and locks:
     "src/tiny_swarm_world/infrastructure/composition_artifacts.py",
     "src/tiny_swarm_world/infrastructure/composition_deployment.py",
     "src/tiny_swarm_world/infrastructure/composition_setup.py",
-    "tests/infrastructure/test_composition.py"
+    "tests/infrastructure/test_composition.py",
+    "src/tiny_swarm_world/application/services/shared/operation_results.py",
+    "tests/application/services/shared/test_operation_results.py"
   ],
   "affected_modules": [
     "operation results",
@@ -600,7 +606,9 @@ Allowed write scope and locks:
     ".tiny-swarm/evidence/issue-355/**",
     ".codex/evidence/slice-*-distribution.md",
     ".codex/evidence/slice-*-consolidation.md",
-    "documentation/workflow/**"
+    "documentation/workflow/**",
+    "src/tiny_swarm_world/application/services/shared/operation_results.py",
+    "tests/application/services/shared/test_operation_results.py"
   ],
   "contract_locks": [
     "operation-result-contract",
@@ -971,3 +979,13 @@ S355-03 additional reviewed test scope: Architect approved test_file_manager.py
 controlled_walk fixture accepting standard onerror keyword; preserve pruning assertions.
 
 - S355-03 ACCEPTED: Translated lifecycle adapter failures through compatible safe capability errors; preserved control flow, storage atomicity and legacy workflow status. Targeted metadata suites 86, 84, 18 PASS; regression repair 40 PASS; expanded 172 and repository 105 PASS (overlap); full quality PASS: 2208 tests in 241.374s; independent architecture/test review PASS. Test exclusions: 18.
+
+## Reviewed S04/S05 pure aggregation helper scope
+
+Architect approved application/services/shared/operation_results.py and matching
+tests/application/services/shared/test_operation_results.py. Pure aggregation of
+explicit work and typed children; no inference from arbitrary status/IDs/messages,
+no I/O, retries, silent identity conflicts or discarded uncertainty. Workflow owns
+requested-work versus prerequisite semantics; recovery requires observed evidence.
+
+- S355-04 ACCEPTED: Platform producers retain explicit requested progress, safe origins, uncertainty and verified recovery through the shared result contract. Targeted declared/helper 161 PASS; complete platform 221 PASS (overlap); full quality PASS: 2227 tests in 241.428s; independent architecture/test review PASS. Test exclusions: 18.

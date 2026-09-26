@@ -109,3 +109,29 @@ No product, runtime configuration or test changes in S355-01.
 - tests/infrastructure/adapters/network/test_wsl_socat_exposure.py
 - tests/infrastructure/adapters/repositories/test_routing_evidence_local_repository.py
 - tests/infrastructure/test_composition.py
+
+## S355-04
+
+- .codex/evidence/slice-04-consolidation.md
+- .codex/evidence/slice-04-distribution.md
+- .tiny-swarm/evidence/issue-355/acceptance_checklist.md
+- .tiny-swarm/evidence/issue-355/implementation_summary.md
+- .tiny-swarm/evidence/issue-355/remaining_risks.md
+- .tiny-swarm/evidence/issue-355/requirement_matrix.md
+- .tiny-swarm/evidence/issue-355/slice-04-cp-record.md
+- .tiny-swarm/evidence/issue-355/test_results.md
+- documentation/workflow/context-pack.json
+- documentation/workflow/context-pack.md
+- documentation/workflow/workflow.md
+- src/tiny_swarm_world/application/services/platform/incus/lxc_docker_install.py
+- src/tiny_swarm_world/application/services/platform/preflight_service.py
+- src/tiny_swarm_world/application/services/platform/workflow/results.py
+- src/tiny_swarm_world/application/services/platform/workflow/runtime.py
+- src/tiny_swarm_world/application/services/platform/workflow/update.py
+- src/tiny_swarm_world/application/services/platform/workflow/verify.py
+- src/tiny_swarm_world/application/services/shared/operation_results.py
+- tests/application/services/platform/test_classic_update_workflow.py
+- tests/application/services/platform/test_lxc_docker_install.py
+- tests/application/services/platform/test_platform_workflows.py
+- tests/application/services/platform/test_preflight_service.py
+- tests/application/services/shared/test_operation_results.py

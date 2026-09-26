@@ -1,27 +1,9 @@
-# S352-04 consolidation / CP_RECORD
+# S355-04 consolidation
 
-Workflow issue-352-configuration-parsing-boundary; workflowVersion 1.0.
-Stream results: sequential Python implementation and root consolidation.
-Validated service catalogue and TSW-consumed Compose structures with sanitized failures, preserving supported anchors/extensions/interpolation/port forms. Added immutable typed selected-stack snapshots and atomic cached content/service metadata; changed or deleted source files cannot replace selected snapshots.
-
-Accepted findings: independent Architect and Tester accepted scoped behavior.
-Rejected findings: none. Conflict resolution: no overlapping task edits; user
-authorized excluding unrelated Jenkins files (now separately committed by another actor).
-No new worktrees. Real subagents used; no fallback. No parallel writers.
-Files changed per stream:
-- .codex/evidence/slice-04-distribution.md
-- src/tiny_swarm_world/application/ports/repositories/port_compose_file_repository.py
-- src/tiny_swarm_world/domain/deployment/stack_definition.py
-- src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py
-- tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py
-
-Tests executed: Targeted Compose suite PASS: 67 tests. python3 tools/quality_gate.py quality PASS: 2137 tests, 18 skipped; lint/typecheck, five import contracts, 22 architecture tests and verification policy passed. Log: /tmp/tsw352-s04-quality.log. git diff --check PASS. Independent architecture and test reviewers ACCEPT.
-SonarQube: external gate not executed; no external success claim.
-Documentation: issue matrix, workflow progress/context and execution evidence.
-Final integration decision: ACCEPT S352-04 only; later requirements remain OPEN.
-Rollback reference: 8b9d26f9. arc42Updated=false; adrUpdated=false.
-Root commit readiness: READY for exactly listed slice files with green local gates.
-Checkpoint SHA/push: Git history and next checkpoint record identify exact SHA;
-branch push only, no PR, merge or cleanup.
-
-Transient publication lock: LOCK_CONFLICT during initial staging while independent Git status review ran; no files staged and no lock removed. Lock disappeared naturally; root serialized publication after reviewer completion (retry1).
+Workflow issue-355-operation-results v1.0. Sequential implementation worker;
+root integration, independent Architect/Test review PASS. No parallel write conflicts.
+Accepted result: Platform producers retain explicit requested progress, safe origins, uncertainty and verified recovery through the shared result contract.
+Targeted: declared/helper 161 PASS; complete platform 221 PASS (overlap). Full quality PASS: 2227 tests in 241.428s, 18 skipped; diff check PASS.
+SonarQube EXTERNAL_GATE_NOT_APPLICABLE to checkpoint; no live/browser check.
+Documentation: issue evidence, workflow progress/context. D8 PASS.
+Final integration ACCEPTED; exactly one slice checkpoint permitted.

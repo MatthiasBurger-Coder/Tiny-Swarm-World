@@ -1141,14 +1141,14 @@ if __name__ == "__main__":
 
 class TestPlatformSharedOperationResult(unittest.TestCase):
     def test_safe_factory_outcomes_are_additive_and_keep_legacy_fields(self):
-        from tiny_swarm_world.application.ports.operation_result import OperationOutcome
+        from tiny_swarm_world.application.ports.operation_result import OperationOutcome, OperationResult
         semantics = PLATFORM_WORKFLOW_TAXONOMY[PlatformWorkflowKind.INIT]
         for result, outcome, legacy in (
             (PlatformWorkflowResult.refused(semantics, "consent"), OperationOutcome.REFUSED, "refused"),
             (PlatformWorkflowResult.blocked(semantics, "prerequisite"), OperationOutcome.BLOCKED, "blocked"),
             (PlatformWorkflowResult.completed(semantics, executed=True, verification_results=(
                 VerificationResult(target_id="platform", status=VerificationStatus.VERIFIED),
-            )), OperationOutcome.SUCCESS, "completed"),
+            ), operation_result=OperationResult(OperationOutcome.SUCCESS, completed_operations=("platform.init.verify",))), OperationOutcome.SUCCESS, "completed"),
         ):
             with self.subTest(outcome=outcome):
                 self.assertEqual(outcome, result.operation_result.outcome)
@@ -1157,7 +1157,7 @@ class TestPlatformSharedOperationResult(unittest.TestCase):
                 self.assertIn("outcome", result.to_dict())
                 self.assertIn("verification_results", result.to_dict())
 
-    def test_unmigrated_mutation_and_recovery_results_do_not_invent_evidence(self):
+    def test_compatibility_defaults_do_not_invent_completion_or_rollback_evidence(self):
         semantics = PLATFORM_WORKFLOW_TAXONOMY[PlatformWorkflowKind.INIT]
         for result in (
             PlatformWorkflowResult(PlatformWorkflowKind.INIT, PlatformWorkflowStatus.COMPLETED, "legacy", True),
@@ -1180,3 +1180,167 @@ class TestPlatformSharedOperationResult(unittest.TestCase):
         ):
             self.assertIsNone(result.operation_result)
             self.assertIsNone(result.to_dict()["operation_result"])
+
+
+class TestExplicitPlatformProgress(unittest.IsolatedAsyncioTestCase):
+    async def test_guard_pass_and_first_timeout_do_not_claim_completed_work(self):
+        from tiny_swarm_world.application.ports.operation_result import OperationError, OperationFailure
+        failure = OperationFailure.for_cause("command.execute", "command_runner", "process_timeout")
+
+        class TimeoutStep(_RecordingAction):
+            async def run(self):
+                raise OperationError(failure)
+
+        result = await PlatformInitWorkflow(
+            [TimeoutStep("violet-marker")],
+            pre_apply_guard=_ProviderGuardAction(VerificationResult("guard", VerificationStatus.VERIFIED)),
+        ).run()
+        common = result.operation_result
+        self.assertEqual("failed", common.outcome.value)
+        self.assertEqual((), common.completed_operations)
+        self.assertEqual(("platform.init.step.1.apply",), common.uncertain_operations)
+        self.assertEqual((failure,), common.failures)
+        self.assertNotIn("violet-marker", str(common.to_dict()))
+
+    async def test_verified_step_then_blocked_precheck_retains_partial_progress(self):
+        class Blocked(_RecordingAction):
+            def verify_pre_apply(self):
+                return VerificationResult("guard", VerificationStatus.BLOCKED)
+
+        later = _RecordingAction("later")
+        result = await PlatformInitWorkflow([_RecordingAction("first"), Blocked("second"), later]).run()
+        self.assertEqual(PlatformWorkflowStatus.BLOCKED, result.status)
+        self.assertEqual("partial", result.operation_result.outcome.value)
+        self.assertEqual(("platform.init.step.1.verify",), result.operation_result.completed_operations)
+        self.assertEqual(set(("platform.init.step.2.verify", "platform.init.step.3.verify")), set(result.operation_result.pending_operations))
+        self.assertEqual((), result.operation_result.uncertain_operations)
+        self.assertEqual([], later.calls)
+
+    async def test_storage_failure_preserves_invocation_progress_and_original_failure(self):
+        from tiny_swarm_world.application.ports.operation_result import OperationError, OperationFailure
+        storage = OperationFailure.for_cause("evidence.write", "evidence_repository", "filesystem_error")
+        timeout = OperationFailure.for_cause("command.execute", "command_runner", "process_timeout")
+
+        class BrokenStore:
+            def append(self, result):
+                raise OperationError(storage)
+
+        class Precheck(_RecordingAction):
+            def verify_pre_apply(self):
+                return VerificationResult("guard", VerificationStatus.VERIFIED)
+
+        class TimeoutStep(_RecordingAction):
+            async def run(self):
+                raise OperationError(timeout)
+
+        for step, completed, uncertain, causes in (
+            (Precheck("before"), (), (), ("filesystem_error",)),
+            (_RecordingAction("verified"), ("platform.init.step.1.verify",), (), ("filesystem_error",)),
+            (TimeoutStep("failed"), (), ("platform.init.step.1.apply",), ("process_timeout", "filesystem_error")),
+        ):
+            with self.subTest(step=step.name):
+                result = await PlatformInitWorkflow([step], verification_evidence_repository=BrokenStore()).run()
+                self.assertEqual(completed, result.operation_result.completed_operations)
+                self.assertEqual(uncertain, result.operation_result.uncertain_operations)
+                self.assertEqual(causes, tuple(failure.cause for failure in result.operation_result.failures))
+                self.assertEqual(1, len(result.verification_results))
+
+    async def test_applied_but_unverified_is_partial(self):
+        result = await PlatformInitWorkflow([_VerificationResultAction(VerificationResult(
+            "target", VerificationStatus.FAILED_TO_VERIFY, evidence={"applied": "true"},
+        ))]).run()
+        self.assertEqual("partial", result.operation_result.outcome.value)
+        self.assertEqual(("platform.init.step.1.apply",), result.operation_result.completed_operations)
+        self.assertEqual(("platform.init.step.1.verify",), result.operation_result.pending_operations)
+
+    async def test_malformed_success_metadata_fails_and_stops_later_mutation(self):
+        from tiny_swarm_world.application.ports.operation_result import OperationFailure
+        from tiny_swarm_world.application.services.shared.operation_results import failures_to_evidence
+        metadata_cases = (
+            {"operation_progress_version": "1", "operation_completed_count": "1", "operation_completed_1": "sensitivepayload"},
+            {"failure_1_operation": "sensitivepayload"},
+            failures_to_evidence((OperationFailure.for_cause("sensitivepayload", "privateorigin", "process_timeout"),)),
+            failures_to_evidence((OperationFailure.for_cause("command.execute", "command_runner", "process_timeout"),)),
+        )
+        for metadata in metadata_cases:
+            step = _VerificationResultAction(VerificationResult("target", VerificationStatus.VERIFIED, evidence=metadata))
+            step.operation_work_ids = frozenset({"node.1.verify"})
+            later = _RecordingAction("later")
+            result = await PlatformInitWorkflow([step, later]).run()
+            self.assertEqual("failed", result.operation_result.outcome.value)
+            self.assertEqual((), result.operation_result.completed_operations)
+            self.assertEqual([], later.calls)
+            self.assertNotIn("sensitivepayload", str(result.operation_result.to_dict()))
+            verify = await PlatformVerifyWorkflow([step]).run()
+            self.assertEqual("failed", verify.operation_result.outcome.value)
+            self.assertNotIn("sensitivepayload", str(verify.operation_result.to_dict()))
+
+    async def test_legacy_verify_missing_evidence_keeps_exit_but_common_is_failed(self):
+        result = await PlatformVerifyWorkflow([_MissingEvidenceAction("missing")]).run()
+        self.assertEqual(PlatformWorkflowStatus.COMPLETED, result.status)
+        self.assertEqual("failed", result.operation_result.outcome.value)
+        self.assertEqual(("platform.verify.step.1.verify",), result.operation_result.pending_operations)
+        empty = await PlatformInitWorkflow([]).run()
+        self.assertEqual("success", empty.operation_result.outcome.value)
+        self.assertEqual((), empty.operation_result.completed_operations)
+
+    async def test_guard_failure_and_storage_failure_are_both_retained(self):
+        from tiny_swarm_world.application.ports.operation_result import OperationError, OperationFailure
+        from tiny_swarm_world.application.services.shared.operation_results import failures_to_evidence
+        original = OperationFailure.for_cause("host.inspect", "host_preflight", "observation_unavailable")
+        storage = OperationFailure.for_cause("evidence.write", "evidence_repository", "filesystem_error")
+
+        class BrokenStore:
+            def append(self, result):
+                raise OperationError(storage)
+
+        result = await PlatformInitWorkflow([], pre_apply_guard=_ProviderGuardAction(VerificationResult(
+            "guard", VerificationStatus.BLOCKED, evidence=failures_to_evidence((original,)),
+        )), verification_evidence_repository=BrokenStore()).run()
+        self.assertEqual((original, storage), result.operation_result.failures)
+        self.assertEqual("blocked", result.operation_result.outcome.value)
+
+    async def test_failure_metadata_on_verified_guards_blocks_before_apply(self):
+        from tiny_swarm_world.application.ports.operation_result import OperationFailure
+        from tiny_swarm_world.application.services.shared.operation_results import failures_to_evidence
+        for metadata in ({"failure_1_operation": "opaquevalue"}, failures_to_evidence((OperationFailure.for_cause("host.inspect", "host_preflight", "filesystem_error"),))):
+            guard_result = VerificationResult("guard", VerificationStatus.VERIFIED, evidence=metadata)
+            step = _PreApplyAction("mutation", guard_result)
+            result = await PlatformInitWorkflow([step]).run()
+            self.assertEqual([], step.calls)
+            self.assertEqual("blocked", result.operation_result.outcome.value)
+            action = _RecordingAction("mutation")
+            result = await PlatformInitWorkflow([action], pre_apply_guard=_ProviderGuardAction(guard_result)).run()
+            self.assertEqual([], action.calls)
+            self.assertEqual("blocked", result.operation_result.outcome.value)
+
+    async def test_failed_child_with_completed_metadata_retains_parent_pending(self):
+        from tiny_swarm_world.application.ports.operation_result import OperationFailure
+        from tiny_swarm_world.application.services.shared.operation_results import failures_to_evidence
+        evidence = {
+            "operation_progress_version": "1", "operation_completed_count": "1", "operation_completed_1": "node.1.verify",
+            "operation_pending_count": "0", "operation_uncertain_count": "0",
+            **failures_to_evidence((OperationFailure.for_cause("command.execute", "command_runner", "process_timeout"),)),
+        }
+        step = _VerificationResultAction(VerificationResult("target", VerificationStatus.FAILED_TO_VERIFY, evidence=evidence))
+        step.operation_work_ids = frozenset({"node.1.verify"})
+        result = await PlatformVerifyWorkflow([step]).run()
+        self.assertEqual("partial", result.operation_result.outcome.value)
+        self.assertEqual(("platform.verify.step.1.verify",), result.operation_result.pending_operations)
+
+    async def test_passed_preflight_with_failure_metadata_cannot_authorize_mutation(self):
+        from tiny_swarm_world.application.ports.operation_result import OperationFailure
+        from tiny_swarm_world.application.services.shared.operation_results import failures_to_evidence
+        failure = OperationFailure.for_cause("host.inspect", "host_preflight", "filesystem_error")
+        for evidence in (failures_to_evidence((failure,)), {"failure_1_operation": "opaquevalue"}):
+            passed = PreflightResult((PreflightCheck(
+                check_id="HOST", category=PreflightCategory.RUNTIME, status=PreflightStatus.PASSED,
+                severity=PreflightSeverity.MANDATORY, message="passed", remediation="None", evidence=evidence,
+            ),))
+            action = _RecordingAction("mutation")
+            result = await PlatformInitWorkflow([action], pre_apply_guard=_PreflightAction(passed)).run()
+            self.assertEqual([], action.calls)
+            self.assertEqual("blocked", result.operation_result.outcome.value)
+            self.assertTrue(result.operation_result.failures)
+            verified = await PlatformVerifyWorkflow([_PreflightAction(passed)]).run()
+            self.assertEqual("failed", verified.operation_result.outcome.value)

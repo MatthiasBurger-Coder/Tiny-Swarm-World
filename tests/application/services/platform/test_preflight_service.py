@@ -1327,3 +1327,38 @@ def _bridge_port_registry() -> PortRegistry:
             ),
         ),
     )
+
+
+class TestPreflightExplicitFailures(unittest.IsolatedAsyncioTestCase):
+    async def test_expected_host_failure_reaches_real_platform_guard_with_origin(self):
+        from tiny_swarm_world.application.ports.operation_result import OperationError, OperationFailure
+        from tiny_swarm_world.application.services.platform.workflows import PlatformInitWorkflow
+        from tiny_swarm_world.application.services.platform.workflow.runtime import _pre_apply_guard_verification
+        failure = OperationFailure.for_cause("host.inspect", "host_preflight", "filesystem_error")
+        probe = _fake_probe()
+        probe.host_environment_report = Mock(side_effect=OperationError(failure))
+        service = PreflightService(probe)
+        preflight = await service.run()
+        self.assertFalse(preflight.passed)
+        self.assertIsNotNone(_pre_apply_guard_verification(preflight))
+        result = await PlatformInitWorkflow([], pre_apply_guard=service).run()
+        self.assertEqual("blocked", result.operation_result.outcome.value)
+        self.assertEqual((failure,), result.operation_result.failures)
+
+    async def test_evidence_failure_is_observable_without_recursive_write(self):
+        from tiny_swarm_world.application.ports.operation_result import OperationFailure
+        from tiny_swarm_world.application.ports.repositories.port_repository_failure import RepositoryStorageError
+        failure = OperationFailure.for_cause("evidence.write", "evidence_repository", "filesystem_error")
+        writer = Mock()
+        writer.write.side_effect = RepositoryStorageError(failure)
+        result = await PreflightService(_fake_probe(), evidence_writer=writer).run(LiveConsent(live_flag=True, confirmed=True))
+        self.assertFalse(result.passed)
+        check = next(check for check in result.failed_checks if check.check_id == "PREFLIGHT-EVIDENCE")
+        self.assertEqual("filesystem_error", check.evidence["failure_1_cause"])
+        writer.write.assert_called_once()
+
+    async def test_unexpected_host_defect_still_propagates(self):
+        probe = _fake_probe()
+        probe.host_environment_report = Mock(side_effect=RuntimeError("defect"))
+        with self.assertRaises(RuntimeError):
+            await PreflightService(probe).run()

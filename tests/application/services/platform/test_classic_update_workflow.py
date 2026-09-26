@@ -485,6 +485,11 @@ class ClassicUpdateWorkflowTest(unittest.IsolatedAsyncioTestCase):
         retry = await workflow.recover(
             "jenkins", "jenkins", preview=False, live_consent=_consent()
         )
+        self.assertNotEqual("rolled_back", failed.operation_result.outcome.value)
+        self.assertFalse(failed.operation_result.rollback_verified)
+        self.assertTrue(failed.operation_result.failures)
+        self.assertEqual("rolled_back", retry.operation_result.outcome.value)
+        self.assertTrue(retry.operation_result.rollback_verified)
         self.assertEqual(PlatformWorkflowStatus.FAILED_TO_APPLY, failed.status)
         self.assertEqual(PlatformWorkflowStatus.COMPLETED, retry.status)
         self.assertTrue(
@@ -561,3 +566,58 @@ class ClassicUpdateWorkflowTest(unittest.IsolatedAsyncioTestCase):
 
 def _consent():
     return LiveConsent(live_flag=True, confirmed=True)
+
+
+class TestUpdateOperationResults(unittest.IsolatedAsyncioTestCase):
+    async def test_preview_noop_and_observed_recovery_are_distinct(self):
+        workflow, _, store, _ = _workflow()
+        preview = await workflow.run(_plan(), preview=True, live_consent=None)
+        self.assertEqual(("platform.update.preview",), preview.operation_result.completed_operations)
+        workflow.runtime_observer.observe.side_effect = [_runtime("new:1")]
+        noop = await workflow.run(_plan(), preview=False, live_consent=_consent())
+        self.assertEqual("success", noop.operation_result.outcome.value)
+        self.assertFalse(noop.operation_result.rollback_verified)
+        store.load.return_value = SimpleNamespace(plan=_plan())
+        workflow.runtime_observer.observe.side_effect = [_runtime("old:1")]
+        recovered = await workflow.recover("jenkins", "jenkins", preview=False, live_consent=_consent())
+        self.assertEqual("rolled_back", recovered.operation_result.outcome.value)
+        self.assertTrue(recovered.operation_result.rollback_verified)
+        self.assertEqual(("platform.recover.verify",), recovered.operation_result.completed_operations)
+
+    async def test_typed_state_failure_is_preserved_before_mutation(self):
+        from tiny_swarm_world.application.ports.operation_result import OperationFailure
+        from tiny_swarm_world.application.ports.update.port_update_state_store import UpdateStateStorageError
+        workflow, factory, store, _ = _workflow()
+        failure = OperationFailure.for_cause("update.state.save", "update_state_store", "filesystem_error")
+        store.save.side_effect = UpdateStateStorageError(failure)
+        result = await workflow.run(_plan(), preview=False, live_consent=_consent())
+        self.assertEqual("blocked", result.operation_result.outcome.value)
+        self.assertEqual((failure,), result.operation_result.failures)
+        self.assertEqual((), result.operation_result.completed_operations)
+        factory.assert_not_called()
+
+    async def test_child_progress_survives_failed_observation_and_convergence(self):
+        from tiny_swarm_world.application.ports.operation_result import OperationFailure, OperationOutcome, OperationResult
+        for converged in (False, True):
+            workflow, _, _, deployment = _workflow()
+            deployment.run.return_value.operation_result = OperationResult(OperationOutcome.SUCCESS, completed_operations=("deployment.step.1.verify",))
+            failure = OperationFailure.for_cause("update.observe", "runtime_observer", "observation_changed")
+            workflow.runtime_observer.observe.side_effect = [_runtime("old:1"), _runtime("new:1") if converged else UpdateObservationError("unavailable", failure=failure)]
+            result = await workflow.run(_plan(), preview=False, live_consent=_consent())
+            self.assertIn("deployment.step.1.verify", result.operation_result.completed_operations)
+            if converged:
+                self.assertEqual("success", result.operation_result.outcome.value)
+            else:
+                self.assertEqual("partial", result.operation_result.outcome.value)
+                self.assertEqual((failure,), result.operation_result.failures)
+                self.assertEqual(("platform.update.apply",), result.operation_result.uncertain_operations)
+
+    async def test_legacy_completed_child_with_failed_common_result_stops_parent_success(self):
+        from tiny_swarm_world.application.ports.operation_result import OperationFailure, OperationOutcome, OperationResult
+        workflow, _, _, deployment = _workflow()
+        failure = OperationFailure.for_cause("deployment.verify", "deployment", "verification_failed")
+        deployment.run.return_value.operation_result = OperationResult(OperationOutcome.FAILED, failures=(failure,), pending_operations=("deployment.verify",))
+        result = await workflow.run(_plan(), preview=False, live_consent=_consent())
+        self.assertNotEqual("success", result.operation_result.outcome.value)
+        self.assertEqual((failure,), result.operation_result.failures)
+        self.assertEqual(1, workflow.runtime_observer.observe.await_count)

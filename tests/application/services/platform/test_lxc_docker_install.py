@@ -358,3 +358,37 @@ def _worker_2() -> NodeSpec:
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestLxcExplicitProgress(unittest.IsolatedAsyncioTestCase):
+    async def test_node_success_and_other_failure_preserve_ordinals_and_origin(self):
+        from tiny_swarm_world.application.ports.operation_result import OperationError, OperationFailure
+        failure = OperationFailure.for_cause("container.execute", "lxc_container_runtime", "process_timeout")
+
+        class Runtime(_OutOfOrderFailureRuntime):
+            async def install_docker(self, node):
+                if node == _worker():
+                    raise OperationError(failure)
+                return await super().install_docker(node)
+
+        step = LxcDockerInstallStep(LxcDockerInstallService(Runtime()), (_node(), _worker()))
+        result = await PlatformInitWorkflow([step]).run()
+        self.assertEqual("partial", result.operation_result.outcome.value)
+        self.assertEqual(("platform.init.step.1.node.1.apply", "platform.init.step.1.node.1.verify"), result.operation_result.completed_operations)
+        self.assertEqual(("platform.init.step.1.node.2.apply",), result.operation_result.uncertain_operations)
+        self.assertEqual((failure,), result.operation_result.failures)
+        self.assertNotIn("swarm-worker", str(result.operation_result.to_dict()))
+
+    async def test_post_install_verify_failure_keeps_confirmed_install(self):
+        from tiny_swarm_world.application.ports.operation_result import OperationError, OperationFailure
+        failure = OperationFailure.for_cause("container.execute", "lxc_container_runtime", "process_exit_failed")
+
+        class Runtime(_OutOfOrderFailureRuntime):
+            async def verify_docker(self, node):
+                raise OperationError(failure)
+
+        result = await PlatformInitWorkflow([LxcDockerInstallStep(LxcDockerInstallService(Runtime()), (_node(),))]).run()
+        self.assertEqual("partial", result.operation_result.outcome.value)
+        self.assertEqual(("platform.init.step.1.node.1.apply",), result.operation_result.completed_operations)
+        self.assertEqual(("platform.init.step.1.node.1.verify",), result.operation_result.pending_operations)
+        self.assertEqual((failure,), result.operation_result.failures)

@@ -11,3 +11,7 @@ S355-02: accepted after targeted/full local checks and independent architecture/
 ## S355-03
 
 S355-03: accepted after targeted/full local checks and independent architecture/test review. Issue remains INCOMPLETE until S355-07 audit.
+
+## S355-04
+
+S355-04: accepted after targeted/full local checks and independent architecture/test review. Issue remains INCOMPLETE until S355-07 audit.

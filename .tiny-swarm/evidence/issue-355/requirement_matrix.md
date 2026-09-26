@@ -31,3 +31,8 @@ Targeted: 64 tests PASS. Full quality PASS: 2188 tests in 294.844s, 18 skipped. 
 
 Translated lifecycle adapter failures through compatible safe capability errors; preserved control flow, storage atomicity and legacy workflow status.
 Targeted: metadata suites 86, 84, 18 PASS; regression repair 40 PASS; expanded 172 and repository 105 PASS (overlap). Full quality PASS: 2208 tests in 241.374s, 18 skipped. Partial evidence only; requirement rows remain OPEN until complete lifecycle coverage and final audit.
+
+## S355-04 incremental evidence
+
+Platform producers retain explicit requested progress, safe origins, uncertainty and verified recovery through the shared result contract.
+Targeted: declared/helper 161 PASS; complete platform 221 PASS (overlap). Full quality PASS: 2227 tests in 241.428s, 18 skipped. Partial evidence only; requirement rows remain OPEN until complete lifecycle coverage and final audit.
