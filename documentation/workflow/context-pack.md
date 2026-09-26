@@ -1,7 +1,7 @@
 # Workflow context pack
 
 Workflow: issue-352-configuration-parsing-boundary; version 1.0; branch `architecture/workflow-352-config-parsing-20260925`.
-Process: workflow execute; profile FULL_PATH; status BLOCKED_SCOPE_APPROVAL.
+Process: workflow execute; profile FULL_PATH; status EXECUTING.
 Implementation: see Execution Progress in workflow.md. Source baseline: `33aaafd5b80a3f316f4d650a9a831734dc7077e0`.
 
 Affected areas: configuration adapters/models/ports, composition, selected
@@ -21,4 +21,4 @@ aid, not authority. Any hash change, governance edit or conflict invalidates it;
 reread changed authority and refresh only after review. Root AGENTS.md,
 QUALITY.md, ADRs and skills remain authoritative.
 
-Execution status: S352-01 through S352-04 accepted. S352-05 awaits approval of the two-file scope correction recorded in workflow.md; S352-06 remains unstarted.
+Execution status: S352-01 through S352-05 accepted. S352-05 two-file scope correction approved by user on 2026-09-26; S352-06 remains dependent on S352-05.

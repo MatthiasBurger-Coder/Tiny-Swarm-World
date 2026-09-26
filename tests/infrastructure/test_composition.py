@@ -1,5 +1,6 @@
 import asyncio
 import os
+import shutil
 import unittest
 from dataclasses import fields
 from pathlib import Path
@@ -294,6 +295,7 @@ class TestComposition(unittest.TestCase):
                     + "\n",
                     encoding="utf-8",
                 )
+                service = composition.build_preflight_service()
                 checks = service._secret_checks()
                 self.assertTrue(checks)
                 self.assertTrue(all(check.status.value == "PASSED" for check in checks))
@@ -302,7 +304,9 @@ class TestComposition(unittest.TestCase):
 
                 # An explicitly empty environment override must not fall back to the file.
                 with patch.dict(os.environ, {secrets[0].name: ""}):
-                    checks = service._secret_checks()
+                    # A composed service retains its original selected source.
+                    self.assertTrue(all(check.status.value == "PASSED" for check in service._secret_checks()))
+                    checks = composition.build_preflight_service()._secret_checks()
                 first = next(c for c in checks if c.check_id == f"SECRET-{secrets[0].name}")
                 self.assertEqual("FAILED", first.status.value)
 
@@ -1744,7 +1748,7 @@ class TestComposition(unittest.TestCase):
                 composition_deployment, "HostEnvironmentDetector"
             ) as detector, patch.object(
                 composition_deployment, "NativeLinuxHostPreparation"
-            ) as host, patch.object(composition, "ComposeFileRepositoryYaml"):
+            ) as host, patch.dict(os.environ, {**_required_infisical_bootstrap_env(), "TSW_NEXUS_ADMIN_PASSWORD": sample_text("nexus", "-value")}):
                 detector.return_value.detect.return_value.environment = kind
                 host_result = host.return_value.verify.return_value
                 host_result.succeeded = True
@@ -2088,6 +2092,150 @@ class TestComposition(unittest.TestCase):
                         backend=composition.ManagedLxcBackend.INCUS,
                         service_profile=ServiceStackProfile.SERVICE_ACCESS,
                     )
+
+    def test_selected_late_compose_failure_prevents_all_setup_mutations(self):
+        from tiny_swarm_world.infrastructure.project_paths import ProjectPaths
+
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            shutil.copytree(Path("infra/config"), root / "infra/config")
+            (root / "infra/config/compose/swagger/docker-compose.yml").write_text("services: [private-marker", encoding="utf-8")
+            host = Mock()
+            platform = _platform_phase_bundle()
+            artifacts = _artifact_phase_bundle()
+            deployment = _deployment_phase_bundle()
+            with (
+                patch.object(composition, "default_project_paths", return_value=ProjectPaths.from_roots(root)),
+                patch.object(composition, "_build_preflight_service_for_request", return_value=_phase_bundle()),
+                patch.object(composition, "build_host_preparation_service", return_value=host),
+                patch.object(composition, "_build_platform_services_for_request", return_value=platform),
+                patch.object(composition, "build_artifact_services_for_provider", return_value=artifacts),
+                patch.object(composition, "_build_deployment_services_for_request", return_value=deployment),
+            ):
+                with self.assertRaises(ValueError):
+                    composition.build_setup_services(_accepted_live_consent())
+            host.prepare.assert_not_called()
+            platform.workflows.init.run.assert_not_called()
+            platform.workflows.cluster.docker.run.assert_not_called()
+            platform.workflows.expose.run.assert_not_called()
+            artifacts.workflows.prepare.run.assert_not_called()
+            deployment.workflows.bootstrap.run.assert_not_called()
+            deployment.workflows.apply.run.assert_not_called()
+
+    def test_setup_configuration_barrier_precedes_host_prepare(self):
+        from tiny_swarm_world.domain.preflight import PreflightResult
+
+        preflight = _phase_bundle()
+        preflight.run.return_value = PreflightResult(())
+        host = Mock()
+        deployment = _deployment_phase_bundle()
+        environment = {**_required_infisical_bootstrap_env(), "TSW_NEXUS_ADMIN_PASSWORD": sample_text("nexus", "-value")}
+        environment.pop("TSW_INFISICAL_ENCRYPTION_KEY")
+        with (
+            patch.dict(os.environ, environment, clear=True),
+            patch.object(composition, "_build_preflight_service_for_request", return_value=preflight),
+            patch.object(composition, "build_host_preparation_service", return_value=host),
+            patch.object(composition, "_build_platform_services_for_request", return_value=_platform_phase_bundle()),
+            patch.object(composition, "build_artifact_services_for_provider", return_value=_artifact_phase_bundle()),
+            patch.object(composition, "_build_deployment_services_for_request", return_value=deployment),
+        ):
+            services = composition.build_setup_services(_accepted_live_consent())
+            result = asyncio.run(services.workflows.run.run())
+        self.assertEqual(SetupWorkflowStatus.FAILED, result.status)
+        self.assertIn("artifact contract preflight", result.reason)
+        host.prepare.assert_not_called()
+        deployment.workflows.bootstrap.run.assert_not_called()
+
+    def test_deployment_defers_jenkins_only_when_postbootstrap_resolver_is_wired(self):
+        environment = {**_required_infisical_bootstrap_env(), "TSW_NEXUS_ADMIN_PASSWORD": sample_text("nexus", "-value")}
+        environment.pop("TSW_JENKINS_ADMIN_PASSWORD")
+        for profile, target, allowed in (
+            (ServiceStackProfile.SERVICE_ACCESS, None, True),
+            (ServiceStackProfile.SERVICE_ACCESS, "jenkins", False),
+            (ServiceStackProfile.DEFAULT, "jenkins", False),
+        ):
+            with self.subTest(profile=profile, target=target), patch.dict(os.environ, environment, clear=True), patch.object(composition, "InfisicalCliClient") as cli:
+                services = composition.build_lxc_deployment_services(
+                    backend=composition.ManagedLxcBackend.INCUS,
+                    service_profile=profile, update_stack_name=target,
+                )
+                if allowed:
+                    asyncio.run(services.workflows.apply.prepare_configuration())
+                else:
+                    with self.assertRaisesRegex(ValueError, "TSW_JENKINS_ADMIN_PASSWORD"):
+                        asyncio.run(services.workflows.apply.prepare_configuration())
+                self.assertEqual([], cli.return_value.method_calls)
+
+    def test_composed_docker_runtime_consumes_frozen_operator_mirrors(self):
+        original_registry = "https://registry.example.test"
+        original_apt = "https://apt.example.test/ubuntu"
+        with (
+            patch.dict(os.environ, {"TSW_LXC_DOCKER_REGISTRY_MIRROR": original_registry, "TSW_LXC_UBUNTU_APT_MIRROR": original_apt}, clear=True),
+            patch.object(composition, "LxcContainerDockerRuntime") as factory,
+            patch("tiny_swarm_world.infrastructure.composition_lxc_runtimes.selected_lxc_backend", new=AsyncMock(return_value=composition.ManagedLxcBackend.INCUS)),
+        ):
+            factory.return_value.install_docker = AsyncMock()
+            services = composition.build_platform_services(live_consent=_accepted_live_consent())
+            os.environ["TSW_LXC_DOCKER_REGISTRY_MIRROR"] = "https://replaced.example.test"
+            os.environ["TSW_LXC_UBUNTU_APT_MIRROR"] = "https://replaced.example.test/ubuntu"
+            asyncio.run(services.lxc_docker_install.runtime.install_docker(composition.DEFAULT_LXC_PLATFORM_NODES[0]))
+            self.assertEqual(original_registry, factory.call_args.kwargs["registry_mirror"].mirror_url)
+            self.assertEqual(original_apt, factory.call_args.kwargs["apt_mirror"].ubuntu_archive_url)
+
+    def test_composed_provider_uses_frozen_configuration_after_source_removed(self):
+        from types import SimpleNamespace
+        from tiny_swarm_world.infrastructure.project_paths import ProjectPaths
+        from tiny_swarm_world.domain.node_provider import ManagedLxcBackendSelection, ProviderSelection
+
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            shutil.copytree(Path("infra/config"), root / "config")
+            runner = Mock()
+            runner.run = AsyncMock(return_value=SimpleNamespace(returncode=0, timed_out=False, stdout="[]", stderr=""))
+            with (
+                patch.object(composition, "default_project_paths", return_value=ProjectPaths.from_roots(Path.cwd(), root)),
+                patch.object(composition, "AsyncLxcNodeCommandRunner", return_value=runner),
+            ):
+                services = composition.build_platform_services(live_consent=_accepted_live_consent())
+            repository = services.lxc_node_provider.config_repository
+            timeout = repository.load().verification_metadata.readiness_timeout_seconds
+            (root / "config/node-providers/provider_config.yaml").unlink()
+            selection = ProviderSelection.from_lxc_backend_selection(
+                ManagedLxcBackendSelection.for_backend(composition.ManagedLxcBackend.INCUS)
+            )
+            asyncio.run(services.lxc_node_provider.verify_node(composition.DEFAULT_LXC_PLATFORM_NODES[0], selection))
+            self.assertEqual(float(timeout), runner.run.call_args.args[1])
+            self.assertIn(composition.DEFAULT_LXC_PLATFORM_NODES[0].name, runner.run.call_args.args[0])
+
+    def test_composed_deployment_uses_retained_compose_and_operator_values(self):
+        from tiny_swarm_world.infrastructure import composition_deployment
+        from tiny_swarm_world.infrastructure.project_paths import ProjectPaths
+        from tiny_swarm_world.domain.host_environment import HostEnvironmentKind
+
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            shutil.copytree(Path("infra/config"), root / "infra/config")
+            (root / "infra/config/compose/infisical/docker-compose.yml").write_text("invalid: [", encoding="utf-8")
+            (root / "infra/config/secrets/infisical-secrets.yaml").write_text("invalid: [", encoding="utf-8")
+            configured_value = sample_text("initial", "-operator-value")
+            with (
+                patch.dict(os.environ, {"TSW_JENKINS_ADMIN_PASSWORD": configured_value}, clear=True),
+                patch.object(composition, "default_project_paths", return_value=ProjectPaths.from_roots(Path.cwd(), root / "infra")),
+                patch.object(composition_deployment, "HostEnvironmentDetector") as detector,
+                patch.object(composition_deployment, "DockerSwarmRuntime") as runtime,
+            ):
+                detector.return_value.detect.return_value.environment = HostEnvironmentKind.WSL2
+                services = composition.build_lxc_deployment_services(
+                    backend=composition.ManagedLxcBackend.INCUS,
+                    service_profile=ServiceStackProfile.DEFAULT, update_stack_name="jenkins",
+                )
+                (root / "infra/config/compose/jenkins/docker-compose.yml").write_text("services: [unchecked", encoding="utf-8")
+                os.environ["TSW_JENKINS_ADMIN_PASSWORD"] = sample_text("changed", "-operator-value")
+                result = asyncio.run(services.workflows.apply.run())
+                self.assertEqual("completed", result.status.value)
+                definition, environment = runtime.return_value.deploy_stack.call_args.args
+                self.assertNotIn("unchecked", definition.compose_content)
+                self.assertEqual(configured_value, environment["TSW_JENKINS_ADMIN_PASSWORD"])
 
     def test_build_setup_services_wires_phase_orchestrator_without_running_phases(self):
         with patch.object(

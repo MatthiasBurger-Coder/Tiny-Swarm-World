@@ -10,46 +10,6 @@ from pathlib import Path
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 INSTALL_SCRIPT = REPOSITORY_ROOT / "install.sh"
-INSTALLER_BOOTSTRAP_SOURCE_FILES = (
-    Path("__init__.py"),
-    Path("installer.py"),
-    Path("simple_installer.py"),
-    Path("domain/__init__.py"),
-    Path("domain/configuration/__init__.py"),
-    Path("domain/configuration/configuration_contract.py"),
-    Path("domain/configuration/credential_resolution.py"),
-    Path("domain/configuration/internal_test_credentials.py"),
-    Path("domain/host_environment.py"),
-    Path("domain/project_filesystem.py"),
-    Path("domain/sanitized_evidence.py"),
-    Path("application/__init__.py"),
-    Path("application/services/__init__.py"),
-    Path("application/services/credential_resolution.py"),
-    Path("application/ports/__init__.py"),
-    Path("application/ports/configuration/__init__.py"),
-    Path("application/ports/configuration/port_configuration_source.py"),
-    Path("application/ports/host/__init__.py"),
-    Path("application/ports/host/port_host_environment_detector.py"),
-    Path("application/ports/host/port_project_filesystem_inspector.py"),
-    Path("application/ports/repositories/__init__.py"),
-    Path("application/ports/repositories/port_project_filesystem_evidence_repository.py"),
-    Path("infrastructure/__init__.py"),
-    Path("infrastructure/adapters/__init__.py"),
-    Path("infrastructure/adapters/configuration/__init__.py"),
-    Path("infrastructure/adapters/configuration/configuration_sources.py"),
-    Path("infrastructure/composition_operator_configuration.py"),
-    Path("infrastructure/adapters/ingress/__init__.py"),
-    Path("infrastructure/adapters/ingress/tls_state.py"),
-    Path("infrastructure/adapters/preflight/__init__.py"),
-    Path("infrastructure/adapters/preflight/windows_wsl_bridge_state.py"),
-    Path("infrastructure/adapters/host/__init__.py"),
-    Path("infrastructure/adapters/host/host_environment_detector.py"),
-    Path("infrastructure/adapters/host/linux_host_signal_reader.py"),
-    Path("infrastructure/adapters/host/project_filesystem_inspector.py"),
-    Path("infrastructure/adapters/host/wsl_host_signal_reader.py"),
-    Path("infrastructure/adapters/repositories/__init__.py"),
-    Path("infrastructure/adapters/repositories/project_filesystem_evidence_local_repository.py"),
-)
 
 
 class TestInstallScript(unittest.TestCase):
@@ -495,11 +455,8 @@ class _InstallScriptFixture:
             **{
                 key: value
                 for key, value in os.environ.items()
-                if key
-                not in (
-                    *_install_secret_environment_names(),
-                    *_wsl_environment_names(),
-                )
+                if not key.startswith("TSW_")
+                and key not in (*_wsl_environment_names(), "PYTHONPATH", "SERVICE_PROFILE")
             },
             **(
                 _required_secret_environment()
@@ -507,6 +464,9 @@ class _InstallScriptFixture:
                 else self.secret_environment
             ),
             "PATH": f"{self.fake_bin}:{os.environ['PATH']}",
+            "PYTHONPATH": str(self.root / "src"),
+            "TSW_REPOSITORY_ROOT": str(self.root),
+            "TSW_INFRA_ROOT": str(self.root / "infra"),
             "TSW_FAKE_SCRIPT_COMMANDS": str(self.commands_file),
             "TSW_FAKE_RESET_EXIT": str(self.reset_exit),
             "TSW_FAKE_SETUP_EXIT": str(self.setup_exit),
@@ -573,14 +533,15 @@ class _InstallScriptFixture:
         shutil.copy2(INSTALL_SCRIPT, self.root / "install.sh")
         package_source = REPOSITORY_ROOT / "src" / "tiny_swarm_world"
         package_target = self.root / "src" / "tiny_swarm_world"
-        for relative_path in INSTALLER_BOOTSTRAP_SOURCE_FILES:
-            target = package_target / relative_path
-            target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(package_source / relative_path, target)
-        (self.root / "infra" / "config" / "secrets").mkdir(parents=True)
-        shutil.copy2(
-            REPOSITORY_ROOT / "infra" / "config" / "secrets" / "infisical-secrets.yaml",
-            self.root / "infra" / "config" / "secrets" / "infisical-secrets.yaml",
+        # Exercise the actual parser boundary with a complete isolated checkout.
+        # Lifecycle commands still terminate in the fake python/script runners.
+        shutil.copytree(
+            package_source, package_target,
+            ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "*.pyo"),
+        )
+        shutil.copytree(
+            REPOSITORY_ROOT / "infra" / "config", self.root / "infra" / "config",
+            ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "*.pyo"),
         )
         self.fake_bin.mkdir()
         tools_live_target = self.root / "tools" / "live"
@@ -633,15 +594,6 @@ def _required_secret_environment() -> dict[str, str]:
         "TSW_INFISICAL_REDIS_PASSWORD": "infisical-redis-password",
         "TSW_TRAEFIK_GUI_USERS_HTPASSWD": "admin:$2y$12$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
     }
-
-
-def _install_secret_environment_names() -> tuple[str, ...]:
-    return (
-        *tuple(_required_secret_environment()),
-        "TSW_TRAEFIK_TLS_CERT_SECRET_NAME",
-        "TSW_TRAEFIK_TLS_KEY_SECRET_NAME",
-        "TSW_TRAEFIK_GUI_USERS_SECRET_NAME",
-    )
 
 
 def _wsl_environment_names() -> tuple[str, ...]:

@@ -41,3 +41,11 @@ Validated service catalogue and TSW-consumed Compose structures with sanitized f
 Verification: Targeted Compose suite PASS: 67 tests. python3 tools/quality_gate.py quality PASS: 2137 tests, 18 skipped; lint/typecheck, five import contracts, 22 architecture tests and verification policy passed. Log: /tmp/tsw352-s04-quality.log. git diff --check PASS. Independent architecture and test reviewers ACCEPT.
 
 Matrix rows remain OPEN until integrated acceptance, rather than treating a partial boundary as complete.
+
+## S352-05 incremental evidence
+
+Validated selected deployment/setup inputs before managed lifecycle mutation and retained actual provider, Compose and operator values. Installer securely stages and validates selected configuration, then shares it with reset/setup; original/staged secret-storage checks and credential timing remain enforced. Approved installer adapter/test and reviewed complete shell-fixture correction included.
+
+Verification: Targeted lifecycle/repository/installer suite PASS: 321 tests; isolated shell-installer suite PASS: 20 tests. Final python3 tools/quality_gate.py quality PASS: 2159 tests, 18 skipped; lint/typecheck690 files, five import contracts, 22 architecture tests and verification policy passed. Log: /tmp/tsw352-s05-final-quality.log. git diff --check PASS. Independent architecture/test reviews ACCEPT. Initial full gate failed only incomplete shell fixtures (18 failures, one downstream error); reviewed TEST_FAILURE retry1 fixture repair preserved all assertions and mocked lifecycle boundaries; final full gate rerun passed.
+
+Matrix rows remain OPEN until integrated acceptance, rather than treating a partial boundary as complete.

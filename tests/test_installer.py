@@ -10,12 +10,128 @@ import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from datetime import UTC, datetime
 from pathlib import Path
+from contextlib import ExitStack, nullcontext
 from unittest.mock import Mock, patch
 
 from tiny_swarm_world import installer
 
 
 class TestInstaller(unittest.TestCase):
+    def _isolated_install(self, root, *, environment=None, phase=None):
+        source = root / "infra"
+        shutil.copytree(Path("infra/config"), source / "config")
+        env_file = root / "operator.env"
+        env_file.write_text("TSW_SETUP_MAX_CONCURRENCY=2\n", encoding="utf-8")
+        env_file.chmod(0o600)
+        environment = {
+            "TSW_INFRA_ROOT": str(source), "TSW_INSTALL_ENV_FILE": str(env_file),
+            "TSW_LIVE_EVIDENCE_ROOT": str(root / "evidence"), **(environment or {}),
+        }
+        stack = ExitStack()
+        self.addCleanup(stack.close)
+        stack.enter_context(patch.object(installer, "detect_host_runtime", return_value=installer.HostRuntime("native_linux", "test")))
+        stack.enter_context(patch.object(installer, "authorize_project_filesystem"))
+        stack.enter_context(patch.object(installer, "ensure_python_environment", return_value="python3"))
+        stack.enter_context(patch.object(installer, "_probe_git_ignore", return_value=installer._GitProbeResult(False, False, "outside_worktree")))
+        stack.enter_context(patch.object(installer, "_collect_evidence_probe_snapshot", return_value=installer._EvidenceProbeSnapshot("unknown", "unknown", "Linux", "test", "test")))
+        run_phase = stack.enter_context(patch.object(installer, "_run_phase", side_effect=phase, return_value=0))
+        return environment, source, env_file, run_phase
+
+    def test_malformed_later_setup_configuration_prevents_installer_reset(self):
+        for failure in ("compose", "concurrency", "mirror", "permissions", "proxy", "bridge", "infisical-mode", "infisical-url", "nexus-port"):
+            with self.subTest(failure=failure), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                environment, source, env_file, phase = self._isolated_install(root)
+                if failure == "compose":
+                    (source / "config/compose/swagger/docker-compose.yml").write_text("services: [private-marker", encoding="utf-8")
+                elif failure == "concurrency":
+                    environment["TSW_SETUP_MAX_CONCURRENCY"] = "0"
+                elif failure == "mirror":
+                    environment["TSW_LXC_DOCKER_REGISTRY_MIRROR"] = "http://localhost:5000"
+                elif failure == "permissions":
+                    env_file.chmod(0o644)
+                else:
+                    key, value = {
+                        "proxy": ("TSW_LXC_PROXY_LISTEN_ADDRESS", "bad"),
+                        "bridge": ("TSW_WINDOWS_BRIDGE_TIMEOUT_SECONDS", "0"),
+                        "infisical-mode": ("TSW_INFISICAL_PROVIDER_MODE", "external"),
+                        "infisical-url": ("TSW_INFISICAL_URL", "https://unselected.example"),
+                        "nexus-port": ("TSW_NEXUS_DOCKER_HUB_PROXY_PORT", "   "),
+                    }[failure]
+                    environment[key] = value
+                with self.assertRaises(installer.InstallerError) as raised:
+                    installer.run(installer.parse_args(("--confirm-reset", "--non-interactive-live-approval", "--headless")), env=environment, cwd=Path.cwd(), reporter=Mock())
+                phase.assert_not_called()
+                self.assertNotIn("private-marker", str(raised.exception))
+
+    def test_reset_and_setup_consume_same_private_configuration_after_original_changes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            captured = []
+
+            def run_phase(name, command, log, options, environment, cwd, reporter, **kwargs):
+                snapshot_root = Path(environment["TSW_INFRA_ROOT"])
+                compose = snapshot_root / "config/compose/swagger/docker-compose.yml"
+                captured.append((name, snapshot_root, compose.read_bytes(), dict(environment)))
+                self.assertTrue((snapshot_root / "config/compose/jenkins/image/Dockerfile").is_file())
+                self.assertEqual(0o700, snapshot_root.stat().st_mode & 0o777)
+                self.assertEqual(0o600, Path(environment["TSW_INSTALL_ENV_FILE"]).stat().st_mode & 0o777)
+                (root / "infra/config/compose/swagger/docker-compose.yml").write_text("invalid: [", encoding="utf-8")
+                (root / "operator.env").write_text("TSW_SETUP_MAX_CONCURRENCY=0\n", encoding="utf-8")
+                return 0
+
+            environment, _, _, phase = self._isolated_install(root, phase=run_phase)
+            result = installer.run(installer.parse_args(("--confirm-reset", "--non-interactive-live-approval", "--headless")), env=environment, cwd=Path.cwd(), reporter=Mock())
+            self.assertEqual(0, result)
+            self.assertEqual(2, phase.call_count)
+            self.assertEqual(captured[0][1:], captured[1][1:])
+            self.assertEqual("2", captured[1][3]["TSW_SETUP_MAX_CONCURRENCY"])
+            self.assertFalse(captured[0][1].exists())
+
+    def test_snapshot_cleanup_preserves_lifecycle_exception_classification(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            environment, _, _, _ = self._isolated_install(root)
+            retained = None
+            with self.assertRaisesRegex(OSError, "lifecycle failure"):
+                with installer._configuration_snapshot(installer.parse_args(()), environment, Path.cwd(), installer.HostRuntime("native_linux", "test")) as prepared:
+                    retained = Path(prepared["TSW_INFRA_ROOT"])
+                    raise OSError("lifecycle failure")
+            self.assertIsNotNone(retained)
+            self.assertFalse(retained.exists())
+
+    def test_selected_bridge_registry_override_is_snapshotted_and_validated(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            environment, _, _, _ = self._isolated_install(root)
+            registry = root / "bridge-ports.yaml"
+            shutil.copyfile(Path("infra/config/ports.yaml"), registry)
+            environment["TSW_WINDOWS_BRIDGE_PORT_REGISTRY_PATH"] = str(registry)
+            options = installer.parse_args(())
+            with installer._configuration_snapshot(options, environment, Path.cwd(), installer.HostRuntime("wsl2", "test")) as prepared:
+                staged = Path(prepared["TSW_WINDOWS_BRIDGE_PORT_REGISTRY_PATH"])
+                original = staged.read_bytes()
+                registry.write_text("invalid: [", encoding="utf-8")
+                self.assertEqual(original, staged.read_bytes())
+                self.assertNotEqual(registry, staged)
+            self.assertFalse(staged.exists())
+            with self.assertRaises(installer.InstallerError):
+                with installer._configuration_snapshot(options, environment, Path.cwd(), installer.HostRuntime("wsl2", "test")):
+                    self.fail("Invalid selected override must not reach the lifecycle")
+
+    def test_snapshot_rejects_symlink_and_special_file_inputs(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "source"
+            source.mkdir()
+            (source / "link").symlink_to(Path("infra/config/ports.yaml").resolve())
+            with self.assertRaises(OSError):
+                installer._copy_configuration_tree(source, root / "copy")
+            (source / "link").unlink()
+            os.mkfifo(source / "pipe")
+            with self.assertRaises(ValueError):
+                installer._copy_configuration_tree(source, root / "copy2")
+
     def test_installation_evidence_directory_uses_configured_xdg_state(self):
         with tempfile.TemporaryDirectory() as tempdir:
             state_root = Path(tempdir) / "state"
@@ -229,6 +345,8 @@ class TestInstaller(unittest.TestCase):
             with self.subTest(resolution_error=resolution_error), tempfile.TemporaryDirectory() as tempdir:
                 patches = [
                     patch.object(installer, "_require_repository"),
+                    patch.object(installer, "_configuration_snapshot", return_value=nullcontext({"TSW_INFRA_ROOT": tempdir})),
+                    patch("tiny_swarm_world.infrastructure.adapters.repositories.installer_configuration_repository.InstallerConfigurationRepository.validate_environment"),
                     patch.object(
                         installer,
                         "detect_host_runtime",

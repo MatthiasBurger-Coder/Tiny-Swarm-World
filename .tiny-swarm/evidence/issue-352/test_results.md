@@ -25,3 +25,9 @@ No live or external result is claimed.
 Targeted Compose suite PASS: 67 tests. python3 tools/quality_gate.py quality PASS: 2137 tests, 18 skipped; lint/typecheck, five import contracts, 22 architecture tests and verification policy passed. Log: /tmp/tsw352-s04-quality.log. git diff --check PASS. Independent architecture and test reviewers ACCEPT.
 
 No live or external result is claimed.
+
+## S352-05
+
+Targeted lifecycle/repository/installer suite PASS: 321 tests; isolated shell-installer suite PASS: 20 tests. Final python3 tools/quality_gate.py quality PASS: 2159 tests, 18 skipped; lint/typecheck690 files, five import contracts, 22 architecture tests and verification policy passed. Log: /tmp/tsw352-s05-final-quality.log. git diff --check PASS. Independent architecture/test reviews ACCEPT. Initial full gate failed only incomplete shell fixtures (18 failures, one downstream error); reviewed TEST_FAILURE retry1 fixture repair preserved all assertions and mocked lifecycle boundaries; final full gate rerun passed.
+
+No live or external result is claimed.

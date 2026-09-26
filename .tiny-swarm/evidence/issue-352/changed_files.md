@@ -47,3 +47,28 @@
 - src/tiny_swarm_world/domain/deployment/stack_definition.py
 - src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py
 - tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py
+
+## S352-05
+
+- .codex/evidence/slice-05-distribution.md
+- .tiny-swarm/evidence/issue-352/remaining_risks.md
+- documentation/workflow/context-pack.json
+- documentation/workflow/context-pack.md
+- documentation/workflow/workflow.md
+- src/tiny_swarm_world/application/services/configuration/configuration_validation_service.py
+- src/tiny_swarm_world/application/services/deployment/ensure_service_stack.py
+- src/tiny_swarm_world/application/services/deployment/ensure_swarm_stack.py
+- src/tiny_swarm_world/application/services/deployment/workflows.py
+- src/tiny_swarm_world/infrastructure/adapters/repositories/installer_configuration_repository.py
+- src/tiny_swarm_world/infrastructure/composition_deployment.py
+- src/tiny_swarm_world/infrastructure/composition_platform.py
+- src/tiny_swarm_world/infrastructure/composition_runtime.py
+- src/tiny_swarm_world/infrastructure/composition_setup.py
+- src/tiny_swarm_world/installer.py
+- tests/application/services/deployment/test_deployment_workflows.py
+- tests/application/services/deployment/test_ensure_service_stack.py
+- tests/application/services/deployment/test_ensure_swarm_stack.py
+- tests/infrastructure/adapters/repositories/test_installer_configuration_repository.py
+- tests/infrastructure/test_composition.py
+- tests/test_install_script.py
+- tests/test_installer.py

@@ -13,6 +13,7 @@ from tiny_swarm_world.application.ports.repositories.port_compose_file_repositor
     PortComposeFileRepository,
 )
 from tiny_swarm_world.domain.deployment import ServiceStackContract
+from tiny_swarm_world.domain.deployment.stack_definition import StackDefinition
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
 
 
@@ -30,6 +31,7 @@ class EnsureSwarmStack:
         self.compose_repository = compose_repository
         self.swarm_runtime = swarm_runtime
         self.service_stack = service_stack
+        self._prepared_stack: StackDefinition | None = None
         self.stack_environment = dict(stack_environment or {})
         self.deployment_target_id = service_stack.stack_target_id
         self.verification_target_id = service_stack.stack_target_id
@@ -46,6 +48,14 @@ class EnsureSwarmStack:
             raise ValueError("No credential snapshot has been consumed by a successful deployment.")
         return CredentialResolutionSnapshot(self._consumed_credentials.resolutions)
 
+    def prepare_configuration(self) -> None:
+        """Retain validated static input before any workflow mutation."""
+        if self._prepared_stack is None:
+            definition = self.compose_repository.get_compose_of(self.service_stack.stack_name)
+            if definition.name != self.service_stack.stack_name:
+                raise ValueError("compose stack definition name does not match the service stack contract")
+            self._prepared_stack = definition
+
     async def run(self) -> None:
         await asyncio.sleep(0)
         self._applied = False
@@ -60,7 +70,9 @@ class EnsureSwarmStack:
                 raise ValueError("Resolved credential snapshot does not match required keys.")
             consumed = CredentialResolutionSnapshot(snapshot.resolutions)
             environment.update(consumed.values)
-        stack_definition = self.compose_repository.get_compose_of(self.service_stack.stack_name)
+        self.prepare_configuration()
+        assert self._prepared_stack is not None
+        stack_definition = self._prepared_stack
         self.swarm_runtime.deploy_stack(stack_definition, environment)
         self._consumed_credentials = consumed
         self._applied = True

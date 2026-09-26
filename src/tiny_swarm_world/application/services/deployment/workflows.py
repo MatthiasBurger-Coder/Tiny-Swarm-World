@@ -4,7 +4,7 @@ import asyncio
 import inspect
 import logging
 import textwrap
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from enum import Enum
 from typing import Protocol
@@ -29,6 +29,12 @@ class DeploymentWorkflowStatus(str, Enum):
     FAILED_TO_PREPARE = "failed_to_prepare"
     FAILED_TO_VERIFY = "failed_to_verify"
     TIMED_OUT = "timed_out"
+
+
+class ConfigurationPreparation(Protocol):
+    def prepare_configuration(self) -> object:
+        """Validate and retain static inputs without external mutation."""
+        ...
 
 
 class DeploymentApplyStep(Protocol):
@@ -121,7 +127,9 @@ class DeploymentApplyWorkflow:
         blocked_reason: str = DEFAULT_DEPLOYMENT_APPLY_BLOCK_REASON,
         kind: DeploymentWorkflowKind = DeploymentWorkflowKind.APPLY,
         prerequisite_checks: Sequence[DeploymentPreApplyCheck] = (),
+        configuration_preparation: Callable[[], object] | None = None,
     ):
+        self.configuration_preparation = configuration_preparation
         self.steps = tuple(steps)
         self.pre_apply_steps = tuple(pre_apply_steps)
         self.pre_apply_checks = tuple(pre_apply_checks)
@@ -129,6 +137,19 @@ class DeploymentApplyWorkflow:
         self.blocked_reason = blocked_reason
         self.kind = kind
         self.logger = logging.getLogger(self.__class__.__name__)
+
+    async def prepare_configuration(self) -> None:
+        """Prepare every selected component before any pre-apply mutation."""
+        if self.configuration_preparation is not None:
+            prepared = self.configuration_preparation()
+            if inspect.isawaitable(prepared):
+                await prepared
+        for component in (*self.pre_apply_steps, *self.steps):
+            prepare = getattr(component, "prepare_configuration", None)
+            if callable(prepare):
+                result = prepare()
+                if inspect.isawaitable(result):
+                    await result
 
     async def run(self) -> DeploymentWorkflowResult:
         if not self.steps:
@@ -145,6 +166,16 @@ class DeploymentApplyWorkflow:
         )
         if prerequisite_result is not None:
             return prerequisite_result
+        try:
+            await self.prepare_configuration()
+        except Exception as exc:
+            return DeploymentWorkflowResult(
+                kind=self.kind,
+                status=DeploymentWorkflowStatus.FAILED_TO_PREPARE,
+                message="Selected deployment configuration is invalid.",
+                reason=f"configuration preparation failed with {exc.__class__.__name__}",
+                verification_results=tuple(verification_results),
+            )
         pre_apply_prepare_result = await _run_pre_apply_steps(
             self.pre_apply_steps,
             self.kind,

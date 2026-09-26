@@ -144,7 +144,7 @@ def build_platform_services(
 ) -> PlatformServices:
     project_paths = default_project_paths()
     node_provider_config_repository = NodeProviderConfigYamlRepository(
-        project_paths=project_paths
+        project_paths=project_paths, freeze_on_load=True
     )
     provider_config = node_provider_config_repository.load()
     provider_request = node_provider_request or _node_provider_request_from_config(provider_config)
@@ -180,13 +180,15 @@ def build_platform_services(
         lxc_node_provider,
         lxc_node_provider,
     )
+    registry_mirror = _lxc_docker_registry_mirror_configuration()
+    apt_mirror = _lxc_docker_apt_mirror_configuration()
     lxc_docker_runtime = _ProviderSelectedLxcDockerRuntime(
         provider_selection=node_provider_selection,
         provider_request=provider_request,
         runner=lxc_runner,
         allow_live_mutation=False if live_consent is None else live_consent.accepted,
-        registry_mirror_configuration=_lxc_docker_registry_mirror_configuration,
-        apt_mirror_configuration=_lxc_docker_apt_mirror_configuration,
+        registry_mirror_configuration=lambda: registry_mirror,
+        apt_mirror_configuration=lambda: apt_mirror,
         docker_runtime_factory=LxcContainerDockerRuntime,
     )
     lxc_docker_install = LxcDockerInstallService(lxc_docker_runtime)
@@ -197,8 +199,8 @@ def build_platform_services(
             runner=lxc_runner,
             allow_live_mutation=False,
             allow_live_inspection=True,
-            registry_mirror_configuration=_lxc_docker_registry_mirror_configuration,
-            apt_mirror_configuration=_lxc_docker_apt_mirror_configuration,
+            registry_mirror_configuration=lambda: registry_mirror,
+            apt_mirror_configuration=lambda: apt_mirror,
             docker_runtime_factory=LxcContainerDockerRuntime,
         )
     )

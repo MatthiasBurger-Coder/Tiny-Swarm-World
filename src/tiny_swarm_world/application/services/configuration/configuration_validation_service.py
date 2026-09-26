@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 from tiny_swarm_world.application.ports.configuration import PortConfigurationSource
 from tiny_swarm_world.domain.configuration import (
     ConfigurationContract,
@@ -16,6 +18,13 @@ class ConfigurationValidationService:
     ) -> None:
         self.configuration_source = configuration_source
         self.contract = contract or default_configuration_contract()
+        self._values: Mapping[str, str] | None = None
+
+    def freeze(self) -> None:
+        if self._values is None:
+            self._values = dict(self.configuration_source.load())
 
     def validate(self) -> ConfigurationValidationResult:
-        return self.contract.validate(self.configuration_source.load())
+        return self.contract.validate(
+            self._values if self._values is not None else self.configuration_source.load()
+        )

@@ -11,6 +11,17 @@ from tiny_swarm_world.domain.inventory import VerificationStatus
 
 
 class TestEnsureServiceStack(unittest.IsolatedAsyncioTestCase):
+    async def test_prepared_stack_survives_repository_substitution(self):
+        original = StackDefinition(name="jenkins", compose_content="services: {jenkins: {image: original}}")
+        repository = _FakeComposeRepository(original)
+        runtime = _FakeDeploymentGateway()
+        service = EnsureServiceStack(repository, runtime, ServiceStackContract("jenkins", ("jenkins",)))
+        service.prepare_configuration()
+        repository.stack_definition = StackDefinition(name="jenkins", compose_content="services: {jenkins: {image: replaced}}")
+        await service.run()
+        self.assertEqual(["jenkins"], repository.requested_stacks)
+        self.assertEqual(original, _single_applied_request(runtime).stack_definition)
+
     async def test_creates_missing_default_service_stack(self):
         stack_definition = StackDefinition(name="jenkins", compose_content="services: {}")
         compose_repository = _FakeComposeRepository(stack_definition)

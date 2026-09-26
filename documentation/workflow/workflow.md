@@ -2,7 +2,7 @@
 
 Workflow ID: issue-352-configuration-parsing-boundary
 workflowVersion: 1.0
-Status: BLOCKED_SCOPE_APPROVAL; S352-01 through S352-04 accepted
+Status: EXECUTING; S352-01 through S352-05 accepted
 Issue: [#352](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/352)
 Parent: [EPIC #313](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/313)
 Branch: `architecture/workflow-352-config-parsing-20260925`
@@ -398,7 +398,7 @@ Prerequisites: S352-04 accepted with tests/evidence; recheck locks and context h
 
 Requirements: R01,R03,R04,R06,R08,R10,R11. Verification mapping: the targeted commands below plus named new regressions in this slice's issue matrix rows.
 
-Allowed write scope and affected modules/contracts are explicit below; new files: none.
+Allowed write scope and affected modules/contracts are explicit below; new files: `src/tiny_swarm_world/infrastructure/adapters/repositories/installer_configuration_repository.py` and `tests/infrastructure/adapters/repositories/test_installer_configuration_repository.py` (user-approved scope correction, 2026-09-26).
 
 ```yaml
 slice_id: S352-05
@@ -409,6 +409,8 @@ secondary_reviewers:
 - Senior System Architect
 - Senior Tester
 affected_files: &id001
+- src/tiny_swarm_world/infrastructure/adapters/repositories/installer_configuration_repository.py
+- tests/infrastructure/adapters/repositories/test_installer_configuration_repository.py
 - src/tiny_swarm_world/application/services/deployment/workflows.py
 - src/tiny_swarm_world/application/services/deployment/ensure_swarm_stack.py
 - src/tiny_swarm_world/application/services/deployment/ensure_service_stack.py
@@ -429,6 +431,7 @@ affected_files: &id001
 - tests/application/services/platform/test_preflight_service.py
 - tests/infrastructure/test_composition.py
 - tests/test_installer.py
+- tests/test_install_script.py
 affected_modules:
 - configuration
 - deployment
@@ -450,7 +453,7 @@ quality_gates:
   - PYTHONPATH=src python3 -m unittest tests.application.services.deployment.test_deployment_workflows
     tests.application.services.deployment.test_ensure_swarm_stack tests.application.services.deployment.test_ensure_service_stack
     tests.application.services.setup.test_setup_workflow tests.application.services.platform.test_preflight_service
-    tests.infrastructure.test_composition tests.test_installer
+    tests.infrastructure.test_composition tests.test_installer tests.test_install_script tests.infrastructure.adapters.repositories.test_installer_configuration_repository
   required:
   - git diff --check
   - python3 tools/quality_gate.py quality
@@ -656,7 +659,7 @@ self-referential commit hash in this file.
 ## Execution Progress
 
 - S352-01: inventory accepted; architecture tests and diff check passed.
-- S352-05–S352-06: NOT STARTED. Issue remains INCOMPLETE.
+- S352-06: NOT STARTED. Issue remains INCOMPLETE.
 - User execution preference: normal project checkout and branches only; no new worktrees or parallel writes.
 - Normal-checkout Windows bridge assets: 11 tests passed; prior path blocker resolved without code changes.
 
@@ -666,6 +669,10 @@ self-referential commit hash in this file.
 
 - S352-04: ACCEPTED — Validated service catalogue and TSW-consumed Compose structures with sanitized failures, preserving supported anchors/extensions/interpolation/port forms. Added immutable typed selected-stack snapshots and atomic cached content/service metadata; changed or deleted source files cannot replace selected snapshots.
 
-### Execution blocker before S352-05
+### Approved scope correction before S352-05
 
-Independent architecture and requirement review identified a necessary scope correction: add `src/tiny_swarm_world/infrastructure/adapters/repositories/installer_configuration_repository.py` and `tests/infrastructure/adapters/repositories/test_installer_configuration_repository.py` to S352-05. The cohesive adapter validates staged selected installer configuration before reset, using existing typed repositories and validators. It avoids forbidden installer imports and avoids assigning unrelated provider/environment validation to the Compose repository. No ADR or architecture allowlist change is needed. User approval requested; allowed files/locks remain unchanged until approved. S352-05 and S352-06 are not started.
+Independent architecture and requirement review identified a necessary scope correction: add `src/tiny_swarm_world/infrastructure/adapters/repositories/installer_configuration_repository.py` and `tests/infrastructure/adapters/repositories/test_installer_configuration_repository.py` to S352-05. The cohesive adapter validates staged selected installer configuration before reset, using existing typed repositories and validators. It avoids forbidden installer imports and avoids assigning unrelated provider/environment validation to the Compose repository. No ADR or architecture allowlist change is needed. User explicitly approved on 2026-09-26 ("ja dann mach das"). The two paths are now included in S352-05 affected files, aliased file locks and targeted verification. S352-05 may execute; S352-06 remains dependent on its acceptance.
+
+S352-05 verification scope correction: the first full gate exposed 18 failures and one downstream error in the existing shell-installer fixture, which copied only the secret manifest and a partial package. Architect and Test/Evidence reviewers approved adding `tests/test_install_script.py` to S352-05 affected files/locks and verification. This is necessary test maintenance under the authorized workflow execution, with no additional product behavior or safety exception. The fixture will include complete committed inputs while retaining fake lifecycle subprocesses and existing assertions. Typed router: TEST_FAILURE, responsible Python implementer, retry1 for this fixture cause; targeted shell-installer tests followed by full quality.
+
+- S352-05: ACCEPTED — Validated selected deployment/setup inputs before managed lifecycle mutation and retained actual provider, Compose and operator values. Installer securely stages and validates selected configuration, then shares it with reset/setup; original/staged secret-storage checks and credential timing remain enforced. Approved installer adapter/test and reviewed complete shell-fixture correction included.

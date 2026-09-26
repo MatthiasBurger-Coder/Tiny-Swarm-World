@@ -199,6 +199,9 @@ def build_lxc_deployment_services(
         service_profile=selected_service_profile,
         environment=effective_environment,
     )
+    compose_repository.validate_and_snapshot(
+        tuple(contract.stack_name for contract in service_stack_contracts)
+    )
     routing_evidence_step = WriteEffectiveAccessModelEvidence(
         effective_access_model_repository=compose_repository,
         routing_evidence_repository=RoutingEvidenceLocalRepository(
@@ -243,7 +246,13 @@ def build_lxc_deployment_services(
         for stack_environment_values in stack_environment.values():
             if environment_name in stack_environment_values:
                 stack_environment_values[environment_name] = image_ref
-    secret_manifest_entries = SecretManifestRenderer(SecretManifestYamlRepository()).run()
+    secret_manifest_entries = (
+        SecretManifestRenderer(SecretManifestYamlRepository(
+            project_paths.config_root / "secrets" / "infisical-secrets.yaml"
+        )).run()
+        if selected_service_profile is ServiceStackProfile.SERVICE_ACCESS and update_stack_name is None
+        else ()
+    )
     infisical_cli_client = None
     infisical_secret_sync_step = None
     if (
@@ -255,7 +264,7 @@ def build_lxc_deployment_services(
             cli=infisical_cli_client,
             storage=local_file_storage,
             manifest_entries=secret_manifest_entries,
-            process_environment=os.environ,
+            process_environment=effective_environment,
         )
     portainer_admin_client = LxcPortainerAdminClient(backend=backend)
     portainer_client = LxcPortainerHttpClient(
@@ -424,12 +433,23 @@ def build_lxc_deployment_services(
     if selected_service_profile is ServiceStackProfile.SERVICE_ACCESS and update_stack_name is None:
         pre_apply_steps.append(_PrepareLxcStackAssets(lxc_swarm_runtime, "service-access"))
 
+    from tiny_swarm_world.infrastructure.adapters.repositories.installer_configuration_repository import InstallerConfigurationRepository
+
+    def prepare_selected_configuration() -> None:
+        InstallerConfigurationRepository.validate_environment(
+            effective_environment,
+            stack_names=tuple(contract.stack_name for contract in service_stack_contracts),
+            deferred_keys=(("TSW_JENKINS_ADMIN_PASSWORD",)
+                           if infisical_secret_sync_step is not None else ()),
+        )
+
     return DeploymentServices(
         workflows=DeploymentWorkflows(
             bootstrap=DeploymentApplyWorkflow(
                 bootstrap_steps,
                 kind=DeploymentWorkflowKind.BOOTSTRAP,
                 prerequisite_checks=prerequisite_checks,
+                configuration_preparation=prepare_selected_configuration,
             ),
             apply=DeploymentApplyWorkflow(
                 cast(
@@ -446,6 +466,7 @@ def build_lxc_deployment_services(
                 pre_apply_steps=tuple(pre_apply_steps),
                 pre_apply_checks=pre_apply_checks,
                 prerequisite_checks=prerequisite_checks,
+                configuration_preparation=prepare_selected_configuration,
             ),
             verify=DeploymentVerifyWorkflow(
                 readiness_checks,
