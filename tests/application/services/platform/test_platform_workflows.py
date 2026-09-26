@@ -1137,3 +1137,46 @@ class _RecordingMethodTrace(PortMethodTrace):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestPlatformSharedOperationResult(unittest.TestCase):
+    def test_safe_factory_outcomes_are_additive_and_keep_legacy_fields(self):
+        from tiny_swarm_world.application.ports.operation_result import OperationOutcome
+        semantics = PLATFORM_WORKFLOW_TAXONOMY[PlatformWorkflowKind.INIT]
+        for result, outcome, legacy in (
+            (PlatformWorkflowResult.refused(semantics, "consent"), OperationOutcome.REFUSED, "refused"),
+            (PlatformWorkflowResult.blocked(semantics, "prerequisite"), OperationOutcome.BLOCKED, "blocked"),
+            (PlatformWorkflowResult.completed(semantics, executed=True, verification_results=(
+                VerificationResult(target_id="platform", status=VerificationStatus.VERIFIED),
+            )), OperationOutcome.SUCCESS, "completed"),
+        ):
+            with self.subTest(outcome=outcome):
+                self.assertEqual(outcome, result.operation_result.outcome)
+                self.assertEqual(legacy, result.to_dict()["status"])
+                self.assertEqual(outcome.value, result.to_dict()["operation_result"]["outcome"])
+                self.assertIn("outcome", result.to_dict())
+                self.assertIn("verification_results", result.to_dict())
+
+    def test_unmigrated_mutation_and_recovery_results_do_not_invent_evidence(self):
+        semantics = PLATFORM_WORKFLOW_TAXONOMY[PlatformWorkflowKind.INIT]
+        for result in (
+            PlatformWorkflowResult(PlatformWorkflowKind.INIT, PlatformWorkflowStatus.COMPLETED, "legacy", True),
+            PlatformWorkflowResult.blocked(semantics, "after mutation", executed=True),
+            PlatformWorkflowResult.blocked(
+                semantics, "later guard blocked", executed=False,
+                verification_results=(
+                    VerificationResult(
+                        target_id="prepare", status=VerificationStatus.VERIFIED,
+                        evidence={"applied": "true"},
+                    ),
+                    VerificationResult(target_id="guard", status=VerificationStatus.BLOCKED),
+                ),
+            ),
+            PlatformWorkflowResult.completed(semantics, executed=True),
+            PlatformWorkflowResult.completed(
+                PLATFORM_WORKFLOW_TAXONOMY[PlatformWorkflowKind.UPDATE], executed=True,
+                verification_results=(VerificationResult(target_id="platform", status=VerificationStatus.VERIFIED),),
+            ),
+        ):
+            self.assertIsNone(result.operation_result)
+            self.assertIsNone(result.to_dict()["operation_result"])

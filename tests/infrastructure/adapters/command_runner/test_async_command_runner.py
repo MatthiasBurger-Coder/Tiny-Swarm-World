@@ -167,3 +167,59 @@ class TestAsyncCommandRunner(unittest.IsolatedAsyncioTestCase):
 async def _never_finishes():
     await asyncio.sleep(60)
     return b"", b""
+
+
+class TestStructuredCommandFailures(unittest.IsolatedAsyncioTestCase):
+    async def test_process_classifications_preserve_legacy_exception_contract(self):
+        from tiny_swarm_world.application.ports.commands.port_command_runner import (
+            CommandExecutionError as PortCommandExecutionError,
+        )
+        from tiny_swarm_world.application.ports.operation_result import OperationError
+        from tiny_swarm_world.infrastructure.process.async_runner import AsyncProcessResult
+        self.assertIs(CommandExecutionError, PortCommandExecutionError)
+        cases = (
+            (AsyncProcessResult(127, failure_hint="launch_executable_missing"), "launch_executable_missing", -1),
+            (AsyncProcessResult(126, failure_hint="launch_permission_denied"), "launch_permission_denied", -1),
+            (AsyncProcessResult(-1, failure_hint="launch_os_error"), "launch_os_error", -1),
+            (AsyncProcessResult(124, timed_out=True), "process_timeout", -1),
+            (AsyncProcessResult(7, "private output", "private stderr"), "process_exit_failed", 7),
+        )
+        for process_result, cause, code in cases:
+            with self.subTest(cause=cause), patch(
+                "tiny_swarm_world.infrastructure.adapters.command_runner.async_command_runner.run_async_process",
+                new=AsyncMock(return_value=process_result),
+            ):
+                runner = AsyncPortCommandRunner()
+                with self.assertRaises(CommandExecutionError) as caught:
+                    await runner.run("private command")
+                error = caught.exception
+                self.assertIsInstance(error, OperationError)
+                self.assertEqual(cause, error.failure.cause)
+                self.assertEqual(code, error.returnCode)
+                self.assertEqual("Error", runner.status["result"])
+                self.assertEqual(
+                    f"CommandExecutionError: command failed with return code {code}. Diagnostic payload redacted.",
+                    str(error),
+                )
+                self.assertNotIn("private", str(error.failure.to_dict()))
+
+    async def test_unexpected_error_keeps_compatibility_but_has_distinct_cause(self):
+        import traceback
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.command_runner.async_command_runner.run_async_process",
+            new=AsyncMock(side_effect=RuntimeError("private diagnostics")),
+        ):
+            with self.assertRaises(CommandExecutionError) as caught:
+                await AsyncPortCommandRunner().run("private command")
+        self.assertEqual("unexpected_failure", caught.exception.failure.cause)
+        self.assertNotIn("private diagnostics", "".join(traceback.format_exception(caught.exception)))
+        self.assertTrue(caught.exception.__suppress_context__)
+
+    async def test_cancellation_and_process_control_exceptions_propagate(self):
+        for interruption in (asyncio.CancelledError, KeyboardInterrupt, SystemExit):
+            with self.subTest(interruption=interruption), patch(
+                "tiny_swarm_world.infrastructure.adapters.command_runner.async_command_runner.run_async_process",
+                new=AsyncMock(side_effect=interruption),
+            ):
+                with self.assertRaises(interruption):
+                    await AsyncPortCommandRunner().run("unused")

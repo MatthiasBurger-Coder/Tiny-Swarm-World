@@ -6,7 +6,7 @@
   "processStrand": "workflow execute",
   "executionProfile": "FULL_PATH",
   "status": "EXECUTING",
-  "implementationStatus": "S355-01_ACCEPTED",
+  "implementationStatus": "S355-02_ACCEPTED",
   "affectedAreas": [
     "application result contracts",
     "lifecycle adapters",
@@ -55,7 +55,7 @@
     "documentation/arc42/09_decisions/adr-installer-console-reporting-policy.adoc": "f510c8470d57b7b763496db5ddef93b167276adf9c78958394c8b0a75a8bdf8c",
     "documentation/arc42/09_decisions/adr-explicit-operation-results.adoc": "bb6807463c58aae5e62e20a199c6937d3d0b8a616660909241d772dae72603ff",
     "documentation/arc42/05_analysis/arch-03-12-operation-results.md": "53be9516decef330a251a8d39ed804907c337512e792d22f58e590157776577f",
-    "documentation/workflow/workflow.md": "2df15659992deb3466777232e132dd12db87dfb45c43f1e086c9615f7a135c50",
+    "documentation/workflow/workflow.md": "b134cc95482e07691d4cecf117a98321c09b1248553a40efecc7a1b2295ec98e",
     "documentation/workflow/requirement-matrix.md": "80782ab10d1a86648ec983b354e9dca651b0f031cb511415c84df37c5c95ad51",
     "documentation/workflow/authoring-review.md": "21a9b5aa5635e080e41be82643cb22f67ce47713d6f51b5febec0904f44f5080",
     "documentation/workflow/lifecycle-failure-inventory.md": "4153226c1c466fc86e3ac3d82a91f73f866b61620ab22692d5fc07cc7b577434"

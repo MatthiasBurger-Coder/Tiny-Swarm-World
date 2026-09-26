@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from tiny_swarm_world.application.ports.operation_result import (
+    OperationFailure, OperationOutcome, OperationResult,
+)
+
 from tiny_swarm_world.application.services.platform.workflow.outcomes import (
     platform_workflow_outcome,
 )
@@ -12,7 +16,7 @@ from tiny_swarm_world.application.services.platform.workflow.types import (
     PlatformWorkflowKind,
     PlatformWorkflowStatus,
 )
-from tiny_swarm_world.domain.inventory import VerificationResult
+from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
 
 
 @dataclass(frozen=True)
@@ -22,6 +26,7 @@ class PlatformWorkflowResult:
     message: str
     executed: bool
     verification_results: tuple[VerificationResult, ...] = ()
+    operation_result: OperationResult | None = None
 
     @property
     def workflow_name(self) -> str:
@@ -29,6 +34,7 @@ class PlatformWorkflowResult:
 
     def to_dict(self) -> dict[str, object]:
         return {
+            "operation_result": self.operation_result.to_dict() if self.operation_result else None,
             "executed": self.executed,
             "message": self.message,
             "outcome": platform_workflow_outcome(self),
@@ -49,6 +55,16 @@ class PlatformWorkflowResult:
     ) -> PlatformWorkflowResult:
         return cls(
             kind=semantics.kind,
+            operation_result=(
+                OperationResult(
+                    OperationOutcome.SUCCESS,
+                    completed_operations=(f"platform.{semantics.kind.value}",),
+                )
+                if semantics.kind != PlatformWorkflowKind.UPDATE
+                and verification_results
+                and all(item.status == VerificationStatus.VERIFIED for item in verification_results)
+                else None
+            ),
             status=PlatformWorkflowStatus.COMPLETED,
             message=f"{semantics.kind.value} workflow completed.",
             executed=executed,
@@ -63,6 +79,13 @@ class PlatformWorkflowResult:
     ) -> PlatformWorkflowResult:
         return cls(
             kind=semantics.kind,
+            operation_result=OperationResult(
+                OperationOutcome.REFUSED,
+                failures=(OperationFailure.for_cause(
+                    f"platform.{semantics.kind.value}", "platform", "refused",
+                ),),
+                pending_operations=(f"platform.{semantics.kind.value}",),
+            ),
             status=PlatformWorkflowStatus.REFUSED,
             message=message,
             executed=False,
@@ -79,6 +102,15 @@ class PlatformWorkflowResult:
     ) -> PlatformWorkflowResult:
         return cls(
             kind=semantics.kind,
+            operation_result=(
+                OperationResult(
+                    OperationOutcome.BLOCKED,
+                    failures=(OperationFailure.for_cause(
+                        f"platform.{semantics.kind.value}", "platform", "blocked",
+                    ),),
+                    pending_operations=(f"platform.{semantics.kind.value}",),
+                ) if not executed and not verification_results else None
+            ),
             status=PlatformWorkflowStatus.BLOCKED,
             message=message,
             executed=executed,

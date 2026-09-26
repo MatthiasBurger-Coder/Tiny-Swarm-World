@@ -1,38 +1,15 @@
-# S352-02 distribution
+# S355-02 distribution
 
-Workflow: issue-352-configuration-parsing-boundary, version 1.0.
-Title: Introduce the typed secret-manifest boundary.
-Predecessor: S352-01 committed/pushed as 276fe858. S3_BRANCH verified.
-S3_STATUS: only the two user-authorized unrelated Jenkins edits remain; preserve
-and exclude them. S3_SCOPE: exact Slice02 files. S3_CLASSIFY: backend/test.
-S3D: sequential group S352-02 after S352-01; shared configuration contract and
-composition locks prohibit parallel writers. User requests branches only.
-Real subagent: Senior Python Automation Developer owns product/tests; root owns
-workflow/evidence and consolidation. Architecture/Tester read-only reviews.
-Fallback: none. New worktrees: none. Frontend/runtime mutation: not applicable.
-
-Review before implementation: Python owner inspected model/renderer/installer
-consumers, compatibility semantics and adapter tests; Architect approved typed
-port/model placement and existing ownership constraints. READY.
-
-Selected streams: one sequential backend+test writer, root documentation and
-quality after handoff. Do not edit Jenkins files or other-slice files.
-Expected touched files/locks:
-- src/tiny_swarm_world/domain/configuration/secret_manifest.py
-- src/tiny_swarm_world/application/ports/repositories/port_secret_manifest_repository.py
-- src/tiny_swarm_world/infrastructure/adapters/repositories/secret_manifest_yaml_repository.py
-- src/tiny_swarm_world/application/services/deployment/secret_management.py
-- src/tiny_swarm_world/application/services/deployment/__init__.py
-- src/tiny_swarm_world/application/ports/file_management/port_local_file_storage.py
-- src/tiny_swarm_world/infrastructure/adapters/file_management/local_file_storage.py
-- src/tiny_swarm_world/infrastructure/composition_deployment.py
-- src/tiny_swarm_world/infrastructure/composition_runtime.py
-- src/tiny_swarm_world/installer.py
-- tests/application/services/deployment/test_secret_management.py
-- tests/infrastructure/test_composition.py
-- tests/infrastructure/adapters/repositories/test_secret_manifest_yaml_repository.py
-- tests/domain/configuration/test_secret_manifest.py
-- tests/test_installer.py
-
-Quality: targeted commands from Slice02, then python3 tools/quality_gate.py quality and git diff --check.
-Consolidation: root reviews actual diff, independent architecture/test feedback, complete issue evidence, then one S352-02 checkpoint.
+Workflow issue-355-operation-results v1.0; introduce and integrate shared operation contract.
+S3 status/branch/scope PASS; governing hashes current; S355-01 accepted and pushed
+as 4fa035ee. S3D linear dependency/locks unchanged; root acquires S355-02 metadata
+file/contract/module/architecture locks. No parallel writer or conflicting holder.
+Sequential single implementation worker; real subagents used, fallback not used.
+Isolated execution worktree; no parallel stream worktrees needed. Affected streams:
+backend+tests cohesive shared contract; architecture/quality/security read-only review;
+docs/evidence root consolidation. Frontend/runtime changes N/A.
+Parallel implementation rejected: shared model/exception/runner/test semantics.
+Worker owns exactly S355-02 affected_files; root owns evidence/context after worker.
+Expected source/test paths and targeted/full gates are the active S355-02 metadata.
+Consolidation: inspect diff, targeted tests then full quality, independent review,
+evidence update, one-slice commit and branch checkpoint push. No live/external check.

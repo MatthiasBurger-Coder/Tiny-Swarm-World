@@ -2,7 +2,7 @@
 
 Workflow ID: issue-355-operation-results
 workflowVersion: 1.0
-Status: EXECUTING; S355-01 accepted, S355-02 through S355-07 not started
+Status: EXECUTING; S355-02 accepted; later slices pending
 Issue: [#355](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/355)
 Parent: [#313](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/313)
 Branch: `architecture/workflow-355-operation-results-20260926`
@@ -942,3 +942,5 @@ Four-Role acceptance before any product edits. See lifecycle-failure-inventory.m
 
 - S355-01 ACCEPTED: complete lifecycle inventory, concrete schema, reviewed scope amendments and accepted ADR. Four independent role reviews PASS; arch-tests 26 PASS; diff/path checks PASS. Product implementation starts in S355-02.
 - Execution worktree: /mnt/d/Projects/Tiny-Swarm-World-worktrees/issue-355; workflow branch unchanged.
+
+- S355-02 ACCEPTED: Immutable safe operation contract, compatible application-owned command errors with cause preservation, and conservative real platform factory integration. Targeted 64 tests PASS; full quality PASS: 2188 tests in 294.844s, 18 skipped; independent architecture/test review PASS.

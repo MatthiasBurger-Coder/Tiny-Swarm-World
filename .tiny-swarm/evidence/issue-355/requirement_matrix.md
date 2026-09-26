@@ -21,3 +21,8 @@ Source: GitHub #355 (goal, scope and all five acceptance bullets); R355-15 also 
 | R355-15 | Preserve EPIC architecture, consent, destructive guards, redaction, deterministic evidence and Linux/WSL behavior. | Parent EPIC / governance | S355-01–07; exact paths in workflow metadata | PLANNED | PLANNED: Architecture and safety regression checks; independent completion audit. | OPEN |
 
 Before execution, copy this matrix to `.tiny-swarm/evidence/issue-355/requirement_matrix.md` and replace planned entries with exact file/symbol/test evidence as slices complete. Every requirement must remain represented; inventory cannot silently narrow scope.
+
+## S355-02 incremental evidence
+
+Immutable safe operation contract, compatible application-owned command errors with cause preservation, and conservative real platform factory integration.
+Targeted: 64 tests PASS. Full quality PASS: 2188 tests in 294.844s, 18 skipped. Partial evidence only; requirement rows remain OPEN until complete lifecycle coverage and final audit.
