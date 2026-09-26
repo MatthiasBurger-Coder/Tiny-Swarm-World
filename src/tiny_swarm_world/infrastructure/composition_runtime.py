@@ -9,7 +9,11 @@ import os
 import shutil
 import requests  # noqa: F401
 import subprocess  # noqa: F401
+from tiny_swarm_world.infrastructure.adapters.repositories.secret_manifest_yaml_repository import SecretManifestYamlRepository
+
+from collections.abc import Mapping
 from dataclasses import replace
+from tiny_swarm_world.application.ports.configuration import PortConfigurationSource
 from pathlib import Path
 from typing import cast
 from urllib.parse import urlparse
@@ -633,16 +637,33 @@ def build_preflight_service(
         artifact_source_readiness=HttpArtifactSourceReadiness(),
         secret_storage_probe=build_secret_storage_probe(),
         secret_storage_path=_operator_configuration_env_file().as_posix(),
-        secret_source=CombinedConfigurationSource(
+        secret_source=_FrozenConfigurationSource(CombinedConfigurationSource(
             (
                 ShellEnvFileConfigurationSource(_operator_configuration_env_file()),
                 EnvironmentConfigurationSource(),
             )
-        ),
+        )),
         require_existing_secret_storage_file=False,
         include_secret_checks=include_secret_checks,
         include_port_checks=include_port_checks,
     )
+
+
+class _FrozenConfigurationSource(PortConfigurationSource):
+    """Retain input or its load failure for structured preflight reporting."""
+
+    def __init__(self, source: PortConfigurationSource) -> None:
+        self.values: Mapping[str, str] = {}
+        self.error: Exception | None = None
+        try:
+            self.values = dict(source.load())
+        except (ValueError, OSError) as error:
+            self.error = error
+
+    def load(self) -> Mapping[str, str]:
+        if self.error is not None:
+            raise self.error
+        return dict(self.values)
 
 
 def build_configuration_validation_service(
@@ -651,7 +672,7 @@ def build_configuration_validation_service(
     resolved_env_file = env_file or Path(
         os.environ.get("TSW_INSTALL_ENV_FILE", DEFAULT_OPERATOR_CONFIGURATION_ENV_FILE)
     )
-    return ConfigurationValidationService(
+    service = ConfigurationValidationService(
         CombinedConfigurationSource(
             (
                 ShellEnvFileConfigurationSource(resolved_env_file),
@@ -659,6 +680,8 @@ def build_configuration_validation_service(
             )
         )
     )
+    service.freeze()
+    return service
 
 
 def _operator_configuration_env_file() -> Path:

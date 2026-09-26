@@ -418,5 +418,24 @@ class TestInventoryModels(unittest.TestCase):
             )
 
 
+class TestDesiredInventoryParsingBoundary(unittest.TestCase):
+    def test_integer_strings_remain_supported_without_boolean_coercion(self):
+        for value in (2, "2", " 2 ", "+2"):
+            with self.subTest(value=value):
+                vm = VmDesiredState.from_dict({"name": "node", "cpu_count": value})
+                self.assertEqual(vm.cpu_count, 2)
+        for value in (True, False, 2.5, [], "not-an-integer"):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                VmDesiredState.from_dict({"name": "node", "cpu_count": value})
+
+    def test_nested_values_are_not_stringified_into_domain_fields(self):
+        for field in ("name", "role", "image", "memory", "disk"):
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                VmDesiredState.from_dict({"name": "node", field: {"nested": "value"}})
+        for field in ("networks", "stacks"):
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                VmDesiredState.from_dict({"name": "node", field: [["nested"]]})
+
+
 if __name__ == "__main__":
     unittest.main()

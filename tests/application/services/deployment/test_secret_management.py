@@ -1,6 +1,7 @@
 import json
 import tempfile
 import unittest
+from unittest.mock import Mock
 from pathlib import Path
 
 from tests.support.sonar_safe_literals import operator_credential, sample_text
@@ -21,11 +22,31 @@ from tiny_swarm_world.infrastructure.adapters.file_management.local_file_storage
     LocalFileStorage,
 )
 
+from tiny_swarm_world.infrastructure.adapters.repositories.secret_manifest_yaml_repository import SecretManifestYamlRepository
+from tiny_swarm_world.application.ports.repositories.port_secret_manifest_repository import PortSecretManifestRepository
+from tiny_swarm_world.domain.configuration.secret_manifest import SecretManifestValidationError
+
 _PULSAR_COMPOSE_FIXTURE = Path("infra/config/compose/pulsar/docker-compose.yml")
 _STORAGE = LocalFileStorage()
 
 
 class TestSecretManagement(unittest.TestCase):
+    def test_renderer_consumes_typed_repository(self):
+        repository = Mock(spec=PortSecretManifestRepository)
+        entries = (_entry("TSW_TEST_PASSWORD"),)
+        repository.load.return_value = entries
+        self.assertIs(SecretManifestRenderer(repository).run(), entries)
+        repository.load.assert_called_once_with()
+
+    def test_renderer_classifies_typed_repository_failure(self):
+        repository = Mock(spec=PortSecretManifestRepository)
+        repository.load.side_effect = SecretManifestValidationError("Invalid secret type.")
+        with self.assertRaises(SecretManagementBlocker) as caught:
+            SecretManifestRenderer(repository).run()
+        self.assertEqual(caught.exception.classification, "manifest_schema_invalid")
+        self.assertEqual(str(caught.exception), "Invalid secret type.")
+        self.assertTrue(caught.exception.__suppress_context__)
+
     def test_manifest_schema_validation(self):
         with tempfile.TemporaryDirectory() as directory:
             manifest = Path(directory) / "infisical-secrets.yaml"
@@ -41,7 +62,7 @@ class TestSecretManagement(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            entries = SecretManifestRenderer(_STORAGE, manifest).run()
+            entries = SecretManifestRenderer(SecretManifestYamlRepository(manifest)).run()
 
             self.assertEqual(entries[0].key, "TSW_POSTGRES_PASSWORD")
             self.assertEqual(entries[0].policy, "keep_existing")
@@ -60,7 +81,7 @@ class TestSecretManagement(unittest.TestCase):
             )
 
             with self.assertRaisesRegex(SecretManagementBlocker, "Invalid secret type"):
-                SecretManifestRenderer(_STORAGE, manifest).run()
+                SecretManifestRenderer(SecretManifestYamlRepository(manifest)).run()
 
     def test_manifest_type_and_source_contract_is_enforced(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -76,7 +97,7 @@ class TestSecretManagement(unittest.TestCase):
             )
 
             with self.assertRaisesRegex(SecretManagementBlocker, "type/source mismatch"):
-                SecretManifestRenderer(_STORAGE, manifest).run()
+                SecretManifestRenderer(SecretManifestYamlRepository(manifest)).run()
 
     def test_unknown_manifest_source_defaults_to_unknown_ownership(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -91,17 +112,14 @@ class TestSecretManagement(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            entry = SecretManifestRenderer(_STORAGE, manifest).run()[0]
+            entry = SecretManifestRenderer(SecretManifestYamlRepository(manifest)).run()[0]
 
         self.assertEqual(entry.owner, "unknown")
         self.assertEqual(entry.storage, "unknown")
         self.assertEqual(entry.lifecycle, "unknown")
 
     def test_committed_manifest_tracks_traefik_tls_secret_names_without_values(self):
-        entries = SecretManifestRenderer(
-            _STORAGE,
-            Path("infra/config/secrets/infisical-secrets.yaml"),
-        ).run()
+        entries = SecretManifestRenderer(SecretManifestYamlRepository()).run()
         entries_by_key = {entry.key: entry for entry in entries}
 
         for key in (
@@ -119,10 +137,7 @@ class TestSecretManagement(unittest.TestCase):
                 self.assertNotIn("REDACTED", entry.description)
 
     def test_missing_traefik_gui_external_secret_reference_blocks(self):
-        entries = SecretManifestRenderer(
-            _STORAGE,
-            Path("infra/config/secrets/infisical-secrets.yaml"),
-        ).run()
+        entries = SecretManifestRenderer(SecretManifestYamlRepository()).run()
         gui_entry = next(
             entry for entry in entries if entry.key == "TSW_TRAEFIK_GUI_USERS_SECRET_NAME"
         )
@@ -136,10 +151,7 @@ class TestSecretManagement(unittest.TestCase):
             sync.run()
 
     def test_committed_manifest_marks_infisical_redis_password_required(self):
-        entries = SecretManifestRenderer(
-            _STORAGE,
-            Path("infra/config/secrets/infisical-secrets.yaml"),
-        ).run()
+        entries = SecretManifestRenderer(SecretManifestYamlRepository()).run()
         entries_by_key = {entry.key: entry for entry in entries}
 
         entry = entries_by_key["TSW_INFISICAL_REDIS_PASSWORD"]
@@ -150,10 +162,7 @@ class TestSecretManagement(unittest.TestCase):
         self.assertTrue(entry.required)
 
     def test_manifest_entries_expose_ownership_storage_and_lifecycle(self):
-        entries = SecretManifestRenderer(
-            _STORAGE,
-            Path("infra/config/secrets/infisical-secrets.yaml"),
-        ).run()
+        entries = SecretManifestRenderer(SecretManifestYamlRepository()).run()
         entries_by_key = {entry.key: entry for entry in entries}
 
         generated = entries_by_key["TSW_NEXUS_ADMIN_PASSWORD"]
@@ -171,10 +180,7 @@ class TestSecretManagement(unittest.TestCase):
         self.assertEqual(bootstrap.lifecycle, "deterministic_catalog_value_or_explicit_override")
 
     def test_committed_manifest_tracks_required_infisical_login_identity(self):
-        entries = SecretManifestRenderer(
-            _STORAGE,
-            Path("infra/config/secrets/infisical-secrets.yaml"),
-        ).run()
+        entries = SecretManifestRenderer(SecretManifestYamlRepository()).run()
         entries_by_key = {entry.key: entry for entry in entries}
 
         entry = entries_by_key["TSW_INFISICAL_LOGIN_EMAIL"]
@@ -185,10 +191,7 @@ class TestSecretManagement(unittest.TestCase):
         self.assertTrue(entry.required)
 
     def test_pulsar_compose_bootstrap_does_not_create_secret_inventory_blocker(self):
-        entries = SecretManifestRenderer(
-            _STORAGE,
-            Path("infra/config/secrets/infisical-secrets.yaml"),
-        ).run()
+        entries = SecretManifestRenderer(SecretManifestYamlRepository()).run()
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             _write_repo_fixture(root, "docker-compose.yml", _PULSAR_COMPOSE_FIXTURE.read_text(encoding="utf-8"))
@@ -421,10 +424,7 @@ class TestSecretManagement(unittest.TestCase):
             sync.run()
 
     def test_internal_test_full_manifest_keeps_external_refs_out_of_vault(self):
-        entries = SecretManifestRenderer(
-            _STORAGE,
-            Path("infra/config/secrets/infisical-secrets.yaml"),
-        ).run()
+        entries = SecretManifestRenderer(SecretManifestYamlRepository()).run()
         external_keys = {
             "TSW_TRAEFIK_TLS_CERT_SECRET_NAME",
             "TSW_TRAEFIK_TLS_KEY_SECRET_NAME",

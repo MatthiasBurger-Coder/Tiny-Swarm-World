@@ -7,6 +7,8 @@ calls so legacy facade patch points remain effective.
 
 from __future__ import annotations
 
+from tiny_swarm_world.infrastructure.adapters.repositories.secret_manifest_yaml_repository import SecretManifestYamlRepository
+
 from collections.abc import Mapping
 from functools import partial
 
@@ -105,7 +107,7 @@ from . import composition_runtime as _runtime
 
 _BOUNDARY_FUNCTION_NAMES = frozenset(["build_deployment_services_for_provider","build_lxc_deployment_services"])
 _TRAEFIK_GUI_USERS_EXTERNAL_SECRET_TARGET = "deployment:traefik-gui-input"
-_RUNTIME_SYMBOL_NAMES = frozenset(["ComposeFileRepositoryYaml","DEFAULT_DEPLOYMENT_VERIFY_TIMEOUT_SECONDS","DEFAULT_PORTAINER_ENDPOINT_NAME","DEFAULT_PORTAINER_STACK_REQUEST_TIMEOUT_SECONDS","DEFAULT_SETUP_SERVICE_PROFILE","DEFAULT_TRAEFIK_GUI_USERS_SECRET_NAME","DEFAULT_TRAEFIK_TLS_CERT_SECRET_NAME","DEFAULT_TRAEFIK_TLS_KEY_SECRET_NAME","DEPLOYMENT_VERIFY_TIMEOUT_ENVIRONMENT","DeploymentApplyStep","DeploymentApplyWorkflow","DeploymentPreApplyStep","DeploymentServices","DeploymentVerifyWorkflow","DeploymentWorkflowKind","DeploymentWorkflows","EndpointReadinessCheck","EnsureNexusAdminAccess","EnsurePortainerAdminAccess","EnsurePortainerEndpoint","EnsureSonarqubeAdminAccess","EnsureSwarmStack","InfisicalCliClient","InfisicalSecretSyncStep","LXC_BACKEND_REQUIRED_REASON","LocalFileStorage","LxcPortainerAdminClient","LxcPortainerHttpClient","LxcSwarmRuntime","ManagedLxcBackend","NodeProviderSelectionRequest","PORTAINER_STACK_REQUEST_TIMEOUT_ENVIRONMENT","PortUI","PortWorkflowProgress","RoutingEvidenceLocalRepository","SecretConsumptionVerifier","SecretDiscoveryStep","SecretEvidenceWriter","SecretManifestRenderer","ServiceStackProfile","SonarqubeHttpClient","TRAEFIK_GUI_USERS_SECRET_NAME_ENVIRONMENT","TRAEFIK_TLS_CERT_SECRET_NAME_ENVIRONMENT","TRAEFIK_TLS_KEY_SECRET_NAME_ENVIRONMENT","WriteEffectiveAccessModelEvidence","_BlockedDeploymentWorkflow","_LXC_SUPPORTED_BACKENDS","_PrepareLxcStackAssets","_default_node_provider_request","_deployment_stack_environment","_infisical_apply_readiness_steps","_infisical_bootstrap_steps","_infisical_secret_seed_steps","_local_http_url","_lxc_backend_for_provider_request","_operator_config_float","_operator_config_int","_operator_config_value","_operator_secret_value","_prioritize_infisical_apply_steps","_self_hosted_infisical_url","_with_infisical_post_apply_steps","_with_post_stack_steps","backend_cli","build_process_runner","cast","default_project_paths","os","service_stack_contracts_for_profile","shutil","build_deployment_services_for_provider","build_lxc_deployment_services"])
+_RUNTIME_SYMBOL_NAMES = frozenset(["ComposeFileRepositoryYaml","DEFAULT_DEPLOYMENT_VERIFY_TIMEOUT_SECONDS","DEFAULT_PORTAINER_ENDPOINT_NAME","DEFAULT_PORTAINER_STACK_REQUEST_TIMEOUT_SECONDS","DEFAULT_SETUP_SERVICE_PROFILE","DEFAULT_TRAEFIK_GUI_USERS_SECRET_NAME","DEFAULT_TRAEFIK_TLS_CERT_SECRET_NAME","DEFAULT_TRAEFIK_TLS_KEY_SECRET_NAME","DEPLOYMENT_VERIFY_TIMEOUT_ENVIRONMENT","DeploymentApplyStep","DeploymentApplyWorkflow","DeploymentPreApplyStep","DeploymentServices","DeploymentVerifyWorkflow","DeploymentWorkflowKind","DeploymentWorkflows","EndpointReadinessCheck","EnsureNexusAdminAccess","EnsurePortainerAdminAccess","EnsurePortainerEndpoint","EnsureSonarqubeAdminAccess","EnsureSwarmStack","InfisicalCliClient","InfisicalSecretSyncStep","LXC_BACKEND_REQUIRED_REASON","LocalFileStorage","LxcPortainerAdminClient","LxcPortainerHttpClient","LxcSwarmRuntime","ManagedLxcBackend","NodeProviderSelectionRequest","PORTAINER_STACK_REQUEST_TIMEOUT_ENVIRONMENT","PortUI","PortWorkflowProgress","RoutingEvidenceLocalRepository","SecretConsumptionVerifier","SecretDiscoveryStep","SecretEvidenceWriter","SecretManifestRenderer","SecretManifestYamlRepository","ServiceStackProfile","SonarqubeHttpClient","TRAEFIK_GUI_USERS_SECRET_NAME_ENVIRONMENT","TRAEFIK_TLS_CERT_SECRET_NAME_ENVIRONMENT","TRAEFIK_TLS_KEY_SECRET_NAME_ENVIRONMENT","WriteEffectiveAccessModelEvidence","_BlockedDeploymentWorkflow","_LXC_SUPPORTED_BACKENDS","_PrepareLxcStackAssets","_default_node_provider_request","_deployment_stack_environment","_infisical_apply_readiness_steps","_infisical_bootstrap_steps","_infisical_secret_seed_steps","_local_http_url","_lxc_backend_for_provider_request","_operator_config_float","_operator_config_int","_operator_config_value","_operator_secret_value","_prioritize_infisical_apply_steps","_self_hosted_infisical_url","_with_infisical_post_apply_steps","_with_post_stack_steps","backend_cli","build_process_runner","cast","default_project_paths","os","service_stack_contracts_for_profile","shutil","build_deployment_services_for_provider","build_lxc_deployment_services"])
 
 
 def _refresh_runtime_symbols() -> None:
@@ -197,6 +199,9 @@ def build_lxc_deployment_services(
         service_profile=selected_service_profile,
         environment=effective_environment,
     )
+    compose_repository.validate_and_snapshot(
+        tuple(contract.stack_name for contract in service_stack_contracts)
+    )
     routing_evidence_step = WriteEffectiveAccessModelEvidence(
         effective_access_model_repository=compose_repository,
         routing_evidence_repository=RoutingEvidenceLocalRepository(
@@ -241,7 +246,13 @@ def build_lxc_deployment_services(
         for stack_environment_values in stack_environment.values():
             if environment_name in stack_environment_values:
                 stack_environment_values[environment_name] = image_ref
-    secret_manifest_entries = SecretManifestRenderer(local_file_storage).run()
+    secret_manifest_entries = (
+        SecretManifestRenderer(SecretManifestYamlRepository(
+            project_paths.config_root / "secrets" / "infisical-secrets.yaml"
+        )).run()
+        if selected_service_profile is ServiceStackProfile.SERVICE_ACCESS and update_stack_name is None
+        else ()
+    )
     infisical_cli_client = None
     infisical_secret_sync_step = None
     if (
@@ -253,7 +264,7 @@ def build_lxc_deployment_services(
             cli=infisical_cli_client,
             storage=local_file_storage,
             manifest_entries=secret_manifest_entries,
-            process_environment=os.environ,
+            process_environment=effective_environment,
         )
     portainer_admin_client = LxcPortainerAdminClient(backend=backend)
     portainer_client = LxcPortainerHttpClient(
@@ -422,12 +433,23 @@ def build_lxc_deployment_services(
     if selected_service_profile is ServiceStackProfile.SERVICE_ACCESS and update_stack_name is None:
         pre_apply_steps.append(_PrepareLxcStackAssets(lxc_swarm_runtime, "service-access"))
 
+    from tiny_swarm_world.infrastructure.adapters.repositories.installer_configuration_repository import InstallerConfigurationRepository
+
+    def prepare_selected_configuration() -> None:
+        InstallerConfigurationRepository.validate_environment(
+            effective_environment,
+            stack_names=tuple(contract.stack_name for contract in service_stack_contracts),
+            deferred_keys=(("TSW_JENKINS_ADMIN_PASSWORD",)
+                           if infisical_secret_sync_step is not None else ()),
+        )
+
     return DeploymentServices(
         workflows=DeploymentWorkflows(
             bootstrap=DeploymentApplyWorkflow(
                 bootstrap_steps,
                 kind=DeploymentWorkflowKind.BOOTSTRAP,
                 prerequisite_checks=prerequisite_checks,
+                configuration_preparation=prepare_selected_configuration,
             ),
             apply=DeploymentApplyWorkflow(
                 cast(
@@ -444,6 +466,7 @@ def build_lxc_deployment_services(
                 pre_apply_steps=tuple(pre_apply_steps),
                 pre_apply_checks=pre_apply_checks,
                 prerequisite_checks=prerequisite_checks,
+                configuration_preparation=prepare_selected_configuration,
             ),
             verify=DeploymentVerifyWorkflow(
                 readiness_checks,

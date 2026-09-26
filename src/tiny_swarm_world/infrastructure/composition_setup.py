@@ -130,6 +130,10 @@ def build_setup_services(
     configuration_validation: ConfigurationValidationService | None = None,
     allow_wsl_windows_filesystem: bool = False,
 ) -> SetupServices:
+    import os
+    from tiny_swarm_world.infrastructure.adapters.repositories.installer_configuration_repository import InstallerConfigurationRepository
+
+    setup_environment = dict(os.environ)
     project_paths = default_project_paths()
     selected_service_profile = ServiceStackProfile(service_profile)
     preflight = _build_preflight_service_for_request(
@@ -139,11 +143,17 @@ def build_setup_services(
         project_paths=project_paths,
         allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
     )
+    artifact_compose_repository = ComposeFileRepositoryYaml(
+        project_paths=project_paths,
+        service_profile=selected_service_profile,
+    )
+    from tiny_swarm_world.domain.deployment import service_stack_contracts_for_profile
+
+    artifact_compose_repository.validate_and_snapshot(tuple(
+        contract.stack_name for contract in service_stack_contracts_for_profile(selected_service_profile)
+    ))
     artifact_contract_preflight = StaticArtifactContractPreflight(
-        compose_repository=ComposeFileRepositoryYaml(
-            project_paths=project_paths,
-            service_profile=selected_service_profile,
-        ),
+        compose_repository=artifact_compose_repository,
         storage=LocalFileStorage(),
     )
     artifact_readiness_gate = _build_artifact_readiness_gate(
@@ -176,8 +186,19 @@ def build_setup_services(
     static_preflight_result: PreflightResult | None = None
     artifact_bootstrap_result: ArtifactWorkflowResult | None = None
 
-    def run_artifact_contract_preflight() -> PreflightResult:
+    async def run_artifact_contract_preflight() -> PreflightResult:
         nonlocal static_preflight_result
+        InstallerConfigurationRepository.validate_environment(
+            setup_environment,
+            stack_names=tuple(contract.stack_name for contract in service_stack_contracts_for_profile(selected_service_profile)),
+            include_setup=True,
+            deferred_keys=(("TSW_JENKINS_ADMIN_PASSWORD",)
+                           if selected_service_profile is ServiceStackProfile.SERVICE_ACCESS else ()),
+        )
+        for workflow in (deployment.workflows.bootstrap, deployment.workflows.apply):
+            prepare = getattr(workflow, "prepare_configuration", None)
+            if callable(prepare):
+                await prepare()
         static_preflight_result = artifact_contract_preflight.run()
         return static_preflight_result
 

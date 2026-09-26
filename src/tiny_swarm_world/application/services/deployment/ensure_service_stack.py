@@ -12,6 +12,7 @@ from tiny_swarm_world.application.ports.repositories.port_compose_file_repositor
     PortComposeFileRepository,
 )
 from tiny_swarm_world.domain.deployment import ServiceStackContract
+from tiny_swarm_world.domain.deployment.stack_definition import StackDefinition
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
 
 
@@ -32,6 +33,7 @@ class EnsureServiceStack:
         self.compose_repository = compose_repository
         self.deployment_gateway = deployment_gateway
         self.service_stack = service_stack
+        self._prepared_stack: StackDefinition | None = None
         self.stack_environment = dict(stack_environment or {})
         self.verify_attempts = verify_attempts
         self.verify_wait_seconds = verify_wait_seconds
@@ -40,12 +42,20 @@ class EnsureServiceStack:
         self.logger = logging.getLogger(self.__class__.__name__)
         self._registration_snapshot: VerificationResult | None = None
 
+    def prepare_configuration(self) -> None:
+        """Retain validated static input before any workflow mutation."""
+        if self._prepared_stack is None:
+            definition = self.compose_repository.get_compose_of(self.service_stack.stack_name)
+            if definition.name != self.service_stack.stack_name:
+                raise ValueError("compose stack definition name does not match the service stack contract")
+            self._prepared_stack = definition
+
     async def run(self) -> None:
         await asyncio.sleep(0)
         self._registration_snapshot = None
-        stack_definition = self.compose_repository.get_compose_of(self.service_stack.stack_name)
-        if stack_definition.name != self.service_stack.stack_name:
-            raise ValueError("compose stack definition name does not match the service stack contract")
+        self.prepare_configuration()
+        assert self._prepared_stack is not None
+        stack_definition = self._prepared_stack
         self.logger.info("Applying deployment stack '%s'.", stack_definition.name)
         try:
             self.deployment_gateway.apply_stack(

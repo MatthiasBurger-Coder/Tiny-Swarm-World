@@ -162,3 +162,64 @@ requiredness, source classification, and redaction-safe parser details such as
 duplicate key names and line numbers only. It does not report raw secret
 values, full environment payloads, or local file contents. Parser failures are
 reported as configuration source errors without echoing the rejected line.
+
+## Configuration Parsing and Migration
+
+ARCH-03.09 validates external shapes and scalar types before selected managed
+lifecycle mutation. Correct the input at its source when preparation fails; do
+not rely on Python truthiness or string conversion to repair malformed YAML.
+The checked-in supported configuration remains covered by deterministic tests.
+
+| Input | Accepted form and retained compatibility | Migration for rejected input |
+|---|---|---|
+| Manifest entries | Required key/type/source are strings; supplied text fields remain strings. `required` is a boolean and defaults to `false`; policy and other optional defaults remain. Unknown source strings retain unknown ownership metadata. | Replace quoted boolean text or numeric flags with YAML booleans; provide missing required strings. Remove duplicate YAML fields and duplicate secret keys. |
+| Desired inventory | Text and collection members are strings; CPU counts retain integer/numeric-string support. Schema version accepts integer `1` or string `"1"`. Missing files and empty/null YAML documents retain empty defaults. | Remove boolean CPU counts and other coerced text/container values; use the supported schema version. This is a compatibility repository, not a newly activated runtime inventory loader. |
+| Provider configuration | Identifiers are strings; resource values are strings or integers. Existing timeout numeric strings/ranges and schema `1` compatibility remain. | Replace boolean, float or nested resource values with supported strings/integers; do not depend on identifiers being stringified. |
+| Port registry | Present registry mappings require both `ranges` and `ports` lists. Port fields are integers; optional port fields retain their existing null semantics. `required_for_preflight` is a boolean. Description/protocol are strings; metadata values may be strings, integers, floats or booleans. Missing files and empty/null YAML documents retain empty defaults. | Replace boolean ports and quoted boolean flags; remove null/container metadata values. |
+| Retained command catalogue | Command index supports integer/numeric-string input; evidence flags are booleans. Existing command safety rules still apply. | Replace boolean/float indices and nonboolean evidence flags. Retired catalogue files are not reactivated. |
+| Programmatic environment sources | Keys are strings and selected `TSW_*` values are strings. Shell-file precedence and supported assignment syntax remain unchanged. | Convert values explicitly before supplying the source; do not pass booleans or nested objects as environment values. |
+| Service catalogue | A present file contains a services mapping with named mapping entries and boolean `enabled` values. Missing files retain the empty selection; absent `enabled` retains disabled behavior. | Repair malformed roots/members or quoted enable flags; a malformed present file is no longer silently treated as an empty catalogue. |
+| Selected Compose | TSW requires named service mappings, nonempty image strings and deploy mappings; owned port/renderer fields must have supported shapes. Extensions, aliases, interpolation and short/long port forms remain supported. | Repair malformed selected entries instead of expecting them to be dropped. This boundary does not validate the complete Compose specification. |
+
+Configuration-tree checks reject recursive aliases, non-string mapping keys
+and unsupported scalar types such as YAML timestamps; ordinary aliases remain
+supported. Quote a date when a configuration field requires text. Unknown-field
+policy remains specific to each repository; this is not a blanket ban on
+unknown fields or Compose extensions. The manifest still uses PyYAML safe
+loading, including its existing boolean/merge semantics. Other YAML adapters
+retain their existing parser.
+
+After successful selected Compose preparation, edits to its source files do
+not affect that repository's retained definitions. Provider and composed
+operator/mirror values are likewise retained for the prepared lifecycle.
+Create a new invocation to use a changed selection. Direct deployment workflows
+prepare all configured steps before mutating preparation; setup prepares its
+selected deployment configuration before host/provider/artifact mutation.
+
+The normal installer validates a private copy before reset, then points reset
+and setup at the same staged infrastructure root and operator file. It copies
+the configuration tree into a private temporary directory selected by Python's
+standard library. Before copying, it requires native Linux/WSL storage, mode
+`0700`, and the effective user/group ownership for that directory. It keeps
+subdirectories owner-only and makes copied files owner-readable/writable while
+preserving an existing owner executable bit. The original operator source must
+already satisfy the platform's filesystem/ownership policy; a present file is
+checked for the effective owner/group and mode `0600`. Symlinks in traversed
+paths and special files are rejected using non-following descriptor reads.
+The staged operator file is checked again. Missing optional input remains
+absent for that run even if its original path later appears. Temporary copies
+are cleaned up when the installer context exits on success or failure; they are
+not committed configuration, recovery credentials or published evidence.
+
+For service-access deployment with an actual Infisical sync step and Jenkins
+credential callback, static preparation may defer the Jenkins password until
+that callback supplies a checked snapshot. Update/custom paths without the
+producer require their static value. The normal catalog-backed installer
+resolves its required values and validates them before reset without this
+deferral. Vault precedence and runtime readiness are unchanged.
+
+Local dependency/bootstrap preparation and protected staging may write files
+before managed reset/setup operations. Deterministic validation results do not
+establish live installation, service readiness, Selenium or external quality
+success. Auxiliary bridge scripts and tool-owned configuration remain
+infrastructure pass-through inputs without a new schema-validation claim.

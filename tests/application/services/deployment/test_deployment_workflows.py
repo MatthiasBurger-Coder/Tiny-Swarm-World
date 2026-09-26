@@ -21,6 +21,52 @@ from tiny_swarm_world.domain.inventory import VerificationResult, VerificationSt
 
 
 class TestDeploymentWorkflows(unittest.IsolatedAsyncioTestCase):
+    async def test_late_invalid_configuration_blocks_all_pre_apply_mutations(self):
+        for kind in (DeploymentWorkflowKind.BOOTSTRAP, DeploymentWorkflowKind.APPLY):
+            calls = []
+
+            class Step:
+                def __init__(self, invalid=False):
+                    self.invalid = invalid
+
+                def prepare_configuration(self):
+                    calls.append("validate")
+                    if self.invalid:
+                        raise ValueError("private-input-marker")
+
+                def run(self):
+                    calls.append("mutate")
+
+                def verify(self):
+                    return VerificationResult("deployment:test", VerificationStatus.VERIFIED, "Ready")
+
+            result = await DeploymentApplyWorkflow(
+                (Step(), Step(invalid=True)), pre_apply_steps=(Step(),), kind=kind,
+            ).run()
+            self.assertEqual(DeploymentWorkflowStatus.FAILED_TO_PREPARE, result.status)
+            self.assertFalse(result.executed)
+            self.assertNotIn("mutate", calls)
+            self.assertNotIn("private-input-marker", repr(result))
+
+    async def test_configuration_preparation_precedes_pre_apply_and_apply(self):
+        calls = []
+
+        class Step:
+            def prepare_configuration(self):
+                calls.append("validate")
+
+            def run(self):
+                calls.append("apply")
+
+            def verify(self):
+                return VerificationResult("deployment:test", VerificationStatus.VERIFIED, "Ready")
+
+        result = await DeploymentApplyWorkflow(
+            (Step(),), pre_apply_steps=(SimpleNamespace(run=lambda: calls.append("prepare")),),
+        ).run()
+        self.assertEqual(DeploymentWorkflowStatus.COMPLETED, result.status)
+        self.assertEqual(["validate", "prepare", "apply"], calls)
+
     async def test_apply_workflow_is_explicitly_blocked(self):
         result = await DeploymentApplyWorkflow().run()
 

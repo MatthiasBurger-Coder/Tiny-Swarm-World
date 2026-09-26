@@ -1,4 +1,5 @@
 import tempfile
+import traceback
 import tarfile
 import unittest
 from html.parser import HTMLParser
@@ -432,7 +433,7 @@ services:
 
             repository = ComposeFileRepositoryYaml(base_directories=[compose_root])
 
-            with self.assertRaisesRegex(ValueError, "web"):
+            with self.assertRaisesRegex(ValueError, "deploy mapping"):
                 repository.get_compose_of("broken")
 
     def test_rejects_compose_service_with_non_mapping_deploy_section(self):
@@ -1930,3 +1931,162 @@ def _committed_service_access_dashboard_html() -> str:
         / "dashboard"
         / "index.html"
     ).read_text(encoding="utf-8")
+
+
+class TestConfigurationSnapshotBoundary(unittest.TestCase):
+    def repository(self, root):
+        return ComposeFileRepositoryYaml(base_directories=[root], environment={})
+
+    def write_stack(self, root, name, content):
+        folder = root / name
+        folder.mkdir(exist_ok=True)
+        path = folder / "docker-compose.yml"
+        path.write_text(content, encoding="utf-8")
+        return path
+
+    def test_snapshot_freezes_exact_rendered_content_and_service_metadata(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = self.write_stack(root, "sample", "services:\n  web:\n    image: nginx:old\n    deploy: {}\n")
+            repository = self.repository(root)
+            snapshot = repository.validate_and_snapshot(("sample",))
+            original = snapshot.get_compose_of("sample")
+            path.write_text("services: invalid", encoding="utf-8")
+            self.assertEqual(repository.get_compose_of("sample"), original)
+            self.assertEqual(repository.get_services_of("sample")[0].image_ref, "nginx:old")
+            with self.assertRaises(ValueError):
+                original.compose_content = "changed"
+            with self.assertRaises(ValueError):
+                repository.get_services_of("sample")[0].image_ref = "changed"
+            path.unlink()
+            self.assertEqual(repository.get_compose_of("sample"), original)
+
+    def test_failed_selection_does_not_publish_partial_snapshot(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = self.write_stack(root, "sample", "services:\n  web:\n    image: nginx:old\n    deploy: {}\n")
+            self.write_stack(root, "invalid", "services: invalid")
+            repository = self.repository(root)
+            with self.assertRaises(ValueError):
+                repository.validate_and_snapshot(("sample", "invalid"))
+            path.write_text("services:\n  web:\n    image: nginx:new\n    deploy: {}\n", encoding="utf-8")
+            self.assertEqual(repository.get_services_of("sample")[0].image_ref, "nginx:new")
+
+    def test_malformed_nested_configuration_is_rejected_safely(self):
+        fields = ["image: []", "image: null", "ports: {}", "ports: [true]", "ports: [null]", "ports: [{published: true, target: 80}]", "ports: [{published: 8080}]", "ports: [{target: 0}]", "ports: ['invalid']", "networks: 7", "environment: 7", "deploy: {labels: [7]}"]
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repository = self.repository(root)
+            for field in fields:
+                content = "services:\n  web:\n    image: nginx\n    deploy: {}\n    " + field + "\n"
+                if field.startswith("image:"):
+                    content = content.replace("    image: nginx\n", "")
+                if field.startswith("deploy:"):
+                    content = content.replace("    deploy: {}\n", "")
+                with self.subTest(field=field):
+                    self.write_stack(root, "sample", content)
+                    with self.assertRaises(ValueError):
+                        repository.get_compose_of("sample")
+            self.write_stack(root, "sample", "services: [sensitive-marker")
+            with self.assertRaises(ValueError) as caught:
+                repository.get_compose_of("sample")
+            self.assertNotIn("sensitive-marker", str(caught.exception))
+
+    def test_catalogue_rejects_bad_enabled_and_shapes(self):
+        from tiny_swarm_world.infrastructure.adapters.repositories.compose_file_repository_yaml import _enabled_service_names
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "services.yml"
+            self.assertEqual(_enabled_service_names(path), frozenset())
+            for content in ("[]", "", "services: []", "services: {web: null}", "services: {web: {enabled: 'false'}}"):
+                with self.subTest(content=content):
+                    path.write_text(content, encoding="utf-8")
+                    with self.assertRaises(ValueError):
+                        _enabled_service_names(path)
+
+    def test_extensions_anchors_interpolation_and_port_forms_are_preserved(self):
+        content = """x-common: &common
+  image: ${IMAGE:-nginx:latest}
+  deploy: {}
+services:
+  web:
+    <<: *common
+    x-extra: {custom: keep}
+    ports:
+      - 80
+      - "9000"
+      - "127.0.0.1:8080:80/tcp"
+      - "[::1]:8443:443"
+      - "8000-8002:8000-8002"
+      - "${HTTP_PORT:-8080}:80"
+      - "$HTTP_PORT:80"
+      - {target: 443, published: "${TLS_PORT:-8443}"}
+"""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.write_stack(root, "sample", content)
+            repository = self.repository(root)
+            snapshot = repository.validate_and_snapshot(("sample",))
+            self.assertEqual(snapshot.get_compose_of("sample").compose_content, content)
+            self.assertEqual(repository.get_services_of("sample")[0].image_ref, "nginx:latest")
+
+    def test_renderer_preserves_mapping_labels_and_networks(self):
+        from tiny_swarm_world.infrastructure.adapters.repositories.compose_file_repository_yaml import _apply_traefik_labels
+        repository = ComposeFileRepositoryYaml()
+        route = repository.get_effective_access_model().routes[0]
+        service = {"networks": {"custom": {}}, "deploy": {"labels": {"custom.label": "preserved"}}}
+        self.assertTrue(_apply_traefik_labels(service, (route,)))
+        self.assertEqual(service["deploy"]["labels"]["custom.label"], "preserved")
+        self.assertEqual(service["deploy"]["labels"]["traefik.enable"], "true")
+        self.assertIn("service_access_link", service["networks"])
+
+    def test_dashboard_renderer_preserves_environment_list(self):
+        from tiny_swarm_world.infrastructure.adapters.repositories.compose_file_repository_yaml import _resolve_service_access_dashboard_config
+        content = "services:\n  service-access-dashboard:\n    image: nginx\n    deploy: {}\n    environment: [KEEP=value]\n"
+        rendered = _resolve_service_access_dashboard_config("service-access", content, "dashboard")
+        environment = YAML(typ="safe").load(rendered)["services"]["service-access-dashboard"]["environment"]
+        self.assertIn("KEEP=value", environment)
+        self.assertTrue(any(value.startswith("TSW_SERVICE_ACCESS_DASHBOARD_SHA256=") for value in environment))
+
+    def test_compose_duplicate_keys_and_recursive_aliases_fail_safely(self):
+        documents = (
+            "services: {}\nservices: {}\n",
+            "services:\n  web:\n    image: nginx\n    image: sensitive-marker\n    deploy: {}\n",
+            "x-cycle: &cycle [*cycle]\nservices:\n  web:\n    image: nginx\n    deploy: {}\n",
+            "services: [sensitive-marker",
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repository = self.repository(root)
+            for content in documents:
+                with self.subTest(content=content):
+                    self.write_stack(root, "sample", content)
+                    try:
+                        repository.get_compose_of("sample")
+                    except ValueError as error:
+                        formatted = "".join(traceback.format_exception(error))
+                        self.assertNotIn("sensitive-marker", formatted)
+                        self.assertNotIn("ruamel.yaml", formatted)
+                    else:
+                        self.fail("Invalid selected Compose input was accepted")
+
+    def test_catalogue_duplicate_keys_and_recursive_aliases_fail_safely(self):
+        from tiny_swarm_world.infrastructure.adapters.repositories.compose_file_repository_yaml import _enabled_service_names
+        documents = (
+            "services: {}\nservices: {}\n",
+            "services: {web: {enabled: true, enabled: sensitive-marker}}",
+            "metadata: &cycle [*cycle]\nservices: {}",
+            "services: [sensitive-marker",
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "services.yml"
+            for content in documents:
+                with self.subTest(content=content):
+                    path.write_text(content, encoding="utf-8")
+                    try:
+                        _enabled_service_names(path)
+                    except ValueError as error:
+                        formatted = "".join(traceback.format_exception(error))
+                        self.assertNotIn("sensitive-marker", formatted)
+                        self.assertNotIn("ruamel.yaml", formatted)
+                    else:
+                        self.fail("Invalid service catalogue was accepted")

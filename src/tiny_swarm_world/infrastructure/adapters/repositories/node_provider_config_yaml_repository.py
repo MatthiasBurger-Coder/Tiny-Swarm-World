@@ -5,9 +5,12 @@ from dataclasses import dataclass
 from pathlib import Path
 import re
 from typing import Any
+from types import MappingProxyType
 
 from ruamel.yaml import YAML
 from ruamel.yaml.error import YAMLError
+
+from tiny_swarm_world.infrastructure.adapters.configuration.configuration_sources import validate_configuration_tree
 
 from tiny_swarm_world.domain.node_provider import (
     ManagedLxcBackend,
@@ -179,29 +182,57 @@ class NodeProviderConfig:
 
 
 class NodeProviderConfigYamlRepository:
-    def __init__(self, path: Path | None = None, project_paths: ProjectPaths | None = None):
+    """Load provider settings; optionally retain the first successful immutable snapshot."""
+
+    def __init__(
+        self,
+        path: Path | None = None,
+        project_paths: ProjectPaths | None = None,
+        *,
+        freeze_on_load: bool = False,
+    ):
+        self.freeze_on_load = freeze_on_load
+        self._snapshot: NodeProviderConfig | None = None
         paths = project_paths or default_project_paths()
         self.path = path or (paths.config_root / DEFAULT_NODE_PROVIDER_CONFIG_PATH)
         self.yaml = YAML(typ="safe")
+        self.yaml.allow_duplicate_keys = False
 
     def load(self) -> NodeProviderConfig:
+        if self._snapshot is not None:
+            return self._snapshot
         if not self.path.exists():
             raise NodeProviderConfigError("node provider config file is missing")
 
         try:
             data = self.yaml.load(self.path.read_text(encoding="utf-8"))
-        except YAMLError as exc:
-            raise NodeProviderConfigError("node provider config YAML is invalid") from exc
+        except (YAMLError, OSError, UnicodeError, RecursionError):
+            raise NodeProviderConfigError("node provider config YAML is invalid or unreadable") from None
+        try:
+            validate_configuration_tree(data)
+        except ValueError:
+            raise NodeProviderConfigError("node provider config contains invalid structure") from None
 
         if not isinstance(data, Mapping):
             raise NodeProviderConfigError("node provider config YAML root must be a mapping")
         _reject_unknown_fields(data, _ROOT_FIELDS, "root")
         _reject_unsafe_config_values(data)
-        return _config_from_mapping(data)
+        try:
+            config = _config_from_mapping(data)
+        except NodeProviderConfigError:
+            raise
+        except ValueError:
+            raise NodeProviderConfigError("node provider config contains invalid field values") from None
+        if self.freeze_on_load:
+            self._snapshot = config
+        return config
 
 
 def _config_from_mapping(data: Mapping[str, Any]) -> NodeProviderConfig:
-    schema_version = str(_required(data, "schema_version", "root"))
+    version = _required(data, "schema_version", "root")
+    if isinstance(version, bool) or not isinstance(version, (str, int)):
+        raise NodeProviderConfigError("node provider schema version must be a string or integer")
+    schema_version = str(version)
     if schema_version != SUPPORTED_SCHEMA_VERSION:
         raise NodeProviderConfigError("unsupported node provider config schema version")
 
@@ -290,7 +321,7 @@ def _node_config(
     )
     backend = _optional_backend(item.get("backend"))
     spec = NodeSpec(
-        name=str(_required(item, "name", f"nodes[{index}]")),
+        name=_safe_identifier(_required(item, "name", f"nodes[{index}]"), "node name"),
         role=NodeRole(str(_required(item, "role", f"nodes[{index}]"))),
         provider=_provider(_required(item, "provider", f"nodes[{index}]")),
         backend=backend,
@@ -314,22 +345,22 @@ def _profile_requirement(
 ) -> NodeProviderProfileRequirement:
     profile_name = _safe_identifier(name, "profile name")
     if not isinstance(data, Mapping):
-        raise NodeProviderConfigError(f"profile {profile_name} must be a mapping")
-    _reject_unknown_fields(data, _PROFILE_FIELDS, f"profiles.{profile_name}")
+        raise NodeProviderConfigError("profile must be a mapping")
+    _reject_unknown_fields(data, _PROFILE_FIELDS, "profile")
 
     backend_support = _backend_tuple(
-        _required_sequence(data, "backend_support", f"profiles.{profile_name}")
+        _required_sequence(data, "backend_support", "profile")
     )
     risk_labels = tuple(
         _safe_identifier(label, "risk label")
-        for label in _required_sequence(data, "risk_labels", f"profiles.{profile_name}")
+        for label in _required_sequence(data, "risk_labels", "profile")
     )
     if not risk_labels:
         raise NodeProviderConfigError("profile risk labels are required")
 
-    privileged_default = _bool_value(_required(data, "privileged_default", profile_name))
-    host_network = _bool_value(_required(data, "host_network", profile_name))
-    host_mounts = tuple(str(item) for item in _required_sequence(data, "host_mounts", profile_name))
+    privileged_default = _bool_value(_required(data, "privileged_default", "profile"))
+    host_network = _bool_value(_required(data, "host_network", "profile"))
+    host_mounts = tuple(str(item) for item in _required_sequence(data, "host_mounts", "profile"))
     if privileged_default:
         raise NodeProviderConfigError("privileged container profile must not be the default")
     if host_network or host_mounts:
@@ -340,30 +371,30 @@ def _profile_requirement(
         backend_support=backend_support,
         risk_labels=risk_labels,
         privileged_default=privileged_default,
-        nesting_required=_bool_value(_required(data, "nesting_required", profile_name)),
+        nesting_required=_bool_value(_required(data, "nesting_required", "profile")),
         syscall_interception_required=_bool_value(
-            _required(data, "syscall_interception_required", profile_name)
+            _required(data, "syscall_interception_required", "profile")
         ),
-        cgroup_policy=_safe_identifier(_required(data, "cgroup_policy", profile_name), "cgroup policy"),
+        cgroup_policy=_safe_identifier(_required(data, "cgroup_policy", "profile"), "cgroup policy"),
         apparmor_policy=_safe_identifier(
-            _required(data, "apparmor_policy", profile_name),
+            _required(data, "apparmor_policy", "profile"),
             "apparmor policy",
         ),
         seccomp_policy=_safe_identifier(
-            _required(data, "seccomp_policy", profile_name),
+            _required(data, "seccomp_policy", "profile"),
             "seccomp policy",
         ),
         capability_additions=tuple(
             _safe_identifier(item, "capability addition")
-            for item in _required_sequence(data, "capability_additions", profile_name)
+            for item in _required_sequence(data, "capability_additions", "profile")
         ),
         host_network=host_network,
         host_mounts=host_mounts,
         live_mutation_consent_required=_bool_value(
-            _required(data, "live_mutation_consent_required", profile_name)
+            _required(data, "live_mutation_consent_required", "profile")
         ),
         blocks_mutation_when_missing=_bool_value(
-            _required(data, "blocks_mutation_when_missing", profile_name)
+            _required(data, "blocks_mutation_when_missing", "profile")
         ),
     )
 
@@ -377,7 +408,13 @@ def _verification_metadata(data: Mapping[str, Any]) -> ProviderVerificationMetad
     if not summary_only or store_raw_output:
         raise NodeProviderConfigError("provider evidence policy must be summary-only")
 
-    timeout_seconds = int(str(_required(data, "readiness_timeout_seconds", "verification_metadata")))
+    timeout_value = _required(data, "readiness_timeout_seconds", "verification_metadata")
+    if isinstance(timeout_value, bool) or not isinstance(timeout_value, (int, str)):
+        raise NodeProviderConfigError("provider readiness timeout must be an integer")
+    try:
+        timeout_seconds = int(timeout_value)
+    except ValueError:
+        raise NodeProviderConfigError("provider readiness timeout must be an integer") from None
     if timeout_seconds <= 0 or timeout_seconds > 30:
         raise NodeProviderConfigError("provider readiness timeout must be between 1 and 30 seconds")
 
@@ -430,7 +467,7 @@ def _provider_resource_resolution(
             backend_resolution,
         )
 
-    return ProviderResourceResolution(backends=backends)
+    return ProviderResourceResolution(backends=MappingProxyType(backends))
 
 
 def _provider_backend_resource_resolution(
@@ -458,7 +495,7 @@ def _provider_backend_resource_resolution(
         raise NodeProviderConfigError("provider network mappings must not be empty")
 
     return ProviderBackendResourceResolution(
-        network_mappings=network_mappings,
+        network_mappings=MappingProxyType(network_mappings),
         storage_pool=_safe_identifier(
             _required(resolution, "storage_pool", path),
             "provider storage pool",
@@ -484,7 +521,7 @@ def _validate_provider_resource_resolution(
     missing_backends = sorted(backend.value for backend in required_backends - configured_backends)
     if missing_backends:
         raise NodeProviderConfigError(
-            f"provider resource mappings are missing for backends: {missing_backends}"
+            "provider resource mappings are missing for required backends"
         )
 
     for backend, resolution in provider_resource_resolution.backends.items():
@@ -500,15 +537,15 @@ def _validate_provider_resource_resolution(
         if missing_networks:
             raise NodeProviderConfigError(
                 f"{backend.value} node networks require provider resource mappings: "
-                f"{missing_networks}"
+                "for all declared node networks"
             )
 
 
 def _provider(value: object) -> NodeProviderKind:
     try:
         return NodeProviderKind(str(value))
-    except ValueError as exc:
-        raise NodeProviderConfigError(f"unsupported node provider {value!r}") from exc
+    except ValueError:
+        raise NodeProviderConfigError("unsupported node provider") from None
 
 
 def _backend_tuple(values: Sequence[object]) -> tuple[ManagedLxcBackend, ...]:
@@ -516,8 +553,8 @@ def _backend_tuple(values: Sequence[object]) -> tuple[ManagedLxcBackend, ...]:
     for value in values:
         try:
             backend = ManagedLxcBackend(str(value))
-        except ValueError as exc:
-            raise NodeProviderConfigError(f"unsupported managed LXC backend {value!r}") from exc
+        except ValueError:
+            raise NodeProviderConfigError("unsupported managed LXC backend") from None
         if backend in backends:
             raise NodeProviderConfigError("managed LXC backends must be unique")
         backends.append(backend)
@@ -559,7 +596,9 @@ def _optional_sequence(data: Mapping[str, Any], key: str, path: str) -> tuple[ob
 
 
 def _string_mapping(data: Mapping[str, Any]) -> Mapping[str, str]:
-    return {str(key): str(value) for key, value in data.items()}
+    if any(not isinstance(key, str) or isinstance(value, bool) or not isinstance(value, (str, int)) for key, value in data.items()):
+        raise NodeProviderConfigError("provider resources must contain string keys and string or integer values")
+    return MappingProxyType({key: str(value) for key, value in data.items()})
 
 
 def _bool_value(value: object) -> bool:
@@ -569,7 +608,9 @@ def _bool_value(value: object) -> bool:
 
 
 def _safe_identifier(value: object, label: str) -> str:
-    text = str(value)
+    if not isinstance(value, str):
+        raise NodeProviderConfigError(f"{label} must be a string")
+    text = value
     if not _SAFE_IDENTIFIER_PATTERN.fullmatch(text):
         raise NodeProviderConfigError(f"{label} contains invalid characters")
     return text
@@ -578,7 +619,7 @@ def _safe_identifier(value: object, label: str) -> str:
 def _reject_unknown_fields(data: Mapping[str, object], allowed: frozenset[str], path: str) -> None:
     unknown = set(data) - allowed
     if unknown:
-        raise NodeProviderConfigError(f"{path}: unsupported fields: {sorted(unknown)}")
+        raise NodeProviderConfigError(f"{path}: unsupported fields")
 
 
 def _reject_unsafe_config_values(value: object) -> None:

@@ -2,6 +2,39 @@
 
 Architectural principles and security concepts.
 
+=== Configuration Validation and Stable Consumption
+
+External syntax and raw mapping conversion belong in infrastructure adapters.
+Domain/application boundaries carry typed values, validated string mappings or
+validated opaque Compose text. Malformed selected configuration must fail
+before managed lifecycle mutation, including mutating deployment preparation
+and installer reset. Parsing a later stack only when its deploy step runs is
+insufficient.
+
+Selected Compose definitions and metadata are retained atomically; provider
+configuration and operator/mirror settings are retained for their runtime
+consumers. Deployment preparation runs before mutating pre-apply steps. Setup
+prepares its selected deployment inputs before host preparation. Installer reset
+and setup use the same private configuration copy and effective environment;
+source changes during execution do not replace that staged selection. Local
+dependency bootstrap and protected staging writes are not managed lifecycle
+mutation.
+
+Static requirements and runtime credentials have different timing. The complete
+service-access workflow may resolve Jenkins credentials after Infisical sync
+only when that actual callback is wired. A missing static value is not deferred
+on update/custom paths without a runtime producer. The normal installer checks
+its resolved required inputs before reset. Existing readiness and explicit live
+consent remain mandatory.
+
+Configuration errors suppress raw YAML/parser context and secret values.
+Ordinary YAML aliases, Compose extensions and supported interpolation remain
+valid; recursive aliases and malformed owned fields fail. Service-owned payloads
+and declarative test mirrors retain their existing ownership rather than being
+advertised as newly validated runtime configuration. Details and migration are
+in `05_analysis/arch-03-09-configuration-parsing-boundary.md` and
+`08_configuration/operator-configuration-contract.md`.
+
 === Command Safety Contract
 
 Command execution is governed by a typed catalog before command strings reach

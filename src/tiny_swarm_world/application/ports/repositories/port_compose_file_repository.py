@@ -7,10 +7,17 @@ from tiny_swarm_world.domain.artifacts import ArtifactImageInventory
 from tiny_swarm_world.domain.deployment.stack_definition import (
     ComposeServiceDefinition,
     StackDefinition,
+    StackConfigurationSnapshot,
 )
 
 
 class PortComposeFileRepository(PortArtifactContractInventory, ABC):
+    def validate_and_snapshot(self, stack_names: tuple[str, ...]) -> StackConfigurationSnapshot:
+        """Capture all selected definitions; callers can retain this immutable result."""
+        return StackConfigurationSnapshot(
+            stacks=tuple(self.get_compose_of(name) for name in dict.fromkeys(stack_names)),
+        )
+
     @abstractmethod
     def get_compose_of(self, stack_name: str) -> StackDefinition:
         """Returns the compose content for the requested stack."""

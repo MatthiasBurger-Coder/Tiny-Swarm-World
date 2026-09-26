@@ -8,6 +8,10 @@ import shutil
 import subprocess
 import sys
 import signal
+import stat
+import tempfile
+from contextlib import contextmanager
+from collections.abc import Iterator
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -21,6 +25,7 @@ from tiny_swarm_world.domain.host_environment import (
 from tiny_swarm_world.domain.project_filesystem import (
     ProjectFilesystemAssessment,
     ProjectFilesystemDecision,
+    ProjectFilesystemKind,
     assess_project_filesystem,
 )
 from tiny_swarm_world.application.ports.repositories.port_project_filesystem_evidence_repository import (
@@ -64,11 +69,6 @@ WINDOWS_EXPOSURE_ENVIRONMENT = "TSW_WINDOWS_EXPOSURE"
 WINDOWS_WSL_BRIDGE_TEST_STATE_ENVIRONMENT = (
     "TSW_INSTALL_TEST_WINDOWS_WSL_BRIDGE_STATE_PATH"
 )
-_MANIFEST_TYPE_BY_SOURCE = {
-    "internal_test_catalog": "managed_secret",
-    "external_user_secret": "external_user_secret",
-    "placeholder_only": "placeholder_only",
-}
 
 
 @dataclass(frozen=True)
@@ -299,8 +299,24 @@ def run(
         env=env,
     )
     python_bin = ensure_python_environment(host_runtime, paths, env)
+    with _configuration_snapshot(options, env, cwd, host_runtime) as prepared_env:
+        return _run_prepared(
+            options, prepared_env, cwd, install_reporter,
+            _paths_from_env(prepared_env, cwd), host_runtime, python_bin,
+        )
+
+
+def _run_prepared(
+    options: InstallerOptions, env: Mapping[str, str], cwd: Path,
+    install_reporter: InstallReporter, paths: InstallerPaths,
+    host_runtime: HostRuntime, python_bin: str,
+) -> int:
     install_env = dict(env)
-    required_entries = _required_installer_secret_entries(cwd / DEFAULT_SECRET_MANIFEST_PATH)
+    from tiny_swarm_world.infrastructure.adapters.repositories.installer_configuration_repository import InstallerConfigurationRepository
+
+    required_entries = _required_installer_secret_entries(
+        Path(install_env["TSW_INFRA_ROOT"]) / "config" / "secrets" / "infisical-secrets.yaml"
+    )
     try:
         resolutions = _resolve_internal_test_installer_values(
             install_env,
@@ -316,6 +332,17 @@ def run(
     _require_operator_provisioned_traefik_gui_users(install_env, paths.secret_env_file)
     install_env.setdefault("TSW_SEED_INFISICAL_ITEMS", "0")
     _configure_native_linux_command_group(host_runtime, install_env)
+    from tiny_swarm_world.domain.deployment import service_stack_contracts_for_profile
+
+    try:
+        InstallerConfigurationRepository.validate_environment(
+            install_env, stack_names=tuple(
+                item.stack_name for item in service_stack_contracts_for_profile(options.service_profile)
+            ), include_setup=True,
+        )
+    except ValueError:
+        raise InstallerError("Selected installation configuration is invalid.") from None
+
 
     git_probe = _probe_git_ignore(cwd, ".tiny-swarm-world/")
     if git_probe.inside_worktree and not git_probe.path_ignored:
@@ -501,6 +528,142 @@ def run(
     return setup_exit
 
 
+@contextmanager
+def _configuration_snapshot(
+    options: InstallerOptions, env: Mapping[str, str], cwd: Path, host_runtime: HostRuntime,
+) -> Iterator[dict[str, str]]:
+    from tiny_swarm_world.infrastructure.adapters.repositories.installer_configuration_repository import InstallerConfigurationRepository
+
+    def absolute(value: str) -> Path:
+        path = Path(value).expanduser()
+        return path if path.is_absolute() else cwd / path
+
+    repository = absolute(env.get("TSW_REPOSITORY_ROOT", str(cwd)))
+    infra = absolute(env.get("TSW_INFRA_ROOT", str(repository / "infra")))
+    original_env_file = _paths_from_env(env, cwd).secret_env_file
+    with tempfile.TemporaryDirectory(prefix="tsw-configuration-") as directory:
+        try:
+            host_environment = (
+                host_runtime.environment_report.environment
+                if host_runtime.environment_report is not None
+                else HostEnvironmentKind(host_runtime.name)
+            )
+            InstallerConfigurationRepository.validate_operator_source(original_env_file, host_environment)
+            snapshot_root = Path(directory)
+            _validate_snapshot_storage(snapshot_root, host_environment)
+            _copy_configuration_tree(infra / "config", snapshot_root / "config")
+            prepared = dict(env)
+            prepared["TSW_REPOSITORY_ROOT"] = str(repository)
+            prepared["TSW_INFRA_ROOT"] = str(snapshot_root)
+            staged_env_file = snapshot_root / "operator.env"
+            if original_env_file.exists():
+                _copy_configuration_file(original_env_file, staged_env_file, secure=True)
+                InstallerConfigurationRepository.validate_operator_source(
+                    staged_env_file, host_environment,
+                )
+            # Missing optional input stays absent even if the original later appears.
+            prepared["TSW_INSTALL_ENV_FILE"] = str(staged_env_file)
+            snapshot = InstallerConfigurationRepository(
+                repository_root=repository, infra_root=snapshot_root,
+                operator_env_file=staged_env_file, environment=prepared,
+                service_profile=options.service_profile,
+            ).load()
+        except (ValueError, OSError, UnicodeError):
+            raise InstallerError("Installation configuration could not be safely prepared.") from None
+        prepared = dict(snapshot.environment)
+        bridge_registry = prepared.get("TSW_WINDOWS_BRIDGE_PORT_REGISTRY_PATH", "")
+        if host_runtime.name == "wsl2" and _windows_exposure_required(prepared) and bridge_registry:
+            try:
+                from tiny_swarm_world.infrastructure.adapters.repositories.port_registry_yaml_repository import PortRegistryYamlRepository
+
+                copied_registry = snapshot_root / "bridge-ports.yaml"
+                _copy_configuration_file(absolute(bridge_registry), copied_registry)
+                PortRegistryYamlRepository(copied_registry).load()
+                prepared["TSW_WINDOWS_BRIDGE_PORT_REGISTRY_PATH"] = str(copied_registry)
+            except (ValueError, OSError):
+                raise InstallerError("Selected bridge registry could not be safely prepared.") from None
+        yield prepared
+
+
+def _validate_snapshot_storage(snapshot_root: Path, host_environment: HostEnvironmentKind) -> None:
+    """Require private Linux storage before copying any configuration bytes."""
+    metadata = snapshot_root.lstat()
+    filesystem = ProjectFilesystemInspector().inspect(
+        str(snapshot_root), host_environment,
+    )
+    if (
+        filesystem.kind not in {ProjectFilesystemKind.NATIVE_LINUX, ProjectFilesystemKind.WSL_LINUX}
+        or not stat.S_ISDIR(metadata.st_mode)
+        or stat.S_IMODE(metadata.st_mode) != 0o700
+        or metadata.st_uid != os.geteuid()
+        or metadata.st_gid != os.getegid()
+    ):
+        raise ValueError("Configuration snapshot storage is unsafe.")
+
+
+def _open_configuration_source(path: Path, *, directory: bool = False) -> int:
+    """Open every path component without following symbolic links."""
+    absolute = path.absolute()
+    descriptor = os.open("/", os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        for index, component in enumerate(absolute.parts[1:]):
+            flags = os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK
+            if directory or index < len(absolute.parts) - 2:
+                flags |= os.O_DIRECTORY
+            child = os.open(component, flags, dir_fd=descriptor)
+            os.close(descriptor)
+            descriptor = child
+        return descriptor
+    except BaseException:
+        os.close(descriptor)
+        raise
+
+
+def _copy_configuration_file(source: Path, target: Path, *, secure: bool = False) -> None:
+    descriptor = _open_configuration_source(source)
+    try:
+        metadata = os.fstat(descriptor)
+        if not stat.S_ISREG(metadata.st_mode):
+            raise ValueError("Configuration input must be a regular file.")
+        if secure and (
+            metadata.st_uid != os.geteuid() or metadata.st_gid != os.getegid()
+            or stat.S_IMODE(metadata.st_mode) != 0o600
+        ):
+            raise ValueError("Operator configuration storage is unsafe.")
+        with os.fdopen(descriptor, "rb", closefd=False) as reader, target.open("xb") as writer:
+            shutil.copyfileobj(reader, writer)
+        target.chmod(0o600 | (stat.S_IMODE(metadata.st_mode) & 0o100))
+    finally:
+        os.close(descriptor)
+
+
+def _copy_configuration_tree(source: Path, target: Path) -> None:
+    descriptor = _open_configuration_source(source, directory=True)
+    try:
+        _copy_configuration_directory(descriptor, target)
+    finally:
+        os.close(descriptor)
+
+
+def _copy_configuration_directory(descriptor: int, target: Path) -> None:
+    target.mkdir(mode=0o700)
+    for name in sorted(os.listdir(descriptor)):
+        child = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=descriptor)
+        try:
+            metadata = os.fstat(child)
+            destination = target / name
+            if stat.S_ISDIR(metadata.st_mode):
+                _copy_configuration_directory(child, destination)
+            elif stat.S_ISREG(metadata.st_mode):
+                with os.fdopen(child, "rb", closefd=False) as reader, destination.open("xb") as writer:
+                    shutil.copyfileobj(reader, writer)
+                destination.chmod(0o600 | (stat.S_IMODE(metadata.st_mode) & 0o100))
+            else:
+                raise ValueError("Configuration input must be a regular file or directory.")
+        finally:
+            os.close(child)
+
+
 def _paths_from_env(env: Mapping[str, str], cwd: Path) -> InstallerPaths:
     def resolve(path_value: str) -> Path:
         path = Path(path_value)
@@ -556,41 +719,17 @@ def _require_repository(cwd: Path) -> None:
 def _required_installer_secret_entries(
     manifest_path: Path,
 ) -> tuple[InstallerSecretEntry, ...]:
-    try:
-        import yaml
+    from tiny_swarm_world.domain.configuration.secret_manifest import SecretManifestValidationError
+    from tiny_swarm_world.infrastructure.adapters.repositories.secret_manifest_yaml_repository import SecretManifestYamlRepository
 
-        payload = yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
-    except (OSError, ValueError) as error:
-        raise InstallerError(f"Secret manifest is invalid: {error}") from error
-    if not isinstance(payload, dict) or not isinstance(payload.get("secrets"), list):
-        raise InstallerError("Secret manifest is invalid: expected a secrets list.")
-    entries = tuple(_installer_secret_entry(item) for item in payload["secrets"])
+    try:
+        entries = SecretManifestYamlRepository(manifest_path).load()
+    except SecretManifestValidationError as error:
+        raise InstallerError(f"Secret manifest is invalid: {error}") from None
     return tuple(
-        entry
+        InstallerSecretEntry(key=entry.key, source=entry.source, required=entry.required, type=entry.type)
         for entry in entries
         if entry.required and entry.source != "external_user_secret"
-    )
-
-
-def _installer_secret_entry(item: object) -> InstallerSecretEntry:
-    if not isinstance(item, dict):
-        raise InstallerError("Secret manifest is invalid: secret entries must be mappings.")
-    key = str(item.get("key", ""))
-    source = str(item.get("source", ""))
-    entry_type = str(item.get("type", ""))
-    if not key.startswith("TSW_"):
-        raise InstallerError(f"Secret manifest is invalid: unsupported key {key!r}.")
-    expected_type = _MANIFEST_TYPE_BY_SOURCE.get(source)
-    if expected_type is not None and entry_type != expected_type:
-        raise InstallerError(
-            f"Secret manifest is invalid: type/source mismatch for {key}: "
-            f"{entry_type}/{source}."
-        )
-    return InstallerSecretEntry(
-        key=key,
-        source=source,
-        required=bool(item.get("required", False)),
-        type=entry_type,
     )
 
 
@@ -712,7 +851,9 @@ def _windows_wsl_bridge_guard(
         if configured_state_path.is_absolute()
         else cwd / configured_state_path
     )
-    expected_ports = _windows_wsl_bridge_expected_ports(cwd)
+    expected_ports = _windows_wsl_bridge_expected_ports(
+        cwd, infra_root=Path(env["TSW_INFRA_ROOT"]) if env.get("TSW_INFRA_ROOT") else None,
+    )
     if host_runtime.name != "wsl2":
         return WindowsWslBridgeGuardResult(True, "not_wsl2", state_path, expected_ports=expected_ports)
     if not _windows_exposure_required(env):
@@ -765,56 +906,21 @@ def _filesystem_override_argument(options: InstallerOptions) -> str:
     return ""
 
 
-def _windows_wsl_bridge_expected_ports(cwd: Path) -> tuple[int, ...]:
-    registry_path = cwd / "infra" / "config" / "ports.yaml"
-    ports: set[int] = set()
-    current: dict[str, str] | None = None
-    in_ports = False
-    ports_indent = 0
+def _windows_wsl_bridge_expected_ports(cwd: Path, *, infra_root: Path | None = None) -> tuple[int, ...]:
+    from tiny_swarm_world.infrastructure.adapters.repositories.port_registry_yaml_repository import (
+        PortRegistryYamlRepository,
+    )
 
-    def commit_current() -> None:
-        if current is None or "external_port" not in current:
-            return
-        protocol = current.get("protocol", "tcp").casefold()
-        if protocol != "tcp":
-            return
-        port_value = current["external_port"].strip()
-        if not port_value.isdigit():
-            return
-        ports.add(int(port_value))
-
-    for raw_line in _read_text(registry_path).splitlines():
-        if not in_ports:
-            if raw_line.strip() == "ports:":
-                in_ports = True
-                ports_indent = len(raw_line) - len(raw_line.lstrip(" "))
-            continue
-        indent = len(raw_line) - len(raw_line.lstrip(" "))
-        if not raw_line:
-            continue
-        if indent <= ports_indent:
-            break
-        if raw_line.lstrip().startswith("- id:"):
-            commit_current()
-            current = {"id": _clean_yaml_scalar(raw_line.lstrip()[4:].strip())}
-            continue
-        if current is None:
-            continue
-        if raw_line.lstrip().startswith("external_port:"):
-            _, _, value = raw_line.lstrip().partition(":")
-            current["external_port"] = _clean_yaml_scalar(value)
-            continue
-        if raw_line.lstrip().startswith("protocol:"):
-            _, _, value = raw_line.lstrip().partition(":")
-            current["protocol"] = _clean_yaml_scalar(value)
-            continue
-
-    commit_current()
-    return tuple(sorted(ports))
-
-
-def _clean_yaml_scalar(value: str) -> str:
-    return value.strip().strip('"').strip("'")
+    registry_path = (infra_root or cwd / "infra") / "config" / "ports.yaml"
+    try:
+        registry = PortRegistryYamlRepository(registry_path).load()
+    except ValueError:
+        raise InstallerError("Port registry configuration is invalid.") from None
+    return tuple(sorted({
+        mapping.external_port
+        for mapping in registry.mappings
+        if mapping.protocol == "tcp" and mapping.external_port is not None
+    }))
 
 
 def ensure_python_environment(

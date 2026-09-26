@@ -129,5 +129,13 @@ class TestConfigurationSources(unittest.TestCase):
         self.assertNotIn("secret-value", repr(result.to_dict()))
 
 
+class TestEnvironmentParsingBoundary(unittest.TestCase):
+    def test_injected_non_string_values_are_not_coerced(self):
+        from typing import cast, Mapping
+        for environment in ({"TSW_VALUE": True}, {"TSW_VALUE": ["boundary-marker-secret"]}, {1: "ignored"}):
+            with self.subTest(environment=environment), self.assertRaises(ConfigurationSourceError):
+                EnvironmentConfigurationSource(cast(Mapping[str, str], environment)).load()
+
+
 if __name__ == "__main__":
     unittest.main()
