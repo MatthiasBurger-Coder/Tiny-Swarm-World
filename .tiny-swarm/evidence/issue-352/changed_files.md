@@ -72,3 +72,26 @@
 - tests/infrastructure/test_composition.py
 - tests/test_install_script.py
 - tests/test_installer.py
+
+## S352-06
+
+- .codex/evidence/slice-06-distribution.md
+- .tiny-swarm/evidence/issue-352/acceptance_checklist.md
+- .tiny-swarm/evidence/issue-352/implementation_summary.md
+- .tiny-swarm/evidence/issue-352/remaining_risks.md
+- .tiny-swarm/evidence/issue-352/requirement_matrix.md
+- .tiny-swarm/evidence/issue-352/test_results.md
+- documentation/arc42/05_analysis/arch-03-09-configuration-parsing-boundary.md
+- documentation/arc42/05_building_blocks.adoc
+- documentation/arc42/08_concepts.adoc
+- documentation/arc42/08_configuration/config-contract-inventory.md
+- documentation/arc42/08_configuration/operator-configuration-contract.md
+- documentation/process/skills/audit/skill-registry.json
+- documentation/workflow/context-pack.json
+- documentation/workflow/requirement-matrix.md
+- documentation/workflow/workflow.md
+- tests/architecture/test_hexagonal_imports.py
+
+S352-06 also refreshes all six issue-evidence files and its consolidation record. Separate unrelated Jenkins commit c6685c44 is excluded from issue attribution.
+
+Final independent audit record: `.tiny-swarm/evidence/issue-352/completion_audit.md`.

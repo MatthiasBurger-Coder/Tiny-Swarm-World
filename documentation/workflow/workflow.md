@@ -2,7 +2,7 @@
 
 Workflow ID: issue-352-configuration-parsing-boundary
 workflowVersion: 1.0
-Status: EXECUTING; S352-01 through S352-05 accepted
+Status: COMPLETE; S352-01 through S352-06 accepted; independent issue audit PASS
 Issue: [#352](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/352)
 Parent: [EPIC #313](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/313)
 Branch: `architecture/workflow-352-config-parsing-20260925`
@@ -13,10 +13,12 @@ Execution profile: FULL_PATH (architecture, typed contracts and lifecycle orderi
 
 Parse external configuration at infrastructure boundaries, pass validated internal
 values into application orchestration, and fail before the first relevant
-lifecycle mutation. This document plans implementation; it does not claim the
-new boundary or ordering guarantees already exist.
+lifecycle mutation. This document records the executed implementation and its verified local
+boundary and ordering guarantees. Final evidence is linked below.
 
 ## Requirement Clarification Gate
+
+The following records the initial authoring gate. The user subsequently authorized workflow execution and the documented scope correction.
 
 - Original Request: workflow create [ARCH-03.09] Harden Configuration Parsing Boundary #352.
 - Interpreted Intent: create and publish a complete issue workflow, not execute it.
@@ -494,6 +496,7 @@ secondary_reviewers:
 affected_files: &id001
 - tests/architecture/test_hexagonal_imports.py
 - .importlinter
+- documentation/process/skills/audit/skill-registry.json
 - documentation/arc42/05_analysis/arch-03-09-configuration-parsing-boundary.md
 - documentation/arc42/05_building_blocks.adoc
 - documentation/arc42/08_concepts.adoc
@@ -659,7 +662,7 @@ self-referential commit hash in this file.
 ## Execution Progress
 
 - S352-01: inventory accepted; architecture tests and diff check passed.
-- S352-06: NOT STARTED. Issue remains INCOMPLETE.
+- S352-06: ACCEPTED; required local gates and independent completion audit PASS. Issue implementation COMPLETE.
 - User execution preference: normal project checkout and branches only; no new worktrees or parallel writes.
 - Normal-checkout Windows bridge assets: 11 tests passed; prior path blocker resolved without code changes.
 
@@ -671,8 +674,21 @@ self-referential commit hash in this file.
 
 ### Approved scope correction before S352-05
 
-Independent architecture and requirement review identified a necessary scope correction: add `src/tiny_swarm_world/infrastructure/adapters/repositories/installer_configuration_repository.py` and `tests/infrastructure/adapters/repositories/test_installer_configuration_repository.py` to S352-05. The cohesive adapter validates staged selected installer configuration before reset, using existing typed repositories and validators. It avoids forbidden installer imports and avoids assigning unrelated provider/environment validation to the Compose repository. No ADR or architecture allowlist change is needed. User explicitly approved on 2026-09-26 ("ja dann mach das"). The two paths are now included in S352-05 affected files, aliased file locks and targeted verification. S352-05 may execute; S352-06 remains dependent on its acceptance.
+Independent architecture and requirement review identified a necessary scope correction: add `src/tiny_swarm_world/infrastructure/adapters/repositories/installer_configuration_repository.py` and `tests/infrastructure/adapters/repositories/test_installer_configuration_repository.py` to S352-05. The cohesive adapter validates staged selected installer configuration before reset, using existing typed repositories and validators. It avoids forbidden installer imports and avoids assigning unrelated provider/environment validation to the Compose repository. No ADR or architecture allowlist change is needed. User explicitly approved on 2026-09-26 ("ja dann mach das"). The two paths are now included in S352-05 affected files, aliased file locks and targeted verification. S352-05 executed and was accepted before S352-06.
 
-S352-05 verification scope correction: the first full gate exposed 18 failures and one downstream error in the existing shell-installer fixture, which copied only the secret manifest and a partial package. Architect and Test/Evidence reviewers approved adding `tests/test_install_script.py` to S352-05 affected files/locks and verification. This is necessary test maintenance under the authorized workflow execution, with no additional product behavior or safety exception. The fixture will include complete committed inputs while retaining fake lifecycle subprocesses and existing assertions. Typed router: TEST_FAILURE, responsible Python implementer, retry1 for this fixture cause; targeted shell-installer tests followed by full quality.
+S352-05 verification scope correction: the first full gate exposed 18 failures and one downstream error in the existing shell-installer fixture, which copied only the secret manifest and a partial package. Architect and Test/Evidence reviewers approved adding `tests/test_install_script.py` to S352-05 affected files/locks and verification. This is necessary test maintenance under the authorized workflow execution, with no additional product behavior or safety exception. The fixture now includes complete committed inputs while retaining fake lifecycle subprocesses and existing assertions. Typed router: TEST_FAILURE, responsible Python implementer, retry1 for this fixture cause; targeted shell-installer tests followed by full quality.
 
 - S352-05: ACCEPTED — Validated selected deployment/setup inputs before managed lifecycle mutation and retained actual provider, Compose and operator values. Installer securely stages and validates selected configuration, then shares it with reset/setup; original/staged secret-storage checks and credential timing remain enforced. Approved installer adapter/test and reviewed complete shell-fixture correction included.
+
+S352-06 provenance correction: first final full gate had one stale governing hash for the intentionally edited `documentation/arc42/08_concepts.adoc` in `documentation/process/skills/audit/skill-registry.json`. Architect reviewed adding that existing generated-provenance file to S06 scope/locks solely to refresh this hash. No registry semantics or guard changes. Typed router DOC_GOVERNANCE_FAILURE retry1; targeted registry integrity checks followed by full quality.
+
+- S352-06 implementation/local verification: four parser-boundary architecture tests, five arc42/migration documents and corrected registry provenance; final quality PASS. Independent completion audit PASS.
+
+## Final execution handoff
+
+All six slices accepted. Final local quality: PASS, 2163 tests.
+Skipped tests: 18; no executed result is claimed for those cases.
+Independent issue-completion audit: PASS; R01–R11 verified.
+See [.tiny-swarm issue evidence](../../.tiny-swarm/evidence/issue-352/completion_audit.md) and [requirement matrix](requirement-matrix.md).
+
+Checkpoint history: S01 `276fe858`; S02 `3aa1fe95`; S03 `8b9d26f9`; S04 `273c2951`; S05 `4ed53794`; S06 is the commit containing this final record. Each slice has its own branch checkpoint; no PR, merge or live infrastructure execution. Normal checkout/branches only per user preference.

@@ -1,4 +1,8 @@
 import ast
+from collections.abc import Mapping
+from dataclasses import fields, is_dataclass
+
+from pydantic import BaseModel
 import unittest
 from pathlib import Path
 
@@ -71,6 +75,7 @@ CLI_MODULES = (
     "tiny_swarm_world.simple_installer",
 )
 FORBIDDEN_APPLICATION_TECHNOLOGY_IMPORTS = ("os", "yaml")
+FORBIDDEN_CORE_PARSER_IMPORTS = ("yaml", "ruamel")
 DIRECT_FILESYSTEM_METHODS = {
     "chmod",
     "exists",
@@ -131,6 +136,86 @@ class TestHexagonalImports(unittest.TestCase):
 
         self.assertEqual(technology_imports, [])
         self.assertEqual(filesystem_calls, [])
+
+    def test_domain_and_entire_application_have_no_yaml_parser_imports(self):
+        for root in (DOMAIN_ROOT, APPLICATION_ROOT):
+            for prefix in FORBIDDEN_CORE_PARSER_IMPORTS:
+                with self.subTest(layer=root.name, parser=prefix):
+                    self.assertEqual([], _find_forbidden_imports(root, prefix))
+
+    def test_yaml_parser_import_probes_cover_aliases_and_nested_scopes(self):
+        probes = (
+            "import ruamel",
+            "import ruamel.yaml as parser",
+            "from ruamel import yaml as parser",
+            "from ruamel.yaml import YAML",
+            "from ruamel.yaml.comments import CommentedMap",
+            "import yaml as parser",
+            "from yaml import safe_load",
+            "def parse():\n    from ruamel.yaml import YAML as Parser",
+            "from typing import TYPE_CHECKING\nif TYPE_CHECKING:\n    import ruamel.yaml",
+        )
+        for source in probes:
+            with self.subTest(source=source):
+                self.assertTrue(any(
+                    _is_forbidden_import(imported, prefix)
+                    for imported in _direct_imports_from_source(source)
+                    for prefix in FORBIDDEN_CORE_PARSER_IMPORTS
+                ))
+        for source in ("import ruamel_tools", "from yaml_helpers import parse", "import typing"):
+            with self.subTest(allowed=source):
+                self.assertFalse(any(
+                    _is_forbidden_import(imported, prefix)
+                    for imported in _direct_imports_from_source(source)
+                    for prefix in FORBIDDEN_CORE_PARSER_IMPORTS
+                ))
+
+    def test_actual_configuration_results_contain_no_nested_parser_objects(self):
+        from tiny_swarm_world.domain.configuration.secret_manifest import SecretManifestEntry
+        from tiny_swarm_world.domain.deployment.stack_definition import StackConfigurationSnapshot
+        from tiny_swarm_world.domain.inventory import DesiredInventory
+        from tiny_swarm_world.domain.network import PortRegistry
+        from tiny_swarm_world.infrastructure.adapters.repositories.compose_file_repository_yaml import ComposeFileRepositoryYaml
+        from tiny_swarm_world.infrastructure.adapters.repositories.desired_inventory_yaml_repository import DesiredInventoryYamlRepository
+        from tiny_swarm_world.infrastructure.adapters.repositories.node_provider_config_yaml_repository import NodeProviderConfig, NodeProviderConfigYamlRepository
+        from tiny_swarm_world.infrastructure.adapters.repositories.port_registry_yaml_repository import PortRegistryYamlRepository
+        from tiny_swarm_world.infrastructure.adapters.repositories.secret_manifest_yaml_repository import SecretManifestYamlRepository
+
+        config = REPOSITORY_ROOT / "infra" / "config"
+        inventory = DesiredInventoryYamlRepository(config / "inventory" / "desired_inventory.yaml").load()
+        provider = NodeProviderConfigYamlRepository(config / "node-providers" / "provider_config.yaml").load()
+        ports = PortRegistryYamlRepository(config / "ports.yaml").load()
+        manifest = SecretManifestYamlRepository(config / "secrets" / "infisical-secrets.yaml").load()
+        from tiny_swarm_world.infrastructure.project_paths import ProjectPaths
+
+        compose = ComposeFileRepositoryYaml(
+            project_paths=ProjectPaths.from_roots(REPOSITORY_ROOT), environment={},
+        )
+        snapshot = compose.validate_and_snapshot(("portainer",))
+        self.assertIsInstance(inventory, DesiredInventory)
+        self.assertIsInstance(provider, NodeProviderConfig)
+        self.assertIsInstance(ports, PortRegistry)
+        self.assertIsInstance(snapshot, StackConfigurationSnapshot)
+        self.assertTrue(manifest)
+        self.assertTrue(all(isinstance(entry, SecretManifestEntry) for entry in manifest))
+        for result in (inventory, provider, ports, manifest, snapshot, compose.get_services_of("portainer")):
+            with self.subTest(model=type(result).__name__):
+                self.assertEqual([], _find_parser_objects(result))
+
+    def test_recursive_boundary_probe_detects_parser_mapping_and_scalar(self):
+        from dataclasses import dataclass
+        from ruamel.yaml.comments import CommentedMap
+        from ruamel.yaml.scalarstring import LiteralScalarString
+
+        @dataclass(frozen=True)
+        class SyntheticBoundary:
+            nested: object
+
+        for leaked in (CommentedMap({"value": "text"}), LiteralScalarString("text")):
+            value = SyntheticBoundary({"levels": ([leaked],)})
+            with self.subTest(parser_type=type(leaked).__name__):
+                self.assertIn(type(leaked).__module__, _find_parser_objects(value))
+        self.assertEqual([], _find_parser_objects(SyntheticBoundary({"levels": (["text"],)})))
 
     def test_application_does_not_import_cli_or_bootstrap_modules(self):
         violations = [
@@ -481,3 +566,33 @@ def _is_storage_port_call(receiver: ast.expr) -> bool:
 
 def _architecture_document(document_name: str) -> str:
     return REQUIRED_ARCHITECTURE_DOCUMENTS[document_name].read_text(encoding="utf-8")
+
+
+def _find_parser_objects(value: object) -> list[str]:
+    """Inspect actual model fields without serialization hiding parser subclasses."""
+    violations: list[str] = []
+    visited: set[int] = set()
+
+    def visit(item: object) -> None:
+        if id(item) in visited:
+            return
+        visited.add(id(item))
+        module = type(item).__module__
+        if any(_is_forbidden_import(module, prefix) for prefix in FORBIDDEN_CORE_PARSER_IMPORTS):
+            violations.append(module)
+        if is_dataclass(item) and not isinstance(item, type):
+            for field in fields(item):
+                visit(getattr(item, field.name))
+        elif isinstance(item, BaseModel):
+            for name in type(item).model_fields:
+                visit(getattr(item, name))
+        elif isinstance(item, Mapping):
+            for key, member in item.items():
+                visit(key)
+                visit(member)
+        elif isinstance(item, (tuple, list, set, frozenset)):
+            for member in item:
+                visit(member)
+
+    visit(value)
+    return violations

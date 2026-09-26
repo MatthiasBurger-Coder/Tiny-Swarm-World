@@ -1,37 +1,86 @@
 # ARCH-03.09 — Configuration Parsing Boundary
 
-Status: PLANNED; workflow authored, implementation not started.
+Status: implemented locally; final issue acceptance is tracked in the
+[requirement matrix](../../workflow/requirement-matrix.md).
 Issue: #352; parent: #313.
 
-## Verified current boundary
+## Ownership and typed boundaries
 
-YAML libraries reside in infrastructure. Application still consumes untyped
-secret-manifest data through PortLocalFileStorage.load_yaml. Existing repository
-models cover inventory, provider configuration, ports, commands and Compose,
-but permissive coercion and lazy per-stack loading leave validation gaps.
-Installer helpers also parse manifest and port-registry inputs and must be
-included in the consumer inventory. This is not evidence of direct application
-ruamel imports or a new provider/runtime architecture.
+Infrastructure adapters own external YAML syntax, configuration-tree checks,
+schema conversion and safe parser errors. Domain models own parser-independent
+invariants. Application services receive explicit models through ports; ordinary
+validated string mappings and opaque validated Compose text remain supported.
+The existing ARCH-03.02 layer ownership applies without a new ADR or parser
+replacement.
 
-## Planned ownership
+`SecretManifestYamlRepository` returns immutable `SecretManifestEntry` values
+through `PortSecretManifestRepository`. `SecretManifestRenderer` delegates to
+that port and translates its safe error into `manifest_schema_invalid`; it no
+longer checks raw YAML shapes. The installer uses the same manifest adapter.
+`PortLocalFileStorage.load_yaml` has been removed after migrating its consumer.
+The manifest retains PyYAML safe-loader semantics; existing ruamel repositories
+retain their parser. Duplicate keys, recursive configuration aliases and unsafe
+scalar/shape coercions fail at the appropriate boundary.
 
-Infrastructure owns external syntax, schema validation and conversion. Domain
-or application contract modules own explicit parser-independent values; ports
-expose those values. Application orchestrates validated inputs and preserves
-consent and runtime-dependent credential timing. Composition binds adapters.
-Complete selected input validation precedes all lifecycle mutation and the
-validated snapshot must be the one consumed. Legitimate typed mappings and
-validated opaque Compose text remain supported.
+Provider, inventory, command and port repositories return their existing typed
+models with stricter external scalar validation. `ComposeFileRepositoryYaml`
+validates the service catalogue and TSW-consumed Compose structures, including
+service, image, deployment, port and renderer-owned fields. It preserves
+extensions, ordinary aliases, interpolation and supported port syntax. This is
+not validation of the entire Compose specification.
 
-## Constraints and verification
+## Selected configuration before managed mutation
 
-Preserve current schema/default behavior or document migration; no generic
-schema framework, parser replacement, credential policy change or live action.
-The existing ARCH-03.02 layer contracts and building-block ownership apply;
-no new ADR is required. A policy or architecture departure requires review.
+The production Compose repository's `validate_and_snapshot` validates all
+selected stacks before publishing its cache. It retains immutable
+`StackDefinition` content and service metadata derived from that content.
+Subsequent selected reads use the retained content even if source files change.
+The port also returns an immutable `StackConfigurationSnapshot`; callers of
+other repository implementations must retain that result rather than assume
+those implementations cache reads. Deployment steps retain their prepared
+`StackDefinition` before running.
 
-The active workflow at ../../workflow/workflow.md defines the six sequential
-slices, exact allowed files, full surface inventory, requirement matrix,
-malformed/valid fixtures, negative architecture probes and zero-mutation tests.
-Only executed tests and independent acceptance review may change this note to
-implemented. Workflow publication alone does not close #352.
+Deployment runs prerequisite checks, prepares selected static configuration,
+then permits mutating preparation and apply steps. A bad later stack therefore
+fails before an earlier stack is deployed. Setup prepares both deployment
+workflows and validates the selected environment in its artifact-contract
+preflight phase, before host preparation, provider, network, artifact or
+service mutation. Composition retains provider configuration, operator values
+and Docker mirror settings so runtime consumers use the checked selection.
+
+Fresh installation validates a private copy of the selected infrastructure
+configuration and operator source before reset. Reset and setup receive the
+same staged roots and effective environment. Dependency bootstrap, private
+staging and sanitized evidence preparation may write local files before
+managed lifecycle mutation; the guarantee is not zero filesystem writes.
+
+Static preparation does not contact the vault. The full service-access
+composition can defer `TSW_JENKINS_ADMIN_PASSWORD` only where the Infisical sync
+step and Jenkins credential callback are wired. The resolved credential
+snapshot is checked when Jenkins deploys after that runtime preparation.
+Update/custom paths without the callback require their static value, and the
+normal installer validates catalog/operator-resolved requirements before reset.
+This does not change credential precedence, consent or vault readiness policy.
+
+## Compatibility, limits and verification
+
+See [operator migration guidance](../08_configuration/operator-configuration-contract.md#configuration-parsing-and-migration)
+for retained defaults and intentionally rejected input. Private installer
+staging checks the original source's storage policy, rejects symlink/special
+file traversal, uses owner-only storage and cleans up when its context exits.
+It does not make an unsafe original credential source acceptable.
+
+The [configuration inventory](../08_configuration/config-contract-inventory.md#parsing-boundary-classification-arch-0309)
+distinguishes active inputs from dormant compatibility paths, declarative
+contract mirrors, service-owned pass-through files and runtime observations.
+Auxiliary bridge scripts and tool-owned configuration are not claimed to have
+new schema validation.
+
+Deterministic repository, domain, deployment, setup and installer tests cover
+malformed/valid input, actual retained-input consumption, preparation failures
+before mutation, source substitution and safe error rendering. Architecture
+checks guard domain/application against `ruamel` and `ruamel.yaml` imports;
+runtime model checks verify returned values do not contain parser containers.
+The workflow's required local quality gate and independent issue audit remain
+the completion authority. These checks provide no live installation, Swarm,
+Selenium or external quality-service success claim.

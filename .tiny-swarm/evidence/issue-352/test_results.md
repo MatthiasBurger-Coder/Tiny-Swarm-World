@@ -31,3 +31,14 @@ No live or external result is claimed.
 Targeted lifecycle/repository/installer suite PASS: 321 tests; isolated shell-installer suite PASS: 20 tests. Final python3 tools/quality_gate.py quality PASS: 2159 tests, 18 skipped; lint/typecheck690 files, five import contracts, 22 architecture tests and verification policy passed. Log: /tmp/tsw352-s05-final-quality.log. git diff --check PASS. Independent architecture/test reviews ACCEPT. Initial full gate failed only incomplete shell fixtures (18 failures, one downstream error); reviewed TEST_FAILURE retry1 fixture repair preserved all assertions and mocked lifecycle boundaries; final full gate rerun passed.
 
 No live or external result is claimed.
+
+## S352-06
+
+- `python3 tools/quality_gate.py arch-tests`: PASS, 26 tests, including four new parser boundary tests.
+- `python3 tools/quality_gate.py arch-lint`: PASS, five contracts kept.
+- `PYTHONPATH=src python3 -m unittest tests.architecture.test_skill_registry_integrity`: PASS, five tests.
+- Final `python3 tools/quality_gate.py quality`: PASS, 2163 tests, 18 skipped; verification-policy, lint, architecture and typecheck (690 files) passed. Log: `/tmp/tsw352-s06-final-quality.log`.
+- First S06 full run had exactly one stale registry governing-hash failure. DOC_GOVERNANCE_FAILURE retry1 updated only that cached value; targeted integrity and full rerun passed. No guard changed.
+- Independent Architecture and Test/Evidence reviews ACCEPT. Final issue-completion audit is recorded in acceptance evidence.
+
+No live infrastructure, Selenium/browser or external quality-service success is claimed.

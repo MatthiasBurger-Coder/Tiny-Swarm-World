@@ -1,14 +1,15 @@
 # Configuration Contract Inventory
 
 Workflow: `config-contract-validation-issue-24-20260613`
-Slice: `S01`
+Original inventory: Issue #24, slice `S01`; parsing-boundary update: ARCH-03.09 (#352).
 Issue: `https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/24`
 
 ## Purpose
 
 This inventory records the current repository evidence for operator-facing
-configuration contracts. It is an implementation input for the typed config
-loader, preflight validation, example template, and documentation slices.
+configuration contracts. It records implemented source boundaries and their
+scope; the ARCH-03.09 classification below distinguishes runtime inputs from
+compatibility paths and declarative mirrors.
 
 The inventory intentionally records key names, defaults, source files, value
 kinds, and requiredness only. It must not contain local secret values, local
@@ -34,8 +35,12 @@ The current configuration surface is spread across these repository areas:
 - `src/tiny_swarm_world/domain/preflight/setup_manifest.py`: required setup
   secret names by service profile.
 - `src/tiny_swarm_world/application/services/deployment/secret_management.py`:
-  secret manifest loading, redaction, catalog-backed synchronization, and
-  tracked-file secret discovery.
+  typed secret-manifest consumption, redaction, catalog-backed synchronization,
+  and tracked-file secret discovery. YAML loading and schema conversion belong
+  to `infrastructure/adapters/repositories/secret_manifest_yaml_repository.py`.
+- `src/tiny_swarm_world/infrastructure/adapters/repositories/installer_configuration_repository.py`:
+  selected installer/composition input validation and effective environment
+  snapshot; private file staging remains in `installer.py`.
 - `src/tiny_swarm_world/infrastructure/project_paths.py`: immutable
   `ProjectPaths` construction plus repository and infra root overrides.
 - `src/tiny_swarm_world/infrastructure/adapters/clients/infisical_cli_client.py`:
@@ -54,13 +59,13 @@ The current configuration surface is spread across these repository areas:
 
 The repository already validates several configuration-related contracts:
 
-| Area | Current validation | Gap for Issue 24 |
+| Area | Current validation | Scope / limit |
 |---|---|---|
 | Node-provider config | `NodeProviderConfigYamlRepository` validates schema version, allowed fields, provider/backend values, safety restrictions, profiles, nodes, resource mappings, and evidence policy. | Specific to `infra/config/node-providers/provider_config.yaml`; not a general operator override contract. |
 | Command catalog YAML | `PortCommandRepositoryYaml` validates command catalog structure and typed command entities. | Product command YAML files are currently retired and this does not cover active env overrides. |
 | Desired inventory | `DesiredInventoryYamlRepository` loads host-neutral desired inventory through domain value objects. | Inventory validation is separate from env override validation. |
 | Setup manifest secrets | `default_setup_manifest` defines required secret names by service profile. | Required non-secret config values and many optional overrides are outside this contract. |
-| Preflight | `PreflightService` checks host, dependencies, resources, ports, secrets, ignore policy, and forbidden secret fingerprints. | It does not yet run one typed config-contract check for all supported overrides before execution. |
+| Preflight | `PreflightService` checks host, dependencies, resources, ports, secrets, ignore policy, and forbidden secret fingerprints. | Selected environment requirements are checked during setup/deployment preparation; runtime readiness remains a separate check. |
 | Secret management | Secret discovery, catalog-backed synchronization, and redaction classify secret-like tracked values. | It does not define full `TSW_*` source precedence or non-secret value validation. |
 
 ## Product YAML Files
@@ -71,14 +76,40 @@ loading, schema checks, or explicit pass-through handling:
 | File | Current role | Current validation status |
 |---|---|---|
 | `infra/config/node-providers/provider_config.yaml` | Managed LXC provider selection, nodes, profiles, resource resolution, evidence metadata. | Strong typed repository validation exists. |
-| `infra/config/inventory/desired_inventory.yaml` | Host-neutral desired inventory. | Domain loading rejects unknown fields and invalid collection shapes. |
+| `infra/config/inventory/desired_inventory.yaml` | Host-neutral desired inventory. | Compatibility repository/domain loading validates scalar types, schema version and collection shapes; no production caller is introduced. |
 | `infra/config/installation-plan.yaml` | Declarative setup phase registry and dependency graph. | Mirrored by typed `InstallationPlan` domain tests for deterministic order, cycles, required phases, required services, and workflow phase coverage. |
 | `infra/config/ports.yaml` | Central external/internal port registry. | YAML repository and domain tests validate ranges, duplicate external ports, public-ingress ownership, metadata safety, and preflight port selection. |
-| `infra/config/services.yml` | Service catalogue for selected stacks, phases, port IDs, readiness targets, and compatibility published ports. | Cross-file tests align it with desired inventory, service-stack contracts, installation phases, port registry IDs, and compose published-port classifications. |
+| `infra/config/services.yml` | Service catalogue for selected stacks, phases, port IDs, readiness targets, and compatibility published ports. | Production selection rejects malformed roots/members and nonboolean enabled flags. Cross-file tests additionally align the declarative stack/phase/port contracts. |
 | `infra/config/health-checks.yaml` | Desired service-readiness check registry. | Tests align stack, phase, target ID, required services, evidence kind, and `live_default: false` with service contracts and service registry. |
 | `infra/config/validation-plan.yaml` | Greenpath validation evidence target plan. | Tests prove required targets cover health checks and missing/static evidence fails closed through `ValidationPlan`. |
-| `infra/config/compose/*/docker-compose.yml` | Stack definitions and compose placeholders. | Parsed by compose repository tests for stack content, service names, and published ports; placeholder variables need inventory and template coverage. |
-| `infra/config/secrets/infisical-secrets.yaml` | Managed secret manifest for Infisical synchronization. | `SecretManifestRenderer` validates schema, duplicate keys, key pattern, type, and policy. |
+| `infra/config/compose/*/docker-compose.yml` | Stack definitions and compose placeholders. | Production repository validates TSW-owned fields and atomically retains selected rendered definitions/metadata; compatible placeholders and extensions remain opaque where not consumed. |
+| `infra/config/secrets/infisical-secrets.yaml` | Managed secret manifest for Infisical synchronization. | `SecretManifestYamlRepository` validates schema and returns immutable entries through `PortSecretManifestRepository`; the application renderer delegates to the port. |
+
+## Parsing Boundary Classification (ARCH-03.09)
+
+| Surface | Classification and implemented boundary |
+|---|---|
+| Provider, ports, service selection, secret manifest and selected Compose | Active runtime configuration. Infrastructure validates external input, supplies typed values and retains the selected data consumed by the lifecycle. |
+| Operator process/shell-file values | Active source contract. Effective validated string mappings retain precedence; setup/deployment validate selected requirements before managed mutation. |
+| Desired inventory YAML | Compatibility repository with strict typed loading; no production caller was found or added. |
+| `installation-plan.yaml`, `health-checks.yaml`, `validation-plan.yaml` | Declarative contract mirrors checked by tests. Runtime uses its typed plan/contracts; these files are not new runtime loaders. |
+| Retired command YAML | Dormant product catalogue with a maintained typed compatibility repository and safety tests. |
+| `PortYamlRepository`, generic YAML builders | Dormant or infrastructure-only compatibility surfaces; no active unchecked application propagation is claimed. |
+| Jenkins `casc.yaml`, Traefik dynamic `tls.yml`, image/service auxiliary files | Service-owned pass-through payloads. Private copying does not imply their schemas are validated by the application. |
+| Auxiliary bridge script and tool-owned configuration | Existing infrastructure pass-through inputs; no new schema-validation coverage is claimed. The selected bridge port registry, when used, follows the typed port boundary. |
+| LXC profile/device command-output YAML | Infrastructure runtime observation, not operator configuration. |
+| Swarm runtime parsing of `StackDefinition.compose_content` | Downstream handling of the retained typed opaque payload; selected TSW fields were validated before mutation. |
+
+Setup and deployment prepare selected static configuration before mutating
+steps. Installer reset and setup share private staged sources; dependency
+bootstrap and protected local staging are distinct from managed lifecycle
+mutation. Static validation does not resolve a running vault, and only an
+actually wired runtime credential producer permits Jenkins deferral. See the
+[operator contract](operator-configuration-contract.md#configuration-parsing-and-migration)
+for input migrations, retained defaults, staging safeguards and limits, and the
+[architecture boundary note](../05_analysis/arch-03-09-configuration-parsing-boundary.md)
+for ownership and verification scope. None of these local checks claims live
+service or external quality acceptance.
 
 ## Required Setup Secrets
 

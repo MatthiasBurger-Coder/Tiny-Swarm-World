@@ -54,6 +54,33 @@ application responsibilities:
   shared helpers and legacy builder entry points. It is not a public import
   surface and is the next extraction seam for further helper reduction.
 
+==== Configuration Parsing Boundary (ARCH-03.09)
+
+Configuration adapters translate external syntax into explicit internal values.
+`domain/configuration/secret_manifest.py` owns immutable manifest entries;
+`PortSecretManifestRepository` exposes them to the application renderer.
+`SecretManifestYamlRepository` owns YAML loading, shape checks and conversion.
+The installer reuses this adapter instead of maintaining another manifest
+schema. The generic local-file storage port no longer returns raw YAML objects.
+
+Existing command, provider, inventory and port repositories preserve their typed
+models while rejecting unsafe external coercions. `StackDefinition`,
+`ComposeServiceDefinition` and `StackConfigurationSnapshot` are immutable
+Compose boundary values. The Compose adapter atomically retains selected
+rendered content and its service metadata; application deployment steps retain
+the prepared definition before mutation.
+
+`InstallerConfigurationRepository` and its `InstallerConfigurationSnapshot`
+are infrastructure-only installation/composition helpers. They validate selected
+local sources and retain effective string-valued environment data; they do not
+resolve a running vault or belong to the application ports. The installer owns
+private source staging and cleanup. Focused composition modules wire validation
+and stable consumption into setup, deployment and provider consumers.
+
+See `05_analysis/arch-03-09-configuration-parsing-boundary.md` for lifecycle
+ordering and `08_configuration/operator-configuration-contract.md` for accepted
+input and migration details.
+
 ==== Issue #183 LXC Client Decomposition — Local Implementation Status
 
 Issue #183's compatibility-preserving decomposition is implemented locally
