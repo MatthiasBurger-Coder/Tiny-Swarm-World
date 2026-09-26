@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from tiny_swarm_world.infrastructure.process.runner import run_process
+from tiny_swarm_world.infrastructure.process.streaming import run_bounded_process as _run_bounded_process
+
 import argparse
 import json
 import os
@@ -7,7 +10,6 @@ import shlex
 import shutil
 import subprocess
 import sys
-import signal
 import stat
 import tempfile
 from contextlib import contextmanager
@@ -1035,7 +1037,7 @@ def _run_installer_subprocess(
         else _installer_subprocess_timeout_seconds(env)
     )
     try:
-        return subprocess.run(
+        return run_process(
             list(command),
             env=dict(env),
             check=check,
@@ -1044,9 +1046,8 @@ def _run_installer_subprocess(
             stderr=stderr,
         )
     except subprocess.TimeoutExpired as exc:
-        rendered = " ".join(str(part) for part in command[:3])
         raise InstallerError(
-            f"Installer subprocess timed out after {timeout:g}s: {rendered}"
+            f"Installer subprocess timed out after {timeout:g}s."
         ) from exc
 
 
@@ -1266,60 +1267,6 @@ def _run_phase(
             )
         )
     return exit_code
-
-
-def _run_bounded_process(
-    command: Sequence[str],
-    *,
-    cwd: Path,
-    env: Mapping[str, str],
-    timeout_seconds: float,
-    stdout: int | IO[str] | None = None,
-    stdin: int | IO[str] | None = subprocess.DEVNULL,
-) -> tuple[int, bool, bool]:
-    process = subprocess.Popen(
-        list(command),
-        cwd=cwd,
-        env=dict(env),
-        stdout=stdout,
-        stderr=subprocess.STDOUT if stdout is not None else None,
-        stdin=stdin,
-        shell=False,
-        start_new_session=True,
-    )
-    try:
-        process.communicate(timeout=timeout_seconds)
-        return process.returncode or 0, False, False
-    except subprocess.TimeoutExpired:
-        _terminate_process(process)
-        return process.returncode if process.returncode is not None else 124, True, False
-    except KeyboardInterrupt:
-        _terminate_process(process)
-        return process.returncode if process.returncode is not None else 130, False, True
-
-
-def _terminate_process(process: subprocess.Popen[bytes]) -> None:
-    process_group: int | None = None
-    if os.name != "nt":
-        try:
-            process_group = os.getpgid(process.pid)
-            os.killpg(process_group, signal.SIGTERM)
-        except (OSError, AttributeError):
-            process.terminate()
-    else:
-        process.terminate()
-    try:
-        process.communicate(timeout=3.0)
-        return
-    except subprocess.TimeoutExpired:
-        pass
-    try:
-        if process_group is not None and os.name != "nt":
-            os.killpg(process_group, signal.SIGKILL)
-        else:
-            process.kill()
-    finally:
-        process.communicate()
 
 
 def _suggested_checks_for_phase(name: str, *, log_text: str = "") -> tuple[str, ...]:
@@ -1724,7 +1671,7 @@ def _read_text(path: Path) -> str:
 
 
 def _run_text(command: tuple[str, ...], *, cwd: Path | None = None) -> str:
-    return subprocess.run(
+    return run_process(
         command,
         cwd=cwd,
         text=True,
@@ -1745,7 +1692,7 @@ def _run_optional_text(command: tuple[str, ...], *, cwd: Path | None = None) -> 
 
 def _probe_git_ignore(cwd: Path, path: str) -> _GitProbeResult:
     try:
-        result = subprocess.run(
+        result = run_process(
             ["git", "check-ignore", "-q", "--", path],
             cwd=cwd,
             stdout=subprocess.DEVNULL,

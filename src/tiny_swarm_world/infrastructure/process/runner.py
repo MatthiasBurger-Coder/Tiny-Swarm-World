@@ -147,7 +147,7 @@ class SubprocessProcessRunner:
         if not math.isfinite(effective_timeout) or effective_timeout <= 0:
             raise ValueError("Process timeout must be finite and positive.")
         try:
-            result = subprocess.run(
+            result = run_process(
                 args,
                 cwd=cwd,
                 env=dict(env) if env is not None else None,
@@ -158,10 +158,64 @@ class SubprocessProcessRunner:
                 shell=shell,
                 timeout=effective_timeout,
             )
-        except subprocess.TimeoutExpired as exc:
-            raise ProcessTimeoutError from exc
-        except (FileNotFoundError, PermissionError, OSError) as exc:
-            raise ProcessLaunchError from exc
+        except subprocess.TimeoutExpired:
+            raise ProcessTimeoutError from None
+        except OSError:
+            raise ProcessLaunchError from None
         if check and result.returncode != 0:
             raise ProcessExecutionError(result.returncode)
         return result
+
+
+class ProcessResult(subprocess.CompletedProcess[Any]):
+    """Functional output is private; diagnostic representation never exposes payloads."""
+
+    def __repr__(self) -> str:
+        return f"ProcessResult(returncode={self.returncode}, payload='<redacted>')"
+
+    def check_returncode(self) -> None:
+        if self.returncode:
+            raise subprocess.CalledProcessError(self.returncode, "<redacted>")
+
+
+def run_process(args: Sequence[str], **options: Any) -> subprocess.CompletedProcess[Any]:
+    """Bounded compatibility entry for adapters using subprocess result/error types.
+
+    Output remains available to parsers and credential consumers. Commands, output,
+    filenames and exception chains are omitted from diagnostic representations.
+    """
+    if not args:
+        raise ValueError("Process argv must not be empty.")
+    timeout = options.get("timeout")
+    if timeout is None:
+        timeout = 60.0
+    if not math.isfinite(timeout) or timeout <= 0:
+        raise ValueError("Process timeout must be finite and positive.")
+    options["timeout"] = timeout
+    check = options.pop("check", False)
+    try:
+        result = subprocess.run(args, check=False, **options)
+    except subprocess.TimeoutExpired as exc:
+        raise subprocess.TimeoutExpired(
+            "<redacted>", timeout,
+            output="<redacted>" if exc.stdout else None,
+            stderr="<redacted>" if exc.stderr else None,
+        ) from None
+    except subprocess.CalledProcessError as exc:
+        raise subprocess.CalledProcessError(exc.returncode, "<redacted>") from None
+    except OSError as exc:
+        raise type(exc)(exc.errno, "Process executable could not be launched.") from None
+    safe_result = ProcessResult("<redacted>", result.returncode, result.stdout, result.stderr)
+    if check:
+        safe_result.check_returncode()
+    return safe_result
+
+
+def validate_timeout(timeout: float) -> None:
+    if not math.isfinite(timeout) or timeout <= 0:
+        raise ValueError("Process timeout must be finite and positive.")
+
+
+def redact_process_payload(value: object) -> str:
+    """Omit arbitrary command/output payloads, including unlabelled credentials."""
+    return "<redacted>" if value else ""

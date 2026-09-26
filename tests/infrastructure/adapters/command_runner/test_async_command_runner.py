@@ -67,11 +67,11 @@ class TestAsyncCommandRunner(unittest.IsolatedAsyncioTestCase):
         mock_subprocess.return_value = mock_process
 
         with patch(
-            "tiny_swarm_world.infrastructure.adapters.command_runner.async_command_runner.os.getpgid",
+            "tiny_swarm_world.infrastructure.process.async_runner.os.getpgid",
             return_value=1234,
         ):
             with patch(
-                "tiny_swarm_world.infrastructure.adapters.command_runner.async_command_runner.os.killpg"
+                "tiny_swarm_world.infrastructure.process.async_runner.os.killpg"
             ) as mock_killpg:
                 with self.assertRaises(CommandExecutionError) as context:
                     await self.command_runner.run(command, timeout=timeout)

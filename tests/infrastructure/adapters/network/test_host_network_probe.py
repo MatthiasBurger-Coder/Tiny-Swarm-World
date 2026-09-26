@@ -177,8 +177,8 @@ class TestHostNetworkProbe(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(result.return_code, 124)
         self.assertTrue(result.timed_out)
-        self.assertEqual(result.stdout, "out")
-        self.assertEqual(result.stderr, "err")
+        self.assertEqual(result.stdout, "<redacted>")
+        self.assertEqual(result.stderr, "<redacted>")
 
     def test_shell_command_reports_os_error_without_raising(self):
         with patch(
@@ -188,7 +188,8 @@ class TestHostNetworkProbe(unittest.IsolatedAsyncioTestCase):
             result = _run_shell_command("echo ok", 5)
 
         self.assertEqual(result.return_code, 127)
-        self.assertIn("missing bash", result.stderr)
+        self.assertNotIn("missing bash", result.stderr)
+        self.assertIn("could not be launched", result.stderr)
 
     def test_shell_command_strips_successful_stdout_and_stderr(self):
         completed = subprocess.CompletedProcess(

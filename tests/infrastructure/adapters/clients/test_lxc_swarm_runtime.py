@@ -717,7 +717,9 @@ networks:
             ) as run:
                 result = runtime._run_manager_shell("docker stack deploy test")
 
-        self.assertEqual(success, result)
+        self.assertEqual(success.returncode, result.returncode)
+        self.assertEqual(success.stdout, result.stdout)
+        self.assertEqual(success.stderr, result.stderr)
         self.assertEqual(run.call_count, 2)
         sleep.assert_called_once_with(0.5)
 

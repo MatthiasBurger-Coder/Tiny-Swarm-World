@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from tiny_swarm_world.infrastructure.process.runner import run_process
+
 import socket
 import subprocess
 import urllib.error
@@ -286,7 +288,7 @@ def _run_managed_lxc_command(
     command: tuple[str, ...],
     timeout_seconds: float,
 ) -> int:
-    completed = subprocess.run(
+    completed = run_process(
         (backend_cli(backend), "exec", node_name, "--", *command),
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
@@ -308,7 +310,7 @@ def _response_status(response: object) -> int:
 
 
 def _run_docker_info(timeout_seconds: float) -> int:
-    completed = subprocess.run(
+    completed = run_process(
         ("docker", "info", "--format", "{{.ServerVersion}}"),
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,

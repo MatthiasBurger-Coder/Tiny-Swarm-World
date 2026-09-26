@@ -52,7 +52,7 @@ class HangDiagnosticsTests(unittest.TestCase):
 
     @patch("tiny_swarm_world.infrastructure.adapters.host.hang_diagnostics.subprocess.run")
     def test_command_runner_maps_non_zero_exit(self, run):
-        run.return_value = type("Completed", (), {"returncode": 1, "stdout": "failure"})()
+        run.return_value = type("Completed", (), {"returncode": 1, "stdout": "failure", "stderr": ""})()
 
         result = _run_command("docker_tasks", ("docker",), 2)
 

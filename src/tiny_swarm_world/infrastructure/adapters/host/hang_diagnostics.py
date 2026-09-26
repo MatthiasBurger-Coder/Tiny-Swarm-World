@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from tiny_swarm_world.infrastructure.process.runner import run_process
+
 import subprocess
 from collections.abc import Callable
 
@@ -58,7 +60,7 @@ class ReadOnlyHangDiagnostics:
 
 def _run_command(name: str, args: tuple[str, ...], timeout: float) -> HangDiagnosticCommand:
     try:
-        completed = subprocess.run(args, capture_output=True, text=True, timeout=timeout, check=False)
+        completed = run_process(args, capture_output=True, text=True, timeout=timeout, check=False)
     except subprocess.TimeoutExpired:
         return HangDiagnosticCommand(name, "TIMED_OUT", "", True, "unknown")
     except OSError as exc:

@@ -11,8 +11,8 @@ from tiny_swarm_world.domain.node_provider import ManagedLxcBackend
 from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.backend_cli import backend_cli
 from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.diagnostics import (
     is_transient_manager_shell_failure,
-    safe_log_text,
 )
+from tiny_swarm_world.infrastructure.process.runner import redact_process_payload
 from tiny_swarm_world.infrastructure.process import (
     ProcessRunner,
     ProcessTimeoutError,
@@ -86,7 +86,7 @@ class LxcManagerShellGateway:
             "Running LXC %s shell operation node=%s script=%s",
             shell_target,
             node_name,
-            safe_log_text(script),
+            redact_process_payload(script),
         )
         timeout = timeout_seconds or self.timeout_seconds
         shell_scope = "manager_shell" if node_name == self.manager_node else "node_shell"
@@ -154,8 +154,8 @@ class LxcManagerShellGateway:
             shell_scope,
             result.returncode,
             node_name,
-            safe_log_text(result.stdout),
-            safe_log_text(result.stderr),
+            redact_process_payload(result.stdout),
+            redact_process_payload(result.stderr),
         )
 
     def _retry_if_needed(

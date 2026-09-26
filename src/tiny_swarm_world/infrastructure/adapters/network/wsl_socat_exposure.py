@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-import asyncio
 import shutil
 from collections.abc import Awaitable, Callable
+
+from tiny_swarm_world.infrastructure.process.async_runner import run_async_process
 
 from tiny_swarm_world.application.ports.network import PortWslSocatExposure
 
@@ -41,22 +42,12 @@ class WslSocatExposureAdapter(PortWslSocatExposure):
 
 
 async def _process_exists(pattern: str) -> bool:
-    process = await asyncio.create_subprocess_exec(
-        "pgrep",
-        "-f",
-        pattern,
-        stdout=asyncio.subprocess.DEVNULL,
-        stderr=asyncio.subprocess.DEVNULL,
-    )
-    return await process.wait() == 0
+    result = await run_async_process(("pgrep", "-f", pattern), discard_output=True)
+    return result.returncode == 0
 
 
 async def _start_process(command: str) -> bool:
-    process = await asyncio.create_subprocess_exec(
-        "sh",
-        "-lc",
-        f"nohup {command} >/dev/null 2>&1 &",
-        stdout=asyncio.subprocess.DEVNULL,
-        stderr=asyncio.subprocess.DEVNULL,
+    result = await run_async_process(
+        ("sh", "-lc", f"nohup {command} >/dev/null 2>&1 &"), discard_output=True,
     )
-    return await process.wait() == 0
+    return result.returncode == 0

@@ -25,7 +25,7 @@ from tiny_swarm_world.infrastructure.adapters.preflight.lxc_provider_preflight i
 class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
     async def test_launch_file_not_found_is_typed_without_exception_text(self):
         with patch(
-            "tiny_swarm_world.infrastructure.adapters.preflight.lxc_provider_preflight."
+            "tiny_swarm_world.infrastructure.process.async_runner."
             "asyncio.create_subprocess_exec",
             side_effect=FileNotFoundError("secret executable path"),
         ):
@@ -43,7 +43,7 @@ class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
 
     async def test_launch_permission_error_is_typed_without_exception_text(self):
         with patch(
-            "tiny_swarm_world.infrastructure.adapters.preflight.lxc_provider_preflight."
+            "tiny_swarm_world.infrastructure.process.async_runner."
             "asyncio.create_subprocess_exec",
             side_effect=PermissionError("private operator detail"),
         ):
@@ -61,7 +61,7 @@ class TestLxcProviderPreflightProbe(unittest.IsolatedAsyncioTestCase):
 
     async def test_launch_os_error_is_unknown_without_exception_text(self):
         with patch(
-            "tiny_swarm_world.infrastructure.adapters.preflight.lxc_provider_preflight."
+            "tiny_swarm_world.infrastructure.process.async_runner."
             "asyncio.create_subprocess_exec",
             side_effect=OSError("private operating system detail"),
         ):

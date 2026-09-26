@@ -25,68 +25,14 @@ SPAWN_APIS = frozenset(
     }
 )
 
-# These are existing, separately governed process boundaries. New runtime
-# adapters must use infrastructure.process instead of extending this map.
+# Runtime process ownership is centralized by Issue #354. Adapter-specific
+# command construction and outcome mapping do not permit spawning a child.
 ALLOWED_DIRECT_PROCESS_BOUNDARIES = {
-    "src/tiny_swarm_world/infrastructure/process/runner.py": {
-        "subprocess.run",
+    "src/tiny_swarm_world/infrastructure/process/runner.py": {"subprocess.run"},
+    "src/tiny_swarm_world/infrastructure/process/async_runner.py": {
+        "asyncio.create_subprocess_exec", "asyncio.create_subprocess_shell",
     },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc_swarm_runtime.py": {
-        "subprocess.run",
-    },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/command/node_command.py": {
-        "asyncio.create_subprocess_exec",
-    },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/services/common.py": {
-        "subprocess.run",
-    },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/services/lxc_portainer_http_client.py": {
-        "subprocess.run",
-    },
-    "src/tiny_swarm_world/infrastructure/adapters/command_runner/async_command_runner.py": {
-        "asyncio.create_subprocess_shell",
-    },
-    "src/tiny_swarm_world/infrastructure/adapters/preflight/artifact_readiness.py": {
-        "subprocess.run",
-    },
-    "src/tiny_swarm_world/infrastructure/adapters/preflight/lxc_provider_preflight.py": {
-        "asyncio.create_subprocess_exec",
-    },
-    "src/tiny_swarm_world/infrastructure/adapters/preflight/windows_wsl_bridge_state.py": {
-        "subprocess.run",
-    },
-    "src/tiny_swarm_world/infrastructure/adapters/host/hang_diagnostics.py": {
-        "subprocess.run",
-    },
-    "src/tiny_swarm_world/infrastructure/adapters/host/wsl_resource_inspector.py": {
-        "subprocess.run",
-    },
-    "src/tiny_swarm_world/infrastructure/adapters/host/windows_command_runner.py": {
-        "subprocess.Popen",
-        "subprocess.run",
-    },
-    "src/tiny_swarm_world/infrastructure/adapters/network/host_network_probe.py": {
-        "subprocess.run",
-    },
-    "src/tiny_swarm_world/infrastructure/adapters/network/host_network_repair.py": {
-        "subprocess.run",
-    },
-    "src/tiny_swarm_world/infrastructure/adapters/network/wsl_socat_exposure.py": {
-        "asyncio.create_subprocess_exec",
-    },
-    "src/tiny_swarm_world/infrastructure/adapters/ui/windows_ui.py": {
-        "os.system",
-    },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/infisical_cli_client.py": {
-        "subprocess.run",
-    },
-    "src/tiny_swarm_world/infrastructure/composition_probes.py": {
-        "subprocess.run",
-    },
-    "src/tiny_swarm_world/installer.py": {
-        "subprocess.Popen",
-        "subprocess.run",
-    },
+    "src/tiny_swarm_world/infrastructure/process/streaming.py": {"subprocess.Popen"},
 }
 
 

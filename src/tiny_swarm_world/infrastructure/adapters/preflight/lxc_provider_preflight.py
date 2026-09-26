@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-import asyncio
 import math
 import os
 import shutil
 from collections.abc import Callable, Sequence
-from contextlib import suppress
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 from typing import Protocol
+
+from tiny_swarm_world.infrastructure.process.async_runner import run_async_process
 
 from tiny_swarm_world.application.ports.node_provider import PortNodeProviderReadiness
 from tiny_swarm_world.domain.node_provider import (
@@ -52,8 +52,8 @@ def _readiness_commands(
 @dataclass(frozen=True)
 class LxcProviderProbeResult:
     returncode: int
-    stdout: str = ""
-    stderr: str = ""
+    stdout: str = field(default="", repr=False)
+    stderr: str = field(default="", repr=False)
     timed_out: bool = False
     failure_hint: LxcProviderProbeFailureHint | None = None
 
@@ -80,43 +80,10 @@ class AsyncLxcProviderProbeRunner:
         args: Sequence[str],
         timeout_seconds: float,
     ) -> LxcProviderProbeResult:
-        try:
-            process = await asyncio.create_subprocess_exec(
-                *args,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-            )
-        except FileNotFoundError:
-            return LxcProviderProbeResult(
-                returncode=127,
-                failure_hint=LxcProviderProbeFailureHint.EXECUTABLE_MISSING,
-            )
-        except PermissionError:
-            return LxcProviderProbeResult(
-                returncode=126,
-                failure_hint=LxcProviderProbeFailureHint.PERMISSION_DENIED,
-            )
-        except OSError:
-            return LxcProviderProbeResult(
-                returncode=-1,
-                failure_hint=LxcProviderProbeFailureHint.OS_ERROR,
-            )
-        try:
-            stdout, stderr = await asyncio.wait_for(
-                process.communicate(),
-                timeout=timeout_seconds,
-            )
-        except asyncio.TimeoutError:
-            with suppress(ProcessLookupError):
-                process.kill()
-            with suppress(asyncio.TimeoutError):
-                await asyncio.wait_for(process.wait(), timeout=1.0)
-            return LxcProviderProbeResult(returncode=124, timed_out=True)
-
+        result = await run_async_process(args, timeout=timeout_seconds)
         return LxcProviderProbeResult(
-            returncode=process.returncode if process.returncode is not None else -1,
-            stdout=_safe_process_text(stdout),
-            stderr=_safe_process_text(stderr),
+            result.returncode, result.stdout, result.stderr, result.timed_out,
+            LxcProviderProbeFailureHint(result.failure_hint) if result.failure_hint else None,
         )
 
 

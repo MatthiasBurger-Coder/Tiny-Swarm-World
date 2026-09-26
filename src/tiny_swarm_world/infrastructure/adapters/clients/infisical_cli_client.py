@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+from tiny_swarm_world.infrastructure.process.runner import run_process
+
 import json
 import os
 import shutil
-import subprocess
 import time
 from collections.abc import Callable
 
@@ -336,7 +337,7 @@ def _first_organization_id(payload: object) -> str:
 
 
 def _run(args: tuple[str, ...]) -> InfisicalCliResult:
-    result = subprocess.run(
+    result = run_process(
         args,
         capture_output=True,
         check=False,

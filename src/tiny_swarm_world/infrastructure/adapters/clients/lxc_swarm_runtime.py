@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from tiny_swarm_world.infrastructure.process.runner import run_process
+
 import subprocess
 import time
 from collections.abc import Callable, Mapping
@@ -236,7 +238,7 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
             timeout_seconds=timeout_seconds,
             # Preserve the legacy module patch seam only for direct, uncomposed
             # construction. Composition injects the shared runner instead.
-            run=subprocess.run if self.process_runner is None else None,
+            run=run_process if self.process_runner is None else None,
             sleep=time.sleep,
         )
 
@@ -257,7 +259,7 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
             timeout_seconds=timeout_seconds,
             # Preserve the legacy module patch seam only for direct, uncomposed
             # construction. Composition injects the shared runner instead.
-            run=subprocess.run if self.process_runner is None else None,
+            run=run_process if self.process_runner is None else None,
             sleep=time.sleep,
         )
 
@@ -271,7 +273,7 @@ def _lxc_manager_ip(
         backend,
         manager_node,
         timeout_seconds,
-        run=subprocess.run,
+        run=run_process,
         sleep=time.sleep,
     )
 

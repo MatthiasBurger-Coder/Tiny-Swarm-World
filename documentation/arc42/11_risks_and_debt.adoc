@@ -21,17 +21,12 @@ Remaining debt:
 
 * the runner still uses shell execution for command-template infrastructure
   when a catalog is supplied;
-* Issue #188's five selected adapter targets now use the shared bounded runner;
-  remaining direct process sites are explicit compatibility, provider, host,
-  network, service, or tooling boundaries and must not be silently absorbed by
-  the generic runner;
-* the Issue #188 before/after inventories and architecture guard record the
-  remaining exceptions and reject new unapproved direct process spawning in
-  production infrastructure;
-* the local quality gate currently has one independent governance exception:
-  the workflow-create update to `documentation/arc42/08_concepts.adoc` needs
-  its cached skill-registry hash reconciled before the full repository gate is
-  green;
+* Issues #188 and #354 centralize production process creation in the three
+  `infrastructure/process` modules; adapter-specific policy remains outside
+  that boundary and standalone tooling is inventoried separately;
+* the Issue #354 architecture guard rejects direct spawning in application,
+  adapters and installer; installer orchestration still requires its separate
+  architectural decomposition;
 * no current product command catalog exists, so any reintroduced catalog must
   restore non-vacuous command-backed verification coverage;
 * composed mutating platform workflows now block with explicit target IDs and

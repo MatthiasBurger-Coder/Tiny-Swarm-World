@@ -196,7 +196,7 @@ class TestLxcRuntimeLogging(unittest.IsolatedAsyncioTestCase):
         self.assertIn("...", logged)
         self.assertEqual(lxc_node_provider._safe_log_text("short"), "short")
 
-    async def test_swarm_runtime_logs_bounded_manager_shell_output(self):
+    async def test_swarm_runtime_logs_metadata_without_shell_payloads(self):
         runtime = LxcSwarmRuntime(
             backend=ManagedLxcBackend.LXD,
             tls_contract_resolver=Mock(),
@@ -218,9 +218,10 @@ class TestLxcRuntimeLogging(unittest.IsolatedAsyncioTestCase):
         logged = "\n".join(captured.output)
         self.assertIn("Running LXC manager shell operation", logged)
         self.assertIn("manager_shell_result returncode=1", logged)
-        self.assertIn("ready ready", logged)
-        self.assertIn("failed failed", logged)
-        self.assertIn("...", logged)
+        self.assertEqual("ready\n" * 140, result.stdout)
+        self.assertNotIn("ready", logged)
+        self.assertNotIn("failed", logged)
+        self.assertIn("stdout=<redacted> stderr=<redacted>", logged)
 
 
 class _FakeRunner:

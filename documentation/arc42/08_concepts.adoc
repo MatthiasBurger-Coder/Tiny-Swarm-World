@@ -76,21 +76,21 @@ Incus, LXC container lifecycle, Docker Swarm, netplan, socat,
 compose, Portainer, Nexus, Jenkins, Apache Pulsar, SonarQube, or Swagger/NGINX
 commands.
 
-=== Shared Infrastructure Process Execution — Issue #188 Implemented
+=== Shared Infrastructure Process Execution — Issues #188 and #354
 
-Issue #188 provides an infrastructure-only process runner beneath selected
-Docker, LXC, image-publisher, and host-preflight adapters. The runner defaults
-to argv execution with `shell=False`, exposes bounded timeout and
-cwd/environment/input behavior, supports text and byte streams where required,
-and returns deterministic sanitized result/failure information. It does not
-own adapter policy such as Docker fatality, Incus child-PID retry, image
-diagnostic classification, or Git preflight fallback.
+All production process creation belongs to `infrastructure/process/`.
+`runner.py` owns synchronous text/byte execution, `async_runner.py` owns
+bounded asynchronous argv/shell calls and cancellation, and `streaming.py`
+owns installer and legacy bridge child lifecycles. Finite timeouts, explicit
+results and sanitized errors are shared. Functional output remains available
+for parsing; result representations, timeout diagnostics and exception chains
+do not expose sensitive arguments or output.
 
-The boundary does not add an application port or domain dependency and does not
-replace the existing Issue #183 LXC manager gateway. The S01 before-inventory,
-S03–S07 migration evidence, and S08 after-inventory/static guard classify the
-remaining production process sites as migrated, intentional compatibility or
-provider/host/service boundaries, or tooling outside runtime scope.
+Adapter-specific command construction and retry policy remain in the adapters.
+Application services depend on their existing ports. The AST guard permits
+spawning only in the three process modules. Standalone development/bootstrap
+tools remain outside the runtime boundary. The Issue #354 inventory and
+`05_analysis/arch-03-11-process-execution.md` document migration and verification.
 
 === Desired Inventory, Observed State, And Evidence
 

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from tiny_swarm_world.infrastructure.process.runner import run_process
+
 import os
 import shutil
 import subprocess
@@ -150,7 +152,7 @@ def _parse_psi_avg10(path: Path) -> float | None:
 
 def _run_nproc() -> int | None:
     try:
-        result = subprocess.run(
+        result = run_process(
             ["nproc"],
             check=False,
             capture_output=True,
@@ -170,7 +172,7 @@ def _run_nproc() -> int | None:
 
 def _run_free_bytes() -> int | None:
     try:
-        result = subprocess.run(
+        result = run_process(
             ["free", "-b"],
             check=False,
             capture_output=True,
