@@ -198,8 +198,10 @@ selected deployment configuration before host/provider/artifact mutation.
 
 The normal installer validates a private copy before reset, then points reset
 and setup at the same staged infrastructure root and operator file. It copies
-the configuration tree into a private temporary directory under `/tmp`, keeps
-directories owner-only, and makes copied files owner-readable/writable while
+the configuration tree into a private temporary directory selected by Python's
+standard library. Before copying, it requires native Linux/WSL storage, mode
+`0700`, and the effective user/group ownership for that directory. It keeps
+subdirectories owner-only and makes copied files owner-readable/writable while
 preserving an existing owner executable bit. The original operator source must
 already satisfy the platform's filesystem/ownership policy; a present file is
 checked for the effective owner/group and mode `0600`. Symlinks in traversed

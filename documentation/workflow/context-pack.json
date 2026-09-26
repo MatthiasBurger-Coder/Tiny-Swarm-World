@@ -51,7 +51,7 @@
     "documentation/arc42/05_analysis/arch-03-08-platform-lifecycle-orchestrator.md": "e4494f2f5ac312a1d464b1dada96bc298fd982a1d13e137f21ca41cb29f6b37f",
     "documentation/arc42/05_building_blocks.adoc": "08ff15bda4610fceb5bf6be0058f9acda024125e24431ae6bfcb454150e27d05",
     "documentation/arc42/08_concepts.adoc": "6946d62703692a436ee01e93c46827279bc8175f1cae2d1ae9c7888ad1e90c83",
-    "documentation/arc42/08_configuration/operator-configuration-contract.md": "9fbc8ff386821811f3c70c54adb298fd4dac6f666fc36014525ce8a59db0d8aa",
+    "documentation/arc42/08_configuration/operator-configuration-contract.md": "cc1ca70974a244cf424b51b166deb02451a265ae18e8a8f74af89ac7f116e072",
     "documentation/arc42/09_decisions/adr-explicit-non-interactive-live-consent.adoc": "e0a455b4ad79f59ce99f881d07c7fcaee46cea41f8c44ff50fc59a2e7b5e5476",
     "documentation/arc42/09_decisions/adr-lxc-native-node-provider.adoc": "d88225223e62de4744d5cec7d5703af1bff62ec178b9794a606472cbc83da901",
     "documentation/workflow/workflow.md": "cff855f2fb86c0a4af84fcf4a62e4b35646c65868a8cf569fd467bae4ee90798",

@@ -88,6 +88,43 @@ class TestInstaller(unittest.TestCase):
             self.assertEqual("2", captured[1][3]["TSW_SETUP_MAX_CONCURRENCY"])
             self.assertFalse(captured[0][1].exists())
 
+    def test_snapshot_uses_standard_temporary_root_with_private_permissions(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            environment, _, _, _ = self._isolated_install(root)
+            selected_temporary_root = root / "temporary"
+            selected_temporary_root.mkdir(mode=0o700)
+            with patch.object(tempfile, "tempdir", str(selected_temporary_root)):
+                with installer._configuration_snapshot(
+                    installer.parse_args(()), environment, Path.cwd(),
+                    installer.HostRuntime("native_linux", "test"),
+                ) as prepared:
+                    snapshot = Path(prepared["TSW_INFRA_ROOT"])
+                    self.assertEqual(selected_temporary_root, snapshot.parent)
+                    self.assertEqual(0o700, snapshot.stat().st_mode & 0o777)
+            self.assertFalse(snapshot.exists())
+
+    def test_snapshot_rejects_non_native_temporary_storage_before_copying(self):
+        for operator_file_present in (True, False):
+            with self.subTest(operator_file_present=operator_file_present), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                environment, _, operator_file, phase = self._isolated_install(root)
+                if not operator_file_present:
+                    operator_file.unlink()
+                with (
+                    patch.object(installer, "ProjectFilesystemInspector") as inspector,
+                    patch.object(installer, "_copy_configuration_tree") as copy,
+                ):
+                    inspector.return_value.inspect.return_value.kind = installer.ProjectFilesystemKind.WINDOWS_MOUNTED
+                    with self.assertRaises(installer.InstallerError):
+                        with installer._configuration_snapshot(
+                            installer.parse_args(()), environment, Path.cwd(),
+                            installer.HostRuntime("wsl2", "test"),
+                        ):
+                            self.fail("Unsafe temporary storage must not reach the lifecycle")
+                    copy.assert_not_called()
+                    phase.assert_not_called()
+
     def test_snapshot_cleanup_preserves_lifecycle_exception_classification(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

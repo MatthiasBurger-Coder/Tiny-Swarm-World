@@ -25,6 +25,7 @@ from tiny_swarm_world.domain.host_environment import (
 from tiny_swarm_world.domain.project_filesystem import (
     ProjectFilesystemAssessment,
     ProjectFilesystemDecision,
+    ProjectFilesystemKind,
     assess_project_filesystem,
 )
 from tiny_swarm_world.application.ports.repositories.port_project_filesystem_evidence_repository import (
@@ -540,14 +541,16 @@ def _configuration_snapshot(
     repository = absolute(env.get("TSW_REPOSITORY_ROOT", str(cwd)))
     infra = absolute(env.get("TSW_INFRA_ROOT", str(repository / "infra")))
     original_env_file = _paths_from_env(env, cwd).secret_env_file
-    with tempfile.TemporaryDirectory(prefix="tsw-configuration-", dir="/tmp") as directory:
+    with tempfile.TemporaryDirectory(prefix="tsw-configuration-") as directory:
         try:
-            InstallerConfigurationRepository.validate_operator_source(
-                original_env_file, (host_runtime.environment_report.environment
-                                    if host_runtime.environment_report is not None
-                                    else HostEnvironmentKind(host_runtime.name)),
+            host_environment = (
+                host_runtime.environment_report.environment
+                if host_runtime.environment_report is not None
+                else HostEnvironmentKind(host_runtime.name)
             )
+            InstallerConfigurationRepository.validate_operator_source(original_env_file, host_environment)
             snapshot_root = Path(directory)
+            _validate_snapshot_storage(snapshot_root, host_environment)
             _copy_configuration_tree(infra / "config", snapshot_root / "config")
             prepared = dict(env)
             prepared["TSW_REPOSITORY_ROOT"] = str(repository)
@@ -556,7 +559,7 @@ def _configuration_snapshot(
             if original_env_file.exists():
                 _copy_configuration_file(original_env_file, staged_env_file, secure=True)
                 InstallerConfigurationRepository.validate_operator_source(
-                    staged_env_file, HostEnvironmentKind(host_runtime.name),
+                    staged_env_file, host_environment,
                 )
             # Missing optional input stays absent even if the original later appears.
             prepared["TSW_INSTALL_ENV_FILE"] = str(staged_env_file)
@@ -580,6 +583,22 @@ def _configuration_snapshot(
             except (ValueError, OSError):
                 raise InstallerError("Selected bridge registry could not be safely prepared.") from None
         yield prepared
+
+
+def _validate_snapshot_storage(snapshot_root: Path, host_environment: HostEnvironmentKind) -> None:
+    """Require private Linux storage before copying any configuration bytes."""
+    metadata = snapshot_root.lstat()
+    filesystem = ProjectFilesystemInspector().inspect(
+        str(snapshot_root), host_environment,
+    )
+    if (
+        filesystem.kind not in {ProjectFilesystemKind.NATIVE_LINUX, ProjectFilesystemKind.WSL_LINUX}
+        or not stat.S_ISDIR(metadata.st_mode)
+        or stat.S_IMODE(metadata.st_mode) != 0o700
+        or metadata.st_uid != os.geteuid()
+        or metadata.st_gid != os.getegid()
+    ):
+        raise ValueError("Configuration snapshot storage is unsafe.")
 
 
 def _open_configuration_source(path: Path, *, directory: bool = False) -> int:
