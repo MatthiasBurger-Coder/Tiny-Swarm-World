@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from tiny_swarm_world.infrastructure.process.runner import run_process
+
 import subprocess
 import time
 from collections.abc import Callable
@@ -36,7 +38,7 @@ def lxc_manager_ip(
     run: Callable[..., subprocess.CompletedProcess[str]] | None = None,
     sleep: Callable[[float], None] | None = None,
 ) -> str:
-    runner = run or subprocess.run
+    runner = run or run_process
     sleeper = sleep or time.sleep
     result: subprocess.CompletedProcess[str] | None = None
     for attempt in range(1, _MAX_ATTEMPTS + 1):

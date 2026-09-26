@@ -7,6 +7,8 @@ application workflows.
 
 from __future__ import annotations
 
+from tiny_swarm_world.infrastructure.process.runner import run_process
+
 import asyncio
 import re
 import subprocess
@@ -232,7 +234,7 @@ def _lxc_reachable_host_ip() -> str:
 
 def _host_ipv4_for_interface(interface_name: str) -> str:
     try:
-        result = subprocess.run(
+        result = run_process(
             ["ip", "-4", "-o", "addr", "show", "dev", interface_name],
             capture_output=True,
             text=True,

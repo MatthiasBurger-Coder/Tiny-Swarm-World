@@ -1,4 +1,3 @@
-import os
 import shutil
 
 from tiny_swarm_world.application.ports.ui.port_ui import PortUI
@@ -24,7 +23,7 @@ class WindowsUi(PortUI):
 
         while True:
             columns, _ = shutil.get_terminal_size()
-            os.system("cls")  # Clear screen in Windows
+            print("\033[2J\033[H", end="", flush=True)
 
             # Limit column width between 20 and 50 characters
             col_width = max(20, min(columns // len(self.instances), 50))

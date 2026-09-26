@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from tiny_swarm_world.infrastructure.process.runner import run_process
+from tiny_swarm_world.infrastructure.process.streaming import ProcessFactory, run_captured_process
+
 import os
-import subprocess
 from collections.abc import Callable
 from pathlib import Path
 
@@ -22,12 +24,12 @@ class WindowsCommandRunner(PortWindowsCommandRunner):
         *,
         executable: str = "powershell.exe",
         path_converter: PathConverter | None = None,
-        popen: Callable[..., subprocess.Popen[str]] | None = None,
+        popen: ProcessFactory | None = None,
         termination_grace_seconds: float = 3.0,
     ) -> None:
         self.executable = executable
         self.path_converter = path_converter or _to_windows_path
-        self.popen = popen or subprocess.Popen
+        self.popen = popen
         self.termination_grace_seconds = termination_grace_seconds
 
     def run(
@@ -56,53 +58,21 @@ class WindowsCommandRunner(PortWindowsCommandRunner):
             "-PortRegistryPath",
             self.path_converter(port_registry_path),
         ]
-        try:
-            process = self.popen(
-                command,
-                stdin=subprocess.DEVNULL,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                shell=False,
-                start_new_session=True,
-            )
-            stdout, stderr = process.communicate(timeout=timeout_seconds)
-            return WindowsCommandResult(process.returncode, stdout=stdout, stderr=stderr)
-        except subprocess.TimeoutExpired as exc:
-            stdout, stderr = self._terminate(process)
-            return WindowsCommandResult(
-                process.returncode,
-                timed_out=True,
-                stdout=_coalesce_output(stdout, exc.stdout),
-                stderr=_coalesce_output(stderr, exc.stderr),
-            )
-        except KeyboardInterrupt:
-            stdout, stderr = self._terminate(process)
-            return WindowsCommandResult(
-                process.returncode,
-                interrupted=True,
-                stdout=stdout,
-                stderr=stderr,
-            )
-        except OSError as exc:
-            return WindowsCommandResult(None, stderr=type(exc).__name__)
-
-    def _terminate(self, process: subprocess.Popen[str]) -> tuple[str, str]:
-        try:
-            process.terminate()
-            stdout, stderr = process.communicate(timeout=self.termination_grace_seconds)
-            return stdout, stderr
-        except subprocess.TimeoutExpired:
-            process.kill()
-            stdout, stderr = process.communicate()
-            return stdout, stderr
+        result = run_captured_process(
+            command, timeout=timeout_seconds, popen=self.popen,
+            termination_grace_seconds=self.termination_grace_seconds,
+        )
+        return WindowsCommandResult(
+            result.returncode, stdout=result.stdout, stderr=result.stderr,
+            timed_out=result.timed_out, interrupted=result.interrupted,
+        )
 
 
 def _to_windows_path(path: Path) -> str:
     value = path.as_posix()
     if os.name == "nt" and not value.startswith("/"):
         return value
-    result = subprocess.run(
+    result = run_process(
         ["wslpath", "-w", value],
         capture_output=True,
         text=True,
@@ -112,10 +82,3 @@ def _to_windows_path(path: Path) -> str:
     if result.returncode != 0 or not result.stdout.strip():
         raise OSError("wslpath could not convert the Windows bridge path")
     return result.stdout.strip()
-
-
-def _coalesce_output(primary: str | bytes | None, secondary: str | bytes | None) -> str:
-    value = primary if primary is not None else secondary
-    if isinstance(value, bytes):
-        return value.decode(errors="replace")
-    return value or ""

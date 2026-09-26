@@ -1,0 +1,55 @@
+# Changed files
+
+- `documentation/arc42/05_analysis/arch-03-11-process-execution.md`
+- `documentation/arc42/05_building_blocks.adoc`
+- `documentation/arc42/08_concepts.adoc`
+- `documentation/arc42/10_quality_requirements.adoc`
+- `documentation/arc42/11_risks_and_debt.adoc`
+- `documentation/process/skills/audit/skill-registry.json`
+- `src/tiny_swarm_world/application/ports/host/port_windows_command_runner.py`
+- `src/tiny_swarm_world/infrastructure/adapters/clients/infisical_cli_client.py`
+- `src/tiny_swarm_world/infrastructure/adapters/clients/lxc/command/manager_shell_gateway.py`
+- `src/tiny_swarm_world/infrastructure/adapters/clients/lxc/command/node_command.py`
+- `src/tiny_swarm_world/infrastructure/adapters/clients/lxc/services/common.py`
+- `src/tiny_swarm_world/infrastructure/adapters/clients/lxc/services/lxc_portainer_http_client.py`
+- `src/tiny_swarm_world/infrastructure/adapters/clients/lxc_swarm_runtime.py`
+- `src/tiny_swarm_world/infrastructure/adapters/command_runner/async_command_runner.py`
+- `src/tiny_swarm_world/infrastructure/adapters/host/hang_diagnostics.py`
+- `src/tiny_swarm_world/infrastructure/adapters/host/windows_command_runner.py`
+- `src/tiny_swarm_world/infrastructure/adapters/host/wsl_resource_inspector.py`
+- `src/tiny_swarm_world/infrastructure/adapters/network/host_network_probe.py`
+- `src/tiny_swarm_world/infrastructure/adapters/network/host_network_repair.py`
+- `src/tiny_swarm_world/infrastructure/adapters/network/wsl_socat_exposure.py`
+- `src/tiny_swarm_world/infrastructure/adapters/preflight/artifact_readiness.py`
+- `src/tiny_swarm_world/infrastructure/adapters/preflight/lxc_provider_preflight.py`
+- `src/tiny_swarm_world/infrastructure/adapters/preflight/windows_wsl_bridge_state.py`
+- `src/tiny_swarm_world/infrastructure/adapters/ui/windows_ui.py`
+- `src/tiny_swarm_world/infrastructure/composition_probes.py`
+- `src/tiny_swarm_world/infrastructure/process/async_runner.py`
+- `src/tiny_swarm_world/infrastructure/process/runner.py`
+- `src/tiny_swarm_world/infrastructure/process/streaming.py`
+- `src/tiny_swarm_world/installer.py`
+- `tests/architecture/test_hexagonal_imports.py`
+- `tests/architecture/test_process_spawn_boundaries.py`
+- `tests/infrastructure/adapters/clients/test_lxc_swarm_runtime.py`
+- `tests/infrastructure/adapters/command_runner/test_async_command_runner.py`
+- `tests/infrastructure/adapters/host/test_hang_diagnostics.py`
+- `tests/infrastructure/adapters/host/test_windows_command_runner.py`
+- `tests/infrastructure/adapters/network/test_host_network_probe.py`
+- `tests/infrastructure/adapters/network/test_wsl_socat_exposure.py`
+- `tests/infrastructure/adapters/preflight/test_lxc_provider_preflight.py`
+- `tests/infrastructure/process/test_execution_contract.py`
+- `tests/infrastructure/test_lxc_runtime_logging.py`
+- `.tiny-swarm/evidence/issue-354/requirement_matrix.md`
+- `.tiny-swarm/evidence/issue-354/implementation_summary.md`
+- `.tiny-swarm/evidence/issue-354/changed_files.md`
+- `.tiny-swarm/evidence/issue-354/test_results.md`
+- `.tiny-swarm/evidence/issue-354/remaining_risks.md`
+- `.tiny-swarm/evidence/issue-354/acceptance_checklist.md`
+- `.tiny-swarm/evidence/issue-354/audit.md`
+- `.tiny-swarm/evidence/issue-354/process_inventory.md`
+- `.tiny-swarm/evidence/issue-354/issue.md`
+- `.tiny-swarm/evidence/issue-354/interop-recovery.md`
+- `.tiny-swarm/evidence/issue-354/verification_summary.md`
+
+Raw logs and machine-local manifests are deliberately not staged.

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from tiny_swarm_world.infrastructure.process.runner import run_process
+
 import shlex
 import subprocess
 from collections.abc import Callable, Mapping
@@ -133,7 +135,7 @@ class LxcPortainerHttpClient(PortPortainerClient, PortDeploymentGateway):
         check: bool = True,
     ) -> subprocess.CompletedProcess[str]:
         try:
-            result = subprocess.run(
+            result = run_process(
                 [backend_cli(self.backend), "exec", self.manager_node, "--", "sh", "-lc", script],
                 capture_output=True,
                 text=True,

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from tiny_swarm_world.infrastructure.process.runner import run_process
+
 import asyncio
 import os
 import re
@@ -263,7 +265,7 @@ class SubprocessNetworkRepair:
 
 def _run_shell_command(command: str, timeout: int) -> CommandObservation:
     try:
-        completed = subprocess.run(
+        completed = run_process(
             ["bash", "-lc", command],
             text=True,
             capture_output=True,

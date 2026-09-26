@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from tiny_swarm_world.infrastructure.process.runner import run_process
+
 import json
 import os
 import re
@@ -261,7 +263,7 @@ def _parse_bridge_timestamp(value: str) -> datetime | None:
 
 def _current_wsl_ipv4() -> str:
     try:
-        completed = subprocess.run(
+        completed = run_process(
             ["hostname", "-I"],
             check=False,
             text=True,

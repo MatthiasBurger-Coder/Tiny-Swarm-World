@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Protocol
 
 
@@ -17,8 +17,8 @@ class WindowsCommandResult:
     return_code: int | None
     timed_out: bool = False
     interrupted: bool = False
-    stdout: str = ""
-    stderr: str = ""
+    stdout: str = field(default="", repr=False)
+    stderr: str = field(default="", repr=False)
 
 
 class PortWindowsCommandRunner(ABC):

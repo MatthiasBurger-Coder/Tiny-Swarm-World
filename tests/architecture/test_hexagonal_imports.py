@@ -53,6 +53,9 @@ KNOWN_MIXED_BOUNDARY_FILES = (
 )
 ROOT_BOUNDARY_EXCEPTION_IMPORTS = {
     "src/tiny_swarm_world/installer.py": {
+        # Issue #354 replaces direct spawning in this existing legacy boundary.
+        "tiny_swarm_world.infrastructure.process.runner",
+        "tiny_swarm_world.infrastructure.process.streaming",
         "tiny_swarm_world.infrastructure.adapters.host",
         "tiny_swarm_world.infrastructure.adapters.repositories",
         "tiny_swarm_world.infrastructure.adapters.ingress.tls_state",
@@ -74,7 +77,7 @@ CLI_MODULES = (
     "tiny_swarm_world.installer",
     "tiny_swarm_world.simple_installer",
 )
-FORBIDDEN_APPLICATION_TECHNOLOGY_IMPORTS = ("os", "yaml")
+FORBIDDEN_APPLICATION_TECHNOLOGY_IMPORTS = ("os", "yaml", "subprocess")
 FORBIDDEN_CORE_PARSER_IMPORTS = ("yaml", "ruamel")
 DIRECT_FILESYSTEM_METHODS = {
     "chmod",

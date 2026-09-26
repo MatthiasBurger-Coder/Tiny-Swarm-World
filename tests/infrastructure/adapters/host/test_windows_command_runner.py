@@ -155,7 +155,7 @@ class TestWindowsCommandRunner(unittest.TestCase):
         )
         self.assertEqual("OSError", result.stderr)
 
-    @patch("tiny_swarm_world.infrastructure.adapters.host.windows_command_runner.subprocess.run")
+    @patch("tiny_swarm_world.infrastructure.process.runner.subprocess.run")
     def test_path_conversion_rejects_failed_wslpath(self, run):
         run.return_value = subprocess.CompletedProcess(("wslpath",), 1, "", "")
 

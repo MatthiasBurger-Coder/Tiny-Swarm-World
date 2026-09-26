@@ -38,8 +38,8 @@ and static review:
   into success;
 * unavailable Git remains bounded and fail-soft;
 * architecture tests reject new direct process spawning in production
-  infrastructure adapters except documented runner or compatibility
-  boundaries, while test and tooling usage remains scoped explicitly;
+  code outside the three shared process modules; test and standalone tooling
+  usage remains scoped explicitly;
 * default quality gates use mocks/static inspection and do not invoke live
   Docker, Incus/LXC, Swarm, network, registry, or service bootstrap commands.
 
