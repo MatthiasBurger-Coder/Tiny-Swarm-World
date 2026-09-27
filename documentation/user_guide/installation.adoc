@@ -83,7 +83,7 @@ catalog or copy passwords into evidence.
 
 Install these tools before running project automation:
 
-* Python 3.12 or newer, with virtual-environment support (CI covers 3.12 and 3.13)
+* Python 3.12 or newer, with virtual-environment support (CI covers 3.12, 3.13 and 3.14)
 * Git
 * Incus for the default `lxc_native` node provider
 * WSL2 with systemd, cgroup, and user-namespace support when running under WSL

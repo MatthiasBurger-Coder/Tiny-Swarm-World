@@ -1,8 +1,8 @@
 # Developer Manual
 
-This is the implementation entry point. The repository is Python 3.12
-automation with hexagonal boundaries; it is not a Java/Spring or React
-application.
+This is the implementation entry point. The repository is Python 3.12 or newer
+automation with hexagonal boundaries; CI tests 3.12, 3.13 and 3.14. It is not
+a Java/Spring or React application.
 
 ## Architecture
 

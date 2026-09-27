@@ -31,7 +31,7 @@ the installer:
 
 - Python **3.12 or newer**, with virtual-environment support, and Git. The
   [compatibility workflow](.github/workflows/python-compatibility.yml) currently
-  tests Python 3.12 and 3.13.
+  tests Python 3.12, 3.13 and 3.14.
 - Incus installed and initialized, with usable storage, networking and profiles.
   `incus version` and `incus info` must work without `sudo`.
 - Host networking and capacity checked against the
