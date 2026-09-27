@@ -70,6 +70,38 @@ def _required_infisical_bootstrap_env() -> dict[str, str]:
 
 
 class TestComposition(unittest.TestCase):
+    def test_runtime_network_builders_forward_to_capability_wiring(self):
+        from tiny_swarm_world.infrastructure import composition_network, composition_runtime
+
+        doctor = Mock()
+        repair = Mock()
+        options = Mock()
+        with (
+            patch.object(
+                composition_network, "build_network_doctor_service", return_value=doctor
+            ) as doctor_builder,
+            patch.object(
+                composition_network, "build_network_repair_service", return_value=repair
+            ) as repair_builder,
+            patch.object(
+                composition_network, "build_network_repair_options", return_value=options
+            ) as options_builder,
+        ):
+            self.assertIs(composition_runtime.build_network_doctor_service(), doctor)
+            self.assertIs(composition_runtime.build_network_repair_service(), repair)
+            self.assertIs(
+                composition_runtime.build_network_repair_options(
+                    runtime="wsl2-nat", linux_forwarding=True, incus=False, apply=False
+                ),
+                options,
+            )
+
+        doctor_builder.assert_called_once_with()
+        repair_builder.assert_called_once_with()
+        options_builder.assert_called_once_with(
+            runtime="wsl2-nat", linux_forwarding=True, incus=False, apply=False
+        )
+
     def test_network_builders_bind_detector_and_repair_at_composition_boundary(self):
         detector = Mock()
         port_registry = Mock()
