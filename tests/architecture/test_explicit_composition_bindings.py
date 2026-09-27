@@ -45,6 +45,12 @@ class TestExplicitCompositionBindings(unittest.TestCase):
         self.assertTrue(source_path.parent.joinpath("composition_artifacts.py").is_file())
         self.assertTrue(source_path.parent.joinpath("composition_deployment.py").is_file())
         self.assertTrue(source_path.parent.joinpath("composition_setup.py").is_file())
+        network_source = source_path.parent.joinpath("composition_network.py").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("def build_network_doctor_service(", network_source)
+        self.assertIn("def build_network_repair_service(", network_source)
+        self.assertIn('"build_network_doctor_service": "composition_network"', source)
 
     def test_runtime_source_contains_no_legacy_global_di_symbols(self) -> None:
         findings: list[str] = []

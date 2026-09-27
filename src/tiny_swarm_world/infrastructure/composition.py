@@ -55,6 +55,9 @@ _RUNTIME_BUILDER_NAMES = (
 )
 
 _BOUNDARY_MODULES = {
+    "build_network_doctor_service": "composition_network",
+    "build_network_repair_service": "composition_network",
+    "build_network_repair_options": "composition_network",
     "build_host_preparation_service": "composition_platform",
     "build_platform_services": "composition_platform",
     "build_artifact_services_for_provider": "composition_artifacts",

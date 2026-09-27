@@ -711,14 +711,9 @@ def build_compose_file_repository(
 
 
 def build_network_doctor_service() -> NetworkDoctorService:
-    project_paths = default_project_paths()
-    port_registry = PortRegistryYamlRepository(project_paths=project_paths).load()
-    return NetworkDoctorService(
-        SubprocessNetworkProbe(
-            host_environment_detector=build_host_environment_detector()
-        ),
-        port_registry,
-    )
+    from .composition_network import build_network_doctor_service as implementation
+
+    return implementation()
 
 
 def build_read_only_hang_diagnostics() -> ReadOnlyHangDiagnostics:
@@ -753,12 +748,9 @@ def build_process_runner() -> ProcessRunner:
 
 
 def build_network_repair_service() -> NetworkRepairService:
-    return NetworkRepairService(
-        SubprocessNetworkProbe(
-            host_environment_detector=build_host_environment_detector()
-        ),
-        SubprocessNetworkRepair(),
-    )
+    from .composition_network import build_network_repair_service as implementation
+
+    return implementation()
 
 
 def build_network_repair_options(
@@ -768,11 +760,10 @@ def build_network_repair_options(
     incus: bool,
     apply: bool,
 ) -> NetworkRepairOptions:
-    return NetworkRepairOptions(
-        runtime=runtime,
-        linux_forwarding=linux_forwarding,
-        incus=incus,
-        apply=apply,
+    from .composition_network import build_network_repair_options as implementation
+
+    return implementation(
+        runtime=runtime, linux_forwarding=linux_forwarding, incus=incus, apply=apply
     )
 
 
