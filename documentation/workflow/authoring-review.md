@@ -1,48 +1,60 @@
-# Authoring review — issue #352
+# ARCH-03.12 authoring review
 
-## Scope and branch
+## Four-role requirement gate
 
-Workflow-authoring only on architecture/workflow-352-config-parsing-20260925,
-from 33aaafd5b80a3f316f4d650a9a831734dc7077e0. Detached HEAD was resolved with
-explicit user approval. No product source, tests, runtime config, quality policy
-or infrastructure state changed. Full replacement of documentation/workflow,
-including the previous index/issue plans, follows workflow-authoring regeneration;
-the baseline commit retains their history. One arc42 note records planned work.
+- Senior Requirement Engineer: READY_FOR_WORKFLOW; issue #355 and parent #313 verified; fifteen requirements and all lifecycle families represented; #356 owns new resilience behavior.
+- Senior System Architect: ready for authoring; shared port contract avoids ports-to-services imports; proposed ADR requires acceptance before product implementation.
+- Senior Python Automation Developer: feasible at verified seams; preserve adapter failure classification, update recovery convergence and existing result/exit contracts.
+- Senior Tester: ready for authoring; mocked failure mapping, partial/recovery, cancellation and compatibility tests required.
+- Console/status UI reviewer: human-readable default and explicit JSON opt-in; preserve statuses, safe guidance, installer child/124/130 exits and setup summary data.
 
-## Four-role review
+Dependency/deadlock review: linear seven-slice chain, no cycle. Shared contracts and
+aggregate evidence make default implementation serial. No write agents were used.
 
-Real read-only Codex subagents reviewed source and authored artifacts:
+## Baseline verification
 
-- Senior Requirement Engineer (`requirements`): READY; R01–R11 complete, no scope reduction, implementation remains OPEN.
-- Senior System Architect (`architecture`): READY; existing ownership direction, no new ADR, explicit installer scope and complete validation barrier.
-- Senior Python Automation Developer (`python`): source review supplied exact consumer paths, typed manifest plan, coercion gaps and mutation ordering. Installer manifest/port helpers and setup host-prepare ordering included.
-- Senior Tester (`tests`): READY; test paths, malformed/valid fixtures, affirmative-consent mutation spies and quality applicability verified.
+Senior Tester executed:
+`PYTHONPATH=src python3 -m unittest tests.test_classic_update_cli tests.infrastructure.adapters.ui.test_command_runner_ui_failure_semantics tests.application.services.platform.test_classic_update_workflow`
+Result: PASS, 47 tests. Expected negative-fixture errors/logs were emitted.
+These tests establish baseline compatibility only, not #355 implementation.
 
-The dependency/deadlock review found an acyclic six-slice chain. Shared
-composition/contracts/evidence require serial implementation. Read-only review
-was concurrent; no parallel workers edited this worktree. Review feedback about
-known baseline ordering was applied to stop conditions. Installer targeted tests
-were added to Slices 02/03. No UI presentation change is planned.
+## Authoring validation
 
-## Authoring verification
+Final draft review: PASS from all four required roles. Review corrections applied:
 
-- `git diff --check`: PASS.
-- YAML/JSON, six-slice dependency graph, declared file/test paths, eleven matrix rows and governing SHA-256 hashes: PASS with a local read-only validator.
-- `python3 tools/quality_gate.py verification-policy`: PASS after regeneration.
-- `python3 tools/quality_gate.py quality`: FAILED on unchanged baseline during authoring. Test phase ran 2099 tests: one failure, 18 skipped.
-- Verification-policy, lint, arch-lint, arch-tests and typecheck: PASS in that run.
-- Failure: `test_windows_service_behavior_contract_with_pester (tests.test_windows_wsl_bridge_assets.TestWindowsWslBridgeAssets.test_windows_service_behavior_contract_with_pester)`. `_as_windows_path` cannot translate this Linux/WSL worktree path to Windows before Pester invocation. Source/test files are unchanged. This is not a passing full gate and not a live/external result.
+- A legacy blocked result may follow mutation; preserve confirmed and uncertain effects.
+- Slice 01 requires static inventory evidence, not out-of-scope new tests.
+- Configuration adapter/port and platform preflight seams are explicitly scoped.
+- Adapter migration preserves old exception catches at every intermediate checkpoint.
+- Cancellation propagation retains existing entrypoint exit mappings.
 
-QUALITY.md allows a narrower check for documentation-only changes; authoring
-requires diff/schema/hash/path review and verification-policy. The full gate
-failure is retained as baseline environment evidence, not bypassed or repaired
-in this unrelated planning task. Implementation slices still require full
-quality, with this prerequisite reconciled before claiming success. No live,
-browser, SonarQube or implementation acceptance evidence was produced.
+Metadata validation: PASS for seven complete slice schemas, acyclic dependencies,
+all existing/proposed paths, targeted test module paths and local document links.
+`git diff --check`: PASS. Full local quality rerun: PASS (exit 0).
 
-## Publication handoff
+The first `python3 tools/quality_gate.py quality` attempt exited 120 while writing
+its log because `/tmp` was full (100 percent). Classified BUILD_FAILURE due to
+host temporary storage, not an observed product assertion failure. Retry 1 uses
+`TMPDIR=/home/micro/.cache/issue355-tmp python3 tools/quality_gate.py quality` on an
+available filesystem; no product, test or quality-policy changes were made.
 
-Publish only the reviewed authoring commit to
-origin/architecture/workflow-352-config-parsing-20260925. The final handoff
-records the actual SHA and matching remote ref. No PR creation/merge/cleanup.
-Issue #352 remains OPEN; all implementation requirements remain unverified.
+The completed #352 arc42 matrix link is pinned to the baseline commit to preserve
+historical traceability after full active-workflow regeneration.
+
+Product implementation NOT STARTED. Live installation, browser and external
+results are not claimed. Publication is the workflow-authoring commit and branch
+push only, as authorized by root AGENTS.md and workflow-authoring.
+
+## Final local quality result
+
+`TMPDIR=/home/micro/.cache/issue355-tmp python3 tools/quality_gate.py quality`: PASS.
+Verification-policy, lint, arch-lint, 26 architecture tests, typecheck (693 source
+files) and full test suite all passed. Full suite: 2179 tests in 247.407 seconds,
+18 skipped. Skipped cases are not claimed as verified. The local log is
+`/home/micro/.cache/issue355-quality.log` (not committed). Installer completion
+messages in this log are synthetic test fixtures, not live installation evidence.
+
+Commit scope review: only regenerated workflow documents, proposed ADR, planned
+arc42 analysis and historical #352 link correction. No product/test/config change.
+Publication target: `origin/architecture/workflow-355-operation-results-20260926`.
+The final response records the actual publication SHA and remote-ref verification.

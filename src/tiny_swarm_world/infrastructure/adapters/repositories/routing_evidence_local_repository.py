@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from tiny_swarm_world.application.ports.operation_result import OperationError, OperationFailure
+from tiny_swarm_world.application.ports.repositories.port_repository_failure import RepositoryStorageError
+
 import json
 import os
 import tempfile
@@ -38,34 +41,42 @@ class RoutingEvidenceLocalRepository(PortRoutingEvidenceRepository):
         )
 
     def write_effective_access_model(self, evidence: EffectiveAccessModelEvidence) -> None:
-        payload = json.dumps(
-            evidence.to_dict(),
-            ensure_ascii=True,
-            indent=2,
-            sort_keys=True,
-        ) + "\n"
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        _set_private_mode(self.path.parent, 0o700)
-        descriptor, temporary_name = tempfile.mkstemp(
-            dir=self.path.parent,
-            prefix=f".{self.path.name}.",
-            suffix=".tmp",
-        )
-        temporary_path = Path(temporary_name)
         try:
-            with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as stream:
-                stream.write(payload)
-                stream.flush()
-                os.fsync(stream.fileno())
-            _set_private_mode(temporary_path, 0o600)
-            os.replace(temporary_path, self.path)
-        except BaseException:
+            payload = json.dumps(
+                evidence.to_dict(),
+                ensure_ascii=True,
+                indent=2,
+                sort_keys=True,
+            ) + "\n"
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            _set_private_mode(self.path.parent, 0o700)
+            descriptor, temporary_name = tempfile.mkstemp(
+                dir=self.path.parent,
+                prefix=f".{self.path.name}.",
+                suffix=".tmp",
+            )
+            temporary_path = Path(temporary_name)
             try:
-                os.close(descriptor)
-            except OSError:
-                pass
-            temporary_path.unlink(missing_ok=True)
+                with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as stream:
+                    stream.write(payload)
+                    stream.flush()
+                    os.fsync(stream.fileno())
+                _set_private_mode(temporary_path, 0o600)
+                os.replace(temporary_path, self.path)
+            except BaseException:
+                try:
+                    os.close(descriptor)
+                except OSError:
+                    pass
+                try:
+                    temporary_path.unlink(missing_ok=True)
+                except OSError:
+                    pass
+                raise
+        except OperationError:
             raise
+        except OSError:
+            raise RepositoryStorageError(OperationFailure.for_cause("evidence.write", "evidence_repository", "filesystem_error")) from None
 
 
 def _set_private_mode(path: Path, mode: int) -> None:

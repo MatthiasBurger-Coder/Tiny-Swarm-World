@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from tiny_swarm_world.application.ports.operation_result import OperationError
+
 from abc import ABC, abstractmethod
 
 from tiny_swarm_world.domain.preflight import HostPreparationResult
@@ -23,3 +25,7 @@ class PortHostPreparation(ABC):
         """Remove only state owned by the host-preparation adapter."""
 
         raise NotImplementedError
+
+
+class HostPreparationError(OperationError, RuntimeError):
+    """Declared capability failure with safe operation context."""

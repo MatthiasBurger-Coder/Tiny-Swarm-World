@@ -1,3 +1,5 @@
+from tiny_swarm_world.application.ports.operation_result import OperationError
+
 from abc import ABC, abstractmethod
 
 from tiny_swarm_world.domain.nexus.nexus_user import NexusUser
@@ -72,3 +74,15 @@ class PortNexusClient(ABC):
         remote_url: str,
     ) -> None:
         pass
+
+
+class NexusClientError(OperationError, RuntimeError):
+    """Declared capability failure with safe operation context."""
+
+    def __init__(self, failure, *, status_code: int | None = None):
+        super().__init__(failure)
+        if status_code is not None and type(status_code) is not int:
+            raise TypeError("HTTP status must be numeric.")
+        self.status_code = status_code
+        if status_code is not None:
+            self.args = (f"{self.args[0]} HTTP {status_code}.",)

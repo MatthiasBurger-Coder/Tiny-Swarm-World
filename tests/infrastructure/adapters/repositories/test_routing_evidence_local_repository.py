@@ -57,8 +57,10 @@ class TestRoutingEvidenceLocalRepository(unittest.TestCase):
                 raise OSError("replacement failed")
 
             with patch.object(repository_module.os, "replace", side_effect=fail_replace):
-                with self.assertRaisesRegex(OSError, "replacement failed"):
+                with self.assertRaises(OSError) as caught:
                     repository.write_effective_access_model(_evidence())
+                self.assertEqual("filesystem_error", caught.exception.failure.cause)
+                self.assertNotIn("replacement failed", str(caught.exception))
 
             self.assertEqual(
                 repository.path.read_text(encoding="utf-8"),

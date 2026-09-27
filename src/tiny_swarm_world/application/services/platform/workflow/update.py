@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 import asyncio
+from dataclasses import replace
+
+from tiny_swarm_world.application.ports.operation_result import OperationError, OperationFailure, OperationOutcome, OperationResult
+from tiny_swarm_world.application.services.shared.operation_results import aggregate_operation, failure_from_exception
 from collections.abc import Mapping
 from typing import Protocol
 
@@ -92,7 +96,7 @@ class ClassicUpdateWorkflow:
         live_consent: LiveConsent | None,
         recovery: bool,
     ) -> PlatformWorkflowResult:
-        current = self._current_service(plan)
+        current = self._current_service(plan, recovery=recovery)
         if isinstance(current, PlatformWorkflowResult):
             return current
         preview_result = self._verification(
@@ -113,11 +117,13 @@ class ClassicUpdateWorkflow:
                 self.semantics,
                 executed=False,
                 verification_results=(preview_result,),
+                operation_result=OperationResult(OperationOutcome.SUCCESS, completed_operations=("platform.recover.preview" if recovery else "platform.update.preview",)),
             )
         if live_consent is None or not live_consent.accepted:
             return PlatformWorkflowResult(
                 kind=self.semantics.kind,
                 status=PlatformWorkflowStatus.REFUSED,
+                operation_result=aggregate_operation(OperationOutcome.REFUSED, pending=(_request_id(recovery),), failures=(OperationFailure.for_cause(_request_id(recovery), "platform", "refused"),)),
                 message="platform update refused because live infrastructure consent is incomplete.",
                 executed=False,
                 verification_results=(
@@ -135,11 +141,12 @@ class ClassicUpdateWorkflow:
 
         try:
             observed = await self._observe(plan)
-        except UpdateObservationError:
+        except UpdateObservationError as error:
             return self._blocked(
                 plan,
                 "Runtime observation is unavailable; no mutation was started.",
                 {"reason": "runtime_observation_unavailable"},
+                recovery=recovery, failures=(error.failure,),
             )
         if observed.converged(plan.target_image, allow_completed_rollback=recovery):
             return self._runtime_completed(
@@ -155,6 +162,7 @@ class ClassicUpdateWorkflow:
                 plan,
                 "Runtime image or rollout does not qualify for this transition; no mutation was started.",
                 {"reason": "runtime_source_mismatch", **observed.to_evidence()},
+                recovery=recovery,
             )
         if not recovery:
             try:
@@ -171,11 +179,12 @@ class ClassicUpdateWorkflow:
                         )
                 if previous is None or previous.plan != plan:
                     self.state_store.save(plan)
-            except (OSError, ValueError):
+            except (OSError, ValueError) as error:
                 return self._blocked(
                     plan,
                     "Recovery state could not be preserved; no mutation was started.",
                     {"reason": "state_unavailable"},
+                    failures=(failure_from_exception(error, "platform.update.state", "platform"),),
                 )
         return await self._apply_and_verify(plan, observed, recovery=recovery)
 
@@ -188,11 +197,14 @@ class ClassicUpdateWorkflow:
     ) -> PlatformWorkflowResult:
         try:
             deployment_result = await self.deployment_workflow_factory(plan).run()
-        except (OSError, ValueError, RuntimeError):
+        except (OSError, ValueError, RuntimeError) as error:
             return self._runtime_failure(
-                plan, "deployment_failed", PlatformWorkflowStatus.FAILED_TO_APPLY
+                plan, "deployment_failed", PlatformWorkflowStatus.FAILED_TO_APPLY,
+                recovery=recovery, failures=(failure_from_exception(error, _request_id(recovery), "platform"),),
             )
-        if deployment_result.status != DeploymentWorkflowStatus.COMPLETED:
+        child = getattr(deployment_result, "operation_result", None)
+        completed = child.completed_operations if isinstance(child, OperationResult) else ()
+        if deployment_result.status != DeploymentWorkflowStatus.COMPLETED or (isinstance(child, OperationResult) and child.outcome != OperationOutcome.SUCCESS):
             status = {
                 DeploymentWorkflowStatus.BLOCKED: PlatformWorkflowStatus.BLOCKED,
                 DeploymentWorkflowStatus.FAILED_TO_APPLY: PlatformWorkflowStatus.FAILED_TO_APPLY,
@@ -208,20 +220,27 @@ class ClassicUpdateWorkflow:
                 message="platform update did not complete its deployment verification.",
                 executed=True,
                 verification_results=deployment_result.verification_results,
+                operation_result=aggregate_operation(
+                    OperationOutcome.BLOCKED if status == PlatformWorkflowStatus.BLOCKED else OperationOutcome.FAILED,
+                    completed=completed,
+                    pending=(*child.pending_operations, _request_id(recovery) + ".verify") if isinstance(child, OperationResult) else (_request_id(recovery) + ".verify",),
+                    uncertain=child.uncertain_operations if isinstance(child, OperationResult) else (() if status == PlatformWorkflowStatus.BLOCKED else (_request_id(recovery) + ".apply",)),
+                    failures=child.failures if isinstance(child, OperationResult) and child.failures else (OperationFailure.for_cause(_request_id(recovery), "platform", "verification_failed"),),
+                ),
             )
         for attempt in range(self.verification_attempts):
             try:
                 observed = await self._observe(plan)
-            except UpdateObservationChanged:
+            except UpdateObservationChanged as error:
                 if attempt + 1 == self.verification_attempts:
-                    return self._runtime_failure(plan, "runtime_snapshot_unstable")
+                    return self._runtime_failure(plan, "runtime_snapshot_unstable", failures=(error.failure,), recovery=recovery, completed=completed)
                 await asyncio.sleep(self.poll_interval_seconds)
                 continue
-            except UpdateObservationError:
-                return self._runtime_failure(plan, "runtime_observation_unavailable")
+            except UpdateObservationError as error:
+                return self._runtime_failure(plan, "runtime_observation_unavailable", failures=(error.failure,), recovery=recovery, completed=completed)
             if observed.service_id != before.service_id:
                 return self._runtime_failure(
-                    plan, "service_identity_changed", observation=observed
+                    plan, "service_identity_changed", observation=observed, recovery=recovery, completed=completed
                 )
             if observed.converged(plan.target_image, allow_completed_rollback=recovery):
                 return self._runtime_completed(
@@ -232,14 +251,15 @@ class ClassicUpdateWorkflow:
                     deployment_evidence=deployment_result.verification_results,
                     observed_source_image=before.desired_image,
                     observation_attempts=attempt + 1,
+                    completed=completed,
                 )
             if observed.rollout_failed:
                 return self._runtime_failure(
-                    plan, "rollout_failed", observation=observed
+                    plan, "rollout_failed", observation=observed, recovery=recovery, completed=completed
                 )
             if attempt + 1 < self.verification_attempts:
                 await asyncio.sleep(self.poll_interval_seconds)
-        return self._runtime_failure(plan, "target_not_converged", observation=observed)
+        return self._runtime_failure(plan, "target_not_converged", observation=observed, recovery=recovery, completed=completed)
 
     async def _observe(self, plan: ClassicUpdatePlan) -> UpdateRuntimeObservation:
         if self.runtime_observer is None:
@@ -249,8 +269,14 @@ class ClassicUpdateWorkflow:
                 self.runtime_observer.observe(plan.stack_name, plan.service_name),
                 timeout=self.observation_timeout_seconds,
             )
-        except (OSError, ValueError, TimeoutError) as exc:
-            raise UpdateObservationError("runtime_observation_unavailable") from exc
+        except UpdateObservationError:
+            raise
+        except OperationError as error:
+            raise UpdateObservationError("runtime_observation_unavailable", failure=error.failure) from None
+        except TimeoutError:
+            raise UpdateObservationError("runtime_observation_unavailable", failure=OperationFailure.for_cause("update.observe", "runtime_observer", "process_timeout")) from None
+        except (OSError, ValueError) as error:
+            raise UpdateObservationError("runtime_observation_unavailable", failure=failure_from_exception(error, "update.observe", "runtime_observer")) from None
         if (
             not isinstance(observed, UpdateRuntimeObservation)
             or observed.stack_name != plan.stack_name
@@ -270,10 +296,15 @@ class ClassicUpdateWorkflow:
         deployment_evidence: tuple[VerificationResult, ...] = (),
         observed_source_image: str | None = None,
         observation_attempts: int = 1,
+        completed: tuple[str, ...] = (),
     ) -> PlatformWorkflowResult:
         return PlatformWorkflowResult.completed(
             self.semantics,
             executed=executed,
+            operation_result=aggregate_operation(
+                OperationOutcome.ROLLED_BACK if recovery else OperationOutcome.SUCCESS,
+                completed=(*completed, _request_id(recovery) + ".verify"), rollback_verified=recovery,
+            ),
             verification_results=(
                 self._verification(
                     plan,
@@ -308,6 +339,9 @@ class ClassicUpdateWorkflow:
         status: PlatformWorkflowStatus = PlatformWorkflowStatus.FAILED_TO_VERIFY,
         *,
         observation: UpdateRuntimeObservation | None = None,
+        recovery: bool = False,
+        completed: tuple[str, ...] = (),
+        failures: tuple[OperationFailure, ...] = (),
     ) -> PlatformWorkflowResult:
         message = "Update did not establish target convergence; original recovery state is retained."
         return PlatformWorkflowResult(
@@ -315,6 +349,12 @@ class ClassicUpdateWorkflow:
             status=status,
             message=message,
             executed=True,
+            operation_result=aggregate_operation(
+                OperationOutcome.FAILED, completed=completed,
+                pending=(_request_id(recovery) + ".verify",),
+                uncertain=(_request_id(recovery) + ".apply",),
+                failures=failures or (OperationFailure.for_cause(_request_id(recovery), "platform", "verification_failed"),),
+            ),
             verification_results=(
                 self._verification(
                     plan,
@@ -343,17 +383,19 @@ class ClassicUpdateWorkflow:
         preview: bool,
         live_consent: LiveConsent | None,
     ) -> PlatformWorkflowResult:
+        failures: tuple[OperationFailure, ...] = ()
         try:
             state = self.state_store.load(stack_name, service_name)
-        except (OSError, ValueError):
+        except (OSError, ValueError) as error:
             state = None
+            failures = (failure_from_exception(error, "platform.recover.state", "platform"),)
         if state is None:
             message = (
                 "no rollback state is available for the selected stack/service; "
                 "no mutation was started"
             )
             target_id = f"update:{stack_name}:{service_name}:recovery"
-            return PlatformWorkflowResult.blocked(
+            return replace(PlatformWorkflowResult.blocked(
                 self.semantics,
                 message,
                 (
@@ -364,7 +406,10 @@ class ClassicUpdateWorkflow:
                         evidence={"phase": "recovery", "reason": "state_not_found"},
                     ),
                 ),
-            )
+            ), operation_result=aggregate_operation(
+                OperationOutcome.BLOCKED, pending=("platform.recover",),
+                failures=failures or (OperationFailure.for_cause("platform.recover", "platform", "blocked"),),
+            ))
         if (
             state.plan.stack_name != stack_name
             or state.plan.service_name != service_name
@@ -373,6 +418,7 @@ class ClassicUpdateWorkflow:
                 state.plan,
                 "Recovery state belongs to another service.",
                 {"reason": "state_identity_mismatch"},
+                recovery=True,
             )
         return await self._run(
             state.plan.rollback_plan,
@@ -384,6 +430,7 @@ class ClassicUpdateWorkflow:
     def _current_service(
         self,
         plan: ClassicUpdatePlan,
+        *, recovery: bool = False,
     ) -> ComposeServiceDefinition | PlatformWorkflowResult:
         try:
             services = self.compose_repository.get_services_of(plan.stack_name)
@@ -392,6 +439,7 @@ class ClassicUpdateWorkflow:
                 plan,
                 "update preview could not inspect the selected stack; no mutation was started",
                 {"reason": exc.__class__.__name__},
+                recovery=recovery, failures=(failure_from_exception(exc, _request_id(recovery), "platform"),),
             )
         service = next(
             (item for item in services if item.name == plan.service_name), None
@@ -401,6 +449,7 @@ class ClassicUpdateWorkflow:
                 plan,
                 "selected service is not part of the selected stack; no mutation was started",
                 {"reason": "service_not_found"},
+                recovery=recovery,
             )
         return service
 
@@ -409,8 +458,10 @@ class ClassicUpdateWorkflow:
         plan: ClassicUpdatePlan,
         message: str,
         evidence: Mapping[str, str],
+        *, recovery: bool = False,
+        failures: tuple[OperationFailure, ...] = (),
     ) -> PlatformWorkflowResult:
-        return PlatformWorkflowResult.blocked(
+        return replace(PlatformWorkflowResult.blocked(
             self.semantics,
             message,
             (
@@ -421,7 +472,10 @@ class ClassicUpdateWorkflow:
                     evidence=evidence,
                 ),
             ),
-        )
+        ), operation_result=aggregate_operation(
+            OperationOutcome.BLOCKED, pending=(_request_id(recovery),),
+            failures=failures or (OperationFailure.for_cause(_request_id(recovery), "platform", "blocked"),),
+        ))
 
     @staticmethod
     def _verification(
@@ -456,3 +510,7 @@ class ClassicUpdateWorkflow:
             evidence=evidence,
             evidence_scope=evidence_scope,
         )
+
+
+def _request_id(recovery: bool) -> str:
+    return "platform.recover" if recovery else "platform.update"

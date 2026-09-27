@@ -29,7 +29,14 @@ class TestImagePublisherErrors(unittest.TestCase):
             exit_code=17,
         )
 
-        self.assertEqual(str(public_error), "Public container image pull failed for redis:7.")
+        self.assertIn("Public container image pull failed.", str(public_error))
+        self.assertNotIn("redis:7", str(public_error))
+        self.assertEqual("registry_rate_limited", public_error.failure.cause)
+        marker = "private-image-credential"
+        sensitive = PublicImagePullRejected(marker, diagnostic="registry_rate_limited", operator_action="authenticate")
+        self.assertNotIn(marker, str(sensitive))
+        self.assertNotIn(marker, repr(sensitive))
+        self.assertNotIn(marker, str(sensitive.failure.to_dict()))
         self.assertEqual(public_error.diagnostic, "registry_rate_limited")
         self.assertEqual(operation_error.exit_code, 17)
         self.assertIn("Exit code: 17", str(operation_error))

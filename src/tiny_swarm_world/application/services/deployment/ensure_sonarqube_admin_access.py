@@ -4,8 +4,10 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from tiny_swarm_world.application.ports.clients.port_sonarqube_client import (
-    PortSonarqubeClient,
+    PortSonarqubeClient, SonarqubeClientError,
 )
+from tiny_swarm_world.application.ports.operation_result import OperationFailure
+from tiny_swarm_world.application.services.shared.operation_results import failure_from_exception
 from tiny_swarm_world.application.ports.progress import (
     NullWorkflowProgress,
     PortWorkflowProgress,
@@ -56,13 +58,15 @@ class EnsureSonarqubeAdminAccess:
         return value
 
     async def run(self) -> None:
+        self.operation_failure: OperationFailure | None = None
         await self._wait_until_available()
         if self._can_authenticate_once(self.password):
             self._status = "already_configured"
+            self.operation_failure = None
             return
         if not await self._can_authenticate_with_retry(self.initial_credential):
             self._status = "blocked"
-            raise RuntimeError("SonarQube admin access is unavailable.")
+            raise SonarqubeClientError(self.operation_failure or OperationFailure.for_cause("deployment.sonarqube.admin", "deployment", "dependency_unavailable")) from None
         self.sonarqube_client.change_password(
             self.username,
             self.initial_credential,
@@ -71,6 +75,7 @@ class EnsureSonarqubeAdminAccess:
         self._status = "rotated"
 
     async def verify(self) -> VerificationResult:
+        self.operation_failure = None
         configured = await self._can_authenticate_with_retry(self.password)
         return VerificationResult(
             target_id=self.verification_target_id,
@@ -90,27 +95,27 @@ class EnsureSonarqubeAdminAccess:
             if attempt < self.max_attempts:
                 await self._wait_for_retry(attempt)
         self._status = "blocked"
-        raise RuntimeError("SonarQube did not become available.")
+        raise SonarqubeClientError(OperationFailure.for_cause("deployment.sonarqube.readiness", "deployment", "dependency_unavailable")) from None
 
     def _can_authenticate_once(self, password: str) -> bool:
         try:
             return self.sonarqube_client.can_authenticate(self.username, password)
-        except RuntimeError:
+        except RuntimeError as exc:
+            self.operation_failure = failure_from_exception(exc, "deployment.sonarqube.admin", "deployment")
             return False
 
     async def _can_authenticate_with_retry(self, password: str) -> bool:
         for attempt in range(1, self.max_attempts + 1):
             try:
                 authenticated = self.sonarqube_client.can_authenticate(self.username, password)
-            except RuntimeError:
+            except RuntimeError as exc:
                 if attempt < self.max_attempts:
                     await self._wait_for_retry(attempt)
                     continue
                 self._status = "blocked"
-                raise RuntimeError(
-                    "SonarQube admin access check failed with redacted output."
-                )
+                raise SonarqubeClientError(failure_from_exception(exc, "deployment.sonarqube.admin", "deployment")) from None
             if authenticated:
+                self.operation_failure = None
                 return True
             if attempt < self.max_attempts:
                 await self._wait_for_retry(attempt)

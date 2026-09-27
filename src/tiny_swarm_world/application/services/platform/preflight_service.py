@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import asyncio
+
+from tiny_swarm_world.application.ports.operation_result import OperationError
+from tiny_swarm_world.application.services.shared.operation_results import failure_from_exception, failures_to_evidence
 from collections.abc import Mapping
 
 from tiny_swarm_world.application.ports.configuration import (
@@ -88,6 +91,16 @@ class PreflightService(PortPlatformPreflight):
         )
 
     async def run(self, live_consent: LiveConsent | None = None) -> PreflightResult:
+        try:
+            return await self._run(live_consent)
+        except OperationError as error:
+            return self._result((_failed(
+                "PREFLIGHT-BOUNDARY", PreflightCategory.RUNTIME,
+                "A required preflight probe could not complete.", error.failure.recommended_action,
+                failures_to_evidence((error.failure,)),
+            ),))
+
+    async def _run(self, live_consent: LiveConsent | None = None) -> PreflightResult:
         await asyncio.sleep(0)
         host_environment = self.host_probe.host_environment_report()
         checks = [
@@ -280,10 +293,13 @@ class PreflightService(PortPlatformPreflight):
         if callable(write):
             try:
                 write(result.to_evidence(), f"{self.configuration.setup_manifest.evidence_root}/preflight.json")
-            except (OSError, ValueError):
-                # Evidence failure must remain observable through the caller's
-                # diagnostics; it must never turn a failed preflight into success.
-                pass
+            except (OSError, ValueError) as error:
+                failure = failure_from_exception(error, "platform.preflight.evidence", "platform")
+                return self._result((*checks, _failed(
+                    "PREFLIGHT-EVIDENCE", PreflightCategory.FILESYSTEM,
+                    "Preflight evidence could not be stored.", failure.recommended_action,
+                    failures_to_evidence((failure,)),
+                )))
         return result
 
     def _project_filesystem_assessment(
@@ -413,7 +429,7 @@ class PreflightService(PortPlatformPreflight):
         try:
             validation_result = self.configuration_validation.validate()
         except ConfigurationSourceLoadError as exc:
-            evidence = {"classification": "configuration_source_error"}
+            evidence = {"classification": "configuration_source_error", **failures_to_evidence((exc.failure,))}
             if exc.safe_detail:
                 evidence["detail"] = exc.safe_detail
             return [
@@ -425,14 +441,14 @@ class PreflightService(PortPlatformPreflight):
                     evidence,
                 ),
             ]
-        except ValueError:
+        except ValueError as error:
             return [
                 _failed(
                     "CONFIGURATION-CONTRACT",
                     PreflightCategory.CONFIGURATION,
                     "Configuration contract validation could not load operator configuration.",
                     "Fix the operator-owned environment source syntax, then rerun preflight.",
-                    {"classification": "configuration_source_error"},
+                    {"classification": "configuration_source_error", **failures_to_evidence((failure_from_exception(error, "platform.preflight.configuration", "platform"),))},
                 ),
             ]
         return [
@@ -553,13 +569,13 @@ class PreflightService(PortPlatformPreflight):
             )
         try:
             readiness = self.artifact_source_readiness.check()
-        except (OSError, ValueError):
+        except (OSError, ValueError) as error:
             return _failed(
                 "ARTIFACT-SOURCES",
                 PreflightCategory.DEPENDENCY,
                 "Artifact source readiness could not be evaluated.",
                 "Correct source configuration and rerun live preflight.",
-                {"classification": "probe_error"},
+                {"classification": "probe_error", **failures_to_evidence((failure_from_exception(error, "platform.preflight.artifacts", "platform"),))},
             )
         evidence = {
             "mode": readiness.mode,
@@ -847,14 +863,14 @@ class PreflightService(PortPlatformPreflight):
         if self.secret_source is not None:
             try:
                 values = self.secret_source.load()
-            except (ConfigurationSourceLoadError, OSError):
+            except (ConfigurationSourceLoadError, OSError) as error:
                 return (
                     _failed(
                         "SECRET-SOURCE",
                         PreflightCategory.SECRET,
                         "Operator secret configuration could not be loaded.",
                         "Check TSW_INSTALL_ENV_FILE, file readability and environment file syntax.",
-                        {"classification": "configuration_source_error"},
+                        {"classification": "configuration_source_error", **failures_to_evidence((failure_from_exception(error, "platform.preflight.secrets", "platform"),))},
                     ),
                 )
         checks: list[PreflightCheck] = []

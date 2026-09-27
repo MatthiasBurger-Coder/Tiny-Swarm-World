@@ -3402,3 +3402,53 @@ def _setup_result(status: SetupWorkflowStatus) -> SetupWorkflowResult:
         reason=status.value,
         executed=True,
     )
+
+
+class TestSocatStructuredFailureComposition(unittest.IsolatedAsyncioTestCase):
+    async def test_partial_starts_and_safe_failures_keep_existing_status_and_counts(self):
+        from types import SimpleNamespace
+        from tiny_swarm_world.application.ports.operation_result import OperationFailure
+        from tiny_swarm_world.application.ports.network.port_wsl_socat_exposure import SocatExposureError
+        manager = Mock()
+        manager.set_service_socat_ports.return_value = [SimpleNamespace(shell_command="unused") for _ in range(3)]
+        exposure = Mock()
+        exposure.is_available = AsyncMock(return_value=True)
+        exposure.process_exists = AsyncMock(side_effect=[True, False, False])
+        exposure.start = AsyncMock(side_effect=[True, SocatExposureError(OperationFailure.for_cause("exposure.start", "socat", "process_timeout"))])
+        step = composition._WslSocatExposeStep(
+            manager, exposure, service_profile=ServiceStackProfile.SERVICE_ACCESS,
+            live_consent=LiveConsent(live_flag=True, confirmed=True),
+            os_type=composition.OsTypes.WSL_LINUX,
+        )
+        result = await step.run()
+        self.assertEqual(VerificationStatus.FAILED_TO_APPLY, result.status)
+        self.assertEqual("1", result.evidence["started_count"])
+        self.assertEqual("1", result.evidence["existing_count"])
+        self.assertEqual("1", result.evidence["failed_count"])
+        self.assertEqual("true", result.evidence["applied"])
+        self.assertEqual("process_timeout", result.evidence["failure_1_cause"])
+        self.assertEqual("exposure.start", result.evidence["failure_1_operation"])
+        self.assertNotIn("unused", str(result.evidence))
+
+
+class TestBlockedOperationResults(unittest.IsolatedAsyncioTestCase):
+    async def test_real_blocked_producers_expose_results_through_setup(self):
+        from tiny_swarm_world.infrastructure.composition_blocked_workflows import BlockedArtifactWorkflow, BlockedDeploymentWorkflow
+        from tiny_swarm_world.application.services.artifacts.workflows import ArtifactWorkflowKind
+        from tiny_swarm_world.application.services.deployment.workflows import DeploymentWorkflowKind
+        from tiny_swarm_world.application.services.setup import SetupWorkflow, SetupWorkflowPhase
+        from tiny_swarm_world.domain.preflight import LiveConsent
+        from tiny_swarm_world.application.ports.operation_result import OperationOutcome
+        for producer in (BlockedArtifactWorkflow(ArtifactWorkflowKind.PREPARE, "Unavailable"), BlockedDeploymentWorkflow(DeploymentWorkflowKind.APPLY, "Unavailable")):
+            child = await producer.run()
+            self.assertEqual(OperationOutcome.BLOCKED, child.operation_result.outcome)
+            result = await SetupWorkflow((SetupWorkflowPhase("blocked", producer.run),), live_consent=LiveConsent(True, confirmed=True)).run()
+            self.assertEqual(child.operation_result.failures, result.operation_result.failures)
+            self.assertEqual(OperationOutcome.BLOCKED, result.operation_result.outcome)
+            from tiny_swarm_world.domain.preflight import PreflightResult
+            from unittest.mock import MagicMock
+            later = MagicMock()
+            guarded = await SetupWorkflow((SetupWorkflowPhase("guard", lambda: PreflightResult(())), SetupWorkflowPhase("blocked", producer.run), SetupWorkflowPhase("later", later)), live_consent=LiveConsent(True, confirmed=True)).run()
+            self.assertEqual(OperationOutcome.BLOCKED, guarded.operation_result.outcome)
+            self.assertEqual((), guarded.operation_result.completed_operations)
+            later.assert_not_called()

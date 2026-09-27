@@ -1,5 +1,11 @@
 from __future__ import annotations
 
+from tiny_swarm_world.application.ports.clients.port_infisical_bootstrap_client import InfisicalBootstrapUnavailable as InfisicalBootstrapUnavailable
+
+from tiny_swarm_world.application.ports.clients.port_infisical_bootstrap_client import InfisicalBootstrapError
+from tiny_swarm_world.application.ports.operation_result import OperationFailure
+from tiny_swarm_world.infrastructure.adapters.exceptions.operation_failure_mapping import request_failure
+
 import time
 import warnings
 from collections.abc import Callable
@@ -45,6 +51,12 @@ class InfisicalBootstrapHttpClient(PortInfisicalBootstrapClient):
         self.readiness_interval_seconds = readiness_interval_seconds
         self.readiness_recovery = readiness_recovery
 
+    def _request(self, method: str, *args, **kwargs) -> requests.Response:
+        try:
+            return getattr(self.session, method)(*args, **kwargs)
+        except requests.RequestException as exc:
+            raise InfisicalBootstrapError(request_failure(exc, "service.request", "infisical")) from None
+
     def bootstrap_instance(
         self,
         *,
@@ -54,7 +66,7 @@ class InfisicalBootstrapHttpClient(PortInfisicalBootstrapClient):
     ) -> InfisicalBootstrapResult:
         self._wait_until_ready()
         with _local_tls_warning_context(self.verify_tls):
-            response = self.session.post(
+            response = self._request("post",
                 f"{self.base_url}/api/v1/admin/bootstrap",
                 headers={"Content-Type": "application/json"},
                 json={
@@ -72,7 +84,7 @@ class InfisicalBootstrapHttpClient(PortInfisicalBootstrapClient):
                 admin_email=email,
             )
         if response.status_code >= 400:
-            raise RuntimeError(f"Failed to bootstrap Infisical. HTTP {response.status_code}.")
+            raise InfisicalBootstrapError(OperationFailure.for_cause("service.request", "infisical", "request_failed")) from None
 
         payload = _json_mapping(response)
         return InfisicalBootstrapResult(
@@ -117,19 +129,10 @@ class InfisicalBootstrapHttpClient(PortInfisicalBootstrapClient):
         if last_status_code is not None:
             return InfisicalBootstrapUnavailable(last_status_code)
         if last_failure is not None:
-            return InfisicalBootstrapUnavailable.from_exception(last_failure)
+            return InfisicalBootstrapUnavailable(reason=type(last_failure).__name__, failure=request_failure(last_failure, "service.ready", "infisical"))
         return InfisicalBootstrapUnavailable()
 
 
-class InfisicalBootstrapUnavailable(RuntimeError):
-    def __init__(self, status_code: int | None = None, reason: str = "not_ready"):
-        super().__init__("Infisical bootstrap API is not ready.")
-        self.status_code = status_code
-        self.reason = reason
-
-    @classmethod
-    def from_exception(cls, exc: Exception) -> "InfisicalBootstrapUnavailable":
-        return cls(reason=exc.__class__.__name__)
 
 
 @contextmanager
@@ -143,9 +146,9 @@ def _local_tls_warning_context(verify_tls: bool) -> Iterator[None]:
 
 
 def _json_mapping(response: requests.Response) -> Mapping[str, object]:
-    payload = response.json()
+    payload = _response_payload(response)
     if not isinstance(payload, Mapping):
-        raise RuntimeError("Infisical bootstrap returned an unexpected payload.")
+        raise InfisicalBootstrapError(OperationFailure.for_cause("service.request", "infisical", "request_failed")) from None
     return payload
 
 
@@ -174,3 +177,10 @@ def _admin_email(payload: Mapping[str, object]) -> str:
         return ""
     email = user.get("email")
     return email if isinstance(email, str) else ""
+
+
+def _response_payload(response: requests.Response):
+    try:
+        return response.json()
+    except ValueError:
+        raise InfisicalBootstrapError(OperationFailure.for_cause("service.decode", "infisical", "request_failed")) from None

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from tiny_swarm_world.application.ports.operation_result import OperationError
+
 from abc import ABC, abstractmethod
 
 
@@ -22,3 +24,7 @@ class PortInfisicalClient(ABC):
         secret_value: str,
     ) -> None:
         pass
+
+
+class InfisicalClientError(OperationError, RuntimeError):
+    """Declared capability failure with safe operation context."""

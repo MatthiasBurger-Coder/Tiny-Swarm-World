@@ -1,0 +1,104 @@
+= ADR: Explicit Operation Results and Failure Ownership
+
+== Status
+
+Accepted for implementation in S355-01 on 2026-09-26 after independent Requirement,
+System Architect, Python and Test reviews. The concrete inventory and schema are
+accepted; this decision does not claim product implementation or live verification.
+
+== Context
+
+Platform, artifacts, deployment and setup already return capability-specific
+results. Expected errors cross some ports as infrastructure-owned or generic
+exceptions, while broad orchestration catches lose actionable context. CLI
+consumers depend on existing status strings, JSON fields and exit codes.
+ARCH-03.11 centralizes process execution but leaves capability translation to adapters.
+
+== Proposed decision
+
+Own the immutable shared contract in application/ports/operation_result.py,
+independent of application services and concrete infrastructure. Existing workflow
+result wrappers expose it additively as operation_result; retain existing status,
+outcome, message, reason, executed and verification fields and constructor defaults.
+Domain remains independent of application. No new service engine is introduced.
+
+Define success, failed, partial and rolled_back outcomes, with blocked and refused
+kept distinct. Only refusal or blocking before execution establishes no execution.
+A legacy blocked status may follow mutation: preserve it, classify confirmed prior
+work as partial, and retain uncertain effects rather than asserting no mutation. A success obeys the capability's existing
+verification contract. Partial means confirmed completed work and an incomplete
+request; attempted execution alone is insufficient. Track confirmed work separately
+from uncertain effects after timeout or interruption. Rolled_back requires the
+existing recover path to observe restoration to the recorded original image.
+Stored recovery state, a recommendation or an attempted rollback cannot prove it.
+
+Failure values carry stable operation and component identifiers, safe cause code,
+recoverability (recoverable, nonrecoverable or unknown), and recommended action.
+They never contain raw exception objects, credentials, commands, stdout/stderr or
+unchecked exception text. Unknown recoverability is explicit; it does not promise
+safe retries. Nested aggregation preserves originating failures and completed-work
+evidence; if recovery fails, retain both original failure context when available
+and recovery failure without claiming restoration.
+
+Expected technology errors are translated by adapters to application-owned failure
+values or typed port exceptions carrying those values. Preserve existing port
+signatures using compatible error bridges where needed. Workflow services catch
+only declared expected failures for normal result classification. Programming
+faults remain distinguishable and are not silently relabeled as expected failures.
+Cancellation, KeyboardInterrupt and SystemExit retain their existing propagation
+or explicit entrypoint exit mapping. Do not catch BaseException for translation.
+Suppress unsafe cause chains at outward error boundaries while preserving safe
+classified context. Reuse ARCH-03.11 runners rather than redesigning process control.
+
+Legacy CLI behavior remains authoritative: completed is exit 0; other returned
+workflow statuses exit 1; missing consent/destructive confirmation exits 2.
+Verified recovery keeps completed/exit 0 with an additive rolled_back outcome;
+a failed original apply stays nonzero. Installer child exits and 124/130 timeout
+and interruption mappings remain unchanged. Human-readable output is default;
+JSON remains explicit opt-in. Rendering never performs recommended actions.
+
+== Alternatives and rationale
+
+Replacing all status enums would break consumers. Keeping only free-form messages
+loses machine-readable failure context. Putting shared types under services would
+violate the ports dependency contract. An additive port-owned value contract lets
+adapters translate failures without coupling domain or ports to workflow services.
+
+== Consequences
+
+Migration must cover actual lifecycle producers and consumers, including installer
+compatibility, rather than only introducing types. S355-01 fixes the per-boundary
+mapping and expected/unexpected error policy before implementation. No new retry,
+automatic rollback, idempotency policy, provider, process framework or persistence
+schema is authorized. ARCH-03.13 / #356 owns new resilience behavior.
+
+== Verification
+
+Contract invariants, adapter mappings, partial progress, verified recovery,
+cancellation, redaction and CLI compatibility use deterministic tests. Existing
+architecture rules remain in force. Local verification does not claim live success.
+
+== S355-01 concrete schema and compatibility review
+
+The accepted implementation schema is defined in
+`documentation/workflow/lifecycle-failure-inventory.md`: OperationOutcome,
+Recoverability, frozen OperationFailure, frozen OperationResult with failures and
+completed/pending/uncertain operation tuples plus rollback_verified, and OperationError.
+The inventory fixes invariants, adapter mappings, exclusions and safe cause/action
+catalogue. Domain facts remain domain-only. Existing broad fallback behavior is
+preserved with explicit unexpected_failure classification; composition defects
+which previously propagated continue to propagate.
+
+== Implementation note — S355-02 through S355-06
+
+The accepted contract, adapter translations, lifecycle aggregation and CLI rendering
+are implemented. See `../05_analysis/arch-03-12-operation-results.md` for the current
+ownership, compatibility and boundary exclusions. Recoverability remains conservative:
+the enum includes recoverable, but the current cause catalogue selects nonrecoverable
+or unknown. A recovered child's resolved history remains nested rather than becoming
+an unresolved setup failure. Rendering guidance never executes recovery or retry.
+
+This note preserves the S355-01 decision and its acceptance history. S355-07 final
+architecture and local quality checks passed; independent completion audit passed. Exact local
+verification belongs in `.tiny-swarm/evidence/issue-355/`; no live or external
+verification is asserted.

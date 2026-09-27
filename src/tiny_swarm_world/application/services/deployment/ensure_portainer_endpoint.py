@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import asyncio
 
-from tiny_swarm_world.application.ports.clients.port_portainer_client import PortPortainerClient
+from tiny_swarm_world.application.ports.operation_result import OperationFailure
+from tiny_swarm_world.application.services.shared.operation_results import failure_from_exception
+from tiny_swarm_world.application.ports.clients.port_portainer_client import PortPortainerClient, PortainerClientError
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
 
 
@@ -37,9 +39,10 @@ class EnsurePortainerEndpoint:
                 if attempt >= self.max_attempts:
                     break
                 await asyncio.sleep(self.wait_seconds)
-        raise RuntimeError("Portainer local endpoint could not be registered.") from last_exception
+        raise PortainerClientError(failure_from_exception(last_exception, "deployment.endpoint", "deployment") if last_exception is not None else OperationFailure.for_cause("deployment.endpoint", "deployment", "dependency_unavailable")) from None
 
     async def verify(self) -> VerificationResult:
+        self.operation_failure: OperationFailure | None = None
         last_exception: Exception | None = None
         for attempt in range(1, self.max_attempts + 1):
             try:
@@ -62,6 +65,7 @@ class EnsurePortainerEndpoint:
                 last_exception = exc
                 if attempt < self.max_attempts:
                     await asyncio.sleep(self.wait_seconds)
+        self.operation_failure = failure_from_exception(last_exception, "deployment.verify", "deployment") if last_exception is not None else None
         return VerificationResult(
             target_id=self.verification_target_id,
             status=VerificationStatus.FAILED_TO_VERIFY,

@@ -1,7 +1,7 @@
 # ARCH-03.09 — Configuration Parsing Boundary
 
 Status: implemented locally; final issue acceptance is tracked in the
-[requirement matrix](../../workflow/requirement-matrix.md).
+[completed #352 requirement matrix](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/blob/3487ce322bb2b251a45695fc88a70ffa8132b0de/documentation/workflow/requirement-matrix.md).
 Issue: #352; parent: #313.
 
 ## Ownership and typed boundaries

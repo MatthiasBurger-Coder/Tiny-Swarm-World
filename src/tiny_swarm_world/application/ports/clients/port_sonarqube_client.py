@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from tiny_swarm_world.application.ports.operation_result import OperationError
+
 from abc import ABC, abstractmethod
 
 
@@ -20,3 +22,10 @@ class PortSonarqubeClient(ABC):
         new_password: str,
     ) -> None:
         pass
+
+
+class SonarqubeClientError(OperationError, RuntimeError):
+    """Declared capability failure with safe operation context."""
+
+    def __str__(self):
+        return "SonarQube request failed with redacted output. " + super().__str__()

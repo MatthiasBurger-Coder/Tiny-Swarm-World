@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+from tiny_swarm_world.application.ports.clients.port_container_runtime import ContainerRuntimeError
+from tiny_swarm_world.application.ports.operation_result import OperationFailure
+from tiny_swarm_world.infrastructure.adapters.exceptions.operation_failure_mapping import process_failure
+
 import subprocess
 
 from tiny_swarm_world.application.ports.clients.port_container_runtime import PortContainerRuntime
@@ -96,19 +100,12 @@ class LxcContainerRuntime(PortContainerRuntime):
                 shell=False,
                 timeout=self.timeout_seconds,
             )
-        except ProcessTimeoutError as exc:
-            raise RuntimeError(
-                f"LXC Docker runtime operation timed out on node '{target_node}'."
-            ) from exc
-        except ProcessLaunchError as exc:
-            raise RuntimeError(
-                f"LXC Docker runtime operation could not start on node '{target_node}'."
-            ) from exc
+        except (ProcessTimeoutError, ProcessLaunchError, OSError) as exc:
+            raise ContainerRuntimeError(process_failure(exc, "container.execute", "lxc_container_runtime")) from None
         if check and result.returncode != 0:
-            raise RuntimeError(
-                "LXC Docker runtime operation failed on node "
-                f"'{target_node}' with exit code {result.returncode}."
-            )
+            raise ContainerRuntimeError(OperationFailure.for_cause(
+                "container.execute", "lxc_container_runtime", "process_exit_failed",
+            ), exit_code=result.returncode)
         return result
 
 

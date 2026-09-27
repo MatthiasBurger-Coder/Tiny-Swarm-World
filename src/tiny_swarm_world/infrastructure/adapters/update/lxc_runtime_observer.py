@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from tiny_swarm_world.application.ports.operation_result import OperationError, OperationFailure
+from tiny_swarm_world.infrastructure.adapters.exceptions.operation_failure_mapping import process_result_failure
+
 import asyncio
 import json
 import re
@@ -69,9 +72,14 @@ class LxcUpdateRuntimeObserver(PortUpdateRuntimeObserver):
             return await asyncio.to_thread(self._observe, stack_name, service_name)
         except UpdateObservationChanged:
             raise
-        except (OSError, RuntimeError, ValueError, TypeError, KeyError) as exc:
-            # Do not propagate raw command output or parser inputs into evidence.
-            raise UpdateObservationError("runtime_observation_unavailable") from exc
+        except OperationError as exc:
+            raise UpdateObservationError("runtime_observation_unavailable", failure=exc.failure) from None
+        except OSError:
+            raise UpdateObservationError("runtime_observation_unavailable") from None
+        except (RuntimeError, ValueError, TypeError, KeyError):
+            raise UpdateObservationError("runtime_observation_unavailable", failure=OperationFailure.for_cause(
+                "update.observe", "runtime_observer", "unexpected_failure",
+            )) from None
 
     def _observe(self, stack_name: str, service_name: str) -> UpdateRuntimeObservation:
         service = f"{stack_name}_{service_name}"
@@ -79,27 +87,22 @@ class LxcUpdateRuntimeObserver(PortUpdateRuntimeObserver):
             f"docker service inspect --format {shlex.quote(_SERVICE_FORMAT)} "
             f"-- {shlex.quote(service)}"
         )
-        before = _mapping(json.loads(self._read(inspect_command)))
+        before = _service_record(self._read(inspect_command))
         task_output = self._read(
             f"docker service ps --no-trunc --format {shlex.quote(_TASK_FORMAT)} "
             f"-- {shlex.quote(service)}"
         )
-        after = _mapping(json.loads(self._read(inspect_command)))
+        after = _service_record(self._read(inspect_command))
         if (
             _text(before, "name") != service
             or _text(after, "name") != service
             or _text(before, "id") != _text(after, "id")
         ):
-            raise ValueError("service_identity_changed_during_observation")
-        for record in (before, after):
-            _number(record, "version")
-            _text(record, "image")
-            _text(record, "rollout", allow_empty=True)
-            _number(_mapping(_mapping(record["mode"])["Replicated"]), "Replicas")
+            raise UpdateObservationError("runtime_identity_mismatch")
         mode = _mapping(before["mode"])
         replicated = _mapping(mode["Replicated"])
         tasks = tuple(
-            _task(json.loads(line)) for line in task_output.splitlines() if line.strip()
+            _task_record(line) for line in task_output.splitlines() if line.strip()
         )
         if before != after:
             raise UpdateObservationChanged("service_changed_during_observation")
@@ -117,7 +120,7 @@ class LxcUpdateRuntimeObserver(PortUpdateRuntimeObserver):
     def _read(self, command: str) -> str:
         result = self.gateway.run_manager_shell(command, check=False)
         if result.returncode != 0:
-            raise UpdateObservationError("runtime_command_failed")
+            raise UpdateObservationError("runtime_command_failed", failure=process_result_failure("update.observe", "runtime_observer"))
         return result.stdout
 
 
@@ -153,3 +156,24 @@ def _task(value: object) -> UpdateTaskObservation:
         state=state,
         desired_state=desired_state,
     )
+
+
+def _service_record(text: str) -> Mapping[str, object]:
+    try:
+        record = _mapping(json.loads(text))
+        _text(record, "name")
+        _text(record, "id")
+        _number(record, "version")
+        _text(record, "image")
+        _text(record, "rollout", allow_empty=True)
+        _number(_mapping(_mapping(record["mode"])["Replicated"]), "Replicas")
+        return record
+    except (ValueError, TypeError, KeyError):
+        raise UpdateObservationError("runtime_observation_unavailable") from None
+
+
+def _task_record(text: str) -> UpdateTaskObservation:
+    try:
+        return _task(json.loads(text))
+    except (ValueError, TypeError, KeyError):
+        raise UpdateObservationError("runtime_observation_unavailable") from None

@@ -10,6 +10,9 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch
 
 from tiny_swarm_world import __main__ as entrypoint
+from tiny_swarm_world.application.ports.operation_result import (
+    OperationFailure, OperationOutcome, OperationResult,
+)
 from tiny_swarm_world.application.services.artifacts import (
     ArtifactWorkflowKind,
     ArtifactWorkflowResult,
@@ -63,6 +66,85 @@ ENTRYPOINT_PATH = REPOSITORY_ROOT / "src" / "tiny_swarm_world" / "__main__.py"
 
 
 class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
+    def test_operation_context_is_additive_in_json_for_every_result_family(self):
+        operation = OperationResult(
+            OperationOutcome.PARTIAL,
+            failures=(OperationFailure.for_cause("image.publish", "registry", "request_timeout"),),
+            completed_operations=("image.build",),
+            pending_operations=("image.verify",),
+            uncertain_operations=("image.publish",),
+        )
+        results = (
+            PlatformWorkflowResult(PlatformWorkflowKind.INIT, PlatformWorkflowStatus.BLOCKED, "blocked", True, operation_result=operation),
+            ArtifactWorkflowResult(ArtifactWorkflowKind.PREPARE, ArtifactWorkflowStatus.BLOCKED, "blocked", "reason", True, operation_result=operation),
+            DeploymentWorkflowResult(DeploymentWorkflowKind.APPLY, DeploymentWorkflowStatus.BLOCKED, "blocked", "reason", True, operation_result=operation),
+            SetupWorkflowResult(SetupWorkflowKind.RUN, SetupWorkflowStatus.BLOCKED, "blocked", "reason", True, operation_result=operation),
+        )
+        for result in results:
+            with self.subTest(family=type(result).__name__):
+                output = io.StringIO()
+                with redirect_stdout(output):
+                    entrypoint._emit_workflow_result(result, SimpleNamespace(json=True))
+                payload = json.loads(output.getvalue())
+                self.assertEqual(payload, result.to_dict())
+                self.assertEqual(payload["operation_result"], operation.to_dict())
+                self.assertEqual(payload["status"], "blocked")
+                self.assertTrue(payload["executed"])
+                self.assertEqual(payload["workflow"], result.workflow_name)
+                with patch.dict(os.environ, {"TSW_DEBUG_JSON": "false"}):
+                    output = io.StringIO()
+                    with redirect_stdout(output):
+                        entrypoint._emit_workflow_result(result, SimpleNamespace(json=False))
+                rendered = output.getvalue()
+                for line in (
+                    "Operation outcome: partial", "Completed operations: image.build",
+                    "Pending operations: image.verify", "Uncertain operations: image.publish",
+                    "Failure: image.publish (registry)", "Cause: request_timeout",
+                    "Recoverability: unknown", operation.failures[0].recommended_action,
+                ):
+                    self.assertIn(line, rendered)
+                self.assertNotIn("OperationResult(", rendered)
+                self.assertNotIn('"operation_result"', rendered)
+
+    def test_operation_renderer_is_pure_and_preserves_legacy_absence(self):
+        failure = OperationFailure.for_cause("update.apply", "swarm", "process_timeout")
+        operation = OperationResult(OperationOutcome.ROLLED_BACK, (failure,), rollback_verified=True)
+        before = operation.to_dict()
+        with patch.object(entrypoint, "run_cli_workflow") as run_workflow:
+            first = entrypoint._format_operation_summary(operation)
+            self.assertEqual(first, entrypoint._format_operation_summary(operation))
+            self.assertEqual((), entrypoint._format_operation_summary(None))
+        run_workflow.assert_not_called()
+        self.assertEqual(before, operation.to_dict())
+        self.assertIn("Rollback verified: yes", first)
+        self.assertIn("Operation outcome: rolled_back", first)
+
+    async def test_operation_outcome_does_not_replace_legacy_cli_exit_status(self):
+        failure = OperationFailure.for_cause("update.apply", "swarm", "process_timeout")
+        for status, operation, expected_code in (
+            (PlatformWorkflowStatus.COMPLETED, OperationResult(OperationOutcome.SUCCESS), 0),
+            (PlatformWorkflowStatus.COMPLETED, OperationResult(OperationOutcome.ROLLED_BACK, (failure,), rollback_verified=True), 0),
+            (PlatformWorkflowStatus.BLOCKED, OperationResult(OperationOutcome.FAILED, (failure,)), 1),
+        ):
+            with self.subTest(outcome=operation.outcome):
+                result = PlatformWorkflowResult(PlatformWorkflowKind.UPDATE, status, "result", True, operation_result=operation)
+                output = io.StringIO()
+                with (
+                    patch.object(entrypoint, "run_cli_workflow", AsyncMock(return_value=result)) as run_workflow,
+                    redirect_stdout(output),
+                ):
+                    command = ["platform", "update", "--recover", "--stack", "jenkins", "--service", "jenkins", "--live", "--approve-live", "--json"]
+                    if expected_code:
+                        with self.assertRaises(SystemExit) as raised:
+                            await entrypoint.main(command)
+                        self.assertEqual(expected_code, raised.exception.code)
+                    else:
+                        await entrypoint.main(command)
+                self.assertTrue(run_workflow.call_args.kwargs["update_recover"])
+                payload = json.loads(output.getvalue())
+                self.assertEqual(status.value, payload["status"])
+                self.assertEqual(operation.to_dict(), payload["operation_result"])
+
     async def test_default_entrypoint_does_not_build_or_run_services(self):
         output = io.StringIO()
 
@@ -988,15 +1070,37 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         self.assertIn("- first_failure_reason: apt_repository_unreachable", rendered)
 
     def test_setup_summary_contains_counts_and_stable_group_fields(self):
+        failures = (
+            OperationFailure.for_cause("node.create", "lxc", "process_timeout"),
+            OperationFailure.for_cause("node.observe", "lxc", "observation_unavailable"),
+        )
+        operation = OperationResult(
+            OperationOutcome.PARTIAL, failures,
+            completed_operations=("preflight",), pending_operations=("node.observe",),
+            uncertain_operations=("node.create",),
+        )
         result = SetupWorkflowResult(
             kind=SetupWorkflowKind.RUN,
             status=SetupWorkflowStatus.BLOCKED,
             message="setup run is blocked.",
             reason="a required phase did not complete",
             executed=True,
+            operation_result=operation,
             phase_results=(
                 SetupPhaseResult(name="preflight", status="completed", result={}),
-                SetupPhaseResult(name="platform init", status="blocked", result={}),
+                SetupPhaseResult(
+                    name="platform init", status="blocked",
+                    result=PlatformWorkflowResult(
+                        PlatformWorkflowKind.INIT, PlatformWorkflowStatus.BLOCKED,
+                        "blocked", True,
+                        verification_results=(VerificationResult(
+                            target_id="node.observe", status=VerificationStatus.BLOCKED,
+                            message="Observation unavailable.",
+                            evidence={"evidence_path": ".tiny-swarm/evidence/init.json"},
+                        ),),
+                        operation_result=operation,
+                    ),
+                ),
             ),
             phase_group_results=(
                 SetupPhaseGroupResult(
@@ -1021,6 +1125,11 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
             rendered,
         )
         self.assertIn("Final setup status: blocked", rendered)
+        self.assertIn(".tiny-swarm/evidence/init.json", rendered)
+        self.assertIn("Operation outcome: partial", rendered)
+        self.assertLess(rendered.index("Failure: node.create"), rendered.index("Failure: node.observe"))
+        for failure in failures:
+            self.assertIn(failure.recommended_action, rendered)
 
     def test_workflow_summary_redacts_nested_evidence_objects(self):
         result = SimpleNamespace(

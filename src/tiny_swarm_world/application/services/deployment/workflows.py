@@ -3,17 +3,17 @@ from __future__ import annotations
 import asyncio
 import inspect
 import logging
-import textwrap
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field, replace
 from enum import Enum
 from typing import Protocol
 
 from tiny_swarm_world.application.ports.clients.port_portainer_admin_client import (
     PortainerAdminInitializationRejected,
 )
+from tiny_swarm_world.application.ports.operation_result import OperationFailure, OperationOutcome, OperationResult
+from tiny_swarm_world.application.services.shared.operation_results import aggregate_operation, failure_from_exception, verification_failures, prefixed_operation_result
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
-from tiny_swarm_world.domain.inventory.safe_text import validate_message_text
 
 
 class DeploymentWorkflowKind(str, Enum):
@@ -78,6 +78,7 @@ class DeploymentWorkflowResult:
     reason: str
     executed: bool = False
     verification_results: tuple[VerificationResult, ...] = ()
+    operation_result: OperationResult | None = None
 
     @property
     def workflow_name(self) -> str:
@@ -85,6 +86,7 @@ class DeploymentWorkflowResult:
 
     def to_dict(self) -> dict[str, object]:
         return {
+            "operation_result": self.operation_result.to_dict() if self.operation_result else None,
             "executed": self.executed,
             "message": self.message,
             "reason": self.reason,
@@ -104,6 +106,11 @@ DEPLOYMENT_APPLY_CONTRACTS_BLOCKED_MESSAGE = (
     "deployment apply is blocked until stack deployment contracts are wired."
 )
 VERIFICATION_EVIDENCE_MISSING_MESSAGE = "Verification evidence is missing."
+DEPLOYMENT_FAILURE_ORIGINS = frozenset(
+    (operation, component)
+    for operation in ("service.request", "service.decode")
+    for component in ("portainer", "sonarqube", "nexus", "infisical")
+)
 DIAGNOSTIC_PAYLOAD_REDACTED = "Diagnostic payload redacted."
 UNSAFE_EXCEPTION_DETAIL_TERMS = (
     "authorization",
@@ -116,6 +123,28 @@ UNSAFE_EXCEPTION_DETAIL_TERMS = (
     "stdout",
     "token",
 )
+
+
+@dataclass
+class _DeploymentProgress:
+    pending: list[str]
+    completed: list[str] = field(default_factory=list)
+    uncertain: list[str] = field(default_factory=list)
+    failures: list[OperationFailure] = field(default_factory=list)
+
+    def result(self, **kwargs) -> DeploymentWorkflowResult:
+        status = kwargs["status"]
+        outcome = OperationOutcome.SUCCESS if status == DeploymentWorkflowStatus.COMPLETED and not self.pending and not self.uncertain and not self.failures else OperationOutcome.BLOCKED if status == DeploymentWorkflowStatus.BLOCKED else OperationOutcome.FAILED
+        failures = self.failures or (() if outcome == OperationOutcome.SUCCESS else (OperationFailure.for_cause("deployment.workflow", "deployment", "blocked" if outcome == OperationOutcome.BLOCKED else "verification_failed"),))
+        return DeploymentWorkflowResult(**kwargs, operation_result=aggregate_operation(outcome, completed=self.completed, pending=self.pending, uncertain=self.uncertain, failures=failures))
+
+    def observe(self, identity: str, verification: VerificationResult, failures: tuple[OperationFailure, ...]) -> None:
+        self.failures.extend(failures)
+        if verification.status == VerificationStatus.VERIFIED and not failures:
+            self.completed.append(identity + ".verify")
+            self.pending.remove(identity + ".verify")
+            if identity + ".apply" in self.uncertain:
+                self.uncertain.remove(identity + ".apply")
 
 
 class DeploymentApplyWorkflow:
@@ -152,8 +181,9 @@ class DeploymentApplyWorkflow:
                     await result
 
     async def run(self) -> DeploymentWorkflowResult:
+        progress = _DeploymentProgress([f"deployment.{self.kind.value}.step.{index}.verify" for index in range(1, len(self.steps) + 1)])
         if not self.steps:
-            return DeploymentWorkflowResult(
+            return progress.result(
                 kind=self.kind,
                 status=DeploymentWorkflowStatus.BLOCKED,
                 message=DEPLOYMENT_APPLY_CONTRACTS_BLOCKED_MESSAGE,
@@ -162,14 +192,15 @@ class DeploymentApplyWorkflow:
 
         verification_results: list[VerificationResult] = []
         prerequisite_result = await _run_pre_apply_checks(
-            self.prerequisite_checks, self.kind, verification_results,
+            self.prerequisite_checks, self.kind, verification_results, progress,
         )
         if prerequisite_result is not None:
             return prerequisite_result
         try:
             await self.prepare_configuration()
         except Exception as exc:
-            return DeploymentWorkflowResult(
+            progress.failures.append(failure_from_exception(exc, "deployment.configuration", "deployment"))
+            return progress.result(
                 kind=self.kind,
                 status=DeploymentWorkflowStatus.FAILED_TO_PREPARE,
                 message="Selected deployment configuration is invalid.",
@@ -181,6 +212,7 @@ class DeploymentApplyWorkflow:
             self.kind,
             verification_results,
             self.logger,
+            progress,
         )
         if pre_apply_prepare_result is not None:
             return pre_apply_prepare_result
@@ -189,11 +221,13 @@ class DeploymentApplyWorkflow:
             self.pre_apply_checks,
             self.kind,
             verification_results,
+            progress,
         )
         if pre_apply_result is not None:
             return pre_apply_result
 
-        for step in self.steps:
+        for index, step in enumerate(self.steps, 1):
+            identity = f"deployment.{self.kind.value}.step.{index}"
             target_id = _verification_target_id(step, "deployment:apply-step")
             if not _step_has_verification(step):
                 blocked_verification = VerificationResult(
@@ -203,7 +237,7 @@ class DeploymentApplyWorkflow:
                     evidence={"phase": "pre_apply", "reason": "verify_after_apply_missing"},
                 )
                 verification_results.append(blocked_verification)
-                return DeploymentWorkflowResult(
+                return progress.result(
                     kind=self.kind,
                     status=DeploymentWorkflowStatus.BLOCKED,
                     message=DEPLOYMENT_APPLY_CONTRACTS_BLOCKED_MESSAGE,
@@ -211,18 +245,29 @@ class DeploymentApplyWorkflow:
                     verification_results=tuple(verification_results),
                 )
 
+            progress.uncertain.append(identity + ".apply")
             try:
                 apply_result = step.run()
                 if inspect.isawaitable(apply_result):
                     await apply_result
             except Exception as exc:
+                child = getattr(step, "operation_result", None)
+                if isinstance(child, OperationResult) and child.outcome not in (OperationOutcome.SUCCESS, OperationOutcome.ROLLED_BACK):
+                    child = prefixed_operation_result(child, identity)
+                    progress.completed.extend(child.completed_operations)
+                    progress.pending.extend(child.pending_operations)
+                    progress.uncertain.remove(identity + ".apply")
+                    progress.uncertain.extend(child.uncertain_operations)
+                    progress.failures.extend(child.failures)
+                else:
+                    progress.failures.append(failure_from_exception(exc, identity + ".apply", "deployment"))
                 safe_error = _safe_exception_summary(exc)
                 self.logger.error(
                     "Failed to apply deployment target '%s'. Error: %s",
                     target_id,
                     safe_error,
                 )
-                return DeploymentWorkflowResult(
+                return progress.result(
                     kind=self.kind,
                     status=DeploymentWorkflowStatus.FAILED_TO_APPLY,
                     message="deployment apply failed for a configured stack contract.",
@@ -239,10 +284,11 @@ class DeploymentApplyWorkflow:
                     ),
                 )
 
-            verification = await _verify_step(step, target_id)
+            verification, failures = await _verify_step(step, target_id, identity + ".verify")
+            progress.observe(identity, verification, failures)
             verification_results.append(verification)
             if verification.status == VerificationStatus.BLOCKED:
-                return DeploymentWorkflowResult(
+                return progress.result(
                     kind=self.kind,
                     status=DeploymentWorkflowStatus.BLOCKED,
                     message=DEPLOYMENT_APPLY_CONTRACTS_BLOCKED_MESSAGE,
@@ -251,7 +297,7 @@ class DeploymentApplyWorkflow:
                     verification_results=tuple(verification_results),
                 )
             if verification.status != VerificationStatus.VERIFIED:
-                return DeploymentWorkflowResult(
+                return progress.result(
                     kind=self.kind,
                     status=DeploymentWorkflowStatus.FAILED_TO_VERIFY,
                     message="deployment apply failed verification for a configured stack contract.",
@@ -260,7 +306,7 @@ class DeploymentApplyWorkflow:
                     verification_results=tuple(verification_results),
                 )
 
-        return DeploymentWorkflowResult(
+        return progress.result(
             kind=self.kind,
             status=DeploymentWorkflowStatus.COMPLETED,
             message="deployment apply completed for configured stack contracts.",
@@ -281,11 +327,12 @@ class DeploymentVerifyWorkflow:
             raise ValueError("Deployment verify timeout must be positive.")
         self.checks = tuple(checks)
         self.timeout_seconds = timeout_seconds
-        self._last_verification_results: list[VerificationResult] = []
 
     async def run(self) -> DeploymentWorkflowResult:
+        progress = _DeploymentProgress([f"deployment.verify.step.{index}.verify" for index in range(1, len(self.checks) + 1)])
+        snapshots: list[VerificationResult] = []
         if not self.checks:
-            return DeploymentWorkflowResult(
+            return progress.result(
                 kind=DeploymentWorkflowKind.VERIFY,
                 status=DeploymentWorkflowStatus.BLOCKED,
                 message="deployment verify is blocked until stack verification contracts are wired.",
@@ -295,13 +342,13 @@ class DeploymentVerifyWorkflow:
                 ),
             )
 
-        self._last_verification_results = []
         try:
             if self.timeout_seconds is None:
-                return await self._run_checks()
-            return await asyncio.wait_for(self._run_checks(), self.timeout_seconds)
+                return await self._run_checks(progress, snapshots)
+            return await asyncio.wait_for(self._run_checks(progress, snapshots), self.timeout_seconds)
         except asyncio.TimeoutError:
-            return DeploymentWorkflowResult(
+            progress.failures.append(OperationFailure.for_cause("deployment.verify", "deployment", "process_timeout"))
+            return progress.result(
                 kind=DeploymentWorkflowKind.VERIFY,
                 status=DeploymentWorkflowStatus.TIMED_OUT,
                 message="deployment verify timed out.",
@@ -309,18 +356,20 @@ class DeploymentVerifyWorkflow:
                     f"deployment verify exceeded its configured timeout of "
                     f"{self.timeout_seconds:g} seconds"
                 ),
-                verification_results=tuple(self._last_verification_results),
+                verification_results=tuple(snapshots),
             )
 
-    async def _run_checks(self) -> DeploymentWorkflowResult:
+    async def _run_checks(self, progress: _DeploymentProgress, snapshots: list[VerificationResult]) -> DeploymentWorkflowResult:
         verification_results: list[VerificationResult] = []
-        for check in self.checks:
+        for index, check in enumerate(self.checks, 1):
+            identity = f"deployment.verify.step.{index}"
             target_id = _verification_target_id(check, "deployment:verify-check")
-            verification = await _verify_step(check, target_id)
+            verification, failures = await _verify_step(check, target_id, identity + ".verify")
+            progress.observe(identity, verification, failures)
             verification_results.append(verification)
-            self._last_verification_results = list(verification_results)
+            snapshots.append(verification)
             if verification.status == VerificationStatus.BLOCKED:
-                return DeploymentWorkflowResult(
+                return progress.result(
                     kind=DeploymentWorkflowKind.VERIFY,
                     status=DeploymentWorkflowStatus.BLOCKED,
                     message="deployment verify is blocked until stack verification contracts are wired.",
@@ -328,7 +377,7 @@ class DeploymentVerifyWorkflow:
                     verification_results=tuple(verification_results),
                 )
             if verification.status != VerificationStatus.VERIFIED:
-                return DeploymentWorkflowResult(
+                return progress.result(
                     kind=DeploymentWorkflowKind.VERIFY,
                     status=DeploymentWorkflowStatus.FAILED_TO_VERIFY,
                     message="deployment verify failed for a configured stack contract.",
@@ -336,7 +385,7 @@ class DeploymentVerifyWorkflow:
                     verification_results=tuple(verification_results),
                 )
 
-        return DeploymentWorkflowResult(
+        return progress.result(
             kind=DeploymentWorkflowKind.VERIFY,
             status=DeploymentWorkflowStatus.COMPLETED,
             message="deployment verify completed for configured stack contracts.",
@@ -408,11 +457,27 @@ class ValidationPlan:
             if verification is not None:
                 results.append(verification)
 
+        completed: list[str] = []
+        pending: list[str] = []
+        failures: list[OperationFailure] = []
+        for index, result in enumerate(results, 1):
+            identity = f"deployment.validation.target.{index}"
+            target_failures = verification_failures(
+                result.evidence, verified=result.status == VerificationStatus.VERIFIED,
+                operation=identity, component="deployment",
+                blocked=result.status == VerificationStatus.BLOCKED,
+                allowed_origins=DEPLOYMENT_FAILURE_ORIGINS,
+            )
+            failures.extend(target_failures)
+            if result.status == VerificationStatus.VERIFIED and not target_failures:
+                completed.append(identity)
+            else:
+                pending.append(identity)
         if any(result.status == VerificationStatus.BLOCKED for result in results):
             status = DeploymentWorkflowStatus.BLOCKED
             message = "deployment validation is blocked by observed evidence."
             reason = "validation evidence contains blocked target"
-        elif any(result.status != VerificationStatus.VERIFIED for result in results):
+        elif pending:
             status = DeploymentWorkflowStatus.FAILED_TO_VERIFY
             message = "deployment validation failed for observed evidence."
             reason = "validation evidence missing or failed"
@@ -422,6 +487,8 @@ class ValidationPlan:
             reason = "required validation evidence verified"
 
         return DeploymentWorkflowResult(
+            operation_result=aggregate_operation(OperationOutcome.SUCCESS if not failures else OperationOutcome.BLOCKED if status == DeploymentWorkflowStatus.BLOCKED else OperationOutcome.FAILED,
+                completed=completed, pending=pending, failures=failures),
             kind=DeploymentWorkflowKind.VERIFY,
             status=status,
             message=message,
@@ -462,24 +529,14 @@ def _safe_exception_summary(exc: Exception) -> str:
     status_code = getattr(exc, "status_code", None)
     safe_detail = _safe_exception_detail(exc)
     detail = safe_detail or DIAGNOSTIC_PAYLOAD_REDACTED
-    if status_code is not None:
+    if type(status_code) is int and 100 <= status_code <= 599:
         return f"{exc.__class__.__name__} HTTP {status_code}. {detail}"
     return f"{exc.__class__.__name__}. {detail}"
 
 
 def _safe_exception_detail(exc: Exception) -> str:
-    detail = str(exc).strip()
-    if not detail or detail == exc.__class__.__name__:
-        return ""
-    normalized_detail = detail.casefold()
-    if any(term in normalized_detail for term in UNSAFE_EXCEPTION_DETAIL_TERMS):
-        return ""
-    detail = textwrap.shorten(detail, width=180, placeholder="...")
-    try:
-        validate_message_text("exception_summary", detail)
-    except ValueError:
-        return ""
-    return detail
+    # Generic exception text has no public diagnostic contract.
+    return ""
 
 
 def _apply_failure_reason(target_id: str, _exc: Exception, safe_error: str) -> str:
@@ -494,10 +551,10 @@ def _apply_failure_evidence(exc: Exception) -> dict[str, str]:
         "remediation_hint": "Inspect the deployment target readiness and rerun the idempotent setup after correcting the target-specific blocker.",
     }
     status_code = getattr(exc, "status_code", None)
-    if status_code is not None:
+    if type(status_code) is int and 100 <= status_code <= 599:
         evidence["diagnostic"] = f"http_status_{status_code}"
     reason = getattr(exc, "reason", None)
-    if isinstance(reason, str) and reason:
+    if isinstance(exc, PortainerAdminInitializationRejected) and reason in {"already_initialized", "initialization_rejected"}:
         evidence["failure_reason"] = reason
     if isinstance(exc, PortainerAdminInitializationRejected):
         evidence["operator_action"] = (
@@ -525,14 +582,18 @@ async def _run_pre_apply_steps(
     kind: DeploymentWorkflowKind,
     verification_results: list[VerificationResult],
     logger: logging.Logger,
+    progress: _DeploymentProgress,
 ) -> DeploymentWorkflowResult | None:
-    for step in steps:
+    for index, step in enumerate(steps, 1):
+        identity = f"deployment.{kind.value}.prepare.{index}"
+        progress.uncertain.append(identity + ".apply")
         target_id = _verification_target_id(step, "deployment:pre-apply-step")
         try:
             prepare_result = step.run()
             if inspect.isawaitable(prepare_result):
                 await prepare_result
         except Exception as exc:
+            progress.failures.append(failure_from_exception(exc, identity, "deployment"))
             safe_error = _safe_exception_summary(exc)
             logger.error(
                 "Failed to prepare deployment input '%s'. Error: %s",
@@ -550,7 +611,7 @@ async def _run_pre_apply_steps(
                     },
                 )
             )
-            return DeploymentWorkflowResult(
+            return progress.result(
                 kind=kind,
                 status=DeploymentWorkflowStatus.FAILED_TO_PREPARE,
                 message="deployment prepare failed for a configured pre-apply contract.",
@@ -558,6 +619,22 @@ async def _run_pre_apply_steps(
                 executed=True,
                 verification_results=tuple(verification_results),
             )
+        child = getattr(step, "operation_result", None)
+        if isinstance(child, OperationResult):
+            child = prefixed_operation_result(child, identity)
+            progress.completed.extend(child.completed_operations)
+            progress.pending.extend(child.pending_operations)
+            progress.failures.extend(child.failures)
+            progress.uncertain.remove(identity + ".apply")
+            progress.uncertain.extend(child.uncertain_operations)
+            if child.outcome != OperationOutcome.SUCCESS:
+                return progress.result(kind=kind, status=DeploymentWorkflowStatus.FAILED_TO_PREPARE,
+                    message="Deployment preparation did not complete.", reason="preparation result incomplete", executed=True,
+                    verification_results=tuple(verification_results))
+        else:
+            # Run-only preparation confirms its declared work on normal return.
+            progress.uncertain.remove(identity + ".apply")
+            progress.completed.append(identity + ".apply")
     return None
 
 
@@ -565,13 +642,15 @@ async def _run_pre_apply_checks(
     checks: Sequence[DeploymentPreApplyCheck],
     kind: DeploymentWorkflowKind,
     verification_results: list[VerificationResult],
+    progress: _DeploymentProgress,
 ) -> DeploymentWorkflowResult | None:
-    for check in checks:
+    for index, check in enumerate(checks, 1):
         target_id = _verification_target_id(check, "deployment:pre-apply-check")
-        verification = await _verify_step(check, target_id)
+        verification, failures = await _verify_step(check, target_id, f"deployment.{kind.value}.guard.{index}")
+        progress.failures.extend(failures)
         verification_results.append(verification)
         if verification.status == VerificationStatus.BLOCKED:
-            return DeploymentWorkflowResult(
+            return progress.result(
                 kind=kind,
                 status=DeploymentWorkflowStatus.BLOCKED,
                 message="deployment apply is blocked by pre-apply verification.",
@@ -579,7 +658,7 @@ async def _run_pre_apply_checks(
                 verification_results=tuple(verification_results),
             )
         if verification.status != VerificationStatus.VERIFIED:
-            return DeploymentWorkflowResult(
+            return progress.result(
                 kind=kind,
                 status=DeploymentWorkflowStatus.FAILED_TO_VERIFY,
                 message="deployment apply failed pre-apply verification.",
@@ -589,10 +668,21 @@ async def _run_pre_apply_checks(
     return None
 
 
-async def _verify_step(
+async def _verify_step(step, target_id: str, identity: str) -> tuple[VerificationResult, tuple[OperationFailure, ...]]:
+    verification, caught = await _verify_output(step, target_id)
+    companion = getattr(step, "operation_failure", None)
+    failure = caught if caught is not None else companion if isinstance(companion, OperationFailure) else None
+    failures = verification_failures(verification.evidence, verified=verification.status == VerificationStatus.VERIFIED,
+        operation=identity, component="deployment", failure=failure, blocked=verification.status == VerificationStatus.BLOCKED)
+    if failures and verification.status == VerificationStatus.VERIFIED:
+        verification = replace(verification, status=VerificationStatus.FAILED_TO_VERIFY, message="Deployment verification contains contradictory failure evidence.")
+    return verification, failures
+
+
+async def _verify_output(
     step: DeploymentWorkflowComponent,
     target_id: str,
-) -> VerificationResult:
+) -> tuple[VerificationResult, OperationFailure | None]:
     verify = getattr(step, "verify", None)
     if not callable(verify):
         return VerificationResult(
@@ -600,7 +690,7 @@ async def _verify_step(
             status=VerificationStatus.BLOCKED,
             message=VERIFICATION_EVIDENCE_MISSING_MESSAGE,
             evidence={"phase": "verify"},
-        )
+        ), None
     try:
         async_verify = getattr(step, "verify_async", None)
         verification_output = (
@@ -614,12 +704,12 @@ async def _verify_step(
             status=VerificationStatus.FAILED_TO_VERIFY,
             message=f"Verification failed for {target_id}: {exc.__class__.__name__}",
             evidence={"phase": "verify"},
-        )
+        ), failure_from_exception(exc, "deployment.verify", "deployment")
     if isinstance(verification_output, VerificationResult):
-        return verification_output
+        return verification_output, None
     return VerificationResult(
         target_id=target_id,
         status=VerificationStatus.BLOCKED,
         message=VERIFICATION_EVIDENCE_MISSING_MESSAGE,
         evidence={"phase": "verify"},
-    )
+    ), None

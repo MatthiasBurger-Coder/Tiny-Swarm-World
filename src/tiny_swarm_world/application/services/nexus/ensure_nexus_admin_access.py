@@ -1,6 +1,8 @@
 import asyncio
 import logging
 
+from tiny_swarm_world.application.ports.operation_result import OperationError, OperationFailure
+from tiny_swarm_world.application.services.shared.operation_results import failure_from_exception
 from tiny_swarm_world.application.ports.clients.port_container_runtime import PortContainerRuntime
 from tiny_swarm_world.application.ports.clients.port_nexus_client import PortNexusClient
 from tiny_swarm_world.application.ports.progress import (
@@ -16,9 +18,10 @@ from tiny_swarm_world.application.services.shared import (
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
 
 
-class NexusAdminAccessRecoveryBlocked(RuntimeError):
-    def __init__(self, message: str, *, diagnostic: str, operator_action: str):
-        super().__init__(message)
+class NexusAdminAccessRecoveryBlocked(OperationError, RuntimeError):
+    def __init__(self, message: str, *, diagnostic: str, operator_action: str, failure: OperationFailure | None = None):
+        super().__init__(failure or OperationFailure.for_cause("artifacts.nexus.admin", "artifacts", "blocked"))
+        self.args = (message,)
         self.diagnostic = diagnostic
         self.operator_action = operator_action
 
@@ -97,11 +100,12 @@ class EnsureNexusAdminAccess:
         raise NexusAdminAccessRecoveryBlocked(
             "Nexus admin password rotation completed without producing valid credentials.",
             diagnostic="rotated_credentials_inactive",
+            failure=failure_from_exception(last_exception, "artifacts.nexus.admin", "artifacts") if last_exception is not None else None,
             operator_action=(
                 "Check configured Nexus admin access value or reset existing "
                 "Nexus state before rerunning setup."
             ),
-        ) from last_exception
+        ) from None
 
     def _rotate_admin_password(self, initial_password: str) -> None:
         admin_user = self.nexus_client.get_user(
@@ -205,10 +209,12 @@ class EnsureNexusAdminAccess:
         )
 
     async def verify(self) -> VerificationResult:
+        self.operation_failure: OperationFailure | None = None
         await asyncio.sleep(0)
         try:
             authenticated = self.nexus_client.can_authenticate(self.admin_username, self.admin_password)
         except Exception as exc:
+            self.operation_failure = failure_from_exception(exc, "artifacts.verify", "artifacts")
             return VerificationResult(
                 target_id=self.verification_target_id,
                 status=VerificationStatus.FAILED_TO_VERIFY,
@@ -232,6 +238,6 @@ class EnsureNexusAdminAccess:
 
 def _safe_exception_summary(exc: Exception) -> str:
     diagnostic = getattr(exc, "diagnostic", None)
-    if diagnostic:
+    if diagnostic in ("rotated_credentials_inactive", "nexus_container_not_found", "initial_admin_value_unavailable"):
         return f"{exc.__class__.__name__}. Diagnostic: {diagnostic}."
     return f"{exc.__class__.__name__}. Diagnostic payload redacted."

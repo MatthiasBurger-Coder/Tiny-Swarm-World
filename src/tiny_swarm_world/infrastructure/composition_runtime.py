@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from tiny_swarm_world.application.ports.network.port_wsl_socat_exposure import SocatExposureError
+
 # This private module intentionally re-exports compatibility symbols consumed
 # by the focused composition boundaries and legacy facade patch points.
 # ruff: noqa: F401
@@ -504,15 +506,21 @@ class _WslSocatExposeStep:
         started_count = 0
         existing_count = 0
         failed_count = 0
+        failures: dict[str, str] = {}
         for command in commands:
             pattern = command.shell_command
-            if await self.socat_exposure.process_exists(pattern):
-                existing_count += 1
-                continue
-            if await self.socat_exposure.start(pattern):
-                started_count += 1
-            else:
+            try:
+                if await self.socat_exposure.process_exists(pattern):
+                    existing_count += 1
+                    continue
+                if await self.socat_exposure.start(pattern):
+                    started_count += 1
+                else:
+                    failed_count += 1
+            except SocatExposureError as exc:
                 failed_count += 1
+                for key, value in exc.failure.to_dict().items():
+                    failures[f"failure_{failed_count}_{key}"] = value
         status = (
             VerificationStatus.VERIFIED
             if failed_count == 0
@@ -534,6 +542,8 @@ class _WslSocatExposeStep:
                 "started_count": str(started_count),
                 "existing_count": str(existing_count),
                 "failed_count": str(failed_count),
+                "applied": str(started_count > 0).lower(),
+                **failures,
             },
         )
 

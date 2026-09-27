@@ -92,6 +92,39 @@ spawning only in the three process modules. Standalone development/bootstrap
 tools remain outside the runtime boundary. The Issue #354 inventory and
 `05_analysis/arch-03-11-process-execution.md` document migration and verification.
 
+=== Explicit Outcomes and Safe Failure Context (ARCH-03.12)
+
+The shared application-port contract defines `success`, `failed`, `partial`,
+`rolled_back`, `blocked` and `refused`. Immutable completed, pending and uncertain
+operation tuples are unique and disjoint. Success has no failures or incomplete
+work. Failed and partial require structured failures; partial additionally requires
+confirmed completed work and an incomplete request. Passed guards alone do not
+establish completed requested work. Blocked/refused common outcomes describe requests
+before execution, while a legacy blocked status can coexist with partial progress.
+
+Only observed restoration permits `rolled_back` and `rollback_verified=true`.
+Stored recovery state, recommendations and attempted rollback do not prove restoration.
+Resolved failure history can remain in a recovered child without becoming an
+unresolved parent failure. Cancellation and process-control exceptions preserve their
+existing propagation or explicit entrypoint exit mapping. Existing broad fallback
+catches classify unexpected faults separately as `unexpected_failure`.
+
+Failures contain constrained operation/component identifiers, a catalogue cause,
+recoverability and matching static guidance. Recoverability supports `recoverable`,
+`nonrecoverable` and `unknown`; the current catalogue uses only nonrecoverable and
+unknown. Neither unknown effects nor a recommended action grants permission or
+proves a retry safe. No automatic retry or rollback policy is introduced.
+
+Raw exception objects, unchecked exception text, commands, credentials and process
+output are excluded from shared failure values. Adapters suppress unsafe outward
+cause chains. Compatibility preserves statuses, constructors and exit behavior;
+intentional diagnostic redaction removes worker/resource identities and raw storage
+errors where the accepted inventory requires it. Existing domain facts retain their
+collapsed causes and cannot support more precise technical diagnoses without evidence.
+
+See `05_analysis/arch-03-12-operation-results.md` and the accepted explicit-operation-
+results ADR for implementation scope, legacy compatibility and verification limits.
+
 === Desired Inventory, Observed State, And Evidence
 
 Tiny Swarm World separates intended state from runtime facts.

@@ -1,4 +1,8 @@
+from tiny_swarm_world.application.ports.clients.port_nexus_client import NexusClientError
+from tiny_swarm_world.application.ports.operation_result import OperationFailure
+from tiny_swarm_world.infrastructure.adapters.exceptions.operation_failure_mapping import request_failure
 import requests
+from pydantic import ValidationError
 from urllib.parse import urlparse
 
 from tiny_swarm_world.application.ports.clients.port_nexus_client import PortNexusClient
@@ -14,6 +18,12 @@ class NexusHttpClient(PortNexusClient):
         self.base_url = base_url.rstrip("/")
         self.session = session or requests.Session()
         self.logger = LoggerFactory.get_logger(self.__class__)
+
+    def _request(self, method: str, *args, **kwargs) -> requests.Response:
+        try:
+            return getattr(self.session, method)(*args, **kwargs)
+        except requests.RequestException as exc:
+            raise NexusClientError(request_failure(exc, "service.request", "nexus")) from None
 
     def is_available(self) -> bool:
         try:
@@ -34,51 +44,46 @@ class NexusHttpClient(PortNexusClient):
         return response.status_code == 200
 
     def get_user(self, username: str, password: str, target_user_id: str) -> NexusUser:
-        try:
-            response = self.session.get(
-                f"{self.base_url}/service/rest/v1/security/users",
-                auth=(username, password),
-                timeout=30,
-            )
-        except requests.RequestException as exc:
-            raise RuntimeError("Failed to get Nexus users with redacted output.") from exc
+        response = self._request("get",
+            f"{self.base_url}/service/rest/v1/security/users",
+            auth=(username, password),
+            timeout=30,
+        )
         self._ensure_success(response, "get Nexus users")
 
-        for user in response.json():
+        payload = _response_payload(response)
+        if not isinstance(payload, list) or any(not isinstance(user, dict) for user in payload):
+            raise NexusClientError(OperationFailure.for_cause("service.decode", "nexus", "request_failed")) from None
+        for user in payload:
             if user.get("userId") == target_user_id:
-                return NexusUser(**user)
+                try:
+                    return NexusUser(**user)
+                except ValidationError:
+                    raise NexusClientError(OperationFailure.for_cause("service.decode", "nexus", "request_failed")) from None
 
-        raise RuntimeError(f"Nexus user '{target_user_id}' was not found.")
+        raise NexusClientError(OperationFailure.for_cause("service.request", "nexus", "request_failed")) from None
 
     def update_user(self, username: str, password: str, user: NexusUser) -> None:
-        try:
-            response = self.session.put(
-                f"{self.base_url}/service/rest/v1/security/users/{user.userId}",
-                auth=(username, password),
-                json=user.model_dump(exclude_none=True),
-                timeout=30,
-            )
-        except requests.RequestException as exc:
-            raise RuntimeError(f"Failed to update Nexus user '{user.userId}' with redacted output.") from exc
+        response = self._request("put",
+            f"{self.base_url}/service/rest/v1/security/users/{user.userId}",
+            auth=(username, password),
+            json=user.model_dump(exclude_none=True),
+            timeout=30,
+        )
         self._ensure_success(response, f"update Nexus user '{user.userId}'")
 
     def change_password(self, username: str, password: str, target_user_id: str, new_password: str) -> None:
-        try:
-            response = self.session.put(
-                f"{self.base_url}/service/rest/v1/security/users/{target_user_id}/change-password",
-                auth=(username, password),
-                data=new_password,
-                headers={"Content-Type": "text/plain"},
-                timeout=30,
-            )
-        except requests.RequestException as exc:
-            raise RuntimeError(
-                f"Failed to change password for Nexus user '{target_user_id}' with redacted output."
-            ) from exc
+        response = self._request("put",
+            f"{self.base_url}/service/rest/v1/security/users/{target_user_id}/change-password",
+            auth=(username, password),
+            data=new_password,
+            headers={"Content-Type": "text/plain"},
+            timeout=30,
+        )
         self._ensure_success(response, f"change password for Nexus user '{target_user_id}'")
 
     def set_anonymous_access(self, username: str, password: str, enabled: bool) -> None:
-        response = self.session.put(
+        response = self._request("put",
             f"{self.base_url}/service/rest/v1/security/anonymous",
             auth=(username, password),
             json={"enabled": enabled},
@@ -87,16 +92,16 @@ class NexusHttpClient(PortNexusClient):
         self._ensure_success(response, "update Nexus anonymous access")
 
     def repository_exists(self, username: str, password: str, repository_name: str) -> bool:
-        response = self.session.get(
+        response = self._request("get",
             f"{self.base_url}/service/rest/v1/repositories",
             auth=(username, password),
             timeout=30,
         )
         self._ensure_success(response, "list Nexus repositories")
 
-        repositories = response.json()
+        repositories = _response_payload(response)
         if not isinstance(repositories, list):
-            raise RuntimeError("Nexus repository listing returned an unexpected payload.")
+            raise NexusClientError(OperationFailure.for_cause("service.request", "nexus", "request_failed")) from None
         return any(repository.get("name") == repository_name for repository in repositories if isinstance(repository, dict))
 
     def create_docker_hosted_repository(
@@ -106,7 +111,7 @@ class NexusHttpClient(PortNexusClient):
         repository_name: str,
         http_port: int,
     ) -> None:
-        response = self.session.post(
+        response = self._request("post",
             f"{self.base_url}/service/rest/v1/repositories/docker/hosted",
             auth=(username, password),
             json=_docker_hosted_repository_payload(repository_name, http_port),
@@ -121,7 +126,7 @@ class NexusHttpClient(PortNexusClient):
         repository_name: str,
         http_port: int,
     ) -> None:
-        response = self.session.put(
+        response = self._request("put",
             f"{self.base_url}/service/rest/v1/repositories/docker/hosted/{repository_name}",
             auth=(username, password),
             json=_docker_hosted_repository_payload(repository_name, http_port),
@@ -137,7 +142,7 @@ class NexusHttpClient(PortNexusClient):
         http_port: int,
         remote_url: str,
     ) -> None:
-        response = self.session.post(
+        response = self._request("post",
             f"{self.base_url}/service/rest/v1/repositories/docker/proxy",
             auth=(username, password),
             json=_docker_proxy_repository_payload(repository_name, http_port, remote_url),
@@ -152,7 +157,7 @@ class NexusHttpClient(PortNexusClient):
         repository_name: str,
         remote_url: str,
     ) -> None:
-        response = self.session.post(
+        response = self._request("post",
             f"{self.base_url}/service/rest/v1/repositories/maven/proxy",
             auth=(username, password),
             json={
@@ -187,7 +192,7 @@ class NexusHttpClient(PortNexusClient):
     @staticmethod
     def _ensure_success(response: requests.Response, action: str) -> None:
         if response.status_code >= 400:
-            raise RuntimeError(f"Failed to {action}. HTTP {response.status_code}.")
+            raise NexusClientError(OperationFailure.for_cause("service.request", "nexus", "request_failed"), status_code=response.status_code) from None
 
 
 def _docker_hosted_repository_payload(repository_name: str, http_port: int) -> dict[str, object]:
@@ -241,3 +246,10 @@ def _docker_proxy_repository_payload(
             "indexType": "HUB",
         },
     }
+
+
+def _response_payload(response: requests.Response):
+    try:
+        return response.json()
+    except ValueError:
+        raise NexusClientError(OperationFailure.for_cause("service.decode", "nexus", "request_failed")) from None

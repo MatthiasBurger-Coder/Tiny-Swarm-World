@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+from tiny_swarm_world.application.ports.clients.port_swarm_stack_runtime import SwarmRuntimeError
+from tiny_swarm_world.application.ports.operation_result import OperationFailure
+from tiny_swarm_world.infrastructure.adapters.exceptions.operation_failure_mapping import process_failure
+from tiny_swarm_world.infrastructure.process import ProcessLaunchError, ProcessTimeoutError
+
 from tiny_swarm_world.infrastructure.process.runner import run_process
 
 import subprocess
@@ -59,18 +64,18 @@ def lxc_manager_ip(
                 shell=False,
                 timeout=timeout_seconds,
             )
-        except subprocess.TimeoutExpired as exc:
-            raise RuntimeError("LXC manager IP lookup timed out.") from exc
+        except (subprocess.TimeoutExpired, ProcessLaunchError, ProcessTimeoutError, OSError) as exc:
+            raise SwarmRuntimeError(process_failure(exc, "service.resolve", "lxc_service")) from None
         if not is_transient_manager_shell_failure(result):
             break
         if attempt >= _MAX_ATTEMPTS:
             break
         sleeper(_RETRY_DELAYS_SECONDS[min(attempt - 1, len(_RETRY_DELAYS_SECONDS) - 1)])
     if result is None:
-        raise RuntimeError("LXC manager IP lookup did not execute.")
+        raise SwarmRuntimeError(OperationFailure.for_cause("service.resolve", "lxc_service", "unexpected_failure"))
     if result.returncode != 0:
-        raise RuntimeError("LXC manager IP lookup failed.")
+        raise SwarmRuntimeError(OperationFailure.for_cause("service.resolve", "lxc_service", "process_exit_failed"))
     addresses = [part for part in result.stdout.split() if "." in part]
     if not addresses:
-        raise RuntimeError("LXC manager IP lookup returned no IPv4 address.")
+        raise SwarmRuntimeError(OperationFailure.for_cause("service.resolve", "lxc_service", "observation_unavailable"))
     return addresses[0]

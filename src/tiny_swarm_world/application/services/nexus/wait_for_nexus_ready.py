@@ -1,6 +1,8 @@
 import asyncio
 import logging
 
+from tiny_swarm_world.application.ports.operation_result import OperationError, OperationFailure
+from tiny_swarm_world.application.services.shared.operation_results import failure_from_exception
 from tiny_swarm_world.application.ports.clients.port_nexus_client import PortNexusClient
 from tiny_swarm_world.application.ports.progress import (
     NullWorkflowProgress,
@@ -12,6 +14,10 @@ from tiny_swarm_world.application.services.shared import (
     wait_for_readiness_retry,
 )
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
+
+
+class NexusReadinessTimeout(OperationError, TimeoutError):
+    pass
 
 
 class WaitForNexusReady:
@@ -54,12 +60,8 @@ class WaitForNexusReady:
                     on_wait=self._report_wait,
                 )
 
-        error = TimeoutError(
-            f"Nexus did not become ready after {self.max_attempts} attempts with {self.wait_seconds} seconds delay."
-        )
-        if last_exception is not None:
-            raise error from last_exception
-        raise error
+        failure = failure_from_exception(last_exception, "artifacts.nexus.readiness", "artifacts") if last_exception is not None else OperationFailure.for_cause("artifacts.nexus.readiness", "artifacts", "dependency_unavailable")
+        raise NexusReadinessTimeout(failure) from None
 
     def _report_wait(self, retry: ReadinessRetry) -> None:
         report_readiness_wait(
@@ -74,10 +76,12 @@ class WaitForNexusReady:
         )
 
     async def verify(self) -> VerificationResult:
+        self.operation_failure: OperationFailure | None = None
         await asyncio.sleep(0)
         try:
             available = self.nexus_client.is_available()
         except Exception as exc:
+            self.operation_failure = failure_from_exception(exc, "artifacts.verify", "artifacts")
             return VerificationResult(
                 target_id=self.verification_target_id,
                 status=VerificationStatus.FAILED_TO_VERIFY,

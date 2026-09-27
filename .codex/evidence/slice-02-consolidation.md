@@ -1,34 +1,9 @@
-# S352-02 consolidation / CP_RECORD
+# S355-02 consolidation
 
-Workflow issue-352-configuration-parsing-boundary; workflowVersion 1.0.
-Stream results: sequential Python implementation and root consolidation.
-Typed immutable secret-manifest model and repository port; PyYAML adapter validates syntax, shape, duplicate keys and scalar types with safe errors. Renderer and installer consume typed entries; raw load_yaml removed. Supported defaults, unknown sources and YAML merge/boolean compatibility retained.
-
-Accepted findings: independent Architect and Tester accepted scoped behavior.
-Rejected findings: none. Conflict resolution: no overlapping task edits; user
-authorized excluding unrelated Jenkins files (now separately committed by another actor).
-No new worktrees. Real subagents used; no fallback. No parallel writers.
-Files changed per stream:
-- .codex/evidence/slice-02-distribution.md
-- src/tiny_swarm_world/application/ports/file_management/port_local_file_storage.py
-- src/tiny_swarm_world/application/ports/repositories/port_secret_manifest_repository.py
-- src/tiny_swarm_world/application/services/deployment/secret_management.py
-- src/tiny_swarm_world/domain/configuration/secret_manifest.py
-- src/tiny_swarm_world/infrastructure/adapters/file_management/local_file_storage.py
-- src/tiny_swarm_world/infrastructure/adapters/repositories/secret_manifest_yaml_repository.py
-- src/tiny_swarm_world/infrastructure/composition_deployment.py
-- src/tiny_swarm_world/infrastructure/composition_runtime.py
-- src/tiny_swarm_world/installer.py
-- tests/application/services/deployment/test_secret_management.py
-- tests/domain/configuration/test_secret_manifest.py
-- tests/infrastructure/adapters/repositories/test_secret_manifest_yaml_repository.py
-- tests/test_installer.py
-
-Tests executed: 202 targeted manifest/model/renderer/composition/installer tests PASS; lint PASS; typecheck PASS (688 files); python3 tools/quality_gate.py quality PASS (2110 tests, 18 skipped); git diff --check PASS.
-SonarQube: external gate not executed; no external success claim.
-Documentation: issue matrix, workflow progress/context and execution evidence.
-Final integration decision: ACCEPT S352-02 only; later requirements remain OPEN.
-Rollback reference: c6685c44. arc42Updated=false; adrUpdated=false.
-Root commit readiness: READY for exactly listed slice files with green local gates.
-Checkpoint SHA/push: Git history and next checkpoint record identify exact SHA;
-branch push only, no PR, merge or cleanup.
+Workflow issue-355-operation-results v1.0. Sequential implementation worker;
+root integration, independent Architect/Test review PASS. No parallel write conflicts.
+Accepted result: Immutable safe operation contract, compatible application-owned command errors with cause preservation, and conservative real platform factory integration.
+Targeted: 64 tests PASS. Full quality PASS: 2188 tests in 294.844s, 18 skipped; diff check PASS.
+SonarQube EXTERNAL_GATE_NOT_APPLICABLE to checkpoint; no live/browser check.
+Documentation: issue evidence, workflow progress/context. D8 PASS.
+Final integration ACCEPTED; exactly one slice checkpoint permitted.

@@ -4,6 +4,8 @@ import asyncio
 import logging
 from collections.abc import Mapping
 
+from tiny_swarm_world.application.ports.operation_result import OperationFailure
+from tiny_swarm_world.application.services.shared.operation_results import failure_from_exception
 from tiny_swarm_world.application.ports.clients.port_deployment_gateway import (
     DeploymentStackRequest,
     PortDeploymentGateway,
@@ -70,6 +72,7 @@ class EnsureServiceStack:
                 raise
 
     async def verify(self) -> VerificationResult:
+        self.operation_failure: OperationFailure | None = None
         if self._registration_snapshot is not None:
             snapshot = self._registration_snapshot
             self._registration_snapshot = None
@@ -101,6 +104,7 @@ class EnsureServiceStack:
                 )
 
         if last_exception is not None:
+            self.operation_failure = failure_from_exception(last_exception, "deployment.verify", "deployment")
             return VerificationResult(
                 target_id=self.verification_target_id,
                 status=VerificationStatus.FAILED_TO_VERIFY,

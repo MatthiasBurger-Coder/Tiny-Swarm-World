@@ -1,6 +1,13 @@
 from __future__ import annotations
 
 import asyncio
+from dataclasses import replace
+
+from tiny_swarm_world.application.ports.operation_result import OperationFailure, OperationOutcome
+from tiny_swarm_world.application.services.shared.operation_results import (
+    aggregate_operation, failure_from_exception, failures_from_evidence, failures_to_evidence,
+    progress_from_evidence, progress_to_evidence,
+)
 
 from tiny_swarm_world.application.ports.node_provider import PortContainerDockerRuntime
 from tiny_swarm_world.application.services.platform.docker_swarm_lxc_contract import (
@@ -8,7 +15,15 @@ from tiny_swarm_world.application.services.platform.docker_swarm_lxc_contract im
 )
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
 from tiny_swarm_world.domain.node_provider import NodeSpec
-from tiny_swarm_world.domain.sanitized_evidence import sanitized_evidence
+
+
+_NODE_FAILURE_ORIGINS = frozenset({
+    ("container.execute", "lxc_container_runtime"),
+    ("command.execute", "command_runner"),
+    ("platform.docker.inspect", "platform"),
+    ("platform.docker.install", "platform"),
+    ("platform.docker.verify", "platform"),
+})
 
 
 class LxcDockerInstallService:
@@ -60,7 +75,7 @@ class LxcDockerInstallService:
         try:
             verified_readiness = await self.runtime.verify_docker(node)
         except Exception as exc:
-            return (_node_operation_failure(node, "verify", exc),)
+            return (install_result, _node_operation_failure(node, "verify", exc))
         return (
             install_result,
             self.contract_service.verify_container_docker_readiness(
@@ -91,11 +106,33 @@ class LxcDockerInstallService:
     ) -> tuple[VerificationResult, ...]:
         semaphore = asyncio.Semaphore(self.max_concurrency)
 
-        async def run_node(node: NodeSpec) -> tuple[VerificationResult, ...]:
+        async def run_node(index: int, node: NodeSpec) -> tuple[VerificationResult, ...]:
             async with semaphore:
-                return await lifecycle(node)
+                results = await lifecycle(node)
+                identity = f"node.{index}"
+                completed: list[str] = []
+                pending: list[str] = []
+                uncertain: list[str] = []
+                failures: list[OperationFailure] = []
+                for result in results:
+                    install = result.target_id.startswith("platform:container-docker-install:")
+                    if result.status == VerificationStatus.VERIFIED:
+                        completed.append(f"{identity}.apply" if install else f"{identity}.verify")
+                    else:
+                        failures.extend(failures_from_evidence(result.evidence, allowed_origins=_NODE_FAILURE_ORIGINS, fallback_operation="platform.docker.verify", fallback_component="platform") or (OperationFailure.for_cause(
+                            "platform.docker.install" if install else "platform.docker.verify", "platform",
+                            "blocked" if result.status == VerificationStatus.BLOCKED else "verification_failed",
+                        ),))
+                        pending.append(f"{identity}.verify")
+                        if install:
+                            uncertain.append(f"{identity}.apply")
+                outcome = OperationOutcome.SUCCESS if not failures else OperationOutcome.BLOCKED if all(
+                    result.status == VerificationStatus.BLOCKED for result in results
+                ) else OperationOutcome.FAILED
+                common = aggregate_operation(outcome, completed=completed, pending=pending, uncertain=uncertain, failures=failures)
+                return (replace(results[0], evidence={**results[0].evidence, **progress_to_evidence(common)}), *results[1:])
 
-        per_node_results = await asyncio.gather(*(run_node(node) for node in nodes))
+        per_node_results = await asyncio.gather(*(run_node(index, node) for index, node in enumerate(nodes, 1)))
         return tuple(result for node_results in per_node_results for result in node_results)
 
 
@@ -111,9 +148,13 @@ class LxcDockerInstallStep:
         self.service = service
         self.nodes = nodes
 
+    @property
+    def operation_work_ids(self) -> frozenset[str]:
+        return _operation_work_ids(len(self.nodes))
+
     async def run(self) -> VerificationResult:
         results = await self.service.ensure_docker_installed(self.nodes)
-        return _aggregate_install_results(results)
+        return _aggregate_install_results(results, self.operation_work_ids)
 
 
 class LxcDockerVerifyStep:
@@ -128,13 +169,18 @@ class LxcDockerVerifyStep:
         self.service = service
         self.nodes = nodes
 
+    @property
+    def operation_work_ids(self) -> frozenset[str]:
+        return _operation_work_ids(len(self.nodes))
+
     async def run(self) -> VerificationResult:
         results = await self.service.verify_docker_runtime(self.nodes)
-        return _aggregate_verify_results(results)
+        return _aggregate_verify_results(results, self.operation_work_ids)
 
 
 def _aggregate_install_results(
     results: tuple[VerificationResult, ...],
+    allowed_operations: frozenset[str] = frozenset(),
 ) -> VerificationResult:
     if not results:
         return VerificationResult(
@@ -188,6 +234,7 @@ def _aggregate_install_results(
         ),
         "failed_nodes": ",".join(failed_nodes),
     }
+    evidence.update(_combined_progress(results, allowed_operations))
     if first_failure is not None:
         first_classification = first_failure.evidence.get("classification")
         first_node = first_failure.evidence.get("node")
@@ -208,6 +255,7 @@ def _aggregate_install_results(
 
 def _aggregate_verify_results(
     results: tuple[VerificationResult, ...],
+    allowed_operations: frozenset[str] = frozenset(),
 ) -> VerificationResult:
     if not results:
         return VerificationResult(
@@ -240,6 +288,7 @@ def _aggregate_verify_results(
         evidence={
             "phase": "verify",
             "classification": classification,
+            **_combined_progress(results, allowed_operations),
             "expected": "docker_engine_ready_on_each_managed_node",
             "observed": (
                 "all_nodes_ready"
@@ -318,18 +367,31 @@ def _node_operation_failure(
             "role": node.role.value,
             "operation_phase": operation_phase,
             "failure_class": exc.__class__.__name__,
-            "failure_reason": _safe_exception_summary(exc),
+            "failure_reason": f"{exc.__class__.__name__}: " + failure_from_exception(exc, f"platform.docker.{operation_phase}", "platform").recommended_action,
+            **failures_to_evidence((failure_from_exception(exc, f"platform.docker.{operation_phase}", "platform"),)),
         },
     )
 
 
-def _safe_exception_summary(exc: Exception) -> str:
-    detail = str(exc).strip()
-    if detail:
-        try:
-            sanitized_evidence({"detail": detail})
-        except ValueError:
-            detail = ""
-    if detail:
-        return f"{exc.__class__.__name__}: {detail}"
-    return f"{exc.__class__.__name__}. Diagnostic payload redacted."
+
+def _operation_work_ids(count: int) -> frozenset[str]:
+    return frozenset(f"node.{index}.{phase}" for index in range(1, count + 1) for phase in ("apply", "verify"))
+
+
+def _combined_progress(results: tuple[VerificationResult, ...], allowed_operations: frozenset[str]) -> dict[str, str]:
+    completed: list[str] = []
+    pending: list[str] = []
+    uncertain: list[str] = []
+    failures: list[OperationFailure] = []
+    for result in results:
+        if "operation_progress_version" not in result.evidence:
+            continue
+        failures.extend(failures_from_evidence(result.evidence, allowed_origins=_NODE_FAILURE_ORIGINS, fallback_operation="platform.docker.verify", fallback_component="platform"))
+        for field, values in (("completed", completed), ("pending", pending), ("uncertain", uncertain)):
+            values.extend(progress_from_evidence(result.evidence, field, allowed_operations=allowed_operations))
+    if not completed and not pending and not uncertain and not failures:
+        return {}
+    return progress_to_evidence(aggregate_operation(
+        OperationOutcome.SUCCESS if not failures else OperationOutcome.BLOCKED if _aggregate_status(results) == VerificationStatus.BLOCKED else OperationOutcome.FAILED,
+        completed=completed, pending=pending, uncertain=uncertain, failures=failures,
+    ))

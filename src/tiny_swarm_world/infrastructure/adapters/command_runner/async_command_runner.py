@@ -1,6 +1,7 @@
 import asyncio
 
-from tiny_swarm_world.infrastructure.adapters.exceptions.exception_command_execution import CommandExecutionError
+from tiny_swarm_world.application.ports.commands.port_command_runner import CommandExecutionError
+from tiny_swarm_world.application.ports.operation_result import OperationFailure
 from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 from tiny_swarm_world.application.ports.commands.port_command_runner import PortCommandRunner
 from tiny_swarm_world.infrastructure.process.async_runner import run_async_process
@@ -24,6 +25,10 @@ class AsyncPortCommandRunner(PortCommandRunner):
                 raise CommandExecutionError(
                     command, -1 if result.timed_out or result.failure_hint else result.returncode,
                     result.stdout, result.stderr or "Process execution failed.",
+                    failure=OperationFailure.for_cause(
+                        "command.execute", "command_runner",
+                        "process_timeout" if result.timed_out else (result.failure_hint or "process_exit_failed"),
+                    ),
                 )
         except asyncio.CancelledError:
             async with self.lock:
@@ -37,7 +42,12 @@ class AsyncPortCommandRunner(PortCommandRunner):
             async with self.lock:
                 self.status["result"] = "Error"
             self.logger.error("Command execution failed; diagnostic payload redacted.")
-            raise CommandExecutionError(command, -1, "", "Process execution failed.") from None
+            raise CommandExecutionError(
+                command, -1, "", "Process execution failed.",
+                failure=OperationFailure.for_cause(
+                    "command.execute", "command_runner", "unexpected_failure",
+                ),
+            ) from None
         async with self.lock:
             self.status["result"] = "Success"
         self.logger.info("Command completed successfully")

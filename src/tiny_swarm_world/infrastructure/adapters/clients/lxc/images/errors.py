@@ -4,6 +4,11 @@ from __future__ import annotations
 
 import subprocess
 
+from tiny_swarm_world.application.ports.clients.port_container_image_publisher import (
+    ImagePublisherOperationRejected as ImagePublisherOperationRejected,
+    PublicImagePullRejected as PublicImagePullRejected,
+)
+
 
 REGISTRY_RATE_LIMITED_OPERATOR_ACTION = (
     "Configure Docker Hub authentication, an approved registry mirror, "
@@ -11,31 +16,7 @@ REGISTRY_RATE_LIMITED_OPERATOR_ACTION = (
 )
 
 
-class PublicImagePullRejected(RuntimeError):
-    def __init__(self, image_ref: str, *, diagnostic: str, operator_action: str) -> None:
-        super().__init__(f"Public container image pull failed for {image_ref}.")
-        self.image_ref = image_ref
-        self.diagnostic = diagnostic
-        self.operator_action = operator_action
 
-
-class ImagePublisherOperationRejected(RuntimeError):
-    def __init__(
-        self,
-        *,
-        operation: str,
-        diagnostic: str,
-        operator_action: str,
-        exit_code: int | None = None,
-    ) -> None:
-        message = f"Container image publisher operation failed: {operation}."
-        if exit_code is not None:
-            message = f"{message} Exit code: {exit_code}."
-        super().__init__(message)
-        self.operation = operation
-        self.diagnostic = diagnostic
-        self.operator_action = operator_action
-        self.exit_code = exit_code
 
 
 def docker_hub_rate_limited(result: subprocess.CompletedProcess[str]) -> bool:

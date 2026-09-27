@@ -17,6 +17,7 @@ class LxcNodeCommandResult:
     stdout: str = field(default="", repr=False)
     stderr: str = field(default="", repr=False)
     timed_out: bool = False
+    failure_hint: str | None = None
 
 
 class LxcNodeCommandRunner(Protocol):
@@ -39,7 +40,7 @@ class AsyncLxcNodeCommandRunner:
     ) -> LxcNodeCommandResult:
         result = await run_async_process(args, timeout=timeout_seconds)
         return LxcNodeCommandResult(
-            result.returncode, result.stdout, result.stderr, result.timed_out,
+            result.returncode, result.stdout, result.stderr, result.timed_out, result.failure_hint,
         )
 
 

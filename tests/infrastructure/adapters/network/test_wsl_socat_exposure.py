@@ -80,7 +80,7 @@ class TestWslSocatExposureAdapter(unittest.TestCase):
         )
         process.communicate.assert_awaited_once_with()
 
-    def test_default_process_starter_returns_false_for_nonzero_exit(self):
+    def test_default_process_starter_classifies_nonzero_exit(self):
         process = SimpleNamespace(returncode=1, communicate=AsyncMock(return_value=(None, None)))
 
         with patch.object(
@@ -88,9 +88,11 @@ class TestWslSocatExposureAdapter(unittest.TestCase):
             "create_subprocess_exec",
             new=AsyncMock(return_value=process),
         ):
-            result = asyncio.run(WslSocatExposureAdapter().start("socat test"))
+            with self.assertRaises(RuntimeError) as caught:
+                asyncio.run(WslSocatExposureAdapter().start("socat test"))
 
-        self.assertFalse(result)
+        self.assertEqual("process_exit_failed", caught.exception.failure.cause)
+        self.assertNotIn("socat test", str(caught.exception))
 
     def test_default_availability_uses_optional_socat_lookup(self):
         with patch.object(exposure.shutil, "which", return_value=None) as lookup:

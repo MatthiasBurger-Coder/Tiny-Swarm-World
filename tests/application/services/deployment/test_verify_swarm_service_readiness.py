@@ -1,5 +1,8 @@
 import unittest
 
+from tiny_swarm_world.application.ports.operation_result import OperationError, OperationFailure, OperationOutcome
+from tiny_swarm_world.application.services.deployment.workflows import DeploymentApplyWorkflow
+
 from tiny_swarm_world.application.ports.clients.port_swarm_stack_runtime import (
     SwarmServiceStatus,
 )
@@ -12,6 +15,19 @@ from tiny_swarm_world.domain.inventory import VerificationStatus
 
 
 class TestVerifySwarmServiceReadiness(unittest.IsolatedAsyncioTestCase):
+    async def test_ensure_wrapper_retains_typed_origin_then_clears_it_after_success(self):
+        failure = OperationFailure.for_cause("swarm.services", "swarm_runtime", "process_timeout")
+        runtime = _SequenceSwarmRuntime((OperationError(failure), (SwarmServiceStatus("nexus_nexus", 1, 1),)))
+        step = EnsureSwarmServiceReadiness(runtime, ServiceStackContract("nexus", ("nexus",)), verification_target_id="deployment:nexus-ready", max_attempts=1, wait_seconds=0)
+        failed = await DeploymentApplyWorkflow((step,)).run()
+        self.assertEqual((failure,), failed.operation_result.failures)
+        self.assertEqual(OperationOutcome.FAILED, failed.operation_result.outcome)
+        succeeded = await DeploymentApplyWorkflow((step,)).run()
+        self.assertEqual(OperationOutcome.SUCCESS, succeeded.operation_result.outcome)
+        self.assertEqual((), succeeded.operation_result.failures)
+        self.assertIsNone(step.operation_failure)
+
+
     async def test_verifies_when_required_services_reach_desired_replicas(self):
         runtime = _FakeSwarmRuntime(
             (

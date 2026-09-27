@@ -4,6 +4,8 @@ import asyncio
 from dataclasses import dataclass, field
 from urllib.parse import urlparse
 
+from tiny_swarm_world.application.ports.operation_result import OperationFailure
+from tiny_swarm_world.application.services.shared.operation_results import failure_from_exception
 from tiny_swarm_world.application.ports.clients.port_nexus_client import PortNexusClient
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
 
@@ -95,10 +97,12 @@ class EnsureNexusDockerHostedRepository:
         )
 
     async def verify(self) -> VerificationResult:
+        self.operation_failure: OperationFailure | None = None
         await asyncio.sleep(0)
         try:
             repository_exists = self._repository_exists()
         except Exception as exc:
+            self.operation_failure = failure_from_exception(exc, "artifacts.verify", "artifacts")
             return VerificationResult(
                 target_id=self.verification_target_id,
                 status=VerificationStatus.FAILED_TO_VERIFY,
@@ -157,10 +161,12 @@ class EnsureNexusDockerProxyRepository:
             raise
 
     async def verify(self) -> VerificationResult:
+        self.operation_failure: OperationFailure | None = None
         await asyncio.sleep(0)
         try:
             repository_exists = self._repository_exists()
         except Exception as exc:
+            self.operation_failure = failure_from_exception(exc, "artifacts.verify", "artifacts")
             return VerificationResult(
                 target_id=self.verification_target_id,
                 status=VerificationStatus.FAILED_TO_VERIFY,
@@ -218,10 +224,12 @@ class EnsureNexusMavenProxyRepository:
             raise
 
     async def verify(self) -> VerificationResult:
+        self.operation_failure: OperationFailure | None = None
         await asyncio.sleep(0)
         try:
             repository_exists = self._repository_exists()
         except Exception as exc:
+            self.operation_failure = failure_from_exception(exc, "artifacts.verify", "artifacts")
             return VerificationResult(
                 target_id=self.verification_target_id,
                 status=VerificationStatus.FAILED_TO_VERIFY,
