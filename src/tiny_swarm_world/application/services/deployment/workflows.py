@@ -669,10 +669,9 @@ async def _run_pre_apply_checks(
 
 
 async def _verify_step(step, target_id: str, identity: str) -> tuple[VerificationResult, tuple[OperationFailure, ...]]:
-    caught: list[OperationFailure] = []
-    verification = await _verify_output(step, target_id, caught)
+    verification, caught = await _verify_output(step, target_id)
     companion = getattr(step, "operation_failure", None)
-    failure = caught[0] if caught else companion if isinstance(companion, OperationFailure) else None
+    failure = caught if caught is not None else companion if isinstance(companion, OperationFailure) else None
     failures = verification_failures(verification.evidence, verified=verification.status == VerificationStatus.VERIFIED,
         operation=identity, component="deployment", failure=failure, blocked=verification.status == VerificationStatus.BLOCKED)
     if failures and verification.status == VerificationStatus.VERIFIED:
@@ -683,8 +682,7 @@ async def _verify_step(step, target_id: str, identity: str) -> tuple[Verificatio
 async def _verify_output(
     step: DeploymentWorkflowComponent,
     target_id: str,
-    caught: list[OperationFailure],
-) -> VerificationResult:
+) -> tuple[VerificationResult, OperationFailure | None]:
     verify = getattr(step, "verify", None)
     if not callable(verify):
         return VerificationResult(
@@ -692,7 +690,7 @@ async def _verify_output(
             status=VerificationStatus.BLOCKED,
             message=VERIFICATION_EVIDENCE_MISSING_MESSAGE,
             evidence={"phase": "verify"},
-        )
+        ), None
     try:
         async_verify = getattr(step, "verify_async", None)
         verification_output = (
@@ -701,18 +699,17 @@ async def _verify_output(
         if inspect.isawaitable(verification_output):
             verification_output = await verification_output
     except Exception as exc:
-        caught.append(failure_from_exception(exc, "deployment.verify", "deployment"))
         return VerificationResult(
             target_id=target_id,
             status=VerificationStatus.FAILED_TO_VERIFY,
             message=f"Verification failed for {target_id}: {exc.__class__.__name__}",
             evidence={"phase": "verify"},
-        )
+        ), failure_from_exception(exc, "deployment.verify", "deployment")
     if isinstance(verification_output, VerificationResult):
-        return verification_output
+        return verification_output, None
     return VerificationResult(
         target_id=target_id,
         status=VerificationStatus.BLOCKED,
         message=VERIFICATION_EVIDENCE_MISSING_MESSAGE,
         evidence={"phase": "verify"},
-    )
+    ), None

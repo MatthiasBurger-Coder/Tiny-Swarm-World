@@ -28,6 +28,21 @@ def step(error=None):
 
 
 class OperationResultIntegrationTests(unittest.IsolatedAsyncioTestCase):
+    async def test_verification_exception_precedes_companion_and_fallback_retains_origin(self):
+        caught = OperationFailure.for_cause("service.request", "nexus", "request_failed")
+        companion = OperationFailure.for_cause("service.ready", "nexus", "dependency_unavailable")
+        async def failing_verification():
+            raise OperationError(caught)
+        for workflow in (ArtifactPrepareWorkflow, DeploymentApplyWorkflow):
+            with self.subTest(workflow=workflow.__name__):
+                component = SimpleNamespace(run=lambda: None, verify=failing_verification, operation_failure=companion)
+                result = await workflow((component,)).run()
+                self.assertEqual((caught,), result.operation_result.failures)
+                component.verify = lambda: VerificationResult("test:target", VerificationStatus.FAILED_TO_VERIFY, "Unavailable")
+                result = await workflow((component,)).run()
+                self.assertEqual((companion,), result.operation_result.failures)
+
+
     async def test_artifact_failure_origin_survives_setup_and_stops_dependents(self):
         failure = OperationFailure.for_cause("image.push", "image_runtime", "process_timeout")
         workflow = ArtifactPrepareWorkflow((step(), step(OperationError(failure))))
