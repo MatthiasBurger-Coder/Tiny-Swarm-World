@@ -21,6 +21,14 @@ default list. The catalog is the only default source for the normal installer;
 operator overrides and ready secure-provider values are handled by the
 centralized lifecycle resolver.
 
+For standalone preflight on an isolated, disposable test system,
+`PYTHONPATH=src python3 tools/create_internal_test_env_file.py "$TSW_INSTALL_ENV_FILE"`
+materializes the active required catalog values in a protected local file only
+when it does not already exist. The helper does not run as part of the normal
+installer. Existing operator values remain unchanged. Production or shared
+deployments must replace these public test credentials with operator-owned
+values.
+
 ## Active Classic inventory
 
 The table records the current repository contract from the setup manifest,
