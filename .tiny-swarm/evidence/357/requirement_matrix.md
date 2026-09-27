@@ -1,0 +1,10 @@
+# Issue #357 requirement matrix
+
+| ID | Requirement from issue | Type | Files affected | Implementation evidence | Verification evidence | Status |
+|---|---|---|---|---|---|---|
+| REQ-001 | Find and classify runtime/platform conditionals in application orchestration as composition, adapter, or policy concerns. | Inventory | `documentation/arc42/05_analysis/arch-03-14-runtime-conditionals.md` | Conditional inventory and owner table | Static search across application services; independent issue audit identified and confirmed the preflight, Socat, and filesystem entries | VERIFIED |
+| REQ-002 | Materially reduce runtime-specific branches in runtime-neutral application services by relocating selection. | Behavior and architecture | `prepare_host.py`, `composition_platform.py` | Native Linux/WSL2 switch removed from application service; composition owns adapter bindings | Focused service and composition tests; architecture import checks | VERIFIED |
+| REQ-003 | Introduce no new runtime switch statements in core workflows without explicit justification. | Architecture | Changed application file and architecture note | Generic mapping lookup replaces branch; no other core workflow changed | `git diff` static review and `git diff --check` | VERIFIED |
+| REQ-004 | Preserve existing Classic behavior, including Linux/WSL selection, unsupported hosts, consent, and lazy adapter construction. | Compatibility | Host preparation service, composition | Existing block result and consent order retained; factories remain lazy | `tests.application.services.platform.host.test_prepare_host`, `tests.infrastructure.test_host_preparation_composition`, full local gate | VERIFIED |
+| REQ-005 | Prove equivalent behavior after relocation. | Verification | Focused tests | Service and composition regressions | 8 focused tests and 2271 final-tree full-suite tests passed (18 skipped) | VERIFIED |
+| REQ-006 | Document remaining justified conditionals. | Documentation | `documentation/arc42/05_analysis/arch-03-14-runtime-conditionals.md` | Remaining-conditionals table | Static review and independent audit follow-up | VERIFIED |

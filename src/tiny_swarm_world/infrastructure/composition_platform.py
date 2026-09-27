@@ -11,6 +11,7 @@ from tiny_swarm_world.application.services.platform import (
     PlatformLifecycleOrchestrator,
     PlatformLifecycleWorkflows,
 )
+from tiny_swarm_world.domain.host_environment import HostEnvironmentKind
 
 from .composition_runtime import (
     AsyncLxcNodeCommandRunner,
@@ -122,15 +123,19 @@ def build_host_preparation_service(
     )
     return HostPreparationService(
         build_host_environment_detector(),
-        HostPreparationAdapterFactory(_build_native_linux_host_preparation),
-        HostPreparationAdapterFactory(
-            lambda: _build_wsl_host_preparation(
-                script_path=script_path,
-                config_path=config_path,
-                registry_path=registry_path,
-                timeout_seconds=timeout_seconds,
-            )
-        ),
+        {
+            HostEnvironmentKind.NATIVE_LINUX: HostPreparationAdapterFactory(
+                _build_native_linux_host_preparation
+            ),
+            HostEnvironmentKind.WSL2: HostPreparationAdapterFactory(
+                lambda: _build_wsl_host_preparation(
+                    script_path=script_path,
+                    config_path=config_path,
+                    registry_path=registry_path,
+                    timeout_seconds=timeout_seconds,
+                )
+            ),
+        },
         live_consent,
     )
 

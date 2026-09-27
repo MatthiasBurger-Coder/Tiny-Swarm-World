@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 
 from tiny_swarm_world.application.ports.host import (
@@ -23,18 +23,16 @@ class HostPreparationAdapterFactory:
 
 
 class HostPreparationService:
-    """Selects the host-specific adapter while keeping OS commands out of application code."""
+    """Runs host preparation through adapters bound by composition."""
 
     def __init__(
         self,
         detector: PortHostEnvironmentDetector,
-        native_linux: PortHostPreparation | HostPreparationAdapterFactory,
-        wsl2: PortHostPreparation | HostPreparationAdapterFactory,
+        adapters: Mapping[HostEnvironmentKind, PortHostPreparation | HostPreparationAdapterFactory],
         live_consent: LiveConsent | None = None,
     ) -> None:
         self.detector = detector
-        self.native_linux = native_linux
-        self.wsl2 = wsl2
+        self.adapters = dict(adapters)
         self.live_consent = live_consent
 
     def prepare(self) -> HostPreparationResult:
@@ -56,11 +54,8 @@ class HostPreparationService:
                 evidence={"reason": "live_consent_missing"},
             )
         report = self.detector.detect()
-        if report.environment is HostEnvironmentKind.NATIVE_LINUX:
-            adapter = _resolve_adapter(self.native_linux)
-        elif report.environment is HostEnvironmentKind.WSL2:
-            adapter = _resolve_adapter(self.wsl2)
-        else:
+        adapter_binding = self.adapters.get(report.environment)
+        if adapter_binding is None:
             return HostPreparationResult(
                 operation,
                 report.environment.value,
@@ -68,6 +63,7 @@ class HostPreparationService:
                 "Host environment is not supported for this operation.",
                 evidence={"remediation": "; ".join(report.remediation)},
             )
+        adapter = _resolve_adapter(adapter_binding)
         if operation == "prepare":
             return adapter.prepare()
         if operation == "verify":
