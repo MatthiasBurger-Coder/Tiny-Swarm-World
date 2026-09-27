@@ -50,6 +50,9 @@ application responsibilities:
   construction boundaries that own the corresponding concrete service-builder
   bodies. They preserve the established public behavior through the facade and
   private runtime compatibility bridges.
+* `composition_network.py` owns network doctor and repair wiring. The public
+  facade still exposes the existing builders; the private runtime retains
+  forwarding entry points for compatibility.
 * `composition_runtime.py` is the private compatibility implementation for
   shared helpers and legacy builder entry points. It is not a public import
   surface and is the next extraction seam for further helper reduction.

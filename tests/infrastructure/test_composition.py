@@ -70,6 +70,24 @@ def _required_infisical_bootstrap_env() -> dict[str, str]:
 
 
 class TestComposition(unittest.TestCase):
+    def test_network_builders_bind_detector_and_repair_at_composition_boundary(self):
+        detector = Mock()
+        port_registry = Mock()
+        with (
+            patch.object(composition, "build_host_environment_detector", return_value=detector),
+            patch(
+                "tiny_swarm_world.infrastructure.composition_network.PortRegistryYamlRepository"
+            ) as registry_repository,
+        ):
+            registry_repository.return_value.load.return_value = port_registry
+            doctor = composition.build_network_doctor_service()
+            repair = composition.build_network_repair_service()
+
+        self.assertIs(doctor.port_registry, port_registry)
+        self.assertIs(doctor.probe.host_environment_detector, detector)
+        self.assertIs(repair.probe.host_environment_detector, detector)
+        self.assertIsInstance(repair.repair, composition.SubprocessNetworkRepair)
+
     def test_update_builder_wires_observer_without_running_commands_for_preview(self):
         from tiny_swarm_world.domain.deployment import ComposeServiceDefinition
         from tiny_swarm_world.domain.update import ClassicUpdatePlan
