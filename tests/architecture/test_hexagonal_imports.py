@@ -473,8 +473,14 @@ class TestResponsibilityBoundaryDocumentation(unittest.TestCase):
 
         self.assertEqual([], violations)
 
-    def test_artifact_and_deployment_cli_workflows_remain_declared_at_entrypoint(self):
+    def test_cli_commands_delegate_to_composition_and_application_actions(self):
         entrypoint_text = CLI_ENTRYPOINT.read_text(encoding="utf-8")
+        composition_text = (
+            SOURCE_ROOT / "infrastructure" / "composition_cli.py"
+        ).read_text(encoding="utf-8")
+        action_text = (
+            APPLICATION_SERVICES_ROOT / "cli_dispatch.py"
+        ).read_text(encoding="utf-8")
 
         required_snippets = (
             'CliWorkflow(namespace="artifacts", action="prepare", mutating=True, destructive=False)',
@@ -483,8 +489,7 @@ class TestResponsibilityBoundaryDocumentation(unittest.TestCase):
             'CliWorkflow(namespace="deployment", action="apply", mutating=True, destructive=False)',
             'CliWorkflow(namespace="deployment", action="verify", mutating=False, destructive=False)',
             "platform_kind=kind",
-            "build_artifact_services",
-            "build_deployment_services",
+            "execute_cli_workflow(",
         )
 
         missing_snippets = [
@@ -494,6 +499,12 @@ class TestResponsibilityBoundaryDocumentation(unittest.TestCase):
         ]
 
         self.assertEqual([], missing_snippets)
+        self.assertIn("build_artifact_services(", composition_text)
+        self.assertIn("build_deployment_services(", composition_text)
+        self.assertIn("run_artifact_action(", action_text)
+        self.assertIn("run_deployment_action(", action_text)
+        self.assertNotIn("await workflows.prepare.run()", entrypoint_text)
+        self.assertNotIn("await workflows.apply.run()", entrypoint_text)
 
     def test_console_ui_does_not_introduce_browser_frontend_surface(self):
         forbidden_terms = (

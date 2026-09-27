@@ -234,6 +234,12 @@ def build_application_services(*args: Any, **kwargs: Any) -> Any:
     return _delegate("build_application_services", *args, **kwargs)
 
 
+async def execute_cli_workflow(*args: Any, **kwargs: Any) -> Any:
+    from .composition_cli import execute_cli_workflow as execute
+
+    return await execute(*args, **kwargs)
+
+
 _FACADE_DEFAULTS = {
     name: globals()[name]
     for name in _RUNTIME_BUILDER_NAMES

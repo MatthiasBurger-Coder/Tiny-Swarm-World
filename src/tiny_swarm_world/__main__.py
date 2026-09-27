@@ -1,16 +1,39 @@
 import asyncio
-import json
-import os
 from argparse import ArgumentParser, Namespace
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass
-from enum import Enum
-from pathlib import Path
 
-from tiny_swarm_world.application.ports.operation_result import OperationResult
+from tiny_swarm_world.cli_presentation import (
+    _host_detection_payload as _host_detection_payload,
+    _print_host_environment_summary as _print_host_environment_summary,
+    _workflow_result_to_dict as _workflow_result_to_dict,
+    _emit_workflow_result as _emit_workflow_result,
+    _emit_json_payload as _emit_json_payload,
+    _workflow_status_value as _workflow_status_value,
+    _should_emit_json as _should_emit_json,
+    _print_blocked_workflow_summary as _print_blocked_workflow_summary,
+    _print_workflow_summary as _print_workflow_summary,
+    _format_workflow_summary as _format_workflow_summary,
+    _format_operation_summary as _format_operation_summary,
+    _format_verification_summary as _format_verification_summary,
+    _workflow_name as _workflow_name,
+    _print_preflight_summary as _print_preflight_summary,
+    _print_setup_installation_summary as _print_setup_installation_summary,
+    _format_setup_installation_summary as _format_setup_installation_summary,
+    _format_setup_phase_diagnostics as _format_setup_phase_diagnostics,
+    _print_setup_nested_workflow_diagnostics as _print_setup_nested_workflow_diagnostics,
+    _format_setup_nested_workflow_diagnostics as _format_setup_nested_workflow_diagnostics,
+    _format_phase_status_counts as _format_phase_status_counts,
+    _format_status_counts as _format_status_counts,
+    _console_enum as _console_enum,
+    _console_text as _console_text,
+    _safe_console_value as _safe_console_value,
+    render_setup_installation_plan as _render_setup_installation_plan,
+)
 from tiny_swarm_world.application.services.artifacts import ArtifactWorkflowResult
 from tiny_swarm_world.application.services.deployment import DeploymentWorkflowResult
 from tiny_swarm_world.application.services.setup import SetupWorkflowResult
+from tiny_swarm_world.application.services.setup.installation_plan import build_setup_installation_plan
 from tiny_swarm_world.application.services.platform.workflow.results import (
     PlatformWorkflowResult,
 )
@@ -21,37 +44,24 @@ from tiny_swarm_world.application.services.platform.workflow.types import (
     PlatformWorkflowKind,
     PlatformWorkflowStatus,
 )
-from tiny_swarm_world.application.services.platform import (
-    PlatformLifecycleOrchestrator,
-    PlatformLifecycleRequest,
-    PlatformLifecycleWorkflows,
+from tiny_swarm_world.application.services.platform.host.prepare_with_preflight import (
+    PrepareHostWithPreflight,
 )
 from tiny_swarm_world.application.ports.repositories.port_compose_file_repository import (
     PortComposeFileRepository,
 )
 from tiny_swarm_world.domain.deployment import ServiceStackProfile
-from tiny_swarm_world.domain.deployment.stack_definition import ComposeServiceDefinition
-from tiny_swarm_world.domain.host_environment import (
-    HostEnvironmentKind,
-    HostEnvironmentReport,
-)
 from tiny_swarm_world.domain.node_provider import ManagedLxcBackend, NodeProviderKind
 from tiny_swarm_world.domain.preflight import (
     LIVE_CONSENT_PROMPT,
     LIVE_CONSENT_YES_VALUES,
     LiveConsent,
-    PreflightResult,
-    default_installation_plan,
-    default_preflight_configuration,
 )
 from tiny_swarm_world.infrastructure.composition import (
-    ApplicationServices,
-    ArtifactServices,
-    DeploymentServices,
     DEFAULT_SETUP_SERVICE_PROFILE,
     NodeProviderSelectionRequest,
-    SetupServices,
     build_application_services,
+    execute_cli_workflow,
     build_classic_update_workflow,
     build_artifact_services_for_provider,
     build_compose_file_repository,
@@ -436,28 +446,30 @@ def _run_host_verify_command(args: Namespace) -> None:
 async def _run_host_preparation_command(args: Namespace) -> None:
     workflow = args.workflow
     live_consent = _live_consent_for_workflow(workflow, args)
-    preflight = build_preflight_service(
-        service_profile=args.service_profile,
-        node_provider_request=_node_provider_request_from_args(args),
-        allow_wsl_windows_filesystem=args.allow_wsl_windows_filesystem,
-        include_secret_checks=False,
-        include_port_checks=False,
+    use_case = PrepareHostWithPreflight(
+        build_preflight_service(
+            service_profile=args.service_profile,
+            node_provider_request=_node_provider_request_from_args(args),
+            allow_wsl_windows_filesystem=args.allow_wsl_windows_filesystem,
+            include_secret_checks=False,
+            include_port_checks=False,
+        ),
+        lambda: build_host_preparation_service(live_consent),
     )
-    preflight_result = await preflight.run(live_consent)
-    if not preflight_result.passed:
+    outcome = await use_case.run(workflow.action, live_consent)
+    if outcome.preparation is None:
         if _should_emit_json(args):
             _emit_json_payload(
-                {"preflight": preflight_result.to_dict(), "host_preparation": None}
+                {"preflight": outcome.preflight.to_dict(), "host_preparation": None}
             )
         else:
-            _print_preflight_summary(preflight_result, live=True)
+            _print_preflight_summary(outcome.preflight, live=True)
         raise SystemExit(1)
 
-    service = build_host_preparation_service(live_consent)
-    result = service.prepare() if workflow.action == "prepare" else service.cleanup()
+    result = outcome.preparation
     if _should_emit_json(args):
         _emit_json_payload(
-            {"preflight": preflight_result.to_dict(), "host_preparation": result.to_dict()}
+            {"preflight": outcome.preflight.to_dict(), "host_preparation": result.to_dict()}
         )
     else:
         print(f"Host preparation: {result.operation}")
@@ -471,32 +483,8 @@ async def _run_host_preparation_command(args: Namespace) -> None:
         raise SystemExit(1)
 
 
-def _host_detection_payload(report: HostEnvironmentReport) -> dict[str, object]:
-    return {
-        **report.to_dict(),
-        "live_readiness_verified": False,
-    }
 
 
-def _print_host_environment_summary(report: HostEnvironmentReport) -> None:
-    print("Host environment")
-    print(f"Type: {report.environment.value}")
-    print(f"Distribution: {report.distribution}")
-    print(f"Kernel release: {report.kernel_release}")
-    if report.environment is HostEnvironmentKind.NATIVE_LINUX:
-        windows_interop = "not applicable"
-    else:
-        windows_interop = (
-            "available" if report.windows_interop_available else "unavailable"
-        )
-    print(f"Windows interop: {windows_interop}")
-    print(f"Supported: {'yes' if report.supported else 'no'}")
-    print(f"Setup path: {report.setup_path.value}")
-    print("Live readiness verified: no")
-    if report.remediation:
-        print("Remediation:")
-        for item in report.remediation:
-            print(f"- {item}")
 
 
 async def _run_preflight_command(args: Namespace) -> None:
@@ -598,137 +586,28 @@ async def run_cli_workflow(
     update_stack_name: str | None = None,
     update_service_name: str | None = None,
 ) -> WorkflowResult:
-    if workflow.platform_kind is not None:
-        if workflow.platform_kind is PlatformWorkflowKind.UPDATE:
-            if update_recover:
-                if update_plan is not None:
-                    raise ValueError("recovery cannot be combined with an update plan")
-                if update_stack_name is None or update_service_name is None:
-                    raise ValueError("platform update recovery requires stack and service")
-            if update_plan is None and not update_recover:
-                raise ValueError("platform update requires an update plan")
-            update_workflow = build_classic_update_workflow(
-                service_profile=service_profile,
-                node_provider_request=node_provider_request,
-            )
-            if update_recover:
-                return await update_workflow.recover(
-                    update_stack_name,
-                    update_service_name,
-                    preview=update_preview,
-                    live_consent=live_consent,
-                )
-            return await update_workflow.run(
-                update_plan,
-                preview=update_preview,
-                live_consent=live_consent,
-            )
-        services = build_application_services(
-            live_consent=live_consent,
-            service_profile=service_profile,
-            node_provider_request=node_provider_request,
-            allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
-        )
-        return await run_platform_workflow(
-            services,
-            workflow.platform_kind,
-            confirmation,
-        )
-    if workflow.namespace == "artifacts":
-        services = build_artifact_services_for_provider(
-            node_provider_request=node_provider_request,
-        )
-        return await run_artifact_workflow(services, workflow.action)
-    if workflow.namespace == "deployment":
-        services = build_deployment_services_for_provider(
-            service_profile=service_profile,
-            node_provider_request=node_provider_request,
-        )
-        return await run_deployment_workflow(services, workflow.action)
-    if workflow.namespace == "setup":
-        if live_consent is None or not live_consent.accepted:
-            raise ValueError("setup run requires accepted live consent")
-        return await run_setup_with_terminal_status(
-            live_consent,
-            workflow.action,
-            service_profile=service_profile,
-            node_provider_request=node_provider_request,
-            allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
-        )
-    raise ValueError(f"Unsupported workflow: {workflow.name}")
-
-
-async def run_platform_workflow(
-    services: ApplicationServices,
-    kind: PlatformWorkflowKind | None,
-    confirmation: str | None,
-) -> PlatformWorkflowResult:
-    if kind is None:
-        raise ValueError("Unsupported platform workflow: None")
-    lifecycle = getattr(services.platform, "lifecycle", None)
-    if lifecycle is None:
-        workflows = services.platform.workflows
-        lifecycle = PlatformLifecycleOrchestrator(
-            PlatformLifecycleWorkflows(
-                init=workflows.init,
-                reconcile=workflows.reconcile,
-                expose=workflows.expose,
-                repair_lxc_proxy_drift=workflows.repair_lxc_proxy_drift,
-                verify=workflows.verify,
-                reset=workflows.reset,
-                destroy=workflows.destroy,
-            )
-        )
-    return await lifecycle.run(
-        PlatformLifecycleRequest(kind=kind, confirmation=confirmation)
+    return await execute_cli_workflow(
+        namespace=workflow.namespace,
+        action=workflow.action,
+        platform_kind=workflow.platform_kind,
+        confirmation=confirmation,
+        live_consent=live_consent,
+        service_profile=service_profile,
+        node_provider_request=node_provider_request,
+        allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
+        update_plan=update_plan,
+        update_preview=update_preview,
+        update_recover=update_recover,
+        update_stack_name=update_stack_name,
+        update_service_name=update_service_name,
+        build_classic_update_workflow=build_classic_update_workflow,
+        build_application_services=build_application_services,
+        build_artifact_services=build_artifact_services_for_provider,
+        build_deployment_services=build_deployment_services_for_provider,
+        run_setup_with_terminal_status=run_setup_with_terminal_status,
     )
 
 
-async def run_artifact_workflow(
-    services: ArtifactServices,
-    action: str,
-) -> ArtifactWorkflowResult:
-    workflows = services.workflows
-    match action:
-        case "prepare":
-            return await workflows.prepare.run()
-        case "verify":
-            return await workflows.verify.run()
-        case _:
-            raise ValueError(f"Unsupported artifacts workflow: {action}")
-
-
-async def run_deployment_workflow(
-    services: DeploymentServices,
-    action: str,
-) -> DeploymentWorkflowResult:
-    workflows = services.workflows
-    match action:
-        case "bootstrap":
-            return await workflows.bootstrap.run()
-        case "apply":
-            return await workflows.apply.run()
-        case "verify":
-            return await workflows.verify.run()
-        case _:
-            raise ValueError(f"Unsupported deployment workflow: {action}")
-
-
-async def run_setup_workflow(
-    services: SetupServices,
-    action: str,
-) -> SetupWorkflowResult:
-    match action:
-        case "run":
-            return await services.workflows.run.run()
-        case _:
-            raise ValueError(f"Unsupported setup workflow: {action}")
-
-
-def _workflow_result_to_dict(result: WorkflowResult) -> dict[str, object]:
-    if isinstance(result, ArtifactWorkflowResult | DeploymentWorkflowResult | SetupWorkflowResult):
-        return result.to_dict()
-    return result.to_dict()
 
 
 def _update_plan_from_args(args: Namespace) -> ClassicUpdatePlan | None:
@@ -746,31 +625,12 @@ def _update_plan_from_args(args: Namespace) -> ClassicUpdatePlan | None:
     )
 
 
-def _emit_workflow_result(result: WorkflowResult, args: Namespace) -> None:
-    if _should_emit_json(args):
-        _emit_json_payload(_workflow_result_to_dict(result))
-        return
-    if isinstance(result, SetupWorkflowResult):
-        _print_setup_installation_summary(result)
-        return
-    _print_workflow_summary(result)
 
 
-def _emit_json_payload(payload: dict[str, object]) -> None:
-    print(json.dumps(payload, indent=2, sort_keys=True))
 
 
-def _workflow_status_value(result: WorkflowResult) -> str:
-    status = result.status
-    if isinstance(status, Enum):
-        return str(status.value)
-    return str(status)
 
 
-def _should_emit_json(args: Namespace) -> bool:
-    if bool(args.json):
-        return True
-    return os.environ.get("TSW_DEBUG_JSON", "").strip().lower() == "true"
 
 
 def _blocked_workflow_result(workflow: CliWorkflow) -> dict[str, object]:
@@ -782,90 +642,16 @@ def _blocked_workflow_result(workflow: CliWorkflow) -> dict[str, object]:
     }
 
 
-def _print_blocked_workflow_summary(payload: dict[str, object]) -> None:
-    print()
-    print(f"Workflow: {payload['workflow']}")
-    print(f"Status: {payload['status']}")
-    print(f"Message: {payload['message']}")
 
 
-def _print_workflow_summary(result: WorkflowResult) -> None:
-    for line in _format_workflow_summary(result):
-        print(line)
 
 
-def _format_workflow_summary(result: WorkflowResult) -> tuple[str, ...]:
-    lines = [
-        "",
-        f"Workflow: {_workflow_name(result)}",
-        f"Status: {_workflow_status_value(result)}",
-        f"Executed: {'yes' if result.executed else 'no'}",
-    ]
-    message = getattr(result, "message", "")
-    if message:
-        lines.append(f"Message: {_console_text(message)}")
-    reason = getattr(result, "reason", "")
-    if reason:
-        lines.append(f"Reason: {_console_text(reason)}")
-    verification_results = getattr(result, "verification_results", ())
-    if verification_results:
-        lines.extend(_format_verification_summary(verification_results))
-    lines.extend(_format_operation_summary(getattr(result, "operation_result", None)))
-    return tuple(lines)
 
 
-def _format_operation_summary(result: OperationResult | None) -> tuple[str, ...]:
-    """Render validated operation context without performing recommended actions."""
-    if result is None:
-        return ()
-    lines = [f"Operation outcome: {result.outcome.value}"]
-    for label, operations in (
-        ("Completed operations", result.completed_operations),
-        ("Pending operations", result.pending_operations),
-        ("Uncertain operations", result.uncertain_operations),
-    ):
-        if operations:
-            lines.append(f"{label}: {', '.join(operations)}")
-    if result.rollback_verified:
-        lines.append("Rollback verified: yes")
-    for failure in result.failures:
-        lines.extend((
-            f"Failure: {failure.operation} ({failure.component})",
-            f"  Cause: {failure.cause}",
-            f"  Recoverability: {failure.recoverability.value}",
-            f"  Recommended action: {failure.recommended_action}",
-        ))
-    return tuple(lines)
 
 
-def _format_verification_summary(
-    verification_results: Sequence[object],
-    *,
-    indent: str = "",
-) -> tuple[str, ...]:
-    lines = [
-        f"{indent}Verification counts: {_format_status_counts(verification_results)}",
-        f"{indent}Verification summary:",
-    ]
-    for verification in verification_results:
-        target_id = _console_text(getattr(verification, "target_id", "unknown"))
-        status = _console_enum(getattr(verification, "status", "unknown"))
-        lines.append(f"{indent}- {target_id}: {status}")
-        evidence = getattr(verification, "evidence", {})
-        if evidence:
-            lines.append(f"{indent}  Evidence:")
-            for key, value in sorted(evidence.items()):
-                lines.append(
-                    f"{indent}  - {key}: {_safe_console_value(value)}"
-                )
-    return tuple(lines)
 
 
-def _workflow_name(result: WorkflowResult) -> str:
-    workflow_name = getattr(result, "workflow_name", None)
-    if workflow_name:
-        return _console_text(workflow_name)
-    return str(_workflow_result_to_dict(result).get("workflow", "workflow"))
 
 
 def _live_consent_from_args(args: Namespace) -> LiveConsent:
@@ -892,25 +678,6 @@ def _node_provider_request_from_args(args: Namespace) -> NodeProviderSelectionRe
     )
 
 
-def _print_preflight_summary(result: PreflightResult, *, live: bool = False) -> None:
-    print()
-    print(f"Preflight summary: {result.status}")
-    if result.passed:
-        if live:
-            print("Preflight checks passed; provider readiness is checked by the platform guard.")
-        else:
-            print("Static checks passed; this does not claim live provider readiness.")
-        return
-
-    if result.resource_gated:
-        print("Only resource-gated checks failed. Use a larger host or a smaller setup profile.")
-    else:
-        print("Fix the mandatory blockers before live setup.")
-
-    for check in result.failed_checks:
-        print(f"- {check.check_id}: {check.message}")
-        if check.remediation and check.remediation != "None":
-            print(f"  Action: {check.remediation}")
 
 
 def _print_setup_installation_plan(
@@ -918,212 +685,15 @@ def _print_setup_installation_plan(
     node_provider_request: NodeProviderSelectionRequest | None = None,
     compose_repository: PortComposeFileRepository | None = None,
 ) -> None:
-    selected_service_profile = ServiceStackProfile(service_profile)
-    configuration = default_preflight_configuration(service_profile=selected_service_profile)
-    manifest = configuration.setup_manifest
-    provider_request = node_provider_request or NodeProviderSelectionRequest()
-    print()
-    print("Tiny Swarm World guided installation")
-    print("Target: local Linux/WSL LXC-native Docker Swarm")
-    print(f"Default node provider: {provider_request.requested_provider.value}")
-    if provider_request.preferred_backend is None:
-        print("Managed backend: Incus")
-    else:
-        print(f"Managed backend: {provider_request.preferred_backend.value}")
-    print("Provider readiness: checked before platform mutation")
-    print(f"Service profile: {selected_service_profile.value}")
-    print("Platform:")
-    print("- swarm-manager: Docker Swarm manager")
-    print("- swarm-worker-1: Docker Swarm worker")
-    print("- swarm-worker-2: Docker Swarm worker")
-    print("Installation phases:")
-    for phase in default_installation_plan().ordered_workflow_phase_names():
-        print(f"- {phase}")
-    print("Services:")
-    stack_names = {
-        "Jenkins": "jenkins",
-        "Infisical": "infisical",
-        "Nexus": "nexus",
-        "Portainer": "portainer",
-        "Pulsar": "pulsar",
-        "Service Access": "service-access",
-        "SonarQube": "sonarqube",
-        "Swagger/NGINX": "swagger",
-        "Traefik Ingress": "traefik",
-    }
-    repository = compose_repository or build_compose_file_repository()
-    for service in manifest.services:
-        stack_name = stack_names.get(service.name, "infra")
-        compose_services = _compose_services_for_plan(repository, stack_name)
-        compose_service_names = _format_compose_service_names(compose_services)
-        ports = _format_compose_published_ports(compose_services)
-        print(
-            f"- {service.name}: stack {stack_name}, "
-            f"source infra/config/compose/{stack_name}/docker-compose.yml, "
-            f"compose service(s) {compose_service_names}, published port(s) {ports}"
-        )
-    print()
-
-
-def _compose_services_for_plan(
-    repository: PortComposeFileRepository,
-    stack_name: str,
-) -> tuple[ComposeServiceDefinition, ...]:
-    try:
-        return repository.get_services_of(stack_name)
-    except FileNotFoundError:
-        return ()
-
-
-def _format_compose_service_names(
-    services: tuple[ComposeServiceDefinition, ...],
-) -> str:
-    return ", ".join(service.name for service in services) or "not declared"
-
-
-def _format_compose_published_ports(
-    services: tuple[ComposeServiceDefinition, ...],
-) -> str:
-    published_ports = tuple(
-        dict.fromkeys(
-            port
-            for service in services
-            for port in service.published_ports
-        )
+    plan = build_setup_installation_plan(
+        service_profile,
+        compose_repository or build_compose_file_repository(),
     )
-    return ", ".join(str(port) for port in published_ports) or "no published port"
-
-
-def _print_setup_installation_summary(result: SetupWorkflowResult) -> None:
-    for line in _format_setup_installation_summary(result):
-        print(line)
-
-
-def _format_setup_installation_summary(
-    result: SetupWorkflowResult,
-) -> tuple[str, ...]:
-    lines = [
-        "",
-        "Setup summary:",
-        f"Workflow: {result.workflow_name}",
-        f"Phases: {len(result.phase_results)}",
-        f"Status counts: {_format_phase_status_counts(result.phase_results)}",
-        f"Phase groups: {len(result.phase_group_results)}",
-    ]
-    if result.phase_group_results:
-        lines.append("Phase group summary:")
-        for group in result.phase_group_results:
-            phase_names = ", ".join(group.phase_names) or "none"
-            lines.append(
-                f"- {group.group_id}: {group.status} "
-                f"(phases={phase_names}; max-concurrency={group.maximum_concurrency}; "
-                f"duration={group.duration_seconds:.3f}s)"
-            )
-    lines.append("Setup phase summary:")
-    for phase in result.phase_results:
-        lines.append(f"- {phase.name}: {phase.status}")
-        lines.extend(_format_setup_phase_diagnostics(phase.result))
-    if result.message:
-        lines.append(f"Message: {_console_text(result.message)}")
-    if result.reason:
-        lines.append(f"Reason: {_console_text(result.reason)}")
-    lines.extend(_format_operation_summary(result.operation_result))
-    lines.append(f"Final setup status: {result.status.value}")
-    lines.append("")
-    return tuple(lines)
-
-
-def _format_setup_phase_diagnostics(phase_result: object) -> tuple[str, ...]:
-    if isinstance(phase_result, PreflightResult):
-        if not phase_result.failed_checks:
-            return ()
-        lines = ["  Failed preflight checks:"]
-        for check in phase_result.failed_checks:
-            lines.append(
-                f"  - {check.check_id}: {_console_text(check.message)}"
-            )
-            if check.remediation and check.remediation != "None":
-                lines.append(f"    Action: {_console_text(check.remediation)}")
-        return tuple(lines)
-    if isinstance(
-        phase_result,
-        PlatformWorkflowResult | ArtifactWorkflowResult | DeploymentWorkflowResult,
-    ):
-        if _workflow_status_value(phase_result) in {"completed", "passed", "verified"}:
-            return ()
-        return _format_setup_nested_workflow_diagnostics(phase_result)
-    return ()
-
-
-def _print_setup_nested_workflow_diagnostics(result: WorkflowResult) -> None:
-    for line in _format_setup_nested_workflow_diagnostics(result):
-        print(line)
-
-
-def _format_setup_nested_workflow_diagnostics(
-    result: WorkflowResult,
-) -> tuple[str, ...]:
-    lines = [f"  Workflow: {_workflow_name(result)}"]
-    message = getattr(result, "message", "")
-    if message:
-        lines.append(f"  Message: {_console_text(message)}")
-    reason = getattr(result, "reason", "")
-    if reason:
-        lines.append(f"  Reason: {_console_text(reason)}")
-    verification_results = getattr(result, "verification_results", ())
-    if not verification_results:
-        return tuple(lines)
-    lines.extend(_format_verification_summary(verification_results, indent="  "))
-    return tuple(lines)
-
-
-def _format_phase_status_counts(phase_results: Sequence[object]) -> str:
-    return _format_status_counts(
-        (getattr(phase, "status", "unknown") for phase in phase_results)
+    _render_setup_installation_plan(
+        plan,
+        requested_provider=(node_provider_request or NodeProviderSelectionRequest()).requested_provider.value,
+        preferred_backend=(node_provider_request or NodeProviderSelectionRequest()).preferred_backend,
     )
-
-
-def _format_status_counts(values: Sequence[object]) -> str:
-    counts: dict[str, int] = {}
-    for value in values:
-        status = _console_enum(getattr(value, "status", value))
-        counts[status] = counts.get(status, 0) + 1
-    return ", ".join(
-        f"{status}={count}" for status, count in sorted(counts.items())
-    ) or "none"
-
-
-def _console_enum(value: object) -> str:
-    if isinstance(value, Enum):
-        return _console_text(value.value)
-    return _console_text(value)
-
-
-def _console_text(value: object) -> str:
-    text = str(value).replace("\r", " ").replace("\n", " ").strip()
-    return " ".join(text.split())
-
-
-def _safe_console_value(value: object) -> str:
-    if isinstance(value, Path):
-        return value.as_posix()
-    if isinstance(value, Enum):
-        return _console_text(value.value)
-    if isinstance(value, Mapping):
-        return "structured value persisted to evidence"
-    if isinstance(value, (list, tuple, set, frozenset)):
-        return f"{len(value)} item(s) persisted to evidence"
-    if isinstance(value, str):
-        text = _console_text(value)
-        if (
-            text.startswith(("{", "["))
-            and text.endswith(("}", "]"))
-        ):
-            return "structured value persisted to evidence"
-        return text
-    if isinstance(value, (bool, int, float)):
-        return str(value)
-    return f"{type(value).__name__} persisted to evidence"
 
 
 if __name__ == "__main__":
