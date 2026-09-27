@@ -38,7 +38,9 @@ intentionally on a WSL Windows mount, the applicable commands also need
 | Inspect current platform | `platform verify` | Read-only checks; does not repair.
 | Reconcile managed platform | `platform reconcile --live` | Mutates managed platform state; does not constitute a full service update.
 | Run the broader setup again | `setup run --live` | Mutates infrastructure and services without the wrapper's preliminary reset.
-| Recreate a disposable environment | `./install.sh` | Resets managed state before fresh setup.
+| Prepare a native Ubuntu 24.04 or 26.04 host | `./prepare_linux.sh` | Separately installs only missing approved host packages after confirmation.
+| Install or reconcile on native Ubuntu 24.04 or 26.04 | `./install.sh` | Checks preparation and runs setup without a reset.
+| Recreate a disposable WSL2 environment | `./install.sh` | Resets managed state before fresh setup after confirmation.
 | Upgrade a running installation | `platform update --stack ... --service ... --from-image ... --to-image ...` | Preview first; requires live consent and preserves rollback metadata.
 |===
 

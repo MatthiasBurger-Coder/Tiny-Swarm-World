@@ -65,6 +65,8 @@ ROOT_BOUNDARY_EXCEPTION_IMPORTS = {
         "tiny_swarm_world.infrastructure.adapters.ingress.tls_state",
         "tiny_swarm_world.infrastructure.adapters.ui.install_reporter",
         "tiny_swarm_world.infrastructure.adapters.preflight.windows_wsl_bridge_state",
+        # Issue #427 uses a dependency-light composition boundary before venv bootstrap.
+        "tiny_swarm_world.infrastructure.composition_native_preparation",
     },
     "src/tiny_swarm_world/simple_installer.py": {
         "tiny_swarm_world.installer",
@@ -74,6 +76,9 @@ ROOT_BOUNDARY_EXCEPTION_IMPORTS = {
 ROOT_ENTRYPOINTS = {
     "src/tiny_swarm_world/__main__.py": {
         "tiny_swarm_world.infrastructure.composition",
+    },
+    "src/tiny_swarm_world/prepare_linux.py": {
+        "tiny_swarm_world.infrastructure.composition_native_preparation",
     },
 }
 CLI_MODULES = (

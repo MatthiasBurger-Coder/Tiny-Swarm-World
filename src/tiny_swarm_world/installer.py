@@ -33,6 +33,7 @@ from tiny_swarm_world.domain.project_filesystem import (
 from tiny_swarm_world.application.ports.repositories.port_project_filesystem_evidence_repository import (
     ProjectFilesystemEvidenceError,
 )
+from tiny_swarm_world.application.ports.operation_result import OperationError
 from tiny_swarm_world.infrastructure.adapters.host import (
     HostEnvironmentDetector,
     ProjectFilesystemInspector,
@@ -80,6 +81,9 @@ class InstallerOptions:
     non_interactive_live_approval: bool
     headless: bool
     allow_wsl_windows_filesystem: bool
+    native_reconcile: bool = False
+    preflight_only: bool = False
+    dry_run: bool = False
 
 
 @dataclass(frozen=True)
@@ -118,6 +122,7 @@ class _InstallRunContext:
     env: Mapping[str, str]
     git_probe: _GitProbeResult
     evidence_probes: _EvidenceProbeSnapshot
+    native_reconcile: bool
 
 
 @dataclass(frozen=True)
@@ -292,20 +297,111 @@ def run(
 ) -> int:
     install_reporter = reporter or _default_install_reporter()
     _require_repository(cwd)
-    paths = _paths_from_env(env, cwd)
     host_runtime = detect_host_runtime(env)
+    if options.native_reconcile:
+        if host_runtime.name != "native_linux":
+            raise InstallerError("Native reconciliation requires a native Linux host.")
+        from tiny_swarm_world.infrastructure.composition_native_preparation import (
+            build_native_preparation_service,
+        )
+
+        try:
+            plan = build_native_preparation_service(
+                cwd, service_profile=options.service_profile
+            ).plan()
+        except (OSError, RuntimeError, ValueError) as error:
+            raise InstallerError("Native host preparation inventory failed.") from error
+        if plan.failures:
+            raise InstallerError("Native host preflight failed: " + " ".join(plan.failures))
+        if plan.missing_packages:
+            raise InstallerError(
+                "Native host packages are missing: "
+                + ", ".join(plan.missing_packages)
+                + ". Run ./prepare_linux.sh separately, then retry ./install.sh."
+            )
+        if not _python_imports_available(sys.executable, env):
+            raise InstallerError(
+                "Native Python dependencies are missing. Run ./prepare_linux.sh separately, then retry ./install.sh."
+            )
+        _validate_native_installation_read_only(options, env, cwd, host_runtime)
+        if options.preflight_only or options.dry_run:
+            print("Native host, configuration, credentials and setup preflight passed without mutation.")
+            if options.dry_run:
+                print(
+                    "Dry run plan: validate configuration and credentials; reconcile the "
+                    f"{options.service_profile} profile; verify deployment health; "
+                    "print access targets. Managed state will not be reset."
+                )
+            return 0
+    elif options.preflight_only or options.dry_run:
+        raise InstallerError("Installer --preflight and --dry-run require native Linux.")
+    paths = _paths_from_env(env, cwd)
     authorize_project_filesystem(
         host_runtime,
         cwd,
         allow_wsl_windows_filesystem=options.allow_wsl_windows_filesystem,
         env=env,
     )
-    python_bin = ensure_python_environment(host_runtime, paths, env)
+    python_bin = sys.executable if options.native_reconcile else ensure_python_environment(host_runtime, paths, env)
     with _configuration_snapshot(options, env, cwd, host_runtime) as prepared_env:
         return _run_prepared(
             options, prepared_env, cwd, install_reporter,
             _paths_from_env(prepared_env, cwd), host_runtime, python_bin,
         )
+
+
+def _validate_native_installation_read_only(
+    options: InstallerOptions, env: Mapping[str, str], cwd: Path, host_runtime: HostRuntime,
+) -> None:
+    from tiny_swarm_world.infrastructure.adapters.repositories.installer_configuration_repository import InstallerConfigurationRepository
+    from tiny_swarm_world.domain.deployment import service_stack_contracts_for_profile
+
+    def absolute(value: str) -> Path:
+        path = Path(value).expanduser()
+        return path if path.is_absolute() else cwd / path
+
+    repository = absolute(env.get("TSW_REPOSITORY_ROOT", str(cwd)))
+    infra = absolute(env.get("TSW_INFRA_ROOT", str(repository / "infra")))
+    operator_file = _paths_from_env(env, cwd).secret_env_file
+    host_environment = (
+        host_runtime.environment_report.environment
+        if host_runtime.environment_report is not None
+        else HostEnvironmentKind.NATIVE_LINUX
+    )
+    try:
+        InstallerConfigurationRepository.validate_operator_source(operator_file, host_environment)
+        snapshot = InstallerConfigurationRepository(
+            repository_root=repository, infra_root=infra,
+            operator_env_file=operator_file, environment=env,
+            service_profile=options.service_profile,
+        ).load()
+        effective = dict(snapshot.environment)
+        resolutions = _resolve_internal_test_installer_values(effective, tuple(
+            InstallerSecretEntry(item.key, item.source, item.required, item.type)
+            for item in snapshot.manifest_entries
+            if item.required and item.source != "external_user_secret"
+        ))
+        effective.update(resolutions.values)
+        _normalize_infisical_login_email(effective)
+        _ensure_default_config_exports(effective)
+        _require_operator_provisioned_traefik_gui_users(effective, operator_file)
+        InstallerConfigurationRepository.validate_environment(
+            effective,
+            stack_names=tuple(item.stack_name for item in service_stack_contracts_for_profile(options.service_profile)),
+            include_setup=True,
+        )
+    except (ValueError, OSError, UnicodeError, OperationError, CredentialResolutionError) as error:
+        raise InstallerError("Native configuration or credential preflight failed.") from error
+    try:
+        result = _run_installer_subprocess(
+            (sys.executable, "-m", "tiny_swarm_world", "setup", "run", "--preflight", "--service-profile", options.service_profile),
+            env={**effective, "TSW_READ_ONLY_PREFLIGHT": "1"}, check=False, timeout_seconds=120.0,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        )
+    except (OSError, ValueError) as error:
+        raise InstallerError("Native setup preflight could not be launched.") from error
+    if result.returncode != 0:
+        raise InstallerError("Native setup preflight failed; run the setup preflight command for diagnostics.")
 
 
 def _run_prepared(
@@ -353,13 +449,18 @@ def _run_prepared(
             file=sys.stderr,
         )
 
-    run_id = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
-    evidence_dir = _installation_evidence_directory(
-        env,
-        cwd=cwd,
-        host_runtime=host_runtime,
-        run_id=run_id,
-    )
+    run_id = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
+    try:
+        evidence_dir = _installation_evidence_directory(
+            env,
+            cwd=cwd,
+            host_runtime=host_runtime,
+            run_id=run_id,
+        )
+    except (OSError, RuntimeError) as error:
+        raise InstallerError(
+            "Secure installation evidence directory is unavailable; ensure its operator-owned parent directories are mode 0700."
+        ) from error
     live_mode, approval_source, approval_argument = _live_approval(options)
     terminal_mode = "headless" if options.headless else "terminal_recorder"
     evidence_probes = _collect_evidence_probe_snapshot(cwd, git_probe)
@@ -378,6 +479,7 @@ def _run_prepared(
             env=install_env,
             git_probe=git_probe,
             evidence_probes=evidence_probes,
+            native_reconcile=options.native_reconcile,
         ),
     )
 
@@ -392,19 +494,24 @@ def _run_prepared(
             "RUNNING",
             "install",
             message=(
-                f"Mode: fresh-reset; Profile: {options.service_profile}; "
+                f"Mode: {'native-reconcile' if options.native_reconcile else 'fresh-reset'}; Profile: {options.service_profile}; "
                 f"Provider: {install_env.get('TSW_NODE_PROVIDER', 'lxc_native')}"
             ),
         )
     )
-    _confirm_reset(options)
+    if options.native_reconcile and options.confirm_reset:
+        raise InstallerError("Native install does not reset; use a separately confirmed platform reset.")
+    if not options.native_reconcile:
+        _confirm_reset(options)
     if not options.headless and shutil.which("script") is None:
         raise InstallerError("Required command 'script' is not available for terminal recording. Use --headless to capture logs directly.")
     _append_context(
         evidence_dir,
         {
-            "reset_confirmation_present": "yes",
-            "reset_confirmation_source": "explicit_flag" if options.confirm_reset else "interactive_prompt",
+            "reset_confirmation_present": "no" if options.native_reconcile else "yes",
+            "reset_confirmation_source": "not_applicable" if options.native_reconcile else (
+                "explicit_flag" if options.confirm_reset else "interactive_prompt"
+            ),
         },
     )
 
@@ -448,41 +555,44 @@ def _run_prepared(
         f"{_filesystem_override_argument(options)}",
     )
 
-    reset_exit = _run_phase(
-        "fresh-install reset",
-        reset_command,
-        evidence_dir / _RESET_RUN_LOG_FILE,
-        options,
-        install_env,
-        cwd,
-        install_reporter,
-        sequence=1,
-        total=2,
-    )
-    _write_text(evidence_dir / "reset-run.exit", f"{reset_exit}\n")
-    _append_context(evidence_dir, {"reset_exit": str(reset_exit)})
-    if reset_exit != 0:
-        install_reporter.report(
-            _phase_event(
-                "INSTALL_FINISHED",
-                "FAILED",
-                "install",
-                reason="Fresh-install reset failed. Setup was not started.",
-                evidence_path=evidence_dir,
+    if options.native_reconcile:
+        _append_context(evidence_dir, {"reset_skipped_for_native_reconcile": "yes"})
+    else:
+        reset_exit = _run_phase(
+            "fresh-install reset",
+            reset_command,
+            evidence_dir / _RESET_RUN_LOG_FILE,
+            options,
+            install_env,
+            cwd,
+            install_reporter,
+            sequence=1,
+            total=2,
+        )
+        _write_text(evidence_dir / "reset-run.exit", f"{reset_exit}\n")
+        _append_context(evidence_dir, {"reset_exit": str(reset_exit)})
+        if reset_exit != 0:
+            install_reporter.report(
+                _phase_event(
+                    "INSTALL_FINISHED",
+                    "FAILED",
+                    "install",
+                    reason="Fresh-install reset failed. Setup was not started.",
+                    evidence_path=evidence_dir,
+                )
             )
-        )
-        print(f"Fresh-install reset failed with exit code {reset_exit}. Setup will not start.", file=sys.stderr)
-        print(f"Evidence directory: {evidence_dir.as_posix()}", file=sys.stderr)
-        _append_context(
-            evidence_dir,
-            {
-                "setup_skipped_due_to_reset_failure": "yes",
-                "finished_utc": _utc_timestamp(),
-            },
-        )
-        _print_tail(evidence_dir / _RESET_RUN_LOG_FILE, "Last reset log lines")
-        _print_reset_failure_guidance(evidence_dir / _RESET_RUN_LOG_FILE)
-        return reset_exit
+            print(f"Fresh-install reset failed with exit code {reset_exit}. Setup will not start.", file=sys.stderr)
+            print(f"Evidence directory: {evidence_dir.as_posix()}", file=sys.stderr)
+            _append_context(
+                evidence_dir,
+                {
+                    "setup_skipped_due_to_reset_failure": "yes",
+                    "finished_utc": _utc_timestamp(),
+                },
+            )
+            _print_tail(evidence_dir / _RESET_RUN_LOG_FILE, "Last reset log lines")
+            _print_reset_failure_guidance(evidence_dir / _RESET_RUN_LOG_FILE)
+            return reset_exit
 
     setup_exit = _run_phase(
         "live setup",
@@ -492,8 +602,8 @@ def _run_prepared(
         install_env,
         cwd,
         install_reporter,
-        sequence=2,
-        total=2,
+        sequence=1 if options.native_reconcile else 2,
+        total=1 if options.native_reconcile else 2,
     )
     _write_text(evidence_dir / "setup-run.exit", f"{setup_exit}\n")
     _append_context(
@@ -1354,7 +1464,7 @@ def _write_context(
         "git_branch": context.evidence_probes.git_branch,
         "git_head": context.evidence_probes.git_head,
         "service_profile": context.service_profile,
-        "fresh_install_reset": "required",
+        "fresh_install_reset": "skipped" if context.native_reconcile else "required",
         "secret_env_file": context.secret_env_file.as_posix(),
         "checked_secret_keys": ",".join(context.checked_secret_keys),
         "credential_sources": _safe_credential_source_metadata(context.env),
@@ -1518,7 +1628,11 @@ def _print_install_plan(
                 "",
                 "This will run live infrastructure automation. It may create or change VMs,",
                 "Docker resources, local service state, networks, and deployment artifacts.",
-                "Fresh install starts by resetting configured Tiny Swarm World managed state.",
+                (
+                    "Native installation reconciles managed state without a reset."
+                    if options.native_reconcile
+                    else "Fresh install starts by resetting configured Tiny Swarm World managed state."
+                ),
             )
         )
     )

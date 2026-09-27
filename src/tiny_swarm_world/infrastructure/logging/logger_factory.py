@@ -1,4 +1,5 @@
 import logging
+import os
 from pathlib import Path
 
 from tiny_swarm_world.infrastructure.project_paths import ProjectPaths, default_project_paths
@@ -28,6 +29,8 @@ class LoggerFactory:
         paths = project_paths or default_project_paths()
         log_path = Path(log_dir) if log_dir is not None else paths.logs_root
         class_name = cls.__name__ if isinstance(cls, type) else str(cls)
+        if os.environ.get("TSW_READ_ONLY_PREFLIGHT") == "1":
+            return logging.Logger(f"{class_name}.read_only")
         log_file = log_path / f"{class_name}.log"
 
         # Ensure the log directory exists

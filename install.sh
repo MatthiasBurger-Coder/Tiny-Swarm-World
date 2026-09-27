@@ -29,4 +29,5 @@ cd "$SCRIPT_DIR"
 command -v python3 >/dev/null 2>&1 || fail "Required command 'python3' is not available."
 
 export PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}src"
+export PYTHONDONTWRITEBYTECODE=1
 exec python3 -m "$installer_module" "$@"

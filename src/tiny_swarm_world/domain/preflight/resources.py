@@ -53,7 +53,7 @@ def default_resource_profiles() -> dict[str, ResourceProfile]:
     return {
         "service-access": ResourceProfile(
             "service-access",
-            ResourceRequirements(8, 16 * 1024**3, 150 * 1024**3),
+            ResourceRequirements(8, 20 * 1024**3, 150 * 1024**3),
             ResourceRequirements(12, 24 * 1024**3, 250 * 1024**3),
         ),
         "default": ResourceProfile(

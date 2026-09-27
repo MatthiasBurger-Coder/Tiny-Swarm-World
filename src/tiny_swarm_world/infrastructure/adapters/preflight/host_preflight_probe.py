@@ -4,6 +4,7 @@ from tiny_swarm_world.application.ports.preflight.port_host_preflight_probe impo
 from tiny_swarm_world.application.ports.operation_result import OperationError, OperationFailure
 
 import hashlib
+import json
 import os
 import platform
 import re
@@ -18,7 +19,7 @@ from pathlib import Path
 
 from tiny_swarm_world.application.ports.host import PortHostEnvironmentDetector
 from tiny_swarm_world.application.ports.preflight import PortHostPreflightProbe
-from tiny_swarm_world.domain.host_environment import HostEnvironmentReport
+from tiny_swarm_world.domain.host_environment import HostEnvironmentKind, HostEnvironmentReport
 from tiny_swarm_world.domain.preflight import WindowsWslBridgeStatus
 from tiny_swarm_world.infrastructure.adapters.host import HostEnvironmentDetector
 from tiny_swarm_world.infrastructure.adapters.preflight.windows_wsl_bridge_state import (
@@ -152,7 +153,46 @@ class HostPreflightProbe(PortHostPreflightProbe):
         return True
 
     def port_matches_expected_service(self, port: int, service: str) -> bool:
-        return self.service_probe_registry.matches(port, service)
+        return self.service_probe_registry.matches(port, service) or self._managed_native_incus_proxy_owns_port(port)
+
+    def _managed_native_incus_proxy_owns_port(self, port: int) -> bool:
+        try:
+            if self.host_environment_report().environment is not HostEnvironmentKind.NATIVE_LINUX:
+                return False
+            manager = self.process_runner.run_text(
+                ("incus", "list", "swarm-manager", "--format", "json"),
+                check=False,
+                timeout=5.0,
+            )
+            if manager.returncode != 0:
+                return False
+            nodes = json.loads(manager.stdout)
+            if not isinstance(nodes, list) or not any(
+                isinstance(node, dict)
+                and node.get("name") == "swarm-manager"
+                and node.get("status") == "Running"
+                and "docker-swarm-manager" in node.get("profiles", [])
+                for node in nodes
+            ):
+                return False
+            device = f"tsw-proxy-{port}"
+            values: list[str] = []
+            for key in ("type", "listen", "connect"):
+                result = self.process_runner.run_text(
+                    ("incus", "profile", "device", "get", "docker-swarm-manager", device, key),
+                    check=False,
+                    timeout=5.0,
+                )
+                if result.returncode != 0:
+                    return False
+                values.append(result.stdout.strip())
+            return (
+                values[0] == "proxy"
+                and values[1] in {f"tcp:0.0.0.0:{port}", f"tcp:127.0.0.1:{port}"}
+                and bool(re.fullmatch(rf"tcp:[^:]+:{port}", values[2]))
+            )
+        except (ProcessLaunchError, ProcessTimeoutError, ValueError, TypeError, OSError):
+            return False
 
     def secret_available(self, name: str) -> bool:
         return bool(os.environ.get(name))

@@ -69,12 +69,29 @@ evidence is never a pass. A failure after mutation blocks completion until it
 is repaired or handled under the repository blocker policy.
 
 For installation-relevant pull requests, installation and browser-verification
-applicability must always be classified. The canonical full live-install
-command remains:
+applicability must always be classified. The existing canonical WSL2 reset
+live-install command remains:
 
 ```bash
 ./install.sh --headless --confirm-reset --non-interactive-live-approval
 ```
+
+On qualified native Ubuntu 24.04 or 26.04, host preparation is a separate operator
+step. The native live-install command omits the destructive reset flag:
+
+```bash
+./prepare_linux.sh --preflight
+./prepare_linux.sh
+./install.sh --headless --non-interactive-live-approval
+```
+
+For issue #427, the operator's 2026-09-27 amendment makes a clean Ubuntu 26.04
+first installation, a safe second run and interruption recovery the required
+live scenarios. Ubuntu 24.04 remains a supported host path with local tests,
+but its live result is tracked separately. Reconciliation of an existing
+platform is `LIVE_VERIFIED` only for that specific scenario; it is not clean
+installation evidence. Use an isolated clean host or a verified pre-install
+snapshot for the clean scenario, and record each result separately.
 
 It is opt-in and must never be executed automatically merely because a change
 touches an installation-related file. When authorized, the evidence must be

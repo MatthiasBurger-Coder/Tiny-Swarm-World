@@ -1,0 +1,94 @@
+= ADR: Native Linux Preparation and Installation Lifecycle
+
+*Date:* 2026-09-27
+*Status:* Accepted and qualified for the amended Issue #427 Ubuntu 26.04 clean-install, safe-rerun and recovery scenarios on 2026-09-27. Ubuntu 24.04 live release qualification remains separate.
+*Decision makers:* Tiny Swarm World lead architect, with the four Issue #427 Three Amigos perspectives and the operator's separate-preparation instruction.
+
+== Context
+
+Issue #427 originally named Ubuntu 24.04 for the live test. The operator's
+2026-09-27 amendment requires a reproducible native Ubuntu 26.04 clean
+installation with safe reruns. The earlier `install.sh` performed a confirmed reset before setup and could
+create a Python environment before setup preflight. The autonomous-setup and
+LXC-provider ADRs defer host package installation until ownership, permissions,
+consent and recovery are decided. Docker Engine and Swarm for the default
+Incus/LXC profile belong inside managed nodes, not on the host.
+
+== Decision
+
+The operator runs `./prepare_linux.sh` separately before `./install.sh`.
+`install.sh` never invokes preparation or a host package manager. It checks the
+host prerequisites and gives a `./prepare_linux.sh` remediation when they are
+missing. Direct remote pipe-to-shell bootstrap is not a supported entry point.
+
+`prepare_linux.sh` is a thin repository-local entry point for a Python
+application service. Qualification and package planning are read-only and run
+before mutation. The initial mutating preparation target is native Ubuntu
+24.04 or 26.04 LTS on x86_64. WSL, other releases and other architectures fail closed;
+support for them needs separate verification. Python 3.12 is a prerequisite to
+running the repository-local preparation entry point. A missing interpreter is
+reported with a manual operator remedy before any mutation.
+
+The preparation service depends on ports for host inspection, package inventory
+and package installation. The Ubuntu APT adapter owns package-manager commands.
+The preparation preflight applies the selected profile's setup resource floor
+before APT: `service-access` requires eight CPU threads, 20 GiB RAM and 150
+GiB free disk; `default` requires four CPU threads, 16 GiB RAM and 60 GiB free
+disk. Only verified host dependencies of the selected profile may be installed. The
+default Incus/LXC profile may prepare Incus and bootstrap tools; it does not
+install host Docker Engine or Compose. Docker inside managed nodes remains the
+existing provider workflow's responsibility. The service records the exact
+package plan and packages newly observed as installed after the attempt. Already installed packages are left
+untouched. It does not upgrade the host wholesale or add external package
+repositories silently.
+
+`--preflight` and `--dry-run` perform no host mutation, including Python
+environment creation, package index updates, or evidence writes to protected
+runtime state. Mutating preparation requires explicit consent for that
+invocation after the complete read-only preflight and planned package list are
+shown. It uses the minimum privilege needed for APT. It does not silently
+change Incus daemon configuration, groups, firewall, bridges, kernel controls,
+Docker state or unrelated services.
+
+On native Linux, the default `install.sh` lifecycle must reconcile without a
+fresh reset. A deliberate reset remains an explicit, confirmed operation.
+The existing WSL reset-oriented behavior stays in place until a separately
+reviewed migration; native and WSL behavior must be distinguished in the CLI
+and documentation. Repeated native runs preserve existing credentials,
+configuration and healthy deployments. An interrupted run rechecks observed
+state before continuing and never treats an attempted mutation as verified.
+
+Package installation is not transactional. On failure, the evidence names the
+stage, newly observed additions and uncertain effects, returns nonzero and gives a
+manual recovery path. No automatic package removal or rollback is attempted,
+because other applications may depend on those packages. Installer-owned
+configuration writes are atomic. Evidence uses redacted, owner-only local
+storage and never includes secret values or raw command output.
+
+== Supersession Scope
+
+This ADR supersedes only the host-package exclusion in
+`adr-autonomous-setup-safety.adoc` and
+`adr-lxc-native-node-provider.adoc` for the qualified, separately consented
+preparation path above. It supersedes the description of `install.sh` as a
+destructive reset in `adr-classic-update-contract.adoc` for native Linux only.
+All other consent, provider, update, WSL and evidence safeguards remain in force.
+
+== Consequences
+
+Implementation needs a native qualification policy, application service,
+package port and APT adapter, thin shell entry point, installer mode branch,
+tests and operator documentation. APT changes remain outside `install.sh`.
+Manual recovery is required after partial package operations. The previous
+reset wrapper tests and documentation need migration without weakening WSL
+guards.
+
+Local tests must cover unsupported hosts, both allowed releases, every preflight blocker, no-write
+modes, package no-op and partial failure, consent, redaction, healthy reruns and
+interruption. `python3 tools/quality_gate.py quality` is the local gate. Native
+Ubuntu 26.04 first-install, second-run and interruption-recovery evidence is
+the Issue #427 live acceptance criterion. Ubuntu 24.04 remains in the host
+allowlist and local regression matrix; live qualification for that release is
+a separate future result. A reconcile run on an already populated 26.04 host
+cannot establish a clean first installation. The managed Incus node image
+remains Ubuntu 24.04 and is a separate decision from host release.

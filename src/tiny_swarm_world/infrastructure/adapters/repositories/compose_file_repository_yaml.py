@@ -1,6 +1,7 @@
 from tiny_swarm_world.application.ports.repositories.port_repository_failure import RepositoryConfigurationError, RepositoryStorageError, RepositoryNotFoundError
 from tiny_swarm_world.application.ports.operation_result import OperationError, OperationFailure
 import hashlib
+import logging
 import os
 import re
 from collections.abc import Mapping
@@ -77,6 +78,7 @@ class ComposeFileRepositoryYaml(
         service_profile: ServiceStackProfile | str = ServiceStackProfile.SERVICE_ACCESS,
         image_contracts: tuple[ContainerImageContract, ...] | None = None,
         environment: Mapping[str, str] | None = None,
+        write_logs: bool = True,
     ):
         paths = project_paths or default_project_paths()
         self.project_paths = paths
@@ -93,7 +95,7 @@ class ComposeFileRepositoryYaml(
             self.environment,
         )
         self.enabled_service_names = _enabled_service_names(paths.config_root / "services.yml")
-        self.logger = LoggerFactory.get_logger(self.__class__)
+        self.logger = LoggerFactory.get_logger(self.__class__) if write_logs else logging.Logger("ComposeFileRepositoryYaml.read_only")
         self._validated_stacks: dict[str, StackDefinition] = {}
         self._validated_services: dict[str, tuple[ComposeServiceDefinition, ...]] = {}
 

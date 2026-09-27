@@ -390,7 +390,7 @@ class TestComposition(unittest.TestCase):
         )
 
         self.assertEqual(8, configuration.resources.minimum_cpu_count)
-        self.assertEqual(16 * 1024**3, configuration.resources.minimum_memory_bytes)
+        self.assertEqual(20 * 1024**3, configuration.resources.minimum_memory_bytes)
 
     def test_relative_xdg_state_home_does_not_block_preflight_construction(self):
         with patch.dict(os.environ, {"XDG_STATE_HOME": "relative/state"}, clear=False):
