@@ -1,0 +1,69 @@
+= ADR: Mutating Operation Retry and Recovery Semantics
+
+== Status
+
+Accepted for local implementation in ARCH-03.13. Live recovery qualification remains open.
+
+== Context
+
+Classic setup mutates shared Swarm networks, immutable secrets and service
+stacks. A transport timeout or failed inspection can occur after a command has
+already changed state. A stack name being present after an apply error does not
+prove that the attempted update was accepted. Blind retry or automatic deletion
+can duplicate changes or remove resources owned by another service. The
+Classic image update already has a protected recovery plan and observed
+convergence check.
+
+== Decision
+
+Mutation retries are operator initiated after read-only inspection of the
+target. Verification reads may use their existing bounded retry budgets.
+Validation, ownership and contract failures require correction before retry.
+An ambiguous mutation result remains failed or unresolved; name presence does
+not turn an apply error into success. When a resource inspection fails, a
+successful name inventory must prove absence before creation. A conflicting
+or unavailable inventory blocks creation.
+
+Existing same-name networks and secrets are reused according to their current
+contracts. Presence alone does not prove compatible network properties or
+secret value equality. Those mismatches require separate repair or rotation.
+Workflow results retain completed verification evidence and the failing
+target. Command completion, registration, service convergence and readiness
+are distinct levels of verification.
+
+Automatic compensation is limited to resources for which ownership and safe
+restoration can be proved. Shared networks, generic external secrets, stacks
+and volumes are not automatically removed on failure. The owner-labeled
+Traefik TLS secret pair has a specific created-ID cleanup path. An existing
+partial pair blocks for operator inspection even if owner labels match, since
+ownership alone cannot prove that no service consumes the orphan. Failed
+post-create cleanup is reported without erasing the original
+failure. Its inline cleanup after second-key creation failure remains best
+effort and is documented as a limit. For the supported Classic
+single-service image transition, explicit `platform recover` uses the saved
+source plan and reports success only after observed source convergence. It
+does not restore persistent service data or committed configuration.
+
+== Rejected alternatives
+
+* Blind retry after a timeout: the first attempt may already have mutated the
+  target.
+* Treating stack registration as proof of a timed-out update: registration may
+  describe the earlier version.
+* Automatic removal of shared resources: ownership and dependent consumers
+  cannot be established by the current ports.
+* Treating every failed inspect as resource absence: the daemon or transport
+  may be unavailable.
+
+== Consequences
+
+The operator may need to inspect and repair a failed target before rerunning.
+This is intentional until an equivalent safe state comparison is available.
+Tests cover repeat-run no-ops, ambiguous apply failures, failed observation,
+partial workflow evidence and existing Classic update recovery. Live network,
+secret and stack behavior requires separate operator consent for live checks.
+The detailed operation matrix lives in
+`documentation/system/idempotency-recovery.adoc`. The operation-result model
+introduced by ARCH-03.12 reports typed outcomes alongside existing workflow
+statuses and verification results; it does not change this policy or the
+existing live-consent boundary.

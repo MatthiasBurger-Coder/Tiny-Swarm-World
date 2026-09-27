@@ -56,8 +56,10 @@ class SwarmRuntimeError(OperationError, RuntimeError):
         allowed_details = {
             "", "Existing Traefik TLS secrets are not a verified owned pair.",
             "Partial Traefik TLS secret state is not verified as TSW-owned.",
+            "Partial Traefik TLS secret pair requires operator recovery.",
             "Traefik TLS secret-pair reconciliation could not be verified.",
             "Traefik TLS secret-pair ownership could not be verified.",
+            "Traefik TLS reconciliation failed and cleanup could not be confirmed.",
             "Created Traefik TLS secret identifiers could not be verified.",
         }
         if detail not in allowed_details:

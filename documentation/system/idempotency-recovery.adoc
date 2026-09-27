@@ -1,0 +1,143 @@
+= Idempotency and recovery contract (ARCH-03.13)
+
+This contract describes the implemented Classic Docker Swarm paths. A rerun is
+permitted only after the operator inspects the failed target and confirms its
+current state. Live mutation still requires the existing consent path. Local
+tests do not establish live recovery.
+
+== Common rules
+
+* Validation, authorization, missing input, unsupported configuration and
+  ownership mismatches are non-retryable until corrected. An interrupted or
+  timed-out mutation has an unknown effect; it is not automatically retried.
+* Read-only observation may be retried within the existing bounded verification
+  attempts. A failed observation cannot be interpreted as an absent resource.
+* A mutation is successful only to the level established by its documented
+  verification. Docker stack command completion establishes command acceptance,
+  not service convergence or readiness.
+  `executed=true` means a command was attempted, not that the effect is known.
+  Earlier verified steps remain visible in workflow verification results when a
+  later step fails. The failed target and its effect remain unresolved until
+  observed again.
+* Generic recovery never deletes a shared network, an external Swarm secret,
+  a stack, or its persistent volumes as automatic compensation. The owned
+  Traefik TLS pair is a narrow exception described below. Post-create cleanup
+  failure is reported alongside the original error.
+
+== Operation matrix
+
+[cols="2,3,3,3,3,3",options="header"]
+|===
+|Operation |Mutation |Failure condition and observed state |Retryability |Rollback |Idempotency
+
+|External overlay network prerequisite
+|Inspect by name, then create an attachable overlay network if absent.
+|When inspect fails, a successful name inventory must establish absence before
+create. An unavailable inventory or conflicting same-name entry blocks apply.
+Create failure stops stack apply; a timeout can leave existence unknown. The adapter does not validate
+the driver or ownership of an existing same-name network.
+|No automatic mutation retry. Inspect the network and its properties before an
+operator rerun. Repair an incompatible existing network separately.
+|No automatic removal: the network may be shared or have attached services.
+|A repeat invocation skips creation when inspect succeeds. Concurrent creators
+can race; a create error remains a failure until observed.
+
+|External Swarm secret
+|Inspect by name, then create from stdin if absent.
+|When inspect fails, a successful name inventory must establish absence before
+create. An unavailable inventory or conflicting same-name entry blocks apply.
+Create failure propagates; existence after a timeout is unknown. Existing
+secret contents cannot be read back through this adapter.
+|No automatic create retry. Check the name after failure; resolve conflicting
+or stale values through an explicit rotation procedure.
+|No automatic removal or value rollback. Deletion can break consumers.
+|A repeat invocation skips creation when the name exists; this proves only
+name presence, not value equality.
+
+|Infisical managed secret synchronization and item seeding
+|Create or update manifest entries; seed missing named items.
+|A failure stops the sequence. Prior entries may have changed; the successful
+snapshot is withheld until all entries complete. Result rows identify completed
+entries without storing secret values.
+|Rerun after read-only inspection and correction. A failed write with unknown
+effect is checked again by name before an operator rerun; no blind automatic
+write retry.
+|No automatic reversal of secrets: prior values may be unknown, and deleting
+entries could break consumers.
+|Existing entries follow their manifest policy; missing item seeds are created
+once when inventory succeeds. `keep_existing` does not rotate a value.
+
+|Owned Traefik TLS secret pair
+|Reconcile two owner-labeled, fingerprinted certificate/key secrets.
+|A partial pair blocks for operator inspection even when its owner label matches;
+the existing secret may be consumed. A mismatched pair also blocks. A failed
+creation or post-create ownership check leaves a failed
+result; cleanup can itself fail.
+|No blind retry after an ambiguous create. Reinspect both labels and consumer
+state before an operator rerun.
+|The pair reconciler does not remove a pre-existing orphan. It attempts to
+remove only IDs created by that invocation on failure. Failed post-create cleanup
+is reported separately. Inline cleanup after second-key creation failure is
+best effort and remains an unresolved observability limit.
+|An existing verified pair is reused. A partial pair requires operator recovery;
+a foreign pair is never replaced.
+
+|Portainer service-stack apply and Docker stack deploy
+|Ensure prerequisites, submit create/update or deploy, then verify registration
+and, where configured, separate service readiness.
+|A failed apply remains failed even if a stack name exists: an earlier version
+may already be registered. A failed prerequisite stops before stack apply.
+Workflow results retain prior verified targets and the failed target. A Docker
+deploy command success is distinct from service readiness.
+|Read-only verification is bounded. No automatic retry of create/update/deploy
+after timeout or an ambiguous effect. Reconcile desired input against observed
+stack and services before explicit rerun.
+|No automatic stack removal or volume rollback. For the supported Classic
+single-service image update, use explicit `platform recover` with its saved
+source plan and live consent; success requires observed source convergence.
+|Create/update chooses by observed stack identity. Repeated Docker stack deploy
+targets the same stack, but a no-op claim requires verification of the desired
+service state; registration alone is insufficient.
+
+|Configuration and Classic image update
+|Configuration sources and Compose definitions are read and validated before
+apply. Classic update stores a recovery plan, applies an image transition and
+observes runtime convergence. The per-invocation image override does not edit
+committed configuration.
+|Invalid or unavailable configuration blocks before mutation. A failed apply
+or failed convergence retains recovery state and reports a non-success result.
+|Fix invalid input before rerun. For a failed/unknown image transition, inspect
+the service and use the explicit recovery path; never blindly retry a second
+transition.
+|`platform recover` targets the original source image, preserves the original
+recovery plan across retries, and reports success only after convergence. It is
+not a backup or restore of service data.
+|An already converged target is an observed no-op. Repeated successful recovery
+does not reverse the original plan again. Configuration reads have no mutation.
+|===
+
+== Failure classification and operator sequence
+
+`retryable` means a read-only observation may be repeated within its bounded
+budget, or an operator may explicitly rerun a mutation after state inspection.
+It never authorizes a blind automatic mutation retry. Missing/invalid input,
+unsafe ownership, contradictory observed state and permanent rejection require
+repair. Transport timeout or interrupted response leaves the mutation effect
+unknown. A failed verification is distinct from a failed apply.
+The LXC shell gateway requires explicit `retry_safe=True` for its bounded
+transient transport retry; mutating callers use the default of no transport
+retry. A transient Incus child-PID failure does not prove the script had no
+effect.
+
+After any failed mutation, retain the workflow result and verification evidence,
+inspect the target read-only, compare it with the desired input, and choose an
+explicit rerun or supported recovery. Where observation is unavailable, stop
+and report the unresolved state. Do not label a compensation attempt as rollback
+success without an observed restoration. Secrets and private diagnostic data
+must remain out of logs and evidence.
+
+The shared operation-result contract from issue #355 is present in the
+deployment workflow. It reports a typed outcome and failure alongside the
+existing workflow status and verification results. These records preserve
+known completed and failed steps; they cannot prove every low-level side
+effect of a timed-out command.

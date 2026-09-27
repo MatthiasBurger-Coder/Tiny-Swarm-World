@@ -124,7 +124,10 @@ class TestLxcSwarmRuntime(unittest.TestCase):
             portainer_admin_password=operator_credential(),
         )
 
-        with patch.object(runtime, "_run_manager_shell") as run_manager_shell:
+        def manager_shell(script, **kwargs):
+            return subprocess.CompletedProcess([], 1 if "secret inspect" in script else 0, stdout="")
+
+        with patch.object(runtime, "_run_manager_shell", side_effect=manager_shell) as run_manager_shell:
             runtime.deploy_stack(
                 StackDefinition(name="portainer", compose_content="services: {}")
             )
@@ -461,7 +464,7 @@ networks:
         with patch.object(
             runtime,
             "_run_manager_shell",
-            side_effect=(inspect_missing, success, success, success),
+            side_effect=(inspect_missing, success, success, success, success),
         ) as run_manager_shell:
             with patch.object(runtime, "_transfer_stack_assets"):
                 runtime.deploy_stack(StackDefinition(name="service-access", compose_content=compose))
@@ -475,6 +478,7 @@ networks:
             "docker network create --driver overlay --attachable -- service_access_link >/dev/null",
             scripts,
         )
+        self.assertIn("docker network ls --format '{{.Name}}'", scripts)
 
     def test_external_overlay_network_names_uses_explicit_shared_name(self):
         compose = """
@@ -701,7 +705,7 @@ networks:
         self.assertIn("TSW_NEXUS_ADMIN_PASSWORD=***", text)
         self.assertIn("authParams=token:***", text)
 
-    def test_run_manager_shell_retries_transient_incus_child_pid_failure(self):
+    def test_run_manager_shell_does_not_retry_mutating_incus_child_pid_failure(self):
         runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.INCUS)
         transient_failure = subprocess.CompletedProcess(
             [],
@@ -709,22 +713,18 @@ networks:
             stdout="",
             stderr="Error: Failed to retrieve PID of executing child process",
         )
-        success = subprocess.CompletedProcess([], 0, stdout="ok", stderr="")
-
         with patch(
             "tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime.time.sleep"
         ) as sleep:
             with patch(
                 "tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime.subprocess.run",
-                side_effect=(transient_failure, success),
+                return_value=transient_failure,
             ) as run:
-                result = runtime._run_manager_shell("docker stack deploy test")
+                with self.assertRaisesRegex(RuntimeError, "exit code 255"):
+                    runtime._run_manager_shell("docker stack deploy test")
 
-        self.assertEqual(success.returncode, result.returncode)
-        self.assertEqual(success.stdout, result.stdout)
-        self.assertEqual(success.stderr, result.stderr)
-        self.assertEqual(run.call_count, 2)
-        sleep.assert_called_once_with(0.5)
+        run.assert_called_once()
+        sleep.assert_not_called()
 
     def test_external_secret_exists_inspects_secret_with_option_boundary(self):
         runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.LXD)
@@ -1275,6 +1275,7 @@ networks:
             side_effect=(
                 subprocess.CompletedProcess([], 1),
                 subprocess.CompletedProcess([], 0),
+                subprocess.CompletedProcess([], 0),
             ),
         ) as run_manager_shell:
             with patch.object(client, "_client", return_value=delegate):
@@ -1285,6 +1286,7 @@ networks:
             scripts,
             [
                 "docker network inspect -- service_access_link >/dev/null 2>&1",
+                "docker network ls --format '{{.Name}}'",
                 "docker network create --driver overlay --attachable -- service_access_link >/dev/null",
             ],
         )
@@ -1353,6 +1355,7 @@ networks:
             side_effect=(
                 subprocess.CompletedProcess([], 1),
                 subprocess.CompletedProcess([], 0),
+                subprocess.CompletedProcess([], 0),
             ),
         ) as run_manager_shell:
             with patch.object(client, "_client", return_value=delegate):
@@ -1369,6 +1372,7 @@ networks:
             scripts,
             [
                 "docker network inspect -- service_access_link >/dev/null 2>&1",
+                "docker network ls --format '{{.Name}}'",
                 "docker network create --driver overlay --attachable -- service_access_link >/dev/null",
             ],
         )

@@ -178,6 +178,9 @@ the reset prelude before it invokes setup.
 === Artifact And Deployment Workflow Contract Flow
 
 The current artifact and deployment runtime flow is deliberately fail-closed:
+The mutation, retry, rollback and repeat-run rules for network prerequisites,
+secrets, stack deployment and Classic updates are recorded in
+link:../system/idempotency-recovery.adoc[the idempotency and recovery contract].
 
 For the setup orchestrator, the artifact-specific sequence is:
 

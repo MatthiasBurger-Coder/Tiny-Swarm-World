@@ -128,6 +128,12 @@ class LxcPortainerHttpClient(PortPortainerClient, PortDeploymentGateway):
             )
             if result.returncode == 0:
                 continue
+            inventory = self._run_manager_shell(
+                "docker network ls --format '{{.Name}}'",
+                check=False,
+            )
+            if inventory.returncode != 0 or network_name in (inventory.stdout or "").splitlines():
+                raise RuntimeError("External overlay network state could not be established.")
             self._run_manager_shell(
                 "docker network create --driver overlay --attachable -- "
                 f"{shlex.quote(network_name)} >/dev/null"

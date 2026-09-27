@@ -65,8 +65,8 @@ class TestStackPrerequisiteRegistry(unittest.TestCase):
         self.assertEqual(len(model.reconciliation_scripts), 0)
         resolver.resolve.assert_called_once_with()
 
-    def test_traefik_tls_reconciliation_recovers_each_partial_pair_state(self):
-        for initial_state, orphan_name in (({"cert"}, "cert"), ({"key"}, "key")):
+    def test_traefik_tls_reconciliation_blocks_each_partial_pair_state(self):
+        for initial_state in ({"cert"}, {"key"}):
             with self.subTest(initial_state=initial_state):
                 state = set(initial_state)
                 resolver = _FakeTlsResolver()
@@ -74,19 +74,16 @@ class TestStackPrerequisiteRegistry(unittest.TestCase):
 
                 model = _SecretCommandModel(state)
 
-                StackPrerequisiteRegistry().ensure_traefik_tls_secrets(
-                    "cert",
-                    "key",
-                    external_secret_exists=lambda name: name in state,
-                    run_manager_shell=model,
-                    tls_contract_resolver=resolver,
-                )
+                with self.assertRaisesRegex(RuntimeError, "requires operator recovery"):
+                    StackPrerequisiteRegistry().ensure_traefik_tls_secrets(
+                        "cert", "key",
+                        external_secret_exists=lambda name: name in state,
+                        run_manager_shell=model,
+                        tls_contract_resolver=resolver,
+                    )
 
-                self.assertEqual(state, {"cert", "key"})
-                self.assertIn(
-                    f"docker secret rm -- {orphan_name}",
-                    model.reconciliation_scripts[0],
-                )
+                self.assertEqual(state, initial_state)
+                self.assertEqual(model.reconciliation_scripts, [])
 
     def test_traefik_tls_second_create_failure_rolls_back_and_retry_converges(self):
         state: set[str] = set()
@@ -142,6 +139,11 @@ class TestStackPrerequisiteRegistry(unittest.TestCase):
                 run_manager_shell=_SecretCommandModel({"cert", "key"}, owned=False),
                 tls_contract_resolver=resolver,
             )
+        with self.assertRaisesRegex(ValueError, "distinct"):
+            StackPrerequisiteRegistry().ensure_traefik_tls_secrets(
+                "same", "same", external_secret_exists=lambda _name: False,
+                run_manager_shell=Mock(), tls_contract_resolver=resolver,
+            )
 
     def test_post_create_existence_failure_rolls_back_and_retry_converges(self):
         state: set[str] = set()
@@ -182,11 +184,26 @@ class TestStackPrerequisiteRegistry(unittest.TestCase):
             run_manager_shell=model, tls_contract_resolver=resolver,
         )
         self.assertEqual(state, {"cert", "key"})
-        with self.assertRaisesRegex(ValueError, "distinct"):
+
+    def test_failed_post_create_cleanup_reports_both_failures(self):
+        state: set[str] = set()
+        model = _SecretCommandModel(state, hide_post_create_once=True)
+        resolver = _FakeTlsResolver()
+        self.addCleanup(resolver.close)
+
+        def failed_cleanup(script: str, **kwargs: object) -> subprocess.CompletedProcess[str]:
+            if script.startswith("docker secret rm -- idcert idkey"):
+                return subprocess.CompletedProcess([], 1)
+            return model(script, **kwargs)
+
+        with self.assertRaisesRegex(RuntimeError, "cleanup could not be confirmed") as raised:
             StackPrerequisiteRegistry().ensure_traefik_tls_secrets(
-                "same", "same", external_secret_exists=lambda _name: False,
-                run_manager_shell=Mock(), tls_contract_resolver=resolver,
+                "cert", "key", external_secret_exists=model.exists,
+                run_manager_shell=failed_cleanup, tls_contract_resolver=resolver,
             )
+
+        self.assertIsInstance(raised.exception.__cause__, RuntimeError)
+        self.assertIn("reconciliation could not be verified", str(raised.exception.__cause__))
 
 
 class _FakeTlsResolver:

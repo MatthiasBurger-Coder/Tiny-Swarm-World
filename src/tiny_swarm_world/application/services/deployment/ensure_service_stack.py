@@ -42,7 +42,6 @@ class EnsureServiceStack:
         self.deployment_target_id = service_stack.stack_target_id
         self.verification_target_id = service_stack.stack_target_id
         self.logger = logging.getLogger(self.__class__.__name__)
-        self._registration_snapshot: VerificationResult | None = None
 
     def prepare_configuration(self) -> None:
         """Retain validated static input before any workflow mutation."""
@@ -54,30 +53,20 @@ class EnsureServiceStack:
 
     async def run(self) -> None:
         await asyncio.sleep(0)
-        self._registration_snapshot = None
         self.prepare_configuration()
         assert self._prepared_stack is not None
         stack_definition = self._prepared_stack
         self.logger.info("Applying deployment stack '%s'.", stack_definition.name)
-        try:
-            self.deployment_gateway.apply_stack(
-                DeploymentStackRequest(
-                    target_stack=self.service_stack.stack_name,
-                    stack_definition=stack_definition,
-                    stack_environment=self.stack_environment,
-                )
+        self.deployment_gateway.apply_stack(
+            DeploymentStackRequest(
+                target_stack=self.service_stack.stack_name,
+                stack_definition=stack_definition,
+                stack_environment=self.stack_environment,
             )
-        except Exception:
-            if not await self._stack_is_registered_after_apply_error():
-                raise
+        )
 
     async def verify(self) -> VerificationResult:
         self.operation_failure: OperationFailure | None = None
-        if self._registration_snapshot is not None:
-            snapshot = self._registration_snapshot
-            self._registration_snapshot = None
-            return snapshot
-
         last_exception: Exception | None = None
         for attempt in range(1, self.verify_attempts + 1):
             await asyncio.sleep(0 if attempt == 1 else self.verify_wait_seconds)
@@ -132,34 +121,6 @@ class EnsureServiceStack:
                 verify_attempt=self.verify_attempts,
             ),
         )
-
-    async def _stack_is_registered_after_apply_error(self) -> bool:
-        await asyncio.sleep(0)
-        try:
-            registered = self.deployment_gateway.stack_registered(self.service_stack.stack_name)
-        except Exception as exc:
-            self.logger.warning(
-                "Stack registration recovery lookup failed for '%s': %s",
-                self.service_stack.stack_name,
-                exc.__class__.__name__,
-            )
-            return False
-        if registered:
-            self._registration_snapshot = VerificationResult(
-                target_id=self.verification_target_id,
-                status=VerificationStatus.VERIFIED,
-                message=(
-                    "Deployment stack registration was observed during apply recovery; "
-                    "service readiness remains a separate observed-state verification."
-                ),
-                evidence=_stack_registration_evidence(
-                    self.service_stack,
-                    stack_registered="true",
-                    verify_attempt=1,
-                ),
-            )
-        return registered
-
 
 def _stack_registration_evidence(
     service_stack: ServiceStackContract,
