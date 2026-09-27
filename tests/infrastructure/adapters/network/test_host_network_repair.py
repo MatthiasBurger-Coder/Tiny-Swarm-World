@@ -52,7 +52,8 @@ class TestHostNetworkRepair(unittest.TestCase):
                 "ip": '#!/bin/bash\nif [ "$1" = link ]; then test -e "$TEST_BRIDGE"; else echo "inet 10.0.0.1/24"; fi\n',
                 "sleep": "#!/bin/bash\nexit 0\n",
                 "iptables": '#!/bin/bash\necho "$*" >> "$TEST_RULES"\n',
-                "sed": "#!/bin/bash\necho 10.0.0.1/24\n",
+                # Drain the producer so pipefail does not depend on process scheduling.
+                "sed": "#!/bin/bash\nwhile IFS= read -r _line; do :; done\necho 10.0.0.1/24\n",
             }
             for name, content in commands.items():
                 path = root / name

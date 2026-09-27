@@ -15,6 +15,8 @@ SOURCE_ROOT = REPOSITORY_ROOT / "src"
 PACKAGE_ROOT = SOURCE_ROOT / "tiny_swarm_world"
 TEST_ROOT = REPOSITORY_ROOT / "tests"
 SOURCE_TARGETS = [
+    PACKAGE_ROOT / "__main__.py",
+    PACKAGE_ROOT / "cli_presentation.py",
     PACKAGE_ROOT / "application",
     PACKAGE_ROOT / "domain",
     PACKAGE_ROOT / "infrastructure",

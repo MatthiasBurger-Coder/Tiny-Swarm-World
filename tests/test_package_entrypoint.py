@@ -33,6 +33,10 @@ from tiny_swarm_world.application.services.setup import (
 from tiny_swarm_world.application.services.platform.preflight_service import (
     PreflightService,
 )
+from tiny_swarm_world.application.services.platform.lifecycle import (
+    PlatformLifecycleOrchestrator,
+    PlatformLifecycleWorkflows,
+)
 from tiny_swarm_world.application.services.platform.workflow_taxonomy import (
     DESTROY_TINY_SWARM_PLATFORM_CONFIRMATION,
     RESET_TINY_SWARM_PLATFORM_CONFIRMATION,
@@ -66,6 +70,58 @@ ENTRYPOINT_PATH = REPOSITORY_ROOT / "src" / "tiny_swarm_world" / "__main__.py"
 
 
 class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
+    def test_every_declared_workflow_keeps_its_command_name(self):
+        supported_names = (
+            "host detect",
+            "host preflight",
+            "host prepare",
+            "host verify",
+            "host cleanup",
+            "platform init",
+            "platform reconcile",
+            "platform update",
+            "platform expose",
+            "platform repair-lxc-proxy-drift",
+            "platform verify",
+            "platform reset",
+            "platform destroy",
+            "artifacts prepare",
+            "artifacts verify",
+            "deployment bootstrap",
+            "deployment apply",
+            "deployment verify",
+            "setup run",
+        )
+        self.assertEqual(supported_names, tuple(item.name for item in entrypoint.CLI_WORKFLOWS))
+        for workflow in entrypoint.CLI_WORKFLOWS:
+            with self.subTest(command=workflow.name):
+                argv = [workflow.namespace, workflow.action]
+                if workflow.platform_kind is PlatformWorkflowKind.UPDATE:
+                    argv.extend(
+                        ["--stack", "jenkins", "--service", "jenkins", "--recover"]
+                    )
+                parsed = entrypoint.parse_args(argv)
+                self.assertEqual(workflow, parsed.workflow)
+
+    async def test_every_mutating_workflow_refuses_missing_live_consent_with_exit_two(self):
+        for workflow in entrypoint.CLI_WORKFLOWS:
+            if not workflow.mutating:
+                continue
+            with self.subTest(command=workflow.name):
+                argv = [workflow.namespace, workflow.action]
+                if workflow.platform_kind is PlatformWorkflowKind.UPDATE:
+                    argv.extend(["--recover", "--stack", "jenkins", "--service", "jenkins"])
+                if workflow.confirmation_phrase:
+                    argv.extend(["--confirm", workflow.confirmation_phrase])
+                with (
+                    patch.object(entrypoint, "run_cli_workflow", AsyncMock()) as run_workflow,
+                    redirect_stdout(io.StringIO()),
+                    self.assertRaises(SystemExit) as raised,
+                ):
+                    await entrypoint.main(argv)
+                self.assertEqual(2, raised.exception.code)
+                run_workflow.assert_not_awaited()
+
     def test_operation_context_is_additive_in_json_for_every_result_family(self):
         operation = OperationResult(
             OperationOutcome.PARTIAL,
@@ -1441,6 +1497,17 @@ def _application_services_with_platform_workflows(
         platform=SimpleNamespace(
             workflows=workflows,
             preflight=preflight,
+            lifecycle=PlatformLifecycleOrchestrator(
+                PlatformLifecycleWorkflows(
+                    init=workflows.init,
+                    reconcile=workflows.reconcile,
+                    expose=workflows.expose,
+                    repair_lxc_proxy_drift=workflows.repair_lxc_proxy_drift,
+                    verify=workflows.verify,
+                    reset=workflows.reset,
+                    destroy=workflows.destroy,
+                )
+            ),
         )
     ), workflows
 
