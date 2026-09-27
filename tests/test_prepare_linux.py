@@ -9,7 +9,7 @@ import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from dataclasses import replace
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 from tiny_swarm_world import installer
 from tiny_swarm_world.application.services.native_preparation import (
@@ -28,8 +28,13 @@ from tiny_swarm_world.infrastructure.adapters.native_preparation_evidence import
     NativePreparationEvidenceWriter,
 )
 from tiny_swarm_world.infrastructure.adapters.host.native_preparation import (
+    NativePreparationInspector,
     _can_install_packages,
     _conflicting_runtime,
+    _kernel_ready,
+    _memory_bytes,
+    _network_ready,
+    _os_release,
     _port_available,
 )
 
@@ -50,6 +55,74 @@ QUALIFIED = NativeHostFacts(
     conflicting_runtime=False,
     network_ready=True,
 )
+
+
+class NativePreparationInspectorTests(unittest.TestCase):
+    def test_inspection_reports_actual_host_facts_without_mutation(self) -> None:
+        with (
+            patch("tiny_swarm_world.infrastructure.adapters.host.native_preparation._read") as read,
+            patch("tiny_swarm_world.infrastructure.adapters.host.native_preparation.platform.system", return_value="Linux"),
+            patch("tiny_swarm_world.infrastructure.adapters.host.native_preparation.platform.machine", return_value="x86_64"),
+            patch("tiny_swarm_world.infrastructure.adapters.host.native_preparation.os.cpu_count", return_value=8),
+            patch("tiny_swarm_world.infrastructure.adapters.host.native_preparation.os.access", return_value=True),
+            patch("tiny_swarm_world.infrastructure.adapters.host.native_preparation.shutil.disk_usage", return_value=Mock(free=160 * GIB)) as disk,
+            patch("tiny_swarm_world.infrastructure.adapters.host.native_preparation._can_install_packages", return_value=True),
+            patch("tiny_swarm_world.infrastructure.adapters.host.native_preparation._port_available", return_value=True) as ports,
+            patch("tiny_swarm_world.infrastructure.adapters.host.native_preparation._conflicting_runtime", return_value=False),
+            patch("tiny_swarm_world.infrastructure.adapters.host.native_preparation._network_ready", return_value=True),
+        ):
+            values = {
+                "/etc/os-release": 'ID=ubuntu\nVERSION_ID="26.04"\nNAME=Ubuntu\n',
+                "/proc/sys/kernel/osrelease": "linux",
+                "/proc/version": "Linux version 6",
+                "/proc/meminfo": "MemTotal: 25165824 kB\n",
+            }
+            read.side_effect = lambda path: values.get(str(path), "1")
+            facts = NativePreparationInspector(Path("/repo")).inspect()
+        self.assertEqual(facts.distribution_id, "ubuntu")
+        self.assertEqual(facts.version_id, "26.04")
+        self.assertEqual(facts.memory_bytes, 24 * GIB)
+        self.assertEqual(facts.free_disk_bytes, 160 * GIB)
+        self.assertFalse(facts.is_wsl)
+        self.assertTrue(facts.kernel_ready)
+        self.assertTrue(facts.ports_ready)
+        disk.assert_called_once_with(Path("/repo"))
+        self.assertEqual(ports.call_count, len(HOST_PORTS_BY_PROFILE["service-access"]))
+
+    def test_release_and_memory_parsers_fail_closed_on_missing_or_invalid_data(self) -> None:
+        with patch("tiny_swarm_world.infrastructure.adapters.host.native_preparation._read", return_value='NAME=Ubuntu\nID=ubuntu\nVERSION_ID="26.04"\n'):
+            self.assertEqual(_os_release(), {"ID": "ubuntu", "VERSION_ID": "26.04"})
+        with patch("tiny_swarm_world.infrastructure.adapters.host.native_preparation._read", return_value="MemTotal: unknown kB\n"):
+            self.assertEqual(_memory_bytes(), 0)
+        with patch("tiny_swarm_world.infrastructure.adapters.host.native_preparation._read", return_value=""):
+            self.assertEqual(_os_release(), {})
+            self.assertEqual(_memory_bytes(), 0)
+
+    def test_kernel_and_network_probes_fail_closed_then_accept_recovered_state(self) -> None:
+        with patch("tiny_swarm_world.infrastructure.adapters.host.native_preparation._read", side_effect=("1", "0", "1")):
+            self.assertFalse(_kernel_ready())
+        with patch("tiny_swarm_world.infrastructure.adapters.host.native_preparation.socket.create_connection", side_effect=(OSError("offline"), MagicMock())) as connect:
+            self.assertTrue(_network_ready())
+            self.assertEqual(connect.call_count, 2)
+        with patch("tiny_swarm_world.infrastructure.adapters.host.native_preparation.socket.create_connection", side_effect=OSError("offline")):
+            self.assertFalse(_network_ready())
+
+    def test_privilege_and_runtime_probe_fail_closed_when_tools_cannot_run(self) -> None:
+        with (
+            patch("tiny_swarm_world.infrastructure.adapters.host.native_preparation.os.geteuid", return_value=0),
+            patch("tiny_swarm_world.infrastructure.adapters.host.native_preparation.SubprocessProcessRunner") as runner,
+        ):
+            self.assertTrue(_can_install_packages())
+            runner.assert_not_called()
+        with (
+            patch("tiny_swarm_world.infrastructure.adapters.host.native_preparation.os.geteuid", return_value=1000),
+            patch("tiny_swarm_world.infrastructure.adapters.host.native_preparation.shutil.which", return_value=None),
+        ):
+            self.assertFalse(_can_install_packages())
+        with patch("tiny_swarm_world.infrastructure.adapters.host.native_preparation.shutil.which", side_effect=lambda name: "/usr/bin/lxd" if name == "lxd" else None):
+            self.assertTrue(_conflicting_runtime())
+        with patch("tiny_swarm_world.infrastructure.adapters.host.native_preparation.shutil.which", return_value=None):
+            self.assertFalse(_conflicting_runtime())
 
 
 class NativePreparationServiceTests(unittest.TestCase):
