@@ -47,7 +47,7 @@ WSL-native path documented in
 | Value group | Owner | Storage | Lifecycle |
 |---|---|---|---|
 | Operator runtime secrets | Operator | `.tiny-swarm-world/local/live-installation.env` or process environment; WSL2 live runs use the WSL-native `TSW_INSTALL_ENV_FILE` path | Created before install, reused across reruns, edited or rotated by the operator. |
-| Catalog defaults | CRED-01 catalog | Repository Python module | Resolved deterministically for the normal internal-test path; never written to a credential file. |
+| Catalog defaults | CRED-01 catalog | Repository Python module | Resolved deterministically for the normal internal-test installer path. The opt-in `tools/create_internal_test_env_file.py` helper may write them once to a protected local file for standalone preflight on an isolated test system. |
 | Explicit bootstrap override | Operator | Protected file selected by `TSW_BOOTSTRAP_SECRET_ENV_FILE` or its `TSW_BOOTSTRAP_STATE_DIR` alias | Optional input only; the installer never creates it. |
 | Infisical-managed values | Infisical sync service | Infisical project/environment | Used only after self-hosted readiness; existing values are retained when compatible, otherwise the resolver fails closed on conflict. |
 | Credential source metadata | Credential resolver | Protected run context and sanitized sync evidence | Records only `default`, `operator`, or `vault` by key; never stores raw values. |

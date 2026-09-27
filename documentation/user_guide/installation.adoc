@@ -83,7 +83,7 @@ catalog or copy passwords into evidence.
 
 Install these tools before running project automation:
 
-* Python 3.12 or newer, with virtual-environment support (CI covers 3.12 and 3.13)
+* Python 3.12 or newer, with virtual-environment support (CI covers 3.12, 3.13 and 3.14)
 * Git
 * Incus for the default `lxc_native` node provider
 * WSL2 with systemd, cgroup, and user-namespace support when running under WSL
@@ -548,6 +548,24 @@ The standard internal-test path requires no credential preparation. It resolves
 the deterministic `INTERNAL/TEST ONLY` catalog values documented in the
 canonical link:{user-reference-prefix}arc42/08_configuration/internal-test-credential-catalog.md[credential catalog]
 and prints service targets after a successful run without printing passwords.
+
+For standalone preflight on an isolated, disposable test system, the
+link:{user-reference-prefix}arc42/08_configuration/internal-test-credential-catalog.md[catalog]
+values can be written once to a protected local file:
+
+[source,bash]
+----
+export TSW_INSTALL_ENV_FILE="$HOME/.local/state/tiny-swarm-world/live-installation.env"
+install -d -m 700 "$(dirname "$TSW_INSTALL_ENV_FILE")"
+PYTHONPATH=src python3 tools/create_internal_test_env_file.py "$TSW_INSTALL_ENV_FILE"
+tiny-swarm-world --preflight
+----
+
+The helper preserves an existing file. The catalog values are public test
+credentials; a future production or shared deployment must use operator-owned
+credentials instead. An existing file with empty entries still needs values
+before standalone preflight can pass.
+
 Copy `.env.example` only when you need to provide an explicit operator
 override:
 

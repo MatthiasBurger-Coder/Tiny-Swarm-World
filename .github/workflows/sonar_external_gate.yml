@@ -112,7 +112,7 @@ jobs:
             -Dsonar.organization=matthiasburger-coder
             -Dsonar.sources=src
             -Dsonar.tests=tests
-            -Dsonar.python.version=3.12,3.13
+            -Dsonar.python.version=3.12,3.13,3.14
             -Dsonar.python.coverage.reportPaths=coverage.xml
             -Dsonar.sourceEncoding=UTF-8
             -Dsonar.scm.revision=${{ github.event.workflow_run.head_sha }}
@@ -134,7 +134,7 @@ jobs:
             -Dsonar.organization=matthiasburger-coder
             -Dsonar.sources=src
             -Dsonar.tests=tests
-            -Dsonar.python.version=3.12,3.13
+            -Dsonar.python.version=3.12,3.13,3.14
             -Dsonar.python.coverage.reportPaths=coverage.xml
             -Dsonar.sourceEncoding=UTF-8
             -Dsonar.scm.revision=${{ github.event.workflow_run.head_sha }}

@@ -54,6 +54,7 @@ class CiWorkflowContractTests(unittest.TestCase):
         self.assertIn("external gate is not green", workflow)
         self.assertIn("exit 1", workflow)
         self.assertIn("SonarSource/sonarqube-scan-action@", workflow)
+        self.assertEqual(2, workflow.count("-Dsonar.python.version=3.12,3.13,3.14"))
         self.assertNotIn("tools/quality_gate.py quality", workflow)
         self.assertNotIn("Skip SonarCloud Scan", workflow)
 
@@ -74,7 +75,9 @@ class CiWorkflowContractTests(unittest.TestCase):
         self.assertIn("  push:\n    branches: [main]", workflow)
         self.assertIn("  pull_request:\n    branches: [main]", workflow)
         self.assertIn("fail-fast: false", workflow)
-        self.assertIn('python-version: ["3.12", "3.13"]', workflow)
+        self.assertIn('python-version: ["3.12", "3.13", "3.14"]', workflow)
+        environment = (REPOSITORY_ROOT / "environment.yml").read_text(encoding="utf-8")
+        self.assertIn("python>=3.12,<3.15", environment)
         self.assertIn("conda-incubator/setup-miniconda@835234971496cad1653abb28a638a281cf32541f", workflow)
         self.assertIn("environment-file: environment.yml", workflow)
         self.assertIn("python-version: ${{ matrix.python-version }}", workflow)
@@ -166,6 +169,7 @@ class CiWorkflowContractTests(unittest.TestCase):
             "Python Quality Gate / Locked Python quality gate",
             "Python Compatibility / Conda Python 3.12",
             "Python Compatibility / Conda Python 3.13",
+            "Python Compatibility / Conda Python 3.14",
             "SonarCloud Trusted External Gate / SonarCloud external analysis",
             "Nightly Classic Live / Execute Classic live chain",
         ):

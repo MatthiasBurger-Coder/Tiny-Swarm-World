@@ -31,7 +31,7 @@ the installer:
 
 - Python **3.12 or newer**, with virtual-environment support, and Git. The
   [compatibility workflow](.github/workflows/python-compatibility.yml) currently
-  tests Python 3.12 and 3.13.
+  tests Python 3.12, 3.13 and 3.14.
 - Incus installed and initialized, with usable storage, networking and profiles.
   `incus version` and `incus info` must work without `sudo`.
 - Host networking and capacity checked against the
@@ -95,11 +95,12 @@ tiny-swarm-world --allow-wsl-windows-filesystem --preflight
 ```
 
 For **either checkout location**, if preflight reports missing `SECRET-TSW_*`
-values and you already have a protected credential file, select it explicitly
-before rerunning preflight:
+values, prepare or select a protected credential file before rerunning preflight:
 
 ```bash
 export TSW_INSTALL_ENV_FILE="$HOME/.local/state/tiny-swarm-world/live-installation.env"
+install -d -m 700 "$(dirname "$TSW_INSTALL_ENV_FILE")"
+PYTHONPATH=src python3 tools/create_internal_test_env_file.py "$TSW_INSTALL_ENV_FILE"
 
 # Linux filesystem checkout:
 tiny-swarm-world --preflight
@@ -108,12 +109,16 @@ tiny-swarm-world --preflight
 tiny-swarm-world --allow-wsl-windows-filesystem --preflight
 ```
 
-The export selects an existing file; it does not create or populate one. Keep
-it exported in the same terminal for subsequent setup commands, and repeat it
-in a new terminal. Preflight reads the selected file directly; sourcing it is
-not necessary. Exported `TSW_*` values take precedence over file entries.
-Preserve existing credentials. If you need to prepare an
-override file, follow the
+The command creates a protected file with the documented `INTERNAL/TEST ONLY`
+catalog values only when no file exists; it preserves existing credentials.
+These public default passwords and tokens are suitable only for an isolated,
+disposable test system. A future production or shared deployment must use
+operator-owned credentials instead. If an existing file has empty entries,
+edit those entries locally before rerunning preflight. Keep
+`TSW_INSTALL_ENV_FILE` exported in the same terminal for subsequent setup
+commands, and repeat it in a new terminal. Preflight reads the selected file
+directly; sourcing it is not necessary. Exported `TSW_*` values take precedence
+over file entries. For guidance on which values to set, follow the
 [optional credential setup](documentation/user_guide/installation.adoc#operator-credential-overrides).
 The credential file must remain on the Linux filesystem with mode `0600` in
 a user-owned `0700` directory, even when the checkout is on a Windows mount.
