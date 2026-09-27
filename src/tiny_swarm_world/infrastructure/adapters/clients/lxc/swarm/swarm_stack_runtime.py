@@ -81,7 +81,7 @@ class LxcSwarmStackRuntime:
             check=False,
         )
         if result.returncode != 0:
-            return False
+            raise RuntimeError("Swarm stack inventory could not be read.")
         return stack_name in {line.strip() for line in result.stdout.splitlines()}
 
     def list_stack_services(self, stack_name: str) -> tuple[SwarmServiceStatus, ...]:
@@ -95,7 +95,7 @@ class LxcSwarmStackRuntime:
             timeout_seconds=self.service_list_timeout_seconds + 10,
         )
         if result.returncode != 0:
-            return ()
+            raise RuntimeError("Swarm service inventory could not be read.")
         return tuple(
             status
             for line in result.stdout.splitlines()
@@ -107,7 +107,15 @@ class LxcSwarmStackRuntime:
             f"docker secret inspect -- {shlex.quote(name)} >/dev/null 2>&1",
             check=False,
         )
-        return result.returncode == 0
+        if result.returncode == 0:
+            return True
+        inventory = self._run_manager_shell(
+            "docker secret ls --format '{{.Name}}'",
+            check=False,
+        )
+        if inventory.returncode != 0 or name in (inventory.stdout or "").splitlines():
+            raise RuntimeError("External Swarm secret state could not be established.")
+        return False
 
     def ensure_external_secret(self, name: str, value: str) -> None:
         if self._external_secret_exists(name):
@@ -187,7 +195,7 @@ class LxcSwarmStackRuntime:
             check=False,
         )
         if result.returncode != 0:
-            return set()
+            raise RuntimeError("Swarm published ports could not be read.")
         return _published_ports_from_json(result.stdout)
 
 

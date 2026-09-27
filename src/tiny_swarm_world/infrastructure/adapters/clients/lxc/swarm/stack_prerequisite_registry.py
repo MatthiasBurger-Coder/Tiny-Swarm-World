@@ -141,6 +141,12 @@ class StackPrerequisiteRegistry:
         )
         if result.returncode == 0:
             return
+        inventory = run_manager_shell(
+            "docker network ls --format '{{.Name}}'",
+            check=False,
+        )
+        if inventory.returncode != 0 or name in (inventory.stdout or "").splitlines():
+            raise RuntimeError("External overlay network state could not be established.")
         run_manager_shell(
             "docker network create --driver overlay --attachable -- "
             f"{shlex.quote(name)} >/dev/null"
@@ -179,17 +185,10 @@ class StackPrerequisiteRegistry:
         existing_labels = certificate_labels or private_key_labels
         if existing_labels is not None and existing_labels != expected_labels:
             raise SwarmRuntimeError(OperationFailure.for_cause("stack.prerequisites", "lxc_stack_runtime", "verification_failed"), detail='Partial Traefik TLS secret state is not verified as TSW-owned.')
+        if certificate_exists or private_key_exists:
+            raise SwarmRuntimeError(OperationFailure.for_cause("stack.prerequisites", "lxc_stack_runtime", "verification_failed"), detail='Partial Traefik TLS secret pair requires operator recovery.')
         certificate = base64.b64encode(contract.certificate_bytes).decode("ascii")
         private_key = base64.b64encode(contract.private_key_bytes).decode("ascii")
-        remove_orphan = ""
-        if certificate_exists:
-            remove_orphan = (
-                f"docker secret rm -- {shlex.quote(cert_secret_name)} >/dev/null; "
-            )
-        elif private_key_exists:
-            remove_orphan = (
-                f"docker secret rm -- {shlex.quote(key_secret_name)} >/dev/null; "
-            )
         script = (
             "set -eu; "
             "tmpdir=$(mktemp -d); "
@@ -198,7 +197,6 @@ class StackPrerequisiteRegistry:
             "printf '%s' \"$cert\" | base64 -d >\"$tmpdir/tls.crt\"; "
             "printf '%s' \"$key\" | base64 -d >\"$tmpdir/tls.key\"; "
             "chmod 600 \"$tmpdir/tls.crt\" \"$tmpdir/tls.key\"; "
-            f"{remove_orphan}"
             f"cert_id=$(docker secret create --label {_TSW_OWNER_LABEL}={_TSW_OWNER_VALUE} "
             f"--label {_TSW_PAIR_LABEL}={shlex.quote(fingerprint)} -- "
             f"{shlex.quote(cert_secret_name)} \"$tmpdir/tls.crt\"); "
@@ -218,8 +216,14 @@ class StackPrerequisiteRegistry:
                 or _read_secret_labels(key_secret_name, run_manager_shell) != expected_labels
             ):
                 raise SwarmRuntimeError(OperationFailure.for_cause("stack.prerequisites", "lxc_stack_runtime", "verification_failed"), detail='Traefik TLS secret-pair ownership could not be verified.')
-        except Exception:
-            _rollback_created_secrets(created_ids, run_manager_shell)
+        except Exception as exc:
+            try:
+                _rollback_created_secrets(created_ids, run_manager_shell)
+            except Exception:
+                raise SwarmRuntimeError(
+                    OperationFailure.for_cause("stack.prerequisites", "lxc_stack_runtime", "verification_failed"),
+                    detail='Traefik TLS reconciliation failed and cleanup could not be confirmed.',
+                ) from exc
             raise
 
 
@@ -251,7 +255,9 @@ def _rollback_created_secrets(
     created_ids: tuple[str, str],
     run_manager_shell: ManagerShell,
 ) -> None:
-    run_manager_shell(
+    result = run_manager_shell(
         "docker secret rm -- " + " ".join(shlex.quote(secret_id) for secret_id in created_ids),
         check=False,
     )
+    if result.returncode != 0:
+        raise RuntimeError("Traefik TLS secret cleanup failed.")

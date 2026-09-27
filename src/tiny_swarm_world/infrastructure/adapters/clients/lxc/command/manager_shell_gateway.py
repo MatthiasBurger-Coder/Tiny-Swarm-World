@@ -59,6 +59,7 @@ class LxcManagerShellGateway:
         timeout_seconds: int | None = None,
         run: CommandRunner | None = None,
         sleep: Sleeper | None = None,
+        retry_safe: bool = False,
     ) -> subprocess.CompletedProcess[str]:
         """Run a command on the configured manager node."""
 
@@ -70,6 +71,7 @@ class LxcManagerShellGateway:
             timeout_seconds=timeout_seconds,
             run=run,
             sleep=sleep,
+            retry_safe=retry_safe,
         )
 
     def run_node_shell(
@@ -82,6 +84,7 @@ class LxcManagerShellGateway:
         timeout_seconds: int | None = None,
         run: CommandRunner | None = None,
         sleep: Sleeper | None = None,
+        retry_safe: bool = False,
     ) -> subprocess.CompletedProcess[str]:
         """Run a command on an LXC node with bounded retry behavior."""
 
@@ -105,7 +108,7 @@ class LxcManagerShellGateway:
                 timeout=timeout,
             )
             self._log_result(shell_scope, node_name, result)
-            if not self._retry_if_needed(result, attempt, node_name, sleeper):
+            if not retry_safe or not self._retry_if_needed(result, attempt, node_name, sleeper):
                 break
         if result is None:
             raise SwarmRuntimeError(OperationFailure.for_cause("swarm.execute", "lxc_gateway", "unexpected_failure"))

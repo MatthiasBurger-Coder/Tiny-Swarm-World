@@ -112,17 +112,6 @@ DEPLOYMENT_FAILURE_ORIGINS = frozenset(
     for component in ("portainer", "sonarqube", "nexus", "infisical")
 )
 DIAGNOSTIC_PAYLOAD_REDACTED = "Diagnostic payload redacted."
-UNSAFE_EXCEPTION_DETAIL_TERMS = (
-    "authorization",
-    "credential",
-    "password",
-    "payload",
-    "response body",
-    "secret",
-    "stderr",
-    "stdout",
-    "token",
-)
 
 
 @dataclass
@@ -527,16 +516,9 @@ def _step_has_verification(step: DeploymentApplyStep | DeploymentVerifyCheck) ->
 
 def _safe_exception_summary(exc: Exception) -> str:
     status_code = getattr(exc, "status_code", None)
-    safe_detail = _safe_exception_detail(exc)
-    detail = safe_detail or DIAGNOSTIC_PAYLOAD_REDACTED
     if type(status_code) is int and 100 <= status_code <= 599:
-        return f"{exc.__class__.__name__} HTTP {status_code}. {detail}"
-    return f"{exc.__class__.__name__}. {detail}"
-
-
-def _safe_exception_detail(exc: Exception) -> str:
-    # Generic exception text has no public diagnostic contract.
-    return ""
+        return f"{exc.__class__.__name__} HTTP {status_code}. {DIAGNOSTIC_PAYLOAD_REDACTED}"
+    return f"{exc.__class__.__name__}. {DIAGNOSTIC_PAYLOAD_REDACTED}"
 
 
 def _apply_failure_reason(target_id: str, _exc: Exception, safe_error: str) -> str:

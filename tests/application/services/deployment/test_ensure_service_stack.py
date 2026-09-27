@@ -73,7 +73,7 @@ class TestEnsureServiceStack(unittest.IsolatedAsyncioTestCase):
             {"TSW_VAULTWARDEN_ADMIN_TOKEN_SECRET": "operator_defined"},
         )
 
-    async def test_treats_create_timeout_as_success_when_stack_registration_is_visible(self):
+    async def test_create_timeout_remains_failure_even_when_stack_registration_is_visible(self):
         stack_definition = StackDefinition(name="swagger", compose_content="services: {}")
         compose_repository = _FakeComposeRepository(stack_definition)
         deployment_gateway = _FakeDeploymentGateway(
@@ -88,16 +88,17 @@ class TestEnsureServiceStack(unittest.IsolatedAsyncioTestCase):
             verify_wait_seconds=0,
         )
 
-        await service.run()
+        with self.assertRaises(TimeoutError):
+            await service.run()
 
         request = _single_applied_request(deployment_gateway)
         self.assertEqual(
             dict(request.stack_environment),
             {"TSW_SWAGGER_PUBLIC_URL": "https://swagger.example.test"},
         )
-        self.assertEqual(deployment_gateway.registration_checks, ["swagger"])
+        self.assertEqual(deployment_gateway.registration_checks, [])
 
-    async def test_treats_update_timeout_as_success_when_stack_registration_is_visible(self):
+    async def test_update_timeout_remains_failure_when_prior_stack_is_visible(self):
         stack_definition = StackDefinition(name="swagger", compose_content="services: {}")
         compose_repository = _FakeComposeRepository(stack_definition)
         deployment_gateway = _FakeDeploymentGateway(
@@ -111,11 +112,12 @@ class TestEnsureServiceStack(unittest.IsolatedAsyncioTestCase):
             verify_wait_seconds=0,
         )
 
-        await service.run()
+        with self.assertRaises(TimeoutError):
+            await service.run()
 
-        self.assertEqual(deployment_gateway.registration_checks, ["swagger"])
+        self.assertEqual(deployment_gateway.registration_checks, [])
 
-    async def test_apply_recovery_snapshot_is_consumed_before_required_refresh(self):
+    async def test_failed_apply_does_not_create_a_verification_snapshot(self):
         stack_definition = StackDefinition(name="swagger", compose_content="services: {}")
         compose_repository = _FakeComposeRepository(stack_definition)
         deployment_gateway = _FakeDeploymentGateway(
@@ -129,18 +131,17 @@ class TestEnsureServiceStack(unittest.IsolatedAsyncioTestCase):
             verify_wait_seconds=0,
         )
 
-        await service.run()
-        first_verification = await service.verify()
-        self.assertEqual(VerificationStatus.VERIFIED, first_verification.status)
-        self.assertEqual(deployment_gateway.registration_checks, ["swagger"])
+        with self.assertRaises(TimeoutError):
+            await service.run()
+        self.assertEqual(deployment_gateway.registration_checks, [])
 
         deployment_gateway.registered_values = [False, False, False]
-        second_verification = await service.verify()
+        verification = await service.verify()
 
-        self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, second_verification.status)
+        self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, verification.status)
         self.assertEqual(
             deployment_gateway.registration_checks,
-            ["swagger", "swagger", "swagger", "swagger"],
+            ["swagger", "swagger", "swagger"],
         )
 
     async def test_keeps_create_timeout_when_stack_registration_is_missing(self):
@@ -160,7 +161,7 @@ class TestEnsureServiceStack(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(TimeoutError):
             await service.run()
 
-        self.assertEqual(deployment_gateway.registration_checks, ["swagger"])
+        self.assertEqual(deployment_gateway.registration_checks, [])
 
     async def test_verify_reports_registered_stack_without_claiming_readiness(self):
         stack_definition = StackDefinition(name="sonarqube", compose_content="services: {}")

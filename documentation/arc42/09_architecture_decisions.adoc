@@ -44,6 +44,8 @@ include::09_decisions/adr-dedicated-wsl2-host-platform-boundary.adoc[leveloffset
 
 include::09_decisions/adr-windows-wsl-bridge-service-agent.adoc[leveloffset=+3]
 
+include::09_decisions/adr-mutating-operation-recovery.adoc[leveloffset=+3]
+
 === Technology & Framework Decisions
 
 Examples: language and runtime direction, runner technology, UI framework

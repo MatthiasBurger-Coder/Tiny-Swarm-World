@@ -155,7 +155,7 @@ class TestDeploymentWorkflows(unittest.IsolatedAsyncioTestCase):
         )
         self.assertIn("remediation_hint", result.verification_results[0].evidence)
 
-    async def test_apply_workflow_redacts_untyped_apply_failure_summary(self):
+    async def test_apply_workflow_uses_structured_failure_class_without_raw_detail(self):
         class FailingStep:
             verification_target_id = "deployment:jenkins-stack"
 
@@ -183,6 +183,29 @@ class TestDeploymentWorkflows(unittest.IsolatedAsyncioTestCase):
             "RuntimeError. Diagnostic payload redacted.",
             result.reason,
         )
+        self.assertNotIn("Failed to create Portainer stack", str(result.to_dict()))
+
+    async def test_apply_failure_does_not_copy_unlabeled_secret_reason(self):
+        sentinel = "private-value-731"
+
+        class FailureWithReason(RuntimeError):
+            reason = sentinel
+
+        class FailingStep:
+            verification_target_id = "deployment:jenkins-stack"
+
+            def run(self) -> None:
+                raise FailureWithReason(sentinel)
+
+            def verify(self) -> VerificationResult:
+                raise AssertionError("failed apply must not verify")
+
+        with self.assertLogs("DeploymentApplyWorkflow", level="ERROR") as captured:
+            result = await DeploymentApplyWorkflow((FailingStep(),)).run()
+
+        self.assertNotIn(sentinel, str(result.to_dict()))
+        self.assertNotIn(sentinel, str(captured.output))
+        self.assertNotIn("failure_reason", result.verification_results[0].evidence)
 
     async def test_apply_workflow_reports_portainer_admin_rejection_with_safe_diagnostics(self):
         class RejectedPortainerAdminStep:
@@ -449,6 +472,26 @@ class TestDeploymentWorkflows(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(third_step.ran)
         self.assertEqual(2, len(result.verification_results))
 
+    async def test_apply_failure_preserves_prior_verified_step_and_stops_later_steps(self):
+        first = _OrderedApplyStep("deployment:first-stack", VerificationStatus.VERIFIED)
+        failed = _FailedApplyStep("deployment:second-stack")
+        later = _OrderedApplyStep("deployment:third-stack", VerificationStatus.VERIFIED)
+
+        result = await DeploymentApplyWorkflow((first, failed, later)).run()
+
+        self.assertEqual(DeploymentWorkflowStatus.FAILED_TO_APPLY, result.status)
+        self.assertTrue(result.executed)
+        self.assertTrue(first.ran)
+        self.assertFalse(later.ran)
+        self.assertEqual(
+            (VerificationStatus.VERIFIED, VerificationStatus.FAILED_TO_APPLY),
+            tuple(item.status for item in result.verification_results),
+        )
+        self.assertEqual(
+            ("deployment:first-stack", "deployment:second-stack"),
+            tuple(item.target_id for item in result.verification_results),
+        )
+
     async def test_verify_workflow_is_explicitly_blocked(self):
         result = await DeploymentVerifyWorkflow().run()
 
@@ -587,6 +630,18 @@ class _OrderedApplyStep:
     async def verify(self) -> VerificationResult:
         await async_checkpoint()
         return _verification_result(self.verification_target_id, self.verification_status)
+
+
+class _FailedApplyStep:
+    def __init__(self, target_id: str):
+        self.verification_target_id = target_id
+
+    async def run(self) -> None:
+        await async_checkpoint()
+        raise RuntimeError("mock apply failure")
+
+    async def verify(self) -> VerificationResult:
+        raise AssertionError("failed apply must not verify")
 
 
 def _verification_result(target_id: str, status: VerificationStatus) -> VerificationResult:

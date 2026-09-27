@@ -67,7 +67,7 @@ class TestLxcManagerShellGateway(unittest.TestCase):
             timeout=30,
         )
 
-    def test_run_node_shell_retries_transient_failure(self):
+    def test_run_node_shell_retries_transient_failure_only_when_explicitly_safe(self):
         transient = subprocess.CompletedProcess(
             [],
             255,
@@ -84,11 +84,27 @@ class TestLxcManagerShellGateway(unittest.TestCase):
             check=True,
             run=run,
             sleep=sleep,
+            retry_safe=True,
         )
 
         self.assertEqual(result, success)
         self.assertEqual(run.call_count, 2)
         sleep.assert_called_once_with(0.5)
+
+    def test_run_node_shell_does_not_retry_mutating_command(self):
+        transient = subprocess.CompletedProcess(
+            [], 255, stdout="", stderr="Failed to retrieve PID of executing child process",
+        )
+        run = Mock(return_value=transient)
+        sleep = Mock()
+
+        with self.assertRaisesRegex(RuntimeError, "exit code 255"):
+            self.gateway.run_node_shell(
+                "swarm-manager", "docker stack deploy example", run=run, sleep=sleep,
+            )
+
+        run.assert_called_once()
+        sleep.assert_not_called()
 
     def test_run_node_shell_raises_for_failed_checked_command(self):
         run = Mock(
