@@ -555,6 +555,51 @@ class TestHostPreflightProbe(unittest.TestCase):
         ):
             self.assertFalse(probe.port_matches_expected_service(9000, "Portainer"))
 
+    def test_native_rerun_accepts_port_owned_by_running_managed_incus_proxy(self):
+        runner = MagicMock()
+        runner.run_text.side_effect = (
+            subprocess.CompletedProcess((), 0, json.dumps([{
+                "name": "swarm-manager", "status": "Running",
+                "profiles": ["docker-swarm", "docker-swarm-manager"],
+            }]), ""),
+            subprocess.CompletedProcess((), 0, "proxy\n", ""),
+            subprocess.CompletedProcess((), 0, "tcp:0.0.0.0:80\n", ""),
+            subprocess.CompletedProcess((), 0, "tcp:127.0.0.1:80\n", ""),
+        )
+        registry = MagicMock()
+        registry.matches.return_value = False
+        detector = MagicMock()
+        detector.detect.return_value = HostEnvironmentReport(
+            HostEnvironmentKind.NATIVE_LINUX, SetupPath.NATIVE_LINUX,
+            platform_family="linux",
+        )
+        probe = HostPreflightProbe(
+            Path.cwd(), process_runner=runner,
+            service_probe_registry=registry,
+            host_environment_detector=detector,
+        )
+
+        self.assertTrue(probe.port_matches_expected_service(80, "Traefik HTTP ingress"))
+        self.assertEqual(runner.run_text.call_count, 4)
+
+    def test_native_rerun_rejects_unmanaged_port_listener(self):
+        runner = MagicMock()
+        runner.run_text.return_value = subprocess.CompletedProcess((), 0, "[]", "")
+        registry = MagicMock()
+        registry.matches.return_value = False
+        detector = MagicMock()
+        detector.detect.return_value = HostEnvironmentReport(
+            HostEnvironmentKind.NATIVE_LINUX, SetupPath.NATIVE_LINUX,
+            platform_family="linux",
+        )
+        probe = HostPreflightProbe(
+            Path.cwd(), process_runner=runner,
+            service_probe_registry=registry,
+            host_environment_detector=detector,
+        )
+
+        self.assertFalse(probe.port_matches_expected_service(80, "Traefik HTTP ingress"))
+
     def test_port_matches_expected_service_recognizes_infisical_https(self):
         probe = HostPreflightProbe(Path.cwd())
         response = MagicMock()

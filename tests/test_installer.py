@@ -32,10 +32,98 @@ class TestInstaller(unittest.TestCase):
         stack.enter_context(patch.object(installer, "detect_host_runtime", return_value=installer.HostRuntime("native_linux", "test")))
         stack.enter_context(patch.object(installer, "authorize_project_filesystem"))
         stack.enter_context(patch.object(installer, "ensure_python_environment", return_value="python3"))
+        stack.enter_context(patch.object(installer, "_validate_native_installation_read_only"))
         stack.enter_context(patch.object(installer, "_probe_git_ignore", return_value=installer._GitProbeResult(False, False, "outside_worktree")))
         stack.enter_context(patch.object(installer, "_collect_evidence_probe_snapshot", return_value=installer._EvidenceProbeSnapshot("unknown", "unknown", "Linux", "test", "test")))
         run_phase = stack.enter_context(patch.object(installer, "_run_phase", side_effect=phase, return_value=0))
         return environment, source, env_file, run_phase
+
+    def test_native_reconcile_runs_setup_without_reset(self):
+        with tempfile.TemporaryDirectory() as directory:
+            environment, _, _, phase = self._isolated_install(Path(directory))
+            prepared = Mock(failures=(), missing_packages=())
+            with patch(
+                "tiny_swarm_world.infrastructure.composition_native_preparation.build_native_preparation_service",
+                return_value=Mock(plan=Mock(return_value=prepared)),
+            ):
+                result = installer.run(
+                    installer.InstallerOptions(
+                        service_profile="service-access",
+                        confirm_reset=False,
+                        non_interactive_live_approval=True,
+                        headless=True,
+                        allow_wsl_windows_filesystem=False,
+                        native_reconcile=True,
+                    ),
+                    env=environment,
+                    cwd=Path.cwd(),
+                    reporter=Mock(),
+                )
+            self.assertEqual(result, 0)
+            self.assertEqual(phase.call_count, 1)
+            self.assertEqual(phase.call_args.args[0], "live setup")
+            evidence_root = Path(environment["TSW_LIVE_EVIDENCE_ROOT"]) / "native_linux"
+            evidence_dir = next(evidence_root.iterdir())
+            context = (evidence_dir / "context.txt").read_text()
+            self.assertIn("fresh_install_reset=skipped", context)
+            self.assertIn("reset_skipped_for_native_reconcile=yes", context)
+            self.assertFalse((evidence_dir / "reset-run.exit").exists())
+
+    def test_native_preflight_and_dry_run_do_not_bootstrap_or_write_evidence(self):
+        for read_only_flag in ("preflight_only", "dry_run"):
+            with self.subTest(flag=read_only_flag), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                environment, _, _, phase = self._isolated_install(root)
+                prepared = Mock(failures=(), missing_packages=())
+                options = installer.InstallerOptions(
+                    service_profile="default",
+                    confirm_reset=False,
+                    non_interactive_live_approval=False,
+                    headless=True,
+                    allow_wsl_windows_filesystem=False,
+                    native_reconcile=True,
+                    **{read_only_flag: True},
+                )
+                with (
+                    patch(
+                        "tiny_swarm_world.infrastructure.composition_native_preparation.build_native_preparation_service",
+                        return_value=Mock(plan=Mock(return_value=prepared)),
+                    ),
+                    patch.object(installer, "ensure_python_environment") as bootstrap,
+                ):
+                    self.assertEqual(installer.run(options, env=environment, cwd=Path.cwd()), 0)
+                bootstrap.assert_not_called()
+                phase.assert_not_called()
+                self.assertFalse((root / "evidence").exists())
+
+    def test_native_read_only_validation_rejects_invalid_configuration_before_setup_probe(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "infra"
+            shutil.copytree(Path("infra/config"), source / "config")
+            operator_file = root / "operator.env"
+            operator_file.write_text("TSW_SETUP_MAX_CONCURRENCY=2\n", encoding="utf-8")
+            operator_file.chmod(0o600)
+            environment = {
+                "TSW_INFRA_ROOT": str(source), "TSW_INSTALL_ENV_FILE": str(operator_file),
+                "TSW_LIVE_EVIDENCE_ROOT": str(root / "evidence"),
+            }
+            (source / "config/compose/swagger/docker-compose.yml").write_text(
+                "services: [invalid", encoding="utf-8"
+            )
+            with patch.object(installer, "_run_installer_subprocess") as setup_probe:
+                with self.assertRaisesRegex(installer.InstallerError, "configuration or credential preflight"):
+                    installer._validate_native_installation_read_only(
+                        installer.InstallerOptions(
+                            service_profile="service-access", confirm_reset=False,
+                            non_interactive_live_approval=False, headless=True,
+                            allow_wsl_windows_filesystem=False, native_reconcile=True,
+                            preflight_only=True,
+                        ),
+                        environment, Path.cwd(), installer.HostRuntime("native_linux", "test"),
+                    )
+            setup_probe.assert_not_called()
+            self.assertFalse((root / "evidence").exists())
 
     def test_malformed_later_setup_configuration_prevents_installer_reset(self):
         for failure in ("compose", "concurrency", "mirror", "permissions", "proxy", "bridge", "infisical-mode", "infisical-url", "nexus-port"):

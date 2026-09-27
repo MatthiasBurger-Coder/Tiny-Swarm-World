@@ -26,10 +26,12 @@ class TestInstallerConfigurationRepository(unittest.TestCase):
             env_file = root / 'operator.env'
             env_file.write_text('TSW_SETUP_MAX_CONCURRENCY=1\n', encoding='utf-8')
             environment = {'TSW_SETUP_MAX_CONCURRENCY': '3'}
-            snapshot = InstallerConfigurationRepository(
-                repository_root=Path.cwd(), infra_root=root,
-                operator_env_file=env_file, environment=environment, service_profile='default',
-            ).load()
+            with patch('tiny_swarm_world.infrastructure.adapters.repositories.compose_file_repository_yaml.LoggerFactory.get_logger') as file_logger:
+                snapshot = InstallerConfigurationRepository(
+                    repository_root=Path.cwd(), infra_root=root,
+                    operator_env_file=env_file, environment=environment, service_profile='default',
+                ).load()
+            file_logger.assert_not_called()
             environment['TSW_SETUP_MAX_CONCURRENCY'] = '7'
             env_file.write_text('TSW_SETUP_MAX_CONCURRENCY=9\n', encoding='utf-8')
             self.assertEqual('3', snapshot.environment['TSW_SETUP_MAX_CONCURRENCY'])

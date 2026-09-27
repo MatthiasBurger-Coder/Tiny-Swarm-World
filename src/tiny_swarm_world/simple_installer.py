@@ -29,17 +29,45 @@ class SimpleInstallerError(RuntimeError):
 
 def main(argv: Sequence[str] | None = None) -> int:
     try:
-        args = _parse_args(argv)
+        entrypoint_args = tuple(sys.argv[1:] if argv is None else argv)
+        args = _parse_args(entrypoint_args)
+        runtime = legacy.detect_host_runtime(os.environ)
+        native = runtime.name == "native_linux"
+        if (args.preflight or args.dry_run) and not native:
+            raise SimpleInstallerError("Installer --preflight and --dry-run require native Linux.")
+        if native and args.confirm_reset:
+            raise SimpleInstallerError(
+                "Native installation is non-destructive. Use a separately confirmed platform reset."
+            )
+        if native and not legacy._python_imports_available(
+            sys.executable, os.environ
+        ):
+            python_bin = legacy._paths_from_env(os.environ, Path.cwd()).native_linux_venv / "bin" / "python"
+            if not python_bin.is_file() or not legacy._python_imports_available(python_bin.as_posix(), os.environ):
+                raise SimpleInstallerError(
+                    "Native Python dependencies are missing. Run ./prepare_linux.sh separately, then retry ./install.sh."
+                )
+            try:
+                os.execvpe(
+                    python_bin.as_posix(),
+                    (python_bin.as_posix(), "-m", "tiny_swarm_world.simple_installer", *entrypoint_args),
+                    dict(os.environ),
+                )
+            except OSError as error:
+                raise SimpleInstallerError("Prepared native Python could not be started.") from error
         env = _prepare_bootstrap_environment(os.environ, Path.cwd())
         options = legacy.InstallerOptions(
-            service_profile=args.service_profile,
+            service_profile="default" if args.profile == "classic" else args.service_profile,
             confirm_reset=args.confirm_reset,
             non_interactive_live_approval=args.non_interactive_live_approval,
             headless=args.headless or env.get("TSW_INSTALL_HEADLESS") == "1",
             allow_wsl_windows_filesystem=args.allow_wsl_windows_filesystem,
+            native_reconcile=native,
+            preflight_only=args.preflight,
+            dry_run=args.dry_run,
         )
         exit_code = legacy.run(options, env=env, cwd=Path.cwd())
-        if exit_code == 0:
+        if exit_code == 0 and not (args.preflight or args.dry_run):
             _print_operator_credentials(env)
         return exit_code
     except (legacy.InstallerError, SimpleInstallerError) as error:
@@ -57,6 +85,14 @@ def _parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
         choices=("default", "service-access"),
         help="Service profile passed to setup run.",
     )
+    parser.add_argument(
+        "--profile",
+        choices=("classic",),
+        help="Native Classic alias for the supported default service profile.",
+    )
+    read_only = parser.add_mutually_exclusive_group()
+    read_only.add_argument("--preflight", action="store_true", help="Check native host readiness without mutation.")
+    read_only.add_argument("--dry-run", action="store_true", help="Preview native reconciliation without mutation.")
     parser.add_argument(
         "--confirm-reset",
         action="store_true",

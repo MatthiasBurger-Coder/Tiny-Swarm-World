@@ -60,10 +60,10 @@ class TestInstallScript(unittest.TestCase):
             self.assertTrue((evidence_dir / "setup-run.log").is_file())
             context = (evidence_dir / "context.txt").read_text()
             self.assertIn("fresh_install_reset=required", context)
-            self.assertIn("host_runtime_type=native_linux", context)
+            self.assertIn("host_runtime_type=wsl2", context)
             self.assertIn("host_runtime_detection_source=test_override", context)
             self.assertIn(
-                ".tiny-swarm-world/evidence/installation-tests/native_linux/",
+                ".tiny-swarm-world/evidence/installation-tests/wsl2/",
                 context,
             )
             self.assertIn("live_execution_mode=interactive", context)
@@ -306,12 +306,12 @@ class TestInstallScript(unittest.TestCase):
             result = fixture.run()
 
             self.assertEqual(result.returncode, 0, result.stderr)
-            evidence_dir = evidence_root / "native_linux" / next(
-                child.name for child in (evidence_root / "native_linux").iterdir()
+            evidence_dir = evidence_root / "wsl2" / next(
+                child.name for child in (evidence_root / "wsl2").iterdir()
             )
             self.assertEqual(evidence_root.stat().st_mode & 0o777, 0o700)
             self.assertEqual(
-                (evidence_root / "native_linux").stat().st_mode & 0o777,
+                (evidence_root / "wsl2").stat().st_mode & 0o777,
                 0o700,
             )
             self.assertEqual(evidence_dir.stat().st_mode & 0o777, 0o700)
@@ -327,31 +327,21 @@ class TestInstallScript(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(fixture.recorded_seed_flags(), ["0", "0"])
 
-    def test_native_linux_bootstraps_missing_python_dependencies_into_local_venv(self):
+    def test_native_preflight_blocks_before_python_environment_bootstrap(self):
         with _install_script_fixture(
             skip_native_dependency_bootstrap=False,
-            extra_environment={"TSW_INSTALL_TEST_FORCE_MISSING_IMPORTS": "1"},
+            extra_args=("--preflight",),
+            extra_environment={
+                "TSW_INSTALL_TEST_FORCE_MISSING_IMPORTS": "1",
+                "TSW_INSTALL_TEST_HOST_RUNTIME": "native_linux",
+            },
         ) as fixture:
             result = fixture.run()
 
-            self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertTrue(
-                (fixture.root / ".tiny-swarm-world" / "install-venv" / "bin" / "python").is_file()
-            )
-            venv_python = (fixture.root / ".tiny-swarm-world" / "install-venv" / "bin" / "python").as_posix()
-            self.assertEqual(
-                fixture.recorded_commands(),
-                [
-                    (
-                        f"PYTHONPATH=src {venv_python} -m tiny_swarm_world platform reset "
-                        "--live --confirm RESET_TINY_SWARM_PLATFORM --service-profile service-access"
-                    ),
-                    (
-                        f"PYTHONPATH=src {venv_python} -m tiny_swarm_world setup run "
-                        "--live --service-profile service-access"
-                    ),
-                ],
-            )
+            self.assertEqual(result.returncode, 1)
+            self.assertIn("Native host preflight failed", result.stderr)
+            self.assertFalse((fixture.root / ".tiny-swarm-world" / "install-venv").exists())
+            self.assertEqual(fixture.recorded_commands(), [])
 
     def test_wsl_path_keeps_python3_when_dependency_bootstrap_is_skipped(self):
         with _install_script_fixture(
@@ -372,16 +362,15 @@ class TestInstallScript(unittest.TestCase):
             self.assertIn("host_runtime_detection_source=test_override", context)
             self.assertIn("windows_wsl_bridge_reason=windows_exposure_disabled", context)
 
-    def test_native_linux_and_wsl2_use_distinct_evidence_directories(self):
-        with _install_script_fixture() as native_fixture:
+    def test_unsupported_native_host_stops_before_wsl_reset_contract(self):
+        with _install_script_fixture(
+            extra_environment={"TSW_INSTALL_TEST_HOST_RUNTIME": "native_linux"},
+        ) as native_fixture:
             native_result = native_fixture.run()
 
-            self.assertEqual(native_result.returncode, 0, native_result.stderr)
-            native_evidence_dir = native_fixture.single_evidence_dir("native_linux")
-            self.assertIn(
-                ".tiny-swarm-world/evidence/installation-tests/native_linux/",
-                native_evidence_dir.as_posix(),
-            )
+            self.assertEqual(native_result.returncode, 1)
+            self.assertEqual(native_fixture.recorded_commands(), [])
+            self.assertFalse((native_fixture.root / ".tiny-swarm-world" / "evidence").exists())
 
         with _install_script_fixture(
             extra_environment={
@@ -404,6 +393,7 @@ class TestInstallScript(unittest.TestCase):
             extra_environment={
                 "TSW_INSTALL_TEST_HOST_RUNTIME": "wsl2",
                 "WSL_DISTRO_NAME": "Ubuntu",
+                "TSW_WINDOWS_EXPOSURE": "enabled",
             },
         ) as fixture:
             result = fixture.run()
@@ -476,7 +466,9 @@ class _InstallScriptFixture:
             ),
             "TSW_INSTALL_SKIP_NATIVE_GROUP_SWITCH": "1",
             "TSW_INSTALL_TEST_MODE": "1",
-            "TSW_INSTALL_TEST_HOST_RUNTIME": "native_linux",
+            "TSW_INSTALL_TEST_HOST_RUNTIME": "wsl2",
+            "TSW_WINDOWS_EXPOSURE": "disabled",
+            "WSL_DISTRO_NAME": "Ubuntu",
             "TSW_INSTALL_TEST_WINDOWS_WSL_BRIDGE_STATE_PATH": (
                 ".tiny-swarm-world/test-windows-wsl-bridge-state.json"
             ),
@@ -516,7 +508,7 @@ class _InstallScriptFixture:
             return []
         return seed_file.read_text().splitlines()
 
-    def single_evidence_dir(self, host_directory: str = "native_linux") -> Path:
+    def single_evidence_dir(self, host_directory: str = "wsl2") -> Path:
         evidence_root = (
             self.root
             / ".tiny-swarm-world"

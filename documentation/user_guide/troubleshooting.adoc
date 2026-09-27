@@ -14,8 +14,9 @@ Start in the repository root with the same Python environment, service profile
 and configuration used by the failing run. Preserve its evidence directory.
 
 . Read the first failed phase and the printed evidence path.
-. Inspect `reset-run.exit` and, if it exists, `setup-run.exit` in that directory.
-  If reset failed, setup was not started and its exit file may be absent.
+. Inspect `setup-run.exit` in the printed installation evidence directory.
+  On WSL2, inspect `reset-run.exit` first; if reset failed, setup did not start.
+  Native Linux installation has no reset phase.
 . Run static diagnostics after runtime dependencies are available:
 +
 [source,bash]
@@ -27,14 +28,16 @@ tiny-swarm-world --preflight
 . For an installed environment, use `platform verify` before selecting a
   repair. It does not modify the platform.
 . Correct the named cause and choose the operation in
-  link:{user-guide-prefix}usage.adoc#daily-operation[Daily operation]. Do not automatically rerun
-  `./install.sh`: it resets managed state.
+  link:{user-guide-prefix}usage.adoc#daily-operation[Daily operation]. On native
+  Ubuntu 24.04 or 26.04, run `./prepare_linux.sh --preflight` for missing host packages
+  before retrying the non-destructive installer. On WSL2, do not automatically
+  rerun `./install.sh`: it resets managed state.
 
 [options="header"]
 |===
 | What you see | Next check
 | `windows-wsl-bridge` / `state_invalid`, followed by an exact-state ACL error during bridge installation | Follow <<windows-wsl-bridge-acl,Windows bridge ACL recovery>> and inspect for a leftover state backup.
-| `ModuleNotFoundError` or missing CLI | Activate `.venv` and complete link:{user-guide-prefix}installation.adoc#_python_environment[Python Environment]; do not reset the platform.
+| `ModuleNotFoundError` or missing CLI | On native Ubuntu, rerun `./prepare_linux.sh` to prepare the checkout-local Python environment; for development, activate `.venv` as described in link:{user-guide-prefix}installation.adoc#_python_environment[Python Environment]. Do not reset the platform.
 | Override permission error | Verify file ownership, `0600` file and `0700` parent on a Linux-native filesystem; see link:{user-guide-prefix}installation.adoc#operator-credential-overrides[optional overrides].
 | No password file after installation | Normal for the default path. Use the link:{user-reference-prefix}arc42/08_configuration/internal-test-credential-catalog.md[credential catalog].
 | Login page responds but login fails | Check the effective service identity and credential source; HTTP 200 is not authentication.
@@ -368,7 +371,7 @@ pass, an endpoint configuration, or a skipped live check as live success.
 == Portainer Admin Initialization Returns HTTP 409
 
 `PortainerAdminInitializationRejected HTTP 409` means Portainer rejected the
-administrator initialization call. In the fresh-install path, `install.sh`
+administrator initialization call. In the WSL2 fresh-install path, `install.sh`
 first runs the managed platform reset, so a 409 after that reset is evidence
 to review rather than a readiness delay.
 
@@ -843,7 +846,7 @@ establishes that an external Nexus application-artifact source is unavailable.
 
 If outbound internet is intentionally blocked or unreliable, configure APT
 mirrors that are reachable from inside the Incus containers. The example below
-then performs a *deliberate fresh reset*: use it only when the managed
+then performs a *deliberate WSL2 fresh reset*: use it only when the managed
 environment is disposable. To retain existing state, choose a retry through
 link:{user-guide-prefix}usage.adoc#daily-operation[Daily operation] instead.
 

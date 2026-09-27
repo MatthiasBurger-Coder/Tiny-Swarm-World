@@ -68,6 +68,7 @@ class InstallerConfigurationRepository:
         repository = ComposeFileRepositoryYaml(
             project_paths=self.paths, port_registry=ports,
             service_profile=self.service_profile, environment=environment,
+            write_logs=False,
         )
         repository.validate_and_snapshot(tuple(
             item.stack_name for item in service_stack_contracts_for_profile(self.service_profile)

@@ -14,8 +14,9 @@ step; project automation itself continues to run from Linux or WSL.
 
 == Choose The Right Operation
 
-This page describes a fresh installation. *The installer resets managed Tiny
-Swarm World nodes before setup; their data may be lost.* For an existing
+This page describes installation. On WSL2, *the installer resets managed Tiny
+Swarm World nodes before setup; their data may be lost.* On qualified native
+Ubuntu 24.04 or 26.04, it reconciles without an automatic reset. For an existing
 environment, start with link:{user-guide-prefix}usage.adoc#daily-operation[Daily operation].
 A reset is not a repair step or a product update.
 
@@ -81,7 +82,9 @@ catalog or copy passwords into evidence.
 
 == Prerequisites
 
-Install these tools before running project automation:
+For WSL, install these tools before running project automation. On native
+Ubuntu 24.04 or 26.04, install Python 3.12 or newer first, then run the separate
+`prepare_linux.sh` step below for host packages:
 
 * Python 3.12 or newer, with virtual-environment support (CI covers 3.12, 3.13 and 3.14)
 * Git
@@ -288,10 +291,11 @@ runtime verification section.
 
 The default provider is `lxc_native` through the managed Incus backend. An
 Incus/LXD host management layer is therefore a hard prerequisite before a live
-Tiny Swarm World run. Incus/LXD installation, daemon initialization, storage
-pool and bridge creation, profile changes, daemon repair, and group membership
-are host-operator responsibilities. Tiny Swarm World does not install or
-initialize Incus/LXD automatically.
+Tiny Swarm World run. The separate `prepare_linux.sh` step can install the
+Ubuntu Incus package and its bridge dependency `dnsmasq-base` after operator
+confirmation. Daemon initialization, storage pool and bridge creation, profile
+changes, daemon repair, and group membership remain host-operator
+responsibilities. Tiny Swarm World does not initialize Incus/LXD automatically.
 
 From the same Linux/WSL shell that will run `./install.sh`, the current user
 must be able to run the provider client without `sudo`:
@@ -372,7 +376,8 @@ operator approval; it is not part of the repository quality gate.
   are available from the protected source described below. The default path
   requires no credential file.
 * [ ] The managed environment is disposable or its needed data is backed up;
-  the fresh installer will run a reset before setup.
+  native Linux installation reconciles without an automatic reset, while the
+  separately confirmed WSL fresh-install path may reset managed state.
 * [ ] For WSL2 Windows-browser access, the required Windows bridge is ready.
   Native Linux does not need that bridge.
 
@@ -738,9 +743,9 @@ For Windows browsers, use the managed bridge configured above. The bridge
 maintains the Windows host entries; do not add a second competing set.
 Name resolution alone does not establish forwarding, TLS trust or service health.
 
-=== 7. Run The Fresh Install
+=== 7. Run The WSL2 Fresh Install
 
-*This step resets the managed environment before installation.* Complete the
+*This WSL2 step resets the managed environment before installation.* Complete the
 checklist above and preserve needed data first. Use the default
 `service-access` profile for the full local runtime. The
 current LXC Swarm ingress path requires an explicit privileged-ingress opt-in
@@ -944,7 +949,71 @@ The canonical live operator command uses `lxc_native` by default:
 tiny-swarm-world setup run --live
 ----
 
-For a deliberate fresh reset and installation with local evidence capture, use:
+For native Ubuntu 24.04 or 26.04 LTS on x86_64, run host preparation separately before
+the installer. Review the read-only plan first. `prepare_linux.sh` uses only
+Ubuntu host packages needed by the Incus profile; Docker Engine and Swarm are
+installed inside managed Incus nodes by the setup workflow.
+
+Issue #427 qualifies a clean first installation, safe second run and recovery
+on Ubuntu 26.04 LTS. Ubuntu 24.04 is still accepted by the host preflight,
+but its live release qualification is tracked separately. A rerun on an
+already populated host proves reconciliation, not a first installation.
+
+[source,bash]
+----
+./prepare_linux.sh --preflight
+./prepare_linux.sh --dry-run
+./prepare_linux.sh
+./install.sh --preflight
+./install.sh --dry-run
+./install.sh
+----
+
+`install.sh --preflight` checks native host prerequisites, package inventory,
+configuration, credentials and setup readiness without writes. `--dry-run`
+performs the same checks and prints the planned installer stages. Run
+`prepare_linux.sh` first when the local Python environment is missing.
+
+`prepare_linux.sh` asks the operator to type `yes` before changing packages or
+preparing the checkout-local Python environment from `requirements.lock`.
+Its read-only modes report that work without creating a virtual environment.
+It does not initialize Incus, change groups, alter kernel controls or deploy
+services. `install.sh` never invokes it. If preparation is missing, the native
+installer stops and prints the separate preparation command; it does not
+bootstrap Python dependencies itself. Python 3.12 must
+already be available to start either repository-local script. A native rerun
+rechecks prerequisites and runs the existing setup reconciliation without an
+automatic reset. A deliberate reset uses the separately confirmed `platform
+reset` command.
+
+The native preflight requires Ubuntu 24.04 or 26.04 LTS on x86_64. For the
+`service-access` profile, provide at least eight CPU threads, 20 GiB RAM and
+150 GiB free space on the repository filesystem. The `default` profile
+requires four CPU threads, 16 GiB RAM and 60 GiB free space. Preparation
+checks the selected profile's resource floor before package changes. It
+checks package privilege, repository write access, required kernel controls,
+host ports before package changes and conflicting runtimes. A healthy rerun
+with all host packages present relies on setup's profile-aware port preflight.
+DNS and HTTPS connectivity to Ubuntu
+package sources are required when packages are missing. Correct a reported
+kernel, Incus-daemon, group, bridge or firewall blocker as an operator action;
+the preparation script does not repair those settings automatically.
+For a password-protected sudo account, run `sudo -v` in the same terminal
+before preparation so the read-only permission probe can verify APT access.
+
+APT changes are not transactional. A failed preparation records confirmed
+package state observed after the attempt and uncertain package state in protected
+local evidence. A protected operation-start record is written before APT.
+Inspect APT state and the printed evidence file, correct the cause, then rerun
+`./prepare_linux.sh --preflight` and `./prepare_linux.sh`. The next run
+installs only packages still missing. Do not remove packages automatically:
+other applications may use them. For uninstall, first use the separately
+confirmed managed-platform destroy or reset operation as appropriate; review
+the preparation evidence and remove only operator-approved host packages
+whose other consumers have been checked. Existing credentials and operator
+configuration are preserved on native installer reruns.
+
+For a deliberate WSL2 fresh reset and installation with local evidence capture, use:
 
 [source,bash]
 ----
@@ -954,10 +1023,10 @@ For a deliberate fresh reset and installation with local evidence capture, use:
 `install.sh` is intentionally a minimal Linux/WSL bootstrapper. The
 authoritative installer policy is `python3 -m tiny_swarm_world.simple_installer`:
 that Python entry point owns secret handling, host-runtime detection, evidence
-layout, reset/setup sequencing, dependency bootstrap, and headless
+layout, host-specific setup sequencing, dependency bootstrap, and headless
 execution. The shell wrapper only verifies the repository shape and delegates.
 
-For deliberate test-system automation, the wrapper confirmation prompt can be
+For deliberate WSL2 test-system automation, the wrapper confirmation prompt can be
 replaced by an explicit flag:
 
 [source,bash]
@@ -989,9 +1058,9 @@ or should not start the terminal recorder/TUI surface, use:
 TSW_INSTALL_HEADLESS=1 ./install.sh
 ----
 
-Headless mode executes the same governed reset and setup commands, writes the
-same `reset-run.log`, `reset-run.exit`, `setup-run.log`, and `setup-run.exit`
-evidence files, and preserves command exit codes.
+Headless mode executes the same host-specific setup commands and preserves
+command exit codes. WSL2 writes reset and setup phase evidence; native Linux
+writes setup evidence with an explicit reset-skipped context entry.
 
 The wrapper writes run context, reset logs, setup logs and exit codes below
 `${XDG_STATE_HOME:-$HOME/.local/state}/tiny-swarm-world/evidence/installation-tests/<host-runtime>/<UTC timestamp>/`
@@ -1003,8 +1072,9 @@ The stable host directory is `wsl2` for WSL2 and `native_linux` for native
 Linux. The run `context.txt` records `host_runtime_type`,
 `host_runtime_detection_source`, `selected_evidence_directory`,
 `live_execution_mode`, `live_approval_source`, and `terminal_recording_mode`
-alongside `reset-run.log`, `reset-run.exit`, `setup-run.log`, and
-`setup-run.exit`.
+alongside `setup-run.log` and `setup-run.exit`. Reset logs and exit evidence
+exist only when the WSL2 reset phase runs. Native package preparation writes
+redacted evidence to `${XDG_STATE_HOME:-$HOME/.local/state}/tiny-swarm-world/evidence/native-preparation/` after an explicitly confirmed package operation or an already-prepared no-op run. Read-only flags do not write evidence.
 It resolves catalog-backed `TSW_*` credentials and optional operator overrides
 without printing secret values. It does not generate a local credential file.
 Required local bootstrap values are derived from
@@ -1090,7 +1160,7 @@ error and does not silently continue:
 export TSW_INSTALL_SUBPROCESS_TIMEOUT_SECONDS=900
 ----
 
-`install.sh` is a fresh-install entry point. It first calls the governed
+On WSL2, `install.sh` is a fresh-install entry point. It first calls the governed
 destructive reset workflow:
 
 [source,bash]

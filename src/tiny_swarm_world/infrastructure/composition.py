@@ -12,8 +12,18 @@ import importlib
 import sys
 from types import FunctionType
 from typing import Any
+from pathlib import Path
 
 from . import composition_runtime as _runtime
+
+
+def build_native_preparation_service(
+    repository_root: Path, *, service_profile: str = "service-access"
+) -> Any:
+    """Wire the independent native host preparation boundary."""
+    from .composition_native_preparation import build_native_preparation_service as build
+
+    return build(repository_root, service_profile=service_profile)
 
 
 _RUNTIME_BUILDER_NAMES = (

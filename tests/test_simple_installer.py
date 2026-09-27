@@ -31,6 +31,69 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 
 
 class TestSimpleInstallerSecretBootstrap(unittest.TestCase):
+    def test_native_missing_system_dependencies_restarts_in_prepared_venv(self):
+        runtime = installer.HostRuntime("native_linux", "test")
+        with tempfile.TemporaryDirectory() as temporary_dir:
+            python_bin = Path(temporary_dir) / "bin" / "python"
+            python_bin.parent.mkdir()
+            python_bin.touch()
+            with (
+            patch("tiny_swarm_world.simple_installer.legacy.detect_host_runtime", return_value=runtime),
+            patch("tiny_swarm_world.simple_installer.legacy._python_imports_available", side_effect=(False, True)),
+            patch("tiny_swarm_world.simple_installer.legacy.run") as preflight,
+            patch("tiny_swarm_world.simple_installer.legacy._paths_from_env", return_value=installer.InstallerPaths(Path("/tmp/unused"), Path(temporary_dir))),
+            patch("tiny_swarm_world.simple_installer.legacy.ensure_python_environment") as bootstrap,
+            patch("tiny_swarm_world.simple_installer.os.execvpe", side_effect=SystemExit(0)) as restart,
+            patch("tiny_swarm_world.simple_installer._prepare_bootstrap_environment") as credentials,
+            ):
+                with self.assertRaises(SystemExit) as restarted:
+                    main(("--headless", "--non-interactive-live-approval"))
+                self.assertEqual(restarted.exception.code, 0)
+        preflight.assert_not_called()
+        bootstrap.assert_not_called()
+        self.assertEqual(
+            restart.call_args.args[:2],
+            (python_bin.as_posix(), (python_bin.as_posix(), "-m", "tiny_swarm_world.simple_installer", "--headless", "--non-interactive-live-approval")),
+        )
+        credentials.assert_not_called()
+
+    def test_native_missing_prepared_venv_does_not_bootstrap_python(self):
+        runtime = installer.HostRuntime("native_linux", "test")
+        with (
+            patch("tiny_swarm_world.simple_installer.legacy.detect_host_runtime", return_value=runtime),
+            patch("tiny_swarm_world.simple_installer.legacy._python_imports_available", return_value=False),
+            patch("tiny_swarm_world.simple_installer.legacy.run") as run,
+            patch("tiny_swarm_world.simple_installer.legacy._paths_from_env", return_value=installer.InstallerPaths(Path("/tmp/unused"), Path("/tmp/nonexistent-issue427-venv"))),
+            patch("tiny_swarm_world.simple_installer.legacy.ensure_python_environment") as bootstrap,
+            redirect_stderr(io.StringIO()),
+        ):
+            self.assertEqual(main(()), 1)
+        bootstrap.assert_not_called()
+        run.assert_not_called()
+
+    def test_native_classic_alias_and_read_only_flags_reach_reconcile_path(self):
+        with (
+            patch("tiny_swarm_world.simple_installer.legacy.detect_host_runtime", return_value=installer.HostRuntime("native_linux", "test")),
+            patch("tiny_swarm_world.simple_installer.legacy.run", return_value=0) as run,
+            patch("tiny_swarm_world.simple_installer._prepare_bootstrap_environment") as credentials,
+            redirect_stdout(io.StringIO()),
+        ):
+            self.assertEqual(main(("--profile", "classic", "--preflight")), 0)
+        options = run.call_args.args[0]
+        self.assertEqual(options.service_profile, "default")
+        self.assertTrue(options.native_reconcile)
+        self.assertTrue(options.preflight_only)
+        credentials.assert_called_once()
+
+    def test_native_reset_flag_is_rejected_before_mutation(self):
+        with (
+            patch("tiny_swarm_world.simple_installer.legacy.detect_host_runtime", return_value=installer.HostRuntime("native_linux", "test")),
+            patch("tiny_swarm_world.simple_installer.legacy.run") as run,
+            redirect_stderr(io.StringIO()),
+        ):
+            self.assertEqual(main(("--confirm-reset",)), 1)
+        run.assert_not_called()
+
     def test_resolves_catalog_defaults_without_creating_recovery_state(self):
         with tempfile.TemporaryDirectory() as temporary_dir:
             state_dir = Path(temporary_dir) / "state"

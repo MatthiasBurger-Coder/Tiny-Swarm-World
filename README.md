@@ -136,10 +136,27 @@ they are separate from preparing the runtime package.
 Review the [live-operation surface catalog](documentation/system/live-operation-surfaces.adoc)
 for the commands that change nodes, networking, Docker, Swarm and service stacks.
 
-**`./install.sh` resets the managed Tiny Swarm World environment before setup.**
-Use it only for a fresh or deliberately disposable installation. Existing
-managed nodes and their data may be removed. To keep an existing environment,
-use the [operation guide](documentation/user_guide/usage.adoc#daily-operation).
+On native Ubuntu 24.04 or 26.04 x86_64, prepare the host separately, then run the
+non-destructive installer. The installer does not invoke host preparation:
+
+Issue #427 uses a clean Ubuntu 26.04 host for installation qualification;
+Ubuntu 24.04 remains a supported host path with separate live qualification.
+
+```bash
+./prepare_linux.sh --preflight
+./prepare_linux.sh
+./install.sh --preflight
+./install.sh
+```
+
+`prepare_linux.sh` shows its package plan and requires the operator to type
+`yes` before APT changes or local Python dependency bootstrap. `--dry-run` is
+read-only for either script. The installer checks host, configuration,
+credentials and setup readiness before creating installation evidence. The
+native installer reconciles without resetting managed state. WSL2 retains the
+existing confirmed fresh-reset behavior; use it only for a deliberately
+disposable WSL environment. See the
+[installation guide](documentation/user_guide/installation.adoc) for recovery.
 
 After completing the installation guide's host and networking checklist:
 
@@ -147,8 +164,9 @@ After completing the installation guide's host and networking checklist:
 ./install.sh
 ```
 
-The default service profile is `service-access`. The installer asks for the
-reset phrase `RESET_TINY_SWARM_PLATFORM` and for live-operation consent.
+The default service profile is `service-access`. WSL installation asks for the
+reset phrase `RESET_TINY_SWARM_PLATFORM`; both host modes require governed
+live-operation consent.
 `--headless` changes presentation; it does not make the operation read-only.
 
 The standard internal-test path needs **no credential file**. It uses
@@ -199,7 +217,9 @@ and redact diagnostics before sharing them.
 | `platform verify` | Inspect the existing platform without repairing it. |
 | `platform reconcile --live` | Reconcile managed platform state with explicit consent; it is not a complete application update. |
 | `setup run --live` | Run the broader setup workflow without the installer's preliminary reset; it still changes infrastructure. |
-| `./install.sh` | Reset the managed environment, then perform fresh setup. |
+| `./prepare_linux.sh` | Separately qualify a native Ubuntu 24.04 or 26.04 host and install missing host dependencies with confirmation. |
+| `./install.sh` on native Linux | Verify preparation, then run setup without a reset. |
+| `./install.sh` on WSL2 | Reset the managed environment after confirmation, then perform fresh setup. |
 | Product update | Preview and apply one supported stack/service image transition with the documented `platform update` contract. |
 
 Use `platform update --stack ... --service ... --from-image ... --to-image ... --preview`
