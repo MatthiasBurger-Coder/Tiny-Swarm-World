@@ -15,6 +15,9 @@ from tiny_swarm_world.application.services.credential_resolution import (
     CREDENTIAL_SOURCE_MAP_ENVIRONMENT,
     CredentialResolutionService,
 )
+from tiny_swarm_world.domain.configuration.configuration_contract import (
+    missing_traefik_secret_name_defaults,
+)
 from tiny_swarm_world.infrastructure.composition_operator_configuration import (
     load_operator_configuration,
 )
@@ -142,7 +145,7 @@ def _prepare_bootstrap_environment(
         operator_values={key: env.get(key, "") for key in resolution_keys},
     )
     env.update(resolutions.values)
-    _ensure_default_secret_names(env)
+    env.update(missing_traefik_secret_name_defaults(env, empty_is_missing=False))
     # The standard path is catalog-backed and stateless. Explicit operator
     # values remain in `env`; CRED-03 defines their full precedence.
     env[CREDENTIAL_SOURCE_MAP_ENVIRONMENT] = resolutions.source_metadata()
@@ -243,12 +246,6 @@ def _is_windows_mounted_path(path: Path) -> bool:
         and len(parts[2]) == 1
         and parts[2].isalpha()
     )
-
-
-def _ensure_default_secret_names(env: dict[str, str]) -> None:
-    env.setdefault("TSW_TRAEFIK_TLS_CERT_SECRET_NAME", "tsw_traefik_tls_cert")
-    env.setdefault("TSW_TRAEFIK_TLS_KEY_SECRET_NAME", "tsw_traefik_tls_key")
-    env.setdefault("TSW_TRAEFIK_GUI_USERS_SECRET_NAME", "tsw_traefik_gui_users")
 
 
 def _print_operator_credentials(env: Mapping[str, str]) -> None:

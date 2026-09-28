@@ -429,7 +429,6 @@ def _run_prepared(
     _ensure_default_config_exports(install_env)
     _require_operator_provisioned_traefik_gui_users(install_env, paths.secret_env_file)
     install_env.setdefault("TSW_SEED_INFISICAL_ITEMS", "0")
-    _configure_native_linux_command_group(host_runtime, install_env)
     from tiny_swarm_world.domain.deployment import service_stack_contracts_for_profile
 
     try:
@@ -1182,13 +1181,11 @@ def _installer_subprocess_timeout_seconds(env: Mapping[str, str]) -> float:
 def _ensure_default_config_exports(
     env: dict[str, str],
 ) -> dict[str, str]:
-    exports: dict[str, str] = {}
-    if not env.get("TSW_TRAEFIK_TLS_CERT_SECRET_NAME"):
-        exports["TSW_TRAEFIK_TLS_CERT_SECRET_NAME"] = "tsw_traefik_tls_cert"
-    if not env.get("TSW_TRAEFIK_TLS_KEY_SECRET_NAME"):
-        exports["TSW_TRAEFIK_TLS_KEY_SECRET_NAME"] = "tsw_traefik_tls_key"
-    if not env.get("TSW_TRAEFIK_GUI_USERS_SECRET_NAME"):
-        exports["TSW_TRAEFIK_GUI_USERS_SECRET_NAME"] = "tsw_traefik_gui_users"
+    from tiny_swarm_world.domain.configuration.configuration_contract import (
+        missing_traefik_secret_name_defaults,
+    )
+
+    exports = missing_traefik_secret_name_defaults(env, empty_is_missing=True)
     if not env.get("TSW_LIVE_TLS_CA_BUNDLE"):
         external_ca = env.get("TSW_TRAEFIK_CA_CERT_PATH", "").strip()
         exports["TSW_LIVE_TLS_CA_BUNDLE"] = external_ca or (
@@ -1232,17 +1229,6 @@ def _normalized_email_value(value: str) -> str:
     if quote_stripped and "@" in quote_stripped and "." in quote_stripped.partition("@")[2]:
         return quote_stripped
     return stripped
-
-
-def _configure_native_linux_command_group(host_runtime: HostRuntime, env: dict[str, str]) -> None:
-    """Keep native group switching caller-controlled and probe-free.
-
-    The installer does not infer host identity or group membership. A caller
-    that explicitly supplies ``TSW_INSTALL_COMMAND_GROUP`` may use it in the
-    phase runner, while this bootstrap boundary performs no host mutation and
-    does not persist membership state across invocations.
-    """
-    return
 
 
 def _confirm_reset(options: InstallerOptions) -> None:

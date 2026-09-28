@@ -119,6 +119,32 @@ class TestSimpleInstallerSecretBootstrap(unittest.TestCase):
             sources = decode_source_metadata(first[CREDENTIAL_SOURCE_MAP_ENVIRONMENT])
             self.assertEqual(sources["TSW_PORTAINER_ADMIN_PASSWORD"], CredentialSource.DEFAULT)
 
+    def test_traefik_secret_name_defaults_keep_handoff_semantics(self):
+        names = (
+            "TSW_TRAEFIK_TLS_CERT_SECRET_NAME",
+            "TSW_TRAEFIK_TLS_KEY_SECRET_NAME",
+            "TSW_TRAEFIK_GUI_USERS_SECRET_NAME",
+        )
+        for supplied, expected_bootstrap in (
+            ({}, "tsw_traefik_gui_users"),
+            ({names[2]: "custom-users"}, "custom-users"),
+            ({names[2]: ""}, ""),
+        ):
+            with self.subTest(supplied=supplied):
+                with tempfile.TemporaryDirectory() as temporary_dir:
+                    bootstrap = _prepare_bootstrap_environment(
+                        {"HOME": temporary_dir, **supplied}, REPOSITORY_ROOT,
+                    )
+                self.assertEqual(bootstrap[names[2]], expected_bootstrap)
+                self.assertEqual(bootstrap[names[0]], "tsw_traefik_tls_cert")
+                self.assertEqual(bootstrap[names[1]], "tsw_traefik_tls_key")
+                prepared = dict(bootstrap)
+                installer._ensure_default_config_exports(prepared)
+                self.assertEqual(
+                    prepared[names[2]],
+                    expected_bootstrap or "tsw_traefik_gui_users",
+                )
+
     def test_resolves_catalog_traefik_htpasswd_without_random_generation(self):
         with tempfile.TemporaryDirectory() as temporary_dir:
             env = _prepare_bootstrap_environment(
