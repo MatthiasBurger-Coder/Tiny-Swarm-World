@@ -372,6 +372,21 @@ class TestInstaller(unittest.TestCase):
 
         self.assertEqual(exports, {})
 
+    def test_ensure_default_config_exports_replaces_empty_secret_names(self):
+        env = {
+            "TSW_TRAEFIK_TLS_CERT_SECRET_NAME": "",
+            "TSW_TRAEFIK_TLS_KEY_SECRET_NAME": "",
+            "TSW_TRAEFIK_GUI_USERS_SECRET_NAME": "",
+            "TSW_LIVE_TLS_CA_BUNDLE": "/custom/ca-bundle.pem",
+        }
+
+        exports = installer._ensure_default_config_exports(env)
+
+        self.assertEqual(exports["TSW_TRAEFIK_TLS_CERT_SECRET_NAME"], "tsw_traefik_tls_cert")
+        self.assertEqual(exports["TSW_TRAEFIK_TLS_KEY_SECRET_NAME"], "tsw_traefik_tls_key")
+        self.assertEqual(exports["TSW_TRAEFIK_GUI_USERS_SECRET_NAME"], "tsw_traefik_gui_users")
+        self.assertEqual(env["TSW_LIVE_TLS_CA_BUNDLE"], "/custom/ca-bundle.pem")
+
     def test_default_trust_bundle_uses_external_ca_when_configured(self):
         with tempfile.TemporaryDirectory():
             env = {"TSW_TRAEFIK_CA_CERT_PATH": "/operator/ca.crt"}
@@ -835,15 +850,22 @@ class TestInstaller(unittest.TestCase):
                     expected,
                 )
 
-    def test_native_group_boundary_does_not_probe_or_mutate_host_state(self):
+    def test_phase_group_switching_uses_explicit_environment_only(self):
         env = {"TSW_INSTALL_COMMAND_GROUP": "lxd"}
-        with patch.object(installer.subprocess, "run") as run:
-            installer._configure_native_linux_command_group(
-                installer.HostRuntime("native_linux", "test"),
-                env,
-            )
+        with tempfile.TemporaryDirectory() as temporary_dir:
+            root = Path(temporary_dir)
+            with patch.object(installer, "_run_bounded_process", return_value=(0, False, False)) as process:
+                result = installer._run_phase(
+                    "setup", "echo ready", root / "phase.log",
+                    installer.InstallerOptions(
+                        service_profile="default", confirm_reset=False,
+                        non_interactive_live_approval=False, headless=True,
+                        allow_wsl_windows_filesystem=False,
+                    ), env, root, Mock(),
+                )
 
-        run.assert_not_called()
+        self.assertEqual(result, 0)
+        self.assertEqual(process.call_args.args[0], ["bash", "-lc", "sg lxd -c 'echo ready'"])
         self.assertEqual(env, {"TSW_INSTALL_COMMAND_GROUP": "lxd"})
 
     def test_evidence_probe_snapshot_coalesces_git_and_system_metadata(self):

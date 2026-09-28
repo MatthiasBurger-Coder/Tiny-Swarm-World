@@ -14,6 +14,11 @@ IDENTIFIER_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.@-]*$")
 IMAGE_REFERENCE_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/@+-]*$")
 WINDOWS_PATH_PATTERN = re.compile(r"^[A-Za-z]:\\")
 BOOLEAN_VALUES = frozenset({"0", "1", "false", "true"})
+TRAEFIK_SECRET_NAME_DEFAULTS: Mapping[str, str] = MappingProxyType({
+    "TSW_TRAEFIK_TLS_CERT_SECRET_NAME": "tsw_traefik_tls_cert",
+    "TSW_TRAEFIK_TLS_KEY_SECRET_NAME": "tsw_traefik_tls_key",
+    "TSW_TRAEFIK_GUI_USERS_SECRET_NAME": "tsw_traefik_gui_users",
+})
 HTPASSWD_HASH_PATTERN = re.compile(
     r"^(?:\$2[abxy]\$\d{2}\$[./A-Za-z0-9]{53}|\$apr1\$[^$:\s]+\$[^:\s]+|"
     r"\$[156]\$[^:\s]+\$[^:\s]+|\{SHA\}[A-Za-z0-9+/=]+|\{CRYPT\}[^:\s]+)$"
@@ -55,6 +60,17 @@ def validate_traefik_htpasswd(value: str) -> None:
             or not HTPASSWD_HASH_PATTERN.fullmatch(password_hash)
         ):
             raise ValueError("Traefik htpasswd material is invalid.")
+
+
+def missing_traefik_secret_name_defaults(
+    values: Mapping[str, str], *, empty_is_missing: bool,
+) -> dict[str, str]:
+    """Return defaults needed by an installer boundary without changing input."""
+    return {
+        key: default
+        for key, default in TRAEFIK_SECRET_NAME_DEFAULTS.items()
+        if key not in values or (empty_is_missing and not values[key])
+    }
 
 
 @dataclass(frozen=True)
@@ -271,7 +287,7 @@ def default_configuration_contract() -> ConfigurationContract:
                 scope="traefik",
                 value_kind=ConfigurationValueKind.SECRET_NAME,
                 required=False,
-                default="tsw_traefik_tls_cert",
+                default=TRAEFIK_SECRET_NAME_DEFAULTS["TSW_TRAEFIK_TLS_CERT_SECRET_NAME"],
                 description="External Docker secret name for Traefik TLS certificate material.",
             ),
             ConfigurationRequirement(
@@ -279,7 +295,7 @@ def default_configuration_contract() -> ConfigurationContract:
                 scope="traefik",
                 value_kind=ConfigurationValueKind.SECRET_NAME,
                 required=False,
-                default="tsw_traefik_tls_key",
+                default=TRAEFIK_SECRET_NAME_DEFAULTS["TSW_TRAEFIK_TLS_KEY_SECRET_NAME"],
                 description="External Docker secret name for Traefik TLS private key material.",
             ),
             ConfigurationRequirement(
@@ -287,7 +303,7 @@ def default_configuration_contract() -> ConfigurationContract:
                 scope="traefik",
                 value_kind=ConfigurationValueKind.SECRET_NAME,
                 required=False,
-                default="tsw_traefik_gui_users",
+                default=TRAEFIK_SECRET_NAME_DEFAULTS["TSW_TRAEFIK_GUI_USERS_SECRET_NAME"],
                 description="External Docker secret name for Traefik dashboard htpasswd entries.",
             ),
         ),
