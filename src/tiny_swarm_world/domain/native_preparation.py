@@ -12,8 +12,8 @@ MINIMUM_FREE_DISK_BYTES = 60 * GIB
 PROFILE_MINIMUM_CPUS = {"default": MINIMUM_CPUS, "service-access": 8}
 PROFILE_MINIMUM_MEMORY_BYTES = {
     "default": MINIMUM_MEMORY_BYTES,
-    # The managed service-access node limits total 19 GiB; keep 1 GiB for the host.
-    "service-access": 20 * GIB,
+    # Host qualification is separate from managed-node capacity checks.
+    "service-access": 15 * GIB,
 }
 PROFILE_MINIMUM_FREE_DISK_BYTES = {
     "default": MINIMUM_FREE_DISK_BYTES,

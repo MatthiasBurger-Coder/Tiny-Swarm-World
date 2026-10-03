@@ -23,8 +23,19 @@ class ResourceAssessmentTests(unittest.TestCase):
         native = default_resource_profiles(HostEnvironmentKind.NATIVE_LINUX)["service-access"].minimum
 
         self.assertEqual(16 * 1024**3, wsl.memory_bytes)
-        self.assertEqual(20 * 1024**3, native.memory_bytes)
+        self.assertEqual(15 * 1024**3, native.memory_bytes)
         self.assertEqual((native.cpu_threads, native.free_disk_bytes), (wsl.cpu_threads, wsl.free_disk_bytes))
+
+    def test_native_service_access_memory_boundary(self):
+        profile = default_resource_profiles(HostEnvironmentKind.NATIVE_LINUX)["service-access"]
+        for memory, expected in (
+            (15 * 1024**3 - 1, ResourceAssessment.INSUFFICIENT),
+            (15 * 1024**3, ResourceAssessment.SUPPORTED_WITH_WARNINGS),
+        ):
+            with self.subTest(memory=memory):
+                resources = HostResources(8, memory, None, 0, 150 * 1024**3)
+                result = assess_resources(resources, profile.minimum, recommended=profile.recommended)
+                self.assertEqual(expected, result.assessment)
 
     def test_below_minimum_is_insufficient(self):
         resources = HostResources(4, 8 * 1024**3, 8 * 1024**3, 0, 200 * 1024**3)

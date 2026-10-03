@@ -54,7 +54,7 @@ class PlannedContainerLimit:
 def default_resource_profiles(
     host_environment: HostEnvironmentKind | None = None,
 ) -> dict[str, ResourceProfile]:
-    service_access_memory = 16 if host_environment is HostEnvironmentKind.WSL2 else 20
+    service_access_memory = 16 if host_environment is HostEnvironmentKind.WSL2 else 15
     return {
         "service-access": ResourceProfile(
             "service-access",
