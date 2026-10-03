@@ -72,6 +72,7 @@ COMMANDS: dict[str, list[str]] = {
         "-m",
         "unittest",
         "tests.architecture.test_hexagonal_imports",
+        "tests.architecture.test_architecture_regressions",
     ],
     "typecheck": [
         PYTHON,
