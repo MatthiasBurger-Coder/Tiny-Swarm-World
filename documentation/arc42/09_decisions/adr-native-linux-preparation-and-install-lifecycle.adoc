@@ -32,9 +32,12 @@ reported with a manual operator remedy before any mutation.
 The preparation service depends on ports for host inspection, package inventory
 and package installation. The Ubuntu APT adapter owns package-manager commands.
 The preparation preflight applies the selected profile's setup resource floor
-before APT: `service-access` requires eight CPU threads, 20 GiB RAM and 150
+before APT: `service-access` requires eight CPU threads, 15 GiB RAM and 150
 GiB free disk; `default` requires four CPU threads, 16 GiB RAM and 60 GiB free
-disk. Only verified host dependencies of the selected profile may be installed. The
+disk. The operator amendment on 2026-10-03 lowers the native `service-access`
+minimum from 20 to 15 GiB. Managed-node capacity checks remain separate;
+the lower host minimum is not live installation evidence.
+Only verified host dependencies of the selected profile may be installed. The
 default Incus/LXC profile may prepare Incus and bootstrap tools; it does not
 install host Docker Engine or Compose. Docker inside managed nodes remains the
 existing provider workflow's responsibility. The service records the exact

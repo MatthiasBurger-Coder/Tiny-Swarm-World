@@ -150,17 +150,26 @@ class NativePreparationServiceTests(unittest.TestCase):
                 packages.missing.assert_called_once()
 
     def test_service_access_resources_block_apt_before_mutation(self) -> None:
-        facts = replace(QUALIFIED, cpu_count=4, memory_bytes=18 * GIB, free_disk_bytes=100 * GIB)
+        facts = replace(QUALIFIED, cpu_count=4, memory_bytes=14 * GIB, free_disk_bytes=100 * GIB)
         packages = Mock(missing=Mock(return_value=("incus",)))
         service = NativePreparationService(Mock(inspect=Mock(return_value=facts)), packages)
         plan = service.plan()
         self.assertFalse(plan.qualified)
         self.assertIn("At least 8 CPU threads", " ".join(plan.failures))
-        self.assertIn("At least 20 GiB of RAM", " ".join(plan.failures))
+        self.assertIn("At least 15 GiB of RAM", " ".join(plan.failures))
         self.assertIn("At least 150 GiB", " ".join(plan.failures))
         with self.assertRaisesRegex(ValueError, "preflight failed"):
             service.apply(plan)
         packages.install.assert_not_called()
+
+    def test_service_access_memory_boundary(self) -> None:
+        for memory, qualified in ((15 * GIB - 1, False), (15 * GIB, True)):
+            with self.subTest(memory=memory):
+                facts = replace(QUALIFIED, memory_bytes=memory)
+                packages = Mock(missing=Mock(return_value=()))
+                service = NativePreparationService(Mock(inspect=Mock(return_value=facts)), packages)
+                self.assertEqual(qualified, service.plan().qualified)
+                packages.install.assert_not_called()
 
     def test_default_profile_keeps_smaller_resource_floor(self) -> None:
         facts = replace(QUALIFIED, cpu_count=4, free_disk_bytes=60 * GIB)

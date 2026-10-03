@@ -170,6 +170,14 @@ reset phrase `RESET_TINY_SWARM_PLATFORM`; both host modes require governed
 live-operation consent.
 `--headless` changes presentation; it does not make the operation read-only.
 
+Native `service-access` requires at least **15 GiB host RAM**; WSL2 retains
+16 GiB. Managed-node capacity is checked separately: the repository defaults
+total 19 GiB. A local 8/6/3 GiB node configuration was installed and functionally
+tested on an 18.73 GiB native host. The manager reached its 8 GiB limit, so this
+run establishes limited operation with little manager reserve. See the
+[native installation and memory results](documentation/evidence/issue-363-native-fresh-install-20261003.md)
+and the [local configuration procedure](documentation/user_guide/installation.adoc#native-node-memory-budget).
+
 The standard internal-test path needs **no credential file**. It uses
 deterministic catalog values. These defaults are for isolated, disposable
 internal testing; use the documented access boundary before exposing services.

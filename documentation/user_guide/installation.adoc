@@ -787,7 +787,8 @@ failed or blocked run.
 
 The WSL2 `service-access` preflight retains its 16 GiB RAM, eight-thread and
 150 GiB free-disk minimum. Native Linux clean-host preparation uses a separate
-20 GiB RAM floor. Managed node limit checks still protect WSL2 capacity during
+15 GiB RAM floor. This host minimum does not reserve managed-node memory or
+establish live qualification at that capacity. Managed node limit checks still protect capacity during
 node creation; a previously installed platform can reconcile when those checks
 and the current resource and memory-pressure checks pass.
 
@@ -875,8 +876,8 @@ Use link:{user-guide-prefix}usage.adoc#daily-operation[Daily operation] to choos
 reconciliation, broader setup without a preliminary reset, and a deliberate
 fresh reset. Reuse the same service profile and effective configuration.
 
-Do not rerun `./install.sh` merely to repair one service: it always includes a
-fresh reset. Use the canonical `platform update` contract for a reviewed
+Do not rerun `./install.sh` merely to repair one service: on WSL2 it includes a
+fresh reset; on native Linux it reconciles the broader platform. Use the canonical `platform update` contract for a reviewed
 single-service image transition and follow it with the acceptance checks.
 
 If a developer intentionally needs to discard the managed local environment,
@@ -997,7 +998,7 @@ automatic reset. A deliberate reset uses the separately confirmed `platform
 reset` command.
 
 The native preflight requires Ubuntu 24.04 or 26.04 LTS on x86_64. For the
-`service-access` profile, provide at least eight CPU threads, 20 GiB RAM and
+`service-access` profile, provide at least eight CPU threads, 15 GiB RAM and
 150 GiB free space on the repository filesystem. The `default` profile
 requires four CPU threads, 16 GiB RAM and 60 GiB free space. Preparation
 checks the selected profile's resource floor before package changes. It
@@ -1022,6 +1023,56 @@ confirmed managed-platform destroy or reset operation as appropriate; review
 the preparation evidence and remove only operator-approved host packages
 whose other consumers have been checked. Existing credentials and operator
 configuration are preserved on native installer reruns.
+
+[[native-node-memory-budget]]
+=== Native node memory budget and deliberate fresh installation
+
+The 15 GiB host floor is separate from the configured node limits. The
+repository defaults are manager 10 GiB, worker 1 8 GiB and worker 2 1 GiB
+(19 GiB total). Reducing the host floor does not reduce these limits or
+establish that all services fit on a 15 GiB host.
+
+For a host-specific allocation, copy the infrastructure configuration and use
+the supported `TSW_INFRA_ROOT` override:
+
+[source,bash]
+----
+mkdir -p .tiny-swarm-world/local
+cp -a infra .tiny-swarm-world/local/installation-infra
+export TSW_INFRA_ROOT="$PWD/.tiny-swarm-world/local/installation-infra"
+----
+
+Use a new destination for this copy; preserve an existing local installation
+configuration. Edit `config/node-providers/provider_config.yaml` under that
+local infrastructure root using its YAML `nodes[].resources.memory` fields.
+Reuse the same override for installation, verification and subsequent
+operations. Keep local configuration and credentials out of Git.
+
+The 2026-10-03 native Linux run used manager 8 GiB, worker 1 6 GiB and worker 2
+3 GiB (17 GiB total) on an 18.73 GiB host. Installer and platform verification
+passed, as did 25 functional E2E tests and seven API authentication checks.
+The manager reached its 8 GiB limit with memory-limit events; no node OOM or
+node swap was observed. Host swap was already occupied and increased during
+the run. The workers' observed peaks were below 1 GiB; spare worker RAM is
+not automatically available to services placed on the manager. Treat this
+allocation as functionally tested with little manager reserve, rather than
+sustained-load qualification. Formal E2E acceptance remained `LIVE_PARTIAL`
+because the tested source had uncommitted changes. See
+link:../evidence/issue-363-native-fresh-install-20261003.md[the redacted run summary].
+
+For an explicitly intended fresh managed installation on native Linux, reset
+the configured managed nodes separately before invoking the installer:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world platform reset --live --confirm RESET_TINY_SWARM_PLATFORM --service-profile service-access
+./install.sh --headless --non-interactive-live-approval
+----
+
+Run the installer only after reset succeeds. This discards the managed nodes
+and their service data. The prepared host, operator configuration and
+unrelated provider resources are retained; this is a fresh managed platform,
+not the clean-host qualification scenario in issue #427.
 
 For a deliberate WSL2 fresh reset and installation with local evidence capture, use:
 

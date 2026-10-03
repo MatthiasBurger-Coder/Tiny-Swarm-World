@@ -459,7 +459,7 @@ class TestComposition(unittest.TestCase):
         )
 
         self.assertEqual(8, native.resources.minimum_cpu_count)
-        self.assertEqual(20 * 1024**3, native.resources.minimum_memory_bytes)
+        self.assertEqual(15 * 1024**3, native.resources.minimum_memory_bytes)
         self.assertEqual(16 * 1024**3, wsl.resources.minimum_memory_bytes)
 
     def test_relative_xdg_state_home_does_not_block_preflight_construction(self):
