@@ -2,6 +2,11 @@
 
 Potential challenges and risks.
 
+The current EPIC 03 exception inventory and assigned follow-ups are in
+link:05_analysis/arch-03-21-resulting-architecture.md[ARCH-03.21]. It explicitly
+retains installer/root exceptions, composition compatibility cycles, Socat
+command formatting, Swarm-specific contracts and additive planner limitations.
+
 === Remaining Command Execution Risk
 
 The command catalog classifies command metadata and enforces workflow

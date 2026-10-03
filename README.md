@@ -19,6 +19,7 @@ establish that every supported host and lifecycle has passed acceptance.
 | Inspect or reconcile an existing installation | [Daily operation](documentation/user_guide/usage.adoc#daily-operation) |
 | Diagnose a failed run | [Troubleshooting](documentation/user_guide/troubleshooting.adoc#first-response) |
 | Change code or run development tests | [Developer Manual](documentation/manuals/developer-manual.md) |
+| Understand architecture or extend runtime support | [Resulting architecture and runtime extension guide](documentation/arc42/05_analysis/arch-03-21-resulting-architecture.md) |
 | Find architecture, security or audit references | [Documentation index](documentation/README.adoc) |
 
 ## Before you install

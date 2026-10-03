@@ -13,6 +13,10 @@ Start with [arc42](../arc42.adoc), the
 independent of application and infrastructure; concrete adapters are wired in
 `src/tiny_swarm_world/infrastructure/composition.py`.
 
+Read the [resulting architecture and runtime extension guide](../arc42/05_analysis/arch-03-21-resulting-architecture.md)
+for package ownership, dependency rules, Classic wiring, fitness functions and
+remaining exceptions under [EPIC 03 / #313](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/313).
+
 ## Workflow and changes
 
 Use the [workflow documents](../workflow/),

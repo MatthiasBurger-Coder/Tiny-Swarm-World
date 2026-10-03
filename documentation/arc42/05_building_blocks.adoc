@@ -1,5 +1,8 @@
 == Building Blocks
 
+The resulting EPIC 03 ownership, port/adapter wiring and extension constraints
+are documented in link:05_analysis/arch-03-21-resulting-architecture.md[ARCH-03.21 — Resulting architecture and runtime extension path].
+
 Tiny Swarm World now separates three repository roles explicitly.
 
 === Python Automation
