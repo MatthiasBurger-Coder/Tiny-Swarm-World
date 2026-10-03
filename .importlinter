@@ -47,6 +47,21 @@ forbidden_modules =
     tiny_swarm_world.__main__
     tiny_swarm_world.installer
     tiny_swarm_world.simple_installer
+    tiny_swarm_world.prepare_linux
+    tiny_swarm_world.cli_presentation
+allow_indirect_imports = True
+
+[importlinter:contract:infrastructure_no_bootstrap_imports]
+name = Infrastructure does not depend on executable bootstrap facades
+type = forbidden
+source_modules =
+    tiny_swarm_world.infrastructure
+forbidden_modules =
+    tiny_swarm_world.__main__
+    tiny_swarm_world.installer
+    tiny_swarm_world.simple_installer
+    tiny_swarm_world.prepare_linux
+    tiny_swarm_world.cli_presentation
 allow_indirect_imports = True
 
 [importlinter:contract:ports_no_services_imports]

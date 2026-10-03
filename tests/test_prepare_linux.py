@@ -301,10 +301,10 @@ class NativePreparationCliTests(unittest.TestCase):
                 Path(directory) / "operator.env", Path(directory) / "install-venv"
             )
             with (
-                patch("tiny_swarm_world.installer._paths_from_env", return_value=paths),
-                patch("tiny_swarm_world.installer._python_imports_available", side_effect=(False, False, True)),
-                patch("tiny_swarm_world.installer.ensure_python_environment", return_value="/prepared/python") as bootstrap,
-                patch("tiny_swarm_world.installer.detect_host_runtime") as runtime,
+                patch("tiny_swarm_world.infrastructure.composition_installation._paths_from_env", return_value=paths),
+                patch("tiny_swarm_world.infrastructure.composition_installation._python_imports_available", side_effect=(False, False, True)),
+                patch("tiny_swarm_world.infrastructure.composition_installation.ensure_python_environment", return_value="/prepared/python") as bootstrap,
+                patch("tiny_swarm_world.infrastructure.composition_installation.detect_host_runtime") as runtime,
                 patch("builtins.input", return_value="yes") as answer,
                 redirect_stdout(io.StringIO()),
             ):
@@ -321,10 +321,10 @@ class NativePreparationCliTests(unittest.TestCase):
                 Path(directory) / "operator.env", Path(directory) / "install-venv"
             )
             with (
-                patch("tiny_swarm_world.installer._paths_from_env", return_value=paths),
-                patch("tiny_swarm_world.installer._python_imports_available", return_value=False),
-                patch("tiny_swarm_world.installer.ensure_python_environment", return_value="python3") as bootstrap,
-                patch("tiny_swarm_world.installer.detect_host_runtime"),
+                patch("tiny_swarm_world.infrastructure.composition_installation._paths_from_env", return_value=paths),
+                patch("tiny_swarm_world.infrastructure.composition_installation._python_imports_available", return_value=False),
+                patch("tiny_swarm_world.infrastructure.composition_installation.ensure_python_environment", return_value="python3") as bootstrap,
+                patch("tiny_swarm_world.infrastructure.composition_installation.detect_host_runtime"),
                 patch("builtins.input", return_value="yes"),
                 redirect_stdout(io.StringIO()),
                 redirect_stderr(io.StringIO()),

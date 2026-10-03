@@ -4,11 +4,9 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
-from tiny_swarm_world.__main__ import (
-    _live_consent_for_workflow,
-    parse_args,
-    run_cli_workflow,
-)
+from tiny_swarm_world.infrastructure.adapters.cli.consent import _live_consent_for_workflow
+from tiny_swarm_world.infrastructure.adapters.cli.parser import parse_args
+from tiny_swarm_world.infrastructure.adapters.cli.dispatcher import run_cli_workflow
 from tiny_swarm_world.domain.update import ClassicUpdatePlan
 
 
@@ -104,7 +102,7 @@ class ClassicUpdateCliTest(unittest.TestCase):
             ]
         )
 
-        from tiny_swarm_world.__main__ import _update_plan_from_args
+        from tiny_swarm_world.infrastructure.adapters.cli.parser import _update_plan_from_args
 
         self.assertEqual(
             ClassicUpdatePlan("jenkins", "jenkins", "old:1", "new:1"),
@@ -133,7 +131,7 @@ class ClassicUpdateCliWorkflowTest(unittest.IsolatedAsyncioTestCase):
         update_workflow = SimpleNamespace(run=AsyncMock(return_value="applied"))
 
         with patch(
-            "tiny_swarm_world.__main__.build_classic_update_workflow",
+            "tiny_swarm_world.infrastructure.adapters.cli.dispatcher.build_classic_update_workflow",
             return_value=update_workflow,
         ) as build_workflow:
             result = await run_cli_workflow(
@@ -151,7 +149,7 @@ class ClassicUpdateCliWorkflowTest(unittest.IsolatedAsyncioTestCase):
         update_workflow = SimpleNamespace(recover=AsyncMock(return_value="recovered"))
 
         with patch(
-            "tiny_swarm_world.__main__.build_classic_update_workflow",
+            "tiny_swarm_world.infrastructure.adapters.cli.dispatcher.build_classic_update_workflow",
             return_value=update_workflow,
         ):
             result = await run_cli_workflow(

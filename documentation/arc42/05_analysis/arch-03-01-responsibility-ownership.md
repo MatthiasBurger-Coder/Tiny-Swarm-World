@@ -1,6 +1,7 @@
 # ARCH-03.01 — Responsibility Ownership and Migration Map
 
-The table assigns a future owner before any code is moved. It is the review
+The historical table assigns a future owner before any code is moved. Its
+source locations describe the ARCH-03.01 audit candidate, not current files. It is the review
 contract for ARC-02 through ARC-06 and keeps migration decisions tied to actual
 responsibilities.
 
@@ -37,3 +38,23 @@ responsibilities.
 The audit does not prescribe a generic framework, a maximum file size, or a
 pattern hierarchy. A migration is justified only when it removes one of the
 documented dependency or responsibility findings.
+
+## Implemented ownership after EPIC 03 gap closure (2026-10-03)
+
+| Baseline responsibility | Current canonical owner | Classification |
+|---|---|---|
+| CLI parsing / registry / consent | `infrastructure/adapters/cli/parser.py`, `registry.py`, `consent.py` | `PRESENTATION` / inbound adapter |
+| Command dispatch and rendering | CLI `dispatcher.py`, `commands.py`, `presentation.py` | Inbound adapter / `PRESENTATION` |
+| Executable CLI delegation | `__main__.py` | `ENTRYPOINT` |
+| Installer lifecycle, phase ordering and provenance intent | InstallationService, InstallationPhases, InstallationRunEvidence in `application/services/installation.py` | `APPLICATION_ORCHESTRATION` |
+| Installer technology implementations | `infrastructure/adapters/installation/host.py`, `configuration.py`, `credentials.py`, `process.py`, `evidence.py`, `presentation.py` | `INFRASTRUCTURE_ADAPTER` / `PRESENTATION` |
+| Operator bootstrap and secure credential-source loading | Installation `bootstrap.py`, `bootstrap_configuration.py` | Inbound / configuration adapters |
+| Installation dependency binding | `infrastructure/composition_installation.py` | `COMPOSITION` |
+| Established imports | Root installer exports and `cli_presentation.py` outward exports | `LEGACY_COMPATIBILITY` |
+
+The six installation ports have concrete consumers in the three application
+owners and concrete adapters bound by dependency-light composition. The
+root-level installer adapter allowlists were removed; exact bootstrap boundaries
+and direct-technology mutation probes enforce the new owners. Existing
+composition facade synchronization/cycles remain bounded debt, rather than
+unfinished CLI or installer extraction.

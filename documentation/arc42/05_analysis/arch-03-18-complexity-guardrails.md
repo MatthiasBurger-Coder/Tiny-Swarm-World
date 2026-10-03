@@ -5,18 +5,19 @@ Issue: #361. Parent: #313. Baseline captured on 2026-10-03 from the clean
 snapshot is `arch-03-18-complexity-baseline.json`; the reviewed exception list
 is `arch-03-18-complexity-exceptions.json`.
 
-## Scope and current baseline
+## Original baseline and covered scope
 
 The static checker covers every package-root Python module, every
 `infrastructure/composition*.py` module, every application service module, and
 all infrastructure adapters. This includes future owners reached by
 orchestration decomposition and provider, preflight, and Swarm runtime adapters
-that already orchestrate external work. It reads source only. The snapshot
-includes 259 modules and 1,955 functions. The largest measured modules are
+that already orchestrate external work. It reads source only. The original snapshot
+included 259 modules and 1,955 functions. The largest measured modules are
 `installer.py` (1,819 lines, complexity indicator 231, import fan-out 38),
 `adapters/clients/lxc_node_provider.py` (1,804 lines, indicator 226, fan-out
 19), and `composition_runtime.py` (1,774 lines, indicator 80, fan-out 84).
-These are existing debt, not a new failure.
+These describe the original captured candidate, not the extracted current
+installer. They were existing debt, not a new failure.
 
 Seventeen functions meet the critical function combination at baseline: at least 15
 branch paths and 60 lines. They include `installer._run_prepared` (24 / 233),
@@ -85,3 +86,22 @@ hexagonal architecture checks.
 Local verification is `APPLICABLE_LOCAL`. Live installation and browser checks
 are `NOT_APPLICABLE`. SonarQube is `APPLICABLE_EXTERNAL` to publication, and
 no external result is claimed by this local implementation evidence.
+
+## Reviewed EPIC 03 ownership relocation (2026-10-03)
+
+ARC-02 moves CLI parsing, dispatch and rendering to canonical CLI adapters;
+ARC-03 moves installer orchestration to three application owners with six
+consumed ports and technology helpers to focused installation adapters. Root
+installer bodies delegate; root exports preserve import compatibility.
+
+The corresponding baseline update is restricted to these changed/new owners.
+It records measured final metrics rather than regenerating unrelated entries.
+Existing CLI rendering is a canonical relocation; installer helper complexity
+is attributed to its concrete owner. No thresholds or exception policy change.
+Unrelated module/function/class baselines remain unchanged.
+
+The ownership map in `arch-03-01-responsibility-ownership.md` and the EPIC
+completion evidence provide before/after attribution. New responsibilities
+remain subject to the same growth checks, architecture mutation probes and
+behavioral regression gate. Local verification does not establish live or
+external success.

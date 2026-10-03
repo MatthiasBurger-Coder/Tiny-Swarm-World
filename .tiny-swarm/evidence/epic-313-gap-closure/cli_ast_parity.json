@@ -1,0 +1,255 @@
+{
+  "baseline": "7e15d539",
+  "functions_and_classes": [
+    {
+      "old": "__main__.py:CliWorkflow",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/registry.py:CliWorkflow",
+      "ast_equal": true
+    },
+    {
+      "old": "__main__.py:parse_args",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/parser.py:parse_args",
+      "ast_equal": true
+    },
+    {
+      "old": "__main__.py:_validate_provider_args",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/parser.py:_validate_provider_args",
+      "ast_equal": true
+    },
+    {
+      "old": "__main__.py:_assign_network_command",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/parser.py:_assign_network_command",
+      "ast_equal": true
+    },
+    {
+      "old": "__main__.py:_network_command",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/parser.py:_network_command",
+      "ast_equal": true
+    },
+    {
+      "old": "__main__.py:_has_network_repair_target",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/parser.py:_has_network_repair_target",
+      "ast_equal": true
+    },
+    {
+      "old": "__main__.py:_assign_workflow",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/parser.py:_assign_workflow",
+      "ast_equal": true
+    },
+    {
+      "old": "__main__.py:main",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/dispatcher.py:main",
+      "ast_equal": true
+    },
+    {
+      "old": "__main__.py:_print_workflow_list",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/commands.py:_print_workflow_list",
+      "ast_equal": true
+    },
+    {
+      "old": "__main__.py:_run_host_detect_command",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/commands.py:_run_host_detect_command",
+      "ast_equal": true
+    },
+    {
+      "old": "__main__.py:_run_host_verify_command",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/commands.py:_run_host_verify_command",
+      "ast_equal": true
+    },
+    {
+      "old": "__main__.py:_run_host_preparation_command",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/commands.py:_run_host_preparation_command",
+      "ast_equal": true
+    },
+    {
+      "old": "__main__.py:_run_preflight_command",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/commands.py:_run_preflight_command",
+      "ast_equal": true
+    },
+    {
+      "old": "__main__.py:_run_network_doctor_command",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/commands.py:_run_network_doctor_command",
+      "ast_equal": true
+    },
+    {
+      "old": "__main__.py:_run_network_repair_command",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/commands.py:_run_network_repair_command",
+      "ast_equal": true
+    },
+    {
+      "old": "__main__.py:_selected_workflow",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/dispatcher.py:_selected_workflow",
+      "ast_equal": true
+    },
+    {
+      "old": "__main__.py:_enforce_workflow_confirmation",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/consent.py:_enforce_workflow_confirmation",
+      "ast_equal": true
+    },
+    {
+      "old": "__main__.py:_enforce_workflow_implementation",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/consent.py:_enforce_workflow_implementation",
+      "ast_equal": true
+    },
+    {
+      "old": "__main__.py:_live_consent_for_workflow",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/consent.py:_live_consent_for_workflow",
+      "ast_equal": true
+    },
+    {
+      "old": "__main__.py:run_cli_workflow",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/dispatcher.py:run_cli_workflow",
+      "ast_equal": true
+    },
+    {
+      "old": "__main__.py:_update_plan_from_args",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/parser.py:_update_plan_from_args",
+      "ast_equal": true
+    },
+    {
+      "old": "__main__.py:_blocked_workflow_result",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/consent.py:_blocked_workflow_result",
+      "ast_equal": true
+    },
+    {
+      "old": "__main__.py:_live_consent_from_args",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/consent.py:_live_consent_from_args",
+      "ast_equal": true
+    },
+    {
+      "old": "__main__.py:_node_provider_request_from_args",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/parser.py:_node_provider_request_from_args",
+      "ast_equal": true
+    },
+    {
+      "old": "__main__.py:_print_setup_installation_plan",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/commands.py:_print_setup_installation_plan",
+      "ast_equal": true
+    },
+    {
+      "old": "cli_presentation.py:render_setup_installation_plan",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/presentation.py:render_setup_installation_plan",
+      "ast_equal": true
+    },
+    {
+      "old": "cli_presentation.py:_host_detection_payload",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/presentation.py:_host_detection_payload",
+      "ast_equal": true
+    },
+    {
+      "old": "cli_presentation.py:_print_host_environment_summary",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/presentation.py:_print_host_environment_summary",
+      "ast_equal": true
+    },
+    {
+      "old": "cli_presentation.py:_workflow_result_to_dict",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/presentation.py:_workflow_result_to_dict",
+      "ast_equal": true
+    },
+    {
+      "old": "cli_presentation.py:_emit_workflow_result",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/presentation.py:_emit_workflow_result",
+      "ast_equal": true
+    },
+    {
+      "old": "cli_presentation.py:_emit_json_payload",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/presentation.py:_emit_json_payload",
+      "ast_equal": true
+    },
+    {
+      "old": "cli_presentation.py:_workflow_status_value",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/presentation.py:_workflow_status_value",
+      "ast_equal": true
+    },
+    {
+      "old": "cli_presentation.py:_should_emit_json",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/presentation.py:_should_emit_json",
+      "ast_equal": true
+    },
+    {
+      "old": "cli_presentation.py:_print_blocked_workflow_summary",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/presentation.py:_print_blocked_workflow_summary",
+      "ast_equal": true
+    },
+    {
+      "old": "cli_presentation.py:_print_workflow_summary",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/presentation.py:_print_workflow_summary",
+      "ast_equal": true
+    },
+    {
+      "old": "cli_presentation.py:_format_workflow_summary",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/presentation.py:_format_workflow_summary",
+      "ast_equal": true
+    },
+    {
+      "old": "cli_presentation.py:_format_operation_summary",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/presentation.py:_format_operation_summary",
+      "ast_equal": true
+    },
+    {
+      "old": "cli_presentation.py:_format_verification_summary",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/presentation.py:_format_verification_summary",
+      "ast_equal": true
+    },
+    {
+      "old": "cli_presentation.py:_workflow_name",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/presentation.py:_workflow_name",
+      "ast_equal": true
+    },
+    {
+      "old": "cli_presentation.py:_print_preflight_summary",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/presentation.py:_print_preflight_summary",
+      "ast_equal": true
+    },
+    {
+      "old": "cli_presentation.py:_print_setup_installation_summary",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/presentation.py:_print_setup_installation_summary",
+      "ast_equal": true
+    },
+    {
+      "old": "cli_presentation.py:_format_setup_installation_summary",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/presentation.py:_format_setup_installation_summary",
+      "ast_equal": true
+    },
+    {
+      "old": "cli_presentation.py:_format_setup_phase_diagnostics",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/presentation.py:_format_setup_phase_diagnostics",
+      "ast_equal": true
+    },
+    {
+      "old": "cli_presentation.py:_print_setup_nested_workflow_diagnostics",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/presentation.py:_print_setup_nested_workflow_diagnostics",
+      "ast_equal": true
+    },
+    {
+      "old": "cli_presentation.py:_format_setup_nested_workflow_diagnostics",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/presentation.py:_format_setup_nested_workflow_diagnostics",
+      "ast_equal": true
+    },
+    {
+      "old": "cli_presentation.py:_format_phase_status_counts",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/presentation.py:_format_phase_status_counts",
+      "ast_equal": true
+    },
+    {
+      "old": "cli_presentation.py:_format_status_counts",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/presentation.py:_format_status_counts",
+      "ast_equal": true
+    },
+    {
+      "old": "cli_presentation.py:_console_enum",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/presentation.py:_console_enum",
+      "ast_equal": true
+    },
+    {
+      "old": "cli_presentation.py:_console_text",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/presentation.py:_console_text",
+      "ast_equal": true
+    },
+    {
+      "old": "cli_presentation.py:_safe_console_value",
+      "new": "src/tiny_swarm_world/infrastructure/adapters/cli/presentation.py:_safe_console_value",
+      "ast_equal": true
+    }
+  ]
+}

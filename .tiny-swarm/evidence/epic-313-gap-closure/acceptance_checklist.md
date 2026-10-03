@@ -1,0 +1,41 @@
+# Acceptance checklist
+
+Current candidate: fix/epic-03-orchestration-boundaries based on 7e15d539. Requirement matrix is canonical. Independent final Completion Auditor: PASS for E313-01–37, no open requirements (completion_audit.md).
+
+- [x] E313-01: Domain import contracts and unchanged domain code. Verification: Seven import contracts; domain boundary architecture tests.
+- [x] E313-02: InstallationService depends on six application ports. Verification: Application import/technology negative fixtures and import-linter.
+- [x] E313-03: Canonical CLI and installation owners; composition binds concrete adapters. Verification: Architecture reviewer; integrated responsibility scan.
+- [x] E313-04: Exact root import allowlists; infrastructure facade imports forbidden. Verification: Root/child/wildcard/bypass negative fixtures and seventh import contract.
+- [x] E313-05: CLI presentation contains only rendering; root exports canonical renderer. Verification: Renderer runtime-import/state negative fixtures; 50 AST parity.
+- [x] E313-06: InstallationService/Phases/RunEvidence orchestrate ports; concrete adapters own technology. Verification: Pure service tests; application direct-state/import negative fixtures.
+- [x] E313-07: composition_installation.py constructs six adapters; existing standard composition retained. Verification: Composition/source review and architecture tests.
+- [x] E313-08: Dependency-light installation composition alongside existing capability composition owners. Verification: Stdlib-only imports; architecture reviewer.
+- [x] E313-09: __main__.py is 18-line main/cli bootstrap delegation. Verification: Two root forwarding tests and thin-bootstrap regrowth negative fixtures.
+- [x] E313-10: CLI registry/parser/consent/commands/dispatcher/presentation ownership. Verification: CLI regression suite and architecture documentation.
+- [x] E313-11: All 19 workflow names and existing option/consent/error paths retained. Verification: CLI regression suite; executable --list-workflows; CLI AST parity.
+- [x] E313-12: Historical responsibility inventory plus preflight architecture plan precede extraction. Verification: arch-03-01 responsibility inventory, slice_plan.md, architect review.
+- [x] E313-13: Six consumed ports with dedicated technology adapters. Verification: Pure port installation tests and state-access architecture guard.
+- [x] E313-14: Native/WSL2 host adapters retain existing policies. Verification: Installer/simple/prepare/host path regression suites; security review.
+- [x] E313-15: InstallationPhases preserves bridge/reset/setup and evidence ordering. Verification: 11 service tests (124/130/reset17/setup23); existing installer suite.
+- [x] E313-16: Canonical credentials/configuration/evidence adapters preserve old security code. Verification: Security review; credential/redaction/staging installer tests.
+- [x] E313-17: New exact root, CLI adapter, renderer and application technology boundaries. Verification: 43 architecture tests and seven import contracts.
+- [x] E313-18: Deliberate root parser/class/state/import and app filesystem/print fixtures fail. Verification: TestOrchestrationEdgeGuards and dependency mutation fixtures.
+- [x] E313-19: __main__ removed from mixed-boundary exceptions; installer concrete root exceptions removed. Verification: Exact-boundary diff; resulting architecture debt owners.
+- [x] E313-20: No new architecture exception; scoped measured ownership baseline migration. Verification: complexity_owner_migration.json; independent architecture/test review.
+- [x] E313-21: Five arc42 analysis documents reflect integrated ownership and retained debt. Verification: Independent architecture documentation review.
+- [x] E313-22: CLI six owners; application three owners; installation eight technical owners. Verification: Architecture/Clean-Code review and complexity guard.
+- [x] E313-23: Installation/host/configuration/credentials/process/evidence/presentation names identify responsibility. Verification: Changed source/module inventory and architecture review.
+- [x] E313-24: Six protocols are consumed by real service/adapter composition. Verification: Service/port/composition static review; pure port tests.
+- [x] E313-25: Root implementations become outward delegation/reexports, single canonical bodies. Verification: 50 AST parity; infrastructure facade-import prohibition.
+- [x] E313-26: Ports inject technology boundaries; pure presentation/parser helpers remain functions. Verification: Architecture review and new service tests.
+- [x] E313-27: Exceptions, timeout/interruption and child exit codes remain explicit. Verification: Installer/service regression cases; independent security review.
+- [x] E313-28: Architecture gate integrated. Verification: 43 architecture tests PASS.
+- [x] E313-29: CLI and installer regressions integrated. Verification: Full quality unittest discovery includes targeted modules.
+- [x] E313-30: Final integrated candidate local QUALITY.md gate. Verification: quality.log and test_results.md.
+- [x] E313-31: Strict extraction retains previous live source attribution without changed runtime contracts. Verification: Security review; remaining_risks.md; #363/#427 original evidence retained.
+- [x] E313-32: Independent reviewers cover complete E313 matrix. Verification: architecture_review.md, test_evidence_review.md, completion_audit.md.
+- [x] E313-33: Six current required evidence files with per-requirement traces. Verification: Evidence inventory and independent completion audit.
+- [x] E313-34: Root/main/installer/simple/composition audited; historical inventory retained plus current owners. Verification: Historical responsibility inventory and resulting architecture review.
+- [x] E313-35: Classic routing/consent/guards/evidence/dependency-light bootstrap preserved. Verification: CLI AST parity; installer regression/security review; Python3.12 -S checks.
+- [x] E313-36: Only orchestration ownership, guards, related tests/docs/evidence change. Verification: changed_files.md; scope/architecture/security/completion review.
+- [x] E313-37: Live NOT_APPLICABLE and external NOT_RUN are explicit; prior results retain revisions. Verification: remaining_risks.md, security_review.md, test_results.md.

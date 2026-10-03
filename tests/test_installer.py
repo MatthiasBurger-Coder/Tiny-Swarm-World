@@ -14,6 +14,7 @@ from contextlib import ExitStack, nullcontext
 from unittest.mock import Mock, patch
 
 from tiny_swarm_world import installer
+from tiny_swarm_world.infrastructure.adapters.installation import host, configuration, credentials, process, evidence, presentation
 
 
 class TestInstaller(unittest.TestCase):
@@ -29,13 +30,13 @@ class TestInstaller(unittest.TestCase):
         }
         stack = ExitStack()
         self.addCleanup(stack.close)
-        stack.enter_context(patch.object(installer, "detect_host_runtime", return_value=installer.HostRuntime("native_linux", "test")))
-        stack.enter_context(patch.object(installer, "authorize_project_filesystem"))
-        stack.enter_context(patch.object(installer, "ensure_python_environment", return_value="python3"))
-        stack.enter_context(patch.object(installer, "_validate_native_installation_read_only"))
-        stack.enter_context(patch.object(installer, "_probe_git_ignore", return_value=installer._GitProbeResult(False, False, "outside_worktree")))
-        stack.enter_context(patch.object(installer, "_collect_evidence_probe_snapshot", return_value=installer._EvidenceProbeSnapshot("unknown", "unknown", "Linux", "test", "test")))
-        run_phase = stack.enter_context(patch.object(installer, "_run_phase", side_effect=phase, return_value=0))
+        stack.enter_context(patch.object(host, "detect_host_runtime", return_value=installer.HostRuntime("native_linux", "test")))
+        stack.enter_context(patch.object(host, "authorize_project_filesystem"))
+        stack.enter_context(patch.object(process, "ensure_python_environment", return_value="python3"))
+        stack.enter_context(patch.object(configuration, "_validate_native_installation_read_only"))
+        stack.enter_context(patch.object(evidence, "_probe_git_ignore", return_value=installer._GitProbeResult(False, False, "outside_worktree")))
+        stack.enter_context(patch.object(evidence, "_collect_evidence_probe_snapshot", return_value=installer._EvidenceProbeSnapshot("unknown", "unknown", "Linux", "test", "test")))
+        run_phase = stack.enter_context(patch.object(process, "_run_phase", side_effect=phase, return_value=0))
         return environment, source, env_file, run_phase
 
     def test_native_reconcile_runs_setup_without_reset(self):
@@ -89,7 +90,7 @@ class TestInstaller(unittest.TestCase):
                         "tiny_swarm_world.infrastructure.composition_native_preparation.build_native_preparation_service",
                         return_value=Mock(plan=Mock(return_value=prepared)),
                     ),
-                    patch.object(installer, "ensure_python_environment") as bootstrap,
+                    patch.object(process, "ensure_python_environment") as bootstrap,
                 ):
                     self.assertEqual(installer.run(options, env=environment, cwd=Path.cwd()), 0)
                 bootstrap.assert_not_called()
@@ -111,9 +112,9 @@ class TestInstaller(unittest.TestCase):
             (source / "config/compose/swagger/docker-compose.yml").write_text(
                 "services: [invalid", encoding="utf-8"
             )
-            with patch.object(installer, "_run_installer_subprocess") as setup_probe:
+            with patch.object(process, "_run_installer_subprocess") as setup_probe:
                 with self.assertRaisesRegex(installer.InstallerError, "configuration or credential preflight"):
-                    installer._validate_native_installation_read_only(
+                    configuration._validate_native_installation_read_only(
                         installer.InstallerOptions(
                             service_profile="service-access", confirm_reset=False,
                             non_interactive_live_approval=False, headless=True,
@@ -148,7 +149,7 @@ class TestInstaller(unittest.TestCase):
                     }[failure]
                     environment[key] = value
                 with self.assertRaises(installer.InstallerError) as raised:
-                    installer.run(installer.parse_args(("--confirm-reset", "--non-interactive-live-approval", "--headless")), env=environment, cwd=Path.cwd(), reporter=Mock())
+                    installer.run(presentation.parse_args(("--confirm-reset", "--non-interactive-live-approval", "--headless")), env=environment, cwd=Path.cwd(), reporter=Mock())
                 phase.assert_not_called()
                 self.assertNotIn("private-marker", str(raised.exception))
 
@@ -169,7 +170,7 @@ class TestInstaller(unittest.TestCase):
                 return 0
 
             environment, _, _, phase = self._isolated_install(root, phase=run_phase)
-            result = installer.run(installer.parse_args(("--confirm-reset", "--non-interactive-live-approval", "--headless")), env=environment, cwd=Path.cwd(), reporter=Mock())
+            result = installer.run(presentation.parse_args(("--confirm-reset", "--non-interactive-live-approval", "--headless")), env=environment, cwd=Path.cwd(), reporter=Mock())
             self.assertEqual(0, result)
             self.assertEqual(2, phase.call_count)
             self.assertEqual(captured[0][1:], captured[1][1:])
@@ -183,8 +184,8 @@ class TestInstaller(unittest.TestCase):
             selected_temporary_root = root / "temporary"
             selected_temporary_root.mkdir(mode=0o700)
             with patch.object(tempfile, "tempdir", str(selected_temporary_root)):
-                with installer._configuration_snapshot(
-                    installer.parse_args(()), environment, Path.cwd(),
+                with configuration._configuration_snapshot(
+                    presentation.parse_args(()), environment, Path.cwd(),
                     installer.HostRuntime("native_linux", "test"),
                 ) as prepared:
                     snapshot = Path(prepared["TSW_INFRA_ROOT"])
@@ -200,13 +201,13 @@ class TestInstaller(unittest.TestCase):
                 if not operator_file_present:
                     operator_file.unlink()
                 with (
-                    patch.object(installer, "ProjectFilesystemInspector") as inspector,
-                    patch.object(installer, "_copy_configuration_tree") as copy,
+                    patch.object(configuration, "ProjectFilesystemInspector") as inspector,
+                    patch.object(configuration, "_copy_configuration_tree") as copy,
                 ):
                     inspector.return_value.inspect.return_value.kind = installer.ProjectFilesystemKind.WINDOWS_MOUNTED
                     with self.assertRaises(installer.InstallerError):
-                        with installer._configuration_snapshot(
-                            installer.parse_args(()), environment, Path.cwd(),
+                        with configuration._configuration_snapshot(
+                            presentation.parse_args(()), environment, Path.cwd(),
                             installer.HostRuntime("wsl2", "test"),
                         ):
                             self.fail("Unsafe temporary storage must not reach the lifecycle")
@@ -219,7 +220,7 @@ class TestInstaller(unittest.TestCase):
             environment, _, _, _ = self._isolated_install(root)
             retained = None
             with self.assertRaisesRegex(OSError, "lifecycle failure"):
-                with installer._configuration_snapshot(installer.parse_args(()), environment, Path.cwd(), installer.HostRuntime("native_linux", "test")) as prepared:
+                with configuration._configuration_snapshot(presentation.parse_args(()), environment, Path.cwd(), installer.HostRuntime("native_linux", "test")) as prepared:
                     retained = Path(prepared["TSW_INFRA_ROOT"])
                     raise OSError("lifecycle failure")
             self.assertIsNotNone(retained)
@@ -232,8 +233,8 @@ class TestInstaller(unittest.TestCase):
             registry = root / "bridge-ports.yaml"
             shutil.copyfile(Path("infra/config/ports.yaml"), registry)
             environment["TSW_WINDOWS_BRIDGE_PORT_REGISTRY_PATH"] = str(registry)
-            options = installer.parse_args(())
-            with installer._configuration_snapshot(options, environment, Path.cwd(), installer.HostRuntime("wsl2", "test")) as prepared:
+            options = presentation.parse_args(())
+            with configuration._configuration_snapshot(options, environment, Path.cwd(), installer.HostRuntime("wsl2", "test")) as prepared:
                 staged = Path(prepared["TSW_WINDOWS_BRIDGE_PORT_REGISTRY_PATH"])
                 original = staged.read_bytes()
                 registry.write_text("invalid: [", encoding="utf-8")
@@ -241,7 +242,7 @@ class TestInstaller(unittest.TestCase):
                 self.assertNotEqual(registry, staged)
             self.assertFalse(staged.exists())
             with self.assertRaises(installer.InstallerError):
-                with installer._configuration_snapshot(options, environment, Path.cwd(), installer.HostRuntime("wsl2", "test")):
+                with configuration._configuration_snapshot(options, environment, Path.cwd(), installer.HostRuntime("wsl2", "test")):
                     self.fail("Invalid selected override must not reach the lifecycle")
 
     def test_snapshot_rejects_symlink_and_special_file_inputs(self):
@@ -251,17 +252,17 @@ class TestInstaller(unittest.TestCase):
             source.mkdir()
             (source / "link").symlink_to(Path("infra/config/ports.yaml").resolve())
             with self.assertRaises(OSError):
-                installer._copy_configuration_tree(source, root / "copy")
+                configuration._copy_configuration_tree(source, root / "copy")
             (source / "link").unlink()
             os.mkfifo(source / "pipe")
             with self.assertRaises(ValueError):
-                installer._copy_configuration_tree(source, root / "copy2")
+                configuration._copy_configuration_tree(source, root / "copy2")
 
     def test_installation_evidence_directory_uses_configured_xdg_state(self):
         with tempfile.TemporaryDirectory() as tempdir:
             state_root = Path(tempdir) / "state"
 
-            evidence_dir = installer._installation_evidence_directory(
+            evidence_dir = evidence._installation_evidence_directory(
                 {"XDG_STATE_HOME": state_root.as_posix()},
                 cwd=Path(tempdir) / "checkout",
                 host_runtime=installer.HostRuntime("wsl2", "test"),
@@ -283,7 +284,7 @@ class TestInstaller(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tempdir:
             configured_root = Path(tempdir) / "configured"
 
-            evidence_dir = installer._installation_evidence_directory(
+            evidence_dir = evidence._installation_evidence_directory(
                 {"TSW_LIVE_EVIDENCE_ROOT": configured_root.as_posix()},
                 cwd=Path(tempdir) / "checkout",
                 host_runtime=installer.HostRuntime("native_linux", "test"),
@@ -295,7 +296,7 @@ class TestInstaller(unittest.TestCase):
     def test_installation_evidence_directory_resolves_relative_root_from_checkout(self):
         with tempfile.TemporaryDirectory() as tempdir:
             checkout = Path(tempdir) / "checkout"
-            evidence_dir = installer._installation_evidence_directory(
+            evidence_dir = evidence._installation_evidence_directory(
                 {"TSW_LIVE_EVIDENCE_ROOT": "relative-evidence"},
                 cwd=checkout,
                 host_runtime=installer.HostRuntime("native_linux", "test"),
@@ -310,7 +311,7 @@ class TestInstaller(unittest.TestCase):
             "home",
             return_value=Path(tempdir),
         ):
-            evidence_dir = installer._installation_evidence_directory(
+            evidence_dir = evidence._installation_evidence_directory(
                 {"XDG_STATE_HOME": ""},
                 cwd=Path(tempdir) / "checkout",
                 host_runtime=installer.HostRuntime("native_linux", "test"),
@@ -337,9 +338,9 @@ class TestInstaller(unittest.TestCase):
                 installer.InstallerError,
                 "TSW_TRAEFIK_GUI_USERS_HTPASSWD",
             ):
-                installer._require_operator_provisioned_traefik_gui_users({}, secret_env_file)
+                credentials._require_operator_provisioned_traefik_gui_users({}, secret_env_file)
 
-            installer._require_operator_provisioned_traefik_gui_users(
+            credentials._require_operator_provisioned_traefik_gui_users(
                 {"TSW_TRAEFIK_GUI_USERS_HTPASSWD": "admin:$2y$12$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},
                 secret_env_file,
             )
@@ -348,7 +349,7 @@ class TestInstaller(unittest.TestCase):
         with tempfile.TemporaryDirectory():
             env: dict[str, str] = {}
 
-            exports = installer._ensure_default_config_exports(env)
+            exports = credentials._ensure_default_config_exports(env)
 
         self.assertEqual(
             exports["TSW_TRAEFIK_GUI_USERS_SECRET_NAME"],
@@ -368,7 +369,7 @@ class TestInstaller(unittest.TestCase):
                 "TSW_LIVE_TLS_CA_BUNDLE": "/custom/ca-bundle.pem",
             }
 
-            exports = installer._ensure_default_config_exports(env)
+            exports = credentials._ensure_default_config_exports(env)
 
         self.assertEqual(exports, {})
 
@@ -380,7 +381,7 @@ class TestInstaller(unittest.TestCase):
             "TSW_LIVE_TLS_CA_BUNDLE": "/custom/ca-bundle.pem",
         }
 
-        exports = installer._ensure_default_config_exports(env)
+        exports = credentials._ensure_default_config_exports(env)
 
         self.assertEqual(exports["TSW_TRAEFIK_TLS_CERT_SECRET_NAME"], "tsw_traefik_tls_cert")
         self.assertEqual(exports["TSW_TRAEFIK_TLS_KEY_SECRET_NAME"], "tsw_traefik_tls_key")
@@ -391,12 +392,12 @@ class TestInstaller(unittest.TestCase):
         with tempfile.TemporaryDirectory():
             env = {"TSW_TRAEFIK_CA_CERT_PATH": "/operator/ca.crt"}
 
-            exports = installer._ensure_default_config_exports(env)
+            exports = credentials._ensure_default_config_exports(env)
 
         self.assertEqual(exports["TSW_LIVE_TLS_CA_BUNDLE"], "/operator/ca.crt")
 
     def test_parse_args_defaults_to_service_access_and_internal_test_credentials(self):
-        options = installer.parse_args(())
+        options = presentation.parse_args(())
 
         self.assertEqual(options.service_profile, "service-access")
         self.assertFalse(options.confirm_reset)
@@ -405,7 +406,7 @@ class TestInstaller(unittest.TestCase):
         self.assertFalse(options.allow_wsl_windows_filesystem)
 
     def test_parse_args_supports_headless_and_noninteractive_approval(self):
-        options = installer.parse_args(
+        options = presentation.parse_args(
             (
                 "--service-profile",
                 "default",
@@ -426,11 +427,11 @@ class TestInstaller(unittest.TestCase):
         for argv in (("--secrets-mode", "generated"), ("--no-generate-secrets",)):
             with self.subTest(argv=argv), patch.dict("os.environ", {"TSW_SECRETS_MODE": "generated"}):
                 with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
-                    installer.parse_args(argv)
+                    presentation.parse_args(argv)
 
     def test_removed_credential_environment_selector_is_ignored(self):
         with patch.dict("os.environ", {"TSW_SECRETS_MODE": "generated"}):
-            options = installer.parse_args(())
+            options = presentation.parse_args(())
 
         self.assertFalse(hasattr(options, "secrets_mode"))
         self.assertFalse(hasattr(options, "generate_secrets"))
@@ -443,7 +444,7 @@ class TestInstaller(unittest.TestCase):
                 required=True,
             ),
         )
-        resolved = installer._resolve_internal_test_installer_values(
+        resolved = credentials._resolve_internal_test_installer_values(
             {
                 "TSW_PORTAINER_ADMIN_PASSWORD": "operator-value",
                 installer.CREDENTIAL_SOURCE_MAP_ENVIRONMENT: '{"TSW_PORTAINER_ADMIN_PASSWORD":"operator"}',
@@ -455,7 +456,7 @@ class TestInstaller(unittest.TestCase):
         self.assertEqual("operator", resolved.sources["TSW_PORTAINER_ADMIN_PASSWORD"].value)
 
     def test_installer_source_context_is_redacted_to_source_labels(self):
-        metadata = installer._safe_credential_source_metadata(
+        metadata = evidence._safe_credential_source_metadata(
             {
                 installer.CREDENTIAL_SOURCE_MAP_ENVIRONMENT: '{"TSW_PORTAINER_ADMIN_PASSWORD":"default"}',
             }
@@ -464,7 +465,7 @@ class TestInstaller(unittest.TestCase):
         self.assertEqual('{"TSW_PORTAINER_ADMIN_PASSWORD":"default"}', metadata)
         self.assertEqual(
             "invalid",
-            installer._safe_credential_source_metadata(
+            evidence._safe_credential_source_metadata(
                 {installer.CREDENTIAL_SOURCE_MAP_ENVIRONMENT: "not-json"}
             ),
         )
@@ -484,32 +485,24 @@ class TestInstaller(unittest.TestCase):
         for resolution_error in (False, True):
             with self.subTest(resolution_error=resolution_error), tempfile.TemporaryDirectory() as tempdir:
                 patches = [
-                    patch.object(installer, "_require_repository"),
-                    patch.object(installer, "_configuration_snapshot", return_value=nullcontext({"TSW_INFRA_ROOT": tempdir})),
+                    patch.object(host, "_require_repository"),
+                    patch.object(configuration, "_configuration_snapshot", return_value=nullcontext({"TSW_INFRA_ROOT": tempdir})),
                     patch("tiny_swarm_world.infrastructure.adapters.repositories.installer_configuration_repository.InstallerConfigurationRepository.validate_environment"),
-                    patch.object(
-                        installer,
-                        "detect_host_runtime",
+                    patch.object(host, "detect_host_runtime",
                         return_value=installer.HostRuntime("native_linux", "test"),
                     ),
-                    patch.object(installer, "authorize_project_filesystem"),
-                    patch.object(installer, "ensure_python_environment", return_value="python3"),
-                    patch.object(
-                        installer,
-                        "_required_installer_secret_entries",
+                    patch.object(host, "authorize_project_filesystem"),
+                    patch.object(process, "ensure_python_environment", return_value="python3"),
+                    patch.object(credentials, "_required_installer_secret_entries",
                         return_value=entries,
                     ),
-                    patch.object(installer, "_normalize_infisical_login_email", return_value={}),
-                    patch.object(installer, "_ensure_default_config_exports", return_value={}),
-                    patch.object(installer, "_require_operator_provisioned_traefik_gui_users"),
-                    patch.object(
-                        installer,
-                        "_probe_git_ignore",
+                    patch.object(credentials, "_normalize_infisical_login_email", return_value={}),
+                    patch.object(credentials, "_ensure_default_config_exports", return_value={}),
+                    patch.object(credentials, "_require_operator_provisioned_traefik_gui_users"),
+                    patch.object(evidence, "_probe_git_ignore",
                         return_value=installer._GitProbeResult(False, False, "outside_worktree"),
                     ),
-                    patch.object(
-                        installer,
-                        "_collect_evidence_probe_snapshot",
+                    patch.object(evidence, "_collect_evidence_probe_snapshot",
                         return_value=installer._EvidenceProbeSnapshot(
                             "unknown", "unknown", "Linux", "test", "test"
                         ),
@@ -517,24 +510,20 @@ class TestInstaller(unittest.TestCase):
                 ]
                 if resolution_error:
                     patches.append(
-                        patch.object(
-                            installer,
-                            "_resolve_internal_test_installer_values",
-                            side_effect=installer.CredentialResolutionError("invalid source metadata"),
+                        patch.object(credentials, "_resolve_internal_test_installer_values",
+                            side_effect=credentials.CredentialResolutionError("invalid source metadata"),
                         )
                     )
                 else:
                     patches.append(
-                        patch.object(
-                            installer,
-                            "_write_context",
+                        patch.object(evidence, "_write_context",
                             side_effect=StopAfterResolution,
                         )
                     )
                 for active_patch in patches:
                     active_patch.start()
                 try:
-                    options = installer.parse_args(("--confirm-reset", "--headless"))
+                    options = presentation.parse_args(("--confirm-reset", "--headless"))
                     if resolution_error:
                         with self.assertRaisesRegex(installer.InstallerError, "invalid source metadata"):
                             installer.run(
@@ -564,7 +553,7 @@ class TestInstaller(unittest.TestCase):
                 "6.1.0-microsoft-standard-WSL2\n",
             )
 
-            runtime = installer.detect_host_runtime(
+            runtime = host.detect_host_runtime(
                 {"WSL_DISTRO_NAME": "Ubuntu"},
                 os_root=root,
                 platform_system=lambda: "Linux",
@@ -578,7 +567,7 @@ class TestInstaller(unittest.TestCase):
             root = Path(temporary_directory)
             _write_host_signal(root, "proc/sys/kernel/osrelease", "6.8.0-generic\n")
 
-            runtime = installer.detect_host_runtime(
+            runtime = host.detect_host_runtime(
                 {},
                 os_root=root,
                 platform_system=lambda: "Linux",
@@ -604,7 +593,7 @@ class TestInstaller(unittest.TestCase):
                     )
 
                     with self.assertRaises(installer.InstallerError):
-                        installer.detect_host_runtime(
+                        host.detect_host_runtime(
                             environment,
                             os_root=root,
                             platform_system=lambda: "Linux",
@@ -612,13 +601,13 @@ class TestInstaller(unittest.TestCase):
 
     def test_host_runtime_test_override_requires_explicit_test_mode(self):
         with self.assertRaises(installer.InstallerError):
-            installer.detect_host_runtime(
+            host.detect_host_runtime(
                 {"TSW_INSTALL_TEST_HOST_RUNTIME": "wsl2"},
                 os_root=Path("missing-test-root"),
                 platform_system=lambda: "Linux",
             )
 
-        runtime = installer.detect_host_runtime(
+        runtime = host.detect_host_runtime(
             {
                 "TSW_INSTALL_TEST_MODE": "1",
                 "TSW_INSTALL_TEST_HOST_RUNTIME": "wsl2",
@@ -632,16 +621,14 @@ class TestInstaller(unittest.TestCase):
 
     def test_installer_stops_unsupported_host_before_bootstrap_or_file_writes(self):
         with (
-            patch.object(
-                installer,
-                "detect_host_runtime",
+            patch.object(host, "detect_host_runtime",
                 side_effect=installer.InstallerError("unsupported host"),
             ),
-            patch.object(installer, "ensure_python_environment") as ensure_python,
+            patch.object(process, "ensure_python_environment") as ensure_python,
         ):
             with self.assertRaises(installer.InstallerError):
                 installer.run(
-                    installer.parse_args(("--confirm-reset",)),
+                    presentation.parse_args(("--confirm-reset",)),
                     env={},
                     cwd=Path.cwd(),
                 )
@@ -651,20 +638,18 @@ class TestInstaller(unittest.TestCase):
     def test_installer_stops_blocked_wsl_filesystem_before_bootstrap_or_file_writes(self):
         runtime = installer.HostRuntime("wsl2", "test")
         with (
-            patch.object(installer, "detect_host_runtime", return_value=runtime),
-            patch.object(
-                installer,
-                "authorize_project_filesystem",
+            patch.object(host, "detect_host_runtime", return_value=runtime),
+            patch.object(host, "authorize_project_filesystem",
                 side_effect=installer.InstallerError(
                     "Windows-mounted WSL project filesystem is blocked."
                 ),
             ) as authorize,
-            patch.object(installer, "ensure_python_environment") as ensure_python,
-            patch.object(installer.subprocess, "run") as run_process,
+            patch.object(process, "ensure_python_environment") as ensure_python,
+            patch.object(process.subprocess, "run") as run_process,
         ):
             with self.assertRaises(installer.InstallerError):
                 installer.run(
-                    installer.parse_args(("--confirm-reset",)),
+                    presentation.parse_args(("--confirm-reset",)),
                     env={},
                     cwd=Path.cwd(),
                 )
@@ -691,17 +676,15 @@ class TestInstaller(unittest.TestCase):
             raise installer.InstallerError("stop after filesystem checkpoint")
 
         with (
-            patch.object(installer, "detect_host_runtime", side_effect=detect),
-            patch.object(installer, "authorize_project_filesystem", side_effect=authorize),
-            patch.object(
-                installer,
-                "ensure_python_environment",
+            patch.object(host, "detect_host_runtime", side_effect=detect),
+            patch.object(host, "authorize_project_filesystem", side_effect=authorize),
+            patch.object(process, "ensure_python_environment",
                 side_effect=lambda *args, **kwargs: calls.append("bootstrap"),
             ),
         ):
             with self.assertRaises(installer.InstallerError):
                 installer.run(
-                    installer.parse_args(("--confirm-reset",)),
+                    presentation.parse_args(("--confirm-reset",)),
                     env={},
                     cwd=Path.cwd(),
                 )
@@ -715,8 +698,8 @@ class TestInstaller(unittest.TestCase):
                 native_linux_venv=Path(tempdir) / "install-venv",
             )
 
-            with patch.object(installer, "_python_imports_available", return_value=True):
-                python_bin = installer.ensure_python_environment(
+            with patch.object(process, "_python_imports_available", return_value=True):
+                python_bin = process.ensure_python_environment(
                     installer.HostRuntime("wsl2", "test"),
                     paths,
                     {},
@@ -747,10 +730,10 @@ class TestInstaller(unittest.TestCase):
                 return subprocess.CompletedProcess(command, 99)
 
             with (
-                patch.object(installer, "_python_imports_available", side_effect=fake_imports_available),
-                patch.object(installer.subprocess, "run", side_effect=fake_run),
+                patch.object(process, "_python_imports_available", side_effect=fake_imports_available),
+                patch.object(process.subprocess, "run", side_effect=fake_run),
             ):
-                python_bin = installer.ensure_python_environment(
+                python_bin = process.ensure_python_environment(
                     installer.HostRuntime("wsl2", "test"),
                     paths,
                     {},
@@ -786,23 +769,23 @@ class TestInstaller(unittest.TestCase):
     def test_installer_subprocess_timeout_is_configurable_and_positive(self):
         self.assertEqual(
             12.5,
-            installer._installer_subprocess_timeout_seconds(
+            process._installer_subprocess_timeout_seconds(
                 {installer.INSTALLER_SUBPROCESS_TIMEOUT_ENVIRONMENT: "12.5"}
             ),
         )
         with self.assertRaises(installer.InstallerError):
-            installer._installer_subprocess_timeout_seconds(
+            process._installer_subprocess_timeout_seconds(
                 {installer.INSTALLER_SUBPROCESS_TIMEOUT_ENVIRONMENT: "0"}
             )
 
     def test_installer_subprocess_timeout_is_reported_as_installer_error(self):
         with patch.object(
-            installer.subprocess,
+            process.subprocess,
             "run",
             side_effect=subprocess.TimeoutExpired(["python3", "-m", "pip"], 1),
         ):
             with self.assertRaisesRegex(installer.InstallerError, "timed out"):
-                installer._run_installer_subprocess(
+                process._run_installer_subprocess(
                     ["python3", "-m", "pip"],
                     env={},
                     check=False,
@@ -811,7 +794,7 @@ class TestInstaller(unittest.TestCase):
 
     def test_normalized_email_value_removes_accidental_literal_quote(self):
         self.assertEqual(
-            installer._normalized_email_value("'admin@tiny-swarm-world.local"),
+            credentials._normalized_email_value("'admin@tiny-swarm-world.local"),
             "admin@tiny-swarm-world.local",
         )
 
@@ -820,8 +803,8 @@ class TestInstaller(unittest.TestCase):
             ["git", "check-ignore"],
             returncode=0,
         )
-        with patch.object(installer.subprocess, "run", return_value=completed) as run:
-            result = installer._probe_git_ignore(Path("/tmp/repository"), ".tiny-swarm-world/")
+        with patch.object(process.subprocess, "run", return_value=completed) as run:
+            result = evidence._probe_git_ignore(Path("/tmp/repository"), ".tiny-swarm-world/")
 
         run.assert_called_once()
         self.assertEqual(
@@ -839,8 +822,8 @@ class TestInstaller(unittest.TestCase):
                     ["git", "check-ignore"],
                     returncode=returncode,
                 )
-                with patch.object(installer.subprocess, "run", return_value=completed):
-                    result = installer._probe_git_ignore(
+                with patch.object(process.subprocess, "run", return_value=completed):
+                    result = evidence._probe_git_ignore(
                         Path("/tmp/repository"),
                         ".tiny-swarm-world/",
                     )
@@ -854,8 +837,8 @@ class TestInstaller(unittest.TestCase):
         env = {"TSW_INSTALL_COMMAND_GROUP": "lxd"}
         with tempfile.TemporaryDirectory() as temporary_dir:
             root = Path(temporary_dir)
-            with patch.object(installer, "_run_bounded_process", return_value=(0, False, False)) as process:
-                result = installer._run_phase(
+            with patch.object(process, "_run_bounded_process", return_value=(0, False, False)) as bounded_process:
+                result = process._run_phase(
                     "setup", "echo ready", root / "phase.log",
                     installer.InstallerOptions(
                         service_profile="default", confirm_reset=False,
@@ -865,7 +848,7 @@ class TestInstaller(unittest.TestCase):
                 )
 
         self.assertEqual(result, 0)
-        self.assertEqual(process.call_args.args[0], ["bash", "-lc", "sg lxd -c 'echo ready'"])
+        self.assertEqual(bounded_process.call_args.args[0], ["bash", "-lc", "sg lxd -c 'echo ready'"])
         self.assertEqual(env, {"TSW_INSTALL_COMMAND_GROUP": "lxd"})
 
     def test_evidence_probe_snapshot_coalesces_git_and_system_metadata(self):
@@ -878,9 +861,9 @@ class TestInstaller(unittest.TestCase):
             return "Linux 6.18.33-test x86_64"
 
         git_probe = installer._GitProbeResult(True, True, "ignored")
-        with patch.object(installer, "_run_optional_text", side_effect=optional_text):
-            with patch.object(installer, "_read_text", return_value="6.18.33-test\n"):
-                snapshot = installer._collect_evidence_probe_snapshot(
+        with patch.object(process, "_run_optional_text", side_effect=optional_text):
+            with patch.object(evidence, "_read_text", return_value="6.18.33-test\n"):
+                snapshot = evidence._collect_evidence_probe_snapshot(
                     Path("/tmp/repository"),
                     git_probe,
                 )
@@ -897,9 +880,9 @@ class TestInstaller(unittest.TestCase):
 
     def test_evidence_probe_snapshot_uses_unknown_for_optional_failures(self):
         git_probe = installer._GitProbeResult(True, True, "ignored")
-        with patch.object(installer, "_run_optional_text", return_value="unknown"):
-            with patch.object(installer, "_read_text", return_value=""):
-                snapshot = installer._collect_evidence_probe_snapshot(
+        with patch.object(process, "_run_optional_text", return_value="unknown"):
+            with patch.object(evidence, "_read_text", return_value=""):
+                snapshot = evidence._collect_evidence_probe_snapshot(
                     Path("/tmp/repository"),
                     git_probe,
                 )
@@ -910,7 +893,7 @@ class TestInstaller(unittest.TestCase):
         )
 
     def test_required_installer_secret_entries_come_from_manifest(self):
-        entries = installer._required_installer_secret_entries(
+        entries = credentials._required_installer_secret_entries(
             Path("infra/config/secrets/infisical-secrets.yaml")
         )
         keys = {entry.key for entry in entries}
@@ -924,14 +907,14 @@ class TestInstaller(unittest.TestCase):
             manifest = Path(directory) / "manifest.yaml"
             manifest.write_text("secrets:\n- key: TSW_TEST_PASSWORD\n  type: managed_secret\n  source: internal_test_catalog\n  required: 'false'\n", encoding="utf-8")
             with self.assertRaisesRegex(installer.InstallerError, "boolean"):
-                installer._required_installer_secret_entries(manifest)
+                credentials._required_installer_secret_entries(manifest)
 
     def test_installer_manifest_parser_error_does_not_echo_content(self):
         with tempfile.TemporaryDirectory() as directory:
             manifest = Path(directory) / "manifest.yaml"
             manifest.write_text("secrets: [sensitive-marker", encoding="utf-8")
             with self.assertRaises(installer.InstallerError) as caught:
-                installer._required_installer_secret_entries(manifest)
+                credentials._required_installer_secret_entries(manifest)
             self.assertNotIn("sensitive-marker", str(caught.exception))
 
     def test_required_installer_secret_entries_reject_type_source_mismatch(self):
@@ -947,7 +930,7 @@ class TestInstaller(unittest.TestCase):
             )
 
             with self.assertRaisesRegex(installer.InstallerError, "type/source mismatch"):
-                installer._required_installer_secret_entries(manifest)
+                credentials._required_installer_secret_entries(manifest)
 
     def test_confirm_reset_reports_missing_noninteractive_input(self):
         options = installer.InstallerOptions(
@@ -960,7 +943,7 @@ class TestInstaller(unittest.TestCase):
 
         with patch("builtins.input", side_effect=EOFError):
             with self.assertRaisesRegex(installer.InstallerError, "was not provided"):
-                installer._confirm_reset(options)
+                presentation._confirm_reset(options)
 
     def test_windows_wsl_bridge_guard_passes_for_native_linux_without_state(self):
         with tempfile.TemporaryDirectory() as tempdir:
@@ -1054,7 +1037,7 @@ class TestInstaller(unittest.TestCase):
 
     def test_windows_wsl_bridge_agent_not_ready_suggests_service_restart(self):
         self.assertEqual(
-            installer._windows_wsl_bridge_suggested_commands("agent_not_ready"),
+            presentation._windows_wsl_bridge_suggested_commands("agent_not_ready"),
             (
                 'powershell.exe -NoProfile -Command "Restart-Service -Name TinySwarmWorldWslBridge"',
                 "powershell.exe -ExecutionPolicy Bypass -File tools/windows/tws-wsl-bridge.ps1 -Action install",
@@ -1070,7 +1053,7 @@ class TestInstaller(unittest.TestCase):
         stderr = io.StringIO()
 
         with redirect_stderr(stderr):
-            installer._print_windows_wsl_bridge_failure(guard, Path(".tiny-swarm-world/evidence/test"))
+            presentation._print_windows_wsl_bridge_failure(guard, Path(".tiny-swarm-world/evidence/test"))
 
         rendered = stderr.getvalue()
         self.assertIn("Reason: agent_not_ready", rendered)
@@ -1079,14 +1062,14 @@ class TestInstaller(unittest.TestCase):
 
     def test_suggested_checks_for_phase_returns_phase_specific_commands(self):
         self.assertEqual(
-            installer._suggested_checks_for_phase("setup platform"),
+            presentation._suggested_checks_for_phase("setup platform"),
             (
                 "incus exec swarm-manager -- docker node ls",
                 "incus exec swarm-manager -- docker service ls",
             ),
         )
         self.assertEqual(
-            installer._suggested_checks_for_phase(
+            presentation._suggested_checks_for_phase(
                 "setup platform",
                 log_text="first_failure_reason: apt_repository_unreachable",
             ),
@@ -1097,10 +1080,10 @@ class TestInstaller(unittest.TestCase):
             ),
         )
         self.assertEqual(
-            installer._suggested_checks_for_phase("reset platform"),
+            presentation._suggested_checks_for_phase("reset platform"),
             ("incus list", "docker context ls"),
         )
-        self.assertEqual(installer._suggested_checks_for_phase("preflight"), ())
+        self.assertEqual(presentation._suggested_checks_for_phase("preflight"), ())
 
     def test_fallback_install_event_renderer_covers_status_branches(self):
         install_started = installer._FallbackInstallEvent(
@@ -1132,21 +1115,21 @@ class TestInstaller(unittest.TestCase):
         )
 
         self.assertEqual(
-            installer._render_fallback_install_event(install_started),
+            presentation._render_fallback_install_event(install_started),
             ("Tiny Swarm World Installer", "  RUNNING starting"),
         )
         self.assertEqual(
-            installer._render_fallback_install_event(step_started),
+            presentation._render_fallback_install_event(step_started),
             ("[1/2] Preflight", "  RUNNING checking"),
         )
-        self.assertEqual(installer._render_fallback_install_event(succeeded), ("  OK      done",))
-        self.assertEqual(installer._render_fallback_install_event(unknown), ("  SKIPPED host",))
+        self.assertEqual(presentation._render_fallback_install_event(succeeded), ("  OK      done",))
+        self.assertEqual(presentation._render_fallback_install_event(unknown), ("  SKIPPED host",))
 
     def test_default_install_completion_summary_is_line_based(self):
         output = io.StringIO()
 
         with redirect_stdout(output):
-            installer._print_install_completion_summary(
+            presentation._print_install_completion_summary(
                 0,
                 Path(".tiny-swarm-world/evidence/install"),
                 stream=output,
@@ -1174,7 +1157,7 @@ class TestInstaller(unittest.TestCase):
         output = io.StringIO()
 
         with redirect_stdout(output):
-            installer._confirm_reset(options)
+            presentation._confirm_reset(options)
 
         rendered = output.getvalue()
         self.assertEqual(
@@ -1202,7 +1185,7 @@ class TestInstaller(unittest.TestCase):
             output = io.StringIO()
 
             with redirect_stderr(output):
-                installer._print_tail(log_path, "Last log lines")
+                presentation._print_tail(log_path, "Last log lines")
 
         rendered = output.getvalue()
         self.assertIn("human-readable failure detail", rendered)
@@ -1227,12 +1210,12 @@ class TestInstaller(unittest.TestCase):
             with (
                 self.subTest(process_result=process_result),
                 tempfile.TemporaryDirectory() as directory,
-                patch.object(installer, "_run_bounded_process", return_value=process_result) as run_process,
+                patch.object(process, "_run_bounded_process", return_value=process_result) as run_process,
                 redirect_stdout(io.StringIO()),
             ):
                 reporter = Mock()
                 root = Path(directory)
-                code = installer._run_phase("setup", "unused", root / "phase.log", options, {}, root, reporter)
+                code = process._run_phase("setup", "unused", root / "phase.log", options, {}, root, reporter)
                 event = reporter.report.call_args.args[0]
                 self.assertEqual(expected_code, code)
                 self.assertEqual(expected_status, event.status.value)
@@ -1256,7 +1239,7 @@ class TestInstaller(unittest.TestCase):
         )
         with tempfile.TemporaryDirectory() as temporary_directory:
             log_file = Path(temporary_directory) / "phase.log"
-            exit_code = installer._run_phase(
+            exit_code = process._run_phase(
                 "bounded phase",
                 "sleep 1",
                 log_file,
@@ -1292,12 +1275,12 @@ class TestInstaller(unittest.TestCase):
                     log_file = Path(temporary_directory) / "consent.log"
                     harness = (
                         "import os; from pathlib import Path; "
-                        "from tiny_swarm_world import installer; "
+                        "from tiny_swarm_world import installer; from tiny_swarm_world.infrastructure.adapters.installation import process; "
                         "options = installer.InstallerOptions("
                         "service_profile='service-access', confirm_reset=True, "
                         "non_interactive_live_approval=False, "
                         f"headless={headless}, allow_wsl_windows_filesystem=False); "
-                        "raise SystemExit(installer._run_phase("
+                        "raise SystemExit(process._run_phase("
                         f"'consent probe', {consent_command!r}, Path({str(log_file)!r}), "
                         "options, dict(os.environ, TSW_INSTALL_PHASE_TIMEOUT_SECONDS='5'), "
                         "Path.cwd()))"
@@ -1324,7 +1307,7 @@ class TestInstaller(unittest.TestCase):
             )
         )
 
-        lines = installer._reset_failure_guidance_lines(log_text)
+        lines = presentation._reset_failure_guidance_lines(log_text)
 
         rendered = "\n".join(lines)
         self.assertIn("security.privileged", rendered)
@@ -1332,7 +1315,7 @@ class TestInstaller(unittest.TestCase):
         self.assertIn("disposable Tiny Swarm World nodes", rendered)
 
     def test_reset_failure_guidance_stays_silent_for_other_reset_blocks(self):
-        lines = installer._reset_failure_guidance_lines(
+        lines = presentation._reset_failure_guidance_lines(
             "\n".join(
                 (
                     "classification: managed_nodes_reset_blocked",
@@ -1344,7 +1327,7 @@ class TestInstaller(unittest.TestCase):
         self.assertEqual(lines, ())
 
     def test_setup_failure_guidance_explains_apt_repository_reachability(self):
-        lines = installer._setup_failure_guidance_lines(
+        lines = presentation._setup_failure_guidance_lines(
             "first_failure_reason: apt_repository_unreachable"
         )
 
@@ -1362,14 +1345,14 @@ class TestInstaller(unittest.TestCase):
             with self.subTest(reason=reason):
                 log = f"first_failure_reason: {reason}"
                 self.assertIn("./tsw doctor network", "\n".join(
-                    installer._setup_failure_guidance_lines(log)
+                    presentation._setup_failure_guidance_lines(log)
                 ))
-                self.assertIn("./tsw doctor network", installer._suggested_checks_for_phase(
+                self.assertIn("./tsw doctor network", presentation._suggested_checks_for_phase(
                     "live setup", log_text=log
                 ))
 
     def test_setup_failure_guidance_stays_silent_for_other_setup_blocks(self):
-        self.assertEqual(installer._setup_failure_guidance_lines("failed_to_apply"), ())
+        self.assertEqual(presentation._setup_failure_guidance_lines("failed_to_apply"), ())
 
 
 def _write_host_signal(root: Path, relative_path: str, text: str) -> None:
@@ -1408,7 +1391,7 @@ def _test_windows_wsl_bridge_guard(
         env,
         {"TSW_WINDOWS_WSL_BRIDGE_STATE_PATH": "tools/windows/.tws-wsl-bridge.state.json"},
     ):
-        return installer._windows_wsl_bridge_guard(host_runtime, env, root)
+        return host._windows_wsl_bridge_guard(host_runtime, env, root)
 
 
 def _write_windows_bridge_state(root: Path, wsl_ip: str, ports: tuple[int, ...]) -> None:
@@ -1451,7 +1434,7 @@ class TestInstallerPortConfigurationBoundary(unittest.TestCase):
                 "{id: udp, service_id: udp, internal_port: 53, external_port: 10053, protocol: udp, exposure: diagnostic}]",
                 encoding="utf-8",
             )
-            self.assertEqual(installer._windows_wsl_bridge_expected_ports(root), (10080,))
+            self.assertEqual(host._windows_wsl_bridge_expected_ports(root), (10080,))
 
     def test_bridge_ports_reject_malformed_registry_instead_of_partial_result(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -1460,7 +1443,7 @@ class TestInstallerPortConfigurationBoundary(unittest.TestCase):
             path.parent.mkdir(parents=True)
             path.write_text("ranges: []\nports: [{external_port: 10080}]", encoding="utf-8")
             with self.assertRaisesRegex(installer.InstallerError, "Port registry configuration is invalid"):
-                installer._windows_wsl_bridge_expected_ports(root)
+                host._windows_wsl_bridge_expected_ports(root)
 
 
 if __name__ == "__main__":

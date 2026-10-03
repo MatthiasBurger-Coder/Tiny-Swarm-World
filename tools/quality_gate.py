@@ -17,6 +17,8 @@ TEST_ROOT = REPOSITORY_ROOT / "tests"
 SOURCE_TARGETS = [
     PACKAGE_ROOT / "__main__.py",
     PACKAGE_ROOT / "cli_presentation.py",
+    PACKAGE_ROOT / "installer.py",
+    PACKAGE_ROOT / "simple_installer.py",
     PACKAGE_ROOT / "application",
     PACKAGE_ROOT / "domain",
     PACKAGE_ROOT / "infrastructure",

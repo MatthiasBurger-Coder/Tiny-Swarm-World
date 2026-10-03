@@ -138,7 +138,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 
 def _prepare_python_dependencies(*, read_only: bool) -> int:
-    from tiny_swarm_world import installer
+    from tiny_swarm_world.infrastructure import composition_installation as installer
 
     env = os.environ
     paths = installer._paths_from_env(env, Path.cwd())

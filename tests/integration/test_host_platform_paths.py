@@ -10,6 +10,7 @@ from typing import Any
 from unittest.mock import patch
 
 from tiny_swarm_world import __main__ as entrypoint
+from tiny_swarm_world.infrastructure.adapters.cli import commands as cli_commands
 from tiny_swarm_world.application.services.platform.preflight_service import (
     PreflightService,
 )
@@ -195,7 +196,7 @@ async def _exercise_path(
         output = io.StringIO()
         with (
             patch.object(
-                entrypoint,
+                cli_commands,
                 "build_host_detection_service",
                 return_value=service,
             ),

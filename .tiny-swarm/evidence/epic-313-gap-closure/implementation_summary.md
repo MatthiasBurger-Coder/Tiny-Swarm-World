@@ -1,0 +1,13 @@
+# EPIC 03 orchestration gap closure
+
+Candidate: fix/epic-03-orchestration-boundaries, working tree based on 7e15d539c533297683f6a77c5759e09da8ea97f6. User authorized closure on 2026-10-03. This package supersedes the 2026-09-25 retrospective status only for current completion; historical packages are preserved.
+
+ARC-02: __main__.py now contains 18 lines of executable delegation. Canonical CLI owners are infrastructure/adapters/cli/registry.py (workflow inventory), parser.py (arguments), consent.py (approval), commands.py (command execution), dispatcher.py (routing) and presentation.py (output). cli_presentation.py is an explicit outward compatibility export. All 50 moved CLI/presentation class/function ASTs match the baseline (cli_ast_parity.json). Existing 19 workflow names remain discoverable.
+
+ARC-03: InstallationService orchestrates six consumed ports in application/ports/installation.py. InstallationPhases owns bridge/reset/setup sequencing; InstallationRunEvidence owns provenance sequencing. Concrete host/configuration/credentials/process/evidence/presentation and bootstrap adapters own technology. composition_installation.py binds adapters without requiring the pre-install environment's third-party packages. installer.py and simple_installer.py delegate to composition; prepare_linux.py imports composition rather than the executable facade. Explicit outward compatibility exports preserve supported imports without a reverse dependency.
+
+Regression protection now includes exact root import boundaries, prohibition of infrastructure imports of executable facades, application technology/state guards, thin bootstrap guards, renderer responsibility checks and deliberate negative fixtures. Import-linter has seven contracts. Installer/simple installer participate in lint/typecheck. Complexity baseline changes only measured task-owned moved/changed modules; thresholds, exceptions, duplicate policy and unrelated module entries are unchanged (complexity_owner_migration.json).
+
+ARC-08: This current package maps all 37 parent acceptance/completion requirements. Child issue bodies and original acceptance order were read before implementation. Independent Requirement Lead, System Architect, Security Reviewer, Test/Evidence Reviewer and Completion Auditor review the integrated candidate. Documentation describes the executable ownership, retained compatibility debt and historical verification sources. No GitHub status mutation, commit or publication is part of this request.
+
+Issue snapshot formatting: GitHub Markdown trailing spaces/hardbreaks and surplus final blank lines normalized for diff hygiene; complete requirement wording preserved.

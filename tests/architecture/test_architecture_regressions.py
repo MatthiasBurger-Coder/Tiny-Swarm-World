@@ -9,28 +9,18 @@ import unittest
 PACKAGE = "tiny_swarm_world"
 SOURCE_ROOT = Path(__file__).resolve().parents[2] / "src" / PACKAGE
 ROOT_ENTRYPOINTS = {
-    "__main__": "tiny_swarm_world.infrastructure.composition",
-    "prepare_linux": "tiny_swarm_world.infrastructure.composition_native_preparation",
-}
-# ARCH-03.02 records the owner and migration rationale for these legacy edges.
-# These are exact module names: a new submodule or sibling needs review.
-LEGACY_ROOT_IMPORTS = {
-    "installer": frozenset({
-        "tiny_swarm_world.infrastructure.adapters.host",
-        "tiny_swarm_world.infrastructure.adapters.ingress.tls_state",
-        "tiny_swarm_world.infrastructure.adapters.preflight.windows_wsl_bridge_state",
-        "tiny_swarm_world.infrastructure.adapters.repositories.installer_configuration_repository",
-        "tiny_swarm_world.infrastructure.adapters.repositories.port_registry_yaml_repository",
-        "tiny_swarm_world.infrastructure.adapters.repositories.project_filesystem_evidence_local_repository",
-        "tiny_swarm_world.infrastructure.adapters.repositories.secret_manifest_yaml_repository",
-        "tiny_swarm_world.infrastructure.adapters.ui.install_reporter",
+    "__main__": frozenset({"tiny_swarm_world.infrastructure.adapters.cli.dispatcher"}),
+    "installer": frozenset({"tiny_swarm_world.infrastructure.composition_installation"}),
+    "simple_installer": frozenset({"tiny_swarm_world.infrastructure.composition_installation"}),
+    "prepare_linux": frozenset({
         "tiny_swarm_world.infrastructure.composition_native_preparation",
-        "tiny_swarm_world.infrastructure.process.runner",
-        "tiny_swarm_world.infrastructure.process.streaming",
+        "tiny_swarm_world.infrastructure.composition_installation",
     }),
-    "simple_installer": frozenset({
-        "tiny_swarm_world.installer",
-        "tiny_swarm_world.infrastructure.composition_operator_configuration",
+}
+# Explicit outward compatibility exports; infrastructure never imports this facade.
+LEGACY_ROOT_IMPORTS = {
+    "cli_presentation": frozenset({
+        "tiny_swarm_world.infrastructure.adapters.cli.presentation",
     }),
 }
 CLI_MODULES = frozenset({
@@ -40,8 +30,8 @@ CLI_MODULES = frozenset({
     "tiny_swarm_world.prepare_linux",
     "tiny_swarm_world.cli_presentation",
 })
-ALLOWED_ROOT_MODULES = frozenset(ROOT_ENTRYPOINTS.values()).union(
-    *LEGACY_ROOT_IMPORTS.values()
+ALLOWED_ROOT_MODULES = frozenset().union(
+    *ROOT_ENTRYPOINTS.values(), *LEGACY_ROOT_IMPORTS.values()
 )
 # Existing compatibility cycles from ARCH-03.01, including the later network
 # capability. A removal is welcome; a new cyclic edge requires architecture review.
@@ -133,6 +123,13 @@ def architecture_violations(source_root: Path) -> list[str]:
                 _matches(imported, cli) for cli in CLI_MODULES
             ):
                 rule = "infrastructure may not import CLI or bootstrap"
+            elif _matches(module, PACKAGE + ".infrastructure.adapters.cli") and _matches(
+                imported, PACKAGE + ".infrastructure"
+            ) and not any(_matches(imported, prefix) for prefix in (
+                PACKAGE + ".infrastructure.adapters.cli",
+                PACKAGE + ".infrastructure.composition",
+            )):
+                rule = "CLI adapters must resolve runtime dependencies through composition"
             elif _matches(
                 module, PACKAGE + ".infrastructure.adapters.clients.lxc.resource"
             ) and _matches(
@@ -143,7 +140,7 @@ def architecture_violations(source_root: Path) -> list[str]:
                 root_name = parts[0]
                 if root_name in ROOT_ENTRYPOINTS and _matches(
                     imported, PACKAGE + ".infrastructure"
-                ) and not _matches(imported, ROOT_ENTRYPOINTS[root_name]):
+                ) and imported not in ROOT_ENTRYPOINTS[root_name]:
                     rule = "root entrypoint must use its composition boundary"
                 elif root_name in LEGACY_ROOT_IMPORTS and (
                     _matches(imported, PACKAGE + ".infrastructure")
@@ -160,6 +157,133 @@ def architecture_violations(source_root: Path) -> list[str]:
             if rule:
                 violations.add(f"{relative}:{line}: {rule}: {imported}")
     return sorted(violations)
+
+
+THIN_BOOTSTRAPS = frozenset({
+    "__main__.py", "installer.py", "simple_installer.py", "cli_presentation.py",
+})
+INSTALLATION_TECHNOLOGY = frozenset({
+    "os", "sys", "subprocess", "shutil", "shlex", "tempfile", "stat", "socket",
+    "requests", "yaml", "ruamel",
+})
+STATE_METHODS = frozenset({
+    "open", "read_text", "read_bytes", "write_text", "write_bytes", "mkdir", "unlink",
+    "chmod", "stat", "lstat", "exists", "is_file", "is_dir", "glob", "rglob",
+    "iterdir", "rename", "touch", "rmdir",
+})
+
+
+def _direct_state_access(tree: ast.AST) -> list[ast.Call]:
+    return [
+        node for node in ast.walk(tree) if isinstance(node, ast.Call) and (
+            isinstance(node.func, ast.Attribute) and node.func.attr in STATE_METHODS
+            or isinstance(node.func, ast.Attribute) and node.func.attr in {"replace", "resolve"}
+            and isinstance(node.func.value, ast.Call)
+            and isinstance(node.func.value.func, ast.Name) and node.func.value.func.id == "Path"
+            or isinstance(node.func, ast.Name) and node.func.id in {"open", "input"}
+        )
+    ]
+
+
+def _bootstrap_logic(tree: ast.Module) -> list[ast.AST]:
+    findings: list[ast.AST] = []
+    for node in tree.body:
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            continue
+        if isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant):
+            continue
+        if isinstance(node, ast.Assign) and all(
+            isinstance(target, ast.Name) and target.id == "__all__" for target in node.targets
+        ) and isinstance(node.value, (ast.List, ast.Tuple)):
+            continue
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name in {"main", "cli", "run"}:
+            body = [item for item in node.body if not (
+                isinstance(item, (ast.Import, ast.ImportFrom))
+                or isinstance(item, ast.Expr) and isinstance(item.value, ast.Constant)
+            )]
+            if len(body) == 1 and isinstance(body[0], (ast.Expr, ast.Return)):
+                call = body[0].value
+                if isinstance(call, ast.Await):
+                    call = call.value
+                if isinstance(call, ast.Call):
+                    continue
+        if isinstance(node, ast.If) and ast.dump(node.test) == ast.dump(ast.parse(
+            "__name__ == '__main__'", mode="eval"
+        ).body) and not node.orelse:
+            if len(node.body) == 1 and isinstance(node.body[0], (ast.Expr, ast.Raise)):
+                continue
+        findings.append(node)
+    return findings
+
+
+def _bootstrap_calls(tree: ast.Module) -> list[ast.Call]:
+    """Entrypoints call delegates; constructors and I/O belong to their named owners."""
+    allowed = {
+        "main", "cli", "run", "_main", "_cli", "_run", "SystemExit",
+        "build_installation_service", "simple_install_main",
+    }
+    findings = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        name = node.func.id if isinstance(node.func, ast.Name) else (
+            node.func.attr if isinstance(node.func, ast.Attribute) else None
+        )
+        if name not in allowed:
+            findings.append(node)
+    return findings
+
+
+def orchestration_edge_violations(source_root: Path) -> list[str]:
+    """Protect executable delegation and the extracted installer/renderer responsibilities."""
+    findings: list[str] = []
+    for path in sorted(source_root.rglob("*.py")):
+        relative = path.relative_to(source_root).as_posix()
+        thin = relative in THIN_BOOTSTRAPS
+        installation = relative.startswith("application/services/installation")
+        rendering = relative == "infrastructure/adapters/cli/presentation.py"
+        if not (thin or installation or rendering):
+            continue
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=relative)
+        for state_call in _direct_state_access(tree):
+            findings.append(f"{relative}:{state_call.lineno}: technology/state access belongs in an adapter")
+        for node in ast.walk(tree):
+            imported: list[str] = []
+            if isinstance(node, ast.Import):
+                imported = [alias.name for alias in node.names]
+            elif isinstance(node, ast.ImportFrom):
+                imported = [node.module or ""]
+            forbidden = INSTALLATION_TECHNOLOGY - ({"os", "sys"} if rendering else set())
+            if any(name.split(".")[0] in forbidden for name in imported):
+                findings.append(f"{relative}:{getattr(node, 'lineno', 0)}: technology import belongs in an adapter")
+            renderer_dtos = {
+                PACKAGE + ".application.services.artifacts.ArtifactWorkflowResult",
+                PACKAGE + ".application.services.deployment.DeploymentWorkflowResult",
+                PACKAGE + ".application.services.platform.workflow.results.PlatformWorkflowResult",
+                PACKAGE + ".application.services.setup.SetupWorkflowResult",
+                PACKAGE + ".application.services.setup.installation_plan.SetupInstallationPlan",
+            }
+            if rendering and any(
+                _matches(name, PACKAGE + ".infrastructure")
+                or _matches(name, PACKAGE + ".application.services") and name not in renderer_dtos
+                for name, _line in _imports(
+                    node, PACKAGE + ".infrastructure.adapters.cli.presentation", False, source_root,
+                )
+            ):
+                findings.append(f"{relative}:{getattr(node, 'lineno', 0)}: renderer must not construct or execute workflows")
+            if installation and isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+                if node.func.id == "print":
+                    findings.append(f"{relative}:{node.lineno}: presentation belongs behind the installation port")
+        if thin:
+            findings.extend(
+                f"{relative}:{getattr(node, 'lineno', 0)}: root bootstrap must only delegate; move orchestration to its owner"
+                for node in _bootstrap_logic(tree)
+            )
+            findings.extend(
+                f"{relative}:{node.lineno}: root bootstrap may call only its execution delegate"
+                for node in _bootstrap_calls(tree)
+            )
+    return sorted(set(findings))
 
 
 def composition_cycle_edges(source_root: Path) -> set[tuple[str, str]]:
@@ -209,10 +333,19 @@ class TestArchitectureRegressions(unittest.TestCase):
             ("infrastructure/adapters/runner.py", "from tiny_swarm_world import cli_presentation\n", "infrastructure may not"),
             ("__main__.py", "from tiny_swarm_world.infrastructure.adapters import docker\n", "root entrypoint"),
             ("prepare_linux.py", "from tiny_swarm_world.infrastructure import composition_runtime\n", "root entrypoint"),
-            ("installer.py", "from tiny_swarm_world.infrastructure.adapters import docker\n", "legacy root import"),
-            ("installer.py", "from tiny_swarm_world.infrastructure.adapters.host import *\n", "legacy root import"),
-            ("simple_installer.py", "from tiny_swarm_world.infrastructure import composition_runtime\n", "legacy root import"),
+            ("installer.py", "from tiny_swarm_world.infrastructure.adapters import docker\n", "root entrypoint"),
+            ("installer.py", "from tiny_swarm_world.infrastructure.adapters.host import *\n", "root entrypoint"),
+            ("simple_installer.py", "from tiny_swarm_world.infrastructure import composition_runtime\n", "root entrypoint"),
             ("new_entrypoint.py", "from tiny_swarm_world.infrastructure.adapters import docker\n", "root module"),
+            ("infrastructure/adapters/cli/commands.py",
+             "from tiny_swarm_world.infrastructure.adapters.host import HostEnvironmentDetector\n",
+             "CLI adapters must resolve"),
+            ("infrastructure/adapters/cli/dispatcher.py",
+             "from tiny_swarm_world import installer\n",
+             "infrastructure may not"),
+            ("installer.py",
+             "from tiny_swarm_world.infrastructure.composition_installation import *\n",
+             "root entrypoint"),
             ("infrastructure/adapters/clients/lxc/resource/qualification.py",
              "from tiny_swarm_world.infrastructure.adapters.clients.lxc_node_provider import LxcNodeProvider\n",
              "resource qualification may not"),
@@ -231,9 +364,9 @@ class TestArchitectureRegressions(unittest.TestCase):
 
     def test_composition_and_exact_legacy_imports_remain_allowed(self):
         cases = (
-            ("__main__.py", "from tiny_swarm_world.infrastructure import composition\n"),
+            ("__main__.py", "from tiny_swarm_world.infrastructure.adapters.cli import dispatcher\n"),
             ("infrastructure/composition.py", "from tiny_swarm_world.infrastructure.adapters import docker\n"),
-            ("installer.py", "from tiny_swarm_world.infrastructure.process import runner\n"),
+            ("installer.py", "from tiny_swarm_world.infrastructure import composition_installation\n"),
             ("application/services/setup.py", "from tiny_swarm_world.application.ports import runtime\n"),
         )
         for filename, source in cases:
@@ -255,7 +388,7 @@ class TestArchitectureRegressions(unittest.TestCase):
                 encoding="utf-8",
             )
             self.assertTrue(any(
-                "installer.py:1: legacy root import" in finding
+                "installer.py:1: root entrypoint" in finding
                 and finding.endswith("host.new_adapter")
                 for finding in architecture_violations(root)
             ))
@@ -295,6 +428,86 @@ class TestPreflightBoundaryContract(unittest.IsolatedAsyncioTestCase):
         self.assertIsNotNone(verification)
         self.assertEqual("blocked", verification.status.value)
         self.assertIn("PREFLIGHT-COLLABORATORS", {check.check_id for check in result.failed_checks})
+
+
+class TestOrchestrationEdgeGuards(unittest.TestCase):
+    def _findings(self, filename: str, source: str) -> list[str]:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / filename
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(source, encoding="utf-8")
+            return orchestration_edge_violations(root)
+
+    def test_root_bootstrap_rejects_workflow_logic_and_local_models(self):
+        probes = (
+            ("__main__.py", "async def main(argv=None):\n    if argv:\n        await dispatch(argv)\n"),
+            ("installer.py", "def run(options):\n    for phase in options.phases:\n        execute(phase)\n"),
+            ("simple_installer.py", "class InstallerOptions:\n    pass\n"),
+            ("__main__.py", "def parse_args(argv):\n    return parser.parse_args(argv)\n"),
+            ("installer.py", "def run(options):\n    command = build_command(options)\n    return execute(command)\n"),
+        )
+        for filename, source in probes:
+            with self.subTest(filename=filename, source=source):
+                self.assertTrue(self._findings(filename, source))
+
+    def test_root_bootstrap_rejects_technology_and_module_alias_bypasses(self):
+        probes = (
+            "import os\n",
+            "from subprocess import run as execute\n",
+            "import sys\nsys.modules[__name__] = adapter\n",
+            "from pathlib import Path\nPath('state').write_text('unsafe')\n",
+            "def run(options):\n    return print(options)\n",
+            "def run(options):\n    return __import__('os').system(options.command)\n",
+        )
+        for source in probes:
+            with self.subTest(source=source):
+                self.assertTrue(self._findings("installer.py", source))
+
+    def test_installation_application_rejects_technology_and_direct_state_access(self):
+        probes = (
+            "import shutil\n",
+            "import subprocess as process\n",
+            "from os import environ\n",
+            "def run(port):\n    port.path.write_text('unsafe')\n",
+            "def run(port):\n    with open('state') as stream:\n        return stream.read()\n",
+            "def run(port):\n    print('result')\n",
+            "from pathlib import Path\ndef run(port):\n    Path('state').replace('target')\n",
+        )
+        for source in probes:
+            with self.subTest(source=source):
+                self.assertTrue(self._findings("application/services/installation.py", source))
+
+    def test_cli_renderer_cannot_acquire_runtime_or_composition_responsibilities(self):
+        probes = (
+            "from tiny_swarm_world.infrastructure.composition import build_application_services\n",
+            "from tiny_swarm_world.application.services.cli_dispatch import run_platform_action\n",
+            "from pathlib import Path\nPath('state').read_text()\n",
+            "from tiny_swarm_world.application.services.installation import InstallationService\ndef render(service):\n    return service.run()\n",
+            "from tiny_swarm_world.application.services.setup import SetupService\n",
+            "from tiny_swarm_world.application.services.setup import *\n",
+            "from ....application.services.installation import InstallationService\n",
+        )
+        for source in probes:
+            with self.subTest(source=source):
+                self.assertTrue(self._findings("infrastructure/adapters/cli/presentation.py", source))
+
+    def test_delegation_and_fake_port_orchestration_remain_allowed(self):
+        probes = (
+            ("__main__.py", "import asyncio\nasync def main(argv=None):\n    return await _main(argv)\ndef cli(argv=None):\n    asyncio.run(main(argv))\n"),
+            ("installer.py", "from tiny_swarm_world.infrastructure.composition_installation import run\n"),
+            ("application/services/installation.py", "def run(host, configuration, phases):\n    host.qualify()\n    with configuration.snapshot() as context:\n        return phases.setup(context)\n"),
+            ("infrastructure/adapters/cli/presentation.py", "from tiny_swarm_world.application.services.setup import SetupWorkflowResult\n"),
+            ("infrastructure/adapters/cli/presentation.py", "from ....application.services.setup import SetupWorkflowResult\n"),
+            ("infrastructure/adapters/cli/presentation.py", "import json\ndef render(result):\n    print(json.dumps(result.to_dict()))\n"),
+            ("infrastructure/adapters/cli/presentation.py", "def render(value):\n    return str(value).replace('\\n', ' ')\n"),
+        )
+        for filename, source in probes:
+            with self.subTest(filename=filename):
+                self.assertEqual([], self._findings(filename, source))
+
+    def test_integrated_entrypoints_and_installation_respect_responsibilities(self):
+        self.assertEqual([], orchestration_edge_violations(SOURCE_ROOT))
 
 
 if __name__ == "__main__":

@@ -1,0 +1,1683 @@
+{
+  "src/tiny_swarm_world/__main__.py": {
+    "after": {
+      "classes": {},
+      "complexity": 1,
+      "fanout": 3,
+      "functions": {
+        "cli": {
+          "complexity": 1,
+          "lines": 2
+        },
+        "main": {
+          "complexity": 1,
+          "lines": 2
+        }
+      },
+      "lines": 18
+    },
+    "before": {
+      "classes": {
+        "CliWorkflow": {
+          "complexity": 3,
+          "lines": 20
+        }
+      },
+      "complexity": 92,
+      "fanout": 19,
+      "functions": {
+        "CliWorkflow.implemented": {
+          "complexity": 2,
+          "lines": 7
+        },
+        "CliWorkflow.name": {
+          "complexity": 1,
+          "lines": 2
+        },
+        "_assign_network_command": {
+          "complexity": 9,
+          "lines": 10
+        },
+        "_assign_workflow": {
+          "complexity": 20,
+          "lines": 33
+        },
+        "_blocked_workflow_result": {
+          "complexity": 1,
+          "lines": 7
+        },
+        "_enforce_workflow_confirmation": {
+          "complexity": 3,
+          "lines": 6
+        },
+        "_enforce_workflow_implementation": {
+          "complexity": 3,
+          "lines": 9
+        },
+        "_has_network_repair_target": {
+          "complexity": 3,
+          "lines": 2
+        },
+        "_live_consent_for_workflow": {
+          "complexity": 6,
+          "lines": 15
+        },
+        "_live_consent_from_args": {
+          "complexity": 4,
+          "lines": 9
+        },
+        "_network_command": {
+          "complexity": 5,
+          "lines": 6
+        },
+        "_node_provider_request_from_args": {
+          "complexity": 4,
+          "lines": 11
+        },
+        "_print_setup_installation_plan": {
+          "complexity": 4,
+          "lines": 14
+        },
+        "_print_workflow_list": {
+          "complexity": 2,
+          "lines": 3
+        },
+        "_run_host_detect_command": {
+          "complexity": 3,
+          "lines": 8
+        },
+        "_run_host_preparation_command": {
+          "complexity": 7,
+          "lines": 38
+        },
+        "_run_host_verify_command": {
+          "complexity": 4,
+          "lines": 21
+        },
+        "_run_network_doctor_command": {
+          "complexity": 3,
+          "lines": 8
+        },
+        "_run_network_repair_command": {
+          "complexity": 3,
+          "lines": 14
+        },
+        "_run_preflight_command": {
+          "complexity": 4,
+          "lines": 15
+        },
+        "_selected_workflow": {
+          "complexity": 2,
+          "lines": 5
+        },
+        "_update_plan_from_args": {
+          "complexity": 4,
+          "lines": 13
+        },
+        "_validate_provider_args": {
+          "complexity": 3,
+          "lines": 3
+        },
+        "cli": {
+          "complexity": 1,
+          "lines": 2
+        },
+        "main": {
+          "complexity": 14,
+          "lines": 67
+        },
+        "parse_args": {
+          "complexity": 2,
+          "lines": 118
+        },
+        "run_cli_workflow": {
+          "complexity": 1,
+          "lines": 33
+        }
+      },
+      "lines": 700
+    }
+  },
+  "src/tiny_swarm_world/application/services/installation.py": {
+    "after": {
+      "classes": {
+        "InstallationPhases": {
+          "complexity": 9,
+          "lines": 172
+        },
+        "InstallationRunEvidence": {
+          "complexity": 7,
+          "lines": 62
+        },
+        "InstallationService": {
+          "complexity": 24,
+          "lines": 159
+        }
+      },
+      "complexity": 32,
+      "fanout": 4,
+      "functions": {
+        "InstallationPhases.__init__": {
+          "complexity": 1,
+          "lines": 11
+        },
+        "InstallationPhases._check_bridge": {
+          "complexity": 2,
+          "lines": 38
+        },
+        "InstallationPhases._run_reset": {
+          "complexity": 2,
+          "lines": 58
+        },
+        "InstallationPhases._run_setup": {
+          "complexity": 4,
+          "lines": 59
+        },
+        "InstallationRunEvidence.__init__": {
+          "complexity": 1,
+          "lines": 5
+        },
+        "InstallationRunEvidence.create": {
+          "complexity": 6,
+          "lines": 53
+        },
+        "InstallationService.__init__": {
+          "complexity": 1,
+          "lines": 17
+        },
+        "InstallationService._run_prepared": {
+          "complexity": 13,
+          "lines": 82
+        },
+        "InstallationService.run": {
+          "complexity": 10,
+          "lines": 57
+        }
+      },
+      "lines": 419
+    },
+    "before": null
+  },
+  "src/tiny_swarm_world/cli_presentation.py": {
+    "after": {
+      "classes": {},
+      "complexity": 1,
+      "fanout": 1,
+      "functions": {},
+      "lines": 80
+    },
+    "before": {
+      "classes": {},
+      "complexity": 68,
+      "fanout": 15,
+      "functions": {
+        "_console_enum": {
+          "complexity": 2,
+          "lines": 4
+        },
+        "_console_text": {
+          "complexity": 1,
+          "lines": 3
+        },
+        "_emit_json_payload": {
+          "complexity": 1,
+          "lines": 2
+        },
+        "_emit_workflow_result": {
+          "complexity": 3,
+          "lines": 8
+        },
+        "_format_operation_summary": {
+          "complexity": 6,
+          "lines": 22
+        },
+        "_format_phase_status_counts": {
+          "complexity": 2,
+          "lines": 4
+        },
+        "_format_setup_installation_summary": {
+          "complexity": 7,
+          "lines": 32
+        },
+        "_format_setup_nested_workflow_diagnostics": {
+          "complexity": 4,
+          "lines": 15
+        },
+        "_format_setup_phase_diagnostics": {
+          "complexity": 8,
+          "lines": 20
+        },
+        "_format_status_counts": {
+          "complexity": 4,
+          "lines": 8
+        },
+        "_format_verification_summary": {
+          "complexity": 4,
+          "lines": 21
+        },
+        "_format_workflow_summary": {
+          "complexity": 5,
+          "lines": 18
+        },
+        "_host_detection_payload": {
+          "complexity": 1,
+          "lines": 5
+        },
+        "_print_blocked_workflow_summary": {
+          "complexity": 1,
+          "lines": 5
+        },
+        "_print_host_environment_summary": {
+          "complexity": 6,
+          "lines": 19
+        },
+        "_print_preflight_summary": {
+          "complexity": 7,
+          "lines": 19
+        },
+        "_print_setup_installation_summary": {
+          "complexity": 2,
+          "lines": 3
+        },
+        "_print_setup_nested_workflow_diagnostics": {
+          "complexity": 2,
+          "lines": 3
+        },
+        "_print_workflow_summary": {
+          "complexity": 2,
+          "lines": 3
+        },
+        "_safe_console_value": {
+          "complexity": 9,
+          "lines": 20
+        },
+        "_should_emit_json": {
+          "complexity": 2,
+          "lines": 4
+        },
+        "_workflow_name": {
+          "complexity": 2,
+          "lines": 5
+        },
+        "_workflow_result_to_dict": {
+          "complexity": 2,
+          "lines": 4
+        },
+        "_workflow_status_value": {
+          "complexity": 2,
+          "lines": 5
+        },
+        "render_setup_installation_plan": {
+          "complexity": 7,
+          "lines": 30
+        }
+      },
+      "lines": 351
+    }
+  },
+  "src/tiny_swarm_world/infrastructure/adapters/cli/__init__.py": {
+    "after": {
+      "classes": {},
+      "complexity": 1,
+      "fanout": 0,
+      "functions": {},
+      "lines": 1
+    },
+    "before": null
+  },
+  "src/tiny_swarm_world/infrastructure/adapters/cli/commands.py": {
+    "after": {
+      "classes": {},
+      "complexity": 23,
+      "fanout": 10,
+      "functions": {
+        "_print_setup_installation_plan": {
+          "complexity": 4,
+          "lines": 14
+        },
+        "_print_workflow_list": {
+          "complexity": 2,
+          "lines": 3
+        },
+        "_run_host_detect_command": {
+          "complexity": 3,
+          "lines": 8
+        },
+        "_run_host_preparation_command": {
+          "complexity": 7,
+          "lines": 38
+        },
+        "_run_host_verify_command": {
+          "complexity": 4,
+          "lines": 21
+        },
+        "_run_network_doctor_command": {
+          "complexity": 3,
+          "lines": 8
+        },
+        "_run_network_repair_command": {
+          "complexity": 3,
+          "lines": 14
+        },
+        "_run_preflight_command": {
+          "complexity": 4,
+          "lines": 15
+        }
+      },
+      "lines": 183
+    },
+    "before": null
+  },
+  "src/tiny_swarm_world/infrastructure/adapters/cli/consent.py": {
+    "after": {
+      "classes": {},
+      "complexity": 13,
+      "fanout": 5,
+      "functions": {
+        "_blocked_workflow_result": {
+          "complexity": 1,
+          "lines": 7
+        },
+        "_enforce_workflow_confirmation": {
+          "complexity": 3,
+          "lines": 6
+        },
+        "_enforce_workflow_implementation": {
+          "complexity": 3,
+          "lines": 9
+        },
+        "_live_consent_for_workflow": {
+          "complexity": 6,
+          "lines": 15
+        },
+        "_live_consent_from_args": {
+          "complexity": 4,
+          "lines": 9
+        }
+      },
+      "lines": 74
+    },
+    "before": null
+  },
+  "src/tiny_swarm_world/infrastructure/adapters/cli/dispatcher.py": {
+    "after": {
+      "classes": {},
+      "complexity": 15,
+      "fanout": 16,
+      "functions": {
+        "_selected_workflow": {
+          "complexity": 2,
+          "lines": 5
+        },
+        "main": {
+          "complexity": 14,
+          "lines": 67
+        },
+        "run_cli_workflow": {
+          "complexity": 1,
+          "lines": 33
+        }
+      },
+      "lines": 172
+    },
+    "before": null
+  },
+  "src/tiny_swarm_world/infrastructure/adapters/cli/parser.py": {
+    "after": {
+      "classes": {},
+      "complexity": 43,
+      "fanout": 8,
+      "functions": {
+        "_assign_network_command": {
+          "complexity": 9,
+          "lines": 10
+        },
+        "_assign_workflow": {
+          "complexity": 20,
+          "lines": 33
+        },
+        "_has_network_repair_target": {
+          "complexity": 3,
+          "lines": 2
+        },
+        "_network_command": {
+          "complexity": 5,
+          "lines": 6
+        },
+        "_node_provider_request_from_args": {
+          "complexity": 4,
+          "lines": 11
+        },
+        "_update_plan_from_args": {
+          "complexity": 4,
+          "lines": 13
+        },
+        "_validate_provider_args": {
+          "complexity": 3,
+          "lines": 3
+        },
+        "parse_args": {
+          "complexity": 2,
+          "lines": 118
+        }
+      },
+      "lines": 228
+    },
+    "before": null
+  },
+  "src/tiny_swarm_world/infrastructure/adapters/cli/presentation.py": {
+    "after": {
+      "classes": {},
+      "complexity": 68,
+      "fanout": 15,
+      "functions": {
+        "_console_enum": {
+          "complexity": 2,
+          "lines": 4
+        },
+        "_console_text": {
+          "complexity": 1,
+          "lines": 3
+        },
+        "_emit_json_payload": {
+          "complexity": 1,
+          "lines": 2
+        },
+        "_emit_workflow_result": {
+          "complexity": 3,
+          "lines": 8
+        },
+        "_format_operation_summary": {
+          "complexity": 6,
+          "lines": 22
+        },
+        "_format_phase_status_counts": {
+          "complexity": 2,
+          "lines": 4
+        },
+        "_format_setup_installation_summary": {
+          "complexity": 7,
+          "lines": 32
+        },
+        "_format_setup_nested_workflow_diagnostics": {
+          "complexity": 4,
+          "lines": 15
+        },
+        "_format_setup_phase_diagnostics": {
+          "complexity": 8,
+          "lines": 20
+        },
+        "_format_status_counts": {
+          "complexity": 4,
+          "lines": 8
+        },
+        "_format_verification_summary": {
+          "complexity": 4,
+          "lines": 21
+        },
+        "_format_workflow_summary": {
+          "complexity": 5,
+          "lines": 18
+        },
+        "_host_detection_payload": {
+          "complexity": 1,
+          "lines": 5
+        },
+        "_print_blocked_workflow_summary": {
+          "complexity": 1,
+          "lines": 5
+        },
+        "_print_host_environment_summary": {
+          "complexity": 6,
+          "lines": 19
+        },
+        "_print_preflight_summary": {
+          "complexity": 7,
+          "lines": 19
+        },
+        "_print_setup_installation_summary": {
+          "complexity": 2,
+          "lines": 3
+        },
+        "_print_setup_nested_workflow_diagnostics": {
+          "complexity": 2,
+          "lines": 3
+        },
+        "_print_workflow_summary": {
+          "complexity": 2,
+          "lines": 3
+        },
+        "_safe_console_value": {
+          "complexity": 9,
+          "lines": 20
+        },
+        "_should_emit_json": {
+          "complexity": 2,
+          "lines": 4
+        },
+        "_workflow_name": {
+          "complexity": 2,
+          "lines": 5
+        },
+        "_workflow_result_to_dict": {
+          "complexity": 2,
+          "lines": 4
+        },
+        "_workflow_status_value": {
+          "complexity": 2,
+          "lines": 5
+        },
+        "render_setup_installation_plan": {
+          "complexity": 7,
+          "lines": 30
+        }
+      },
+      "lines": 358
+    },
+    "before": null
+  },
+  "src/tiny_swarm_world/infrastructure/adapters/cli/registry.py": {
+    "after": {
+      "classes": {
+        "CliWorkflow": {
+          "complexity": 3,
+          "lines": 20
+        }
+      },
+      "complexity": 2,
+      "fanout": 3,
+      "functions": {
+        "CliWorkflow.implemented": {
+          "complexity": 2,
+          "lines": 7
+        },
+        "CliWorkflow.name": {
+          "complexity": 1,
+          "lines": 2
+        }
+      },
+      "lines": 74
+    },
+    "before": null
+  },
+  "src/tiny_swarm_world/infrastructure/adapters/installation/__init__.py": {
+    "after": {
+      "classes": {},
+      "complexity": 1,
+      "fanout": 0,
+      "functions": {},
+      "lines": 1
+    },
+    "before": null
+  },
+  "src/tiny_swarm_world/infrastructure/adapters/installation/bootstrap.py": {
+    "after": {
+      "classes": {},
+      "complexity": 18,
+      "fanout": 10,
+      "functions": {
+        "_ensure_native_python": {
+          "complexity": 6,
+          "lines": 28
+        },
+        "_parse_args": {
+          "complexity": 1,
+          "lines": 50
+        },
+        "_print_operator_credentials": {
+          "complexity": 1,
+          "lines": 21
+        },
+        "main": {
+          "complexity": 13,
+          "lines": 35
+        }
+      },
+      "lines": 167
+    },
+    "before": null
+  },
+  "src/tiny_swarm_world/infrastructure/adapters/installation/bootstrap_configuration.py": {
+    "after": {
+      "classes": {
+        "SimpleInstallerError": {
+          "complexity": 0,
+          "lines": 2
+        }
+      },
+      "complexity": 32,
+      "fanout": 11,
+      "functions": {
+        "_is_windows_mounted_path": {
+          "complexity": 5,
+          "lines": 9
+        },
+        "_load_explicit_bootstrap_override": {
+          "complexity": 10,
+          "lines": 31
+        },
+        "_load_operator_install_file": {
+          "complexity": 5,
+          "lines": 17
+        },
+        "_prepare_bootstrap_environment": {
+          "complexity": 3,
+          "lines": 28
+        },
+        "_validate_secure_override_path": {
+          "complexity": 13,
+          "lines": 31
+        }
+      },
+      "lines": 155
+    },
+    "before": null
+  },
+  "src/tiny_swarm_world/infrastructure/adapters/installation/configuration.py": {
+    "after": {
+      "classes": {
+        "ConfigurationPreparationAdapter": {
+          "complexity": 3,
+          "lines": 21
+        }
+      },
+      "complexity": 36,
+      "fanout": 22,
+      "functions": {
+        "ConfigurationPreparationAdapter.paths": {
+          "complexity": 1,
+          "lines": 2
+        },
+        "ConfigurationPreparationAdapter.snapshot": {
+          "complexity": 1,
+          "lines": 8
+        },
+        "ConfigurationPreparationAdapter.validate_read_only": {
+          "complexity": 1,
+          "lines": 8
+        },
+        "_configuration_snapshot": {
+          "complexity": 8,
+          "lines": 79
+        },
+        "_configuration_snapshot.absolute": {
+          "complexity": 2,
+          "lines": 3
+        },
+        "_copy_configuration_directory": {
+          "complexity": 4,
+          "lines": 24
+        },
+        "_copy_configuration_file": {
+          "complexity": 6,
+          "lines": 22
+        },
+        "_copy_configuration_tree": {
+          "complexity": 1,
+          "lines": 6
+        },
+        "_open_configuration_source": {
+          "complexity": 5,
+          "lines": 16
+        },
+        "_paths_from_env": {
+          "complexity": 1,
+          "lines": 13
+        },
+        "_paths_from_env.resolve": {
+          "complexity": 2,
+          "lines": 3
+        },
+        "_validate_native_installation_read_only": {
+          "complexity": 9,
+          "lines": 104
+        },
+        "_validate_native_installation_read_only.absolute": {
+          "complexity": 2,
+          "lines": 3
+        },
+        "_validate_snapshot_storage": {
+          "complexity": 6,
+          "lines": 18
+        }
+      },
+      "lines": 352
+    },
+    "before": null
+  },
+  "src/tiny_swarm_world/infrastructure/adapters/installation/credentials.py": {
+    "after": {
+      "classes": {
+        "CredentialsPreparationAdapter": {
+          "complexity": 4,
+          "lines": 52
+        }
+      },
+      "complexity": 21,
+      "fanout": 12,
+      "functions": {
+        "CredentialsPreparationAdapter.prepare": {
+          "complexity": 4,
+          "lines": 51
+        },
+        "_ensure_default_config_exports": {
+          "complexity": 4,
+          "lines": 17
+        },
+        "_normalize_infisical_login_email": {
+          "complexity": 3,
+          "lines": 7
+        },
+        "_normalized_email_value": {
+          "complexity": 4,
+          "lines": 10
+        },
+        "_require_operator_provisioned_traefik_gui_users": {
+          "complexity": 3,
+          "lines": 15
+        },
+        "_required_installer_secret_entries": {
+          "complexity": 5,
+          "lines": 21
+        },
+        "_resolve_internal_test_installer_values": {
+          "complexity": 4,
+          "lines": 27
+        }
+      },
+      "lines": 193
+    },
+    "before": null
+  },
+  "src/tiny_swarm_world/infrastructure/adapters/installation/evidence.py": {
+    "after": {
+      "classes": {
+        "InstallationEvidenceAdapter": {
+          "complexity": 10,
+          "lines": 41
+        }
+      },
+      "complexity": 28,
+      "fanout": 13,
+      "functions": {
+        "InstallationEvidenceAdapter.append": {
+          "complexity": 1,
+          "lines": 4
+        },
+        "InstallationEvidenceAdapter.bridge_context": {
+          "complexity": 1,
+          "lines": 2
+        },
+        "InstallationEvidenceAdapter.directory": {
+          "complexity": 1,
+          "lines": 11
+        },
+        "InstallationEvidenceAdapter.git_probe": {
+          "complexity": 1,
+          "lines": 2
+        },
+        "InstallationEvidenceAdapter.path": {
+          "complexity": 1,
+          "lines": 2
+        },
+        "InstallationEvidenceAdapter.probes": {
+          "complexity": 1,
+          "lines": 2
+        },
+        "InstallationEvidenceAdapter.run_id": {
+          "complexity": 1,
+          "lines": 2
+        },
+        "InstallationEvidenceAdapter.timestamp": {
+          "complexity": 1,
+          "lines": 2
+        },
+        "InstallationEvidenceAdapter.write": {
+          "complexity": 1,
+          "lines": 2
+        },
+        "InstallationEvidenceAdapter.write_context": {
+          "complexity": 1,
+          "lines": 2
+        },
+        "_append_context": {
+          "complexity": 3,
+          "lines": 7
+        },
+        "_collect_evidence_probe_snapshot": {
+          "complexity": 5,
+          "lines": 25
+        },
+        "_git_revision_metadata": {
+          "complexity": 8,
+          "lines": 25
+        },
+        "_installation_evidence_directory": {
+          "complexity": 4,
+          "lines": 34
+        },
+        "_probe_git_ignore": {
+          "complexity": 5,
+          "lines": 19
+        },
+        "_read_text": {
+          "complexity": 2,
+          "lines": 5
+        },
+        "_safe_credential_source_metadata": {
+          "complexity": 3,
+          "lines": 11
+        },
+        "_utc_timestamp": {
+          "complexity": 1,
+          "lines": 2
+        },
+        "_windows_wsl_bridge_context": {
+          "complexity": 2,
+          "lines": 20
+        },
+        "_write_context": {
+          "complexity": 4,
+          "lines": 31
+        },
+        "_write_text": {
+          "complexity": 1,
+          "lines": 2
+        }
+      },
+      "lines": 270
+    },
+    "before": null
+  },
+  "src/tiny_swarm_world/infrastructure/adapters/installation/host.py": {
+    "after": {
+      "classes": {
+        "HostPreparationAdapter": {
+          "complexity": 11,
+          "lines": 70
+        }
+      },
+      "complexity": 28,
+      "fanout": 14,
+      "functions": {
+        "HostPreparationAdapter.authorize": {
+          "complexity": 1,
+          "lines": 14
+        },
+        "HostPreparationAdapter.bridge": {
+          "complexity": 1,
+          "lines": 4
+        },
+        "HostPreparationAdapter.detect": {
+          "complexity": 3,
+          "lines": 14
+        },
+        "HostPreparationAdapter.require_repository": {
+          "complexity": 1,
+          "lines": 2
+        },
+        "HostPreparationAdapter.validate_native": {
+          "complexity": 5,
+          "lines": 31
+        },
+        "_require_repository": {
+          "complexity": 2,
+          "lines": 5
+        },
+        "_windows_exposure_required": {
+          "complexity": 1,
+          "lines": 3
+        },
+        "_windows_wsl_bridge_expected_ports": {
+          "complexity": 6,
+          "lines": 21
+        },
+        "_windows_wsl_bridge_guard": {
+          "complexity": 8,
+          "lines": 63
+        },
+        "authorize_project_filesystem": {
+          "complexity": 5,
+          "lines": 39
+        },
+        "detect_host_runtime": {
+          "complexity": 5,
+          "lines": 30
+        }
+      },
+      "lines": 275
+    },
+    "before": null
+  },
+  "src/tiny_swarm_world/infrastructure/adapters/installation/presentation.py": {
+    "after": {
+      "classes": {
+        "InstallationPresentationAdapter": {
+          "complexity": 14,
+          "lines": 64
+        },
+        "_FallbackInstallReporter": {
+          "complexity": 4,
+          "lines": 7
+        }
+      },
+      "complexity": 64,
+      "fanout": 11,
+      "functions": {
+        "InstallationPresentationAdapter.approval": {
+          "complexity": 1,
+          "lines": 2
+        },
+        "InstallationPresentationAdapter.bridge_commands": {
+          "complexity": 1,
+          "lines": 2
+        },
+        "InstallationPresentationAdapter.bridge_failure": {
+          "complexity": 1,
+          "lines": 4
+        },
+        "InstallationPresentationAdapter.completion": {
+          "complexity": 2,
+          "lines": 4
+        },
+        "InstallationPresentationAdapter.confirm_reset": {
+          "complexity": 1,
+          "lines": 2
+        },
+        "InstallationPresentationAdapter.event": {
+          "complexity": 1,
+          "lines": 26
+        },
+        "InstallationPresentationAdapter.message": {
+          "complexity": 2,
+          "lines": 2
+        },
+        "InstallationPresentationAdapter.plan": {
+          "complexity": 1,
+          "lines": 2
+        },
+        "InstallationPresentationAdapter.reporter": {
+          "complexity": 1,
+          "lines": 2
+        },
+        "InstallationPresentationAdapter.reset_guidance": {
+          "complexity": 1,
+          "lines": 2
+        },
+        "InstallationPresentationAdapter.setup_guidance": {
+          "complexity": 1,
+          "lines": 2
+        },
+        "InstallationPresentationAdapter.tail": {
+          "complexity": 1,
+          "lines": 2
+        },
+        "_FallbackInstallReporter.report": {
+          "complexity": 4,
+          "lines": 6
+        },
+        "_confirm_reset": {
+          "complexity": 4,
+          "lines": 13
+        },
+        "_default_install_reporter": {
+          "complexity": 2,
+          "lines": 9
+        },
+        "_format_ints": {
+          "complexity": 2,
+          "lines": 2
+        },
+        "_has_setup_network_failure": {
+          "complexity": 2,
+          "lines": 10
+        },
+        "_live_approval": {
+          "complexity": 2,
+          "lines": 4
+        },
+        "_phase_event": {
+          "complexity": 2,
+          "lines": 47
+        },
+        "_print_install_completion_summary": {
+          "complexity": 2,
+          "lines": 11
+        },
+        "_print_install_plan": {
+          "complexity": 2,
+          "lines": 25
+        },
+        "_print_reset_failure_guidance": {
+          "complexity": 4,
+          "lines": 11
+        },
+        "_print_setup_failure_guidance": {
+          "complexity": 4,
+          "lines": 11
+        },
+        "_print_tail": {
+          "complexity": 3,
+          "lines": 7
+        },
+        "_print_windows_wsl_bridge_failure": {
+          "complexity": 7,
+          "lines": 26
+        },
+        "_relative_display_path": {
+          "complexity": 2,
+          "lines": 5
+        },
+        "_render_fallback_install_event": {
+          "complexity": 16,
+          "lines": 41
+        },
+        "_reset_failure_guidance_lines": {
+          "complexity": 2,
+          "lines": 20
+        },
+        "_reset_log_mentions": {
+          "complexity": 2,
+          "lines": 2
+        },
+        "_safe_installer_line_value": {
+          "complexity": 3,
+          "lines": 5
+        },
+        "_safe_log_tail_lines": {
+          "complexity": 5,
+          "lines": 19
+        },
+        "_setup_failure_guidance_lines": {
+          "complexity": 2,
+          "lines": 15
+        },
+        "_starts_structured_log_value": {
+          "complexity": 4,
+          "lines": 4
+        },
+        "_structured_delimiter_delta": {
+          "complexity": 1,
+          "lines": 2
+        },
+        "_suggested_checks_for_phase": {
+          "complexity": 4,
+          "lines": 23
+        },
+        "_windows_wsl_bridge_suggested_commands": {
+          "complexity": 2,
+          "lines": 9
+        },
+        "main": {
+          "complexity": 2,
+          "lines": 12
+        },
+        "parse_args": {
+          "complexity": 2,
+          "lines": 41
+        }
+      },
+      "lines": 517
+    },
+    "before": null
+  },
+  "src/tiny_swarm_world/infrastructure/adapters/installation/process.py": {
+    "after": {
+      "classes": {
+        "PhaseRunnerAdapter": {
+          "complexity": 7,
+          "lines": 51
+        }
+      },
+      "complexity": 36,
+      "fanout": 13,
+      "functions": {
+        "PhaseRunnerAdapter.command": {
+          "complexity": 3,
+          "lines": 14
+        },
+        "PhaseRunnerAdapter.current_python": {
+          "complexity": 1,
+          "lines": 2
+        },
+        "PhaseRunnerAdapter.ensure_python": {
+          "complexity": 1,
+          "lines": 4
+        },
+        "PhaseRunnerAdapter.phase": {
+          "complexity": 1,
+          "lines": 24
+        },
+        "PhaseRunnerAdapter.recorder_available": {
+          "complexity": 1,
+          "lines": 2
+        },
+        "_filesystem_override_argument": {
+          "complexity": 2,
+          "lines": 4
+        },
+        "_installer_subprocess_timeout_seconds": {
+          "complexity": 3,
+          "lines": 16
+        },
+        "_python_imports_available": {
+          "complexity": 4,
+          "lines": 19
+        },
+        "_run_installer_subprocess": {
+          "complexity": 3,
+          "lines": 27
+        },
+        "_run_optional_text": {
+          "complexity": 3,
+          "lines": 6
+        },
+        "_run_phase": {
+          "complexity": 14,
+          "lines": 128
+        },
+        "_run_text": {
+          "complexity": 1,
+          "lines": 10
+        },
+        "_workflow_command": {
+          "complexity": 1,
+          "lines": 2
+        },
+        "_write_test_venv_python": {
+          "complexity": 1,
+          "lines": 16
+        },
+        "ensure_python_environment": {
+          "complexity": 11,
+          "lines": 66
+        }
+      },
+      "lines": 392
+    },
+    "before": null
+  },
+  "src/tiny_swarm_world/infrastructure/composition_installation.py": {
+    "after": {
+      "classes": {},
+      "complexity": 1,
+      "fanout": 12,
+      "functions": {
+        "build_installation_service": {
+          "complexity": 1,
+          "lines": 9
+        },
+        "prepare_bootstrap_environment": {
+          "complexity": 1,
+          "lines": 6
+        },
+        "simple_install_main": {
+          "complexity": 1,
+          "lines": 4
+        }
+      },
+      "lines": 147
+    },
+    "before": null
+  },
+  "src/tiny_swarm_world/installer.py": {
+    "after": {
+      "classes": {},
+      "complexity": 1,
+      "fanout": 7,
+      "functions": {
+        "main": {
+          "complexity": 1,
+          "lines": 2
+        },
+        "run": {
+          "complexity": 1,
+          "lines": 10
+        }
+      },
+      "lines": 242
+    },
+    "before": {
+      "classes": {
+        "HostRuntime": {
+          "complexity": 0,
+          "lines": 4
+        },
+        "InstallReporter": {
+          "complexity": 1,
+          "lines": 3
+        },
+        "InstallerError": {
+          "complexity": 0,
+          "lines": 2
+        },
+        "InstallerOptions": {
+          "complexity": 0,
+          "lines": 9
+        },
+        "InstallerPaths": {
+          "complexity": 0,
+          "lines": 3
+        },
+        "InstallerSecretEntry": {
+          "complexity": 0,
+          "lines": 5
+        },
+        "WindowsWslBridgeGuardResult": {
+          "complexity": 0,
+          "lines": 9
+        },
+        "_EvidenceProbeSnapshot": {
+          "complexity": 0,
+          "lines": 6
+        },
+        "_FallbackInstallEvent": {
+          "complexity": 0,
+          "lines": 12
+        },
+        "_FallbackInstallReporter": {
+          "complexity": 4,
+          "lines": 7
+        },
+        "_GitProbeResult": {
+          "complexity": 0,
+          "lines": 4
+        },
+        "_InstallRunContext": {
+          "complexity": 0,
+          "lines": 14
+        }
+      },
+      "complexity": 231,
+      "fanout": 38,
+      "functions": {
+        "InstallReporter.report": {
+          "complexity": 1,
+          "lines": 2
+        },
+        "_FallbackInstallReporter.report": {
+          "complexity": 4,
+          "lines": 6
+        },
+        "_append_context": {
+          "complexity": 3,
+          "lines": 5
+        },
+        "_collect_evidence_probe_snapshot": {
+          "complexity": 5,
+          "lines": 21
+        },
+        "_configuration_snapshot": {
+          "complexity": 8,
+          "lines": 54
+        },
+        "_configuration_snapshot.absolute": {
+          "complexity": 2,
+          "lines": 3
+        },
+        "_confirm_reset": {
+          "complexity": 4,
+          "lines": 11
+        },
+        "_copy_configuration_directory": {
+          "complexity": 4,
+          "lines": 17
+        },
+        "_copy_configuration_file": {
+          "complexity": 6,
+          "lines": 16
+        },
+        "_copy_configuration_tree": {
+          "complexity": 1,
+          "lines": 6
+        },
+        "_default_install_reporter": {
+          "complexity": 2,
+          "lines": 7
+        },
+        "_ensure_default_config_exports": {
+          "complexity": 4,
+          "lines": 17
+        },
+        "_filesystem_override_argument": {
+          "complexity": 2,
+          "lines": 4
+        },
+        "_format_ints": {
+          "complexity": 2,
+          "lines": 2
+        },
+        "_git_revision_metadata": {
+          "complexity": 8,
+          "lines": 21
+        },
+        "_has_setup_network_failure": {
+          "complexity": 2,
+          "lines": 7
+        },
+        "_installation_evidence_directory": {
+          "complexity": 4,
+          "lines": 34
+        },
+        "_installer_subprocess_timeout_seconds": {
+          "complexity": 3,
+          "lines": 16
+        },
+        "_live_approval": {
+          "complexity": 2,
+          "lines": 4
+        },
+        "_normalize_infisical_login_email": {
+          "complexity": 3,
+          "lines": 7
+        },
+        "_normalized_email_value": {
+          "complexity": 4,
+          "lines": 6
+        },
+        "_open_configuration_source": {
+          "complexity": 5,
+          "lines": 16
+        },
+        "_paths_from_env": {
+          "complexity": 1,
+          "lines": 9
+        },
+        "_paths_from_env.resolve": {
+          "complexity": 2,
+          "lines": 3
+        },
+        "_phase_event": {
+          "complexity": 2,
+          "lines": 43
+        },
+        "_print_install_completion_summary": {
+          "complexity": 2,
+          "lines": 11
+        },
+        "_print_install_plan": {
+          "complexity": 2,
+          "lines": 25
+        },
+        "_print_reset_failure_guidance": {
+          "complexity": 4,
+          "lines": 11
+        },
+        "_print_setup_failure_guidance": {
+          "complexity": 4,
+          "lines": 11
+        },
+        "_print_tail": {
+          "complexity": 3,
+          "lines": 7
+        },
+        "_print_windows_wsl_bridge_failure": {
+          "complexity": 7,
+          "lines": 23
+        },
+        "_probe_git_ignore": {
+          "complexity": 5,
+          "lines": 19
+        },
+        "_python_imports_available": {
+          "complexity": 4,
+          "lines": 16
+        },
+        "_read_text": {
+          "complexity": 2,
+          "lines": 5
+        },
+        "_relative_display_path": {
+          "complexity": 2,
+          "lines": 5
+        },
+        "_render_fallback_install_event": {
+          "complexity": 16,
+          "lines": 39
+        },
+        "_require_operator_provisioned_traefik_gui_users": {
+          "complexity": 3,
+          "lines": 15
+        },
+        "_require_repository": {
+          "complexity": 2,
+          "lines": 3
+        },
+        "_required_installer_secret_entries": {
+          "complexity": 5,
+          "lines": 15
+        },
+        "_reset_failure_guidance_lines": {
+          "complexity": 2,
+          "lines": 20
+        },
+        "_reset_log_mentions": {
+          "complexity": 2,
+          "lines": 2
+        },
+        "_resolve_internal_test_installer_values": {
+          "complexity": 4,
+          "lines": 27
+        },
+        "_run_installer_subprocess": {
+          "complexity": 3,
+          "lines": 27
+        },
+        "_run_optional_text": {
+          "complexity": 3,
+          "lines": 6
+        },
+        "_run_phase": {
+          "complexity": 14,
+          "lines": 109
+        },
+        "_run_prepared": {
+          "complexity": 24,
+          "lines": 233
+        },
+        "_run_text": {
+          "complexity": 1,
+          "lines": 10
+        },
+        "_safe_credential_source_metadata": {
+          "complexity": 3,
+          "lines": 11
+        },
+        "_safe_installer_line_value": {
+          "complexity": 3,
+          "lines": 5
+        },
+        "_safe_log_tail_lines": {
+          "complexity": 5,
+          "lines": 19
+        },
+        "_setup_failure_guidance_lines": {
+          "complexity": 2,
+          "lines": 15
+        },
+        "_starts_structured_log_value": {
+          "complexity": 4,
+          "lines": 8
+        },
+        "_structured_delimiter_delta": {
+          "complexity": 1,
+          "lines": 2
+        },
+        "_suggested_checks_for_phase": {
+          "complexity": 4,
+          "lines": 23
+        },
+        "_utc_timestamp": {
+          "complexity": 1,
+          "lines": 2
+        },
+        "_validate_native_installation_read_only": {
+          "complexity": 9,
+          "lines": 52
+        },
+        "_validate_native_installation_read_only.absolute": {
+          "complexity": 2,
+          "lines": 3
+        },
+        "_validate_snapshot_storage": {
+          "complexity": 6,
+          "lines": 14
+        },
+        "_windows_exposure_required": {
+          "complexity": 1,
+          "lines": 3
+        },
+        "_windows_wsl_bridge_context": {
+          "complexity": 2,
+          "lines": 13
+        },
+        "_windows_wsl_bridge_expected_ports": {
+          "complexity": 6,
+          "lines": 15
+        },
+        "_windows_wsl_bridge_guard": {
+          "complexity": 8,
+          "lines": 60
+        },
+        "_windows_wsl_bridge_suggested_commands": {
+          "complexity": 2,
+          "lines": 9
+        },
+        "_workflow_command": {
+          "complexity": 1,
+          "lines": 2
+        },
+        "_write_context": {
+          "complexity": 4,
+          "lines": 29
+        },
+        "_write_test_venv_python": {
+          "complexity": 1,
+          "lines": 16
+        },
+        "_write_text": {
+          "complexity": 1,
+          "lines": 2
+        },
+        "authorize_project_filesystem": {
+          "complexity": 5,
+          "lines": 40
+        },
+        "detect_host_runtime": {
+          "complexity": 5,
+          "lines": 27
+        },
+        "ensure_python_environment": {
+          "complexity": 11,
+          "lines": 59
+        },
+        "main": {
+          "complexity": 2,
+          "lines": 6
+        },
+        "parse_args": {
+          "complexity": 2,
+          "lines": 39
+        },
+        "run": {
+          "complexity": 14,
+          "lines": 60
+        }
+      },
+      "lines": 1819
+    }
+  },
+  "src/tiny_swarm_world/prepare_linux.py": {
+    "after": {
+      "classes": {},
+      "complexity": 36,
+      "fanout": 8,
+      "functions": {
+        "_prepare_python_dependencies": {
+          "complexity": 10,
+          "lines": 37
+        },
+        "main": {
+          "complexity": 27,
+          "lines": 121
+        }
+      },
+      "lines": 180
+    },
+    "before": {
+      "classes": {},
+      "complexity": 36,
+      "fanout": 8,
+      "functions": {
+        "_prepare_python_dependencies": {
+          "complexity": 10,
+          "lines": 37
+        },
+        "main": {
+          "complexity": 27,
+          "lines": 121
+        }
+      },
+      "lines": 180
+    }
+  },
+  "src/tiny_swarm_world/simple_installer.py": {
+    "after": {
+      "classes": {},
+      "complexity": 1,
+      "fanout": 2,
+      "functions": {
+        "main": {
+          "complexity": 1,
+          "lines": 2
+        }
+      },
+      "lines": 17
+    },
+    "before": {
+      "classes": {
+        "SimpleInstallerError": {
+          "complexity": 0,
+          "lines": 2
+        }
+      },
+      "complexity": 49,
+      "fanout": 12,
+      "functions": {
+        "_is_windows_mounted_path": {
+          "complexity": 5,
+          "lines": 9
+        },
+        "_load_explicit_bootstrap_override": {
+          "complexity": 10,
+          "lines": 31
+        },
+        "_load_operator_install_file": {
+          "complexity": 5,
+          "lines": 17
+        },
+        "_parse_args": {
+          "complexity": 1,
+          "lines": 42
+        },
+        "_prepare_bootstrap_environment": {
+          "complexity": 3,
+          "lines": 28
+        },
+        "_print_operator_credentials": {
+          "complexity": 1,
+          "lines": 17
+        },
+        "_validate_secure_override_path": {
+          "complexity": 13,
+          "lines": 31
+        },
+        "main": {
+          "complexity": 18,
+          "lines": 46
+        }
+      },
+      "lines": 271
+    }
+  }
+}
