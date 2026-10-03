@@ -71,6 +71,10 @@ permit the already-qualified `/mnt/*` source tree. It does not bypass secret
 storage qualification. Blocked, skipped, partial or degraded operations never
 produce `LIVE_VERIFIED`.
 
+When setup reports a failed preflight phase with no mutation result, the
+Classic runner records `LIVE_BLOCKED_BEFORE_MUTATION` and stops the chain.
+A nonzero setup exit alone does not prove that a deployment phase ran.
+
 The disposable test workflow uses the same Linux runner, consent, ownership,
 secure-file and lifecycle guards with `--test-only`. In that profile credential
 rotation is not applicable, so no rotation-reference variable is read. An

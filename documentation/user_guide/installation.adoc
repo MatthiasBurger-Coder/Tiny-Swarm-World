@@ -785,6 +785,12 @@ the installer; old checkout-local evidence is historical.
 Use `reset-run.exit`, `setup-run.exit`, and the matching logs to diagnose a
 failed or blocked run.
 
+The WSL2 `service-access` preflight retains its 16 GiB RAM, eight-thread and
+150 GiB free-disk minimum. Native Linux clean-host preparation uses a separate
+20 GiB RAM floor. Managed node limit checks still protect WSL2 capacity during
+node creation; a previously installed platform can reconcile when those checks
+and the current resource and memory-pressure checks pass.
+
 Before stack apply, the deployment workflow also writes the selected effective
 access model to
 `.tiny-swarm-world/evidence/solid-typed-evidence/routing/effective-access-model.json`.
@@ -850,6 +856,10 @@ Do not source the optional override file unconditionally: a default installation
 does not create that file, and an empty placeholder is not a resolved token.
 A successful authenticated cluster-list response should include `standalone`.
 A login page or HTTP 200 from Jenkins likewise does not prove authentication.
+The Jenkins image must install `setup.groovy` readable by the `jenkins` user
+(`jenkins:jenkins`, mode `0644`). If a fresh install serves anonymous Jenkins
+responses despite a configured admin password, inspect the image file mode and
+the current service task log before accepting the installation as complete.
 
 === 9. Login Targets
 

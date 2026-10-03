@@ -4,6 +4,8 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Mapping
 
+from tiny_swarm_world.domain.host_environment import HostEnvironmentKind
+
 
 class ResourceAssessment(StrEnum):
     SUPPORTED = "SUPPORTED"
@@ -49,11 +51,14 @@ class PlannedContainerLimit:
     memory_bytes: int
 
 
-def default_resource_profiles() -> dict[str, ResourceProfile]:
+def default_resource_profiles(
+    host_environment: HostEnvironmentKind | None = None,
+) -> dict[str, ResourceProfile]:
+    service_access_memory = 16 if host_environment is HostEnvironmentKind.WSL2 else 20
     return {
         "service-access": ResourceProfile(
             "service-access",
-            ResourceRequirements(8, 20 * 1024**3, 150 * 1024**3),
+            ResourceRequirements(8, service_access_memory * 1024**3, 150 * 1024**3),
             ResourceRequirements(12, 24 * 1024**3, 250 * 1024**3),
         ),
         "default": ResourceProfile(

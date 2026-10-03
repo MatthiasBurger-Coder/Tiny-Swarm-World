@@ -1151,6 +1151,7 @@ def _node_provider_request_from_config(
 def _preflight_configuration_for_provider(
     service_profile: ServiceStackProfile | str,
     node_provider_request: NodeProviderSelectionRequest | None,
+    host_environment: HostEnvironmentKind | None = None,
 ) -> PreflightConfiguration:
     resolved_profile = resolve_runtime_profile(service_profile, node_provider_request)
     configuration = replace(
@@ -1158,7 +1159,8 @@ def _preflight_configuration_for_provider(
         windows_wsl_bridge_required=_windows_wsl_bridge_required(),
     )
     profile_name = resolved_profile.service_profile.value
-    profiles = default_resource_profiles()
+    selected_host = host_environment or build_host_environment_detector().detect().environment
+    profiles = default_resource_profiles(selected_host)
     resource_profile = profiles.get(profile_name, profiles["default"])
     configuration = replace(
         configuration,
