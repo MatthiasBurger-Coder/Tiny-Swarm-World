@@ -418,7 +418,20 @@ class TestComposition(unittest.TestCase):
         )
 
     def test_build_preflight_service_wires_resource_inspection_and_evidence(self):
+        from tiny_swarm_world.domain.preflight.completeness import PreflightConstruction
         service = composition.build_preflight_service()
+        self.assertEqual(PreflightConstruction.STANDARD_SETUP, service.construction)
+        self.assertTrue(service._result(()).completeness.collaborators_complete)
+        request_service = composition._build_preflight_service_for_request(
+            composition.DEFAULT_SETUP_SERVICE_PROFILE, None,
+        )
+        self.assertEqual(PreflightConstruction.STANDARD_SETUP, request_service.construction)
+        self.assertTrue(request_service._result(()).completeness.collaborators_complete)
+        for post_install in (composition.build_post_install_preflight_service(),
+                             composition._build_post_install_preflight_service_for_request(
+                                 composition.DEFAULT_SETUP_SERVICE_PROFILE, None)):
+            self.assertEqual(PreflightConstruction.CUSTOM, post_install.construction)
+            self.assertFalse(post_install._result(()).completeness.collaborators_complete)
 
         self.assertIsInstance(
             service.resource_inspector, composition.WslResourceInspector

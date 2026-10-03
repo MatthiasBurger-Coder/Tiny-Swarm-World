@@ -34,11 +34,12 @@ alongside line counts. File size alone is not a release defect.
 | A broad preflight service coordinates host, configuration, ports, resources,
   filesystem and secret checks through many optional ports.
 | Standard setup wires the relevant collaborators; executed blocking checks
-  prevent progression. Direct construction can omit optional checks. Protected
-  filesystem-override evidence failure blocks authorization; general summary
-  persistence is best-effort and does not establish evidence completeness.
-| Post-RC1 define collaborator/evidence completeness under issue #331, keeping
-  protected authorization and existing failure results intact.
+  prevent progression. ARCH-03.22 now reports custom omissions and summary
+  persistence explicitly; protected filesystem-override evidence failure still
+  blocks authorization. Local completeness does not grant release acceptance.
+| Issue #331 defines the additive collaborator/evidence contract; see
+  link:arch-03-04-platform-preflight-use-case.md[Platform preflight boundary].
+  Keep independent RC1 release-evidence acceptance.
 
 | __main__.py
 | Entry-point dispatch, serialization and operator summaries have grown with
@@ -75,11 +76,13 @@ focused corrections and live evidence must pass before release acceptance.
 The blockers and baseline source/test reproducers are registered in #294 and
 #297 under the independent review section dated 2026-09-13.
 
-Missing optional collaborators concern custom/incomplete wiring. General
-summary-write suppression also applies to standard wiring. Both limitations
-are bounded debt tracked in #331. Standard setup
-wiring and protected override authorization were checked separately; a
-preflight PASS is never proof that required release artifacts exist. Issue
+The baseline review found missing optional collaborators in custom/incomplete
+wiring and general summary-write suppression in standard wiring. ARCH-03.22
+(#331) now exposes collaborator availability, malformed output and persistence
+state, preserving the explicit summary failures introduced by ARCH-03.12.
+Standard setup wiring and protected override authorization remain distinct;
+a preflight PASS or complete local summary is never proof that required release
+artifacts exist. Issue
 #329 owns remaining LXC qualification orchestration, including
 _host_capacity_block and _verify_provider_resources; existing parsing already
 lives in lxc/resource/resolution.py.

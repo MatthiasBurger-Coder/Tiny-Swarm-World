@@ -9,6 +9,7 @@ from tiny_swarm_world.domain.preflight.preflight_check import (
     PreflightSeverity,
 )
 from tiny_swarm_world.domain.preflight.setup_manifest import SetupProfile
+from tiny_swarm_world.domain.preflight.completeness import PreflightCompleteness
 
 
 @dataclass(frozen=True)
@@ -16,6 +17,8 @@ class PreflightResult:
     checks: tuple[PreflightCheck, ...]
     setup_profile: SetupProfile = SetupProfile.FULL
     manifest_summary: Mapping[str, object] = field(default_factory=dict)
+
+    completeness: PreflightCompleteness = field(default_factory=PreflightCompleteness)
 
     def __post_init__(self) -> None:
         object.__setattr__(
@@ -27,6 +30,16 @@ class PreflightResult:
     @property
     def passed(self) -> bool:
         return all(check.passed for check in self.checks)
+
+    @property
+    def executed_checks_passed(self) -> bool:
+        return all(check.passed for check in self.checks if check.check_id not in {
+            "PREFLIGHT-EVIDENCE", "PREFLIGHT-COLLABORATORS",
+        })
+
+    @property
+    def qualified(self) -> bool:
+        return self.passed and self.completeness.qualification_complete
 
     @property
     def resource_gated(self) -> bool:
@@ -50,6 +63,9 @@ class PreflightResult:
     def to_dict(self) -> dict[str, object]:
         return {
             "status": self.status,
+            "executed_checks_passed": self.executed_checks_passed,
+            "qualified": self.qualified,
+            "completeness": self.completeness.to_dict(),
             "setup_profile": self.setup_profile.value,
             "manifest": dict(self.manifest_summary),
             "checks": [check.to_dict() for check in self.checks],
@@ -72,6 +88,9 @@ class PreflightResult:
         )
         return {
             "status": self.status,
+            "executed_checks_passed": self.executed_checks_passed,
+            "qualified": self.qualified,
+            "completeness": self.completeness.to_dict(),
             "host_environment": dict(host.evidence) if host else {},
             "host_resources": dict(resource.evidence) if resource else {},
             "resource_assessment": resource.evidence.get("assessment") if resource else "UNKNOWN",
