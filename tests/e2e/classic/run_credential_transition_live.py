@@ -12,7 +12,9 @@ import copy
 import subprocess
 import time
 from datetime import UTC, datetime
+from html.parser import HTMLParser
 from typing import Any
+from urllib.parse import urljoin
 
 import requests
 
@@ -39,6 +41,42 @@ def identity(session: requests.Session, value: str | None = None) -> tuple[bool,
         return (payload.get("authenticated") is True and payload.get("name") == "admin", response.status_code)
     except (requests.RequestException, ValueError):
         return False, 0
+
+
+class _LoginFormParser(HTMLParser):
+    """Collect hidden inputs only from the local Jenkins authentication form."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.hidden_fields: dict[str, str] = {}
+        self.in_login_form = False
+        self.found_login_form = False
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        attributes = dict(attrs)
+        if tag == "form":
+            self.in_login_form = urljoin(URL + "/login", attributes.get("action") or "") == URL + "/j_spring_security_check"
+            self.found_login_form |= self.in_login_form
+        elif tag == "input" and self.in_login_form:
+            name = attributes.get("name")
+            if name and (attributes.get("type") or "").lower() == "hidden":
+                self.hidden_fields[name] = attributes.get("value") or ""
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag == "form":
+            self.in_login_form = False
+
+
+def login_cookie_session(session: requests.Session, password: str) -> None:
+    """Authenticate using the same session's login form without exposing its tokens."""
+    page = session.get(URL + "/login", timeout=15)
+    page.raise_for_status()
+    form = _LoginFormParser()
+    form.feed(page.text)
+    require(form.found_login_form, "login_form_missing")
+    session.post(URL + "/j_spring_security_check",
+                 data={**form.hidden_fields, "j_username": "admin", "j_password": password,
+                       "from": "/", "Submit": "Sign in"}, timeout=20)
 
 
 def wait_identity(value: str) -> bool:
@@ -230,10 +268,7 @@ def main() -> int:
                bootstrap_source=json.loads(baseline["TSW_CREDENTIAL_SOURCE_MAP"])[KEY], catalog_value_confirmed=True)
         require(baseline_code == 0 and baseline_equal and baseline_authenticated and baseline_observed.get("consumed_source") == "vault",
                 "baseline_deployment_not_verified")
-        cookie_session.get(URL + "/login", timeout=15).raise_for_status()
-        login = cookie_session.post(URL + "/j_spring_security_check",
-                                    data={"j_username": "admin", "j_password": original, "from": "/", "Submit": "Sign in"}, timeout=20)
-        del login
+        login_cookie_session(cookie_session, original)
         require(identity(cookie_session)[0], "session_precondition_failed")
         record("baseline_session", authenticated=True)
         client.set_secret(KEY, custom, **PROJECT)
