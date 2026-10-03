@@ -1,0 +1,195 @@
+{
+  "platform": "native Linux",
+  "source_revision": "89357c4a1fd463bbe5ee2ae9dac074180513eace",
+  "provenance": {
+    "source_revision": "89357c4a1fd463bbe5ee2ae9dac074180513eace",
+    "branch": "qualification/issue-363-native-89357c4a",
+    "dirty_checkout": false,
+    "source_digest_sha256": "c38909d9fcc3219d343df204c49f5a5caf9ed5aad6bffbbc06eb7b775eefdbcd",
+    "bundle_sha256": "8571114f729b0bd2b4417fa0bc25a3196215851312fe97774ee7fa9def24348b",
+    "effective_infra_digest_sha256": "6f9f9f602d5ed27e13af92c4c45da9f2334d845c9909a824f598a93748b13a88",
+    "effective_provider_memory_gib": [
+      8,
+      6,
+      3
+    ],
+    "committed_provider_memory_gib": [
+      10,
+      8,
+      1
+    ],
+    "fresh_install_revision": "bdd73f58ea48bdd01bed10993a0d66f89021b748",
+    "changed_files_since_fresh": [
+      "documentation/evidence/issue-363-credential-cookie-form-20261003.md",
+      "documentation/evidence/issue-363-node-mutation-evidence-20261003.md",
+      "src/tiny_swarm_world/infrastructure/adapters/clients/lxc_node_provider.py",
+      "tests/e2e/classic/run_credential_transition_live.py",
+      "tests/e2e/classic/test_credential_transition_runner.py",
+      "tests/infrastructure/adapters/clients/test_lxc_node_provider.py"
+    ],
+    "fresh_equivalence_scope": "Later delta changes successful node create/start applied reporting and CRED09 Jenkins login form submission; physical fresh install source attribution retained; no physical provisioning commands or image contexts changed",
+    "candidate_image_semantics": "Distinct current-source build and OCIrevision metadata image compatibility fixture; no Jenkins binary version upgrade claimed",
+    "consent": "User explicitly authorized disposable native Linux fullinvalidatedscenarios",
+    "private_backup": "OriginalInfisicalDB retained privately outside public evidence; originaloperatorenv retained"
+  },
+  "scenarios": {
+    "complete-operator": {
+      "status": "LIVE_VERIFIED",
+      "checks": {},
+      "source_revision": "bdd73f58ea48bdd01bed10993a0d66f89021b748"
+    },
+    "fresh-managed": {
+      "status": "LIVE_VERIFIED",
+      "checks": {
+        "managed_inventory_empty": true,
+        "all_managed_uuids_changed": true,
+        "original_operator_env_preserved": true
+      },
+      "source_revision": "bdd73f58ea48bdd01bed10993a0d66f89021b748"
+    },
+    "additional": {
+      "status": "LIVE_VERIFIED",
+      "checks": {
+        "repeat_service_specs_unchanged": true,
+        "original_recovery_plan_preserved": true,
+        "controlled_rollout_failed": true,
+        "fault_unrelated_service_ids_unchanged": true,
+        "fault_provider_identities_unchanged": true,
+        "fault_unrelated_specs_unchanged": true
+      },
+      "source_revision": "89357c4a1fd463bbe5ee2ae9dac074180513eace"
+    },
+    "worker-recovery": {
+      "status": "LIVE_VERIFIED",
+      "checks": {
+        "worker_stop_observed": true,
+        "worker_service_ids_unchanged": true,
+        "worker_provider_identities_unchanged": true,
+        "worker_service_specs_unchanged": true
+      },
+      "source_revision": "89357c4a1fd463bbe5ee2ae9dac074180513eace"
+    },
+    "host-reboot": {
+      "status": "LIVE_VERIFIED",
+      "checks": {
+        "host_boot_id_changed": true,
+        "provider_uuid_unchanged": true,
+        "swarm_node_ids_unchanged": true,
+        "swarm_ready_active": true,
+        "service_specs_and_ids_unchanged": true,
+        "host_containers_preserved": true,
+        "runtime_configuration_equal": true,
+        "credential_fixture_equal": true,
+        "original_operator_env_equal": true,
+        "source_clean": true,
+        "readiness_within_600_seconds": true
+      },
+      "source_revision": "89357c4a1fd463bbe5ee2ae9dac074180513eace",
+      "deadline": {
+        "anchor_utc": "2026-10-03T19:55:17.178892+00:00",
+        "anchor_kind": "conservative pre-reboot snapshot immediately before reboot request",
+        "readiness_finished_utc": "2026-10-03T19:58:26.992726Z",
+        "elapsed_to_readiness_seconds": 189.813834,
+        "limit_seconds": 600,
+        "within_limit": true,
+        "includes_helper_restore_overhead": true
+      },
+      "persistent_data_proof": {
+        "fresh_catalog_credential_fixture_bytes_equal": true,
+        "original_operator_env_bytes_equal_separate_preserved_input": true,
+        "effective_runtime_configuration_bytes_equal": true,
+        "deployed_authenticated_service_access_verified": true,
+        "jenkins_job_build_artifact_seeded_and_compared": false,
+        "scope": "No Jenkins job/build/artifact fixture seeded before this reboot; credential transition tests require existing persistent named Jenkins volume."
+      }
+    },
+    "credential-transition": {
+      "status": "LIVE_VERIFIED",
+      "checks": {},
+      "source_revision": "89357c4a1fd463bbe5ee2ae9dac074180513eace"
+    },
+    "host-reboot-persistent": {
+      "status": "LIVE_VERIFIED",
+      "source_revision": "89357c4a1fd463bbe5ee2ae9dac074180513eace",
+      "checks": {
+        "host_boot_id_changed": true,
+        "provider_uuid_unchanged": true,
+        "swarm_node_ids_unchanged": true,
+        "swarm_ready_active": true,
+        "service_specs_and_ids_unchanged": true,
+        "host_containers_preserved": true,
+        "runtime_configuration_equal": true,
+        "credential_fixture_equal": true,
+        "original_operator_env_equal": true,
+        "source_clean": true,
+        "readiness_within_600_seconds": true
+      },
+      "deadline": {
+        "anchor_utc": "2026-10-03T20:03:16.434531+00:00",
+        "anchor_kind": "conservative pre-reboot snapshot immediately before reboot request",
+        "readiness_finished_utc": "2026-10-03T20:05:59.195578Z",
+        "elapsed_to_readiness_seconds": 162.761047,
+        "limit_seconds": 600,
+        "within_limit": true,
+        "includes_initial_failed_readiness_attempt": true
+      },
+      "initial_readiness_attempt_failed_retained": true,
+      "nonmutating_bounded_startup_retry": true
+    },
+    "actual_jenkins_data_continuity": {
+      "status": "LIVE_VERIFIED",
+      "source_revision": "89357c4a1fd463bbe5ee2ae9dac074180513eace",
+      "original_successful_build": 1,
+      "archived_artifact_content_verified": true,
+      "checks": {
+        "service_ids": true,
+        "node_ids": true,
+        "cluster_id": true,
+        "home": true,
+        "storage_node": true,
+        "private_home_configuration": true,
+        "private_job_inventory": true,
+        "fixture_configuration": true,
+        "fixture_artifact": true
+      },
+      "content_fingerprints_private": true
+    },
+    "canonical_14_chain": {
+      "status": "LIVE_VERIFIED",
+      "operation_count": 14,
+      "source_revision": "89357c4a1fd463bbe5ee2ae9dac074180513eace"
+    }
+  },
+  "original_fixture_failure": {
+    "retained": true,
+    "source_revision": "bdd73f58ea48bdd01bed10993a0d66f89021b748",
+    "classification": "deployment.configuration/configuration_invalid",
+    "cause": "Original env omitted TSW_TRAEFIK_TLS_CERT_SECRET_NAME; installer bootstrap configuration completion supplied three nonsecret references and preserved operator credentials",
+    "reference": "classic/20261003T190345.303436Z/run-summary.json",
+    "completed_operator_setup_and_authentication_verified": true
+  },
+  "controlled_fault": {
+    "actual_operation_state": "LIVE_FAILED_AFTER_MUTATION",
+    "expected_classification": "rollout_failed",
+    "scenario_requires_actual_recovery_and_authenticated_acceptance": true
+  },
+  "scope_notes": [
+    "Managed fresh installation on prepared native host, not factory-clean operating system.",
+    "Fresh installation executed at bdd73f58; final reporting and test-helper-only changes reviewed for physical provisioning equivalence.",
+    "Distinct Jenkins image build from current source with accurate OCI revision; no Jenkins binary version upgrade claimed.",
+    "Effective provider memory override 8/6/3GiB differs committed 10/8/1GiB.",
+    "Original operator env and original Infisical database backup retained privately.",
+    "Sensitive runtime environment, database backup, raw installer logs and rollback files excluded."
+  ],
+  "status": "LIVE_VERIFIED",
+  "final_availability": {
+    "timestamp_utc": "2026-10-03T20:08:03.699158+00:00",
+    "source_revision": "89357c4a1fd463bbe5ee2ae9dac074180513eace",
+    "source_clean": true,
+    "service_count": 19,
+    "continuous_services": 18,
+    "continuous_services_healthy": true,
+    "completed_one_shot_count": 1,
+    "platform_left_available": true
+  }
+}

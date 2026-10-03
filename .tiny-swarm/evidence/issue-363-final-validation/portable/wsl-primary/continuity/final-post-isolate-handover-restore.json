@@ -1,0 +1,26 @@
+{
+  "phase": "final-post-isolate-handover-restore",
+  "timestamp": "2026-10-03T20:19:08.489408+00:00",
+  "candidate": "89357c4a1fd463bbe5ee2ae9dac074180513eace",
+  "script_sha256": "3801a47529fa1491ed32d33ec1e7870fbbda6228eedf10a14844cbcafc502eb6",
+  "fixture": "tsw-issue363-continuity-20261003",
+  "original_build": 1,
+  "artifact_sha256": "49363c78783f5858e12d73cf3e58d4e4796833a5e78827029d7615c66b986884",
+  "preserved": {
+    "service_ids": true,
+    "node_ids": true,
+    "cluster_id": true,
+    "home": true,
+    "storage_node": true,
+    "private_home_configuration": true,
+    "private_job_inventory": true,
+    "fixture_configuration": true,
+    "fixture_artifact": true
+  },
+  "changed_service_configurations": [],
+  "desired_image": "127.0.0.1:13500/jenkins:0.2.0",
+  "running_image_id": "sha256:a938ce0bbcdc32e3e1f4d6da52891b208b86134826cb6b4c13f5384e945bf72f",
+  "task_id": "nzr2wrmav4tg",
+  "container_id": "a31a11024ee0",
+  "passed": true
+}

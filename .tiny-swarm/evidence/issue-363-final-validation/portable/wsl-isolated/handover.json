@@ -1,0 +1,20 @@
+{
+  "status": "READY_FOR_UBUNTU_RESTORE",
+  "checks": {
+    "incusbr0_removed": true,
+    "managed_http_https_ports_released": true,
+    "unrelated5000_8081_four_listeners_preserved": true,
+    "primary_host_docker_socket_containerd_active": true,
+    "primary_interop_preserved": true,
+    "primary_pid1_start_preserved": true,
+    "primary_pid_namespace_preserved": true,
+    "primary_boot_id_preserved": true,
+    "isolate_stopped": true,
+    "ubuntu_running": true
+  },
+  "unrelated_host_unit_states": {
+    "docker.service": "active",
+    "docker.socket": "active",
+    "containerd.service": "active"
+  }
+}

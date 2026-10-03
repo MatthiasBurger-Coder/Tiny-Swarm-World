@@ -1,0 +1,47 @@
+{
+  "revision": "89357c4a1fd463bbe5ee2ae9dac074180513eace",
+  "status": "READY",
+  "all_three_owned_nodes_stopped": true,
+  "provider_identities_preserved": true,
+  "incus_units": {
+    "incus-startup.service": "inactive",
+    "incus.service": "inactive",
+    "incus.socket": "inactive",
+    "incus-user.service": "inactive",
+    "incus-user.socket": "active",
+    "docker.service": "active",
+    "docker.socket": "active",
+    "containerd.service": "active"
+  },
+  "owned_resource_scope_verified": true,
+  "ubuntu_host_identity_preserved": true,
+  "unrelated_host_units_preserved": true,
+  "protected_host_listener_counts_before": 4,
+  "protected_host_listener_counts_after": 4,
+  "remaining_relevant_listener_counts": {
+    "80": 0,
+    "443": 0,
+    "53": 10,
+    "5000": 2,
+    "8081": 2,
+    "11080": 0,
+    "11081": 0,
+    "11443": 0,
+    "13500": 0,
+    "14000": 0,
+    "18081": 0,
+    "19527": 0
+  },
+  "incusbr0_present": false,
+  "privilege_execution": "existing Windows WSL root interop; exact scoped Incus unit stops only",
+  "restore_sequence": [
+    "Root coordinates isolate stop/quiesce first",
+    "Start Ubuntu Incus socket/service/startup",
+    "Start retained three nodes",
+    "Bounded platformverification+readiness",
+    "Full25live+7API and original persistent fixture/config/credential comparison"
+  ],
+  "ubuntu_distribution_terminated": false,
+  "owned_bridge_dns_listener_remaining": false,
+  "unrelated_host_listener_count_preserved": true
+}

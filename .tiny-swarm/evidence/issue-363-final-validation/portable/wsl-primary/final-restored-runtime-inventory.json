@@ -1,0 +1,19 @@
+{
+  "revision": "89357c4a1fd463bbe5ee2ae9dac074180513eace",
+  "managed_bridge_present": true,
+  "managed_bridge_only_owned_consumers": true,
+  "manager_proxy_devices_80_443_present": true,
+  "host_listener_counts": {
+    "80": 1,
+    "443": 1,
+    "5000": 2,
+    "8081": 2
+  },
+  "all18_continuous_desired_replicas": true,
+  "expected_one_shot_complete_exit0": true,
+  "one_shot_task_states": [
+    "complete"
+  ],
+  "unrelated_host5000_8081_listener_count_preserved": true,
+  "proxy_ownership_observation": "Expanded effective manager configuration includes inherited profile proxy devices; initial direct-only observation omitted inherited devices"
+}

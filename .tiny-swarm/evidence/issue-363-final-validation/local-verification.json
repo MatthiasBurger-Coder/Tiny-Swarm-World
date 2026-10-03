@@ -1,0 +1,49 @@
+{
+  "qualification_revision": "89357c4a1fd463bbe5ee2ae9dac074180513eace",
+  "source_branch": "fix/issue-363-final-validation",
+  "host": "wsl2",
+  "local_quality": {
+    "command": "python3 tools/quality_gate.py quality",
+    "exit_code": 0,
+    "tests": 2377,
+    "skipped": 18,
+    "failures": 0,
+    "errors": 0,
+    "seconds": 76.493,
+    "architecture_tests": 37,
+    "import_contracts_kept": 6,
+    "typechecked_files": 732,
+    "tested_tree": "Isolated credential-cookie worktree at parent 8819d5d3 plus the two reviewed runner/test changes; byte-identical to committed 89357c4a."
+  },
+  "rc1_s07": {
+    "tests": 122,
+    "skipped": 0,
+    "errors": 0,
+    "failures": 0,
+    "exit_code": 0,
+    "classification": "APPLICABLE_LOCAL"
+  },
+  "log_sha256": {
+    "quality.log": "b5108c6e57ae863edcdece4ee64c22b35dd9e13b7be0b8e3fe6ea7fcb2ba06be",
+    "rc1-prerequisite-fixtures.log": "f3ac40e48bb8c92cc3b530992b78dca28e57ee2d2cb175e7d5e234ab29436a1a",
+    "final-quality.log": "e5f4dc39de0861d9c2914808db867bb900bc4afb7024334f3f01bd5b9a1c1a23"
+  },
+  "regressions": {
+    "node_mutation": {
+      "red_tests": 49,
+      "red_failures": 6,
+      "focused_pass": 98,
+      "full_pass": 2375
+    },
+    "credential_cookie": {
+      "red_tests": 6,
+      "red_failures": 3,
+      "focused_pass": 6,
+      "full_pass": 2377
+    },
+    "quality_fixes": {
+      "focused_pass": 21,
+      "actual_pester": true
+    }
+  }
+}

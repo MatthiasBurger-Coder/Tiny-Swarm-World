@@ -1,0 +1,9 @@
+{
+  "portable-aggregate.json": "d9e3eed9a964ba3cc26ea22a39926abc60d1e7a285ef09157d3d4c55a624e932",
+  "summary.json": "6ba7d433e305754abc0ca635e625f66f1730d2b0fe02a124bf6834d9be1e669d",
+  "phase-ledger.json": "f1a52e7fb182e4a1245dc8cd50a6f597911518063bea7d61adf3e21691bf89f5",
+  "final-restored-runtime-inventory.json": "ac64ceffed9ddff55ef11b559fe2d596d972317f6f0a0f4c1480382115e37057",
+  "continuity/final-post-isolate-handover-restore.json": "2c8779884c3b7f8e4b235fe155f06b27918542130f0bd9d45f54680454064e57",
+  "handover-ready.json": "f376c1ad88699a4de1ab0301eef22651592941851aad715414553a6683cae544",
+  "protected-evidence-manifest.json": "a149a38cd2c3c79d2a3ee07e91481ca69ed0678cfecd1e3acdfba66a4e624943"
+}
