@@ -575,3 +575,11 @@ failure classifications. An empty readiness matrix returns immediately.
 These deterministic tests verify deadline and redaction semantics only. The
 live browser/API suite remains opt-in and no skipped or mocked execution is
 reported as live success.
+
+=== Resulting Orchestration and Runtime Extension Boundary
+
+See link:05_analysis/arch-03-21-resulting-architecture.md[ARCH-03.21] for the
+implemented CLI/composition/lifecycle flow, Classic stack port and transport,
+planning-versus-execution separation, and the step-by-step contribution path.
+The additive reconcile planner does not drive current Classic execution.
+No general engine plugin registry or Podman/Kubernetes runtime is implemented.
