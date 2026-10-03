@@ -48,6 +48,7 @@ python3 tools/quality_gate.py quality
 This executes, in order:
 
 - `verification-policy`
+- `complexity`
 - `lint`
 - `arch-lint`
 - `arch-tests`
@@ -60,6 +61,7 @@ Use the nearest meaningful gate during development:
 
 ```bash
 python3 tools/quality_gate.py lint
+python3 tools/quality_gate.py complexity
 python3 tools/quality_gate.py arch-lint
 python3 tools/quality_gate.py arch-tests
 python3 tools/quality_gate.py typecheck

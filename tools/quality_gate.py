@@ -55,6 +55,10 @@ COMMANDS: dict[str, list[str]] = {
         PYTHON,
         str(REPOSITORY_ROOT / "tools" / "check_verification_policy_consistency.py"),
     ],
+    "complexity": [
+        PYTHON,
+        str(REPOSITORY_ROOT / "tools" / "check_complexity_guardrails.py"),
+    ],
     "lint": [
         PYTHON,
         "-m",
@@ -90,6 +94,7 @@ COMMANDS: dict[str, list[str]] = {
 }
 QUALITY_GATE_ORDER = [
     "verification-policy",
+    "complexity",
     "lint",
     "arch-lint",
     "arch-tests",
@@ -106,6 +111,7 @@ def main() -> None:
         default="quality",
         choices=[
             "verification-policy",
+            "complexity",
             "lint",
             "arch-lint",
             "arch-tests",
