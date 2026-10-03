@@ -52,10 +52,23 @@ legacy installer lifecycle. They are not permission for new bypasses:
 | `installer.py` | host, local evidence repository, TLS state, UI reporter, WSL bridge adapters | ARC-03 installer owner | Existing installer compatibility surface still sequences lifecycle and presentation | ARC-03 extraction into application ports/adapters |
 | `simple_installer.py` | legacy installer and operator configuration adapter | ARC-03 installer owner | Thin bootstrap compatibility entrypoint delegates to the legacy lifecycle | ARC-03 single installer lifecycle owner |
 
-The allowlist is encoded in `tests/architecture/test_hexagonal_imports.py`.
+The allowlist is encoded in `tests/architecture/test_architecture_regressions.py`;
+the older boundary checks remain in `tests/architecture/test_hexagonal_imports.py`.
 Adding an import requires an explicit architecture review and an update to
 this table and its migration rationale; it must not be added only to make a
 build green.
+
+ARCH-03.19 runs both modules through the canonical `arch-tests` gate in CI.
+The regression suite resolves relative imports, checks CLI and infrastructure
+direction, and exercises deliberate dependency mutations with file, line, rule,
+and imported module in each failure. The installer and simple-installer
+exceptions are exact module names. For `from package import name`, the scan
+checks whether `name` is a source submodule before applying the package
+exception, and wildcard imports cannot use a legacy exception. It also freezes
+the currently cyclic composition import edges from
+ARCH-03.01, including later network capability and facade edges; removed edges
+are allowed, while new cycle edges fail the gate. The scan does not execute
+product code.
 
 ## Traceability
 

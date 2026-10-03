@@ -94,7 +94,8 @@ The repository architecture checks are Python-based:
 - `python3 tools/quality_gate.py arch-tests`
 
 `arch-lint` requires `.importlinter` and the `lint-imports` executable.
-`arch-tests` requires `tests.architecture.test_hexagonal_imports`.
+`arch-tests` requires `tests.architecture.test_hexagonal_imports` and
+`tests.architecture.test_architecture_regressions`.
 
 ## External Systems
 
