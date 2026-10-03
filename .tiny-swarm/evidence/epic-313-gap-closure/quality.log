@@ -1,0 +1,229 @@
+[quality] Running verification-policy: /usr/bin/python3 /mnt/d/Projects/Tiny-Swarm-World/tools/check_verification_policy_consistency.py
+Verification policy consistency: PASS
+[quality] Running complexity: /usr/bin/python3 /mnt/d/Projects/Tiny-Swarm-World/tools/check_complexity_guardrails.py
+Complexity guardrail passed: 280 orchestration modules checked
+[quality] Running lint: /usr/bin/python3 -m ruff check /mnt/d/Projects/Tiny-Swarm-World/src/tiny_swarm_world/__main__.py /mnt/d/Projects/Tiny-Swarm-World/src/tiny_swarm_world/cli_presentation.py /mnt/d/Projects/Tiny-Swarm-World/src/tiny_swarm_world/installer.py /mnt/d/Projects/Tiny-Swarm-World/src/tiny_swarm_world/simple_installer.py /mnt/d/Projects/Tiny-Swarm-World/src/tiny_swarm_world/application /mnt/d/Projects/Tiny-Swarm-World/src/tiny_swarm_world/domain /mnt/d/Projects/Tiny-Swarm-World/src/tiny_swarm_world/infrastructure /mnt/d/Projects/Tiny-Swarm-World/tests
+All checks passed!
+[quality] Running arch-lint: /home/micro/.local/bin/lint-imports --config /mnt/d/Projects/Tiny-Swarm-World/.importlinter
+
+╔══╗─────────▶╔╗ ╔╗      ╔╗◀───┐
+╚╣╠╝◀─────┐  ╔╝╚╗║║────▶╔╝╚╗   │
+ ║║   ╔══╦══╦╩╗╔╝║║  ╔╦═╩╗╔╝╔═╦══╗
+ ║║╔══╣╔╗║╔╗║╔╣║ ║║ ╔╬╣╔╗║║ ║│║╔═╝
+╔╣╠╣║║║╚╝║╚╝║║║╚╗║╚═╝║║║║║╚╗║═╣║
+╚══╩╩╩╣╔═╩══╩╝╚═╝╚═══╩╩╝╚╩═╩╩═╩╝
+  └──▶║║                    ▲
+      ╚╝────────────────────┘
+
+
+---------
+Contracts
+---------
+
+Analyzed 420 files, 1177 dependencies.
+--------------------------------------
+
+Domain layer does not import infrastructure KEPT
+Domain layer does not import application KEPT
+Domain layer does not import interface adapters KEPT
+Application layer does not import infrastructure KEPT
+Application layer does not import CLI or bootstrap entrypoints KEPT
+Infrastructure does not depend on executable bootstrap facades KEPT
+Application ports do not depend on application services KEPT
+
+Contracts: 7 kept, 0 broken.
+[quality] Running arch-tests: /usr/bin/python3 -m unittest tests.architecture.test_hexagonal_imports tests.architecture.test_architecture_regressions
+..........................................Executing <Task pending name='Task-10' coro=<TestPreflightBoundaryContract.test_standard_missing_collaborators_block_real_pre_apply_guard() running at /mnt/d/Projects/Tiny-Swarm-World/tests/architecture/test_architecture_regressions.py:424> cb=[_run_until_complete_cb() at /usr/lib/python3.14/asyncio/base_events.py:181] created at /usr/lib/python3.14/asyncio/runners.py:109> took 0.103 seconds
+.
+----------------------------------------------------------------------
+Ran 43 tests in 23.320s
+
+OK
+[quality] Running typecheck: /usr/bin/python3 -m mypy --explicit-package-bases /mnt/d/Projects/Tiny-Swarm-World/src/tiny_swarm_world/__main__.py /mnt/d/Projects/Tiny-Swarm-World/src/tiny_swarm_world/cli_presentation.py /mnt/d/Projects/Tiny-Swarm-World/src/tiny_swarm_world/installer.py /mnt/d/Projects/Tiny-Swarm-World/src/tiny_swarm_world/simple_installer.py /mnt/d/Projects/Tiny-Swarm-World/src/tiny_swarm_world/application /mnt/d/Projects/Tiny-Swarm-World/src/tiny_swarm_world/domain /mnt/d/Projects/Tiny-Swarm-World/src/tiny_swarm_world/infrastructure /mnt/d/Projects/Tiny-Swarm-World/tests
+tests/infrastructure/adapters/repositories/test_routing_evidence_local_repository.py:53: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/infrastructure/adapters/repositories/test_command_repository_yaml_contract.py:93: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/infrastructure/adapters/host/test_windows_command_runner.py:63: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/infrastructure/adapters/file_management/test_file_manager.py:59: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/infrastructure/adapters/clients/test_infisical_cli_client.py:17: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/infrastructure/adapters/clients/test_infisical_cli_client.py:35: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/infrastructure/adapters/clients/test_infisical_cli_client.py:63: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/infrastructure/adapters/clients/test_infisical_cli_client.py:96: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/infrastructure/adapters/clients/test_infisical_cli_client.py:117: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/infrastructure/adapters/clients/test_infisical_cli_client.py:153: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/architecture/test_local_state_storage.py:37: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/deployment/test_ensure_external_swarm_secret.py:46: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/shared/test_readiness_wait.py:21: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/shared/test_method_trace_wrapper.py:120: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/deployment/test_ensure_portainer_admin_access.py:248: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/infrastructure/adapters/preflight/test_windows_wsl_bridge_state.py:386: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/infrastructure/adapters/preflight/test_windows_wsl_bridge_state.py:416: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/infrastructure/adapters/preflight/test_artifact_source_readiness.py:32: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/infrastructure/adapters/clients/lxc/services/test_recovery_semantics.py:23: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/infrastructure/adapters/clients/lxc/services/test_recovery_semantics.py:41: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/infrastructure/adapters/clients/lxc/services/test_recovery_semantics.py:93: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/infrastructure/adapters/clients/lxc/services/test_recovery_semantics.py:135: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/nexus/test_bootstrap_nexus.py:44: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/nexus/test_bootstrap_nexus.py:279: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/nexus/test_bootstrap_nexus.py:302: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/nexus/test_bootstrap_nexus.py:372: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/commands/test_command_executer.py:296: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/infrastructure/adapters/clients/lxc/swarm/test_stack_prerequisite_registry.py:89: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/infrastructure/adapters/clients/lxc/swarm/test_stack_prerequisite_registry.py:149: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/infrastructure/adapters/clients/lxc/swarm/test_stack_prerequisite_registry.py:169: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/infrastructure/adapters/clients/lxc/swarm/test_stack_prerequisite_registry.py:189: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/platform/test_node_provider_selection.py:463: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/platform/test_node_provider_selection.py:464: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/platform/test_node_provider_selection.py:497: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/platform/test_node_provider_selection.py:498: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/deployment/test_write_effective_access_model_evidence.py:45: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py:488: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py:1834: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py:1835: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py:1837: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py:1910: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/architecture/test_architecture_regressions.py:421: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/architecture/test_hexagonal_imports.py:151: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/architecture/test_hexagonal_imports.py:278: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/setup/test_setup_workflow.py:56: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/setup/test_setup_workflow.py:89: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/setup/test_setup_workflow.py:99: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/setup/test_setup_workflow.py:116: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/setup/test_setup_workflow.py:137: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/setup/test_setup_workflow.py:155: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/setup/test_setup_workflow.py:176: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/setup/test_setup_workflow.py:226: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/setup/test_setup_workflow.py:254: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/setup/test_setup_workflow.py:356: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/setup/test_setup_workflow.py:382: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/setup/test_setup_workflow.py:402: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/setup/test_setup_workflow.py:424: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/setup/test_setup_workflow.py:452: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/setup/test_setup_workflow.py:480: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/setup/test_setup_workflow.py:508: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/setup/test_setup_workflow.py:615: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/setup/test_setup_workflow.py:636: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/setup/test_setup_workflow.py:692: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/setup/test_setup_workflow.py:735: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/application/services/setup/test_setup_workflow.py:813: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/e2e/classic/run_authenticated_acceptance_live.py:33: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/test_installer.py:350: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/test_installer.py:667: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/test_installer.py:717: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/infrastructure/test_composition.py:918: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/infrastructure/test_composition.py:994: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/infrastructure/test_composition.py:1022: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/infrastructure/test_composition.py:2482: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/infrastructure/test_composition.py:2776: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/test_package_entrypoint.py:335: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+tests/test_package_entrypoint.py:1294: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+Success: no issues found in 754 source files
+[quality] Running test: /usr/bin/python3 -m unittest discover -s /mnt/d/Projects/Tiny-Swarm-World/tests -t /mnt/d/Projects/Tiny-Swarm-World
+.................................................................Failed to prepare artifact target 'artifacts:nexus-admin-access'. Error: NexusAdminAccessRecoveryBlocked. Diagnostic: initial_admin_value_unavailable.
+.Failed to prepare artifact target 'artifacts:nexus-docker-hosted-repository'. Error: RuntimeError. Diagnostic payload redacted.
+..................Failed to apply deployment target 'deployment:second-stack'. Error: RuntimeError. Diagnostic payload redacted.
+.......Failed to apply deployment target 'deployment:portainer-stack'. Error: RuntimeError. Diagnostic payload redacted.
+...Failed to prepare deployment input 'deployment:service-access-external-input'. Error: RuntimeError. Diagnostic payload redacted.
+........................Failed to apply deployment target 'deployment:infisical-items'. Error: InfisicalClientError. Diagnostic payload redacted.
+.......Failed to initialize Portainer admin access. Error: PortainerAdminInitializationRejected. Diagnostic payload redacted.
+....................................................Failed to apply deployment target 'deployment:infisical-silent-install'. Error: OperationError. Diagnostic payload redacted.
+...Failed to apply deployment target 'deployment:infisical-silent-install'. Error: InfisicalInstallBlocker. Diagnostic payload redacted.
+.Failed to apply deployment target 'deployment:infisical-silent-install'. Error: InfisicalInstallBlocker. Diagnostic payload redacted.
+Failed to apply deployment target 'deployment:infisical-silent-install'. Error: InfisicalInstallBlocker. Diagnostic payload redacted.
+Failed to apply deployment target 'deployment:infisical-silent-install'. Error: InfisicalInstallBlocker. Diagnostic payload redacted.
+Failed to apply deployment target 'deployment:infisical-silent-install'. Error: InfisicalInstallBlocker. Diagnostic payload redacted.
+......Failed to apply deployment target 'deployment:infisical-silent-install'. Error: OperationError. Diagnostic payload redacted.
+.......................................................................................................................................................................................lxc_proxy_exposure lookup_failed profile=docker-swarm-manager device=tsw-proxy-10001 service=Portainer
+lxc_proxy_exposure create_failed profile=docker-swarm-manager device=tsw-proxy-13081 service=Nexus
+lxc_proxy_exposure update_failed profile=docker-swarm-manager device=tsw-proxy-13500 service=Nexus Docker registry
+.................................................................................................................................................................Failed to prepare artifact target 'artifacts:prepare-step'. Error: OperationError. Diagnostic payload redacted.
+.....Failed to prepare artifact target 'artifacts:prepare-step'. Error: RuntimeError. Diagnostic payload redacted.
+Failed to apply deployment target 'deployment:apply-step'. Error: RuntimeError. Diagnostic payload redacted.
+...Failed to prepare deployment input 'deployment:pre-apply-step'. Error: OperationError. Diagnostic payload redacted.
+........................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................s..s..............s....s.ssssssss..............................s..s..s..s..s..................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................../usr/lib/python3.14/tempfile.py:484: ResourceWarning: Implicitly cleaning up <HTTPError 401: 'challenge'>
+  _warnings.warn(self.warn_message, ResourceWarning)
+/usr/lib/python3.14/tempfile.py:484: ResourceWarning: Implicitly cleaning up <HTTPError 500: 'server'>
+  _warnings.warn(self.warn_message, ResourceWarning)
+...................................................................................................................................Failed to execute command on VM 'swarm-manager'. Error: CommandExecutionError return code 2. Diagnostic payload redacted.
+...Failed to execute command on VM 'swarm-manager'. Error: RuntimeError. Diagnostic payload redacted.
+.Failed to execute command on VM 'swarm-manager'. Error: CommandExecutionError return code 2. Diagnostic payload redacted.
+.Failed to execute command on VM 'swarm-manager'. Error: CommandExecutionError return code 2. Diagnostic payload redacted.
+...Failed to execute command on VM 'swarm-manager'. Error: RuntimeError. Diagnostic payload redacted.
+...............................................................................................................................................................................Failed to prepare deployment input 'deployment:effective-access-model-evidence'. Error: OSError. Diagnostic payload redacted.
+Failed to prepare deployment input 'deployment:effective-access-model-evidence'. Error: OSError. Diagnostic payload redacted.
+.......................................................................................s........usage: python3 -m unittest [-h] [--list-workflows] [--preflight] [--live]
+                           [--approve-live] [--json] [--confirm CONFIRM]
+                           [--service-profile {default,service-access}]
+                           [--allow-wsl-windows-filesystem]
+                           [--node-provider {lxc_native}]
+                           [--lxc-backend {incus}] [--runtime {wsl2-nat}]
+                           [--linux-forwarding] [--incus] [--apply]
+                           [--stack STACK] [--service SERVICE]
+                           [--from-image FROM_IMAGE] [--to-image TO_IMAGE]
+                           [--preview] [--recover]
+                           [workflow_namespace] [workflow_action]
+python3 -m unittest: error: platform update --recover cannot use --from-image or --to-image
+...usage: python3 -m unittest [-h] [--list-workflows] [--preflight] [--live]
+                           [--approve-live] [--json] [--confirm CONFIRM]
+                           [--service-profile {default,service-access}]
+                           [--allow-wsl-windows-filesystem]
+                           [--node-provider {lxc_native}]
+                           [--lxc-backend {incus}] [--runtime {wsl2-nat}]
+                           [--linux-forwarding] [--incus] [--apply]
+                           [--stack STACK] [--service SERVICE]
+                           [--from-image FROM_IMAGE] [--to-image TO_IMAGE]
+                           [--preview] [--recover]
+                           [workflow_namespace] [workflow_action]
+python3 -m unittest: error: update options require command: platform update
+...usage: python3 -m unittest [-h] [--list-workflows] [--preflight] [--live]
+                           [--approve-live] [--json] [--confirm CONFIRM]
+                           [--service-profile {default,service-access}]
+                           [--allow-wsl-windows-filesystem]
+                           [--node-provider {lxc_native}]
+                           [--lxc-backend {incus}] [--runtime {wsl2-nat}]
+                           [--linux-forwarding] [--incus] [--apply]
+                           [--stack STACK] [--service SERVICE]
+                           [--from-image FROM_IMAGE] [--to-image TO_IMAGE]
+                           [--preview] [--recover]
+                           [workflow_namespace] [workflow_action]
+python3 -m unittest: error: platform update requires --stack, --service, --from-image, --to-image
+........................................WSL Python dependencies are missing; preparing /tmp/tmpyp9neakx/install-venv.
+..........................................................................Executing <Task finished name='Task-3413' coro=<TestPackageEntrypoint.test_every_mutating_workflow_refuses_missing_live_consent_with_exit_two() done, defined at /mnt/d/Projects/Tiny-Swarm-World/tests/test_package_entrypoint.py:123> result=None created at /usr/lib/python3.14/asyncio/runners.py:109> took 0.157 seconds
+............................................Executing <Task finished name='Task-3619' coro=<TestPackageEntrypoint.test_setup_run_dispatches_to_setup_workflow_after_live_consent() done, defined at /mnt/d/Projects/Tiny-Swarm-World/tests/test_package_entrypoint.py:978> result=None created at /usr/lib/python3.14/asyncio/runners.py:109> took 0.235 seconds
+.Executing <Task finished name='Task-3624' coro=<TestPackageEntrypoint.test_setup_run_propagates_composition_lifecycle_failure() done, defined at /mnt/d/Projects/Tiny-Swarm-World/tests/test_package_entrypoint.py:1050> result=None created at /usr/lib/python3.14/asyncio/runners.py:109> took 0.215 seconds
+.Executing <Task finished name='Task-3629' coro=<TestPackageEntrypoint.test_setup_run_propagates_explicit_wsl_filesystem_override() done, defined at /mnt/d/Projects/Tiny-Swarm-World/tests/test_package_entrypoint.py:1020> result=None created at /usr/lib/python3.14/asyncio/runners.py:109> took 0.207 seconds
+.........................................................................................................................................
+----------------------------------------------------------------------
+Ran 2396 tests in 277.529s
+
+OK (skipped=18)
+Fresh install will reset configured Tiny Swarm World managed state.
+Native host, configuration, credentials and setup preflight passed without mutation.
+Native host, configuration, credentials and setup preflight passed without mutation.
+Dry run plan: validate configuration and credentials; reconcile the default profile; verify deployment health; print access targets. Managed state will not be reset.
+Tiny Swarm World live installation
+
+Repository:      /mnt/d/Projects/Tiny-Swarm-World
+Service profile: service-access
+Evidence:        /tmp/tmpzfnmc0_c/evidence/native_linux/20261003T213841519833Z
+Credentials:     deterministic catalog defaults plus explicit operator overrides
+
+This will run live infrastructure automation. It may create or change VMs,
+Docker resources, local service state, networks, and deployment artifacts.
+Native installation reconciles managed state without a reset.
+Installation completed successfully.
+Evidence directory: /tmp/tmpzfnmc0_c/evidence/native_linux/20261003T213841519833Z
+Starting setup. Headless output is recorded at: /tmp/tmp8w3eh3z_/phase.log
+Tiny Swarm World live installation
+
+Repository:      /mnt/d/Projects/Tiny-Swarm-World
+Service profile: service-access
+Evidence:        /tmp/tmpjmtwuyiu/evidence/native_linux/20261003T213842086696Z
+Credentials:     deterministic catalog defaults plus explicit operator overrides
+
+This will run live infrastructure automation. It may create or change VMs,
+Docker resources, local service state, networks, and deployment artifacts.
+Fresh install starts by resetting configured Tiny Swarm World managed state.
+Fresh-install reset confirmed by explicit --confirm-reset flag.
+Installation completed successfully.
+Evidence directory: /tmp/tmpjmtwuyiu/evidence/native_linux/20261003T213842086696Z
+Starting bounded phase. Headless output is recorded at: /tmp/tmp128xtl65/phase.log

@@ -1,0 +1,3 @@
+# Preflight
+
+Root AGENTS.md, src/tiny_swarm_world/AGENTS.md, QUALITY.md, issue-completion discipline, verification-state policy and owner-map reviewed. User authorized gap remediation. Clean main baseline7e15d539; dedicated branch created before writes. No live operations or publication authorized. Prior workflow355DONE is unaffected. S31301/02/03 scopes and single accountable owners are in slice_plan.md. Pure ports/service and focused adapters follow the existing accepted architecture direction; no new service boundary or provider model. Read-only architect recommended dependency-light composition and migration of private patch seams rather than adapter imports of root entrypoints.

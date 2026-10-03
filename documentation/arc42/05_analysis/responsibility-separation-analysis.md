@@ -1,6 +1,7 @@
 # Responsibility Separation Analysis
 
-Status: baseline analysis plus Issue #183 local implementation update;
+Status: historical baseline analysis plus Issue #183 local implementation update;
+EPIC #313 orchestration ownership update added 2026-10-03;
 pre-removal Multipass path references are archival and superseded by
 `documentation/arc42/09_decisions/adr-retire-multipass-legacy-provider.adoc`.
 
@@ -279,3 +280,23 @@ an `ERROR` gate, and the workflow commit has no branch analysis for a smell
 comparison. Issue #183 therefore remains blocked for final acceptance. The
 issue evidence responsibility map records the thin legacy compatibility
 facade and the remaining external quality gate.
+
+## EPIC 03 orchestration ownership update (2026-10-03)
+
+The earlier source locations and findings record their historical candidates.
+C-011 is superseded by the canonical CLI adapter package:
+`parser.py`, `registry.py`, `consent.py`, `dispatcher.py`, `commands.py` and
+`presentation.py`. `__main__.py` now delegates execution only. The root
+`cli_presentation.py` preserves outward imports without owning formatting.
+
+Installer sequencing now belongs to InstallationService, InstallationPhases and
+InstallationRunEvidence in `application/services/installation.py`. Six consumed
+ports separate host preparation, configuration snapshots, credentials, phase
+execution, evidence and presentation. Concrete implementations live in
+`infrastructure/adapters/installation/`; dependency-light
+`composition_installation.py` binds them. `installer.py` and
+`simple_installer.py` are governed entrypoints with outward compatibility exports.
+
+The resulting architecture guide records current contracts and remaining
+composition compatibility debt. This update documents source ownership; it
+does not establish new live, browser or external verification.

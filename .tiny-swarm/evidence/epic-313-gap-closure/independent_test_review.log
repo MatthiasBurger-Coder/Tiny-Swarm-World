@@ -1,0 +1,6 @@
+............Executing <Task pending name='Task-2' coro=<TestPreflightBoundaryContract.test_standard_missing_collaborators_block_real_pre_apply_guard() running at /mnt/d/Projects/Tiny-Swarm-World/tests/architecture/test_architecture_regressions.py:424> cb=[_run_until_complete_cb() at /usr/lib/python3.14/asyncio/base_events.py:181] created at /usr/lib/python3.14/asyncio/runners.py:109> took 2.000 seconds
+............
+----------------------------------------------------------------------
+Ran 24 tests in 5.860s
+
+OK

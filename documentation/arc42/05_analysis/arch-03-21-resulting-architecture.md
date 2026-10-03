@@ -23,7 +23,10 @@ not independently deployed services. Python runs on Linux or WSL2.
 | `infrastructure/adapters/` | Technology owners: Incus/LXC, Docker/Swarm, HTTP, host/filesystem, YAML, evidence, credentials and terminal UI | Implements inward application ports; depends on application/domain |
 | `infrastructure/process/` | Sole production child-process creation owner | Infrastructure process contracts and Python process APIs |
 | `infrastructure/composition*.py` | Composition owner: concrete construction, capability selection and injection | Concrete adapters plus inward contracts |
-| Package root / CLI / installers | Bootstrap and presentation; legacy installer edges are governed exceptions below | CLI delegates through composition; no new unrestricted root bypass |
+| Package-root CLI and installer executables | Bootstrap/delegation; installer retains outward compatibility exports | Exact CLI dispatcher or dependency-light composition boundaries; no concrete adapter bypass |
+| `infrastructure/adapters/cli/` | Parser, registry, consent translation, command dispatch and rendering | Inward use cases/results and public composition; renderer does not construct workflows |
+| `application/services/installation.py` | InstallationService, InstallationPhases and InstallationRunEvidence own installation sequencing and provenance intent | Six installation ports; no host/filesystem/process implementation |
+| `infrastructure/adapters/installation/` | Host, configuration, credentials, process, evidence, presentation and operator bootstrap implementations | Inward installation contracts and focused composition |
 | `infra/config/` and `infra/config/compose/` | Product command/provider/network/stack configuration and image contexts | Parsed by infrastructure; external syntax does not enter domain/application |
 
 Dependency arrows point toward contracts, even when a workflow calls an adapter:
@@ -39,8 +42,8 @@ flowchart LR
     P --> D
 ```
 
-This is the intended dependency direction, with the exact legacy root imports
-and composition cycles described below. There is no separate `interfaces`
+This is the implemented dependency direction, with outward compatibility exports
+and existing composition cycles described below. There is no separate `interfaces`
 package today. [Layer contracts](arch-03-02-layer-contracts.md),
 [import-linter contracts](../../../.importlinter) and
 [architecture regression rules](../../../tests/architecture/test_architecture_regressions.py)
@@ -115,8 +118,10 @@ holds provider-selected adapters; `composition_configuration.py` and
 
 The current workflow route is:
 
-1. `__main__.py` parses operator intent, obtains required consent/confirmation,
-   calls public composition and renders the result. `composition_cli.py` owns
+1. `__main__.py` delegates to `infrastructure/adapters/cli/dispatcher.py`.
+   `parser.py`, `registry.py` and `consent.py` translate operator intent;
+   `commands.py` invokes host/network use cases; `presentation.py` owns result
+   formatting. Dispatch calls public composition. `composition_cli.py` owns
    capability construction and delegates to application CLI actions.
 2. Composition binds selected provider/host capabilities and supplies workflow
    steps. Native Linux/WSL2 preparation uses lazy factories keyed by host kind;
@@ -170,13 +175,45 @@ to execution or adding new resource semantics requires a separately scoped,
 reviewed change with observation, ownership, safety and recovery tests. See
 [ARCH-03.07](arch-03-07-state-reconcile-planning.md).
 
+## Installation boundary
+
+`installer.py` delegates to `composition_installation.py`; `simple_installer.py`
+delegates the operator bootstrap through the same dependency-light boundary.
+The composition module binds six consumed contracts from
+`application/ports/installation.py`: HostPreparation, ConfigurationPreparation,
+CredentialsPreparation, PhaseRunner, InstallationEvidence and
+InstallationPresentation. Startup avoids the broad runtime composition facade
+until Python dependencies are available.
+
+Three application owners share the installation use case:
+
+- InstallationService selects native/read-only behavior, authorizes the project
+  filesystem, prepares Python and keeps the configuration snapshot alive.
+- InstallationPhases enforces bridge gating, reset-before-setup ordering,
+  stop-on-reset-failure behavior and deterministic phase exit/evidence handling.
+- InstallationRunEvidence gathers provenance through the evidence port before
+  managed-state phases run.
+
+Adapters implement the concrete host inspection, protected snapshot copies,
+credential preparation, command quoting/execution, log persistence and terminal
+interaction. Operator bootstrap and secure credential-source loading have
+separate `bootstrap.py` and `bootstrap_configuration.py` owners.
+Root compatibility exports point outward; adapters never import the root
+installer, simple-installer or CLI-presentation facades.
+
+The extraction preserves native reconciliation without reset, read-only
+preflight/dry-run returns, WSL consent/bridge checks, credential redaction and
+reset/setup failure codes. Local regression evidence verifies these contracts;
+this architecture description does not assert a new live installation result.
+
 ## Configuration, secrets and process boundaries
 
 * **Configuration:** infrastructure YAML repositories validate syntax and shape
   and convert to typed immutable domain/application values. Compose snapshots
   preserve rendered content and service metadata; deployment retains prepared
   configuration before mutation. Installer configuration staging/snapshots are
-  infrastructure/legacy installer concerns, not an application YAML API.
+  `infrastructure/adapters/installation/configuration.py` concerns, exposed
+  through ConfigurationPreparation rather than an application YAML API.
   [`PortConfigurationSource`](../../../src/tiny_swarm_world/application/ports/configuration/port_configuration_source.py)
   exposes application input through a port. See
   [configuration parsing](arch-03-09-configuration-parsing-boundary.md) and the
@@ -207,8 +244,8 @@ Run checks from the repository root in Linux/WSL; manual test commands need
 
 | Check | Enforced property / evidence |
 |---|---|
-| `python3 tools/quality_gate.py arch-lint` | `.importlinter`: domain isolation; application excludes infrastructure and CLI; ports exclude services |
-| `python3 tools/quality_gate.py arch-tests` | Canonical hexagonal and architecture regression suites: root/CLI boundaries, exact legacy exceptions, parser and state boundaries, operation diagnostics, relative imports, prohibited-import mutation probes and no new composition cycle edges |
+| `python3 tools/quality_gate.py arch-lint` | Seven `.importlinter` contracts: domain isolation; application excludes infrastructure and bootstrap; infrastructure excludes bootstrap facades; ports exclude services |
+| `python3 tools/quality_gate.py arch-tests` | Canonical hexagonal and architecture regression suites: exact root/CLI boundaries, thin executable delegation, installer technology/state access, renderer workflow construction, parser and state boundaries, operation diagnostics, relative imports, prohibited-import mutation probes and no new composition cycle edges |
 | `PYTHONPATH=src python3 -m unittest tests.architecture.test_process_spawn_boundaries` | Three-module production spawn allowlist and deliberate spawn regression probes |
 | `PYTHONPATH=src python3 -m unittest tests.domain.inventory.test_reconciliation tests.application.services.platform.test_runtime_profile tests.application.services.platform.test_platform_lifecycle` | Deterministic plans/profile decisions and typed lifecycle dispatch |
 | `PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_docker_swarm_runtime tests.application.services.deployment.test_ensure_swarm_stack tests.infrastructure.test_composition` | Classic delegation, apply/stack registration and composition seams with mocks |
@@ -273,8 +310,8 @@ Use Classic's adapter, composition and mocked contracts as the reference.
 
 | Surface | Current exception / limitation | Owner and follow-up |
 |---|---|---|
-| `installer.py`, `simple_installer.py` | Mixed orchestration, staging, evidence and presentation; exact legacy adapter/process imports remain allowlisted | ARC-03 installer owner / Python automation; extract incrementally under #313, preserving bootstrap, consent, phase order and exits |
-| `__main__.py` | Bootstrap reaches infrastructure through composition, but parsing/interaction/result presentation remain substantial | ARC-02 CLI owner; further decomposition with CLI regression coverage, not unrestricted root imports |
+| `installer.py` and `composition_installation.py` | Explicit outward compatibility exports retain established import names, including private helper/value names; runtime sequencing has one application owner | Python automation/composition owner; migrate remaining consumers before retiring exports, preserving import compatibility |
+| Installation technology helpers | Existing phase execution, configuration validation and failure formatting remain substantial within their focused adapters | Python automation/security owners; independent future slices may simplify helpers while preserving safety and evidence contracts |
 | `composition_runtime.py` and focused builders | Compatibility re-exports, facade patch synchronization and reviewed cyclic edges remain | ARC-04 composition owner; migrate consumers/patch seams before removal; regression suite forbids added cycle edges |
 | `network/socat/socat_manager.py` | WSL-only policy plus Socat argv/shell formatting in application | Network/ARC-06 boundary owner; move command formatting to infrastructure in a separate behavior-preserving slice; #357 records applicability |
 | `platform/incus/`, host/preflight/network branches | Explicit technology-specific services and host/provider safety policy remain | Platform/network owners; [runtime conditional inventory](arch-03-14-runtime-conditionals.md) explains each branch; no general engine switch is authorized |
@@ -286,6 +323,6 @@ Use Classic's adapter, composition and mocked contracts as the reference.
 
 These limits do not authorize new exceptions. Baseline ownership inventories,
 accepted ADRs and [risks/debt](../11_risks_and_debt.adoc) remain reference material;
-this resulting view separates implemented boundaries from the remaining #313
-work. See the [Developer Manual](../../manuals/developer-manual.md) for the
+this resulting view separates the implemented EPIC boundaries from genuine
+remaining maintenance debt. See the [Developer Manual](../../manuals/developer-manual.md) for the
 contribution entry point.

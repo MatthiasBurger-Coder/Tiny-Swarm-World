@@ -17,12 +17,11 @@ from tiny_swarm_world.application.services.credential_resolution import (
     CREDENTIAL_SOURCE_MAP_ENVIRONMENT,
     decode_source_metadata,
 )
-from tiny_swarm_world.simple_installer import (
+from tiny_swarm_world.infrastructure.adapters.installation.bootstrap import main, _print_operator_credentials
+from tiny_swarm_world.infrastructure.adapters.installation.bootstrap_configuration import (
     SimpleInstallerError,
     _load_explicit_bootstrap_override,
-    main,
     _prepare_bootstrap_environment,
-    _print_operator_credentials,
     _validate_secure_override_path,
 )
 
@@ -38,13 +37,13 @@ class TestSimpleInstallerSecretBootstrap(unittest.TestCase):
             python_bin.parent.mkdir()
             python_bin.touch()
             with (
-            patch("tiny_swarm_world.simple_installer.legacy.detect_host_runtime", return_value=runtime),
-            patch("tiny_swarm_world.simple_installer.legacy._python_imports_available", side_effect=(False, True)),
-            patch("tiny_swarm_world.simple_installer.legacy.run") as preflight,
-            patch("tiny_swarm_world.simple_installer.legacy._paths_from_env", return_value=installer.InstallerPaths(Path("/tmp/unused"), Path(temporary_dir))),
-            patch("tiny_swarm_world.simple_installer.legacy.ensure_python_environment") as bootstrap,
-            patch("tiny_swarm_world.simple_installer.os.execvpe", side_effect=SystemExit(0)) as restart,
-            patch("tiny_swarm_world.simple_installer._prepare_bootstrap_environment") as credentials,
+            patch("tiny_swarm_world.infrastructure.adapters.installation.host.detect_host_runtime", return_value=runtime),
+            patch("tiny_swarm_world.infrastructure.adapters.installation.process._python_imports_available", side_effect=(False, True)),
+            patch("tiny_swarm_world.application.services.installation.InstallationService.run") as preflight,
+            patch("tiny_swarm_world.infrastructure.adapters.installation.configuration._paths_from_env", return_value=installer.InstallerPaths(Path("/tmp/unused"), Path(temporary_dir))),
+            patch("tiny_swarm_world.infrastructure.adapters.installation.process.ensure_python_environment") as bootstrap,
+            patch("tiny_swarm_world.infrastructure.adapters.installation.bootstrap.os.execvpe", side_effect=SystemExit(0)) as restart,
+            patch("tiny_swarm_world.infrastructure.adapters.installation.bootstrap._prepare_bootstrap_environment") as credentials,
             ):
                 with self.assertRaises(SystemExit) as restarted:
                     main(("--headless", "--non-interactive-live-approval"))
@@ -60,11 +59,11 @@ class TestSimpleInstallerSecretBootstrap(unittest.TestCase):
     def test_native_missing_prepared_venv_does_not_bootstrap_python(self):
         runtime = installer.HostRuntime("native_linux", "test")
         with (
-            patch("tiny_swarm_world.simple_installer.legacy.detect_host_runtime", return_value=runtime),
-            patch("tiny_swarm_world.simple_installer.legacy._python_imports_available", return_value=False),
-            patch("tiny_swarm_world.simple_installer.legacy.run") as run,
-            patch("tiny_swarm_world.simple_installer.legacy._paths_from_env", return_value=installer.InstallerPaths(Path("/tmp/unused"), Path("/tmp/nonexistent-issue427-venv"))),
-            patch("tiny_swarm_world.simple_installer.legacy.ensure_python_environment") as bootstrap,
+            patch("tiny_swarm_world.infrastructure.adapters.installation.host.detect_host_runtime", return_value=runtime),
+            patch("tiny_swarm_world.infrastructure.adapters.installation.process._python_imports_available", return_value=False),
+            patch("tiny_swarm_world.application.services.installation.InstallationService.run") as run,
+            patch("tiny_swarm_world.infrastructure.adapters.installation.configuration._paths_from_env", return_value=installer.InstallerPaths(Path("/tmp/unused"), Path("/tmp/nonexistent-issue427-venv"))),
+            patch("tiny_swarm_world.infrastructure.adapters.installation.process.ensure_python_environment") as bootstrap,
             redirect_stderr(io.StringIO()),
         ):
             self.assertEqual(main(()), 1)
@@ -73,9 +72,9 @@ class TestSimpleInstallerSecretBootstrap(unittest.TestCase):
 
     def test_native_classic_alias_and_read_only_flags_reach_reconcile_path(self):
         with (
-            patch("tiny_swarm_world.simple_installer.legacy.detect_host_runtime", return_value=installer.HostRuntime("native_linux", "test")),
-            patch("tiny_swarm_world.simple_installer.legacy.run", return_value=0) as run,
-            patch("tiny_swarm_world.simple_installer._prepare_bootstrap_environment") as credentials,
+            patch("tiny_swarm_world.infrastructure.adapters.installation.host.detect_host_runtime", return_value=installer.HostRuntime("native_linux", "test")),
+            patch("tiny_swarm_world.application.services.installation.InstallationService.run", return_value=0) as run,
+            patch("tiny_swarm_world.infrastructure.adapters.installation.bootstrap._prepare_bootstrap_environment") as credentials,
             redirect_stdout(io.StringIO()),
         ):
             self.assertEqual(main(("--profile", "classic", "--preflight")), 0)
@@ -87,8 +86,8 @@ class TestSimpleInstallerSecretBootstrap(unittest.TestCase):
 
     def test_native_reset_flag_is_rejected_before_mutation(self):
         with (
-            patch("tiny_swarm_world.simple_installer.legacy.detect_host_runtime", return_value=installer.HostRuntime("native_linux", "test")),
-            patch("tiny_swarm_world.simple_installer.legacy.run") as run,
+            patch("tiny_swarm_world.infrastructure.adapters.installation.host.detect_host_runtime", return_value=installer.HostRuntime("native_linux", "test")),
+            patch("tiny_swarm_world.application.services.installation.InstallationService.run") as run,
             redirect_stderr(io.StringIO()),
         ):
             self.assertEqual(main(("--confirm-reset",)), 1)
@@ -286,9 +285,9 @@ class TestSimpleInstallerSecretBootstrap(unittest.TestCase):
         with (
             tempfile.TemporaryDirectory() as temporary_dir,
             patch.dict(os.environ, {"HOME": temporary_dir}, clear=True),
-            patch("tiny_swarm_world.simple_installer.Path.cwd", return_value=REPOSITORY_ROOT),
-            patch("tiny_swarm_world.simple_installer.legacy.run", return_value=0) as run,
-            patch("tiny_swarm_world.simple_installer._print_operator_credentials"),
+            patch("tiny_swarm_world.infrastructure.adapters.installation.bootstrap.Path.cwd", return_value=REPOSITORY_ROOT),
+            patch("tiny_swarm_world.application.services.installation.InstallationService.run", return_value=0) as run,
+            patch("tiny_swarm_world.infrastructure.adapters.installation.bootstrap._print_operator_credentials"),
         ):
             result = main(("--headless",))
 
@@ -303,9 +302,9 @@ class TestSimpleInstallerSecretBootstrap(unittest.TestCase):
                 self.subTest(exit_code=exit_code),
                 tempfile.TemporaryDirectory() as temporary_dir,
                 patch.dict(os.environ, {"HOME": temporary_dir}, clear=True),
-                patch("tiny_swarm_world.simple_installer.Path.cwd", return_value=REPOSITORY_ROOT),
-                patch("tiny_swarm_world.simple_installer.legacy.run", return_value=exit_code),
-                patch("tiny_swarm_world.simple_installer._print_operator_credentials") as print_credentials,
+                patch("tiny_swarm_world.infrastructure.adapters.installation.bootstrap.Path.cwd", return_value=REPOSITORY_ROOT),
+                patch("tiny_swarm_world.application.services.installation.InstallationService.run", return_value=exit_code),
+                patch("tiny_swarm_world.infrastructure.adapters.installation.bootstrap._print_operator_credentials") as print_credentials,
             ):
                 result = main(("--headless",))
             self.assertEqual(result, exit_code)
@@ -316,9 +315,9 @@ class TestSimpleInstallerSecretBootstrap(unittest.TestCase):
         with (
             tempfile.TemporaryDirectory() as temporary_dir,
             patch.dict(os.environ, {"HOME": temporary_dir}, clear=True),
-            patch("tiny_swarm_world.simple_installer.Path.cwd", return_value=REPOSITORY_ROOT),
+            patch("tiny_swarm_world.infrastructure.adapters.installation.bootstrap.Path.cwd", return_value=REPOSITORY_ROOT),
             patch(
-                "tiny_swarm_world.simple_installer.legacy.run",
+                "tiny_swarm_world.application.services.installation.InstallationService.run",
                 side_effect=installer.InstallerError("setup failed for a redacted reason"),
             ),
             redirect_stdout(io.StringIO()),

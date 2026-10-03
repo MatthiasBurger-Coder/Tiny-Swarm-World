@@ -10,6 +10,11 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch
 
 from tiny_swarm_world import __main__ as entrypoint
+from tiny_swarm_world.infrastructure.adapters.cli import commands as cli_commands
+from tiny_swarm_world.infrastructure.adapters.cli import dispatcher as cli_dispatcher
+from tiny_swarm_world.infrastructure.adapters.cli import parser as cli_parser
+from tiny_swarm_world.infrastructure.adapters.cli import presentation as cli_presentation
+from tiny_swarm_world.infrastructure.adapters.cli import registry as cli_registry
 from tiny_swarm_world.application.ports.operation_result import (
     OperationFailure, OperationOutcome, OperationResult,
 )
@@ -70,6 +75,18 @@ ENTRYPOINT_PATH = REPOSITORY_ROOT / "src" / "tiny_swarm_world" / "__main__.py"
 
 
 class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
+    async def test_package_main_delegates_argv_to_canonical_cli_adapter(self):
+        argv = ["--list-workflows"]
+        with patch.object(cli_dispatcher, "main", AsyncMock()) as run_cli:
+            await entrypoint.main(argv)
+        run_cli.assert_awaited_once_with(argv)
+
+    def test_console_script_runs_canonical_cli_adapter(self):
+        argv = ["--list-workflows"]
+        with patch.object(cli_dispatcher, "main", AsyncMock()) as run_cli:
+            entrypoint.cli(argv)
+        run_cli.assert_awaited_once_with(argv)
+
     def test_every_declared_workflow_keeps_its_command_name(self):
         supported_names = (
             "host detect",
@@ -92,19 +109,19 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
             "deployment verify",
             "setup run",
         )
-        self.assertEqual(supported_names, tuple(item.name for item in entrypoint.CLI_WORKFLOWS))
-        for workflow in entrypoint.CLI_WORKFLOWS:
+        self.assertEqual(supported_names, tuple(item.name for item in cli_registry.CLI_WORKFLOWS))
+        for workflow in cli_registry.CLI_WORKFLOWS:
             with self.subTest(command=workflow.name):
                 argv = [workflow.namespace, workflow.action]
                 if workflow.platform_kind is PlatformWorkflowKind.UPDATE:
                     argv.extend(
                         ["--stack", "jenkins", "--service", "jenkins", "--recover"]
                     )
-                parsed = entrypoint.parse_args(argv)
+                parsed = cli_parser.parse_args(argv)
                 self.assertEqual(workflow, parsed.workflow)
 
     async def test_every_mutating_workflow_refuses_missing_live_consent_with_exit_two(self):
-        for workflow in entrypoint.CLI_WORKFLOWS:
+        for workflow in cli_registry.CLI_WORKFLOWS:
             if not workflow.mutating:
                 continue
             with self.subTest(command=workflow.name):
@@ -114,7 +131,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
                 if workflow.confirmation_phrase:
                     argv.extend(["--confirm", workflow.confirmation_phrase])
                 with (
-                    patch.object(entrypoint, "run_cli_workflow", AsyncMock()) as run_workflow,
+                    patch.object(cli_dispatcher, "run_cli_workflow", AsyncMock()) as run_workflow,
                     redirect_stdout(io.StringIO()),
                     self.assertRaises(SystemExit) as raised,
                 ):
@@ -140,7 +157,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
             with self.subTest(family=type(result).__name__):
                 output = io.StringIO()
                 with redirect_stdout(output):
-                    entrypoint._emit_workflow_result(result, SimpleNamespace(json=True))
+                    cli_presentation._emit_workflow_result(result, SimpleNamespace(json=True))
                 payload = json.loads(output.getvalue())
                 self.assertEqual(payload, result.to_dict())
                 self.assertEqual(payload["operation_result"], operation.to_dict())
@@ -150,7 +167,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
                 with patch.dict(os.environ, {"TSW_DEBUG_JSON": "false"}):
                     output = io.StringIO()
                     with redirect_stdout(output):
-                        entrypoint._emit_workflow_result(result, SimpleNamespace(json=False))
+                        cli_presentation._emit_workflow_result(result, SimpleNamespace(json=False))
                 rendered = output.getvalue()
                 for line in (
                     "Operation outcome: partial", "Completed operations: image.build",
@@ -166,10 +183,10 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         failure = OperationFailure.for_cause("update.apply", "swarm", "process_timeout")
         operation = OperationResult(OperationOutcome.ROLLED_BACK, (failure,), rollback_verified=True)
         before = operation.to_dict()
-        with patch.object(entrypoint, "run_cli_workflow") as run_workflow:
-            first = entrypoint._format_operation_summary(operation)
-            self.assertEqual(first, entrypoint._format_operation_summary(operation))
-            self.assertEqual((), entrypoint._format_operation_summary(None))
+        with patch.object(cli_dispatcher, "run_cli_workflow") as run_workflow:
+            first = cli_presentation._format_operation_summary(operation)
+            self.assertEqual(first, cli_presentation._format_operation_summary(operation))
+            self.assertEqual((), cli_presentation._format_operation_summary(None))
         run_workflow.assert_not_called()
         self.assertEqual(before, operation.to_dict())
         self.assertIn("Rollback verified: yes", first)
@@ -186,7 +203,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
                 result = PlatformWorkflowResult(PlatformWorkflowKind.UPDATE, status, "result", True, operation_result=operation)
                 output = io.StringIO()
                 with (
-                    patch.object(entrypoint, "run_cli_workflow", AsyncMock(return_value=result)) as run_workflow,
+                    patch.object(cli_dispatcher, "run_cli_workflow", AsyncMock(return_value=result)) as run_workflow,
                     redirect_stdout(output),
                 ):
                     command = ["platform", "update", "--recover", "--stack", "jenkins", "--service", "jenkins", "--live", "--approve-live", "--json"]
@@ -204,7 +221,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
     async def test_default_entrypoint_does_not_build_or_run_services(self):
         output = io.StringIO()
 
-        with patch.object(entrypoint, "build_application_services") as build_services:
+        with patch.object(cli_dispatcher, "build_application_services") as build_services:
             with redirect_stdout(output):
                 await entrypoint.main([])
 
@@ -215,7 +232,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
     async def test_default_entrypoint_normalizes_common_linux_executable_paths(self):
         output = io.StringIO()
 
-        with patch.object(entrypoint, "ensure_common_executable_paths") as normalize_paths:
+        with patch.object(cli_dispatcher, "ensure_common_executable_paths") as normalize_paths:
             with redirect_stdout(output):
                 await entrypoint.main([])
 
@@ -224,7 +241,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
     async def test_list_workflows_does_not_build_or_run_services(self):
         output = io.StringIO()
 
-        with patch.object(entrypoint, "build_application_services") as build_services:
+        with patch.object(cli_dispatcher, "build_application_services") as build_services:
             with redirect_stdout(output):
                 await entrypoint.main(["--list-workflows"])
 
@@ -242,14 +259,14 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("multipass-init-vms", output.getvalue())
 
     def test_parse_args_accepts_host_detect_as_read_only(self):
-        args = entrypoint.parse_args(["host", "detect"])
+        args = cli_parser.parse_args(["host", "detect"])
 
         self.assertEqual(args.workflow.name, "host detect")
         self.assertFalse(args.workflow.mutating)
         self.assertTrue(args.workflow.implemented)
 
     def test_parse_args_accepts_host_prepare_as_mutating(self):
-        args = entrypoint.parse_args(["host", "prepare"])
+        args = cli_parser.parse_args(["host", "prepare"])
 
         self.assertEqual("host prepare", args.workflow.name)
         self.assertTrue(args.workflow.mutating)
@@ -269,8 +286,8 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         preparation = SimpleNamespace(prepare=Mock(return_value=result))
 
         with (
-            patch.object(entrypoint, "build_preflight_service", return_value=preflight),
-            patch.object(entrypoint, "build_host_preparation_service", return_value=preparation),
+            patch.object(cli_commands, "build_preflight_service", return_value=preflight),
+            patch.object(cli_commands, "build_host_preparation_service", return_value=preparation),
             redirect_stdout(output),
         ):
             await entrypoint.main(["host", "prepare", "--live", "--approve-live"])
@@ -286,16 +303,16 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
 
         with (
             patch.object(
-                entrypoint,
+                cli_commands,
                 "build_host_detection_service",
                 return_value=service,
             ),
             patch.object(
-                entrypoint,
+                cli_dispatcher,
                 "ensure_common_executable_paths",
             ) as ensure_paths,
-            patch.object(entrypoint, "build_application_logger") as build_logger,
-            patch.object(entrypoint, "build_application_services") as build_services,
+            patch.object(cli_dispatcher, "build_application_logger") as build_logger,
+            patch.object(cli_dispatcher, "build_application_services") as build_services,
             redirect_stdout(output),
         ):
             await entrypoint.main(["host", "detect"])
@@ -321,7 +338,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
             output = io.StringIO()
             with (
                 patch.object(
-                    entrypoint,
+                    cli_commands,
                     "build_host_detection_service",
                     return_value=_HostDetectionService(report),
                 ),
@@ -348,7 +365,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
 
         with (
             patch.object(
-                entrypoint,
+                cli_commands,
                 "build_host_detection_service",
                 return_value=_HostDetectionService(report),
             ),
@@ -370,7 +387,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
 
         with (
             patch.object(
-                entrypoint,
+                cli_commands,
                 "build_host_detection_service",
                 return_value=_HostDetectionService(report),
             ),
@@ -390,15 +407,15 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
 
         with (
             patch.object(
-                entrypoint,
+                cli_commands,
                 "build_host_detection_service",
                 return_value=_HostDetectionService(report),
             ),
             patch.object(
-                entrypoint,
+                cli_dispatcher,
                 "ensure_common_executable_paths",
             ) as ensure_paths,
-            patch.object(entrypoint, "build_application_logger") as build_logger,
+            patch.object(cli_dispatcher, "build_application_logger") as build_logger,
             patch.object(Path, "mkdir") as mkdir,
             patch(
                 "subprocess.run",
@@ -434,7 +451,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
 
         with (
             patch.object(
-                entrypoint,
+                cli_commands,
                 "build_host_detection_service",
                 return_value=_HostDetectionService(report),
             ),
@@ -448,10 +465,10 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
     def test_legacy_run_option_is_rejected(self):
         with redirect_stderr(io.StringIO()):
             with self.assertRaises(SystemExit):
-                entrypoint.parse_args(["--run", "vm-ip-list"])
+                cli_parser.parse_args(["--run", "vm-ip-list"])
 
     def test_service_profile_defaults_to_service_access(self):
-        args = entrypoint.parse_args([])
+        args = cli_parser.parse_args([])
 
         self.assertEqual(ServiceStackProfile.SERVICE_ACCESS.value, args.service_profile)
         self.assertEqual(NodeProviderKind.LXC_NATIVE.value, args.node_provider)
@@ -460,29 +477,29 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(args.allow_wsl_windows_filesystem)
 
     def test_parse_args_accepts_exact_wsl_windows_filesystem_override(self):
-        args = entrypoint.parse_args(["--allow-wsl-windows-filesystem"])
+        args = cli_parser.parse_args(["--allow-wsl-windows-filesystem"])
 
         self.assertTrue(args.allow_wsl_windows_filesystem)
 
     def test_json_flag_enables_machine_readable_output(self):
-        args = entrypoint.parse_args(["--json"])
+        args = cli_parser.parse_args(["--json"])
 
         self.assertTrue(args.json)
 
     def test_debug_json_environment_is_explicit_opt_in(self):
-        args = entrypoint.parse_args([])
+        args = cli_parser.parse_args([])
 
         with patch.dict(os.environ, {"TSW_DEBUG_JSON": "true"}):
-            self.assertTrue(entrypoint._should_emit_json(args))
+            self.assertTrue(cli_presentation._should_emit_json(args))
         with patch.dict(os.environ, {"TSW_DEBUG_JSON": "false"}):
-            self.assertFalse(entrypoint._should_emit_json(args))
+            self.assertFalse(cli_presentation._should_emit_json(args))
 
     async def test_debug_json_environment_emits_structured_result_without_flag(self):
         services, workflows = _application_services_with_platform_workflows()
         output = io.StringIO()
 
         with patch.dict(os.environ, {"TSW_DEBUG_JSON": "true"}):
-            with patch.object(entrypoint, "build_application_services", return_value=services):
+            with patch.object(cli_dispatcher, "build_application_services", return_value=services):
                 with redirect_stdout(output):
                     await entrypoint.main(["platform", "verify"])
 
@@ -492,7 +509,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("Workflow: platform verify", output.getvalue())
 
     def test_lxc_backend_option_is_forwarded_as_provider_preference(self):
-        args = entrypoint.parse_args(["--lxc-backend", "incus"])
+        args = cli_parser.parse_args(["--lxc-backend", "incus"])
 
         self.assertEqual(NodeProviderKind.LXC_NATIVE.value, args.node_provider)
         self.assertEqual(ManagedLxcBackend.INCUS.value, args.lxc_backend)
@@ -500,13 +517,13 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
     def test_multipass_provider_option_is_rejected(self):
         with redirect_stderr(io.StringIO()):
             with self.assertRaises(SystemExit):
-                entrypoint.parse_args(["--node-provider", "multipass_legacy"])
+                cli_parser.parse_args(["--node-provider", "multipass_legacy"])
 
     def test_setup_installation_plan_lists_service_access_landing_page(self):
         output = io.StringIO()
 
         with redirect_stdout(output):
-            entrypoint._print_setup_installation_plan()
+            cli_commands._print_setup_installation_plan()
 
         plan = output.getvalue()
         self.assertIn("Default node provider: lxc_native", plan)
@@ -532,7 +549,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
     async def test_mutating_workflow_requires_live_consent_before_building_services(self):
         output = io.StringIO()
 
-        with patch.object(entrypoint, "build_application_services") as build_services:
+        with patch.object(cli_dispatcher, "build_application_services") as build_services:
             with redirect_stdout(output):
                 with self.assertRaises(SystemExit) as raised:
                     await entrypoint.main(["platform", "init"])
@@ -546,7 +563,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         output = io.StringIO()
 
         with patch("builtins.input", return_value="n"):
-            with patch.object(entrypoint, "build_application_services") as build_services:
+            with patch.object(cli_dispatcher, "build_application_services") as build_services:
                 with redirect_stdout(output):
                     with self.assertRaises(SystemExit) as raised:
                         await entrypoint.main(["platform", "init", "--live"])
@@ -560,7 +577,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         output = io.StringIO()
 
         with patch("builtins.input", return_value="y"):
-            with patch.object(entrypoint, "build_application_services", return_value=services):
+            with patch.object(cli_dispatcher, "build_application_services", return_value=services):
                 with redirect_stdout(output):
                     await entrypoint.main(["platform", "init", "--live"])
 
@@ -573,7 +590,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         output = io.StringIO()
 
         with patch("builtins.input", side_effect=AssertionError("prompt must not run")):
-            with patch.object(entrypoint, "build_application_services", return_value=services):
+            with patch.object(cli_dispatcher, "build_application_services", return_value=services):
                 with redirect_stdout(output):
                     await entrypoint.main(["platform", "init", "--live", "--approve-live"])
 
@@ -585,7 +602,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         output = io.StringIO()
 
         with patch("builtins.input", side_effect=EOFError):
-            with patch.object(entrypoint, "build_application_services") as build_services:
+            with patch.object(cli_dispatcher, "build_application_services") as build_services:
                 with redirect_stdout(output):
                     with self.assertRaises(SystemExit) as raised:
                         await entrypoint.main(["platform", "init", "--live"])
@@ -599,7 +616,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         output = io.StringIO()
 
         with patch("builtins.input", return_value="y"):
-            with patch.object(entrypoint, "build_application_services", return_value=services):
+            with patch.object(cli_dispatcher, "build_application_services", return_value=services):
                 with redirect_stdout(output):
                     await entrypoint.main(["platform", "init", "--live"])
 
@@ -615,7 +632,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         )
         output = io.StringIO()
 
-        with patch.object(entrypoint, "build_application_services", return_value=services):
+        with patch.object(cli_dispatcher, "build_application_services", return_value=services):
             with redirect_stdout(output):
                 with self.assertRaises(SystemExit) as raised:
                     await entrypoint.main(["platform", "init", "--live", "--approve-live"])
@@ -653,7 +670,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         )
         output = io.StringIO()
 
-        with patch.object(entrypoint, "build_application_services", return_value=services):
+        with patch.object(cli_dispatcher, "build_application_services", return_value=services):
             with redirect_stdout(output):
                 await entrypoint.main(
                     ["platform", "reconcile", "--live", "--approve-live", "--json"]
@@ -672,7 +689,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         output = io.StringIO()
 
         with patch("builtins.input", return_value="y"):
-            with patch.object(entrypoint, "build_application_services", return_value=services):
+            with patch.object(cli_dispatcher, "build_application_services", return_value=services):
                 with redirect_stdout(output):
                     with self.assertRaises(SystemExit) as raised:
                         await entrypoint.main(["platform", "init", "--live", "--json"])
@@ -693,7 +710,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         services, workflows = _application_services_with_platform_workflows()
         output = io.StringIO()
 
-        with patch.object(entrypoint, "build_application_services", return_value=services) as build_services:
+        with patch.object(cli_dispatcher, "build_application_services", return_value=services) as build_services:
             with redirect_stdout(output):
                 await entrypoint.main(["platform", "verify"])
 
@@ -718,7 +735,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
             ),
         )
         with patch.object(
-            entrypoint, "build_read_only_hang_diagnostics"
+            cli_commands, "build_read_only_hang_diagnostics"
         ) as build_diagnostics:
             build_diagnostics.return_value.collect.return_value = report
             output = io.StringIO()
@@ -735,7 +752,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
             read_only=True,
             commands=(SimpleNamespace(name="docker_services", status="UNAVAILABLE", timed_out=False, output=""),),
         )
-        with patch.object(entrypoint, "build_read_only_hang_diagnostics") as build_diagnostics:
+        with patch.object(cli_commands, "build_read_only_hang_diagnostics") as build_diagnostics:
             build_diagnostics.return_value.collect.return_value = report
             output = io.StringIO()
             with redirect_stdout(output):
@@ -747,22 +764,22 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
     def test_lxd_backend_option_is_rejected(self):
         with redirect_stderr(io.StringIO()):
             with self.assertRaises(SystemExit):
-                entrypoint.parse_args(["--lxc-backend", "lxd"])
+                cli_parser.parse_args(["--lxc-backend", "lxd"])
 
     async def test_explicit_lxc_backend_override_builds_provider_request(self):
         services, workflows = _application_services_with_platform_workflows()
         output = io.StringIO()
 
-        with patch.object(entrypoint, "build_application_services", return_value=services) as build_services:
+        with patch.object(cli_dispatcher, "build_application_services", return_value=services) as build_services:
             with redirect_stdout(output):
                 await entrypoint.main(["--lxc-backend", "incus", "platform", "verify"])
 
         build_services.assert_called_once()
         request = build_services.call_args.kwargs["node_provider_request"]
         self.assertEqual(
-            entrypoint.NodeProviderSelectionRequest(
-                requested_provider=entrypoint.NodeProviderKind.LXC_NATIVE,
-                preferred_backend=entrypoint.ManagedLxcBackend.INCUS,
+            cli_parser.NodeProviderSelectionRequest(
+                requested_provider=cli_parser.NodeProviderKind.LXC_NATIVE,
+                preferred_backend=cli_parser.ManagedLxcBackend.INCUS,
             ),
             request,
         )
@@ -773,7 +790,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         output = io.StringIO()
 
         with patch("builtins.input", return_value="y"):
-            with patch.object(entrypoint, "build_application_services", return_value=services):
+            with patch.object(cli_dispatcher, "build_application_services", return_value=services):
                 with redirect_stdout(output):
                     await entrypoint.main(["platform", "expose", "--live"])
 
@@ -787,7 +804,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         output = io.StringIO()
 
         with patch("builtins.input", return_value="y"):
-            with patch.object(entrypoint, "build_application_services", return_value=services):
+            with patch.object(cli_dispatcher, "build_application_services", return_value=services):
                 with redirect_stdout(output):
                     await entrypoint.main(["platform", "repair-lxc-proxy-drift", "--live"])
 
@@ -799,7 +816,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
     async def test_reset_refuses_missing_confirmation_before_building_services(self):
         output = io.StringIO()
 
-        with patch.object(entrypoint, "build_application_services") as build_services:
+        with patch.object(cli_dispatcher, "build_application_services") as build_services:
             with redirect_stdout(output):
                 with self.assertRaises(SystemExit) as raised:
                     await entrypoint.main(["platform", "reset"])
@@ -812,7 +829,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
     async def test_destroy_refuses_wrong_confirmation_before_building_services(self):
         output = io.StringIO()
 
-        with patch.object(entrypoint, "build_application_services") as build_services:
+        with patch.object(cli_dispatcher, "build_application_services") as build_services:
             with redirect_stdout(output):
                 with self.assertRaises(SystemExit) as raised:
                     await entrypoint.main(["platform", "destroy", "--confirm", "wrong"])
@@ -826,7 +843,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         services, workflows = _application_services_with_platform_workflows()
 
         with patch("builtins.input", return_value="y"):
-            with patch.object(entrypoint, "build_application_services", return_value=services):
+            with patch.object(cli_dispatcher, "build_application_services", return_value=services):
                 with redirect_stdout(io.StringIO()):
                     await entrypoint.main(
                         [
@@ -845,7 +862,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         services, workflows = _application_services_with_platform_workflows()
 
         with patch("builtins.input", return_value="y"):
-            with patch.object(entrypoint, "build_application_services", return_value=services):
+            with patch.object(cli_dispatcher, "build_application_services", return_value=services):
                 with redirect_stdout(io.StringIO()):
                     await entrypoint.main(
                         [
@@ -872,17 +889,17 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
             with self.subTest(command=command):
                 output = io.StringIO()
 
-                with patch.object(entrypoint, "build_application_services") as build_services:
+                with patch.object(cli_dispatcher, "build_application_services") as build_services:
                     with patch.object(
-                        entrypoint,
+                        cli_dispatcher,
                         "build_artifact_services_for_provider",
                     ) as build_artifact_services:
                         with patch.object(
-                            entrypoint,
+                            cli_dispatcher,
                             "build_deployment_services_for_provider",
                         ) as build_deployment_services:
                             with patch.object(
-                                entrypoint,
+                                cli_dispatcher,
                                 "run_setup_with_terminal_status",
                             ) as run_setup:
                                 with redirect_stdout(output):
@@ -915,17 +932,17 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
                     command.append("--live")
 
                 with patch.object(
-                    entrypoint,
+                    cli_dispatcher,
                     "build_application_services",
                     side_effect=AssertionError("boundary workflow must not build platform services"),
                 ) as build_application_services:
                     with patch.object(
-                        entrypoint,
+                        cli_dispatcher,
                         "build_artifact_services_for_provider",
                         return_value=artifact_services,
                     ) as build_artifact_services:
                         with patch.object(
-                            entrypoint,
+                            cli_dispatcher,
                             "build_deployment_services_for_provider",
                             return_value=deployment_services,
                         ) as build_deployment_services:
@@ -970,12 +987,12 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
 
         with patch("builtins.input", return_value="y"):
             with patch.object(
-                entrypoint,
+                cli_dispatcher,
                 "run_setup_with_terminal_status",
                 return_value=setup_result,
             ) as run_setup:
                 with patch.object(
-                    entrypoint,
+                    cli_dispatcher,
                     "build_application_services",
                     side_effect=AssertionError("setup must use setup services"),
                 ):
@@ -1010,7 +1027,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         )
 
         with patch.object(
-            entrypoint,
+            cli_dispatcher,
             "run_setup_with_terminal_status",
             return_value=setup_result,
         ) as run_setup:
@@ -1033,7 +1050,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
     async def test_setup_run_propagates_composition_lifecycle_failure(self):
         with patch("builtins.input", return_value="y"):
             with patch.object(
-                entrypoint,
+                cli_dispatcher,
                 "run_setup_with_terminal_status",
                 side_effect=RuntimeError("boom"),
             ) as run_setup:
@@ -1072,7 +1089,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         output = io.StringIO()
 
         with redirect_stdout(output):
-            entrypoint._print_setup_installation_summary(result)
+            cli_presentation._print_setup_installation_summary(result)
 
         rendered = output.getvalue()
         self.assertIn("- preflight: failed", rendered)
@@ -1116,7 +1133,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         output = io.StringIO()
 
         with redirect_stdout(output):
-            entrypoint._print_setup_installation_summary(result)
+            cli_presentation._print_setup_installation_summary(result)
 
         rendered = output.getvalue()
         self.assertIn("- platform init: failed_to_apply", rendered)
@@ -1172,7 +1189,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
             ),
         )
 
-        rendered = "\n".join(entrypoint._format_setup_installation_summary(result))
+        rendered = "\n".join(cli_presentation._format_setup_installation_summary(result))
 
         self.assertIn("Phases: 2", rendered)
         self.assertIn("Status counts: blocked=1, completed=1", rendered)
@@ -1205,7 +1222,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
             ),
         )
 
-        rendered = "\n".join(entrypoint._format_workflow_summary(result))
+        rendered = "\n".join(cli_presentation._format_workflow_summary(result))
 
         self.assertIn("Verification counts: blocked=1", rendered)
         self.assertIn("nested: structured value persisted to evidence", rendered)
@@ -1216,8 +1233,8 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         preflight = SimpleNamespace(run=AsyncMock(return_value=_FakePreflightResult(True)))
         output = io.StringIO()
 
-        with patch.object(entrypoint, "build_preflight_service", return_value=preflight) as build_preflight:
-            with patch.object(entrypoint, "build_application_services") as build_services:
+        with patch.object(cli_commands, "build_preflight_service", return_value=preflight) as build_preflight:
+            with patch.object(cli_dispatcher, "build_application_services") as build_services:
                 with redirect_stdout(output):
                     await entrypoint.main(["--preflight"])
 
@@ -1237,7 +1254,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         preflight = SimpleNamespace(run=AsyncMock(return_value=_FakePreflightResult(True)))
         output = io.StringIO()
 
-        with patch.object(entrypoint, "build_preflight_service", return_value=preflight):
+        with patch.object(cli_commands, "build_preflight_service", return_value=preflight):
             with redirect_stdout(output):
                 await entrypoint.main(["--preflight", "--json"])
 
@@ -1276,7 +1293,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         preflight = SimpleNamespace(run=AsyncMock(return_value=result))
         outputs: list[str] = []
 
-        with patch.object(entrypoint, "build_preflight_service", return_value=preflight):
+        with patch.object(cli_commands, "build_preflight_service", return_value=preflight):
             for _ in range(2):
                 output = io.StringIO()
                 with redirect_stdout(output), self.assertRaises(SystemExit):
@@ -1294,7 +1311,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
     async def test_failed_preflight_exits_nonzero(self):
         preflight = SimpleNamespace(run=AsyncMock(return_value=_FakePreflightResult(False)))
 
-        with patch.object(entrypoint, "build_preflight_service", return_value=preflight):
+        with patch.object(cli_commands, "build_preflight_service", return_value=preflight):
             with redirect_stdout(io.StringIO()):
                 with self.assertRaises(SystemExit) as raised:
                     await entrypoint.main(["--preflight"])
@@ -1305,8 +1322,8 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         doctor = SimpleNamespace(run=AsyncMock(return_value=_FakeNetworkDoctorReport(True)))
         output = io.StringIO()
 
-        with patch.object(entrypoint, "build_network_doctor_service", return_value=doctor):
-            with patch.object(entrypoint, "build_application_services") as build_services:
+        with patch.object(cli_commands, "build_network_doctor_service", return_value=doctor):
+            with patch.object(cli_dispatcher, "build_application_services") as build_services:
                 with redirect_stdout(output):
                     await entrypoint.main(["doctor", "network"])
 
@@ -1317,7 +1334,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
     async def test_failed_doctor_network_exits_nonzero(self):
         doctor = SimpleNamespace(run=AsyncMock(return_value=_FakeNetworkDoctorReport(False)))
 
-        with patch.object(entrypoint, "build_network_doctor_service", return_value=doctor):
+        with patch.object(cli_commands, "build_network_doctor_service", return_value=doctor):
             with redirect_stdout(io.StringIO()):
                 with self.assertRaises(SystemExit) as raised:
                     await entrypoint.main(["doctor", "network"])
@@ -1328,8 +1345,8 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         repair = SimpleNamespace(run=AsyncMock(return_value=_FakeNetworkRepairReport(True)))
         output = io.StringIO()
 
-        with patch.object(entrypoint, "build_network_repair_service", return_value=repair):
-            with patch.object(entrypoint, "build_application_services") as build_services:
+        with patch.object(cli_commands, "build_network_repair_service", return_value=repair):
+            with patch.object(cli_dispatcher, "build_application_services") as build_services:
                 with redirect_stdout(output):
                     await entrypoint.main(["network", "repair", "--runtime", "wsl2-nat"])
 
@@ -1342,7 +1359,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
     async def test_network_repair_apply_dispatches_selected_targets(self):
         repair = SimpleNamespace(run=AsyncMock(return_value=_FakeNetworkRepairReport(True)))
 
-        with patch.object(entrypoint, "build_network_repair_service", return_value=repair):
+        with patch.object(cli_commands, "build_network_repair_service", return_value=repair):
             with redirect_stdout(io.StringIO()):
                 await entrypoint.main(
                     ["network", "repair", "--linux-forwarding", "--incus", "--apply"]
@@ -1356,12 +1373,12 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
     def test_network_repair_requires_target(self):
         with redirect_stderr(io.StringIO()):
             with self.assertRaises(SystemExit):
-                entrypoint.parse_args(["network", "repair"])
+                cli_parser.parse_args(["network", "repair"])
 
     def test_network_repair_options_are_rejected_for_other_commands(self):
         with redirect_stderr(io.StringIO()):
             with self.assertRaises(SystemExit):
-                entrypoint.parse_args(["doctor", "network", "--apply"])
+                cli_parser.parse_args(["doctor", "network", "--apply"])
 
     def test_entrypoint_has_no_direct_low_level_infrastructure_imports(self):
         imports = _direct_imports(ENTRYPOINT_PATH)

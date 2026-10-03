@@ -53,32 +53,25 @@ REQUIRED_ARCHITECTURE_DOCUMENTS = {
 KNOWN_MIXED_BOUNDARY_FILES = (
     "src/tiny_swarm_world/application/services/nexus/bootstrap_nexus.py",
     "src/tiny_swarm_world/infrastructure/composition.py",
-    "src/tiny_swarm_world/__main__.py",
 )
 ROOT_BOUNDARY_EXCEPTION_IMPORTS = {
-    "src/tiny_swarm_world/installer.py": {
-        # Issue #354 replaces direct spawning in this existing legacy boundary.
-        "tiny_swarm_world.infrastructure.process.runner",
-        "tiny_swarm_world.infrastructure.process.streaming",
-        "tiny_swarm_world.infrastructure.adapters.host",
-        "tiny_swarm_world.infrastructure.adapters.repositories",
-        "tiny_swarm_world.infrastructure.adapters.ingress.tls_state",
-        "tiny_swarm_world.infrastructure.adapters.ui.install_reporter",
-        "tiny_swarm_world.infrastructure.adapters.preflight.windows_wsl_bridge_state",
-        # Issue #427 uses a dependency-light composition boundary before venv bootstrap.
-        "tiny_swarm_world.infrastructure.composition_native_preparation",
-    },
-    "src/tiny_swarm_world/simple_installer.py": {
-        "tiny_swarm_world.installer",
-        "tiny_swarm_world.infrastructure.composition_operator_configuration",
+    "src/tiny_swarm_world/cli_presentation.py": {
+        "tiny_swarm_world.infrastructure.adapters.cli.presentation",
     },
 }
 ROOT_ENTRYPOINTS = {
     "src/tiny_swarm_world/__main__.py": {
-        "tiny_swarm_world.infrastructure.composition",
+        "tiny_swarm_world.infrastructure.adapters.cli.dispatcher",
+    },
+    "src/tiny_swarm_world/installer.py": {
+        "tiny_swarm_world.infrastructure.composition_installation",
+    },
+    "src/tiny_swarm_world/simple_installer.py": {
+        "tiny_swarm_world.infrastructure.composition_installation",
     },
     "src/tiny_swarm_world/prepare_linux.py": {
         "tiny_swarm_world.infrastructure.composition_native_preparation",
+        "tiny_swarm_world.infrastructure.composition_installation",
     },
 }
 CLI_MODULES = (
@@ -303,14 +296,15 @@ class TestHexagonalImports(unittest.TestCase):
         self.assertEqual([], violations)
 
     def test_root_entrypoints_use_only_the_composition_boundary(self):
+        from tests.architecture.test_architecture_regressions import _imports
+
         violations = []
         for relative_path, allowed_imports in ROOT_ENTRYPOINTS.items():
             source_file = REPOSITORY_ROOT / relative_path
-            for imported, line_number in _direct_imports(source_file):
-                if imported.startswith("tiny_swarm_world.infrastructure") and not any(
-                    imported == allowed or imported.startswith(f"{allowed}.")
-                    for allowed in allowed_imports
-                ):
+            module = f"{PACKAGE_NAME}.{source_file.stem}"
+            tree = ast.parse(source_file.read_text(encoding="utf-8"))
+            for imported, line_number in _imports(tree, module, False, SOURCE_ROOT):
+                if imported.startswith("tiny_swarm_world.infrastructure") and imported not in allowed_imports:
                     violations.append((relative_path, imported, line_number))
 
         self.assertEqual([], violations)
@@ -480,6 +474,12 @@ class TestResponsibilityBoundaryDocumentation(unittest.TestCase):
 
     def test_cli_commands_delegate_to_composition_and_application_actions(self):
         entrypoint_text = CLI_ENTRYPOINT.read_text(encoding="utf-8")
+        registry_text = (
+            SOURCE_ROOT / "infrastructure" / "adapters" / "cli" / "registry.py"
+        ).read_text(encoding="utf-8")
+        dispatcher_text = (
+            SOURCE_ROOT / "infrastructure" / "adapters" / "cli" / "dispatcher.py"
+        ).read_text(encoding="utf-8")
         composition_text = (
             SOURCE_ROOT / "infrastructure" / "composition_cli.py"
         ).read_text(encoding="utf-8")
@@ -494,16 +494,17 @@ class TestResponsibilityBoundaryDocumentation(unittest.TestCase):
             'CliWorkflow(namespace="deployment", action="apply", mutating=True, destructive=False)',
             'CliWorkflow(namespace="deployment", action="verify", mutating=False, destructive=False)',
             "platform_kind=kind",
-            "execute_cli_workflow(",
         )
 
         missing_snippets = [
             snippet
             for snippet in required_snippets
-            if snippet not in entrypoint_text
+            if snippet not in registry_text
         ]
 
         self.assertEqual([], missing_snippets)
+        self.assertIn("execute_cli_workflow(", dispatcher_text)
+        self.assertIn("await dispatcher.main(argv)", entrypoint_text)
         self.assertIn("build_artifact_services(", composition_text)
         self.assertIn("build_deployment_services(", composition_text)
         self.assertIn("run_artifact_action(", action_text)
