@@ -42,9 +42,32 @@ only in an isolated, disposable test environment. Production, shared systems
 and normal local operation require operator-owned credentials.
 
 **Your own credentials take precedence.** If you supplied overrides, use the
-values from your configured credential source, such as the protected file
-selected by `TSW_INSTALL_ENV_FILE`. Passwords changed in a service remain that
-service's current passwords; this table does not reset existing accounts.
+values from your configured credential source. The documented location for
+the protected `live-installation.env` override file is:
+
+```text
+~/.local/state/tiny-swarm-world/live-installation.env
+```
+
+This is `$HOME/.local/state/tiny-swarm-world/live-installation.env` for the
+Linux/WSL user who ran the installer. If you selected another location through
+`TSW_INSTALL_ENV_FILE`, use that path instead. In the installation shell, show
+the selected path without printing any passwords:
+
+```bash
+printf '%s\n' "${TSW_INSTALL_ENV_FILE:-TSW_INSTALL_ENV_FILE is not set in this shell}"
+```
+
+Open the existing file in a private editor to look up your overrides. Exported
+`TSW_*` credential values take precedence over file entries. The file is an
+optional input; the installer does not automatically create it or save
+environment-only overrides into it. In a new shell, an unset variable does not
+tell you which file was selected during an earlier installation; check the
+path you exported for that run.
+
+Passwords changed in a service remain that service's current passwords and
+are not automatically written back to this file; this table does not reset
+existing accounts.
 
 Start at [Service Access](https://service-access.tsw.local) for configured
 service links. The installer does not print passwords, and the default
