@@ -88,3 +88,28 @@ R06 integration owner Codex acknowledges #329/#331 as explicit maintenance
 residuals. This disposition does not waive R01 blockers or missing live,
 external or release evidence. See .tiny-swarm/evidence/issue-310/ for the
 independent audit and verification details.
+
+== ARCH-03.23 — Resource qualification extraction (#329)
+
+The provider now delegates host-capacity qualification and configured backend
+network/storage checks to `lxc/resource/qualification.py`
+(`LxcResourceQualification`). The collaborator uses the existing command runner
+for read-only network and storage probes and the existing domain capacity policy.
+It performs no provider selection, profile reconciliation or lifecycle mutation.
+`lxc/resource/resolution.py` continues to own pure resource parsing, supported
+limit validation, backend mapping and remediation evidence. Resource-limit
+validation stays at its original configuration-validation position.
+
+Shared blocked results and node evidence serialization now live in
+`lxc/node/results.py`; lifecycle and qualification use the same result helpers.
+The provider retains its constructor and lifecycle/verification contracts,
+including optional host inspection, network-before-storage ordering and private
+capacity/qualification delegation methods. No new application port or generic
+runtime abstraction was required. Architecture regressions reject resource
+package imports of the lifecycle provider.
+
+The before/after responsibility inventory, local verification and residual risks
+are recorded under `.tiny-swarm/evidence/issue-329/`. The provider still owns
+profile reconciliation, image checks, managed-node safety, lifecycle failure
+translation and teardown. These are residual maintenance responsibilities;
+this extraction does not establish new live or release qualification.
