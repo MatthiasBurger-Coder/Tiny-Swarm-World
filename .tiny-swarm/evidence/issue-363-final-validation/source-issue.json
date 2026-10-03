@@ -1,0 +1,33 @@
+{
+  "issue": 363,
+  "parent": 313,
+  "title": "[ARCH-03.20] Validate Behavioral Compatibility with Live and E2E Tests",
+  "retrieved_at": "2026-10-03 (UTC)",
+  "administrative_state": "CLOSED",
+  "administrative_note": "Existing remote state is not completion evidence and was not changed by this campaign.",
+  "goal": "Prove architectural refactor preserves supported behavior across real lifecycle scenarios.",
+  "targets": [
+    "WSL2",
+    "native Linux",
+    "Docker Swarm Classic profile"
+  ],
+  "validate": [
+    "install",
+    "bootstrap",
+    "deploy",
+    "status",
+    "reconcile",
+    "restart",
+    "update where supported",
+    "recovery",
+    "destroy/cleanup"
+  ],
+  "acceptance": [
+    "Relevant unit/integration/E2E/live tests pass.",
+    "Classic profile remains operational.",
+    "WSL2 and native-Linux supported flows remain operational.",
+    "Secret bootstrap and CLI contracts remain compatible.",
+    "Any invalidated RC1/live evidence is rerun rather than assumed.",
+    "Failures are reported truthfully and not reclassified as success."
+  ]
+}

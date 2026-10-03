@@ -1,0 +1,112 @@
+{
+  "schema": "issue363_ubuntu_wsl_portable_aggregate_v1",
+  "candidate": "89357c4a1fd463bbe5ee2ae9dac074180513eace",
+  "host": "Ubuntu WSL2",
+  "status": "LIVE_VERIFIED",
+  "primary_runtime_healthy_restored": true,
+  "all_three_owned_nodes_running": true,
+  "provider_identities_preserved": true,
+  "ubuntu_host_preserved": true,
+  "startup": {
+    "first_probe_started_at": "2026-10-03T20:16:02.623500Z",
+    "monotonic_anchor": "time.monotonic established immediately after retained node starts and before first probe",
+    "bound_seconds": 600,
+    "successful_readiness_elapsed_seconds": 116.957,
+    "readiness_attempts": 3,
+    "platform_and_all8_readiness_passed": true,
+    "startup_observation_no_repair": true
+  },
+  "final_authentication": {
+    "result": "passed",
+    "reason": null,
+    "readiness_before_tests": 8,
+    "readiness_after_tests": 8,
+    "expected_browser_tests": 9,
+    "browser_tests": 9,
+    "expected_api_checks": 7,
+    "api_checks": 7,
+    "live_tests": 25,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "failure_types": []
+  },
+  "final_authentication_seconds": 66.477,
+  "persistent_fixture": {
+    "actual_original_successful_build_and_archived_artifact_verified": true,
+    "comparisons": {
+      "service_ids": true,
+      "node_ids": true,
+      "cluster_id": true,
+      "home": true,
+      "storage_node": true,
+      "private_home_configuration": true,
+      "private_job_inventory": true,
+      "fixture_configuration": true,
+      "fixture_artifact": true
+    },
+    "unrelated_service_specifications_equal": true,
+    "artifact_sha256": "49363c78783f5858e12d73cf3e58d4e4796833a5e78827029d7615c66b986884"
+  },
+  "credential_consumer_scenarios": {
+    "vault_only": "LIVE_VERIFIED",
+    "conflicting_operator_and_vault": "LIVE_VERIFIED",
+    "complete_verified_restoration": true
+  },
+  "worker_reporting": {
+    "actual_stopped_worker_recovered": true,
+    "mutation": {
+      "executed": true,
+      "planned": true,
+      "result": "converged"
+    },
+    "repeat": {
+      "executed": false,
+      "planned": true,
+      "result": "no_op"
+    }
+  },
+  "service_runtime": {
+    "all18_continuous_desired_replicas": true,
+    "one_shot_bootstrap_complete_exit0": true,
+    "owned_manager_effective_proxy_80_443": true,
+    "owned_bridge_restored": true,
+    "unrelated_host5000_8081_preserved": true
+  },
+  "windows_native_routed_https": {
+    "all9_routes_passed": true,
+    "client": "curl.exe",
+    "tls_chain_and_hostname_validation": "exact current public CA; normal hostname checks; no certificate bypass",
+    "revocation_availability": "NOT_VERIFIED; private CA lacks CRL/OCSP, scoped Schannel best-effort only",
+    "system_trust_store_modified": false,
+    "default_system_trust": "Original TrustFailure prerequisite retained; no system-wide browser trust success claimed",
+    "public_certificate_copy_removed": true
+  },
+  "retained_failed_attempts": [
+    {
+      "artifact": "fault_recovery-result.json",
+      "status": "LIVE_FAILED_AFTER_MUTATION",
+      "reason": "runtime_observation_unavailable; separate bounded successful retry"
+    },
+    {
+      "artifact": "credential-vault-only-result.json",
+      "status": "LIVE_FAILED_AFTER_MUTATION",
+      "reason": "original runner omitted actual login form CSRF token; fixed final clean runner qualified"
+    },
+    {
+      "artifact": "final-credential-conflicting-sources-result.json",
+      "status": "LIVE_FAILED_AFTER_MUTATION",
+      "reason": "unexplained baseline deployment exit1; successful verified restoration, independent all16 target baseline and separate one bounded unchanged successful retry"
+    },
+    {
+      "artifact": "worker_reconcile-result.json",
+      "reason": "Original preexisting no_op misclassification; final clean producer fix qualified",
+      "reported_operation_status": "completed",
+      "reported_verification": "verified",
+      "reported_mutation": "no_op",
+      "independently_failed_requirement": "mutation reporting"
+    }
+  ],
+  "guards_and_timeout_relaxations": false,
+  "raw_logs_env_forms_or_credential_values_in_portable_package": false
+}

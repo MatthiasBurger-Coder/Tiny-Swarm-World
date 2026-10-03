@@ -1,0 +1,112 @@
+{
+  "schema": "issue_363_wsl_fresh_install_v1",
+  "scenario": "fresh_managed_wsl_install_and_post_reconcile_authenticated_acceptance",
+  "host": "wsl2",
+  "profile": "service-access",
+  "source_revision": "1bd3dafd096e51f856cdf8fb0da85bdf22372421",
+  "status": "LIVE_VERIFIED",
+  "source_clean_for_both_suites": true,
+  "tracked_source_changes": false,
+  "reset_empty_state_observed": true,
+  "all_prior_managed_uuids_replaced": true,
+  "post_reconcile_node_uuids_unchanged": true,
+  "continuous_service_count": 18,
+  "all_continuous_replicas_satisfied": true,
+  "operator_env_preserved": true,
+  "baseline_authenticated": {
+    "status": "LIVE_VERIFIED",
+    "summary": {
+      "api_checks": 7,
+      "browser_tests": 9,
+      "errors": 0,
+      "expected_api_checks": 7,
+      "expected_browser_tests": 9,
+      "failure_types": [],
+      "failures": 0,
+      "live_tests": 25,
+      "passed": true,
+      "readiness_after_tests": 8,
+      "readiness_before_tests": 8,
+      "schema": "classic_authenticated_acceptance_v1",
+      "skipped": 0
+    }
+  },
+  "reconcile_authenticated": {
+    "status": "LIVE_VERIFIED",
+    "summary": {
+      "api_checks": 7,
+      "browser_tests": 9,
+      "errors": 0,
+      "expected_api_checks": 7,
+      "expected_browser_tests": 9,
+      "failure_types": [],
+      "failures": 0,
+      "live_tests": 25,
+      "passed": true,
+      "readiness_after_tests": 8,
+      "readiness_before_tests": 8,
+      "schema": "classic_authenticated_acceptance_v1",
+      "skipped": 0
+    }
+  },
+  "platform_verify": {
+    "duration_seconds": 3.16,
+    "exit_code": 0,
+    "finished_at": "2026-10-03T18:17:24.790816Z",
+    "operation": "platform_verify",
+    "started_at": "2026-10-03T18:17:21.631031Z",
+    "summary": {
+      "message": "verify workflow completed.",
+      "mutation": "not_applicable",
+      "phase_results": {
+        "count": 0,
+        "failed": []
+      },
+      "reason": null,
+      "result": "passed",
+      "result_count": 6,
+      "status": "completed",
+      "verification": "verified",
+      "verification_results": []
+    }
+  },
+  "reconcile": {
+    "duration_seconds": 1.233,
+    "exit_code": 0,
+    "finished_at": "2026-10-03T18:18:55.175662Z",
+    "operation": "reconcile",
+    "started_at": "2026-10-03T18:18:53.942480Z",
+    "summary": {
+      "message": "reconcile workflow completed.",
+      "mutation": "no_op",
+      "phase_results": {
+        "count": 0,
+        "failed": []
+      },
+      "reason": null,
+      "result": "passed",
+      "result_count": 3,
+      "status": "completed",
+      "verification": "verified",
+      "verification_results": []
+    }
+  },
+  "installer": {
+    "command": [
+      "./install.sh",
+      "--headless",
+      "--confirm-reset",
+      "--non-interactive-live-approval",
+      "--service-profile",
+      "service-access"
+    ],
+    "exit_code": 0,
+    "finished_at": "2026-10-03T18:16:52.593751+00:00",
+    "node_empty_state_observed": true,
+    "operator_env_preserved": true,
+    "revision": "1bd3dafd096e51f856cdf8fb0da85bdf22372421",
+    "started_at": "2026-10-03T17:52:38.447266+00:00"
+  },
+  "protected_original_sha256": "9d8f608b8b5460aef3839ff1b97fc8dbf05c3daa1e375636e49c70cc646e91f3",
+  "applicability": "Retained installation/baseline/healthy-reconcile only; independent final893source assessment; no execution revision reassignment."
+}

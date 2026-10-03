@@ -304,7 +304,7 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
         )
         if verification_failure is not None:
             return verification_failure
-        return _verified(node, backend, "created")
+        return _verified(node, backend, "created", applied=True)
 
     def _host_capacity_block(
         self,
@@ -824,7 +824,7 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
                 return_code=verify.returncode,
                 timed_out=verify.timed_out,
             )
-        return _verified(node, backend, "started")
+        return _verified(node, backend, "started", applied=True)
 
     def _log_command_result(
         self,

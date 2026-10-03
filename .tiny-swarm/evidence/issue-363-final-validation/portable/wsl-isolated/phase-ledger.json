@@ -1,0 +1,290 @@
+{
+  "candidate": "89357c4a1fd463bbe5ee2ae9dac074180513eace",
+  "setup": {
+    "operation": "setup",
+    "started_at": "2026-10-03T19:55:51.907630Z",
+    "finished_at": "2026-10-03T20:00:06.426947Z",
+    "duration_seconds": 259.281,
+    "exit_code": 0,
+    "summary": {
+      "result": "passed",
+      "status": "completed",
+      "message": "setup run completed all configured phases.",
+      "reason": "preflight, platform, artifacts, deployment, and verification phases completed",
+      "phase_results": {
+        "count": 18,
+        "failed": []
+      },
+      "verification": null,
+      "mutation": null,
+      "result_count": 0,
+      "verification_results": []
+    }
+  },
+  "platform_verify_baseline": {
+    "operation": "platform_verify",
+    "started_at": "2026-10-03T20:00:50.163546Z",
+    "finished_at": "2026-10-03T20:00:54.733940Z",
+    "duration_seconds": 4.57,
+    "exit_code": 0,
+    "summary": {
+      "result": "passed",
+      "status": "completed",
+      "message": "verify workflow completed.",
+      "reason": null,
+      "phase_results": {
+        "count": 0,
+        "failed": []
+      },
+      "verification": "verified",
+      "mutation": "not_applicable",
+      "result_count": 6,
+      "verification_results": []
+    }
+  },
+  "authenticated_baseline": {
+    "operation": "classic_authenticated",
+    "started_at": "2026-10-03T20:00:55.262176Z",
+    "finished_at": "2026-10-03T20:03:01.444482Z",
+    "duration_seconds": 128.917,
+    "exit_code": 0,
+    "summary": {
+      "result": "passed",
+      "reason": null,
+      "readiness_before_tests": 8,
+      "readiness_after_tests": 8,
+      "expected_browser_tests": 9,
+      "browser_tests": 9,
+      "expected_api_checks": 7,
+      "api_checks": 7,
+      "live_tests": 25,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "failure_types": []
+    }
+  },
+  "graceful_boundary_actions": [
+    {
+      "operation": "guard_qualification",
+      "exit_code": 0,
+      "finished_at": "2026-10-03T20:07:05.916191+00:00"
+    },
+    {
+      "operation": "owned_provider_shutdown",
+      "exit_code": 0,
+      "finished_at": "2026-10-03T20:07:08.434180+00:00"
+    },
+    {
+      "operation": "selected_distribution_terminate",
+      "exit_code": 0,
+      "finished_at": "2026-10-03T20:07:09.092157+00:00"
+    },
+    {
+      "operation": "selected_distribution_launch",
+      "exit_code": 0,
+      "finished_at": "2026-10-03T20:07:20.705320+00:00"
+    }
+  ],
+  "startup_readiness_attempts": [
+    {
+      "operation": "platform_verify",
+      "started_at": "2026-10-03T20:07:49.220239Z",
+      "finished_at": "2026-10-03T20:07:52.527942Z",
+      "duration_seconds": 3.308,
+      "exit_code": 0,
+      "summary": {
+        "result": "passed",
+        "status": "completed",
+        "message": "verify workflow completed.",
+        "reason": null,
+        "phase_results": {
+          "count": 0,
+          "failed": []
+        },
+        "verification": "verified",
+        "mutation": "not_applicable",
+        "result_count": 6,
+        "verification_results": []
+      }
+    },
+    {
+      "operation": "classic_e2e",
+      "started_at": "2026-10-03T20:07:52.528180Z",
+      "finished_at": "2026-10-03T20:08:45.867845Z",
+      "duration_seconds": 54.02,
+      "exit_code": 1,
+      "summary": {
+        "result": "failed",
+        "reason": "readiness_count_or_result_failed",
+        "tests": 8,
+        "expected_tests": 8,
+        "runtime_seconds": 53.55,
+        "skipped": 0,
+        "failure_types": [
+          "AssertionError"
+        ]
+      }
+    },
+    {
+      "operation": "platform_verify",
+      "started_at": "2026-10-03T20:08:50.186586Z",
+      "finished_at": "2026-10-03T20:08:53.448575Z",
+      "duration_seconds": 3.262,
+      "exit_code": 0,
+      "summary": {
+        "result": "passed",
+        "status": "completed",
+        "message": "verify workflow completed.",
+        "reason": null,
+        "phase_results": {
+          "count": 0,
+          "failed": []
+        },
+        "verification": "verified",
+        "mutation": "not_applicable",
+        "result_count": 6,
+        "verification_results": []
+      }
+    },
+    {
+      "operation": "classic_e2e",
+      "started_at": "2026-10-03T20:08:53.448878Z",
+      "finished_at": "2026-10-03T20:09:16.294540Z",
+      "duration_seconds": 22.846,
+      "exit_code": 0,
+      "summary": {
+        "result": "passed",
+        "reason": null,
+        "tests": 8,
+        "expected_tests": 8,
+        "runtime_seconds": 22.438,
+        "skipped": 0,
+        "failure_types": []
+      }
+    }
+  ],
+  "continuity_after_startup": {
+    "exit_code": 0,
+    "passed": true,
+    "preserved": {
+      "service_ids": true,
+      "node_ids": true,
+      "cluster_id": true,
+      "home": true,
+      "storage_node": true,
+      "private_home_configuration": true,
+      "private_job_inventory": true,
+      "fixture_configuration": true,
+      "fixture_artifact": true
+    }
+  },
+  "authenticated_after_restart": {
+    "operation": "recovery_authenticated",
+    "started_at": "2026-10-03T20:09:19.430191Z",
+    "finished_at": "2026-10-03T20:10:57.388098Z",
+    "duration_seconds": 99.956,
+    "exit_code": 0,
+    "summary": {
+      "result": "passed",
+      "reason": null,
+      "readiness_before_tests": 8,
+      "readiness_after_tests": 8,
+      "expected_browser_tests": 9,
+      "browser_tests": 9,
+      "expected_api_checks": 7,
+      "api_checks": 7,
+      "live_tests": 25,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "failure_types": []
+    }
+  },
+  "continuity_after_authentication": {
+    "passed": true,
+    "preserved": {
+      "service_ids": true,
+      "node_ids": true,
+      "cluster_id": true,
+      "home": true,
+      "storage_node": true,
+      "private_home_configuration": true,
+      "private_job_inventory": true,
+      "fixture_configuration": true,
+      "fixture_artifact": true
+    }
+  },
+  "final_quiescence_actions": [
+    {
+      "operation": "owned_docker_quiesce",
+      "exit_code": 0,
+      "finished_at": "2026-10-03T20:14:08.579155+00:00"
+    },
+    {
+      "operation": "stop_swarm-manager",
+      "exit_code": 0,
+      "finished_at": "2026-10-03T20:14:10.535882+00:00"
+    },
+    {
+      "operation": "stop_swarm-worker-1",
+      "exit_code": 0,
+      "finished_at": "2026-10-03T20:14:12.100228+00:00"
+    },
+    {
+      "operation": "stop_swarm-worker-2",
+      "exit_code": 0,
+      "finished_at": "2026-10-03T20:14:13.720190+00:00"
+    },
+    {
+      "operation": "stopped_node_identity",
+      "exit_code": 0,
+      "finished_at": "2026-10-03T20:14:13.959398+00:00"
+    },
+    {
+      "operation": "disable_prior_baseline_units",
+      "exit_code": 0,
+      "finished_at": "2026-10-03T20:14:14.595193+00:00"
+    },
+    {
+      "operation": "stop_owned_incus_runtime",
+      "exit_code": 0,
+      "finished_at": "2026-10-03T20:14:15.478261+00:00"
+    },
+    {
+      "operation": "final_unit_qualification",
+      "exit_code": 0,
+      "finished_at": "2026-10-03T20:14:15.886794+00:00"
+    },
+    {
+      "operation": "terminate_only_isolate",
+      "exit_code": 0,
+      "finished_at": "2026-10-03T20:14:16.920298+00:00"
+    }
+  ],
+  "retained_preparation_failures": [
+    {
+      "stage": "pre_baseline_short_command_distro_idle",
+      "result": "Incus daemon unavailable after WSL idle shutdown",
+      "classification": "Test orchestration prerequisite",
+      "resolution": "Isolated-only transient foreground lease; no product or unrelated host mutation"
+    },
+    {
+      "stage": "fixture_seed_first_attempt",
+      "result": "private_baseline_exists_do_not_overwrite",
+      "classification": "Safe pre-mutation refusal",
+      "resolution": "Unique protected private baseline path; original historical baseline untouched"
+    }
+  ],
+  "retained_startup_failure": {
+    "operation": "classic_e2e",
+    "exit_code": 1,
+    "duration_seconds": 54.02,
+    "tests": 8,
+    "failure_types": [
+      "AssertionError"
+    ],
+    "classification": "Initial application readiness failure during bounded startup window; later all eight pass without repair"
+  },
+  "measurement_basis": "duration_seconds is the canonical producer monotonic measurement; started_at/finished_at are independent UTC wall-clock readings. Both preserved; clock discrepancy cause not established."
+}

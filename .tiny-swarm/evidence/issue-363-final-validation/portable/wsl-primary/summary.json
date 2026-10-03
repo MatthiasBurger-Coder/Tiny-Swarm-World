@@ -1,0 +1,53 @@
+{
+  "scope": "Owned Ubuntu WSL managed target lifecycle qualification; isolated distribution restart and global issue completion remain root-owned",
+  "final_qualification_revision": "89357c4a1fd463bbe5ee2ae9dac074180513eace",
+  "initial_lifecycle_revision": "bdd73f58ea48bdd01bed10993a0d66f89021b748",
+  "status": "LIVE_VERIFIED",
+  "passed": [
+    "supported genuine packaging update/recovery/no_op",
+    "expected failed image rollout and bounded recovery retry",
+    "service replacement",
+    "worker loss reconciliation",
+    "all managed nodes cold restart with stable identities",
+    "Vault-only credential consumer transition",
+    "distinct operator versus Vault credential consumer transition",
+    "actual converged/executed=true then no_op/executed=false node reporting",
+    "full25live+7API after every successful transition/recovery/restart and final credential restoration",
+    "persistent fixture/configuration/volume/master-key/service identity continuity",
+    "Windows bridge preflight and9Windows routed HTTPS checks with explicit current CA"
+  ],
+  "retained_failed_invocations": [
+    "fault_recovery-result.json: runtime_observation_unavailable first recovery, actual convergence and later successful bounded retry retained separately",
+    "credential-vault-only-result.json: old runner omitted genuine hidden CSRF crumb; fixed clean runner qualified",
+    "final-credential-conflicting-sources-result.json: baseline deployment exit1 unexplained; independentlyall16verified then one unchanged successful retry",
+    "worker_reconcile-result.json: original producer reporting defect; new clean SHA actual worker mutation qualification passed",
+    "platform_status-result.json: unsupported historical/current action, requirement mapped to supported platformverify",
+    "default Windows system trust TrustFailure and Schannel revocation unavailability retained separately"
+  ],
+  "final_authentication": {
+    "result": "passed",
+    "reason": null,
+    "readiness_before_tests": 8,
+    "readiness_after_tests": 8,
+    "expected_browser_tests": 9,
+    "browser_tests": 9,
+    "expected_api_checks": 7,
+    "api_checks": 7,
+    "live_tests": 25,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "failure_types": []
+  },
+  "final_authentication_seconds": 66.477,
+  "final_continuity_artifact": "continuity/final-post-isolate-handover-restore.json",
+  "windows_store_modified": false,
+  "windows_revocation_availability": "NOT_VERIFIED",
+  "guards_or_timeout_relaxations": false,
+  "ubuntu_distribution_terminated": false,
+  "host_or_unrelated_resources_destroyed": false,
+  "ready_for_root_coordinated_handover": true,
+  "final_runtime_state": "Primary restored, healthy and fully authenticated after isolated-distribution handover",
+  "portable_aggregate": "portable-aggregate.json",
+  "windows_after_handover_all9_routed_https_passed": true
+}

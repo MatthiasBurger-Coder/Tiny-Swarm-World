@@ -1,0 +1,47 @@
+{
+  "candidate": "89357c4a1fd463bbe5ee2ae9dac074180513eace",
+  "candidate_tree": "6ae3ca74e38b363d9d27419c7e969709e9ae07a5",
+  "clean_exact_candidate_checkout_verified": true,
+  "source_filesystem": "ext4",
+  "protected_input": {
+    "mode": "0600",
+    "all_provided_values_preserved": true,
+    "original_bytes_and_mode_preserved": true,
+    "canonical_round_trip_verified": true
+  },
+  "interop_guard": {
+    "actual_helper_and_unit_match_historical_source": true,
+    "enabled_and_active_before_and_after_restart": true,
+    "read_only_binfmt_bind_in_separate_mount_namespace": true,
+    "primary_interoperability_preserved": true
+  },
+  "normal_startup": {
+    "owned_incus_startup_enabled_and_active_after_relaunch": true,
+    "owned_incus_socket_enabled_and_active_after_relaunch": true,
+    "host_docker_not_activated": true
+  },
+  "historical_retained_nodes": {
+    "count": 3,
+    "uuid_and_creation_time_preserved": true,
+    "data_retained_on_final_stop": true
+  },
+  "source_impact": {
+    "candidate": "89357c4a1fd463bbe5ee2ae9dac074180513eace",
+    "previous_quality_candidate": "bdd73f58ea48bdd01bed10993a0d66f89021b748",
+    "changed_paths": [
+      "documentation/evidence/issue-363-credential-cookie-form-20261003.md",
+      "documentation/evidence/issue-363-node-mutation-evidence-20261003.md",
+      "src/tiny_swarm_world/infrastructure/adapters/clients/lxc_node_provider.py",
+      "tests/e2e/classic/run_credential_transition_live.py",
+      "tests/e2e/classic/test_credential_transition_runner.py",
+      "tests/infrastructure/adapters/clients/test_lxc_node_provider.py"
+    ],
+    "impact": {
+      "node_provider": "Successful created/started results now explicitly report applied=true; same runtime command arguments",
+      "credential_runner": "Jenkins cookie-form login includes existing hidden form/CSRF inputs; no infrastructure lifecycle command changes",
+      "isolated_restart": "Fresh execution required on final SHA; previous source evidence retained as historical only"
+    },
+    "checkout_clean": true
+  },
+  "public_evidence_policy": "Allowlisted counts, exits, timings and comparison booleans; no environment values, private fingerprints or protected paths"
+}
