@@ -13,9 +13,19 @@ from tiny_swarm_world.domain.preflight.resources import (
     validate_container_limits,
 )
 from tiny_swarm_world.infrastructure.adapters.host.wsl_resource_inspector import WslResourceInspector
+from tiny_swarm_world.domain.host_environment import HostEnvironmentKind
+from tiny_swarm_world.domain.preflight.resources import default_resource_profiles
 
 
 class ResourceAssessmentTests(unittest.TestCase):
+    def test_service_access_minimum_preserves_wsl_and_native_contracts(self):
+        wsl = default_resource_profiles(HostEnvironmentKind.WSL2)["service-access"].minimum
+        native = default_resource_profiles(HostEnvironmentKind.NATIVE_LINUX)["service-access"].minimum
+
+        self.assertEqual(16 * 1024**3, wsl.memory_bytes)
+        self.assertEqual(20 * 1024**3, native.memory_bytes)
+        self.assertEqual((native.cpu_threads, native.free_disk_bytes), (wsl.cpu_threads, wsl.free_disk_bytes))
+
     def test_below_minimum_is_insufficient(self):
         resources = HostResources(4, 8 * 1024**3, 8 * 1024**3, 0, 200 * 1024**3)
         result = assess_resources(resources, ResourceRequirements(8, 16 * 1024**3, 150 * 1024**3))

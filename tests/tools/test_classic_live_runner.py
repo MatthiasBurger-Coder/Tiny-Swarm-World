@@ -99,6 +99,30 @@ class TestClassicLiveRunner(unittest.TestCase):
                                       runner._summarize("update_authenticated", json.dumps(authenticated_payload()), ""))
         self.assertFalse(runner._operation_succeeded(result))
 
+    def test_setup_resource_gate_before_mutation_retains_blocked_live_state(self) -> None:
+        preflight = runner.CommandResult(
+            "setup", "synthetic", "synthetic", 0.1, 1,
+            runner._summarize("setup", json.dumps({
+                "status": "resource_gated",
+                "phase_results": [
+                    {"name": "preflight", "status": "resource_gated"},
+                    {"name": "host prepare", "status": "skipped"},
+                ],
+            }), ""),
+        )
+        self.assertEqual("resource_gated", preflight.summary["result"])
+        self.assertEqual("LIVE_BLOCKED_BEFORE_MUTATION", runner._failure_live_state(preflight))
+        blocked_preflight = runner.CommandResult(
+            "setup", "synthetic", "synthetic", 0.1, 1,
+            {**preflight.summary, "status": "blocked", "result": "blocked"},
+        )
+        self.assertEqual("LIVE_BLOCKED_BEFORE_MUTATION", runner._failure_live_state(blocked_preflight))
+        later_failure = runner.CommandResult(
+            "setup", "synthetic", "synthetic", 0.1, 1,
+            {**preflight.summary, "phase_results": {"failed": [{"name": "deployment apply"}]}},
+        )
+        self.assertEqual("LIVE_FAILED_AFTER_MUTATION", runner._failure_live_state(later_failure))
+
     def test_typed_workflow_failures_never_become_completed(self) -> None:
         for status in ("failed_to_verify", "failed_to_apply", "failed_to_prepare"):
             with self.subTest(status=status):

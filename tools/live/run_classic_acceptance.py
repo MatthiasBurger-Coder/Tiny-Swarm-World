@@ -51,6 +51,7 @@ SAFE_FAILURE_TYPES = frozenset({
 NON_SUCCESS_STATUSES = frozenset({
     "failed", "blocked", "degraded", "partial", "skipped", "refused",
     "failed_to_verify", "failed_to_apply", "failed_to_prepare", "not_run", "unknown",
+    "resource_gated",
 })
 CLASSIC_E2E_COMMAND = (
     "env",
@@ -335,7 +336,7 @@ def main() -> int:
         result = _run_operation(operation, command, timeout, env_file, operation_environment)
         operations.append(result)
         if not _operation_succeeded(result):
-            status = "LIVE_PREREQUISITE_MISSING" if operation == "diagnostics" else "LIVE_FAILED_AFTER_MUTATION"
+            status = _failure_live_state(result)
             break
 
     return _write_terminal_result(
@@ -590,6 +591,22 @@ def _operation_succeeded(result: CommandResult) -> bool:
             "passed", "completed", "completed_without_structured_summary",
         }
     return result.summary.get("result") == "passed"
+
+
+def _failure_live_state(result: CommandResult) -> str:
+    if result.operation == "diagnostics":
+        return "LIVE_PREREQUISITE_MISSING"
+    phases = result.summary.get("phase_results")
+    failed = phases.get("failed") if isinstance(phases, dict) else None
+    first_failed = failed[0] if isinstance(failed, list) and failed else None
+    if (
+        result.operation == "setup"
+        and result.summary.get("mutation") is None
+        and isinstance(first_failed, dict)
+        and first_failed.get("name") == "preflight"
+    ):
+        return "LIVE_BLOCKED_BEFORE_MUTATION"
+    return "LIVE_FAILED_AFTER_MUTATION"
 
 
 def _write_terminal_result(
