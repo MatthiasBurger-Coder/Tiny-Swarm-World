@@ -4,6 +4,11 @@ from unittest.mock import patch
 
 from tests.support.async_helpers import async_checkpoint
 
+from tiny_swarm_world.application.services.platform import (
+    PLATFORM_WORKFLOW_TAXONOMY,
+    PlatformWorkflowKind,
+    PlatformWorkflowResult,
+)
 from tiny_swarm_world.domain.inventory import VerificationStatus
 from tiny_swarm_world.domain.node_provider import (
     ManagedLxcBackend,
@@ -113,6 +118,7 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
         self.assertEqual(result.evidence["lifecycle_outcome"], "created")
+        self.assertEqual(result.evidence.get("applied"), "true")
         self.assertEqual(
             runner.calls,
             [
@@ -411,6 +417,7 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
         self.assertEqual(result.evidence["lifecycle_outcome"], "already_present")
+        self.assertNotIn("applied", result.evidence)
         self.assertEqual(
             runner.calls,
             [
@@ -433,6 +440,7 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(VerificationStatus.VERIFIED, result.status)
         self.assertEqual(result.evidence["lifecycle_outcome"], "started")
+        self.assertEqual(result.evidence.get("applied"), "true")
         self.assertEqual(
             runner.calls,
             [
@@ -443,6 +451,46 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
             ],
         )
         self.assertEvidenceIsSummaryOnly(result)
+
+    async def test_real_provider_mutations_converge_and_repeat_reconcile_is_noop(self):
+        for backend in ManagedLxcBackend:
+            for initial_state in ("missing", "Stopped"):
+                with self.subTest(backend=backend, initial_state=initial_state):
+                    initial_nodes = (
+                        () if initial_state == "missing"
+                        else (_node("swarm-manager", initial_state),)
+                    )
+                    runner = _FakeRunner(
+                        _profile(), _list(*initial_nodes), _ok(),
+                        _list(_node("swarm-manager", "Running")),
+                        _profile(), _list(_node("swarm-manager", "Running")),
+                    )
+                    provider = _provider(runner)
+                    for expected in ("converged", "no_op"):
+                        verification = await provider.ensure_node(
+                            _node_spec(), _selection(backend),
+                        )
+                        workflow = PlatformWorkflowResult.completed(
+                            PLATFORM_WORKFLOW_TAXONOMY[PlatformWorkflowKind.RECONCILE],
+                            executed=True,
+                            verification_results=(verification,),
+                        )
+                        self.assertEqual(
+                            workflow.to_dict()["outcome"],
+                            {
+                                "mutation": {
+                                    "planned": True,
+                                    "executed": expected == "converged",
+                                    "result": expected,
+                                },
+                                "verification": "verified",
+                            },
+                        )
+                    mutations = [
+                        args for args, _timeout in runner.calls
+                        if args[1] in {"launch", "start"}
+                    ]
+                    self.assertEqual(len(mutations), 1)
 
     async def test_blocked_selection_returns_blocked_without_config_or_runner_calls(self):
         repository = _FakeConfigRepository(_config())
