@@ -4,6 +4,7 @@ import re
 import subprocess
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
@@ -170,17 +171,14 @@ class TestWindowsWslBridgeAssets(unittest.TestCase):
     def test_windows_service_behavior_contract_with_pester(self):
         executable = "powershell.exe" if os.name == "nt" else str(WINDOWS_POWERSHELL)
         script_path = _as_windows_path(BRIDGE_PESTER_TESTS)
-        command = (
-            "Import-Module Pester; "
-            f"$result = Invoke-Pester -Script '{script_path}' -PassThru; "
-            "if ($result.FailedCount -ne 0) { exit 1 }"
-        )
+        command = _pester_command(script_path)
 
         completed = subprocess.run(
             [executable, "-NoProfile", "-NonInteractive", "-Command", command],
             cwd=REPOSITORY_ROOT,
             check=False,
             text=True,
+            encoding="utf-8",
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             timeout=60,
@@ -281,6 +279,62 @@ class TestWindowsWslBridgeAssets(unittest.TestCase):
                 self.assertIn(expected, installation_guide)
 
 
+class TestWslWindowsPathTranslation(unittest.TestCase):
+    def test_mounted_drive_path_preserves_spaces_without_external_conversion(self):
+        with patch("subprocess.run") as run:
+            translated = _as_windows_path(Path("/mnt/d/test workspace/bridge.Tests.ps1"))
+
+        self.assertEqual(translated, "D:\\test workspace\\bridge.Tests.ps1")
+        run.assert_not_called()
+
+    def test_linux_native_path_uses_bounded_wslpath_conversion(self):
+        path = Path("/home/test user/bridge.Tests.ps1")
+        converted = "\\\\wsl.localhost\\Ubuntu\\home\\test user\\bridge.Tests.ps1"
+        with patch("subprocess.run", return_value=subprocess.CompletedProcess(
+            args=[], returncode=0, stdout=converted + "\n", stderr="",
+        )) as run:
+            translated = _as_windows_path(path)
+
+        self.assertEqual(translated, converted)
+        run.assert_called_once_with(
+            ["wslpath", "-w", str(path.resolve())],
+            check=True, capture_output=True, text=True, timeout=10,
+        )
+
+    def test_converter_failures_are_explicit_without_skipping(self):
+        errors = (
+            FileNotFoundError("wslpath is missing"),
+            subprocess.CalledProcessError(1, ["wslpath"]),
+            subprocess.TimeoutExpired(["wslpath"], 10),
+        )
+        for error in errors:
+            with self.subTest(error=type(error).__name__):
+                with patch("subprocess.run", side_effect=error):
+                    with self.assertRaisesRegex(AssertionError, "Cannot translate WSL path"):
+                        _as_windows_path(Path("/home/test/bridge.Tests.ps1"))
+
+    def test_converter_must_return_a_single_absolute_windows_path(self):
+        for output in ("", "/home/test/bridge.Tests.ps1", "relative.ps1", "C:\\test.ps1\nextra"):
+            with self.subTest(output=output):
+                with patch("subprocess.run", return_value=subprocess.CompletedProcess(
+                    args=[], returncode=0, stdout=output, stderr="",
+                )):
+                    with self.assertRaisesRegex(AssertionError, "Cannot translate WSL path"):
+                        _as_windows_path(Path("/home/test/bridge.Tests.ps1"))
+
+    def test_pester_keeps_apostrophes_literal_and_failed_checks_nonzero(self):
+        command = _pester_command("\\\\wsl.localhost\\Ubuntu\\home\\test user's folder\\bridge.Tests.ps1")
+
+        self.assertIn("$testScript = '\\\\wsl.localhost\\Ubuntu\\home\\test user''s folder\\bridge.Tests.ps1'", command)
+        self.assertIn("if ($result.FailedCount -ne 0 -or $result.PassedCount -eq 0) { exit 1 }", command)
+        self.assertIn("[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding", command)
+        self.assertIn("$testScript.StartsWith('\\\\')", command)
+        self.assertIn("Copy-Item -LiteralPath", command)
+        self.assertIn("} finally { if ($null -ne $stagingRoot)", command)
+        self.assertIn("Remove-Item -LiteralPath $stagingRoot -Recurse -Force", command)
+        self.assertNotIn("ExecutionPolicy", command)
+
+
 def _switch_block(script: str, action: str) -> str:
     match = re.search(
         rf'^(?P<indent>[ \t]+)"{re.escape(action)}" \{{(?P<body>.*?)^(?P=indent)\}}',
@@ -310,7 +364,44 @@ def _as_windows_path(path: Path) -> str:
     if len(parts) >= 4 and parts[1] == "mnt" and len(parts[2]) == 1:
         remainder = "\\".join(parts[3:])
         return f"{parts[2].upper()}:\\{remainder}"
-    raise AssertionError(f"Cannot translate WSL path to Windows: {path}")
+    try:
+        completed = subprocess.run(
+            ["wslpath", "-w", str(path.resolve())],
+            check=True, capture_output=True, text=True, timeout=10,
+        )
+    except (OSError, subprocess.SubprocessError):
+        raise AssertionError(f"Cannot translate WSL path to Windows: {path}") from None
+    translated = completed.stdout.strip()
+    if "\n" in translated or "\r" in translated or not re.match(
+        r"^(?:[A-Za-z]:\\|\\\\[^\\]+\\[^\\]+)", translated,
+    ):
+        raise AssertionError(f"Cannot translate WSL path to Windows: {path}")
+    return translated
+
+
+def _pester_command(script_path: str) -> str:
+    literal_path = script_path.replace("'", "''")
+    return (
+        "$ErrorActionPreference = 'Stop'; "
+        "[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding; "
+        f"$testScript = '{literal_path}'; $stagingRoot = $null; "
+        "try { "
+        "if ($testScript.StartsWith('\\\\')) { "
+        "$sourceRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $testScript)); "
+        "$stagingRoot = Join-Path ([IO.Path]::GetTempPath()) ('tsw-pester-' + [guid]::NewGuid()); "
+        "foreach ($directory in @('tests\\windows', 'tools\\windows', 'infra\\config')) { "
+        "New-Item -ItemType Directory -Path (Join-Path $stagingRoot $directory) -Force | Out-Null }; "
+        "foreach ($asset in @('tests\\windows\\tws-wsl-bridge.Tests.ps1', "
+        "'tools\\windows\\tws-wsl-bridge.ps1', 'tools\\windows\\tws-wsl-bridge-service.ps1', "
+        "'tools\\windows\\tws-wsl-bridge.config.json', 'infra\\config\\ports.yaml')) { "
+        "Copy-Item -LiteralPath (Join-Path $sourceRoot $asset) -Destination (Join-Path $stagingRoot $asset) }; "
+        "$testScript = Join-Path $stagingRoot 'tests\\windows\\tws-wsl-bridge.Tests.ps1' }; "
+        "Import-Module Pester; "
+        "$result = Invoke-Pester -Script $testScript -PassThru "
+        "} finally { if ($null -ne $stagingRoot) { "
+        "Remove-Item -LiteralPath $stagingRoot -Recurse -Force } }; "
+        "if ($result.FailedCount -ne 0 -or $result.PassedCount -eq 0) { exit 1 }"
+    )
 
 
 if __name__ == "__main__":
