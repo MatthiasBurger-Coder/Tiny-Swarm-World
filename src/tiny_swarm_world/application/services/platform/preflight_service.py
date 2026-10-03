@@ -41,7 +41,12 @@ from tiny_swarm_world.domain.preflight import (
     default_preflight_configuration,
 )
 from tiny_swarm_world.domain.project_filesystem import ProjectFilesystemAssessment
+from tiny_swarm_world.domain.preflight.completeness import PreflightConstruction
+from tiny_swarm_world.application.services.platform.preflight_reporting import (
+    assess_completeness, persist_summary, missing_override_authorizer_check,
+)
 from tiny_swarm_world.domain.preflight.resources import (
+    MemoryPressureReport,
     HostResources,
     ResourceAssessment,
     ResourceRequirements,
@@ -69,7 +74,9 @@ class PreflightService(PortPlatformPreflight):
         include_port_checks: bool = True,
         require_existing_secret_storage_file: bool = True,
         secret_source: PortConfigurationSource | None = None,
+        construction: PreflightConstruction = PreflightConstruction.CUSTOM,
     ):
+        self.construction = construction
         self.host_probe = host_probe
         self.configuration = configuration or default_preflight_configuration()
         self.configuration_validation = configuration_validation
@@ -116,6 +123,12 @@ class PreflightService(PortPlatformPreflight):
             checks.append(pressure_check)
         if live_consent is not None:
             checks.insert(0, self._live_consent_check(live_consent))
+        authorizer_check = missing_override_authorizer_check(
+            _live_evidence_enabled(live_consent), self.allow_wsl_windows_filesystem,
+            self.project_filesystem_authorizer,
+        )
+        if authorizer_check is not None:
+            return self._result((*checks, authorizer_check), write_evidence=True)
         filesystem_assessment = self._project_filesystem_assessment(
             host_environment,
             live_consent,
@@ -183,10 +196,10 @@ class PreflightService(PortPlatformPreflight):
             return None
         inspect = getattr(self.resource_inspector, "inspect", None)
         if not callable(inspect):
-            return None
+            return _malformed_inspector_check("RESOURCE-STRUCTURED")
         resources = inspect()
         if not isinstance(resources, HostResources):
-            return None
+            return _malformed_inspector_check("RESOURCE-STRUCTURED")
         thresholds = self.configuration.resources
         result = assess_resources(
             resources,
@@ -235,8 +248,10 @@ class PreflightService(PortPlatformPreflight):
             return None
         inspect = getattr(self.resource_inspector, "memory_pressure", None)
         if not callable(inspect):
-            return None
+            return _malformed_inspector_check("RESOURCE-MEMORY-PRESSURE")
         report = inspect()
+        if not isinstance(report, MemoryPressureReport):
+            return _malformed_inspector_check("RESOURCE-MEMORY-PRESSURE")
         evidence = {
             "assessment": report.assessment,
             "confidence": report.confidence,
@@ -281,26 +296,16 @@ class PreflightService(PortPlatformPreflight):
         *,
         write_evidence: bool = False,
     ) -> PreflightResult:
-        result = PreflightResult(
-            checks,
-            setup_profile=self.configuration.setup_profile,
-            manifest_summary=self.configuration.setup_manifest.summary(),
+        completeness = assess_completeness(
+            checks, self.construction, self.resource_inspector,
+            self.project_filesystem_evaluator, self.project_path,
+            self.project_filesystem_authorizer, self.secret_storage_probe,
+            self.secret_storage_path, self.artifact_source_readiness, self.evidence_writer,
         )
-        if not write_evidence:
-            return result
-        writer = self.evidence_writer
-        write = getattr(writer, "write", None)
-        if callable(write):
-            try:
-                write(result.to_evidence(), f"{self.configuration.setup_manifest.evidence_root}/preflight.json")
-            except (OSError, ValueError) as error:
-                failure = failure_from_exception(error, "platform.preflight.evidence", "platform")
-                return self._result((*checks, _failed(
-                    "PREFLIGHT-EVIDENCE", PreflightCategory.FILESYSTEM,
-                    "Preflight evidence could not be stored.", failure.recommended_action,
-                    failures_to_evidence((failure,)),
-                )))
-        return result
+        return persist_summary(
+            checks, self.configuration, completeness, self.evidence_writer,
+            write_evidence=write_evidence,
+        )
 
     def _project_filesystem_assessment(
         self,
@@ -1136,3 +1141,12 @@ def _planned_replaced_services(port: int, service: str) -> tuple[str, ...]:
     else:
         replacements = []
     return tuple(replacements)
+
+
+def _malformed_inspector_check(check_id: str) -> PreflightCheck:
+    return _failed(
+        check_id, PreflightCategory.RESOURCE,
+        "Resource inspector did not return the required typed report.",
+        "Supply an inspector with typed resource and memory-pressure reports.",
+        {"classification": "malformed_inspector_output"},
+    )

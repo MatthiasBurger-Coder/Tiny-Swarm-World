@@ -10,6 +10,11 @@ class PortPlatformPreflight(ABC):
 
     @abstractmethod
     async def run(self, live_consent: LiveConsent | None = None) -> PreflightResult:
-        """Return explicit prerequisite results without applying platform state."""
+        """Return checks, collaborator coverage and summary-persistence state.
+
+        Legacy check success does not imply complete qualification or release
+        evidence acceptance. Implementations must report these boundaries
+        explicitly without applying platform state.
+        """
 
         raise NotImplementedError

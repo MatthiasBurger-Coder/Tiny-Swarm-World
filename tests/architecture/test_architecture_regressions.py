@@ -277,5 +277,25 @@ class TestArchitectureRegressions(unittest.TestCase):
             }, composition_cycle_edges(root))
 
 
+class TestPreflightBoundaryContract(unittest.IsolatedAsyncioTestCase):
+    async def test_standard_missing_collaborators_block_real_pre_apply_guard(self):
+        from tests.application.services.platform.test_preflight_service import _fake_probe
+        from tiny_swarm_world.application.ports.preflight import PortPlatformPreflight
+        from tiny_swarm_world.application.services.platform.preflight_service import PreflightService
+        from tiny_swarm_world.application.services.platform.workflow.runtime import _pre_apply_guard_verification
+        from tiny_swarm_world.domain.preflight.completeness import PreflightConstruction
+
+        preflight: PortPlatformPreflight = PreflightService(
+            _fake_probe(), construction=PreflightConstruction.STANDARD_SETUP,
+        )
+        result = await preflight.run()
+        self.assertTrue(result.executed_checks_passed)
+        self.assertFalse(result.qualified)
+        verification = _pre_apply_guard_verification(result)
+        self.assertIsNotNone(verification)
+        self.assertEqual("blocked", verification.status.value)
+        self.assertIn("PREFLIGHT-COLLABORATORS", {check.check_id for check in result.failed_checks})
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from tiny_swarm_world.domain.preflight.completeness import PreflightConstruction
+
 from tiny_swarm_world.application.ports.network.port_wsl_socat_exposure import SocatExposureError
 
 # This private module intentionally re-exports compatibility symbols consumed
@@ -636,6 +638,7 @@ def build_preflight_service(
             process_runner=build_process_runner(),
         ),
         _preflight_configuration_for_provider(service_profile, node_provider_request),
+        construction=PreflightConstruction.STANDARD_SETUP,
         configuration_validation=configuration_validation,
         port_registry=port_registry,
         project_filesystem_evaluator=evaluator,
@@ -1050,6 +1053,7 @@ def _build_preflight_service_for_request(
             process_runner=build_process_runner(),
         ),
         _preflight_configuration_for_provider(service_profile, node_provider_request),
+        construction=PreflightConstruction.STANDARD_SETUP,
         configuration_validation=configuration_validation,
         port_registry=port_registry,
         project_filesystem_evaluator=evaluator,
