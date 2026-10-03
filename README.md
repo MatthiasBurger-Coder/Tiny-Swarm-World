@@ -15,12 +15,47 @@ establish that every supported host and lifecycle has passed acceptance.
 | What you want to do | Read |
 |---|---|
 | Prepare a machine and install for the first time | [Installation guide](documentation/user_guide/installation.adoc) |
-| Find service URLs and sign in | [Service access and login](documentation/user_guide/usage.adoc#open-the-services) and [credential catalog](documentation/arc42/08_configuration/internal-test-credential-catalog.md) |
+| Find service URLs and sign in | [Default logins](#default-logins-after-a-fresh-installation), [Service access and login](documentation/user_guide/usage.adoc#open-the-services) and [credential catalog](documentation/arc42/08_configuration/internal-test-credential-catalog.md) |
 | Inspect or reconcile an existing installation | [Daily operation](documentation/user_guide/usage.adoc#daily-operation) |
 | Diagnose a failed run | [Troubleshooting](documentation/user_guide/troubleshooting.adoc#first-response) |
 | Change code or run development tests | [Developer Manual](documentation/manuals/developer-manual.md) |
 | Understand architecture or extend runtime support | [Resulting architecture and runtime extension guide](documentation/arc42/05_analysis/arch-03-21-resulting-architecture.md) |
 | Find architecture, security or audit references | [Documentation index](documentation/README.adoc) |
+
+## Default logins after a fresh installation
+
+For a successful fresh `./install.sh` installation using the standard
+`internal-test` defaults, use these browser logins:
+
+| Service | Username / email | Default password |
+|---|---|---|
+| Portainer | `admin` | `TSW1234STW5678` |
+| Jenkins | `admin` | `TSW1234STW5678` |
+| Nexus | `admin` | `TSW1234STW5678` |
+| SonarQube | `admin` | `TSW1234STW5678!a` |
+| Pulsar Manager | `admin` | `TSW1234STW5678` |
+| Infisical | `admin@tiny-swarm-world.local` | `TSW1234STW5678` |
+| Traefik dashboard | `admin` | `TSW1234STW5678` |
+
+**INTERNAL/TEST ONLY:** These are public, disposable test credentials. Use them
+only in an isolated, disposable test environment. Production, shared systems
+and normal local operation require operator-owned credentials.
+
+**Your own credentials take precedence.** If you supplied overrides, use the
+values from your configured credential source, such as the protected file
+selected by `TSW_INSTALL_ENV_FILE`. Passwords changed in a service remain that
+service's current passwords; this table does not reset existing accounts.
+
+Start at [Service Access](https://service-access.tsw.local) for configured
+service links. The installer does not print passwords, and the default
+installation does not create a separate password file. You can use the
+Infisical login above without first retrieving it from Infisical itself.
+Service entries in Infisical are available only after synchronization.
+
+The [canonical credential catalog](documentation/arc42/08_configuration/internal-test-credential-catalog.md)
+documents all test values, API tokens and component-specific exceptions.
+For custom credentials, follow the
+[optional credential setup](documentation/user_guide/installation.adoc#operator-credential-overrides).
 
 ## Before you install
 
@@ -195,8 +230,8 @@ identifiers. Start with the configured Service Access route, normally
 [https://service-access.tsw.local](https://service-access.tsw.local), when local
 name resolution, forwarding and TLS trust are configured.
 
-Use the [credential catalog](documentation/arc42/08_configuration/internal-test-credential-catalog.md)
-for default login details, or your protected source for an explicit override.
+Use the [default login table above](#default-logins-after-a-fresh-installation)
+for browser logins, or your protected source for an explicit override.
 Portainer uses `admin`; Infisical uses an email address. Service-specific
 exceptions are listed in the catalog. Passwords are not printed by the
 installer, and a dashboard secret reference does not prove the item exists in
