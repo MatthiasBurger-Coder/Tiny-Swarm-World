@@ -16,11 +16,6 @@ from tiny_swarm_world.domain.node_provider import (
     NodeSpec,
     ProviderSelection,
 )
-from tiny_swarm_world.domain.preflight.resources import (
-    HostResources,
-    PlannedContainerLimit,
-    validate_planned_container_limits,
-)
 from tiny_swarm_world.infrastructure.adapters.repositories.node_provider_config_yaml_repository import (
     NodeProviderConfig,
     NodeProviderNodeConfig,
@@ -78,6 +73,14 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc.resource.resolution im
     resolved_network,
     selected_provider_resource_resolution,
     uses_provider_resource_resolution,
+)
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.node.results import (
+    blocked as _blocked,
+    node_evidence as _evidence,
+    node_target_id as _target_id,
+)
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.resource.qualification import (
+    LxcResourceQualification,
 )
 from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 
@@ -138,6 +141,7 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
         }
         self.logger = logger or LoggerFactory.get_logger(self.__class__.__name__)
         self.host_resource_inspector = host_resource_inspector
+        self.resource_qualification = LxcResourceQualification(runner)
 
     async def verify_node(
         self,
@@ -308,34 +312,8 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
         selection: ProviderSelection,
         config: NodeProviderConfig,
     ) -> VerificationResult | None:
-        inspector = self.host_resource_inspector
-        inspect = getattr(inspector, "inspect", None)
-        if not callable(inspect):
-            return None
-        resources = inspect()
-        if not isinstance(resources, HostResources):
-            return None
-        planned = tuple(
-            PlannedContainerLimit(
-                item.spec.name,
-                _resource_cpu(item.resources.get("cpu")),
-                _resource_memory_bytes(item.resources.get("memory")),
-            )
-            for item in config.nodes
-        )
-        if validate_planned_container_limits(resources, planned):
-            return None
-        return _blocked(
-            node,
-            selection,
-            "host_capacity_exceeded",
-            extra_evidence={
-                "cpu_threads": str(resources.cpu_threads),
-                "effective_memory_bytes": str(resources.effective_memory_bytes),
-                "planned_cpu_threads": str(sum(item.cpu_threads for item in planned)),
-                "planned_memory_bytes": str(sum(item.memory_bytes for item in planned)),
-                "mutation": "not_started",
-            },
+        return self.resource_qualification.host_capacity_block(
+            node, selection, config, self.host_resource_inspector,
         )
 
     async def _verify_provider_image_available(
@@ -543,73 +521,9 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
         config: NodeProviderConfig,
         node_config: NodeProviderNodeConfig,
     ) -> VerificationResult | None:
-        if "provider_resource_resolution" not in config.verification_metadata.checks:
-            return None
-        resource_resolution = config.provider_resource_resolution
-        backend_resource_resolution = _selected_provider_resource_resolution(config, backend)
-        logical_networks = node_config.networks
-        if resource_resolution is None or backend_resource_resolution is None or not logical_networks:
-            return _blocked(
-                node,
-                selection,
-                "inventory_mapping_missing",
-                backend=backend,
-                extra_evidence=_resource_resolution_evidence(
-                    node_config,
-                    resource_resolution,
-                    backend=backend,
-                ),
-            )
-        unresolved_networks = tuple(
-            network
-            for network in logical_networks
-            if network not in backend_resource_resolution.network_mappings
+        return await self.resource_qualification.verify_provider_resources(
+            node, selection, backend, config, node_config,
         )
-        if unresolved_networks:
-            return _blocked(
-                node,
-                selection,
-                "inventory_mapping_missing",
-                backend=backend,
-                extra_evidence=_resource_resolution_evidence(
-                    node_config,
-                    resource_resolution,
-                    backend=backend,
-                ),
-            )
-
-        resolved_network = _resolved_network(node_config, backend_resource_resolution)
-        available_networks = await self._available_network_names(backend, config)
-        if resolved_network not in available_networks:
-            return _blocked(
-                node,
-                selection,
-                "network_missing",
-                backend=backend,
-                extra_evidence=_resource_resolution_evidence(
-                    node_config,
-                    resource_resolution,
-                    backend=backend,
-                    available_networks=available_networks,
-                ),
-            )
-
-        available_storage_pools = await self._available_storage_pool_names(backend, config)
-        if backend_resource_resolution.storage_pool not in available_storage_pools:
-            return _blocked(
-                node,
-                selection,
-                "storage_pool_missing",
-                backend=backend,
-                extra_evidence=_resource_resolution_evidence(
-                    node_config,
-                    resource_resolution,
-                    backend=backend,
-                    available_networks=available_networks,
-                    available_storage_pools=available_storage_pools,
-                ),
-            )
-        return None
 
     async def _ensure_profile_available(
         self,
@@ -722,28 +636,6 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
             if name is not None
         )
         return tuple(sorted(names))
-
-    async def _available_network_names(
-        self,
-        backend: ManagedLxcBackend,
-        config: NodeProviderConfig,
-    ) -> tuple[str, ...]:
-        result = await self.runner.run(
-            _network_list_args(backend),
-            float(config.verification_metadata.readiness_timeout_seconds),
-        )
-        return _name_list_from_json(result)
-
-    async def _available_storage_pool_names(
-        self,
-        backend: ManagedLxcBackend,
-        config: NodeProviderConfig,
-    ) -> tuple[str, ...]:
-        result = await self.runner.run(
-            _storage_pool_list_args(backend),
-            float(config.verification_metadata.readiness_timeout_seconds),
-        )
-        return _name_list_from_json(result)
 
     async def _create_missing_profile(
         self,
@@ -1189,25 +1081,6 @@ _selected_provider_resource_resolution = selected_provider_resource_resolution
 _resolved_network = resolved_network
 
 
-def _name_list_from_json(result: LxcNodeCommandResult) -> tuple[str, ...]:
-    if _command_failed(result):
-        return ()
-    try:
-        payload = json.loads(result.stdout or "[]")
-    except json.JSONDecodeError:
-        return ()
-    if not isinstance(payload, list):
-        return ()
-    names = (
-        name
-        for item in payload
-        if isinstance(item, Mapping)
-        for name in (_mapping_name(item),)
-        if name is not None
-    )
-    return tuple(sorted(names))
-
-
 def _mapping_name(item: Mapping[object, object]) -> str | None:
     name = item.get("name")
     return name if isinstance(name, str) else None
@@ -1406,35 +1279,6 @@ def _verified(
     )
 
 
-def _blocked(
-    node: NodeSpec,
-    selection: ProviderSelection,
-    reason: str,
-    *,
-    backend: ManagedLxcBackend | None = None,
-    return_code: int | None = None,
-    timed_out: bool = False,
-    extra_evidence: Mapping[str, str] | None = None,
-) -> VerificationResult:
-    evidence = _evidence(
-        "pre_apply",
-        reason,
-        node,
-        backend,
-        return_code=return_code,
-        timed_out=timed_out,
-        selection_status=selection.status.value,
-    )
-    if extra_evidence:
-        evidence.update(extra_evidence)
-    return VerificationResult(
-        target_id=_target_id(node),
-        status=VerificationStatus.BLOCKED,
-        message="LXC node lifecycle is blocked before mutation.",
-        evidence=evidence,
-    )
-
-
 def _apply_failed(
     node: NodeSpec,
     selection: ProviderSelection,
@@ -1577,39 +1421,6 @@ def _profile_verify_failed(
         message="LXC node lifecycle could not verify the provider profile state.",
         evidence=evidence,
     )
-
-
-def _evidence(
-    phase: str,
-    classification: str,
-    node: NodeSpec,
-    backend: ManagedLxcBackend | None,
-    *,
-    lifecycle_outcome: str | None = None,
-    return_code: int | None = None,
-    timed_out: bool = False,
-    selection_status: str | None = None,
-    applied: bool = False,
-) -> dict[str, str]:
-    return (
-        EvidenceBuilder()
-        .add("phase", phase)
-        .add("classification", classification)
-        .add("provider", NodeProviderKind.LXC_NATIVE.value)
-        .add("node", node.name)
-        .add("node_name", node.name)
-        .add("backend", backend.value if backend is not None else None)
-        .add("lifecycle_outcome", lifecycle_outcome)
-        .add("return_code", return_code)
-        .add("timed_out", timed_out if timed_out else None)
-        .add("selection_status", selection_status)
-        .add("applied", applied if applied else None)
-        .build()
-    )
-
-
-def _target_id(node: NodeSpec) -> str:
-    return f"platform:node:{node.name}"
 
 
 def _teardown_summary(

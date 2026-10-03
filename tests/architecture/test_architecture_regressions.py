@@ -133,6 +133,12 @@ def architecture_violations(source_root: Path) -> list[str]:
                 _matches(imported, cli) for cli in CLI_MODULES
             ):
                 rule = "infrastructure may not import CLI or bootstrap"
+            elif _matches(
+                module, PACKAGE + ".infrastructure.adapters.clients.lxc.resource"
+            ) and _matches(
+                imported, PACKAGE + ".infrastructure.adapters.clients.lxc_node_provider"
+            ):
+                rule = "resource qualification may not depend on lifecycle provider"
             elif len(parts) == 1:
                 root_name = parts[0]
                 if root_name in ROOT_ENTRYPOINTS and _matches(
@@ -207,6 +213,12 @@ class TestArchitectureRegressions(unittest.TestCase):
             ("installer.py", "from tiny_swarm_world.infrastructure.adapters.host import *\n", "legacy root import"),
             ("simple_installer.py", "from tiny_swarm_world.infrastructure import composition_runtime\n", "legacy root import"),
             ("new_entrypoint.py", "from tiny_swarm_world.infrastructure.adapters import docker\n", "root module"),
+            ("infrastructure/adapters/clients/lxc/resource/qualification.py",
+             "from tiny_swarm_world.infrastructure.adapters.clients.lxc_node_provider import LxcNodeProvider\n",
+             "resource qualification may not"),
+            ("infrastructure/adapters/clients/lxc/resource/qualification.py",
+             "from ...lxc_node_provider import LxcNodeProvider\n",
+             "resource qualification may not"),
         )
         for filename, source, rule in cases:
             with self.subTest(filename=filename, source=source), TemporaryDirectory() as directory:
