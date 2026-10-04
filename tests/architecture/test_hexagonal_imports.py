@@ -60,6 +60,9 @@ ROOT_BOUNDARY_EXCEPTION_IMPORTS = {
     },
 }
 ROOT_ENTRYPOINTS = {
+    "src/tiny_swarm_world/prepare_incus.py": {
+        "tiny_swarm_world.infrastructure.composition_native_preparation",
+    },
     "src/tiny_swarm_world/__main__.py": {
         "tiny_swarm_world.infrastructure.adapters.cli.dispatcher",
     },

@@ -295,7 +295,10 @@ class NativePreparationServiceTests(unittest.TestCase):
 
 
 class NativePreparationCliTests(unittest.TestCase):
-    def setUp(self) -> None:
+    def setUp(self):
+        boundary = patch("tiny_swarm_world.prepare_linux.run_incus_preparation", return_value=0)
+        self.incus_boundary = boundary.start()
+        self.addCleanup(boundary.stop)
         evidence = patch("tiny_swarm_world.prepare_linux.record_python_preparation", return_value=Path("/redacted/python-evidence"))
         evidence.start()
         self.addCleanup(evidence.stop)

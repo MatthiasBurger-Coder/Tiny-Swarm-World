@@ -48,6 +48,12 @@ application responsibilities:
   secret lookup, and typed validation helpers.
 * `composition_probes.py` owns bounded, read-only endpoint and host readiness
   probes, including their fail-soft evidence mapping.
+* `composition_native_preparation.py` remains the dependency-light preparation
+  entrypoint boundary. Its internal `composition_incus_preparation.py` builder
+  wires the async Incus preparation service/port and local create-only adapter,
+  and delegates to the prepared ordinary-user interpreter after package/Python
+  readiness. Incus configuration/profile policy and preservation probes remain
+  in infrastructure; installer/provider readiness wiring is unchanged.
 * `composition_platform.py`, `composition_artifacts.py`,
   `composition_deployment.py`, and `composition_setup.py` are explicit
   construction boundaries that own the corresponding concrete service-builder
