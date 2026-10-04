@@ -80,3 +80,8 @@ runner responsibility decisions are currently recorded in this arc42 index,
 active workflow records, or non-ADR decision records. Dedicated standalone ADRs
 can be added later if the project decides these policies need separate
 long-lived records.
+
+The bootstrap extension is proposed only; it does not supersede the accepted
+native lifecycle until the implementing work packages accept their transitions.
+
+include::09_decisions/adr-bootstrap-command-readiness-contract.adoc[leveloffset=+3]
