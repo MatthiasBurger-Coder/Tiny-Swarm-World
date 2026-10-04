@@ -26,6 +26,11 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class UbuntuPreparationAcceptanceTests(unittest.TestCase):
+    def setUp(self):
+        boundary = patch("tiny_swarm_world.prepare_linux.run_incus_preparation", return_value=0)
+        self.incus_boundary = boundary.start()
+        self.addCleanup(boundary.stop)
+
     def test_ac1_native_and_wsl_fresh_packages_then_python_with_separate_consent(self):
         for wsl in (False, True):
             facts = replace(QUALIFIED, is_wsl=wsl, wsl2=wsl, kernel_ready=False)
@@ -168,6 +173,11 @@ class UserRuntimeSafetyTests(unittest.TestCase):
 
 
 class MissingInterpreterShellTests(unittest.TestCase):
+    def setUp(self):
+        boundary = patch("tiny_swarm_world.prepare_linux.run_incus_preparation", return_value=0)
+        self.incus_boundary = boundary.start()
+        self.addCleanup(boundary.stop)
+
     def run_boundary(self, args=(), *, python_ready=False, apt_fails=False, release="24.04", kernel="6.8.0-linux", evidence_failure="", consent="yes\nyes\n"):
         # Fake extracted release and fake executables: no real package commands.
         with tempfile.TemporaryDirectory() as directory:

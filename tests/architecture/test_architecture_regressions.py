@@ -9,6 +9,9 @@ import unittest
 PACKAGE = "tiny_swarm_world"
 SOURCE_ROOT = Path(__file__).resolve().parents[2] / "src" / PACKAGE
 ROOT_ENTRYPOINTS = {
+    "prepare_incus": frozenset({
+        "tiny_swarm_world.infrastructure.composition_native_preparation",
+    }),
     "__main__": frozenset({"tiny_swarm_world.infrastructure.adapters.cli.dispatcher"}),
     "installer": frozenset({"tiny_swarm_world.infrastructure.composition_installation"}),
     "simple_installer": frozenset({"tiny_swarm_world.infrastructure.composition_installation"}),
@@ -28,6 +31,7 @@ CLI_MODULES = frozenset({
     "tiny_swarm_world.installer",
     "tiny_swarm_world.simple_installer",
     "tiny_swarm_world.prepare_linux",
+    "tiny_swarm_world.prepare_incus",
     "tiny_swarm_world.cli_presentation",
 })
 ALLOWED_ROOT_MODULES = frozenset().union(
@@ -333,6 +337,7 @@ class TestArchitectureRegressions(unittest.TestCase):
             ("infrastructure/adapters/runner.py", "from tiny_swarm_world import cli_presentation\n", "infrastructure may not"),
             ("__main__.py", "from tiny_swarm_world.infrastructure.adapters import docker\n", "root entrypoint"),
             ("prepare_linux.py", "from tiny_swarm_world.infrastructure import composition_runtime\n", "root entrypoint"),
+            ("prepare_incus.py", "from tiny_swarm_world.infrastructure.adapters.incus_preparation import adapter\n", "root entrypoint"),
             ("installer.py", "from tiny_swarm_world.infrastructure.adapters import docker\n", "root entrypoint"),
             ("installer.py", "from tiny_swarm_world.infrastructure.adapters.host import *\n", "root entrypoint"),
             ("simple_installer.py", "from tiny_swarm_world.infrastructure import composition_runtime\n", "root entrypoint"),

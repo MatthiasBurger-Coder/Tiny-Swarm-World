@@ -350,3 +350,33 @@ Runtime and build locks are hash-checked before pip; editable installation uses
 --no-deps --no-build-isolation. No installer/reset, Windows, Incus daemon or
 kernel/network configuration is changed by this substage. Live qualification
 remains LIVE_CONSENT_MISSING for the new bootstrap behavior.
+
+## BOOT-W03 delivered Incus capability
+
+After the W02 package/Python substage, `prepare_linux.sh` delegates to the
+prepared user Python runtime for canonical YAML/provider policy. Separate exact
+stage consent covers daemon startup, ordinary-user access, then absent resolved
+storage/bridge/profiles. This is create-only explicit initialization, without
+`admin init`, global default profile changes or existing resource edits. A new
+bridge receives an explicitly planned private IPv4 subnet checked against host
+routes/addresses and Incus networks. Compatible existing resources retain their
+identity/configuration; incompatible collisions block with remediation.
+
+Read-only inspection checks systemd first and never queries a stopped daemon
+through a socket that could activate it. Missing user access is not verified
+using sudo. New persisted group membership requires logout/login (exit 3), then
+reinventory. `sudo -v` may be needed before narrowly elevated startup/group actions.
+Each mutation rechecks the plan and verifies its effect and preservation of
+unrelated inventory; changed target/configuration/resources invalidate consent.
+Calls have finite deadlines and zero automatic retries. Failures halt dependents,
+record redacted confirmed/uncertain actions, preserve transport exits 124/130 and
+require a fresh plan before resume. Read-only/refused/no-op stages write no evidence.
+
+READY/0 proves only current-user Incus version/info and all declared resources.
+BLOCKED/2 covers pending actions/collisions/refusal, RESTART_REQUIRED/3 pending
+login, PARTIAL/4 observed or uncertain mutation effects, FAILED/1 no-effect
+attempt failure. Kernel/bridge access integration and aggregate install handoff
+remain W06/W07; JSON/unattended full bootstrap envelope remains a later integration.
+The fixed profiles retain their existing #440/#444 selection authority. New
+bootstrap live qualification remains LIVE_CONSENT_MISSING. See the accepted
+[Incus preparation ADR](../arc42/09_decisions/adr-explicit-incus-preparation.adoc).

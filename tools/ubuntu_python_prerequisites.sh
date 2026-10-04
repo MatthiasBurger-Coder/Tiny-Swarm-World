@@ -7,7 +7,7 @@ tsw_python_prerequisites() {
   for value in "$@"; do
     case "$value" in
       --help|-h)
-        printf 'Usage: ./prepare_linux.sh [--preflight|--dry-run] [--service-profile default|service-access]\nPrepare Ubuntu 24.04/26.04 native or WSL2 Linux prerequisites.\nApply prompts separately for packages and user Python setup. Services are not verified.\nNext: ./prepare_linux.sh --dry-run\n'
+        printf 'Usage: ./prepare_linux.sh [--preflight|--dry-run] [--service-profile default|service-access]\nPrepare Ubuntu 24.04/26.04 native or WSL2 Linux prerequisites and Incus readiness.\nApply prompts separately for packages, user Python, Incus startup/access and resolved resources. New Incus group access requires logout/login. Existing resources are preserved. Services are not verified.\nNext: ./prepare_linux.sh --dry-run\n'
         return 10 ;;
       --preflight|--dry-run)
         ((read_only == 0)) || { printf 'BLOCKED: Choose one read-only mode.\n' >&2; return 2; }

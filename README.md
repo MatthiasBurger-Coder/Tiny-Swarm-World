@@ -217,10 +217,15 @@ Ubuntu 24.04 remains a supported host path with separate live qualification.
 `yes` before APT changes or local Python dependency bootstrap. From a complete
 trusted release, missing Python >=3.12 and venv support are bootstrapped by the
 shell boundary; Git is not needed to start preparation. Run as an ordinary user
-from an owned Linux-native directory: only APT elevates. The same prerequisite
+from an owned Linux-native directory: only package, daemon startup and group
+access actions elevate. The same preparation
 command supports Ubuntu 24.04/26.04 x86_64 under WSL2 with systemd and the WSL
-resource floor. Package/Python success does not verify Incus initialization,
-networking, Windows configuration or services. `--dry-run` is
+resource floor. After Python preparation, it shows and separately confirms
+Incus startup/access and missing resolved storage, bridge and Swarm profiles.
+Compatible resources are reused; collisions block without replacing them.
+New `incus-admin` membership requires logout/login and a rerun before current-user
+access is verified. If elevation fails, run `sudo -v` and review the plan again.
+Incus readiness does not verify kernel controls, Windows configuration or services. `--dry-run` is
 read-only for either script. The installer checks host, configuration,
 credentials and setup readiness before creating installation evidence. The
 native installer reconciles without resetting managed state. WSL2 retains the
@@ -295,7 +300,7 @@ and redact diagnostics before sharing them.
 | `platform verify` | Inspect the existing platform without repairing it. |
 | `platform reconcile --live` | Reconcile managed platform state with explicit consent; it is not a complete application update. |
 | `setup run --live` | Run the broader setup workflow without the installer's preliminary reset; it still changes infrastructure. |
-| `./prepare_linux.sh` | Prepare shared native/WSL2 Ubuntu 24.04/26.04 package and Python prerequisites with confirmation. |
+| `./prepare_linux.sh` | Prepare shared native/WSL2 Ubuntu prerequisites and Incus access/resources with staged confirmation. |
 | `./install.sh` on native Linux | Verify preparation, then run setup without a reset. |
 | `./install.sh` on WSL2 | Reset the managed environment after confirmation, then perform fresh setup. |
 | Product update | Preview and apply one supported stack/service image transition with the documented `platform update` contract. |

@@ -12,7 +12,9 @@ from tiny_swarm_world.infrastructure.composition_native_preparation import (
     build_native_preparation_evidence_writer,
     build_native_preparation_service,
     record_python_preparation,
+    run_incus_preparation,
 )
+
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -48,7 +50,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     print(f"Ubuntu {plan.facts.version_id} x86_64 prerequisite preflight passed (WSL2={plan.facts.is_wsl}).")
     if not plan.missing_packages:
         print("Host packages are already prepared; no changes needed.")
-        return _prepare_python_dependencies(read_only=args.preflight or args.dry_run)
+        return _prepare_remaining(read_only=args.preflight or args.dry_run,
+                                  service_profile=args.service_profile)
     print("Missing host packages: " + ", ".join(plan.missing_packages))
     if args.preflight or args.dry_run:
         print("No host packages were changed.")
@@ -130,12 +133,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 1
     print("Native host package preparation completed.")
     print(f"Evidence: {path}")
-    python_result = _prepare_python_dependencies(read_only=False)
-    if python_result != 0:
-        return python_result
-    print("Package/Python prerequisites are prepared; Incus/network preparation and services are not verified.")
-    print("Next: ./install.sh --preflight (native); WSL installation handoff remains separately governed.")
-    return 0
+    return _prepare_remaining(read_only=False, service_profile=args.service_profile)
+
+
+def _prepare_remaining(*, read_only: bool, service_profile: str) -> int:
+    result = _prepare_python_dependencies(read_only=read_only)
+    if result:
+        return result
+    return run_incus_preparation(read_only=read_only, service_profile=service_profile)
 
 
 def _prepare_python_dependencies(*, read_only: bool) -> int:

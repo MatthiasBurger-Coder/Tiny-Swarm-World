@@ -85,7 +85,8 @@ catalog or copy passwords into evidence.
 On native or WSL2 Ubuntu 24.04/26.04 x86_64, use a complete trusted release
 and run `./prepare_linux.sh` as an ordinary user from an owned Linux-native
 directory. It bootstraps missing Python >=3.12/venv, Git, Incus and profile
-packages with consent, then hash-locked local Python dependencies. WSL2 must
+packages with consent, then hash-locked local Python dependencies and separately
+confirmed Incus daemon/access/resources. WSL2 must
 already have systemd; Windows preparation remains a separate work package.
 The required runtime prerequisites are:
 
@@ -296,9 +297,30 @@ The default provider is `lxc_native` through the managed Incus backend. An
 Incus/LXD host management layer is therefore a hard prerequisite before a live
 Tiny Swarm World run. The separate `prepare_linux.sh` step can install the
 Ubuntu Incus package and its bridge dependency `dnsmasq-base` after operator
-confirmation. Daemon initialization, storage pool and bridge creation, profile
-changes, daemon repair, and group membership remain host-operator
-responsibilities. Tiny Swarm World does not initialize Incus/LXD automatically.
+confirmation. After package/Python readiness, it explicitly plans and separately
+confirms Incus daemon startup, current-user group access and missing resolved
+storage/network/Swarm profiles. It never runs `admin init`, edits the global
+default profile, replaces an existing pool/bridge, or repairs/restarts a failed
+daemon. Compatible resources are reused; incompatible names, settings, host
+interfaces or overlapping subnets block with remediation. Initial setup uses
+the declared resource names, a directory pool, and a collision-free private IPv4
+NAT/DHCP bridge. Existing compatible storage drivers and bridge subnets survive.
+
+Run `./prepare_linux.sh --dry-run` to inspect the exact stage without writing host,
+configuration, state or evidence. Apply prompts for exact `yes` at each newly
+observable stage; EOF/refusal stops it. Startup/group actions use narrow `sudo -n`
+commands: authenticate with `sudo -v` if required, then review and rerun preparation.
+New persisted `incus-admin` membership returns RESTART_REQUIRED/3; log out and
+log back in (opening another shell in the same login may retain stale groups),
+then rerun `./prepare_linux.sh`. No resource mutations follow an access restart.
+Version/info and every declared resource must be observed as the ordinary user
+without sudo before Incus READY/0. Pending/collision/refusal is BLOCKED/2; failures
+with confirmed or uncertain effects are PARTIAL/4, with transport timeout/124 or
+interruption/130 retained. Redacted action evidence uses the existing private
+state evidence directory. No automatic rollback/deletion or installation follows.
+Incus READY is capability readiness; kernel controls, Windows/browser access,
+full installation handoff and working services retain their own checks.
+See `documentation/arc42/09_decisions/adr-explicit-incus-preparation.adoc`.
 
 From the same Linux/WSL shell that will run `./install.sh`, the current user
 must be able to run the provider client without `sudo`:
@@ -310,7 +332,7 @@ incus info
 ----
 
 If the host operator changed `incus-admin` or another provider-access group,
-close and reopen the shell before running these checks. Do not hide a missing
+log out and log back in before running these checks. Do not hide a missing
 permission behind `sudo`; the installer and preflight must observe the same
 user-level access that the live workflow will use.
 
@@ -346,7 +368,7 @@ PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend incus --preflight
 ----
 
 The live `setup run` sequence performs `host prepare` and read-only `host
-verify` after preflight and before Incus initialization. To prepare the
+verify` after preflight; the separate preparation command owns Incus initialization. To prepare the
 Windows/WSL bridge independently, use the dedicated host command and provide
 the explicit live consent flags. If WSL does not expose the canonical
 ProgramData location at `/mnt/c`, set `TSW_WINDOWS_WSL_BRIDGE_STATE_PATH` to

@@ -74,3 +74,26 @@ def record_python_preparation(status: str) -> Path:
         status=status, planned=(), added=(), uncertain=(),
         stage="python_environment_" + status,
     )
+
+
+def build_incus_preparation_service(*, service_profile: str = "service-access"):
+    from tiny_swarm_world.infrastructure import composition_incus_preparation
+
+    paths = composition_incus_preparation.preparation_paths()
+    prerequisites = build_native_preparation_service(paths.repository_root,
+                            service_profile=service_profile, prerequisites_only=True)
+    return composition_incus_preparation.build_incus_preparation_service(
+        prerequisites, paths, lambda root, wsl: validate_preparation_paths(root, is_wsl=wsl),
+    )
+
+
+def run_incus_preparation(*, read_only: bool, service_profile: str) -> int:
+    from tiny_swarm_world.infrastructure import composition_incus_preparation
+
+    return composition_incus_preparation.run_incus_preparation(read_only=read_only, service_profile=service_profile)
+
+
+async def request_incus_consent() -> bool:
+    from tiny_swarm_world.infrastructure import composition_incus_preparation
+
+    return await composition_incus_preparation.request_incus_consent()

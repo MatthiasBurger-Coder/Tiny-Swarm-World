@@ -1,0 +1,68 @@
+= Explicit, create-only Incus preparation
+:status: Accepted
+:date: 2026-10-04
+
+Accepted by the root architect after independent System Architect review on
+2026-10-04, before product implementation (issue-455 architecture_review).
+
+== Context
+
+Issue #455 (BOOT-W03, BOOT-05 under #452) explicitly requests daemon startup,
+ordinary-user access and first storage/network/profile initialization after
+the #454 Ubuntu prerequisites. Existing native preparation and LXC provider
+decisions intentionally excluded daemon repair and bridge mutation.
+
+== Decision
+
+Extend the existing preparation entrypoint and composition with a separately
+consented Incus capability service, depending on an application port. Infrastructure
+owns systemd, group/account inspection, bounded process execution, canonical
+provider configuration and Incus local API operations. Linux/WSL Ubuntu target
+qualification and package/Python ownership remain unchanged.
+
+Only this preparation capability supersedes the earlier exclusion of Incus daemon,
+group and missing bridge/pool/profile setup in the native preparation and LXC
+provider ADRs. Installer, reset, host prepare, and ordinary provider readiness
+remain verification-only at their existing boundaries.
+
+Inspect systemd before Incus API calls: read-only modes must not activate a stopped
+daemon through its socket. Startup and adding the invoking ordinary user to the
+existing incus-admin group require exact separate consent. No group creation,
+whole-installer sudo, daemon restart/reconfiguration or guessed account is allowed.
+Persisted membership without current-session access returns RESTART_REQUIRED.
+After a new login, verify Incus version/info and resources as the current user,
+without sudo, before reporting the Incus capability READY.
+
+First initialization means explicitly creating only absent resolved resources,
+not executing admin init or rewriting the default profile. Names and profile
+requirements come from node-providers/provider_config.yaml. Missing storage uses
+the supported directory driver; compatible existing container-capable pools are
+reused without changing driver, source or configuration. Missing bridges use IPv4
+NAT/DHCP and no IPv6 allocation; an explicit private subnet is selected against
+all observed host routes/addresses and Incus networks. Existing compatible bridges
+retain their subnet and settings. Unsafe or incompatible names/configurations block
+with remediation; never replace an existing resource or edit an existing profile.
+Profiles reuse the existing required-settings and safety policies; no new privileged
+default. Preserve the global default profile, instances, daemon configuration,
+credentials and unrelated resources. The existing fixed service profiles remain
+the selection authority pending #440/#444; no bootstrap service graph is added.
+
+Show exact create/start/access actions before consent. Reinventory after staged
+startup/access and obtain fresh consent for newly observable resource actions.
+Recheck configuration and inventory before each mutation; changed observations
+invalidate approval. Mutations are bounded, create-only API operations; concurrent
+name claims fail without editing the claimant. Verify each observed effect. Track
+confirmed and uncertain actions in protected redacted evidence; interruption and
+timeouts stop dependents. No automatic rollback or deletion is introduced.
+Read-only modes never write state/configuration/evidence or bytecode.
+
+== Consequences and verification
+
+A clean host may require a logout/login between access and resource preparation.
+That restart is an explicit unavoidable boundary, not readiness. READY describes
+only the Incus capability; kernel/browser/service and full install handoff remain
+owned by BOOT-W06/W07. Local mocked tests and QUALITY.md gates are authoritative
+for implementation completion. Live Incus verification is APPLICABLE_LIVE /
+LIVE_CONSENT_MISSING until separately authorized recoverable-host execution with
+exact SHA/version/command/exit evidence. Browser checks are NOT_APPLICABLE;
+external gates are not asserted from local tests.

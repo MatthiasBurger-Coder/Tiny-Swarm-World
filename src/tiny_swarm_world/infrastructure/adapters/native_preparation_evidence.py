@@ -25,6 +25,7 @@ class NativePreparationEvidenceWriter:
         added: tuple[str, ...],
         uncertain: tuple[str, ...],
         stage: str,
+        capability: str = "packages",
     ) -> Path:
         self._state_root.mkdir(mode=0o700, parents=True, exist_ok=True)
         project = self._state_root / "tiny-swarm-world"
@@ -43,13 +44,13 @@ class NativePreparationEvidenceWriter:
         timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
         target = directory / f"{timestamp}.json"
         payload = {
-            "schema": "native-preparation-v1",
+            "schema": "incus-preparation-v1" if capability == "incus" else "native-preparation-v1",
             "status": status,
             "stage": stage,
             "platform": f"ubuntu-{platform_release}-x86_64",
-            "planned_packages": list(planned),
-            "newly_observed_packages": list(added),
-            "uncertain_packages": list(uncertain),
+            "planned_actions" if capability == "incus" else "planned_packages": list(planned),
+            "newly_observed_actions" if capability == "incus" else "newly_observed_packages": list(added),
+            "uncertain_actions" if capability == "incus" else "uncertain_packages": list(uncertain),
             "timestamp_utc": timestamp,
         }
         descriptor, temporary_name = tempfile.mkstemp(prefix=".native-preparation-", dir=directory)

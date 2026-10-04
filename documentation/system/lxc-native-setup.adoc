@@ -31,8 +31,15 @@ silently fall back to another provider.
 
 == Incus Installation
 
-Install Incus by following the official Incus installation guide for the host
-distribution, then ensure the operator can access the local daemon. Incus local
+On qualified Ubuntu 24.04/26.04 Linux/WSL2 hosts, `./prepare_linux.sh` prepares
+packages/Python, then separately plans and confirms Incus startup, current-user
+access and absent resolved pool/bridge/Swarm profiles. Read-only `--dry-run`
+never starts a daemon or writes host/configuration/state/evidence. Existing
+compatible resources are reused; collisions block without replacement. New
+group membership requires logout/login and a rerun. Incus readiness is verified
+without sudo and does not prove kernel controls or working services. Other
+supported host provisioning remains operator-owned via the official Incus guide.
+Incus local
 administration commonly uses the `incus-admin` group.
 
 Verify daemon access from the same shell that runs Tiny Swarm World:
