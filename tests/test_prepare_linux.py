@@ -295,6 +295,11 @@ class NativePreparationServiceTests(unittest.TestCase):
 
 
 class NativePreparationCliTests(unittest.TestCase):
+    def setUp(self) -> None:
+        evidence = patch("tiny_swarm_world.prepare_linux.record_python_preparation", return_value=Path("/redacted/python-evidence"))
+        evidence.start()
+        self.addCleanup(evidence.stop)
+
     def test_python_dependencies_are_prepared_only_after_separate_consent(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             paths = installer.InstallerPaths(
@@ -308,7 +313,7 @@ class NativePreparationCliTests(unittest.TestCase):
                 patch("builtins.input", return_value="yes") as answer,
                 redirect_stdout(io.StringIO()),
             ):
-                self.assertEqual(_prepare_python_dependencies(read_only=True), 0)
+                self.assertEqual(_prepare_python_dependencies(read_only=True), 2)
                 bootstrap.assert_not_called()
                 answer.assert_not_called()
                 self.assertEqual(_prepare_python_dependencies(read_only=False), 0)
@@ -332,7 +337,7 @@ class NativePreparationCliTests(unittest.TestCase):
                 self.assertEqual(_prepare_python_dependencies(read_only=False), 1)
             bootstrap.assert_called_once()
 
-    def test_prepared_host_records_noop_only_for_mutating_entrypoint(self) -> None:
+    def test_prepared_host_has_no_unapproved_evidence_writes(self) -> None:
         facts = replace(QUALIFIED, version_id="26.04", can_install_packages=False)
         service = NativePreparationService(
             Mock(inspect=Mock(return_value=facts)), Mock(missing=Mock(return_value=()))
@@ -346,8 +351,7 @@ class NativePreparationCliTests(unittest.TestCase):
             self.assertEqual(main(("--preflight",)), 0)
             writer.assert_not_called()
             self.assertEqual(main(()), 0)
-        self.assertEqual(writer.return_value.write.call_args.kwargs["status"], "noop")
-        self.assertEqual(writer.return_value.write.call_args.kwargs["platform_release"], "26.04")
+        writer.assert_not_called()
 
     def test_entrypoint_imports_without_third_party_dependencies(self) -> None:
         result = subprocess.run(
@@ -373,7 +377,7 @@ class NativePreparationCliTests(unittest.TestCase):
                     patch("builtins.input") as user_input,
                     redirect_stdout(io.StringIO()),
                 ):
-                    self.assertEqual(main((option,)), 0)
+                    self.assertEqual(main((option,)), 2)
                 user_input.assert_not_called()
                 writer.assert_not_called()
 

@@ -11,11 +11,12 @@ from pathlib import Path
 from tiny_swarm_world.infrastructure.composition_native_preparation import (
     build_native_preparation_evidence_writer,
     build_native_preparation_service,
+    record_python_preparation,
 )
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Prepare an Ubuntu 24.04 or 26.04 host for Tiny Swarm World.")
+    parser = argparse.ArgumentParser(description="Prepare native or WSL2 Ubuntu 24.04/26.04 package/Python prerequisites, separately from services.")
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--preflight", action="store_true", help="Validate without changing the host.")
     mode.add_argument("--dry-run", action="store_true", help="Show the package plan without changing the host.")
@@ -27,42 +28,35 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    service = build_native_preparation_service(Path.cwd(), service_profile=args.service_profile)
+    service = build_native_preparation_service(Path.cwd(), service_profile=args.service_profile, prerequisites_only=True)
     try:
         plan = service.plan()
     except (OSError, RuntimeError, ValueError):
         print("ERROR: Native preparation inventory failed; inspect host package tools.", file=sys.stderr)
         return 1
+    if not (args.preflight or args.dry_run):
+        try:
+            path_identity = _validate_mutation_paths(is_wsl=plan.facts.is_wsl)
+        except (OSError, RuntimeError):
+            print("BLOCKED: Use an ordinary account, complete trusted release and owned Linux-native checkout/venv. Next: ./prepare_linux.sh --dry-run", file=sys.stderr)
+            return 2
     if plan.failures:
         for failure in plan.failures:
             print(f"BLOCKED: {failure}", file=sys.stderr)
         print("No host packages were changed.", file=sys.stderr)
         return 1
-    print(f"Native Ubuntu {plan.facts.version_id} x86_64 preflight passed.")
+    print(f"Ubuntu {plan.facts.version_id} x86_64 prerequisite preflight passed (WSL2={plan.facts.is_wsl}).")
     if not plan.missing_packages:
         print("Host packages are already prepared; no changes needed.")
-        if not (args.preflight or args.dry_run):
-            try:
-                path = build_native_preparation_evidence_writer().write(
-                    platform_release=plan.facts.version_id,
-                    status="noop",
-                    planned=(),
-                    added=(),
-                    uncertain=(),
-                    stage="package_inventory",
-                )
-            except OSError:
-                print("ERROR: Protected local evidence could not be written; check owner and mode 0700 of Tiny Swarm World state directories.", file=sys.stderr)
-                return 1
-            print(f"Evidence: {path}")
         return _prepare_python_dependencies(read_only=args.preflight or args.dry_run)
     print("Missing host packages: " + ", ".join(plan.missing_packages))
     if args.preflight or args.dry_run:
         print("No host packages were changed.")
-        return 0
+        _prepare_python_dependencies(read_only=True)
+        return 2
 
     try:
-        answer = input("Install these host packages with APT? Type 'yes' to continue: ")
+        answer = input("Refresh APT indexes, then review exact package candidates? Type 'yes' to continue: ")
     except EOFError:
         answer = ""
     except KeyboardInterrupt:
@@ -72,6 +66,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         print("Preparation cancelled; no host packages were changed.")
         return 2
 
+    try:
+        if _validate_mutation_paths(is_wsl=plan.facts.is_wsl) != path_identity:
+            raise RuntimeError("Release assets changed.")
+    except (OSError, RuntimeError):
+        print("BLOCKED: Release/path changed after consent. Next: ./prepare_linux.sh --dry-run", file=sys.stderr)
+        return 2
     evidence = build_native_preparation_evidence_writer()
     try:
         started_path = evidence.write(
@@ -113,7 +113,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         except OSError:
             print("ERROR: Package preparation failed and local evidence could not be written.", file=sys.stderr)
             return 130 if isinstance(error, KeyboardInterrupt) else 1
-        print("ERROR: Package preparation stopped. Inspect APT state, then rerun preparation.", file=sys.stderr)
+        print("ERROR: Package preparation stopped. Inspect APT connectivity/locks; package indexes may have changed. Next: ./prepare_linux.sh --dry-run", file=sys.stderr)
         print(f"Evidence: {path}", file=sys.stderr)
         return 130 if isinstance(error, KeyboardInterrupt) else 1
     try:
@@ -133,7 +133,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     python_result = _prepare_python_dependencies(read_only=False)
     if python_result != 0:
         return python_result
-    print("Next: run ./install.sh after reviewing the installer preflight.")
+    print("Package/Python prerequisites are prepared; Incus/network preparation and services are not verified.")
+    print("Next: ./install.sh --preflight (native); WSL installation handoff remains separately governed.")
     return 0
 
 
@@ -143,16 +144,29 @@ def _prepare_python_dependencies(*, read_only: bool) -> int:
     env = os.environ
     paths = installer._paths_from_env(env, Path.cwd())
     prepared_python = paths.native_linux_venv / "bin" / "python"
-    if installer._python_imports_available(sys.executable, env) or (
-        prepared_python.is_file()
-        and installer._python_imports_available(prepared_python.as_posix(), env)
-    ):
-        print("Python dependencies are already prepared.")
+    try:
+        ready = installer._python_imports_available(sys.executable, env)
+        if not ready and prepared_python.is_file():
+            runtime = installer.detect_host_runtime(env)
+            _validate_mutation_paths(is_wsl=runtime.name == "wsl2")
+            ready = installer._python_imports_available(prepared_python.as_posix(), env)
+    except (installer.InstallerError, OSError, RuntimeError):
+        print("BLOCKED: Python probe failed or timed out. Next: ./prepare_linux.sh --dry-run", file=sys.stderr)
+        return 2
+    if ready:
+        print("Python dependencies are already prepared; services are not verified.")
+        print("Next: ./prepare_linux.sh --preflight")
         return 0
     print("Python dependencies are missing from the system interpreter and prepared venv.")
     if read_only:
-        print("No Python environment was changed; run ./prepare_linux.sh to prepare it.")
-        return 0
+        print("BLOCKED: No Python environment was changed. Next: ./prepare_linux.sh")
+        return 2
+    try:
+        runtime = installer.detect_host_runtime(env)
+        identity = _validate_mutation_paths(is_wsl=runtime.name == "wsl2")
+    except (OSError, RuntimeError):
+        print("BLOCKED: Python target is unsafe. Next: ./prepare_linux.sh --dry-run", file=sys.stderr)
+        return 2
     try:
         answer = input("Prepare the local Python environment? Type 'yes' to continue: ")
     except EOFError:
@@ -164,16 +178,38 @@ def _prepare_python_dependencies(*, read_only: bool) -> int:
         print("Python preparation cancelled; rerun ./prepare_linux.sh before installing.")
         return 2
     try:
+        if _validate_mutation_paths(is_wsl=runtime.name == "wsl2") != identity:
+            raise RuntimeError("Python release assets changed after consent.")
+        print(f"Python preparation evidence: {record_python_preparation('started')}")
         python_bin = installer.ensure_python_environment(
-            installer.detect_host_runtime(env), paths, env
+            runtime, paths, env
         )
         if not installer._python_imports_available(python_bin, env):
             raise installer.InstallerError("Prepared Python dependencies are not importable.")
+        record_python_preparation("succeeded")
+    except KeyboardInterrupt:
+        _record_python_failure("interrupted")
+        print("PARTIAL: Python preparation interrupted. Next: ./prepare_linux.sh --dry-run", file=sys.stderr)
+        return 130
     except (installer.InstallerError, OSError, RuntimeError):
+        _record_python_failure("failed")
         print("ERROR: Python preparation failed; inspect the local venv and rerun ./prepare_linux.sh.", file=sys.stderr)
         return 1
-    print("Local Python dependencies are prepared.")
+    print("Local Python dependencies are prepared; Incus/network readiness and services are not verified.")
     return 0
+
+
+def _validate_mutation_paths(*, is_wsl: bool) -> tuple[str, ...]:
+    from tiny_swarm_world.infrastructure.composition_native_preparation import validate_preparation_paths
+
+    return validate_preparation_paths(Path.cwd(), is_wsl=is_wsl)
+
+
+def _record_python_failure(status: str) -> None:
+    try:
+        record_python_preparation(status)
+    except OSError:
+        print("PARTIAL: Python preparation stopped and evidence write failed. Next: ./prepare_linux.sh --dry-run", file=sys.stderr)
 
 
 if __name__ == "__main__":  # pragma: no cover

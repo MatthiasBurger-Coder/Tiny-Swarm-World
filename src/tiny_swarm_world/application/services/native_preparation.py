@@ -13,6 +13,7 @@ from tiny_swarm_world.domain.native_preparation import (
     SUPPORTED_UBUNTU_RELEASES,
     NativeHostFacts,
     qualification_failures,
+    preparation_target,
 )
 
 
@@ -34,9 +35,11 @@ class NativePreparationService:
         packages: HostPackageManager,
         *,
         service_profile: str = "service-access",
+        prerequisites_only: bool = False,
     ) -> None:
         if service_profile not in HOST_PACKAGES_BY_PROFILE:
             raise ValueError("Unsupported native service profile.")
+        self._prerequisites_only = prerequisites_only
         self._inspector = inspector
         self._packages = packages
         self._service_profile = service_profile
@@ -47,7 +50,7 @@ class NativePreparationService:
         # Avoid invoking a platform package manager on unsupported hosts.
         supported = (
             facts.platform == "Linux"
-            and not facts.is_wsl
+            and (not facts.is_wsl or (self._prerequisites_only and facts.wsl2 and facts.systemd_ready))
             and facts.distribution_id == "ubuntu"
             and facts.version_id in SUPPORTED_UBUNTU_RELEASES
             and facts.architecture == "x86_64"
@@ -56,6 +59,7 @@ class NativePreparationService:
         failures = qualification_failures(
             facts, needs_network=bool(missing), needs_ports=bool(missing),
             needs_privilege=bool(missing), service_profile=self._service_profile,
+            prerequisites_only=self._prerequisites_only, allow_wsl=self._prerequisites_only,
         )
         return NativePreparationPlan(facts, missing, failures)
 
@@ -69,6 +73,8 @@ class NativePreparationService:
         current = self.plan()
         if not current.qualified:
             raise ValueError("Native Linux preflight changed; package installation was not started.")
+        if preparation_target(current.facts) != preparation_target(plan.facts):
+            raise ValueError("Host target or resource observations changed; review and confirm again.")
         if current.missing_packages != plan.missing_packages:
             raise ValueError("Host package plan changed; review and confirm again.")
         if not current.missing_packages:

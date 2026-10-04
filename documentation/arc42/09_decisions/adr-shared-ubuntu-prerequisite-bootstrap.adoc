@@ -1,0 +1,44 @@
+= ADR: Shared Ubuntu Package and Python Prerequisite Bootstrap
+
+*Date:* 2026-10-04
+*Status:* Accepted for BOOT-W02 implementation; no new live qualification.
+*Issue:* #454, BOOT-04 under #452.
+*Review:* Independent Senior System Architect and Senior Requirement Engineer
+with DevOps perspective accepted the bounded transition before product edits.
+
+== Decision
+
+Extend existing native preparation ports/service, APT adapter and locked Python
+installation adapter for native and WSL2 Ubuntu 24.04/26.04 x86_64.
+The shell boundary may identify the host and bootstrap only missing interpreter
+and venv prerequisites after explicit consent, before dependency-light Python
+handoff. Help and read-only modes need no interpreter and write no data.
+APT alone elevates; ordinary user owns the Linux-native checkout and venv.
+Missing release assets, unsupported targets, unsafe ownership, WSL1 or missing
+WSL systemd block mutation. Resource profile floors remain authoritative; WSL
+service-access retains 16 GiB rather than native 15 GiB.
+
+Package/Python preparation is separate from Incus daemon initialization,
+network/kernel preparation, Windows configuration and installation. It reports
+prerequisite readiness only. Failed bounded package operations reobserve state
+and stop dependents; no package removal, lock deletion or automatic repair.
+Locked runtime/build dependency installation uses hash verification and
+editable --no-deps --no-build-isolation. requirements.build.lock fixes the
+setuptools/wheel build inputs. Fresh APT caches use separately approved bounded
+index refresh followed by candidate review and new exact installation consent.
+Recheck target/assets/package/candidate identity before install; decline or
+failure after refresh records possible index changes, not a no-change result.
+
+== Narrow Supersession
+
+Supersede only the manual-Python prerequisite and native-only package boundary
+in adr-native-linux-preparation-and-install-lifecycle.adoc. Preserve the
+original lifecycle history and WSL installer/reset semantics until W07.
+Accept only W02 transitions from adr-bootstrap-command-readiness-contract.adoc;
+W04/W07 transitions remain proposed.
+
+Unknown Windows-build/WSL-version qualification blocks Windows-affecting and
+aggregate bootstrap stages. It does not block this independent Linux package
+substage on observed supported Ubuntu WSL2. This explicit stage-scoped amendment
+resolves the W02-before-W04/W09 dependency cycle. W09 still owns exact-version
+live qualification; local tests do not establish live or aggregate readiness.

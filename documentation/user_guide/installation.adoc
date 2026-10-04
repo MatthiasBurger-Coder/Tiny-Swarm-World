@@ -82,9 +82,12 @@ catalog or copy passwords into evidence.
 
 == Prerequisites
 
-For WSL, install these tools before running project automation. On native
-Ubuntu 24.04 or 26.04, install Python 3.12 or newer first, then run the separate
-`prepare_linux.sh` step below for host packages:
+On native or WSL2 Ubuntu 24.04/26.04 x86_64, use a complete trusted release
+and run `./prepare_linux.sh` as an ordinary user from an owned Linux-native
+directory. It bootstraps missing Python >=3.12/venv, Git, Incus and profile
+packages with consent, then hash-locked local Python dependencies. WSL2 must
+already have systemd; Windows preparation remains a separate work package.
+The required runtime prerequisites are:
 
 * Python 3.12 or newer, with virtual-environment support (CI covers 3.12, 3.13 and 3.14)
 * Git
@@ -991,8 +994,12 @@ Its read-only modes report that work without creating a virtual environment.
 It does not initialize Incus, change groups, alter kernel controls or deploy
 services. `install.sh` never invokes it. If preparation is missing, the native
 installer stops and prints the separate preparation command; it does not
-bootstrap Python dependencies itself. Python 3.12 must
-already be available to start either repository-local script. A native rerun
+bootstrap Python dependencies itself. The preparation shell can bootstrap
+missing Python >=3.12 and venv support after explicit interpreter-stage consent;
+help, preflight and dry-run need no Python and write no state/evidence.
+Only APT elevates. Unsupported releases, WSL1, missing WSL systemd, root
+execution or unsafe project/venv ownership block mutation. An unknown nonempty
+venv target is preserved; choose a different `TSW_NATIVE_LINUX_VENV`. A native rerun
 rechecks prerequisites and runs the existing setup reconciliation without an
 automatic reset. A deliberate reset uses the separately confirmed `platform
 reset` command.
@@ -1002,8 +1009,9 @@ The native preflight requires Ubuntu 24.04 or 26.04 LTS on x86_64. For the
 150 GiB free space on the repository filesystem. The `default` profile
 requires four CPU threads, 16 GiB RAM and 60 GiB free space. Preparation
 checks the selected profile's resource floor before package changes. It
-checks package privilege, repository write access, required kernel controls,
-host ports before package changes and conflicting runtimes. A healthy rerun
+checks package privilege, repository write access and conflicting runtimes.
+Kernel controls and host ports remain installer-readiness guards, outside
+the package/Python substage. WSL service-access retains 16 GiB RAM. A healthy rerun
 with all host packages present relies on setup's profile-aware port preflight.
 DNS and HTTPS connectivity to Ubuntu
 package sources are required when packages are missing. Correct a reported

@@ -86,12 +86,18 @@ selected distro/account/checkout and preserve installer exits and consent.
 The distro registration name (for example `Ubuntu-24.04`) is not proof of its
 OS release or WSL generation. Inspect both. Require systemd in the selected
 Linux environment, virtualization/WSL2 features on Windows and capacity for
-the resolved selection. Unsupported or unreadable facts block mutation.
+the resolved selection. Unsupported or unreadable Linux facts block Linux prerequisite mutation.
+Unknown Windows build/WSL version qualification blocks Windows-affecting and
+aggregate bootstrap stages, rather than the independent W02 Linux package/Python
+substage. W02 requires observed supported Ubuntu x86_64, WSL2/systemd, an
+ordinary account, owned Linux-native checkout and the WSL resource floor.
 Do not invent a qualified Windows version before W09 executes evidence.
+See the accepted `adr-shared-ubuntu-prerequisite-bootstrap.adoc` for this narrow
+W02 amendment; full bootstrap and live qualification remain separate.
 
 An extracted, versioned release must contain executable Linux scripts,
 `prepare_windows.ps1`, the dependency-light source used by preparation,
-`pyproject.toml`, `requirements.lock`, `infra/config`, and the existing bridge
+`pyproject.toml`, `requirements.lock`, `requirements.build.lock`, `infra/config`, and the existing bridge
 assets. The trusted release is downloaded/extracted using OS-provided tools;
 Git, Python and pip are not prerequisites to locating scripts or printing help.
 Missing assets produce BLOCKED with an asset-specific remedy; no remote
@@ -157,7 +163,10 @@ Incus actions name daemon/access/storage/network/profile identities and desired
 properties. Bridge actions identify only TSW-owned routes/ports from the
 canonical registry. Unknown inventory is a blocker, not an empty/no-op plan.
 Package candidate versions must be shown when available; unavailable resolution
-blocks that action, rather than inventing a pin. Apply re-resolves and requires
+blocks installation, rather than inventing a pin. For W02 fresh APT caches,
+index refresh is a separately approved bounded action; its completion permits
+candidate review and a new exact installation consent. Declined consent after
+refresh reports index changes rather than no changes. Apply re-resolves and requires
 review if candidates drift. Bound all inventory and mutation calls by a positive
 per-action timeout and finite retry budget stated in the plan; exhausted locks,
 connectivity or probes stop the stage without infinite retry.
@@ -326,3 +335,18 @@ EXTERNAL_GATE_NOT_APPLICABLE to local contract completion; reassess publication
 requirements separately. Follow the canonical
 [verification-state policy](../process/verification-state-policy.md) and
 [issue completion discipline](../process/issue-completion-discipline.md).
+
+## BOOT-W02 delivered Linux prerequisite substage
+
+The shared package/Python command now accepts supported native/WSL2 Ubuntu.
+It does not project the full aggregate bootstrap envelope yet. Read-only modes
+return BLOCKED/2 for missing prerequisites and write nothing. An unchanged
+prepared host performs no writes. Apply shows separately approved bounded index
+refresh, then exact candidate installation consent, and separate user Python
+consent. Declining after refresh reports possible index changes. The shell's
+protected interpreter record precedes missing-interpreter APT; the existing
+protected preparation writer records full package attempts and observed state.
+Runtime and build locks are hash-checked before pip; editable installation uses
+--no-deps --no-build-isolation. No installer/reset, Windows, Incus daemon or
+kernel/network configuration is changed by this substage. Live qualification
+remains LIVE_CONSENT_MISSING for the new bootstrap behavior.

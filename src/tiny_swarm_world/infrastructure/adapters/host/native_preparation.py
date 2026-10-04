@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from dataclasses import replace
 import platform
 import shutil
 import socket
@@ -137,3 +138,13 @@ def _network_ready() -> bool:
         except OSError:
             continue
     return False
+
+
+class WslUbuntuPreparationInspector(NativePreparationInspector):
+    """Linux-only WSL facts; no Windows configuration or bridge ownership."""
+
+    def inspect(self) -> NativeHostFacts:
+        facts = super().inspect()
+        kernel = _read(Path("/proc/sys/kernel/osrelease")).casefold()
+        return replace(facts, wsl2="microsoft-standard" in kernel,
+                       systemd_ready=Path("/run/systemd/system").is_dir())

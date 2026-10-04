@@ -24,7 +24,7 @@ class AptHostPackageManagerTests(unittest.TestCase):
         with patch("os.geteuid", return_value=1000):
             manager.install(missing)
         commands = [call.args[0] for call in runner.run_text.call_args_list]
-        self.assertEqual(commands[2][:3], ("sudo", "apt-get", "update"))
+        self.assertEqual(commands[2][:4], ("sudo", "-n", "apt-get", "update"))
         self.assertEqual(commands[3][-1], "incus")
         self.assertNotIn("curl", commands[3])
         self.assertTrue(runner.run_text.call_args_list[2].kwargs["capture_output"])
