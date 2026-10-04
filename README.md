@@ -197,7 +197,8 @@ for the commands that change nodes, networking, Docker, Swarm and service stacks
 
 The planned complete host bootstrap interface and delivery gaps are defined in
 the [BOOT-W01 contract](documentation/contracts/bootstrap.md). Windows preparation
-and clean-host bootstrap extensions remain assigned to later work packages.
+remains assigned to later work packages. BOOT-W02 now provides the shared Linux
+package/Python prerequisite stage.
 
 On native Ubuntu 24.04 or 26.04 x86_64, prepare the host separately, then run the
 non-destructive installer. The installer does not invoke host preparation:
@@ -213,7 +214,13 @@ Ubuntu 24.04 remains a supported host path with separate live qualification.
 ```
 
 `prepare_linux.sh` shows its package plan and requires the operator to type
-`yes` before APT changes or local Python dependency bootstrap. `--dry-run` is
+`yes` before APT changes or local Python dependency bootstrap. From a complete
+trusted release, missing Python >=3.12 and venv support are bootstrapped by the
+shell boundary; Git is not needed to start preparation. Run as an ordinary user
+from an owned Linux-native directory: only APT elevates. The same prerequisite
+command supports Ubuntu 24.04/26.04 x86_64 under WSL2 with systemd and the WSL
+resource floor. Package/Python success does not verify Incus initialization,
+networking, Windows configuration or services. `--dry-run` is
 read-only for either script. The installer checks host, configuration,
 credentials and setup readiness before creating installation evidence. The
 native installer reconciles without resetting managed state. WSL2 retains the
@@ -288,7 +295,7 @@ and redact diagnostics before sharing them.
 | `platform verify` | Inspect the existing platform without repairing it. |
 | `platform reconcile --live` | Reconcile managed platform state with explicit consent; it is not a complete application update. |
 | `setup run --live` | Run the broader setup workflow without the installer's preliminary reset; it still changes infrastructure. |
-| `./prepare_linux.sh` | Separately qualify a native Ubuntu 24.04 or 26.04 host and install missing host dependencies with confirmation. |
+| `./prepare_linux.sh` | Prepare shared native/WSL2 Ubuntu 24.04/26.04 package and Python prerequisites with confirmation. |
 | `./install.sh` on native Linux | Verify preparation, then run setup without a reset. |
 | `./install.sh` on WSL2 | Reset the managed environment after confirmation, then perform fresh setup. |
 | Product update | Preview and apply one supported stack/service image transition with the documented `platform update` contract. |

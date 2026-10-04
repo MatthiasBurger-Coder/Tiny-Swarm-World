@@ -744,7 +744,6 @@ class TestInstaller(unittest.TestCase):
             commands,
             [
                 ["python3", "-m", "venv", paths.native_linux_venv.as_posix()],
-                [venv_python.as_posix(), "-m", "pip", "install", "--upgrade", "pip"],
                 [
                     venv_python.as_posix(),
                     "-m",
@@ -753,6 +752,8 @@ class TestInstaller(unittest.TestCase):
                     "--require-hashes",
                     "-r",
                     "requirements.lock",
+                    "-r",
+                    "requirements.build.lock",
                 ],
                 [
                     venv_python.as_posix(),
@@ -760,6 +761,7 @@ class TestInstaller(unittest.TestCase):
                     "pip",
                     "install",
                     "--no-deps",
+                    "--no-build-isolation",
                     "-e",
                     ".",
                 ],

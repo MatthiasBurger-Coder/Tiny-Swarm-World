@@ -59,6 +59,9 @@ def ensure_python_environment(
                 "Native Linux Python dependency bootstrap did not make required modules importable."
             )
         return venv_python.as_posix()
+    from tiny_swarm_world.infrastructure.adapters.installation.prerequisites import validate_assets
+
+    validate_assets(Path.cwd())
     completed = _run_installer_subprocess(
         [python_bin, "-m", "venv", paths.native_linux_venv.as_posix()],
         env=env,
@@ -70,11 +73,6 @@ def ensure_python_environment(
             "Install python3-venv and rerun install.sh."
         )
     _run_installer_subprocess(
-        [venv_python.as_posix(), "-m", "pip", "install", "--upgrade", "pip"],
-        env=dict(env),
-        check=True,
-    )
-    _run_installer_subprocess(
         [
             venv_python.as_posix(),
             "-m",
@@ -83,12 +81,14 @@ def ensure_python_environment(
             "--require-hashes",
             "-r",
             "requirements.lock",
+            "-r",
+            "requirements.build.lock",
         ],
         env=dict(env),
         check=True,
     )
     _run_installer_subprocess(
-        [venv_python.as_posix(), "-m", "pip", "install", "--no-deps", "-e", "."],
+        [venv_python.as_posix(), "-m", "pip", "install", "--no-deps", "--no-build-isolation", "-e", "."],
         env=dict(env),
         check=True,
     )
@@ -124,7 +124,7 @@ def _python_imports_available(python_bin: str, env: Mapping[str, str]) -> bool:
         and python_bin == "python3"
     ):
         return False
-    code = "import pydantic\nimport requests\nimport ruamel.yaml\nimport yaml\n"
+    code = "import sys\nif sys.version_info < (3, 12): raise SystemExit(1)\nimport pydantic\nimport requests\nimport ruamel.yaml\nimport yaml\n"
     return (
         _run_installer_subprocess(
             [python_bin, "-c", code],
@@ -161,6 +161,8 @@ def _run_installer_subprocess(
             stdout=stdout,
             stderr=stderr,
         )
+    except subprocess.CalledProcessError as exc:
+        raise InstallerError("Python dependency command failed; inspect the user venv and retry ./prepare_linux.sh --dry-run.") from exc
     except subprocess.TimeoutExpired as exc:
         raise InstallerError(
             f"Installer subprocess timed out after {timeout:g}s."
