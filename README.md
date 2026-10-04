@@ -195,6 +195,10 @@ they are separate from preparing the runtime package.
 Review the [live-operation surface catalog](documentation/system/live-operation-surfaces.adoc)
 for the commands that change nodes, networking, Docker, Swarm and service stacks.
 
+The planned complete host bootstrap interface and delivery gaps are defined in
+the [BOOT-W01 contract](documentation/contracts/bootstrap.md). Windows preparation
+and clean-host bootstrap extensions remain assigned to later work packages.
+
 On native Ubuntu 24.04 or 26.04 x86_64, prepare the host separately, then run the
 non-destructive installer. The installer does not invoke host preparation:
 

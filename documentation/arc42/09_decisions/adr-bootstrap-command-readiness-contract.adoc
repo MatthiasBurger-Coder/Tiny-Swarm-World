@@ -1,0 +1,72 @@
+= ADR: Bootstrap Command and Preparation Readiness Contract
+
+*Date:* 2026-10-04
+*Status:* Proposed; BOOT-W01 contract only, not runtime authorization or qualification.
+*Owners:* Tiny Swarm World lead architect; Senior System Architect review;
+BOOT-W02, W04 and W07 implementation owners accept their respective transitions.
+*Issue:* https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/453[#453]
+under https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/452[#452].
+
+== Context
+
+The accepted native preparation lifecycle requires Python >=3.12 before
+preparation, excludes WSL from native preparation and retains WSL's confirmed
+reset installer. #452 requests clean-host bootstrap on native Ubuntu and Windows
+11/WSL2, followed by ordinary non-destructive installation. The existing package,
+installation, host-control and Windows bridge owners remain reusable.
+
+W01 defines the shared contract before these missing capabilities are
+implemented. Describing future support as already delivered would conflict
+with the accepted lifecycle and verified scope of #427.
+
+== Proposed Decision
+
+Use the versioned `documentation/contracts/bootstrap.md` command, plan,
+readiness, privilege and preservation contract. The bare-host shell boundary
+may inspect without Python and, after explicit preparation consent, bootstrap
+minimal interpreter prerequisites. Once available, delegate to existing
+application preparation services and ports; keep full product dependencies out
+of early planning/imports. Product execution remains Linux/WSL only.
+
+Windows preparation owns feature/distro/systemd/resource setup through thin
+PowerShell entrypoints and scoped adapters, while the existing bridge retains
+exclusive TSW browser-routing ownership. Native preparation never constructs
+Windows adapters. Incus/LXC and managed Docker Swarm remain the target.
+
+Ordinary installation will reconcile on both native Linux and WSL; destructive
+reset keeps its separate exact confirmation and consent. Preparation approval
+never authorizes installation or reset. Every read-only mode writes no
+host/configuration/state/evidence data. Aggregate READY proves preparation
+prerequisites only, not deployed service success.
+
+== Acceptance and Supersession Boundaries
+
+This proposal changes no accepted ADR or delivered behavior. Before runtime
+changes, W02 accepts the missing-interpreter/bootstrap transition; W04 accepts
+Windows/WSL preparation and its target qualification; W07 accepts the WSL
+non-destructive installation transition. Record their targeted supersession of
+`adr-native-linux-preparation-and-install-lifecycle.adoc` and preserve its history.
+Do not treat W01 review as acceptance of these future runtime changes.
+
+The existing bridge ownership/ACL/lifecycle and live consent ADRs remain
+applicable. No new provider, orchestration engine, service catalog or generic
+host manager is introduced. W09 supplies exact-version live qualification;
+issue creation and this proposal do not authorize host mutation.
+
+== Rationale and Consequences
+
+A dependency-light boundary supports extracted releases on hosts missing Git
+or Python without duplicating the application orchestrator. Explicit plans and
+readiness outcomes provide shared Windows/Linux handoffs while retaining
+legacy capability statuses and installer exit codes.
+
+The implementation packages must cover absent interpreters, no-write planning,
+changed plans, foreign resource collisions, minimum privilege, restarts,
+interruption, partial effects and protected evidence. W08 supplies resumable
+records. Nontransactional package/feature work requires truthful partial state,
+not automatic whole-host rollback. Qualified Windows versions remain unknown
+until W09; existing #427 evidence cannot qualify these new bootstrap stages.
+
+An unaccepted transition blocks its implementing package, not this contract-only
+W01 delivery. Future packages must keep target and implemented documentation
+separate until checks and evidence establish the new behavior.
