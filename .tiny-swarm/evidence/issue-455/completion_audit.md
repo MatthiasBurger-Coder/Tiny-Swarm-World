@@ -72,3 +72,65 @@ Risks:
 
 Final decision:
 - PASS. Every extracted requirement has executable implementation and relevant local verification/evidence; all required local gates passed on final source. The independent audit completes R455-11 and authorizes local implementation DONE wording under repository completion policy. It does not authorize live infrastructure mutation or assert live/external verification.
+
+## Publication remediation audit addendum — 2026-10-04
+
+Decision: PASS
+
+The original report above remains historical evidence for the initial implementation.
+This addendum independently reviews the publication remediation from `82793042`
+for PR #466. Publication is now authorized; external merge readiness is a separate
+gate and has not passed merely because this local completion audit passes.
+
+Changed files reviewed:
+- Application `incus_preparation.py`: explicit equivalent readiness-status selection.
+- Infrastructure Incus `configuration.py`, `resources.py`, `runtime.py`: small
+  policy/validation extractions and equivalent dictionary construction; no safety
+  checks removed or compatibility rules relaxed.
+- New infrastructure Incus `consent.py`: dedicated daemon-thread console input
+  delivered to an asyncio Future. Cancellation stops the awaiting orchestration;
+  late answers cannot approve a cancelled Future, closed-loop callbacks are ignored,
+  and shutdown does not wait for an unanswered prompt.
+- Both preparation composition modules: adapter construction stays in existing
+  Incus composition, native facade forwards through its existing dependency.
+- `prepare_incus.py`: consent awaits the infrastructure boundary; reporting helpers
+  preserve consent, stage order, partial status and exit behavior.
+- `tests/test_incus_preparation.py`: meaningful event-loop responsiveness and real
+  asyncio.run shutdown regressions; narrower exception assertion scopes preserve
+  all prior assertions.
+- Updated implementation_summary, changed_files and test_results evidence.
+
+Requirements:
+- R455-01 through R455-12 remain implemented and verified locally.
+- R455-09 retains cancellation/bounded-failure coverage; cancellation before consent
+  never invokes apply even if a blocked reader later returns exact `yes`.
+- No open local requirements, unrelated changes, weakened architecture exceptions,
+  weakened guards or hidden scope reduction found.
+- The interim asyncio.to_thread variant is superseded: its executor-shutdown
+  regression was identified by independent testing and repaired before publication.
+
+Tests / checks reviewed:
+- `python3 tools/quality_gate.py quality`: PASS on unchanged final remediation
+  source, integration owner observed session50736 exit 0. Auditor independently
+  inspected `/tmp/issue-455-publication-quality-final.log`: all seven phases ran;
+  complexity 291 modules, seven import contracts kept, 43 architecture tests in
+  25.511s, typecheck 769 files, 2452 suite tests in 321.736s, OK (18 skips).
+- Independent Tester re-review: PASS, 74 Incus/architecture tests in 34.835s;
+  final composition consent regressions PASS, two tests in 0.069s. Tester additionally
+  verified late consent after cancellation never calls service.apply.
+- Focused final Incus suite: PASS, 31 tests in 3.982s.
+- Auditor independently executed `git diff --check`: PASS, exit 0.
+
+Risks and external status:
+- Live remains APPLICABLE_LIVE / LIVE_CONSENT_MISSING. No live commands were
+  performed by this auditor and no live success is claimed.
+- External publication checks are now applicable. The initial SonarCloud candidate
+  failed reliability; its passing coverage does not turn that failed gate green.
+  Actual final-candidate CI/SonarCloud reruns remain pending and must succeed before
+  merge. This audit does not grant EXTERNAL_GATE_VERIFIED or merge readiness.
+
+Final decision:
+- PASS for continued local issue implementation completion after remediation.
+  All prior acceptance criteria remain satisfied and final local quality plus
+  independent Tester re-review passed. Publication/merge remains subject to actual
+  final-candidate external checks and the authorized guarded publication lifecycle.

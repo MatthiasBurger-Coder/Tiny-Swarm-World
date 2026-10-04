@@ -31,3 +31,5 @@ and /tmp/issue-455-quality-final.log. Final complete gate must run on final sour
 No real Incus/systemd/group/APT/Docker/network mutation or live verification.
 
 Publication preflight: focused Incus/Linux/bootstrap regression command rerun unchanged; PASS, 84 tests in 9.482s, exit 0. git diff --check PASS.
+
+Publication remediation verification: 31 Incus tests PASS in 3.982s, including event-loop responsiveness and actual asyncio.run cancellation before blocked input returns. Independent Tester: Incus+architecture 74 tests PASS in 34.835s; late yes after cancellation never invoked apply. Final composition wiring two consent regressions PASS in 0.069s. Initial final-gate attempt correctly rejected composition fanout; corrected existing internal composition routing, complexity PASS (291 modules), without guard exemptions. Final full quality rerun PASS, observed exit 0; /tmp/issue-455-publication-quality-final.log (final source and consent composition wiring). Initial PR CI all Python jobs PASS; initial SonarCloud reliability FAILED, coverage82.3% PASS; merge waits for final candidate green.

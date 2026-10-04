@@ -48,3 +48,5 @@ The completed #355 workflow was preserved; no workflow execute or checkpoint wor
 
 Final independent completion audit: PASS. Final seven-phase local quality gate
 exit 0 (2450 tests, 18 skips) and final focused84 tests PASS. Status: DONE locally.
+
+Publication remediation: PR #466 initial SonarCloud gate identified blocking input in async orchestration. Consent now delegates through the native facade and existing Incus composition owner to a daemon-thread console adapter with cancellable Future delivery. Cancellation never waits for unanswered input or authorizes a late response. Exact yes/EOF semantics and re-inventory after approval remain preserved. Small reporting/configuration/resource validation helpers reduce cognitive complexity; exception-test setup now occurs outside assertRaises. No safety/quality bypass was introduced.

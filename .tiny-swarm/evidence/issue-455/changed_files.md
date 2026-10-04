@@ -47,3 +47,5 @@ or quality-policy change. Strict architecture allowlists register the new Incus
 entrypoint and add its forbidden-adapter mutation test; no cycle exceptions added.
 Existing W02 tests mock the separately verified new capability at their boundary.
 - `.tiny-swarm/evidence/issue-455/final_completion_report.md`
+
+Publication remediation adds `src/tiny_swarm_world/infrastructure/adapters/incus_preparation/consent.py` (cancellable console boundary).

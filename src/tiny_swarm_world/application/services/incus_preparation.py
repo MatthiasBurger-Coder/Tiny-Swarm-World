@@ -58,7 +58,11 @@ class IncusPreparationService:
         except (asyncio.CancelledError, KeyboardInterrupt):
             self._port.record("interrupted", planned, tuple(completed), tuple(uncertain))
             raise
-        status = "RESTART_REQUIRED" if expected.restart_required else "READY" if expected.verified else "PARTIAL"
+        status = "PARTIAL"
+        if expected.restart_required:
+            status = "RESTART_REQUIRED"
+        elif expected.verified:
+            status = "READY"
         return self._finish(status, planned, completed, uncertain,
                             "Log out and log in; rerun ./prepare_linux.sh." if expected.restart_required
                             else "Reinventory and approve the next Incus stage; services are not verified.",

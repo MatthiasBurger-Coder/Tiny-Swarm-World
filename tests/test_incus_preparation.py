@@ -338,14 +338,60 @@ class IncusAcceptanceTests(unittest.IsolatedAsyncioTestCase):
             self.assertTrue((await self.service.plan()).blockers)
 
     async def test_interruption_records_uncertain_action_and_propagates(self):
+        plan = await self.service.plan()
         with patch.object(self.adapter, "execute", side_effect=asyncio.CancelledError):
             with self.assertRaises(asyncio.CancelledError):
-                await self.service.apply(await self.service.plan(), approved=True)
+                await self.service.apply(plan, approved=True)
         self.assertEqual(self.evidence.write.call_args.kwargs["status"], "interrupted")
         self.assertEqual(self.evidence.write.call_args.kwargs["uncertain"], ("create:storage-pools:default",))
 
 
 class IncusBoundaryTests(unittest.IsolatedAsyncioTestCase):
+    async def test_consent_prompt_keeps_event_loop_responsive(self):
+        import threading
+        from tiny_swarm_world.prepare_incus import request_consent
+        released = threading.Event()
+        loop = asyncio.get_running_loop()
+        handle = loop.call_later(0.01, released.set)
+        def blocking_prompt(_prompt):
+            return "yes" if released.wait(1) else "no"
+        try:
+            with patch("builtins.input", side_effect=blocking_prompt):
+                self.assertTrue(await request_consent())
+        finally:
+            released.set()
+            handle.cancel()
+
+    def test_cancelled_consent_does_not_delay_runner_shutdown(self):
+        import threading
+        from tiny_swarm_world.prepare_incus import request_consent
+        started = threading.Event()
+        release = threading.Event()
+        returned = threading.Event()
+        def blocking_prompt(_prompt):
+            started.set()
+            release.wait(2)
+            return "yes"
+        async def cancel_prompt():
+            task = asyncio.create_task(request_consent())
+            while not started.is_set():
+                await asyncio.sleep(0.001)
+            task.cancel()
+            with self.assertRaises(asyncio.CancelledError):
+                await task
+        def runner():
+            asyncio.run(cancel_prompt())
+            returned.set()
+        worker = threading.Thread(target=runner, daemon=True)
+        try:
+            with patch("builtins.input", side_effect=blocking_prompt):
+                worker.start()
+                self.assertTrue(returned.wait(0.5), "Runner must finish before unanswered input returns")
+                self.assertFalse(release.is_set())
+        finally:
+            release.set()
+            worker.join(3)
+
     async def test_positive_bounded_commands_and_safe_error_output(self):
         with patch(f"{RUNTIME}.run_async_process", return_value=AsyncProcessResult(1, "secret", "secret")) as runner:
             with self.assertRaises(IncusPreparationFailure) as error:
@@ -372,8 +418,9 @@ class IncusBoundaryTests(unittest.IsolatedAsyncioTestCase):
                     await runtime.daemon_state()
 
     def test_subnet_exhaustion_is_bounded(self):
+        occupied = [("vpn", ipv4_subnet("10.0.0.0/8"))]
         with self.assertRaisesRegex(IncusPreparationFailure, "No collision-free"):
-            choose_subnet([("vpn", ipv4_subnet("10.0.0.0/8"))])
+            choose_subnet(occupied)
 
     def test_protected_redacted_action_evidence(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -392,8 +439,9 @@ class IncusBoundaryTests(unittest.IsolatedAsyncioTestCase):
         plan = IncusSnapshot("same", (action,))
         port = Mock(inspect=AsyncMock(return_value=plan), execute=AsyncMock(), action_verified=AsyncMock(return_value=False))
         port.record.side_effect = OSError("secret")
+        service = IncusPreparationService(port)
         with self.assertRaises(OSError):
-            await IncusPreparationService(port).apply(plan, approved=True)
+            await service.apply(plan, approved=True)
         port.execute.assert_not_called()
         port.record.side_effect = None
         port.record.return_value = "/private/evidence"

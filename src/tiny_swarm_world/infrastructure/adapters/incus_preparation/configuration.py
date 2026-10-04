@@ -37,12 +37,16 @@ def load_requirements(path: Path) -> IncusRequirements:
             raise IncusPreparationFailure("A shared profile has conflicting networks; review provider_config.yaml.")
         bindings[node.profile] = network
     profiles = tuple(profile for profile in config.profiles if profile.name in declared)
+    validate_profiles(profiles)
+    return IncusRequirements(resources.storage_pool,
+                             tuple(sorted(set(resources.network_mappings.values()))),
+                             profiles, tuple(sorted(bindings.items())))
+
+
+def validate_profiles(profiles: tuple[NodeProviderProfileRequirement, ...]) -> None:
     for profile in profiles:
         settings = required_profile_settings(profile)
         if profile.privileged_default or settings.get("security.privileged") == "true":
             raise IncusPreparationFailure("Privileged bootstrap profiles are forbidden; remove the privileged override.")
         if profile.host_network or profile.host_mounts or profile.capability_additions:
             raise IncusPreparationFailure("Host-access bootstrap profiles are forbidden; review provider_config.yaml.")
-    return IncusRequirements(resources.storage_pool,
-                             tuple(sorted(set(resources.network_mappings.values()))),
-                             profiles, tuple(sorted(bindings.items())))

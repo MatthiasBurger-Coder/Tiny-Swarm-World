@@ -5,7 +5,7 @@ import argparse
 import asyncio
 from collections.abc import Sequence
 from tiny_swarm_world.application.ports.incus_preparation import IncusPreparationFailure
-from tiny_swarm_world.infrastructure.composition_native_preparation import build_incus_preparation_service
+from tiny_swarm_world.infrastructure.composition_native_preparation import build_incus_preparation_service, request_incus_consent
 
 
 async def prepare(*, read_only: bool, service_profile: str) -> int:
@@ -14,28 +14,10 @@ async def prepare(*, read_only: bool, service_profile: str) -> int:
     # At most daemon, access and resource stages. Membership changes stop for login.
     for _ in range(3):
         plan = await service.plan()
-        for blocker in plan.blockers:
-            print(f"BLOCKED: {blocker}")
-        if plan.blockers:
-            print("Next: ./prepare_linux.sh --dry-run after resolving the reported blocker.")
-            return 4 if earlier_changes else 2
-        if plan.restart_required:
-            print("RESTART_REQUIRED: Log out and log in to activate incus-admin access; then ./prepare_linux.sh. No install handoff.")
-            return 3
-        if plan.verified:
-            print("READY: Current-user Incus version/info and declared storage/network/profiles verified. Services are not verified.")
-            print("Next: ./install.sh --preflight (aggregate/kernel/WSL handoff remains separately governed).")
-            return 0
-        for action in plan.actions:
-            print(f"Incus plan: {action.id}; properties={action.payload or action.name}; privilege={action.privilege}; timeout={action.timeout_seconds:g}s; retries=0; restart={action.restart}.")
-        print("Preserve existing daemon configuration, pools, bridges, profiles and unrelated instances.")
-        if read_only:
-            print("BLOCKED: Incus preparation actions are pending; no host/configuration/state/evidence changes. Next: ./prepare_linux.sh")
-            return 2
-        try:
-            approved = input("Apply exactly this Incus stage? Type 'yes' to continue: ") == "yes"
-        except EOFError:
-            approved = False
+        stop_code = report_plan(plan, earlier_changes=earlier_changes, read_only=read_only)
+        if stop_code is not None:
+            return stop_code
+        approved = await request_consent()
         result = await service.apply(plan, approved=approved)
         print(f"{result.status}: {result.message}")
         if result.evidence_path:
@@ -43,16 +25,52 @@ async def prepare(*, read_only: bool, service_profile: str) -> int:
         earlier_changes = earlier_changes or bool(result.completed)
         if result.stage_complete:
             continue
-        if result.status in {"READY", "RESTART_REQUIRED", "PARTIAL", "FAILED"}:
-            if result.status == "READY":
-                print("READY: Current-user Incus version/info and declared resources verified. Services are not verified.")
-                print("Next: ./install.sh --preflight (aggregate/kernel/WSL handoff remains separately governed).")
-            return result.exit_code
-        if not result.completed:
-            print("Next: ./prepare_linux.sh --dry-run")
-            return 4 if earlier_changes else result.exit_code
+        stop_code = report_result(result, earlier_changes=earlier_changes)
+        if stop_code is not None:
+            return stop_code
     print("BLOCKED: Stage budget exhausted. Next: ./prepare_linux.sh --dry-run")
     return 2
+
+
+def report_plan(plan, *, earlier_changes: bool, read_only: bool) -> int | None:
+    for blocker in plan.blockers:
+        print(f"BLOCKED: {blocker}")
+    if plan.blockers:
+        print("Next: ./prepare_linux.sh --dry-run after resolving the reported blocker.")
+        return 4 if earlier_changes else 2
+    if plan.restart_required:
+        print("RESTART_REQUIRED: Log out and log in to activate incus-admin access; then ./prepare_linux.sh. No install handoff.")
+        return 3
+    if plan.verified:
+        report_ready()
+        return 0
+    for action in plan.actions:
+        print(f"Incus plan: {action.id}; properties={action.payload or action.name}; privilege={action.privilege}; timeout={action.timeout_seconds:g}s; retries=0; restart={action.restart}.")
+    print("Preserve existing daemon configuration, pools, bridges, profiles and unrelated instances.")
+    if read_only:
+        print("BLOCKED: Incus preparation actions are pending; no host/configuration/state/evidence changes. Next: ./prepare_linux.sh")
+        return 2
+    return None
+
+
+async def request_consent() -> bool:
+    return await request_incus_consent()
+
+
+def report_ready() -> None:
+    print("READY: Current-user Incus version/info and declared storage/network/profiles verified. Services are not verified.")
+    print("Next: ./install.sh --preflight (aggregate/kernel/WSL handoff remains separately governed).")
+
+
+def report_result(result, *, earlier_changes: bool) -> int | None:
+    if result.status in {"READY", "RESTART_REQUIRED", "PARTIAL", "FAILED"}:
+        if result.status == "READY":
+            report_ready()
+        return result.exit_code
+    if not result.completed:
+        print("Next: ./prepare_linux.sh --dry-run")
+        return 4 if earlier_changes else result.exit_code
+    return None
 
 
 def main(argv: Sequence[str] | None = None) -> int:

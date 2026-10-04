@@ -91,3 +91,9 @@ def run_incus_preparation(*, read_only: bool, service_profile: str) -> int:
     from tiny_swarm_world.infrastructure import composition_incus_preparation
 
     return composition_incus_preparation.run_incus_preparation(read_only=read_only, service_profile=service_profile)
+
+
+async def request_incus_consent() -> bool:
+    from tiny_swarm_world.infrastructure import composition_incus_preparation
+
+    return await composition_incus_preparation.request_incus_consent()

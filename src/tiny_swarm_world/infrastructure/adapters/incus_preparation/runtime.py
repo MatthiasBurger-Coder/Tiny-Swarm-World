@@ -66,14 +66,18 @@ def named_resources(data: Any, kind: str) -> list[dict[str, Any]]:
         names.add(name)
         if kind == "instances":
             continue
-        config = item.get("config")
-        if not isinstance(config, dict) or any(not isinstance(key, str) or not isinstance(value, str) for key, value in config.items()):
-            raise IncusPreparationFailure("Incus resource configuration is unreadable.")
-        if kind == "profiles":
-            devices = item.get("devices")
-            if not isinstance(devices, dict) or any(not isinstance(device, dict) or any(not isinstance(value, str) for value in device.values()) for device in devices.values()):
-                raise IncusPreparationFailure("Incus profile devices are unreadable.")
+        validate_resource_config(item, kind)
     return items
+
+
+def validate_resource_config(item: dict[str, Any], kind: str) -> None:
+    config = item.get("config")
+    if not isinstance(config, dict) or any(not isinstance(key, str) or not isinstance(value, str) for key, value in config.items()):
+        raise IncusPreparationFailure("Incus resource configuration is unreadable.")
+    if kind == "profiles":
+        devices = item.get("devices")
+        if not isinstance(devices, dict) or any(not isinstance(device, dict) or any(not isinstance(value, str) for value in device.values()) for device in devices.values()):
+            raise IncusPreparationFailure("Incus profile devices are unreadable.")
 
 
 def account() -> tuple[str, bool, bool]:
@@ -94,7 +98,8 @@ def account() -> tuple[str, bool, bool]:
 async def daemon_state() -> dict[str, str]:
     output = await checked_command(("systemctl", "show", "incus.service", "--property=LoadState",
                                     "--property=ActiveState", "--property=UnitFileState"))
-    values = dict(line.split("=", 1) for line in output.splitlines() if "=" in line)
+    values = {key: value for line in output.splitlines() if "=" in line
+              for key, value in [line.split("=", 1)]}
     if (values.get("LoadState") != "loaded" or values.get("UnitFileState") == "masked"
             or values.get("ActiveState") not in {"active", "inactive"}):
         raise IncusPreparationFailure("Incus service is missing/masked/failed or changing; inspect systemctl status incus.service before retrying.")

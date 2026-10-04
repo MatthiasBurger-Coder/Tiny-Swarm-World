@@ -14,6 +14,9 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc.profile.policy import 
 )
 
 
+IPV4_ADDRESS = "ipv4.address"
+
+
 def create_action(kind: str, name: str, **properties: Any) -> IncusAction:
     return IncusAction(f"create:{kind}:{name}", kind, name,
                        json.dumps({"name": name, **properties}, sort_keys=True))
@@ -37,23 +40,12 @@ def resource_actions(requirements: IncusRequirements, inventory: dict[str, Any],
             subnet = choose_subnet(occupied)
             occupied.append((name, subnet))
             actions.append(create_action("networks", name, type="bridge", config={
-                "ipv4.address": f"{subnet.network_address + 1}/{subnet.prefixlen}",
+                IPV4_ADDRESS: f"{subnet.network_address + 1}/{subnet.prefixlen}",
                 "ipv4.nat": "true", "ipv4.dhcp": "true", "ipv6.address": "none",
             }))
         else:
             verify_bridge(network, occupied)
-    for profile in requirements.profiles:
-        devices: dict[str, dict[str, str]] = {}
-        network_name = dict(requirements.profile_networks).get(profile.name)
-        if network_name:
-            devices = {"root": {"type": "disk", "path": "/", "pool": requirements.storage},
-                       "eth0": {"type": "nic", "name": "eth0", "network": network_name}}
-        desired = create_action("profiles", profile.name, config=dict(required_profile_settings(profile)), devices=devices)
-        existing = find_resource(inventory["profiles"], profile.name)
-        if existing is None:
-            actions.append(desired)
-        elif not profile_compatible(existing, desired, profile_allows_project_proxy_devices(profile)):
-            raise IncusPreparationFailure("Profile name/configuration collision; preserve it and select a compatible declared profile in provider_config.yaml.")
+    actions.extend(profile_actions(requirements, inventory))
     return tuple(actions)
 
 
@@ -68,7 +60,7 @@ def occupied_subnets(networks: list[dict[str, Any]], routes: list[dict[str, Any]
                      links: list[dict[str, Any]]) -> list[tuple[str, IPv4Network]]:
     occupied: list[tuple[str, IPv4Network]] = []
     for network in networks:
-        address = network.get("config", {}).get("ipv4.address", "none")
+        address = network.get("config", {}).get(IPV4_ADDRESS, "none")
         if address not in {"none", "auto", ""}:
             occupied.append((network["name"], ipv4_subnet(address)))
     for route in routes:
@@ -103,12 +95,12 @@ def choose_subnet(occupied: list[tuple[str, IPv4Network]]) -> IPv4Network:
 def verify_bridge(network: dict[str, Any], occupied: list[tuple[str, IPv4Network]]) -> None:
     config = network.get("config", {})
     if (network.get("type") != "bridge" or network.get("managed") is not True
-            or network.get("status") != "Created" or config.get("ipv4.address", "none") in {"none", "auto", ""}
+            or network.get("status") != "Created" or config.get(IPV4_ADDRESS, "none") in {"none", "auto", ""}
             or config.get("ipv4.nat") != "true" or config.get("ipv4.dhcp", "true") != "true"
             or config.get("bridge.external_interfaces")):
         raise IncusPreparationFailure("Incompatible bridge configuration; preserve it and select a compatible resolved network in provider_config.yaml.")
-    subnet = ipv4_subnet(config["ipv4.address"])
-    address = ip_interface(config["ipv4.address"]).ip
+    subnet = ipv4_subnet(config[IPV4_ADDRESS])
+    address = ip_interface(config[IPV4_ADDRESS]).ip
     if not subnet.is_private or address in {subnet.network_address, subnet.broadcast_address}:
         raise IncusPreparationFailure("Bridge address is unsuitable for private container networking; review the resolved network.")
     if any(owner != network["name"] and subnet.overlaps(other) for owner, other in occupied):
@@ -130,3 +122,20 @@ def profile_compatible(existing: dict[str, Any], desired: IncusAction, allow_pro
             and all((not require_devices and name not in devices)
                     or all(devices.get(name, {}).get(key) == value for key, value in device.items())
                     for name, device in payload["devices"].items()))
+
+
+def profile_actions(requirements: IncusRequirements, inventory: dict[str, Any]) -> list[IncusAction]:
+    actions: list[IncusAction] = []
+    for profile in requirements.profiles:
+        devices: dict[str, dict[str, str]] = {}
+        network_name = dict(requirements.profile_networks).get(profile.name)
+        if network_name:
+            devices = {"root": {"type": "disk", "path": "/", "pool": requirements.storage},
+                       "eth0": {"type": "nic", "name": "eth0", "network": network_name}}
+        desired = create_action("profiles", profile.name, config=dict(required_profile_settings(profile)), devices=devices)
+        existing = find_resource(inventory["profiles"], profile.name)
+        if existing is None:
+            actions.append(desired)
+        elif not profile_compatible(existing, desired, profile_allows_project_proxy_devices(profile)):
+            raise IncusPreparationFailure("Profile name/configuration collision; preserve it and select a compatible declared profile in provider_config.yaml.")
+    return actions
