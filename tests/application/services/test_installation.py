@@ -36,14 +36,14 @@ class TestInstallationService(unittest.TestCase):
             self.evidence,
             self.presentation,
         )
-        self.options = InstallerOptions("service-access", True, True, True, False)
+        self.options = InstallerOptions("service-access", True, True, True, False, native_reconcile=False)
         self.environment = {"TSW_NODE_PROVIDER": "lxc_native"}
         self.cwd = Path("/repository")
         self.host.require_repository.side_effect = lambda *_: self.calls.append(
             "repository"
         )
         self.host.detect.side_effect = lambda *_: self.record(
-            "detect", HostRuntime("native_linux", "test")
+            "detect", HostRuntime("wsl2", "test")
         )
         self.host.authorize.side_effect = lambda *_, **__: self.calls.append(
             "authorize"
@@ -133,6 +133,8 @@ class TestInstallationService(unittest.TestCase):
         self.evidence.write.assert_any_call(Path("/evidence/setup-run.exit"), "0\n")
 
     def test_native_reconciliation_never_bootstraps_or_resets(self):
+        self.host.detect.side_effect = None
+        self.host.detect.return_value = HostRuntime("native_linux", "test")
         self.assertEqual(
             self.run_install(native_reconcile=True, confirm_reset=False), 0
         )
@@ -166,17 +168,52 @@ class TestInstallationService(unittest.TestCase):
                 self.process.phase.assert_not_called()
 
     def test_non_native_read_only_is_rejected_before_authorization(self):
-        with self.assertRaisesRegex(InstallerError, "require native Linux"):
+        with self.assertRaisesRegex(InstallerError, "read-only mode does not reset"):
             self.run_install(preflight_only=True)
         self.host.authorize.assert_not_called()
         self.configuration.snapshot.assert_not_called()
 
-    def test_native_mode_rejects_wsl_before_inventory(self):
-        self.host.detect.return_value = HostRuntime("wsl2", "test")
-        self.host.detect.side_effect = None
-        with self.assertRaisesRegex(InstallerError, "native Linux host"):
-            self.run_install(native_reconcile=True)
-        self.host.validate_native.assert_not_called()
+    def test_native_and_wsl_reconcile_reruns_keep_credential_inputs_and_skip_reset(self):
+        for runtime in ("native_linux", "wsl2"):
+            with self.subTest(runtime=runtime):
+                self.setUp()
+                self.host.detect.side_effect = None
+                self.host.detect.return_value = HostRuntime(runtime, "test")
+                self.environment["TSW_PORTAINER_ADMIN_PASSWORD"] = "existing-operator-value"
+                for _ in range(2):
+                    self.assertEqual(self.run_install(native_reconcile=True, confirm_reset=False), 0)
+                    self.assertEqual(self.process.phase.call_args.args[4]["TSW_PORTAINER_ADMIN_PASSWORD"], "existing-operator-value")
+                self.assertNotIn("reset", self.calls)
+                self.assertEqual(self.calls.count("setup"), 2)
+                self.process.ensure_python.assert_not_called()
+                self.presentation.confirm_reset.assert_not_called()
+
+
+    def test_wsl_read_only_bridge_failure_refuses_before_mutation(self):
+        self.host.bridge.side_effect = None
+        self.host.bridge.return_value = WindowsWslBridgeGuardResult(False, "state_missing", Path("/bridge"))
+        with self.assertRaisesRegex(InstallerError, "bridge is not prepared"):
+            self.run_install(native_reconcile=True, confirm_reset=False, preflight_only=True)
+        self.host.authorize.assert_not_called()
+        self.configuration.snapshot.assert_not_called()
+        self.credentials.prepare.assert_not_called()
+        self.process.phase.assert_not_called()
+
+    def test_old_positional_reset_request_fails_before_writes(self):
+        options = InstallerOptions("service-access", True, True, True, False)
+        with self.assertRaisesRegex(InstallerError, "does not reset"):
+            self.service.run(options, env=self.environment, cwd=self.cwd)
+        self.configuration.snapshot.assert_not_called()
+        self.credentials.prepare.assert_not_called()
+        self.evidence.directory.assert_not_called()
+
+    def test_unconfirmed_fresh_reset_is_rejected_before_mutating_ports(self):
+        with self.assertRaisesRegex(InstallerError, "explicit --confirm-reset"):
+            self.run_install(native_reconcile=False, confirm_reset=False)
+        self.host.authorize.assert_not_called()
+        self.configuration.snapshot.assert_not_called()
+        self.credentials.prepare.assert_not_called()
+        self.evidence.directory.assert_not_called()
 
     def test_bridge_failure_prevents_both_child_phases_and_records_skip(self):
         self.host.bridge.side_effect = None

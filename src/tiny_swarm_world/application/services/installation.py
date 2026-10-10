@@ -20,6 +20,20 @@ from tiny_swarm_world.application.ports.installation import (
 )
 
 
+def _validate_install_mode(options: InstallerOptions, host_runtime: HostRuntime) -> None:
+    """A host or presentation choice never grants destructive reset intent."""
+    if not options.native_reconcile and not options.confirm_reset:
+        raise InstallerError("Fresh-reset requires explicit --confirm-reset intent and confirmation.")
+    if options.confirm_reset and (options.native_reconcile or host_runtime.name == "native_linux" or options.preflight_only or options.dry_run):
+        raise InstallerError("Install reconciliation/read-only mode does not reset; use a separately confirmed platform reset.")
+
+
+def _validate_read_only_bridge(host: HostPreparation, runtime: HostRuntime,
+                               env: Mapping[str, str], cwd: Path) -> None:
+    if runtime.name == "wsl2" and not host.bridge(runtime, env, cwd).passed:
+        raise InstallerError("Windows <-> WSL bridge is not prepared; rerun Windows preparation.")
+
+
 class InstallationService:
     def __init__(
         self,
@@ -50,16 +64,14 @@ class InstallationService:
         install_reporter = reporter or self.presentation.reporter()
         self.host.require_repository(cwd)
         host_runtime = self.host.detect(env)
+        _validate_install_mode(options, host_runtime)
         if options.native_reconcile:
-            if host_runtime.name != "native_linux":
-                raise InstallerError(
-                    "Native reconciliation requires a native Linux host."
-                )
             self.host.validate_native(options, env, cwd)
             self.configuration.validate_read_only(options, env, cwd, host_runtime)
             if options.preflight_only or options.dry_run:
+                _validate_read_only_bridge(self.host, host_runtime, env, cwd)
                 self.presentation.message(
-                    "Native host, configuration, credentials and setup preflight passed without mutation."
+                    "Linux/WSL host, configuration, credentials and setup preflight passed without mutation."
                 )
                 if options.dry_run:
                     self.presentation.message(
@@ -70,7 +82,7 @@ class InstallationService:
                 return 0
         elif options.preflight_only or options.dry_run:
             raise InstallerError(
-                "Installer --preflight and --dry-run require native Linux."
+                "Installer --preflight and --dry-run require reconciliation mode."
             )
         paths = self.configuration.paths(env, cwd)
         self.host.authorize(
@@ -124,15 +136,11 @@ class InstallationService:
                 "RUNNING",
                 "install",
                 message=(
-                    f"Mode: {'native-reconcile' if options.native_reconcile else 'fresh-reset'}; Profile: {options.service_profile}; "
+                    f"Mode: {'reconcile' if options.native_reconcile else 'fresh-reset'}; Profile: {options.service_profile}; "
                     f"Provider: {install_env.get('TSW_NODE_PROVIDER', 'lxc_native')}"
                 ),
             )
         )
-        if options.native_reconcile and options.confirm_reset:
-            raise InstallerError(
-                "Native install does not reset; use a separately confirmed platform reset."
-            )
         if not options.native_reconcile:
             self.presentation.confirm_reset(options)
         if not options.headless and not self.process.recorder_available():

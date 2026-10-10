@@ -70,14 +70,16 @@ is repaired or handled under the repository blocker policy.
 
 For installation-relevant pull requests, installation and browser-verification
 applicability must always be classified. The existing canonical WSL2 reset
-live-install command remains:
+live-install compatibility command remains:
 
 ```bash
 ./install.sh --headless --confirm-reset --non-interactive-live-approval
 ```
 
-On qualified native Ubuntu 24.04 or 26.04, host preparation is a separate operator
-step. The native live-install command omits the destructive reset flag:
+Ordinary native and WSL2 installation now reconciles. The reset command above
+is explicitly destructive deprecated WSL compatibility, never the default.
+Host preparation remains a separate operator step. The ordinary live-install
+command omits the destructive reset flag:
 
 ```bash
 ./prepare_linux.sh --preflight

@@ -2,6 +2,7 @@
 . $PSScriptRoot/ResourceAdapters.ps1
 . $PSScriptRoot/SourceProof.ps1
 . $PSScriptRoot/Bridge.ps1
+. $PSScriptRoot/Handoff.ps1
 . $PSScriptRoot/Policy.ps1
 . $PSScriptRoot/Application.ps1
 . $PSScriptRoot/Adapters.ps1

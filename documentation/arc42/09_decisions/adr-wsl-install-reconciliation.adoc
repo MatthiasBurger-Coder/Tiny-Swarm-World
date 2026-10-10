@@ -1,0 +1,43 @@
+= ADR: Preparation handoff and ordinary WSL installation reconciliation
+
+*Date:* 2026-10-10
+*Status:* Accepted after independent System Architect review for issue #459 on 2026-10-10. Local policy acceptance; no new live qualification.
+
+== Decision
+
+Ordinary install reconciles on native Ubuntu and supported WSL2 Ubuntu. Preparation
+remains a separate operator action using prepare_linux.sh for package/Python,
+Incus and network capabilities. Installation checks prerequisites; it never
+implicitly resets or runs host preparation. Linux-native checkout, runtime and
+evidence storage remain required by the standard path.
+
+The legacy InstallerOptions.native_reconcile name is retained for compatibility;
+it now denotes preparation-separated reconciliation on either host. The simple
+and lower-level installer entrypoints select reconciliation by default. Application
+policy rejects an unconfirmed fresh-reset mode before credentials/evidence writes.
+
+WSL --confirm-reset remains an explicitly destructive legacy compatibility request
+and exact confirmation. It forwards RESET_TINY_SWARM_PLATFORM to the governed reset
+CLI, separately from live approval, and emits a deprecation notice recommending
+a separately confirmed platform reset followed by ordinary install. Native install
+continues to refuse that flag. No deprecation removal date is established here. Python compatibility callers
+must explicitly pass native_reconcile=False together with confirm_reset=True;
+older positional confirmed-reset calls fail safely before writes.
+No headless flag, stdin absence, live approval or host classification implies reset.
+
+Preparation prints the selected profile/checkout install command only after shared
+Linux stages succeed. Windows lifecycle/resource/bridge readiness is distinguished
+from shared Linux readiness and service verification. Windows prints a command
+bound to the observed ordinary account, selected registration and explicitly
+selected Linux checkout, leaving stdin/consent and child exits to the interactive
+WSL console. Automated PowerShell installation is optional and is not introduced.
+
+== Supersession and verification
+
+This narrowly supersedes the WSL reset-default deferral in
+adr-native-linux-preparation-and-install-lifecycle.adoc and the WSL reset-wrapper
+description in adr-classic-update-contract.adoc. Provider, bridge, source integrity,
+fixed service/resource selection, evidence and live-consent guards remain in force.
+Local mocked policy/path/PowerShell tests and QUALITY.md establish local behavior.
+New live installation/preservation qualification requires separate consent and
+exact committed SHA evidence; issue creation grants no host mutation authority.

@@ -18,7 +18,7 @@ from tiny_swarm_world.infrastructure.adapters.installation import host, configur
 
 
 class TestInstaller(unittest.TestCase):
-    def _isolated_install(self, root, *, environment=None, phase=None):
+    def _isolated_install(self, root, *, environment=None, phase=None, runtime="native_linux"):
         source = root / "infra"
         shutil.copytree(Path("infra/config"), source / "config")
         env_file = root / "operator.env"
@@ -30,7 +30,7 @@ class TestInstaller(unittest.TestCase):
         }
         stack = ExitStack()
         self.addCleanup(stack.close)
-        stack.enter_context(patch.object(host, "detect_host_runtime", return_value=installer.HostRuntime("native_linux", "test")))
+        stack.enter_context(patch.object(host, "detect_host_runtime", return_value=installer.HostRuntime(runtime, "test")))
         stack.enter_context(patch.object(host, "authorize_project_filesystem"))
         stack.enter_context(patch.object(process, "ensure_python_environment", return_value="python3"))
         stack.enter_context(patch.object(configuration, "_validate_native_installation_read_only"))
@@ -130,7 +130,7 @@ class TestInstaller(unittest.TestCase):
         for failure in ("compose", "concurrency", "mirror", "permissions", "proxy", "bridge", "infisical-mode", "infisical-url", "nexus-port"):
             with self.subTest(failure=failure), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
-                environment, source, env_file, phase = self._isolated_install(root)
+                environment, source, env_file, phase = self._isolated_install(root, runtime="wsl2", environment={"TSW_WINDOWS_EXPOSURE": "disabled"})
                 if failure == "compose":
                     (source / "config/compose/swagger/docker-compose.yml").write_text("services: [private-marker", encoding="utf-8")
                 elif failure == "concurrency":
@@ -169,7 +169,7 @@ class TestInstaller(unittest.TestCase):
                 (root / "operator.env").write_text("TSW_SETUP_MAX_CONCURRENCY=0\n", encoding="utf-8")
                 return 0
 
-            environment, _, _, phase = self._isolated_install(root, phase=run_phase)
+            environment, _, _, phase = self._isolated_install(root, phase=run_phase, runtime="wsl2", environment={"TSW_WINDOWS_EXPOSURE": "disabled"})
             result = installer.run(presentation.parse_args(("--confirm-reset", "--non-interactive-live-approval", "--headless")), env=environment, cwd=Path.cwd(), reporter=Mock())
             self.assertEqual(0, result)
             self.assertEqual(2, phase.call_count)
@@ -489,7 +489,7 @@ class TestInstaller(unittest.TestCase):
                     patch.object(configuration, "_configuration_snapshot", return_value=nullcontext({"TSW_INFRA_ROOT": tempdir})),
                     patch("tiny_swarm_world.infrastructure.adapters.repositories.installer_configuration_repository.InstallerConfigurationRepository.validate_environment"),
                     patch.object(host, "detect_host_runtime",
-                        return_value=installer.HostRuntime("native_linux", "test"),
+                        return_value=installer.HostRuntime("wsl2", "test"),
                     ),
                     patch.object(host, "authorize_project_filesystem"),
                     patch.object(process, "ensure_python_environment", return_value="python3"),
@@ -665,7 +665,7 @@ class TestInstaller(unittest.TestCase):
 
     def test_installer_orders_host_filesystem_before_dependency_bootstrap(self):
         calls: list[str] = []
-        runtime = installer.HostRuntime("native_linux", "test")
+        runtime = installer.HostRuntime("wsl2", "test")
 
         def detect(_: object) -> installer.HostRuntime:
             calls.append("host")

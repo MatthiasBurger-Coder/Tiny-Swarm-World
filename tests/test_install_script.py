@@ -70,7 +70,7 @@ class TestInstallScript(unittest.TestCase):
             self.assertIn("live_approval_source=operator_prompt", context)
             self.assertIn("terminal_recording_mode=terminal_recorder", context)
             self.assertIn("reset_confirmation_present=yes", context)
-            self.assertIn("reset_confirmation_source=interactive_prompt", context)
+            self.assertIn("reset_confirmation_source=explicit_flag", context)
             self.assertIn("reset_exit=0", context)
             self.assertIn("setup_exit=0", context)
 
@@ -157,13 +157,14 @@ class TestInstallScript(unittest.TestCase):
                 ],
             )
 
-    def test_install_refuses_missing_reset_confirmation_before_script_execution(self):
-        with _install_script_fixture(reset_confirmation="wrong") as fixture:
+    def test_install_default_never_treats_stdin_as_reset_intent(self):
+        with _install_script_fixture() as fixture:
+            fixture.extra_args = ()
             result = fixture.run()
-
-            self.assertEqual(result.returncode, 1)
+            # Unsupported fixture host is refused by reconciliation preflight.
+            self.assertNotEqual(result.returncode, 0)
             self.assertEqual(fixture.recorded_commands(), [])
-            self.assertIn("confirmation did not match", result.stderr)
+            self.assertFalse((fixture.root / ".tiny-swarm-world" / "evidence").exists())
 
     def test_install_confirm_reset_flag_skips_interactive_reset_phrase(self):
         with _install_script_fixture(
@@ -423,7 +424,7 @@ class _InstallScriptFixture:
     ):
         self.reset_exit = reset_exit
         self.setup_exit = setup_exit
-        self.extra_args = extra_args
+        self.extra_args = (("--confirm-reset",) if "--preflight" not in extra_args else ()) + extra_args
         self.reset_confirmation = reset_confirmation
         self.secret_environment = secret_environment
         self.skip_native_dependency_bootstrap = skip_native_dependency_bootstrap
@@ -484,7 +485,7 @@ class _InstallScriptFixture:
             ],
             cwd=self.root,
             env=env,
-            input=f"{self.reset_confirmation}\n",
+            input="",
             text=True,
             capture_output=True,
             check=False,

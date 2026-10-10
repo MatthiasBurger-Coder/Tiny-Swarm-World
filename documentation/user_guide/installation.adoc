@@ -14,9 +14,10 @@ step; project automation itself continues to run from Linux or WSL.
 
 == Choose The Right Operation
 
-This page describes installation. On WSL2, *the installer resets managed Tiny
-Swarm World nodes before setup; their data may be lost.* On qualified native
-Ubuntu 24.04 or 26.04, it reconciles without an automatic reset. For an existing
+This page describes installation. On supported WSL2 and native Ubuntu 24.04 or
+26.04, ordinary installation reconciles without an automatic reset. Existing
+managed nodes, data and credentials are preserved. Explicit WSL `--confirm-reset`
+is a deprecated destructive compatibility request; its managed-node data may be lost. For an existing
 environment, start with link:{user-guide-prefix}usage.adoc#daily-operation[Daily operation].
 A reset is not a repair step or a product update.
 
@@ -735,10 +736,10 @@ For Windows browsers, use the managed bridge configured above. The bridge
 maintains the Windows host entries; do not add a second competing set.
 Name resolution alone does not establish forwarding, TLS trust or service health.
 
-=== 7. Run The WSL2 Fresh Install
+=== 7. Run The WSL2 Installation
 
-*This WSL2 step resets the managed environment before installation.* Complete the
-checklist above and preserve needed data first. Use the default
+This WSL2 step reconciles the managed environment. Complete the checklist above
+and shared Linux preparation first; keep checkout/runtime/evidence on Linux-native storage. Use the default
 `service-access` profile for the full local runtime. The
 current LXC Swarm ingress path requires an explicit privileged-ingress opt-in
 when the managed Incus profile needs privileged Swarm settings:
@@ -746,22 +747,24 @@ when the managed Incus profile needs privileged Swarm settings:
 [source,bash]
 ----
 export TSW_LXC_ALLOW_PRIVILEGED_SWARM_INGRESS=1
-./install.sh --headless --confirm-reset --non-interactive-live-approval
+./install.sh --headless --non-interactive-live-approval
 ----
 
 Without `--headless`, the installer uses the interactive terminal recorder.
-Without `--confirm-reset`, it asks for the exact reset phrase before the
-fresh-install reset. Without `--non-interactive-live-approval`, it asks the
+Without `--confirm-reset`, reset is skipped. The flag explicitly requests and
+confirms deprecated destructive fresh-reset compatibility; it forwards the exact
+`RESET_TINY_SWARM_PLATFORM` confirmation to the reset CLI. Without `--non-interactive-live-approval`, it asks the
 normal live-infrastructure confirmation prompt.
 
-The wrapper first runs:
+Only an explicit WSL `--confirm-reset` request first runs:
 
 [source,bash]
 ----
 PYTHONPATH=src python3 -m tiny_swarm_world platform reset --live --confirm RESET_TINY_SWARM_PLATFORM --service-profile service-access
 ----
 
-Only after reset succeeds does it run:
+Ordinary installation runs setup directly; explicit reset installation proceeds
+to setup only after reset succeeds:
 
 [source,bash]
 ----
@@ -1076,7 +1079,7 @@ and their service data. The prepared host, operator configuration and
 unrelated provider resources are retained; this is a fresh managed platform,
 not the clean-host qualification scenario in issue #427.
 
-For a deliberate WSL2 fresh reset and installation with local evidence capture, use:
+For ordinary WSL2 reconciliation with local evidence capture, use:
 
 [source,bash]
 ----
@@ -1086,11 +1089,11 @@ For a deliberate WSL2 fresh reset and installation with local evidence capture, 
 `install.sh` is intentionally a minimal Linux/WSL bootstrapper. The
 authoritative installer policy is `python3 -m tiny_swarm_world.simple_installer`:
 that Python entry point owns secret handling, host-runtime detection, evidence
-layout, host-specific setup sequencing, dependency bootstrap, and headless
+layout, shared reconciliation sequencing, prepared-Python selection, and headless
 execution. The shell wrapper only verifies the repository shape and delegates.
 
-For deliberate WSL2 test-system automation, the wrapper confirmation prompt can be
-replaced by an explicit flag:
+For deliberately destructive WSL2 test-system automation, the deprecated reset
+compatibility request requires its explicit exact confirmation flag:
 
 [source,bash]
 ----
@@ -1099,8 +1102,7 @@ replaced by an explicit flag:
 
 The CLI live-infrastructure prompt is separate from the reset prompt. Normal
 wrapper runs keep that prompt interactive inside the terminal recorder, which
-inherits the calling terminal's standard input. Answer `y` when prompted in
-the reset and setup phases. For
+inherits the calling terminal's standard input. Answer `y` when prompted in setup (and reset only for an explicit reset request). For
 deliberate non-interactive automation, pass an explicit live-approval flag:
 
 [source,bash]
@@ -1122,8 +1124,9 @@ TSW_INSTALL_HEADLESS=1 ./install.sh
 ----
 
 Headless mode executes the same host-specific setup commands and preserves
-command exit codes. WSL2 writes reset and setup phase evidence; native Linux
-writes setup evidence with an explicit reset-skipped context entry.
+command exit codes. Ordinary WSL2 and native Linux write setup evidence with an
+explicit reset-skipped context entry. Reset evidence exists only for explicit WSL
+fresh-reset compatibility.
 
 The wrapper writes run context, reset logs, setup logs and exit codes below
 `${XDG_STATE_HOME:-$HOME/.local/state}/tiny-swarm-world/evidence/installation-tests/<host-runtime>/<UTC timestamp>/`
@@ -1211,8 +1214,9 @@ error and does not silently continue:
 export TSW_INSTALL_SUBPROCESS_TIMEOUT_SECONDS=900
 ----
 
-On WSL2, `install.sh` is a fresh-install entry point. It first calls the governed
-destructive reset workflow:
+On WSL2, ordinary `install.sh` reconciles existing state. Only the deprecated
+explicit `./install.sh --confirm-reset` compatibility request first calls the
+governed destructive reset workflow:
 
 [source,bash]
 ----
@@ -1227,7 +1231,8 @@ default is `service-access`, so the effective reset command is:
 PYTHONPATH=src python3 -m tiny_swarm_world platform reset --live --confirm RESET_TINY_SWARM_PLATFORM --service-profile service-access
 ----
 
-Only after reset succeeds does it call the canonical live setup workflow:
+Ordinary installation calls the canonical live setup workflow directly; an
+explicit reset request reaches setup only after successful reset:
 
 [source,bash]
 ----
@@ -1260,11 +1265,10 @@ run` require:
 * answering `y` at the short live-infrastructure confirmation prompt.
 
 `platform reset` and `platform destroy` additionally require their exact
-confirmation phrases. `install.sh` asks for
-`RESET_TINY_SWARM_PLATFORM` before it runs the reset prelude unless the
-operator supplies `--confirm-reset`. The flag confirms only the wrapper prompt;
-the reset prelude still calls `platform reset --confirm
-RESET_TINY_SWARM_PLATFORM`.
+confirmation phrases. Ordinary `install.sh` has no reset prelude. Explicit WSL
+`--confirm-reset` requests and confirms its deprecated destructive compatibility
+prelude, which calls `platform reset --confirm RESET_TINY_SWARM_PLATFORM`.
+Headless mode and live approval never imply reset intent.
 
 == LXC Proxy Drift Repair
 

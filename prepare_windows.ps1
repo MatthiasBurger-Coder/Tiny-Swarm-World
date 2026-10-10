@@ -2,14 +2,14 @@
 [CmdletBinding()]
 param(
     [switch]$Help,[switch]$Preflight,[switch]$DryRun,[switch]$Json,[switch]$ApproveApply,
-    [string]$Distro='',[string]$UbuntuRelease='',[string]$ServiceProfile='service-access',
+    [string]$Distro='',[string]$UbuntuRelease='',[string]$LinuxCheckout='',[string]$ServiceProfile='service-access',
     [switch]$QualificationRun,[string]$ApprovedPlan,
     [string]$QualificationHost,[string]$QualificationDistro,[string]$QualificationRevision,[string]$RecoveryReference,
     [Nullable[int]]$WslMemoryGiB,[Nullable[int]]$WslProcessors,[Nullable[int]]$WslSwapGiB,
     [int]$ProbeTimeoutSeconds=15,[int]$ActionTimeoutSeconds=900
 )
 $ErrorActionPreference='Stop'
-$requiredAssets=@('Preparation.psm1','Policy.ps1','Application.ps1','Adapters.ps1','SourceProof.ps1','Download.ps1','linux-config.sh','Resources.ps1','ResourceAdapters.ps1','ResourceHost.ps1','linux-resources.sh','resource-projection.json','Bridge.ps1')
+$requiredAssets=@('Preparation.psm1','Policy.ps1','Application.ps1','Adapters.ps1','SourceProof.ps1','Download.ps1','linux-config.sh','Resources.ps1','ResourceAdapters.ps1','ResourceHost.ps1','linux-resources.sh','resource-projection.json','Bridge.ps1','Handoff.ps1','linux-handoff.sh')
 foreach($asset in $requiredAssets) {
     $path=Join-Path $PSScriptRoot ('tools/windows/preparation/'+$asset)
     if(!(Test-Path -LiteralPath $path -PathType Leaf)) {
@@ -35,6 +35,7 @@ Invalid=$invalid
 RepositoryRoot=$PSScriptRoot
 Distro=$Distro
 UbuntuRelease=$UbuntuRelease
+LinuxCheckout=$LinuxCheckout
 ServiceProfile=$ServiceProfile
 Json=$Json.IsPresent
 ApproveApply=$ApproveApply.IsPresent

@@ -50,7 +50,7 @@ function Invoke-PreparationProcess {
     } finally {$process.Dispose()}
 }
 function Get-PreparationSource($Options) {
-    $assets=@('prepare_windows.ps1','tools/windows/preparation/Preparation.psm1','tools/windows/preparation/Policy.ps1','tools/windows/preparation/Application.ps1','tools/windows/preparation/Adapters.ps1','tools/windows/preparation/linux-config.sh','tools/windows/preparation/Download.ps1','tools/windows/preparation/SourceProof.ps1','tools/windows/preparation/Resources.ps1','tools/windows/preparation/ResourceAdapters.ps1','tools/windows/preparation/ResourceHost.ps1','tools/windows/preparation/linux-resources.sh','tools/windows/preparation/resource-projection.json','src/tiny_swarm_world/domain/preflight/resources.py','src/tiny_swarm_world/domain/host_environment.py','infra/config/node-providers/provider_config.yaml','tools/build_wsl_resource_projection.py','tools/windows/preparation/Bridge.ps1','tools/windows/tws-wsl-bridge.ps1','tools/windows/tws-wsl-bridge-service.ps1','tools/windows/tws-wsl-bridge.config.json','infra/config/ports.yaml')
+    $assets=@('install.sh','prepare_linux.sh','tools/windows/preparation/Handoff.ps1','tools/windows/preparation/linux-handoff.sh','prepare_windows.ps1','tools/windows/preparation/Preparation.psm1','tools/windows/preparation/Policy.ps1','tools/windows/preparation/Application.ps1','tools/windows/preparation/Adapters.ps1','tools/windows/preparation/linux-config.sh','tools/windows/preparation/Download.ps1','tools/windows/preparation/SourceProof.ps1','tools/windows/preparation/Resources.ps1','tools/windows/preparation/ResourceAdapters.ps1','tools/windows/preparation/ResourceHost.ps1','tools/windows/preparation/linux-resources.sh','tools/windows/preparation/resource-projection.json','src/tiny_swarm_world/domain/preflight/resources.py','src/tiny_swarm_world/domain/host_environment.py','infra/config/node-providers/provider_config.yaml','tools/build_wsl_resource_projection.py','tools/windows/preparation/Bridge.ps1','tools/windows/tws-wsl-bridge.ps1','tools/windows/tws-wsl-bridge-service.ps1','tools/windows/tws-wsl-bridge.config.json','infra/config/ports.yaml')
     $hashes=[ordered]@{}
     foreach($asset in $assets){$path=Join-Path $Options.RepositoryRoot $asset
     if(!(Test-Path -LiteralPath $path -PathType Leaf)){return @{verified=$false
@@ -232,6 +232,20 @@ function Get-PreparationInventory($Options) {
     $facts.bridge_facts=Get-PreparationBridgeInventory $Options $facts
     return $facts
 }
+function Get-PreparationHandoffInventory($Options,$Facts,$Source) {
+    if($Facts.running -ne $true -or $Facts.pid1 -ne 'systemd' -or $Facts.uid -lt 1000 -or $Facts.user -cnotmatch '\A[a-z_][a-z0-9_-]{0,31}\z' -or !$Source.verified -or !$Source.clean){return @{handoff_ready=$false}}
+    $clock=[Diagnostics.Stopwatch]::StartNew()
+    $running=Invoke-PreparationProcess (Get-PreparationExecutable 'wsl.exe') @('--list','--running','--quiet') $Options.ProbeTimeoutSeconds
+    $names=@(($running.stdout -replace "`0",'') -split '\r?\n' | ForEach-Object{$_.Trim()} | Where-Object{$_})
+    if($running.exit_code -ne 0 -or $names -cnotcontains $Options.Distro){return @{handoff_ready=$false}}
+    $remaining=$Options.ProbeTimeoutSeconds-[int][Math]::Ceiling($clock.Elapsed.TotalSeconds)
+    if($remaining -le 0){return @{handoff_ready=$false}}
+    $script=Get-Content -Raw -LiteralPath (Join-Path $Options.RepositoryRoot 'tools/windows/preparation/linux-handoff.sh')
+    $probe=Invoke-PreparationProcess (Get-PreparationExecutable 'wsl.exe') @('--distribution',$Options.Distro,'--user',$Facts.user,'--exec','/bin/sh','-s','--',[string]$Options.LinuxCheckout,$Source.revision) $remaining $script
+    $result=@{handoff_ready=$false}
+    if($probe.exit_code -eq 0){foreach($line in ($probe.stdout -split '\n')){if($line -match '^(handoff_ready|handoff_checkout)=(.*)$'){$result[$Matches[1]]=$(if($Matches[1] -eq 'handoff_ready'){$Matches[2].Trim() -ceq 'true'}else{$Matches[2].Trim()})}}}
+    return $result
+}
 function Assert-PreparationEvidencePath($Path) {
     $current=$Path
     $sid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value
@@ -381,6 +395,7 @@ function New-PreparationPorts {
     if([Environment]::UserInteractive){ return ((Read-Host 'Approve this exact preparation plan? Type yes') -ceq 'yes') }
     return $false}
     Inventory=${function:Get-PreparationInventory}
+    HandoffInventory=${function:Get-PreparationHandoffInventory}
     SourceIdentity=${function:Get-PreparationSource}
     ProtectEvidence=${function:Protect-PreparationEvidence}
     WriteEvidence=${function:Write-PreparationEvidence}

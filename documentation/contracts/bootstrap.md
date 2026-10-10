@@ -25,7 +25,7 @@ capability check proves only that capability, never complete installation readin
 | `prepare_linux.sh`, BOOT-01/04 | `prepare_linux.py`, `infrastructure/composition_native_preparation.py`, `application/services/native_preparation.py`; qualify native Ubuntu, list/install missing profile packages after confirmation | W02: clean-host Python and WSL Ubuntu bootstrap; W01: full host-plan contract |
 | Package facts/policy | `domain/native_preparation.py`, `application/ports/native_preparation.py`, `infrastructure/adapters/host/native_preparation.py`, `infrastructure/adapters/native_package_manager.py`; recheck before APT | W02 extends existing inspector/package ports; no parallel package service |
 | Python dependency bootstrap | `composition_installation.py` facade and `infrastructure/adapters/installation/process.py`; user-local venv, hash-checked `requirements.lock`, editable install without dependency resolution | W02 supplies interpreter/venv prerequisites before dependency imports |
-| `install.sh`, BOOT-07 | `simple_installer.py`, `composition_installation.py`, `application/services/installation.py`, installation ports/adapters; native reconcile without reset, WSL confirmed fresh reset | W07: ordinary non-destructive WSL install and handoff; keep explicit reset separate |
+| `install.sh`, BOOT-07 | `simple_installer.py`, `composition_installation.py`, `application/services/installation.py`, installation ports/adapters; native/WSL reconcile without reset; explicit deprecated WSL confirmed fresh reset | W07: selected-user/checkout handoff is locally delivered; W09 live qualification remains separate |
 | `tsw`, `host prepare` | `__main__.py`, CLI registry/parser/consent/commands, `PrepareHostWithPreflight`, `HostPreparationService`, `PortHostPreparation` | Already consent-guarded; not a bare-host package bootstrap command |
 | Native `host prepare` | `NativeLinuxHostPreparation` verifies kernel controls; does not change them | Separate `prepare_linux.sh` capabilities own consented W03 Incus and W06 kernel/network preparation; installer/host prepare remain verification-only |
 | `host verify` | CLI command calls read-only hang diagnostics; capability-level diagnostics, not aggregate installation readiness | W01 defines aggregate below; implementation integration in W07 |
@@ -539,3 +539,21 @@ Network, installation, restart and browser/login qualification remain separately
 APPLICABLE_LIVE / LIVE_CONSENT_MISSING until authorized recoverable-host runs.
 No mocked, skipped, stale or legacy #427 observation is new live proof.
 See [operator instructions](../user_guide/network-preparation.md).
+
+## BOOT-W07 preparation-to-install handoff
+
+Ordinary installation uses prepared-Python reconciliation on native Linux and
+WSL2; reset is never inferred from host, headless mode or live approval. Explicit
+WSL --confirm-reset retains deprecated destructive compatibility with exact CLI
+confirmation. Native installation continues to refuse it. See
+[the W07 ADR](../arc42/09_decisions/adr-wsl-install-reconciliation.adoc).
+
+Linux preparation emits the selected checkout/profile install command only after
+package/Python, Incus and network success. Windows prints selected distribution/
+ordinary-account/Linux-checkout advice after bounded read-only inspection. Its
+capability readiness remains separate from Linux preparation and services. No
+automated PowerShell install/copy is provided. Stopped targets are never started
+by read-only inventory; missing/unsafe checkout blocks handoff. All stage consent,
+finite timeout, source/bridge/provider and protected Linux evidence guards remain.
+New installation/rerun/browser qualification is APPLICABLE_LIVE /
+LIVE_CONSENT_MISSING, not proven by the local gate.

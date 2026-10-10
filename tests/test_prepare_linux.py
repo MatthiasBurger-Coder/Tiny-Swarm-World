@@ -23,7 +23,7 @@ from tiny_swarm_world.domain.native_preparation import (
     PROFILE_MINIMUM_FREE_DISK_BYTES,
     PROFILE_MINIMUM_MEMORY_BYTES,
 )
-from tiny_swarm_world.prepare_linux import main, _prepare_python_dependencies
+from tiny_swarm_world.prepare_linux import main, _prepare_python_dependencies, _prepare_remaining
 from tiny_swarm_world.infrastructure.adapters.native_preparation_evidence import (
     NativePreparationEvidenceWriter,
 )
@@ -296,6 +296,9 @@ class NativePreparationServiceTests(unittest.TestCase):
 
 class NativePreparationCliTests(unittest.TestCase):
     def setUp(self):
+        paths = patch("tiny_swarm_world.prepare_linux._validate_mutation_paths", return_value=("mock-trusted-source",))
+        paths.start()
+        self.addCleanup(paths.stop)
         boundary = patch("tiny_swarm_world.prepare_linux.run_incus_preparation", return_value=0)
         self.incus_boundary = boundary.start()
         self.addCleanup(boundary.stop)
@@ -305,6 +308,33 @@ class NativePreparationCliTests(unittest.TestCase):
         evidence = patch("tiny_swarm_world.prepare_linux.record_python_preparation", return_value=Path("/redacted/python-evidence"))
         evidence.start()
         self.addCleanup(evidence.stop)
+
+    def test_handoff_requires_every_stage_and_preserves_failure_exit(self):
+        for stage in ("python", "incus", "network"):
+            for code in (2, 3, 4, 17, 124, 130):
+                with (
+                    self.subTest(stage=stage, code=code),
+                    patch("tiny_swarm_world.prepare_linux._prepare_python_dependencies", return_value=code if stage == "python" else 0),
+                    patch("tiny_swarm_world.prepare_linux.run_incus_preparation", return_value=code if stage == "incus" else 0) as incus,
+                    patch("tiny_swarm_world.prepare_linux.run_network_preparation", return_value=code if stage == "network" else 0) as network,
+                    redirect_stdout(io.StringIO()) as output,
+                ):
+                    self.assertEqual(_prepare_remaining(read_only=False, service_profile="default"), code)
+                    self.assertNotIn("./install.sh", output.getvalue())
+                    if stage == "python":
+                        incus.assert_not_called()
+                    if stage != "network":
+                        network.assert_not_called()
+
+    def test_successful_handoff_quotes_checkout_and_keeps_profile(self):
+        with (
+            patch("tiny_swarm_world.prepare_linux._prepare_python_dependencies", return_value=0),
+            patch("tiny_swarm_world.prepare_linux.Path.cwd", return_value=Path("/home/operator/TSW checkout")),
+            redirect_stdout(io.StringIO()) as output,
+        ):
+            self.assertEqual(_prepare_remaining(read_only=True, service_profile="default"), 0)
+        self.assertIn("cd -- '/home/operator/TSW checkout' && ./install.sh --service-profile default", output.getvalue())
+        self.assertIn("services are not verified", output.getvalue())
 
     def test_python_dependencies_are_prepared_only_after_separate_consent(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
