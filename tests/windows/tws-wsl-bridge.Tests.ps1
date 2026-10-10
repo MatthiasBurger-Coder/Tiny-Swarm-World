@@ -805,6 +805,7 @@ Describe "Tiny Swarm World Windows bridge LSA provenance upgrade" {
                 logOnRightGrantedByTsw = $true
             }
         }
+        Mock Request-BridgeServiceCredential { throw "owned upgrade must not prompt" }
         Mock Protect-BridgeServiceRoot {}
         Mock New-BridgeStagedPayload {
             param(
@@ -825,6 +826,7 @@ Describe "Tiny Swarm World Windows bridge LSA provenance upgrade" {
 
         $script:observedPreexisting | Should Be $false
         $script:observedGranted | Should Be $true
+        Assert-MockCalled Request-BridgeServiceCredential -Times 0 -Scope It
     }
 
 

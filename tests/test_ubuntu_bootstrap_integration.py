@@ -27,12 +27,15 @@ class UbuntuJoinedBootstrapTests(unittest.TestCase):
         boundary = patch("tiny_swarm_world.prepare_linux.run_incus_preparation", return_value=0)
         self.incus_boundary = boundary.start()
         self.addCleanup(boundary.stop)
+        network = patch("tiny_swarm_world.prepare_linux.run_network_preparation", return_value=0)
+        self.network_boundary = network.start()
+        self.addCleanup(network.stop)
 
     def test_ac1_real_package_and_locked_runtime_owners_fresh_then_rerun(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            (root / "src/tiny_swarm_world").mkdir(parents=True)
-            (root / "src/tiny_swarm_world/prepare_linux.py").touch()
+            shutil.copytree(ROOT / "src", root / "src", ignore=shutil.ignore_patterns("__pycache__"))
+            shutil.copytree(ROOT / "infra/config", root / "infra/config")
             for name in ("requirements.lock", "requirements.build.lock", "pyproject.toml"):
                 shutil.copyfile(ROOT / name, root / name)
             installed: set[str] = set()

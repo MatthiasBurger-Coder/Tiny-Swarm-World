@@ -26,6 +26,17 @@ TCP ports and route hostnames are read from `infra/config/ports.yaml`.
 WSL distro, listen address, hosts address, firewall prefix and extra hostname
 aliases.
 
+BOOT-W06 preparation reuses this lifecycle through `prepare_windows.ps1`. Its
+separate `inventory` action receives `-Distro <selected-distro>` and
+`-ObservedAddress <already-observed-IPv4>` and emits read-only JSON without
+starting WSL, creating mutex/state/evidence or testing service ports. It reports
+routing and agent readiness separately from `endpoint_state` and `login_state`,
+which remain `UNVERIFIED`. The existing `verify` action retains its stronger TCP
+checks; neither action proves actual service login. Explicit distro selection is
+bound only in the protected staged configuration, preserving the shared source
+configuration and owned registration credentials. See
+[Windows preparation](../../documentation/user_guide/windows-preparation.md#w06-bridge-preparation-and-browser-access-stages).
+
 ## Prerequisites
 
 The supported bridge path requires:

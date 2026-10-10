@@ -201,7 +201,9 @@ from source text. W09 supplies separately authorized clean/existing-host, restar
 rerun and recovery evidence with exact source revision and observed versions.
 W04 lifecycle evidence is scoped to its recorded scenarios; it does not qualify
 W05 resource changes. No local test, ADR or issue instruction is a live mutation
-approval. Browser verification does not apply to this capacity-only extension; external results are tracked separately.
+approval. Browser verification does not apply to the W05 capacity-only extension;
+W06 bridge/browser applicability is recorded separately below. External results
+are tracked separately.
 
 The operator-approved 2026-10-10 amendment requires actual existing-WSL and native
 Ubuntu preparation, rerun, preservation and applicable recovery evidence for #456.
@@ -216,3 +218,41 @@ Official candidate installation/tool-format constraints come from
 [Microsoft systemd guidance](https://learn.microsoft.com/en-us/windows/wsl/systemd),
 and [Canonical Ubuntu WSL installation](https://ubuntu.com/wsl/docs/stable/howto/install-ubuntu-wsl2/).
 They describe eligibility, not Tiny Swarm World live qualification.
+
+## W06 bridge preparation and browser-access stages
+
+After lifecycle and effective resource prerequisites are ready, preparation
+inventories the existing bridge for the explicitly selected running distribution.
+The plan delegates `bridge_install` or an owned `bridge_refresh` to the canonical
+bridge lifecycle. Ordinary Apply retains the qualification guard and requires
+fresh exact-target/source/plan consent and protected evidence; existing W04/W05
+qualification does not automatically qualify the new network behavior.
+
+The shared `auto` configuration is preserved. The selected distro is bound in the
+protected installed copy through the existing staging transaction. A new service
+registration uses the existing credential dialog for the Windows account owning
+the distro; an owned registration reuses credentials. A foreign registration or
+account mismatch blocks without replacement. Windows hosts, portproxy, Firewall,
+WinSW and ACLs retain their existing exclusive bridge owner.
+
+For a strictly read-only diagnostic, use the distro and IPv4 address already
+observed in its running WSL shell:
+
+```powershell
+./tools/windows/tws-wsl-bridge.ps1 -Action inventory -Distro <selected-distro> -ObservedAddress <observed-IPv4>
+```
+
+This emits one JSON inventory without starting a distro, creating mutex/state/
+evidence, requesting credentials or probing live TCP endpoints. Preparation uses
+registration/configuration/routing and fresh protected-agent heartbeat readiness.
+`endpoint_state` and `login_state` remain `UNVERIFIED`; API reachability is a
+separate check and does not establish successful login. `services_verified` and
+aggregate `preparation_ready` remain false in this capability.
+
+The existing service agent reconciles WSL address changes after restart. No
+second agent or scheduled task is installed. Local tests exercise that owner with
+mocked address changes; actual restart/browser/login success requires separately
+authorized recoverable-host evidence with exact committed SHA, target/tool
+versions, commands and exits. Current W06 live state is `LIVE_CONSENT_MISSING`.
+See [kernel and browser-access preparation](network-preparation.md) for the Linux
+network stage, supported firewall owners and safe rerun/recovery behavior.

@@ -31,6 +31,11 @@ ASSETS = (
     "src/tiny_swarm_world/domain/host_environment.py",
     "infra/config/node-providers/provider_config.yaml",
     "tools/build_wsl_resource_projection.py",
+    "tools/windows/preparation/Bridge.ps1",
+    "tools/windows/tws-wsl-bridge.ps1",
+    "tools/windows/tws-wsl-bridge-service.ps1",
+    "tools/windows/tws-wsl-bridge.config.json",
+    "infra/config/ports.yaml",
 )
 
 

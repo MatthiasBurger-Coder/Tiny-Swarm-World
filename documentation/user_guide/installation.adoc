@@ -474,68 +474,28 @@ documented recovery step tells you to do so.
 
 === 4. Prepare Kernel And Bridge Networking
 
-Tiny Swarm World reads the native Linux kernel controls during host preparation
-and verification, but never changes operator-owned kernel state. The check
-fails closed when a required control is missing, disabled, or unreadable. Its
-evidence contains only the stable control name and one of `active`, `missing`,
-`disabled`, or `read_error`; it does not record the observed value or procfs
-path.
-
-If the native Linux check is not ready, the host operator can temporarily load
-bridge netfilter and activate the required controls for the current boot:
+The installer and native `host prepare` verify the required kernel controls.
+The separately consented W06 preparation capability plans and applies them on
+Linux and WSL, including safe module/sysctl persistence and scoped forwarding:
 
 [source,bash]
 ----
-sudo modprobe br_netfilter
-sudo sysctl -w net.bridge.bridge-nf-call-iptables=1
-sudo sysctl -w net.bridge.bridge-nf-call-ip6tables=1
-sudo sysctl -w net.ipv4.ip_forward=1
+./prepare_linux.sh --dry-run
+./prepare_linux.sh
+./prepare_linux.sh --preflight
 ----
 
-These commands mutate host state and therefore remain outside Tiny Swarm World
-automation. Run them only after reviewing them for the host. Temporary
-activation is not persistent and Tiny Swarm World does not claim to roll it
-back during cleanup.
-
-Persist both module loading and sysctls. A sysctl file alone cannot load
-`br_netfilter` at boot. From the repository root, review existing operator
-configuration and back it up before installing these templates:
-
-[source,bash]
-----
-sudo install -m 644 infra/config/host/tiny-swarm-world-modules.conf /etc/modules-load.d/tiny-swarm-world.conf
-sudo install -m 644 infra/config/host/tiny-swarm-world-sysctl.conf /etc/sysctl.d/99-tiny-swarm-world.conf
-sudo systemctl restart systemd-modules-load
-sudo sysctl -p /etc/sysctl.d/99-tiny-swarm-world.conf
-----
-
-The persistence file is operator-owned. Remove or change it only through the
-host's normal administration process; Tiny Swarm World cleanup leaves it
-untouched.
-
-After a native host reboot, verify module-load logs and all three controls
-before accepting Docker service recovery. The module entry must be exactly
-`br_netfilter` on its own line. A malformed entry can leave Docker's persisted
-`docker_gwbridge` visible in network inspection while the bridge driver fails
-to restore it. Inspect Docker startup logs for the underlying error before
-changing any network state.
-
-If Docker started with missing controls, activate the controls on the host
-first, then restart Docker in each affected managed node through the approved
-runtime access path. Verify service convergence and authenticated access after
-recovery. Stop if errors persist; do not delete networks, volumes, or Swarm
-state as an automatic recovery action. Restore the backed-up operator files
-if the host configuration change must be rolled back.
+Review each stage before approving it. W06 loads `br_netfilter` only when
+required and changes only the three canonical controls. It preserves existing
+firewall ownership and incompatible persistence files. The owned sysctl target
+is `/etc/sysctl.d/90-tiny-swarm-world.conf`; cleanup does not remove host
+persistence. See link:network-preparation.md[Kernel and browser-access
+preparation] for blockers, preservation and rerun behavior.
 
 Native `deployment bootstrap` and `deployment apply` check current host kernel
-prerequisites before any preparation or deployment mutation. A blocked result
-identifies missing host prerequisites immediately. This check does not prove
-boot persistence or full service readiness; those require reboot and service
-acceptance evidence.
-
-After either temporary activation or persistence, inspect the effective
-controls directly. The next explicitly authorized `setup run --live` also
-rechecks them before later setup phases:
+prerequisites before deployment mutation. Their verification alone does not
+prove boot persistence or service recovery. After an explicitly approved host
+reboot, verify module-load logs and all three effective controls:
 
 [source,bash]
 ----
@@ -543,6 +503,11 @@ sysctl net.ipv4.ip_forward
 sysctl net.bridge.bridge-nf-call-iptables
 sysctl net.bridge.bridge-nf-call-ip6tables
 ----
+
+If Docker started while the required controls were missing, inspect its startup
+logs and approve a targeted restart through the managed-node runtime access
+path. Verify convergence and authenticated access separately. Stop if errors
+persist; do not delete networks, volumes or Swarm state as automatic recovery.
 
 Docker Swarm overlay networking uses VXLAN. On WSL, `lsmod` may not show a
 separate `vxlan` module even when VXLAN links can be created. Use a temporary
@@ -560,16 +525,19 @@ sudo ip link delete vxlan-test
 `vxlan_create=0` confirms that the kernel path is usable for the local Swarm
 overlay test. Remove the test link immediately as shown above.
 
-On native Linux hosts with a restrictive firewall, allow bridge-internal
-traffic on the Incus control bridge before rerunning setup:
+For host kernel, scoped forwarding and local names, inspect and approve the
+separate preparation command before rerunning setup:
 
 [source,bash]
 ----
-sudo iptables -I FORWARD 1 -i <backend-bridge> -o <backend-bridge> -j ACCEPT
+./prepare_linux.sh --dry-run
+./prepare_linux.sh
 ----
 
-Replace `<backend-bridge>` with the bridge resolved from
-`provider_resource_resolution.backends.<backend>.network_mappings.control`.
+Preparation resolves the declared provider bridge/subnet, preserves the host
+firewall owner and blocks conflicting rules. See
+link:network-preparation.md[Kernel and browser-access preparation] for supported
+owners, preservation and separate readiness stages.
 
 [[operator-credential-overrides]]
 === 5. Optional Operator Credential Overrides
@@ -753,16 +721,12 @@ status, verification, and uninstall details.
 
 ==== Linux Shell Name Resolution
 
-For WSL/Linux shell checks, add the routed names to `/etc/hosts`. If a
-matching `tsw.local` line already exists, update that line instead of adding
-duplicates:
-
-[source,bash]
-----
-sudo tee -a /etc/hosts >/dev/null <<'EOF'
-127.0.0.1 service-access.tsw.local portainer.tsw.local nexus.tsw.local jenkins.tsw.local pulsar.tsw.local pulsar-api.tsw.local sonarqube.tsw.local swagger.tsw.local infisical.tsw.local
-EOF
-----
+The separately consented `./prepare_linux.sh` network stage maintains a
+delimited Linux `/etc/hosts` block from the canonical port registry. Review with
+`./prepare_linux.sh --dry-run`; existing unrelated entries and metadata are
+preserved. Conflicting names outside the owned block stop preparation for owner
+review instead of creating duplicates. See
+link:network-preparation.md[Kernel and browser-access preparation].
 
 For Windows browsers, use the managed bridge configured above. The bridge
 maintains the Windows host entries; do not add a second competing set.
@@ -1013,13 +977,17 @@ performs the same checks and prints the planned installer stages. Run
 `prepare_linux.sh` asks the operator to type `yes` before changing packages or
 preparing the checkout-local Python environment from `requirements.lock`.
 Its read-only modes report that work without creating a virtual environment.
-It does not initialize Incus, change groups, alter kernel controls or deploy
+After packages/Python, it separately plans and confirms Incus startup/access
+and resolved resource creation, then kernel/forwarding/local-name preparation.
+Each stage has its own consent and preservation checks. It does not deploy
 services. `install.sh` never invokes it. If preparation is missing, the native
 installer stops and prints the separate preparation command; it does not
 bootstrap Python dependencies itself. The preparation shell can bootstrap
 missing Python >=3.12 and venv support after explicit interpreter-stage consent;
 help, preflight and dry-run need no Python and write no state/evidence.
-Only APT elevates. Unsupported releases, WSL1, missing WSL systemd, root
+Only narrowly scoped package, Incus and network actions elevate; the ordinary
+account owns the checkout, Python environment and preparation evidence.
+Unsupported releases, WSL1, missing WSL systemd, root
 execution or unsafe project/venv ownership block mutation. An unknown nonempty
 venv target is preserved; choose a different `TSW_NATIVE_LINUX_VENV`. A native rerun
 rechecks prerequisites and runs the existing setup reconciliation without an
@@ -1036,9 +1004,10 @@ Kernel controls and host ports remain installer-readiness guards, outside
 the package/Python substage. WSL service-access retains 16 GiB RAM. A healthy rerun
 with all host packages present relies on setup's profile-aware port preflight.
 DNS and HTTPS connectivity to Ubuntu
-package sources are required when packages are missing. Correct a reported
-kernel, Incus-daemon, group, bridge or firewall blocker as an operator action;
-the preparation script does not repair those settings automatically.
+package sources are required when packages are missing. Review kernel, Incus,
+bridge and firewall plans through the separate preparation command. Unknown
+owners and incompatible existing resources remain preserved and blocked;
+preparation never silently replaces them or disables the firewall.
 For a password-protected sudo account, run `sudo -v` in the same terminal
 before preparation so the read-only permission probe can verify APT access.
 
@@ -1190,16 +1159,18 @@ reach each other on the selected backend bridge. Use the bridge name resolved
 from `provider_resource_resolution.backends.<backend>.network_mappings.control`
 when applying host firewall rules. If workers can reach the configured bridge
 gateway but cannot ping the manager container or connect to Swarm port `2377`,
-allow bridge-internal forwarding on the host:
+inspect the separately owned preparation plan:
 
 [source,bash]
 ----
-sudo iptables -I FORWARD 1 -i <backend-bridge> -o <backend-bridge> -j ACCEPT
+./prepare_linux.sh --dry-run
+./prepare_linux.sh
 ----
 
-Verify the host firewall path before rerunning installation. Replace the
-manager address with the current manager container address from
-`incus list` or `incus exec swarm-manager -- hostname -I`:
+The scoped preparation path handles the supported iptables-nft/UFW owners and
+canonical Incus NAT without global rule saves or broad forwarding allowances.
+Foreign denies and unknown ownership block for review. After preparation,
+verify the current manager address from `incus list` and the node path:
 
 [source,bash]
 ----
@@ -1207,22 +1178,8 @@ incus exec swarm-worker-1 -- ping -c 2 <manager-ip>
 incus exec swarm-worker-1 -- nc -vz <manager-ip> 2377
 ----
 
-If `ufw` manages the host firewall, persist the bridge route rule with:
-
-[source,bash]
-----
-sudo ufw route allow in on <backend-bridge> out on <backend-bridge>
-sudo ufw reload
-----
-
-On hosts that use persistent iptables rules directly, save the accepted
-FORWARD rule after validating it:
-
-[source,bash]
-----
-sudo apt install iptables-persistent
-sudo netfilter-persistent save
-----
+These deployed-node checks are separate from host preparation readiness.
+See link:network-preparation.md[Kernel and browser-access preparation].
 
 Swarm bootstrap needs container-to-container access for `2377/tcp`, and later
 Swarm traffic uses `7946/tcp`, `7946/udp`, and `4789/udp`. The bridge-internal

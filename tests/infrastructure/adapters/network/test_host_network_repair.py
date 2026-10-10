@@ -3,6 +3,7 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from tiny_swarm_world.application.ports.network import CommandObservation
 from tiny_swarm_world.infrastructure.adapters.network import host_network_repair
@@ -12,6 +13,14 @@ from tiny_swarm_world.infrastructure.adapters.network.host_network_repair import
 
 
 class TestHostNetworkRepair(unittest.TestCase):
+    def setUp(self):
+        guard = patch.object(host_network_repair, "_forwarding_write_targets", return_value=(host_network_repair.FORWARDING_SCRIPT_PATH, host_network_repair.FORWARDING_SERVICE_PATH))
+        guard.start()
+        self.addCleanup(guard.stop)
+        installer = patch.object(host_network_repair, "_protected_forwarding_install", side_effect=lambda path, content, mode: _ok(f"protected install -m {mode:04o} {path}"))
+        installer.start()
+        self.addCleanup(installer.stop)
+
     def test_set_wsl_networking_mode_updates_existing_wsl2_section(self):
         content = "[wsl2]\nmemory=8GB\nnetworkingMode=mirrored\n[experimental]\nautoMemoryReclaim=gradual\n"
 
@@ -39,9 +48,9 @@ class TestHostNetworkRepair(unittest.TestCase):
         self.assertIn("tsw-apply-incus-forwarding.sh", service)
         self.assertIn("TimeoutStartSec=75s", service)
         self.assertIn("RemainAfterExit=yes", service)
-        self.assertIn("Restart=on-failure", service)
-        self.assertIn("RestartSec=15s", service)
-        self.assertIn("StartLimitIntervalSec=0", service)
+        self.assertIn("Restart=no", service)
+        self.assertNotIn("RestartSec=", service)
+        self.assertNotIn("StartLimitIntervalSec=0", service)
         self.assertIn("Wants=network-online.target incus.service", service)
 
     def test_forwarding_script_recovers_on_retry_after_bridge_appears(self):
@@ -263,7 +272,8 @@ class TestHostNetworkRepair(unittest.TestCase):
         )
         repair = SubprocessNetworkRepair(executor=executor)
 
-        result = repair._apply_linux_forwarding("incusbr0", "swarm-manager")
+        with patch.object(host_network_repair, "_protected_forwarding_install", return_value=_failed("protected install")):
+            result = repair._apply_linux_forwarding("incusbr0", "swarm-manager")
 
         self.assertFalse(result.success)
         self.assertEqual(result.message, "Failed to install forwarding persistence files.")
@@ -327,3 +337,21 @@ def _failed(command: str, stderr: str = "failed") -> CommandObservation:
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestForwardingOwnerCollisions(unittest.TestCase):
+    def test_byte_compatible_owner_requires_exact_mode_and_never_replaces_w06(self):
+        from tiny_swarm_world.infrastructure.adapters.network_preparation.files import FileObservation
+
+        def compatible(path):
+            script = path == host_network_repair.FORWARDING_SCRIPT_PATH
+            content = host_network_repair._forwarding_script() if script else host_network_repair._forwarding_service()
+            return FileObservation(True, content.encode(), "observed", 0o755 if script else 0o644, 0, 0)
+
+        with patch("tiny_swarm_world.infrastructure.adapters.network_preparation.files.observe", side_effect=compatible):
+            self.assertEqual(host_network_repair._forwarding_write_targets(), ())
+        for content, mode in ((host_network_repair._forwarding_script().encode(), 0o644), (b"W06 scoped owner", 0o755)):
+            observed = FileObservation(True, content, "observed", mode, 0, 0)
+            with patch("tiny_swarm_world.infrastructure.adapters.network_preparation.files.observe", return_value=observed):
+                with self.assertRaises(RuntimeError):
+                    host_network_repair._forwarding_write_targets()

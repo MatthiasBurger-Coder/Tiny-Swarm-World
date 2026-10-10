@@ -9,7 +9,7 @@ function Options {
     return @{Mode='Plan';Distro='Ubuntu-24.04';ServiceProfile='service-access';ProbeTimeoutSeconds=15;ActionTimeoutSeconds=900;ApproveApply=$false;QualificationRun=$false;ApprovedPlan=$null;QualificationHost='test-host';QualificationDistro='Ubuntu-24.04';QualificationRevision=('a'*40);RecoveryReference='disposable VM snapshot';Json=$true}
 }
 function Facts {
-    return @{platform='Windows';host_identity='test-host';product_type=1;build=22631;architecture='AMD64';elevated=$true;virtualization=$true;features_known=$true;features_missing=@();reboot_pending=$false;wsl_present=$true;wsl_version='3.0.1';install_capable=$true;distro_present=$true;distro_inventory_known=$true;wsl_generation=2;running=$true;linux_known=$true;linux_id='ubuntu';release='24.04';linux_architecture='x86_64';uid=1000;user='operator';config_safe=$true;config_hash='absent';config_metadata='absent';systemd_packages=$true;systemd_configured=$true;pid1='systemd';resource_facts=@{projection_valid=$true;profile=@{memory_gib=16;processors=8;disk_gib=150};node_budget=@{memory_gib=19;processors=8;disk_gib=80};physical_memory_bytes=[long]34359738368;logical_processors=16;storage_known=$true;config_safe=$true;distro_volume='volume';swap_volume='volume';distro_free_bytes=[long]536870912000;swap_free_bytes=[long]536870912000;config_values=@{memory='21GB';processors='8';swap='6GB'};config_snapshot=@{hash='test';metadata='test'};effective_known=$true;effective_memory_bytes=[long]22333829939;effective_processors=8;effective_swap_bytes=[long]6442450944;effective_disk_bytes=[long]322122547200}}
+    return @{bridge_facts=@{schema_version=1;distro='Ubuntu-24.04';observed_address='172.20.0.2';ownership='owned';bridge_ready=$true;routing_ready=$true;agent_ready=$true;action=$null;blockers=@();fingerprint='ready'};platform='Windows';host_identity='test-host';product_type=1;build=22631;architecture='AMD64';elevated=$true;virtualization=$true;features_known=$true;features_missing=@();reboot_pending=$false;wsl_present=$true;wsl_version='3.0.1';install_capable=$true;distro_present=$true;distro_inventory_known=$true;wsl_generation=2;running=$true;linux_known=$true;linux_id='ubuntu';release='24.04';linux_architecture='x86_64';uid=1000;user='operator';config_safe=$true;config_hash='absent';config_metadata='absent';systemd_packages=$true;systemd_configured=$true;pid1='systemd';resource_facts=@{projection_valid=$true;profile=@{memory_gib=16;processors=8;disk_gib=150};node_budget=@{memory_gib=19;processors=8;disk_gib=80};physical_memory_bytes=[long]34359738368;logical_processors=16;storage_known=$true;config_safe=$true;distro_volume='volume';swap_volume='volume';distro_free_bytes=[long]536870912000;swap_free_bytes=[long]536870912000;config_values=@{memory='21GB';processors='8';swap='6GB'};config_snapshot=@{hash='test';metadata='test'};effective_known=$true;effective_memory_bytes=[long]22333829939;effective_processors=8;effective_swap_bytes=[long]6442450944;effective_disk_bytes=[long]322122547200}}
 }
 $script:facts=Facts
 $script:source=@{verified=$true;clean=$true;revision=('a'*40)}
@@ -377,4 +377,28 @@ Assert (!$ok) 'foreign owner refused'
 $ok=& $module {try{Assert-PreparationEvidencePath 'C:/mock';$true}catch{$false}}
 Assert (!$ok) 'untrusted write ACL refused'
 }
+# W06 follows lifecycle and resources, shares qualification and consent authority.
+$script:facts=Facts;$script:source=@{verified=$true;clean=$true;revision=('a'*40)};$script:failWrite=0;$script:drift=$false
+$script:facts.bridge_facts=@{schema_version=1;distro='Ubuntu-24.04';observed_address='172.20.0.2';ownership='absent';bridge_ready=$false;routing_ready=$false;agent_ready=$false;action='install';blockers=@();fingerprint='bridge-before'}
+$o=Options;$previousExecutions=$script:executions;$r=Invoke-WindowsPreparation $o $ports
+Assert ($r.actions.Count -eq 1 -and $r.actions[0].id -eq 'bridge_install' -and $script:executions -eq $previousExecutions) 'W06 install read-only plan delegates existing owner'
+Assert ($r.actions[0].credential_guidance -match 'current Windows account') 'credential owner guidance'
+$beforeFingerprint=$r.plan_fingerprint;$script:facts.bridge_facts.observed_address='172.20.0.3';$script:facts.bridge_facts.fingerprint='bridge-changed';$r=Invoke-WindowsPreparation $o $ports
+Assert ($r.plan_fingerprint -ne $beforeFingerprint) 'address drift invalidates exact plan'
+$o.Mode='Apply';$o.ApproveApply=$true;$r=Invoke-WindowsPreparation $o $ports
+Assert ($r.blockers[-1].code -eq 'unqualified_target' -and $script:executions -eq $previousExecutions) 'W06 retains qualification guard'
+$script:facts.bridge_facts.blockers=@('foreign_portproxy_collision');$o=Options;$r=Invoke-WindowsPreparation $o $ports
+Assert ($r.actions.Count -eq 0 -and $r.blockers.code -contains 'foreign_portproxy_collision') 'W06 collision before mutation'
+$script:facts=Facts;$script:facts.Remove('bridge_facts');$r=Invoke-WindowsPreparation $o $ports
+Assert ($r.blockers.code -contains 'bridge_inventory_required') 'unobserved bridge cannot imply capability ready'
+$script:facts=Facts;$script:facts.systemd_configured=$false;$script:facts.bridge_facts=@{blockers=@('bridge_inventory_unavailable')};$r=Invoke-WindowsPreparation $o $ports
+Assert ($r.actions[0].id -eq 'enable_systemd' -and $r.actions.Count -eq 1) 'lifecycle stage precedes bridge'
+$script:facts=Facts;$script:facts.bridge_facts=@{schema_version=1;distro='Ubuntu-24.04';observed_address='172.20.0.2';ownership='owned';bridge_ready=$false;routing_ready=$false;agent_ready=$false;action='refresh';blockers=@();fingerprint='owned-refresh'}
+$o=Options;$o.Mode='Apply';$o.QualificationRun=$true;$o.ApproveApply=$true
+$script:source.verified=$false;$prior=$script:executions;$r=Invoke-WindowsPreparation $o $ports
+Assert ($r.blockers[-1].code -eq 'unverified_source' -and $script:executions -eq $prior) 'W06 unverified executed source never reaches Execute'
+$script:source.verified=$true;$script:effect=@{confirmed=$true;uncertain=$false;exit_code=0};$r=Invoke-WindowsPreparation $o $ports
+Assert ($r.result.completed_actions -contains 'bridge_refresh' -and $r.result.changed -and !$r.result.services_verified) 'qualified actual Application executes owned bridge stage'
+$script:facts=Facts;$o=Options;$prior=$script:executions;$r=Invoke-WindowsPreparation $o $ports
+Assert ($r.result.capability_ready -and !$r.actions.Count -and $script:executions -eq $prior) 'rerun observes ready owned bridge without mutation'
 Write-Output "PASS $count Windows lifecycle assertions (mocked host ports; no live preparation)"

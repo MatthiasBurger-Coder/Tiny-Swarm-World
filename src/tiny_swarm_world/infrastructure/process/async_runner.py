@@ -9,9 +9,13 @@ import signal
 from collections.abc import Sequence
 from contextlib import suppress
 from dataclasses import dataclass, field
-from typing import Any, cast
+from typing import Any, TypedDict, cast
 
 from tiny_swarm_world.infrastructure.process.runner import validate_timeout
+
+
+class _StdinOption(TypedDict, total=False):
+    stdin: int
 
 
 @dataclass(frozen=True)
@@ -35,20 +39,22 @@ async def run_async_process(
     timeout: float = 60.0,
     shell: bool = False,
     discard_output: bool = False,
+    input_data: bytes | None = None,
 ) -> AsyncProcessResult:
     """Return explicit process outcomes; propagate cancellation after child cleanup."""
     validate_timeout(timeout)
     if not args or (shell and not isinstance(args, str)) or (not shell and isinstance(args, str)):
         raise ValueError("Use a string for shell execution and argv for direct execution.")
+    stdin_kwargs: _StdinOption = {"stdin": asyncio.subprocess.PIPE} if input_data is not None else {}
     target = asyncio.subprocess.DEVNULL if discard_output else asyncio.subprocess.PIPE
     try:
         if shell:
             process = await asyncio.create_subprocess_shell(
-                cast(str, args), stdout=target, stderr=target, start_new_session=True,
+                cast(str, args), stdout=target, stderr=target, start_new_session=True, **stdin_kwargs,
             )
         else:
             process = await asyncio.create_subprocess_exec(
-                *args, stdout=target, stderr=target, start_new_session=True,
+                *args, stdout=target, stderr=target, start_new_session=True, **stdin_kwargs,
             )
     except FileNotFoundError:
         return AsyncProcessResult(127, failure_hint="launch_executable_missing")
@@ -57,7 +63,8 @@ async def run_async_process(
     except OSError:
         return AsyncProcessResult(-1, failure_hint="launch_os_error")
     try:
-        stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
+        communication = process.communicate() if input_data is None else process.communicate(input_data)
+        stdout, stderr = await asyncio.wait_for(communication, timeout=timeout)
     except asyncio.TimeoutError:
         await terminate_async_process(process)
         return AsyncProcessResult(124, timed_out=True)

@@ -86,6 +86,21 @@ class TestWindowsCommandRunner(unittest.TestCase):
         self.assertIn("refresh", calls[0])
         self.assertIn("WIN:bridge.ps1", calls[0])
 
+    def test_explicit_inventory_binds_distro_and_address_without_dialog(self):
+        calls = []
+        runner = WindowsCommandRunner(
+            path_converter=lambda path: path.as_posix(),
+            popen=lambda command, **kwargs: calls.append(command) or _Process(),
+        )
+        for action in ("inventory", "install", "refresh"):
+            runner.run(
+                action, script_path=Path("bridge.ps1"), config_path=Path("bridge.json"),
+                port_registry_path=Path("ports.yaml"), timeout_seconds=5,
+                distro="Ubuntu-24.04", observed_address="172.20.0.2",
+            )
+            self.assertEqual(calls[-1][-4:], ["-Distro", "Ubuntu-24.04", "-ObservedAddress", "172.20.0.2"])
+            self.assertEqual("-NonInteractive" in calls[-1], action != "install")
+
     def test_timeout_terminates_then_kills_child_and_returns_typed_status(self):
         process = _Process(timeout=True)
         runner = WindowsCommandRunner(

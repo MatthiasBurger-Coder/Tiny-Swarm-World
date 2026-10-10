@@ -15,6 +15,22 @@ Run the read-only network diagnosis before applying repairs:
 ./tsw doctor network
 ----
 
+For installation prerequisites, use the separate staged preparation owner:
+
+[source,bash]
+----
+./prepare_linux.sh --dry-run
+./prepare_linux.sh
+----
+
+This plans required kernel controls, managed-bridge forwarding and canonical local
+names without requiring deployed nodes. Exact consent precedes scoped changes;
+Incus owns NAT and the active host firewall retains its policy. Unknown owners,
+foreign deny conflicts and unsafe files block. See
+link:../user_guide/network-preparation.md[Kernel and browser-access preparation].
+Host readiness, Windows bridge readiness, endpoints and actual login are separate
+stages; none implies success of a later stage.
+
 == Inspect Provider Node Addresses
 
 For Incus:

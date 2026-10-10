@@ -31,6 +31,8 @@ class PortWindowsCommandRunner(ABC):
         config_path: PortPath,
         port_registry_path: PortPath,
         timeout_seconds: float,
+        distro: str | None = None,
+        observed_address: str | None = None,
     ) -> WindowsCommandResult:
         """Run one bounded Windows bridge action through the infrastructure boundary."""
 

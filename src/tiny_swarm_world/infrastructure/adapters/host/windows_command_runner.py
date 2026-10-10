@@ -40,13 +40,14 @@ class WindowsCommandRunner(PortWindowsCommandRunner):
         config_path: Path,
         port_registry_path: Path,
         timeout_seconds: float,
+        distro: str | None = None,
+        observed_address: str | None = None,
     ) -> WindowsCommandResult:
         if timeout_seconds <= 0:
             raise ValueError("Windows command timeout must be positive.")
         command = [
             self.executable,
             "-NoProfile",
-            "-NonInteractive",
             "-ExecutionPolicy",
             "Bypass",
             "-File",
@@ -58,6 +59,13 @@ class WindowsCommandRunner(PortWindowsCommandRunner):
             "-PortRegistryPath",
             self.path_converter(port_registry_path),
         ]
+        # A separately consented explicit install uses the existing credential dialog.
+        if action != "install" or distro is None:
+            command.insert(2, "-NonInteractive")
+        if distro is not None:
+            command.extend(("-Distro", distro))
+        if observed_address is not None:
+            command.extend(("-ObservedAddress", observed_address))
         result = run_captured_process(
             command, timeout=timeout_seconds, popen=self.popen,
             termination_grace_seconds=self.termination_grace_seconds,

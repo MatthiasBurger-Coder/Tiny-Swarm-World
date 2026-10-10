@@ -1,0 +1,334 @@
+= ADR: Scoped Bootstrap Kernel and Browser-Access Preparation
+
+*Date:* 2026-10-10
+*Status:* Accepted for local implementation on 2026-10-10 after independent
+Architecture, Security/DevOps and Requirement/Test concurrence. Not live-qualified.
+*Issue:* https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/458[#458],
+BOOT-W06 / BOOT-06 under #452.
+*Review owner:* Senior System Architect, with requirement, security/DevOps and
+test/evidence perspectives. This proposal grants no live host mutation consent.
+
+== Context
+
+The accepted native preparation lifecycle excludes automatic kernel and firewall
+changes. The accepted explicit Incus preparation decision supersedes only daemon
+startup, ordinary-user access and absent resolved resource creation. Neither
+accepts BOOT-W06 kernel, host name-resolution or forwarding preparation.
+
+NativeLinuxHostPreparation currently verifies three kernel controls without
+changing them. NetworkRepairService and SubprocessNetworkRepair already own
+forwarding repair, but their persistence installation overwrites existing files,
+their service defaults to incusbr0, and their postcheck requires an already
+deployed swarm-manager. Wiring that operation into pre-install preparation
+unchanged would violate preservation and truthful readiness requirements.
+
+The installation guide still requires manual Linux hosts entries and restrictive
+firewall repair. Windows already has a protected bridge service, canonical port
+registry, ownership checks, credential dialog, pinned WinSW and restart agent.
+BOOT-W06 must extend these owners rather than introduce competing routing logic.
+
+== Decision
+
+=== Preparation boundary and authority
+
+Extend prepare_linux.sh through a W06 application capability service and explicit
+application ports after package/Python and Incus prerequisites are verified.
+Compose concrete adapters in infrastructure composition. Keep shell/PowerShell
+entrypoints thin and keep product Python in Linux/WSL. Native preparation must
+never construct Windows adapters. Preserve the existing verify-only installer
+and host prepare boundaries; preparation does not deploy nodes or services.
+
+Only the separately approved W06 capability would supersede the earlier exclusion
+of kernel, scoped forwarding and Linux name-resolution preparation. Retain the
+original ADRs and document this narrow supersession after acceptance. W07's
+ordinary WSL install transition remains a separate decision.
+
+=== Kernel controls and persistence
+
+Consume the existing infra/config/host/tiny-swarm-world-sysctl.conf for exactly
+net.ipv4.ip_forward, net.bridge.bridge-nf-call-iptables and
+net.bridge.bridge-nf-call-ip6tables. Plan missing bridge-module availability and
+only the required values, without a broad sysctl reload or network-stack reset.
+Proposed persistent targets are /etc/sysctl.d/90-tiny-swarm-world.conf and
+/etc/modules-load.d/tiny-swarm-world.conf (br_netfilter only). Show original and
+proposed values before consent. Missing kernel support blocks with remediation;
+never claim a written persistence file means active controls.
+
+Reject symlinks, unsafe metadata and incompatible existing target files. Reuse
+exact compatible files without writing; replacements require matching protected
+TSW provenance and a protected backup. Verify runtime values and persistence
+separately. These are explicitly declared host-wide controls, not exclusive TSW
+kernel state; do not revert them automatically or weaken another owner's policy.
+
+=== Forwarding and host firewall ownership
+
+Harden the existing network repair owner for pre-install preparation. Resolve
+every bridge from provider configuration and reuse W03 resource/subnet validation.
+Do not invent a second bridge, subnet chooser or hard-coded incusbr0 override.
+Forwarding preparation cannot require an existing manager container.
+
+The proposed initial firewall support is Ubuntu iptables-nft with explicit owner
+classification: unmanaged/inactive UFW uses additive, tagged TSW rules through
+the existing forwarding adapter; active UFW uses its scoped route-rule interface.
+Firewalld, ambiguous mixed owners and unrecognized native nftables management
+block without disabling, flushing, replacing or adopting foreign rules. This
+backend policy requires security/DevOps acceptance before implementation.
+
+Plan only required traffic on resolved bridges: bridge-internal traffic, outbound
+IPv4 egress and established return traffic. Reuse Incus-managed NAT when observed
+ready; any missing NAT addition must be subnet/interface scoped, explicitly shown
+and separately owned. Do not open unrelated host INPUT ports or change global
+FORWARD policy. Only absent rules are added; duplicates and foreign collisions
+are observed and preserved. Rule ordering and effective readiness must be checked
+against the active owner, rather than inferred from a rule's mere presence.
+
+Keep the existing /usr/local/bin/tsw-apply-incus-forwarding.sh and
+/etc/systemd/system/tsw-incus-forwarding.service as persistence owners, with
+resolved bridge arguments, exact provenance, collision checks and safe backups.
+Do not blindly overwrite existing files. A compatible owned no-op writes nothing.
+Persistence must have a finite startup budget; no unbounded service restart loop.
+
+=== Canonical local names and ports
+
+Load ports and route hosts through PortRegistryYamlRepository and the existing
+ingress contract. Until #440/#444 changes canonical selection, retain the existing
+fixed profile/service authority; do not add bootstrap service-selection policy.
+Reuse the existing profile proxy exposure contract for local addresses.
+
+For Linux/WSL shell access, propose a uniquely delimited TSW-owned /etc/hosts
+block mapping canonical local routed names to 127.0.0.1. Preserve unrelated bytes
+and metadata; reject duplicate/ambiguous markers or conflicting entries outside
+the owned block. Protect the original before approved atomic changes and verify
+observed local resolution. Do not edit resolv.conf, system DNS configuration,
+distributed DNS, certificates or external network naming.
+
+Occupied-port inventory must distinguish canonical owned proxy/bridge listeners
+from foreign listeners and unknown ownership. Reuse existing ownership evidence;
+never infer ownership from the port number or kill an occupant. A conflict blocks
+before mutation and a stale port/configuration/route observation invalidates consent.
+
+=== Windows bridge integration
+
+Windows hosts, portproxy, firewall, SCM service and WinSW remain exclusively owned
+by tools/windows/tws-wsl-bridge.ps1 and its protected agent. Preparation delegates
+to those existing lifecycle operations and PortWindowsCommandRunner; it does not
+write these resources or copy secrets into preparation state. Bind the explicitly
+selected distro without editing the shared auto-distro configuration silently.
+
+Add a dedicated strictly read-only bridge inventory action. Current Verify-Bridge
+and Show-Status call Get-WslIp; verification also checks TCP endpoints, so neither
+is the preparation readiness probe. Inspect the selected registration, already
+observed address, protected routing configuration and agent heartbeat without
+starting a stopped distribution or creating mutex/state/evidence. TCP endpoints
+retain a separate result. Read-only preparation must not delegate to a mutating
+bridge action. Apply shows install versus owned refresh
+as separate exact actions, preserves existing registrations, and retains all
+ownership, ACL, collision, source-integrity and bounded failure guards.
+
+Guide new registration through Request-BridgeServiceCredential using the Windows
+account that owns the selected WSL registration. The current dialog checks the
+invoking identity's SID; a mismatch blocks rather than guessing an account or
+changing ownership. Owned verified registrations reuse their current credential
+without another dialog. Preserve pinned WinSW, protected payloads and logon-right
+provenance. Preparation never collects, serializes or logs the password.
+
+WSL address convergence remains the existing service agent's responsibility.
+Do not add another scheduled task, polling service or portproxy updater. Test
+changing addresses through that owner; actual restart convergence requires fresh
+authorized live evidence and cannot be claimed from mocks.
+
+=== Consent, failures and readiness
+
+Preflight/dry-run writes no host, configuration, bytecode, state or evidence and
+does not start a stopped daemon/distro. Each mutation requires current exact-plan
+consent, fresh source/target/configuration/ownership observations and safe protected
+intent evidence first. Decline/EOF/stale plan stops without that stage's mutation.
+Use finite command deadlines, bounded stage budgets and no automatic retries.
+
+Verify every effect, halt dependent stages on failure, distinguish confirmed from
+uncertain effects and retain protected backups. Interruption or failure requires
+a fresh read-only plan before separately approved resume; no firewall reset,
+automatic deletion or whole-host rollback. Evidence failure before mutation blocks;
+evidence failure after an attempt reports partial/uncertain state.
+
+Use the existing bootstrap source-validation owners. Linux installation
+validate_assets/validate_user_paths validates paths/assets/locks, not publisher
+authentication or extracted-release commit membership. Extend
+validate_preparation_paths with exact-plan hashes of executed W06 modules and
+canonical sysctl/provider/port/ingress/bridge inputs, retaining operator-trusted
+Linux release semantics. Windows preparation SourceProof.ps1 and
+tools/build_windows_preparation_manifest.py provide actual extracted-release
+commit membership proofs; extend both source catalogs for W06 runtime helpers
+and bridge/port inputs, retaining the 32-asset budget.
+Existing protected Windows bridge payload/manifest verification remains the
+authority for privileged service execution; preparation source proof does not
+replace it.
+
+Report distinct stages: kernel/forwarding/local-name prerequisites, Windows bridge
+registration/configuration/agent readiness, deployed endpoint/API reachability,
+and actual service login. A bridge-ready or reachable API result does not imply
+deployment or successful authentication. W06 preparation keeps services_verified
+false and does not claim aggregate W07 readiness.
+
+== Alternatives and Consequences
+
+Keeping undocumented manual iptables/hosts repair fails BOOT-W06-AC1. Copying the
+Windows bridge or deploying a new agent creates conflicting owners and breaks
+AC2/AC3. Calling existing repair unchanged fails preservation and pre-install
+readiness. The proposal therefore hardens existing owners behind explicit ports.
+
+Supporting every firewall backend now would expand privileged ownership beyond
+the repository's demonstrated implementation. Unsupported ownership blocks with
+an actionable diagnostic and preserves host policy. The initial backend contract
+and rule semantics need independent review; they are not accepted by this text.
+
+== Acceptance and Verification Required Before Delivery
+
+Map every issue requirement and AC1–AC4 to implementation and executed tests in
+.tiny-swarm/evidence/issue-458/. Cover consent, no-write planning, preserved unrelated
+state, foreign ownership, rule/file/name/port/subnet collisions, exact-plan drift,
+rerun, address changes, timeout/interruption, failed postchecks, safe evidence and
+separate readiness stages. Run targeted tests, architecture checks and the full
+QUALITY.md local gate after product implementation; obtain an independent final
+issue-completion audit. No mock/static result qualifies a live restart or login.
+
+Installation/network/browser checks are APPLICABLE_LIVE / LIVE_CONSENT_MISSING.
+W09 owns fresh-host qualification with exact committed SHA, recoverable target,
+host/tool versions, commands, exits and redacted before/after evidence. No live
+commands are authorized here. External CI/Sonar results are unavailable until
+separately observed and must not be described as green.
+
+== Current Review State
+
+Independent preimplementation System Architect review confirms the missing ADR
+boundary and the reusable owners above. The original draft remained Proposed until the refinements and concrete security
+policy below were accepted. The historical blocked handoff is retained in issue
+evidence. Acceptance authorizes implementation, not a DONE claim or live mutation.
+
+The independent concrete-draft review found this proposal consistent but not
+ready for acceptance. Resolve the following before changing its status:
+
+* Specify exact firewall-owner detection, interface/subnet/direction/state rules,
+  ordering, IPv6 behavior and missing-NAT ownership for iptables-nft and active
+  UFW coexistence. Obtain security/DevOps concurrence.
+* Decide read-only reuse versus adoption of byte-compatible files without
+  protected provenance, including legacy TSW files. Path/name does not authorize
+  replacement. Set numeric finite persistence startup/retry budgets.
+* Condition Linux loopback hosts preparation on canonical proxy exposure; reject
+  incompatible exposure and leave deployed endpoint readiness unverified.
+
+Dedicated no-write Windows inventory and canonical source-validation ownership
+are mandatory design requirements above, not optional implementation investigations.
+
+== Concrete architecture refinement, 2026-10-10
+
+The independent Architect supports acceptance after the security/DevOps rule
+policy and Requirement/Test concurrence are recorded. The user authorizes
+completing these reviews and implementing W06; no live mutation is authorized.
+
+Read-only reuse is allowed for exact byte-compatible root-owned regular nonlinked
+persistence files with safe metadata. Such reuse grants no authority to replace
+the files. Incompatible legacy files without protected provenance block with
+preservation-aware remediation. A mere TSW filename is never provenance.
+Persistence waits at most 60 seconds for each resolved bridge, has
+TimeoutStartSec=75s and Restart=no. Recovery uses a freshly approved preparation
+rerun rather than automatic service restart loops.
+
+Linux hosts loopback preparation is conditional on canonical LxcProxyDevicePlan
+exposure listeners supporting 127.0.0.1 or 0.0.0.0; incompatible exposure blocks.
+Name-resolution readiness is independent of deployed listeners and endpoint state.
+
+Windows inventory receives the explicitly selected distro and current IPv4
+address from an already-running Linux/WSL observation. It does not call
+Get-WslIp, request credentials, recover transactions, create mutexes or write
+state/evidence. Absent registration plans installation; foreign registration
+blocks. Explicit distro binding uses the existing protected staging lifecycle
+and leaves the shared auto-distro configuration unchanged. Owned registration
+and credentials remain preserved. Existing verify semantics stay compatible;
+preparation uses inventory for routing/agent readiness, not endpoint reachability.
+
+Requirement/Test concurrence confirms the proposed boundaries match #452 BOOT-06
+without scope reduction. Delivery needs executed fresh native/WSL, active-UFW,
+no-write/rerun/collision/drift/failure, source-tamper, credential and agent-convergence
+tests; existing Pester behavior is a regression dependency. No mock is a live
+restart/login result. Root integrates specialist implementation from disjoint
+isolated Linux and Windows worktrees, owns documentation/evidence and runs the
+consolidated local quality gate and independent final audit.
+
+
+== Accepted security/DevOps firewall policy, 2026-10-10
+
+Root accepts the following exact policy after independent reviewer concurrence.
+This section resolves and takes precedence over earlier proposed alternatives;
+no competing TSW NAT rule is permitted. Product implementation must comply and
+remain subject to verification and independent final audit.
+
+Require iptables nf_tables backend and complete successful iptables-save, nft JSON
+ruleset, UFW status/configuration and relevant systemd-owner observations. Recognize
+canonical Incus inet incus rules matching resolved managed bridge/NAT alongside
+iptables/UFW/Docker tables. Block legacy backend, firewalld, unrecognized native
+hook chains, custom enabled nftables ownership, ambiguous/mixed ownership,
+truncated/permission-denied inventory and unknown ordering. Preserve foreign rules.
+
+Initial supported bridges require ipv6.address=none. Preserve all IPv6 firewall
+and NAT state; canonical bridge IPv6 sysctl activation remains explicit. Resolve
+bridge B, unique private IPv4 subnet N, bridge IPv4 address G and unique default
+IPv4 egress E from canonical provider/Incus/host facts. Reuse W03 overlap detection.
+Ambiguous egress and effective Incus ACL denies block without repair.
+
+For inactive UFW, add only exact rules tagged tsw:<bridge>:<purpose>:
+
+* FORWARD -i B -o B -s N -d N, conntrack NEW,ESTABLISHED,RELATED, ACCEPT.
+* FORWARD -i B -o E -s N, conntrack NEW,ESTABLISHED,RELATED, ACCEPT.
+* FORWARD -i E -o B -d N, conntrack ESTABLISHED,RELATED, ACCEPT.
+
+Add absent rules ahead of Docker's recognized catch-all FORWARD drop only while
+preserving unrelated rule order. Never bypass administrator/unknown denies,
+change chain policies, flush tables, open blanket INPUT/OUTPUT or treat a native
+nft ACCEPT as proof no later hook drops traffic. Inspect all relevant hook owners.
+
+For active UFW use its interface and persistent owner:
+
+* ufw route allow in on B out on B from N to N comment <exact-tsw-tag>.
+* ufw route allow in on B out on E from N to any comment <exact-tsw-tag>.
+* Require observed established/related return allowance; do not add unrestricted
+  reverse forwarding. Prior effective user/before denies block rather than
+  overriding them.
+* Where equivalent input allowance is absent, allow DHCP UDP from 0.0.0.0/32
+  source port 68 to any destination port 67 on B, plus the same allowance from N.
+  DHCP initial destination can be broadcast; broader destination is needed only
+  for these exact DHCP tuples.
+* Where equivalent input allowance is absent, allow DNS TCP and UDP from N to G
+  port 53 on B. Preserve existing equivalent effective rules read-only.
+* Require known DHCP server reply/OUTPUT behavior; restrictive or unknown output
+  blocks. Do not reset/reload UFW or rewrite its configuration.
+
+For inactive-UFW restrictive INPUT, the same exact DHCP/DNS tuples may be added
+only with complete owner/order inspection and no foreign explicit deny conflict;
+otherwise block with owner-specific remediation. No general bridge input allow.
+
+Require Incus ipv4.nat=true and observed bridge/subnet matching effective managed
+SNAT/masquerade. Reuse it without changes. Missing NAT may be reobserved inside the
+bounded bridge readiness interval; persistent absence blocks with an Incus-owner
+diagnostic. W06 never creates a second NAT owner.
+
+The service preserves this firewall owner choice and reconciles only exact owned
+missing rules. Its total bridge wait is at most 60 seconds, TimeoutStartSec=75s,
+Restart=no; individual commands have finite deadlines. No automatic broad retry,
+firewall manager replacement or global-policy repair is allowed.
+
+Safe writes require no-follow regular files and safe ancestor/owner/mode/link
+validation, exact-plan drift checks, protected backups and atomic publication.
+Activate only named canonical sysctls, never sysctl --system, and only required
+br_netfilter module loading. Shared hosts updates preserve unrelated bytes and
+metadata with exact marker/collision validation.
+
+Sources: https://linuxcontainers.org/incus/docs/main/howto/network_bridge_firewalld/[Official
+Incus firewall guide] and https://manpages.ubuntu.com/manpages/resolute/man8/ufw.8.html[Ubuntu
+UFW command interface]. These support scoped DHCP/DNS/route allowances; they do
+not qualify this product's implementation or grant live consent.
+
+Acceptance authority: Root architect, following independent Senior System
+Architect support, Security/DevOps concurrence and Requirement/Test conditional
+concurrence now resolved by these exact clauses. All implementation requirements
+remain pending until executed local evidence and final independent audit.

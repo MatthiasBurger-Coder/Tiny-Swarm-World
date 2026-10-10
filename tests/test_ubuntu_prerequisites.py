@@ -30,6 +30,9 @@ class UbuntuPreparationAcceptanceTests(unittest.TestCase):
         boundary = patch("tiny_swarm_world.prepare_linux.run_incus_preparation", return_value=0)
         self.incus_boundary = boundary.start()
         self.addCleanup(boundary.stop)
+        network = patch("tiny_swarm_world.prepare_linux.run_network_preparation", return_value=0)
+        self.network_boundary = network.start()
+        self.addCleanup(network.stop)
 
     def test_ac1_native_and_wsl_fresh_packages_then_python_with_separate_consent(self):
         for wsl in (False, True):
@@ -177,6 +180,9 @@ class MissingInterpreterShellTests(unittest.TestCase):
         boundary = patch("tiny_swarm_world.prepare_linux.run_incus_preparation", return_value=0)
         self.incus_boundary = boundary.start()
         self.addCleanup(boundary.stop)
+        network = patch("tiny_swarm_world.prepare_linux.run_network_preparation", return_value=0)
+        self.network_boundary = network.start()
+        self.addCleanup(network.stop)
 
     def run_boundary(self, args=(), *, python_ready=False, apt_fails=False, release="24.04", kernel="6.8.0-linux", evidence_failure="", consent="yes\nyes\n"):
         # Fake extracted release and fake executables: no real package commands.

@@ -44,13 +44,13 @@ class NativePreparationEvidenceWriter:
         timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
         target = directory / f"{timestamp}.json"
         payload = {
-            "schema": "incus-preparation-v1" if capability == "incus" else "native-preparation-v1",
+            "schema": capability + "-preparation-v1" if capability in {"incus", "network"} else "native-preparation-v1",
             "status": status,
             "stage": stage,
             "platform": f"ubuntu-{platform_release}-x86_64",
-            "planned_actions" if capability == "incus" else "planned_packages": list(planned),
-            "newly_observed_actions" if capability == "incus" else "newly_observed_packages": list(added),
-            "uncertain_actions" if capability == "incus" else "uncertain_packages": list(uncertain),
+            "planned_actions" if capability in {"incus", "network"} else "planned_packages": list(planned),
+            "newly_observed_actions" if capability in {"incus", "network"} else "newly_observed_packages": list(added),
+            "uncertain_actions" if capability in {"incus", "network"} else "uncertain_packages": list(uncertain),
             "timestamp_utc": timestamp,
         }
         descriptor, temporary_name = tempfile.mkstemp(prefix=".native-preparation-", dir=directory)

@@ -37,7 +37,10 @@ access and absent resolved pool/bridge/Swarm profiles. Read-only `--dry-run`
 never starts a daemon or writes host/configuration/state/evidence. Existing
 compatible resources are reused; collisions block without replacement. New
 group membership requires logout/login and a rerun. Incus readiness is verified
-without sudo and does not prove kernel controls or working services. Other
+without sudo; the next separately confirmed network stage prepares kernel
+controls, scoped forwarding and local names. Neither stage proves deployed
+services or login success. See
+link:../user_guide/network-preparation.md[Kernel and browser-access preparation]. Other
 supported host provisioning remains operator-owned via the official Incus guide.
 Incus local
 administration commonly uses the `incus-admin` group.

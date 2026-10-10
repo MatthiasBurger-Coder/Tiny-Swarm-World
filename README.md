@@ -95,6 +95,8 @@ the installer:
   `incus version` and `incus info` must work without `sudo`.
 - Host networking and capacity checked against the
   [ready-for-install checklist](documentation/user_guide/installation.adoc#ready-for-install-checklist).
+  Review kernel, scoped firewall and local-name preparation with
+  `./prepare_linux.sh --dry-run`; see [network preparation](documentation/user_guide/network-preparation.md).
 - For WSL2 Windows-browser access, the existing
   [Windows bridge prework](documentation/user_guide/installation.adoc#windows-wsl-prework).
   Native Linux does not need that bridge.

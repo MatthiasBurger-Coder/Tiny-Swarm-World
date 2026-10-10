@@ -27,9 +27,9 @@ capability check proves only that capability, never complete installation readin
 | Python dependency bootstrap | `composition_installation.py` facade and `infrastructure/adapters/installation/process.py`; user-local venv, hash-checked `requirements.lock`, editable install without dependency resolution | W02 supplies interpreter/venv prerequisites before dependency imports |
 | `install.sh`, BOOT-07 | `simple_installer.py`, `composition_installation.py`, `application/services/installation.py`, installation ports/adapters; native reconcile without reset, WSL confirmed fresh reset | W07: ordinary non-destructive WSL install and handoff; keep explicit reset separate |
 | `tsw`, `host prepare` | `__main__.py`, CLI registry/parser/consent/commands, `PrepareHostWithPreflight`, `HostPreparationService`, `PortHostPreparation` | Already consent-guarded; not a bare-host package bootstrap command |
-| Native `host prepare` | `NativeLinuxHostPreparation` verifies kernel controls; does not change them | W03: Incus daemon/current-user/storage/network/profile preparation; W06: kernel/network adapters |
+| Native `host prepare` | `NativeLinuxHostPreparation` verifies kernel controls; does not change them | Separate `prepare_linux.sh` capabilities own consented W03 Incus and W06 kernel/network preparation; installer/host prepare remain verification-only |
 | `host verify` | CLI command calls read-only hang diagnostics; capability-level diagnostics, not aggregate installation readiness | W01 defines aggregate below; implementation integration in W07 |
-| Windows bridge, BOOT-06 | `tools/windows/tws-wsl-bridge.ps1`, service script, config, `WslHostPreparation`, `PortWindowsCommandRunner`; verify before refresh, protected ownership/ACL/collision lifecycle | W06 reuses bridge and canonical `infra/config/ports.yaml`; no second portproxy/firewall owner |
+| Windows bridge, BOOT-06 | `tools/windows/tws-wsl-bridge.ps1`, service script, config, `WslHostPreparation`, `PortWindowsCommandRunner`; protected ownership/ACL/collision lifecycle | W06 preparation inventory separates routing/agent readiness from endpoint checks, delegates consented install/owned refresh and reuses canonical `infra/config/ports.yaml`; no second portproxy/firewall owner |
 | Windows preparation, BOOT-02/03 | `prepare_windows.ps1` and dependency-light `tools/windows/preparation` owners implement explicit candidate-only Windows features/WSL2/selected-distro/systemd lifecycle; ordinary Apply unqualified-blocked; W05 resource plan/configuration and effective verification extend those owners | W06/W07 integration and W09 actual live qualification |
 | Recovery/evidence, BOOT-08 | Native preparation re-inventories packages after failure; `native_preparation_evidence.py` writes protected, redacted evidence; installer phase timeout/interruption handling exists | W08: shared resumable stage records and protected cross-host recovery |
 | Qualification/help, BOOT-09 | #427 delivered native lifecycle and its recorded Ubuntu 26.04 scenarios; Ubuntu 24.04 qualification is separate | W09: fresh/repeat/restart/recovery qualification on both families; W10: final copyable guide |
@@ -496,3 +496,46 @@ read-only probe. `tools/build_wsl_resource_projection.py` generates
 `resource-projection.json` from canonical sources on Linux/WSL. All runtime helpers,
 projection and canonical inputs participate in extracted-release source proof.
 See the [Windows capacity guide](../user_guide/windows-preparation.md#capacity-plan-and-resource-overrides).
+
+## BOOT-W06 scoped network capability
+
+The accepted [W06 ADR](../arc42/09_decisions/adr-scoped-bootstrap-network-preparation.adoc)
+sets the separately consented preparation boundary after Linux package/Python and
+current-user Incus prerequisites. Kernel control activation/persistence, resolved
+bridge/subnet forwarding and canonical local route-name preparation are separate
+from deployment and authentication. Installer and `host prepare` keep their
+verification-only boundaries. Existing fixed selection/resource semantics remain
+with #440/#444; W06 adds no service catalogue or distributed DNS.
+
+Preserve active firewall ownership and recognize canonical Incus nftables/NAT.
+Only scoped required IPv4 bridge/default-egress/established-return paths and needed
+DHCP/DNS tuples may be added. Unknown owners, earlier deny conflicts, subnet/port
+collisions, unsafe files and incompatible IPv6 bridge configurations block rather
+than disabling or replacing host policy. Incus remains the sole managed-NAT owner.
+Persistence has a finite bridge wait, 75-second service deadline and no automatic
+restart loop. Byte-compatible safe files are reused read-only; a filename does not
+confer replacement authority. Shared Linux hosts updates retain unrelated entries
+and safe metadata with protected recovery backups.
+
+Windows preparation delegates install/owned refresh to the existing bridge. The
+selected distro is bound through protected staging, preserving shared auto config,
+existing registrations, credentials and WinSW/ACL/ownership guards. A separate
+read-only inventory receives an already-observed running-distro address, and
+separates routing/agent readiness from endpoint/API and login states. The existing
+agent alone converges after address changes; no second updater is introduced.
+
+Read-only/refused/no-op work writes no host/configuration/state/evidence. Fresh
+source/configuration/ownership observations bind each approved plan; mutation
+intent is protected before actions. Drift, timeout, interruption, failed postcheck
+or evidence errors halt dependents with confirmed/uncertain effects retained.
+Resume requires new inventory/consent, without automatic destructive rollback.
+Preparation always leaves services_verified false and does not claim aggregate
+W07 readiness. Linux source validation uses trusted local assets and exact-plan
+hashes, not commit authentication; Windows extracted-release proof catalogs bind
+all called W06/bridge helpers and canonical inputs.
+
+Local mocked tests and the QUALITY.md gate establish local implementation evidence.
+Network, installation, restart and browser/login qualification remain separately
+APPLICABLE_LIVE / LIVE_CONSENT_MISSING until authorized recoverable-host runs.
+No mocked, skipped, stale or legacy #427 observation is new live proof.
+See [operator instructions](../user_guide/network-preparation.md).
