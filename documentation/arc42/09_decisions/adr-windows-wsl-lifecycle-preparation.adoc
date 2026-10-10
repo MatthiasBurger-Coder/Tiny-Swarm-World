@@ -1,0 +1,187 @@
+= Windows and WSL Lifecycle Preparation
+:status: Accepted for W04 implementation; no live authorization or qualification
+:date: 2026-10-04
+
+Issue #456 / BOOT-W04 under #452. The issue amendment and operator's implementation
+instruction authorize development, not live mutation or version qualification.
+
+Independent System Architect, Requirement Engineer and Security/Sandbox reviews
+accepted this narrow transition before product edits on 2026-10-04.
+
+== Decision
+
+Add thin prepare_windows.ps1 delegating to a dependency-light PowerShell preparation
+module: pure plan/result policy, injectable inventory/action/evidence ports and
+concrete Windows adapters. Windows features and first WSL installation precede
+Linux/Python availability, so this bounded pre-Linux boundary cannot require product
+Python on Windows. After observing Linux facts, reuse Linux dependency-light
+preparation owners; never broaden bridge-specific command ports. Main Python
+composition, provider, bridge, resource and installer ownership remain unchanged.
+
+Candidate eligibility and qualification are separate. Candidate Windows is Windows
+11 client x86_64 (build >=22000, observed product type/architecture), elevated with
+observed virtualization and readable prerequisite/configuration facts. Existing WSL
+must expose a readable version >=2.4.10 and the required install command capabilities.
+Unsupported/unknown facts block; observed absence is an explicit staged plan.
+Ubuntu-24.04 and Ubuntu-26.04 registrations are explicit selections; actual Ubuntu
+release, amd64/x86_64, WSL2 and ordinary default account must be observed before
+Linux configuration. WSL1 is never converted. No guessing a distro or identity.
+
+Initial installation artifacts are immutable, official candidates: Microsoft WSL
+3.0.1 x64 MSI, Ubuntu 24.04.5 amd64 WSL image and Ubuntu 26.04.1 amd64 WSL image.
+Their exact HTTPS URLs and publisher-provided SHA256 values are recorded in the
+preparation artifact catalogue; downloaded content must match before execution.
+Verify the Microsoft MSI Authenticode publisher/signature as well. No latest update,
+remote pipe-to-shell, default Ubuntu install or unsupported download channel.
+Official Microsoft release metadata and Canonical checksum lists are source evidence,
+not executed Tiny Swarm World qualification. Candidate installation changes stop for
+reinventory and new consent before newly observable dependent stages.
+
+Ordinary Apply blocks unqualified targets. A separate -QualificationRun enables only
+the stated candidate stages after explicit per-invocation exact-plan consent and
+separate operator declarations naming this observed host, selected distro, committed
+revision and recoverable target/snapshot. These declarations must match inventory;
+no saved approval, env file, issue text or ordinary -ApproveApply substitutes for them.
+Source identity/fingerprints are part of the plan and rechecked before mutation.
+Uncommitted/stale source cannot be presented as exact-SHA qualification evidence;
+release revision/asset identity must be validated before qualification mutation.
+W09 records exact versions/revision/scenario results and reviews qualified combinations.
+No qualification entry is prepopulated. No broad force flag or automatic release
+allowlisting is introduced. Changed facts/actions/config/artifact/source invalidate
+approval. Account and newly discovered stages require a new invocation/consent.
+
+Plans use the bootstrap contract schema, finite positive probe/action deadlines and
+zero automatic mutation retries. Read-only modes write nothing, start no stopped
+distro/services and create no evidence/temp/cache. Unknown Linux facts on a stopped
+distro report an operator start command. Help needs no probes/elevation/Python.
+JSON emits one envelope without prompts; capture native output and redact evidence.
+
+Mutations are staged: required Windows features, approved pinned WSL installation,
+explicit selected distro installation without implicit launch, operator account
+creation/default-account selection, preservation-aware selected wsl.conf systemd
+merge, then operator restart and observed PID1 verification. Inspect systemd packages;
+missing packages yield a precise operator-guided package remedy, not automatic
+W02 invocation (which already requires systemd) or a competing W04 installer. Never execute reset/unregister,
+convert existing WSL1, replace a distro, change global defaults/.wslconfig, initialize
+Incus, refresh routing or deploy/install product services.
+
+Preserve unrelated INI sections/keys, file ownership/mode and distributions. Reject
+ambiguous duplicate sections/keys, symlinks/unsafe ownership, unsafe selected-account
+facts or concurrency drift. Linux config mutation alone uses a scoped root command;
+product/venv/checkout never runs wholesale as root. Validate and pass structured
+arguments; never interpolate operator input into shell expressions. A bounded fixed
+Linux helper owns read/merge/atomic compare-and-replace when available; the initial
+systemd baseline cannot require a prepared Python interpreter or full dependencies.
+
+Windows reboot, selected-distro termination/relaunch, account creation and login are
+operator actions, never automatic whole-host/WSL-wide shutdown. Return restart scope
+and RESTART_REQUIRED/3 while necessary steps remain. W04 capability READY only after
+observed baseline completion; aggregate preparation_ready stays false until integrated
+qualification and W05/W06/W07 prerequisites are satisfied. services_verified=false.
+Follow contract failure precedence, retain transport timeout 124/interruption 130,
+stop dependents and distinguish confirmed versus uncertain effects. Resume from
+observed inventory, never blindly replay records or automatically roll back features.
+
+Before the first host mutation, W04 validates and prepares protected Windows evidence
+storage under restrictive owner/SYSTEM/admin ACLs, refusing reparse-point/foreign
+ownership paths. Read-only storage inspection writes nothing. Approved apply atomically
+records redacted intent/effects and exits. Pre-mutation storage failure blocks; record
+failure after mutation returns PARTIAL. W08 integrates shared recovery later and does
+not become a prerequisite for these minimum safeguards. Approval facts may be logged
+for audit; records never confer reusable authorization.
+
+== Narrow supersession and handoff
+
+Supersede only the remaining Windows/WSL preparation exclusion and Windows qualification
+mutation gate in the native lifecycle/bootstrap contract/W02 clarification, exclusively
+for the bounded candidate qualification path. Preserve W02 independent Linux package
+exception, existing WSL installer/reset behavior, live-consent, bridge ACL/lifecycle,
+provider, resources and other ADR history. Synchronize bootstrap contract §§2–5/7.
+
+Forward dependency: W01 -> accepted W04 ADR -> W04 local implementation checkpoint ->
+W05/W06/W07/W08 integration -> W09 live qualification. Downstream consumes the audited
+committed implementation, not closure of #456. AC1-LIVE stays open; #456 cannot be DONE
+until applicable real clean/existing-host evidence is linked. Local mocks never prove
+live qualification. No host mutation is authorized by this ADR or implementation task.
+
+== Verification and sources
+
+Executable PowerShell mocked lifecycle tests are required, including clean pre-Linux,
+stopped distro/no-start, account/restart/rerun, consent drift, foreign configuration,
+artifact identity, evidence failures and bounded process outcomes. Missing/skipped core
+PowerShell behavior tests block LOCAL_IMPLEMENTATION_COMPLETE. Full Linux/WSL quality
+is applicable. Actual Windows lifecycle is APPLICABLE_LIVE / LIVE_CONSENT_MISSING.
+Browser checks are NOT_APPLICABLE for W04; external results remain separately observed.
+
+Official sources reviewed 2026-10-04:
+* https://learn.microsoft.com/en-us/windows/wsl/basic-commands
+* https://learn.microsoft.com/en-us/windows/wsl/systemd
+* https://ubuntu.com/wsl/docs/stable/howto/install-ubuntu-wsl2/
+* https://api.github.com/repos/microsoft/WSL/releases/tags/3.0.1
+* https://releases.ubuntu.com/noble/SHA256SUMS
+* https://releases.ubuntu.com/resolute/SHA256SUMS
+
+The systemd minimum alone does not support the modern distro artifact format;
+Canonical documents WSL >=2.4.10 for tar-based .wsl images. Exact versions remain
+candidate-only until executed scenario evidence and review establish qualification.
+
+== Offline extracted-release source binding
+
+Independent architecture and security review accepted Git commit/tree/blob membership
+proofs within the source identity boundary. A trusted independently selected
+QualificationRevision anchors the canonical SHA1 commit object, its binary trees and
+the current ordinary asset blobs, including SourceProof.ps1. Strict bounds/unique
+entries/path/mode/hash checks reject malformed, altered or symlinked assets. The
+Linux-only build_windows_preparation_manifest.py creates the offline proof from a
+clean committed tree; Windows verification requires neither Git nor Python/network.
+A self-declared manifest alone never chooses the expected revision. Membership proves
+identity/integrity, not publisher authenticity, live qualification or consent.
+
+A successful mutation checkpoint that needs newly observed facts and fresh consent
+returns PARTIAL/4 with confirmed completed actions and no invented uncertain effects.
+Cause next_stage_consent_required and a concrete fresh-plan command distinguish this
+partial preparation from failure. BLOCKED stays before effects, and RESTART_REQUIRED
+requires an actual restart/login boundary. This narrow result clarification was
+independently accepted by the System Architect before final implementation review.
+
+== Existing-target selection and live acceptance amendment, 2026-10-10
+
+The operator explicitly amended issue #456 live acceptance to the existing selected
+WSL2 registration and identified native Ubuntu host. Requirement, System Architect,
+Automation, Tester and Security reviews accept this bounded amendment. The clean
+Windows preparation path remains implemented and locally tested; it is outside this
+amended live acceptance and must not be described as live-qualified. Native Linux
+uses its existing preparation owner. No Windows-native product runtime is introduced.
+
+For an existing registration, accept an explicit safe Distro name with a separate
+explicit UbuntuRelease of 24.04 or 26.04. Names use strict full-string ASCII validation;
+trailing newline, whitespace, shell syntax and unsafe characters fail before probes.
+Canonical Ubuntu-24.04/Ubuntu-26.04 selections retain a compatibility release mapping;
+a contradictory explicit release blocks. Observe actual Ubuntu identity, version,
+x86_64, WSL2 and ordinary account; never infer these from a registration name.
+An absent or unobservable custom registration blocks without prerequisite mutation or
+artifact selection. Only canonical catalogue names authorize a missing-distro plan.
+Release and exact registration are part of fresh-plan identity and rerun guidance.
+
+Bounded CIM inventory records firmware virtualization and HypervisorPresent separately.
+Typed, known observations permit active virtualization through either enabled firmware
+or an observed active hypervisor; unknown/malformed facts remain blocked. Feature,
+administrator and selected WSL2 facts still need independent verification. Microsoft
+documents HypervisorPresent in Win32_ComputerSystem:
+https://learn.microsoft.com/en-us/windows/win32/cimwin32prov/win32-computersystem.
+
+The read-only WSL help parser accepts only native Windows exits 0 or -1 with empty
+stderr and the exact advertised install/from-file/name/no-launch option tokens.
+This narrow exception reflects the observed WSL help behaviour, never relaxes action
+failure handling, and rejects timeout/interruption/partial or lookalike output.
+Installation capabilities gate only paths needing installation, not an independently
+observed existing WSL2 registration. Required concrete existing-distro probes remain.
+
+Existing-target recovery is scoped to planned changes: protected selected configuration
+bytes/metadata and recorded service/resource states, with explicit restoration evidence.
+It does not claim full Windows recovery. Feature/MSI/distro installation and unrelated
+registration changes are outside the amended live run. Preserve administrator checks,
+clean committed source, exact per-invocation qualification/plan consent, protected
+evidence, finite deadlines, zero automatic retries, empty qualification policy and
+operator-controlled reboot/distro restart boundaries. Repeated actual target runs,
+preservation and applicable failure/resume evidence must satisfy the amended issue.

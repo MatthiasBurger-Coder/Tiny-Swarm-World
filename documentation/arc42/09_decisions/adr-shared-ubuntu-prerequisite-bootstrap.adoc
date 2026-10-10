@@ -42,3 +42,10 @@ aggregate bootstrap stages. It does not block this independent Linux package
 substage on observed supported Ubuntu WSL2. This explicit stage-scoped amendment
 resolves the W02-before-W04/W09 dependency cycle. W09 still owns exact-version
 live qualification; local tests do not establish live or aggregate readiness.
+
+== W04 narrow amendment, 2026-10-04
+
+adr-windows-wsl-lifecycle-preparation.adoc adds a separately authorized candidate
+qualification path for Windows-affecting stages. Ordinary Apply remains blocked
+for unqualified targets. The independent W02 Linux package exception and W07
+installer/reset boundary stay unchanged; W09 qualification remains unclaimed.
