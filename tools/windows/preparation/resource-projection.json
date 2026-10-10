@@ -1,0 +1,25 @@
+{
+  "node_budget": {
+    "disk_gib": 80,
+    "memory_gib": 19,
+    "processors": 8
+  },
+  "profiles": {
+    "default": {
+      "disk_gib": 60,
+      "memory_gib": 8,
+      "processors": 4
+    },
+    "service-access": {
+      "disk_gib": 150,
+      "memory_gib": 16,
+      "processors": 8
+    }
+  },
+  "schema_version": 1,
+  "sources": {
+    "infra/config/node-providers/provider_config.yaml": "3c6c5a57743f188f477397015d95078361533f873fc2014764c7da7343e36756",
+    "src/tiny_swarm_world/domain/host_environment.py": "5026705d35f4985b8a6aff63379ea5bae1c0d229053e0acc738b308e6377aa13",
+    "src/tiny_swarm_world/domain/preflight/resources.py": "efd40b6ea4a61ebb0541bf7adcdf691c30a0c47aee04f6757b610ee0a6b4c693"
+  }
+}

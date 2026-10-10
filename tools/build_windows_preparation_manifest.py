@@ -22,6 +22,15 @@ ASSETS = (
     "tools/windows/preparation/Download.ps1",
     "tools/windows/preparation/SourceProof.ps1",
     "tools/windows/preparation/linux-config.sh",
+    "tools/windows/preparation/Resources.ps1",
+    "tools/windows/preparation/ResourceAdapters.ps1",
+    "tools/windows/preparation/ResourceHost.ps1",
+    "tools/windows/preparation/linux-resources.sh",
+    "tools/windows/preparation/resource-projection.json",
+    "src/tiny_swarm_world/domain/preflight/resources.py",
+    "src/tiny_swarm_world/domain/host_environment.py",
+    "infra/config/node-providers/provider_config.yaml",
+    "tools/build_wsl_resource_projection.py",
 )
 
 

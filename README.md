@@ -204,8 +204,9 @@ for the commands that change nodes, networking, Docker, Swarm and service stacks
 
 The planned complete host bootstrap interface and delivery gaps are defined in
 the [BOOT-W01 contract](documentation/contracts/bootstrap.md). Windows preparation
-remains assigned to later work packages. BOOT-W02 now provides the shared Linux
-package/Python prerequisite stage.
+now includes W04 lifecycle and W05 capacity planning/configuration; aggregate
+readiness and live qualification remain separate. BOOT-W02 provides the shared
+Linux package/Python prerequisite stage.
 
 On native Ubuntu 24.04 or 26.04 x86_64, prepare the host separately, then run the
 non-destructive installer. The installer does not invoke host preparation:
@@ -252,8 +253,12 @@ live-operation consent.
 `--headless` changes presentation; it does not make the operation read-only.
 
 Native `service-access` requires at least **15 GiB host RAM**; WSL2 retains
-16 GiB. Managed-node capacity is checked separately: the repository defaults
-total 19 GiB. A local 8/6/3 GiB node configuration was installed and functionally
+a 16 GiB service-access profile floor. The W05 Windows plan also counts the
+19 GiB default managed-node budget and 2 GiB WSL overhead: it needs at least
+21 GiB configured WSL RAM while retaining Windows reserve. A 16 GiB physical
+Windows host is therefore insufficient for the current node configuration.
+See the [resource plan and overrides](documentation/user_guide/windows-preparation.md#capacity-plan-and-resource-overrides).
+Managed-node capacity is checked separately. A local 8/6/3 GiB node configuration was installed and functionally
 tested on an 18.73 GiB native host. The manager reached its 8 GiB limit, so this
 run establishes limited operation with little manager reserve. See the
 [native installation and memory results](documentation/evidence/issue-363-native-fresh-install-20261003.md)

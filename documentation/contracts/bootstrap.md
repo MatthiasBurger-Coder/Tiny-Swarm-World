@@ -9,7 +9,7 @@ those commands or capabilities available. W01 delivers the inventory, interface,
 plan and readiness definitions. Existing behavior remains governed by the
 [accepted native preparation ADR](../arc42/09_decisions/adr-native-linux-preparation-and-install-lifecycle.adoc)
 and [bridge ADR](../arc42/09_decisions/adr-windows-wsl-bridge-service-agent.adoc).
-W02 and W04 recorded their narrow ADR supersessions; W07 must record its transition before
+W02, W04 and W05 recorded their narrow ADR supersessions; W07 must record its transition before
 changing the manual-Python prerequisite, WSL preparation exclusion or WSL reset
 behavior. The future departures are recorded in the
 [proposed bootstrap ADR](../arc42/09_decisions/adr-bootstrap-command-readiness-contract.adoc).
@@ -30,7 +30,7 @@ capability check proves only that capability, never complete installation readin
 | Native `host prepare` | `NativeLinuxHostPreparation` verifies kernel controls; does not change them | W03: Incus daemon/current-user/storage/network/profile preparation; W06: kernel/network adapters |
 | `host verify` | CLI command calls read-only hang diagnostics; capability-level diagnostics, not aggregate installation readiness | W01 defines aggregate below; implementation integration in W07 |
 | Windows bridge, BOOT-06 | `tools/windows/tws-wsl-bridge.ps1`, service script, config, `WslHostPreparation`, `PortWindowsCommandRunner`; verify before refresh, protected ownership/ACL/collision lifecycle | W06 reuses bridge and canonical `infra/config/ports.yaml`; no second portproxy/firewall owner |
-| Windows preparation, BOOT-02/03 | `prepare_windows.ps1` and dependency-light `tools/windows/preparation` owners implement explicit candidate-only Windows features/WSL2/selected-distro/systemd lifecycle; ordinary Apply unqualified-blocked | W05: capacity and preserved global WSL configuration; W09: actual live qualification |
+| Windows preparation, BOOT-02/03 | `prepare_windows.ps1` and dependency-light `tools/windows/preparation` owners implement explicit candidate-only Windows features/WSL2/selected-distro/systemd lifecycle; ordinary Apply unqualified-blocked; W05 resource plan/configuration and effective verification extend those owners | W06/W07 integration and W09 actual live qualification |
 | Recovery/evidence, BOOT-08 | Native preparation re-inventories packages after failure; `native_preparation_evidence.py` writes protected, redacted evidence; installer phase timeout/interruption handling exists | W08: shared resumable stage records and protected cross-host recovery |
 | Qualification/help, BOOT-09 | #427 delivered native lifecycle and its recorded Ubuntu 26.04 scenarios; Ubuntu 24.04 qualification is separate | W09: fresh/repeat/restart/recovery qualification on both families; W10: final copyable guide |
 
@@ -42,7 +42,7 @@ Kubernetes-first behavior or multi-host provisioning.
 ## 2. Target commands and consent
 
 The interface below is the shared target contract. The W04 Windows entrypoint
-implements its lifecycle-only switches and envelope; aggregate installation remains
+implements lifecycle/resource switches and envelope; aggregate installation remains
 W05–W09. Later Linux/installer switches are not all accepted by today's scripts. Current native preparation accepts
 `--preflight`, `--dry-run`, `--service-profile`; apply prompts for `yes` before
 APT and Python preparation. Current installer read-only modes support native
@@ -81,7 +81,7 @@ selected distro/account/checkout and preserve installer exits and consent.
 |---|---|---|
 | Native Ubuntu 24.04 LTS x86_64 | Preparation allowlist and local tests; live qualification tracked separately | W02/W03/W06 implement extensions; W09 records exact host/kernel/tool versions |
 | Native Ubuntu 26.04 LTS x86_64 | #427 recorded clean/rerun/recovery qualification for its scope | New bootstrap stages require their own W09 evidence; no inherited live success |
-| Windows 11 x86_64 + selected Ubuntu 24.04/26.04 x86_64 WSL2 | Bridge exists; W04 lifecycle implemented locally; aggregate W05/W06/W07 preparation and W09 qualification incomplete | W04/W09 publish exact qualified Windows build, WSL version, distro release and kernel; ordinary Apply blocks unknown/unqualified combinations; the accepted W04 ADR permits only separately authorized candidate qualification |
+| Windows 11 x86_64 + selected Ubuntu 24.04/26.04 x86_64 WSL2 | Bridge exists; W04 lifecycle and W05 resources implemented locally; aggregate W06/W07 preparation and W09 resource qualification incomplete | W04/W09 publish exact qualified Windows build, WSL version, distro release and kernel; ordinary Apply blocks unknown/unqualified combinations; the accepted W04 ADR permits only separately authorized candidate qualification |
 | Windows 10, WSL1, other distros/releases, ARM, macOS | Outside initial bootstrap target | BLOCKED before package/configuration changes; no automatic replacement |
 
 The distro registration name (for example `Ubuntu-24.04`) is not proof of its
@@ -441,3 +441,58 @@ mutation results retain their existing failure semantics.
 Record exact committed revision, target/version, commands/exits, applicable
 preparation and no-op reruns, preservation and scoped configuration/service
 recovery. These runs never qualify fresh Windows feature/MSI/distro installation.
+
+## BOOT-W05 accepted resource contract
+
+The independently accepted [W05 ADR](../arc42/09_decisions/adr-wsl-capacity-adaptation.adoc)
+extends the existing preparation module to global WSL2 resource planning. It retains
+W04 lifecycle staging, unqualified ordinary-Apply guards and fresh candidate-run
+consent. W05 development does not grant actual host mutation consent or qualification.
+
+The plan keeps physical capacity, Windows reserve, selected profile floors, configured
+managed-node totals and WSL allocation separate. It consumes a resource-only projection
+of canonical WSL profiles and provider configuration, not a new service-selection graph.
+Until #440/#444 selective setup is delivered, fixed profiles apply and all configured
+managed nodes count. Changed canonical source identities invalidate stale projection.
+
+Windows RAM reserve is max(4 GiB, ceil(physical RAM / 4)); logical CPU planning
+reserve is max(1, ceil(host CPU / 4)). Required configured WSL RAM is
+max(profile RAM, sum node RAM + 2 GiB overhead), and required WSL processors are
+max(profile CPU, sum node CPU limits). Current nodes total 19 GiB RAM and 8 CPU
+limits, so minimum configured WSL RAM is 21 GiB; a 16 GiB physical host cannot fit.
+Swap never substitutes for physical service RAM. Default swap is ceil(WSL RAM / 4).
+Positive integral memory/processor overrides and nonnegative swap overrides must
+retain reserve and profile/node feasibility; they cannot clamp node limits or omit
+services. CPU budgeting is conservative feasibility, not dedicated core reservation.
+
+Disk planning uses max(profile free-disk floor, sum node disk limits) and accounts
+for proposed swap growth on its actual volume. Preserve 20 GiB Windows free disk
+after allocation. Co-located distro/swap storage adds these budgets once; unknown
+storage facts block rather than inventing usable capacity. Windows reserve is
+planning headroom, not an assurance against unrelated dynamic Windows workloads.
+
+Only wsl2 memory/processors/swap keys may change. Exact-plan consent includes current
+and proposed values, backup/collision handling and all-WSL2 global impact. Preserve
+unrelated bytes/settings/sections/comments, encoding/newlines and safe metadata;
+reject ambiguous syntax, unsafe ownership/ACLs/reparse points and inventory drift.
+Mutations require protected evidence, a unique protected backup, exclusive preparation
+lock, final approved bytes/metadata check, atomic replacement and verification. This
+is not an operating-system compare-and-swap guarantee against arbitrary other editors.
+Backup recovery requires operator inspection and a separately reviewed restoration.
+
+A written file is not effective capacity. Return RESTART_REQUIRED/3 and leave WSL-wide
+shutdown and selected-distro start to the operator; no automatic shutdown. Rerun the
+same command after restart and reobserve effective RAM/CPU/swap/disk. Configured RAM
+comparison permits max(256 MiB, 2%) kernel-accounting tolerance; effective usable RAM
+still independently requires max(profile RAM, sum node RAM). Missing/insufficient
+effective capacity cannot be reported as ready. Capability readiness is separate
+from aggregate preparation_ready and services_verified. Read-only modes never write
+host/configuration/state/evidence or start a stopped distro.
+
+W05 local implementation owners: `Resources.ps1` contains pure policy/INI merge;
+`ResourceAdapters.ps1` provides resource ports; `ResourceHost.ps1` bounds Windows
+registry/volume/ACL/config IO; `linux-resources.sh` is an already-running-distro
+read-only probe. `tools/build_wsl_resource_projection.py` generates
+`resource-projection.json` from canonical sources on Linux/WSL. All runtime helpers,
+projection and canonical inputs participate in extracted-release source proof.
+See the [Windows capacity guide](../user_guide/windows-preparation.md#capacity-plan-and-resource-overrides).
