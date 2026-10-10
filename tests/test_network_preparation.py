@@ -453,7 +453,7 @@ class FirewallNegativeTests(unittest.TestCase):
                 return subprocess.CompletedProcess(args, 0, '[{"ifname":"incusbr0","addr_info":[{"family":"inet","local":"10.231.50.1","prefixlen":24}]}]', "")
             return subprocess.CompletedProcess(args, 0, outputs[args[0]], "")
         with patch("subprocess.run", side_effect=run) as runner:
-            exec(compile(source, "root-owned-forwarding-guard", "exec"), {})
+            exec(compile(source, "<root-owned-forwarding-guard>", "exec"), {})
             self.assertTrue(all(call.kwargs["timeout"] == 5 for call in runner.call_args_list))
 
     def test_source_digest_binds_all_helpers_configs_and_rejects_linked_ancestor(self):
