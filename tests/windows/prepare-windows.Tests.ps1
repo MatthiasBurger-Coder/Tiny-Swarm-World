@@ -434,16 +434,25 @@ $r=Invoke-WindowsPreparation $o $ports
 Assert ($script:stateRecords.Count -eq 2) 'W08 durable intent then effect'
 Assert ($script:stateRecords[0].stage -eq 'enable_systemd' -and $script:stateRecords[0].uncertain -and $script:stateRecords[1].restart -eq 'distro') 'W08 stage and restart boundary'
 $module=Get-Module Preparation
-$valid=$script:stateRecords[1] | ConvertTo-Json -Depth 12 -Compress | ConvertFrom-Json
+$wire=$script:stateRecords[1] | ConvertTo-Json -Depth 12 -Compress
+$valid=& $module {param($text) ConvertFrom-PreparationStateJson $text} $wire
+Assert ($valid.timestamp_utc -is [string] -and $valid.timestamp_utc -ceq $script:stateRecords[1].timestamp_utc) 'W08 timestamp wire type and value preserved across PowerShell runtimes'
 $identity=$script:stateRecords[1].identity
 & $module {param($state,$identity) Assert-PreparationState $state $identity} $valid $identity
 Assert ($valid.versions.windows_build -eq 22631 -and $valid.versions.wsl -eq '3.0.1' -and $valid.exit_code -eq 0) 'W08 tested version and exit context'
 foreach($field in @('schema','exit_code','confirmed','uncertain','observation','next_command')) {
-    $bad=$script:stateRecords[1] | ConvertTo-Json -Depth 12 -Compress | ConvertFrom-Json
+    $bad=& $module {param($text) ConvertFrom-PreparationStateJson $text} $wire
     $bad.$field='password-do-not-publish'
     $blocked=$false
     try{& $module {param($state,$identity) Assert-PreparationState $state $identity} $bad $identity}catch{$blocked=$true}
     Assert $blocked ('W08 rejects corrupt '+$field)
+}
+foreach($invalid in @(@{field='schema';value=$true},@{field='schema';value=1.0},@{field='exit_code';value=0.0},@{field='exit_code';value=3011},@{field='windows_build';value=22631.5})) {
+    $bad=& $module {param($text) ConvertFrom-PreparationStateJson $text} $wire
+    if($invalid.field -eq 'windows_build'){$bad.versions.windows_build=$invalid.value}else{$bad.($invalid.field)=$invalid.value}
+    $blocked=$false
+    try{& $module {param($state,$identity) Assert-PreparationState $state $identity} $bad $identity}catch{$blocked=$true}
+    Assert $blocked ('W08 rejects noninteger or out-of-range '+$invalid.field)
 }
 $before=$script:executions;$script:stateInvalid=$true
 $r=Invoke-WindowsPreparation $o $ports
