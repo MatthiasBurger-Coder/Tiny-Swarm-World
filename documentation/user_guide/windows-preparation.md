@@ -172,6 +172,10 @@ capacity, rather than assuming a nominal host RAM class guarantees the example.
 Unknown, unsafe or ambiguous configuration/storage facts block. Custom swapfile
 locations currently block adaptation; they are preserved rather than relocated.
 The selected registered VHD and canonical user TEMP determine actual disk volumes.
+The registered VHD is checked as an existing regular, non-reparse file with a
+trusted owner under its protected directory. Its contents and ACLs remain untouched;
+WSL-managed access grants are preserved. Configuration, swap and evidence retain
+their separate strict permission checks.
 Process-only environment redirects and unsafe/reparse/non-local/non-NTFS paths block.
 
 Disk planning reserves the selected profile/node requirement plus swap allocation

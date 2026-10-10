@@ -6,8 +6,7 @@ changed_files.md, test_results.md, remaining_risks.md, acceptance_checklist.md.
 commit_readiness.md records local source-freeze readiness.
 completion_audit.md records the independent read-only review.
 Additional scope: requirements.lock, narrow urllib3 security remediation for
-AC4. No existing workflow, source, test, configuration or historical evidence
-edits. Ignored local VM scripts/images/logs/credentials are not commit content.
+AC4; tools/windows/preparation/Adapters.ps1, tests/windows/prepare-windows.Tests.ps1 and documentation/user_guide/windows-preparation.md for R461-22. The existing workflow and product Python/configuration are unchanged. Historical results are retained and clearly separated from current observations. Ignored local VM scripts/images/logs/credentials are not commit content.
 
 Portable redacted live observations: native_preflight_result.json and
 native_python_result.json. No raw remote logs or credentials are included.
@@ -32,3 +31,10 @@ windows_feature_elevation_result.json records the actual host elevation failure
 and absence of guest feature execution.
 
 R461-22 live blocker remediation: tools/windows/preparation/Adapters.ps1 uses explicit PowerShell NullString for the existing atomic state replacement; tests/windows/prepare-windows.Tests.ps1 adds real create/replace IO regression with isolated mocked ACL boundaries; documentation/user_guide/windows-preparation.md explains retained pending evidence after persistence failure. No source qualification guard or atomic-write requirement is relaxed. New portable evidence includes feature apply, partial inspection, recovery reboot and disposable writer diagnosis.
+
+Corrected local freeze bce63aaf contains the reviewed adapter/regression/guide changes and five redacted actual records. Subsequent evidence-only continuation records preserved manual Ubuntu installation, corrected committed source/archive proof, real-ACL disposable writer success, and the storage ACL blocker. New portable records windows_revised_plan_result.json/windows_resource_acl_diagnostic.json contain no private paths, usernames, raw SIDs or credentials.
+
+Additional R461-23 scope: tools/windows/preparation/ResourceAdapters.ps1;
+tests/windows/resource-files.Tests.ps1; existing capacity ADR dated amendment;
+windows-preparation.md clarification. Protected local portable PowerShell and VM
+checkpoint helpers are ignored/private, never committed.

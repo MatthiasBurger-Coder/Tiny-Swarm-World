@@ -28,3 +28,19 @@ No runtime guard, test assertion, timeout or quality threshold was weakened.
 ## Corrected checkpoint candidate local freeze readiness
 
 Read-only git_commit_reviewer contract reproduced in the main thread; independent issue auditor separately reviewed the defect correction. READY for local source freeze only: branch fix/boot-w09-live-qualification-20261010; task-scoped Windows atomic replacement fix, real IO regression, recovery documentation and issue evidence. Full Python3.12 quality retry PASS2554/18skips, targeted38PASS, actual WindowsPowerShell5.1 regressionPASS. Strict dependency audit applies to unchanged corrected lock. Historical gate/live failures remain preserved. No sensitive/private VM assets or credentials are included. This freeze is necessary for committed-source live qualification, not issue completion or publication. Proposed message: fix(bootstrap): preserve confirmed Windows checkpoint effects. Original candidate3da77 remains the source of completed historical guest operations. No push/PR/merge requested.
+
+## VHD metadata candidate local freeze readiness
+
+READY for local source freeze only, after main-thread read-only commit review and
+independent System Architect/Completion Auditor static security acceptance.
+Runtime change stays inside the resource adapter; VHD contents and permissions
+are never trusted or mutated; parent/config/evidence/swap guards retained.
+Full Python3.12 quality retry PASS2554/18skips; targeted resource tests PASS;
+actual Windows5.1 PASS30 and modernWindows7.6.6 metadata-only PASS10.
+Test fixtures use appropriate .NET filesystem ACL APIs; localized child errors
+remain visible without weakening return-code/PASS assertions. Earlier failures
+remain recorded. Explicit files only; no raw logs, disks, credential/private keys
+or generated runtime assets included. Existing completed workflow is preserved.
+Freeze is required for exact committed source live evidence, not DONE/publication.
+Proposed message: fix(bootstrap): separate WSL VHD metadata from evidence ACLs.
+No push, PR, merge or branch cleanup requested.

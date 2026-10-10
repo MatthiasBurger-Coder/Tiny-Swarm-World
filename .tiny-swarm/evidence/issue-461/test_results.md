@@ -179,3 +179,27 @@ First revised full quality attempt had a copy SameFileError before an unintended
 Targeted Python 3.12 rerun PASS 38 tests in 24.481s (unchanged protected file tests and revised Windows preparation contract). The full quality retry PASS: 2554 tests in 137.679s, 18 skips; 43 architecture tests in 3.314s; lint, complexity, verification-policy, import contracts and type checks passed. Source adapter, lock and final regression test are byte-equal between working checkout and Linux-native verification worktree. Original transient gate failure remains above.
 
 Owned guest was gracefully stopped at 22:49:59Z for verification. Operator later reported manual WSL + Ubuntu installation and confirmed it was in the test VM. Fresh read-only inspection finds the owned VM Running with 32 GiB, Windows 26300.9457, WSL 3.0.1.0/kernel6.18.40.1, one default Ubuntu registration Running generation2, Ubuntu26.04.1LTS/x86_64/systemd. Observed WSL MemTotal16377308kB and12 processors do not establish the required21GiB/8-processor budget. This is manual prerequisite evidence, not candidate-executed WSL/distro installation. Preserve operator installation; do not restore the old clean checkpoint over it.
+
+### Corrected frozen source, actual writer and resource permission blocker
+
+Local source freeze bce63aafb6990e9157c8ddb3eb12e4aa9fd1f440; no remote publication. Clean release membership manifest built before evidence continuation; archive SHA48326e2e486f4fb1c34287dc274a445b7438782a4b0d27de1616b2afa01dcb18 verified in owned guest. Exact command in windows_revised_plan_result.json: custom observed Ubuntu/explicit26.04, source-bound dry-run,21GiB/8CPU/6GiBswap. Exit2, source verified, no actions, blockers resource_inventory_unknown and bootstrap_state_invalid. Actual corrected writer creates pending and replaces it with effect in a protected disposable sibling using real ACL guards; canonical old checkpoint and .wslconfig hashes unchanged. Original checkpoint remains bound to3da77/Ubuntu-26.04, pending enable_features.
+
+Read-only resource core diagnosis observes guest memory34358579200bytes/12CPUs and valid projection/safe current config; fails before storage/effective limits with untrusted_evidence_acl. Selected registration directory grants only current-user/SYSTEM/Administrators. Selected VHD has additional explicit FullControl grants classified by SID family as VirtualMachineInstance and AppCapability. No trust exception or ACL change was attempted; security/architecture review is needed before resource apply. Planned clean-snapshot replay was superseded by the operator manual installation and was not executed. No state archive, WSL config write, selected-distro restart or package/distro replacement occurred.
+
+VHD correction regression history: original source fails new actual Windows5.1
+fixture at missing helper (red). Revised source passes actual disposable Win5.1
+30 assertions. Windows7.6.6 full legacy fixture cannot use .NET Framework-only
+File.SetAccessControl; metadata-only fixture uses the supported filesystem ACL
+extension and passes10 assertions. A Set-Acl portable fixture privilege failure
+is retained in private logs; corrected fixture setup does not change product guards.
+Targeted prepare_windows/resource_projection/source_proof PASS18 (42.243s).
+Full Python3.12 required gate is pending.
+
+Final R461-23 validation: disposable Windows5.1 PASS30, modernWindows7.6.6
+metadata-only PASS10; targeted resource_projection PASS7/16.407s. Required full
+Python3.12 quality retry PASS (2554 tests,18 existing skips;43 architecture tests).
+First complete gate failed with Windows child-output UnicodeDecodeError, preserved
+in /tmp/issue461-vhd-quality.log; explicit decoding and compatible fixture-only ACL
+APIs fix test reporting/setup without relaxing success assertions or product guards.
+Final gate log: /tmp/issue461-vhd-quality-final.log. Strict dependency audit carries
+forward on unchanged requirements.lock.

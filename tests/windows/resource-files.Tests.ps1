@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$RepositoryRoot)
+param([Parameter(Mandatory=$true)][string]$RepositoryRoot,[switch]$VhdOnly)
 $ErrorActionPreference='Stop'
 Import-Module (Join-Path $RepositoryRoot 'tools/windows/preparation/Preparation.psm1') -Force -DisableNameChecking
 $m=Get-Module Preparation
@@ -11,6 +11,12 @@ try {
     $path=Join-Path $directory '.wslconfig'
     $store=Join-Path $directory 'evidence';[void][IO.Directory]::CreateDirectory($store)
     $allocation=@{memory_gib=21;processors=8;swap_gib=6}
+    $unsafe=Join-Path $directory 'unsafe';[void][IO.Directory]::CreateDirectory($unsafe)
+    $acl=Get-Acl -LiteralPath $unsafe
+    $acl.AddAccessRule((New-Object Security.AccessControl.FileSystemAccessRule((New-Object Security.Principal.SecurityIdentifier('S-1-1-0')),'Modify','Allow')))
+    if([IO.Directory].GetMethods().Name -contains 'SetAccessControl'){[IO.Directory]::SetAccessControl($unsafe,$acl)}
+    else{[IO.FileSystemAclExtensions]::SetAccessControl((New-Object IO.DirectoryInfo($unsafe)),$acl)}
+    if(!$VhdOnly){
     [IO.File]::WriteAllText($path,"# retain`r`n[wsl2]`r`nmemory=8GB`r`nnetworkingMode=mirrored`r`n",(New-Object Text.UTF8Encoding($true)))
     & $m {param($p) Set-PreparationPrivateAcl $p} $path
     $approved=& $m {param($p) Get-PreparationConfigSnapshot $p} $path
@@ -81,11 +87,59 @@ try {
     Assert (!$lateFailure.confirmed -and $lateFailure.uncertain -and (Test-Path -LiteralPath $lateFailure.observations.displaced_backup)) 'changed target then thrown exception remains uncertain'
     & $m {param($body) Set-Item function:script:Invoke-PreparationConfigReplacement $body} $replacement
     # An absent leaf still validates all existing ancestor ACLs.
-    $unsafe=Join-Path $directory 'unsafe';[void][IO.Directory]::CreateDirectory($unsafe)
-    $acl=Get-Acl -LiteralPath $unsafe
-    $acl.AddAccessRule((New-Object Security.AccessControl.FileSystemAccessRule((New-Object Security.Principal.SecurityIdentifier('S-1-1-0')),'Modify','Allow')))
-    [IO.Directory]::SetAccessControl($unsafe,$acl)
     $blocked=$false;try{& $m {param($p) Get-PreparationConfigSnapshot $p} (Join-Path $unsafe '.wslconfig') | Out-Null}catch{$blocked=$true}
     Assert $blocked 'unsafe ancestor rejects absent leaf'
+    }
+    # VHD metadata has a different role from private evidence/configuration.
+    $vhd=Join-Path $directory 'selected.vhdx'
+    [IO.File]::WriteAllText($vhd,'disposable content never consumed by inventory')
+    $private=New-Object Security.AccessControl.FileSecurity
+    $sid=[Security.Principal.WindowsIdentity]::GetCurrent().User
+    $private.SetOwner($sid);$private.SetAccessRuleProtection($true,$false)
+    foreach($principal in @($sid.Value,'S-1-5-18','S-1-5-32-544')) {
+        $private.AddAccessRule((New-Object Security.AccessControl.FileSystemAccessRule((New-Object Security.Principal.SecurityIdentifier($principal)),'FullControl','Allow')))
+    }
+    if([IO.File].GetMethods().Name -contains 'SetAccessControl'){[IO.File]::SetAccessControl($vhd,$private)}
+    else{[IO.FileSystemAclExtensions]::SetAccessControl((New-Object IO.FileInfo($vhd)),$private)}
+    $acl=$private
+    foreach($principal in @('S-1-5-83-1-1-2-3-4','S-1-15-3-1')) {
+        $acl.AddAccessRule((New-Object Security.AccessControl.FileSystemAccessRule((New-Object Security.Principal.SecurityIdentifier($principal)),'FullControl','Allow')))
+    }
+    if([IO.File].GetMethods().Name -contains 'SetAccessControl'){[IO.File]::SetAccessControl($vhd,$acl)}
+    else{[IO.FileSystemAclExtensions]::SetAccessControl((New-Object IO.FileInfo($vhd)),$acl)}
+    $vhdBytes=[IO.File]::ReadAllBytes($vhd);$vhdAcl=(Get-Acl -LiteralPath $vhd).Sddl
+    & $m {param($p) Assert-PreparationSelectedVhdMetadata $p} $vhd
+    Assert ((Get-Acl -LiteralPath $vhd).Sddl -ceq $vhdAcl -and [Convert]::ToBase64String([IO.File]::ReadAllBytes($vhd)) -ceq [Convert]::ToBase64String($vhdBytes)) 'metadata observation preserves VHD bytes and ACL'
+    foreach($guard in @('Assert-PreparationEvidencePath','Get-PreparationConfigSnapshot','Assert-PreparationResourcePath')) {
+        $blocked=$false;try{& $m {param($p,$guard) & $guard $p} $vhd $guard | Out-Null}catch{$blocked=$true}
+        Assert $blocked ('managed grants never trusted by private path guard: '+$guard)
+    }
+    foreach($invalid in @((Join-Path $directory 'missing.vhdx'),$directory,(Join-Path $unsafe 'absent.vhdx'))) {
+        $blocked=$false;try{& $m {param($p) Assert-PreparationSelectedVhdMetadata $p} $invalid}catch{$blocked=$true}
+        Assert $blocked 'missing/directory/unsafe-parent VHD blocked'
+    }
+    $junction=Join-Path $directory 'reparse.vhdx'
+    New-Item -ItemType Junction -Path $junction -Target $store | Out-Null
+    $blocked=$false;try{& $m {param($p) Assert-PreparationSelectedVhdMetadata $p} $junction}catch{$blocked=$true}
+    Assert $blocked 'actual reparse VHD rejected'
+    [IO.Directory]::Delete($junction)
+    # Only owner/metadata failure injection is mocked; private guards remain real.
+    $fresh=Import-Module (Join-Path $RepositoryRoot 'tools/windows/preparation/Preparation.psm1') -Force -PassThru -DisableNameChecking
+    & $fresh {
+        param($vhd)
+        $script:fixtureVhdOwnerPath=$vhd
+        function script:Get-Acl {param($LiteralPath,$ErrorAction)
+            if($LiteralPath -cne $script:fixtureVhdOwnerPath){return Microsoft.PowerShell.Security\Get-Acl -LiteralPath $LiteralPath -ErrorAction Stop}
+            $a=New-Object Security.AccessControl.FileSecurity;$a.SetOwner((New-Object Security.Principal.SecurityIdentifier('S-1-1-0')));return $a
+        }
+    } $vhd
+    $blocked=$false;try{& $fresh {param($p) Assert-PreparationSelectedVhdMetadata $p} $vhd}catch{$blocked=$true}
+    Assert $blocked 'foreign VHD owner blocked'
+    & $fresh {function script:Get-Acl {param($LiteralPath,$ErrorAction)
+        if($LiteralPath -cne $script:fixtureVhdOwnerPath){return Microsoft.PowerShell.Security\Get-Acl -LiteralPath $LiteralPath -ErrorAction Stop}
+        throw 'disposable inaccessible metadata'
+    }}
+    $blocked=$false;try{& $fresh {param($p) Assert-PreparationSelectedVhdMetadata $p} $vhd}catch{$blocked=$true}
+    Assert $blocked 'inaccessible VHD metadata blocked'
     Write-Output "PASS: $count disposable Windows resource file assertions"
 }finally{Remove-Item -LiteralPath $directory -Recurse -Force}

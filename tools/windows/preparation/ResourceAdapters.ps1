@@ -63,8 +63,7 @@ function Get-PreparationResourceInventoryCore($Options,$Facts) {
         if(!$vhdName){$vhdName='ext4.vhdx'}
         if($vhdName -notmatch '^[A-Za-z0-9_.-]+\.vhdx$'){throw 'distro_storage_unsupported'}
         $vhd=Join-Path $base $vhdName
-        Assert-PreparationResourcePath $vhd
-        if(!(Test-Path -LiteralPath $vhd -PathType Leaf)){throw 'distro_storage_unknown'}
+        Assert-PreparationSelectedVhdMetadata $vhd
         $persisted=(Get-ItemProperty -LiteralPath 'HKCU:\Environment' -ErrorAction Stop).TEMP
         if(!$persisted){$persisted=Join-Path $local 'Temp'}
         $persisted=[Environment]::ExpandEnvironmentVariables([string]$persisted)
@@ -158,6 +157,19 @@ function Set-PreparationResourceConfigCore($Path,$Approved,$Allocation,$Store,[i
         if($replacementAttempted -and !$replaced){try{$current=Get-PreparationConfigSnapshot $Path;if($current.hash -ceq $Approved.hash -and $current.metadata -ceq $Approved.metadata -and (!$displaced -or !(Test-Path -LiteralPath $displaced))){$uncertain=$false}}catch{}}
         return @{confirmed=$false;uncertain=$uncertain;exit_code=$(if($_.Exception.Message -eq 'resource_deadline'){124}else{1});cause=$cause;observations=@{backup_path=$backup;displaced_backup=$displaced;backup_hash=$Approved.hash}}}
     finally{try{if($temporary -and (Test-Path -LiteralPath $temporary)){Remove-Item -LiteralPath $temporary -Force}}catch{};if($lock){try{$lock.Dispose()}catch{};try{Remove-Item -LiteralPath $lockPath -Force}catch{}}}
+}
+function Assert-PreparationSelectedVhdMetadata($Path) {
+    # Presence/type only: capacity is observed on the trusted BasePath volume.
+    # WSL may grant VM access to a mounted VHD. These ACEs are neither private
+    # evidence permissions nor authority to trust/read/modify VHD contents.
+    Assert-PreparationLocalPath $Path
+    Assert-PreparationResourcePath (Split-Path -Parent $Path)
+    $item=Get-Item -LiteralPath $Path -Force -ErrorAction Stop
+    if($item.PSIsContainer -or ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)){throw 'distro_storage_unsupported'}
+    $acl=Get-Acl -LiteralPath $Path -ErrorAction Stop
+    $owner=$acl.GetOwner([Security.Principal.SecurityIdentifier]).Value
+    $sid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+    if($owner -notin @($sid,'S-1-5-18','S-1-5-32-544')){throw 'foreign_distro_storage_owner'}
 }
 function Assert-PreparationResourcePath($Path) {
     $ancestor=$Path

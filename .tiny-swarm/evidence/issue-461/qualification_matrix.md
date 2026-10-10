@@ -3,7 +3,7 @@
 Status: **BLOCKED**. Live qualification state: **LIVE_PREREQUISITE_MISSING**
 for authorized native tests and the new Windows test environment. Explicit
 destructive WSL reset remains **LIVE_CONSENT_MISSING**.
-Candidate: `3da77f8908d598688ed46dd6eab74c5f32a7ac50` (integrated W07/W08 plus urllib3 security repair).
+Current corrected candidate: `bce63aafb6990e9157c8ddb3eb12e4aa9fd1f440` (checkpoint persistence fix). Historical native/feature runs used `3da77f8908d598688ed46dd6eab74c5f32a7ac50` (integrated W07/W08 plus urllib3 security repair).
 Use the hash-verified release archive of this committed candidate for runtime
 runs; later product fixes require
 a new committed candidate, applicability assessment and affected reruns.
@@ -15,7 +15,8 @@ a new committed candidate, applicability assessment and affected reruns.
 | N24 | Native Ubuntu 24.04 LTS / x86_64 | Not supplied | BLOCKED | BLOCKED | BLOCKED | UNQUALIFIED |
 | N26 | Native Ubuntu 26.04 LTS / x86_64 | Ubuntu 26.04.1, kernel 7.0.0-34-generic, systemd; SSH inspection exit 0 | BLOCKED | BLOCKED | BLOCKED | UNQUALIFIED |
 | W24 | Windows 11 + Ubuntu 24.04 LTS / x86_64 / WSL2 | Windows edition/build, WSL version, distro release/kernel not supplied | BLOCKED | BLOCKED | BLOCKED | UNQUALIFIED |
-| W26 | Windows 11 + Ubuntu 26.04 LTS / x86_64 / WSL2 | Windows 11 Pro 10.0.26300.9550, WSL 2.7.10.0, Ubuntu 26.04.1, kernel 6.18.33.2-microsoft-standard-WSL2, systemd | BLOCKED | BLOCKED | BLOCKED | UNQUALIFIED |
+| W26-local | Preserved local Windows 11 + Ubuntu 26.04 / x86_64 / WSL2 | Windows 11 Pro 26300.9550, WSL 2.7.10.0, Ubuntu 26.04.1, kernel 6.18.33.2-microsoft-standard-WSL2, systemd | BLOCKED | BLOCKED | BLOCKED | UNQUALIFIED |
+| W26-owned | Owned Hyper-V Windows 11 + Ubuntu 26.04 / x86_64 / WSL2 | Windows 11 Enterprise Evaluation 26H2/26300.9457, WSL 3.0.1.0, manual Ubuntu 26.04.1, kernel 6.18.40.1-microsoft-standard-WSL2, systemd | PARTIAL prerequisites; product apply BLOCKED | BLOCKED | PARTIAL guest reboot/writer; full recovery BLOCKED | UNQUALIFIED |
 
 Eligibility follows the bootstrap contract; it is not a qualified-release claim.
 Windows 10, WSL1, other distributions/releases, ARM and macOS are outside the
@@ -25,7 +26,7 @@ Docker, PowerShell (Windows), Windows build and WSL package version per run.
 Inspect actual distro release and WSL generation, not just registration name.
 
 The operator identified local WSL and a native SSH target on 2026-10-10.
-Read-only access supplied the N26/W26 facts above. Windows inventory confirms
+Initial read-only access supplied the N26/W26-local facts; later owned guest observations are separately recorded. Windows inventory confirms
 the selected local distro runs with generation 2 and another distribution is
 stopped; neither was started, stopped or modified. Native Incus/Docker
 executables exist; their runtime health and versions remain unverified. No
@@ -170,4 +171,6 @@ qualified by these observations.
 
 ## Current continuation after checkpoint persistence finding
 
-Original frozen candidate3da77 verified enable_features but returned PARTIAL/4 after effect-state replacement failure. Owned guest recovery reboot was verified; source-bound post-restart preflight requested install_wsl. The operator subsequently manually installed WSL3.0.1.0 and Ubuntu26.04.1LTS, default registration Ubuntu/WSL2/running/systemd/x86_64. This establishes observed manual prerequisites, not candidate-executed package/distro installation. Actual WSL MemTotal16377308kB and12processors still need the selected21GiB/8CPU budget. Preserve the operator installation. Corrected atomic checkpoint persistence passes actual WindowsPowerShell5.1 filesystem regression and full Python3.12 quality retry; its committed source freeze and corrected live runs are pending. Every release remains UNQUALIFIED.
+Original frozen candidate3da77 verified enable_features but returned PARTIAL/4 after effect-state replacement failure. Owned guest recovery reboot was verified; source-bound post-restart preflight requested install_wsl. The operator subsequently manually installed WSL3.0.1.0 and Ubuntu26.04.1LTS, default registration Ubuntu/WSL2/running/systemd/x86_64. This establishes observed manual prerequisites, not candidate-executed package/distro installation. Actual WSL MemTotal16377308kB and12processors still need the selected21GiB/8CPU budget. Preserve the operator installation. Corrected atomic checkpoint persistence passes actual WindowsPowerShell5.1 filesystem regression and full Python3.12 quality retry; bce63aaf is committed and source-verified in the owned guest, and its actual protected disposable writer passes. Corrected full product apply is blocked by the storage trust finding. Every release remains UNQUALIFIED.
+
+Corrected archiveSHA48326e2e486f4fb1c34287dc274a445b7438782a4b0d27de1616b2afa01dcb18 includes a clean committed-source membership proof. Owned-guest read-only plan verifies bce63aaf and exits2 on resource_inventory_unknown/bootstrap_state_invalid. Protected disposable checkpoint writer passes actual create/replace with real ACL guards; canonical old checkpoint/config unchanged. The selected VHD ACL refusal is a resource trust-policy finding, not capacity or service success. No revised product apply, state archive, configuration adaptation, distro restart or VM snapshot restore occurred after the manual install.

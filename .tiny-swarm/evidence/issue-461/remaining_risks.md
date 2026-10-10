@@ -9,12 +9,12 @@
   compatible separately recoverable target.
 - No native Ubuntu 24.04 target is supplied. The isolated Windows guest now has
   observed Windows 11 Enterprise Evaluation 26H2 build 26300.9457 and a verified
-  clean pre-WSL checkpoint restore. WSL/distro/tool installation and full selected
-  service capacity are still unverified.
+  clean pre-WSL checkpoint restore. Manual WSL/Ubuntu prerequisites are observed. Candidate-executed WSL/distro/tool installation and full selected
+  service capacity remain unverified.
 - The 24-GiB Windows OS-only phase is distinct from the full 32-GiB guest. RAM
   was set/observed 32 GiB while off; a 34-GiB free-host guard precedes its boot.
   Do not infer effective WSL limits or service capacity from VM settings.
-- Explicit destructive WSL reset consent remains missing. Existing local WSL
+- User separately authorized destructive Ubuntu reset only inside the owned VM after a new verified recovery snapshot; execution remains pending. Existing local WSL
   distributions and native resources are preserved. Host-wide shutdown/reset
   or native fault/reboot injection must not be inferred from access details.
 - All required AC1/AC2 product fresh/rerun/recovery, ordinary WSL preservation,
@@ -37,7 +37,18 @@ features but returned exit 4 PARTIAL when the effect checkpoint replacement
 failed. The pending checkpoint and effect records are preserved. A separate
 owned-guest reboot was verified and fresh source-bound inventory requests
 install_wsl. The revised NullString fix has a passing Windows PowerShell 5.1
-filesystem regression, and the full Python 3.12 quality retry passes. Frozen
-source and corrected live application are still pending. The operator-installed
+filesystem regression, and the full Python 3.12 quality retry passes. Corrected source is frozen at bce63aaf and verified in the owned guest.
+Protected disposable actual writer create/replace passes; revised product apply
+is blocked by storage ACL trust and the retained old-source checkpoint. The operator-installed
 Ubuntu registration must be preserved; its observed WSL allocation needs
 21-GiB/8-processor reconciliation. Do not upgrade the original partial result.
+
+Current concrete blocker: the selected WSL VHD carries additional explicit
+FullControl grants categorized from SIDs as a VM instance and an app capability.
+The existing resource path ACL guard refuses them (untrusted_evidence_acl),
+leaving storage/effective resource inventory unverified. Independent architecture/security review accepts a narrowly scoped metadata-only VHD role correction with trusted owner/type/path checks; implementation is under verification. Do not remove
+WSL-managed grants or permit arbitrary SID families to make the plan pass.
+The exact known old-source checkpoint could be deliberately archived with
+verified bytes/ACLs and the canonical lock, as independently reviewed; it was
+not archived because the independent storage blocker remains. Operator manual
+Ubuntu installation, current .wslconfig and canonical pending state are preserved.

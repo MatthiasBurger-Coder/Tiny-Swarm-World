@@ -101,7 +101,8 @@ class TestResourceProjection(unittest.TestCase):
             [executable, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File",
              _runtime_path(ROOT / "tests/windows/resource-files.Tests.ps1", executable),
              "-RepositoryRoot", _runtime_path(ROOT, executable)],
-            capture_output=True, text=True, timeout=90, check=False,
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            timeout=90, check=False,
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("disposable Windows resource file assertions", result.stdout)
@@ -114,7 +115,8 @@ class TestResourceProjection(unittest.TestCase):
             [executable, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File",
              _runtime_path(ROOT / "tests/windows/resources.Tests.ps1", executable),
              "-RepositoryRoot", _runtime_path(ROOT, executable)],
-            capture_output=True, text=True, timeout=90, check=False,
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            timeout=90, check=False,
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("resource assertions", result.stdout)

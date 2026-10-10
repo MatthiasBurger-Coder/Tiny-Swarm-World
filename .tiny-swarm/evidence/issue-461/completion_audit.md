@@ -96,3 +96,15 @@ AC1/AC2 remain open; keep #461 open and every release UNQUALIFIED.
 ## Independent review of live checkpoint defect and correction
 
 Reviewer /root/issue_461_completion_audit found no safety/architecture blocker in the narrow NullString fix and real create/replace regression. Reproduction under WindowsPowerShell5.1 confirms first pending creation succeeds, second replacement raises ArgumentException with ordinary $null, and explicit NullString replacement succeeds; canonical pending state remains unchanged. Recovery reboot was independently reviewed and actually verified. Original PARTIAL/4 result, pending checkpoint and failed full quality run remain evidence. Reviewer requires corrected full quality and new committed/archive source proof before further qualification; full quality retry now PASS. Overall BLOCKED: original AC1/AC2/native/24.04/reset/runtime scenarios remain open. Operator manual WSL/Ubuntu installation is preserved and recorded separately from candidate actions.
+
+## Current final independent completion decision
+
+Reviewer /root/issue_461_completion_audit: BLOCKED. Mandatory evidence exists; AC3/AC4 and R461-22 are supported. Frozen bce63aaf is source-verified; actual protected disposable create/replace writer succeeds. Resource inventory fails with untrusted_evidence_acl on additional explicit selected-VHD SID grants, leaving storage/effective resources unknown. Categorization does not establish the grants legitimacy or owner; a security/architecture decision is required before changing principal trust. AC1/AC2 remain open and all releases UNQUALIFIED. Manual Ubuntu installation/configuration and the original checkpoint are preserved; no automatic archive, ACL weakening or reset occurred. Stale current summaries were corrected and owned Enterprise Evaluation vs preserved local Pro/WSL targets separated in the release matrix. Stopping on this design blocker follows AGENTS.md; keep #461 open.
+
+2026-10-11 independent System Architect and Completion Auditor accept the
+specific metadata-only VHD correction on static security review. Actual disposable
+Windows5.1/modern7 regressions pass and full local quality retry passes. This is
+local change acceptance; overall AC1/AC2 remain open, all releases UNQUALIFIED.
+A virtualized native Linux Hyper-V guest satisfies the Linux host-family contract
+(actual non-WSL Linux kernel); physical-host observations remain separate.
+Reset consent is now owned-VM-only, conditional on new verified restore point.
