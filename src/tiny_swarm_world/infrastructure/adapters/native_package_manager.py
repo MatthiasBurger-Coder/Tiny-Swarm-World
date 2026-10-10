@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import os
 import re
-from collections.abc import Callable
+
+from tiny_swarm_world.application.ports.native_preparation import (
+    HostPackagePreparationFailure, PackageCandidateConsent, PreparationTargetSnapshot,
+)
 
 from tiny_swarm_world.infrastructure.process import (
     ProcessLaunchError,
@@ -17,8 +20,8 @@ from tiny_swarm_world.infrastructure.process import (
 class AptHostPackageManager:
     def __init__(
         self, runner: ProcessRunner | None = None, *,
-        candidate_consent: Callable[[tuple[str, ...]], bool] | None = None,
-        target_snapshot: Callable[[], object] | None = None,
+        candidate_consent: PackageCandidateConsent | None = None,
+        target_snapshot: PreparationTargetSnapshot | None = None,
     ) -> None:
         self._runner = runner or SubprocessProcessRunner()
         self._candidate_consent = candidate_consent
@@ -43,6 +46,7 @@ class AptHostPackageManager:
             return
         snapshot = self._target_snapshot() if self._target_snapshot else None
         prefix = () if os.geteuid() == 0 else ("sudo", "-n")
+        stage = "apt_index_refresh"
         try:
             update = self._runner.run_text(
                 (*prefix, "apt-get", "update",
@@ -55,9 +59,14 @@ class AptHostPackageManager:
                 capture_output=True,
             )
             if update.returncode != 0:
-                raise RuntimeError("APT index update failed; inspect connectivity/package locks, then rerun ./prepare_linux.sh --dry-run.")
+                raise HostPackagePreparationFailure(stage, update.returncode, "APT index update failed; inspect connectivity/package locks, then rerun ./prepare_linux.sh --dry-run.")
             if self._candidate_consent is not None:
-                packages = self._approved_candidates(packages, snapshot)
+                stage = "apt_candidates"
+                try:
+                    packages = self._approved_candidates(packages, snapshot)
+                except RuntimeError:
+                    raise HostPackagePreparationFailure(stage, 4, "Package consent or candidate verification failed after index refresh.") from None
+            stage = "apt_install"
             install = self._runner.run_text(
                 (
                     *prefix,
@@ -77,9 +86,10 @@ class AptHostPackageManager:
                 capture_output=True,
             )
             if install.returncode != 0:
-                raise RuntimeError("APT package installation failed; inspect APT locks/connectivity, then rerun ./prepare_linux.sh --dry-run.")
+                raise HostPackagePreparationFailure(stage, install.returncode, "APT package installation failed; inspect APT locks/connectivity, then rerun ./prepare_linux.sh --dry-run.")
         except (ProcessLaunchError, ProcessTimeoutError) as error:
-            raise RuntimeError("APT command could not finish; inspect package state before retry.") from error
+            raise HostPackagePreparationFailure(stage, 124 if isinstance(error, ProcessTimeoutError) else 1,
+                                                "APT command could not finish; inspect package state before retry.") from None
 
 
     def _candidates(self, packages: tuple[str, ...]) -> tuple[str, ...]:

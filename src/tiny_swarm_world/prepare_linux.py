@@ -9,10 +9,13 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
+from tiny_swarm_world.application.ports.native_preparation import HostPackagePreparationFailure
+
 from tiny_swarm_world.infrastructure.composition_native_preparation import (
     build_native_preparation_evidence_writer,
     build_native_preparation_service,
     record_python_preparation,
+    package_preparation_observation,
     run_incus_preparation,
     run_network_preparation,
 )
@@ -38,6 +41,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     except (OSError, RuntimeError, ValueError):
         print("ERROR: Native preparation inventory failed; inspect host package tools.", file=sys.stderr)
         return 1
+    evidence = build_native_preparation_evidence_writer(service_profile=args.service_profile)
+    if _checkpoint_blocked(evidence, plan):
+        _prepare_remaining(read_only=True, service_profile=args.service_profile)
+        return 2
     if not (args.preflight or args.dry_run):
         try:
             path_identity = _validate_mutation_paths(is_wsl=plan.facts.is_wsl)
@@ -77,7 +84,6 @@ def main(argv: Sequence[str] | None = None) -> int:
     except (OSError, RuntimeError):
         print("BLOCKED: Release/path changed after consent. Next: ./prepare_linux.sh --dry-run", file=sys.stderr)
         return 2
-    evidence = build_native_preparation_evidence_writer()
     try:
         started_path = evidence.write(
             platform_release=plan.facts.version_id,
@@ -86,6 +92,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             added=(),
             uncertain=plan.missing_packages,
             stage="package_install_pending",
+            observation=package_preparation_observation(plan.facts, plan.missing_packages),
         )
     except OSError:
         print("ERROR: Protected local evidence cannot be written; check owner and mode 0700 of Tiny Swarm World state directories. No host packages were changed.", file=sys.stderr)
@@ -94,10 +101,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         added = service.apply(plan)
     except (OSError, RuntimeError, ValueError, KeyboardInterrupt) as error:
+        failed_stage, failure_exit = _package_failure_context(error)
         # Inventory after a failed APT invocation distinguishes confirmed
         # additions from packages whose state remains uncertain.
         try:
             after = service.plan()
+            failure_observation = package_preparation_observation(after.facts, after.missing_packages)
             added = tuple(
                 item for item in plan.missing_packages if item not in after.missing_packages
             )
@@ -106,6 +115,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
         except (OSError, RuntimeError, ValueError):
             added, uncertain = (), plan.missing_packages
+            failure_observation = "unknown"
         try:
             path = evidence.write(
                 platform_release=plan.facts.version_id,
@@ -113,14 +123,15 @@ def main(argv: Sequence[str] | None = None) -> int:
                 planned=plan.missing_packages,
                 added=added,
                 uncertain=uncertain,
-                stage="package_install_or_verify",
+                stage=failed_stage, exit_code=failure_exit, observation=failure_observation,
+                cause="interrupted" if failure_exit == 130 else "package_preparation_failed",
             )
         except OSError:
             print("ERROR: Package preparation failed and local evidence could not be written.", file=sys.stderr)
-            return 130 if isinstance(error, KeyboardInterrupt) else 1
-        print("ERROR: Package preparation stopped. Inspect APT connectivity/locks; package indexes may have changed. Next: ./prepare_linux.sh --dry-run", file=sys.stderr)
+            return {124: 124, 130: 130}.get(failure_exit, 1)
+        print(f"ERROR: Package preparation stopped at stage {failed_stage}. Inspect APT connectivity/locks; package indexes may have changed. Next: ./prepare_linux.sh --dry-run", file=sys.stderr)
         print(f"Evidence: {path}", file=sys.stderr)
-        return 130 if isinstance(error, KeyboardInterrupt) else 1
+        return {124: 124, 130: 130}.get(failure_exit, 1)
     try:
         path = evidence.write(
             platform_release=plan.facts.version_id,
@@ -129,6 +140,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             added=added,
             uncertain=(),
             stage="package_verify",
+            observation=package_preparation_observation(plan.facts, ()),
         )
     except OSError:
         print("ERROR: Packages were installed but local evidence could not be written; verify the host before retrying.", file=sys.stderr)
@@ -138,8 +150,25 @@ def main(argv: Sequence[str] | None = None) -> int:
     return _prepare_remaining(read_only=False, service_profile=args.service_profile)
 
 
+def _checkpoint_blocked(evidence, plan) -> bool:
+    try:
+        for capability in ("packages", "python", "incus", "network"):
+            evidence.validate(platform_release=plan.facts.version_id, capability=capability)
+    except OSError:
+        print("Observed missing host packages: " + ", ".join(plan.missing_packages))
+        print("BLOCKED: Bootstrap checkpoint is stale, corrupt or foreign. Preserve it for review. Next: ./prepare_linux.sh --dry-run", file=sys.stderr)
+        return True
+    return False
+
+
+def _package_failure_context(error: BaseException) -> tuple[str, int]:
+    if isinstance(error, HostPackagePreparationFailure):
+        return error.stage, error.exit_code
+    return "package_install_or_verify", 130 if isinstance(error, KeyboardInterrupt) else 1
+
+
 def _prepare_remaining(*, read_only: bool, service_profile: str) -> int:
-    result = _prepare_python_dependencies(read_only=read_only)
+    result = _prepare_python_dependencies(read_only=read_only, service_profile=service_profile)
     if result:
         return result
     result = run_incus_preparation(read_only=read_only, service_profile=service_profile)
@@ -153,7 +182,7 @@ def _prepare_remaining(*, read_only: bool, service_profile: str) -> int:
     return result
 
 
-def _prepare_python_dependencies(*, read_only: bool) -> int:
+def _prepare_python_dependencies(*, read_only: bool, service_profile: str = "service-access") -> int:
     from tiny_swarm_world.infrastructure import composition_installation as installer
 
     env = os.environ
@@ -192,22 +221,23 @@ def _prepare_python_dependencies(*, read_only: bool) -> int:
     if answer != "yes":
         print("Python preparation cancelled; rerun ./prepare_linux.sh before installing.")
         return 2
+    python_evidence = build_native_preparation_evidence_writer(service_profile=service_profile)
     try:
         if _validate_mutation_paths(is_wsl=runtime.name == "wsl2") != identity:
             raise RuntimeError("Python release assets changed after consent.")
-        print(f"Python preparation evidence: {record_python_preparation('started')}")
+        print(f"Python preparation evidence: {record_python_preparation('started', writer=python_evidence)}")
         python_bin = installer.ensure_python_environment(
             runtime, paths, env
         )
         if not installer._python_imports_available(python_bin, env):
             raise installer.InstallerError("Prepared Python dependencies are not importable.")
-        record_python_preparation("succeeded")
+        record_python_preparation("succeeded", writer=python_evidence)
     except KeyboardInterrupt:
-        _record_python_failure("interrupted")
+        _record_python_failure("interrupted", python_evidence)
         print("PARTIAL: Python preparation interrupted. Next: ./prepare_linux.sh --dry-run", file=sys.stderr)
         return 130
     except (installer.InstallerError, OSError, RuntimeError):
-        _record_python_failure("failed")
+        _record_python_failure("failed", python_evidence)
         print("ERROR: Python preparation failed; inspect the local venv and rerun ./prepare_linux.sh.", file=sys.stderr)
         return 1
     print("Local Python dependencies are prepared; Incus/network readiness and services are not verified.")
@@ -220,9 +250,9 @@ def _validate_mutation_paths(*, is_wsl: bool) -> tuple[str, ...]:
     return validate_preparation_paths(Path.cwd(), is_wsl=is_wsl)
 
 
-def _record_python_failure(status: str) -> None:
+def _record_python_failure(status: str, writer=None) -> None:
     try:
-        record_python_preparation(status)
+        record_python_preparation(status, writer=writer)
     except OSError:
         print("PARTIAL: Python preparation stopped and evidence write failed. Next: ./prepare_linux.sh --dry-run", file=sys.stderr)
 

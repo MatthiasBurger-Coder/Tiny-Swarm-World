@@ -23,6 +23,11 @@ function Invoke-WindowsPreparation {
         $source=& $Ports.SourceIdentity $Options
         if($Ports.HandoffInventory){$handoffFacts=& $Ports.HandoffInventory $Options $facts $source;foreach($key in $handoffFacts.Keys){$facts[$key]=$handoffFacts[$key]}}
         $plan=New-PreparationPlan $Options $facts $source
+        $stateIdentity=Get-PreparationStateIdentity $Options $facts $source
+        if($Ports.ReadState){
+            try{$null=& $Ports.ReadState $Options $stateIdentity}
+            catch{$plan.blockers+=@{code='bootstrap_state_invalid';stage='state_validation';remedy=$plan.result.next_command};$plan.result.outcome='BLOCKED';$plan.result.exit_code=2}
+        }
     } catch { return @{schema_version=1
     blockers=@(@{code='inventory_failed'
     remedy='Inspect host prerequisites and rerun preflight.'})
@@ -45,6 +50,9 @@ function Invoke-WindowsPreparation {
     return $plan }
     if ($plan.blockers.Count -gt 0 -or $plan.actions.Count -eq 0) { return $plan }
     $attempted=$false
+    $operation=[guid]::NewGuid().ToString("N")
+    $stage="state_validation"
+    $stateLock=$null
     try {
         $freshFacts=& $Ports.Inventory $Options
         $freshFacts.evidence_storage_safe=[bool](& $Ports.EvidencePreflight $Options)
@@ -52,7 +60,18 @@ function Invoke-WindowsPreparation {
         if($Ports.HandoffInventory){$handoffFacts=& $Ports.HandoffInventory $Options $freshFacts $freshSource;foreach($key in $handoffFacts.Keys){$freshFacts[$key]=$handoffFacts[$key]}}
         $fresh=New-PreparationPlan $Options $freshFacts $freshSource
         if ($fresh.plan_fingerprint -cne $plan.plan_fingerprint) { throw 'consent_drift' }
+        if($Ports.ReadState){$null=& $Ports.ReadState $Options $stateIdentity}
         $store=& $Ports.ProtectEvidence $Options
+        if($Ports.LockState){$stateLock=& $Ports.LockState $store}
+        # Inventory again under the operation lock: a preceding apply may have
+        # completed while this invocation was waiting for the lock.
+        $lockedFacts=& $Ports.Inventory $Options
+        $lockedFacts.evidence_storage_safe=[bool](& $Ports.EvidencePreflight $Options)
+        $lockedSource=& $Ports.SourceIdentity $Options
+        if($Ports.HandoffInventory){$handoffFacts=& $Ports.HandoffInventory $Options $lockedFacts $lockedSource;foreach($key in $handoffFacts.Keys){$lockedFacts[$key]=$handoffFacts[$key]}}
+        $lockedPlan=New-PreparationPlan $Options $lockedFacts $lockedSource
+        if($lockedPlan.plan_fingerprint -cne $plan.plan_fingerprint){throw 'consent_drift'}
+        if($Ports.ReadState){$null=& $Ports.ReadState $Options $stateIdentity}
         & $Ports.WriteEvidence $store @{event='intent'
         plan_fingerprint=$plan.plan_fingerprint
         revision=$source.revision
@@ -62,6 +81,8 @@ function Invoke-WindowsPreparation {
         recovery_declared=$true} | Out-Null
         $plan.result.evidence_path=$store
         foreach ($action in $plan.actions) {
+            $stage=$action.id
+            if($Ports.WriteState){& $Ports.WriteState $store @{schema=1;identity=$stateIdentity;operation=$operation;stage=$stage;status='pending';exit_code=0;confirmed=$false;uncertain=$true;timestamp_utc=[DateTime]::UtcNow.ToString('o');versions=@{windows_build=$facts.build;wsl=$facts.wsl_version;ubuntu=$facts.release};observation=(Get-PreparationDigest (Get-PreparationEvidenceFacts $facts));restart='none';next_command=$plan.result.next_command} | Out-Null}
             $attempted=$true
             $effect=& $Ports.Execute $action $Options $facts $store
             if ($effect.confirmed) { $plan.result.completed_actions+= $action.id
@@ -103,12 +124,13 @@ function Invoke-WindowsPreparation {
             after=$effect.observations
             cause=$effect.cause
             restart=$plan.restart} | Out-Null
+            if($Ports.WriteState){& $Ports.WriteState $store @{schema=1;identity=$stateIdentity;operation=$operation;stage=$stage;status='effect';exit_code=$effect.exit_code;confirmed=[bool]$effect.confirmed;uncertain=[bool]$effect.uncertain;timestamp_utc=[DateTime]::UtcNow.ToString('o');versions=@{windows_build=$facts.build;wsl=$facts.wsl_version;ubuntu=$facts.release};observation=$(if($effect.observations){Get-PreparationDigest $effect.observations}else{Get-PreparationDigest @{unknown=$true}});restart=$plan.restart.scope;next_command=$plan.result.next_command} | Out-Null}
             break # Freshly discovered stages always need another invocation/consent.
         }
     } catch {
         $plan.blockers+=@{code= $(if (!$attempted -and $_.Exception.Message -eq 'consent_drift') {'consent_drift'} else {'evidence_or_action_failed'})
-        stage='apply'
-        remedy='Inspect protected evidence and rerun read-only preflight before fresh consent.'}
+        stage=$stage
+        remedy=$plan.result.next_command}
         if ($attempted) {
             $plan.result.outcome='PARTIAL'
             $plan.result.exit_code=4
@@ -119,6 +141,7 @@ function Invoke-WindowsPreparation {
         else {$plan.result.outcome='BLOCKED'
         $plan.result.exit_code=2}
     }
+    finally {if($stateLock){$stateLock.Dispose()}}
     $plan.result.capability_ready=$false
     return $plan
 }

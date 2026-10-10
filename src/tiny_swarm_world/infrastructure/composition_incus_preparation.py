@@ -24,10 +24,13 @@ def build_incus_preparation_service(prerequisites: NativePreparationService, pat
         identity = validate_paths(paths.repository_root, plan.facts.is_wsl)
         return preparation_target(plan.facts) + identity
 
+    from tiny_swarm_world.infrastructure.adapters.native_preparation_evidence import NativePreparationEvidenceWriter
+
     facts = prerequisites.plan().facts
     return IncusPreparationService(LocalIncusPreparation(
         paths.config_root / "node-providers/provider_config.yaml",
         release=facts.version_id, target_snapshot=snapshot,
+        evidence=NativePreparationEvidenceWriter(selection=prerequisites.service_profile),
     ))
 
 

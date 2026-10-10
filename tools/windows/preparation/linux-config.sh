@@ -66,10 +66,20 @@ if [ -e "$file" ]; then
     {print}
     END{finish();if(!seen){print "";print "[boot]";print "systemd=true"}}
     ' "$file" > "$tmp"
+    # Keep private recovery bytes/metadata; never publish configuration contents.
+    backup=$(mktemp /etc/.tsw-backup-wsl-conf.XXXXXX)
+    cat "$file" > "$backup"
+    chmod 600 "$backup"
+    printf 'original_metadata=%s\noriginal_sha256=%s\n' "$metadata" "$hash" > "$backup.metadata"
+    chmod 600 "$backup.metadata"
+    sync -f "$backup"
+    sync -f "$backup.metadata"
     chmod --reference="$file" "$tmp"
     chown --reference="$file" "$tmp"
 else printf '[boot]\nsystemd=true\n' > "$tmp"; chmod 644 "$tmp"; chown 0:0 "$tmp"; fi
 # Recheck hostile path/metadata and bytes before replacing.
 [ ! -L "$file" ] || exit 2
 if [ -e "$file" ]; then [ "$(sha256sum "$file" | cut -d ' ' -f 1)" = "$expected" ] && [ "$(stat -c '%u:%g:%a' "$file")" = "$metadata" ] || exit 2; else [ "$expected" = absent ] || exit 2; fi
+sync -f "$tmp"
 mv -T "$tmp" "$file"
+sync -f /etc

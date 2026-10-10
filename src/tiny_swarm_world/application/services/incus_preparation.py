@@ -56,7 +56,7 @@ class IncusPreparationService:
         except (IncusPreparationFailure, OSError) as error:
             return await self._failure(action, planned, completed, uncertain, error)
         except (asyncio.CancelledError, KeyboardInterrupt):
-            self._port.record("interrupted", planned, tuple(completed), tuple(uncertain))
+            self._port.record("interrupted", planned, tuple(completed), tuple(uncertain), exit_code=130)
             raise
         status = "PARTIAL"
         if expected.restart_required:
@@ -80,7 +80,7 @@ class IncusPreparationService:
         status = "PARTIAL" if completed or uncertain else "FAILED"
         transport = error.exit_code if isinstance(error, IncusPreparationFailure) else None
         return self._finish(status, planned, completed, uncertain,
-                            "Incus preparation stopped; inspect permissions/systemd/resources"
+                            f"Stage {action.id} stopped; inspect permissions/systemd/resources"
                             + (" and run sudo -v" if action.privilege == "sudo" else "")
                             + ", then ./prepare_linux.sh --dry-run.", transport)
 
@@ -88,7 +88,7 @@ class IncusPreparationService:
                 uncertain: list[str], message: str, transport: int | None = None,
                 *, stage_complete: bool = False) -> IncusPreparationResult:
         try:
-            path = self._port.record(status, planned, tuple(completed), tuple(uncertain))
+            path = self._port.record(status, planned, tuple(completed), tuple(uncertain), exit_code=transport)
         except OSError:
             return IncusPreparationResult("PARTIAL" if completed or uncertain else "FAILED",
                                           tuple(completed), tuple(uncertain), "Protected Incus evidence write failed.", transport)

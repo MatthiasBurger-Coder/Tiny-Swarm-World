@@ -385,9 +385,9 @@ class NativePreparationCliTests(unittest.TestCase):
         ):
             writer.return_value.write.return_value = Path("/safe/evidence.json")
             self.assertEqual(main(("--preflight",)), 0)
-            writer.assert_not_called()
             self.assertEqual(main(()), 0)
-        writer.assert_not_called()
+        writer.return_value.write.assert_not_called()
+        self.assertEqual(writer.return_value.validate.call_count, 8)
 
     def test_entrypoint_imports_without_third_party_dependencies(self) -> None:
         result = subprocess.run(
@@ -415,7 +415,8 @@ class NativePreparationCliTests(unittest.TestCase):
                 ):
                     self.assertEqual(main((option,)), 2)
                 user_input.assert_not_called()
-                writer.assert_not_called()
+                writer.return_value.write.assert_not_called()
+                self.assertEqual(writer.return_value.validate.call_count, 4)
 
     def test_failure_prints_no_secret_or_apt_output(self) -> None:
         service = Mock()
