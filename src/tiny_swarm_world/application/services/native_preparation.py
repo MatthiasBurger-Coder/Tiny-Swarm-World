@@ -47,6 +47,10 @@ class NativePreparationService:
         self._service_profile = service_profile
         self._host_packages = HOST_PACKAGES_BY_PROFILE[service_profile]
 
+    @property
+    def service_profile(self) -> str:
+        return self._service_profile
+
     def plan(self) -> NativePreparationPlan:
         facts = self._inspector.inspect()
         # Avoid invoking a platform package manager on unsupported hosts.

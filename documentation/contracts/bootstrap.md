@@ -557,3 +557,59 @@ by read-only inventory; missing/unsafe checkout blocks handoff. All stage consen
 finite timeout, source/bridge/provider and protected Linux evidence guards remain.
 New installation/rerun/browser qualification is APPLICABLE_LIVE /
 LIVE_CONSENT_MISSING, not proven by the local gate.
+
+## BOOT-W08 resumable preparation and protected recovery
+
+Preparation persists identity-bound checkpoints only after apply consent. Native
+package/Python, Incus and network checkpoints live under
+`${XDG_STATE_HOME:-$HOME/.local/state}/tiny-swarm-world/bootstrap/`; their redacted
+per-attempt evidence remains under `evidence/native-preparation/`. The interpreter
+boundary uses `interpreter.state` in that evidence directory until Python exists.
+Windows preparation uses `TinySwarmWorld/preparation/bootstrap.state.json` under
+LocalApplicationData with the existing restrictive ACL owner. No persisted record
+contains reusable approval. Existing installations without checkpoints use the
+same fresh observed plan and consent; historical evidence is not migrated into
+trusted state.
+
+Each checkpoint binds the contract/source version, host and distribution identity,
+release and selected profile. Linux source identity is a fingerprint of local
+runtime and canonical configuration bytes, not a claim of committed-SHA live
+qualification. Windows retains the independently verified source revision and
+selected resource overrides. Records include operation identity, stage, timestamps,
+observed confirmed/uncertain effects and exit context. Intent survives a killed
+process; an absent terminal record leaves the action uncertain. Locks reject
+concurrent preparation mutations, and atomic publication preserves the preceding
+record on an interrupted write. Private histories preserve earlier successful
+stages even when the current checkpoint changes.
+
+After interruption or an operator-controlled restart, run the same read-only
+preparation command, inspect the observed remaining actions, then supply fresh
+apply consent. Saved completion never substitutes for package queries, Incus
+inventory, PID1/resource observation or the existing bridge owner's checks. A
+changed source, target or selection, corrupt schema, symlink/reparse point,
+foreign owner or unsafe access mode blocks apply. Planning still observes the
+host and reports the state blocker without rewriting evidence. Preserve the
+checkpoint and backups for review; never delete an APT lock or state file simply
+to make a retry pass. After investigating and explicitly archiving a stale
+checkpoint in protected operator storage, rerun read-only planning; archival
+alone grants no mutation permission.
+
+Recovery is conservative: APT indexes/packages and Windows features/WSL setup are
+nontransactional. No automatic package removal, feature disabling, distro
+unregistration, Incus deletion, firewall reset or whole-host rollback occurs.
+Configuration owners retain atomic compare-and-replace where available. Existing
+protected `/etc/hosts` and `.wslconfig` backups remain with their owners; selected
+`/etc/wsl.conf` changes additionally retain root-owned 0600
+`/etc/.tsw-backup-wsl-conf.*` bytes and metadata. These private backups can contain
+unrelated settings and must not be published as redacted evidence. Restoration
+requires separate operator review of the exact original/current fingerprints and
+metadata; preparation never restores them automatically. Cleanup removes only
+its own temporary files and verified transient downloads, not recovery backups.
+
+Failure output names the stage and a concrete next preparation/preflight command.
+Evidence storage failure before mutation blocks execution; failure after a
+mutation reports partial/uncertain work. Timeout/interruption exits remain
+explicit. Local mocked recovery tests do not qualify a real host: live
+qualification belongs to BOOT-W09 and remains `LIVE_CONSENT_MISSING` unless an
+explicitly authorized recoverable target is exercised with exact SHA, versions,
+commands and exit codes. Service/API/login readiness is a separate observation.

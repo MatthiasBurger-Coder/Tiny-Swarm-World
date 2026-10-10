@@ -389,6 +389,64 @@ function Get-PreparationObservedEffect($Action,$Options,$Facts,$ExitCode) {
     confirmed=$false
     uncertain=$true}}
 }
+function Get-PreparationStateIdentity($Options,$Facts,$Source) {
+    return @{contract='bootstrap-v1';revision=$Source.revision;host=(Get-PreparationDigest $Facts.host_identity)
+    distro=$Options.Distro;release=$Options.ExpectedRelease
+    selection=(Get-PreparationDigest @($Options.ServiceProfile,$Options.WslMemoryGiB,$Options.WslProcessors,$Options.WslSwapGiB))}
+}
+function ConvertFrom-PreparationStateJson([string]$Text) {
+    # Preserve the checkpoint wire types on both Windows PowerShell and modern pwsh.
+    if((Get-Command ConvertFrom-Json).Parameters.ContainsKey('DateKind')) {
+        return ConvertFrom-Json -InputObject $Text -DateKind String
+    }
+    return ConvertFrom-Json -InputObject $Text
+}
+function Read-PreparationState($Options,$Identity) {
+    $path=Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'TinySwarmWorld/preparation/bootstrap.state.json'
+    if(!(Test-Path -LiteralPath $path)){return $null}
+    Assert-PreparationEvidencePath $path
+    $item=Get-Item -LiteralPath $path -Force
+    if($item.PSIsContainer -or $item.Length -gt 262144){throw 'invalid_bootstrap_state'}
+    $text=Get-Content -Raw -LiteralPath $path
+    $names=@([regex]::Matches($text,'"([A-Za-z_]+)"\s*:') | ForEach-Object{$_.Groups[1].Value})
+    if(@($names | Group-Object | Where-Object{$_.Count -gt 1}).Count -gt 0){throw 'duplicate_bootstrap_state_field'}
+    $state=ConvertFrom-PreparationStateJson $text
+    Assert-PreparationState $state $Identity
+    return $state
+}
+function Assert-PreparationState($State,$Identity) {
+    $keys=@($State.PSObject.Properties.Name | Sort-Object)
+    $expected=@('schema','identity','operation','stage','status','exit_code','confirmed','uncertain','timestamp_utc','versions','observation','restart','next_command' | Sort-Object)
+    if(($keys -join '|') -cne ($expected -join '|')){throw 'invalid_bootstrap_state_fields'}
+    if(($State.schema -isnot [int] -and $State.schema -isnot [long]) -or $State.schema -ne 1 -or $State.operation -isnot [string] -or $State.operation -cnotmatch '^[a-f0-9]{32}$' -or $State.stage -notin @('enable_features','install_wsl','install_distro','enable_systemd','adapt_wsl_resources','bridge_install','bridge_refresh') -or $State.status -notin @('pending','effect') -or ($State.exit_code -isnot [int] -and $State.exit_code -isnot [long]) -or $State.exit_code -lt 0 -or $State.exit_code -gt 3010 -or $State.confirmed -isnot [bool] -or $State.uncertain -isnot [bool] -or ($State.confirmed -and $State.uncertain) -or $State.observation -isnot [string] -or $State.observation -cnotmatch '^[a-f0-9]{64}$' -or $State.restart -notin @('none','login','distro','Windows','WSL-wide') -or $State.timestamp_utc -isnot [string] -or $State.timestamp_utc -cnotmatch '^\d{4}-\d{2}-\d{2}T[0-9:.]+Z$'){throw 'invalid_bootstrap_state'}
+    if((@($State.identity.PSObject.Properties.Name | Sort-Object) -join '|') -cne 'contract|distro|host|release|revision|selection'){throw 'invalid_bootstrap_identity'}
+    foreach($key in @('contract','revision','host','distro','release','selection')){if($State.identity.$key -isnot [string] -or $State.identity.$key -cne $Identity[$key]){throw 'stale_foreign_bootstrap_state'}}
+    if((@($State.versions.PSObject.Properties.Name | Sort-Object) -join '|') -cne 'ubuntu|windows_build|wsl' -or ($State.versions.windows_build -isnot [int] -and $State.versions.windows_build -isnot [long]) -or ($State.versions.wsl -and $State.versions.wsl -cnotmatch '^\d+\.\d+\.\d+$') -or ($State.versions.ubuntu -and $State.versions.ubuntu -cnotin @('24.04','26.04'))){throw 'invalid_bootstrap_versions'}
+    if($State.next_command -isnot [string] -or $State.next_command -cnotmatch '^\./prepare_windows\.ps1 -Distro [A-Za-z0-9._-]+ -UbuntuRelease (?:24\.04|26\.04) -ServiceProfile (?:default|service-access) -Preflight(?: -Wsl(?:MemoryGiB|Processors|SwapGiB) [0-9]+)*$'){throw 'invalid_bootstrap_recovery_command'}
+}
+function Lock-PreparationState($Store) {
+    Assert-PreparationEvidencePath $Store
+    $path=Join-Path $Store 'bootstrap.lock'
+    if(Test-Path -LiteralPath $path){Assert-PreparationEvidencePath $path}
+    $stream=New-Object IO.FileStream($path,[IO.FileMode]::OpenOrCreate,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
+    try {Set-PreparationPrivateAcl $path;return $stream} catch {$stream.Dispose();throw}
+}
+function Write-PreparationState($Store,$Record) {
+    Assert-PreparationEvidencePath $Store
+    $path=Join-Path $Store 'bootstrap.state.json'
+    $temporary=Join-Path $Store ('.bootstrap-'+[guid]::NewGuid().ToString('N')+'.tmp')
+    try {
+        Assert-PreparationState (ConvertFrom-PreparationStateJson ($Record | ConvertTo-Json -Depth 12 -Compress)) $Record.identity
+        $stream=New-Object IO.FileStream($temporary,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)
+        try {
+            Set-PreparationPrivateAcl $temporary
+            $bytes=(New-Object Text.UTF8Encoding($false)).GetBytes(($Record | ConvertTo-Json -Depth 12 -Compress))
+            $stream.Write($bytes,0,$bytes.Length);$stream.Flush($true)
+        } finally {$stream.Dispose()}
+        if(Test-Path -LiteralPath $path){Assert-PreparationEvidencePath $path;[IO.File]::Replace($temporary,$path,$null)}
+        else{[IO.File]::Move($temporary,$path)}
+    } finally {if(Test-Path -LiteralPath $temporary){Remove-Item -LiteralPath $temporary -Force}}
+}
 function New-PreparationPorts {
     return @{EvidencePreflight=${function:Test-PreparationEvidence}
     Consent={param($Plan) $Plan | ConvertTo-Json -Depth 30 | Out-Host
@@ -399,5 +457,8 @@ function New-PreparationPorts {
     SourceIdentity=${function:Get-PreparationSource}
     ProtectEvidence=${function:Protect-PreparationEvidence}
     WriteEvidence=${function:Write-PreparationEvidence}
+    LockState=${function:Lock-PreparationState}
+    ReadState=${function:Read-PreparationState}
+    WriteState=${function:Write-PreparationState}
     Execute=${function:Invoke-PreparationAction}}
 }

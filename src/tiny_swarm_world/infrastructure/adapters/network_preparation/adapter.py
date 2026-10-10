@@ -1,6 +1,7 @@
 """Observe everything before mutation; reconcile only the current exact plan."""
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 from typing import Any
 from collections.abc import Callable
@@ -23,7 +24,7 @@ class LocalNetworkPreparation:
         self.root, self.config_root = root, config_root
         self.release, self.profile = release, profile
         self.target_snapshot = target_snapshot
-        self.evidence = evidence or NativePreparationEvidenceWriter()
+        self.evidence = evidence or NativePreparationEvidenceWriter(selection=profile)
         self.windows = windows
         self.proc_root = proc_root
         self._payloads: dict[str, Any] = {}
@@ -33,6 +34,11 @@ class LocalNetworkPreparation:
         self._payloads = {}
         try:
             self._snapshot = await inspect_network(self)
+            try:
+                self.evidence.validate(platform_release=self.release, capability="network")
+            except OSError:
+                from dataclasses import replace
+                self._snapshot = replace(self._snapshot, blockers=self._snapshot.blockers + ("Bootstrap state blocked; preserve evidence. Next: ./prepare_linux.sh --dry-run",))
         except (NetworkPreparationFailure, IncusPreparationFailure, OSError, RuntimeError, ValueError) as error:
             if isinstance(error, NetworkPreparationFailure) and error.exit_code:
                 raise
@@ -64,6 +70,16 @@ class LocalNetworkPreparation:
         current = await self.inspect()
         return not current.blockers and all(item.id != action.id for item in current.actions)
 
-    def record(self, status, planned, completed, uncertain) -> str:
+    def record(self, status, planned, completed, uncertain, *, exit_code: int | None = None) -> str:
         return str(self.evidence.write(platform_release=self.release, status=status, planned=planned,
-                   added=completed, uncertain=uncertain, stage="network_preparation", capability="network"))
+                   added=completed, uncertain=uncertain, stage=_record_stage(self, status, uncertain, "network_preparation"), capability="network", exit_code=exit_code,
+                   observation=hashlib.sha256(repr(self._snapshot).encode()).hexdigest(),
+                   cause="effect_uncertain" if uncertain else "none"))
+
+
+def _record_stage(adapter, status: str, uncertain: tuple[str, ...], default: str) -> str:
+    if status == "started":
+        adapter._last_record_stage = default
+    if uncertain:
+        adapter._last_record_stage = uncertain[-1]
+    return getattr(adapter, "_last_record_stage", default)

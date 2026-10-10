@@ -293,3 +293,25 @@ authorized recoverable-host evidence with exact committed SHA, target/tool
 versions, commands and exits. Current W06 live state is `LIVE_CONSENT_MISSING`.
 See [kernel and browser-access preparation](network-preparation.md) for the Linux
 network stage, supported firewall owners and safe rerun/recovery behavior.
+
+
+### Interrupted preparation and protected checkpoints (BOOT-W08)
+
+After interruption or the requested restart, rerun the printed preflight command
+with the same selected distribution, Ubuntu release, service profile and resource
+overrides. Preparation re-observes features, systemd, resources and bridge state;
+only missing actions can receive fresh apply consent. It never reuses saved
+approval or removes a package, feature, distribution or Incus resource to recover.
+
+The existing private LocalApplicationData `TinySwarmWorld/preparation` directory
+now contains `bootstrap.state.json` and the redacted attempt records. State binds
+the verified source revision, host and selection. A corrupt, stale or foreign
+checkpoint adds a blocker to the read-only plan and prevents privileged apply.
+Preserve it for review and archive it only through a deliberate operator action;
+never erase it as an automatic repair. Existing `.wslconfig` backups and private
+root-owned `/etc/.tsw-backup-wsl-conf.*` backups require separately reviewed
+restoration. APT and Windows feature changes cannot be rolled back as one
+transaction. See the [bootstrap recovery contract](../contracts/bootstrap.md#boot-w08-resumable-preparation-and-protected-recovery).
+
+These are locally tested recovery safeguards. They do not add Windows live
+qualification or authorize host changes; BOOT-W09 still owns that evidence.

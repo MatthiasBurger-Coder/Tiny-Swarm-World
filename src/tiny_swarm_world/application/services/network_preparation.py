@@ -50,21 +50,21 @@ class NetworkPreparationService:
                 if expected.blockers or expected.invariant != plan.invariant:
                     raise NetworkPreparationFailure("Network prerequisites changed after an effect.")
         except (asyncio.CancelledError, KeyboardInterrupt):
-            self._finish("PARTIAL", planned, completed, uncertain, "Interrupted; inspect a fresh read-only plan.")
+            self._finish("PARTIAL", planned, completed, uncertain, f"Interrupted at {uncertain[-1] if uncertain else 'network_preparation'}. Next: ./prepare_linux.sh --dry-run.", 130)
             raise
         except (NetworkPreparationFailure, OSError, RuntimeError, ValueError, TimeoutError) as error:
             transport = error.exit_code if isinstance(error, NetworkPreparationFailure) else None
             if isinstance(error, TimeoutError):
                 transport = 124
             return self._finish("PARTIAL" if completed or uncertain else "FAILED", planned,
-                                completed, uncertain, "Preparation stopped; inspect a fresh read-only plan.", transport)
+                                completed, uncertain, f"Stage {uncertain[-1] if uncertain else 'network_preparation'} stopped. Next: ./prepare_linux.sh --dry-run.", transport)
         return self._finish("READY" if expected.verified else "PARTIAL", planned, completed,
                             uncertain, "Prerequisites observed; endpoints and login remain unverified.")
 
     def _finish(self, status: str, planned: tuple[str, ...], completed: list[str],
                 uncertain: list[str], message: str, transport: int | None = None) -> NetworkPreparationResult:
         try:
-            path = self._port.record(status, planned, tuple(completed), tuple(uncertain))
+            path = self._port.record(status, planned, tuple(completed), tuple(uncertain), exit_code=transport)
         except OSError:
             path = None
             status = "PARTIAL" if completed or uncertain else "FAILED"

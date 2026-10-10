@@ -31,7 +31,8 @@ class LocalIncusPreparation:
     async def inspect(self) -> IncusSnapshot:
         self._actions = ()
         try:
-            return await self._inspect()
+            observed = await self._inspect()
+            return _with_checkpoint_blocker(observed, self.evidence, self.release)
         except IncusPreparationFailure as error:
             if error.exit_code is not None:
                 raise
@@ -125,7 +126,27 @@ class LocalIncusPreparation:
                 and all(existing.get(key) == desired[key] for key in ("type", "driver") if key in desired))
 
     def record(self, status: str, planned: tuple[str, ...], completed: tuple[str, ...],
-               uncertain: tuple[str, ...]) -> str:
+               uncertain: tuple[str, ...], *, exit_code: int | None = None) -> str:
         return str(self.evidence.write(platform_release=self.release, status=status,
                     planned=planned, added=completed, uncertain=uncertain,
-                    stage="incus_preparation", capability="incus"))
+                    stage=_record_stage(self, status, uncertain, "incus_preparation"), capability="incus", exit_code=exit_code,
+                    observation=hashlib.sha256(json.dumps(self._before, sort_keys=True).encode()).hexdigest(),
+                    restart="login" if status == "RESTART_REQUIRED" else "none",
+                    cause="effect_uncertain" if uncertain else "none"))
+
+
+def _with_checkpoint_blocker(observed: IncusSnapshot, evidence: NativePreparationEvidenceWriter, release: str) -> IncusSnapshot:
+    from dataclasses import replace
+    try:
+        evidence.validate(platform_release=release, capability="incus")
+    except OSError:
+        return replace(observed, blockers=observed.blockers + ("Bootstrap state blocked; preserve evidence. Next: ./prepare_linux.sh --dry-run",))
+    return observed
+
+
+def _record_stage(adapter, status: str, uncertain: tuple[str, ...], default: str) -> str:
+    if status == "started":
+        adapter._last_record_stage = default
+    if uncertain:
+        adapter._last_record_stage = uncertain[-1]
+    return getattr(adapter, "_last_record_stage", default)

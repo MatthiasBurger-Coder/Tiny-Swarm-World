@@ -50,7 +50,7 @@ class UbuntuPreparationAcceptanceTests(unittest.TestCase):
                 evidence.return_value.write.return_value = Path("/redacted/evidence")
                 self.assertEqual(main(()), 0)
             packages.install.assert_called_once_with(("incus", "git"))
-            python.assert_called_once_with(read_only=False)
+            python.assert_called_once_with(read_only=False, service_profile="service-access")
 
     def test_ac2_wsl1_and_missing_systemd_block_before_inventory(self):
         for facts in (
@@ -103,7 +103,8 @@ class UbuntuPreparationAcceptanceTests(unittest.TestCase):
             ):
                 self.assertEqual(main((option,)), 2)
             paths.assert_not_called()
-            evidence.assert_not_called()
+            evidence.return_value.write.assert_not_called()
+            self.assertEqual(evidence.return_value.validate.call_count, 4)
             prompt.assert_not_called()
             python.assert_called_once_with(read_only=True)
 
@@ -198,6 +199,8 @@ class MissingInterpreterShellTests(unittest.TestCase):
             (root / "systemd").mkdir()
             helper = (ROOT / "tools/ubuntu_python_prerequisites.sh").read_text().replace("/etc/os-release", str(release_file)).replace("/run/systemd/system", str(root / "systemd"))
             (root / "helper.sh").write_text(helper)
+            (root / "tools").mkdir()
+            (root / "tools/ubuntu_python_prerequisites.sh").write_text(helper)
             scripts = root / "bin"
             scripts.mkdir()
             for name, body in {
@@ -211,14 +214,14 @@ class MissingInterpreterShellTests(unittest.TestCase):
                 path.write_text("#!/usr/bin/env bash\n" + body + "\n")
                 path.chmod(0o755)
             if evidence_failure:
-                evidence_file = root / "forced-evidence"
+                evidence_file = root / "interpreter-forced"
                 if evidence_failure == "before":
                     evidence_file.symlink_to("/dev/full")
                 else:
                     evidence_file.touch(mode=0o600)
                     python_stub = scripts / "python3"
-                    python_stub.write_text('#!/usr/bin/env bash\n[[ -f "$FAKE_ROOT/ready" ]] || exit 1\nrm "$FAKE_ROOT/forced-evidence"; ln -s /dev/full "$FAKE_ROOT/forced-evidence"\n')
-                (scripts / "mktemp").write_text('#!/usr/bin/env bash\nprintf "%s/forced-evidence\\n" "$FAKE_ROOT"\n')
+                    python_stub.write_text('#!/usr/bin/env bash\n[[ -f "$FAKE_ROOT/ready" ]] || exit 1\nrm "$FAKE_ROOT/interpreter-forced"; ln -s /dev/full "$FAKE_ROOT/interpreter-forced"\n')
+                (scripts / "mktemp").write_text('#!/usr/bin/env bash\ncase "$1" in */interpreter-XXXXXX) printf "%s/interpreter-forced\\n" "$FAKE_ROOT";; *) /usr/bin/mktemp "$@";; esac\n')
                 (scripts / "mktemp").chmod(0o755)
             if python_ready:
                 (root / "ready").touch()

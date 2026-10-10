@@ -40,8 +40,8 @@ def build_native_preparation_service(
     )
 
 
-def build_native_preparation_evidence_writer() -> NativePreparationEvidenceWriter:
-    return NativePreparationEvidenceWriter()
+def build_native_preparation_evidence_writer(*, service_profile: str = "service-access") -> NativePreparationEvidenceWriter:
+    return NativePreparationEvidenceWriter(selection=service_profile)
 
 
 def validate_preparation_paths(repository_root: Path, *, is_wsl: bool) -> tuple[str, ...]:
@@ -68,13 +68,26 @@ def _prerequisite_snapshot(inspector: NativePreparationInspector, root: Path, pr
     return preparation_target(facts) + validate_preparation_paths(root, is_wsl=facts.is_wsl)
 
 
-def record_python_preparation(status: str) -> Path:
+def package_preparation_observation(facts, missing: tuple[str, ...]) -> str:
+    return NativePreparationEvidenceWriter.fingerprint((preparation_target(facts), missing))
+
+
+def python_preparation_observation(status: str) -> str:
+    observed_ready = {"started": False, "succeeded": True}.get(status)
+    return NativePreparationEvidenceWriter.fingerprint(("dependencies_importable", observed_ready))
+
+
+def record_python_preparation(status: str, *, writer: NativePreparationEvidenceWriter | None = None) -> Path:
     from tiny_swarm_world.infrastructure.adapters.host.native_preparation import _os_release
 
-    return build_native_preparation_evidence_writer().write(
+    return (writer or build_native_preparation_evidence_writer()).write(
         platform_release=_os_release().get("VERSION_ID", "unknown"),
-        status=status, planned=(), added=(), uncertain=(),
-        stage="python_environment_" + status,
+        status=status, planned=("python:environment",),
+        added=("python:environment",) if status == "succeeded" else (),
+        uncertain=() if status == "succeeded" else ("python:environment",),
+        stage="python_environment_" + status, capability="python",
+        observation=python_preparation_observation(status),
+        cause=status if status in {"failed", "interrupted"} else "none",
     )
 
 

@@ -191,6 +191,9 @@ class TestWindowsLinuxConfiguration(unittest.TestCase):
             "systemd=false\n[user]\ndefault=operator\n"
         )
         self.config.chmod(0o640)
+        original = self.config.read_bytes()
+        original_hash = self._hash()
+        original_metadata = f"{self.config.stat().st_uid}:{self.config.stat().st_gid}:640"
         result = self._run("apply", self._hash())
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(
@@ -198,6 +201,13 @@ class TestWindowsLinuxConfiguration(unittest.TestCase):
             "# retained\n[automount]\noptions=metadata\n[boot]\ncommand=echo hello\n"
             "systemd=true\n[user]\ndefault=operator\n",
         )
+        backups = [path for path in self.sandbox.glob(".tsw-backup-wsl-conf.*") if path.suffix != ".metadata"]
+        self.assertEqual(len(backups), 1)
+        self.assertEqual(backups[0].read_bytes(), original)
+        self.assertEqual(backups[0].stat().st_mode & 0o777, 0o600)
+        metadata = Path(str(backups[0]) + ".metadata")
+        self.assertEqual(metadata.stat().st_mode & 0o777, 0o600)
+        self.assertEqual(metadata.read_text(), f"original_metadata={original_metadata}\noriginal_sha256={original_hash}\n")
         self.assertEqual(self.config.stat().st_mode & 0o777, 0o640)
         self.assertFalse((self.sandbox / ".tsw-wsl-conf.lock").exists())
 
