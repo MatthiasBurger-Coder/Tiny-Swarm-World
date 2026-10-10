@@ -1,5 +1,11 @@
 # OPERATIONAL_READINESS_CHECKLIST
 
+Record the target, selected profile, executed revision, evidence and reviewer
+for each applicable item. An unchecked box is not a pass. Use the
+[installation guide](documentation/user_guide/installation.adoc) for procedures
+and the [verification-state policy](documentation/process/verification-state-policy.md)
+for local, live and external classifications.
+
 ## Host environment readiness
 - [ ] Host OS and version documented.
 - [ ] Python version meets project requirement.
@@ -8,8 +14,12 @@
 - [ ] Docker CLI/Engine installed on the host only when needed for local
       diagnostics or explicit legacy/service checks.
 - [ ] WSL2 status verified when on Windows.
-- [ ] Full-run resources meet the integration contract: 4 vCPU, 16 GiB RAM,
-      and 60 GiB free disk available to the Linux/WSL target.
+- [ ] Native `service-access` host has at least eight CPU threads, 15 GiB RAM
+      and 150 GiB free disk; WSL2 retains a 16 GiB profile RAM floor.
+- [ ] `default` host has at least four CPU threads, 16 GiB RAM and 60 GiB free disk.
+- [ ] Managed-node capacity is checked separately. Default nodes total 19 GiB;
+      Windows capacity planning includes 2 GiB WSL overhead and Windows reserve.
+      See [resource planning](documentation/user_guide/windows-preparation.md).
 
 ## Python environment readiness
 - [ ] Virtual environment creation documented.
@@ -45,8 +55,8 @@
 
 ## Compose/stack deployment readiness
 - [ ] Swarm-compatible stack files validated.
-- [ ] At least Portainer stack deploys successfully.
-- [ ] One additional service stack deploys successfully.
+- [ ] Every required stack in the selected profile deploys and passes its
+      observed readiness checks; a subset does not qualify the full profile.
 
 ## Portainer readiness
 - [ ] Portainer UI reachable from host.
@@ -58,6 +68,9 @@
 - [ ] Pulsar broker reachable on port `6650` and Pulsar Admin API reachable on port `8087`.
 - [ ] SonarQube reachable.
 - [ ] Swagger/NGINX reachable.
+- [ ] Infisical, Service Access and Traefik routes verified where selected.
+- [ ] Required service logins and token-authenticated API checks pass;
+      a reachable login page alone does not prove authentication.
 - [ ] Any resource-gated service omission has Three Amigos approval and is
       recorded as `PASS_WITH_RESOURCE_GATES`, not `PASS`.
 
@@ -72,25 +85,33 @@
 - [ ] Service reachability smoke test passes.
 
 ## Live consent readiness
-- [ ] Live runner requires `--live`.
-- [ ] Live runner requires
-      `TSW_LIVE_INFRASTRUCTURE_CONSENT=I_UNDERSTAND_THIS_CHANGES_LOCAL_INFRASTRUCTURE`.
-- [ ] Live runner requires the interactive phrase
-      `RUN TINY SWARM WORLD LIVE INSTALLATION`.
-- [ ] Non-interactive live execution is refused until a future workflow defines
-      a separate consent contract.
+- [ ] Mutating product CLI workflows require `--live` and interactive approval
+      or the explicit `--approve-live` flag.
+- [ ] Installer automation uses `--non-interactive-live-approval`. Only WSL2
+      fresh-reset automation also uses `--confirm-reset`; native installation
+      reconciles without reset. Other destructive CLI operations require their
+      exact confirmation phrase separately.
+- [ ] `tools/live/run_classic_acceptance.py` requires `--approve-live`, protected
+      operator inputs and an explicitly owned authorized target.
+- [ ] Preparation stages have their own consent; preparation approval does
+      not authorize installation or qualify live services.
 - [ ] Missing consent produces `REFUSED_LIVE_CONSENT_MISSING` before any
-      Multipass, Docker Swarm, netplan, socat, compose/stack or bootstrap
-      command runs.
+      mutating product workflow is constructed. The Classic runner separately
+      records `LIVE_CONSENT_MISSING` when its approval is absent.
 
 ## Evidence and secret readiness
-- [ ] Evidence path is `.tiny-swarm-world/evidence/live-installation/<run-id>/`.
+- [ ] Installer evidence uses the printed protected directory under
+      `${XDG_STATE_HOME:-$HOME/.local/state}/tiny-swarm-world/evidence/installation-tests/<host-runtime>/<run-id>/`.
+- [ ] Classic acceptance evidence uses the protected `live-greenpath/<run-id>/`
+      directory under the same XDG application evidence root. An explicit
+      `TSW_LIVE_EVIDENCE_ROOT` selects the root for the invoked entrypoint.
 - [ ] Evidence root is ignored by Git before live evidence is written.
 - [ ] Evidence bundle includes manifest, summary, preflight, consent/refusal,
       phase results, command results, probes, redaction report and checksums.
 - [ ] Evidence redacts secrets, tokens, join tokens, URLs with credentials,
       HTTP authorization headers and service bootstrap credentials.
-- [ ] Secrets come only from environment variables or ignored local files.
+- [ ] Real operator secrets use approved protected inputs; the standard
+      internal-test installer may resolve disposable public catalog defaults.
 - [ ] Missing secrets fail during preflight before stack deployment.
 
 ## Logging/observability readiness

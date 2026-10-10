@@ -4,7 +4,8 @@ Processes and workflows during execution.
 
 === Application Composition
 
-`src/tiny_swarm_world/__main__.py` remains a thin entry point. It parses
+`src/tiny_swarm_world/__main__.py` remains a thin entry point and delegates to
+`infrastructure/adapters/cli/dispatcher.py`. The CLI parses
 operator arguments, lists workflow-level commands without constructing
 services, checks live-infrastructure consent for mutating workflows, verifies
 destructive workflow confirmation before service construction, builds
@@ -172,8 +173,9 @@ typed plan blocks on cycles, missing required phases, missing required
 services, or missing required workflow phases. `platform expose` configures
 the LXC-native manager gateway only; it
 does not proxy individual service containers or worker nodes. It does not wire
-platform reset or destroy behavior; the `install.sh` fresh-install wrapper owns
-the reset prelude before it invokes setup.
+platform reset or destroy behavior. On WSL2, the `install.sh` wrapper owns
+the explicitly confirmed reset prelude before setup. On native Linux, the
+installer invokes setup without a reset.
 
 === Artifact And Deployment Workflow Contract Flow
 
@@ -498,30 +500,37 @@ Autonomous setup now has one canonical workflow-level CLI contract:
 
 Current implementation status remains fail-closed below the orchestrator. The
 CLI command, static artifact contract preflight, bounded readiness gate and
-phase sequencing are implemented and locally test-backed, but the repository
-still does not claim a verified end-to-end live installation of all runnable
-services. Missing setup consent, missing readiness prerequisites, missing
+phase sequencing are implemented and locally test-backed. Historical live
+results apply only to their recorded targets and revisions; they do not qualify
+every supported host or the current preparation changes. Missing setup consent,
+missing readiness prerequisites, missing
 external Swarm inputs, and missing observed service readiness must be reported
 as `refused`, `blocked`, `resource_gated`, `failed_to_apply`,
 `failed_to_prepare`, or `failed_to_verify`, never as success.
 
 The active installer entry point
-`python3 -m tiny_swarm_world.simple_installer` implements the fresh-install flow
-delegated by `install.sh`: the Python installer requires the destructive reset
-confirmation, runs `platform reset` for the configured managed Tiny Swarm World
-local system, stops when reset fails, and only then runs the selected setup
-profile.
+`python3 -m tiny_swarm_world.simple_installer` implements the host-specific flow
+delegated by `install.sh`. Its bootstrap selects native reconciliation or the
+WSL2 fresh-reset mode; `application/services/installation.py` owns lifecycle
+sequencing through installation ports and infrastructure adapters. Native Linux
+validates host prerequisites and runs the selected setup profile without a reset.
+WSL2 requires destructive reset confirmation, runs `platform reset` for the
+configured managed Tiny Swarm World local system, stops when reset fails, and
+only then runs setup. Both paths require live-operation consent. The installer
+does not invoke host preparation.
 The selected setup path includes artifact preparation, service-stack
 deployments, service readiness checks, and service-access dashboard/index
 assets. Existing non-destructive update and reconcile mechanisms remain
 available through their own workflow commands.
 
-Repository-level wiring and static/mocked evidence cover the fresh-install
-sequence and service-access assets, but the repository still does not claim a
-verified end-to-end live installation of all runnable services. Live
-Incus, Docker Swarm, registry, Portainer, Nexus, service-access, and
-Vaultwarden evidence must be collected during an explicit operator live run
-before live success is claimed.
+Repository-level wiring and static/mocked evidence cover these lifecycle paths
+and service-access assets. The
+link:../evidence/issue-363-final-validation-20261003.md[Issue #363 final validation]
+records native and WSL live installation, authenticated service checks and
+lifecycle results for its named candidates. It does not qualify later bootstrap
+changes or every supported host. Current live Incus, Docker Swarm, registry,
+Portainer, Nexus, service-access and Infisical success requires target-specific
+evidence from an explicitly authorized operator run.
 
 The provider selected by setup defaults to `lxc_native` through Incus.
 Backend selection first honors an explicit `--lxc-backend` override, then
@@ -533,6 +542,31 @@ fails.
 
 Optional live smoke validation remains a separate operator action and is not
 part of default architecture tests or the default quality gate.
+
+=== Separate Host Preparation Flow
+
+`prepare_linux.sh` prepares supported Ubuntu 24.04/26.04 x86_64 native Linux
+and WSL2 hosts separately from installation. The shell boundary can bootstrap
+missing Python/venv prerequisites from a complete trusted release. Subsequent
+stages use the prepared Python runtime for package dependencies, Incus
+startup/access and absent declared storage/network/profiles, then scoped kernel,
+forwarding and local-name preparation. Each mutating stage shows its plan and
+requires separate consent; compatible existing resources are reused and
+conflicts block. Read-only modes do not create preparation evidence or activate
+a stopped daemon. New group membership requires logout/login and reinventory.
+
+On Windows, `prepare_windows.ps1` separately owns selected-distribution lifecycle
+and WSL capacity planning/configuration. Ordinary Apply remains blocked pending
+applicable live qualification; explicit candidate qualification uses the guarded
+consent contract. Windows browser routing delegates to the existing protected
+bridge owner. Preparation does not deploy managed nodes or services, start the
+installer, or prove service authentication. The full bootstrap integration and
+WSL installation migration remain separate delivery work.
+
+See the link:../contracts/bootstrap.md[bootstrap contract],
+link:../user_guide/windows-preparation.md[Windows preparation guide] and
+link:../user_guide/network-preparation.md[network preparation guide] for delivered
+capabilities, resource requirements, consent boundaries and remaining gaps.
 
 === Secure Traefik Dashboard Runtime Flow
 

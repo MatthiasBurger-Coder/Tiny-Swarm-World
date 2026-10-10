@@ -6,7 +6,20 @@ contracts implemented, live provider runtime unverified
 *Decision makers:* Tiny Swarm World architecture governance; original named
 decision makers were not recorded in this ADR.
 
-== Implementation Status
+== Current Applicability, 2026-10-10
+
+The original decision and status below preserve the earlier Vaultwarden
+requirement/security baseline. Its implementation inventory is historical:
+current `infra/config/services.yml`, the installation plan and service-access
+compose use Infisical and generated credential references. See
+link:../08_configuration/credential-source-precedence.md[the current credential contract],
+link:../08_configuration/rc1-simple-secret-bootstrap.md[the installer credential lifecycle]
+and link:../11_risks_and_debt.adoc[the dated historical-risk disposition].
+This note does not rewrite the original decision or authorize Vaultwarden as
+an additional current stack. Current live claims require candidate-specific
+qualification evidence.
+
+== Historical Implementation Status
 
 The workflow has implemented repository-level service-access assets and
 contracts. Historical smoke evidence from earlier targets must not be treated

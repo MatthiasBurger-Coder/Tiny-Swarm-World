@@ -5,8 +5,10 @@ live control is deployed.
 
 ## Repository and evidence controls
 
-- No committed secrets, passwords, tokens, authorization headers or raw
-  environment payloads.
+- No real operator secrets, passwords, tokens, authorization headers or raw
+  environment payloads. Public disposable internal-test catalog values are
+  explicitly scoped in the credential catalog; they must not be used as real
+  production or shared-system credentials.
 - .env.example and similar examples contain placeholders only.
 - Local secret files are ignored and, where automation writes them, use
   restrictive permissions appropriate to the local host.
@@ -28,12 +30,15 @@ live control is deployed.
 
 ## Admin surface and transport controls
 
-- Admin surfaces are local development surfaces until #126 defines
-  authentication, authorization, transport and exposure requirements.
-- The existing Traefik HTTPS ADR is the architecture context; it does not
-  authorize a new public route.
-- #150 must not enable unauthenticated or insecure dashboard exposure and must
-  carry route, auth, TLS, redaction and evidence decisions forward.
+- Admin surfaces remain isolated internal-test surfaces. The ASVS mapping and
+  RBAC model define expectations; implemented routing/authentication does not
+  prove all authorization roles or production exposure controls.
+- The accepted managed-or-operator CA ADR defines current HTTPS ownership.
+  Traefik uses external certificate/authentication secrets; new public exposure
+  needs its own scope and security review.
+- Traefik dashboard configuration implements HTTPS and BasicAuth without
+  insecure API mode. Preserve these contracts and verify changes against the
+  current target; historical acceptance is not current deployment proof.
 
 ## Supply-chain and review controls
 
@@ -55,8 +60,9 @@ live control is deployed.
 - `MIN-02` remains linked to dependency and image governance through the
   existing #127 policy artifacts; its evidence source is
   `../audit/findings-register.md#min-02`.
-- `MIN-07` is explicitly handed to #126 for the ASVS/admin-surface matrix and
-  to #150 for any resulting implementation; its evidence source is
+- `MIN-07` maps to the existing ASVS/admin-surface matrix and implemented
+  Traefik configuration; independent global finding disposition remains open.
+  Its evidence source is
   `../audit/findings-register.md#min-07`.
 
 These links trace audit findings to project-specific controls and open

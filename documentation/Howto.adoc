@@ -26,9 +26,17 @@ python tools/quality_gate.py quality
 PYTHONPATH=src python3 -m tiny_swarm_world
 ----
 
-The current active path lists VM IP information. Provisioning steps are present
-in the file but commented. Enable those steps only when you intentionally want
-to create VMs, change networking, install Docker, or initialize Swarm.
+The entry point delegates to the workflow CLI. Without a selected workflow, it
+reports that no workflow was selected. List supported workflows explicitly:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world --list-workflows
+----
+
+Follow the link:user_guide/installation.adoc[installation guide] for host
+preparation and installation. The installer reconciles without a reset on
+native Linux; WSL2 retains the explicitly confirmed managed-state reset.
 
 == Run The Guided Setup
 

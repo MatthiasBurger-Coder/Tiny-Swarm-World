@@ -5,7 +5,7 @@ in a Linux or WSL2 shell with the project's Python environment active.
 
 | Task | Instructions | Effect |
 |---|---|---|
-| First installation | [Installation guide](../user_guide/installation.adoc) | Prepares and then resets/creates the managed test environment. |
+| First installation | [Installation guide](../user_guide/installation.adoc) | Separate host preparation, then native reconciliation or confirmed WSL2 reset and setup. |
 | Open services and sign in | [Service access and login](../user_guide/usage.adoc#open-the-services) | Uses the configured routes and effective credentials. |
 | Inspect an installation | [Daily operation](../user_guide/usage.adoc#daily-operation) | Read-only platform verification. |
 | Reconcile or recover | [Daily operation](../user_guide/usage.adoc#daily-operation) | Explicitly changes managed state; preserves the distinction from fresh reset. |
@@ -14,9 +14,19 @@ in a Linux or WSL2 shell with the project's Python environment active.
 
 ## Before the first live run
 
-Incus installation, initialization, host networking and permissions are
-operator prerequisites. Tiny Swarm World installs Docker inside managed LXC
-nodes; it does not prepare the Incus host daemon for you.
+Run `./prepare_linux.sh --dry-run` to inspect the preparation plan on supported
+Ubuntu 24.04/26.04 x86_64 Linux or WSL2 hosts. `./prepare_linux.sh` separately
+requests consent for package/Python preparation, Incus startup/access and absent
+configured resources, then kernel/network preparation. Compatible resources are
+reused; collisions block. New group membership requires logout/login and a rerun.
+See [network preparation](../user_guide/network-preparation.md) for firewall and
+browser-access boundaries.
+
+The installer requires a prepared host and does not invoke host preparation.
+Tiny Swarm World installs Docker inside managed LXC nodes. On WSL2, Windows
+lifecycle and capacity planning use the separate
+[Windows preparation guide](../user_guide/windows-preparation.md); ordinary
+Windows Apply remains blocked pending applicable live qualification.
 
 An empty Incus project can still share a host network with another project.
 Check that the configured node names and published ports are available across
@@ -31,9 +41,11 @@ runner's command search path. Follow the
 [host preparation instructions](../user_guide/installation.adoc); a bridge
 configuration selecting another distribution does not qualify the new target.
 
-**The installer wrapper resets the managed environment before setup.** Read the
-reset scope before running it on a machine with data you want to keep. Use
-`platform verify` to inspect an existing installation first.
+**On native Linux, the installer reconciles without a reset. On WSL2, it resets
+the managed environment after confirmation before setup.** Read the reset scope
+before running the WSL2 installer on a machine with data you want to keep. Use
+`platform verify` to inspect an existing installation first. A deliberate native
+reset is a separate, explicitly confirmed operation.
 
 ## Credentials and evidence
 
@@ -52,8 +64,10 @@ For exposure policy or an incident, use the
 
 Static preflight and local tests do not prove live service access. A usable
 installation also needs successful platform verification and actual service
-logins. RC1 qualification is tracked in
-[#294](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/294).
+logins. The [RC1 decision](../release/rc1-decision.md) and
+[October lifecycle validation](../evidence/issue-363-final-validation-20261003.md)
+record results for their named candidates. They do not qualify subsequent
+bootstrap changes or every supported host.
 Do not treat reset or reconcile as a product upgrade. For one reviewed image transition, use the
 `platform update` preview/apply contract in the
 [Usage guide](../user_guide/usage.adoc#daily-operation), or use its

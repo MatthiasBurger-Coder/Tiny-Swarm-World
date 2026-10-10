@@ -1,8 +1,15 @@
 # Live Evidence Map
 
-Live checks are applicable to the Public-Beta product claim but were not
-executed by this documentation workflow. The state is therefore explicit and
-non-success.
+The table records the missing-consent/external-unavailable handoff states from
+#124 authoring, not the current status of every target. No live checks were
+executed by that documentation workflow. Later executed qualification is
+recorded in the [RC1 decision](../release/rc1-decision.md) and
+[Issue #363 final validation](../evidence/issue-363-final-validation-20261003.md).
+Those results retain their actual candidates and scope. For a new applicable
+run, missing consent is still `LIVE_CONSENT_MISSING`; a later result must not
+retroactively turn an unexecuted historical handoff into a pass.
+
+## Historical #124 handoff matrix
 
 | Requirement IDs | Live category | Required evidence | Current state | Handoff |
 |---|---|---|---|---|

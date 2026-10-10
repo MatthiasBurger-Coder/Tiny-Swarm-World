@@ -3,8 +3,24 @@
 ## Status
 
 ```text
-ACTIVE_BASELINE_EXTENSION
+RETAINED_REQUIREMENT_BASELINE
 ```
+
+## Current applicability, 2026-10-10
+
+This document preserves the original requirement baseline and its authoring-time
+implementation statements. Historical workflow versions mentioned below are
+available through Git history; the reused `documentation/workflow/workflow.md`
+path now contains the completed issue #355 record. It is not those original
+workflows. Requirement intent is retained; old progress statements are not a
+current delivery or acceptance report.
+
+Use the [resulting architecture](../05_analysis/arch-03-21-resulting-architecture.md),
+[current credential contract](../08_configuration/credential-source-precedence.md)
+and [bootstrap delivery contract](../../contracts/bootstrap.md) for implemented
+ownership and remaining work. Current service-access uses Infisical. Vaultwarden
+references describe the historical provider baseline; they do not direct a
+current installation. Dated live results keep their own source and target scope.
 
 ## Requirement Source
 
@@ -17,7 +33,7 @@ repository-visible sources:
 - user request: the container should include a GUI showing which servers are
   reachable and which passwords are needed;
 - user clarification: password values must be visible;
-- active workflow `documentation/workflow/workflow.md`, version
+- historical workflow record at `documentation/workflow/workflow.md`, version
   `service-access-vaultwarden-dashboard-v1.0.0`;
 - root `AGENTS.md` Linux/WSL-only, Docker Swarm-first, Python automation
   identity;

@@ -3,7 +3,19 @@
 Issue: #360. Parent architecture direction: #313. This audit uses repository
 callers, configuration, tests, and accepted decisions as the removal boundary.
 
-## Canonical owners and disposition
+## Snapshot and current ownership
+
+This is the issue #360 audit snapshot. Calls and presentation owners named in
+the table below describe that candidate. The later EPIC #313 extraction moved
+bootstrap to `infrastructure/adapters/installation/bootstrap.py`, lifecycle
+sequencing to `application/services/installation.py`, and CLI rendering to
+`infrastructure/adapters/cli/presentation.py`. Root executable bodies delegate;
+established installer exports remain compatibility surfaces. The [resulting
+architecture](arch-03-21-resulting-architecture.md) and [responsibility map](arch-03-01-responsibility-ownership.md)
+identify current owners. Retained composition/placeholder decisions below
+remain applicable within their documented contracts.
+
+## Historical canonical owners and disposition
 
 | Candidate | Reference and ownership evidence | Disposition |
 | --- | --- | --- |

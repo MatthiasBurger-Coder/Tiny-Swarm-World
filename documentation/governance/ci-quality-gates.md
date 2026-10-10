@@ -11,11 +11,12 @@ python3 tools/quality_gate.py quality
 It executes these stages in order:
 
 1. verification-policy consistency;
-2. Ruff lint;
-3. import-linter architecture contracts;
-4. hexagonal architecture tests;
-5. mypy type checking;
-6. the Python unittest suite.
+2. complexity guardrails;
+3. Ruff lint;
+4. import-linter architecture contracts;
+5. hexagonal architecture tests;
+6. mypy type checking;
+7. the Python unittest suite.
 
 CI should run the same locked environment and publish the command, result,
 commit and relevant evidence in the pull request. A local pass does not imply
@@ -26,6 +27,7 @@ live, browser, SonarQube or external success.
 | Gate | Status | Expectation |
 | --- | --- | --- |
 | Verification-policy consistency | Required now | Detect contradictory verification-state wording. |
+| Complexity | Required now | Preserve the reviewed complexity baseline and exception policy. |
 | Lint | Required now | Ruff must pass without weakening rules. |
 | Architecture lint/tests | Required now | Preserve hexagonal dependency direction. |
 | Typecheck | Required now | Mypy must pass for the configured source/test scope. |

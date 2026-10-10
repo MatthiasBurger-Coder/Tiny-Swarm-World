@@ -4,6 +4,15 @@ This map records direct imports and technology access at the orchestration
 edge. It is intentionally source-level and should be regenerated or reviewed
 when ARC-02 through ARC-06 change these modules.
 
+## Snapshot applicability
+
+The tables below are the ARCH-03.01 pre-refactoring snapshot, not a current
+import inventory. Package-root CLI and installer process/presentation owners
+have since been extracted. See the [current responsibility map](arch-03-01-responsibility-ownership.md)
+and [finding dispositions](arch-03-01-violation-inventory.md) for migration outcomes.
+Composition compatibility cycles remain governed debt; no historical finding is
+silently erased by this note.
+
 ## Direct import map
 
 | Importer | Inner-layer imports | Concrete infrastructure imports | Assessment |

@@ -14,9 +14,14 @@ Start with the task you want to complete:
 | Code changes and local tests | link:manuals/developer-manual.md[Developer Manual]
 |===
 
-The fresh installer resets managed state. Existing-installation operators
-should start with Usage before choosing a command. RC1 qualification is
-tracked in https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/294[#294].
+On native Linux, the installer reconciles managed state without a reset. On
+WSL2, it resets managed state after explicit confirmation before setup.
+Existing-installation operators should start with Usage before choosing a command.
+The link:release/rc1-decision.md[RC1 decision] records acceptance for named
+September candidates; link:evidence/issue-363-final-validation-20261003.md[October validation]
+records later scoped lifecycle results. Current bootstrap changes and each
+supported host need their own applicable qualification; see
+link:contracts/bootstrap.md[the bootstrap delivery contract].
 
 This directory also contains the following reference material:
 

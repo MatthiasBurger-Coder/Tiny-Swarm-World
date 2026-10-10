@@ -36,13 +36,24 @@ or external-service evidence.
 | `EVD-121-013` | Audit evidence index | repository documentation; review | `documentation/audit/README.md` | REQ-121-011, REQ-121-016 through REQ-121-038 | Present | Redaction rules apply to future additions | This issue creates the governance index; it is not certification evidence. |
 | `EVD-121-014` | Audit and findings registers | review | `documentation/audit/audit-register.md`, `documentation/audit/findings-register.md` | REQ-121-012, REQ-121-013, REQ-121-039 through REQ-121-068 | Present | No raw finding logs or private data | Stable IDs and dispositions are recorded. |
 | `EVD-121-015` | Remediation workflow plan | review; release governance | `documentation/audit/remediation-plan.md` | REQ-121-015, REQ-121-083 through REQ-121-097 | Present | No secrets or unredacted run output | Ten #120 workflows are mapped. |
-| `EVD-121-016` | Requirement matrix | review | `.tiny-swarm/evidence/issue-121/requirement_matrix.md` | REQ-121-001 through REQ-121-106; MAJ-03 | Present | Matrix contains no live payloads | Intentionally tracked issue evidence. |
-| `EVD-121-017` | Security governance/control mapping | security | Expected: `documentation/security/` and issue-specific control artifacts | MAJ-01, MAJ-04, MIN-02, MIN-07 | Planned | Redacted summaries only | Follow-up work is owned by #123, #126 and #150; no absent path is claimed present. |
-| `EVD-121-018` | Live green-path run evidence | live | Expected: protected redacted run evidence defined by #125 | REQ-121-048, REQ-121-082; MAJ-02 | Planned | Explicit consent; redact secrets, tokens, paths, IPs and raw output | No live infrastructure was run for #121. |
-| `EVD-121-019` | Review and completion evidence | review | `.tiny-swarm/evidence/issue-121/` | REQ-121-105; MIN-08 | Present | No raw logs or private data | Matrix, implementation summary, checks, risks and acceptance evidence. |
-| `EVD-121-020` | Release/baseline evidence | release | Expected: release/baseline artifact defined by #120 | REQ-121-097, REQ-121-106; MIN-06 | Planned | Redacted release metadata only | Planned until release/baseline governance is executed. |
+| `EVD-121-016` | Requirement matrix | review | `.tiny-swarm/evidence/issue-121/requirement_matrix.md` | REQ-121-001 through REQ-121-106; MAJ-03 | Missing | Matrix contains no live payloads | Historical issue-local evidence reference is unavailable in this checkout; no current acceptance is inferred. |
+| `EVD-121-017` | Security governance/control mapping | security | `documentation/security/isms-scope.md`, `documentation/security/statement-of-applicability.md`, `documentation/security/owasp-asvs-mapping.md` | MAJ-01, MAJ-04, MIN-02, MIN-07 | Present | Redacted summaries only | Artifacts present; runtime effectiveness and global closure require reviewed evidence. |
+| `EVD-121-018` | Candidate-scoped live green-path summaries | live | `documentation/release/rc1-decision.md`, `documentation/evidence/issue-363-final-validation-20261003.md` | REQ-121-048, REQ-121-082; MAJ-02 | Present | Explicit consent and redacted target/revision evidence | Historical candidate summaries are present; they do not qualify current bootstrap changes or every host. |
+| `EVD-121-019` | Review and completion evidence | review | `.tiny-swarm/evidence/issue-121/` | REQ-121-105; MIN-08 | Missing | No raw logs or private data | Historical issue-local evidence reference is unavailable in this checkout; no current acceptance is inferred. |
+| `EVD-121-020` | Release/baseline policy and dated decision | release | `documentation/release/baseline-policy.md`, `documentation/release/release-process.md`, `documentation/release/rc1-decision.md` | REQ-121-097, REQ-121-106; MIN-06 | Present | Redacted release metadata only | Policies and a candidate-specific decision exist; global #120 closure and new release publication remain separate. |
 | `EVD-121-021` | Supply-chain prerequisite evidence | security; release | `documentation/security/supply-chain-security.md`, `documentation/security/sbom-policy.md`, `documentation/security/dependency-scan-policy.md`, `documentation/security/container-image-scan-policy.md`, `tools/security_gate.py` | MIN-02; #127 prerequisite | Present | Never copy credentials or registry output. | The workflow index records #127 as closed; this row does not re-close it. |
-| `EVD-121-022` | Audit summary snapshot | repository documentation; review | `documentation/audit/audit-summary.md` | REQ-121-051, REQ-121-052; MAJ-01 through MAJ-05; MIN-01 through MIN-08 | Present | No raw issue payloads or private data | Local source snapshot for the explicitly enumerated #120/#121 finding set; no closure claim. |
+| `EVD-121-023` | Audit summary snapshot | repository documentation; review | `documentation/audit/audit-summary.md` | REQ-121-051, REQ-121-052; MAJ-01 through MAJ-05; MIN-01 through MIN-08 | Present | No raw issue payloads or private data | Local source snapshot for the explicitly enumerated #120/#121 finding set; no closure claim. |
+
+## Evidence ID migration and availability, 2026-10-10
+
+`EVD-121-022` identifies the architecture test. The audit-summary snapshot,
+previously given the same ID, is now `EVD-121-023`. No separate current consumer
+of the ambiguous snapshot ID was found. Earlier records retain their original
+IDs; use the evidence name to disambiguate historical references.
+
+The #121 issue-local package is absent from this checkout, so its reference
+rows are Missing. Current documentation and retained dated summaries are
+classified separately; unavailable original evidence is never invented.
 
 ## Evidence review rules
 

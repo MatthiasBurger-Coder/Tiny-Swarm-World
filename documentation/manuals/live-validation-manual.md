@@ -1,6 +1,6 @@
 # Live Validation Manual
 
-This manual describes the future Public-Beta validation boundary. It is not a
+This manual describes the Public-Beta validation boundary. It is not a
 live run report. No live success is claimed by the presence of these links.
 
 ## Authoritative contract
@@ -28,7 +28,15 @@ records the policy failure state.
 
 ## Current status
 
-The Public-Beta Green-Path is currently `LIVE_CONSENT_MISSING`. TLS/DNS,
-browser authentication, service readiness, fresh/reconcile/update behavior and
-external quality results require executed redacted evidence. Do not run live
-commands from the default local quality workflow.
+The [RC1 decision](../release/rc1-decision.md) records acceptance for its named
+September candidates. [Issue #363 final validation](../evidence/issue-363-final-validation-20261003.md)
+records later native/WSL installation, authentication and lifecycle evidence.
+Those dated results retain their executed revisions; they do not qualify the
+current bootstrap changes or every supported host.
+
+For a new applicable live run without explicit consent, use
+`LIVE_CONSENT_MISSING`; missing prerequisites and failed/partial results retain
+their own states. External quality results also require exact-candidate evidence.
+Do not run live commands from the default local quality workflow. The
+[bootstrap contract](../contracts/bootstrap.md) identifies remaining integration
+and qualification work.

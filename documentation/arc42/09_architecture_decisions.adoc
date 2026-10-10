@@ -34,6 +34,10 @@ include::09_decisions/adr-explicit-operation-results.adoc[leveloffset=+3]
 
 include::09_decisions/adr-shared-ubuntu-prerequisite-bootstrap.adoc[leveloffset=+3]
 
+include::09_decisions/adr-native-linux-preparation-and-install-lifecycle.adoc[leveloffset=+3]
+
+include::09_decisions/adr-windows-wsl-lifecycle-preparation.adoc[leveloffset=+3]
+
 include::09_decisions/adr-explicit-incus-preparation.adoc[leveloffset=+3]
 
 include::09_decisions/adr-scoped-bootstrap-network-preparation.adoc[leveloffset=+3]
@@ -61,6 +65,8 @@ include::09_decisions/adr-installer-console-reporting-policy.adoc[leveloffset=+3
 
 include::09_decisions/adr-cross-cutting-method-trace-logging.adoc[leveloffset=+3]
 
+include::09_decisions/command-runner-responsibility.adoc[leveloffset=+3]
+
 === Data & Persistence Decisions
 
 Examples: desired-state configuration, observed-state storage, local evidence,
@@ -77,6 +83,8 @@ include::09_decisions/adr-autonomous-setup-safety.adoc[leveloffset=+3]
 
 include::09_decisions/adr-explicit-non-interactive-live-consent.adoc[leveloffset=+3]
 include::09_decisions/adr-test-only-credential-override.adoc[leveloffset=+3]
+
+include::09_decisions/adr-classic-update-contract.adoc[leveloffset=+3]
 
 === ADR Backlog
 

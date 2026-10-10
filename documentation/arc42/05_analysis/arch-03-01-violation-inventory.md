@@ -1,5 +1,31 @@
 # ARCH-03.01 — Architecture Violation Inventory
 
+Status: historical ARCH-03.01 finding inventory, with current dispositions
+reviewed against the implemented ownership on 2026-10-10. Original locations,
+severities and proposed migrations below belong to the pre-refactoring snapshot.
+
+## Current disposition of baseline findings
+
+| Baseline IDs | Implemented owner / current disposition |
+|---|---|
+| V-001, V-007 | `__main__.py` delegates to the CLI dispatcher. Parser, registry, consent and rendering live under infrastructure CLI adapters. |
+| V-002, V-004 | InstallationService, InstallationPhases and InstallationRunEvidence own orchestration through six installation ports; focused adapters own technology. Root exports remain compatibility surfaces. |
+| V-003 | Installer process details are behind the installation process adapter and centralized infrastructure process runners; root bootstrap no longer creates child processes directly. |
+| V-005, V-011, V-012 | Existing composition refresh/facade cycles remain bounded compatibility debt. Extraction must preserve current patch seams and architecture guards. |
+| V-006 | Two credential-resolution stages remain intentionally distinct consumers of the shared resolver; duplicated default selection was consolidated. They are not two lifecycle owners. |
+| V-008 | CLI and installer have separate infrastructure presentation owners for different result contracts; a shared renderer is not required. |
+| V-009 | Installation ports and typed options/results govern the extracted boundary; CLI Namespace and established composition mappings retain their explicitly documented scopes. |
+| V-010 | Protected operator-file loading is owned by installation bootstrap/configuration adapters rather than the executable package-root body. |
+| V-013 | Architecture regression tests enforce root delegation, installation boundaries and mutation/import guards. Retained outward exports and composition debt are described in ARCH-03.21. |
+
+See [resulting architecture](arch-03-21-resulting-architecture.md),
+[responsibility ownership](arch-03-01-responsibility-ownership.md) and
+[layer contracts](arch-03-02-layer-contracts.md) for current owners and safeguards.
+These dispositions describe repository structure; they are not new live or
+external verification results and do not erase historical severity evidence.
+
+## Original baseline inventory
+
 Severity meanings: `CRITICAL` blocks the intended layer direction or can make
 technology behavior bypass the governed application boundary; `HIGH` is a
 material edge-boundary or cycle risk; `MEDIUM` is a contained cross-boundary

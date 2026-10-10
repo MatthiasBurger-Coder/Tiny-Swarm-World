@@ -40,8 +40,8 @@ The canonical local gate is:
 python3 tools/quality_gate.py quality
 ```
 
-It runs verification-policy consistency, lint, architecture lint, architecture
-tests, type checking and tests. The local result is evidence for the PR, not a
+It runs verification-policy consistency, complexity, lint, architecture lint,
+architecture tests, type checking and tests. The local result is evidence for the PR, not a
 claim about GitHub checks, SonarCloud or deployed infrastructure.
 
 Changes follow #122 QMS-light change/review/CAPA rules and #123 ISMS-light

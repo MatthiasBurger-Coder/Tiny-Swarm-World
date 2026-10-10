@@ -1,23 +1,28 @@
 # Test and Quality Coverage Map
 
-This map distinguishes deterministic repository checks from live acceptance.
-Test names and paths below were inspected in the current branch.
+This map identifies current check owners. A test source existing is not a pass;
+results must identify the executed revision, command, environment and skips.
+The former #150 figures (1761 tests, 28 skips, 622 typed files) are historical
+reported figures whose original checkout-local result file is unavailable in
+this checkout. They are not current verification evidence.
 
-| Requirement IDs | Area | Test/check path | What it protects | Result/state |
+| Requirement IDs | Area | Current test/check path | What it protects | Evidence rule |
 |---|---|---|---|---|
-| REQ-124-06, REQ-124-20 | Verification policy | `tools/check_verification_policy_consistency.py` | local/live/external state semantics | PASS |
-| REQ-124-05, REQ-124-09 | Python style/architecture | `tools/quality_gate.py quality`; `.importlinter`; `tests/architecture/test_hexagonal_imports.py` | lint and dependency direction | PASS |
-| REQ-124-05 | Python typing | `tools/quality_gate.py quality` / Mypy | typed source/test contracts | PASS, 622 files |
-| REQ-124-05 | Full regression | `tools/quality_gate.py quality` | repository behavior | PASS, 1761 tests, 28 skipped |
-| REQ-124-15, REQ-124-16 | Traefik compose contract | `tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py` | route, secret, Service Access and forbidden insecure mode | PASS in #150 targeted set |
-| REQ-124-08, REQ-124-16 | Composition contract | `tests/infrastructure/test_composition.py` | operator secret-name propagation and routing | PASS in #150 targeted set |
-| REQ-124-15, REQ-124-17 | Installer contract | `tests/test_install_script.py` | value-free default secret export | PASS in #150 targeted set |
-| REQ-124-17 | Secret manifest | `tests/application/services/deployment/test_secret_management.py` | required external secret classification/fail-closed reference | PASS in #150 targeted set |
-| REQ-124-10, REQ-124-17 | Repository hygiene | `tests/architecture/test_repository_hygiene.py` | `.env.example` and value-free contract coverage | PASS in #150 targeted set |
-| REQ-124-21, REQ-124-22 | Browser/live | `tests/live/test_post_install_browser_live.py` | conditional live admin/service access | LIVE_CONSENT_MISSING |
-| REQ-124-21 | Clean-host install | canonical command in `documentation/process/verification-state-policy.md` | install/Incus/Swarm/service readiness | LIVE_CONSENT_MISSING |
-| REQ-124-23 | SonarQube/external gate | external system | external quality result | EXTERNAL_GATE_UNAVAILABLE |
+| REQ-124-06, REQ-124-20 | Verification policy | `tools/check_verification_policy_consistency.py` | Local/live/external state semantics | Record the executed policy check. |
+| REQ-124-05, REQ-124-09 | Complexity, style and architecture | `tools/quality_gate.py quality`; `.importlinter`; `tests/architecture/test_hexagonal_imports.py` | Reviewed complexity and dependency direction | Record every required stage; source presence alone is not a pass. |
+| REQ-124-05 | Python typing | `tools/quality_gate.py typecheck` | Typed source/test contracts | Counts belong to the executed candidate. |
+| REQ-124-05 | Full regression | `tools/quality_gate.py test` | Repository behavior | Report actual tests, failures and skips for that run. |
+| REQ-124-15, REQ-124-16 | Traefik compose | `tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py` | Routing, secrets and forbidden insecure mode | Deterministic test evidence only. |
+| REQ-124-08, REQ-124-16 | Composition | `tests/infrastructure/test_composition.py` | Secret-name propagation and wiring | Deterministic test evidence only. |
+| REQ-124-15, REQ-124-17 | Installer | `tests/test_install_script.py` | Installer boundary | Static/mocked evidence only. |
+| REQ-124-17 | Secret manifest | `tests/application/services/deployment/test_secret_management.py` | External secret classification | Static/mocked evidence only. |
+| REQ-124-10, REQ-124-17 | Hygiene | `tests/architecture/test_repository_hygiene.py` | Placeholder and configuration contracts | Deterministic test evidence only. |
+| REQ-124-21, REQ-124-22 | Browser/live | `tests/e2e/classic/test_post_install_browser_live.py` | Conditional authenticated service access | Separately consented live evidence, with skips reported. |
+| REQ-124-21 | Installation/lifecycle | `tools/live/run_classic_acceptance.py` | Install, reconcile, update and recovery | Protected target-specific evidence; not a default development command. |
+| REQ-124-23 | Sonar/external | `.github/workflows/sonar_external_gate.yml` | Candidate-specific external gate | Observe actual analyzed SHA and gate result. |
 
-The full quality result is recorded in
-[`#150 test results`](../../.tiny-swarm/evidence/issue-150/test_results.md)
-and remains local evidence only.
+Dated qualification sources are the [RC1 candidate matrix](../release/rc1-candidate-evidence.md)
+and [Issue #363 final validation](../evidence/issue-363-final-validation-20261003.md).
+Neither substitutes for local or live verification of later changes. The
+[documentation correction review](../audit/documentation-currency-review-20261010.md)
+records checks executed for this documentation task.

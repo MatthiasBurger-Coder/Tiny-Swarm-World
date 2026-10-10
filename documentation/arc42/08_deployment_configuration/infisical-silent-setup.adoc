@@ -99,8 +99,11 @@ database connection secrets.
 
 == Reset Behavior
 
-The governed fresh-install reset is still controlled by `./install.sh
+On WSL2, the governed fresh-install reset is controlled by `./install.sh
 --confirm-reset` or the interactive `RESET_TINY_SWARM_PLATFORM` confirmation.
+The native Linux installer reconciles without reset and rejects
+`--confirm-reset`; a deliberate native `platform reset` requires separate
+live consent and exact confirmation.
 Resetting managed platform state may remove containers and volumes. The next
 install reuses operator values or catalog defaults for bootstrap; no credential
 file is generated as a side effect.
