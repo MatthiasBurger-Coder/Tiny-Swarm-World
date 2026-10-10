@@ -1,5 +1,7 @@
 param([Parameter(Mandatory=$true)][string]$RepositoryRoot)
 $ErrorActionPreference='Stop'
+$testPowerShell=(Get-Process -Id $PID).Path
+if([string]::IsNullOrWhiteSpace($testPowerShell) -or !(Test-Path -LiteralPath $testPowerShell -PathType Leaf)){throw 'test_runtime_unavailable'}
 Import-Module (Join-Path $RepositoryRoot 'tools/windows/preparation/Preparation.psm1') -Force -DisableNameChecking
 $count=0
 function Assert($Condition,$Name) {if(!$Condition){throw "FAIL: $Name"};$script:count++}
@@ -81,11 +83,11 @@ $o=Options;$o.UbuntuRelease='26.04';$r=Invoke-WindowsPreparation $o @{Inventory=
 Assert ($r.blockers[0].code -eq 'invalid_arguments') 'canonical release contradiction refused'
 $script:facts=Facts
 # Actual transport tests run harmless child PowerShell only, never concrete host ports.
-$p=Invoke-PreparationProcess 'powershell.exe' @('-NoProfile','-NonInteractive','-Command','[Console]::Write("ok"); exit 7') 10
+$p=Invoke-PreparationProcess $testPowerShell @('-NoProfile','-NonInteractive','-Command','[Console]::Write("ok"); exit 7') 10
 Assert ($p.exit_code -eq 7 -and $p.stdout -eq 'ok') 'native output captured'
-$p=Invoke-PreparationProcess 'powershell.exe' @('-NoProfile','-NonInteractive','-Command','[Console]::Write([Environment]::CommandLine)') 10
+$p=Invoke-PreparationProcess $testPowerShell @('-NoProfile','-NonInteractive','-Command','[Console]::Write([Environment]::CommandLine)') 10
 Assert ($p.exit_code -eq 0 -and $p.stdout -match '\s-NoProfile -NonInteractive -Command ') 'native flags remain unquoted for WSL option parsing'
-$p=Invoke-PreparationProcess 'powershell.exe' @('-NoProfile','-NonInteractive','-Command','Start-Sleep -Seconds 10') 1
+$p=Invoke-PreparationProcess $testPowerShell @('-NoProfile','-NonInteractive','-Command','Start-Sleep -Seconds 10') 1
 Assert ($p.exit_code -eq 124) 'native finite timeout'
 $unsafePorts=@{};foreach($k in $ports.Keys){$unsafePorts[$k]=$ports[$k]};$unsafePorts.EvidencePreflight={return $false}
 $script:facts=Facts;$r=Invoke-WindowsPreparation (Options) $unsafePorts
@@ -220,8 +222,9 @@ $script:scenarioFacts.pid1='systemd'
 $p=ScenarioPlan
 Assert ($p.result.outcome -eq 'READY' -and $p.actions.Count -eq 0 -and $script:scenarioCalls.Count -eq 1) 'existing scenario observed READY and no replay'
 # Actual Git fixture proves configured filters cannot spawn subprocesses during source inspection.
-$gitPath=Join-Path ([Environment]::GetFolderPath('ProgramFiles')) 'Git/cmd/git.exe'
-if(Test-Path -LiteralPath $gitPath) {
+$programFiles=[Environment]::GetFolderPath('ProgramFiles')
+$gitPath=if($programFiles){Join-Path $programFiles 'Git/cmd/git.exe'}else{$null}
+if($gitPath -and (Test-Path -LiteralPath $gitPath)) {
     $gitFixture=Join-Path ([IO.Path]::GetTempPath()) ('tsw-git-'+[guid]::NewGuid().ToString('N'))
     [void][IO.Directory]::CreateDirectory($gitFixture)
     try {
@@ -245,10 +248,10 @@ if(Test-Path -LiteralPath $gitPath) {
 $verificationFixture=Join-Path ([IO.Path]::GetTempPath()) ('tsw-artifact-'+[guid]::NewGuid().ToString('N'))
 [IO.File]::WriteAllText($verificationFixture,'untrusted-artifact')
 try {
-    $p=Invoke-PreparationProcess 'powershell.exe' @('-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',(Join-Path $RepositoryRoot 'tools/windows/preparation/Download.ps1'),'-VerifyOnly','-Url','https://github.com/microsoft/WSL/releases/download/3.0.1/wsl.3.0.1.0.x64.msi','-Destination',$verificationFixture) 10
+    $p=Invoke-PreparationProcess $testPowerShell @('-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',(Join-Path $RepositoryRoot 'tools/windows/preparation/Download.ps1'),'-VerifyOnly','-Url','https://github.com/microsoft/WSL/releases/download/3.0.1/wsl.3.0.1.0.x64.msi','-Destination',$verificationFixture) 10
     $verification=$p.stdout | ConvertFrom-Json
     Assert ($p.exit_code -eq 1 -and $verification.cause -eq 'artifact_hash_mismatch') 'bounded artifact helper real hash refusal'
-    $p=Invoke-PreparationProcess 'powershell.exe' @('-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',(Join-Path $RepositoryRoot 'tools/windows/preparation/Download.ps1'),'-VerifyOnly','-Url','https://github.com/microsoft/WSL/releases/download/3.0.1/wsl.3.0.1.0.x64.msi','-Destination',$verificationFixture,'-ExpectedSha256',('0'*64)) 10
+    $p=Invoke-PreparationProcess $testPowerShell @('-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',(Join-Path $RepositoryRoot 'tools/windows/preparation/Download.ps1'),'-VerifyOnly','-Url','https://github.com/microsoft/WSL/releases/download/3.0.1/wsl.3.0.1.0.x64.msi','-Destination',$verificationFixture,'-ExpectedSha256',('0'*64)) 10
     $verification=$p.stdout | ConvertFrom-Json
     Assert ($p.exit_code -eq 1 -and $verification.cause -eq 'artifact_catalogue_mismatch') 'stale artifact declaration refused'
 
@@ -262,7 +265,7 @@ exit $LASTEXITCODE
 '@
     [IO.File]::WriteAllText($signatureHarness,$body)
     try {
-        $p=Invoke-PreparationProcess 'powershell.exe' @('-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',$signatureHarness,'-Helper',(Join-Path $RepositoryRoot 'tools/windows/preparation/Download.ps1'),'-Destination',$verificationFixture) 10
+        $p=Invoke-PreparationProcess $testPowerShell @('-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',$signatureHarness,'-Helper',(Join-Path $RepositoryRoot 'tools/windows/preparation/Download.ps1'),'-Destination',$verificationFixture) 10
         $verification=$p.stdout | ConvertFrom-Json
         Assert ($p.exit_code -eq 1 -and $verification.cause -eq 'artifact_signature_invalid') 'bounded artifact helper signature refusal'
     } finally {Remove-Item -LiteralPath $signatureHarness -Force}
@@ -273,7 +276,10 @@ $module=Get-Module Preparation
 $script:adapterCalls=New-Object Collections.ArrayList
 $module.SessionState.PSVariable.Set('adapterCalls',$script:adapterCalls)
 $module.SessionState.PSVariable.Set('verificationCause','artifact_hash_mismatch')
+$originalExecutableResolver=& $module {(Get-Command Get-PreparationExecutable).ScriptBlock}
+$module.SessionState.PSVariable.Set('testPowerShell',$testPowerShell)
 & $module {
+    function script:Get-PreparationExecutable {param($Name) return $script:testPowerShell}
     function script:Invoke-PreparationProcess {
         param($File,$Arguments,$TimeoutSeconds,$InputText)
         [void]$script:adapterCalls.Add(@{file=$File;arguments=$Arguments})
@@ -311,12 +317,18 @@ try {
     $o.ActionTimeoutSeconds=0;$o.ActionDeadline=[Diagnostics.Stopwatch]::StartNew()
     $r=& $module {param($o,$f) Get-PreparationObservedEffect @{id='enable_systemd'} $o $f 0} $o $before
     Assert ($r.uncertain -and $r.exit_code -eq 124) 'postverification honors exhausted budget'
+} finally {
+    & $module {param($resolver) Set-Item Function:script:Get-PreparationExecutable $resolver} $originalExecutableResolver
+    Remove-Item -LiteralPath $fixture -Recurse -Force
+}
+if($env:OS -eq 'Windows_NT') {
     $path=& $module {Get-PreparationExecutable 'wsl.exe'}
     Assert ($path -like '*Windows*System32*wsl.exe') 'protected binary resolver'
-    $threw=$false;try{& $module {Get-PreparationExecutable 'evil.exe'}}catch{$threw=$true}
-    Assert $threw 'unknown binary refused'
-} finally {Remove-Item -LiteralPath $fixture -Recurse -Force}
+}
+$threw=$false;try{& $module {Get-PreparationExecutable 'evil.exe'}}catch{$threw=$true}
+Assert $threw 'unknown binary refused'
 # Direct evidence safety guard fixtures: no filesystem or ACL changes.
+if($env:OS -eq 'Windows_NT') {
 & $module {
     $script:ownerId=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value
     $script:reparse=$false;$script:unsafeAcl=$false;$script:readAcl=$false;$script:ancestorRights=0;$script:ancestorOwner=$null
@@ -364,4 +376,5 @@ Assert (!$ok) 'foreign owner refused'
 & $module {$script:ownerId=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value;$script:unsafeAcl=$true}
 $ok=& $module {try{Assert-PreparationEvidencePath 'C:/mock';$true}catch{$false}}
 Assert (!$ok) 'untrusted write ACL refused'
+}
 Write-Output "PASS $count Windows lifecycle assertions (mocked host ports; no live preparation)"
