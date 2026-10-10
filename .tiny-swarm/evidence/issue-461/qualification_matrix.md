@@ -3,9 +3,9 @@
 Status: **BLOCKED**. Live qualification state: **LIVE_PREREQUISITE_MISSING**
 for authorized native tests and the new Windows test environment. Explicit
 destructive WSL reset remains **LIVE_CONSENT_MISSING**.
-Candidate: `0528aac913c37ddfd66fc8f326d5f92505bdd7dd` (integrated W07/W08).
-The current issue branch adds evidence only. Use a clean checkout of this
-committed candidate for any proposed runtime run; later product fixes require
+Candidate: `3da77f8908d598688ed46dd6eab74c5f32a7ac50` (integrated W07/W08 plus urllib3 security repair).
+Use the hash-verified release archive of this committed candidate for runtime
+runs; later product fixes require
 a new committed candidate, applicability assessment and affected reruns.
 
 ## Release matrix
@@ -35,9 +35,11 @@ recoverability or authorize reset/fault/restart.
 
 ## Required scenarios for each applicable target
 
-All scenario rows remain BLOCKED before execution. Authorized native and new
+Required installation/recovery rows remain BLOCKED. Native preparation/S13
+observations are PARTIAL. Authorized native and new
 Windows guest scenarios lack prerequisites; explicit reset lacks consent.
-No scenario run ID exists yet.
+N26-existing-preflight-20261010 records S13 partial preservation evidence (exit 2);
+no installation or recovery is qualified.
 Run IDs and evidence links must be added only after actual execution.
 
 | ID | Scenario | Required observation / pass criterion | Applicability |
@@ -106,14 +108,14 @@ scope; W09 covers new bootstrap stages without relabeling its historical results
 
 Local regression/quality/security contracts: APPLICABLE_LOCAL. Installation,
 Windows preparation, restart, networking, reset, fault recovery and authenticated
-browser/service checks: APPLICABLE_LIVE / LIVE_CONSENT_MISSING. External
+browser/service checks: APPLICABLE_LIVE / LIVE_PREREQUISITE_MISSING for authorized tests; destructive
+reset is LIVE_CONSENT_MISSING. External
 SonarQube/CI results: EXTERNAL_GATE_UNAVAILABLE for this unsubmitted branch;
 historical predecessor checks are not current-candidate results.
 
 The initial dependency security gate failed for the baseline runtime lock.
 The corrected lock now passes strict audit and full Python 3.12 quality.
-See test_results.md for both actual results; freezing a clean committed candidate
-is the next step, and live prerequisites still block overall qualification.
+See test_results.md for both actual results; the committed candidate is frozen, and live prerequisites still block overall qualification.
 
 ## Operator-authorized environment preparation
 
@@ -127,17 +129,45 @@ fresh-OS evidence or prove fault/recovery safety.
 An elevated Hyper-V inventory succeeded. A dedicated owned Generation-2 VM
 was created off with nested virtualization, vTPM and Secure Boot, using only the
 existing Default Switch. Its empty disk was expanded to 256 GiB and CPUs to 12
-after checking the default node/WSL budget. Initial Windows provisioning uses
-24 GiB guest RAM; the default full WSL budget requires a later 32-GiB setting.
-There is currently insufficient free host RAM for that setting with margin.
+after checking the default node/WSL budget. After the operator stopped the firmware-only VM, its owned disk was verified
+RAW again. Guest RAM is now 32 GiB; host free RAM was 35.38 GiB at the check.
 No unrelated VM, WSL distribution, host switch or adapter was changed.
 
 The official [Windows 11 Enterprise Evaluation download](https://www.microsoft.com/en-us/evalcenter/download-windows-11-enterprise)
-is downloading. Before use, verify EN-US 26H2 SHA-256
+download completed (curl exit 0). Installation verifies EN-US 26H2 SHA-256
 `BC3F24086EBADC94489066B5AD78089E2CF5C3491E90E790BB81A2B199C10E38`
 from Microsoft VerifyWindowsISO and the setup signature. Planned guest image
-application is restricted to the owned RAW VHD and is not yet executed.
+application was restricted to the owned RAW VHD and completed for image/boot
+files (exits 0/0). The initial RAM refusal is historical; current progress follows.
 The VM shell is created; Windows, WSL, Incus, installation, routes and login are
-not qualified. A clean pre-WSL checkpoint will be recorded only after successful
-Windows boot and explicit removal of answer-file credentials. All raw VM files,
+not qualified. A clean pre-WSL checkpoint was subsequently observed and actually restored
+after successful Windows boot and verified removal of answer-file credentials. All raw VM files,
 DPAPI-protected credentials and provisioning logs stay in ignored local storage.
+
+Native preflight result: [portable redacted record](native_preflight_result.json).
+Initial Windows image/boot files applied (exits 0/0), then the 32-GiB boot was
+refused at 33.6 GiB free host RAM. Later 24-GiB OS boot/checkpoint recovery and
+32-GiB configuration results appear below; retain the initial refusal.
+
+## Owned Windows guest executed progress
+
+Separate from the preserved local Windows/WSL environment, the new guest is
+Windows 11 Enterprise Evaluation 26H2, exact build 26300.9457, PowerShell
+5.1.26100.9444; WSL/distro was absent at that historical pre-WSL stage. OS-only boot used 24 GiB/26-GiB
+free-host guard. Credential answer files were verified removed. Initial
+checkpoint ACL failure and immediate identity-check failure remain recorded;
+a later bound-VM inventory and actual restore verified the owned clean pre-WSL
+checkpoint. Candidate archive/source proof was verified at frozen SHA3da77.
+The read-only candidate dry-run exited 2 planning enable_features and preserved
+its measured .wslconfig/hosts/registration invariants. This is partial S13,
+not complete no-write/preservation qualification. Windows checkpoint recovery
+is an environment prerequisite, not bootstrap/WSL recovery PASS.
+
+The guest is configured at 32 GiB while off; host free RAM was 34.86 GiB before
+the restoration test. Feature-only preparation will independently enforce
+34 GiB before its full guest boot. No release or complete WSL capacity is
+qualified by these observations.
+
+## Current continuation after checkpoint persistence finding
+
+Original frozen candidate3da77 verified enable_features but returned PARTIAL/4 after effect-state replacement failure. Owned guest recovery reboot was verified; source-bound post-restart preflight requested install_wsl. The operator subsequently manually installed WSL3.0.1.0 and Ubuntu26.04.1LTS, default registration Ubuntu/WSL2/running/systemd/x86_64. This establishes observed manual prerequisites, not candidate-executed package/distro installation. Actual WSL MemTotal16377308kB and12processors still need the selected21GiB/8CPU budget. Preserve the operator installation. Corrected atomic checkpoint persistence passes actual WindowsPowerShell5.1 filesystem regression and full Python3.12 quality retry; its committed source freeze and corrected live runs are pending. Every release remains UNQUALIFIED.

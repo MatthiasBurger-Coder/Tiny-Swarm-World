@@ -1,34 +1,43 @@
 # Remaining risks and blockers
 
-- Native test and isolated Hyper-V construction authorization now exists.
-  Native clean snapshot/restore proof, explicit destructive reset consent and
-  completed recoverable Windows installation remain missing.
-- Operator identified local WSL and native SSH Ubuntu 26.04.1 targets; OS/kernel
-  and Windows/WSL versions were observed read-only. No clean snapshot/restore
-  method is established, no 24.04 target supplied, and runtime tool versions
-  and selected-service capacity remain unverified.
-- Existing local worktrees/live configuration do not authorize mutations.
-- Restart, fault injection and destructive reset require scoped authorization;
-  WSL host-wide shutdown could affect unrelated distributions.
-- Resource boundaries depend on actual selected services and measured target
-  capacity; mock/predecessor results do not qualify a capacity claim.
-- Authentication requires protected operator credentials and redacted results.
-- Historical #363 managed-state freshness is not fresh-OS evidence; changed
-  bootstrap source prevents inheritance of W09 qualification.
-- All required live AC1/AC2 product scenarios remain unexecuted. Issue is BLOCKED,
-  not DONE. No release support guard or qualified list is changed.
-- AC4 dependency security gate failed (exit 1): locked urllib3 2.7.0 has
-  PYSEC-2026-4175, PYSEC-2026-4176 and PYSEC-2026-4177 according to the
-  executed pip_audit result; reported fix version is 2.8.0. Dependency
-  remediation and affected regression checks require a new committed runtime
-  candidate before live qualification. No dependency change is represented
-  by this evidence-only branch.
+- Native tests and the isolated Windows VM are authorized. The native supplied
+  host is an existing installation without a clean OS snapshot/restore proof;
+  it cannot establish fresh-host or safe injected-failure recovery results.
+- Native Python preparation succeeded in the owned source, preserving existing
+  protected scopes and three nodes. Network preparation refused the existing
+  IPv6-enabled bridge policy. Preserve that policy; installation needs a
+  compatible separately recoverable target.
+- No native Ubuntu 24.04 target is supplied. The isolated Windows guest now has
+  observed Windows 11 Enterprise Evaluation 26H2 build 26300.9457 and a verified
+  clean pre-WSL checkpoint restore. WSL/distro/tool installation and full selected
+  service capacity are still unverified.
+- The 24-GiB Windows OS-only phase is distinct from the full 32-GiB guest. RAM
+  was set/observed 32 GiB while off; a 34-GiB free-host guard precedes its boot.
+  Do not infer effective WSL limits or service capacity from VM settings.
+- Explicit destructive WSL reset consent remains missing. Existing local WSL
+  distributions and native resources are preserved. Host-wide shutdown/reset
+  or native fault/reboot injection must not be inferred from access details.
+- All required AC1/AC2 product fresh/rerun/recovery, ordinary WSL preservation,
+  reset isolation, routes and authentication results remain open. No release
+  support guard or qualified list is changed; #461 remains BLOCKED.
+- AC4 is verified locally: urllib3 2.8.0 strict audit and complete Python 3.12
+  quality passed at the frozen runtime candidate. Historical failed audit and
+  mounted-checkout timeout remain in test_results.md.
+- Historical #363 source/scenario results do not qualify this new candidate.
+- Authentication requires protected credentials and redacted evidence. Raw
+  VM files, credentials, paths and logs remain private ignored artifacts.
+- The source-bound Windows dry-run measured only file hashes and selected
+  registry fields; it is partial S13 evidence, not comprehensive no-write proof.
 
-The original dependency finding is remediated in the working lock and a new
-strict audit passed. A new committed candidate and passing full regression gate
-are still required. The first mounted-checkout full run failed one 10-second
-installer fixture timeout; supported-runtime verification is running in an
-isolated Linux-native checkout. Windows media download and clean guest creation
-are unfinished; full default WSL preparation additionally needs sufficient host
-RAM for the 32-GiB guest. Prior audit/consent findings retain their historical
-context and must not be read as the latest operator authorization state.
+No product quality rule, source guard or selected-service capacity requirement
+was weakened. Windows OS provisioning at 24 GiB does not qualify WSL capacity.
+
+The first feature-only UAC launch was canceled; the authorized retry confirmed
+features but returned exit 4 PARTIAL when the effect checkpoint replacement
+failed. The pending checkpoint and effect records are preserved. A separate
+owned-guest reboot was verified and fresh source-bound inventory requests
+install_wsl. The revised NullString fix has a passing Windows PowerShell 5.1
+filesystem regression, and the full Python 3.12 quality retry passes. Frozen
+source and corrected live application are still pending. The operator-installed
+Ubuntu registration must be preserved; its observed WSL allocation needs
+21-GiB/8-processor reconciliation. Do not upgrade the original partial result.

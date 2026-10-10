@@ -471,3 +471,23 @@ $o.Mode='Plan';$o.ApproveApply=$false;$o.QualificationRun=$false
 $r=Invoke-WindowsPreparation $o $ports
 Assert ($script:executions -eq $before -and $script:stateRecords.Count -eq 2) 'W08 observed satisfied resume skips mutation and writes'
 Write-Output 'PASS W08 mocked recovery contracts'
+
+# Exercise durable create-then-replace IO; only Windows ACL boundaries are mocked.
+$stateModule=Import-Module (Join-Path $RepositoryRoot 'tools/windows/preparation/Preparation.psm1') -Force -DisableNameChecking -PassThru
+$stateStore=Join-Path ([IO.Path]::GetTempPath()) ('tsw-state-'+[guid]::NewGuid().ToString('N'))
+[void][IO.Directory]::CreateDirectory($stateStore)
+try {
+    & $stateModule {
+        param($store,$pending,$effect)
+        function Assert-PreparationEvidencePath($Path) {
+            if(!$Path.StartsWith($store,[StringComparison]::Ordinal) -or !(Test-Path -LiteralPath $Path)){throw 'unexpected_test_evidence_path'}
+        }
+        function Set-PreparationPrivateAcl($Path) {}
+        Write-PreparationState $store $pending
+        Write-PreparationState $store $effect
+    } $stateStore $script:stateRecords[0] $script:stateRecords[1]
+    $persisted=& $stateModule {param($text) ConvertFrom-PreparationStateJson $text} (Get-Content -Raw -LiteralPath (Join-Path $stateStore 'bootstrap.state.json'))
+    Assert ($persisted.status -ceq 'effect' -and $persisted.confirmed -and !$persisted.uncertain -and $persisted.restart -ceq 'distro') 'durable effect replaces pending state'
+    Assert (@(Get-ChildItem -LiteralPath $stateStore -Force).Count -eq 1) 'atomic replacement leaves only the checkpoint'
+} finally {Remove-Item -LiteralPath $stateStore -Recurse -Force}
+Write-Output 'PASS durable checkpoint filesystem contracts (mocked ACL boundaries)'

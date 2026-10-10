@@ -307,6 +307,10 @@ The existing private LocalApplicationData `TinySwarmWorld/preparation` directory
 now contains `bootstrap.state.json` and the redacted attempt records. State binds
 the verified source revision, host and selection. A corrupt, stale or foreign
 checkpoint adds a blocker to the read-only plan and prevents privileged apply.
+Checkpoint writes flush a private temporary file before atomically replacing
+the existing state. If effect persistence fails, retain the pending checkpoint
+and inspect fresh inventory and the attempt records; a confirmed host change
+alone does not make the preparation successful.
 Preserve it for review and archive it only through a deliberate operator action;
 never erase it as an automatic repair. Existing `.wslconfig` backups and private
 root-owned `/etc/.tsw-backup-wsl-conf.*` backups require separately reviewed

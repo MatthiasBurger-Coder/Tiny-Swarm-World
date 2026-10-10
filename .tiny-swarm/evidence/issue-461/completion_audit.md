@@ -1,5 +1,8 @@
 # Independent issue completion audit
 
+Earlier reviews below are historical. Current verified Windows environment
+progress is recorded in the latest section; no product qualification is implied.
+
 Decision: **BLOCKED**.
 Reviewer: Codex subagent `/root/issue_461_completion_audit`, read-only audit,
 independent of the evidence author. Reviewed complete #461, parent #452,
@@ -35,6 +38,61 @@ LIVE_CONSENT_MISSING. Do not mark DONE or qualify any release.
 Operator authorized native tests and isolated Hyper-V construction. Version
 inventory and owned VM shell creation succeeded. Narrow lock repair passes
 strict audit and the complete Python 3.12 gate (2,554 tests, 18 skips). Native
-freshness/restoration, Windows clean guest/WSL installation, full-capacity RAM
-and required live scenarios remain open. Historical missing-consent/security
+freshness/restoration, Windows clean guest/WSL installation, required live scenarios remain open. VM RAM is now 32 GiB. The previously verified RAW disk is now the
+owned installed GPT disk with four observed partitions; Windows image/boot files applied (exits 0/0); first boot is blocked on host RAM. Historical missing-consent/security
 findings above describe the earlier review, not these later results.
+
+## Refreshed independent review
+
+Reviewer: `/root/issue_461_completion_audit`, read-only, after frozen source,
+full corrected Python 3.12 quality, native actual partial observations and
+Windows image application. Decision: **BLOCKED**. AC3 and AC4 are supported;
+fresh installation, reruns, recovery, ordinary WSL preservation/explicit reset
+and clean guest readiness remain unverified. Native preparation preserves
+existing protected resources but blocks on bridge IPv6 policy.
+
+Windows DISM/boot-file application passed (0/0), followed by a guarded RAM
+refusal before credentials/boot. Static owned-VM resume safety review found no
+remaining destructive-operation blocker; inherited prior command exits were
+corrected to null until prior proof validates. The first resume attempt exited 1 before credentials/boot; its exact precheck
+cause remains undiscriminated. Only the corrected resume and guest preflight
+remain unexecuted. No release is qualified and #461 must remain open.
+
+Final independent refresh found no new safety blocker in the corrected helper.
+It retains the 34-GiB guard, validates the measured owned GPT layout and selects
+the unique Windows data volume without repartitioning. Actual free RAM was
+33.682 GiB. Overall decision remains BLOCKED; AC1/AC2 and clean guest readiness
+are unverified. The final layout and failed resume are recorded separately from
+historical RAW-disk evidence and the unexecuted corrected helper.
+
+## Latest Windows environment continuation
+
+Independent reviewer `/root/issue_461_completion_audit` reviewed the separate
+24-GiB OS-only provisioning phase, checkpoint ACL repair, source-bound dry-run,
+owned checkpoint restoration test and guarded 32-GiB feature-only apply helper.
+No concrete safety blocker was found for their authorized owned-VM scope.
+Actual first boot reached Windows, answer removal was verified, and the exact
+pre-WSL checkpoint was restored and booted with clean invariants. Guest then
+stopped and 32-GiB RAM was set/observed. Source-bound dry-run verified the frozen
+SHA, with only partial S13 invariant coverage. Historical first-boot/RAM and
+checkpoint/verification failures remain in portable records.
+
+These results establish an isolated recoverable Windows environment, not WSL
+or bootstrap qualification. Full-guest feature apply launch was canceled by Windows UAC (host exit 1);
+the helper did not start and no guest apply result exists. All AC1/AC2 product scenarios remain
+open and #461 remains BLOCKED. AC3/AC4 retain supported evidence. Final audit
+must assess the actual feature/apply result if execution proceeds.
+
+## Final independent decision after Windows continuation
+
+Reviewer `/root/issue_461_completion_audit`: **BLOCKED**. Mandatory evidence
+files exist; AC3/AC4 are supported. Actual Windows OS boot, source-bound dry-run
+and exact pre-WSL checkpoint restoration are recorded without claiming bootstrap
+qualification. Canceled UAC launch records host exit 1, no helper/guest apply
+and null guest exit. No new safety or scope violation was found. Historical
+wording was reconciled to the current Windows OS/GPT/checkpoint observations.
+AC1/AC2 remain open; keep #461 open and every release UNQUALIFIED.
+
+## Independent review of live checkpoint defect and correction
+
+Reviewer /root/issue_461_completion_audit found no safety/architecture blocker in the narrow NullString fix and real create/replace regression. Reproduction under WindowsPowerShell5.1 confirms first pending creation succeeds, second replacement raises ArgumentException with ordinary $null, and explicit NullString replacement succeeds; canonical pending state remains unchanged. Recovery reboot was independently reviewed and actually verified. Original PARTIAL/4 result, pending checkpoint and failed full quality run remain evidence. Reviewer requires corrected full quality and new committed/archive source proof before further qualification; full quality retry now PASS. Overall BLOCKED: original AC1/AC2/native/24.04/reset/runtime scenarios remain open. Operator manual WSL/Ubuntu installation is preserved and recorded separately from candidate actions.
