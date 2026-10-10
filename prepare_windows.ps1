@@ -5,10 +5,11 @@ param(
     [string]$Distro='',[string]$UbuntuRelease='',[string]$ServiceProfile='service-access',
     [switch]$QualificationRun,[string]$ApprovedPlan,
     [string]$QualificationHost,[string]$QualificationDistro,[string]$QualificationRevision,[string]$RecoveryReference,
+    [Nullable[int]]$WslMemoryGiB,[Nullable[int]]$WslProcessors,[Nullable[int]]$WslSwapGiB,
     [int]$ProbeTimeoutSeconds=15,[int]$ActionTimeoutSeconds=900
 )
 $ErrorActionPreference='Stop'
-$requiredAssets=@('Preparation.psm1','Policy.ps1','Application.ps1','Adapters.ps1','SourceProof.ps1','Download.ps1','linux-config.sh')
+$requiredAssets=@('Preparation.psm1','Policy.ps1','Application.ps1','Adapters.ps1','SourceProof.ps1','Download.ps1','linux-config.sh','Resources.ps1','ResourceAdapters.ps1','ResourceHost.ps1','linux-resources.sh','resource-projection.json')
 foreach($asset in $requiredAssets) {
     $path=Join-Path $PSScriptRoot ('tools/windows/preparation/'+$asset)
     if(!(Test-Path -LiteralPath $path -PathType Leaf)) {
@@ -43,6 +44,9 @@ QualificationHost=$QualificationHost
 QualificationDistro=$QualificationDistro
 QualificationRevision=$QualificationRevision
 RecoveryReference=$RecoveryReference
+WslMemoryGiB=$WslMemoryGiB
+WslProcessors=$WslProcessors
+WslSwapGiB=$WslSwapGiB
 ProbeTimeoutSeconds=$ProbeTimeoutSeconds
 ActionTimeoutSeconds=$ActionTimeoutSeconds}
 $result=Invoke-WindowsPreparation -Options $options -Ports (New-PreparationPorts)

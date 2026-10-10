@@ -89,3 +89,5 @@ The bootstrap extension is proposed only; it does not supersede the accepted
 native lifecycle until the implementing work packages accept their transitions.
 
 include::09_decisions/adr-bootstrap-command-readiness-contract.adoc[leveloffset=+3]
+
+include::09_decisions/adr-wsl-capacity-adaptation.adoc[leveloffset=+3]

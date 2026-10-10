@@ -50,7 +50,7 @@ function Invoke-PreparationProcess {
     } finally {$process.Dispose()}
 }
 function Get-PreparationSource($Options) {
-    $assets=@('prepare_windows.ps1','tools/windows/preparation/Preparation.psm1','tools/windows/preparation/Policy.ps1','tools/windows/preparation/Application.ps1','tools/windows/preparation/Adapters.ps1','tools/windows/preparation/linux-config.sh','tools/windows/preparation/Download.ps1','tools/windows/preparation/SourceProof.ps1')
+    $assets=@('prepare_windows.ps1','tools/windows/preparation/Preparation.psm1','tools/windows/preparation/Policy.ps1','tools/windows/preparation/Application.ps1','tools/windows/preparation/Adapters.ps1','tools/windows/preparation/linux-config.sh','tools/windows/preparation/Download.ps1','tools/windows/preparation/SourceProof.ps1','tools/windows/preparation/Resources.ps1','tools/windows/preparation/ResourceAdapters.ps1','tools/windows/preparation/ResourceHost.ps1','tools/windows/preparation/linux-resources.sh','tools/windows/preparation/resource-projection.json','src/tiny_swarm_world/domain/preflight/resources.py','src/tiny_swarm_world/domain/host_environment.py','infra/config/node-providers/provider_config.yaml','tools/build_wsl_resource_projection.py')
     $hashes=[ordered]@{}
     foreach($asset in $assets){$path=Join-Path $Options.RepositoryRoot $asset
     if(!(Test-Path -LiteralPath $path -PathType Leaf)){return @{verified=$false
@@ -214,6 +214,7 @@ function Get-PreparationInventory($Options) {
     return $facts}
     if(!$match.Success){return $facts}
     $facts.wsl_generation=[int]$match.Groups[1].Value
+    $facts.running_registrations=@(($running.stdout -replace "`0",'') -split '\r?\n' | ForEach-Object{$_.Trim()} | Where-Object{$_})
     $facts.running=@(($running.stdout -replace "`0",'') -split '\r?\n' | ForEach-Object{$_.Trim()}) -contains $Options.Distro
     if(!$facts.running){return $facts}
     $uid=Invoke-PreparationProcess $wsl.Source @('--distribution',$Options.Distro,'--exec','id','-u') (Get-InventoryRemaining)
@@ -227,6 +228,7 @@ function Get-PreparationInventory($Options) {
     if($value -eq 'true'){$value=$true}elseif($value -eq 'false'){$value=$false}
     $facts[$Matches[1]]=$value}}
     $facts.linux_known=$true
+    $facts.resource_facts=Get-PreparationResourceInventory $Options $facts
     return $facts
 }
 function Assert-PreparationEvidencePath($Path) {
@@ -305,6 +307,7 @@ function Invoke-PreparationAction($Action,$Options,$Facts,$Store) {
         return $remaining
     }
     $result=$null
+    if($Action.id -eq 'adapt_wsl_resources'){return Invoke-PreparationResourceAction $Action $Options $Facts $Store}
     if($Action.id -eq 'enable_features') {
         $allowed=@('Microsoft-Windows-Subsystem-Linux','VirtualMachinePlatform')
         foreach($feature in $Action.before){if($feature -notin $allowed){throw 'invalid_feature'}

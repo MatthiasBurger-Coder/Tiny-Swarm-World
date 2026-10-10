@@ -1,13 +1,13 @@
 function Invoke-WindowsPreparation {
     param([hashtable]$Options, [hashtable]$Ports)
-    if ($Options.Mode -eq 'Help' -and !$Options.Invalid -and !$Options.ApproveApply -and !$Options.QualificationRun -and !$Options.ApprovedPlan) { return @{schema_version=1
-    help='./prepare_windows.ps1 -Distro Ubuntu-24.04 -Preflight. Existing custom registrations require -Distro exact_name -UbuntuRelease 24.04 or 26.04; absent custom names are never installed. Use -DryRun to inspect, -Json for one nonprompting envelope. Apply shows the fresh plan and asks exact yes; JSON needs -ApproveApply. Optional -ApprovedPlan fingerprint rejects stale plans. Ordinary Apply is unqualified and blocked. Qualification additionally requires -QualificationRun -QualificationHost observed_host -QualificationDistro selected_distro -QualificationRevision clean_revision -RecoveryReference recoverable_target. Operator creates/selects accounts and restarts Windows/selected distro. Capability READY is not aggregate readiness.'
+    if ((Test-PreparationResourceArguments $Options) -and $Options.Mode -eq 'Help' -and !$Options.Invalid -and !$Options.ApproveApply -and !$Options.QualificationRun -and !$Options.ApprovedPlan) { return @{schema_version=1
+    help='./prepare_windows.ps1 -Distro Ubuntu-24.04 -Preflight. Existing custom registrations require -Distro exact_name -UbuntuRelease 24.04 or 26.04; absent custom names are never installed. Use -DryRun to inspect, -Json for one nonprompting envelope. Apply shows the fresh plan and asks exact yes; JSON needs -ApproveApply. Optional -ApprovedPlan fingerprint rejects stale plans. Ordinary Apply is unqualified and blocked. Qualification additionally requires -QualificationRun -QualificationHost observed_host -QualificationDistro selected_distro -QualificationRevision clean_revision -RecoveryReference recoverable_target. Operator creates/selects accounts and restarts Windows/selected distro. W05 preserves global .wslconfig with protected backup. Overrides: -WslMemoryGiB positive -WslProcessors positive -WslSwapGiB nonnegative. Plans separate Windows reserve, WSL allocation and managed-node budget. All WSL2 registrations are affected; operator controls wsl.exe --shutdown and relaunch. Effective resource observations are required after resume. Capability READY is not aggregate readiness.'
     result=@{outcome='HELP'
     exit_code=0
     preparation_ready=$false
     services_verified=$false}} }
     $selection=Get-PreparationSelection $Options
-    if ($Options.Invalid -or !$selection.valid -or $Options.Mode -notin @('Help','Check','Plan','Apply') -or $Options.ProbeTimeoutSeconds -le 0 -or $Options.ActionTimeoutSeconds -le 0 -or ($Options.Mode -eq 'Help') -or ($Options.Mode -ne 'Apply' -and ($Options.ApproveApply -or $Options.QualificationRun -or $Options.ApprovedPlan))) { return @{schema_version=1
+    if (!(Test-PreparationResourceArguments $Options) -or $Options.Invalid -or !$selection.valid -or $Options.Mode -notin @('Help','Check','Plan','Apply') -or $Options.ProbeTimeoutSeconds -le 0 -or $Options.ActionTimeoutSeconds -le 0 -or ($Options.Mode -eq 'Help') -or ($Options.Mode -ne 'Apply' -and ($Options.ApproveApply -or $Options.QualificationRun -or $Options.ApprovedPlan))) { return @{schema_version=1
     blockers=@(@{code='invalid_arguments'
     remedy='Use -Help.'})
     result=@{outcome='BLOCKED'
@@ -79,7 +79,8 @@ function Invoke-WindowsPreparation {
                 $plan.blockers+=@{code='next_stage_consent_required'
                 stage='next_stage'
                 remedy=$plan.result.next_command}
-                if($action.id -eq 'enable_systemd') {$plan.result.outcome='RESTART_REQUIRED'
+                if($action.id -eq 'adapt_wsl_resources'){$plan.result.outcome='RESTART_REQUIRED';$plan.result.exit_code=3;$plan.restart=@{scope='WSL-wide';operator_command=('wsl.exe --shutdown; wsl.exe --distribution '+$Options.Distro)}}
+                elseif($action.id -eq 'enable_systemd') {$plan.result.outcome='RESTART_REQUIRED'
                 $plan.result.exit_code=3
                 $plan.restart=@{scope='distro'
                 operator_command=('wsl.exe --terminate '+$Options.Distro+'; wsl.exe --distribution '+$Options.Distro)}}

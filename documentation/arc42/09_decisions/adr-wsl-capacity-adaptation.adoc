@@ -1,0 +1,143 @@
+= Capacity-aware WSL Resource Preparation
+:status: Accepted for W05 development; no live consent or qualification
+:date: 2026-10-10
+
+Issue #457 / BOOT-W05 under #452. Development authorization does not authorize live mutation.
+
+== Context
+
+W01 bootstrap is proposed and W04 accepts only lifecycle. W05 needs global resource
+configuration authority. Canonical managed nodes currently sum to 19 GiB RAM, eight
+CPU limits and 80 GiB disks. A 16 GiB WSL profile floor alone does not cover them.
+Global .wslconfig affects all WSL2 distributions, not only the selected target.
+
+== Accepted decision
+
+Extend the existing dependency-light Windows preparation module through its pure
+plan and injectable inventory/action/evidence ports. Keep root PowerShell thin;
+product Python remains Linux/WSL-only. W04 lifecycle stages precede W05, retaining
+ordinary unqualified Apply blocking and separately bound qualification consent.
+No new service graph, provisioning engine, bridge owner or durable recovery engine.
+
+Consume a generated resource-only JSON projection of the existing Python WSL fixed
+profile requirements and infra/config/node-providers/provider_config.yaml. A Linux
+build helper and tests verify canonical source hashes, node amounts and profile
+floors; Windows verifies source/projection identities before use. It contains no
+selection graph and supports only current fixed profiles pending #440/#444. Changed
+canonical input blocks stale projection rather than silently choosing another budget.
+Include every executable/projection asset in extracted-release source membership proof.
+
+Policy is conservative: Windows memory reserve is max(4 GiB, ceil(physical RAM/4)),
+Windows CPU reserve max(1, ceil(logical CPU/4)); WSL overhead is 2 GiB RAM. Required
+WSL RAM is max(selected WSL profile floor, sum configured node RAM + overhead).
+Required WSL CPU is max(profile floor, sum configured CPU limits). CPU sums are a
+conservative feasibility rule, not a dedicated core reservation. Disk requirement
+is max(profile free-disk floor, sum configured node disk limits); also keep 20 GiB
+free on Windows storage after any proposed swap growth. Account for coincident
+distro/swap storage volumes without double counting or ignoring required growth.
+RAM swap is never counted as physical service capacity. Default swap is ceil(WSL
+RAM/4) GiB. Explicit positive integral -WslMemoryGiB/-WslProcessors and nonnegative
+-WslSwapGiB overrides may increase allocation or disable swap, never bypass Windows
+reserve or lower required profile/node RAM/CPU/disk. Reserve is planning headroom,
+not a promise that Windows dynamic workloads cannot exhaust resources.
+
+Inventory physical capacity with bounded Windows probes, usable volumes associated
+with the selected registered distro and swap location, and observed effective WSL
+RAM/CPU/swap/free disk only in a running selected distro. Missing/unknown facts,
+unsupported config syntax/encoding, duplicate keys/sections, unsafe owners/ACLs,
+reparse paths, unknown units/paths and insufficient capacity block adaptation.
+Read-only modes never start a distro, acquire writable locks or write any evidence.
+
+Merge only memory/processors/swap in the wsl2 section; preserve other settings,
+sections, comments, encoding/newlines and metadata. Existing managed-key changes
+are explicit before/after plan actions, never silent collisions. Validate current
+user profile path/ancestors/file ownership and ACLs, reject reparse points. After
+fresh exact-plan consent and source/host/distro/recovery binding, use exclusive
+locking, compare bytes/metadata against approved inventory, create a protected
+unique backup before replacement, atomic replacement with a final approved-snapshot check and verify intended
+settings. No overwrite of existing backups; drift or ambiguous configuration blocks.
+Backup identity is recorded in protected evidence; no raw unrelated config is logged.
+No blind rollback; operator can restore the recorded backup after fresh inspection.
+
+Config write success is RESTART_REQUIRED/3, not effective resource success. Explain
+WSL-wide impact and list affected running registrations before consent. Never run
+wsl --shutdown/restart automatically. Operator shuts down all WSL then starts the
+selected distro and reruns the same command. No durable approval survives restart.
+A matching file alone cannot establish capacity: observe effective memory/CPU/swap
+and usable disk after resume. Allow documented small kernel memory accounting
+tolerance max(256 MiB, 2% of configured ceiling) for the configured memory ceiling.
+Minimum effective usable RAM is max(profile floor, sum node RAM), independently
+required; never excuse insufficient effective capacity using that tolerance.
+Mismatch returns explicit RESTART_REQUIRED or BLOCKED diagnostics, not READY.
+Zero-change reruns are read-only verifications. Capability readiness is separate
+from aggregate preparation_ready and services_verified, both remain false.
+
+== Supersession and consequences
+
+Accept only W05 resource configuration and capacity ownership, extending W04's
+module without removing its lifecycle scope exclusion from history. Existing
+qualification, source integrity, ACL, live consent, provider safety and deployment
+boundaries remain. Synchronize bootstrap contract and ADR index after acceptance.
+16 GiB physical hosts cannot satisfy the current all-node budget and reserve; larger
+hosts still need sufficient CPU and disk. Never clamp node limits to manufacture fit.
+
+== Verification
+
+Executable mocked PowerShell and disposable-file tests cover 16/32/64 GiB, unknown
+facts, overrides, canonical projection drift, same/different volumes, preservation,
+backup/CAS/collisions, no-write modes, consent drift, restart/resume and failure states.
+Full Linux/WSL QUALITY.md quality gate and independent issue completion audit apply.
+Live installation/resource validation is APPLICABLE_LIVE / LIVE_CONSENT_MISSING;
+browser checks NOT_APPLICABLE to W05 capacity-only; external gate UNAVAILABLE unless
+actually accessed. No live qualification claimed from mocks.
+
+Official sources reviewed 2026-10-10:
+* https://learn.microsoft.com/en-us/windows/wsl/wsl-config
+* https://learn.microsoft.com/en-us/windows/wsl/basic-commands
+Microsoft documents global USERPROFILE .wslconfig, memory/processors/swap keys and
+operator shutdown/restart scope. Reserve/overhead values above are TSW policy.
+
+== Independent acceptance, 2026-10-10
+
+Senior System Architect, Senior Requirement Engineer, Security/Sandbox with DevOps
+review, and Senior Tester/Python Automation review independently APPROVE. The
+configured/effective RAM distinction above resolves the accounting concern.
+Windows co-located storage must reserve distro disk requirement + swap growth +
+20 GiB once; unknown storage locations block. An exclusive TSW lock plus final
+bytes/metadata comparison protects cooperating preparation processes. Atomic file
+replacement is not an OS-provided compare-and-swap against arbitrary other editors;
+verification must detect divergence and preserve recovery backup. This limitation
+is explicit, and unsafe/foreign writers block through ACL validation.
+User authorized decision work and implementation after review on 2026-10-10.
+Completed #355 workflow is not reopened; this is direct issue-scoped development
+on feat/issue-457-wsl-resources, not workflow execute or publication.
+
+== Concrete security review requirements
+
+The independent concrete-adapter review requires nearest-existing-ancestor validation
+for absent paths, local NTFS configuration/storage targets, actual registered VHD
+identity and authoritative TEMP swap location. Reject unknown/redirected locations.
+All resource inventory/configuration IO is isolated behind a finite-deadline process
+port; an in-process stopwatch alone does not bound blocked filesystem/provider IO.
+Effective observations accept exactly the expected four resource keys with no
+unknown/duplicate/malformed output.
+
+Backups use owner/SYSTEM/admin ACLs independently from original read permissions;
+original configuration ACL/timestamps are protected restoration metadata. Preserve
+actual displaced file bytes through atomic replacement, compare them to the approved
+snapshot, and retain/report the recovery copy on divergence. A racing editor is not
+silently discarded or reported as success. Source proof includes every executable
+helper and projection/canonical input needed by this boundary.
+
+== Approved plan identity amendment
+
+Independent System Architect review accepts excluding only distro_free_bytes,
+swap_free_bytes and effective_disk_bytes from plan fingerprint identity. The
+original bounded observations remain displayed and available as evidence; do not
+mutate collected facts. Bind volume identities, physical RAM/CPU, effective
+RAM/CPU/swap, source/projection/profile/node budgets, configuration bytes/metadata,
+allocation/actions/state/blockers. Fresh inventory must prove the same allocation
+feasible on the same volumes immediately before mutation. Unknown capacity or any
+required disk/reserve threshold crossing blocks and invalidates consent. This
+avoids routine background disk writes invalidating an otherwise identical feasible
+plan; it does not permit saved approval or conceal capacity loss.

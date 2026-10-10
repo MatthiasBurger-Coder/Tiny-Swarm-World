@@ -84,6 +84,18 @@ function New-PreparationPlan($Options, $Facts, $Source) {
     elseif ($Facts.pid1 -ne 'systemd') { $restart=@{scope='distro'
     operator_command=('wsl.exe --terminate '+$Options.Distro+'; wsl.exe --distribution '+$Options.Distro)}
     Block 'systemd_restart_required' 'Terminate/relaunch only the selected distro yourself, then rerun preflight.' }
+    $resources=@{state='LIFECYCLE_PREREQUISITES_REQUIRED'}
+    if($blockers.Count -eq 0 -and $actions.Count -eq 0){
+        $resources=Get-PreparationResourceAssessment $Options $Facts
+        foreach($blocker in $resources.blockers){[void]$blockers.Add($blocker)}
+        if($resources.change_required){
+            Action 'adapt_wsl_resources' @{settings=$resources.current_settings;snapshot=$resources.config_snapshot} $resources.allocation 'WSL-wide'
+            $actions[$actions.Count-1].owner='W05'
+            $actions[$actions.Count-1].target='global .wslconfig'
+            $actions[$actions.Count-1].preservation_rule='Preserve unrelated entries, encoding, newlines and metadata; protected unique backup and final approved snapshot comparison.'
+        }
+        if(@($resources.blockers | Where-Object{$_.code -eq 'effective_resources_mismatch'}).Count -gt 0){$restart=@{scope='WSL-wide';operator_command=('wsl.exe --shutdown; wsl.exe --distribution '+$Options.Distro)}}
+    }
     $candidateEligible=$blockers.Count -eq 0
     if($Options.Mode -ne 'Apply' -and $actions.Count -gt 0){Block 'prerequisite_missing' 'Review this staged plan, then authorize the exact candidate qualification stage.'}
     $ready = $blockers.Count -eq 0 -and $actions.Count -eq 0
@@ -93,6 +105,8 @@ function New-PreparationPlan($Options, $Facts, $Source) {
     $exit=0 }
     elseif ($restart.scope -ne 'none') { $outcome='RESTART_REQUIRED'
     $exit=3 }
+    $nextCommand='./prepare_windows.ps1 -Distro '+$Options.Distro+' -UbuntuRelease '+$Options.ExpectedRelease+' -ServiceProfile '+$Options.ServiceProfile+' -Preflight'
+    foreach($key in @('WslMemoryGiB','WslProcessors','WslSwapGiB')){if($null -ne $Options[$key]){$nextCommand+=' -'+$key+' '+$Options[$key]}}
     $plan = [ordered]@{schema_version=1
     mode=$(switch($Options.Mode){'Check'{'preflight'}
     'Plan'{'dry_run'}
@@ -103,11 +117,11 @@ function New-PreparationPlan($Options, $Facts, $Source) {
     selection=@{profile=$Options.ServiceProfile
     distro=$Options.Distro
     ubuntu_release=$Options.ExpectedRelease
-    catalog_source='existing fixed profile; W05 capacity not verified'}
+    catalog_source='canonical fixed WSL profile and provider resource projection'}
     observations=@{host=$Facts
     source=$Source}
     actions=@($actions.ToArray())
-    resources=@{state='W05_NOT_VERIFIED'}
+    resources=$resources
     blockers=@($blockers.ToArray())
     restart=$restart
     result=@{outcome=$outcome
@@ -121,10 +135,12 @@ function New-PreparationPlan($Options, $Facts, $Source) {
     candidate_eligible=$candidateEligible
     qualified=$false
     live_state='LIVE_CONSENT_MISSING'
-    next_command=('./prepare_windows.ps1 -Distro '+$Options.Distro+' -UbuntuRelease '+$Options.ExpectedRelease+' -Preflight')
+    next_command=$nextCommand
     evidence_path=$null}
     artifacts=(Get-PreparationArtifacts)}
-    $plan['plan_fingerprint']=Get-PreparationDigest @($Facts,$Source,$plan.selection,$plan.actions,$plan.artifacts)
+    $boundFacts=ConvertTo-PreparationHashtable ($Facts | ConvertTo-Json -Depth 30 -Compress | ConvertFrom-Json)
+    if($boundFacts.resource_facts){foreach($key in @('distro_free_bytes','swap_free_bytes','effective_disk_bytes')){$boundFacts.resource_facts.Remove($key)}}
+    $plan['plan_fingerprint']=Get-PreparationDigest @($boundFacts,$Source,$plan.selection,$plan.resources,$plan.actions,@($plan.blockers | Where-Object{$_.code -ne 'prerequisite_missing'}),$plan.artifacts)
     return $plan
 }
 function Get-PreparationArtifacts {
