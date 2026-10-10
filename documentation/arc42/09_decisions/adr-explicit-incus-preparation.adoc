@@ -56,6 +56,18 @@ confirmed and uncertain actions in protected redacted evidence; interruption and
 timeouts stop dependents. No automatic rollback or deletion is introduced.
 Read-only modes never write state/configuration/evidence or bytecode.
 
+=== Incus CLI compatibility clarification, 2026-10-10
+
+Existing-target W04 qualification observed that Incus 6.0.5 rejects
+`INCUS_CONF=/dev/null` because the client inspects `config.yml` under that
+path, and rejects global `--project` with `query`. Use the kernel-owned
+`/proc/self` directory to avoid loading ordinary client configuration or
+persisting client state. Keep `--force-local` for every invocation.
+`info` and `version` retain `--project default`; API queries omit that
+unsupported global flag and retain explicit `project=default` on resource
+GET and create-only POST URLs. `/1.0` remains server inventory. Consent,
+bounded execution, no-start preflight and preservation contracts are unchanged.
+
 == Consequences and verification
 
 A clean host may require a logout/login between access and resource preparation.
