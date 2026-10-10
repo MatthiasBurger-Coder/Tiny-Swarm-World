@@ -89,7 +89,7 @@ class LocalIncusPreparation:
         elif action.kind == "access":
             args = ("sudo", "-n", "/usr/sbin/usermod", "-a", "-G", "incus-admin", "--", action.name)
         else:
-            args = (*runtime.LOCAL_INCUS, "query", f"/1.0/{action.kind}?project=default",
+            args = (*runtime.LOCAL_INCUS_QUERY, "query", f"/1.0/{action.kind}?project=default",
                     "-X", "POST", "--wait", "--data", action.payload)
         try:
             await runtime.checked_command(args, action.timeout_seconds)

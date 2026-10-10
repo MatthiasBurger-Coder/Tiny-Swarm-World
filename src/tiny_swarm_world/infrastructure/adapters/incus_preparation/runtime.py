@@ -12,9 +12,10 @@ from tiny_swarm_world.infrastructure.process.async_runner import AsyncProcessRes
 
 
 # Incus 6.0 PostRun saves OIDC state when the user's config.yml exists, even
-# under --force-local. A non-directory config root suppresses that client write
-# and user aliases without creating a temporary configuration directory.
-LOCAL_INCUS = ("/usr/bin/env", "INCUS_CONF=/dev/null", "incus", "--force-local", "--project", "default")
+# under --force-local. The kernel-owned process directory has no config.yml
+# and cannot persist client state or load ordinary user aliases.
+LOCAL_INCUS_QUERY = ("/usr/bin/env", "INCUS_CONF=/proc/self", "incus", "--force-local")
+LOCAL_INCUS = (*LOCAL_INCUS_QUERY, "--project", "default")
 
 
 async def command(args: tuple[str, ...], timeout: float = 5.0) -> AsyncProcessResult:
@@ -34,7 +35,7 @@ async def checked_command(args: tuple[str, ...], timeout: float = 5.0) -> str:
 
 
 async def query(path: str) -> Any:
-    output = await checked_command((*LOCAL_INCUS, "query", path))
+    output = await checked_command((*LOCAL_INCUS_QUERY, "query", path))
     try:
         return json.loads(output)
     except (ValueError, TypeError):

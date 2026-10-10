@@ -79,6 +79,30 @@ class FakeHost:
         return copy.deepcopy(self.routes if "route" in args else self.links)
 
 
+class IncusCliTransportTests(unittest.IsolatedAsyncioTestCase):
+    async def test_query_is_local_isolated_and_uses_api_project_scope(self):
+        for path in ("/1.0", "/1.0/profiles?recursion=1&project=default"):
+            with patch(f"{RUNTIME}.run_async_process", return_value=AsyncProcessResult(0, "{}")) as runner:
+                self.assertEqual(await runtime.query(path), {})
+                runner.assert_awaited_once_with(
+                    ("/usr/bin/env", "INCUS_CONF=/proc/self", "incus", "--force-local", "query", path),
+                    timeout=5.0,
+                )
+
+    async def test_resource_create_retains_approved_payload_project_and_deadline(self):
+        adapter = LocalIncusPreparation(CONFIG, release="26.04", evidence=Mock())
+        payload = json.dumps({"name": "docker-swarm", "config": {}, "devices": {}})
+        action = IncusAction("profile:create", "profiles", "docker-swarm", payload=payload)
+        adapter._actions = (action,)
+        with patch(f"{RUNTIME}.run_async_process", return_value=AsyncProcessResult(0, "{}")) as runner:
+            await adapter.execute(action)
+            runner.assert_awaited_once_with(
+                ("/usr/bin/env", "INCUS_CONF=/proc/self", "incus", "--force-local", "query",
+                 "/1.0/profiles?project=default", "-X", "POST", "--wait", "--data", payload),
+                timeout=action.timeout_seconds,
+            )
+
+
 class IncusAcceptanceTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.host = FakeHost()
@@ -110,8 +134,9 @@ class IncusAcceptanceTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(any("version" in call for call in commands))
         self.assertTrue(any("info" in call for call in commands))
         self.assertTrue(all("sudo" not in call and "--force-local" in call for call in commands))
-        self.assertTrue(all("--project" in call for call in commands))
-        self.assertTrue(all("INCUS_CONF=/dev/null" in call for call in commands))
+        self.assertTrue(all("--project" in call for call in commands if "query" not in call))
+        self.assertTrue(all("--project" not in call for call in commands if "query" in call))
+        self.assertTrue(all("INCUS_CONF=/proc/self" in call for call in commands))
         self.assertTrue((await self.service.plan()).verified)
 
     async def test_boot_w03_ac2_compatible_resources_reused_ac4_rerun_preserves_configuration(self):

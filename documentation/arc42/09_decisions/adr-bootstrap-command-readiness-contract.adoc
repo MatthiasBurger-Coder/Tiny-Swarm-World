@@ -70,3 +70,10 @@ until W09; existing #427 evidence cannot qualify these new bootstrap stages.
 An unaccepted transition blocks its implementing package, not this contract-only
 W01 delivery. Future packages must keep target and implemented documentation
 separate until checks and evidence establish the new behavior.
+
+== W04 implementation amendment, 2026-10-04
+
+The independently accepted adr-windows-wsl-lifecycle-preparation.adoc accepts only
+the W04 Windows/WSL preparation transition and its bounded candidate qualification
+exception. Ordinary Apply stays gated by qualification; W09 live evidence remains
+open. The W07 installer transition remains proposed. Preserve this original record.

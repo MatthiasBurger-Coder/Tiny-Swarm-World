@@ -9,7 +9,7 @@ those commands or capabilities available. W01 delivers the inventory, interface,
 plan and readiness definitions. Existing behavior remains governed by the
 [accepted native preparation ADR](../arc42/09_decisions/adr-native-linux-preparation-and-install-lifecycle.adoc)
 and [bridge ADR](../arc42/09_decisions/adr-windows-wsl-bridge-service-agent.adoc).
-W02, W04 and W07 must record their respective narrow ADR supersessions before
+W02 and W04 recorded their narrow ADR supersessions; W07 must record its transition before
 changing the manual-Python prerequisite, WSL preparation exclusion or WSL reset
 behavior. The future departures are recorded in the
 [proposed bootstrap ADR](../arc42/09_decisions/adr-bootstrap-command-readiness-contract.adoc).
@@ -30,7 +30,7 @@ capability check proves only that capability, never complete installation readin
 | Native `host prepare` | `NativeLinuxHostPreparation` verifies kernel controls; does not change them | W03: Incus daemon/current-user/storage/network/profile preparation; W06: kernel/network adapters |
 | `host verify` | CLI command calls read-only hang diagnostics; capability-level diagnostics, not aggregate installation readiness | W01 defines aggregate below; implementation integration in W07 |
 | Windows bridge, BOOT-06 | `tools/windows/tws-wsl-bridge.ps1`, service script, config, `WslHostPreparation`, `PortWindowsCommandRunner`; verify before refresh, protected ownership/ACL/collision lifecycle | W06 reuses bridge and canonical `infra/config/ports.yaml`; no second portproxy/firewall owner |
-| Windows preparation, BOOT-02/03 | No root `prepare_windows.ps1` delivered | W04: Windows features/WSL2/distro/systemd; W05: capacity and preserved WSL configuration |
+| Windows preparation, BOOT-02/03 | `prepare_windows.ps1` and dependency-light `tools/windows/preparation` owners implement explicit candidate-only Windows features/WSL2/selected-distro/systemd lifecycle; ordinary Apply unqualified-blocked | W05: capacity and preserved global WSL configuration; W09: actual live qualification |
 | Recovery/evidence, BOOT-08 | Native preparation re-inventories packages after failure; `native_preparation_evidence.py` writes protected, redacted evidence; installer phase timeout/interruption handling exists | W08: shared resumable stage records and protected cross-host recovery |
 | Qualification/help, BOOT-09 | #427 delivered native lifecycle and its recorded Ubuntu 26.04 scenarios; Ubuntu 24.04 qualification is separate | W09: fresh/repeat/restart/recovery qualification on both families; W10: final copyable guide |
 
@@ -41,8 +41,9 @@ Kubernetes-first behavior or multi-host provisioning.
 
 ## 2. Target commands and consent
 
-The following interface is specified for later implementation. New switches
-are not accepted by today's scripts. Current native preparation accepts
+The interface below is the shared target contract. The W04 Windows entrypoint
+implements its lifecycle-only switches and envelope; aggregate installation remains
+W05–W09. Later Linux/installer switches are not all accepted by today's scripts. Current native preparation accepts
 `--preflight`, `--dry-run`, `--service-profile`; apply prompts for `yes` before
 APT and Python preparation. Current installer read-only modes support native
 Linux only; WSL still uses the confirmed-reset path. `tsw` needs installed
@@ -80,7 +81,7 @@ selected distro/account/checkout and preserve installer exits and consent.
 |---|---|---|
 | Native Ubuntu 24.04 LTS x86_64 | Preparation allowlist and local tests; live qualification tracked separately | W02/W03/W06 implement extensions; W09 records exact host/kernel/tool versions |
 | Native Ubuntu 26.04 LTS x86_64 | #427 recorded clean/rerun/recovery qualification for its scope | New bootstrap stages require their own W09 evidence; no inherited live success |
-| Windows 11 x86_64 + selected Ubuntu 24.04/26.04 x86_64 WSL2 | Bridge exists; complete Windows preparation absent | W04/W09 publish exact qualified Windows build, WSL version, distro release and kernel; unknown/unqualified combinations block mutation |
+| Windows 11 x86_64 + selected Ubuntu 24.04/26.04 x86_64 WSL2 | Bridge exists; W04 lifecycle implemented locally; aggregate W05/W06/W07 preparation and W09 qualification incomplete | W04/W09 publish exact qualified Windows build, WSL version, distro release and kernel; ordinary Apply blocks unknown/unqualified combinations; the accepted W04 ADR permits only separately authorized candidate qualification |
 | Windows 10, WSL1, other distros/releases, ARM, macOS | Outside initial bootstrap target | BLOCKED before package/configuration changes; no automatic replacement |
 
 The distro registration name (for example `Ubuntu-24.04`) is not proof of its
@@ -91,7 +92,14 @@ Unknown Windows build/WSL version qualification blocks Windows-affecting and
 aggregate bootstrap stages, rather than the independent W02 Linux package/Python
 substage. W02 requires observed supported Ubuntu x86_64, WSL2/systemd, an
 ordinary account, owned Linux-native checkout and the WSL resource floor.
-Do not invent a qualified Windows version before W09 executes evidence.
+Do not invent a qualified Windows version before W09 executes evidence. The accepted
+[W04 lifecycle ADR](../arc42/09_decisions/adr-windows-wsl-lifecycle-preparation.adoc)
+adds only a separately authorized, exact-plan candidate qualification path. Ordinary
+Apply remains blocked for unqualified targets; unreadable/unsupported facts always
+block dependent mutation. Observed absence on a clean host allows staged candidate
+preparation with reinventory and new consent. W04 capability readiness is distinct
+from aggregate installation readiness. W09 consumes the locally audited committed
+checkpoint rather than closure of #456; AC1-LIVE stays open until real evidence.
 See the accepted `adr-shared-ubuntu-prerequisite-bootstrap.adoc` for this narrow
 W02 amendment; full bootstrap and live qualification remain separate.
 
@@ -101,8 +109,10 @@ An extracted, versioned release must contain executable Linux scripts,
 assets. The trusted release is downloaded/extracted using OS-provided tools;
 Git, Python and pip are not prerequisites to locating scripts or printing help.
 Missing assets produce BLOCKED with an asset-specific remedy; no remote
-pipe-to-shell, silent download/execution or clone is permitted. Today's source
-archive lacks the Windows entrypoint; W04 supplies it. W10 documents extraction.
+pipe-to-shell, silent download/execution or clone is permitted. The W04 source includes the Windows entrypoint and offline proof verifier. Trusted
+release packaging must include its manifest generated from a clean committed tree;
+W10 documents final extraction. The expected revision is independently selected
+from the trusted release channel, never inferred from the proof itself.
 
 Before Python exists, the shell boundary performs only OS identification,
 read-only package/interpreter inspection and an explicitly approved minimal
@@ -204,7 +214,7 @@ empty completed/uncertain actions and `evidence_path: null`.
 | READY | 0 | All preparation prerequisites observed satisfied, no pending restart; next `./install.sh --preflight` in the selected Linux shell |
 | BLOCKED | 2 | Unsupported/unknown facts, collision, missing prerequisite or declined/missing consent before changes; show the single command addressing the first dependent blocker |
 | RESTART_REQUIRED | 3 | Completed prerequisite work requires operator restart/login; remaining stages stop, readiness false; give exact restart scope/command, then reinventory on rerun |
-| PARTIAL | 4 | Some confirmed work completed but another stage failed or effects remain uncertain; stop dependents, preserve observations; rerun read-only plan before separately approved resume |
+| PARTIAL | 4 | Confirmed work exists but a dependent stage failed, effects are uncertain, or newly observed stages require fresh consent; retain completed actions without inventing failures/uncertainty, stop dependents, and rerun the read-only plan before separately approved resume |
 | FAILED | 1 | Executed attempt failed with no confirmed completed work and no uncertain mutation effects; safe cause and concrete inspection/retry command |
 
 Timeout exits 124 and interruption exits 130 remain distinct transport results;
@@ -380,3 +390,54 @@ remain W06/W07; JSON/unattended full bootstrap envelope remains a later integrat
 The fixed profiles retain their existing #440/#444 selection authority. New
 bootstrap live qualification remains LIVE_CONSENT_MISSING. See the accepted
 [Incus preparation ADR](../arc42/09_decisions/adr-explicit-incus-preparation.adoc).
+
+
+## BOOT-W04 delivered lifecycle capability
+
+`prepare_windows.ps1` is a thin PowerShell boundary for pure policy and injectable
+application/host/evidence ports. Help has no host probes; no-write preflight/dry-run
+never start a stopped distro. Explicit candidate qualification prepares Windows
+features, pinned WSL and only the named Ubuntu registration in bounded stages,
+then guides ordinary account creation and selected systemd configuration/restart.
+Protected evidence and source/artifact/configuration checks precede host mutation.
+Unrelated/default registrations, settings and existing config are preserved.
+
+Ordinary Apply remains blocked for unqualified targets. Candidate qualification
+needs separate exact-host/distro/revision/recovery authorization and fresh plan
+consent; no local file/saved approval grants it. Both Git and extracted-source
+identity are checked: extracted releases use bounded offline Git membership proofs
+anchored by an independently trusted revision. This is integrity, not publisher
+authentication or live qualification. Resource adaptation, routing, installer and
+shared recovery remain with W05–W08.
+
+A verified W04 baseline is capability-ready, never aggregate preparation_ready or
+services_verified. Pending restart returns exit3; a verified checkpoint needing
+newly observable stage consent returns PARTIAL/4 with confirmed effects and no
+fabricated failure. Canonical envelope fields coexist with explicit outcome and
+operator_command compatibility aliases carrying identical values. AC1-LIVE remains
+OPEN / LIVE_CONSENT_MISSING until W09 links executed scenario evidence.
+
+### Existing-target W04 clarification (2026-10-10)
+
+The operator-approved #456 amendment scopes its required live acceptance to the
+explicit existing WSL2 registration and identified native Ubuntu host. Clean
+Windows preparation remains locally tested and is not live-qualified by those
+results. Native Linux retains its existing preparation owner.
+
+An existing custom registration needs explicit `-Distro` and `-UbuntuRelease`
+(`24.04` or `26.04`), strict bounded safe-name validation and observed matching
+Ubuntu release, architecture, WSL2 generation and ordinary account. Canonical
+names retain compatible release selection; contradictions fail. Missing or unknown
+custom registrations block without installing prerequisites or guessing an artifact.
+Only canonical missing registrations use the pinned catalogue.
+
+Firmware virtualization and host hypervisor presence are separately observed;
+known typed facts may establish availability through either signal. Elevation,
+feature and selected-distro verification remain independent. Installation help
+capabilities are required only for installation. The help-only parser accepts
+native exit 0/-1 with empty stderr and exact required tokens; other failures and
+mutation results retain their existing failure semantics.
+
+Record exact committed revision, target/version, commands/exits, applicable
+preparation and no-op reruns, preservation and scoped configuration/service
+recovery. These runs never qualify fresh Windows feature/MSI/distro installation.

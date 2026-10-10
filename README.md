@@ -99,6 +99,13 @@ the installer:
   [Windows bridge prework](documentation/user_guide/installation.adoc#windows-wsl-prework).
   Native Linux does not need that bridge.
 
+Windows-side lifecycle planning is available separately from product execution:
+run `./prepare_windows.ps1 -Distro Ubuntu-24.04 -Preflight` in elevated Windows
+PowerShell. The [Windows preparation guide](documentation/user_guide/windows-preparation.md)
+explains selected-distro/systemd preparation, explicit candidate qualification consent,
+account/restart boundaries and preserved state. Ordinary Apply remains blocked until
+applicable live qualification; local tests do not qualify Windows versions.
+
 If WSL setup reports `windows-wsl-bridge` / `state_invalid`, prepare the bridge
 in Windows PowerShell as Administrator. If that preparation passes all
 prerequisites but fails with `The Windows bridge service ACL did not reach the
