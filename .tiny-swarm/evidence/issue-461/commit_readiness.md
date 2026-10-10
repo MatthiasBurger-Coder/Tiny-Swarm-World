@@ -1,0 +1,26 @@
+# Local candidate freeze review
+
+Commit readiness: READY for the local AC4 security correction and qualification
+planning evidence. This is not an issue completion PASS or publication approval.
+Review mode: main-thread read-only git_commit_reviewer contract; no separate
+mutating agent. Independent issue audit remains BLOCKED for live requirements.
+
+Changed files are the narrow requirements.lock correction and the explicitly
+listed issue evidence package. No unrelated/source/test/configuration changes,
+credentials, raw logs, VM disks or generated caches are staged. Existing #355
+workflow is not executed or rewritten. Branch follows the product bug-fix
+pattern: fix/boot-w09-live-qualification-20261010.
+
+Verification: full Python 3.12 quality PASS (2,554 tests, 18 existing skips),
+strict corrected-lock audit PASS, hash-verified install/pip check PASS, focused
+35 tests PASS, unchanged bytes between verified and committing lock files,
+git diff --check PASS. Prior mounted-checkout timeout and baseline security
+failure remain explicitly recorded as failed attempts.
+
+Source freeze is required by #461's exact committed-SHA live-evidence contract.
+Local commit is within the authorized qualification work. No remote publication,
+PR creation, merge or cleanup authority is inferred.
+
+Remaining risks: all unexecuted live requirements and recoverability/version/RAM
+prerequisites; security audit success cannot imply service or browser success.
+No runtime guard, test assertion, timeout or quality threshold was weakened.
