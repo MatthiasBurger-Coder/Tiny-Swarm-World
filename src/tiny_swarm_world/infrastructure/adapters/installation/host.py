@@ -255,7 +255,7 @@ class HostPreparationAdapter:
 
         try:
             plan = build_native_preparation_service(
-                cwd, service_profile=options.service_profile
+                cwd, service_profile=options.service_profile, allow_wsl=True
             ).plan()
         except (OSError, RuntimeError, ValueError) as error:
             raise InstallerError("Native host preparation inventory failed.") from error

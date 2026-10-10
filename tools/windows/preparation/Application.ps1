@@ -1,7 +1,7 @@
 function Invoke-WindowsPreparation {
     param([hashtable]$Options, [hashtable]$Ports)
     if ((Test-PreparationResourceArguments $Options) -and $Options.Mode -eq 'Help' -and !$Options.Invalid -and !$Options.ApproveApply -and !$Options.QualificationRun -and !$Options.ApprovedPlan) { return @{schema_version=1
-    help='./prepare_windows.ps1 -Distro Ubuntu-24.04 -Preflight. Existing custom registrations require -Distro exact_name -UbuntuRelease 24.04 or 26.04; absent custom names are never installed. Use -DryRun to inspect, -Json for one nonprompting envelope. Apply shows the fresh plan and asks exact yes; JSON needs -ApproveApply. Optional -ApprovedPlan fingerprint rejects stale plans. Ordinary Apply is unqualified and blocked. Qualification additionally requires -QualificationRun -QualificationHost observed_host -QualificationDistro selected_distro -QualificationRevision clean_revision -RecoveryReference recoverable_target. Operator creates/selects accounts and restarts Windows/selected distro. W05 preserves global .wslconfig with protected backup. Overrides: -WslMemoryGiB positive -WslProcessors positive -WslSwapGiB nonnegative. Plans separate Windows reserve, WSL allocation and managed-node budget. All WSL2 registrations are affected; operator controls wsl.exe --shutdown and relaunch. Effective resource observations are required after resume. Capability READY is not aggregate readiness.'
+    help='./prepare_windows.ps1 -Distro Ubuntu-24.04 -Preflight. Existing custom registrations require -Distro exact_name -UbuntuRelease 24.04 or 26.04; absent custom names are never installed. Use -DryRun to inspect, -Json for one nonprompting envelope. Apply shows the fresh plan and asks exact yes; JSON needs -ApproveApply. Optional -ApprovedPlan fingerprint rejects stale plans. Ordinary Apply is unqualified and blocked. Qualification additionally requires -QualificationRun -QualificationHost observed_host -QualificationDistro selected_distro -QualificationRevision clean_revision -RecoveryReference recoverable_target. Operator creates/selects accounts and restarts Windows/selected distro. W05 preserves global .wslconfig with protected backup. Overrides: -WslMemoryGiB positive -WslProcessors positive -WslSwapGiB nonnegative. Plans separate Windows reserve, WSL allocation and managed-node budget. All WSL2 registrations are affected; operator controls wsl.exe --shutdown and relaunch. Effective resource observations are required after resume. Capability READY is not aggregate readiness. Use -LinuxCheckout /absolute/Linux/path (default ordinary account ~/Tiny-Swarm-World) for a read-only inspected, selected-user install handoff. No product Python runs on Windows.'
     result=@{outcome='HELP'
     exit_code=0
     preparation_ready=$false
@@ -21,6 +21,7 @@ function Invoke-WindowsPreparation {
         $facts=& $Ports.Inventory $Options
         if($Ports.EvidencePreflight){$facts.evidence_storage_safe=[bool](& $Ports.EvidencePreflight $Options)}else{$facts.evidence_storage_safe=$false}
         $source=& $Ports.SourceIdentity $Options
+        if($Ports.HandoffInventory){$handoffFacts=& $Ports.HandoffInventory $Options $facts $source;foreach($key in $handoffFacts.Keys){$facts[$key]=$handoffFacts[$key]}}
         $plan=New-PreparationPlan $Options $facts $source
     } catch { return @{schema_version=1
     blockers=@(@{code='inventory_failed'
@@ -47,7 +48,9 @@ function Invoke-WindowsPreparation {
     try {
         $freshFacts=& $Ports.Inventory $Options
         $freshFacts.evidence_storage_safe=[bool](& $Ports.EvidencePreflight $Options)
-        $fresh=New-PreparationPlan $Options $freshFacts (& $Ports.SourceIdentity $Options)
+        $freshSource=& $Ports.SourceIdentity $Options
+        if($Ports.HandoffInventory){$handoffFacts=& $Ports.HandoffInventory $Options $freshFacts $freshSource;foreach($key in $handoffFacts.Keys){$freshFacts[$key]=$handoffFacts[$key]}}
+        $fresh=New-PreparationPlan $Options $freshFacts $freshSource
         if ($fresh.plan_fingerprint -cne $plan.plan_fingerprint) { throw 'consent_drift' }
         $store=& $Ports.ProtectEvidence $Options
         & $Ports.WriteEvidence $store @{event='intent'

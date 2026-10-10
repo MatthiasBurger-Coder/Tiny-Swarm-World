@@ -106,3 +106,11 @@ exclusion for that capability. Preserve the original lifecycle history and its
 verify-only installer/host prepare boundaries. Acceptance is not live qualification
 or a grant to disable/replace the host firewall. W07 installation changes remain
 separate.
+
+== W07 WSL reconciliation amendment, 2026-10-10
+
+The independently reviewed adr-wsl-install-reconciliation.adoc supersedes only
+the deferral of WSL reset-default migration. Ordinary native and WSL installs now
+reconcile through the existing preparation-separated ports. Explicit WSL
+--confirm-reset remains deprecated compatibility; no implicit interactive reset
+path is retained. Existing live qualification is not new W07 live evidence.

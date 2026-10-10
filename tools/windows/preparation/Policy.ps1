@@ -1,5 +1,6 @@
 # Pure plan policy: no host or filesystem calls.
 function Get-PreparationSelection($Options) {
+    if($Options.LinuxCheckout -and ($Options.LinuxCheckout -isnot [string] -or $Options.LinuxCheckout -cnotmatch '\A/[A-Za-z0-9_./ -]+\z' -or $Options.LinuxCheckout -match '^/mnt/[a-z](?:/|$)')){return @{valid=$false}}
     if($Options.Distro -isnot [string] -or $Options.Distro -cnotmatch '\A[A-Za-z0-9][A-Za-z0-9._-]{0,63}\z'){return @{valid=$false}}
     $canonical=$null
     if($Options.Distro -ceq 'Ubuntu-24.04'){$canonical='24.04'}
@@ -108,6 +109,10 @@ function New-PreparationPlan($Options, $Facts, $Source) {
     $exit=3 }
     $nextCommand='./prepare_windows.ps1 -Distro '+$Options.Distro+' -UbuntuRelease '+$Options.ExpectedRelease+' -ServiceProfile '+$Options.ServiceProfile+' -Preflight'
     foreach($key in @('WslMemoryGiB','WslProcessors','WslSwapGiB')){if($null -ne $Options[$key]){$nextCommand+=' -'+$key+' '+$Options[$key]}}
+    $handoff=Get-PreparationHandoff $Options $Facts
+    if(!$ready){$handoff=@{status='WINDOWS_PREREQUISITES_REQUIRED';preparation_ready=$false;services_verified=$false}}
+    elseif($handoff.operator_command){$nextCommand=$handoff.operator_command}
+    else {Block 'linux_checkout_required' $handoff.remedy; $outcome='BLOCKED'; $exit=2}
     $plan = [ordered]@{schema_version=1
     mode=$(switch($Options.Mode){'Check'{'preflight'}
     'Plan'{'dry_run'}
@@ -122,6 +127,7 @@ function New-PreparationPlan($Options, $Facts, $Source) {
     observations=@{host=$Facts
     source=$Source}
     actions=@($actions.ToArray())
+    handoff=$handoff
     resources=$resources
     blockers=@($blockers.ToArray())
     restart=$restart

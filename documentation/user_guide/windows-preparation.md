@@ -28,6 +28,43 @@ Preflight and dry-run do not change features, create/start a distro, write
 configuration, download artifacts or write evidence. If the selected distro is
 stopped, start it yourself using the reported selected-distro command, then rerun.
 
+## Preparation-to-install handoff
+
+Place the complete trusted release/checkout under the selected ordinary account's
+Linux home (`~/Tiny-Swarm-World` by default). A Windows-mounted checkout is not the
+standard product execution path. Existing checkouts can be selected explicitly:
+
+```powershell
+./prepare_windows.ps1 -Distro Ubuntu-24.04 -LinuxCheckout /home/operator/Tiny-Swarm-World -Preflight
+```
+
+The bounded read-only probe checks an already-running registration, ordinary account,
+owned native filesystem and matching verified product source. A supplied dependency-light
+probe checks raw Git commit/tree/blob membership (including edits hidden from Git
+status) or the trusted extracted-release proof, without importing checkout code.
+The read-only source probe needs system Python; if absent, prepare the Linux
+prerequisites separately first, then rerun Windows preflight.
+It neither copies nor executes checkout code. Missing, symlinked, foreign-owned or
+Windows-mounted checkouts produce a blocked handoff with a placement remedy.
+
+After Windows lifecycle/resources/bridge readiness, `handoff.operator_command`
+selects the exact distribution and observed user, changes to the quoted Linux
+checkout, runs `prepare_linux.sh`, and runs `install.sh` only after preparation exits
+zero. It preserves the selected fixed service profile. Copy the printed command
+into the interactive PowerShell console: WSL inherits its stdin for stage consent
+and returns the Linux exit code in `$LASTEXITCODE`. There is no automated install
+switch and no Windows Python execution. Windows `READY` is capability readiness;
+`handoff.status=LINUX_PREPARATION_REQUIRED` leaves `preparation_ready=false` and
+`services_verified=false`. A missing checkout cannot be an executable ready handoff.
+
+Preparation prints the final Linux install command only after packages, Python,
+Incus and network stages succeed. Restart/blocked/partial/timeout/interruption states
+stop dependent installation; rerun preflight, resolve the stated blocker, then give
+fresh consent. Ordinary native and WSL installs reconcile existing state. Explicit
+WSL `--confirm-reset` remains deprecated destructive compatibility, separate from
+live consent; prefer a separately confirmed platform reset followed by normal install.
+No new live qualification is claimed by these commands or mocked tests.
+
 ## Qualification and consent
 
 Ordinary Apply is blocked until the exact target has applicable reviewed

@@ -25,6 +25,7 @@ from tiny_swarm_world.infrastructure.adapters.native_preparation_evidence import
 def build_native_preparation_service(
     repository_root: Path, *, service_profile: str = "service-access",
     prerequisites_only: bool = False,
+    allow_wsl: bool = False,
 ) -> NativePreparationService:
     kernel = platform.release().casefold()
     inspector_type = WslUbuntuPreparationInspector if "microsoft" in kernel or "wsl" in kernel else NativePreparationInspector
@@ -35,6 +36,7 @@ def build_native_preparation_service(
                               target_snapshot=(lambda: _prerequisite_snapshot(inspector, repository_root, service_profile)) if prerequisites_only else None),
         service_profile=service_profile,
         prerequisites_only=prerequisites_only,
+        allow_wsl=allow_wsl,
     )
 
 

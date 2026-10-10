@@ -31,15 +31,19 @@ def main(argv: Sequence[str] | None = None) -> int:
         args = _parse_args(entrypoint_args)
         runtime = host.detect_host_runtime(os.environ)
         native = runtime.name == "native_linux"
-        if (args.preflight or args.dry_run) and not native:
-            raise SimpleInstallerError(
-                "Installer --preflight and --dry-run require native Linux."
-            )
         if native and args.confirm_reset:
             raise SimpleInstallerError(
                 "Native installation is non-destructive. Use a separately confirmed platform reset."
             )
-        _ensure_native_python(native, entrypoint_args)
+        if args.confirm_reset:
+            if args.preflight or args.dry_run:
+                raise SimpleInstallerError("Read-only installation cannot request reset.")
+            print("DEPRECATED: --confirm-reset requests destructive WSL fresh-reset. Prefer a separately confirmed platform reset, then ./install.sh.", file=sys.stderr)
+        if runtime.name == "wsl2" and not args.confirm_reset:
+            host.authorize_project_filesystem(
+                runtime, Path.cwd(), allow_wsl_windows_filesystem=False, env=os.environ
+            )
+        _ensure_native_python(True, entrypoint_args, is_wsl=runtime.name == "wsl2")
         env = _prepare_bootstrap_environment(os.environ, Path.cwd())
         options = values.InstallerOptions(
             service_profile="default"
@@ -49,7 +53,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             non_interactive_live_approval=args.non_interactive_live_approval,
             headless=args.headless or env.get("TSW_INSTALL_HEADLESS") == "1",
             allow_wsl_windows_filesystem=args.allow_wsl_windows_filesystem,
-            native_reconcile=native,
+            native_reconcile=not args.confirm_reset,
             preflight_only=args.preflight,
             dry_run=args.dry_run,
         )
@@ -81,17 +85,17 @@ def _parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
     read_only.add_argument(
         "--preflight",
         action="store_true",
-        help="Check native host readiness without mutation.",
+        help="Check Linux/WSL host readiness without mutation.",
     )
     read_only.add_argument(
         "--dry-run",
         action="store_true",
-        help="Preview native reconciliation without mutation.",
+        help="Preview Linux/WSL reconciliation without mutation.",
     )
     parser.add_argument(
         "--confirm-reset",
         action="store_true",
-        help="Confirm the governed fresh-install reset without prompting.",
+        help="Explicitly request and confirm deprecated destructive WSL fresh-reset.",
     )
     parser.add_argument(
         "--non-interactive-live-approval",
@@ -137,13 +141,17 @@ def _print_operator_credentials(env: Mapping[str, str]) -> None:
     print("\nAll other catalog-managed secrets are internal and are not printed.")
 
 
-def _ensure_native_python(native: bool, entrypoint_args: tuple[str, ...]) -> None:
+def _ensure_native_python(native: bool, entrypoint_args: tuple[str, ...], *, is_wsl: bool = False) -> None:
     if native and not process._python_imports_available(sys.executable, os.environ):
         python_bin = (
             configuration._paths_from_env(os.environ, Path.cwd()).native_linux_venv
             / "bin"
             / "python"
         )
+        if is_wsl and python_bin.is_file():
+            from tiny_swarm_world.infrastructure.adapters.installation.prerequisites import validate_user_paths
+
+            validate_user_paths(Path.cwd(), python_bin.parent.parent, is_wsl=True)
         if not python_bin.is_file() or not process._python_imports_available(
             python_bin.as_posix(), os.environ
         ):

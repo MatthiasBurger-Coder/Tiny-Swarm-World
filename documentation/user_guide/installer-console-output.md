@@ -4,7 +4,8 @@
 installer prints human-readable progress and diagnostics while it writes logs
 and evidence to local evidence directories.
 
-WSL2 fresh-reset example (phase excerpts):
+Ordinary native/WSL installs report `Mode: reconcile` with one setup phase.
+Explicit deprecated WSL `--confirm-reset` example (phase excerpts):
 
 ```text
 Tiny Swarm World Installer

@@ -242,10 +242,24 @@ access is verified. If elevation fails, run `sudo -v` and review the plan again.
 Incus readiness does not verify kernel controls, Windows configuration or services. `--dry-run` is
 read-only for either script. The installer checks host, configuration,
 credentials and setup readiness before creating installation evidence. The
-native installer reconciles without resetting managed state. WSL2 retains the
-existing confirmed fresh-reset behavior; use it only for a deliberately
-disposable WSL environment. See the
+installer reconciles on native Linux and WSL2 without resetting managed nodes,
+data or credentials. WSL `--confirm-reset` explicitly requests the deprecated
+destructive compatibility path; live approval alone never requests reset. See the
 [installation guide](documentation/user_guide/installation.adoc) for recovery.
+
+Windows preparation prints the selected registration/account handoff after its
+lifecycle, resources and bridge are ready. Keep the trusted checkout in the
+ordinary Linux account's `~/Tiny-Swarm-World`, or select its absolute Linux path:
+
+```powershell
+./prepare_windows.ps1 -Distro Ubuntu-24.04 -LinuxCheckout /home/operator/Tiny-Swarm-World -Preflight
+```
+
+Run the printed command to prepare Linux and then install with the same profile.
+Each preparation stage keeps its own consent; a failed stage stops installation.
+A missing/unsafe checkout blocks the handoff. Windows preparation never copies a
+checkout or runs product Python on Windows. Windows capability readiness is
+separate from Linux preparation and live service verification.
 
 After completing the installation guide's host and networking checklist:
 
@@ -317,10 +331,10 @@ and redact diagnostics before sharing them.
 |---|---|
 | `platform verify` | Inspect the existing platform without repairing it. |
 | `platform reconcile --live` | Reconcile managed platform state with explicit consent; it is not a complete application update. |
-| `setup run --live` | Run the broader setup workflow without the WSL2 installer's preliminary reset; it still changes infrastructure. |
+| `setup run --live` | Run the broader setup workflow without a reset; it still changes infrastructure. |
 | `./prepare_linux.sh` | Prepare shared native/WSL2 Ubuntu prerequisites and Incus access/resources with staged confirmation. |
 | `./install.sh` on native Linux | Verify preparation, then run setup without a reset. |
-| `./install.sh` on WSL2 | Reset the managed environment after confirmation, then perform fresh setup. |
+| `./install.sh` on WSL2 | Reconcile existing managed state; explicit WSL `--confirm-reset` alone selects deprecated destructive compatibility. |
 | Product update | Preview and apply one supported stack/service image transition with the documented `platform update` contract. |
 
 Use `platform update --stack ... --service ... --from-image ... --to-image ... --preview`

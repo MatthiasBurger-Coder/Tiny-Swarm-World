@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import shlex
 import sys
 from collections.abc import Sequence
 from pathlib import Path
@@ -144,7 +145,12 @@ def _prepare_remaining(*, read_only: bool, service_profile: str) -> int:
     result = run_incus_preparation(read_only=read_only, service_profile=service_profile)
     if result:
         return result
-    return run_network_preparation(read_only=read_only, service_profile=service_profile)
+    result = run_network_preparation(read_only=read_only, service_profile=service_profile)
+    if result == 0:
+        command = f"cd -- {shlex.quote(str(Path.cwd()))} && ./install.sh --service-profile {shlex.quote(service_profile)}"
+        print("Linux preparation ready; services are not verified.")
+        print("Next: " + command)
+    return result
 
 
 def _prepare_python_dependencies(*, read_only: bool) -> int:

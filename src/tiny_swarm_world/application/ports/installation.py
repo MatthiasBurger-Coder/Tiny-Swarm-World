@@ -47,7 +47,8 @@ class InstallerOptions:
     non_interactive_live_approval: bool
     headless: bool
     allow_wsl_windows_filesystem: bool
-    native_reconcile: bool = False
+    # Legacy field name: preparation-separated reconciliation on Linux or WSL.
+    native_reconcile: bool = True
     preflight_only: bool = False
     dry_run: bool = False
 

@@ -40,7 +40,8 @@ intentionally on a WSL Windows mount, the applicable commands also need
 | Run the broader setup again | `setup run --live` | Mutates infrastructure and services without the wrapper's preliminary reset.
 | Prepare a native Ubuntu 24.04 or 26.04 host | `./prepare_linux.sh` | Separately installs only missing approved host packages after confirmation.
 | Install or reconcile on native Ubuntu 24.04 or 26.04 | `./install.sh` | Checks preparation and runs setup without a reset.
-| Recreate a disposable WSL2 environment | `./install.sh` | Resets managed state before fresh setup after confirmation.
+| Install or reconcile on supported WSL2 Ubuntu | `./install.sh` | Checks preparation and runs setup without reset.
+| Recreate a disposable WSL2 environment | `./install.sh --confirm-reset` | Explicit deprecated destructive compatibility; live approval remains separate.
 | Upgrade a running installation | `platform update --stack ... --service ... --from-image ... --to-image ...` | Preview first; requires live consent and preserves rollback metadata.
 |===
 

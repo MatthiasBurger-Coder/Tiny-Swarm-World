@@ -14,6 +14,10 @@ import subprocess
 
 
 ASSETS = (
+    "install.sh",
+    "prepare_linux.sh",
+    "tools/windows/preparation/Handoff.ps1",
+    "tools/windows/preparation/linux-handoff.sh",
     "prepare_windows.ps1",
     "tools/windows/preparation/Preparation.psm1",
     "tools/windows/preparation/Policy.ps1",
@@ -68,6 +72,14 @@ def build(root: Path) -> dict[str, object]:
         for prefix in prefixes:
             identity = git(root, "rev-parse", f"HEAD:{prefix}").decode().strip()
             trees[identity] = git(root, "cat-file", "tree", identity)
+    # Include runtime/configuration trees for read-only Linux handoff integrity.
+    for line in git(root, "ls-tree", "-r", "-d", "HEAD", "--", "src", "tools", "infra").splitlines():
+        mode, kind, identity_path = line.split(b" ", 2)
+        identity = identity_path.split(b"\t", 1)[0].decode()
+        if mode == b"040000" and kind == b"tree":
+            trees[identity] = git(root, "cat-file", "tree", identity)
+    if len(trees) > 128:
+        raise ValueError("Release proof exceeds the bounded tree catalogue.")
     return {
         "schema_version": 1,
         "revision": revision,

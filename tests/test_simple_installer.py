@@ -93,6 +93,49 @@ class TestSimpleInstallerSecretBootstrap(unittest.TestCase):
             self.assertEqual(main(("--confirm-reset",)), 1)
         run.assert_not_called()
 
+    def test_wsl_default_and_read_only_use_prepared_reconciliation(self):
+        for arguments in ((), ("--preflight",), ("--dry-run",), ("--headless", "--non-interactive-live-approval")):
+            with (
+                self.subTest(arguments=arguments),
+                patch("tiny_swarm_world.infrastructure.adapters.installation.host.detect_host_runtime", return_value=installer.HostRuntime("wsl2", "test")),
+                patch("tiny_swarm_world.infrastructure.adapters.installation.host.authorize_project_filesystem") as authorize,
+                patch("tiny_swarm_world.infrastructure.adapters.installation.process._python_imports_available", return_value=True),
+                patch("tiny_swarm_world.application.services.installation.InstallationService.run", return_value=0) as run,
+                redirect_stdout(io.StringIO()),
+            ):
+                self.assertEqual(main(arguments), 0)
+                self.assertTrue(run.call_args.args[0].native_reconcile)
+                self.assertFalse(run.call_args.args[0].confirm_reset)
+                self.assertFalse(authorize.call_args.kwargs["allow_wsl_windows_filesystem"])
+
+    def test_explicit_wsl_reset_compatibility_warns_and_keeps_confirmation(self):
+        with (
+            patch("tiny_swarm_world.infrastructure.adapters.installation.host.detect_host_runtime", return_value=installer.HostRuntime("wsl2", "test")),
+            patch("tiny_swarm_world.infrastructure.adapters.installation.process._python_imports_available", return_value=True),
+            patch("tiny_swarm_world.application.services.installation.InstallationService.run", return_value=17) as run,
+            redirect_stderr(io.StringIO()) as output,
+        ):
+            self.assertEqual(main(("--confirm-reset", "--headless")), 17)
+        self.assertTrue(run.call_args.args[0].confirm_reset)
+        self.assertFalse(run.call_args.args[0].native_reconcile)
+        self.assertIn("DEPRECATED", output.getvalue())
+        self.assertIn("destructive", output.getvalue())
+
+    def test_lower_level_compatibility_entrypoint_warns_and_preserves_exit(self):
+        from tiny_swarm_world.infrastructure.adapters.installation import presentation
+
+        with (
+            patch("tiny_swarm_world.infrastructure.composition_installation.build_installation_service") as build,
+            redirect_stderr(io.StringIO()) as output,
+        ):
+            build.return_value.run.return_value = 17
+            self.assertEqual(presentation.main(("--confirm-reset",)), 17)
+        options = build.return_value.run.call_args.args[0]
+        self.assertTrue(options.confirm_reset)
+        self.assertFalse(options.native_reconcile)
+        self.assertIn("DEPRECATED", output.getvalue())
+        self.assertIn("destructive", output.getvalue())
+
     def test_resolves_catalog_defaults_without_creating_recovery_state(self):
         with tempfile.TemporaryDirectory() as temporary_dir:
             state_dir = Path(temporary_dir) / "state"
@@ -203,6 +246,21 @@ class TestSimpleInstallerSecretBootstrap(unittest.TestCase):
         self.assertEqual(sources["TSW_PORTAINER_ADMIN_PASSWORD"], CredentialSource.OPERATOR)
         self.assertEqual(sources["TSW_JENKINS_ADMIN_PASSWORD"], CredentialSource.OPERATOR)
 
+    def test_repeated_bootstrap_preserves_operator_credentials_and_file(self):
+        with tempfile.TemporaryDirectory() as directory:
+            operator_file = Path(directory) / "operator.env"
+            operator_file.write_text("export TSW_PORTAINER_ADMIN_PASSWORD='existing-operator-password'\n")
+            operator_file.chmod(0o600)
+            before = operator_file.read_bytes()
+            env = {"TSW_INSTALL_ENV_FILE": str(operator_file)}
+            first = _prepare_bootstrap_environment(env, REPOSITORY_ROOT)
+            second = _prepare_bootstrap_environment(env, REPOSITORY_ROOT)
+            self.assertEqual(first, second)
+            self.assertEqual(second["TSW_PORTAINER_ADMIN_PASSWORD"], "existing-operator-password")
+            self.assertEqual(operator_file.read_bytes(), before)
+            self.assertEqual(operator_file.stat().st_mode & 0o777, 0o600)
+            self.assertEqual(list(Path(directory).iterdir()), [operator_file])
+
     def test_rejects_unprotected_operator_install_file_before_reading(self):
         with tempfile.TemporaryDirectory() as temporary_dir:
             operator_file = Path(temporary_dir) / "operator.env"
@@ -286,6 +344,7 @@ class TestSimpleInstallerSecretBootstrap(unittest.TestCase):
             tempfile.TemporaryDirectory() as temporary_dir,
             patch.dict(os.environ, {"HOME": temporary_dir}, clear=True),
             patch("tiny_swarm_world.infrastructure.adapters.installation.bootstrap.Path.cwd", return_value=REPOSITORY_ROOT),
+            patch("tiny_swarm_world.infrastructure.adapters.installation.host.authorize_project_filesystem"),
             patch("tiny_swarm_world.application.services.installation.InstallationService.run", return_value=0) as run,
             patch("tiny_swarm_world.infrastructure.adapters.installation.bootstrap._print_operator_credentials"),
         ):
@@ -303,6 +362,7 @@ class TestSimpleInstallerSecretBootstrap(unittest.TestCase):
                 tempfile.TemporaryDirectory() as temporary_dir,
                 patch.dict(os.environ, {"HOME": temporary_dir}, clear=True),
                 patch("tiny_swarm_world.infrastructure.adapters.installation.bootstrap.Path.cwd", return_value=REPOSITORY_ROOT),
+            patch("tiny_swarm_world.infrastructure.adapters.installation.host.authorize_project_filesystem"),
                 patch("tiny_swarm_world.application.services.installation.InstallationService.run", return_value=exit_code),
                 patch("tiny_swarm_world.infrastructure.adapters.installation.bootstrap._print_operator_credentials") as print_credentials,
             ):
@@ -316,6 +376,7 @@ class TestSimpleInstallerSecretBootstrap(unittest.TestCase):
             tempfile.TemporaryDirectory() as temporary_dir,
             patch.dict(os.environ, {"HOME": temporary_dir}, clear=True),
             patch("tiny_swarm_world.infrastructure.adapters.installation.bootstrap.Path.cwd", return_value=REPOSITORY_ROOT),
+            patch("tiny_swarm_world.infrastructure.adapters.installation.host.authorize_project_filesystem"),
             patch(
                 "tiny_swarm_world.application.services.installation.InstallationService.run",
                 side_effect=installer.InstallerError("setup failed for a redacted reason"),

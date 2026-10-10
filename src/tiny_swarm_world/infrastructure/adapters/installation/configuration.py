@@ -66,7 +66,7 @@ def _validate_native_installation_read_only(
     host_environment = (
         host_runtime.environment_report.environment
         if host_runtime.environment_report is not None
-        else HostEnvironmentKind.NATIVE_LINUX
+        else HostEnvironmentKind(host_runtime.name)
     )
     try:
         InstallerConfigurationRepository.validate_operator_source(

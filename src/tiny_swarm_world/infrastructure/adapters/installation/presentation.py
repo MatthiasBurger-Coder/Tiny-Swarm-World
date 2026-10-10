@@ -64,6 +64,7 @@ def parse_args(argv: Sequence[str] | None = None) -> InstallerOptions:
     return InstallerOptions(
         service_profile=args.service_profile,
         confirm_reset=args.confirm_reset,
+        native_reconcile=not args.confirm_reset,
         non_interactive_live_approval=args.non_interactive_live_approval,
         headless=args.headless or os.environ.get("TSW_INSTALL_HEADLESS") == "1",
         allow_wsl_windows_filesystem=args.allow_wsl_windows_filesystem,
@@ -294,7 +295,7 @@ def _print_install_plan(
                 "This will run live infrastructure automation. It may create or change VMs,",
                 "Docker resources, local service state, networks, and deployment artifacts.",
                 (
-                    "Native installation reconciles managed state without a reset."
+                    "Linux/WSL installation reconciles managed state without a reset."
                     if options.native_reconcile
                     else "Fresh install starts by resetting configured Tiny Swarm World managed state."
                 ),
@@ -509,8 +510,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
 
     try:
+        options = parse_args(argv)
+        if options.confirm_reset:
+            print("DEPRECATED: --confirm-reset requests destructive WSL fresh-reset. Prefer a separately confirmed platform reset, then ./install.sh.", file=sys.stderr)
         return build_installation_service().run(
-            parse_args(argv), env=os.environ, cwd=Path.cwd()
+            options, env=os.environ, cwd=Path.cwd()
         )
     except InstallerError as error:
         print(f"ERROR: {error}", file=sys.stderr)
