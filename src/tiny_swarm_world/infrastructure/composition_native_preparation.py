@@ -48,13 +48,13 @@ def validate_preparation_paths(repository_root: Path, *, is_wsl: bool) -> tuple[
     )
     from tiny_swarm_world.infrastructure.composition_installation import _paths_from_env
     import os
-    import hashlib
 
     validate_assets(repository_root)
     validate_user_paths(repository_root, _paths_from_env(os.environ, repository_root).native_linux_venv, is_wsl=is_wsl)
 
-    return tuple(hashlib.sha256((repository_root / name).read_bytes()).hexdigest()
-                 for name in ("requirements.lock", "requirements.build.lock", "pyproject.toml"))
+    from tiny_swarm_world.infrastructure.adapters.network_preparation.source_identity import preparation_asset_hashes
+
+    return preparation_asset_hashes(repository_root, is_wsl=is_wsl)
 
 
 def _prerequisite_snapshot(inspector: NativePreparationInspector, root: Path, profile: str) -> tuple[object, ...]:
@@ -93,7 +93,26 @@ def run_incus_preparation(*, read_only: bool, service_profile: str) -> int:
     return composition_incus_preparation.run_incus_preparation(read_only=read_only, service_profile=service_profile)
 
 
-async def request_incus_consent() -> bool:
+async def request_incus_consent(*, capability: str = "Incus") -> bool:
     from tiny_swarm_world.infrastructure import composition_incus_preparation
 
-    return await composition_incus_preparation.request_incus_consent()
+    return await composition_incus_preparation.request_incus_consent(capability=capability)
+
+
+def run_network_preparation(*, read_only: bool, service_profile: str) -> int:
+    from tiny_swarm_world.infrastructure import composition_network_preparation
+
+    return composition_network_preparation.run_network_preparation(read_only=read_only, service_profile=service_profile)
+
+
+def build_network_preparation_service(*, service_profile: str = "service-access"):
+    from tiny_swarm_world.infrastructure import composition_network_preparation, composition_incus_preparation
+
+    paths = composition_incus_preparation.preparation_paths()
+    prerequisites = build_native_preparation_service(paths.repository_root, service_profile=service_profile, prerequisites_only=True)
+    return composition_network_preparation.build_network_preparation_service(prerequisites, paths,
+             lambda root, wsl: validate_preparation_paths(root, is_wsl=wsl), service_profile=service_profile)
+
+
+async def request_network_consent() -> bool:
+    return await request_incus_consent(capability="network prerequisite")

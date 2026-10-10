@@ -42,13 +42,24 @@ class TestWindowsSourceProof(unittest.TestCase):
                 "malformed_tree", "oversized_manifest", "duplicate_entry",
                 "symlink_mode", "gitlink_mode", "missing_expected_revision",
                 "symlink_asset", "duplicate_json_key",
+                "tamper_bridge_helper", "tamper_bridge_script", "tamper_bridge_service",
+                "tamper_bridge_config", "tamper_port_registry",
             )
             for name in variants:
                 target = workspace / name
                 shutil.copytree(source, target, ignore=shutil.ignore_patterns(".git"))
                 variant = json.loads(json.dumps(manifest))
                 revision = expected_revision
-                if name == "wrong_revision":
+                runtime_tamper_assets = {
+                    "tamper_bridge_helper": "tools/windows/preparation/Bridge.ps1",
+                    "tamper_bridge_script": "tools/windows/tws-wsl-bridge.ps1",
+                    "tamper_bridge_service": "tools/windows/tws-wsl-bridge-service.ps1",
+                    "tamper_bridge_config": "tools/windows/tws-wsl-bridge.config.json",
+                    "tamper_port_registry": "infra/config/ports.yaml",
+                }
+                if name in runtime_tamper_assets:
+                    (target / runtime_tamper_assets[name]).write_text("tampered runtime bytes")
+                elif name == "wrong_revision":
                     revision = "f" * 40
                 elif name == "tampered_commit":
                     variant["commit"] = base64.b64encode(b"altered commit").decode()
@@ -95,7 +106,7 @@ class TestWindowsSourceProof(unittest.TestCase):
             catalog = workspace / "cases.json"
             catalog.write_text(json.dumps(cases))
             completed = subprocess.run(
-                [executable, "-NoProfile", "-NonInteractive", "-File",
+                [executable, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File",
                  _runtime_path(ROOT / "tests/windows/source-proof.Tests.ps1", executable),
                  "-RepositoryRoot", _runtime_path(ROOT, executable),
                  "-FixtureCatalog", _runtime_path(catalog, executable)],
@@ -103,7 +114,7 @@ class TestWindowsSourceProof(unittest.TestCase):
                 capture_output=True, timeout=30,
             )
             self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
-            self.assertIn("PASS 15", completed.stdout)
+            self.assertIn("PASS 20", completed.stdout)
             (source / ASSETS[0]).write_text("dirty")
             with self.assertRaisesRegex(ValueError, "clean committed"):
                 build(source)

@@ -58,7 +58,7 @@ def run_incus_preparation(*, read_only: bool, service_profile: str) -> int:
         return 2
 
 
-async def request_incus_consent() -> bool:
+async def request_incus_consent(*, capability: str = "Incus") -> bool:
     from tiny_swarm_world.infrastructure.adapters.incus_preparation.consent import request_console_consent
 
-    return await request_console_consent()
+    return await request_console_consent(capability=capability)

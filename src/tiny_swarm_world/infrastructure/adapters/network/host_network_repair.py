@@ -7,7 +7,6 @@ import os
 import re
 import shlex
 import subprocess
-import tempfile
 from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
@@ -186,37 +185,17 @@ class SubprocessNetworkRepair:
             f"Installing {FORWARDING_SCRIPT_PATH.as_posix()}",
             f"Installing {FORWARDING_SERVICE_PATH.as_posix()}",
         ]
-        with tempfile.TemporaryDirectory(prefix="tsw-network-repair-") as temporary_directory:
-            temp_root = Path(temporary_directory)
-            script_file = temp_root / FORWARDING_SCRIPT_PATH.name
-            service_file = temp_root / FORWARDING_SERVICE_PATH.name
-            script_file.write_text(_forwarding_script(), encoding="utf-8")
-            service_file.write_text(_forwarding_service(), encoding="utf-8")
-
-            install_script = self.executor(
-                _sudo_command(
-                    "install -m 0755 "
-                    f"{shlex.quote(script_file.as_posix())} "
-                    f"{shlex.quote(FORWARDING_SCRIPT_PATH.as_posix())}"
-                ),
-                10,
-            )
-            install_service = self.executor(
-                _sudo_command(
-                    "install -m 0644 "
-                    f"{shlex.quote(service_file.as_posix())} "
-                    f"{shlex.quote(FORWARDING_SERVICE_PATH.as_posix())}"
-                ),
-                10,
-            )
-            commands.extend((install_script, install_service))
-            if not install_script.ok or not install_service.ok:
-                return _repair_failed(
-                    "linux-forwarding",
-                    "Failed to install forwarding persistence files.",
-                    commands,
-                    details,
-                )
+        try:
+            writes = _forwarding_write_targets()
+        except (OSError, RuntimeError, ValueError):
+            return _repair_blocked("linux-forwarding", "Forwarding persistence collision or unsafe metadata; preserve the current owner and use ./prepare_linux.sh --dry-run.", commands)
+        install_script = (_protected_forwarding_install(FORWARDING_SCRIPT_PATH, _forwarding_script().encode(), 0o755)
+                          if FORWARDING_SCRIPT_PATH in writes else CommandObservation(command="compatible-script-reused", return_code=0))
+        install_service = (_protected_forwarding_install(FORWARDING_SERVICE_PATH, _forwarding_service().encode(), 0o644)
+                           if FORWARDING_SERVICE_PATH in writes else CommandObservation(command="compatible-service-reused", return_code=0))
+        commands.extend((install_script, install_service))
+        if not install_script.ok or not install_service.ok:
+            return _repair_failed("linux-forwarding", "Failed to install forwarding persistence files.", commands, details)
 
         apply_rules = self.executor(
             _sudo_command(
@@ -393,19 +372,43 @@ def _forwarding_service() -> str:
 Description=Tiny-Swarm-World Incus forwarding rules
 After=network-online.target docker.service incus.service
 Wants=network-online.target incus.service
-StartLimitIntervalSec=0
 
 [Service]
 Type=oneshot
 ExecStart=/usr/local/bin/tsw-apply-incus-forwarding.sh
 TimeoutStartSec=75s
 RemainAfterExit=yes
-Restart=on-failure
-RestartSec=15s
+Restart=no
 
 [Install]
 WantedBy=multi-user.target
 """
+
+
+def _protected_forwarding_install(path: Path, content: bytes, mode: int) -> CommandObservation:
+    from tiny_swarm_world.infrastructure.adapters.network_preparation import files
+
+    try:
+        before = files.observe(path)
+        asyncio.run(files.install(path, before, content, mode, source_digest=files.helper_source_digest()))
+    except (OSError, RuntimeError, ValueError):
+        return CommandObservation(command="protected-forwarding-install", return_code=1)
+    return CommandObservation(command=f"protected install -m {mode:04o} {path}", return_code=0)
+
+
+def _forwarding_write_targets() -> tuple[Path, ...]:
+    from tiny_swarm_world.infrastructure.adapters.network_preparation.files import observe
+
+    targets = ((FORWARDING_SCRIPT_PATH, _forwarding_script().encode(), 0o755),
+               (FORWARDING_SERVICE_PATH, _forwarding_service().encode(), 0o644))
+    missing = []
+    for path, content, mode in targets:
+        before = observe(path)
+        if before.exists and (before.content != content or before.mode != mode):
+            raise RuntimeError("Existing forwarding owner is incompatible; replacement is not authorized.")
+        if not before.exists:
+            missing.append(path)
+    return tuple(missing)
 
 
 def _sudo_command(command: str) -> str:

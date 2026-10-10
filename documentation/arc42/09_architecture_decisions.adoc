@@ -36,6 +36,8 @@ include::09_decisions/adr-shared-ubuntu-prerequisite-bootstrap.adoc[leveloffset=
 
 include::09_decisions/adr-explicit-incus-preparation.adoc[leveloffset=+3]
 
+include::09_decisions/adr-scoped-bootstrap-network-preparation.adoc[leveloffset=+3]
+
 include::09_decisions/adr-lxc-native-node-provider.adoc[leveloffset=+3]
 
 include::09_decisions/adr-retire-multipass-legacy-provider.adoc[leveloffset=+3]

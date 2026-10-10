@@ -95,3 +95,14 @@ allowlist and local regression matrix; live qualification for that release is
 a separate future result. A reconcile run on an already populated 26.04 host
 cannot establish a clean first installation. The managed Incus node image
 remains Ubuntu 24.04 and is a separate decision from host release.
+
+== W06 scoped network preparation amendment, 2026-10-10
+
+The independently reviewed adr-scoped-bootstrap-network-preparation.adoc accepts
+only a separately planned and consented prepare_linux capability for declared
+kernel controls, managed-bridge forwarding and canonical local names, with existing
+Windows bridge delegation. This narrowly supersedes the network preparation
+exclusion for that capability. Preserve the original lifecycle history and its
+verify-only installer/host prepare boundaries. Acceptance is not live qualification
+or a grant to disable/replace the host firewall. W07 installation changes remain
+separate.

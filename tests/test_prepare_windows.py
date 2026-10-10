@@ -41,6 +41,22 @@ def _runtime_path(path: Path, executable: str) -> str:
 
 class TestWindowsPreparation(unittest.TestCase):
     @unittest.skipUnless(
+        os.name == "nt" or WINDOWS_POWERSHELL.exists(),
+        "Windows PowerShell native bridge behavior unavailable.",
+    )
+    def test_read_only_bridge_inventory_and_existing_address_owner(self) -> None:
+        executable = "powershell.exe" if os.name == "nt" else str(WINDOWS_POWERSHELL)
+        completed = subprocess.run(
+            [executable, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File",
+             _runtime_path(ROOT / "tests/windows/bridge-preparation.Tests.ps1", executable),
+             "-RepositoryRoot", _runtime_path(ROOT, executable)],
+            check=False, text=True, encoding="utf-8", errors="replace",
+            capture_output=True, timeout=30,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
+        self.assertIn("PASS", completed.stdout)
+
+    @unittest.skipUnless(
         _powershell(),
         "PowerShell runtime unavailable: W04 core behavior remains unverified.",
     )
@@ -91,7 +107,7 @@ class TestWindowsPreparation(unittest.TestCase):
             with self.subTest(arguments=arguments):
                 completed = subprocess.run(
                     [
-                        executable, "-NoProfile", "-NonInteractive", "-File",
+                        executable, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File",
                         _runtime_path(ROOT / "prepare_windows.ps1", executable),
                         *arguments,
                     ],

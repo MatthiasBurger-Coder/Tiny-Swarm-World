@@ -78,3 +78,12 @@ for implementation completion. Live Incus verification is APPLICABLE_LIVE /
 LIVE_CONSENT_MISSING until separately authorized recoverable-host execution with
 exact SHA/version/command/exit evidence. Browser checks are NOT_APPLICABLE;
 external gates are not asserted from local tests.
+
+== W06 boundary amendment, 2026-10-10
+
+The accepted adr-scoped-bootstrap-network-preparation.adoc governs the separate
+kernel/forwarding/local-name and browser-bridge preparation capability after
+current-user Incus prerequisites. This decision retains exclusive Incus ownership
+of managed NAT and reuses these resolved resources/overlap checks. No second
+resource/subnet chooser, daemon repair or profile replacement is authorized.
+Incus readiness remains separate from network, deployment and actual login.

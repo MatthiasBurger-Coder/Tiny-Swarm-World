@@ -23,7 +23,7 @@
 
 [CmdletBinding()]
 param(
-    [ValidateSet("prerequisites", "discover", "install", "reconcile", "refresh", "verify", "status", "uninstall")]
+    [ValidateSet("prerequisites", "inventory", "discover", "install", "reconcile", "refresh", "verify", "status", "uninstall")]
     [string]$Action = "refresh",
 
     [string]$ConfigPath = "",
@@ -31,6 +31,10 @@ param(
     [string]$TaskName = "TinySwarmWorld-WslBridge",
 
     [string]$PortRegistryPath = "",
+
+    [string]$Distro = "",
+
+    [string]$ObservedAddress = "",
 
     [int]$ConnectTimeoutMs = 1500
 )
@@ -835,6 +839,93 @@ function Invoke-BridgeHandleAclHardening {
     [TinySwarmWorld.BridgeAclGuard]::Harden($Path, $CurrentSid, $ExpectedDirectory)
 }
 
+function Initialize-BridgeReadOnlyNative {
+    if ('TinySwarmWorld.BridgeReadOnlyNative' -as [type]) { return }
+    # Reflection.Emit Run creates only an in-memory type; no C# compiler or temp files.
+    $name = [Reflection.AssemblyName]::new('TinySwarmWorld.BridgeReadOnlyNative')
+    if ([AppDomain].GetMethod('DefineDynamicAssembly', [type[]]@([Reflection.AssemblyName],[Reflection.Emit.AssemblyBuilderAccess]))) {
+        $assembly = [AppDomain]::CurrentDomain.DefineDynamicAssembly($name, [Reflection.Emit.AssemblyBuilderAccess]::Run)
+    } else {
+        $assembly = [Reflection.Emit.AssemblyBuilder]::DefineDynamicAssembly($name, [Reflection.Emit.AssemblyBuilderAccess]::Run)
+    }
+    $module = $assembly.DefineDynamicModule($name.Name)
+    $type = $module.DefineType($name.Name, [Reflection.TypeAttributes]'Public, Abstract, Sealed')
+    $pointer = [IntPtr]; $reference = $pointer.MakeByRefType()
+    $methods = @(
+        @{name='CreateFileW';dll='kernel32.dll';result=$pointer;args=[type[]]@([string],[uint32],[uint32],$pointer,[uint32],[uint32],$pointer)},
+        @{name='GetFileInformationByHandle';dll='kernel32.dll';result=[bool];args=[type[]]@($pointer,$pointer)},
+        @{name='CloseHandle';dll='kernel32.dll';result=[bool];args=[type[]]@($pointer)},
+        @{name='LocalFree';dll='kernel32.dll';result=$pointer;args=[type[]]@($pointer)},
+        @{name='GetSecurityInfo';dll='advapi32.dll';result=[uint32];args=[type[]]@($pointer,[int],[uint32],$reference,$reference,$reference,$reference,$reference)},
+        @{name='GetSecurityDescriptorLength';dll='advapi32.dll';result=[uint32];args=[type[]]@($pointer)}
+    )
+    foreach ($item in $methods) {
+        $method = $type.DefinePInvokeMethod($item.name, $item.dll, $item.name,
+            [Reflection.MethodAttributes]'Public, Static, PinvokeImpl', [Reflection.CallingConventions]::Standard,
+            $item.result, $item.args, [Runtime.InteropServices.CallingConvention]::Winapi, [Runtime.InteropServices.CharSet]::Unicode)
+        $method.SetImplementationFlags([Reflection.MethodImplAttributes]::PreserveSig)
+    }
+    [void]$type.CreateType()
+}
+
+function Test-BridgeReadOnlyDescriptor {
+    param($Security, [string]$CurrentSid, [bool]$Directory)
+        if ($null -eq $security.Owner -or $security.Owner.Value -ne 'S-1-5-32-544' -or
+            ($security.ControlFlags -band [Security.AccessControl.ControlFlags]::DiscretionaryAclProtected) -eq 0 -or
+            ($security.ControlFlags -band [Security.AccessControl.ControlFlags]::DiscretionaryAclPresent) -eq 0 -or
+            $null -eq $security.DiscretionaryAcl -or $security.DiscretionaryAcl.Count -ne 3) { return $false }
+        $inheritance = [Security.AccessControl.InheritanceFlags]::None
+        $flags = [Security.AccessControl.AceFlags]::None
+        if ($directory) { $inheritance = [Security.AccessControl.InheritanceFlags]'ContainerInherit, ObjectInherit'; $flags=[Security.AccessControl.AceFlags]'ContainerInherit, ObjectInherit' }
+        $expected=@{}
+        foreach ($sid in @('S-1-5-18','S-1-5-32-544',$CurrentSid)) {
+            $rights=[Security.AccessControl.FileSystemRights]::FullControl
+            if ($sid -eq $CurrentSid) {$rights=[Security.AccessControl.FileSystemRights]::ReadAndExecute}
+            $rule=[Security.AccessControl.FileSystemAccessRule]::new([Security.Principal.SecurityIdentifier]::new($sid), $rights, $inheritance, [Security.AccessControl.PropagationFlags]::None, [Security.AccessControl.AccessControlType]::Allow)
+            $expected[$sid]=[int]$rule.FileSystemRights
+        }
+        $seen=@{}
+        foreach ($ace in $security.DiscretionaryAcl) {
+            if ($ace -isnot [Security.AccessControl.CommonAce] -or $ace.AceQualifier -ne [Security.AccessControl.AceQualifier]::AccessAllowed -or
+                $ace.AceFlags -ne $flags -or $null -eq $ace.SecurityIdentifier -or
+                !$expected.ContainsKey($ace.SecurityIdentifier.Value) -or $seen.ContainsKey($ace.SecurityIdentifier.Value) -or
+                $ace.AccessMask -ne $expected[$ace.SecurityIdentifier.Value]) { return $false }
+            $seen[$ace.SecurityIdentifier.Value]=$true
+        }
+        return $seen.Count -eq 3
+}
+
+function Test-BridgeReadOnlyObject {
+    param([string]$Path, [bool]$ExpectedDirectory, [switch]$ExactAcl, [string]$CurrentSid)
+    Initialize-BridgeReadOnlyNative
+    $handle = [TinySwarmWorld.BridgeReadOnlyNative]::CreateFileW($Path, 0x20080, 7, [IntPtr]::Zero, 3, 0x02200000, [IntPtr]::Zero)
+    if ($handle -eq [IntPtr]::Zero -or $handle -eq [IntPtr]::new(-1)) { return $false }
+    $information = [Runtime.InteropServices.Marshal]::AllocHGlobal(52)
+    $descriptor = [IntPtr]::Zero
+    try {
+        if (-not [TinySwarmWorld.BridgeReadOnlyNative]::GetFileInformationByHandle($handle, $information)) { return $false }
+        $attributes = [Runtime.InteropServices.Marshal]::ReadInt32($information, 0)
+        $links = [Runtime.InteropServices.Marshal]::ReadInt32($information, 40)
+        $directory = ($attributes -band 16) -ne 0
+        if (($attributes -band 1024) -ne 0 -or $directory -ne $ExpectedDirectory -or (-not $directory -and $links -ne 1)) { return $false }
+        if (-not $ExactAcl) { return $true }
+        $owner=[IntPtr]::Zero;$group=[IntPtr]::Zero;$dacl=[IntPtr]::Zero;$sacl=[IntPtr]::Zero
+        $code=[TinySwarmWorld.BridgeReadOnlyNative]::GetSecurityInfo($handle, 1, 5, [ref]$owner, [ref]$group, [ref]$dacl, [ref]$sacl, [ref]$descriptor)
+        if ($code -ne 0 -or $descriptor -eq [IntPtr]::Zero) { return $false }
+        $length = [TinySwarmWorld.BridgeReadOnlyNative]::GetSecurityDescriptorLength($descriptor)
+        if ($length -eq 0 -or $length -gt 65536) { return $false }
+        $bytes = New-Object byte[] $length
+        [Runtime.InteropServices.Marshal]::Copy($descriptor, $bytes, 0, [int]$length)
+        $security = [Security.AccessControl.RawSecurityDescriptor]::new($bytes, 0)
+        return Test-BridgeReadOnlyDescriptor -Security $security -CurrentSid $CurrentSid -Directory $directory
+    } catch { return $false }
+    finally {
+        if ($descriptor -ne [IntPtr]::Zero) { [void][TinySwarmWorld.BridgeReadOnlyNative]::LocalFree($descriptor) }
+        [Runtime.InteropServices.Marshal]::FreeHGlobal($information)
+        [void][TinySwarmWorld.BridgeReadOnlyNative]::CloseHandle($handle)
+    }
+}
+
 function Test-BridgeHandleAclExact {
     param(
         [string]$Path,
@@ -842,6 +933,9 @@ function Test-BridgeHandleAclExact {
         [bool]$ExpectedDirectory
     )
 
+    if ($Action -eq 'inventory') {
+        return Test-BridgeReadOnlyObject -Path $Path -CurrentSid $CurrentSid -ExpectedDirectory $ExpectedDirectory -ExactAcl
+    }
     Initialize-BridgeAclGuardType
     return [TinySwarmWorld.BridgeAclGuard]::VerifyExact(
         $Path,
@@ -857,6 +951,7 @@ function Test-BridgeHandleObjectSafe {
     )
 
     try {
+        if ($Action -eq 'inventory') { return Test-BridgeReadOnlyObject -Path $Path -ExpectedDirectory $ExpectedDirectory }
         Initialize-BridgeAclGuardType
         return [TinySwarmWorld.BridgeAclGuard]::VerifySafeObject(
             $Path,
@@ -1506,6 +1601,9 @@ function Get-WslIp {
     $ip = (($raw -join " ").Trim().Split(" ", [System.StringSplitOptions]::RemoveEmptyEntries))[0]
 
     Assert-ValidIPv4Address -Value $ip -Name "WSL address"
+    if ($Distro -and $ObservedAddress -and $Action -in @('install', 'refresh', 'reconcile') -and $ip -ne $ObservedAddress) {
+        throw 'The current WSL address changed after preparation consent; rerun read-only planning before mutation.'
+    }
 
     return $ip
 }
@@ -2797,6 +2895,14 @@ function Test-BridgeStagedPayload {
     }
 }
 
+function Set-BridgeStagedDistro {
+    param([string]$Path, [string]$Name)
+    Assert-PreparationDistro -Value $Name
+    $stagedConfig = Read-BridgeConfig -Path $Path
+    $stagedConfig | Add-Member -NotePropertyName distro -NotePropertyValue $Name -Force
+    Write-TextAtomically -Path $Path -Text (($stagedConfig | ConvertTo-Json -Depth 8) + [Environment]::NewLine)
+}
+
 function New-BridgeStagedPayload {
     param(
         [string]$ResolvedConfigPath,
@@ -2830,6 +2936,11 @@ function New-BridgeStagedPayload {
             $stagedHash = (Get-FileHash -LiteralPath $file.Destination -Algorithm SHA256).Hash
             if ($sourceHash -ne $stagedHash) {
                 throw "Staged bridge payload hash mismatch for $([IO.Path]::GetFileName($file.Destination))."
+            }
+            if ($Distro -and [IO.Path]::GetFileName($file.Destination) -eq "tws-wsl-bridge.config.json") {
+                # Bind only the protected staged copy; the shared auto-distro source is untouched.
+                Set-BridgeStagedDistro -Path $file.Destination -Name $Distro
+                $stagedHash = (Get-FileHash -LiteralPath $file.Destination -Algorithm SHA256).Hash
             }
             $bundleHashes[[IO.Path]::GetFileName($file.Destination)] = $stagedHash
         }
@@ -3962,6 +4073,201 @@ function Show-Status {
     }
 }
 
+function Assert-PreparationDistro {
+    param([string]$Value)
+    if ($Value -cnotmatch '\A[A-Za-z0-9][A-Za-z0-9._-]{0,63}\z' -or $Value -eq 'auto') {
+        throw 'Preparation requires one explicit safe WSL registration name.'
+    }
+}
+
+function Test-PreparationDistroRunning {
+    param([string]$Name)
+    # Enumeration does not launch any registration or execute Linux commands.
+    $names = @(& wsl.exe --list --running --quiet 2>$null)
+    if ($LASTEXITCODE -ne 0) { throw 'Selected WSL registration inventory is unavailable.' }
+    return @((($names -join "`n") -replace "`0", '') -split '\r?\n' | ForEach-Object { $_.Trim() }) -ccontains $Name
+}
+
+function Get-BridgePreparationDigest {
+    param($Value)
+    $sha = [Security.Cryptography.SHA256]::Create()
+    try {
+        $bytes = [Text.Encoding]::UTF8.GetBytes(($Value | ConvertTo-Json -Depth 12 -Compress))
+        return ([BitConverter]::ToString($sha.ComputeHash($bytes))).Replace('-', '').ToLowerInvariant()
+    } finally { $sha.Dispose() }
+}
+
+function Test-PreparationHeartbeat {
+    param($State, [string]$Address, [string]$BundleId, [int]$IntervalMinutes)
+    if ($null -eq $State) { return $false }
+    try {
+        $age = ([DateTimeOffset]::Now - [DateTimeOffset]::Parse([string]$State.generatedAt)).TotalSeconds
+        return (
+            $age -ge 0 -and $age -le ($IntervalMinutes * 60 + 60) -and
+            [string]$State.agentMode -eq 'windows-service' -and
+            [string]$State.agentStatus -eq 'ready' -and
+            [string]$State.wslIp -eq $Address -and
+            [string]$State.bundleId -eq $BundleId -and
+            [StringComparer]::OrdinalIgnoreCase.Equals([IO.Path]::GetFullPath([string]$State.configPath), [IO.Path]::GetFullPath($InstalledConfigPath)) -and
+            [StringComparer]::OrdinalIgnoreCase.Equals([IO.Path]::GetFullPath([string]$State.registryPath), [IO.Path]::GetFullPath($InstalledPortRegistryPath))
+        )
+    } catch { return $false }
+}
+
+function Get-PreparationFirewallFilters {
+    param($Rules)
+    if (@($Rules).Count -eq 0) { return @{} }
+    return [ordered]@{
+        ports=@($Rules | Get-NetFirewallPortFilter -ErrorAction Stop | Select-Object InstanceID, Protocol, LocalPort, RemotePort, DynamicTarget | Sort-Object InstanceID)
+        addresses=@($Rules | Get-NetFirewallAddressFilter -ErrorAction Stop | Select-Object InstanceID, LocalAddress, RemoteAddress | Sort-Object InstanceID)
+        applications=@($Rules | Get-NetFirewallApplicationFilter -ErrorAction Stop | Select-Object InstanceID, Program, Package, @{Name='PackageObserved';Expression={$_.PSObject.Properties.Name -contains 'Package'}} | Sort-Object InstanceID)
+        interfaces=@($Rules | Get-NetFirewallInterfaceFilter -ErrorAction Stop | Select-Object InstanceID, InterfaceAlias | Sort-Object InstanceID)
+        interface_types=@($Rules | Get-NetFirewallInterfaceTypeFilter -ErrorAction Stop | Select-Object InstanceID, InterfaceType | Sort-Object InstanceID)
+        security=@($Rules | Get-NetFirewallSecurityFilter -ErrorAction Stop | Select-Object InstanceID, Authentication, Encryption, OverrideBlockRules, LocalUser, RemoteUser, RemoteMachine | Sort-Object InstanceID)
+        services=@($Rules | Get-NetFirewallServiceFilter -ErrorAction Stop | Select-Object InstanceID, Service | Sort-Object InstanceID)
+    }
+}
+
+function Test-PreparationFirewallPolicyCanonical {
+    param($Rules, $Filters)
+    if (@($Rules).Count -eq 0) { return $true }
+    # These are the existing New-NetFirewallRule defaults, including CIM enum zero.
+    # Unknown observations and administrator restrictions require review, never broadening.
+    $groups=@('ports','addresses','applications','interfaces','interface_types','security','services')
+    foreach ($kind in $groups) {
+        if ($null -eq $Filters[$kind] -or @($Filters[$kind]).Count -ne @($Rules).Count) { return $false }
+    }
+    foreach ($rule in $Rules) {
+        if ($rule.PSObject.Properties.Name -notcontains 'Profile' -or [string]$rule.Profile -notin @('Any','0')) { return $false }
+        $selected=@{}
+        foreach ($kind in $groups) {
+            $matches=@($Filters[$kind] | Where-Object { $null -ne $_ -and $_.PSObject.Properties.Name -contains 'InstanceID' -and [string]$_.InstanceID -eq [string]$rule.Name })
+            if ($matches.Count -ne 1) { return $false }
+            $selected[$kind]=$matches[0]
+        }
+        foreach ($pair in @(@('ports','RemotePort'),@('addresses','LocalAddress'),@('addresses','RemoteAddress'),@('applications','Program'),@('interfaces','InterfaceAlias'),@('security','LocalUser'),@('security','RemoteUser'),@('security','RemoteMachine'),@('services','Service'))) {
+            $item=$selected[$pair[0]];$property=$pair[1]
+            if ($item.PSObject.Properties.Name -notcontains $property -or @($item.$property).Count -ne 1 -or [string]@($item.$property)[0] -ne 'Any') { return $false }
+        }
+        foreach ($pair in @(@('ports','DynamicTarget'),@('interface_types','InterfaceType'))) {
+            $item=$selected[$pair[0]];$property=$pair[1]
+            if ($item.PSObject.Properties.Name -notcontains $property -or [string]$item.$property -notin @('Any','0')) { return $false }
+        }
+        $application=$selected.applications
+        if ($application.PSObject.Properties.Name -notcontains 'PackageObserved' -or $application.PackageObserved -isnot [bool] -or !$application.PackageObserved -or $application.PSObject.Properties.Name -notcontains 'Package' -or ($null -ne $application.Package -and [string]$application.Package -notin @('','Any'))) { return $false }
+        $security=$selected.security
+        foreach ($property in @('Authentication','Encryption')) {
+            if ($security.PSObject.Properties.Name -notcontains $property -or [string]$security.$property -notin @('NotRequired','0')) { return $false }
+        }
+        if ($security.PSObject.Properties.Name -notcontains 'OverrideBlockRules' -or $security.OverrideBlockRules -isnot [bool] -or $security.OverrideBlockRules) { return $false }
+    }
+    return $true
+}
+
+function Get-PreparationHeartbeatObservation {
+    param($State, [int]$IntervalMinutes)
+    if ($null -eq $State) { return $null }
+    $class='invalid'
+    try {
+        $age=([DateTimeOffset]::Now - [DateTimeOffset]::Parse([string]$State.generatedAt)).TotalSeconds
+        $class='stale';if($age -lt 0){$class='future'}elseif($age -le ($IntervalMinutes * 60 + 60)){$class='fresh'}
+    } catch {}
+    return [ordered]@{
+        freshness=$class; mode=[string]$State.agentMode; status=[string]$State.agentStatus; address=[string]$State.wslIp
+        bundle=[string]$State.bundleId; config_path=[string]$State.configPath; registry_path=[string]$State.registryPath
+        listen_address=[string]$State.listenAddress; firewall_prefix=[string]$State.firewallRulePrefix; mappings=@($State.mappings)
+    }
+}
+
+function Get-BridgePreparationInventory {
+    param($Config, $Mappings, $HostNames, [string]$RegistryPath)
+    Assert-PreparationDistro -Value $Distro
+    Assert-ValidIPv4Address -Value $ObservedAddress -Name 'Already observed WSL address'
+    $parsed = [Net.IPAddress]::Parse($ObservedAddress)
+    if ([Net.IPAddress]::IsLoopback($parsed) -or $parsed.GetAddressBytes()[0] -eq 0 -or $parsed.GetAddressBytes()[0] -ge 224) { throw 'WSL address must be a nonloopback unicast IPv4 address.' }
+    $blockers = [Collections.ArrayList]::new()
+    if (-not (Test-PreparationDistroRunning -Name $Distro)) { [void]$blockers.Add('selected_distro_stopped') }
+    $ownership = Get-BridgeServiceOwnership
+    if ($ownership.Status -eq 'collision') { [void]$blockers.Add('bridge_ownership_collision') }
+    $state = $null
+    $installedConfig = $null
+    $configReady = $false
+    $bundleId = ''
+    $installedHashes = [ordered]@{}
+    if ($ownership.Status -eq 'owned') {
+        Assert-BridgeRuntimeStateAuthority
+        if ($ownership.RequiresAdoption -or $null -eq $ownership.Service -or (Test-Path -LiteralPath $TransactionJournalPath -PathType Leaf)) {
+            [void]$blockers.Add('bridge_recovery_or_adoption_required')
+        }
+        $state = Get-ProtectedBridgeState
+        $installedConfig = Read-BridgeConfig -Path $InstalledConfigPath
+        foreach ($path in @($InstalledPortRegistryPath, $InstalledBridgeScriptPath, $InstalledServiceRunnerPath, $InstalledConfigPath, $InstalledBundleManifestPath, $InstallationManifestPath, $ServiceDefinitionPath)) {
+            $installedHashes[[IO.Path]::GetFileName($path)]=(Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash
+        }
+        $configReady = (Get-BridgePreparationDigest $installedConfig) -eq (Get-BridgePreparationDigest $Config) -and
+            $installedHashes['ports.yaml'] -eq (Get-FileHash -LiteralPath $RegistryPath -Algorithm SHA256).Hash -and
+            $installedHashes['tws-wsl-bridge.ps1'] -eq (Get-FileHash -LiteralPath $BridgeScriptSourcePath -Algorithm SHA256).Hash -and
+            $installedHashes['tws-wsl-bridge-service.ps1'] -eq (Get-FileHash -LiteralPath $ServiceRunnerPath -Algorithm SHA256).Hash
+        $bundleId = Get-InstalledBridgeBundleIdOrEmpty
+    }
+    $records = @(Get-PortProxyRecords)
+    # Refuse unavailable firewall inventory before the legacy snapshot helper can suppress errors.
+    Get-NetFirewallRule -ErrorAction Stop | Out-Null
+    $snapshot = Get-FirewallRuleSnapshot -Config $Config
+    $firewallFilters = Get-PreparationFirewallFilters -Rules $snapshot.Rules
+    if ($ownership.Status -eq 'owned' -and -not (Test-PreparationFirewallPolicyCanonical -Rules $snapshot.Rules -Filters $firewallFilters)) {
+        [void]$blockers.Add('owned_firewall_policy_conflict')
+    }
+    $listeners = @(Get-NetTCPConnection -State Listen -ErrorAction Stop | Where-Object { $_.LocalPort -in @($Mappings | ForEach-Object { $_.ListenPort }) })
+    foreach ($mapping in $Mappings) {
+        foreach ($record in @($records | Where-Object { $_.ListenPort -eq $mapping.ListenPort })) {
+            $owned = $false
+            if ($null -ne $state) {
+                $owned = $record.ListenAddress -eq [string]$state.listenAddress -and $record.ConnectAddress -eq [string]$state.wslIp -and @($state.mappings | Where-Object { $_.listenPort -eq $record.ListenPort -and $_.connectPort -eq $record.ConnectPort }).Count -eq 1
+            }
+            if (-not $owned) { [void]$blockers.Add('foreign_portproxy_collision') }
+        }
+        foreach ($listener in @($listeners | Where-Object { $_.LocalPort -eq $mapping.ListenPort })) {
+            $ownedProxy = $null -ne $state -and [int]$listener.OwningProcess -eq 4 -and @($records | Where-Object { $_.ListenPort -eq $listener.LocalPort -and $_.ListenAddress -eq $listener.LocalAddress -and $_.ConnectAddress -eq [string]$state.wslIp }).Count -eq 1
+            if (-not $ownedProxy) { [void]$blockers.Add('foreign_or_unknown_listener') }
+        }
+    }
+    foreach ($rule in $snapshot.Rules) {
+        if ($null -eq $state -or [string]$state.firewallRulePrefix -ne (Get-FirewallRulePrefix $Config) -or [string]$rule.DisplayName -notin @($state.mappings | ForEach-Object { (Get-FirewallRulePrefix $Config) + ' TCP ' + $_.listenPort })) {
+            [void]$blockers.Add('foreign_firewall_collision')
+        }
+    }
+    $hosts = Get-Content -LiteralPath $HostsPath -Raw -Encoding UTF8
+    $starts = [regex]::Matches($hosts, [regex]::Escape($HostsStart)).Count
+    $ends = [regex]::Matches($hosts, [regex]::Escape($HostsEnd)).Count
+    if ($starts -ne $ends -or $starts -gt 1 -or ($starts -gt 0 -and $null -eq $state)) { [void]$blockers.Add('foreign_or_ambiguous_hosts_block') }
+    $outside = Remove-ManagedHostsBlock
+    foreach ($line in ($outside -split '\r?\n')) {
+        $tokens = @(($line -replace '#.*$', '').Trim() -split '\s+')
+        if ($tokens.Count -gt 1 -and @($tokens | Select-Object -Skip 1 | Where-Object { $_ -in $HostNames }).Count -gt 0) { [void]$blockers.Add('foreign_hosts_collision') }
+    }
+    $routingReady = $false
+    $agentReady = $false
+    if ($ownership.Status -eq 'owned' -and $configReady -and $blockers.Count -eq 0) {
+        $routingReady = (Test-PortProxyMappingsReady -Config $Config -WslIp $ObservedAddress -Mappings $Mappings) -and (Test-FirewallRulesReady -Config $Config -Mappings $Mappings) -and (Test-HostsFileReady -Config $Config -HostNames $HostNames)
+        $agentReady = (Test-BridgeServiceReady) -and (Test-PreparationHeartbeat -State $state -Address $ObservedAddress -BundleId $bundleId -IntervalMinutes (Get-DiscoveryIntervalMinutes $Config))
+    }
+    $ready = $routingReady -and $agentReady
+    $nextAction = $null
+    if ($blockers.Count -eq 0 -and -not $ready) {
+        $nextAction = 'install'
+        if ($ownership.Status -eq 'owned' -and $configReady -and (Test-BridgeServiceReady)) { $nextAction = 'refresh' }
+    }
+    $result = [ordered]@{
+        schema_version=1; distro=$Distro; observed_address=$ObservedAddress; ownership=$ownership.Status
+        routing_ready=[bool]$routingReady; agent_ready=[bool]$agentReady; bridge_ready=[bool]$ready
+        action=$nextAction; blockers=@($blockers | Select-Object -Unique)
+        endpoint_state='UNVERIFIED'; login_state='UNVERIFIED'
+    }
+    $result.fingerprint = Get-BridgePreparationDigest @($result, $Config, (Get-FileHash -LiteralPath $RegistryPath -Algorithm SHA256).Hash, $bundleId, $records, @($listeners | Select-Object LocalAddress, LocalPort, OwningProcess), @($snapshot.Rules | Select-Object Name, DisplayName, Enabled, Direction, Action, Profile, EdgeTraversalPolicy | Sort-Object Name), $firewallFilters, @($snapshot.FiltersByRuleId.Keys | Sort-Object | ForEach-Object { [ordered]@{id=$_;filter=($snapshot.FiltersByRuleId[$_] | Select-Object InstanceID, Protocol, LocalPort, RemotePort, DynamicTarget)} }), (Get-PreparationHeartbeatObservation -State $state -IntervalMinutes (Get-DiscoveryIntervalMinutes $Config)), $installedHashes, $hosts)
+    return $result
+}
+
 function Invoke-BridgeAction {
     if ($Action -eq "uninstall") {
         Assert-Administrator
@@ -3998,6 +4304,10 @@ function Invoke-BridgeAction {
     }
 
     $config = Read-BridgeConfig -Path $ConfigPath
+    if ($Distro) {
+        Assert-PreparationDistro -Value $Distro
+        $config | Add-Member -NotePropertyName distro -NotePropertyValue $Distro -Force
+    }
     $registryPath = $(
         if ([string]::IsNullOrWhiteSpace($PortRegistryPath)) {
             Join-Path (Get-TswRepositoryRoot) "infra\config\ports.yaml"
@@ -4009,7 +4319,20 @@ function Invoke-BridgeAction {
     $mappings = @(Get-PortMappings $config $registry.Mappings)
     $hostNames = @(Get-BridgeHostNames $config $registry.HostNames)
 
+    if ($Distro -and $Action -in @('install', 'refresh', 'reconcile')) {
+        $before = Get-BridgePreparationInventory -Config $config -Mappings $mappings -HostNames $hostNames -RegistryPath $registryPath
+        if ($before.blockers.Count -gt 0) { throw ("Preparation bridge mutation blocked: " + ($before.blockers -join ', ')) }
+        if ($Action -in @('refresh', 'reconcile')) {
+            if ($before.action -eq 'install') { throw 'Protected bridge configuration requires an explicitly consented install/upgrade.' }
+            $script:ConfigPath = $InstalledConfigPath
+            $registryPath = $InstalledPortRegistryPath
+            $config = Read-BridgeConfig -Path $InstalledConfigPath
+        }
+    }
     switch ($Action) {
+        "inventory" {
+            Get-BridgePreparationInventory -Config $config -Mappings $mappings -HostNames $hostNames -RegistryPath $registryPath | ConvertTo-Json -Depth 8 -Compress
+        }
         "prerequisites" {
             Assert-BridgePrerequisites -Config $config
             Write-Host "Windows/WSL bridge prerequisites are ready. No bridge state was changed."

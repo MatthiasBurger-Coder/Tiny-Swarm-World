@@ -49,8 +49,9 @@ class NativeLinuxHostPreparation(PortHostPreparation):
             (
                 "Required native Linux kernel controls are active."
                 if ready
-                else "Required native Linux kernel controls are not ready; apply the "
-                "documented temporary activation and persistence steps, then retry."
+                else "Required native Linux kernel controls are not ready; review "
+                "./prepare_linux.sh --dry-run, then approve the separate preparation "
+                "steps with ./prepare_linux.sh and retry."
             ),
             changed=False,
             verified=ready,

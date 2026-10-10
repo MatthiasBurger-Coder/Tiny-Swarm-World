@@ -96,6 +96,7 @@ function New-PreparationPlan($Options, $Facts, $Source) {
         }
         if(@($resources.blockers | Where-Object{$_.code -eq 'effective_resources_mismatch'}).Count -gt 0){$restart=@{scope='WSL-wide';operator_command=('wsl.exe --shutdown; wsl.exe --distribution '+$Options.Distro)}}
     }
+    if($blockers.Count -eq 0 -and $actions.Count -eq 0){Add-PreparationBridgePlan $Options $Facts $blockers $actions}
     $candidateEligible=$blockers.Count -eq 0
     if($Options.Mode -ne 'Apply' -and $actions.Count -gt 0){Block 'prerequisite_missing' 'Review this staged plan, then authorize the exact candidate qualification stage.'}
     $ready = $blockers.Count -eq 0 -and $actions.Count -eq 0

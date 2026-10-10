@@ -39,6 +39,9 @@ if [ "$mode" = inspect ]; then
     packages=false
     if dpkg-query -W -f='${Status}\n' systemd systemd-sysv 2>/dev/null | awk 'BEGIN{n=0} $0=="install ok installed"{n++} END{exit n!=2}'; then packages=true; fi
     printf 'systemd_packages=%s\n' "$packages"
+    # Carry this existing running-only lifecycle observation into W06; its recheck never executes Linux.
+    observed_address=$(hostname -I 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i ~ /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/){print $i;exit}}')
+    printf 'observed_wsl_address=%s\n' "$observed_address"
     exit 0
 fi
 [ "$mode" = apply ] && [ "$safe" = true ] && [ "$hash" = "$expected" ] && [ "$metadata" = "$expected_metadata" ] || exit 2

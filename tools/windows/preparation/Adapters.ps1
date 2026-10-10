@@ -50,7 +50,7 @@ function Invoke-PreparationProcess {
     } finally {$process.Dispose()}
 }
 function Get-PreparationSource($Options) {
-    $assets=@('prepare_windows.ps1','tools/windows/preparation/Preparation.psm1','tools/windows/preparation/Policy.ps1','tools/windows/preparation/Application.ps1','tools/windows/preparation/Adapters.ps1','tools/windows/preparation/linux-config.sh','tools/windows/preparation/Download.ps1','tools/windows/preparation/SourceProof.ps1','tools/windows/preparation/Resources.ps1','tools/windows/preparation/ResourceAdapters.ps1','tools/windows/preparation/ResourceHost.ps1','tools/windows/preparation/linux-resources.sh','tools/windows/preparation/resource-projection.json','src/tiny_swarm_world/domain/preflight/resources.py','src/tiny_swarm_world/domain/host_environment.py','infra/config/node-providers/provider_config.yaml','tools/build_wsl_resource_projection.py')
+    $assets=@('prepare_windows.ps1','tools/windows/preparation/Preparation.psm1','tools/windows/preparation/Policy.ps1','tools/windows/preparation/Application.ps1','tools/windows/preparation/Adapters.ps1','tools/windows/preparation/linux-config.sh','tools/windows/preparation/Download.ps1','tools/windows/preparation/SourceProof.ps1','tools/windows/preparation/Resources.ps1','tools/windows/preparation/ResourceAdapters.ps1','tools/windows/preparation/ResourceHost.ps1','tools/windows/preparation/linux-resources.sh','tools/windows/preparation/resource-projection.json','src/tiny_swarm_world/domain/preflight/resources.py','src/tiny_swarm_world/domain/host_environment.py','infra/config/node-providers/provider_config.yaml','tools/build_wsl_resource_projection.py','tools/windows/preparation/Bridge.ps1','tools/windows/tws-wsl-bridge.ps1','tools/windows/tws-wsl-bridge-service.ps1','tools/windows/tws-wsl-bridge.config.json','infra/config/ports.yaml')
     $hashes=[ordered]@{}
     foreach($asset in $assets){$path=Join-Path $Options.RepositoryRoot $asset
     if(!(Test-Path -LiteralPath $path -PathType Leaf)){return @{verified=$false
@@ -229,6 +229,7 @@ function Get-PreparationInventory($Options) {
     $facts[$Matches[1]]=$value}}
     $facts.linux_known=$true
     $facts.resource_facts=Get-PreparationResourceInventory $Options $facts
+    $facts.bridge_facts=Get-PreparationBridgeInventory $Options $facts
     return $facts
 }
 function Assert-PreparationEvidencePath($Path) {
@@ -307,6 +308,7 @@ function Invoke-PreparationAction($Action,$Options,$Facts,$Store) {
         return $remaining
     }
     $result=$null
+    if($Action.id -in @('bridge_install','bridge_refresh')){return Invoke-PreparationBridgeAction $Action $Options $Facts $Store}
     if($Action.id -eq 'adapt_wsl_resources'){return Invoke-PreparationResourceAction $Action $Options $Facts $Store}
     if($Action.id -eq 'enable_features') {
         $allowed=@('Microsoft-Windows-Subsystem-Linux','VirtualMachinePlatform')

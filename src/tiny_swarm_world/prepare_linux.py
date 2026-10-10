@@ -13,6 +13,7 @@ from tiny_swarm_world.infrastructure.composition_native_preparation import (
     build_native_preparation_service,
     record_python_preparation,
     run_incus_preparation,
+    run_network_preparation,
 )
 
 
@@ -140,7 +141,10 @@ def _prepare_remaining(*, read_only: bool, service_profile: str) -> int:
     result = _prepare_python_dependencies(read_only=read_only)
     if result:
         return result
-    return run_incus_preparation(read_only=read_only, service_profile=service_profile)
+    result = run_incus_preparation(read_only=read_only, service_profile=service_profile)
+    if result:
+        return result
+    return run_network_preparation(read_only=read_only, service_profile=service_profile)
 
 
 def _prepare_python_dependencies(*, read_only: bool) -> int:

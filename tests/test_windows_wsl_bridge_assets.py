@@ -25,7 +25,7 @@ class TestWindowsWslBridgeAssets(unittest.TestCase):
         script = BRIDGE_SCRIPT.read_text(encoding="utf-8")
 
         self.assertIn(
-            'ValidateSet("prerequisites", "discover", "install", "reconcile", "refresh", "verify", "status", "uninstall")',
+            'ValidateSet("prerequisites", "inventory", "discover", "install", "reconcile", "refresh", "verify", "status", "uninstall")',
             script,
         )
         self.assertIn('"prerequisites" {', script)

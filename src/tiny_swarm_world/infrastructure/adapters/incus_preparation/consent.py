@@ -5,7 +5,7 @@ import asyncio
 import threading
 
 
-async def request_console_consent() -> bool:
+async def request_console_consent(*, capability: str = "Incus") -> bool:
     loop = asyncio.get_running_loop()
     answer: asyncio.Future[bool] = loop.create_future()
 
@@ -21,7 +21,7 @@ async def request_console_consent() -> bool:
         value = False
         error: BaseException | None = None
         try:
-            value = input("Apply exactly this Incus stage? Type 'yes' to continue: ") == "yes"
+            value = input(f"Apply exactly this {capability} stage? Type 'yes' to continue: ") == "yes"
         except EOFError:
             pass
         except BaseException as failure:

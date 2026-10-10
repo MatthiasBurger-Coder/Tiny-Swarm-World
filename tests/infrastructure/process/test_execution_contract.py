@@ -181,3 +181,30 @@ class TestAsyncProcessContract(unittest.IsolatedAsyncioTestCase):
             with self.assertRaises(ValueError):
                 await run_async_process(("tool",), timeout=float("inf"))
             launch.assert_not_called()
+
+    async def test_stdin_payload_is_piped_only_when_explicitly_supplied(self):
+        for payload in (None, b"", b"private-input"):
+            with self.subTest(payload_supplied=payload is not None):
+                process = Mock(returncode=0)
+                process.communicate = AsyncMock(return_value=(b"", b""))
+                with patch("asyncio.create_subprocess_exec", return_value=process) as launch:
+                    result = await run_async_process(("tool",), input_data=payload)
+                self.assertEqual(0, result.returncode)
+                self.assertTrue(launch.call_args.kwargs["start_new_session"])
+                if payload is None:
+                    self.assertNotIn("stdin", launch.call_args.kwargs)
+                    process.communicate.assert_awaited_once_with()
+                else:
+                    self.assertEqual(asyncio.subprocess.PIPE, launch.call_args.kwargs["stdin"])
+                    process.communicate.assert_awaited_once_with(payload)
+                self.assertNotIn("private-input", repr(result))
+
+    async def test_shell_stdin_and_discard_output_remain_independent(self):
+        process = Mock(returncode=0)
+        process.communicate = AsyncMock(return_value=(None, None))
+        with patch("asyncio.create_subprocess_shell", return_value=process) as launch:
+            result = await run_async_process("tool", shell=True, discard_output=True, input_data=b"payload")
+        self.assertEqual(0, result.returncode)
+        self.assertEqual(asyncio.subprocess.DEVNULL, launch.call_args.kwargs["stdout"])
+        self.assertEqual(asyncio.subprocess.PIPE, launch.call_args.kwargs["stdin"])
+        process.communicate.assert_awaited_once_with(b"payload")
