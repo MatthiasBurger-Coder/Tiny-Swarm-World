@@ -59,4 +59,6 @@ the existing Traefik HTTPS ADR. The EPIC is architectural context; #120 and
 The Security Owner maintains risks and residual treatment. The Lead Architect
 owns boundary decisions. The Senior Tester owns evidence review. The Workflow
 Executor owns process gates. #126 owns the detailed ASVS/admin-surface
-decision, and #150 may implement only an approved resulting design.
+decision. The existing Traefik HTTPS/BasicAuth configuration implements the
+accepted administrative route. The broader role model and changed exposure
+remain subject to the named security owners and current target evidence.

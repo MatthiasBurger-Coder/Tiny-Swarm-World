@@ -5,10 +5,14 @@ Swarm, Portainer, Infisical, Nexus, Jenkins, Pulsar, SonarQube and supporting
 services. It provisions managed Linux containers through Incus and runs Docker
 Engine inside those containers.
 
-The current implementation is the **Classic profile**. RC1 qualification is
-still in progress; follow the [RC1 acceptance tracker](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/294)
-for the remaining checks. A successful installation on one machine does not
-establish that every supported host and lifecycle has passed acceptance.
+The current implementation is the **Classic profile**. The
+[RC1 decision](documentation/release/rc1-decision.md) records acceptance on
+2026-09-13 for its named candidates; the
+[October lifecycle validation](documentation/evidence/issue-363-final-validation-20261003.md)
+records later scoped results. These results do not qualify the current bootstrap
+changes or every supported host. See the
+[bootstrap contract](documentation/contracts/bootstrap.md) for delivered stages
+and remaining integration/live qualification work.
 
 ## Start here
 
@@ -313,7 +317,7 @@ and redact diagnostics before sharing them.
 |---|---|
 | `platform verify` | Inspect the existing platform without repairing it. |
 | `platform reconcile --live` | Reconcile managed platform state with explicit consent; it is not a complete application update. |
-| `setup run --live` | Run the broader setup workflow without the installer's preliminary reset; it still changes infrastructure. |
+| `setup run --live` | Run the broader setup workflow without the WSL2 installer's preliminary reset; it still changes infrastructure. |
 | `./prepare_linux.sh` | Prepare shared native/WSL2 Ubuntu prerequisites and Incus access/resources with staged confirmation. |
 | `./install.sh` on native Linux | Verify preparation, then run setup without a reset. |
 | `./install.sh` on WSL2 | Reset the managed environment after confirmation, then perform fresh setup. |

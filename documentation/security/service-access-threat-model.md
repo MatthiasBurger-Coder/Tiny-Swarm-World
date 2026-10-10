@@ -30,15 +30,17 @@ Pulsar, Infisical, Swagger/NGINX and Traefik.
 | Secret source -> dashboard | References may identify capabilities | Show secret references/status only; never raw values |
 | Dashboard -> evidence/logs | Output can disclose sensitive data | Redaction, provenance, retention and incident routing |
 
-Entry points are the local route, authenticated dashboard actions, service API
-proxies, status endpoints, generated links and evidence export. Configuration
-presence is not proof that any entry point is running or secure.
+The implemented Service Access assets render service links and credential
+references. The model also considers potential authenticated actions, API
+proxies and evidence exports; their inclusion does not claim those features
+exist. Traefik's own administrative dashboard separately implements HTTPS and
+BasicAuth. Configuration presence is not proof of current runtime security.
 
 ## Misuse cases
 
 | Misuse case | Impact | Existing controls | Gap/required evidence |
 | --- | --- | --- | --- |
-| Unauthenticated dashboard route | Admin mutation or service disclosure | #123 admin-surface risk; #128 merge policy; Traefik HTTPS ADR | #150 must prove authn/authz and route exposure decision |
+| Unauthenticated dashboard route | Admin mutation or service disclosure | #123 admin-surface risk; #128 merge policy; Traefik HTTPS ADR | Current target/exposure needs applicable authentication and role-policy evidence |
 | Read-only reviewer receives admin capability | Unauthorized service change | Role separation target model | Enforced role evidence per service |
 | Dashboard exposes a token/password | Credential compromise | #123 secret policy and redaction rules | Redacted UI/evidence check; rotation on exposure |
 | Service API token is reused across surfaces | Blast radius increases | Secret-source and rotation policy | Per-service token ownership and access evidence |
@@ -57,8 +59,13 @@ evidence files.
 
 ## Evidence and handoff
 
-Before #150 exposes a GUI, the evidence package must include the applicable
+For changed administrative exposure, the evidence package must include the applicable
 ASVS rows, service owner, route/TLS decision, authentication and authorization
 model, secret-reference check, redacted logs, rollback path and remaining-risk
 state. #121 MAJ-04, #123 RISK-123-DOCKER-SOCKET and #123 RISK-123-ADMIN-CREDENTIAL
 remain linked until the resulting admin surface is independently reviewed.
+
+The [RC1 security record](rc1-classic-security-evidence.md) and
+[October validation](../evidence/issue-363-final-validation-20261003.md) retain
+candidate-specific authenticated/route results. They do not prove complete
+service role separation or qualify subsequent bootstrap changes.

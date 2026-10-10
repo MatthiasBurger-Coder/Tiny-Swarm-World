@@ -3,8 +3,24 @@
 ## Status
 
 ```text
-ACTIVE_BASELINE_EXTENSION
+RETAINED_REQUIREMENT_BASELINE
 ```
+
+## Current applicability, 2026-10-10
+
+This document preserves the original requirement baseline and its authoring-time
+implementation statements. Historical workflow versions mentioned below are
+available through Git history; the reused `documentation/workflow/workflow.md`
+path now contains the completed issue #355 record. It is not those original
+workflows. Requirement intent is retained; old progress statements are not a
+current delivery or acceptance report.
+
+Use the [resulting architecture](../05_analysis/arch-03-21-resulting-architecture.md),
+[current credential contract](../08_configuration/credential-source-precedence.md)
+and [bootstrap delivery contract](../../contracts/bootstrap.md) for implemented
+ownership and remaining work. Current service-access uses Infisical. Vaultwarden
+references describe the historical provider baseline; they do not direct a
+current installation. Dated live results keep their own source and target scope.
 
 ## Requirement Source
 
@@ -13,9 +29,9 @@ repository-visible sources:
 
 - user request: create a setup so the system can install itself into a
   runnable state;
-- active workflow `documentation/workflow/workflow.md`, version
+- historical workflow record at `documentation/workflow/workflow.md`, version
   `autonomous-runnable-setup-v1.0.0`;
-- active provider migration workflow `documentation/workflow/workflow.md`,
+- historical provider migration workflow `documentation/workflow/workflow.md`,
   version `lxc-native-node-provider-v1.0.0`;
 - accepted provider direction in
   `documentation/arc42/09_decisions/adr-lxc-native-node-provider.adoc`;

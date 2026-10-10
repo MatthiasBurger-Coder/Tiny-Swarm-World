@@ -1,0 +1,2593 @@
+{
+  "review_date": "2026-10-10",
+  "source_commit": "cd662abdedd001660c059745e9ee739dc13d8fd6",
+  "working_tree": "includes six prior documentation corrections",
+  "method": "automated content/path/link scan with risk-based semantic source review; not sentence-by-sentence execution proof",
+  "documentation_artifacts": 177,
+  "total_scanned_artifacts": 511,
+  "supporting_issue_evidence_artifacts": 322,
+  "documents": [
+    {
+      "path": ".github/ISSUE_TEMPLATE/bug_report.md",
+      "lines": 37,
+      "sha256": "4d50cd1e0eb2a6e4f38d26fe51997a969cac7c3886d307a9b0f8cad45d07a3b0",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 0,
+        "verification_claim": 2,
+        "procedure": 1,
+        "history": 0
+      }
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/feature_request.md",
+      "lines": 28,
+      "sha256": "d1d0bcb0435329f2b9734c4b1a9bf45bd03d8617d6ca128247c657c11fbdf269",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 0,
+        "verification_claim": 2,
+        "procedure": 0,
+        "history": 0
+      }
+    },
+    {
+      "path": "AGENTS.md",
+      "lines": 346,
+      "sha256": "bc0e6e0c09ac3d61a450a7fe16c3e4de9e6fbb8bdc688aad58f10a3d18b31041",
+      "matches": {
+        "legacy_platform": 12,
+        "runtime_claim": 6,
+        "verification_claim": 6,
+        "procedure": 18,
+        "history": 2
+      }
+    },
+    {
+      "path": "CHANGELOG.md",
+      "lines": 35,
+      "sha256": "aaf8e8149654bb8489723539dffd83c6fed10563f5b35dee4422c2dac3b6c960",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 1,
+        "verification_claim": 0,
+        "procedure": 1,
+        "history": 2
+      }
+    },
+    {
+      "path": "OPERATIONAL_READINESS_CHECKLIST.md",
+      "lines": 106,
+      "sha256": "bf6aa5d829c889e2be8370171429a4dff8658b5ca684a0a63e095ae09978fb0e",
+      "matches": {
+        "legacy_platform": 1,
+        "runtime_claim": 0,
+        "verification_claim": 13,
+        "procedure": 14,
+        "history": 0
+      }
+    },
+    {
+      "path": "QUALITY.md",
+      "lines": 119,
+      "sha256": "8922817c794f545fd4babf6ccf7fc6458baad0853ff2ca2a0526ff246220d76a",
+      "matches": {
+        "legacy_platform": 3,
+        "runtime_claim": 0,
+        "verification_claim": 4,
+        "procedure": 16,
+        "history": 0
+      }
+    },
+    {
+      "path": "README.md",
+      "lines": 340,
+      "sha256": "7d33759ad7d206933d45f2e1f1341f3a94f86584edc1cf5fd3918f61777380ce",
+      "matches": {
+        "legacy_platform": 2,
+        "runtime_claim": 13,
+        "verification_claim": 11,
+        "procedure": 30,
+        "history": 1
+      }
+    },
+    {
+      "path": "commit_push.md",
+      "lines": 200,
+      "sha256": "ca31c4241d93ebd748bec421ea06630207946a9e5780821e941ad9c1e75826a3",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 4,
+        "verification_claim": 7,
+        "procedure": 2,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/Howto.adoc",
+      "lines": 77,
+      "sha256": "4c6cb4b5242c4f8d49723605cd68c05c3aa4b8c9a9aa4f11b818264b68d43c3f",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 3,
+        "verification_claim": 0,
+        "procedure": 8,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/README.adoc",
+      "lines": 98,
+      "sha256": "70af6bf91373186cce543463ea9cc2fde2ba3d9b38ab9fbb2422e97e776e10c0",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 5,
+        "verification_claim": 1,
+        "procedure": 0,
+        "history": 2
+      }
+    },
+    {
+      "path": "documentation/arc42-template.adoc",
+      "lines": 5,
+      "sha256": "cafa7c81921ca5f5659410289cdadb8b7cd197743ce9d6c058e828792c3b0062",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 0,
+        "verification_claim": 0,
+        "procedure": 0,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/arc42.adoc",
+      "lines": 185,
+      "sha256": "8a99bb4ca128a14af99a89ac832cff811e571e245e84bd6f535eee5ccf543925",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 1,
+        "verification_claim": 1,
+        "procedure": 7,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/arc42/01_introduction.adoc",
+      "lines": 40,
+      "sha256": "dd7918e16c71110827a9ad11c1bd84b51057995a4c588e254d2ff090a4522b7e",
+      "matches": {
+        "legacy_platform": 1,
+        "runtime_claim": 3,
+        "verification_claim": 1,
+        "procedure": 3,
+        "history": 2
+      }
+    },
+    {
+      "path": "documentation/arc42/01_introduction/autonomous-runnable-setup.md",
+      "lines": 311,
+      "sha256": "bae58ecc4435d0093c91a87950ae78f8c194d7151ad6431f4f0392c58e40136d",
+      "matches": {
+        "legacy_platform": 7,
+        "runtime_claim": 24,
+        "verification_claim": 14,
+        "procedure": 18,
+        "history": 7
+      }
+    },
+    {
+      "path": "documentation/arc42/01_introduction/service-access-dashboard-vaultwarden.md",
+      "lines": 236,
+      "sha256": "277009bfd11ceb9aa77beecec37fbf8ed116c32c79cc049b4e807772b346d85c",
+      "matches": {
+        "legacy_platform": 4,
+        "runtime_claim": 9,
+        "verification_claim": 17,
+        "procedure": 5,
+        "history": 6
+      }
+    },
+    {
+      "path": "documentation/arc42/01_introduction/system-unification.md",
+      "lines": 216,
+      "sha256": "f640248c98d31d765c12d407f92d7e2c0de96cec521c7de29aeb830137a43d4b",
+      "matches": {
+        "legacy_platform": 5,
+        "runtime_claim": 20,
+        "verification_claim": 3,
+        "procedure": 12,
+        "history": 8
+      }
+    },
+    {
+      "path": "documentation/arc42/02_constraints.adoc",
+      "lines": 57,
+      "sha256": "be261e3ef5dc8a0c65115e3247502c4858b20619133c01cd6ace3cf4be42a8e9",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 4,
+        "verification_claim": 3,
+        "procedure": 4,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/arc42/03_solution_strategy.adoc",
+      "lines": 34,
+      "sha256": "f62ef552e081c9a2ea3b51efd8c5734cd2f480c73b5f40341a8d8d8f29e57dd7",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 4,
+        "verification_claim": 1,
+        "procedure": 1,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/arc42/04_context_and_scope.adoc",
+      "lines": 40,
+      "sha256": "454aa60b7e6f5704d120a82b859beef79c7e58e028c367cdcb61fb4607c200bb",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 2,
+        "verification_claim": 0,
+        "procedure": 7,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/arc42/05_analysis/arch-03-01-architecture-violation-map.md",
+      "lines": 112,
+      "sha256": "95e3a126b073de92da42655998b3770feb28b00220c12e55377968077f2dae50",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 4,
+        "verification_claim": 2,
+        "procedure": 0,
+        "history": 8
+      }
+    },
+    {
+      "path": "documentation/arc42/05_analysis/arch-03-01-dependency-map.md",
+      "lines": 56,
+      "sha256": "5eb09c60c4bcf9d2d4d24a7918bc647bd12b02989917d07a8c06cd31612c3d04",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 0,
+        "verification_claim": 1,
+        "procedure": 0,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/arc42/05_analysis/arch-03-01-responsibility-ownership.md",
+      "lines": 60,
+      "sha256": "5eb70ff5e2c8c8ee975a8424e89f93c1945b3037fcd4c37f915da99272490930",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 4,
+        "verification_claim": 1,
+        "procedure": 0,
+        "history": 5
+      }
+    },
+    {
+      "path": "documentation/arc42/05_analysis/arch-03-01-violation-inventory.md",
+      "lines": 34,
+      "sha256": "6652728b77181a2c2bfc9829c4648d2c59290256482404278b032f60feff7c2e",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 2,
+        "verification_claim": 3,
+        "procedure": 1,
+        "history": 1
+      }
+    },
+    {
+      "path": "documentation/arc42/05_analysis/arch-03-02-layer-contracts.md",
+      "lines": 89,
+      "sha256": "de89da498916e43aee8b3e29eb3c0828b09c99612e23933913005cb0c4835a1d",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 1,
+        "verification_claim": 2,
+        "procedure": 2,
+        "history": 3
+      }
+    },
+    {
+      "path": "documentation/arc42/05_analysis/arch-03-03-orchestration-hotspot-ranking.md",
+      "lines": 143,
+      "sha256": "32ce51802305750225e3c892425b2af5e5e17d9006cb88e0146ba7bfea716c29",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 3,
+        "verification_claim": 2,
+        "procedure": 1,
+        "history": 4
+      }
+    },
+    {
+      "path": "documentation/arc42/05_analysis/arch-03-04-platform-preflight-use-case.md",
+      "lines": 99,
+      "sha256": "897aa43132561fcc2714d57dcccec23a301a3c7d1e100e788231b89440c0540e",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 2,
+        "verification_claim": 6,
+        "procedure": 0,
+        "history": 1
+      }
+    },
+    {
+      "path": "documentation/arc42/05_analysis/arch-03-05-runtime-profile-resolution.md",
+      "lines": 31,
+      "sha256": "f61a1acd2130b9e8e93c0680992960dee44b26fd8c26683d4aef3337733c1620",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 7,
+        "verification_claim": 0,
+        "procedure": 2,
+        "history": 3
+      }
+    },
+    {
+      "path": "documentation/arc42/05_analysis/arch-03-06-runtime-port-docker-swarm-adapter.md",
+      "lines": 27,
+      "sha256": "c1df440009c73e2ee92df29e83fec73c973b5f23cc01c3fa1d7af885b3471263",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 2,
+        "verification_claim": 0,
+        "procedure": 3,
+        "history": 1
+      }
+    },
+    {
+      "path": "documentation/arc42/05_analysis/arch-03-07-state-reconcile-planning.md",
+      "lines": 24,
+      "sha256": "fae744e6c6c61c89fdc922e58282ccd47020f371e558cc587fc6277983784edd",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 5,
+        "verification_claim": 1,
+        "procedure": 0,
+        "history": 1
+      }
+    },
+    {
+      "path": "documentation/arc42/05_analysis/arch-03-08-platform-lifecycle-orchestrator.md",
+      "lines": 27,
+      "sha256": "e4494f2f5ac312a1d464b1dada96bc298fd982a1d13e137f21ca41cb29f6b37f",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 2,
+        "verification_claim": 0,
+        "procedure": 0,
+        "history": 1
+      }
+    },
+    {
+      "path": "documentation/arc42/05_analysis/arch-03-09-configuration-parsing-boundary.md",
+      "lines": 86,
+      "sha256": "39f798368d98f6177d34d94b0992d14aac9fabbd7ca2eb94d1d743292bb671a2",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 3,
+        "verification_claim": 2,
+        "procedure": 1,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/arc42/05_analysis/arch-03-11-process-execution.md",
+      "lines": 66,
+      "sha256": "9fe907db4b9c420e49539f8348dd3463179de1d273db12060f966e06c0392b77",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 1,
+        "verification_claim": 0,
+        "procedure": 2,
+        "history": 2
+      }
+    },
+    {
+      "path": "documentation/arc42/05_analysis/arch-03-12-operation-results.md",
+      "lines": 98,
+      "sha256": "a64120ddebaf15531e55724338205b43ff95c7b01a11458151bff63104898a22",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 3,
+        "verification_claim": 5,
+        "procedure": 1,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/arc42/05_analysis/arch-03-14-runtime-conditionals.md",
+      "lines": 38,
+      "sha256": "d42fed661b53815067c43c767e61b125cf403ae72e8e449a721810f75221f5d0",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 11,
+        "verification_claim": 0,
+        "procedure": 5,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/arc42/05_analysis/arch-03-17-dead-path-audit.md",
+      "lines": 36,
+      "sha256": "48b6f80c14674d6a4d750996fed927afa8b5ca8622e26e9775d23a3b9694bfcb",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 4,
+        "verification_claim": 1,
+        "procedure": 3,
+        "history": 4
+      }
+    },
+    {
+      "path": "documentation/arc42/05_analysis/arch-03-18-complexity-baseline.json",
+      "lines": 11843,
+      "sha256": "05ab924681aedf7d2cb1d82ffb9a0d29f17ead4e1aec175761401fa22c58f39f",
+      "matches": {
+        "legacy_platform": 10,
+        "runtime_claim": 13,
+        "verification_claim": 22,
+        "procedure": 23,
+        "history": 1
+      }
+    },
+    {
+      "path": "documentation/arc42/05_analysis/arch-03-18-complexity-exceptions.json",
+      "lines": 4,
+      "sha256": "a047670f5947cd8755dd22b74e6e8b39bd3747897d44e519615805e133b7b1d2",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 0,
+        "verification_claim": 0,
+        "procedure": 0,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/arc42/05_analysis/arch-03-18-complexity-guardrails.md",
+      "lines": 107,
+      "sha256": "1cd0153e299253cd71994c854c8677b909fcfb0738e97f8eaf41c4897b605e58",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 3,
+        "verification_claim": 1,
+        "procedure": 2,
+        "history": 15
+      }
+    },
+    {
+      "path": "documentation/arc42/05_analysis/arch-03-21-resulting-architecture.md",
+      "lines": 328,
+      "sha256": "3739d320d99a70a04aa33c2e56f9eea1c7e03a9d32a7d5e1a20e41c88666425f",
+      "matches": {
+        "legacy_platform": 2,
+        "runtime_claim": 26,
+        "verification_claim": 7,
+        "procedure": 21,
+        "history": 4
+      }
+    },
+    {
+      "path": "documentation/arc42/05_analysis/rc1-maintenance-triage.adoc",
+      "lines": 118,
+      "sha256": "254de53024e51c2b0364d7ab85cd45ce12349328a6e1daaca9101d8a10e68e36",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 10,
+        "verification_claim": 2,
+        "procedure": 0,
+        "history": 6
+      }
+    },
+    {
+      "path": "documentation/arc42/05_analysis/responsibility-separation-analysis.md",
+      "lines": 302,
+      "sha256": "09fe7e875734e390abb13ebf8ebc04270f3731c8e71122548b119cfb8ffb7192",
+      "matches": {
+        "legacy_platform": 21,
+        "runtime_claim": 15,
+        "verification_claim": 19,
+        "procedure": 18,
+        "history": 13
+      }
+    },
+    {
+      "path": "documentation/arc42/05_building_blocks.adoc",
+      "lines": 442,
+      "sha256": "c9e5aafd431d6476e1e3dbbfe4f732d4a294a6ba82f506ebae7265cf5677804c",
+      "matches": {
+        "legacy_platform": 6,
+        "runtime_claim": 22,
+        "verification_claim": 7,
+        "procedure": 14,
+        "history": 4
+      }
+    },
+    {
+      "path": "documentation/arc42/06_runtime_view.adoc",
+      "lines": 619,
+      "sha256": "41df1497215fd84c1b6244da87da4982927f26ef41bac10bdd5f7f17883952cc",
+      "matches": {
+        "legacy_platform": 1,
+        "runtime_claim": 40,
+        "verification_claim": 29,
+        "procedure": 26,
+        "history": 5
+      }
+    },
+    {
+      "path": "documentation/arc42/07_deployment/system.adoc",
+      "lines": 325,
+      "sha256": "e6fc5f6b24dca1e81dc2f27e1b2636902be8cdbf32dd2b4f4e03b0c8cc9b107c",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 16,
+        "verification_claim": 18,
+        "procedure": 21,
+        "history": 2
+      }
+    },
+    {
+      "path": "documentation/arc42/07_deployment_view.adoc",
+      "lines": 309,
+      "sha256": "d194accebe132e2bab19fcc06d3c5c060b7c9827083892167ea06d7420784ad4",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 12,
+        "verification_claim": 14,
+        "procedure": 26,
+        "history": 7
+      }
+    },
+    {
+      "path": "documentation/arc42/08_concepts.adoc",
+      "lines": 347,
+      "sha256": "4ca57ff20823d4736998dc8416c937affa25cc4966c21990271e7ca2189c2710",
+      "matches": {
+        "legacy_platform": 2,
+        "runtime_claim": 14,
+        "verification_claim": 15,
+        "procedure": 6,
+        "history": 1
+      }
+    },
+    {
+      "path": "documentation/arc42/08_configuration/config-contract-inventory.md",
+      "lines": 290,
+      "sha256": "8bde8caea43eb9e68d0189601c01a1d587c20e9d4b0995bfeb0bd6dc1320ad40",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 23,
+        "verification_claim": 35,
+        "procedure": 5,
+        "history": 2
+      }
+    },
+    {
+      "path": "documentation/arc42/08_configuration/credential-source-precedence.md",
+      "lines": 121,
+      "sha256": "ee8ca187e3d0b6c8187794180dd3f25842a437e9c3ec4ce9e2a1ca33b6a4354e",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 6,
+        "verification_claim": 3,
+        "procedure": 0,
+        "history": 3
+      }
+    },
+    {
+      "path": "documentation/arc42/08_configuration/internal-test-credential-catalog.md",
+      "lines": 103,
+      "sha256": "1f077141f3e44d64dea5ee046c42dc39265aa7df528981b1ef604b6ac227c7bf",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 13,
+        "verification_claim": 37,
+        "procedure": 4,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/arc42/08_configuration/operator-configuration-contract.md",
+      "lines": 225,
+      "sha256": "d1d496350a6a5fdb41ada04633060720ab226aeb835c0bc37d12e98949a3b09b",
+      "matches": {
+        "legacy_platform": 1,
+        "runtime_claim": 12,
+        "verification_claim": 27,
+        "procedure": 14,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/arc42/08_configuration/rc1-simple-secret-bootstrap.md",
+      "lines": 67,
+      "sha256": "d2046c76e30ca08bd96c502c902b0ff9489ff348354a96269ad65115b8eab701",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 2,
+        "verification_claim": 7,
+        "procedure": 2,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/arc42/08_deployment_configuration/infisical-silent-setup.adoc",
+      "lines": 113,
+      "sha256": "f28c1c07507bc93cc9de52bf207ec8f3fd58fab5ac9f639459385d4df525c0fc",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 2,
+        "verification_claim": 7,
+        "procedure": 2,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/arc42/09_architecture_decisions.adoc",
+      "lines": 95,
+      "sha256": "2735683409bfcf87a500c0e8762ca6a81978d7f625981b1e600a2b1581443c17",
+      "matches": {
+        "legacy_platform": 1,
+        "runtime_claim": 4,
+        "verification_claim": 1,
+        "procedure": 0,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/arc42/09_decisions/adr-autonomous-setup-safety.adoc",
+      "lines": 209,
+      "sha256": "f82783073d3e7c91fb5014901bea93eede3a9c79ab41a1213cd38b88e624575b",
+      "matches": {
+        "legacy_platform": 1,
+        "runtime_claim": 16,
+        "verification_claim": 6,
+        "procedure": 10,
+        "history": 3
+      }
+    },
+    {
+      "path": "documentation/arc42/09_decisions/adr-bootstrap-command-readiness-contract.adoc",
+      "lines": 88,
+      "sha256": "223d37ff05bc2c4e2b170c79ed3f63ec66e82871582cf234e37a9773863edb6f",
+      "matches": {
+        "legacy_platform": 1,
+        "runtime_claim": 2,
+        "verification_claim": 1,
+        "procedure": 2,
+        "history": 5
+      }
+    },
+    {
+      "path": "documentation/arc42/09_decisions/adr-classic-update-contract.adoc",
+      "lines": 61,
+      "sha256": "50fab597b07c8eb15bc839df7283214d7dc72e01f096f0e18fba021772a841d2",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 5,
+        "verification_claim": 2,
+        "procedure": 3,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/arc42/09_decisions/adr-cross-cutting-method-trace-logging.adoc",
+      "lines": 202,
+      "sha256": "f5552fd034a8daf125209d40e09dc3b66a18b04b703fd84d519bbfb1d0b44053",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 7,
+        "verification_claim": 1,
+        "procedure": 2,
+        "history": 2
+      }
+    },
+    {
+      "path": "documentation/arc42/09_decisions/adr-dedicated-wsl2-host-platform-boundary.adoc",
+      "lines": 160,
+      "sha256": "52a9ca54c5d9543c3b7a761159d47b3e2f65893e1740309f8b95a9a5433df984",
+      "matches": {
+        "legacy_platform": 1,
+        "runtime_claim": 9,
+        "verification_claim": 4,
+        "procedure": 4,
+        "history": 2
+      }
+    },
+    {
+      "path": "documentation/arc42/09_decisions/adr-explicit-incus-preparation.adoc",
+      "lines": 89,
+      "sha256": "4a94b586591da49e22db442a88294141eaa03c80b9637fc57f979754316a3449",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 6,
+        "verification_claim": 3,
+        "procedure": 15,
+        "history": 5
+      }
+    },
+    {
+      "path": "documentation/arc42/09_decisions/adr-explicit-non-interactive-live-consent.adoc",
+      "lines": 108,
+      "sha256": "e0a455b4ad79f59ce99f881d07c7fcaee46cea41f8c44ff50fc59a2e7b5e5476",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 11,
+        "verification_claim": 5,
+        "procedure": 0,
+        "history": 3
+      }
+    },
+    {
+      "path": "documentation/arc42/09_decisions/adr-explicit-operation-results.adoc",
+      "lines": 104,
+      "sha256": "cf4f969e59f176ebee038d857edf49507e418ccf17ff6bbda2f2515721c54bd9",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 3,
+        "verification_claim": 6,
+        "procedure": 0,
+        "history": 1
+      }
+    },
+    {
+      "path": "documentation/arc42/09_decisions/adr-installer-console-reporting-policy.adoc",
+      "lines": 99,
+      "sha256": "f510c8470d57b7b763496db5ddef93b167276adf9c78958394c8b0a75a8bdf8c",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 0,
+        "verification_claim": 0,
+        "procedure": 0,
+        "history": 2
+      }
+    },
+    {
+      "path": "documentation/arc42/09_decisions/adr-lxc-native-node-provider.adoc",
+      "lines": 222,
+      "sha256": "d88225223e62de4744d5cec7d5703af1bff62ec178b9794a606472cbc83da901",
+      "matches": {
+        "legacy_platform": 15,
+        "runtime_claim": 12,
+        "verification_claim": 18,
+        "procedure": 21,
+        "history": 5
+      }
+    },
+    {
+      "path": "documentation/arc42/09_decisions/adr-mutating-operation-recovery.adoc",
+      "lines": 69,
+      "sha256": "9e40d073bd1e52c87a2ac9af4fc640c0c6bba686adde867d1888fe19b1763663",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 3,
+        "verification_claim": 0,
+        "procedure": 0,
+        "history": 1
+      }
+    },
+    {
+      "path": "documentation/arc42/09_decisions/adr-native-linux-preparation-and-install-lifecycle.adoc",
+      "lines": 108,
+      "sha256": "6569e2b5bedb979191b5876237dc34c7fbc1bbc79a51632f25c107c7ca7a2824",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 3,
+        "verification_claim": 2,
+        "procedure": 18,
+        "history": 6
+      }
+    },
+    {
+      "path": "documentation/arc42/09_decisions/adr-retire-multipass-legacy-provider.adoc",
+      "lines": 93,
+      "sha256": "f0763b0b12b080b681c70c908bdcd84a36fd92c6db9e484b68cb98e224991b20",
+      "matches": {
+        "legacy_platform": 14,
+        "runtime_claim": 12,
+        "verification_claim": 14,
+        "procedure": 5,
+        "history": 6
+      }
+    },
+    {
+      "path": "documentation/arc42/09_decisions/adr-scoped-bootstrap-network-preparation.adoc",
+      "lines": 334,
+      "sha256": "6fe9d5e3ed08fa52c41dfd8aa556261af9277211b9232a8a894e27c60262ac87",
+      "matches": {
+        "legacy_platform": 1,
+        "runtime_claim": 11,
+        "verification_claim": 9,
+        "procedure": 14,
+        "history": 6
+      }
+    },
+    {
+      "path": "documentation/arc42/09_decisions/adr-separate-platform-artifacts-deployment.adoc",
+      "lines": 317,
+      "sha256": "48ced124119c18becab8d91e5aed7e629154f174de03ac6100dd0f654dc5578f",
+      "matches": {
+        "legacy_platform": 11,
+        "runtime_claim": 13,
+        "verification_claim": 7,
+        "procedure": 25,
+        "history": 4
+      }
+    },
+    {
+      "path": "documentation/arc42/09_decisions/adr-service-access-dashboard-vaultwarden.adoc",
+      "lines": 227,
+      "sha256": "c4533683dfbd70052564ef079bd653189586392ab4afa81e1d0cc960d57e639f",
+      "matches": {
+        "legacy_platform": 5,
+        "runtime_claim": 5,
+        "verification_claim": 22,
+        "procedure": 3,
+        "history": 8
+      }
+    },
+    {
+      "path": "documentation/arc42/09_decisions/adr-shared-ubuntu-prerequisite-bootstrap.adoc",
+      "lines": 51,
+      "sha256": "3ddc2cb3774678663030b13069bf009aaef91751011e403404b08b8086408db2",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 2,
+        "verification_claim": 0,
+        "procedure": 1,
+        "history": 6
+      }
+    },
+    {
+      "path": "documentation/arc42/09_decisions/adr-test-only-credential-override.adoc",
+      "lines": 88,
+      "sha256": "05173cde75d829aa43c7351541e9c6b9b2b55f23fa4522b6700756b7125e9e59",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 0,
+        "verification_claim": 1,
+        "procedure": 0,
+        "history": 2
+      }
+    },
+    {
+      "path": "documentation/arc42/09_decisions/adr-traefik-https-ingress-existing-ca.adoc",
+      "lines": 91,
+      "sha256": "4bf899559241c3cd1493e8e61ce61cc7875e891d6fbd55ed1561ecf60e9c74a5",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 0,
+        "verification_claim": 0,
+        "procedure": 4,
+        "history": 6
+      }
+    },
+    {
+      "path": "documentation/arc42/09_decisions/adr-traefik-managed-or-operator-ca.adoc",
+      "lines": 180,
+      "sha256": "dad0eb237461a7a2988546e742883b5d793573c79ef3c1a165eacff6411f1a9f",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 6,
+        "verification_claim": 3,
+        "procedure": 0,
+        "history": 5
+      }
+    },
+    {
+      "path": "documentation/arc42/09_decisions/adr-windows-wsl-bridge-service-agent.adoc",
+      "lines": 140,
+      "sha256": "9dbb7794bf48a66b0cd14fea68393c44f4c6f04f726c0caa785e01f4814ed411",
+      "matches": {
+        "legacy_platform": 4,
+        "runtime_claim": 4,
+        "verification_claim": 4,
+        "procedure": 0,
+        "history": 6
+      }
+    },
+    {
+      "path": "documentation/arc42/09_decisions/adr-windows-wsl-lifecycle-preparation.adoc",
+      "lines": 187,
+      "sha256": "8f2e3631aba053adccbe83e0a3360dbc2be96857b7420c02e5c993aa5c33a4bf",
+      "matches": {
+        "legacy_platform": 3,
+        "runtime_claim": 4,
+        "verification_claim": 4,
+        "procedure": 1,
+        "history": 14
+      }
+    },
+    {
+      "path": "documentation/arc42/09_decisions/adr-wsl-capacity-adaptation.adoc",
+      "lines": 143,
+      "sha256": "7e06038d02badf63c09dc1a0781e9d7147241fb1ede00152f1bea8f3474604be",
+      "matches": {
+        "legacy_platform": 2,
+        "runtime_claim": 5,
+        "verification_claim": 4,
+        "procedure": 2,
+        "history": 5
+      }
+    },
+    {
+      "path": "documentation/arc42/09_decisions/command-runner-responsibility.adoc",
+      "lines": 88,
+      "sha256": "eb83208ffce8bd3c3c065e79242f67529fa557bfad6408aa511945d590dc6f6c",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 15,
+        "verification_claim": 0,
+        "procedure": 0,
+        "history": 1
+      }
+    },
+    {
+      "path": "documentation/arc42/10_quality_requirements.adoc",
+      "lines": 350,
+      "sha256": "33b94cb842f4ce6cce54675455960e470b255cbf24fe3db72de3c1eaae93c366",
+      "matches": {
+        "legacy_platform": 1,
+        "runtime_claim": 12,
+        "verification_claim": 12,
+        "procedure": 15,
+        "history": 2
+      }
+    },
+    {
+      "path": "documentation/arc42/11_migration/migration-plan.md",
+      "lines": 418,
+      "sha256": "c7008d68dcc71679e2e76014d35e60eb2c6f1cf5a9d781056de4cdabe6c8d575",
+      "matches": {
+        "legacy_platform": 9,
+        "runtime_claim": 12,
+        "verification_claim": 12,
+        "procedure": 19,
+        "history": 14
+      }
+    },
+    {
+      "path": "documentation/arc42/11_risks_and_debt.adoc",
+      "lines": 267,
+      "sha256": "19b55d80717e1e2019cad5739a586480a4cf50bef3db386c220d47f2a722aee0",
+      "matches": {
+        "legacy_platform": 4,
+        "runtime_claim": 33,
+        "verification_claim": 19,
+        "procedure": 12,
+        "history": 18
+      }
+    },
+    {
+      "path": "documentation/arc42/12_glossary.adoc",
+      "lines": 71,
+      "sha256": "c2bc0d5b65e2e92f6ee815f00f7de281423bae44ed2f7caa92226750324b2427",
+      "matches": {
+        "legacy_platform": 3,
+        "runtime_claim": 4,
+        "verification_claim": 5,
+        "procedure": 1,
+        "history": 1
+      }
+    },
+    {
+      "path": "documentation/audit/README.md",
+      "lines": 101,
+      "sha256": "fec68188946062315c9ae6e78cd7d8b5eaea997719240aecd44f93675ba39ed4",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 1,
+        "verification_claim": 4,
+        "procedure": 1,
+        "history": 2
+      }
+    },
+    {
+      "path": "documentation/audit/audit-register.md",
+      "lines": 41,
+      "sha256": "d393b331cd03ca7b1f7ffff28a726b0cce53f261b8bc09346514c80859cb3a98",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 0,
+        "verification_claim": 14,
+        "procedure": 0,
+        "history": 9
+      }
+    },
+    {
+      "path": "documentation/audit/audit-summary.md",
+      "lines": 46,
+      "sha256": "783e6806726b9bc191f353bf29a0154fa939cdb29476c8bd7e9ffd719f7942b2",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 0,
+        "verification_claim": 1,
+        "procedure": 1,
+        "history": 1
+      }
+    },
+    {
+      "path": "documentation/audit/evidence-matrix.md",
+      "lines": 55,
+      "sha256": "daefa5266e903dce4da8e6538af9b50c8c35f4c76682ad296de9ba8775f3226e",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 0,
+        "verification_claim": 2,
+        "procedure": 0,
+        "history": 5
+      }
+    },
+    {
+      "path": "documentation/audit/findings-register.md",
+      "lines": 71,
+      "sha256": "36a87aac891758afac984f438f2d7e814835a6332e7c069243df702ea35456cc",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 4,
+        "verification_claim": 9,
+        "procedure": 1,
+        "history": 10
+      }
+    },
+    {
+      "path": "documentation/audit/remediation-plan.md",
+      "lines": 50,
+      "sha256": "91f5ad94d3f7b53c6966f68a5eb5f6c2b575c605d0a7e3bcb31a79ce3f9a90b3",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 2,
+        "verification_claim": 6,
+        "procedure": 0,
+        "history": 4
+      }
+    },
+    {
+      "path": "documentation/contracts/bootstrap.md",
+      "lines": 541,
+      "sha256": "2d1f695c4b006992bc323bf88002d9418dba051c5e27aff99b3fa1b6c6f744f0",
+      "matches": {
+        "legacy_platform": 5,
+        "runtime_claim": 20,
+        "verification_claim": 26,
+        "procedure": 33,
+        "history": 14
+      }
+    },
+    {
+      "path": "documentation/document.adoc",
+      "lines": 25,
+      "sha256": "e5973147cbf0d6d83b8b4088765ca3de1d269894ce1ddd2e8f7667edef2e69e8",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 0,
+        "verification_claim": 0,
+        "procedure": 1,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/epics/sonarcloud-remediation.md",
+      "lines": 44,
+      "sha256": "0569063e8c89c9a956080a10555a32aae4270f9caf372591d8e4df21083f6262",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 1,
+        "verification_claim": 2,
+        "procedure": 0,
+        "history": 4
+      }
+    },
+    {
+      "path": "documentation/evidence/ci-documentation-sync-20260909.md",
+      "lines": 39,
+      "sha256": "f3637acbe28504bd7cbb1220e8b7a25a410ec2dc2523d5a512a72c5e468278c2",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 0,
+        "verification_claim": 7,
+        "procedure": 4,
+        "history": 2
+      }
+    },
+    {
+      "path": "documentation/evidence/classic-public-beta-rc1-scenario-contract.md",
+      "lines": 38,
+      "sha256": "4164fb924554460028cf92e9b3a9ec29176f83894f41d6164af1bc664bb3825a",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 0,
+        "verification_claim": 4,
+        "procedure": 0,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/evidence/cred08-browser-acceptance.md",
+      "lines": 72,
+      "sha256": "4a2fa2ad51a159e196dde9e40fbff3a046df0fd6944854d3183d1dc8b2d24569",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 8,
+        "verification_claim": 10,
+        "procedure": 2,
+        "history": 6
+      }
+    },
+    {
+      "path": "documentation/evidence/cred09-source-precedence-20260912.json",
+      "lines": 532,
+      "sha256": "103a6176aaf16e3f2761c0667b65c6aadff8b3382dac62f3086dd9445ce8370f",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 0,
+        "verification_claim": 22,
+        "procedure": 6,
+        "history": 71
+      }
+    },
+    {
+      "path": "documentation/evidence/cred09-source-precedence-completion.md",
+      "lines": 140,
+      "sha256": "8f4e636814a6cdd323331cc45f3c61dd5fce74e57a26cfca650afaab2288def6",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 9,
+        "verification_claim": 29,
+        "procedure": 1,
+        "history": 19
+      }
+    },
+    {
+      "path": "documentation/evidence/credential-transition-verification.md",
+      "lines": 142,
+      "sha256": "d0368ebe23cb5095eac7f52247c001887faa31119d70778f671c546f92fe95ea",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 6,
+        "verification_claim": 27,
+        "procedure": 1,
+        "history": 11
+      }
+    },
+    {
+      "path": "documentation/evidence/issue-363-credential-cookie-form-20261003.md",
+      "lines": 21,
+      "sha256": "4b4e2bcf9b11666659218ee9065547305403ca0fa09443c696ef649da8b06ce8",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 2,
+        "verification_claim": 3,
+        "procedure": 0,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/evidence/issue-363-final-source-applicability-20261003.md",
+      "lines": 119,
+      "sha256": "ef1992fe1793c41237145ac3c17ee048e3ff6a664bd8148eface4d24e3a4abd5",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 17,
+        "verification_claim": 29,
+        "procedure": 1,
+        "history": 20
+      }
+    },
+    {
+      "path": "documentation/evidence/issue-363-final-validation-20261003.md",
+      "lines": 42,
+      "sha256": "d3167ad4fedeb1c3a0835367d175a0f850af0eb70fc92098ba07fc00d4e5b958",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 6,
+        "verification_claim": 20,
+        "procedure": 1,
+        "history": 5
+      }
+    },
+    {
+      "path": "documentation/evidence/issue-363-full-completion-audit-20261003.md",
+      "lines": 76,
+      "sha256": "6c2f2ef51cd70760d2fb5aafbbad070d2c2d4e56ecc2a134d37b57f289589e77",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 6,
+        "verification_claim": 18,
+        "procedure": 0,
+        "history": 15
+      }
+    },
+    {
+      "path": "documentation/evidence/issue-363-isolated-wsl-restart-20261003.md",
+      "lines": 63,
+      "sha256": "93a386eea4a80712c605b191d6601746f39bc3e508fd748882a659cf66735b05",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 4,
+        "verification_claim": 10,
+        "procedure": 2,
+        "history": 9
+      }
+    },
+    {
+      "path": "documentation/evidence/issue-363-native-fresh-install-20261003.md",
+      "lines": 72,
+      "sha256": "3d489d955314e8914d8d0e764b890c55ff7a0eb2e8d8a86eed116f961893a0f0",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 0,
+        "verification_claim": 4,
+        "procedure": 2,
+        "history": 2
+      }
+    },
+    {
+      "path": "documentation/evidence/issue-363-node-mutation-evidence-20261003.md",
+      "lines": 23,
+      "sha256": "ca2717b7fb92a65af6b4f772da8450943c81eb8508c89449f767d02c1b84acb4",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 1,
+        "verification_claim": 2,
+        "procedure": 1,
+        "history": 4
+      }
+    },
+    {
+      "path": "documentation/evidence/issue-363-quality-findings-20261003.md",
+      "lines": 22,
+      "sha256": "b0ff0eeef2f94b0619f50658f5ad8ff7a79751e371e24362f9339098bc7f8659",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 1,
+        "verification_claim": 0,
+        "procedure": 0,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/evidence/issue-427-native-linux-e2e.md",
+      "lines": 22,
+      "sha256": "9562477e503d90048ddabc3c54ccfbf087c6bcca5608b163318ae536916f4489",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 2,
+        "verification_claim": 7,
+        "procedure": 18,
+        "history": 1
+      }
+    },
+    {
+      "path": "documentation/evidence/live-greenpath-evidence-contract.md",
+      "lines": 91,
+      "sha256": "88ca31f646acee5765404f31e2e1812848de97e095e2f0106105b88975280ad6",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 2,
+        "verification_claim": 19,
+        "procedure": 1,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/evidence/live-run-template.md",
+      "lines": 85,
+      "sha256": "5506ec88ebfc9912cacde617331879e52fcdaa323769e2e2fec228fbbd84c271",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 0,
+        "verification_claim": 9,
+        "procedure": 0,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/evidence/live-smoke-checklist.md",
+      "lines": 51,
+      "sha256": "db28e0ea9e090838285ee6d7115411762f2ab269589be931d68ab57d214443cd",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 2,
+        "verification_claim": 1,
+        "procedure": 3,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/evidence/native-linux-cold-start-recovery.md",
+      "lines": 132,
+      "sha256": "349337d5ce9f3fee16de482cd640b658823ad18e97f901beadbd62376b3c64d9",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 3,
+        "verification_claim": 13,
+        "procedure": 4,
+        "history": 8
+      }
+    },
+    {
+      "path": "documentation/evidence/rc1-wsl-planned-restart-20260913.md",
+      "lines": 50,
+      "sha256": "32300cacb7fa1b96c871088c22d6009a82e0dd6433989974eae2b9d26580a4bd",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 0,
+        "verification_claim": 4,
+        "procedure": 9,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/evidence/redaction-rules.md",
+      "lines": 42,
+      "sha256": "7bc2486a35701cb92405fefdad5140349bbde7a47fa8d2c81c197aa30e41772a",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 0,
+        "verification_claim": 2,
+        "procedure": 0,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/evidence/user-documentation-review-20260909.md",
+      "lines": 167,
+      "sha256": "b0444ce7c8107be4e1161721ca57b482f71dba15e8104545cf41b392d1649fc2",
+      "matches": {
+        "legacy_platform": 1,
+        "runtime_claim": 6,
+        "verification_claim": 12,
+        "procedure": 2,
+        "history": 6
+      }
+    },
+    {
+      "path": "documentation/evidence/user-documentation-review-20260912.md",
+      "lines": 18,
+      "sha256": "3502ae00fc240035c40dcd25b38249540a338fd3f9c6b62e69b4a2fa29c2d31f",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 3,
+        "verification_claim": 7,
+        "procedure": 0,
+        "history": 1
+      }
+    },
+    {
+      "path": "documentation/evidence/wsl2-secure-live-path.md",
+      "lines": 114,
+      "sha256": "c2d40f08a8b4adcb201cac18f5bac8668d073cc5baf222f0cae7de49dff5ee65",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 0,
+        "verification_claim": 10,
+        "procedure": 2,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/governance/branch-protection.md",
+      "lines": 56,
+      "sha256": "47996ad4256ed800d07d6153abf28defa273de7a1b1706ff86cdda8a2816b1b7",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 11,
+        "verification_claim": 8,
+        "procedure": 1,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/governance/ci-quality-gates.md",
+      "lines": 127,
+      "sha256": "f09ebd48f7e4be7623ce4918e44e13565e9252577250bf6518931f1aaba21c14",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 10,
+        "verification_claim": 13,
+        "procedure": 2,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/governance/pr-review-policy.md",
+      "lines": 56,
+      "sha256": "86766db5b30a0d106c427b9a1631aee2f596a3a0a65b316057dfeb4405c6b514",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 1,
+        "verification_claim": 3,
+        "procedure": 1,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/manuals/audit-manual.md",
+      "lines": 30,
+      "sha256": "53a5b222ad3516c35f80747b025cb10e8eec2a17bbbd67284b6f463c7471ba2c",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 0,
+        "verification_claim": 2,
+        "procedure": 0,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/manuals/developer-manual.md",
+      "lines": 45,
+      "sha256": "8abf2e699ef4ab80723bbf2aad9f931f2c40358700a85e44798c9ff7f8fe7585",
+      "matches": {
+        "legacy_platform": 1,
+        "runtime_claim": 1,
+        "verification_claim": 0,
+        "procedure": 1,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/manuals/live-validation-manual.md",
+      "lines": 34,
+      "sha256": "e1dbb97fc16c55c8b5c102936b2d9a8442a59ca291b2af2556df6016b23f9212",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 2,
+        "verification_claim": 1,
+        "procedure": 2,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/manuals/operator-manual.md",
+      "lines": 72,
+      "sha256": "78529a86a0b374a9054ee8d713de103c75416331ea5cc2ea86753d633f417c62",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 1,
+        "verification_claim": 3,
+        "procedure": 5,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/manuals/security-manual.md",
+      "lines": 29,
+      "sha256": "4f1a6aeaff469170017af8a2b492f5a93a11b6695cecd3b0592cea20a13d6e68",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 0,
+        "verification_claim": 0,
+        "procedure": 0,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/process/agent-plans/agent-split-plan.md",
+      "lines": 550,
+      "sha256": "158ac7d7e24735fb671799617762b0c3f77c1935a39b4301e7243a666fa040c2",
+      "matches": {
+        "legacy_platform": 16,
+        "runtime_claim": 12,
+        "verification_claim": 16,
+        "procedure": 48,
+        "history": 10
+      }
+    },
+    {
+      "path": "documentation/process/agent-tasks/import-ready-agent-tasks.md",
+      "lines": 227,
+      "sha256": "0c966e945c6417900bfe8cc5777e3c9134e0e2aa54bdeb195a79471164d99067",
+      "matches": {
+        "legacy_platform": 8,
+        "runtime_claim": 4,
+        "verification_claim": 10,
+        "procedure": 7,
+        "history": 7
+      }
+    },
+    {
+      "path": "documentation/process/branch-governance.md",
+      "lines": 55,
+      "sha256": "1472428b96f84aacb988d55a06c310dca38b64dc12c146c4f5d81dafb1e8375c",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 1,
+        "verification_claim": 1,
+        "procedure": 0,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/process/issue-completion-discipline.md",
+      "lines": 228,
+      "sha256": "3db2d080b7cfbbc3737907a61c67ce6a361485c8993cf4a20c1c5fe2dc743bc3",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 8,
+        "verification_claim": 27,
+        "procedure": 0,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/process/performance-evidence-contract.md",
+      "lines": 55,
+      "sha256": "f1a01292da5b138fa1f73aea81afc579450294e749fec697383b0b7a7bf97e14",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 0,
+        "verification_claim": 0,
+        "procedure": 0,
+        "history": 3
+      }
+    },
+    {
+      "path": "documentation/process/skill-agent-creation.md",
+      "lines": 47,
+      "sha256": "7f2a04736b764db041ecd3f8368de29cf9cd2d87db0affba43ee2854fd4b8c63",
+      "matches": {
+        "legacy_platform": 1,
+        "runtime_claim": 0,
+        "verification_claim": 0,
+        "procedure": 2,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/process/skills-update.md",
+      "lines": 41,
+      "sha256": "948068b20b890af817df1bc71a50aab0f1c5df14d37eda20aa230d2d18b9b1fd",
+      "matches": {
+        "legacy_platform": 3,
+        "runtime_claim": 0,
+        "verification_claim": 1,
+        "procedure": 0,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/process/skills/audit/organigramm.md",
+      "lines": 49,
+      "sha256": "87c9e8fdf29aae7038b283eda39b15b7fde1fb02cd74e8b7c80a0f18e38e338b",
+      "matches": {
+        "legacy_platform": 2,
+        "runtime_claim": 2,
+        "verification_claim": 0,
+        "procedure": 1,
+        "history": 1
+      }
+    },
+    {
+      "path": "documentation/process/skills/audit/owner-map.md",
+      "lines": 26,
+      "sha256": "6e20656042fe3f0651ac96e3527cb37a4cc4e24a82c3efb3cfd9e5cde198b335",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 1,
+        "verification_claim": 1,
+        "procedure": 0,
+        "history": 4
+      }
+    },
+    {
+      "path": "documentation/process/skills/audit/skill-registry.json",
+      "lines": 215,
+      "sha256": "56cf34430f95c1eaafe2675455e7eedf57a600fcfdcb3353323a2c9594b7494f",
+      "matches": {
+        "legacy_platform": 1,
+        "runtime_claim": 12,
+        "verification_claim": 0,
+        "procedure": 0,
+        "history": 2
+      }
+    },
+    {
+      "path": "documentation/process/skills/audit/skill-registry.md",
+      "lines": 80,
+      "sha256": "96db22624d52436cd7d3091d050d32dc6fc6058e78af595787a14efd08443a00",
+      "matches": {
+        "legacy_platform": 1,
+        "runtime_claim": 4,
+        "verification_claim": 0,
+        "procedure": 0,
+        "history": 2
+      }
+    },
+    {
+      "path": "documentation/process/verification-state-policy.md",
+      "lines": 132,
+      "sha256": "66539415e20547d464b12d9ea59367a3711f657e0a0f368445846c501d75e5d0",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 1,
+        "verification_claim": 27,
+        "procedure": 6,
+        "history": 1
+      }
+    },
+    {
+      "path": "documentation/process/workflow-create.md",
+      "lines": 53,
+      "sha256": "5df5fb70ddc25ef2d8ad2129590e780bfee610521860fb0991e57c38dab3542f",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 2,
+        "verification_claim": 3,
+        "procedure": 0,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/process/workflow-execute.md",
+      "lines": 169,
+      "sha256": "97421575dc9aeb1bb561f696bc533af1de3a2c841bb841b88ca385d5502407ba",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 4,
+        "verification_claim": 9,
+        "procedure": 1,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/qms/capa-process.md",
+      "lines": 58,
+      "sha256": "4c7a930522cd6f9bd0c3d042655af6fa602b20578a3dd2167d6b860697ee8772",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 0,
+        "verification_claim": 3,
+        "procedure": 0,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/qms/change-control.md",
+      "lines": 63,
+      "sha256": "bef116770fefc6e8242d3fd660d95e228f039fc774e9f67e726a85148e41c8c6",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 0,
+        "verification_claim": 4,
+        "procedure": 1,
+        "history": 1
+      }
+    },
+    {
+      "path": "documentation/qms/internal-audit-process.md",
+      "lines": 51,
+      "sha256": "d714220d9ace7d722696f2c50aad65b176898cc51c273b2c2f17c6b7cc7c6a59",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 0,
+        "verification_claim": 2,
+        "procedure": 0,
+        "history": 2
+      }
+    },
+    {
+      "path": "documentation/qms/qms-light.md",
+      "lines": 70,
+      "sha256": "ed6b92e992228205d7125211706cf8ee0fe1fd4188387a28c1cef50a491ce67a",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 0,
+        "verification_claim": 5,
+        "procedure": 2,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/qms/quality-objectives.md",
+      "lines": 24,
+      "sha256": "41da331990924c03433f8f06cad91ae77f6c9dda601b9236be55a1794a4c0fdb",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 1,
+        "verification_claim": 9,
+        "procedure": 0,
+        "history": 7
+      }
+    },
+    {
+      "path": "documentation/release/baseline-policy.md",
+      "lines": 24,
+      "sha256": "30ebc468dbafba8407ba1dead78a83e2eb693593985c0bcd96bae9375f8f20d9",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 0,
+        "verification_claim": 2,
+        "procedure": 1,
+        "history": 5
+      }
+    },
+    {
+      "path": "documentation/release/changelog-policy.md",
+      "lines": 36,
+      "sha256": "e5cad7172e6d9eecde7ff20928a3a41dceaa7ce2c8fe2ced699f37da0596c75f",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 2,
+        "verification_claim": 2,
+        "procedure": 0,
+        "history": 2
+      }
+    },
+    {
+      "path": "documentation/release/rc1-candidate-evidence.md",
+      "lines": 68,
+      "sha256": "6c339f98fcce1b2b594eccd149e674ca9a9e89cd6e444e18a074efea8e22473d",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 0,
+        "verification_claim": 19,
+        "procedure": 0,
+        "history": 16
+      }
+    },
+    {
+      "path": "documentation/release/rc1-decision.md",
+      "lines": 63,
+      "sha256": "2a8ba806a8e0ca46ced755d233fa1caf41d9eb6f661a560eb34eeb411e844e18",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 2,
+        "verification_claim": 11,
+        "procedure": 0,
+        "history": 10
+      }
+    },
+    {
+      "path": "documentation/release/rc1-release-notes.md",
+      "lines": 52,
+      "sha256": "6422ee81f30de29ebccfb69ef9377ed55bb2b5c6e57ef1b67f80018fe814a619",
+      "matches": {
+        "legacy_platform": 1,
+        "runtime_claim": 5,
+        "verification_claim": 2,
+        "procedure": 2,
+        "history": 6
+      }
+    },
+    {
+      "path": "documentation/release/release-process.md",
+      "lines": 68,
+      "sha256": "d652b5b19be0ef36163b4059bcb51f717d22ae4eda2754941563936dad4a6e2f",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 0,
+        "verification_claim": 3,
+        "procedure": 1,
+        "history": 12
+      }
+    },
+    {
+      "path": "documentation/reviews/issue-157-fixing-loop-20260627.md",
+      "lines": 99,
+      "sha256": "c3cc5a35c132e1144233571c78c26d920e70d8249900a7fda3c3038c98959f44",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 4,
+        "verification_claim": 6,
+        "procedure": 3,
+        "history": 1
+      }
+    },
+    {
+      "path": "documentation/reviews/issue-157-traefik-access-review-20260627.md",
+      "lines": 56,
+      "sha256": "b7a1ca2e083d7217bbbc7506840c7edab016b1867904694df9e614036fbea2ec",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 10,
+        "verification_claim": 3,
+        "procedure": 1,
+        "history": 9
+      }
+    },
+    {
+      "path": "documentation/security/admin-surface-rbac.md",
+      "lines": 41,
+      "sha256": "9ebcd3a9bee01ad10020845de535b6cdfa94e2a7c0a667a21ead44189452f76c",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 0,
+        "verification_claim": 1,
+        "procedure": 3,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/security/container-image-scan-policy.md",
+      "lines": 20,
+      "sha256": "96c1d3f6444dc2965a07cc4e9707fbdc13af51becea20151c8648bd475a10e12",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 0,
+        "verification_claim": 1,
+        "procedure": 1,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/security/dependency-scan-policy.md",
+      "lines": 24,
+      "sha256": "8e1b5aff0e79f311b36a013fa6a91c64373c0ac10301eb1f737683905d9acefb",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 1,
+        "verification_claim": 0,
+        "procedure": 2,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/security/incident-response.md",
+      "lines": 36,
+      "sha256": "dbd720416862971ffc5a88df5c4990763ad1b1d369750dd421bb87781bc9f2c8",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 0,
+        "verification_claim": 0,
+        "procedure": 1,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/security/isms-scope.md",
+      "lines": 62,
+      "sha256": "f0d7f0478119799b2c260665acdf6c892f63372671b3f11ae0f54fff6d9a7ce2",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 2,
+        "verification_claim": 0,
+        "procedure": 5,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/security/owasp-asvs-mapping.md",
+      "lines": 52,
+      "sha256": "78bb38130082cbaeb04de0f8a1e034094721539fe4243340b21bc9271ccc3544",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 2,
+        "verification_claim": 6,
+        "procedure": 4,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/security/rc1-classic-security-evidence.md",
+      "lines": 66,
+      "sha256": "4eb5bf72cbdabdaa1b0596a912a0f72f1e2577055c034e2b25289264e3353fdc",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 2,
+        "verification_claim": 1,
+        "procedure": 6,
+        "history": 8
+      }
+    },
+    {
+      "path": "documentation/security/risk-register.md",
+      "lines": 25,
+      "sha256": "29feb404f2bc60c7fb32cccce34cb253433c8a802f977fa4394fe904e5a29707",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 1,
+        "verification_claim": 12,
+        "procedure": 1,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/security/sbom-policy.md",
+      "lines": 15,
+      "sha256": "6b44ba6b2232fc754dc6b50fcce0d716d582b41be07daa2401fd8e34aa56e45b",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 0,
+        "verification_claim": 0,
+        "procedure": 1,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/security/secret-handling-policy.md",
+      "lines": 55,
+      "sha256": "7067b66ccfcd13895c88281ef4c4593d5b16bdc4640c0572412f3404a15d7c9b",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 0,
+        "verification_claim": 2,
+        "procedure": 0,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/security/security-controls.md",
+      "lines": 64,
+      "sha256": "31d75c7c15e8011e7c008901a37d9811a008424e3f13993d825c4d2bd6fd0197",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 0,
+        "verification_claim": 2,
+        "procedure": 1,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/security/service-access-threat-model.md",
+      "lines": 64,
+      "sha256": "152ec4c5723d7e0c1b8e7e06eca496a32a2e8d25f4dc91e52030345db95008c4",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 0,
+        "verification_claim": 2,
+        "procedure": 1,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/security/statement-of-applicability.md",
+      "lines": 23,
+      "sha256": "a906be363e45946d13871d890c47976c666118479f47cd49b291722a10ae3fd9",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 1,
+        "verification_claim": 7,
+        "procedure": 0,
+        "history": 1
+      }
+    },
+    {
+      "path": "documentation/security/supply-chain-security.md",
+      "lines": 24,
+      "sha256": "c685d0274151fda98e10b348774c444a1d38d9a3aa90fdd98941efed53020f44",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 0,
+        "verification_claim": 1,
+        "procedure": 3,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/system/idempotency-recovery.adoc",
+      "lines": 143,
+      "sha256": "0c0e200d7cfc4386c5649f354e8872d7f1f6ec2366c4eb03e1851e35839f8d0c",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 6,
+        "verification_claim": 3,
+        "procedure": 5,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/system/live-operation-surfaces.adoc",
+      "lines": 170,
+      "sha256": "68f8e4acccdfb9f648143040361158830b801ca2a0bae524f99be0fb2e7ee54f",
+      "matches": {
+        "legacy_platform": 1,
+        "runtime_claim": 42,
+        "verification_claim": 16,
+        "procedure": 40,
+        "history": 2
+      }
+    },
+    {
+      "path": "documentation/system/lxc-native-setup.adoc",
+      "lines": 244,
+      "sha256": "33c1fe91ffc4fde523f59b70e14c8feee2934421bd9f6aa0b6494a16ecacdfdf",
+      "matches": {
+        "legacy_platform": 1,
+        "runtime_claim": 6,
+        "verification_claim": 8,
+        "procedure": 47,
+        "history": 5
+      }
+    },
+    {
+      "path": "documentation/system/network.adoc",
+      "lines": 210,
+      "sha256": "db9baa290a238c0c9fe02e15020feb4dc6846590a9f6bf7646833181d73a388c",
+      "matches": {
+        "legacy_platform": 8,
+        "runtime_claim": 7,
+        "verification_claim": 5,
+        "procedure": 30,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/system/system.adoc",
+      "lines": 9,
+      "sha256": "0532bfdd5105207c24da9ae1793c2a35b1e420509c5d7f7c8c4643a8d5b3200b",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 0,
+        "verification_claim": 0,
+        "procedure": 0,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/traceability/live-evidence-map.md",
+      "lines": 24,
+      "sha256": "1dccf72844bc6c1852e47eb1b30b606261b556b80224b34e9f706353c7c34b55",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 1,
+        "verification_claim": 13,
+        "procedure": 0,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/traceability/requirements.md",
+      "lines": 59,
+      "sha256": "95c73d59bf4e183a65ce1644e0e3a9ac6e95eab871c234628e1139fa8641a0bc",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 1,
+        "verification_claim": 0,
+        "procedure": 2,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/traceability/test-coverage-map.md",
+      "lines": 23,
+      "sha256": "00b99d596a39dda35bd63686c7f6e0a98b0056d1b5ccef562e974fc4dbca4c44",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 2,
+        "verification_claim": 12,
+        "procedure": 0,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/traceability/traceability-matrix.md",
+      "lines": 33,
+      "sha256": "57680871238421aaa67e1dc9931877a2fd734a23e6cd1bac4b4d6650d0242627",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 1,
+        "verification_claim": 22,
+        "procedure": 1,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/user_guide/installation.adoc",
+      "lines": 1332,
+      "sha256": "9cb08619cd671907f9f8bdbd6c91b0dde3a094b6083490222e63ea34b892132f",
+      "matches": {
+        "legacy_platform": 6,
+        "runtime_claim": 26,
+        "verification_claim": 41,
+        "procedure": 169,
+        "history": 6
+      }
+    },
+    {
+      "path": "documentation/user_guide/installer-console-output.md",
+      "lines": 77,
+      "sha256": "325ed911c6d19f8005ca3a2fecb8c133ddc9aa0aacb5dc1391b6b0a5c60a76e1",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 0,
+        "verification_claim": 4,
+        "procedure": 2,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/user_guide/jenkins-home-migration.md",
+      "lines": 61,
+      "sha256": "a30057ed26bdb514df69cf6360221a4fa6736430c10fcdc22af564b65690c0f5",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 5,
+        "verification_claim": 1,
+        "procedure": 1,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/user_guide/network-preparation.md",
+      "lines": 64,
+      "sha256": "e1636e855db70a150c58874bd81e83887b183517a083c68179f1190d83b5fff1",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 4,
+        "verification_claim": 3,
+        "procedure": 7,
+        "history": 1
+      }
+    },
+    {
+      "path": "documentation/user_guide/troubleshooting.adoc",
+      "lines": 873,
+      "sha256": "09975e133fe547240cc6cdbca064387ef37e6bb7f8ba458e2e34ecb5765f71d4",
+      "matches": {
+        "legacy_platform": 15,
+        "runtime_claim": 19,
+        "verification_claim": 34,
+        "procedure": 79,
+        "history": 1
+      }
+    },
+    {
+      "path": "documentation/user_guide/usage.adoc",
+      "lines": 659,
+      "sha256": "aa5c4ed398f84cf22607b30b5f7302c961b3cb32fdafbf66a5875c87f52534dd",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 17,
+        "verification_claim": 33,
+        "procedure": 29,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/user_guide/windows-preparation.md",
+      "lines": 258,
+      "sha256": "d122cf063a9c736c465ce7ca9c019d421cb7e6a93bc734b88b440cf2168b460e",
+      "matches": {
+        "legacy_platform": 6,
+        "runtime_claim": 14,
+        "verification_claim": 9,
+        "procedure": 14,
+        "history": 6
+      }
+    },
+    {
+      "path": "documentation/workflow/authoring-review.md",
+      "lines": 60,
+      "sha256": "21a9b5aa5635e080e41be82643cb22f67ce47713d6f51b5febec0904f44f5080",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 0,
+        "verification_claim": 10,
+        "procedure": 5,
+        "history": 5
+      }
+    },
+    {
+      "path": "documentation/workflow/context-pack.json",
+      "lines": 63,
+      "sha256": "197d592778611664771bf9b3d967ff2baabdb6a45d6f493e64f5cae40b2650ba",
+      "matches": {
+        "legacy_platform": 1,
+        "runtime_claim": 0,
+        "verification_claim": 3,
+        "procedure": 1,
+        "history": 1
+      }
+    },
+    {
+      "path": "documentation/workflow/context-pack.md",
+      "lines": 17,
+      "sha256": "13dea4e9cb86f3fa5a5ada5e160d62c15a6faafee56763d89b07a46c7c6abe68",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 0,
+        "verification_claim": 2,
+        "procedure": 0,
+        "history": 1
+      }
+    },
+    {
+      "path": "documentation/workflow/lifecycle-failure-inventory.md",
+      "lines": 212,
+      "sha256": "50db2c0767d30e8bf75939035f0a09dfe0fdb4553432f2751a746f9ed5e22ee8",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 7,
+        "verification_claim": 17,
+        "procedure": 8,
+        "history": 2
+      }
+    },
+    {
+      "path": "documentation/workflow/requirement-matrix.md",
+      "lines": 59,
+      "sha256": "f8848259109f6845d970a8502f5074138af2588a1344a59a95bff5216cc34c76",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 4,
+        "verification_claim": 22,
+        "procedure": 0,
+        "history": 0
+      }
+    },
+    {
+      "path": "documentation/workflow/workflow.md",
+      "lines": 1062,
+      "sha256": "801dae75157413714a418e15c3f62aa07105639befae304d987863b0f0695707",
+      "matches": {
+        "legacy_platform": 2,
+        "runtime_claim": 8,
+        "verification_claim": 68,
+        "procedure": 32,
+        "history": 8
+      }
+    },
+    {
+      "path": "infra/AGENTS.md",
+      "lines": 20,
+      "sha256": "34b3c8fdff71ee601b7bb38a8b4322a499a4d40a3df74aab6a0cd8d0bf80774a",
+      "matches": {
+        "legacy_platform": 1,
+        "runtime_claim": 1,
+        "verification_claim": 1,
+        "procedure": 2,
+        "history": 0
+      }
+    },
+    {
+      "path": "src/tiny_swarm_world/AGENTS.md",
+      "lines": 20,
+      "sha256": "5d819622d912e27c5e82f54bc869f16fcdcd1f57a6d5f5a204fd5f32b4d96b0d",
+      "matches": {
+        "legacy_platform": 0,
+        "runtime_claim": 0,
+        "verification_claim": 0,
+        "procedure": 2,
+        "history": 0
+      }
+    },
+    {
+      "path": "tools/windows/CODEX_WORKFLOW_WINDOWS_WSL_BRIDGE.md",
+      "lines": 180,
+      "sha256": "33f836e33f7b0ff0e40c1ca4041b6d7bddcfd672e3f2da0b2c6a1e3b9d4cbe73",
+      "matches": {
+        "legacy_platform": 8,
+        "runtime_claim": 4,
+        "verification_claim": 4,
+        "procedure": 3,
+        "history": 0
+      }
+    },
+    {
+      "path": "tools/windows/README.windows-wsl-bridge.md",
+      "lines": 372,
+      "sha256": "06d208d952ecc91ef1c80d22e5437828e2b334feafe9125a80dc97f8837f15e3",
+      "matches": {
+        "legacy_platform": 18,
+        "runtime_claim": 10,
+        "verification_claim": 9,
+        "procedure": 6,
+        "history": 0
+      }
+    }
+  ],
+  "snapshot_phase": "initial audit before remediation; documents hashes and scan counts retained",
+  "remediation": {
+    "review_date": "2026-10-10",
+    "branch": "docs/current-development-sync-20261010",
+    "source_commit": "cd662abdedd001660c059745e9ee739dc13d8fd6",
+    "result": "ALL_17_RECORDED_DOCUMENTATION_FINDINGS_CORRECTED",
+    "findings": [
+      {
+        "id": "DOC-01",
+        "status": "CORRECTED_DOCUMENTATION"
+      },
+      {
+        "id": "DOC-02",
+        "status": "CORRECTED_DOCUMENTATION"
+      },
+      {
+        "id": "DOC-03",
+        "status": "CORRECTED_DOCUMENTATION"
+      },
+      {
+        "id": "DOC-04",
+        "status": "CORRECTED_DOCUMENTATION"
+      },
+      {
+        "id": "DOC-05",
+        "status": "CORRECTED_DOCUMENTATION"
+      },
+      {
+        "id": "DOC-06",
+        "status": "CORRECTED_DOCUMENTATION"
+      },
+      {
+        "id": "DOC-07",
+        "status": "CORRECTED_DOCUMENTATION"
+      },
+      {
+        "id": "DOC-08",
+        "status": "CORRECTED_DOCUMENTATION"
+      },
+      {
+        "id": "DOC-09",
+        "status": "CORRECTED_DOCUMENTATION"
+      },
+      {
+        "id": "DOC-10",
+        "status": "CORRECTED_DOCUMENTATION"
+      },
+      {
+        "id": "DOC-11",
+        "status": "CORRECTED_DOCUMENTATION"
+      },
+      {
+        "id": "DOC-12",
+        "status": "CORRECTED_DOCUMENTATION"
+      },
+      {
+        "id": "DOC-13",
+        "status": "CORRECTED_DOCUMENTATION"
+      },
+      {
+        "id": "DOC-14",
+        "status": "CORRECTED_DOCUMENTATION"
+      },
+      {
+        "id": "DOC-15",
+        "status": "CORRECTED_DOCUMENTATION"
+      },
+      {
+        "id": "DOC-16",
+        "status": "CORRECTED_DOCUMENTATION"
+      },
+      {
+        "id": "DOC-17",
+        "status": "CORRECTED_DOCUMENTATION"
+      }
+    ],
+    "verification": {
+      "command": "python3 tools/quality_gate.py quality",
+      "result": "PASS",
+      "runtime": "Linux Python 3.14.4",
+      "architecture_tests": 43,
+      "regression_tests": 2529,
+      "regression_seconds": 613.443,
+      "regression_skips": 18,
+      "typed_source_files": 796,
+      "literal_targets_checked": 399,
+      "missing_literal_targets": 0,
+      "documentation_json_files": 6,
+      "registry_governing_hashes": "8 matched",
+      "diff_check": "PASS",
+      "live": "NOT_RUN",
+      "external": "NOT_QUERIED",
+      "rendering": "NOT_RUN"
+    },
+    "current_documentation_artifacts": 179,
+    "changed_artifacts": [
+      {
+        "path": "CHANGELOG.md",
+        "sha256": "2f550867d298baf892d58cbc0e43d08bf6a534a435fcd41a7d6d81e2d71d54c4",
+        "lines": 57
+      },
+      {
+        "path": "OPERATIONAL_READINESS_CHECKLIST.md",
+        "sha256": "30d75f2f2b32b05865327c67fb7bee6d9282bc5794e34d32f37a007dc95c0ba2",
+        "lines": 127
+      },
+      {
+        "path": "README.md",
+        "sha256": "abba2494ee53f1591d75f2c954305eef93557a87f3169a36593f3321f860f7e8",
+        "lines": 344
+      },
+      {
+        "path": "documentation/Howto.adoc",
+        "sha256": "4c6cb4b5242c4f8d49723605cd68c05c3aa4b8c9a9aa4f11b818264b68d43c3f",
+        "lines": 77
+      },
+      {
+        "path": "documentation/README.adoc",
+        "sha256": "9952da44d1e0d66d249f6211e5c55373f296b57288a818a781d9e9796168c079",
+        "lines": 102
+      },
+      {
+        "path": "documentation/arc42/01_introduction/autonomous-runnable-setup.md",
+        "sha256": "a9075d8d12f527f0ea8b0164f075173e9e96181aedd28e8d5ab9c55d1dc0b043",
+        "lines": 327
+      },
+      {
+        "path": "documentation/arc42/01_introduction/service-access-dashboard-vaultwarden.md",
+        "sha256": "2f73361efc46a04184a4c404918ddf41bcf85d83fdb7322107682ea9836bf1f6",
+        "lines": 252
+      },
+      {
+        "path": "documentation/arc42/01_introduction/system-unification.md",
+        "sha256": "1f874e6d9de9c7ad24271b5e98a4016e732a3633538598a3303d2b64f6defe7d",
+        "lines": 232
+      },
+      {
+        "path": "documentation/arc42/05_analysis/arch-03-01-dependency-map.md",
+        "sha256": "468c4cc04e27acb15618ce01fc84a308a88750f7af5e222986dfc92c8e9b292d",
+        "lines": 65
+      },
+      {
+        "path": "documentation/arc42/05_analysis/arch-03-01-violation-inventory.md",
+        "sha256": "447e932e09cfd1ab9a38c5f1b5d5a0f11dd821bf874e46566634c40b6384427d",
+        "lines": 60
+      },
+      {
+        "path": "documentation/arc42/05_analysis/arch-03-17-dead-path-audit.md",
+        "sha256": "517970a04546920807e893ce30358281f32f2448bc048a8d2d8cd4648c67f1b7",
+        "lines": 48
+      },
+      {
+        "path": "documentation/arc42/06_runtime_view.adoc",
+        "sha256": "41df1497215fd84c1b6244da87da4982927f26ef41bac10bdd5f7f17883952cc",
+        "lines": 619
+      },
+      {
+        "path": "documentation/arc42/07_deployment/system.adoc",
+        "sha256": "f1e774dbaa821f1723fecf6ed11e7a980a071210989d52314ca8c96e0ace2914",
+        "lines": 324
+      },
+      {
+        "path": "documentation/arc42/07_deployment_view.adoc",
+        "sha256": "c3eaa02fb27b2aa1a7a9ea5356965cf5252c6aca51c94dfe7f53df61f39d4201",
+        "lines": 309
+      },
+      {
+        "path": "documentation/arc42/08_configuration/rc1-simple-secret-bootstrap.md",
+        "sha256": "c1b90c5a0cdac61d697f808a56ad7fb383fa884867d9acb3389e636c799667de",
+        "lines": 69
+      },
+      {
+        "path": "documentation/arc42/08_deployment_configuration/infisical-silent-setup.adoc",
+        "sha256": "0926b1df42ed255e187c0bbb672e92f15e83e03daecda7f9a4cfd870e50250f0",
+        "lines": 116
+      },
+      {
+        "path": "documentation/arc42/09_architecture_decisions.adoc",
+        "sha256": "71b71a2dd017d6dd9d6cbde77e39758e7ca03e97eb08215e144807286c8d3196",
+        "lines": 103
+      },
+      {
+        "path": "documentation/arc42/09_decisions/adr-service-access-dashboard-vaultwarden.adoc",
+        "sha256": "82cc3004dfd3417cfd2c0784663fb10218dfa507956c371b8c9dfd5fd653a199",
+        "lines": 240
+      },
+      {
+        "path": "documentation/audit/audit-summary.md",
+        "sha256": "70afe978be69fba6c70b6a94df2ab96b9e586b1e28fb3b35cbcd56227ff6eb8d",
+        "lines": 55
+      },
+      {
+        "path": "documentation/audit/documentation-currency-review-20261010.md",
+        "sha256": "cf5838218b9bbfb54d89b23fb4000bc76c9a59e8b8cd70a44ec6bacdf9c5b0fe",
+        "lines": 159
+      },
+      {
+        "path": "documentation/audit/evidence-matrix.md",
+        "sha256": "34a722f6558d2bee9cd5709afd7ce352b0db6ca22a38289c188b61424baa3bf9",
+        "lines": 66
+      },
+      {
+        "path": "documentation/audit/findings-register.md",
+        "sha256": "9223ea629825bd2ff2c4800e668b9d4d9e99443fbc6826628d4bba137ba7386f",
+        "lines": 83
+      },
+      {
+        "path": "documentation/audit/remediation-plan.md",
+        "sha256": "ab300a73435c3009d374dd9ef3b59e3bfa37882fedc4c2ad5f408404d3ed1fa5",
+        "lines": 60
+      },
+      {
+        "path": "documentation/governance/branch-protection.md",
+        "sha256": "8acc84919dc188121aade7873dc719b6287e2397e6e53f8de8eba20901e10863",
+        "lines": 56
+      },
+      {
+        "path": "documentation/governance/ci-quality-gates.md",
+        "sha256": "a3aa792cc2e736c1bf1c2ef0873f4ca535ffa637f71444d6255b680983f8b6f6",
+        "lines": 129
+      },
+      {
+        "path": "documentation/manuals/live-validation-manual.md",
+        "sha256": "d3b666c0c5119bd68c235071d6104f15c72e7d98112d66f7e3801b8ff9e6e661",
+        "lines": 42
+      },
+      {
+        "path": "documentation/manuals/operator-manual.md",
+        "sha256": "3b389315b2f92b9b50b2c84fa5fc2f03ae783c4a1bb50a988581852fc9a3d13f",
+        "lines": 74
+      },
+      {
+        "path": "documentation/process/skills/audit/skill-registry.json",
+        "sha256": "a2503cf25431b3298ce266716972e698fb6fa0387c89c7065f5dc401ac65005e",
+        "lines": 215
+      },
+      {
+        "path": "documentation/security/admin-surface-rbac.md",
+        "sha256": "0f2491ba003cf2f3a9c9b30a8a962c7e1e8d4db7f898e5d4674aa561de2d790e",
+        "lines": 49
+      },
+      {
+        "path": "documentation/security/isms-scope.md",
+        "sha256": "672ac1b0c3f87adcadf16df568cec800e084cad7eb566916c58f9eb0c55b8297",
+        "lines": 64
+      },
+      {
+        "path": "documentation/security/owasp-asvs-mapping.md",
+        "sha256": "3cd01f4cf36b1f74405583f488741a9008f8c4d681964188e23114e923328f07",
+        "lines": 60
+      },
+      {
+        "path": "documentation/security/risk-register.md",
+        "sha256": "7b4449b0f1ed3d4f3c7e8fb1f639af2a241eb5a1a235522d5e20d9ee8c780530",
+        "lines": 30
+      },
+      {
+        "path": "documentation/security/security-controls.md",
+        "sha256": "f3e12533260a9d8645b25d1117bf2eb715aa5412e8fd100daa2187fcd1ee1495",
+        "lines": 70
+      },
+      {
+        "path": "documentation/security/service-access-threat-model.md",
+        "sha256": "a1fbcba0d90ca63cb08056abc0b100ba2e7dcf9c82e6dd08d3f05182ce263777",
+        "lines": 71
+      },
+      {
+        "path": "documentation/security/statement-of-applicability.md",
+        "sha256": "e1f14c18310e5b135fa72ddeb5e16731b49701e3a03d4d9b0a700ae13d32369c",
+        "lines": 28
+      },
+      {
+        "path": "documentation/system/live-operation-surfaces.adoc",
+        "sha256": "39ec26539f8fe802cd44048aa9bf356a4e63e3ad1ad22f4f5e7792dbdee6367d",
+        "lines": 171
+      },
+      {
+        "path": "documentation/system/lxc-native-setup.adoc",
+        "sha256": "33c1fe91ffc4fde523f59b70e14c8feee2934421bd9f6aa0b6494a16ecacdfdf",
+        "lines": 244
+      },
+      {
+        "path": "documentation/traceability/live-evidence-map.md",
+        "sha256": "eac904b84d9a7f3373141d25f0d815c98b788bb81e88dbc2706e36ed43996f95",
+        "lines": 31
+      },
+      {
+        "path": "documentation/traceability/test-coverage-map.md",
+        "sha256": "5314274de7c1303ce7d74a5879f24db1abeed53f845c90449634b09c7a4aa180",
+        "lines": 28
+      },
+      {
+        "path": "documentation/traceability/traceability-matrix.md",
+        "sha256": "efd98bf783caec1ba747ceec6b1bed614fe7d0511677b41f83e0943bf7cf0bdd",
+        "lines": 46
+      },
+      {
+        "path": "documentation/user_guide/installation.adoc",
+        "sha256": "7adda509d16b35febb09e9742600b9235e46e3b88b02fce8ad9292110e7f32f0",
+        "lines": 1335
+      },
+      {
+        "path": "documentation/user_guide/installer-console-output.md",
+        "sha256": "86ab94a2a76d9f240fdf2b0e816a2fb06f1fb77cb39ffce8a092221352cb9c40",
+        "lines": 82
+      },
+      {
+        "path": "documentation/user_guide/usage.adoc",
+        "sha256": "101908cb08bae29e06bd3a88be8bc1d04e665558213712cc446dc489eac50c28",
+        "lines": 661
+      }
+    ],
+    "snapshot_note": "Changed-file hashes after remediation; this JSON omits its own hash to avoid self-reference. Initial documents remain the original audit snapshot."
+  }
+}

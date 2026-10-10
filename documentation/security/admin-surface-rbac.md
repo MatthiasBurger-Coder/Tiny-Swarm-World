@@ -6,6 +6,13 @@ The models below are expected boundaries, not claims that all service roles or
 enforcement already exist. Each state is **Existing**, **Partial**, **Target**
 or **Open**. An open auth, route or transport decision blocks exposure.
 
+Current repository configuration includes HTTPS service routing, Traefik
+BasicAuth, service bootstrap credentials and Service Access metadata links.
+The [RC1 security record](rc1-classic-security-evidence.md) and
+[October lifecycle validation](../evidence/issue-363-final-validation-20261003.md)
+provide candidate-scoped evidence. They do not establish the complete role
+separation below, arbitrary credential rotation or production exposure readiness.
+
 ## Roles
 
 | Role | Intended authority | Allowed scope | Forbidden authority | State |
@@ -27,7 +34,7 @@ or **Open**. An open auth, route or transport decision blocks exposure.
 | SonarQube | Maintainer/security reviewer for quality/project administration; read-only for reports | Service administrator | Target/open | Authn/authz, project permissions and external result classification |
 | Infisical | Security owner controls bootstrap/rotation; operators receive references only | Security Owner | Partial/open | Bootstrap lifecycle, rotation, access policy and no-value evidence |
 | Pulsar Admin API | Service administrator only; token is never dashboard-visible | Service administrator / Security Owner | Target/open | Token source, authz, transport, redacted API evidence |
-| Service Access dashboard | Read-only default; service-admin actions separately authorized | System Architect / Security Owner | Future/open | Route/TLS, authentication, role mapping, secret-reference and threat evidence |
+| Service Access dashboard | Read-only default; service-admin actions separately authorized | System Architect / Security Owner | Existing route/assets; role model open | Current target route/TLS and any required authentication/role policy; secret-reference and threat evidence |
 
 ## Cross-surface boundaries
 
@@ -37,5 +44,6 @@ or **Open**. An open auth, route or transport decision blocks exposure.
 - Live-run authority is separate from repository merge authority.
 - Secret values are supplied by the approved secret source or local runtime
   boundary and are never rendered into dashboards, screenshots or evidence.
-- #150 inherits this model and must close route/auth ownership before enabling
-a GUI.
+- The implemented Traefik GUI uses HTTPS and external-secret BasicAuth.
+  Reassess route/auth ownership when exposure or inputs change. The broader
+  service-admin/read-only role separation remains an explicit target.

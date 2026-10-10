@@ -142,39 +142,38 @@ The canonical live-operation surface catalog is
 
 == Nexus bootstrap
 
-Nexus setup is owned by the Python setup workflow boundary. The default
-`lxc_native` path does not yet claim live Nexus stack creation,
-administrator-access establishment, or repository readiness success. Those
-steps remain blocked until provider-native artifact and deployment contracts
-are wired and verified.
-
-Important environment variables:
+Nexus setup is owned by the Python setup workflow boundary. The `lxc_native`
+composition wires managed-node stack bootstrap, administrator access and
+repository readiness through deployment and artifact services. Missing or
+failed observed prerequisites stop dependent phases. The
+link:../../evidence/issue-363-final-validation-20261003.md[Issue #363 validation]
+records successful historical installation and authentication for named
+candidates; a current target still needs observed readiness evidence.
 
 The validated operator contract and placeholder template are maintained in
 `documentation/arc42/08_configuration/operator-configuration-contract.md` and
-`.env.example`. Secret values have no committed defaults; keep them in the
-ignored local env file or the process environment.
+`.env.example`. The standard installer resolves disposable internal-test
+catalog defaults; real operator overrides belong in a protected local file or
+the process environment. The
+link:../08_configuration/internal-test-credential-catalog.md[credential catalog]
+defines component-specific defaults and their isolated-test scope.
 
 [options="header"]
 |===
-| Variable | Default | Purpose
-| `TSW_PORTAINER_URL` | `http://localhost:10001` | Portainer API base URL
-| `TSW_PORTAINER_USERNAME` | `admin` | Portainer login user
-| `TSW_PORTAINER_ADMIN_PASSWORD` | no default, operator supplied | Portainer login password
-| `TSW_PORTAINER_ENDPOINT` | `local` | Portainer endpoint name
-| `TSW_NEXUS_STACK_NAME` | `nexus` | Stack name in Portainer
-| `TSW_NEXUS_URL` | `http://localhost:13081` | Nexus base URL
-| `TSW_NEXUS_ADMIN_USERNAME` | `admin` | Nexus administrator user
-| `TSW_NEXUS_ADMIN_PASSWORD` | no default, operator supplied | New Nexus administrator password
-| `TSW_NEXUS_INITIAL_PASSWORD_PATH` | `/nexus-data/admin.password` | Initial password path inside the Nexus container
-| `TSW_NEXUS_MAX_ATTEMPTS` | `10` | Startup polling attempts
-| `TSW_NEXUS_WAIT_SECONDS` | `5` | Delay between polling attempts
-| `TSW_LXC_DOCKER_REGISTRY_MIRROR` | unset; operator supplied | Optional Docker registry mirror URL written into managed LXC nodes during Docker installation. Use an explicitly reviewed address reachable from inside the nodes, for example `http://<lxc-reachable-host-ip>:5001`; localhost values are rejected. No local container is auto-detected.
+| Variable | Purpose
+| `TSW_PORTAINER_USERNAME`, `TSW_PORTAINER_ADMIN_PASSWORD` | Portainer login identity and explicit credential override.
+| `TSW_NEXUS_ADMIN_USERNAME`, `TSW_NEXUS_ADMIN_PASSWORD` | Nexus login identity and explicit credential override.
+| `TSW_NEXUS_DOCKER_HUB_PROXY_REPOSITORY` | Managed Docker proxy repository name; default `docker-hub-proxy`.
+| `TSW_NEXUS_DOCKER_HUB_PROXY_PORT` | Proxy connector port; default `5001`.
+| `TSW_LXC_DOCKER_REGISTRY_MIRROR` | Optional external mirror reachable from managed nodes. Localhost is rejected; no local container is auto-detected.
 |===
 
-The localhost defaults above are operator targets for the Linux/WSL execution
-context. They may depend on WSL forwarding state and must not be treated as
-proof that a service is live or healthy.
+Managed-LXC clients derive transport, endpoint and polling from composition.
+The old `TSW_PORTAINER_ENDPOINT`, `TSW_NEXUS_STACK_NAME`, `TSW_NEXUS_URL`,
+`TSW_NEXUS_INITIAL_PASSWORD_PATH`, `TSW_NEXUS_MAX_ATTEMPTS` and
+`TSW_NEXUS_WAIT_SECONDS` names are historical documentation inputs, not
+supported overrides for this path. `TSW_PORTAINER_URL` does not select the
+managed-LXC client transport. See the configuration inventory's documentation-only keys.
 
 The committed port registry is `infra/config/ports.yaml`. Traefik owns public
 ingress ports `80` and `443`. High-numbered service allocations are desired

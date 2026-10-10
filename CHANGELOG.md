@@ -6,6 +6,23 @@ release claim.
 
 ## [Unreleased]
 
+### Added
+
+- Prepare supported Ubuntu Linux/WSL2 package and Python prerequisites from a
+  complete trusted release, followed by separately consented Incus startup,
+  user access and missing declared resources. Reuse compatible state and block
+  collisions without replacing it.
+- Add guarded Windows/WSL lifecycle and capacity planning/configuration.
+  Ordinary Windows Apply remains blocked pending applicable live qualification.
+- Prepare scoped kernel controls, managed-bridge forwarding and local browser
+  names with separate consent and existing Windows bridge ownership.
+
+### Documentation
+
+- Synchronize operator, architecture, quality, security and audit references
+  with current implementation. Attribute historical RC1 and lifecycle results
+  to their executed candidates; new bootstrap qualification remains separate.
+
 ### Fixed
 
 - Fail closed when a required managed-secret consumer is not configured.
@@ -13,6 +30,11 @@ release claim.
   port and infrastructure adapter.
 
 ### Changed
+
+- Separate host preparation from installation. Native Linux reconciles without
+  reset; WSL2 retains the confirmed managed-state fresh-reset path.
+- Extract CLI and installer orchestration into application services, ports and
+  infrastructure adapters while preserving compatibility exports.
 
 - Record the explicit non-interactive live-consent architecture decision.
 - Align Python, dependency-lock, skill-registry, and release metadata.

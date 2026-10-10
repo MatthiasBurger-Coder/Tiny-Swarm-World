@@ -506,19 +506,21 @@ tests, and rollback notes.
 Nexus bootstrap is owned by the workflow-level setup command. Configuration can
 be supplied with environment variables where supported by the Python adapters:
 
-Important variables:
+Supported inputs include:
 
-* `TSW_PORTAINER_URL`
 * `TSW_PORTAINER_USERNAME`
 * `TSW_PORTAINER_ADMIN_PASSWORD`
-* `TSW_PORTAINER_ENDPOINT`
-* `TSW_NEXUS_STACK_NAME`
-* `TSW_NEXUS_URL`
 * `TSW_NEXUS_ADMIN_USERNAME`
 * `TSW_NEXUS_ADMIN_PASSWORD`
-* `TSW_NEXUS_INITIAL_PASSWORD_PATH`
-* `TSW_NEXUS_MAX_ATTEMPTS`
-* `TSW_NEXUS_WAIT_SECONDS`
+* `TSW_NEXUS_DOCKER_HUB_PROXY_REPOSITORY`
+* `TSW_NEXUS_DOCKER_HUB_PROXY_PORT`
+* `TSW_LXC_DOCKER_REGISTRY_MIRROR`, when an external mirror is needed
+
+Managed-LXC clients derive transport, endpoint and polling from composition.
+Historical URL, endpoint, stack-name, initial-password-path and polling
+variable examples do not provide supported overrides for this path. See
+link:{user-reference-prefix}arc42/08_configuration/config-contract-inventory.md[the configuration inventory]
+for documentation-only keys and their applicability.
 
 The current validated setup contract is documented in
 `documentation/arc42/08_configuration/operator-configuration-contract.md`; `.env.example`

@@ -4,7 +4,7 @@
 installer prints human-readable progress and diagnostics while it writes logs
 and evidence to local evidence directories.
 
-Example:
+WSL2 fresh-reset example (phase excerpts):
 
 ```text
 Tiny Swarm World Installer
@@ -30,6 +30,11 @@ Tiny Swarm World Installer
 [setup] artifacts verify          COMPLETED
 [setup] deployment apply          START
 ```
+
+Native Linux uses `Mode: native-reconcile`, skips reset and reports
+`[1/1] live setup`. Its run context records
+`reset_skipped_for_native_reconcile=yes`. Both modes preserve setup failure
+exits and require live consent. Host preparation runs separately.
 
 The completed setup summary remains line-based and includes the workflow,
 phase count, status counts, phase-group status/limit/duration, each phase

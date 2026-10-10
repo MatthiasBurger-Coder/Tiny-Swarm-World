@@ -11,7 +11,9 @@ intentionally reduced to one catalog-backed lifecycle.
 2. Preserve explicit `TSW_*` environment overrides.
 3. Bootstrap Infisical from the resolved values; Infisical is not queried for
    its own startup inputs.
-4. Run the existing governed reset/setup workflow.
+4. On native Linux, reconcile through setup without a reset. On WSL2, require
+   reset confirmation, stop if reset fails, then run setup. Both paths require
+   live consent; a deliberate native reset is a separate operation.
 5. After successful setup, print service URLs, login identifiers, and the
    `INTERNAL/TEST ONLY` catalog convention. Password values are intentionally
    not printed; operators use the catalog or their protected override source.

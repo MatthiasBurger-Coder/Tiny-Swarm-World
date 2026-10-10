@@ -35,12 +35,21 @@ silently inferred.
 `MIN-01` through `MIN-08` are maintained in the local findings register and
 cover documentation audiences, supply-chain evidence, runtime metrics,
 operational readiness, licensing, release baselines, ASVS mapping and review
-formalization. Their statuses remain open, planned or evidence-pending as
+formalization. Their dispositions, including independently recorded closures, are
 recorded in [`findings-register.md`](findings-register.md).
+
+## Current interpretation
+
+This is the original enumerated finding snapshot, not a new assertion that
+QMS, ISMS, ASVS or traceability files are absent today. Their current artifact
+availability and still-open disposition reviews are in the maintained
+[findings register](findings-register.md) and [evidence matrix](evidence-matrix.md).
+Dated release/live evidence remains candidate-specific.
 
 ## Completion boundary
 
 This snapshot resolves the missing local source for the explicitly enumerated
 set. It does not close any finding, replace later child workflows, or replace
-the independent completion audit. Live and external evidence remain separate
-states and are not present in this repository snapshot.
+the independent completion audit. Live and external evidence were absent from the original snapshot. Later
+repository summaries retain their executed candidates; they are separate from
+the snapshot and from current global finding closure.
