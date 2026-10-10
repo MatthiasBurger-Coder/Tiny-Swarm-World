@@ -1,0 +1,15 @@
+{
+  "state": "OWNED_NATIVE_LINUX_GUEST_PROVISIONED_OFF",
+  "vm_id": "d8b0af88-2c3d-4098-a858-2fa6351cef64",
+  "vm_name": "TSW-BOOT-W09-NativeUbuntu24",
+  "ubuntu_release": "24.04",
+  "memory_gib": 32,
+  "processors": 12,
+  "disk_gib": 256,
+  "cloud_image_sha256": "6a81c37564db9b1ee84e141922625e1d7c5b389b99bb3c572e0243607d5bb4d2",
+  "checksum_signature_verified": true,
+  "boot_executed": false,
+  "product_node_provider": "incus",
+  "hyperv_is_test_host_only": true,
+  "observed_at_utc": "2026-10-10T23:36:28.2342362Z"
+}

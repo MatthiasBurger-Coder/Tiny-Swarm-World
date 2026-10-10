@@ -203,3 +203,32 @@ in /tmp/issue461-vhd-quality.log; explicit decoding and compatible fixture-only 
 APIs fix test reporting/setup without relaxing success assertions or product guards.
 Final gate log: /tmp/issue461-vhd-quality-final.log. Strict dependency audit carries
 forward on unchanged requirements.lock.
+
+Owned operator-Ubuntu checkpoint actual restore PASS at 2026-10-10T23:29:51Z:
+registration identity, Ubuntu26.04 generation2, original pending state SHA and
+configuration ABSENT preserved, recovery marker exact. Host free before32GiB boot
+40.966GiB. Candidate806 extracted membership/source proof verified; metadata
+inventory storage/effective known, no ACL/config/canonical state mutation by that
+observation. Product plan first saw distro_stopped; later operator diagnostic started
+owned Ubuntu. Initial operator resource helper archived exact old checkpoint under
+canonical lock with byte/ACL equality but subsequent CLI parameter -Apply was invalid;
+configuration apply did not start. A corrected separately inspected resume is running.
+Keep this helper failure distinct from a product executed-stage result.
+
+R461-24 regression: original runtime rejects added required physical signal
+(red); corrected runtime PASS77 resource assertions and strict shell regressions.
+Actual source806 apply exit3 and owned WSL restart result remain preserved in
+windows_resource_apply_result.json / windows_resource_postrestart_result.json.
+Read-only zone/kernel facts: windows_memory_accounting_observation.json.
+The first new full-gate invocation accidentally used older verification-copy
+bytes; it was terminated and is not accepted. Correct source byte copies were
+asserted before the corrected full-gate invocation; its result remains pending.
+
+R461-24 corrected full gate PASS:2555 tests136.568s,18 existing skips;
+43 architecture tests3.150s,7 import contracts,799 typechecked files and all
+other required gates. Runtime/ADR bytes matched verification copy. Final test-only
+boundary/aggregate-overflow additions: targeted19 tests42.193s PASS; standalone
+resource assertions77 PASS. No runtime changes followed the full gate.
+Logs:/tmp/issue461-memory-quality-corrected.log and
+/tmp/issue461-memory-targeted-final.log. Independent architecture/security and
+completion-auditor concrete reviews APPROVE; overall issue incomplete.

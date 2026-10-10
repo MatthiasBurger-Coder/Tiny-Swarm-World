@@ -94,6 +94,50 @@ class TestResourceProjection(unittest.TestCase):
             refused = subprocess.run(["sh", "-s"], input=script, text=True, capture_output=True, timeout=10, check=False)
             self.assertEqual(refused.returncode, 2)
 
+    def test_physical_probe_excludes_holes_and_device_memory_and_refuses_unknowns(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "meminfo").write_text("MemTotal: 21516664 kB\nSwapTotal: 6291456 kB\n")
+            (root / "identity").write_text("0::/\n")
+            zoneinfo = root / "zoneinfo"
+            valid = ("Node 0, zone DMA32\n  spanned 1048576\n  present 1015455\n"
+                     "Node 0, zone Normal\n  spanned 5000000\n  present 4489216\n"
+                     "Node 0, zone Device\n  present 1000000\n")
+            script = (ROOT / "tools/windows/preparation/linux-resources.sh").read_text()
+            script = (script.replace("/sys/fs/cgroup", str(root))
+                      .replace("/proc/self/cgroup", str(root / "identity"))
+                      .replace("/proc/meminfo", str(root / "meminfo"))
+                      .replace("/proc/zoneinfo", str(zoneinfo)))
+
+            def run(text: str, page_size: str = "4096") -> subprocess.CompletedProcess[str]:
+                zoneinfo.write_text(text)
+                return subprocess.run(["sh", "-s"],
+                                      input=script.replace("getconf PAGESIZE", "printf " + page_size),
+                                      text=True, capture_output=True, timeout=10, check=False)
+
+            observed = run(valid)
+            self.assertEqual(observed.returncode, 0, observed.stderr)
+            self.assertIn("effective_physical_memory_bytes=22547132416", observed.stdout)
+            self.assertIn("effective_memory_bytes=22033063936", observed.stdout)
+            for text in ("", valid.replace("Normal", "Unknown"),
+                         valid.replace("present 4489216", "present bad"),
+                         valid.replace("present 4489216", "present 4489216\n  present 1"),
+                         valid.replace("  present 4489216\n", ""),
+                         valid + "Node 0, zone Normal\n  present 1\n",
+                         valid.replace("present 4489216", "present 999999999999999999999"),
+                         "Node malformed\n present 100\n",
+                         "Node 0, zone Normal\n present 2000000000000\n"
+                         "Node 1, zone Normal\n present 2000000000000\n"):
+                with self.subTest(zoneinfo=text):
+                    refused = run(text)
+                    self.assertEqual(refused.returncode, 2)
+                    self.assertEqual(refused.stdout, "")
+            for size in ("0", "4097", "bad", "999999999999999999999"):
+                with self.subTest(page_size=size):
+                    refused = run(valid, size)
+                    self.assertEqual(refused.returncode, 2)
+                    self.assertEqual(refused.stdout, "")
+
     @unittest.skipUnless(WINDOWS_POWERSHELL.exists(), "Windows PowerShell unavailable for disposable ACL tests")
     def test_disposable_windows_file_and_acl_boundaries(self) -> None:
         executable = str(WINDOWS_POWERSHELL)

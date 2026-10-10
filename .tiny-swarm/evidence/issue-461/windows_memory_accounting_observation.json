@@ -1,0 +1,15 @@
+{
+  "state": "READ_ONLY_PHYSICAL_AND_USABLE_RAM_OBSERVED",
+  "source_commit": "806a58c36aabf8a95601f2bbfb2978e2d6ee2995",
+  "configured_memory_bytes": 22548578304,
+  "usable_memory_bytes": 22033063936,
+  "page_size_bytes": 4096,
+  "ram_present_pages": 5504671,
+  "physical_memory_bytes": 22547132416,
+  "device_pages": 0,
+  "kernel_reserved_kib": 510884,
+  "physical_delta_bytes": 1445888,
+  "threshold_changed": false,
+  "release_qualified": false,
+  "observed_at_utc": "2026-10-10T23:46:45.8794463Z"
+}

@@ -53,7 +53,7 @@ may bypass the requirement for a recoverable target.
 
 | R461-22 | Repair the live-observed durable checkpoint replacement failure so reruns/recovery retain confirmed effect evidence | Live blocker remediation / Adapters.ps1 and prepare-windows.Tests.ps1 | Narrow NullString fix; existing atomic replace and ACL guards retained | Windows PowerShell 5.1 isolated actual writer creates pending but effect replacement raises ArgumentException; direct NullString replacement succeeds; canonical pending state unchanged. Real-filesystem regression fails before fix, passes after fix under pwsh7 and WindowsPowerShell5.1; corrected full Python3.12 quality PASS. Corrected frozen source-bound protected disposable actual writer create/replace PASS with real ACL guards. Product full-stage qualification remains separate. | VERIFIED |
 
-| R461-23 | Resolve the observed selected WSL VHD trust compatibility before resource apply; preserve manual Ubuntu and all guards | Live prerequisite / storage permission trust finding | Independent review accepts metadata-only VHD role correction retaining trusted owners and strict BasePath; implementation under verification | Revised source-bound preflight exit2; resource inventory cause untrusted_evidence_acl; canonical state/config unchanged | IN_PROGRESS: accepted review, local tests/gate and frozen live source pending |
+| R461-23 | Resolve the observed selected WSL VHD trust compatibility before resource apply; preserve manual Ubuntu and all guards | Live prerequisite / storage permission trust finding | Independent review accepts metadata-only VHD role correction retaining trusted owners and strict BasePath; implementation under verification | Revised source-bound preflight exit2; resource inventory cause untrusted_evidence_acl; canonical state/config unchanged | VERIFIED: source806 full quality and actual resource apply exit3; remaining memory mismatch tracked R461-24 |
 
 2026-10-11 authorized continuation: R461-23 remediation scope includes
 ResourceAdapters.ps1, tests/windows/resource-files.Tests.ps1, the existing
@@ -67,3 +67,14 @@ Primary/local WSL remains outside that authorization. New runtime changes requir
 new passing gates and frozen committed source before live qualification.
 
 R461-23 test reporting scope also includes tests/test_wsl_resource_projection.py: explicit Windows child-output decoding keeps native localized errors visible rather than raising UnicodeDecodeError. Return-code and PASS assertions stay strict.
+
+| R461-24 | Correct observed WSL physical-versus-usable RAM accounting without weakening capacity limits | Actual source806 restart blocker / architecture approved 2026-10-11 | Two independent observations; normal-zone present pages exclude holes, MemTotal/cgroup clamp retained; exact five-key parser | Full gate PASS2555; targeted19 tests PASS; independent concrete reviews approve; new exact source affected-live rerun still required | LOCAL_VERIFIED / LIVE_OPEN |
+
+R461-24 scope: tools/windows/preparation/linux-resources.sh, Resources.ps1,
+tests/windows/resources.Tests.ps1, tests/windows/prepare-windows.Tests.ps1,
+tests/test_wsl_resource_projection.py, existing capacity ADR and user guide,
+issue461 evidence. Branch fix/boot-w09-live-qualification-20261010; completed
+workflow355 is not reopened. No active overlapping execution lock observed.
+Architecture reviewer approves based on actual page-size4096 and normal RAM
+present5504671 pages; physical22547132416 versus configured22548578304 bytes.
+No tolerance increase, node-budget reduction, primary-WSL reset or release claim.

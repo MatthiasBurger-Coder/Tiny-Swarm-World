@@ -323,3 +323,10 @@ transaction. See the [bootstrap recovery contract](../contracts/bootstrap.md#boo
 
 These are locally tested recovery safeguards. They do not add Windows live
 qualification or authorize host changes; BOOT-W09 still owns that evidence.
+
+Physical RAM and usable RAM are checked separately after the WSL restart. The
+physical observation counts present pages in supported RAM zones, excluding holes
+and Device memory, and is compared with the selected ceiling using the existing
+tolerance. Usable RAM remains MemTotal constrained by cgroup limits and must meet
+the unchanged profile/node minimum. Missing or inconsistent observations block
+preparation; matching `.wslconfig` alone does not verify effective capacity.

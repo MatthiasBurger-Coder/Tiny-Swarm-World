@@ -38,3 +38,17 @@ Additional R461-23 scope: tools/windows/preparation/ResourceAdapters.ps1;
 tests/windows/resource-files.Tests.ps1; existing capacity ADR dated amendment;
 windows-preparation.md clarification. Protected local portable PowerShell and VM
 checkpoint helpers are ignored/private, never committed.
+
+R461-24 freeze: two runtime resource helpers, three targeted regression files,
+existing capacity ADR/user guide and issue461 evidence. Redacted live result JSONs
+retain source806 resource application/refusal, operator checkpoint actual restore,
+metadata plan, physical/usable diagnosis and owned Ubuntu24/26 provisioning.
+No private helpers, VM images, credentials, local paths or generated runtime cache
+are staged. Existing completed workflow remains unchanged.
+
+Read-only commit reviewer contract: READY for local source freeze only. Scope:
+all staged files classify as issue461 runtime/tests/docs/evidence; no unrelated
+change. Full quality PASS and final targeted PASS; final bytes match, diff-check
+clean. Independent architecture/security/completion review approves correction;
+issue acceptance/live reruns remain OPEN. Message derived from staged correction:
+fix(bootstrap): distinguish physical and usable WSL memory. No publication.

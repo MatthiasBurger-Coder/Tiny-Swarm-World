@@ -87,7 +87,7 @@ function Get-PreparationResourceAssessment($Options,$Facts) {
         $minimum=[Math]::Max($profile.memory_gib,$nodes.memory_gib)*1073741824
         $ceiling=$allocation.memory_gib*1073741824
         $tolerance=[Math]::Max(268435456,$ceiling*0.02)
-        $effective=$r.effective_known -and $r.effective_memory_bytes -ge $minimum -and [Math]::Abs($r.effective_memory_bytes-$ceiling) -le $tolerance -and $r.effective_processors -eq $allocation.processors -and [Math]::Abs($r.effective_swap_bytes-$allocation.swap_gib*1073741824) -le 16777216 -and $r.effective_disk_bytes -ge $required.disk_gib*1073741824
+        $effective=$r.effective_known -and ($r.effective_physical_memory_bytes -is [long] -or $r.effective_physical_memory_bytes -is [int]) -and $r.effective_physical_memory_bytes -ge $r.effective_memory_bytes -and $r.effective_memory_bytes -ge $minimum -and [Math]::Abs($r.effective_physical_memory_bytes-$ceiling) -le $tolerance -and $r.effective_processors -eq $allocation.processors -and [Math]::Abs($r.effective_swap_bytes-$allocation.swap_gib*1073741824) -le 16777216 -and $r.effective_disk_bytes -ge $required.disk_gib*1073741824
         if(!$r.effective_known){ResourceBlock 'effective_resources_unknown'}
         elseif($r.effective_memory_bytes -lt $minimum){ResourceBlock 'insufficient_effective_memory'}
         elseif($r.effective_disk_bytes -lt $required.disk_gib*1073741824){ResourceBlock 'insufficient_effective_disk'}
@@ -100,13 +100,13 @@ function ConvertFrom-PreparationEffectiveResources($Probe) {
     if($Probe.exit_code -ne 0 -or ![string]::IsNullOrEmpty($Probe.stderr) -or $Probe.stdout -isnot [string]){return $null}
     $observed=@{}
     foreach($line in ($Probe.stdout.TrimEnd("`n") -split '\n')){
-        if($line -cnotmatch '^(effective_memory_bytes|effective_processors|effective_swap_bytes|effective_disk_bytes)=([0-9]+)$'){return $null}
+        if($line -cnotmatch '^(effective_physical_memory_bytes|effective_memory_bytes|effective_processors|effective_swap_bytes|effective_disk_bytes)=([0-9]+)$'){return $null}
         $key=$Matches[1];$text=$Matches[2]
         if($observed.ContainsKey($key)){return $null}
         $value=0L
         if(![long]::TryParse($text,[ref]$value)){return $null}
         $observed[$key]=$value
     }
-    if($observed.Count -ne 4 -or $observed.effective_memory_bytes -le 0 -or $observed.effective_processors -le 0 -or $observed.effective_disk_bytes -le 0){return $null}
+    if($observed.Count -ne 5 -or $observed.effective_physical_memory_bytes -gt 9007199254740991 -or $observed.effective_physical_memory_bytes -lt $observed.effective_memory_bytes -or $observed.effective_memory_bytes -le 0 -or $observed.effective_processors -le 0 -or $observed.effective_disk_bytes -le 0){return $null}
     return $observed
 }

@@ -1,7 +1,8 @@
 # Implementation summary
 
-Issue status: BLOCKED. Corrected frozen runtime candidate:
-`bce63aafb6990e9157c8ddb3eb12e4aa9fd1f440`. Historical native/feature candidate:
+Issue status: IN_PROGRESS, not complete. Current frozen runtime candidate:
+`806a58c36aabf8a95601f2bbfb2978e2d6ee2995`; RAM-accounting amendment under verification.
+Historical corrected checkpoint candidate: `bce63aafb6990e9157c8ddb3eb12e4aa9fd1f440`. Historical native/feature candidate:
 `3da77f8908d598688ed46dd6eab74c5f32a7ac50`, based on integrated #459/#460.
 The narrow urllib3 lock correction passes strict audit and full Python 3.12
 quality. A live checkpoint persistence defect is implemented, verified and frozen in the existing Windows adapter; product Python is unchanged. The existing completed #355
@@ -49,7 +50,8 @@ manual prerequisites do not count as candidate-executed install qualification.
 
 All releases remain UNQUALIFIED. AC1/AC2 and the required product install,
 rerun, recovery, preservation/reset and authentication scenarios remain open.
-Separate destructive WSL reset authorization is still absent. No issue close,
+Separate destructive WSL reset authorization was absent at this historical stage;
+the later explicit scoped authorization and verified recovery point are recorded below. No issue close,
 push, PR or merge is implied by the local verification/environment progress.
 
 Current revised plan exits 2 with resource_inventory_unknown and
@@ -78,3 +80,26 @@ pending. User separately authorizes reset exclusively inside this recovered test
 
 R461-23 final local gate PASS; independently reviewed correction is ready for
 new committed source freeze. Actual live resource verification remains pending.
+
+## Current resource and secured recovery evidence
+
+Source806 passes full quality and actual source-bound resource apply: exit3
+RESTART_REQUIRED, confirmed durable checkpoint, no uncertain actions, selected
+21GiB/8CPU/6GiB swap config. New operator-created Ubuntu checkpoint419a8422
+was actually restored and verified before the separately authorized VM-only reset.
+The original old-source checkpoint was archived under the canonical lock with
+bytes/hash/ACL preserved, not edited or implicitly reused. One private operator
+helper supplied an unsupported -Apply switch and failed before configuration
+mutation; the corrected default-apply helper recorded the actual result.
+
+An actual owned WSL shutdown/start confirms8CPU and6GiB swap, but the old RAM
+comparison refuses kernel reservations. Read-only present-page observation
+separates22547132416 physical bytes from22033063936 usable bytes. Independent
+architecture/security review approves R461-24 measurement correction with
+unchanged tolerance and independent MemTotal/cgroup floor. New exact source/live
+verification remains required. No release is qualified.
+
+Fresh isolated Ubuntu24/26 native-kernel Hyper-V test guests were provisioned
+from Canonical SHA/signature-verified cloud images, fixed32GiB/12CPU/256GiB.
+This is a virtualized native Linux test environment; product provider remains
+Incus. Guest boot, fresh preparation/install and recovery evidence remain pending.

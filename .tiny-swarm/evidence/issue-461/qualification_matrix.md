@@ -2,8 +2,8 @@
 
 Status: **BLOCKED**. Live qualification state: **LIVE_PREREQUISITE_MISSING**
 for authorized native tests and the new Windows test environment. Explicit
-destructive WSL reset remains **LIVE_CONSENT_MISSING**.
-Current corrected candidate: `bce63aafb6990e9157c8ddb3eb12e4aa9fd1f440` (checkpoint persistence fix). Historical native/feature runs used `3da77f8908d598688ed46dd6eab74c5f32a7ac50` (integrated W07/W08 plus urllib3 security repair).
+destructive Ubuntu reset is now authorized only inside the owned secured VM. Execution remains pending.
+Current corrected candidate: `806a58c36aabf8a95601f2bbfb2978e2d6ee2995` (metadata-only registered VHD observation, following checkpoint persistence fix at bce63aaf). Historical native/feature runs used `3da77f8908d598688ed46dd6eab74c5f32a7ac50` (integrated W07/W08 plus urllib3 security repair).
 Use the hash-verified release archive of this committed candidate for runtime
 runs; later product fixes require
 a new committed candidate, applicability assessment and affected reruns.
@@ -174,3 +174,12 @@ qualified by these observations.
 Original frozen candidate3da77 verified enable_features but returned PARTIAL/4 after effect-state replacement failure. Owned guest recovery reboot was verified; source-bound post-restart preflight requested install_wsl. The operator subsequently manually installed WSL3.0.1.0 and Ubuntu26.04.1LTS, default registration Ubuntu/WSL2/running/systemd/x86_64. This establishes observed manual prerequisites, not candidate-executed package/distro installation. Actual WSL MemTotal16377308kB and12processors still need the selected21GiB/8CPU budget. Preserve the operator installation. Corrected atomic checkpoint persistence passes actual WindowsPowerShell5.1 filesystem regression and full Python3.12 quality retry; bce63aaf is committed and source-verified in the owned guest, and its actual protected disposable writer passes. Corrected full product apply is blocked by the storage trust finding. Every release remains UNQUALIFIED.
 
 Corrected archiveSHA48326e2e486f4fb1c34287dc274a445b7438782a4b0d27de1616b2afa01dcb18 includes a clean committed-source membership proof. Owned-guest read-only plan verifies bce63aaf and exits2 on resource_inventory_unknown/bootstrap_state_invalid. Protected disposable checkpoint writer passes actual create/replace with real ACL guards; canonical old checkpoint/config unchanged. The selected VHD ACL refusal is a resource trust-policy finding, not capacity or service success. No revised product apply, state archive, configuration adaptation, distro restart or VM snapshot restore occurred after the manual install.
+
+2026-10-11 continuation: new operator-Ubuntu checkpoint 419a8422 was restored
+and exact registration/configuration/old state/marker were verified. This preserves
+manual Ubuntu. The new source806 resource diagnostic observes storage/effective
+facts (16-GiB current WSL memory/12CPU/4GiBswap), while product dry-run observes
+stopped distro before an explicit operator diagnostic start. Do not call this
+full no-start/no-write product qualification. Fresh source-bound resource stage
+remains in progress. Native26 own Hyper-V guest provisioned OFF from signed Ubuntu
+cloud image; native24 signed image downloaded/converted. Neither is qualified.
