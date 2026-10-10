@@ -47,7 +47,7 @@ class TestWindowsPreparation(unittest.TestCase):
     def test_read_only_bridge_inventory_and_existing_address_owner(self) -> None:
         executable = "powershell.exe" if os.name == "nt" else str(WINDOWS_POWERSHELL)
         completed = subprocess.run(
-            [executable, "-NoProfile", "-NonInteractive", "-File",
+            [executable, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File",
              _runtime_path(ROOT / "tests/windows/bridge-preparation.Tests.ps1", executable),
              "-RepositoryRoot", _runtime_path(ROOT, executable)],
             check=False, text=True, encoding="utf-8", errors="replace",
@@ -107,7 +107,7 @@ class TestWindowsPreparation(unittest.TestCase):
             with self.subTest(arguments=arguments):
                 completed = subprocess.run(
                     [
-                        executable, "-NoProfile", "-NonInteractive", "-File",
+                        executable, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File",
                         _runtime_path(ROOT / "prepare_windows.ps1", executable),
                         *arguments,
                     ],

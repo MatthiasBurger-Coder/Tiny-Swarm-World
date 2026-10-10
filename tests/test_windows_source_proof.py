@@ -106,7 +106,7 @@ class TestWindowsSourceProof(unittest.TestCase):
             catalog = workspace / "cases.json"
             catalog.write_text(json.dumps(cases))
             completed = subprocess.run(
-                [executable, "-NoProfile", "-NonInteractive", "-File",
+                [executable, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File",
                  _runtime_path(ROOT / "tests/windows/source-proof.Tests.ps1", executable),
                  "-RepositoryRoot", _runtime_path(ROOT, executable),
                  "-FixtureCatalog", _runtime_path(catalog, executable)],

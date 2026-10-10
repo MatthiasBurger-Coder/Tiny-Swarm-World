@@ -2,12 +2,15 @@
 from __future__ import annotations
 
 import asyncio
+import base64
+import io
 import json
 import os
 import signal
 from pathlib import Path
 import tempfile
 import unittest
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 from tiny_swarm_world.infrastructure.process import async_runner
@@ -262,6 +265,34 @@ class ProtectedFileTests(unittest.TestCase):
             helper.publish(self.target, self.observation(), b"new", 0o644)
 
 
+class PrivilegeBoundaryTests(unittest.TestCase):
+    def test_main_selects_only_fixed_production_paths(self) -> None:
+        for target, mode in helper.ALLOWED_TARGETS.items():
+            request = {"path": target, "before": {"content": ""}, "payload": "",
+                       "mode": mode, "shared": mode is None}
+            with self.subTest(target=target), \
+                    patch.object(helper.sys, "stdin", SimpleNamespace(buffer=io.BytesIO(json.dumps(request).encode()))), \
+                    patch.object(helper.signal, "signal"), patch.object(helper.signal, "alarm"), \
+                    patch.object(helper, "publish") as publish:
+                helper.main()
+                publish.assert_called_once_with(Path(target), {"content": b""}, b"", mode, mode is None)
+
+    def test_untrusted_paths_block_before_payload_or_filesystem_access(self) -> None:
+        invalid_paths: tuple[object, ...] = (
+            "/etc//hosts", "/etc/./hosts", "/etc/sysctl.d/../hosts", "../etc/hosts",
+            "/etc/hosts/", "/tmp/foreign", "/etc/hosts\0", None, 1, {}, [],
+        )
+        for value in invalid_paths:
+            request = json.dumps({"path": value}).encode()
+            with self.subTest(value=value), \
+                    patch.object(helper.sys, "stdin", SimpleNamespace(buffer=io.BytesIO(request))), \
+                    patch.object(helper.signal, "signal"), patch.object(helper.signal, "alarm"), \
+                    patch.object(helper, "publish") as publish:
+                with self.assertRaisesRegex(ValueError, "scope"):
+                    helper.main()
+                publish.assert_not_called()
+
+
 class HostsPlanningTests(unittest.TestCase):
     def test_owned_replacement_preserves_surrounding_crlf_bytes(self) -> None:
         content = (b"# untouched\r\n# BEGIN TINY SWARM WORLD\r\n"
@@ -293,14 +324,15 @@ class DelegationTests(unittest.IsolatedAsyncioTestCase):
         process.communicate.return_value = (b"", b"")
         before = files.FileObservation(False, b"", "fingerprint", 0, 0, 0)
         with patch.object(async_runner.asyncio, "create_subprocess_exec", return_value=process) as spawn:
-            await files.install(Path("/etc/sysctl.d/90-tiny-swarm-world.conf"), before, b"value", 0o644,
+            await files.install(Path("/etc/sysctl.d/90-tiny-swarm-world.conf"), before, b"PRIVATE_PAYLOAD_SENTINEL_458", 0o644,
                                 source_digest=files.helper_source_digest())
         self.assertEqual(("/usr/bin/sudo", "-n", "--", "/usr/bin/python3", "-I", "-B", "-c"),
                          spawn.call_args.args[:7])
         self.assertNotIn("shell", spawn.call_args.kwargs)
         request = json.loads(process.communicate.call_args.args[0])
-        self.assertEqual("dmFsdWU=", request["payload"])
-        self.assertNotIn("value", str(spawn.call_args))
+        self.assertEqual(b"PRIVATE_PAYLOAD_SENTINEL_458", base64.b64decode(request["payload"]))
+        self.assertNotIn("PRIVATE_PAYLOAD_SENTINEL_458", str(spawn.call_args))
+        self.assertNotIn(request["payload"], str(spawn.call_args))
 
     async def test_nonzero_exit_does_not_expose_file_content(self) -> None:
         process = AsyncMock()

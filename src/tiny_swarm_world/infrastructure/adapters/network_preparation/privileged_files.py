@@ -238,14 +238,23 @@ def _deadline(signum: int, frame: Any) -> None:
     raise TimeoutError("Protected-file action deadline expired")
 
 
+def _production_target(value: object) -> Path:
+    """Select a fixed policy path; never construct filesystem paths from input."""
+    for target in ALLOWED_TARGETS:
+        if isinstance(value, str) and value == target:
+            return Path(target)
+    raise ValueError("Target is outside the declared protected-file scope")
+
+
 def main() -> None:
     """Only fixed production policy is exposed at the privilege boundary."""
     signal.signal(signal.SIGALRM, _deadline)
     signal.alarm(12)
     request = json.loads(sys.stdin.buffer.read(MAX_BYTES * 4 + 1))
+    path = _production_target(request["path"])
     before = request["before"]
     before["content"] = base64.b64decode(before["content"], validate=True)
-    publish(Path(request["path"]), before,
+    publish(path, before,
             base64.b64decode(request["payload"], validate=True),
             request["mode"], request["shared"])
 
