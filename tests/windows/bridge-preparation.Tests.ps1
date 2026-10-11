@@ -6,6 +6,7 @@ Import-Module Microsoft.PowerShell.Management
 $count=0
 $originalIpFunction=${function:Get-WslIp}
 $originalCredentialFunction=${function:Request-BridgeServiceCredential}
+$originalFirewallFilters=${function:Get-PreparationFirewallFilters}
 function Assert($Value,$Name){if(!$Value){throw "FAIL: $Name"};$script:count++}
 # Only disposable test files are written; no host/service/routing resources.
 $tempRoot=Join-Path ([IO.Path]::GetTempPath()) ('tsw-w06-test-'+[guid]::NewGuid().ToString('N'))
@@ -204,6 +205,84 @@ function CanonicalFilters {
         services=@([pscustomobject]@{InstanceID='rule';Service='Any'})
     }
 }
+# Exercise the original family reader, not the later policy fixture override.
+function ResetBatchFixture {
+    $script:batchRows=CanonicalFilters;$script:batchCalls=@{};$script:batchFailure='';$script:partialFailure=$false
+    $script:batchRows.applications[0].PSObject.Properties.Remove('PackageObserved')
+    foreach($kind in @($script:batchRows.Keys)){
+        $foreign=$script:batchRows[$kind][0].PSObject.Copy();$foreign.InstanceID='rule-extra'
+        $script:batchRows[$kind]=@($script:batchRows[$kind][0],$foreign)
+    }
+}
+function ReadBatchFixture($Kind,$All,$Rule) {
+    $script:batchCalls[$Kind]++
+    if($script:batchFailure -ceq $Kind){
+        if($script:partialFailure){Write-Output $script:batchRows[$Kind][0];Write-Error 'fixture_partial_family_error'}
+        throw 'fixture_family_unavailable'
+    }
+    if(!$All){return @($script:batchRows[$Kind]|Where-Object{$_.InstanceID -eq $Rule.Name})}
+    return $script:batchRows[$Kind]
+}
+function Get-NetFirewallPortFilter{[CmdletBinding()]param([switch]$All,[Parameter(ValueFromPipeline=$true)]$Rule) process{ReadBatchFixture 'ports' $All $Rule}}
+function Get-NetFirewallAddressFilter{[CmdletBinding()]param([switch]$All,[Parameter(ValueFromPipeline=$true)]$Rule) process{ReadBatchFixture 'addresses' $All $Rule}}
+function Get-NetFirewallApplicationFilter{[CmdletBinding()]param([switch]$All,[Parameter(ValueFromPipeline=$true)]$Rule) process{ReadBatchFixture 'applications' $All $Rule}}
+function Get-NetFirewallInterfaceFilter{[CmdletBinding()]param([switch]$All,[Parameter(ValueFromPipeline=$true)]$Rule) process{ReadBatchFixture 'interfaces' $All $Rule}}
+function Get-NetFirewallInterfaceTypeFilter{[CmdletBinding()]param([switch]$All,[Parameter(ValueFromPipeline=$true)]$Rule) process{ReadBatchFixture 'interface_types' $All $Rule}}
+function Get-NetFirewallSecurityFilter{[CmdletBinding()]param([switch]$All,[Parameter(ValueFromPipeline=$true)]$Rule) process{ReadBatchFixture 'security' $All $Rule}}
+function Get-NetFirewallServiceFilter{[CmdletBinding()]param([switch]$All,[Parameter(ValueFromPipeline=$true)]$Rule) process{ReadBatchFixture 'services' $All $Rule}}
+$batchRules=@([pscustomobject]@{Name='rule';Profile=[uint16]0})
+ResetBatchFixture
+$batch=& $originalFirewallFilters -Rules $batchRules
+Assert (Test-PreparationFirewallPolicyCanonical $batchRules $batch) 'batched native projections preserve canonical policy'
+foreach($kind in @('ports','addresses','applications','interfaces','interface_types','security','services')){
+    Assert ($script:batchCalls[$kind] -eq 1 -and @($batch[$kind]).Count -eq 1) ('one family read excludes near foreign identity '+$kind)
+}
+ResetBatchFixture
+$manyRules=@(0..23|ForEach-Object{[pscustomobject]@{Name=('owned-'+$_);Profile=[uint16]0}})
+foreach($kind in @($script:batchRows.Keys)){
+    $template=$script:batchRows[$kind][0];$foreign=$script:batchRows[$kind][1]
+    $script:batchRows[$kind]=@($manyRules|ForEach-Object{$copy=$template.PSObject.Copy();$copy.InstanceID=$_.Name;$copy})+@($foreign)
+}
+$batch=& $originalFirewallFilters -Rules $manyRules
+Assert (Test-PreparationFirewallPolicyCanonical $manyRules $batch) 'complete 24-rule projections preserve policy'
+foreach($kind in @('ports','addresses','applications','interfaces','interface_types','security','services')){
+    Assert ($script:batchCalls[$kind] -eq 1) ('one query covers all owned rules '+$kind)
+}
+ResetBatchFixture;$empty=& $originalFirewallFilters -Rules @()
+Assert ($empty.Count -eq 0 -and $script:batchCalls.Count -eq 0) 'zero rules make no filter family queries'
+ResetBatchFixture
+foreach($kind in @($script:batchRows.Keys)){$script:batchRows[$kind][0].InstanceID='RuLe'}
+$batch=& $originalFirewallFilters -Rules $batchRules
+Assert (Test-PreparationFirewallPolicyCanonical $batchRules $batch) 'exact rule identity matches native case-insensitive contract'
+foreach($kind in @('ports','addresses','applications','interfaces','interface_types','security','services')){
+    foreach($shape in @('missing','duplicate','thrown','partial')){
+        ResetBatchFixture
+        switch($shape){
+            'missing'{$script:batchRows[$kind]=@($script:batchRows[$kind][1])}
+            'duplicate'{$script:batchRows[$kind]=@($script:batchRows[$kind][0],$script:batchRows[$kind][0])}
+            'thrown'{$script:batchFailure=$kind}
+            'partial'{$script:batchFailure=$kind;$script:partialFailure=$true}
+        }
+        $blocked=$false
+        try{$batch=& $originalFirewallFilters -Rules $batchRules;$blocked=!(Test-PreparationFirewallPolicyCanonical $batchRules $batch)}catch{$blocked=$true}
+        Assert $blocked ('family observation never permits incomplete or ambiguous policy '+$kind+' '+$shape)
+    }
+}
+foreach($shape in @('missing_package','restricted_application','missing_remote_port','missing_rule_id','empty_rule_id','duplicate_rule_id')){
+    ResetBatchFixture;$selectedRules=$batchRules
+    switch($shape){
+        'missing_package'{$script:batchRows.applications[0].PSObject.Properties.Remove('Package')}
+        'restricted_application'{$script:batchRows.applications[0].Program='restricted-app'}
+        'missing_remote_port'{$script:batchRows.ports[0].PSObject.Properties.Remove('RemotePort')}
+        'missing_rule_id'{$selectedRules=@([pscustomobject]@{Profile=[uint16]0})}
+        'empty_rule_id'{$selectedRules=@([pscustomobject]@{Name=' ';Profile=[uint16]0})}
+        'duplicate_rule_id'{$selectedRules=@($batchRules[0],$batchRules[0])}
+    }
+    $blocked=$false
+    try{$batch=& $originalFirewallFilters -Rules $selectedRules;$blocked=!(Test-PreparationFirewallPolicyCanonical $selectedRules $batch)}catch{$blocked=$true}
+    Assert $blocked ('batch retrieval preserves malformed/restricted observation refusal '+$shape)
+}
+foreach($name in @('Get-NetFirewallPortFilter','Get-NetFirewallAddressFilter','Get-NetFirewallApplicationFilter','Get-NetFirewallInterfaceFilter','Get-NetFirewallInterfaceTypeFilter','Get-NetFirewallSecurityFilter','Get-NetFirewallServiceFilter')){Remove-Item ('Function:\'+$name)}
 $script:rules=@([pscustomobject]@{Name='rule';DisplayName='Tiny Swarm World TCP 80';Enabled=$true;Direction='Inbound';Action='Allow';Profile=[uint16]0})
 $script:policyFilters=CanonicalFilters;$r=Probe
 Assert ($r.bridge_ready -and !$r.action) 'unrestricted observed CIM defaults retain ready no-op'

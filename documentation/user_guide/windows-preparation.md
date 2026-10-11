@@ -271,6 +271,9 @@ endpoints. Besides the legacy System process, the inventory accepts a live
 ownership and a stable creation identity. That identity participates in the
 consent fingerprint. Unknown processes, duplicate mappings and unavailable
 identity observations remain blockers; inventory never stops listeners.
+Firewall policy inventory reads each native filter family once, selecting exact
+rule identities while retaining duplicate, missing and restricted observations
+for the existing policy checks. Probe deadlines remain unchanged.
 
 After lifecycle and effective resource prerequisites are ready, preparation
 inventories the existing bridge for the explicitly selected running distribution.

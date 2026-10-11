@@ -4117,14 +4117,23 @@ function Test-PreparationHeartbeat {
 function Get-PreparationFirewallFilters {
     param($Rules)
     if (@($Rules).Count -eq 0) { return @{} }
+    $ruleIds = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+    foreach ($rule in $Rules) {
+        if ($rule.Name -isnot [string] -or [string]::IsNullOrWhiteSpace($rule.Name) -or -not $ruleIds.Add($rule.Name)) {
+            throw 'Firewall rule identity is missing or ambiguous.'
+        }
+    }
+    # Native filter InstanceID is the associated rule identity. Keep all matching
+    # rows, including duplicates, for the canonical policy's ambiguity checks.
+    $ownedFilter = { $_.InstanceID -is [string] -and $ruleIds.Contains($_.InstanceID) }
     return [ordered]@{
-        ports=@($Rules | Get-NetFirewallPortFilter -ErrorAction Stop | Select-Object InstanceID, Protocol, LocalPort, RemotePort, DynamicTarget | Sort-Object InstanceID)
-        addresses=@($Rules | Get-NetFirewallAddressFilter -ErrorAction Stop | Select-Object InstanceID, LocalAddress, RemoteAddress | Sort-Object InstanceID)
-        applications=@($Rules | Get-NetFirewallApplicationFilter -ErrorAction Stop | Select-Object InstanceID, Program, Package, @{Name='PackageObserved';Expression={$_.PSObject.Properties.Name -contains 'Package'}} | Sort-Object InstanceID)
-        interfaces=@($Rules | Get-NetFirewallInterfaceFilter -ErrorAction Stop | Select-Object InstanceID, InterfaceAlias | Sort-Object InstanceID)
-        interface_types=@($Rules | Get-NetFirewallInterfaceTypeFilter -ErrorAction Stop | Select-Object InstanceID, InterfaceType | Sort-Object InstanceID)
-        security=@($Rules | Get-NetFirewallSecurityFilter -ErrorAction Stop | Select-Object InstanceID, Authentication, Encryption, OverrideBlockRules, LocalUser, RemoteUser, RemoteMachine | Sort-Object InstanceID)
-        services=@($Rules | Get-NetFirewallServiceFilter -ErrorAction Stop | Select-Object InstanceID, Service | Sort-Object InstanceID)
+        ports=@(Get-NetFirewallPortFilter -All -ErrorAction Stop | Where-Object $ownedFilter | Select-Object InstanceID, Protocol, LocalPort, RemotePort, DynamicTarget | Sort-Object InstanceID)
+        addresses=@(Get-NetFirewallAddressFilter -All -ErrorAction Stop | Where-Object $ownedFilter | Select-Object InstanceID, LocalAddress, RemoteAddress | Sort-Object InstanceID)
+        applications=@(Get-NetFirewallApplicationFilter -All -ErrorAction Stop | Where-Object $ownedFilter | Select-Object InstanceID, Program, Package, @{Name='PackageObserved';Expression={$_.PSObject.Properties.Name -contains 'Package'}} | Sort-Object InstanceID)
+        interfaces=@(Get-NetFirewallInterfaceFilter -All -ErrorAction Stop | Where-Object $ownedFilter | Select-Object InstanceID, InterfaceAlias | Sort-Object InstanceID)
+        interface_types=@(Get-NetFirewallInterfaceTypeFilter -All -ErrorAction Stop | Where-Object $ownedFilter | Select-Object InstanceID, InterfaceType | Sort-Object InstanceID)
+        security=@(Get-NetFirewallSecurityFilter -All -ErrorAction Stop | Where-Object $ownedFilter | Select-Object InstanceID, Authentication, Encryption, OverrideBlockRules, LocalUser, RemoteUser, RemoteMachine | Sort-Object InstanceID)
+        services=@(Get-NetFirewallServiceFilter -All -ErrorAction Stop | Where-Object $ownedFilter | Select-Object InstanceID, Service | Sort-Object InstanceID)
     }
 }
 
