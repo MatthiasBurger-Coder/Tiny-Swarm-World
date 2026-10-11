@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "recorded_at_utc": "2026-10-11T13:36:14.547421+00:00",
+  "host_family": "AUTHORIZED_EXISTING_NATIVE_UBUNTU_26_04",
+  "sudo_version": "sudo-rs 0.2.13-0ubuntu1.2",
+  "comparison_argv": [
+    "/usr/bin/sudo",
+    "-n",
+    "--",
+    "/usr/bin/true"
+  ],
+  "authentication": "Interactive sudo -v in the same SSH TTY; credentials not recorded.",
+  "comparisons": [
+    {
+      "mode": "same_session",
+      "exit_code": 0
+    },
+    {
+      "mode": "detached_session",
+      "start_new_session": true,
+      "exit_code": 1,
+      "error": "sudo: interactive authentication is required"
+    },
+    {
+      "mode": "isolated_group_same_session",
+      "process_group": 0,
+      "exit_code": 0
+    }
+  ],
+  "product_code_executed": false,
+  "provider_package_service_network_mutations_executed": false,
+  "claim": "Native same-TTY authentication behavior only; not WSL patch or release qualification."
+}

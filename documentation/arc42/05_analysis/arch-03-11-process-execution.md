@@ -53,6 +53,17 @@ or cancellation, and retains the group identity when the session leader exits.
 Socat's detached service remains intentional; only the launch/probe is bounded.
 The legacy Windows bridge retains its injected launch seam and outcome flags.
 
+The accepted #461 R461-28 amendment (2026-10-11) retains that new-session default
+and adds an explicit direct-argv `preserve_login_session` option. Only the existing
+trusted noninteractive `/usr/bin/sudo -n` Incus/network preparation calls select
+it, including the protected-file helper. The opted child retains the invoking
+session and leads a distinct process group (`start_new_session=False`,
+`process_group=0`). Shell opt-in is rejected before launch. Both modes use the
+same bounded group cleanup, including descendants after the leader exits.
+No password input, interactive fallback, timestamp-policy change, retry or saved
+consent is introduced; absent authentication continues to fail closed. See the
+dated amendments to the explicit Incus and scoped network preparation decisions.
+
 ## Verification
 
 `tests.infrastructure.process.test_execution_contract` covers functional results,
@@ -61,6 +72,11 @@ traceback secrecy and process-group termination. Existing installer, network,
 LXC and bridge regression tests verify capability-specific mappings.
 `tests.architecture.test_process_spawn_boundaries` enforces the single ownership
 boundary; `test_hexagonal_imports` protects application imports.
+
+`tests.test_preparation_login_session` checks real unprivileged SID/PGID behavior,
+timeout/cancellation descendant cleanup in both modes and trusted adapter selection.
+The native sudo-rs same-TTY comparison is recorded under issue461; it establishes
+authentication behavior, not successful preparation of the owned WSL candidate.
 
 Issue evidence: `.tiny-swarm/evidence/issue-354/`. Local tests do not establish
 live infrastructure or external quality results.

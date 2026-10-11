@@ -18,6 +18,11 @@ class _StdinOption(TypedDict, total=False):
     stdin: int
 
 
+class _IsolationOption(TypedDict, total=False):
+    start_new_session: bool
+    process_group: int
+
+
 @dataclass(frozen=True)
 class AsyncProcessResult:
     returncode: int
@@ -40,21 +45,27 @@ async def run_async_process(
     shell: bool = False,
     discard_output: bool = False,
     input_data: bytes | None = None,
+    preserve_login_session: bool = False,
 ) -> AsyncProcessResult:
     """Return explicit process outcomes; propagate cancellation after child cleanup."""
     validate_timeout(timeout)
     if not args or (shell and not isinstance(args, str)) or (not shell and isinstance(args, str)):
         raise ValueError("Use a string for shell execution and argv for direct execution.")
+    if shell and preserve_login_session:
+        raise ValueError("Login-session preservation requires direct argv execution.")
     stdin_kwargs: _StdinOption = {"stdin": asyncio.subprocess.PIPE} if input_data is not None else {}
+    isolation_kwargs: _IsolationOption = {"start_new_session": not preserve_login_session}
+    if preserve_login_session:
+        isolation_kwargs["process_group"] = 0
     target = asyncio.subprocess.DEVNULL if discard_output else asyncio.subprocess.PIPE
     try:
         if shell:
             process = await asyncio.create_subprocess_shell(
-                cast(str, args), stdout=target, stderr=target, start_new_session=True, **stdin_kwargs,
+                cast(str, args), stdout=target, stderr=target, **isolation_kwargs, **stdin_kwargs,
             )
         else:
             process = await asyncio.create_subprocess_exec(
-                *args, stdout=target, stderr=target, start_new_session=True, **stdin_kwargs,
+                *args, stdout=target, stderr=target, **isolation_kwargs, **stdin_kwargs,
             )
     except FileNotFoundError:
         return AsyncProcessResult(127, failure_hint="launch_executable_missing")

@@ -329,6 +329,8 @@ class DelegationTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(("/usr/bin/sudo", "-n", "--", "/usr/bin/python3", "-I", "-B", "-c"),
                          spawn.call_args.args[:7])
         self.assertNotIn("shell", spawn.call_args.kwargs)
+        self.assertFalse(spawn.call_args.kwargs["start_new_session"])
+        self.assertEqual(0, spawn.call_args.kwargs["process_group"])
         request = json.loads(process.communicate.call_args.args[0])
         self.assertEqual(b"PRIVATE_PAYLOAD_SENTINEL_458", base64.b64decode(request["payload"]))
         self.assertNotIn("PRIVATE_PAYLOAD_SENTINEL_458", str(spawn.call_args))

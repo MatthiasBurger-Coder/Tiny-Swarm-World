@@ -19,7 +19,10 @@ LOCAL_INCUS = (*LOCAL_INCUS_QUERY, "--project", "default")
 
 
 async def command(args: tuple[str, ...], timeout: float = 5.0) -> AsyncProcessResult:
-    result = await run_async_process(args, timeout=timeout)
+    if args[:2] == ("/usr/bin/sudo", "-n"):
+        result = await run_async_process(args, timeout=timeout, preserve_login_session=True)
+    else:
+        result = await run_async_process(args, timeout=timeout)
     if result.timed_out:
         raise IncusPreparationFailure("Incus command timed out; inspect observed state before retrying.", exit_code=124)
     if result.failure_hint:

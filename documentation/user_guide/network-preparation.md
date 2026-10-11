@@ -14,6 +14,19 @@ stopped daemon. Apply shows the exact pending stage and asks for consent. Rerun
 after any required logout/login; a declined or interrupted stage is not ready.
 Preparation does not deploy nodes or services, or authorize an installation reset.
 
+Authenticate privileged stages in the same ordinary-user Ubuntu terminal:
+
+```bash
+sudo -v && ./prepare_linux.sh --service-profile service-access
+```
+
+Preparation retains this login session for its existing noninteractive sudo calls
+while isolating each child process group for bounded cleanup. Expired or missing
+authentication stops the stage; it does not silently request another password or
+retry. An authenticated terminal does not authorize another terminal or a headless
+Windows-to-WSL invocation. Review the reported partial effects and fresh dry-run
+before resuming an interrupted stage.
+
 Network planning consumes the canonical provider bridges, ports and local route
 names. It activates only the three declared forwarding/bridge sysctls, prepares
 owned persistence, scopes IPv4 forwarding to the managed bridge/subnet and current

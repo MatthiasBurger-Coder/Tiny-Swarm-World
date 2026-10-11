@@ -332,3 +332,20 @@ Acceptance authority: Root architect, following independent Senior System
 Architect support, Security/DevOps concurrence and Requirement/Test conditional
 concurrence now resolved by these exact clauses. All implementation requirements
 remain pending until executed local evidence and final independent audit.
+
+
+== Authenticated login-session amendment, 2026-10-11 (#461 R461-28)
+
+Accepted before implementation after independent System Architect, Security/DevOps
+and Requirement/Test concurrence. The same narrow central-process exception
+defined in adr-explicit-incus-preparation.adoc applies to the trusted noninteractive
+/usr/bin/sudo -n network command and protected-file helper calls. Retain the caller's
+login session while creating a distinct child process group; default commands
+remain in new sessions and shell opt-in is rejected. Authentication remains a
+separate prerequisite, with no interactive fallback or policy change.
+
+The protected helper retains its exact source-digest check, isolated Python -I/-B
+execution and private transaction payload over stdin. Ownership, safe path/file
+checks, source/plan binding, consent, deadlines, group cleanup and uncertain-effect
+reporting are unchanged. This corrects session compatibility within the existing
+process owner and does not expand mutation authority or claim live qualification.

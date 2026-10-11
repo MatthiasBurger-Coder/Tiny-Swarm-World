@@ -47,7 +47,7 @@ async def install(path: Path, before: FileObservation, payload: bytes,
     source = source_bytes.decode("utf-8")
     result = await run_async_process(
         ("/usr/bin/sudo", "-n", "--", "/usr/bin/python3", "-I", "-B", "-c", source),
-        timeout=15, input_data=request,
+        timeout=15, input_data=request, preserve_login_session=True,
     )
     if result.timed_out:
         raise TimeoutError("Protected-file transaction timed out; a fresh plan is required")

@@ -80,6 +80,19 @@ class FakeHost:
 
 
 class IncusCliTransportTests(unittest.IsolatedAsyncioTestCase):
+    async def test_privileged_actions_use_absolute_noninteractive_sudo(self):
+        adapter = LocalIncusPreparation(CONFIG, release="26.04", evidence=Mock())
+        for action, args in (
+            (IncusAction("daemon:start", "daemon", "incus.service", privilege="sudo"),
+             ("/usr/bin/sudo", "-n", "/usr/bin/systemctl", "start", "incus.service")),
+            (IncusAction("access:add-group", "access", "operator", privilege="sudo"),
+             ("/usr/bin/sudo", "-n", "/usr/sbin/usermod", "-a", "-G", "incus-admin", "--", "operator")),
+        ):
+            adapter._actions = (action,)
+            with patch(f"{RUNTIME}.checked_command", return_value="") as run:
+                await adapter.execute(action)
+            run.assert_awaited_once_with(args, action.timeout_seconds)
+
     async def test_query_is_local_isolated_and_uses_api_project_scope(self):
         for path in ("/1.0", "/1.0/profiles?recursion=1&project=default"):
             with patch(f"{RUNTIME}.run_async_process", return_value=AsyncProcessResult(0, "{}")) as runner:
