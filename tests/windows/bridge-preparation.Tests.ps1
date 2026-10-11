@@ -115,6 +115,77 @@ $script:hosts='127.0.0.2 jenkins.tsw.local';$r=Probe;Assert ($r.blockers -contai
 $script:owned=$true
 $script:state=[pscustomobject]@{generatedAt=[DateTimeOffset]::Now.ToString('o');agentMode='windows-service';agentStatus='ready';wslIp=$ObservedAddress;bundleId='bundle';configPath=$InstalledConfigPath;registryPath=$InstalledPortRegistryPath;listenAddress='0.0.0.0';firewallRulePrefix='Tiny Swarm World';mappings=@([pscustomobject]@{listenPort=80;connectPort=80})}
 $r=Probe;Assert ($r.bridge_ready -and !$r.action) 'owned ready agent no-op'
+# Exercise the genuine identity helper with deterministic CIM observations.
+$script:identityFailure='';$script:processReads=0;$script:serviceReads=0
+$script:creation=[DateTime]::UtcNow.AddMinutes(-5)
+function Get-CimInstance {
+    param($ClassName,$Filter,$OperationTimeoutSec,$ErrorAction)
+    if($script:identityFailure -eq 'technical'){throw 'fixture_cim_unavailable'}
+    if($ClassName -eq 'Win32_Service'){
+        $script:serviceReads++
+        $value=[pscustomobject]@{Name='iphlpsvc';State='Running';ProcessId=4280;StartName='LocalSystem'}
+        switch($script:identityFailure){
+            'service_name'{$value.Name='other'} 'stopped'{$value.State='Stopped'}
+            'service_pid'{$value.ProcessId=0} 'service_owner'{$value.StartName='unknown-fixture-account'}
+            'service_recycled'{if($script:serviceReads -gt 1){$value.ProcessId=4281}}
+        }
+        if($script:identityFailure -eq 'service_duplicate'){return @($value,$value)}
+        return $value
+    }
+    $script:processReads++
+    $value=[pscustomobject]@{ProcessId=4280;Name='svchost.exe';ExecutablePath=(Join-Path ([Environment]::GetFolderPath('System')) 'svchost.exe');CreationDate=$script:creation}
+    switch($script:identityFailure){
+        'process_pid'{$value.ProcessId=4281} 'process_name'{$value.Name='foreign.exe'}
+        'image'{$value.ExecutablePath='C:\untrusted\svchost.exe'} 'creation_missing'{$value.CreationDate=$null}
+        'creation_string'{$value.CreationDate=$value.CreationDate.ToString('o')}
+        'recheck_creation_string'{if($script:processReads -gt 1){$value.CreationDate=$value.CreationDate.ToString('o')}}
+        'process_recycled'{if($script:processReads -gt 1){$value.CreationDate=$value.CreationDate.AddSeconds(1)}}
+    }
+    if($script:identityFailure -eq 'process_duplicate'){return @($value,$value)}
+    return $value
+}
+function Invoke-CimMethod {
+    param($InputObject,$MethodName,$OperationTimeoutSec,$ErrorAction)
+    if($script:identityFailure -eq 'owner_probe'){throw 'fixture_owner_unavailable'}
+    return [pscustomobject]@{ReturnValue=$(if($script:identityFailure -eq 'owner_error'){1}else{0});Sid=$(if($script:identityFailure -eq 'process_owner'){'S-1-5-19'}else{'S-1-5-18'})}
+}
+function IdentityProbe {$script:processReads=0;$script:serviceReads=0;return Get-PreparationIpHelperIdentity}
+$identity=IdentityProbe
+Assert ($identity.pid -eq 4280 -and $identity.owner -eq 'S-1-5-18') 'live SYSTEM IP Helper identity accepted'
+foreach($failure in @('service_name','stopped','service_pid','service_owner','service_recycled','service_duplicate','process_pid','process_name','image','creation_missing','creation_string','recheck_creation_string','process_recycled','process_duplicate','process_owner','owner_error','owner_probe','technical')){
+    $script:identityFailure=$failure
+    Assert ($null -eq (IdentityProbe)) ('IP Helper identity fails closed '+$failure)
+}
+$script:identityFailure='';$script:processReads=0;$script:serviceReads=0
+$script:records=@([pscustomobject]@{ListenAddress='0.0.0.0';ListenPort=80;ConnectAddress=$ObservedAddress;ConnectPort=80})
+$script:listeners=@([pscustomobject]@{LocalAddress='0.0.0.0';LocalPort=80;OwningProcess=4})
+Assert ((Probe).bridge_ready) 'legacy System portproxy listener remains ready'
+$script:listeners[0].OwningProcess=4280
+$script:processReads=0;$script:serviceReads=0;$first=Probe
+Assert $first.bridge_ready 'exact mapping and live IP Helper listener ready'
+Assert ($script:serviceReads -eq 2 -and $script:processReads -eq 2) 'one live identity observation per inventory'
+$script:creation=$script:creation.AddSeconds(1);$script:processReads=0;$script:serviceReads=0
+Assert ((Probe).fingerprint -ne $first.fingerprint) 'IP Helper creation identity binds fresh consent'
+foreach($failure in @('wrong_pid','wrong_address','wrong_connect_port','wrong_connect_address','duplicate_record','duplicate_mapping','no_mapping','technical')){
+    $savedRecords=$script:records;$savedMappings=$script:state.mappings
+    $script:listeners[0].OwningProcess=4280;$script:listeners[0].LocalAddress='0.0.0.0'
+    $script:processReads=0;$script:serviceReads=0
+    switch($failure){
+        'wrong_pid'{$script:listeners[0].OwningProcess=4281}
+        'wrong_address'{$script:listeners[0].LocalAddress='127.0.0.1'}
+        'wrong_connect_port'{$script:records=@([pscustomobject]@{ListenAddress='0.0.0.0';ListenPort=80;ConnectAddress=$ObservedAddress;ConnectPort=81})}
+        'wrong_connect_address'{$script:records=@([pscustomobject]@{ListenAddress='0.0.0.0';ListenPort=80;ConnectAddress='172.20.0.8';ConnectPort=80})}
+        'duplicate_record'{$script:records=@($savedRecords[0],$savedRecords[0])}
+        'duplicate_mapping'{$script:state.mappings=@($savedMappings[0],$savedMappings[0])}
+        'no_mapping'{$script:state.mappings=@()}
+        'technical'{$script:identityFailure='technical'}
+    }
+    $r=Probe
+    Assert (!$r.bridge_ready -and !$r.action -and $r.blockers -contains 'foreign_or_unknown_listener') ('listener ownership conjunct rejected '+$failure)
+    $script:records=$savedRecords;$script:state.mappings=$savedMappings;$script:identityFailure=''
+}
+$script:listeners=@();$script:records=@()
+Remove-Item Function:\Get-CimInstance,Function:\Invoke-CimMethod
 # Model the adapted CIM representation from shipped NetSecurity types/CDXML.
 $formatterAssembly=Join-Path $env:windir 'System32/WindowsPowerShell/v1.0/Modules/NetSecurity/Microsoft.Windows.Firewall.Commands.dll'
 [void][Reflection.Assembly]::Load([IO.File]::ReadAllBytes($formatterAssembly))

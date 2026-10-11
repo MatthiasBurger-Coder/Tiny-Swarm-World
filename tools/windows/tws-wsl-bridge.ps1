@@ -4179,6 +4179,35 @@ function Get-PreparationHeartbeatObservation {
     }
 }
 
+function Get-PreparationIpHelperIdentity {
+    # Modern Windows hosts portproxy in IP Helper rather than the System PID.
+    # Observe a live OS service/process identity; names alone confer no ownership.
+    try {
+        $services = @(Get-CimInstance -ClassName Win32_Service -Filter "Name = 'iphlpsvc'" -OperationTimeoutSec 2 -ErrorAction Stop)
+        if ($services.Count -ne 1) { return $null }
+        $service = $services[0]
+        if ($service.Name -cne 'iphlpsvc' -or $service.State -cne 'Running' -or [int]$service.ProcessId -le 4 -or
+            ([string]$service.StartName -ine 'LocalSystem' -and (Get-BridgeAccountSidValue -AccountName ([string]$service.StartName)) -cne 'S-1-5-18')) { return $null }
+        $processes = @(Get-CimInstance -ClassName Win32_Process -Filter ("ProcessId = " + [int]$service.ProcessId) -OperationTimeoutSec 2 -ErrorAction Stop)
+        if ($processes.Count -ne 1) { return $null }
+        $process = $processes[0]
+        $expectedImage = Join-Path ([Environment]::GetFolderPath('System')) 'svchost.exe'
+        if ([int]$process.ProcessId -ne [int]$service.ProcessId -or $process.Name -cne 'svchost.exe' -or
+            -not [StringComparer]::OrdinalIgnoreCase.Equals([string]$process.ExecutablePath, $expectedImage) -or
+            $process.CreationDate -isnot [DateTime]) { return $null }
+        $owner = Invoke-CimMethod -InputObject $process -MethodName GetOwnerSid -OperationTimeoutSec 2 -ErrorAction Stop
+        if ($owner.ReturnValue -ne 0 -or $owner.Sid -cne 'S-1-5-18') { return $null }
+        $again = @(Get-CimInstance -ClassName Win32_Process -Filter ("ProcessId = " + [int]$service.ProcessId) -OperationTimeoutSec 2 -ErrorAction Stop)
+        $current = @(Get-CimInstance -ClassName Win32_Service -Filter "Name = 'iphlpsvc'" -OperationTimeoutSec 2 -ErrorAction Stop)
+        if ($again.Count -ne 1 -or $current.Count -ne 1 -or $current[0].Name -cne 'iphlpsvc' -or
+            $current[0].State -cne 'Running' -or [int]$current[0].ProcessId -ne [int]$process.ProcessId -or
+            [int]$again[0].ProcessId -ne [int]$process.ProcessId -or $again[0].CreationDate -isnot [DateTime] -or $again[0].CreationDate -ne $process.CreationDate -or
+            $again[0].Name -cne $process.Name -or $again[0].ExecutablePath -cne $process.ExecutablePath -or
+            ([string]$current[0].StartName -ine 'LocalSystem' -and (Get-BridgeAccountSidValue -AccountName ([string]$current[0].StartName)) -cne 'S-1-5-18')) { return $null }
+        return [ordered]@{service='iphlpsvc';pid=[int]$process.ProcessId;image=$expectedImage;owner='S-1-5-18';created_utc=$process.CreationDate.ToUniversalTime().ToString('o')}
+    } catch { return $null }
+}
+
 function Get-BridgePreparationInventory {
     param($Config, $Mappings, $HostNames, [string]$RegistryPath)
     Assert-PreparationDistro -Value $Distro
@@ -4219,6 +4248,10 @@ function Get-BridgePreparationInventory {
         [void]$blockers.Add('owned_firewall_policy_conflict')
     }
     $listeners = @(Get-NetTCPConnection -State Listen -ErrorAction Stop | Where-Object { $_.LocalPort -in @($Mappings | ForEach-Object { $_.ListenPort }) })
+    $ipHelperIdentity = $null
+    if ($null -ne $state -and @($listeners | Where-Object { [int]$_.OwningProcess -ne 4 }).Count -gt 0) {
+        $ipHelperIdentity = Get-PreparationIpHelperIdentity
+    }
     foreach ($mapping in $Mappings) {
         foreach ($record in @($records | Where-Object { $_.ListenPort -eq $mapping.ListenPort })) {
             $owned = $false
@@ -4228,7 +4261,14 @@ function Get-BridgePreparationInventory {
             if (-not $owned) { [void]$blockers.Add('foreign_portproxy_collision') }
         }
         foreach ($listener in @($listeners | Where-Object { $_.LocalPort -eq $mapping.ListenPort })) {
-            $ownedProxy = $null -ne $state -and [int]$listener.OwningProcess -eq 4 -and @($records | Where-Object { $_.ListenPort -eq $listener.LocalPort -and $_.ListenAddress -eq $listener.LocalAddress -and $_.ConnectAddress -eq [string]$state.wslIp }).Count -eq 1
+            $approvedMappings = @()
+            if ($null -ne $state) {
+                $approvedMappings = @($state.mappings | Where-Object { $_.listenPort -eq $mapping.ListenPort -and $_.connectPort -eq $mapping.ConnectPort })
+            }
+            $ownedProcess = [int]$listener.OwningProcess -eq 4 -or ($null -ne $ipHelperIdentity -and [int]$listener.OwningProcess -eq $ipHelperIdentity.pid)
+            $ownedProxy = $null -ne $state -and $approvedMappings.Count -eq 1 -and $ownedProcess -and
+                $listener.LocalAddress -eq [string]$state.listenAddress -and
+                @($records | Where-Object { $_.ListenPort -eq $listener.LocalPort -and $_.ListenAddress -eq $listener.LocalAddress -and $_.ConnectAddress -eq [string]$state.wslIp -and $_.ConnectPort -eq $mapping.ConnectPort }).Count -eq 1
             if (-not $ownedProxy) { [void]$blockers.Add('foreign_or_unknown_listener') }
         }
     }
@@ -4264,7 +4304,7 @@ function Get-BridgePreparationInventory {
         action=$nextAction; blockers=@($blockers | Select-Object -Unique)
         endpoint_state='UNVERIFIED'; login_state='UNVERIFIED'
     }
-    $result.fingerprint = Get-BridgePreparationDigest @($result, $Config, (Get-FileHash -LiteralPath $RegistryPath -Algorithm SHA256).Hash, $bundleId, $records, @($listeners | Select-Object LocalAddress, LocalPort, OwningProcess), @($snapshot.Rules | Select-Object Name, DisplayName, Enabled, Direction, Action, Profile, EdgeTraversalPolicy | Sort-Object Name), $firewallFilters, @($snapshot.FiltersByRuleId.Keys | Sort-Object | ForEach-Object { [ordered]@{id=$_;filter=($snapshot.FiltersByRuleId[$_] | Select-Object InstanceID, Protocol, LocalPort, RemotePort, DynamicTarget)} }), (Get-PreparationHeartbeatObservation -State $state -IntervalMinutes (Get-DiscoveryIntervalMinutes $Config)), $installedHashes, $hosts)
+    $result.fingerprint = Get-BridgePreparationDigest @($result, $Config, (Get-FileHash -LiteralPath $RegistryPath -Algorithm SHA256).Hash, $bundleId, $records, @($listeners | Select-Object LocalAddress, LocalPort, OwningProcess), $ipHelperIdentity, @($snapshot.Rules | Select-Object Name, DisplayName, Enabled, Direction, Action, Profile, EdgeTraversalPolicy | Sort-Object Name), $firewallFilters, @($snapshot.FiltersByRuleId.Keys | Sort-Object | ForEach-Object { [ordered]@{id=$_;filter=($snapshot.FiltersByRuleId[$_] | Select-Object InstanceID, Protocol, LocalPort, RemotePort, DynamicTarget)} }), (Get-PreparationHeartbeatObservation -State $state -IntervalMinutes (Get-DiscoveryIntervalMinutes $Config)), $installedHashes, $hosts)
     return $result
 }
 

@@ -265,6 +265,12 @@ They describe eligibility, not Tiny Swarm World live qualification.
 The bridge inventory fingerprint includes decoded hosts text; content and
 newline changes invalidate prior approval. Incidental PowerShell filesystem
 metadata is excluded, and an unreadable hosts file still blocks inventory.
+Owned portproxy listeners require exact protected-state and observed forwarding
+endpoints. Besides the legacy System process, the inventory accepts a live
+`iphlpsvc` service only when its System32 `svchost.exe` process has SYSTEM
+ownership and a stable creation identity. That identity participates in the
+consent fingerprint. Unknown processes, duplicate mappings and unavailable
+identity observations remain blockers; inventory never stops listeners.
 
 After lifecycle and effective resource prerequisites are ready, preparation
 inventories the existing bridge for the explicitly selected running distribution.
