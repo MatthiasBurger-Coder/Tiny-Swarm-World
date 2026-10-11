@@ -262,6 +262,10 @@ They describe eligibility, not Tiny Swarm World live qualification.
 
 ## W06 bridge preparation and browser-access stages
 
+The bridge inventory fingerprint includes decoded hosts text; content and
+newline changes invalidate prior approval. Incidental PowerShell filesystem
+metadata is excluded, and an unreadable hosts file still blocks inventory.
+
 After lifecycle and effective resource prerequisites are ready, preparation
 inventories the existing bridge for the explicitly selected running distribution.
 The plan delegates `bridge_install` or an owned `bridge_refresh` to the canonical

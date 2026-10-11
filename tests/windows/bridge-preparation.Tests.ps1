@@ -55,7 +55,8 @@ function Get-NetFirewallRule{param($ErrorAction) return @()}
 function Get-FirewallRuleSnapshot{param($Config) return [pscustomobject]@{Rules=$script:rules;FiltersByRuleId=@{rule=@{LocalPort=$script:filterPort;Protocol=$script:filterProtocol}}}}
 function Get-PreparationFirewallFilters{param($Rules) if($null -ne $script:policyFilters){return $script:policyFilters};return @{ports=@{LocalPort=$script:filterPort;Protocol=$script:filterProtocol}}}
 function Get-NetTCPConnection{param($State,$ErrorAction) return $script:listeners}
-function Get-Content{param($LiteralPath,[switch]$Raw,$Encoding) return $script:hosts}
+$script:hostsReadFailure=$false
+function Get-Content{param($LiteralPath,[switch]$Raw,$Encoding) if($script:hostsReadFailure){throw 'fixture_hosts_read_unavailable'};return $script:hosts}
 function Remove-ManagedHostsBlock{return ($script:hosts -replace '(?ms)# >>> Tiny Swarm World WSL Bridge >>>.*?# <<< Tiny Swarm World WSL Bridge <<<','')}
 function Get-FileHash{param($LiteralPath,$Algorithm) return [pscustomobject]@{Hash='same'}}
 function Test-Path{param($LiteralPath,$PathType) return $false}
@@ -75,6 +76,37 @@ function Probe{return Get-BridgePreparationInventory $config $mappings $hostName
 $r=Probe;Assert ($r.action -eq 'install' -and !$r.bridge_ready -and $r.blockers.Count -eq 0) 'absent registration plans existing install'
 Assert ($r.endpoint_state -eq 'UNVERIFIED' -and $r.login_state -eq 'UNVERIFIED') 'routing distinct from endpoint and login'
 $before=$r.fingerprint;$r=Probe;Assert ($r.fingerprint -eq $before) 'stable exact plan'
+# Real Get-Content values retain filesystem provider metadata on Windows 5.1.
+$contentFixture=Join-Path ([IO.Path]::GetTempPath()) ('tsw-w09-hosts-'+[guid]::NewGuid().ToString('N'))
+$plainHosts=$script:hosts
+try {
+    [IO.File]::WriteAllText($contentFixture,$plainHosts)
+    $observed=Microsoft.PowerShell.Management\Get-Content -LiteralPath $contentFixture -Raw -Encoding UTF8
+    Assert ($observed.PSObject.Properties.Name -contains 'PSPath') 'real hosts observation carries filesystem metadata'
+    # Keep small real path metadata for a bounded red assertion before the fix.
+    $observed.PSObject.Properties.Remove('PSDrive')
+    $observed.PSObject.Properties.Remove('PSProvider')
+    $script:hosts=$observed
+    Assert ((Probe).fingerprint -eq $before) 'equivalent decoded hosts exclude incidental filesystem metadata'
+    $script:hosts=Microsoft.PowerShell.Management\Get-Content -LiteralPath $contentFixture -Raw -Encoding UTF8
+    Assert ((Probe).fingerprint -eq $before) 'complete real provider metadata does not enter inventory digest'
+    Assert ([IO.File]::ReadAllText($contentFixture) -ceq $plainHosts) 'read-only inventory preserves actual hosts fixture'
+    [IO.File]::WriteAllText($contentFixture,($plainHosts+"`n"))
+    $script:hosts=Microsoft.PowerShell.Management\Get-Content -LiteralPath $contentFixture -Raw -Encoding UTF8
+    Assert ((Probe).fingerprint -ne $before) 'hosts newline remains consent fingerprint evidence'
+    [IO.File]::WriteAllText($contentFixture,($plainHosts+"`n# changed content"))
+    $script:hosts=Microsoft.PowerShell.Management\Get-Content -LiteralPath $contentFixture -Raw -Encoding UTF8
+    Assert ((Probe).fingerprint -ne $before) 'hosts content change remains consent fingerprint evidence'
+} finally {
+    $script:hosts=$plainHosts
+    [IO.File]::Delete($contentFixture)
+}
+
+$script:hostsReadFailure=$true
+$readFailed=$false
+try { Probe | Out-Null } catch { $readFailed=$_.Exception.Message -eq 'fixture_hosts_read_unavailable' }
+finally { $script:hostsReadFailure=$false }
+Assert $readFailed 'hosts read failure cannot become an empty-content inventory'
 $script:running=$false;$r=Probe;Assert ($r.blockers -contains 'selected_distro_stopped' -and !$r.action) 'stopped distro never started';$script:running=$true
 $script:records=@([pscustomobject]@{ListenAddress='0.0.0.0';ListenPort=80;ConnectAddress='172.20.0.8';ConnectPort=80});$r=Probe;Assert ($r.blockers -contains 'foreign_portproxy_collision') 'foreign proxy blocked';$script:records=@()
 $script:rules=@([pscustomobject]@{Name='foreign';DisplayName='Tiny Swarm World TCP 80';Enabled=$true;Direction='Inbound';Action='Allow'});$r=Probe;Assert ($r.blockers -contains 'foreign_firewall_collision') 'foreign firewall preserved';$script:rules=@()

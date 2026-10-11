@@ -1,0 +1,27 @@
+{
+  "state": "OWNED_BRIDGE_DEPENDENCY_PROBES_OBSERVED",
+  "probes": [
+    {
+      "exit_code": 0,
+      "name": "service_inventory",
+      "duration_ms": 2211
+    },
+    {
+      "exit_code": 0,
+      "name": "firewall_inventory",
+      "duration_ms": 2906
+    },
+    {
+      "exit_code": 0,
+      "name": "listener_inventory",
+      "duration_ms": 2226
+    },
+    {
+      "exit_code": 0,
+      "name": "portproxy_inventory",
+      "duration_ms": 874
+    }
+  ],
+  "mutations_executed": false,
+  "observed_at_utc": "2026-10-11T09:29:07.8978767Z"
+}

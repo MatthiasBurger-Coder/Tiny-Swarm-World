@@ -1,6 +1,12 @@
 # Test results
 
-Frozen runtime candidate: `3da77f8908d598688ed46dd6eab74c5f32a7ac50`.
+Current frozen runtime candidate: `ef7e88350ede68f7d4197265b2a272c4bd404a3c`.
+Current local quality PASS; actual28GiB preflight/dry-run BLOCKED; reset
+execution pending canceled elevation. Detailed current results appear below.
+
+## Historical baseline and first frozen candidate
+
+Historical candidate: `3da77f8908d598688ed46dd6eab74c5f32a7ac50`.
 Initial baseline checks used Python 3.14.4; corrected-candidate quality used
 supported Python 3.12.14. Initial failures and later successes are retained below.
 
@@ -9,7 +15,7 @@ supported Python 3.12.14. Initial failures and later successes are retained belo
 - `PATH="$PWD/.venv/bin:$PATH" python3 tools/quality_gate.py quality`: FAIL, exit 1: 2,554 tests in 644.359s, 18 skips, one subprocess timeout in `tests.test_install_script.TestInstallScript.test_install_uses_private_configured_evidence_root` (fixture deadline 10s on the mounted checkout). Policy, complexity, lint, 7 import contracts, 43 architecture tests and typecheck of 799 files passed. This used the existing Python 3.14.4 environment; it is not an exact clean final-candidate run. Log: `/tmp/issue-461-quality.log`.
 - `git diff --check`: PASS at evidence preparation; repeat after finalization.
 
-The focused suite preceded the first full gate. The corrected lock is being
+At that historical point, the focused suite preceded the first full gate. The corrected lock was being
 verified in a separate Linux-native checkout with an isolated Python 3.12
 environment and PowerShell 7.6.6; no shared test fixture files are used.
 The dependency audit is independent of regression verification.
@@ -23,7 +29,8 @@ Windows OS/WSL version/distribution inventory exit 0. Redacted facts are in
 qualification_matrix.md; no passwords or remote address stored here.
 
 Native tests and owned Windows VM preparation are authorized. Required fresh/recovery
-scenarios still lack prerequisites; destructive WSL reset lacks separate consent.
+scenarios then lacked prerequisites; destructive WSL reset then lacked separate consent.
+Later scoped consent supersedes that historical missing-consent state.
 No current external CI/SonarQube result accessed.
 
 ## AC4 remediation verified
@@ -232,3 +239,142 @@ resource assertions77 PASS. No runtime changes followed the full gate.
 Logs:/tmp/issue461-memory-quality-corrected.log and
 /tmp/issue461-memory-targeted-final.log. Independent architecture/security and
 completion-auditor concrete reviews APPROVE; overall issue incomplete.
+
+## Physical Linux continuation after user target steering
+
+Sourceef7 clean Git/archive verified on supplied native26.04.1/kernel7.0.0-34.
+Own locked Python venv preparation succeeded; aggregate prepare exit2 on preserved
+existing IPv6 bridge. Rerun sees prepared venv, no Python change, exit2. Installer
+preflight/dry-run exit0. Repeated read-only probe confirms9 protected file scopes
+unchanged, zero inaccessible entries and3 Incus identities/limits preserved.
+Full node config, networks and profiles also compare equal. Existing services
+were inventoried read-only; they are not attributed to an unexecuted candidate
+installation. New native full install/reboot/fault/fresh qualification is not
+claimed. No password or SSH address is stored in public evidence.
+
+Windows resource rerun/reset remains pending: after owned native fixture stopped,
+host has38.77GiB physical available but only28.725GiB commit headroom.
+Both>=34GiB are required before restarting32GiB Windows fixture. User was asked
+to close further Windows applications; no host pagefile policy was changed.
+
+Existing-host anonymous route baseline is recorded separately in
+native_existing_route_baseline.json, not candidate service authentication.
+Sourceef7 full install remains unexecuted. Latest physical-host capacity refresh
+still has29.238GiB commit headroom despite39.041GiB free physical RAM; Windows32
+fixture cannot be restarted safely under the observed resource constraint.
+
+## User-requested Windows VM reduction to 26 GiB
+
+On 2026-10-11 the operator explicitly requested 26 GiB. Exact owned VM identity
+and Off state were checked before changing fixed startup memory to 26 GiB.
+Observed physical headroom 38.526 GiB and commit headroom 29.036 GiB exceeded
+the 28-GiB start guard; actual Hyper-V start succeeded and state is Running.
+See windows26_resize_start_result.json. Historical 32-GiB start blockage remains
+valid for that prior allocation. This change does not reduce product thresholds:
+standard WSL allocation 21 GiB plus Windows reserve 7 GiB exceeds the 26-GiB
+guest. Standard profile qualification therefore remains open.
+
+Post-start PSDirect observation PASS: Windows reports 27916128256 bytes of
+physical guest memory. Selected Ubuntu 26.04.1 remains registered and starts
+with systemd, kernel 6.18.40.1-microsoft-standard-WSL2; probe exit0.
+See windows26_guest_verification_result.json. No candidate install or reset
+is claimed by this reachability observation.
+
+## Current operator-requested Windows allocation: 28 GiB
+
+The subsequent explicit operator request supersedes the 26-GiB allocation:
+owned Windows VM was gracefully shut down, resized to fixed 28 GiB, and actually
+started successfully. Physical headroom was 38.583 GiB and commit headroom
+28.848 GiB before successful Hyper-V allocation. An initial conservative
+30-GiB start check did not attempt startup; actual allocation was subsequently
+attempted with measured headroom exceeding 28 GiB, with Hyper-V enforcing
+hypervisor overhead. No host pagefile or product capacity policy was changed.
+See windows28_resize_start_result.json. This verifies fixture resize/start,
+not successful product preflight or full issue qualification. Earlier 26-GiB
+insufficient-capacity and Windows32/Off observations are historical.
+
+28-GiB post-start verification PASS: Windows reports 30063611904 physical
+bytes; preserved Ubuntu26.04.1 starts with systemd and kernel
+6.18.40.1-microsoft-standard-WSL2, probe exit0. Nominal allocation arithmetic
+is not a candidate resource-preflight result. See
+windows28_guest_verification_result.json.
+
+## Source-ef7 actual preflight and dry-run at 28 GiB
+
+Exact frozen archive/hash and product source proof verified. Initial selected
+Ubuntu stopped result: both modes exit2, distro_stopped and
+bootstrap_state_invalid. Operator started only selected owned Ubuntu separately.
+Repeated actual modes exit2, insufficient_host_capacity plus
+bootstrap_state_invalid (prior source806 canonical state retained unchanged).
+Windows measured30063611904bytes versus required30064771072bytes: deficit
+1159168bytes. Config/state/registration/hosts fingerprints unchanged.
+WSL physical22547132416bytes versus configured22548578304bytes; usable
+22033059840bytes, CPU8, swap6442450944bytes. Resource inventory known; whole
+effective verification remains false because host allocation is blocked.
+No apply, state-identity edit or tolerance reduction was performed.
+See windows_ef7_preflight_result.json and
+windows_ef7_running_preflight_result.json.
+
+Actual sourceef7 at28: Preflight and DryRun exit2 with
+insufficient_host_capacity and bootstrap_state_invalid; protected fingerprints
+unchanged. Windows deficit1159168bytes against exact21+7GiB requirement.
+The subsequent current recovery-point helper was not launched: Windows
+elevation was canceled. No current28 checkpoint was created or restored and
+no Ubuntu unregister/reset executed by that helper. Last verified VM state
+Running28; original verified operator checkpoint remains retained. User
+interactive Windows availability is requested before another elevation attempt.
+See windows_recovery_elevation_result.json.
+
+## Explicit operator-requested 30-GiB retry
+
+Operator explicitly requested30GiB and retry. Exact owned VM was gracefully
+stopped, resized to fixed30GiB and actually started. Observed pre-start physical
+headroom41.078GiB and commit headroom35.187GiB exceeded30GiB. No host pagefile
+policy or product resource threshold was changed. Source-bound candidate
+preflight/dry-run is pending; this resize/start alone is not qualification.
+See windows30_resize_start_result.json. Prior28GiB observations are historical.
+
+Sourceef7 actual30GiB retry: resource_state VERIFIED and
+effective_verified=true in both Preflight and DryRun. Observed Windows
+32211095552bytes; WSL physical22547132416/usable22033051648bytes,8CPU,
+swap6442450944bytes, storage known. Overall both exit2 on
+bridge_inventory_unavailable and bootstrap_state_invalid. Protected config,
+registrations, hosts and prior-source canonical state remain unchanged.
+Capacity blocker is resolved for this observed30GiB fixture, not for earlier
+28GiB. No full installation qualification is claimed. See
+windows_ef7_30gib_preflight_result.json.
+
+Current30 snapshot actual restore PASS before destructive testing. Exact
+checkpoint eaff8dec-c016-421c-b235-5952d6c7c0a4 restored and selected Ubuntu
+registration, machine-id/release hashes, WSL configuration, canonical state
+and owned marker matched. Separately authorized VM-only Ubuntu terminate and
+unregister both exit0; actual empty guest registration inventory observed.
+Exact checkpoint was then restored again: measured identity/config/state
+hashes matched; primary host WSL registrations/config fingerprints unchanged.
+Reset/recovery isolation PASS for the recorded scope, not every Ubuntu file
+and not product installation qualification. Original recovery points retained.
+See windows30_current_recovery_result.json and
+windows30_ubuntu_reset_recovery_result.json.
+
+Read-only bridge diagnosis: actual unmodified bridge inventory subprocess
+exit124 at45seconds, cause timeout; no bridge installation executed.
+Independent read-only service/firewall/listener/portproxy dependency probes
+all exit0 (2211/2906/2226/874ms), so individual inventories alone do not
+establish bridge readiness. See windows30_bridge_diagnostic_result.json and
+windows30_bridge_dependencies_result.json. Default preparation's15s inventory
+refusal remains recorded; no timeout default or safety guard was changed.
+
+## R461-25 hosts-observation regression and quality
+
+Declared before implementation. Actual WinPS5.1 real-file metadata regression
+FAIL before correction (1.023s, changed fingerprint), PASS after explicit
+string observation normalization (1.632s). Full provider graph now excluded;
+equivalent decoded contents match fingerprints, content/newline changes
+still invalidate, read errors propagate, fixture contents remain unchanged.
+Full Python3.12 gate PASS:2555 tests135.842s,18existing skips;43architecture
+tests3.243s;7import contracts,799typed files and all other gates. Exact changed
+runtime/test/guide bytes matched Linux verification copy before/after execution.
+Logs:/tmp/issue461-hosts-regression-red.log,
+/tmp/issue461-hosts-regression-green.log,/tmp/issue461-hosts-quality.log.
+Independent architecture/security and completion reviews approve concrete scope;
+new committed source freeze and affected live rerun remain required.

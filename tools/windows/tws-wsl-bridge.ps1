@@ -4237,7 +4237,7 @@ function Get-BridgePreparationInventory {
             [void]$blockers.Add('foreign_firewall_collision')
         }
     }
-    $hosts = Get-Content -LiteralPath $HostsPath -Raw -Encoding UTF8
+    $hosts = [string](Get-Content -LiteralPath $HostsPath -Raw -Encoding UTF8)
     $starts = [regex]::Matches($hosts, [regex]::Escape($HostsStart)).Count
     $ends = [regex]::Matches($hosts, [regex]::Escape($HostsEnd)).Count
     if ($starts -ne $ends -or $starts -gt 1 -or ($starts -gt 0 -and $null -eq $state)) { [void]$blockers.Add('foreign_or_ambiguous_hosts_block') }

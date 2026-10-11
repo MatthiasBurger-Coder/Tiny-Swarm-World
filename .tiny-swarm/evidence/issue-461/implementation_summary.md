@@ -1,7 +1,14 @@
 # Implementation summary
 
-Issue status: IN_PROGRESS, not complete. Current frozen runtime candidate:
-`806a58c36aabf8a95601f2bbfb2978e2d6ee2995`; RAM-accounting amendment under verification.
+Issue status: INCOMPLETE. Current frozen runtime candidate:
+`ef7e88350ede68f7d4197265b2a272c4bd404a3c`; RAM-accounting amendment
+locally and live-resource verified. Current Windows allocation is30GiB.
+Source-bound resource assessment VERIFIED; overall preflight/dry-run exit2 on
+bridge_inventory_unavailable and prior-source bootstrap_state_invalid.
+Current30 backup actual restore and separately authorized VM-only Ubuntu
+reset/recovery were executed and verified for recorded identity/hash scopes;
+primary WSL registration/config fingerprints remained unchanged.
+Previous metadata candidate: `806a58c36aabf8a95601f2bbfb2978e2d6ee2995`.
 Historical corrected checkpoint candidate: `bce63aafb6990e9157c8ddb3eb12e4aa9fd1f440`. Historical native/feature candidate:
 `3da77f8908d598688ed46dd6eab74c5f32a7ac50`, based on integrated #459/#460.
 The narrow urllib3 lock correction passes strict audit and full Python 3.12
@@ -14,7 +21,9 @@ checkpoint state, preserving eight/nine measured existing file scopes and three
 running nodes. Network preparation blocked on existing IPv6-enabled bridges.
 Native fresh-host and recoverable fault-test prerequisites remain missing.
 
-The authorized isolated Hyper-V Windows environment now boots Windows 11
+## Historical Windows qualification timeline
+
+The authorized isolated Hyper-V Windows environment boots Windows 11
 Enterprise Evaluation 26H2 build 26300.9457. Windows OS-only provisioning used
 24 GiB; answer credentials were removed and verified absent. A scoped owned-VM
 storage ACL repair preserved the private parent ACL. Its clean pre-WSL checkpoint
@@ -103,3 +112,53 @@ Fresh isolated Ubuntu24/26 native-kernel Hyper-V test guests were provisioned
 from Canonical SHA/signature-verified cloud images, fixed32GiB/12CPU/256GiB.
 This is a virtualized native Linux test environment; product provider remains
 Incus. Guest boot, fresh preparation/install and recovery evidence remain pending.
+
+## Current operator-requested Windows allocation: 28 GiB
+
+The subsequent explicit operator request supersedes the 26-GiB allocation:
+owned Windows VM was gracefully shut down, resized to fixed 28 GiB, and actually
+started successfully. Physical headroom was 38.583 GiB and commit headroom
+28.848 GiB before successful Hyper-V allocation. An initial conservative
+30-GiB start check did not attempt startup; actual allocation was subsequently
+attempted with measured headroom exceeding 28 GiB, with Hyper-V enforcing
+hypervisor overhead. No host pagefile or product capacity policy was changed.
+See windows28_resize_start_result.json. This verifies fixture resize/start,
+not successful product preflight or full issue qualification. Earlier 26-GiB
+insufficient-capacity and Windows32/Off observations are historical.
+
+Earlier pending VHD correction, pending operator checkpoint restore, and
+unarchived old checkpoint statements above are historical: source806 correction
+and resource apply, actual operator checkpoint restore, and lock-protected
+archival are recorded in the later secured recovery section. Sourceef7 local
+quality passed; overall issue remains INCOMPLETE pending remaining live cases.
+
+## Explicit operator-requested 30-GiB retry
+
+Operator explicitly requested30GiB and retry. Exact owned VM was gracefully
+stopped, resized to fixed30GiB and actually started. Observed pre-start physical
+headroom41.078GiB and commit headroom35.187GiB exceeded30GiB. No host pagefile
+policy or product resource threshold was changed. Source-bound candidate
+preflight/dry-run is pending; this resize/start alone is not qualification.
+See windows30_resize_start_result.json. Prior28GiB observations are historical.
+
+Sourceef7 actual30GiB retry: resource_state VERIFIED and
+effective_verified=true in both Preflight and DryRun. Observed Windows
+32211095552bytes; WSL physical22547132416/usable22033051648bytes,8CPU,
+swap6442450944bytes, storage known. Overall both exit2 on
+bridge_inventory_unavailable and bootstrap_state_invalid. Protected config,
+registrations, hosts and prior-source canonical state remain unchanged.
+Capacity blocker is resolved for this observed30GiB fixture, not for earlier
+28GiB. No full installation qualification is claimed. See
+windows_ef7_30gib_preflight_result.json.
+
+Current30 snapshot actual restore PASS before destructive testing. Exact
+checkpoint eaff8dec-c016-421c-b235-5952d6c7c0a4 restored and selected Ubuntu
+registration, machine-id/release hashes, WSL configuration, canonical state
+and owned marker matched. Separately authorized VM-only Ubuntu terminate and
+unregister both exit0; actual empty guest registration inventory observed.
+Exact checkpoint was then restored again: measured identity/config/state
+hashes matched; primary host WSL registrations/config fingerprints unchanged.
+Reset/recovery isolation PASS for the recorded scope, not every Ubuntu file
+and not product installation qualification. Original recovery points retained.
+See windows30_current_recovery_result.json and
+windows30_ubuntu_reset_recovery_result.json.

@@ -1,0 +1,27 @@
+{
+  "state": "BLOCKED_OR_PARTIAL",
+  "started_at_utc": "2026-10-10T22:05:43.1649272Z",
+  "finished_at_utc": "2026-10-10T22:08:46.9988718Z",
+  "phase": "WINDOWS_OS_PROVISION_ONLY",
+  "guest_memory_gib": 24,
+  "required_free_host_ram_gib": 26,
+  "full_wsl_capacity_verified": false,
+  "inherited_image_apply_exit": 0,
+  "inherited_boot_files_exit": 0,
+  "windows_version": {
+    "Caption": "Microsoft Windows 11 Enterprise Evaluation",
+    "Version": "10.0.26300",
+    "BuildNumber": "26300",
+    "WslInstalled": false,
+    "VirtualMachinePlatform": "Disabled"
+  },
+  "clean_checkpoint": null,
+  "error": "VirtualizationException",
+  "failed_stage": "FIRST_BOOT",
+  "script_exit_code": 1,
+  "answer_cleanup": "VERIFIED_REMOVED",
+  "error_code": "checkpoint_storage_access_denied_0x80070005",
+  "qualification": "UNQUALIFIED",
+  "target": "owned-Windows11-guest-preWSL",
+  "provision_helper_sha256": "072f03a5bb934d14946b2e6c72d632a1d8ffd54d862ef890fa8f3ed8d24cf60a"
+}

@@ -44,3 +44,15 @@ or generated runtime assets included. Existing completed workflow is preserved.
 Freeze is required for exact committed source live evidence, not DONE/publication.
 Proposed message: fix(bootstrap): separate WSL VHD metadata from evidence ACLs.
 No push, PR, merge or branch cleanup requested.
+
+## R461-25 source-freeze read-only contract reproduced
+
+Commit readiness READY for local freeze only. Explicit in-scope files: one
+bridge text-observation cast, meaningful real-file regression, Windows guide
+and redacted issue461 continuation. Full gate2555PASS/43architecture/7contracts/
+799typed files; bounded actualWinPS red then green. Runtime/test/guide exact
+bytes match verification copy, whitespace clean. Independent architecture and
+completion reviewers approve concrete correction. No ownership, ACL, timeout,
+credential or workflow change. Overall issue INCOMPLETE, new affected live
+verification pending. Message: fix(bridge): hash decoded hosts text without
+provider metadata. No push/PR/merge requested.

@@ -1,0 +1,22 @@
+{
+  "state": "OWNED_UBUNTU_RESET_AND_RECOVERY_VERIFIED",
+  "reset_executed_only_in_owned_vm": true,
+  "separate_reset_consent": true,
+  "verified_current_backup_before_reset": true,
+  "reset": {
+    "unregister_exit": 0,
+    "terminate_exit": 0,
+    "owned_guest_registration_count_after_reset": 0,
+    "empty_inventory_verified": true
+  },
+  "recovery_verified": true,
+  "ubuntu_registration_identity_restored": true,
+  "ubuntu_identity_and_release_hashes_restored": true,
+  "wsl_config_and_bootstrap_state_restored": true,
+  "primary_wsl_registrations_and_config_unchanged": true,
+  "guest_memory_gib": 30,
+  "checkpoint_id": "eaff8dec-c016-421c-b235-5952d6c7c0a4",
+  "product_install_executed": false,
+  "observed_at_utc": "2026-10-11T09:26:49.9685282Z",
+  "preservation_is_limited_to_recorded_hashes_and_registration_identity": true
+}

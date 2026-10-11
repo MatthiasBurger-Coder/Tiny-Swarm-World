@@ -1,0 +1,10 @@
+{
+  "state": "NATIVE_EXISTING_PROVIDER_PRESERVATION_VERIFIED",
+  "source_commit": "ef7e88350ede68f7d4197265b2a272c4bd404a3c",
+  "nodes_preserved": true,
+  "network_preserved": true,
+  "profiles_preserved": true,
+  "running_nodes": 3,
+  "provider_before_sha256": "171c925a7f39f2020cbbdea3c9d937a62e904cf5f82ebc261fc4e722f94a0ff6",
+  "provider_after_sha256": "171c925a7f39f2020cbbdea3c9d937a62e904cf5f82ebc261fc4e722f94a0ff6"
+}

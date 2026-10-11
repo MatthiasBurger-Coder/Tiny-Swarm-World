@@ -1,0 +1,30 @@
+{
+  "source_commit": "ef7e88350ede68f7d4197265b2a272c4bd404a3c",
+  "target": "N26-existing",
+  "fresh_os": false,
+  "ubuntu_version": "26.04.1 LTS",
+  "kernel": "7.0.0-34-generic",
+  "effective_memory_bytes": 20111093760,
+  "logical_processors": 8,
+  "commands": [
+    {
+      "command": "./prepare_linux.sh",
+      "exit_code": 2,
+      "python_environment_prepared": true,
+      "host_packages_changed": false,
+      "network_guard": "IPv6 bridge policy preserved"
+    },
+    {
+      "command": "./prepare_linux.sh (rerun)",
+      "exit_code": 2,
+      "python_environment_changed": false,
+      "network_guard": "IPv6 bridge policy preserved"
+    }
+  ],
+  "source_archive_verified": true,
+  "source_clean": true,
+  "full_installation_executed": false,
+  "native_reset_reboot_fault_injection_executed": false,
+  "release_qualified": false,
+  "verification_state": "PARTIAL_EXISTING_HOST_ONLY"
+}

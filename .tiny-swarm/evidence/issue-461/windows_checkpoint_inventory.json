@@ -1,0 +1,11 @@
+{
+  "operation": "read-only checkpoint inventory via bound owned VM object",
+  "guest_memory_gib": 24,
+  "vm_off": true,
+  "checkpoint_name": "W09-CleanWindowsPreWSL",
+  "checkpoint_id": "68e0a949-3128-4088-8fb4-8f8f6a5c6a3c",
+  "checkpoint_vm_identity_verified": true,
+  "checkpoint_memory_gib": 24.0,
+  "restoration": "NOT_EXECUTED",
+  "qualification": "UNQUALIFIED"
+}

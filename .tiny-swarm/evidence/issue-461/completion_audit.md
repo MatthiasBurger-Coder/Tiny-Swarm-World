@@ -97,7 +97,7 @@ AC1/AC2 remain open; keep #461 open and every release UNQUALIFIED.
 
 Reviewer /root/issue_461_completion_audit found no safety/architecture blocker in the narrow NullString fix and real create/replace regression. Reproduction under WindowsPowerShell5.1 confirms first pending creation succeeds, second replacement raises ArgumentException with ordinary $null, and explicit NullString replacement succeeds; canonical pending state remains unchanged. Recovery reboot was independently reviewed and actually verified. Original PARTIAL/4 result, pending checkpoint and failed full quality run remain evidence. Reviewer requires corrected full quality and new committed/archive source proof before further qualification; full quality retry now PASS. Overall BLOCKED: original AC1/AC2/native/24.04/reset/runtime scenarios remain open. Operator manual WSL/Ubuntu installation is preserved and recorded separately from candidate actions.
 
-## Current final independent completion decision
+## Historical independent completion decision for source bce
 
 Reviewer /root/issue_461_completion_audit: BLOCKED. Mandatory evidence exists; AC3/AC4 and R461-22 are supported. Frozen bce63aaf is source-verified; actual protected disposable create/replace writer succeeds. Resource inventory fails with untrusted_evidence_acl on additional explicit selected-VHD SID grants, leaving storage/effective resources unknown. Categorization does not establish the grants legitimacy or owner; a security/architecture decision is required before changing principal trust. AC1/AC2 remain open and all releases UNQUALIFIED. Manual Ubuntu installation/configuration and the original checkpoint are preserved; no automatic archive, ACL weakening or reset occurred. Stale current summaries were corrected and owned Enterprise Evaluation vs preserved local Pro/WSL targets separated in the release matrix. Stopping on this design blocker follows AGENTS.md; keep #461 open.
 
@@ -108,3 +108,30 @@ local change acceptance; overall AC1/AC2 remain open, all releases UNQUALIFIED.
 A virtualized native Linux Hyper-V guest satisfies the Linux host-family contract
 (actual non-WSL Linux kernel); physical-host observations remain separate.
 Reset consent is now owned-VM-only, conditional on new verified restore point.
+
+## Current sourceef7 independent completion review
+
+Reviewer /root/issue_461_completion_audit verified corrected summaries after
+actual28GiB continuation: **INCOMPLETE**. Sourceef7 local gates pass and
+exact-source Preflight/DryRun preserve observed state but exit2 on measured
+Windows capacity and prior-source canonical state. VHD trust correction and
+original operator checkpoint restore are historical successful results, not
+current blockers. Scoped VM-only reset consent exists, but the current28
+checkpoint elevation was canceled; no new checkpoint or reset executed.
+Independent guard review found no concrete scope blocker in the proposed
+current snapshot/reset helpers, conditional on actual verified snapshot proof.
+That prerequisite has not been achieved. Required live scenarios and AC1/AC2
+remain open; every release remains UNQUALIFIED. No DONE, publication or issue
+closure is authorized by these results.
+
+## Current30 resource and reset-isolation audit
+
+Independent reviewer /root/issue_461_completion_audit accepts actual30GiB
+resource verification and scoped reset/recovery evidence. Exact current
+checkpoint restore09:25:26 preceded terminate/unregister/empty inventory and
+second recovery09:26:49. Recorded registration and identity/config/state/marker
+hashes restored; primary WSL registration/config fingerprints unchanged.
+Preservation is bounded to these observations, not every distro file.
+R461-24 VERIFIED for resource case only. AC2 ordinary full-apply preservation
+and remaining live scenarios remain open. Overall INCOMPLETE, no qualified
+release, no product-install success. New bridge inventory timeout remains open.

@@ -52,3 +52,14 @@ change. Full quality PASS and final targeted PASS; final bytes match, diff-check
 clean. Independent architecture/security/completion review approves correction;
 issue acceptance/live reruns remain OPEN. Message derived from staged correction:
 fix(bootstrap): distinguish physical and usable WSL memory. No publication.
+
+Evidence continuation adds redacted nativeef7 preservation/route baseline,
+Windows host capacity, actual26/28GiB resize/start and guest reachability,
+sourceef7 preflight/dry-run, and canceled recovery elevation records.
+Runtime source remains frozenef7; no product thresholds or host settings changed.
+
+R461-25 local freeze scope: one explicit decoded-hosts string cast in
+tools/windows/tws-wsl-bridge.ps1, real-file regression in
+tests/windows/bridge-preparation.Tests.ps1, Windows preparation guide and
+redacted issue461 evidence continuation. Timeout/ownership/ACL/credential
+boundaries unchanged. Raw bridge traces/transcripts/helpers remain private.
