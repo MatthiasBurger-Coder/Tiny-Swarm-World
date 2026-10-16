@@ -256,6 +256,18 @@ export TSW_INFISICAL_POSTGRES_IMAGE=registry.local:5000/postgres:14.23-alpine3.2
 export TSW_INFISICAL_REDIS_IMAGE=registry.local:5000/redis:7.4.9-alpine3.21
 ----
 
+=== Fresh nftables Hosts And Incus 6.0 LTS
+
+The network preparation inventory accepts the exact subnet-scoped single-bridge
+masquerade emitted by Incus 6.0 LTS, as well as the bridge-set/bypass pair used by
+newer Incus versions. The older form is accepted only for one managed bridge;
+multi-bridge, broadened or unrecognized NAT remains blocked.
+
+On a fresh iptables-nft host, an empty `iptables-save` result is followed by an
+explicit `iptables-save -t filter` observation. A nonempty incomplete dump still
+blocks preparation. This read-only fallback does not install firewall rules or
+replace the full nftables ownership and NAT checks.
+
 == WSL Project Filesystem Policy
 
 On WSL2, clone or place the repository on the distribution's Linux filesystem,

@@ -6,7 +6,7 @@ from dataclasses import asdict
 
 from tiny_swarm_world.infrastructure.adapters.network_preparation.firewall import Bridge, parse_rules, verify_no_foreign_denies, exact_present, equivalent, forwarding_rules, input_rules, verify_ufw_traversal
 from tiny_swarm_world.infrastructure.adapters.network_preparation.firewall_inventory import managed_nat, verify_chain, verify_nft, verify_compatibility
-from tiny_swarm_world.infrastructure.adapters.network_preparation.nat_policy import bypass, bridge_set, verify_filter
+from tiny_swarm_world.infrastructure.adapters.network_preparation.nat_policy import bypass, bridge_set, legacy_nat, verify_filter
 from tiny_swarm_world.infrastructure.adapters.network_preparation.nat_conflicts import verify, verify_masquerade, verify_dnat
 
 
@@ -21,7 +21,7 @@ def command(args):
     if result.stderr: raise RuntimeError('Incomplete firewall conversion inventory')
     return result.stdout
 """
-    functions = "\n".join(inspect.getsource(function) for function in (parse_rules, verify_ufw_traversal, verify_no_foreign_denies, equivalent, exact_present, forwarding_rules, input_rules, managed_nat, verify_chain, bypass, bridge_set, verify_filter, verify_nft, verify_compatibility, verify_masquerade, verify_dnat, verify))
+    functions = "\n".join(inspect.getsource(function) for function in (parse_rules, verify_ufw_traversal, verify_no_foreign_denies, equivalent, exact_present, forwarding_rules, input_rules, managed_nat, verify_chain, bypass, bridge_set, legacy_nat, verify_filter, verify_nft, verify_compatibility, verify_masquerade, verify_dnat, verify))
     tail = f"""
 bridges = [SimpleNamespace(**item) for item in {tuple(asdict(bridge) for bridge in bridges)!r}]
 if 'nf_tables' not in command(['iptables', '--version']): raise RuntimeError('Firewall backend changed')
@@ -34,6 +34,7 @@ else:
     status = command(['ufw','status','verbose'])
 if not status.startswith({'Status: absent' if absent else 'Status: active' if ufw else 'Status: inactive'!r}): raise RuntimeError('UFW owner changed')
 saved = command(['iptables-save'])
+if not saved.strip(): saved = command(['iptables-save', '-t', 'filter'])
 rules = parse_rules(saved)
 verify(saved, bridges, {ports!r})
 verify_no_foreign_denies(rules, ufw={ufw!r})

@@ -9,6 +9,7 @@ import tempfile
 import unittest
 
 from tests.test_prepare_windows import WINDOWS_POWERSHELL, _powershell, _runtime_path
+from tests.powershell_test_runtime import powershell_script_command
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location(
@@ -98,10 +99,10 @@ class TestResourceProjection(unittest.TestCase):
     def test_disposable_windows_file_and_acl_boundaries(self) -> None:
         executable = str(WINDOWS_POWERSHELL)
         result = subprocess.run(
-            [executable, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File",
-             _runtime_path(ROOT / "tests/windows/resource-files.Tests.ps1", executable),
-             "-RepositoryRoot", _runtime_path(ROOT, executable)],
-            capture_output=True, text=True, timeout=90, check=False,
+            powershell_script_command(executable,
+                _runtime_path(ROOT / "tests/windows/resource-files.Tests.ps1", executable),
+                {"RepositoryRoot": _runtime_path(ROOT, executable)}),
+            capture_output=True, text=True, encoding="utf-8", timeout=90, check=False,
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("disposable Windows resource file assertions", result.stdout)
@@ -111,10 +112,10 @@ class TestResourceProjection(unittest.TestCase):
         executable = _powershell()
         assert executable
         result = subprocess.run(
-            [executable, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File",
-             _runtime_path(ROOT / "tests/windows/resources.Tests.ps1", executable),
-             "-RepositoryRoot", _runtime_path(ROOT, executable)],
-            capture_output=True, text=True, timeout=90, check=False,
+            powershell_script_command(executable,
+                _runtime_path(ROOT / "tests/windows/resources.Tests.ps1", executable),
+                {"RepositoryRoot": _runtime_path(ROOT, executable)}),
+            capture_output=True, text=True, encoding="utf-8", timeout=90, check=False,
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("resource assertions", result.stdout)
