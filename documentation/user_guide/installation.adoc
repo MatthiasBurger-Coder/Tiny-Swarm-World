@@ -81,6 +81,125 @@ specific credentials are required, provide them through the documented
 protected operator override or applicable Infisical path; do not edit the
 catalog or copy passwords into evidence.
 
+== Windows 11 / WSL2: Start Here
+
+This is the canonical first-install route for Windows users. Windows prepares
+the selected WSL distribution, resources and browser bridge; all TSW product
+commands execute inside Ubuntu. Do not separately install host Docker as a
+substitute for the managed-node runtime: the default `lxc_native` provider
+runs Docker Engine and Swarm **inside Incus-managed nodes**.
+
+=== 1. Check the target and available capacity
+
+* Windows 11 x86_64 with hardware virtualization enabled; an explicitly selected
+  supported Ubuntu 24.04 or 26.04 WSL2 distribution.
+* WSL2 with working systemd (PID 1), cgroups and user namespaces. Incus needs
+  usable storage, networking, and ordinary-user access.
+* Linux-native owned checkout (for example
+  `/home/<user>/projects/Tiny-Swarm-World`); do not use `/mnt/c` or `/mnt/d`
+  for the ordinary installation, protected secrets or evidence.
+* Python 3.12 or newer and venv, Git, Incus for the default backend; `socat`
+  where WSL forwarding is necessary. Optional CLI helpers include `curl` and
+  `jq`. The Linux preparation script plans the missing dependencies; do not
+  assume all packages must be manually preinstalled.
+* The `service-access` WSL preflight currently checks a 16 GiB RAM,
+  eight-thread and 150 GiB free-disk host minimum. This **does not** establish
+  sufficient aggregate capacity for the configured managed nodes. The
+  Windows W05 resource plan currently accounts for 19 GiB node memory plus
+  2 GiB WSL overhead (= 21 GiB minimum planned WSL RAM), Windows RAM/CPU
+  reserve and disk/swap requirements. Its observed plan is authoritative:
+  a 16 GiB Windows host cannot fit that default allocation. Other profiles
+  and customized node configurations may require different resources.
+  See link:{user-guide-prefix}windows-preparation.md[Windows preparation and
+  capacity planning] for the exact model and blockers.
+
+=== 2. Inspect Windows safely (elevated PowerShell)
+
+Use a complete trusted release/checkout. Preflight and dry-run are read-only:
+
+[source,powershell]
+----
+./prepare_windows.ps1 -Help
+./prepare_windows.ps1 -Distro Ubuntu-24.04 -Preflight
+./prepare_windows.ps1 -Distro Ubuntu-24.04 -DryRun -Json
+----
+
+Select the exact existing distro; for a non-canonical registration, provide the
+explicit matching `-UbuntuRelease`. WSL1 is not silently converted. Preflight
+does not install missing Windows features, launch a stopped distro, or repair a
+blocked host. Apply/qualification and approval are separate, guarded operations,
+not an unattended setup shortcut. Follow the displayed remedies, restart scope
+and recheck. Windows `READY` means Windows capability readiness only; it does
+not mean Linux preparation or services have passed.
+
+=== 3. Prepare Ubuntu and run installation
+
+Keep the checkout in the ordinary user's Linux home. The Windows preparation
+handoff prints the exact distribution/user-specific command. Run that command
+interactively rather than reconstructing another distro's command. Within the
+selected Ubuntu checkout, the corresponding Linux stages are:
+
+[source,bash]
+----
+./prepare_linux.sh --dry-run
+./prepare_linux.sh
+./prepare_linux.sh --preflight
+./install.sh
+----
+
+Approve each mutating preparation stage only after reviewing its plan. A pending
+account/group change or restart requires the reported operator action and a
+fresh preflight before proceeding. Installation is not automatically started
+after a blocked or partial preparation. Ordinary installation reconciles
+existing state; do not use `--confirm-reset` for routine recovery.
+
+The normal setup sequence is: verify Incus on the WSL host; prepare managed
+Incus manager/worker nodes; install or verify Docker Engine inside those nodes;
+bootstrap and verify their Docker Swarm; configure routing; deploy selected
+services; verify runtime and browser access. Host `docker info` is **not**
+proof of managed-node readiness.
+
+=== 4. Verify the installed stack
+
+Use the existing <<verify-installed-runtime,Verify The Runtime>> checks, including
+`incus list` and `incus exec swarm-manager -- docker node ls`. For Windows
+browser access, confirm the owned WSL bridge and the configured routes using
+link:{user-guide-prefix}windows-preparation.md[Windows preparation] and
+link:{user-guide-prefix}network-preparation.md[network preparation].
+A DNS entry or bridge heartbeat alone does not prove an authenticated Portainer
+login. Follow link:{user-guide-prefix}usage.adoc#open-the-services[Service access
+and login] for the service URL and effective credentials, and
+link:{user-guide-prefix}troubleshooting.adoc#first-response[Troubleshooting]
+for failures.
+
+=== Responsibility and status overview
+
+[cols="2,3,3",options="header"]
+|===
+| Stage | Owner/entry point | Success means
+| Windows prerequisites, WSL lifecycle and resource plan
+| `prepare_windows.ps1`
+| Windows capability observed ready, **not** an installed TSW
+| Windows browser bridge
+| Owned Windows bridge, normally orchestrated by Windows preparation
+| Routing agent/configuration ready, **not** endpoint/login verification
+| Linux packages, Python, Incus access/resources and kernel/network preparation
+| `prepare_linux.sh`
+| Linux stages observed ready for install
+| Runtime stack and managed Docker Swarm
+| `install.sh` / TSW setup
+| Managed node and deployment verification still required
+| Browser/service credentials
+| User guide usage + tested service endpoint
+| Separately verified browser access and login
+|===
+
+The older manual `tools/windows/tws-wsl-bridge.ps1` entry points documented
+under <<windows-wsl-prework>> are bridge-specific operational controls, not an
+alternative end-to-end first-install recipe. Use the canonical Windows
+preparation handoff unless the documented recovery or bridge procedure calls
+for those controls explicitly.
+
 == Prerequisites
 
 On native or WSL2 Ubuntu 24.04/26.04 x86_64, use a complete trusted release
