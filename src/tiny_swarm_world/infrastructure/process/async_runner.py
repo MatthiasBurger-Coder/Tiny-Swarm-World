@@ -16,6 +16,8 @@ from tiny_swarm_world.infrastructure.process.runner import validate_timeout
 
 class _StdinOption(TypedDict, total=False):
     stdin: int
+    start_new_session: bool
+    process_group: int
 
 
 @dataclass(frozen=True)
@@ -40,21 +42,27 @@ async def run_async_process(
     shell: bool = False,
     discard_output: bool = False,
     input_data: bytes | None = None,
+    preserve_session: bool = False,
 ) -> AsyncProcessResult:
     """Return explicit process outcomes; propagate cancellation after child cleanup."""
     validate_timeout(timeout)
     if not args or (shell and not isinstance(args, str)) or (not shell and isinstance(args, str)):
         raise ValueError("Use a string for shell execution and argv for direct execution.")
-    stdin_kwargs: _StdinOption = {"stdin": asyncio.subprocess.PIPE} if input_data is not None else {}
+    # A separate process group retains bounded descendant cleanup. Privileged
+    # preparation may retain the controlling TTY so sudo -n can use sudo -v's
+    # terminal-scoped timestamp without accepting or storing a password.
+    launch_options: _StdinOption = {"process_group": 0} if preserve_session else {"start_new_session": True}
+    if input_data is not None:
+        launch_options["stdin"] = asyncio.subprocess.PIPE
     target = asyncio.subprocess.DEVNULL if discard_output else asyncio.subprocess.PIPE
     try:
         if shell:
             process = await asyncio.create_subprocess_shell(
-                cast(str, args), stdout=target, stderr=target, start_new_session=True, **stdin_kwargs,
+                cast(str, args), stdout=target, stderr=target, **launch_options,
             )
         else:
             process = await asyncio.create_subprocess_exec(
-                *args, stdout=target, stderr=target, start_new_session=True, **stdin_kwargs,
+                *args, stdout=target, stderr=target, **launch_options,
             )
     except FileNotFoundError:
         return AsyncProcessResult(127, failure_hint="launch_executable_missing")

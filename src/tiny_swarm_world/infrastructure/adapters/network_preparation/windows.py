@@ -24,7 +24,7 @@ class WindowsNetworkPreparation:
         address = IPv4Address(candidates[0])
         if address.is_loopback or address.is_unspecified or address.is_multicast:
             raise NetworkPreparationFailure("WSL address cannot support the existing bridge.")
-        result = await self._run("inventory", distro, str(address), 30)
+        result = await self._run("inventory", distro, str(address), 90)
         try:
             state = json.loads(result.stdout)
         except ValueError:

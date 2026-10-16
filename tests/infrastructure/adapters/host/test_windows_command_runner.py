@@ -1,4 +1,5 @@
 import subprocess
+import base64
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -82,9 +83,12 @@ class TestWindowsCommandRunner(unittest.TestCase):
 
         self.assertEqual(0, result.return_code)
         self.assertEqual("powershell.exe", calls[0][0])
-        self.assertIn("-Action", calls[0])
-        self.assertIn("refresh", calls[0])
-        self.assertIn("WIN:bridge.ps1", calls[0])
+        script = base64.b64decode(calls[0][-1]).decode("utf-16-le")
+        self.assertIn("-Action 'refresh'", script)
+        self.assertIn("& 'WIN:bridge.ps1'", script)
+        self.assertIn("Join-Path $PSHOME 'Modules'", script)
+        self.assertIn("UTF8Encoding($false)", script)
+        self.assertIn("$ProgressPreference='SilentlyContinue'", script)
 
     def test_explicit_inventory_binds_distro_and_address_without_dialog(self):
         calls = []
@@ -98,8 +102,26 @@ class TestWindowsCommandRunner(unittest.TestCase):
                 port_registry_path=Path("ports.yaml"), timeout_seconds=5,
                 distro="Ubuntu-24.04", observed_address="172.20.0.2",
             )
-            self.assertEqual(calls[-1][-4:], ["-Distro", "Ubuntu-24.04", "-ObservedAddress", "172.20.0.2"])
+            script = base64.b64decode(calls[-1][-1]).decode("utf-16-le")
+            self.assertIn("-Distro 'Ubuntu-24.04' -ObservedAddress '172.20.0.2'", script)
             self.assertEqual("-NonInteractive" in calls[-1], action != "install")
+
+    def test_windows_values_remain_literals_without_persistent_policy_changes(self):
+        calls = []
+        runner = WindowsCommandRunner(
+            path_converter=lambda path: "C:/O'Brien/" + path.name,
+            popen=lambda command, **kwargs: calls.append((command, kwargs)) or _Process(),
+        )
+        runner.run("inventory", script_path=Path("bridge.ps1"), config_path=Path("bridge.json"),
+                   port_registry_path=Path("ports.yaml"), timeout_seconds=5,
+                   distro="Ubuntu; $(Get-Date)")
+        command, options = calls[0]
+        script = base64.b64decode(command[-1]).decode("utf-16-le")
+        self.assertIn("& 'C:/O''Brien/bridge.ps1'", script)
+        self.assertIn("-Distro 'Ubuntu; $(Get-Date)'", script)
+        self.assertNotIn("Set-ExecutionPolicy", script)
+        self.assertEqual(options["encoding"], "utf-8")
+        self.assertEqual(options["errors"], "replace")
 
     def test_timeout_terminates_then_kills_child_and_returns_typed_status(self):
         process = _Process(timeout=True)

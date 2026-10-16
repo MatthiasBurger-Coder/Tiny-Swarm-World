@@ -4,6 +4,8 @@ Import-Module Microsoft.PowerShell.Utility
 Import-Module Microsoft.PowerShell.Management
 . (Join-Path $RepositoryRoot 'tools/windows/tws-wsl-bridge.ps1')
 $count=0
+$originalProxyOwners=${function:Get-PreparationPortProxyOwnerPids}
+$originalHostsReader=${function:Get-PreparationHostsText}
 $originalIpFunction=${function:Get-WslIp}
 $originalCredentialFunction=${function:Request-BridgeServiceCredential}
 function Assert($Value,$Name){if(!$Value){throw "FAIL: $Name"};$script:count++}
@@ -14,6 +16,14 @@ try {
     $source=Join-Path $tempRoot 'source.json';$staged=Join-Path $tempRoot 'staged.json'
     [IO.File]::WriteAllText($source,'{"distro":"auto","listenAddress":"0.0.0.0"}')
     Copy-Item -LiteralPath $source -Destination $staged
+    $savedHostsPath=$HostsPath
+    $HostsPath=Join-Path $tempRoot 'hosts.txt'
+    [IO.File]::WriteAllText($HostsPath, "127.0.0.1 localhost`r`n", [Text.Encoding]::UTF8)
+    $plainHosts=& $originalHostsReader
+    Assert ($plainHosts -ceq "127.0.0.1 localhost`r`n") 'host fingerprint preserves exact text'
+    Assert ($plainHosts.PSObject.Properties.Name -notcontains 'PSProvider' -and $plainHosts.PSObject.Properties.Name -notcontains 'PSDrive') 'host fingerprint excludes filesystem provider metadata'
+    Assert ((Get-BridgePreparationDigest @($plainHosts)) -ceq (Get-BridgePreparationDigest @("127.0.0.1 localhost`r`n"))) 'plain hosts digest equals literal digest'
+    $HostsPath=$savedHostsPath
     $Action='inventory'
     function Initialize-BridgeAclGuardType{throw 'read-only inventory invoked C# compiler'}
     Assert (Test-BridgeHandleObjectSafe -Path $source -ExpectedDirectory $false) 'in-memory no-compiler guard reads regular object'
@@ -39,6 +49,15 @@ try {
     Assert ((Read-BridgeConfig $staged).distro -eq 'Ubuntu-24.04') 'protected staged copy binds explicit distro'
     Assert ((Read-BridgeConfig $source).distro -eq 'auto') 'shared source auto distro preserved'
 } finally { Remove-Item -LiteralPath $tempRoot -Recurse -Force }
+$script:helperFixture=[pscustomobject]@{Name='iphlpsvc';State='Running';StartName='LocalSystem';ProcessId=42;PathName=(Join-Path $env:windir 'System32\svchost.exe')+' -k NetSvcs -p'}
+function Get-CimInstance{param($ClassName,$Filter,$ErrorAction) return $script:helperFixture}
+Assert ((& $originalProxyOwners) -contains 42) 'canonical IP Helper listener ownership accepted'
+foreach($property in @('PathName','StartName','State','Name')) {
+    $before=$script:helperFixture.$property;$script:helperFixture.$property='foreign'
+    Assert ((& $originalProxyOwners) -notcontains 42) ('untrusted IP Helper '+$property+' rejected')
+    $script:helperFixture.$property=$before
+}
+Remove-Item function:Get-CimInstance
 $Distro='Ubuntu-24.04';$ObservedAddress='172.20.0.2'
 $config=[pscustomobject]@{distro=$Distro;listenAddress='0.0.0.0';hostsAddress='127.0.0.1';firewallRulePrefix='Tiny Swarm World';discoveryIntervalMinutes=1;hostNames=@()}
 $mappings=@([pscustomobject]@{Name='web';ListenPort=80;ConnectPort=80})
@@ -56,6 +75,8 @@ function Get-FirewallRuleSnapshot{param($Config) return [pscustomobject]@{Rules=
 function Get-PreparationFirewallFilters{param($Rules) if($null -ne $script:policyFilters){return $script:policyFilters};return @{ports=@{LocalPort=$script:filterPort;Protocol=$script:filterProtocol}}}
 function Get-NetTCPConnection{param($State,$ErrorAction) return $script:listeners}
 function Get-Content{param($LiteralPath,[switch]$Raw,$Encoding) return $script:hosts}
+function Get-PreparationHostsText{return $script:hosts}
+function Get-PreparationPortProxyOwnerPids{return @(4,42)}
 function Remove-ManagedHostsBlock{return ($script:hosts -replace '(?ms)# >>> Tiny Swarm World WSL Bridge >>>.*?# <<< Tiny Swarm World WSL Bridge <<<','')}
 function Get-FileHash{param($LiteralPath,$Algorithm) return [pscustomobject]@{Hash='same'}}
 function Test-Path{param($LiteralPath,$PathType) return $false}
@@ -83,6 +104,13 @@ $script:hosts='127.0.0.2 jenkins.tsw.local';$r=Probe;Assert ($r.blockers -contai
 $script:owned=$true
 $script:state=[pscustomobject]@{generatedAt=[DateTimeOffset]::Now.ToString('o');agentMode='windows-service';agentStatus='ready';wslIp=$ObservedAddress;bundleId='bundle';configPath=$InstalledConfigPath;registryPath=$InstalledPortRegistryPath;listenAddress='0.0.0.0';firewallRulePrefix='Tiny Swarm World';mappings=@([pscustomobject]@{listenPort=80;connectPort=80})}
 $r=Probe;Assert ($r.bridge_ready -and !$r.action) 'owned ready agent no-op'
+$script:records=@([pscustomobject]@{ListenAddress='0.0.0.0';ListenPort=80;ConnectAddress=$ObservedAddress;ConnectPort=80})
+$script:listeners=@([pscustomobject]@{LocalAddress='0.0.0.0';LocalPort=80;OwningProcess=42})
+$r=Probe;Assert ($r.blockers.Count -eq 0) 'IP Helper listener with exact protected mapping accepted'
+$script:listeners[0].OwningProcess=43;$r=Probe
+Assert ($r.blockers -contains 'foreign_or_unknown_listener') 'unrelated listener PID remains blocked'
+$script:records=@();$script:listeners=@()
+
 # Model the adapted CIM representation from shipped NetSecurity types/CDXML.
 $formatterAssembly=Join-Path $env:windir 'System32/WindowsPowerShell/v1.0/Modules/NetSecurity/Microsoft.Windows.Firewall.Commands.dll'
 [void][Reflection.Assembly]::Load([IO.File]::ReadAllBytes($formatterAssembly))
