@@ -62,7 +62,7 @@ class LocalNetworkPreparation:
             await forwarding.apply_missing(*payload)
         elif action.kind == "enable":
             await runtime.privileged(("systemctl", "daemon-reload"), 15)
-            await runtime.privileged(("systemctl", "enable", "tsw-incus-forwarding.service"), 15)
+            await runtime.privileged(("systemctl", "enable", "--quiet", "tsw-incus-forwarding.service"), 15)
         elif action.kind == "windows":
             await self.windows.apply(payload)
 
