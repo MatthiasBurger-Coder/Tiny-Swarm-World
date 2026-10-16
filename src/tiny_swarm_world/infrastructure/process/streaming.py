@@ -109,7 +109,7 @@ def run_captured_process(
     try:
         process = launch(
             command, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE, text=True, shell=False, start_new_session=True,
+            stderr=subprocess.PIPE, text=True, encoding="utf-8", errors="replace", shell=False, start_new_session=True,
         )
         stdout, stderr = process.communicate(timeout=timeout)
         return CapturedProcessResult(process.returncode, stdout, stderr)

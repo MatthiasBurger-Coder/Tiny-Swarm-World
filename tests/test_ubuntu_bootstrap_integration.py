@@ -153,6 +153,8 @@ class UbuntuJoinedBootstrapTests(unittest.TestCase):
 
     def test_python_consent_fingerprint_drift_stops_bootstrap(self):
         with (
+            tempfile.TemporaryDirectory() as directory,
+            patch.dict(os.environ, {"TSW_NATIVE_LINUX_VENV": str(Path(directory) / "not-prepared")}),
             patch("tiny_swarm_world.infrastructure.composition_installation._python_imports_available", return_value=False),
             patch("tiny_swarm_world.prepare_linux._validate_mutation_paths", side_effect=(("a",), ("b",))),
             patch("tiny_swarm_world.infrastructure.composition_installation.detect_host_runtime", return_value=HostRuntime("native_linux", "fixture")),

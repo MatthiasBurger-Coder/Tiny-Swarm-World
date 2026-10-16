@@ -4179,6 +4179,27 @@ function Get-PreparationHeartbeatObservation {
     }
 }
 
+function Get-PreparationPortProxyOwnerPids {
+    # Windows can attribute portproxy listeners to System or the IP Helper
+    # service host. Trust only the running, canonical LocalSystem service.
+    $owners=@(4)
+    try { $helper=Get-CimInstance -ClassName Win32_Service -Filter "Name='iphlpsvc'" -ErrorAction Stop }
+    catch { return $owners }
+    $binary=[regex]::Escape((Join-Path $env:windir 'System32\svchost.exe'))
+    if ($null -ne $helper -and $helper.Name -eq 'iphlpsvc' -and $helper.State -eq 'Running' -and
+        $helper.StartName -eq 'LocalSystem' -and [int]$helper.ProcessId -gt 4 -and
+        [string]$helper.PathName -match ('^"?'+$binary+'"?\s+-k\s+NetSvcs(?:\s+-p)?$')) {
+        $owners += [int]$helper.ProcessId
+    }
+    return $owners
+}
+
+function Get-PreparationHostsText {
+    # Get-Content strings carry provider metadata in Windows PowerShell 5.1.
+    # Serializing that metadata recursively can expand an entire PSDrive.
+    return [IO.File]::ReadAllText($HostsPath, [Text.Encoding]::UTF8)
+}
+
 function Get-BridgePreparationInventory {
     param($Config, $Mappings, $HostNames, [string]$RegistryPath)
     Assert-PreparationDistro -Value $Distro
@@ -4218,6 +4239,7 @@ function Get-BridgePreparationInventory {
     if ($ownership.Status -eq 'owned' -and -not (Test-PreparationFirewallPolicyCanonical -Rules $snapshot.Rules -Filters $firewallFilters)) {
         [void]$blockers.Add('owned_firewall_policy_conflict')
     }
+    $proxyOwnerPids = @(Get-PreparationPortProxyOwnerPids)
     $listeners = @(Get-NetTCPConnection -State Listen -ErrorAction Stop | Where-Object { $_.LocalPort -in @($Mappings | ForEach-Object { $_.ListenPort }) })
     foreach ($mapping in $Mappings) {
         foreach ($record in @($records | Where-Object { $_.ListenPort -eq $mapping.ListenPort })) {
@@ -4228,7 +4250,7 @@ function Get-BridgePreparationInventory {
             if (-not $owned) { [void]$blockers.Add('foreign_portproxy_collision') }
         }
         foreach ($listener in @($listeners | Where-Object { $_.LocalPort -eq $mapping.ListenPort })) {
-            $ownedProxy = $null -ne $state -and [int]$listener.OwningProcess -eq 4 -and @($records | Where-Object { $_.ListenPort -eq $listener.LocalPort -and $_.ListenAddress -eq $listener.LocalAddress -and $_.ConnectAddress -eq [string]$state.wslIp }).Count -eq 1
+            $ownedProxy = $null -ne $state -and ($proxyOwnerPids -contains [int]$listener.OwningProcess) -and @($records | Where-Object { $_.ListenPort -eq $listener.LocalPort -and $_.ListenAddress -eq $listener.LocalAddress -and $_.ConnectAddress -eq [string]$state.wslIp }).Count -eq 1
             if (-not $ownedProxy) { [void]$blockers.Add('foreign_or_unknown_listener') }
         }
     }
@@ -4237,7 +4259,7 @@ function Get-BridgePreparationInventory {
             [void]$blockers.Add('foreign_firewall_collision')
         }
     }
-    $hosts = Get-Content -LiteralPath $HostsPath -Raw -Encoding UTF8
+    $hosts = Get-PreparationHostsText
     $starts = [regex]::Matches($hosts, [regex]::Escape($HostsStart)).Count
     $ends = [regex]::Matches($hosts, [regex]::Escape($HostsEnd)).Count
     if ($starts -ne $ends -or $starts -gt 1 -or ($starts -gt 0 -and $null -eq $state)) { [void]$blockers.Add('foreign_or_ambiguous_hosts_block') }
