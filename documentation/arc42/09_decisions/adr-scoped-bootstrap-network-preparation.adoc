@@ -400,3 +400,20 @@ join namespaces or mutate runtime state. Keep existing host-root proxy support.
 No fixed host UID, global namespace assumption or guessed PID-file path is used.
 Sources: https://raw.githubusercontent.com/lxc/incus/stable-6.0/cmd/incusd/main_forkproxy.go[Incus forkproxy]
 and https://raw.githubusercontent.com/lxc/incus/stable-6.0/internal/server/device/proxy.go[proxy lifecycle].
+
+== Relation-order fingerprint amendment, 2026-10-17 (#461 R461-34)
+
+Accepted before implementation after an actual consented WSL preparation
+reobservation differed only in the ordering of the same Incus network `used_by`
+references. Requirement, architecture and testing review require the exact-plan
+and preservation checks to compare this relation independently of API order.
+
+Project only network `used_by` lists into sorted order for both plan and invariant
+hashes. Retain the raw inventory for validation and diagnostics. When present,
+the field must be a list containing only strings; malformed observations block.
+Preserve every member, duplicate, URI byte and other field. Do not sort unrelated
+lists, change the shared Incus resource reader, omit ownership evidence or
+normalize counters, socket observations or heartbeat state as part of this fix.
+Pure reference permutation is equivalent; added, removed, replaced or duplicated
+references still invalidate the approved plan. A new source-bound live rerun is
+required; this decision alone supplies no installation qualification.

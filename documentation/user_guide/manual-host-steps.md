@@ -275,6 +275,62 @@ archival does not authorize another mutation. Never delete an APT lock, erase
 state or reset the platform simply to retry. Ordinary installation reconciles
 existing state. See the [bootstrap recovery contract](../contracts/bootstrap.md#boot-w08-resumable-preparation-and-protected-recovery).
 
+## Check a deliberate recovery before resuming
+
+An instance snapshot on its existing storage pool is not a host operating-system
+backup or disaster-recovery copy. Establish separately whether external volumes
+and other dependencies are protected: a root-disk snapshot does not prove their
+recovery. Record the original instance state, user configuration, devices,
+profiles and private machine identity before an approved restore; compare them
+afterwards without publishing raw identifiers or host configuration.
+
+Do not discard every `volatile.*` field from a preservation comparison. Stable
+instance UUID, MAC and ID maps remain relevant. Lifecycle fields such as recorded
+power/readiness, a recreated host veth name and the generation UUID need explicit
+field-specific validation. Incus changes the generation UUID when restoring an
+earlier point in time; its host device name describes the runtime network
+interface. See the [Incus instance-option reference](https://linuxcontainers.org/incus/docs/main/reference/instance_options/#volatile-internal-data).
+An initial full-configuration mismatch must remain in the evidence alongside
+any narrower validated comparison; neither comparison alone proves a fresh
+installation or complete host recovery.
+
+If a separately approved LXD pause is needed, first retain its original service
+and socket states and instance inventory. Restore those exact states after the
+test; do not start previously stopped instances or enable an originally inactive
+socket. A service reporting active can precede API readiness. Wait with a finite
+deadline and inspect the original instances through the original runtime before
+claiming preservation. For Incus after its own approved restart, an example
+read-only API readiness check is:
+
+```bash
+timeout 30s sh -c 'until incus info >/dev/null 2>&1; do sleep 1; done'
+```
+
+When the original LXD runtime is managed by its `lxc` client, check that original
+runtime separately after restoring its service state:
+
+```bash
+timeout 30s sh -c 'until lxc info >/dev/null 2>&1; do sleep 1; done'
+```
+
+Incus readiness does not establish LXD preservation. A timeout remains a blocked check requiring inspection,
+not permission to repeat the preceding restore or lifecycle mutation.
+
+## Reuse credentials for an initialized Portainer
+
+An initialization `409` followed by failed login can mean the selected credential
+source does not match the preserved Portainer administrator. Before selecting
+another override file, verify the actual existing credentials through a private
+API client: require successful authentication and an authenticated read, not just
+an HTTP response from the login endpoint. Select the verified existing protected
+source with `TSW_INSTALL_ENV_FILE`, following the installation guide's override
+file permissions and Linux-native storage rules. Preserve the previous source
+for review; an old filename alone does not establish valid credentials. Do not
+delete volumes, reset the platform, reinitialize the administrator or rotate its
+password merely to retry. Keep credentials out of inline commands, shell history,
+logs and issue evidence. A successful authenticated check does not establish a
+complete installation.
+
 Finish with the installation guide's runtime checks, trusted HTTPS from the
 actual browser environment, and authenticated access to each required service.
 Record commands, exits and redacted results separately. A login page, `401` or

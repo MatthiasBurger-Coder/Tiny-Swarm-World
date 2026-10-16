@@ -46,6 +46,14 @@ snapshot: publish reviewed updates through the elevated bridge `install`
 lifecycle and verify the result. Editing checkout files alone does not publish
 that snapshot or prove live endpoint readiness.
 
+For plan identity, network inventory compares Incus `used_by` relations
+independently of their response order. A present value must be a list of strings;
+the comparison sorts a copy while retaining every URI and duplicate. Raw
+observations remain unchanged, and added or removed relations, malformed values
+and other configuration changes still invalidate the plan. This avoids blocking
+an unchanged network merely because Incus returned its relationships in a
+different order; it does not authorize new changes or establish live readiness.
+
 The supported firewall path uses iptables-nft, recognizes Incus rules and retains
 active UFW ownership. UFW additions use its scoped route/DHCP/DNS interfaces.
 Preparation does not install or enable UFW. A missing UFW executable is accepted
@@ -55,6 +63,14 @@ missing Incus NAT, port/subnet collisions, unsafe files or conflicting outside
 hosts entries block before the network stage changes the host. Preserve the
 reported resource, review the owner/configuration diagnostic and rerun dry-run.
 Never disable or flush the firewall to bypass a blocker.
+
+An existing Incus bridge with `ipv6.address=auto` remains an intentional blocker
+for this initial IPv4 preparation contract. Preserve its IPv6 policy; do not
+disable IPv6 automatically to obtain a passing plan. Select compatible resources
+or review a separate network change with its owner. After an approved daemon
+restart, wait for bounded API readiness before collecting preservation inventory;
+an active service alone does not establish a ready API. See the
+[manual recovery checks](manual-host-steps.md#check-a-deliberate-recovery-before-resuming).
 
 An already-owned Incus proxy configured to listen on `0.0.0.0` may appear as `*`
 in `ss` output. Preparation accepts this only with an explicit per-socket
