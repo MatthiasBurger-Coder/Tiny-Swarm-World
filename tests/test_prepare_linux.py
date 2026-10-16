@@ -140,6 +140,18 @@ class NativePreparationServiceTests(unittest.TestCase):
                 packages.missing.assert_not_called()
                 packages.install.assert_not_called()
 
+    def test_lxd_conflict_preserves_resources_and_reports_runtime_owner(self) -> None:
+        packages = Mock()
+        service = NativePreparationService(Mock(inspect=Mock(return_value=replace(QUALIFIED, conflicting_runtime=True))), packages)
+        plan = service.plan()
+        self.assertFalse(plan.qualified)
+        self.assertIn("LXD", " ".join(plan.failures))
+        self.assertIn("Preserve", " ".join(plan.failures))
+        with self.assertRaisesRegex(ValueError, "preflight failed"):
+            service.apply(plan)
+        packages.missing.assert_called_once_with(HOST_PACKAGES_BY_PROFILE["service-access"])
+        packages.install.assert_not_called()
+
     def test_both_ubuntu_lts_releases_are_qualified(self) -> None:
         for release in ("24.04", "26.04"):
             with self.subTest(release=release):

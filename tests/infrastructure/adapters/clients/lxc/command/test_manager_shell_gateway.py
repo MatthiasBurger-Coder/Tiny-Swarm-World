@@ -106,6 +106,14 @@ class TestLxcManagerShellGateway(unittest.TestCase):
         run.assert_called_once()
         sleep.assert_not_called()
 
+    def test_retry_safe_does_not_retry_unclassified_exit_255(self):
+        run = Mock(return_value=subprocess.CompletedProcess([], 255, stdout="", stderr="unknown failure"))
+        sleep = Mock()
+        with self.assertRaisesRegex(RuntimeError, "exit code 255"):
+            self.gateway.run_node_shell("swarm-manager", "asset transfer", run=run, sleep=sleep, retry_safe=True)
+        run.assert_called_once()
+        sleep.assert_not_called()
+
     def test_run_node_shell_raises_for_failed_checked_command(self):
         run = Mock(
             return_value=subprocess.CompletedProcess(

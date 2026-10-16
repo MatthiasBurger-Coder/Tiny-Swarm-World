@@ -15,6 +15,8 @@ class TestPortRegistryYamlRepository(unittest.TestCase):
         self.assertEqual(len(registry.ranges), 11)
         self.assertEqual(len(registry.mappings), 24)
         self.assertEqual(tuple(port.external_port for port in registry.preflight_ports), (80, 443))
+        self.assertEqual(tuple(port.route_host for port in registry.preflight_ports),
+                         ("tsw.local", "traefik.tsw.local"))
         self.assertEqual(
             PortExposureClass.PUBLIC_INGRESS,
             registry.mapping_for_port_id("traefik-http").exposure,

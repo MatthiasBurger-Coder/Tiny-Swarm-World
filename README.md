@@ -247,6 +247,10 @@ data or credentials. WSL `--confirm-reset` explicitly requests the deprecated
 destructive compatibility path; live approval alone never requests reset. See the
 [installation guide](documentation/user_guide/installation.adoc) for recovery.
 
+The [manual host checklist](documentation/user_guide/manual-host-steps.md) covers
+sudo/login boundaries, LXD conflicts, public-CA inspection and trust in Linux/WSL
+and Windows browsers, plus scoped restart and recovery steps.
+
 Windows preparation prints the selected registration/account handoff after its
 lifecycle, resources and bridge are ready. Keep the trusted checkout in the
 ordinary Linux account's `~/Tiny-Swarm-World`, or select its absolute Linux path:

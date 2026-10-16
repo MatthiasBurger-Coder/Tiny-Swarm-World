@@ -6,6 +6,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from tests.powershell_test_runtime import powershell_command
+
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 BRIDGE_SCRIPT = REPOSITORY_ROOT / "tools" / "windows" / "tws-wsl-bridge.ps1"
@@ -174,7 +176,7 @@ class TestWindowsWslBridgeAssets(unittest.TestCase):
         command = _pester_command(script_path)
 
         completed = subprocess.run(
-            [executable, "-NoProfile", "-NonInteractive", "-Command", command],
+            powershell_command(executable, command),
             cwd=REPOSITORY_ROOT,
             check=False,
             text=True,

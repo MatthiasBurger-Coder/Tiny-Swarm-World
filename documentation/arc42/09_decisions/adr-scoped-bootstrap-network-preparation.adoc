@@ -349,3 +349,54 @@ execution and private transaction payload over stdin. Ownership, safe path/file
 checks, source/plan binding, consent, deadlines, group cleanup and uncertain-effect
 reporting are unchanged. This corrects session compatibility within the existing
 process owner and does not expand mutation authority or claim live qualification.
+
+== Owned dual-stack listener observation amendment, 2026-10-17 (#461 R461-29)
+
+Accepted before implementation by the root architect following independent
+System Architect, Requirement Engineer, Python Automation Developer and Tester
+review. An existing Incus proxy configured with listen tcp:0.0.0.0:PORT may be
+realized as a dual-stack kernel socket. Literal comparison with ss's displayed
+asterisk rejects this existing owned realization. Observe all address families
+with ss -H -O -ltnpe; retain its raw output in the plan fingerprint.
+
+Accept the displayed asterisk only for the 0.0.0.0 exposure contract, with exactly
+one per-socket v6only:0 observation, exactly one matching manager proxy listening
+on tcp:0.0.0.0:PORT and connecting to tcp:127.0.0.1:PORT, and the existing trusted
+Incus PID/executable proof. Missing, duplicate or contradictory v6only metadata,
+IPv6-only bindings, loopback expansion and foreign/ambiguous ownership block.
+Do not substitute a global bindv6only setting or omit IPv6 listeners with ss -4.
+
+This recognizes an already-owned socket and preserves its actual IPv6 observation;
+it does not change bindings, grant new IPv6 endpoint support or qualify IPv6
+reachability. Existing IPv6 bridge/firewall preservation remains authoritative.
+No automatic LXD shutdown, migration or removal is introduced.
+
+Primary source: https://raw.githubusercontent.com/iproute2/iproute2/main/misc/ss.c[iproute2 ss implementation],
+inet_addr_print and inet_show_sock: the asterisk denotes the unspecified IPv6
+address with v6only disabled; extended output reports the per-socket kernel flag.
+
+== Namespace-bound proxy identity amendment, 2026-10-17 (#461 R461-31)
+
+Accepted before implementation following actual read-only manager/listener
+UID/GID-map and user/network namespace comparison, with independent System
+Architect and Security/Sandbox concurrence. Incus forkproxy passes a host
+listener descriptor to a connector in the container user/network namespaces.
+Its mapped container-root UID may legitimately differ from host UID 0.
+
+Retain the host-root Incus daemon and its safe root-owned executable inode as
+authority, bound to the observed host PID 1 user namespace. Host-root listeners
+must share that daemon user namespace. The mapped-root path requires both mapped
+UID and GID to be nonzero; mixed host/container-root credentials are unsupported.
+A non-host-root listener is eligible only when its complete UID/GID
+maps and user/network namespace identities match the fresh canonical manager
+init PID from the local Incus API, and every credential field equals mapped
+container root. Reject custom proxy credential options. Recheck listener, daemon
+and manager start times, credentials, maps, namespaces and executable identity;
+requery the API PID and exact selected proxy configuration around the proof.
+Missing, malformed or changed observations block. Fingerprint the complete proof.
+
+This does not authorize arbitrary nonroot incusd processes, change credentials,
+join namespaces or mutate runtime state. Keep existing host-root proxy support.
+No fixed host UID, global namespace assumption or guessed PID-file path is used.
+Sources: https://raw.githubusercontent.com/lxc/incus/stable-6.0/cmd/incusd/main_forkproxy.go[Incus forkproxy]
+and https://raw.githubusercontent.com/lxc/incus/stable-6.0/internal/server/device/proxy.go[proxy lifecycle].

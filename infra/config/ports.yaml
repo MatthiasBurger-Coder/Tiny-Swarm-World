@@ -67,7 +67,7 @@ ports:
     exposure: public_ingress
     range_id: public-ingress
     protocol: tcp
-    route_host: tsw.local
+    route_host: traefik.tsw.local
     required_for_preflight: true
     metadata:
       route_name: none

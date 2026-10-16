@@ -31,7 +31,7 @@ async def inspect_network(self) -> NetworkSnapshot:
     links = stable_links(await incus.json_command(("ip", "-j", "address", "show")))
     bridges = configuration.resolve_bridges(self.config_root / "node-providers/provider_config.yaml", networks, routes, links)
     names, ports, exposure = configuration.local_names(self.config_root / "ports.yaml", self.profile)
-    listeners = await runtime.privileged(("ss", "-H", "-ltnp"))
+    listeners = await runtime.privileged(("ss", "-H", "-O", "-ltnpe"))
     provenance = await configuration.verify_listeners(listeners, ports, instances, exposure)
     firewall = await firewall_inventory.inventory(bridges, ports)
     firewall["ports"] = ports

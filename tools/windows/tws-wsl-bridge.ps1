@@ -78,8 +78,18 @@ $BridgeScriptSourcePath = $PSCommandPath
 $WinSwDownloadUri = "https://github.com/winsw/winsw/releases/download/v2.12.0/WinSW.NET461.exe"
 $WinSwSha256 = "B5066B7BBDFBA1293E5D15CDA3CAAEA88FBEAB35BD5B38C41C913D492AADFC4F"
 
+function Resolve-TswFileSystemPath {
+    param([string]$Path)
+    $paths = @(Resolve-Path -LiteralPath $Path -ErrorAction Stop)
+    if ($paths.Count -ne 1 -or $paths[0].Provider.Name -ne 'FileSystem' -or
+        [string]::IsNullOrWhiteSpace([string]$paths[0].ProviderPath)) {
+        throw 'A filesystem path is required.'
+    }
+    return $paths[0].ProviderPath
+}
+
 function Get-TswRepositoryRoot {
-    return (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..\..")).Path
+    return (Resolve-TswFileSystemPath -Path (Join-Path $PSScriptRoot "..\.."))
 }
 
 function Test-IsAdministrator {
@@ -418,7 +428,7 @@ function Install-BridgeBundleFile {
         [string]$Destination
     )
 
-    $resolvedSource = (Resolve-Path -LiteralPath $Source).Path
+    $resolvedSource = (Resolve-TswFileSystemPath -Path $Source)
     Write-BytesAtomically -Path $Destination -Bytes ([IO.File]::ReadAllBytes($resolvedSource))
 }
 
@@ -4000,7 +4010,7 @@ function Write-StateFile {
         listenAddress      = (Get-ListenAddress $Config)
         hostsAddress       = (Get-HostsAddress $Config)
         firewallRulePrefix = (Get-FirewallRulePrefix $Config)
-        configPath         = (Resolve-Path -LiteralPath $ConfigPath).Path
+        configPath         = (Resolve-TswFileSystemPath -Path $ConfigPath)
         registryPath       = $RegistryPath
         bundleId           = $bundleIdentity.BundleId
         bundleHashes       = $bundleIdentity.Hashes
@@ -4027,7 +4037,7 @@ function Show-Status {
     )
 
     Write-Host "Tiny Swarm World Windows <-> WSL bridge status"
-    Write-Host ("Config: {0}" -f (Resolve-Path -LiteralPath $ConfigPath).Path)
+    Write-Host ("Config: {0}" -f (Resolve-TswFileSystemPath -Path $ConfigPath))
     Write-Host ("Ports: {0}" -f (($Mappings | Select-Object -ExpandProperty ListenPort) -join ", "))
     Write-Host ("Hosts: {0}" -f ($HostNames -join ", "))
 
@@ -4217,6 +4227,137 @@ function Get-PreparationIpHelperIdentity {
     } catch { return $null }
 }
 
+function Test-PreparationWslPathDescriptor {
+    param($Security, [bool]$VolumeRoot)
+    $trusted=@('S-1-5-18','S-1-5-32-544','S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464')
+    if ($null -eq $Security.Owner -or $Security.Owner.Value -notin $trusted -or
+        ($Security.ControlFlags -band [Security.AccessControl.ControlFlags]::DiscretionaryAclPresent) -eq 0 -or
+        $null -eq $Security.DiscretionaryAcl) { return $false }
+    $mask=[int](Get-BridgeMutationRights) -bor 0x50000000
+    # Creation of unrelated siblings at the volume root cannot replace protected children.
+    if ($VolumeRoot) { $mask=$mask -band (-bnot 6) }
+    foreach ($ace in $Security.DiscretionaryAcl) {
+        if ($ace -isnot [Security.AccessControl.CommonAce] -or $ace.IsCallback) { return $false }
+        if ([int]$ace.AceFlags -band [int][Security.AccessControl.AceFlags]::InheritOnly) { continue }
+        if ($ace.AceQualifier -eq [Security.AccessControl.AceQualifier]::AccessDenied) { continue }
+        if ($ace.AceQualifier -ne [Security.AccessControl.AceQualifier]::AccessAllowed -or $null -eq $ace.SecurityIdentifier) { return $false }
+        if (($ace.AccessMask -band $mask) -and $ace.SecurityIdentifier.Value -notin $trusted) { return $false }
+    }
+    return $true
+}
+
+function Get-PreparationWslPathObservation {
+    param([string]$Path, [bool]$Directory, [bool]$VolumeRoot)
+    Initialize-BridgeReadOnlyNative
+    $handle=[TinySwarmWorld.BridgeReadOnlyNative]::CreateFileW($Path, 0x20080, 1, [IntPtr]::Zero, 3, 0x02200000, [IntPtr]::Zero)
+    if ($handle -eq [IntPtr]::Zero -or $handle -eq [IntPtr]::new(-1)) { throw 'WSL path unavailable.' }
+    $information=[Runtime.InteropServices.Marshal]::AllocHGlobal(52);$descriptor=[IntPtr]::Zero
+    try {
+        if (![TinySwarmWorld.BridgeReadOnlyNative]::GetFileInformationByHandle($handle,$information)) { throw 'WSL file identity unavailable.' }
+        $attributes=[Runtime.InteropServices.Marshal]::ReadInt32($information,0)
+        $links=[Runtime.InteropServices.Marshal]::ReadInt32($information,40)
+        if (($attributes -band 1024) -or (($attributes -band 16) -ne 0) -ne $Directory -or (!$Directory -and $links -ne 1)) { throw 'Unsafe WSL file type.' }
+        $owner=[IntPtr]::Zero;$group=[IntPtr]::Zero;$dacl=[IntPtr]::Zero;$sacl=[IntPtr]::Zero
+        $code=[TinySwarmWorld.BridgeReadOnlyNative]::GetSecurityInfo($handle,1,5,[ref]$owner,[ref]$group,[ref]$dacl,[ref]$sacl,[ref]$descriptor)
+        if ($code -ne 0 -or $descriptor -eq [IntPtr]::Zero) { throw 'WSL path security unavailable.' }
+        $length=[TinySwarmWorld.BridgeReadOnlyNative]::GetSecurityDescriptorLength($descriptor)
+        if ($length -eq 0 -or $length -gt 65536) { throw 'Invalid WSL path security.' }
+        $bytes=New-Object byte[] $length
+        [Runtime.InteropServices.Marshal]::Copy($descriptor,$bytes,0,[int]$length)
+        $security=[Security.AccessControl.RawSecurityDescriptor]::new($bytes,0)
+        if (!(Test-PreparationWslPathDescriptor $security $VolumeRoot)) { throw 'Writable or foreign WSL path.' }
+        $proof=[ordered]@{path=$Path;acl=$security.GetSddlForm([Security.AccessControl.AccessControlSections]'Owner,Access');identity=@(28,44,48 | ForEach-Object{[Runtime.InteropServices.Marshal]::ReadInt32($information,$_)});attributes=$attributes}
+        if (!$Directory) {
+            $signature=Get-AuthenticodeSignature -LiteralPath $Path -ErrorAction Stop
+            if ([string]$signature.Status -ne 'Valid' -or $null -eq $signature.SignerCertificate -or
+                $signature.SignerCertificate.GetNameInfo([Security.Cryptography.X509Certificates.X509NameType]::SimpleName,$false) -cne 'Microsoft Corporation' -or
+                $signature.SignerCertificate.Subject -notmatch '(?:^|,\s*)O="?Microsoft Corporation"?(?:,|$)') { throw 'WSL Microsoft signature required.' }
+            $proof.hash=(Get-FileHash -LiteralPath $Path -Algorithm SHA256 -ErrorAction Stop).Hash
+            $proof.signer=$signature.SignerCertificate.Thumbprint
+            $proof.written=@(20,24,32,36 | ForEach-Object{[Runtime.InteropServices.Marshal]::ReadInt32($information,$_)})
+        }
+        return $proof
+    } finally {
+        if ($descriptor -ne [IntPtr]::Zero) { [void][TinySwarmWorld.BridgeReadOnlyNative]::LocalFree($descriptor) }
+        [Runtime.InteropServices.Marshal]::FreeHGlobal($information)
+        [void][TinySwarmWorld.BridgeReadOnlyNative]::CloseHandle($handle)
+    }
+}
+
+function Get-PreparationWslProcessObservation {
+    param([int]$ProcessId, [string]$ExpectedPath, [string]$ExpectedSid)
+    $processes=@(Get-CimInstance -ClassName Win32_Process -Filter "ProcessId=$ProcessId" -OperationTimeoutSec 2 -ErrorAction Stop)
+    if ($processes.Count -ne 1 -or $ProcessId -le 4) { throw 'WSL process unavailable.' }
+    $process=$processes[0]
+    if ([int]$process.ProcessId -ne $ProcessId -or ![StringComparer]::OrdinalIgnoreCase.Equals([string]$process.ExecutablePath,$ExpectedPath)) { throw 'WSL executable differs.' }
+    $owner=Invoke-CimMethod -InputObject $process -MethodName GetOwnerSid -OperationTimeoutSec 2 -ErrorAction Stop
+    if ($null -eq $owner.ReturnValue -or $owner.ReturnValue -ne 0 -or [string]$owner.Sid -cne $ExpectedSid) { throw 'WSL process account differs.' }
+    if ($process.CreationDate -isnot [DateTime]) { throw 'WSL process creation unavailable.' }
+    $paths=@();$path=$ExpectedPath;$directory=$false
+    while ($path) {
+        $volume=[StringComparer]::OrdinalIgnoreCase.Equals($path,[IO.Path]::GetPathRoot($path))
+        $paths+= Get-PreparationWslPathObservation $path $directory $volume
+        $path=[IO.Path]::GetDirectoryName($path);$directory=$true
+    }
+    return [ordered]@{pid=$ProcessId;parent=[int]$process.ParentProcessId;created=$process.CreationDate.ToUniversalTime().Ticks;sid=[string]$owner.Sid;executable=[string]$process.ExecutablePath;command=[string]$process.CommandLine;paths=$paths}
+}
+
+function Get-PreparationWslRelaySnapshot {
+    param([int]$ProcessId, [string]$AccountSid)
+    # This recognizes a Windows-owned companion, never ownership of a selected distro.
+    if ($AccountSid -notmatch '^S-1-5-21-(?:[0-9]+-){3}[0-9]+$') { throw 'Protected bridge account SID required.' }
+    $root=Join-Path ([Environment]::GetFolderPath('ProgramFiles')) 'WSL'
+    $relayPath=Join-Path $root 'wslrelay.exe';$servicePath=Join-Path $root 'wslservice.exe'
+    $services=@(Get-CimInstance -ClassName Win32_Service -Filter "Name='WSLService'" -OperationTimeoutSec 2 -ErrorAction Stop)
+    if ($services.Count -ne 1) { throw 'WSLService unavailable.' }
+    $service=$services[0]
+    if ($service.Name -cne 'WSLService' -or $service.State -ne 'Running' -or $service.StartName -ne 'LocalSystem' -or
+        [string]$service.PathName -notmatch ('^(?:"'+[regex]::Escape($servicePath)+'"|'+[regex]::Escape($servicePath)+')$')) { throw 'WSLService identity differs.' }
+    $relay=Get-PreparationWslProcessObservation $ProcessId $relayPath $AccountSid
+    $parent=Get-PreparationWslProcessObservation ([int]$service.ProcessId) $servicePath 'S-1-5-18'
+    $command='^\s*(?:(?:"'+[regex]::Escape($relayPath)+'"|'+[regex]::Escape($relayPath)+')\s+)?--mode\s+1\s+--vm-id\s+\{[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}\}\s+--handle\s+[1-9][0-9]*$'
+    if ($relay.parent -ne $parent.pid -or $parent.created -ge $relay.created -or $relay.command -cnotmatch $command) { throw 'WSL relay parent or command differs.' }
+    return [ordered]@{account_sid=$AccountSid;service=[ordered]@{name=[string]$service.Name;state=[string]$service.State;account=[string]$service.StartName;path=[string]$service.PathName;pid=[int]$service.ProcessId};relay=$relay;parent=$parent}
+}
+
+function Get-PreparationWslRelayProof {
+    param($Listener, $Listeners, $Records, $State, $Ownership, $Mapping, $Config, $ProxyOwnerPids, $InventoryMappings)
+    # Use the already resolved registry/config authority, never a PID-wide exemption.
+    $port=0
+    if ($null -eq $InventoryMappings -or $null -eq $Mapping -or -not [int]::TryParse([string]$Mapping.ListenPort, [ref]$port) -or $port -lt 1 -or $port -gt 65535 -or
+        @($InventoryMappings | Where-Object{$_.ListenPort -eq $port -and $_.ConnectPort -eq $Mapping.ConnectPort}).Count -ne 1) { return $null }
+    if ($Listener.LocalAddress -cne '::1' -or $Listener.LocalPort -ne $Mapping.ListenPort -or
+        $null -eq $State -or $Ownership.Status -ne 'owned' -or $Ownership.RequiresAdoption -or $null -eq $Ownership.Service -or
+        [string]$State.listenAddress -notin @('0.0.0.0','127.0.0.1') -or [string]$State.listenAddress -ne [string]$Config.listenAddress -or
+        @($State.mappings | Where-Object{$_.listenPort -eq $Mapping.ListenPort -and $_.connectPort -eq $Mapping.ConnectPort}).Count -ne 1) { return $null }
+    $recordsForPort=@($Records | Where-Object{$_.ListenPort -eq $Mapping.ListenPort})
+    if ($recordsForPort.Count -ne 1 -or $recordsForPort[0].ListenAddress -ne [string]$State.listenAddress -or
+        $recordsForPort[0].ConnectAddress -ne [string]$State.wslIp -or $recordsForPort[0].ConnectPort -ne $Mapping.ConnectPort) { return $null }
+    $ipv4=@($Listeners | Where-Object{$_.LocalPort -eq $Mapping.ListenPort -and $_.LocalAddress -eq [string]$State.listenAddress})
+    if ($ipv4.Count -ne 1 -or [int]$ipv4[0].OwningProcess -notin $ProxyOwnerPids) { return $null }
+    try {
+        $before=Get-PreparationWslRelaySnapshot ([int]$Listener.OwningProcess) ([string]$Ownership.AccountSid)
+        $after=Get-PreparationWslRelaySnapshot ([int]$Listener.OwningProcess) ([string]$Ownership.AccountSid)
+        $digest=Get-BridgePreparationDigest $before
+        if ($digest -cne (Get-BridgePreparationDigest $after)) { return $null }
+        # Process stability alone does not prove that either socket still exists.
+        $observed=@($Listeners | Where-Object{$_.LocalPort -eq $Mapping.ListenPort} | ForEach-Object {
+            [ordered]@{address=[string]$_.LocalAddress;port=[int]$_.LocalPort;pid=[int]$_.OwningProcess}
+        } | Sort-Object {$_.address},{$_.port},{$_.pid})
+        $fresh=@(Get-NetTCPConnection -State Listen -ErrorAction Stop | Where-Object{$_.LocalPort -eq $Mapping.ListenPort} | ForEach-Object {
+            [ordered]@{address=[string]$_.LocalAddress;port=[int]$_.LocalPort;pid=[int]$_.OwningProcess}
+        } | Sort-Object {$_.address},{$_.port},{$_.pid})
+        if ((Get-BridgePreparationDigest $observed) -cne (Get-BridgePreparationDigest $fresh)) { return $null }
+        return [ordered]@{address='::1';port=[int]$Listener.LocalPort;pid=[int]$Listener.OwningProcess;classification='windows_wsl_companion_preserve';provenance=$digest}
+    } catch { return $null }
+}
+
+function Get-PreparationHostsText {
+    # Get-Content strings carry provider metadata in Windows PowerShell 5.1.
+    # Serializing that metadata recursively can expand an entire PSDrive.
+    return [IO.File]::ReadAllText($HostsPath, [Text.Encoding]::UTF8)
+}
+
 function Get-BridgePreparationInventory {
     param($Config, $Mappings, $HostNames, [string]$RegistryPath)
     Assert-PreparationDistro -Value $Distro
@@ -4261,6 +4402,9 @@ function Get-BridgePreparationInventory {
     if ($null -ne $state -and @($listeners | Where-Object { [int]$_.OwningProcess -ne 4 }).Count -gt 0) {
         $ipHelperIdentity = Get-PreparationIpHelperIdentity
     }
+    $proxyOwnerPids = @(4)
+    if ($null -ne $ipHelperIdentity) { $proxyOwnerPids += [int]$ipHelperIdentity.pid }
+    $relayCompanions = @()
     foreach ($mapping in $Mappings) {
         foreach ($record in @($records | Where-Object { $_.ListenPort -eq $mapping.ListenPort })) {
             $owned = $false
@@ -4278,7 +4422,11 @@ function Get-BridgePreparationInventory {
             $ownedProxy = $null -ne $state -and $approvedMappings.Count -eq 1 -and $ownedProcess -and
                 $listener.LocalAddress -eq [string]$state.listenAddress -and
                 @($records | Where-Object { $_.ListenPort -eq $listener.LocalPort -and $_.ListenAddress -eq $listener.LocalAddress -and $_.ConnectAddress -eq [string]$state.wslIp -and $_.ConnectPort -eq $mapping.ConnectPort }).Count -eq 1
-            if (-not $ownedProxy) { [void]$blockers.Add('foreign_or_unknown_listener') }
+            if (-not $ownedProxy) {
+                $companion = Get-PreparationWslRelayProof $listener $listeners $records $state $ownership $mapping $Config $proxyOwnerPids $Mappings
+                if ($null -eq $companion) { [void]$blockers.Add('foreign_or_unknown_listener') }
+                else { $relayCompanions += $companion }
+            }
         }
     }
     foreach ($rule in $snapshot.Rules) {
@@ -4286,7 +4434,7 @@ function Get-BridgePreparationInventory {
             [void]$blockers.Add('foreign_firewall_collision')
         }
     }
-    $hosts = [string](Get-Content -LiteralPath $HostsPath -Raw -Encoding UTF8)
+    $hosts = Get-PreparationHostsText
     $starts = [regex]::Matches($hosts, [regex]::Escape($HostsStart)).Count
     $ends = [regex]::Matches($hosts, [regex]::Escape($HostsEnd)).Count
     if ($starts -ne $ends -or $starts -gt 1 -or ($starts -gt 0 -and $null -eq $state)) { [void]$blockers.Add('foreign_or_ambiguous_hosts_block') }
@@ -4312,6 +4460,7 @@ function Get-BridgePreparationInventory {
         routing_ready=[bool]$routingReady; agent_ready=[bool]$agentReady; bridge_ready=[bool]$ready
         action=$nextAction; blockers=@($blockers | Select-Object -Unique)
         endpoint_state='UNVERIFIED'; login_state='UNVERIFIED'
+        preserved_companions=@($relayCompanions | Sort-Object port,pid)
     }
     $result.fingerprint = Get-BridgePreparationDigest @($result, $Config, (Get-FileHash -LiteralPath $RegistryPath -Algorithm SHA256).Hash, $bundleId, $records, @($listeners | Select-Object LocalAddress, LocalPort, OwningProcess), $ipHelperIdentity, @($snapshot.Rules | Select-Object Name, DisplayName, Enabled, Direction, Action, Profile, EdgeTraversalPolicy | Sort-Object Name), $firewallFilters, @($snapshot.FiltersByRuleId.Keys | Sort-Object | ForEach-Object { [ordered]@{id=$_;filter=($snapshot.FiltersByRuleId[$_] | Select-Object InstanceID, Protocol, LocalPort, RemotePort, DynamicTarget)} }), (Get-PreparationHeartbeatObservation -State $state -IntervalMinutes (Get-DiscoveryIntervalMinutes $Config)), $installedHashes, $hosts)
     return $result
@@ -4361,7 +4510,7 @@ function Invoke-BridgeAction {
         if ([string]::IsNullOrWhiteSpace($PortRegistryPath)) {
             Join-Path (Get-TswRepositoryRoot) "infra\config\ports.yaml"
         } else {
-            (Resolve-Path -LiteralPath $PortRegistryPath).Path
+            (Resolve-TswFileSystemPath -Path $PortRegistryPath)
         }
     )
     $registry = Read-TswPortRegistry -RegistryPath $registryPath
@@ -4400,7 +4549,7 @@ function Invoke-BridgeAction {
 
         "install" {
             Assert-BridgePrerequisites -Config $config
-            $resolvedConfig = (Resolve-Path -LiteralPath $ConfigPath).Path
+            $resolvedConfig = (Resolve-TswFileSystemPath -Path $ConfigPath)
             $updateMutex = Enter-BridgeMutex -Name "Global\TinySwarmWorldWslBridgeServiceUpdate"
             try {
                 Install-BridgeService `

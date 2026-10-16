@@ -8,7 +8,7 @@ from pathlib import Path
 
 from tiny_swarm_world.application.ports.network_preparation import NetworkPreparationFailure
 from tiny_swarm_world.infrastructure.adapters.network_preparation import runtime
-from tiny_swarm_world.infrastructure.adapters.network_preparation.nat_policy import bypass, bridge_set, verify_filter
+from tiny_swarm_world.infrastructure.adapters.network_preparation.nat_policy import bypass, bridge_set, legacy_nat, verify_filter
 from tiny_swarm_world.infrastructure.adapters.network_preparation import nat_conflicts
 from tiny_swarm_world.infrastructure.adapters.network_preparation.firewall import (
     Bridge, equivalent, exact_present, forwarding_rules, input_rules, parse_rules, verify_no_foreign_denies,
@@ -28,6 +28,11 @@ async def inventory(bridges: tuple[Bridge, ...], ports: tuple[int, ...] = ()) ->
         raise NetworkPreparationFailure("UFW ownership is unreadable.")
     ufw = status.startswith("Status: active")
     saved = await runtime.privileged(("iptables-save",))
+    if not saved.strip():
+        # A fresh nft backend has no compatibility tables to dump. Request the
+        # kernel's filter view explicitly; never invent policies or hide a
+        # partial, nonempty dump. Full nft ownership is still verified below.
+        saved = await runtime.privileged(("iptables-save", "-t", "filter"))
     rules = parse_rules(saved)
     nat_conflicts.verify(saved, bridges, ports)
     if status.startswith("Status: absent") and any(chain.startswith("ufw-") for chain in rules):
@@ -125,8 +130,13 @@ def verify_nft(value: Any, bridges: tuple[Bridge, ...]) -> None:
             nat.append(rule)
     for bridge in bridges:
         scoped = [rule for rule in nat if rule.get("chain") == "pstrt." + bridge.name]
-        if ("pstrt." + bridge.name not in nat_chains or not bridge_set(value["nftables"], bridges)
-                or len(scoped) != 2 or not bypass(scoped[0], bridge) or not managed_nat(scoped[1], bridge)):
+        paired = (bridge_set(value["nftables"], bridges) and len(scoped) == 2
+                  and bypass(scoped[0], bridge) and managed_nat(scoped[1], bridge))
+        # Incus 6.0 LTS uses one subnet-scoped masquerade, without a bridge
+        # set/bypass pair. Limit that form to a single managed bridge so it
+        # cannot masquerade traffic between managed bridge subnets.
+        legacy = len(bridges) == 1 and len(scoped) == 1 and legacy_nat(scoped[0], bridge)
+        if "pstrt." + bridge.name not in nat_chains or not (paired or legacy):
             raise NetworkPreparationFailure("Incus-owned effective NAT missing; inspect Incus network readiness. No TSW NAT is created.")
 
 

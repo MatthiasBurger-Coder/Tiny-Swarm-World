@@ -12,6 +12,7 @@ import tempfile
 import unittest
 
 from tests.test_prepare_windows import ROOT, _powershell, _runtime_path
+from tests.powershell_test_runtime import powershell_script_command
 from tools.build_windows_preparation_manifest import ASSETS, build, git
 
 
@@ -106,10 +107,10 @@ class TestWindowsSourceProof(unittest.TestCase):
             catalog = workspace / "cases.json"
             catalog.write_text(json.dumps(cases))
             completed = subprocess.run(
-                [executable, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File",
-                 _runtime_path(ROOT / "tests/windows/source-proof.Tests.ps1", executable),
-                 "-RepositoryRoot", _runtime_path(ROOT, executable),
-                 "-FixtureCatalog", _runtime_path(catalog, executable)],
+                powershell_script_command(executable,
+                    _runtime_path(ROOT / "tests/windows/source-proof.Tests.ps1", executable),
+                    {"RepositoryRoot": _runtime_path(ROOT, executable),
+                     "FixtureCatalog": _runtime_path(catalog, executable)}),
                 check=False, text=True, encoding="utf-8", errors="replace",
                 capture_output=True, timeout=30,
             )

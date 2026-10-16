@@ -1,14 +1,48 @@
 import subprocess
+import tempfile
 import unittest
 from unittest.mock import Mock
 
 from tiny_swarm_world.domain.deployment import StackDefinition
+from pathlib import Path
+from tiny_swarm_world.infrastructure.project_paths import ProjectPaths
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.swarm.stack_asset_transfer import StackAssetTransfer
 from tiny_swarm_world.infrastructure.adapters.clients.lxc.swarm.swarm_stack_runtime import (
     LxcSwarmStackRuntime,
 )
 
 
 class TestLxcSwarmStackRuntime(unittest.TestCase):
+    def test_second_swagger_asset_failure_prevents_deployment(self):
+        calls = []
+
+        def run_shell(script, **kwargs):
+            calls.append(script)
+            if "target=/remote/stacks/swagger/nginx/default.conf" in script:
+                raise RuntimeError("asset transfer failed")
+            return subprocess.CompletedProcess([], 0, stdout="", stderr="")
+
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        root = Path(temporary.name)
+        for relative, content in (("swagger/openapi.json", "{}"), ("nginx/default.conf", "server {}")):
+            path = root / "infra/config/compose/swagger" / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(content, encoding="utf-8")
+        assets = StackAssetTransfer(
+            project_paths=ProjectPaths.from_roots(root), run_manager_shell=run_shell,
+            render_service_access_dashboard=Mock(),
+        )
+        runtime = LxcSwarmStackRuntime(
+            remote_stack_root="/remote/stacks", service_list_timeout_seconds=30,
+            run_manager_shell=run_shell, run_node_shell=Mock(),
+            prepare_stack_assets=assets.transfer_stack_assets, ensure_stack_prerequisites=Mock(),
+        )
+        with self.assertRaisesRegex(RuntimeError, "asset transfer failed"):
+            runtime.deploy_stack(StackDefinition(name="swagger", compose_content="services: {}"), stack_environment={})
+        self.assertTrue(any("target=/remote/stacks/swagger/swagger/openapi.json" in call for call in calls))
+        self.assertFalse(any("docker stack deploy" in call for call in calls))
+
     def test_deploy_stack_preserves_prerequisite_asset_and_deploy_order(self):
         calls = []
 

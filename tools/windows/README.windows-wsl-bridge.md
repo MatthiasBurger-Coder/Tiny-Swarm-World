@@ -37,6 +37,13 @@ bound only in the protected staged configuration, preserving the shared source
 configuration and owned registration credentials. See
 [Windows preparation](../../documentation/user_guide/windows-preparation.md#w06-bridge-preparation-and-browser-access-stages).
 
+Windows inventory can preserve an additional WSL relay listener on `::1` beside
+an independently verified owned IPv4 forwarding listener for a resolved mapped
+port. Recognition requires the protected Microsoft-signed WSL executable,
+selected bridge account, verified running SYSTEM WSLService parent and stable
+process/socket observations. The relay remains Windows-owned and is not removed
+or changed by preparation. Unknown listeners still block.
+
 ## Prerequisites
 
 The supported bridge path requires:
@@ -310,10 +317,25 @@ path.
 Inside WSL:
 
 ```bash
-cd /mnt/d/Projects/Tiny-Swarm-World
+cd ~/Tiny-Swarm-World
 
-./install.sh --headless --confirm-reset --non-interactive-live-approval
+./install.sh --headless --non-interactive-live-approval
 ```
+
+Use the Linux-native checkout owned by the selected WSL account. Ordinary
+installation reconciles existing state. The deprecated WSL `--confirm-reset`
+option requests a separate destructive reset and is not needed for a retry.
+See [manual host steps](../../documentation/user_guide/manual-host-steps.md) for
+sudo and login boundaries, public-CA trust, and restart/recovery checks. Bridge
+readiness does not install a browser CA or prove authenticated service access.
+
+The optional `tsw-tls-trust.ps1` helper has explicit current-user CA inspection,
+import and receipt-backed removal actions. It is separate from bridge installation
+and uses the independently verified public certificate's DER SHA-256 fingerprint.
+Follow the [manual certificate procedure](../../documentation/user_guide/manual-host-steps.md#optional-windows-current-user-trust-helper),
+including interactive Windows confirmation, exact ownership checks and any
+explicit Schannel revocation policy. Neither bridge readiness nor CA import alone
+establishes browser login.
 
 ## Browser entry points
 

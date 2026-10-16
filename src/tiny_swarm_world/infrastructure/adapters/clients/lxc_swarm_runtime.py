@@ -230,6 +230,7 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
         check: bool = True,
         input_text: str | None = None,
         timeout_seconds: int | None = None,
+        retry_safe: bool = False,
     ) -> subprocess.CompletedProcess[str]:
         return self.shell_gateway.run_manager_shell(
             script,
@@ -240,6 +241,7 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
             # construction. Composition injects the shared runner instead.
             run=run_process if self.process_runner is None else None,
             sleep=time.sleep,
+            retry_safe=retry_safe,
         )
 
     def _run_node_shell(

@@ -7,8 +7,8 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from typing import Protocol
 
-from tiny_swarm_world.infrastructure.adapters.clients.lxc.swarm.swarm_stack_runtime import (
-    _quote_remote_path,
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.swarm.stack_asset_writer import (
+    asset_write_script,
 )
 from tiny_swarm_world.infrastructure.project_paths import ProjectPaths
 
@@ -24,6 +24,13 @@ class StackAssetTransferContext:
     project_paths: ProjectPaths
     run_manager_shell: ManagerShell
     render_service_access_dashboard: DashboardRenderer
+
+    def write_asset(self, relative_path: str, content: str) -> None:
+        self.run_manager_shell(
+            asset_write_script(self.remote_dir + "/" + relative_path, content),
+            input_text=content,
+            retry_safe=True,
+        )
 
 
 class StackAssetTransferStrategy(Protocol):
@@ -48,11 +55,7 @@ class TraefikAssetTransferStrategy:
             / "dynamic"
             / "tls.yml"
         )
-        script = (
-            f"set -e; mkdir -p {_quote_remote_path(context.remote_dir + '/dynamic')}; "
-            f"cat > {_quote_remote_path(context.remote_dir + '/dynamic/tls.yml')}"
-        )
-        context.run_manager_shell(script, input_text=tls_config.read_text(encoding="utf-8"))
+        context.write_asset("dynamic/tls.yml", tls_config.read_text(encoding="utf-8"))
 
 
 @dataclass(frozen=True, slots=True)
@@ -61,14 +64,7 @@ class ServiceAccessAssetTransferStrategy:
         return stack_name == "service-access"
 
     def transfer(self, context: StackAssetTransferContext) -> None:
-        script = (
-            f"set -e; mkdir -p {_quote_remote_path(context.remote_dir + '/dashboard')}; "
-            f"cat > {_quote_remote_path(context.remote_dir + '/dashboard/index.html')}"
-        )
-        context.run_manager_shell(
-            script,
-            input_text=context.render_service_access_dashboard(),
-        )
+        context.write_asset("dashboard/index.html", context.render_service_access_dashboard())
 
 
 @dataclass(frozen=True, slots=True)
@@ -93,16 +89,8 @@ class SwaggerAssetTransferStrategy:
             / "nginx"
             / "default.conf"
         )
-        script = (
-            f"set -e; mkdir -p {_quote_remote_path(context.remote_dir + '/swagger')}; "
-            f"cat > {_quote_remote_path(context.remote_dir + '/swagger/openapi.json')}"
-        )
-        context.run_manager_shell(script, input_text=openapi_file.read_text(encoding="utf-8"))
-        script = (
-            f"set -e; mkdir -p {_quote_remote_path(context.remote_dir + '/nginx')}; "
-            f"cat > {_quote_remote_path(context.remote_dir + '/nginx/default.conf')}"
-        )
-        context.run_manager_shell(script, input_text=nginx_config.read_text(encoding="utf-8"))
+        context.write_asset("swagger/openapi.json", openapi_file.read_text(encoding="utf-8"))
+        context.write_asset("nginx/default.conf", nginx_config.read_text(encoding="utf-8"))
 
 
 @dataclass(frozen=True, slots=True)

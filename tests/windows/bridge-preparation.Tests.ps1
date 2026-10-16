@@ -4,6 +4,10 @@ Import-Module Microsoft.PowerShell.Utility
 Import-Module Microsoft.PowerShell.Management
 . (Join-Path $RepositoryRoot 'tools/windows/tws-wsl-bridge.ps1')
 $count=0
+$originalHostsReader=${function:Get-PreparationHostsText}
+$originalWslDescriptor=${function:Test-PreparationWslPathDescriptor}
+$originalWslPathObservation=${function:Get-PreparationWslPathObservation}
+$originalIpHelperIdentity=${function:Get-PreparationIpHelperIdentity}
 $originalIpFunction=${function:Get-WslIp}
 $originalCredentialFunction=${function:Request-BridgeServiceCredential}
 $originalFirewallFilters=${function:Get-PreparationFirewallFilters}
@@ -15,6 +19,14 @@ try {
     $source=Join-Path $tempRoot 'source.json';$staged=Join-Path $tempRoot 'staged.json'
     [IO.File]::WriteAllText($source,'{"distro":"auto","listenAddress":"0.0.0.0"}')
     Copy-Item -LiteralPath $source -Destination $staged
+    $savedHostsPath=$HostsPath
+    $HostsPath=Join-Path $tempRoot 'hosts.txt'
+    [IO.File]::WriteAllText($HostsPath, "127.0.0.1 localhost`r`n", [Text.Encoding]::UTF8)
+    $plainHosts=& $originalHostsReader
+    Assert ($plainHosts -ceq "127.0.0.1 localhost`r`n") 'host fingerprint preserves exact text'
+    Assert ($plainHosts.PSObject.Properties.Name -notcontains 'PSProvider' -and $plainHosts.PSObject.Properties.Name -notcontains 'PSDrive') 'host fingerprint excludes filesystem provider metadata'
+    Assert ((Get-BridgePreparationDigest @($plainHosts)) -ceq (Get-BridgePreparationDigest @("127.0.0.1 localhost`r`n"))) 'plain hosts digest equals literal digest'
+    $HostsPath=$savedHostsPath
     $Action='inventory'
     function Initialize-BridgeAclGuardType{throw 'read-only inventory invoked C# compiler'}
     Assert (Test-BridgeHandleObjectSafe -Path $source -ExpectedDirectory $false) 'in-memory no-compiler guard reads regular object'
@@ -35,6 +47,38 @@ try {
     New-Item -ItemType HardLink -Path $hardlink -Value $source | Out-Null
     Assert (!(Test-BridgeHandleObjectSafe -Path $source -ExpectedDirectory $false)) 'in-memory guard rejects hard-linked payload'
     Remove-Item -LiteralPath $hardlink
+    # Exercise the real read-only handle/signature adapter on disposable files.
+    $script:signer=[pscustomobject]@{Subject='CN=Microsoft Corporation, O=Microsoft Corporation, C=US';Thumbprint='fixture';SimpleName='Microsoft Corporation'}
+    $script:signer | Add-Member ScriptMethod GetNameInfo {param($Type,$Issuer) return $this.SimpleName}
+    $script:signature=[pscustomobject]@{Status='Valid';SignerCertificate=$script:signer}
+    function Get-AuthenticodeSignature{param($LiteralPath,$ErrorAction) return $script:signature}
+    function Test-PreparationWslPathDescriptor{param($Security,$VolumeRoot) return $true}
+    $pathProof=Get-PreparationWslPathObservation $source $false $false
+    Assert ($pathProof.hash -and $pathProof.identity.Count -eq 3) 'actual WSL path reader binds file identity and hash'
+    foreach($field in @('Status','Subject','SimpleName')) {
+        $target=$script:signer;if($field -eq 'Status'){$target=$script:signature}
+        $saved=$target.$field;$target.$field='foreign';$threw=$false
+        try{Get-PreparationWslPathObservation $source $false $false | Out-Null}catch{$threw=$true}
+        Assert $threw ('WSL signature rejects '+$field);$target.$field=$saved
+    }
+    New-Item -ItemType HardLink -Path $hardlink -Value $source | Out-Null
+    $threw=$false;try{Get-PreparationWslPathObservation $source $false $false | Out-Null}catch{$threw=$true}
+    Assert $threw 'WSL path guard rejects actual hardlink';Remove-Item -LiteralPath $hardlink
+    $junction=Join-Path $tempRoot 'junction';$junctionTarget=Join-Path $tempRoot 'target'
+    New-Item -ItemType Directory -Path $junctionTarget | Out-Null
+    New-Item -ItemType Junction -Path $junction -Target $junctionTarget | Out-Null
+    try{$threw=$false;try{Get-PreparationWslPathObservation $junction $true $false | Out-Null}catch{$threw=$true};Assert $threw 'WSL path guard rejects actual reparse point'}finally{[IO.Directory]::Delete($junction)}
+    ${function:Test-PreparationWslPathDescriptor}=$originalWslDescriptor
+    Remove-Item function:Get-AuthenticodeSignature
+    $safe='O:SYG:SYD:(A;;FA;;;SY)(A;;FA;;;BA)(A;;FRFX;;;BU)(A;OICIIO;GA;;;CO)'
+    Assert (Test-PreparationWslPathDescriptor ([Security.AccessControl.RawSecurityDescriptor]::new($safe)) $false) 'safe inherited Windows ACL and inherit-only creator owner accepted'
+    foreach($unsafe in @($safe.Replace('O:SY','O:BU'),$safe.Replace('FRFX','FW'),$safe.Replace('FRFX','DC'),$safe.Replace('FRFX','WD'),$safe.Replace('FRFX','WO'),$safe.Replace('OICIIO','OICI'))) {
+        Assert (!(Test-PreparationWslPathDescriptor ([Security.AccessControl.RawSecurityDescriptor]::new($unsafe)) $false)) 'foreign path mutation ACL rejected'
+    }
+    $create=[Security.AccessControl.RawSecurityDescriptor]::new('O:SYG:SYD:(A;;FA;;;SY)(A;;0x6;;;AU)')
+    Assert (Test-PreparationWslPathDescriptor $create $true) 'volume root permits harmless sibling creation'
+    Assert (!(Test-PreparationWslPathDescriptor $create $false)) 'creation permission rejected below volume root'
+    Assert (!(Test-PreparationWslPathDescriptor ([Security.AccessControl.RawSecurityDescriptor]::new('O:SYG:SYD:(A;;FA;;;SY)(A;;0x40;;;AU)')) $true)) 'volume root foreign delete-child rejected'
     $Action='refresh'
     Set-BridgeStagedDistro -Path $staged -Name 'Ubuntu-24.04'
     Assert ((Read-BridgeConfig $staged).distro -eq 'Ubuntu-24.04') 'protected staged copy binds explicit distro'
@@ -46,7 +90,8 @@ $mappings=@([pscustomobject]@{Name='web';ListenPort=80;ConnectPort=80})
 $hostNames=@('jenkins.tsw.local')
 $script:policyFilters=$null;$script:filterPort='80';$script:filterProtocol='TCP';$script:owned=$false;$script:running=$true;$script:records=@();$script:rules=@();$script:listeners=@();$script:hosts='127.0.0.1 localhost';$script:state=$null;$script:installedConfig=$config;$script:routing=$true;$script:serviceReady=$true
 function Test-PreparationDistroRunning{param($Name) return $script:running}
-function Get-BridgeServiceOwnership{return [pscustomobject]@{Status=$(if($script:owned){'owned'}else{'absent'});RequiresAdoption=$false;Service=[pscustomobject]@{Status='Running'}}}
+$script:bridgeAccountSid='S-1-5-21-101-202-303-1001'
+function Get-BridgeServiceOwnership{return [pscustomobject]@{Status=$(if($script:owned){'owned'}else{'absent'});RequiresAdoption=$false;Service=[pscustomobject]@{Status='Running'};AccountSid=$script:bridgeAccountSid}}
 function Assert-BridgeRuntimeStateAuthority{}
 function Get-ProtectedBridgeState{return $script:state}
 function Read-BridgeConfig{param($Path) return $script:installedConfig}
@@ -57,7 +102,8 @@ function Get-FirewallRuleSnapshot{param($Config) return [pscustomobject]@{Rules=
 function Get-PreparationFirewallFilters{param($Rules) if($null -ne $script:policyFilters){return $script:policyFilters};return @{ports=@{LocalPort=$script:filterPort;Protocol=$script:filterProtocol}}}
 function Get-NetTCPConnection{param($State,$ErrorAction) return $script:listeners}
 $script:hostsReadFailure=$false
-function Get-Content{param($LiteralPath,[switch]$Raw,$Encoding) if($script:hostsReadFailure){throw 'fixture_hosts_read_unavailable'};return $script:hosts}
+$script:hostsFixturePath=$null
+function Get-PreparationHostsText{if($script:hostsReadFailure){throw 'fixture_hosts_read_unavailable'};if($script:hostsFixturePath){return & $originalHostsReader};return $script:hosts}
 function Remove-ManagedHostsBlock{return ($script:hosts -replace '(?ms)# >>> Tiny Swarm World WSL Bridge >>>.*?# <<< Tiny Swarm World WSL Bridge <<<','')}
 function Get-FileHash{param($LiteralPath,$Algorithm) return [pscustomobject]@{Hash='same'}}
 function Test-Path{param($LiteralPath,$PathType) return $false}
@@ -80,6 +126,7 @@ $before=$r.fingerprint;$r=Probe;Assert ($r.fingerprint -eq $before) 'stable exac
 # Real Get-Content values retain filesystem provider metadata on Windows 5.1.
 $contentFixture=Join-Path ([IO.Path]::GetTempPath()) ('tsw-w09-hosts-'+[guid]::NewGuid().ToString('N'))
 $plainHosts=$script:hosts
+$savedHostsPath=$HostsPath;$HostsPath=$contentFixture;$script:hostsFixturePath=$contentFixture
 try {
     [IO.File]::WriteAllText($contentFixture,$plainHosts)
     $observed=Microsoft.PowerShell.Management\Get-Content -LiteralPath $contentFixture -Raw -Encoding UTF8
@@ -100,6 +147,7 @@ try {
     Assert ((Probe).fingerprint -ne $before) 'hosts content change remains consent fingerprint evidence'
 } finally {
     $script:hosts=$plainHosts
+    $HostsPath=$savedHostsPath;$script:hostsFixturePath=$null
     [IO.File]::Delete($contentFixture)
 }
 
@@ -187,6 +235,183 @@ foreach($failure in @('wrong_pid','wrong_address','wrong_connect_port','wrong_co
 }
 $script:listeners=@();$script:records=@()
 Remove-Item Function:\Get-CimInstance,Function:\Invoke-CimMethod
+$script:ipHelperUnavailable=$false
+function Get-PreparationIpHelperIdentity{if($script:ipHelperUnavailable){return $null};return [ordered]@{pid=42;owner='S-1-5-18';created_utc='fixture'}}
+$script:records=@([pscustomobject]@{ListenAddress='0.0.0.0';ListenPort=80;ConnectAddress=$ObservedAddress;ConnectPort=80})
+$script:listeners=@([pscustomobject]@{LocalAddress='0.0.0.0';LocalPort=80;OwningProcess=42})
+$r=Probe;Assert ($r.blockers.Count -eq 0) 'IP Helper listener with exact protected mapping accepted'
+$script:listeners[0].OwningProcess=43;$r=Probe
+Assert ($r.blockers -contains 'foreign_or_unknown_listener') 'unrelated listener PID remains blocked'
+# Full inventory recognition with actual process/service/snapshot logic and mocked OS observations.
+$script:listeners[0].OwningProcess=42
+$wslRoot=Join-Path ([Environment]::GetFolderPath('ProgramFiles')) 'WSL'
+$relayPath=Join-Path $wslRoot 'wslrelay.exe';$wslServicePath=Join-Path $wslRoot 'wslservice.exe'
+$script:relay=[pscustomobject]@{ProcessId=1992;ParentProcessId=4380;ExecutablePath=$relayPath;CreationDate=[datetime]'2026-01-01T01:00:00Z';CommandLine=' --mode 1 --vm-id {2cbb8b46-a84e-469d-9f54-1bbc26b7a7ce} --handle 2856'}
+$script:wslParent=[pscustomobject]@{ProcessId=4380;ParentProcessId=600;ExecutablePath=$wslServicePath;CreationDate=[datetime]'2026-01-01T00:00:00Z';CommandLine='"'+$wslServicePath+'"'}
+$script:wslService=[pscustomobject]@{Name='WSLService';State='Running';StartName='LocalSystem';PathName='"'+$wslServicePath+'"';ProcessId=4380}
+$script:relaySid=$script:bridgeAccountSid;$script:parentSid='S-1-5-18';$script:ownerCode=0
+$script:wslPathBad=$false;$script:wslPathVersion='one';$script:wslSnapshotDrift=$false;$script:wslServiceReads=0
+function Get-CimInstance {
+    param($ClassName,$Filter,$ErrorAction)
+    if($ClassName -eq 'Win32_Service' -and $Filter -eq "Name='WSLService'") {
+        $script:wslServiceReads++
+        if($script:wslSnapshotDrift -and $script:wslServiceReads % 2 -eq 0){$script:relay.CreationDate=$script:relay.CreationDate.AddSeconds(1)}
+        return $script:wslService
+    }
+    if($ClassName -eq 'Win32_Process' -and $Filter -eq ('ProcessId='+$script:relay.ProcessId)){return $script:relay}
+    if($ClassName -eq 'Win32_Process' -and $Filter -eq ('ProcessId='+$script:wslParent.ProcessId)){return $script:wslParent}
+    throw 'Unexpected WSL observation'
+}
+function Invoke-CimMethod{param($InputObject,$MethodName,$ErrorAction) if($MethodName -ne 'GetOwnerSid'){throw 'Unexpected mutation'};return [pscustomobject]@{ReturnValue=$script:ownerCode;Sid=$(if($InputObject.ProcessId -eq $script:relay.ProcessId){$script:relaySid}else{$script:parentSid})}}
+function Get-PreparationWslPathObservation{param($Path,$Directory,$VolumeRoot) if($script:wslPathBad){throw 'Unsafe path'};return [ordered]@{path=$Path;directory=$Directory;volume=$VolumeRoot;identity=$script:wslPathVersion;hash='signed-fixture';acl='safe-fixture'}}
+function Stop-Process{throw 'Companion must never be terminated'}
+function Remove-NetTCPConnection{throw 'Companion must never be removed'}
+$ipv4=$script:listeners[0];$relayListener=[pscustomobject]@{LocalAddress='::1';LocalPort=80;OwningProcess=1992}
+$script:listeners=@($ipv4,$relayListener)
+$r=Probe
+Assert ($r.blockers.Count -eq 0 -and $r.bridge_ready -and !$r.action -and $r.preserved_companions.Count -eq 1 -and $r.preserved_companions[0].classification -eq 'windows_wsl_companion_preserve') 'exact signed protected WSL companion preserved beside owned IPv4'
+$script:ipHelperUnavailable=$true
+$candidate=Probe
+Assert ($candidate.blockers -contains 'foreign_or_unknown_listener' -and $candidate.preserved_companions.Count -eq 0) 'relay rejects IP Helper PID without verified identity'
+$ipv4.OwningProcess=4
+$candidate=Probe
+Assert ($candidate.blockers.Count -eq 0 -and $candidate.preserved_companions.Count -eq 1) 'System IPv4 owner remains independent of unavailable IP Helper'
+$ipv4.OwningProcess=42;$script:ipHelperUnavailable=$false
+foreach($duplicate in @('record','mapping')) {
+    $savedProxyRecords=$script:records;$savedProxyMappings=$script:state.mappings
+    if($duplicate -eq 'record'){$script:records=@($script:records[0],$script:records[0])}
+    else{$script:state.mappings=@($script:state.mappings[0],$script:state.mappings[0])}
+    $candidate=Probe
+    Assert ($candidate.blockers -contains 'foreign_or_unknown_listener' -and $candidate.preserved_companions.Count -eq 0) ('relay refuses duplicate protected '+$duplicate)
+    $script:records=$savedProxyRecords;$script:state.mappings=$savedProxyMappings
+}
+foreach($port in @(443,8086,16081)) {
+    $mappings[0].ListenPort=$port;$mappings[0].ConnectPort=$port
+    $script:state.mappings[0].listenPort=$port;$script:state.mappings[0].connectPort=$port
+    $script:records[0].ListenPort=$port;$script:records[0].ConnectPort=$port
+    $ipv4.LocalPort=$port;$relayListener.LocalPort=$port
+    $candidate=Probe
+    Assert ($candidate.blockers.Count -eq 0 -and $candidate.preserved_companions.Count -eq 1 -and !$candidate.action) ('mapped relay companion accepted: '+$port)
+}
+$mappings[0].ListenPort=80;$mappings[0].ConnectPort=80
+$script:state.mappings[0].listenPort=80;$script:state.mappings[0].connectPort=80
+$script:records[0].ListenPort=80;$script:records[0].ConnectPort=80
+$ipv4.LocalPort=80;$relayListener.LocalPort=80
+$relayFingerprint=$r.fingerprint
+Assert ((Probe).fingerprint -eq $relayFingerprint) 'stable full relay proof deterministic'
+# The production mapping resolver includes validated config additions alongside registry entries.
+$savedMappings=$mappings;$savedStateMappings=$script:state.mappings
+$savedRecords=$script:records;$savedListeners=$script:listeners
+$config | Add-Member -NotePropertyName additionalPortMappings -NotePropertyValue @([pscustomobject]@{listenPort=16081;connectPort=16081})
+$mappings=@(Get-PortMappings $config $savedMappings)
+$script:state.mappings=@($savedStateMappings)+@([pscustomobject]@{listenPort=16081;connectPort=16081})
+$script:records=@($savedRecords)+@([pscustomobject]@{ListenAddress='0.0.0.0';ListenPort=16081;ConnectAddress=$ObservedAddress;ConnectPort=16081})
+$script:listeners=@($savedListeners)+@([pscustomobject]@{LocalAddress='0.0.0.0';LocalPort=16081;OwningProcess=42},[pscustomobject]@{LocalAddress='::1';LocalPort=16081;OwningProcess=1992})
+$candidate=Probe
+Assert ($mappings.Count -eq 2 -and $candidate.blockers.Count -eq 0 -and $candidate.preserved_companions.Count -eq 2 -and !$candidate.action) 'actual resolver validated config addition companion accepted'
+$mappings=$savedMappings;$script:state.mappings=$savedStateMappings;$script:records=$savedRecords;$script:listeners=$savedListeners
+$config.PSObject.Properties.Remove('additionalPortMappings')
+$script:listeners=@($savedListeners)+@([pscustomobject]@{LocalAddress='::1';LocalPort=7750;OwningProcess=1992})
+$candidate=Probe
+Assert ($candidate.preserved_companions.Count -eq 1 -and $candidate.fingerprint -eq $relayFingerprint -and !$candidate.action) 'same PID outside resolved mappings is neither companion nor mutation target'
+$script:listeners=$savedListeners
+$ownership=Get-BridgeServiceOwnership
+foreach($badMapping in @([pscustomobject]@{ListenPort=7750;ConnectPort=7750},[pscustomobject]@{ListenPort=80;ConnectPort=81},[pscustomobject]@{ListenPort=0;ConnectPort=80},[pscustomobject]@{ListenPort=65536;ConnectPort=80})) {
+    $reads=$script:wslServiceReads
+    $proof=Get-PreparationWslRelayProof $relayListener $script:listeners $script:records $script:state $ownership $badMapping $config @(4,42) $mappings
+    Assert ($null -eq $proof -and $script:wslServiceReads -eq $reads) 'noncanonical helper mapping rejected before provenance observation'
+}
+$proof=Get-PreparationWslRelayProof $relayListener $script:listeners $script:records $script:state $ownership $mappings[0] $config @(4,42)
+Assert ($null -eq $proof) 'helper without resolved mapping authority fails closed'
+$proof=Get-PreparationWslRelayProof $relayListener $script:listeners $script:records $null $ownership $mappings[0] $config @(4,42) $mappings
+Assert ($null -eq $proof) 'missing protected state rejects companion'
+$script:state.mappings=@()
+$candidate=Probe
+Assert ($candidate.blockers -contains 'foreign_or_unknown_listener' -and !$candidate.action) 'missing protected state mapping rejects companion'
+$script:state.mappings=$savedStateMappings
+$script:state.mappings[0].connectPort=81
+$candidate=Probe
+Assert ($candidate.blockers -contains 'foreign_or_unknown_listener' -and !$candidate.action) 'mismatched protected state mapping rejects companion'
+$script:state.mappings[0].connectPort=80
+$savedCommand=$script:relay.CommandLine
+$script:relay.CommandLine='"'+$relayPath+'"'+$savedCommand
+Assert ((Probe).blockers.Count -eq 0) 'canonical exe-prefixed argument variant accepted'
+$script:relay.CommandLine=$savedCommand
+foreach($entry in @(@('relay','ParentProcessId',999),@('relay','ExecutablePath','C:\foreign\wslrelay.exe'),@('wslParent','ExecutablePath','C:\foreign\wslservice.exe'),@('wslService','Name','foreign'),@('wslService','State','Stopped'),@('wslService','StartName','foreign'),@('wslService','PathName','C:\foreign\wslservice.exe'),@('wslService','ProcessId',999),@('wslParent','CreationDate',[datetime]'2026-01-01T02:00:00Z'))) {
+    $target=Get-Variable -Name $entry[0] -Scope Script -ValueOnly;$old=$target.($entry[1]);$target.($entry[1])=$entry[2]
+    $r=Probe;Assert ($r.blockers -contains 'foreign_or_unknown_listener' -and !$r.action -and $r.preserved_companions.Count -eq 0) ('relay guard '+$entry[0]+'.'+$entry[1])
+    $target.($entry[1])=$old
+}
+foreach($bad in @(($savedCommand.Replace('--mode 1','--mode 2')),($savedCommand.Replace('--vm-id {','--vm-id invalid{')),($savedCommand+' --extra'),('foreign '+$savedCommand),($savedCommand.Replace('--handle 2856','--handle -1')))) {
+    $script:relay.CommandLine=$bad;Assert ((Probe).blockers -contains 'foreign_or_unknown_listener') ('strict observed relay arguments reject unknown variants: '+[string]$bad)
+}
+$script:relay.CommandLine=$savedCommand
+foreach($field in @('relaySid','parentSid','bridgeAccountSid')) {
+    $old=Get-Variable -Name $field -Scope Script -ValueOnly;Set-Variable -Name $field -Scope Script -Value 'S-1-5-21-9-9-9-9'
+    Assert ((Probe).blockers -contains 'foreign_or_unknown_listener') ('selected protected account guard '+$field)
+    Set-Variable -Name $field -Scope Script -Value $old
+}
+$script:ownerCode=5;Assert ((Probe).blockers -contains 'foreign_or_unknown_listener') 'owner query failure rejected';$script:ownerCode=0
+$script:wslPathBad=$true;Assert ((Probe).blockers -contains 'foreign_or_unknown_listener') 'unsafe executable or ancestor blocks relay';$script:wslPathBad=$false
+foreach($address in @('::','::ffff:127.0.0.1','127.0.0.1')) {
+    $relayListener.LocalAddress=$address;Assert ((Probe).blockers -contains 'foreign_or_unknown_listener') 'only literal IPv6 loopback companion accepted'
+}
+$relayListener.LocalAddress='::1'
+$script:listeners=@($relayListener);Assert ((Probe).blockers -contains 'foreign_or_unknown_listener') 'relay without IPv4 listener rejected';$script:listeners=@($ipv4,$relayListener)
+$ipv4.OwningProcess=43;Assert ((Probe).blockers -contains 'foreign_or_unknown_listener') 'relay never excuses foreign IPv4 listener';$ipv4.OwningProcess=42
+$record=$script:records[0];$script:records=@();Assert ((Probe).blockers -contains 'foreign_or_unknown_listener') 'relay without protected proxy record rejected';$script:records=@($record)
+$record.ConnectPort=81;Assert ((Probe).blockers -contains 'foreign_or_unknown_listener') 'relay requires exact destination port';$record.ConnectPort=80
+$script:listeners+= [pscustomobject]@{LocalAddress='::';LocalPort=80;OwningProcess=999};Assert ((Probe).blockers -contains 'foreign_or_unknown_listener') 'recognized companion never excuses another foreign listener';$script:listeners=@($ipv4,$relayListener)
+foreach($mutation in @('creation','parent_creation','command','path_identity','service_parent','service_pid','relay_pid','bridge_sid')) {
+    $beforeRelay=(Probe).fingerprint
+    switch($mutation){
+        'creation'{$script:relay.CreationDate=$script:relay.CreationDate.AddSeconds(1)}
+        'parent_creation'{$script:wslParent.CreationDate=$script:wslParent.CreationDate.AddSeconds(1)}
+        'command'{$script:relay.CommandLine=$script:relay.CommandLine.Replace('2856','2857')}
+        'path_identity'{$script:wslPathVersion='two'}
+        'service_parent'{$script:wslParent.ParentProcessId++}
+        'service_pid'{$script:wslParent.ProcessId++;$script:wslService.ProcessId=$script:wslParent.ProcessId;$script:relay.ParentProcessId=$script:wslParent.ProcessId}
+        'relay_pid'{$script:relay.ProcessId++;$relayListener.OwningProcess=$script:relay.ProcessId}
+        'bridge_sid'{$script:bridgeAccountSid='S-1-5-21-404-505-606-1002';$script:relaySid=$script:bridgeAccountSid}
+    }
+    $r=Probe;Assert ($r.blockers.Count -eq 0 -and $r.fingerprint -ne $beforeRelay) ('full inventory binds relay provenance '+$mutation)
+}
+# Every second query is the actual fresh socket observation inside the proof.
+$script:socketRead=0;$script:socketChange=''
+function Get-NetTCPConnection {
+    param($State,$ErrorAction)
+    $script:socketRead++
+    if($script:socketRead % 2 -eq 0) {
+        $copy=@($script:listeners | ForEach-Object{[pscustomobject]@{LocalAddress=$_.LocalAddress;LocalPort=$_.LocalPort;OwningProcess=$_.OwningProcess}})
+        switch($script:socketChange) {
+            'missing_relay'{return @($copy | Where-Object{$_.LocalAddress -ne '::1'})}
+            'missing_ipv4'{return @($copy | Where-Object{$_.LocalAddress -eq '::1'})}
+            'relay_pid'{$copy[1].OwningProcess++;return $copy}
+            'ipv4_pid'{$copy[0].OwningProcess++;return $copy}
+            'extra'{return @($copy)+@([pscustomobject]@{LocalAddress='::';LocalPort=80;OwningProcess=999})}
+            'duplicate'{return @($copy)+@($copy[1])}
+            'query_failure'{throw 'Socket inventory unavailable'}
+            'reorder'{[array]::Reverse($copy);return $copy}
+        }
+    }
+    return $script:listeners
+}
+foreach($change in @('missing_relay','missing_ipv4','relay_pid','ipv4_pid','extra','duplicate','query_failure')) {
+    $script:socketRead=0;$script:socketChange=$change;$r=Probe
+    Assert ($r.blockers -contains 'foreign_or_unknown_listener' -and $r.preserved_companions.Count -eq 0 -and !$r.action) ('fresh socket drift blocks '+$change)
+}
+$script:socketRead=0;$script:socketChange='reorder';$r=Probe
+Assert ($r.blockers.Count -eq 0 -and $r.preserved_companions.Count -eq 1) 'socket order alone is not drift'
+$script:socketChange='';$script:socketRead=0
+function Get-NetTCPConnection{param($State,$ErrorAction) return $script:listeners}
+$script:wslSnapshotDrift=$true;$script:wslServiceReads=0
+Assert ((Probe).blockers -contains 'foreign_or_unknown_listener') 'before-after relay process drift blocks recognition'
+$script:wslSnapshotDrift=$false
+Remove-Item function:Get-CimInstance,function:Invoke-CimMethod,function:Stop-Process,function:Remove-NetTCPConnection
+Set-Item function:Get-PreparationWslPathObservation $originalWslPathObservation
+$script:records=@();$script:listeners=@()
+
+${function:Get-PreparationIpHelperIdentity}=$originalIpHelperIdentity
 # Model the adapted CIM representation from shipped NetSecurity types/CDXML.
 $formatterAssembly=Join-Path $env:windir 'System32/WindowsPowerShell/v1.0/Modules/NetSecurity/Microsoft.Windows.Firewall.Commands.dll'
 [void][Reflection.Assembly]::Load([IO.File]::ReadAllBytes($formatterAssembly))

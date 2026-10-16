@@ -42,3 +42,18 @@ def verify_filter(rule, bridges):
         if chain.startswith(("in.", "out.")) and expression == checksum:
             continue
         raise NetworkPreparationFailure("Unknown native Incus control/mutation statement.")
+
+
+def legacy_nat(rule, bridge) -> bool:
+    """Recognize only the exact Incus 6.0 single-bridge masquerade rule."""
+    if (rule.get("family") != "inet" or rule.get("table") != "incus"
+            or rule.get("chain") != "pstrt." + bridge.name):
+        return False
+    subnet = ip_network(bridge.subnet)
+    prefix = {"prefix": {"addr": str(subnet.network_address), "len": subnet.prefixlen}}
+    expected = [
+        {"match": {"op": "==", "left": {"payload": {"protocol": "ip", "field": "saddr"}}, "right": prefix}},
+        {"match": {"op": "!=", "left": {"payload": {"protocol": "ip", "field": "daddr"}}, "right": prefix}},
+        {"masquerade": None},
+    ]
+    return [item for item in rule.get("expr", ()) if "counter" not in item] == expected

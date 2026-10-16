@@ -81,7 +81,131 @@ specific credentials are required, provide them through the documented
 protected operator override or applicable Infisical path; do not edit the
 catalog or copy passwords into evidence.
 
+== Windows 11 / WSL2: Start Here
+
+This is the canonical first-install route for Windows users. Windows prepares
+the selected WSL distribution, resources and browser bridge; all TSW product
+commands execute inside Ubuntu. Do not separately install host Docker as a
+substitute for the managed-node runtime: the default `lxc_native` provider
+runs Docker Engine and Swarm **inside Incus-managed nodes**.
+
+=== 1. Check the target and available capacity
+
+* Windows 11 x86_64 with hardware virtualization enabled; an explicitly selected
+  supported Ubuntu 24.04 or 26.04 WSL2 distribution.
+* WSL2 with working systemd (PID 1), cgroups and user namespaces. Incus needs
+  usable storage, networking, and ordinary-user access.
+* Linux-native owned checkout (for example
+  `/home/<user>/projects/Tiny-Swarm-World`); do not use `/mnt/c` or `/mnt/d`
+  for the ordinary installation, protected secrets or evidence.
+* Python 3.12 or newer and venv, Git, Incus for the default backend; `socat`
+  where WSL forwarding is necessary. Optional CLI helpers include `curl` and
+  `jq`. The Linux preparation script plans the missing dependencies; do not
+  assume all packages must be manually preinstalled.
+* The `service-access` WSL preflight currently checks a 16 GiB RAM,
+  eight-thread and 150 GiB free-disk host minimum. This **does not** establish
+  sufficient aggregate capacity for the configured managed nodes. The
+  Windows W05 resource plan currently accounts for 19 GiB node memory plus
+  2 GiB WSL overhead (= 21 GiB minimum planned WSL RAM), Windows RAM/CPU
+  reserve and disk/swap requirements. Its observed plan is authoritative:
+  a 16 GiB Windows host cannot fit that default allocation. Other profiles
+  and customized node configurations may require different resources.
+  See link:{user-guide-prefix}windows-preparation.md[Windows preparation and
+  capacity planning] for the exact model and blockers.
+
+=== 2. Inspect Windows safely (elevated PowerShell)
+
+Use a complete trusted release/checkout. Preflight and dry-run are read-only:
+
+[source,powershell]
+----
+./prepare_windows.ps1 -Help
+./prepare_windows.ps1 -Distro Ubuntu-24.04 -Preflight
+./prepare_windows.ps1 -Distro Ubuntu-24.04 -DryRun -Json
+----
+
+Select the exact existing distro; for a non-canonical registration, provide the
+explicit matching `-UbuntuRelease`. WSL1 is not silently converted. Preflight
+does not install missing Windows features, launch a stopped distro, or repair a
+blocked host. Apply/qualification and approval are separate, guarded operations,
+not an unattended setup shortcut. Follow the displayed remedies, restart scope
+and recheck. Windows `READY` means Windows capability readiness only; it does
+not mean Linux preparation or services have passed.
+
+=== 3. Prepare Ubuntu and run installation
+
+Keep the checkout in the ordinary user's Linux home. The Windows preparation
+handoff prints the exact distribution/user-specific command. Run that command
+interactively rather than reconstructing another distro's command. Within the
+selected Ubuntu checkout, the corresponding Linux stages are:
+
+[source,bash]
+----
+./prepare_linux.sh --dry-run
+./prepare_linux.sh
+./prepare_linux.sh --preflight
+./install.sh
+----
+
+Approve each mutating preparation stage only after reviewing its plan. A pending
+account/group change or restart requires the reported operator action and a
+fresh preflight before proceeding. Installation is not automatically started
+after a blocked or partial preparation. Ordinary installation reconciles
+existing state; do not use `--confirm-reset` for routine recovery.
+
+The normal setup sequence is: verify Incus on the WSL host; prepare managed
+Incus manager/worker nodes; install or verify Docker Engine inside those nodes;
+bootstrap and verify their Docker Swarm; configure routing; deploy selected
+services; verify runtime and browser access. Host `docker info` is **not**
+proof of managed-node readiness.
+
+=== 4. Verify the installed stack
+
+Use the existing <<verify-installed-runtime,Verify The Runtime>> checks, including
+`incus list` and `incus exec swarm-manager -- docker node ls`. For Windows
+browser access, confirm the owned WSL bridge and the configured routes using
+link:{user-guide-prefix}windows-preparation.md[Windows preparation] and
+link:{user-guide-prefix}network-preparation.md[network preparation].
+A DNS entry or bridge heartbeat alone does not prove an authenticated Portainer
+login. Follow link:{user-guide-prefix}usage.adoc#open-the-services[Service access
+and login] for the service URL and effective credentials, and
+link:{user-guide-prefix}troubleshooting.adoc#first-response[Troubleshooting]
+for failures.
+
+=== Responsibility and status overview
+
+[cols="2,3,3",options="header"]
+|===
+| Stage | Owner/entry point | Success means
+| Windows prerequisites, WSL lifecycle and resource plan
+| `prepare_windows.ps1`
+| Windows capability observed ready, **not** an installed TSW
+| Windows browser bridge
+| Owned Windows bridge, normally orchestrated by Windows preparation
+| Routing agent/configuration ready, **not** endpoint/login verification
+| Linux packages, Python, Incus access/resources and kernel/network preparation
+| `prepare_linux.sh`
+| Linux stages observed ready for install
+| Runtime stack and managed Docker Swarm
+| `install.sh` / TSW setup
+| Managed node and deployment verification still required
+| Browser/service credentials
+| User guide usage + tested service endpoint
+| Separately verified browser access and login
+|===
+
+The older manual `tools/windows/tws-wsl-bridge.ps1` entry points documented
+under <<windows-wsl-prework>> are bridge-specific operational controls, not an
+alternative end-to-end first-install recipe. Use the canonical Windows
+preparation handoff unless the documented recovery or bridge procedure calls
+for those controls explicitly.
+
 == Prerequisites
+
+For the actions that remain operator-owned, follow the
+link:{user-guide-prefix}manual-host-steps.md[manual host, certificate and recovery checklist].
+It separates preparation from CA trust in Ubuntu/WSL and Windows browsers, and
+explains authentication, group refresh, LXD conflicts and restart boundaries.
 
 On native or WSL2 Ubuntu 24.04/26.04 x86_64, use a complete trusted release
 and run `./prepare_linux.sh` as an ordinary user from an owned Linux-native
@@ -136,6 +260,18 @@ export TSW_INFISICAL_IMAGE=registry.local:5000/infisical:v0.159.1
 export TSW_INFISICAL_POSTGRES_IMAGE=registry.local:5000/postgres:14.23-alpine3.23
 export TSW_INFISICAL_REDIS_IMAGE=registry.local:5000/redis:7.4.9-alpine3.21
 ----
+
+=== Fresh nftables Hosts And Incus 6.0 LTS
+
+The network preparation inventory accepts the exact subnet-scoped single-bridge
+masquerade emitted by Incus 6.0 LTS, as well as the bridge-set/bypass pair used by
+newer Incus versions. The older form is accepted only for one managed bridge;
+multi-bridge, broadened or unrecognized NAT remains blocked.
+
+On a fresh iptables-nft host, an empty `iptables-save` result is followed by an
+explicit `iptables-save -t filter` observation. A nonempty incomplete dump still
+blocks preparation. This read-only fallback does not install firewall rules or
+replace the full nftables ownership and NAT checks.
 
 == WSL Project Filesystem Policy
 
@@ -297,8 +433,16 @@ runtime verification section.
 
 === Hard Host Prerequisite Boundary
 
+An active or unobservable LXD runtime blocks preparation, even when its instances
+are stopped. Preserve those instances and inspect `lxd.service`,
+`snap.lxd.daemon.service` and `snap.lxd.daemon.unix.socket` with `systemctl show`
+before retrying. The presence of an inactive LXD executable alone does not block.
+Preparation never stops, disables, removes or migrates LXD automatically. Resolve
+the conflict through a separately planned, reversible operator action or use an
+isolated host; do not delete LXD state to make preflight pass.
+
 The default provider is `lxc_native` through the managed Incus backend. An
-Incus/LXD host management layer is therefore a hard prerequisite before a live
+Incus host management layer is therefore a hard prerequisite before a live
 Tiny Swarm World run. The separate `prepare_linux.sh` step can install the
 Ubuntu Incus package and its bridge dependency `dnsmasq-base` after operator
 confirmation. After package/Python readiness, it explicitly plans and separately
@@ -314,6 +458,35 @@ Run `./prepare_linux.sh --dry-run` to inspect the exact stage without writing ho
 configuration, state or evidence. Apply prompts for exact `yes` at each newly
 observable stage; EOF/refusal stops it. Startup/group actions use narrow `sudo -n`
 commands: authenticate with `sudo -v` if required, then review and rerun preparation.
+Privileged preparation subprocesses retain that terminal session while running
+in separate process groups for bounded timeout/cancellation cleanup. This lets
+`sudo -n` use the terminal-scoped authentication established by `sudo -v`;
+preparation does not collect passwords or change the host's sudo policy.
+The Windows bridge subprocess prioritizes its own PowerShell built-in modules
+over inherited module paths and emits UTF-8. It does not change persistent
+Windows execution policy; explicit install retains the existing credential dialog.
+The bridge fingerprints the hosts file as plain UTF-8 text, excluding PowerShell
+filesystem-provider metadata that could otherwise stall read-only inventory.
+Read-only Windows bridge inventory has a bounded 90-second budget for firewall
+and service queries. Listener ownership accepts System or the verified running
+LocalSystem IP Helper service at the canonical Windows service-host path, with
+the existing exact protected portproxy mapping still required.
+If preparation reports that noninteractive sudo authentication is unavailable,
+run the following commands in the same WSL terminal and keep that terminal open:
+
+[source,bash]
+----
+sudo -v
+./prepare_linux.sh --dry-run
+./prepare_linux.sh
+./prepare_linux.sh --preflight
+./install.sh --preflight --headless
+----
+
+Review each proposed stage before entering `yes`. A successful preparation and
+installer preflight confirm prerequisites only; service endpoints and logins
+remain unverified until the installation and applicable service checks complete.
+
 New persisted `incus-admin` membership returns RESTART_REQUIRED/3; log out and
 log back in (opening another shell in the same login may retain stale groups),
 then rerun `./prepare_linux.sh`. No resource mutations follow an access restart.
@@ -621,9 +794,10 @@ step 7, set this option in the same Linux/WSL shell:
 export TSW_SEED_INFISICAL_ITEMS=1
 ----
 
-Continue with route preparation and the fresh-install step below. Do not run
-the installer just to populate missing items in an existing environment: it
-resets managed state. Review the supported synchronization contract first.
+Continue with route preparation and installation below. Ordinary installation
+reconciles managed state without resetting it. Do not run the full installer
+solely to populate missing Infisical items in an existing environment; review
+the supported synchronization contract first.
 
 The default installer value is `TSW_SEED_INFISICAL_ITEMS=0`, so do not assume
 that every catalog-managed service credential has already been copied into
@@ -803,6 +977,11 @@ observed as Docker `Ready` and `Active`, with the manager in `Leader` state.
 These checks are live-operation behavior; this guide does not claim that they
 have passed on a live host without matching redacted `LIVE_*` evidence.
 
+For public-CA inspection, explicit Windows current-user trust through the
+optional helper or certificate GUI, and trust removal, follow the
+link:{user-guide-prefix}manual-host-steps.md#optional-windows-current-user-trust-helper[manual certificate steps].
+Neither installation nor the bridge imports a Windows CA automatically.
+
 [[verify-installed-runtime]]
 === 8. Verify The Runtime
 
@@ -866,13 +1045,22 @@ service-specific identities and Infisical synchronization limits.
 
 === 10. Re-run And Recovery Rules
 
+Stack-asset reruns validate complete received bytes before updating live files.
+Identical content leaves file inode, mode and modification time unchanged;
+changed content preserves the inode required by existing Docker bind mounts.
+A truncated receive fails before publication. The final local write is not
+crash-atomic: a publication failure remains an error and needs a successful
+rerun. Unknown exit code 255 errors are not automatically classified as transient.
+
 Start with read-only verification and classify the first failed phase.
 Use link:{user-guide-prefix}usage.adoc#daily-operation[Daily operation] to choose between platform
 reconciliation, broader setup without a preliminary reset, and a deliberate
 fresh reset. Reuse the same service profile and effective configuration.
 
-Do not rerun `./install.sh` merely to repair one service: on WSL2 it includes a
-fresh reset; on native Linux it reconciles the broader platform. Use the canonical `platform update` contract for a reviewed
+Ordinary `./install.sh` reruns reconcile the broader platform on both WSL2 and
+native Linux. WSL2 fresh reset requires the explicit deprecated `--confirm-reset`
+option; prefer the separately confirmed reset below when destruction is intended.
+Use the canonical `platform update` contract for a reviewed
 single-service image transition and follow it with the acceptance checks.
 
 If a developer intentionally needs to discard the managed local environment,
