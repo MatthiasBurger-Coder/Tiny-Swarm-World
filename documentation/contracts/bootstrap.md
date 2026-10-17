@@ -4,16 +4,33 @@ Contract version: 1. Issue: [#453](https://github.com/MatthiasBurger-Coder/Tiny-
 parent [#452](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/452).
 Source baseline: `346f4a43dbdc43380e7bc703ab185bc06746965b`.
 
-This defines the implementation contract for BOOT-W02–W10. It does not make
-those commands or capabilities available. W01 delivers the inventory, interface,
-plan and readiness definitions. Existing behavior remains governed by the
-[accepted native preparation ADR](../arc42/09_decisions/adr-native-linux-preparation-and-install-lifecycle.adoc)
-and [bridge ADR](../arc42/09_decisions/adr-windows-wsl-bridge-service-agent.adoc).
-W02, W04 and W05 recorded their narrow ADR supersessions; W07 must record its transition before
-changing the manual-Python prerequisite, WSL preparation exclusion or WSL reset
-behavior. The future departures are recorded in the
-[proposed bootstrap ADR](../arc42/09_decisions/adr-bootstrap-command-readiness-contract.adoc).
-There is no new runtime orchestrator or provider decision here.
+## Current delivery status — BOOT-W10 audit, 2026-10-17
+
+The W01 baseline inventory and target definitions below are historical planning
+context. The delivered W02–W08 sections later in this file supersede their named
+gaps: Linux preparation bootstraps Python/dependencies, WSL ordinary installation
+reconciles without reset, and protected recovery is implemented. Both installer
+read-only modes are supported on native Linux and WSL2. Windows ordinary Apply
+remains unqualified-blocked; candidate qualification is a separate guarded path.
+W09 closed only for its operator-amended existing-host scope. It did not establish
+fresh-host or global release qualification, nor remove the ordinary Apply guard.
+
+The [current operator paths](../../README.md#prepare-then-install) and
+[BOOT requirement/implementation/test/live audit](../evidence/issue-462-bootstrap-completion-audit.md)
+record these limits and the remaining EPIC closure blockers. A complete extracted
+release can bootstrap preparation, but a plain archive lacks the Git metadata
+currently required by installer secret-ignore checks. Use a trusted matching
+checkout for the exercised install path. No new runtime behavior is introduced
+by this documentation audit.
+
+## Original W01 baseline and target design (historical)
+
+The remaining numbered W01 sections preserve the original contract and baseline
+inventory. Their prospective W02–W10 references describe that baseline, not open
+implementation promises today. For current behavior, use the delivery status
+above and the later explicitly delivered W02–W08 sections. Existing native,
+Windows lifecycle, bridge and W07/W08 ADRs govern their respective changes;
+this audit introduces no new architecture decision or runtime orchestrator.
 
 ## 1. Delivered behavior and implementation owners
 
@@ -43,10 +60,11 @@ Kubernetes-first behavior or multi-host provisioning.
 
 The interface below is the shared target contract. The W04 Windows entrypoint
 implements lifecycle/resource switches and envelope; aggregate installation remains
-W05–W09. Later Linux/installer switches are not all accepted by today's scripts. Current native preparation accepts
+W05–W09 at the original baseline. The table records the target interface;
+use current entrypoint help for accepted switches. Current native preparation accepts
 `--preflight`, `--dry-run`, `--service-profile`; apply prompts for `yes` before
-APT and Python preparation. Current installer read-only modes support native
-Linux only; WSL still uses the confirmed-reset path. `tsw` needs installed
+APT and Python preparation. Installer read-only modes support native Linux and WSL2; ordinary installation
+reconciles and explicit WSL confirmed reset remains separate. `tsw` needs installed
 product dependencies and is not the bare-host entrypoint.
 
 | Target entrypoint | Read-only | Apply / handoff |
