@@ -12,6 +12,113 @@ Windows-native product execution is not supported. The elevated Windows bridge
 prework documented for default WSL2 browser exposure is a supported host setup
 step; project automation itself continues to run from Linux or WSL.
 
+== Quick start: preparation then installation
+
+Obtain a complete trusted release or checkout and enter its root. The currently
+exercised installer path requires retained Git metadata for secret-ignore checks;
+a plain source ZIP or `git archive` is insufficient. A release manifest proves
+Windows preparation asset membership but does not replace that installer check.
+When Git is available, acquire the checkout in the ordinary Linux user's home:
+
+[source,bash]
+----
+git clone https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World.git ~/Tiny-Swarm-World
+cd ~/Tiny-Swarm-World
+----
+
+On native Ubuntu 24.04/26.04 x86_64, from that checkout:
+
+[source,bash]
+----
+./prepare_linux.sh
+./install.sh
+----
+
+Preparation bootstraps missing Python, venv and locked local dependencies. Use an
+ordinary sudo-capable account; only individual privileged stages elevate. Review
+each plan and type exact `yes` when requested. Installation requires separate live
+approval. Network access to Ubuntu packages, Python and image registries is needed.
+
+On Windows 11 x86_64, from the complete trusted Windows checkout in elevated
+PowerShell:
+
+[source,powershell]
+----
+./prepare_windows.ps1 -Distro Ubuntu-26.04
+----
+
+The second command is the printed `handoff.operator_command`: copy it into the
+interactive PowerShell console. It selects the observed ordinary user and matching
+Linux-native checkout, runs Linux preparation, then installation only on success.
+Windows never runs product Python. Ordinary Windows Apply currently blocks as
+unqualified: these are command/handoff contracts, not a qualified clean-host
+walkthrough. Do not add qualification flags simply to bypass a blocker. Follow
+link:{user-guide-prefix}windows-preparation.md[Windows preparation] for the exact
+authorized-target, source proof and recovery requirements.
+
+Select the exact registered Ubuntu distro; custom names require matching
+`-UbuntuRelease 24.04` or `26.04`. If missing, a canonical selected distribution
+is installed only during approved preparation. Complete first-launch ordinary
+account creation interactively. Place the matching checkout under that user's
+Linux home (`~/Tiny-Swarm-World` default); `-LinuxCheckout` selects another owned
+Linux-native path. Preparation does not copy the Windows checkout. If system
+Python is absent for the read-only source probe, run `./prepare_linux.sh` in that
+Linux checkout first, then rerun Windows preparation. This prerequisite can add
+a command to the short path; it is not hidden automatic Windows execution.
+
+Expect pauses for Windows feature activation, selected-distro/systemd restart,
+capacity changes or new Incus group membership. Perform the reported scoped
+restart or full logout/login, then rerun the same preparation selection with fresh
+consent. Use WSL-wide shutdown only when the reviewed resource plan explicitly
+reports that scope; it affects all WSL2 registrations. Otherwise use the reported
+selected-distro restart. Never delete state to force readiness.
+Preserve reviewed configuration and credential overrides between terminals.
+
+The current service-access allocation plans 19 GiB node RAM plus 2 GiB WSL
+overhead, eight allocated CPU threads and 150 GiB usable disk, in addition to
+Windows reserve. A 16 GiB Windows host cannot fit it. Review actual capacity before
+apply; the plan preserves existing unrelated settings and blocks collisions.
+Preflight/dry-run are read-only; they do not establish authenticated service health.
+
+[mermaid]
+----
+flowchart TD
+  A[Trusted complete checkout] --> B{Host}
+  B -->|Native Ubuntu| C[Linux preparation]
+  B -->|Windows and WSL2| D[Windows preparation and qualification guard]
+  D --> E[Interactive account and Linux checkout]
+  E --> C
+  C --> F{Observed ready?}
+  F -->|No| G[Reported remedy or scoped restart]
+  G --> C
+  F -->|Yes and separate consent| H[Non-destructive install]
+  H --> I[Verify routes, CA trust and authentication]
+----
+
+Start at `https://service-access.tsw.local` after installation. Other configured
+routes include `https://portainer.tsw.local`, `https://jenkins.tsw.local`,
+`https://nexus.tsw.local` and `https://sonarqube.tsw.local`; DNS/bridge and public
+CA trust must be ready. See link:{user-guide-prefix}usage.adoc#open-the-services[service URLs and login].
+The default internal-test catalog is public disposable test material. Operator
+credentials take precedence; the protected default file is
+`~/.local/state/tiny-swarm-world/live-installation.env`, or the selected
+`TSW_INSTALL_ENV_FILE`. Preserve it; do not print secrets in support evidence.
+
+For elevation failure, run `sudo -v` in the same ordinary-user terminal and review
+the plan again. For new groups, fully log out/in. For active LXD, resource
+collisions or capacity blockers, preserve existing state and resolve the reported
+conflict before retrying. APT and Windows features are not transactional; automatic
+whole-host rollback is not promised. Ordinary install reconciles; explicit WSL
+`--confirm-reset` is deprecated destructive compatibility, not recovery.
+See link:{user-guide-prefix}manual-host-steps.md[manual host, CA trust and recovery]
+and link:{user-guide-prefix}troubleshooting.adoc#first-response[troubleshooting].
+
+W09's amended acceptance verifies existing Ubuntu 26.04 installations/reruns and
+selected recovery/restart cases, not fresh hosts or global release qualification.
+Ubuntu 24.04 remains an implemented candidate without W09 live qualification.
+Exact tested versions, source revisions and unresolved EPIC closure criteria are
+in link:{user-reference-prefix}evidence/issue-462-bootstrap-completion-audit.md[the bootstrap completion audit].
+
 == Choose The Right Operation
 
 This page describes installation. On supported WSL2 and native Ubuntu 24.04 or
@@ -21,14 +128,12 @@ is a deprecated destructive compatibility request; its managed-node data may be 
 environment, start with link:{user-guide-prefix}usage.adoc#daily-operation[Daily operation].
 A reset is not a repair step or a product update.
 
-For a first installation, complete the host prerequisites, prepare the Python
-environment, then use <<ready-for-install-checklist>>. The default internal-test
+For a first installation, follow the quick start above, then use
+<<ready-for-install-checklist>>. The default internal-test
 path needs no password file. Optional overrides are covered separately below.
 
-RC1 qualification is still in progress. See
-https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/294[the RC1 tracker]
-for current acceptance gaps; this procedure is not a claim that every target
-and lifecycle has passed.
+Historical RC1 acceptance does not qualify the current bootstrap candidate;
+use the source-bound bootstrap audit above for its current limits.
 
 == Operating Model
 
@@ -212,7 +317,8 @@ and run `./prepare_linux.sh` as an ordinary user from an owned Linux-native
 directory. It bootstraps missing Python >=3.12/venv, Git, Incus and profile
 packages with consent, then hash-locked local Python dependencies and separately
 confirmed Incus daemon/access/resources. WSL2 must
-already have systemd; Windows preparation remains a separate work package.
+have working systemd before Linux preparation; the Windows lifecycle stage
+guides its setup and restart separately.
 The required runtime prerequisites are:
 
 * Python 3.12 or newer, with virtual-environment support (CI covers 3.12, 3.13 and 3.14)
@@ -322,60 +428,32 @@ installation. The exact resolved project path is permitted only in this
 protected local document; normal evidence, logs, CLI output, CI artifacts, and
 committed files remain path-free.
 
-== Python Environment
+== Direct CLI commands after preparation
 
-Clone the repository if needed, then prepare the runtime from its root:
-
-[source,bash]
-----
-git clone https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World.git
-cd Tiny-Swarm-World
-----
-
-If you already have a checkout, enter that directory instead of cloning again.
+The two-command path uses wrappers and does not require manual environment setup.
+For the direct `tiny-swarm-world` commands later in this reference, activate the
+runtime environment when preparation created one, from the checkout root:
 
 [source,bash]
 ----
-python3 -m venv .venv
-source .venv/bin/activate
-python3 -m pip install --upgrade pip
-python3 -m pip install --require-hashes -r requirements.lock
-python3 -m pip install --no-deps -e .
+if [ -f "${TSW_NATIVE_LINUX_VENV:-.tiny-swarm-world/install-venv}/bin/activate" ]; then
+  source "${TSW_NATIVE_LINUX_VENV:-.tiny-swarm-world/install-venv}/bin/activate"
+fi
 ----
 
-`requirements.lock` is the audited Python 3.12 runtime set used by CI. The
-editable project install deliberately uses `--no-deps` so pip does not resolve
-a second runtime dependency set.
+Use the same reviewed override if preparation selected a different path. Child
+preparation processes cannot activate the calling shell. In a new terminal,
+repeat activation before direct CLI commands; `./install.sh` needs no activation.
+If preparation reused available system dependencies, no local venv may exist;
+use that same system Python. Module commands below do not require an installed
+`tiny-swarm-world` executable on PATH.
 
-Use the active virtual environment for subsequent commands. Runtime imports
-are needed before the installer can reach its internal dependency-bootstrap
-fallback; do not rely on that fallback to make a bare checkout runnable.
+[[_python_environment]]
+== Advanced developer setup
 
-Development tools are optional for operators. Install them before running the
-development quality gate:
-
-[source,bash]
-----
-python3 -m pip install -r requirements-dev.txt
-----
-
-== Verify The Development Setup
-
-Run the full quality gate from the repository root:
-
-[source,bash]
-----
-python3 tools/quality_gate.py quality
-----
-
-If a virtual environment is active, its interpreter can be used instead:
-
-[source,bash]
-----
-.venv/bin/python tools/quality_gate.py quality
-----
-
-The quality gate sets `PYTHONPATH=src` automatically.
+Manual venv/pip setup and development quality gates are documented in the
+link:{user-reference-prefix}manuals/developer-manual.md#local-python-environment[Developer Manual].
+Operators use preparation above; no separate manual Python setup is required.
 
 == Artifact Contract And Readiness Preflight
 
@@ -588,7 +666,7 @@ checklist, continue with the ordered runtime path: host preparation and
 verification, managed LXC nodes, Docker Engine inside those nodes, Swarm
 bootstrap, routing, artifacts, deployment, and final verification.
 
-== Runtime Environment Green Path
+== Advanced developer runtime checklist
 
 Use this checklist when preparing a new developer workstation for the default
 local runtime environment. Run project commands from a Linux or WSL shell in
@@ -622,8 +700,9 @@ continuing.
 
 === 2. Prepare Python Dependencies
 
-Complete <<_python_environment,Python Environment>> once per checkout, then
-activate `.venv` in each new shell. Development verification is a separate step;
+Complete <<_advanced_developer_setup,Advanced developer setup>> once per checkout,
+then activate the development `.venv` in each new shell. Operators use the
+preparation quick start instead. Development verification is a separate step;
 install `requirements-dev.txt` before running its quality gate.
 
 === 3. Verify Incus Baseline And Optional Smoke
@@ -733,7 +812,7 @@ values can be written once to a protected local file:
 export TSW_INSTALL_ENV_FILE="$HOME/.local/state/tiny-swarm-world/live-installation.env"
 install -d -m 700 "$(dirname "$TSW_INSTALL_ENV_FILE")"
 PYTHONPATH=src python3 tools/create_internal_test_env_file.py "$TSW_INSTALL_ENV_FILE"
-tiny-swarm-world --preflight
+PYTHONPATH=src python3 -m tiny_swarm_world --preflight
 ----
 
 The helper preserves an existing file. The catalog values are public test
@@ -989,7 +1068,7 @@ Start with the non-mutating workflow, keeping the installed service profile:
 
 [source,bash]
 ----
-tiny-swarm-world --service-profile service-access platform verify
+PYTHONPATH=src python3 -m tiny_swarm_world --service-profile service-access platform verify
 ----
 
 Then verify the managed nodes and Swarm state:
@@ -1106,7 +1185,7 @@ List supported workflow-level commands without building application services:
 
 [source,bash]
 ----
-tiny-swarm-world --list-workflows
+PYTHONPATH=src python3 -m tiny_swarm_world --list-workflows
 ----
 
 == IntelliJ Execution Context
@@ -1118,7 +1197,7 @@ preflight checks. The command remains:
 
 [source,bash]
 ----
-tiny-swarm-world setup run --live
+PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
 ----
 
 The live confirmation prompt requires stdin. Run the command from an IntelliJ
@@ -1129,7 +1208,7 @@ The safe setup probe is:
 
 [source,bash]
 ----
-tiny-swarm-world setup run
+PYTHONPATH=src python3 -m tiny_swarm_world setup run
 ----
 
 Without the complete live-consent contract, `setup run` refuses before setup
@@ -1140,7 +1219,7 @@ The canonical live operator command uses `lxc_native` by default:
 
 [source,bash]
 ----
-tiny-swarm-world setup run --live
+PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
 ----
 
 For native Ubuntu 24.04 or 26.04 LTS on x86_64, run host preparation separately before

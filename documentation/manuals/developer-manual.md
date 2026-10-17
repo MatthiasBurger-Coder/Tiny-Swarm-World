@@ -26,6 +26,25 @@ Use the [workflow documents](../workflow/),
 governance authorities. One slice owns one scope and must preserve evidence,
 rollback and verification-state semantics.
 
+## Local Python environment
+
+Operators use `./prepare_linux.sh` from the trusted checkout, followed by
+`./install.sh`. For manual development setup from the repository root:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install --upgrade pip
+python3 -m pip install --require-hashes -r requirements.lock
+python3 -m pip install --no-deps -e .
+python3 -m pip install -r requirements-dev.txt
+```
+
+The runtime lock is installed before the editable project to avoid a second
+runtime dependency resolution. Development dependencies are for local checks.
+Run manual tests with `PYTHONPATH=src`; the quality wrapper sets it automatically.
+These commands do not prepare Incus or verify installed services.
+
 ## Quality
 
 `QUALITY.md` is the quality authority. The standard local command is:

@@ -5,14 +5,89 @@ Swarm, Portainer, Infisical, Nexus, Jenkins, Pulsar, SonarQube and supporting
 services. It provisions managed Linux containers through Incus and runs Docker
 Engine inside those containers.
 
-The current implementation is the **Classic profile**. The
-[RC1 decision](documentation/release/rc1-decision.md) records acceptance on
-2026-09-13 for its named candidates; the
-[October lifecycle validation](documentation/evidence/issue-363-final-validation-20261003.md)
-records later scoped results. These results do not qualify the current bootstrap
-changes or every supported host. See the
-[bootstrap contract](documentation/contracts/bootstrap.md) for delivered stages
-and remaining integration/live qualification work.
+The current implementation is the **Classic profile** for internal development
+and testing. Native Ubuntu 24.04/26.04 x86_64 and Windows 11 with Ubuntu WSL2
+are bootstrap candidates. W09 verified selected **existing Ubuntu 26.04 hosts**;
+clean-host installation and global release qualification remain unverified.
+See the [bootstrap completion audit](documentation/evidence/issue-462-bootstrap-completion-audit.md)
+for exact versions, source revisions and deferred scenarios.
+
+## Prepare, then install
+
+Use a complete trusted checkout or release. Enter its root before running these
+commands. For the currently exercised install path, retain Git metadata; a plain
+source archive is insufficient for the installer's secret-ignore check. On Linux,
+clone into your ordinary account's home when Git is available:
+
+```bash
+git clone https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World.git ~/Tiny-Swarm-World
+cd ~/Tiny-Swarm-World
+```
+
+**Native Ubuntu:** run as an ordinary sudo-capable user on Ubuntu 24.04 or 26.04
+x86_64. Preparation installs missing packages/Python and its local environment;
+manual pip/venv steps are unnecessary.
+
+```bash
+./prepare_linux.sh
+./install.sh
+```
+
+**Windows 11 / WSL2:** from the complete trusted Windows checkout, open elevated
+PowerShell and select the exact distribution. For example:
+
+```powershell
+./prepare_windows.ps1 -Distro Ubuntu-26.04
+```
+
+Before the handoff, create the ordinary Ubuntu account interactively when
+prompted and place the matching checkout in its Linux home (`~/Tiny-Swarm-World`
+by default); Windows preparation does not copy it. If the source probe reports
+missing system Python, first run `./prepare_linux.sh` from that Linux checkout,
+then rerun Windows preparation. This boundary can add commands to the short path.
+Use `-LinuxCheckout` for another Linux-native location; custom distro names also
+need the matching `-UbuntuRelease`.
+
+Once available, copy the printed `handoff.operator_command` into the interactive
+PowerShell console. That second command selects the observed Linux user and
+checkout, runs Linux preparation, and starts installation only when preparation
+succeeds. Product Python runs entirely in WSL.
+
+**Current Windows limitation:** ordinary Apply is unqualified and blocked.
+The short path describes the delivered handoff, not an unattended clean-host
+success promise. `-Preflight` / `-DryRun` inspect without mutation. Qualification
+requires a separately authorized recoverable target and exact source/plan binding;
+see [Windows preparation](documentation/user_guide/windows-preparation.md#qualification-and-consent).
+A closed W09 issue does not remove this guard. A plain extracted archive also
+needs the trusted release source proof for Windows qualification and does not
+resolve the installer's Git-metadata limitation.
+
+Review each plan before typing exact `yes`; installation has its own live approval.
+Use `./prepare_linux.sh --dry-run` or `./install.sh --preflight` for read-only checks.
+Do not run the whole installer with sudo. Internet access to Ubuntu packages,
+locked Python dependencies and container registries is required. The current
+service-access plan needs at least 21 GiB WSL RAM for configured nodes/overhead,
+plus Windows reserve, eight allocated CPU threads and 150 GiB usable disk; a
+16 GiB Windows host cannot fit it. Inspect the actual capacity plan; customized
+nodes/profiles can differ. Docker runs inside managed Incus nodes.
+
+A reboot, selected-distro restart or new `incus-admin` membership pauses the path.
+Perform only the reported restart/logout action, reopen the ordinary-user shell,
+and rerun preparation with the same distribution, profile and credential/config
+selection. Fresh observation and consent are required; dependent installation
+stays stopped. Ordinary install reconciles and preserves managed data/credentials.
+WSL `--confirm-reset` is a separate deprecated destructive operation, never a
+routine recovery flag.
+
+If blocked, follow the named stage and next command: authenticate with `sudo -v`
+in the preparation terminal for elevation failures; log out/in for stale groups;
+resolve active LXD conflicts without deleting instances; free capacity or choose a
+fitting reviewed profile for resource failures. Do not overwrite foreign Incus,
+firewall or bridge resources. See the [installation guide](documentation/user_guide/installation.adoc),
+[manual host and certificate checklist](documentation/user_guide/manual-host-steps.md)
+and [troubleshooting](documentation/user_guide/troubleshooting.adoc#first-response)
+for stage-specific recovery and CA trust. APT/features are not transactional;
+resumption does not promise whole-host rollback.
 
 ## Start here
 
@@ -84,220 +159,6 @@ documents all test values, API tokens and component-specific exceptions.
 For custom credentials, follow the
 [optional credential setup](documentation/user_guide/installation.adoc#operator-credential-overrides).
 
-## Before you install
-
-Use a native Linux or WSL2 shell. WSL2 needs systemd; Windows-native product
-execution is not supported.
-
-Prepare these prerequisites in the same shell and user account that will run
-the installer:
-
-- Python **3.12 or newer**, with virtual-environment support, and Git. The
-  [compatibility workflow](.github/workflows/python-compatibility.yml) currently
-  tests Python 3.12, 3.13 and 3.14.
-- Incus installed and initialized, with usable storage, networking and profiles.
-  `incus version` and `incus info` must work without `sudo`.
-- Host networking and capacity checked against the
-  [ready-for-install checklist](documentation/user_guide/installation.adoc#ready-for-install-checklist).
-  Review kernel, scoped firewall and local-name preparation with
-  `./prepare_linux.sh --dry-run`; see [network preparation](documentation/user_guide/network-preparation.md).
-- For WSL2 Windows-browser access, the existing
-  [Windows bridge prework](documentation/user_guide/installation.adoc#windows-wsl-prework).
-  Native Linux does not need that bridge.
-
-Windows-side lifecycle planning is available separately from product execution:
-run `./prepare_windows.ps1 -Distro Ubuntu-24.04 -Preflight` in elevated Windows
-PowerShell. The [Windows preparation guide](documentation/user_guide/windows-preparation.md)
-explains selected-distro/systemd preparation, explicit candidate qualification consent,
-account/restart boundaries and preserved state. Ordinary Apply remains blocked until
-applicable live qualification; local tests do not qualify Windows versions.
-
-If WSL setup reports `windows-wsl-bridge` / `state_invalid`, prepare the bridge
-in Windows PowerShell as Administrator. If that preparation passes all
-prerequisites but fails with `The Windows bridge service ACL did not reach the
-required exact state.`, a leftover `.bridge-state.json.<id>.bak` file can be
-the cause. Follow the [step-by-step bridge recovery](documentation/user_guide/troubleshooting.adoc#windows-wsl-bridge-acl)
-to inspect and delete only the confirmed leftover backup, reinstall the bridge,
-and return to the WSL installer. `--allow-wsl-windows-filesystem` only permits
-the checkout location; it does not prepare the bridge.
-
-The installer creates managed nodes and their Docker runtime. **It does not
-install or initialize the host's Incus daemon.** A host Docker installation
-does not replace Docker inside the managed nodes.
-
-Prefer a checkout under the Linux home directory. A deliberate WSL2 checkout
-under `/mnt/c`, `/mnt/d` or another Windows mount requires the explicit
-filesystem exception described in the installation guide.
-
-## Prepare the checkout
-
-Run these commands after the host prerequisites are ready:
-
-```bash
-mkdir -p ~/projects
-cd ~/projects
-git clone https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World.git
-cd Tiny-Swarm-World
-
-python3 -m venv .venv
-source .venv/bin/activate
-python3 -m pip install --upgrade pip
-python3 -m pip install --require-hashes -r requirements.lock
-python3 -m pip install --no-deps -e .
-```
-
-Install the runtime dependencies before calling the installer. The wrapper
-imports Python modules before its internal dependency-bootstrap fallback can
-run; cloning the repository alone is not a complete setup.
-
-Inspect the available workflows and run static preflight:
-
-```bash
-tiny-swarm-world --list-workflows
-tiny-swarm-world --preflight
-```
-
-For a checkout on the Linux filesystem (for example
-`~/projects/Tiny-Swarm-World`), use the commands above. If you deliberately keep
-the checkout on a Windows mount under WSL2 (for example `/mnt/d/Projects/`),
-use the explicit filesystem exception:
-
-```bash
-tiny-swarm-world --allow-wsl-windows-filesystem --preflight
-```
-
-For **either checkout location**, if preflight reports missing `SECRET-TSW_*`
-values, prepare or select a protected credential file before rerunning preflight:
-
-```bash
-export TSW_INSTALL_ENV_FILE="$HOME/.local/state/tiny-swarm-world/live-installation.env"
-install -d -m 700 "$(dirname "$TSW_INSTALL_ENV_FILE")"
-PYTHONPATH=src python3 tools/create_internal_test_env_file.py "$TSW_INSTALL_ENV_FILE"
-
-# Linux filesystem checkout:
-tiny-swarm-world --preflight
-
-# Alternatively, a deliberate Windows-mounted checkout under WSL2:
-tiny-swarm-world --allow-wsl-windows-filesystem --preflight
-```
-
-The command creates a protected file with the documented `INTERNAL/TEST ONLY`
-catalog values only when no file exists; it preserves existing credentials.
-These public default passwords and tokens are suitable only for an isolated,
-disposable test system. A future production or shared deployment must use
-operator-owned credentials instead. If an existing file has empty entries,
-edit those entries locally before rerunning preflight. Keep
-`TSW_INSTALL_ENV_FILE` exported in the same terminal for subsequent setup
-commands, and repeat it in a new terminal. Preflight reads the selected file
-directly; sourcing it is not necessary. Exported `TSW_*` values take precedence
-over file entries. For guidance on which values to set, follow the
-[optional credential setup](documentation/user_guide/installation.adoc#operator-credential-overrides).
-The credential file must remain on the Linux filesystem with mode `0600` in
-a user-owned `0700` directory, even when the checkout is on a Windows mount.
-The filesystem exception does not provide missing secrets. The standard
-`./install.sh` internal-test defaults described below are a separate installer
-path; standalone preflight can require an explicit secret source.
-
-Resolve reported blockers before installing. Static preflight does not prove
-that services are running. Development tools and the full quality gate are
-described in the [Developer Manual](documentation/manuals/developer-manual.md);
-they are separate from preparing the runtime package.
-
-## Install a fresh test environment
-
-Review the [live-operation surface catalog](documentation/system/live-operation-surfaces.adoc)
-for the commands that change nodes, networking, Docker, Swarm and service stacks.
-
-The planned complete host bootstrap interface and delivery gaps are defined in
-the [BOOT-W01 contract](documentation/contracts/bootstrap.md). Windows preparation
-now includes W04 lifecycle and W05 capacity planning/configuration; aggregate
-readiness and live qualification remain separate. BOOT-W02 provides the shared
-Linux package/Python prerequisite stage.
-
-On native Ubuntu 24.04 or 26.04 x86_64, prepare the host separately, then run the
-non-destructive installer. The installer does not invoke host preparation:
-
-Issue #427 uses a clean Ubuntu 26.04 host for installation qualification;
-Ubuntu 24.04 remains a supported host path with separate live qualification.
-
-```bash
-./prepare_linux.sh --preflight
-./prepare_linux.sh
-./install.sh --preflight
-./install.sh
-```
-
-`prepare_linux.sh` shows its package plan and requires the operator to type
-`yes` before APT changes or local Python dependency bootstrap. From a complete
-trusted release, missing Python >=3.12 and venv support are bootstrapped by the
-shell boundary; Git is not needed to start preparation. Run as an ordinary user
-from an owned Linux-native directory: only package, daemon startup and group
-access actions elevate. The same preparation
-command supports Ubuntu 24.04/26.04 x86_64 under WSL2 with systemd and the WSL
-resource floor. After Python preparation, it shows and separately confirms
-Incus startup/access and missing resolved storage, bridge and Swarm profiles.
-Compatible resources are reused; collisions block without replacing them.
-New `incus-admin` membership requires logout/login and a rerun before current-user
-access is verified. If elevation fails, run `sudo -v` and review the plan again.
-Incus readiness does not verify kernel controls, Windows configuration or services. `--dry-run` is
-read-only for either script. The installer checks host, configuration,
-credentials and setup readiness before creating installation evidence. The
-installer reconciles on native Linux and WSL2 without resetting managed nodes,
-data or credentials. WSL `--confirm-reset` explicitly requests the deprecated
-destructive compatibility path; live approval alone never requests reset. See the
-[installation guide](documentation/user_guide/installation.adoc) for recovery.
-
-The [manual host checklist](documentation/user_guide/manual-host-steps.md) covers
-sudo/login boundaries, LXD conflicts, public-CA inspection and trust in Linux/WSL
-and Windows browsers, plus scoped restart and recovery steps.
-
-Windows preparation prints the selected registration/account handoff after its
-lifecycle, resources and bridge are ready. Keep the trusted checkout in the
-ordinary Linux account's `~/Tiny-Swarm-World`, or select its absolute Linux path:
-
-```powershell
-./prepare_windows.ps1 -Distro Ubuntu-24.04 -LinuxCheckout /home/operator/Tiny-Swarm-World -Preflight
-```
-
-Run the printed command to prepare Linux and then install with the same profile.
-Each preparation stage keeps its own consent; a failed stage stops installation.
-A missing/unsafe checkout blocks the handoff. Windows preparation never copies a
-checkout or runs product Python on Windows. Windows capability readiness is
-separate from Linux preparation and live service verification.
-
-After completing the installation guide's host and networking checklist:
-
-```bash
-./install.sh
-```
-
-The default service profile is `service-access`. WSL installation asks for the
-reset phrase `RESET_TINY_SWARM_PLATFORM`; both host modes require governed
-live-operation consent.
-`--headless` changes presentation; it does not make the operation read-only.
-
-Native `service-access` requires at least **15 GiB host RAM**; WSL2 retains
-a 16 GiB service-access profile floor. The W05 Windows plan also counts the
-19 GiB default managed-node budget and 2 GiB WSL overhead: it needs at least
-21 GiB configured WSL RAM while retaining Windows reserve. A 16 GiB physical
-Windows host is therefore insufficient for the current node configuration.
-See the [resource plan and overrides](documentation/user_guide/windows-preparation.md#capacity-plan-and-resource-overrides).
-Managed-node capacity is checked separately. A local 8/6/3 GiB node configuration was installed and functionally
-tested on an 18.73 GiB native host. The manager reached its 8 GiB limit, so this
-run establishes limited operation with little manager reserve. See the
-[native installation and memory results](documentation/evidence/issue-363-native-fresh-install-20261003.md)
-and the [local configuration procedure](documentation/user_guide/installation.adoc#native-node-memory-budget).
-
-The standard internal-test path needs **no credential file**. It uses
-deterministic catalog values. These defaults are for isolated, disposable
-internal testing; use the documented access boundary before exposing services.
-
-If an override is needed, follow the
-[optional credential setup](documentation/user_guide/installation.adoc#operator-credential-overrides).
-A credential file must be user-owned, mode `0600`, inside a user-owned
-`0700` directory on a Linux-native filesystem. The WSL source-path exception
-does not relax that requirement.
-
 ## Open services and verify the result
 
 After successful setup, the installer prints access targets and login
@@ -312,10 +173,16 @@ exceptions are listed in the catalog. Passwords are not printed by the
 installer, and a dashboard secret reference does not prove the item exists in
 Infisical.
 
-Check the platform:
+Check the platform from the prepared checkout. Activate the environment that
+preparation created, if present (use the same `TSW_NATIVE_LINUX_VENV` override
+if selected). If preparation reused available system dependencies, use that
+Python instead. The module command also works without a CLI script on PATH:
 
 ```bash
-tiny-swarm-world --service-profile service-access platform verify
+if [ -f "${TSW_NATIVE_LINUX_VENV:-.tiny-swarm-world/install-venv}/bin/activate" ]; then
+  source "${TSW_NATIVE_LINUX_VENV:-.tiny-swarm-world/install-venv}/bin/activate"
+fi
+PYTHONPATH=src python3 -m tiny_swarm_world --service-profile service-access platform verify
 ```
 
 Then sign in to the required services from the browser you intend to use.
