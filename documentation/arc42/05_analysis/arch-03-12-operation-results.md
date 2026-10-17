@@ -49,7 +49,7 @@ remain distinguishable. Cancellation and process-control exceptions retain their
 propagation or explicit entrypoint exit mapping.
 
 See the [accepted ADR](../09_decisions/adr-explicit-operation-results.adoc) and
-[boundary inventory](../../workflow/lifecycle-failure-inventory.md) for the fixed
+[completed #355 boundary inventory](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/blob/2bdee76038c433faef13595b981375b1baaf447c/documentation/workflow/lifecycle-failure-inventory.md) for the fixed
 contract and per-boundary reconciliation.
 
 ## Presentation and compatibility

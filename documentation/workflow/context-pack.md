@@ -1,17 +1,8 @@
-# ARCH-03.12 workflow context
+# Workflow context pack — #452
 
-Workflow issue-355-operation-results, version 1.0; process strand workflow execute;
-profile FULL_PATH. Branch `recovery/issue-355-20260926`; baseline `3487ce322bb2b251a45695fc88a70ffa8132b0de`.
-Status DONE locally; all seven slices accepted and independent audit PASS. Final checkpoint publication follows.
+Version: 1.0. Branch: `feature/workflow-bootstrap-452-20261017`. Baseline: `2bdee76038c433faef13595b981375b1baaf447c`.
+Process: workflow create. Profile: FULL_PATH. Status: AUTHORED / NOT EXECUTED; EPIC INCOMPLETE.
 
-Read [workflow](workflow.md), [requirements](requirement-matrix.md),
-[authoring review](authoring-review.md) and [machine context](context-pack.json).
-The JSON records required/conditional roles, affected/forbidden areas, quality
-commands and SHA-256 governing-file hashes. Recompute every hash at execution;
-any change makes this context stale. No context pack replaces AGENTS.md, QUALITY.md,
-ADRs, routing or skills. S355-01 accepted the ADR and inventory; later slices must preserve that contract.
+Use [workflow](workflow.md), [matrix](requirement-matrix.md), [complete issue source](issue-source-snapshot.json) and [machine context](context-pack.json). Required roles: Requirement, Architect, Python, Tester, Documentation, DevOps and Security; conditional Console/status UX. No React/Java/provider replacement. Quality commands and governing SHA256 hashes are in JSON; changes invalidate the pack. This is navigation, never governing authority.
 
-Execution requires an isolated worktree and declared branch; specialist write
-streams require distinct branches/worktrees and disjoint reviewed scopes. Reviews
-are read-only. Product slices require targeted tests plus full local quality.
-Authoring publication is commit and branch push only. No PR or merge is requested.
+Execution order: S452-01 through S452-10. Accepted architecture decisions precede product changes. Fresh host/source/recovery consent precedes live stages; absent consent remains LIVE_CONSENT_MISSING. No current candidate is qualified by authoring.

@@ -510,14 +510,16 @@ as `refused`, `blocked`, `resource_gated`, `failed_to_apply`,
 
 The active installer entry point
 `python3 -m tiny_swarm_world.simple_installer` implements the host-specific flow
-delegated by `install.sh`. Its bootstrap selects native reconciliation or the
-WSL2 fresh-reset mode; `application/services/installation.py` owns lifecycle
-sequencing through installation ports and infrastructure adapters. Native Linux
-validates host prerequisites and runs the selected setup profile without a reset.
-WSL2 requires destructive reset confirmation, runs `platform reset` for the
-configured managed Tiny Swarm World local system, stops when reset fails, and
-only then runs setup. Both paths require live-operation consent. The installer
-does not invoke host preparation.
+delegated by `install.sh`. Its bootstrap uses ordinary reconciliation on both
+native Linux and WSL2; `application/services/installation.py` owns lifecycle
+sequencing through installation ports and infrastructure adapters. Both paths
+validate host prerequisites and run the selected setup profile without an
+implicit reset. Only the separate deprecated WSL2 `--confirm-reset` path uses
+destructive reset with its exact confirmation; native Linux refuses that flag.
+Both ordinary installation and explicit reset retain their own live-operation
+consent. The installer does not invoke host preparation. The accepted
+link:09_decisions/adr-wsl-install-reconciliation.adoc[W07 reconciliation ADR]
+governs this delivered transition.
 The selected setup path includes artifact preparation, service-stack
 deployments, service readiness checks, and service-access dashboard/index
 assets. Existing non-destructive update and reconcile mechanisms remain
@@ -560,8 +562,12 @@ and WSL capacity planning/configuration. Ordinary Apply remains blocked pending
 applicable live qualification; explicit candidate qualification uses the guarded
 consent contract. Windows browser routing delegates to the existing protected
 bridge owner. Preparation does not deploy managed nodes or services, start the
-installer, or prove service authentication. The full bootstrap integration and
-WSL installation migration remain separate delivery work.
+installer, or prove service authentication. W07 ordinary WSL reconciliation is
+delivered; clean-host paths, archive installation and ordinary Windows release
+admission remain incomplete. See the explicitly planned
+link:05_analysis/issue-452-bootstrap-completion-plan.md[EPIC #452 completion plan]
+and the historical
+link:../evidence/issue-462-bootstrap-completion-audit.md[W10 completion audit].
 
 See the link:../contracts/bootstrap.md[bootstrap contract],
 link:../user_guide/windows-preparation.md[Windows preparation guide] and

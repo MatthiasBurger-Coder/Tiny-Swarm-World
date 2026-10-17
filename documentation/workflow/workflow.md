@@ -1,1062 +1,460 @@
-# ARCH-03.12 — Introduce Explicit Operation Results and Failure Model
+# EPIC #452 — Complete bootstrap and qualify the simple install paths
 
-Workflow ID: issue-355-operation-results
+Workflow ID: issue-452-bootstrap-completion
 workflowVersion: 1.0
-Status: DONE locally; S355-01–07 accepted; final checkpoint publication pending
-Issue: [#355](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/355)
-Parent: [#313](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/313)
-Branch: `recovery/issue-355-20260926`
-Baseline: `3487ce322bb2b251a45695fc88a70ffa8132b0de`
-Execution profile: FULL_PATH — shared application contracts, adapter translation and lifecycle compatibility.
+Status: AUTHORED; S452-01–10 NOT STARTED; EPIC INCOMPLETE
+Issue: https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/452
+Branch: `feature/workflow-bootstrap-452-20261017`
+Baseline: `2bdee76038c433faef13595b981375b1baaf447c`
+Execution profile: FULL_PATH — cross-host bootstrap, secret/source protection, admission policy and live qualification.
 
 ## Executive Summary and Target Picture
 
-Standardize expected lifecycle operation outcomes and actionable failure context
-across platform, artifacts, deployment and setup while preserving CLI/installer
-compatibility. Adapters translate technical failures; workflows retain confirmed
-progress and originating failures. Existing recovery supplies truthful rolled_back
-semantics. See [requirement matrix](requirement-matrix.md) and
-[proposed ADR](../arc42/09_decisions/adr-explicit-operation-results.adoc).
+Deliver the original two preparation entrypoints followed by installation from a trusted extracted release or checkout, on qualified native Ubuntu and Windows11/WSL2 targets. Reuse all ten CLOSED children #453–#462. Their closure does not satisfy the parent: W10 explicitly records INCOMPLETE and W09 passed its amended existing-host scope only. This workflow covers all ten packages through a full requirement crosswalk and ten remaining-work slices, not ten repeated implementations.
+
+The starting condition is possession of the complete trusted source. Account creation, elevation, unavoidable reboot/session boundaries and reruns remain guided operator interactions. No hidden manual checkout, pip/venv, Incus YAML or network setup can satisfy the default path. Preparation READY is separate from installation, browser and authenticated service success.
 
 ## Requirement Clarification Gate
 
-- Original Request: `[ARCH-03.12] Introduce Explicit Operation Results and Failure Model`, then `workflow create`.
-- Interpreted Intent: author and publish an executable plan for #355; implementation follows a later workflow execute.
-- Change Type: architecture hardening and compatible failure-contract migration.
-- Affected Process Strand: workflow create.
-- Affected Architecture Area: application-port contracts, lifecycle services, adapters, CLI/installer reporting.
-- Explicit Requirements: R355-01 through R355-14 from issue goal, scope and acceptance criteria.
-- Implicit Requirements: R355-15, safe cause handling, cancellation, truthful partial/rollback, four result families and installer compatibility.
-- Assumptions: use additive operation_result fields; keep legacy status and exit mappings; existing recover is the rollback producer.
-- Non-Goals: new retries, automatic rollback, idempotency policies (#356), installer decomposition, provider/process replacement, new persistence schemas, live operations, Java/React/Kubernetes scope.
-- Risks: premature success, swallowed defects/cancellation, sensitive diagnostics, lost nested context, status/JSON/exit drift and oversized adapter migration.
-- Open Questions: none blocking authoring. S355-01 must resolve exact inventory, error taxonomy and per-boundary migration before product changes.
-- Blocking Questions: none for authoring; an unaccepted ADR or incomplete inventory blocks S355-02.
-- Confidence Level: 94 percent; clarification attempt 1, maxRetries 3.
-- Decision: READY_FOR_WORKFLOW, with explicit S355-01 architecture acceptance gate.
-- Existing workflow relationship: replace completed #352 workflow entirely on this dedicated branch. Previous plan remains in Git at baseline; no prior issue evidence is deleted.
+- Original request: EPIC title and #452.
+- Interpreted intent: user answered “Create the full EPIC workflow” after choosing authoring versus child implementation.
+- Change type / process strand: full remaining-gap workflow authoring; no product implementation or live operations now.
+- Affected architecture: Linux/WSL bootstrap services/ports/adapters, dependency-light Windows modules, installer secret policy and existing bridge.
+- Explicit requirements: BOOT-01–09, twelve parent acceptance criteria and W01–W10 child scope/acceptance in [requirement matrix](requirement-matrix.md).
+- Implicit requirements: source trust without installed Git/Python, guarded release admission, ordinary-user continuity, truthful source/scenario evidence and canonical status/exit semantics.
+- Assumptions: historical delivery is reusable only after fresh inventory; no closed child is reopened; remaining code decisions are mandatory S01 acceptance gates.
+- Non-goals: reimplement #427; expand #440/#444 selection scope; DNS/Podman/K3s/Kubernetes/fleet/runtime replacement; Java/Spring/React; HA; whole-host rollback.
+- Risks: credential exposure by bypassing Git guard; source transfer before integrity checks; self-referential qualification; false clean-host claims; broad/implicit mutation; shared-file conflicts.
+- Open questions for execution: S01 settles archive-equivalent secret protection, trusted source delivery and admission identity/invalidation. S05 requires actual recoverable targets and fresh live consent.
+- Blocking questions for authoring: none. Future execution gates do not grant their own approval.
+- Confidence: 95%; clarification attempt 1 of maxRetries 3.
+- Decision: READY_FOR_WORKFLOW authoring; not an implementation or live PASS.
+- Active workflow relationship: replace completed #355 workflow entirely. Prior workflow remains in Git at baseline; all historical issue evidence is preserved.
 
-## Verified Baseline and Scope
+## Verified Baseline and Reuse
 
-Four existing result families are in platform/workflow/results.py, artifacts/workflows.py,
-deployment/workflows.py and setup/workflow.py. Platform runtime and setup contain
-broad exception catches. AsyncPortCommandRunner raises infrastructure-owned
-CommandExecutionError. LXC node commands lose the async failure hint; update state
-storage can leak technical errors. Existing update observation has a typed port
-error; update recover already verifies image/task convergence. CLI success depends
-on completed. Installer preserves child exits plus timeout/interruption 124/130.
+All child issue states and full text are in [issue-source-snapshot.json](issue-source-snapshot.json), retrieved 2026-10-17. #427/#313/#363 are CLOSED; #440/#444 remain OPEN. The authoritative remaining-gap inventory is `documentation/evidence/issue-462-bootstrap-completion-audit.md`. Latest W09 amended campaign entries in `.tiny-swarm/evidence/issue-461/combined_qualification_20261017.json` remain scoped to their original exact SHA and existing targets.
 
-Inventory all reachable lifecycle-facing process, provider/runtime, HTTP,
-configuration, state and evidence boundaries. Directory scopes below authorize
-only the inventory's result/failure migration, never unrelated refactoring. Every
-omitted surface needs evidence that it is already compliant or outside lifecycle
-reachability. Stop for reviewed scope correction when required work falls outside
-allowed paths. No permission to silently reduce the four-family scope.
+| Package | Delivered capability to reuse | Remaining obligation / slices |
+|---|---|---|
+| W01 #453 | Plans, modes, readiness/exit contracts | Archive/source/admission decisions; S01–04 |
+| W02 #454 | Ubuntu package/Python bootstrap and locked user venv | Absent-Python handoff and clean-host proof; S03/06/07/09 |
+| W03 #455 | Incus daemon/access/storage/network/profile preparation | Clean initialization, actual group transition/preservation; S04/06/07 |
+| W04 #456 | Windows/WSL/systemd lifecycle, candidate guard | Clean lifecycle, trusted source handoff, ordinary admission; S03/07/08/09 |
+| W05 #457 | Capacity adaptation and preserved config | Resource boundaries/effective allocation evidence; S04/07 |
+| W06 #458 | Scoped kernel/network and canonical bridge | Actual IP drift, routing/browser and preservation; S04/07/09 |
+| W07 #459 | Non-destructive native/WSL reconcile and inspected handoff | Archive and source/runtime assumptions; S02/03/09 |
+| W08 #460 | Protected checkpoints/evidence and recovery | Full-entrypoint failure/resume and preservation; S04/06/07/09 |
+| W09 #461 | Amended existing-host scenario results | Original fresh-host and deferred matrix; S05–09 |
+| W10 #462 | Short paths and honest INCOMPLETE audit | Witnessed final paths and independent EPIC audit; S09/10 |
 
-Predecessors #353 and #354 are closed; #354 process architecture is present at
-baseline. Recheck source and dependency state at execution. EPIC alignment is
-preserved: no domain dependency inversion, new engine or safety-policy changes.
+Verified implementation gaps: downstream `PlatformPreflightService._ignore_policy_checks` requires Git-ignore proof; `linux-handoff.sh` invokes Python before missing-Python preparation; Windows source placement is manual; `Application.ps1` unconditionally blocks ordinary Apply and `Policy.ps1` emits `qualified=false`. Historical API/TLS results are not browser/Selenium success. No candidate release is globally qualified by this plan.
 
-## Architecture Constraints and Proposed Semantics
+## Architecture Constraints and Scope
 
-The proposed shared file is `src/tiny_swarm_world/application/ports/operation_result.py`.
-It must not depend on services or infrastructure; domain must not import it.
-Use immutable values and explicit expected port failures. Existing result wrappers
-remain capability-owned and add operation_result with compatible defaults. Keep
-lifecycle dispatch thin and concrete wiring in infrastructure composition.
+Keep domain independent and application dependent on ports; concrete filesystem/process/PowerShell/configuration details belong to adapters. Reuse native, Incus, network, installation, checkpoint and bridge owners. Runtime wiring stays in infrastructure composition; entrypoints remain thin. Docker/Swarm stay in Incus nodes. Native owners never construct Windows adapters. Canonical ports remain `infra/config/ports.yaml`; bridge ownership/ACL/service lifecycle is exclusive.
 
-Success obeys existing verification. Partial requires confirmed completed work;
-executed=True or a timeout alone proves no successful effect. Preserve uncertain
-effects separately. Rolled_back requires observed restoration through existing
-recover; metadata/attempts/advice cannot establish it. Keep blocked/refused distinct. A legacy blocked result can follow prior mutation;
-retain that status while reporting partial confirmed work and any uncertain effects.
-Failure fields: operation, component, safe cause code, recoverability and recommended
-action. No raw exceptions, commands, secrets or arbitrary str(exc). Cancellation
-and control-flow exceptions propagate through adapters/workflows; existing entrypoint
-interruption mappings remain intact. Unexpected defects are distinguishable.
-No blanket BaseException translation. Suppress unsafe exception chains at adapters.
-
-The ADR was accepted in S355-01 after architecture review; subsequent slices
-implement its contract. Existing layer, process, provider, consent, Classic
-update and installer-reporting ADRs remain authoritative.
+Accepted shared-Ubuntu, Windows lifecycle/capacity, Incus, scoped-network, recovery and WSL-reconciliation ADRs remain authoritative. The overall W01 ADR remains historically proposed except its named accepted transitions. S01 must accept a narrow release-integrity/admission ADR before changing these guards. No new orchestrator, global config replacement, automatic runtime replacement or live approval is introduced.
 
 ## Python Automation Assessment
 
-Python 3.12 / Linux / WSL; existing asyncio orchestration, ports and unittest seams.
-Reuse centralized process runners. No runtime commands during import/construction.
-Explicitly proposed new files: operation_result.py, its test suite, inventory and ADR.
-All other paths must exist at execution preflight; no inferred filenames are authority.
+Only S02/S03/S04/S08 authorize scoped product changes, after S01 contract acceptance. Use Python3.12-compatible ports/value objects; asynchronous command orchestration; locked dependency installation and user-owned venv; separate package elevation. Never invoke Windows product Python or bootstrap dependencies merely to plan. Mock commands/network/provider/Docker in local tests. Product inventory discovers any missing path before a reviewed scope amendment; no wildcard permission for unrelated refactoring.
 
 ## Frontend Assessment
 
-Console/status UI review is required for compatibility and safe actionable output.
-No browser frontend or React work. Human-readable output remains default; JSON is
-explicit --json or TSW_DEBUG_JSON=true. Rendering never executes recommended actions.
-Verified recovery keeps completed/exit 0 even when operation_result is rolled_back;
-failed apply remains nonzero. No intentional exit correction is pre-authorized.
+There is no browser React frontend scope. Conditional console/status UX review covers plan visibility, readable status without color, consistent JSON/console exits, exact next commands preserving profile/target/overrides, and Windows reboot versus WSL-wide/distro restart versus logout/login. Browser testing in qualification tests deployed routing; it does not authorize a frontend application.
 
-## Test Strategy and Resilience Requirements
+## Resilience and Security Requirements
 
-Use deterministic mocked adapters and real value serialization. Cover valid/invalid
-outcome combinations; missing executable, permission denial, nonzero exit, timeout,
-HTTP/provider/configuration/filesystem failures; mutation-before/after failure;
-verification failure; partial children; successful/failed/repeated recovery; retained
-original failures; cancellation; programming defects; nested secret-safe context.
-Test repr, serialized result, exception traceback, logs and CLI output for leaks.
+Reinventory before mutation and invalidate consent on target/source/selection/config drift. Stop dependent stages on blocked/partial/failed/restart outcomes. Apply state locks, atomic protected checkpoint publication and redaction; never persist approval. Preserve confirmed versus uncertain effects, concrete stage remedy and prior records. APT/features are nontransactional; no automatic package removal, distro deletion, Incus reset, whole-host rollback, lock deletion or credential overwrite. Reset needs its own exact confirmation on an authorized disposable target. Downloads and subprocesses remain bounded and verified; no unverified remote execution.
 
-Local contract/installation-orchestration checks: APPLICABLE_LOCAL. Actual installation,
-Incus/Docker/Swarm/bootstrap/network checks: NOT_APPLICABLE / LIVE_NOT_APPLICABLE
-for this contract migration. Browser/Selenium: NOT_APPLICABLE. External gates:
-EXTERNAL_GATE_NOT_APPLICABLE to branch-only authoring publication; reassess required
-SonarQube/CI at any later PR, reporting unavailable or failed states honestly.
-If runtime behavior scope changes, reclassify and require separate live consent.
-No live or external success follows from local tests.
+## Test Strategy and Verification States
 
-## Ordered Slices and Dependency Graph
+Every product slice: nearest declared unittest first, relevant PowerShell/Pester suites in an available declared Windows runtime, then `python3 tools/quality_gate.py quality`. Full gate authority is QUALITY.md: verification-policy, complexity, lint, arch-lint, arch-tests, typecheck, test. Add newly created meaningful regressions to targeted commands once files exist. Shell syntax uses `bash -n` for changed shell files. PowerShell absence/skipped tests remain unverified; no local pass implies Pester/live success.
 
-`S355-01 -> S355-02 -> S355-03 -> S355-04 -> S355-05 -> S355-06 -> S355-07`
+S05 freezes a committed candidate after the full gate and defines exact scenarios. S06/S07/S09 require target inventory, recoverability, reviewed commands and fresh explicit consent. Default new live state: APPLICABLE_LIVE / LIVE_CONSENT_MISSING. Browser/Selenium and SonarQube retain independent applicability/access/result states. Do not infer them from API checks or local quality. A live-discovered defect routes to its owning product slice, requires a new one-slice corrective checkpoint and reruns all affected exact-source scenarios; live evidence slices cannot silently edit product code.
 
-S355-01 through S355-07 are accepted. Every slice has exactly one checkpoint commit. Common
-allowed evidence/status writes: `.tiny-swarm/evidence/issue-355/**`, that slice's
-`.codex/evidence/slice-<number>-distribution.md` and consolidation file, plus active
-workflow status, matrix and context-pack refresh. Serialize these shared files.
-No product changes are authorized during workflow create.
+At minimum cover fresh release paths, no-write aggregate modes, second run, ordinary install preservation, actual session and IP changes, capacity limits, collisions, absent downloads, full-entrypoint interruption/resume, unrelated resource/config/credential preservation and separate reset isolation. Publish exact qualified Windows/WSL/distro versions. Unclaimed candidate versions can remain explicitly unqualified; original clean success on both families cannot be waived without an explicit EPIC-level scope decision.
 
-### Slice 01 — Inventory lifecycle failures and accept the contract
+## Slice Dependency Graph
 
-Purpose: Inventory every platform (including update/recover), artifact, deployment, setup, installer and simple-installer producer/consumer and reachable lifecycle port. Classify existing typed results, expected/unexpected exceptions, mutation evidence, rollback applicability, CLI contracts and technical boundary owners. Record exact per-boundary failure mappings and files to edit. Accept or reject the proposed ADR with Requirement, Architect, Python and Test review; no product edits. If required paths exceed later scopes, obtain reviewed scope/lock correction before writes.
-
-Prerequisites: verified branch, governing hashes and S3/S3D preflight.
-
-Requirement-to-verification mapping: R355-01, R355-05, R355-11, R355-12, R355-13, R355-15. The targeted commands below plus inventory-specific static evidence must substantiate these rows.
-
-Allowed write scope and locks:
-
-```yaml
-{
-  "slice_id": "S355-01",
-  "profile": "FULL_PATH",
-  "owner": "Senior System Architect",
-  "secondary_reviewers": [
-    "Senior Requirement Engineer",
-    "Senior System Architect",
-    "Senior Python Automation Developer",
-    "Senior Tester"
-  ],
-  "affected_files": [
-    "documentation/workflow/lifecycle-failure-inventory.md",
-    "documentation/arc42/09_decisions/adr-explicit-operation-results.adoc"
-  ],
-  "affected_modules": [
-    "operation results",
-    "lifecycle failure boundaries"
-  ],
-  "affected_contracts": [
-    "application result/failure",
-    "legacy CLI compatibility"
-  ],
-  "dependencies": [],
-  "parallel_group": "serial",
-  "file_locks": [
-    "documentation/workflow/lifecycle-failure-inventory.md",
-    "documentation/arc42/09_decisions/adr-explicit-operation-results.adoc",
-    ".tiny-swarm/evidence/issue-355/**",
-    ".codex/evidence/slice-*-distribution.md",
-    ".codex/evidence/slice-*-consolidation.md",
-    "documentation/workflow/**"
-  ],
-  "contract_locks": [
-    "operation-result-contract",
-    "lifecycle-failure-compatibility"
-  ],
-  "architecture_locks": [
-    "ports-adapters-workflows"
-  ],
-  "quality_gates": {
-    "targeted": [
-      "python3 tools/quality_gate.py arch-tests"
-    ],
-    "required": [
-      "git diff --check"
-    ]
-  },
-  "documentation": {
-    "arc42": "documentation/arc42/05_analysis/arch-03-12-operation-results.md",
-    "adr": "documentation/arc42/09_decisions/adr-explicit-operation-results.adoc"
-  },
-  "stop_conditions": [
-    "Unaccepted architecture decision or unresolved inventory",
-    "Scope or ownership mismatch",
-    "Unsafe diagnostics or changed safety/exit semantics",
-    "Failed required quality gate"
-  ]
-}
+```mermaid
+flowchart TD
+  S01["01 Inventory and accepted decisions"] --> S02["02 Trusted archive and secret protection"]
+  S02 --> S03["03 Source and missing-Python handoff"]
+  S03 --> S04["04 Preservation and recovery"]
+  S04 --> S05["05 Candidate and live matrix"]
+  S05 --> S06["06 Native clean qualification"]
+  S06 --> S07["07 Windows clean qualification"]
+  S07 --> S08["08 Reviewed release admission"]
+  S08 --> S09["09 Final ordinary walkthroughs"]
+  S09 --> S10["10 Documentation and independent audit"]
 ```
 
-Done criteria: Complete inventory with no unowned boundary; accepted ADR and per-consumer mapping; every required path fits later scopes. Unresolved decisions block S355-02.
+Serial baseline is deliberate: source/trust/qualification decisions and shared files cross slices; final admission changes require new ordinary-path evidence. No cycle uses final qualification to authorize its own initial candidate run: guarded candidate mode exists already; final ordinary path is tested after reviewed admission.
 
-Parallel execution eligibility: serial until Three Amigos proves disjoint inventory-derived scopes and stable contracts. Conflicting workflows: #313 siblings and all holders of listed locks. Shared files: common evidence/context and listed contracts. Shared infrastructure: none used. Requires isolated worktree: yes for execution/streams. Serialized live validation: yes if separately approved. Merge-order constraint: predecessor first. Parallelization status: NOT_SAFELY_PARALLELIZABLE by default.
+## Ordered Slices
 
-Evidence: `.tiny-swarm/evidence/issue-355/`; record exact test names and results per requirement. Rollback: revert this slice commit only after checking dependent slices; no runtime rollback action.
+All slices inherit common issue evidence and workflow locks below. All statuses are NOT STARTED. NEW paths are proposals approved only within S01 architecture decisions, not evidence of existing implementation.
 
-### Slice 02 — Introduce and integrate the shared operation contract
+### Slice 01 — Inventory, decisions and complete requirement baseline
 
-Purpose: Implement immutable outcomes/failures and valid combinations per accepted ADR. Add compatible typed port error translation on the real async command path and a real workflow-result consumer. Preserve legacy exception imports/attributes with a compatible bridge where required, public constructors and result fields. New types must be connected to executable behavior in this slice, not scaffolding only.
+Purpose: Revalidate W01–W10 owners and historical evidence. Accept a narrowly scoped ADR for archive secret/source protection, Linux source delivery before Python and evidence-bound Windows release admission. Define source identity, archive membership/traversal/ownership rules, ordinary-user checkout selection, independent expected revision, admission invalidation and exact status/exit compatibility. Define the supported starting point as an extracted trusted release or checkout; acquisition uses OS tools without remote pipe-to-shell. Decisions must preserve equivalent secret protection and must be accepted by architecture/security before S02/S03/S08. Do not retroactively accept the whole historical W01 proposal.
 
-Prerequisites: S355-01 accepted with evidence and checkpoint; repeat S3/S3D and lock checks.
-
-Requirement-to-verification mapping: R355-01, R355-02, R355-03, R355-05, R355-06, R355-07, R355-08, R355-09, R355-10, R355-11, R355-14, R355-15. The targeted commands below plus inventory-specific new tests must substantiate these rows.
-
-Allowed write scope and locks:
+Prerequisites: checked branch/workflow/S3-S3D preflight; complete requirement intake. Owner: Senior System Architect. Allowed write scope and locks are exact metadata scopes; common evidence is integration-owned. All other files require reviewed amendment before edits.
 
 ```yaml
-{
-  "slice_id": "S355-02",
-  "profile": "FULL_PATH",
-  "owner": "Senior Python Automation Developer",
-  "secondary_reviewers": [
-    "Senior Requirement Engineer",
-    "Senior System Architect",
-    "Senior Python Automation Developer",
-    "Senior Tester"
-  ],
-  "affected_files": [
-    "src/tiny_swarm_world/application/ports/operation_result.py",
-    "src/tiny_swarm_world/application/ports/commands/port_command_runner.py",
-    "src/tiny_swarm_world/infrastructure/adapters/command_runner/async_command_runner.py",
-    "src/tiny_swarm_world/infrastructure/adapters/exceptions/exception_command_execution.py",
-    "src/tiny_swarm_world/application/services/platform/workflow/results.py",
-    "tests/application/ports/test_operation_result.py",
-    "tests/infrastructure/adapters/command_runner/test_async_command_runner.py",
-    "tests/application/services/platform/test_platform_workflows.py",
-    "tests/infrastructure/adapters/ui/test_command_runner_ui_failure_semantics.py"
-  ],
-  "affected_modules": [
-    "operation results",
-    "lifecycle failure boundaries"
-  ],
-  "affected_contracts": [
-    "application result/failure",
-    "legacy CLI compatibility"
-  ],
-  "dependencies": [
-    "S355-01"
-  ],
-  "parallel_group": "serial",
-  "file_locks": [
-    "src/tiny_swarm_world/application/ports/operation_result.py",
-    "src/tiny_swarm_world/application/ports/commands/port_command_runner.py",
-    "src/tiny_swarm_world/infrastructure/adapters/command_runner/async_command_runner.py",
-    "src/tiny_swarm_world/infrastructure/adapters/exceptions/exception_command_execution.py",
-    "src/tiny_swarm_world/application/services/platform/workflow/results.py",
-    "tests/application/ports/test_operation_result.py",
-    "tests/infrastructure/adapters/command_runner/test_async_command_runner.py",
-    "tests/application/services/platform/test_platform_workflows.py",
-    "tests/infrastructure/adapters/ui/test_command_runner_ui_failure_semantics.py",
-    ".tiny-swarm/evidence/issue-355/**",
-    ".codex/evidence/slice-*-distribution.md",
-    ".codex/evidence/slice-*-consolidation.md",
-    "documentation/workflow/**"
-  ],
-  "contract_locks": [
-    "operation-result-contract",
-    "lifecycle-failure-compatibility"
-  ],
-  "architecture_locks": [
-    "ports-adapters-workflows"
-  ],
-  "quality_gates": {
-    "targeted": [
-      "PYTHONPATH=src python3 -m unittest tests.application.ports.test_operation_result tests.infrastructure.adapters.command_runner.test_async_command_runner tests.infrastructure.adapters.ui.test_command_runner_ui_failure_semantics tests.application.services.platform.test_platform_workflows"
-    ],
-    "required": [
-      "git diff --check",
-      "python3 tools/quality_gate.py quality"
-    ]
-  },
-  "documentation": {
-    "arc42": "documentation/arc42/05_analysis/arch-03-12-operation-results.md",
-    "adr": "documentation/arc42/09_decisions/adr-explicit-operation-results.adoc"
-  },
-  "stop_conditions": [
-    "Unaccepted architecture decision or unresolved inventory",
-    "Scope or ownership mismatch",
-    "Unsafe diagnostics or changed safety/exit semantics",
-    "Failed required quality gate"
-  ]
-}
+slice_id: "S452-01"
+profile: "FULL_PATH"
+owner: "Senior System Architect"
+secondary_reviewers: ["Senior Requirement Engineer", "Senior System Architect", "Senior Tester", "Senior Security Sandbox Engineer"]
+affected_files: ["documentation/contracts/bootstrap.md", "documentation/arc42/09_decisions/adr-bootstrap-command-readiness-contract.adoc", "documentation/arc42/09_decisions/adr-windows-wsl-lifecycle-preparation.adoc", "documentation/arc42/09_decisions/adr-wsl-install-reconciliation.adoc", "documentation/arc42/09_decisions/adr-bootstrap-release-integrity-and-admission.adoc", "documentation/workflow/**", ".tiny-swarm/evidence/issue-452/**", ".codex/evidence/slice-*-distribution.md", ".codex/evidence/slice-*-consolidation.md", "documentation/arc42/05_analysis/issue-452-bootstrap-completion-plan.md"]
+affected_modules: ["bootstrap governance and evidence"]
+affected_contracts: ["bootstrap readiness/source/consent", "qualification evidence"]
+dependencies: []
+parallel_group: "serial"
+file_locks: ["documentation/contracts/bootstrap.md", "documentation/arc42/09_decisions/adr-bootstrap-command-readiness-contract.adoc", "documentation/arc42/09_decisions/adr-windows-wsl-lifecycle-preparation.adoc", "documentation/arc42/09_decisions/adr-wsl-install-reconciliation.adoc", "documentation/arc42/09_decisions/adr-bootstrap-release-integrity-and-admission.adoc", "documentation/workflow/**", ".tiny-swarm/evidence/issue-452/**", ".codex/evidence/slice-*-distribution.md", ".codex/evidence/slice-*-consolidation.md", "documentation/arc42/05_analysis/issue-452-bootstrap-completion-plan.md"]
+contract_locks: ["bootstrap-source-and-readiness", "qualified-release-admission"]
+architecture_locks: ["ports-adapters-bootstrap", "bridge-exclusive-owner"]
+quality_gates: {"targeted": ["git diff --check"], "required": ["git diff --check", "python3 tools/quality_gate.py verification-policy"]}
+documentation: {"arc42": "documentation/arc42/05_analysis/issue-452-bootstrap-completion-plan.md", "adr": "documentation/arc42/09_decisions/adr-bootstrap-release-integrity-and-admission.adoc"}
+stop_conditions: ["Scope/branch/hash/lock mismatch", "Unaccepted governing decision", "Failed required quality gate", "Unsafe source/secret/consent behavior"]
 ```
 
-Done criteria: Invariant and serialization tests pass; command nonzero/launch/timeout mapping preserves cause; cancellation and secret-safe traceback tests pass; existing command and workflow behavior remains compatible.
+Done criteria: Complete matrix and acceptance crosswalk; independent four-role plus security decision review; no unresolved contract. This slice may stop for a required ADR decision; later product slices cannot resolve it implicitly.
 
-Parallel execution eligibility: serial until Three Amigos proves disjoint inventory-derived scopes and stable contracts. Conflicting workflows: #313 siblings and all holders of listed locks. Shared files: common evidence/context and listed contracts. Shared infrastructure: none used. Requires isolated worktree: yes for execution/streams. Serialized live validation: yes if separately approved. Merge-order constraint: predecessor first. Parallelization status: NOT_SAFELY_PARALLELIZABLE by default.
+Requirement-to-verification mapping: [complete matrix](requirement-matrix.md), rows naming `S452-01`; S01 expands shared clauses, S05 assigns exact scenario IDs, and this slice records concrete implementation/test/evidence per row. Evidence: `.tiny-swarm/evidence/issue-452/` plus named scenario artifact. Preserve six issue files and per-slice distribution/consolidation evidence. No live mutation is authorized by this slice metadata.
 
-Evidence: `.tiny-swarm/evidence/issue-355/`; record exact test names and results per requirement. Rollback: revert this slice commit only after checking dependent slices; no runtime rollback action.
+Parallel execution eligibility: NOT_SAFELY_PARALLELIZABLE baseline. Conflicting workflows: #440/#444 and any owner of listed file/contract/architecture locks. Shared files: common evidence/context and overlapping preparation owners. Shared infrastructure: none; mocks for local checks. Isolated worktree: required. Serialized live validation: required. Merge order: prerequisites first. Rollback: review dependents then revert only this slice commit; no automatic host rollback. Failed/partial qualification never grants support/admission.
 
-### Slice 03 — Translate lifecycle adapter failures
+### Slice 02 — Trusted release and Git-independent installation protection
 
-Purpose: Migrate the S355-01 enumerated lifecycle-facing adapter boundaries only: LXC node command and manager shell gateway, Docker/Swarm/node adapters, update observation/state storage, lifecycle HTTP clients and configuration/evidence repositories. Carry existing process failure classifications through typed results. Translate expected filesystem, configuration, HTTP/provider and process failures at the owning adapter, suppress unsafe cause chains, and preserve data/return contracts. The directory scopes are bounded by the accepted inventory; unrelated client behavior and new persistence formats are forbidden. Every intermediate checkpoint must preserve existing catches and exits: use compatible exception bridges until consumer migration, particularly OSError/ValueError catches around JsonUpdateStateStore. If a bridge is infeasible, stop for a reviewed narrowly scoped consumer adaptation before changing that boundary; never permit an intermediate raw-error regression.
+Purpose: Implement the S01-approved release/secret policy through existing ports and probe adapters. The actual archive blocker is PlatformPreflightService._ignore_policy_checks and NativeHostPreflightProbe.path_ignored_by_git, not the optional installation evidence warning. Verify a complete versioned release and separately trusted revision without Git/Python as entrypoint prerequisites. Protect local credentials/evidence and reject unsafe owners, traversal, symlinks, tampering, missing assets and ambiguous source. Preserve Git checkout behavior; do not bypass existing ignore guards or silently initialize Git. Read-only paths write no state/evidence.
 
-Prerequisites: S355-02 accepted with evidence and checkpoint; repeat S3/S3D and lock checks.
-
-Requirement-to-verification mapping: R355-06, R355-07, R355-08, R355-09, R355-10, R355-11, R355-12, R355-14, R355-15. The targeted commands below plus inventory-specific new tests must substantiate these rows.
-
-Allowed write scope and locks:
+Prerequisites: S452-01. Owner: Senior Python Automation Developer. Allowed write scope and locks are exact metadata scopes; common evidence is integration-owned. All other files require reviewed amendment before edits.
 
 ```yaml
-{
-  "slice_id": "S355-03",
-  "profile": "FULL_PATH",
-  "owner": "Senior Python Automation Developer",
-  "secondary_reviewers": [
-    "Senior Requirement Engineer",
-    "Senior System Architect",
-    "Senior Python Automation Developer",
-    "Senior Tester"
-  ],
-  "affected_files": [
-    "src/tiny_swarm_world/application/ports/clients/**",
-    "src/tiny_swarm_world/application/ports/node_provider/**",
-    "src/tiny_swarm_world/application/ports/update/**",
-    "src/tiny_swarm_world/application/ports/repositories/**",
-    "src/tiny_swarm_world/infrastructure/adapters/clients/**",
-    "src/tiny_swarm_world/infrastructure/adapters/update/**",
-    "src/tiny_swarm_world/infrastructure/adapters/repositories/**",
-    "tests/infrastructure/adapters/clients/**",
-    "tests/infrastructure/adapters/update/**",
-    "tests/infrastructure/adapters/repositories/**",
-    "src/tiny_swarm_world/application/ports/configuration/**",
-    "src/tiny_swarm_world/infrastructure/adapters/configuration/**",
-    "tests/infrastructure/adapters/configuration/**",
-    "src/tiny_swarm_world/application/ports/file_management/port_local_file_storage.py",
-    "src/tiny_swarm_world/infrastructure/adapters/file_management/local_file_storage.py",
-    "tests/infrastructure/adapters/file_management/test_local_file_storage.py",
-    "src/tiny_swarm_world/infrastructure/adapters/preflight/host_preflight_probe.py",
-    "src/tiny_swarm_world/infrastructure/adapters/preflight/artifact_readiness.py",
-    "tests/infrastructure/adapters/preflight/test_host_preflight_probe.py",
-    "tests/infrastructure/adapters/preflight/test_artifact_readiness.py",
-    "src/tiny_swarm_world/application/ports/network/port_wsl_socat_exposure.py",
-    "src/tiny_swarm_world/infrastructure/adapters/network/wsl_socat_exposure.py",
-    "tests/infrastructure/adapters/network/test_wsl_socat_exposure.py",
-    "src/tiny_swarm_world/infrastructure/composition_runtime.py",
-    "src/tiny_swarm_world/infrastructure/composition_probes.py",
-    "tests/infrastructure/test_composition.py",
-    "tests/infrastructure/test_composition_configuration.py",
-    "tests/infrastructure/test_composition_probes.py",
-    "src/tiny_swarm_world/infrastructure/adapters/host/wsl_host_preparation.py",
-    "src/tiny_swarm_world/application/ports/host/port_host_preparation.py",
-    "tests/infrastructure/adapters/host/test_host_preparation.py",
-    "src/tiny_swarm_world/application/ports/preflight/port_host_preflight_probe.py",
-    "src/tiny_swarm_world/infrastructure/adapters/exceptions/operation_failure_mapping.py",
-    "tests/infrastructure/adapters/exceptions/__init__.py",
-    "tests/infrastructure/adapters/exceptions/test_operation_failure_mapping.py",
-    "src/tiny_swarm_world/application/ports/operation_result.py",
-    "tests/application/ports/test_operation_result.py",
-    "tests/infrastructure/adapters/file_management/test_file_manager.py"
-  ],
-  "affected_modules": [
-    "operation results",
-    "lifecycle failure boundaries"
-  ],
-  "affected_contracts": [
-    "application result/failure",
-    "legacy CLI compatibility"
-  ],
-  "dependencies": [
-    "S355-02"
-  ],
-  "parallel_group": "serial",
-  "file_locks": [
-    "src/tiny_swarm_world/application/ports/clients/**",
-    "src/tiny_swarm_world/application/ports/node_provider/**",
-    "src/tiny_swarm_world/application/ports/update/**",
-    "src/tiny_swarm_world/application/ports/repositories/**",
-    "src/tiny_swarm_world/infrastructure/adapters/clients/**",
-    "src/tiny_swarm_world/infrastructure/adapters/update/**",
-    "src/tiny_swarm_world/infrastructure/adapters/repositories/**",
-    "tests/infrastructure/adapters/clients/**",
-    "tests/infrastructure/adapters/update/**",
-    "tests/infrastructure/adapters/repositories/**",
-    ".tiny-swarm/evidence/issue-355/**",
-    ".codex/evidence/slice-*-distribution.md",
-    ".codex/evidence/slice-*-consolidation.md",
-    "documentation/workflow/**",
-    "src/tiny_swarm_world/application/ports/configuration/**",
-    "src/tiny_swarm_world/infrastructure/adapters/configuration/**",
-    "tests/infrastructure/adapters/configuration/**",
-    "src/tiny_swarm_world/application/ports/file_management/port_local_file_storage.py",
-    "src/tiny_swarm_world/infrastructure/adapters/file_management/local_file_storage.py",
-    "tests/infrastructure/adapters/file_management/test_local_file_storage.py",
-    "src/tiny_swarm_world/infrastructure/adapters/preflight/host_preflight_probe.py",
-    "src/tiny_swarm_world/infrastructure/adapters/preflight/artifact_readiness.py",
-    "tests/infrastructure/adapters/preflight/test_host_preflight_probe.py",
-    "tests/infrastructure/adapters/preflight/test_artifact_readiness.py",
-    "src/tiny_swarm_world/application/ports/network/port_wsl_socat_exposure.py",
-    "src/tiny_swarm_world/infrastructure/adapters/network/wsl_socat_exposure.py",
-    "tests/infrastructure/adapters/network/test_wsl_socat_exposure.py",
-    "src/tiny_swarm_world/infrastructure/composition_runtime.py",
-    "src/tiny_swarm_world/infrastructure/composition_probes.py",
-    "tests/infrastructure/test_composition.py",
-    "tests/infrastructure/test_composition_configuration.py",
-    "tests/infrastructure/test_composition_probes.py",
-    "src/tiny_swarm_world/infrastructure/adapters/host/wsl_host_preparation.py",
-    "src/tiny_swarm_world/application/ports/host/port_host_preparation.py",
-    "tests/infrastructure/adapters/host/test_host_preparation.py",
-    "src/tiny_swarm_world/application/ports/preflight/port_host_preflight_probe.py",
-    "src/tiny_swarm_world/infrastructure/adapters/exceptions/operation_failure_mapping.py",
-    "tests/infrastructure/adapters/exceptions/__init__.py",
-    "tests/infrastructure/adapters/exceptions/test_operation_failure_mapping.py",
-    "src/tiny_swarm_world/application/ports/operation_result.py",
-    "tests/application/ports/test_operation_result.py",
-    "tests/infrastructure/adapters/file_management/test_file_manager.py"
-  ],
-  "contract_locks": [
-    "operation-result-contract",
-    "lifecycle-failure-compatibility"
-  ],
-  "architecture_locks": [
-    "ports-adapters-workflows"
-  ],
-  "quality_gates": {
-    "targeted": [
-      "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.lxc.command.test_node_command tests.infrastructure.adapters.clients.test_docker_swarm_runtime tests.infrastructure.adapters.clients.test_lxc_node_provider tests.infrastructure.adapters.update.test_lxc_runtime_observer tests.infrastructure.adapters.update.test_json_state_store tests.infrastructure.process.test_execution_contract",
-      "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.file_management.test_local_file_storage tests.infrastructure.adapters.preflight.test_host_preflight_probe tests.infrastructure.adapters.preflight.test_artifact_readiness tests.infrastructure.adapters.network.test_wsl_socat_exposure tests.infrastructure.adapters.host.test_host_preparation tests.infrastructure.test_composition_probes tests.infrastructure.test_composition_configuration",
-      "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.exceptions.test_operation_failure_mapping tests.application.ports.test_operation_result"
-    ],
-    "required": [
-      "git diff --check",
-      "python3 tools/quality_gate.py quality"
-    ]
-  },
-  "documentation": {
-    "arc42": "documentation/arc42/05_analysis/arch-03-12-operation-results.md",
-    "adr": "documentation/arc42/09_decisions/adr-explicit-operation-results.adoc"
-  },
-  "stop_conditions": [
-    "Unaccepted architecture decision or unresolved inventory",
-    "Scope or ownership mismatch",
-    "Unsafe diagnostics or changed safety/exit semantics",
-    "Failed required quality gate"
-  ]
-}
+slice_id: "S452-02"
+profile: "FULL_PATH"
+owner: "Senior Python Automation Developer"
+secondary_reviewers: ["Senior Requirement Engineer", "Senior System Architect", "Senior Tester", "Senior Security Sandbox Engineer"]
+affected_files: ["src/tiny_swarm_world/application/ports/preflight/port_host_preflight_probe.py", "src/tiny_swarm_world/application/services/platform/preflight_service.py", "src/tiny_swarm_world/infrastructure/adapters/preflight/host_preflight_probe.py", "src/tiny_swarm_world/infrastructure/adapters/installation/evidence.py", "src/tiny_swarm_world/infrastructure/adapters/installation/credentials.py", "src/tiny_swarm_world/domain/preflight/secret_storage.py", "tools/build_windows_preparation_manifest.py", "tools/windows/preparation/SourceProof.ps1", "tests/application/services/platform/test_preflight_service.py", "tests/infrastructure/adapters/preflight/test_host_preflight_probe.py", "tests/domain/preflight/test_secret_storage.py", "tests/test_windows_source_proof.py", "tests/windows/source-proof.Tests.ps1", "tests/test_installer.py", "tests/test_simple_installer.py", "documentation/workflow/**", ".tiny-swarm/evidence/issue-452/**", ".codex/evidence/slice-*-distribution.md", ".codex/evidence/slice-*-consolidation.md", "documentation/arc42/05_analysis/issue-452-bootstrap-completion-plan.md"]
+affected_modules: ["bootstrap", "installation", "Windows preparation"]
+affected_contracts: ["bootstrap readiness/source/consent", "qualification evidence"]
+dependencies: ["S452-01"]
+parallel_group: "serial"
+file_locks: ["src/tiny_swarm_world/application/ports/preflight/port_host_preflight_probe.py", "src/tiny_swarm_world/application/services/platform/preflight_service.py", "src/tiny_swarm_world/infrastructure/adapters/preflight/host_preflight_probe.py", "src/tiny_swarm_world/infrastructure/adapters/installation/evidence.py", "src/tiny_swarm_world/infrastructure/adapters/installation/credentials.py", "src/tiny_swarm_world/domain/preflight/secret_storage.py", "tools/build_windows_preparation_manifest.py", "tools/windows/preparation/SourceProof.ps1", "tests/application/services/platform/test_preflight_service.py", "tests/infrastructure/adapters/preflight/test_host_preflight_probe.py", "tests/domain/preflight/test_secret_storage.py", "tests/test_windows_source_proof.py", "tests/windows/source-proof.Tests.ps1", "tests/test_installer.py", "tests/test_simple_installer.py", "documentation/workflow/**", ".tiny-swarm/evidence/issue-452/**", ".codex/evidence/slice-*-distribution.md", ".codex/evidence/slice-*-consolidation.md", "documentation/arc42/05_analysis/issue-452-bootstrap-completion-plan.md"]
+contract_locks: ["bootstrap-source-and-readiness", "qualified-release-admission"]
+architecture_locks: ["ports-adapters-bootstrap", "bridge-exclusive-owner"]
+quality_gates: {"targeted": ["PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_preflight_service tests.infrastructure.adapters.preflight.test_host_preflight_probe tests.domain.preflight.test_secret_storage tests.test_windows_source_proof tests.test_installer tests.test_simple_installer"], "required": ["git diff --check", "python3 tools/quality_gate.py quality"]}
+documentation: {"arc42": "documentation/arc42/05_analysis/issue-452-bootstrap-completion-plan.md", "adr": "documentation/arc42/09_decisions/adr-bootstrap-release-integrity-and-admission.adoc"}
+stop_conditions: ["Scope/branch/hash/lock mismatch", "Unaccepted governing decision", "Failed required quality gate", "Unsafe source/secret/consent behavior"]
 ```
 
-Done criteria: Every inventoried expected technical failure is translated with named adapter test evidence; no raw technical error leaks through the port; unexpected defects/cancellation remain distinguishable. Add focused tests for every changed adapter beyond the listed minimum.
+Done criteria: Archive and checkout modes have meaningful positive and negative regressions; architecture/security review accepts equivalent secret protection; full local quality passes. Live archive success remains unverified until S06/S07/S09.
 
-Parallel execution eligibility: serial until Three Amigos proves disjoint inventory-derived scopes and stable contracts. Conflicting workflows: #313 siblings and all holders of listed locks. Shared files: common evidence/context and listed contracts. Shared infrastructure: none used. Requires isolated worktree: yes for execution/streams. Serialized live validation: yes if separately approved. Merge-order constraint: predecessor first. Parallelization status: NOT_SAFELY_PARALLELIZABLE by default.
+Requirement-to-verification mapping: [complete matrix](requirement-matrix.md), rows naming `S452-02`; S01 expands shared clauses, S05 assigns exact scenario IDs, and this slice records concrete implementation/test/evidence per row. Evidence: `.tiny-swarm/evidence/issue-452/` plus named scenario artifact. Preserve six issue files and per-slice distribution/consolidation evidence. No live mutation is authorized by this slice metadata.
 
-Evidence: `.tiny-swarm/evidence/issue-355/`; record exact test names and results per requirement. Rollback: revert this slice commit only after checking dependent slices; no runtime rollback action.
+Parallel execution eligibility: NOT_SAFELY_PARALLELIZABLE baseline. Conflicting workflows: #440/#444 and any owner of listed file/contract/architecture locks. Shared files: common evidence/context and overlapping preparation owners. Shared infrastructure: none; mocks for local checks. Isolated worktree: required. Serialized live validation: required. Merge order: prerequisites first. Rollback: review dependents then revert only this slice commit; no automatic host rollback. Failed/partial qualification never grants support/admission.
 
-### Slice 04 — Integrate platform aggregation and verified recovery
+### Slice 03 — Dependency-light Windows source and Linux runtime handoff
 
-Purpose: Consume typed failures across platform mutation, verification, pre-apply guards, evidence and existing update/recover. Preserve originating context and confirmed progress, distinguish uncertain effects from confirmed completion, and derive partial only from evidence. Existing recover may report rolled_back only after observed original-image convergence, including verified no-op recovery. Preserve original transition metadata and both failures when recovery fails. Keep lifecycle.py dispatch-only; no automatic rollback or new retries.
+Purpose: Remove the default-path requirement for manually placing the Linux checkout and manually running preparation merely to satisfy a Python-dependent source probe. Use only the S01-approved trusted local source delivery, preserving account/root/symlink/source checks and refusing unrelated destination collisions. Keep early probes dependency-light and read-only. Apply consent must cover any source delivery and package work; never copy secrets or assume distro name proves release. Guide unavoidable ordinary account creation and stop at restart/session boundaries. An optional explicit install handoff delegates to the selected WSL user, retains separate install consent and propagates exits. Keep entrypoints thin and product Python Linux-only.
 
-Prerequisites: S355-03 accepted with evidence and checkpoint; repeat S3/S3D and lock checks.
-
-Requirement-to-verification mapping: R355-01, R355-02, R355-03, R355-04, R355-05, R355-06, R355-07, R355-12, R355-14, R355-15. The targeted commands below plus inventory-specific new tests must substantiate these rows.
-
-Allowed write scope and locks:
+Prerequisites: S452-02. Owner: Senior Python Automation Developer. Allowed write scope and locks are exact metadata scopes; common evidence is integration-owned. All other files require reviewed amendment before edits.
 
 ```yaml
-{
-  "slice_id": "S355-04",
-  "profile": "FULL_PATH",
-  "owner": "Senior Python Automation Developer",
-  "secondary_reviewers": [
-    "Senior Requirement Engineer",
-    "Senior System Architect",
-    "Senior Python Automation Developer",
-    "Senior Tester"
-  ],
-  "affected_files": [
-    "src/tiny_swarm_world/application/services/platform/workflow/**",
-    "src/tiny_swarm_world/application/services/platform/incus/lxc_docker_install.py",
-    "src/tiny_swarm_world/application/services/platform/lifecycle.py",
-    "tests/application/services/platform/test_platform_workflows.py",
-    "tests/application/services/platform/test_platform_lifecycle.py",
-    "tests/application/services/platform/test_classic_update_workflow.py",
-    "tests/application/services/platform/test_lxc_docker_install.py",
-    "src/tiny_swarm_world/application/services/platform/preflight_service.py",
-    "tests/application/services/platform/test_preflight_service.py",
-    "src/tiny_swarm_world/application/services/shared/operation_results.py",
-    "tests/application/services/shared/test_operation_results.py"
-  ],
-  "affected_modules": [
-    "operation results",
-    "lifecycle failure boundaries"
-  ],
-  "affected_contracts": [
-    "application result/failure",
-    "legacy CLI compatibility"
-  ],
-  "dependencies": [
-    "S355-03"
-  ],
-  "parallel_group": "serial",
-  "file_locks": [
-    "src/tiny_swarm_world/application/services/platform/workflow/**",
-    "src/tiny_swarm_world/application/services/platform/incus/lxc_docker_install.py",
-    "src/tiny_swarm_world/application/services/platform/lifecycle.py",
-    "tests/application/services/platform/test_platform_workflows.py",
-    "tests/application/services/platform/test_platform_lifecycle.py",
-    "tests/application/services/platform/test_classic_update_workflow.py",
-    "tests/application/services/platform/test_lxc_docker_install.py",
-    ".tiny-swarm/evidence/issue-355/**",
-    ".codex/evidence/slice-*-distribution.md",
-    ".codex/evidence/slice-*-consolidation.md",
-    "documentation/workflow/**",
-    "src/tiny_swarm_world/application/services/platform/preflight_service.py",
-    "tests/application/services/platform/test_preflight_service.py",
-    "src/tiny_swarm_world/application/services/shared/operation_results.py",
-    "tests/application/services/shared/test_operation_results.py"
-  ],
-  "contract_locks": [
-    "operation-result-contract",
-    "lifecycle-failure-compatibility"
-  ],
-  "architecture_locks": [
-    "ports-adapters-workflows"
-  ],
-  "quality_gates": {
-    "targeted": [
-      "PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_platform_workflows tests.application.services.platform.test_platform_lifecycle tests.application.services.platform.test_classic_update_workflow tests.application.services.platform.test_lxc_docker_install tests.application.services.platform.test_preflight_service"
-    ],
-    "required": [
-      "git diff --check",
-      "python3 tools/quality_gate.py quality"
-    ]
-  },
-  "documentation": {
-    "arc42": "documentation/arc42/05_analysis/arch-03-12-operation-results.md",
-    "adr": "documentation/arc42/09_decisions/adr-explicit-operation-results.adoc"
-  },
-  "stop_conditions": [
-    "Unaccepted architecture decision or unresolved inventory",
-    "Scope or ownership mismatch",
-    "Unsafe diagnostics or changed safety/exit semantics",
-    "Failed required quality gate"
-  ]
-}
+slice_id: "S452-03"
+profile: "FULL_PATH"
+owner: "Senior Python Automation Developer"
+secondary_reviewers: ["Senior Requirement Engineer", "Senior System Architect", "Senior Tester", "Senior Security Sandbox Engineer"]
+affected_files: ["prepare_windows.ps1", "prepare_linux.sh", "tools/windows/preparation/Handoff.ps1", "tools/windows/preparation/Adapters.ps1", "tools/windows/preparation/SourceProof.ps1", "tools/windows/preparation/linux-handoff.sh", "tools/windows/preparation/Preparation.psm1", "tools/ubuntu_python_prerequisites.sh", "src/tiny_swarm_world/prepare_linux.py", "src/tiny_swarm_world/application/services/native_preparation.py", "src/tiny_swarm_world/application/ports/native_preparation.py", "src/tiny_swarm_world/infrastructure/composition_native_preparation.py", "tests/test_install_handoff.py", "tests/test_prepare_windows.py", "tests/test_prepare_linux.py", "tests/test_ubuntu_bootstrap_integration.py", "tests/windows/prepare-windows.Tests.ps1", "documentation/workflow/**", ".tiny-swarm/evidence/issue-452/**", ".codex/evidence/slice-*-distribution.md", ".codex/evidence/slice-*-consolidation.md", "documentation/arc42/05_analysis/issue-452-bootstrap-completion-plan.md"]
+affected_modules: ["bootstrap", "installation", "Windows preparation"]
+affected_contracts: ["bootstrap readiness/source/consent", "qualification evidence"]
+dependencies: ["S452-02"]
+parallel_group: "serial"
+file_locks: ["prepare_windows.ps1", "prepare_linux.sh", "tools/windows/preparation/Handoff.ps1", "tools/windows/preparation/Adapters.ps1", "tools/windows/preparation/SourceProof.ps1", "tools/windows/preparation/linux-handoff.sh", "tools/windows/preparation/Preparation.psm1", "tools/ubuntu_python_prerequisites.sh", "src/tiny_swarm_world/prepare_linux.py", "src/tiny_swarm_world/application/services/native_preparation.py", "src/tiny_swarm_world/application/ports/native_preparation.py", "src/tiny_swarm_world/infrastructure/composition_native_preparation.py", "tests/test_install_handoff.py", "tests/test_prepare_windows.py", "tests/test_prepare_linux.py", "tests/test_ubuntu_bootstrap_integration.py", "tests/windows/prepare-windows.Tests.ps1", "documentation/workflow/**", ".tiny-swarm/evidence/issue-452/**", ".codex/evidence/slice-*-distribution.md", ".codex/evidence/slice-*-consolidation.md", "documentation/arc42/05_analysis/issue-452-bootstrap-completion-plan.md"]
+contract_locks: ["bootstrap-source-and-readiness", "qualified-release-admission"]
+architecture_locks: ["ports-adapters-bootstrap", "bridge-exclusive-owner"]
+quality_gates: {"targeted": ["PYTHONPATH=src python3 -m unittest tests.test_install_handoff tests.test_prepare_windows tests.test_prepare_linux tests.test_ubuntu_bootstrap_integration"], "required": ["git diff --check", "python3 tools/quality_gate.py quality"]}
+documentation: {"arc42": "documentation/arc42/05_analysis/issue-452-bootstrap-completion-plan.md", "adr": "documentation/arc42/09_decisions/adr-bootstrap-release-integrity-and-admission.adoc"}
+stop_conditions: ["Scope/branch/hash/lock mismatch", "Unaccepted governing decision", "Failed required quality gate", "Unsafe source/secret/consent behavior"]
 ```
 
-Done criteria: Before-mutation failure, later-step failure, verify failure, success, no-op and actual recovery mappings pass. Add blocked-after-mutation regressions for missing/blocked verification: retain executed/effect evidence and classify confirmed partial work without changing legacy blocked status. Attempted/failed recovery never reports rolled_back. Preserve recovery completed status and safety/ordering.
+Done criteria: Fresh absent-Python/source scenarios are test-backed; selected account/checkout/profile/overrides survive handoff and diagnostics; unsupported targets block before mutation; full quality passes.
 
-Parallel execution eligibility: serial until Three Amigos proves disjoint inventory-derived scopes and stable contracts. Conflicting workflows: #313 siblings and all holders of listed locks. Shared files: common evidence/context and listed contracts. Shared infrastructure: none used. Requires isolated worktree: yes for execution/streams. Serialized live validation: yes if separately approved. Merge-order constraint: predecessor first. Parallelization status: NOT_SAFELY_PARALLELIZABLE by default.
+Requirement-to-verification mapping: [complete matrix](requirement-matrix.md), rows naming `S452-03`; S01 expands shared clauses, S05 assigns exact scenario IDs, and this slice records concrete implementation/test/evidence per row. Evidence: `.tiny-swarm/evidence/issue-452/` plus named scenario artifact. Preserve six issue files and per-slice distribution/consolidation evidence. No live mutation is authorized by this slice metadata.
 
-Evidence: `.tiny-swarm/evidence/issue-355/`; record exact test names and results per requirement. Rollback: revert this slice commit only after checking dependent slices; no runtime rollback action.
+Parallel execution eligibility: NOT_SAFELY_PARALLELIZABLE baseline. Conflicting workflows: #440/#444 and any owner of listed file/contract/architecture locks. Shared files: common evidence/context and overlapping preparation owners. Shared infrastructure: none; mocks for local checks. Isolated worktree: required. Serialized live validation: required. Merge order: prerequisites first. Rollback: review dependents then revert only this slice commit; no automatic host rollback. Failed/partial qualification never grants support/admission.
 
-### Slice 05 — Propagate results through artifacts deployment and setup
+### Slice 04 — Preservation, read-only and full-entrypoint recovery coverage
 
-Purpose: Integrate the shared contract into all remaining lifecycle result families and their inventoried steps. Replace ordinary expected-failure broad catch classification with declared typed handling; retain a distinct compatibility policy for unexpected defects. Propagate nested operation/component/cause/recoverability/action without rewriting origin, retain completed phase/step evidence and incomplete work. Preserve setup dependency ordering, timeout/cancellation, fail-fast and concurrency policy; no false success from partial child results. Composition edits are only wiring/typing required by this integration.
+Purpose: Inventory existing coverage and add only missing behavior regressions and demonstrated fixes. Cover aggregate no-write preflight/dry-run (host/config/state/evidence), plan drift and consent rejection, APT locks/download failure, full-entrypoint interruption/resume, protected checkpoint corruption/concurrency/ownership and uncertain effects. Cover minimum/insufficient/adequate capacity and Windows reserve; preserve .wslconfig, wsl.conf, unrelated distros/Incus pools/networks/profiles/nodes and credentials. Reuse the canonical port registry and bridge owner. Diagnostics show stage, confirmed/uncertain effects, scope of restart and one exact next command retaining selection. No automatic reset, state deletion, retries or whole-host rollback.
 
-Prerequisites: S355-04 accepted with evidence and checkpoint; repeat S3/S3D and lock checks.
-
-Requirement-to-verification mapping: R355-01, R355-02, R355-03, R355-04, R355-06, R355-07, R355-12, R355-14, R355-15. The targeted commands below plus inventory-specific new tests must substantiate these rows.
-
-Allowed write scope and locks:
+Prerequisites: S452-03. Owner: Senior Python Automation Developer. Allowed write scope and locks are exact metadata scopes; common evidence is integration-owned. All other files require reviewed amendment before edits.
 
 ```yaml
-{
-  "slice_id": "S355-05",
-  "profile": "FULL_PATH",
-  "owner": "Senior Python Automation Developer",
-  "secondary_reviewers": [
-    "Senior Requirement Engineer",
-    "Senior System Architect",
-    "Senior Python Automation Developer",
-    "Senior Tester"
-  ],
-  "affected_files": [
-    "src/tiny_swarm_world/application/services/artifacts/**",
-    "src/tiny_swarm_world/application/services/deployment/**",
-    "src/tiny_swarm_world/application/services/setup/**",
-    "tests/application/services/artifacts/**",
-    "tests/application/services/deployment/**",
-    "tests/application/services/setup/**",
-    "src/tiny_swarm_world/infrastructure/composition_artifacts.py",
-    "src/tiny_swarm_world/infrastructure/composition_deployment.py",
-    "src/tiny_swarm_world/infrastructure/composition_setup.py",
-    "tests/infrastructure/test_composition.py",
-    "src/tiny_swarm_world/application/services/shared/operation_results.py",
-    "tests/application/services/shared/test_operation_results.py",
-    "src/tiny_swarm_world/application/services/nexus/wait_for_nexus_ready.py",
-    "src/tiny_swarm_world/application/services/nexus/ensure_nexus_admin_access.py",
-    "src/tiny_swarm_world/application/services/nexus/ensure_nexus_repository.py",
-    "tests/application/services/nexus/test_bootstrap_nexus.py",
-    "tests/application/services/nexus/test_nexus_repository_contracts.py",
-    "src/tiny_swarm_world/infrastructure/composition_blocked_workflows.py",
-    "src/tiny_swarm_world/infrastructure/adapters/preflight/artifact_readiness.py",
-    "tests/infrastructure/adapters/preflight/test_artifact_readiness.py"
-  ],
-  "affected_modules": [
-    "operation results",
-    "lifecycle failure boundaries"
-  ],
-  "affected_contracts": [
-    "application result/failure",
-    "legacy CLI compatibility"
-  ],
-  "dependencies": [
-    "S355-04"
-  ],
-  "parallel_group": "serial",
-  "file_locks": [
-    "src/tiny_swarm_world/application/services/artifacts/**",
-    "src/tiny_swarm_world/application/services/deployment/**",
-    "src/tiny_swarm_world/application/services/setup/**",
-    "tests/application/services/artifacts/**",
-    "tests/application/services/deployment/**",
-    "tests/application/services/setup/**",
-    "src/tiny_swarm_world/infrastructure/composition_artifacts.py",
-    "src/tiny_swarm_world/infrastructure/composition_deployment.py",
-    "src/tiny_swarm_world/infrastructure/composition_setup.py",
-    "tests/infrastructure/test_composition.py",
-    ".tiny-swarm/evidence/issue-355/**",
-    ".codex/evidence/slice-*-distribution.md",
-    ".codex/evidence/slice-*-consolidation.md",
-    "documentation/workflow/**",
-    "src/tiny_swarm_world/application/services/shared/operation_results.py",
-    "tests/application/services/shared/test_operation_results.py",
-    "src/tiny_swarm_world/application/services/nexus/wait_for_nexus_ready.py",
-    "src/tiny_swarm_world/application/services/nexus/ensure_nexus_admin_access.py",
-    "src/tiny_swarm_world/application/services/nexus/ensure_nexus_repository.py",
-    "tests/application/services/nexus/test_bootstrap_nexus.py",
-    "tests/application/services/nexus/test_nexus_repository_contracts.py",
-    "src/tiny_swarm_world/infrastructure/composition_blocked_workflows.py",
-    "src/tiny_swarm_world/infrastructure/adapters/preflight/artifact_readiness.py",
-    "tests/infrastructure/adapters/preflight/test_artifact_readiness.py"
-  ],
-  "contract_locks": [
-    "operation-result-contract",
-    "lifecycle-failure-compatibility"
-  ],
-  "architecture_locks": [
-    "ports-adapters-workflows"
-  ],
-  "quality_gates": {
-    "targeted": [
-      "PYTHONPATH=src python3 -m unittest tests.application.services.artifacts.test_artifact_workflows tests.application.services.deployment.test_deployment_workflows tests.application.services.setup.test_setup_workflow tests.infrastructure.test_composition"
-    ],
-    "required": [
-      "git diff --check",
-      "python3 tools/quality_gate.py quality"
-    ]
-  },
-  "documentation": {
-    "arc42": "documentation/arc42/05_analysis/arch-03-12-operation-results.md",
-    "adr": "documentation/arc42/09_decisions/adr-explicit-operation-results.adoc"
-  },
-  "stop_conditions": [
-    "Unaccepted architecture decision or unresolved inventory",
-    "Scope or ownership mismatch",
-    "Unsafe diagnostics or changed safety/exit semantics",
-    "Failed required quality gate"
-  ]
-}
+slice_id: "S452-04"
+profile: "FULL_PATH"
+owner: "Senior Python Automation Developer"
+secondary_reviewers: ["Senior Requirement Engineer", "Senior System Architect", "Senior Tester", "Senior Security Sandbox Engineer"]
+affected_files: ["src/tiny_swarm_world/prepare_linux.py", "src/tiny_swarm_world/application/services/native_preparation.py", "src/tiny_swarm_world/application/services/incus_preparation.py", "src/tiny_swarm_world/application/services/network_preparation.py", "src/tiny_swarm_world/infrastructure/adapters/bootstrap_state.py", "src/tiny_swarm_world/infrastructure/adapters/native_preparation_evidence.py", "src/tiny_swarm_world/infrastructure/adapters/incus_preparation/**", "src/tiny_swarm_world/infrastructure/adapters/network_preparation/**", "tools/windows/preparation/Adapters.ps1", "tools/windows/preparation/Application.ps1", "tools/windows/preparation/Resources.ps1", "tools/windows/preparation/ResourceAdapters.ps1", "tools/windows/preparation/ResourceHost.ps1", "tools/windows/preparation/Policy.ps1", "tests/test_bootstrap_recovery.py", "tests/test_prepare_linux.py", "tests/test_prepare_windows.py", "tests/test_incus_preparation.py", "tests/test_network_preparation.py", "tests/test_network_preparation_compatibility.py", "tests/test_wsl_resource_projection.py", "tests/test_preparation_login_session.py", "tests/windows/resources.Tests.ps1", "tests/windows/resource-files.Tests.ps1", "tests/windows/bridge-preparation.Tests.ps1", "tests/test_bootstrap_entrypoint_recovery.py", "documentation/workflow/**", ".tiny-swarm/evidence/issue-452/**", ".codex/evidence/slice-*-distribution.md", ".codex/evidence/slice-*-consolidation.md", "documentation/arc42/05_analysis/issue-452-bootstrap-completion-plan.md"]
+affected_modules: ["bootstrap", "installation", "Windows preparation"]
+affected_contracts: ["bootstrap readiness/source/consent", "qualification evidence"]
+dependencies: ["S452-03"]
+parallel_group: "serial"
+file_locks: ["src/tiny_swarm_world/prepare_linux.py", "src/tiny_swarm_world/application/services/native_preparation.py", "src/tiny_swarm_world/application/services/incus_preparation.py", "src/tiny_swarm_world/application/services/network_preparation.py", "src/tiny_swarm_world/infrastructure/adapters/bootstrap_state.py", "src/tiny_swarm_world/infrastructure/adapters/native_preparation_evidence.py", "src/tiny_swarm_world/infrastructure/adapters/incus_preparation/**", "src/tiny_swarm_world/infrastructure/adapters/network_preparation/**", "tools/windows/preparation/Adapters.ps1", "tools/windows/preparation/Application.ps1", "tools/windows/preparation/Resources.ps1", "tools/windows/preparation/ResourceAdapters.ps1", "tools/windows/preparation/ResourceHost.ps1", "tools/windows/preparation/Policy.ps1", "tests/test_bootstrap_recovery.py", "tests/test_prepare_linux.py", "tests/test_prepare_windows.py", "tests/test_incus_preparation.py", "tests/test_network_preparation.py", "tests/test_network_preparation_compatibility.py", "tests/test_wsl_resource_projection.py", "tests/test_preparation_login_session.py", "tests/windows/resources.Tests.ps1", "tests/windows/resource-files.Tests.ps1", "tests/windows/bridge-preparation.Tests.ps1", "tests/test_bootstrap_entrypoint_recovery.py", "documentation/workflow/**", ".tiny-swarm/evidence/issue-452/**", ".codex/evidence/slice-*-distribution.md", ".codex/evidence/slice-*-consolidation.md", "documentation/arc42/05_analysis/issue-452-bootstrap-completion-plan.md"]
+contract_locks: ["bootstrap-source-and-readiness", "qualified-release-admission"]
+architecture_locks: ["ports-adapters-bootstrap", "bridge-exclusive-owner"]
+quality_gates: {"targeted": ["PYTHONPATH=src python3 -m unittest tests.test_bootstrap_recovery tests.test_prepare_linux tests.test_prepare_windows tests.test_incus_preparation tests.test_network_preparation tests.test_network_preparation_compatibility tests.test_wsl_resource_projection tests.test_preparation_login_session"], "required": ["git diff --check", "python3 tools/quality_gate.py quality"]}
+documentation: {"arc42": "documentation/arc42/05_analysis/issue-452-bootstrap-completion-plan.md", "adr": null}
+stop_conditions: ["Scope/branch/hash/lock mismatch", "Unaccepted governing decision", "Failed required quality gate", "Unsafe source/secret/consent behavior"]
 ```
 
-Done criteria: All four families expose consistent operation results; nested partial/failed context survives setup and deployment wrappers; no later dependent mutation follows blocking failure; concurrent evidence aggregation remains deterministic.
+Done criteria: Meaningful coverage regressions pass with the full local gate and independent security/console review; live counterparts are separately pending. New test module is explicitly NEW and becomes runnable only after creation.
 
-Parallel execution eligibility: serial until Three Amigos proves disjoint inventory-derived scopes and stable contracts. Conflicting workflows: #313 siblings and all holders of listed locks. Shared files: common evidence/context and listed contracts. Shared infrastructure: none used. Requires isolated worktree: yes for execution/streams. Serialized live validation: yes if separately approved. Merge-order constraint: predecessor first. Parallelization status: NOT_SAFELY_PARALLELIZABLE by default.
+Requirement-to-verification mapping: [complete matrix](requirement-matrix.md), rows naming `S452-04`; S01 expands shared clauses, S05 assigns exact scenario IDs, and this slice records concrete implementation/test/evidence per row. Evidence: `.tiny-swarm/evidence/issue-452/` plus named scenario artifact. Preserve six issue files and per-slice distribution/consolidation evidence. No live mutation is authorized by this slice metadata.
 
-Evidence: `.tiny-swarm/evidence/issue-355/`; record exact test names and results per requirement. Rollback: revert this slice commit only after checking dependent slices; no runtime rollback action.
+Parallel execution eligibility: NOT_SAFELY_PARALLELIZABLE baseline. Conflicting workflows: #440/#444 and any owner of listed file/contract/architecture locks. Shared files: common evidence/context and overlapping preparation owners. Shared infrastructure: none; mocks for local checks. Isolated worktree: required. Serialized live validation: required. Merge order: prerequisites first. Rollback: review dependents then revert only this slice commit; no automatic host rollback. Failed/partial qualification never grants support/admission.
 
-### Slice 06 — Preserve CLI installer and reporting compatibility
+### Slice 05 — Freeze candidate and prepare full live qualification matrix
 
-Purpose: Expose additive operation_result data through explicit JSON opt-in and safe human-readable failure summaries. Inventory and preserve installer/simple-installer result propagation, child exit codes, timeout 124 and interruption 130. Preserve existing workflow statuses and keys, default human-readable output, consent exit 2, unsuccessful workflow exit 1, and completed verified recovery exit 0. Rendering is informational and must never invoke recovery. Preserve composition/programming failure propagation separately from expected adapter failures. No root-module redesign or new process imports.
+Purpose: Create scenario IDs, exact commands, expected exits, source/release artifact hashes, target/version inventory, before/after preservation observations and recovery procedures. Resolve native/WSL Ubuntu24.04/26.04 rows individually as qualified, unqualified or unsupported; do not claim all candidates are qualified. At least one clean supported target per family must exercise the full original EPIC path. Read latest W09 amendments without transplanting existing-host proof. Define browser, route and service-authentication checks separately from preparation readiness. Define a recoverable fresh native host and clean Windows/WSL target, fault injection boundaries, safe snapshot/backup scope and candidate admission evidence. No live commands execute in this planning slice.
 
-Prerequisites: S355-05 accepted with evidence and checkpoint; repeat S3/S3D and lock checks.
-
-Requirement-to-verification mapping: R355-08, R355-10, R355-13, R355-14, R355-15. The targeted commands below plus inventory-specific new tests must substantiate these rows.
-
-Allowed write scope and locks:
+Prerequisites: S452-04. Owner: Senior DevOps Engineer. Allowed write scope and locks are exact metadata scopes; common evidence is integration-owned. All other files require reviewed amendment before edits.
 
 ```yaml
-{
-  "slice_id": "S355-06",
-  "profile": "FULL_PATH",
-  "owner": "Senior Python Automation Developer",
-  "secondary_reviewers": [
-    "Senior Requirement Engineer",
-    "Senior System Architect",
-    "Senior Python Automation Developer",
-    "Senior Tester",
-    "Console/status UI reviewer"
-  ],
-  "affected_files": [
-    "src/tiny_swarm_world/__main__.py",
-    "src/tiny_swarm_world/installer.py",
-    "src/tiny_swarm_world/simple_installer.py",
-    "src/tiny_swarm_world/infrastructure/adapters/ui/install_reporter.py",
-    "src/tiny_swarm_world/application/ports/install_reporter.py",
-    "tests/test_package_entrypoint.py",
-    "tests/test_classic_update_cli.py",
-    "tests/test_installer.py",
-    "tests/test_simple_installer.py",
-    "tests/infrastructure/adapters/ui/test_install_reporter.py",
-    "documentation/user_guide/installer-console-output.md"
-  ],
-  "affected_modules": [
-    "operation results",
-    "lifecycle failure boundaries"
-  ],
-  "affected_contracts": [
-    "application result/failure",
-    "legacy CLI compatibility"
-  ],
-  "dependencies": [
-    "S355-05"
-  ],
-  "parallel_group": "serial",
-  "file_locks": [
-    "src/tiny_swarm_world/__main__.py",
-    "src/tiny_swarm_world/installer.py",
-    "src/tiny_swarm_world/simple_installer.py",
-    "src/tiny_swarm_world/infrastructure/adapters/ui/install_reporter.py",
-    "src/tiny_swarm_world/application/ports/install_reporter.py",
-    "tests/test_package_entrypoint.py",
-    "tests/test_classic_update_cli.py",
-    "tests/test_installer.py",
-    "tests/test_simple_installer.py",
-    "tests/infrastructure/adapters/ui/test_install_reporter.py",
-    "documentation/user_guide/installer-console-output.md",
-    ".tiny-swarm/evidence/issue-355/**",
-    ".codex/evidence/slice-*-distribution.md",
-    ".codex/evidence/slice-*-consolidation.md",
-    "documentation/workflow/**"
-  ],
-  "contract_locks": [
-    "operation-result-contract",
-    "lifecycle-failure-compatibility"
-  ],
-  "architecture_locks": [
-    "ports-adapters-workflows"
-  ],
-  "quality_gates": {
-    "targeted": [
-      "PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint tests.test_classic_update_cli tests.test_installer tests.test_simple_installer tests.infrastructure.adapters.ui.test_install_reporter"
-    ],
-    "required": [
-      "git diff --check",
-      "python3 tools/quality_gate.py quality"
-    ]
-  },
-  "documentation": {
-    "arc42": "documentation/arc42/05_analysis/arch-03-12-operation-results.md",
-    "adr": "documentation/arc42/09_decisions/adr-explicit-operation-results.adoc"
-  },
-  "stop_conditions": [
-    "Unaccepted architecture decision or unresolved inventory",
-    "Scope or ownership mismatch",
-    "Unsafe diagnostics or changed safety/exit semantics",
-    "Failed required quality gate"
-  ]
-}
+slice_id: "S452-05"
+profile: "FULL_PATH"
+owner: "Senior DevOps Engineer"
+secondary_reviewers: ["Senior Requirement Engineer", "Senior System Architect", "Senior Tester"]
+affected_files: ["documentation/evidence/issue-452-qualification-plan.md", "documentation/contracts/bootstrap.md", "documentation/workflow/**", ".tiny-swarm/evidence/issue-452/**", ".codex/evidence/slice-*-distribution.md", ".codex/evidence/slice-*-consolidation.md", "documentation/arc42/05_analysis/issue-452-bootstrap-completion-plan.md"]
+affected_modules: ["bootstrap governance and evidence"]
+affected_contracts: ["bootstrap readiness/source/consent", "qualification evidence"]
+dependencies: ["S452-04"]
+parallel_group: "serial"
+file_locks: ["documentation/evidence/issue-452-qualification-plan.md", "documentation/contracts/bootstrap.md", "documentation/workflow/**", ".tiny-swarm/evidence/issue-452/**", ".codex/evidence/slice-*-distribution.md", ".codex/evidence/slice-*-consolidation.md", "documentation/arc42/05_analysis/issue-452-bootstrap-completion-plan.md"]
+contract_locks: ["bootstrap-source-and-readiness", "qualified-release-admission"]
+architecture_locks: ["ports-adapters-bootstrap", "bridge-exclusive-owner"]
+quality_gates: {"targeted": ["git diff --check"], "required": ["git diff --check", "python3 tools/quality_gate.py quality"]}
+documentation: {"arc42": "documentation/arc42/05_analysis/issue-452-bootstrap-completion-plan.md", "adr": null}
+stop_conditions: ["Scope/branch/hash/lock mismatch", "Unaccepted governing decision", "Failed required quality gate", "Unsafe source/secret/consent behavior"]
 ```
 
-Done criteria: Exit/status/JSON compatibility matrix and redacted human-readable summaries pass; no command/exception/internal object dump; setup counts/timing/evidence links retained; guards still run before mutation.
+Done criteria: Reviewed exact-command matrix, redaction plan and recoverability prerequisites exist; full local quality on frozen product candidate passes. Record LIVE_CONSENT_MISSING until explicit per-target consent exists; absent targets block S06/S07, not local work.
 
-Parallel execution eligibility: serial until Three Amigos proves disjoint inventory-derived scopes and stable contracts. Conflicting workflows: #313 siblings and all holders of listed locks. Shared files: common evidence/context and listed contracts. Shared infrastructure: none used. Requires isolated worktree: yes for execution/streams. Serialized live validation: yes if separately approved. Merge-order constraint: predecessor first. Parallelization status: NOT_SAFELY_PARALLELIZABLE by default.
+Requirement-to-verification mapping: [complete matrix](requirement-matrix.md), rows naming `S452-05`; S01 expands shared clauses, S05 assigns exact scenario IDs, and this slice records concrete implementation/test/evidence per row. Evidence: `.tiny-swarm/evidence/issue-452/` plus named scenario artifact. Preserve six issue files and per-slice distribution/consolidation evidence. No live mutation is authorized by this slice metadata.
 
-Evidence: `.tiny-swarm/evidence/issue-355/`; record exact test names and results per requirement. Rollback: revert this slice commit only after checking dependent slices; no runtime rollback action.
+Parallel execution eligibility: NOT_SAFELY_PARALLELIZABLE baseline. Conflicting workflows: #440/#444 and any owner of listed file/contract/architecture locks. Shared files: common evidence/context and overlapping preparation owners. Shared infrastructure: none; mocks for local checks. Isolated worktree: required. Serialized live validation: required. Merge order: prerequisites first. Rollback: review dependents then revert only this slice commit; no automatic host rollback. Failed/partial qualification never grants support/admission.
 
-### Slice 07 — Enforce architecture synchronize documentation and audit completion
+### Slice 06 — Qualify clean native Ubuntu, preservation and recovery
 
-Purpose: Add contract import and unsafe boundary regression probes without weakening existing rules. Update arc42 to executed facts, include the accepted ADR in the index, refresh only provenance hashes made stale by approved doc changes, and complete all issue evidence. Obtain independent Requirement, Architect, Test/Evidence and issue-completion-auditor reviews. Reconcile every inventory row and all R355 requirements; no omission may be described as done.
+Purpose: After fresh target-specific consent and approved recovery, execute S05 native matrix on exact committed source. Include trusted extracted release without preinstalled Git/Python, clean preparation/install, repeated preparation/install, actual stale-to-new group session, compatible and foreign Incus resources, collisions/foreign executable rejection, capacity/download failures and full-entrypoint interruption/recovery. Compare no-write snapshots and preserved resource/credential identities. Verify service routes and authentication, recording commands/exits/versions and redacted outputs. Distinguish managed-root snapshots from whole-OS/external-volume recovery; make no broader recovery promise.
 
-Prerequisites: S355-06 accepted with evidence and checkpoint; repeat S3/S3D and lock checks.
-
-Requirement-to-verification mapping: R355-01, R355-02, R355-03, R355-04, R355-05, R355-06, R355-07, R355-08, R355-09, R355-10, R355-11, R355-12, R355-13, R355-14, R355-15. The targeted commands below plus inventory-specific new tests must substantiate these rows.
-
-Allowed write scope and locks:
+Prerequisites: S452-05. Owner: Senior DevOps Engineer. Allowed write scope and locks are exact metadata scopes; common evidence is integration-owned. All other files require reviewed amendment before edits.
 
 ```yaml
-{
-  "slice_id": "S355-07",
-  "profile": "FULL_PATH",
-  "owner": "Senior Tester",
-  "secondary_reviewers": [
-    "Senior Requirement Engineer",
-    "Senior System Architect",
-    "Senior Python Automation Developer",
-    "Senior Tester"
-  ],
-  "affected_files": [
-    "tests/architecture/test_hexagonal_imports.py",
-    "tests/architecture/test_process_spawn_boundaries.py",
-    ".importlinter",
-    "documentation/arc42/05_analysis/arch-03-12-operation-results.md",
-    "documentation/arc42/09_decisions/adr-explicit-operation-results.adoc",
-    "documentation/arc42/09_architecture_decisions.adoc",
-    "documentation/arc42/05_building_blocks.adoc",
-    "documentation/arc42/06_runtime_view.adoc",
-    "documentation/arc42/08_concepts.adoc",
-    "documentation/process/skills/audit/skill-registry.json"
-  ],
-  "affected_modules": [
-    "operation results",
-    "lifecycle failure boundaries"
-  ],
-  "affected_contracts": [
-    "application result/failure",
-    "legacy CLI compatibility"
-  ],
-  "dependencies": [
-    "S355-06"
-  ],
-  "parallel_group": "serial",
-  "file_locks": [
-    "tests/architecture/test_hexagonal_imports.py",
-    "tests/architecture/test_process_spawn_boundaries.py",
-    ".importlinter",
-    "documentation/arc42/05_analysis/arch-03-12-operation-results.md",
-    "documentation/arc42/09_decisions/adr-explicit-operation-results.adoc",
-    "documentation/arc42/09_architecture_decisions.adoc",
-    "documentation/arc42/05_building_blocks.adoc",
-    "documentation/arc42/06_runtime_view.adoc",
-    "documentation/arc42/08_concepts.adoc",
-    "documentation/process/skills/audit/skill-registry.json",
-    ".tiny-swarm/evidence/issue-355/**",
-    ".codex/evidence/slice-*-distribution.md",
-    ".codex/evidence/slice-*-consolidation.md",
-    "documentation/workflow/**"
-  ],
-  "contract_locks": [
-    "operation-result-contract",
-    "lifecycle-failure-compatibility"
-  ],
-  "architecture_locks": [
-    "ports-adapters-workflows"
-  ],
-  "quality_gates": {
-    "targeted": [
-      "python3 tools/quality_gate.py arch-lint",
-      "python3 tools/quality_gate.py arch-tests"
-    ],
-    "required": [
-      "git diff --check",
-      "python3 tools/quality_gate.py quality"
-    ]
-  },
-  "documentation": {
-    "arc42": "documentation/arc42/05_analysis/arch-03-12-operation-results.md",
-    "adr": "documentation/arc42/09_decisions/adr-explicit-operation-results.adoc"
-  },
-  "stop_conditions": [
-    "Unaccepted architecture decision or unresolved inventory",
-    "Scope or ownership mismatch",
-    "Unsafe diagnostics or changed safety/exit semantics",
-    "Failed required quality gate"
-  ]
-}
+slice_id: "S452-06"
+profile: "FULL_PATH"
+owner: "Senior DevOps Engineer"
+secondary_reviewers: ["Senior Requirement Engineer", "Senior System Architect", "Senior Tester"]
+affected_files: ["documentation/evidence/issue-452-native-qualification.md", "documentation/workflow/**", ".tiny-swarm/evidence/issue-452/**", ".codex/evidence/slice-*-distribution.md", ".codex/evidence/slice-*-consolidation.md", "documentation/arc42/05_analysis/issue-452-bootstrap-completion-plan.md"]
+affected_modules: ["bootstrap governance and evidence"]
+affected_contracts: ["bootstrap readiness/source/consent", "qualification evidence"]
+dependencies: ["S452-05"]
+parallel_group: "serial"
+file_locks: ["documentation/evidence/issue-452-native-qualification.md", "documentation/workflow/**", ".tiny-swarm/evidence/issue-452/**", ".codex/evidence/slice-*-distribution.md", ".codex/evidence/slice-*-consolidation.md", "documentation/arc42/05_analysis/issue-452-bootstrap-completion-plan.md"]
+contract_locks: ["bootstrap-source-and-readiness", "qualified-release-admission"]
+architecture_locks: ["ports-adapters-bootstrap", "bridge-exclusive-owner"]
+quality_gates: {"targeted": ["git diff --check"], "required": ["git diff --check", "python3 tools/quality_gate.py verification-policy"]}
+documentation: {"arc42": "documentation/arc42/05_analysis/issue-452-bootstrap-completion-plan.md", "adr": null}
+stop_conditions: ["Scope/branch/hash/lock mismatch", "Unaccepted governing decision", "Failed required quality gate", "Unsafe source/secret/consent behavior", "Missing explicit live consent or recoverable target", "Uncommitted or changed candidate source"]
 ```
 
-Done criteria: All requirements implemented and verified, full local quality PASS, six required evidence files consistent, independent audit PASS; no unresolved scope or compatibility correction.
+Done criteria: Every required native scenario has exact-source evidence and an independent evidence review; failed/partial/blocked rows remain non-success. No product edits here: defect routes back to its owning slice and affected qualification must rerun on the repaired committed candidate.
 
-Parallel execution eligibility: serial until Three Amigos proves disjoint inventory-derived scopes and stable contracts. Conflicting workflows: #313 siblings and all holders of listed locks. Shared files: common evidence/context and listed contracts. Shared infrastructure: none used. Requires isolated worktree: yes for execution/streams. Serialized live validation: yes if separately approved. Merge-order constraint: predecessor first. Parallelization status: NOT_SAFELY_PARALLELIZABLE by default.
+Requirement-to-verification mapping: [complete matrix](requirement-matrix.md), rows naming `S452-06`; S01 expands shared clauses, S05 assigns exact scenario IDs, and this slice records concrete implementation/test/evidence per row. Evidence: `.tiny-swarm/evidence/issue-452/` plus named scenario artifact. Preserve six issue files and per-slice distribution/consolidation evidence. Live commands are defined and reviewed in S05, not guessed here; explicit consent is still required.
 
-Evidence: `.tiny-swarm/evidence/issue-355/`; record exact test names and results per requirement. Rollback: revert this slice commit only after checking dependent slices; no runtime rollback action.
+Parallel execution eligibility: NOT_SAFELY_PARALLELIZABLE baseline. Conflicting workflows: #440/#444 and any owner of listed file/contract/architecture locks. Shared files: common evidence/context and overlapping preparation owners. Shared infrastructure: approved live target only. Isolated worktree: required. Serialized live validation: required. Merge order: prerequisites first. Rollback: review dependents then revert only this slice commit; no automatic host rollback. Failed/partial qualification never grants support/admission.
+
+### Slice 07 — Qualify clean Windows/WSL lifecycle and browser routing
+
+Purpose: After separate Windows/WSL consent and recovery prerequisites, execute S05 matrix on clean supported Windows11/WSL2 with the selected ordinary-user Ubuntu distro, using existing guarded candidate mode until S08 admission. Cover feature/distro/systemd creation, account interactions, reboot and WSL-wide/selected-distro restarts, capacity boundaries and preservation, source transfer before Python, prepare/install/rerun, actual group transition, actual IP change and existing bridge refresh, port collisions, download/interruption/resume, unrelated-resource and credential preservation. Verify browser routing and service authentication as separate outcomes; API tests alone are not browser/Selenium success. Existing reset isolation must be demonstrated on a separately consented disposable target if required; ordinary installs never reset.
+
+Prerequisites: S452-06. Owner: Senior DevOps Engineer. Allowed write scope and locks are exact metadata scopes; common evidence is integration-owned. All other files require reviewed amendment before edits.
+
+```yaml
+slice_id: "S452-07"
+profile: "FULL_PATH"
+owner: "Senior DevOps Engineer"
+secondary_reviewers: ["Senior Requirement Engineer", "Senior System Architect", "Senior Tester"]
+affected_files: ["documentation/evidence/issue-452-wsl-qualification.md", "documentation/workflow/**", ".tiny-swarm/evidence/issue-452/**", ".codex/evidence/slice-*-distribution.md", ".codex/evidence/slice-*-consolidation.md", "documentation/arc42/05_analysis/issue-452-bootstrap-completion-plan.md"]
+affected_modules: ["bootstrap governance and evidence"]
+affected_contracts: ["bootstrap readiness/source/consent", "qualification evidence"]
+dependencies: ["S452-06"]
+parallel_group: "serial"
+file_locks: ["documentation/evidence/issue-452-wsl-qualification.md", "documentation/workflow/**", ".tiny-swarm/evidence/issue-452/**", ".codex/evidence/slice-*-distribution.md", ".codex/evidence/slice-*-consolidation.md", "documentation/arc42/05_analysis/issue-452-bootstrap-completion-plan.md"]
+contract_locks: ["bootstrap-source-and-readiness", "qualified-release-admission"]
+architecture_locks: ["ports-adapters-bootstrap", "bridge-exclusive-owner"]
+quality_gates: {"targeted": ["git diff --check"], "required": ["git diff --check", "python3 tools/quality_gate.py verification-policy"]}
+documentation: {"arc42": "documentation/arc42/05_analysis/issue-452-bootstrap-completion-plan.md", "adr": null}
+stop_conditions: ["Scope/branch/hash/lock mismatch", "Unaccepted governing decision", "Failed required quality gate", "Unsafe source/secret/consent behavior", "Missing explicit live consent or recoverable target", "Uncommitted or changed candidate source"]
+```
+
+Done criteria: Required Windows/WSL scenarios are exact-source verified with independently reviewed redacted evidence, or remain explicitly blocked. Passing candidate mode does not enroll ordinary Apply; all source changes invalidate affected scenario proof.
+
+Requirement-to-verification mapping: [complete matrix](requirement-matrix.md), rows naming `S452-07`; S01 expands shared clauses, S05 assigns exact scenario IDs, and this slice records concrete implementation/test/evidence per row. Evidence: `.tiny-swarm/evidence/issue-452/` plus named scenario artifact. Preserve six issue files and per-slice distribution/consolidation evidence. Live commands are defined and reviewed in S05, not guessed here; explicit consent is still required.
+
+Parallel execution eligibility: NOT_SAFELY_PARALLELIZABLE baseline. Conflicting workflows: #440/#444 and any owner of listed file/contract/architecture locks. Shared files: common evidence/context and overlapping preparation owners. Shared infrastructure: approved live target only. Isolated worktree: required. Serialized live validation: required. Merge order: prerequisites first. Rollback: review dependents then revert only this slice commit; no automatic host rollback. Failed/partial qualification never grants support/admission.
+
+### Slice 08 — Admit verified Windows releases through reviewed policy
+
+Purpose: Implement the accepted S01 admission policy only after applicable S06/S07 evidence is accepted. Replace unconditional qualified=false/ordinary Apply rejection with evidence-bound, independently trusted release/target admission, preserving unknown-target refusal, source/proof verification, plan consent, identity binding and bounded candidate qualification. Reject stale, tampered, revoked and wrong-source/version records. Avoid self-referential SHA enrollment: S01 must define product/release identity versus reviewed publication metadata and which behavior changes require requalification. Declare new Qualification.ps1/catalog/test files NEW, subject to accepted design; do not add them as stubs. No opportunistic allowlist or QualificationRun bypass for users.
+
+Prerequisites: S452-07. Owner: Senior Python Automation Developer. Allowed write scope and locks are exact metadata scopes; common evidence is integration-owned. All other files require reviewed amendment before edits.
+
+```yaml
+slice_id: "S452-08"
+profile: "FULL_PATH"
+owner: "Senior Python Automation Developer"
+secondary_reviewers: ["Senior Requirement Engineer", "Senior System Architect", "Senior Tester", "Senior Security Sandbox Engineer"]
+affected_files: ["prepare_windows.ps1", "tools/windows/preparation/Policy.ps1", "tools/windows/preparation/Application.ps1", "tools/windows/preparation/Adapters.ps1", "tools/windows/preparation/Preparation.psm1", "tools/windows/preparation/Qualification.ps1", "tools/windows/preparation/qualified-releases.json", "tests/test_prepare_windows.py", "tests/windows/prepare-windows.Tests.ps1", "tests/windows/qualification.Tests.ps1", "documentation/contracts/bootstrap.md", "documentation/arc42/09_decisions/adr-bootstrap-release-integrity-and-admission.adoc", "documentation/workflow/**", ".tiny-swarm/evidence/issue-452/**", ".codex/evidence/slice-*-distribution.md", ".codex/evidence/slice-*-consolidation.md", "documentation/arc42/05_analysis/issue-452-bootstrap-completion-plan.md"]
+affected_modules: ["bootstrap", "installation", "Windows preparation"]
+affected_contracts: ["bootstrap readiness/source/consent", "qualification evidence"]
+dependencies: ["S452-07"]
+parallel_group: "serial"
+file_locks: ["prepare_windows.ps1", "tools/windows/preparation/Policy.ps1", "tools/windows/preparation/Application.ps1", "tools/windows/preparation/Adapters.ps1", "tools/windows/preparation/Preparation.psm1", "tools/windows/preparation/Qualification.ps1", "tools/windows/preparation/qualified-releases.json", "tests/test_prepare_windows.py", "tests/windows/prepare-windows.Tests.ps1", "tests/windows/qualification.Tests.ps1", "documentation/contracts/bootstrap.md", "documentation/arc42/09_decisions/adr-bootstrap-release-integrity-and-admission.adoc", "documentation/workflow/**", ".tiny-swarm/evidence/issue-452/**", ".codex/evidence/slice-*-distribution.md", ".codex/evidence/slice-*-consolidation.md", "documentation/arc42/05_analysis/issue-452-bootstrap-completion-plan.md"]
+contract_locks: ["bootstrap-source-and-readiness", "qualified-release-admission"]
+architecture_locks: ["ports-adapters-bootstrap", "bridge-exclusive-owner"]
+quality_gates: {"targeted": ["PYTHONPATH=src python3 -m unittest tests.test_prepare_windows"], "required": ["git diff --check", "python3 tools/quality_gate.py quality"]}
+documentation: {"arc42": "documentation/arc42/05_analysis/issue-452-bootstrap-completion-plan.md", "adr": "documentation/arc42/09_decisions/adr-bootstrap-release-integrity-and-admission.adoc"}
+stop_conditions: ["Scope/branch/hash/lock mismatch", "Unaccepted governing decision", "Failed required quality gate", "Unsafe source/secret/consent behavior"]
+```
+
+Done criteria: Admission positive/negative tests and full local quality pass; independent security/architecture review accepts source/admission integrity. Candidate evidence never automatically qualifies the final admission implementation; S09 must exercise final ordinary path.
+
+Requirement-to-verification mapping: [complete matrix](requirement-matrix.md), rows naming `S452-08`; S01 expands shared clauses, S05 assigns exact scenario IDs, and this slice records concrete implementation/test/evidence per row. Evidence: `.tiny-swarm/evidence/issue-452/` plus named scenario artifact. Preserve six issue files and per-slice distribution/consolidation evidence. No live mutation is authorized by this slice metadata.
+
+Parallel execution eligibility: NOT_SAFELY_PARALLELIZABLE baseline. Conflicting workflows: #440/#444 and any owner of listed file/contract/architecture locks. Shared files: common evidence/context and overlapping preparation owners. Shared infrastructure: none; mocks for local checks. Isolated worktree: required. Serialized live validation: required. Merge order: prerequisites first. Rollback: review dependents then revert only this slice commit; no automatic host rollback. Failed/partial qualification never grants support/admission.
+
+### Slice 09 — Exercise final ordinary two-command paths at final candidate
+
+Purpose: Freeze final committed product and release artifact, review S08 source-change impact and obtain fresh consent for affected clean targets. Rerun final native and Windows ordinary operator paths with no candidate qualification flags, including extracted source. Count starting-condition acquisition, account creation and unavoidable restart/resume actions explicitly; hidden checkout/Python/network prerequisites fail acceptance. Reverify affected lifecycle/preservation/recovery scenarios after any behavior change and preserve historical evidence with its original SHA. Publish exact qualified versions; mark all other rows unqualified or unsupported. Missing runtime/browser/Selenium/external access remains the canonical non-success state.
+
+Prerequisites: S452-08. Owner: Senior DevOps Engineer. Allowed write scope and locks are exact metadata scopes; common evidence is integration-owned. All other files require reviewed amendment before edits.
+
+```yaml
+slice_id: "S452-09"
+profile: "FULL_PATH"
+owner: "Senior DevOps Engineer"
+secondary_reviewers: ["Senior Requirement Engineer", "Senior System Architect", "Senior Tester"]
+affected_files: ["documentation/evidence/issue-452-final-walkthroughs.md", "documentation/evidence/issue-452-qualification-plan.md", "documentation/workflow/**", ".tiny-swarm/evidence/issue-452/**", ".codex/evidence/slice-*-distribution.md", ".codex/evidence/slice-*-consolidation.md", "documentation/arc42/05_analysis/issue-452-bootstrap-completion-plan.md"]
+affected_modules: ["bootstrap governance and evidence"]
+affected_contracts: ["bootstrap readiness/source/consent", "qualification evidence"]
+dependencies: ["S452-08"]
+parallel_group: "serial"
+file_locks: ["documentation/evidence/issue-452-final-walkthroughs.md", "documentation/evidence/issue-452-qualification-plan.md", "documentation/workflow/**", ".tiny-swarm/evidence/issue-452/**", ".codex/evidence/slice-*-distribution.md", ".codex/evidence/slice-*-consolidation.md", "documentation/arc42/05_analysis/issue-452-bootstrap-completion-plan.md"]
+contract_locks: ["bootstrap-source-and-readiness", "qualified-release-admission"]
+architecture_locks: ["ports-adapters-bootstrap", "bridge-exclusive-owner"]
+quality_gates: {"targeted": ["git diff --check"], "required": ["git diff --check", "python3 tools/quality_gate.py verification-policy"]}
+documentation: {"arc42": "documentation/arc42/05_analysis/issue-452-bootstrap-completion-plan.md", "adr": null}
+stop_conditions: ["Scope/branch/hash/lock mismatch", "Unaccepted governing decision", "Failed required quality gate", "Unsafe source/secret/consent behavior", "Missing explicit live consent or recoverable target", "Uncommitted or changed candidate source"]
+```
+
+Done criteria: Both families have final-source clean, repeated and recovery results, ordinary Apply works only for admitted releases, README commands are witnessed, and requirement/evidence reviewer accepts all live-dependent criteria. If an original criterion stays open, stop INCOMPLETE/BLOCKED rather than silently amending the EPIC.
+
+Requirement-to-verification mapping: [complete matrix](requirement-matrix.md), rows naming `S452-09`; S01 expands shared clauses, S05 assigns exact scenario IDs, and this slice records concrete implementation/test/evidence per row. Evidence: `.tiny-swarm/evidence/issue-452/` plus named scenario artifact. Preserve six issue files and per-slice distribution/consolidation evidence. Live commands are defined and reviewed in S05, not guessed here; explicit consent is still required.
+
+Parallel execution eligibility: NOT_SAFELY_PARALLELIZABLE baseline. Conflicting workflows: #440/#444 and any owner of listed file/contract/architecture locks. Shared files: common evidence/context and overlapping preparation owners. Shared infrastructure: approved live target only. Isolated worktree: required. Serialized live validation: required. Merge order: prerequisites first. Rollback: review dependents then revert only this slice commit; no automatic host rollback. Failed/partial qualification never grants support/admission.
+
+### Slice 10 — Synchronize operator docs and independently audit EPIC closure
+
+Purpose: Publish concise copyable preparation/install commands, exact prerequisites and qualified versions, account/elevation guidance, resources, restart/session actions, access URLs/credential sources and concrete recovery. Keep developer setup separate. Update arc42 only to verified behavior and preserve W09/W10 historical amendments and evidence. Populate six issue evidence files and complete every parent/child matrix row. Independent Requirement Lead, Architect and Test/Evidence reviews precede issue-completion-auditor; implementer cannot be sole completion authority. Audit outputs PASS/INCOMPLETE/BLOCKED/REJECTED. Do not close or edit the GitHub EPIC without explicit instruction.
+
+Prerequisites: S452-09. Owner: Senior Documentation Engineer. Allowed write scope and locks are exact metadata scopes; common evidence is integration-owned. All other files require reviewed amendment before edits.
+
+```yaml
+slice_id: "S452-10"
+profile: "FULL_PATH"
+owner: "Senior Documentation Engineer"
+secondary_reviewers: ["Senior Requirement Engineer", "Senior System Architect", "Senior Tester"]
+affected_files: ["README.md", "documentation/user_guide/installation.adoc", "documentation/user_guide/windows-preparation.md", "documentation/user_guide/network-preparation.md", "documentation/user_guide/troubleshooting.adoc", "documentation/manuals/developer-manual.md", "documentation/contracts/bootstrap.md", "documentation/evidence/issue-452-completion-audit.md", "documentation/arc42/06_runtime_view.adoc", "documentation/arc42/07_deployment_view.adoc", "documentation/arc42/11_risks_and_debt.adoc", "documentation/workflow/**", ".tiny-swarm/evidence/issue-452/**", ".codex/evidence/slice-*-distribution.md", ".codex/evidence/slice-*-consolidation.md", "documentation/arc42/05_analysis/issue-452-bootstrap-completion-plan.md"]
+affected_modules: ["bootstrap governance and evidence"]
+affected_contracts: ["bootstrap readiness/source/consent", "qualification evidence"]
+dependencies: ["S452-09"]
+parallel_group: "serial"
+file_locks: ["README.md", "documentation/user_guide/installation.adoc", "documentation/user_guide/windows-preparation.md", "documentation/user_guide/network-preparation.md", "documentation/user_guide/troubleshooting.adoc", "documentation/manuals/developer-manual.md", "documentation/contracts/bootstrap.md", "documentation/evidence/issue-452-completion-audit.md", "documentation/arc42/06_runtime_view.adoc", "documentation/arc42/07_deployment_view.adoc", "documentation/arc42/11_risks_and_debt.adoc", "documentation/workflow/**", ".tiny-swarm/evidence/issue-452/**", ".codex/evidence/slice-*-distribution.md", ".codex/evidence/slice-*-consolidation.md", "documentation/arc42/05_analysis/issue-452-bootstrap-completion-plan.md"]
+contract_locks: ["bootstrap-source-and-readiness", "qualified-release-admission"]
+architecture_locks: ["ports-adapters-bootstrap", "bridge-exclusive-owner"]
+quality_gates: {"targeted": ["git diff --check", "python3 tools/quality_gate.py verification-policy"], "required": ["git diff --check", "python3 tools/quality_gate.py quality"]}
+documentation: {"arc42": "documentation/arc42/05_analysis/issue-452-bootstrap-completion-plan.md", "adr": null}
+stop_conditions: ["Scope/branch/hash/lock mismatch", "Unaccepted governing decision", "Failed required quality gate", "Unsafe source/secret/consent behavior"]
+```
+
+Done criteria: Original EPIC requirements and all twelve acceptance criteria implemented and verified; complete evidence, current applicable quality and independent completion audit PASS. Any open row forbids DONE. Documentation-only edits must not be falsely presented as new product/live qualification.
+
+Requirement-to-verification mapping: [complete matrix](requirement-matrix.md), rows naming `S452-10`; S01 expands shared clauses, S05 assigns exact scenario IDs, and this slice records concrete implementation/test/evidence per row. Evidence: `.tiny-swarm/evidence/issue-452/` plus named scenario artifact. Preserve six issue files and per-slice distribution/consolidation evidence. No live mutation is authorized by this slice metadata.
+
+Parallel execution eligibility: NOT_SAFELY_PARALLELIZABLE baseline. Conflicting workflows: #440/#444 and any owner of listed file/contract/architecture locks. Shared files: common evidence/context and overlapping preparation owners. Shared infrastructure: none; mocks for local checks. Isolated worktree: required. Serialized live validation: required. Merge order: prerequisites first. Rollback: review dependents then revert only this slice commit; no automatic host rollback. Failed/partial qualification never grants support/admission.
 
 ## Parallel Execution
 
-- Can this workflow run in parallel? Read-only reviews may; implementation chain is serial until an explicitly reviewed stream split.
-- Conflicting workflows: ARCH-03 siblings touching installers, ports, lifecycle, adapters or composition; determine conflict from actual locks.
-- Shared files: operation contract, result wrappers, CLI, evidence and context packs.
-- Shared infrastructure: none for local tests.
-- Requires isolated worktree: yes for future workflow execution; this authoring uses the verified dedicated branch in the current checkout.
-- Requires serialized live validation: yes if later classified applicable and authorized.
-- Merge-order constraints: follow the seven-slice chain; Codex integrates accepted stream results.
+- Can this workflow run in parallel? Read-only role reviews may; implementation is serial until per-slice Three Amigos and S3D approve disjoint streams.
+- Conflicting workflows: #440/#444 source/service selections, any bootstrap/installer/bridge or qualification owner sharing declared locks; re-evaluate actual branches and paths before execution.
+- Shared files: workflow context/evidence, source/readiness/admission contracts, preparation modules; root integrates common evidence.
+- Shared infrastructure: no live systems during authoring/local tests; S06/S07/S09 use only consented recoverable targets.
+- Requires isolated worktree: yes for execution and each parallel stream.
+- Requires serialized live validation: yes unless explicitly isolated targets are proved and approved.
+- Merge-order constraints: S01 through S10; integrations remain Codex-owned; qualification changes invalidate affected source proof.
 
 ## Automatic Work Distribution Policy
 
-Every workflow execute must inspect each slice for safe specialist streams, use
-real Codex subagents where supported, or record explicit role-based fallback if
-unavailable. Before implementation write `.codex/evidence/slice-<number>-distribution.md`;
-after consolidation write `.codex/evidence/slice-<number>-consolidation.md`. Codex
-remains final integration, test, evidence and publication owner.
+Every workflow execute inspects each executable slice for safe specialist streams automatically, using real Codex subagents where supported. If unavailable, perform explicit role-based fallback and record it. Write `.codex/evidence/slice-<number>-distribution.md` before implementation and `.codex/evidence/slice-<number>-consolidation.md` after consolidation. Codex remains final integration/test/evidence/publication owner.
 
 | Stream | Owner |
 |---|---|
 | Backend | Senior Python Automation Developer |
-| Frontend | Console/status UI reviewer; no browser frontend |
+| Frontend | Console/status UI reviewer; no browser application |
 | Tests | Senior Tester |
-| Runtime | Senior DevOps impact review; no live actions |
+| Runtime | Senior DevOps Engineer |
 | Documentation | Senior Documentation Engineer |
 | Quality | Senior Tester / Quality Gate Orchestrator |
 | Architecture | Senior System Architect |
-| Security | Senior Security Sandbox Engineer for failure redaction |
+| Security | Senior Security Sandbox Engineer |
 
-Do not parallelize overlapping files, unclear boundaries, contradictory requirements,
-mandatory ordering, shared migrations, schema sequencing, generated-file conflicts,
-unclear secrets handling, weakened guards or a Three Amigos not-safely-parallelizable
-decision. Adapter test streams may split only after shared contracts stabilize and
-exact files are disjoint. Shared evidence integration remains serial.
+Never parallelize overlapping files, unclear architecture, contradictory requirements, mandatory ordering, shared migrations, strict schema sequencing, generated-file conflicts, unclear secrets, weakened guards or a Three Amigos not-safely-parallelizable decision. Test streams split only after contracts stabilize and exact paths are disjoint; common evidence stays serialized.
 
 ## Git Worktree Execution Rule
 
-Use the declared workflow branch in an isolated execution worktree; verify clean
-state and branch ownership before moving a checked-out branch. Do not create a
-replacement workflow branch. Stream branches are
-`recovery/issue-355-20260926-slice-<number>-<stream>` in separate worktrees. Workers never merge directly
-to the workflow branch. Codex consolidates after review and tests. Recheck branch,
-source baseline drift and locks before every write-capable assignment.
+Authoring uses verified branch `feature/workflow-bootstrap-452-20261017` in the current checkout. Future execution uses this same branch in an isolated execution worktree after verifying clean ownership; do not create a replacement workflow branch or move a checked-out branch unsafely. Stream branches: `feature/workflow-bootstrap-452-20261017-slice-<number>-<stream>`, each with its own worktree. Workers never merge directly to the workflow branch. Codex reviews, consolidates and tests before accepting a checkpoint. Refresh baseline drift, governing hashes, target identity and locks before every write-capable assignment.
 
 ## Issue Completion Discipline
 
-- Requirement matrix path: `.tiny-swarm/evidence/issue-355/requirement_matrix.md`, seeded from `documentation/workflow/requirement-matrix.md` in S355-01.
-- Required evidence path: `.tiny-swarm/evidence/issue-355/`.
+- Requirement matrix path: `documentation/workflow/requirement-matrix.md`; issue copy `.tiny-swarm/evidence/issue-452/requirement_matrix.md`.
+- Required evidence path: `.tiny-swarm/evidence/issue-452/`.
 - Required evidence files: `requirement_matrix.md`, `implementation_summary.md`, `changed_files.md`, `test_results.md`, `remaining_risks.md`, `acceptance_checklist.md`.
-- Requirement Lead review: verify all R355-01–15 and parent constraints at S355-01 and S355-07.
-- System Architect Reviewer review: accept contract before product edits; review adapter ownership and final dependency integrity.
-- Test / Evidence Reviewer review: every row has executed verification; skips and unavailable checks remain non-success.
-- Issue Completion Auditor review: independent reviewer applies issue-completion-auditor in S355-07; implementer cannot be sole completion authority.
-- DONE blocking rule: open or unverified requirements force INCOMPLETE, BLOCKED or FAILED. Authoring readiness never means issue implementation DONE.
-
-## Quality-Gate Expectations
-
-Use targeted tests above first, then full `python3 tools/quality_gate.py quality`
-for every product slice. It runs verification-policy, lint, arch-lint, arch-tests,
-typecheck and test. Manual tests require PYTHONPATH=src. New module tests become
-executable only after their declared files exist. S355-01 is documentation-only;
-run architecture checks and diff validation. Never weaken tests or guards.
-
-Authoring validation: diff check, metadata/path/hash/link review and four-role review.
-See authoring-review.md for executed commands and any justified quality skip.
+- Requirement Lead review: all original parent/child behaviors captured, no W09 amendment silently applied to parent.
+- System Architect Reviewer review: accepted transitions, equivalent secret/source protection, existing owners and dependency direction.
+- Test / Evidence Reviewer review: exact tests/scenarios per row, latest candidate provenance and truthful unavailable states.
+- Issue Completion Auditor review: independent reviewer applies `.agents/skills/issue-completion-auditor/SKILL.md`; author/implementer is not sole completion authority.
+- DONE blocking rule: any open or unverified row forces INCOMPLETE, BLOCKED or FAILED; a planning artifact is not implementation DONE.
 
 ## Documentation Synchronization and arc42 Check Status
 
-CHECKED and updated with a PLANNED analysis and proposed ADR. Existing layer,
-lifecycle, process, Classic update, live-consent and reporting documents remain
-authoritative. S355-07 updates architecture runtime/building-block/concept records
-to implemented facts and adds the accepted ADR to the index. Refresh affected
-registry provenance hashes only; no registry/governance semantic changes.
+CHECKED: accepted current W07 reconciliation supersedes stale reset-default descriptions. This authoring corrects only that factual drift in runtime view and adds `documentation/arc42/05_analysis/issue-452-bootstrap-completion-plan.md` with explicitly PLANNED/UNQUALIFIED future transitions. Existing deployment/risk/ADR documents remain authority; S10 synchronizes verified results into runtime/deployment/risk and user docs. Proposed release/admission ADR is a NEW S01 deliverable, not an accepted authoring decision.
 
-## Stop Conditions and Uncertainty Escalation
+## Stop Conditions and Typed Error Router
 
-Stop for branch mismatch, unrelated edits, stale governing hashes, lock conflicts,
-missing paths/owners, scope gaps, unaccepted ADR, unsafe diagnostics, false partial
-or rollback claims, changed safety/exit behavior, missing evidence or failed gates.
-Typed Error Router: ARCH_VIOLATION -> Architect; TEST_FAILURE -> Tester and owner;
-BUILD_FAILURE -> Python/DevOps; DOC_GOVERNANCE_FAILURE -> documentation/requirements;
-LOCK_CONFLICT -> S3D orchestrator; UNKNOWN_FAILURE -> Root Architect.
-Fix ordinary in-scope defects without weakening gates. Never call workflow create
-backwards from workflow execute; reviewed scope amendments precede affected writes.
+Stop for unknown ownership, branch/hash mismatch, unrelated edits, lock conflicts, missing paths, unaccepted ADR, unsafe credentials/source/config semantics, unsupported targets, consent mismatch, false qualification, failed required gates or unavailable completion evidence. ARCH_VIOLATION -> Architect; BUILD_FAILURE -> Python owner/DevOps; TEST_FAILURE -> Tester/owner; DOC_GOVERNANCE_FAILURE -> Documentation/Requirements; LOCK_CONFLICT -> S3D orchestrator; UNKNOWN_FAILURE -> Root Architect. Correct ordinary in-scope defects without lowering gates. `workflow execute` never calls `workflow create` backwards.
 
 ## Definition of Done
 
-All fifteen requirements implemented, verified and independently audited; truthful
-results in all four lifecycle families; expected boundary failures translated;
-CLI/installer compatibility and redaction retained; full local quality PASS;
-evidence complete and arc42 accurate. Live/external state remains separate.
+Original BOOT-01–09 and all parent/child acceptance obligations implemented and verified, both families have final-candidate clean/repeat/recovery proof, ordinary admitted Windows path works, exact versions and source are published, meaningful quality gates pass, evidence package is complete, and independent auditor returns PASS. No new HA/fleet/whole-host rollback claim. No GitHub issue closure is performed as part of authoring or execution without instruction.
 
 ## Commit and Push Plan
 
-Workflow-create publication uses git-commit-preparation and message-preparation:
-review only regenerated workflow files, planned analysis and proposed ADR, commit,
-then push HEAD only to `origin/recovery/issue-355-20260926`. No PR, merge, force-push, branch deletion
-or cleanup. Workflow-create-only push auto remains guarded. Later workflow execute
-creates exactly one commit and branch checkpoint push per accepted slice.
+Authoring publication: apply git-commit-preparation and message-preparation, stage only regenerated workflow, required arc42 sync and issue-452 authoring evidence, commit after independent diff review and documentation checks, push only HEAD to `origin/feature/workflow-bootstrap-452-20261017`, verify remote SHA. No PR/merge/force-push/deletion/cleanup. Workflow-create-only `push auto` remains guarded. Future workflow execute creates exactly one slice per commit/checkpoint push; corrections have their own current-slice checkpoint. Failed required gates block publication.
 
-## Historical authoring handoff to workflow execute
+## Handoff to workflow execute
 
-Verify publication commit from Git and matching remote ref; check workflowVersion,
-branch, clean state, all governing hashes, actual source/issue drift and S3/S3D locks.
-Begin S355-01; do not skip the inventory/ADR decision. All implementation slices
-remain NOT STARTED. Context packs are navigation aids, never authority. Final
-publication SHA and remote verification are recorded in the authoring handoff;
-resolve the commit containing this file rather than embedding a self-reference.
-
-## S355-01 inventory scope amendment
-
-The lifecycle inventory identifies additional existing file-storage, preflight, WSL
-exposure/preparation and composition-helper boundaries. S355-03 metadata includes
-the exact translation-only paths and tests. NEW file: tests/infrastructure/adapters/
-file_management/test_local_file_storage.py. No new platform behavior is authorized.
-Architecture review accepted the narrow additions; final inventory review records
-Four-Role acceptance before any product edits. See lifecycle-failure-inventory.md.
-
-## Execution progress
-
-- S355-01 ACCEPTED: complete lifecycle inventory, concrete schema, reviewed scope amendments and accepted ADR. Four independent role reviews PASS; arch-tests 26 PASS; diff/path checks PASS. Product implementation starts in S355-02.
-- Execution worktree: /mnt/d/Projects/Tiny-Swarm-World-worktrees/issue-355; execution branch now follows the user-approved recovery branch.
-
-- S355-02 ACCEPTED: Immutable safe operation contract, compatible application-owned command errors with cause preservation, and conservative real platform factory integration. Targeted 64 tests PASS; full quality PASS: 2188 tests in 294.844s; independent architecture/test review PASS.
-  Excluded test cases: 18 (reported by unittest).
-
-## S355-03 reviewed helper scope
-
-Architect approved a new pure operation_failure_mapping infrastructure helper and
-its test package, plus catalogue/error-bridge additions in the shared port contract
-and its tests. Exact paths are in S355-03 metadata. No decorators, catch-all wrappers,
-I/O, retry changes or outcome redesign in the helper. Adapters catch narrow technical
-errors at actual operations; expected RuntimeError raise sites are replaced directly.
-
-S355-03 additional reviewed test scope: Architect approved test_file_manager.py
-controlled_walk fixture accepting standard onerror keyword; preserve pruning assertions.
-
-- S355-03 ACCEPTED: Translated lifecycle adapter failures through compatible safe capability errors; preserved control flow, storage atomicity and legacy workflow status. Targeted metadata suites 86, 84, 18 PASS; regression repair 40 PASS; expanded 172 and repository 105 PASS (overlap); full quality PASS: 2208 tests in 241.374s; independent architecture/test review PASS. Test exclusions: 18.
-
-## Reviewed S04/S05 pure aggregation helper scope
-
-Architect approved application/services/shared/operation_results.py and matching
-tests/application/services/shared/test_operation_results.py. Pure aggregation of
-explicit work and typed children; no inference from arbitrary status/IDs/messages,
-no I/O, retries, silent identity conflicts or discarded uncertainty. Workflow owns
-requested-work versus prerequisite semantics; recovery requires observed evidence.
-
-- S355-04 ACCEPTED: Platform producers retain explicit requested progress, safe origins, uncertainty and verified recovery through the shared result contract. Targeted declared/helper 161 PASS; complete platform 221 PASS (overlap); full quality PASS: 2227 tests in 241.428s; independent architecture/test review PASS. Test exclusions: 18.
-
-S05 reviewed Nexus scope: three composed artifact steps and two existing suites
-are approved for structured propagation only. Preserve retry counts/delays and
-NexusAdminAccessRecoveryBlocked subtype, diagnostic and operator_action semantics.
-
-S05 aggregation clarification (Architect and Requirement concurrence): parent
-setup failures describe active failures. A verified rolled_back child retains its
-complete historical failure context in SetupPhaseResult.operation_result and
-nested serialization, but resolved history does not fail an otherwise completed
-setup request. Parent success requires no active failures, pending or uncertain
-work and never asserts parent rollback_verified. Failed/unverified recovery is
-not excluded. Regression tests must cover a later active failure with both
-contexts still observable. Existing completed/continue behavior is preserved.
-
-- S355-05 ACCEPTED: four-family propagation, safe diagnostics and deterministic progress; expanded 232 and correction 31 targets passed (overlap); full quality passed, 2243 tests in 256.751s, 18 exclusions. Independent Architect/Security/Tester reviews PASS.
-
-## Authorized branch continuation
-
-The user explicitly selected `recovery/issue-355-20260926` after the external
-branch change. This existing branch retains checkpoint a9a59466 and all S05
-changes. All subsequent slice checkpoints target this branch on origin.
-Historical authoring records retain their original publication context.
-
-S355-05 completeness audit reopened acceptance before checkpoint: Infisical CLI
-bootstrap failure context and known endpoint-readiness failure classifications
-require verification/correction. No checkpoint is authorized until the complete
-inventory review, focused regressions and a new full gate pass.
-
-S05 reviewed completeness correction: Architect approved the blocked-workflow
-composition producer and artifact_readiness adapter/test paths in S05 metadata.
-Scope is additive blocked results and trust-safe indexed origin propagation only;
-existing deployment/artifact/setup scopes cover consumer corrections. No domain
-imports, arbitrary legacy-origin trust, retries or runtime policy changes.
-Endpoint-readiness evidence already preserves timeout/connection/HTTP status;
-common verification_failed is an intentional compatible collapse. Verify that
-composed evidence remains intact instead of inventing a granularity requirement.
-
-S355-05 complete-inventory corrections ACCEPTED: all six findings and progress edges verified; full quality 2251 tests in 277.050s, 18 exclusions; architecture/inventory, Security and Tester PASS. Checkpoint resumes on recovery branch.
-
-S355-05 checkpoint published: bd7516589db36251a40530d7ac2849ef7a9e7342; origin/recovery/issue-355-20260926 verified. S355-06 starts after clean-state validation.
-
-S355-06 ACCEPTED: pure operation summaries and CLI/installer compatibility regressions; 161 declared targets and65 package targets passed (overlap); full quality 2255 tests in 244.572s, 18 exclusions; Console/Architect/Tester PASS.
-
-S355-06 checkpoint published 296171fc07ccd5e52328dd28f2f8a93e09c959df; remote recovery ref verified clean. S355-07 begins with serial documentation then architecture/evidence work.
-
-S355-07 local verification PASS: 30 architecture tests and6 import rules, final quality 2259 tests in 242.316s, 18 exclusions. Requirement/Architect/Tester source reviews PASS. Independent issue completion audit is next.
-
-## Final issue completion
-
-Independent issue-completion-auditor PASS. All R355-01–15 implemented, verified
-and evidenced; no open requirement. Final quality 2259 tests in 242.316s, 18
-exclusions; 6 import contracts and30 architecture tests passed. Local DONE.
-Final audit: .tiny-swarm/evidence/issue-355/completion_audit.md. No live/browser
-or external success claimed. Final S07 checkpoint publishes to the approved
-recovery branch; no PR/merge/cleanup is part of this workflow.
+Resolve the workflow-authoring commit from Git and matching remote ref; verify clean state, branch, workflowVersion, governing hashes and source/issue drift. Run S3/S3D before writes; topological order is the serial graph above. Start S452-01, accepting policy decisions before product work. Live work pauses until concrete targets, recoverability and fresh consent exist; continue independent authorized local work when possible. Publication SHA and target are reported in the final handoff rather than a self-referential file hash.

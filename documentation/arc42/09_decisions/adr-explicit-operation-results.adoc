@@ -81,7 +81,7 @@ architecture rules remain in force. Local verification does not claim live succe
 == S355-01 concrete schema and compatibility review
 
 The accepted implementation schema is defined in
-`documentation/workflow/lifecycle-failure-inventory.md`: OperationOutcome,
+link:https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/blob/2bdee76038c433faef13595b981375b1baaf447c/documentation/workflow/lifecycle-failure-inventory.md[completed #355 boundary inventory]: OperationOutcome,
 Recoverability, frozen OperationFailure, frozen OperationResult with failures and
 completed/pending/uncertain operation tuples plus rollback_verified, and OperationError.
 The inventory fixes invariants, adapter mappings, exclusions and safe cause/action

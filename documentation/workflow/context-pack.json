@@ -1,63 +1,76 @@
 {
-  "workflowId": "issue-355-operation-results",
+  "workflow_id": "issue-452-bootstrap-completion",
   "workflowVersion": "1.0",
-  "branch": "recovery/issue-355-20260926",
-  "baseline": "3487ce322bb2b251a45695fc88a70ffa8132b0de",
-  "processStrand": "workflow execute",
+  "baseline": "2bdee76038c433faef13595b981375b1baaf447c",
+  "branch": "feature/workflow-bootstrap-452-20261017",
+  "process_strand": "workflow create",
   "executionProfile": "FULL_PATH",
-  "status": "DONE",
-  "implementationStatus": "ALL_REQUIREMENTS_VERIFIED_AUDIT_PASS",
-  "affectedAreas": [
-    "application result contracts",
-    "lifecycle adapters",
-    "platform/artifacts/deployment/setup",
-    "CLI/installer compatibility"
+  "status": "AUTHORED; NOT EXECUTED; EPIC INCOMPLETE",
+  "affected_areas": [
+    "bootstrap source/secret policy",
+    "Windows lifecycle/admission",
+    "Linux source/runtime handoff",
+    "qualification evidence",
+    "operator docs"
   ],
-  "forbiddenAreas": [
-    "live infrastructure",
-    "new retry/rollback/idempotency policy",
-    "provider/process replacement",
-    "persistence redesign",
-    "Java/React/Kubernetes expansion"
+  "forbidden_areas": [
+    "Java/Spring",
+    "React browser frontend",
+    "provider replacement",
+    "live changes without consent",
+    "unrelated service selection"
   ],
-  "requiredRoles": [
+  "required_roles": [
     "Senior Requirement Engineer",
     "Senior System Architect",
     "Senior Python Automation Developer",
     "Senior Tester",
+    "Senior Documentation Engineer",
+    "Senior DevOps Engineer",
+    "Senior Security Sandbox Engineer"
+  ],
+  "conditional_roles": [
     "Console/status UI reviewer"
   ],
-  "conditionalRoles": [
-    "Senior DevOps",
-    "Senior Security Sandbox Engineer",
-    "Senior Documentation Engineer"
-  ],
-  "qualityCommands": [
+  "quality_commands": [
     "git diff --check",
+    "python3 tools/quality_gate.py verification-policy",
     "python3 tools/quality_gate.py quality"
   ],
-  "governingFileHashes": {
+  "governing_hashes": {
     "AGENTS.md": "bc0e6e0c09ac3d61a450a7fe16c3e4de9e6fbb8bdc688aad58f10a3d18b31041",
-    "QUALITY.md": "7097ff31c68f178fe685c1d7d5cbc18c257a7cf5d2f727979fb2b5ab9c029c7e",
-    ".importlinter": "84889a873b58e60f24d3e9eb2a574f20c41e7a926f22eab8dfce73b51dd401e1",
+    "QUALITY.md": "8922817c794f545fd4babf6ccf7fc6458baad0853ff2ca2a0526ff246220d76a",
     "documentation/process/issue-completion-discipline.md": "3db2d080b7cfbbc3737907a61c67ce6a361485c8993cf4a20c1c5fe2dc743bc3",
-    "documentation/process/verification-state-policy.md": "5b6e2eefde66a1b8492afafc2976e59ac40f16e7100f79f730b97b254febdcfd",
-    "documentation/process/workflow-create.md": "5df5fb70ddc25ef2d8ad2129590e780bfee610521860fb0991e57c38dab3542f",
+    "documentation/process/verification-state-policy.md": "df09d34a65b2d01a2c11ddd100c7fd7d1ab58a33198ae695deea1aab7d8b817f",
     "documentation/process/branch-governance.md": "1472428b96f84aacb988d55a06c310dca38b64dc12c146c4f5d81dafb1e8375c",
     ".agents/orchestrator/routing-rules.md": "3accea3112bc207eda96e02b3fe4831b79669f7c8f6a5668f577fca7d0fed050",
+    "documentation/process/skills/audit/owner-map.md": "6e20656042fe3f0651ac96e3527cb37a4cc4e24a82c3efb3cfd9e5cde198b335",
     ".agents/skills/workflow-authoring/SKILL.md": "5733f64086f113d578544b4d2d0297554237296adf0dc2df5ebe641e50dec9e5",
-    ".agents/skills/execution-profile-router/SKILL.md": "45cf509082e3d9036379228a4c1a195cb22a05f11487e10a5c4000e8aad9608e",
     ".agents/skills/three-amigos-requirement-gatekeeper/SKILL.md": "76659e618cb706e8990cdf44441aeaed219465044175826adca5357ae8acc5b4",
-    "documentation/arc42/05_analysis/arch-03-02-layer-contracts.md": "c5d197593c44a06fc6310f7209be7d22352c679380f7964e4ca6ddf04facee3a",
-    "documentation/arc42/05_analysis/arch-03-08-platform-lifecycle-orchestrator.md": "e4494f2f5ac312a1d464b1dada96bc298fd982a1d13e137f21ca41cb29f6b37f",
-    "documentation/arc42/05_analysis/arch-03-11-process-execution.md": "9fe907db4b9c420e49539f8348dd3463179de1d273db12060f966e06c0392b77",
-    "documentation/arc42/09_decisions/adr-classic-update-contract.adoc": "50fab597b07c8eb15bc839df7283214d7dc72e01f096f0e18fba021772a841d2",
-    "documentation/arc42/09_decisions/adr-installer-console-reporting-policy.adoc": "f510c8470d57b7b763496db5ddef93b167276adf9c78958394c8b0a75a8bdf8c",
-    "documentation/arc42/09_decisions/adr-explicit-operation-results.adoc": "cf4f969e59f176ebee038d857edf49507e418ccf17ff6bbda2f2515721c54bd9",
-    "documentation/arc42/05_analysis/arch-03-12-operation-results.md": "a64120ddebaf15531e55724338205b43ff95c7b01a11458151bff63104898a22",
-    "documentation/workflow/workflow.md": "801dae75157413714a418e15c3f62aa07105639befae304d987863b0f0695707",
-    "documentation/workflow/requirement-matrix.md": "f8848259109f6845d970a8502f5074138af2588a1344a59a95bff5216cc34c76",
-    "documentation/workflow/authoring-review.md": "21a9b5aa5635e080e41be82643cb22f67ce47713d6f51b5febec0904f44f5080",
-    "documentation/workflow/lifecycle-failure-inventory.md": "50db2c0767d30e8bf75939035f0a09dfe0fdb4553432f2751a746f9ed5e22ee8"
-  }
+    ".agents/skills/execution-profile-router/SKILL.md": "45cf509082e3d9036379228a4c1a195cb22a05f11487e10a5c4000e8aad9608e",
+    "documentation/arc42/09_decisions/adr-bootstrap-command-readiness-contract.adoc": "223d37ff05bc2c4e2b170c79ed3f63ec66e82871582cf234e37a9773863edb6f",
+    "documentation/arc42/09_decisions/adr-explicit-incus-preparation.adoc": "f44b2d2c97a64e15f0f1b7a6c68d2ee984e601c92f910f409f816de468977146",
+    "documentation/arc42/09_decisions/adr-native-linux-preparation-and-install-lifecycle.adoc": "969ea8953300b05556d6dab6eda68370972715989252c0430e9c02037b11ac4a",
+    "documentation/arc42/09_decisions/adr-scoped-bootstrap-network-preparation.adoc": "67ce23de51a31665d37e064c65af7f0aaee9f87e1271d213f9c18ab99057d55c",
+    "documentation/arc42/09_decisions/adr-shared-ubuntu-prerequisite-bootstrap.adoc": "3ddc2cb3774678663030b13069bf009aaef91751011e403404b08b8086408db2",
+    "documentation/arc42/09_decisions/adr-windows-wsl-lifecycle-preparation.adoc": "8f2e3631aba053adccbe83e0a3360dbc2be96857b7420c02e5c993aa5c33a4bf",
+    "documentation/arc42/09_decisions/adr-wsl-capacity-adaptation.adoc": "d83f13e33b968f71531f8e420efac9f9ecafadc48532509332e848c4d1b17753",
+    "documentation/arc42/09_decisions/adr-wsl-install-reconciliation.adoc": "27d74dafae7777675b1b3c52e8f714e323bc096ae5cd6d7aa2b5127ea3ce0845",
+    "documentation/arc42/05_analysis/arch-03-12-operation-results.md": "b6bc2a0843da2f16191a75987c594299b207033230fa4739f93c94700b2165c3",
+    "documentation/arc42/09_decisions/adr-explicit-operation-results.adoc": "395e70e9fba3676615fe024be1457a3e1900273a3e41f9a59866e95d17f16ec5"
+  },
+  "slice_order": [
+    "S452-01",
+    "S452-02",
+    "S452-03",
+    "S452-04",
+    "S452-05",
+    "S452-06",
+    "S452-07",
+    "S452-08",
+    "S452-09",
+    "S452-10"
+  ],
+  "source_snapshot": "documentation/workflow/issue-source-snapshot.json",
+  "authority": "Navigation aid only; any changed governing hash or conflict invalidates this cache."
 }
