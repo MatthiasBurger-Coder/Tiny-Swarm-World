@@ -191,3 +191,7 @@ The full #456 body contains additional normative requirements. These rows retain
 ## Evidence contract
 
 At S01 copy this matrix into `.tiny-swarm/evidence/issue-452/requirement_matrix.md`, expand every shared clause if needed, and replace planning references with exact paths/test names/exits. Never delete an open requirement to obtain PASS. W09 scope deferral is not a parent amendment. All original acceptance rows remain binding.
+
+## Current relevance disposition — 2026-10-17
+
+See [relevance-review.md](relevance-review.md). All original parent and child obligations remain. Reuse delivered source proof/preparation/recovery owners. Automatic source copying and Selenium are optional implementation choices; new destructive retesting is not an unconditional acceptance requirement. This review changes planning scope only and marks no implementation/live acceptance DONE.

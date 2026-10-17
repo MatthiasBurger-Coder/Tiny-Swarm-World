@@ -13,3 +13,9 @@ Final independent architecture and requirement reviews: PASS for authoring publi
 Executed validation: git diff --check PASS; python3 tools/quality_gate.py verification-policy PASS; inline standard-library metadata validator PASS (JSON, ten YAML flow metadata blocks, dependency order, declared locks, existing/explicit NEW paths, local workflow links, governing hashes, issue snapshot). Full local quality omitted for this documentation-only authoring, per QUALITY.md; targeted verification-policy and diff/static checks required. No failed gate is waived.
 
 Commit review identified historical #355 inventory links affected by regeneration. Analysis/ADR references now point to the verified immutable baseline blob; accepted decision content is unchanged. Final verification-policy rerun PASS.
+
+## Relevance amendment — workflowVersion 1.1
+
+User asked to execute the ten steps or check continued relevance. Independent Requirement, Architecture, Python and Test reviews rechecked current code/evidence. The relevance alternative is completed in relevance-review.md; product slices remain unstarted. Plan corrected to reuse archive proof, treat automatic source copy as optional, inventory existing recovery coverage and avoid invented mandatory Selenium/destructive-retest scope. No ADR or live decision was accepted by this review. Final checks and independent review are recorded with the report.
+
+Final relevance review: Requirement and Architecture PASS; Tester confirms the three initial environment-sensitive failures and successful unchanged focused prepared-venv rerun. Original 342-test result retained as339/3; no full-suite venv success claimed. Current policy/diff/static checks PASS, full quality omitted for documentation-only correction.

@@ -1,8 +1,8 @@
 # EPIC #452 — Complete bootstrap and qualify the simple install paths
 
 Workflow ID: issue-452-bootstrap-completion
-workflowVersion: 1.0
-Status: AUTHORED; S452-01–10 NOT STARTED; EPIC INCOMPLETE
+workflowVersion: 1.1
+Status: RELEVANCE REVIEWED; S452-01–10 implementation NOT STARTED; EPIC INCOMPLETE
 Issue: https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/452
 Branch: `feature/workflow-bootstrap-452-20261017`
 Baseline: `2bdee76038c433faef13595b981375b1baaf447c`
@@ -12,7 +12,7 @@ Execution profile: FULL_PATH — cross-host bootstrap, secret/source protection,
 
 Deliver the original two preparation entrypoints followed by installation from a trusted extracted release or checkout, on qualified native Ubuntu and Windows11/WSL2 targets. Reuse all ten CLOSED children #453–#462. Their closure does not satisfy the parent: W10 explicitly records INCOMPLETE and W09 passed its amended existing-host scope only. This workflow covers all ten packages through a full requirement crosswalk and ten remaining-work slices, not ten repeated implementations.
 
-The starting condition is possession of the complete trusted source. Account creation, elevation, unavoidable reboot/session boundaries and reruns remain guided operator interactions. No hidden manual checkout, pip/venv, Incus YAML or network setup can satisfy the default path. Preparation READY is separate from installation, browser and authenticated service success.
+The starting condition is possession of the complete trusted source. Account creation, elevation, unavoidable reboot/session boundaries and reruns remain guided operator interactions. The Linux-native source location must be an explicit starting condition or guided preparation step. Automatic source copying is optional under the existing bootstrap contract; undocumented source placement, manual pip/venv, Incus YAML or network setup cannot be hidden in the default path. Preparation READY is separate from installation, browser and authenticated service success.
 
 ## Requirement Clarification Gate
 
@@ -93,13 +93,19 @@ flowchart TD
 
 Serial baseline is deliberate: source/trust/qualification decisions and shared files cross slices; final admission changes require new ordinary-path evidence. No cycle uses final qualification to authorize its own initial candidate run: guarded candidate mode exists already; final ordinary path is tested after reviewed admission.
 
+## Relevance Review — 2026-10-17
+
+The user's alternative request to check the ten steps is completed in [relevance-review.md](relevance-review.md). W01–W10 delivered capabilities remain reusable; closed children are not ten missing implementations. S02/S03/S08 retain concrete product gaps, S04 is a coverage-first follow-up, S01/S05 are targeted contract/candidate preparation, and S06/S07/S09/S10 retain original evidence/final-audit obligations. No slice is silently removed. Automatic source copying, a mandatory Selenium suite, blanket destructive retesting and whole-OS recovery are not added acceptance requirements.
+
+This is a reviewed planning correction, not completion of S452-01 or authorization for live changes. Required architecture decisions and all product/live execution gates remain open.
+
 ## Ordered Slices
 
 All slices inherit common issue evidence and workflow locks below. All statuses are NOT STARTED. NEW paths are proposals approved only within S01 architecture decisions, not evidence of existing implementation.
 
 ### Slice 01 — Inventory, decisions and complete requirement baseline
 
-Purpose: Revalidate W01–W10 owners and historical evidence. Accept a narrowly scoped ADR for archive secret/source protection, Linux source delivery before Python and evidence-bound Windows release admission. Define source identity, archive membership/traversal/ownership rules, ordinary-user checkout selection, independent expected revision, admission invalidation and exact status/exit compatibility. Define the supported starting point as an extracted trusted release or checkout; acquisition uses OS tools without remote pipe-to-shell. Decisions must preserve equivalent secret protection and must be accepted by architecture/security before S02/S03/S08. Do not retroactively accept the whole historical W01 proposal.
+Purpose: Revalidate W01–W10 owners and historical evidence. Accept a narrowly scoped ADR for archive secret/source protection, dependency-light Linux source inventory before Python and evidence-bound Windows release admission. Define source identity, archive membership/traversal/ownership rules, ordinary-user checkout selection, independent expected revision, admission invalidation and exact status/exit compatibility. Define the supported starting point as an extracted trusted release or checkout; acquisition uses OS tools without remote pipe-to-shell. Decisions must preserve equivalent secret protection and must be accepted by architecture/security before S02/S03/S08. Do not retroactively accept the whole historical W01 proposal.
 
 Prerequisites: checked branch/workflow/S3-S3D preflight; complete requirement intake. Owner: Senior System Architect. Allowed write scope and locks are exact metadata scopes; common evidence is integration-owned. All other files require reviewed amendment before edits.
 
@@ -129,7 +135,7 @@ Parallel execution eligibility: NOT_SAFELY_PARALLELIZABLE baseline. Conflicting 
 
 ### Slice 02 — Trusted release and Git-independent installation protection
 
-Purpose: Implement the S01-approved release/secret policy through existing ports and probe adapters. The actual archive blocker is PlatformPreflightService._ignore_policy_checks and NativeHostPreflightProbe.path_ignored_by_git, not the optional installation evidence warning. Verify a complete versioned release and separately trusted revision without Git/Python as entrypoint prerequisites. Protect local credentials/evidence and reject unsafe owners, traversal, symlinks, tampering, missing assets and ambiguous source. Preserve Git checkout behavior; do not bypass existing ignore guards or silently initialize Git. Read-only paths write no state/evidence.
+Purpose: Implement only the unresolved S01-approved archive secret policy through existing ports and probe adapters; reuse the accepted offline source-proof architecture and existing Gitless archive verifier instead of rebuilding them. The actual archive blocker is PlatformPreflightService._ignore_policy_checks and NativeHostPreflightProbe.path_ignored_by_git, not the optional installation evidence warning. Verify a complete versioned release and separately trusted revision without Git/Python as entrypoint prerequisites. Protect local credentials/evidence and reject unsafe owners, traversal, symlinks, tampering, missing assets and ambiguous source. Preserve Git checkout behavior; do not bypass existing ignore guards or silently initialize Git. Read-only paths write no state/evidence.
 
 Prerequisites: S452-01. Owner: Senior Python Automation Developer. Allowed write scope and locks are exact metadata scopes; common evidence is integration-owned. All other files require reviewed amendment before edits.
 
@@ -159,7 +165,7 @@ Parallel execution eligibility: NOT_SAFELY_PARALLELIZABLE baseline. Conflicting 
 
 ### Slice 03 — Dependency-light Windows source and Linux runtime handoff
 
-Purpose: Remove the default-path requirement for manually placing the Linux checkout and manually running preparation merely to satisfy a Python-dependent source probe. Use only the S01-approved trusted local source delivery, preserving account/root/symlink/source checks and refusing unrelated destination collisions. Keep early probes dependency-light and read-only. Apply consent must cover any source delivery and package work; never copy secrets or assume distro name proves release. Guide unavoidable ordinary account creation and stop at restart/session boundaries. An optional explicit install handoff delegates to the selected WSL user, retains separate install consent and propagates exits. Keep entrypoints thin and product Python Linux-only.
+Purpose: Remove the need to run preparation manually merely to satisfy a Python-dependent source probe. Keep the source starting location explicit: an existing user-owned Linux-native checkout/release is supported by the current contract. Automatic copy is an optional remedy, not a new mandatory EPIC requirement; if selected, require the S01-reviewed exact local copy plan and consent. Reuse existing source proof, preserve account/root/symlink/source checks and refuse unrelated destination collisions. Keep early probes dependency-light and read-only. Apply consent must cover any source delivery and package work; never copy secrets or assume distro name proves release. Guide unavoidable ordinary account creation and stop at restart/session boundaries. An optional explicit install handoff delegates to the selected WSL user, retains separate install consent and propagates exits. Keep entrypoints thin and product Python Linux-only.
 
 Prerequisites: S452-02. Owner: Senior Python Automation Developer. Allowed write scope and locks are exact metadata scopes; common evidence is integration-owned. All other files require reviewed amendment before edits.
 
@@ -189,7 +195,7 @@ Parallel execution eligibility: NOT_SAFELY_PARALLELIZABLE baseline. Conflicting 
 
 ### Slice 04 — Preservation, read-only and full-entrypoint recovery coverage
 
-Purpose: Inventory existing coverage and add only missing behavior regressions and demonstrated fixes. Cover aggregate no-write preflight/dry-run (host/config/state/evidence), plan drift and consent rejection, APT locks/download failure, full-entrypoint interruption/resume, protected checkpoint corruption/concurrency/ownership and uncertain effects. Cover minimum/insufficient/adequate capacity and Windows reserve; preserve .wslconfig, wsl.conf, unrelated distros/Incus pools/networks/profiles/nodes and credentials. Reuse the canonical port registry and bridge owner. Diagnostics show stage, confirmed/uncertain effects, scope of restart and one exact next command retaining selection. No automatic reset, state deletion, retries or whole-host rollback.
+Purpose: Inventory the substantial existing recovery/preservation coverage first; add only demonstrated coverage gaps and fixes. Do not reimplement checkpoint, preservation or resource owners because their live verification remains incomplete. Cover aggregate no-write preflight/dry-run (host/config/state/evidence), plan drift and consent rejection, APT locks/download failure, full-entrypoint interruption/resume, protected checkpoint corruption/concurrency/ownership and uncertain effects. Cover minimum/insufficient/adequate capacity and Windows reserve; preserve .wslconfig, wsl.conf, unrelated distros/Incus pools/networks/profiles/nodes and credentials. Reuse the canonical port registry and bridge owner. Diagnostics show stage, confirmed/uncertain effects, scope of restart and one exact next command retaining selection. No automatic reset, state deletion, retries or whole-host rollback.
 
 Prerequisites: S452-03. Owner: Senior Python Automation Developer. Allowed write scope and locks are exact metadata scopes; common evidence is integration-owned. All other files require reviewed amendment before edits.
 
@@ -219,7 +225,7 @@ Parallel execution eligibility: NOT_SAFELY_PARALLELIZABLE baseline. Conflicting 
 
 ### Slice 05 — Freeze candidate and prepare full live qualification matrix
 
-Purpose: Create scenario IDs, exact commands, expected exits, source/release artifact hashes, target/version inventory, before/after preservation observations and recovery procedures. Resolve native/WSL Ubuntu24.04/26.04 rows individually as qualified, unqualified or unsupported; do not claim all candidates are qualified. At least one clean supported target per family must exercise the full original EPIC path. Read latest W09 amendments without transplanting existing-host proof. Define browser, route and service-authentication checks separately from preparation readiness. Define a recoverable fresh native host and clean Windows/WSL target, fault injection boundaries, safe snapshot/backup scope and candidate admission evidence. No live commands execute in this planning slice.
+Purpose: Create scenario IDs, exact commands, expected exits, source/release artifact hashes, target/version inventory, before/after preservation observations and recovery procedures. Resolve native/WSL Ubuntu24.04/26.04 rows individually as qualified, unqualified or unsupported; do not claim all candidates are qualified. At least one clean supported target per family must exercise the full original EPIC path. Read latest W09 amendments without transplanting existing-host proof. Define browser, route and service-authentication checks separately from preparation readiness. Browser-routing recovery is required; Selenium is not a mandated implementation. Reuse the W09 scenario matrix and exact-source results that remain applicable. Define a recoverable fresh native host and clean Windows/WSL target, fault injection boundaries, safe snapshot/backup scope and candidate admission evidence. No live commands execute in this planning slice.
 
 Prerequisites: S452-04. Owner: Senior DevOps Engineer. Allowed write scope and locks are exact metadata scopes; common evidence is integration-owned. All other files require reviewed amendment before edits.
 
@@ -279,7 +285,7 @@ Parallel execution eligibility: NOT_SAFELY_PARALLELIZABLE baseline. Conflicting 
 
 ### Slice 07 — Qualify clean Windows/WSL lifecycle and browser routing
 
-Purpose: After separate Windows/WSL consent and recovery prerequisites, execute S05 matrix on clean supported Windows11/WSL2 with the selected ordinary-user Ubuntu distro, using existing guarded candidate mode until S08 admission. Cover feature/distro/systemd creation, account interactions, reboot and WSL-wide/selected-distro restarts, capacity boundaries and preservation, source transfer before Python, prepare/install/rerun, actual group transition, actual IP change and existing bridge refresh, port collisions, download/interruption/resume, unrelated-resource and credential preservation. Verify browser routing and service authentication as separate outcomes; API tests alone are not browser/Selenium success. Existing reset isolation must be demonstrated on a separately consented disposable target if required; ordinary installs never reset.
+Purpose: After separate Windows/WSL consent and recovery prerequisites, execute S05 matrix on clean supported Windows11/WSL2 with the selected ordinary-user Ubuntu distro, using existing guarded candidate mode until S08 admission. Cover feature/distro/systemd creation, account interactions, reboot and WSL-wide/selected-distro restarts, capacity boundaries and preservation, verified Linux-native source starting point and dependency-light inventory before Python, prepare/install/rerun, actual group transition, actual IP change and existing bridge refresh, port collisions, download/interruption/resume, unrelated-resource and credential preservation. Verify browser routing and service authentication as separate outcomes; API tests alone are not browser/Selenium success. Evaluate existing exact-source reset-isolation evidence first. A new destructive reset run is not automatically required; only separately authorized, invalidated or uncovered acceptance needs a disposable live target. Ordinary installs never reset.
 
 Prerequisites: S452-06. Owner: Senior DevOps Engineer. Allowed write scope and locks are exact metadata scopes; common evidence is integration-owned. All other files require reviewed amendment before edits.
 
@@ -339,7 +345,7 @@ Parallel execution eligibility: NOT_SAFELY_PARALLELIZABLE baseline. Conflicting 
 
 ### Slice 09 — Exercise final ordinary two-command paths at final candidate
 
-Purpose: Freeze final committed product and release artifact, review S08 source-change impact and obtain fresh consent for affected clean targets. Rerun final native and Windows ordinary operator paths with no candidate qualification flags, including extracted source. Count starting-condition acquisition, account creation and unavoidable restart/resume actions explicitly; hidden checkout/Python/network prerequisites fail acceptance. Reverify affected lifecycle/preservation/recovery scenarios after any behavior change and preserve historical evidence with its original SHA. Publish exact qualified versions; mark all other rows unqualified or unsupported. Missing runtime/browser/Selenium/external access remains the canonical non-success state.
+Purpose: Freeze final committed product and release artifact, review S08 source-change impact and obtain fresh consent for affected clean targets. Rerun final native and Windows ordinary operator paths with no candidate qualification flags, including extracted source. Count starting-condition acquisition, account creation and unavoidable restart/resume actions explicitly; undocumented checkout/Python/network prerequisites fail acceptance. Reverify affected lifecycle/preservation/recovery scenarios after any behavior change and preserve historical evidence with its original SHA. Publish exact qualified versions; mark all other rows unqualified or unsupported. Missing runtime/browser/Selenium/external access remains the canonical non-success state.
 
 Prerequisites: S452-08. Owner: Senior DevOps Engineer. Allowed write scope and locks are exact metadata scopes; common evidence is integration-owned. All other files require reviewed amendment before edits.
 
@@ -369,7 +375,7 @@ Parallel execution eligibility: NOT_SAFELY_PARALLELIZABLE baseline. Conflicting 
 
 ### Slice 10 — Synchronize operator docs and independently audit EPIC closure
 
-Purpose: Publish concise copyable preparation/install commands, exact prerequisites and qualified versions, account/elevation guidance, resources, restart/session actions, access URLs/credential sources and concrete recovery. Keep developer setup separate. Update arc42 only to verified behavior and preserve W09/W10 historical amendments and evidence. Populate six issue evidence files and complete every parent/child matrix row. Independent Requirement Lead, Architect and Test/Evidence reviews precede issue-completion-auditor; implementer cannot be sole completion authority. Audit outputs PASS/INCOMPLETE/BLOCKED/REJECTED. Do not close or edit the GitHub EPIC without explicit instruction.
+Purpose: Update the existing delivered operator documentation with verified concise preparation/install commands and exact prerequisites and qualified versions, account/elevation guidance, resources, restart/session actions, access URLs/credential sources and concrete recovery. Keep developer setup separate. Update arc42 only to verified behavior and preserve W09/W10 historical amendments and evidence. Populate six issue evidence files and complete every parent/child matrix row. Independent Requirement Lead, Architect and Test/Evidence reviews precede issue-completion-auditor; implementer cannot be sole completion authority. Audit outputs PASS/INCOMPLETE/BLOCKED/REJECTED. Do not close or edit the GitHub EPIC without explicit instruction.
 
 Prerequisites: S452-09. Owner: Senior Documentation Engineer. Allowed write scope and locks are exact metadata scopes; common evidence is integration-owned. All other files require reviewed amendment before edits.
 

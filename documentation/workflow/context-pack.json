@@ -1,11 +1,11 @@
 {
   "workflow_id": "issue-452-bootstrap-completion",
-  "workflowVersion": "1.0",
+  "workflowVersion": "1.1",
   "baseline": "2bdee76038c433faef13595b981375b1baaf447c",
   "branch": "feature/workflow-bootstrap-452-20261017",
   "process_strand": "workflow create",
   "executionProfile": "FULL_PATH",
-  "status": "AUTHORED; NOT EXECUTED; EPIC INCOMPLETE",
+  "status": "RELEVANCE REVIEWED; IMPLEMENTATION NOT STARTED; EPIC INCOMPLETE",
   "affected_areas": [
     "bootstrap source/secret policy",
     "Windows lifecycle/admission",
@@ -72,5 +72,6 @@
     "S452-10"
   ],
   "source_snapshot": "documentation/workflow/issue-source-snapshot.json",
-  "authority": "Navigation aid only; any changed governing hash or conflict invalidates this cache."
+  "authority": "Navigation aid only; any changed governing hash or conflict invalidates this cache.",
+  "relevance_review": "documentation/workflow/relevance-review.md"
 }
