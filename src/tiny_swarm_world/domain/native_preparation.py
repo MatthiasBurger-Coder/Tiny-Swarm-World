@@ -104,7 +104,7 @@ def qualification_failures(
     if not prerequisites_only and needs_ports and not facts.ports_ready:
         failures.append("A required host port is occupied by an unrecognized service.")
     if facts.conflicting_runtime:
-        failures.append("A conflicting host container runtime is active; resolve it manually.")
+        failures.append("LXD runtime is active or its state is unverified. Preserve its instances; inspect LXD service/socket state before retrying.")
     if needs_network and not facts.network_ready:
         failures.append("DNS or HTTPS connectivity to Ubuntu package sources is unavailable.")
     return tuple(failures)

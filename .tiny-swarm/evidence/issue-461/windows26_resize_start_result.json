@@ -1,0 +1,12 @@
+{
+  "state": "OWNED_WINDOWS_VM_RESIZED_26GIB",
+  "memory_gib": 26,
+  "fixed_memory": true,
+  "start_executed": true,
+  "vm_state": "Running",
+  "physical_available_before_gib": 38.526,
+  "commit_available_before_gib": 29.036,
+  "capacity_guard_gib": 28,
+  "user_requested_resize": true,
+  "observed_at_utc": "2026-10-11T00:15:00.5494640Z"
+}

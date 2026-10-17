@@ -202,6 +202,11 @@ for those controls explicitly.
 
 == Prerequisites
 
+For the actions that remain operator-owned, follow the
+link:{user-guide-prefix}manual-host-steps.md[manual host, certificate and recovery checklist].
+It separates preparation from CA trust in Ubuntu/WSL and Windows browsers, and
+explains authentication, group refresh, LXD conflicts and restart boundaries.
+
 On native or WSL2 Ubuntu 24.04/26.04 x86_64, use a complete trusted release
 and run `./prepare_linux.sh` as an ordinary user from an owned Linux-native
 directory. It bootstraps missing Python >=3.12/venv, Git, Incus and profile
@@ -428,8 +433,16 @@ runtime verification section.
 
 === Hard Host Prerequisite Boundary
 
+An active or unobservable LXD runtime blocks preparation, even when its instances
+are stopped. Preserve those instances and inspect `lxd.service`,
+`snap.lxd.daemon.service` and `snap.lxd.daemon.unix.socket` with `systemctl show`
+before retrying. The presence of an inactive LXD executable alone does not block.
+Preparation never stops, disables, removes or migrates LXD automatically. Resolve
+the conflict through a separately planned, reversible operator action or use an
+isolated host; do not delete LXD state to make preflight pass.
+
 The default provider is `lxc_native` through the managed Incus backend. An
-Incus/LXD host management layer is therefore a hard prerequisite before a live
+Incus host management layer is therefore a hard prerequisite before a live
 Tiny Swarm World run. The separate `prepare_linux.sh` step can install the
 Ubuntu Incus package and its bridge dependency `dnsmasq-base` after operator
 confirmation. After package/Python readiness, it explicitly plans and separately
@@ -781,9 +794,10 @@ step 7, set this option in the same Linux/WSL shell:
 export TSW_SEED_INFISICAL_ITEMS=1
 ----
 
-Continue with route preparation and the fresh-install step below. Do not run
-the installer just to populate missing items in an existing environment: it
-resets managed state. Review the supported synchronization contract first.
+Continue with route preparation and installation below. Ordinary installation
+reconciles managed state without resetting it. Do not run the full installer
+solely to populate missing Infisical items in an existing environment; review
+the supported synchronization contract first.
 
 The default installer value is `TSW_SEED_INFISICAL_ITEMS=0`, so do not assume
 that every catalog-managed service credential has already been copied into
@@ -963,6 +977,11 @@ observed as Docker `Ready` and `Active`, with the manager in `Leader` state.
 These checks are live-operation behavior; this guide does not claim that they
 have passed on a live host without matching redacted `LIVE_*` evidence.
 
+For public-CA inspection, explicit Windows current-user trust through the
+optional helper or certificate GUI, and trust removal, follow the
+link:{user-guide-prefix}manual-host-steps.md#optional-windows-current-user-trust-helper[manual certificate steps].
+Neither installation nor the bridge imports a Windows CA automatically.
+
 [[verify-installed-runtime]]
 === 8. Verify The Runtime
 
@@ -1026,13 +1045,22 @@ service-specific identities and Infisical synchronization limits.
 
 === 10. Re-run And Recovery Rules
 
+Stack-asset reruns validate complete received bytes before updating live files.
+Identical content leaves file inode, mode and modification time unchanged;
+changed content preserves the inode required by existing Docker bind mounts.
+A truncated receive fails before publication. The final local write is not
+crash-atomic: a publication failure remains an error and needs a successful
+rerun. Unknown exit code 255 errors are not automatically classified as transient.
+
 Start with read-only verification and classify the first failed phase.
 Use link:{user-guide-prefix}usage.adoc#daily-operation[Daily operation] to choose between platform
 reconciliation, broader setup without a preliminary reset, and a deliberate
 fresh reset. Reuse the same service profile and effective configuration.
 
-Do not rerun `./install.sh` merely to repair one service: on WSL2 it includes a
-fresh reset; on native Linux it reconciles the broader platform. Use the canonical `platform update` contract for a reviewed
+Ordinary `./install.sh` reruns reconcile the broader platform on both WSL2 and
+native Linux. WSL2 fresh reset requires the explicit deprecated `--confirm-reset`
+option; prefer the separately confirmed reset below when destruction is intended.
+Use the canonical `platform update` contract for a reviewed
 single-service image transition and follow it with the acceptance checks.
 
 If a developer intentionally needs to discard the managed local environment,

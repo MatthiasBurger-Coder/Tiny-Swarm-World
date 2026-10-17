@@ -1,0 +1,29 @@
+{
+  "state": "ISOLATED_STATE_WRITER_DIAGNOSTIC",
+  "source_commit": "3da77f8908d598688ed46dd6eab74c5f32a7ac50",
+  "powershell_version": "5.1.26100.9444",
+  "diagnostic": {
+    "writer_first_succeeded": true,
+    "replace_variants": [
+      {
+        "success": false,
+        "variant": "null",
+        "hresult": -2147024809,
+        "type": "System.ArgumentException"
+      },
+      {
+        "variant": "nullstring",
+        "target_content": "new",
+        "success": true
+      }
+    ],
+    "writer_failure": {
+      "type": "System.ArgumentException",
+      "hresult": -2147024809
+    },
+    "writer_second_succeeded": false
+  },
+  "canonical_state_unchanged": true,
+  "observed_at_utc": "2026-10-10T22:45:34.0652511Z",
+  "qualification": "UNQUALIFIED"
+}

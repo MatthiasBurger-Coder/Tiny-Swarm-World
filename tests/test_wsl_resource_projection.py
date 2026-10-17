@@ -9,7 +9,6 @@ import tempfile
 import unittest
 
 from tests.test_prepare_windows import WINDOWS_POWERSHELL, _powershell, _runtime_path
-from tests.powershell_test_runtime import powershell_script_command
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location(
@@ -95,14 +94,59 @@ class TestResourceProjection(unittest.TestCase):
             refused = subprocess.run(["sh", "-s"], input=script, text=True, capture_output=True, timeout=10, check=False)
             self.assertEqual(refused.returncode, 2)
 
+    def test_physical_probe_excludes_holes_and_device_memory_and_refuses_unknowns(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "meminfo").write_text("MemTotal: 21516664 kB\nSwapTotal: 6291456 kB\n")
+            (root / "identity").write_text("0::/\n")
+            zoneinfo = root / "zoneinfo"
+            valid = ("Node 0, zone DMA32\n  spanned 1048576\n  present 1015455\n"
+                     "Node 0, zone Normal\n  spanned 5000000\n  present 4489216\n"
+                     "Node 0, zone Device\n  present 1000000\n")
+            script = (ROOT / "tools/windows/preparation/linux-resources.sh").read_text()
+            script = (script.replace("/sys/fs/cgroup", str(root))
+                      .replace("/proc/self/cgroup", str(root / "identity"))
+                      .replace("/proc/meminfo", str(root / "meminfo"))
+                      .replace("/proc/zoneinfo", str(zoneinfo)))
+
+            def run(text: str, page_size: str = "4096") -> subprocess.CompletedProcess[str]:
+                zoneinfo.write_text(text)
+                return subprocess.run(["sh", "-s"],
+                                      input=script.replace("getconf PAGESIZE", "printf " + page_size),
+                                      text=True, capture_output=True, timeout=10, check=False)
+
+            observed = run(valid)
+            self.assertEqual(observed.returncode, 0, observed.stderr)
+            self.assertIn("effective_physical_memory_bytes=22547132416", observed.stdout)
+            self.assertIn("effective_memory_bytes=22033063936", observed.stdout)
+            for text in ("", valid.replace("Normal", "Unknown"),
+                         valid.replace("present 4489216", "present bad"),
+                         valid.replace("present 4489216", "present 4489216\n  present 1"),
+                         valid.replace("  present 4489216\n", ""),
+                         valid + "Node 0, zone Normal\n  present 1\n",
+                         valid.replace("present 4489216", "present 999999999999999999999"),
+                         "Node malformed\n present 100\n",
+                         "Node 0, zone Normal\n present 2000000000000\n"
+                         "Node 1, zone Normal\n present 2000000000000\n"):
+                with self.subTest(zoneinfo=text):
+                    refused = run(text)
+                    self.assertEqual(refused.returncode, 2)
+                    self.assertEqual(refused.stdout, "")
+            for size in ("0", "4097", "bad", "999999999999999999999"):
+                with self.subTest(page_size=size):
+                    refused = run(valid, size)
+                    self.assertEqual(refused.returncode, 2)
+                    self.assertEqual(refused.stdout, "")
+
     @unittest.skipUnless(WINDOWS_POWERSHELL.exists(), "Windows PowerShell unavailable for disposable ACL tests")
     def test_disposable_windows_file_and_acl_boundaries(self) -> None:
         executable = str(WINDOWS_POWERSHELL)
         result = subprocess.run(
-            powershell_script_command(executable,
-                _runtime_path(ROOT / "tests/windows/resource-files.Tests.ps1", executable),
-                {"RepositoryRoot": _runtime_path(ROOT, executable)}),
-            capture_output=True, text=True, encoding="utf-8", timeout=90, check=False,
+            [executable, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File",
+             _runtime_path(ROOT / "tests/windows/resource-files.Tests.ps1", executable),
+             "-RepositoryRoot", _runtime_path(ROOT, executable)],
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            timeout=90, check=False,
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("disposable Windows resource file assertions", result.stdout)
@@ -112,10 +156,11 @@ class TestResourceProjection(unittest.TestCase):
         executable = _powershell()
         assert executable
         result = subprocess.run(
-            powershell_script_command(executable,
-                _runtime_path(ROOT / "tests/windows/resources.Tests.ps1", executable),
-                {"RepositoryRoot": _runtime_path(ROOT, executable)}),
-            capture_output=True, text=True, encoding="utf-8", timeout=90, check=False,
+            [executable, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File",
+             _runtime_path(ROOT / "tests/windows/resources.Tests.ps1", executable),
+             "-RepositoryRoot", _runtime_path(ROOT, executable)],
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            timeout=90, check=False,
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("resource assertions", result.stdout)

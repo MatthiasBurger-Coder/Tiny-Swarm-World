@@ -1,0 +1,49 @@
+{
+  "state": "SOURCE_EF7_28GIB_PREFLIGHT_OBSERVED",
+  "source_commit": "ef7e88350ede68f7d4197265b2a272c4bd404a3c",
+  "source_verified": true,
+  "guest_memory_gib": 28,
+  "runs": [
+    {
+      "mode": "Preflight",
+      "resource_facts": null,
+      "resource_state": "LIFECYCLE_PREREQUISITES_REQUIRED",
+      "effective_verified": null,
+      "source_verified": true,
+      "actions": [],
+      "exit_code": 2,
+      "blockers": [
+        {
+          "code": "distro_stopped",
+          "stage": "windows_wsl"
+        },
+        {
+          "code": "bootstrap_state_invalid",
+          "stage": "state_validation"
+        }
+      ]
+    },
+    {
+      "mode": "DryRun",
+      "resource_facts": null,
+      "resource_state": "LIFECYCLE_PREREQUISITES_REQUIRED",
+      "effective_verified": null,
+      "source_verified": true,
+      "actions": [],
+      "exit_code": 2,
+      "blockers": [
+        {
+          "code": "distro_stopped",
+          "stage": "windows_wsl"
+        },
+        {
+          "code": "bootstrap_state_invalid",
+          "stage": "state_validation"
+        }
+      ]
+    }
+  ],
+  "protected_state_unchanged": true,
+  "apply_executed": false,
+  "observed_at_utc": "2026-10-11T00:21:50.4797959Z"
+}

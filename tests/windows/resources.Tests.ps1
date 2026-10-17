@@ -5,7 +5,7 @@ $m=Get-Module Preparation
 $count=0
 function Assert($value,$name){if(!$value){throw "FAIL: $name"};$script:count++}
 function ResourceFacts {
-    return @{resource_facts=@{projection_valid=$true;profile=@{memory_gib=16;processors=8;disk_gib=150};node_budget=@{memory_gib=19;processors=8;disk_gib=80};physical_memory_bytes=[long]34359738368;logical_processors=16;storage_known=$true;config_safe=$true;distro_volume='same';swap_volume='same';distro_free_bytes=[long]536870912000;swap_free_bytes=[long]536870912000;config_values=@{memory='21GB';processors='8';swap='6GB'};config_snapshot=@{hash='approved';metadata='acl'};effective_known=$true;effective_memory_bytes=[long]22333829939;effective_processors=8;effective_swap_bytes=[long]6442450944;effective_disk_bytes=[long]322122547200}}
+    return @{resource_facts=@{projection_valid=$true;profile=@{memory_gib=16;processors=8;disk_gib=150};node_budget=@{memory_gib=19;processors=8;disk_gib=80};physical_memory_bytes=[long]34359738368;logical_processors=16;storage_known=$true;config_safe=$true;distro_volume='same';swap_volume='same';distro_free_bytes=[long]536870912000;swap_free_bytes=[long]536870912000;config_values=@{memory='21GB';processors='8';swap='6GB'};config_snapshot=@{hash='approved';metadata='acl'};effective_known=$true;effective_physical_memory_bytes=[long]22548578304;effective_memory_bytes=[long]22333829939;effective_processors=8;effective_swap_bytes=[long]6442450944;effective_disk_bytes=[long]322122547200}}
 }
 function Assess($f,$o=@{}){return & $m {param($o,$f) Get-PreparationResourceAssessment $o $f} $o $f}
 foreach($gib in @(16,32,64)){
@@ -24,8 +24,20 @@ $f=ResourceFacts;$f.resource_facts.distro_free_bytes=[long]176*1073741824;Assert
 $f.resource_facts.distro_free_bytes--;Assert ((Assess $f).blockers.code -contains 'insufficient_host_disk') 'colocated disk shortage'
 $f=ResourceFacts;$f.resource_facts.swap_volume='different';$f.resource_facts.distro_free_bytes=[long]170*1073741824;$f.resource_facts.swap_free_bytes=[long]26*1073741824;Assert ((Assess $f).effective_verified) 'different volume exact boundary'
 $f.resource_facts.swap_free_bytes--;Assert ((Assess $f).blockers.code -contains 'insufficient_host_disk') 'different swap volume shortage'
-foreach($key in @('effective_memory_bytes','effective_processors','effective_swap_bytes','effective_disk_bytes')){$f=ResourceFacts;$f.resource_facts[$key]=0;Assert (!(Assess $f).effective_verified) "effective observation $key"}
-$f=ResourceFacts;$f.resource_facts.effective_memory_bytes=[long]20.7GB;Assert ((Assess $f).effective_verified) 'kernel ceiling tolerance'
+foreach($key in @('effective_physical_memory_bytes','effective_memory_bytes','effective_processors','effective_swap_bytes','effective_disk_bytes')){$f=ResourceFacts;$f.resource_facts[$key]=0;Assert (!(Assess $f).effective_verified) "effective observation $key"}
+$f=ResourceFacts;$f.resource_facts.effective_memory_bytes=[long]20.7GB;Assert ((Assess $f).effective_verified) 'usable RAM independent from physical ceiling'
+$f.resource_facts.effective_memory_bytes=[long]19GB
+$ceiling=21GB;$tolerance=[long][Math]::Floor([Math]::Max(268435456,$ceiling*0.02))
+foreach($direction in @(-1,1)){
+    $f.resource_facts.effective_physical_memory_bytes=$ceiling+$direction*$tolerance
+    Assert ((Assess $f).effective_verified) 'unchanged physical tolerance inside boundary'
+    $f.resource_facts.effective_physical_memory_bytes=$ceiling+$direction*($tolerance+1)
+    Assert (!(Assess $f).effective_verified) 'unchanged physical tolerance outside boundary'
+}
+$f.resource_facts.effective_memory_bytes=[long]22033063936;$f.resource_facts.effective_physical_memory_bytes=[long]22547132416
+Assert ((Assess $f).effective_verified) 'actual kernel reservations do not hide physical ceiling'
+foreach($physical in @([long]18GB,[long]24GB)){$f.resource_facts.effective_physical_memory_bytes=$physical;Assert (!(Assess $f).effective_verified) 'stale lower or higher physical ceiling refused'}
+$f.resource_facts.effective_physical_memory_bytes=[long]22547132416
 $f.resource_facts.effective_memory_bytes=[long]18.9GB;Assert (!(Assess $f).effective_verified) 'minimum never excused'
 $f=ResourceFacts;$f.resource_facts.profile.memory_gib=24;$f.resource_facts.config_values.memory='24GB';$f.resource_facts.effective_memory_bytes=[long]23.8GB
 Assert ((Assess $f).blockers.code -contains 'insufficient_effective_memory') 'profile usable RAM floor independent from ceiling tolerance'
@@ -69,11 +81,17 @@ try{
     [IO.File]::WriteAllText((Join-Path $sandbox 'tools/windows/preparation/resource-projection.json'),($invalid | ConvertTo-Json -Depth 10))
     $refused=$false;try{& $m {param($o) Get-PreparationResourceProjection $o} $sandboxOptions | Out-Null}catch{$refused=$true};Assert $refused 'malformed projection amounts blocked'
 }finally{if(Test-Path -LiteralPath $sandbox){Remove-Item -LiteralPath $sandbox -Recurse -Force}}
-$output="effective_memory_bytes=22000000000`neffective_processors=8`neffective_swap_bytes=0`neffective_disk_bytes=200000000000`n"
+$output="effective_physical_memory_bytes=22548578304`neffective_memory_bytes=22000000000`neffective_processors=8`neffective_swap_bytes=0`neffective_disk_bytes=200000000000`n"
 foreach($bad in @($output.Replace('effective_processors=8','effective_processors=oops'),($output+'effective_processors=9'),($output+'projection_valid=1'),($output.Replace('effective_processors=8','effective_processors=999999999999999999999999999')))){
     $parsed=& $m {param($s) ConvertFrom-PreparationEffectiveResources @{exit_code=0;stdout=$s;stderr=''}} $bad
     Assert (!$parsed) 'malformed duplicate or unknown effective keys refused'
 }
+foreach($bad in @($output.Replace("effective_physical_memory_bytes=22548578304`n",''),$output.Replace('22548578304','0'),$output.Replace('22548578304','100'),$output.Replace('22548578304','999999999999999999999999999'))){
+    $parsed=& $m {param($s) ConvertFrom-PreparationEffectiveResources @{exit_code=0;stdout=$s;stderr=''}} $bad
+    Assert (!$parsed) 'physical signal required positive bounded and consistent'
+}
+$parsed=& $m {param($s) ConvertFrom-PreparationEffectiveResources @{exit_code=0;stdout=$s;stderr=''}} $output
+Assert ($parsed.effective_physical_memory_bytes -eq 22548578304) 'exact five-key observation accepted'
 $parsed=& $m {param($s) ConvertFrom-PreparationEffectiveResources @{exit_code=0;stdout=$s;stderr='unexpected'}} $output
 Assert (!$parsed) 'stderr invalidates effective observation'
 $full=@{handoff_ready=$true;handoff_checkout='/home/operator/Tiny-Swarm-World';bridge_facts=@{bridge_ready=$true;blockers=@();fingerprint='owned-ready'};platform='Windows';host_identity='test-host';product_type=1;build=22631;architecture='AMD64';elevated=$true;virtualization=$true;features_known=$true;features_missing=@();reboot_pending=$false;wsl_present=$true;wsl_version='3.0.1';distro_present=$true;distro_inventory_known=$true;wsl_generation=2;running=$true;linux_known=$true;linux_id='ubuntu';release='24.04';linux_architecture='x86_64';uid=1000;user='operator';config_safe=$true;systemd_packages=$true;systemd_configured=$true;pid1='systemd';resource_facts=(ResourceFacts).resource_facts}
@@ -101,7 +119,13 @@ Assert ($r.blockers.code -contains 'unqualified_target' -and $script:resourceExe
 $o.QualificationRun=$true;$script:resourceDrift=$true;$script:resourceInventory=0
 $r=Invoke-WindowsPreparation $o $ports
 Assert ($r.blockers.code -contains 'consent_drift' -and $script:resourceExecutions -eq 0) 'resource consent drift blocks'
-$script:resourceDrift=$false;$r=Invoke-WindowsPreparation $o $ports
+$script:resourceDrift=$false;$full.resource_facts.config_snapshot.hash='approved'
+$ports.Inventory={param($options) $script:resourceInventory++;if($script:resourceInventory -gt 1){$full.resource_facts.effective_physical_memory_bytes-=1048576};return $full}
+$script:resourceInventory=0;$r=Invoke-WindowsPreparation $o $ports
+Assert ($r.blockers.code -contains 'consent_drift' -and $script:resourceExecutions -eq 0) 'physical observation drift invalidates consent'
+$full.resource_facts.effective_physical_memory_bytes=[long]22548578304
+$ports.Inventory={param($options) return $full}
+$r=Invoke-WindowsPreparation $o $ports
 Assert ($r.result.exit_code -eq 3 -and $r.restart.scope -eq 'WSL-wide' -and $script:resourceExecutions -eq 1 -and !$r.result.capability_ready) 'confirmed resource mutation requires operator restart'
 $ports.Execute={return @{confirmed=$false;uncertain=$true;exit_code=124;cause='resource_host_deadline'}}
 $r=Invoke-WindowsPreparation $o $ports

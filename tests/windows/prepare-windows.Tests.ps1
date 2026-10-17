@@ -9,7 +9,7 @@ function Options {
     return @{Mode='Plan';Distro='Ubuntu-24.04';ServiceProfile='service-access';ProbeTimeoutSeconds=15;ActionTimeoutSeconds=900;ApproveApply=$false;QualificationRun=$false;ApprovedPlan=$null;QualificationHost='test-host';QualificationDistro='Ubuntu-24.04';QualificationRevision=('a'*40);RecoveryReference='disposable VM snapshot';Json=$true}
 }
 function Facts {
-    return @{handoff_ready=$true;handoff_checkout='/home/operator/Tiny-Swarm-World';bridge_facts=@{schema_version=1;distro='Ubuntu-24.04';observed_address='172.20.0.2';ownership='owned';bridge_ready=$true;routing_ready=$true;agent_ready=$true;action=$null;blockers=@();fingerprint='ready'};platform='Windows';host_identity='test-host';product_type=1;build=22631;architecture='AMD64';elevated=$true;virtualization=$true;features_known=$true;features_missing=@();reboot_pending=$false;wsl_present=$true;wsl_version='3.0.1';install_capable=$true;distro_present=$true;distro_inventory_known=$true;wsl_generation=2;running=$true;linux_known=$true;linux_id='ubuntu';release='24.04';linux_architecture='x86_64';uid=1000;user='operator';config_safe=$true;config_hash='absent';config_metadata='absent';systemd_packages=$true;systemd_configured=$true;pid1='systemd';resource_facts=@{projection_valid=$true;profile=@{memory_gib=16;processors=8;disk_gib=150};node_budget=@{memory_gib=19;processors=8;disk_gib=80};physical_memory_bytes=[long]34359738368;logical_processors=16;storage_known=$true;config_safe=$true;distro_volume='volume';swap_volume='volume';distro_free_bytes=[long]536870912000;swap_free_bytes=[long]536870912000;config_values=@{memory='21GB';processors='8';swap='6GB'};config_snapshot=@{hash='test';metadata='test'};effective_known=$true;effective_memory_bytes=[long]22333829939;effective_processors=8;effective_swap_bytes=[long]6442450944;effective_disk_bytes=[long]322122547200}}
+    return @{handoff_ready=$true;handoff_checkout='/home/operator/Tiny-Swarm-World';bridge_facts=@{schema_version=1;distro='Ubuntu-24.04';observed_address='172.20.0.2';ownership='owned';bridge_ready=$true;routing_ready=$true;agent_ready=$true;action=$null;blockers=@();fingerprint='ready'};platform='Windows';host_identity='test-host';product_type=1;build=22631;architecture='AMD64';elevated=$true;virtualization=$true;features_known=$true;features_missing=@();reboot_pending=$false;wsl_present=$true;wsl_version='3.0.1';install_capable=$true;distro_present=$true;distro_inventory_known=$true;wsl_generation=2;running=$true;linux_known=$true;linux_id='ubuntu';release='24.04';linux_architecture='x86_64';uid=1000;user='operator';config_safe=$true;config_hash='absent';config_metadata='absent';systemd_packages=$true;systemd_configured=$true;pid1='systemd';resource_facts=@{projection_valid=$true;profile=@{memory_gib=16;processors=8;disk_gib=150};node_budget=@{memory_gib=19;processors=8;disk_gib=80};physical_memory_bytes=[long]34359738368;logical_processors=16;storage_known=$true;config_safe=$true;distro_volume='volume';swap_volume='volume';distro_free_bytes=[long]536870912000;swap_free_bytes=[long]536870912000;config_values=@{memory='21GB';processors='8';swap='6GB'};config_snapshot=@{hash='test';metadata='test'};effective_known=$true;effective_physical_memory_bytes=[long]22548578304;effective_memory_bytes=[long]22333829939;effective_processors=8;effective_swap_bytes=[long]6442450944;effective_disk_bytes=[long]322122547200}}
 }
 $script:facts=Facts
 $script:source=@{verified=$true;clean=$true;revision=('a'*40)}
@@ -471,3 +471,23 @@ $o.Mode='Plan';$o.ApproveApply=$false;$o.QualificationRun=$false
 $r=Invoke-WindowsPreparation $o $ports
 Assert ($script:executions -eq $before -and $script:stateRecords.Count -eq 2) 'W08 observed satisfied resume skips mutation and writes'
 Write-Output 'PASS W08 mocked recovery contracts'
+
+# Exercise durable create-then-replace IO; only Windows ACL boundaries are mocked.
+$stateModule=Import-Module (Join-Path $RepositoryRoot 'tools/windows/preparation/Preparation.psm1') -Force -DisableNameChecking -PassThru
+$stateStore=Join-Path ([IO.Path]::GetTempPath()) ('tsw-state-'+[guid]::NewGuid().ToString('N'))
+[void][IO.Directory]::CreateDirectory($stateStore)
+try {
+    & $stateModule {
+        param($store,$pending,$effect)
+        function Assert-PreparationEvidencePath($Path) {
+            if(!$Path.StartsWith($store,[StringComparison]::Ordinal) -or !(Test-Path -LiteralPath $Path)){throw 'unexpected_test_evidence_path'}
+        }
+        function Set-PreparationPrivateAcl($Path) {}
+        Write-PreparationState $store $pending
+        Write-PreparationState $store $effect
+    } $stateStore $script:stateRecords[0] $script:stateRecords[1]
+    $persisted=& $stateModule {param($text) ConvertFrom-PreparationStateJson $text} (Get-Content -Raw -LiteralPath (Join-Path $stateStore 'bootstrap.state.json'))
+    Assert ($persisted.status -ceq 'effect' -and $persisted.confirmed -and !$persisted.uncertain -and $persisted.restart -ceq 'distro') 'durable effect replaces pending state'
+    Assert (@(Get-ChildItem -LiteralPath $stateStore -Force).Count -eq 1) 'atomic replacement leaves only the checkpoint'
+} finally {Remove-Item -LiteralPath $stateStore -Recurse -Force}
+Write-Output 'PASS durable checkpoint filesystem contracts (mocked ACL boundaries)'

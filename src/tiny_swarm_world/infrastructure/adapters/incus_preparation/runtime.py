@@ -19,8 +19,8 @@ LOCAL_INCUS = (*LOCAL_INCUS_QUERY, "--project", "default")
 
 
 async def command(args: tuple[str, ...], timeout: float = 5.0) -> AsyncProcessResult:
-    if args[0] == "sudo":
-        result = await run_async_process(args, timeout=timeout, preserve_session=True)
+    if args[:2] == ("/usr/bin/sudo", "-n"):
+        result = await run_async_process(args, timeout=timeout, preserve_login_session=True)
     else:
         result = await run_async_process(args, timeout=timeout)
     if result.timed_out:

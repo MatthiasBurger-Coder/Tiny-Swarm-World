@@ -44,7 +44,8 @@ def local_names(path: Path, profile: str) -> tuple[tuple[str, ...], tuple[int, .
     if exposure not in {"127.0.0.1", "0.0.0.0"}:
         raise NetworkPreparationFailure("Canonical proxy exposure cannot support loopback names.")
     ingress = desired_https_ingress_for_profile(profile, port_registry=registry)
-    names = tuple(sorted({"tsw.local", *(route.hostname for route in ingress.routes)}))
+    names = tuple(sorted({"tsw.local", *(route.hostname for route in ingress.routes),
+                           *(item.route_host for item in registry.preflight_ports if item.route_host)}))
     return names, tuple(item.external_port for item in registry.preflight_ports if item.external_port is not None), exposure
 
 
@@ -64,12 +65,21 @@ async def verify_listeners(output: str, ports: tuple[int, ...], instances: list[
             raise NetworkPreparationFailure("Listener endpoint cannot be classified.") from None
         if port not in ports:
             continue
-        if endpoint.rsplit(":", 1)[0] != exposure:
+        if not _listener_address_matches(endpoint.rsplit(":", 1)[0], exposure, fields):
             raise NetworkPreparationFailure("Canonical-port listener address differs from its exposure contract.")
-        owned = any(device.get("type") == "proxy" and device.get("listen") == f"tcp:{exposure}:{port}"
-                    and device.get("connect") == f"tcp:127.0.0.1:{port}" for device in devices)
+        matching = [device for device in devices if device.get("type") == "proxy"
+                    and device.get("listen") == f"tcp:{exposure}:{port}"]
+        owned = len(matching) == 1 and matching[0].get("connect") == f"tcp:127.0.0.1:{port}"
         pids = set(re.findall(r"pid=(\d+)", line))
         if not owned or len(pids) != 1:
             raise NetworkPreparationFailure("Foreign or unknown canonical-port listener; preserve its process.")
-        provenance.append(await trusted_process.verify(int(next(iter(pids)))))
+        provenance.append(await trusted_process.verify(int(next(iter(pids))), matching[0]))
     return tuple(provenance)
+
+
+def _listener_address_matches(address: str, exposure: str, fields: list[str]) -> bool:
+    if address == exposure:
+        return True
+    # ss -e reports the kernel's per-socket flag; retain the raw family evidence.
+    flags = [field for field in fields if field.startswith("v6only:")]
+    return address == "*" and exposure == "0.0.0.0" and flags == ["v6only:0"]

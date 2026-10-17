@@ -1,0 +1,15 @@
+{
+  "state": "OWNED_NATIVE_LINUX_GUEST_PROVISIONED_OFF",
+  "vm_id": "c6564e84-20b4-410d-838f-cf79487ff118",
+  "vm_name": "TSW-BOOT-W09-NativeUbuntu26",
+  "ubuntu_release": "26.04",
+  "memory_gib": 32,
+  "processors": 12,
+  "disk_gib": 256,
+  "cloud_image_sha256": "8800651811af9a85465ad1d552add729947bb16488dddb4a9b5305a3d97332b2",
+  "checksum_signature_verified": true,
+  "boot_executed": false,
+  "product_node_provider": "incus",
+  "hyperv_is_test_host_only": true,
+  "observed_at_utc": "2026-10-10T23:32:49.2398290Z"
+}

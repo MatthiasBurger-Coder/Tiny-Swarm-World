@@ -1,0 +1,9 @@
+{
+  "state": "OWNED_EF7_DIRECT_BRIDGE_INVENTORY_OBSERVED",
+  "source_commit": "ef7e88350ede68f7d4197265b2a272c4bd404a3c",
+  "bridge_inventory_exit": 124,
+  "probe_timeout_seconds": 45,
+  "bridge_install_executed": false,
+  "observed_at_utc": "2026-10-11T09:27:50.8459053Z",
+  "cause": "timeout"
+}

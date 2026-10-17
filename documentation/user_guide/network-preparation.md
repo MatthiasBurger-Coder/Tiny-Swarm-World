@@ -1,5 +1,9 @@
 # Kernel and browser-access preparation
 
+Use the [manual host checklist](manual-host-steps.md) for sudo/login refresh,
+LXD conflicts, public-CA trust in Linux/WSL and Windows browsers, and scoped
+restart/recovery. Network readiness alone does not establish those results.
+
 Run preparation from an ordinary account in the supported Ubuntu Linux/WSL
 checkout. Keep package, Incus and network consent separate:
 
@@ -14,12 +18,41 @@ stopped daemon. Apply shows the exact pending stage and asks for consent. Rerun
 after any required logout/login; a declined or interrupted stage is not ready.
 Preparation does not deploy nodes or services, or authorize an installation reset.
 
+Authenticate privileged stages in the same ordinary-user Ubuntu terminal:
+
+```bash
+sudo -v && ./prepare_linux.sh --service-profile service-access
+```
+
+Preparation retains this login session for its existing noninteractive sudo calls
+while isolating each child process group for bounded cleanup. Expired or missing
+authentication stops the stage; it does not silently request another password or
+retry. An authenticated terminal does not authorize another terminal or a headless
+Windows-to-WSL invocation. Review the reported partial effects and fresh dry-run
+before resuming an interrupted stage.
+
 Network planning consumes the canonical provider bridges, ports and local route
 names. It activates only the three declared forwarding/bridge sysctls, prepares
 owned persistence, scopes IPv4 forwarding to the managed bridge/subnet and current
 default egress, and maintains a delimited Linux hosts block. Existing Incus NAT
 remains Incus-owned. Names resolve locally before service deployment, so resolution
 alone does not establish service availability.
+
+Linux name planning includes the resolved HTTPS ingress routes and hostnames
+declared by the registry's preflight ports. The canonical registry includes
+`traefik.tsw.local` for authenticated Traefik HTTPS administration and retains
+`tsw.local` as the HTTP alias. Existing Windows bridges use a protected registry
+snapshot: publish reviewed updates through the elevated bridge `install`
+lifecycle and verify the result. Editing checkout files alone does not publish
+that snapshot or prove live endpoint readiness.
+
+For plan identity, network inventory compares Incus `used_by` relations
+independently of their response order. A present value must be a list of strings;
+the comparison sorts a copy while retaining every URI and duplicate. Raw
+observations remain unchanged, and added or removed relations, malformed values
+and other configuration changes still invalidate the plan. This avoids blocking
+an unchanged network merely because Incus returned its relationships in a
+different order; it does not authorize new changes or establish live readiness.
 
 The supported firewall path uses iptables-nft, recognizes Incus rules and retains
 active UFW ownership. UFW additions use its scoped route/DHCP/DNS interfaces.
@@ -30,6 +63,29 @@ missing Incus NAT, port/subnet collisions, unsafe files or conflicting outside
 hosts entries block before the network stage changes the host. Preserve the
 reported resource, review the owner/configuration diagnostic and rerun dry-run.
 Never disable or flush the firewall to bypass a blocker.
+
+An existing Incus bridge with `ipv6.address=auto` remains an intentional blocker
+for this initial IPv4 preparation contract. Preserve its IPv6 policy; do not
+disable IPv6 automatically to obtain a passing plan. Select compatible resources
+or review a separate network change with its owner. After an approved daemon
+restart, wait for bounded API readiness before collecting preservation inventory;
+an active service alone does not establish a ready API. See the
+[manual recovery checks](manual-host-steps.md#check-a-deliberate-recovery-before-resuming).
+
+An already-owned Incus proxy configured to listen on `0.0.0.0` may appear as `*`
+in `ss` output. Preparation accepts this only with an explicit per-socket
+`v6only:0` observation, one matching manager proxy device and trusted Incus process
+identity. IPv6-only, unknown ownership and wildcard expansion of a `127.0.0.1`
+contract remain blocked. All address families and the raw socket observation
+stay in the plan fingerprint. This observation neither changes bindings/firewall
+rules nor establishes IPv6 service reachability.
+
+Incus may run that proxy as container root mapped to a nonzero host UID. Its
+identity is accepted only against fresh manager init state, matching complete
+UID/GID maps and user/network namespaces, stable process identities and the safe
+host-root Incus executable. The selected proxy configuration and manager PID are
+rechecked. Custom proxy credentials, foreign namespaces or changed observations
+remain blocked; a matching program name or host UID alone is insufficient.
 
 Byte-compatible safe persistence files are reused without writes. An incompatible
 existing file is preserved; its filename alone does not authorize replacement.

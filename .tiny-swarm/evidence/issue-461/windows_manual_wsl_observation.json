@@ -1,0 +1,31 @@
+{
+  "state": "MANUAL_GUEST_WSL_INSTALL_OBSERVED",
+  "operator_reported_target": "owned_test_vm",
+  "vm_state": "Running",
+  "guest_memory_gib": 32,
+  "windows_exact_build": "26300.9457",
+  "powershell_version": "5.1.26100.9444",
+  "wsl_version_output": "WSL version: 3.0.1.0\r\n\r\nKernel version: 6.18.40.1-1\r\n\r\nWSLg version: 1.0.79\r\n\r\nMSRDC version: 1.2.7214\r\n\r\nDirect3D version: 1.611.1-81528511\r\n\r\nDXCore version: 10.0.26100.1-240331-1435.ge-release\r\n\r\nWindows version: 10.0.26300.9457\r\n\r\n\r\n",
+  "wsl_version_exit": 0,
+  "distribution_list": "  NAME      STATE           VERSION\r\n\r\n* Ubuntu    Running         2\r\n\r\n\r\n",
+  "distribution_list_exit": 0,
+  "linux": [
+    {
+      "distribution": "Ubuntu",
+      "probe_exit": 0,
+      "observations": [
+        "PRETTY_NAME=\"Ubuntu 26.04.1 LTS\"",
+        "VERSION_ID=\"26.04\"",
+        "pid1=systemd",
+        "kernel=6.18.40.1-microsoft-standard-WSL2",
+        "arch=x86_64",
+        "MemTotal:       16377308 kB",
+        "processors=12"
+      ]
+    }
+  ],
+  "observed_at_utc": "2026-10-10T22:55:49.1608684Z",
+  "installation_method": "operator_manual",
+  "candidate_apply_installation_verified": false,
+  "qualification": "UNQUALIFIED"
+}

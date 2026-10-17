@@ -20,6 +20,20 @@ def digest(value: Any) -> str:
     return hashlib.sha256(json.dumps(value, sort_keys=True, default=str).encode()).hexdigest()
 
 
+def _network_projection(networks: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Fingerprint relation membership independently of Incus response ordering."""
+    projected = []
+    for network in networks:
+        item = dict(network)
+        if "used_by" in item:
+            relations = item["used_by"]
+            if not isinstance(relations, list) or any(not isinstance(value, str) for value in relations):
+                raise NetworkPreparationFailure("Incus network used_by relations are unreadable.")
+            item["used_by"] = sorted(relations)
+        projected.append(item)
+    return projected
+
+
 async def inspect_network(self) -> NetworkSnapshot:
     identity = self.target_snapshot()
     daemon = await incus.daemon_state()
@@ -31,7 +45,7 @@ async def inspect_network(self) -> NetworkSnapshot:
     links = stable_links(await incus.json_command(("ip", "-j", "address", "show")))
     bridges = configuration.resolve_bridges(self.config_root / "node-providers/provider_config.yaml", networks, routes, links)
     names, ports, exposure = configuration.local_names(self.config_root / "ports.yaml", self.profile)
-    listeners = await runtime.privileged(("ss", "-H", "-ltnp"))
+    listeners = await runtime.privileged(("ss", "-H", "-O", "-ltnpe"))
     provenance = await configuration.verify_listeners(listeners, ports, instances, exposure)
     firewall = await firewall_inventory.inventory(bridges, ports)
     firewall["ports"] = ports
@@ -39,7 +53,7 @@ async def inspect_network(self) -> NetworkSnapshot:
         for chain, rules in (("FORWARD", forwarding_rules(bridge)), ("INPUT", input_rules(bridge) if firewall["input_restricted"] else ()))
         for rule in rules)
     firewall["ufw_desired"] = tuple(("ufw", *rule) for bridge in bridges for rule in ufw_rules(bridge))
-    base = {"identity": identity, "networks": networks, "routes": routes, "links": links,
+    base = {"identity": identity, "networks": _network_projection(networks), "routes": routes, "links": links,
             "listeners": listeners, "listener_provenance": provenance, "instances": instances, "names": names, "exposure": exposure,
             "owner": (firewall["ufw"], firewall["owners"], firewall["status"].splitlines()[0]), "foreign_firewall": firewall_foreign(firewall),
             "foreign_hosts": hosts_foreign()}

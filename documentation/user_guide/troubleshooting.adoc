@@ -14,9 +14,12 @@ Start in the repository root with the same Python environment, service profile
 and configuration used by the failing run. Preserve its evidence directory.
 
 . Read the first failed phase and the printed evidence path.
+. For CA trust, login/group refresh and scoped restart prerequisites, use the
+  link:{user-guide-prefix}manual-host-steps.md[manual host checklist].
 . Inspect `setup-run.exit` in the printed installation evidence directory.
-  On WSL2, inspect `reset-run.exit` first; if reset failed, setup did not start.
-  Native Linux installation has no reset phase.
+  Only for a WSL2 run explicitly requested with `--confirm-reset`, inspect
+  `reset-run.exit` first; if reset failed, setup did not start.
+  Ordinary installation reconciles existing state without a reset phase.
 . Run static diagnostics after runtime dependencies are available:
 +
 [source,bash]
@@ -30,8 +33,9 @@ tiny-swarm-world --preflight
 . Correct the named cause and choose the operation in
   link:{user-guide-prefix}usage.adoc#daily-operation[Daily operation]. On native
   Ubuntu 24.04 or 26.04, run `./prepare_linux.sh --preflight` for missing host packages
-  before retrying the non-destructive installer. On WSL2, do not automatically
-  rerun `./install.sh`: it resets managed state.
+  before retrying the non-destructive installer. On WSL2, inspect a fresh plan
+  before retrying; ordinary `./install.sh` reconciles existing state, while
+  `--confirm-reset` separately requests the deprecated destructive reset.
 
 [options="header"]
 |===
@@ -159,21 +163,21 @@ listing for diagnosis instead of deleting additional files. A TCP `verify`
 can fail before the application services are deployed; it is not the readiness
 check for this pre-installation repair.
 
-=== 4. Return To WSL And Retry The Intended Fresh Installation
+=== 4. Return To WSL And Reinspect The Intended Installation
 
 Once the bridge is ready, return to the original WSL terminal:
 
 [source,bash]
 ----
-cd /mnt/d/Projects/Tiny-Swarm-World
-./install.sh --allow-wsl-windows-filesystem
+cd ~/Tiny-Swarm-World
+./install.sh --preflight
 ----
 
-This retries the fresh installation and asks for `RESET_TINY_SWARM_PLATFORM`;
-confirm only when the intended operation is to reset managed platform state.
-The filesystem flag permits a Windows-mounted checkout and does not repair
-or disable the bridge. For an existing deployment that only needed bridge
-repair, complete step 3 without starting a fresh platform reset.
+Use the selected ordinary account's Linux-native checkout. After preparation
+and preflight pass, an ordinary `./install.sh` rerun reconciles existing state.
+It does not ask for a platform reset. An existing deployment that only needed
+bridge repair can finish with step 3 and its service checks. Destructive reset
+requires a separate explicit request; never use it merely to retry bridge repair.
 
 == Quality Gate Fails: Missing Tool
 
@@ -371,9 +375,10 @@ pass, an endpoint configuration, or a skipped live check as live success.
 == Portainer Admin Initialization Returns HTTP 409
 
 `PortainerAdminInitializationRejected HTTP 409` means Portainer rejected the
-administrator initialization call. In the WSL2 fresh-install path, `install.sh`
-first runs the managed platform reset, so a 409 after that reset is evidence
-to review rather than a readiness delay.
+administrator initialization call. Only a WSL2 run explicitly requested with
+`--confirm-reset` first runs the managed platform reset. A 409 after that reset
+is evidence to review rather than a readiness delay. Ordinary reconciliation
+preserves existing account state.
 
 The deployment workflow treats a rejected initialization as already achieved
 only when the same configured Portainer username and password authenticate
@@ -381,13 +386,16 @@ immediately afterward. If those requested credentials do not authenticate,
 the failure stays explicit because the remaining cause is usually stale or
 unmanaged Portainer state, an incomplete reset, or a credential mismatch.
 
-Check the reset evidence first:
+Inspect reset evidence only when that destructive phase was explicitly requested;
+ordinary reconciliation has no reset phase:
 
 [source,bash]
 ----
 # Replace this placeholder with the complete directory printed by your run.
 TSW_RUN_DIR='/path/printed/by/the/installer'
-cat "$TSW_RUN_DIR/reset-run.exit"
+if [ -f "$TSW_RUN_DIR/reset-run.exit" ]; then
+  cat "$TSW_RUN_DIR/reset-run.exit"
+fi
 if [ -f "$TSW_RUN_DIR/setup-run.exit" ]; then
   cat "$TSW_RUN_DIR/setup-run.exit"
 fi
@@ -835,7 +843,9 @@ The repair updates and restarts the installed service. Failed starts retry
 every 15 seconds; updating the repository alone does not update the host unit.
 The service does not continuously monitor rules after a successful start.
 Verify successful service startup and container DNS/HTTP access before retrying
-the installer. A fresh installer run resets managed nodes again.
+the installer. An ordinary installer rerun reconciles existing managed nodes.
+Only an explicitly requested WSL2 `--confirm-reset` run performs the deprecated
+destructive reset first.
 
 `docker_apt_gpg_unreachable` identifies a failed Docker signing-key download;
 `docker_apt_repository_unreachable` identifies the Docker repository update.

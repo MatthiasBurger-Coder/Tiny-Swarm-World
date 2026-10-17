@@ -24,7 +24,7 @@ from tiny_swarm_world.infrastructure.adapters.network_preparation.firewall impor
 from tiny_swarm_world.infrastructure.adapters.network_preparation.firewall import equivalent
 from tiny_swarm_world.infrastructure.adapters.network_preparation.linux_plan import CONTROLS
 from tiny_swarm_world.infrastructure.adapters.network_preparation.windows import WindowsNetworkPreparation
-from tiny_swarm_world.infrastructure.adapters.network_preparation.configuration import verify_listeners
+from tiny_swarm_world.infrastructure.adapters.network_preparation.configuration import local_names, verify_listeners
 from tiny_swarm_world.infrastructure.adapters.network_preparation.source_identity import preparation_asset_hashes
 from tiny_swarm_world.infrastructure.adapters.network_preparation.persistence_guard import render_guard
 from tiny_swarm_world.infrastructure.adapters.network_preparation.firewall_inventory import ufw_status
@@ -51,6 +51,19 @@ def nft_fixture():
         {"match": {"op": "!=", "left": {"payload": {"protocol": "ip", "field": "daddr"}}, "right": subnet}},
         {"masquerade": None}]}})
     return {"nftables": entries}
+
+
+class LocalNamesTests(unittest.TestCase):
+    def test_admin_alias_and_selected_routes_preserve_ports_and_exposure(self):
+        with patch(PACKAGE + ".configuration._lxc_proxy_listen_address", return_value="127.0.0.1"):
+            names, ports, exposure = local_names(ROOT / "infra/config/ports.yaml", "service-access")
+        self.assertIn("tsw.local", names)
+        self.assertIn("traefik.tsw.local", names)
+        self.assertIn("service-access.tsw.local", names)
+        self.assertNotIn("app.tsw.local", names)
+        self.assertEqual(names, tuple(sorted(set(names))))
+        self.assertEqual(ports, (80, 443))
+        self.assertEqual(exposure, "127.0.0.1")
 
 
 class MockHost:
@@ -213,12 +226,80 @@ class NetworkPreparationTests(unittest.IsolatedAsyncioTestCase):
         output = 'LISTEN 0 128 0.0.0.0:443 0.0.0.0:* users:(("forkproxy",pid=99,fd=4))\n'
         with patch(PACKAGE + ".trusted_process.verify", return_value=(99, "/trusted/incus", 1, 2, "start")) as proof:
             self.assertEqual(await verify_listeners(output, (443,), instances, "0.0.0.0"), ((99, "/trusted/incus", 1, 2, "start"),))
-            proof.assert_awaited_once_with(99)
+            proof.assert_awaited_once_with(99, next(iter(instances[0]["expanded_devices"].values())))
         with patch(PACKAGE + ".trusted_process.verify", side_effect=NetworkPreparationFailure("exe differs")):
             with self.assertRaises(NetworkPreparationFailure):
                 await verify_listeners(output, (443,), instances, "0.0.0.0")
         with self.assertRaises(NetworkPreparationFailure):
             await verify_listeners(output.replace("pid=99,", ""), (443,), instances, "0.0.0.0")
+
+    async def test_owned_dualstack_proxy_requires_per_socket_flag_and_process_proof(self):
+        instances = [{"name": "swarm-manager", "expanded_devices": {"proxy":
+                     {"type": "proxy", "listen": "tcp:0.0.0.0:443", "connect": "tcp:127.0.0.1:443"}}}]
+        output = 'LISTEN 0 4096 *:443 *:* users:(("incusd",pid=99,fd=7),("incusd",pid=99,fd=3)) ino:123 v6only:0 <->\n'
+        with patch(PACKAGE + ".trusted_process.verify", return_value=(99, "/trusted/incus", 1, 2, "start")) as proof:
+            self.assertEqual(await verify_listeners(output, (443,), instances, "0.0.0.0"),
+                             ((99, "/trusted/incus", 1, 2, "start"),))
+            proof.assert_awaited_once_with(99, next(iter(instances[0]["expanded_devices"].values())))
+
+    async def test_dualstack_proxy_rejects_missing_ambiguous_or_incompatible_socket_evidence(self):
+        instances = [{"name": "swarm-manager", "expanded_devices": {"proxy":
+                     {"type": "proxy", "listen": "tcp:0.0.0.0:443", "connect": "tcp:127.0.0.1:443"}}}]
+        output = 'LISTEN 0 4096 *:443 *:* users:(("incusd",pid=99,fd=7)) ino:123 v6only:0\n'
+        variants = [output.replace(" v6only:0", flag) for flag in
+                    ("", " v6only:1", " v6only:0 v6only:0", " v6only:0 v6only:1", " v6only:00", " v6only:0junk")]
+        variants += [output.replace("*:443", address + ":443") for address in ("[::]", "::", "[::1]")]
+        with patch(PACKAGE + ".trusted_process.verify") as proof:
+            for variant in variants:
+                with self.subTest(output=variant), self.assertRaises(NetworkPreparationFailure):
+                    await verify_listeners(variant, (443,), instances, "0.0.0.0")
+            with self.assertRaises(NetworkPreparationFailure):
+                await verify_listeners(output, (443,), instances, "127.0.0.1")
+            proof.assert_not_awaited()
+
+    async def test_dualstack_proxy_rejects_foreign_or_ambiguous_ownership(self):
+        device = {"type": "proxy", "listen": "tcp:0.0.0.0:443", "connect": "tcp:127.0.0.1:443"}
+        output = 'LISTEN 0 4096 *:443 *:* users:(("incusd",pid=99,fd=7)) ino:123 v6only:0\n'
+        instances = [{"name": "swarm-manager", "expanded_devices": {"proxy": device}}]
+        invalid = [[], [{"name": "foreign", "expanded_devices": {"proxy": device}}],
+                   [{"name": "swarm-manager", "expanded_devices": {"proxy": dict(device, connect="tcp:127.0.0.1:80")}}],
+                   [{"name": "swarm-manager", "expanded_devices": {"proxy": device, "duplicate": device}}]]
+        with patch(PACKAGE + ".trusted_process.verify") as proof:
+            for inventory in invalid:
+                with self.subTest(instances=inventory), self.assertRaises(NetworkPreparationFailure):
+                    await verify_listeners(output, (443,), inventory, "0.0.0.0")
+            for variant in (output.replace("pid=99,", ""), output.replace("pid=99,", "pid=99,pid=100,")):
+                with self.subTest(output=variant), self.assertRaises(NetworkPreparationFailure):
+                    await verify_listeners(variant, (443,), instances, "0.0.0.0")
+            proof.assert_not_awaited()
+        with patch(PACKAGE + ".trusted_process.verify", side_effect=NetworkPreparationFailure("process changed")) as proof:
+            with self.assertRaises(NetworkPreparationFailure):
+                await verify_listeners(output, (443,), instances, "0.0.0.0")
+            proof.assert_awaited_once_with(99, next(iter(instances[0]["expanded_devices"].values())))
+
+    async def test_extended_listener_inventory_retains_raw_socket_identity_in_fingerprint(self):
+        with tempfile.TemporaryDirectory() as directory:
+            host = MockHost(Path(directory))
+            host.listening = 'LISTEN 0 4096 *:443 *:* users:(("incusd",pid=99,fd=3)) ino:123 v6only:0\n'
+            original_query = host.query
+            async def query(path):
+                if "/instances?" in path:
+                    return [{"name": "swarm-manager", "expanded_devices": {"proxy":
+                             {"type": "proxy", "listen": "tcp:0.0.0.0:443", "connect": "tcp:127.0.0.1:443"}}}]
+                return await original_query(path)
+            host.query = query
+            adapter = LocalNetworkPreparation(ROOT, ROOT / "infra/config", release="24.04", profile="service-access",
+                        proc_root=host.proc, target_snapshot=lambda: (host.source,), evidence=Mock())
+            with host.patches(), patch(PACKAGE + ".runtime.privileged", side_effect=host.privileged) as reads, \
+                    patch(PACKAGE + ".trusted_process.verify", return_value=(99, "/trusted/incus", 1, 2, "start")):
+                first = await adapter.inspect()
+                self.assertFalse(first.blockers, first.blockers)
+                reads.assert_any_await(("ss", "-H", "-O", "-ltnpe"))
+                host.listening = host.listening.replace("ino:123", "ino:124")
+                second = await adapter.inspect()
+                self.assertFalse(second.blockers, second.blockers)
+                self.assertNotEqual(first.fingerprint, second.fingerprint)
+                self.assertEqual(host.calls, [])
 
     async def exercise(self, *, ufw=False, wsl=False):
         with tempfile.TemporaryDirectory() as directory:

@@ -1,0 +1,21 @@
+{
+  "state": "BLOCKED_OR_PARTIAL",
+  "iso_sha256": "BC3F24086EBADC94489066B5AD78089E2CF5C3491E90E790BB81A2B199C10E38",
+  "image": "Windows 11 Enterprise Evaluation",
+  "image_apply_exit": 0,
+  "boot_files_exit": 0,
+  "windows_version": null,
+  "clean_checkpoint": null,
+  "error": "RuntimeException",
+  "failed_stage": "IMAGE_APPLY",
+  "script_exit_code": 1,
+  "answer_cleanup": "NOT_CREATED",
+  "target": "owned-Windows11-guest-preWSL",
+  "vm_off": true,
+  "iso_source": "https://www.microsoft.com/en-us/evalcenter/download-windows-11-enterprise",
+  "free_host_ram_gib_after_image": 33.6,
+  "required_free_host_ram_gib": 34,
+  "source_commit": "3da77f8908d598688ed46dd6eab74c5f32a7ac50",
+  "live_state": "LIVE_DEGRADED",
+  "qualification": "UNQUALIFIED"
+}

@@ -1,0 +1,38 @@
+{
+  "state": "OWNED_SOURCE_BOUND_RESOURCE_STAGE_EXECUTED",
+  "source_commit": "806a58c36aabf8a95601f2bbfb2978e2d6ee2995",
+  "source_verified": true,
+  "operator_start_separate_from_read_only_plan": true,
+  "ordinary_linux_uid": 1000,
+  "keeper_windows_process_id": 4824,
+  "old_checkpoint_archive": {
+    "archived": true,
+    "prior_locked_archive_reobserved": true,
+    "no_duplicate_archive": true,
+    "original_revision": "3da77f8908d598688ed46dd6eab74c5f32a7ac50",
+    "checkpoint_sha256": "D5BE81E6D3282135F06AE742750243A3BA5BA0FEDD29C2DB1E9EB48EEC5B169B"
+  },
+  "fresh_plan_exit": 2,
+  "apply_exit": 3,
+  "outcome": "RESTART_REQUIRED",
+  "completed_actions": [
+    "adapt_wsl_resources"
+  ],
+  "uncertain_actions": [],
+  "blockers": [
+    {
+      "code": "next_stage_consent_required",
+      "stage": "next_stage"
+    }
+  ],
+  "restart": {
+    "scope": "WSL-wide",
+    "command": "wsl.exe --shutdown; wsl.exe --distribution Ubuntu",
+    "operator_command": "wsl.exe --shutdown; wsl.exe --distribution Ubuntu"
+  },
+  "changed": true,
+  "services_verified": false,
+  "config_hash": "915DC541868F5670B1E2836B3CE524708094E84D81ED6C6BA79D74C6B69454A1",
+  "recovery_checkpoint_id": "419a8422-f3cc-441b-a014-f536ba64ec71",
+  "observed_at_utc": "2026-10-10T23:37:18.9019619Z"
+}

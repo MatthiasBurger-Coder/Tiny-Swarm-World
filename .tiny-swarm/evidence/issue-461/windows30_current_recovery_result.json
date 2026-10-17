@@ -1,0 +1,10 @@
+{
+  "state": "OWNED_CURRENT30_RECOVERY_RESTORE_VERIFIED",
+  "checkpoint_id": "eaff8dec-c016-421c-b235-5952d6c7c0a4",
+  "checkpoint_name": "W09-Current30-Recovery-20261011",
+  "restore_verified": true,
+  "memory_gib": 30,
+  "observed_at_utc": "2026-10-11T09:25:26.8350948Z",
+  "after_equal": true,
+  "observed_preservation_scope": "registration GUID, Linux machine-id/release hashes, WSL config/bootstrap-state and owned marker hashes"
+}

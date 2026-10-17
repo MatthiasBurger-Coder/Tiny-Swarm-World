@@ -1,0 +1,31 @@
+{
+  "requirement": "R461-27",
+  "issue": 461,
+  "slice": "firewall_policy_observation_batching",
+  "base_source_commit": "08a7948356a47eea2379925cacd5d38df5881a15",
+  "status": "LOCAL_VERIFIED_LIVE_PENDING",
+  "full_quality_exit": 0,
+  "python_version": "3.12.14",
+  "python_tests": 2555,
+  "python_test_seconds": 129.767,
+  "existing_skips": 18,
+  "architecture_tests": 43,
+  "import_contracts_kept": 7,
+  "typed_files": 799,
+  "native_windows_powershell_tests": 161,
+  "baseline_per_rule_associations_exit": 1,
+  "baseline_failure": "one query covers all owned rules ports",
+  "independent_security_and_architecture_review": "CONCRETE_APPROVED",
+  "probe_deadlines_unchanged": true,
+  "policy_store_context_unchanged": true,
+  "live_issue_qualified": false,
+  "tested_file_sha256": {
+    "tools/windows/tws-wsl-bridge.ps1": "a4e202929edd00353b257c3c4b557b3e0f7b37567656a393b3a57b66528cbf6f",
+    "tests/windows/bridge-preparation.Tests.ps1": "07064529c7b04ad5671b4d24fa72724f93ceabc5863fd060b494ee16093d3143",
+    "documentation/user_guide/windows-preparation.md": "0e44daf2d03bd80ec38035365ae109f4a57af443928f5445c011fb7b2e33d7d8"
+  },
+  "quality_log_sha256": "5e225f4458f69dabb46d2a2cef293c1ed792a48944b94486796801592100b089",
+  "native_green_log_sha256": "b265692ced628c4f992bcd5798e643a4327a7e4f47fd4fbfb3aed4e310a907ae",
+  "native_red_log_sha256": "484afee78750a5175440a9b289ec66949d964b13ba3ca7a16ae479253d9595f1",
+  "recorded_at_utc": "2026-10-11T12:26:27.383723+00:00"
+}

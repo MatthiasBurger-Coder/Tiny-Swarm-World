@@ -69,7 +69,62 @@ def LxcSwarmRuntime(**kwargs):
     return _ProductionLxcSwarmRuntime(**kwargs)
 
 
+class TestRuntimeAssetExecution(unittest.TestCase):
+    def setUp(self):
+        temporary = TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        root = Path(temporary.name)
+        for name, content in (("swagger/openapi.json", "{}"), ("nginx/default.conf", "server {}")):
+            path = root / "infra/config/compose/swagger" / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(content)
+        self.runner = Mock()
+        self.ok = subprocess.CompletedProcess([], 0, stdout="", stderr="")
+        self.transient = subprocess.CompletedProcess([], 255, stdout="", stderr="Failed to retrieve PID of executing child process")
+        self.runtime = LxcSwarmRuntime(backend=ManagedLxcBackend.INCUS, process_runner=self.runner,
+                                      project_paths=ProjectPaths.from_roots(root), remote_stack_root="/remote")
+
+    def test_classified_asset_retry_preserves_script_and_input(self):
+        self.runner.run_text.side_effect = (self.transient, self.ok, self.ok)
+        with patch("tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime.time.sleep") as sleep:
+            self.runtime.prepare_stack_assets("swagger")
+        calls = self.runner.run_text.call_args_list
+        self.assertEqual(len(calls), 3)
+        self.assertEqual(calls[0], calls[1])
+        self.assertEqual(calls[0].args[0][:6], ["incus", "exec", "swarm-manager", "--", "sh", "-lc"])
+        self.assertEqual(calls[0].kwargs["input"], "{}")
+        self.assertEqual(calls[2].kwargs["input"], "server {}")
+        sleep.assert_called_once_with(0.5)
+
+    def test_unknown_failure_stops_before_second_asset(self):
+        self.runner.run_text.return_value = subprocess.CompletedProcess([], 255, stdout="", stderr="unknown")
+        with patch("tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime.time.sleep") as sleep:
+            with self.assertRaises(RuntimeError):
+                self.runtime.prepare_stack_assets("swagger")
+        self.runner.run_text.assert_called_once()
+        sleep.assert_not_called()
+
+    def test_injected_runner_default_does_not_retry_mutation(self):
+        self.runner.run_text.return_value = self.transient
+        with patch("tiny_swarm_world.infrastructure.adapters.clients.lxc_swarm_runtime.time.sleep") as sleep:
+            with self.assertRaises(RuntimeError):
+                self.runtime._run_manager_shell("docker stack deploy example")
+        self.runner.run_text.assert_called_once()
+        sleep.assert_not_called()
+
+    def test_second_asset_failure_prevents_real_runtime_deploy(self):
+        failure = subprocess.CompletedProcess([], 7, stdout="", stderr="publication failed")
+        self.runner.run_text.side_effect = (self.ok, self.ok, failure)
+        with patch.object(self.runtime, "_ensure_stack_prerequisites"):
+            with self.assertRaises(RuntimeError):
+                self.runtime.deploy_stack(StackDefinition(name="swagger", compose_content="services: {}"))
+        calls = self.runner.run_text.call_args_list
+        self.assertEqual(len(calls), 3)
+        self.assertFalse(any("docker stack deploy" in call.args[0][-1] for call in calls))
+
+
 class TestLxcSwarmRuntime(unittest.TestCase):
+
     def test_deploy_stack_uses_lxc_exec_manager_shell(self):
         runtime = LxcSwarmRuntime(
             backend=ManagedLxcBackend.LXD,
@@ -109,7 +164,7 @@ class TestLxcSwarmRuntime(unittest.TestCase):
         self.assertEqual(len(scripts), 3)
         self.assertIn("cat > /custom/stacks/service-access/docker-compose.yml", scripts[0])
         self.assertIn(
-            "cat > /custom/stacks/service-access/dashboard/index.html",
+            "target=/custom/stacks/service-access/dashboard/index.html",
             scripts[1],
         )
         self.assertIn("docker stack deploy", scripts[2])
@@ -165,9 +220,9 @@ class TestLxcSwarmRuntime(unittest.TestCase):
 
         scripts = [call.args[0] for call in run_manager_shell.call_args_list]
         self.assertIn("mkdir -p /custom/stacks/swagger/swagger", scripts[0])
-        self.assertIn("cat > /custom/stacks/swagger/swagger/openapi.json", scripts[0])
+        self.assertIn("target=/custom/stacks/swagger/swagger/openapi.json", scripts[0])
         self.assertIn("mkdir -p /custom/stacks/swagger/nginx", scripts[1])
-        self.assertIn("cat > /custom/stacks/swagger/nginx/default.conf", scripts[1])
+        self.assertIn("target=/custom/stacks/swagger/nginx/default.conf", scripts[1])
 
     def test_prepare_stack_assets_transfers_traefik_dynamic_tls_config(self):
         runtime = LxcSwarmRuntime(
@@ -181,7 +236,7 @@ class TestLxcSwarmRuntime(unittest.TestCase):
         script = run_manager_shell.call_args.args[0]
         input_text = run_manager_shell.call_args.kwargs["input_text"]
         self.assertIn("mkdir -p /custom/stacks/traefik/dynamic", script)
-        self.assertIn("cat > /custom/stacks/traefik/dynamic/tls.yml", script)
+        self.assertIn("target=/custom/stacks/traefik/dynamic/tls.yml", script)
         self.assertIn("/run/secrets/tsw_traefik_tls_cert", input_text)
         self.assertIn("/run/secrets/tsw_traefik_tls_key", input_text)
 
@@ -218,7 +273,7 @@ class TestLxcSwarmRuntime(unittest.TestCase):
         script = run_manager_shell.call_args.args[0]
         input_text = run_manager_shell.call_args.kwargs["input_text"]
         self.assertIn("mkdir -p /custom/stacks/service-access/dashboard", script)
-        self.assertIn("cat > /custom/stacks/service-access/dashboard/index.html", script)
+        self.assertIn("target=/custom/stacks/service-access/dashboard/index.html", script)
         self.assertEqual(input_text, generated_dashboard)
         self.assertNotIn("stale-dashboard", input_text)
 

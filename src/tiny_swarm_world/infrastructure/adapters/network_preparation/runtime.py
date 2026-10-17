@@ -17,8 +17,8 @@ TOOLS["python3"] = "/usr/bin/python3"
 
 async def command(args: tuple[str, ...], timeout: float = 5.0, *, permit_failure: bool = False) -> str:
     args = (TOOLS.get(args[0], args[0]), *args[1:])
-    if args[0] == "/usr/bin/sudo":
-        result = await run_async_process(args, timeout=timeout, preserve_session=True)
+    if args[:2] == ("/usr/bin/sudo", "-n"):
+        result = await run_async_process(args, timeout=timeout, preserve_login_session=True)
     else:
         result = await run_async_process(args, timeout=timeout)
     if result.timed_out:

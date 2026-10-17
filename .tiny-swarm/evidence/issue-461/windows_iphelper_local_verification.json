@@ -1,0 +1,31 @@
+{
+  "requirement": "R461-26",
+  "issue": 461,
+  "slice": "listener_identity_observation",
+  "base_source_commit": "e01e1dd5dab2ff7390d782d891a47e2191c1c7a9",
+  "status": "LOCAL_VERIFIED_LIVE_PENDING",
+  "full_quality_exit": 0,
+  "python_version": "3.12.14",
+  "python_tests": 2555,
+  "python_test_seconds": 469.014,
+  "existing_skips": 18,
+  "architecture_tests": 43,
+  "import_contracts_kept": 7,
+  "typed_files": 799,
+  "native_windows_powershell_tests": 109,
+  "baseline_old_pid4_predicate_exit": 1,
+  "baseline_failure": "exact mapping and live IP Helper listener ready",
+  "independent_security_and_architecture_review": "APPROVED_WITH_IMPLEMENTED_CREATION_TYPE_CHECK",
+  "independent_scoped_completion_review": "ACCEPTABLE_PENDING_FREEZE_LIVE",
+  "probe_deadlines_unchanged": true,
+  "live_issue_qualified": false,
+  "tested_file_sha256": {
+    "tools/windows/tws-wsl-bridge.ps1": "35d743a78f8fe459275ed0d5b5004d50f078f12b7c8a27fd4fa45237026180f6",
+    "tests/windows/bridge-preparation.Tests.ps1": "df337e634ded153bbe467e62cf74fa8f5999bd9d59e0f4e52e0e4ed3f8638052",
+    "documentation/user_guide/windows-preparation.md": "b44e7f3b147d5f66ca0c5db6002922adf845681b7911ddb29ef49fb750e8d614"
+  },
+  "quality_log_sha256": "9f25e757850a8eb72361adea66cf568c7def1c4251b06de881f598a87e185ac2",
+  "recorded_at_utc": "2026-10-11T12:13:10.079152+00:00",
+  "native_green_log_sha256": "498ea5dbda3d3caf438de272a9dc461a187b75da58e1e1b45e65827cda4a57a7",
+  "native_red_log_sha256": "604b06b1085ab3776114ea1e4be577b7500a3623bcc134b68ac01fcc0f4cc27f"
+}

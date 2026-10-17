@@ -172,6 +172,10 @@ capacity, rather than assuming a nominal host RAM class guarantees the example.
 Unknown, unsafe or ambiguous configuration/storage facts block. Custom swapfile
 locations currently block adaptation; they are preserved rather than relocated.
 The selected registered VHD and canonical user TEMP determine actual disk volumes.
+The registered VHD is checked as an existing regular, non-reparse file with a
+trusted owner under its protected directory. Its contents and ACLs remain untouched;
+WSL-managed access grants are preserved. Configuration, swap and evidence retain
+their separate strict permission checks.
 Process-only environment redirects and unsafe/reparse/non-local/non-NTFS paths block.
 
 Disk planning reserves the selected profile/node requirement plus swap allocation
@@ -258,6 +262,19 @@ They describe eligibility, not Tiny Swarm World live qualification.
 
 ## W06 bridge preparation and browser-access stages
 
+The bridge inventory fingerprint includes decoded hosts text; content and
+newline changes invalidate prior approval. Incidental PowerShell filesystem
+metadata is excluded, and an unreadable hosts file still blocks inventory.
+Owned portproxy listeners require exact protected-state and observed forwarding
+endpoints. Besides the legacy System process, the inventory accepts a live
+`iphlpsvc` service only when its System32 `svchost.exe` process has SYSTEM
+ownership and a stable creation identity. That identity participates in the
+consent fingerprint. Unknown processes, duplicate mappings and unavailable
+identity observations remain blockers; inventory never stops listeners.
+Firewall policy inventory reads each native filter family once, selecting exact
+rule identities while retaining duplicate, missing and restricted observations
+for the existing policy checks. Probe deadlines remain unchanged.
+
 After lifecycle and effective resource prerequisites are ready, preparation
 inventories the existing bridge for the explicitly selected running distribution.
 The plan delegates `bridge_install` or an owned `bridge_refresh` to the canonical
@@ -307,6 +324,10 @@ The existing private LocalApplicationData `TinySwarmWorld/preparation` directory
 now contains `bootstrap.state.json` and the redacted attempt records. State binds
 the verified source revision, host and selection. A corrupt, stale or foreign
 checkpoint adds a blocker to the read-only plan and prevents privileged apply.
+Checkpoint writes flush a private temporary file before atomically replacing
+the existing state. If effect persistence fails, retain the pending checkpoint
+and inspect fresh inventory and the attempt records; a confirmed host change
+alone does not make the preparation successful.
 Preserve it for review and archive it only through a deliberate operator action;
 never erase it as an automatic repair. Existing `.wslconfig` backups and private
 root-owned `/etc/.tsw-backup-wsl-conf.*` backups require separately reviewed
@@ -315,3 +336,10 @@ transaction. See the [bootstrap recovery contract](../contracts/bootstrap.md#boo
 
 These are locally tested recovery safeguards. They do not add Windows live
 qualification or authorize host changes; BOOT-W09 still owns that evidence.
+
+Physical RAM and usable RAM are checked separately after the WSL restart. The
+physical observation counts present pages in supported RAM zones, excluding holes
+and Device memory, and is compared with the selected ceiling using the existing
+tolerance. Usable RAM remains MemTotal constrained by cgroup limits and must meet
+the unchanged profile/node minimum. Missing or inconsistent observations block
+preparation; matching `.wslconfig` alone does not verify effective capacity.

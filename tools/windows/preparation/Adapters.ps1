@@ -443,7 +443,7 @@ function Write-PreparationState($Store,$Record) {
             $bytes=(New-Object Text.UTF8Encoding($false)).GetBytes(($Record | ConvertTo-Json -Depth 12 -Compress))
             $stream.Write($bytes,0,$bytes.Length);$stream.Flush($true)
         } finally {$stream.Dispose()}
-        if(Test-Path -LiteralPath $path){Assert-PreparationEvidencePath $path;[IO.File]::Replace($temporary,$path,$null)}
+        if(Test-Path -LiteralPath $path){Assert-PreparationEvidencePath $path;[IO.File]::Replace($temporary,$path,[System.Management.Automation.Language.NullString]::Value)}
         else{[IO.File]::Move($temporary,$path)}
     } finally {if(Test-Path -LiteralPath $temporary){Remove-Item -LiteralPath $temporary -Force}}
 }

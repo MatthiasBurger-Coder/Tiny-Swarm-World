@@ -4,6 +4,84 @@ $runnerScript = Join-Path $repositoryRoot "tools\windows\tws-wsl-bridge-service.
 
 . $bridgeScript
 
+Describe "Canonical ingress aliases" {
+    It "retains the HTTP alias and includes the Traefik admin alias" {
+        $registry = Read-TswPortRegistry -RegistryPath (Join-Path $repositoryRoot "infra\config\ports.yaml")
+        $names = Get-BridgeHostNames -Config ([pscustomobject]@{hostNames = @("custom.example")}) -RegistryHostNames $registry.HostNames
+        ($names -contains "tsw.local") | Should Be $true
+        ($names -contains "traefik.tsw.local") | Should Be $true
+        ($names -contains "service-access.tsw.local") | Should Be $true
+        ($names -contains "custom.example") | Should Be $true
+    }
+}
+
+Describe "Filesystem provider path 1" {
+    It "persists a filesystem config path without a provider prefix" {
+        Mock Assert-BridgeRuntimeStateAuthority {}
+        Mock Get-BridgeBundleIdentity { [pscustomobject]@{BundleId='bundle'; Hashes=@{}} }
+        Mock Get-BridgeAgentMode { 'service' }
+        Mock Get-ListenAddress { '127.0.0.1' }
+        Mock Get-HostsAddress { '127.0.0.1' }
+        Mock Get-FirewallRulePrefix { 'TSW' }
+        Mock Resolve-Path { [pscustomobject]@{
+            Path='Microsoft.PowerShell.Core\FileSystem::\\server\share\config.json'
+            ProviderPath='\\server\share\config.json'; Provider=[pscustomobject]@{Name='FileSystem'}
+        } }
+        Mock Write-TextAtomically { param($Path,$Text) $script:capturedState=$Text | ConvertFrom-Json }
+        $discovery=[pscustomobject]@{Ready=$true;DiscoveryIntervalMinutes=1;DriftReasons=@()}
+        Write-StateFile -Config ([pscustomobject]@{}) -WslIp '192.0.2.1' -Mappings @() -HostNames @() -RegistryPath 'C:/ports.yaml' -Discovery $discovery
+        $script:capturedState.configPath | Should Be '\\server\share\config.json'
+    }
+}
+
+Describe "Filesystem provider path 2" {
+    It "rejects a missing source" {
+        { Resolve-TswFileSystemPath (Join-Path $TestDrive 'absent.txt') } | Should Throw
+    }
+}
+
+Describe "Filesystem provider path 3" {
+    It "rejects an empty provider path" {
+        Mock Resolve-Path { [pscustomobject]@{ ProviderPath = ''; Provider = [pscustomobject]@{Name='FileSystem'} } }
+        { Resolve-TswFileSystemPath 'source' } | Should Throw
+    }
+}
+
+Describe "Filesystem provider path 4" {
+    It "copies literal bytes from an ordinary local source" {
+        $source = Join-Path $TestDrive 'source.txt'
+        $target = Join-Path $TestDrive 'target.txt'
+        [IO.File]::WriteAllText($source, 'reviewed bytes')
+        Install-BridgeBundleFile -Source $source -Destination $target
+        [IO.File]::ReadAllText($target) | Should Be 'reviewed bytes'
+    }
+}
+
+Describe "Filesystem provider path 5" {
+    It "uses the provider filesystem path for a provider-qualified UNC resolution" {
+        $script:resolvedFixture = Join-Path $TestDrive 'unc-source.txt'
+        $target = Join-Path $TestDrive 'unc-target.txt'
+        [IO.File]::WriteAllText($script:resolvedFixture, 'UNC bytes')
+        Mock Resolve-Path { [pscustomobject]@{
+            Path = 'Microsoft.PowerShell.Core\FileSystem::\\wsl.localhost\Ubuntu\source.txt'
+            ProviderPath = $script:resolvedFixture
+            Provider = [pscustomobject]@{ Name = 'FileSystem' }
+        } }
+        Install-BridgeBundleFile -Source '\\wsl.localhost\Ubuntu\source.txt' -Destination $target
+        [IO.File]::ReadAllText($target) | Should Be 'UNC bytes'
+    }
+}
+
+Describe "Filesystem provider path 6" {
+    It "rejects non-filesystem providers before reading bytes" {
+        Mock Resolve-Path { [pscustomobject]@{
+            Path = 'Registry::HKEY_CURRENT_USER'; ProviderPath = 'HKEY_CURRENT_USER'
+            Provider = [pscustomobject]@{ Name = 'Registry' }
+        } }
+        { Resolve-TswFileSystemPath 'HKCU:/' } | Should Throw
+    }
+}
+
 function Assert-TestThrows {
     param([scriptblock]$ScriptBlock)
 

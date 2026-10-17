@@ -1,0 +1,32 @@
+{
+  "source_commit": "3da77f8908d598688ed46dd6eab74c5f32a7ac50",
+  "archive_sha256": "de05f717305c5328c51d1488fb1c3d5f40b07ccacf8caa7bc04bf931e8788eba",
+  "target": "N26-existing",
+  "fresh_os": false,
+  "commands": [
+    {
+      "command": "./prepare_linux.sh",
+      "stdin": "one Python-only yes then EOF",
+      "started_at_utc": "2026-10-10T21:55:14.366409+00:00",
+      "finished_at_utc": "2026-10-10T21:55:23.599912+00:00",
+      "exit_code": 2
+    },
+    {
+      "command": "./prepare_linux.sh --preflight",
+      "stdin": "EOF",
+      "started_at_utc": "2026-10-10T21:55:23.599929+00:00",
+      "finished_at_utc": "2026-10-10T21:55:27.171219+00:00",
+      "exit_code": 2
+    }
+  ],
+  "state_scope": "owned isolated XDG_STATE_HOME",
+  "protected_file_scopes_checked": 8,
+  "protected_files_unchanged": true,
+  "inaccessible_entries_before": 0,
+  "inaccessible_entries_after": 0,
+  "incus_inventory_unchanged": true,
+  "incus_inventory_count": 3,
+  "original_source_files_unchanged": true,
+  "bootstrap_installation": "NOT_EXECUTED",
+  "recovery": "LIVE_PREREQUISITE_MISSING"
+}

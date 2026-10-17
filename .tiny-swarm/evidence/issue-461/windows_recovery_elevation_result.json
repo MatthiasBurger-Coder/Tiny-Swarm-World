@@ -1,0 +1,10 @@
+{
+  "state": "WINDOWS_RECOVERY_ELEVATION_CANCELLED",
+  "requested_action": "create_and_verify_current28_owned_vm_checkpoint",
+  "elevated_helper_started": false,
+  "current_checkpoint_result_present": false,
+  "ubuntu_reset_executed": false,
+  "product_install_executed": false,
+  "prior_verified_operator_checkpoint_retained": true,
+  "source_commit": "ef7e88350ede68f7d4197265b2a272c4bd404a3c"
+}

@@ -86,9 +86,9 @@ class LocalIncusPreparation:
         if action not in self._actions:
             raise IncusPreparationFailure("Action is outside the currently observed plan.")
         if action.kind == "daemon":
-            args = ("sudo", "-n", "/usr/bin/systemctl", "start", "incus.service")
+            args = ("/usr/bin/sudo", "-n", "/usr/bin/systemctl", "start", "incus.service")
         elif action.kind == "access":
-            args = ("sudo", "-n", "/usr/sbin/usermod", "-a", "-G", "incus-admin", "--", action.name)
+            args = ("/usr/bin/sudo", "-n", "/usr/sbin/usermod", "-a", "-G", "incus-admin", "--", action.name)
         else:
             args = (*runtime.LOCAL_INCUS_QUERY, "query", f"/1.0/{action.kind}?project=default",
                     "-X", "POST", "--wait", "--data", action.payload)

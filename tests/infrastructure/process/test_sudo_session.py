@@ -15,7 +15,7 @@ class SudoSessionTests(unittest.IsolatedAsyncioTestCase):
     async def test_real_child_preserves_session_with_its_own_killable_group(self):
         probe = "import os,json; print(json.dumps([os.getsid(0),os.getpgrp(),os.getpid()]))"
         for preserve in (False, True):
-            result = await run_async_process((sys.executable, "-c", probe), preserve_session=preserve)
+            result = await run_async_process((sys.executable, "-c", probe), preserve_login_session=preserve)
             self.assertEqual(result.returncode, 0)
             session, group, pid = json.loads(result.stdout)
             self.assertEqual(group, pid)
@@ -32,25 +32,25 @@ class SudoSessionTests(unittest.IsolatedAsyncioTestCase):
             ) as cleanup:
                 if failure is asyncio.CancelledError:
                     with self.assertRaises(asyncio.CancelledError):
-                        await run_async_process(("sudo", "-n", "true"), preserve_session=True)
+                        await run_async_process(("/usr/bin/sudo", "-n", "true"), preserve_login_session=True)
                 else:
-                    result = await run_async_process(("sudo", "-n", "true"), preserve_session=True)
+                    result = await run_async_process(("/usr/bin/sudo", "-n", "true"), preserve_login_session=True)
                     self.assertTrue(result.timed_out)
                     self.assertEqual(result.returncode, 124)
                 self.assertEqual(spawn.call_args.kwargs["process_group"], 0)
-                self.assertNotIn("start_new_session", spawn.call_args.kwargs)
+                self.assertFalse(spawn.call_args.kwargs["start_new_session"])
                 cleanup.assert_awaited_once_with(process)
 
     async def test_network_and_incus_privileged_calls_keep_the_terminal(self):
-        for module, args in ((network, ("sudo", "-n", "--", "/usr/bin/ss", "-H", "-ltnp")),
-                             (incus, ("sudo", "-n", "/usr/bin/systemctl", "start", "incus.service"))):
+        for module, args in ((network, ("/usr/bin/sudo", "-n", "--", "/usr/bin/ss", "-H", "-ltnp")),
+                             (incus, ("/usr/bin/sudo", "-n", "/usr/bin/systemctl", "start", "incus.service"))):
             with patch.object(module, "run_async_process", return_value=AsyncProcessResult(0)) as runner:
                 await module.command(args)
-                self.assertTrue(runner.call_args.kwargs["preserve_session"])
+                self.assertTrue(runner.call_args.kwargs["preserve_login_session"])
                 self.assertIn("-n", runner.call_args.args[0])
 
     async def test_unprivileged_commands_retain_default_session_isolation(self):
         for module in (network, incus):
             with patch.object(module, "run_async_process", return_value=AsyncProcessResult(0)) as runner:
                 await module.command(("getent", "hosts", "localhost"))
-                self.assertNotIn("preserve_session", runner.call_args.kwargs)
+                self.assertNotIn("preserve_login_session", runner.call_args.kwargs)

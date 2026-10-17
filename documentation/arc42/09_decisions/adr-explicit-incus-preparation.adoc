@@ -87,3 +87,29 @@ current-user Incus prerequisites. This decision retains exclusive Incus ownershi
 of managed NAT and reuses these resolved resources/overlap checks. No second
 resource/subnet chooser, daemon repair or profile replacement is authorized.
 Incus readiness remains separate from network, deployment and actual login.
+
+
+== Authenticated login-session amendment, 2026-10-11 (#461 R461-28)
+
+Accepted by the root architect before implementation after independent Senior
+System Architect, Security/DevOps and Requirement/Test concurrence. A harmless
+native Ubuntu 26.04 sudo-rs comparison after sudo -v succeeds in the original
+login session, fails in a detached session, and succeeds in a distinct process
+group in the original session. This establishes the authentication mechanism,
+not successful owned WSL preparation or release qualification.
+
+The central async process owner retains new-session isolation by default. Add an
+explicit keyword-only direct-argv login-session option for the existing trusted
+/usr/bin/sudo -n Incus and network preparation calls. Such a child retains the
+invoking login session and leads its own process group (process_group=0,
+start_new_session=False). Shell opt-in is rejected before spawning. Incus uses
+the absolute sudo path; unrelated commands retain the default isolation.
+
+Existing finite deadlines, process-group termination on timeout/cancellation,
+redacted outcomes, exact-plan consent and confirmed/uncertain evidence remain
+mandatory. There is no interactive fallback, automatic retry, password capture,
+sudoers/timestamp-policy change, whole-installer sudo or adoption of an uncertain
+effect. Missing authentication still fails closed. Tests must establish actual
+SID/PGID separation and descendant cleanup in both modes, including leader exit.
+A newly frozen candidate must be run in the selected ordinary user's authenticated
+WSL TTY before any WSL live success claim.

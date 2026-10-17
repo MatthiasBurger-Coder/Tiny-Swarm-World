@@ -141,3 +141,59 @@ feasible on the same volumes immediately before mutation. Unknown capacity or an
 required disk/reserve threshold crossing blocks and invalidates consent. This
 avoids routine background disk writes invalidating an otherwise identical feasible
 plan; it does not permit saved approval or conceal capacity loss.
+
+== Selected VHD observation amendment, 2026-10-11
+
+Independent System Architect and Issue Completion Auditor approve this path-role
+correction for #461. The registered VHD is an existing regular, non-reparse file
+owned by the current user, SYSTEM or Administrators, beneath a strictly validated
+local NTFS BasePath and ancestors. Metadata/ACL observation failures block.
+Capacity is queried on BasePath, never from VHD contents. This metadata-only
+observation does not apply the private evidence write-ACE policy to the VHD:
+WSL grants its VM access when attaching disks. It does not authenticate additional
+ACE identities, distro integrity or VHD contents. No VHD read, mount, mutation or
+ACL rewrite is introduced, and no SID-family whitelist is accepted.
+
+The original strict guards remain for BasePath, configuration, swap, backups and
+evidence. Fresh bounded resource inventory before apply remains required. This
+clarifies the earlier unsafe ACL rejection for the selected VHD role only. Path
+observations are not an OS compare-and-swap; the volume probe uses BasePath and
+never follows VHD contents. Actual post-restart swap/storage readiness still
+requires live verification and may expose a separate blocker.
+
+Primary implementation reference reviewed 2026-10-11:
+https://github.com/microsoft/WSL/blob/master/src/windows/service/exe/WslCoreVm.cpp
+(the attach path calls GrantVmAccess and detach revokes granted access).
+Disposable Windows regressions must cover extra VM/capability grants, preservation,
+foreign owners, missing/directory/reparse/inaccessible leaves, unsafe parents and
+unchanged strict private-path guards. No release qualification follows from this
+amendment or mocked/disposable verification.
+
+== Physical and usable RAM observation amendment, 2026-10-11
+
+Independent System Architect approves separating physical RAM from usable RAM
+after the actual #461 guest restart exposed kernel reservations exceeding the
+previous ceiling tolerance. The selected guest reports 22547132416 physical bytes
+from RAM-zone present pages, versus configured 22548578304 bytes, but MemTotal
+reports 22033063936 usable bytes. Both exceed the unchanged 19 GiB node floor.
+
+Compare the configured ceiling with present pages multiplied by observed page
+size. Apply the existing max(256 MiB, 2 percent) tolerance unchanged. Count only
+DMA, DMA32, Normal, HighMem and Movable RAM zones; exclude Device memory.
+Reject unknown zones, missing/duplicate/malformed observations and overflow.
+Present pages exclude holes; online block counts and spanned pages do not.
+Keep MemTotal independently clamped by every finite cgroup ancestor limit and
+require the unchanged usable profile/node floor. Require physical >= usable.
+
+The bounded probe now emits exactly five keys, adding effective_physical_memory_bytes;
+missing or unsupported observations fail closed, with no configuration fallback.
+Both signals enter fresh plan/apply inventory and fingerprint identity. Existing
+CPU, swap, disk, host reserve, source and consent guards remain unchanged.
+Tests must reject stale ceilings, holes, insufficient cgroup-scoped usable memory,
+malformed topology and observations changing between plan and apply.
+
+Primary semantics reviewed: https://docs.kernel.org/mm/physical_memory.html
+(present pages exclude absent pages; managed pages exclude reservations), and
+https://www.kernel.org/doc/html/latest/filesystems/proc.html (MemTotal is usable RAM).
+This amendment is not live qualification; a new exact source and live evidence
+are required before a release qualification claim.

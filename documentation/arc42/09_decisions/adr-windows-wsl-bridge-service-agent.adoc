@@ -138,3 +138,16 @@ Rejected as outside this decision and outside the live-install recovery scope.
 * Implementation: `tools/windows/tws-wsl-bridge.ps1`
 * Service runner: `tools/windows/tws-wsl-bridge-service.ps1`
 * Behavior tests: `tests/windows/tws-wsl-bridge.Tests.ps1`
+== Preserve-only Microsoft WSL relay observation, 2026-10-17 (#461 R461-33)
+
+Accepted for integration after independent System Architect and Security review.
+A canonical mapped Windows port may have an IPv6-loopback Microsoft WSL relay
+companion. Recognize it only through protected signed WSLService process/child
+identity, exact paired IPv4 proxy and repeated process/socket observations. This
+permits preservation of an existing verified companion, never ownership of its
+distribution, adoption of a foreign mapping, or relay removal.
+
+Keep the separately verified IP Helper service/image/SYSTEM identity, stable
+process creation and PID checks, exact listen/connect address/port mapping,
+protected state and complete batched firewall observations. The relay fallback
+does not replace those guards. Missing, changed or ambiguous evidence blocks.

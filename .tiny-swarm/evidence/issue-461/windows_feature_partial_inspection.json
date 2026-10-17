@@ -1,0 +1,69 @@
+{
+  "state": "OWNED_FEATURE_PARTIAL_INSPECTED",
+  "features": [
+    {
+      "FeatureName": "Microsoft-Windows-Subsystem-Linux",
+      "State": "Enabled"
+    },
+    {
+      "FeatureName": "VirtualMachinePlatform",
+      "State": "Enabled"
+    }
+  ],
+  "apply_exit": 4,
+  "outcome": "PARTIAL",
+  "completed_actions": [
+    "enable_features"
+  ],
+  "uncertain_actions": [],
+  "blockers": [
+    {
+      "code": "next_stage_consent_required",
+      "stage": "next_stage"
+    },
+    {
+      "code": "evidence_or_action_failed",
+      "stage": "enable_features"
+    }
+  ],
+  "records": [
+    {
+      "uncertain": false,
+      "action": "enable_features",
+      "confirmed": true,
+      "event": "effect",
+      "exit_code": 3010,
+      "outcome": "RESTART_REQUIRED"
+    },
+    {
+      "uncertain": null,
+      "action": null,
+      "confirmed": null,
+      "event": "intent",
+      "exit_code": null,
+      "outcome": null
+    },
+    {
+      "uncertain": true,
+      "restart": "none",
+      "confirmed": false,
+      "status": "pending",
+      "schema": 1,
+      "exit_code": 0,
+      "stage": "enable_features"
+    }
+  ],
+  "source_verified": true,
+  "observed_revision": "3da77f8908d598688ed46dd6eab74c5f32a7ac50",
+  "preflight_exit": 3,
+  "next_action_ids": [
+    "install_wsl"
+  ],
+  "blocker_codes": [
+    "reboot_pending",
+    "prerequisite_missing"
+  ],
+  "restart_scope": "Windows",
+  "inspected_at_utc": "2026-10-10T22:41:29.7751231Z",
+  "qualification": "UNQUALIFIED"
+}
