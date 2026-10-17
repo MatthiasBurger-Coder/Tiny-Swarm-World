@@ -56,3 +56,27 @@ completion reviewers approve concrete correction. No ownership, ACL, timeout,
 credential or workflow change. Overall issue INCOMPLETE, new affected live
 verification pending. Message: fix(bridge): hash decoded hosts text without
 provider metadata. No push/PR/merge requested.
+
+## Final amended-scope publication readiness — 2026-10-17
+
+User explicitly authorized push auto, issue closure and branch deletion.
+Branch `fix/boot-w09-live-qualification-20261010` is task-scoped; origin/main
+`3aa936b5` is an ancestor. The active #355 workflow is historical and is not
+reopened. Independent completion audit PASS applies only to the operator-amended
+existing-host scope; Ubuntu24.04 and remaining explicitly deferred scenarios do
+not become live successes or global release qualification.
+
+Final commit scope: eight existing issue461 evidence Markdown files, this
+readiness record, the explicitly required redacted combined qualification JSON,
+and manual-host-steps.md. Raw logs, credentials, private configurations, harnesses
+and other worktrees are excluded. Content/security review found no supplied
+credentials, private keys or target account/address disclosures.
+
+Verification: initial publication gate failed with two ENOSPC installer cases
+and one ENOMEM source-proof copy; failed log retained. Same three cases PASS
+unchanged using disk-backed TMPDIR. Clean exactd2 Linux-worktree full gate exit0,
+PASS2,631tests/18skips,43architecture,7contracts,808typed files. No source/test/
+configuration changes or weakened checks. Root final documentation diff checks
+and canonical JSON validation PASS. PR CI and configured SonarCloud are pending
+publication; local PASS is not external success. Merge and cleanup remain gated
+on verified external results, mergeability and confirmed merged state.

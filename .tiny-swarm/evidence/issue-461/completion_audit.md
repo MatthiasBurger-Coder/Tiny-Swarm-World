@@ -1,5 +1,17 @@
 # Independent issue completion audit
 
+## Current operator-accepted scope — 2026-10-17
+
+The operator explicitly deferred the remaining live hardening scenarios due to
+test-setup limits. The amended scope is the evidenced existing-host repairs,
+qualification and operator guidance. See the authoritative requirement mapping
+in [the current requirement scope](requirement_matrix.md#current-operator-accepted-scope--2026-10-17).
+These deferred scenarios no longer block this agreed delivery; their unverified
+results and residual risks remain. Earlier whole-campaign BLOCKED/INCOMPLETE
+statements below are historical and do not describe the amended scope. No
+fresh-host, full fault-matrix or global release qualification is claimed.
+
+
 Earlier reviews below are historical. Current verified Windows environment
 progress is recorded in the latest section; no product qualification is implied.
 
@@ -135,3 +147,176 @@ Preservation is bounded to these observations, not every distro file.
 R461-24 VERIFIED for resource case only. AC2 ordinary full-apply preservation
 and remaining live scenarios remain open. Overall INCOMPLETE, no qualified
 release, no product-install success. New bridge inventory timeout remains open.
+# Three-Amigos remediation audit, 2026-10-17
+
+Independent reviewer: `/root/remediation_completion_audit`, read-only, applying
+the issue-completion-auditor contract. Decision: **BLOCKED** for whole issue #461.
+Scoped R461-29–32 are verified within their declared boundaries: owned dual-stack
+listener observation, exact namespace-bound mapped-root process identity,
+actionable preserved LXD guard, and manual certificate/host/recovery guidance.
+
+Reviewed 85 targeted passing tests and final full project-venv quality: 2,591
+tests, 18 existing skips, 43 architecture tests, seven import contracts and 801
+typed files. Twenty persisted product/documentation/log hashes match. The
+persisted source-hashed read-only WSL counterprobe equals the original result:
+two actual canonical listeners accepted, original parser rejects, eleven scoped
+files unchanged. No committed-source installation qualification is inferred.
+
+All six mandatory issue evidence files exist. No gate weakening, unrelated
+runtime change or hidden scope reduction was found. Documentation and final
+independent documentation review distinguish manual OS trust actions from product
+automation and from unexecuted TLS/authentication results. The initial failed
+system-interpreter gate and subsequent environment correction remain recorded.
+
+Open: fresh-host installation, full rerun/recovery, post-install preservation,
+routes/service authentication and native LXD coordination. Releases remain
+UNQUALIFIED. See `three_amigos_remediation_20261017.md` and
+`three_amigos_verification_20261017.json`; earlier audit sections remain historical.
+
+## Combined-source qualification update — 2026-10-17, candidate d2fd89be
+
+The user confirmed no concurrent session and authorized integration of the other
+bootstrap/network/certificate worktrees. Combined candidate `4f2e1751` was
+committed after independent architecture/security/commit review; the observed
+WSL exact-plan drift was traced to permutation of Incus `network.used_by` only.
+Regression-first repair R461-34 sorts that relation alone, preserving membership,
+duplicates and every other configuration/ownership check. Final source is
+`d2fd89be9b2274eeb0c210d140ebee358a1324c4`, verified clean on both targets using
+real Git metadata and 2,470 archive-file hashes. An archive without `.git` was
+rejected by installer preflight; it was replaced with verified real Git staging.
+
+Final local project-venv quality: **PASS 2,631 tests, 18 existing skips, 43
+architecture tests, seven import contracts, 808 typed files**. One first-run
+unchanged fixture timeout was retained; the unchanged isolated test and full
+rerun passed. No timeout or assertion was weakened. Manual guide syntax, links
+and verification-state checks passed.
+
+On the supplied existing native Linux target, ordinary full installation and
+its exact-source rerun both exited **0**. Seven real service API positive and
+negative authentication checks pass with the managed CA. Operator/TLS file
+bytes, modes and inodes are preserved; all three node configurations, init
+processes, guest sentinels, Docker volume identities and service IDs survive the
+rerun unchanged. The separate active LXD daemon was temporarily paused and
+restored with its exact original socket/service and three stopped-instance
+states; no LXD instance was changed. A stale operator file was rejected with
+Portainer HTTP409/422; the verified existing protected credential source was
+selected, without reset, credential rotation or volume deletion. Native cold
+snapshot/restore/restart of the three managed root disks passed; nine actual
+TLS routes recovered after warmup. These same-pool snapshots do not prove host
+OS or external-volume restoration. Default native system CA trust is absent;
+explicit managed-CA verification passed.
+
+On the supplied existing WSL target, exact-source preparation and no-action
+rerun exited **0**; installer preflight and dry-run exited **0**. Seven real
+service API authentication/negative checks pass. Windows CurrentUser CA
+inspection reports a preexisting trusted CA with the independently verified DER
+fingerprint; no CA import/removal was performed. Full WSL installation, cold
+restore and selected-distribution restart are being qualified separately.
+
+Historical failed runs retain their original source and result. No browser,
+Selenium, SonarQube, fresh-OS, whole-host restore or release qualification is
+inferred from these results. #461 remains **INCOMPLETE**; missing clean-host and
+Ubuntu24.04 targets and remaining scenario rows prevent DONE. Machine-readable
+continuation: [combined qualification](combined_qualification_20261017.json).
+
+## Verified restart and stage-recovery continuation — 2026-10-17
+
+Both supplied existing hosts now pass ordinary full installation and rerun on
+committed candidate `d2fd89be`; TLS files, all three node configurations/markers/
+volumes and service identities are preserved. Native actual host reboot and
+selected-WSL distribution restart are verified with actual identity changes,
+protected-file/state preservation and final nine TLS routes plus seven real API
+positive/negative authentication checks. Native early inactive-daemon observation
+was retained; Incus startup completed autonomously without client activation or
+a service-policy change. All original unit and stopped-LXD-instance states match.
+WSL init namespaces/start time changed while its kernel boot ID stayed unchanged;
+Lxss and `.wslconfig` stayed unchanged. Its managed-hosts/bridge refresh and
+subsequent no-action rerun both exited0. The observed WSL IPv4 did not change.
+
+Each host also passes isolated real Python-stage offlinefailure1/interruption130
+followed by connectedresume0 and unchanged-checkpoint rerun0. The first detached
+sudo wrapper and WSL interruption observer race remain unsuccessful private
+harness attempts; later results do not erase them. This is supplementary stage
+evidence, not full CLI or full installer interruption recovery. Native managed
+root recovery was executed on4f2e1751; WSL root recovery and subsequent native
+installation/reboot use d2fd89be. These exact-source boundaries remain explicit.
+
+Manual guidance now additionally covers distribution versus kernel restart
+identity, capturing service/socket state before client activation, and bounded
+service warmup with retained early failures. Policy, diff, eleven bash-block
+syntax and relative-link checks pass for the docs-only followup; product/test
+bytes remain those of the 2,631-test passing gate. Final S08 execution/audit is
+pending. Fresh OS/24.04, real group-session transition, address drift and full
+CLI fault cases remain open. Full #461 stays INCOMPLETE/releases UNQUALIFIED.
+
+## Final S08 and operator handoff — 2026-10-17
+
+Reviewed harness SHA256 `329e147a4cc57c3e6784c83639980b831ecd5d13502d13904f4211c3175d3571`
+passed its mandatory privilege-drop rehearsal and actual existing-WSL port80
+exposure collision (overall exit0). The unchanged d2 preflight returned2 with
+`Canonical-port listener address differs from its exposure contract.` Only the
+exclusive manager profile's owned80 device was temporarily removed. The fixed
+root helper bound loopback80, dropped every privilege before listening, accepted
+no application connection and ran no product code as root. No sysctl, filecaps,
+ACL, sudoers or persistent policy was changed. Fresh UUID/ETag guards restored
+exactly the original device. Restored preflight0, complete provider inventory
+and checkpoint bytes/inodes/modes/mtime comparison, HTTPS200 checks, seven actual
+API positive/negative checks and node config/guest markers/volumes/service IDs
+all PASS. This verifies S08 exposure guard on WSL only; it does not close S07,
+native collision, foreign-executable rejection or fresh-host qualification.
+
+Exact six test-owned guest markers were removed only after hash/inode/type/
+owner/mode checks. Root snapshots and private original evidence remain retained;
+they are same-pool root-disk recovery points, not OS/disaster backups. Each host
+has a protected `~/tsw-qualification/operator-handoff-d2fd89be.md` containing the
+reviewed checkout/environment/configuration references and snapshot names,
+without any secret values. Native resource/credential selections and intentional
+LXD/IPv6 guards remain explicit; Windows CA trust was preexisting. Public manual
+guidance includes Git metadata/three effective ignore outputs, retaining reviewed
+runtime overrides, certificates/trust, restart identity and bounded warmup.
+Final guide has twelve bash blocks; syntax, links, policy and diff checks PASS.
+
+Full issue remains INCOMPLETE; missing fresh/24.04 targets and open group, address,
+resource-boundary, unrelated-resource and full CLI fault scopes remain explicit.
+Independent final audit is required; no release is qualified or issue DONE claimed.
+
+## Independent final issue audit — 2026-10-17
+
+Reviewer `/root/remediation_completion_audit`, independent read-only role;
+decision **BLOCKED for whole #461**, scoped remediation and exercised existing-host
+scenarios **VERIFIED**. Reviewed source d2fd89be, final2631/18skip local quality,
+actual install/rerun, native host and selected WSL restarts, source-separated cold
+root recovery, stage-only download/interruption/resume, S08 raw transaction and
+postrestore HTTPS/API/data. No weakened checks, source-scope reduction or
+uncommitted product/test/tooling changes were found. Native default-CA trust,
+browser/Selenium, SonarQube, fresh OS or new reset success is not inferred.
+
+The final S08 continuation above supersedes its earlier pending entry. The final
+guide has **12** checked bash blocks; the earlier eleven-block record is historical.
+All mandatory issue evidence files exist. Missing fresh Ubuntu26.04 targets and remaining
+group, address, full CLI fault and per-release cases prevent DONE and release
+qualification. The redacted current machine-readable rollup is
+`combined_qualification_20261017.json:latest_campaign`.
+
+## Operator scope clarification — 2026-10-17
+
+The operator clarified that Ubuntu24.04 is not a required live target for #461;
+Ubuntu26.04 is the current LTS qualification target. The original dual-release
+expectation is superseded. Ubuntu24.04 remains supported but explicitly
+UNQUALIFIED for live use and is not itself a #461 blocker. The prior independent
+audit remains valid for its reviewed scope; this requirement amendment does not
+resolve its other blockers, including fresh-host evidence on both families.
+
+## Independent amended-scope completion audit — 2026-10-17
+
+Reviewer `/root/remediation_completion_audit`, independent read-only review.
+Decision: **PASS for the operator-amended scope only**. The explicit operator
+acceptance removes the listed deferred live scenarios from the current delivery
+criteria; their unexecuted and partial results remain unchanged. Historical
+blocker statements are distinguished from current acceptance. Implemented
+repairs, exercised existing-host scenarios and operator guidance satisfy the
+amended delivery. Unchanged product candidate `d2fd89be` retains its recorded
+2,631-test passing quality gate. Documentation-only amendment: `git diff --check`
+PASS; no new live or product test run. No complete original-matrix, fresh-host
+or global release qualification is established. Residual risks remain in the
+requirement matrix and remaining_risks.md.

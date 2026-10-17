@@ -1,8 +1,24 @@
 # Test results
 
-Current frozen runtime candidate: `ef7e88350ede68f7d4197265b2a272c4bd404a3c`.
-Current local quality PASS; actual28GiB preflight/dry-run BLOCKED; reset
-execution pending canceled elevation. Detailed current results appear below.
+## Current operator-accepted scope — 2026-10-17
+
+The operator explicitly deferred the remaining live hardening scenarios due to
+test-setup limits. The amended scope is the evidenced existing-host repairs,
+qualification and operator guidance. See the authoritative requirement mapping
+in [the current requirement scope](requirement_matrix.md#current-operator-accepted-scope--2026-10-17).
+These deferred scenarios no longer block this agreed delivery; their unverified
+results and residual risks remain. Earlier whole-campaign BLOCKED/INCOMPLETE
+statements below are historical and do not describe the amended scope. No
+fresh-host, full fault-matrix or global release qualification is claimed.
+
+
+Current frozen runtime candidate: `51bac77cd94e210a3b8640f4e83688180e520057`.
+Combined local quality and native fixtures PASS; affected original-budget live rerun pending.
+Latest guest Apply used51bac and returned4/PARTIAL with confirmed bridge_install;
+independent default15-second bridge inventories are ready. Linux checkout is required.
+Scoped VM-only Ubuntu reset/restore
+was executed and verified; latest bridge failure recovery is being prepared.
+Historical and current executed results appear below.
 
 ## Historical baseline and first frozen candidate
 
@@ -377,4 +393,688 @@ runtime/test/guide bytes matched Linux verification copy before/after execution.
 Logs:/tmp/issue461-hosts-regression-red.log,
 /tmp/issue461-hosts-regression-green.log,/tmp/issue461-hosts-quality.log.
 Independent architecture/security and completion reviews approve concrete scope;
-new committed source freeze and affected live rerun remain required.
+New source freeze and affected live inventory rerun are recorded below.
+
+## Current source-bound Windows 30GiB follow-up
+
+Frozen source e01e1dd5dab2ff7390d782d891a47e2191c1c7a9, clean checkout
+and release-manifest verified archive SHA256
+36b5c0973db4e9e3c94df85166d6dcde3c7c03496b607b93cc53413a24d9e7fd.
+Actual Windows preflight/dry-run: resource VERIFIED/effective_verified true;
+bridge inventory completes at unchanged defaults and plans bridge_install.
+Protected state fingerprints unchanged. Initial exit2 blockers were
+prerequisite_missing and prior-source bootstrap_state_invalid.
+
+The exact confirmed source806 resource checkpoint was then archived under the
+canonical product lock, after matching revision/distro/host, confirmed effect,
+current config hash and actual verified current30 recovery/reset proof.
+Same-volume move preserved bytes and ACLs; old canonical state is absent;
+archival ledger recorded. No prior consent reused. Fresh source-bound plan
+exit2 only prerequisite_missing, bridge_install planned. Apply not executed.
+See windows_e01_30gib_preflight_result.json and
+windows30_resource_state_archive_result.json. Historical bridge timeouts and
+old-source state failures remain recorded; they are resolved for this measured
+plan only. R461-25 live inventory case verified. Full install, rerun, service
+authentication and ordinary full-apply WSL preservation remain unverified.
+Issue remains INCOMPLETE; every release remains UNQUALIFIED.
+
+## Interactive bridge installation prerequisite
+
+Owned guest session query reports no logged-on user. No hidden-session apply
+was attempted: the unmodified source requires the WSL-owner Windows credential
+dialog before bridge service installation. An owned, highest-runlevel interactive
+task was registered only in the verified30GiB test VM for that account's next
+logon. Its protected runner rejects existing canonical state, reobserves exact
+source/effective resources, requires exactly bridge_install and no unexpected
+blockers, then approves that fresh plan with the actual verified current recovery
+reference. No credential is stored in the runner or task arguments.
+Task registration is preparation evidence, not Apply or bridge-install success.
+Awaiting interactive owner logon/credential dialog; no Apply has executed as of
+09:53:33Z. The first task preparation refused untrusted ACL ancestry outside
+the canonical protected store; it did not install a task or execute Apply.
+The runner was moved to the existing protected preparation store and both
+private ACL setup/path assertion passed before the task was registered.
+See windows30_interactive_bridge_task_result.json.
+
+## Interactive logon attempt and guarded starter correction
+
+Operator reported guest logon/confirmation. Actual task first run at10:06:23Z
+returned1 before Apply: operator helper placed a PowerShell host argument after
+-File, causing JSON parsing failure. At10:09:25Z the bridge service and canonical
+checkpoint were both absent; independent product source-bound preflight/dry-run
+again had resource VERIFIED and only prerequisite_missing/bridge_install.
+This is an operator-harness failure, not product Apply or installation evidence.
+First failure retained privately and classified in
+windows30_interactive_bridge_first_attempt_result.json.
+
+Corrected only the ignored operator starter: host argument precedes -File, and
+raw plan is saved before parsing. Retry verifies exact old-runner hash, old
+pre-apply failure, task not running, service/checkpoint absent and retained
+verified snapshot. Protected runner ACL/path revalidated. Actual child argument
+probe returns source-verified bridge-only plan (exit2), then existing interactive
+task was started at10:11:34Z. See
+windows30_interactive_bridge_retry_start_result.json. This is retry-start evidence;
+installation/result remains pending observation. Frozen product source e01 and
+all product timeout, credential, ACL, consent and state guards are unchanged.
+
+## Actual e01 bridge Apply interruption and logon failure
+
+At10:12:45Z actual task Running, canonical checkpoint pending/uncertain for
+bridge_install/currente01, not confirmed. Operator reported no new dialog.
+At10:15:35Z task Ready with status0xC000013A; no owned installation processes
+and no bridge service. Product Apply envelope/exit were not returned; do not
+treat the task status as a product exit. Interruption origin is unknown.
+Independent source-bound preflight/dry-run exit2, resourceVERIFIED, no actions
+and bridge_recovery_or_adoption_required. Canonical uncertainty retained.
+
+Actual protected payload/journal observation10:18:54Z: activated transaction,
+serviceCreateIntent/serviceCreatedtrue; original service/root absent. WinSW
+wrapper matches pinned SHA256. SCM7045 records service creation, followed by
+SCM7000/7038 at10:14:08Z with explicit incorrect username/password failure.
+No successful service start/readiness/authentication is claimed. User
+confirmation and a passed credential dialog cannot substitute for service logon
+success. Existing host-protected credential still authenticates PSDirect, but
+no password/token is printed or committed. All9partial payload files and
+canonical uncertain state preserved privately with hash checks.
+See windows30_interactive_bridge_interrupted_result.json and
+windows30_interrupted_bridge_payload_result.json. This supplies actual partial
+interruption/refusal evidence, not controlled fault-injection or recovery PASS.
+Whole-owned-VM snapshot recovery prepared with inactive-task/child checks,
+preserved failure snapshot and original actually verified recovery reference;
+recovery execution/result must be observed separately. Product guards are not
+bypassed and uncertain checkpoint is not edited. #461 remains INCOMPLETE.
+
+## Recovery execution prerequisite at current stop
+
+Interrupted payload and uncertain checkpoint are exported/hash-preserved outside
+the VM. First whole-VM recovery helper stopped the owned VM normally and
+requested an offline failure snapshot, but failed to observe that new snapshot
+immediately; no restoration success is claimed. Error retained privately.
+The corrected operator helper uses fresh VM-name snapshot inventory with a
+bounded wait, preserves/reuses the exact owned offline failed-state snapshot,
+and can resume from Off. It retains the actually verified original checkpoint
+reference and all restore identity/primary-WSL checks. The corrected launch
+waited on real host Windows UAC, then returned Windows cancellation before
+helper execution; no corrected restore result exists. This is an OS interaction
+result, not an auto-review rejection or revoked live scope. A newly announced
+retry is being launched for the same concrete owned-VM restoration.
+The VM is not claimed ready. Pending product checkpoint is not rewritten;
+whole-VM recovery and product bridge recovery remain separate claims.
+
+## Actual interrupted-bridge whole-VM recovery verified
+
+Corrected host UAC retry completed. At10:28:51Z actual whole-owned-VM snapshot
+restore verified against original eaff recovery identity/configuration/marker
+and Ubuntu machine-id/os-release hashes. Fixed30GiB retained. Bridge root,
+service and interactive test task absent. Primary WSL registration/config
+fingerprints unchanged. Failed offline snapshot retained as
+5cce7e45-fd8d-4ba2-b458-41d42ef54500; partial payload and uncertainty evidence
+also hash-preserved privately. Uncertain checkpoint was not edited.
+See windows30_interrupted_bridge_snapshot_recovery_result.json.
+This is environment snapshot recovery PASS for recorded scope; it is not
+product bridge transaction recovery, successful credential/service start,
+full install or S10 controlled fault-injection qualification.
+Next source-bound plan/preparation is being reobserved after recovery.
+
+## Restored candidate preparation and existing interactive owner
+
+Actual source-bound e01 preflight/dry-run rerun afterwholeVM recovery verified
+source/resource inventory and preserved protected-state fingerprints. Exact
+confirmed old806 resource state from restored snapshot then archived again
+under canonical lock with byte/ACL equality and fresh source/host/distro/config
+checks; no pending uncertain state is rewritten. Fresh plan only bridge_install
+and prerequisite_missing. At10:34:07Z service/canonical checkpoint absent and
+one existing same-owner console Session1 Active. No autologon/LSA/Winlogon
+change is needed or implemented; observed AutoAdminLogonfalse and no plaintext
+WinlogonDefaultPassword. See windows30_postrecovery_bridge_preparation_result.json.
+The first combined operator helper exited on an invalid parent LASTEXITCODE
+check despite actual child inventory PASS; corrected to require actual saved
+result contract, then complete preparation returned0. No product code changed.
+A reviewed bounded exact-dialog operator-input helper is being prepared;
+its preparation cannot be counted as authenticated service installation.
+
+## Real-dialog operator helper launch pending host elevation
+
+Independent security review accepted the scoped private operator helper after
+fixing preparation-directory and process-proof ancestor validation when the
+temporary credential leaf is absent. Updated helper AST parsing passed. The
+helper targets the real source-bound credential dialog and exact current guest
+owner/session/process; it does not replace product credential collection. The
+180-second UI deadline is cooperative, with a separately registered five-minute
+SYSTEM cleanup trigger. No autologon/LSA/Winlogon changes are implemented.
+
+The host elevated helper was launched, but actual Windows UAC consent is still
+pending. No new attempt-start result exists and no product Apply success is
+claimed. The retained previous observer is historical, not evidence of this
+launch. Once elevation completes, the helper starts the owned task and observes
+results within the same elevated host process. Issue remains INCOMPLETE.
+
+## UAC retry and actual real-dialog attempt start
+
+The previous pending host UAC request returned canceled before the helper ran.
+A new launch was accepted and actual owned guest task start was recorded at
+11:13:43Z. See windows30_real_credential_ui_start_result.json. The first fresh
+observation at11:14:07Z shows task Running, service absent and no checkpoint
+yet. This is attempt-start evidence only; prior historical observer files are
+not reused as a current product result.
+
+## Actual bridge Apply returned PARTIAL; running service is not qualification
+
+At11:16:04Z actual unchanged e01 product Apply returned exit4 PARTIAL with
+bridge_postcheck_failed. By11:17:20Z task was Ready; actual service Running,
+checkpoint effect/uncertain/unconfirmed. Fresh source-bound Preflight and
+DryRun exit2 bridge_inventory_unavailable, resources VERIFIED. Temporary guest
+credential blob absent. No UI submission proof was produced, so neither
+automated credential entry nor its cause is inferred. The action.after
+bridge_ready=true is a desired plan target, not an actual observation.
+
+See windows30_real_ui_bridge_partial_result.json. Existing account-match
+observer false is unverified until relative SCM account normalization is
+checked; it is not evidence of a wrong service account. Read-only bounded
+exact-source inventory diagnostics are prepared and launched behind host UAC.
+The uncertain checkpoint is preserved; no new Apply/adopt/refresh is run.
+Issue remains INCOMPLETE.
+
+## Concrete read-only blocker and independent credential cleanup
+
+At11:18:58Z exact-source direct read-only inventory with separately labelled
+45-second diagnostic budget returned0 and valid schema: ownership owned,
+bridge/routing/agent readiness false, blocker foreign_or_unknown_listener.
+This diagnostic does not change the original postcheck result or timeout.
+Normalized SCM identity is CURRENT_OWNER; earlier relative-account comparison
+false is corrected without changing the service. Canonical checkpoint bytes
+unchanged. See windows30_bridge_readonly_diagnosis_result.json.
+
+At11:18:45Z independent SYSTEM expiry task actually reported temporary
+credential absent; no matching UI process required termination. Current
+observer verifies same-owner service and measured preservation, while
+source-bound Preflight/DryRun still exit2 bridge_inventory_unavailable. See
+windows30_bridge_credential_cleanup_result.json. No automated dialog-submission
+proof exists. Next read-only diagnostics distinguish listener owner and
+original15-second budget from longer diagnostic budget; no state repair.
+
+Independent completion review confirms the latest scoped evidence is consistent
+and overall issue remains INCOMPLETE/UNQUALIFIED. Product result envelopes
+emit live_state LIVE_CONSENT_MISSING; this raw product field is retained as
+emitted and does not negate the explicit operator authorization for these
+owned-VM attempts. Scheduled task exit0 is not product Apply exit0: actual
+Apply returned4.
+
+## Listener diagnostic launch still requires host elevation
+
+The preceding listener-only diagnostic launch returned host UAC cancellation
+before helper execution. No listener diagnostic result exists. A fresh retry
+created a consent process in actual host console Session1, matching the host
+interop caller's session; this process observation does not prove a dialog was
+visible to the operator. The latest helper remains pending elevation. No
+listener owner attribution or new qualification is inferred from this launch.
+
+## Listener read-only diagnostic actually completed
+
+At11:56:07Z owned listener diagnostics completed. Original15-second bounded
+inventory exits124 after15.0649seconds; separately labelled45-second read-only
+probe exits0 after20.0964seconds. All24mapped listeners are hosted by svchost
+with iphlpsvc attached, whereas the current ownership predicate accepts only
+PID4. Exact netsh endpoint/protected-state mapping comparisons are recorded
+per listener in windows30_listener_identity_and_timing_result.json. The
+heartbeat reports windows-service/ready; this is not bridge readiness.
+
+No further UAC approval is needed to obtain this completed observation. A
+security/architecture review is examining a narrow modern IP Helper ownership
+correction and bounded firewall inventory optimization. No product guard or
+probe budget has been changed, and uncertain state remains preserved.
+
+## R461-26 local listener identity correction
+
+Independent architecture/security review approved the narrow adapter
+observation correction, with no new ADR. The new branch requires unique
+running IP Helper SCM identity, its exact System32 svchost image, SYSTEM
+process ownership and repeated typed creation/PID/service identity. Native
+SCM LocalSystem is handled as the built-in account name because NTAccount
+translation of that alias was actually unavailable; live process SID still
+must equal SYSTEM. Protected state, exact endpoint/mapping uniqueness and
+legacy PID4 remain required; observed identity participates in consent hash.
+
+Actual Windows PowerShell5.1 targeted fixture PASS109. A private controlled
+baseline overlay restoring only the old PID4 ownership predicate exits1 at
+'exact mapping and live IP Helper listener ready'. Negative cases cover wrong
+service/process/name/image/owner, probe failures, initial/rechecked creation
+type, recycled PID, duplicate records/mappings, absent mapping and mismatched
+forwarding endpoints. Full quality is running; no affected live candidate
+qualification is claimed and budgets/service/state remain unchanged.
+
+## Read-only component timing identifies policy-filter bottleneck
+
+Corrected private profiling harness actually completed12:07:04Z with unchanged
+canonical checkpoint bytes. The first harness invocation failed after its reads
+on an absent timed_out property; no result was counted before the corrected
+run. Standalone component measurements, not an exact in-call profile:
+all506firewall rules1.2932s; existing24-rule snapshot2.3911s; seven policy
+filter groups12.7673s; second snapshot2.2276s; TCP listeners0.4586s; portproxy
+records0.0868s. See windows30_bridge_component_timing_result.json.
+
+Existing per-rule associations dominate the observed budget. A separate private
+read-only experiment compares all-filter retrieval restricted to exact rule
+identities with existing projections; product retrieval/timeout remain unchanged
+until equivalence, timing and independent safety review are demonstrated.
+
+## Read-only complete projection comparison supports separate performance slice
+
+At12:11:02Z repeated existing seven-group retrieval measured12.7286s. Seven
+native -All filter-family reads restricted to exact owned rule InstanceIDs
+total0.9699s. For each family506objects were observed and24matched; all full
+sorted projected JSON observations exactly equal the existing per-rule
+association projections, including PackageObserved and restriction fields.
+Canonical checkpoint bytes unchanged. See
+windows30_firewall_filter_batch_comparison_result.json.
+
+This is a diagnostic equivalence/timing experiment, not a passing product
+postcheck. Proposed R461-27 performance change remains separately declared
+and under independent review; no timeout or product retrieval changes yet.
+
+R461-26 full Python3.12quality completed exit0:2555tests469.014s,18existing
+skips;43architecturetests27.230s;7importcontractskept;799typedfilesPASS.
+Native WinPS5.1targeted109PASS and controlled PID4predicate overlayRED retained.
+See windows_iphelper_local_verification.json for tested-file/log hashes. Local
+verification is not live qualification; new source freeze and15-second live
+verification remain outstanding.
+
+R461-26 source freeze committed08a7948356a47eea2379925cacd5d38df5881a15
+and integrated fast-forward without disturbing pending evidence. R461-27
+concrete security/architecture review approves exact identity batching and
+unchanged complete projections. Native WinPS5.1GREEN161checks; original08
+association readerRED at 'one query covers all owned rules ports'. Full
+Python3.12quality on byte-matched separate Linux checkout passed exit0:
+2555tests129.767s/18existing skips;43architecturetests3.329s;7contracts;
+799typedfiles. See windows_firewall_batch_local_verification.json.
+New combined source freeze and actual15-second live verification still pending.
+
+
+## Combined corrected source freeze (R461-26 / R461-27)
+
+Local candidate `51bac77cd94e210a3b8640f4e83688180e520057` contains the
+separately reviewed and committed listener identity and firewall observation
+corrections. Full quality PASS: 2,555 tests, 18 existing skips, 43 architecture
+tests, seven import contracts and 799 typed files. Native Windows fixture
+PASS: 161 checks; the prior per-rule reader fails the controlled 24-rule
+regression. Clean committed candidate archive and offline membership proof
+were produced; tested source hashes match. At this historical source-freeze point, source-bound original-budget live
+qualification was still pending; later actual bridge results are recorded below. Historically the guest retained the earlier e01 failure before the subsequent
+verified whole-VM recovery and51bac candidate transfer recorded below.
+No additional dialog is needed for the already completed diagnostics.
+Issue #461 remains INCOMPLETE and releases UNQUALIFIED.
+
+
+Latest e01 PARTIAL attempt whole-owned-VM recovery actually verified at
+2026-10-11T12:39:11Z after one transient graceful state-transition failure and
+one classified retry. Exact uncertain checkpoint was read/hash-verified,
+preserved by a new unique offline whole-VM snapshot, and never rewritten.
+Restored eaff reference matches recorded Windows/Ubuntu/configuration/marker
+identity; bridge service/root absent; primary host WSL fingerprints unchanged.
+This proves environment recovery, not product bridge recovery or installation.
+Corrected source transfer/preflight/Apply continue separately.
+
+
+Corrected candidate51bac77c actual source-bound preflight/dry-run completed at
+12:39:59Z with protected fingerprints unchanged and resource verification true.
+The restored original CONFIRMED806 resource checkpoint alone was archived under
+lock with unchanged bytes/ACLs; fresh plan contains only bridge_install and
+prerequisite_missing. Actual12:40:37Z guest query reports no interactive user.
+The guarded starter refuses before guest credential export or task registration;
+no corrected Apply has started. Operator login as the owned tswtest account in
+the test VM is required; no autologon or dialog bypass is introduced.
+
+
+Actual corrected51bacApply returned4/PARTIAL12:48:13Z with completed action
+bridge_install, no uncertain actions, and next_stage_consent_required. Canonical
+effect is confirmedtrue/uncertainfalse. Independent12:49:13Z preflight and
+dry-run use the unchanged15-second probe budget: bridge/agent/routingreadytrue,
+ownershipowned, no bridge blockers, no bridge actions; resourcesVERIFIED.
+Both aggregate checks exit2 only linux_checkout_required. Endpoint/login remain
+UNVERIFIED. The real-dialog automation refused after180s without submission;
+service subsequently runs under the verified current WSL owner. Credential
+submission mechanism is not inferred. Cipher deletion and independentSYSTEM
+expiry actual12:47:34Z verified. OverallissueINCOMPLETE; Linux handoff preparation
+and release-matrix scenarios remain open.
+
+
+Actual12:54:17Z staging completed: exact trusted51bacarchive extracted by
+ordinaryUID1000 into an absent ownednativeext4checkout. Windowsconfirmedbridge
+checkpoint bytes unchanged. Linux preflight/dryrun both exit1 because active
+sudo APT authentication is unavailable; sudo-ntrue exits1; no host packages
+changed. Staging-wrapper0 is not preparation success. WindowsPreflightexit2
+bridge_inventory_unavailable retains an intermittent original15-second timeout;
+subsequentDryRunexit0 sourceverified, bridgeREADY/noactions/blockers, verified
+checkout handoffLINUX_PREPARATION_REQUIRED. Windowscapability/hand-off does not
+prove Linux preparation/install or service/endpoint/login readiness. Operator
+asked to authenticate and run approved preparation in the same UbuntuTerminal.
+Read-only timing diagnostics continue; stable original-budget behavior is not
+claimed from one passing sample. IssueINCOMPLETE/releasesUNQUALIFIED.
+
+
+Independent read-only inspection completed at 2026-10-11T13:13:44Z after the
+operator reported preparation finished. Ten protected ordinary-user records
+show package verification and Python environment succeeded (exit 0), but Incus
+preparation stopped at daemon:start with PARTIAL/exit 4 and an uncertain action.
+Active and registered account groups lack incus-admin. Installer Preflight and
+DryRun both exit 1: required bridge and IPv4 forwarding controls unavailable.
+The diagnostic Incus info --format argument is unsupported; that exit is not a
+valid daemon/access observation. A corrected bounded read-only diagnosis is
+prepared; no Apply, authentication policy change or uncertain-state rewrite.
+Windows source-bound Preflight and DryRun both exit 0, original 15-second probe
+budget, bridge/agent/routing ready, no actions/blockers, resources VERIFIED;
+handoff remains LINUX_PREPARATION_REQUIRED and services unverified. Confirmed
+bridge checkpoint bytes unchanged. Two further passing samples do not establish
+stable timing or erase the earlier timeout. No manual command repeat requested.
+See windows30_linux_preparation_inspection_result.json. Issue remains INCOMPLETE
+and all releases UNQUALIFIED; endpoints/login and full installation unverified.
+
+The single bundled corrected diagnostic launch subsequently failed at Windows
+Start-Process -Verb RunAs: elevation was canceled before helper execution.
+No corrected diagnostic result exists. No repeated command/UAC request is made;
+current daemon state and recovery plan remain unverified. Host elevation is an
+execution prerequisite, not missing live-scope authorization. No UAC/sudo policy
+change, automatic login or unrelated privileged channel is used.
+
+
+The operator-authorized retry completed the bundled diagnosis at 13:32:09Z.
+Incus service is loaded but inactive/dead; its socket listens and no journal
+entries were observed. Incus info was deliberately skipped to avoid socket
+activation. Bridge sysctls exist at 1; IPv4 forwarding is 0. Package/Python
+preparation is already ready, and actual dry-run exits 2 planning only
+consented daemon:start (60s). Exact-source Windows Preflight and DryRun both
+exit 0/resources VERIFIED, with confirmed bridge checkpoint unchanged. See
+windows30_linux_preparation_diagnosis_result.json; earlier elevation cancellation
+is historical, and no Linux mutation was executed by this diagnostic.
+
+R461-28 root-cause mechanism was independently reproduced on the authorized
+native Ubuntu26 target: in one authenticated SSH TTY sudo-rs0.2.13 accepts
+sudo -n true (0), refuses a new-session child (1 authentication required), and
+accepts a separate-process-group child retaining that session (0). This does
+not retrospectively prove the exact WSL failed transport or qualify the patch.
+Source inspection finds async preparation detached every sudo child while
+successful APT used the synchronous owner. Independent System Architect,
+Security/DevOps and Requirement/Test concurred with the narrow exception;
+accepted dated Incus/network ADR amendments preceded implementation.
+
+R461-28 is implemented with default isolation unchanged, direct-argv opt-in
+for trusted noninteractive sudo calls only, shell opt-in rejected and separate
+group cleanup retained. Focused85 tests PASS. Frozen51 baseline regression
+fails4 subcases across2 tests; corrected fullquality PASS2563 tests/18existing
+skips,43architecture tests,7importcontracts,800typedfiles. First fullgate2mypy
+errors were retained and corrected without ignores or threshold changes.
+Concrete security/architecture review has no blockers; root and isolated tested
+file bytes match. Source-freeze review is pending; owned WSL candidate execution,
+provider/access/network preparation and full installation remain unverified.
+See linux_sudo_login_session_local_verification.json and
+native_sudo_login_session_comparison.json. Issue INCOMPLETE; all releases UNQUALIFIED.
+
+
+R461-28 is locally frozen as 8d05d690aced18c07162162bc86106d2ac85b8a5,
+parent51bac, in a separately reviewed exact15-file commit. The isolated source
+was clean; archive/hash and tested file bytes are verified. Root integration
+verified identical committed/index trees and preserved all six aggregate evidence
+files byte-for-byte. No push/PR/merge/issue closure. Existing Windows bridge remains
+confirmed on51bac; do not relabel that milestone as8d05 qualification. An ordinary
+owner, real-TTY, authentication-only WSL proof is prepared with no preparation
+Apply/provider/group/network/package action, checkpoint adoption or reset. It
+has not executed yet. OverallissueINCOMPLETE and all releasesUNQUALIFIED.
+
+
+Actual R461-28 owned WSL authentication-only retry on frozen8d05 started at
+2026-10-11T14:04:12Z after exact-source ordinary-owner staging (exit0).
+The LIMITED interactive task actually ran and ended Ready/exit124 at14:07:19Z;
+Linux result remained RESULT_ABSENT. The bounded sudo validation/outer WSL
+limits were180/240seconds. No successful authentication or candidate session
+compatibility result is established. The confirmed Windows51bac checkpoint
+hash remained unchanged. Native checkpoint after-hashes were not observed;
+do not infer preservation verification from absence of an Apply operation.
+Exact scoped temporary-task removal was verified14:07:21Z. No preparation
+Apply, checkpoint archival, source adoption, reset or provider/network action
+was executed. See linux_sudo_login_session_wsl_probe_result.json.
+R461-28 remains LOCAL_VERIFIED / LIVE_BLOCKED (timeout); overall issue INCOMPLETE,
+all releases UNQUALIFIED. No automatic repeated launch or authentication-policy
+change follows this timeout. Independent architecture review confirms BOOT-W08
+supports deliberate protected old-source checkpoint archival after investigation,
+then fresh planning; that continuation is reviewed but unexecuted, and the original
+Incus daemon:start remains PARTIAL/effect_uncertain historical evidence.
+
+Independent Issue Completion Auditor reviewed the actual timeout record and
+latest six-file evidence continuation: R461-28 LOCAL_VERIFIED / LIVE_BLOCKED;
+#461 INCOMPLETE/UNQUALIFIED. Redaction and scoped cleanup/Windows preservation
+claims accepted; no Linux authentication or native after-hash proof exists.
+
+
+The renewed observed R461-28 retry actually staged frozen8d05 and ran at
+2026-10-11T14:51:42Z. Private immutable phases verify LIMITED launcher,
+console-visible/foreground-request-accepted and real Linux TTY, then
+SUDO_VALIDATION_PENDING. Actual SUDO_VALIDATION_EXIT124 at14:54:44Z proves
+the180-second sudo-v phase timed out before the candidate runner probe.
+Windows WSL exit124 is separate from conhost task exit0; the latter grants
+no authentication success. Native package/Python/Incus checkpoint before/current
+hashes and confirmed Windows51bac checkpoint were unchanged. Exact scoped
+probe task removal was verified14:54:47Z. Existing owned VM connection window
+was restored/foregrounded without input synthesis or credential capture.
+Console visibility alone does not prove an unlocked active input desktop;
+at that observation a separately prepared metadata-only desktop observation
+was pending host UAC (later cancelled, as recorded below),
+with no WSL/authentication/Apply/archive action. No further auth retry follows
+this timeout. See linux_sudo_login_session_wsl_observed_probe_result.json.
+R461-28 LOCAL_VERIFIED/LIVE_BLOCKED; #461 INCOMPLETE, all releases UNQUALIFIED.
+
+
+The separate metadata-only desktop diagnostic did not execute: native Windows
+Start-Process RunAs reported user cancellation (wrapperexit1) before starting
+the elevated helper. No guest task, authentication or WSL invocation was started.
+Do not infer a locked desktop from this missing observation; console-visible
+metadata from the earlier observed retry remains distinct from an unlocked-input-
+desktop proof. No automatic re-elevation/authentication retry follows cancellation.
+See linux_sudo_login_session_desktop_observation_result.json. Actual observed
+sudo validation timeout remains the current blocker; #461 INCOMPLETE/UNQUALIFIED.
+
+
+The next fixture-only helper is now prepared with a point-in-time interaction
+prerequisite guard: own active WTS session, readable matching Default input
+desktop, and own visible console are required BEFORE any WSL/sudo invocation.
+Unknown/inaccessible/inactive observations fail closed with private phase/error
+records. Exact C# interop compiled and read-only host API validation passed;
+Python/bash/WindowsPowerShell5.1 syntax passed and independent Security review
+has no blockers. This is PREPARED_NOT_EXECUTED after Windows elevation cancellation,
+not guest execution, proof of attention/lock state or live sudo compatibility.
+No repeated elevation/authentication launch, preparation Apply or state adoption
+occurred. Product8d05 source/fullquality remain unchanged. See
+linux_sudo_login_session_observed_probe_plan.json. Current actual blocker remains
+observed sudo-v timeout and unavailable desktop diagnosis; #461 INCOMPLETE.
+
+Final independent Issue Completion Auditor delta review accepted redaction,
+actual sudo-timeout provenance and PREPARED_NOT_EXECUTED guard status. Decision
+INCOMPLETE; R461-28 LIVE_BLOCKED. No Apply/adoption/release qualification supported.
+# SSH continuation, 2026-10-17 Europe/Berlin
+
+Executed results and source/command/exit details:
+[ssh_qualification_20261017.json](ssh_qualification_20261017.json).
+Initial preparation preflight/dry-run: 2/2 on both targets (old source checkpoint).
+After explicit locked archival: native 1/1 (active LXD), WSL 2/2 (Python needed).
+All four read-only invocations per target preserved their measured source,
+selected host configuration and user bootstrap scopes; no unreadable entries.
+WSL `sudo -v && ./prepare_linux.sh`: 2, with Python prepared and Incus READY,
+network blocked on exposure mismatch. Independent venv import probe: 0.
+Listener-family observation: 0; ports 80/443 appear only in IPv6 listing.
+These are existing-host partial observations, never fresh/rerun/recovery PASS.
+No product changes; full local gate not repeated for this evidence-only update.
+Prior full-quality results remain historical. Post-Apply host preservation was
+not measured and is not inferred from the earlier read-only snapshots.
+
+## Three-Amigos fixes and manual guidance, 2026-10-17
+
+R461-29/30/31 are locally verified; R461-32 documentation is statically verified.
+Two actual WSL observation defects are repaired: owned dual-stack wildcard parsing
+and mapped manager-root Incus process identity. The LXD guard remains intentional
+and now reports its owner/preservation requirement. Full integrated project-venv
+quality PASS: 2,591 tests/18 existing skips, 43 architecture tests, seven import
+contracts and 801 typed files; targeted 85 PASS. All seven final product/test
+hashes match the tested Linux snapshot. The first failed system-interpreter gate
+and three-test virtual-environment environment diagnosis remain recorded.
+
+A source-hashed, read-only in-memory WSL counterprobe accepts both real canonical
+listeners with actual process/API proof while the original parser rejects the
+same inventory; eleven measured scoped files remain unchanged. This is not
+committed-source installation qualification. No target source replacement,
+network Apply, restart, reset, CA import or service-authentication success follows.
+
+Manual host/certificate/trust/recovery steps are in
+`documentation/user_guide/manual-host-steps.md`, linked from README/installation/
+network/troubleshooting/bridge docs. Stale ordinary-install-reset assertions were
+corrected. Post-gate documentation has separate policy, diff, bash syntax and link
+checks; full quality is claimed for matching product/test bytes. See
+[verification record](three_amigos_verification_20261017.json) and
+[Three-Amigos review](three_amigos_remediation_20261017.md).
+
+#461 remains BLOCKED/INCOMPLETE; all releases UNQUALIFIED. Fresh installation,
+complete rerun/recovery, post-install preservation, service login and native LXD
+coordination remain open. Historical source-bound runs retain their original
+results and were not retroactively marked successful.
+
+## Combined-source qualification update — 2026-10-17, candidate d2fd89be
+
+The user confirmed no concurrent session and authorized integration of the other
+bootstrap/network/certificate worktrees. Combined candidate `4f2e1751` was
+committed after independent architecture/security/commit review; the observed
+WSL exact-plan drift was traced to permutation of Incus `network.used_by` only.
+Regression-first repair R461-34 sorts that relation alone, preserving membership,
+duplicates and every other configuration/ownership check. Final source is
+`d2fd89be9b2274eeb0c210d140ebee358a1324c4`, verified clean on both targets using
+real Git metadata and 2,470 archive-file hashes. An archive without `.git` was
+rejected by installer preflight; it was replaced with verified real Git staging.
+
+Final local project-venv quality: **PASS 2,631 tests, 18 existing skips, 43
+architecture tests, seven import contracts, 808 typed files**. One first-run
+unchanged fixture timeout was retained; the unchanged isolated test and full
+rerun passed. No timeout or assertion was weakened. Manual guide syntax, links
+and verification-state checks passed.
+
+On the supplied existing native Linux target, ordinary full installation and
+its exact-source rerun both exited **0**. Seven real service API positive and
+negative authentication checks pass with the managed CA. Operator/TLS file
+bytes, modes and inodes are preserved; all three node configurations, init
+processes, guest sentinels, Docker volume identities and service IDs survive the
+rerun unchanged. The separate active LXD daemon was temporarily paused and
+restored with its exact original socket/service and three stopped-instance
+states; no LXD instance was changed. A stale operator file was rejected with
+Portainer HTTP409/422; the verified existing protected credential source was
+selected, without reset, credential rotation or volume deletion. Native cold
+snapshot/restore/restart of the three managed root disks passed; nine actual
+TLS routes recovered after warmup. These same-pool snapshots do not prove host
+OS or external-volume restoration. Default native system CA trust is absent;
+explicit managed-CA verification passed.
+
+On the supplied existing WSL target, exact-source preparation and no-action
+rerun exited **0**; installer preflight and dry-run exited **0**. Seven real
+service API authentication/negative checks pass. Windows CurrentUser CA
+inspection reports a preexisting trusted CA with the independently verified DER
+fingerprint; no CA import/removal was performed. Full WSL installation, cold
+restore and selected-distribution restart are being qualified separately.
+
+Historical failed runs retain their original source and result. No browser,
+Selenium, SonarQube, fresh-OS, whole-host restore or release qualification is
+inferred from these results. #461 remains **INCOMPLETE**; missing clean-host and
+Ubuntu24.04 targets and remaining scenario rows prevent DONE. Machine-readable
+continuation: [combined qualification](combined_qualification_20261017.json).
+
+## Verified restart and stage-recovery continuation — 2026-10-17
+
+Both supplied existing hosts now pass ordinary full installation and rerun on
+committed candidate `d2fd89be`; TLS files, all three node configurations/markers/
+volumes and service identities are preserved. Native actual host reboot and
+selected-WSL distribution restart are verified with actual identity changes,
+protected-file/state preservation and final nine TLS routes plus seven real API
+positive/negative authentication checks. Native early inactive-daemon observation
+was retained; Incus startup completed autonomously without client activation or
+a service-policy change. All original unit and stopped-LXD-instance states match.
+WSL init namespaces/start time changed while its kernel boot ID stayed unchanged;
+Lxss and `.wslconfig` stayed unchanged. Its managed-hosts/bridge refresh and
+subsequent no-action rerun both exited0. The observed WSL IPv4 did not change.
+
+Each host also passes isolated real Python-stage offlinefailure1/interruption130
+followed by connectedresume0 and unchanged-checkpoint rerun0. The first detached
+sudo wrapper and WSL interruption observer race remain unsuccessful private
+harness attempts; later results do not erase them. This is supplementary stage
+evidence, not full CLI or full installer interruption recovery. Native managed
+root recovery was executed on4f2e1751; WSL root recovery and subsequent native
+installation/reboot use d2fd89be. These exact-source boundaries remain explicit.
+
+Manual guidance now additionally covers distribution versus kernel restart
+identity, capturing service/socket state before client activation, and bounded
+service warmup with retained early failures. Policy, diff, eleven bash-block
+syntax and relative-link checks pass for the docs-only followup; product/test
+bytes remain those of the 2,631-test passing gate. Final S08 execution/audit is
+pending. Fresh OS/24.04, real group-session transition, address drift and full
+CLI fault cases remain open. Full #461 stays INCOMPLETE/releases UNQUALIFIED.
+
+## Final S08 and operator handoff — 2026-10-17
+
+Reviewed harness SHA256 `329e147a4cc57c3e6784c83639980b831ecd5d13502d13904f4211c3175d3571`
+passed its mandatory privilege-drop rehearsal and actual existing-WSL port80
+exposure collision (overall exit0). The unchanged d2 preflight returned2 with
+`Canonical-port listener address differs from its exposure contract.` Only the
+exclusive manager profile's owned80 device was temporarily removed. The fixed
+root helper bound loopback80, dropped every privilege before listening, accepted
+no application connection and ran no product code as root. No sysctl, filecaps,
+ACL, sudoers or persistent policy was changed. Fresh UUID/ETag guards restored
+exactly the original device. Restored preflight0, complete provider inventory
+and checkpoint bytes/inodes/modes/mtime comparison, HTTPS200 checks, seven actual
+API positive/negative checks and node config/guest markers/volumes/service IDs
+all PASS. This verifies S08 exposure guard on WSL only; it does not close S07,
+native collision, foreign-executable rejection or fresh-host qualification.
+
+Exact six test-owned guest markers were removed only after hash/inode/type/
+owner/mode checks. Root snapshots and private original evidence remain retained;
+they are same-pool root-disk recovery points, not OS/disaster backups. Each host
+has a protected `~/tsw-qualification/operator-handoff-d2fd89be.md` containing the
+reviewed checkout/environment/configuration references and snapshot names,
+without any secret values. Native resource/credential selections and intentional
+LXD/IPv6 guards remain explicit; Windows CA trust was preexisting. Public manual
+guidance includes Git metadata/three effective ignore outputs, retaining reviewed
+runtime overrides, certificates/trust, restart identity and bounded warmup.
+Final guide has twelve bash blocks; syntax, links, policy and diff checks PASS.
+
+Full issue remains INCOMPLETE; missing fresh Ubuntu26.04 targets and open group, address,
+resource-boundary, unrelated-resource and full CLI fault scopes remain explicit.
+Independent final audit is required; no release is qualified or issue DONE claimed.
+
+## Operator scope clarification — 2026-10-17
+
+Ubuntu24.04 is not a required live target for #461; Ubuntu26.04 is the current
+LTS qualification target. This supersedes the original dual-release live-target
+expectation. Ubuntu24.04 remains supported but explicitly UNQUALIFIED for live
+use; that status alone does not block #461. Both supplied Ubuntu26.04 hosts are
+already initialized, so fresh-host evidence on both host families remains open.
+
+## Scope-amendment verification — 2026-10-17
+
+Documentation/evidence-only amendment: `git diff --check` PASS; current JSON
+parses successfully. Full product quality and live tests were not rerun because
+source, tests, configuration and runtime behavior did not change. The prior
+2,631-test gate applies to the unchanged product candidate, not a new test run.
+
+## Publication verification — 2026-10-17
+
+The initial mounted-checkout publication gate ran 2,631 tests with 18 existing
+skips and failed two installer cases with ENOSPC plus one source-proof copy
+with ENOMEM. `/tmp` was a nearly full RAM filesystem (9.4GiB used of 9.8GiB);
+those failed observations are retained. This is not a timeout repair or a
+product-source change.
+
+The same three cases passed unchanged with a task-private disk-backed TMPDIR
+(3 tests, 66.888 seconds). Full quality was then rerun in a clean detached
+Linux-filesystem worktree of exact product candidate `d2fd89be`, using the same
+Python3.14.4 interpreter/dependencies and a disk-backed TMPDIR: **exit0 PASS**,
+2,631 tests in 257.069 seconds, 18 existing skips, 43 architecture tests,
+seven import contracts, 808 typed files. Root product/test/configuration bytes
+match that candidate. No assertion, timeout or guard was changed. Final changes
+are documentation/evidence only; their whitespace and JSON checks pass.
+
+Retained private log SHA256 identities:
+- `quality.log`: `c1e4bdf4b3063b2d0241e2f085f653bcb12e0d8b9500e5d20c9daaec42f502ec`
+- `quality-mounted-failed.log`: `cd9e976c61d6c6451d7ceab38177b7e5ea63b464197e692ffff3b056ccec03a8`
+- `targeted.log`: `74c910cb9cb6b8d45db7055f14b82c34cad9b3639fc93d36b23a6fdf587a531f`

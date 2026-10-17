@@ -1,0 +1,1130 @@
+{
+  "schema": 1,
+  "issue": 461,
+  "recorded_at_utc": "2026-10-17T00:46:31.529764+00:00",
+  "authorization": "No other session active; combine existing changes and qualify. Installation and restarts allowed; no reset.",
+  "scope": "Combined source freeze and subsequent existing-host qualification; no fresh-OS claim",
+  "parents": [
+    "8d05d690aced18c07162162bc86106d2ac85b8a5",
+    "3aa936b5ef052068a2005bc0f7b7dae2de0e7736"
+  ],
+  "source_sha256": {
+    "README.md": "e389ca9c2ddfb4d536958b50f37d8e6e2a3a8ce79a2e9794de4accd2a716b895",
+    "documentation/arc42/09_decisions/adr-scoped-bootstrap-network-preparation.adoc": "3a87401d672c25c090d800ef78c0064e08f7c564ca3f3c6e330f35c9d79f121e",
+    "documentation/arc42/09_decisions/adr-windows-wsl-bridge-service-agent.adoc": "8020ee97210f7912357daa666b15a979c927176f33558f2c41aedfde8869c77a",
+    "documentation/process/skills/audit/skill-registry.json": "9c6735c3893aac857dfe19bd3a2675b12b87c79e2e67f1f7079c8365a81a0574",
+    "documentation/user_guide/installation.adoc": "6820f2937ae4713f271944f79b321870696ee5f13d9dc7808357fd2db5244a87",
+    "documentation/user_guide/manual-host-steps.md": "359ea0e8693d887e5ed7025fe66ba60121fc675c58376a3e2ef38dc9758f8ac3",
+    "documentation/user_guide/network-preparation.md": "48cf543c1e32a13d9a11098cf763e82e28bd84f2dfe17968e984563453d1bf7a",
+    "documentation/user_guide/troubleshooting.adoc": "984fb6b9f5afdd076da70ef87aed401b3a4bd8b205d0a27bda5ba37df8b453b7",
+    "infra/config/ports.yaml": "80df9f74d029110c4464ffe73bdfeca3d7ae4a38f152ba7f7502ffae2aa8c9c1",
+    "src/tiny_swarm_world/domain/native_preparation.py": "333f83b5f61764f3e34d8f8c3dee9eca59272292ae89d00a83f1d8edb9881988",
+    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/swarm/stack_asset_transfer.py": "ddc3597d6f69746d2c6d4fe45d884792382b2aa080bb440fba00d71d045aa1b5",
+    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/swarm/stack_asset_writer.py": "6c2393bb349b5476fee84b2e083422fbfada0493506c734a355023ef09ee85a1",
+    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc_swarm_runtime.py": "11af1b579e800db4a99f8a22c27a89c3665a9c2561a3f30ad3ddfacff2f09357",
+    "src/tiny_swarm_world/infrastructure/adapters/host/windows_command_runner.py": "b878023da8a0228ac11406ba41b51244b97860916ebd55b06c6f1cf3576ba261",
+    "src/tiny_swarm_world/infrastructure/adapters/network_preparation/adapter.py": "8ecce45680ca0eecb2e6241a002f093b22af40801c010d40a4b9af1b437d2c9f",
+    "src/tiny_swarm_world/infrastructure/adapters/network_preparation/configuration.py": "643a2045cea3c5d2d7373234088c0ad77bc41694feaa5f1ed67059d79d271d35",
+    "src/tiny_swarm_world/infrastructure/adapters/network_preparation/firewall_inventory.py": "94eaf8ba4a0f1708b19604e64005c312691894fab1643caedd506d7eb6f57cfc",
+    "src/tiny_swarm_world/infrastructure/adapters/network_preparation/inventory.py": "d92bcb341e3d52c4de986375864ec66e1cfd21a91089e71ecf2ece07e5515dbc",
+    "src/tiny_swarm_world/infrastructure/adapters/network_preparation/nat_policy.py": "ab710c094d7a7a8a6d57b393b2244493ea5c5080e748778ec9a077df08efa3ff",
+    "src/tiny_swarm_world/infrastructure/adapters/network_preparation/persistence_guard.py": "7b17eb9226458d4bffaf35e3bf10eeab20dbffaee9fd8b8f4ca78b320ec067b5",
+    "src/tiny_swarm_world/infrastructure/adapters/network_preparation/trusted_process.py": "a86923dda79b3375dd2aa7e5e291ffb2cdb61bac07d0564d1464faa5dea835c4",
+    "src/tiny_swarm_world/infrastructure/adapters/network_preparation/windows.py": "c07c90cf534140db496c1427bb9d1d4d4868ca50c303ea2c3c6aaf1a560a6f83",
+    "src/tiny_swarm_world/infrastructure/process/streaming.py": "2d3cb68e80035fd8cfe71025eb81889d51f923c26ae3f66527a56870be18094f",
+    "tests/infrastructure/adapters/clients/lxc/command/test_manager_shell_gateway.py": "1cb0a3e1a2c5846fa9c2ae7615f7d54841649a627aff17222ee9f32d04e91643",
+    "tests/infrastructure/adapters/clients/lxc/swarm/test_stack_asset_transfer.py": "6281821694a51d52df1d1a4c152ab73f97c5484de5882dea25c8deae25541819",
+    "tests/infrastructure/adapters/clients/lxc/swarm/test_swarm_stack_runtime.py": "10ed925e0ade98da5ca039b9f1308f19a18883a7e9eb7563d9901755f3bd7394",
+    "tests/infrastructure/adapters/clients/test_lxc_swarm_runtime.py": "2e440c98cba9feeea0f7ab2a5411693af005be92985f70f2adedbc451a896f91",
+    "tests/infrastructure/adapters/host/test_windows_command_runner.py": "d7656a97c776a0463ca6ca094052eb086071aba1513f158883007bfb44b82dc1",
+    "tests/infrastructure/adapters/repositories/test_port_registry_yaml_repository.py": "24b999ca0a068fdfaa169e26c2d939d837eaf22d9a31736894c4187343bf9211",
+    "tests/infrastructure/process/test_sudo_session.py": "1c0d0b16d78cffffc5f812e4be1ed0b514ef0f7c41720192cb67bee9fef93868",
+    "tests/powershell_test_runtime.py": "ac9695f3edf06e009b3c683dcc1ec2decc7cf3e9851443319c7387f6bfe34a47",
+    "tests/test_network_preparation.py": "bded2bd981bf04a54b986204a82104498dca795527bfd2be55c58f22db91b025",
+    "tests/test_network_preparation_compatibility.py": "d1182ee5b2153dc757ec7ef23283e65dbd6cad5fa99e7d95a9999e3654a1c156",
+    "tests/test_network_process_identity.py": "d2cca408bf6ce8a4c3e733ab5d13ab5afd2aa0ff8ad1efe09d9926cf7de4ab92",
+    "tests/test_powershell_test_runtime.py": "58eda6af8327b502436bde5ceba86a9c44be5d0575a795fc051bc0514b9c8b69",
+    "tests/test_prepare_linux.py": "d8c22b2358a4895ed43fd8ae7d7d2591d281a7b3853af2992c97f348277f5018",
+    "tests/test_ubuntu_bootstrap_integration.py": "dc8ad7d41fe4b98c05f635ef4b2fc6c5c1db7508ca3724c92915302a3192c9d6",
+    "tests/test_windows_source_proof.py": "bc1255b83e6a2082f3cf99d44d3615b6c8a2a5095bbf26fc9e119801e50bc2e5",
+    "tests/test_windows_tls_trust.py": "8d521bc6e04b8a082fb700134a6fdd61c4f221c0adc598961cf08f3cb558291e",
+    "tests/test_windows_wsl_bridge_assets.py": "ec1cd3ee48a3f7c28db2c8aaeb8093dd9ee8f33e86fe7bf40eed05adfeb3851f",
+    "tests/windows/bridge-preparation.Tests.ps1": "244790a20936d6d8376d56cb3beaba33ce4b69ce7ef30c6d32665ebadfb6d43b",
+    "tests/windows/tsw-tls-trust.Tests.ps1": "4699227f1d240640c69f0a2054f3cf419b547fb64cb98b44645fb0cfb1c3ae36",
+    "tests/windows/tws-wsl-bridge.Tests.ps1": "ae8b5926be5ed8f58c097963bb9ff1027b244b9e6f26e6b535b66e49ee7ea145",
+    "tools/windows/README.windows-wsl-bridge.md": "e06ec1f1dcfabcf95dc112c659f80f204b06fd486e6b65d4ef6d282a934422e1",
+    "tools/windows/tsw-tls-trust.ps1": "629f811ddae61bef65b7533bb97abc6508e4e80cc91afd84a1a6a6e184de0436",
+    "tools/windows/tws-wsl-bridge.ps1": "d9a46b5ad5f83e3bad87caac33b1202e60ce01e23b68d2ed5190babf0529c603"
+  },
+  "first_combined_quality": {
+    "exit": 1,
+    "tests": 2624,
+    "failures": 1,
+    "skipped": 18,
+    "failure": "README governing hash cache stale after documentation integration",
+    "log_sha256": "b440af60e82620f73b2b035e53eb0788aa3f5a22f86fa3354384f11c26bbaefd",
+    "remediation": "Updated only README governing hash to actual source bytes; five registry tests PASS"
+  },
+  "review": {
+    "architecture": "APPROVED; independent read-only agent",
+    "security": "APPROVED; independent read-only agent",
+    "documentation": "integrated and checked; nine bash blocks syntax PASS, local links PASS",
+    "commit": "READY; independent git_commit_reviewer; local freeze committed, no publication"
+  },
+  "live_state": "LIVE_PARTIAL for full issue; scoped successes in latest_campaign",
+  "reset_performed": false,
+  "final_combined_quality": {
+    "exit": 0,
+    "tests": 2624,
+    "duration_seconds": 225.097,
+    "skipped": 18,
+    "architecture_tests": 43,
+    "import_contracts": 7,
+    "typed_source_files": 807,
+    "log_sha256": "c98796b3b88c3a1f9d9e49a0d8cc21dce4d95b6af421d6a4c9ffecac77182bbf"
+  },
+  "source_commit": "4f2e1751e5ab30a0074884519c93e22e64d3d6ff",
+  "source_archive_sha256": "d991e668027527b117159e4eec0ae7d9c6ccb98a076a2f6ef475d6e0d68fb2cb",
+  "source_verified_regular_files_per_host": 2469,
+  "native_existing_node_recovery": {
+    "state": "PASS_EXISTING_NODE_SCOPE",
+    "source_reference": "4f2e1751e5ab30a0074884519c93e22e64d3d6ff",
+    "nodes": 3,
+    "snapshots_created_and_retained": 3,
+    "separately_attached_volumes": 0,
+    "cold_snapshot_restore": true,
+    "original_machine_id_hashes_match": true,
+    "configuration_devices_profiles_stable": true,
+    "allowed_typed_lifecycle_fields": [
+      "volatile.last_state.power",
+      "volatile.last_state.ready",
+      "volatile.eth0.host_name",
+      "volatile.uuid.generation"
+    ],
+    "stable_instance_uuid_mac_idmaps_preserved": true,
+    "initial_helper_exit": 1,
+    "initial_helper_reason": "Full config comparison treated legitimate lifecycle metadata as drift; cleanup restarted all nodes",
+    "first_continuation_exit": 1,
+    "first_continuation_reason": "Pre-mutation check rejected additional actual runtime interface/generation metadata; no effects",
+    "reviewed_final_continuation_exit": 0,
+    "raw_final_record_sha256": "5e17eff883e0689975ef5047a915cb8e17c37c7e1fbbca1b123ccfdab21f6976",
+    "backup_limit": "Same storage-pool instance root snapshots; no host OS, disaster recovery, fresh installation or complete bootstrap interruption claim",
+    "primary_lifecycle_reference": "https://linuxcontainers.org/incus/docs/main/reference/instance_options/"
+  },
+  "native_https_before": [
+    {
+      "host": "traefik.tsw.local",
+      "path": "/dashboard/",
+      "curl_exit": 0,
+      "http": "401"
+    },
+    {
+      "host": "portainer.tsw.local",
+      "path": "/api/status",
+      "curl_exit": 0,
+      "http": "200"
+    },
+    {
+      "host": "jenkins.tsw.local",
+      "path": "/login",
+      "curl_exit": 0,
+      "http": "200"
+    },
+    {
+      "host": "nexus.tsw.local",
+      "path": "/service/rest/v1/status",
+      "curl_exit": 0,
+      "http": "200"
+    },
+    {
+      "host": "sonarqube.tsw.local",
+      "path": "/api/system/status",
+      "curl_exit": 0,
+      "http": "200"
+    },
+    {
+      "host": "pulsar.tsw.local",
+      "path": "/",
+      "curl_exit": 0,
+      "http": "200"
+    },
+    {
+      "host": "swagger.tsw.local",
+      "path": "/",
+      "curl_exit": 0,
+      "http": "502"
+    },
+    {
+      "host": "infisical.tsw.local",
+      "path": "/",
+      "curl_exit": 0,
+      "http": "200"
+    },
+    {
+      "host": "service-access.tsw.local",
+      "path": "/",
+      "curl_exit": 0,
+      "http": "200"
+    }
+  ],
+  "native_https_after_recovery": [
+    {
+      "host": "traefik.tsw.local",
+      "path": "/dashboard/",
+      "curl_exit": 0,
+      "http": "401"
+    },
+    {
+      "host": "portainer.tsw.local",
+      "path": "/api/status",
+      "curl_exit": 0,
+      "http": "200"
+    },
+    {
+      "host": "jenkins.tsw.local",
+      "path": "/login",
+      "curl_exit": 0,
+      "http": "200"
+    },
+    {
+      "host": "nexus.tsw.local",
+      "path": "/service/rest/v1/status",
+      "curl_exit": 0,
+      "http": "200"
+    },
+    {
+      "host": "sonarqube.tsw.local",
+      "path": "/api/system/status",
+      "curl_exit": 0,
+      "http": "200"
+    },
+    {
+      "host": "pulsar.tsw.local",
+      "path": "/",
+      "curl_exit": 0,
+      "http": "200"
+    },
+    {
+      "host": "swagger.tsw.local",
+      "path": "/",
+      "curl_exit": 0,
+      "http": "302"
+    },
+    {
+      "host": "infisical.tsw.local",
+      "path": "/",
+      "curl_exit": 0,
+      "http": "200"
+    },
+    {
+      "host": "service-access.tsw.local",
+      "path": "/",
+      "curl_exit": 0,
+      "http": "200"
+    }
+  ],
+  "native_https_scope": "All nine TLS requests verified with explicit managed public CA; expected HTTP200/302/auth401. Swagger baseline502 recovered after restart without a root-cause claim; Nexus initial warmup502 then200.",
+  "native_manual_lxd_coordination": {
+    "daemon_restored_active": true,
+    "socket_restored_inactive_disabled": true,
+    "three_stopped_instances_exact_metadata_unchanged": true,
+    "independent_postcheck_after_api_warmup": true,
+    "preparation_exit": 2,
+    "network_blocker": "Existing ipv6.address=auto preserved; initial network preparation requires IPv6-disabled bridge",
+    "product_automatically_stops_lxd": false,
+    "raw_postcheck_sha256": "d2d8607303e652e7f890406f4290ca6595c139718cb94d7131081d8275550bdf"
+  },
+  "trust": {
+    "native_ubuntu_default_store": "curl60 untrusted issuer; explicit CA succeeds; no system CA import performed",
+    "windows_current_user_root": "Independent DER-SHA256 pinned helper inspect exit0: existing trusted CA",
+    "windows_ca_der_sha256": "2A0CF40CDD386F3B862355D8F1E3DE1B3F534F12AACCAA33CA17FC6DDBCAAAA7",
+    "windows_import_performed": false,
+    "windows_removal_performed": false,
+    "browser_login": "NOT_EXECUTED"
+  },
+  "r34_observation": {
+    "state": "OBSERVED_BLOCKED_BEFORE_EFFECT; LOCAL_REPAIR_UNDER_FULL_GATE",
+    "original_source": "4f2e1751e5ab30a0074884519c93e22e64d3d6ff",
+    "difference_only": "Incus network used_by URI list permutation",
+    "two_initial_readonly_snapshots_equal": true,
+    "diagnostic_observer": "Recorded digest arguments and returned original digest unchanged; no target source-file replacement",
+    "failed_checkpoint_exit": 1,
+    "confirmed": [],
+    "uncertain": [],
+    "windows_install_executed": false,
+    "raw_digest_record_sha256": "812a664bd1f0cede2269393d389c9f62551fa3440921a6096d2476a1bbb635c4",
+    "new_source_rerun_required": true
+  },
+  "r34_verification": {
+    "source_commit": "d2fd89be9b2274eeb0c210d140ebee358a1324c4",
+    "source_archive_sha256": "fa0f036701a913454ed8670ccf816f8e39482cdebb6c5ebb50c8251ebc8d5969",
+    "verified_regular_files_per_host": 2470,
+    "clean_git_checkout_and_three_secret_ignore_checks_per_host": true,
+    "targeted_tests": 66,
+    "independent_projection_tests": 7,
+    "first_full_gate": {
+      "exit": 1,
+      "tests": 2631,
+      "skips": 18,
+      "errors": 1,
+      "reason": "Existing installer fixture subprocess exceeded unchanged10s limit; root cause unproven"
+    },
+    "unchanged_single_test_recheck": {
+      "exit": 0,
+      "tests": 1,
+      "seconds": 3.929
+    },
+    "final_full_gate": {
+      "exit": 0,
+      "tests": 2631,
+      "seconds": 227.096,
+      "skips": 18,
+      "architecture_tests": 43,
+      "import_contracts": 7,
+      "typed_files": 808
+    },
+    "post_documentation_policy": "PASS",
+    "independent_requirement_architecture_test_commit_reviews": "APPROVED/READY",
+    "log_sha256": {
+      "relation-order-red.log": "5a4faf253670e433852ef0b098c41b7645e1378f327285000c205bc398475f71",
+      "relation-order-green.log": "dd069a8b3965a92ed70d8f49a49d5d637a42d46e9d4487b185f3290ae87adb06",
+      "relation-order-quality.log": "156768c1b47222b71909f438c5f038f30032a0e0e4ef4a5b2c0b607ecc9e2eeb",
+      "relation-order-timeout-recheck.log": "0f4c10c4bae47a1a340a6cbe1d987c0e60c36de455efa51330f62479a79783d3",
+      "relation-order-quality-final.log": "024f0b61ef637643f8eaeecee8a04b580429e1cb8269f3c323cd4e8d9b493667"
+    }
+  },
+  "native_installer_d2fd89be": {
+    "ordinary_install_exit": 0,
+    "ordinary_rerun_exit": 0,
+    "operator_and_tls_files_preserved": true,
+    "lxd_original_service_socket_instances_preserved": true,
+    "source_selection": "Existing private credential source verified by successful login and protected read; previous source preserved",
+    "previous_source_rejection": "Historical operator file rejected by existing Portainer409 plus invalid auth422; no admin reset/rotation",
+    "resource_preservation": {
+      "source_commit": "d2fd89be9b2274eeb0c210d140ebee358a1324c4",
+      "utc": "2026-10-17T00:02:03.272686+00:00",
+      "nodes": [
+        {
+          "node": "swarm-manager",
+          "configuration_unchanged": true,
+          "guest_sentinel_unchanged": true,
+          "init_pid_unchanged": true,
+          "volume_identity_unchanged": true
+        },
+        {
+          "node": "swarm-worker-1",
+          "configuration_unchanged": true,
+          "guest_sentinel_unchanged": true,
+          "init_pid_unchanged": true,
+          "volume_identity_unchanged": true
+        },
+        {
+          "node": "swarm-worker-2",
+          "configuration_unchanged": true,
+          "guest_sentinel_unchanged": true,
+          "init_pid_unchanged": true,
+          "volume_identity_unchanged": true
+        }
+      ],
+      "service_ids_unchanged": true
+    },
+    "api_authentication": {
+      "source_commit": "d2fd89be9b2274eeb0c210d140ebee358a1324c4",
+      "utc": "2026-10-16T23:57:30.602407+00:00",
+      "scope": "Seven real API authentication/negative authentication checks; explicit CA verified; browser not executed",
+      "results": [
+        {
+          "route": "jenkins",
+          "authenticated_access_verified": true,
+          "invalid_rejected": true,
+          "redacted_failure_reason": ""
+        },
+        {
+          "route": "nexus",
+          "authenticated_access_verified": true,
+          "invalid_rejected": true,
+          "redacted_failure_reason": ""
+        },
+        {
+          "route": "sonarqube",
+          "authenticated_access_verified": true,
+          "invalid_rejected": true,
+          "redacted_failure_reason": ""
+        },
+        {
+          "route": "portainer",
+          "authenticated_access_verified": true,
+          "invalid_rejected": true,
+          "redacted_failure_reason": ""
+        },
+        {
+          "route": "pulsar-manager",
+          "authenticated_access_verified": true,
+          "invalid_rejected": true,
+          "redacted_failure_reason": ""
+        },
+        {
+          "route": "pulsar-admin-api",
+          "authenticated_access_verified": true,
+          "invalid_rejected": true,
+          "redacted_failure_reason": ""
+        },
+        {
+          "route": "infisical",
+          "authenticated_access_verified": true,
+          "invalid_rejected": true,
+          "redacted_failure_reason": ""
+        }
+      ]
+    },
+    "fresh_install": "NOT_TESTED; existing host"
+  },
+  "wsl_d2fd89be": {
+    "preparation": "READY; Windows install effect confirmed, no uncertain action after success; exact exit and zero-action rerun verification running",
+    "reset_performed": false,
+    "failed_no_effect_checkpoint_archived_with_independent_review": true,
+    "archived_checkpoint_sha256": "62badc5d8f796e6d410ac2561b678a1c6a08c31ae8ee6ebe447031ca3ae49d52",
+    "old_readiness_adopted": false,
+    "full_installer": "NOT_YET_RUN"
+  },
+  "native_final_tls_routes": {
+    "state": "LIVE_VERIFIED",
+    "source": "d2fd89be",
+    "results": [
+      {
+        "host": "traefik.tsw.local",
+        "path": "/dashboard/",
+        "exit": 0,
+        "status": "401",
+        "error": ""
+      },
+      {
+        "host": "portainer.tsw.local",
+        "path": "/api/status",
+        "exit": 0,
+        "status": "200",
+        "error": ""
+      },
+      {
+        "host": "jenkins.tsw.local",
+        "path": "/login",
+        "exit": 0,
+        "status": "200",
+        "error": ""
+      },
+      {
+        "host": "nexus.tsw.local",
+        "path": "/service/rest/v1/status",
+        "exit": 0,
+        "status": "200",
+        "error": ""
+      },
+      {
+        "host": "sonarqube.tsw.local",
+        "path": "/api/system/status",
+        "exit": 0,
+        "status": "200",
+        "error": ""
+      },
+      {
+        "host": "pulsar.tsw.local",
+        "path": "/",
+        "exit": 0,
+        "status": "200",
+        "error": ""
+      },
+      {
+        "host": "swagger.tsw.local",
+        "path": "/",
+        "exit": 0,
+        "status": "302",
+        "error": ""
+      },
+      {
+        "host": "infisical.tsw.local",
+        "path": "/",
+        "exit": 0,
+        "status": "200",
+        "error": ""
+      },
+      {
+        "host": "service-access.tsw.local",
+        "path": "/",
+        "exit": 0,
+        "status": "200",
+        "error": ""
+      }
+    ]
+  },
+  "wsl_preparation_rerun": {
+    "source_commit": "d2fd89be9b2274eeb0c210d140ebee358a1324c4",
+    "started": "2026-10-17T00:01:31.566752+00:00",
+    "command": [
+      "./prepare_linux.sh"
+    ],
+    "exit_code": 0,
+    "finished": "2026-10-17T00:02:19.259647+00:00"
+  },
+  "wsl_installer_readonly": {
+    "source_commit": "d2fd89be9b2274eeb0c210d140ebee358a1324c4",
+    "commands": [
+      {
+        "command": [
+          "./install.sh",
+          "--preflight",
+          "--headless",
+          "--service-profile",
+          "service-access"
+        ],
+        "exit_code": 0,
+        "started": "2026-10-17T00:04:08.977009+00:00",
+        "finished": "2026-10-17T00:04:11.794468+00:00"
+      },
+      {
+        "command": [
+          "./install.sh",
+          "--dry-run",
+          "--headless",
+          "--service-profile",
+          "service-access"
+        ],
+        "exit_code": 0,
+        "started": "2026-10-17T00:04:11.794602+00:00",
+        "finished": "2026-10-17T00:04:14.544845+00:00"
+      }
+    ]
+  },
+  "cold_restore_wsl_current": {
+    "state": "LIVE_VERIFIED",
+    "scope": "Three existing managed root disks only; same-pool snapshots, no wholehostOS/externalvolume/freshness claim",
+    "source": "d2fd89be9b2274eeb0c210d140ebee358a1324c4",
+    "guest_identity_preserved": true,
+    "typed_configuration_preserved": true,
+    "all_three_running": true,
+    "real_api_authentication": [
+      {
+        "route": "jenkins",
+        "authenticated_access_verified": true,
+        "invalid_rejected": true,
+        "redacted_failure_reason": ""
+      },
+      {
+        "route": "nexus",
+        "authenticated_access_verified": true,
+        "invalid_rejected": true,
+        "redacted_failure_reason": ""
+      },
+      {
+        "route": "sonarqube",
+        "authenticated_access_verified": true,
+        "invalid_rejected": true,
+        "redacted_failure_reason": ""
+      },
+      {
+        "route": "portainer",
+        "authenticated_access_verified": true,
+        "invalid_rejected": true,
+        "redacted_failure_reason": ""
+      },
+      {
+        "route": "pulsar-manager",
+        "authenticated_access_verified": true,
+        "invalid_rejected": true,
+        "redacted_failure_reason": ""
+      },
+      {
+        "route": "pulsar-admin-api",
+        "authenticated_access_verified": true,
+        "invalid_rejected": true,
+        "redacted_failure_reason": ""
+      },
+      {
+        "route": "infisical",
+        "authenticated_access_verified": true,
+        "invalid_rejected": true,
+        "redacted_failure_reason": ""
+      }
+    ],
+    "raw_private_evidence_sha256": "b7c5e15b59b5469fafc85d94f004f7aafb9ca2ab6ad64d675ac667fe0f0ee5d6",
+    "initial_service_warmup": "502/503 retained; nine TLS routes subsequently recovered; first API wrapper invocation wrong helper path retained, actual seven API retry succeeded"
+  },
+  "private_log_hashes_current": {
+    "native-install-apply-d2fd89be.json": "a5c6d6020896786b42f5bed3f3cc8ab6ae2875064256d53a91a43515e970b816",
+    "native-install-rerun-d2fd89be.json": "6c47ecb3b578b52d1f2ac74a59778988b36d61936cb4234623cb579247ff2fd8",
+    "native-preservation-after-d2fd89be.json": "6156a093227bfdedd80190e4c832554205b60086383c9b82eacc0104fb24eaae",
+    "native-api-auth-d2fd89be.json": "4608e0f64de34872d4b7b35db1f0dc9527beb68600d2973e388e421a8ce02d74",
+    "native-services-final-d2fd89be.json": "a688a0b6a67afb1c4a1c4bce724bada5f6782af8f75db609861d48a032acbd4f",
+    "wsl-prepare-rerun-d2fd89be.json": "51743e4a11973b6d89386be01dd54549241b37976bb3013f3752148dc26b51d9",
+    "wsl-installer-preflight-d2fd89be.json": "f191abbdeaccd9de03a6f409afca992d73cafe9cc083fdb77ec0140d91902056"
+  },
+  "latest_campaign": {
+    "source_commit": "d2fd89be9b2274eeb0c210d140ebee358a1324c4",
+    "archive_sha256": "fa0f036701a913454ed8670ccf816f8e39482cdebb6c5ebb50c8251ebc8d5969",
+    "verified_archive_regular_files_each": 2470,
+    "local_python": "3.14.4",
+    "local_full_gate": {
+      "tests": 2631,
+      "existing_skips": 18,
+      "architecture_tests": 43,
+      "import_contracts": 7,
+      "typed_files": 808,
+      "state": "PASS"
+    },
+    "native": {
+      "target_alias": "N26-SSH-20261017",
+      "host_reboot": {
+        "state": "LIVE_VERIFIED",
+        "new_boot_identity": true,
+        "same_machine_identity": true,
+        "original_unit_states_preserved": true,
+        "original_stopped_lxd_instances_preserved": true,
+        "protected_operator_tls_files_preserved": true,
+        "initial_daemon_not_yet_active_observation_retained": true,
+        "no_client_activation_or_service_policy_compensation": true,
+        "os_restore": "Operator asserted only; no whole OS recovery claim",
+        "raw_sha256": "ccf83ea6f2a6e6dfa4caceabe9810627717684593b66b182797c1e7ea40c16d9"
+      },
+      "post_reboot_data": {
+        "state": "LIVE_VERIFIED",
+        "configuration_comparison": "configuration_preserved_with_typed_lifecycle_validation",
+        "all_three_configurations_guest_markers_volumes_preserved": true,
+        "service_ids_preserved": true,
+        "raw_sha256": "02617c9e2093640babc395bd4d2d5d2584191a79851ecd3dc9a97fbae5d3959a"
+      },
+      "post_reboot_nine_tls_routes": {
+        "utc": "2026-10-17T00:33:02.788749+00:00",
+        "results": [
+          {
+            "host": "traefik.tsw.local",
+            "path": "/dashboard/",
+            "exit": 0,
+            "status": "401",
+            "error": ""
+          },
+          {
+            "host": "portainer.tsw.local",
+            "path": "/api/status",
+            "exit": 0,
+            "status": "200",
+            "error": ""
+          },
+          {
+            "host": "jenkins.tsw.local",
+            "path": "/login",
+            "exit": 0,
+            "status": "200",
+            "error": ""
+          },
+          {
+            "host": "nexus.tsw.local",
+            "path": "/service/rest/v1/status",
+            "exit": 0,
+            "status": "200",
+            "error": ""
+          },
+          {
+            "host": "sonarqube.tsw.local",
+            "path": "/api/system/status",
+            "exit": 0,
+            "status": "200",
+            "error": ""
+          },
+          {
+            "host": "pulsar.tsw.local",
+            "path": "/",
+            "exit": 0,
+            "status": "200",
+            "error": ""
+          },
+          {
+            "host": "swagger.tsw.local",
+            "path": "/",
+            "exit": 0,
+            "status": "302",
+            "error": ""
+          },
+          {
+            "host": "infisical.tsw.local",
+            "path": "/",
+            "exit": 0,
+            "status": "200",
+            "error": ""
+          },
+          {
+            "host": "service-access.tsw.local",
+            "path": "/",
+            "exit": 0,
+            "status": "200",
+            "error": ""
+          }
+        ]
+      },
+      "post_reboot_seven_real_api_auth_and_negative": [
+        {
+          "route": "jenkins",
+          "authenticated_access_verified": true,
+          "invalid_rejected": true,
+          "redacted_failure_reason": ""
+        },
+        {
+          "route": "nexus",
+          "authenticated_access_verified": true,
+          "invalid_rejected": true,
+          "redacted_failure_reason": ""
+        },
+        {
+          "route": "sonarqube",
+          "authenticated_access_verified": true,
+          "invalid_rejected": true,
+          "redacted_failure_reason": ""
+        },
+        {
+          "route": "portainer",
+          "authenticated_access_verified": true,
+          "invalid_rejected": true,
+          "redacted_failure_reason": ""
+        },
+        {
+          "route": "pulsar-manager",
+          "authenticated_access_verified": true,
+          "invalid_rejected": true,
+          "redacted_failure_reason": ""
+        },
+        {
+          "route": "pulsar-admin-api",
+          "authenticated_access_verified": true,
+          "invalid_rejected": true,
+          "redacted_failure_reason": ""
+        },
+        {
+          "route": "infisical",
+          "authenticated_access_verified": true,
+          "invalid_rejected": true,
+          "redacted_failure_reason": ""
+        }
+      ],
+      "managed_root_recovery_source": {
+        "source_commit": "4f2e1751e5ab30a0074884519c93e22e64d3d6ff",
+        "scope": "Actual existing managed root-disk snapshot/restore; d2fd89be installation/rerun and host reboot separately verified; no retroactive source replacement"
+      }
+    },
+    "wsl": {
+      "target_alias": "W26-SSH-20261017",
+      "ordinary_full_install": {
+        "source_commit": "d2fd89be9b2274eeb0c210d140ebee358a1324c4",
+        "started": "2026-10-17T00:17:15.812647+00:00",
+        "finished": "2026-10-17T00:18:03.257678+00:00",
+        "installer_exit": 0,
+        "tls_preserved": true
+      },
+      "ordinary_full_rerun": {
+        "source_commit": "d2fd89be9b2274eeb0c210d140ebee358a1324c4",
+        "started": "2026-10-17T00:18:14.318581+00:00",
+        "finished": "2026-10-17T00:19:00.404727+00:00",
+        "installer_exit": 0,
+        "tls_preserved": true
+      },
+      "ordinary_preservation": {
+        "state": "LIVE_VERIFIED",
+        "configuration_comparison": "configuration_unchanged",
+        "all_three_configurations_guest_markers_volumes_preserved": true,
+        "service_ids_preserved": true,
+        "raw_sha256": "26013fe8bc28311e788ff24d82944ed5cc6936d0cf4caac292b6a2f1db72f4a8"
+      },
+      "selected_distribution_restart": {
+        "state": "LIVE_VERIFIED",
+        "selected_init_identity_changed": true,
+        "kernel_boot_identity_changed": false,
+        "lxss_registrations_and_wslconfig_preserved": true,
+        "observed_wsl_ipv4_changed": false,
+        "post_restart_prepare_refresh": {
+          "source_commit": "d2fd89be9b2274eeb0c210d140ebee358a1324c4",
+          "started": "2026-10-17T00:25:15.147019+00:00",
+          "command": [
+            "./prepare_linux.sh"
+          ],
+          "exit_code": 0,
+          "finished": "2026-10-17T00:28:57.269244+00:00"
+        },
+        "post_refresh_no_action_prepare_rerun": {
+          "source_commit": "d2fd89be9b2274eeb0c210d140ebee358a1324c4",
+          "started": "2026-10-17T00:31:01.654032+00:00",
+          "command": [
+            "./prepare_linux.sh"
+          ],
+          "exit_code": 0,
+          "finished": "2026-10-17T00:31:48.494642+00:00"
+        },
+        "post_restart_data": {
+          "state": "LIVE_VERIFIED",
+          "configuration_comparison": "configuration_preserved_with_typed_lifecycle_validation",
+          "all_three_configurations_guest_markers_volumes_preserved": true,
+          "service_ids_preserved": true,
+          "raw_sha256": "59c3b8136e0f6907ddabd2c6992d364645183e8028ceb0274ba4c9723544c518"
+        },
+        "nine_tls_routes": {
+          "utc": "2026-10-17T00:23:32.972186+00:00",
+          "results": [
+            {
+              "host": "traefik.tsw.local",
+              "path": "/dashboard/",
+              "exit": 0,
+              "status": "401",
+              "error": ""
+            },
+            {
+              "host": "portainer.tsw.local",
+              "path": "/api/status",
+              "exit": 0,
+              "status": "200",
+              "error": ""
+            },
+            {
+              "host": "jenkins.tsw.local",
+              "path": "/login",
+              "exit": 0,
+              "status": "200",
+              "error": ""
+            },
+            {
+              "host": "nexus.tsw.local",
+              "path": "/service/rest/v1/status",
+              "exit": 0,
+              "status": "200",
+              "error": ""
+            },
+            {
+              "host": "sonarqube.tsw.local",
+              "path": "/api/system/status",
+              "exit": 0,
+              "status": "200",
+              "error": ""
+            },
+            {
+              "host": "pulsar.tsw.local",
+              "path": "/",
+              "exit": 0,
+              "status": "200",
+              "error": ""
+            },
+            {
+              "host": "swagger.tsw.local",
+              "path": "/",
+              "exit": 0,
+              "status": "302",
+              "error": ""
+            },
+            {
+              "host": "infisical.tsw.local",
+              "path": "/",
+              "exit": 0,
+              "status": "200",
+              "error": ""
+            },
+            {
+              "host": "service-access.tsw.local",
+              "path": "/",
+              "exit": 0,
+              "status": "200",
+              "error": ""
+            }
+          ]
+        },
+        "seven_real_api_auth_and_negative": [
+          {
+            "route": "jenkins",
+            "authenticated_access_verified": true,
+            "invalid_rejected": true,
+            "redacted_failure_reason": ""
+          },
+          {
+            "route": "nexus",
+            "authenticated_access_verified": true,
+            "invalid_rejected": true,
+            "redacted_failure_reason": ""
+          },
+          {
+            "route": "sonarqube",
+            "authenticated_access_verified": true,
+            "invalid_rejected": true,
+            "redacted_failure_reason": ""
+          },
+          {
+            "route": "portainer",
+            "authenticated_access_verified": true,
+            "invalid_rejected": true,
+            "redacted_failure_reason": ""
+          },
+          {
+            "route": "pulsar-manager",
+            "authenticated_access_verified": true,
+            "invalid_rejected": true,
+            "redacted_failure_reason": ""
+          },
+          {
+            "route": "pulsar-admin-api",
+            "authenticated_access_verified": true,
+            "invalid_rejected": true,
+            "redacted_failure_reason": ""
+          },
+          {
+            "route": "infisical",
+            "authenticated_access_verified": true,
+            "invalid_rejected": true,
+            "redacted_failure_reason": ""
+          }
+        ],
+        "windows_schannel_existing_currentuser_trust": {
+          "exit": 0,
+          "status": "200",
+          "revocation_policy": "ssl-revoke-best-effort",
+          "strict_revocation_claim": false,
+          "ca_import_or_removal_performed": false
+        }
+      }
+    },
+    "isolated_python_dependency_stage": {
+      "native_download": {
+        "state": "LIVE_VERIFIED",
+        "scope": "Python dependency stage integration; no full CLI, host/package/service qualification",
+        "status": "PASSED_STAGE_ONLY",
+        "source_commit": "d2fd89be9b2274eeb0c210d140ebee358a1324c4",
+        "archive_sha256": "716135c9221437fb1a76a6a34816ddabb21b7d9ac2aa65680ba94b13e172f9d2",
+        "disconnected_exit": 1,
+        "pip_process_actually_observed": true,
+        "connected_resume_exit": 0,
+        "connected_rerun_exit": 0,
+        "uncertain_children_remaining": 0,
+        "partial_venv_and_original_checkpoint_retained": true,
+        "raw_summary_sha256": "4f2ec4487d5a40a7439139ebcf5e0cc694c9252165fdeca61ba141be38e94f88"
+      },
+      "native_interruption": {
+        "state": "LIVE_VERIFIED",
+        "scope": "Python dependency stage integration; no full CLI, host/package/service qualification",
+        "status": "PASSED_STAGE_ONLY",
+        "source_commit": "d2fd89be9b2274eeb0c210d140ebee358a1324c4",
+        "archive_sha256": "716135c9221437fb1a76a6a34816ddabb21b7d9ac2aa65680ba94b13e172f9d2",
+        "disconnected_exit": 130,
+        "pip_process_actually_observed": true,
+        "connected_resume_exit": 0,
+        "connected_rerun_exit": 0,
+        "uncertain_children_remaining": 0,
+        "partial_venv_and_original_checkpoint_retained": true,
+        "raw_summary_sha256": "9aabb177f6a3279fcdfdf8c96daf6f8c7f32c467e259e072244c8fcb7ab7e5e4"
+      },
+      "wsl_download": {
+        "state": "LIVE_VERIFIED",
+        "scope": "Python dependency stage integration; no full CLI, host/package/service qualification",
+        "status": "PASSED_STAGE_ONLY",
+        "source_commit": "d2fd89be9b2274eeb0c210d140ebee358a1324c4",
+        "archive_sha256": "716135c9221437fb1a76a6a34816ddabb21b7d9ac2aa65680ba94b13e172f9d2",
+        "disconnected_exit": 1,
+        "pip_process_actually_observed": true,
+        "connected_resume_exit": 0,
+        "connected_rerun_exit": 0,
+        "uncertain_children_remaining": 0,
+        "partial_venv_and_original_checkpoint_retained": true,
+        "raw_summary_sha256": "be16ed771c97497ac140e23f7aa50a8e097f4416f3bdfc0cdccef72566dfa2c9"
+      },
+      "wsl_interruption": {
+        "state": "LIVE_VERIFIED",
+        "scope": "Python dependency stage integration; no full CLI, host/package/service qualification",
+        "status": "PASSED_STAGE_ONLY",
+        "source_commit": "d2fd89be9b2274eeb0c210d140ebee358a1324c4",
+        "archive_sha256": "716135c9221437fb1a76a6a34816ddabb21b7d9ac2aa65680ba94b13e172f9d2",
+        "disconnected_exit": 130,
+        "pip_process_actually_observed": true,
+        "connected_resume_exit": 0,
+        "connected_rerun_exit": 0,
+        "uncertain_children_remaining": 0,
+        "partial_venv_and_original_checkpoint_retained": true,
+        "raw_summary_sha256": "ceda188ec277f564ae0fc66cb51633439b513fa40946a8ded2bff1e9e1e6338f"
+      }
+    },
+    "retained_unsuccessful_harness_attempts": [
+      {
+        "scope": "Native first stage wrapper",
+        "result": "sudo cache detached from controlling terminal; stopped before namespace/product"
+      },
+      {
+        "scope": "WSL first interruption observer",
+        "result": "Product interrupted; harness exit observation race prevented resume; unsuccessful run retained separately"
+      }
+    ],
+    "s08": {
+      "state": "LIVE_VERIFIED",
+      "scope": "Existing WSL target port80 exposure/collision guard; not native/foreign-executable/fresh-host qualification",
+      "source_commit": "d2fd89be9b2274eeb0c210d140ebee358a1324c4",
+      "harness_sha256": "329e147a4cc57c3e6784c83639980b831ecd5d13502d13904f4211c3175d3571",
+      "started": "2026-10-17T00:40:13.032822+00:00",
+      "finished": "2026-10-17T00:41:56.739236+00:00",
+      "driver_exit": 0,
+      "collision_preflight_exit": 2,
+      "expected_diagnostic": "Canonical-port listener address differs from its exposure contract.",
+      "restored_preflight_exit": 0,
+      "helper_rehearsal_before_mutation": "PASS; identical root-bind helper on ephemeral port",
+      "helper_privileges": "Root only for fixed loopback bind; all UID/GID original ordinary account, all capabilities including bounding zero and no_new_privs before listening; no accept or privileged product execution",
+      "host_sysctl_acl_sudoers_filecaps_persistent_policy_changed": false,
+      "mutated_scope": "Only manager-exclusive profile tsw-proxy-80 temporarily removed then exact device restored using fresh UUID/ETag guards",
+      "provider_resource_config_and_checkpoint_bytes_inodes_modes_times_preserved": true,
+      "cleanup": "RESTORED_AND_HEALTH_VERIFIED; no errors",
+      "post_restore_health": [
+        {
+          "status": 200,
+          "url": "https://service-access.tsw.local/"
+        },
+        {
+          "status": 200,
+          "url": "https://nexus.tsw.local/service/rest/v1/status"
+        }
+      ],
+      "post_restore_all_seven_real_api_auth_and_negative": [
+        {
+          "route": "jenkins",
+          "authenticated_access_verified": true,
+          "invalid_rejected": true,
+          "redacted_failure_reason": ""
+        },
+        {
+          "route": "nexus",
+          "authenticated_access_verified": true,
+          "invalid_rejected": true,
+          "redacted_failure_reason": ""
+        },
+        {
+          "route": "sonarqube",
+          "authenticated_access_verified": true,
+          "invalid_rejected": true,
+          "redacted_failure_reason": ""
+        },
+        {
+          "route": "portainer",
+          "authenticated_access_verified": true,
+          "invalid_rejected": true,
+          "redacted_failure_reason": ""
+        },
+        {
+          "route": "pulsar-manager",
+          "authenticated_access_verified": true,
+          "invalid_rejected": true,
+          "redacted_failure_reason": ""
+        },
+        {
+          "route": "pulsar-admin-api",
+          "authenticated_access_verified": true,
+          "invalid_rejected": true,
+          "redacted_failure_reason": ""
+        },
+        {
+          "route": "infisical",
+          "authenticated_access_verified": true,
+          "invalid_rejected": true,
+          "redacted_failure_reason": ""
+        }
+      ],
+      "post_restore_node_config_guest_markers_volumes_and_service_ids_preserved": true,
+      "raw_transaction_sha256": "6a1166ebeb1b7eabd53f95015183f20c17735efd4a22d0c0a587e103fac7f0b1"
+    },
+    "manual_documentation": {
+      "path": "documentation/user_guide/manual-host-steps.md",
+      "sha256": "3b6ecf2e804feca3db4f06ad28981c9d8601ab724963a7e472ddacbccb97c306",
+      "product_source_unchanged_since_d2": true,
+      "docs_followup_checks": [
+        "verification-policy PASS",
+        "git diff --check PASS",
+        "12 bash blocks syntax PASS",
+        "relative links PASS",
+        "independent documentation review PASS"
+      ]
+    },
+    "remaining": [],
+    "issue_status": "AMENDED_SCOPE_ACCEPTED_AND_INDEPENDENTLY_VERIFIED; extended live scenarios DEFERRED_BY_OPERATOR; release rows remain UNQUALIFIED",
+    "test_cleanup": {
+      "native_and_wsl_exact_three_owned_markers_each": "Removed only after original file hash/inode/type/owner/mode verification; exact empty parent directory removed",
+      "snapshots": "Retained per-node on existing pool; no host OS backup claim",
+      "private_operator_handoff": "Each supplied host: ~/tsw-qualification/operator-handoff-d2fd89be.md; retained exact reviewed override references, no secret values"
+    },
+    "deferred_by_operator": [
+      "No clean Ubuntu26.04 OS installation evidence on either supplied existing target",
+      "Real stale/new group-membership session scenario unexecuted",
+      "WSL address unchanged; forced address drift scenario unexecuted",
+      "Full installer/CLI fault and interruption recovery beyond the dependency stage unexecuted",
+      "No new-target reset authorization; historical owned VM evidence not transplanted",
+      "No whole OS or external-volume restoration claim",
+      "Browser/Selenium and SonarQube results not executed/inferred",
+      "Complete Ubuntu26.04 resource-boundary, broad unrelated-resource and aggregate read-only scenarios remain partial"
+    ]
+  },
+  "historical_sections_notice": "Fields outside latest_campaign retain earlier source-bound observations; latest_campaign is the current scoped rollup. Historical failures and source identities are not overwritten.",
+  "independent_completion_audit": {
+    "reviewer": "/root/remediation_completion_audit",
+    "mode": "Independent read-only audit; not evidence author/implementer",
+    "decision": "BLOCKED",
+    "scope": "Whole issue461; supplied existing-host remediation/scenarios independently VERIFIED",
+    "remaining": "Fresh OS/24.04 targets; real group transition/address drift; full CLI fault/recovery and other per-release cases",
+    "no_done_or_release_qualification": true,
+    "scope_amendment_note": "This audit predates the operator scope clarification. Its reference to 24.04 as a blocker is superseded; other blockers, including fresh-host and scenario evidence, remain."
+  },
+  "scope_amendment_20261017": {
+    "authority": "Operator clarification received 2026-10-17",
+    "live_qualification_release": "Ubuntu 26.04 LTS",
+    "ubuntu_24_04": "Remains supported but explicitly unqualified for live use; not required as a #461 live target and not itself a blocker",
+    "supersedes": "Original R461-01 dual-release live target expectation",
+    "fresh_host_requirement": "Still open on both native Linux and Windows plus WSL2 families; supplied Ubuntu 26.04 hosts are already initialized",
+    "issue_status": "INCOMPLETE; other open scenarios remain"
+  },
+  "scope_amendment_live_deferral_20261017": {
+    "authority": "Operator explicitly defers remaining hardening because the test setup cannot provide it",
+    "accepted_delivery": "Implemented repairs, evidenced existing-host qualification and operator documentation",
+    "requirement_mapping": "requirement_matrix.md:Current operator-accepted scope — 2026-10-17",
+    "no_further_live_execution_required_for_accepted_scope": true,
+    "disposition_is_not_live_success": true,
+    "no_runtime_guards_weakened": true,
+    "no_new_reset_authorization": true,
+    "independent_review": "PASS for amended scope only; reviewer /root/remediation_completion_audit"
+  },
+  "independent_amended_scope_audit_20261017": {
+    "reviewer": "/root/remediation_completion_audit",
+    "mode": "Independent read-only review",
+    "decision": "PASS",
+    "scope": "Operator-amended delivery: repairs, exercised existing-host scenarios and operator guidance",
+    "deferred_cases_not_converted_to_success": true,
+    "full_original_matrix_fresh_host_or_release_qualification": false,
+    "docs_verification": "git diff --check PASS; JSON parses",
+    "new_product_or_live_tests": "Not rerun; source unchanged"
+  },
+  "publication_verification_20261017": {
+    "product_candidate": "d2fd89be9b2274eeb0c210d140ebee358a1324c4",
+    "initial_mounted_attempt": {
+      "state": "FAILED",
+      "tests": 2631,
+      "skips": 18,
+      "failures": 2,
+      "errors": 1,
+      "diagnosis": "ENOSPC in installer evidence writes; ENOMEM in source-proof copy; nearly full RAM-backed tmp",
+      "raw_sha256": "cd9e976c61d6c6451d7ceab38177b7e5ea63b464197e692ffff3b056ccec03a8"
+    },
+    "unchanged_targeted_retry": {
+      "state": "PASS",
+      "tests": 3,
+      "seconds": 66.888,
+      "remediation": "Task-private disk-backed TMPDIR",
+      "raw_sha256": "74c910cb9cb6b8d45db7055f14b82c34cad9b3639fc93d36b23a6fdf587a531f"
+    },
+    "unchanged_full_retry": {
+      "state": "PASS",
+      "exit": 0,
+      "tests": 2631,
+      "seconds": 257.069,
+      "skips": 18,
+      "architecture_tests": 43,
+      "contracts": 7,
+      "typed_files": 808,
+      "python": "3.14.4",
+      "environment": "Clean exact-candidate Linux-filesystem worktree and disk-backed TMPDIR; same interpreter and dependencies",
+      "raw_sha256": "c1e4bdf4b3063b2d0241e2f085f653bcb12e0d8b9500e5d20c9daaec42f502ec"
+    },
+    "no_product_test_assertion_timeout_guard_changes": true,
+    "external_checks": "Pending PR publication; not inferred from local results"
+  }
+}

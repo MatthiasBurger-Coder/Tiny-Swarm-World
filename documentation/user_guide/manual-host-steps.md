@@ -6,6 +6,23 @@ and the printed plan before consenting to host changes. Preparation readiness,
 service reachability, trusted HTTPS and successful authentication are separate
 results; each needs its own executed evidence.
 
+## Retain the Git checkout metadata
+
+Installer preflight checks effective secret-file ignore rules with Git. A plain
+`git archive` extraction without repository metadata is insufficient for those
+checks, even when its file hashes match. Use the installation guide's Git clone
+path for manual installation, and retain the trusted repository metadata:
+
+```bash
+git rev-parse --is-inside-work-tree
+git check-ignore .env .env.local .tiny-swarm-world/
+```
+
+Require `true` from the first command and all three paths in the second
+command's output. Its zero exit alone does not prove that every path is ignored.
+
+A successful preparation check alone does not establish installer readiness.
+
 ## Authentication and provider access
 
 1. Review the current plan from the terminal that will run preparation:
@@ -66,6 +83,17 @@ contract still block. Do not rebind listeners or disable a firewall to bypass
 the check. See [network preparation](network-preparation.md). These corrections
 do not establish a completed installation, trusted certificates, browser login
 or release qualification.
+
+An existing Incus bridge with IPv6 enabled can also block the IPv4-only
+preparation contract. Inventory its dependents before reviewing any migration;
+do not disable IPv6 on an attached existing bridge merely to pass a test.
+
+Retain the reviewed configuration root and resource selection when repeating a
+run on an existing host. If `TSW_INFRA_ROOT`, `TSW_NATIVE_LINUX_VENV` or
+`TSW_INSTALL_ENV_FILE` was explicitly selected, use the same reviewed values in
+the new terminal. A default configuration or a different override file is a new
+selection, not proof of a repeatable run; never increase node allocations or
+change preserved credentials just to match defaults.
 
 ## Locate and inspect the public CA
 
@@ -268,12 +296,31 @@ the same read-only preparation command with the same distribution, release,
 profile and overrides, inspect fresh observations, and give new consent for
 remaining actions.
 
+A selected WSL distribution termination and relaunch can recreate PID 1 and
+its namespaces while retaining the shared kernel's boot ID. For restart
+verification, compare PID 1's start time and namespace identities before and
+after relaunch; the kernel boot ID alone cannot prove that the selected
+distribution restarted. Preserve the selected Lxss registration and unrelated
+`.wslconfig` settings. After relaunch, verify the fresh bridge heartbeat and
+current forwarding target, all three configured managed nodes, trusted HTTPS,
+and actual API authentication with an authenticated read. A running distribution
+or changed PID 1 does not establish service readiness.
+
 Preserve interrupted-run evidence, checkpoints and configuration backups. Changed
 source, target or selection can make a checkpoint stale and block apply. Review
 and deliberately archive it into protected operator storage before replanning;
 archival does not authorize another mutation. Never delete an APT lock, erase
 state or reset the platform simply to retry. Ordinary installation reconciles
 existing state. See the [bootstrap recovery contract](../contracts/bootstrap.md#boot-w08-resumable-preparation-and-protected-recovery).
+
+For an interrupted download or dependency installation, retain the partial
+virtual environment and protected state for inspection. Review the checkpoint,
+reported effects, selected source and target, then obtain a fresh read-only plan
+before an ordinary connected rerun with new consent. A successful resume and
+subsequent no-action rerun establish only the exercised stage's recovery and
+idempotence; an isolated stage probe is not full installer or CLI qualification.
+Do not erase checkpoints, recreate the environment blindly or delete APT locks
+to obtain a passing retry.
 
 ## Check a deliberate recovery before resuming
 
@@ -315,6 +362,17 @@ timeout 30s sh -c 'until lxc info >/dev/null 2>&1; do sleep 1; done'
 
 Incus readiness does not establish LXD preservation. A timeout remains a blocked check requiring inspection,
 not permission to repeat the preceding restore or lifecycle mutation.
+
+SSH can become available before Incus's boot startup check has completed.
+Capture the original daemon and socket states before invoking clients that may
+activate a runtime, and distinguish an early sample from bounded final readiness.
+
+Cold restore and restart can leave services warming up after infrastructure
+checks pass. An initial `502` or `503` is a pending observation, not service
+success. Retain that failed sample, wait only to an explicit finite deadline,
+and repeat the required trusted HTTPS and authenticated checks. On expiry,
+inspect the affected service and its logs; do not reset the platform to retry.
+A later successful check supplements the earlier sample rather than replacing it.
 
 ## Reuse credentials for an initialized Portainer
 
