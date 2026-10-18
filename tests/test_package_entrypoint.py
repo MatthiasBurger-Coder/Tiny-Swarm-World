@@ -89,6 +89,8 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
 
     def test_every_declared_workflow_keeps_its_command_name(self):
         supported_names = (
+            "product version",
+            "services list",
             "host detect",
             "host preflight",
             "host prepare",

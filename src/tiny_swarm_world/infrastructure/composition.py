@@ -269,3 +269,18 @@ _RUNTIME_DEFAULTS = {
 __all__ = [name for name in dir(_runtime) if not name.startswith("_")] + list(
     _RUNTIME_BUILDER_NAMES
 )
+
+
+def build_installation_lifecycle_service(repository_root: Path | None = None) -> Any:
+    """Compose local read-only inspection without runtime probes or logger setup."""
+    from tiny_swarm_world.application.services.lifecycle import InstallationLifecycleService
+    from tiny_swarm_world.infrastructure.adapters.lifecycle.catalog import NativeComponentCatalog
+    from tiny_swarm_world.infrastructure.adapters.lifecycle.manifest import JsonManifestRepository
+    from tiny_swarm_world.infrastructure.adapters.repositories.local_state_paths import local_state_file
+    from tiny_swarm_world.infrastructure.project_paths import default_project_paths
+
+    root = repository_root or default_project_paths().repository_root
+    return InstallationLifecycleService(
+        JsonManifestRepository(local_state_file(root=root, relative_path="installation/manifest.json")),
+        NativeComponentCatalog(root),
+    )

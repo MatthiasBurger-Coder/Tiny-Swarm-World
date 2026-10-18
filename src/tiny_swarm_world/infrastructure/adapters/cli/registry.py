@@ -30,6 +30,8 @@ class CliWorkflow:
             "deployment",
             "host",
             "setup",
+            "product",
+            "services",
         }
 
 
@@ -46,6 +48,8 @@ PLATFORM_WORKFLOW_ORDER = (
 
 
 CLI_WORKFLOWS = (
+    CliWorkflow(namespace="product", action="version", mutating=False, destructive=False),
+    CliWorkflow(namespace="services", action="list", mutating=False, destructive=False),
     CliWorkflow(namespace="host", action="detect", mutating=False, destructive=False),
     CliWorkflow(namespace="host", action="preflight", mutating=False, destructive=False),
     CliWorkflow(namespace="host", action="prepare", mutating=True, destructive=False),

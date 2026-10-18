@@ -4,6 +4,9 @@ Contract version: 1. Decision: [lifecycle ADR](../arc42/09_decisions/adr-classic
 Inventory baseline: `a43bb7965a0fba4ca4f190f545f459005c653b28` (2026-10-17).
 Scope: native Linux/WSL2 → managed Incus/LXC → Docker Engine → Docker Swarm.
 **New commands below are specified for W02–W08; W01 does not implement them.**
+W02 implements read-only `product version` and `services list`, the manifest and
+native component catalog; see [installation state contract](installation-manifest.md).
+All remaining lifecycle commands below retain their stated future ownership.
 The [requirement matrix](../evidence/issue-441-requirement-matrix.md) covers every
 LCM-01–05 bullet and parent acceptance criterion. Parent implementation stays open.
 

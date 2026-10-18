@@ -68,15 +68,7 @@ async def main(argv: Sequence[str] | None = None) -> None:
         _print_workflow_list()
         return
 
-    if args.workflow is not None and args.workflow.namespace == "host":
-        if args.workflow.action == "detect":
-            _run_host_detect_command(args)
-        elif args.workflow.action == "preflight":
-            await _run_preflight_command(args)
-        elif args.workflow.action in {"prepare", "cleanup"}:
-            await _run_host_preparation_command(args)
-        else:
-            _run_host_verify_command(args)
+    if await _run_early_workflow(args):
         return
 
     ensure_common_executable_paths()
@@ -128,6 +120,27 @@ async def main(argv: Sequence[str] | None = None) -> None:
         raise SystemExit(1)
 
     logger.info("Done")
+
+
+async def _run_early_workflow(args: Namespace) -> bool:
+    if args.workflow is not None and args.workflow.namespace == "host":
+        if args.workflow.action == "detect":
+            _run_host_detect_command(args)
+        elif args.workflow.action == "preflight":
+            await _run_preflight_command(args)
+        elif args.workflow.action in {"prepare", "cleanup"}:
+            await _run_host_preparation_command(args)
+        else:
+            _run_host_verify_command(args)
+        return True
+
+    if args.workflow is not None and args.workflow.namespace in {"product", "services"}:
+        from tiny_swarm_world.infrastructure.adapters.cli.lifecycle import run_lifecycle_inspection
+
+        run_lifecycle_inspection(args)
+        return True
+
+    return False
 
 
 def _selected_workflow(args: Namespace) -> CliWorkflow | None:
