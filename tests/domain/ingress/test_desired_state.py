@@ -1,4 +1,5 @@
 import unittest
+from dataclasses import replace
 
 from tiny_swarm_world.domain.deployment import ServiceStackProfile
 from tiny_swarm_world.domain.ingress import (
@@ -38,6 +39,72 @@ class TestDesiredHttpsIngress(unittest.TestCase):
             ),
         )
         self.assertNotIn("grafana.tsw.local", desired.hostnames)
+
+    def test_minimal_selection_omits_unselected_routes_health_links_and_ports(self):
+        desired = desired_https_ingress_for_profile(
+            port_registry=_committed_port_registry(),
+            resolved_services=("incus", "portainer"),
+            conditional_service_names=("api", "app", "grafana", "prometheus"),
+        )
+
+        self.assertEqual(desired.hostnames, ())
+        self.assertEqual(desired.public_ports, ())
+        self.assertFalse(desired.gateway_enabled)
+        self.assertFalse(desired.http_redirect_to_https)
+        self.assertEqual(desired.direct_endpoints[0].service_access_url, "http://localhost:10001")
+        payload = desired.to_dict()
+        self.assertEqual([link["service"] for link in payload["service_access_links"]], ["portainer"])
+        self.assertEqual([target["service"] for target in payload["health_check_targets"]], ["portainer"])
+        self.assertEqual({port.service_name for port in desired.diagnostic_fallback_ports}, {"portainer"})
+        self.assertEqual(desired.skipped_routes, ())
+
+    def test_swagger_and_sonarqube_selection_uses_stack_ids(self):
+        desired = desired_https_ingress_for_profile(
+            port_registry=_committed_port_registry(),
+            resolved_services=("incus", "portainer", "swagger", "sonarqube"),
+        )
+
+        self.assertEqual(desired.hostnames, ())
+        self.assertEqual(
+            {endpoint.service_access_url for endpoint in desired.direct_endpoints},
+            {"http://localhost:10001", "http://localhost:12000", "http://localhost:16081"},
+        )
+        self.assertEqual(
+            {port.service_name for port in desired.diagnostic_fallback_ports},
+            {"portainer", "swagger", "sonarqube"},
+        )
+        self.assertEqual(desired.skipped_routes, ())
+
+    def test_selected_conditional_route_remains_available(self):
+        desired = desired_https_ingress_for_profile(
+            port_registry=_committed_port_registry(),
+            resolved_services=("portainer", "traefik", "grafana"),
+            conditional_service_names=("grafana", "prometheus"),
+        )
+        self.assertEqual(desired.hostnames, ("portainer.tsw.local", "grafana.tsw.local"))
+
+    def test_direct_selection_honors_registry_port_overrides(self):
+        registry = _committed_port_registry()
+        registry = replace(registry, mappings=tuple(
+            replace(mapping, external_port=10002) if mapping.port_id == "portainer-http" else mapping
+            for mapping in registry.mappings
+        ))
+        desired = desired_https_ingress_for_profile(
+            resolved_services=("incus", "portainer"), port_registry=registry,
+        )
+        self.assertEqual(desired.direct_endpoints[0].service_access_url, "http://localhost:10002")
+
+    def test_direct_endpoint_rejects_unsafe_urls_and_gateway_conflicts(self):
+        from tiny_swarm_world.domain.ingress.desired_state import DirectServiceEndpoint
+
+        endpoint = DirectServiceEndpoint("portainer", "http://localhost:10001", "http://localhost:10001", "portainer", 9000)
+        for url in ("https://localhost:10001", "http://example.org:10001", "http://user@localhost:10001", "http://localhost:0", "http://localhost:10001?secret=value"):
+            with self.subTest(url=url), self.assertRaises(ValueError):
+                replace(endpoint, service_access_url=url)
+        with self.assertRaises(ValueError):
+            DesiredHttpsIngress(routes=(), gateway_enabled=False, direct_endpoints=(endpoint,))
+        with self.assertRaises(ValueError):
+            DesiredHttpsIngress(routes=())
 
     def test_conditional_grafana_route_is_explicit(self):
         desired = desired_https_ingress_for_profile(

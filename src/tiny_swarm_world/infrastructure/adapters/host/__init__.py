@@ -7,6 +7,10 @@ from typing import Any
 
 
 _EXPORTS = {
+    "SelectedPortRegistryRunner": (
+        "tiny_swarm_world.infrastructure.adapters.host.selected_port_registry",
+        "SelectedPortRegistryRunner",
+    ),
     "HostEnvironmentDetector": (
         "tiny_swarm_world.infrastructure.adapters.host.host_environment_detector",
         "HostEnvironmentDetector",

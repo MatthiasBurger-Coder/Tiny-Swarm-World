@@ -184,11 +184,17 @@ INFISICAL_STACK_CONTRACT = ServiceStackContract(
 
 def service_stack_contracts_for_profile(
     service_profile: ServiceStackProfile | str = ServiceStackProfile.DEFAULT,
+    resolved_services: tuple[str, ...] | None = None,
 ) -> tuple[ServiceStackContract, ...]:
     profile = ServiceStackProfile(service_profile)
-    if profile is ServiceStackProfile.SERVICE_ACCESS:
-        return (*DEFAULT_SERVICE_STACK_CONTRACTS, INFISICAL_STACK_CONTRACT, SERVICE_ACCESS_STACK_CONTRACT)
-    return DEFAULT_SERVICE_STACK_CONTRACTS
+    contracts = ((*DEFAULT_SERVICE_STACK_CONTRACTS, INFISICAL_STACK_CONTRACT, SERVICE_ACCESS_STACK_CONTRACT)
+                 if profile is ServiceStackProfile.SERVICE_ACCESS else DEFAULT_SERVICE_STACK_CONTRACTS)
+    if resolved_services is None:
+        return contracts
+    available = {item.stack_name: item for item in contracts}
+    if not set(resolved_services) <= available.keys() | {"incus"}:
+        raise ValueError("Resolved selection contains unsupported stack IDs")
+    return tuple(available[name] for name in resolved_services if name != "incus")
 
 
 def portainer_managed_service_stack_contracts_for_profile(

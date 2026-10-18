@@ -79,6 +79,7 @@ class ComposeFileRepositoryYaml(
         image_contracts: tuple[ContainerImageContract, ...] | None = None,
         environment: Mapping[str, str] | None = None,
         write_logs: bool = True,
+        resolved_services: tuple[str, ...] | None = None,
     ):
         paths = project_paths or default_project_paths()
         self.project_paths = paths
@@ -88,12 +89,12 @@ class ComposeFileRepositoryYaml(
         self.port_registry = port_registry or PortRegistryYamlRepository(
             project_paths=paths
         ).load()
+        self.resolved_services = resolved_services
         self.service_profile = ServiceStackProfile(service_profile)
         self.environment = dict(os.environ if environment is None else environment)
-        self.image_contracts = resolve_container_image_contracts(
-            image_contracts or DEFAULT_CONTAINER_IMAGE_CONTRACTS,
-            self.environment,
-        )
+        contracts = _selected_contracts(image_contracts or DEFAULT_CONTAINER_IMAGE_CONTRACTS,
+                                        resolved_services, paths.repository_root)
+        self.image_contracts = resolve_container_image_contracts(contracts, self.environment)
         self.enabled_service_names = _enabled_service_names(paths.config_root / "services.yml")
         self.logger = LoggerFactory.get_logger(self.__class__) if write_logs else logging.Logger("ComposeFileRepositoryYaml.read_only")
         self._validated_stacks: dict[str, StackDefinition] = {}
@@ -124,6 +125,9 @@ class ComposeFileRepositoryYaml(
             return self._validated_stacks[stack_name]
         if not STACK_NAME_PATTERN.fullmatch(stack_name):
             raise RepositoryConfigurationError("compose stack name contains invalid characters")
+
+        if self.resolved_services is not None and stack_name not in self.resolved_services:
+            raise RepositoryConfigurationError("Compose stack is outside the resolved service selection.")
 
         for base_directory in self.base_directories:
             for compose_path in self._compose_paths_for(base_directory, stack_name):
@@ -178,6 +182,8 @@ class ComposeFileRepositoryYaml(
         requirements: list[ArtifactImageRequirement] = []
         contracts_by_ref = {contract.image_ref: contract for contract in self.image_contracts}
         for stack_contract in service_stack_contracts_for_profile(self.service_profile):
+            if self.resolved_services is not None and stack_contract.stack_name not in self.resolved_services:
+                continue
             for service in self.get_services_of(stack_contract.stack_name):
                 contract = contracts_by_ref.get(service.image_ref)
                 requirements.append(
@@ -226,7 +232,8 @@ class ComposeFileRepositoryYaml(
 
     def render_service_access_dashboard(self) -> str:
         return render_service_access_dashboard_html(
-            self.get_effective_access_model().to_dict()
+            self.get_effective_access_model().to_dict(),
+            infisical_available=self.resolved_services is None or "infisical" in self.resolved_services,
         )
 
     def get_effective_access_model(self) -> DesiredHttpsIngress:
@@ -237,6 +244,7 @@ class ComposeFileRepositoryYaml(
                 self.enabled_service_names,
             ),
             port_registry=self.port_registry,
+            resolved_services=self.resolved_services,
         )
 
     def _desired_routes_for_compose(self) -> tuple[DesiredHttpsRoute, ...]:
@@ -246,6 +254,17 @@ class ComposeFileRepositoryYaml(
             if str(exc) == "desired HTTPS ingress requires at least one route":
                 return ()
             raise
+
+
+def _selected_contracts(contracts: tuple[ContainerImageContract, ...], selected: tuple[str, ...] | None,
+                        root: Path) -> tuple[ContainerImageContract, ...]:
+    if selected is None:
+        return contracts
+    from tiny_swarm_world.infrastructure.adapters.lifecycle.catalog import NativeComponentCatalog
+
+    contexts = {component.component_id for service in NativeComponentCatalog(root).load().services
+                if service.service_id in selected for component in service.components}
+    return tuple(item for item in contracts if item.build_context in contexts)
 
 
 def resolve_container_image_contracts(
@@ -737,9 +756,26 @@ def _route_name_for_port_mapping(mapping: ServicePortMapping) -> str:
     return mapping.port_id
 
 
-def render_service_access_dashboard_html(effective_access_model: Mapping[str, object]) -> str:
+def render_service_access_dashboard_html(
+    effective_access_model: Mapping[str, object],
+    *,
+    infisical_available: bool = True,
+) -> str:
     links = cast(list[Mapping[str, object]], effective_access_model.get("service_access_links", []))
-    rows = "\n".join(_dashboard_row(link) for link in links)
+    infisical_url = next(
+        (str(link["url"]) for link in links if link["service"] == "infisical"),
+        "https://infisical.tsw.local",
+    )
+    rows = "\n".join(_dashboard_row(link, infisical_available, infisical_url) for link in links)
+    vault_link = (
+        f'<a class="vault-link" href="{escape(infisical_url, quote=True)}" target="_blank" rel="noopener noreferrer">Open Infisical</a>'
+        if infisical_available else ""
+    )
+    access_source = (
+        "Direct published port access"
+        if effective_access_model.get("service_access_preferred_url_source") == "direct_published_port"
+        else "Traefik routed access"
+    )
     service_count = len(links)
     return f"""<!doctype html>
 <html lang="en">
@@ -781,12 +817,12 @@ def render_service_access_dashboard_html(effective_access_model: Mapping[str, ob
         <h1>Service Access</h1>
         <p>Management table for local Tiny Swarm World services and Infisical secret entries.</p>
       </div>
-      <a class="vault-link" href="https://infisical.tsw.local" target="_blank" rel="noopener noreferrer">Open Infisical</a>
+      {vault_link}
     </header>
     <div class="toolbar" aria-label="Access summary">
       <span class="chip">{service_count} services</span>
       <span class="chip">Passwords are visible through Infisical</span>
-      <span class="chip">Traefik routed access</span>
+      <span class="chip">{access_source}</span>
     </div>
     <div class="table-wrap">
       <table>
@@ -803,10 +839,13 @@ def render_service_access_dashboard_html(effective_access_model: Mapping[str, ob
 """
 
 
-def _dashboard_row(link: Mapping[str, object]) -> str:
+def _dashboard_row(
+    link: Mapping[str, object], infisical_available: bool = True,
+    infisical_url: str = "https://infisical.tsw.local",
+) -> str:
     service = str(link["service"])
     url = str(link["url"])
-    user, password_html = _dashboard_credentials_for(link)
+    user, password_html = _dashboard_credentials_for(link, infisical_available, infisical_url)
     return (
         f'          <tr><th scope="row">{escape(service)}</th>'
         f'<td><a href="{escape(url, quote=True)}" target="_blank" rel="noopener noreferrer">{escape(url)}</a></td>'
@@ -814,7 +853,10 @@ def _dashboard_row(link: Mapping[str, object]) -> str:
     )
 
 
-def _dashboard_credentials_for(link: Mapping[str, object]) -> tuple[str, str]:
+def _dashboard_credentials_for(
+    link: Mapping[str, object], infisical_available: bool = True,
+    infisical_url: str = "https://infisical.tsw.local",
+) -> tuple[str, str]:
     credential = link.get("credential")
     if not isinstance(credential, Mapping):
         note = str(link.get("no_login_note") or "Login is not required")
@@ -825,10 +867,12 @@ def _dashboard_credentials_for(link: Mapping[str, object]) -> tuple[str, str]:
     user = str(credential["username_label"])
     item = str(credential["item_reference"])
     note = str(credential["note"])
+    if not infisical_available:
+        return user, f'<span class="pwd"><code>{escape(item)}</code><small>Infisical is not selected</small></span>'
     return (
         user,
         (
-            '<span class="pwd"><a href="https://infisical.tsw.local" target="_blank" '
+            f'<span class="pwd"><a href="{escape(infisical_url, quote=True)}" target="_blank" '
             f'rel="noopener noreferrer"><code>{escape(item)}</code></a><small>{escape(note)}</small></span>'
         ),
     )

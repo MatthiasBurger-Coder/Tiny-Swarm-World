@@ -126,8 +126,8 @@ def parse_args(argv: Sequence[str] | None = None) -> Namespace:
         action="store_true",
         help="Reverse the last recorded update for the selected stack/service.",
     )
-    parser.add_argument("--services", help="Comma-separated canonical service IDs for selection preview.")
-    parser.add_argument("--minimal", action="store_true", help="Preview Classic foundations only.")
+    parser.add_argument("--services", help="Comma-separated canonical service IDs for selective setup or preview.")
+    parser.add_argument("--minimal", action="store_true", help="Select mandatory Classic foundations only.")
     parser.add_argument("--selection-config", help="YAML/JSON selection file containing a services list.")
     parser.add_argument("workflow_namespace", nargs="?", help="Workflow namespace.")
     parser.add_argument("workflow_action", nargs="?", help="Workflow action.")
@@ -180,7 +180,7 @@ def _assign_workflow(parser: ArgumentParser, args: Namespace) -> None:
     args.workflow = CLI_WORKFLOWS_BY_KEY.get((args.workflow_namespace, args.workflow_action))
     if args.workflow is None:
         parser.error(f"unsupported workflow command: {args.workflow_namespace} {args.workflow_action}")
-    if args.workflow_namespace in {"product", "services"} and (args.live or args.approve_live or args.confirm or args.preflight):
+    if args.workflow_namespace in {"product", "services"} and args.workflow_action != "add" and (args.live or args.approve_live or args.confirm or args.preflight):
         parser.error("lifecycle inspection is read-only; omit mutation/consent/preflight flags")
     is_update = args.workflow_namespace == "platform" and args.workflow_action == "update"
     update_options_present = any(

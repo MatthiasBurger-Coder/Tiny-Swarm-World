@@ -272,15 +272,13 @@ __all__ = [name for name in dir(_runtime) if not name.startswith("_")] + list(
 
 
 def build_installation_lifecycle_service(repository_root: Path | None = None) -> Any:
-    """Compose local read-only inspection without runtime probes or logger setup."""
-    from tiny_swarm_world.application.services.lifecycle import InstallationLifecycleService
-    from tiny_swarm_world.infrastructure.adapters.lifecycle.catalog import NativeComponentCatalog
-    from tiny_swarm_world.infrastructure.adapters.lifecycle.manifest import JsonManifestRepository
-    from tiny_swarm_world.infrastructure.adapters.repositories.local_state_paths import local_state_file
-    from tiny_swarm_world.infrastructure.project_paths import default_project_paths
+    from .composition_lifecycle import build_installation_lifecycle_service as implementation
 
-    root = repository_root or default_project_paths().repository_root
-    return InstallationLifecycleService(
-        JsonManifestRepository(local_state_file(root=root, relative_path="installation/manifest.json")),
-        NativeComponentCatalog(root),
-    )
+    return implementation(repository_root)
+
+
+async def prepare_setup_selection_state(lifecycle, plan, request):
+    from .composition_lifecycle import prepare_setup_selection_state as implementation
+
+    backend = _runtime.resolve_runtime_profile(plan.service_preset, request).backend
+    return await implementation(lifecycle, plan, backend, build_process_runner())

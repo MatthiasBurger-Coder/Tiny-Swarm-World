@@ -95,6 +95,16 @@ async def main(argv: Sequence[str] | None = None) -> None:
     _enforce_workflow_implementation(workflow, args)
     live_consent = _live_consent_for_workflow(workflow, args)
 
+    if workflow.namespace == "setup" or (workflow.namespace, workflow.action) == ("services", "add"):
+        from tiny_swarm_world.infrastructure.adapters.cli.selective_setup import run_selective_setup
+
+        selective_result = await run_selective_setup(args, live_consent)
+        if selective_result is not None:
+            _emit_workflow_result(selective_result, args)
+            if _workflow_status_value(selective_result) != PlatformWorkflowStatus.COMPLETED.value:
+                raise SystemExit(1)
+            return
+
     logger.info("Running workflow: %s", workflow.name)
     node_provider_request = _node_provider_request_from_args(args)
     if workflow.namespace == "setup" and workflow.action == "run":
@@ -140,7 +150,7 @@ async def _run_early_workflow(args: Namespace) -> bool:
             _run_host_verify_command(args)
         return True
 
-    if args.workflow is not None and args.workflow.namespace in {"product", "services"}:
+    if args.workflow is not None and args.workflow.namespace in {"product", "services"} and args.workflow.action != "add":
         from tiny_swarm_world.infrastructure.adapters.cli.lifecycle import run_lifecycle_inspection
 
         run_lifecycle_inspection(args)

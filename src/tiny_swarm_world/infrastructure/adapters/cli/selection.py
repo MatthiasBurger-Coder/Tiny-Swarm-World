@@ -61,7 +61,7 @@ def run_selection_preview(args: Namespace) -> None:
         print(json.dumps({"status": "invalid_selection", "diagnostics": [str(error)]}))
         raise SystemExit(2) from None
     print(json.dumps({"status": "selection_preview", "plan": plan.model_dump(mode="json"),
-                      "execution": "not performed; W04 owns selective setup integration",
+                      "execution": "not performed (read-only preview)",
                       "data_policy": "deployments and persistent data are retained"},
                      sort_keys=True, indent=None if args.json else 2))
 
@@ -69,18 +69,22 @@ def validate_selection_args(parser: ArgumentParser, args: Namespace) -> None:
     command = (args.workflow_namespace, args.workflow_action)
     selection_options = args.services is not None or args.minimal or args.selection_config is not None
     selection_command = command in {("services", "add"), ("services", "remove")}
-    args.selection_preview = selection_command or (command == ("setup", "run") and args.preview)
+    args.selection_preview = args.preview and (selection_command or command == ("setup", "run"))
     if selection_options and not (selection_command or command == ("setup", "run")):
         parser.error("selection options require setup run or services add/remove")
-    if args.selection_preview or selection_options:
-        if not args.preview or args.live or args.approve_live or args.confirm or args.preflight:
-            parser.error("W03 selection is preview-only: use --preview without live/consent/preflight flags; setup apply belongs to W04")
+    if selection_command or args.selection_preview or selection_options:
+        if args.preview and (args.live or args.approve_live or args.confirm or args.preflight):
+            parser.error("selection preview requires --preview without live/consent/preflight flags")
+        if command == ("services", "remove") and not args.preview:
+            parser.error("service removal is preview-only; deployments and data are retained")
+        if not args.preview and (args.preflight or not args.live):
+            parser.error("selection apply requires --live and existing live consent; use --preview to inspect")
         if args.minimal and (args.services is not None or args.selection_config or args.service_profile_explicit):
             parser.error("--minimal conflicts with --services, --selection-config and explicit --service-profile")
         if selection_command and (args.services is None or args.minimal or args.selection_config or args.service_profile_explicit):
             parser.error("services add/remove requires --services and forbids presets/config/minimal")
         if args.recover or any(value is not None for value in (args.stack, args.service, args.from_image, args.to_image)):
-            parser.error("selection preview cannot use platform update options")
+            parser.error("selection cannot use platform update options")
         if args.services is not None:
             try:
                 args.selected_services = parse_service_ids(args.services)

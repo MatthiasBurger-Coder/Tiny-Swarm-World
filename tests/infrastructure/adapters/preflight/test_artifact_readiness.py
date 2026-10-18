@@ -34,6 +34,17 @@ from tiny_swarm_world.infrastructure.project_paths import ProjectPaths
 
 
 class TestArtifactReadiness(unittest.TestCase):
+    def test_selected_adapter_requires_only_selected_targets(self):
+        target = ARTIFACT_READINESS_TARGETS[0]
+        probe = MagicMock(return_value=ReadinessCheckResult(
+            target_id=target, status=ReadinessStatus.READY,
+            message="ready", remediation="none",
+        ))
+        adapter = BoundedArtifactReadinessAdapter({target: probe}, required_targets=(target,))
+        self.assertTrue(adapter.check(ReadinessProbeRequest(target_id=target)).ready)
+        with self.assertRaises(ValueError):
+            BoundedArtifactReadinessAdapter({}, required_targets=(target,))
+
     def test_indexed_adapter_and_direct_typed_gate_origins_reach_setup(self):
         failure = OperationFailure.for_cause("swarm.execute", "lxc_gateway", "process_timeout")
         static = PreflightResult((PreflightCheck("STATIC", PreflightCategory.CONFIGURATION, PreflightStatus.PASSED, PreflightSeverity.MANDATORY, "Ready", ""),))

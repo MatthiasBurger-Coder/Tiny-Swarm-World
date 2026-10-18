@@ -287,6 +287,7 @@ class TestRealBoundaryFailureMapping(unittest.IsolatedAsyncioTestCase):
         marker = "sensitive-context-payload"
         with TemporaryDirectory() as directory:
             repository = object.__new__(ComposeFileRepositoryYaml)
+            repository.resolved_services = None
             repository.base_directories = [Path(directory)]
             repository._validated_stacks = {}
             for action, catch_type in (

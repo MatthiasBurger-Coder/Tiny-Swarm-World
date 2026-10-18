@@ -7,6 +7,10 @@ calls so legacy facade patch points remain effective.
 
 from __future__ import annotations
 
+from .composition_selection import selection_options, includes_service, persisted_setup_plan
+
+from tiny_swarm_world.domain.lifecycle.selection import SelectionPlan
+
 import os
 from pathlib import Path
 
@@ -79,6 +83,7 @@ async def run_setup_with_terminal_status(
     service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
     node_provider_request: NodeProviderSelectionRequest | None = None,
     allow_wsl_windows_filesystem: bool = False,
+    selection_plan: SelectionPlan | None = None,
 ) -> SetupWorkflowResult:
     if not live_consent.accepted:
         raise ValueError("setup run requires accepted live consent")
@@ -97,6 +102,7 @@ async def run_setup_with_terminal_status(
             allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
             ui=ui,
             configuration_validation=facade.build_configuration_validation_service(),
+            **({"selection_plan": selection_plan} if selection_plan is not None else {}),
         )
         match action:
             case "run":
@@ -129,28 +135,39 @@ def build_setup_services(
     ui: PortUI | None = None,
     configuration_validation: ConfigurationValidationService | None = None,
     allow_wsl_windows_filesystem: bool = False,
+    selection_plan: SelectionPlan | None = None,
 ) -> SetupServices:
     import os
     from tiny_swarm_world.infrastructure.adapters.repositories.installer_configuration_repository import InstallerConfigurationRepository
 
+    if selection_plan is None:
+        selection_plan = persisted_setup_plan()
+        if selection_plan is not None:
+            service_profile = selection_plan.service_preset
     setup_environment = dict(os.environ)
     project_paths = default_project_paths()
     selected_service_profile = ServiceStackProfile(service_profile)
+    resolved_services = None if selection_plan is None else selection_plan.resolved_services
+    selection_kwargs = selection_options(resolved_services)
+    if configuration_validation is not None and resolved_services is not None:
+        configuration_validation = configuration_validation.for_scopes(set(resolved_services) | {"platform", "deployment"})
     preflight = _build_preflight_service_for_request(
         selected_service_profile,
         node_provider_request,
         configuration_validation=configuration_validation,
         project_paths=project_paths,
         allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
+        **selection_kwargs,
     )
     artifact_compose_repository = ComposeFileRepositoryYaml(
         project_paths=project_paths,
         service_profile=selected_service_profile,
+        **selection_kwargs,
     )
     from tiny_swarm_world.domain.deployment import service_stack_contracts_for_profile
 
     artifact_compose_repository.validate_and_snapshot(tuple(
-        contract.stack_name for contract in service_stack_contracts_for_profile(selected_service_profile)
+        contract.stack_name for contract in service_stack_contracts_for_profile(selected_service_profile, resolved_services)
     ))
     artifact_contract_preflight = StaticArtifactContractPreflight(
         compose_repository=artifact_compose_repository,
@@ -159,8 +176,9 @@ def build_setup_services(
     artifact_readiness_gate = _build_artifact_readiness_gate(
         project_paths,
         node_provider_request,
+        **selection_kwargs,
     )
-    host_preparation = build_host_preparation_service(live_consent)
+    host_preparation = build_host_preparation_service(live_consent, **selection_kwargs)
     trace_correlation_id = _new_installation_trace_correlation_id()
     workflow_progress = _build_workflow_progress_sink(ui)
     platform = _build_platform_services_for_request(
@@ -170,17 +188,20 @@ def build_setup_services(
         ui=ui,
         trace_correlation_id=trace_correlation_id,
         allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
+        **selection_kwargs,
     )
     artifacts = build_artifact_services_for_provider(
         node_provider_request=node_provider_request,
         ui=ui,
         progress=workflow_progress,
+        **selection_kwargs,
     )
     deployment = _build_deployment_services_for_request(
         service_profile=service_profile,
         node_provider_request=node_provider_request,
         ui=ui,
         progress=workflow_progress,
+        **selection_kwargs,
     )
     method_trace = _build_method_trace_sink(ui)
     static_preflight_result: PreflightResult | None = None
@@ -190,10 +211,10 @@ def build_setup_services(
         nonlocal static_preflight_result
         InstallerConfigurationRepository.validate_environment(
             setup_environment,
-            stack_names=tuple(contract.stack_name for contract in service_stack_contracts_for_profile(selected_service_profile)),
+            stack_names=tuple(contract.stack_name for contract in service_stack_contracts_for_profile(selected_service_profile, resolved_services)),
             include_setup=True,
             deferred_keys=(("TSW_JENKINS_ADMIN_PASSWORD",)
-                           if selected_service_profile is ServiceStackProfile.SERVICE_ACCESS else ()),
+                           if selected_service_profile is ServiceStackProfile.SERVICE_ACCESS and includes_service(resolved_services, "infisical") else ()),
         )
         for workflow in (deployment.workflows.bootstrap, deployment.workflows.apply):
             prepare = getattr(workflow, "prepare_configuration", None)
@@ -283,7 +304,7 @@ def build_setup_services(
                 progress=workflow_progress,
                 method_trace=method_trace,
                 trace_correlation_id=trace_correlation_id,
-                installation_plan=default_installation_plan(),
+                installation_plan=default_installation_plan() if selection_plan is None else None,
                 timeout_seconds=_operator_config_float(
                     "TSW_SETUP_WORKFLOW_TIMEOUT_SECONDS",
                     3600.0,

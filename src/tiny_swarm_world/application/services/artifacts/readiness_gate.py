@@ -44,11 +44,15 @@ class ArtifactReadinessGate:
         self,
         readiness: PortLiveReadiness,
         requests: Sequence[ReadinessProbeRequest] | None = None,
+        *,
+        required_targets: tuple[str, ...] = ARTIFACT_READINESS_TARGETS,
+        requires_bootstrap: bool = True,
     ) -> None:
         self.readiness = readiness
-        self.requests = tuple(requests or _default_requests())
+        self.requires_bootstrap = requires_bootstrap
+        self.requests = _selected_requests(requests, required_targets)
         request_targets = tuple(request.target_id for request in self.requests)
-        if request_targets != ARTIFACT_READINESS_TARGETS:
+        if request_targets != required_targets:
             raise ValueError(
                 "artifact readiness gate must check the complete ordered target set"
             )
@@ -75,7 +79,7 @@ class ArtifactReadinessGate:
                 ),),
             )
 
-        if (
+        if self.requires_bootstrap and (
             artifact_bootstrap is None
             or artifact_bootstrap.status is not ArtifactWorkflowStatus.COMPLETED
             or not artifact_bootstrap.executed
@@ -154,14 +158,24 @@ class ArtifactReadinessGate:
         )
 
 
-def _default_requests() -> tuple[ReadinessProbeRequest, ...]:
+def _selected_requests(
+    requests: Sequence[ReadinessProbeRequest] | None,
+    required_targets: tuple[str, ...],
+) -> tuple[ReadinessProbeRequest, ...]:
+    canonical_targets = tuple(target for target in ARTIFACT_READINESS_TARGETS if target in required_targets)
+    if not required_targets or required_targets != canonical_targets:
+        raise ValueError("artifact readiness requires a nonempty ordered target subset")
+    return tuple(requests) if requests is not None else _default_requests(required_targets)
+
+
+def _default_requests(targets: tuple[str, ...]) -> tuple[ReadinessProbeRequest, ...]:
     return tuple(
         ReadinessProbeRequest(
             target_id=target_id,
             timeout_seconds=DEFAULT_ARTIFACT_READINESS_TIMEOUT_SECONDS,
             max_attempts=DEFAULT_ARTIFACT_READINESS_ATTEMPTS,
         )
-        for target_id in ARTIFACT_READINESS_TARGETS
+        for target_id in targets
     )
 
 

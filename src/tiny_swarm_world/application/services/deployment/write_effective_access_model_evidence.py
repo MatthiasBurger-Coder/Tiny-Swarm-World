@@ -19,6 +19,7 @@ from tiny_swarm_world.application.ports.repositories.port_routing_evidence_repos
     RoutingEvidenceSkippedRoute,
 )
 from tiny_swarm_world.domain.deployment import ServiceStackProfile
+from tiny_swarm_world.domain.ingress.desired_state import DirectServiceEndpoint
 from tiny_swarm_world.domain.ingress import (
     CredentialReference,
     DesiredHttpsIngress,
@@ -101,6 +102,7 @@ def build_effective_access_model_evidence(
             ),
         )
     )
+    access_endpoints: tuple[RoutingEvidenceRoute | DirectServiceEndpoint, ...] = (*routes, *access_model.direct_endpoints)
     health_targets = tuple(
         sorted(
             (
@@ -110,7 +112,7 @@ def build_effective_access_model_evidence(
                     upstream_service=route.upstream_service,
                     upstream_port=route.upstream_port,
                 )
-                for route in routes
+                for route in access_endpoints
             ),
             key=lambda target: (
                 target.service,
@@ -126,9 +128,9 @@ def build_effective_access_model_evidence(
                 RoutingEvidenceServiceAccessLink(
                     service=route.service_name,
                     url=route.service_access_url,
-                    credential=route.credential,
+                    credential=(_credential_projection(route.credential) if isinstance(route, DirectServiceEndpoint) else route.credential),
                 )
-                for route in routes
+                for route in access_endpoints
             ),
             key=lambda link: (link.service, link.url),
         )

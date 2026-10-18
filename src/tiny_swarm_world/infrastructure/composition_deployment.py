@@ -7,6 +7,10 @@ calls so legacy facade patch points remain effective.
 
 from __future__ import annotations
 
+from tiny_swarm_world.domain.deployment.service_stack_contract import ServiceStackContract
+
+from .composition_selection import persisted_runtime_selection, selection_options, includes_service, selected_secret_entries, uses_infisical_setup
+
 from tiny_swarm_world.infrastructure.adapters.repositories.secret_manifest_yaml_repository import SecretManifestYamlRepository
 
 from collections.abc import Mapping
@@ -126,6 +130,7 @@ def build_deployment_services_for_provider(
     progress: PortWorkflowProgress | None = None,
     image_overrides: Mapping[str, str] | None = None,
     update_stack_name: str | None = None,
+    resolved_services: tuple[str, ...] | None = None,
 ) -> DeploymentServices:
     provider_request = node_provider_request or _default_node_provider_request()
     backend = _lxc_backend_for_provider_request(provider_request)
@@ -138,6 +143,7 @@ def build_deployment_services_for_provider(
             progress=progress,
             image_overrides=image_overrides,
             update_stack_name=update_stack_name,
+            **selection_options(resolved_services),
         )
     return DeploymentServices(
         workflows=DeploymentWorkflows(
@@ -172,7 +178,9 @@ def build_lxc_deployment_services(
     progress: PortWorkflowProgress | None = None,
     image_overrides: Mapping[str, str] | None = None,
     update_stack_name: str | None = None,
+    resolved_services: tuple[str, ...] | None = None,
 ) -> DeploymentServices:
+    service_profile, resolved_services = persisted_runtime_selection(service_profile, resolved_services)
     project_paths = default_project_paths()
     host_environment = HostEnvironmentDetector().detect().environment
     prerequisite_checks = () if host_environment is HostEnvironmentKind.WSL2 else (
@@ -183,7 +191,7 @@ def build_lxc_deployment_services(
     )
     local_file_storage = LocalFileStorage()
     selected_service_profile = ServiceStackProfile(service_profile)
-    service_stack_contracts = service_stack_contracts_for_profile(selected_service_profile)
+    service_stack_contracts = service_stack_contracts_for_profile(selected_service_profile, resolved_services)
     if update_stack_name is not None:
         service_stack_contracts = tuple(
             contract
@@ -198,6 +206,7 @@ def build_lxc_deployment_services(
         project_paths=project_paths,
         service_profile=selected_service_profile,
         environment=effective_environment,
+        **selection_options(resolved_services),
     )
     compose_repository.validate_and_snapshot(
         tuple(contract.stack_name for contract in service_stack_contracts)
@@ -239,7 +248,7 @@ def build_lxc_deployment_services(
         ),
     )
     swarm_runtime = DockerSwarmRuntime(delegate=lxc_swarm_runtime)
-    stack_environment = _deployment_stack_environment(selected_service_profile)
+    stack_environment = _deployment_stack_environment(selected_service_profile, resolved_services) if resolved_services is not None else _deployment_stack_environment(selected_service_profile)
     for environment_name, image_ref in (image_overrides or {}).items():
         if update_stack_name is not None:
             stack_environment.setdefault(update_stack_name, {})[environment_name] = image_ref
@@ -250,15 +259,13 @@ def build_lxc_deployment_services(
         SecretManifestRenderer(SecretManifestYamlRepository(
             project_paths.config_root / "secrets" / "infisical-secrets.yaml"
         )).run()
-        if selected_service_profile is ServiceStackProfile.SERVICE_ACCESS and update_stack_name is None
+        if uses_infisical_setup(selected_service_profile, update_stack_name, resolved_services)
         else ()
     )
+    secret_manifest_entries = selected_secret_entries(secret_manifest_entries, stack_environment, resolved_services)
     infisical_cli_client = None
     infisical_secret_sync_step = None
-    if (
-        selected_service_profile is ServiceStackProfile.SERVICE_ACCESS
-        and update_stack_name is None
-    ):
+    if uses_infisical_setup(selected_service_profile, update_stack_name, resolved_services):
         infisical_cli_client = InfisicalCliClient(base_url=_self_hosted_infisical_url())
         infisical_secret_sync_step = InfisicalSecretSyncStep(
             cli=infisical_cli_client,
@@ -277,22 +284,8 @@ def build_lxc_deployment_services(
             minimum=1,
         ),
     )
-    stack_steps = {
-        contract.stack_name: EnsureSwarmStack(
-            compose_repository=compose_repository,
-            swarm_runtime=swarm_runtime,
-            service_stack=contract,
-            stack_environment=stack_environment.get(contract.stack_name),
-            credential_snapshot=(partial(infisical_secret_sync_step.resolved_snapshot,
-                                         ("TSW_JENKINS_ADMIN_PASSWORD",))
-                                 if update_stack_name is None and contract.stack_name == "jenkins" and infisical_secret_sync_step is not None
-                                 else None),
-            credential_keys=(("TSW_JENKINS_ADMIN_PASSWORD",)
-                             if update_stack_name is None and contract.stack_name == "jenkins" and infisical_secret_sync_step is not None
-                             else ()),
-        )
-        for contract in service_stack_contracts
-    }
+    stack_steps = _build_stack_steps(service_stack_contracts, compose_repository, swarm_runtime,
+                                    stack_environment, infisical_secret_sync_step, update_stack_name)
     bootstrap_steps = () if update_stack_name is not None else (
         stack_steps["portainer"],
         EnsurePortainerAdminAccess(
@@ -307,7 +300,7 @@ def build_lxc_deployment_services(
             portainer_client=portainer_client,
             endpoint_name=DEFAULT_PORTAINER_ENDPOINT_NAME,
         ),
-        stack_steps["nexus"],
+        *((stack_steps["nexus"],) if "nexus" in stack_steps else ()),
     )
     application_steps: tuple[object, ...] = tuple(
         stack_steps[contract.stack_name]
@@ -315,9 +308,9 @@ def build_lxc_deployment_services(
         if update_stack_name is not None
         or contract.stack_name not in {"portainer", "nexus", "traefik"}
     )
-    if selected_service_profile is ServiceStackProfile.SERVICE_ACCESS and update_stack_name is None:
+    if _uses_ingress(selected_service_profile, update_stack_name, resolved_services):
         application_steps = _prioritize_infisical_apply_steps(
-            (stack_steps["traefik"], *application_steps)
+            (*((stack_steps["traefik"],) if "traefik" in stack_steps else ()), *application_steps)
         )
     if any(contract.stack_name == "sonarqube" for contract in service_stack_contracts):
         sonarqube_admin_step = EnsureSonarqubeAdminAccess(
@@ -342,7 +335,7 @@ def build_lxc_deployment_services(
             selected_service_profile,
             service_stack_by_name=service_stack_by_name,
         )
-        if update_stack_name is None
+        if update_stack_name is None and includes_service(resolved_services, "infisical")
         else ()
     )
     infisical_secret_management_steps: tuple[object, ...] = ()
@@ -380,7 +373,7 @@ def build_lxc_deployment_services(
             secret_evidence_step,
         )
         infisical_seed_steps = tuple(
-            _infisical_secret_seed_steps(selected_service_profile)
+            _infisical_secret_seed_steps(selected_service_profile, **selection_options(resolved_services))
         )
     readiness_checks = tuple(
         EndpointReadinessCheck(
@@ -392,13 +385,10 @@ def build_lxc_deployment_services(
     )
     pre_apply_steps: list[DeploymentPreApplyStep] = []
     if update_stack_name is None:
-        pre_apply_steps.extend(
-            (
-                routing_evidence_step,
-                _PrepareLxcStackAssets(lxc_swarm_runtime, "traefik"),
-                _PrepareLxcStackAssets(lxc_swarm_runtime, "swagger"),
-            )
-        )
+        pre_apply_steps.append(routing_evidence_step)
+        pre_apply_steps.extend(_PrepareLxcStackAssets(lxc_swarm_runtime, name)
+                               for name in ("traefik", "swagger")
+                               if name in service_stack_by_name)
     elif update_stack_name in {"traefik", "swagger", "service-access"}:
         pre_apply_steps.append(_PrepareLxcStackAssets(lxc_swarm_runtime, update_stack_name))
     pre_apply_checks: tuple[VerifyExternalSwarmInput, ...] = ()
@@ -430,7 +420,7 @@ def build_lxc_deployment_services(
                 verification_target_id=_TRAEFIK_GUI_USERS_EXTERNAL_SECRET_TARGET,
             ),
         )
-    if selected_service_profile is ServiceStackProfile.SERVICE_ACCESS and update_stack_name is None:
+    if selected_service_profile is ServiceStackProfile.SERVICE_ACCESS and update_stack_name is None and includes_service(resolved_services, "service-access"):
         pre_apply_steps.append(_PrepareLxcStackAssets(lxc_swarm_runtime, "service-access"))
 
     from tiny_swarm_world.infrastructure.adapters.repositories.installer_configuration_repository import InstallerConfigurationRepository
@@ -478,6 +468,35 @@ def build_lxc_deployment_services(
             ),
         )
     )
+
+
+def _uses_ingress(profile: ServiceStackProfile, update_stack: str | None, selected: tuple[str, ...] | None) -> bool:
+    if update_stack is not None:
+        return False
+    return profile is ServiceStackProfile.SERVICE_ACCESS if selected is None else "traefik" in selected
+
+
+def _build_stack_steps(
+    service_stack_contracts: tuple[ServiceStackContract, ...], compose_repository: ComposeFileRepositoryYaml,
+    swarm_runtime: DockerSwarmRuntime, stack_environment: dict[str, dict[str, str]],
+    infisical_secret_sync_step: InfisicalSecretSyncStep | None, update_stack_name: str | None,
+) -> dict[str, EnsureSwarmStack]:
+    return {
+        contract.stack_name: EnsureSwarmStack(
+            compose_repository=compose_repository,
+            swarm_runtime=swarm_runtime,
+            service_stack=contract,
+            stack_environment=stack_environment.get(contract.stack_name),
+            credential_snapshot=(partial(infisical_secret_sync_step.resolved_snapshot,
+                                         ("TSW_JENKINS_ADMIN_PASSWORD",))
+                                 if update_stack_name is None and contract.stack_name == "jenkins" and infisical_secret_sync_step is not None
+                                 else None),
+            credential_keys=(("TSW_JENKINS_ADMIN_PASSWORD",)
+                             if update_stack_name is None and contract.stack_name == "jenkins" and infisical_secret_sync_step is not None
+                             else ()),
+        )
+        for contract in service_stack_contracts
+    }
 
 
 _BOUNDARY_DEFAULTS = {

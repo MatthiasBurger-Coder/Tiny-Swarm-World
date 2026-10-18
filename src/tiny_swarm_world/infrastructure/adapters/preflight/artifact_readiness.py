@@ -45,11 +45,13 @@ class BoundedArtifactReadinessAdapter(PortLiveReadiness):
     def __init__(
         self,
         probes: Mapping[str, ReadinessProbe],
+        *,
+        required_targets: tuple[str, ...] = ARTIFACT_READINESS_TARGETS,
     ) -> None:
-        unknown_targets = set(probes).difference(ARTIFACT_READINESS_TARGETS)
+        unknown_targets = set(probes).union(required_targets).difference(ARTIFACT_READINESS_TARGETS)
         if unknown_targets:
             raise ValueError("artifact readiness contains an unknown target")
-        missing_targets = set(ARTIFACT_READINESS_TARGETS).difference(probes)
+        missing_targets = set(required_targets).difference(probes)
         if missing_targets:
             raise ValueError("artifact readiness is missing a required target")
         self._probes = dict(probes)

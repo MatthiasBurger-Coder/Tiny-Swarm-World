@@ -88,9 +88,14 @@ class ArtifactPrepareWorkflow:
         steps: Sequence[ArtifactPrepareStep] = (),
         blocked_reason: str = DEFAULT_ARTIFACT_PREPARE_BLOCK_REASON,
         bootstrap_steps: Sequence[ArtifactPrepareStep] = (),
+        *,
+        requires_bootstrap: bool = True,
     ):
         self.steps = tuple(steps)
         self.bootstrap_steps = tuple(bootstrap_steps)
+        self.requires_bootstrap = requires_bootstrap
+        if self.bootstrap_steps and not requires_bootstrap:
+            raise ValueError("optional artifact bootstrap must not contain mutation steps")
         if self.steps[: len(self.bootstrap_steps)] != self.bootstrap_steps:
             raise ValueError("artifact bootstrap steps must be the prepare prefix")
         self.mutation_steps = self.steps[len(self.bootstrap_steps) :]
@@ -108,6 +113,14 @@ class ArtifactPrepareWorkflow:
         be checked before image build, pull or publication starts.
         """
 
+        if not self.requires_bootstrap:
+            return ArtifactWorkflowResult(
+                kind=ArtifactWorkflowKind.PREPARE,
+                status=ArtifactWorkflowStatus.COMPLETED,
+                message="Selected public images require no Nexus bootstrap.",
+                reason="Nexus and registry bootstrap are not applicable to selected services",
+                operation_result=aggregate_operation(OperationOutcome.SUCCESS),
+            )
         return await self._run_steps(self.bootstrap_steps)
 
     async def run_after_bootstrap(
