@@ -234,3 +234,10 @@ from the prepared environment. These commands write nothing; legacy installation
 without a manifest report adoption required. See the
 [manifest, catalog and adoption contract](documentation/contracts/installation-manifest.md)
 for schema ownership, drift diagnostics and current support limits.
+
+Discover catalog targets with `tiny-swarm-world services updates --json` and plan
+an explicit installed batch with
+`tiny-swarm-world services update --services jenkins,nexus --preview`.
+The current catalog has baseline references but no qualified upgrade transitions;
+unsupported previews return exit 1. See [component planning](documentation/user_guide/component-updates.md)
+for metadata availability, migration restrictions and execution ownership.

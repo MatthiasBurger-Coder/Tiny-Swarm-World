@@ -1,0 +1,23 @@
+{
+  "baseline_sha": "3200347bfb203a79ad9373872e6da58c8a4e775a",
+  "scope": "Uncommitted issue-445 source snapshot; no live qualification claim",
+  "sha256": {
+    "README.md": "1adbefdbffd89d1c6909ffda436327cb3fc3c3accab66ce6a92e7892b17ff70b",
+    "documentation/contracts/lifecycle.md": "1ece3cb431f864f9fcc5a3f317db772f2b67ab910f950b5876a91a495348d5a7",
+    "documentation/process/skills/audit/skill-registry.json": "9d2f3058f82a50655c146b34097848866013b5095fec740544ba4861a76b37af",
+    "documentation/user_guide/component-updates.md": "f649e560c0409185a9b95bcf736910589c60c25d58802e8568070d1338de2438",
+    "src/tiny_swarm_world/application/services/component_updates.py": "985256e1bc1ba6ff17509c63cdb5f2cd743522cf91d5c8d921d07a4e2c5af01c",
+    "src/tiny_swarm_world/domain/lifecycle/models.py": "06da46192d3ffd7a8e2571705d092d038630317b90d3fa2288ff472dee25e066",
+    "src/tiny_swarm_world/domain/lifecycle/update_planning.py": "c99036e31c2ba1ba1022c7f2818541f948f917a59c721c7fe49d453b6c0a8f4d",
+    "src/tiny_swarm_world/infrastructure/adapters/cli/component_updates.py": "f81ff425709a4230f1eed5ed72ba6248b3c864acb879138d6f7452fdccd75f61",
+    "src/tiny_swarm_world/infrastructure/adapters/cli/lifecycle.py": "a6289f4041c86321b02dc9904ed497dc54ed1de276344436804eaee2d58fbb92",
+    "src/tiny_swarm_world/infrastructure/adapters/cli/parser.py": "43ba4c6e3a112befb55d7929a22aa80276509285f3107b0138953c3f0e523847",
+    "src/tiny_swarm_world/infrastructure/adapters/cli/registry.py": "1df432ac633cfc05460b522918a5fb32e5d3fbdf056a25f78067de799cd63915",
+    "src/tiny_swarm_world/infrastructure/adapters/cli/selection.py": "f5cce7062297a73dbfd5758c4393419a0a4c162f08ad127492a974c18c97f197",
+    "src/tiny_swarm_world/infrastructure/adapters/lifecycle/catalog.py": "1eb6ffe09f206e090c1b6430cadda0b877928c70cedce2661cd2a0fbd726551a",
+    "tests/application/services/test_component_updates.py": "f072d7ef29ebd6d0d87c5645b391fa812c1826b52b540fafafc38fc67d560db9",
+    "tests/domain/lifecycle/test_update_planning.py": "2f8b5ce4a0ca8cdb3c0afe7aac8f73676332315948f9fbf88e66d7bfd539579f",
+    "tests/test_component_updates_cli.py": "6c75287a8932e9a0e06420a3bc2885c892e69d1d1035459ca36084746a588849",
+    "tests/test_package_entrypoint.py": "b0399d88f8f01535fa4bf575e5e5818450c2146be3f12066c0d326ad8f765d57"
+  }
+}

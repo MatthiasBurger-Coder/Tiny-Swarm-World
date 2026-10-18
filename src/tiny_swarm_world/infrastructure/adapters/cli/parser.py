@@ -127,6 +127,7 @@ def parse_args(argv: Sequence[str] | None = None) -> Namespace:
         help="Reverse the last recorded update for the selected stack/service.",
     )
     parser.add_argument("--services", help="Comma-separated canonical service IDs for selective setup or preview.")
+    parser.add_argument("--to", help="Catalog target ID for a single services update --preview; never an arbitrary image tag.")
     parser.add_argument("--minimal", action="store_true", help="Select mandatory Classic foundations only.")
     parser.add_argument("--selection-config", help="YAML/JSON selection file containing a services list.")
     parser.add_argument("workflow_namespace", nargs="?", help="Workflow namespace.")
@@ -136,7 +137,9 @@ def parse_args(argv: Sequence[str] | None = None) -> Namespace:
     args.service_profile_explicit = args.service_profile is not None
     args.service_profile = args.service_profile or DEFAULT_SETUP_SERVICE_PROFILE.value
     from tiny_swarm_world.infrastructure.adapters.cli.selection import validate_selection_args
+    from tiny_swarm_world.infrastructure.adapters.cli.component_updates import validate_component_args
 
+    validate_component_args(parser, args)
     validate_selection_args(parser, args)
     _validate_provider_args(parser, args)
     _assign_network_command(parser, args)
@@ -186,7 +189,7 @@ def _assign_workflow(parser: ArgumentParser, args: Namespace) -> None:
     update_options_present = any(
         value is not None
         for value in (args.stack, args.service, args.from_image, args.to_image)
-    ) or (args.preview and not args.selection_preview) or args.recover
+    ) or (args.preview and not args.selection_preview and not args.component_update_command) or args.recover
     if not is_update and update_options_present:
         parser.error("update options require command: platform update")
     if is_update:
