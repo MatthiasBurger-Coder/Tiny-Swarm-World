@@ -8,7 +8,7 @@ from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
 from tiny_swarm_world.domain.artifacts.container_image_contract import DEFAULT_CONTAINER_IMAGE_CONTRACTS
 from tiny_swarm_world.domain.deployment.service_stack_contract import service_stack_contracts_for_profile
 from tiny_swarm_world.domain.lifecycle.models import (
-    ComponentCatalog, ComponentState, ResourceRequirements, ServiceDefinition, VersionIdentity,
+    ComponentCatalog, ComponentState, ComponentUpdateTarget, ResourceRequirements, ServiceDefinition, VersionIdentity,
 )
 
 # Only logical dependency/policy metadata lives here. Image/build versions remain
@@ -66,6 +66,12 @@ class NativeComponentCatalog:
                 lifecycle_owner="portainer-adapter" if stack.stack_name == "portainer" else "stack-update",
                 backup_policy=("required-before-stateful-transition" if stack.stack_name in _STATEFUL
                                else "not-applicable"),
+                update_targets=(ComponentUpdateTarget(
+                    target_id="native-baseline", qualification="installation-baseline", metadata_source="native-assets",
+                    versions={item.component_id: item.desired for item in components},
+                    presets=(("service-access",) if stack.stack_name in {"infisical", "service-access"}
+                             else ("default", "service-access")),
+                ),),
             ))
         catalog = ComponentCatalog(services=tuple(sorted(services, key=lambda item: item.service_id)))
         identities = [component.component_id for service in services for component in service.components]

@@ -7,8 +7,12 @@ Scope: native Linux/WSL2 → managed Incus/LXC → Docker Engine → Docker Swar
 W02 implements read-only `product version` and `services list`, the manifest and
 native component catalog; see [installation state contract](installation-manifest.md).
 W03 implements read-only selection previews for `setup run`, `services add` and
-`services remove`; see [selection contract](service-selection.md). Live selective
-setup/addition remains W04 scope. Other commands retain their future ownership.
+`services remove`; see [selection contract](service-selection.md).
+W04 implements selective setup/addition; W05 adds read-only `services updates`
+and `services update --services <ids> [--to <target-id>] --preview`. See
+[component planning](../user_guide/component-updates.md) for actual availability:
+the native catalog has baseline references and no qualified upgrade transitions.
+W06/W07 execution and W08 product upgrades remain future scope.
 The [requirement matrix](../evidence/issue-441-requirement-matrix.md) covers every
 LCM-01–05 bullet and parent acceptance criterion. Parent implementation stays open.
 
@@ -118,7 +122,8 @@ respective operations; unsupported reverse migrations remain blocked. Legacy
 `<ids>` is a comma-separated set of canonical lowercase service IDs; reject empty
 entries, unknown IDs, wildcards and duplicate IDs. Normalize deterministic order.
 `--services` on mutations is explicit; no implicit all-services batch.
-`--to` on component update requires exactly one selected service; batches resolve
+`--to` on component update names a catalog target ID (not an arbitrary tag) and
+requires exactly one selected service; batches resolve
 one compatible catalog target per selected service and preview all of them.
 Portainer/incus disable/remove requests fail with foundation-specific remediation;
 `incus` host-package update requests are unsupported and identify the host owner.

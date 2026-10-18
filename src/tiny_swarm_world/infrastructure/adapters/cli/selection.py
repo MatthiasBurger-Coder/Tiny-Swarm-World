@@ -66,6 +66,9 @@ def run_selection_preview(args: Namespace) -> None:
                      sort_keys=True, indent=None if args.json else 2))
 
 def validate_selection_args(parser: ArgumentParser, args: Namespace) -> None:
+    if args.component_update_command:
+        args.selection_preview = False
+        return
     command = (args.workflow_namespace, args.workflow_action)
     selection_options = args.services is not None or args.minimal or args.selection_config is not None
     selection_command = command in {("services", "add"), ("services", "remove")}

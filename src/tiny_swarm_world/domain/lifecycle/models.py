@@ -121,6 +121,26 @@ class ResourceRequirements(Contract):
     qualification: Literal["native-declarations-only"] = "native-declarations-only"
 
 
+class ComponentUpdateTarget(Contract):
+    """A complete service bundle, never an arbitrary registry tag selection."""
+    target_id: Identifier
+    versions: dict[Identifier, VersionIdentity]
+    qualification: Literal["installation-baseline", "qualified-transition"]
+    metadata_source: Identifier
+    hosts: tuple[Literal["native-linux", "wsl2"], ...] = ("native-linux", "wsl2")
+    presets: tuple[Literal["default", "service-access"], ...] = ("default", "service-access")
+
+
+class ComponentUpdateTransition(Contract):
+    """Explicit source admission and recovery limits owned by release policy."""
+    target_id: Identifier
+    source_versions: dict[Identifier, VersionIdentity]
+    migrations: tuple[Identifier, ...]
+    backup_required: bool
+    availability_impact: Annotated[str, Field(min_length=1)]
+    recovery_limit: Annotated[str, Field(min_length=1)]
+
+
 class ServiceDefinition(Contract):
     service_id: Identifier
     kind: Literal["host-prerequisite", "managed-foundation", "stack"]
@@ -133,8 +153,39 @@ class ServiceDefinition(Contract):
     presets: tuple[Literal["default", "service-access"], ...]
     profile_support: Literal["classic-only"] = "classic-only"
     lifecycle_owner: Literal["host-operator", "portainer-adapter", "stack-update"]
-    migration_policy: Literal["no-qualified-transition"] = "no-qualified-transition"
+    migration_policy: Literal["no-qualified-transition", "explicit-transitions"] = "no-qualified-transition"
     backup_policy: Literal["required-before-stateful-transition", "not-applicable"]
+    update_targets: tuple[ComponentUpdateTarget, ...] = ()
+    update_transitions: tuple[ComponentUpdateTransition, ...] = ()
+
+    @model_validator(mode="after")
+    def coherent_update_policy(self) -> Self:
+        members = {item.component_id for item in self.components}
+        targets = {item.target_id: item for item in self.update_targets}
+        if len(targets) != len(self.update_targets):
+            raise ValueError("Duplicate update target IDs.")
+        for target in self.update_targets:
+            if set(target.versions) != members:
+                raise ValueError("Update targets must cover the entire service bundle.")
+            if target.qualification == "qualified-transition" and any(
+                not version.image_digest or not version.image_repository for version in target.versions.values()
+            ):
+                raise ValueError("Qualified targets require immutable image identities for every component.")
+            if any((version.image_tag or "").lower() == "latest" for version in target.versions.values()):
+                raise ValueError("Mutable latest is not a supported update target.")
+        if self.update_transitions and self.migration_policy != "explicit-transitions":
+            raise ValueError("Transitions require explicit migration policy.")
+        for transition in self.update_transitions:
+            transition_target = targets.get(transition.target_id)
+            if transition_target is None or transition_target.qualification != "qualified-transition":
+                raise ValueError("Transitions require a qualified catalog target.")
+            if set(transition.source_versions) != members or any(
+                not version.image_digest or not version.image_repository for version in transition.source_versions.values()
+            ):
+                raise ValueError("Transitions require exact immutable source bundle identities.")
+            if self.backup_policy == "required-before-stateful-transition" and not transition.backup_required:
+                raise ValueError("Stateful transitions require a backup.")
+        return self
 
 
 class ComponentCatalog(Contract):
