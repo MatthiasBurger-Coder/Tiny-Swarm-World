@@ -49,6 +49,31 @@ class _RoutingEvidenceRepository(PortRoutingEvidenceRepository):
 
 
 class TestWriteEffectiveAccessModelEvidence(unittest.TestCase):
+    def test_direct_selection_evidence_has_localhost_access_without_gateway_routes(self):
+        from tiny_swarm_world.application.services.deployment.write_effective_access_model_evidence import build_effective_access_model_evidence
+        from tiny_swarm_world.domain.ingress import desired_https_ingress_for_profile
+        from tiny_swarm_world.infrastructure.adapters.repositories.port_registry_yaml_repository import PortRegistryYamlRepository
+
+        model = desired_https_ingress_for_profile(
+            resolved_services=("incus", "portainer", "swagger", "sonarqube"),
+            port_registry=PortRegistryYamlRepository().load(),
+        )
+        evidence = build_effective_access_model_evidence(
+            model, service_profile=ServiceStackProfile.SERVICE_ACCESS, generated_at="2026-10-18T12:00:00Z",
+        )
+        self.assertEqual(evidence.routes, ())
+        self.assertEqual(evidence.public_ports, ())
+        self.assertEqual(evidence.gateway_public_ingress_ports, ())
+        self.assertEqual(evidence.service_access_preferred_url_source, "direct_published_port")
+        self.assertEqual(
+            {link.url for link in evidence.service_access_links},
+            {"http://localhost:10001", "http://localhost:12000", "http://localhost:16081"},
+        )
+        self.assertEqual(len(evidence.health_check_targets), 3)
+        portainer = next(link for link in evidence.service_access_links if link.service == "portainer")
+        self.assertEqual(portainer.credential.item_reference, "platform/portainer")
+        self.assertNotIn("https://", json.dumps(evidence.to_dict()))
+
     def test_writes_complete_redacted_allowlisted_evidence(self):
         secret_note = sample_text("operator", "-only", "-value")
         private_key_marker = sample_text("private", "-key", "-value")

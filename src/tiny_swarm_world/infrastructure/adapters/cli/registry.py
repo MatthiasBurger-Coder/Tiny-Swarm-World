@@ -50,7 +50,7 @@ PLATFORM_WORKFLOW_ORDER = (
 CLI_WORKFLOWS = (
     CliWorkflow(namespace="product", action="version", mutating=False, destructive=False),
     CliWorkflow(namespace="services", action="list", mutating=False, destructive=False),
-    CliWorkflow(namespace="services", action="add", mutating=False, destructive=False),
+    CliWorkflow(namespace="services", action="add", mutating=True, destructive=False),
     CliWorkflow(namespace="services", action="remove", mutating=False, destructive=False),
     CliWorkflow(namespace="host", action="detect", mutating=False, destructive=False),
     CliWorkflow(namespace="host", action="preflight", mutating=False, destructive=False),

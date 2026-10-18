@@ -9,6 +9,7 @@ Start with the task you want to complete:
 | Task | Entry point
 | First installation | link:user_guide/installation.adoc[Installation guide]
 | Daily operation and recovery choice | link:user_guide/usage.adoc#daily-operation[Usage]
+| Select or add Classic services | link:user_guide/selective-setup.md[Selective setup]
 | Service URLs and login details | link:user_guide/usage.adoc#open-the-services[Service access and login]
 | Failed installation or login | link:user_guide/troubleshooting.adoc#first-response[Troubleshooting]
 | Code changes and local tests | link:manuals/developer-manual.md[Developer Manual]

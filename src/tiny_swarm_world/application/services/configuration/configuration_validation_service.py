@@ -28,3 +28,14 @@ class ConfigurationValidationService:
         return self.contract.validate(
             self._values if self._values is not None else self.configuration_source.load()
         )
+
+    def for_scopes(self, scopes: set[str]) -> ConfigurationValidationService:
+        """Reuse frozen inputs while validating only active consumers."""
+        selected = ConfigurationValidationService(
+            self.configuration_source,
+            ConfigurationContract(self.contract.schema_version, tuple(
+                item for item in self.contract.requirements if item.scope in scopes
+            )),
+        )
+        selected._values = self._values
+        return selected

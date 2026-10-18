@@ -112,9 +112,11 @@ class SetupManifest:
 def default_setup_manifest(
     profile: SetupProfile = SetupProfile.FULL,
     service_profile: ServiceStackProfile | str = ServiceStackProfile.DEFAULT,
+    resolved_services: tuple[str, ...] | None = None,
 ) -> SetupManifest:
     selected_service_profile = ServiceStackProfile(service_profile)
-    centralized_ingress = selected_service_profile is ServiceStackProfile.SERVICE_ACCESS
+    centralized_ingress = (selected_service_profile is ServiceStackProfile.SERVICE_ACCESS
+                           and (resolved_services is None or "traefik" in resolved_services))
     services = [
         SetupServiceRequirement(
             name="Portainer",
@@ -239,6 +241,11 @@ def default_setup_manifest(
                 ),
             )
         )
+    if resolved_services is not None:
+        identities = {"Portainer": "portainer", "Nexus": "nexus", "Jenkins": "jenkins",
+                      "Pulsar": "pulsar", "SonarQube": "sonarqube", SWAGGER_NGINX: "swagger",
+                      "Traefik Ingress": "traefik", "Service Access": "service-access", "Infisical": "infisical"}
+        services = [item for item in services if identities[item.name] in resolved_services]
     return SetupManifest(
         profile=profile,
         evidence_root=".tiny-swarm-world/evidence/live-installation",

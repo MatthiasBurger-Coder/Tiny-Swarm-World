@@ -36,6 +36,51 @@ from tests.support.effective_access_model_fixture import (
 
 
 class TestComposeFileRepositoryYaml(unittest.TestCase):
+    def test_minimal_selection_limits_images_access_and_dashboard(self):
+        repository = ComposeFileRepositoryYaml(resolved_services=("incus", "portainer"))
+
+        inventory = repository.get_image_inventory()
+        self.assertTrue(inventory.valid)
+        self.assertEqual(
+            {requirement.service_name for requirement in inventory.requirements},
+            {"portainer:portainer", "portainer:agent"},
+        )
+        self.assertEqual(repository.get_effective_access_model().hostnames, ())
+        dashboard = repository.render_service_access_dashboard()
+        self.assertIn('href="http://localhost:10001"', dashboard)
+        for omitted in ("nexus", "jenkins", "sonarqube", "swagger", "infisical", "service-access"):
+            self.assertNotIn(f'href="https://{omitted}.tsw.local"', dashboard)
+
+    def test_selected_swagger_and_sonarqube_inventory_has_only_selected_stacks(self):
+        repository = ComposeFileRepositoryYaml(
+            resolved_services=("incus", "portainer", "swagger", "sonarqube"),
+        )
+        inventory = repository.get_image_inventory()
+
+        self.assertTrue(inventory.valid)
+        self.assertEqual(
+            {requirement.service_name.split(":")[0] for requirement in inventory.requirements},
+            {"portainer", "swagger", "sonarqube"},
+        )
+        swagger = YAML(typ="safe").load(repository.get_compose_of("swagger").compose_content)
+        labels = swagger["services"]["swagger-nginx"]["deploy"].get("labels", [])
+        self.assertNotIn("traefik.http.routers.swagger.rule=Host(`swagger.tsw.local`)", labels)
+        self.assertEqual(
+            {port for service in repository.get_services_of("swagger") for port in service.published_ports},
+            {16080, 16081},
+        )
+        dashboard = repository.render_service_access_dashboard()
+        self.assertIn('href="http://localhost:16081"', dashboard)
+        self.assertIn('href="http://localhost:12000"', dashboard)
+        self.assertNotIn('href="https://jenkins.tsw.local"', dashboard)
+
+    def test_selection_rejects_loading_unselected_stack(self):
+        from tiny_swarm_world.application.ports.repositories.port_repository_failure import RepositoryConfigurationError
+
+        repository = ComposeFileRepositoryYaml(resolved_services=("incus", "portainer"))
+        with self.assertRaises(RepositoryConfigurationError):
+            repository.get_compose_of("jenkins")
+
     def test_committed_installation_plan_matches_domain_plan(self):
         repository_root = Path(__file__).resolve().parents[4]
         yaml_plan = YAML(typ="safe").load(

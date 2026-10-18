@@ -109,6 +109,38 @@ class TestArtifactReadinessGate(unittest.TestCase):
         self.assertNotIn("token", str(payload).lower())
 
 
+    def test_selected_public_targets_need_no_nexus_bootstrap(self):
+        readiness = _FakeReadiness()
+        targets = tuple(ARTIFACT_READINESS_TARGETS[index] for index in (0, 4, 6))
+        gate = ArtifactReadinessGate(readiness, required_targets=targets, requires_bootstrap=False)
+        result = gate.run(static_preflight=_preflight(PreflightStatus.PASSED), artifact_bootstrap=None)
+        self.assertTrue(result.passed)
+        self.assertEqual(list(targets), readiness.calls)
+
+    def test_selected_public_targets_keep_failed_readiness_blocking(self):
+        readiness = _FakeReadiness(ReadinessStatus.FAILED)
+        targets = (ARTIFACT_READINESS_TARGETS[0], ARTIFACT_READINESS_TARGETS[6])
+        result = ArtifactReadinessGate(
+            readiness, required_targets=targets, requires_bootstrap=False,
+        ).run(static_preflight=_preflight(PreflightStatus.PASSED), artifact_bootstrap=None)
+        self.assertFalse(result.passed)
+        self.assertEqual(list(targets), readiness.calls)
+
+    def test_selected_public_targets_keep_static_failure_blocking(self):
+        readiness = _FakeReadiness()
+        result = ArtifactReadinessGate(
+            readiness, required_targets=(ARTIFACT_READINESS_TARGETS[0],), requires_bootstrap=False,
+        ).run(static_preflight=_preflight(PreflightStatus.FAILED), artifact_bootstrap=None)
+        self.assertFalse(result.passed)
+        self.assertEqual([], readiness.calls)
+
+    def test_target_subsets_must_be_known_unique_nonempty_and_ordered(self):
+        for targets in ((), ("unknown",), (ARTIFACT_READINESS_TARGETS[0],) * 2,
+                        tuple(reversed(ARTIFACT_READINESS_TARGETS))):
+            with self.subTest(targets=targets), self.assertRaises(ValueError):
+                ArtifactReadinessGate(_FakeReadiness(), required_targets=targets)
+
+
 def _preflight(status: PreflightStatus) -> PreflightResult:
     return PreflightResult(
         checks=(

@@ -7,7 +7,15 @@ calls so legacy facade patch points remain effective.
 
 from __future__ import annotations
 
+from .composition_selection import persisted_runtime_selection, artifact_contexts
+
+
+from tiny_swarm_world.infrastructure.composition_configuration import (
+    ContainerImageContract, DEFAULT_CONTAINER_IMAGE_CONTRACTS, resolve_container_image_contracts,
+)
+
 from .composition_runtime import (
+    os,
     ArtifactPrepareStep,
     ArtifactPrepareWorkflow,
     ArtifactServices,
@@ -30,6 +38,8 @@ from .composition_runtime import (
     NexusDockerProxyRepositoryConfiguration,
     NexusMavenProxyRepositoryConfiguration,
     NodeProviderSelectionRequest,
+    Path,
+    ProcessRunner,
     PortUI,
     PortWorkflowProgress,
     WaitForNexusReady,
@@ -64,11 +74,15 @@ def build_artifact_services_for_provider(
     node_provider_request: NodeProviderSelectionRequest | None = None,
     ui: PortUI | None = None,
     progress: PortWorkflowProgress | None = None,
+    resolved_services: tuple[str, ...] | None = None,
 ) -> ArtifactServices:
     provider_request = node_provider_request or _default_node_provider_request()
     backend = _lxc_backend_for_provider_request(provider_request)
     if backend is not None:
-        return build_lxc_artifact_services(backend=backend, ui=ui, progress=progress)
+        return build_lxc_artifact_services(
+            backend=backend, ui=ui, progress=progress,
+            **({"resolved_services": resolved_services} if resolved_services is not None else {}),
+        )
     return ArtifactServices(
         workflows=ArtifactWorkflows(
             prepare=cast(
@@ -93,22 +107,71 @@ def build_lxc_artifact_services(
     backend: ManagedLxcBackend,
     ui: PortUI | None = None,
     progress: PortWorkflowProgress | None = None,
+    resolved_services: tuple[str, ...] | None = None,
 ) -> ArtifactServices:
+    _, resolved_services = persisted_runtime_selection("default", resolved_services)
     project_paths = default_project_paths()
     process_runner = build_process_runner()
-    nexus_admin_password = _operator_secret_value("TSW_NEXUS_ADMIN_PASSWORD")
-    nexus_client = LxcNexusHttpClient(backend=backend)
-    container_runtime = LxcContainerRuntime(
-        backend=backend,
-        process_runner=process_runner,
-        node_names=tuple(node.name for node in DEFAULT_LXC_PLATFORM_NODES),
-    )
+    contracts = _selected_image_contracts(resolved_services, project_paths.repository_root)
+    requires_nexus = resolved_services is None or "nexus" in resolved_services
+    nexus_admin_password = _operator_secret_value("TSW_NEXUS_ADMIN_PASSWORD") if requires_nexus else ""
     image_publisher = LxcContainerImagePublisher(
         backend=backend,
         process_runner=process_runner,
         registry_username="admin",
         registry_password=nexus_admin_password,
         project_paths=project_paths,
+    )
+    bootstrap_steps = (
+        _nexus_bootstrap_steps(backend, process_runner, nexus_admin_password, ui, progress)
+        if requires_nexus else ()
+    )
+    image_steps = tuple(EnsureContainerImage(image_publisher, contract) for contract in contracts)
+    checks = cast(
+        tuple[ArtifactPrepareStep, ...],
+        (
+            *bootstrap_steps,
+            *image_steps,
+        ),
+    )
+    verify_checks = cast(tuple[ArtifactVerifyCheck, ...], checks)
+    return ArtifactServices(
+        workflows=ArtifactWorkflows(
+            prepare=ArtifactPrepareWorkflow(
+                checks, bootstrap_steps=bootstrap_steps, requires_bootstrap=requires_nexus,
+            ),
+            verify=ArtifactVerifyWorkflow(verify_checks),
+        )
+    )
+
+
+def _selected_image_contracts(
+    resolved_services: tuple[str, ...] | None, repository_root: Path,
+) -> tuple[ContainerImageContract, ...]:
+    if resolved_services is None:
+        return _container_image_contracts_from_environment()
+    contexts = artifact_contexts(repository_root, resolved_services)
+    selected = resolve_container_image_contracts(
+        tuple(contract for contract in DEFAULT_CONTAINER_IMAGE_CONTRACTS if contract.build_context in contexts),
+        os.environ,
+    )
+    if any(contract.source == "build" for contract in selected) and "nexus" not in resolved_services:
+        raise ValueError("Selected build images require the Nexus registry service.")
+    return selected
+
+
+def _nexus_bootstrap_steps(
+    backend: ManagedLxcBackend,
+    process_runner: ProcessRunner,
+    nexus_admin_password: str,
+    ui: PortUI | None,
+    progress: PortWorkflowProgress | None,
+) -> tuple[ArtifactPrepareStep, ...]:
+    nexus_client = LxcNexusHttpClient(backend=backend)
+    container_runtime = LxcContainerRuntime(
+        backend=backend,
+        process_runner=process_runner,
+        node_names=tuple(node.name for node in DEFAULT_LXC_PLATFORM_NODES),
     )
     wait_for_nexus_ready = WaitForNexusReady(
         nexus_client=nexus_client,
@@ -158,28 +221,10 @@ def build_lxc_artifact_services(
             ),
         ),
     )
-    image_steps = tuple(
-        EnsureContainerImage(image_publisher, contract)
-        for contract in _container_image_contracts_from_environment()
-    )
-    bootstrap_steps = (
+    return (
         wait_for_nexus_ready,
         ensure_nexus_admin_access,
         *nexus_repository_steps,
-    )
-    checks = cast(
-        tuple[ArtifactPrepareStep, ...],
-        (
-            *bootstrap_steps,
-            *image_steps,
-        ),
-    )
-    verify_checks = cast(tuple[ArtifactVerifyCheck, ...], checks)
-    return ArtifactServices(
-        workflows=ArtifactWorkflows(
-            prepare=ArtifactPrepareWorkflow(checks, bootstrap_steps=bootstrap_steps),
-            verify=ArtifactVerifyWorkflow(verify_checks),
-        )
     )
 
 

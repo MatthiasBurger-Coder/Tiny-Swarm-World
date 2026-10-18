@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from urllib.parse import urlsplit
 
 from tiny_swarm_world.domain.deployment import (
     ServiceStackProfile,
@@ -102,6 +103,47 @@ class DesiredHttpsRoute:
 
 
 @dataclass(frozen=True)
+class DirectServiceEndpoint:
+    service_name: str
+    service_access_url: str
+    health_check_url: str
+    upstream_service: str
+    upstream_port: int
+    credential: CredentialReference | None = None
+    no_login_note: str = ""
+
+    def __post_init__(self) -> None:
+        for value in (self.service_name, self.upstream_service):
+            if not _SERVICE_IDENTIFIER_PATTERN.fullmatch(value):
+                raise ValueError("direct endpoint requires a lowercase service identifier")
+        if not 1 <= self.upstream_port <= 65535:
+            raise ValueError("direct endpoint upstream port is invalid")
+        for url in (self.service_access_url, self.health_check_url):
+            validate_ingress_summary_text("direct endpoint URL", url)
+            parsed = urlsplit(url)
+            if (
+                parsed.scheme != "http" or parsed.hostname != "localhost"
+                or parsed.username is not None or parsed.password is not None
+                or parsed.query or parsed.fragment or parsed.port is None or not 1 <= parsed.port <= 65535
+            ):
+                raise ValueError("direct endpoint URL must use localhost HTTP with a port")
+
+    def to_dict(self) -> dict[str, object]:
+        payload: dict[str, object] = {
+            "service_name": self.service_name,
+            "service_access_url": self.service_access_url,
+            "health_check_url": self.health_check_url,
+            "upstream_service": self.upstream_service,
+            "upstream_port": self.upstream_port,
+        }
+        if self.credential is not None:
+            payload["credential"] = self.credential.to_dict()
+        if self.no_login_note:
+            payload["no_login_note"] = self.no_login_note
+        return payload
+
+
+@dataclass(frozen=True)
 class DiagnosticFallbackPort:
     port_id: str
     service_name: str
@@ -136,18 +178,25 @@ class DesiredHttpsIngress:
     exposed_by_default: bool = False
     api_insecure: bool = False
     service_access_preferred_url_source: str = "traefik_host_route"
+    gateway_enabled: bool = True
+    direct_endpoints: tuple[DirectServiceEndpoint, ...] = ()
 
     def __post_init__(self) -> None:
         routes = tuple(self.routes)
-        if not routes:
+        if self.gateway_enabled and not routes:
             raise ValueError("desired HTTPS ingress requires at least one route")
         hostnames = tuple(route.hostname for route in routes)
         if len(set(hostnames)) != len(hostnames):
             raise ValueError("desired HTTPS ingress hostnames must be unique")
-        if tuple(self.public_ports) != (80, 443):
+        if self.gateway_enabled and tuple(self.public_ports) != (80, 443):
             raise ValueError("desired HTTPS ingress public ports must be exactly 80 and 443")
-        if not self.http_redirect_to_https:
+        if self.gateway_enabled and not self.http_redirect_to_https:
             raise ValueError("desired HTTPS ingress must redirect HTTP to HTTPS")
+        if not self.gateway_enabled and (routes or self.public_ports or self.http_redirect_to_https):
+            raise ValueError("disabled gateway must not advertise routes, ports or redirects")
+        if self.gateway_enabled and self.direct_endpoints:
+            raise ValueError("enabled gateway must use HTTPS routes")
+        object.__setattr__(self, "direct_endpoints", tuple(self.direct_endpoints))
         if self.exposed_by_default:
             raise ValueError("desired HTTPS ingress must set exposedByDefault=false")
         if self.api_insecure:
@@ -166,6 +215,7 @@ class DesiredHttpsIngress:
         return tuple(route.hostname for route in self.routes)
 
     def to_dict(self) -> dict[str, object]:
+        access_endpoints: tuple[DesiredHttpsRoute | DirectServiceEndpoint, ...] = (*self.routes, *self.direct_endpoints)
         return {
             "api_insecure": self.api_insecure,
             "diagnostic_fallback_ports": [
@@ -181,20 +231,20 @@ class DesiredHttpsIngress:
                     "upstream_port": route.upstream_port,
                     "upstream_service": route.upstream_service,
                 }
-                for route in self.routes
+                for route in access_endpoints
             ],
             "public_ports": list(self.public_ports),
             "routes": [route.to_dict() for route in self.routes],
             "service_access_links": [
                 _service_access_link_for_route(route)
-                for route in self.routes
+                for route in access_endpoints
             ],
             "service_access_preferred_url_source": self.service_access_preferred_url_source,
             "skipped_routes": [skipped.to_dict() for skipped in self.skipped_routes],
         }
 
 
-def _service_access_link_for_route(route: DesiredHttpsRoute) -> dict[str, object]:
+def _service_access_link_for_route(route: DesiredHttpsRoute | DirectServiceEndpoint) -> dict[str, object]:
     route_payload = route.to_dict()
     link: dict[str, object] = {
         "preferred": True,
@@ -214,17 +264,38 @@ def desired_https_ingress_for_profile(
     base_domain: str = "tsw.local",
     conditional_service_names: tuple[str, ...] = (),
     port_registry: PortRegistry | None = None,
+    resolved_services: tuple[str, ...] | None = None,
 ) -> DesiredHttpsIngress:
+    if resolved_services is not None and port_registry is not None:
+        metadata = dict(port_registry.metadata or {})
+        metadata["unsupported_routes"] = ",".join(
+            name for name in _unsupported_routes(port_registry) if name in resolved_services
+        )
+        port_registry = PortRegistry(
+            ranges=port_registry.ranges,
+            mappings=tuple(
+                mapping for mapping in port_registry.mappings
+                if mapping.service_id in resolved_services
+            ),
+            metadata=metadata,
+        )
+    if resolved_services is not None and "traefik" not in resolved_services:
+        return _direct_access_for_selection(service_profile, port_registry, resolved_services)
     route_registry = _route_registry(port_registry)
     selected_services = {
         route_name
         for route_name, definition in route_registry.items()
         if definition.enabled_by_default
     }
+    conditional_service_names = tuple(
+        name for name in conditional_service_names if name in route_registry
+    ) if resolved_services is not None else conditional_service_names
     selected_services.update(conditional_service_names)
     routes: list[DesiredHttpsRoute] = []
     profile_endpoint_names: set[str] = set()
     for contract in service_stack_contracts_for_profile(service_profile):
+        if resolved_services is not None and contract.stack_name not in resolved_services:
+            continue
         for endpoint in contract.endpoints:
             profile_endpoint_names.add(endpoint.name)
             if endpoint.name not in selected_services:
@@ -274,6 +345,40 @@ def desired_https_ingress_for_profile(
         routes=tuple(routes),
         diagnostic_fallback_ports=_diagnostic_fallback_ports(port_registry),
         skipped_routes=skipped_routes,
+    )
+
+
+def _direct_access_for_selection(
+    service_profile: ServiceStackProfile | str,
+    port_registry: PortRegistry | None,
+    resolved_services: tuple[str, ...],
+) -> DesiredHttpsIngress:
+    endpoints: list[DirectServiceEndpoint] = []
+    endpoint_names = {
+        endpoint.name
+        for contract in service_stack_contracts_for_profile(service_profile)
+        if contract.stack_name in resolved_services
+        for endpoint in contract.endpoints
+    }
+    for mapping in port_registry.mappings if port_registry is not None else ():
+        definition = _route_definition_from_mapping(mapping)
+        if definition is None or definition.route_name not in endpoint_names or mapping.external_port is None:
+            continue
+        base_url = f"http://localhost:{mapping.external_port}"
+        endpoints.append(DirectServiceEndpoint(
+            service_name=definition.route_name,
+            service_access_url=f"{base_url}{definition.service_access_path}",
+            health_check_url=f"{base_url}{definition.health_path}",
+            upstream_service=definition.upstream_service,
+            upstream_port=definition.upstream_port,
+            credential=definition.credential,
+            no_login_note=definition.no_login_note,
+        ))
+    return DesiredHttpsIngress(
+        routes=(), gateway_enabled=False, direct_endpoints=tuple(endpoints),
+        public_ports=(), http_redirect_to_https=False,
+        diagnostic_fallback_ports=_diagnostic_fallback_ports(port_registry),
+        service_access_preferred_url_source="direct_published_port",
     )
 
 

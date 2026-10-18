@@ -1,9 +1,10 @@
 # Deterministic Classic selection — #443 / LCM-W03
 
-W03 implements read-only service planning. W04 owns installation, addition,
-selection-aware preflight, routes, output and runtime verification. A valid plan
-is not proof that a minimal installation or service combination has been deployed.
-Existing setup without selection options retains its current fixed-preset behavior.
+W03 implements deterministic service planning. W04 connects selection to guarded
+setup, additions, preflight, routes, output and verification. See the
+[selective setup operator guide](../user_guide/selective-setup.md). A preview is
+not proof that a service combination has been deployed. Fixed-preset compatibility
+is retained when no selection or installation manifest is present.
 
 From the repository root on Linux/WSL:
 
@@ -54,8 +55,9 @@ once per resolved service. Removal preview includes reverse-dependent impact
 and retains deployments, volumes and all persistent data. Removal apply is
 unsupported. Setup selection previews also show deselection without applying it.
 
-All selection commands require `--preview` and reject live/approval flags.
-They load catalog/state without runtime composition, logging initialization,
+Selection previews require `--preview` and reject live/approval flags. Setup and
+`services add` also support `--live` through existing explicit consent; removal
+apply remains unsupported. Previews load catalog/state without runtime composition, logging initialization,
 secret generation, directory creation or writes. Successful previews exit 0,
 invalid selections/arguments exit 2 and invalid stored state exits 1. Unavailable
 or corrupt manifests must be repaired/adopted through W02 rather than inferred
@@ -69,7 +71,8 @@ and inventory must first be explicitly admitted through W02; the planner never
 fabricates them. Preview tokens protect against concurrent edits. An interrupted
 or failed write follows W02 diagnostics and requires inspection before retry;
 no runtime rollback or data restore is implied. Repeating an unchanged selection
-is a metadata no-op. CLI live selection application remains unavailable in W03.
+is a metadata no-op. W04 persists selection only after full setup verification and preserves existing
+manifest provenance. Failed runtime or persistence outcomes remain non-success.
 
 Local unit/mocked checks verify planning and persistence only. Native Linux and
 WSL2 live qualification belongs to W09; no live install, browser, infrastructure
