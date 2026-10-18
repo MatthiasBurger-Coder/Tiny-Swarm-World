@@ -7,3 +7,5 @@
 - Removal is preview-only, persistent data and deployments are retained. No downgrade, data restore, reset or credential rotation is introduced.
 - Fresh selection requires explicit W02 identity/inventory adoption before persistence. Atomic failures retain W02 diagnostics and need inspection/re-preview, not blind retries.
 - Local Linux tests are APPLICABLE_LOCAL. Live install/browser checks: NOT_APPLICABLE / LIVE_NOT_APPLICABLE to W03; W09 owns actual native/WSL2 qualification. External quality: EXTERNAL_GATE_NOT_APPLICABLE to this local completion. No live/external success claimed.
+
+- Selection config must resolve to a regular file within cwd (normally the checkout); outside configs must be placed within that directory. Publication requires actual SonarCloud success for the amended PR head; local validation cannot establish that result.

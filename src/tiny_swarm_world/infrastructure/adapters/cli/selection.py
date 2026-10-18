@@ -24,8 +24,12 @@ def _configured_services(path: str | None) -> tuple[str, ...] | None:
     if path is None:
         return None
     try:
-        payload = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
-    except (OSError, UnicodeError, yaml.YAMLError):
+        root = Path.cwd().resolve(strict=True)
+        selected = Path(path).resolve(strict=True)
+        if not selected.is_relative_to(root) or not selected.is_file():
+            raise ValueError("Selection config must be a regular file within the current working directory.")
+        payload = yaml.safe_load(selected.read_text(encoding="utf-8"))
+    except (OSError, RuntimeError, UnicodeError, yaml.YAMLError):
         raise ValueError("Cannot read selection config; supply a readable YAML/JSON services list.") from None
     if not isinstance(payload, dict) or set(payload) != {"services"}:
         raise ValueError("Selection config must contain only a services list.")

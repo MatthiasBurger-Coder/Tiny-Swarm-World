@@ -13,8 +13,8 @@ from tiny_swarm_world.infrastructure.composition import build_installation_lifec
 
 
 class SelectionCliTests(unittest.IsolatedAsyncioTestCase):
-    async def preview(self, options, service):
-        with patch("tiny_swarm_world.infrastructure.adapters.cli.selection.build_installation_lifecycle_service", return_value=service), patch("tiny_swarm_world.infrastructure.adapters.cli.dispatcher.ensure_common_executable_paths") as paths, patch("tiny_swarm_world.infrastructure.adapters.cli.dispatcher.build_application_logger") as logger, contextlib.redirect_stdout(io.StringIO()) as output:
+    async def preview(self, options, service, config_root=None):
+        with patch("tiny_swarm_world.infrastructure.adapters.cli.selection.Path.cwd", return_value=config_root or Path.cwd()), patch("tiny_swarm_world.infrastructure.adapters.cli.selection.build_installation_lifecycle_service", return_value=service), patch("tiny_swarm_world.infrastructure.adapters.cli.dispatcher.ensure_common_executable_paths") as paths, patch("tiny_swarm_world.infrastructure.adapters.cli.dispatcher.build_application_logger") as logger, contextlib.redirect_stdout(io.StringIO()) as output:
             await main(options + ["--json"])
         paths.assert_not_called()
         logger.assert_not_called()
@@ -30,7 +30,7 @@ class SelectionCliTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(list(root.iterdir()), [])
             config = root / "selection.yml"
             config.write_text("services:\n  - jenkins\n")
-            result = await self.preview(["setup", "run", "--selection-config", str(config), "--preview"], service)
+            result = await self.preview(["setup", "run", "--selection-config", str(config), "--preview"], service, root)
             self.assertIn("nexus", result["plan"]["resolved_services"])
             result = await self.preview(["setup", "run", "--services", "swagger", "--selection-config", str(root / "absent"), "--preview"], service)
             self.assertNotIn("jenkins", result["plan"]["resolved_services"])
@@ -73,3 +73,30 @@ class SelectionCliTests(unittest.IsolatedAsyncioTestCase):
             self.assertIn("--services", output.getvalue())
         self.assertFalse(parse_args(["setup", "run"]).service_profile_explicit)
         self.assertTrue(parse_args(["setup", "run", "--service-profile", "default"]).service_profile_explicit)
+
+    def test_selection_config_rejects_escape_and_symlinks_before_read(self):
+        from tiny_swarm_world.infrastructure.adapters.cli.selection import _configured_services
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            checkout = root / "checkout"
+            checkout.mkdir()
+            outside = root / "outside.yml"
+            outside.write_text("services: [jenkins]\n")
+            link = checkout / "link.yml"
+            link.symlink_to(outside)
+            for path in (str(outside), str(checkout / ".." / "outside.yml"), str(link)):
+                with self.subTest(path=path), patch("tiny_swarm_world.infrastructure.adapters.cli.selection.Path.cwd", return_value=checkout), patch("tiny_swarm_world.infrastructure.adapters.cli.selection.Path.read_text") as read:
+                    with self.assertRaisesRegex(ValueError, "within the current working directory"):
+                        _configured_services(path)
+                    read.assert_not_called()
+            inside = checkout / "selection.yml"
+            inside.write_text("services: [jenkins]\n")
+            with patch("tiny_swarm_world.infrastructure.adapters.cli.selection.Path.cwd", return_value=checkout):
+                self.assertEqual(_configured_services(str(inside)), ("jenkins",))
+
+    def test_selection_config_symlink_loop_is_sanitized_before_read(self):
+        from tiny_swarm_world.infrastructure.adapters.cli.selection import _configured_services
+        with patch("tiny_swarm_world.infrastructure.adapters.cli.selection.Path.resolve", side_effect=RuntimeError("loop")), patch("tiny_swarm_world.infrastructure.adapters.cli.selection.Path.read_text") as read:
+            with self.assertRaisesRegex(ValueError, "Cannot read selection config"):
+                _configured_services("loop.yml")
+            read.assert_not_called()

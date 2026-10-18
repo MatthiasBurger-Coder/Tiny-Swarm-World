@@ -18,3 +18,7 @@ Open requirements: none. Rejected/unrelated changes: none.
 Risks: W04 selective execution and W09 live qualification remain future scope. Missing native resource declarations remain unknown. Python 3.12 was not separately executed; Python 3.14.4 used. No live/external success claimed.
 
 Final decision: PASS for the bounded W03 implementation.
+
+## Independent publication-amendment review
+
+completion_review re-reviewed cwd/config canonical containment, regular-file enforcement and pre-read escape rejection. Its Python 3.12 RuntimeError compatibility finding was fixed and re-reviewed; no material findings remain. Final focused 25 and full 2682-test/18-skip gate passed. Local completion decision remains PASS for amended W03 scope. External publication is separately gated on actual current-revision Sonar success; no external success is claimed by this audit.

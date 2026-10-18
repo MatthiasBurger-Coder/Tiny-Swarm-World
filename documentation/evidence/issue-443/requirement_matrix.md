@@ -16,3 +16,5 @@ Source: https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/443 (com
 | REQ-10 | Operator docs, recovery limits, required evidence and independent audit | functional/quality | documentation/contracts/service-selection.md; lifecycle.md; issue evidence package | independent four-perspective completion audit PASS (completion_audit.md); documentation cross-check | VERIFIED_LOCAL |
 
 All source paths under src/tiny_swarm_world unless documentation/test paths are specified. selection.py refers to domain/lifecycle/selection.py except cli/selection.py.
+
+REQ-08 publication amendment: selection-config reads require strict canonical containment within cwd and a regular file; Python 3.12 symlink-loop errors are sanitized. Verified by SelectionCliTests.test_selection_config_rejects_escape_and_symlinks_before_read and test_selection_config_symlink_loop_is_sanitized_before_read, 25 focused tests and final2682-test full gate (18 skips). Independent amendment review approves. External gate recovery is a separate merge requirement, not inferred from local tests.

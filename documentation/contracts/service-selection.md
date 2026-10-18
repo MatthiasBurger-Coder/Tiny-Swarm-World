@@ -15,7 +15,10 @@ PYTHONPATH=src python3 -m tiny_swarm_world services add --services swagger --pre
 PYTHONPATH=src python3 -m tiny_swarm_world services remove --services jenkins --preview
 ```
 
-The selection file is YAML or JSON with a single `services` list:
+The selection file must resolve to a regular file within the current working
+directory (normally the checkout). Parent traversal and symlinks that escape
+that directory are rejected before reading. It is YAML or JSON with a single
+`services` list:
 
 ```yaml
 services:
