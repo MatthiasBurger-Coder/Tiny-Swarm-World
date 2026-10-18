@@ -127,3 +127,50 @@ target ownership, and invokes `tools/live/run_classic_acceptance.py` with live
 approval. The runner must already hold the private ignored operator env file;
 the workflow never prints or uploads it. Missing runner capability, approval,
 ownership, credentials or redacted evidence is a blocked/non-success state.
+
+### Classic runner availability on WSL
+
+The WSL runner must run as a persistent service rather than an interactive
+`run.sh` process. The protected host uses the systemd user unit
+`actions.runner.tsw-classic.service` under `~/.config/systemd/user/`. Its
+working directory is the runner installation and its executable is the
+installation's `bin/runsvc.sh`, invoked through `/bin/bash`. The unit is enabled
+for `default.target`, with `Restart=on-failure`, `RestartSec=15`, and a limit of
+five starts per 300 seconds. It retains the runner's service shutdown settings:
+`KillMode=process`, `KillSignal=SIGTERM`, and `TimeoutStopSec=5min`.
+
+Check availability from the runner owner's Linux shell:
+
+```bash
+systemctl --user is-enabled actions.runner.tsw-classic.service
+systemctl --user is-active actions.runner.tsw-classic.service
+loginctl show-user "$USER" -p Linger
+```
+
+Enable user lingering with `loginctl enable-linger "$USER"` so the service
+starts with the user manager at boot and survives logout. WSL must remain
+running; this service cannot start a stopped WSL distribution or Windows host.
+Use `systemctl --user restart actions.runner.tsw-classic.service` for a
+controlled restart only when the runner is idle and pending live runs have
+been reviewed. Review diagnostics locally with
+`journalctl --user -u actions.runner.tsw-classic.service`; do not publish raw
+runner logs or registration credentials.
+
+If a job has no executed steps and reports that it waited 24 hours for a
+runner, inspect runner availability before investigating the live tests.
+GitHub can delete registrations after prolonged inactivity. If the listener
+reports a deleted registration, remove its stale local configuration using
+the runner's `config.sh remove`, then register it again with a fresh GitHub
+registration token and the original name and labels. Keep tokens outside Git
+and restart the service after registration. Verify both the local service and
+GitHub's `online` status; neither proves that the Classic live chain passed.
+
+The repository variables `TSW_CLASSIC_UPDATE_FROM_IMAGE` and
+`TSW_CLASSIC_UPDATE_TO_IMAGE` must identify distinct, available images in the
+protected target's registry. A historical test tag can disappear while its
+GitHub variable remains configured. A missing target image causes Swarm tasks
+to be rejected and the update verification to fail. Restore the selected
+service with the canonical `platform update --recover` command and verify its
+convergence before repeating a failed live chain. Select an available,
+qualified compatibility image for the next run; a packaging compatibility
+test does not establish a Jenkins binary-version upgrade.
