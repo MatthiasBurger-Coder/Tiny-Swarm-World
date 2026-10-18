@@ -227,3 +227,10 @@ Start with the [Developer Manual](documentation/manuals/developer-manual.md),
 The future [multi-runtime vision](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/251)
 covers Podman and Kubernetes. Those profiles are separate from the current
 Classic implementation.
+
+Inspect recorded installation identity and component versions with
+`tiny-swarm-world product version --json` and `tiny-swarm-world services list --json`
+from the prepared environment. These commands write nothing; legacy installations
+without a manifest report adoption required. See the
+[manifest, catalog and adoption contract](documentation/contracts/installation-manifest.md)
+for schema ownership, drift diagnostics and current support limits.

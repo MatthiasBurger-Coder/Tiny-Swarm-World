@@ -172,6 +172,8 @@ def _assign_workflow(parser: ArgumentParser, args: Namespace) -> None:
     args.workflow = CLI_WORKFLOWS_BY_KEY.get((args.workflow_namespace, args.workflow_action))
     if args.workflow is None:
         parser.error(f"unsupported workflow command: {args.workflow_namespace} {args.workflow_action}")
+    if args.workflow_namespace in {"product", "services"} and (args.live or args.approve_live or args.confirm or args.preflight):
+        parser.error("lifecycle inspection is read-only; omit mutation/consent/preflight flags")
     is_update = args.workflow_namespace == "platform" and args.workflow_action == "update"
     update_options_present = any(
         value is not None
