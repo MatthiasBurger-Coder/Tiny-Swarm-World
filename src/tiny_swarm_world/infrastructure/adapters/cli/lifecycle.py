@@ -6,11 +6,11 @@ from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
 from tiny_swarm_world.infrastructure.composition import build_installation_lifecycle_service
 
 
-def run_lifecycle_inspection(args: Namespace) -> None:
+async def run_lifecycle_inspection(args: Namespace) -> None:
     if args.component_update_command:
         from tiny_swarm_world.infrastructure.adapters.cli.component_updates import run_component_updates
 
-        run_component_updates(args)
+        await run_component_updates(args)
         return
     try:
         result = build_installation_lifecycle_service().inspect()

@@ -41,3 +41,33 @@ async def prepare_setup_selection_state(lifecycle, plan, backend, runner):
                             node_names=tuple(node.spec.name for node in nodes),
                             host="native-linux" if host is HostEnvironmentKind.NATIVE_LINUX else "wsl2")
     return state
+
+
+def build_component_update_execution(lifecycle, node_provider_request=None, *, classic_workflow_factory):
+    """Reuse Classic runtime adapters and installation-local durable state."""
+    from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
+    from tiny_swarm_world.application.services.component_execution import ComponentUpdateExecution
+    from tiny_swarm_world.application.services.component_updates import ComponentUpdateService
+    from tiny_swarm_world.infrastructure.adapters.lifecycle.component_runtime import ClassicComponentRuntime
+    from tiny_swarm_world.infrastructure.adapters.lifecycle.update_journal import JsonUpdateJournal
+    from tiny_swarm_world.infrastructure.adapters.repositories.local_state_paths import local_state_file
+
+    snapshot = lifecycle.manifests.load()
+    if snapshot.manifest is None:
+        raise LifecycleStateError('Installation adoption required before component execution.')
+    journal_path = lifecycle.manifests.path.parent / 'component-update.json'
+    # Resolve the configured repository location through the same state-path policy.
+    root = lifecycle.catalog.root
+    if journal_path != local_state_file(root=root, relative_path='installation/component-update.json'):
+        raise LifecycleStateError('Component update requires canonical installation state.')
+    runtime = ClassicComponentRuntime(classic_workflow_factory(
+        service_profile=snapshot.manifest.service_preset, node_provider_request=node_provider_request))
+    return ComponentUpdateExecution(ComponentUpdateService(lifecycle.manifests, lifecycle.catalog),
+                                    lifecycle.manifests, JsonUpdateJournal(journal_path), runtime)
+
+
+
+def build_component_update_journal(lifecycle):
+    from tiny_swarm_world.infrastructure.adapters.lifecycle.update_journal import JsonUpdateJournal
+
+    return JsonUpdateJournal(lifecycle.manifests.path.parent / 'component-update.json')

@@ -80,6 +80,7 @@ class ComposeFileRepositoryYaml(
         environment: Mapping[str, str] | None = None,
         write_logs: bool = True,
         resolved_services: tuple[str, ...] | None = None,
+        transition_overrides: Mapping[str, str] | None = None,
     ):
         paths = project_paths or default_project_paths()
         self.project_paths = paths
@@ -91,7 +92,10 @@ class ComposeFileRepositoryYaml(
         ).load()
         self.resolved_services = resolved_services
         self.service_profile = ServiceStackProfile(service_profile)
-        self.environment = dict(os.environ if environment is None else environment)
+        from tiny_swarm_world.infrastructure.adapters.lifecycle.desired_images import effective_image_environment
+
+        self.environment = effective_image_environment(os.environ if environment is None else environment,
+                                                     paths.repository_root, transition_overrides=transition_overrides)
         contracts = _selected_contracts(image_contracts or DEFAULT_CONTAINER_IMAGE_CONTRACTS,
                                         resolved_services, paths.repository_root)
         self.image_contracts = resolve_container_image_contracts(contracts, self.environment)

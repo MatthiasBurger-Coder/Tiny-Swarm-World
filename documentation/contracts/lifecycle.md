@@ -12,7 +12,10 @@ W04 implements selective setup/addition; W05 adds read-only `services updates`
 and `services update --services <ids> [--to <target-id>] --preview`. See
 [component planning](../user_guide/component-updates.md) for actual availability:
 the native catalog has baseline references and no qualified upgrade transitions.
-W06/W07 execution and W08 product upgrades remain future scope.
+W06 implements selected component execution/recovery and committed desired-image
+pins through the existing Classic engine; no production transition is newly
+qualified. Backup/migration execution and unmapped components remain blocked.
+W07 Portainer execution and W08 product upgrades remain future scope.
 The [requirement matrix](../evidence/issue-441-requirement-matrix.md) covers every
 LCM-01–05 bullet and parent acceptance criterion. Parent implementation stays open.
 

@@ -64,14 +64,75 @@ dedicated W07 upgrade/backup/recovery adapter. Generic Incus host-package upgrad
 are refused and remain the host operator's responsibility. Neither foundation is
 removed or implicitly changed by planning.
 
-`services update` currently accepts **only `--preview`**. Live/consent/recovery
-options fail without initializing runtime services. W06 owns component execution,
-verified convergence and desired-state persistence; W07 owns Portainer execution;
-W09 owns cross-host live qualification. The existing `platform update` and
-`platform update --recover` commands retain their #297 contract, including the
-limitation that they do not persist desired image configuration. A successful
-legacy image update is not automatically a qualified catalog transition.
+`services update --preview` is read-only. The W06 execution and recovery contract
+is described below; W07 owns Portainer execution and W09 owns cross-host live
+qualification. The existing `platform update` / `platform update --recover`
+commands retain their #297 compatibility contract and do not themselves persist
+installation desired pins. Use catalog-admitted component updates for persisted
+configuration. Legacy image-update success does not qualify a catalog transition.
 
 See the [lifecycle contract](../contracts/lifecycle.md),
 [installation state](../contracts/installation-manifest.md) and
 [selective setup](selective-setup.md) for related boundaries.
+
+## Execution and recovery (W06)
+
+The component executor now supports explicit live apply and recovery through the
+existing Classic image-update adapters. The production catalog still has **no
+qualified upgrade transitions**; these examples therefore fail admission until a
+reviewed compatible transition is supplied. Synthetic test policies are not
+production qualification. There is no arbitrary image/tag execution escape hatch.
+
+```bash
+tiny-swarm-world services update --services jenkins,nexus --preview --json
+tiny-swarm-world services update --services jenkins,nexus --live --approve-live --json
+# Repeat the original selection to resume a partial/interrupted apply.
+tiny-swarm-world services update --services jenkins,nexus --live --approve-live --json
+# Inspect the original reverse image transition before recovery.
+tiny-swarm-world services update --services jenkins,nexus --recover --preview --json
+tiny-swarm-world services update --services jenkins,nexus --recover --live --approve-live --json
+```
+
+`--live` uses the existing interactive confirmation or `--approve-live` boundary.
+Without accepted consent no runtime adapter is constructed. Recovery requires
+the original complete service selection and does not accept `--to`. Preview and
+discovery remain read-only. Generic Portainer/Incus updates, missing Classic image
+mappings, unqualified targets, and transitions requiring backup or migration
+execution fail before runtime mutation. Backup/migration execution requires a
+qualified adapter; acknowledging a backup flag is not backup proof.
+
+The executor records the original installation, selected dependency order,
+source/target identities and per-component stage in
+`.tiny-swarm-world/installation/component-update.json` before any runtime apply.
+A nonblocking lock prevents concurrent component batches. It delegates each
+image transition to the existing bounded Classic observer/deployment workflow:
+30 convergence observations by default, 2 seconds between polls and a 10-second
+per-observation timeout. The deployment workflow retains its existing bounds.
+A successful exit or a healthy task using the old image does not prove success.
+
+Stages progress through `applying`, `runtime_verified`, and `committed`. Failure
+stops later stages; `failed` or `partial` exits 1 and is never complete success.
+After verified task-image convergence, a compare-and-swap manifest write commits
+the desired image pin and qualified identity. The pin is consumed by later setup,
+artifact preparation and actual stack deployment, including sibling images.
+Conflicting environment image overrides fail instead of silently restoring an
+old version. Other configuration and credential inputs retain existing behavior.
+
+If runtime converges but the configuration/journal write is interrupted, preserve
+both state files and rerun the **same selection**. Runtime is inspected again and
+an already converged image is not redeployed. Setup and ordinary deployment refuse
+an unfinished journal. Unrelated manifest changes block resume for inspection.
+Mixed, failed or drifted rollouts may require recovery rather than forward retry;
+neither path accepts images outside the original source/target transition.
+
+Recovery runs in reverse component order and commits verified original desired
+images. Original transition metadata is retained across retries and repeated
+recovery; an already restored service is inspected without redeployment. Recovery
+restores images only: **image rollback is not persistent-data restore**. No data
+reset, service removal, credential rotation, secret bootstrap or unrelated-stack
+deployment is introduced. Once recovery starts, finish recovery before requesting
+a new transition. A new target must be previewed/admitted explicitly.
+
+Verification for W06 is local unit/mock and deployment-input evidence. Actual
+service authentication/data preservation and native Linux/WSL2 qualification
+remain W09 responsibilities; no live success follows from these tests.

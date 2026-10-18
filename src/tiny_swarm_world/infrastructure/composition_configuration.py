@@ -219,8 +219,12 @@ def _add_optional_config(environment: dict[str, str], name: str) -> None:
         environment[name] = value
 
 
-def _container_image_contracts_from_environment() -> tuple[ContainerImageContract, ...]:
-    return resolve_container_image_contracts(DEFAULT_CONTAINER_IMAGE_CONTRACTS, os.environ)
+def _container_image_contracts_from_environment(repository_root=None) -> tuple[ContainerImageContract, ...]:
+    from tiny_swarm_world.infrastructure.adapters.lifecycle.desired_images import effective_image_environment
+    from tiny_swarm_world.infrastructure.project_paths import default_project_paths
+
+    root = repository_root or default_project_paths().repository_root
+    return resolve_container_image_contracts(DEFAULT_CONTAINER_IMAGE_CONTRACTS, effective_image_environment(os.environ, root))
 
 
 def _split_image_ref(image_ref: str) -> tuple[str, str]:

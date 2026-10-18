@@ -12,10 +12,8 @@ from typing import Literal
 from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
 from tiny_swarm_world.application.services.lifecycle import InstallationLifecycleService
 from tiny_swarm_world.application.services.service_selection import ServiceSelectionService
-from tiny_swarm_world.domain.lifecycle.models import ComponentState, ConfigurationReference, CredentialReference, InstallationManifest, ProductIdentity, VersionIdentity
-from tiny_swarm_world.domain.artifacts.container_image_contract import DEFAULT_CONTAINER_IMAGE_CONTRACTS
+from tiny_swarm_world.domain.lifecycle.models import ComponentState, ConfigurationReference, CredentialReference, InstallationManifest, ProductIdentity
 from tiny_swarm_world.domain.preflight.setup_manifest import default_setup_manifest
-from tiny_swarm_world.infrastructure.adapters.repositories.compose_file_repository_yaml import resolve_container_image_contracts
 from tiny_swarm_world.infrastructure.adapters.repositories.secret_manifest_yaml_repository import SecretManifestYamlRepository
 from tiny_swarm_world.domain.lifecycle.selection import SelectionPlan
 from tiny_swarm_world.infrastructure.process.runner import ProcessRunner, ProcessRunnerError
@@ -32,6 +30,9 @@ class SetupSelectionState:
         self.configuration_inventory: tuple[ConfigurationReference, ...] = ()
 
     def admit(self, runner: ProcessRunner, *, backend: str, node_names: tuple[str, ...], host: Literal["native-linux", "wsl2"]) -> None:
+        from tiny_swarm_world.infrastructure.adapters.lifecycle.desired_images import require_settled_updates
+
+        require_settled_updates(self.root)
         snapshot = self.lifecycle.manifests.load()
         if snapshot.token != self.plan.manifest_token:
             raise LifecycleStateError("Selection is stale; inspect installation state and preview again.")
@@ -95,25 +96,9 @@ class SetupSelectionState:
                 credential_inventory=self.credential_inventory, configuration_inventory=self.configuration_inventory)
 
     def _effective_inventory(self, existing: InstallationManifest | None) -> tuple[ComponentState, ...]:
-        components = tuple(item for service in self.lifecycle.catalog.load().services
-                           if service.service_id in self.plan.resolved_services for item in service.components)
-        contexts = {item.component_id for item in components}
-        contracts = resolve_container_image_contracts(tuple(item for item in DEFAULT_CONTAINER_IMAGE_CONTRACTS
-                                                           if item.build_context in contexts), os.environ)
-        versions = {item.build_context: VersionIdentity(
-            image_repository=item.image_name, image_tag=None if item.tag.startswith("@") else item.tag,
-            image_digest=item.tag[1:] if item.tag.startswith("@") else None,
-            build_identity=item.tag if item.source == "build" else None,
-        ) for item in contracts}
-        retained = {} if existing is None else {item.component_id: item for item in existing.components}
-        result = []
-        for item in components:
-            desired = versions.get(item.component_id, item.desired)
-            prior = retained.get(item.component_id)
-            if prior is not None and item.component_id in versions and not _same_image(prior.desired, desired):
-                raise LifecycleStateError("Effective image inputs differ from installed desired state; use a supported component update or restore matching overrides before adding services.")
-            result.append(prior if prior is not None else item.model_copy(update={"desired": desired}))
-        return tuple(result)
+        from tiny_swarm_world.infrastructure.adapters.lifecycle.desired_images import effective_component_inventory
+
+        return effective_component_inventory(self.lifecycle.catalog, self.plan.resolved_services, existing, self.root)
 
     def _credential_references(self, existing: InstallationManifest | None) -> tuple[CredentialReference, ...]:
         retained = () if existing is None else existing.credential_references
@@ -136,8 +121,3 @@ class SetupSelectionState:
             if name and os.environ.get(name) and name.lower() not in keys:
                 result.append(ConfigurationReference(key=name.lower(), source="environment", reference=name.lower()))
         return tuple(result)
-
-
-def _same_image(before: VersionIdentity, after: VersionIdentity) -> bool:
-    return all(getattr(before, key) == getattr(after, key)
-               for key in ("image_repository", "image_tag", "image_digest", "build_identity"))

@@ -11,11 +11,10 @@ from .composition_selection import persisted_runtime_selection, artifact_context
 
 
 from tiny_swarm_world.infrastructure.composition_configuration import (
-    ContainerImageContract, DEFAULT_CONTAINER_IMAGE_CONTRACTS, resolve_container_image_contracts,
+    ContainerImageContract,
 )
 
 from .composition_runtime import (
-    os,
     ArtifactPrepareStep,
     ArtifactPrepareWorkflow,
     ArtifactServices,
@@ -148,13 +147,11 @@ def build_lxc_artifact_services(
 def _selected_image_contracts(
     resolved_services: tuple[str, ...] | None, repository_root: Path,
 ) -> tuple[ContainerImageContract, ...]:
+    contracts = _container_image_contracts_from_environment(repository_root)
     if resolved_services is None:
-        return _container_image_contracts_from_environment()
+        return contracts
     contexts = artifact_contexts(repository_root, resolved_services)
-    selected = resolve_container_image_contracts(
-        tuple(contract for contract in DEFAULT_CONTAINER_IMAGE_CONTRACTS if contract.build_context in contexts),
-        os.environ,
-    )
+    selected = tuple(contract for contract in contracts if contract.build_context in contexts)
     if any(contract.source == "build" for contract in selected) and "nexus" not in resolved_services:
         raise ValueError("Selected build images require the Nexus registry service.")
     return selected
