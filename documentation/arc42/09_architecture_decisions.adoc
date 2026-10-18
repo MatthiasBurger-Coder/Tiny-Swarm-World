@@ -86,6 +86,8 @@ include::09_decisions/adr-test-only-credential-override.adoc[leveloffset=+3]
 
 include::09_decisions/adr-classic-update-contract.adoc[leveloffset=+3]
 
+include::09_decisions/adr-classic-product-component-lifecycle.adoc[leveloffset=+3]
+
 === ADR Backlog
 
 The typed command catalog, inventory/evidence ownership, workflow-level CLI,

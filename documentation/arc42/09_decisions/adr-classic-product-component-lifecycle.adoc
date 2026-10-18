@@ -1,0 +1,107 @@
+= ADR: Classic product, component and selection lifecycle
+
+*Date:* 2026-10-17
+*Status:* Accepted for the documentation and contract scope of LCM-W01 (#441),
+after System Architect consultation. Implementation and qualification of the
+new operations remain the responsibility of #442–#450. Acceptance of this
+decision does not qualify a release transition or authorize live operations.
+
+== Context
+
+EPIC #440 separates TSW release upgrades, component updates and optional-service
+selection. The existing Classic update (#297) handles an explicit single
+stack-service image transition. Ordinary installation reconciles; it does not
+upgrade the TSW product. The historical reset-default context in
+adr-classic-update-contract.adoc has already been superseded for installation
+by adr-native-linux-preparation-and-install-lifecycle.adoc and
+adr-wsl-install-reconciliation.adoc. Its image-transition contract remains valid.
+
+== Decision
+
+Use the existing two-token CLI namespace/action convention. Canonical future
+commands are `product version`, `product upgrade`, `services list`,
+`services updates`, `services update`, `services add` and `services remove`.
+Extend `setup run` with explicit selection and read-only preview. Keep
+`platform reconcile`, `platform update` and `platform update --recover`
+compatible. Do not introduce the provisional one-token `version` or `update`
+commands from the parent issue. All new spellings are contract targets, not
+available commands at this baseline. Removal is preview-only in the initial
+delivery; removal apply and data deletion fail explicitly as unsupported.
+
+The detailed normative contract, verified inventory, dependencies, support
+matrix and acceptance scenarios are in
+link:../../contracts/lifecycle.md[Classic lifecycle contract].
+
+Reuse InstallationService, SetupWorkflow, PlatformLifecycleOrchestrator,
+ClassicUpdateWorkflow and deployment bootstrap. CLI adapters parse requests;
+application use cases orchestrate existing ports; domain policy validates
+identities, selection and transitions; infrastructure owns Git/package,
+filesystem, registry, Incus and Portainer details. Concrete wiring stays in
+infrastructure composition. No second orchestration engine is introduced.
+
+The prepared Git checkout with checkout-local locked Python environment is
+the initial installation model. The installation instance records exact
+product revision, lock identity, configuration/state schema and resolved
+selection. Clean immutable official release references are the future product
+upgrade source, pinned to a commit and release metadata. Mutable branches,
+arbitrary repositories, dirty checkouts, wheel-only installations and plain
+extracted archives are not admitted upgrade models. Archive parity remains
+owned by bootstrap #452; this ADR does not claim that it has been delivered.
+No actual source-to-target product transition is qualified by W01.
+
+Logical service identity, version, dependency and lifecycle semantics belong
+to #318. W02 (#442) incrementally extends that single contract for Classic,
+with versioned catalog and installation-instance state. Existing
+ServiceStackContract, ContainerImageContract, SetupManifest and Compose assets
+remain their respective deployment, artifact, preflight and native packaging
+authorities until explicitly migrated. They are not competing complete catalogs.
+The catalog must reference native assets and declare synchronization ownership;
+it must not duplicate a second logical service schema. #314 owns runtime and
+capability vocabulary; #313's existing architecture boundaries remain in force.
+
+Incus/LXC is the mandatory host/provider prerequisite; preparation owns host
+daemon readiness, installation verifies it. Portainer is the mandatory managed
+Classic gateway, with a separate bootstrap and upgrade adapter. Docker Engine,
+Swarm and the shared overlay are required Classic runtime dependencies.
+Current fixed setup also requires artifact/Nexus and routing/Traefik stages;
+the service-access profile adds Infisical. These restrictions must be exposed
+until selection-aware integration replaces them; a minimal Classic installation
+is an acceptance target, not a present capability.
+
+Product release, upstream component version, image tag and immutable digest
+are distinct fields. Local image build identity is separate from all four.
+Observed runtime and desired configuration are recorded separately. A newer
+tag, successful deploy or healthy old task never establishes a completed update.
+
+All future mutations require inspect, validate, preview, existing live consent,
+bounded ordered execution, observed verification and redacted recovery evidence.
+Product migration order is code/environment staging, configuration/state
+migrations, required runtime transitions, whole-selection verification and
+installed-state commit. Persist desired component versions only after verified
+convergence. Record partial execution and desired/runtime drift on failure;
+never silently restore old configuration over a newer running service.
+
+Legacy #297 image recovery metadata is not a backup and does not persist
+desired configuration. W06 adds desired-state persistence above this engine
+without changing the legacy command's semantics. Portainer backup/recovery
+must work through Incus/manager access if its API is unavailable. Product and
+stateful-service downgrade requires an explicitly supported reverse migration
+or compatible verified backup; image rollback is not a data restore.
+
+== Rationale and alternatives
+
+Two-token commands fit current parsing and separate product ownership from
+stack-image updates. Retaining the legacy command preserves existing runners.
+An alias to Git pull, reconcile, installer reset or generic Portainer stack
+update cannot meet preservation, migration and verification requirements.
+A second catalog or orchestration engine would split authoritative state and
+violate the existing hexagonal boundaries.
+
+== Consequences and limits
+
+W02–W08 implement contracts and supported transitions, W09 qualifies exact
+native/WSL2 scenarios, and W10 audits the parent. No additional runtime is
+qualified. No automatic reset, secret rotation, deletion, unattended update,
+Incus host-package upgrade, HA or whole-host rollback is introduced. Local
+tests are separate from live and external evidence under the verification-state
+policy. Historical evidence remains bound to its original SHA and scenario.

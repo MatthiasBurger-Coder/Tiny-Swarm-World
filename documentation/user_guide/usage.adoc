@@ -42,8 +42,14 @@ intentionally on a WSL Windows mount, the applicable commands also need
 | Install or reconcile on native Ubuntu 24.04 or 26.04 | `./install.sh` | Checks preparation and runs setup without a reset.
 | Install or reconcile on supported WSL2 Ubuntu | `./install.sh` | Checks preparation and runs setup without reset.
 | Recreate a disposable WSL2 environment | `./install.sh --confirm-reset` | Explicit deprecated destructive compatibility; live approval remains separate.
-| Upgrade a running installation | `platform update --stack ... --service ... --from-image ... --to-image ...` | Preview first; requires live consent and preserves rollback metadata.
+| Update one existing stack-service image | `platform update --stack ... --service ... --from-image ... --to-image ...` | Preview first; requires live consent and preserves image-recovery metadata; does not upgrade the TSW product.
 |===
+
+The future product upgrade, component catalog and selective-installation commands
+are specified in link:{user-reference-prefix}contracts/lifecycle.md[the Classic
+lifecycle contract]. Those new commands are not implemented by LCM-W01. Continue
+using the existing commands below; fixed profiles do not yet provide arbitrary
+service selection.
 
 For an intentional platform reconciliation, followed by verification:
 
