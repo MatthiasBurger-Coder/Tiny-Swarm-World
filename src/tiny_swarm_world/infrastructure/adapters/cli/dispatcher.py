@@ -123,6 +123,12 @@ async def main(argv: Sequence[str] | None = None) -> None:
 
 
 async def _run_early_workflow(args: Namespace) -> bool:
+    if args.selection_preview:
+        from tiny_swarm_world.infrastructure.adapters.cli.selection import run_selection_preview
+
+        run_selection_preview(args)
+        return True
+
     if args.workflow is not None and args.workflow.namespace == "host":
         if args.workflow.action == "detect":
             _run_host_detect_command(args)

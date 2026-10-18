@@ -91,6 +91,8 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         supported_names = (
             "product version",
             "services list",
+            "services add",
+            "services remove",
             "host detect",
             "host preflight",
             "host prepare",
@@ -119,6 +121,8 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
                     argv.extend(
                         ["--stack", "jenkins", "--service", "jenkins", "--recover"]
                     )
+                if workflow.namespace == "services" and workflow.action in {"add", "remove"}:
+                    argv.extend(["--services", "jenkins", "--preview"])
                 parsed = cli_parser.parse_args(argv)
                 self.assertEqual(workflow, parsed.workflow)
 

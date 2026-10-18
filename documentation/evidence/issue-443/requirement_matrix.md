@@ -1,0 +1,18 @@
+# Issue #443 requirement matrix
+
+Source: https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/443 (complete snapshot source.json). Requirements LCM-04/LCM-05; W02 dependency present.
+
+| ID | Requirement from issue | Type | Files affected / implementation evidence | Test evidence | Status |
+|---|---|---|---|---|---|
+| REQ-01 | CLI/config/persisted/preset precedence; W02 requested/resolved persistence | functional/quality | selection.py _select_source; ServiceSelectionService.persist; cli/selection.py | SelectionPlanningTests.test_cli_over_configuration_and_preset_conflicts; SelectionServiceTests.test_persisted_selection_authoritative_without_explicit_selection; SelectionCliTests.test_minimal_and_config_cli_precedence_preview_without_writes | VERIFIED_LOCAL |
+| REQ-02 | Mandatory Incus/LXC and Portainer; removal refusal AC1 | functional/quality | selection.py _closure and plan_selection foundation guards | SelectionPlanningTests.test_minimal_has_foundations_and_no_preset_expansion; test_strict_ids_foundations_and_capabilities; SelectionCliTests.test_unknown_and_foundation_removal_are_argument_errors_without_writes | VERIFIED_LOCAL |
+| REQ-03 | Transitive graph, cycles, unknowns, capability/preset checks AC1 | functional/quality | selection.py _catalog_services/_topological/_check_support | SelectionPlanningTests.test_bad_catalog_graph_is_rejected_before_planning; test_strict_ids_foundations_and_capabilities | VERIFIED_LOCAL |
+| REQ-04 | Equivalent deterministic plans AC2 | functional/quality | selection.py sorted request/provenance and heap topology | SelectionPlanningTests.test_transitive_closure_deterministic_and_explained | VERIFIED_LOCAL |
+| REQ-05 | Read-only explain resources, additions and removal impact AC3 | functional/quality | SelectionPlan and CLI early dispatch; ServiceSelectionService.preview | SelectionCliTests.test_minimal_and_config_cli_precedence_preview_without_writes; SelectionServiceTests.test_preview_absent_state_creates_nothing; test_removal_reverse_dependency_preview_retains_state_and_data | VERIFIED_LOCAL |
+| REQ-06 | Whole-set resource aggregation with explicit unknowns AC3 | functional/quality | selection.py _resources and _resource_number | SelectionPlanningTests.test_presets_and_resource_totals; test_transitive_closure_deterministic_and_explained | VERIFIED_LOCAL |
+| REQ-07 | No silent deployment/data removal AC4 | functional/quality | ServiceSelectionService.persist removal guards; SelectionPlan.retained_data | SelectionServiceTests.test_removal_reverse_dependency_preview_retains_state_and_data; test_add_persistence_preserves_identity_credentials_and_components | VERIFIED_LOCAL |
+| REQ-08 | Invalid input, preview/no-op/failure/help and approval/CAS guards | functional/quality | domain/application/CLI tests; QUALITY.md full gate | 23 focused tests PASS; full .venv QUALITY gate PASS, 2680 tests (18 skipped), exit 0 | VERIFIED_LOCAL |
+| REQ-09 | Hexagonal Classic scope and reused W02 state ownership, no live mutation | functional/quality | domain/app/CLI inward dependency structure; existing repository ports; no execution ports | architecture gates PASS (7 contracts/43 tests); independent architecture review found no material defects; static code review | VERIFIED_LOCAL |
+| REQ-10 | Operator docs, recovery limits, required evidence and independent audit | functional/quality | documentation/contracts/service-selection.md; lifecycle.md; issue evidence package | independent four-perspective completion audit PASS (completion_audit.md); documentation cross-check | VERIFIED_LOCAL |
+
+All source paths under src/tiny_swarm_world unless documentation/test paths are specified. selection.py refers to domain/lifecycle/selection.py except cli/selection.py.
