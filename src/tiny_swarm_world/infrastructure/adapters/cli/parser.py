@@ -53,7 +53,7 @@ def parse_args(argv: Sequence[str] | None = None) -> Namespace:
     parser.add_argument(
         "--service-profile",
         choices=[profile.value for profile in ServiceStackProfile],
-        default=DEFAULT_SETUP_SERVICE_PROFILE.value,
+        default=None,
         help=(
             "Service stack profile for setup, deployment and preflight. "
             "The default full installation includes service-access."
@@ -119,17 +119,25 @@ def parse_args(argv: Sequence[str] | None = None) -> Namespace:
     parser.add_argument(
         "--preview",
         action="store_true",
-        help="Validate and print the update plan without mutating infrastructure.",
+        help="Validate and print an update or service selection plan without mutation.",
     )
     parser.add_argument(
         "--recover",
         action="store_true",
         help="Reverse the last recorded update for the selected stack/service.",
     )
+    parser.add_argument("--services", help="Comma-separated canonical service IDs for selection preview.")
+    parser.add_argument("--minimal", action="store_true", help="Preview Classic foundations only.")
+    parser.add_argument("--selection-config", help="YAML/JSON selection file containing a services list.")
     parser.add_argument("workflow_namespace", nargs="?", help="Workflow namespace.")
     parser.add_argument("workflow_action", nargs="?", help="Workflow action.")
     args = parser.parse_args(argv)
 
+    args.service_profile_explicit = args.service_profile is not None
+    args.service_profile = args.service_profile or DEFAULT_SETUP_SERVICE_PROFILE.value
+    from tiny_swarm_world.infrastructure.adapters.cli.selection import validate_selection_args
+
+    validate_selection_args(parser, args)
     _validate_provider_args(parser, args)
     _assign_network_command(parser, args)
     _assign_workflow(parser, args)
@@ -178,7 +186,7 @@ def _assign_workflow(parser: ArgumentParser, args: Namespace) -> None:
     update_options_present = any(
         value is not None
         for value in (args.stack, args.service, args.from_image, args.to_image)
-    ) or args.preview or args.recover
+    ) or (args.preview and not args.selection_preview) or args.recover
     if not is_update and update_options_present:
         parser.error("update options require command: platform update")
     if is_update:

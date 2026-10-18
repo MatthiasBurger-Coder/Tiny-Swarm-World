@@ -6,7 +6,9 @@ Scope: native Linux/WSL2 → managed Incus/LXC → Docker Engine → Docker Swar
 **New commands below are specified for W02–W08; W01 does not implement them.**
 W02 implements read-only `product version` and `services list`, the manifest and
 native component catalog; see [installation state contract](installation-manifest.md).
-All remaining lifecycle commands below retain their stated future ownership.
+W03 implements read-only selection previews for `setup run`, `services add` and
+`services remove`; see [selection contract](service-selection.md). Live selective
+setup/addition remains W04 scope. Other commands retain their future ownership.
 The [requirement matrix](../evidence/issue-441-requirement-matrix.md) covers every
 LCM-01–05 bullet and parent acceptance criterion. Parent implementation stays open.
 
@@ -20,7 +22,7 @@ Paths below are relative to the repository root and identify implementation auth
 | `./install.sh` | Dependency-light wrapper selects simple installer; ordinary native/WSL installation reconciles after preparation | `install.sh`, `simple_installer.py`, `application/services/installation.py`, `infrastructure/adapters/installation/` |
 | Installer `--preflight`, `--dry-run` | Validate without installation mutation; dry-run describes reconciliation, not an exact release or selection transition | `InstallationService.run`; installer presentation/configuration adapters |
 | Installer reset | Explicit deprecated WSL `--confirm-reset`; native rejects it; separate exact reset intent and live consent | `_validate_install_mode`, [accepted reconciliation ADR](../arc42/09_decisions/adr-wsl-install-reconciliation.adoc) |
-| CLI help / `--list-workflows` | Global parser plus two-token namespaces; fixed `--service-profile default\|service-access`; no free `--services` | `infrastructure/adapters/cli/parser.py`, `registry.py` |
+| CLI help / `--list-workflows` | Global parser plus two-token namespaces; `--service-profile default\|service-access` plus W03 selection preview options | `infrastructure/adapters/cli/parser.py`, `registry.py` |
 | `setup run` | Fixed aggregate preflight, host, platform, Docker/Swarm, exposure, artifact, deployment and validation phases | `infrastructure/composition_setup.py`, `application/services/setup/workflow.py` |
 | `platform reconcile` | Ensures configured provider nodes; does not update TSW code or all stack images | `application/services/platform/lifecycle.py`, `platform/workflow/mutating.py` |
 | `platform update` | One configured stack/service A→B; static preview; runtime source guard, target task-image convergence, stable rollout and verified no-op | `application/services/platform/workflow/update.py`, `domain/update/`, `application/ports/update/` |
@@ -30,11 +32,12 @@ Paths below are relative to the repository root and identify implementation auth
 | Portainer upgrade | Bootstrap ensure is not qualified version migration, backup or recovery; generic image transition does not qualify this gateway | Separate W07 adapter required |
 | `platform verify`, `deployment verify` | Observations/readiness have defined scopes; not complete authenticated lifecycle acceptance on their own | Platform/deployment workflows and existing Classic suites |
 
-Existing `--preview` is restricted to `platform update`; `setup run --preview`
-currently fails argument validation. Top-level `version`/`update`, `product` and
-`services` commands are absent. Existing `platform update --preview` checks
-configuration without runtime observation. Its consent bypass and historical
-option combinations remain unchanged by this documentation package.
+W02 adds `product version` and `services list`; W03 adds read-only
+`setup run --preview` and `services add/remove --services <ids> --preview`.
+Top-level `version`/`update` remain absent. Existing `platform update --preview`
+checks configuration without runtime observation; its historical option and
+consent behavior remains unchanged. Live setup without selection options still
+uses fixed aggregate phases; W04 owns selective execution.
 
 Safe current examples (activate the prepared environment first):
 

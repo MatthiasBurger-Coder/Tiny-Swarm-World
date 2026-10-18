@@ -3,7 +3,9 @@
 Contract version 1. Implements the persistence/inspection part of the accepted
 [Classic lifecycle ADR](../arc42/09_decisions/adr-classic-product-component-lifecycle.adoc).
 Classic on native Linux and WSL2 only. Runtime execution, arbitrary selective
-setup and qualified upgrades remain owned by W03–W09.
+setup and qualified upgrades remain owned by W04–W09. W03 adds
+[deterministic selection planning](service-selection.md) and approved local
+selection persistence over these contracts.
 
 ## Inspect an installation
 
@@ -79,7 +81,7 @@ Current fixed setup still requires routing/Traefik and artifacts/Nexus;
 service-access additionally couples Infisical and generated dashboard links.
 Logical dependencies expose Nexus for local Jenkins/dashboard images and
 Infisical/Traefik for Service Access. Arbitrary omission is not supported until
-W03/W04 integrate selection into every existing phase. The catalog does not
+W04 integrates selection into every existing phase. The catalog does not
 change current setup, #297 update, bootstrap or consent semantics.
 
 ## Persistence, migration and interruption
