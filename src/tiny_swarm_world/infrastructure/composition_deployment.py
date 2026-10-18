@@ -200,14 +200,19 @@ def build_lxc_deployment_services(
         )
         if not service_stack_contracts:
             raise ValueError(f"unknown update stack: {update_stack_name}")
-    effective_environment = dict(os.environ)
-    effective_environment.update(image_overrides or {})
+    from tiny_swarm_world.infrastructure.adapters.lifecycle.desired_images import effective_image_environment, require_settled_updates, apply_desired_stack_images
+
+    if update_stack_name is None:
+        require_settled_updates(project_paths.repository_root)
+    effective_environment = effective_image_environment(os.environ, project_paths.repository_root)
     compose_repository = ComposeFileRepositoryYaml(
         project_paths=project_paths,
         service_profile=selected_service_profile,
         environment=effective_environment,
+        transition_overrides=image_overrides,
         **selection_options(resolved_services),
     )
+    effective_environment.update(image_overrides or {})
     compose_repository.validate_and_snapshot(
         tuple(contract.stack_name for contract in service_stack_contracts)
     )
@@ -249,12 +254,7 @@ def build_lxc_deployment_services(
     )
     swarm_runtime = DockerSwarmRuntime(delegate=lxc_swarm_runtime)
     stack_environment = _deployment_stack_environment(selected_service_profile, resolved_services) if resolved_services is not None else _deployment_stack_environment(selected_service_profile)
-    for environment_name, image_ref in (image_overrides or {}).items():
-        if update_stack_name is not None:
-            stack_environment.setdefault(update_stack_name, {})[environment_name] = image_ref
-        for stack_environment_values in stack_environment.values():
-            if environment_name in stack_environment_values:
-                stack_environment_values[environment_name] = image_ref
+    apply_desired_stack_images(stack_environment, effective_environment)
     secret_manifest_entries = (
         SecretManifestRenderer(SecretManifestYamlRepository(
             project_paths.config_root / "secrets" / "infisical-secrets.yaml"

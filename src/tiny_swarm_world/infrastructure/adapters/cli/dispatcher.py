@@ -153,7 +153,7 @@ async def _run_early_workflow(args: Namespace) -> bool:
     if args.workflow is not None and args.workflow.namespace in {"product", "services"} and args.workflow.action != "add":
         from tiny_swarm_world.infrastructure.adapters.cli.lifecycle import run_lifecycle_inspection
 
-        run_lifecycle_inspection(args)
+        await run_lifecycle_inspection(args)
         return True
 
     return False

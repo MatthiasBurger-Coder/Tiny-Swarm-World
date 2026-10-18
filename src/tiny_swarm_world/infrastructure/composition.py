@@ -282,3 +282,16 @@ async def prepare_setup_selection_state(lifecycle, plan, request):
 
     backend = _runtime.resolve_runtime_profile(plan.service_preset, request).backend
     return await implementation(lifecycle, plan, backend, build_process_runner())
+
+
+def build_component_update_execution(*args: Any, **kwargs: Any) -> Any:
+    from .composition_lifecycle import build_component_update_execution as build
+
+    return build(*args, classic_workflow_factory=build_classic_update_workflow, **kwargs)
+
+
+
+def build_component_update_journal(lifecycle: Any) -> Any:
+    from .composition_lifecycle import build_component_update_journal as build
+
+    return build(lifecycle)

@@ -72,7 +72,7 @@ class ComponentUpdateCliTests(unittest.IsolatedAsyncioTestCase):
         for service_ids in ("", "nexus,nexus", "nexus,", "*", "Nexus"):
             cases.append(["services", "updates", "--services", service_ids])
         for options in (["--live"], ["--approve-live"], ["--confirm", "yes"], ["--preflight"],
-                        ["--recover"], ["--minimal"], ["--selection-config", "config.yaml"],
+                        ["--recover", "--to", "test-next"], ["--minimal"], ["--selection-config", "config.yaml"],
                         ["--service-profile", "default"], ["--stack", "nexus"], ["--service", "nexus"]):
             cases.append(["services", "update", "--services", "nexus", "--preview", *options])
         for command in cases:
@@ -83,8 +83,40 @@ class ComponentUpdateCliTests(unittest.IsolatedAsyncioTestCase):
     def test_help_and_registry_are_readonly(self):
         from tiny_swarm_world.infrastructure.adapters.cli.registry import CLI_WORKFLOWS_BY_KEY
         for action in ("updates", "update"):
-            self.assertFalse(CLI_WORKFLOWS_BY_KEY[("services", action)].mutating)
+            self.assertEqual(CLI_WORKFLOWS_BY_KEY[("services", action)].mutating, action == "update")
             with contextlib.redirect_stdout(io.StringIO()) as output, self.assertRaises(SystemExit) as caught:
                 parse_args(["services", action, "--help"])
             self.assertEqual(caught.exception.code, 0)
             self.assertIn("--to", output.getvalue())
+
+    async def test_execution_requires_existing_live_consent_before_runtime_construction(self):
+        output = io.StringIO()
+        with patch('tiny_swarm_world.infrastructure.adapters.cli.component_updates.build_installation_lifecycle_service', return_value=self.lifecycle), patch('tiny_swarm_world.infrastructure.adapters.cli.component_updates.build_component_update_execution') as build, patch('builtins.input', side_effect=EOFError), contextlib.redirect_stdout(output):
+            with self.assertRaises(SystemExit) as caught:
+                await main(['services', 'update', '--services', 'nexus', '--live', '--json'])
+        self.assertEqual(caught.exception.code, 2)
+        self.assertEqual(json.loads(output.getvalue())['status'], 'refused')
+        build.assert_not_called()
+
+    async def test_live_dispatch_preserves_selection_recovery_and_exit_status(self):
+        from unittest.mock import AsyncMock
+        executor = Mock()
+        executor.run = AsyncMock(return_value={'status': 'partial'})
+        output = io.StringIO()
+        with patch('tiny_swarm_world.infrastructure.adapters.cli.component_updates.build_installation_lifecycle_service', return_value=self.lifecycle), patch('tiny_swarm_world.infrastructure.adapters.cli.component_updates.build_component_update_execution', return_value=executor), contextlib.redirect_stdout(output):
+            with self.assertRaises(SystemExit) as caught:
+                await main(['services', 'update', '--services', 'nexus,jenkins', '--live', '--approve-live', '--recover', '--json'])
+        self.assertEqual(caught.exception.code, 1)
+        self.assertEqual(executor.run.await_args.args[0], ('nexus', 'jenkins'))
+        self.assertTrue(executor.run.await_args.kwargs['consent'].accepted)
+        self.assertTrue(executor.run.await_args.kwargs['recovery'])
+
+    async def test_blocked_production_plan_never_constructs_runtime(self):
+        catalogs = Mock()
+        catalogs.load.return_value = update_fixture(qualified=False)[0]
+        lifecycle = InstallationLifecycleService(self.repository, catalogs)
+        with patch('tiny_swarm_world.infrastructure.adapters.cli.component_updates.build_installation_lifecycle_service', return_value=lifecycle), patch('tiny_swarm_world.infrastructure.adapters.cli.component_updates.build_component_update_execution') as build, contextlib.redirect_stdout(io.StringIO()):
+            with self.assertRaises(SystemExit) as caught:
+                await main(['services', 'update', '--services', 'nexus', '--live', '--approve-live'])
+        self.assertEqual(caught.exception.code, 1)
+        build.assert_not_called()
