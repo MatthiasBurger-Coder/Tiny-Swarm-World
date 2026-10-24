@@ -20,7 +20,8 @@ duplicates, wildcards, empty entries and conflicting options fail. An uninstalle
 service must first be added explicitly through the selective setup workflow.
 
 The current native catalog provides installation baseline image references and
-**no qualified source-to-target component upgrade transitions**. Consequently,
+**no qualified generic stack-service upgrade transitions**. Portainer now has
+a dedicated W07 transition described below. For the generic service examples,
 `available_supported_targets` is empty and the preview examples above return a
 blocked plan (exit 1). `native-baseline` identifies packaging metadata, not an
 approved upgrade or downgrade. Upstream `latest` is never promoted automatically.
@@ -79,7 +80,7 @@ See the [lifecycle contract](../contracts/lifecycle.md),
 
 The component executor now supports explicit live apply and recovery through the
 existing Classic image-update adapters. The production catalog still has **no
-qualified upgrade transitions**; these examples therefore fail admission until a
+qualified generic stack-service upgrade transitions**; these examples therefore fail admission until a
 reviewed compatible transition is supplied. Synthetic test policies are not
 production qualification. There is no arbitrary image/tag execution escape hatch.
 
@@ -136,3 +137,106 @@ a new transition. A new target must be previewed/admitted explicitly.
 Verification for W06 is local unit/mock and deployment-input evidence. Actual
 service authentication/data preservation and native Linux/WSL2 qualification
 remain W09 responsibilities; no live success follows from these tests.
+
+## Portainer management-gateway upgrade (W07)
+
+Portainer uses a dedicated adapter through the same operator command:
+
+```bash
+tiny-swarm-world services updates --services portainer --json
+tiny-swarm-world services update --services portainer --to portainer-ce-2.45.1 --preview --json
+tiny-swarm-world services update --services portainer --to portainer-ce-2.45.1 --live --approve-live --json
+tiny-swarm-world services update --services portainer --recover --preview --json
+tiny-swarm-world services update --services portainer --recover --live --approve-live --json
+```
+
+The implemented adapter transition is **CE Server and Agent 2.45.0 → 2.45.1**,
+using the immutable image-index digests in `domain/lifecycle/portainer_upgrade.py`.
+Those digests were resolved from the official Docker Hub repositories on
+2026-10-18. This is local adapter qualification; **actual native Linux and WSL2
+qualification remains pending W09**. A later native scenario recorded successful
+upgrade/recovery, but the WSL2 qualification setup failed before the adapter ran.
+See the [W07 verification and W09 handoff](../process/issue-447-completion.md)
+for the current evidence limits and unresolved live checks.
+No later version is inferred to be supported.
+See the [upstream releases](https://github.com/portainer/portainer/releases),
+[Swarm update guidance](https://docs.portainer.io/start/upgrade/swarm) and
+[rollback guidance](https://docs.portainer.io/faqs/upgrading/how-can-i-roll-back-to-a-previous-version-of-portainer).
+
+Admission requires an adopted Classic manifest, the existing administrator
+credential in `TSW_PORTAINER_ADMIN_PASSWORD`, a reachable authenticated API,
+connected registered Swarm endpoints, one manager, the replicated server constrained
+to that manager, global agents, and a writable default local Docker volume for
+`/data`. Bind-mounted/remote/non-default Docker-root volumes, BE, standalone,
+multi-manager placement changes, downgrades and other migrations are unsupported.
+The source and target server/agent images must already be cached on the manager;
+prepare images through the existing artifact workflow before apply. Worker image
+availability must also be arranged by the operator; a failed worker rollout is
+not success and requires the documented recovery path.
+
+At least one installed optional service must already be a Portainer-owned Swarm
+stack on the local manager's Swarm. Admission checks its saved definition and
+environment before shutdown. A foundations-only installation without such a stack
+is blocked for this transition because it cannot supply a meaningful deployment
+proof. This is an explicit supported-scope limit.
+
+Preview reads local manifest/catalog/checkpoint state only, and writes no files.
+It describes live preconditions rather than claiming that they passed. Actual
+apply rechecks mode, identities, version, data binding, endpoint connectivity,
+ownership and prerequisites. Select Portainer alone; batches containing Portainer
+remain blocked by the generic planner. Incus package upgrades remain unsupported.
+
+Apply takes a cold tar snapshot of the entire existing `/data` volume after
+scaling the server to zero and confirming that its container has stopped. Backup
+storage capacity is checked first. The private archive lives on the managed
+manager under `/var/lib/tiny-swarm-world/portainer-backups/<operation-id>/state.tar`.
+It contains credential-bearing state: protect it, copy it to protected offline
+storage where required, and never attach it to issues or commit it. The adapter
+records only its checksum and redacted ownership/endpoint fingerprints in
+`.tiny-swarm-world/installation/portainer-upgrade.json` (mode 0600).
+
+Only a verified backup permits target image mutation. Agent and server images are
+changed through the existing manager-shell runtime boundary, without recreating
+the Swarm, changing credentials or re-registering endpoints. Every expected running
+task must converge to the supported digest. After authentication and identity,
+endpoint and stack-ownership checks, the adapter reapplies one existing managed
+Swarm stack using its stored definition/environment with prune and image-pull
+requests disabled. A successful HTTP response alone is insufficient: the stack
+must have positive, fully ready replicas. This reapply can restart managed tasks;
+schedule a maintenance window. Per-process waits are bounded (300 seconds;
+shutdown 60 seconds and rollout/proof polls 120 seconds); HTTP requests retain
+existing 30-second request and 180-second stack-update bounds, with bounded
+post-restart authentication retries.
+
+Verified desired/observed server and agent identities are committed atomically to
+the existing installation manifest. Later setup/deployment consumes those pins;
+conflicting overrides fail. Repeating a settled upgrade inspects actual state and
+returns `no_op` without another backup, image update or stack reapply. Runtime /
+manifest drift blocks instead of silently rewriting desired state.
+
+If apply stops, preserve the journal and backup and use `--recover`. Component
+batches and Portainer operations share a nonblocking lock; unsettled operations
+block each other. Ordinary setup/deployment checks unsettled state at admission;
+it does not hold that execution lock throughout setup. Serialize all live
+operations against the same manager/Swarm, including W09 qualification. Recovery validates the original
+Swarm, service IDs, topology and `/data` binding without using Portainer's API.
+It verifies the checksum **before** stopping the server or touching state, archives
+the failed volume contents in a new `failed-state.*` directory, restores the cold
+snapshot into the same volume, and restores the source images. Nothing is deleted.
+The original credentials, registrations and ownership are then verified and the
+managed-stack proof runs again before source pins are committed.
+
+Interruption before a backup checksum was committed permits only source-service
+resumption: the unchanged original source image identities and data binding must
+still match. It never restores an unchecked archive or starts target images.
+Recovery interrupted during restore can be repeated, preserving each failed
+attempt. Completed upgrades cannot be downgraded by `--recover`; recovery is for
+interrupted operations. If the manager/storage/backup is lost, checksums fail,
+service identities change or source data is corrupt before backup, stop for
+operator investigation. Image rollback alone is never represented as state restore.
+The archive protects Portainer state, not optional-service databases or workloads.
+
+W09 must retain exact tested SHA, host/profile, selected services, version/digest
+bundle, commands/exit codes and redacted before/after authentication, endpoint,
+ownership, convergence and managed-update observations for upgrade and induced
+failure/recovery. Local mocked tests do not establish live or browser success.

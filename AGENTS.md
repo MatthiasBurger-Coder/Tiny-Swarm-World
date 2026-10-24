@@ -15,9 +15,15 @@ explicit task changes the product scope.
 ## Operating Assumptions
 
 - Treat the runtime as WSL or Linux only.
-- When the host shell is Windows or PowerShell, execute project Python,
-  tests, and quality gates through WSL, for example
-  `wsl bash -lc 'cd /mnt/d/Projects/Tiny-Swarm-World_2 && python3 tools/quality_gate.py typecheck'`.
+- For agent-run tests and quality gates, always connect via SSH to
+  `pc@192.168.178.58` and execute inside WSL on that Windows host.
+  This user-requested test-host preference overrides local execution examples.
+  Verify the remote repository path and ensure the tested files match the
+  current task changes before running checks. If SSH or WSL is unavailable,
+  report verification as blocked instead of silently using another host.
+  Never store SSH passwords in repository files or command examples.
+- When the host shell is Windows or PowerShell, execute project Python
+  through WSL; tests and quality gates use the SSH test host specified above.
 - Do not run project Python commands through Windows Python, Windows virtual
   environments, or PowerShell path invocation such as
   `& 'D:\Projects\Tiny-Swarm-World_2\.venv\bin\python' ...`.
@@ -109,8 +115,9 @@ inspection.
 
 ## Testing
 
-- Run tests and quality gates inside WSL/Linux. From a Windows host shell,
-  wrap commands with `wsl bash -lc 'cd /mnt/d/Projects/Tiny-Swarm-World_2 && ...'`.
+- Run agent tests and quality gates inside WSL on the SSH test host specified
+  under Operating Assumptions. Resolve the remote checkout path before using
+  `wsl bash -lc` to run commands from its repository root.
 - Preferred quality gate from the repository root:
   `python3 tools/quality_gate.py quality`
 - During development, run the nearest relevant sub-gate first:

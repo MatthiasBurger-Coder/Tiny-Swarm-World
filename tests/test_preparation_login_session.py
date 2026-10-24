@@ -64,6 +64,26 @@ class LoginSessionProcessTests(unittest.IsolatedAsyncioTestCase):
             with self.subTest(preserve=preserve):
                 await self._exercise_cleanup(preserve, cancel=True)
 
+    def test_process_observation_handles_disappearance_and_preserves_state(self):
+        for error in (FileNotFoundError(), ProcessLookupError()):
+            with self.subTest(error=type(error).__name__), patch.object(Path, "read_text", side_effect=error):
+                self.assertFalse(self._running(123))
+        for state, running in (("S", True), ("R", True), ("Z", False)):
+            with self.subTest(state=state), patch.object(Path, "read_text", return_value=f"123 (child (worker)) {state} 1"):
+                self.assertEqual(running, self._running(123))
+        with patch.object(Path, "read_text", side_effect=PermissionError()):
+            with self.assertRaises(PermissionError):
+                self._running(123)
+
+    def test_cleanup_handles_exit_before_signal_and_preserves_permission_errors(self):
+        for error in (ProcessLookupError(), PermissionError()):
+            with self.subTest(error=type(error).__name__), patch.object(self, "_running", return_value=True), patch.object(os, "kill", side_effect=error):
+                if isinstance(error, PermissionError):
+                    with self.assertRaises(PermissionError):
+                        self._kill_if_running(123)
+                else:
+                    self._kill_if_running(123)
+
     async def _exercise_cleanup(self, preserve: bool, *, cancel: bool):
         parent_group = os.getpgrp()
         parent_session = os.getsid(0)
@@ -111,14 +131,20 @@ class LoginSessionProcessTests(unittest.IsolatedAsyncioTestCase):
                     except asyncio.CancelledError:
                         pass
                 for pid in pids:
-                    if self._running(pid):
-                        os.kill(pid, signal.SIGKILL)
+                    self._kill_if_running(pid)
+
+    def _kill_if_running(self, pid: int) -> None:
+        if self._running(pid):
+            try:
+                os.kill(pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass  # The observed process exited before the signal was sent.
 
     @staticmethod
     def _running(pid: int) -> bool:
         try:
             return Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()[0] != "Z"
-        except FileNotFoundError:
+        except (FileNotFoundError, ProcessLookupError):
             return False
 
 

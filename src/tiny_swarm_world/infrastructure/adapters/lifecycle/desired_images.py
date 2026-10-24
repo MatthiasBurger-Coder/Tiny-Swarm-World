@@ -34,6 +34,11 @@ def effective_image_environment(environment: Mapping[str, str], root: Path, *,
 
 
 def require_settled_updates(root: Path) -> None:
+    from tiny_swarm_world.infrastructure.adapters.lifecycle.portainer_journal import JsonPortainerJournal
+
+    checkpoint = JsonPortainerJournal(local_state_file(root=root, relative_path='installation/portainer-upgrade.json')).load()
+    if checkpoint is not None and not checkpoint.settled:
+        raise LifecycleStateError('Portainer upgrade incomplete; recover the gateway before setup/deployment.')
     batch = JsonUpdateJournal(local_state_file(root=root, relative_path='installation/component-update.json')).load()
     if batch is not None and not batch.settled:
         raise LifecycleStateError('Component runtime/configuration update is incomplete; resume or recover the original selection before setup/deployment.')
@@ -77,7 +82,8 @@ def apply_desired_stack_images(stack_environment, environment):
     """Pass pins to actual Compose interpolation, including sibling components."""
     from tiny_swarm_world.domain.update.classic_update import IMAGE_OVERRIDE_ENVIRONMENT_BY_STACK_SERVICE
 
-    for member, name in IMAGE_OVERRIDE_ENVIRONMENT_BY_STACK_SERVICE.items():
+    pins = dict(IMAGE_OVERRIDE_ENVIRONMENT_BY_STACK_SERVICE, **{'portainer:portainer': 'TSW_PORTAINER_IMAGE', 'portainer:agent': 'TSW_PORTAINER_AGENT_IMAGE'})
+    for member, name in pins.items():
         stack, _ = member.split(':', 1)
         if stack in stack_environment and environment.get(name):
             stack_environment[stack][name] = environment[name]

@@ -7,7 +7,7 @@ from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
 from tiny_swarm_world.application.services.component_updates import ComponentUpdateService
 from tiny_swarm_world.domain.lifecycle.update_planning import UninstalledServiceError
 from tiny_swarm_world.infrastructure.adapters.cli.selection import parse_service_ids
-from tiny_swarm_world.infrastructure.composition import build_installation_lifecycle_service, build_component_update_execution, build_component_update_journal
+from tiny_swarm_world.infrastructure.composition import build_installation_lifecycle_service, build_component_update_execution, build_component_update_journal, build_portainer_upgrade, build_portainer_upgrade_journal
 
 
 def validate_component_args(parser: ArgumentParser, args: Namespace) -> None:
@@ -45,6 +45,8 @@ async def run_component_updates(args: Namespace) -> None:
         service = ComponentUpdateService(lifecycle.manifests, lifecycle.catalog)
         if args.workflow_action == "updates":
             result = service.discover(args.selected_services)
+        elif args.selected_services == ('portainer',):
+            result = await _run_portainer(args, lifecycle)
         elif args.preview:
             if args.recover:
                 from tiny_swarm_world.application.services.component_execution import component_recovery_preview
@@ -80,4 +82,26 @@ async def run_component_updates(args: Namespace) -> None:
         raise SystemExit(2) from None
     print(json.dumps(result, sort_keys=True, indent=None if args.json else 2))
     if result["status"] not in {"discovered", "preview", "no_op", "completed", "recovered"}:
-        raise SystemExit(1)
+        raise SystemExit(2 if result['status'] == 'refused' else 1)
+
+
+async def _run_portainer(args, lifecycle):
+    from tiny_swarm_world.infrastructure.adapters.cli.portainer_upgrade import portainer_preview, require_no_component_batch
+    from tiny_swarm_world.infrastructure.adapters.cli.consent import _live_consent_from_args
+    from tiny_swarm_world.infrastructure.adapters.cli.parser import _node_provider_request_from_args
+
+    preview = portainer_preview(lifecycle, target=args.to, recovery=args.recover)
+    if args.preview:
+        return preview
+    consent = _live_consent_from_args(args)
+    if not consent.accepted:
+        return {'status': 'refused', 'diagnostics': list(consent.missing_reasons)}
+    require_no_component_batch(lifecycle)
+    executor = build_portainer_upgrade(lifecycle, _node_provider_request_from_args(args))
+    try:
+        return await executor.run(target=args.to, consent=consent, recovery=args.recover)
+    except LifecycleStateError as error:
+        checkpoint = build_portainer_upgrade_journal(lifecycle).load()
+        return {'status': 'failed' if checkpoint is not None and not checkpoint.settled else 'blocked',
+                'stage': None if checkpoint is None else checkpoint.stage,
+                'diagnostics': [str(error)], 'recovery': 'preserve checkpoint/backup; inspect services update --services portainer --recover --preview'}

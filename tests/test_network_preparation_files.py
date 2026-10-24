@@ -38,6 +38,39 @@ class ProtectedFileTests(unittest.TestCase):
         self.target.chmod(0o644)
         return self.observation()
 
+    def _read_with_metadata_change(self, changes: dict, *, increment: str | None = None) -> tuple[bytes, list[int]]:
+        self.target.write_bytes(b"prior\n")
+        self.target.chmod(0o644)
+        descriptor = os.open(self.target, os.O_RDONLY)
+        self.addCleanup(os.close, descriptor)
+        observed = os.fstat(descriptor)
+        fields = ("st_dev", "st_ino", "st_mode", "st_uid", "st_gid", "st_nlink",
+                  "st_size", "st_atime", "st_atime_ns", "st_mtime", "st_mtime_ns",
+                  "st_ctime", "st_ctime_ns")
+        before = SimpleNamespace(**{name: getattr(observed, name) for name in fields})
+        after = SimpleNamespace(**(vars(before) | changes))
+        if increment is not None:
+            setattr(after, increment, getattr(before, increment) + 1)
+        with patch.object(helper.os, "fstat", side_effect=(before, after)):
+            return helper._read(descriptor, os.getuid(), os.getgid())
+
+    def test_read_accepts_access_time_change_without_changing_metadata(self) -> None:
+        content, metadata = self._read_with_metadata_change({"st_atime": 1.0, "st_atime_ns": 1_000_000_000})
+        observed = self.target.stat()
+        self.assertEqual(b"prior\n", content)
+        self.assertEqual(helper._identity(observed) + [observed.st_nlink, observed.st_size,
+                         observed.st_mtime_ns, observed.st_ctime_ns], metadata)
+
+    def test_read_rejects_each_protected_metadata_change(self) -> None:
+        for field in ("st_dev", "st_ino", "st_mode", "st_uid", "st_gid", "st_nlink",
+                      "st_size", "st_mtime_ns", "st_ctime_ns"):
+            with self.subTest(field=field), self.assertRaisesRegex(RuntimeError, "changed during observation"):
+                self._read_with_metadata_change({}, increment=field)
+
+    def test_read_rejects_file_type_change(self) -> None:
+        with self.assertRaisesRegex(RuntimeError, "changed during observation"):
+            self._read_with_metadata_change({"st_mode": 0o040644})
+
     def test_new_file_and_compatible_reuse_write_nothing(self) -> None:
         self.publish(self.observation(), b"new\n")
         before = self.observation()

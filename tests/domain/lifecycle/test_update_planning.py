@@ -122,7 +122,7 @@ class UpdatePlanningTests(unittest.TestCase):
             plan = plan_component_updates(catalog, manifest, ("nexus",), target)
             self.assertEqual(plan.status, "blocked")
             self.assertEqual(plan.services[0].status, "unsupported")
-        self.assertFalse(any(item.update_transitions for item in catalog.services))
+        self.assertFalse(any(item.update_transitions for item in catalog.services if item.service_id != "portainer"))
 
     def test_invalid_unknown_duplicate_empty_and_uninstalled_selection(self):
         catalog, manifest = update_fixture(("nexus",))

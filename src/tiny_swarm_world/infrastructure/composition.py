@@ -295,3 +295,16 @@ def build_component_update_journal(lifecycle: Any) -> Any:
     from .composition_lifecycle import build_component_update_journal as build
 
     return build(lifecycle)
+
+
+def build_portainer_upgrade(*args: Any, **kwargs: Any) -> Any:
+    from .composition_lifecycle import build_portainer_upgrade as build
+
+    return build(*args, resolve_profile=_runtime.resolve_runtime_profile,
+                 required_secret=_runtime._required_operator_secret_value, **kwargs)
+
+
+def build_portainer_upgrade_journal(lifecycle: Any) -> Any:
+    from .composition_lifecycle import build_portainer_upgrade_journal as build
+
+    return build(lifecycle)

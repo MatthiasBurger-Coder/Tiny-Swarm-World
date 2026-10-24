@@ -58,6 +58,12 @@ def _parent(path: Path, anchor: Path, uid: int) -> tuple[int, list[list[int]]]:
         raise
 
 
+def _read_state(info: os.stat_result) -> tuple[int, ...]:
+    # Reading may update atime; identity, permissions and mutation times must stay stable.
+    return (info.st_dev, info.st_ino, info.st_mode, info.st_uid, info.st_gid,
+            info.st_nlink, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+
+
 def _read(fd: int, uid: int, gid: int) -> tuple[bytes, list[int]]:
     info = os.fstat(fd)
     if (not stat.S_ISREG(info.st_mode) or info.st_uid != uid
@@ -70,7 +76,7 @@ def _read(fd: int, uid: int, gid: int) -> tuple[bytes, list[int]]:
     if len(content) != info.st_size or len(content) > MAX_BYTES:
         raise ValueError("Protected file exceeds size limit")
     after = os.fstat(fd)
-    if info != after:
+    if _read_state(info) != _read_state(after):
         raise RuntimeError("Protected file changed during observation")
     metadata = _identity(info) + [info.st_nlink, info.st_size, info.st_mtime_ns, info.st_ctime_ns]
     return content, metadata
