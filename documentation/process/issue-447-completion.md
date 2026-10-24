@@ -67,9 +67,10 @@ signalling. Tests retain running/zombie distinctions and permission errors.
 The original timeout/cancellation cleanup scenarios remain required.
 
 The new regressions reproduced both failures on SSH/WSL before the corrections.
-The full repair quality gate passed: 2808 tests in 226.794s, 18 skipped, all
-sub-gates green. The separate full branch-coverage execution also passed:
-2808 tests in 201.755s, 18 skipped. After these runs, the negative metadata
+The full repair quality gate passed: 2808 tests in 226.794s, all sub-gates green.
+Its 18 skipped checks remain unverified. The separate full branch-coverage
+execution passed: 2808 tests in 201.755s; its 18 skips remain unverified.
+After these runs, the negative metadata
 fixture was strengthened to derive each mutation from its exact initial sample;
 the product fix is unchanged. Final focused checks passed normally (40 tests,
 24.457s) and under branch coverage (40 tests, 24.382s); final lint and typecheck
