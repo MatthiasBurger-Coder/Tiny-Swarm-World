@@ -99,6 +99,25 @@ violate the existing hexagonal boundaries.
 
 == Consequences and limits
 
+=== W08 implementation alignment (2026-10-24)
+
+The operator designated published RC-5 (`0.5.0`, revision
+`b3de7fa16e24c5702d61f855851c6c3255871489`) as the product target from
+`0.4.0` (`346f4a43dbdc43380e7bc703ab185bc06746965b`). Both published
+package metadata versions are `0.2.0`; release and revision remain distinct.
+The controller is newer than both releases and runs from preserved management
+tooling against an explicit inventoried prepared-Git installation anchor.
+It stages target code/environment and protected infra beneath ignored local
+state, atomically switches an active pointer/launcher, and records product state
+after fresh full-selection verification. Original code/environment and state
+anchor stay in place. Schema-1 migrations are protected-infra-v1 then
+installation-product-v1; installed component images do not change. Recovery
+finishes the same target, with no supported reverse migration. Existing published
+executables cannot honor newly introduced journal guards; operators must serialize
+all writers. This alignment does not claim W09 live qualification.
+
+=== Delivery limits
+
 W02–W08 implement contracts and supported transitions, W09 qualifies exact
 native/WSL2 scenarios, and W10 audits the parent. No additional runtime is
 qualified. No automatic reset, secret rotation, deletion, unattended update,

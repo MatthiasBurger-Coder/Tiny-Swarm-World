@@ -127,7 +127,8 @@ def parse_args(argv: Sequence[str] | None = None) -> Namespace:
         help="Recover the recorded platform or component image transition; requires live consent.",
     )
     parser.add_argument("--services", help="Comma-separated canonical service IDs for selective setup or preview.")
-    parser.add_argument("--to", help="Catalog target ID for a single services update; never an arbitrary image tag.")
+    parser.add_argument("--to", help="Explicit product release for product upgrade, or catalog target ID for one services update.")
+    parser.add_argument('--adoption-manifest', help='Verified legacy installation inventory for product upgrade; contains references, never credential values.')
     parser.add_argument("--minimal", action="store_true", help="Select mandatory Classic foundations only.")
     parser.add_argument("--selection-config", help="YAML/JSON selection file containing a services list.")
     parser.add_argument("workflow_namespace", nargs="?", help="Workflow namespace.")
@@ -183,14 +184,14 @@ def _assign_workflow(parser: ArgumentParser, args: Namespace) -> None:
     args.workflow = CLI_WORKFLOWS_BY_KEY.get((args.workflow_namespace, args.workflow_action))
     if args.workflow is None:
         parser.error(f"unsupported workflow command: {args.workflow_namespace} {args.workflow_action}")
-    if args.workflow_namespace in {"product", "services"} and args.workflow_action not in {"add", "update"} and (args.live or args.approve_live or args.confirm or args.preflight):
+    if args.workflow_namespace in {"product", "services"} and args.workflow_action not in {"add", "update", "upgrade"} and (args.live or args.approve_live or args.confirm or args.preflight):
         parser.error("lifecycle inspection is read-only; omit mutation/consent/preflight flags")
     is_update = args.workflow_namespace == "platform" and args.workflow_action == "update"
     update_options_present = any(
         value is not None
         for value in (args.stack, args.service, args.from_image, args.to_image)
     ) or (args.preview and not args.selection_preview and not args.component_update_command) or args.recover
-    if not is_update and not args.component_update_command and update_options_present:
+    if not is_update and not args.component_update_command and not args.product_upgrade_command and update_options_present:
         parser.error("update options require command: platform update")
     if is_update:
         if args.recover:

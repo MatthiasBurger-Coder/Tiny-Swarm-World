@@ -308,3 +308,18 @@ def build_portainer_upgrade_journal(lifecycle: Any) -> Any:
     from .composition_lifecycle import build_portainer_upgrade_journal as build
 
     return build(lifecycle)
+
+
+def build_product_upgrade(*, adoption_file=None) -> Any:
+    from .composition_product import build_product_upgrade as build
+
+    return build(adoption_file=adoption_file, runtime_factory=_runtime,
+                 platform_factory=build_platform_services,
+                 deployment_factory=build_deployment_services_for_provider)
+
+
+def ensure_product_mutation_available() -> None:
+    from .adapters.lifecycle.desired_images import require_settled_product
+    from .project_paths import default_project_paths
+
+    require_settled_product(default_project_paths().repository_root)

@@ -44,6 +44,14 @@ def require_settled_updates(root: Path) -> None:
         raise LifecycleStateError('Component runtime/configuration update is incomplete; resume or recover the original selection before setup/deployment.')
 
 
+def require_settled_product(root: Path) -> None:
+    from tiny_swarm_world.infrastructure.adapters.lifecycle.product_journal import JsonProductJournal
+
+    checkpoint = JsonProductJournal(local_state_file(root=root, relative_path='installation/product-upgrade.json')).load()
+    if checkpoint is not None and checkpoint.stage != 'completed':
+        raise LifecycleStateError('Product upgrade incomplete; resume it before setup/deployment.')
+
+
 def effective_component_inventory(catalog, resolved_services, existing, root):
     """Use the same committed pins when checking retained setup components."""
     from tiny_swarm_world.domain.artifacts.container_image_contract import DEFAULT_CONTAINER_IMAGE_CONTRACTS

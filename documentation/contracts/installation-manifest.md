@@ -30,7 +30,9 @@ The product field identifies the recorded installed product, not necessarily
 the currently executing checkout. It records release, exact revision, lock
 SHA-256, configuration schema and the `prepared-git` installation model.
 Read-only commands do not run Git or claim a dirty working tree is upgradeable.
-W08 owns checkout verification and source-to-target release admission.
+W08 implements checkout verification and source-to-target release admission for
+the pinned 0.4.0 → 0.5.0 transition. See [product upgrades](../user_guide/product-upgrades.md)
+for legacy inventory, protected anchor, management-tooling and recovery requirements.
 
 ## Schema and ownership
 

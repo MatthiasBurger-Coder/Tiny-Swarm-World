@@ -49,6 +49,7 @@ PLATFORM_WORKFLOW_ORDER = (
 
 CLI_WORKFLOWS = (
     CliWorkflow(namespace="product", action="version", mutating=False, destructive=False),
+    CliWorkflow(namespace="product", action="upgrade", mutating=True, destructive=False),
     CliWorkflow(namespace="services", action="list", mutating=False, destructive=False),
     CliWorkflow(namespace="services", action="updates", mutating=False, destructive=False),
     CliWorkflow(namespace="services", action="update", mutating=True, destructive=False),

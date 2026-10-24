@@ -7,6 +7,11 @@ from tiny_swarm_world.infrastructure.composition import build_installation_lifec
 
 
 async def run_lifecycle_inspection(args: Namespace) -> None:
+    if args.product_upgrade_command:
+        from tiny_swarm_world.infrastructure.adapters.cli.product_upgrade import run_product_upgrade
+
+        await run_product_upgrade(args)
+        return
     if args.component_update_command:
         from tiny_swarm_world.infrastructure.adapters.cli.component_updates import run_component_updates
 
