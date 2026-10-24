@@ -9,6 +9,7 @@ from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
 from tiny_swarm_world.infrastructure.adapters.lifecycle.manifest import JsonManifestRepository
 from tiny_swarm_world.infrastructure.adapters.lifecycle.product_source import OFFICIAL_REPOSITORY
 
+GIT_STATUS = ('git', 'status', '--porcelain', '--untracked-files=normal')
 
 def stage(installation, plan):
     from tiny_swarm_world.infrastructure.adapters.lifecycle.product_paths import require_private_product_paths
@@ -23,7 +24,7 @@ def stage(installation, plan):
     origin = installation._command(('git', 'remote', 'get-url', 'origin'), cwd=destination)
     if origin != OFFICIAL_REPOSITORY:
         raise LifecycleStateError('Staged product origin is not the official repository.')
-    if installation._command(('git', 'status', '--porcelain', '--untracked-files=normal'), cwd=destination):
+    if installation._command(GIT_STATUS, cwd=destination):
         raise LifecycleStateError('Staged operator changes must be inspected before checkout.')
     installation._verify_checkout(plan)
     python = destination / '.venv' / 'bin' / 'python'
@@ -46,7 +47,7 @@ def _clone_release(installation, plan):
     installation._command(('git', 'clone', '--filter=blob:none', '--branch', plan.target.product.release,
                            OFFICIAL_REPOSITORY, str(pending)), timeout=300)
     revision = installation._command(('git', 'rev-parse', 'HEAD'), cwd=pending)
-    dirty = installation._command(('git', 'status', '--porcelain', '--untracked-files=normal'), cwd=pending)
+    dirty = installation._command(GIT_STATUS, cwd=pending)
     if revision != plan.target.product.revision or dirty:
         raise LifecycleStateError('Staged release ref changed or checkout incomplete; preserve staged clone for review.')
     os.replace(pending, installation.directory(plan))
@@ -60,7 +61,7 @@ def _verify_checkout(installation, plan):
     destination = installation.directory(plan)
     if installation._command(('git', 'rev-parse', 'HEAD'), cwd=destination) != plan.target.product.revision:
         raise LifecycleStateError('Staged product revision mismatch.')
-    if installation._command(('git', 'status', '--porcelain', '--untracked-files=normal'), cwd=destination):
+    if installation._command(GIT_STATUS, cwd=destination):
         raise LifecycleStateError('Staged product checkout is dirty; preserve it for inspection.')
     try:
         version = tomllib.loads((destination / 'pyproject.toml').read_text())['project']['version']

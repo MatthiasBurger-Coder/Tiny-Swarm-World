@@ -91,20 +91,24 @@ def verify_service(shell, name, expected, *, one_shot=False):
         if before.get('rollout', '') not in {'', 'completed'}:
             raise ValueError
         observed = [json.loads(line) for line in records.stdout.splitlines() if line.strip()]
-        current = [item for item in observed if item['desired'] == 'running' or item['state'] == 'running']
-        if one_shot:
-            if current or not observed or not (observed[0]['state'] == 'complete' and observed[0]['exit'] == 0
-                    and image_matches(observed[0]['image'], before['image'])):
-                raise ValueError
-        else:
-            replicas = before['mode'].get('Replicated', {}).get('Replicas')
-            if not current or (replicas is not None and len(current) != replicas):
-                raise ValueError
-            if any(item['state'] != 'running' or item['desired'] != 'running' or not image_matches(item['image'], before['image']) for item in current):
-                raise ValueError
+        _require_task_convergence(before, observed, one_shot)
         return before['id']
     except (ValueError, TypeError, KeyError):
         raise LifecycleStateError('Selected service image/task convergence failed; no product success recorded.') from None
+
+
+def _require_task_convergence(service, observed, one_shot):
+    current = [item for item in observed if item['desired'] == 'running' or item['state'] == 'running']
+    if one_shot:
+        if current or not observed or not (observed[0]['state'] == 'complete' and observed[0]['exit'] == 0
+                and image_matches(observed[0]['image'], service['image'])):
+            raise ValueError
+        return
+    replicas = service['mode'].get('Replicated', {}).get('Replicas')
+    if not current or (replicas is not None and len(current) != replicas):
+        raise ValueError
+    if any(item['state'] != 'running' or item['desired'] != 'running' or not image_matches(item['image'], service['image']) for item in current):
+        raise ValueError
 
 
 def _read_json(shell, command):

@@ -29,6 +29,7 @@ def response(payload):
 
 class OfficialReleaseTests(unittest.TestCase):
     def setUp(self):
+        self.source = OfficialProductSource()
         self.release = response({'tag_name': '0.5.0', 'draft': False, 'prerelease': False})
         self.ref = response({'object': {'type': 'commit', 'sha': TARGET_REVISION}})
         self.project = response({})
@@ -45,7 +46,7 @@ class OfficialReleaseTests(unittest.TestCase):
 
     def test_official_release_is_pinned_to_actual_revision_and_lock(self):
         with patch('tiny_swarm_world.infrastructure.adapters.lifecycle.product_source.requests.get', side_effect=self.responses) as get:
-            release, changes = OfficialProductSource().resolve('0.5.0')
+            release, changes = self.source.resolve('0.5.0')
         self.assertEqual(release.product.revision, TARGET_REVISION)
         self.assertEqual(release.product.dependency_lock, 'sha256:' + hashlib.sha256(self.lock.content).hexdigest())
         self.assertEqual(changes, ('infra/config/compose/portainer/docker-compose.yml',))
@@ -55,26 +56,26 @@ class OfficialReleaseTests(unittest.TestCase):
         self.ref.json.return_value['object']['sha'] = 'a' * 40
         with patch('tiny_swarm_world.infrastructure.adapters.lifecycle.product_source.requests.get', side_effect=self.responses):
             with self.assertRaises(LifecycleStateError):
-                OfficialProductSource().resolve('0.5.0')
+                self.source.resolve('0.5.0')
 
     def test_draft_prerelease_or_wrong_tag_cannot_be_admitted(self):
         for update in ({'draft': True}, {'prerelease': True}, {'tag_name': 'main'}):
             self.release.json.return_value = dict(tag_name='0.5.0', draft=False, prerelease=False, **{}) | update
             with patch('tiny_swarm_world.infrastructure.adapters.lifecycle.product_source.requests.get', side_effect=self.responses):
                 with self.assertRaises(LifecycleStateError):
-                    OfficialProductSource().resolve('0.5.0')
+                    self.source.resolve('0.5.0')
 
     def test_configuration_deletion_and_truncated_tree_are_blocked(self):
         for payload in ({'truncated': False, 'tree': []}, {'truncated': True, 'tree': []}):
             self.after_tree.json.return_value = payload
             with patch('tiny_swarm_world.infrastructure.adapters.lifecycle.product_source.requests.get', side_effect=self.responses):
                 with self.assertRaises(LifecycleStateError):
-                    OfficialProductSource().resolve('0.5.0')
+                    self.source.resolve('0.5.0')
 
     def test_large_comparison_uses_complete_trees_instead_of_truncated_file_list(self):
         self.comparison.json.return_value['files'] *= 300
         with patch('tiny_swarm_world.infrastructure.adapters.lifecycle.product_source.requests.get', side_effect=self.responses):
-            _, changes = OfficialProductSource().resolve('0.5.0')
+            _, changes = self.source.resolve('0.5.0')
         self.assertEqual(changes, ('infra/config/compose/portainer/docker-compose.yml',))
 
     def test_support_asset_matches_machine_policy(self):
@@ -214,13 +215,15 @@ class ProductRuntimeTests(unittest.TestCase):
     def test_successful_one_shot_requires_completed_target_task(self):
         self.assertEqual(verify_service(self.shell(state='complete', desired='shutdown'),
             'pulsar_bootstrap', 'example:1', one_shot=True), 'service-id')
+        failed = self.shell(state='complete', desired='shutdown', exit_code=1)
         with self.assertRaises(LifecycleStateError):
-            verify_service(self.shell(state='complete', desired='shutdown', exit_code=1), 'pulsar_bootstrap', 'example:1', one_shot=True)
+            verify_service(failed, 'pulsar_bootstrap', 'example:1', one_shot=True)
 
     def test_old_task_drift_failed_rollout_and_changed_service_are_rejected(self):
         for kwargs in ({'task_image': 'example:old'}, {'image': 'example:old'}, {'state': 'failed'}, {'changed': True}):
+            shell = self.shell(**kwargs)
             with self.subTest(kwargs=kwargs), self.assertRaises(LifecycleStateError):
-                verify_service(self.shell(**kwargs), 'jenkins_jenkins', 'example:1')
+                verify_service(shell, 'jenkins_jenkins', 'example:1')
 
     def test_tag_only_inventory_still_requires_actual_service_digest_convergence(self):
         shell = self.shell(image='example:1@sha256:' + 'a' * 64, task_image='example:1@sha256:' + 'b' * 64)
@@ -235,8 +238,9 @@ class ProductRuntimeFailureTests(unittest.IsolatedAsyncioTestCase):
         runtime = ClassicProductRuntime(Path('/unused'), Mock(), Mock(), Mock(), Mock())
         runtime._verify = AsyncMock(side_effect=OperationError(OperationFailure.for_cause(
             'product.verify', 'gateway', 'request_failed')))
+        manifest = product_plan().manifest
         with self.assertRaises(LifecycleStateError) as caught:
-            await runtime.verify(product_plan().manifest)
+            await runtime.verify(manifest)
         self.assertIsNone(caught.exception.__cause__)
         self.assertIn('authenticated', str(caught.exception))
 
@@ -244,10 +248,11 @@ class ProductRuntimeFailureTests(unittest.IsolatedAsyncioTestCase):
         import asyncio
 
         runtime = ClassicProductRuntime(Path('/unused'), Mock(), Mock(), Mock(), Mock())
+        manifest = product_plan().manifest
         for failure in (AssertionError('defect'), asyncio.CancelledError()):
             runtime._verify = AsyncMock(side_effect=failure)
             with self.assertRaises(type(failure)):
-                await runtime.verify(product_plan().manifest)
+                await runtime.verify(manifest)
 
 
 class ProductEnvironmentTests(unittest.TestCase):

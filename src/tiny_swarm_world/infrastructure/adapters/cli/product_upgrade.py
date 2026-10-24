@@ -34,20 +34,9 @@ async def run_product_upgrade(args):
             result = {'status': 'refused', 'diagnostics': list(consent.missing_reasons)}
         else:
             service = composition.build_product_upgrade(adoption_file=args.adoption_manifest)
-            if args.preview:
-                result = await service.preview(args.to, recovery=args.recover)
-            else:
-                result = await service.run(args.to, consent=consent, recovery=args.recover)
+            result = await _run_request(args, service, consent)
     except LifecycleStateError as error:
-        result = {'status': 'blocked', 'diagnostics': [str(error)],
-                  'recovery': 'preserve source/checkpoint; use product upgrade --to 0.5.0 --recover --preview from management checkout'}
-        if service is not None:
-            try:
-                checkpoint = service.journal.load()
-                if checkpoint is not None and checkpoint.stage != 'completed':
-                    result.update(status='failed', stage=checkpoint.stage)
-            except LifecycleStateError:
-                result.update(status='failed', stage='unknown; checkpoint unavailable')
+        result = _failure_result(service, error)
     except ValueError:
         # Technical details/configuration/credentials never enter operator evidence.
         result = {'status': 'blocked', 'diagnostics': ['Product operation blocked; preserve source and checkpoint. Inspect release, inventory, host/resources and --recover --preview.']}
@@ -56,3 +45,23 @@ async def run_product_upgrade(args):
     print(json.dumps(result, sort_keys=True, indent=None if args.json else 2))
     if result['status'] not in {'preview', 'verification_required', 'completed', 'no_op'}:
         raise SystemExit(2 if result['status'] == 'refused' else 1)
+
+
+async def _run_request(args, service, consent):
+    if args.preview:
+        return await service.preview(args.to, recovery=args.recover)
+    return await service.run(args.to, consent=consent, recovery=args.recover)
+
+
+def _failure_result(service, error):
+    result = {'status': 'blocked', 'diagnostics': [str(error)],
+              'recovery': 'preserve source/checkpoint; use product upgrade --to 0.5.0 --recover --preview from management checkout'}
+    if service is None:
+        return result
+    try:
+        checkpoint = service.journal.load()
+        if checkpoint is not None and checkpoint.stage != 'completed':
+            result.update(status='failed', stage=checkpoint.stage)
+    except LifecycleStateError:
+        result.update(status='failed', stage='unknown; checkpoint unavailable')
+    return result

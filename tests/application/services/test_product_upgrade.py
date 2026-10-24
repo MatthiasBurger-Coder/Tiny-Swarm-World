@@ -132,9 +132,10 @@ class ProductUpgradeTests(unittest.IsolatedAsyncioTestCase):
     async def test_component_and_gateway_writers_are_blocked_by_product_checkpoint(self):
         self.journal.save(ProductCheckpoint(plan=self.plan, stage='staging', service_identities={}))
         for gateway in (False, True):
+            journal = JsonUpdateJournal(self.root / 'component-update.json', gateway=gateway)
             with self.subTest(gateway=gateway), self.assertRaises(LifecycleStateError):
-                with JsonUpdateJournal(self.root / 'component-update.json', gateway=gateway).exclusive():
-                    self.fail('writer admitted')
+                with journal.exclusive():
+                    pass
 
     async def test_recovery_preview_is_pinned_and_read_only(self):
         self.journal.save(ProductCheckpoint(plan=self.plan, stage='staging', service_identities={}))
@@ -156,9 +157,11 @@ class ProductUpgradeTests(unittest.IsolatedAsyncioTestCase):
             self.assertTrue(await asyncio.to_thread(started.wait, 2))
             operation.cancel()
             await asyncio.sleep(0)
+            operation.cancel()
+            await asyncio.sleep(0)
             with self.assertRaises(LifecycleStateError):
                 with self.journal.exclusive():
-                    self.fail('cancelled worker released shared lock early')
+                    pass
             self.assertFalse(operation.done())
         finally:
             release.set()

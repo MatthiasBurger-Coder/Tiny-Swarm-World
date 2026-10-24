@@ -13,17 +13,21 @@ async def _blocking(operation, *args):
     try:
         return await asyncio.shield(worker)
     except asyncio.CancelledError:
-        while not worker.done():
-            try:
-                await asyncio.shield(worker)
-            except asyncio.CancelledError:
-                continue
-            except Exception:
-                # Cancellation remains the caller's outcome; durable stage retains uncertainty.
-                break
-        if not worker.cancelled():
-            worker.exception()
-        raise
+        try:
+            await _settle(worker)
+        finally:
+            raise
+
+
+async def _settle(worker):
+    """Repeated cancellation still waits for cleanup and is always re-raised."""
+    try:
+        await asyncio.shield(asyncio.gather(worker, return_exceptions=True))
+    except asyncio.CancelledError:
+        try:
+            await _settle(worker)
+        finally:
+            raise
 
 
 class ProductUpgradeService:

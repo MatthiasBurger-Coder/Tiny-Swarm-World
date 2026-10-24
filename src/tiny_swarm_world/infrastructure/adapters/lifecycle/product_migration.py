@@ -29,6 +29,21 @@ def migrate_product_infra(installation, plan):
     for path in temporary.rglob('*'):
         path.chmod(0o700 if path.is_dir() or path.stat().st_mode & 0o111 else 0o600)
     temporary.chmod(0o700)
+    _migrate_changed_assets(installation, plan, target, temporary)
+    for path in temporary.rglob('*'):
+        if path.is_file():
+            with path.open('rb') as stream:
+                os.fsync(stream.fileno())
+    os.replace(temporary, destination)
+    descriptor = os.open(destination.parent, os.O_DIRECTORY)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+    verify_product_infra(installation, plan)
+
+
+def _migrate_changed_assets(installation, plan, target, temporary):
     for relative in plan.configuration_changes:
         member = Path(relative)
         if member.is_absolute() or '..' in member.parts or member.parts[0] != 'infra':
@@ -44,17 +59,6 @@ def migrate_product_infra(installation, plan):
         outgoing.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
         shutil.copyfile(incoming, outgoing)
         outgoing.chmod(0o700 if incoming.stat().st_mode & 0o111 else 0o600)
-    for path in temporary.rglob('*'):
-        if path.is_file():
-            with path.open('rb') as stream:
-                os.fsync(stream.fileno())
-    os.replace(temporary, destination)
-    descriptor = os.open(destination.parent, os.O_DIRECTORY)
-    try:
-        os.fsync(descriptor)
-    finally:
-        os.close(descriptor)
-    verify_product_infra(installation, plan)
 
 
 def verify_product_infra(installation, plan):
