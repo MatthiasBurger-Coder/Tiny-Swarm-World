@@ -49,6 +49,8 @@ STACK_NAME_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_.-]*$")
 TRAEFIK_INGRESS_NETWORK_NAME = "service_access_link"
 _YAML = YAML(typ="safe")
 IMAGE_OVERRIDE_ENVIRONMENT_BY_CONTEXT = {
+    "portainer": "TSW_PORTAINER_IMAGE",
+    "portainer-agent": "TSW_PORTAINER_AGENT_IMAGE",
     "nexus": "TSW_NEXUS_IMAGE",
     "jenkins": "TSW_JENKINS_IMAGE",
     "service-access-dashboard": "TSW_SERVICE_ACCESS_DASHBOARD_IMAGE",

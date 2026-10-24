@@ -71,3 +71,35 @@ def build_component_update_journal(lifecycle):
     from tiny_swarm_world.infrastructure.adapters.lifecycle.update_journal import JsonUpdateJournal
 
     return JsonUpdateJournal(lifecycle.manifests.path.parent / 'component-update.json')
+
+
+def build_portainer_upgrade(lifecycle, node_provider_request=None, *, resolve_profile, required_secret):
+    """Compose the dedicated gateway path with the existing manager-shell runtime."""
+    import logging
+    from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
+    from tiny_swarm_world.application.services.portainer_upgrade import PortainerUpgradeService
+    from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.manager_shell_gateway import LxcManagerShellGateway
+    from tiny_swarm_world.infrastructure.adapters.clients.lxc.services.lxc_portainer_http_client import LxcPortainerHttpClient
+    from tiny_swarm_world.infrastructure.adapters.lifecycle.portainer_journal import JsonPortainerJournal
+    from tiny_swarm_world.infrastructure.adapters.lifecycle.portainer_runtime import ClassicPortainerUpgradeRuntime
+
+    snapshot = lifecycle.manifests.load()
+    if snapshot.manifest is None:
+        raise LifecycleStateError('Adopt installation state before Portainer upgrade.')
+    profile = resolve_profile(snapshot.manifest.service_preset, node_provider_request)
+    if profile.backend is None:
+        raise LifecycleStateError('Portainer upgrade requires a supported Classic Incus runtime.')
+    password = required_secret('TSW_PORTAINER_ADMIN_PASSWORD')
+    client = LxcPortainerHttpClient(backend=profile.backend, username='admin', password=password)
+    shell = LxcManagerShellGateway(backend=profile.backend, manager_node='swarm-manager',
+                                   timeout_seconds=300, logger=logging.getLogger('PortainerUpgrade'))
+    runtime = ClassicPortainerUpgradeRuntime(shell, client._client(), managed_stacks=tuple(
+        name for name in snapshot.manifest.resolved_services if name not in {'incus', 'portainer'}))
+    journal = JsonPortainerJournal(lifecycle.manifests.path.parent / 'portainer-upgrade.json')
+    return PortainerUpgradeService(lifecycle.manifests, journal, runtime)
+
+
+def build_portainer_upgrade_journal(lifecycle):
+    from tiny_swarm_world.infrastructure.adapters.lifecycle.portainer_journal import JsonPortainerJournal
+
+    return JsonPortainerJournal(lifecycle.manifests.path.parent / 'portainer-upgrade.json')

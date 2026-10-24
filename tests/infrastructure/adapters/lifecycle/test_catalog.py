@@ -26,7 +26,7 @@ class NativeCatalogTests(unittest.TestCase):
         self.assertEqual(components["pulsar-manager-bootstrap"].service_id, "pulsar")
         self.assertIn("nexus", services["jenkins"].dependencies)
         self.assertIn("infisical", services["service-access"].dependencies)
-        self.assertTrue(all(item.migration_policy == "no-qualified-transition" for item in catalog.services))
+        self.assertTrue(all(item.migration_policy == ("explicit-transitions" if item.service_id == "portainer" else "no-qualified-transition") for item in catalog.services))
         self.assertTrue(all(item.resources.qualification == "native-declarations-only" for item in catalog.services))
 
     def test_mismatched_native_image_blocks_without_echoing_configuration(self):

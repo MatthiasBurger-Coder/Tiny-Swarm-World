@@ -8,7 +8,7 @@ from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
 from tiny_swarm_world.domain.artifacts.container_image_contract import DEFAULT_CONTAINER_IMAGE_CONTRACTS
 from tiny_swarm_world.domain.deployment.service_stack_contract import service_stack_contracts_for_profile
 from tiny_swarm_world.domain.lifecycle.models import (
-    ComponentCatalog, ComponentState, ComponentUpdateTarget, ResourceRequirements, ServiceDefinition, VersionIdentity,
+    ComponentCatalog, ComponentState, ComponentUpdateTarget, ComponentUpdateTransition, ResourceRequirements, ServiceDefinition, VersionIdentity,
 )
 
 # Only logical dependency/policy metadata lives here. Image/build versions remain
@@ -73,6 +73,18 @@ class NativeComponentCatalog:
                              else ("default", "service-access")),
                 ),),
             ))
+        from tiny_swarm_world.domain.lifecycle.portainer_upgrade import SOURCE_VERSION, TARGET_VERSION, TARGET_ID, versions
+
+        services = [item.model_copy(update={
+            'migration_policy': 'explicit-transitions',
+            'update_targets': item.update_targets + (ComponentUpdateTarget(
+                target_id=TARGET_ID, qualification='qualified-transition', metadata_source='portainer-release-policy',
+                versions=versions(TARGET_VERSION)),),
+            'update_transitions': (ComponentUpdateTransition(
+                target_id=TARGET_ID, source_versions=versions(SOURCE_VERSION), migrations=('cold-portainer-data-backup',),
+                backup_required=True, availability_impact='Management outage during cold backup and server/agent restart.',
+                recovery_limit='Restore checked cold /data backup with source server/agent; single-manager CE only. W09 live qualification pending.'),),
+        }) if item.service_id == 'portainer' else item for item in services]
         catalog = ComponentCatalog(services=tuple(sorted(services, key=lambda item: item.service_id)))
         identities = [component.component_id for service in services for component in service.components]
         if len(identities) != len(set(identities)):

@@ -10,8 +10,9 @@ from tiny_swarm_world.domain.lifecycle.update_execution import UpdateBatch
 
 
 class JsonUpdateJournal:
-    def __init__(self, path: Path):
+    def __init__(self, path: Path, *, gateway: bool = False):
         self.path = path
+        self.gateway = gateway
 
     @contextmanager
     def exclusive(self):
@@ -20,6 +21,12 @@ class JsonUpdateJournal:
             descriptor = os.open(self.path.with_suffix('.lock'), os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
             with os.fdopen(descriptor, 'a') as stream:
                 fcntl.flock(stream, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                if not self.gateway:
+                    from tiny_swarm_world.infrastructure.adapters.lifecycle.portainer_journal import JsonPortainerJournal
+
+                    checkpoint = JsonPortainerJournal(self.path.with_name('portainer-upgrade.json')).load()
+                    if checkpoint is not None and not checkpoint.settled:
+                        raise LifecycleStateError('Recover the interrupted Portainer operation before component updates.')
                 yield
         except OSError:
             raise LifecycleStateError('Update journal unavailable or another update is active; inspect before retrying.') from None
