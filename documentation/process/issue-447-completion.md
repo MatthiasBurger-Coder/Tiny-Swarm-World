@@ -48,6 +48,34 @@ the seven targeted rechecks passed. No quality rule or test was weakened.
 Independent evidence reconciliation passed and verified the open W09 handoff.
 Final publication checks, including CI and SonarCloud, must pass before merge.
 
+## Coverage reliability repair
+
+The operator explicitly extended the completion scope to repair two failures in
+the CI coverage run. Four Three-Amigos perspectives (requirements, architecture,
+Python implementation and testing) approved the bounded fix before editing.
+
+Protected reads now compare device, inode, full mode, owner/group, link count,
+size and nanosecond modification/change times. Access time is excluded because
+the read itself may update it. The stored fingerprint format and existing
+no-follow, ownership, hardlink, size and publication guards remain enforced.
+Deterministic regressions exercise access-time-only changes and rejection of
+each protected metadata change, including file type and nanosecond timestamps.
+
+The process test helper treats FileNotFoundError and ProcessLookupError during
+/proc observation as process exit. Cleanup also handles exit immediately before
+signalling. Tests retain running/zombie distinctions and permission errors.
+The original timeout/cancellation cleanup scenarios remain required.
+
+The new regressions reproduced both failures on SSH/WSL before the corrections.
+The full repair quality gate passed: 2808 tests in 226.794s, 18 skipped, all
+sub-gates green. The separate full branch-coverage execution also passed:
+2808 tests in 201.755s, 18 skipped. After these runs, the negative metadata
+fixture was strengthened to derive each mutation from its exact initial sample;
+the product fix is unchanged. Final focused checks passed normally (40 tests,
+24.457s) and under branch coverage (40 tests, 24.382s); final lint and typecheck
+(866 files) also passed. Source hashes match the final local candidate.
+Publication still requires green CI and SonarCloud on the final committed SHA.
+
 ## Live evidence and unresolved W09 blocker
 
 The October 24 records supersede the older statements that no live execution
