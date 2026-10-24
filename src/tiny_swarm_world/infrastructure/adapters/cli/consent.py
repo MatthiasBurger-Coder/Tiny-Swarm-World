@@ -47,6 +47,9 @@ def _live_consent_for_workflow(
         return None
     live_consent = _live_consent_from_args(args)
     if live_consent.accepted:
+        from tiny_swarm_world.infrastructure import composition
+
+        composition.ensure_product_mutation_available()
         return live_consent
     print("REFUSED_LIVE_CONSENT_MISSING")
     for reason in live_consent.missing_reasons:

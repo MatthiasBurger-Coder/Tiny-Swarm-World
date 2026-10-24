@@ -90,6 +90,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
     def test_every_declared_workflow_keeps_its_command_name(self):
         supported_names = (
             "product version",
+            "product upgrade",
             "services list",
             "services updates",
             "services update",
@@ -125,6 +126,8 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
                     )
                 if workflow.namespace == "services" and workflow.action in {"add", "remove", "update"}:
                     argv.extend(["--services", "jenkins", "--preview"])
+                if (workflow.namespace, workflow.action) == ('product', 'upgrade'):
+                    argv.extend(['--to', '0.5.0', '--preview'])
                 parsed = cli_parser.parse_args(argv)
                 self.assertEqual(workflow, parsed.workflow)
 

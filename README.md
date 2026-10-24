@@ -14,6 +14,11 @@ for exact versions, source revisions and deferred scenarios.
 
 ## Prepare, then install
 
+For an existing prepared-Git installation, see the
+[product upgrade guide](documentation/user_guide/product-upgrades.md) for the
+pinned `0.4.0 → 0.5.0 (RC-5)` workflow, explicit legacy inventory and recovery.
+It uses separate management tooling; live qualification remains W09-owned.
+
 Use a complete trusted checkout or release. Enter its root before running these
 commands. For the currently exercised install path, retain Git metadata; a plain
 source archive is insufficient for the installer's secret-ignore check. On Linux,

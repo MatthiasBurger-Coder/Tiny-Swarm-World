@@ -92,6 +92,7 @@ async def run_setup_with_terminal_status(
     # tests that patch composition builders continue to observe this boundary.
     from . import composition as facade
 
+    facade.ensure_product_mutation_available()
     ui = facade.build_setup_ui()
     ui.start_in_thread()
     try:

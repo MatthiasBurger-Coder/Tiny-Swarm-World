@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "source_release": "0.4.0",
+  "source_revision": "346f4a43dbdc43380e7bc703ab185bc06746965b",
+  "source_package_version": "0.2.0",
+  "target_release": "0.5.0",
+  "target_revision": "b3de7fa16e24c5702d61f855851c6c3255871489",
+  "target_package_version": "0.2.0",
+  "hosts": ["native-linux", "wsl2"],
+  "configuration_schema": 1,
+  "migrations": ["protected-infra-v1", "installation-product-v1"],
+  "component_policy": "preserve-installed-images",
+  "downgrade": "unsupported"
+}

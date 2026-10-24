@@ -11,10 +11,13 @@ from tiny_swarm_world.infrastructure.composition import build_installation_lifec
 
 
 def validate_component_args(parser: ArgumentParser, args: Namespace) -> None:
+    from tiny_swarm_world.infrastructure.adapters.cli.product_upgrade import validate_product_args
+
+    validate_product_args(parser, args)
     command = (args.workflow_namespace, args.workflow_action)
     args.component_update_command = command in {("services", "updates"), ("services", "update")}
     if not args.component_update_command:
-        if args.to is not None:
+        if args.to is not None and not args.product_upgrade_command:
             parser.error("--to requires services update --services <id> --preview")
         return
     update = command == ("services", "update")

@@ -15,7 +15,10 @@ the native catalog has baseline references and no qualified upgrade transitions.
 W06 implements selected component execution/recovery and committed desired-image
 pins through the existing Classic engine; no production transition is newly
 qualified. Backup/migration execution and unmapped components remain blocked.
-W07 Portainer execution and W08 product upgrades remain future scope.
+W07 implements dedicated Portainer execution. W08 implements the pinned
+0.4.0 → 0.5.0 (RC-5) prepared-Git product transition through separate management
+tooling; see [product upgrades](../user_guide/product-upgrades.md). Published
+releases do not retroactively contain that controller. W09 owns live qualification.
 The [requirement matrix](../evidence/issue-441-requirement-matrix.md) covers every
 LCM-01–05 bullet and parent acceptance criterion. Parent implementation stays open.
 
@@ -240,7 +243,7 @@ data restoration nor whole-selection/product rollback.
 | Native Ubuntu 26.04 x86_64 / Classic | Same code path; #427 records clean-install evidence, later bootstrap W09 has a narrower existing-host scope | Historical campaigns retain their own SHA/scope; no new clean/minimal/upgrade claim |
 | Windows 11 + Ubuntu WSL2 / Classic | Product runs inside Linux; existing guarded host/bridge preparation | Ordinary Windows Apply guard and bootstrap qualification limits remain; W09 needs actual admitted source/target and consent, not assumed parity |
 | Minimal and two optional selections / either host family | Planned W03/W04 contracts | Unqualified until fresh installs, repeat runs, add/preservation, omission-aware access/routes and failure/recovery pass W09 |
-| Product release upgrade / either family | No implemented transition | W08 defines matrix; W09 qualifies at least one actual source→target transition |
+| Product release upgrade / either family | W08: pinned 0.4.0 → 0.5.0 (RC-5), prepared-Git anchor, explicit legacy inventory, Python 3.12 | Separate management controller; schema-1 protected-infra/product migration; installed images preserved; no downgrade; W09 live qualification pending |
 | Component batch / Portainer upgrade | #297 single-image engine is reusable; batch/persistence/gateway upgrade are separate | W06/W07 implementation plus exact W09 qualification required |
 | Other Linux distributions/architectures, Podman, Kubernetes, multi-host, HA | Not admitted by this contract | Explicitly unsupported/deferred; no implied capability parity |
 

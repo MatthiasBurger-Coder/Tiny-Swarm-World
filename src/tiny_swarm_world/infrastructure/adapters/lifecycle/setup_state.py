@@ -30,8 +30,9 @@ class SetupSelectionState:
         self.configuration_inventory: tuple[ConfigurationReference, ...] = ()
 
     def admit(self, runner: ProcessRunner, *, backend: str, node_names: tuple[str, ...], host: Literal["native-linux", "wsl2"]) -> None:
-        from tiny_swarm_world.infrastructure.adapters.lifecycle.desired_images import require_settled_updates
+        from tiny_swarm_world.infrastructure.adapters.lifecycle.desired_images import require_settled_updates, require_settled_product
 
+        require_settled_product(self.root)
         require_settled_updates(self.root)
         snapshot = self.lifecycle.manifests.load()
         if snapshot.token != self.plan.manifest_token:
