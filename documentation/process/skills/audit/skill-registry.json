@@ -8,23 +8,24 @@
   },
   "skill_format": ".agents/skills/<skill-name>/SKILL.md",
   "counts": {
-    "project_skill_entrypoints": 132,
-    "project_skill_entrypoints_with_valid_metadata": 132,
+    "project_skill_entrypoints": 133,
+    "project_skill_entrypoints_with_valid_metadata": 133,
     "codex_skill_entrypoints": 6,
-    "required_tiny_swarm_world_skills": 48,
+    "required_tiny_swarm_world_skills": 49,
     "removed_stale_microservice_artifacts": 4
   },
   "governing_hashes": {
-    "AGENTS.md": "B6DDD436699271A7CD03163537C876E3BA2E3EE2FF1B01B46FFF791D93CD9432",
+    "AGENTS.md": "A17E7D2147F06FA5F8E47A98EF4A17AD68C1A5D156E378FB3C80EA5F1DBE4C6B",
     "QUALITY.md": "8922817C794F545FD4BABF6CCF7FC6458BAAD0853FF2CA2A0526FF246220D76A",
     "README.md": "2532E6D32F77156CE69E73B3CF2F27FE4CACC63A4F03031950A4D23B42384961",
     "documentation/arc42/08_concepts.adoc": "4CA57FF20823D4736998DC8416C937AFFA25CC4966C21990271E7CA2189C2710",
     "documentation/process/issue-completion-discipline.md": "3DB2D080B7CFBBC3737907A61C67CE6A361485C8993CF4A20C1C5FE2DC743BC3",
-    "documentation/process/skills/audit/skill-registry.md": "96DB22624D52436CD7D3091D050D32DC6FC6058E78AF595787A14EFD08443A00",
-    "documentation/process/skills/audit/organigramm.md": "87C9E8FDF29AAE7038B283EDA39B15B7FDE1FB02CD74E8B7C80A0F18E38E338B",
-    "documentation/process/skills/audit/owner-map.md": "6E20656042FE3F0651AC96E3527CB37A4CC4E24A82C3EFB3CFD9E5CDE198B335"
+    "documentation/process/skills/audit/skill-registry.md": "08773076BC686D1EE7079597DDA1492D24E64C52B65194D8C4A732EC3AC0CEFC",
+    "documentation/process/skills/audit/organigramm.md": "AB5804778B5901413FD1A80E86A24FE6D82DD558722FE983D0CBC77A9A440C6C",
+    "documentation/process/skills/audit/owner-map.md": "999E58063429B41CD8473DFDB5F7A3493463CD5C2223F26F1220C851B751625F"
   },
   "required_tiny_swarm_world_skills": [
+    "github-sub-issues",
     "tdd-expert",
     "bdd-expert",
     "platform-quality-gates",
@@ -87,6 +88,16 @@
     "This registry is an audit and navigation artifact.",
     ".codex skills remain reusable fallback or portable team assets.",
     "Governing hashes require refresh after audit-derived governance skill changes."
+  ],
+  "epic_creation_skills": [
+    {
+      "name": "github-sub-issues",
+      "group": "Governance and requirements",
+      "owner_role": "Senior Requirement Engineer",
+      "primary_paths": [".agents/skills/github-sub-issues/SKILL.md"],
+      "supported_workflows": ["Epic creation", "native GitHub Sub-Issue management"],
+      "conflict_notes": "Mandatory for every Epic creation; complements requirement-engineering. Local drafts record pending linkage verification; GitHub publication requires verified native relationships and existing authorization."
+    }
   ],
   "audit_derived_governance_skills": [
     {

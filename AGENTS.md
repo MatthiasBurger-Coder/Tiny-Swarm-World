@@ -231,7 +231,7 @@ Owner mapping:
 ### Skill Groups
 
 - Governance and documentation: `engineering-governance`,
-  `documentation-sync`, `requirement-engineering`,
+  `documentation-sync`, `requirement-engineering`, `github-sub-issues`,
   `arc42-architecture-governance`, `adr-steward`,
   `skill-registry-conflict-auditor`,
   `issue-completion-auditor`,
@@ -280,6 +280,12 @@ authoritative skill entrypoints.
 
 ### Workflow Execution Rules
 
+- Every Epic creation must use `.agents/skills/github-sub-issues/SKILL.md`.
+  Local drafts must record pending native linkage verification; publishing a
+  GitHub Epic with child issues requires verified native Sub-Issue relationships.
+  Markdown checklists and `Parent: #N` text do not satisfy this requirement.
+  Follow the skill's duplicate checks, ID validation and conflict handling.
+  Skill invocation alone does not authorize GitHub publication.
 - Issue and workflow text must follow
   `documentation/process/verification-state-policy.md`: local quality is the
   default authority; live and external checks require applicability, explicit

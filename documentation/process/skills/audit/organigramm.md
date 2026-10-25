@@ -25,6 +25,8 @@ issue-driven completion status.
   `skill-registry-conflict-auditor`.
 - Issue completion: `issue-completion-auditor`, Requirement Lead, System
   Architect Reviewer and Test / Evidence Reviewer.
+- Epic creation: Senior Requirement Engineer and mandatory `github-sub-issues`;
+  native GitHub parent relationships require API verification on publication.
 - Quality: `senior-tester`, `platform-quality-gates` and `quality-gate`.
 - Console/status UI: `frontend-developer`, `console-status-ui-developer` and
   `terminal-status-dashboard`.
