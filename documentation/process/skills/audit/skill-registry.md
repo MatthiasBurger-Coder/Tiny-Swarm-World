@@ -35,11 +35,23 @@ remain the source of truth; this registry is an audit and navigation artifact.
 
 ## Current Counts
 
-- Project-specific discoverable skills: 132.
-- Project skill entrypoints with valid name and description frontmatter: 132.
+- Project-specific discoverable skills: 133.
+- Project skill entrypoints with valid name and description frontmatter: 133.
 - Reusable `.codex` skills: 6.
-- Canonical required Tiny Swarm World skills: 48.
+- Canonical required Tiny Swarm World skills: 49.
 - Removed stale microservice-specific artifacts: 4.
+
+## Epic Creation
+
+`github-sub-issues` is mandatory for every Epic creation and is owned by the
+Senior Requirement Engineer. Its discoverable entrypoint is
+[`.agents/skills/github-sub-issues/SKILL.md`](../../../../.agents/skills/github-sub-issues/SKILL.md).
+It complements `requirement-engineering`: local drafts record planned children
+and pending native verification; requested GitHub publication requires duplicate
+checks, individually validated database IDs, sequential linking and API evidence
+from both parent and children, including the parent's expected total. Text
+checklists do not establish native relationships. Permission failures or parent
+conflicts must be reported. The skill does not itself authorize publication.
 
 ## Audit-Derived Governance Skills
 

@@ -91,8 +91,8 @@ class TestSkillRegistryIntegrity(unittest.TestCase):
 
     def test_registry_separates_project_and_reusable_skill_counts(self):
         counts = _registry()["counts"]
-        self.assertEqual(counts["project_skill_entrypoints"], 132)
-        self.assertEqual(counts["project_skill_entrypoints_with_valid_metadata"], 132)
+        self.assertEqual(counts["project_skill_entrypoints"], 133)
+        self.assertEqual(counts["project_skill_entrypoints_with_valid_metadata"], 133)
         self.assertEqual(counts["codex_skill_entrypoints"], 6)
 
 

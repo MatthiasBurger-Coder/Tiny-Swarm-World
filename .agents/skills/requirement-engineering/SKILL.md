@@ -27,6 +27,14 @@ Inspect the relevant subset of:
 
 ## EPIC Lifecycle
 
+Every Epic creation must use
+[`github-sub-issues`](../github-sub-issues/SKILL.md). For local drafts, record
+planned child issues and pending native linkage verification. For requested
+GitHub publication, create or reuse child issues, establish native Sub-Issue
+relationships and verify parent lists, child parent URLs and parent totals
+before reporting linkage complete. Markdown checklists are supplementary.
+The skill does not itself authorize publishing a local draft.
+
 Before changing requirement-sensitive artifacts:
 
 1. Identify the current EPIC source.

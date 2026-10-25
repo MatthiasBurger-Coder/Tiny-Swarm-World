@@ -7,9 +7,9 @@ class TestSkillAudit(unittest.TestCase):
     def test_current_registry_has_no_blocking_discovery_findings(self):
         result = audit()
         self.assertEqual(result["result"], "passed")
-        self.assertEqual(result["project_skill_entrypoints"], 132)
+        self.assertEqual(result["project_skill_entrypoints"], 133)
         self.assertEqual(result["findings"], [])
-        self.assertEqual(len(result["classifications"]), 132)
+        self.assertEqual(len(result["classifications"]), 133)
         self.assertEqual(set(result["classifications"].values()) - {
             "governance", "security", "runtime", "quality", "ui", "contracts", "orchestration", "architecture"
         }, set())
