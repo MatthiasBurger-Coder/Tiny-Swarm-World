@@ -1,0 +1,77 @@
+{
+  "workflow_id": "issue-449-lcm-w09",
+  "workflow_version": "1.2",
+  "workflow_path": "documentation/workflow/issues/issue-449/workflow.md",
+  "workflow_index_path": "documentation/workflow/workflow.index.md",
+  "context_pack_path": "documentation/workflow/issues/issue-449/context-pack.md",
+  "branch": "feature/lcm-w09-issue449-implementation-20261027",
+  "workflow_authoring_branch": "feature/workflow-lcm-w09-20261027",
+  "base_commit": "a0310224946b63e2152ff4086d22a450c3d0f214",
+  "process_strand": "issue completion / lifecycle workflow execution",
+  "execution_profile": "FULL_PATH",
+  "issue": 449,
+  "parent_issue": 440,
+  "related_issue": 318,
+  "required_roles": [
+    "Senior Requirement Engineer",
+    "Senior System Architect",
+    "Senior Python Automation Developer",
+    "Senior Tester",
+    "Senior Workflow Architect",
+    "Security",
+    "Senior DevOps Engineer",
+    "independent Issue Completion Auditor"
+  ],
+  "quality_commands": [
+    "python3 tools/quality_gate.py quality",
+    "git diff --check"
+  ],
+  "test_host": "Approved PC WSL test host; SSH and verify the exact remote checkout and source hashes before checks",
+  "route_consent": {
+    "wsl": "TCP/10001 only; Windows firewall and PortProxy unchanged",
+    "native": "Bind any host route to exact scenario authorization and GO"
+  },
+  "operator_decision": {
+    "date": "2026-10-27",
+    "approved": true,
+    "portainer_stack": "Verify endpoint, stack, ResourceControl and exact definition; no prune; commit selection after convergence",
+    "swagger_exposure": [
+      "published",
+      "internal"
+    ],
+    "qualification": "Does not replace exact-hash design reviews, quality gates, runtime support admission, fresh JIT or scenario GO",
+    "internal_swagger": "No host-published ports or implicit routes",
+    "wsl_host_route": "TCP/10001 only; firewall and PortProxy unchanged",
+    "scope": "selection-scoped Incus profile and bounded #318 manifest/optional-stack semantics",
+    "v1_defaults": {
+      "swagger_exposure": "published",
+      "stack_ownership": "swarm"
+    }
+  },
+  "governing_hashes_sha256": {
+    "documentation/process/issue-completion-discipline.md": "3db2d080b7cfbbc3737907a61c67ce6a361485c8993cf4a20c1c5fe2dc743bc3",
+    "QUALITY.md": "8922817c794f545fd4babf6ccf7fc6458baad0853ff2ca2a0526ff246220d76a",
+    ".tiny-swarm/evidence/issue-449/requirement_matrix.md": "1586cf0aec0da85a5cdcb4fe6c5c43263c79b316da4c2ff9319424127a21cdd2",
+    "documentation/process/verification-state-policy.md": "df09d34a65b2d01a2c11ddd100c7fd7d1ab58a33198ae695deea1aab7d8b817f",
+    ".tiny-swarm/evidence/issue-449/acceptance_checklist.md": "81c85546501bf0b3557ec6c9c13be98cf3cf9181825d88ff8d229f25cd6f7ef7",
+    "AGENTS.md": "a17e7d2147f06fa5f8e47a98ef4a17ad68c1a5d156e378fb3c80ea5f1dbe4c6b",
+    ".tiny-swarm/evidence/issue-449/acceptance_crosswalk.md": "68fb75605aee47c83fedf4e0aa1cb617580ad6fa16c5c565defd7fa5df7e1fff",
+    "documentation/arc42/09_architecture_decisions.adoc": "329c5293008ca0e4b2ddd878c60dd9db845ca596d25ad9ac36e6d5f3270ed45a",
+    "documentation/arc42/09_decisions/adr-classic-product-component-lifecycle.adoc": "ba210b63996ec6c0ec92089bd6cbe911deef00791b773183875eafb62e12bbe9"
+  },
+  "workflow_artifacts_sha256": {
+    "documentation/arc42/09_architecture_decisions.adoc": "329c5293008ca0e4b2ddd878c60dd9db845ca596d25ad9ac36e6d5f3270ed45a",
+    "documentation/workflow/issues/issue-449/context-pack.md": "858bc2e8729abb3f3648cda567f948d3201ca1991763c6ca7aee6accd11253f3",
+    "documentation/workflow/issues/issue-449/workflow.md": "046d92f0cc51bf4de817be1cb6f650440e328b2dd69225e3c3aa5a5a4b4fb940",
+    ".agents/skills/workflow-executor/SKILL.md": "04a9325b2cec2dfa6feab24c261c636fdfa295158661d20e981e4182e5bfb46c",
+    "documentation/workflow/workflow.index.md": "787913f6ddf771ac171b176e409abd5b7048348861461d841283a5363bda1e95"
+  },
+  "skill_hashes_sha256": {
+    ".agents/skills/three-amigos-requirement-gatekeeper/SKILL.md": "76659e618cb706e8990cdf44441aeaed219465044175826adca5357ae8acc5b4",
+    ".agents/skills/issue-completion-auditor/SKILL.md": "6de0eb7ff298f25ee0255695c4a0057d502039c786f87ab4dc7aa1991e1f15c5",
+    ".agents/skills/workflow-executor/SKILL.md": "04a9325b2cec2dfa6feab24c261c636fdfa295158661d20e981e4182e5bfb46c",
+    ".agents/skills/workflow-authoring/SKILL.md": "5733f64086f113d578544b4d2d0297554237296adf0dc2df5ebe641e50dec9e5",
+    ".agents/skills/s3d-execution-orchestrator/SKILL.md": "54c687a580225c85aa3bca2445782064bff914f593458a63006b0793dc8233bc",
+    ".agents/skills/workflow-slice/SKILL.md": "bae552d4860614879871413918870df6940b95af185f6c1077a023caa88e3ddb"
+  }
+}

@@ -42,29 +42,38 @@ Read these files before implementation:
 7. Relevant `.agents/roles` files for the slice.
 8. Relevant `.agents/skills` files for the slice.
 
-When `documentation/workflow/context-pack.md` or
-`documentation/workflow/context-pack.json` exists, read it first for orientation and
-hash provenance. Reopen the authoritative files above when a recorded hash
-changed, the slice touches governance files, or any conflict is detected.
+When the selected workflow is issue-local, read its sibling `context-pack.md` and `context-pack.json` first. Do not substitute the root context pack, which may belong to another issue. For the root workflow, use `documentation/workflow/context-pack.*`. Reopen authoritative files when a recorded hash changed, the slice touches governance files, or any conflict is detected.
 
 ## Active Workflow Discovery
 
-Locate the active workflow in this order:
+Resolve the workflow for the request in this order:
 
-1. `documentation/workflow/workflow.md`, when present.
-2. The active workflow described by `documentation/workflow/README.md`, when present.
-3. The most recent `documentation/workflow/*.md`.
+1. If the user or orchestration explicitly supplies a workflow path, require a
+   normalized repository-relative path and select that exact file.
+2. If the request identifies an issue number, find exactly one matching row in
+   `documentation/workflow/workflow.index.md` whose state is
+   `ACTIVE_FOR_ISSUE_<number>`. Verify the workflow and sibling context-pack
+   paths exist and that the workflow Branch matches the index row.
+3. If no issue/path was supplied, preserve the legacy root behavior and select
+   `documentation/workflow/workflow.md` when present.
+4. Consult `documentation/workflow/README.md` only when the earlier rules do
+   not select a workflow.
 
-Stop if multiple workflows appear active and the execution target cannot be verified.
+Stop if the index has duplicate active rows for the requested issue, the
+selected path escapes the repository, the workflow and index disagree, or more
+than one candidate remains. Do not select by modification time. For #449, the
+issue-local workflow is selected while the #355 root workflow remains intact.
 
 ## Start Conditions
 
 `workflow execute` may start only when both are present and checked:
 
-1. complete checked `documentation/workflow/workflow.md`
-2. checked or updated `documentation/arc42/**` documentation
+1. the complete selected workflow file and its selected context pack;
+2. checked or updated `documentation/arc42/**` documentation for that workflow.
 
-Stop when either artifact is missing or contradicts `AGENTS.md`, `QUALITY.md`, ADRs or verified repository state.
+The selected workflow may be the root file or an issue-local indexed file.
+Stop when either artifact is missing or contradicts `AGENTS.md`, `QUALITY.md`,
+ADRs or verified repository state.
 
 ## Branch Verification
 
@@ -284,10 +293,12 @@ automatically.
 ## Context Pack Validation
 
 Before the first write-capable slice and whenever a slice depends on cached
-governance context, verify `documentation/workflow/context-pack.json` against the
-current files it hashes. A stale context pack is not a failure when the active
-slice is responsible for refreshing it; otherwise it is a S3/S3D blocker and
-the executor must reread the authoritative files directly.
+governance context, verify the selected workflow's sibling `context-pack.json`
+against the current files it hashes. For an issue-local workflow, do not use
+`documentation/workflow/context-pack.json`; that file belongs to the root
+workflow. A stale selected context pack is not a failure when the active slice
+is responsible for refreshing it; otherwise it is a S3/S3D blocker and the
+executor must reread authoritative files directly.
 
 ## Process Performance Metrics
 
