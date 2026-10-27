@@ -1,6 +1,6 @@
 # Context pack — issue-449-lcm-w09
 
-- Workflow version: 1.2
+- Workflow version: 1.3
 - Issue: #449, parent EPIC #440, bounded coordination with #318
 - Workflow: `documentation/workflow/issues/issue-449/workflow.md`
 - Index: `documentation/workflow/workflow.index.md`
