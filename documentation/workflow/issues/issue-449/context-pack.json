@@ -51,16 +51,16 @@
   "governing_hashes_sha256": {
     "documentation/process/issue-completion-discipline.md": "3db2d080b7cfbbc3737907a61c67ce6a361485c8993cf4a20c1c5fe2dc743bc3",
     "QUALITY.md": "8922817c794f545fd4babf6ccf7fc6458baad0853ff2ca2a0526ff246220d76a",
-    ".tiny-swarm/evidence/issue-449/requirement_matrix.md": "1586cf0aec0da85a5cdcb4fe6c5c43263c79b316da4c2ff9319424127a21cdd2",
+    ".tiny-swarm/evidence/issue-449/requirement_matrix.md": "771fbb141eb80c573e9f3477f3c92fcf31593452a2b376a3a931008b8dcaba52",
     "documentation/process/verification-state-policy.md": "df09d34a65b2d01a2c11ddd100c7fd7d1ab58a33198ae695deea1aab7d8b817f",
     ".tiny-swarm/evidence/issue-449/acceptance_checklist.md": "81c85546501bf0b3557ec6c9c13be98cf3cf9181825d88ff8d229f25cd6f7ef7",
     "AGENTS.md": "a17e7d2147f06fa5f8e47a98ef4a17ad68c1a5d156e378fb3c80ea5f1dbe4c6b",
     ".tiny-swarm/evidence/issue-449/acceptance_crosswalk.md": "68fb75605aee47c83fedf4e0aa1cb617580ad6fa16c5c565defd7fa5df7e1fff",
-    "documentation/arc42/09_architecture_decisions.adoc": "329c5293008ca0e4b2ddd878c60dd9db845ca596d25ad9ac36e6d5f3270ed45a",
+    "documentation/arc42/09_architecture_decisions.adoc": "9b2b38c377bd75d3059b877d6ac679173f7eea9bb22dee9460c6d4fcad42284e",
     "documentation/arc42/09_decisions/adr-classic-product-component-lifecycle.adoc": "ba210b63996ec6c0ec92089bd6cbe911deef00791b773183875eafb62e12bbe9"
   },
   "workflow_artifacts_sha256": {
-    "documentation/arc42/09_architecture_decisions.adoc": "329c5293008ca0e4b2ddd878c60dd9db845ca596d25ad9ac36e6d5f3270ed45a",
+    "documentation/arc42/09_architecture_decisions.adoc": "9b2b38c377bd75d3059b877d6ac679173f7eea9bb22dee9460c6d4fcad42284e",
     "documentation/workflow/issues/issue-449/context-pack.md": "88db8bab89cbe3ebdb66a5694735b8dd92400470a80c4359350dd25e9fc24ec6",
     "documentation/workflow/issues/issue-449/workflow.md": "2ee0ac0c16c8e4325f8f192e9371556242aaea4c770c39037662b5b7badf3cbe",
     ".agents/skills/workflow-executor/SKILL.md": "04a9325b2cec2dfa6feab24c261c636fdfa295158661d20e981e4182e5bfb46c",
