@@ -1,7 +1,7 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Workflow version: `1.3`
+Workflow version: `1.4`
 Status: `EXECUTION GATE — same-hash four-role release and S3D preflight required`
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
@@ -282,14 +282,14 @@ slice_id: S449-02C
 profile: BACKEND_AND_TESTS
 owner: Senior Python Automation Developer
 secondary_reviewers: [Security, Senior Tester, Senior DevOps Engineer]
-affected_files: [tools/qualification/incus_profile_listener_fixture.py, tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py, .codex/evidence/slice-449-02C-distribution.md, .codex/evidence/slice-449-02C-consolidation.md]
+affected_files: [documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, tools/qualification/incus_profile_listener_fixture.py, tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py, .codex/evidence/slice-449-02C-distribution.md, .codex/evidence/slice-449-02C-consolidation.md]
 affected_modules: [opt-in Incus fixture runner, approval validation, target-drift guard]
-affected_contracts: [raw approval SHA-256, strict GO schema, workflow/runner/test hash bindings, clean expected HEAD and tree, inventory/profile/resource digest schemas, post-reservation read-only JIT, consumed BLOCKED_TARGET_DRIFT]
+affected_contracts: [raw approval SHA-256, strict 16-key GO schema, workflow/runner/test hash bindings, clean expected HEAD and tree, inventory/profile/resource digest schemas, approved live route-state digest, strict proxy tuple and port-range/list parsing, strict IPv4/IPv6 listener checks, exact stopped-init effective devices and profiles, post-reservation read-only JIT, consumed BLOCKED_TARGET_DRIFT]
 dependencies: [S449-01]
 parallel_group: sequential
-file_locks: [tools/qualification/incus_profile_listener_fixture.py, tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py, .codex/evidence/slice-449-02C-distribution.md, .codex/evidence/slice-449-02C-consolidation.md]
+file_locks: [documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, tools/qualification/incus_profile_listener_fixture.py, tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py, .codex/evidence/slice-449-02C-distribution.md, .codex/evidence/slice-449-02C-consolidation.md]
 module_locks: [opt-in listener fixture runner]
-contract_locks: [approval digest and schema, exact workflow/runner/test bindings, clean HEAD/tree, JIT inventory/profile/resource digest, typed drift result]
+contract_locks: [approval digest and 16-key schema, exact workflow/runner/test bindings, clean HEAD/tree, JIT inventory/profile/resource/route-state digest, strict proxy tuple and port-range/list parser, strict effective-profile/device inventory, typed drift result]
 architecture_locks: [fail-closed live qualification boundary]
 quality_gates:
   targeted: [PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_lxc_profile_listener_fixture]
@@ -302,11 +302,12 @@ stop_conditions: [approval digest mismatch, duplicate or unknown approval keys, 
 
 Completion criteria: require explicit `--expected-approval-sha256` matching
 the exact raw GO bytes; parse with duplicate-key and unknown-key rejection and
-require exactly these 15 top-level keys: `decision`, `source_commit`,
+require exactly these 16 top-level keys: `decision`, `source_commit`,
 `workflow_sha256`, `runner_sha256`, `test_sha256`, `resource_admission_sha256`,
 `issue447_inventory_sha256`, `target`, `proxy`, `cleanup`, `reviews`,
 `windows_rules_unchanged`, `external_routes_enabled`,
-`default_profile_sha256`, and `default_profile_used_by`. Require `decision` to
+`default_profile_sha256`, `default_profile_used_by`, and
+`approved_route_state_sha256`. Require `decision` to
 be `GO`; `source_commit` to be lowercase 40-hex and equal current `HEAD`; every
 `*_sha256` to be lowercase 64-hex; source, workflow, runner and test hashes to
 match the exact checkout bytes; and the tracked worktree to be clean.
@@ -340,6 +341,17 @@ independently reviewed evidence artifacts; the runner validates lowercase
 digest syntax only and must not claim it reopened or verified those external
 bytes. The independent review artifact identifies and hashes the exact resource
 admission and full issue447 project/profile/consumer/device inventory artifacts.
+`approved_route_state_sha256` binds an independently reviewed pre-run snapshot
+of the TCP/10001 host listener rows, all Incus TCP/10001 profile and instance
+routes, and the WSL Windows firewall plus PortProxy bytes (empty on native
+Linux). The runner computes the same canonical UTF-8 JSON digest from its
+post-reservation read-only JIT and requires a match before any Incus write. The
+payload has exactly `listeners_10001_b64` (base64 list of exact `ss -H -ltnp`
+rows), `incus_10001_routes` (the sorted structured route records), and
+`windows_snapshot_b64` (base64 of the combined Windows snapshot; empty bytes on
+native Linux), serialized with sorted keys, compact separators and
+`ensure_ascii=False`. A mismatch is durably recorded as
+`BLOCKED_TARGET_DRIFT`.
 Read the GO once as a no-follow regular file, compare its raw bytes with caller
 `--expected-approval-sha256`, then parse strict UTF-8 JSON; reject duplicate
 keys and missing/extra keys at every object. Before reservation allow read-only
@@ -349,7 +361,22 @@ byte-exact NOT_RUN evidence recheck. Only after reservation perform read-only
 Incus/listener JIT for target, version, project, image, unique names, complete
 default-profile config/devices/consumers, selected loopback-port availability,
 existing TCP/10001 tuple/destination, unchanged Windows rules, and resource
-baseline before any profile or instance write. Any mismatch or unreadable drift is durably recorded as
+baseline before any profile or instance write. Reject malformed profile/device
+records, including malformed proxy listen/connect/bind fields, invalid
+IP-literal addresses, and unsupported Incus protocol pairings, even when a
+proxy is not a TCP/10001 match. Accept only IPv4/IPv6 literals (including
+bracketed IPv6 and the documented wildcard forms `0.0.0.0` and `[::]`) or
+valid Unix socket paths. Follow the supported connection pairs in the
+[Incus proxy device reference](https://linuxcontainers.org/incus/docs/main/reference/devices_proxy/).
+Parse TCP/UDP port lists and ranges; reject any
+range/list containing 10001 and any UDP 10001 mapping, because the approved
+route is only one TCP/10001 tuple. Only an exact singleton TCP/10001 mapping
+may enter the approved route-state inventory. Reject any proxy device in the attached `default` profile. After stopped
+`init`, read the full expanded instance config and require the exact expected
+merged device map from `default` plus the fixture profile, the exact two-profile
+list, and no instance-level device overrides. Detect listeners on the selected
+fixture port across IPv4 and IPv6 before start; after start allow exactly the
+attributable IPv4 loopback fixture listener. Any mismatch or unreadable drift is durably recorded as
 typed `BLOCKED_TARGET_DRIFT`, consumes the attempt, retains lock/evidence, and
 returns nonzero before every Incus write. Regression tests prove each schema,
 digest, ordering and no-mutation guard. Record exact source/test hashes for S02.
@@ -382,12 +409,12 @@ owner: Senior DevOps Engineer
 secondary_reviewers: [Senior System Architect, Security, Senior Tester]
 affected_files: [.tiny-swarm/evidence/issue-449/three-amigos-s02-live-go.json, .tiny-swarm/evidence/issue-449/r67-incus-6.0.5-listener-fixture.json, .codex/evidence/slice-449-02-distribution.md, .codex/evidence/slice-449-02-consolidation.md]
 affected_modules: [Incus disposable fixture, listener evidence]
-affected_contracts: [proxy bind timing, effective tuple and listener attribution, exact 15-key five-review GO, workflow/source/runner/test/target hashes, canonical default-profile config/devices digest, sorted consumer list, external resource and issue447 evidence attestations, unchanged Windows rules, no external routes]
+affected_contracts: [proxy bind timing, effective tuple and listener attribution, exact 16-key five-review GO, workflow/source/runner/test/target hashes, canonical default-profile config/devices digest, sorted consumer list, approved live route-state digest, external resource and issue447 evidence attestations, unchanged Windows rules, no external routes]
 dependencies: [S449-02C]
 parallel_group: serialized-live
 file_locks: [.tiny-swarm/evidence/issue-449/three-amigos-s02-live-go.json, .tiny-swarm/evidence/issue-449/r67-incus-6.0.5-listener-fixture.json, .codex/evidence/slice-449-02-distribution.md, .codex/evidence/slice-449-02-consolidation.md]
 module_locks: [Incus profile capability qualification, disposable listener fixture]
-contract_locks: [15-key five-review GO schema, raw approval digest, proxy tuple, canonical default-profile digest and consumer list, external evidence attestations, fixture evidence schema]
+contract_locks: [16-key five-review GO schema, raw approval digest, proxy tuple, canonical default-profile digest and consumer list, approved live route-state digest, external evidence attestations, fixture evidence schema]
 architecture_locks: [capability version boundary]
 quality_gates:
   targeted: [git diff --check, verify exact S449-02C source/test evidence hashes]
