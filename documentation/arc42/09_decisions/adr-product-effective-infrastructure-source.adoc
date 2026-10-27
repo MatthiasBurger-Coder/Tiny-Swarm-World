@@ -1,0 +1,142 @@
+= ADR: Bound effective infrastructure for prepared product upgrades
+
+*Date:* 2026-10-24
+*Status:* Accepted for bounded implementation under #449 / #440 after independent
+Requirement, Architecture, Security and Test review. Acceptance of this decision
+is not implementation acceptance or live qualification.
+
+== Context
+
+The operator explicitly requires Tiny Swarm World to run on the existing native
+Linux host and permits removal of its current TSW installation and necessary
+extensions. Its effective memory is below the repository's default 19 GiB node
+ceilings. The documented private `TSW_INFRA_ROOT` configuration supports a
+reviewed 17 GiB allocation without changing the inspector, overcommit policy,
+three-node topology or shared defaults.
+
+The pinned prepared-Git 0.4.0 to 0.5.0 product controller currently accepts only
+the clean anchor's infrastructure and copies `installation.root / 'infra'`.
+Removing that rejection alone would silently discard an effective resource
+override. Blindly copying target defaults could also replace operator values.
+The clean official code identity and the effective data/configuration authority
+must therefore remain distinct and explicit.
+
+For these two exact releases, `provider_config.yaml` is unchanged; only
+`compose/portainer/docker-compose.yml` and `ports.yaml` differ under `infra`.
+A typed provider-memory override can be preserved without a generic YAML merge.
+This decision extends the existing Classic lifecycle ADR; it does not change
+release refs, dependency locks, installation schema or component execution.
+
+== Decision
+
+=== Separate immutable code from one explicitly bound configuration input
+
+Keep official source/target origin, commit, release, lock, Python 3.12 and
+clean-checkout guards unchanged. Resolve the explicit effective infrastructure
+input once during preview/admission. An optional typed binding in the existing
+product plan identifies its kind, opaque reference and admitted override-policy
+version. Public references are random, non-content-derived identifiers; physical
+root identity stays in the private binding record. Public output contains no absolute host paths,
+secret values or credential-derived content hashes.
+
+Old plans/checkpoints without a binding retain anchor-infrastructure semantics.
+They must not acquire an external input merely from a newly supplied environment.
+No new public CLI, service, schema for installation manifests or orchestration
+engine is introduced. Domain values carry identities/policy only; adapters own
+paths, filesystem inspection, capture and private binding persistence.
+
+=== Admit only an owned and bounded effective tree
+
+The external tree must be Linux-native, owned, private where sensitive, and
+outside managed product input/staging/activation destinations. Validate canonical
+ancestry and every member. Refuse symlinks, unexpected hard links, special files,
+foreign pending artifacts and recursive source/destination overlap.
+
+Initially admit only changes to typed `nodes[].resources.memory` in the provider
+configuration, with node membership, CPU/disk, roles, images, networks and security
+policy preserved. The initial external-input policy admits exactly the official
+source's tracked infrastructure file set, with this one typed memory exception;
+its additional-local-file allowlist is explicitly empty. Unknown additions,
+backups or untracked executable files block; tracked executable members retain
+their official source content and modes. Existing anchor-only local-file behavior is
+unchanged; extending the external allowlist requires an enumerated reviewed policy.
+Use the canonical YAML parser and unchanged host/container capacity guards.
+Unknown changed tracked configuration or capability conflicts block admission;
+an arbitrary copy of newer working-tree infrastructure is not an official source.
+
+=== Capture privately inside the existing staging lifecycle
+
+Before target staging, capture the bound effective input into an operation-owned
+private input snapshot. Persist a private atomic binding record containing the
+canonical source path and ownership/device/inode facts, operation/input identity
+and capture state. Keep credential-bearing files and all raw metadata private. Binding/snapshot directories use owner-only mode 0700 and regular files use owner-only mode 0600 (or stricter); capture and recovery verify these permissions and fail closed on unsafe modes.
+Use descriptor-bound, no-follow capture or an equivalent race-resistant mechanism,
+not a resolve/lstat precheck followed by ordinary copytree. Recheck trusted ancestry,
+directory/file identities and bytes before and after capture; abort on replacement.
+Validate source consistency during capture by direct byte/metadata comparison;
+do not publish or persist standalone credential fingerprints.
+
+An interrupted capture may rebuild only an incomplete destination proven to
+belong to that exact operation/input. Missing, corrupt, replaced or foreign
+binding/snapshot state fails closed. No cleanup of unknown directories follows.
+Retain the original input and private snapshot through completion/recovery.
+
+Bound this initial input to at most 4096 members, depth 16 and 64 MiB of regular
+file content, with a 16 MiB per-file ceiling. Reject unsupported hard links and
+special files before copying. Account for capture and migrated-copy overhead in
+the existing pre-mutation free-space requirement in addition to its staging floor.
+Limits are admission policy, not permission to truncate input or skip members.
+
+=== Freeze authority for resume, migration and verification
+
+Resume uses the original bound input and captured source, never whichever
+`TSW_INFRA_ROOT` is ambient later. Explicit repointing, root replacement or input
+drift blocks before further mutation. Unset environment must not silently revert
+an externally bound operation to anchor defaults. Old unbound checkpoints remain
+unbound and cannot be retrofitted with an external authority.
+
+Migration snapshots the effective input rather than anchor defaults. For each
+release-tracked asset compare official source S, effective source E and official
+target T: use T when E equals S; preserve the admitted override when T leaves S
+unchanged; refuse an unsupported conflicting override when both E and T differ
+from S. Preserve the existing anchor-only handling of supported local files;
+external-input v1 admits no additional local members. Do not introduce a general merge
+engine or infer that an image rollback restores data.
+
+The target launcher continues to use only the managed migrated configuration.
+Before target execution and completion, validate its bound authority and effective
+resource values, alongside existing whole-selection/runtime/authentication,
+dependency and manifest-CAS checks. Target code remains the published pinned
+release; no tag rewriting or patched release masquerading as official code.
+
+== Consequences and boundaries
+
+The same native host can retain its admitted 17 GiB configuration across the
+existing product transition. That is an implementation capability, not live
+proof of memory headroom or a blanket small-host qualification.
+
+The private product state grows by one protected input snapshot/binding. Source
+drift and conflicts remain actionable failures. Operators must retain recovery
+inputs and serialize writers; older published programs cannot honor guards they
+do not contain. Component images, data, credentials and service selection remain
+governed by their existing ownership boundaries.
+
+New host-listen-port mapping, Java heap/placement changes, runtime extraction,
+arbitrary release transitions and a generic configuration merge remain out of
+scope. WSL originals are not authorized for deletion by the native amendment.
+
+== Required verification before acceptance of implementation
+
+Verify read-only preview; unchanged anchor behavior; old checkpoint compatibility;
+typed private 17 GiB preservation; unchanged dirty-source refusal; symlink,
+hard-link, overlap, ownership and special-file rejection; missing/replaced/repointed
+bindings; interrupted capture; conflicting changed assets; private local-file
+preservation for unchanged anchor behavior and unknown external member refusal;
+no-follow path-swap races, finite capture/disk bounds; launcher authority; input drift, CAS, recovery, owner-only binding/snapshot permission checks and repeat no-op. Assert provider values remain 10/6/1 GiB through the exact pinned
+transition and the unchanged capacity guard still rejects unsuitable plans.
+
+Run focused and full `QUALITY.md` gates on the required SSH/WSL host against
+matching source. Actual native product upgrade additionally requires executed
+source/target/environment/configuration, selection, auth/data, resource pressure,
+interruption/recovery and no-op evidence. No skipped or mocked check implies live
+success. A failed applicability/prerequisite remains scoped to its real scenario.
