@@ -1,12 +1,12 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Workflow version: `1.4`
-Status: `EXECUTION GATE — same-hash four-role release and S3D preflight required`
+Workflow version: `1.5`
+Status: `EXECUTION_PLAN — same-hash four-role workflow release approved; structural S3/S3D preflight complete; S449-02C is next`
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
-Workflow authoring branch: `feature/workflow-lcm-w09-20261027`
+Workflow authoring branch: `docs/workflow-lcm-w09-route-baseline-20261027`
 Baseline: `a0310224946b63e2152ff4086d22a450c3d0f214`
 Execution profile: `FULL_PATH — lifecycle/provider implementation, regression, documentation, native and WSL2 qualification`
 
@@ -32,9 +32,11 @@ The user has approved the selection-scoped Incus profile and #318 semantics:
 persist Swagger exposure as `published` or `internal`; migrate v1 manifests to
 `published` with `swarm` ownership; keep internal Swagger free of published host
 ports and implicit routes; verify Portainer stack ownership without pruning;
-commit selection only after Swarm convergence. WSL exposure is limited to the
-already approved Portainer TCP/10001 route. The existing Windows firewall
-(`RemoteAddress=Any`) and PortProxy rules remain unchanged; ports
+commit selection only after Swarm convergence. The TSW application route under
+qualification is limited to Portainer TCP/10001. For this run, the user has
+accepted the existing Windows firewall (`RemoteAddress=Any`) and complete
+PortProxy state as-is; both must remain unchanged. The fixture neither adds nor
+validates reachability through other pre-existing Windows forwards. Ports
 80/443/16080/16081 must stay absent. This approval resolves the design/consent
 dependency only. It is not live-run GO/JIT or scenario evidence. Native
 replacement of the three owned TSW instances is authorized and optional backup
@@ -84,8 +86,12 @@ evidence and current independent approval. Unrelated resources remain protected.
   route activation, isolate issue447, stop before start until exact effective
   routes pass, recover uncertain outcomes deterministically, protect unrelated
   resources and prove test-host files match the candidate.
-- Assumptions: WSL route consent is TCP/10001 only; Windows firewall/PortProxy
-  stay unchanged. Native route consent must be bound per live scenario. The
+- Assumptions: TSW application exposure is limited to TCP/10001. The current
+  WSL Windows firewall/PortProxy state is accepted as-is for this run and must
+  stay byte-identical. No new externally reachable TSW listener or route may
+  be introduced; the sole temporary exception is the GO-bound loopback fixture
+  listener, which must be removed and verified absent after cleanup. Native
+  route consent must be bound per live scenario. The
   three owned TSW instances may be replaced; host-baseline backup preparation
   for that replacement is waived. This does not remove product-upgrade backup,
   preservation or restoration acceptance requirements. Neither authorization
@@ -271,7 +277,9 @@ policy. No Incus version is supported for selection-scoped reconciliation;
 
 Purpose: make the fixture runner fail closed on stale targets, unverifiable
 approval, malformed approval data or unexpected live-state drift before any
-Incus command can mutate a resource.
+Incus command can mutate a resource. Accept an empty TCP/10001 host-listener
+and Incus-route baseline only when successful strict reads and the exact empty
+state are independently approved, digest-bound and verified unchanged.
 
 Prerequisites: S449-01; exact live-approval contract review; no live execution.
 This is a code-and-test-only slice. It must not run Incus or contact either
@@ -281,15 +289,15 @@ test host.
 slice_id: S449-02C
 profile: BACKEND_AND_TESTS
 owner: Senior Python Automation Developer
-secondary_reviewers: [Security, Senior Tester, Senior DevOps Engineer]
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior Tester, Senior DevOps Engineer]
 affected_files: [documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, tools/qualification/incus_profile_listener_fixture.py, tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py, .codex/evidence/slice-449-02C-distribution.md, .codex/evidence/slice-449-02C-consolidation.md]
 affected_modules: [opt-in Incus fixture runner, approval validation, target-drift guard]
-affected_contracts: [raw approval SHA-256, strict 16-key GO schema, workflow/runner/test hash bindings, clean expected HEAD and tree, inventory/profile/resource digest schemas, approved live route-state digest, strict proxy tuple and port-range/list parsing, strict IPv4/IPv6 listener checks, exact stopped-init effective devices and profiles, post-reservation read-only JIT, consumed BLOCKED_TARGET_DRIFT]
+affected_contracts: [raw approval SHA-256, strict 16-key GO schema, workflow/runner/test hash bindings, clean expected HEAD and tree, inventory/profile/resource digest schemas, empty-or-populated TCP/10001 route inventory, approved live route-state digest, strict proxy tuple and port-range/list parsing, strict IPv4/IPv6 listener checks, exact stopped-init effective devices and profiles, post-reservation read-only JIT, consumed BLOCKED_TARGET_DRIFT]
 dependencies: [S449-01]
 parallel_group: sequential
 file_locks: [documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, tools/qualification/incus_profile_listener_fixture.py, tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py, .codex/evidence/slice-449-02C-distribution.md, .codex/evidence/slice-449-02C-consolidation.md]
 module_locks: [opt-in listener fixture runner]
-contract_locks: [approval digest and 16-key schema, exact workflow/runner/test bindings, clean HEAD/tree, JIT inventory/profile/resource/route-state digest, strict proxy tuple and port-range/list parser, strict effective-profile/device inventory, typed drift result]
+contract_locks: [approval digest and 16-key schema, exact workflow/runner/test bindings, clean HEAD/tree, JIT inventory/profile/resource/route-state digest, strict proxy tuple and port-range/list parser, strict effective-profile/device inventory, typed drift result, strict empty-or-populated TCP/10001 route inventory]
 architecture_locks: [fail-closed live qualification boundary]
 quality_gates:
   targeted: [PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_lxc_profile_listener_fixture]
@@ -297,7 +305,7 @@ quality_gates:
 documentation:
   arc42: no change
   adr: no change
-stop_conditions: [approval digest mismatch, duplicate or unknown approval keys, dirty or unexpected checkout HEAD, typed target drift, invalid authorization]
+stop_conditions: [approval digest mismatch, duplicate or unknown approval keys, dirty or unexpected checkout HEAD, unreadable or malformed route inventories, route/listener drift, Windows firewall or PortProxy change, any added external route, typed target drift, invalid authorization]
 ```
 
 Completion criteria: require explicit `--expected-approval-sha256` matching
@@ -319,18 +327,28 @@ resource names; `image_fingerprint` is lowercase 64-hex. Require `proxy` to
 contain exactly string fields `listen`, `connect`, and `bind`: `listen` must
 be `tcp:127.0.0.1:<port>` for a unique, unused per-run port in 61000–65535;
 `connect` must identify only the fixture instance's private listener; `bind`
-must equal `host`. TCP/10001 is forbidden for the fixture listener and remains
-bound to the existing service. The loopback-only listener is not externally
-routable; verify it is absent before and after the run and that no Windows
-firewall or PortProxy state changes. Require `cleanup` to be exactly the
+must equal `host`. TCP/10001 is forbidden for the fixture listener. Read the
+full host listener and Incus route inventories successfully; their TCP/10001
+entries may be empty when that exact empty state is independently approved and
+bound into the route-state digest. Malformed or unreadable inventories must
+fail and must never be treated as empty. Any existing TCP/10001 entries must
+pass route validation and remain unchanged after cleanup. The fixture must not
+create or remove TCP/10001 routes. On WSL, preserve the complete effective
+Windows Defender Firewall `ActiveStore` snapshot (profiles, global settings,
+rules, and all associated address/application/interface/interface-type/port/
+security/service filters) and exact PortProxy bytes; on native Linux the
+Windows snapshot is empty.
+The loopback-only fixture listener is not externally routable; verify it is
+absent before and after the run and that no Windows firewall or PortProxy state
+changes. Require `cleanup` to be exactly the
 ordered two-string list `[instance, profile]`, with the names from `target`.
 Require `reviews` to contain exactly `requirements`, `architecture`, `security`,
 `devops`, and `test_evidence`, each exactly `APPROVED`; a separate independent
 review artifact binds all five decisions to the same raw GO SHA-256.
 `windows_rules_unchanged` must be boolean `true`; `external_routes_enabled`
 must be boolean `false` and means this scenario creates no additional external
-route. The already authorized TCP/10001 route remains unchanged and is not
-counted as a scenario-created route. Require `default_profile_used_by` to be a list of
+route. Any pre-existing TCP/10001 route remains unchanged; an empty baseline
+remains empty. Require `default_profile_used_by` to be a list of
 unique string URIs in strict lexical order and compare it with the exact JIT
 consumer list. Compute `default_profile_sha256` from UTF-8 canonical compact
 JSON with sorted object keys and no ASCII escaping for exactly
@@ -341,10 +359,55 @@ independently reviewed evidence artifacts; the runner validates lowercase
 digest syntax only and must not claim it reopened or verified those external
 bytes. The independent review artifact identifies and hashes the exact resource
 admission and full issue447 project/profile/consumer/device inventory artifacts.
+Before GO creation, capture route-state evidence on each exact clean target
+checkout with the read-only `--capture-route-state --target-host <approved-ip>
+--output <private-evidence-path>` mode. This mode requires no GO, takes no
+reservation, and performs no Incus writes; it creates a mode-0600 private JSON
+artifact with source commit, timestamp, exact target host/IP, listener/route
+observations, Windows snapshot where applicable, and the canonical digest.
+Before capture, verify the selected IP with `ip -j -4 addr` on native Linux;
+on WSL verify `uname -r` identifies Microsoft WSL2 and PowerShell
+`Get-NetIPAddress -AddressFamily IPv4` contains the selected Windows host IP.
+The independent review artifact records the exact capture path and target
+host/IP, hashes the capture, and confirms its digest and target match the GO.
+The normal fixture invocation independently
+repeats JIT after reservation and rejects any mismatch before writes.
+Approved invocations are `python3 tools/qualification/incus_profile_listener_fixture.py
+--capture-route-state --target-host 192.168.178.33 --output
+.tiny-swarm/evidence/issue-449/native-pre-go-route-state.json` on native Linux
+and the same command with `--target-host 192.168.178.58` and output
+`.tiny-swarm/evidence/issue-449/wsl-pre-go-route-state.json` inside WSL.
 `approved_route_state_sha256` binds an independently reviewed pre-run snapshot
 of the TCP/10001 host listener rows, all Incus TCP/10001 profile and instance
-routes, and the WSL Windows firewall plus PortProxy bytes (empty on native
-Linux). The runner computes the same canonical UTF-8 JSON digest from its
+routes, and the WSL effective ActiveStore firewall profiles/global settings/
+rules/all associated filters plus exact PortProxy bytes (empty on native
+Linux). On WSL, query with Windows PowerShell
+`/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -NoProfile
+-NonInteractive -Command <fixed query embedded in the hash-pinned runner>`
+using `Get-NetFirewallProfile
+-PolicyStore ActiveStore`, `Get-NetFirewallSetting -PolicyStore ActiveStore`,
+`Get-NetFirewallRule -PolicyStore ActiveStore`, and for every rule query
+`Get-NetFirewallProfile -AssociatedNetFirewallRule`, `Get-NetFirewallAddressFilter`,
+`Get-NetFirewallApplicationFilter`, `Get-NetFirewallInterfaceFilter`,
+`Get-NetFirewallInterfaceTypeFilter`, `Get-NetFirewallPortFilter`,
+`Get-NetFirewallSecurityFilter`, and `Get-NetFirewallServiceFilter`, each with
+`-AssociatedNetFirewallRule <rule> -PolicyStore ActiveStore`. Capture all CIM
+properties with `Select-Object *`; order profiles by `Name`, rules by `Name`,
+and filter records by their canonical JSON bytes. Set PowerShell output
+to UTF-8 without BOM, parse the JSON strictly, then serialize with sorted keys,
+compact separators and `ensure_ascii=False` before UTF-8 encoding. Capture
+PortProxy independently as the exact stdout bytes from
+`/mnt/c/Windows/System32/netsh.exe interface portproxy show all`; do not trim,
+decode/re-encode or normalize line endings. Combine the canonical firewall JSON
+and exact PortProxy bytes as base64 values under the fixed
+`firewall_active_store_b64` and `portproxy_raw_b64` keys, then serialize that
+object with sorted keys, compact separators and `ensure_ascii=False` as the
+combined snapshot bytes.
+The exact PowerShell command string is fixed in the hash-pinned runner; callers
+cannot supply or replace it.
+The listener and route lists may be empty only when commands succeeded,
+their exact empty state is independently reviewed, and the digest binds that
+state. The runner computes the same canonical UTF-8 JSON digest from its
 post-reservation read-only JIT and requires a match before any Incus write. The
 payload has exactly `listeners_10001_b64` (base64 list of exact `ss -H -ltnp`
 rows), `incus_10001_routes` (the sorted structured route records), and
@@ -352,15 +415,20 @@ rows), `incus_10001_routes` (the sorted structured route records), and
 native Linux), serialized with sorted keys, compact separators and
 `ensure_ascii=False`. A mismatch is durably recorded as
 `BLOCKED_TARGET_DRIFT`.
-Read the GO once as a no-follow regular file, compare its raw bytes with caller
+In normal one-shot run mode, read the GO once as a no-follow regular file, compare its raw bytes with caller
 `--expected-approval-sha256`, then parse strict UTF-8 JSON; reject duplicate
-keys and missing/extra keys at every object. Before reservation allow read-only
-Git inspection and the single GO-file read only: no host/Incus command and no
-lock/evidence mutation. Then acquire an exclusive O_EXCL reservation and
-byte-exact NOT_RUN evidence recheck. Only after reservation perform read-only
+keys and missing/extra keys at every object. Before reservation, normal run
+mode allows read-only Git inspection and the single GO-file read only: no
+host/Incus command and no lock/evidence mutation. The separate pre-GO
+`--capture-route-state` mode is read-only except for creating its exclusive
+mode-0600 evidence artifact. Then acquire an exclusive O_EXCL reservation and
+byte-exact `NOT_RUN` evidence recheck in normal mode; capture mode does not read,
+create or mutate GO, result, reservation or `NOT_RUN` files. Only after
+reservation perform read-only
 Incus/listener JIT for target, version, project, image, unique names, complete
 default-profile config/devices/consumers, selected loopback-port availability,
-existing TCP/10001 tuple/destination, unchanged Windows rules, and resource
+exact observed TCP/10001 listener/route inventories (including an approved
+empty baseline), unchanged Windows rules, and resource
 baseline before any profile or instance write. Reject malformed profile/device
 records, including malformed proxy listen/connect/bind fields, invalid
 IP-literal addresses, and unsupported Incus protocol pairings, even when a
@@ -379,7 +447,28 @@ fixture port across IPv4 and IPv6 before start; after start allow exactly the
 attributable IPv4 loopback fixture listener. Any mismatch or unreadable drift is durably recorded as
 typed `BLOCKED_TARGET_DRIFT`, consumes the attempt, retains lock/evidence, and
 returns nonzero before every Incus write. Regression tests prove each schema,
-digest, ordering and no-mutation guard. Record exact source/test hashes for S02.
+digest, ordering and no-mutation guard. Add the read-only
+`--capture-route-state` mode for pre-GO evidence preparation; it writes only an
+exclusive mode-0600 private artifact and issues only read-only Git,
+native/Windows host-identity, listener, Incus inventory, Windows Firewall query
+and PortProxy commands. It uses the
+same canonical digest function as post-reservation JIT and never reserves a
+live run or issues Incus writes. Store the artifact only beneath an owned
+mode-0700 private evidence directory using exclusive `O_CREAT|O_EXCL|O_NOFOLLOW`
+creation and mode 0600; reject a symlink, existing path, or unsafe directory.
+The WSL snapshot includes effective
+ActiveStore profiles/global settings/rules and all associated filter types
+before PortProxy. Regression tests also prove native and
+WSL empty TCP/10001 listener/route baselines pass only when read successfully
+and bound to the exact approved digest; malformed/unreadable inventories and
+pre-write drift fail closed; post-cleanup absence is verified; WSL firewall
+and PortProxy snapshots remain unchanged; and populated-baseline behavior
+remains protected. Capture-mode tests explicitly prove native/WSL host-identity
+checks and exact target-IP binding, the read-only command allowlist, no GO
+read/reservation/NOT_RUN artifact, owned mode-0700 directory,
+exclusive no-follow mode-0600 output with no overwrite or symlink acceptance,
+and byte-identical
+snapshot/digest parity with JIT. Record exact source/test hashes for S02.
 
 ### Slice 02 — Incus 6.0.5 disposable listener fixture evidence
 
@@ -387,19 +476,26 @@ Purpose: verify proxy listener timing and attribution before implementing the
 new capability.
 
 Prerequisites: S449-01 and S449-02C; disposable Incus server exactly 6.0.5; fresh exact-source
-and target JIT for the specific host; resource admission; full issue447
+and target JIT for the specific host; pre-GO route-state evidence from the
+read-only S449-02C capture mode; resource admission; full issue447
 project/profile/consumer/device inventory; empty baseline for the exact selected
-loopback fixture tuple and preserved baseline for the existing TCP/10001 route;
+loopback fixture tuple and the exact current TCP/10001 listener/route baseline,
+which may be empty; any existing entries and Windows firewall/PortProxy bytes
+must remain unchanged;
 and a one-shot scenario-specific live Three-Amigos GO whose raw SHA-256 and
-workflow/runner/test hashes match S449-02C, naming the exact host, expected HEAD,
+workflow/runner/test hashes match the released S449-02C candidate, naming the exact host, expected HEAD,
 default project, unique disposable instance/profile identity, inventory/profile
 and resource digests, loopback-only fixture tuple and cleanup bound. The
-fixture uses an unused 61000–65535 loopback listener port, never TCP/10001; the
-already approved TCP/10001 route and its destination remain unchanged.
-The fixture must never touch user-owned or issue447 resources. The authorized
-WSL route is TCP/10001 only, with its existing Windows `RemoteAddress=Any`
-firewall and PortProxy rules unchanged. Any other host/route requires exact
-user approval; WSL approval does not transfer. The opt-in fixture runner is
+fixture uses an unused 61000–65535 loopback listener port, never TCP/10001;
+any existing TCP/10001 route and its destination remain unchanged, and an empty
+baseline remains empty.
+The fixture must never touch user-owned or issue447 resources. TSW application
+exposure is limited to TCP/10001; the complete existing WSL Windows firewall
+(`RemoteAddress=Any`) and PortProxy state is accepted as-is for this run and
+must remain byte-identical. No other TSW listener or route may be introduced;
+this fixture does not attest reachability through other pre-existing Windows
+forwards. Any other host/route requires exact user approval; WSL approval does
+not transfer. The opt-in fixture runner is
 never called by automated quality gates; tests mock its command port.
 
 ```yaml
@@ -413,8 +509,8 @@ affected_contracts: [proxy bind timing, effective tuple and listener attribution
 dependencies: [S449-02C]
 parallel_group: serialized-live
 file_locks: [.tiny-swarm/evidence/issue-449/three-amigos-s02-live-go.json, .tiny-swarm/evidence/issue-449/r67-incus-6.0.5-listener-fixture.json, .codex/evidence/slice-449-02-distribution.md, .codex/evidence/slice-449-02-consolidation.md]
-module_locks: [Incus profile capability qualification, disposable listener fixture]
-contract_locks: [16-key five-review GO schema, raw approval digest, proxy tuple, canonical default-profile digest and consumer list, approved live route-state digest, external evidence attestations, fixture evidence schema]
+module_locks: [per-host live qualification host state, disposable target identity and cleanup evidence]
+contract_locks: [per-host GO target identity and cleanup binding, immutable listener-fixture result schema, host-specific run command/exit/provenance record, route-preservation outcome]
 architecture_locks: [capability version boundary]
 quality_gates:
   targeted: [git diff --check, verify exact S449-02C source/test evidence hashes]
@@ -422,12 +518,14 @@ quality_gates:
 documentation:
   arc42: no change
   adr: record version support only after independent fixture review
-stop_conditions: [version mismatch, nonempty baseline, forbidden listener, attribution failure, non-loopback or TCP/10001 fixture listener, unapproved fixture connect target, any added external route, Windows firewall or PortProxy change]
+stop_conditions: [version mismatch, selected loopback port already in use, unreadable route inventory, forbidden listener, attribution failure, non-loopback or TCP/10001 fixture listener, unapproved fixture connect target, any route/listener drift, any added external route, Windows firewall or PortProxy change]
 ```
 
-Completion criteria: empty baseline and no listener after profile creation/stopped init; after
-start only the attributable loopback fixture listener exists and the approved
-TCP/10001 service tuple/destination remains unchanged; forbidden
+Completion criteria: the selected fixture tuple is empty and there is no
+listener after profile creation/stopped init; after start only the attributable
+loopback fixture listener exists. The pre-run TCP/10001 host/Incus route state
+may be empty; any populated state must remain identical, and an empty baseline
+must remain empty. Forbidden
 80/443/16080/16081 absent; exact
 commands/exits, tuples/processes/resources captured and independently accepted.
 The live fixture consumes the exact runner and test hashes qualified by
@@ -837,7 +935,7 @@ Before any implementation write:
    implementation slice. Keep ignored `.tiny-swarm/` approvals, host inventory,
    requirement matrix and source-copy evidence local; never force-add them.
 2. Push the reviewed workflow-authoring baseline to
-   `origin/feature/workflow-lcm-w09-20261027` as required by workflow-authoring.
+   `origin/docs/workflow-lcm-w09-route-baseline-20261027` as required by workflow-authoring.
    Do not open a PR from that branch. Create a clean
    `feature/lcm-w09-issue449-implementation-20261027` worktree from the
    reviewed checkpoint. Run S3/S3D on that clean implementation branch before

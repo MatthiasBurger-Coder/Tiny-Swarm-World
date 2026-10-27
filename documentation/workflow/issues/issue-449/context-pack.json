@@ -1,11 +1,11 @@
 {
   "workflow_id": "issue-449-lcm-w09",
-  "workflow_version": "1.4",
+  "workflow_version": "1.5",
   "workflow_path": "documentation/workflow/issues/issue-449/workflow.md",
   "workflow_index_path": "documentation/workflow/workflow.index.md",
   "context_pack_path": "documentation/workflow/issues/issue-449/context-pack.md",
   "branch": "feature/lcm-w09-issue449-implementation-20261027",
-  "workflow_authoring_branch": "feature/workflow-lcm-w09-20261027",
+  "workflow_authoring_branch": "docs/workflow-lcm-w09-route-baseline-20261027",
   "base_commit": "a0310224946b63e2152ff4086d22a450c3d0f214",
   "process_strand": "issue completion / lifecycle workflow execution",
   "execution_profile": "FULL_PATH",
@@ -28,7 +28,7 @@
   ],
   "test_host": "Approved PC WSL test host; SSH and verify the exact remote checkout and source hashes before checks",
   "route_consent": {
-    "wsl": "TCP/10001 only; Windows firewall and PortProxy unchanged",
+    "wsl": "TSW app route TCP/10001 only; user-accepted existing firewall and complete PortProxy state unchanged byte-for-byte for this run",
     "native": "Bind any host route to exact scenario authorization and GO"
   },
   "operator_decision": {
@@ -41,7 +41,7 @@
     ],
     "qualification": "Does not replace exact-hash design reviews, quality gates, runtime support admission, fresh JIT or scenario GO",
     "internal_swagger": "No host-published ports or implicit routes",
-    "wsl_host_route": "TCP/10001 only; firewall and PortProxy unchanged",
+    "wsl_host_route": "TSW app route TCP/10001 only; existing firewall (RemoteAddress=Any) and complete PortProxy state accepted unchanged for this run; fixture adds only its temporary unique 127.0.0.1 Incus proxy listener and no external route",
     "scope": "selection-scoped Incus profile and bounded #318 manifest/optional-stack semantics",
     "v1_defaults": {
       "swagger_exposure": "published",
@@ -61,8 +61,8 @@
   },
   "workflow_artifacts_sha256": {
     "documentation/arc42/09_architecture_decisions.adoc": "9b2b38c377bd75d3059b877d6ac679173f7eea9bb22dee9460c6d4fcad42284e",
-    "documentation/workflow/issues/issue-449/context-pack.md": "be18dfebb3732e42986f8c34ee2d3968f67d23a184286df81eb7515d89a27d81",
-    "documentation/workflow/issues/issue-449/workflow.md": "92828303f65ad161d64705270fe017d6a27f9a9fb40769751aa9a077d92c141c",
+    "documentation/workflow/issues/issue-449/context-pack.md": "fca88a23b381338e9148c73abd23ffdd2ecf0a46002834cf08e0f524c3c7577b",
+    "documentation/workflow/issues/issue-449/workflow.md": "80eb3648d9d3febd94a01f0386adbc0cb3fe451871b50343d14e355591b8fea7",
     ".agents/skills/workflow-executor/SKILL.md": "04a9325b2cec2dfa6feab24c261c636fdfa295158661d20e981e4182e5bfb46c",
     "documentation/workflow/workflow.index.md": "787913f6ddf771ac171b176e409abd5b7048348861461d841283a5363bda1e95"
   },

@@ -1,11 +1,11 @@
 # Context pack — issue-449-lcm-w09
 
-- Workflow version: 1.4
+- Workflow version: 1.5
 - Issue: #449, parent EPIC #440, bounded coordination with #318
 - Workflow: `documentation/workflow/issues/issue-449/workflow.md`
 - Index: `documentation/workflow/workflow.index.md`
 - Implementation branch: `feature/lcm-w09-issue449-implementation-20261027`
-- Workflow authoring branch: `feature/workflow-lcm-w09-20261027`
+- Workflow authoring branch: `docs/workflow-lcm-w09-route-baseline-20261027`
 - Base: `a0310224946b63e2152ff4086d22a450c3d0f214`
 - Existing root #355 workflow/context are preserved and are not selected for #449.
 
@@ -17,9 +17,20 @@ state defaults to `published` and direct-Swarm (`swarm`) ownership without
 read-time adoption; Portainer-owned stack updates verify endpoint, stack,
 ResourceControl and saved-definition identity, disable pruning, and persist
 selection only after Swarm convergence. Internal Swagger has no host-published
-ports or implicit route. WSL uses only the existing TCP/10001 route; Windows
-firewall and PortProxy remain unchanged. The broad #318 cross-profile Epic stays
-open and is not completed by this issue.
+ports or implicit route. The TSW application route under qualification is
+limited to TCP/10001. The user accepted the existing WSL Windows firewall
+(`RemoteAddress=Any`) and complete PortProxy state as-is for this run; the
+fixture must preserve both snapshots byte-for-byte and adds no external route;
+S449-02C captures effective ActiveStore profiles/global settings/rules and all
+associated filter types before GO, verifies and records the exact target host
+IP, and the independent review binds that read-only capture to the same target
+and route-state digest in the GO;
+its sole temporary Incus proxy listener is bound to the unique GO-approved
+127.0.0.1 fixture port and must be removed after cleanup. A live GO
+may bind an exact empty TCP/10001 host-listener and Incus-route baseline; if
+present, current routes must be validated and preserved. The fixture does not
+attest reachability through other pre-existing Windows forwards. The broad #318
+cross-profile Epic stays open and is not completed by this issue.
 
 The user authorized replacing the three owned TSW instances and waived optional
 host-baseline backup work. This does not waive the Portainer cold `/data`
