@@ -176,10 +176,56 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
         row = {"LoadState": "loaded", "ActiveState": "active", "SubState": "listening",
                "UnitFileState": "enabled", "MainPID": "0", "Listen": "/run/incus/unix.socket (Stream)"}
         self.assertEqual(inventory._unit_state("incus.socket", row)["listen"], "incus_run")
-        for mutation in ({**row, "MainPID": "5"}, {**row, "Listen": "/tmp/evil.sock"},
-                         {**row, "SubState": "running"}):
+        for mutation in ({**row, "MainPID": "5"}, {**row, "Listen": "/tmp/evil.sock"}):
             with self.subTest(mutation=mutation), self.assertRaises(inventory.InventoryError):
                 inventory._unit_state("incus.socket", mutation)
+
+    def test_incus_socket_running_is_the_only_running_socket_state(self) -> None:
+        row = {"LoadState": "loaded", "ActiveState": "active", "SubState": "running",
+               "UnitFileState": "enabled", "MainPID": "0", "Listen": "/run/incus/unix.socket (Stream)"}
+        self.assertEqual(inventory._unit_state("incus.socket", row)["sub_state"], "running")
+        self.assertEqual(inventory._unit_state("incus.socket", {k: v for k, v in row.items() if k != "MainPID"})[
+            "main_pid"], 0)
+        for unit in ("snap.lxd.daemon.unix.socket", "other.socket"):
+            with self.subTest(unit=unit), self.assertRaises(inventory.InventoryError):
+                inventory._unit_state(unit, row)
+
+    def test_systemctl_socket_output_may_omit_only_zero_main_pid(self) -> None:
+        base = ("LoadState=loaded\nActiveState=active\nSubState=running\n"
+                "UnitFileState=enabled\nListen=/run/incus/unix.socket (Stream)\n")
+        runner = Mock()
+        runner.run.return_value = (0, base.encode(), b"")
+        self.assertEqual(inventory._systemctl_show(runner, "incus.socket")["main_pid"], 0)
+        runner.run.return_value = (0, (base + "MainPID=0\n").encode(), b"")
+        self.assertEqual(inventory._systemctl_show(runner, "incus.socket")["main_pid"], 0)
+        for invalid_pid in ("", "nope", "42", "00", "٠"):
+            with self.subTest(pid=invalid_pid):
+                runner.run.return_value = (0, (base + f"MainPID={invalid_pid}\n").encode(), b"")
+                with self.assertRaises(inventory.InventoryError):
+                    inventory._systemctl_show(runner, "incus.socket")
+        service_output = ("LoadState=loaded\nActiveState=active\nSubState=running\n"
+                          "UnitFileState=enabled\n")
+        runner.run.return_value = (0, service_output.encode(), b"")
+        with self.assertRaises(inventory.InventoryError):
+            inventory._systemctl_show(runner, "incus.service")
+
+    def test_artifact_incus_running_socket_requires_matching_service_and_endpoint(self) -> None:
+        artifact = self._valid_artifact()
+        service = next(row for row in artifact["incus_units"] if row["unit"] == "incus.service")
+        service.update(load_state="loaded", active_state="active", sub_state="running",
+                       unit_file_state="enabled", main_pid=42)
+        socket = next(row for row in artifact["incus_units"] if row["unit"] == "incus.socket")
+        socket.update(load_state="loaded", active_state="active", sub_state="running",
+                      unit_file_state="enabled", main_pid=0, listen="incus_run")
+        artifact["incus_executables"] = [{"unit": "incus.service", "main_pid": 42,
+                                         "identity_id": "incus_system", "package": "system:incus",
+                                         "version": "6.0.5"}]
+        endpoint = next(row for row in artifact["sockets"] if row["endpoint_id"] == "incus_run")
+        endpoint.update(state="present", unit="incus.socket")
+        inventory._validate_artifact(artifact)
+        endpoint["state"] = "absent"
+        with self.assertRaises(inventory.InventoryError):
+            inventory._validate_artifact(artifact)
 
     def test_executable_identity_is_an_exact_unit_path_pair(self) -> None:
         self.assertEqual(inventory.executable_identity("lxd.service", "/usr/lib/lxd/lxd"),
@@ -404,27 +450,66 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
             if socket:
                 row["listen"] = ""
             return row
+        incus_socket = {"unit": "incus.socket", "load_state": "loaded", "active_state": "active",
+                        "sub_state": "running", "unit_file_state": "enabled", "main_pid": 0,
+                        "listen": "incus_run"}
         unit_rows = {"lxd.service": active("lxd.service", 42),
                      "snap.lxd.daemon.service": missing("snap.lxd.daemon.service"),
                      "snap.lxd.daemon.unix.socket": missing("snap.lxd.daemon.unix.socket", True),
-                     "incus.service": missing("incus.service"), "incus.socket": missing("incus.socket", True)}
-        endpoint_present = "/var/lib/lxd/unix.socket"
+                     "incus.service": active("incus.service", 43), "incus.socket": incus_socket}
+        endpoint_present = {"/var/lib/lxd/unix.socket", "/run/incus/unix.socket"}
         checked: list[bool] = []
         real_recheck = inventory._recheck_all
         def record_recheck(*args: Any) -> None:
             checked.append(True)
             real_recheck(*args)
         with patch.object(inventory, "_systemctl_show", side_effect=lambda _runner, unit: dict(unit_rows[unit])), \
-                patch.object(inventory, "_resolve_executable", return_value=("lxd_system", "system:lxd")), \
-                patch.object(inventory, "_endpoint", side_effect=lambda _runner, path, unit: (inventory.SOCKETS[path], path == endpoint_present)), \
+                patch.object(inventory, "_resolve_executable", side_effect=lambda _runner, row:
+                             ("incus_system", "system:incus") if row["unit"] == "incus.service"
+                             else ("lxd_system", "system:lxd")), \
+                patch.object(inventory, "_endpoint", side_effect=lambda _runner, path, unit:
+                             (inventory.SOCKETS[path], path in endpoint_present)), \
                 patch.object(inventory, "_recheck_all", side_effect=record_recheck), \
                 patch.object(inventory, "_require_full_local_access"):
             artifact = inventory.capture("a" * 40, runner=runner)
         self.assertEqual(len(checked), len(runner.calls) + 1)
         self.assertEqual(artifact["decision"], "READ_ONLY_INVENTORY_COMPLETE")
+        self.assertEqual(artifact["incus_units"][1]["sub_state"], "running")
+        self.assertEqual(artifact["incus_executables"][0]["identity_id"], "incus_system")
         self.assertEqual([row["name"] for row in artifact["lxd_projects"][0]["profiles"]], ["bravo", "zeta"])
         self.assertEqual([row["name"] for row in artifact["lxd_projects"][0]["networks"]], ["net"])
+        self.assertTrue(artifact["incus_projects"])
         self.assertTrue(inventory._validate_artifact(artifact).endswith(b"\n"))
+
+    def test_running_incus_socket_drift_blocks_before_first_client_query(self) -> None:
+        def missing(unit, socket=False):
+            row = {"unit": unit, "load_state": "not-found", "active_state": "inactive", "sub_state": "dead",
+                   "unit_file_state": "", "main_pid": 0}
+            if socket:
+                row["listen"] = ""
+            return row
+        units = {unit: missing(unit, unit.endswith(".socket")) for unit in inventory.UNITS}
+        units["incus.service"] = {"unit": "incus.service", "load_state": "loaded", "active_state": "active",
+                                  "sub_state": "running", "unit_file_state": "enabled", "main_pid": 43}
+        units["incus.socket"] = {"unit": "incus.socket", "load_state": "loaded", "active_state": "active",
+                                 "sub_state": "running", "unit_file_state": "enabled", "main_pid": 0,
+                                 "listen": "incus_run"}
+        counts = {unit: 0 for unit in inventory.UNITS}
+        runner = self._InventoryRunner()
+        def systemctl(_runner, unit):
+            counts[unit] += 1
+            row = dict(units[unit])
+            if unit == "incus.socket" and counts[unit] == 2:
+                row["sub_state"] = "listening"
+            return row
+        with patch.object(inventory, "_systemctl_show", side_effect=systemctl), \
+                patch.object(inventory, "_resolve_executable", return_value=("incus_system", "system:incus")), \
+                patch.object(inventory, "_endpoint", side_effect=lambda _runner, path, unit:
+                             (inventory.SOCKETS[path], path == "/run/incus/unix.socket")), \
+                patch.object(inventory, "_require_full_local_access"):
+            with self.assertRaisesRegex(inventory.InventoryError, "RUNTIME_UNIT_DRIFT"):
+                inventory.capture("a" * 40, runner=runner)
+        self.assertEqual(runner.calls, [])
 
     def test_service_or_socket_drift_blocks_the_next_cli_query(self) -> None:
         def active(unit, pid):

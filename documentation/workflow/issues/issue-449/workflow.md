@@ -1,7 +1,7 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: ACTIVE_FOR_ISSUE_449 v1.36 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
+Status: ACTIVE_FOR_ISSUE_449 v1.37 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
@@ -592,7 +592,7 @@ read/reservation/NOT_RUN artifact, owned mode-0700 directory,
 exclusive no-follow mode-0600 output with no overwrite or symlink acceptance,
 and byte-identical
 snapshot/digest parity with JIT. Record exact source/test hashes for S02.
-Historical v1.32 evidence: runner/test `f37ab8fbe98b288b75451b8798607d588b2bef0458f6730cf8af405acc740628` / `8168ffbdcf0a5ac816134c23a25de1052f276189f4ab60066ffb7ebeb9e45668`, 85 focused tests, and full QUALITY log SHA-256 `247da0bd35bbf91138811ba7355f39681fd7dc5b3e47c78474cdc4b806a90e26` remain historical and are not current candidate evidence. Current candidate runner SHA-256 `7929f9dc5d6fea32c55125c3b9f8fb4f02b72a07d3ea0ef80cb0a2aea6279c12`; test SHA-256 `6f888dc59182c7b02ed86fd3e80ddbadb5d7e5a6286e27b4c67d5d3eeb7fcba3`; focused suite 95 PASS on approved PC WSL. Full QUALITY PASS: GATE_EXIT=0 on Python 3.14.4 in a private venv with CI-pinned tools; 43 architecture tests, 2,969 total tests, 18 skipped; private log SHA-256 `daa2d3952b97aef496035ea773ede718fa5e79e61df1f832c9761ab15126e8df`, file mode 0600, parent directory mode 0700. This exact candidate was not run on CI Python 3.12. Older inventories and captures from pre-candidate checkout be2e031e8f0fb137ea6c15f74d81a88181aa4183 are historical and not exact-source evidence for 509908; current 509908 native inventory/route evidence and WSL capture failure are recorded in context-pack.md. The native route-state PASS digest fe31f78643962ce3757e8bcfc8cc8ed1e9c9eb46a2c1728f52f773fbc2f84758 is historical to that checkout. WSL route-state capture returned JIT_COMMAND_FAILED and is not a pass. Current native read-only preflight is blocked by active snap.lxd.daemon.service; no normalized current-candidate admission exists. S3D outcomes are hash-bound and phase-scoped; an `EXECUTION_PLAN` authorizes only its specified phase. Host admission and per-host/per-scenario GO are separate and unproven; no host mutation is claimed. Any later phase requires an `EXECUTION_PLAN` bound to its exact hashes. Native read-only preflight is blocked by active `snap.lxd.daemon.service`. The pre-candidate native inventory showed only the default LXD project and three stopped TSW containers; no host-stop GO exists. Pre-candidate native resource observations were 8 CPUs, 20,111,052,800 bytes MemTotal, 15,452,803,072 bytes MemAvailable, 724,140,146,688 bytes free disk, ext4 `/`, and `incus version` reports Client/Server 6.0.5. For native R449-33, the accepted resource floor is 18,253,611,008 bytes (17 GiB), CPU >= 8 and free disk >= 150 GiB; observed MemTotal, CPU and disk meet those numerical floors. The 19 GiB default-node guard applies only where that baseline applies; the accepted ADR supports a 17 GiB TSW_INFRA_ROOT override for this host. MemAvailable is recorded as an observation, not an admission threshold. This numerical comparison is not a normalized resource-admission artifact or PASS: active snap.lxd.daemon.service blocks read-only service-access preflight, and the exact admission artifact and per-scenario GO are absent. Incus 6.0.5 does not establish capability support. The private ext4 approval record at `.tiny-swarm/evidence/issue-449/s449-private-20261027/workflow-execution-approval-current-20261028.md` binds its exact workflow/context hashes and four role decisions; its directory is mode 0700 and file mode 0600. Workflow execution requires all four `APPROVED` decisions and S3D `EXECUTION_PLAN` for the same tuple. Per-host/per-scenario GO and normalized host admission are separate prerequisites.  The current candidate has no host/scenario GO or normalized admission. The v1.32 approval record and its S3D result remain historical. No host admission, scenario GO, or target mutation is claimed.
+Historical v1.32 evidence: runner/test `f37ab8fbe98b288b75451b8798607d588b2bef0458f6730cf8af405acc740628` / `8168ffbdcf0a5ac816134c23a25de1052f276189f4ab60066ffb7ebeb9e45668`, 85 focused tests, and full QUALITY log SHA-256 `247da0bd35bbf91138811ba7355f39681fd7dc5b3e47c78474cdc4b806a90e26` remain historical and are not current candidate evidence. Earlier candidate runner SHA-256 `7929f9dc5d6fea32c55125c3b9f8fb4f02b72a07d3ea0ef80cb0a2aea6279c12`; test SHA-256 `6f888dc59182c7b02ed86fd3e80ddbadb5d7e5a6286e27b4c67d5d3eeb7fcba3`; earlier focused suite 95 PASS on approved PC WSL. Earlier full QUALITY PASS: GATE_EXIT=0 on Python 3.14.4 in a private venv with CI-pinned tools; 43 architecture tests, 2,969 total tests, 18 skipped; private log SHA-256 `daa2d3952b97aef496035ea773ede718fa5e79e61df1f832c9761ab15126e8df`, file mode 0600, parent directory mode 0700. This exact candidate was not run on CI Python 3.12. Older inventories and captures from pre-candidate checkout be2e031e8f0fb137ea6c15f74d81a88181aa4183 are historical and not exact-source evidence for 509908; previously recorded 509908 native inventory/route evidence and WSL capture failure are recorded in context-pack.md. The native route-state PASS digest fe31f78643962ce3757e8bcfc8cc8ed1e9c9eb46a2c1728f52f773fbc2f84758 is historical to that checkout. WSL route-state capture returned JIT_COMMAND_FAILED and is not a pass. The earlier native read-only preflight was blocked by active snap.lxd.daemon.service; no normalized admission for that earlier candidate exists. S3D outcomes are hash-bound and phase-scoped; an `EXECUTION_PLAN` authorizes only its specified phase. Host admission and per-host/per-scenario GO are separate and unproven; no host mutation is claimed. Any later phase requires an `EXECUTION_PLAN` bound to its exact hashes. Native read-only preflight is blocked by active `snap.lxd.daemon.service`. The pre-candidate native inventory showed only the default LXD project and three stopped TSW containers; no host-stop GO exists. Pre-candidate native resource observations were 8 CPUs, 20,111,052,800 bytes MemTotal, 15,452,803,072 bytes MemAvailable, 724,140,146,688 bytes free disk, ext4 `/`, and `incus version` reports Client/Server 6.0.5. For native R449-33, the accepted resource floor is 18,253,611,008 bytes (17 GiB), CPU >= 8 and free disk >= 150 GiB; observed MemTotal, CPU and disk meet those numerical floors. The 19 GiB default-node guard applies only where that baseline applies; the accepted ADR supports a 17 GiB TSW_INFRA_ROOT override for this host. MemAvailable is recorded as an observation, not an admission threshold. This numerical comparison is not a normalized resource-admission artifact or PASS: active snap.lxd.daemon.service blocks read-only service-access preflight, and the exact admission artifact and per-scenario GO are absent. Incus 6.0.5 does not establish capability support. The private ext4 approval record at `.tiny-swarm/evidence/issue-449/s449-private-20261027/workflow-execution-approval-current-20261028.md` binds its exact workflow/context hashes and four role decisions; its directory is mode 0700 and file mode 0600. Workflow execution requires all four `APPROVED` decisions and S3D `EXECUTION_PLAN` for the same tuple. Per-host/per-scenario GO and normalized host admission are separate prerequisites.  That earlier candidate had no host/scenario GO or normalized admission. The v1.32 approval record and its S3D result remain historical. No host admission, scenario GO, or target mutation is claimed.
 sanitization, schema rejection, output metadata, sanitized-artifact-only hash,
 private exclusive ext4 write, and no GO/reservation/NOT_RUN/Incus-write behavior.
 S449-02 may not collect or claim this inventory before that implementation and
@@ -861,8 +861,11 @@ show` on only the fixed LXD and Incus units listed below. For service units,
 `LoadState`, `ActiveState`, `SubState`, `UnitFileState` and `MainPID`; for
 socket units, those same properties plus `Listen` only. Never request or retain
 `Environment`,
-`ExecStart`, command lines or environment values. The socket unit must have
-`MainPID=0`; do not resolve its executable identity. For each active service
+`ExecStart`, command lines or environment values. Socket units may omit
+`MainPID` in `systemctl show`; only for the two fixed socket units, accept an
+omitted or explicit decimal `0` value and normalize it to integer `0`. Reject
+an empty, malformed, or nonzero value. Do not resolve a socket executable
+identity. For each active service
 unit, resolve the executable identity and compare it in memory with the fixed
 map: `snap.lxd.daemon.service` -> `/snap/lxd/<revision>/bin/lxd`, where revision
 matches `[1-9][0-9]*` (`lxd_snap`, `snap:lxd`),
@@ -899,8 +902,8 @@ paths may be tested or canonicalized, without returning path text:
 `/var/lib/incus/unix.socket` and `/run/incus/unix.socket`.
 Resolve `/proc/<MainPID>/exe` only for a service unit with validated positive
 MainPID; compare to the fixed executable identity allowlist and persist an
-identity enum, never the resolved path. For the socket unit require MainPID=0
-and parse `Listen` in memory, normalize it against the fixed socket-path
+identity enum, never the resolved path. For socket units require normalized
+MainPID=0 and parse `Listen` in memory, normalize it against the fixed socket-path
 allowlist, and persist only symbolic endpoint ID/type/state. Test socket
 existence/type with fixed `test -e`/`test -S` argv and bind the result to that
 normalized `Listen` endpoint.
@@ -978,10 +981,16 @@ unit rows are accepted only for `loaded` plus
 `active/running` with positive MainPID, or `loaded` plus `inactive/dead` or
 `failed/failed` with MainPID 0; `not-found/inactive/dead` with MainPID 0 and
 UnitFileState empty or `not-found` is also recorded without an executable row.
-Socket rows are accepted only for
-`loaded/active/listening` or `loaded/inactive/dead` or `loaded/failed/failed`,
-always with MainPID 0; `not-found/inactive/dead` with MainPID 0 has empty
-Listen. UnitFileState must be one of `enabled`, `enabled-runtime`, `disabled`,
+Socket rows are accepted only for `loaded/active/listening`,
+`loaded/inactive/dead`, or `loaded/failed/failed`, always with normalized
+MainPID 0; additionally, exact unit `incus.socket` may be
+`loaded/active/running` with normalized MainPID 0. This Incus state is accepted
+only when `incus.service` is `loaded/active/running` with the same stable
+positive PID and allowlisted executable, its exact allowlisted Listen endpoint
+exists as a Unix socket, and the complete existing pre-query and final
+rechecks pass. No other unit may use `active/running`. A
+`not-found/inactive/dead` socket has empty Listen. UnitFileState must be one of
+`enabled`, `enabled-runtime`, `disabled`,
 `disabled-runtime`, `static`, `indirect`, `alias`, `linked`, `linked-runtime`,
 `masked`, `generated`, `transient`, or empty/`not-found` only for a
 `not-found` unit. Serialize empty UnitFileState and Listen as empty strings.
@@ -1946,7 +1955,7 @@ reviewed changes only after required checks and evidence pass.
 
 Workflow authoring is not workflow readiness. Record the four mandatory reviews
 against the final workflow/context-pack hashes here; a prior design-only
-approval of R67j is not a workflow review. The private ext4 approval record at `.tiny-swarm/evidence/issue-449/s449-private-20261027/workflow-execution-approval-current-20261028.md` binds its exact workflow/context hashes and four role decisions; its directory is mode 0700 and file mode 0600. Workflow execution requires all four `APPROVED` decisions and S3D `EXECUTION_PLAN` for the same tuple. Per-host/per-scenario GO and normalized host admission are separate prerequisites. S3D outcomes are hash-bound and phase-scoped; an `EXECUTION_PLAN` authorizes only its specified phase. Host admission and per-host/per-scenario GO are separate and unproven; no host mutation is claimed. Any later phase requires an `EXECUTION_PLAN` bound to its exact hashes. The current candidate has no host/scenario GO or normalized admission. The record path is
+approval of R67j is not a workflow review. The private ext4 approval record at `.tiny-swarm/evidence/issue-449/s449-private-20261027/workflow-execution-approval-current-20261028.md` binds its exact workflow/context hashes and four role decisions; its directory is mode 0700 and file mode 0600. Workflow execution requires all four `APPROVED` decisions and S3D `EXECUTION_PLAN` for the same tuple. Per-host/per-scenario GO and normalized host admission are separate prerequisites. S3D outcomes are hash-bound and phase-scoped; an `EXECUTION_PLAN` authorizes only its specified phase. Host admission and per-host/per-scenario GO are separate and unproven; no host mutation is claimed. Any later phase requires an `EXECUTION_PLAN` bound to its exact hashes. That earlier candidate had no host/scenario GO or normalized admission. The record path is
 `.tiny-swarm/evidence/issue-449/s449-private-20261027/workflow-execution-approval-current-20261028.md`;
 S3D outcomes are hash-bound and phase-scoped; an `EXECUTION_PLAN` authorizes only its specified phase. Host admission and per-host/per-scenario GO are separate and unproven; no host mutation is claimed. Any later phase requires an `EXECUTION_PLAN` bound to its exact hashes. The private record binds decisions to the
 exact workflow/context hashes; every reviewed tuple is tracked there.
@@ -2053,7 +2062,7 @@ only require `git diff --check`. Local quality is never live success.
 
 ## Documentation Governance and arc42 Check Status
 
-Status: `ACTIVE_FOR_ISSUE_449 v1.36 — issue execution authorized; slice-specific S3D and scenario GO gates remain mandatory`
+Status: `ACTIVE_FOR_ISSUE_449 v1.37 — issue execution authorized; slice-specific S3D and scenario GO gates remain mandatory`
 installation-owned profile decision is a draft awaiting canonical placement
 and accepted review; no Incus version is supported yet for this capability.
 S449-01 places the exact owner-approved R67j policy, effective-infrastructure-
@@ -2084,9 +2093,15 @@ work only when it does not rely on the blocked condition.
 
 ## Commit, Push and PR Plan
 
-- The workflow-only checkpoint is an ancestor of the final implementation branch. Each implementation slice commit stays on `feature/lcm-w09-issue449-implementation-20261027`; the final PR is opened only from that implementation branch.
-- Each implementation slice is one commit; never combine slices. All scoped
-  workflow and product commits are published together in the user's single PR.
+- The workflow-only checkpoint is an ancestor of the implementation branch.
+  Keep one commit per approved slice and group commits into separate topic
+  branches and PRs only where the issue dependency graph gives a complete,
+  reviewable topic boundary. Each later topic branch must be based on the
+  merged predecessor so `main` receives each topic once and in dependency
+  order.
+- Do not split a slice across PRs or combine unrelated slices in a commit.
+  Close the issue and clean branches/worktrees only after every required topic
+  is merged and the independent completion audit passes.
 - Run exact `push auto` only after implementation, issue evidence, independent
   completion audit, green required checks, configured SonarQube status and known
   mergeability. The guarded lifecycle then merges the PR, closes #449, deletes
@@ -2110,3 +2125,29 @@ requires canonical ADR and qualified Incus version. Live slices require
 exact-scenario Three-Amigos GO and fresh host JIT; TCP/10001-only WSL consent and
 unchanged Windows rules are mandatory. No other host or route inherits that
 approval.
+
+## Execution-phase amendment v1.37
+
+S449-02F accepts omitted or explicit zero `MainPID` only for its two fixed
+socket units, normalizing the value to zero in the sanitized artifact. It also
+accepts `loaded/active/running` only for `incus.socket`, coupled to the active
+Incus service identity, exact listener endpoint, endpoint checks and existing
+complete rechecks. All other unit tuples remain fail-closed. The first native
+read-only attempt under v1.36 returned `UNIT_SCHEMA_INVALID` because systemd
+omitted `MainPID` for socket units; it produced no artifact and made no runtime
+change. This amendment authorizes only a new exact-hash read-only capture after
+fresh reviews and S3D; it grants no host mutation or scenario GO.
+
+S02F v1.37 candidate verification: runner SHA-256
+`2084dc090f3b0d55007a9ad017fee4621b4d077642fe402f6fd0538c883f5f0c`; test
+SHA-256 `23c8395a3c8a5b6167f36b5e76f052f9df4a307cdc7499a88c898d0cf942aa37`.
+On approved PC WSL, the focused suite passed 53 tests and the full quality gate
+passed all seven gates (3,048 tests, 18 skipped, exit 0); log SHA-256
+`cc3f5f1b94219e5b4774c57e5f5063b1d8315c497d9938457d9d66c5ed1ec295`. The
+isolated HOME was `/home/pc/projects/issue449-s02f-home-v137-20261028`. An
+earlier default-HOME run failed two stale-checkpoint tests; the isolated rerun
+passed. The first focused attempt exposed an obsolete assertion, removed before
+the final pass. S02F remains `IN_PROGRESS`: no v1.37 native capture or artifact
+exists. Commit this candidate, then obtain a separate S3D plan bound to the
+committed source/test/workflow/context hashes before the one bounded native
+read-only capture. This does not authorize host mutation or scenario GO.

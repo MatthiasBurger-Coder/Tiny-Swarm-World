@@ -72,11 +72,17 @@ def strict_json(raw: bytes) -> Any:
 
 
 def _unit_state(unit: str, values: dict[str, str]) -> dict[str, Any]:
-    if set(values) != set(PROPERTIES) | ({"Listen"} if unit in {"incus.socket", "snap.lxd.daemon.unix.socket"} else set()):
+    socket_unit = unit in {"incus.socket", "snap.lxd.daemon.unix.socket"}
+    expected = set(PROPERTIES) | ({"Listen"} if socket_unit else set())
+    if socket_unit and "MainPID" not in values:
+        expected.remove("MainPID")
+    if set(values) != expected:
         raise InventoryError("UNIT_SCHEMA_INVALID")
     load, active, sub = values["LoadState"], values["ActiveState"], values["SubState"]
-    unit_file, pid_raw = values["UnitFileState"], values["MainPID"]
-    if unit_file not in UNIT_STATES or not pid_raw.isdecimal():
+    unit_file, pid_raw = values["UnitFileState"], values.get("MainPID", "0")
+    if unit_file not in UNIT_STATES or not re.fullmatch(r"[0-9]+", pid_raw):
+        raise InventoryError("UNIT_VALUE_INVALID")
+    if socket_unit and pid_raw != "0":
         raise InventoryError("UNIT_VALUE_INVALID")
     if load != "not-found" and unit_file in {"", "not-found"}:
         raise InventoryError("UNIT_VALUE_INVALID")
@@ -85,6 +91,7 @@ def _unit_state(unit: str, values: dict[str, str]) -> dict[str, Any]:
     pid = int(pid_raw)
     if unit.endswith(".socket"):
         valid = ((load == "loaded" and active == "active" and sub == "listening" and pid == 0)
+                 or (unit == "incus.socket" and load == "loaded" and active == "active" and sub == "running" and pid == 0)
                  or (load == "loaded" and active == "inactive" and sub == "dead" and pid == 0)
                  or (load == "loaded" and active == "failed" and sub == "failed" and pid == 0)
                  or (load == "not-found" and active == "inactive" and sub == "dead" and pid == 0 and values["Listen"] == ""))
@@ -1022,6 +1029,20 @@ def _validate_artifact(artifact: dict[str, Any]) -> bytes:
             raise InventoryError("ARTIFACT_SOCKET_SCHEMA_INVALID")
     if {row["endpoint_id"] for row in artifact["sockets"]} != set(SOCKETS.values()) or len(artifact["sockets"]) != len(SOCKETS):
         raise InventoryError("ARTIFACT_SOCKET_SET_INVALID")
+    incus_socket = next(row for row in artifact["incus_units"] if row["unit"] == "incus.socket")
+    if incus_socket["active_state"] == "active" and incus_socket["sub_state"] == "running":
+        incus_service = next(row for row in artifact["incus_units"] if row["unit"] == "incus.service")
+        incus_executable = next((row for row in artifact["incus_executables"]
+                                 if row["unit"] == "incus.service"), None)
+        endpoint = incus_socket["listen"]
+        endpoint_row = next((row for row in artifact["sockets"] if row["endpoint_id"] == endpoint), None)
+        if (incus_service["load_state"] != "loaded" or incus_service["active_state"] != "active"
+                or incus_service["sub_state"] != "running" or incus_service["main_pid"] <= 0
+                or incus_executable is None or incus_executable["identity_id"] != "incus_system"
+                or incus_executable["main_pid"] != incus_service["main_pid"]
+                or endpoint not in {"incus_run", "incus_var_lib"} or endpoint_row is None
+                or endpoint_row["state"] != "present" or endpoint_row["unit"] != "incus.socket"):
+            raise InventoryError("ARTIFACT_INCUS_SOCKET_BINDING_INVALID")
     command_ids = {"systemctl_show_unit", "systemctl_show_socket", "resolve_executable", "socket_exists",
                    "socket_type", "canonical_socket", "lxd_version", "lxd_project_list", "lxd_project_show",
                    "lxd_profile_list", "lxd_profile_show", "lxd_instance_list", "lxd_instance_config_show",
