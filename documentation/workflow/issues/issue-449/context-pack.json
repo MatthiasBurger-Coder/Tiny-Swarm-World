@@ -1,6 +1,6 @@
 {
   "workflow_id": "issue-449-lcm-w09",
-  "workflow_version": "1.5",
+  "workflow_version": "1.32",
   "workflow_path": "documentation/workflow/issues/issue-449/workflow.md",
   "workflow_index_path": "documentation/workflow/workflow.index.md",
   "context_pack_path": "documentation/workflow/issues/issue-449/context-pack.md",
@@ -26,10 +26,62 @@
     "python3 tools/quality_gate.py quality",
     "git diff --check"
   ],
-  "test_host": "Approved PC WSL test host; SSH and verify the exact remote checkout and source hashes before checks",
+  "test_host": "Approved PC WSL test host; during S449-02C permit SSH/SCP only for exact remote checkout/hash verification and targeted tests/QUALITY gates",
+  "pre_go_host_boundary": "S449-02C permits PC WSL SSH/SCP only for exact checkout/hash verification and tests/QUALITY; native untouched. Current runner/test hashes f37ab8fbe98b288b75451b8798607d588b2bef0458f6730cf8af405acc740628 / 8168ffbdcf0a5ac816134c23a25de1052f276189f4ab60066ffb7ebeb9e45668 passed 85 focused PC-WSL tests. v1.30 full QUALITY PASS on its candidate; v1.31 full QUALITY PASS on prior 5f candidate; both are historical. v1.32 clean-checkpoint full QUALITY PASS on Python 3.12.15 (43 architecture tests, 885 source files typechecked, 2,959 tests, 18 skipped; log SHA-256 247da0bd35bbf91138811ba7355f39681fd7dc5b3e47c78474cdc4b806a90e26; private log path .tiny-swarm/evidence/issue-449/s449-private-20261027/quality-gate-s02c-v132-py312-final5.log). S02C implementation-code review is scoped to runner/tests; v1.32 workflow-hash approvals were pending at submission; current outcome belongs in the private approval record; S3D EXECUTION_PLAN recorded; host admission remains pending; route-state evidence pending; no live mutations before fresh five-role per-host GO.",
   "route_consent": {
     "wsl": "TSW app route TCP/10001 only; user-accepted existing firewall and complete PortProxy state unchanged byte-for-byte for this run",
     "native": "Bind any host route to exact scenario authorization and GO"
+  },
+  "route_state_contract": {
+    "project_inventory": "Read-only enumeration of all Incus projects; reject malformed, duplicate, missing or empty project names and require default",
+    "route_identity": "Every TCP/10001 profile or instance route includes its project, owner type, owner, device, complete device configuration and effective profile list",
+    "digest_fields": [
+      "listeners_10001_b64",
+      "incus_projects",
+      "incus_10001_routes",
+      "windows_snapshot_b64"
+    ],
+    "digest_canonicalization": "Sort project names lexically and route records by project, owner_type, owner, device; serialize UTF-8 JSON with sorted keys, compact separators and ensure_ascii=false; SHA-256",
+    "mutation_scope": "The all-project inventory is read-only; reconciliation and fixture mutations remain restricted to Incus project default"
+  },
+  "private_evidence": {
+    "directory": ".tiny-swarm/evidence/issue-449/s449-private-20261027/",
+    "parent_directory_acl": "Broad inherited NTFS access is not approved for private records",
+    "posix_permissions": "Private directory 0700; private files 0600",
+    "ntfs_permissions": "Allowed only for the human-only S449-01 files listed in ntfs_allowed_s449_01_files; remove inheritance; allow only current user, SYSTEM and Administrators; reject Users and Authenticated Users",
+    "ntfs_allowed_s449_01_files": [
+      "adr-installation-scoped-incus-profile-draft.md",
+      "three-amigos-r67j-design-acceptance.md",
+      "source-copy-manifest-v1.8-20261027.md",
+      "private-acl-verification.md"
+    ],
+    "s449_01_records": [
+      "adr-installation-scoped-incus-profile-draft.md",
+      "three-amigos-r67j-design-acceptance.md",
+      "private-acl-verification.md"
+    ],
+    "s449_01_provenance_manifest": "source-copy-manifest-v1.8-20261027.md",
+    "s449_01_provenance": {
+      "expected_final_record_sha256": "6768cd40a6dfda4d639acda8afcb721472959bd6f6ffd2c6e12eedbe022b576f",
+      "superseded_record_sha256": "493c613f731aa549fdc4fa4f6002b82f069553446c6509b7ea8cf3a8b92e5345",
+      "reconstruction_rule": "Record absence of the expected bytes; never substitute the superseded record. Reconstruct only from exact current canonical ADR/Q12 hashes and fresh same-hash Requirement, Architecture, Security, DevOps and Test/Evidence reviews; record a new SHA-256 without claiming historical recovery."
+    },
+    "s449_02_records": [
+      "s02-private-posix-verification.md",
+      "native-pre-go-route-state.json",
+      "wsl-pre-go-route-state.json",
+      "three-amigos-s02-live-go.json",
+      "three-amigos-s02-live-review.md",
+      "r67-incus-6.0.5-listener-fixture.json",
+      "r67-incus-6.0.5-listener-fixture.json.reservation",
+      "native-resource-admission.json",
+      "wsl-resource-admission.json",
+      "native-issue447-inventory.json",
+      "wsl-issue447-inventory.json"
+    ],
+    "s02_filesystem": "Private Linux/WSL2 ext4 checkout only; reject /mnt/c, /mnt/d, DrvFS and NTFS ACL-only protection. The runner-used evidence directory must be POSIX mode 0700 and files mode 0600.",
+    "workflow_approval_record": "workflow-execution-approval-v1.32-20261028.md",
+    "fail_closed": "Do not write private evidence unless effective owner-only permissions are verified"
   },
   "operator_decision": {
     "date": "2026-10-27",
@@ -61,8 +113,8 @@
   },
   "workflow_artifacts_sha256": {
     "documentation/arc42/09_architecture_decisions.adoc": "9b2b38c377bd75d3059b877d6ac679173f7eea9bb22dee9460c6d4fcad42284e",
-    "documentation/workflow/issues/issue-449/context-pack.md": "fca88a23b381338e9148c73abd23ffdd2ecf0a46002834cf08e0f524c3c7577b",
-    "documentation/workflow/issues/issue-449/workflow.md": "80eb3648d9d3febd94a01f0386adbc0cb3fe451871b50343d14e355591b8fea7",
+    "documentation/workflow/issues/issue-449/context-pack.md": "294d783b43a7140e456bc60231da2c1a53c3278f1f83bed16c3587ce1efabd48",
+    "documentation/workflow/issues/issue-449/workflow.md": "9dc17d3ca7028091d78396fa7d71a53df7f2ca6e59c591d94608e3319102ce5c",
     ".agents/skills/workflow-executor/SKILL.md": "04a9325b2cec2dfa6feab24c261c636fdfa295158661d20e981e4182e5bfb46c",
     "documentation/workflow/workflow.index.md": "787913f6ddf771ac171b176e409abd5b7048348861461d841283a5363bda1e95"
   },
@@ -73,5 +125,180 @@
     ".agents/skills/workflow-authoring/SKILL.md": "5733f64086f113d578544b4d2d0297554237296adf0dc2df5ebe641e50dec9e5",
     ".agents/skills/s3d-execution-orchestrator/SKILL.md": "54c687a580225c85aa3bca2445782064bff914f593458a63006b0793dc8233bc",
     ".agents/skills/workflow-slice/SKILL.md": "bae552d4860614879871413918870df6940b95af185f6c1077a023caa88e3ddb"
+  },
+  "per_scenario_admission": {
+    "schema_version": "tsw.resource-admission.v1",
+    "artifact_top_keys": [
+      "schema_version",
+      "target_host",
+      "platform",
+      "scenario_id",
+      "captured_at_utc",
+      "source_commit",
+      "candidate",
+      "selection",
+      "observed",
+      "thresholds",
+      "checks",
+      "decision",
+      "commands"
+    ],
+    "candidate": [
+      "workflow_sha256",
+      "runner_sha256",
+      "test_sha256",
+      "provider_config_sha256",
+      "clean_tracked_tree"
+    ],
+    "selection": "manager,worker1,worker2; each cpu_threads,memory_bytes,disk_bytes",
+    "native": {
+      "scenario_id": "R449-33",
+      "manager": {
+        "cpu_threads": 2,
+        "memory_bytes": 10737418240,
+        "disk_bytes": 21474836480
+      },
+      "worker1": {
+        "cpu_threads": 2,
+        "memory_bytes": 6442450944,
+        "disk_bytes": 53687091200
+      },
+      "worker2": {
+        "cpu_threads": 4,
+        "memory_bytes": 1073741824,
+        "disk_bytes": 10737418240
+      },
+      "ram_floor_bytes": 18253611008,
+      "cpu_floor": 8,
+      "free_disk_floor_bytes": 161061273600,
+      "default_guard_bytes": 20401094656,
+      "command": "./prepare_linux.sh --preflight --service-profile service-access"
+    },
+    "wsl": {
+      "scenario_id": "R449-34",
+      "manager": {
+        "cpu_threads": 2,
+        "memory_bytes": 10737418240,
+        "disk_bytes": 21474836480
+      },
+      "worker1": {
+        "cpu_threads": 2,
+        "memory_bytes": 8589934592,
+        "disk_bytes": 53687091200
+      },
+      "worker2": {
+        "cpu_threads": 4,
+        "memory_bytes": 1073741824,
+        "disk_bytes": 10737418240
+      },
+      "configured_wsl_ram_min_bytes": 22548578304,
+      "guest_ram_min_bytes": 20401094656,
+      "cpu_min": 8,
+      "usable_disk_min_bytes": 161061273600,
+      "windows_physical_ram_min_bytes": 30064771072,
+      "windows_logical_cpu_min": 11,
+      "windows_storage_after_swap_min_bytes": 21474836480,
+      "command": "prepare_windows.ps1 -Distro <exact distro> -Preflight -Json -LinuxCheckout <ext4 ROOT>",
+      "physical_ram_formula": "configured_wsl_ram + max(4 GiB, ceil(physical RAM/4)) <= physical RAM",
+      "logical_cpu_formula": "8 + max(1, ceil(logical CPUs/4)) <= logical CPUs"
+    },
+    "command_records": "argv,exit_status,stdout_bytes,stderr_bytes; stdout_sha256 only for safe hash allowlist",
+    "decision": [
+      "PASS",
+      "BLOCKED"
+    ],
+    "unknown": "BLOCKED",
+    "go_binding": "External SHA-256 of exact normalized admission artifact",
+    "observed_native_required": [
+      "ubuntu_identity",
+      "distro_version",
+      "kernel_release",
+      "ext4_filesystem",
+      "mount_target",
+      "host_memory_bytes",
+      "cpu_threads",
+      "free_disk_bytes",
+      "incus_version",
+      "service_access_preflight_result"
+    ],
+    "observed_wsl_required": [
+      "distro_identity",
+      "distro_version",
+      "kernel_release",
+      "windows_physical_memory_bytes",
+      "windows_logical_cpu_count",
+      "configured_wsl_memory_bytes",
+      "configured_wsl_cpu_threads",
+      "wsl_swap_bytes",
+      "windows_free_after_swap_bytes",
+      "windows_reserved_memory_bytes",
+      "windows_reserved_cpu_threads",
+      "guest_usable_memory_bytes",
+      "guest_cpu_threads",
+      "usable_distro_disk_bytes"
+    ],
+    "checks": [
+      "candidate_clean_and_hashes_match",
+      "ext4_private_storage",
+      "service_floor",
+      "node_budget",
+      "guest_capacity",
+      "windows_memory_reserve",
+      "windows_cpu_reserve",
+      "windows_storage_after_swap"
+    ]
+  },
+  "project_inventory_capture": {
+    "status": "85 focused PC-WSL tests PASS on current source/test hashes. v1.30 full QUALITY PASS and v1.31 full QUALITY PASS on prior candidates are historical. Clean-checkpoint v1.32 full QUALITY PASS on Python 3.12.15 (43 architecture tests, 885 source files typechecked, 2,959 tests, 18 skipped; log SHA-256 247da0bd35bbf91138811ba7355f39681fd7dc5b3e47c78474cdc4b806a90e26; private log path .tiny-swarm/evidence/issue-449/s449-private-20261027/quality-gate-s02c-v132-py312-final5.log); S02C implementation-code review is scoped to runner/tests; v1.32 workflow-hash approvals were pending at submission; current outcome belongs in the private approval record; S3D EXECUTION_PLAN recorded; host admission remains pending; route-state evidence pending.",
+    "command": "python3 tools/qualification/incus_profile_listener_fixture.py --capture-project-inventory --target-host <approved-ip> --output <private-evidence-path>",
+    "schema": "tsw.incus.project-inventory.v1; exact top-level schema_version,target_host,source_commit,projects,command_records; project name,isolation,profiles,instances; profile name,used_by,devices; instance name,status,type,profiles,local_devices,expanded_devices",
+    "isolation": "Exactly four keys: features.images, features.profiles, features.storage.volumes, features.networks; bool if explicitly configured, null if absent/unset; no effective-default inference",
+    "visibility": "Local effective uid 0 or incus-admin group required; otherwise INCUS_PROJECT_VISIBILITY_UNVERIFIED",
+    "command_records": "argv,exit_status,stdout_bytes,stderr_bytes; metadata only, no raw output or raw hashes; stdout and stderr each <=2 MiB per Incus command; aggregate stdout+stderr <=16 MiB per run; selector-driven capture kills process at cap+1 or 30-second timeout; total entities <=10,000 and Incus commands <=10,000; sanitized artifact <=8 MiB before exclusive creation; all limit/timeout/nonzero/malformed/incomplete cases fail closed before artifact creation; external GO issue447_inventory_sha256 binds the sanitized artifact",
+    "safety": "Current focused result is 85 PASS for runner f37ab8fbe98b288b75451b8798607d588b2bef0458f6730cf8af405acc740628 and test 8168ffbdcf0a5ac816134c23a25de1052f276189f4ab60066ffb7ebeb9e45668. v1.30 full QUALITY PASS is documented with its evidence log. v1.31 full QUALITY PASS on the prior 5f candidate is historical. The clean-checkpoint v1.32 full gate PASS; no approval or live pass implied.",
+    "argv_templates": [
+      "incus remote list --format json",
+      "incus remote get-default",
+      "incus project list --format json",
+      "incus project show <project> --format json",
+      "incus profile list --project <project> --format json",
+      "incus profile show <profile> --project <project> --format json",
+      "incus list --project <project> --format json",
+      "incus config show <instance> --project <project> --format json",
+      "incus config show <instance> --project <project> --format json --expanded"
+    ],
+    "remote_validation": "Incus v6.0.5 remote JSON exact allowed fields: Addr (required string unix://), AuthType,Project,Protocol,CredHelper,Public,Global,Static (optional documented types); KeepAlive if present is nonnegative JSON integer, bool rejected; default remote local; raw remote JSON never persisted or hashed.",
+    "profile_project_rule": "profile show may omit project; if present it must equal requested project, else fail closed.",
+    "identity_capture": "Exact allowlisted identity argv use selector-driven Popen reads; stdout/stderr each <=2 MiB; timeout 20s; terminate, wait 0.5s, then kill and wait if overflow/timeout; no output hashes or persistence; retain only parsed identity.",
+    "cap_regressions": "Direct regressions required for stdout, stderr, aggregate output, serialized artifact, total entities and command-count boundaries; verify fail-closed and no artifact on limit failure.",
+    "endpoint_scope": "Require only selected default alias local and its Addr unix://. Other configured aliases may exist; sanitized environment and exact commands without remote prefixes ensure they are unused and unrecorded.",
+    "route_state_status": "Parser corrected for Incus 6.0.5 Addr response on current source; focused coverage passes; new exact read-only route-state capture/evidence is pending."
+  },
+  "resource_evidence_output_policy": {
+    "record_fields": [
+      "argv",
+      "exit_status",
+      "stdout_bytes",
+      "stderr_bytes",
+      "allowlisted_parsed_fields"
+    ],
+    "raw_stdout_hash_allowlist": [
+      "git status --short --branch",
+      "nproc --all",
+      "free -b",
+      "df -B1 --output=avail ROOT",
+      "incus version --format json"
+    ],
+    "never_persist_or_hash_raw": [
+      "git rev-parse",
+      "sha256sum output",
+      "findmnt",
+      "ip",
+      "uname",
+      "prepare_linux.sh preflight",
+      "prepare_windows.ps1 preflight",
+      "Incus project/profile/instance config output"
+    ],
+    "inventory": "command_records metadata only; hash no raw Incus output; external GO SHA-256 binds sanitized artifact"
   }
 }
