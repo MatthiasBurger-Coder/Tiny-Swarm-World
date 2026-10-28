@@ -2,7 +2,7 @@
 
 - Workflow: `issue-449-lcm-w09`; S02C evidence-refresh base HEAD `a286b22db8988e2cc8fab39d97d6abb34f4129ab` (clean before these evidence-only edits).
 - Slice: `S449-02C — Harden the opt-in live fixture runner before use`.
-- Candidate workflow/context tuple: workflow `bd1da9a53259d3e5c594feaf7738a65f4b750d2a36dc97b8bc489d800a4880b6`, context Markdown `04e0b26e1bc94acb5dd771275d64a87d8fb3f751781fff9bf9178b44eb8aa790`, context JSON `aed26b1e4eb36571eea25a8f313b7a1f4fab841a07d2dc5d69afc287c33f2ecb`.
+- Candidate workflow/context tuple: workflow `ec12247325e18692588584adf468207895db408ef69fc8e4b521135a3308986c`, context Markdown `75e572b41da44d859254b64b817bcf22e36d8597c12fc1a3d14dbdd5361de232`, context JSON `418239487d475d7072878ba50ac0ca0fd6b4bdab0d01667df70aa53018c05bd2`.
 - Execution mode: sequential code/test/evidence. This slice permits no native or WSL host inventory, route capture, live fixture, GO, or Incus mutation. Later S449-02 read-only pre-GO capture is separate and requires exact current-source checkout and current S3D/role gates.
 - Owner: Senior Python Automation Developer. Requirement, architecture, security, tester, DevOps and quality reviews are independent; Codex owns integration and release.
 - Parallelization: not split. Runner and tests implement one fail-closed authorization/evidence contract; live scenarios remain serialized.

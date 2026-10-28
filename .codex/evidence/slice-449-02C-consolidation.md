@@ -9,9 +9,9 @@ Runner/test implementation commit: `01717f6f8e3db5d11633132063625f0471ff8ae9`
 
 ## Exact candidate bindings
 
-- Workflow Markdown SHA-256: `bd1da9a53259d3e5c594feaf7738a65f4b750d2a36dc97b8bc489d800a4880b6`
-- Context Markdown SHA-256: `04e0b26e1bc94acb5dd771275d64a87d8fb3f751781fff9bf9178b44eb8aa790`
-- Context JSON SHA-256: `aed26b1e4eb36571eea25a8f313b7a1f4fab841a07d2dc5d69afc287c33f2ecb`
+- Workflow Markdown SHA-256: `ec12247325e18692588584adf468207895db408ef69fc8e4b521135a3308986c`
+- Context Markdown SHA-256: `75e572b41da44d859254b64b817bcf22e36d8597c12fc1a3d14dbdd5361de232`
+- Context JSON SHA-256: `418239487d475d7072878ba50ac0ca0fd6b4bdab0d01667df70aa53018c05bd2`
 - Runner SHA-256: `7929f9dc5d6fea32c55125c3b9f8fb4f02b72a07d3ea0ef80cb0a2aea6279c12`
 - Tests SHA-256: `6f888dc59182c7b02ed86fd3e80ddbadb5d7e5a6286e27b4c67d5d3eeb7fcba3`
 - The context JSON `workflow_artifacts_sha256` binds the exact current workflow and context Markdown hashes above.
@@ -25,7 +25,7 @@ Private runner evidence requires a Linux/WSL ext4 checkout, directory mode 0700 
 ## Reviews and execution boundary
 
 - Four-role workflow/context review decisions for this exact tuple are recorded in the private PC WSL ext4 approval record (directory 0700, file 0600). Host-phase execution requires an `EXECUTION_PLAN` bound to this same tuple; the prior plan against earlier hashes does not apply.
-- The S449-02C distribution/consolidation evidence was stale and is being rebound to this candidate; a previous `EXECUTION_PLAN` belonged to earlier workflow/context hashes and does not authorize this revision.
+- The S449-02C distribution/consolidation evidence has been rebound to this candidate; a previous `EXECUTION_PLAN` belonged to earlier workflow/context hashes and does not authorize this revision.
 - S449-02C remains a code/test-only slice. No native or WSL host inventory, route capture, fixture, GO, service stop, Incus write, installation or upgrade was performed as part of this slice.
 
 ## Verification evidence
