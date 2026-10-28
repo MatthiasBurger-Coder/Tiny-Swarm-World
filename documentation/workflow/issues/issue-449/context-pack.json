@@ -1,6 +1,6 @@
 {
   "workflow_id": "issue-449-lcm-w09",
-  "workflow_version": "1.37",
+  "workflow_version": "1.38",
   "workflow_path": "documentation/workflow/issues/issue-449/workflow.md",
   "workflow_index_path": "documentation/workflow/workflow.index.md",
   "context_pack_path": "documentation/workflow/issues/issue-449/context-pack.md",
@@ -29,7 +29,7 @@
   "test_host": "Approved PC WSL2 test host 192.168.178.58 for exact-source hash verification, targeted tests and QUALITY gates; live host work remains limited to the two named test hosts and each phase's exact scope",
   "pre_go_host_boundary": "S449-02C host inventory/route capture is distinct from S02C test-only work. Historical be2e031e8f0fb137ea6c15f74d81a88181aa4183 captures are not current. Exact-source 509908 native inventory SHA-256 3898c4a7c16fe93581bafabdd09d7daa11316e375072f288f697e2349b8c45017 and route artifact SHA-256 0af9913c1e997d518b0b62bec0c04ef0d79856ce0267ba338becacfa70e47d8cf (digest 4dd67ca44274073ad292e72c2a7cb5f9f36f5c15daf230912f2debb61c8ff91be). Exact-source WSL inventory SHA-256 4322d32ecfae2f5e1aae1711b48dbc0cb8007487f8655bc540f80d228c1d9994a at commit 50990890330684ef661be7f7ab07b586092641df, target 192.168.178.58; WSL route capture returned JIT_COMMAND_FAILED and created no artifact. Current native preflight remains blocked by active snap.lxd.daemon.service; no normalized admission or host GO. Historical approvals/S3D are phase-scoped and authorize none of the new slices/host commands. No mutation is claimed.",
   "workflow_amendment_v1_33": {
-    "status": "SUPERSEDED_BY_ACTIVE_ISSUE_EXECUTION v1.37",
+    "status": "SUPERSEDED_BY_ACTIVE_ISSUE_EXECUTION v1.38",
     "activation_reason": "The user explicitly authorized completing issue #449 on the named test hosts. This activates issue execution only; it does not grant a slice execution plan or host/scenario GO.",
     "execution_gates": [
       "fresh same-hash Three Amigos and specialist reviews for each slice",
@@ -376,4 +376,24 @@
   },
   "socket_unit_contract_v1_37": "For only snap.lxd.daemon.unix.socket and incus.socket, omitted or explicit decimal-zero MainPID normalizes to 0; empty, malformed and nonzero values block. Only incus.socket may be loaded/active/running, coupled to active stable allowlisted incus.service, exact allowlisted Listen endpoint, endpoint checks and full rechecks. First v1.36 native attempt returned UNIT_SCHEMA_INVALID, created no artifact and made no host changes. Fresh same-hash reviews and S3D are required before another read-only capture; no mutation or GO is implied. Current implementation candidate runner SHA-256 2084dc090f3b0d55007a9ad017fee4621b4d077642fe402f6fd0538c883f5f0c; test SHA-256 23c8395a3c8a5b6167f36b5e76f052f9df4a307cdc7499a88c898d0cf942aa37. Focused PC WSL tests passed (53). Full quality passed (3,048 tests, 18 skipped, seven gates, exit 0), isolated HOME `/home/pc/projects/issue449-s02f-home-v137-20261028`, log SHA-256 cc3f5f1b94219e5b4774c57e5f5063b1d8315c497d9938457d9d66c5ed1ec295. An earlier default-HOME attempt failed two stale-checkpoint tests; the isolated rerun passed. No native capture is included.",
   "safety": "Current runner/test hashes and quality evidence are recorded in context-pack.md. Historical be2e031e8f0fb137ea6c15f74d81a88181aa4183 captures are not current. Exact-source 509908 native inventory SHA-256 3898c4a7c16fe93581bafabdd09d7daa11316e375072f288f697e2349b8c45017 and native route artifact SHA-256 0af9913c1e997d518b0b62bec0c04ef0d79856ce0267ba338becacfa70e47d8cf; exact-source WSL inventory SHA-256 4322d32ecfae2f5e1aae1711b48dbc0cb8007487f8655bc540f80d228c1d9994a at commit 50990890330684ef661be7f7ab07b586092641df. WSL route capture failed JIT_COMMAND_FAILED and created no artifact. Native active snap.lxd.daemon.service blocks preflight. No normalized admission, host GO or mutation."
+  ,"native_v1_37_attempt": {
+    "status": "BLOCKED",
+    "code": "EXECUTABLE_IDENTITY_BLOCKED",
+    "artifact": "ABSENT",
+    "runtime_mutation": "NONE",
+    "source_commit": "d082175d9463c90635ccbbd622a0235bf068a64d",
+    "runner_sha256": "2084dc090f3b0d55007a9ad017fee4621b4d077642fe402f6fd0538c883f5f0c",
+    "execution_phase": "S449-02F bounded native read-only inventory under post-commit S3D"
+  },
+  "s449_02f2_diagnostic": {
+    "status": "PLANNED",
+    "purpose": "Identify the fixed service unit that fails executable identity without exposing paths or creating inventory evidence",
+    "output_contract": "One compact deterministic JSON object. Complete: mode=diagnose-units, status=DIAGNOSTIC_COMPLETE, services in fixed order with unit and identity. Unknown: mode=diagnose-units, status=BLOCKED_UNKNOWN, first unknown unit and identity=UNKNOWN only; no partial rows. Other errors emit only a fixed BLOCKED code.",
+    "cli_contract": "--diagnose-units is mutually exclusive with --source-commit and --output, requires no output path, and never calls the artifact writer. If combined with any other argument, reject before argparse can echo usage or caller values and emit only BLOCKED:DIAGNOSTIC_ARGUMENTS_INVALID. Normal inventory mode remains unchanged.",
+    "query_contract": "Process the five fixed units one at a time in declared order; readlink only for active services with validated positive ASCII MainPID; after each readlink, re-query the same service and require the normalized tuple to match before querying a later unit.",
+    "command_max": 11,
+    "output_allowlist": ["fixed_unit_id", "symbolic_identity", "fixed_status_code"],
+    "prohibited_output": ["pid", "executable_path", "raw_command_output", "command_records", "inventory_artifact"],
+    "host_execution": "Requires implementation commit, fresh same-hash reviews and a dedicated S3D plan"
+  }
 }

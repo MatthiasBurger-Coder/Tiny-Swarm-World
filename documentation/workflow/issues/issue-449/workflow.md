@@ -1,13 +1,13 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: ACTIVE_FOR_ISSUE_449 v1.37 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
+Status: ACTIVE_FOR_ISSUE_449 v1.38 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
 Workflow authoring branch: `docs/workflow-lcm-w09-route-baseline-20261027`
 Baseline: `a0310224946b63e2152ff4086d22a450c3d0f214`
-ACTIVE_FOR_ISSUE_449 v1.35. The user explicitly authorized completion of issue #449 on the named test hosts. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
+ACTIVE_FOR_ISSUE_449 v1.38. The user explicitly authorized completion of issue #449 on the named test hosts. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
 Execution profile: `FULL_PATH — lifecycle/provider implementation, regression, documentation, native and WSL2 qualification`
 
 ## Executive Summary
@@ -1088,6 +1088,78 @@ documentation:
 stop_conditions: [unknown/incomplete LXD or Incus visibility, shared or unowned resources, command/output bound exceeded, raw sensitive output retained, any service/system/Incus mutation; exclusive TSW-only LXD ownership routes to conditional S449-02G; unproven ownership remains BLOCKED]
 ```
 
+##### Slice 02F2 — Diagnose fixed service identity without exposing paths
+
+Purpose: identify which fixed native service unit failed the v1.37 executable
+identity check after the exact native capture returned
+`BLOCKED:EXECUTABLE_IDENTITY_BLOCKED`. This diagnostic is not an inventory,
+ownership admission, scenario GO, or permission to broaden the executable
+allowlist.
+
+Prerequisites: committed S449-02F v1.37 implementation; its approved native
+read-only attempt is recorded as blocked with no artifact; fresh same-hash
+Requirement, Architecture, Python Automation, Tester, Security and DevOps
+reviews; and a dedicated S3D plan for the committed symbolic diagnostic.
+
+The opt-in `--diagnose-units` mode reuses the existing Runner, fixed unit list,
+strict parser and executable identity map. It may query only `lxd.service`,
+`snap.lxd.daemon.service`, `snap.lxd.daemon.unix.socket`, `incus.service` and
+`incus.socket`, using the existing exact systemd property sets and existing
+unit order. Process one unit at a time: query and validate it, resolve and
+recheck an active service before moving to the next unit. Resolve
+`/proc/<validated-positive-MainPID>/exe` only for active service units, with
+the existing absolute `/usr/bin/readlink -f` argv and `shell=False`. Compare
+the result in memory against the existing exact allowlist. After each
+readlink, re-read that service's fixed systemd properties and require the
+normalized service tuple to match before emitting its identity. The mode must
+stop on the first unknown identity, malformed unit or state/PID drift and
+return nonzero, before issuing any command for a later fixed unit.
+
+Stdout is exactly one compact deterministic JSON object. A complete result is
+`{"mode":"diagnose-units","status":"DIAGNOSTIC_COMPLETE","services":[{"unit":"lxd.service","identity":"lxd_system"}]}` with one row per fixed service in the defined service order; inactive services use identity `NOT_ACTIVE`. On the first unknown identity, emit only
+`{"mode":"diagnose-units","status":"BLOCKED_UNKNOWN","unit":"lxd.service","identity":"UNKNOWN"}` and stop without partial service rows. Other failures emit only a fixed `BLOCKED:<CODE>` on stderr. Never emit or persist PIDs, raw paths, raw systemd/readlink output, exception text, command records or endpoint addresses. Do not inspect socket endpoints, run LXD/Incus client commands, query resources, or write an artifact in this diagnostic mode. Preserve Runner per-command/output/aggregate/wall-clock caps; the mode may execute at most five initial systemd queries, three readlink queries and three active-service rechecks (eleven commands total).
+
+The diagnostic CLI accepts only `--diagnose-units`; it does not require
+`--source-commit` or `--output`, and it must never call the artifact writer.
+If `--diagnose-units` is combined with any other argument, reject it before
+argparse can print usage or echo caller-supplied values; emit only the fixed
+`BLOCKED:DIAGNOSTIC_ARGUMENTS_INVALID` code.
+Normal inventory mode retains its existing required `--source-commit` and
+`--output` arguments and behavior. Regression tests must prove this CLI split,
+the exact unit/readlink argv and environment, post-readlink tuple equality,
+first-UNKNOWN short-circuit before later unit queries, no path/PID/raw-output
+leakage in either stream, no endpoint/client/resource/artifact calls, and the
+eleven-command maximum including a timeout/output failure. Invalid diagnostic
+arguments must not echo the unexpected token or usage text.
+
+An `UNKNOWN` result remains BLOCKED. Any executable allowlist change requires
+separate authoritative package provenance, exact unit-to-identity approval,
+new source/tests/workflow/context reviews and a new S3D plan. S449-02F capture
+must be planned and executed separately after that change, if needed.
+
+```yaml
+slice_id: S449-02F2
+profile: BACKEND_AND_TESTS
+owner: Senior Python Automation Developer
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior DevOps Engineer, Senior Tester]
+affected_files: [documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, documentation/workflow/workflow.index.md, tools/qualification/native_runtime_inventory.py, tests/tools/test_native_runtime_inventory.py, .codex/evidence/slice-449-02F2-design.md, .codex/evidence/slice-449-02F2-distribution.md, .codex/evidence/slice-449-02F2-consolidation.md, .codex/evidence/slice-449-02F-consolidation.md]
+affected_modules: [native qualification unit and executable identity diagnosis]
+affected_contracts: [fixed five-unit query set, validated active-service PID handling and post-readlink unit recheck, exact existing executable allowlist, deterministic symbolic-only output, no artifact or runtime mutation]
+dependencies: [S449-02F]
+parallel_group: sequential
+file_locks: [documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, documentation/workflow/workflow.index.md, tools/qualification/native_runtime_inventory.py, tests/tools/test_native_runtime_inventory.py, .codex/evidence/slice-449-02F2-design.md, .codex/evidence/slice-449-02F2-distribution.md, .codex/evidence/slice-449-02F2-consolidation.md, .codex/evidence/slice-449-02F-consolidation.md]
+module_locks: [native LXD/Incus unit identity inspection]
+contract_locks: [symbolic diagnostic only; unknown identity blocks; inventory capture remains separate]
+architecture_locks: [no host service, endpoint, resource or installation mutation]
+quality_gates:
+  targeted: [PYTHONPATH=src python3 -m unittest tests.tools.test_native_runtime_inventory]
+  required: [python3 tools/quality_gate.py quality]
+documentation:
+  arc42: no change
+  adr: no change; the diagnostic does not establish coexistence or ownership
+stop_conditions: [unknown/malformed unit or state/PID drift, raw path/PID/output leakage, unexpected argv/environment, any endpoint/client/resource query, artifact write, command/output/time bound exceeded, any host/runtime mutation]
+```
+
 ##### Conditional Slice 02G — Native LXD maintenance for TSW replacement
 
 This slice may be authored only if S449-02F exact evidence proves the active
@@ -2062,7 +2134,7 @@ only require `git diff --check`. Local quality is never live success.
 
 ## Documentation Governance and arc42 Check Status
 
-Status: `ACTIVE_FOR_ISSUE_449 v1.37 — issue execution authorized; slice-specific S3D and scenario GO gates remain mandatory`
+Status: `ACTIVE_FOR_ISSUE_449 v1.38 — issue execution authorized; slice-specific S3D and scenario GO gates remain mandatory`
 installation-owned profile decision is a draft awaiting canonical placement
 and accepted review; no Incus version is supported yet for this capability.
 S449-01 places the exact owner-approved R67j policy, effective-infrastructure-
@@ -2141,8 +2213,9 @@ fresh reviews and S3D; it grants no host mutation or scenario GO.
 S02F v1.37 candidate verification: runner SHA-256
 `2084dc090f3b0d55007a9ad017fee4621b4d077642fe402f6fd0538c883f5f0c`; test
 SHA-256 `23c8395a3c8a5b6167f36b5e76f052f9df4a307cdc7499a88c898d0cf942aa37`.
-On approved PC WSL, the focused suite passed 53 tests and the full quality gate
-passed all seven gates (3,048 tests, 18 skipped, exit 0); log SHA-256
+On approved PC WSL, the focused suite passed 53 tests. The full quality gate
+exited 0 with all seven gates passed. It reported 3,048 tests and 18 skips.
+Those skipped tests were not executed and receive no pass credit. Log SHA-256
 `cc3f5f1b94219e5b4774c57e5f5063b1d8315c497d9938457d9d66c5ed1ec295`. The
 isolated HOME was `/home/pc/projects/issue449-s02f-home-v137-20261028`. An
 earlier default-HOME run failed two stale-checkpoint tests; the isolated rerun

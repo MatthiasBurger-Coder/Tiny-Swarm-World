@@ -31,6 +31,7 @@ MAX_WALL_SECONDS = 300
 ENV_BASE = {"LC_ALL": "C", "PATH": "/usr/bin:/bin"}
 UNITS = ("lxd.service", "snap.lxd.daemon.service", "snap.lxd.daemon.unix.socket",
          "incus.service", "incus.socket")
+SERVICE_UNITS = ("lxd.service", "snap.lxd.daemon.service", "incus.service")
 SOCKETS = {
     "/var/lib/lxd/unix.socket": "lxd_system",
     "/var/snap/lxd/common/lxd/unix.socket": "lxd_snap",
@@ -256,6 +257,34 @@ def _resolve_executable(runner: Runner, row: dict[str, Any]) -> tuple[str, str]:
     except UnicodeError as exc:
         raise InventoryError("EXECUTABLE_OUTPUT_INVALID") from exc
     return executable_identity(row["unit"], resolved)
+
+
+def diagnose_units(*, runner: Runner | None = None) -> tuple[dict[str, Any], int]:
+    """Return symbolic unit identities without inventory queries or artifact writes."""
+    runner = runner or Runner()
+    services: list[dict[str, str]] = []
+    for unit in UNITS:
+        row = _systemctl_show(runner, unit)
+        if unit not in SERVICE_UNITS:
+            continue
+        if row["active_state"] != "active":
+            services.append({"unit": unit, "identity": "NOT_ACTIVE"})
+            continue
+        try:
+            identity, _package = _resolve_executable(runner, row)
+        except InventoryError as exc:
+            if str(exc) != "EXECUTABLE_IDENTITY_BLOCKED":
+                raise
+            identity = "UNKNOWN"
+        current = _systemctl_show(runner, unit)
+        if current != row:
+            raise InventoryError("UNIT_DRIFT_BLOCKED")
+        if identity == "UNKNOWN":
+            return ({"mode": "diagnose-units", "status": "BLOCKED_UNKNOWN",
+                     "unit": unit, "identity": "UNKNOWN"}, 2)
+        services.append({"unit": unit, "identity": identity})
+    return ({"mode": "diagnose-units", "status": "DIAGNOSTIC_COMPLETE",
+             "services": services}, 0)
 
 
 def _endpoint(runner: Runner, path: str, *, unit: str) -> tuple[str, bool]:
@@ -1209,10 +1238,23 @@ def _write_private(path: Path, raw: bytes) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
+    arguments = list(sys.argv[1:] if argv is None else argv)
+    if any(arg == "--diagnose-units" or arg.startswith("--diagnose-units=") for arg in arguments):
+        if arguments != ["--diagnose-units"]:
+            print("BLOCKED:DIAGNOSTIC_ARGUMENTS_INVALID", file=sys.stderr)
+            return 2
+        try:
+            report, status = diagnose_units()
+            print(json.dumps(report, separators=(",", ":"), ensure_ascii=True))
+            return status
+        except (InventoryError, OSError) as exc:
+            code = str(exc) if isinstance(exc, InventoryError) else "DIAGNOSTIC_FAILED"
+            print(f"BLOCKED:{code}", file=sys.stderr)
+            return 2
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-commit", required=True)
     parser.add_argument("--output", type=Path, required=True)
-    args = parser.parse_args(argv)
+    args = parser.parse_args(arguments)
     try:
         artifact = capture(args.source_commit)
         raw = _validate_artifact(artifact)

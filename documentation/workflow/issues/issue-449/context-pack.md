@@ -1,6 +1,6 @@
 # Context pack — issue-449-lcm-w09
 
-- Workflow document version: 1.37; status `ACTIVE_FOR_ISSUE_449`. The user authorized completing #449 on the named test hosts. Every slice still requires fresh same-hash reviews and its own S3D `EXECUTION_PLAN`; live host changes still require exact host/scenario admission and GO. S449-02D is committed at `6a687bddab9893d29c081bc8b8cdd0aa489c16ab`; S449-02E is committed at `6c48b1d0ef90ec0316769257e8a821946b2200c8`. S02D runner/test hashes `4d1bef40aa2be3f3f477d33c98db173bf43290cf23a71f33f9937e0fd089221f` / `deb5a79c706b8f277df55e36e040e2ca0c33289a4b7b1debe58a7f260822b1bc`; S02E runner/test hashes `6982861d785cdfa97f4de14e4f7b2cac8cd355eaff7e2478004c2619b1db72fd` / `86e874528a62664c2d2c6c452a733178cb9c0b6d63fc29f1e19a18a7e6ef413b`. On approved PC WSL, S02E focused suite passed 121 tests and full quality gate passed (43 architecture tests; 2,995 total, 18 skipped). S02F implementation and PC WSL quality verification are complete under v1.37. The v1.36 read-only attempt returned UNIT_SCHEMA_INVALID, produced no artifact, and made no host changes. No new native capture has run; a separate post-commit S3D plan is required. Its read-only queries must bind to already-active full-access service identities and cannot trigger service/socket activation. Version 1.36 reconciles project used_by membership without treating storage pools as project consumers, checks pool-level profile/instance disk reciprocity, includes exact storage-volume list/show argv, and blocks inherited/shared volume owner mismatches at both list and detail stages. The v1.36 S02F attempt contacted only the native test host for a bounded read-only inventory; it returned UNIT_SCHEMA_INVALID and produced no artifact. Native service-access preflight remains blocked by active snap.lxd.daemon.service; the previous WSL route capture failed with JIT_COMMAND_FAILED; no normalized admission or host/scenario GO exists.
+- Workflow document version: 1.38; status `ACTIVE_FOR_ISSUE_449`. The user authorized completing #449 on the named test hosts. Every slice still requires fresh same-hash reviews and its own S3D `EXECUTION_PLAN`; live host changes still require exact host/scenario admission and GO. S449-02D is committed at `6a687bddab9893d29c081bc8b8cdd0aa489c16ab`; S449-02E is committed at `6c48b1d0ef90ec0316769257e8a821946b2200c8`. S02D runner/test hashes `4d1bef40aa2be3f3f477d33c98db173bf43290cf23a71f33f9937e0fd089221f` / `deb5a79c706b8f277df55e36e040e2ca0c33289a4b7b1debe58a7f260822b1bc`; S02E runner/test hashes `6982861d785cdfa97f4de14e4f7b2cac8cd355eaff7e2478004c2619b1db72fd` / `86e874528a62664c2d2c6c452a733178cb9c0b6d63fc29f1e19a18a7e6ef413b`. On approved PC WSL, S02E focused suite passed 121 tests and full quality gate passed (43 architecture tests; 2,995 total, 18 skipped). S02F implementation and PC WSL quality verification are complete under v1.37. The v1.36 read-only attempt returned UNIT_SCHEMA_INVALID, produced no artifact, and made no host changes. The v1.37 native retry returned BLOCKED:EXECUTABLE_IDENTITY_BLOCKED with no artifact; S449-02F2 is planned for symbolic-only diagnosis. Its read-only queries must bind to already-active full-access service identities and cannot trigger service/socket activation. Version 1.36 reconciles project used_by membership without treating storage pools as project consumers, checks pool-level profile/instance disk reciprocity, includes exact storage-volume list/show argv, and blocks inherited/shared volume owner mismatches at both list and detail stages. The v1.36 S02F attempt contacted only the native test host for a bounded read-only inventory; it returned UNIT_SCHEMA_INVALID and produced no artifact. Native service-access preflight remains blocked by active snap.lxd.daemon.service; the previous WSL route capture failed with JIT_COMMAND_FAILED; no normalized admission or host/scenario GO exists.
 - Issue: #449, parent EPIC #440, bounded coordination with #318
 - Workflow: `documentation/workflow/issues/issue-449/workflow.md`
 - Index: `documentation/workflow/workflow.index.md`
@@ -151,3 +151,30 @@ made no host changes. A new read-only capture requires reviews and S3D bound to
 the amended source, test, workflow and context hashes. No mutation permission
 or host/scenario GO is implied.
 Current implementation candidate runner SHA-256: 2084dc090f3b0d55007a9ad017fee4621b4d077642fe402f6fd0538c883f5f0c; test SHA-256: 23c8395a3c8a5b6167f36b5e76f052f9df4a307cdc7499a88c898d0cf942aa37. Focused PC WSL tests passed (53 tests). Full quality passed (3,048 tests, 18 skipped, seven gates, exit 0); log SHA-256 `cc3f5f1b94219e5b4774c57e5f5063b1d8315c497d9938457d9d66c5ed1ec295`. The full gate used isolated HOME `/home/pc/projects/issue449-s02f-home-v137-20261028`. An earlier run under the default HOME failed two Incus preparation tests on a stale checkpoint; the isolated rerun passed. The first focused attempt also exposed an obsolete assertion and is superseded by the passing final 53-test run. No new native capture has run.
+
+## Execution-phase amendment v1.38
+
+The exact-source v1.37 native read-only capture ran under its dedicated
+post-commit S3D plan on the approved native Linux host. It returned
+`BLOCKED:EXECUTABLE_IDENTITY_BLOCKED`; the expected sanitized inventory
+artifact is absent. No service, instance, storage, network, firewall,
+PortProxy, installation or other runtime state was changed. The committed
+runner was staged under the approved candidate path; the private evidence
+folders are owner-only mode `0700`, and the candidate root mode was unchanged.
+The attempt is recorded as a private non-pass result only.
+
+Three-Amigos decision: add sequential S449-02F2, an opt-in symbolic diagnostic
+mode in the existing collector. It reuses the fixed unit parser, Runner bounds
+and executable allowlist. It processes the five fixed units one at a time in
+declared order. After each active-service readlink, it re-queries that service
+and requires the normalized state/PID tuple to match before any later unit is
+queried. Stdout is
+one compact deterministic JSON object with a fixed status and service identities
+in fixed order; the first unknown result emits only its unit ID and `UNKNOWN`,
+with no partial rows. The mode requires no output path and never writes an
+artifact. PIDs, raw paths, raw command output, exception strings, command
+records and endpoint addresses are prohibited. An `UNKNOWN` result remains
+blocked and does not authorize an allowlist addition. Any mapping change
+requires independent package provenance, exact unit-to-identity approval,
+fresh source/test/workflow/context reviews, and a separate S3D plan before
+another inventory capture.

@@ -4,7 +4,7 @@ from __future__ import annotations
 import subprocess
 import tempfile
 import unittest
-from contextlib import redirect_stderr
+from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
 from pathlib import Path
 from typing import Any
@@ -146,6 +146,61 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
                 "lxd_projects": [], "incus_projects": [], "command_records": command_records or [],
                 "decision": "READ_ONLY_INVENTORY_COMPLETE"}
 
+    class _UnitDiagnosticRunner:
+        def __init__(self, unit_rows: dict[str, list[dict[str, Any]]], executable_paths: dict[int, bytes],
+                     *, failure: inventory.InventoryError | None = None):
+            self.unit_rows = unit_rows
+            self.executable_paths = executable_paths
+            self.failure = failure
+            self.calls: list[list[str]] = []
+            self.unit_counts: dict[str, int] = {}
+
+        @staticmethod
+        def _raw_unit(row: dict[str, Any]) -> bytes:
+            values = {
+                "LoadState": row["load_state"], "ActiveState": row["active_state"],
+                "SubState": row["sub_state"], "UnitFileState": row["unit_file_state"],
+                "MainPID": str(row["main_pid"]),
+            }
+            if row["unit"].endswith(".socket"):
+                values["Listen"] = next((path for path, endpoint in inventory.SOCKETS.items()
+                                          if endpoint == row["listen"]), "")
+            return "".join(f"{key}={value}\n" for key, value in values.items()).encode()
+
+        def run(self, argv: list[str], *, env: dict[str, str] | None = None, command_id: str,
+                safe_args: list[str] | None = None, expected: set[int] | None = None) -> tuple[int, bytes, bytes]:
+            self.calls.append(list(argv))
+            self.assert_sanitized_runner_inputs(argv, env, command_id, safe_args)
+            if argv[0] == "/usr/bin/systemctl":
+                unit = argv[2]
+                props = list(inventory.PROPERTIES) + (["Listen"] if unit.endswith(".socket") else [])
+                expected_argv = ["/usr/bin/systemctl", "show", unit]
+                expected_argv += [f"--property={prop}" for prop in props] + ["--no-pager"]
+                if argv != expected_argv:
+                    raise AssertionError("diagnostic used unexpected systemctl argv")
+                count = self.unit_counts.get(unit, 0)
+                self.unit_counts[unit] = count + 1
+                rows = self.unit_rows[unit]
+                return 0, self._raw_unit(rows[min(count, len(rows) - 1)]), b"systemctl stderr sentinel"
+            if argv[0] == "/usr/bin/readlink":
+                if len(argv) != 3 or argv[1] != "-f" or not argv[2].startswith("/proc/") or not argv[2].endswith("/exe"):
+                    raise AssertionError("diagnostic used unexpected readlink argv")
+                if self.failure is not None:
+                    raise self.failure
+                pid = int(argv[2].split("/")[2])
+                return 0, self.executable_paths[pid], b"readlink stderr sentinel"
+            raise AssertionError("diagnostic invoked an unapproved command")
+
+        @staticmethod
+        def assert_sanitized_runner_inputs(argv: list[str], env: dict[str, str] | None, command_id: str,
+                                           safe_args: list[str] | None) -> None:
+            if env is not None:
+                raise AssertionError("diagnostic must use Runner's fixed environment")
+            if command_id not in {"systemctl_show_unit", "systemctl_show_socket", "resolve_executable"}:
+                raise AssertionError("diagnostic used an unexpected command id")
+            if safe_args not in (None, [argv[2]] if argv[0] == "/usr/bin/systemctl" else None):
+                raise AssertionError("diagnostic used unexpected safe arguments")
+
     def test_strict_json_rejects_duplicates_constants_and_invalid_utf8(self) -> None:
         for raw in (b'{"x":1,"x":2}', b'{"x":NaN}', b"\xff"):
             with self.subTest(raw=raw), self.assertRaises(inventory.InventoryError):
@@ -208,6 +263,138 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
         runner.run.return_value = (0, service_output.encode(), b"")
         with self.assertRaises(inventory.InventoryError):
             inventory._systemctl_show(runner, "incus.service")
+
+    @staticmethod
+    def _diagnostic_active_service(unit: str, pid: int) -> dict[str, Any]:
+        return {"unit": unit, "load_state": "loaded", "active_state": "active", "sub_state": "running",
+                "unit_file_state": "enabled", "main_pid": pid}
+
+    @staticmethod
+    def _diagnostic_missing_unit(unit: str, *, socket: bool = False) -> dict[str, Any]:
+        row: dict[str, Any] = {"unit": unit, "load_state": "not-found", "active_state": "inactive",
+                               "sub_state": "dead", "unit_file_state": "", "main_pid": 0}
+        if socket:
+            row["listen"] = ""
+        return row
+
+    def test_diagnose_units_success_uses_exactly_eleven_commands_and_emits_symbols_only(self) -> None:
+        rows = {
+            "lxd.service": [self._diagnostic_active_service("lxd.service", 101)],
+            "snap.lxd.daemon.service": [self._diagnostic_active_service("snap.lxd.daemon.service", 202)],
+            "snap.lxd.daemon.unix.socket": [{"unit": "snap.lxd.daemon.unix.socket", "load_state": "loaded",
+                "active_state": "active", "sub_state": "listening", "unit_file_state": "enabled",
+                "main_pid": 0, "listen": "lxd_snap"}],
+            "incus.service": [self._diagnostic_active_service("incus.service", 303)],
+            "incus.socket": [{"unit": "incus.socket", "load_state": "loaded", "active_state": "active",
+                "sub_state": "running", "unit_file_state": "enabled", "main_pid": 0, "listen": "incus_run"}],
+        }
+        runner = self._UnitDiagnosticRunner(rows, {101: b"/usr/lib/lxd/lxd\n",
+            202: b"/snap/lxd/12345/bin/lxd\n", 303: b"/usr/libexec/incus/incusd\n"})
+        stdout, stderr = StringIO(), StringIO()
+        with patch.object(inventory, "Runner", return_value=runner), \
+                patch.object(inventory, "_endpoint", side_effect=AssertionError("endpoint query is forbidden")), \
+                patch.object(inventory, "_inventory_client", side_effect=AssertionError("client query is forbidden")), \
+                patch.object(inventory, "_write_private") as write, \
+                patch.object(inventory, "capture", side_effect=AssertionError("inventory capture is forbidden")), \
+                redirect_stdout(stdout), redirect_stderr(stderr):
+            result = inventory.main(["--diagnose-units"])
+
+        self.assertEqual(result, 0)
+        self.assertEqual(stdout.getvalue(), '{"mode":"diagnose-units","status":"DIAGNOSTIC_COMPLETE","services":[{"unit":"lxd.service","identity":"lxd_system"},{"unit":"snap.lxd.daemon.service","identity":"lxd_snap"},{"unit":"incus.service","identity":"incus_system"}]}\n')
+        self.assertEqual(stderr.getvalue(), "")
+        self.assertEqual(len(runner.calls), 11)
+        self.assertEqual(sum(call[0] == "/usr/bin/systemctl" for call in runner.calls), 8)
+        self.assertEqual(sum(call[0] == "/usr/bin/readlink" for call in runner.calls), 3)
+        self.assertEqual([call[2] for call in runner.calls if call[0] == "/usr/bin/systemctl"],
+                         ["lxd.service", "lxd.service", "snap.lxd.daemon.service", "snap.lxd.daemon.service",
+                          "snap.lxd.daemon.unix.socket", "incus.service", "incus.service", "incus.socket"])
+        self.assertEqual([call for call in runner.calls if call[0] == "/usr/bin/readlink"], [
+            ["/usr/bin/readlink", "-f", "/proc/101/exe"],
+            ["/usr/bin/readlink", "-f", "/proc/202/exe"],
+            ["/usr/bin/readlink", "-f", "/proc/303/exe"],
+        ])
+        for forbidden in ("101", "202", "303", "/proc/", "/usr/lib", "/snap/lxd", "stderr sentinel"):
+            self.assertNotIn(forbidden, stdout.getvalue() + stderr.getvalue())
+        write.assert_not_called()
+
+    def test_diagnose_units_unknown_emits_only_first_unit_and_stops_before_later_queries(self) -> None:
+        rows = {
+            "lxd.service": [self._diagnostic_active_service("lxd.service", 411)],
+            "snap.lxd.daemon.service": [self._diagnostic_active_service("snap.lxd.daemon.service", 422)],
+            "snap.lxd.daemon.unix.socket": [self._diagnostic_missing_unit("snap.lxd.daemon.unix.socket", socket=True)],
+            "incus.service": [self._diagnostic_missing_unit("incus.service")],
+            "incus.socket": [self._diagnostic_missing_unit("incus.socket", socket=True)],
+        }
+        secret_path = b"/private/SENTINEL_EXECUTABLE_PATH\n"
+        runner = self._UnitDiagnosticRunner(rows, {411: b"/usr/lib/lxd/lxd\n", 422: secret_path})
+        stdout, stderr = StringIO(), StringIO()
+        with patch.object(inventory, "Runner", return_value=runner), \
+                patch.object(inventory, "_endpoint", side_effect=AssertionError("endpoint query is forbidden")), \
+                patch.object(inventory, "_inventory_client", side_effect=AssertionError("client query is forbidden")), \
+                patch.object(inventory, "_write_private") as write, redirect_stdout(stdout), redirect_stderr(stderr):
+            result = inventory.main(["--diagnose-units"])
+
+        self.assertEqual(result, 2)
+        self.assertEqual(stdout.getvalue(), '{"mode":"diagnose-units","status":"BLOCKED_UNKNOWN","unit":"snap.lxd.daemon.service","identity":"UNKNOWN"}\n')
+        self.assertEqual(stderr.getvalue(), "")
+        systemctl_units = [call[2] for call in runner.calls if call[0] == "/usr/bin/systemctl"]
+        self.assertEqual(systemctl_units, ["lxd.service", "lxd.service", "snap.lxd.daemon.service",
+                                           "snap.lxd.daemon.service"])
+        self.assertEqual([call for call in runner.calls if call[0] == "/usr/bin/readlink"], [
+            ["/usr/bin/readlink", "-f", "/proc/411/exe"],
+            ["/usr/bin/readlink", "-f", "/proc/422/exe"],
+        ])
+        for forbidden in ("411", "422", "/proc/", "/usr/lib", "SENTINEL_EXECUTABLE_PATH", "stderr sentinel"):
+            self.assertNotIn(forbidden, stdout.getvalue() + stderr.getvalue())
+        write.assert_not_called()
+
+    def test_diagnose_units_state_drift_stops_before_later_unit(self) -> None:
+        rows = {
+            "lxd.service": [self._diagnostic_active_service("lxd.service", 51),
+                            self._diagnostic_active_service("lxd.service", 52)],
+            "snap.lxd.daemon.service": [self._diagnostic_missing_unit("snap.lxd.daemon.service")],
+            "snap.lxd.daemon.unix.socket": [self._diagnostic_missing_unit("snap.lxd.daemon.unix.socket", socket=True)],
+            "incus.service": [self._diagnostic_missing_unit("incus.service")],
+            "incus.socket": [self._diagnostic_missing_unit("incus.socket", socket=True)],
+        }
+        runner = self._UnitDiagnosticRunner(rows, {51: b"/usr/lib/lxd/lxd\n"})
+        stdout, stderr = StringIO(), StringIO()
+        with patch.object(inventory, "Runner", return_value=runner), redirect_stdout(stdout), redirect_stderr(stderr):
+            result = inventory.main(["--diagnose-units"])
+        self.assertEqual(result, 2)
+        self.assertEqual(stdout.getvalue(), "")
+        self.assertEqual(stderr.getvalue().strip(), "BLOCKED:UNIT_DRIFT_BLOCKED")
+        self.assertEqual([call[2] for call in runner.calls if call[0] == "/usr/bin/systemctl"],
+                         ["lxd.service", "lxd.service"])
+
+    def test_diagnose_units_timeout_uses_fixed_error_and_never_writes_artifact(self) -> None:
+        rows = {unit: [self._diagnostic_active_service(unit, 61) if unit == "lxd.service"
+                       else self._diagnostic_missing_unit(unit, socket=unit.endswith(".socket"))]
+                for unit in inventory.UNITS}
+        runner = self._UnitDiagnosticRunner(rows, {}, failure=inventory.InventoryError("COMMAND_TIMEOUT"))
+        stdout, stderr = StringIO(), StringIO()
+        with patch.object(inventory, "Runner", return_value=runner), \
+                patch.object(inventory, "_write_private") as write, redirect_stdout(stdout), redirect_stderr(stderr):
+            result = inventory.main(["--diagnose-units"])
+        self.assertEqual(result, 2)
+        self.assertEqual(stdout.getvalue(), "")
+        self.assertEqual(stderr.getvalue().strip(), "BLOCKED:COMMAND_TIMEOUT")
+        self.assertEqual(len(runner.calls), 2)
+        write.assert_not_called()
+
+    def test_diagnose_units_extra_arguments_are_rejected_without_echo(self) -> None:
+        secret_arg = "/private/SENTINEL_ARGUMENT_PATH"
+        stdout, stderr = StringIO(), StringIO()
+        with patch.object(inventory, "Runner") as runner, \
+                patch.object(inventory, "capture") as capture, redirect_stdout(stdout), redirect_stderr(stderr):
+            result = inventory.main(["--diagnose-units", "--output", secret_arg])
+        self.assertEqual(result, 2)
+        self.assertEqual(stdout.getvalue(), "")
+        self.assertEqual(stderr.getvalue().strip(), "BLOCKED:DIAGNOSTIC_ARGUMENTS_INVALID")
+        self.assertNotIn(secret_arg, stderr.getvalue())
+        self.assertNotIn("usage:", stderr.getvalue().lower())
+        runner.assert_not_called()
+        capture.assert_not_called()
 
     def test_artifact_incus_running_socket_requires_matching_service_and_endpoint(self) -> None:
         artifact = self._valid_artifact()
