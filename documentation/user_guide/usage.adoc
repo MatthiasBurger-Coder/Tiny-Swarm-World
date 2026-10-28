@@ -45,11 +45,49 @@ intentionally on a WSL Windows mount, the applicable commands also need
 | Update one existing stack-service image | `platform update --stack ... --service ... --from-image ... --to-image ...` | Preview first; requires live consent and preserves image-recovery metadata; does not upgrade the TSW product.
 |===
 
-The future product upgrade, component catalog and selective-installation commands
-are specified in link:{user-reference-prefix}contracts/lifecycle.md[the Classic
-lifecycle contract]. Those new commands are not implemented by LCM-W01. Continue
-using the existing commands below; fixed profiles do not yet provide arbitrary
-service selection.
+Classic lifecycle commands support selection, component planning and a bounded
+product release transition. Start with the read-only previews below; the
+link:{user-reference-prefix}contracts/lifecycle.md[Classic lifecycle contract]
+and linked guides describe admission, recovery and qualification limits.
+
+[source,bash]
+----
+tiny-swarm-world setup run --minimal --preview
+tiny-swarm-world setup run --services jenkins,sonarqube --preview
+tiny-swarm-world services add --services swagger --preview
+tiny-swarm-world services list --json
+tiny-swarm-world services updates --json
+tiny-swarm-world services update --services swagger --preview --json
+tiny-swarm-world product version --json
+tiny-swarm-world product upgrade --to 0.5.0 --preview --json
+----
+
+Incus/LXC is a host prerequisite and Portainer a mandatory managed foundation.
+The preview explains additional dependencies, such as Nexus for Jenkins.
+Apply only after reviewing prerequisites and the plan: replace `--preview`
+with `--live --approve-live` for explicit noninteractive consent. The product
+upgrade uses a separate management checkout and may require an adoption
+manifest; read the link:{user-guide-prefix}product-upgrades.md[product upgrade
+guide] first. The link:{user-guide-prefix}selective-setup.md[selective setup]
+and link:{user-guide-prefix}component-updates.md[component update] guides cover
+selection persistence, currently admitted transitions and recovery. Some
+previews may correctly return blocked when their prerequisites are absent.
+Replacing `--preview` does not make an unqualified component transition
+executable. Inspection commands remain read-only and need no live consent.
+
+For a mutating setup or service-add operation, the selection flow is:
+
+[mermaid]
+....
+flowchart LR
+    A[Requested services] --> B[Resolve dependencies]
+    I[Incus host prerequisite] --> B
+    P[Portainer foundation] --> B
+    B --> C[Preview and review]
+    C --> D[Explicit live consent]
+    D --> E[Apply and verify]
+    E --> F[Persist resolved selection]
+....
 
 For an intentional platform reconciliation, followed by verification:
 
@@ -81,7 +119,7 @@ After changes, verify routes and actual logins as described in
 link:{user-guide-prefix}installation.adoc#verify-installed-runtime[Verify the runtime].
 Platform readiness or a login page alone is not authenticated acceptance.
 
-The supported update is a single existing stack service image transition. A
+The legacy `platform update` handles one existing stack service image transition. A
 preview validates image references and configured stack/service membership
 without mutation or runtime observation; it does not qualify the running image:
 

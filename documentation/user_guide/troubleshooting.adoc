@@ -322,6 +322,22 @@ PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
 The live prompt needs stdin. If the IDE runner cannot answer the prompt, use
 the IntelliJ terminal or an external WSL/Linux terminal.
 
+== Lifecycle Preview Or Recovery Is Blocked
+
+Read the reported stage and diagnostics before retrying. A missing installation
+manifest requires reviewed inventory or adoption; a dirty checkout, unsupported
+target, unknown image identity, drift or unqualified transition can block a
+preview before mutation. Do not reset the environment to bypass these guards.
+See link:selective-setup.md[selective setup], link:component-updates.md[component
+updates] and link:product-upgrades.md[product upgrades] for the applicable
+admission and recovery steps.
+
+Portainer has a dedicated backup and recovery path: retain its protected backup
+and checkpoint, and follow the component guide's API-independent recovery
+instructions if its API is unavailable. Reverting an image does not restore
+persistent data or reverse a data migration. Restore compatible data only from
+a separately verified backup using the documented recovery procedure.
+
 == Docker Or Portainer Calls Fail
 
 Check that Docker is reachable from the same shell:

@@ -212,7 +212,8 @@ and redact diagnostics before sharing them.
 | `./prepare_linux.sh` | Prepare shared native/WSL2 Ubuntu prerequisites and Incus access/resources with staged confirmation. |
 | `./install.sh` on native Linux | Verify preparation, then run setup without a reset. |
 | `./install.sh` on WSL2 | Reconcile existing managed state; explicit WSL `--confirm-reset` alone selects deprecated destructive compatibility. |
-| Product update | Preview and apply one supported stack/service image transition with the documented `platform update` contract. |
+| Product upgrade | `product upgrade` controls the bounded TSW release transition; see the [product upgrade guide](documentation/user_guide/product-upgrades.md) for prerequisites and qualification limits. |
+| Component update | `services updates` and `services update` inspect and plan selected components; `platform update` retains the single stack-service image transition contract. |
 
 Use `platform update --stack ... --service ... --from-image ... --to-image ... --preview`
 before an explicitly consented live apply. Use `platform update --recover
@@ -223,6 +224,14 @@ See [Daily operation](documentation/user_guide/usage.adoc#daily-operation) for
 commands, configuration continuity and recovery choices. The
 [live operation surface catalog](documentation/system/live-operation-surfaces.adoc)
 identifies supported workflow boundaries and retained compatibility assets.
+
+For a new Classic installation, preview `setup run --minimal --preview` or
+`setup run --services jenkins,sonarqube --preview`. Incus/LXC is a host
+prerequisite and Portainer is a mandatory managed foundation; the planner
+explains added dependencies. Add services later with
+`services add --services swagger --preview`. See [selective setup](documentation/user_guide/selective-setup.md)
+for prerequisites, live consent and removal limits. Cross-host qualification
+remains incomplete; see [W09 evidence](documentation/evidence/lcm-w09-qualification.md).
 
 ## For contributors
 
