@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import base64
 from datetime import datetime, timezone
 import hashlib
 import ipaddress
@@ -62,6 +61,7 @@ _PROJECT_BOOLEAN_KEYS = {
 }
 
 _COMMAND_AUDIT: list[dict[str, Any]] = []
+_WINDOWS_SNAPSHOT_METADATA: dict[str, Any] = {}
 
 
 def _inventory_budgets() -> tuple[int, int, int, float]:
@@ -306,17 +306,25 @@ def approved_route_state_sha256(listeners_10001: list[bytes],
                                 incus_10001_routes: list[dict[str, Any]],
                                 windows_snapshot: bytes,
                                 incus_projects: list[str] | None = None) -> str:
+    tuples = _safe_listener_tuples(listeners_10001)
     payload = {
-        'listeners_10001_b64': sorted(base64.b64encode(row).decode('ascii') for row in listeners_10001),
+        'listeners_10001_count': len(tuples),
+        'listeners_10001_sha256': digest(json.dumps(
+            tuples, sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode('utf-8')),
         'incus_projects': sorted(incus_projects or []),
         'incus_10001_routes': sorted(incus_10001_routes,
                                      key=lambda item: (item['project'], item['owner_type'],
                                                        item['owner'], item['device'])),
-        'windows_snapshot_b64': base64.b64encode(windows_snapshot).decode('ascii'),
+        'windows_snapshot_sha256': digest(windows_snapshot) if windows_snapshot else '',
     }
     raw = json.dumps(payload, sort_keys=True, separators=(',', ':'),
                      ensure_ascii=False).encode('utf-8')
     return digest(raw)
+
+
+def _pack_windows_snapshot(firewall: bytes, portproxy: bytes) -> bytes:
+    """Keep exact Windows state in memory without a text/base64 representation."""
+    return len(firewall).to_bytes(8, 'big') + firewall + len(portproxy).to_bytes(8, 'big') + portproxy
 
 
 def _strict_devices(value: Any, code: str, *, allow_implicit_bind: bool = False) -> dict[str, dict[str, Any]]:
@@ -437,6 +445,39 @@ def _listener_rows(raw: bytes, port: int) -> list[bytes]:
     return matches
 
 
+def _safe_listener_tuples(rows: list[bytes]) -> list[dict[str, Any]]:
+    """Project raw ss rows onto the allowlisted listener schema."""
+    result = []
+    for row in rows:
+        columns = row.split()
+        if len(columns) < 5:
+            raise TargetDrift('LISTENER_INVENTORY_UNREADABLE')
+        try:
+            state = columns[0].decode('ascii', errors='strict').upper()
+            protocol = 'tcp'
+            endpoint = columns[3].decode('ascii', errors='strict')
+            match = re.search(r':([0-9]+)$', endpoint)
+            if state != 'LISTEN' or match is None:
+                raise ValueError
+            address, port = endpoint.rsplit(':', 1)
+            address = address.strip('[]')
+            ipaddress.ip_address(address)
+            port_value = int(port)
+            if not 1 <= port_value <= 65535:
+                raise ValueError
+        except (UnicodeError, ValueError) as exc:
+            raise TargetDrift('LISTENER_INVENTORY_UNREADABLE') from exc
+        result.append({'protocol': protocol, 'local_address': address, 'local_port': port_value})
+    return sorted(result, key=lambda item: (item['protocol'], item['local_address'], item['local_port']))
+
+
+def _listener_digest(raw: bytes, port: int) -> tuple[list[dict[str, Any]], str]:
+    tuples = _safe_listener_tuples(_listener_rows(raw, port))
+    canonical = json.dumps(tuples, sort_keys=True, separators=(',', ':'),
+                           ensure_ascii=False).encode('utf-8')
+    return tuples, digest(canonical)
+
+
 def _assert_approved_route_state(go: dict[str, Any], listeners_10001: list[bytes],
                                  incus_10001_routes: list[dict[str, Any]],
                                  windows_snapshot: bytes, incus_projects: list[str]) -> None:
@@ -510,6 +551,13 @@ def validate_go(go: Any, args: argparse.Namespace, head: str, workflow: bytes, r
 
 def command(argv: list[str]) -> bytes:
     argv = list(argv)
+    if argv == ['/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe',
+                '-NoProfile', '-NonInteractive', '-Command', _WINDOWS_ACTIVE_STORE_QUERY]:
+        return _snapshot_process(argv, 120, 14 * 1024 * 1024, 2 * 1024 * 1024,
+                                 'WINDOWS_FIREWALL_SNAPSHOT_UNREADABLE')
+    if argv == ['/mnt/c/Windows/System32/netsh.exe', 'interface', 'portproxy', 'show', 'all']:
+        return _snapshot_process(argv, 30, 2 * 1024 * 1024, 2 * 1024 * 1024,
+                                 'WINDOWS_FIREWALL_SNAPSHOT_UNREADABLE')
     if (argv and argv[0] == 'incus' and len(argv) > 1
             and (argv[1] in {'query', 'list', 'info'}
                  or argv[1:3] in (['project', 'list'], ['profile', 'list'],
@@ -531,6 +579,123 @@ def command(argv: list[str]) -> bytes:
     if result.returncode:
         raise TargetDrift('JIT_COMMAND_FAILED')
     return result.stdout
+
+
+_WINDOWS_ACTIVE_STORE_QUERY = r'''
+$ErrorActionPreference = 'Stop'
+[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)
+$profiles = @(Get-NetFirewallProfile -PolicyStore ActiveStore | Sort-Object Name | Select-Object *)
+$settings = @(Get-NetFirewallSetting -PolicyStore ActiveStore | Select-Object *)
+$rules = @(Get-NetFirewallRule -PolicyStore ActiveStore | Sort-Object Name | ForEach-Object {
+  $rule = $_
+  [ordered]@{
+    rule = $rule | Select-Object *
+    profiles = @(Get-NetFirewallProfile -AssociatedNetFirewallRule $rule -PolicyStore ActiveStore | Select-Object *)
+    address = @(Get-NetFirewallAddressFilter -AssociatedNetFirewallRule $rule -PolicyStore ActiveStore | Select-Object *)
+    application = @(Get-NetFirewallApplicationFilter -AssociatedNetFirewallRule $rule -PolicyStore ActiveStore | Select-Object *)
+    interface = @(Get-NetFirewallInterfaceFilter -AssociatedNetFirewallRule $rule -PolicyStore ActiveStore | Select-Object *)
+    interface_type = @(Get-NetFirewallInterfaceTypeFilter -AssociatedNetFirewallRule $rule -PolicyStore ActiveStore | Select-Object *)
+    port = @(Get-NetFirewallPortFilter -AssociatedNetFirewallRule $rule -PolicyStore ActiveStore | Select-Object *)
+    security = @(Get-NetFirewallSecurityFilter -AssociatedNetFirewallRule $rule -PolicyStore ActiveStore | Select-Object *)
+    service = @(Get-NetFirewallServiceFilter -AssociatedNetFirewallRule $rule -PolicyStore ActiveStore | Select-Object *)
+  }
+})
+[ordered]@{profiles=$profiles;settings=$settings;rules=$rules} | ConvertTo-Json -Depth 100 -Compress
+'''.strip()
+
+
+def _snapshot_process(argv: list[str], timeout_seconds: float, stdout_limit: int,
+                      stderr_limit: int, failure_code: str) -> bytes:
+    """Capture one allowlisted Windows snapshot process under shared budgets."""
+    global _INVENTORY_BYTES_CAPTURED, _INVENTORY_STARTED_AT
+    command_limit, byte_limit, _, total_timeout = _inventory_budgets()
+    if len(_COMMAND_AUDIT) >= command_limit:
+        raise TargetDrift('INCUS_INVENTORY_COMMAND_LIMIT_EXCEEDED')
+    now = time.monotonic()
+    if _INVENTORY_STARTED_AT is None:
+        _INVENTORY_STARTED_AT = now
+    if now - _INVENTORY_STARTED_AT > total_timeout:
+        raise TargetDrift('INCUS_INVENTORY_TOTAL_TIMEOUT')
+    process = None
+    selector = None
+    stdout, stderr = bytearray(), bytearray()
+    started = time.monotonic()
+    try:
+        process = subprocess.Popen(argv, cwd=ROOT, env={'PATH': TRUSTED_PATH, 'LANG': 'C.UTF-8'},
+                                   stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        assert process.stdout is not None and process.stderr is not None
+        selector = selectors.DefaultSelector()
+        for stream, target, cap in ((process.stdout, stdout, stdout_limit),
+                                    (process.stderr, stderr, stderr_limit)):
+            os.set_blocking(stream.fileno(), False)
+            selector.register(stream, selectors.EVENT_READ, (target, cap))
+        process_deadline = started + timeout_seconds
+        aggregate_deadline = _INVENTORY_STARTED_AT + total_timeout
+        deadline = min(process_deadline, aggregate_deadline)
+        while selector.get_map():
+            remaining = deadline - time.monotonic()
+            if remaining < 0:
+                raise TimeoutError
+            for key, _ in selector.select(min(max(remaining, 0.001), 0.25)):
+                target, cap = key.data
+                aggregate_remaining = byte_limit - _INVENTORY_BYTES_CAPTURED - len(stdout) - len(stderr)
+                read_size = min(65536, cap - len(target) + 1, aggregate_remaining + 1)
+                chunk = os.read(key.fd, read_size)
+                if not chunk:
+                    selector.unregister(key.fileobj)
+                    continue
+                target.extend(chunk)
+                if len(target) > cap or len(stdout) + len(stderr) + _INVENTORY_BYTES_CAPTURED > byte_limit:
+                    raise OverflowError
+        remaining = deadline - time.monotonic()
+        if remaining < 0:
+            raise TimeoutError
+        exit_status = process.wait(timeout=max(0.001, remaining))
+    except (TimeoutError, subprocess.TimeoutExpired) as exc:
+        total_timeout_exceeded = (aggregate_deadline <= process_deadline
+                                  and time.monotonic() > aggregate_deadline)
+        if process is not None:
+            _kill_and_reap(process, failure_code)
+        _COMMAND_AUDIT.append(_safe_command_record(argv, None, len(stdout), len(stderr)))
+        if total_timeout_exceeded:
+            raise TargetDrift('INCUS_INVENTORY_TOTAL_TIMEOUT') from exc
+        raise TargetDrift('WINDOWS_SNAPSHOT_TIMEOUT') from exc
+    except OverflowError as exc:
+        if process is not None:
+            _kill_and_reap(process, failure_code)
+        _COMMAND_AUDIT.append(_safe_command_record(argv, None, len(stdout), len(stderr)))
+        raise TargetDrift('WINDOWS_SNAPSHOT_OUTPUT_TOO_LARGE') from exc
+    except OSError as exc:
+        if process is not None:
+            _kill_and_reap(process, failure_code)
+        _COMMAND_AUDIT.append(_safe_command_record(argv, None, len(stdout), len(stderr)))
+        raise TargetDrift('WINDOWS_SNAPSHOT_COMMAND_FAILED') from exc
+    except Exception as exc:
+        if process is not None:
+            _kill_and_reap(process, failure_code)
+        _COMMAND_AUDIT.append(_safe_command_record(argv, None, len(stdout), len(stderr)))
+        raise TargetDrift('WINDOWS_SNAPSHOT_COMMAND_FAILED') from exc
+    except BaseException:
+        if process is not None:
+            _kill_and_reap(process, failure_code)
+        _COMMAND_AUDIT.append(_safe_command_record(argv, None, len(stdout), len(stderr)))
+        raise
+    finally:
+        if selector is not None:
+            selector.close()
+        if process is not None:
+            for pipe in (process.stdout, process.stderr):
+                if pipe is not None:
+                    pipe.close()
+    duration_ms = int((time.monotonic() - started) * 1000)
+    _COMMAND_AUDIT.append(_safe_command_record(argv, exit_status, len(stdout), len(stderr)) |
+                          {'duration_ms': duration_ms})
+    _INVENTORY_BYTES_CAPTURED += len(stdout) + len(stderr)
+    if exit_status:
+        raise TargetDrift('WINDOWS_SNAPSHOT_COMMAND_FAILED')
+    if time.monotonic() - _INVENTORY_STARTED_AT > total_timeout:
+        raise TargetDrift('INCUS_INVENTORY_TOTAL_TIMEOUT')
+    return bytes(stdout)
 
 
 def _safe_command_record(argv: list[str], status: int | None,
@@ -641,28 +806,7 @@ def _assert_windows_unchanged(before: bytes, after: bytes) -> None:
 
 def _windows_snapshot() -> bytes:
     exe = '/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe'
-    query = r'''
-$ErrorActionPreference = 'Stop'
-[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)
-$profiles = @(Get-NetFirewallProfile -PolicyStore ActiveStore | Sort-Object Name | Select-Object *)
-$settings = @(Get-NetFirewallSetting -PolicyStore ActiveStore | Select-Object *)
-$rules = @(Get-NetFirewallRule -PolicyStore ActiveStore | Sort-Object Name | ForEach-Object {
-  $rule = $_
-  [ordered]@{
-    rule = $rule | Select-Object *
-    profiles = @(Get-NetFirewallProfile -AssociatedNetFirewallRule $rule -PolicyStore ActiveStore | Select-Object *)
-    address = @(Get-NetFirewallAddressFilter -AssociatedNetFirewallRule $rule -PolicyStore ActiveStore | Select-Object *)
-    application = @(Get-NetFirewallApplicationFilter -AssociatedNetFirewallRule $rule -PolicyStore ActiveStore | Select-Object *)
-    interface = @(Get-NetFirewallInterfaceFilter -AssociatedNetFirewallRule $rule -PolicyStore ActiveStore | Select-Object *)
-    interface_type = @(Get-NetFirewallInterfaceTypeFilter -AssociatedNetFirewallRule $rule -PolicyStore ActiveStore | Select-Object *)
-    port = @(Get-NetFirewallPortFilter -AssociatedNetFirewallRule $rule -PolicyStore ActiveStore | Select-Object *)
-    security = @(Get-NetFirewallSecurityFilter -AssociatedNetFirewallRule $rule -PolicyStore ActiveStore | Select-Object *)
-    service = @(Get-NetFirewallServiceFilter -AssociatedNetFirewallRule $rule -PolicyStore ActiveStore | Select-Object *)
-  }
-})
-[ordered]@{profiles=$profiles;settings=$settings;rules=$rules} | ConvertTo-Json -Depth 100 -Compress
-'''.strip()
-    raw_firewall = command([exe, '-NoProfile', '-NonInteractive', '-Command', query])
+    raw_firewall = command([exe, '-NoProfile', '-NonInteractive', '-Command', _WINDOWS_ACTIVE_STORE_QUERY])
     firewall_value = strict_json(raw_firewall)
     if not isinstance(firewall_value, dict) or set(firewall_value) != {'profiles', 'settings', 'rules'}:
         raise TargetDrift('WINDOWS_FIREWALL_SNAPSHOT_UNREADABLE')
@@ -670,12 +814,17 @@ $rules = @(Get-NetFirewallRule -PolicyStore ActiveStore | Sort-Object Name | For
         if (not isinstance(firewall_value[key], list)
                 or any(not isinstance(item, dict) for item in firewall_value[key])):
             raise TargetDrift('WINDOWS_FIREWALL_SNAPSHOT_UNREADABLE')
-    if any('Name' not in item or not isinstance(item['Name'], str) for item in firewall_value['profiles']):
+    if (any('Name' not in item or not isinstance(item['Name'], str) for item in firewall_value['profiles'])
+            or len({item['Name'] for item in firewall_value['profiles']}) != len(firewall_value['profiles'])):
         raise TargetDrift('WINDOWS_FIREWALL_SNAPSHOT_UNREADABLE')
+    active_profiles = {item['Name'] for item in firewall_value['profiles']}
     required_rule_keys = {'rule', 'profiles', 'address', 'application', 'interface',
                           'interface_type', 'port', 'security', 'service'}
     if any(set(rule) != required_rule_keys or not isinstance(rule.get('rule'), dict)
            or not isinstance(rule['rule'].get('Name'), str) for rule in firewall_value['rules']):
+        raise TargetDrift('WINDOWS_FIREWALL_SNAPSHOT_UNREADABLE')
+    rule_names = [rule['rule']['Name'] for rule in firewall_value['rules']]
+    if len(rule_names) != len(set(rule_names)):
         raise TargetDrift('WINDOWS_FIREWALL_SNAPSHOT_UNREADABLE')
     firewall_value['profiles'].sort(key=lambda item: str(item.get('Name', '')))
     firewall_value['settings'].sort(key=lambda item: json.dumps(
@@ -684,15 +833,37 @@ $rules = @(Get-NetFirewallRule -PolicyStore ActiveStore | Sort-Object Name | For
     for rule in firewall_value['rules']:
         for key in ('profiles', 'address', 'application', 'interface', 'interface_type', 'port', 'security', 'service'):
             rows = rule.get(key)
-            if not isinstance(rows, list) or any(not isinstance(item, dict) for item in rows):
+            if (not isinstance(rows, list) or not rows
+                    or any(not isinstance(item, dict) or not item for item in rows)):
+                raise TargetDrift('WINDOWS_FIREWALL_SNAPSHOT_UNREADABLE')
+            if key == 'profiles' and any(
+                    not isinstance(item.get('Name'), str) or item['Name'] not in active_profiles
+                    for item in rows):
+                raise TargetDrift('WINDOWS_FIREWALL_SNAPSHOT_UNREADABLE')
+            if key != 'profiles' and len(rows) != 1:
+                raise TargetDrift('WINDOWS_FIREWALL_SNAPSHOT_UNREADABLE')
+            canonical_rows = [json.dumps(item, sort_keys=True, separators=(',', ':'), ensure_ascii=False)
+                              for item in rows]
+            if len(canonical_rows) != len(set(canonical_rows)):
                 raise TargetDrift('WINDOWS_FIREWALL_SNAPSHOT_UNREADABLE')
             rows.sort(key=lambda item: json.dumps(item, sort_keys=True, separators=(',', ':'), ensure_ascii=False))
     firewall = json.dumps(firewall_value, sort_keys=True, separators=(',', ':'),
                           ensure_ascii=False).encode('utf-8')
     portproxy = command(['/mnt/c/Windows/System32/netsh.exe', 'interface', 'portproxy', 'show', 'all'])
-    snapshot = {'firewall_active_store_b64': base64.b64encode(firewall).decode('ascii'),
-                'portproxy_raw_b64': base64.b64encode(portproxy).decode('ascii')}
-    return json.dumps(snapshot, sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode('utf-8')
+    global _WINDOWS_SNAPSHOT_METADATA
+    _WINDOWS_SNAPSHOT_METADATA = {
+        'schema_version': 'tsw.windows-route-snapshot.v1',
+        'firewall_bytes': len(firewall), 'firewall_sha256': digest(firewall),
+        'portproxy_bytes': len(portproxy), 'portproxy_sha256': digest(portproxy),
+        'profile_count': len(firewall_value['profiles']),
+        'setting_count': len(firewall_value['settings']), 'rule_count': len(firewall_value['rules']),
+        'captured_at': datetime.now(timezone.utc).isoformat(),
+    }
+    # Length-prefix each exact component. The byte sequence stays in memory for
+    # equality checks; artifacts retain only the metadata above and a digest.
+    packed = _pack_windows_snapshot(firewall, portproxy)
+    _WINDOWS_SNAPSHOT_METADATA['windows_snapshot_sha256'] = digest(packed)
+    return packed
 
 
 def _assert_host_identity(host: str) -> None:
@@ -837,26 +1008,41 @@ def _capture_output_path(value: str) -> Path:
     return target
 
 
+def _serialize_route_state_artifact(payload: dict[str, Any]) -> bytes:
+    try:
+        raw = json.dumps(payload, sort_keys=True, separators=(',', ':'),
+                         ensure_ascii=False).encode('utf-8') + b'\n'
+    except (TypeError, ValueError) as exc:
+        raise FixtureError('RESULT_SERIALIZATION_FAILED') from exc
+    if len(raw) > _INVENTORY_ARTIFACT_MAX_BYTES:
+        raise FixtureError('INVENTORY_ARTIFACT_TOO_LARGE')
+    return raw
+
+
 def capture_route_state(host: str, output: str) -> None:
-    global _INVENTORY_RESERVE_CLEANUP, _INVENTORY_CLEANUP_MODE
+    global _INVENTORY_RESERVE_CLEANUP, _INVENTORY_CLEANUP_MODE, _WINDOWS_SNAPSHOT_METADATA
     _COMMAND_AUDIT.clear()
     _INVENTORY_RESERVE_CLEANUP = False
     _INVENTORY_CLEANUP_MODE = False
+    _WINDOWS_SNAPSHOT_METADATA = {}
     path = _capture_output_path(output)
     head, _, _, _ = git_preflight()
     state = _route_state(host)
-    payload = {'source_commit': head,
+    safe_listeners = _safe_listener_tuples(state['listeners_10001'])
+    windows_metadata = dict(globals().get('_WINDOWS_SNAPSHOT_METADATA', {}))
+    payload = {'schema_version': 'tsw.route-state.v2', 'source_commit': head,
                'captured_at': datetime.now(timezone.utc).isoformat(),
                'target_host': host, 'target_ip': host,
-               'listeners_10001_b64': sorted(base64.b64encode(row).decode('ascii') for row in state['listeners_10001']),
+               'listeners_10001_count': len(safe_listeners),
+               'listeners_10001': safe_listeners,
+               'listeners_10001_sha256': digest(json.dumps(
+                   safe_listeners, sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode('utf-8')),
                'incus_projects': state['incus_projects'],
                'incus_10001_routes': state['incus_10001_routes'],
-               'windows_snapshot_b64': base64.b64encode(state['windows_snapshot']).decode('ascii'),
+               'windows_snapshot': windows_metadata,
                'approved_route_state_sha256': state['approved_route_state_sha256'],
                'commands': _COMMAND_AUDIT}
-    raw = json.dumps(payload, sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode('utf-8') + b'\n'
-    if len(raw) > _INVENTORY_ARTIFACT_MAX_BYTES:
-        raise FixtureError('INVENTORY_ARTIFACT_TOO_LARGE')
+    raw = _serialize_route_state_artifact(payload)
     flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, 'O_NOFOLLOW', 0) | getattr(os, 'O_CLOEXEC', 0)
     try:
         fd = os.open(path, flags, 0o600)
@@ -1371,8 +1557,8 @@ def _incus_route_inventory() -> tuple[list[str], list[dict[str, Any]]]:
                 raise TargetDrift('INCUS_PROFILE_INVENTORY_UNREADABLE')
             for device_name, device in devices.items():
                 if device.get('type') == 'proxy' and _is_approved_10001_proxy(device['listen']):
-                    routes.append({'project': project, 'owner_type': 'profile', 'owner': name,
-                                   'device': device_name, 'config': device, 'used_by': used_by})
+                    routes.append(_safe_route_row(project, 'profile', name, device_name,
+                                                  device, [name]))
         instances = strict_json(command(['incus', 'list', '--project', project, '--format', 'json']))
         if (not isinstance(instances, list)
                 or any(not isinstance(row, dict) or not isinstance(row.get('name'), str) or not row['name']
@@ -1395,9 +1581,39 @@ def _incus_route_inventory() -> tuple[list[str], list[dict[str, Any]]]:
                 raise TargetDrift('INCUS_INSTANCE_INVENTORY_UNREADABLE')
             for device_name, device in devices.items():
                 if device.get('type') == 'proxy' and _is_approved_10001_proxy(device['listen']):
-                    routes.append({'project': project, 'owner_type': 'instance', 'owner': name,
-                                   'device': device_name, 'config': device, 'profiles': instance_profiles})
+                    routes.append(_safe_route_row(project, 'instance', name, device_name,
+                                                  device, instance_profiles))
     return projects, sorted(routes, key=lambda item: (item['project'], item['owner_type'], item['owner'], item['device']))
+
+
+def _safe_route_row(project: str, owner_type: str, owner: str, device_name: str,
+                    device: dict[str, Any], profiles: list[str]) -> dict[str, Any]:
+    if (owner_type not in {'profile', 'instance'} or not all(
+            isinstance(value, str) and value and len(value) <= 128
+            and re.fullmatch(r'[A-Za-z0-9_.-]+', value)
+            for value in (project, owner, device_name))):
+        raise TargetDrift('INCUS_10001_ROUTE_UNAPPROVED')
+    if (set(device) - {'type', 'listen', 'connect', 'bind'}
+            or not {'type', 'listen', 'connect'} <= set(device)):
+        raise TargetDrift('INCUS_10001_ROUTE_UNAPPROVED')
+    def endpoint(value: str) -> dict[str, Any]:
+        protocol, _ = _parse_proxy_endpoint(value)
+        if protocol != 'tcp':
+            raise TargetDrift('INCUS_10001_ROUTE_UNAPPROVED')
+        address, port = value.split(':', 1)[1].rsplit(':', 1)
+        if address.startswith('[') and address.endswith(']'):
+            address = address[1:-1]
+        return {'protocol': protocol, 'address': address, 'port': int(port)}
+    bind = device.get('bind', 'host')
+    if bind not in {'host', 'instance'}:
+        raise TargetDrift('INCUS_10001_ROUTE_UNAPPROVED')
+    if (not isinstance(profiles, list) or any(not isinstance(p, str) or not p for p in profiles)
+            or len(profiles) != len(set(profiles))):
+        raise TargetDrift('INCUS_10001_ROUTE_UNAPPROVED')
+    return {'project': project, 'owner_type': owner_type, 'owner': owner,
+            'device': device_name, 'device_type': 'proxy',
+            'effective_profiles': sorted(profiles), 'listen': endpoint(device['listen']),
+            'connect': endpoint(device['connect']), 'bind': bind}
 
 
 def _incus_10001_routes() -> list[dict[str, Any]]:
@@ -1682,9 +1898,12 @@ def _run_fixture(go: dict[str, Any], baseline: dict[str, Any]) -> dict[str, Any]
                                 'approved_route_state_sha256': baseline['approved_route_state_sha256'],
                                 'default_profile_used_by': go['default_profile_used_by'],
                                 'run_id': target['run_id'], 'target_host': target['host'],
-                                'listener_before_sha256': digest(_listeners()),
+                                'listener_before_sha256': _listener_digest(_listeners(), 10001)[1],
                                 'listener_10001_before_count': len(baseline['listeners_10001']),
-                                'listener_10001_before_sha256': digest(b'\n'.join(baseline['listeners_10001'])),
+                                'listener_10001_before_sha256': approved_route_state_sha256(
+                                    baseline['listeners_10001'], [], b'', []) and
+                                    digest(json.dumps(_safe_listener_tuples(baseline['listeners_10001']),
+                                                      sort_keys=True, separators=(',', ':')).encode()),
                                 'incus_projects_before': baseline['incus_projects'],
                                 'incus_10001_routes_before_count': len(baseline['incus_10001_routes']),
                                 'incus_10001_routes_before_sha256': digest(json.dumps(
@@ -1830,7 +2049,7 @@ def _run_fixture(go: dict[str, Any], baseline: dict[str, Any]) -> dict[str, Any]
         if _instance_state(instance) != 'running':
             raise TargetDrift('INSTANCE_START_UNVERIFIED')
         listeners = _listeners()
-        evidence['listener_after_start'] = digest(listeners)
+        evidence['listener_after_start'] = _listener_digest(listeners, int(port))[1]
         fixture_rows = _listener_rows(listeners, int(port))
         if len(fixture_rows) != 1 or not re.search(rb'\s127\.0\.0\.1:' + port.encode() + rb'\s', fixture_rows[0]):
             raise TargetDrift('FIXTURE_LISTENER_ATTRIBUTION_UNVERIFIED')
@@ -1868,7 +2087,8 @@ def _run_fixture(go: dict[str, Any], baseline: dict[str, Any]) -> dict[str, Any]
         if after_route_state_sha256 != baseline['approved_route_state_sha256']:
             raise TargetDrift('APPROVED_ROUTE_STATE_CHANGED')
         evidence['listener_10001_after_count'] = len(after_10001)
-        evidence['listener_10001_after_sha256'] = digest(b'\n'.join(after_10001))
+        evidence['listener_10001_after_sha256'] = _listener_digest(
+            command(['ss', '-H', '-ltnp']), 10001)[1]
         evidence['incus_10001_routes_after_count'] = len(incus_routes_after)
         evidence['incus_10001_routes_after_sha256'] = digest(json.dumps(
             incus_routes_after, sort_keys=True, separators=(',', ':')).encode())
@@ -2047,7 +2267,8 @@ def main(argv: list[str] | None = None) -> int:
                 raise TargetDrift('INCUS_10001_ROUTE_CHANGED')
             if args.target_host == '192.168.178.58':
                 _assert_windows_unchanged(baseline['windows_rules_portproxy'], _windows_snapshot())
-            result['listener_after_cleanup_sha256'] = digest(final_listeners)
+            result['listener_after_cleanup_sha256'] = _listener_digest(
+                final_listeners, int(port))[1]
             result['commands'] = _COMMAND_AUDIT
             _INVENTORY_CLEANUP_MODE = False
         except Exception as exc:

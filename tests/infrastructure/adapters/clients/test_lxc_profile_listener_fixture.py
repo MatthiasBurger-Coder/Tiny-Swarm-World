@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import argparse
-import base64
 import hashlib
 import json
 import os
@@ -215,22 +214,25 @@ class RouteStateDigestTests(_FixtureBehaviorTestCase):
         with self.assertRaisesRegex(fixture.TargetDrift, 'INCUS_REMOTE_DRIFT'):
             fixture._validate_local_incus_remote({'local': {'Addr': 'unix://'}}, 'remote')
 
-    def test_route_state_digest_uses_exact_base64_bytes_and_sorted_json(self):
-        listeners = [b'LISTEN 127.0.0.1:10001']
-        routes = [{'owner_type': 'profile', 'owner': 'manager', 'device': 'web',
-                   'project': 'default',
-                   'config': {'type': 'proxy', 'listen': 'tcp:127.0.0.1:10001'},
-                   'used_by': []}]
+    def test_route_state_digest_uses_safe_listener_projection_and_snapshot_hash(self):
+        listeners = [b'LISTEN 0 1 127.0.0.1:10001 0.0.0.0:* users:(("incusd",pid=77,fd=3))']
+        routes = [{'project': 'default', 'owner_type': 'profile', 'owner': 'manager', 'device': 'web',
+                   'device_type': 'proxy', 'effective_profiles': ['manager'],
+                   'listen': {'protocol': 'tcp', 'address': '127.0.0.1', 'port': 10001},
+                   'connect': {'protocol': 'tcp', 'address': '127.0.0.1', 'port': 8080}, 'bind': 'host'}]
         windows = b'firewall\r\n--PORTPROXY--\r\n10001\r\n'
         payload = {
-            'listeners_10001_b64': [base64.b64encode(listeners[0]).decode('ascii')],
-            'incus_projects': [],
+            'listeners_10001_count': 1,
+            'listeners_10001_sha256': hashlib.sha256(json.dumps(
+                fixture._safe_listener_tuples(listeners), sort_keys=True, separators=(',', ':'),
+                ensure_ascii=False).encode('utf-8')).hexdigest(),
+            'incus_projects': ['default'],
             'incus_10001_routes': routes,
-            'windows_snapshot_b64': base64.b64encode(windows).decode('ascii'),
+            'windows_snapshot_sha256': hashlib.sha256(windows).hexdigest(),
         }
         expected = hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(',', ':'),
                                              ensure_ascii=False).encode('utf-8')).hexdigest()
-        self.assertEqual(fixture.approved_route_state_sha256(listeners, routes, windows), expected)
+        self.assertEqual(fixture.approved_route_state_sha256(listeners, routes, windows, ['default']), expected)
 
     def test_successfully_read_empty_route_state_is_a_valid_bound_baseline(self):
         outputs = [b'',
@@ -291,7 +293,7 @@ class RouteStateDigestTests(_FixtureBehaviorTestCase):
         self.assertEqual(len(routes), 1)
         self.assertEqual(routes[0]['project'], 'default')
         self.assertEqual(routes[0]['owner'], 'shared')
-        self.assertEqual(routes[0]['used_by'], ['/1.0/instances/swarm-manager?project=issue447'])
+        self.assertEqual(routes[0]['effective_profiles'], ['shared'])
         self.assertEqual(calls.count(('incus', 'profile', 'list', '--project', 'default', '--format', 'json')), 1)
         self.assertIn(('incus', 'list', '--project', 'issue447', '--format', 'json'), calls)
         self.assertNotIn(('incus', 'profile', 'list', '--project', 'issue447', '--format', 'json'), calls)
@@ -330,6 +332,14 @@ class RouteStateDigestTests(_FixtureBehaviorTestCase):
                   self.assertRaisesRegex(fixture.TargetDrift, 'INCUS_PROJECT_DRIFT')):
                 fixture.capture_route_state('192.168.178.33',
                     '.tiny-swarm/evidence/issue-449/s449-private-20261027/pre-go-route-state.json')
+            self.assertEqual(list(evidence.iterdir()), [])
+            with (patch.object(fixture, 'ROOT', root),
+                  patch.object(fixture, 'git_preflight', return_value=('b' * 40, b'w', b'r', b't')),
+                  patch.object(fixture, '_route_state', side_effect=fixture.TargetDrift(
+                      'WINDOWS_SNAPSHOT_TIMEOUT')),
+                  self.assertRaisesRegex(fixture.TargetDrift, 'WINDOWS_SNAPSHOT_TIMEOUT')):
+                fixture.capture_route_state('192.168.178.58',
+                    '.tiny-swarm/evidence/issue-449/s449-private-20261027/windows-timeout.json')
             self.assertEqual(list(evidence.iterdir()), [])
 
 
@@ -561,10 +571,8 @@ class RouteStateCaptureTests(_FixtureBehaviorTestCase):
             payload = fixture.strict_json((evidence / 'pre-go-route-state.json').read_bytes())
             self.assertEqual(payload['incus_projects'], ['default', 'qa'])
             expected_routes = [
-                {'project': 'qa', 'owner_type': 'instance', 'owner': 'qa-instance', 'device': 'web',
-                 'config': route_device, 'profiles': ['default']},
-                {'project': 'qa', 'owner_type': 'profile', 'owner': 'qa-profile', 'device': 'web',
-                 'config': route_device, 'used_by': []},
+                fixture._safe_route_row('qa', 'instance', 'qa-instance', 'web', route_device, ['default']),
+                fixture._safe_route_row('qa', 'profile', 'qa-profile', 'web', route_device, ['qa-profile']),
             ]
             self.assertEqual(payload['incus_10001_routes'], expected_routes)
             self.assertEqual(payload['approved_route_state_sha256'],
@@ -2300,18 +2308,15 @@ class WslJitTests(_FixtureBehaviorTestCase):
               'default_profile_used_by': []}
         firewall_bytes = b'{"profiles":[],"rules":[],"settings":[]}'
         portproxy_bytes = b'listen 0.0.0.0:10001 connect 127.0.0.1:10001\r\n'
-        windows_snapshot = json.dumps({
-            'firewall_active_store_b64': base64.b64encode(firewall_bytes).decode('ascii'),
-            'portproxy_raw_b64': base64.b64encode(portproxy_bytes).decode('ascii')},
-            sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode('utf-8')
+        windows_snapshot = fixture._pack_windows_snapshot(firewall_bytes, portproxy_bytes)
         go['approved_route_state_sha256'] = fixture.approved_route_state_sha256(
             [b'LISTEN 0 1 127.0.0.1:10001 0.0.0.0:* users:(("incusd",pid=77,fd=3))'],
-            [{'project': 'default', 'owner_type': 'profile', 'owner': 'legacy', 'device': 'web',
-              'config': route['devices']['web'], 'used_by': []}], windows_snapshot, ['default'])
+            [fixture._safe_route_row('default', 'profile', 'legacy', 'web',
+                                     route['devices']['web'], ['legacy'])], windows_snapshot, ['default'])
         with (patch.object(fixture, 'command', side_effect=command),
               patch.object(fixture, '_inventory_command', return_value=json.dumps(profile).encode())):
             baseline = fixture.jit(go, '192.168.178.58')
-        self.assertIn(base64.b64encode(portproxy_bytes), baseline['windows_rules_portproxy'])
+        self.assertEqual(baseline['windows_rules_portproxy'], windows_snapshot)
         self.assertTrue(any(argv[0].endswith('powershell.exe') and 'Get-NetIPAddress' in argv[-1] for argv in seen))
         firewall_command = next(argv[-1] for argv in seen if argv[0].endswith('powershell.exe')
                                 and 'Get-NetFirewallRule' in argv[-1])
@@ -2325,6 +2330,21 @@ class WslJitTests(_FixtureBehaviorTestCase):
         self.assertTrue(any(argv[0].endswith('/netsh.exe') and argv[1:] == [
             'interface', 'portproxy', 'show', 'all'] for argv in seen))
         self.assertEqual(baseline['incus_10001_routes'][0]['owner'], 'legacy')
+
+        seen.clear()
+        def fail_firewall_snapshot(argv):
+            if argv[0].endswith('powershell.exe') and 'Get-NetFirewallRule' in argv[-1]:
+                seen.append(argv)
+                raise fixture.TargetDrift('WINDOWS_SNAPSHOT_TIMEOUT')
+            return command(argv)
+        with (patch.object(fixture, 'command', side_effect=fail_firewall_snapshot),
+              patch.object(fixture, '_inventory_command', return_value=json.dumps(profile).encode())):
+            with self.assertRaisesRegex(fixture.TargetDrift, 'WINDOWS_SNAPSHOT_TIMEOUT'):
+                fixture.jit(go, '192.168.178.58')
+        self.assertFalse(any(argv[0] == 'incus' and len(argv) > 1 and argv[1] in {
+            'create', 'init', 'launch', 'start', 'stop', 'delete', 'copy', 'move',
+        } for argv in seen))
+
         go['approved_route_state_sha256'] = '0' * 64
         seen.clear()
         with (patch.object(fixture, 'command', side_effect=command),
@@ -2340,17 +2360,53 @@ class WslJitTests(_FixtureBehaviorTestCase):
         with self.assertRaisesRegex(fixture.TargetDrift, 'WINDOWS_RULES_CHANGED'):
             fixture._assert_windows_unchanged(b'approved state', b'changed state')
 
+    def test_windows_snapshot_digest_is_stable_across_provider_order(self):
+        base = {'profiles': [{'Name': 'Public'}, {'Name': 'Private'}],
+                'settings': [{'Setting': 'z'}, {'Setting': 'a'}],
+                'rules': [{'rule': {'Name': 'rule-b'},
+                           'profiles': [{'Name': 'Public'}, {'Name': 'Private'}],
+                           'address': [{'RemoteAddress': 'Any'}], 'application': [{'Program': 'Any'}],
+                           'interface': [{'InterfaceAlias': 'Any'}],
+                           'interface_type': [{'InterfaceType': 'Any'}], 'port': [{'LocalPort': 'Any'}],
+                           'security': [{'Authentication': 'NotRequired'}], 'service': [{'Service': 'Any'}]},
+                          {'rule': {'Name': 'rule-a'},
+                           'profiles': [{'Name': 'Private'}, {'Name': 'Public'}],
+                           'address': [{'RemoteAddress': 'LocalSubnet'}], 'application': [{'Program': 'Any'}],
+                           'interface': [{'InterfaceAlias': 'Any'}],
+                           'interface_type': [{'InterfaceType': 'Any'}], 'port': [{'LocalPort': 'Any'}],
+                           'security': [{'Authentication': 'NotRequired'}], 'service': [{'Service': 'Any'}]}]}
+        reordered = json.loads(json.dumps(base))
+        reordered['profiles'].reverse()
+        reordered['settings'].reverse()
+        reordered['rules'].reverse()
+        for rule in reordered['rules']:
+            rule['profiles'].reverse()
+        portproxy = b'raw exact portproxy bytes\r\n'
+        outputs = [json.dumps(base).encode(), portproxy,
+                   json.dumps(reordered).encode(), portproxy]
+        with patch.object(fixture, 'command', side_effect=outputs):
+            first = fixture._windows_snapshot()
+            first_digest = fixture._WINDOWS_SNAPSHOT_METADATA['windows_snapshot_sha256']
+            second = fixture._windows_snapshot()
+        self.assertEqual(first, second)
+        self.assertEqual(first_digest, fixture._WINDOWS_SNAPSHOT_METADATA['windows_snapshot_sha256'])
+        self.assertEqual(first[-len(portproxy):], portproxy)
+        self.assertNotIn(b'base64', first)
+
     def test_wsl_route_capture_binds_identity_and_canonical_active_store_plus_exact_portproxy(self):
         firewall_value = {
             'profiles': [{'Name': 'Public', 'Enabled': True}, {'Name': 'Domain', 'Enabled': False}],
             'settings': [{'PolicyStoreSource': 'ActiveStore'}],
             'rules': [{'rule': {'Name': 'z-rule', 'Enabled': True},
                        'profiles': [{'Name': 'Public'}], 'address': [{'RemoteAddress': 'Any'}],
-                       'application': [], 'interface': [], 'interface_type': [], 'port': [],
-                       'security': [], 'service': []},
+                       'application': [{'Program': 'Any'}], 'interface': [{'InterfaceAlias': 'Any'}],
+                       'interface_type': [{'InterfaceType': 'Any'}], 'port': [{'LocalPort': 'Any'}],
+                       'security': [{'Authentication': 'NotRequired'}], 'service': [{'Service': 'Any'}]},
                       {'rule': {'Name': 'a-rule', 'Enabled': False},
-                       'profiles': [], 'address': [], 'application': [], 'interface': [],
-                       'interface_type': [], 'port': [], 'security': [], 'service': []}],
+                       'profiles': [{'Name': 'Public'}], 'address': [{'RemoteAddress': 'Any'}],
+                       'application': [{'Program': 'Any'}], 'interface': [{'InterfaceAlias': 'Any'}],
+                       'interface_type': [{'InterfaceType': 'Any'}], 'port': [{'LocalPort': 'Any'}],
+                       'security': [{'Authentication': 'NotRequired'}], 'service': [{'Service': 'Any'}]}],
         }
         raw_portproxy = b'listen 0.0.0.0:10001 connect 127.0.0.1:10001\r\n'
         seen = []
@@ -2399,10 +2455,7 @@ class WslJitTests(_FixtureBehaviorTestCase):
             'settings': firewall_value['settings'],
             'rules': sorted(firewall_value['rules'], key=lambda item: item['rule']['Name'])},
             sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode('utf-8')
-        expected_snapshot = json.dumps({
-            'firewall_active_store_b64': base64.b64encode(expected_firewall).decode('ascii'),
-            'portproxy_raw_b64': base64.b64encode(raw_portproxy).decode('ascii')},
-            sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode('utf-8')
+        expected_snapshot = fixture._pack_windows_snapshot(expected_firewall, raw_portproxy)
         self.assertEqual(state['windows_snapshot'], expected_snapshot)
         self.assertEqual(state['approved_route_state_sha256'],
                          fixture.approved_route_state_sha256([], [], expected_snapshot, ['default', 'qa']))
@@ -2416,10 +2469,30 @@ class WslJitTests(_FixtureBehaviorTestCase):
             'interface', 'portproxy', 'show', 'all'] for argv in seen))
 
     def test_windows_snapshot_rejects_malformed_provider_rows(self):
+        complete_rule = {'rule': {'Name': 'r'},
+                         'profiles': [{'Name': 'Public'}], 'address': [{'RemoteAddress': 'Any'}],
+                         'application': [{'Program': 'Any'}], 'interface': [{'InterfaceAlias': 'Any'}],
+                         'interface_type': [{'InterfaceType': 'Any'}], 'port': [{'LocalPort': 'Any'}],
+                         'security': [{'Authentication': 'NotRequired'}], 'service': [{'Service': 'Any'}]}
+        collections = ('profiles', 'address', 'application', 'interface', 'interface_type',
+                       'port', 'security', 'service')
+        missing_filters = [{**complete_rule, key: []} for key in collections]
+        duplicate_filters = [{**complete_rule, key: [complete_rule[key][0],
+                               dict(complete_rule[key][0])]} for key in collections]
+        empty_associated_filter = {**complete_rule, 'port': [{}]}
+        orphan_profile_association = {**complete_rule, 'profiles': [{'Name': 'MissingProfile'}]}
+        orphan_collection = {**complete_rule, 'orphan': [{'Address': '192.0.2.1'}]}
         malformed_outputs = (
             b'{"profiles":[null],"settings":[],"rules":[]}',
             b'{"profiles":[],"settings":[],"rules":[{"rule":null}]}',
             b'{"profiles":[],"settings":[],"rules":[{"rule":{"Name":"r"},"profiles":[null],"address":[],"application":[],"interface":[],"interface_type":[],"port":[],"security":[],"service":[]}]}',
+            *(json.dumps({'profiles': [{'Name': 'Public'}], 'settings': [], 'rules': [rule]}).encode()
+              for rule in missing_filters),
+            *(json.dumps({'profiles': [{'Name': 'Public'}], 'settings': [], 'rules': [rule]}).encode()
+              for rule in duplicate_filters),
+            json.dumps({'profiles': [{'Name': 'Public'}], 'settings': [], 'rules': [empty_associated_filter]}).encode(),
+            json.dumps({'profiles': [{'Name': 'Public'}], 'settings': [], 'rules': [orphan_profile_association]}).encode(),
+            json.dumps({'profiles': [{'Name': 'Public'}], 'settings': [], 'rules': [orphan_collection]}).encode(),
         )
         for raw in malformed_outputs:
             with self.subTest(raw=raw), patch.object(fixture, 'command', return_value=raw):
@@ -2442,6 +2515,437 @@ class WslJitTests(_FixtureBehaviorTestCase):
                     fixture.jit({'target': {'host': '192.168.178.58'}}, '192.168.178.58')
             self.assertFalse(any(argv[0] == 'incus' for argv in seen))
 
+
+
+class BoundedWindowsSnapshotProcessTests(_FixtureBehaviorTestCase):
+    def setUp(self):
+        super().setUp()
+        fixture._COMMAND_AUDIT.clear()
+        fixture._INVENTORY_BYTES_CAPTURED = 0
+        fixture._INVENTORY_STARTED_AT = None
+
+    def _run(self, program, timeout=5, stdout_cap=128, stderr_cap=64, total_cap=512):
+        with patch.object(fixture, '_inventory_budgets', return_value=(256, total_cap, 10_000, 300)):
+            return fixture._snapshot_process(
+                [fixture.sys.executable, '-c', program], timeout, stdout_cap, stderr_cap,
+                'WINDOWS_SNAPSHOT_COMMAND_FAILED')
+
+    def test_per_command_exact_stream_cap_is_accepted_and_cap_plus_one_rejected(self):
+        self.assertEqual(self._run("import sys; sys.stdout.buffer.write(b'x'*128)"), b'x' * 128)
+        fixture._COMMAND_AUDIT.clear()
+        fixture._INVENTORY_BYTES_CAPTURED = 0
+        fixture._INVENTORY_STARTED_AT = None
+        with self.assertRaisesRegex(fixture.TargetDrift, 'WINDOWS_SNAPSHOT_OUTPUT_TOO_LARGE'):
+            self._run("import sys; sys.stdout.buffer.write(b'x'*129)")
+
+    def test_exact_production_stream_and_aggregate_caps_are_accepted(self):
+        mib = 1024 * 1024
+        budgets = (256, 16 * mib, 10_000, 300)
+        with patch.object(fixture, '_inventory_budgets', return_value=budgets):
+            powershell = [fixture.sys.executable, '-c',
+                          f"import sys; sys.stdout.buffer.write(b'o'*{14*mib}); "
+                          f"sys.stderr.buffer.write(b'e'*{2*mib})"]
+            output = fixture._snapshot_process(powershell, 120, 14*mib, 2*mib, 'FAILED')
+            self.assertEqual(len(output), 14*mib)
+            self.assertEqual(fixture._INVENTORY_BYTES_CAPTURED, 16*mib)
+
+        fixture._COMMAND_AUDIT.clear()
+        fixture._INVENTORY_BYTES_CAPTURED = 0
+        fixture._INVENTORY_STARTED_AT = None
+        with patch.object(fixture, '_inventory_budgets', return_value=budgets):
+            netsh = [fixture.sys.executable, '-c',
+                     f"import sys; sys.stdout.buffer.write(b'o'*{2*mib}); "
+                     f"sys.stderr.buffer.write(b'e'*{2*mib})"]
+            self.assertEqual(len(fixture._snapshot_process(netsh, 30, 2*mib, 2*mib, 'FAILED')), 2*mib)
+            self.assertEqual(fixture._INVENTORY_BYTES_CAPTURED, 4*mib)
+
+        fixture._COMMAND_AUDIT.clear()
+        fixture._INVENTORY_BYTES_CAPTURED = 0
+        fixture._INVENTORY_STARTED_AT = None
+        with patch.object(fixture, '_inventory_budgets', return_value=budgets):
+            first = [fixture.sys.executable, '-c', f"import sys; sys.stdout.buffer.write(b'x'*{14*mib})"]
+            second = [fixture.sys.executable, '-c', f"import sys; sys.stderr.buffer.write(b'y'*{2*mib})"]
+            self.assertEqual(len(fixture._snapshot_process(first, 120, 14*mib, 2*mib, 'FAILED')), 14*mib)
+            self.assertEqual(fixture._snapshot_process(second, 30, 2*mib, 2*mib, 'FAILED'), b'')
+            self.assertEqual(fixture._INVENTORY_BYTES_CAPTURED, 16*mib)
+
+    def test_per_command_and_aggregate_cap_plus_one_are_rejected(self):
+        mib = 1024 * 1024
+        fixture._COMMAND_AUDIT.clear()
+        fixture._INVENTORY_BYTES_CAPTURED = 0
+        fixture._INVENTORY_STARTED_AT = None
+        with patch.object(fixture, '_inventory_budgets', return_value=(256, 16*mib, 10_000, 300)):
+            oversized_firewall = [fixture.sys.executable, '-c',
+                                  f"import sys; sys.stdout.buffer.write(b'x'*{14*mib+1})"]
+            with self.assertRaisesRegex(fixture.TargetDrift, 'WINDOWS_SNAPSHOT_OUTPUT_TOO_LARGE'):
+                fixture._snapshot_process(oversized_firewall, 120, 14*mib, 2*mib, 'FAILED')
+
+        fixture._COMMAND_AUDIT.clear()
+        fixture._INVENTORY_BYTES_CAPTURED = 0
+        fixture._INVENTORY_STARTED_AT = None
+        with patch.object(fixture, '_inventory_budgets', return_value=(256, 16*mib, 10_000, 300)):
+            oversized_netsh = [fixture.sys.executable, '-c',
+                               f"import sys; sys.stderr.buffer.write(b'x'*{2*mib+1})"]
+            with self.assertRaisesRegex(fixture.TargetDrift, 'WINDOWS_SNAPSHOT_OUTPUT_TOO_LARGE'):
+                fixture._snapshot_process(oversized_netsh, 30, 2*mib, 2*mib, 'FAILED')
+
+        fixture._COMMAND_AUDIT.clear()
+        fixture._INVENTORY_BYTES_CAPTURED = 0
+        fixture._INVENTORY_STARTED_AT = None
+        with patch.object(fixture, '_inventory_budgets', return_value=(256, 16*mib, 10_000, 300)):
+            first = [fixture.sys.executable, '-c', f"import sys; sys.stdout.buffer.write(b'x'*{14*mib})"]
+            oversized_second = [fixture.sys.executable, '-c', f"import sys; sys.stderr.buffer.write(b'y'*{2*mib+1})"]
+            fixture._snapshot_process(first, 120, 14*mib, 2*mib, 'FAILED')
+            with self.assertRaisesRegex(fixture.TargetDrift, 'WINDOWS_SNAPSHOT_OUTPUT_TOO_LARGE'):
+                fixture._snapshot_process(oversized_second, 30, 2*mib, 2*mib+1, 'FAILED')
+
+    def test_aggregate_byte_cap_is_shared_between_commands(self):
+        with patch.object(fixture, '_inventory_budgets', return_value=(256, 199, 10_000, 300)):
+            command = [fixture.sys.executable, '-c', "import sys; sys.stdout.buffer.write(b'x'*100)"]
+            self.assertEqual(fixture._snapshot_process(command, 5, 128, 64, 'FAILED'), b'x' * 100)
+            with self.assertRaisesRegex(fixture.TargetDrift, 'WINDOWS_SNAPSHOT_OUTPUT_TOO_LARGE'):
+                fixture._snapshot_process(command, 5, 128, 64, 'FAILED')
+
+    def test_timeout_is_distinct_from_nonzero_exit_and_child_is_reaped(self):
+        processes = []
+        popen = fixture.subprocess.Popen
+        def track(*args, **kwargs):
+            process = popen(*args, **kwargs)
+            processes.append(process)
+            return process
+        with patch.object(fixture.subprocess, 'Popen', side_effect=track):
+            with self.assertRaisesRegex(fixture.TargetDrift, 'WINDOWS_SNAPSHOT_TIMEOUT'):
+                self._run('import time; time.sleep(2)', timeout=0.05)
+        self.assertTrue(processes)
+        self.assertIsNotNone(processes[0].poll())
+        fixture._COMMAND_AUDIT.clear()
+        fixture._INVENTORY_BYTES_CAPTURED = 0
+        fixture._INVENTORY_STARTED_AT = None
+        with self.assertRaisesRegex(fixture.TargetDrift, 'WINDOWS_SNAPSHOT_COMMAND_FAILED'):
+            self._run('raise SystemExit(7)')
+
+    def test_aggregate_command_limit_rejects_overrun(self):
+        command = [fixture.sys.executable, '-c', 'pass']
+        with patch.object(fixture, '_inventory_budgets', return_value=(1, 512, 10_000, 300)):
+            fixture._snapshot_process(command, 5, 128, 64, 'FAILED')
+            with self.assertRaisesRegex(fixture.TargetDrift, 'INCUS_INVENTORY_COMMAND_LIMIT_EXCEEDED'):
+                fixture._snapshot_process(command, 5, 128, 64, 'FAILED')
+
+    def test_production_256_command_limit_accepts_exact_count_then_rejects_plus_one(self):
+        command = [fixture.sys.executable, '-c', 'pass']
+        with patch.object(fixture, '_inventory_budgets', return_value=(256, 16*1024*1024, 10_000, 300)):
+            for _ in range(256):
+                self.assertEqual(fixture._snapshot_process(command, 5, 128, 64, 'FAILED'), b'')
+            self.assertEqual(len(fixture._COMMAND_AUDIT), 256)
+            with self.assertRaisesRegex(fixture.TargetDrift, 'INCUS_INVENTORY_COMMAND_LIMIT_EXCEEDED'):
+                fixture._snapshot_process(command, 5, 128, 64, 'FAILED')
+
+    def test_windows_command_dispatch_uses_required_timeout_and_caps(self):
+        powershell = ['/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe',
+                      '-NoProfile', '-NonInteractive', '-Command', fixture._WINDOWS_ACTIVE_STORE_QUERY]
+        netsh = ['/mnt/c/Windows/System32/netsh.exe', 'interface', 'portproxy', 'show', 'all']
+        with patch.object(fixture, '_snapshot_process', return_value=b'ok') as snapshot:
+            self.assertEqual(fixture.command(powershell), b'ok')
+            snapshot.assert_called_with(powershell, 120, 14 * 1024 * 1024,
+                                        2 * 1024 * 1024, 'WINDOWS_FIREWALL_SNAPSHOT_UNREADABLE')
+            self.assertEqual(fixture.command(netsh), b'ok')
+            snapshot.assert_called_with(netsh, 30, 2 * 1024 * 1024,
+                                        2 * 1024 * 1024, 'WINDOWS_FIREWALL_SNAPSHOT_UNREADABLE')
+
+    def test_production_timeout_limit_accepts_exact_deadline_and_rejects_plus_one(self):
+        class FakePipe:
+            def __init__(self, number):
+                self.number = number
+            def fileno(self):
+                return self.number
+            def close(self):
+                pass
+
+        class FakeProcess:
+            def __init__(self, *args, **kwargs):
+                self.stdout, self.stderr = FakePipe(11), FakePipe(12)
+                self.killed = False
+            def wait(self, timeout=None):
+                return 0
+            def kill(self):
+                self.killed = True
+
+        class FakeSelector:
+            def __init__(self, elapsed, clock):
+                self.elapsed, self.clock = elapsed, clock
+                self.rows = {}
+                self.advanced = False
+            def register(self, stream, event, data):
+                self.rows[stream.number] = SimpleNamespace(fileobj=stream, fd=stream.number, data=data)
+            def get_map(self):
+                return self.rows
+            def select(self, timeout=None):
+                if not self.advanced:
+                    self.clock[0] += self.elapsed
+                    self.advanced = True
+                return [(row, 1) for row in list(self.rows.values())]
+            def unregister(self, stream):
+                self.rows.pop(stream.number)
+            def close(self):
+                pass
+
+        for timeout, elapsed in ((120, 120), (30, 30)):
+            with self.subTest(timeout=timeout, elapsed=elapsed):
+                clock = [0.0]
+                process = FakeProcess()
+                with (patch.object(fixture, '_inventory_budgets', return_value=(256, 16*1024*1024, 10_000, 300)),
+                      patch.object(fixture.subprocess, 'Popen', return_value=process),
+                      patch.object(fixture.selectors, 'DefaultSelector', side_effect=lambda: FakeSelector(elapsed, clock)),
+                      patch.object(fixture.os, 'set_blocking'), patch.object(fixture.os, 'read', return_value=b''),
+                      patch.object(fixture.time, 'monotonic', side_effect=lambda: clock[0])):
+                    fixture._INVENTORY_STARTED_AT = None
+                    fixture._INVENTORY_BYTES_CAPTURED = 0
+                    fixture._COMMAND_AUDIT.clear()
+                    self.assertEqual(fixture._snapshot_process(['bounded.exe'], timeout, 8, 8, 'FAILED'), b'')
+
+        for timeout, elapsed in ((120, 121), (30, 31)):
+            with self.subTest(timeout=timeout, elapsed=elapsed):
+                clock = [0.0]
+                process = FakeProcess()
+                with (patch.object(fixture, '_inventory_budgets', return_value=(256, 16*1024*1024, 10_000, 300)),
+                      patch.object(fixture.subprocess, 'Popen', return_value=process),
+                      patch.object(fixture.selectors, 'DefaultSelector', side_effect=lambda: FakeSelector(elapsed, clock)),
+                      patch.object(fixture.os, 'set_blocking'), patch.object(fixture.os, 'read', return_value=b''),
+                      patch.object(fixture.time, 'monotonic', side_effect=lambda: clock[0])):
+                    fixture._INVENTORY_STARTED_AT = None
+                    fixture._INVENTORY_BYTES_CAPTURED = 0
+                    fixture._COMMAND_AUDIT.clear()
+                    with self.assertRaisesRegex(fixture.TargetDrift, 'WINDOWS_SNAPSHOT_TIMEOUT'):
+                        fixture._snapshot_process(['bounded.exe'], timeout, 8, 8, 'FAILED')
+                    self.assertTrue(process.killed)
+
+    def test_aggregate_300_second_limit_accepts_exact_deadline_and_rejects_plus_one(self):
+        class Pipe:
+            def __init__(self, number): self.number = number
+            def fileno(self): return self.number
+            def close(self): pass
+        class Process:
+            def __init__(self, *args, **kwargs):
+                self.stdout, self.stderr, self.killed = Pipe(21), Pipe(22), False
+            def wait(self, timeout=None): return 0
+            def kill(self): self.killed = True
+        class Selector:
+            def __init__(self, elapsed, clock): self.elapsed, self.clock, self.rows = elapsed, clock, {}
+            def register(self, stream, event, data):
+                self.rows[stream.number] = SimpleNamespace(fileobj=stream, fd=stream.number, data=data)
+            def get_map(self): return self.rows
+            def select(self, timeout=None):
+                self.clock[0] += self.elapsed
+                return [(row, 1) for row in list(self.rows.values())]
+            def unregister(self, stream): self.rows.pop(stream.number)
+            def close(self): pass
+
+        for elapsed, expected_error in ((300, None), (301, 'INCUS_INVENTORY_TOTAL_TIMEOUT')):
+            with self.subTest(elapsed=elapsed):
+                clock, process = [0.0], Process()
+                with (patch.object(fixture, '_inventory_budgets', return_value=(256, 16*1024*1024, 10_000, 300)),
+                      patch.object(fixture.subprocess, 'Popen', return_value=process),
+                      patch.object(fixture.selectors, 'DefaultSelector', side_effect=lambda: Selector(elapsed, clock)),
+                      patch.object(fixture.os, 'set_blocking'), patch.object(fixture.os, 'read', return_value=b''),
+                      patch.object(fixture.time, 'monotonic', side_effect=lambda: clock[0])):
+                    fixture._INVENTORY_STARTED_AT = None
+                    fixture._INVENTORY_BYTES_CAPTURED = 0
+                    fixture._COMMAND_AUDIT.clear()
+                    if expected_error is None:
+                        self.assertEqual(fixture._snapshot_process(['aggregate.exe'], 400, 8, 8, 'FAILED'), b'')
+                    else:
+                        with self.assertRaisesRegex(fixture.TargetDrift, expected_error):
+                            fixture._snapshot_process(['aggregate.exe'], 400, 8, 8, 'FAILED')
+
+    def test_powershell_and_netsh_share_aggregate_duration_budget(self):
+        class Pipe:
+            def __init__(self, number): self.number = number
+            def fileno(self): return self.number
+            def close(self): pass
+        class Process:
+            def __init__(self, *args, **kwargs): self.stdout, self.stderr = Pipe(31), Pipe(32)
+            def wait(self, timeout=None): return 0
+            def kill(self): pass
+        class Selector:
+            def __init__(self, elapsed, clock): self.elapsed, self.clock, self.rows = elapsed, clock, {}
+            def register(self, stream, event, data):
+                self.rows[stream.number] = SimpleNamespace(fileobj=stream, fd=stream.number, data=data)
+            def get_map(self): return self.rows
+            def select(self, timeout=None):
+                self.clock[0] += self.elapsed
+                return [(row, 1) for row in list(self.rows.values())]
+            def unregister(self, stream): self.rows.pop(stream.number)
+            def close(self): pass
+
+        for starting_elapsed, should_pass in ((150, True), (151, False)):
+            with self.subTest(starting_elapsed=starting_elapsed):
+                clock = [float(starting_elapsed)]
+                elapsed = [120, 30]
+                with (patch.object(fixture, '_inventory_budgets', return_value=(256, 16*1024*1024, 10_000, 300)),
+                      patch.object(fixture.subprocess, 'Popen', side_effect=Process),
+                      patch.object(fixture.selectors, 'DefaultSelector',
+                                   side_effect=lambda: Selector(elapsed.pop(0), clock)),
+                      patch.object(fixture.os, 'set_blocking'), patch.object(fixture.os, 'read', return_value=b''),
+                      patch.object(fixture.time, 'monotonic', side_effect=lambda: clock[0])):
+                    fixture._INVENTORY_STARTED_AT = 0.0
+                    fixture._INVENTORY_BYTES_CAPTURED = 0
+                    fixture._COMMAND_AUDIT.clear()
+                    fixture._snapshot_process(['powershell-snapshot'], 120, 14, 2, 'FAILED')
+                    if should_pass:
+                        fixture._snapshot_process(['netsh-portproxy'], 30, 2, 2, 'FAILED')
+                        self.assertEqual(len(fixture._COMMAND_AUDIT), 2)
+                    else:
+                        with self.assertRaisesRegex(fixture.TargetDrift, 'INCUS_INVENTORY_TOTAL_TIMEOUT'):
+                            fixture._snapshot_process(['netsh-portproxy'], 30, 2, 2, 'FAILED')
+
+    def test_keyboard_interrupt_kills_and_reaps_running_snapshot_process(self):
+        class Pipe:
+            def __init__(self, number): self.number = number
+            def fileno(self): return self.number
+            def close(self): pass
+        class Process:
+            def __init__(self, *args, **kwargs): self.stdout, self.stderr, self.killed = Pipe(41), Pipe(42), False
+            def wait(self, timeout=None): return 0
+            def kill(self): self.killed = True
+        class InterruptingSelector:
+            def register(self, *args): pass
+            def get_map(self): return {1: True}
+            def select(self, *args): raise KeyboardInterrupt
+            def close(self): pass
+        process = Process()
+        with (patch.object(fixture, '_inventory_budgets', return_value=(256, 1024, 100, 300)),
+              patch.object(fixture.subprocess, 'Popen', return_value=process),
+              patch.object(fixture.selectors, 'DefaultSelector', return_value=InterruptingSelector()),
+              patch.object(fixture.os, 'set_blocking')):
+            with self.assertRaises(KeyboardInterrupt):
+                fixture._snapshot_process(['interruptible.exe'], 120, 8, 8, 'FAILED')
+        self.assertTrue(process.killed)
+
+    def test_exact_eight_mib_route_artifact_limit_is_accepted_and_plus_one_rejected(self):
+        cap = fixture._INVENTORY_ARTIFACT_MAX_BYTES
+        empty = fixture._serialize_route_state_artifact({'padding': ''})
+        exact_payload = {'padding': 'x' * (cap - len(empty))}
+        exact = fixture._serialize_route_state_artifact(exact_payload)
+        self.assertEqual(len(exact), cap)
+        with self.assertRaisesRegex(fixture.FixtureError, 'INVENTORY_ARTIFACT_TOO_LARGE'):
+            fixture._serialize_route_state_artifact({'padding': 'x' * (cap - len(empty) + 1)})
+
+
+class SafeRouteProjectionTests(_FixtureBehaviorTestCase):
+    def test_source_proxy_keys_are_strictly_allowlisted(self):
+        device = {'type': 'proxy', 'listen': 'tcp:127.0.0.1:10001',
+                  'connect': 'tcp:127.0.0.1:8080', 'bind': 'host'}
+        row = fixture._safe_route_row('default', 'profile', 'manager', 'web', device, ['manager'])
+        self.assertEqual(set(row), {'project', 'owner_type', 'owner', 'device', 'device_type',
+                                    'effective_profiles', 'listen', 'connect', 'bind'})
+        for extra in ({'nat': 'true'}, {'path': '/etc/passwd'}, {'uid': '1000'}):
+            with self.subTest(extra=extra), self.assertRaisesRegex(
+                    fixture.TargetDrift, 'INCUS_10001_ROUTE_UNAPPROVED'):
+                fixture._safe_route_row('default', 'profile', 'manager', 'web', device | extra, ['manager'])
+
+    def test_route_projection_rejects_malformed_endpoints_and_host_paths(self):
+        for listen, connect in (("tcp:example.invalid:10001", 'tcp:127.0.0.1:8080'),
+                                ('unix:/tmp/host.sock', 'tcp:127.0.0.1:8080'),
+                                ('tcp:127.0.0.1:10001', 'unix:/tmp/host.sock')):
+            device = {'type': 'proxy', 'listen': listen, 'connect': connect, 'bind': 'host'}
+            with self.subTest(device=device), self.assertRaises(fixture.TargetDrift):
+                fixture._safe_route_row('default', 'profile', 'manager', 'web', device, ['manager'])
+
+    def test_route_artifact_schema_has_exact_types_and_failure_creates_no_file(self):
+        row = fixture._safe_route_row('default', 'profile', 'manager', 'web', {
+            'type': 'proxy', 'listen': 'tcp:127.0.0.1:10001',
+            'connect': 'tcp:127.0.0.1:8080', 'bind': 'host'}, ['manager'])
+        self.assertEqual(row['owner_type'], 'profile')
+        self.assertEqual(row['device_type'], 'proxy')
+        self.assertIsInstance(row['effective_profiles'], list)
+        for endpoint in (row['listen'], row['connect']):
+            self.assertEqual(set(endpoint), {'protocol', 'address', 'port'})
+            self.assertEqual(endpoint['protocol'], 'tcp')
+            self.assertIsInstance(endpoint['address'], str)
+            self.assertIsInstance(endpoint['port'], int)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            evidence = root / fixture.PRIVATE_EVIDENCE_REL
+            evidence.mkdir(parents=True, mode=0o700)
+            evidence.chmod(0o700)
+            state = {'listeners_10001': [], 'incus_10001_routes': [row], 'incus_projects': ['default'],
+                     'windows_snapshot': b'', 'approved_route_state_sha256': 'a' * 64}
+            with (patch.object(fixture, 'ROOT', root),
+                  patch.object(fixture, '_INVENTORY_ARTIFACT_MAX_BYTES', 1),
+                  patch.object(fixture, 'git_preflight', return_value=('b' * 40, b'w', b'r', b't')),
+                  patch.object(fixture, '_route_state', return_value=state),
+                  self.assertRaisesRegex(fixture.FixtureError, 'INVENTORY_ARTIFACT_TOO_LARGE')):
+                fixture.capture_route_state('192.168.178.33',
+                    '.tiny-swarm/evidence/issue-449/s449-private-20261027/overflow.json')
+            self.assertEqual(list(evidence.iterdir()), [])
+
+    def test_route_artifact_redacts_raw_listener_details(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            evidence = root / fixture.PRIVATE_EVIDENCE_REL
+            evidence.mkdir(parents=True, mode=0o700)
+            evidence.chmod(0o700)
+            raw = b'LISTEN 0 128 127.0.0.1:10001 0.0.0.0:* users:(("incusd",pid=4312,fd=9))'
+            routes = [fixture._safe_route_row(
+                'default', 'profile', 'manager', 'web',
+                {'type': 'proxy', 'listen': 'tcp:127.0.0.1:10001',
+                 'connect': 'tcp:127.0.0.1:8080', 'bind': 'host'}, ['manager'])]
+            state = {'listeners_10001': [raw], 'incus_10001_routes': routes, 'incus_projects': ['default'],
+                     'windows_snapshot': b'', 'approved_route_state_sha256': fixture.approved_route_state_sha256(
+                         [raw], routes, b'', ['default'])}
+            with (patch.object(fixture, 'ROOT', root),
+                  patch.object(fixture, 'git_preflight', return_value=('a' * 40, b'w', b'r', b't')),
+                  patch.object(fixture, '_route_state', return_value=state)):
+                fixture.capture_route_state('192.168.178.33',
+                    '.tiny-swarm/evidence/issue-449/s449-private-20261027/safe-route-state.json')
+            encoded = (evidence / 'safe-route-state.json').read_bytes()
+            payload = fixture.strict_json(encoded)
+            self.assertEqual(payload['listeners_10001'], fixture._safe_listener_tuples([raw]))
+            self.assertEqual(payload['listeners_10001_count'], 1)
+            for forbidden in (b'4312', b'incusd', b'fd=9', b'users:', b'_b64', b'windows_snapshot_b64'):
+                self.assertNotIn(forbidden, encoded)
+
+    def test_artifact_and_command_audit_do_not_persist_raw_windows_snapshot_content(self):
+        raw_firewall = b'SID=S-1-5-21-123456; ACL=secret-firewall-provider-data'
+        raw_portproxy = b'listen 0.0.0.0:10001 connect 127.0.0.1:10001\r\n'
+        record = fixture._safe_command_record(
+            ['/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe',
+             '-Command', raw_firewall.decode()], 0, len(raw_firewall), 0)
+        self.assertEqual(record['safe_args'], [])
+        record_bytes = json.dumps(record).encode()
+        self.assertNotIn(b'S-1-5-21', record_bytes)
+        self.assertNotIn(b'secret-firewall-provider-data', record_bytes)
+        self.assertNotIn(raw_portproxy, record_bytes)
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            evidence = root / fixture.PRIVATE_EVIDENCE_REL
+            evidence.mkdir(parents=True, mode=0o700)
+            evidence.chmod(0o700)
+            state = {'listeners_10001': [], 'incus_10001_routes': [], 'incus_projects': ['default'],
+                     'windows_snapshot': fixture._pack_windows_snapshot(raw_firewall, raw_portproxy),
+                     'approved_route_state_sha256': 'a' * 64}
+            def route_state(_host):
+                fixture._WINDOWS_SNAPSHOT_METADATA = {
+                    'schema_version': 'tsw.windows-route-snapshot.v1',
+                    'firewall_bytes': len(raw_firewall), 'firewall_sha256': fixture.digest(raw_firewall),
+                    'portproxy_bytes': len(raw_portproxy), 'portproxy_sha256': fixture.digest(raw_portproxy),
+                    'windows_snapshot_sha256': fixture.digest(state['windows_snapshot']),
+                    'profile_count': 1, 'setting_count': 1, 'rule_count': 1,
+                    'captured_at': '2026-01-01T00:00:00+00:00'}
+                return state
+            with (patch.object(fixture, 'ROOT', root),
+                  patch.object(fixture, 'git_preflight', return_value=('c' * 40, b'w', b'r', b't')),
+                  patch.object(fixture, '_route_state', side_effect=route_state)):
+                fixture.capture_route_state('192.168.178.58',
+                    '.tiny-swarm/evidence/issue-449/s449-private-20261027/windows-safe.json')
+            encoded = (evidence / 'windows-safe.json').read_bytes()
+            for forbidden in (b'S-1-5-21', b'secret-firewall-provider-data', raw_portproxy,
+                              b'firewall_active_store_b64', b'portproxy_raw_b64'):
+                self.assertNotIn(forbidden, encoded)
+            payload = fixture.strict_json(encoded)
+            self.assertEqual(payload['windows_snapshot']['windows_snapshot_sha256'],
+                             fixture.digest(state['windows_snapshot']))
 
 
 if __name__ == '__main__':
