@@ -1,13 +1,13 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: AMENDMENT_READY_FOR_S3D v1.33 — S3D pending; no host/implementation authorization
+Status: ACTIVE_FOR_ISSUE_449 v1.34 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
 Workflow authoring branch: `docs/workflow-lcm-w09-route-baseline-20261027`
 Baseline: `a0310224946b63e2152ff4086d22a450c3d0f214`
-AMENDMENT_READY_FOR_S3D v1.33 — S3D pending; no host/implementation authorization. The existing S449-02 pre-GO S3D plan authorizes only its original exact read-only phase and does not authorize these slices or new host commands.
+ACTIVE_FOR_ISSUE_449 v1.34. The user explicitly authorized completion of issue #449 on the named test hosts. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
 Execution profile: `FULL_PATH — lifecycle/provider implementation, regression, documentation, native and WSL2 qualification`
 
 ## Executive Summary
@@ -601,11 +601,11 @@ until required same-hash reviews, full QUALITY and S3/S3D pass.
 
 #### Workflow amendment v1.33 — new phases are not covered by historical S3D
 
-The S449-02D, S449-02E and S449-02F slices below are planned and unreleased.
-The existing S449-02 pre-GO `EXECUTION_PLAN` is bound to its original hashes
-and exact read-only phase; it does not authorize these new code slices, new
-host reads, live fixture actions, Incus mutations, service/system changes,
-installations or upgrades. Before any amended slice or its host read phase,
+S449-02D and S449-02E are complete and committed; S449-02F remains planned and
+unreleased. The existing S449-02 pre-GO `EXECUTION_PLAN` is bound to its
+original hashes and exact read-only phase; it does not authorize these new
+code slices, new host reads, live fixture actions, Incus mutations,
+service/system changes, installations or upgrades. Before any amended slice or its host read phase,
 obtain fresh same-hash Requirement, Architecture, Python Automation, Tester,
 Security and DevOps reviews and a fresh S3D `EXECUTION_PLAN` for that exact
 phase. Work remains limited to native `192.168.178.33` and WSL2
@@ -855,32 +855,48 @@ The checkout and evidence directory must be ext4; verify the directory is mode
 0700 before capture and each evidence file mode 0600 after exclusive creation.
 Do not contact WSL or another host in this slice.
 
-Use a fixed command allowlist for LXD/Incus versions/endpoints, `systemctl
-is-active` and `systemctl show` on only the three known LXD units. For the two
-service units, `systemctl show` may request only `LoadState`, `ActiveState`,
-`SubState`, `UnitFileState` and `MainPID`; for the socket unit, those same
-properties plus `Listen` only. Never request or retain `Environment`,
+Use a fixed command allowlist for LXD/Incus versions/endpoints and `systemctl
+show` on only the fixed LXD and Incus units listed below. For service units,
+`systemctl show` may request only
+`LoadState`, `ActiveState`, `SubState`, `UnitFileState` and `MainPID`; for
+socket units, those same properties plus `Listen` only. Never request or retain
+`Environment`,
 `ExecStart`, command lines or environment values. The socket unit must have
 `MainPID=0`; do not resolve its executable identity. For each active service
-unit, resolve the executable identity and compare it in memory with expected
-LXD executable/package identity. Inspect only fixed, documented LXD and Incus Unix socket endpoints;
-compare the endpoint path in memory to the fixed allowlist and record only its
+unit, resolve the executable identity and compare it in memory with the fixed
+map: `snap.lxd.daemon.service` -> `/snap/lxd/<revision>/bin/lxd`, where revision
+matches `[1-9][0-9]*` (`lxd_snap`, `snap:lxd`),
+`lxd.service` -> `/usr/lib/lxd/lxd` or `/usr/libexec/lxd/lxd`
+(`lxd_system`, `system:lxd`), and `incus.service` ->
+`/usr/libexec/incus/incusd` or `/usr/lib/incus/incusd`
+(`incus_system`, `system:incus`). A known `not-found` unit, or a loaded
+`inactive`/`failed` unit with MainPID 0, is recorded without an executable row;
+only active units require a validated positive MainPID and allowlisted
+executable identity. Any other or contradictory state is `BLOCKED`. Inspect
+only fixed, documented LXD and Incus Unix socket endpoints; compare canonical
+endpoint identity in memory to the fixed allowlist and record only its
 symbolic endpoint ID and state. Bind unit, MainPID, executable identity and
-socket endpoint state to the read-only resource inventory. Any mismatch or
-unavailable identity/socket remains `BLOCKED`.
+socket endpoint state to the read-only resource inventory. Missing or
+ambiguous binding for an active CLI query remains `BLOCKED`.
 
 Every LXD inventory command must include global `--force-local` before its
 subcommand, bypassing user-configured remotes and contacting only the local
 daemon. Bind this fixed local endpoint identity to the active LXD service unit,
 verified executable identity and matching allowlisted socket unit/path/type.
 Any mismatch or unavailable binding blocks capture; never inspect remote
-aliases or send queries over TCP. Every Incus inventory command must use `incus --force-local` before the subcommand and bind to its independently verified Incus socket; never treat an Incus endpoint as LXD.
+aliases or send queries over TCP. For Incus, use the same exact subcommands
+and arguments specified below, replacing the executable token `lxc` with
+`incus` (for example, `incus --force-local version` and
+`incus --force-local project list --format json`); never concatenate two
+executable prefixes or treat an Incus endpoint as LXD.
 Persist only symbolic endpoint IDs, never URLs or socket paths.
 
-Only these LXD units may be inspected: `lxd.service`,
-`snap.lxd.daemon.service` and `snap.lxd.daemon.unix.socket`. Only these socket
-paths may be tested, without returning path text: `/var/lib/lxd/unix.socket`,
-`/var/snap/lxd/common/lxd/unix.socket` and `/var/lib/incus/unix.socket`.
+Only these units may be inspected: LXD `lxd.service`,
+`snap.lxd.daemon.service` and `snap.lxd.daemon.unix.socket`; Incus
+`incus.service` and `incus.socket`. Only these socket
+paths may be tested or canonicalized, without returning path text:
+`/var/lib/lxd/unix.socket`, `/var/snap/lxd/common/lxd/unix.socket`,
+`/var/lib/incus/unix.socket` and `/run/incus/unix.socket`.
 Resolve `/proc/<MainPID>/exe` only for a service unit with validated positive
 MainPID; compare to the fixed executable identity allowlist and persist an
 identity enum, never the resolved path. For the socket unit require MainPID=0
@@ -889,12 +905,13 @@ allowlist, and persist only symbolic endpoint ID/type/state. Test socket
 existence/type with fixed `test -e`/`test -S` argv and bind the result to that
 normalized `Listen` endpoint.
 
-Exact command templates are `systemctl is-active --quiet <allowlisted-unit>`;
-`systemctl show <service-unit> --property=LoadState --property=ActiveState
+Exact command templates are `systemctl show <service-unit>
+--property=LoadState --property=ActiveState
 --property=SubState --property=UnitFileState --property=MainPID --no-pager`;
 for the socket unit only, this exact argv with `--property=Listen` added;
 `readlink -f /proc/<validated-MainPID>/exe`; fixed `test -e <allowlisted-socket>`
-and `test -S <allowlisted-socket>`; `lxc --force-local version`; and, for
+and `test -S <allowlisted-socket>`; `readlink -f <allowlisted-socket>`;
+`lxc --force-local version`; and, for
 projects/resources, `lxc --force-local project list --format json`; per project,
 `lxc --force-local project show <project> --format json`,
 `lxc --force-local profile list --project <project> --format json`,
@@ -905,18 +922,87 @@ projects/resources, `lxc --force-local project list --format json`; per project,
 `lxc --force-local network list --project <project> --format json`,
 `lxc --force-local network show <network> --project <project> --format json`,
 `lxc --force-local storage list --project <project> --format json` and
-`lxc --force-local storage show <pool> --project <project> --format json`. Prefix each corresponding command with `incus --force-local`; if the installed CLI does not support this documented local-only flag, remain BLOCKED.
+`lxc --force-local storage show <pool> --project <project> --format json`.
+For Incus use the same subcommands and arguments with `incus` replacing `lxc`,
+including `incus --force-local version` and `incus --force-local project list
+--format json`. If its CLI does not support `--force-local`, remain BLOCKED.
+Execute every command with `shell=False`, a fixed executable token, and
+validated values as separate argv items. Client argv[0] is fixed by the verified
+daemon identity: `/snap/bin/lxc` for `lxd_snap`, `/usr/bin/lxc` for
+`lxd_system`, and `/usr/bin/incus` for `incus_system`. Do not resolve a client
+through PATH. Do not inherit the caller environment: set only `LC_ALL=C`,
+fixed `PATH=/usr/bin:/bin`, and exactly one explicitly selected local endpoint
+variable:
+`LXD_SOCKET=<validated-canonical-LXD-socket>` for LXD commands or
+`INCUS_SOCKET=<validated-canonical-Incus-socket>` for Incus commands. These
+values must come from the fixed allowlist and match the already-active service
+and socket binding; no caller-supplied endpoint override is read. The explicit
+socket value overrides CLI default discovery. Its documented client behavior
+is verified against the upstream endpoint variables and connection logic:
+https://github.com/canonical/lxd/blob/main/client/connection.go and
+https://github.com/lxc/incus/blob/main/client/connection.go. Immediately
+before every LXD or Incus CLI query, re-read its matching
+service state and require that service to be
+`active/running` with the same positive MainPID and allowlisted executable;
+if a socket unit can activate that service while it is not already active, do
+not query it. The LXD socket is selected from the verified service:
+`lxd_snap` maps only to `/var/snap/lxd/common/lxd/unix.socket`;
+`lxd_system` maps only to `/var/lib/lxd/unix.socket`. It must match the active
+LXD socket unit's `Listen` value, or the fixed service mapping when its socket
+unit is not installed. For Incus, use the loaded `incus.socket` `Listen` value
+when available; otherwise exactly one of `/run/incus/unix.socket` and
+`/var/lib/incus/unix.socket` must exist and be a socket. Set the matching
+`INCUS_SOCKET` explicitly for every Incus command, bypassing client default
+path selection and its `/run` `lstat` branch. The selected endpoint must match
+an already-active `incus.service` and the `incus.socket` Listen value
+when that socket unit is loaded. If `incus` service is missing/inactive or the
+socket mapping is ambiguous, do not query.
+If
+`incus.service` is `not-found`, record Incus unavailable only when `incus.socket`
+is also `not-found` and both Incus endpoint paths are absent; otherwise remain
+`BLOCKED` without running the Incus CLI. More than
+one active local daemon that could satisfy a query, or any ambiguous canonical
+socket-to-unit mapping, is `BLOCKED`.
 Every command has timeout <=30 seconds, stdout <=2 MiB and stderr <=2 MiB;
 aggregate output <=16 MiB; sanitized artifact <=8 MiB; entities <=10,000;
 total commands <=256 and aggregate wall-clock time <=300 seconds. Any cap,
-timeout, nonzero exit or incomplete
-inventory yields `BLOCKED` with no artifact.
+timeout, unexpected nonzero exit or incomplete inventory yields `BLOCKED`
+with no artifact. For `test -e` and `test -S`, status 0 means true and status
+1 means false; any other status is a command failure. A false `test -e` is an
+expected absent endpoint and skips type/canonicalization checks. An existing
+endpoint must also have `test -S` status 0, or capture is `BLOCKED`. Service
+unit rows are accepted only for `loaded` plus
+`active/running` with positive MainPID, or `loaded` plus `inactive/dead` or
+`failed/failed` with MainPID 0; `not-found/inactive/dead` with MainPID 0 and
+UnitFileState empty or `not-found` is also recorded without an executable row.
+Socket rows are accepted only for
+`loaded/active/listening` or `loaded/inactive/dead` or `loaded/failed/failed`,
+always with MainPID 0; `not-found/inactive/dead` with MainPID 0 has empty
+Listen. UnitFileState must be one of `enabled`, `enabled-runtime`, `disabled`,
+`disabled-runtime`, `static`, `indirect`, `alias`, `linked`, `linked-runtime`,
+`masked`, `generated`, `transient`, or empty/`not-found` only for a
+`not-found` unit. Serialize empty UnitFileState and Listen as empty strings.
+Any other
+state tuple is `BLOCKED`. Before each CLI query and again before artifact
+creation, repeat the complete selected service/socket tuples, including
+MainPID and Listen, executable identity, endpoint existence/type and canonical
+endpoint mapping; any difference from initial values yields `BLOCKED` and no
+artifact. Do not persist raw stdout/stderr. `identity_id` and `package` come
+only from the fixed executable-identity allowlist after in-memory exact
+executable comparison. `version` comes only from the strict `Server version`
+field of each bounded local `lxc --force-local version` or
+`incus --force-local version` response after its socket-to-service binding
+succeeds; missing or ambiguous version is `BLOCKED`. Persist both active LXD
+and Incus process identities in separate `lxd_executables` and
+`incus_executables` collections; inactive services have no executable row.
 
 The artifact schema is exactly `{schema_version,target_host,source_commit,
-captured_at_utc,lxd_units,lxd_executables,sockets,lxd_projects,
-incus_projects,command_records,decision}`. Service-unit rows contain exactly
+captured_at_utc,lxd_units,incus_units,lxd_executables,incus_executables,sockets,
+lxd_projects,incus_projects,command_records,decision}`. Service-unit rows contain exactly
 `{unit,load_state,active_state,sub_state,unit_file_state,main_pid}`; the socket
-unit row contains exactly those fields plus `listen`; executable
+unit row contains exactly those fields plus `listen`. `lxd_units` contains only
+the three LXD unit rows; `incus_units` contains only `incus.service` and
+`incus.socket` rows. Executable
 rows exactly `{unit,main_pid,identity_id,package,version}`; socket rows exactly
 `{endpoint_id,state,unit}`. Project/resource rows retain only names, status,
 type, profile/consumer links, network/pool identity and device type; do not
@@ -1947,7 +2033,7 @@ only require `git diff --check`. Local quality is never live success.
 
 ## Documentation Governance and arc42 Check Status
 
-Status: `AMENDMENT_READY_FOR_S3D v1.33 — S3D pending; no host/implementation authorization`
+Status: `ACTIVE_FOR_ISSUE_449 v1.34 — issue execution authorized; slice-specific S3D and scenario GO gates remain mandatory`
 installation-owned profile decision is a draft awaiting canonical placement
 and accepted review; no Incus version is supported yet for this capability.
 S449-01 places the exact owner-approved R67j policy, effective-infrastructure-
