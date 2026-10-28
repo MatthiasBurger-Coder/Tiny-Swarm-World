@@ -1,6 +1,6 @@
 {
   "workflow_id": "issue-449-lcm-w09",
-  "workflow_version": "1.40",
+  "workflow_version": "1.41",
   "workflow_path": "documentation/workflow/issues/issue-449/workflow.md",
   "workflow_index_path": "documentation/workflow/workflow.index.md",
   "context_pack_path": "documentation/workflow/issues/issue-449/context-pack.md",
@@ -29,7 +29,7 @@
   "test_host": "Approved PC WSL2 test host 192.168.178.58 for exact-source hash verification, targeted tests and QUALITY gates; live host work remains limited to the two named test hosts and each phase's exact scope",
   "pre_go_host_boundary": "S449-02C host inventory/route capture is distinct from S02C test-only work. Historical be2e031e8f0fb137ea6c15f74d81a88181aa4183 captures are not current. Exact-source 509908 native inventory SHA-256 3898c4a7c16fe93581bafabdd09d7daa11316e375072f288f697e2349b8c45017 and route artifact SHA-256 0af9913c1e997d518b0b62bec0c04ef0d79856ce0267ba338becacfa70e47d8cf (digest 4dd67ca44274073ad292e72c2a7cb5f9f36f5c15daf230912f2debb61c8ff91be). Exact-source WSL inventory SHA-256 4322d32ecfae2f5e1aae1711b48dbc0cb8007487f8655bc540f80d228c1d9994a at commit 50990890330684ef661be7f7ab07b586092641df, target 192.168.178.58; WSL route capture returned JIT_COMMAND_FAILED and created no artifact. Current native preflight remains blocked by active snap.lxd.daemon.service; no normalized admission or host GO. Historical approvals/S3D are phase-scoped and authorize none of the new slices/host commands. No mutation is claimed.",
   "workflow_amendment_v1_33": {
-    "status": "SUPERSEDED_BY_ACTIVE_ISSUE_EXECUTION v1.40",
+    "status": "SUPERSEDED_BY_ACTIVE_ISSUE_EXECUTION v1.41",
     "activation_reason": "The user explicitly authorized completing issue #449 on the named test hosts. This activates issue execution only; it does not grant a slice execution plan or host/scenario GO.",
     "execution_gates": [
       "fresh same-hash Three Amigos and specialist reviews for each slice",
@@ -428,7 +428,7 @@
     "quality_gate": "PASS; exit 0; 3,053 tests; 18 skipped; log SHA-256 8d67fffa46721be2b2d87678060e3f8dbf58d9777621ad622bcfcbfa580ebe2b"
   },
   "s449_02f4_normalization": {
-    "status": "IMPLEMENTED_PC_WSL_VERIFIED_READY_FOR_CHECKPOINT",
+    "status": "SEE_CONSOLIDATION_EXECUTION_STATE",
     "dependency": "S449-02F3",
     "design_path": ".codex/evidence/slice-449-02F4-design.md",
     "trust": "existing trusted local root installation",
@@ -440,8 +440,15 @@
     "environment_file": "optional canonical /etc/environment; blank/full-line-comment lines and at most one exact PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin assignment, unquoted or double-quoted literal only; no extra whitespace, escapes, expansion, single quotes or inline comments; duplicate PATH, malformed lines and every other assignment including LD_AUDIT block",
     "process_environment": "only SNAP_NAME/SNAP_REVISION/SNAP are proof selectors; other bounded entries discarded in memory",
     "deadline": "cooperative before/after local filesystem operations; Runner subprocess hard timeout retained",
-    "native_execution": "NOT_EXECUTED; separate post-commit exact-source S3D and host GO required before native inventory; no host admission, ownership or issue completion claimed.",
-    "quality": "PASS on exact frozen approved-PC-WSL candidate: 105 focused tests; all seven gates; 3,100 discovery tests, 18 skipped. Exact logs/hashes and earlier failure disposition in F4 consolidation.",
-    "review_state": "All six exact-hash implementation-release role decisions APPROVED and serial S3D EXECUTION_PLAN; frozen implementation independently accepted by Security and Tester. Original approved release tuple remains historical in F4 consolidation; current status-only updates do not alter proof requirements."
+    "native_execution": "See F4 consolidation for actual native attempt history and separately gated future execution; no native invocation is granted by this context.",
+    "quality": "Current and historical executed verification is recorded only in F4 consolidation; no new quality pass is implied by this metadata.",
+    "review_state": "Exact role decisions and phase release are recorded only in F4 consolidation; the v1.41 metadata defines a same-slice corrective contract.",
+    "optional_empty_array_properties": [
+      "ExecCondition",
+      "ExecStartPre",
+      "ExecStartPost",
+      "EnvironmentFiles"
+    ],
+    "array_normalization_contract": "All properties remain requested. Omission only of these four arrays normalizes to empty before validation/recheck; every other property including ExecStart remains mandatory. Nonempty hooks, duplicate/unknown/malformed records block; existing EnvironmentFiles nonempty allowlist unchanged."
   }
 }

@@ -116,6 +116,47 @@ class WrapperProofTests(unittest.TestCase):
                 self.runner.run.return_value = (0, raw, b"")
                 self.assert_blocked("SNAP_WRAPPER_UNIT_INVALID")
 
+    def test_all_optional_empty_omission_combinations_are_logically_equivalent(self) -> None:
+        optional = ("ExecCondition", "ExecStartPre", "ExecStartPost", "EnvironmentFiles")
+        complete = self.unit_bytes()
+        for mask in range(16):
+            omitted = {key for index, key in enumerate(optional) if mask & (1 << index)}
+            partial = b"".join(line for line in complete.splitlines(keepends=True)
+                               if line.partition(b"=")[0].decode() not in omitted)
+            for first, last in ((complete, partial), (partial, complete)):
+                with self.subTest(mask=mask, omitted_first=first == partial):
+                    self.runner.reset_mock()
+                    self.runner.run.side_effect = [(0, first, b""), (0, last, b"")]
+                    self.assertEqual(self.run_proof(), ("lxd_snap", "snap:lxd"))
+                    self.assertEqual(self.runner.run.call_count, 2)
+                    self.assertIn("--property=" + ",".join(proof.PROPERTIES), self.runner.run.call_args.args[0])
+
+    def test_every_other_property_remains_mandatory(self) -> None:
+        optional = {"ExecCondition", "ExecStartPre", "ExecStartPost", "EnvironmentFiles"}
+        complete = self.unit_bytes()
+        for key in set(proof.PROPERTIES) - optional:
+            raw = b"".join(line for line in complete.splitlines(keepends=True)
+                           if line.partition(b"=")[0] != key.encode())
+            with self.subTest(key=key):
+                self.runner.run.side_effect = None
+                self.runner.run.return_value = (0, raw, b"")
+                self.assert_blocked("SNAP_WRAPPER_UNIT_INVALID")
+
+    def test_optional_properties_still_reject_duplicates_and_malformed_rows(self) -> None:
+        for key in ("ExecCondition", "ExecStartPre", "ExecStartPost", "EnvironmentFiles"):
+            for suffix in ((key + "=\n").encode(), (key + "\n").encode(), (key + " =\n").encode()):
+                with self.subTest(key=key, suffix=suffix):
+                    self.runner.run.side_effect = None
+                    self.runner.run.return_value = (0, self.unit_bytes() + suffix, b"")
+                    self.assert_blocked("SNAP_WRAPPER_UNIT_INVALID")
+
+    def test_present_optional_properties_keep_their_closed_context_policy(self) -> None:
+        for key in ("ExecCondition", "ExecStartPre", "ExecStartPost", "EnvironmentFiles"):
+            with self.subTest(key=key):
+                self.values[key] = "secret-value"
+                self.assert_blocked("SNAP_WRAPPER_CONTEXT_BLOCKED")
+                self.values[key] = ""
+
     def test_closed_execstart_record_rejects_extra_argv_or_records_and_invalid_time(self) -> None:
         original = self.values["ExecStart"]
         for value in (original.replace("run lxd.daemon", "run lxd.daemon secret-value"), original + original,

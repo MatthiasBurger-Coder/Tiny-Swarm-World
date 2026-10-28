@@ -21,6 +21,7 @@ CONTEXT_PROPERTIES = ("ExecStart", "ControlGroup", "FragmentPath", "DropInPaths"
                       "ExecStartPre", "ExecStartPost", "RootDirectory", "RootImage", "BindPaths",
                       "BindReadOnlyPaths", "Environment", "EnvironmentFiles")
 PROPERTIES = BASE_PROPERTIES + CONTEXT_PROPERTIES
+OPTIONAL_EMPTY_PROPERTIES = ("ExecCondition", "ExecStartPre", "ExecStartPost", "EnvironmentFiles")
 UNIT_ARGV = ["/usr/bin/systemctl", "show", UNIT, "--property=" + ",".join(PROPERTIES), "--no-pager"]
 PROC_LIMIT = 64 * 1024
 ENV_LIMIT = 256 * 1024
@@ -229,6 +230,9 @@ def _unit(raw: bytes, expected: dict[str, Any]) -> dict[str, str]:
         if not sep or key not in PROPERTIES or key in values:
             raise ProvenanceError("SNAP_WRAPPER_UNIT_INVALID")
         values[key] = value
+    # systemd's per-entry array printer omits these properties when empty.
+    for key in OPTIONAL_EMPTY_PROPERTIES:
+        values.setdefault(key, "")
     if set(values) != set(PROPERTIES):
         raise ProvenanceError("SNAP_WRAPPER_UNIT_INVALID")
     supplied = (expected.get("load_state"), expected.get("active_state"), expected.get("sub_state"),

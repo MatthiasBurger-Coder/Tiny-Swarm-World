@@ -1,6 +1,42 @@
-# S449-02F4 execution record — v1.40
+# S449-02F4 execution record
 
-## Implementation release
+## Current corrective checkpoint — v1.41
+
+Commit `45c56359c9d18b1dd5f2dbdbd8e05fb81c5d646b` contains the original verified implementation below. Its separately approved native S02F capture returned `BLOCKED:SNAP_WRAPPER_UNIT_INVALID`, actual exit 2, with no inventory artifact. The source and the retained F3 private plan were verified unchanged. No runtime mutation occurred; only the approved private evidence-directory ownership and control records were prepared.
+
+A separate, six-role-approved post-commit S3D plan authorized the schema wrapper SHA-256 `aef0b32b50f395ca8126ca0ec878197aa52fcb42396032862f3121ba0f9e87da`. Its three fixed read-only systemctl queries ran once, nonprivileged and with `-B`. Both the normal and `--all` queries omitted only `ExecCondition`, `ExecStartPre`, and `ExecStartPost`; neither had duplicate, unknown or malformed fields, and all five base-field comparisons were true. The wrapper exited 0. This diagnoses serialization only and is not inventory admission.
+
+The v1.41 normative correction permits omission only for those three optional arrays and `EnvironmentFiles`, matching systemd's per-entry array printer. Every other required property remains mandatory; duplicate, unknown and malformed rows and configured execution hooks remain blocked. The original v1.40 evidence below remains historical and receives no credit for unexecuted corrective code or a future native capture.
+
+All six roles approved the corrective tuple below and DevOps/S3D issued `EXECUTION_PLAN` for one serial corrective implementation group on base `45c56359c9d18b1dd5f2dbdbd8e05fb81c5d646b`. The worker changed only the proof helper and its tests under the unchanged eleven-file locks. Independent Security and Tester reviews accepted the exact corrective diff. No native retry is released by this implementation record.
+
+- Corrective workflow: `17df2c3a8f726663e98b4a6b2acaadb78032ea9997f7009ff4324603db6a7002`
+- Corrective context Markdown: `25e8fc7f63907f6d76c44a1e791ad6686f2d7b010d2a107ee7adf6af7db98252`
+- Corrective context JSON: `a626bc72183b7bf16f8307c8b9b966a3de4babeb272731cf0c259ab93694eae9`
+- Corrective normative design: `55accd1fae7cb8b660b053fd4ae3ec927bbc209783a2574cdac172e9256a9bb3`
+- Corrective distribution: `fbfcd3c27599d0a23dbb814fe64dc6dc0076e8d6838071e474162279f577bdbc`
+- Corrective workflow index: `60218bc626c0f065145951253dfefaac1304f432cbbfffd2b6790af8f68f6274`
+
+The corrective helper SHA-256 is `b656ca13c0a2a00479f7f5abf49cc6337b8b9cff08ed76453cbac1ee1e6979ee`; its test SHA-256 is `242f7047f0dccc975e8c0f782dfb7985446cff595f0485a0fb986eb99783bdb1`. Parent runner and parent tests remain at their original reviewed hashes below. Tests exercise all 16 omission/explicit-empty combinations in both recheck directions, every missing mandatory field, and the unchanged malformed/duplicate/unknown/nonempty-value blockers.
+
+Exact archive `96a32f942720ab92aef42306b281f9c5bfe2b5aa35a97b0c51f17ce16ebbf5ed` and all file bytes were verified on approved PC WSL in the task's ext4 checkout, refreshed to source base `45c56359`. **109 focused tests passed** in 0.128 seconds. Fresh full quality passed all seven gates: 43 architecture tests; 3,104 full-discovery tests in 181.037 seconds, 18 skipped. Skips remain unexecuted. Focused log SHA-256: `8a5659dc4e8acdde3f3e3711ea88c4ff74feec1991fb4b2620abb82da64e4d16`; full log SHA-256: `a0c687c9c9dc08c4ffea5ba3d1884213100dffa77e46960ccafbfa32355e32e6`.
+
+### Current v1.41 CP_RECORD
+
+- `sliceId`: `S449-02F4`
+- `workflowVersion`: `1.41`
+- `sliceTitle`: Normalize omitted systemd empty-array properties
+- `responsibleRole`: Senior Python Automation Developer; root consolidation owner
+- `changedFiles`: proof helper and its tests, six declared workflow/authoring documents, this consolidation record
+- `qualityCommands`: focused inventory/provenance unittest modules and full `tools/quality_gate.py quality` through SSH on approved PC WSL after exact-byte verification; WSL `git diff --check`
+- `qualityResult`: `PASS`, 109 focused tests, 3,104 full-discovery tests with 18 skipped, all seven gates passed
+- `rollbackReference`: `45c56359c9d18b1dd5f2dbdbd8e05fb81c5d646b`
+- `arc42Updated`: `false`
+- `adrUpdated`: `false`, serialization correction only
+- `commitSha`: recorded by the checkpoint operator after commit
+- `nativeInventory`: previous source attempt blocked; separate post-commit exact-source S3D and host GO required for corrected source
+
+## Original v1.40 implementation release
 
 Base: `910b5ca792f571c503bf01a53e5a6ce0a363f5ee`, prescribed workflow branch. S3D verified the six-file task-owned authoring overlay; unrelated dirty worktrees are excluded.
 
@@ -39,7 +75,7 @@ The fresh full `python tools/quality_gate.py quality` run passed all seven gates
 
 No native inventory, identity admission on the live host, host mutation or issue completion is claimed. The earlier F3 diagnostic remains a historical blocked result; only the reviewed and mock-tested fallback implementation is ready for its checkpoint.
 
-## CP_RECORD
+## Original v1.40 CP_RECORD
 
 - `sliceId`: `S449-02F4`
 - `workflowVersion`: `1.40`

@@ -1,13 +1,13 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: ACTIVE_FOR_ISSUE_449 v1.40 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
+Status: ACTIVE_FOR_ISSUE_449 v1.41 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
 Workflow authoring branch: `docs/workflow-lcm-w09-route-baseline-20261027`
 Baseline: `a0310224946b63e2152ff4086d22a450c3d0f214`
-ACTIVE_FOR_ISSUE_449 v1.40. The user explicitly authorized completion of issue #449 on the named test hosts. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
+ACTIVE_FOR_ISSUE_449 v1.41. The user explicitly authorized completion of issue #449 on the named test hosts. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
 Execution profile: `FULL_PATH — lifecycle/provider implementation, regression, documentation, native and WSL2 qualification`
 
 ## Executive Summary
@@ -1234,7 +1234,7 @@ The complete normative proof, closed parsers, context allowlists, candidate alia
 
 F2/F3 UNKNOWN diagnostics remain unchanged for their CLI modes and historical runs. Only successful full F4 proof inside normal inventory resolution supersedes the MainPID-only assumption for the fixed Snap LXD service. A failed proof remains blocked before client/socket/resource/artifact work. Do not infer exclusive TSW ownership: existing coexistence inventory must still inspect and preserve unrelated resources.
 
-F4 implementation is complete under the six-role exact-hash release and serial implementation S3D recorded in `.codex/evidence/slice-449-02F4-consolidation.md`. The frozen candidate passed 105 focused PC WSL tests and all seven quality gates (3,100 discovery tests, 18 skipped) and is ready for its single-slice checkpoint commit/push. Native inventory has not executed; obtain a separate post-commit exact-source S3D and host GO before any native inventory capture. The implementation record does not authorize that invocation.
+Current execution, review, verification and checkpoint state is recorded only in `.codex/evidence/slice-449-02F4-consolidation.md`; historical observations below do not grant a new release or native invocation. The same-slice v1.41 correction normalizes only omitted empty ExecCondition, ExecStartPre, ExecStartPost and EnvironmentFiles arrays while still requesting all properties. ExecStart and every other property remain mandatory; nonempty hooks, duplicates, unknown/malformed records stay blocked. See the normative design for primary systemd source, exact tests and unchanged proof constraints. A new post-commit exact-source plan and host GO remain mandatory before any native inventory invocation.
 ```yaml
 slice_id: S449-02F4
 profile: BACKEND_AND_TESTS
@@ -2232,7 +2232,7 @@ only require `git diff --check`. Local quality is never live success.
 
 ## Documentation Governance and arc42 Check Status
 
-Status: `ACTIVE_FOR_ISSUE_449 v1.40 — issue execution authorized; slice-specific S3D and scenario GO gates remain mandatory`
+Status: `ACTIVE_FOR_ISSUE_449 v1.41 — issue execution authorized; slice-specific S3D and scenario GO gates remain mandatory`
 installation-owned profile decision is a draft awaiting canonical placement
 and accepted review; no Incus version is supported yet for this capability.
 S449-01 places the exact owner-approved R67j policy, effective-infrastructure-
