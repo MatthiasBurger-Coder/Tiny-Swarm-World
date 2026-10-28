@@ -1055,12 +1055,26 @@ def _capture_project_inventory(host: str) -> dict[str, Any]:
         _account_inventory_entities(len(instances_raw), 'INCUS_INSTANCE_INVENTORY_UNREADABLE')
         instances = []
         for item in sorted(instances_raw, key=lambda x: x.get('name', '') if isinstance(x, dict) else ''):
-            if (not isinstance(item, dict) or set(item) - {'name', 'status', 'status_code', 'type', 'profiles', 'architecture', 'created_at', 'last_used_at', 'location', 'description', 'stateful', 'ephemeral', 'project', 'config', 'devices', 'expanded_config', 'expanded_devices'}
+            if (not isinstance(item, dict) or set(item) - {'name', 'status', 'status_code', 'type', 'profiles', 'architecture', 'created_at', 'last_used_at', 'location', 'description', 'stateful', 'ephemeral', 'project', 'config', 'devices', 'expanded_config', 'expanded_devices', 'backups', 'snapshots', 'state'}
                     or not isinstance(item.get('name'), str) or not item['name']
                     or not isinstance(item.get('profiles'), list) or len(item['profiles']) > _INVENTORY_MAX_ENTITIES
                     or any(not isinstance(p, str) for p in item['profiles'])
                     or len(set(item['profiles'])) != len(item['profiles'])):
                 raise TargetDrift('INCUS_INSTANCE_INVENTORY_UNREADABLE')
+            for key in ('backups', 'snapshots'):
+                if key not in item or item[key] is None:
+                    continue
+                entries = item[key]
+                if (not isinstance(entries, list) or len(entries) > _INVENTORY_MAX_ENTITIES
+                        or any(not isinstance(entry, dict) or len(entry) > _INVENTORY_MAX_ENTITIES
+                               for entry in entries)):
+                    raise TargetDrift('INCUS_INSTANCE_INVENTORY_UNREADABLE')
+                _account_inventory_entities(len(entries), 'INCUS_INSTANCE_INVENTORY_UNREADABLE')
+            if 'state' in item and item['state'] is not None:
+                state = item['state']
+                if not isinstance(state, dict) or len(state) > _INVENTORY_MAX_ENTITIES:
+                    raise TargetDrift('INCUS_INSTANCE_INVENTORY_UNREADABLE')
+                _account_inventory_entities(len(state), 'INCUS_INSTANCE_INVENTORY_UNREADABLE')
             if 'status_code' in item and (not isinstance(item['status_code'], int) or isinstance(item['status_code'], bool)):
                 raise TargetDrift('INCUS_INSTANCE_INVENTORY_UNREADABLE')
             for key in ('architecture', 'created_at', 'last_used_at', 'location', 'description'):

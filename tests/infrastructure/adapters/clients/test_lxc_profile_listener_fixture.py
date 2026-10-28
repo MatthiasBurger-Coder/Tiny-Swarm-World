@@ -838,7 +838,12 @@ class ProjectInventoryCaptureTests(_FixtureBehaviorTestCase):
                 json.dumps({'name': 'web', 'project': 'qa', 'description': '', 'config': {'user.note': 'omit'},
                             'devices': {'proxy0': device}, 'used_by': []}).encode(),
             ('incus', 'list', '--project', 'qa', '--format', 'json'):
-                b'[{"name":"vm","status":"Running","status_code":103,"type":"virtual-machine","profiles":["web"],"ephemeral":false,"description":"","project":"qa"}]',
+                json.dumps([{'name': 'vm', 'status': 'Running', 'status_code': 103,
+                             'type': 'virtual-machine', 'profiles': ['web'], 'ephemeral': False,
+                             'description': '', 'project': 'qa', 'backups': None,
+                             'snapshots': [{'name': 'vm/snap0'}],
+                             'state': {'status': 'Running', 'status_code': 103,
+                                       'memory': {'usage': 42}, 'network': None}}]).encode(),
             ('incus', 'query', fixture._instance_api_path('vm', 'qa')):
                 json.dumps({'name': 'vm', 'project': 'qa',
                             'config': {'user.note': 'omit'},
@@ -960,6 +965,32 @@ class ProjectInventoryCaptureTests(_FixtureBehaviorTestCase):
             ('malformed-status-code',
              {('incus', 'list', '--project', 'qa', '--format', 'json'):
               b'[{"name":"i","status":"Running","type":"container","profiles":[],"status_code":true}]'},
+             'INCUS_INSTANCE_INVENTORY_UNREADABLE'),
+            ('malformed-backups',
+             {('incus', 'list', '--project', 'qa', '--format', 'json'):
+              b'[{"name":"i","status":"Running","type":"container","profiles":[],"backups":{}}]'},
+             'INCUS_INSTANCE_INVENTORY_UNREADABLE'),
+            ('malformed-snapshots',
+             {('incus', 'list', '--project', 'qa', '--format', 'json'):
+              b'[{"name":"i","status":"Running","type":"container","profiles":[],"snapshots":["snap0"]}]'},
+             'INCUS_INSTANCE_INVENTORY_UNREADABLE'),
+            ('malformed-state',
+             {('incus', 'list', '--project', 'qa', '--format', 'json'):
+              b'[{"name":"i","status":"Running","type":"container","profiles":[],"state":[]}]'},
+             'INCUS_INSTANCE_INVENTORY_UNREADABLE'),
+            ('oversized-snapshots',
+             {('incus', 'list', '--project', 'qa', '--format', 'json'):
+              json.dumps([{'name': 'i', 'status': 'Running', 'type': 'container', 'profiles': [],
+                           'snapshots': [{} for _ in range(fixture._INVENTORY_MAX_ENTITIES + 1)]}]).encode()},
+             'INCUS_INSTANCE_INVENTORY_UNREADABLE'),
+            ('oversized-state',
+             {('incus', 'list', '--project', 'qa', '--format', 'json'):
+              json.dumps([{'name': 'i', 'status': 'Running', 'type': 'container', 'profiles': [],
+                           'state': {f'field-{i}': None for i in range(fixture._INVENTORY_MAX_ENTITIES + 1)}}]).encode()},
+             'INCUS_INSTANCE_INVENTORY_UNREADABLE'),
+            ('unknown-instance-summary-field',
+             {('incus', 'list', '--project', 'qa', '--format', 'json'):
+              b'[{"name":"i","status":"Running","type":"container","profiles":[],"vendor_extra":true}]'},
              'INCUS_INSTANCE_INVENTORY_UNREADABLE'),
         ]
         for label, overrides, error in scenarios:
