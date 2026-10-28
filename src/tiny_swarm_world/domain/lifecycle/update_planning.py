@@ -98,6 +98,8 @@ def _admission(service: ServiceDefinition, components: tuple[ComponentState, ...
         return "unsupported", "Unknown or ambiguous catalog target; select one explicit supported target with --to.", None
     if manifest.host not in target.hosts or manifest.service_preset not in target.presets:
         return "unsupported", "Target is incompatible with the installation host or service preset.", None
+    if target.qualification != "qualified-transition":
+        return "unsupported", "Catalog target is a candidate and remains unavailable until exact-source qualification is complete.", None
     immutable = all(item.image_digest and item.image_repository for item in target.versions.values())
     drifted = any(item.drift() for item in components)
     if immutable and _bundle_matches(components, target.versions, observed=False):

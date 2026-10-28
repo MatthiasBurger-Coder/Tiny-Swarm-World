@@ -62,6 +62,10 @@ IMAGE_OVERRIDE_ENVIRONMENT_BY_CONTEXT = {
     "infisical-postgres": "TSW_INFISICAL_POSTGRES_IMAGE",
     "infisical-redis": "TSW_INFISICAL_REDIS_IMAGE",
     "traefik": "TSW_TRAEFIK_IMAGE",
+    "swagger-editor": "TSW_SWAGGER_EDITOR_IMAGE",
+    "swagger-ui": "TSW_SWAGGER_UI_IMAGE",
+    "swagger-api": "TSW_SWAGGER_API_IMAGE",
+    "swagger-nginx": "TSW_SWAGGER_NGINX_IMAGE",
 }
 _COMPOSE_IMAGE_VARIABLE_PATTERN = re.compile(
     r"^\$\{(?P<name>[A-Z][A-Z0-9_]*)(?::-?(?P<default>[^}]*))?\}$"

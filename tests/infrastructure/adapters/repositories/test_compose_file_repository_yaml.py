@@ -1183,9 +1183,9 @@ services:
         yaml = YAML(typ="safe")
         compose_data = yaml.load(compose_content)
 
-        self.assertIn("image: swaggerapi/swagger-editor:v5.6.2-unprivileged", compose_content)
-        self.assertIn("image: swaggerapi/swagger-ui:v5.32.6", compose_content)
-        self.assertIn("image: nginx:1.29.8-alpine", compose_content)
+        self.assertEqual(compose_data["services"]["swagger-editor"]["image"], "${TSW_SWAGGER_EDITOR_IMAGE:-swaggerapi/swagger-editor:v5.6.2-unprivileged}")
+        self.assertEqual(compose_data["services"]["swagger-ui"]["image"], "${TSW_SWAGGER_UI_IMAGE:-swaggerapi/swagger-ui:v5.32.6}")
+        self.assertEqual(compose_data["services"]["swagger-nginx"]["image"], "${TSW_SWAGGER_NGINX_IMAGE:-nginx:1.29.8-alpine}")
         self.assertNotIn("ports", compose_data["services"]["swagger-editor"])
         self.assertNotIn("ports", compose_data["services"]["swagger-api"])
         self.assertEqual(

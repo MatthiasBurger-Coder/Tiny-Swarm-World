@@ -125,7 +125,7 @@ class ComponentUpdateTarget(Contract):
     """A complete service bundle, never an arbitrary registry tag selection."""
     target_id: Identifier
     versions: dict[Identifier, VersionIdentity]
-    qualification: Literal["installation-baseline", "qualified-transition"]
+    qualification: Literal["installation-baseline", "candidate-transition", "qualified-transition"]
     metadata_source: Identifier
     hosts: tuple[Literal["native-linux", "wsl2"], ...] = ("native-linux", "wsl2")
     presets: tuple[Literal["default", "service-access"], ...] = ("default", "service-access")
@@ -167,18 +167,20 @@ class ServiceDefinition(Contract):
         for target in self.update_targets:
             if set(target.versions) != members:
                 raise ValueError("Update targets must cover the entire service bundle.")
-            if target.qualification == "qualified-transition" and any(
+            if target.qualification in {"candidate-transition", "qualified-transition"} and any(
                 not version.image_digest or not version.image_repository for version in target.versions.values()
             ):
-                raise ValueError("Qualified targets require immutable image identities for every component.")
+                raise ValueError("Transition targets require immutable image identities for every component.")
             if any((version.image_tag or "").lower() == "latest" for version in target.versions.values()):
                 raise ValueError("Mutable latest is not a supported update target.")
         if self.update_transitions and self.migration_policy != "explicit-transitions":
             raise ValueError("Transitions require explicit migration policy.")
         for transition in self.update_transitions:
             transition_target = targets.get(transition.target_id)
-            if transition_target is None or transition_target.qualification != "qualified-transition":
-                raise ValueError("Transitions require a qualified catalog target.")
+            if transition_target is None or transition_target.qualification not in {
+                "candidate-transition", "qualified-transition",
+            }:
+                raise ValueError("Transitions require an admitted candidate or qualified target.")
             if set(transition.source_versions) != members or any(
                 not version.image_digest or not version.image_repository for version in transition.source_versions.values()
             ):

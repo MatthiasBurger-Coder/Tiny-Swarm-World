@@ -49,7 +49,8 @@ class ComponentUpdateService:
                             "digest_status": "unavailable" if item.observed is None or item.observed.image_digest is None else "recorded"}
                            for item in components],
             "available_supported_targets": [item.model_dump(mode="json") for item in service.update_targets
-                                            if item.target_id in supported and compatible(item)],
+                                            if item.target_id in supported and item.qualification == "qualified-transition"
+                                            and compatible(item)],
             "catalog_references": [dict(item.model_dump(mode="json"), compatible=compatible(item))
                                    for item in service.update_targets],
             "transition_policy": [item.model_dump(mode="json") for item in service.update_transitions],
