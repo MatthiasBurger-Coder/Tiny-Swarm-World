@@ -20,9 +20,9 @@
 - `rollbackReference`: `9c311145e7b4a4ad5f588829fd9867776678e452`
 - `arc42Updated`: `false`
 - `adrUpdated`: `false`
-- `commitSha`: `PENDING`
-- `nativeDiagnostic`: `NOT_AUTHORIZED_BY_IMPLEMENTATION_PLAN`
-- `sliceStatus`: `IN_PROGRESS`
+- `commitSha`: `b30828089a2fb2ec1bafa10f15796ec07fa1bbe3` (merged implementation, PR #498)
+- `nativeDiagnostic`: `BLOCKED_UNKNOWN / SNAP_EXECUTABLE_OUTSIDE_ROOT`
+- `sliceStatus`: `DIAGNOSTIC_RECORDED; inventory and issue qualification remain blocked`
 
 ## Scope and safety
 
@@ -31,3 +31,19 @@ Classify only the resolved executable string already read for the fixed active s
 ## Verification disposition
 
 PC WSL focused and full quality gates passed on the reviewed implementation bytes. Requirement, Architecture, Python, Tester, Security and DevOps approved the same-hash implementation tuple. This slice is ready for its single local commit. Native diagnosis is not yet authorized under F3; it requires a separate post-commit S3D plan.
+
+## Post-merge bounded native diagnostic
+
+The implementation was merged by PR #498. The preceding readiness and pending-execution statements describe the pre-merge checkpoint.
+
+On 2026-10-28, a clean native ext4 checkout of the merged commit on the declared workflow branch was verified. Runner, tests and workflow matched the hashes above. The committed context Markdown SHA-256 was `15570745fcde114d36e4d984a5d12fe4372466e290b0458add7dedf6e360d3a4`; context JSON SHA-256 was `9489e870be2ebdfcfd4711d42d315a8ff10518e70519e4429549e7c7aed898fa`. Fresh Requirement, Architecture, Python, Tester and Security reviews approved this tuple. The DevOps/S3D owner issued a separate serial `EXECUTION_PLAN` for only `--diagnose-units`.
+
+The first `sudo -n` attempt stopped before Python because authentication was required. A separately approved S3D amendment permitted the existing password prompt in a dedicated SSH terminal, without credential persistence or sudo configuration changes. The diagnostic then returned exactly:
+
+```json
+{"mode":"diagnose-units","status":"BLOCKED_UNKNOWN","unit":"snap.lxd.daemon.service","identity":"UNKNOWN","reason":"SNAP_EXECUTABLE_OUTSIDE_ROOT"}
+```
+
+The SSH transport reported exit 1; the remote Python exit was not captured separately and is not asserted. No full inventory, endpoint/resource query, fixture, allowlist change or runtime mutation was performed. The runner wrote no artifact. The separate sanitized plan/result record was verified on ext4 with directory mode 0700 and file mode 0600. Post-run Git status remained clean and the runner hash was unchanged. Requirement and Security independently accepted this as a bounded diagnostic result, not identity admission or issue completion. Further provenance work requires its own reviewed slice and execution plan.
+
+This reporting update changes no executable source. The implementation quality results above remain the executed code verification; no new test or live qualification pass is claimed.
