@@ -16,7 +16,7 @@ All 86 frozen candidate files were copied into the prescribed PR #499 branch fro
 
 Original dirty files and unique refs are preserved outside the repository before cleanup. They are not evidence of current live qualification.
 
-## Exact verification
+## Initial integration verification
 
 Tests and quality were executed only via SSH on the approved PC host, inside Ubuntu WSL on an ext4 verification tree. The separate native host was not used for tests. This code-publication path executed no additional live installation, upgrade, capture or service mutation.
 
@@ -41,3 +41,23 @@ This documentation-only result record was added after the tested archive. Its fa
 ## Publication boundary
 
 This record authorizes the reviewed serial commit sequence and guarded PR #499 publication after commit readiness. The final head must still pass configured GitHub CI, Python compatibility and SonarCloud checks before merge. Merge verification and branch/worktree cleanup are operator actions reported after execution; this pre-publication record does not invent those results. The user explicitly authorized cleanup to main after preserving older files and unique histories. No issue-closing keyword or DONE claim is authorized.
+
+## Corrective checkpoint after the first SonarCloud analysis
+
+The first final-head analysis for 73bae31dd20c96676e268b53c02778bd59a45d28 failed its security gate: Python S4790 identified the direct SHA-1 calculation used for Git blob identity. The other gate metrics passed (reliability A, maintainability A, coverage 86.6%, duplication 0%, reviewed hotspots 100%). The failed result was retained; no merge or gate override occurred.
+
+Requirement, Architecture, Security and Tester review resolved the correction within C01's existing locks. Configuration identity is now computed by fixed read-only argv `git hash-object --no-filters --stdin` through the existing byte process-runner port. There is no shell or object write. Input retains the existing per-file byte bound; every object check shares one 30-second monotonic budget. Exit status, empty stderr, exact one-line lowercase Git OID and agreement with the tracked OID are validated. Errors remain sanitized refusals. SHA-256 configuration bindings and the existing path/mode/tree/admission guards remain intact. This records consistency with the trusted prepared Git checkout, not a new authenticity guarantee.
+
+Only C01's configuration-source module and its nearest regression tests changed. Security and Tester independently reviewed frozen source SHA-256 45c6d7cee6c3a409b71f31912cf90dad367238c93c79616be133eacdc7208fef and test SHA-256 03db0b8890425a54216c69b88ff58e0873826e68e661af216b561ca91c53c247. Tests cover binary transport, fixed read-only arguments, output/error rejection, aggregate deadline and source-byte/mode drift.
+
+Corrected archive SHA-256: f737f1c9b16468f9c8f155cb8399da316f0fcc192bd1a2df5cc278841dd5b3d7.
+All 2,655 file hashes were verified on the approved PC Ubuntu WSL ext4 tree before execution.
+The same focused unittest modules passed: 179 tests in 3.772 seconds.
+
+The mandatory full quality gate passed all seven stages: 43 architecture tests in 3.155 seconds and 3,224 full-suite tests in 188.164 seconds, with 36 skipped. The verification process exited 0. The local file manifest was rechecked unchanged before this documentation-only update.
+
+Corrected manifest SHA-256: a3c5b1dd1efbe989da7a9bebe2dd6ca8ff6a2c1b18037ffbe7ea69a0041fc601.
+Focused log SHA-256: c6cffb93c5a82f791c54f088b6940085e6b32103504f8ebf1ef2406b8970d9c2.
+Full quality log SHA-256: 8d574b8dc8bc8cfe1803ecdaab7956deead7eecca45d5687f00e49eca0523af6.
+
+The source/test correction is a C01 checkpoint; this result update is a separate C04 checkpoint. Publication must run final-head CI and SonarCloud again and merge only when they pass. No new live qualification was performed, and #449 remains INCOMPLETE.
