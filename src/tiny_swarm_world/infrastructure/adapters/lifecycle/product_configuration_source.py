@@ -1,7 +1,8 @@
 """Explicit effective-input authority for the existing prepared product lifecycle."""
-import hashlib
 import os
 from pathlib import Path
+import re
+import time
 from uuid import uuid4
 
 from tiny_swarm_world.domain.lifecycle.product_upgrade import ProductConfigurationSource
@@ -9,8 +10,9 @@ from tiny_swarm_world.infrastructure.adapters.lifecycle.product_configuration_ca
     capture, create_binding, load_record,
 )
 from tiny_swarm_world.infrastructure.adapters.lifecycle.product_configuration_validation import (
-    MAX_BYTES, read_tree, refused, require_capacity, validate_policy,
+    MAX_BYTES, MAX_FILE_BYTES, read_tree, refused, require_capacity, validate_policy,
 )
+from tiny_swarm_world.infrastructure.process.runner import ProcessRunnerError
 
 
 def _external(installation):
@@ -22,6 +24,27 @@ def _external(installation):
     if not path.is_absolute() or path.anchor != '/' or '..' in path.parts:
         raise refused()
     return None if path == installation.root / 'infra' else path
+
+
+def _matches_git_blob(installation, content, digest, deadline):
+    """Compare Git's canonical object ID without writing or filtering the payload."""
+    if (not isinstance(content, bytes) or len(content) > MAX_FILE_BYTES
+            or re.fullmatch(r'(?:[0-9a-f]{40}|[0-9a-f]{64})', digest) is None):
+        raise refused()
+    remaining = min(30.0, deadline - time.monotonic())
+    if remaining <= 0:
+        raise refused()
+    try:
+        result = installation.runner.run_bytes(('git', 'hash-object', '--no-filters', '--stdin'),
+            cwd=installation.root, input=content, timeout=remaining, shell=False)
+        if (result.returncode != 0 or result.stderr != b'' or not isinstance(result.stdout, bytes)
+                or len(result.stdout) != len(digest) + 1
+                or re.fullmatch(rb'(?:[0-9a-f]{40}|[0-9a-f]{64})\n', result.stdout) is None
+                or time.monotonic() >= deadline):
+            raise refused()
+        return result.stdout == digest.encode('ascii') + b'\n'
+    except (ProcessRunnerError, OSError, ValueError, TypeError):
+        raise refused() from None
 
 
 def _official(installation):
@@ -41,10 +64,10 @@ def _official(installation):
         directories = {parent.as_posix() for member in tracked for parent in Path(member).parents if parent != Path('.')}
         if set(tree.members) != set(tracked) | directories:
             raise refused()
+        deadline = time.monotonic() + 30.0
         for member, content in tree.files.items():
             mode, digest = tracked[member]
-            blob = b'blob ' + str(len(content)).encode() + b'\0' + content
-            if (hashlib.sha1(blob).hexdigest() != digest
+            if (not _matches_git_blob(installation, content, digest, deadline)
                     or bool(tree.members[member][3] & 0o111) != (mode == '100755')):
                 raise refused()
     except (ValueError, KeyError):

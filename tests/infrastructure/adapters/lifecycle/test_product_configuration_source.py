@@ -28,6 +28,7 @@ from tiny_swarm_world.infrastructure.adapters.lifecycle.product_installation imp
 from tiny_swarm_world.infrastructure.adapters.lifecycle.product_journal import JsonProductJournal
 from tiny_swarm_world.infrastructure.adapters.lifecycle.product_migration import migrate_product_infra
 from tiny_swarm_world.infrastructure.adapters.lifecycle.manifest import JsonManifestRepository
+from tiny_swarm_world.infrastructure.process.runner import ProcessRunnerError
 
 
 class BoundConfigurationTests(unittest.TestCase):
@@ -58,9 +59,14 @@ class BoundConfigurationTests(unittest.TestCase):
         listing = []
         for name, content in tree.files.items():
             mode = '100755' if tree.members[name][3] & 0o111 else '100644'
-            digest = hashlib.sha1(b'blob ' + str(len(content)).encode() + b'\0' + content).hexdigest()
+            digest = hashlib.sha1(b'blob ' + str(len(content)).encode() + b'\0' + content, usedforsecurity=False).hexdigest()
             listing.append(f'{mode} blob {digest}\tinfra/{name}')
         self.installation._command = Mock(return_value='\n'.join(listing))
+        def hash_object(_args, **kwargs):
+            content = kwargs['input']
+            digest = hashlib.sha1(b'blob ' + str(len(content)).encode() + b'\0' + content, usedforsecurity=False).hexdigest()
+            return SimpleNamespace(returncode=0, stdout=digest.encode() + b'\n', stderr=b'')
+        self.installation.runner.run_bytes.side_effect = hash_object
         self.environment = patch.dict(os.environ, {'TSW_INFRA_ROOT': str(self.external)})
         self.environment.start()
         self.addCleanup(self.environment.stop)
@@ -96,6 +102,68 @@ class BoundConfigurationTests(unittest.TestCase):
         second = source_adapter.prepare(self.installation)
         self.assertNotEqual(first.configuration_source.reference, second.reference)
         self.assertEqual(source_adapter.reserve_bytes(second), 128 * 1024 * 1024)
+
+    def test_official_blob_identity_preserves_binary_payload_and_read_only_git_flags(self):
+        payload = b'\x00\xff\r\ntrailing whitespace \n\n'
+        binary = self.root / 'infra' / 'binary.dat'
+        binary.write_bytes(payload)
+        digest = hashlib.sha1(b'blob ' + str(len(payload)).encode() + b'\0' + payload, usedforsecurity=False).hexdigest()
+        self.installation._command.return_value += f'\n100644 blob {digest}\tinfra/binary.dat'
+        tree = source_adapter._official(self.installation)
+        self.assertEqual(tree.files['binary.dat'], payload)
+        call = next(call for call in self.installation.runner.run_bytes.call_args_list if call.kwargs['input'] == payload)
+        self.assertEqual(call.args[0], ('git', 'hash-object', '--no-filters', '--stdin'))
+        self.assertEqual(call.kwargs['cwd'], self.root)
+        self.assertFalse(call.kwargs['shell'])
+        self.assertGreater(call.kwargs['timeout'], 0)
+        self.assertLessEqual(call.kwargs['timeout'], 30)
+
+    def test_git_blob_failure_or_unexpected_output_is_refused_without_raw_details(self):
+        good = b'a' * 40 + b'\n'
+        results = (
+            SimpleNamespace(returncode=1, stdout=good, stderr=b''),
+            SimpleNamespace(returncode=0, stdout=good, stderr=b'private-payload'),
+            SimpleNamespace(returncode=0, stdout=good + b'\n', stderr=b''),
+            SimpleNamespace(returncode=0, stdout=b'A' * 40 + b'\n', stderr=b''),
+            SimpleNamespace(returncode=0, stdout=b'a' * 40 + b'\r\n', stderr=b''),
+            SimpleNamespace(returncode=0, stdout=b'a' * 64 + b'\n', stderr=b''),
+            SimpleNamespace(returncode=0, stdout=b'private-payload', stderr=b''),
+            SimpleNamespace(returncode=0, stdout=good, stderr=b''),  # Valid shape, wrong identity.
+        )
+        self.installation.runner.run_bytes.side_effect = None
+        for result in results:
+            with self.subTest(output_size=len(result.stdout)):
+                self.installation.runner.run_bytes.return_value = result
+                with self.assertRaises(LifecycleStateError) as caught:
+                    source_adapter._official(self.installation)
+                self.assertNotIn('private-payload', str(caught.exception))
+                self.assertFalse(self.installation.state.exists())
+
+    def test_git_blob_runner_exceptions_are_sanitized_and_fail_closed(self):
+        for error in (ProcessRunnerError('private-payload'), OSError('private-payload')):
+            with self.subTest(error_type=type(error).__name__):
+                self.installation.runner.run_bytes.side_effect = error
+                with self.assertRaises(LifecycleStateError) as caught:
+                    source_adapter._official(self.installation)
+                self.assertNotIn('private-payload', str(caught.exception))
+
+    def test_official_blob_hashing_shares_one_deadline_across_all_files(self):
+        with patch.object(source_adapter.time, 'monotonic', side_effect=[0.0, 1.0, 2.0, 31.0]):
+            with self.assertRaises(LifecycleStateError):
+                source_adapter._official(self.installation)
+        self.installation.runner.run_bytes.assert_called_once()
+        self.assertEqual(self.installation.runner.run_bytes.call_args.kwargs['timeout'], 29.0)
+
+    def test_changed_anchor_bytes_and_execute_mode_still_refuse_official_source(self):
+        anchor = self.root / 'infra' / 'setup.sh'
+        original = anchor.read_bytes()
+        anchor.write_bytes(original + b'# changed\n')
+        with self.assertRaises(LifecycleStateError):
+            source_adapter._official(self.installation)
+        anchor.write_bytes(original)
+        anchor.chmod(0o644)
+        with self.assertRaises(LifecycleStateError):
+            source_adapter._official(self.installation)
 
     def test_native_host_uses_native_filesystem_classification(self):
         self.host_detector.return_value.detect.return_value = SimpleNamespace(
