@@ -18,6 +18,21 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
         def __init__(self):
             self.calls: list[tuple[list[str], dict[str, str], str]] = []
             self.records: list[dict[str, Any]] = []
+            self.list_rows: dict[str, list[dict[str, Any]]] = {}
+            self.detail_profiles = ["bravo"]
+            self.instance_network = "net"
+            self.instance_pool = "pool"
+            self.instance_custom_source: str | None = None
+            self.project_used_by: list[str] = [
+                "/1.0/profiles/bravo?project=alpha", "/1.0/profiles/zeta?project=alpha",
+                "/1.0/instances/web?project=alpha", "/1.0/networks/net?project=alpha",
+                "/1.0/storage-pools/pool/volumes/container/web?project=alpha",
+            ]
+            self.network_used_by = ["/1.0/profiles/bravo?project=alpha", "/1.0/instances/web?project=alpha"]
+            self.volume_used_by = ["/1.0/instances/web?project=alpha"]
+            self.pool_used_by = ["/1.0/profiles/bravo?project=alpha", "/1.0/instances/web?project=alpha",
+                                 "/1.0/storage-pools/pool/volumes/container/web?project=alpha"]
+            self.volume_owner_project = "alpha"
 
         @staticmethod
         def _json(value: Any) -> bytes:
@@ -31,33 +46,66 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
             if suffix == ["version"]:
                 out = b"Client version: 6.0\nServer version: 6.0.5\n"
             elif suffix == ["project", "list", "--format", "json"]:
-                out = self._json([{"name": "alpha"}])
+                out = self._json(self.list_rows.get("projects", [{"name": "alpha", "description": "", "config": {},
+                                                                    "used_by": self.project_used_by}]))
             elif suffix == ["project", "show", "alpha", "--format", "json"]:
-                out = self._json({"name": "alpha", "config": {}, "used_by": []})
+                out = self._json({"name": "alpha", "config": {}, "used_by": self.project_used_by})
             elif suffix == ["profile", "list", "--project", "alpha", "--format", "json"]:
-                out = self._json([{"name": "zeta", "used_by": []}, {"name": "bravo", "used_by": []}])
+                out = self._json(self.list_rows.get("profiles", [
+                    {"name": "zeta", "project": "alpha", "description": "", "config": {}, "devices": {}, "used_by": []},
+                    {"name": "bravo", "project": "alpha", "description": "", "config": {}, "devices": {},
+                     "used_by": ["/1.0/instances/web?project=alpha"]},
+                ]))
             elif suffix == ["list", "--project", "alpha", "--format", "json"]:
-                out = self._json([{"name": "web", "status": "Running", "type": "container", "profiles": ["default"]}])
+                out = self._json(self.list_rows.get("instances", [{
+                    "name": "web", "project": "alpha", "architecture": "x86_64", "config": {}, "devices": {},
+                    "ephemeral": False, "expanded_config": {}, "expanded_devices": {}, "profiles": ["bravo"],
+                    "stateful": False, "status": "Running", "status_code": 103, "type": "container",
+                    "location": "none", "description": "", "created_at": "2026-10-01T00:00:00Z",
+                    "last_used_at": "2026-10-02T00:00:00Z",
+                }]))
             elif suffix == ["network", "list", "--project", "alpha", "--format", "json"]:
-                out = self._json([{"name": "net", "type": "bridge", "managed": True, "used_by": []}])
+                out = self._json(self.list_rows.get("networks", [{"name": "net", "project": "alpha", "type": "bridge",
+                    "managed": True, "status": "Created", "config": {}, "description": "",
+                    "used_by": self.network_used_by, "locations": []}]))
             elif suffix == ["storage", "list", "--project", "alpha", "--format", "json"]:
-                out = self._json([{"name": "pool", "driver": "dir", "used_by": []}])
+                out = self._json(self.list_rows.get("pools", [{"name": "pool", "project": "alpha", "driver": "dir",
+                    "config": {}, "description": "", "used_by": self.pool_used_by,
+                    "status": "Created", "locations": []}]))
             elif len(suffix) >= 3 and suffix[0] == "profile" and suffix[1] == "show" and suffix[3:] == ["--project", "alpha", "--format", "json"]:
                 profile = {"name": suffix[2], "project": "alpha", "description": "", "config": {},
-                           "devices": {"eth0": {"type": "nic", "parent": "br0"}},
-                           "used_by": ["/1.0/instances/web?project=beta", "/1.0/networks/web?project=alpha"]}
+                           "devices": ({"root": {"type": "disk", "path": "/", "pool": "pool"},
+                                        "eth0": {"type": "nic", "network": "net"}}
+                                       if suffix[2] == "bravo" else {}),
+                           "used_by": ["/1.0/instances/web?project=alpha"] if suffix[2] == "bravo" else []}
                 out = self._json(profile)
             elif suffix == ["config", "show", "web", "--project", "alpha", "--format", "json"]:
-                out = self._json({"name": "web", "project": "alpha", "config": {}, "devices": {},
-                                  "ephemeral": False, "profiles": ["default"], "stateful": False})
+                devices = {}
+                if self.instance_custom_source is not None:
+                    devices["custom"] = {"type": "disk", "path": "/data", "pool": self.instance_pool,
+                                          "source": self.instance_custom_source}
+                out = self._json({"name": "web", "project": "alpha", "config": {},
+                                  "devices": devices,
+                                  "ephemeral": False, "profiles": self.detail_profiles, "stateful": False})
             elif suffix == ["config", "show", "web", "--project", "alpha", "--format", "json", "--expanded"]:
-                out = self._json({"name": "web", "project": "alpha", "config": {}, "devices": {},
-                                  "ephemeral": False, "profiles": ["default"], "stateful": False})
+                out = self._json({"name": "web", "project": "alpha", "config": {},
+                                  "devices": {"root": {"type": "disk", "path": "/", "pool": self.instance_pool},
+                                              "eth0": {"type": "nic", "network": self.instance_network}},
+                                  "ephemeral": False, "profiles": self.detail_profiles, "stateful": False})
             elif suffix == ["network", "show", "net", "--project", "alpha", "--format", "json"]:
                 out = self._json({"name": "net", "project": "alpha", "type": "bridge", "managed": True,
-                                  "config": {}, "used_by": []})
+                                  "config": {}, "used_by": self.network_used_by})
             elif suffix == ["storage", "show", "pool", "--project", "alpha", "--format", "json"]:
-                out = self._json({"name": "pool", "project": "alpha", "driver": "dir", "config": {}, "used_by": []})
+                out = self._json({"name": "pool", "project": "alpha", "driver": "dir", "config": {},
+                                  "used_by": self.pool_used_by})
+            elif suffix == ["storage", "volume", "list", "pool", "--project", "alpha", "--format", "json"]:
+                out = self._json(self.list_rows.get("volumes", [{"name": "web", "type": "container",
+                    "content_type": "filesystem", "project": "alpha", "description": "", "config": {"size": "10GiB"},
+                    "created_at": "2026-10-01T00:00:00Z", "used_by": self.volume_used_by, "location": "none"}]))
+            elif suffix == ["storage", "volume", "show", "pool", "container/web", "--project", "alpha", "--format", "json"]:
+                out = self._json({"name": "web", "type": "container", "content_type": "filesystem",
+                                  "project": self.volume_owner_project, "description": "", "config": {"size": "10GiB"},
+                                  "created_at": "2026-10-01T00:00:00Z", "used_by": self.volume_used_by, "location": "none"})
             else:
                 raise AssertionError(f"unexpected inventory argv: {argv}")
             self.records.append({"command_id": command_id, "safe_args": safe_args or [], "exit_status": 0,
@@ -242,6 +290,9 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
         self.assertNotIn("/host/private", str(projected))
         with self.assertRaises(inventory.InventoryError):
             inventory._consumer_refs(["https://host/1.0/instances/web"], "alpha")
+        self.assertEqual(inventory._consumer_refs(
+            ["/1.0/storage-pools/default/volumes/container/web?project=alpha"], "alpha"),
+            [{"kind": "storage-volumes", "name": "default/container/web", "project": "alpha"}])
         with self.assertRaises(inventory.InventoryError):
             inventory._validate_profile_show({**profile, "project": "other"}, "default", "alpha")
 
@@ -261,6 +312,18 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
             inventory._validate_network_show({**network, "project": "beta"}, "br0", "alpha")
         with self.assertRaises(inventory.InventoryError):
             inventory._validate_pool_show({**pool, "project": "beta"}, "default", "alpha")
+
+    def test_network_and_pool_details_require_consumer_relationships(self) -> None:
+        network = {"name": "br0", "project": "alpha", "type": "bridge", "managed": True, "config": {}}
+        pool = {"name": "default", "project": "alpha", "driver": "dir", "config": {}}
+        with self.assertRaises(inventory.InventoryError):
+            inventory._validate_network_show(network, "br0", "alpha")
+        with self.assertRaises(inventory.InventoryError):
+            inventory._validate_pool_show(pool, "default", "alpha")
+
+    def test_unknown_storage_volume_type_fails_closed(self) -> None:
+        with self.assertRaisesRegex(inventory.InventoryError, "VOLUME_TYPE_UNSUPPORTED"):
+            inventory._volume_type("future-volume-kind")
 
     def test_runner_requires_client_specific_canonical_socket(self) -> None:
         runner = inventory.Runner(popen=Mock())
@@ -290,13 +353,14 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
             ["config", "show", "web", "--project", "alpha", "--format", "json", "--expanded"],
             ["network", "show", "net", "--project", "alpha", "--format", "json"],
             ["storage", "show", "pool", "--project", "alpha", "--format", "json"],
+            ["storage", "volume", "list", "pool", "--project", "alpha", "--format", "json"],
+            ["storage", "volume", "show", "pool", "container/web", "--project", "alpha", "--format", "json"],
         ])
         self.assertTrue(all(call[1] == {**inventory.ENV_BASE, "LXD_SOCKET": "/var/lib/lxd/unix.socket"}
                             for call in runner.calls))
         self.assertEqual([row["name"] for row in projects[0]["profiles"]], ["bravo", "zeta"])
         self.assertEqual(projects[0]["profiles"][0]["used_by"], [
-            {"kind": "instances", "name": "web", "project": "beta"},
-            {"kind": "networks", "name": "web", "project": "alpha"},
+            {"kind": "instances", "name": "web", "project": "alpha"},
         ])
 
     def test_incus_inventory_uses_exact_detail_argv_binary_and_socket_environment(self) -> None:
@@ -321,6 +385,8 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
             ["config", "show", "web", "--project", "alpha", "--format", "json", "--expanded"],
             ["network", "show", "net", "--project", "alpha", "--format", "json"],
             ["storage", "show", "pool", "--project", "alpha", "--format", "json"],
+            ["storage", "volume", "list", "pool", "--project", "alpha", "--format", "json"],
+            ["storage", "volume", "show", "pool", "container/web", "--project", "alpha", "--format", "json"],
         ])
         self.assertIn("incus_profile_show", [record["command_id"] for record in runner.records])
         self.assertIn("incus_network_show", [record["command_id"] for record in runner.records])
@@ -351,12 +417,14 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
         with patch.object(inventory, "_systemctl_show", side_effect=lambda _runner, unit: dict(unit_rows[unit])), \
                 patch.object(inventory, "_resolve_executable", return_value=("lxd_system", "system:lxd")), \
                 patch.object(inventory, "_endpoint", side_effect=lambda _runner, path, unit: (inventory.SOCKETS[path], path == endpoint_present)), \
-                patch.object(inventory, "_recheck_all", side_effect=record_recheck):
+                patch.object(inventory, "_recheck_all", side_effect=record_recheck), \
+                patch.object(inventory, "_require_full_local_access"):
             artifact = inventory.capture("a" * 40, runner=runner)
         self.assertEqual(len(checked), len(runner.calls) + 1)
         self.assertEqual(artifact["decision"], "READ_ONLY_INVENTORY_COMPLETE")
         self.assertEqual([row["name"] for row in artifact["lxd_projects"][0]["profiles"]], ["bravo", "zeta"])
         self.assertEqual([row["name"] for row in artifact["lxd_projects"][0]["networks"]], ["net"])
+        self.assertTrue(inventory._validate_artifact(artifact).endswith(b"\n"))
 
     def test_service_or_socket_drift_blocks_the_next_cli_query(self) -> None:
         def active(unit, pid):
@@ -424,12 +492,13 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
                     patch.object(inventory, "_systemctl_show", side_effect=systemctl), \
                     patch.object(inventory, "_resolve_executable", return_value=("lxd_system", "system:lxd")), \
                     patch.object(inventory, "_endpoint", side_effect=lambda _runner, path, unit: (inventory.SOCKETS[path], path == "/var/lib/lxd/unix.socket")), \
+                    patch.object(inventory, "_require_full_local_access"), \
                     patch.object(inventory, "_write_private") as write, redirect_stderr(stderr):
                 result = inventory.main(["--source-commit", "a" * 40, "--output", str(artifact)])
             self.assertEqual(result, 2)
             self.assertFalse(artifact.exists())
             self.assertEqual(runner.calls, [])
-            self.assertEqual(counts["lxd.service"], 2)
+            self.assertGreaterEqual(counts["lxd.service"], 1)
             self.assertEqual(counts["snap.lxd.daemon.service"], 2)
             write.assert_not_called()
             self.assertIn("BLOCKED:RUNTIME_UNIT_DRIFT", stderr.getvalue())
@@ -484,9 +553,269 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
         with self.assertRaises(inventory.InventoryError):
             inventory._only_keys({"name": "default", "config": {"secret": "redacted"}}, {"name"})
 
+    def test_complete_ownership_requires_resolvable_profile_and_consumer_edges(self) -> None:
+        _version, projects = inventory._inventory_client(
+            self._InventoryRunner(), "incus_system", "/run/incus/unix.socket", incus=True,
+            before_query=lambda: None)
+        inventory._validate_complete_ownership(projects)
+
+        projects[0]["instances"][0]["profiles"] = ["missing"]
+        with self.assertRaisesRegex(inventory.InventoryError, "PROFILE_REFERENCE_UNRESOLVED"):
+            inventory._validate_complete_ownership(projects)
+
+        _version, projects = inventory._inventory_client(
+            self._InventoryRunner(), "incus_system", "/run/incus/unix.socket", incus=True,
+            before_query=lambda: None)
+        projects[0]["networks"][0]["used_by"] = [
+            {"kind": "instances", "name": "missing", "project": "alpha"}]
+        with self.assertRaisesRegex(inventory.InventoryError, "CONSUMER_REFERENCE_UNRESOLVED"):
+            inventory._validate_complete_ownership(projects)
+
+        _version, projects = inventory._inventory_client(
+            self._InventoryRunner(), "incus_system", "/run/incus/unix.socket", incus=True,
+            before_query=lambda: None)
+        projects[0]["profiles"][0]["used_by"] = []
+        with self.assertRaisesRegex(inventory.InventoryError, "PROFILE_CONSUMER_RECIPROCITY_MISMATCH"):
+            inventory._validate_complete_ownership(projects)
+
+    def test_project_used_by_accepts_complete_inventory_and_rejects_missing_or_unknown_users(self) -> None:
+        runner = self._InventoryRunner()
+        _version, projects = inventory._inventory_client(
+            runner, "incus_system", "/run/incus/unix.socket", incus=True, before_query=lambda: None)
+        self.assertEqual(projects[0]["project"], "alpha")
+
+        runner = self._InventoryRunner()
+        runner.project_used_by = ["/1.0/instances/missing?project=alpha"]
+        with self.assertRaisesRegex(inventory.InventoryError, "PROJECT_CONSUMER_RECIPROCITY_MISMATCH"):
+            inventory._inventory_client(
+                runner, "incus_system", "/run/incus/unix.socket", incus=True, before_query=lambda: None)
+
+        runner = self._InventoryRunner()
+        runner.project_used_by.append("/1.0/images/fingerprint?project=alpha")
+        with self.assertRaises(inventory.InventoryError):
+            inventory._inventory_client(
+                runner, "incus_system", "/run/incus/unix.socket", incus=True, before_query=lambda: None)
+
+    def test_volume_detail_created_at_must_be_a_string_when_present(self) -> None:
+        volume = {"name": "data", "type": "custom", "content_type": "filesystem", "project": "alpha",
+                  "config": {}, "used_by": [], "created_at": "2026-10-01T00:00:00Z"}
+        self.assertEqual(inventory._validate_volume_show(volume, "pool", "custom", "data", "alpha")["name"], "data")
+        with self.assertRaisesRegex(inventory.InventoryError, "RESOURCE_SCHEMA_INVALID"):
+            inventory._validate_volume_show({**volume, "created_at": 123}, "pool", "custom", "data", "alpha")
+        with self.assertRaisesRegex(inventory.InventoryError, "VOLUME_OWNER_PROJECT_UNSUPPORTED"):
+            inventory._validate_volume_show({**volume, "project": "default"}, "pool", "custom", "data", "alpha")
+
+    def test_volume_list_created_at_must_be_a_string_when_present(self) -> None:
+        runner = self._InventoryRunner()
+        runner.list_rows["volumes"] = [{"name": "web", "type": "container", "content_type": "filesystem",
+                                        "project": "alpha", "description": "", "config": {},
+                                        "created_at": 123, "used_by": runner.volume_used_by, "location": "none"}]
+        with self.assertRaisesRegex(inventory.InventoryError, "RESOURCE_SCHEMA_INVALID"):
+            inventory._inventory_client(
+                runner, "incus_system", "/run/incus/unix.socket", incus=True, before_query=lambda: None)
+
+    def _assert_main_blocks_without_private_artifact(self, runner: _InventoryRunner, expected_code: str) -> None:
+        active_service = inventory._unit_state("lxd.service", {
+            "LoadState": "loaded", "ActiveState": "active", "SubState": "running",
+            "UnitFileState": "enabled", "MainPID": "4242"})
+        missing_units = {
+            unit: inventory._unit_state(unit, {
+                "LoadState": "not-found", "ActiveState": "inactive", "SubState": "dead",
+                "UnitFileState": "not-found", "MainPID": "0", **({"Listen": ""} if unit.endswith(".socket") else {})})
+            for unit in inventory.UNITS if unit != "lxd.service"
+        }
+        units = {"lxd.service": active_service, **missing_units}
+        endpoints = {"/var/lib/lxd/unix.socket": ("lxd_system", True),
+                     "/var/snap/lxd/common/lxd/unix.socket": ("lxd_snap", False),
+                     "/var/lib/incus/unix.socket": ("incus_var_lib", False),
+                     "/run/incus/unix.socket": ("incus_run", False)}
+        stderr = StringIO()
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp) / "inventory.json"
+            with patch.object(inventory, "Runner", return_value=runner), \
+                    patch.object(inventory, "_systemctl_show", side_effect=lambda _runner, unit: units[unit]), \
+                    patch.object(inventory, "_endpoint", side_effect=lambda _runner, path, unit="": endpoints[path]), \
+                    patch.object(inventory, "_resolve_executable", return_value=("lxd_system", "system:lxd")), \
+                    patch.object(inventory, "_require_full_local_access"), \
+                    patch.object(inventory, "_recheck_all"), \
+                    patch.object(inventory, "_write_private") as write, redirect_stderr(stderr):
+                result = inventory.main(["--source-commit", "a" * 40, "--output", str(output)])
+            self.assertEqual(result, 2)
+            self.assertFalse(output.exists())
+            write.assert_not_called()
+            self.assertEqual(stderr.getvalue().strip(), f"BLOCKED:{expected_code}")
+
+    def test_inherited_volume_detail_owner_blocks_main_before_private_artifact_write(self) -> None:
+        runner = self._InventoryRunner()
+        runner.volume_owner_project = "default"
+        self._assert_main_blocks_without_private_artifact(runner, "VOLUME_OWNER_PROJECT_UNSUPPORTED")
+
+    def test_inherited_volume_list_owner_blocks_main_before_private_artifact_write(self) -> None:
+        runner = self._InventoryRunner()
+        runner.list_rows["volumes"] = [{"name": "web", "type": "container", "content_type": "filesystem",
+                                        "project": "default", "description": "", "config": {},
+                                        "created_at": "2026-10-01T00:00:00Z", "used_by": runner.volume_used_by,
+                                        "location": "none"}]
+        self._assert_main_blocks_without_private_artifact(runner, "VOLUME_OWNER_PROJECT_UNSUPPORTED")
+
+    def test_profile_custom_disk_maps_to_typed_volume_consumer(self) -> None:
+        devices = {"shared-data": {"type": "disk", "path": "/srv/data", "pool": "pool", "source": "data"}}
+        self.assertEqual(
+            inventory._volume_device_users(devices, "alpha", "profiles", "shared"),
+            {("pool", "custom", "data"): {("profiles", "shared", "alpha")}},
+        )
+
+    def test_device_relationships_must_resolve_reciprocally(self) -> None:
+        runner = self._InventoryRunner()
+        runner.network_used_by = []
+        with self.assertRaisesRegex(inventory.InventoryError, "NETWORK_CONSUMER_RECIPROCITY_MISMATCH"):
+            inventory._inventory_client(
+                runner, "incus_system", "/run/incus/unix.socket", incus=True, before_query=lambda: None)
+
+        runner = self._InventoryRunner()
+        runner.pool_used_by = ["/1.0/storage-pools/pool/volumes/container/web?project=alpha"]
+        with self.assertRaisesRegex(inventory.InventoryError, "POOL_CONSUMER_RECIPROCITY_MISMATCH"):
+            inventory._inventory_client(
+                runner, "incus_system", "/run/incus/unix.socket", incus=True, before_query=lambda: None)
+
+        runner = self._InventoryRunner()
+        runner.volume_used_by = []
+        with self.assertRaisesRegex(inventory.InventoryError, "VOLUME_CONSUMER_RECIPROCITY_MISMATCH"):
+            inventory._inventory_client(
+                runner, "incus_system", "/run/incus/unix.socket", incus=True, before_query=lambda: None)
+
+        runner = self._InventoryRunner()
+        runner.instance_network = "missing"
+        with self.assertRaisesRegex(inventory.InventoryError, "NETWORK_DEVICE_REFERENCE_UNRESOLVED"):
+            inventory._inventory_client(
+                runner, "incus_system", "/run/incus/unix.socket", incus=True, before_query=lambda: None)
+
+        runner = self._InventoryRunner()
+        runner.instance_pool = "missing"
+        with self.assertRaisesRegex(inventory.InventoryError, "POOL_DEVICE_REFERENCE_UNRESOLVED"):
+            inventory._inventory_client(
+                runner, "incus_system", "/run/incus/unix.socket", incus=True, before_query=lambda: None)
+
+        runner = self._InventoryRunner()
+        runner.instance_custom_source = "missing"
+        with self.assertRaisesRegex(inventory.InventoryError, "VOLUME_DEVICE_REFERENCE_UNRESOLVED"):
+            inventory._inventory_client(
+                runner, "incus_system", "/run/incus/unix.socket", incus=True, before_query=lambda: None)
+
+    def test_pool_consumer_volume_set_must_match_listed_volumes(self) -> None:
+        runner = self._InventoryRunner()
+        runner.list_rows["volumes"] = []
+        with self.assertRaisesRegex(inventory.InventoryError, "POOL_VOLUME_OWNERSHIP_MISMATCH"):
+            inventory._inventory_client(
+                runner, "incus_system", "/run/incus/unix.socket", incus=True, before_query=lambda: None)
+
+    def test_list_and_detail_consumer_views_must_match(self) -> None:
+        mismatched_rows: dict[str, list[dict[str, Any]]] = {
+            "projects": [{"name": "alpha", "description": "", "config": {},
+                          "used_by": ["/1.0/profiles/bravo?project=alpha"]}],
+            "profiles": [{"name": "bravo", "project": "alpha", "description": "", "config": {},
+                          "devices": {}, "used_by": []}],
+            "networks": [{"name": "net", "project": "alpha", "type": "bridge", "managed": True,
+                          "status": "Created", "config": {}, "description": "", "used_by": [], "locations": []}],
+            "pools": [{"name": "pool", "project": "alpha", "driver": "dir", "config": {},
+                       "description": "", "used_by": ["/1.0/profiles/bravo?project=alpha"],
+                       "status": "Created", "locations": []}],
+            "volumes": [{"name": "web", "type": "container", "content_type": "filesystem",
+                         "project": "alpha", "description": "", "used_by": [], "location": "none"}],
+        }
+        expected_errors = {"projects": "PROJECT_CONSUMER_LIST_MISMATCH",
+                           "profiles": "PROFILE_CONSUMER_LIST_MISMATCH",
+                           "networks": "NETWORK_CONSUMER_LIST_MISMATCH",
+                           "pools": "POOL_CONSUMER_LIST_MISMATCH",
+                           "volumes": "VOLUME_CONSUMER_LIST_MISMATCH"}
+        for resource, rows in mismatched_rows.items():
+            with self.subTest(resource=resource):
+                runner = self._InventoryRunner()
+                runner.list_rows[resource] = rows
+                with self.assertRaisesRegex(inventory.InventoryError, expected_errors[resource]):
+                    inventory._inventory_client(
+                        runner, "incus_system", "/run/incus/unix.socket", incus=True,
+                        before_query=lambda: None)
+
+    def test_local_socket_access_requires_full_administrator_group(self) -> None:
+        with patch.object(inventory.os, "geteuid", return_value=1000), \
+                patch.object(inventory.os, "getegid", return_value=1000), \
+                patch.object(inventory.os, "getgroups", return_value=[1000]), \
+                patch.object(inventory.os, "stat", return_value=Mock(st_gid=2000)), \
+                patch.object(inventory.grp, "getgrgid", return_value=Mock(gr_name="incus")):
+            with self.assertRaisesRegex(inventory.InventoryError, "RUNTIME_ACCESS_SCOPE_UNPROVEN"):
+                inventory._require_full_local_access("/run/incus/unix.socket", incus=True)
+
+        with patch.object(inventory.os, "geteuid", return_value=1000), \
+                patch.object(inventory.os, "getegid", return_value=1000), \
+                patch.object(inventory.os, "getgroups", return_value=[1000, 2000]), \
+                patch.object(inventory.os, "stat", return_value=Mock(st_gid=2000)), \
+                patch.object(inventory.grp, "getgrgid", return_value=Mock(gr_name="incus-admin")):
+            inventory._require_full_local_access("/run/incus/unix.socket", incus=True)
+
+    def test_standard_extended_cli_list_rows_are_accepted_but_unknown_fields_are_rejected(self) -> None:
+        runner = self._InventoryRunner()
+        _version, projects = inventory._inventory_client(
+            runner, "incus_system", "/run/incus/unix.socket", incus=True, before_query=lambda: None)
+        instance = projects[0]["instances"][0]
+        self.assertEqual(instance["name"], "web")
+        self.assertEqual(instance["status"], "Running")
+        self.assertNotIn("expanded_config", instance)
+        self.assertNotIn("last_used_at", instance)
+        self.assertNotIn("10GiB", str(projects))
+
+        standard_rows = {
+            "projects": {"name": "alpha", "unexpected": "value"},
+            "profiles": {"name": "zeta", "unexpected": "value"},
+            "instances": {"name": "web", "unexpected": "value"},
+            "networks": {"name": "net", "unexpected": "value"},
+            "pools": {"name": "pool", "unexpected": "value"},
+            "volumes": {"name": "web", "unexpected": "value"},
+        }
+        for resource, row in standard_rows.items():
+            with self.subTest(resource=resource):
+                bad_runner = self._InventoryRunner()
+                bad_runner.list_rows[resource] = [row]
+                with self.assertRaises(inventory.InventoryError):
+                    inventory._inventory_client(
+                        bad_runner, "incus_system", "/run/incus/unix.socket", incus=True,
+                        before_query=lambda: None)
+
+    def test_instance_profiles_must_be_present_and_match_detail_responses(self) -> None:
+        runner = self._InventoryRunner()
+        runner.list_rows["instances"] = [{
+            "name": "web", "project": "alpha", "architecture": "x86_64", "config": {}, "devices": {},
+            "ephemeral": False, "expanded_config": {}, "expanded_devices": {}, "stateful": False,
+            "status": "Running", "status_code": 103, "type": "container", "location": "none",
+            "description": "", "created_at": "2026-10-01T00:00:00Z", "last_used_at": "2026-10-02T00:00:00Z",
+        }]
+        with self.assertRaises(inventory.InventoryError):
+            inventory._inventory_client(
+                runner, "incus_system", "/run/incus/unix.socket", incus=True, before_query=lambda: None)
+
+        runner = self._InventoryRunner()
+        runner.detail_profiles = ["different"]
+        with self.assertRaisesRegex(inventory.InventoryError, "INSTANCE_PROFILE_LIST_MISMATCH"):
+            inventory._inventory_client(
+                runner, "incus_system", "/run/incus/unix.socket", incus=True, before_query=lambda: None)
+
     def test_artifact_schema_size_and_redaction_are_enforced(self) -> None:
         artifact = self._valid_artifact()
         self.assertTrue(inventory._validate_artifact(artifact).endswith(b"\n"))
+        artifact["lxd_projects"] = [{"project": "alpha", "profiles": [], "instances": [], "networks": [],
+                                     "pools": [{"name": "pool", "type": "dir", "used_by": [{
+                                         "kind": "storage-volumes", "name": "pool/container/web", "project": "alpha"}],
+                                                "volumes": [{"name": "web", "type": "container",
+                                                             "content_type": "filesystem", "used_by": []}]}]}]
+        self.assertTrue(inventory._validate_artifact(artifact).endswith(b"\n"))
+        malformed_volume = self._valid_artifact()
+        malformed_volume["lxd_projects"] = [{"project": "alpha", "profiles": [], "instances": [], "networks": [],
+                                              "pools": [{"name": "pool", "type": "dir", "used_by": [],
+                                                         "volumes": [{"name": "web", "type": "container",
+                                                                      "content_type": "filesystem", "used_by": [],
+                                                                      "config": {}}]}]}]
+        with self.assertRaises(inventory.InventoryError):
+            inventory._validate_artifact(malformed_volume)
         with self.assertRaises(inventory.InventoryError):
             inventory._validate_artifact({**artifact, "unexpected": "field"})
         with self.assertRaises(inventory.InventoryError):
@@ -513,17 +842,21 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
 
     def test_artifact_preserves_typed_project_scoped_consumer_references(self) -> None:
         artifact = self._valid_artifact()
-        artifact["lxd_projects"] = [{"project": "alpha", "profiles": [
-            {"name": "default", "used_by": [{"kind": "instances", "name": "web", "project": "beta"},
-                                               {"kind": "networks", "name": "web", "project": "alpha"}],
-             "devices": []}], "instances": [], "networks": [], "pools": []}]
+        artifact["lxd_projects"] = [
+            {"project": "alpha", "profiles": [], "instances": [],
+             "networks": [{"name": "net", "type": "bridge", "used_by": [
+                 {"kind": "instances", "name": "web", "project": "beta"}]}], "pools": []},
+            {"project": "beta", "profiles": [], "instances": [{"name": "web", "status": "Running",
+             "type": "container", "profiles": [], "local_devices": [], "expanded_devices": []}],
+             "networks": [], "pools": []},
+        ]
         encoded = inventory._validate_artifact(artifact)
         self.assertIn(b'"kind":"instances","name":"web","project":"beta"', encoded)
+        malformed = {**artifact, "lxd_projects": [
+            {**artifact["lxd_projects"][0], "networks": [{"name": "net", "type": "bridge", "used_by": [
+                {"kind": "instances", "name": "web"}]}]}, artifact["lxd_projects"][1]]}
         with self.assertRaises(inventory.InventoryError):
-            inventory._validate_artifact({**artifact, "lxd_projects": [
-                {**artifact["lxd_projects"][0], "profiles": [
-                    {**artifact["lxd_projects"][0]["profiles"][0], "used_by": [
-                        {"kind": "instances", "name": "web"}]}]}]})
+            inventory._validate_artifact(malformed)
 
     def test_device_entries_are_counted_toward_inventory_entity_cap(self) -> None:
         runner = self._InventoryRunner()

@@ -1,13 +1,13 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: ACTIVE_FOR_ISSUE_449 v1.34 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
+Status: ACTIVE_FOR_ISSUE_449 v1.36 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
 Workflow authoring branch: `docs/workflow-lcm-w09-route-baseline-20261027`
 Baseline: `a0310224946b63e2152ff4086d22a450c3d0f214`
-ACTIVE_FOR_ISSUE_449 v1.34. The user explicitly authorized completion of issue #449 on the named test hosts. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
+ACTIVE_FOR_ISSUE_449 v1.35. The user explicitly authorized completion of issue #449 on the named test hosts. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
 Execution profile: `FULL_PATH — lifecycle/provider implementation, regression, documentation, native and WSL2 qualification`
 
 ## Executive Summary
@@ -922,7 +922,10 @@ projects/resources, `lxc --force-local project list --format json`; per project,
 `lxc --force-local network list --project <project> --format json`,
 `lxc --force-local network show <network> --project <project> --format json`,
 `lxc --force-local storage list --project <project> --format json` and
-`lxc --force-local storage show <pool> --project <project> --format json`.
+`lxc --force-local storage show <pool> --project <project> --format json`,
+`lxc --force-local storage volume list <pool> --project <project> --format json`,
+and for each listed volume
+`lxc --force-local storage volume show <pool> <volume-type>/<volume-name> --project <project> --format json`.
 For Incus use the same subcommands and arguments with `incus` replacing `lxc`,
 including `incus --force-local version` and `incus --force-local project list
 --format json`. If its CLI does not support `--force-local`, remain BLOCKED.
@@ -1005,11 +1008,13 @@ the three LXD unit rows; `incus_units` contains only `incus.service` and
 `incus.socket` rows. Executable
 rows exactly `{unit,main_pid,identity_id,package,version}`; socket rows exactly
 `{endpoint_id,state,unit}`. Project/resource rows retain only names, status,
-type, profile/consumer links, network/pool identity and device type; do not
-persist device config values, secrets or host paths. Command rows contain only
+type, profile/consumer links, network identity, storage pool/volume identity,
+volume content type and device type; do not persist device or volume config
+values, secrets or host paths. Command rows contain only
 `{command_id,safe_args,exit_status,stdout_bytes,stderr_bytes}`. `command_id`
 must be a fixed template enum; `safe_args` may contain only validated unit,
-endpoint, project, profile, instance, network or pool identity tokens. Raw argv,
+endpoint, project, profile, instance, network, pool, volume type or volume
+identity tokens. Raw argv,
 socket paths, `/proc` paths, executable paths, URLs and endpoint addresses stay
 memory-only and are never serialized. No raw JSON or raw command output is
 retained or hashed. Unknown fields fail closed before artifact
@@ -1036,6 +1041,21 @@ resources. If active LXD still blocks native preflight, retain `BLOCKED` and
 route a separate architecture/requirement decision before proposing runtime
 coexistence or maintenance changes.
 
+The local socket identity must be root or a member of the matching full-access
+`lxd` or `incus-admin` group; a restricted per-user Incus identity cannot claim
+complete project visibility. Validate project `used_by` against the complete
+set of inventoried instances, profiles, networks and volumes. The project API
+does not report storage pools in this relation; pools are checked through their
+own list/detail consumer view. Unknown project-consumer kinds or mismatched
+membership block with no artifact. Validate pool-to-volume links and reciprocal profile/instance
+disk-device consumers, resolve all profile, network, pool and volume consumers
+across projects, and require list/detail and reciprocal device/profile
+references to agree. A volume list or detail row whose owner project differs
+from the project-scoped query is inherited/shared and is explicitly unsupported
+by this slice; return `BLOCKED` with no artifact. Any other unresolved,
+asymmetric or unknown storage-volume relationship also remains `BLOCKED` with
+no artifact.
+
 ```yaml
 slice_id: S449-02F
 profile: RUNTIME_QUALIFICATION
@@ -1043,7 +1063,7 @@ owner: Senior DevOps Engineer
 secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior Python Automation Developer, Senior Tester]
 affected_files: [documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, tools/qualification/native_runtime_inventory.py, tests/tools/test_native_runtime_inventory.py, .tiny-swarm/evidence/issue-449/s449-private-20261027/native-runtime-inventory.json, .codex/evidence/slice-449-02F-distribution.md, .codex/evidence/slice-449-02F-consolidation.md]
 affected_modules: [native qualification evidence, bounded LXD/Incus inventory]
-affected_contracts: [LXD systemd unit identity/state, LXD-vs-Incus endpoint identity, all-project ownership inventory, strict sanitized private artifact, bounded read-only command allowlist]
+affected_contracts: [LXD systemd unit identity/state, LXD-vs-Incus endpoint identity, full-admin all-project visibility, reciprocal profile/network/pool/volume ownership inventory, strict sanitized private artifact, bounded read-only command allowlist including storage volume list/show]
 dependencies: [S449-02E]
 parallel_group: sequential
 file_locks: [documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, tools/qualification/native_runtime_inventory.py, tests/tools/test_native_runtime_inventory.py, .tiny-swarm/evidence/issue-449/s449-private-20261027/native-runtime-inventory.json, .codex/evidence/slice-449-02F-distribution.md, .codex/evidence/slice-449-02F-consolidation.md]
@@ -2033,7 +2053,7 @@ only require `git diff --check`. Local quality is never live success.
 
 ## Documentation Governance and arc42 Check Status
 
-Status: `ACTIVE_FOR_ISSUE_449 v1.34 — issue execution authorized; slice-specific S3D and scenario GO gates remain mandatory`
+Status: `ACTIVE_FOR_ISSUE_449 v1.36 — issue execution authorized; slice-specific S3D and scenario GO gates remain mandatory`
 installation-owned profile decision is a draft awaiting canonical placement
 and accepted review; no Incus version is supported yet for this capability.
 S449-01 places the exact owner-approved R67j policy, effective-infrastructure-
