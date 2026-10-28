@@ -1,13 +1,13 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: ACTIVE_FOR_ISSUE_449 v1.39 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
+Status: ACTIVE_FOR_ISSUE_449 v1.40 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
 Workflow authoring branch: `docs/workflow-lcm-w09-route-baseline-20261027`
 Baseline: `a0310224946b63e2152ff4086d22a450c3d0f214`
-ACTIVE_FOR_ISSUE_449 v1.39. The user explicitly authorized completion of issue #449 on the named test hosts. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
+ACTIVE_FOR_ISSUE_449 v1.40. The user explicitly authorized completion of issue #449 on the named test hosts. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
 Execution profile: `FULL_PATH — lifecycle/provider implementation, regression, documentation, native and WSL2 qualification`
 
 ## Executive Summary
@@ -1226,6 +1226,38 @@ does not change the `BLOCKED_UNKNOWN` result or establish identity. Obtain
 fresh same-hash implementation reviews, commit this slice, and request a
 separate post-commit S3D plan before any native rerun.
 
+##### Slice 02F4 — Verify the Snap wrapper and direct LXD child before normalization
+
+The native F3 result under committed b30828089a2fb2ec1bafa10f15796ec07fa1bbe3 was BLOCKED_UNKNOWN with reason SNAP_EXECUTABLE_OUTSIDE_ROOT. This observation is not ownership, inventory admission or host/scenario GO. Canonical packaging can retain a shell MainPID supervising a direct LXD child. F4 proves that exact relation against the trusted root-owned installed package instead of allowing a generic shell.
+
+The complete normative proof, closed parsers, context allowlists, candidate aliases, cooperative filesystem deadlines, tests, trust limits and release sequence are in `.codex/evidence/slice-449-02F4-design.md`; this file is an explicit read/contract lock of this slice. Exactly two additional fixed systemctl calls belong to the proof; existing outer inventory calls and aggregate budget remain unchanged. The helper keeps the child path internal. `_resolve_executable` returns only the existing `(lxd_snap, snap:lxd)` identity/package pair; no child path is returned, logged or persisted and the inventory artifact schema remains unchanged.
+
+F2/F3 UNKNOWN diagnostics remain unchanged for their CLI modes and historical runs. Only successful full F4 proof inside normal inventory resolution supersedes the MainPID-only assumption for the fixed Snap LXD service. A failed proof remains blocked before client/socket/resource/artifact work. Do not infer exclusive TSW ownership: existing coexistence inventory must still inspect and preserve unrelated resources.
+
+F4 implementation is complete under the six-role exact-hash release and serial implementation S3D recorded in `.codex/evidence/slice-449-02F4-consolidation.md`. The frozen candidate passed 105 focused PC WSL tests and all seven quality gates (3,100 discovery tests, 18 skipped) and is ready for its single-slice checkpoint commit/push. Native inventory has not executed; obtain a separate post-commit exact-source S3D and host GO before any native inventory capture. The implementation record does not authorize that invocation.
+```yaml
+slice_id: S449-02F4
+profile: BACKEND_AND_TESTS
+owner: Senior Python Automation Developer
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior DevOps Engineer, Senior Tester]
+affected_files: [tools/qualification/native_runtime_inventory.py, tools/qualification/native_lxd_snap_provenance.py, tests/tools/test_native_runtime_inventory.py, tests/tools/test_native_lxd_snap_provenance.py, documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, documentation/workflow/workflow.index.md, .codex/evidence/slice-449-02F4-design.md, .codex/evidence/slice-449-02F4-distribution.md, .codex/evidence/slice-449-02F4-consolidation.md]
+affected_modules: [native Snap wrapper and direct-child identity normalization]
+affected_contracts: [exact installed wrapper and unique direct-child proof, existing lxd_snap identity pair only, unchanged inventory artifact and F3 diagnostic]
+dependencies: [S449-02F3]
+parallel_group: sequential
+file_locks: [tools/qualification/native_runtime_inventory.py, tools/qualification/native_lxd_snap_provenance.py, tests/tools/test_native_runtime_inventory.py, tests/tools/test_native_lxd_snap_provenance.py, documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, documentation/workflow/workflow.index.md, .codex/evidence/slice-449-02F4-design.md, .codex/evidence/slice-449-02F4-distribution.md, .codex/evidence/slice-449-02F4-consolidation.md]
+module_locks: [bounded native Snap wrapper and child normalization]
+contract_locks: [proof before existing identity normalization, no child path emitted or persisted, unchanged outer inventory budget]
+architecture_locks: [qualification tooling only, no host mutation or product runtime wiring]
+quality_gates:
+  targeted: [PYTHONPATH=src python3 -m unittest tests.tools.test_native_runtime_inventory tests.tools.test_native_lxd_snap_provenance]
+  required: [python3 tools/quality_gate.py quality, git diff --check]
+documentation:
+  arc42: unchanged; existing qualification adapter boundary and trusted-host-root model remain
+  adr: unchanged; no new provider or runtime architecture
+stop_conditions: [missing exact-hash role GO or S3D, unsupported unit or process schema, unverified wrapper or child relation, raw-value leakage, expanded allowlist, changed F3 or artifact schema, host mutation, failed quality gate]
+```
+
 ##### Conditional Slice 02G — Native LXD maintenance for TSW replacement
 
 This slice may be authored only if S449-02F exact evidence proves the active
@@ -2200,7 +2232,7 @@ only require `git diff --check`. Local quality is never live success.
 
 ## Documentation Governance and arc42 Check Status
 
-Status: `ACTIVE_FOR_ISSUE_449 v1.39 — issue execution authorized; slice-specific S3D and scenario GO gates remain mandatory`
+Status: `ACTIVE_FOR_ISSUE_449 v1.40 — issue execution authorized; slice-specific S3D and scenario GO gates remain mandatory`
 installation-owned profile decision is a draft awaiting canonical placement
 and accepted review; no Incus version is supported yet for this capability.
 S449-01 places the exact owner-approved R67j policy, effective-infrastructure-

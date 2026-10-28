@@ -1256,5 +1256,77 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
                     inventory._write_private(target, b"replacement\n")
 
 
+class SnapWrapperIntegrationTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.row = {"unit": "snap.lxd.daemon.service", "load_state": "loaded", "active_state": "active",
+                    "sub_state": "running", "unit_file_state": "enabled", "main_pid": 101}
+
+    def test_fallback_normalizes_only_the_snap_unit_after_helper_success(self) -> None:
+        from tools.qualification import native_lxd_snap_provenance as proof
+        runner = Mock()
+        with patch.object(inventory, "_read_executable_path", return_value="/usr/bin/dash"), \
+                patch.object(proof, "prove_snap_wrapper", return_value=("lxd_snap", "snap:lxd")) as verify:
+            self.assertEqual(inventory._resolve_executable(runner, self.row), ("lxd_snap", "snap:lxd"))
+        verify.assert_called_once_with(runner, self.row)
+
+    def test_direct_existing_identity_does_not_need_the_helper(self) -> None:
+        from tools.qualification import native_lxd_snap_provenance as proof
+        with patch.object(inventory, "_read_executable_path", return_value="/snap/lxd/123/bin/lxd"), \
+                patch.object(proof, "prove_snap_wrapper") as verify:
+            self.assertEqual(inventory._resolve_executable(Mock(), self.row), ("lxd_snap", "snap:lxd"))
+        verify.assert_not_called()
+
+    def test_other_units_and_readlink_failures_do_not_reach_fallback(self) -> None:
+        from tools.qualification import native_lxd_snap_provenance as proof
+        with patch.object(inventory, "_read_executable_path", return_value="/usr/bin/dash"), \
+                patch.object(proof, "prove_snap_wrapper") as verify:
+            with self.assertRaisesRegex(inventory.InventoryError, "^EXECUTABLE_IDENTITY_BLOCKED$"):
+                inventory._resolve_executable(Mock(), {**self.row, "unit": "incus.service"})
+        verify.assert_not_called()
+
+        with patch.object(inventory, "_read_executable_path", side_effect=inventory.InventoryError("COMMAND_FAILED")), \
+                patch.object(proof, "prove_snap_wrapper") as verify:
+            with self.assertRaisesRegex(inventory.InventoryError, "^COMMAND_FAILED$"):
+                inventory._resolve_executable(Mock(), self.row)
+        verify.assert_not_called()
+
+    def test_missing_helper_dependency_is_a_fixed_inventory_error(self) -> None:
+        with patch.object(inventory, "_read_executable_path", return_value="/usr/bin/dash"), \
+                patch("importlib.import_module", side_effect=ModuleNotFoundError("secret-value")):
+            with self.assertRaisesRegex(inventory.InventoryError, "^SNAP_WRAPPER_METADATA_INVALID$"):
+                inventory._resolve_executable(Mock(), self.row)
+
+    def test_failed_proof_blocks_capture_before_endpoint_client_or_artifact_work(self) -> None:
+        from tools.qualification import native_lxd_snap_provenance as proof
+        inactive = {"unit": "", "load_state": "not-found", "active_state": "inactive", "sub_state": "dead",
+                    "unit_file_state": "", "main_pid": 0, "listen": ""}
+        rows = {unit: ({**self.row} if unit == self.row["unit"] else {**inactive, "unit": unit}) for unit in inventory.UNITS}
+        with patch.object(inventory, "_systemctl_show", side_effect=lambda _runner, unit: rows[unit]), \
+                patch.object(inventory, "_read_executable_path", return_value="/usr/bin/dash"), \
+                patch.object(proof, "prove_snap_wrapper", side_effect=proof.ProvenanceError("SNAP_WRAPPER_CHILD_ABSENT")), \
+                patch.object(inventory, "_endpoint") as endpoint, \
+                patch.object(inventory, "_inventory_client") as client, \
+                patch.object(inventory, "_write_private") as writer:
+            with self.assertRaisesRegex(inventory.InventoryError, "^SNAP_WRAPPER_CHILD_ABSENT$"):
+                inventory.capture("a" * 40, runner=Mock())
+        endpoint.assert_not_called()
+        client.assert_not_called()
+        writer.assert_not_called()
+
+    def test_successful_proof_still_requires_existing_socket_binding(self) -> None:
+        from tools.qualification import native_lxd_snap_provenance as proof
+        inactive = {"unit": "", "load_state": "not-found", "active_state": "inactive", "sub_state": "dead",
+                    "unit_file_state": "", "main_pid": 0, "listen": ""}
+        rows = {unit: ({**self.row} if unit == self.row["unit"] else {**inactive, "unit": unit}) for unit in inventory.UNITS}
+        with patch.object(inventory, "_systemctl_show", side_effect=lambda _runner, unit: rows[unit]), \
+                patch.object(inventory, "_read_executable_path", return_value="/usr/bin/dash"), \
+                patch.object(proof, "prove_snap_wrapper", return_value=("lxd_snap", "snap:lxd")), \
+                patch.object(inventory, "_endpoint", return_value=("", False)), \
+                patch.object(inventory, "_inventory_client") as client:
+            with self.assertRaisesRegex(inventory.InventoryError, "^ACTIVE_LXD_SOCKET_MISSING$"):
+                inventory.capture("a" * 40, runner=Mock())
+        client.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()

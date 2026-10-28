@@ -260,7 +260,21 @@ def _read_executable_path(runner: Runner, row: dict[str, Any]) -> str:
 
 
 def _resolve_executable(runner: Runner, row: dict[str, Any]) -> tuple[str, str]:
-    return executable_identity(row["unit"], _read_executable_path(runner, row))
+    try:
+        return executable_identity(row["unit"], _read_executable_path(runner, row))
+    except InventoryError as exc:
+        if str(exc) != "EXECUTABLE_IDENTITY_BLOCKED" or row["unit"] != "snap.lxd.daemon.service":
+            raise
+    import importlib
+    try:
+        module_name = f"{__package__}.native_lxd_snap_provenance" if __package__ else "native_lxd_snap_provenance"
+        proof = importlib.import_module(module_name)
+    except ImportError as exc:
+        raise InventoryError("SNAP_WRAPPER_METADATA_INVALID") from exc
+    try:
+        return proof.prove_snap_wrapper(runner, row)
+    except proof.ProvenanceError as exc:
+        raise InventoryError(str(exc)) from exc
 
 
 def _unknown_executable_reason(unit: str, resolved: str) -> str:
