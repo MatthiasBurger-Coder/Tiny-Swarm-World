@@ -113,8 +113,8 @@
   },
   "workflow_artifacts_sha256": {
     "documentation/arc42/09_architecture_decisions.adoc": "9b2b38c377bd75d3059b877d6ac679173f7eea9bb22dee9460c6d4fcad42284e",
-    "documentation/workflow/issues/issue-449/context-pack.md": "75e572b41da44d859254b64b817bcf22e36d8597c12fc1a3d14dbdd5361de232",
-    "documentation/workflow/issues/issue-449/workflow.md": "ec12247325e18692588584adf468207895db408ef69fc8e4b521135a3308986c",
+    "documentation/workflow/issues/issue-449/context-pack.md": "a214741f7ff04a7a05f560ecbc7f4730e662064f55947fdd66298804b15f0669",
+    "documentation/workflow/issues/issue-449/workflow.md": "118075dccf77ebe9c1818150c0a49f3edbc8c9ca31c882c539ca23889ca53e8d",
     ".agents/skills/workflow-executor/SKILL.md": "04a9325b2cec2dfa6feab24c261c636fdfa295158661d20e981e4182e5bfb46c",
     "documentation/workflow/workflow.index.md": "787913f6ddf771ac171b176e409abd5b7048348861461d841283a5363bda1e95"
   },

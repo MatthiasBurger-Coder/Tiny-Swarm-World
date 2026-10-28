@@ -580,9 +580,15 @@ Keep only parsed/sanitized values. Hash raw stdout only for the explicit safe
 allowlist below; never persist raw stdout or stderr. Run:
 
 ```bash
+set -o pipefail
 git rev-parse HEAD
 git status --short --branch
-sha256sum documentation/workflow/issues/issue-449/workflow.md tools/qualification/incus_profile_listener_fixture.py tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py infra/config/node-providers/provider_config.yaml
+git show HEAD:documentation/workflow/issues/issue-449/workflow.md | sha256sum
+git show HEAD:documentation/workflow/issues/issue-449/context-pack.md | sha256sum
+git show HEAD:documentation/workflow/issues/issue-449/context-pack.json | sha256sum
+git show HEAD:tools/qualification/incus_profile_listener_fixture.py | sha256sum
+git show HEAD:tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py | sha256sum
+git show HEAD:infra/config/node-providers/provider_config.yaml | sha256sum
 findmnt -T "$ROOT" -n -o FSTYPE,TARGET
 nproc --all
 free -b
@@ -592,7 +598,16 @@ ip -j -4 addr
 ./prepare_linux.sh --preflight --service-profile service-access
 ```
 Require `HEAD` to equal the reviewed candidate commit, clean tracked tree and
-exact workflow/runner/test/`provider_config.yaml` hashes before admission. The
+exact SHA-256 values computed from the committed Git blob bytes for the
+workflow, runner, tests and `provider_config.yaml` before admission. Use
+`git show HEAD:<path> | sha256sum` on both Linux targets so line-ending
+conversion in a Windows working copy cannot alter the candidate binding. The
+workflow/context review tuple uses the same committed-blob SHA-256 rule for
+`workflow.md`, `context-pack.md` and `context-pack.json`; compute each from the
+reviewed commit with `git show <commit>:<path> | sha256sum`. Never substitute a
+working-tree file hash for any tuple member. Validate the context JSON artifact
+map against those canonical blob digests; tracked-tree cleanliness remains a
+separate check.
 native script invokes existing `NativePreparationService` and
 `qualification_failures` in read-only preflight mode; inspect its structured
 result and exit and stop on failure/unknown output. Do not install packages or

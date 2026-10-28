@@ -9,9 +9,9 @@ Runner/test implementation commit: `01717f6f8e3db5d11633132063625f0471ff8ae9`
 
 ## Exact candidate bindings
 
-- Workflow Markdown SHA-256: `ec12247325e18692588584adf468207895db408ef69fc8e4b521135a3308986c`
-- Context Markdown SHA-256: `75e572b41da44d859254b64b817bcf22e36d8597c12fc1a3d14dbdd5361de232`
-- Context JSON SHA-256: `418239487d475d7072878ba50ac0ca0fd6b4bdab0d01667df70aa53018c05bd2`
+- Workflow Markdown SHA-256: `118075dccf77ebe9c1818150c0a49f3edbc8c9ca31c882c539ca23889ca53e8d`
+- Context Markdown SHA-256: `a214741f7ff04a7a05f560ecbc7f4730e662064f55947fdd66298804b15f0669`
+- Context JSON SHA-256: `241e2e8eb7f582aada14effe3d06ea43ef61fe9abf73054170c0d454c17e3996`
 - Runner SHA-256: `7929f9dc5d6fea32c55125c3b9f8fb4f02b72a07d3ea0ef80cb0a2aea6279c12`
 - Tests SHA-256: `6f888dc59182c7b02ed86fd3e80ddbadb5d7e5a6286e27b4c67d5d3eeb7fcba3`
 - The context JSON `workflow_artifacts_sha256` binds the exact current workflow and context Markdown hashes above.
