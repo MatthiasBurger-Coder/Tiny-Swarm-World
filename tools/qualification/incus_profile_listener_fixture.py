@@ -15,6 +15,7 @@ import stat
 import subprocess
 import sys
 import time
+from urllib.parse import quote, unquote
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -745,6 +746,25 @@ def capture_route_state(host: str, output: str) -> None:
         os.close(fd)
 
 
+def _is_project_query_argv(argv: list[str]) -> bool:
+    if len(argv) != 3 or argv[:2] != ['incus', 'query']:
+        return False
+    path = argv[2]
+    prefix = '/1.0/projects/'
+    if not path.startswith(prefix):
+        return False
+    encoded_name = path[len(prefix):]
+    if not encoded_name or '/' in encoded_name or '?' in encoded_name or '#' in encoded_name:
+        return False
+    try:
+        name = unquote(encoded_name, errors='strict')
+    except (UnicodeDecodeError, ValueError):
+        return False
+    return bool(name and '/' not in name and chr(92) not in name
+                and name not in {'.', '..'} and quote(name, safe='') == encoded_name
+                and not any(ord(char) < 32 or ord(char) == 127 for char in name))
+
+
 def _inventory_command(argv: list[str]) -> bytes:
     """Run only an allowlisted Incus read and never hash or log its raw output."""
     global _INVENTORY_BYTES_CAPTURED
@@ -752,7 +772,7 @@ def _inventory_command(argv: list[str]) -> bytes:
         argv == ['incus', 'remote', 'list', '--format', 'json'] or
         argv == ['incus', 'remote', 'get-default'] or
         argv == ['incus', 'project', 'list', '--format', 'json'] or
-        (len(argv) == 6 and argv[1:3] == ['project', 'show'] and argv[3] and argv[4:] == ['--format', 'json']) or
+        _is_project_query_argv(argv) or
         (len(argv) == 7 and argv[1:3] == ['profile', 'list'] and argv[3] == '--project' and argv[4] and argv[5:] == ['--format', 'json']) or
         (len(argv) == 8 and argv[1:3] == ['profile', 'show'] and argv[3] and argv[4] == '--project' and argv[5] and argv[6:] == ['--format', 'json']) or
         (len(argv) == 6 and argv[1] == 'list' and argv[2] == '--project' and argv[3] and argv[4:] == ['--format', 'json']) or
@@ -950,7 +970,7 @@ def _capture_project_inventory(host: str) -> dict[str, Any]:
         names.append(name)
     result = []
     for project in sorted(names):
-        pdata = strict_json(_inventory_command(['incus', 'project', 'show', project, '--format', 'json']))
+        pdata = strict_json(_inventory_command(['incus', 'query', '/1.0/projects/' + quote(project, safe='')]))
         if (not isinstance(pdata, dict) or set(pdata) - {'name', 'description', 'config', 'used_by'}
                 or pdata.get('name') != project or not isinstance(pdata.get('description'), str)):
             raise TargetDrift('INCUS_PROJECT_INVENTORY_UNREADABLE')
@@ -1114,7 +1134,7 @@ def _incus_route_inventory() -> tuple[list[str], list[dict[str, Any]]]:
         raise TargetDrift('INCUS_PROJECT_DRIFT')
     routes: list[dict[str, Any]] = []
     for project in projects:
-        project_data = strict_json(command(['incus', 'project', 'show', project, '--format', 'json']))
+        project_data = strict_json(command(['incus', 'query', '/1.0/projects/' + quote(project, safe='')]))
         if (not isinstance(project_data, dict) or project_data.get('name') != project
                 or not {'name', 'description', 'config'} <= set(project_data)
                 or set(project_data) - {'name', 'description', 'config', 'used_by'}

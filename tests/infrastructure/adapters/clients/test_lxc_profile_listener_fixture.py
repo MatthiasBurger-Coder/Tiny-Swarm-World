@@ -343,9 +343,9 @@ class RouteStateCaptureTests(_FixtureBehaviorTestCase):
                     ('ss', '-H', '-ltnp'): b'',
                     ('incus', 'project', 'list', '--format', 'json'):
                         b'[{"name":"default"},{"name":"qa"}]',
-                    ('incus', 'project', 'show', 'default', '--format', 'json'):
+                    ('incus', 'query', '/1.0/projects/default'):
                         b'{"name":"default","description":"","config":{}}',
-                    ('incus', 'project', 'show', 'qa', '--format', 'json'):
+                    ('incus', 'query', '/1.0/projects/qa'):
                         b'{"name":"qa","description":"","config":{}}',
                     ('incus', 'profile', 'list', '--project', 'default', '--format', 'json'): b'[]',
                     ('incus', 'profile', 'list', '--project', 'qa', '--format', 'json'):
@@ -376,7 +376,7 @@ class RouteStateCaptureTests(_FixtureBehaviorTestCase):
                 fixture.capture_route_state('192.168.178.33',
                     '.tiny-swarm/evidence/issue-449/s449-private-20261027/pre-go-route-state.json')
 
-            read_only_incus_verbs = {'remote', 'project', 'profile', 'list', 'config'}
+            read_only_incus_verbs = {'remote', 'project', 'profile', 'list', 'config', 'query'}
             allowed_executables = {'ip', 'incus', 'ss', 'uname', 'free', 'df'}
             forbidden_incus_mutations = {
                 'add', 'attach', 'create', 'delete', 'detach', 'edit', 'init', 'launch',
@@ -396,6 +396,8 @@ class RouteStateCaptureTests(_FixtureBehaviorTestCase):
                         })
                     if argv[1] == 'project':
                         self.assertIn(argv[2], {'list', 'show'})
+                    if argv[1] == 'query':
+                        self.assertIn(tuple(argv), {('incus', 'query', '/1.0/projects/default'), ('incus', 'query', '/1.0/projects/qa')})
                     if argv[1] == 'profile':
                         self.assertIn(argv[2], {'list', 'show'})
                     if argv[1] == 'config':
@@ -431,7 +433,7 @@ class ProjectInventoryCaptureTests(_FixtureBehaviorTestCase):
             calls = []
             responses = {
                 ('incus', 'project', 'list', '--format', 'json'): b'[{"name":"default"}]',
-                ('incus', 'project', 'show', 'default', '--format', 'json'): b'{"name":"default","description":"","config":{"features.images":"true","features.networks":true,"features.profiles":"false","features.storage.volumes":false}}',
+                ('incus', 'query', '/1.0/projects/default'): b'{"name":"default","description":"","config":{"features.images":"true","features.networks":true,"features.profiles":"false","features.storage.volumes":false}}',
                 ('incus', 'profile', 'list', '--project', 'default', '--format', 'json'): b'[]',
                 ('incus', 'list', '--project', 'default', '--format', 'json'): b'[]',
             }
@@ -511,10 +513,19 @@ class ProjectInventoryCaptureTests(_FixtureBehaviorTestCase):
             fixture._COMMAND_AUDIT.clear()
             self.assertEqual(fixture._inventory_command(list_argv), b'[]')
             self.assertEqual(fixture._inventory_command(expanded_argv), b'[]')
-            self.assertEqual(run.call_count, 2)
+            self.assertEqual(fixture._inventory_command(['incus', 'query', '/1.0/projects/qa%20blue']), b'[]')
+            self.assertEqual(run.call_count, 3)
         self.assertEqual(set(fixture._COMMAND_AUDIT[0]), {'argv', 'exit_status', 'stdout_bytes', 'stderr_bytes'})
         with self.assertRaisesRegex(fixture.FixtureError, 'INVENTORY_COMMAND_NOT_ALLOWLISTED'):
             fixture._inventory_command(invalid_order)
+        for invalid_query in (
+                ['incus', 'query', '/1.0/projects/qa%2fblue'],
+                ['incus', 'query', '/1.0/projects/../default'],
+                ['incus', 'query', '/1.0/instances/vm'],
+                ['incus', 'query', '/1.0/projects/default', '-X', 'DELETE']):
+            with self.subTest(argv=invalid_query), self.assertRaisesRegex(
+                    fixture.FixtureError, 'INVENTORY_COMMAND_NOT_ALLOWLISTED'):
+                fixture._inventory_command(invalid_query)
 
     def test_kill_and_reap_uses_bounded_wait_and_fails_closed(self):
         class StuckProcess:
@@ -708,7 +719,7 @@ class ProjectInventoryCaptureTests(_FixtureBehaviorTestCase):
         device = {'type': 'proxy', 'listen': 'tcp:127.0.0.1:8080', 'connect': 'tcp:127.0.0.1:80'}
         responses = {
             ('incus', 'project', 'list', '--format', 'json'): b'[{"name":"qa","description":"","config":{}}]',
-            ('incus', 'project', 'show', 'qa', '--format', 'json'):
+            ('incus', 'query', '/1.0/projects/qa'):
                 json.dumps({'name': 'qa', 'description': '', 'config': features, 'used_by': []}).encode(),
             ('incus', 'profile', 'list', '--project', 'qa', '--format', 'json'):
                 b'[{"name":"web","description":"","used_by":[],"project":"qa","config":{},"devices":{}}]',
@@ -792,7 +803,7 @@ class ProjectInventoryCaptureTests(_FixtureBehaviorTestCase):
             with self.subTest(label=label):
                 base = {
                     ('incus', 'project', 'list', '--format', 'json'): b'[{"name":"qa"}]',
-                    ('incus', 'project', 'show', 'qa', '--format', 'json'):
+                    ('incus', 'query', '/1.0/projects/qa'):
                         json.dumps({'name': 'qa', 'description': '', 'config': feature_config}).encode(),
                     ('incus', 'profile', 'list', '--project', 'qa', '--format', 'json'): b'[]',
                     ('incus', 'list', '--project', 'qa', '--format', 'json'): b'[]',
@@ -1519,7 +1530,7 @@ class JitNoMutationTests(_FixtureBehaviorTestCase):
             ('ip', '-j', '-4', 'addr'): b'[{"addr_info":[{"local":"192.168.178.33"}]}]',
             ('incus', 'version', '--format', 'json'): b'{"server":{"version":"6.0.5"}}',
             ('incus', 'project', 'list', '--format', 'json'): b'[{"name":"default"}]',
-            ('incus', 'project', 'show', 'default', '--format', 'json'): b'{"name":"default","description":"","config":{}}',
+            ('incus', 'query', '/1.0/projects/default'): b'{"name":"default","description":"","config":{}}',
             ('incus', 'image', 'list', '--project', 'default', '--format', 'json'): json.dumps([{'fingerprint': fingerprint}]).encode(),
             ('incus', 'image', 'info', fingerprint, '--project', 'default', '--format', 'json'): b'{"properties":{"os":"Alpine Linux","release":"3.20"}}',
             ('incus', 'profile', 'show', 'default', '--project', 'default', '--format', 'json'): json.dumps(profile).encode(),
@@ -1552,7 +1563,7 @@ class JitNoMutationTests(_FixtureBehaviorTestCase):
             ('incus', 'list', '--project', 'default', '--format', 'json'),
             ('incus', 'profile', 'list', '--project', 'default', '--format', 'json'),
             ('incus', 'project', 'list', '--format', 'json'),
-            ('incus', 'project', 'show', 'default', '--format', 'json'),
+            ('incus', 'query', '/1.0/projects/default'),
             ('incus', 'profile', 'list', '--project', 'default', '--format', 'json'),
             ('incus', 'profile', 'show', 'legacy', '--project', 'default', '--format', 'json'),
             ('incus', 'list', '--project', 'default', '--format', 'json'),
@@ -1637,7 +1648,7 @@ class WslJitTests(_FixtureBehaviorTestCase):
                 ('incus', 'remote', 'get-default'): b'local',
                 ('incus', 'version', '--format', 'json'): b'{"server":{"version":"6.0.5"}}',
                 ('incus', 'project', 'list', '--format', 'json'): b'[{"name":"default"}]',
-                ('incus', 'project', 'show', 'default', '--format', 'json'): b'{"name":"default","description":"","config":{}}',
+                ('incus', 'query', '/1.0/projects/default'): b'{"name":"default","description":"","config":{}}',
                 ('incus', 'image', 'list', '--project', 'default', '--format', 'json'): json.dumps([{'fingerprint': fingerprint}]).encode(),
                 ('incus', 'image', 'info', fingerprint, '--project', 'default', '--format', 'json'): b'{"properties":{"os":"Alpine Linux","release":"3.20"}}',
                 ('incus', 'profile', 'show', 'default', '--project', 'default', '--format', 'json'): json.dumps(profile).encode(),
@@ -1732,9 +1743,9 @@ class WslJitTests(_FixtureBehaviorTestCase):
                 return b'local'
             if argv == ['incus', 'project', 'list', '--format', 'json']:
                 return b'[{"name":"default"},{"name":"qa"}]'
-            if argv == ['incus', 'project', 'show', 'default', '--format', 'json']:
+            if argv == ['incus', 'query', '/1.0/projects/default']:
                 return b'{"name":"default","description":"","config":{}}'
-            if argv == ['incus', 'project', 'show', 'qa', '--format', 'json']:
+            if argv == ['incus', 'query', '/1.0/projects/qa']:
                 return b'{"name":"qa","description":"","config":{}}'
             if argv[:3] == ['incus', 'profile', 'list']:
                 return b'[]'
