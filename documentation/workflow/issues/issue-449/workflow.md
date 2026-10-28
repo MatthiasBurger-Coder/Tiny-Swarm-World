@@ -1,13 +1,13 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: AMENDMENT_REVIEWED — exact-hash Requirement, Architecture, Python Automation, Tester, Security and DevOps approvals are complete; S3D is pending. Version 1.33 defines proposed S449-02D/E/F and conditional S449-02G/H/I; no new slice execution, host read, host/scenario GO or mutation is authorized yet. Prior 509908 runner/test, approval and S3D evidence is historical to its exact tuple. WSL route capture remains JIT_COMMAND_FAILED; WSL preflight reports the Windows Subsystem for Linux feature disabled and proposes a Windows restart; native preflight remains BLOCKED by active snap.lxd.daemon.service. AC1–AC4 are partial; AC5/W10, current admission, scenario GO and live evidence remain open.
+Status: AMENDMENT_READY_FOR_S3D v1.33 — S3D pending; no host/implementation authorization
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
 Workflow authoring branch: `docs/workflow-lcm-w09-route-baseline-20261027`
 Baseline: `a0310224946b63e2152ff4086d22a450c3d0f214`
-Workflow amendment v1.33: S449-02D/E/F and conditional S449-02G/H/I have complete exact-hash Requirement, Architecture, Python Automation, Tester, Security and DevOps reviews. S3D release remains pending. The existing S449-02 pre-GO S3D plan authorizes only its original exact read-only phase and does not authorize these slices or new host commands.
+AMENDMENT_READY_FOR_S3D v1.33 — S3D pending; no host/implementation authorization. The existing S449-02 pre-GO S3D plan authorizes only its original exact read-only phase and does not authorize these slices or new host commands.
 Execution profile: `FULL_PATH — lifecycle/provider implementation, regression, documentation, native and WSL2 qualification`
 
 ## Executive Summary
@@ -678,12 +678,19 @@ config/device values, arbitrary paths or raw source profile JSON in GO, results,
 logs or artifacts. Re-read and compare the full source profile in memory before
 each write, at every lifecycle checkpoint and after cleanup; persist only the
 digest and sanitized result. Derive a temporary base profile retaining only
-config keys from this explicit safe allowlist: `limits.cpu` as a positive
-integer, `limits.memory` as a positive integer with optional `KiB`, `MiB` or
-`GiB` suffix, and source `boot.autostart` as exactly `true` or `false`. Omit
-`boot.autostart` from the derived base profile when source is false; force it to
-`false` when source is true, so the fixture can never autostart. Missing keys
-are allowed; do not coerce or normalize other values. Reject every other key/value,
+config keys from this explicit safe allowlist using the Incus API's string
+types (see [Incus instance options](https://linuxcontainers.org/incus/docs/main/reference/instance_options/)):
+`limits.cpu` must be a string accepted by Python 3.12
+`re.fullmatch(r"[1-9][0-9]*", value)`; `limits.memory` must be a string
+accepted by `re.fullmatch(r"[1-9][0-9]*(KiB|MiB|GiB)?", value)`; see the
+[Python 3.12 regular-expression documentation](https://docs.python.org/3.12/library/re.html).
+Full-match semantics reject a trailing newline as well as all other unmatched
+characters. Source `boot.autostart`, when present, must be exactly the lowercase
+string `true` or `false`. Always set derived `boot.autostart` to the string
+`false`, whether the source key is true, false, or absent, so an Incus daemon
+restart cannot restore or autostart the fixture. Missing source keys are
+allowed; do not coerce or normalize values. Reject JSON numbers/booleans,
+leading zeros, signs, whitespace, case variants, suffix variants and every other key/value,
 including `security.privileged`, `security.nesting`, `raw.lxc`,
 `linux.kernel_modules`, every `linux.*`, `idmap.*`, malformed values and
 unknown config fields before any write. Device schemas are exact: root disk is
@@ -713,9 +720,8 @@ fixture profiles/devices must exactly match the sanitized base plus fixture
 profile. Deterministic tests must cover each allowed device shape and reject
 host-path bind mounts, proxy devices, unknown/extra keys, unknown device types,
 unapproved pool/network references and malformed fields before the first write;
-tests must also cover every allowed config key/value, prove source
-`boot.autostart=true` yields a derived `false` and never starts automatically,
-and reject privileged,
+tests must also cover every allowed string config value, reject numeric/bool
+JSON values and lexical variants including trailing newlines under Python 3.12, prove source `boot.autostart` true, false, and absent each yields derived string `"false"` and never starts automatically, and reject privileged,
 raw LXC, kernel-module, idmap, unknown-key and malformed-value config before
 the first write. Tests must assert GO/result/log/artifact schemas contain no
 raw source config, device values or arbitrary paths. They must prove the exact
@@ -1941,7 +1947,7 @@ only require `git diff --check`. Local quality is never live success.
 
 ## Documentation Governance and arc42 Check Status
 
-Status: `AMENDMENT_REVIEWED v1.33 — exact-hash Requirement/Architecture/Python Automation/Tester/Security/DevOps approvals complete; S3D pending; prior S02C test/approval/S3D evidence historical; AC1–AC4 partial, AC5/W10 open; no admission, scenario GO or live qualification`
+Status: `AMENDMENT_READY_FOR_S3D v1.33 — S3D pending; no host/implementation authorization`
 installation-owned profile decision is a draft awaiting canonical placement
 and accepted review; no Incus version is supported yet for this capability.
 S449-01 places the exact owner-approved R67j policy, effective-infrastructure-
