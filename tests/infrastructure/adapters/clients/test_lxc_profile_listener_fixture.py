@@ -1611,6 +1611,20 @@ class JitNoMutationTests(_FixtureBehaviorTestCase):
         patcher.start()
         self.addCleanup(patcher.stop)
 
+    def test_incus_plain_text_version_output_is_parsed_strictly(self):
+        self.assertEqual(fixture._parse_incus_version(
+            b'Client version: 6.0.5\nServer version: 6.0.5\n'), ('6.0.5', '6.0.5'))
+        for output in (
+                b'Server version: 6.0.5\nClient version: 6.0.5\n',
+                b'Client version: 6.0.5\n',
+                b'Client version: 6.0.5\nServer version: 6.0.5\nextra\n',
+                b'Client version: 6.0.5\nServer version: unknown\n',
+                b'Client version: 6.0.5\nServer version: 6.0.5\nServer version: 6.0.5\n',
+                b'Client version: 6.0.5\nServer version: 6.0.5\xff\n'):
+            with self.subTest(output=output), self.assertRaisesRegex(
+                    fixture.TargetDrift, 'INCUS_VERSION_UNREADABLE'):
+                fixture._parse_incus_version(output)
+
     def test_default_profile_digest_mismatch_is_a_jit_drift(self):
         run_id = 'a' * 32
         fingerprint = 'e' * 64
@@ -1622,7 +1636,7 @@ class JitNoMutationTests(_FixtureBehaviorTestCase):
               'proxy': {'listen': 'tcp:127.0.0.1:61000'},
               'default_profile_sha256': '0' * 64, 'default_profile_used_by': []}
         outputs = [b'[{"addr_info":[{"local":"192.168.178.33"}]}]',
-                   b'{"server":{"version":"6.0.5"}}',
+                   b'Client version: 6.0.5\nServer version: 6.0.5\n',
                    json.dumps([{'fingerprint': fingerprint}]).encode(),
                    b'{"properties":{"os":"Alpine Linux","release":"3.20"}}',
                    json.dumps(profile).encode()]
@@ -1650,8 +1664,8 @@ class JitNoMutationTests(_FixtureBehaviorTestCase):
                 return b'{"local":{"Addr":"unix://"}}'
             if argv[1:3] == ['remote', 'get-default']:
                 return b'local'
-            if argv[1:3] == ['version', '--format']:
-                return b'{"server":{"version":"6.0.5"}}'
+            if argv == ['incus', 'version']:
+                return b'Client version: 6.0.5\nServer version: 6.0.5\n'
             if argv[1:3] == ['project', 'list']:
                 return b'[{"name":"default"}]'
             if argv[1:3] == ['image', 'list']:
@@ -1763,7 +1777,7 @@ class JitNoMutationTests(_FixtureBehaviorTestCase):
                  'bind': 'host'}}, 'used_by': []}
         responses = {
             ('ip', '-j', '-4', 'addr'): b'[{"addr_info":[{"local":"192.168.178.33"}]}]',
-            ('incus', 'version', '--format', 'json'): b'{"server":{"version":"6.0.5"}}',
+            ('incus', 'version'): b'Client version: 6.0.5\nServer version: 6.0.5\n',
             ('incus', 'project', 'list', '--format', 'json'): b'[{"name":"default"}]',
             ('incus', 'query', '/1.0/projects/default'): b'{"name":"default","description":"","config":{}}',
             ('incus', 'image', 'list', '--project', 'default', '--format', 'json'): json.dumps([{'fingerprint': fingerprint}]).encode(),
@@ -1789,7 +1803,7 @@ class JitNoMutationTests(_FixtureBehaviorTestCase):
             [{'project': 'default', 'owner_type': 'profile', 'owner': 'legacy', 'device': 'web',
               'config': route['devices']['web'], 'used_by': []}], b'', ['default'])
         command_order = [
-            ('ip', '-j', '-4', 'addr'), ('incus', 'version', '--format', 'json'),
+            ('ip', '-j', '-4', 'addr'), ('incus', 'version'),
             ('incus', 'image', 'list', '--project', 'default', '--format', 'json'),
             ('incus', 'image', 'info', fingerprint, '--project', 'default', '--format', 'json'),
             ('incus', 'query', fixture._profile_api_path('default', 'default')),
@@ -1850,7 +1864,7 @@ class WslJitTests(_FixtureBehaviorTestCase):
               'default_profile_sha256': fixture.canonical_profile_sha256({}, {}),
               'default_profile_used_by': []}
         outputs = [b'[{"addr_info":[{"local":"192.168.178.33"}]}]',
-                   b'{"server":{"version":"6.0.5"}}',
+                   b'Client version: 6.0.5\nServer version: 6.0.5\n',
                    json.dumps([{'fingerprint': case.go['target']['image_fingerprint']}]).encode(),
                    b'{"properties":{"os":"Alpine Linux","release":"3.20"}}',
                    b'{"name":"default","project":"default","config":{},"devices":{},"used_by":["/1.0/instances/other"]}']
@@ -1881,7 +1895,7 @@ class WslJitTests(_FixtureBehaviorTestCase):
             mapping = {
                 ('incus', 'remote', 'list', '--format', 'json'): b'{"local":{"Addr":"unix://"}}',
                 ('incus', 'remote', 'get-default'): b'local',
-                ('incus', 'version', '--format', 'json'): b'{"server":{"version":"6.0.5"}}',
+                ('incus', 'version'): b'Client version: 6.0.5\nServer version: 6.0.5\n',
                 ('incus', 'project', 'list', '--format', 'json'): b'[{"name":"default"}]',
                 ('incus', 'query', '/1.0/projects/default'): b'{"name":"default","description":"","config":{}}',
                 ('incus', 'image', 'list', '--project', 'default', '--format', 'json'): json.dumps([{'fingerprint': fingerprint}]).encode(),

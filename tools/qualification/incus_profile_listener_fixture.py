@@ -1363,12 +1363,32 @@ def _verify_effective_instance(go: dict[str, Any], default_profile: dict[str, An
     return {'profiles': profiles, 'devices': devices}
 
 
+def _parse_incus_version(output: bytes) -> tuple[str, str]:
+    """Parse the exact two-line version output supported by Incus 6.0.5."""
+    try:
+        lines = output.decode('ascii', errors='strict').splitlines()
+    except UnicodeDecodeError as exc:
+        raise TargetDrift('INCUS_VERSION_UNREADABLE') from exc
+    if len(lines) != 2:
+        raise TargetDrift('INCUS_VERSION_UNREADABLE')
+    prefixes = ('Client version: ', 'Server version: ')
+    values: list[str] = []
+    for line, prefix in zip(lines, prefixes, strict=True):
+        if not line.startswith(prefix):
+            raise TargetDrift('INCUS_VERSION_UNREADABLE')
+        value = line[len(prefix):]
+        if not re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+(?:[-+][A-Za-z0-9.-]+)?', value):
+            raise TargetDrift('INCUS_VERSION_UNREADABLE')
+        values.append(value)
+    return values[0], values[1]
+
+
 def jit(go: dict[str, Any], host: str) -> dict[str, Any]:
     target = go['target']
     _assert_host_identity(host)
     _assert_local_incus_remote_inventory()
-    version = strict_json(command(['incus', 'version', '--format', 'json']))
-    if str(version.get('server', {}).get('version')) != target['server_version']:
+    _, server_version = _parse_incus_version(command(['incus', 'version']))
+    if server_version != target['server_version']:
         raise TargetDrift('INCUS_VERSION_DRIFT')
     image = strict_json(command(['incus', 'image', 'list', '--project', 'default', '--format', 'json']))
     if not any(i.get('fingerprint') == target['image_fingerprint'] for i in image):

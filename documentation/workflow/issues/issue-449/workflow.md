@@ -1,7 +1,7 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: `S02C_SUBMITTED_FOR_V1_32_REVIEW — 85 focused PC-WSL tests and Python 3.12.15 full QUALITY PASS; implementation-code review is scoped to runner/tests; v1.32 workflow-hash approvals were pending at submission; current outcome belongs in the private approval record; S3D EXECUTION_PLAN recorded; host admission remains pending`
+Status: `S02C_CANDIDATE_SYNCED — current runner 7929f9dc5d6fea32c55125c3b9f8fb4f02b72a07d3ea0ef80cb0a2aea6279c12; tests 6f888dc59182c7b02ed86fd3e80ddbadb5d7e5a6286e27b4c67d5d3eeb7fcba3; 95 focused tests PASS on approved PC WSL; full QUALITY PASS on Python 3.14.4 private venv with CI-pinned tools (43 architecture tests, 2,969 tests, 18 skipped; log SHA-256 daa2d3952b97aef496035ea773ede718fa5e79e61df1f832c9761ab15126e8df, mode 0600, parent directory mode 0700); exact candidate not run on CI Python 3.12; current workflow-hash reviews and S3D approval pending; native/WSL inventories captured; native route state PASS; WSL route state JIT_COMMAND_FAILED; native preflight BLOCKED by active snap.lxd.daemon.service; host admission and scenario GO remain blocked`
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
@@ -557,7 +557,7 @@ read/reservation/NOT_RUN artifact, owned mode-0700 directory,
 exclusive no-follow mode-0600 output with no overwrite or symlink acceptance,
 and byte-identical
 snapshot/digest parity with JIT. Record exact source/test hashes for S02.
-The current runner/test pair `f37ab8fbe98b288b75451b8798607d588b2bef0458f6730cf8af405acc740628` / `8168ffbdcf0a5ac816134c23a25de1052f276189f4ab60066ffb7ebeb9e45668` passed 85 focused PC-WSL tests. v1.30 full QUALITY PASS (exit 0): 43 architecture tests OK, mypy 885 source files clean, 2,959 tests passed and 18 skipped. The log SHA-256 is `cd4bb17cfa202f0435a6eda09524518a4b784014974586b4719321e0438858e7`; private evidence path `.tiny-swarm/evidence/issue-449/s449-private-20261027/quality-gate-s02c-v130-isolated.log`, mode 0600. It ran with fresh private HOME/XDG on ext4 and private TMPDIR outside the repository; `/tmp/tsw-issue449-qual-v130-20261028/tmp` is tmpfs, not ext4. The earlier v1.29 failure was environment-specific: its TMPDIR was under `/home/pc/.local/state`; the exact test and baseline pass with otherwise identical files under fresh `/tmp`. The v1.31 full QUALITY gate passed on the prior 5f candidate (historical; it does not qualify the clean v1.32 checkpoint). The current v1.32 Python 3.12.15 full QUALITY rerun passed on the exact clean checkpoint; its private log path .tiny-swarm/evidence/issue-449/s449-private-20261027/quality-gate-s02c-v132-py312-final5.log, SHA-256 247da0bd35bbf91138811ba7355f39681fd7dc5b3e47c78474cdc4b806a90e26. Four-role workflow-hash review decisions are maintained in the private v1.32 approval record; post-overlay S3D returned EXECUTION_PLAN. S02 host admission remains gated until the record contains four matching approvals and current route/resource captures. S02 read-only host admission and live route-state evidence remain outstanding; no target mutation occurred.
+Historical v1.32 evidence: runner/test `f37ab8fbe98b288b75451b8798607d588b2bef0458f6730cf8af405acc740628` / `8168ffbdcf0a5ac816134c23a25de1052f276189f4ab60066ffb7ebeb9e45668`, 85 focused tests, and full QUALITY log SHA-256 `247da0bd35bbf91138811ba7355f39681fd7dc5b3e47c78474cdc4b806a90e26` remain historical and are not current candidate evidence. Current candidate runner SHA-256 `7929f9dc5d6fea32c55125c3b9f8fb4f02b72a07d3ea0ef80cb0a2aea6279c12`; test SHA-256 `6f888dc59182c7b02ed86fd3e80ddbadb5d7e5a6286e27b4c67d5d3eeb7fcba3`; focused suite 95 PASS on approved PC WSL. Full QUALITY PASS: GATE_EXIT=0 on Python 3.14.4 in a private venv with CI-pinned tools; 43 architecture tests, 2,969 total tests, 18 skipped; private log SHA-256 `daa2d3952b97aef496035ea773ede718fa5e79e61df1f832c9761ab15126e8df`, file mode 0600, parent directory mode 0700. This exact candidate was not run on CI Python 3.12. Same-commit project inventories were captured on native Linux and WSL2. Native route-state capture passed with digest `fe31f78643962ce3757e8bcfc8cc8ed1e9c9eb46a2c1728f52f773fbc2f84758`; WSL route-state capture returned `JIT_COMMAND_FAILED`. Native read-only preflight is blocked by active `snap.lxd.daemon.service`. Native inventory confirms only the default LXD project and three stopped TSW containers; no host-stop GO exists. Native resource observations are 8 CPUs, 20,111,052,800 bytes MemTotal, 15,452,803,072 bytes MemAvailable, 724,140,146,688 bytes free disk, ext4 `/`, and `incus version` reports Client/Server 6.0.5. MemTotal is below the unchanged 19 GiB baseline guard; the host therefore does not pass resource admission. These observations do not constitute a normalized resource-admission artifact or PASS, and Incus 6.0.5 observation does not establish capability support. Current four-role workflow-hash reviews and S3D approval are pending; the v1.32 approval record and its S3D result remain historical. No host admission, scenario GO, or target mutation is claimed.
 sanitization, schema rejection, output metadata, sanitized-artifact-only hash,
 private exclusive ext4 write, and no GO/reservation/NOT_RUN/Incus-write behavior.
 S449-02 may not collect or claim this inventory before that implementation and
@@ -587,7 +587,7 @@ findmnt -T "$ROOT" -n -o FSTYPE,TARGET
 nproc --all
 free -b
 df -B1 --output=avail "$ROOT"
-incus version --format json
+incus version
 ip -j -4 addr
 ./prepare_linux.sh --preflight --service-profile service-access
 ```
@@ -598,7 +598,7 @@ native script invokes existing `NativePreparationService` and
 result and exit and stop on failure/unknown output. Do not install packages or
 mutate the host. Raw stdout hash is permitted only for `git status --short
 --branch`, `nproc --all`, `free -b`, `df -B1 --output=avail "$ROOT"` and
-`incus version --format json`. For `git rev-parse`, `sha256sum`, `findmnt`,
+`incus version` (hash only the exact text output; parse client/server version fields without inferring capability support). For `git rev-parse`, `sha256sum`, `findmnt`,
 `ip` and `./prepare_linux.sh`, keep only parsed commit, file hashes,
 filesystem/identity facts and resource fields; no raw output or raw-output
 hash. The route-state capture follows its separate route-state contract.
@@ -691,7 +691,7 @@ reserve and post-swap storage checks. `decision` is exactly `PASS` or
 `{argv, exit_status, stdout_bytes, stderr_bytes}` and may include
 `stdout_sha256` only for raw stdout of `git status --short --branch`,
 `nproc --all`, `free -b`, `df -B1 --output=avail "$ROOT"`, or
-`incus version --format json`. No raw command output is persisted or hashed.
+`incus version`. No raw command output is persisted; a SHA-256 may be recorded only for this exact command's text stdout. Parse the Client and Server version lines; this observation does not establish capability support.
 Preflight, identity, source/hash and Incus project/config outputs remain
 parsed/sanitized only. The independent reviewer computes and binds SHA-256 of
 the complete normalized resource artifact in GO. Unknowns must be explicit in
@@ -761,8 +761,9 @@ proxy. Unknown/sensitive fields/types fail closed. `isolation` is exactly the
 four keys `features.images`, `features.profiles`,
 `features.storage.volumes`, `features.networks`. Each value is a boolean when
 explicitly configured and `null` when absent/unset; null means unknown
-configuration, never inferred effective default. Malformed values fail
-The current candidate emits four feature keys as booleans when explicitly configured and `null` when absent, with no effective-default inference. The v1.32 runner/test pair `f37ab8fbe98b288b75451b8798607d588b2bef0458f6730cf8af405acc740628` / `8168ffbdcf0a5ac816134c23a25de1052f276189f4ab60066ffb7ebeb9e45668` passed 85 focused PC-WSL tests. v1.30 full QUALITY passed and v1.31 full QUALITY passed on the prior 5f candidate (historical); v1.32 full QUALITY PASS on Python 3.12.15 (43 architecture tests, 885 source files typechecked, 2,959 tests, 18 skipped; log SHA-256 247da0bd35bbf91138811ba7355f39681fd7dc5b3e47c78474cdc4b806a90e26; private log path .tiny-swarm/evidence/issue-449/s449-private-20261027/quality-gate-s02c-v132-py312-final5.log), and inventory use remains gated on read-only host admission.
+configuration, never inferred effective default. Malformed values fail closed.
+The current candidate emits the four feature keys as booleans when explicitly
+configured and `null` when absent, without inferring effective defaults.
 
 The current payload schema and command argv above are read-only, sanitized
 capture requirements, not a claim that the current candidate passes. Tests
@@ -1218,18 +1219,23 @@ Workflow authoring is not workflow readiness. Record the four mandatory reviews
 against the final workflow/context-pack hashes here; a prior design-only
 approval of R67j is not a workflow review.
 
-| Role | Required review | Status at v1.32 submission |
+| Role | Required review | Current candidate status |
 |---|---|---|
-| Senior Requirement Engineer | R449-01–38, AC1–AC5, W10, EPIC #440 and traceability | PENDING — review v1.32 hashes |
-| Senior System Architect | hexagonal boundaries, Incus profile ownership, persistence, arc42 and locks | PENDING — review v1.32 hashes |
-| Senior Python Automation Developer | ports/adapters/composition, slice paths, testability and lock ownership | PENDING — review v1.32 hashes |
-| Senior Tester | acceptance evidence, exact test gates, live/local state and lock ownership | PENDING — review v1.32 hashes |
+| Senior Requirement Engineer | R449-01–38, AC1–AC5, W10, EPIC #440 and traceability | PENDING — review current hashes |
+| Senior System Architect | hexagonal boundaries, Incus profile ownership, persistence, arc42 and locks | PENDING — review current hashes |
+| Senior Python Automation Developer | ports/adapters/composition, slice paths, testability and lock ownership | PENDING — review current hashes |
+| Senior Tester | acceptance evidence, exact test gates, live/local state and lock ownership | PENDING — review current hashes |
 
 Release decision: execution is eligible only when the four-role record contains
 `APPROVED` decisions for one workflow/context hash set and S3/S3D returns
-`EXECUTION_PLAN` for that same revision. The v1.5–v1.11 approvals and preflight
-do not authorize this v1.32 amendment. The v1.6 workflow approval record and
-any later pre-v1.12 approval records are superseded; create a new record that binds the exact v1.32 workflow/context hashes. Record each review artifact and hash in `.tiny-swarm/evidence/issue-449/s449-private-20261027/workflow-execution-approval-v1.32-20261028.md`.
+`EXECUTION_PLAN` for that same revision. The v1.32 approval record and its
+`EXECUTION_PLAN` are historical and do not approve this candidate. The v1.5–v1.11 approvals and preflight
+do not authorize the current candidate amendment. The v1.6 workflow approval record and
+any later pre-v1.12 approval records are superseded. The private
+`workflow-execution-approval-v1.32-20261028.md` is historical and must not be
+treated as the approval record for this candidate. Create a new private record
+only after its path and current workflow/context hashes are established; that
+record does not yet exist.
 
 ## S3 / S3D Preflight and Clean Execution Handoff
 
@@ -1314,7 +1320,7 @@ only require `git diff --check`. Local quality is never live success.
 
 ## Documentation Governance and arc42 Check Status
 
-Status: `S02C_SUBMITTED_FOR_V1_32_REVIEW — 85 focused PC-WSL tests and Python 3.12.15 full QUALITY PASS; implementation-code review is scoped to runner/tests; v1.32 workflow-hash approvals were pending at submission; current outcome belongs in the private approval record; S3D EXECUTION_PLAN recorded; host admission remains pending`
+Status: `S02C_CANDIDATE_SYNCED — final runner/test hashes, 95 focused tests and full QUALITY evidence recorded above; exact candidate not run on CI Python 3.12; current live blockers remain; no host admission or scenario GO`
 installation-owned profile decision is a draft awaiting canonical placement
 and accepted review; no Incus version is supported yet for this capability.
 S449-01 places the exact owner-approved R67j policy, effective-infrastructure-
