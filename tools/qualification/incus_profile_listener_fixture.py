@@ -217,7 +217,7 @@ def approved_route_state_sha256(listeners_10001: list[bytes],
     return digest(raw)
 
 
-def _strict_devices(value: Any, code: str) -> dict[str, dict[str, Any]]:
+def _strict_devices(value: Any, code: str, *, allow_implicit_bind: bool = False) -> dict[str, dict[str, Any]]:
     if (not isinstance(value, dict)
             or any(not isinstance(name, str) or not name or not isinstance(device, dict)
                    for name, device in value.items())):
@@ -239,8 +239,10 @@ def _strict_devices(value: Any, code: str) -> dict[str, dict[str, Any]]:
                     raise TargetDrift(code)
             elif nat is not False and nat != 'false':
                 raise TargetDrift(code)
-            bind = device.get('bind')
-            if not isinstance(bind, str) or bind not in {'host', 'instance'}:
+            if ('bind' in device and (not isinstance(device['bind'], str)
+                                      or device['bind'] not in {'host', 'instance'})):
+                raise TargetDrift(code)
+            if 'bind' not in device and not allow_implicit_bind:
                 raise TargetDrift(code)
     return value
 
@@ -1195,7 +1197,8 @@ def _incus_route_inventory() -> tuple[list[str], list[dict[str, Any]]]:
                     or ('project' in data and data['project'] != project)
                     or not isinstance(data.get('config'), dict)):
                 raise TargetDrift('INCUS_PROFILE_INVENTORY_UNREADABLE')
-            devices = _strict_devices(data.get('devices'), 'INCUS_PROFILE_INVENTORY_UNREADABLE')
+            devices = _strict_devices(data.get('devices'), 'INCUS_PROFILE_INVENTORY_UNREADABLE',
+                                      allow_implicit_bind=True)
             used_by = data.get('used_by')
             if (not isinstance(used_by, list) or any(not isinstance(item, str) for item in used_by)
                     or used_by != sorted(set(used_by))):
@@ -1219,7 +1222,8 @@ def _incus_route_inventory() -> tuple[list[str], list[dict[str, Any]]]:
                     or any(not isinstance(key, str) or not isinstance(value, str)
                            for key, value in data['config'].items())):
                 raise TargetDrift('INCUS_INSTANCE_INVENTORY_UNREADABLE')
-            devices = _strict_devices(data.get('devices'), 'INCUS_INSTANCE_INVENTORY_UNREADABLE')
+            devices = _strict_devices(data.get('devices'), 'INCUS_INSTANCE_INVENTORY_UNREADABLE',
+                                      allow_implicit_bind=True)
             instance_profiles = data.get('profiles')
             if not isinstance(instance_profiles, list) or any(not isinstance(item, str) for item in instance_profiles):
                 raise TargetDrift('INCUS_INSTANCE_INVENTORY_UNREADABLE')

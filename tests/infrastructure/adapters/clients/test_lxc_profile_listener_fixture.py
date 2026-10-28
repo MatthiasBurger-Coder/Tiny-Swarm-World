@@ -1560,6 +1560,23 @@ class JitNoMutationTests(_FixtureBehaviorTestCase):
         with self.assertRaisesRegex(fixture.TargetDrift, 'INCUS_PROFILE_INVENTORY_UNREADABLE'):
             fixture._strict_devices({'broken': 'proxy'}, 'INCUS_PROFILE_INVENTORY_UNREADABLE')
 
+    def test_proxy_device_allows_default_bind_to_be_omitted(self):
+        device = {'type': 'proxy', 'listen': 'tcp:127.0.0.1:8080',
+                  'connect': 'tcp:127.0.0.1:80'}
+        self.assertEqual(fixture._strict_devices({'web': device}, 'INCUS_PROFILE_INVENTORY_UNREADABLE',
+                                                 allow_implicit_bind=True), {'web': device})
+        with self.assertRaisesRegex(fixture.TargetDrift, 'INCUS_PROFILE_INVENTORY_UNREADABLE'):
+            fixture._strict_devices({'web': device}, 'INCUS_PROFILE_INVENTORY_UNREADABLE')
+
+    def test_proxy_device_rejects_invalid_explicit_bind(self):
+        for bind in ('invalid', []):
+            with self.subTest(bind=bind):
+                device = {'type': 'proxy', 'listen': 'tcp:127.0.0.1:8080',
+                          'connect': 'tcp:127.0.0.1:80', 'bind': bind}
+                with self.assertRaisesRegex(fixture.TargetDrift, 'INCUS_PROFILE_INVENTORY_UNREADABLE'):
+                    fixture._strict_devices({'web': device}, 'INCUS_PROFILE_INVENTORY_UNREADABLE',
+                                            allow_implicit_bind=True)
+
     def test_fixture_profile_response_rejects_wrong_name_or_project(self):
         run_id = 'a' * 32
         profile_name = 'q449-profile'
