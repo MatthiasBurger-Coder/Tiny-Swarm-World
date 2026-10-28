@@ -20,13 +20,13 @@
 - `rollbackReference`: `d082175d9463c90635ccbbd622a0235bf068a64d`
 - `arc42Updated`: `false`
 - `adrUpdated`: `false`
-- `commitSha`: `PENDING`
-- `nativeDiagnostic`: `NOT_AUTHORIZED_BY_IMPLEMENTATION_PLAN`
-- `sliceStatus`: `IN_PROGRESS`
+- `commitSha`: `9c311145e7b4a4ad5f588829fd9867776678e452`
+- `nativeDiagnostic`: `BLOCKED_UNKNOWN` for `snap.lxd.daemon.service`; exact committed runner hash was verified, no artifact or runtime mutation occurred, and the hash-matched temporary runner was removed under the separate post-commit S3D plan.
+- `sliceStatus`: `COMPLETE_WITH_FAIL_CLOSED_NATIVE_RESULT`; identity remains unknown and issue acceptance is open.
 
 ## Review and verification disposition
 
-Three-Amigos requirement, architecture, and Python reviews approved the same seven-file hash tuple; Security and Tester also approved. No native command ran under this plan. Commit this bounded implementation as one S449-02F2 slice commit, then request a separate S3D plan for native diagnosis. This diagnostic does not satisfy #449 acceptance criteria; issue completion remains blocked on live native and WSL2 scenarios and independent issue audit.
+Three-Amigos requirement, architecture, and Python reviews approved the same seven-file hash tuple; Security and Tester also approved. The implementation/PC WSL plan did not authorize a native command. A separate post-commit S3D plan authorized the symbolic-only native diagnosis, which returned `BLOCKED_UNKNOWN` for `snap.lxd.daemon.service`. The diagnostic does not satisfy #449 acceptance criteria; issue completion remains blocked on live native and WSL2 scenarios and independent issue audit.
 
 ## Scope and safety
 

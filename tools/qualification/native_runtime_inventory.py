@@ -249,14 +249,28 @@ def _systemctl_show(runner: Runner, unit: str) -> dict[str, Any]:
     return _unit_state(unit, vals)
 
 
-def _resolve_executable(runner: Runner, row: dict[str, Any]) -> tuple[str, str]:
+def _read_executable_path(runner: Runner, row: dict[str, Any]) -> str:
     path = f"/proc/{row['main_pid']}/exe"
     _, raw, _ = runner.run(["/usr/bin/readlink", "-f", path], command_id="resolve_executable")
     try:
         resolved = raw.decode("utf-8", "strict").strip()
     except UnicodeError as exc:
         raise InventoryError("EXECUTABLE_OUTPUT_INVALID") from exc
-    return executable_identity(row["unit"], resolved)
+    return resolved
+
+
+def _resolve_executable(runner: Runner, row: dict[str, Any]) -> tuple[str, str]:
+    return executable_identity(row["unit"], _read_executable_path(runner, row))
+
+
+def _unknown_executable_reason(unit: str, resolved: str) -> str:
+    if unit != "snap.lxd.daemon.service":
+        return "EXECUTABLE_IDENTITY_BLOCKED"
+    if not resolved or not resolved.startswith("/") or "\x00" in resolved:
+        return "SNAP_EXECUTABLE_UNCLASSIFIABLE"
+    if resolved.startswith("/snap/lxd/"):
+        return "SNAP_ROOT_PATH_MISMATCH"
+    return "SNAP_EXECUTABLE_OUTSIDE_ROOT"
 
 
 def diagnose_units(*, runner: Runner | None = None) -> tuple[dict[str, Any], int]:
@@ -270,18 +284,22 @@ def diagnose_units(*, runner: Runner | None = None) -> tuple[dict[str, Any], int
         if row["active_state"] != "active":
             services.append({"unit": unit, "identity": "NOT_ACTIVE"})
             continue
+        reason = "EXECUTABLE_IDENTITY_BLOCKED"
+        resolved = ""
         try:
-            identity, _package = _resolve_executable(runner, row)
+            resolved = _read_executable_path(runner, row)
+            identity, _package = executable_identity(unit, resolved)
         except InventoryError as exc:
             if str(exc) != "EXECUTABLE_IDENTITY_BLOCKED":
                 raise
             identity = "UNKNOWN"
+            reason = _unknown_executable_reason(unit, resolved)
         current = _systemctl_show(runner, unit)
         if current != row:
             raise InventoryError("UNIT_DRIFT_BLOCKED")
         if identity == "UNKNOWN":
             return ({"mode": "diagnose-units", "status": "BLOCKED_UNKNOWN",
-                     "unit": unit, "identity": "UNKNOWN"}, 2)
+                     "unit": unit, "identity": "UNKNOWN", "reason": reason}, 2)
         services.append({"unit": unit, "identity": identity})
     return ({"mode": "diagnose-units", "status": "DIAGNOSTIC_COMPLETE",
              "services": services}, 0)

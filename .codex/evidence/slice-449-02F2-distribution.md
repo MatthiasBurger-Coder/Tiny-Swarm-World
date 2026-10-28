@@ -30,4 +30,4 @@
 
 Requirement: GO. Architecture: APPROVED. Python Automation: APPROVED. Security: APPROVED. Tester: APPROVED. Reviewers verified the same source, test, workflow, context, index, and design hashes recorded in the consolidation record. No KISS, requirement, safety, or test blocker was found.
 
-Native diagnosis was not part of this implementation/verification plan and has not run. A separate post-commit S3D plan is required. `UNKNOWN` remains blocked and does not authorize an allowlist extension or satisfy an #449 acceptance criterion.
+Native diagnosis was excluded from the implementation/PC WSL plan. It ran later under a separate post-commit S3D plan and returned `BLOCKED_UNKNOWN` for `snap.lxd.daemon.service`. The hash-matched temporary runner was removed. `UNKNOWN` remains blocked and does not authorize an allowlist extension or satisfy an #449 acceptance criterion.

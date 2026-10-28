@@ -1,6 +1,6 @@
 # Context pack — issue-449-lcm-w09
 
-- Workflow document version: 1.38; status `ACTIVE_FOR_ISSUE_449`. The user authorized completing #449 on the named test hosts. Every slice still requires fresh same-hash reviews and its own S3D `EXECUTION_PLAN`; live host changes still require exact host/scenario admission and GO. S449-02D is committed at `6a687bddab9893d29c081bc8b8cdd0aa489c16ab`; S449-02E is committed at `6c48b1d0ef90ec0316769257e8a821946b2200c8`. S02D runner/test hashes `4d1bef40aa2be3f3f477d33c98db173bf43290cf23a71f33f9937e0fd089221f` / `deb5a79c706b8f277df55e36e040e2ca0c33289a4b7b1debe58a7f260822b1bc`; S02E runner/test hashes `6982861d785cdfa97f4de14e4f7b2cac8cd355eaff7e2478004c2619b1db72fd` / `86e874528a62664c2d2c6c452a733178cb9c0b6d63fc29f1e19a18a7e6ef413b`. On approved PC WSL, S02E focused suite passed 121 tests and full quality gate passed (43 architecture tests; 2,995 total, 18 skipped). S02F implementation and PC WSL quality verification are complete under v1.37. The v1.36 read-only attempt returned UNIT_SCHEMA_INVALID, produced no artifact, and made no host changes. The v1.37 native retry returned BLOCKED:EXECUTABLE_IDENTITY_BLOCKED with no artifact; S449-02F2 is planned for symbolic-only diagnosis. Its read-only queries must bind to already-active full-access service identities and cannot trigger service/socket activation. Version 1.36 reconciles project used_by membership without treating storage pools as project consumers, checks pool-level profile/instance disk reciprocity, includes exact storage-volume list/show argv, and blocks inherited/shared volume owner mismatches at both list and detail stages. The v1.36 S02F attempt contacted only the native test host for a bounded read-only inventory; it returned UNIT_SCHEMA_INVALID and produced no artifact. Native service-access preflight remains blocked by active snap.lxd.daemon.service; the previous WSL route capture failed with JIT_COMMAND_FAILED; no normalized admission or host/scenario GO exists.
+- Workflow document version: 1.39; status `ACTIVE_FOR_ISSUE_449`. The user authorized completing #449 on the named test hosts. Every slice still requires fresh same-hash reviews and its own S3D `EXECUTION_PLAN`; live host changes still require exact host/scenario admission and GO. S449-02D is committed at `6a687bddab9893d29c081bc8b8cdd0aa489c16ab`; S449-02E is committed at `6c48b1d0ef90ec0316769257e8a821946b2200c8`. S02D runner/test hashes `4d1bef40aa2be3f3f477d33c98db173bf43290cf23a71f33f9937e0fd089221f` / `deb5a79c706b8f277df55e36e040e2ca0c33289a4b7b1debe58a7f260822b1bc`; S02E runner/test hashes `6982861d785cdfa97f4de14e4f7b2cac8cd355eaff7e2478004c2619b1db72fd` / `86e874528a62664c2d2c6c452a733178cb9c0b6d63fc29f1e19a18a7e6ef413b`. On approved PC WSL, S02E focused suite passed 121 tests and full quality gate passed (43 architecture tests; 2,995 total, 18 skipped). S02F implementation and PC WSL quality verification are complete under v1.37. The v1.36 read-only attempt returned UNIT_SCHEMA_INVALID, produced no artifact, and made no host changes. The v1.37 native retry returned BLOCKED:EXECUTABLE_IDENTITY_BLOCKED with no artifact. S449-02F2 commit 9c311145 ran the bounded symbolic diagnostic, which returned BLOCKED_UNKNOWN for snap.lxd.daemon.service; no artifact or runtime mutation occurred. S449-02F3 is planned to classify only the already-read rejected value into a fixed symbolic reason. Its read-only queries must bind to already-active full-access service identities and cannot trigger service/socket activation. Version 1.36 reconciles project used_by membership without treating storage pools as project consumers, checks pool-level profile/instance disk reciprocity, includes exact storage-volume list/show argv, and blocks inherited/shared volume owner mismatches at both list and detail stages. The v1.36 S02F attempt contacted only the native test host for a bounded read-only inventory; it returned UNIT_SCHEMA_INVALID and produced no artifact. Native service-access preflight remains blocked by active snap.lxd.daemon.service; the previous WSL route capture failed with JIT_COMMAND_FAILED; no normalized admission or host/scenario GO exists.
 - Issue: #449, parent EPIC #440, bounded coordination with #318
 - Workflow: `documentation/workflow/issues/issue-449/workflow.md`
 - Index: `documentation/workflow/workflow.index.md`
@@ -178,3 +178,24 @@ blocked and does not authorize an allowlist addition. Any mapping change
 requires independent package provenance, exact unit-to-identity approval,
 fresh source/test/workflow/context reviews, and a separate S3D plan before
 another inventory capture.
+
+S449-02F2 was implemented in commit `9c311145e7b4a4ad5f588829fd9867776678e452`.
+The focused PC WSL suite passed 58 tests; the full quality gate exited 0 with
+3,053 tests and 18 skips. The exact committed native runner was executed under
+a separate post-commit S3D plan and returned `BLOCKED_UNKNOWN` for
+`snap.lxd.daemon.service`. No artifact or host mutation occurred, and the
+hash-matched temporary runner was removed. The result does not admit an
+identity or satisfy native ownership requirements.
+
+## Execution-phase amendment v1.39
+
+Three Amigos approved a sequential S449-02F3 follow-up using only the resolved
+executable bytes already read by S449-02F2. It classifies the rejected value
+in-memory as `SNAP_ROOT_PATH_MISMATCH`, `SNAP_EXECUTABLE_OUTSIDE_ROOT`, or
+`SNAP_EXECUTABLE_UNCLASSIFIABLE`; other unknown units use the fixed
+`EXECUTABLE_IDENTITY_BLOCKED` reason. Every outcome remains
+`BLOCKED_UNKNOWN` with identity `UNKNOWN`. No additional host command, raw
+path/PID output, artifact, inventory admission, or allowlist change is
+authorized. The implementation is verified on PC WSL with 61 focused tests
+and full quality exit 0 (3,053 tests, 18 skips). Fresh same-hash code reviews
+and a separate post-commit S3D plan are required before a native rerun.

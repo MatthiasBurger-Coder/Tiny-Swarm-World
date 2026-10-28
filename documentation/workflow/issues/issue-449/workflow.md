@@ -1,13 +1,13 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: ACTIVE_FOR_ISSUE_449 v1.38 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
+Status: ACTIVE_FOR_ISSUE_449 v1.39 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
 Workflow authoring branch: `docs/workflow-lcm-w09-route-baseline-20261027`
 Baseline: `a0310224946b63e2152ff4086d22a450c3d0f214`
-ACTIVE_FOR_ISSUE_449 v1.38. The user explicitly authorized completion of issue #449 on the named test hosts. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
+ACTIVE_FOR_ISSUE_449 v1.39. The user explicitly authorized completion of issue #449 on the named test hosts. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
 Execution profile: `FULL_PATH — lifecycle/provider implementation, regression, documentation, native and WSL2 qualification`
 
 ## Executive Summary
@@ -1160,6 +1160,72 @@ documentation:
 stop_conditions: [unknown/malformed unit or state/PID drift, raw path/PID/output leakage, unexpected argv/environment, any endpoint/client/resource query, artifact write, command/output/time bound exceeded, any host/runtime mutation]
 ```
 
+S449-02F2 implementation and its bounded native symbolic diagnostic are
+complete. The PC WSL focused suite passed 58 tests; full quality exited 0 with
+3,053 tests and 18 skips. On the native test host, the exact committed runner
+returned `BLOCKED_UNKNOWN` for `snap.lxd.daemon.service`; no artifact or host
+mutation occurred, and its hash-matched temporary copy was removed. This is a
+fail-closed diagnostic result, not an identity admission or inventory pass.
+
+##### Slice 02F3 — Classify a blocked Snap executable shape symbolically
+
+Purpose: make the S449-02F2 `BLOCKED_UNKNOWN` result actionable without exposing
+the process path or running additional host commands. The classifier uses only
+the already-read resolved executable path held in memory and never admits an
+identity or changes the executable allowlist.
+
+For an unknown `snap.lxd.daemon.service` identity, emit exactly one fixed
+`reason` enum in the existing blocked JSON result:
+
+- `SNAP_ROOT_PATH_MISMATCH` when the absolute path is beneath `/snap/lxd/` but
+  does not match the existing approved numeric-revision executable pattern.
+- `SNAP_EXECUTABLE_OUTSIDE_ROOT` when the absolute path is outside `/snap/lxd/`.
+- `SNAP_EXECUTABLE_UNCLASSIFIABLE` when the value is empty or not an absolute
+  path.
+
+For any other unknown service identity, use the fixed reason
+`EXECUTABLE_IDENTITY_BLOCKED`. Keep status `BLOCKED_UNKNOWN` and identity
+`UNKNOWN` in every case. Do not emit or persist any path, revision, basename,
+PID, package/version, command output or exception. Do not run `snap`, `stat`,
+`findmnt`, additional `readlink`, client, endpoint or resource commands. Do not
+write an artifact. Preserve the first-unknown stop, full service recheck,
+existing runner bounds and normal inventory behavior.
+
+Tests must cover each reason, exact deterministic JSON, no raw-value leakage,
+the unchanged allowed identity path, first-unknown short-circuit, no extra
+commands, no artifact, and unchanged normal capture behavior. This diagnostic
+classification does not satisfy an #449 acceptance criterion. Any allowlist
+change needs separate authoritative provenance, fresh reviews and S3D.
+
+```yaml
+slice_id: S449-02F3
+profile: BACKEND_AND_TESTS
+owner: Senior Python Automation Developer
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior DevOps Engineer, Senior Tester]
+affected_files: [documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, documentation/workflow/workflow.index.md, tools/qualification/native_runtime_inventory.py, tests/tools/test_native_runtime_inventory.py, .codex/evidence/slice-449-02F2-consolidation.md, .codex/evidence/slice-449-02F2-distribution.md, .codex/evidence/slice-449-02F3-design.md, .codex/evidence/slice-449-02F3-distribution.md, .codex/evidence/slice-449-02F3-consolidation.md]
+affected_modules: [native LXD/Incus executable diagnosis]
+affected_contracts: [fixed symbolic reason enum for rejected executable path, fail-closed UNKNOWN, no additional host commands or artifact]
+dependencies: [S449-02F2]
+parallel_group: sequential
+file_locks: [documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, documentation/workflow/workflow.index.md, tools/qualification/native_runtime_inventory.py, tests/tools/test_native_runtime_inventory.py, .codex/evidence/slice-449-02F2-consolidation.md, .codex/evidence/slice-449-02F2-distribution.md, .codex/evidence/slice-449-02F3-design.md, .codex/evidence/slice-449-02F3-distribution.md, .codex/evidence/slice-449-02F3-consolidation.md]
+module_locks: [bounded native service executable classification]
+contract_locks: [symbolic category only; identity remains UNKNOWN; no allowlist change]
+architecture_locks: [reuse existing readlink result and runner; no new host command, artifact, or mutation]
+quality_gates:
+  targeted: [PYTHONPATH=src python3 -m unittest tests.tools.test_native_runtime_inventory]
+  required: [python3 tools/quality_gate.py quality]
+documentation:
+  arc42: no change
+  adr: no change; the diagnostic does not establish runtime ownership
+stop_conditions: [raw path/PID/output leakage, category outside the fixed enum, extra command, endpoint/client/resource query, artifact write, unit drift, normal capture regression]
+```
+
+S449-02F3 implementation is PC WSL verified: 61 focused tests passed; the
+full quality gate exited 0 with 3,053 tests and 18 skips. The symbolic reason
+does not change the `BLOCKED_UNKNOWN` result or establish identity. Obtain
+fresh same-hash implementation reviews, commit this slice, and request a
+separate post-commit S3D plan before any native rerun.
+
 ##### Conditional Slice 02G — Native LXD maintenance for TSW replacement
 
 This slice may be authored only if S449-02F exact evidence proves the active
@@ -2134,7 +2200,7 @@ only require `git diff --check`. Local quality is never live success.
 
 ## Documentation Governance and arc42 Check Status
 
-Status: `ACTIVE_FOR_ISSUE_449 v1.38 — issue execution authorized; slice-specific S3D and scenario GO gates remain mandatory`
+Status: `ACTIVE_FOR_ISSUE_449 v1.39 — issue execution authorized; slice-specific S3D and scenario GO gates remain mandatory`
 installation-owned profile decision is a draft awaiting canonical placement
 and accepted review; no Incus version is supported yet for this capability.
 S449-01 places the exact owner-approved R67j policy, effective-infrastructure-

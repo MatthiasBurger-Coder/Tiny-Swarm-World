@@ -277,6 +277,18 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
             row["listen"] = ""
         return row
 
+    def _diagnose_unknown_path(self, unit: str, raw_path: bytes) -> tuple[int, str, str, Any]:
+        rows = {name: [self._diagnostic_missing_unit(name, socket=name.endswith(".socket"))]
+                for name in inventory.UNITS}
+        active = self._diagnostic_active_service(unit, 733)
+        rows[unit] = [active, active]
+        runner = self._UnitDiagnosticRunner(rows, {733: raw_path})
+        stdout, stderr = StringIO(), StringIO()
+        with patch.object(inventory, "Runner", return_value=runner), \
+                redirect_stdout(stdout), redirect_stderr(stderr):
+            result = inventory.main(["--diagnose-units"])
+        return result, stdout.getvalue(), stderr.getvalue(), runner
+
     def test_diagnose_units_success_uses_exactly_eleven_commands_and_emits_symbols_only(self) -> None:
         rows = {
             "lxd.service": [self._diagnostic_active_service("lxd.service", 101)],
@@ -335,7 +347,7 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
             result = inventory.main(["--diagnose-units"])
 
         self.assertEqual(result, 2)
-        self.assertEqual(stdout.getvalue(), '{"mode":"diagnose-units","status":"BLOCKED_UNKNOWN","unit":"snap.lxd.daemon.service","identity":"UNKNOWN"}\n')
+        self.assertEqual(stdout.getvalue(), '{"mode":"diagnose-units","status":"BLOCKED_UNKNOWN","unit":"snap.lxd.daemon.service","identity":"UNKNOWN","reason":"SNAP_EXECUTABLE_OUTSIDE_ROOT"}\n')
         self.assertEqual(stderr.getvalue(), "")
         systemctl_units = [call[2] for call in runner.calls if call[0] == "/usr/bin/systemctl"]
         self.assertEqual(systemctl_units, ["lxd.service", "lxd.service", "snap.lxd.daemon.service",
@@ -344,9 +356,36 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
             ["/usr/bin/readlink", "-f", "/proc/411/exe"],
             ["/usr/bin/readlink", "-f", "/proc/422/exe"],
         ])
-        for forbidden in ("411", "422", "/proc/", "/usr/lib", "SENTINEL_EXECUTABLE_PATH", "stderr sentinel"):
+        for forbidden in ("411", "422", "/proc/", "/usr/lib", "/private/", "SENTINEL_EXECUTABLE_PATH", "stderr sentinel"):
             self.assertNotIn(forbidden, stdout.getvalue() + stderr.getvalue())
         write.assert_not_called()
+
+    def test_diagnose_units_classifies_snap_path_shape_without_disclosing_path(self) -> None:
+        result, stdout, stderr, runner = self._diagnose_unknown_path(
+            "snap.lxd.daemon.service", b"/snap/lxd/current/bin/SENTINEL_EXECUTABLE\n")
+        self.assertEqual(result, 2)
+        self.assertEqual(stdout, '{"mode":"diagnose-units","status":"BLOCKED_UNKNOWN","unit":"snap.lxd.daemon.service","identity":"UNKNOWN","reason":"SNAP_ROOT_PATH_MISMATCH"}\n')
+        self.assertEqual(stderr, "")
+        self.assertEqual(len([call for call in runner.calls if call[0] == "/usr/bin/readlink"]), 1)
+        self.assertNotIn("SENTINEL_EXECUTABLE", stdout + stderr)
+
+    def test_diagnose_units_classifies_invalid_snap_paths_as_unclassifiable(self) -> None:
+        for raw_path in (b"\n", b"relative/SENTINEL_PATH\n", b"/snap/lxd/invalid\x00SENTINEL_PATH\n"):
+            with self.subTest(raw_path=raw_path):
+                result, stdout, stderr, runner = self._diagnose_unknown_path("snap.lxd.daemon.service", raw_path)
+                self.assertEqual(result, 2)
+                self.assertEqual(stdout, '{"mode":"diagnose-units","status":"BLOCKED_UNKNOWN","unit":"snap.lxd.daemon.service","identity":"UNKNOWN","reason":"SNAP_EXECUTABLE_UNCLASSIFIABLE"}\n')
+                self.assertEqual(stderr, "")
+                self.assertNotIn("SENTINEL_PATH", stdout + stderr)
+                self.assertEqual(len([call for call in runner.calls if call[0] == "/usr/bin/readlink"]), 1)
+
+    def test_diagnose_units_non_snap_unknown_uses_fixed_reason(self) -> None:
+        result, stdout, stderr, runner = self._diagnose_unknown_path("lxd.service", b"/private/SENTINEL_EXECUTABLE\n")
+        self.assertEqual(result, 2)
+        self.assertEqual(stdout, '{"mode":"diagnose-units","status":"BLOCKED_UNKNOWN","unit":"lxd.service","identity":"UNKNOWN","reason":"EXECUTABLE_IDENTITY_BLOCKED"}\n')
+        self.assertEqual(stderr, "")
+        self.assertNotIn("SENTINEL_EXECUTABLE", stdout + stderr)
+        self.assertEqual(len([call for call in runner.calls if call[0] == "/usr/bin/readlink"]), 1)
 
     def test_diagnose_units_state_drift_stops_before_later_unit(self) -> None:
         rows = {

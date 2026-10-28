@@ -1,6 +1,6 @@
 {
   "workflow_id": "issue-449-lcm-w09",
-  "workflow_version": "1.38",
+  "workflow_version": "1.39",
   "workflow_path": "documentation/workflow/issues/issue-449/workflow.md",
   "workflow_index_path": "documentation/workflow/workflow.index.md",
   "context_pack_path": "documentation/workflow/issues/issue-449/context-pack.md",
@@ -29,7 +29,7 @@
   "test_host": "Approved PC WSL2 test host 192.168.178.58 for exact-source hash verification, targeted tests and QUALITY gates; live host work remains limited to the two named test hosts and each phase's exact scope",
   "pre_go_host_boundary": "S449-02C host inventory/route capture is distinct from S02C test-only work. Historical be2e031e8f0fb137ea6c15f74d81a88181aa4183 captures are not current. Exact-source 509908 native inventory SHA-256 3898c4a7c16fe93581bafabdd09d7daa11316e375072f288f697e2349b8c45017 and route artifact SHA-256 0af9913c1e997d518b0b62bec0c04ef0d79856ce0267ba338becacfa70e47d8cf (digest 4dd67ca44274073ad292e72c2a7cb5f9f36f5c15daf230912f2debb61c8ff91be). Exact-source WSL inventory SHA-256 4322d32ecfae2f5e1aae1711b48dbc0cb8007487f8655bc540f80d228c1d9994a at commit 50990890330684ef661be7f7ab07b586092641df, target 192.168.178.58; WSL route capture returned JIT_COMMAND_FAILED and created no artifact. Current native preflight remains blocked by active snap.lxd.daemon.service; no normalized admission or host GO. Historical approvals/S3D are phase-scoped and authorize none of the new slices/host commands. No mutation is claimed.",
   "workflow_amendment_v1_33": {
-    "status": "SUPERSEDED_BY_ACTIVE_ISSUE_EXECUTION v1.38",
+    "status": "SUPERSEDED_BY_ACTIVE_ISSUE_EXECUTION v1.39",
     "activation_reason": "The user explicitly authorized completing issue #449 on the named test hosts. This activates issue execution only; it does not grant a slice execution plan or host/scenario GO.",
     "execution_gates": [
       "fresh same-hash Three Amigos and specialist reviews for each slice",
@@ -386,7 +386,7 @@
     "execution_phase": "S449-02F bounded native read-only inventory under post-commit S3D"
   },
   "s449_02f2_diagnostic": {
-    "status": "PLANNED",
+    "status": "EXECUTED_BLOCKED_UNKNOWN",
     "purpose": "Identify the fixed service unit that fails executable identity without exposing paths or creating inventory evidence",
     "output_contract": "One compact deterministic JSON object. Complete: mode=diagnose-units, status=DIAGNOSTIC_COMPLETE, services in fixed order with unit and identity. Unknown: mode=diagnose-units, status=BLOCKED_UNKNOWN, first unknown unit and identity=UNKNOWN only; no partial rows. Other errors emit only a fixed BLOCKED code.",
     "cli_contract": "--diagnose-units is mutually exclusive with --source-commit and --output, requires no output path, and never calls the artifact writer. If combined with any other argument, reject before argparse can echo usage or caller values and emit only BLOCKED:DIAGNOSTIC_ARGUMENTS_INVALID. Normal inventory mode remains unchanged.",
@@ -394,6 +394,22 @@
     "command_max": 11,
     "output_allowlist": ["fixed_unit_id", "symbolic_identity", "fixed_status_code"],
     "prohibited_output": ["pid", "executable_path", "raw_command_output", "command_records", "inventory_artifact"],
-    "host_execution": "Requires implementation commit, fresh same-hash reviews and a dedicated S3D plan"
+    "host_execution": "Executed on the approved native test host under post-commit S3D after exact runner hash verification. Result: BLOCKED_UNKNOWN for snap.lxd.daemon.service. No artifact or host mutation; the hash-matched temporary runner was removed.",
+    "source_commit": "9c311145e7b4a4ad5f588829fd9867776678e452",
+    "runner_sha256": "512ebda8ee09ac4e3d08f414ba0e8e006120e3b9968fb2a91e7cc356076e3f86",
+    "outcome": "BLOCKED_UNKNOWN",
+    "first_unknown_unit": "snap.lxd.daemon.service"
+  },
+  "s449_02f3_diagnostic": {
+    "status": "IMPLEMENTED_PC_WSL_VERIFIED",
+    "purpose": "Classify the already-read rejected Snap executable value into a fixed symbolic reason without revealing it or issuing another host command",
+    "reason_enum": ["SNAP_ROOT_PATH_MISMATCH", "SNAP_EXECUTABLE_OUTSIDE_ROOT", "SNAP_EXECUTABLE_UNCLASSIFIABLE", "EXECUTABLE_IDENTITY_BLOCKED"],
+    "identity_result": "Always UNKNOWN; this diagnostic is not identity admission or inventory success",
+    "host_commands_added": 0,
+    "artifact_write": false,
+    "allowlist_change": false,
+    "host_execution": "No S449-02F3 native execution yet. A post-commit S3D plan and same-hash implementation reviews are required before rerun.",
+    "focused_tests": 61,
+    "quality_gate": "PASS; exit 0; 3,053 tests; 18 skipped; log SHA-256 8d67fffa46721be2b2d87678060e3f8dbf58d9777621ad622bcfcbfa580ebe2b"
   }
 }
