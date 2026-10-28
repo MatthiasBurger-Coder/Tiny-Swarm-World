@@ -1,12 +1,13 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: `S02C_CANDIDATE_SYNCED — current runner 7929f9dc5d6fea32c55125c3b9f8fb4f02b72a07d3ea0ef80cb0a2aea6279c12; tests 6f888dc59182c7b02ed86fd3e80ddbadb5d7e5a6286e27b4c67d5d3eeb7fcba3; 95 focused tests PASS on approved PC WSL; full QUALITY PASS on Python 3.14.4 private venv with CI-pinned tools (43 architecture tests, 2,969 tests, 18 skipped; log SHA-256 daa2d3952b97aef496035ea773ede718fa5e79e61df1f832c9761ab15126e8df, mode 0600, parent directory mode 0700); exact candidate not run on CI Python 3.12; The private ext4 approval record at `.tiny-swarm/evidence/issue-449/s449-private-20261027/workflow-execution-approval-current-20261028.md` binds its exact workflow/context hashes and four role decisions; the directory must be mode 0700 and the record mode 0600. Workflow execution requires four `APPROVED` decisions and S3D `EXECUTION_PLAN` for the same tuple. Host/scenario GO and normalized host admission are separate prerequisites. S3D outcomes are hash-bound and phase-scoped; an `EXECUTION_PLAN` authorizes only its specified phase. Host admission and per-host/per-scenario GO are separate and unproven; no host mutation is claimed. Any later phase requires an `EXECUTION_PLAN` bound to its exact hashes. Available native and WSL project inventories and route captures are tied to pre-candidate checkout be2e031e8f0fb137ea6c15f74d81a88181aa4183; they are not current-candidate evidence for branch HEAD a286b22db8988e2cc8fab39d97d6abb34f4129ab. Native route-state PASS digest fe31f78643962ce3757e8bcfc8cc8ed1e9c9eb46a2c1728f52f773fbc2f84758 is historical to that checkout. WSL route-state capture returned JIT_COMMAND_FAILED and is not a pass. Current native read-only preflight is blocked by active snap.lxd.daemon.service; no normalized current-candidate admission exists. `
+Status: AMENDMENT_REVIEWED — exact-hash Requirement, Architecture, Python Automation, Tester, Security and DevOps approvals are complete; S3D is pending. Version 1.33 defines proposed S449-02D/E/F and conditional S449-02G/H/I; no new slice execution, host read, host/scenario GO or mutation is authorized yet. Prior 509908 runner/test, approval and S3D evidence is historical to its exact tuple. WSL route capture remains JIT_COMMAND_FAILED; WSL preflight reports the Windows Subsystem for Linux feature disabled and proposes a Windows restart; native preflight remains BLOCKED by active snap.lxd.daemon.service. AC1–AC4 are partial; AC5/W10, current admission, scenario GO and live evidence remain open.
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
 Workflow authoring branch: `docs/workflow-lcm-w09-route-baseline-20261027`
 Baseline: `a0310224946b63e2152ff4086d22a450c3d0f214`
+Workflow amendment v1.33: S449-02D/E/F and conditional S449-02G/H/I have complete exact-hash Requirement, Architecture, Python Automation, Tester, Security and DevOps reviews. S3D release remains pending. The existing S449-02 pre-GO S3D plan authorizes only its original exact read-only phase and does not authorize these slices or new host commands.
 Execution profile: `FULL_PATH — lifecycle/provider implementation, regression, documentation, native and WSL2 qualification`
 
 ## Executive Summary
@@ -81,6 +82,14 @@ evidence and current independent approval. Unrelated resources remain protected.
   R449-36–38, all currently open rows, AC1–AC5, inherited W07/R35 disposition,
   W10 handoff and #440 LCM-04 selection-matched routing in
   `.tiny-swarm/evidence/issue-449/requirement_matrix.md`.
+- Acceptance trace details: AC1 requires current command, runtime/version,
+  timestamp and outcome for every host/transition; AC2 requires before/after
+  data, service identity, endpoints and credential-state evidence; AC3 forbids
+  skipped, mocked or login-only checks from satisfying live acceptance; AC4
+  requires cleanup/restoration evidence and explicit unsupported combinations;
+  AC5 traces each parent #440 LCM-01–LCM-05 requirement and W10 handoff to
+  implementation and verification artifacts. These requirements remain open
+  until evidence is reviewed; the workflow amendment does not claim completion.
 - Implicit Requirements: preserve source/runtime provenance, prevent hidden
   route activation, isolate issue447, stop before start until exact effective
   routes pass, recover uncertain outcomes deterministically, protect unrelated
@@ -449,7 +458,9 @@ and the same command with `--target-host 192.168.178.58` and output
 `.tiny-swarm/evidence/issue-449/s449-private-20261027/wsl-pre-go-route-state.json`
 inside WSL.
 `approved_route_state_sha256` binds an independently reviewed pre-run snapshot
-of the TCP/10001 host listener rows, all Incus TCP/10001 profile and instance
+of the TCP/10001 host listener tuples exactly `{protocol, local_address,
+local_port}` (never process IDs, paths or raw `ss` rows), all Incus TCP/10001
+profile and instance
 routes, and the WSL effective ActiveStore firewall profiles/global settings/
 rules/all associated filters plus exact PortProxy bytes (empty on native
 Linux). On WSL, query with Windows PowerShell
@@ -469,36 +480,59 @@ to UTF-8 without BOM, parse the JSON strictly, then serialize with sorted keys,
 compact separators and `ensure_ascii=False` before UTF-8 encoding. Capture
 PortProxy independently as the exact stdout bytes from
 `/mnt/c/Windows/System32/netsh.exe interface portproxy show all`; do not trim,
-decode/re-encode or normalize line endings. Combine the canonical firewall JSON
-and exact PortProxy bytes as base64 values under the fixed
-`firewall_active_store_b64` and `portproxy_raw_b64` keys, then serialize that
-object with sorted keys, compact separators and `ensure_ascii=False` as the
-combined snapshot bytes.
+decode/re-encode or normalize line endings. This is a separate command with a
+30-second timeout and 2 MiB stdout/stderr caps. Keep complete canonical
+firewall JSON and exact PortProxy bytes in memory only. Compute the combined snapshot
+SHA-256 over canonical wrapper bytes, but persist only the digest and approved
+metadata (schema version, collection counts and byte lengths, timestamp, target
+and source identity). Never persist `windows_snapshot_b64`,
+`firewall_active_store_b64`, `portproxy_raw_b64`, raw PowerShell output,
+security filters/ACLs/SIDs or PortProxy bytes in evidence or logs. At run/JIT
+checkpoints retain the complete before/after snapshots only in memory and
+compare exact canonical bytes; digest equality alone does not replace that
+in-process byte equality check.
 The exact PowerShell command string is fixed in the hash-pinned runner; callers
 cannot supply or replace it.
 The listener and route lists may be empty only when commands succeeded,
 their exact empty state is independently reviewed, and the digest binds that
-state. The runner computes the same canonical UTF-8 JSON digest from its
+state. Parse `ss -H -ltnp` in memory, discard process details, and persist only
+the sorted safe listener tuples, count and SHA-256 of their canonical JSON;
+never retain raw rows, PIDs, process names or executable paths in logs or
+artifacts. The runner computes the same canonical UTF-8 JSON digest from its
 post-reservation read-only JIT and requires a match before any Incus write.
 Enumerate projects with read-only `incus project list --format json`; reject
 malformed results, missing/empty or duplicate names, and require `default`.
 Strictly read each project's metadata and enumerate its profiles and instances
 using that explicit project. Read each profile's complete config/devices and
-each instance's complete config/devices/profiles. TCP/10001 proxy route records
-carry exactly the project and owner identity plus the complete route device
-configuration and effective profile list. Sort project names lexically and
-sort routes by `(project, owner_type, owner, device)`. This inventory is
+each instance's complete config/devices/profiles in memory. Persisted
+`incus_10001_routes` rows have exactly `{project, owner_type, owner, device,
+device_type, effective_profiles, listen, connect, bind}`. `project`, `owner`,
+`device` and profile names are validated Incus identifiers; `owner_type` is
+exactly `profile|instance`; `device_type` is exactly `proxy`;
+`effective_profiles` is sorted unique validated names. A source route device is
+projectable only when its complete key set is exactly `{type,listen,connect,bind}`
+and `type=proxy`; any optional or unknown key fails closed.
+`listen` and `connect` are objects exactly `{protocol,address,port}` with
+`protocol=tcp`, normalized IP literal or approved inventory target address,
+integer port 1..65535, and `listen.port=10001`. `bind` is exactly `host` or
+`instance`. Reject unknown fields, protocols, values, device keys, paths,
+host-path sources or malformed addresses before artifact creation. Keep full
+route/device configs only in memory; never persist raw config, arbitrary host
+paths or raw route JSON. Sort project names lexically and sort safe route rows
+by `(project, owner_type, owner, device)`. This inventory is
 read-only across all projects; S449 profile reconciliation and fixture
 mutations remain limited to Incus project `default`.
 
-The digest payload has exactly four fields: `listeners_10001_b64` (sorted
-base64 values for the exact `ss -H -ltnp` rows), `incus_projects` (sorted
-project-name strings), `incus_10001_routes` (the sorted project-bound route
-records), and `windows_snapshot_b64` (base64 of the combined Windows snapshot;
-empty bytes on native Linux). Serialize the payload as UTF-8 JSON with sorted
-object keys, compact separators and `ensure_ascii=False`, then compute
-SHA-256. The pre-GO capture artifact records the same project names, route
-records and digest. A mismatch is durably recorded as
+The route digest payload has exactly five fields: `listeners_10001_count`,
+`listeners_10001_sha256` (digest of sorted safe listener tuples, never raw
+`ss` rows), `incus_projects` (sorted project-name strings),
+`incus_10001_routes` (sorted project-bound route records), and
+`windows_snapshot_sha256` (combined Windows snapshot digest; empty string on
+native Linux). Serialize the payload as UTF-8 JSON with sorted object keys,
+compact separators and `ensure_ascii=False`, then compute SHA-256.
+The pre-GO capture artifact records project names, route records, approved
+snapshot metadata and digests only; no snapshot contents or raw PortProxy bytes
+are retained. A mismatch is durably recorded as
 `BLOCKED_TARGET_DRIFT`.
 In normal one-shot run mode, read the GO once as a no-follow regular file, compare its raw bytes with caller
 `--expected-approval-sha256`, then parse strict UTF-8 JSON; reject duplicate
@@ -508,7 +542,8 @@ host/Incus command and no lock/evidence mutation. The separate pre-GO
 `--capture-route-state` mode is read-only except for creating its exclusive
 mode-0600 evidence artifact. Its artifact contains the complete read-only
 Incus project-name inventory and project-bound TCP/10001 profile and instance
-routes, in addition to listener rows and the WSL snapshot where applicable.
+routes, in addition to sanitized listener tuples/count/digest and snapshot
+metadata/digest where applicable.
 Then acquire an exclusive O_EXCL reservation and
 byte-exact `NOT_RUN` evidence recheck in normal mode; capture mode does not read,
 create or mutate GO, result, reservation or `NOT_RUN` files. Only after
@@ -557,17 +592,547 @@ read/reservation/NOT_RUN artifact, owned mode-0700 directory,
 exclusive no-follow mode-0600 output with no overwrite or symlink acceptance,
 and byte-identical
 snapshot/digest parity with JIT. Record exact source/test hashes for S02.
-Historical v1.32 evidence: runner/test `f37ab8fbe98b288b75451b8798607d588b2bef0458f6730cf8af405acc740628` / `8168ffbdcf0a5ac816134c23a25de1052f276189f4ab60066ffb7ebeb9e45668`, 85 focused tests, and full QUALITY log SHA-256 `247da0bd35bbf91138811ba7355f39681fd7dc5b3e47c78474cdc4b806a90e26` remain historical and are not current candidate evidence. Current candidate runner SHA-256 `7929f9dc5d6fea32c55125c3b9f8fb4f02b72a07d3ea0ef80cb0a2aea6279c12`; test SHA-256 `6f888dc59182c7b02ed86fd3e80ddbadb5d7e5a6286e27b4c67d5d3eeb7fcba3`; focused suite 95 PASS on approved PC WSL. Full QUALITY PASS: GATE_EXIT=0 on Python 3.14.4 in a private venv with CI-pinned tools; 43 architecture tests, 2,969 total tests, 18 skipped; private log SHA-256 `daa2d3952b97aef496035ea773ede718fa5e79e61df1f832c9761ab15126e8df`, file mode 0600, parent directory mode 0700. This exact candidate was not run on CI Python 3.12. Available native and WSL project inventories and route captures are from pre-candidate checkout be2e031e8f0fb137ea6c15f74d81a88181aa4183; they are not exact-current-candidate evidence for branch HEAD a286b22. The native route-state PASS digest fe31f78643962ce3757e8bcfc8cc8ed1e9c9eb46a2c1728f52f773fbc2f84758 is historical to that checkout. WSL route-state capture returned JIT_COMMAND_FAILED and is not a pass. Current native read-only preflight is blocked by active snap.lxd.daemon.service; no normalized current-candidate admission exists. S3D outcomes are hash-bound and phase-scoped; an `EXECUTION_PLAN` authorizes only its specified phase. Host admission and per-host/per-scenario GO are separate and unproven; no host mutation is claimed. Any later phase requires an `EXECUTION_PLAN` bound to its exact hashes. Native read-only preflight is blocked by active `snap.lxd.daemon.service`. The pre-candidate native inventory showed only the default LXD project and three stopped TSW containers; no host-stop GO exists. Pre-candidate native resource observations were 8 CPUs, 20,111,052,800 bytes MemTotal, 15,452,803,072 bytes MemAvailable, 724,140,146,688 bytes free disk, ext4 `/`, and `incus version` reports Client/Server 6.0.5. For native R449-33, the accepted resource floor is 18,253,611,008 bytes (17 GiB), CPU >= 8 and free disk >= 150 GiB; observed MemTotal, CPU and disk meet those numerical floors. The 19 GiB default-node guard applies only where that baseline applies; the accepted ADR supports a 17 GiB TSW_INFRA_ROOT override for this host. MemAvailable is recorded as an observation, not an admission threshold. This numerical comparison is not a normalized resource-admission artifact or PASS: active snap.lxd.daemon.service blocks read-only service-access preflight, and the exact admission artifact and per-scenario GO are absent. Incus 6.0.5 does not establish capability support. The private ext4 approval record at `.tiny-swarm/evidence/issue-449/s449-private-20261027/workflow-execution-approval-current-20261028.md` binds its exact workflow/context hashes and four role decisions; its directory is mode 0700 and file mode 0600. Workflow execution requires all four `APPROVED` decisions and S3D `EXECUTION_PLAN` for the same tuple. Per-host/per-scenario GO and normalized host admission are separate prerequisites.  The current candidate has no host/scenario GO or normalized admission. The v1.32 approval record and its S3D result remain historical. No host admission, scenario GO, or target mutation is claimed.
+Historical v1.32 evidence: runner/test `f37ab8fbe98b288b75451b8798607d588b2bef0458f6730cf8af405acc740628` / `8168ffbdcf0a5ac816134c23a25de1052f276189f4ab60066ffb7ebeb9e45668`, 85 focused tests, and full QUALITY log SHA-256 `247da0bd35bbf91138811ba7355f39681fd7dc5b3e47c78474cdc4b806a90e26` remain historical and are not current candidate evidence. Current candidate runner SHA-256 `7929f9dc5d6fea32c55125c3b9f8fb4f02b72a07d3ea0ef80cb0a2aea6279c12`; test SHA-256 `6f888dc59182c7b02ed86fd3e80ddbadb5d7e5a6286e27b4c67d5d3eeb7fcba3`; focused suite 95 PASS on approved PC WSL. Full QUALITY PASS: GATE_EXIT=0 on Python 3.14.4 in a private venv with CI-pinned tools; 43 architecture tests, 2,969 total tests, 18 skipped; private log SHA-256 `daa2d3952b97aef496035ea773ede718fa5e79e61df1f832c9761ab15126e8df`, file mode 0600, parent directory mode 0700. This exact candidate was not run on CI Python 3.12. Older inventories and captures from pre-candidate checkout be2e031e8f0fb137ea6c15f74d81a88181aa4183 are historical and not exact-source evidence for 509908; current 509908 native inventory/route evidence and WSL capture failure are recorded in context-pack.md. The native route-state PASS digest fe31f78643962ce3757e8bcfc8cc8ed1e9c9eb46a2c1728f52f773fbc2f84758 is historical to that checkout. WSL route-state capture returned JIT_COMMAND_FAILED and is not a pass. Current native read-only preflight is blocked by active snap.lxd.daemon.service; no normalized current-candidate admission exists. S3D outcomes are hash-bound and phase-scoped; an `EXECUTION_PLAN` authorizes only its specified phase. Host admission and per-host/per-scenario GO are separate and unproven; no host mutation is claimed. Any later phase requires an `EXECUTION_PLAN` bound to its exact hashes. Native read-only preflight is blocked by active `snap.lxd.daemon.service`. The pre-candidate native inventory showed only the default LXD project and three stopped TSW containers; no host-stop GO exists. Pre-candidate native resource observations were 8 CPUs, 20,111,052,800 bytes MemTotal, 15,452,803,072 bytes MemAvailable, 724,140,146,688 bytes free disk, ext4 `/`, and `incus version` reports Client/Server 6.0.5. For native R449-33, the accepted resource floor is 18,253,611,008 bytes (17 GiB), CPU >= 8 and free disk >= 150 GiB; observed MemTotal, CPU and disk meet those numerical floors. The 19 GiB default-node guard applies only where that baseline applies; the accepted ADR supports a 17 GiB TSW_INFRA_ROOT override for this host. MemAvailable is recorded as an observation, not an admission threshold. This numerical comparison is not a normalized resource-admission artifact or PASS: active snap.lxd.daemon.service blocks read-only service-access preflight, and the exact admission artifact and per-scenario GO are absent. Incus 6.0.5 does not establish capability support. The private ext4 approval record at `.tiny-swarm/evidence/issue-449/s449-private-20261027/workflow-execution-approval-current-20261028.md` binds its exact workflow/context hashes and four role decisions; its directory is mode 0700 and file mode 0600. Workflow execution requires all four `APPROVED` decisions and S3D `EXECUTION_PLAN` for the same tuple. Per-host/per-scenario GO and normalized host admission are separate prerequisites.  The current candidate has no host/scenario GO or normalized admission. The v1.32 approval record and its S3D result remain historical. No host admission, scenario GO, or target mutation is claimed.
 sanitization, schema rejection, output metadata, sanitized-artifact-only hash,
 private exclusive ext4 write, and no GO/reservation/NOT_RUN/Incus-write behavior.
 S449-02 may not collect or claim this inventory before that implementation and
 until required same-hash reviews, full QUALITY and S3/S3D pass.
 
 
+#### Workflow amendment v1.33 — new phases are not covered by historical S3D
+
+The S449-02D, S449-02E and S449-02F slices below are planned and unreleased.
+The existing S449-02 pre-GO `EXECUTION_PLAN` is bound to its original hashes
+and exact read-only phase; it does not authorize these new code slices, new
+host reads, live fixture actions, Incus mutations, service/system changes,
+installations or upgrades. Before any amended slice or its host read phase,
+obtain fresh same-hash Requirement, Architecture, Python Automation, Tester,
+Security and DevOps reviews and a fresh S3D `EXECUTION_PLAN` for that exact
+phase. Work remains limited to native `192.168.178.33` and WSL2
+`192.168.178.58`. The current WSL route capture is still `JIT_COMMAND_FAILED`;
+the native service-access preflight is still blocked by active
+`snap.lxd.daemon.service`. Neither state is a pass or host/scenario GO.
+
+Amendment clarification (execution-phase update, not workflow creation): the
+original request is to complete #449 on the two approved test hosts. The
+interpreted intent of this amendment is to provide reviewed, bounded paths for
+the WSL full-snapshot failure and native LXD/Incus ownership blocker. Change
+type is workflow sequencing and qualification evidence; affected areas are the
+Incus fixture, the PowerShell snapshot boundary, and native runtime evidence.
+Explicit requirements are to preserve all firewall/PortProxy state and avoid
+activating shared routes, prove native ownership before any maintenance, and
+bind new execution to fresh hashes/reviews/S3D. Implicit requirements include
+strict output bounds, private sanitized evidence and a separate GO for every
+mutation. Assumptions are limited to the user's existing authorization to
+qualify only the two listed test hosts and replace the three named TSW
+instances. Non-goals are changing Windows networking, touching unrelated
+resources, treating historical captures as current, or claiming #449 complete.
+Risks are incomplete host inventory, stale hash bindings, route activation and
+service disruption. Open decisions: whether S449-02F proves exclusive TSW
+ownership; whether the full WSL snapshot completes under the bounded timeout;
+and whether each host reaches current admission/GO. No question blocks this
+planning amendment, but all listed evidence gates block execution. Confidence
+is 80% until exact captures; decision is `PROCEED_WITH_ACCEPTED_ASSUMPTIONS`
+for this amendment only, not release of any live phase.
+
+The three slices are sequential because the workflow/context, runner, tests
+and live evidence contracts overlap. Preserve full firewall and PortProxy
+capture, the TCP/10001 exposure boundary, private ext4 evidence requirements,
+and fail-closed behavior.
+
+##### Slice 02D — Isolate the disposable fixture from shared default routes
+
+Purpose: prevent a disposable Incus fixture from activating any proxy inherited
+from the shared `default` profile. The derived profile retains only explicitly
+allowlisted safe config keys and device shapes; it does not copy every
+non-proxy setting or device.
+
+Prerequisites: S449-02C; fresh approvals and S3D `EXECUTION_PLAN` for this
+code/test slice; no host fixture execution. The current S449-02 pre-GO plan does
+not authorize this implementation.
+
+Before any write, capture the complete default profile in memory only, compute
+its canonical SHA-256 over the UTF-8 bytes of compact JSON with lexically sorted
+object keys, separators exactly `,` and `:`, and `ensure_ascii=false`,
+serializing exactly `{"config": <complete source config>, "devices": <complete
+source devices>}`. Accept only finite JSON values (`null`, booleans, strings,
+finite numbers, arrays and objects with string keys); reject NaN/infinities,
+non-JSON types and invalid Unicode before hashing or writing. Parse source
+Incus profile JSON with duplicate-key rejection at every object before
+canonicalization; duplicate top-level or nested config/device keys fail closed
+before hashing or any write.
+S449-02D source-profile reads use the same bounded inventory command contract
+as amended S449-02 capture: at most 256 commands total, 300 seconds aggregate
+wall-clock, 30 seconds per command, 2 MiB each for stdout and stderr per
+command, 16 MiB aggregate output, 8 MiB serialized sanitized artifact, and
+10,000 total entities. Counts/bytes exactly at each maximum are accepted;
+limit+1 is rejected. Exactly 30/300 seconds is accepted only when the command
+or run completes within the deadline; any overrun is rejected. Cap exhaustion,
+timeout, malformed or incomplete data fails closed before writes and creates
+no artifact. Strict duplicate-key rejection applies at every depth to every
+LXD/Incus/project/profile/instance JSON response before schema validation or
+artifact creation.
+Bind that digest plus exact sorted `used_by` list and allowlisted profile
+identity metadata into GO. Never persist source profile
+config/device values, arbitrary paths or raw source profile JSON in GO, results,
+logs or artifacts. Re-read and compare the full source profile in memory before
+each write, at every lifecycle checkpoint and after cleanup; persist only the
+digest and sanitized result. Derive a temporary base profile retaining only
+config keys from this explicit safe allowlist: `limits.cpu` as a positive
+integer, `limits.memory` as a positive integer with optional `KiB`, `MiB` or
+`GiB` suffix, and source `boot.autostart` as exactly `true` or `false`. Omit
+`boot.autostart` from the derived base profile when source is false; force it to
+`false` when source is true, so the fixture can never autostart. Missing keys
+are allowed; do not coerce or normalize other values. Reject every other key/value,
+including `security.privileged`, `security.nesting`, `raw.lxc`,
+`linux.kernel_modules`, every `linux.*`, `idmap.*`, malformed values and
+unknown config fields before any write. Device schemas are exact: root disk is
+exactly `{type: disk, path: /, pool: <approved pool>}` with map key `root`;
+bridge NIC is exactly `{type: nic, name: eth0, network: <approved bridge>}`
+with the approved map key. No optional metadata keys are accepted. Reject
+proxy devices, host-path bind mounts, unknown device types/keys, missing or
+extra required fields, unapproved pool/network names and unknown shapes before
+any write. Never copy arbitrary non-proxy devices. Never attach, edit, rename or
+delete the shared `default` profile. Attach only this temporary base profile
+and the unique fixture profile with its approved loopback-only listener. Extend
+the exact GO schema with `fixture_base_profile_sha256`, computed as SHA-256 of
+UTF-8 compact JSON with sorted keys and `ensure_ascii=false` for exactly
+`{"config": <allowlisted sanitized config>, "devices": <allowlisted sanitized devices>}`;
+its digest and safe device identity enums may be persisted, but not raw source
+profile data or arbitrary device paths. Logs and artifacts must redact all
+config/device values outside the fixed safe allowlist. The approved sorted
+consumer list must be checked again in memory immediately before every write;
+any drift blocks before mutation. Also add exact `target.base_profile`; change
+ordered cleanup to
+`[instance, fixture_profile, fixture_base_profile]`. Cleanup deletes the
+instance first, then the two temporary profiles, including all partial-create
+failure prefixes. At every lifecycle checkpoint and after cleanup, re-read the
+shared default profile, its consumers, all-project route inventories and the
+approved listener/route digest; they must equal the baseline. The expanded
+fixture profiles/devices must exactly match the sanitized base plus fixture
+profile. Deterministic tests must cover each allowed device shape and reject
+host-path bind mounts, proxy devices, unknown/extra keys, unknown device types,
+unapproved pool/network references and malformed fields before the first write;
+tests must also cover every allowed config key/value, prove source
+`boot.autostart=true` yields a derived `false` and never starts automatically,
+and reject privileged,
+raw LXC, kernel-module, idmap, unknown-key and malformed-value config before
+the first write. Tests must assert GO/result/log/artifact schemas contain no
+raw source config, device values or arbitrary paths. They must prove the exact
+sorted default `used_by` list is GO-bound; a consumer-list change at any
+checkpoint blocks; and consumer drift immediately before any write causes zero
+writes. Add canonicalizer known-answer tests: empty profile bytes
+`{"config":{},"devices":{}}` must hash to
+`079aa36c8373b157f411a389cd569d038a5da42dfcb380ba625a366cc95205c3`; Unicode
+bytes `{"config":{"user.note":"München"},"devices":{}}` must hash to
+`cc7a06da6878973e8431910042d01f3ff1a8a7bafb972917a3ee329436fddd2c`.
+Equivalent mappings with different key insertion order must produce identical
+canonical bytes and hashes. Reject non-finite numbers and non-JSON types.
+Tests must reject duplicate keys at every level of the source profile JSON,
+including duplicate `config` or `devices` keys, and duplicate keys in every
+LXD/Incus inventory response, before schema/artifact creation and with zero
+writes. Paired boundary tests must prove exact-limit acceptance and limit+1 or
+over-deadline rejection for per-stream bytes, aggregate output, serialized
+artifact size, entity count, command count, per-command elapsed time and
+aggregate elapsed time. Use deterministic fake clock/subprocess fixtures;
+every over-limit case must produce zero host writes and no artifact.
+Repeated hashing of an unchanged full source profile must yield the same digest.
+A source config/device change after baseline capture must be
+detected in memory and block before the first write with zero writes. A
+populated wildcard TCP/10001 baseline is preserved and never copied to or
+activated by the fixture.
+
+```yaml
+slice_id: S449-02D
+profile: BACKEND_AND_TESTS
+owner: Senior Python Automation Developer
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior DevOps Engineer, Senior Tester]
+affected_files: [documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, tools/qualification/incus_profile_listener_fixture.py, tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py, .codex/evidence/slice-449-02D-distribution.md, .codex/evidence/slice-449-02D-consolidation.md]
+affected_modules: [Incus disposable listener fixture, GO validation, profile derivation and cleanup]
+affected_contracts: [exact GO schema and target.base_profile binding, sanitized default-derived temporary base profile, loopback fixture profile, effective profile/device validation, shared default/consumer/route immutability, partial-prefix cleanup order]
+dependencies: [S449-02C]
+parallel_group: sequential
+file_locks: [documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, tools/qualification/incus_profile_listener_fixture.py, tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py, .codex/evidence/slice-449-02D-distribution.md, .codex/evidence/slice-449-02D-consolidation.md]
+module_locks: [Incus fixture profile lifecycle, exact GO contract]
+contract_locks: [shared default profile read-only, no inherited proxy devices, fixture profile tuple, cleanup order and failure-prefix behavior, route-state digest]
+architecture_locks: [fail-closed live qualification boundary]
+quality_gates:
+  targeted: [PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_lxc_profile_listener_fixture]
+  required: [python3 tools/quality_gate.py quality]
+documentation:
+  arc42: no change
+  adr: no change; preserve shared-profile ownership and route boundary
+stop_conditions: [unknown default profile field/device, proxy copied to fixture base, host-path bind mount, unknown device key/type/shape, unapproved root pool or bridge network, exact default used_by baseline mismatch at any checkpoint, shared default profile/consumer/route drift, invalid GO/schema/hash binding, cleanup failure or wrong order, any host fixture or Incus write before fresh scenario GO]
+```
+
+##### Slice 02E — Bound and preserve complete WSL route snapshots
+
+Purpose: make the WSL read-only route-state/JIT snapshot complete and reliably
+bounded while retaining the full ActiveStore firewall, all associated filter
+families and exact PortProxy bytes.
+
+Prerequisites: S449-02D; fresh same-hash approvals and S3D `EXECUTION_PLAN` for
+this code/test slice; no host capture until implementation and quality gates
+pass. This slice shares runner/tests with S449-02D and cannot run in parallel.
+
+First apply the bounded fix to the distinct subprocesses. Only the complete
+PowerShell ActiveStore firewall snapshot gets the timeout exception: at most
+120 seconds, stdout <=14 MiB and stderr <=2 MiB. The separate `netsh ...
+portproxy show all` command remains at most 30 seconds with stdout/stderr <=2
+MiB each. Every byte from both commands contributes to the shared 16 MiB
+aggregate output cap; each command counts toward the shared 256-command limit,
+and both durations count toward the 300-second aggregate wall-clock cap. The
+sanitized artifact remains capped at 8 MiB. Any cap+1, timeout, or aggregate overrun
+fails closed before artifact creation or host writes. Preserve kill/reap
+behavior, strict parsing and byte accounting. Keep per-rule filter
+query semantics. If the full snapshot still fails, stop and request a separately
+reviewed design before attempting bulk CIM joins; never remove rules, filter
+families, profiles, settings or PortProxy entries to make capture pass. Tests
+must distinguish timeout from nonzero exit; reject missing, duplicate, orphaned,
+malformed or unexpected associated-filter results; prove all eight filter
+families and complete canonical snapshot semantics, stable digest over the full
+snapshot, exact in-memory before/after byte equality, exact PortProxy preservation,
+absence of `windows_snapshot_b64` and other raw/base64 snapshot fields, and
+redaction of raw output, ACL/SID and PortProxy bytes from artifacts/logs. The
+PowerShell tests must prove exact 120 seconds and 14 MiB/2 MiB stream caps are
+accepted, while timeout+1 and cap+1 fail closed. Separate `netsh` tests prove
+exact 30 seconds and 2 MiB/2 MiB accepted and timeout/cap+1 rejected. Combined
+tests prove both commands' bytes/counts/durations share the 16 MiB/256/300s
+budgets, including exact aggregate acceptance and +1/overrun failure. All
+snapshot bytes count toward aggregate limits. Route artifact tests must prove only safe
+listener tuples/count/digest are persisted and raw `ss` rows, PIDs, process
+names and paths are absent. Tests must verify exact nine-field
+`incus_10001_routes` rows and value types/enums, reject unknown source proxy
+keys, malformed endpoints and host paths before artifact creation, and prove
+raw route config/JSON never appears in evidence or logs. The
+eight associated collections are
+the profile collection plus seven rule-filter families: address, application,
+interface, interface type, port, security and service. Any later bulk-query optimization must
+prove complete ActiveStore equivalence first.
+
+```yaml
+slice_id: S449-02E
+profile: BACKEND_AND_TESTS
+owner: Senior Python Automation Developer
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior DevOps Engineer, Senior Tester]
+affected_files: [documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, tools/qualification/incus_profile_listener_fixture.py, tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py, .codex/evidence/slice-449-02E-distribution.md, .codex/evidence/slice-449-02E-consolidation.md]
+affected_modules: [WSL PowerShell ActiveStore snapshot, route-state capture, fixture JIT]
+affected_contracts: [bounded snapshot timeout and output caps, full firewall profiles/settings/rules and eight associated filter families, exact PortProxy bytes, strict associations, canonical digest parity, raw output redaction]
+dependencies: [S449-02D]
+parallel_group: sequential
+file_locks: [documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, tools/qualification/incus_profile_listener_fixture.py, tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py, .codex/evidence/slice-449-02E-distribution.md, .codex/evidence/slice-449-02E-consolidation.md]
+module_locks: [WSL full route-state capture]
+contract_locks: [complete ActiveStore snapshot, all associated filter families, exact PortProxy bytes, bounded command failure behavior]
+architecture_locks: [fail-closed live qualification boundary]
+quality_gates:
+  targeted: [PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_lxc_profile_listener_fixture]
+  required: [python3 tools/quality_gate.py quality]
+documentation:
+  arc42: no change
+  adr: no change; retain TCP/10001-only exposure and unchanged Windows networking
+stop_conditions: [timeout or nonzero snapshot failure, incomplete/ambiguous filter association, output cap breach, raw SID-rich output persistence/logging, firewall or PortProxy mutation, reduced snapshot scope]
+```
+
+##### Slice 02F — Capture native LXD/Incus ownership without mutation
+
+Purpose: investigate the native preflight blocker with bounded, sanitized,
+read-only evidence distinguishing the active LXD daemon from the Incus endpoint
+and enumerating visible LXD projects, instances, profiles, networks, storage
+pools and consumers.
+
+Prerequisites: S449-02D and S449-02E; fresh same-hash reviews and S3D
+`EXECUTION_PLAN` explicitly naming this native diagnostic phase. The existing
+pre-GO plan does not authorize these new commands. Run only on native Linux
+`192.168.178.33`, from the exact approved ext4 candidate, writing a sanitized
+mode-0600 artifact below the existing owner-only mode-0700 evidence directory.
+The checkout and evidence directory must be ext4; verify the directory is mode
+0700 before capture and each evidence file mode 0600 after exclusive creation.
+Do not contact WSL or another host in this slice.
+
+Use a fixed command allowlist for LXD/Incus versions/endpoints, `systemctl
+is-active` and `systemctl show` on only the three known LXD units. For the two
+service units, `systemctl show` may request only `LoadState`, `ActiveState`,
+`SubState`, `UnitFileState` and `MainPID`; for the socket unit, those same
+properties plus `Listen` only. Never request or retain `Environment`,
+`ExecStart`, command lines or environment values. The socket unit must have
+`MainPID=0`; do not resolve its executable identity. For each active service
+unit, resolve the executable identity and compare it in memory with expected
+LXD executable/package identity. Inspect only fixed, documented LXD and Incus Unix socket endpoints;
+compare the endpoint path in memory to the fixed allowlist and record only its
+symbolic endpoint ID and state. Bind unit, MainPID, executable identity and
+socket endpoint state to the read-only resource inventory. Any mismatch or
+unavailable identity/socket remains `BLOCKED`.
+
+Every LXD inventory command must include global `--force-local` before its
+subcommand, bypassing user-configured remotes and contacting only the local
+daemon. Bind this fixed local endpoint identity to the active LXD service unit,
+verified executable identity and matching allowlisted socket unit/path/type.
+Any mismatch or unavailable binding blocks capture; never inspect remote
+aliases or send queries over TCP. Every Incus inventory command must use `incus --force-local` before the subcommand and bind to its independently verified Incus socket; never treat an Incus endpoint as LXD.
+Persist only symbolic endpoint IDs, never URLs or socket paths.
+
+Only these LXD units may be inspected: `lxd.service`,
+`snap.lxd.daemon.service` and `snap.lxd.daemon.unix.socket`. Only these socket
+paths may be tested, without returning path text: `/var/lib/lxd/unix.socket`,
+`/var/snap/lxd/common/lxd/unix.socket` and `/var/lib/incus/unix.socket`.
+Resolve `/proc/<MainPID>/exe` only for a service unit with validated positive
+MainPID; compare to the fixed executable identity allowlist and persist an
+identity enum, never the resolved path. For the socket unit require MainPID=0
+and parse `Listen` in memory, normalize it against the fixed socket-path
+allowlist, and persist only symbolic endpoint ID/type/state. Test socket
+existence/type with fixed `test -e`/`test -S` argv and bind the result to that
+normalized `Listen` endpoint.
+
+Exact command templates are `systemctl is-active --quiet <allowlisted-unit>`;
+`systemctl show <service-unit> --property=LoadState --property=ActiveState
+--property=SubState --property=UnitFileState --property=MainPID --no-pager`;
+for the socket unit only, this exact argv with `--property=Listen` added;
+`readlink -f /proc/<validated-MainPID>/exe`; fixed `test -e <allowlisted-socket>`
+and `test -S <allowlisted-socket>`; `lxc --force-local version`; and, for
+projects/resources, `lxc --force-local project list --format json`; per project,
+`lxc --force-local project show <project> --format json`,
+`lxc --force-local profile list --project <project> --format json`,
+`lxc --force-local profile show <profile> --project <project> --format json`,
+`lxc --force-local list --project <project> --format json`,
+`lxc --force-local config show <instance> --project <project> --format json`,
+`lxc --force-local config show <instance> --project <project> --format json --expanded`,
+`lxc --force-local network list --project <project> --format json`,
+`lxc --force-local network show <network> --project <project> --format json`,
+`lxc --force-local storage list --project <project> --format json` and
+`lxc --force-local storage show <pool> --project <project> --format json`. Prefix each corresponding command with `incus --force-local`; if the installed CLI does not support this documented local-only flag, remain BLOCKED.
+Every command has timeout <=30 seconds, stdout <=2 MiB and stderr <=2 MiB;
+aggregate output <=16 MiB; sanitized artifact <=8 MiB; entities <=10,000;
+total commands <=256 and aggregate wall-clock time <=300 seconds. Any cap,
+timeout, nonzero exit or incomplete
+inventory yields `BLOCKED` with no artifact.
+
+The artifact schema is exactly `{schema_version,target_host,source_commit,
+captured_at_utc,lxd_units,lxd_executables,sockets,lxd_projects,
+incus_projects,command_records,decision}`. Service-unit rows contain exactly
+`{unit,load_state,active_state,sub_state,unit_file_state,main_pid}`; the socket
+unit row contains exactly those fields plus `listen`; executable
+rows exactly `{unit,main_pid,identity_id,package,version}`; socket rows exactly
+`{endpoint_id,state,unit}`. Project/resource rows retain only names, status,
+type, profile/consumer links, network/pool identity and device type; do not
+persist device config values, secrets or host paths. Command rows contain only
+`{command_id,safe_args,exit_status,stdout_bytes,stderr_bytes}`. `command_id`
+must be a fixed template enum; `safe_args` may contain only validated unit,
+endpoint, project, profile, instance, network or pool identity tokens. Raw argv,
+socket paths, `/proc` paths, executable paths, URLs and endpoint addresses stay
+memory-only and are never serialized. No raw JSON or raw command output is
+retained or hashed. Unknown fields fail closed before artifact
+creation.
+
+Parse bounded LXD/Incus JSON in memory and persist only the exact schema fields
+needed for project/resource identity, state, type, ownership/consumer links,
+profile identities, endpoint IDs and command metadata. Exclude secrets,
+credential/config values not allowlisted, arbitrary host paths, raw JSON, raw
+argv, command lines and unrelated host configuration; unknown
+resource fields fail closed instead of being copied. Do not log `systemctl
+show` output or resolved executable paths. Persist the executable's allowlisted
+package/basename/version identity and fixed symbolic socket endpoint ID/state,
+not a command line or arbitrary host path. Unknown units, resources, consumers,
+endpoints, schemas or incomplete visibility yield `BLOCKED`; inventory is not
+resource admission, capability support or scenario GO. Regression tests must
+inspect serialized artifacts and logs and assert they contain no raw `argv`,
+socket path, `/proc` path, executable path, URL or endpoint address; only fixed
+command template IDs and validated symbolic safe arguments may be retained.
+
+Do not stop, start, enable, disable, install, remove, reconfigure or otherwise
+mutate LXD/Incus, services, networking, storage, Windows state or host
+resources. If active LXD still blocks native preflight, retain `BLOCKED` and
+route a separate architecture/requirement decision before proposing runtime
+coexistence or maintenance changes.
+
+```yaml
+slice_id: S449-02F
+profile: RUNTIME_QUALIFICATION
+owner: Senior DevOps Engineer
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior Python Automation Developer, Senior Tester]
+affected_files: [documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, tools/qualification/native_runtime_inventory.py, tests/tools/test_native_runtime_inventory.py, .tiny-swarm/evidence/issue-449/s449-private-20261027/native-runtime-inventory.json, .codex/evidence/slice-449-02F-distribution.md, .codex/evidence/slice-449-02F-consolidation.md]
+affected_modules: [native qualification evidence, bounded LXD/Incus inventory]
+affected_contracts: [LXD systemd unit identity/state, LXD-vs-Incus endpoint identity, all-project ownership inventory, strict sanitized private artifact, bounded read-only command allowlist]
+dependencies: [S449-02E]
+parallel_group: sequential
+file_locks: [documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, tools/qualification/native_runtime_inventory.py, tests/tools/test_native_runtime_inventory.py, .tiny-swarm/evidence/issue-449/s449-private-20261027/native-runtime-inventory.json, .codex/evidence/slice-449-02F-distribution.md, .codex/evidence/slice-449-02F-consolidation.md]
+module_locks: [native LXD/Incus runtime ownership evidence]
+contract_locks: [read-only command allowlist, bounded sanitized inventory, unknown state blocks admission]
+architecture_locks: [no host-wide service mutation without separate accepted decision]
+quality_gates:
+  targeted: [PYTHONPATH=src python3 -m unittest tests.tools.test_native_runtime_inventory]
+  required: [python3 tools/quality_gate.py quality]
+documentation:
+  arc42: no change pending a separate accepted coexistence decision
+  adr: no change; inventory alone does not establish LXD/Incus compatibility
+stop_conditions: [unknown/incomplete LXD or Incus visibility, shared or unowned resources, command/output bound exceeded, raw sensitive output retained, any service/system/Incus mutation; exclusive TSW-only LXD ownership routes to conditional S449-02G; unproven ownership remains BLOCKED]
+```
+
+##### Conditional Slice 02G — Native LXD maintenance for TSW replacement
+
+This slice may be authored only if S449-02F exact evidence proves the active
+LXD service owns exclusively the three named TSW instances
+`swarm-manager`, `swarm-worker-1` and `swarm-worker-2`, with no unrelated
+instances, profiles, networks, storage pools, projects, consumers or host
+services. Any unknown, shared or unrelated resource keeps native qualification
+`BLOCKED` and forbids this slice. User authorization to replace these three TSW
+instances does not itself approve a service stop.
+
+If eligible, create a separate maintenance/recovery plan and obtain fresh
+Requirement, Architecture, Security, DevOps and Test/Evidence approval bound to
+one native host/scenario GO before any write. The GO must bind exact source and
+inventory hashes, the exact LXD unit and three instance identities, private
+pre-state and intended new post-state, maintenance window, bounded stop/restart
+commands, expected exit/state at each checkpoint, and qualification-run
+recovery behavior. Store the GO and result only on verified ext4 below the
+existing owner-only evidence directory, mode 0700, with each file mode 0600.
+No backup or restoration of the old three TSW instance
+contents is required; their replacement is explicitly authorized. Stop only
+the exact verified TSW-owned service, replace only the three named TSW
+instances, then restart only that service and verify the intended new runnable
+TSW state, endpoints, network and storage identity. Verify service recovery
+after restart. A host reboot is an optional, separate
+host-wide operation and requires separate explicit authorization, its own exact
+GO and recovery evidence; no reboot is automatic. Never stop,
+restart or modify Incus, another LXD service, unrelated host services, shared
+profiles, firewall/PortProxy state, or any unlisted resource.
+
+```yaml
+slice_id: S449-02G
+profile: RUNTIME_QUALIFICATION
+owner: Senior DevOps Engineer
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior DevOps Engineer, Test/Evidence Reviewer]
+affected_files: [documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, tools/qualification/native_lxd_maintenance.py, tests/tools/test_native_lxd_maintenance.py, .tiny-swarm/evidence/issue-449/s449-private-20261027/native-maintenance-go.json, .tiny-swarm/evidence/issue-449/s449-private-20261027/native-maintenance-result.json, .codex/evidence/slice-449-02G-distribution.md, .codex/evidence/slice-449-02G-consolidation.md]
+affected_modules: [native LXD service maintenance, three TSW instance replacement and recovery]
+affected_contracts: [exact native five-role GO, exact unit and instance allowlist, private pre-state and intended new post-state, bounded stop/restart and service recovery, qualification-run recovery evidence]
+dependencies: [S449-02F]
+parallel_group: serialized-live
+file_locks: [documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, tools/qualification/native_lxd_maintenance.py, tests/tools/test_native_lxd_maintenance.py, .tiny-swarm/evidence/issue-449/s449-private-20261027/native-maintenance-go.json, .tiny-swarm/evidence/issue-449/s449-private-20261027/native-maintenance-result.json, .codex/evidence/slice-449-02G-distribution.md, .codex/evidence/slice-449-02G-consolidation.md]
+module_locks: [native host LXD service and the three allowlisted TSW instances]
+contract_locks: [five-role host/scenario GO, explicit instance allowlist, exact intended new state, qualification recovery and service recovery]
+architecture_locks: [no shared or unowned host resource mutation]
+quality_gates:
+  targeted: [PYTHONPATH=src python3 -m unittest tests.tools.test_native_lxd_maintenance]
+  required: [python3 tools/quality_gate.py quality]
+documentation:
+  arc42: update only if an accepted coexistence decision changes architecture
+  adr: required before changing LXD/Incus coexistence or runtime ownership policy
+stop_conditions: [inventory not exclusive to the three named TSW instances, any unlisted/unknown resource, GO/hash mismatch, ext4/0700/0600 evidence check failure, pre-state drift, stop/restart timeout or unexpected exit, intended new TSW state or qualification recovery failure, optional separately approved reboot recovery failure, any unrelated service/resource/network/storage/profile drift]
+```
+
+##### Conditional Slice 02H — Resolve WSL feature readiness before admission
+
+The current sanitized Windows preflight reports
+`Microsoft-Windows-Subsystem-Linux` disabled and proposes `enable_features`
+with Windows restart scope. This is a current `BLOCKED` prerequisite; no
+feature or configuration change and no restart has occurred. First verify from
+the supported Windows Store WSL operating requirements whether this feature is
+required for the exact WSL installation and distro. Persist only allowlisted
+parsed fields and command metadata on verified ext4 under the owner-only
+evidence directory (directory mode 0700, files mode 0600). Keep raw PowerShell
+output, ACL details and SIDs in memory only; do not place them in logs or
+evidence. If the feature is required, obtain fresh exact-hash Requirement,
+Architecture, Security, DevOps and Test/Evidence approval plus explicit
+Windows-host GO before enabling only the exact feature and restarting Windows.
+Bind the GO to before/after feature state, exact distro and WSL identity,
+command/exit/timestamp, restart and recovery procedure, and unchanged
+firewall/PortProxy snapshots. Verify WSL/distro and service recovery afterward.
+No current read-only S3D plan authorizes enabling the feature or restarting
+Windows.
+
+If authoritative Store WSL requirements establish the optional feature is not
+needed, the existing product preflight still reports it disabled and cannot
+pass unchanged. Remain `BLOCKED` and route a separately reviewed S449-02I
+product-preflight compatibility slice, or obtain explicit exact Windows-host
+GO to enable the feature. Do not infer that documentation makes the current
+preflight succeed.
+
+```yaml
+slice_id: S449-02H
+profile: RUNTIME_QUALIFICATION
+owner: Senior DevOps Engineer
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Test/Evidence Reviewer]
+affected_files: [documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, .tiny-swarm/evidence/issue-449/s449-private-20261027/wsl-feature-readiness.json, .tiny-swarm/evidence/issue-449/s449-private-20261027/wsl-feature-maintenance-go.json, .tiny-swarm/evidence/issue-449/s449-private-20261027/wsl-feature-maintenance-result.json, .codex/evidence/slice-449-02H-distribution.md, .codex/evidence/slice-449-02H-consolidation.md]
+affected_modules: [Windows WSL feature readiness, host maintenance and recovery evidence]
+affected_contracts: [exact feature applicability evidence, explicit Windows-host GO, before/after feature state, exact distro identity, restart/recovery, unchanged firewall/PortProxy]
+dependencies: [S449-02E, S449-02F]
+parallel_group: serialized-live
+file_locks: [documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, .tiny-swarm/evidence/issue-449/s449-private-20261027/wsl-feature-readiness.json, .tiny-swarm/evidence/issue-449/s449-private-20261027/wsl-feature-maintenance-go.json, .tiny-swarm/evidence/issue-449/s449-private-20261027/wsl-feature-maintenance-result.json, .codex/evidence/slice-449-02H-distribution.md, .codex/evidence/slice-449-02H-consolidation.md]
+module_locks: [Windows WSL feature and WSL/distro recovery]
+contract_locks: [no feature enable/restart without explicit exact-hash host GO, complete firewall/PortProxy preservation]
+architecture_locks: [WSL2 host boundary]
+quality_gates:
+  targeted: [git diff --check, verify exact pre/post Windows feature and WSL recovery evidence]
+  required: [independent five-role maintenance review and host-specific GO]
+documentation:
+  arc42: no change
+  adr: no change unless supported WSL platform requirements alter architecture
+stop_conditions: [feature necessity unverified, GO/hash mismatch, unsupported distro, unexpected Windows state, raw PowerShell/ACL/SID output logged or persisted, ext4/0700/0600 evidence check failure, restart/recovery failure, any firewall/PortProxy change; optional-feature outcome routes to S449-02I or explicit Windows-host GO and remains BLOCKED meanwhile]
+```
+
+##### Conditional Slice 02I — Reconcile preflight with supported Store WSL
+
+Author this separate compatibility slice only if S449-02H records authoritative
+Microsoft requirements and exact host evidence showing Store-managed WSL makes
+`Microsoft-Windows-Subsystem-Linux` optional for this target. The existing
+blocker is produced by `prepare_windows.ps1` policy in
+`tools/windows/preparation/Policy.ps1`, before WSL version and distro checks;
+do not change the unrelated Python host-preparation adapter. In `Policy.ps1`
+and its host-fact adapter, permit bypassing only this missing-feature action
+when Store package identity and supported package version are verified, the
+selected distro is observed in the authoritative inventory with generation
+exactly 2, and `VirtualMachinePlatform` is enabled. Require exact typed facts;
+missing/unknown facts, inbox WSL, WSL1, absent/unknown generation, or missing
+VirtualMachinePlatform continue to block. Preserve all other feature checks,
+WSL version/install gates, resource checks, and safety checks. Add deterministic
+mocked policy cases in `tests/windows/prepare-windows.Tests.ps1`, executed by
+`tests/test_prepare_windows.py`; no Windows feature/configuration/restart action
+is permitted. Require fresh same-hash Requirement, Architecture, Python
+Automation, Security and Tester reviews plus phase-specific S3D
+`EXECUTION_PLAN`, targeted test and full QUALITY before a new exact-source
+read-only preflight. If official evidence or any typed fact is unavailable,
+remain `BLOCKED`.
+
+```yaml
+slice_id: S449-02I
+profile: BACKEND_AND_TESTS
+owner: Senior Python Automation Developer
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior DevOps Engineer, Senior Tester]
+affected_files: [documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, tools/windows/preparation/Policy.ps1, tools/windows/preparation/Adapters.ps1, tests/windows/prepare-windows.Tests.ps1, tests/test_prepare_windows.py, .codex/evidence/slice-449-02I-distribution.md, .codex/evidence/slice-449-02I-consolidation.md]
+affected_modules: [Windows preparation policy and host-fact adapters]
+affected_contracts: [authoritative Store WSL feature applicability, explicit distro/platform compatibility rule, unchanged independent resource/safety checks, no Windows host mutation]
+dependencies: [S449-02H]
+parallel_group: sequential
+file_locks: [documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, tools/windows/preparation/Policy.ps1, tools/windows/preparation/Adapters.ps1, tests/windows/prepare-windows.Tests.ps1, tests/test_prepare_windows.py, .codex/evidence/slice-449-02I-distribution.md, .codex/evidence/slice-449-02I-consolidation.md]
+module_locks: [WSL Windows preparation feature preflight]
+contract_locks: [optional Windows feature applicability, fail-closed WSL identity and capacity validation]
+architecture_locks: [Linux/WSL-only host preparation boundary]
+quality_gates:
+  targeted: ["SSH approved PC WSL; from verified repo root run: PYTHONPATH=src python3 -m unittest tests.test_prepare_windows.TestWindowsPreparation.test_mocked_pre_linux_lifecycle_and_preservation_contract"]
+  required: [python3 tools/quality_gate.py quality]
+documentation:
+  arc42: no change
+  adr: no change unless the supported WSL platform contract changes
+stop_conditions: [official applicability evidence missing/ambiguous, Store package identity/version not verified, selected distro generation not exactly 2, VirtualMachinePlatform missing/unknown, inbox/unknown WSL channel, weakened resource checks, any Windows feature/config/restart action, tests or quality gate fail]
+```
+
+Only after S449-02D/E/F pass their fresh reviews and S3D phases may a new
+S449-02 pre-GO capture run. It must use the amended exact-source candidate and
+produce current per-host route state, resource admission and project/runtime
+inventory. Native S449-02 remains blocked unless conditional S449-02G is
+eligible and separately passes. WSL S449-02 remains blocked until the feature
+requirement is verified; if enabling the Windows feature is required,
+conditional S449-02H must pass its exact host GO. Each host then remains
+independently gated by its own admission and scenario GO. A host-specific
+five-role GO remains mandatory before the
+disposable fixture, any Incus/profile/instance write, installation, upgrade,
+service/system change or recovery test. Current route capture and native
+preflight remain failures/blockers, not passes.
+
 #### S449-02 per-scenario read-only admission and inventory phase (separate from S449-02C)
 
-Begin only after exact S449-02C source, runner/tests and required reviews are
-approved. Inspect only native Linux `192.168.178.33` and PC WSL2
+Begin only after exact S449-02C/02D/02E/02F source, runner/tests and required
+reviews are approved and a fresh S3D plan authorizes this read-only phase.
+Inspect only native Linux `192.168.178.33` and PC WSL2
 `192.168.178.58`, with the exact approved Ubuntu WSL distro identity. Store all
 artifacts beneath `.tiny-swarm/evidence/issue-449/s449-private-20261027/` on
 verified ext4 checkout, directory mode 0700 and files mode 0600. Fail closed on
@@ -575,8 +1140,10 @@ unknown distro, failed commands, incomplete output, unknown schema,
 insufficient capacity, or unverifiable source/filesystem state.
 
 **Exact source and native host admission.** Run from the approved ext4 repository
-root and record argv, exit code and stdout/stderr byte counts for every command.
-Keep only parsed/sanitized values. Hash raw stdout only for the explicit safe
+root and persist only fixed `command_id`, validated symbolic `safe_args`, exit
+code and stdout/stderr byte counts for every command. Never persist argv,
+filesystem paths, URLs, raw output or dynamic raw argument values. Keep only
+parsed/sanitized values. Hash raw stdout only for the explicit safe
 allowlist below; never persist raw stdout or stderr. Run:
 
 ```bash
@@ -631,9 +1198,17 @@ GO. They are tied to `src/tiny_swarm_world/infrastructure/adapters/host/native_p
 and R449-33/R449-34.
 
 **Exact WSL host admission.** Verify the exact selected distro identity is
-Ubuntu. Run the existing read-only Windows preflight; preserve only allowlisted
-parsed resource fields and exit code, plus argv and stdout/stderr byte counts.
-Do not persist or hash raw PowerShell output:
+Ubuntu. The current disabled `Microsoft-Windows-Subsystem-Linux` feature is a
+BLOCKED prerequisite. Verify whether the exact supported Store WSL installation
+requires it. If required, complete conditional S449-02H with its separate
+Windows-host GO and restart/recovery evidence first. If authoritative evidence
+shows it is optional, complete S449-02I's reviewed product-preflight
+compatibility change before rerunning the preflight; an unchanged preflight
+that still blocks cannot count as admission. Unknown applicability remains
+BLOCKED. This pre-GO phase never enables a feature or restarts Windows. Only
+after the applicable H or I path is complete, run the read-only Windows
+preflight; preserve only allowlisted parsed resource fields and exit code plus
+safe command metadata, never argv or raw PowerShell output/hash:
 
 ```powershell
 prepare_windows.ps1 -Distro <exact distro> -Preflight -Json -LinuxCheckout <ext4 ROOT>
@@ -703,8 +1278,8 @@ reserve and post-swap storage checks. `decision` is exactly `PASS` or
 `BLOCKED`; any false, unknown or unavailable required fact makes it `BLOCKED`.
 
 `commands` is ordered command metadata only. Each record is exactly
-`{argv, exit_status, stdout_bytes, stderr_bytes}` and may include
-`stdout_sha256` only for raw stdout of `git status --short --branch`,
+`{command_id, safe_args, exit_status, stdout_bytes, stderr_bytes}` and may
+include `stdout_sha256` only for raw stdout of `git status --short --branch`,
 `nproc --all`, `free -b`, `df -B1 --output=avail "$ROOT"`, or
 `incus version`. No raw command output is persisted; a SHA-256 may be recorded only for this exact command's text stdout. Parse the Client and Server version lines; this observation does not establish capability support.
 Preflight, identity, source/hash and Incus project/config outputs remain
@@ -756,12 +1331,34 @@ cap and the command timeout is 20 seconds. On overflow or timeout, terminate,
 wait 0.5 seconds, then kill and wait if needed; fail closed. Do not persist
 or hash raw output; retain only validated identity values and safe command
 metadata. Direct cap/timeout regressions must prove no artifact is created on
-failure. Direct regressions cover identity stdout/stderr, inventory aggregate output, serialized artifact, total entity and command-count caps; every limit failure must fail closed without creating an artifact.
+failure. Direct regressions cover identity stdout/stderr, inventory aggregate output, serialized artifact, total entity and command-count caps, and the 300-second aggregate wall-clock deadline; every limit failure must fail closed without creating an artifact.
 
 
 The payload top-level is exactly `{schema_version, target_host, source_commit,
 projects, command_records}` with `schema_version` `tsw.incus.project-inventory.v1`.
-Each command record is exactly `{argv, exit_status, stdout_bytes, stderr_bytes}`; metadata only, no output bytes or raw hashes. Each Incus inventory command is capped at 2 MiB independently for stdout and stderr; aggregate captured stdout+stderr across the run is capped at 16 MiB. Sanitized output is capped at 8 MiB before exclusive file creation. The total project/profile/instance/device entity count is capped at 10,000 and total Incus command count at 10,000. Any per-stream, aggregate byte, serialized-artifact, entity or command cap overflow, 30-second timeout, nonzero exit, malformed/unknown field or incomplete visibility fails closed; no sanitized inventory is accepted. Selector-driven collection enforces each 2 MiB stream cap while reading, kills the process on a cap or 30-second timeout, and parses only bounded complete output. It retains only safe byte counts and exit status, never raw Incus output or its hash. No output artifact is created if a limit or validation fails. The pre-existing private ext4 evidence directory must be verified before capture; this read creates the artifact only after bounded capture, sanitization, schema checks and size validation succeed. The remote-list/default reads use the same caps and command-count budget.
+Every capture artifact uses the shared command record schema exactly
+`{command_id, safe_args, exit_status, stdout_bytes, stderr_bytes}`; metadata
+only, no raw argv, paths, URLs, output bytes or output hashes. `command_id` is
+a fixed enum; `safe_args` contains only validated symbolic identifiers such as
+project/profile/instance names and endpoint IDs, never path or URL values.
+Apply this schema to resource admission, route-state and project-inventory
+captures, including the legacy S449-02C mode. Each Incus inventory command is
+capped at 2 MiB independently for stdout and stderr; aggregate captured
+stdout+stderr across the run is capped at 16 MiB. Sanitized output is capped at
+8 MiB before exclusive file creation. The total project/profile/instance/device
+entity count is capped at 10,000, total Incus command count at 256, and
+aggregate capture wall-clock time at 300 seconds. Any per-stream, aggregate
+byte, serialized-artifact, entity or command cap overflow, 30-second
+per-command timeout, aggregate wall-clock overrun, nonzero exit,
+malformed/unknown field or incomplete visibility fails closed; no sanitized
+inventory is accepted. Selector-driven collection enforces each 2 MiB stream
+cap while reading, kills the process on a cap, per-command timeout or aggregate
+deadline, and parses only bounded complete output. It retains only safe byte
+counts and exit status, never raw Incus output or its hash. No output artifact
+is created if a limit or validation fails. The pre-existing private ext4
+evidence directory must be verified before capture; this read creates the
+artifact only after bounded capture, sanitization, schema checks and size
+validation succeed. The remote-list/default reads use the same caps and command-count budget.
 `issue447_inventory_sha256` binds the exact sanitized inventory artifact.
 
 Projects are sorted and each is exactly `{name, isolation, profiles,
@@ -783,9 +1380,10 @@ configured and `null` when absent, without inferring effective defaults.
 The current payload schema and command argv above are read-only, sanitized
 capture requirements, not a claim that the current candidate passes. Tests
 must prove root/incus-admin acceptance and confined-user rejection, local
-endpoint binding, exact argv (including `--format json --expanded` order), all-project
-visibility/order, null/absent feature behavior, sanitized devices, no raw
-output or hashes, deterministic artifact binding, no GO/reservation/Incus write,
+endpoint binding, exact execution argv (including `--format json --expanded` order)
+without persisting argv, all-project visibility/order, null/absent feature
+behavior, sanitized devices, no raw argv/path/URL/output or hashes in artifacts
+and logs, deterministic artifact binding, no GO/reservation/Incus write,
 and exclusive private ext4 output. Any unknown project, permission-limited
 visibility, absent/unreadable required state, or schema mismatch blocks S02.
 This mode is not normal fixture run mode. Five-role per-host GO remains
@@ -796,15 +1394,19 @@ install/upgrade or service/system changes.
 Purpose: verify proxy listener timing and attribution before implementing the
 new capability.
 
-Prerequisites: S449-01 and S449-02C; disposable Incus server exactly 6.0.5; fresh exact-source
+Prerequisites: S449-01 and S449-02C/02D/02E/02F; for native, eligible and
+accepted S449-02G if active LXD remains the preflight blocker; for WSL, exact
+feature applicability is resolved and S449-02H is accepted if enable/restart
+is required; disposable
+Incus server exactly 6.0.5; fresh exact-source
 and target JIT for the specific host; pre-GO route-state evidence from the
-read-only S449-02C capture mode; resource admission; full issue447
+amended S449-02D/02E capture mode; resource admission; full issue447
 project/profile/consumer/device inventory; empty baseline for the exact selected
 loopback fixture tuple and the exact current TCP/10001 listener/route baseline,
 which may be empty; any existing entries and Windows firewall/PortProxy bytes
 must remain unchanged;
 and a one-shot scenario-specific live Three-Amigos GO whose raw SHA-256 and
-workflow/runner/test hashes match the released S449-02C candidate, naming the exact host, expected HEAD,
+workflow/runner/test hashes match the released amended candidate, naming the exact host, expected HEAD,
 default project, unique disposable instance/profile identity, inventory/profile
 and resource digests, loopback-only fixture tuple and cleanup bound. The
 fixture uses an unused 61000–65535 loopback listener port, never TCP/10001;
@@ -826,16 +1428,16 @@ owner: Senior DevOps Engineer
 secondary_reviewers: [Senior System Architect, Security, Senior Tester]
 affected_files: [.tiny-swarm/evidence/issue-449/s449-private-20261027/s02-private-posix-verification.md, .tiny-swarm/evidence/issue-449/s449-private-20261027/native-pre-go-route-state.json, .tiny-swarm/evidence/issue-449/s449-private-20261027/wsl-pre-go-route-state.json, .tiny-swarm/evidence/issue-449/s449-private-20261027/native-resource-admission.json, .tiny-swarm/evidence/issue-449/s449-private-20261027/wsl-resource-admission.json, .tiny-swarm/evidence/issue-449/s449-private-20261027/native-issue447-inventory.json, .tiny-swarm/evidence/issue-449/s449-private-20261027/wsl-issue447-inventory.json, .tiny-swarm/evidence/issue-449/s449-private-20261027/three-amigos-s02-live-go.json, .tiny-swarm/evidence/issue-449/s449-private-20261027/three-amigos-s02-live-review.md, .tiny-swarm/evidence/issue-449/s449-private-20261027/r67-incus-6.0.5-listener-fixture.json, .tiny-swarm/evidence/issue-449/s449-private-20261027/r67-incus-6.0.5-listener-fixture.json.reservation, .codex/evidence/slice-449-02-distribution.md, .codex/evidence/slice-449-02-consolidation.md]
 affected_modules: [Incus disposable fixture, listener evidence]
-affected_contracts: [proxy bind timing, effective tuple and listener attribution, exact 16-key five-review GO, workflow/source/runner/test/target hashes, canonical default-profile config/devices digest, sorted consumer list, approved live route-state digest, ext4 private evidence root and POSIX 0700/0600 modes, external resource and issue447 evidence attestations, unchanged Windows rules, no external routes]
-dependencies: [S449-02C]
+affected_contracts: [proxy bind timing, effective tuple and listener attribution, exact 17-key five-review GO, workflow/source/runner/test/target hashes, canonical default-profile and sanitized fixture-base-profile digests, sorted consumer list, approved live route-state digest, ext4 private evidence root and POSIX 0700/0600 modes, external resource and issue447 evidence attestations, unchanged Windows rules, no external routes]
+dependencies: [S449-02C, S449-02D, S449-02E, S449-02F]
 parallel_group: serialized-live
 file_locks: [.tiny-swarm/evidence/issue-449/s449-private-20261027/s02-private-posix-verification.md, .tiny-swarm/evidence/issue-449/s449-private-20261027/native-pre-go-route-state.json, .tiny-swarm/evidence/issue-449/s449-private-20261027/wsl-pre-go-route-state.json, .tiny-swarm/evidence/issue-449/s449-private-20261027/native-resource-admission.json, .tiny-swarm/evidence/issue-449/s449-private-20261027/wsl-resource-admission.json, .tiny-swarm/evidence/issue-449/s449-private-20261027/native-issue447-inventory.json, .tiny-swarm/evidence/issue-449/s449-private-20261027/wsl-issue447-inventory.json, .tiny-swarm/evidence/issue-449/s449-private-20261027/three-amigos-s02-live-go.json, .tiny-swarm/evidence/issue-449/s449-private-20261027/three-amigos-s02-live-review.md, .tiny-swarm/evidence/issue-449/s449-private-20261027/r67-incus-6.0.5-listener-fixture.json, .tiny-swarm/evidence/issue-449/s449-private-20261027/r67-incus-6.0.5-listener-fixture.json.reservation, .codex/evidence/slice-449-02-distribution.md, .codex/evidence/slice-449-02-consolidation.md]
 module_locks: [per-host live qualification host state, disposable target identity and cleanup evidence]
 contract_locks: [per-host GO target identity and cleanup binding, immutable listener-fixture result schema, ext4 private evidence root and POSIX 0700/0600 modes, host-specific run command/exit/provenance record, route-preservation outcome]
 architecture_locks: [capability version boundary]
 quality_gates:
-  targeted: [git diff --check, verify exact S449-02C source/test evidence hashes, verify ext4 target checkout and private evidence permissions]
-  required: [reuse S449-02C full quality evidence only when exact source hash matches]
+  targeted: [git diff --check, verify exact amended source/test evidence hashes, verify ext4 target checkout and private evidence permissions]
+  required: [reuse full quality evidence only when exact amended source hash matches]
 documentation:
   arc42: no change
   adr: record version support only after independent fixture review
@@ -1130,7 +1732,7 @@ GitHub #449 be closed. Otherwise status remains INCOMPLETE/BLOCKED/FAILED.
 ## Slice Dependency Graph
 
 ```text
-S449-01 → S449-02C → S449-02 → S449-03 → S449-04 → S449-05 → S449-06 → S449-07 → S449-08 → S449-09
+S449-01 → S449-02C → S449-02D → S449-02E → S449-02F; S449-02F → S449-02G (conditional native maintenance) → S449-02 (native); S449-02F → S449-02H (verify Windows feature applicability); if feature is required, 02H → explicit Windows-host GO and restart/recovery → S449-02 (WSL); if authoritative evidence proves Store WSL exception applies, 02H → S449-02I (policy/tests) → fresh same-hash review/S3D → new read-only preflight → S449-02 (WSL); S449-02 (both hosts accepted) → S449-03 → S449-04 → S449-05 → S449-06 → S449-07 → S449-08 → S449-09
 ```
 
 The version fixture precedes implementation because the new capability has no
@@ -1339,7 +1941,7 @@ only require `git diff --check`. Local quality is never live success.
 
 ## Documentation Governance and arc42 Check Status
 
-Status: `S02C_CANDIDATE_SYNCED — final runner/test hashes, 95 focused tests and full QUALITY evidence recorded above; exact candidate not run on CI Python 3.12; current live blockers remain; no host admission or scenario GO`
+Status: `AMENDMENT_REVIEWED v1.33 — exact-hash Requirement/Architecture/Python Automation/Tester/Security/DevOps approvals complete; S3D pending; prior S02C test/approval/S3D evidence historical; AC1–AC4 partial, AC5/W10 open; no admission, scenario GO or live qualification`
 installation-owned profile decision is a draft awaiting canonical placement
 and accepted review; no Incus version is supported yet for this capability.
 S449-01 places the exact owner-approved R67j policy, effective-infrastructure-
