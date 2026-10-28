@@ -1,0 +1,415 @@
+{
+  "workflow_id": "issue-449-lcm-w09",
+  "workflow_version": "1.39",
+  "workflow_path": "documentation/workflow/issues/issue-449/workflow.md",
+  "workflow_index_path": "documentation/workflow/workflow.index.md",
+  "context_pack_path": "documentation/workflow/issues/issue-449/context-pack.md",
+  "branch": "feature/lcm-w09-issue449-implementation-20261027",
+  "workflow_authoring_branch": "docs/workflow-lcm-w09-route-baseline-20261027",
+  "base_commit": "a0310224946b63e2152ff4086d22a450c3d0f214",
+  "process_strand": "issue completion / lifecycle workflow execution",
+  "execution_profile": "FULL_PATH",
+  "issue": 449,
+  "parent_issue": 440,
+  "related_issue": 318,
+  "required_roles": [
+    "Senior Requirement Engineer",
+    "Senior System Architect",
+    "Senior Python Automation Developer",
+    "Senior Tester",
+    "Senior Workflow Architect",
+    "Security",
+    "Senior DevOps Engineer",
+    "independent Issue Completion Auditor"
+  ],
+  "quality_commands": [
+    "python3 tools/quality_gate.py quality",
+    "git diff --check"
+  ],
+  "test_host": "Approved PC WSL2 test host 192.168.178.58 for exact-source hash verification, targeted tests and QUALITY gates; live host work remains limited to the two named test hosts and each phase's exact scope",
+  "pre_go_host_boundary": "S449-02C host inventory/route capture is distinct from S02C test-only work. Historical be2e031e8f0fb137ea6c15f74d81a88181aa4183 captures are not current. Exact-source 509908 native inventory SHA-256 3898c4a7c16fe93581bafabdd09d7daa11316e375072f288f697e2349b8c45017 and route artifact SHA-256 0af9913c1e997d518b0b62bec0c04ef0d79856ce0267ba338becacfa70e47d8cf (digest 4dd67ca44274073ad292e72c2a7cb5f9f36f5c15daf230912f2debb61c8ff91be). Exact-source WSL inventory SHA-256 4322d32ecfae2f5e1aae1711b48dbc0cb8007487f8655bc540f80d228c1d9994a at commit 50990890330684ef661be7f7ab07b586092641df, target 192.168.178.58; WSL route capture returned JIT_COMMAND_FAILED and created no artifact. Current native preflight remains blocked by active snap.lxd.daemon.service; no normalized admission or host GO. Historical approvals/S3D are phase-scoped and authorize none of the new slices/host commands. No mutation is claimed.",
+  "workflow_amendment_v1_33": {
+    "status": "SUPERSEDED_BY_ACTIVE_ISSUE_EXECUTION v1.39",
+    "activation_reason": "The user explicitly authorized completing issue #449 on the named test hosts. This activates issue execution only; it does not grant a slice execution plan or host/scenario GO.",
+    "execution_gates": [
+      "fresh same-hash Three Amigos and specialist reviews for each slice",
+      "phase-specific S3D EXECUTION_PLAN naming the exact slice and commands",
+      "host/scenario-specific admission and GO before any live mutation",
+      "only the named native Linux and WSL2 test hosts are in scope"
+    ],
+    "planned_slices": [
+      "S449-02D",
+      "S449-02E",
+      "S449-02F"
+    ],
+    "conditional_slices": [
+      "S449-02G",
+      "S449-02H",
+      "S449-02I"
+    ],
+    "historical_s3d_scope": "The current S449-02 EXECUTION_PLAN authorizes only its original exact read-only phase; it does not authorize new code slices, new host commands, fixture runs, mutations, service/system changes, installs or upgrades.",
+    "required_before_execution": [
+      "fresh same-hash Requirement review",
+      "fresh same-hash Architecture review",
+      "fresh same-hash Python Automation review",
+      "fresh same-hash Tester review",
+      "fresh same-hash Security review",
+      "fresh same-hash DevOps review",
+      "fresh phase-specific S3D EXECUTION_PLAN"
+    ],
+    "host_scope": [
+      "native Linux 192.168.178.33",
+      "WSL2 192.168.178.58"
+    ],
+    "wsl_feature_blocker": "Microsoft-Windows-Subsystem-Linux is disabled; preflight proposes enable_features and Windows restart scope; no change/restart occurred and current read-only S3D authorizes neither. Exact sanitized inventory SHA-256 4322d32ecfae2f5e1aae1711b48dbc0cb8007487f8655bc540f80d228c1d9994a, source_commit 50990890330684ef661be7f7ab07b586092641df, target 192.168.178.58. S449-02H verifies exact Store applicability. If required or uncertain, explicit Windows-host GO and restart/recovery evidence are mandatory; if Store WSL2 exception is proven, S449-02I must update tools/windows/preparation/Policy.ps1 and Adapters.ps1 with deterministic tests before a new preflight; unchanged preflight is still blocked.",
+    "current_blockers": [
+      "WSL full route capture JIT_COMMAND_FAILED",
+      "WSL preflight reports Microsoft-Windows-Subsystem-Linux disabled and proposes enable_features with Windows restart scope",
+      "native service-access preflight BLOCKED by active snap.lxd.daemon.service",
+      "no current normalized resource admission",
+      "no host/scenario GO"
+    ],
+    "acceptance_trace": {
+      "AC1": "Current command/runtime/version/timestamp/outcome for every host and transition",
+      "AC2": "Before/after data, service identity, endpoints and credential-state evidence",
+      "AC3": "Skipped, mocked and login-only checks do not satisfy live acceptance",
+      "AC4": "Cleanup/restoration evidence and explicit unsupported combinations",
+      "AC5": "Trace each parent #440 LCM-01 through LCM-05 and W10 handoff to implementation and verification artifacts"
+    },
+    "conditional_native_maintenance": "S449-02G may be authored only when S449-02F proves the active LXD service owns exclusively the three named TSW instances and no unrelated resources; otherwise remain BLOCKED. It requires a dedicated five-role host/scenario GO and exact pre/post evidence. Host reboot, if any, is separate and never automatic.",
+    "conditional_wsl_policy_compatibility": "S449-02I is limited to verified Store package identity and supported version, exact selected distro generation 2, and enabled VirtualMachinePlatform. Unknown/inbox/WSL1/unknown generation/missing VMP remain blocked. Official references: https://learn.microsoft.com/en-us/windows/wsl/faq ; https://learn.microsoft.com/en-us/windows/wsl/reference ; https://learn.microsoft.com/en-us/windows/wsl/install-manual.",
+    "device_isolation": "02D keeps the full source default profile memory-only. Its source digest is SHA-256 over UTF-8 bytes from compact JSON using separators (\",\", \":\"), lexically sorted object keys and ensure_ascii=false, exactly {config: complete source config, devices: complete source devices}; reject NaN/Infinity, invalid Unicode and unsupported/non-JSON values before serialization. Fixed vectors: {\"config\":{},\"devices\":{}} -> 079aa36c8373b157f411a389cd569d038a5da42dfcb380ba625a366cc95205c3; {\"config\":{\"user.note\":\"München\"},\"devices\":{}} -> cc7a06da6878973e8431910042d01f3ff1a8a7bafb972917a3ee329436fddd2c. Equivalent key insertion orders yield identical bytes/hash. Bind source digest, exact sorted used_by and allowlisted identity metadata in GO; never persist raw source config/device values or arbitrary paths. Recheck in memory before every write; any drift blocks with zero writes. Per official Incus instance options (https://linuxcontainers.org/incus/docs/main/reference/instance_options/), these config values are strings only: limits.cpu and limits.memory use Python 3.12 re.fullmatch semantics with patterns `[1-9][0-9]*` and `[1-9][0-9]*(KiB|MiB|GiB)?`; official Python docs: https://docs.python.org/3.12/library/re.html. Fullmatch rejects a trailing newline. Source boot.autostart, when present, is exactly lowercase string true/false. Always set derived boot.autostart to string false whether source is true, false, or absent, preventing daemon restart/autostart. Reject JSON numeric/bool values, coercion and lexical variants. Reject privileged/nesting, raw.lxc, linux.kernel_modules/all linux.*, idmap.*, unknown keys/fields/values before writes. Exact root disk shape: {type: disk, path: /, pool: approved pool} under map key root. Exact bridge NIC shape: {type: nic, name: eth0, network: approved bridge} under approved map key; no optional keys. Reject proxy/host-bind devices and any unknown/unapproved shapes before writes. fixture_base_profile_sha256 hashes canonical compact sorted-key UTF-8 ensure_ascii=false JSON with only allowlisted sanitized config/devices. Tests prove repeated deterministic hash, source drift/consumer drift zero writes, true/false/absent autostart all become false, Python 3.12 fullmatch rejects trailing newlines, and no raw profile leakage. Strict-parse source Incus profile JSON with duplicate-key rejection at every depth before canonical hashing; duplicate config/devices or nested keys fail with zero writes.",
+    "local_lxd_endpoint": "02F uses --force-local, fixed identity-mapped client argv[0] paths and a controlled environment that ignores caller endpoint overrides and sets only a validated per-command LXD_SOCKET or INCUS_SOCKET. Query only when the matching LXD or Incus systemd service is already active with unchanged PID and allowlisted executable identity; recheck service and socket unit/listen/canonical endpoint immediately before every query so a listening socket cannot activate an inactive service. Bind the CLI local socket to the matching active service and socket unit; ambiguity blocks without a query. Incus uses the exact LXD subcommands with incus replacing lxc; no duplicate executable prefixes.",
+    "wsl_snapshot_redaction": "02E and the S02 route artifact retain only canonical snapshot digest and allowlisted metadata. Complete firewall and PortProxy snapshots remain memory-only and compare exact canonical bytes at run/JIT checkpoints. No raw/base64 snapshot, PortProxy bytes, ACLs, SIDs or PowerShell output in artifacts/logs. Route capture parses ss output in memory and persists only safe listener tuples/count/digest; no raw rows, PIDs, process names or paths. Tests verify redaction. Firewall and PortProxy are separate subprocesses: PowerShell only receives the 120s/14MiB+2MiB exception; netsh remains 30s/2MiB per stream; both count against combined output, command and wall-clock budgets.",
+    "native_inventory_limits": "02F allows only fixed LXD/Incus units, endpoints, executable identities, packages and fixed client argv[0] paths. Full-project visibility requires root or membership in the matching lxd/incus-admin socket group and is rechecked before queries and artifact creation; restricted Incus project access blocks. lxd_units and incus_units separately contain exact unit rows. Service/socket states use enumerated tuples; known inactive/not-found units are recorded without executable rows, but no CLI query runs unless its matching service is already active. Commands use shell=False, separate validated argv, LC_ALL=C and no inherited caller endpoint variables; each CLI gets exactly one validated local LXD_SOCKET or INCUS_SOCKET. Read profiles, instances, networks, pools, and each pool's storage volumes with bounded list/show calls. Require list/detail agreement and reciprocal profile, network, pool-volume and volume-consumer edges; resolve every typed consumer across the complete project inventory. Unknown volume types, project used_by mismatches or unsupported resource kinds, unresolved/asymmetric references or incomplete visibility block with no artifact. A volume list or detail owner that differs from the project-scoped query is an unsupported inherited/shared-volume case and blocks with no artifact. v1.37 additionally permits omitted or explicit zero MainPID only for the two fixed socket units, normalizes it to 0, and accepts loaded/active/running only for incus.socket coupled to the active stable allowlisted Incus service, exact endpoint and full rechecks; all other unit tuples fail closed. Pool used_by must reciprocally include profile and instance disk-device consumers. test -e/-S status 0/1 means true/false; other statuses fail. Recheck all unit fields, MainPID, executable identity, Listen, socket type and canonical endpoints before each query and artifact creation; drift blocks with no artifact. Total capture <=300 seconds and <=256 commands. Every LXD/Incus response is strict-parsed with duplicate-key rejection at every depth. Command records persist fixed command_id, validated safe_args, exit/byte counts only; raw argv, socket/proc/executable paths, URLs and endpoint addresses remain memory-only. Artifacts/logs assert no raw paths or argv. Config and device values are validation-only. Any limit, schema or duplicate-key failure yields no artifact.",
+    "capture_bounds": "S449-02D source-profile and amended S02 inventory reads share limits per capture invocation: <=256 commands, <=300 seconds wall-clock, <=30 seconds per command, stdout/stderr <=2 MiB each per command, aggregate output <=16 MiB, sanitized artifact <=8 MiB, entities <=10,000, including storage-volume list/show queries. Exact inclusive maxima are accepted; each limit+1 or deadline overrun blocks before writes and produces no artifact. Paired boundary regressions use fake clock/subprocess.",
+    "wsl_snapshot_bounds": "S02E uses distinct subprocesses: only the complete PowerShell ActiveStore firewall snapshot gets <=120 seconds with stdout <=14 MiB/stderr <=2 MiB; separate netsh portproxy show all remains <=30 seconds and <=2 MiB per stream. Every output byte and command count contributes to shared <=16 MiB aggregate, <=256 commands and <=300s run cap; artifact <=8 MiB. Exact per-command limits accepted; +1/timeout+1 fails. Combined exact aggregate accepted and +1/exhaustion fails before artifact/write. Raw firewall and exact PortProxy bytes remain memory-only."
+  },
+  "route_consent": {
+    "wsl": "TSW app route TCP/10001 only; user-accepted existing firewall and complete PortProxy state unchanged byte-for-byte for this run",
+    "native": "Bind any host route to exact scenario authorization and GO"
+  },
+  "route_state_contract": {
+    "project_inventory": "Read-only enumeration of all Incus projects; reject malformed, duplicate, missing or empty project names and require default",
+    "route_identity": "Every TCP/10001 profile or instance route includes its project, owner type, owner, device, complete device configuration and effective profile list",
+    "digest_fields": [
+      "listeners_10001_count",
+      "listeners_10001_sha256",
+      "incus_projects",
+      "incus_10001_routes",
+      "windows_snapshot_sha256"
+    ],
+    "digest_canonicalization": "Sort project names lexically and route records by project, owner_type, owner, device; serialize UTF-8 JSON with sorted keys, compact separators and ensure_ascii=false; SHA-256",
+    "mutation_scope": "The all-project inventory is read-only; reconciliation and fixture mutations remain restricted to Incus project default",
+    "snapshot_storage": "Complete Windows ActiveStore and exact PortProxy snapshots remain memory-only; artifact stores canonical digest plus allowlisted schema/capture/count/byte-length metadata, never base64 snapshot or raw output. Compare complete canonical before/after bytes in memory at JIT checkpoints.",
+    "forbidden_artifact_fields": [
+      "windows_snapshot_b64",
+      "firewall_active_store_b64",
+      "portproxy_raw_b64",
+      "raw_powershell_output",
+      "acl",
+      "sid"
+    ],
+    "listener_schema": "Persist only sorted safe tuples exactly {protocol,local_address,local_port}, count and SHA-256 of canonical tuple JSON. Parse ss output in memory and discard raw rows/PIDs/process names/paths; tests assert redaction.",
+    "route_schema": "Persisted incus_10001_routes rows are exactly {project,owner_type,owner,device,device_type,effective_profiles,listen,connect,bind}. Identifiers and sorted unique profile names are validated; owner_type profile|instance; device_type proxy. Source proxy config key set must be exactly type/listen/connect/bind, type=proxy. listen/connect exact objects {protocol,address,port}, protocol tcp, validated normalized IP/approved target address, integer port 1..65535, listen port exactly 10001. bind enum host|instance. Reject unknown keys/values, raw config, paths, malformed addresses before artifact; retain complete source only in memory."
+  },
+  "private_evidence": {
+    "directory": ".tiny-swarm/evidence/issue-449/s449-private-20261027/",
+    "parent_directory_acl": "Broad inherited NTFS access is not approved for private records",
+    "posix_permissions": "Private directory 0700; private files 0600",
+    "ntfs_permissions": "Allowed only for the human-only S449-01 files listed in ntfs_allowed_s449_01_files; remove inheritance; allow only current user, SYSTEM and Administrators; reject Users and Authenticated Users",
+    "ntfs_allowed_s449_01_files": [
+      "adr-installation-scoped-incus-profile-draft.md",
+      "three-amigos-r67j-design-acceptance.md",
+      "source-copy-manifest-v1.8-20261027.md",
+      "private-acl-verification.md"
+    ],
+    "s449_01_records": [
+      "adr-installation-scoped-incus-profile-draft.md",
+      "three-amigos-r67j-design-acceptance.md",
+      "private-acl-verification.md"
+    ],
+    "s449_01_provenance_manifest": "source-copy-manifest-v1.8-20261027.md",
+    "s449_01_provenance": {
+      "expected_final_record_sha256": "6768cd40a6dfda4d639acda8afcb721472959bd6f6ffd2c6e12eedbe022b576f",
+      "superseded_record_sha256": "493c613f731aa549fdc4fa4f6002b82f069553446c6509b7ea8cf3a8b92e5345",
+      "reconstruction_rule": "Record absence of the expected bytes; never substitute the superseded record. Reconstruct only from exact current canonical ADR/Q12 hashes and fresh same-hash Requirement, Architecture, Security, DevOps and Test/Evidence reviews; record a new SHA-256 without claiming historical recovery."
+    },
+    "s449_02_records": [
+      "s02-private-posix-verification.md",
+      "native-pre-go-route-state.json",
+      "wsl-pre-go-route-state.json",
+      "three-amigos-s02-live-go.json",
+      "three-amigos-s02-live-review.md",
+      "r67-incus-6.0.5-listener-fixture.json",
+      "r67-incus-6.0.5-listener-fixture.json.reservation",
+      "native-resource-admission.json",
+      "wsl-resource-admission.json",
+      "native-issue447-inventory.json",
+      "wsl-issue447-inventory.json"
+    ],
+    "s02_filesystem": "Private Linux/WSL2 ext4 checkout only; reject /mnt/c, /mnt/d, DrvFS and NTFS ACL-only protection. The runner-used evidence directory must be POSIX mode 0700 and files mode 0600.",
+    "workflow_approval_record": "Private ext4 record at .tiny-swarm/evidence/issue-449/s449-private-20261027/workflow-execution-approval-current-20261028.md binds exact workflow/context hashes and four role decisions; directory mode 0700 and file mode 0600. Workflow execution requires all four APPROVED decisions and S3D EXECUTION_PLAN for the same tuple. Per-host/per-scenario GO and normalized host admission are separate prerequisites; S3D outcomes are hash-bound and phase-scoped; an `EXECUTION_PLAN` authorizes only its specified phase. Host admission and per-host/per-scenario GO are separate and unproven; no host mutation is claimed. Any later phase requires an `EXECUTION_PLAN` bound to its exact hashes. The current candidate has no host/scenario GO or normalized admission.",
+    "fail_closed": "Do not write private evidence unless effective owner-only permissions are verified"
+  },
+  "operator_decision": {
+    "date": "2026-10-27",
+    "approved": true,
+    "portainer_stack": "Verify endpoint, stack, ResourceControl and exact definition; no prune; commit selection after convergence",
+    "swagger_exposure": [
+      "published",
+      "internal"
+    ],
+    "qualification": "Does not replace exact-hash design reviews, quality gates, runtime support admission, fresh JIT or scenario GO",
+    "internal_swagger": "No host-published ports or implicit routes",
+    "wsl_host_route": "TSW app route TCP/10001 only; existing firewall (RemoteAddress=Any) and complete PortProxy state accepted unchanged for this run; fixture adds only its temporary unique 127.0.0.1 Incus proxy listener and no external route",
+    "scope": "selection-scoped Incus profile and bounded #318 manifest/optional-stack semantics",
+    "v1_defaults": {
+      "swagger_exposure": "published",
+      "stack_ownership": "swarm"
+    }
+  },
+  "governing_hashes_sha256": {
+    "documentation/process/issue-completion-discipline.md": "3db2d080b7cfbbc3737907a61c67ce6a361485c8993cf4a20c1c5fe2dc743bc3",
+    "QUALITY.md": "8922817c794f545fd4babf6ccf7fc6458baad0853ff2ca2a0526ff246220d76a",
+    ".tiny-swarm/evidence/issue-449/requirement_matrix.md": "1533df25b81d22f25e37e5b364503a23efb2b0312a435c296e72d18817c3ff36",
+    "documentation/process/verification-state-policy.md": "df09d34a65b2d01a2c11ddd100c7fd7d1ab58a33198ae695deea1aab7d8b817f",
+    ".tiny-swarm/evidence/issue-449/acceptance_checklist.md": "7988c1b7789c91800b1e9e9cfc81ff0fb3c27e9958543b7683a3bcf10d46b5a5",
+    "AGENTS.md": "a17e7d2147f06fa5f8e47a98ef4a17ad68c1a5d156e378fb3c80ea5f1dbe4c6b",
+    ".tiny-swarm/evidence/issue-449/acceptance_crosswalk.md": "68fb75605aee47c83fedf4e0aa1cb617580ad6fa16c5c565defd7fa5df7e1fff",
+    "documentation/arc42/09_architecture_decisions.adoc": "9b2b38c377bd75d3059b877d6ac679173f7eea9bb22dee9460c6d4fcad42284e",
+    "documentation/arc42/09_decisions/adr-classic-product-component-lifecycle.adoc": "ba210b63996ec6c0ec92089bd6cbe911deef00791b773183875eafb62e12bbe9"
+  },
+  "workflow_artifacts_sha256": {
+    "documentation/arc42/09_architecture_decisions.adoc": "9b2b38c377bd75d3059b877d6ac679173f7eea9bb22dee9460c6d4fcad42284e",
+    "documentation/workflow/issues/issue-449/context-pack.md": "55af42af6cd0ed7229c29d52d217d2d16c65dee803048a02e3931aa36b898728",
+    "documentation/workflow/issues/issue-449/workflow.md": "0ac86d6cff0ca1b581c35f32503771770af9f8c889c1725129fb488d32300607",
+    ".agents/skills/workflow-executor/SKILL.md": "04a9325b2cec2dfa6feab24c261c636fdfa295158661d20e981e4182e5bfb46c",
+    "documentation/workflow/workflow.index.md": "32c2346504ecab8c150bc11556d4053fa6bf7b3faa39b81bbd0c93bb72c5c7b2"
+  },
+  "skill_hashes_sha256": {
+    ".agents/skills/three-amigos-requirement-gatekeeper/SKILL.md": "76659e618cb706e8990cdf44441aeaed219465044175826adca5357ae8acc5b4",
+    ".agents/skills/issue-completion-auditor/SKILL.md": "6de0eb7ff298f25ee0255695c4a0057d502039c786f87ab4dc7aa1991e1f15c5",
+    ".agents/skills/workflow-executor/SKILL.md": "04a9325b2cec2dfa6feab24c261c636fdfa295158661d20e981e4182e5bfb46c",
+    ".agents/skills/workflow-authoring/SKILL.md": "5733f64086f113d578544b4d2d0297554237296adf0dc2df5ebe641e50dec9e5",
+    ".agents/skills/s3d-execution-orchestrator/SKILL.md": "54c687a580225c85aa3bca2445782064bff914f593458a63006b0793dc8233bc",
+    ".agents/skills/workflow-slice/SKILL.md": "bae552d4860614879871413918870df6940b95af185f6c1077a023caa88e3ddb"
+  },
+  "per_scenario_admission": {
+    "schema_version": "tsw.resource-admission.v1",
+    "artifact_top_keys": [
+      "schema_version",
+      "target_host",
+      "platform",
+      "scenario_id",
+      "captured_at_utc",
+      "source_commit",
+      "candidate",
+      "selection",
+      "observed",
+      "thresholds",
+      "checks",
+      "decision",
+      "commands"
+    ],
+    "candidate": [
+      "workflow_sha256",
+      "runner_sha256",
+      "test_sha256",
+      "provider_config_sha256",
+      "clean_tracked_tree"
+    ],
+    "selection": "manager,worker1,worker2; each cpu_threads,memory_bytes,disk_bytes",
+    "native": {
+      "scenario_id": "R449-33",
+      "manager": {
+        "cpu_threads": 2,
+        "memory_bytes": 10737418240,
+        "disk_bytes": 21474836480
+      },
+      "worker1": {
+        "cpu_threads": 2,
+        "memory_bytes": 6442450944,
+        "disk_bytes": 53687091200
+      },
+      "worker2": {
+        "cpu_threads": 4,
+        "memory_bytes": 1073741824,
+        "disk_bytes": 10737418240
+      },
+      "ram_floor_bytes": 18253611008,
+      "cpu_floor": 8,
+      "free_disk_floor_bytes": 161061273600,
+      "default_guard_bytes": 20401094656,
+      "default_guard_applies": false,
+      "default_guard_applicability": "Not applicable to native R449-33 selected budget; accepted 17-GiB TSW_INFRA_ROOT override applies. The 19-GiB default-node guard applies only where that baseline applies.",
+      "command": "./prepare_linux.sh --preflight --service-profile service-access"
+    },
+    "wsl": {
+      "scenario_id": "R449-34",
+      "manager": {
+        "cpu_threads": 2,
+        "memory_bytes": 10737418240,
+        "disk_bytes": 21474836480
+      },
+      "worker1": {
+        "cpu_threads": 2,
+        "memory_bytes": 8589934592,
+        "disk_bytes": 53687091200
+      },
+      "worker2": {
+        "cpu_threads": 4,
+        "memory_bytes": 1073741824,
+        "disk_bytes": 10737418240
+      },
+      "configured_wsl_ram_min_bytes": 22548578304,
+      "guest_ram_min_bytes": 20401094656,
+      "cpu_min": 8,
+      "usable_disk_min_bytes": 161061273600,
+      "windows_physical_ram_min_bytes": 30064771072,
+      "windows_logical_cpu_min": 11,
+      "windows_storage_after_swap_min_bytes": 21474836480,
+      "command": "prepare_windows.ps1 -Distro <exact distro> -Preflight -Json -LinuxCheckout <ext4 ROOT>",
+      "physical_ram_formula": "configured_wsl_ram + max(4 GiB, ceil(physical RAM/4)) <= physical RAM",
+      "logical_cpu_formula": "8 + max(1, ceil(logical CPUs/4)) <= logical CPUs"
+    },
+    "command_records": "command_id,safe_args,exit_status,stdout_bytes,stderr_bytes; stdout_sha256 only for exact raw-stdout safe hash allowlist; never persist argv, paths, URLs or raw command output",
+    "decision": [
+      "PASS",
+      "BLOCKED"
+    ],
+    "unknown": "BLOCKED",
+    "go_binding": "External SHA-256 of exact normalized admission artifact",
+    "observed_native_required": [
+      "ubuntu_identity",
+      "distro_version",
+      "kernel_release",
+      "ext4_filesystem",
+      "mount_target",
+      "host_memory_bytes",
+      "cpu_threads",
+      "free_disk_bytes",
+      "incus_version",
+      "service_access_preflight_result"
+    ],
+    "observed_wsl_required": [
+      "distro_identity",
+      "distro_version",
+      "kernel_release",
+      "windows_physical_memory_bytes",
+      "windows_logical_cpu_count",
+      "configured_wsl_memory_bytes",
+      "configured_wsl_cpu_threads",
+      "wsl_swap_bytes",
+      "windows_free_after_swap_bytes",
+      "windows_reserved_memory_bytes",
+      "windows_reserved_cpu_threads",
+      "guest_usable_memory_bytes",
+      "guest_cpu_threads",
+      "usable_distro_disk_bytes"
+    ],
+    "checks": [
+      "candidate_clean_and_hashes_match",
+      "ext4_private_storage",
+      "service_floor",
+      "node_budget",
+      "guest_capacity",
+      "windows_memory_reserve",
+      "windows_cpu_reserve",
+      "windows_storage_after_swap"
+    ],
+    "status": "Historical be2e031e8f0fb137ea6c15f74d81a88181aa4183 inventory/route captures and native route digest fe31f78643962ce3757e8bcfc8cc8ed1e9c9eb46a2c1728f52f773fbc2f84758 are not current for 509908. Exact-source 509908 native inventory SHA-256 3898c4a7c16fe93581bafabdd09d7daa11316e375072f288f697e2349b8c45017 and native route artifact SHA-256 0af9913c1e997d518b0b62bec0c04ef0d79856ce0267ba338becacfa70e47d8cf (digest 4dd67ca44274073ad292e72c2a7cb5f9f36f5c15daf230912f2debb61c8ff91be) are exact-source. Exact-source WSL inventory SHA-256 4322d32ecfae2f5e1aae1711b48dbc0cb8007487f8655bc540f80d228c1d9994a at commit 50990890330684ef661be7f7ab07b586092641df; WSL route capture returned JIT_COMMAND_FAILED and created no artifact. Current native read-only preflight is blocked by active snap.lxd.daemon.service; no normalized current admission exists."
+  },
+  "project_inventory_capture": {
+    "status": "Historical candidate runner SHA-256 7929f9dc5d6fea32c55125c3b9f8fb4f02b72a07d3ea0ef80cb0a2aea6279c12; test SHA-256 6f888dc59182c7b02ed86fd3e80ddbadb5d7e5a6286e27b4c67d5d3eeb7fcba3; focused 95 PASS and full QUALITY PASS are historical to exact candidate, not CI Python 3.12. Historical be2e031e8f0fb137ea6c15f74d81a88181aa4183 inventory/route captures and native route digest fe31f78643962ce3757e8bcfc8cc8ed1e9c9eb46a2c1728f52f773fbc2f84758 are not current. Exact-source 509908 native inventory SHA-256 3898c4a7c16fe93581bafabdd09d7daa11316e375072f288f697e2349b8c45017 and native route artifact SHA-256 0af9913c1e997d518b0b62bec0c04ef0d79856ce0267ba338becacfa70e47d8cf (route digest 4dd67ca44274073ad292e72c2a7cb5f9f36f5c15daf230912f2debb61c8ff91be) are current exact-source observations. Exact-source WSL inventory SHA-256 4322d32ecfae2f5e1aae1711b48dbc0cb8007487f8655bc540f80d228c1d9994a at commit 50990890330684ef661be7f7ab07b586092641df, target 192.168.178.58. Exact-source WSL route capture returned JIT_COMMAND_FAILED and created no artifact. Native preflight remains blocked by active snap.lxd.daemon.service; no normalized admission, GO or mutation.",
+    "command": "python3 tools/qualification/incus_profile_listener_fixture.py --capture-project-inventory --target-host <approved-ip> --output <private-evidence-path>",
+    "schema": "tsw.incus.project-inventory.v1; exact top-level schema_version,target_host,source_commit,projects,command_records; project name,isolation,profiles,instances; profile name,used_by,devices; instance name,status,type,profiles,local_devices,expanded_devices",
+    "isolation": "Exactly four keys: features.images, features.profiles, features.storage.volumes, features.networks; bool if explicitly configured, null if absent/unset; no effective-default inference",
+    "visibility": "Local effective uid 0 or incus-admin group required; otherwise INCUS_PROJECT_VISIBILITY_UNVERIFIED",
+    "command_records": "command_id,safe_args,exit_status,stdout_bytes,stderr_bytes; fixed command_id enum, safe_args only validated symbolic project/profile/instance/endpoint IDs; no argv/path/URL/raw output/raw hash; stdout/stderr each <=2 MiB, aggregate <=16 MiB, sanitized artifact <=8 MiB, entities <=10,000, commands <=256, aggregate wall-clock <=300s, per command <=30s; cap/limit+1/deadline/duplicate-key/schema errors fail before artifact",
+    "safety": "Historical focused result is 95 PASS for runner 7929f9dc5d6fea32c55125c3b9f8fb4f02b72a07d3ea0ef80cb0a2aea6279c12 and test 6f888dc59182c7b02ed86fd3e80ddbadb5d7e5a6286e27b4c67d5d3eeb7fcba3; full QUALITY PASS, GATE_EXIT=0, on Python 3.14.4 private venv with CI-pinned tools (43 architecture tests, 2,969 tests, 18 skipped; log SHA-256 daa2d3952b97aef496035ea773ede718fa5e79e61df1f832c9761ab15126e8df). Exact candidate not run on CI Python 3.12. Historical project/route artifacts from be2e031e8f0fb137ea6c15f74d81a88181aa4183 and native route digest fe31f78643962ce3757e8bcfc8cc8ed1e9c9eb46a2c1728f52f773fbc2f84758 are not current. Exact-source 509908 native inventory SHA-256 3898c4a7c16fe93581bafabdd09d7daa11316e375072f288f697e2349b8c45017 and native route artifact SHA-256 0af9913c1e997d518b0b62bec0c04ef0d79856ce0267ba338becacfa70e47d8cf. Exact-source WSL inventory SHA-256 4322d32ecfae2f5e1aae1711b48dbc0cb8007487f8655bc540f80d228c1d9994a at source commit 50990890330684ef661be7f7ab07b586092641df, target 192.168.178.58; exact-source WSL route capture failed JIT_COMMAND_FAILED and created no artifact. Current native active snap.lxd.daemon.service blocks preflight. No normalized admission, scenario GO or mutation.",
+    "argv_templates": [
+      "incus remote list --format json",
+      "incus remote get-default",
+      "incus project list --format json",
+      "incus project show <project> --format json",
+      "incus profile list --project <project> --format json",
+      "incus profile show <profile> --project <project> --format json",
+      "incus list --project <project> --format json",
+      "incus config show <instance> --project <project> --format json",
+      "incus config show <instance> --project <project> --format json --expanded"
+    ],
+    "remote_validation": "For S449-02F, use lxc --force-local for every LXD query, bound to the active daemon and allowlisted local socket. No remote/default alias or TCP endpoint. Incus is independently local-only via incus --force-local.",
+    "profile_project_rule": "profile show may omit project; if present it must equal requested project, else fail closed.",
+    "identity_capture": "Exact allowlisted identity argv use selector-driven Popen reads; stdout/stderr each <=2 MiB; timeout 20s; terminate, wait 0.5s, then kill and wait if overflow/timeout; no output hashes or persistence; retain only parsed identity.",
+    "cap_regressions": "Direct paired regressions cover exact-limit acceptance and limit+1/deadline-overrun rejection for stdout, stderr, aggregate output, serialized artifact, entities, commands (256/257), per-command elapsed time (30s/over) and aggregate wall-clock (300s/over), using fake clock/subprocess; every over-limit case fails closed and creates no artifact.",
+    "endpoint_scope": "Require only selected default alias local and its Addr unix://. Other configured aliases may exist; sanitized environment and exact commands without remote prefixes ensure they are unused and unrecorded.",
+    "route_state_status": "Older project and route artifacts from be2e031e8f0fb137ea6c15f74d81a88181aa4183 and native route digest fe31f78643962ce3757e8bcfc8cc8ed1e9c9eb46a2c1728f52f773fbc2f84758 are historical and not current for 50990890330684ef661be7f7ab07b586092641df. Current 509908 native inventory SHA-256 3898c4a7c16fe93581bafabdd09d7daa11316e375072f288f697e2349b8c45017 and native route artifact SHA-256 0af9913c1e997d518b0b62bec0c04ef0d79856ce0267ba338becacfa70e47d8cf (route digest 4dd67ca44274073ad292e72c2a7cb5f9f36f5c15daf230912f2debb61c8ff91be) are exact-source read-only observations. Current WSL project inventory exists at the private wsl-issue447-inventory.json path; exact-source WSL route capture returned generic JIT_COMMAND_FAILED and created no route artifact. No normalized admission or host/scenario GO is established."
+  },
+  "resource_evidence_output_policy": {
+    "record_fields": [
+      "command_id",
+      "safe_args",
+      "exit_status",
+      "stdout_bytes",
+      "stderr_bytes",
+      "allowlisted_parsed_fields"
+    ],
+    "raw_stdout_hash_allowlist": [
+      "git status --short --branch",
+      "nproc --all",
+      "free -b",
+      "df -B1 --output=avail ROOT",
+      "incus version (exact text stdout; parse Client version and Server version only; hash exact stdout bytes; does not establish capability support)"
+    ],
+    "never_persist_or_hash_raw": [
+      "git rev-parse",
+      "sha256sum output",
+      "findmnt",
+      "ip",
+      "uname",
+      "prepare_linux.sh preflight",
+      "prepare_windows.ps1 preflight",
+      "Incus project/profile/instance config output"
+    ],
+    "inventory": "command_records metadata only; hash no raw Incus output; external GO SHA-256 binds sanitized artifact"
+  },
+  "socket_unit_contract_v1_37": "For only snap.lxd.daemon.unix.socket and incus.socket, omitted or explicit decimal-zero MainPID normalizes to 0; empty, malformed and nonzero values block. Only incus.socket may be loaded/active/running, coupled to active stable allowlisted incus.service, exact allowlisted Listen endpoint, endpoint checks and full rechecks. First v1.36 native attempt returned UNIT_SCHEMA_INVALID, created no artifact and made no host changes. Fresh same-hash reviews and S3D are required before another read-only capture; no mutation or GO is implied. Current implementation candidate runner SHA-256 2084dc090f3b0d55007a9ad017fee4621b4d077642fe402f6fd0538c883f5f0c; test SHA-256 23c8395a3c8a5b6167f36b5e76f052f9df4a307cdc7499a88c898d0cf942aa37. Focused PC WSL tests passed (53). Full quality passed (3,048 tests, 18 skipped, seven gates, exit 0), isolated HOME `/home/pc/projects/issue449-s02f-home-v137-20261028`, log SHA-256 cc3f5f1b94219e5b4774c57e5f5063b1d8315c497d9938457d9d66c5ed1ec295. An earlier default-HOME attempt failed two stale-checkpoint tests; the isolated rerun passed. No native capture is included.",
+  "safety": "Current runner/test hashes and quality evidence are recorded in context-pack.md. Historical be2e031e8f0fb137ea6c15f74d81a88181aa4183 captures are not current. Exact-source 509908 native inventory SHA-256 3898c4a7c16fe93581bafabdd09d7daa11316e375072f288f697e2349b8c45017 and native route artifact SHA-256 0af9913c1e997d518b0b62bec0c04ef0d79856ce0267ba338becacfa70e47d8cf; exact-source WSL inventory SHA-256 4322d32ecfae2f5e1aae1711b48dbc0cb8007487f8655bc540f80d228c1d9994a at commit 50990890330684ef661be7f7ab07b586092641df. WSL route capture failed JIT_COMMAND_FAILED and created no artifact. Native active snap.lxd.daemon.service blocks preflight. No normalized admission, host GO or mutation."
+  ,"native_v1_37_attempt": {
+    "status": "BLOCKED",
+    "code": "EXECUTABLE_IDENTITY_BLOCKED",
+    "artifact": "ABSENT",
+    "runtime_mutation": "NONE",
+    "source_commit": "d082175d9463c90635ccbbd622a0235bf068a64d",
+    "runner_sha256": "2084dc090f3b0d55007a9ad017fee4621b4d077642fe402f6fd0538c883f5f0c",
+    "execution_phase": "S449-02F bounded native read-only inventory under post-commit S3D"
+  },
+  "s449_02f2_diagnostic": {
+    "status": "EXECUTED_BLOCKED_UNKNOWN",
+    "purpose": "Identify the fixed service unit that fails executable identity without exposing paths or creating inventory evidence",
+    "output_contract": "One compact deterministic JSON object. Complete: mode=diagnose-units, status=DIAGNOSTIC_COMPLETE, services in fixed order with unit and identity. Unknown: mode=diagnose-units, status=BLOCKED_UNKNOWN, first unknown unit and identity=UNKNOWN only; no partial rows. Other errors emit only a fixed BLOCKED code.",
+    "cli_contract": "--diagnose-units is mutually exclusive with --source-commit and --output, requires no output path, and never calls the artifact writer. If combined with any other argument, reject before argparse can echo usage or caller values and emit only BLOCKED:DIAGNOSTIC_ARGUMENTS_INVALID. Normal inventory mode remains unchanged.",
+    "query_contract": "Process the five fixed units one at a time in declared order; readlink only for active services with validated positive ASCII MainPID; after each readlink, re-query the same service and require the normalized tuple to match before querying a later unit.",
+    "command_max": 11,
+    "output_allowlist": ["fixed_unit_id", "symbolic_identity", "fixed_status_code"],
+    "prohibited_output": ["pid", "executable_path", "raw_command_output", "command_records", "inventory_artifact"],
+    "host_execution": "Executed on the approved native test host under post-commit S3D after exact runner hash verification. Result: BLOCKED_UNKNOWN for snap.lxd.daemon.service. No artifact or host mutation; the hash-matched temporary runner was removed.",
+    "source_commit": "9c311145e7b4a4ad5f588829fd9867776678e452",
+    "runner_sha256": "512ebda8ee09ac4e3d08f414ba0e8e006120e3b9968fb2a91e7cc356076e3f86",
+    "outcome": "BLOCKED_UNKNOWN",
+    "first_unknown_unit": "snap.lxd.daemon.service"
+  },
+  "s449_02f3_diagnostic": {
+    "status": "IMPLEMENTED_PC_WSL_VERIFIED",
+    "purpose": "Classify the already-read rejected Snap executable value into a fixed symbolic reason without revealing it or issuing another host command",
+    "reason_enum": ["SNAP_ROOT_PATH_MISMATCH", "SNAP_EXECUTABLE_OUTSIDE_ROOT", "SNAP_EXECUTABLE_UNCLASSIFIABLE", "EXECUTABLE_IDENTITY_BLOCKED"],
+    "identity_result": "Always UNKNOWN; this diagnostic is not identity admission or inventory success",
+    "host_commands_added": 0,
+    "artifact_write": false,
+    "allowlist_change": false,
+    "host_execution": "No S449-02F3 native execution yet. A post-commit S3D plan and same-hash implementation reviews are required before rerun.",
+    "focused_tests": 61,
+    "quality_gate": "PASS; exit 0; 3,053 tests; 18 skipped; log SHA-256 8d67fffa46721be2b2d87678060e3f8dbf58d9777621ad622bcfcbfa580ebe2b"
+  }
+}

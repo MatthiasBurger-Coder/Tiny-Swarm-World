@@ -44,6 +44,8 @@ include::09_decisions/adr-scoped-bootstrap-network-preparation.adoc[leveloffset=
 
 include::09_decisions/adr-lxc-native-node-provider.adoc[leveloffset=+3]
 
+include::09_decisions/adr-installation-scoped-incus-profile.adoc[leveloffset=+3]
+
 include::09_decisions/adr-retire-multipass-legacy-provider.adoc[leveloffset=+3]
 
 include::09_decisions/adr-traefik-https-ingress-existing-ca.adoc[leveloffset=+3]
@@ -74,6 +76,8 @@ report files, secrets, and credential persistence boundaries.
 
 include::09_decisions/adr-service-access-dashboard-vaultwarden.adoc[leveloffset=+3]
 
+include::09_decisions/adr-product-effective-infrastructure-source.adoc[leveloffset=+3]
+
 === Functional & Product Decisions
 
 Examples: setup behavior, operator-facing service access, safety prompts,
@@ -87,6 +91,8 @@ include::09_decisions/adr-test-only-credential-override.adoc[leveloffset=+3]
 include::09_decisions/adr-classic-update-contract.adoc[leveloffset=+3]
 
 include::09_decisions/adr-classic-product-component-lifecycle.adoc[leveloffset=+3]
+
+include::09_decisions/adr-classic-selection-exposure-stack-ownership.adoc[leveloffset=+3]
 
 === ADR Backlog
 

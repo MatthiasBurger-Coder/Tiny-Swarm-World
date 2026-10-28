@@ -1,0 +1,15 @@
+# Slice distribution — S449-02C
+
+- Workflow: `issue-449-lcm-w09`; S02C evidence-refresh base HEAD `a286b22db8988e2cc8fab39d97d6abb34f4129ab` (clean before these evidence-only edits).
+- Slice: `S449-02C — Harden the opt-in live fixture runner before use`.
+- Candidate workflow/context tuple: workflow `118075dccf77ebe9c1818150c0a49f3edbc8c9ca31c882c539ca23889ca53e8d`, context Markdown `a214741f7ff04a7a05f560ecbc7f4730e662064f55947fdd66298804b15f0669`, context JSON `241e2e8eb7f582aada14effe3d06ea43ef61fe9abf73054170c0d454c17e3996`.
+- Execution mode: sequential code/test/evidence. This slice permits no native or WSL host inventory, route capture, live fixture, GO, or Incus mutation. Later S449-02 read-only pre-GO capture is separate and requires exact current-source checkout and current S3D/role gates.
+- Owner: Senior Python Automation Developer. Requirement, architecture, security, tester, DevOps and quality reviews are independent; Codex owns integration and release.
+- Parallelization: not split. Runner and tests implement one fail-closed authorization/evidence contract; live scenarios remain serialized.
+- Locked files: `tools/qualification/incus_profile_listener_fixture.py`, `tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py`, this distribution file, and `slice-449-02C-consolidation.md`.
+- Runner SHA-256: `7929f9dc5d6fea32c55125c3b9f8fb4f02b72a07d3ea0ef80cb0a2aea6279c12`.
+- Test SHA-256: `6f888dc59182c7b02ed86fd3e80ddbadb5d7e5a6286e27b4c67d5d3eeb7fcba3`.
+- Verification: 95 focused tests passed on approved PC WSL. Full QUALITY passed with 43 architecture tests, 2,969 tests and 18 skipped using Python 3.14.4 and repository CI-pinned tools. Evidence log SHA-256 `daa2d3952b97aef496035ea773ede718fa5e79e61df1f832c9761ab15126e8df`. Both runs used base HEAD `be2e031e8f0fb137ea6c15f74d81a88181aa4183` plus exact runner/test bytes matching the candidate; code commit `01717f6` contains those exact runner/test hashes; later docs-only commits do not change them. No post-commit run or CI Python 3.12 run is claimed.
+- Evidence limits: host inventory and route-state artifacts available in the PC WSL evidence checkout identify source HEAD `be2e031e8f0fb137ea6c15f74d81a88181aa4183`, not current candidate HEAD, and do not count as current-candidate pre-GO evidence. WSL route capture returned `JIT_COMMAND_FAILED`; native read-only preflight is blocked by active `snap.lxd.daemon.service`. No normalized current-candidate host admission exists.
+- Private evidence: current four-role decisions must be bound to the exact workflow/context tuple in the approved PC WSL ext4 record, directory mode 0700/file mode 0600. S3D must return `EXECUTION_PLAN` for this same revision before proceeding. A prior S3D plan against earlier doc hashes is historical for the current candidate.
+- Live authorization: user-approved target scope and unchanged WSL firewall/PortProxy state do not replace current S3D, route/resource admission, host-specific five-role GO or independent result review. This slice does not qualify either host or close #449.

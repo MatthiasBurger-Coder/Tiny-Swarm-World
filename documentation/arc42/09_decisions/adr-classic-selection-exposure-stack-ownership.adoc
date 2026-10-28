@@ -1,0 +1,58 @@
+= ADR: Classic installation selection, exposure and stack ownership
+
+*Status:* Accepted bounded design policy for #449 / #440 after same-hash Requirement, Architecture, Security, DevOps and Test/Evidence approval. This does not qualify a runtime version or authorize a live operation.
+*Date:* 2026-10-27
+*Scope:* Classic Linux/WSL2 through Incus/LXC and Docker Swarm; coordinates logical service semantics with #318.
+
+== Context
+
+LCM-W09 needs one persisted selection to control setup, add, update, recovery, routes, access output and verification. The current schema-1 installation manifest cannot express exposure policy or distinguish which adapter owns an optional stack. Selection-scoped Incus profile policy is accepted in `adr-installation-scoped-incus-profile.adoc`; this decision defines the corresponding installation and stack contracts.
+
+The WSL operator approval is limited to the existing Portainer TCP/10001 path. Its Windows firewall and PortProxy rules remain unchanged. Swagger host ports 16080/16081 and other host routes are outside that approval. `#318` is the owner of the broader cross-profile logical service contract; this bounded decision consumes its service identity and lifecycle concepts and does not claim #318 completion or introduce a parallel service catalog.
+
+== Decision
+
+=== Persisted manifest v2
+
+Extend the existing `InstallationManifest` to strict schema version 2. Keep the canonical service IDs, dependency definitions, capabilities and route mappings in the current service catalog and the evolving #318 contract. The installation manifest stores only per-installation state and policy:
+
+* resolved/requested selection and existing provenance;
+* `service_exposure`, initially allowing only Swagger values `published` and `internal`;
+* `stack_ownership` by selected stack, with the owner and identity evidence described below;
+* the installation-owned Incus project/profile identity and exact expected route tuples required by the accepted profile ADR.
+
+A schema-1 manifest is interpreted as `published` Swagger behavior and `swarm` stack ownership. Reading or previewing schema 1 never writes, adopts, prunes, reassigns or otherwise changes runtime state. A mutating command may plan the explicit v1→v2 migration under the installation-operation lock and persists it only after the ordinary consent, JIT, checkpoint and verification gates pass. Unknown fields, unsupported versions and ambiguous mappings fail closed.
+
+=== Stack management ownership
+
+`swarm` means TSW's direct Docker Swarm adapter is the authoritative desired-definition and lifecycle writer for that optional stack. Docker Swarm remains the execution runtime for both values; this field distinguishes the management authority, not the orchestrator.
+
+`portainer` means the authenticated Portainer API is the authoritative desired-definition and lifecycle writer for that optional stack. The stored ownership evidence binds the local endpoint ID, Portainer stack ID, ResourceControl/ownership identity and fingerprint of the exact saved stack definition. A stack name, Portainer Type value, healthy task or matching service ID alone never establishes ownership.
+
+Every schema-1 stack migrates to `swarm`; migration never infers Portainer ownership from a same-name object and never performs adoption. New Portainer-managed stacks become `portainer` only after the authenticated local endpoint is verified, a unique stack and ResourceControl identity is read back, the exact saved definition matches the admitted selection and exposure, and Swarm tasks converge. Any ambiguous, foreign, changed or unreadable identity blocks before update. Portainer updates set pruning off. TSW does not run a competing direct-Swarm reconcile for a Portainer-owned stack. Selection is committed only after deployment and required task/readiness verification converge.
+
+=== Exposure and routes
+
+`published` preserves the existing Swagger Compose host-port behavior for compatibility. `internal` keeps the selected Swagger services available on the internal Swarm network while removing all Swagger host-published ports and implicit Traefik/customer-facing routes. It does not claim network isolation between Swarm services.
+
+The same persisted selection/exposure snapshot drives structured Compose generation, Portainer definitions, direct-Swarm deployment, Incus profile derivation, access output, route preflight, readiness and verification. The installation-owned Incus manager profile contains exactly the host routes admitted by that snapshot; existing shared profiles are not mutated. WSL qualification uses TCP/10001 only and leaves Windows firewall and PortProxy untouched. Any live case needing another host route remains blocked until that exact route is separately approved and receives a fresh scenario GO.
+
+=== Incus capability boundary
+
+Profile identity and route set are persisted in the manifest and bound to the durable operation checkpoint before the first profile mutation. The profile lifecycle uses the default Incus project only, inventories every attached-profile and instance-level device, initializes a manager stopped, verifies the exact combined effective route set, then starts it. Profile creation, attachment, node initialization, start, verification and recovery are serialized by an owner-private installation lock. Unknown consumers, devices, drift, malformed reads and uncertain writes fail closed and retain recovery state.
+
+The supported Incus version set for this new selection-scoped capability remains empty until an isolated listener fixture for an exact version has passed and been independently accepted, followed by a separate support-matrix decision. Existing full-manifest Classic behavior is not withdrawn by an empty capability-specific set.
+
+== Consequences
+
+* Classic operations use one persisted selection and management owner across setup, add, update, recovery, access display and verification.
+* Existing v1 installations retain `published` and direct-Swarm ownership until an explicit, separately reviewed migration/adoption operation exists.
+* New internal Swagger installations can qualify on a WSL host with no 16080/16081 route.
+* Portainer stack ownership becomes explicit and auditable; ordinary updates cannot prune services.
+* Installation schema migration, operation checkpoints, Incus profile lifecycle, Portainer ownership probes, no-prune requests and failure recovery require targeted tests and the full QUALITY gate on the exact candidate.
+* This decision does not implement or complete #318 cross-profile schemas, capability matrices, Lightweight/Kubernetes adapters, portability parity or representative-service proof.
+* No route beyond TCP/10001, Windows firewall/PortProxy change, Incus version support or live mutation is approved by this ADR.
+
+== Required verification
+
+Test strict schema-v1/v2 parsing and migration defaults without read-time writes; reject unknown/ambiguous owner state; prove `swarm` versus `portainer` writer selection; bind endpoint, stack ID, ResourceControl and saved-definition fingerprint; refuse foreign/same-name stacks; verify Portainer update pruning is disabled; persist selected state only after Swarm convergence; and prove internal Swagger generates no published host ports or implicit routes. Verify route/profile/checkpoint consistency, lock ordering, uncertain-write recovery and legacy full-selection compatibility. Run the prescribed focused and full gates through SSH on the designated PC WSL test host against exact hashes. Keep all live results separate from local tests and require a fresh per-scenario JIT and same-hash Three-Amigos GO.

@@ -1,0 +1,431 @@
+= ADR: Installation-scoped Incus manager exposure profiles
+
+*Status:* Accepted design policy for #449 / #440; implementation and live qualification remain open
+*Date:* 2026-10-27
+*Context:* Tiny Swarm World #449 / #440 LCM-04/05
+*Approval basis:* same-hash Requirements, System Architecture, Security, DevOps and Test/Evidence decisions for proposal SHA-256 `9ce138b3bd61196e9942862e1a349254f3dd18e0d9c5ff47b6c7f5b6e70ba132`. Coordinate service identity with #318 and architecture with #313/#314. These decisions accept policy only; implementation and live qualification remain governed by the active workflow.
+
+== Context
+
+Selective setup carries the resolved service selection into service-exposure
+planning. However, the Incus node provider attaches the fixed
+docker-swarm-manager profile. Admission permits proxy devices in that profile
+without validating the whole effective set. Exposure setup later ensures the
+selected ports but does not remove or reject inherited extra ports. Incus
+activates every proxy device inherited from attached profiles when the manager
+starts, before later exposure verification.
+
+The WSL default Incus project's unused manager profile currently contains
+wildcard proxy devices for 80, 443, 10001, 16080 and 16081. The user's current
+consent covers only existing Portainer TCP/10001 reachability; Windows firewall
+and PortProxy must remain unchanged. A fresh manager must not enable the other
+four routes. Issue447 has a separate Incus project and must not be affected.
+
+LCM-04 requires routes, displayed access and verification to match the same
+persisted service selection. Incremental services add preserves the admitted
+baseline and adds the planner's services/dependencies. Updates/recovery preserve
+the persisted installed selection. Omission does not silently remove an
+installed service; unsupported removal blocks.
+
+== Decision
+
+Give each TSW installation a dedicated manager exposure profile in the
+installation's Incus project. The generated profile replaces the legacy shared
+docker-swarm-manager profile on that installation's manager; it is not
+attached alongside it. It contains exactly the proxy devices derived from the
+post-operation persisted selection and supported operation delta.
+
+The installation manifest persists the dedicated profile identity and route
+set. The lifecycle operation checkpoint captures and binds the same identity,
+effective route set, operation identity and target selection before profile
+mutation. Recovery reuses that binding and never recomputes from changed
+ambient selection.
+
+For fresh minimal Classic installation, the resolved selection is Incus and
+Portainer, so the manager exposure profile contains only TCP/10001. Full
+selection derives the complete established selection route set. A selected
+component update does not narrow the installed selection. Services add extends
+the persisted selection after manifest/runtime equality is verified.
+
+== Scope and ownership rules
+
+1. For the first implementation, keep Incus project scope fixed to default.
+   The installation record and every profile/instance command must explicitly
+   target default; no general project-selection behavior is introduced. Commands
+   may not silently create or attach a profile in another project.
+2. Generate a deterministic profile identity from validated installation
+   identity using a collision-resistant suffix. Treat it as data, validate it
+   against a strict name grammar, and pass it as an argv element. Never
+   interpolate it into shell text.
+3. Attach the generated exposure profile only to the TSW-owned manager node for
+   that installation. Preserve non-routing base profiles only after inspecting
+   their complete device sets. Verify the union of devices from every attached
+   profile and manager-level devices, not just the generated profile.
+4. Never mutate the shared legacy manager profile. A legacy installation may
+   migrate only through a separately reviewed path that proves manifest/runtime
+   equality, all consumers and device ownership, and safe profile reassignment.
+   Until then, ambiguous or external consumers block before mutation.
+5. Scope every operation to a validated installation identity and exact Incus
+   project. Profile lookup/list failure, malformed output, profile-name
+   collision, unknown devices, foreign consumers, or any changed state between
+   read and write fails closed.
+6. Windows firewall, Windows PortProxy, host network, issue447 and unrelated
+   Incus instances are outside the mutation boundary.
+
+== Operation sequence
+
+1. Acquire a new persistent installation-operation lock before state capture.
+   The lock spans manifest capture, setup/add/update/recovery, profile
+   create/configuration, node init/start, verification and cleanup. Existing
+   component/product journal locks remain nested under an explicitly documented
+   order. The current code has no lock proven to cover this complete boundary;
+   implementation must add and test one before enabling this path.
+2. Read the admitted manifest, exact persisted service selection and runtime
+   state. Require runtime, manifest and profile-consumer inventory to agree;
+   use the planner's supported delta for add. For update/recovery retain the
+   same persisted installed selection. Reject unsupported deselection.
+3. Derive route tuples from the post-operation persisted selection using the
+   canonical service manifest. Show every route addition/removal in read-only
+   preview. Require existing live consent before mutation.
+4. Durably save the exact installation identity, Incus project, generated
+   profile identity, complete expected route tuples and operation plan in the
+   checkpoint before the first profile mutation.
+5. Inventory the project, profiles, consumers and devices. Re-read immediately
+   before each write. Unknown or changed state blocks before the next mutation.
+6. Create/configure the dedicated profile with only owned tsw-proxy-port
+   devices. Verify the complete tuple set before node creation.
+7. Use incus init to create the owned manager stopped, with the dedicated
+   profile replacing the shared exposure profile. Inspect its expanded
+   configuration and every attached profile plus manager-level device. Verify
+   exact effective routes while stopped. Do not use incus launch or start the
+   manager until this check passes. While the instance is stopped, verify that
+   no host listener exists for any route outside the expected tuple set. If
+   incus init or profile attachment activates a disallowed listener, block and
+   do not start.
+8. Re-read profiles, devices, project identity and consumers immediately before
+   start. Start explicitly in the recorded project, then verify the combined
+   effective route tuples and actual listeners before later service deployment.
+9. Complete the operation and verify persisted selection, runtime tasks, access
+   output, readiness checks and effective route set all agree.
+10. Recovery reads the checkpoint-bound profile identity/route set and resumes
+    only that plan. It blocks on changed consumers/devices or a new competing
+    TSW writer.
+11. On failure before start, retain the checkpoint. Remove a generated profile
+    or stopped instance only after proving exact operation ownership, that the
+    instance is stopped, and the profile has no consumers. After start, retain
+    profile and checkpoint state for recovery; never delete uncertain/attached
+    state. Teardown cleanup requires an explicit supported operation and proof.
+
+== Concurrency and failure semantics
+
+The implementation must add a persistent installation-operation lock covering
+setup/add/update/recovery and all profile/node writes. Prove lock ownership,
+location, nonblocking contention behavior and lock order with existing
+component/product journal locks. Do not hold unrelated process-global locks.
+
+Incus external operators are not controlled by the TSW lock. The supported live
+qualification must run in a controlled maintenance window with external Incus
+writers stopped. Re-reads before each write and after start are drift detection,
+not an atomic compare-and-swap guarantee. Any observed profile, consumer,
+project, device or instance change blocks before the next mutation and leaves
+the checkpoint for inspection/recovery. If the environment cannot establish
+the no-external-writer precondition, live use is NO-GO.
+
+Checkpoint stages are durable and monotonically record profile intent, profile
+configured, stopped instance initialized, effective routes verified and
+instance started. Recovery resumes the exact bound identity and route tuple
+set. A pre-start mismatch must never start the manager; retain enough checkpoint
+and private evidence for a new reviewed recovery decision. Raw Incus output is
+not included in public logs/evidence.
+== Consequences
+
+* Fresh incus+portainer setup can expose TCP/10001 without activating the
+  other wildcard relays.
+* TSW profile ownership is explicit and route behavior is reproducible across
+  setup, add, update, verify and recovery.
+* Provider configuration, node launch arguments, profile inventory/reconcile,
+  manifest schema, checkpoints, operation locking, CLI preview and verification
+  may require additive changes and migration handling.
+* A dedicated profile name alone is insufficient: existing attached profiles
+  and instance devices must also be inventoried and checked.
+* Legacy shared-profile installations may block until a source-supported
+  migration is implemented and qualified.
+* This ADR makes no claim that tagged 0.4.0 supports selected-service
+  verification. It does not bypass the 0.4 full-manifest requirement.
+* No user authorization for additional external routes or Windows networking
+  changes is implied by this decision.
+
+== Verification and acceptance before implementation
+
+* Requirements confirms the post-operation persisted selection contract for
+  setup/add/update/recovery and explicit deselection behavior.
+* Architecture, Security, DevOps and Test/Evidence accept identity ownership,
+  project isolation, all-profile effective-device checks, locking, failure
+  cleanup and legacy migration limits.
+* Verify the exact supported Incus version; require a documented support entry
+  and block unknown versions.
+* Add an isolated proxy-listener timing fixture for the exact candidate Incus
+  version. Reserve one unused host-loopback fixture port in 61000–65535 and
+  verify its IPv4/IPv6 listener baseline is empty. Never use or alter TCP/10001
+  for the fixture. Preserve and verify the pre-existing TCP/10001 service tuple
+  and destination, plus unchanged Windows firewall and PortProxy rules. Verify
+  no fixture listener after profile creation or stopped incus init; after start,
+  attribute only the exact 127.0.0.1 fixture-port listener to the test manager's
+  Incus proxy and connect it to the disposable instance's private listener.
+  Prove no fixture listener on 0.0.0.0/:: and no listeners on 80/443/16080/16081.
+  Record process identity and complete listener tuples; any drift or unexpected
+  listener blocks.
+* Compare complete proxy configuration tuples: device name/type, bind,
+  listen/connect protocols, addresses and ports, nat, proxy_protocol and every
+  route-affecting option. The accepted Portainer tuple must target the intended
+  loopback endpoint.
+* Verify the persistent installation lock uses an owner-private directory
+  (0700), owner-only regular lock file (0600), no-follow open and nonblocking
+  exclusive flock; contention or unsafe state blocks before mutation.
+* Add unit, application and integration tests for fresh minimal, full selection,
+  add delta, update/recovery, profile collision, foreign/unknown devices,
+  profile/instance-level combined exposure, concurrent changes, malformed
+  reads, failure before/after attachment and no-mutation stop behavior.
+* Run targeted tests then the full QUALITY.md gate on the designated SSH WSL
+  host for exact source hashes.
+* Obtain a new independent Three-Amigos GO before host mutation.
+* Fresh native and WSL JITs must verify exact candidate/source, profile
+  inventory/consumers, manifest/runtime equality, resource admission, listeners,
+  firewall and PortProxy state, and host-preparation plan. Live acceptance must
+  verify before/after effective routes, service/auth/data/identity, task health,
+  recovery and cleanup/restoration.
+
+== R67f historical review status (2026-10-26)
+
+At the R67f checkpoint, the R67 requirements review accepted selection semantics only; other owner reviews were conditional on drafting, R66 remained NO-GO for live provisioning, and the ADR was still a draft. This is historical status only. The subsequent R67j same-hash decisions accepted the profile policy for canonical ADR placement, as recorded below; implementation and live-use gates remain separate.
+
+== R67d historical constraints retained by the accepted decision
+
+The accepted decision constrains this first implementation to the Incus default project
+unless provider project-selection support is separately approved and implemented.
+All relevant profile and instance commands must explicitly target the recorded
+project. A fresh JIT must inspect issue447 project profile isolation settings,
+profile and instance references, and prove the generated profile cannot be
+consumed there or by unrelated default-project instances. A project name alone
+does not prove isolation.
+
+The current provider uses incus launch, which starts the instance as part of
+creation. That is too late for pre-start route verification. The safe sequence
+must use incus init to create the owned manager stopped, inspect its expanded
+configuration and the complete device tuples across all attached profiles and
+instance-level devices, then start it only after exact-route verification.
+Proxy tuples include device name/type, listen address/port, connect
+address/port and proxy mode. Portainer TCP/10001 must connect to the approved
+Portainer loopback endpoint. Verify again after start and confirm listeners and
+published service ports.
+
+No existing lock has been found that spans manifest capture, profile mutation,
+node initialization/start and recovery. The accepted decision requires a persistent
+installation-operation lock covering setup/add/update/recovery and all profile
+and node changes. Existing component/product journals may retain their own
+locks, but lock ordering and deadlock prevention must be explicit. Incus
+operators remain external writers: re-read project, profile, complete devices
+and consumers immediately before profile creation, before init, before start,
+and after start. Any changed state aborts; do not assume the TSW lock controls
+external actors.
+
+Before the first profile mutation, durably checkpoint the exact installation
+identity, project, profile identity, route tuples and intended operation. Use
+explicit checkpoint stages for profile intent, profile configured, stopped
+instance initialized, effective route set verified and instance started. A
+pre-attachment or pre-start failure retains enough evidence for deterministic
+recovery. Cleanup may remove a stopped instance or unattached profile only
+after proving exact operation ownership and no consumers; after start, preserve
+state for recovery.
+
+The generated profile identity and full expected route tuples must be validated
+as data, not interpolated into shell commands. Raw Incus output remains private;
+logs/evidence contain only redacted device and consumer facts. Security requires
+the dedicated profile to replace the legacy exposure profile, and the effective
+device set across every profile plus manager-level devices to contain no extra
+route.
+
+DevOps review also requires a fresh native JIT against the exact candidate and
+approved provider-memory-v1 10/6/1-GiB tree, recording available memory and
+active allocations. WSL JIT must newly inspect Windows firewall/PortProxy,
+because R66 did not. Any proposed sysctl, forwarding, br_netfilter or hosts-file
+preparation needs its exact plan and separate approval before application.
+
+The existing provider uses incus launch, which starts the instance as part of
+creation. The normative operation sequence replaces it with stopped incus init,
+expanded-configuration verification, then start. The persistent installation
+lock and maintenance-window requirement are mandatory; rereads detect external
+drift but do not serialize external Incus operators.
+The earlier R67f checklist is historical; the current policy is accepted for canonical ADR placement. It does not authorize a customer-facing route beyond TCP/10001, changes to Windows rules, runtime support, or live qualification. Implementation is governed by the active issue workflow. The disposable fixture may use only its approved unique loopback high port and exact scenario GO.
+
+
+
+== R67e proxy-listener timing gate
+
+Official Incus documentation confirms that incus init creates an instance
+without starting it, incus launch creates and starts it, and proxy devices are
+hotpluggable. The documentation does not state whether configuring/attaching a
+proxy device to a stopped instance ever binds the host listener. Therefore
+listener timing is an unresolved implementation invariant, not an assumption:
+isolated fixture tests against the supported Incus version must configure the
+expected and forbidden proxy tuples, observe listeners after profile creation,
+after incus init and before start, and prove no forbidden host listener is
+active. The first fresh live JIT must repeat the stopped-instance check. Any
+forbidden listener before start is a hard stop. This requirement is now part of
+the normative operation sequence and test plan.
+
+References: official Incus [instance creation](https://linuxcontainers.org/incus/docs/main/howto/instances_create/)
+and [proxy device](https://linuxcontainers.org/incus/docs/main/reference/devices_proxy/)
+documentation.
+
+== R67f executable lock and listener criteria
+
+The installation-operation lock must live under an owner-private Linux/WSL
+state directory: verified owner, directory mode 0700, lock file mode 0600,
+regular file, no symlink following, nonblocking exclusive flock. Fail before
+profile/node mutation on unsafe ownership/mode, lock contention, or uncertain
+durability. The application-level lock must cover manifest/runtime capture,
+profile changes, stopped initialization, start, recovery and cleanup. Document
+lock ordering with product/component journals.
+
+A proxy device's expected tuple includes name, type, bind side, listen protocol,
+address and port, connect protocol, address and port, NAT setting,
+proxy_protocol setting and every other route-affecting option. For the accepted
+Portainer route, verify the exact intended host listen and guest loopback
+connect endpoints; do not accept a tuple that merely has port 10001.
+
+The isolated listener fixture must run on the exact Incus version being qualified
+and a disposable environment. Reserve one unique unused 61000–65535 host-loopback
+port, verify its IPv4/IPv6 baseline is empty, and never bind or forward the
+fixture on TCP/10001. Record and preserve the existing TCP/10001 tuple and
+destination unchanged. After profile creation and stopped incus init, prove no
+listener exists on the fixture port. After start, prove only the attributable
+127.0.0.1 fixture-port listener exists and connects to the disposable instance's
+private listener; the existing TCP/10001 service tuple, destination, firewall and
+PortProxy remain unchanged. Prove no listeners on 0.0.0.0/:: or 80/443/16080/16081.
+Retain listener/process attribution metadata privately and redacted.
+
+The control must compare before/after process identity and listener tuples so
+an unrelated host process cannot be credited as the expected route. If the
+environment cannot attribute the listener to the test instance, or if a
+forbidden listener exists at baseline or appears at any checkpoint, stop and
+make no live qualification claim. Fresh native and WSL JIT must record Incus
+version, profile/expanded-device tuples, consumers, baseline and checkpoint
+listeners at the same stages.
+
+
+== R67g formal-review revisions — explicit controller eligibility and lock order
+
+This addendum resolves two architecture review findings and supersedes any
+earlier sentence that left either rule as a future implementation choice.
+
+=== Controller/source eligibility
+
+The new selection-scoped, installation-profile reconciliation capability is
+unavailable to the published 0.4.0 controller and to any controller revision
+that does not implement and verify this profile contract. A request to perform
+the 10001-only selection-scoped path with such a controller must refuse before
+any Incus profile, node, service, or persisted installation state mutation.
+Tagged 0.4.0's full service-access manifest is not a Portainer-only verifier
+and must not be used to claim or perform that 10001-only path.
+
+This capability-specific refusal does not withdraw existing full-manifest
+Classic behavior outside the new profile-reconciliation path. Full-selection
+behavior remains required. Existing full-manifest operations still require
+their own applicable route consent and live gates; this accepted decision gives no new
+consent for the four routes outside the user's current TCP/10001 approval.
+
+A later controller may operate on a 0.4.0 product installation only after that
+controller's exact candidate source is admitted and its selection-scoped
+preflight is complete before the first mutation. The product target version
+does not determine controller eligibility. The exact controller revision,
+product source/target, and supported Incus version must be bound in the
+operation preview and durable checkpoint. No such controller revision is
+currently qualified; this paragraph is a design rule, not a live approval.
+
+=== Enforceable lock order
+
+For every setup, services-add, component update, product upgrade, interruption
+recovery, and cleanup path, acquire the installation-operation lock first and
+hold it through state capture, journal operation, all profile/node mutations,
+verification, and durable checkpoint completion. Only after acquiring it may a
+path acquire one journal lock. Component updates and Portainer updates use the
+existing shared component-update lock; product upgrade uses the product-upgrade
+lock. Do not nest component and product journal locks. Release the journal lock
+before releasing the installation lock. Recovery follows the identical order.
+
+No path may acquire the installation lock while already holding a journal lock.
+All supported TSW writers must use this order; candidate checks must reject
+older/concurrent controller processes during the live maintenance window. The
+installation lock is held until the operation reaches a durable terminal
+checkpoint or a durable recoverable checkpoint. On process exit the OS releases
+the flock; the checkpoint remains authoritative and the next operation must
+recover it while reacquiring the installation lock first. This order does not
+serialize external Incus operators, which remain excluded by the required
+maintenance-window gate and pre-write state re-reads.
+
+These clauses establish design-level eligibility and lock ordering only. They
+do not qualify the 0.5.0 candidate, approve migration, or authorize host writes.
+
+== R67h DevOps qualification gates — explicit version, uncertain outcomes, isolation
+
+=== Incus version decision
+
+R68 observed Incus client/server 6.0.5 on native Linux and WSL2. This is the
+intended first qualification version, not a declared supported version: no
+isolated proxy-listener fixture result exists. The supported-version set for
+this new profile-reconciliation capability is initially empty; all versions
+are unsupported for that capability. This is not a global Incus support
+decision and does not change existing full-manifest Classic behavior. The ADR
+may accept this capability-specific policy and profile-ownership design while
+the set is empty. Do not add 6.0.5 to the capability's support matrix, implement
+the path, or run live mutations until the isolated fixture passes on a clean
+disposable Incus environment whose server version is exactly 6.0.5 and an
+independent review accepts that evidence. The retained fixture result must identify client/server versions, image, project, profile and complete effective device tuples; the selected loopback fixture-port IPv4/IPv6 baselines and every checkpoint; unchanged TCP/10001 tuple/destination and Windows rules; process attribution; command transcripts/exit codes; and before/after resource inventories. It must prove an empty baseline and no fixture listener after profile creation and stopped init; after start, only the attributable 127.0.0.1 fixture-port listener is present, connected to the disposable private listener. Prove 0.0.0.0/:: and 80/443/16080/16081 remain without listeners. Any unowned listener or version mismatch fails the fixture. Only after review of this record may 6.0.5 be declared supported for this capability. Other versions remain unsupported for this capability until independently qualified.
+
+=== Uncertain write outcomes
+
+For profile create, every profile device/configuration write, profile attach,
+`incus init`, device changes, `incus start`, and cleanup, a timeout, disconnect,
+malformed response, or lost command result is an uncertain outcome. Do not retry,
+rollback, or delete based only on the command exit/result. Under the installation
+lock, re-read the durable checkpoint and exact project/profile/consumer/instance
+state, compare complete expected ownership and device tuples, then either
+continue idempotently from the proven checkpoint state or stop with state
+retained for operator recovery. Cleanup is permitted only after exact ownership,
+no consumers and stopped-state proofs are freshly established. Add deterministic
+fault-injection coverage at each write boundary, including applied-but-response-
+lost outcomes; assert retries do not duplicate, broaden routes, or delete
+uncertain state.
+
+=== Issue447 and capacity live gates
+
+Before any native or WSL mutation, freshly inventory both issue447 projects,
+including project profile-isolation settings, all profile and instance
+references, all consumers and effective devices. The existing R68 records are
+incomplete for that inventory and therefore do not prove non-interference.
+Native resource admission must be repeated after the authorized teardown and
+against the exact candidate plus fully re-admitted 10/6/1-GiB provider tree; R68
+available memory was measured with the 17-GiB runtime active. Until those fresh
+checks, no host is live-eligible.
+
+These are hard preconditions, not claims that the listener fixture, support
+matrix admission, issue447 inventory or post-teardown capacity check has
+already passed. ADR acceptance, implementation and live-use decisions remain
+separate gates.
+
+== R67i distinction between ADR acceptance and runtime support
+
+This accepted decision adopts the profile ownership, selection and safety policy. The supported-version set for this new profile-reconciliation capability is explicitly empty. This is not a global Incus support change and does not withdraw existing full-manifest Classic behavior; full selection remains required. Incus 6.0.5 is the first qualification candidate and remains unsupported until the isolated listener fixture and independent evidence review pass and a separate capability support-matrix change records the result. This ADR accepts policy only: implementation proceeds only through the active issue workflow and its review/quality gates; release, setup, upgrade, recovery and host mutation still require their separate applicable approvals, fresh JIT and live GO.
+The uncertain-write test contract now has four required outcomes at every
+profile/device/attach/init/start/cleanup write boundary: (1) applied and response
+received, (2) not applied and explicit failure, (3) applied but response lost,
+and (4) outcome unreadable or mismatched on read-back. Also inject interruption
+before and after each durable checkpoint transition. Continue only when the
+checkpoint-bound exact postcondition is proven. Otherwise stop with all uncertain
+state retained: no duplicate write, route broadening, retry based on exit status
+alone, or cleanup. Test the same rules in recovery.
+
+== R67j canonical acceptance and review-status reconciliation
+
+The R67f review status above is historical and does not describe the current decision. The final R67j proposal SHA-256 `9ce138b3bd61196e9942862e1a349254f3dd18e0d9c5ff47b6c7f5b6e70ba132` received same-hash Requirements, Architecture, Security, DevOps and Test/Evidence approval for canonical ADR acceptance as design policy. The accepted policy explicitly keeps this capability's supported-version set empty until the listener fixture, independent review and separate support-matrix decision pass. This acceptance does not establish implementation success, runtime support, live GO, or host mutation authorization. The active workflow controls implementation and requires exact-source quality, independent review, fresh native/WSL JIT and a new scenario GO.
