@@ -325,6 +325,74 @@ class RouteStateCaptureTests(_FixtureBehaviorTestCase):
         capture.assert_called_once_with('192.168.178.33',
             '.tiny-swarm/evidence/issue-449/s449-private-20261027/capture.json')
 
+    def test_route_inventory_rejects_profile_identity_mismatch(self):
+        def command(argv):
+            if argv == ['incus', 'project', 'list', '--format', 'json']:
+                return b'[{"name":"default"}]'
+            if argv == ['incus', 'query', '/1.0/projects/default']:
+                return b'{"name":"default","description":"","config":{}}'
+            if argv == ['incus', 'profile', 'list', '--project', 'default', '--format', 'json']:
+                return b'[{"name":"expected"}]'
+            if argv[:2] == ['incus', 'query']:
+                return json.dumps({'name': 'other', 'project': 'default',
+                                   'config': {}, 'devices': {}, 'used_by': []}).encode()
+            raise AssertionError(argv)
+        with patch.object(fixture, 'command', side_effect=command):
+            with self.assertRaisesRegex(fixture.TargetDrift, 'INCUS_PROFILE_INVENTORY_UNREADABLE'):
+                fixture._incus_route_inventory()
+
+    def test_route_inventory_rejects_instance_identity_mismatch(self):
+        def command(argv):
+            if argv == ['incus', 'project', 'list', '--format', 'json']:
+                return b'[{"name":"default"}]'
+            if argv == ['incus', 'query', '/1.0/projects/default']:
+                return b'{"name":"default","description":"","config":{}}'
+            if argv == ['incus', 'profile', 'list', '--project', 'default', '--format', 'json']:
+                return b'[]'
+            if argv == ['incus', 'list', '--project', 'default', '--format', 'json']:
+                return b'[{"name":"expected"}]'
+            if argv[:2] == ['incus', 'query']:
+                return json.dumps({'name': 'other', 'project': 'default',
+                                   'config': {}, 'devices': {}, 'profiles': []}).encode()
+            raise AssertionError(argv)
+        with patch.object(fixture, 'command', side_effect=command):
+            with self.assertRaisesRegex(fixture.TargetDrift, 'INCUS_INSTANCE_INVENTORY_UNREADABLE'):
+                fixture._incus_route_inventory()
+
+    def test_route_inventory_rejects_profile_and_instance_wrong_projects(self):
+        for resource in ('profile', 'instance'):
+            with self.subTest(resource=resource):
+                def command(argv):
+                    if argv == ['incus', 'project', 'list', '--format', 'json']:
+                        return b'[{"name":"default"}]'
+                    if argv == ['incus', 'query', '/1.0/projects/default']:
+                        return b'{"name":"default","description":"","config":{}}'
+                    if argv == ['incus', 'profile', 'list', '--project', 'default', '--format', 'json']:
+                        return b'[{"name":"expected"}]' if resource == 'profile' else b'[]'
+                    if argv == ['incus', 'list', '--project', 'default', '--format', 'json']:
+                        return b'[{"name":"expected"}]' if resource == 'instance' else b'[]'
+                    if argv[:2] == ['incus', 'query']:
+                        identity = {'name': 'expected', 'project': 'other',
+                                    'config': {}, 'devices': {}}
+                        identity['used_by' if resource == 'profile' else 'profiles'] = []
+                        return json.dumps(identity).encode()
+                    raise AssertionError(argv)
+                code = 'INCUS_PROFILE_INVENTORY_UNREADABLE' if resource == 'profile' else 'INCUS_INSTANCE_INVENTORY_UNREADABLE'
+                with patch.object(fixture, 'command', side_effect=command):
+                    with self.assertRaisesRegex(fixture.TargetDrift, code):
+                        fixture._incus_route_inventory()
+
+    def test_read_default_profile_rejects_wrong_name_or_project(self):
+        for field in ('name', 'project'):
+            with self.subTest(field=field):
+                profile = {'name': 'default', 'project': 'default',
+                           'config': {}, 'devices': {}, 'used_by': []}
+                profile[field] = 'other'
+                with patch.object(fixture, 'command',
+                                  return_value=json.dumps(profile).encode()):
+                    with self.assertRaisesRegex(fixture.TargetDrift, 'DEFAULT_PROFILE_UNREADABLE'):
+                        fixture._read_default_profile({}, [])
+
     def test_capture_executes_read_only_inventory_allowlist_and_binds_all_projects(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -350,13 +418,13 @@ class RouteStateCaptureTests(_FixtureBehaviorTestCase):
                     ('incus', 'profile', 'list', '--project', 'default', '--format', 'json'): b'[]',
                     ('incus', 'profile', 'list', '--project', 'qa', '--format', 'json'):
                         b'[{"name":"qa-profile"}]',
-                    ('incus', 'profile', 'show', 'qa-profile', '--project', 'qa', '--format', 'json'):
-                        json.dumps({'config': {}, 'devices': {'web': route_device}, 'used_by': []}).encode(),
+                    ('incus', 'query', fixture._profile_api_path('qa-profile', 'qa')):
+                        json.dumps({'name': 'qa-profile', 'project': 'qa', 'config': {}, 'devices': {'web': route_device}, 'used_by': []}).encode(),
                     ('incus', 'list', '--project', 'default', '--format', 'json'): b'[]',
                     ('incus', 'list', '--project', 'qa', '--format', 'json'):
                         b'[{"name":"qa-instance"}]',
-                    ('incus', 'config', 'show', 'qa-instance', '--project', 'qa', '--format', 'json'):
-                        json.dumps({'config': {}, 'devices': {'web': route_device},
+                    ('incus', 'query', fixture._instance_api_path('qa-instance', 'qa')):
+                        json.dumps({'name': 'qa-instance', 'project': 'qa', 'config': {}, 'devices': {'web': route_device},
                                     'profiles': ['default']}).encode(),
                 }
                 return responses[key]
@@ -395,11 +463,11 @@ class RouteStateCaptureTests(_FixtureBehaviorTestCase):
                             ('incus', 'remote', 'get-default'),
                         })
                     if argv[1] == 'project':
-                        self.assertIn(argv[2], {'list', 'show'})
+                        self.assertEqual(argv[2], 'list')
                     if argv[1] == 'query':
-                        self.assertIn(tuple(argv), {('incus', 'query', '/1.0/projects/default'), ('incus', 'query', '/1.0/projects/qa')})
+                        self.assertIn(tuple(argv), {('incus', 'query', '/1.0/projects/default'), ('incus', 'query', '/1.0/projects/qa'), ('incus', 'query', fixture._profile_api_path('qa-profile', 'qa')), ('incus', 'query', fixture._instance_api_path('qa-instance', 'qa'))})
                     if argv[1] == 'profile':
-                        self.assertIn(argv[2], {'list', 'show'})
+                        self.assertEqual(argv[2], 'list')
                     if argv[1] == 'config':
                         self.assertEqual(argv[2], 'show')
             self.assertEqual(seen[1], ('incus', 'remote', 'list', '--format', 'json'))
@@ -490,10 +558,7 @@ class ProjectInventoryCaptureTests(_FixtureBehaviorTestCase):
         self.assertEqual(result, {'web': {'type': 'proxy', 'listen': 'tcp:127.0.0.1:8080',
                                           'connect': 'tcp:127.0.0.1:80'}})
 
-    def test_inventory_command_templates_pin_instance_list_arity_and_expanded_order(self):
-        list_argv = ['incus', 'list', '--project', 'default', '--format', 'json']
-        expanded_argv = ['incus', 'config', 'show', 'vm', '--project', 'default', '--format', 'json', '--expanded']
-        invalid_order = ['incus', 'config', 'show', 'vm', '--project', 'default', '--expanded', '--format', 'json']
+    def test_inventory_command_templates_allow_only_canonical_get_paths(self):
         class FakeProcess:
             def __init__(self, output=b'[]', errors=b''):
                 self.stdout = self._pipe(output)
@@ -509,23 +574,32 @@ class ProjectInventoryCaptureTests(_FixtureBehaviorTestCase):
                 return 0
             def kill(self):
                 pass
-        with patch.object(fixture.subprocess, 'Popen', side_effect=lambda *a, **k: FakeProcess()) as run:
+        valid = [
+            ['incus', 'list', '--project', 'qa-blue', '--format', 'json'],
+            ['incus', 'query', '/1.0/projects/qa%20blue'],
+            ['incus', 'query', '/1.0/profiles/web%20blue?project=qa%20blue'],
+            ['incus', 'query', '/1.0/instances/vm%20one?project=qa%20blue'],
+        ]
+        with patch.object(fixture.subprocess, 'Popen',
+                          side_effect=lambda *a, **k: FakeProcess()) as run:
             fixture._COMMAND_AUDIT.clear()
-            self.assertEqual(fixture._inventory_command(list_argv), b'[]')
-            self.assertEqual(fixture._inventory_command(expanded_argv), b'[]')
-            self.assertEqual(fixture._inventory_command(['incus', 'query', '/1.0/projects/qa%20blue']), b'[]')
-            self.assertEqual(run.call_count, 3)
-        self.assertEqual(set(fixture._COMMAND_AUDIT[0]), {'argv', 'exit_status', 'stdout_bytes', 'stderr_bytes'})
-        with self.assertRaisesRegex(fixture.FixtureError, 'INVENTORY_COMMAND_NOT_ALLOWLISTED'):
-            fixture._inventory_command(invalid_order)
-        for invalid_query in (
-                ['incus', 'query', '/1.0/projects/qa%2fblue'],
-                ['incus', 'query', '/1.0/projects/../default'],
-                ['incus', 'query', '/1.0/instances/vm'],
-                ['incus', 'query', '/1.0/projects/default', '-X', 'DELETE']):
-            with self.subTest(argv=invalid_query), self.assertRaisesRegex(
+            for argv in valid:
+                self.assertEqual(fixture._inventory_command(argv), b'[]')
+            self.assertEqual(run.call_count, len(valid))
+        self.assertEqual(fixture._COMMAND_AUDIT[-1]['argv'], valid[-1])
+        invalid = [
+            ['incus', 'query', '/1.0/projects/qa%2fblue'],
+            ['incus', 'query', '/1.0/projects/../default'],
+            ['incus', 'query', '/1.0/instances/vm'],
+            ['incus', 'query', '/1.0/profiles/web?project=qa&project=other'],
+            ['incus', 'query', '/1.0/profiles/web?project=qa&recursion=1'],
+            ['incus', 'query', '/1.0/projects/default?project=default'],
+            ['incus', 'query', '/1.0/instances/vm?project=qa', '-X', 'DELETE'],
+        ]
+        for argv in invalid:
+            with self.subTest(argv=argv), self.assertRaisesRegex(
                     fixture.FixtureError, 'INVENTORY_COMMAND_NOT_ALLOWLISTED'):
-                fixture._inventory_command(invalid_query)
+                fixture._inventory_command(argv)
 
     def test_kill_and_reap_uses_bounded_wait_and_fails_closed(self):
         class StuckProcess:
@@ -723,15 +797,17 @@ class ProjectInventoryCaptureTests(_FixtureBehaviorTestCase):
                 json.dumps({'name': 'qa', 'description': '', 'config': features, 'used_by': []}).encode(),
             ('incus', 'profile', 'list', '--project', 'qa', '--format', 'json'):
                 b'[{"name":"web","description":"","used_by":[],"project":"qa","config":{},"devices":{}}]',
-            ('incus', 'profile', 'show', 'web', '--project', 'qa', '--format', 'json'):
+            ('incus', 'query', fixture._profile_api_path('web', 'qa')):
                 json.dumps({'name': 'web', 'project': 'qa', 'description': '', 'config': {'user.note': 'omit'},
                             'devices': {'proxy0': device}, 'used_by': []}).encode(),
             ('incus', 'list', '--project', 'qa', '--format', 'json'):
                 b'[{"name":"vm","status":"Running","status_code":103,"type":"virtual-machine","profiles":["web"],"ephemeral":false,"description":"","project":"qa"}]',
-            ('incus', 'config', 'show', 'vm', '--project', 'qa', '--format', 'json'):
-                json.dumps({'config': {'user.note': 'omit'}, 'devices': {'local0': device}, 'profiles': ['web']}).encode(),
-            ('incus', 'config', 'show', 'vm', '--project', 'qa', '--format', 'json', '--expanded'):
-                json.dumps({'config': {'user.note': 'omit'}, 'devices': {'expanded0': device}, 'profiles': ['web']}).encode(),
+            ('incus', 'query', fixture._instance_api_path('vm', 'qa')):
+                json.dumps({'name': 'vm', 'project': 'qa',
+                            'config': {'user.note': 'omit'},
+                            'devices': {'local0': device}, 'profiles': ['web'],
+                            'expanded_config': {'user.note': 'omit'},
+                            'expanded_devices': {'expanded0': device}}).encode(),
         }
         seen = []
         def read(argv):
@@ -749,7 +825,7 @@ class ProjectInventoryCaptureTests(_FixtureBehaviorTestCase):
         self.assertEqual(project['instances'], [{'name': 'vm', 'status': 'Running', 'type': 'virtual-machine',
             'profiles': ['web'], 'local_devices': {'local0': device}, 'expanded_devices': {'expanded0': device}}])
         self.assertIn(('incus', 'list', '--project', 'qa', '--format', 'json'), seen)
-        self.assertIn(('incus', 'config', 'show', 'vm', '--project', 'qa', '--format', 'json', '--expanded'), seen)
+        self.assertIn(('incus', 'query', fixture._instance_api_path('vm', 'qa')), seen)
         self.assertEqual(set(inventory), {'projects', 'command_records'})
 
     def test_inventory_refuses_to_list_projects_without_completeness_authority(self):
@@ -771,7 +847,7 @@ class ProjectInventoryCaptureTests(_FixtureBehaviorTestCase):
               b'[{"name":"p","project":"other"}]'}, 'INCUS_PROFILE_INVENTORY_UNREADABLE'),
             ('profile-show-project-mismatch',
              {('incus', 'profile', 'list', '--project', 'qa', '--format', 'json'): b'[{"name":"p"}]',
-              ('incus', 'profile', 'show', 'p', '--project', 'qa', '--format', 'json'):
+              ('incus', 'query', fixture._profile_api_path('p', 'qa')):
               b'{"name":"p","project":"other","config":{},"devices":{},"used_by":[]}'},
              'INCUS_PROFILE_INVENTORY_UNREADABLE'),
             ('instance-project-mismatch',
@@ -1099,7 +1175,7 @@ class NoMutationTests(_FixtureBehaviorTestCase):
         result = type('Completed', (), {'returncode': 0, 'stdout': b'{"config":{"password":"secret"}}'})()
         fixture._COMMAND_AUDIT.clear()
         with patch.object(fixture.subprocess, 'run', return_value=result):
-            self.assertEqual(fixture.command(['incus', 'profile', 'show', 'default', '--format', 'json']),
+            self.assertEqual(fixture.command(['incus', 'query', fixture._profile_api_path('default', 'default')]),
                              b'{"config":{"password":"secret"}}')
         record = fixture._COMMAND_AUDIT[-1]
         self.assertEqual(record['stdout_bytes'], len(result.stdout))
@@ -1345,20 +1421,21 @@ class FixtureLifecycleTests(_FixtureBehaviorTestCase):
                 state['instance'] = False
             if args[:1] == ('list',) or args[:2] == ('profile', 'list'):
                 return b'[]'
-            if args[:2] == ('profile', 'show') and args[2] == 'default':
-                return json.dumps({'config': {}, 'devices': {},
+            if args[:1] == ('query',) and args[1] == fixture._profile_api_path('default', 'default'):
+                return json.dumps({'name': 'default', 'project': 'default',
+                                   'config': {}, 'devices': {},
                                    'used_by': [route] if state['instance'] else []}).encode()
-            if args[:2] == ('profile', 'show'):
-                return json.dumps({'config': {'user.q449.run_id': run_id} if state['profile_marker'] else {},
+            if args[:1] == ('query',) and args[1] == fixture._profile_api_path(profile, 'default'):
+                return json.dumps({'name': profile, 'project': 'default',
+                                   'config': {'user.q449.run_id': run_id} if state['profile_marker'] else {},
                                    'devices': {'q449-listener': device},
                                    'used_by': ['/1.0/instances/foreign'] if state['instance'] and state['foreign_consumer'] else ([route] if state['instance'] else [])}).encode()
-            if args[:2] == ('config', 'show') and '--expanded' in args:
-                return json.dumps({'config': {'user.q449.run_id': run_id},
-                                   'profiles': ['default', profile],
-                                   'devices': {'q449-listener': device}}).encode()
-            if args[:2] == ('config', 'show'):
-                return json.dumps({'config': {'user.q449.run_id': run_id} if state['instance_marker'] else {},
-                                   'devices': {}}).encode()
+            if args[:1] == ('query',) and args[1] == fixture._instance_api_path(instance, 'default'):
+                return json.dumps({'name': instance, 'project': 'default',
+                                   'config': {'user.q449.run_id': run_id} if state['instance_marker'] else {},
+                                   'devices': {}, 'profiles': ['default', profile],
+                                   'expanded_config': {'user.q449.run_id': run_id},
+                                   'expanded_devices': {'q449-listener': device}}).encode()
             if args[:1] == ('info',):
                 return json.dumps({'status': state['status']}).encode()
             return b''
@@ -1367,8 +1444,9 @@ class FixtureLifecycleTests(_FixtureBehaviorTestCase):
             if argv[0] == 'curl':
                 return b'fixture response'
             if argv[0] == 'incus':
-                if argv[1:4] == ['profile', 'show', 'default']:
-                    return json.dumps({'config': {}, 'devices': {},
+                if argv[1:2] == ['query'] and argv[2] == fixture._profile_api_path('default', 'default'):
+                    return json.dumps({'name': 'default', 'project': 'default',
+                                   'config': {}, 'devices': {},
                                        'used_by': [route] if state['instance'] else []}).encode()
                 return b'[]'
             if argv[0] == 'ss':
@@ -1418,7 +1496,7 @@ class JitNoMutationTests(_FixtureBehaviorTestCase):
     def test_default_profile_digest_mismatch_is_a_jit_drift(self):
         run_id = 'a' * 32
         fingerprint = 'e' * 64
-        profile = {'config': {}, 'devices': {}, 'used_by': []}
+        profile = {'name': 'default', 'project': 'default', 'config': {}, 'devices': {}, 'used_by': []}
         go = {'target': {'host': '192.168.178.33', 'server_version': '6.0.5',
                          'instance': f'tsw-q449-{run_id}-fixture',
                          'profile': f'tsw-q449-{run_id}-profile',
@@ -1443,7 +1521,7 @@ class JitNoMutationTests(_FixtureBehaviorTestCase):
     def test_default_profile_proxy_route_is_rejected_before_fixture_mutation(self):
         fingerprint = 'e' * 64
         run_id = 'a' * 32
-        profile = {'config': {}, 'devices': {'web': {
+        profile = {'name': 'default', 'project': 'default', 'config': {}, 'devices': {'web': {
             'type': 'proxy', 'listen': 'tcp:0.0.0.0:80', 'connect': 'tcp:127.0.0.1:8080',
             'bind': 'host'}},
             'used_by': []}
@@ -1462,7 +1540,7 @@ class JitNoMutationTests(_FixtureBehaviorTestCase):
                 return json.dumps([{'fingerprint': fingerprint}]).encode()
             if argv[1:3] == ['image', 'info']:
                 return b'{"properties":{"os":"Alpine Linux","release":"3.20"}}'
-            if 'profile' in argv and 'show' in argv and 'default' in argv:
+            if argv[:2] == ['incus', 'query'] and argv[2] == fixture._profile_api_path('default', 'default'):
                 return json.dumps(profile).encode()
             raise AssertionError(f'unexpected command {argv!r}')
         go = {'target': {'host': '192.168.178.33', 'server_version': '6.0.5',
@@ -1482,6 +1560,24 @@ class JitNoMutationTests(_FixtureBehaviorTestCase):
         with self.assertRaisesRegex(fixture.TargetDrift, 'INCUS_PROFILE_INVENTORY_UNREADABLE'):
             fixture._strict_devices({'broken': 'proxy'}, 'INCUS_PROFILE_INVENTORY_UNREADABLE')
 
+    def test_fixture_profile_response_rejects_wrong_name_or_project(self):
+        run_id = 'a' * 32
+        profile_name = 'q449-profile'
+        go = {'target': {'profile': profile_name, 'run_id': run_id},
+              'proxy': {'listen': 'tcp:127.0.0.1:61000',
+                        'connect': 'tcp:127.0.0.1:8080', 'bind': 'host'}}
+        valid = {'name': profile_name, 'project': 'default',
+                 'config': {'user.q449.run_id': run_id},
+                 'devices': {'q449-listener': {'type': 'proxy', **go['proxy']}},
+                 'used_by': []}
+        self.assertEqual(fixture._assert_fixture_profile(go, valid, [] )['config'],
+                         valid['config'])
+        for field in ('name', 'project'):
+            with self.subTest(field=field):
+                mismatch = {**valid, field: 'other'}
+                with self.assertRaises(fixture.TargetDrift):
+                    fixture._assert_fixture_profile(go, mismatch, [])
+
     def test_effective_profile_and_device_set_is_exact_and_has_no_instance_overrides(self):
         run_id = 'a' * 32
         go = {'target': {'instance': 'fixture', 'profile': 'q449-profile', 'run_id': run_id},
@@ -1490,23 +1586,27 @@ class JitNoMutationTests(_FixtureBehaviorTestCase):
         default_profile = {'devices': {'eth0': {'type': 'nic', 'nictype': 'bridged'}}}
         fixture_device = {'type': 'proxy', **go['proxy']}
         fixture_profile = {'devices': {'q449-listener': fixture_device}}
-        local = {'config': {'user.q449.run_id': run_id}, 'devices': {}}
-        expanded = {'profiles': ['default', 'q449-profile'],
-                    'devices': {'eth0': default_profile['devices']['eth0'],
-                                'q449-listener': fixture_device}}
-        with patch.object(fixture, '_incus', side_effect=[json.dumps(local).encode(),
-                                                          json.dumps(expanded).encode()]):
+        local = {'name': 'fixture', 'project': 'default',
+                 'config': {'user.q449.run_id': run_id}, 'devices': {},
+                 'profiles': ['default', 'q449-profile'],
+                 'expanded_config': {'user.q449.run_id': run_id},
+                 'expanded_devices': {'eth0': default_profile['devices']['eth0'],
+                                      'q449-listener': fixture_device}}
+        expanded_devices = local['expanded_devices']
+        with patch.object(fixture, '_incus', return_value=json.dumps(local).encode()):
             self.assertEqual(fixture._verify_effective_instance(go, default_profile, fixture_profile)['devices'],
-                             expanded['devices'])
+                             expanded_devices)
         candidates = (
             {'profiles': ['default', 'q449-profile'], 'devices': {
-                **expanded['devices'], 'extra': {'type': 'proxy', 'listen': 'tcp:0.0.0.0:80'}}},
-            {'profiles': ['default', 'foreign', 'q449-profile'], 'devices': expanded['devices']},
-            {'profiles': ['default', 'q449-profile'], 'devices': {**expanded['devices'], 'bad': 'proxy'}},
+                **expanded_devices, 'extra': {'type': 'proxy', 'listen': 'tcp:0.0.0.0:80'}}},
+            {'profiles': ['default', 'foreign', 'q449-profile'], 'devices': expanded_devices},
+            {'profiles': ['default', 'q449-profile'], 'devices': {**expanded_devices, 'bad': 'proxy'}},
         )
         for candidate in candidates:
+            api_instance = {**local, 'expanded_devices': candidate['devices'],
+                            'profiles': candidate['profiles']}
             with self.subTest(candidate=candidate), patch.object(
-                    fixture, '_incus', side_effect=[json.dumps(local).encode(), json.dumps(candidate).encode()]):
+                    fixture, '_incus', return_value=json.dumps(api_instance).encode()):
                 with self.assertRaises(fixture.TargetDrift):
                     fixture._verify_effective_instance(go, default_profile, fixture_profile)
 
@@ -1522,8 +1622,8 @@ class JitNoMutationTests(_FixtureBehaviorTestCase):
     def test_every_jit_command_failure_prefix_contains_no_incus_write(self):
         run_id = 'a' * 32
         fingerprint = 'e' * 64
-        profile = {'config': {}, 'devices': {}, 'used_by': []}
-        route = {'config': {}, 'devices': {'web': {'type': 'proxy',
+        profile = {'name': 'default', 'project': 'default', 'config': {}, 'devices': {}, 'used_by': []}
+        route = {'name': 'legacy', 'project': 'default', 'config': {}, 'devices': {'web': {'type': 'proxy',
                  'listen': 'tcp:127.0.0.1:10001', 'connect': 'tcp:127.0.0.1:8080',
                  'bind': 'host'}}, 'used_by': []}
         responses = {
@@ -1533,14 +1633,14 @@ class JitNoMutationTests(_FixtureBehaviorTestCase):
             ('incus', 'query', '/1.0/projects/default'): b'{"name":"default","description":"","config":{}}',
             ('incus', 'image', 'list', '--project', 'default', '--format', 'json'): json.dumps([{'fingerprint': fingerprint}]).encode(),
             ('incus', 'image', 'info', fingerprint, '--project', 'default', '--format', 'json'): b'{"properties":{"os":"Alpine Linux","release":"3.20"}}',
-            ('incus', 'profile', 'show', 'default', '--project', 'default', '--format', 'json'): json.dumps(profile).encode(),
+            ('incus', 'query', fixture._profile_api_path('default', 'default')): json.dumps(profile).encode(),
             ('free', '-b'): b'header\nMem: 40000000000 1000000 2000000 0 3000000 35000000000',
             ('df', '-B1', '--output=avail', str(fixture.ROOT)): b'Avail\n100000000000',
             ('ss', '-H', '-ltn'): b'LISTEN 0 1 127.0.0.1:10001 0.0.0.0:*',
             ('ss', '-H', '-ltnp'): b'LISTEN 0 1 127.0.0.1:10001 0.0.0.0:* users:(("incusd",pid=77,fd=3))',
             ('incus', 'list', '--project', 'default', '--format', 'json'): b'[]',
             ('incus', 'profile', 'list', '--project', 'default', '--format', 'json'): b'[{"name":"legacy"}]',
-            ('incus', 'profile', 'show', 'legacy', '--project', 'default', '--format', 'json'): json.dumps(route).encode(),
+            ('incus', 'query', fixture._profile_api_path('legacy', 'default')): json.dumps(route).encode(),
         }
         go = {'target': {'host': '192.168.178.33', 'server_version': '6.0.5',
                          'instance': f'tsw-q449-{run_id}-fixture',
@@ -1557,7 +1657,7 @@ class JitNoMutationTests(_FixtureBehaviorTestCase):
             ('ip', '-j', '-4', 'addr'), ('incus', 'version', '--format', 'json'),
             ('incus', 'image', 'list', '--project', 'default', '--format', 'json'),
             ('incus', 'image', 'info', fingerprint, '--project', 'default', '--format', 'json'),
-            ('incus', 'profile', 'show', 'default', '--project', 'default', '--format', 'json'),
+            ('incus', 'query', fixture._profile_api_path('default', 'default')),
             ('free', '-b'), ('df', '-B1', '--output=avail', str(fixture.ROOT)),
             ('ss', '-H', '-ltn'), ('ss', '-H', '-ltnp'),
             ('incus', 'list', '--project', 'default', '--format', 'json'),
@@ -1565,7 +1665,7 @@ class JitNoMutationTests(_FixtureBehaviorTestCase):
             ('incus', 'project', 'list', '--format', 'json'),
             ('incus', 'query', '/1.0/projects/default'),
             ('incus', 'profile', 'list', '--project', 'default', '--format', 'json'),
-            ('incus', 'profile', 'show', 'legacy', '--project', 'default', '--format', 'json'),
+            ('incus', 'query', fixture._profile_api_path('legacy', 'default')),
             ('incus', 'list', '--project', 'default', '--format', 'json'),
         ]
         self.assertEqual(set(command_order), set(responses))
@@ -1618,15 +1718,15 @@ class WslJitTests(_FixtureBehaviorTestCase):
                    b'{"server":{"version":"6.0.5"}}',
                    json.dumps([{'fingerprint': case.go['target']['image_fingerprint']}]).encode(),
                    b'{"properties":{"os":"Alpine Linux","release":"3.20"}}',
-                   b'{"config":{},"devices":{},"used_by":["/1.0/instances/other"]}']
+                   b'{"name":"default","project":"default","config":{},"devices":{},"used_by":["/1.0/instances/other"]}']
         with patch.object(fixture, 'command', side_effect=outputs):
             with self.assertRaisesRegex(fixture.TargetDrift, 'DEFAULT_PROFILE_CONSUMERS_DRIFT'):
                 fixture.jit(go, '192.168.178.33')
 
     def test_wsl_identity_and_windows_rules_portproxy_snapshot(self):
         fingerprint = 'e' * 64
-        profile = {'config': {}, 'devices': {}, 'used_by': []}
-        route = {'config': {}, 'devices': {'web': {'type': 'proxy',
+        profile = {'name': 'default', 'project': 'default', 'config': {}, 'devices': {}, 'used_by': []}
+        route = {'name': 'legacy', 'project': 'default', 'config': {}, 'devices': {'web': {'type': 'proxy',
                  'listen': 'tcp:127.0.0.1:10001', 'connect': 'tcp:127.0.0.1:8080', 'bind': 'host'}},
                  'used_by': []}
         seen = []
@@ -1651,14 +1751,14 @@ class WslJitTests(_FixtureBehaviorTestCase):
                 ('incus', 'query', '/1.0/projects/default'): b'{"name":"default","description":"","config":{}}',
                 ('incus', 'image', 'list', '--project', 'default', '--format', 'json'): json.dumps([{'fingerprint': fingerprint}]).encode(),
                 ('incus', 'image', 'info', fingerprint, '--project', 'default', '--format', 'json'): b'{"properties":{"os":"Alpine Linux","release":"3.20"}}',
-                ('incus', 'profile', 'show', 'default', '--project', 'default', '--format', 'json'): json.dumps(profile).encode(),
+                ('incus', 'query', fixture._profile_api_path('default', 'default')): json.dumps(profile).encode(),
                 ('free', '-b'): b'header\nMem: 40000000000 1000000 2000000 0 3000000 35000000000',
                 ('df', '-B1', '--output=avail', str(fixture.ROOT)): b'Avail\n100000000000',
                 ('ss', '-H', '-ltn'): b'LISTEN 0 1 127.0.0.1:10001 0.0.0.0:*',
                 ('ss', '-H', '-ltnp'): b'LISTEN 0 1 127.0.0.1:10001 0.0.0.0:* users:(("incusd",pid=77,fd=3))',
                 ('incus', 'list', '--project', 'default', '--format', 'json'): b'[]',
                 ('incus', 'profile', 'list', '--project', 'default', '--format', 'json'): b'[{"name":"legacy"}]',
-                ('incus', 'profile', 'show', 'legacy', '--project', 'default', '--format', 'json'): json.dumps(route).encode(),
+                ('incus', 'query', fixture._profile_api_path('legacy', 'default')): json.dumps(route).encode(),
             }
             return mapping[tuple(argv)]
 

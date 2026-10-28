@@ -746,23 +746,54 @@ def capture_route_state(host: str, output: str) -> None:
         os.close(fd)
 
 
-def _is_project_query_argv(argv: list[str]) -> bool:
+def _canonical_incus_name(encoded: str) -> str | None:
+    if not encoded or '/' in encoded or '#' in encoded:
+        return None
+    try:
+        name = unquote(encoded, errors='strict')
+    except (UnicodeDecodeError, ValueError):
+        return None
+    if (not name or '/' in name or chr(92) in name or name in {'.', '..'}
+            or quote(name, safe='') != encoded
+            or any(ord(char) < 32 or ord(char) == 127 for char in name)):
+        return None
+    return name
+
+
+def _is_incus_query_argv(argv: list[str]) -> bool:
     if len(argv) != 3 or argv[:2] != ['incus', 'query']:
         return False
     path = argv[2]
-    prefix = '/1.0/projects/'
-    if not path.startswith(prefix):
+    if '#' in path:
         return False
-    encoded_name = path[len(prefix):]
-    if not encoded_name or '/' in encoded_name or '?' in encoded_name or '#' in encoded_name:
+    endpoint, separator, query = path.partition('?')
+    parts = endpoint.split('/')
+    if len(parts) != 4 or parts[1] != '1.0':
         return False
-    try:
-        name = unquote(encoded_name, errors='strict')
-    except (UnicodeDecodeError, ValueError):
+    resource = parts[2]
+    if _canonical_incus_name(parts[3]) is None:
         return False
-    return bool(name and '/' not in name and chr(92) not in name
-                and name not in {'.', '..'} and quote(name, safe='') == encoded_name
-                and not any(ord(char) < 32 or ord(char) == 127 for char in name))
+    if resource == 'projects':
+        return not separator
+    if resource not in {'profiles', 'instances'} or not separator:
+        return False
+    if not query.startswith('project='):
+        return False
+    encoded_project = query[len('project='):]
+    return ('&' not in query and '=' not in encoded_project
+            and _canonical_incus_name(encoded_project) is not None)
+
+
+def _project_api_path(project: str) -> str:
+    return '/1.0/projects/' + quote(project, safe='')
+
+
+def _profile_api_path(profile: str, project: str) -> str:
+    return '/1.0/profiles/' + quote(profile, safe='') + '?project=' + quote(project, safe='')
+
+
+def _instance_api_path(instance: str, project: str) -> str:
+    return '/1.0/instances/' + quote(instance, safe='') + '?project=' + quote(project, safe='')
 
 
 def _inventory_command(argv: list[str]) -> bytes:
@@ -772,12 +803,10 @@ def _inventory_command(argv: list[str]) -> bytes:
         argv == ['incus', 'remote', 'list', '--format', 'json'] or
         argv == ['incus', 'remote', 'get-default'] or
         argv == ['incus', 'project', 'list', '--format', 'json'] or
-        _is_project_query_argv(argv) or
-        (len(argv) == 7 and argv[1:3] == ['profile', 'list'] and argv[3] == '--project' and argv[4] and argv[5:] == ['--format', 'json']) or
-        (len(argv) == 8 and argv[1:3] == ['profile', 'show'] and argv[3] and argv[4] == '--project' and argv[5] and argv[6:] == ['--format', 'json']) or
-        (len(argv) == 6 and argv[1] == 'list' and argv[2] == '--project' and argv[3] and argv[4:] == ['--format', 'json']) or
-        (len(argv) in {8, 9} and argv[1:3] == ['config', 'show'] and argv[3] and argv[4] == '--project' and argv[5] and
-         ((len(argv) == 8 and argv[6:] == ['--format', 'json']) or (len(argv) == 9 and argv[6:] == ['--format', 'json', '--expanded'])))))
+        _is_incus_query_argv(argv) or
+        (len(argv) == 6 and argv[1] == 'list' and argv[2] == '--project'
+         and argv[3] and argv[4:] == ['--format', 'json']) or
+        (len(argv) == 7 and argv[1:3] == ['profile', 'list'] and argv[3] == '--project' and argv[4] and argv[5:] == ['--format', 'json'])))
     if not valid or any(not isinstance(item, str) or not item or item.startswith('-') and item not in {
             '--project', '--format', '--expanded'} for item in argv):
         raise FixtureError('INVENTORY_COMMAND_NOT_ALLOWLISTED')
@@ -970,7 +999,7 @@ def _capture_project_inventory(host: str) -> dict[str, Any]:
         names.append(name)
     result = []
     for project in sorted(names):
-        pdata = strict_json(_inventory_command(['incus', 'query', '/1.0/projects/' + quote(project, safe='')]))
+        pdata = strict_json(_inventory_command(['incus', 'query', _project_api_path(project)]))
         if (not isinstance(pdata, dict) or set(pdata) - {'name', 'description', 'config', 'used_by'}
                 or pdata.get('name') != project or not isinstance(pdata.get('description'), str)):
             raise TargetDrift('INCUS_PROJECT_INVENTORY_UNREADABLE')
@@ -1002,7 +1031,7 @@ def _capture_project_inventory(host: str) -> dict[str, Any]:
         for profile_name in sorted(x['name'] for x in profiles_raw):
             if not profile_name or any(p['name'] == profile_name for p in profiles):
                 raise TargetDrift('INCUS_PROFILE_INVENTORY_UNREADABLE')
-            pdata2 = strict_json(_inventory_command(['incus', 'profile', 'show', profile_name, '--project', project, '--format', 'json']))
+            pdata2 = strict_json(_inventory_command(['incus', 'query', _profile_api_path(profile_name, project)]))
             if (not isinstance(pdata2, dict)
                     or set(pdata2) - {'config', 'description', 'devices', 'name', 'used_by', 'project'}
                     or pdata2.get('name') != profile_name
@@ -1044,8 +1073,14 @@ def _capture_project_inventory(host: str) -> dict[str, Any]:
                 if key in item:
                     _inventory_devices(item[key], 'INCUS_INSTANCE_INVENTORY_UNREADABLE')
             name = item['name']
-            local = strict_json(_inventory_command(['incus', 'config', 'show', name, '--project', project, '--format', 'json']))
-            effective = strict_json(_inventory_command(['incus', 'config', 'show', name, '--project', project, '--format', 'json', '--expanded']))
+            api_data = strict_json(_inventory_command(['incus', 'query', _instance_api_path(name, project)]))
+            if (not isinstance(api_data, dict) or api_data.get('name') != name
+                    or ('project' in api_data and api_data['project'] != project)):
+                raise TargetDrift('INCUS_INSTANCE_INVENTORY_UNREADABLE')
+            local = {key: api_data.get(key) for key in ('config', 'devices', 'profiles')}
+            effective = {'config': api_data.get('expanded_config'),
+                         'devices': api_data.get('expanded_devices'),
+                         'profiles': api_data.get('profiles')}
             def instance_config(data: Any) -> tuple[dict[str, dict[str, str]], list[str]]:
                 if not isinstance(data, dict) or set(data) - {'config', 'devices', 'profiles'}:
                     raise TargetDrift('INCUS_INSTANCE_INVENTORY_UNREADABLE')
@@ -1134,7 +1169,7 @@ def _incus_route_inventory() -> tuple[list[str], list[dict[str, Any]]]:
         raise TargetDrift('INCUS_PROJECT_DRIFT')
     routes: list[dict[str, Any]] = []
     for project in projects:
-        project_data = strict_json(command(['incus', 'query', '/1.0/projects/' + quote(project, safe='')]))
+        project_data = strict_json(command(['incus', 'query', _project_api_path(project)]))
         if (not isinstance(project_data, dict) or project_data.get('name') != project
                 or not {'name', 'description', 'config'} <= set(project_data)
                 or set(project_data) - {'name', 'description', 'config', 'used_by'}
@@ -1155,8 +1190,10 @@ def _incus_route_inventory() -> tuple[list[str], list[dict[str, Any]]]:
             raise TargetDrift('INCUS_PROFILE_INVENTORY_UNREADABLE')
         for row in profiles:
             name = row['name']
-            data = strict_json(command(['incus', 'profile', 'show', name, '--project', project, '--format', 'json']))
-            if not isinstance(data, dict) or not isinstance(data.get('config'), dict):
+            data = strict_json(command(['incus', 'query', _profile_api_path(name, project)]))
+            if (not isinstance(data, dict) or data.get('name') != name
+                    or ('project' in data and data['project'] != project)
+                    or not isinstance(data.get('config'), dict)):
                 raise TargetDrift('INCUS_PROFILE_INVENTORY_UNREADABLE')
             devices = _strict_devices(data.get('devices'), 'INCUS_PROFILE_INVENTORY_UNREADABLE')
             used_by = data.get('used_by')
@@ -1175,8 +1212,10 @@ def _incus_route_inventory() -> tuple[list[str], list[dict[str, Any]]]:
             raise TargetDrift('INCUS_INSTANCE_INVENTORY_UNREADABLE')
         for row in instances:
             name = row['name']
-            data = strict_json(command(['incus', 'config', 'show', name, '--project', project, '--format', 'json']))
-            if (not isinstance(data, dict) or not isinstance(data.get('config'), dict)
+            data = strict_json(command(['incus', 'query', _instance_api_path(name, project)]))
+            if (not isinstance(data, dict) or data.get('name') != name
+                    or ('project' in data and data['project'] != project)
+                    or not isinstance(data.get('config'), dict)
                     or any(not isinstance(key, str) or not isinstance(value, str)
                            for key, value in data['config'].items())):
                 raise TargetDrift('INCUS_INSTANCE_INVENTORY_UNREADABLE')
@@ -1223,8 +1262,10 @@ def _assert_local_incus_remote_inventory() -> None:
 
 
 def _read_default_profile(go: dict[str, Any], expected_consumers: list[str]) -> dict[str, Any]:
-    profile = strict_json(command(['incus', 'profile', 'show', 'default', '--project', 'default', '--format', 'json']))
-    if not isinstance(profile, dict) or not isinstance(profile.get('config'), dict):
+    profile = strict_json(command(['incus', 'query', _profile_api_path('default', 'default')]))
+    if (not isinstance(profile, dict) or profile.get('name') != 'default'
+            or ('project' in profile and profile['project'] != 'default')
+            or not isinstance(profile.get('config'), dict)):
         raise TargetDrift('DEFAULT_PROFILE_UNREADABLE')
     devices = _strict_devices(profile.get('devices'), 'DEFAULT_PROFILE_UNREADABLE')
     if canonical_profile_sha256(profile['config'], devices) != go['default_profile_sha256']:
@@ -1244,7 +1285,10 @@ def _assert_fixture_profile(go: dict[str, Any], data: dict[str, Any],
         'type': 'proxy', 'listen': go['proxy']['listen'],
         'connect': go['proxy']['connect'], 'bind': go['proxy']['bind'],
     }}
-    if not isinstance(data, dict) or data.get('config') != {'user.q449.run_id': go['target']['run_id']}:
+    if (not isinstance(data, dict)
+            or data.get('name') != go['target']['profile']
+            or ('project' in data and data['project'] != 'default')
+            or data.get('config') != {'user.q449.run_id': go['target']['run_id']}):
         raise TargetDrift('FIXTURE_PROFILE_CONFIG_UNVERIFIED')
     devices = _strict_devices(data.get('devices'), 'FIXTURE_PROFILE_DEVICE_UNVERIFIED')
     if devices != expected_device:
@@ -1259,10 +1303,15 @@ def _assert_fixture_profile(go: dict[str, Any], data: dict[str, Any],
 def _verify_effective_instance(go: dict[str, Any], default_profile: dict[str, Any],
                                fixture_profile: dict[str, Any]) -> dict[str, Any]:
     target, instance = go['target'], go['target']['instance']
-    local = strict_json(_incus('config', 'show', instance, '--project', 'default', '--format', 'json'))
-    expanded = strict_json(_incus('config', 'show', instance, '--project', 'default',
-                                  '--expanded', '--format', 'json'))
-    if not isinstance(local, dict) or not isinstance(local.get('config'), dict):
+    local = strict_json(_incus('query', _instance_api_path(instance, 'default')))
+    if (not isinstance(local, dict) or local.get('name') != instance
+            or ('project' in local and local['project'] != 'default')):
+        raise TargetDrift('INSTANCE_CONFIG_UNREADABLE')
+    expanded = {'config': local.get('expanded_config'),
+                'devices': local.get('expanded_devices'),
+                'profiles': local.get('profiles')}
+    local = {key: local.get(key) for key in ('config', 'devices', 'profiles')}
+    if not isinstance(local.get('config'), dict):
         raise TargetDrift('INSTANCE_CONFIG_UNREADABLE')
     local_devices = _strict_devices(local.get('devices'), 'INSTANCE_CONFIG_UNREADABLE')
     if local_devices:
@@ -1304,8 +1353,10 @@ def jit(go: dict[str, Any], host: str) -> dict[str, Any]:
     properties = image_info.get('properties')
     if not isinstance(properties, dict) or 'alpine' not in str(properties.get('os', '')).lower() or properties.get('release') != '3.20':
         raise TargetDrift('INCUS_IMAGE_NOT_ALPINE_320')
-    profile = strict_json(command(['incus', 'profile', 'show', 'default', '--project', 'default', '--format', 'json']))
-    if not isinstance(profile, dict) or not isinstance(profile.get('config'), dict):
+    profile = strict_json(command(['incus', 'query', _profile_api_path('default', 'default')]))
+    if (not isinstance(profile, dict) or profile.get('name') != 'default'
+            or ('project' in profile and profile['project'] != 'default')
+            or not isinstance(profile.get('config'), dict)):
         raise TargetDrift('DEFAULT_PROFILE_UNREADABLE')
     default_devices = _strict_devices(profile.get('devices'), 'DEFAULT_PROFILE_UNREADABLE')
     if canonical_profile_sha256(profile['config'], default_devices) != go['default_profile_sha256']:
@@ -1409,19 +1460,19 @@ def _run_fixture(go: dict[str, Any], baseline: dict[str, Any]) -> dict[str, Any]
         _assert_no_fixture_listener(port)
         _read_default_profile(go, go['default_profile_used_by'])
         _assert_fixture_profile(
-            go, strict_json(write('profile', 'show', profile, '--project', 'default', '--format', 'json')), [])
+            go, strict_json(write('query', _profile_api_path(profile, 'default'))), [])
         write('init', target['image_fingerprint'], instance, '--project', 'default',
               '--profile', 'default', '--profile', profile, '--no-start')
         created_instance = True
         write('config', 'set', instance, 'user.q449.run_id', target['run_id'], '--project', 'default')
-        shown = strict_json(write('config', 'show', instance, '--project', 'default', '--format', 'json'))
+        shown = strict_json(write('query', _instance_api_path(instance, 'default')))
         if shown.get('config', {}).get('user.q449.run_id') != target['run_id'] or _instance_state(instance) != 'stopped':
             raise TargetDrift('INSTANCE_NOT_STOPPED')
         fixture_consumers = [f'/1.0/instances/{instance}']
         expected_default_consumers = sorted([*go['default_profile_used_by'], *fixture_consumers])
         default_before_start = _read_default_profile(go, expected_default_consumers)
         fixture_before_start = _assert_fixture_profile(
-            go, strict_json(write('profile', 'show', profile, '--project', 'default', '--format', 'json')),
+            go, strict_json(write('query', _profile_api_path(profile, 'default'))),
             fixture_consumers)
         _verify_effective_instance(go, default_before_start, fixture_before_start)
         _assert_no_fixture_listener(port)
@@ -1437,7 +1488,7 @@ def _run_fixture(go: dict[str, Any], baseline: dict[str, Any]) -> dict[str, Any]
             raise TargetDrift('FIXTURE_INCUS_PROCESS_UNVERIFIED')
         default_after_start = _read_default_profile(go, expected_default_consumers)
         fixture_after_start = _assert_fixture_profile(
-            go, strict_json(write('profile', 'show', profile, '--project', 'default', '--format', 'json')),
+            go, strict_json(write('query', _profile_api_path(profile, 'default'))),
             fixture_consumers)
         evidence['effective_devices_after_start'] = _verify_effective_instance(
             go, default_after_start, fixture_after_start)
@@ -1474,10 +1525,10 @@ def _run_fixture(go: dict[str, Any], baseline: dict[str, Any]) -> dict[str, Any]
         # Cleanup is restricted to the exact approved names, in GO order.
         if created_instance:
             state = _instance_state(instance)
-            owned = strict_json(_incus('config', 'show', instance, '--project', 'default', '--format', 'json'))
+            owned = strict_json(_incus('query', _instance_api_path(instance, 'default')))
             if owned.get('config', {}).get('user.q449.run_id') != target['run_id']:
                 raise TargetDrift('INSTANCE_OWNERSHIP_UNVERIFIED')
-            profile_state = strict_json(_incus('profile', 'show', profile, '--project', 'default', '--format', 'json'))
+            profile_state = strict_json(_incus('query', _profile_api_path(profile, 'default')))
             if profile_state.get('config', {}).get('user.q449.run_id') != target['run_id']:
                 raise TargetDrift('PROFILE_OWNERSHIP_UNVERIFIED')
             consumers = profile_state.get('used_by')
@@ -1489,7 +1540,7 @@ def _run_fixture(go: dict[str, Any], baseline: dict[str, Any]) -> dict[str, Any]
                 raise TargetDrift('INSTANCE_STOP_UNVERIFIED')
             write('delete', instance, '--project', 'default')
         if created_profile:
-            remaining = strict_json(_incus('profile', 'show', profile, '--project', 'default', '--format', 'json'))
+            remaining = strict_json(_incus('query', _profile_api_path(profile, 'default')))
             if remaining.get('config', {}).get('user.q449.run_id') != target['run_id']:
                 raise TargetDrift('PROFILE_OWNERSHIP_UNVERIFIED')
             if remaining.get('used_by') != []:
