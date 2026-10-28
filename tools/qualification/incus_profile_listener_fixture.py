@@ -1184,7 +1184,10 @@ def _incus_route_inventory() -> tuple[list[str], list[dict[str, Any]]]:
                      or any(not isinstance(item, str) for item in project_data['used_by'])
                      or project_data['used_by'] != sorted(set(project_data['used_by']))))):
             raise TargetDrift('INCUS_PROJECT_INVENTORY_UNREADABLE')
-        profiles = strict_json(command(['incus', 'profile', 'list', '--project', project, '--format', 'json']))
+        profile_project_local = (project == 'default'
+                                 or _project_isolation(project_data['config'])['features.profiles'] is True)
+        profiles = (strict_json(command(['incus', 'profile', 'list', '--project', project, '--format', 'json']))
+                    if profile_project_local else [])
         if (not isinstance(profiles, list)
                 or any(not isinstance(row, dict) or not isinstance(row.get('name'), str) or not row['name']
                        for row in profiles)

@@ -205,7 +205,7 @@ class RouteStateDigestTests(_FixtureBehaviorTestCase):
     def test_empty_route_inventory_covers_and_binds_every_project(self):
         outputs = [b'[{"name":"default"},{"name":"qa"}]',
                    b'{"name":"default","description":"","config":{}}', b'[]', b'[]',
-                   b'{"name":"qa","description":"","config":{"features.images":"true"}}',
+                   b'{"name":"qa","description":"","config":{"features.images":"true","features.profiles":"true"}}',
                    b'[]', b'[]']
         with patch.object(fixture, 'command', side_effect=outputs) as command:
             projects, routes = fixture._incus_route_inventory()
@@ -214,6 +214,43 @@ class RouteStateDigestTests(_FixtureBehaviorTestCase):
         self.assertEqual(command.call_count, 7)
         self.assertNotEqual(fixture.approved_route_state_sha256([], [], b'', projects),
                             fixture.approved_route_state_sha256([], [], b'', ['default']))
+
+    def test_route_inventory_reads_shared_profiles_only_from_default_project(self):
+        calls = []
+
+        def command(argv):
+            calls.append(tuple(argv))
+            responses = {
+                ('incus', 'project', 'list', '--format', 'json'):
+                    b'[{"name":"default"},{"name":"issue447"},{"name":"legacy"}]',
+                ('incus', 'query', '/1.0/projects/default'):
+                    b'{"name":"default","description":"","config":{"features.profiles":"true"}}',
+                ('incus', 'query', '/1.0/projects/issue447'):
+                    b'{"name":"issue447","description":"","config":{"features.profiles":"false"}}',
+                ('incus', 'query', '/1.0/projects/legacy'):
+                    b'{"name":"legacy","description":"","config":{}}',
+                ('incus', 'profile', 'list', '--project', 'default', '--format', 'json'):
+                    b'[{"name":"shared"}]',
+                ('incus', 'query', '/1.0/profiles/shared?project=default'):
+                    b'{"name":"shared","project":"default","config":{},"devices":{"listener":{"type":"proxy","listen":"tcp:0.0.0.0:10001","connect":"tcp:127.0.0.1:8080"}},"used_by":["/1.0/instances/swarm-manager?project=issue447"]}',
+                ('incus', 'list', '--project', 'default', '--format', 'json'): b'[]',
+                ('incus', 'list', '--project', 'issue447', '--format', 'json'): b'[]',
+                ('incus', 'list', '--project', 'legacy', '--format', 'json'): b'[]',
+            }
+            return responses[tuple(argv)]
+
+        with patch.object(fixture, 'command', side_effect=command):
+            projects, routes = fixture._incus_route_inventory()
+
+        self.assertEqual(projects, ['default', 'issue447', 'legacy'])
+        self.assertEqual(len(routes), 1)
+        self.assertEqual(routes[0]['project'], 'default')
+        self.assertEqual(routes[0]['owner'], 'shared')
+        self.assertEqual(routes[0]['used_by'], ['/1.0/instances/swarm-manager?project=issue447'])
+        self.assertEqual(calls.count(('incus', 'profile', 'list', '--project', 'default', '--format', 'json')), 1)
+        self.assertIn(('incus', 'list', '--project', 'issue447', '--format', 'json'), calls)
+        self.assertNotIn(('incus', 'profile', 'list', '--project', 'issue447', '--format', 'json'), calls)
+        self.assertNotIn(('incus', 'profile', 'list', '--project', 'legacy', '--format', 'json'), calls)
 
     def test_instance_inventory_rejects_missing_complete_config(self):
         outputs = [b'[{"name":"default"}]',
@@ -414,7 +451,7 @@ class RouteStateCaptureTests(_FixtureBehaviorTestCase):
                     ('incus', 'query', '/1.0/projects/default'):
                         b'{"name":"default","description":"","config":{}}',
                     ('incus', 'query', '/1.0/projects/qa'):
-                        b'{"name":"qa","description":"","config":{}}',
+                        b'{"name":"qa","description":"","config":{"features.profiles":"true"}}',
                     ('incus', 'profile', 'list', '--project', 'default', '--format', 'json'): b'[]',
                     ('incus', 'profile', 'list', '--project', 'qa', '--format', 'json'):
                         b'[{"name":"qa-profile"}]',
