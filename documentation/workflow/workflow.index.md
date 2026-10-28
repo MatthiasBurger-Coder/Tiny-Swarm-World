@@ -15,3 +15,5 @@ Selection rules are defined in
 [workflow-executor](../../.agents/skills/workflow-executor/SKILL.md). Do not
 infer an issue workflow from file recency or execute an indexed workflow whose
 branch, context pack or status cannot be verified.
+
+Code-only publication amendment v1.42: issue449 S449-C01→C02→C03→C04 integrates the exact86candidate in PR #499 under local-quality/required-CI authority. Live evidence is excluded for this publication; #449 and future S02/S03–S09 capability/qualification work remain INCOMPLETE. See issue-local workflow for exact files/locks and root consolidation for actual execution state.

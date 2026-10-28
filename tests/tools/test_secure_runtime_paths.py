@@ -74,6 +74,7 @@ class TestSecureRuntimePaths(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             evidence = Path(directory) / "evidence"
             evidence.mkdir(mode=0o755)
+            evidence.chmod(0o755)
 
             with self.assertRaises(RuntimeError):
                 ensure_secure_directory(evidence)

@@ -30,6 +30,8 @@ def build_product_upgrade(*, adoption_file=None, runtime_factory, platform_facto
         return LxcPortainerHttpClient(backend=ManagedLxcBackend.INCUS, username='admin',
             password=runtime_factory._required_operator_secret_value('TSW_PORTAINER_ADMIN_PASSWORD'))._client()
 
-    runtime = ClassicProductRuntime(root, shell_factory, api_factory, platform_factory, deployment_factory)
+    runtime = ClassicProductRuntime(root, shell_factory, api_factory, platform_factory, deployment_factory,
+                                   configuration_verifier=installation.verify_bound_runtime)
     return ProductUpgradeService(lifecycle.manifests, installation,
-        JsonProductJournal(lifecycle.manifests.path.parent / 'product-upgrade.json'), runtime)
+        JsonProductJournal(lifecycle.manifests.path.parent / 'product-upgrade.json',
+                           source_binder=installation.bind_configuration), runtime)

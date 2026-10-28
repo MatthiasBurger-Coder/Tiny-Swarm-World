@@ -375,6 +375,33 @@ class ProductEnvironmentTests(unittest.TestCase):
 
 
 class ProductWholeInventoryTests(unittest.TestCase):
+    def test_bound_inventory_reads_same_infrastructure_authority_and_keeps_authentication(self):
+        import yaml
+        from tiny_swarm_world.infrastructure.adapters.lifecycle.catalog import NativeComponentCatalog
+
+        root = Path(__file__).resolve().parents[4]
+        catalog = NativeComponentCatalog(root).load()
+        services = ('incus', 'portainer')
+        components = tuple(item for service in catalog.services if service.service_id in services for item in service.components)
+        manifest = product_plan().manifest.model_copy(update={'components': components})
+        temporary = TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        infra = Path(temporary.name)
+        portainer = next(service for service in catalog.services if service.service_id == 'portainer')
+        native = yaml.safe_load((root / portainer.native_asset).read_text())
+        native['services'] = {'authority_' + name: definition for name, definition in native['services'].items()}
+        asset = infra / Path(portainer.native_asset).relative_to('infra')
+        asset.parent.mkdir(parents=True)
+        asset.write_text(yaml.safe_dump(native))
+        api = Mock()
+        api._send.return_value.json.return_value = [{'Id': 1, 'Status': 1}]
+        runtime = ClassicProductRuntime(root, Mock(), Mock(return_value=api), Mock(), Mock())
+        with patch('tiny_swarm_world.infrastructure.adapters.lifecycle.product_runtime.verify_service', return_value='stable-id') as verify:
+            identities = runtime._inventory(manifest, infra)
+        self.assertTrue(all(call.args[1].startswith('portainer_authority_') for call in verify.call_args_list))
+        self.assertEqual(set(identities) - {'portainer.endpoints'}, {item.component_id for item in components} - {'incus'})
+        api._send.assert_called_once_with('GET', '/api/endpoints')
+
     def test_actual_catalog_maps_every_selected_database_agent_and_bootstrap_only(self):
         from tiny_swarm_world.infrastructure.adapters.lifecycle.catalog import NativeComponentCatalog
 

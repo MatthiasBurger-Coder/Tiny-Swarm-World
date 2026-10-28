@@ -52,6 +52,11 @@ class PreparedProductInstallation:
     def directory(self, plan):
         return self.state / 'releases' / plan.target.product.revision
 
+    def bind_configuration(self, plan):
+        from tiny_swarm_world.infrastructure.adapters.lifecycle.product_configuration_source import bind
+
+        bind(self, plan)
+
     def migrate(self, plan):
         from tiny_swarm_world.infrastructure.adapters.lifecycle.product_migration import migrate_product_infra
 
@@ -86,3 +91,8 @@ class PreparedProductInstallation:
         from tiny_swarm_world.infrastructure.adapters.lifecycle.product_verification import verify_target_runtime
 
         verify_target_runtime(self, plan)
+
+    def verify_bound_runtime(self, plan, manifest):
+        from tiny_swarm_world.infrastructure.adapters.lifecycle.product_verification import verify_bound_runtime
+
+        return verify_bound_runtime(self, plan, manifest)

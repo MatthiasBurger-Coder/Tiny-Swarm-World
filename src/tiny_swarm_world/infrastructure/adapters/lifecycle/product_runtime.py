@@ -11,20 +11,26 @@ from tiny_swarm_world.infrastructure.adapters.lifecycle.catalog import NativeCom
 
 
 class ClassicProductRuntime:
-    def __init__(self, root, shell_factory, api_factory, platform_factory, deployment_factory):
+    def __init__(self, root, shell_factory, api_factory, platform_factory, deployment_factory, *, configuration_verifier=None):
         self.root = root
         self.shell_factory = shell_factory
         self.api_factory = api_factory
         self.platform_factory = platform_factory
         self.deployment_factory = deployment_factory
+        self.configuration_verifier = configuration_verifier
 
-    async def verify(self, manifest):
+    async def verify(self, manifest, *, plan=None):
         try:
-            return await self._verify(manifest)
+            return await self._verify(manifest, plan=plan)
         except OperationError:
             raise LifecycleStateError('Selected runtime or authenticated gateway observation failed; inspect access and preserve progress.') from None
 
-    async def _verify(self, manifest):
+    async def _verify(self, manifest, *, plan=None):
+        if plan is not None and plan.configuration_source is not None:
+            if self.configuration_verifier is None:
+                raise LifecycleStateError('Bound runtime verification requires its explicit configuration adapter.')
+            infra = await asyncio.to_thread(self.configuration_verifier, plan, manifest)
+            return await asyncio.to_thread(self._inventory, manifest, infra)
         options = {'service_profile': manifest.service_preset, 'resolved_services': manifest.resolved_services}
         platform = self.platform_factory(**options)
         for workflow in (platform.workflows.cluster.verify, platform.workflows.verify):
@@ -38,7 +44,7 @@ class ClassicProductRuntime:
         if getattr(result.status, 'value', result.status) != 'completed':
             raise LifecycleStateError('Whole-selection verification failed; preserve product checkpoint and inspect runtime.')
 
-    def _inventory(self, manifest):
+    def _inventory(self, manifest, infra=None):
         import yaml
 
         shell = self.shell_factory()
@@ -47,7 +53,11 @@ class ClassicProductRuntime:
         for service in NativeComponentCatalog(self.root).load().services:
             if service.service_id not in manifest.resolved_services or service.native_asset is None:
                 continue
-            native = yaml.safe_load((self.root / service.native_asset).read_text())['services']
+            from pathlib import Path
+
+            asset = (self.root / service.native_asset if infra is None
+                     else infra / Path(service.native_asset).relative_to('infra'))
+            native = yaml.safe_load(asset.read_text())['services']
             for member, definition in sorted(native.items()):
                 component = NativeComponentCatalog._component(service.service_id, definition)
                 expected = selected[component.component_id].desired

@@ -15,6 +15,7 @@ from tiny_swarm_world.domain.preflight import LiveConsent
 from tiny_swarm_world.infrastructure.adapters.lifecycle.manifest import JsonManifestRepository
 from tiny_swarm_world.infrastructure.adapters.lifecycle.product_journal import JsonProductJournal
 from tiny_swarm_world.infrastructure.adapters.lifecycle.update_journal import JsonUpdateJournal
+from tiny_swarm_world.domain.lifecycle.product_upgrade import ProductConfigurationSource
 
 CONSENT = LiveConsent(True, confirmed=True)
 
@@ -54,6 +55,42 @@ class ProductUpgradeTests(unittest.IsolatedAsyncioTestCase):
         self.runtime.verify.assert_not_awaited()
         self.installation.stage.assert_not_called()
 
+    async def test_bound_input_persistence_follows_authentication_and_precedes_checkpoint(self):
+        order = []
+        self.plan = self.plan.model_copy(update={'configuration_source': ProductConfigurationSource(
+            reference='effective-infra-test-operation')})
+        self.installation.plan.return_value = self.plan
+
+        async def verify(manifest, *, plan=None):
+            self.assertEqual(plan, self.plan)
+            order.append('authenticated')
+            return {'portainer': 'stable-id'}
+
+        def bind(plan):
+            self.assertFalse(self.journal.path.exists())
+            self.assertEqual(order, ['authenticated'])
+            order.append('bound')
+
+        self.runtime.verify.side_effect = verify
+        self.journal.source_binder = bind
+        self.installation.stage.side_effect = LifecycleStateError('injected staging interruption')
+        with self.assertRaises(LifecycleStateError):
+            await self.service.run('0.5.0', consent=CONSENT)
+        self.assertEqual(order, ['authenticated', 'bound'])
+        self.assertEqual(self.journal.load().stage, 'staging')
+
+    async def test_failed_authentication_creates_no_input_binding(self):
+        self.plan = self.plan.model_copy(update={'configuration_source': ProductConfigurationSource(
+            reference='effective-infra-test-operation')})
+        self.installation.plan.return_value = self.plan
+        self.runtime.verify.side_effect = LifecycleStateError('authentication failed')
+        binder = Mock()
+        self.journal.source_binder = binder
+        with self.assertRaises(LifecycleStateError):
+            await self.service.run('0.5.0', consent=CONSENT)
+        binder.assert_not_called()
+        self.assertFalse(self.journal.path.exists())
+
     async def test_upgrade_preserves_all_other_manifest_fields_and_repeats_verified_noop(self):
         result = await self.service.run('0.5.0', consent=CONSENT)
         self.assertEqual(result['status'], 'completed')
@@ -63,6 +100,7 @@ class ProductUpgradeTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.journal.path.stat().st_mode & 0o777, 0o600)
         result = await self.service.run('0.5.0', consent=CONSENT)
         self.assertEqual(result['status'], 'no_op')
+        self.assertTrue(all(call.kwargs['plan'] == self.plan for call in self.runtime.verify.await_args_list))
         self.installation.stage.assert_called_once()
         self.installation.verify_active.assert_called_once_with(self.plan)
 

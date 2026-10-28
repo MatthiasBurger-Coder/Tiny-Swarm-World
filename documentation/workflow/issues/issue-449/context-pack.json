@@ -1,6 +1,6 @@
 {
   "workflow_id": "issue-449-lcm-w09",
-  "workflow_version": "1.41",
+  "workflow_version": "1.42",
   "workflow_path": "documentation/workflow/issues/issue-449/workflow.md",
   "workflow_index_path": "documentation/workflow/workflow.index.md",
   "context_pack_path": "documentation/workflow/issues/issue-449/context-pack.md",
@@ -29,7 +29,7 @@
   "test_host": "Approved PC WSL2 test host 192.168.178.58 for exact-source hash verification, targeted tests and QUALITY gates; live host work remains limited to the two named test hosts and each phase's exact scope",
   "pre_go_host_boundary": "S449-02C host inventory/route capture is distinct from S02C test-only work. Historical be2e031e8f0fb137ea6c15f74d81a88181aa4183 captures are not current. Exact-source 509908 native inventory SHA-256 3898c4a7c16fe93581bafabdd09d7daa11316e375072f288f697e2349b8c45017 and route artifact SHA-256 0af9913c1e997d518b0b62bec0c04ef0d79856ce0267ba338becacfa70e47d8cf (digest 4dd67ca44274073ad292e72c2a7cb5f9f36f5c15daf230912f2debb61c8ff91be). Exact-source WSL inventory SHA-256 4322d32ecfae2f5e1aae1711b48dbc0cb8007487f8655bc540f80d228c1d9994a at commit 50990890330684ef661be7f7ab07b586092641df, target 192.168.178.58; WSL route capture returned JIT_COMMAND_FAILED and created no artifact. Current native preflight remains blocked by active snap.lxd.daemon.service; no normalized admission or host GO. Historical approvals/S3D are phase-scoped and authorize none of the new slices/host commands. No mutation is claimed.",
   "workflow_amendment_v1_33": {
-    "status": "SUPERSEDED_BY_ACTIVE_ISSUE_EXECUTION v1.41",
+    "status": "SUPERSEDED_BY_ACTIVE_ISSUE_EXECUTION v1.42",
     "activation_reason": "The user explicitly authorized completing issue #449 on the named test hosts. This activates issue execution only; it does not grant a slice execution plan or host/scenario GO.",
     "execution_gates": [
       "fresh same-hash Three Amigos and specialist reviews for each slice",
@@ -450,5 +450,203 @@
       "EnvironmentFiles"
     ],
     "array_normalization_contract": "All properties remain requested. Omission only of these four arrays normalizes to empty before validation/recheck; every other property including ExecStart remains mandatory. Nonempty hooks, duplicate/unknown/malformed records block; existing EnvironmentFiles nonempty allowlist unchanged."
+  },
+  "code_only_consolidation_v1_42": {
+    "authority": "explicit user excludes live publication evidence; Requirement GO for exact existing-path86candidate",
+    "issue_status": "INCOMPLETE",
+    "live_work": "excluded from publication path",
+    "future_capabilities": "S02 prerequisites and S03-S09 future capability/live requirements remain open",
+    "design_path": ".codex/evidence/issue-449-code-consolidation-design.md",
+    "distribution_path": ".codex/evidence/issue-449-code-consolidation-distribution.md",
+    "quality_authority": "final exact-byte approved-PC-WSL aggregate local quality plus required CI/Sonar; no per-intermediate or live pass invented",
+    "slices": [
+      {
+        "slice_id": "S449-C01",
+        "title": "Bind prepared-product effective configuration source and recovery",
+        "requirements": [
+          "R449-06",
+          "R449-07",
+          "R449-08",
+          "R449-10",
+          "R449-35"
+        ],
+        "dependencies": [],
+        "files": [
+          "documentation/contracts/lifecycle.md",
+          "documentation/user_guide/product-upgrades.md",
+          "src/tiny_swarm_world/application/ports/lifecycle/product_upgrade.py",
+          "src/tiny_swarm_world/application/services/product_upgrade.py",
+          "src/tiny_swarm_world/domain/lifecycle/product_upgrade.py",
+          "src/tiny_swarm_world/infrastructure/adapters/lifecycle/product_admission.py",
+          "src/tiny_swarm_world/infrastructure/adapters/lifecycle/product_configuration_capture.py",
+          "src/tiny_swarm_world/infrastructure/adapters/lifecycle/product_configuration_source.py",
+          "src/tiny_swarm_world/infrastructure/adapters/lifecycle/product_configuration_validation.py",
+          "src/tiny_swarm_world/infrastructure/adapters/lifecycle/product_environment.py",
+          "src/tiny_swarm_world/infrastructure/adapters/lifecycle/product_installation.py",
+          "src/tiny_swarm_world/infrastructure/adapters/lifecycle/product_journal.py",
+          "src/tiny_swarm_world/infrastructure/adapters/lifecycle/product_migration.py",
+          "src/tiny_swarm_world/infrastructure/adapters/lifecycle/product_paths.py",
+          "src/tiny_swarm_world/infrastructure/adapters/lifecycle/product_runtime.py",
+          "src/tiny_swarm_world/infrastructure/adapters/lifecycle/product_verification.py",
+          "src/tiny_swarm_world/infrastructure/composition_product.py",
+          "tests/application/services/test_product_upgrade.py",
+          "tests/infrastructure/adapters/lifecycle/test_product_configuration_source.py",
+          "tests/infrastructure/adapters/lifecycle/test_product_upgrade.py",
+          "tests/tools/test_secure_runtime_paths.py",
+          "documentation/workflow/issues/issue-449/workflow.md",
+          "documentation/workflow/issues/issue-449/context-pack.md",
+          "documentation/workflow/issues/issue-449/context-pack.json",
+          "documentation/workflow/workflow.index.md",
+          ".codex/evidence/issue-449-code-consolidation-design.md",
+          ".codex/evidence/issue-449-code-consolidation-distribution.md"
+        ],
+        "tests": [
+          "tests.application.services.test_product_upgrade",
+          "tests.infrastructure.adapters.lifecycle.test_product_configuration_source",
+          "tests.infrastructure.adapters.lifecycle.test_product_upgrade",
+          "tests.tools.test_secure_runtime_paths"
+        ]
+      },
+      {
+        "slice_id": "S449-C02",
+        "title": "Retain immutable component candidates with fail-closed update admission",
+        "requirements": [
+          "R449-04",
+          "R449-08",
+          "R449-10",
+          "R449-23",
+          "R449-24",
+          "R449-25",
+          "R449-26"
+        ],
+        "dependencies": [
+          "S449-C01"
+        ],
+        "files": [
+          "README.md",
+          "documentation/process/skills/audit/skill-registry.json",
+          "documentation/user_guide/component-updates.md",
+          "infra/config/compose/swagger/docker-compose.yml",
+          "src/tiny_swarm_world/application/services/component_execution.py",
+          "src/tiny_swarm_world/application/services/component_updates.py",
+          "src/tiny_swarm_world/domain/lifecycle/models.py",
+          "src/tiny_swarm_world/domain/lifecycle/update_planning.py",
+          "src/tiny_swarm_world/domain/update/classic_update.py",
+          "src/tiny_swarm_world/infrastructure/adapters/lifecycle/catalog.py",
+          "src/tiny_swarm_world/infrastructure/adapters/lifecycle/component_transitions.py",
+          "src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py",
+          "tests/application/services/test_component_updates.py",
+          "tests/architecture/test_legacy_surface_documentation.py",
+          "tests/domain/lifecycle/test_update_planning.py",
+          "tests/domain/update/test_classic_update.py",
+          "tests/infrastructure/adapters/lifecycle/test_catalog.py",
+          "tests/infrastructure/adapters/lifecycle/test_native_component_transitions.py",
+          "tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py",
+          "tests/test_classic_update_cli.py"
+        ],
+        "tests": [
+          "tests.application.services.test_component_updates",
+          "tests.domain.lifecycle.test_update_planning",
+          "tests.infrastructure.adapters.lifecycle.test_catalog",
+          "tests.infrastructure.adapters.lifecycle.test_native_component_transitions",
+          "tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml",
+          "tests.test_classic_update_cli"
+        ]
+      },
+      {
+        "slice_id": "S449-C03",
+        "title": "Repair existing selective setup runtime observations and cancellation",
+        "requirements": [
+          "R449-02",
+          "R449-03",
+          "R449-09",
+          "R449-17",
+          "R449-19",
+          "R449-29",
+          "R449-30",
+          "R449-31",
+          "R449-36",
+          "R449-37",
+          "R449-38"
+        ],
+        "dependencies": [
+          "S449-C02"
+        ],
+        "files": [
+          "documentation/user_guide/selective-setup.md",
+          "src/tiny_swarm_world/application/services/deployment/empty_apply.py",
+          "src/tiny_swarm_world/application/services/deployment/ensure_portainer_endpoint.py",
+          "src/tiny_swarm_world/application/services/deployment/workflows.py",
+          "src/tiny_swarm_world/infrastructure/adapters/cli/dispatcher.py",
+          "src/tiny_swarm_world/infrastructure/adapters/cli/selective_setup.py",
+          "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/command/args.py",
+          "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/command/diagnostics.py",
+          "src/tiny_swarm_world/infrastructure/adapters/clients/lxc_container_docker_runtime.py",
+          "src/tiny_swarm_world/infrastructure/adapters/clients/lxc_node_provider.py",
+          "src/tiny_swarm_world/infrastructure/adapters/lifecycle/setup_observations.py",
+          "src/tiny_swarm_world/infrastructure/adapters/lifecycle/setup_state.py",
+          "src/tiny_swarm_world/infrastructure/composition.py",
+          "src/tiny_swarm_world/infrastructure/composition_cli.py",
+          "src/tiny_swarm_world/infrastructure/composition_deployment.py",
+          "src/tiny_swarm_world/infrastructure/composition_deployment_selection.py",
+          "src/tiny_swarm_world/infrastructure/composition_lifecycle.py",
+          "src/tiny_swarm_world/infrastructure/composition_runtime.py",
+          "src/tiny_swarm_world/infrastructure/composition_setup.py",
+          "tests/application/services/deployment/test_deployment_workflows.py",
+          "tests/application/services/deployment/test_ensure_portainer_endpoint.py",
+          "tests/application/services/deployment/test_ensure_swarm_stack.py",
+          "tests/e2e/classic/test_browser_evidence_paths.py",
+          "tests/infrastructure/adapters/clients/lxc/swarm/test_swarm_stack_runtime.py",
+          "tests/infrastructure/adapters/clients/test_lxc_container_docker_runtime.py",
+          "tests/infrastructure/adapters/clients/test_lxc_node_provider.py",
+          "tests/infrastructure/adapters/host/test_preflight_evidence_writer.py",
+          "tests/infrastructure/adapters/lifecycle/test_setup_state.py",
+          "tests/infrastructure/adapters/repositories/test_native_resource_budget.py",
+          "tests/infrastructure/test_composition.py",
+          "tests/infrastructure/test_selective_setup.py",
+          "tests/infrastructure/test_setup_status_cancellation.py",
+          "tests/test_incus_preparation.py",
+          "tests/test_package_entrypoint.py",
+          "tests/test_prepare_linux.py",
+          "tests/test_selective_setup_cli.py",
+          "tests/test_service_selection_cli.py",
+          "tests/test_simple_installer.py",
+          "tests/tools/test_r46_ports_policy.py"
+        ],
+        "tests": [
+          "tests.infrastructure.test_selective_setup",
+          "tests.infrastructure.test_setup_status_cancellation",
+          "tests.infrastructure.adapters.lifecycle.test_setup_state",
+          "tests.infrastructure.adapters.clients.test_lxc_node_provider",
+          "tests.infrastructure.adapters.clients.test_lxc_container_docker_runtime",
+          "tests.application.services.deployment.test_deployment_workflows"
+        ]
+      },
+      {
+        "slice_id": "S449-C04",
+        "title": "Publish historical qualification ledger and incomplete AC5 traceability",
+        "requirements": [
+          "R449-01",
+          "R449-15",
+          "R449-18",
+          "R449-21",
+          "R449-22",
+          "R449-27"
+        ],
+        "dependencies": [
+          "S449-C03"
+        ],
+        "files": [
+          "documentation/evidence/lcm-w09-ac5-traceability.md",
+          "documentation/evidence/lcm-w09-blocker-refinement.md",
+          "documentation/evidence/lcm-w09-q16-wsl-r52.md",
+          "documentation/evidence/lcm-w09-q16-wsl-r54.md",
+          "documentation/evidence/lcm-w09-qualification.md",
+          "documentation/evidence/lcm-w09-transition-proposal.md",
+          ".codex/evidence/issue-449-code-consolidation.md"
+        ],
+        "tests": []
+      }
+    ]
   }
 }
