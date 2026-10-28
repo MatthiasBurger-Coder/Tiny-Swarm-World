@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 from dataclasses import dataclass
 from urllib.parse import urlparse
@@ -22,12 +23,15 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc_node_provider import (
 from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.backend_cli import backend_cli
 from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.diagnostics import (
     command_failed,
+    is_transient_incus_child_process_failure,
     safe_log_text,
 )
 from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 
 
 DEFAULT_DOCKER_INSPECT_TIMEOUT_SECONDS = 30.0
+_DOCKER_INSPECT_MAX_ATTEMPTS = 3
+_DOCKER_INSPECT_RETRY_DELAYS_SECONDS = (0.25, 0.5)
 DEFAULT_DOCKER_INSTALL_TIMEOUT_SECONDS = 600.0
 DEFAULT_DOCKER_NETWORK_CONNECT_TIMEOUT_SECONDS = 10
 DEFAULT_DOCKER_NETWORK_MAX_TIMEOUT_SECONDS = 60
@@ -169,10 +173,16 @@ class LxcContainerDockerRuntime(PortContainerDockerRuntime):
         self.logger = logger or LoggerFactory.get_logger(self.__class__.__name__)
 
     async def inspect_docker(self, node: NodeSpec) -> ContainerDockerReadiness:
-        result = await self.runner.run(
-            _docker_info_args(self.backend, node),
-            self.inspect_timeout_seconds,
-        )
+        args = _docker_info_args(self.backend, node)
+        result = await self.runner.run(args, self.inspect_timeout_seconds)
+        attempt = 1
+        while (
+            attempt < _DOCKER_INSPECT_MAX_ATTEMPTS
+            and is_transient_incus_child_process_failure(result)
+        ):
+            await asyncio.sleep(_DOCKER_INSPECT_RETRY_DELAYS_SECONDS[attempt - 1])
+            attempt += 1
+            result = await self.runner.run(args, self.inspect_timeout_seconds)
         self._log_command_result("inspect_docker", node, result)
         return _readiness_from_result(node, result)
 

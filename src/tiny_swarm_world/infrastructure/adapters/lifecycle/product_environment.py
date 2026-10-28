@@ -15,6 +15,9 @@ def stage(installation, plan):
     from tiny_swarm_world.infrastructure.adapters.lifecycle.product_paths import require_private_product_paths
 
     require_private_product_paths(installation)
+    from tiny_swarm_world.infrastructure.adapters.lifecycle.product_configuration_source import capture_source
+
+    capture_source(installation, plan)
     destination = installation.directory(plan)
     destination.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     if destination.is_symlink():
@@ -41,7 +44,11 @@ def _clone_release(installation, plan):
     staging = installation.state / 'staging'
     staging.mkdir(parents=True, exist_ok=True, mode=0o700)
     pending = staging / plan.target.product.revision
-    if pending.exists():
+    if plan.configuration_source is not None:
+        from tiny_swarm_world.infrastructure.adapters.lifecycle.product_configuration_source import prepare_pending
+
+        prepare_pending(installation, plan, pending, 'code')
+    elif pending.exists():
         # Preserve an interrupted clone/checkout, then rebuild only this private staging slot.
         pending.rename(staging / (plan.target.product.revision + '.interrupted-' + uuid4().hex))
     installation._command(('git', 'clone', '--filter=blob:none', '--branch', plan.target.product.release,
@@ -50,7 +57,12 @@ def _clone_release(installation, plan):
     dirty = installation._command(GIT_STATUS, cwd=pending)
     if revision != plan.target.product.revision or dirty:
         raise LifecycleStateError('Staged release ref changed or checkout incomplete; preserve staged clone for review.')
-    os.replace(pending, installation.directory(plan))
+    if plan.configuration_source is not None:
+        from tiny_swarm_world.infrastructure.adapters.lifecycle.product_configuration_source import publish_pending
+
+        publish_pending(installation, plan, pending, installation.directory(plan), 'code')
+    else:
+        os.replace(pending, installation.directory(plan))
     descriptor = os.open(installation.directory(plan).parent, os.O_DIRECTORY)
     try:
         os.fsync(descriptor)

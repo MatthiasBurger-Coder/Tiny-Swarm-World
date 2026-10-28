@@ -1,4 +1,6 @@
 import unittest
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, patch
 
 from tests.support.sonar_safe_literals import ipv4_address, sample_http_url
 from tests.support.async_helpers import async_checkpoint
@@ -44,6 +46,83 @@ class TestLxcContainerDockerRuntime(unittest.IsolatedAsyncioTestCase):
                 "{{json .ServerVersion}}",
             ),
         )
+
+    async def test_inspect_retries_exact_transient_incus_pid_failure(self):
+        runner = _FakeRunner(
+            LxcNodeCommandResult(
+                returncode=255,
+                stderr="Failed to retrieve PID of executing child process",
+            ),
+            LxcNodeCommandResult(returncode=0, stdout="24.0.0"),
+        )
+        runtime = _runtime(runner)
+
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.clients.lxc_container_docker_runtime.asyncio",
+            new=SimpleNamespace(sleep=AsyncMock()),
+        ) as async_runtime:
+            readiness = await runtime.inspect_docker(_node())
+
+        self.assertTrue(readiness.ready)
+        self.assertEqual(2, len(runner.calls))
+        async_runtime.sleep.assert_awaited_once_with(0.25)
+
+    async def test_inspect_does_not_retry_unrelated_exit_255(self):
+        runner = _FakeRunner(
+            LxcNodeCommandResult(returncode=255, stderr="unrelated Incus failure"),
+        )
+        runtime = _runtime(runner)
+
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.clients.lxc_container_docker_runtime.asyncio",
+            new=SimpleNamespace(sleep=AsyncMock()),
+        ) as async_runtime:
+            readiness = await runtime.inspect_docker(_node())
+
+        self.assertFalse(readiness.ready)
+        self.assertEqual(1, len(runner.calls))
+        async_runtime.sleep.assert_not_awaited()
+
+    async def test_inspect_stops_after_bounded_transient_retries(self):
+        transient = LxcNodeCommandResult(
+            returncode=255,
+            stderr="Failed to retrieve PID of executing child process",
+        )
+        runner = _FakeRunner(transient, transient, transient)
+        runtime = _runtime(runner)
+
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.clients.lxc_container_docker_runtime.asyncio",
+            new=SimpleNamespace(sleep=AsyncMock()),
+        ) as async_runtime:
+            readiness = await runtime.inspect_docker(_node())
+
+        self.assertFalse(readiness.ready)
+        self.assertEqual(3, len(runner.calls))
+        self.assertEqual(
+            [0.25, 0.5],
+            [call.args[0] for call in async_runtime.sleep.await_args_list],
+        )
+
+    async def test_install_does_not_retry_transient_incus_pid_failure(self):
+        runner = _FakeRunner(
+            LxcNodeCommandResult(
+                returncode=255,
+                stderr="Failed to retrieve PID of executing child process",
+            ),
+        )
+        runtime = _runtime(runner, allow_live_mutation=True)
+
+        with patch(
+            "tiny_swarm_world.infrastructure.adapters.clients.lxc_container_docker_runtime.asyncio",
+            new=SimpleNamespace(sleep=AsyncMock()),
+        ) as async_runtime:
+            outcome = await runtime.install_docker(_node())
+
+        self.assertEqual(DockerInstallState.FAILED, outcome.state)
+        self.assertEqual(1, len(runner.calls))
+        self.assertIn("bash", runner.calls[0][0])
+        async_runtime.sleep.assert_not_awaited()
 
     async def test_incus_install_uses_structured_exec_and_verifies_after_apply(self):
         runner = _FakeRunner(

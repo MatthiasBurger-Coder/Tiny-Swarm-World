@@ -24,8 +24,9 @@ class ClassicUpdatePlanTest(unittest.TestCase):
             ClassicUpdatePlan("jenkins", "jenkins", "old:1", "new:1;rm")
 
     def test_unsupported_stack_service_pair_is_rejected(self) -> None:
+        self.assertEqual(image_override_environment_name("swagger", "swagger-ui"), "TSW_SWAGGER_UI_IMAGE")
         with self.assertRaisesRegex(ValueError, "unsupported"):
-            image_override_environment_name("swagger", "swagger-ui")
+            image_override_environment_name("swagger", "traefik")
 
     def test_plan_exposes_reversible_rollback_transition(self) -> None:
         plan = ClassicUpdatePlan("jenkins", "jenkins", "old:1", "new:1")

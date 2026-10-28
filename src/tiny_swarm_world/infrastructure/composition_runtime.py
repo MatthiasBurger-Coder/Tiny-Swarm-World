@@ -151,6 +151,7 @@ from tiny_swarm_world.domain.inventory import VerificationResult, VerificationSt
 from tiny_swarm_world.domain.network.port_forwarding_plan import (
     ForwardingStrategy,
     PortForwardingPlan,
+    PortRegistry,
 )
 from tiny_swarm_world.domain.node_provider import (
     ManagedLxcBackend,
@@ -1076,6 +1077,7 @@ def _build_preflight_service_for_request(
     if node_provider_request is None:
         node_provider_request = None
     port_registry = PortRegistryYamlRepository(project_paths=paths).load()
+    port_registry = _project_port_registry(port_registry, resolved_services)
     evaluator, authorizer = _build_project_filesystem_services()
     return PreflightService(
         HostPreflightProbe(
@@ -1097,6 +1099,30 @@ def _build_preflight_service_for_request(
         secret_storage_probe=build_secret_storage_probe(),
         secret_storage_path=_operator_configuration_env_file().as_posix(),
         require_existing_secret_storage_file=False,
+    )
+
+
+def _project_port_registry(
+    port_registry: PortRegistry,
+    resolved_services: tuple[str, ...] | None,
+) -> PortRegistry:
+    if resolved_services is None:
+        return port_registry
+    selected_port_ids = {
+        port_id
+        for contract in service_stack_contracts_for_profile(
+            ServiceStackProfile.SERVICE_ACCESS, resolved_services
+        )
+        for port_id in contract.port_ids
+    }
+    return PortRegistry(
+        ranges=port_registry.ranges,
+        mappings=tuple(
+            mapping
+            for mapping in port_registry.mappings
+            if mapping.port_id in selected_port_ids
+        ),
+        metadata=port_registry.metadata,
     )
 
 

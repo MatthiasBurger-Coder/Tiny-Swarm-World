@@ -53,6 +53,7 @@ class BrowserEvidencePathsTest(unittest.TestCase):
         with TemporaryDirectory() as directory:
             root = Path(directory) / "public"
             root.mkdir(mode=0o755)
+            root.chmod(0o755)
             with patch.dict(os.environ, {
                 "TSW_LIVE_EVIDENCE_ROOT": str(root), browser.RUN_LIVE_ENV: "1",
             }, clear=True):

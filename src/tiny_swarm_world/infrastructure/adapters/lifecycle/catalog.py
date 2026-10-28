@@ -4,6 +4,8 @@ import re
 
 import yaml
 
+from tiny_swarm_world.infrastructure.adapters.lifecycle.component_transitions import with_stack_transition
+
 from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
 from tiny_swarm_world.domain.artifacts.container_image_contract import DEFAULT_CONTAINER_IMAGE_CONTRACTS
 from tiny_swarm_world.domain.deployment.service_stack_contract import service_stack_contracts_for_profile
@@ -55,7 +57,7 @@ class NativeComponentCatalog:
                 raise ValueError("Readiness membership drift")
             components = tuple(self._component(stack.stack_name, item) for item in native.values())
             resources = {name: item.get("deploy", {}).get("resources", {}) for name, item in native.items()}
-            services.append(ServiceDefinition(
+            services.append(with_stack_transition(ServiceDefinition(
                 service_id=stack.stack_name,
                 kind="managed-foundation" if stack.stack_name == "portainer" else "stack",
                 mandatory=stack.stack_name == "portainer", dependencies=_DEPENDENCIES[stack.stack_name],
@@ -72,7 +74,7 @@ class NativeComponentCatalog:
                     presets=(("service-access",) if stack.stack_name in {"infisical", "service-access"}
                              else ("default", "service-access")),
                 ),),
-            ))
+            )))
         from tiny_swarm_world.domain.lifecycle.portainer_upgrade import SOURCE_VERSION, TARGET_VERSION, TARGET_ID, versions
 
         services = [item.model_copy(update={

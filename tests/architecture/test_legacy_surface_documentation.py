@@ -89,7 +89,7 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
         self.assertFalse(
             (REPOSITORY_ROOT / "infra" / "config" / "compose" / "swagger" / "nginx" / "wait-for-it.sh").exists()
         )
-        self.assertIn("image: nginx:1.29.8-alpine", compose)
+        self.assertIn("image: ${TSW_SWAGGER_NGINX_IMAGE:-nginx:1.29.8-alpine}", compose)
         self.assertIn("/swagger/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro", compose)
         self.assertIn("resolver 127.0.0.11", nginx_config)
         self.assertIn("set $swagger_api_upstream http://tasks.swagger-api:8000;", nginx_config)

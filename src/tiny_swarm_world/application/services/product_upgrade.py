@@ -72,7 +72,7 @@ class ProductUpgradeService:
                 if recovery:
                     raise LifecycleStateError('No product checkpoint to recover.')
                 plan = await asyncio.to_thread(self.installation.plan, target)
-                identities = await self.runtime.verify(plan.manifest)
+                identities = await self.runtime.verify(plan.manifest, plan=plan)
                 checkpoint = ProductCheckpoint(plan=plan, stage='admitted', service_identities=identities)
                 self.journal.save(checkpoint)
             elif not recovery:
@@ -97,7 +97,7 @@ class ProductUpgradeService:
         checkpoint = self._save(checkpoint, 'verifying')
         await _blocking(self.installation.verify_product, plan)
         await _blocking(self.installation.verify_target_runtime, plan)
-        identities = await self.runtime.verify(plan.manifest)
+        identities = await self.runtime.verify(plan.manifest, plan=plan)
         if identities != checkpoint.service_identities:
             raise LifecycleStateError('Installed service identities changed; preserve checkpoint and inspect runtime drift.')
         checkpoint = self._save(checkpoint, 'verified')
@@ -134,5 +134,5 @@ class ProductUpgradeService:
         await asyncio.to_thread(self.installation.verify_product, plan)
         await asyncio.to_thread(self.installation.verify_target_runtime, plan)
         await asyncio.to_thread(self.installation.verify_active, plan)
-        if await self.runtime.verify(snapshot.manifest) != checkpoint.service_identities:
+        if await self.runtime.verify(snapshot.manifest, plan=plan) != checkpoint.service_identities:
             raise LifecycleStateError('Completed product runtime drifted; no-op cannot be verified.')

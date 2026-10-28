@@ -41,6 +41,62 @@ schemas and downgrades are unsupported. Official release metadata/ref reads need
 network access; staging needs at least 2 GiB free disk beyond the existing runtime.
 The selected runtime must already pass its platform, endpoint and task checks.
 
+## Bound effective infrastructure
+
+For an installation using a private infrastructure copy, set `TSW_INFRA_ROOT`
+to that original owned Linux-native directory before the first preview/apply.
+Keep the official 0.4.0 code checkout clean. The external directory must contain
+exactly its tracked `infra` file set, including unchanged executable scripts.
+The initial `provider-memory-v1` policy permits only typed
+`nodes[].resources.memory` changes in
+`config/node-providers/provider_config.yaml`. CPU, disks, topology, security,
+networking and other assets must match the official source. Additional files,
+backups, links and special files are refused. Anchor-only protected local files
+retain their existing behavior.
+
+The external root must be owner-only; members must be owned and must not allow
+group/other writes. The input is limited to 4096 members, depth 16, 64 MiB total
+and 16 MiB per file. Admission reserves another 128 MiB beyond the existing
+2 GiB staging floor. Existing capacity and runtime checks still apply: a
+10/6/1 GiB configuration is not automatic proof that a host can run it.
+Admission and resume apply the existing planned-container CPU/memory guard to
+the actual host resources, including its effective cgroup memory ceiling.
+
+Preview writes nothing and exposes only an opaque random input reference.
+After accepted consent and the existing authenticated runtime verification,
+execution persists a private binding before its admitted checkpoint, then
+captures a private snapshot before target staging. Paths and physical identities
+remain in private state; no credential fingerprints are recorded.
+
+Recovery keeps this exact authority. Unsetting `TSW_INFRA_ROOT` continues the
+original binding; explicitly repointing it, replacing its root, changing its
+contents or losing private binding/snapshot state blocks. Old checkpoints without
+a binding remain anchor-based and cannot acquire one from a later environment
+setting. An orphan binding without its admitted checkpoint requires review;
+the controller never adopts it as a new operation.
+
+For the exact pinned transition, only Portainer compose and `ports.yaml` change.
+Migration takes their target defaults when the effective source matches the
+official source, retains the admitted memory override where the target leaves
+the provider configuration unchanged, and refuses competing changes. Target
+execution and repeat verification use the managed migrated snapshot. Interrupted
+capture resumes only with a matching private operation/root identity and a
+verified partial input; foreign or unverifiable artifacts are preserved and
+block recovery. Keep the source and private state through completion.
+Bound clone/migration retries retain proven owned interrupted directories and
+recheck free space before rebuilding. Foreign, replaced or unrecorded pending
+directories block without cleanup; final publication rechecks the operation's
+recorded root identity and refuses an existing destination.
+
+For a bound operation the controller runs the existing complete platform and
+deployment verifier in a subprocess using its own Python environment and code,
+with the validated infrastructure authority set only in that child's environment.
+Before capture this is the admitted original input; after migration and during
+repeat verification it is the managed snapshot. Service/task and authenticated
+gateway observations use the same authority. The separate staged-target check
+runs the pinned target's own interpreter/code. Unsetting the ambient override
+does not change either verification authority or the parent process environment.
+
 ## Explicit legacy inventory
 
 0.4.0 has no automatic installation manifest. Supply an independently inventoried

@@ -1,7 +1,7 @@
 """Bounded Classic product release policy, distinct from component updates."""
 from typing import Literal
 
-from tiny_swarm_world.domain.lifecycle.models import Contract, InstallationManifest, ProductIdentity
+from tiny_swarm_world.domain.lifecycle.models import Contract, Identifier, InstallationManifest, ProductIdentity
 
 SOURCE_RELEASE = '0.4.0'
 SOURCE_REVISION = '346f4a43dbdc43380e7bc703ab185bc06746965b'
@@ -15,6 +15,12 @@ class ProductRelease(Contract):
     package_version: str
 
 
+class ProductConfigurationSource(Contract):
+    kind: Literal['external-infra'] = 'external-infra'
+    reference: Identifier
+    policy: Literal['provider-memory-v1'] = 'provider-memory-v1'
+
+
 class ProductPlan(Contract):
     source: ProductRelease
     target: ProductRelease
@@ -25,6 +31,7 @@ class ProductPlan(Contract):
     migrations: tuple[str, ...] = MIGRATIONS
     component_changes: tuple[str, ...] = ()
     resource_bytes: int = 2147483648
+    configuration_source: ProductConfigurationSource | None = None
 
     def preview(self) -> dict[str, object]:
         return {
@@ -38,6 +45,8 @@ class ProductPlan(Contract):
             'state_changes': list(self.migrations), 'component_changes': list(self.component_changes),
             'resolved_services': list(self.manifest.resolved_services), 'adoption_required': self.adoption,
             'required_free_bytes': self.resource_bytes,
+            'configuration_source': (self.configuration_source.model_dump(mode='json')
+                                     if self.configuration_source else None),
             'recovery': 'resume pinned operation with --recover; no downgrade or data restore',
         }
 

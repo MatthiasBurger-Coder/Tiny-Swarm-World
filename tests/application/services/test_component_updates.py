@@ -34,17 +34,38 @@ class ComponentUpdateServiceTests(unittest.TestCase):
         self.manifests.save.assert_not_called()
         self.assertEqual(before, {item.name: (item.read_bytes(), item.stat().st_mtime_ns) for item in self.path.parent.iterdir()})
 
-    def test_discovery_native_baseline_never_advertises_latest_or_upgrades(self):
+    def test_discovery_fixed_target_does_not_admit_tag_only_native_source(self):
         catalog, manifest = update_fixture(("swagger",), qualified=False)
         self.catalogs.load.return_value = catalog
         self.manifests.load.return_value = ManifestSnapshot(manifest, "token")
         found = self.service.discover(("swagger",))
         item = found["services"][0]
         self.assertEqual(item["available_supported_targets"], [])
-        self.assertEqual(item["catalog_references"][0]["qualification"], "installation-baseline")
+        self.assertEqual(self.service.preview(("swagger",)).status, "blocked")
+        self.assertIn("candidate-transition",
+                      [target["qualification"] for target in item["catalog_references"]])
         self.assertEqual(len(item["components"]), 4)
         self.assertIn("latest", item["restriction"])
         self.assertEqual({item["service_id"] for item in self.service.discover()["services"]}, set(manifest.resolved_services))
+
+    def test_candidate_transition_is_not_advertised_or_planned(self):
+        catalog, manifest = update_fixture(("swagger",))
+        service = next(item for item in catalog.services if item.service_id == "swagger")
+        candidate_id = service.update_transitions[0].target_id
+        targets = tuple(target.model_copy(update={"qualification": "candidate-transition"})
+                        if target.target_id == candidate_id else target for target in service.update_targets)
+        catalog = catalog.model_copy(update={"services": tuple(
+            item.model_copy(update={"update_targets": targets}) if item.service_id == "swagger" else item
+            for item in catalog.services
+        )})
+        self.catalogs.load.return_value = catalog
+        self.manifests.load.return_value = ManifestSnapshot(manifest, "token")
+
+        found = self.service.discover(("swagger",))["services"][0]
+        self.assertEqual(found["available_supported_targets"], [])
+        self.assertEqual(found["catalog_references"][0]["qualification"], "candidate-transition")
+        for target_id in (None, candidate_id):
+            self.assertEqual(self.service.preview(("swagger",), target_id).status, "blocked")
 
     def test_identity_fields_and_unknown_observation_are_explicit(self):
         components = tuple(item.model_copy(update={"desired": item.desired.model_copy(update={"upstream_version": "test-upstream"}), "observed": None})

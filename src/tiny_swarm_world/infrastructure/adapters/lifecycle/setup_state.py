@@ -10,6 +10,7 @@ from uuid import uuid4
 from typing import Literal
 
 from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
+from tiny_swarm_world.application.ports.update import PortUpdateRuntimeObserver
 from tiny_swarm_world.application.services.lifecycle import InstallationLifecycleService
 from tiny_swarm_world.application.services.service_selection import ServiceSelectionService
 from tiny_swarm_world.domain.lifecycle.models import ComponentState, ConfigurationReference, CredentialReference, InstallationManifest, ProductIdentity
@@ -17,6 +18,9 @@ from tiny_swarm_world.domain.preflight.setup_manifest import default_setup_manif
 from tiny_swarm_world.infrastructure.adapters.repositories.secret_manifest_yaml_repository import SecretManifestYamlRepository
 from tiny_swarm_world.domain.lifecycle.selection import SelectionPlan
 from tiny_swarm_world.infrastructure.process.runner import ProcessRunner, ProcessRunnerError
+from tiny_swarm_world.infrastructure.adapters.lifecycle.setup_observations import (
+    SetupComponentObservations, enrich_setup_inventory, observations_required, require_complete_observations,
+)
 
 
 class SetupSelectionState:
@@ -28,6 +32,7 @@ class SetupSelectionState:
         self.component_inventory: tuple[ComponentState, ...] = ()
         self.credential_inventory: tuple[CredentialReference, ...] = ()
         self.configuration_inventory: tuple[ConfigurationReference, ...] = ()
+        self._observations: SetupComponentObservations | None = None
 
     def admit(self, runner: ProcessRunner, *, backend: str, node_names: tuple[str, ...], host: Literal["native-linux", "wsl2"]) -> None:
         from tiny_swarm_world.infrastructure.adapters.lifecycle.desired_images import require_settled_updates, require_settled_product
@@ -42,6 +47,9 @@ class SetupSelectionState:
         self.component_inventory = self._effective_inventory(snapshot.manifest)
         self.credential_inventory = self._credential_references(snapshot.manifest)
         self.configuration_inventory = self._configuration_references(snapshot.manifest)
+        self._observations = SetupComponentObservations(
+            self.component_inventory, self.lifecycle.catalog.load(), snapshot.manifest,
+        )
         if snapshot.manifest is not None:
             self.lifecycle.catalog.load().validate_manifest(snapshot.manifest)
             if snapshot.manifest.host != host:
@@ -89,7 +97,17 @@ class SetupSelectionState:
         except (ProcessRunnerError, OSError, KeyError, ValueError):
             raise LifecycleStateError("Prepared checkout identity cannot be verified; inspect product revision and lock before setup.") from None
 
+    @property
+    def observation_required(self) -> bool:
+        return observations_required(self._observations)
+
+    async def observe_new_components(self, observer: PortUpdateRuntimeObserver) -> None:
+        self.component_inventory, self.fresh = await enrich_setup_inventory(
+            self._observations, self.lifecycle.manifests, self.plan.manifest_token, self.fresh, observer,
+        )
+
     def commit(self) -> None:
+        require_complete_observations(self._observations)
         if self.fresh is not None:
             self.lifecycle.adopt(self.fresh, approved=True, preview=False)
         else:

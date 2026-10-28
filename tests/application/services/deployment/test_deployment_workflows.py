@@ -1,6 +1,7 @@
 import asyncio
 import unittest
 from types import SimpleNamespace
+from unittest.mock import AsyncMock, Mock
 from tests.support.async_helpers import async_checkpoint
 from tests.support.sonar_safe_literals import operator_credential, sensitive_assignment
 
@@ -21,6 +22,62 @@ from tiny_swarm_world.domain.inventory import VerificationResult, VerificationSt
 
 
 class TestDeploymentWorkflows(unittest.IsolatedAsyncioTestCase):
+    async def test_explicit_empty_apply_keeps_guards_and_verifies_without_running_foundations(self):
+        calls = []
+        verified = VerificationResult('test:foundation', VerificationStatus.VERIFIED, 'observed')
+        prerequisite = SimpleNamespace(verify=lambda: calls.append('prerequisite') or verified)
+        preparation = SimpleNamespace(run=lambda: calls.append('prepare'))
+        foundations = tuple(SimpleNamespace(run=Mock(), verify=AsyncMock(
+            side_effect=lambda: calls.append('foundation') or verified)) for _ in range(2))
+        workflow = DeploymentApplyWorkflow(prerequisite_checks=(prerequisite,),
+            configuration_preparation=lambda: calls.append('configuration'), pre_apply_steps=(preparation,),
+            empty_selection_checks=foundations)
+        result = await workflow.run()
+        self.assertEqual(result.status, DeploymentWorkflowStatus.COMPLETED)
+        self.assertFalse(result.executed)
+        self.assertEqual(calls, ['prerequisite', 'configuration', 'prepare', 'foundation', 'foundation'])
+        self.assertEqual(len(result.verification_results), 3)
+        self.assertEqual(result.operation_result.outcome.value, 'success')
+        for foundation in foundations:
+            foundation.run.assert_not_called()
+            foundation.verify.assert_awaited_once()
+
+    async def test_empty_selection_foundation_failure_and_cancellation_cannot_complete(self):
+        failed = VerificationResult('test:foundation', VerificationStatus.FAILED_TO_VERIFY, 'not observed')
+        check = SimpleNamespace(verify=AsyncMock(return_value=failed))
+        result = await DeploymentApplyWorkflow(empty_selection_checks=(check,)).run()
+        self.assertEqual(result.status, DeploymentWorkflowStatus.FAILED_TO_VERIFY)
+        self.assertFalse(result.executed)
+        check.verify.side_effect = asyncio.CancelledError()
+        with self.assertRaises(asyncio.CancelledError):
+            await DeploymentApplyWorkflow(empty_selection_checks=(check,)).run()
+
+    async def test_empty_selection_never_bypasses_host_or_configuration_failure(self):
+        foundation = SimpleNamespace(verify=AsyncMock())
+        blocked = SimpleNamespace(verify=lambda: VerificationResult(
+            'host', VerificationStatus.BLOCKED, 'host unavailable'))
+        preparation = Mock()
+        result = await DeploymentApplyWorkflow(prerequisite_checks=(blocked,),
+            configuration_preparation=preparation, empty_selection_checks=(foundation,)).run()
+        self.assertEqual(result.status, DeploymentWorkflowStatus.BLOCKED)
+        preparation.assert_not_called()
+        foundation.verify.assert_not_awaited()
+        preparation.side_effect = ValueError('invalid configuration')
+        result = await DeploymentApplyWorkflow(configuration_preparation=preparation,
+            empty_selection_checks=(foundation,)).run()
+        self.assertEqual(result.status, DeploymentWorkflowStatus.FAILED_TO_PREPARE)
+        foundation.verify.assert_not_awaited()
+
+    async def test_empty_mode_does_not_authorize_bootstrap_or_nonempty_missing_contracts(self):
+        check = SimpleNamespace(verify=AsyncMock(return_value=VerificationResult(
+            'foundation', VerificationStatus.VERIFIED, 'observed')))
+        for workflow in (DeploymentApplyWorkflow(kind=DeploymentWorkflowKind.BOOTSTRAP, empty_selection_checks=(check,)),
+                         DeploymentApplyWorkflow(steps=(SimpleNamespace(run=Mock()),), empty_selection_checks=(check,))):
+            result = await workflow.run()
+            self.assertEqual(result.status, DeploymentWorkflowStatus.BLOCKED)
+            self.assertFalse(result.executed)
+        check.verify.assert_not_awaited()
+
     async def test_late_invalid_configuration_blocks_all_pre_apply_mutations(self):
         for kind in (DeploymentWorkflowKind.BOOTSTRAP, DeploymentWorkflowKind.APPLY):
             calls = []

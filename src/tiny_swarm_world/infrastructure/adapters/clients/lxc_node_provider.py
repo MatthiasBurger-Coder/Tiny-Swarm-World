@@ -31,6 +31,7 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.node_command i
     LxcNodeCommandRunner,
 )
 from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.args import (
+    DEFAULT_INCUS_PROJECT,
     delete_args,
     image_info_args,
     image_ref,
@@ -409,7 +410,12 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
             return config_result
         config, node_config, _ = config_result
 
-        lookup = await self._lookup_node(node, backend, config)
+        lookup = await self._lookup_node(
+            node,
+            backend,
+            config,
+            project=DEFAULT_INCUS_PROJECT,
+        )
         if lookup.failed:
             return _blocked(
                 node,
@@ -443,11 +449,20 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
         operation: Literal["reset", "destroy"],
     ) -> VerificationResult:
         delete_result = await self.runner.run(
-            _delete_args(plan.backend, plan.node.name),
+            _delete_args(
+                plan.backend,
+                plan.node.name,
+                project=DEFAULT_INCUS_PROJECT,
+            ),
             self.teardown_timeout_seconds,
         )
         if _command_failed(delete_result):
-            raced_lookup = await self._lookup_node(plan.node, plan.backend, plan.config)
+            raced_lookup = await self._lookup_node(
+                plan.node,
+                plan.backend,
+                plan.config,
+                project=DEFAULT_INCUS_PROJECT,
+            )
             if not raced_lookup.failed and raced_lookup.node is None:
                 return _verified(plan.node, plan.backend, "deleted", applied=True)
             return _apply_failed(
@@ -458,7 +473,12 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
                 result=delete_result,
             )
 
-        verify = await self._lookup_node(plan.node, plan.backend, plan.config)
+        verify = await self._lookup_node(
+            plan.node,
+            plan.backend,
+            plan.config,
+            project=DEFAULT_INCUS_PROJECT,
+        )
         if verify.failed:
             return _verify_failed(
                 plan.node,
@@ -751,9 +771,11 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
         node: NodeSpec,
         backend: ManagedLxcBackend,
         config: NodeProviderConfig,
+        *,
+        project: str | None = None,
     ) -> _NodeLookup:
         result = await self.runner.run(
-            _list_args(backend, node.name),
+            _list_args(backend, node.name, project=project),
             float(config.verification_metadata.readiness_timeout_seconds),
         )
         if _command_failed(result):

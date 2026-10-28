@@ -49,6 +49,8 @@ class EnsurePortainerEndpoint:
                 endpoint_id = self.portainer_client.get_endpoint_id_by_name(
                     self.endpoint_name,
                 )
+                if type(endpoint_id) is not int or endpoint_id <= 0:
+                    raise ValueError('Portainer endpoint identity must be a positive integer.')
                 return VerificationResult(
                     target_id=self.verification_target_id,
                     status=VerificationStatus.VERIFIED,

@@ -5,9 +5,9 @@ Classic component inspection and planning are read-only on Linux and WSL2:
 ```bash
 tiny-swarm-world services list --json
 tiny-swarm-world services updates --json
-tiny-swarm-world services updates --services jenkins,nexus --json
-tiny-swarm-world services update --services jenkins,nexus --preview --json
-tiny-swarm-world services update --services jenkins --to native-baseline --preview
+tiny-swarm-world services updates --services swagger,traefik --json
+tiny-swarm-world services update --services swagger,traefik --preview --json
+tiny-swarm-world services update --services swagger --to swagger-ui-5-32-7 --preview --json
 ```
 
 Run these commands from the prepared environment. Alternatively use
@@ -19,13 +19,28 @@ service; batches resolve their catalog targets individually. Unknown IDs,
 duplicates, wildcards, empty entries and conflicting options fail. An uninstalled
 service must first be added explicitly through the selective setup workflow.
 
-The current native catalog provides installation baseline image references and
-**no qualified generic stack-service upgrade transitions**. Portainer now has
-a dedicated W07 transition described below. For the generic service examples,
-`available_supported_targets` is empty and the preview examples above return a
-blocked plan (exit 1). `native-baseline` identifies packaging metadata, not an
-approved upgrade or downgrade. Upstream `latest` is never promoted automatically.
-A future qualified transition must provide complete immutable source/target
+The catalog records two proposed stateless source-to-target policies as
+non-executable candidates pending current-source live qualification:
+Traefik 3.7.4 → 3.7.5 (`traefik-3-7-5`) and Swagger UI 5.32.6 → 5.32.7
+(`swagger-ui-5-32-7`). They pin Linux/amd64 child manifests for Classic on native
+Linux/WSL2. Historical bounded live results for these transitions used an earlier
+runner source; they do not qualify the current runner source. See the
+[W09 qualification](../evidence/lcm-w09-qualification.md) and
+[source-hash applicability](../evidence/lcm-w09-transition-proposal.md).
+Broader W09 acceptance remains open. Swagger's editor/API/NGINX members retain exact immutable identities. All members must match
+the complete immutable source bundle in desired and observed installation state;
+ordinary tag-only baseline state is insufficient and is not silently rewritten.
+Inspect actual runtime and use the existing explicit inventory/adoption boundary;
+never fill in observations from catalog defaults. See the
+[reviewed transition pins](../evidence/lcm-w09-transition-proposal.md).
+
+Other generic services remain unadmitted. Portainer has a dedicated W07
+transition described below. As a negative control,
+`services update --services jenkins,nexus --preview` returns a blocked plan
+(exit 1) because those services have no admitted targets. `native-baseline`
+identifies packaging metadata, not an approved upgrade or downgrade. Upstream
+`latest` is never promoted automatically.
+Any additional admitted transition must provide complete immutable source/target
 bundle identities, compatible hosts/presets, explicit migration/backup policy,
 availability impact and recovery limits in the existing component catalog.
 
@@ -78,11 +93,39 @@ See the [lifecycle contract](../contracts/lifecycle.md),
 
 ## Execution and recovery (W06)
 
-The component executor now supports explicit live apply and recovery through the
-existing Classic image-update adapters. The production catalog still has **no
-qualified generic stack-service upgrade transitions**; these examples therefore fail admission until a
-reviewed compatible transition is supplied. Synthetic test policies are not
-production qualification. There is no arbitrary image/tag execution escape hatch.
+The component executor supports explicit live apply and recovery through the
+existing Classic image-update adapters. Jenkins/Nexus examples below still fail
+admission; the only generic policies currently admitted are the pinned Swagger
+and Traefik transitions above. Synthetic test policies are not live qualification.
+There is no arbitrary image/tag execution escape hatch.
+
+For an installation with independently verified complete source pins, preview
+the fixed single or selected batch transition:
+
+```bash
+tiny-swarm-world services update --services swagger --to swagger-ui-5-32-7 --preview --json
+tiny-swarm-world services update --services swagger,traefik --preview --json
+```
+
+Apply retains `--live --approve-live` or existing interactive consent; recovery
+uses the original selection with `--recover` and no `--to`. Swagger and Traefik
+must already be installed for the batch. No foundation/dependency is updated
+implicitly. Only Swagger UI and Traefik image pins change; retained Swagger members
+are freshly observed and have no separate image transition scheduled. The existing
+deployment workflow may reapply the whole stack; actual sibling task preservation
+or restarts must be observed during W09, not inferred from mocked transition calls.
+All four Swagger image variables use
+the same existing Compose/artifact/desired-pin path:
+`TSW_SWAGGER_EDITOR_IMAGE`, `TSW_SWAGGER_UI_IMAGE`, `TSW_SWAGGER_API_IMAGE`,
+`TSW_SWAGGER_NGINX_IMAGE`. Their installation defaults remain unchanged.
+
+These stateless policies perform no data/schema migration. Preserve mounted
+OpenAPI/configuration, TLS/secrets, identities and credential sources, and retain
+a verified recoverable host baseline. Routing/UI may be unavailable during the
+bounded restart. Recovery restores only the original pinned images; it does not
+restore persistent data. Live evidence must include authenticated Traefik dashboard,
+TLS/routing, Swagger OpenAPI/configuration/API behavior and authenticated Portainer
+stack ownership, in addition to actual service/task digest convergence.
 
 ```bash
 tiny-swarm-world services update --services jenkins,nexus --preview --json
@@ -153,11 +196,17 @@ tiny-swarm-world services update --services portainer --recover --live --approve
 The implemented adapter transition is **CE Server and Agent 2.45.0 → 2.45.1**,
 using the immutable image-index digests in `domain/lifecycle/portainer_upgrade.py`.
 Those digests were resolved from the official Docker Hub repositories on
-2026-10-18. This is local adapter qualification; **actual native Linux and WSL2
-qualification remains pending W09**. A later native scenario recorded successful
-upgrade/recovery, but the WSL2 qualification setup failed before the adapter ran.
-See the [W07 verification and W09 handoff](../process/issue-447-completion.md)
-for the current evidence limits and unresolved live checks.
+2026-10-18. Native Linux live evidence verifies the bounded 2.45.0→2.45.1
+upgrade. WSL Q12 candidate records report the same transition and repeat, but
+R46/R47 artifact reviews found the initial operation lacks unique invocation,
+exit, time and source identity; it remains PARTIAL. WSL Q13 reports recovery,
+but its stage attribution remains incomplete. WSL LIVE-4 is open. The wider W09
+acceptance is still open, and the historical W07 post-mutation failure remains
+a non-pass with unverified cause. See the [W07 verification and W09 handoff](../process/issue-447-completion.md)
+and [W09 qualification](../evidence/lcm-w09-qualification.md) for exact
+evidence, limits and unresolved checks. The isolated native Q12 run also verifies
+the subsequent authenticated managed-stack update and Running task readiness;
+WSL LIVE-4 remains open because its attempt did not reach the adapter update.
 No later version is inferred to be supported.
 See the [upstream releases](https://github.com/portainer/portainer/releases),
 [Swarm update guidance](https://docs.portainer.io/start/upgrade/swarm) and

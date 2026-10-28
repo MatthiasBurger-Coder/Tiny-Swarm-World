@@ -168,3 +168,26 @@ class ClassicUpdateCliWorkflowTest(unittest.IsolatedAsyncioTestCase):
             preview=True,
             live_consent=None,
         )
+
+    async def test_platform_reset_builds_platform_services_only(self) -> None:
+        workflow = parse_args(["platform", "reset"]).workflow
+        lifecycle = SimpleNamespace(run=AsyncMock(return_value="reset"))
+        platform_services = SimpleNamespace(lifecycle=lifecycle)
+
+        with (
+            patch(
+                "tiny_swarm_world.infrastructure.adapters.cli.dispatcher.build_platform_services",
+                return_value=platform_services,
+            ) as build_platform,
+        ):
+            result = await run_cli_workflow(
+                workflow,
+                confirmation="RESET_TINY_SWARM_PLATFORM",
+            )
+
+        self.assertEqual("reset", result)
+        build_platform.assert_called_once()
+        lifecycle.run.assert_awaited_once()
+        request = lifecycle.run.await_args.args[0]
+        self.assertEqual("reset", request.kind.value)
+        self.assertEqual("RESET_TINY_SWARM_PLATFORM", request.confirmation)

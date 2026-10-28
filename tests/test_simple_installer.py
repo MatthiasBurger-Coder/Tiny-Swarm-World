@@ -268,6 +268,7 @@ class TestSimpleInstallerSecretBootstrap(unittest.TestCase):
                 "export TSW_PORTAINER_ADMIN_PASSWORD='file-portainer-password'\n",
                 encoding="utf-8",
             )
+            operator_file.chmod(0o644)
 
             with self.assertRaisesRegex(SimpleInstallerError, "0600"):
                 _prepare_bootstrap_environment(

@@ -1,6 +1,6 @@
 {
   "workflow_id": "issue-449-lcm-w09",
-  "workflow_version": "1.39",
+  "workflow_version": "1.42",
   "workflow_path": "documentation/workflow/issues/issue-449/workflow.md",
   "workflow_index_path": "documentation/workflow/workflow.index.md",
   "context_pack_path": "documentation/workflow/issues/issue-449/context-pack.md",
@@ -29,7 +29,7 @@
   "test_host": "Approved PC WSL2 test host 192.168.178.58 for exact-source hash verification, targeted tests and QUALITY gates; live host work remains limited to the two named test hosts and each phase's exact scope",
   "pre_go_host_boundary": "S449-02C host inventory/route capture is distinct from S02C test-only work. Historical be2e031e8f0fb137ea6c15f74d81a88181aa4183 captures are not current. Exact-source 509908 native inventory SHA-256 3898c4a7c16fe93581bafabdd09d7daa11316e375072f288f697e2349b8c45017 and route artifact SHA-256 0af9913c1e997d518b0b62bec0c04ef0d79856ce0267ba338becacfa70e47d8cf (digest 4dd67ca44274073ad292e72c2a7cb5f9f36f5c15daf230912f2debb61c8ff91be). Exact-source WSL inventory SHA-256 4322d32ecfae2f5e1aae1711b48dbc0cb8007487f8655bc540f80d228c1d9994a at commit 50990890330684ef661be7f7ab07b586092641df, target 192.168.178.58; WSL route capture returned JIT_COMMAND_FAILED and created no artifact. Current native preflight remains blocked by active snap.lxd.daemon.service; no normalized admission or host GO. Historical approvals/S3D are phase-scoped and authorize none of the new slices/host commands. No mutation is claimed.",
   "workflow_amendment_v1_33": {
-    "status": "SUPERSEDED_BY_ACTIVE_ISSUE_EXECUTION v1.39",
+    "status": "SUPERSEDED_BY_ACTIVE_ISSUE_EXECUTION v1.42",
     "activation_reason": "The user explicitly authorized completing issue #449 on the named test hosts. This activates issue execution only; it does not grant a slice execution plan or host/scenario GO.",
     "execution_gates": [
       "fresh same-hash Three Amigos and specialist reviews for each slice",
@@ -375,8 +375,8 @@
     "inventory": "command_records metadata only; hash no raw Incus output; external GO SHA-256 binds sanitized artifact"
   },
   "socket_unit_contract_v1_37": "For only snap.lxd.daemon.unix.socket and incus.socket, omitted or explicit decimal-zero MainPID normalizes to 0; empty, malformed and nonzero values block. Only incus.socket may be loaded/active/running, coupled to active stable allowlisted incus.service, exact allowlisted Listen endpoint, endpoint checks and full rechecks. First v1.36 native attempt returned UNIT_SCHEMA_INVALID, created no artifact and made no host changes. Fresh same-hash reviews and S3D are required before another read-only capture; no mutation or GO is implied. Current implementation candidate runner SHA-256 2084dc090f3b0d55007a9ad017fee4621b4d077642fe402f6fd0538c883f5f0c; test SHA-256 23c8395a3c8a5b6167f36b5e76f052f9df4a307cdc7499a88c898d0cf942aa37. Focused PC WSL tests passed (53). Full quality passed (3,048 tests, 18 skipped, seven gates, exit 0), isolated HOME `/home/pc/projects/issue449-s02f-home-v137-20261028`, log SHA-256 cc3f5f1b94219e5b4774c57e5f5063b1d8315c497d9938457d9d66c5ed1ec295. An earlier default-HOME attempt failed two stale-checkpoint tests; the isolated rerun passed. No native capture is included.",
-  "safety": "Current runner/test hashes and quality evidence are recorded in context-pack.md. Historical be2e031e8f0fb137ea6c15f74d81a88181aa4183 captures are not current. Exact-source 509908 native inventory SHA-256 3898c4a7c16fe93581bafabdd09d7daa11316e375072f288f697e2349b8c45017 and native route artifact SHA-256 0af9913c1e997d518b0b62bec0c04ef0d79856ce0267ba338becacfa70e47d8cf; exact-source WSL inventory SHA-256 4322d32ecfae2f5e1aae1711b48dbc0cb8007487f8655bc540f80d228c1d9994a at commit 50990890330684ef661be7f7ab07b586092641df. WSL route capture failed JIT_COMMAND_FAILED and created no artifact. Native active snap.lxd.daemon.service blocks preflight. No normalized admission, host GO or mutation."
-  ,"native_v1_37_attempt": {
+  "safety": "Current runner/test hashes and quality evidence are recorded in context-pack.md. Historical be2e031e8f0fb137ea6c15f74d81a88181aa4183 captures are not current. Exact-source 509908 native inventory SHA-256 3898c4a7c16fe93581bafabdd09d7daa11316e375072f288f697e2349b8c45017 and native route artifact SHA-256 0af9913c1e997d518b0b62bec0c04ef0d79856ce0267ba338becacfa70e47d8cf; exact-source WSL inventory SHA-256 4322d32ecfae2f5e1aae1711b48dbc0cb8007487f8655bc540f80d228c1d9994a at commit 50990890330684ef661be7f7ab07b586092641df. WSL route capture failed JIT_COMMAND_FAILED and created no artifact. Native active snap.lxd.daemon.service blocks preflight. No normalized admission, host GO or mutation.",
+  "native_v1_37_attempt": {
     "status": "BLOCKED",
     "code": "EXECUTABLE_IDENTITY_BLOCKED",
     "artifact": "ABSENT",
@@ -392,8 +392,18 @@
     "cli_contract": "--diagnose-units is mutually exclusive with --source-commit and --output, requires no output path, and never calls the artifact writer. If combined with any other argument, reject before argparse can echo usage or caller values and emit only BLOCKED:DIAGNOSTIC_ARGUMENTS_INVALID. Normal inventory mode remains unchanged.",
     "query_contract": "Process the five fixed units one at a time in declared order; readlink only for active services with validated positive ASCII MainPID; after each readlink, re-query the same service and require the normalized tuple to match before querying a later unit.",
     "command_max": 11,
-    "output_allowlist": ["fixed_unit_id", "symbolic_identity", "fixed_status_code"],
-    "prohibited_output": ["pid", "executable_path", "raw_command_output", "command_records", "inventory_artifact"],
+    "output_allowlist": [
+      "fixed_unit_id",
+      "symbolic_identity",
+      "fixed_status_code"
+    ],
+    "prohibited_output": [
+      "pid",
+      "executable_path",
+      "raw_command_output",
+      "command_records",
+      "inventory_artifact"
+    ],
     "host_execution": "Executed on the approved native test host under post-commit S3D after exact runner hash verification. Result: BLOCKED_UNKNOWN for snap.lxd.daemon.service. No artifact or host mutation; the hash-matched temporary runner was removed.",
     "source_commit": "9c311145e7b4a4ad5f588829fd9867776678e452",
     "runner_sha256": "512ebda8ee09ac4e3d08f414ba0e8e006120e3b9968fb2a91e7cc356076e3f86",
@@ -403,13 +413,240 @@
   "s449_02f3_diagnostic": {
     "status": "IMPLEMENTED_PC_WSL_VERIFIED",
     "purpose": "Classify the already-read rejected Snap executable value into a fixed symbolic reason without revealing it or issuing another host command",
-    "reason_enum": ["SNAP_ROOT_PATH_MISMATCH", "SNAP_EXECUTABLE_OUTSIDE_ROOT", "SNAP_EXECUTABLE_UNCLASSIFIABLE", "EXECUTABLE_IDENTITY_BLOCKED"],
+    "reason_enum": [
+      "SNAP_ROOT_PATH_MISMATCH",
+      "SNAP_EXECUTABLE_OUTSIDE_ROOT",
+      "SNAP_EXECUTABLE_UNCLASSIFIABLE",
+      "EXECUTABLE_IDENTITY_BLOCKED"
+    ],
     "identity_result": "Always UNKNOWN; this diagnostic is not identity admission or inventory success",
     "host_commands_added": 0,
     "artifact_write": false,
     "allowlist_change": false,
-    "host_execution": "No S449-02F3 native execution yet. A post-commit S3D plan and same-hash implementation reviews are required before rerun.",
+    "host_execution": "Executed 2026-10-28 on the approved native test host from clean ext4 committed b30828089a2fb2ec1bafa10f15796ec07fa1bbe3 after exact-source verification, fresh same-hash role GO and a private post-commit S3D plan. Result: BLOCKED_UNKNOWN for snap.lxd.daemon.service with identity UNKNOWN and reason SNAP_EXECUTABLE_OUTSIDE_ROOT. No runner artifact or runtime mutation. This diagnostic establishes no identity admission, ownership, full inventory or scenario GO.",
     "focused_tests": 61,
     "quality_gate": "PASS; exit 0; 3,053 tests; 18 skipped; log SHA-256 8d67fffa46721be2b2d87678060e3f8dbf58d9777621ad622bcfcbfa580ebe2b"
+  },
+  "s449_02f4_normalization": {
+    "status": "SEE_CONSOLIDATION_EXECUTION_STATE",
+    "dependency": "S449-02F3",
+    "design_path": ".codex/evidence/slice-449-02F4-design.md",
+    "trust": "existing trusted local root installation",
+    "proof": "exact effective unit, immutable root-owned installed wrapper/metadata, trusted shell inode, unique same-unit direct root LXD child inode, stable bounded process and unit rechecks",
+    "return_contract": "existing lxd_snap and snap:lxd pair only; child path remains internal; artifact schema unchanged",
+    "additional_systemctl_calls": 2,
+    "outer_inventory_budget": "unchanged",
+    "f3_diagnostic": "unchanged UNKNOWN symbolic output",
+    "environment_file": "optional canonical /etc/environment; blank/full-line-comment lines and at most one exact PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin assignment, unquoted or double-quoted literal only; no extra whitespace, escapes, expansion, single quotes or inline comments; duplicate PATH, malformed lines and every other assignment including LD_AUDIT block",
+    "process_environment": "only SNAP_NAME/SNAP_REVISION/SNAP are proof selectors; other bounded entries discarded in memory",
+    "deadline": "cooperative before/after local filesystem operations; Runner subprocess hard timeout retained",
+    "native_execution": "See F4 consolidation for actual native attempt history and separately gated future execution; no native invocation is granted by this context.",
+    "quality": "Current and historical executed verification is recorded only in F4 consolidation; no new quality pass is implied by this metadata.",
+    "review_state": "Exact role decisions and phase release are recorded only in F4 consolidation; the v1.41 metadata defines a same-slice corrective contract.",
+    "optional_empty_array_properties": [
+      "ExecCondition",
+      "ExecStartPre",
+      "ExecStartPost",
+      "EnvironmentFiles"
+    ],
+    "array_normalization_contract": "All properties remain requested. Omission only of these four arrays normalizes to empty before validation/recheck; every other property including ExecStart remains mandatory. Nonempty hooks, duplicate/unknown/malformed records block; existing EnvironmentFiles nonempty allowlist unchanged."
+  },
+  "code_only_consolidation_v1_42": {
+    "authority": "explicit user excludes live publication evidence; Requirement GO for exact existing-path86candidate",
+    "issue_status": "INCOMPLETE",
+    "live_work": "excluded from publication path",
+    "future_capabilities": "S02 prerequisites and S03-S09 future capability/live requirements remain open",
+    "design_path": ".codex/evidence/issue-449-code-consolidation-design.md",
+    "distribution_path": ".codex/evidence/issue-449-code-consolidation-distribution.md",
+    "quality_authority": "final exact-byte approved-PC-WSL aggregate local quality plus required CI/Sonar; no per-intermediate or live pass invented",
+    "slices": [
+      {
+        "slice_id": "S449-C01",
+        "title": "Bind prepared-product effective configuration source and recovery",
+        "requirements": [
+          "R449-06",
+          "R449-07",
+          "R449-08",
+          "R449-10",
+          "R449-35"
+        ],
+        "dependencies": [],
+        "files": [
+          "documentation/contracts/lifecycle.md",
+          "documentation/user_guide/product-upgrades.md",
+          "src/tiny_swarm_world/application/ports/lifecycle/product_upgrade.py",
+          "src/tiny_swarm_world/application/services/product_upgrade.py",
+          "src/tiny_swarm_world/domain/lifecycle/product_upgrade.py",
+          "src/tiny_swarm_world/infrastructure/adapters/lifecycle/product_admission.py",
+          "src/tiny_swarm_world/infrastructure/adapters/lifecycle/product_configuration_capture.py",
+          "src/tiny_swarm_world/infrastructure/adapters/lifecycle/product_configuration_source.py",
+          "src/tiny_swarm_world/infrastructure/adapters/lifecycle/product_configuration_validation.py",
+          "src/tiny_swarm_world/infrastructure/adapters/lifecycle/product_environment.py",
+          "src/tiny_swarm_world/infrastructure/adapters/lifecycle/product_installation.py",
+          "src/tiny_swarm_world/infrastructure/adapters/lifecycle/product_journal.py",
+          "src/tiny_swarm_world/infrastructure/adapters/lifecycle/product_migration.py",
+          "src/tiny_swarm_world/infrastructure/adapters/lifecycle/product_paths.py",
+          "src/tiny_swarm_world/infrastructure/adapters/lifecycle/product_runtime.py",
+          "src/tiny_swarm_world/infrastructure/adapters/lifecycle/product_verification.py",
+          "src/tiny_swarm_world/infrastructure/composition_product.py",
+          "tests/application/services/test_product_upgrade.py",
+          "tests/infrastructure/adapters/lifecycle/test_product_configuration_source.py",
+          "tests/infrastructure/adapters/lifecycle/test_product_upgrade.py",
+          "tests/tools/test_secure_runtime_paths.py",
+          "documentation/workflow/issues/issue-449/workflow.md",
+          "documentation/workflow/issues/issue-449/context-pack.md",
+          "documentation/workflow/issues/issue-449/context-pack.json",
+          "documentation/workflow/workflow.index.md",
+          ".codex/evidence/issue-449-code-consolidation-design.md",
+          ".codex/evidence/issue-449-code-consolidation-distribution.md"
+        ],
+        "tests": [
+          "tests.application.services.test_product_upgrade",
+          "tests.infrastructure.adapters.lifecycle.test_product_configuration_source",
+          "tests.infrastructure.adapters.lifecycle.test_product_upgrade",
+          "tests.tools.test_secure_runtime_paths"
+        ]
+      },
+      {
+        "slice_id": "S449-C02",
+        "title": "Retain immutable component candidates with fail-closed update admission",
+        "requirements": [
+          "R449-04",
+          "R449-08",
+          "R449-10",
+          "R449-23",
+          "R449-24",
+          "R449-25",
+          "R449-26"
+        ],
+        "dependencies": [
+          "S449-C01"
+        ],
+        "files": [
+          "README.md",
+          "documentation/process/skills/audit/skill-registry.json",
+          "documentation/user_guide/component-updates.md",
+          "infra/config/compose/swagger/docker-compose.yml",
+          "src/tiny_swarm_world/application/services/component_execution.py",
+          "src/tiny_swarm_world/application/services/component_updates.py",
+          "src/tiny_swarm_world/domain/lifecycle/models.py",
+          "src/tiny_swarm_world/domain/lifecycle/update_planning.py",
+          "src/tiny_swarm_world/domain/update/classic_update.py",
+          "src/tiny_swarm_world/infrastructure/adapters/lifecycle/catalog.py",
+          "src/tiny_swarm_world/infrastructure/adapters/lifecycle/component_transitions.py",
+          "src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py",
+          "tests/application/services/test_component_updates.py",
+          "tests/architecture/test_legacy_surface_documentation.py",
+          "tests/domain/lifecycle/test_update_planning.py",
+          "tests/domain/update/test_classic_update.py",
+          "tests/infrastructure/adapters/lifecycle/test_catalog.py",
+          "tests/infrastructure/adapters/lifecycle/test_native_component_transitions.py",
+          "tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py",
+          "tests/test_classic_update_cli.py"
+        ],
+        "tests": [
+          "tests.application.services.test_component_updates",
+          "tests.domain.lifecycle.test_update_planning",
+          "tests.infrastructure.adapters.lifecycle.test_catalog",
+          "tests.infrastructure.adapters.lifecycle.test_native_component_transitions",
+          "tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml",
+          "tests.test_classic_update_cli"
+        ]
+      },
+      {
+        "slice_id": "S449-C03",
+        "title": "Repair existing selective setup runtime observations and cancellation",
+        "requirements": [
+          "R449-02",
+          "R449-03",
+          "R449-09",
+          "R449-17",
+          "R449-19",
+          "R449-29",
+          "R449-30",
+          "R449-31",
+          "R449-36",
+          "R449-37",
+          "R449-38"
+        ],
+        "dependencies": [
+          "S449-C02"
+        ],
+        "files": [
+          "documentation/user_guide/selective-setup.md",
+          "src/tiny_swarm_world/application/services/deployment/empty_apply.py",
+          "src/tiny_swarm_world/application/services/deployment/ensure_portainer_endpoint.py",
+          "src/tiny_swarm_world/application/services/deployment/workflows.py",
+          "src/tiny_swarm_world/infrastructure/adapters/cli/dispatcher.py",
+          "src/tiny_swarm_world/infrastructure/adapters/cli/selective_setup.py",
+          "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/command/args.py",
+          "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/command/diagnostics.py",
+          "src/tiny_swarm_world/infrastructure/adapters/clients/lxc_container_docker_runtime.py",
+          "src/tiny_swarm_world/infrastructure/adapters/clients/lxc_node_provider.py",
+          "src/tiny_swarm_world/infrastructure/adapters/lifecycle/setup_observations.py",
+          "src/tiny_swarm_world/infrastructure/adapters/lifecycle/setup_state.py",
+          "src/tiny_swarm_world/infrastructure/composition.py",
+          "src/tiny_swarm_world/infrastructure/composition_cli.py",
+          "src/tiny_swarm_world/infrastructure/composition_deployment.py",
+          "src/tiny_swarm_world/infrastructure/composition_deployment_selection.py",
+          "src/tiny_swarm_world/infrastructure/composition_lifecycle.py",
+          "src/tiny_swarm_world/infrastructure/composition_runtime.py",
+          "src/tiny_swarm_world/infrastructure/composition_setup.py",
+          "tests/application/services/deployment/test_deployment_workflows.py",
+          "tests/application/services/deployment/test_ensure_portainer_endpoint.py",
+          "tests/application/services/deployment/test_ensure_swarm_stack.py",
+          "tests/e2e/classic/test_browser_evidence_paths.py",
+          "tests/infrastructure/adapters/clients/lxc/swarm/test_swarm_stack_runtime.py",
+          "tests/infrastructure/adapters/clients/test_lxc_container_docker_runtime.py",
+          "tests/infrastructure/adapters/clients/test_lxc_node_provider.py",
+          "tests/infrastructure/adapters/host/test_preflight_evidence_writer.py",
+          "tests/infrastructure/adapters/lifecycle/test_setup_state.py",
+          "tests/infrastructure/adapters/repositories/test_native_resource_budget.py",
+          "tests/infrastructure/test_composition.py",
+          "tests/infrastructure/test_selective_setup.py",
+          "tests/infrastructure/test_setup_status_cancellation.py",
+          "tests/test_incus_preparation.py",
+          "tests/test_package_entrypoint.py",
+          "tests/test_prepare_linux.py",
+          "tests/test_selective_setup_cli.py",
+          "tests/test_service_selection_cli.py",
+          "tests/test_simple_installer.py",
+          "tests/tools/test_r46_ports_policy.py"
+        ],
+        "tests": [
+          "tests.infrastructure.test_selective_setup",
+          "tests.infrastructure.test_setup_status_cancellation",
+          "tests.infrastructure.adapters.lifecycle.test_setup_state",
+          "tests.infrastructure.adapters.clients.test_lxc_node_provider",
+          "tests.infrastructure.adapters.clients.test_lxc_container_docker_runtime",
+          "tests.application.services.deployment.test_deployment_workflows"
+        ]
+      },
+      {
+        "slice_id": "S449-C04",
+        "title": "Publish historical qualification ledger and incomplete AC5 traceability",
+        "requirements": [
+          "R449-01",
+          "R449-15",
+          "R449-18",
+          "R449-21",
+          "R449-22",
+          "R449-27"
+        ],
+        "dependencies": [
+          "S449-C03"
+        ],
+        "files": [
+          "documentation/evidence/lcm-w09-ac5-traceability.md",
+          "documentation/evidence/lcm-w09-blocker-refinement.md",
+          "documentation/evidence/lcm-w09-q16-wsl-r52.md",
+          "documentation/evidence/lcm-w09-q16-wsl-r54.md",
+          "documentation/evidence/lcm-w09-qualification.md",
+          "documentation/evidence/lcm-w09-transition-proposal.md",
+          ".codex/evidence/issue-449-code-consolidation.md"
+        ],
+        "tests": []
+      }
+    ]
   }
 }

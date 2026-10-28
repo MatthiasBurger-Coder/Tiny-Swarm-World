@@ -1,6 +1,17 @@
 # Classic lifecycle contract — LCM-W01 / #441
 
 Contract version: 1. Decision: [lifecycle ADR](../arc42/09_decisions/adr-classic-product-component-lifecycle.adoc).
+The bounded prepared-product effective-input extension follows the
+[effective infrastructure ADR](../arc42/09_decisions/adr-product-effective-infrastructure-source.adoc).
+Its optional product-plan binding carries only kind, random reference and policy;
+installation-manifest schema 1 is unchanged. External-input v1 admits exactly the
+official source's tracked infrastructure with typed provider-memory differences
+and no additional local files. Private physical binding/capture precedes target
+staging after consent/authentication; resume freezes that authority, rejects drift
+and explicit repointing, and keeps legacy unbound checkpoints anchor-based.
+Migration uses source/effective/target comparison, preserves an unchanged-target
+memory override and refuses competing changes. See the
+[operator bounds and recovery rules](../user_guide/product-upgrades.md#bound-effective-infrastructure).
 Inventory baseline: `a43bb7965a0fba4ca4f190f545f459005c653b28` (2026-10-17).
 Scope: native Linux/WSL2 → managed Incus/LXC → Docker Engine → Docker Swarm.
 **New commands below are specified for W02–W08; W01 does not implement them.**
@@ -11,7 +22,8 @@ W03 implements read-only selection previews for `setup run`, `services add` and
 W04 implements selective setup/addition; W05 adds read-only `services updates`
 and `services update --services <ids> [--to <target-id>] --preview`. See
 [component planning](../user_guide/component-updates.md) for actual availability:
-the native catalog has baseline references and no qualified upgrade transitions.
+the native catalog has baseline references plus the bounded W09 Traefik/Swagger
+stateless policies; admission and actual live qualification remain distinct.
 W06 implements selected component execution/recovery and committed desired-image
 pins through the existing Classic engine; no production transition is newly
 qualified. Backup/migration execution and unmapped components remain blocked.
@@ -19,6 +31,12 @@ W07 implements dedicated Portainer execution. W08 implements the pinned
 0.4.0 → 0.5.0 (RC-5) prepared-Git product transition through separate management
 tooling; see [product upgrades](../user_guide/product-upgrades.md). Published
 releases do not retroactively contain that controller. W09 owns live qualification.
+W09 adds fixed Linux/amd64 child-manifest policies for Traefik 3.7.4 → 3.7.5
+and Swagger UI 5.32.6 → 5.32.7, preserving the rest of the Swagger bundle. Both
+existing image override maps and Swagger Compose defaults support persisted pins.
+Tag-only or drifted installations are not automatically admitted. See the
+[W09 transition policy](../evidence/lcm-w09-transition-proposal.md) for exact pins,
+review scope and unverified live requirements.
 The [requirement matrix](../evidence/issue-441-requirement-matrix.md) covers every
 LCM-01–05 bullet and parent acceptance criterion. Parent implementation stays open.
 
@@ -103,10 +121,12 @@ This finalizes the parent issue's explicitly provisional spelling.
 | `product version [--json]` | Read installed release/revision, install model, lock/schema, effective config provenance, observed runtime and drift; redact configuration values; W02/W08 |
 | `product upgrade --to <release> --preview` | Resolve exact official release, validate source/target/host/resources, show code/dependency/config/state/runtime delta, migrations and recovery; W08 |
 | `product upgrade --to <release> --live --approve-live` | Explicit supported product switch, full persisted-selection verification and resulting release commit; W08 |
+| `product upgrade --to <release> --recover --preview` / `--live --approve-live` | Inspect or recover the recorded product transition for the explicit target release; target is still required; W08 |
 | `services list [--json]` | Canonical service IDs, installed/desired/observed versions, dependencies/resources/support and drift, distinguish uninstalled; W02/W05 |
 | `services updates [--services <ids>] [--json]` | Read-only discovery of catalog-supported targets/restrictions; default installed set only; no mutation or automatic selection of new services; W05 |
 | `services update --services <ids> [--to <component-version>] --preview` | One service or explicit selected batch; resolve supported catalog target, immutable image identities, dependency order, restart impact and migration/backup gates; W05 |
 | `services update --services <ids> [--to <component-version>] --live --approve-live` | Apply reviewed changes only to selected installed services; reuse #297; special Portainer adapter if selected; W06/W07 |
+| `services update --services <ids> --recover --preview` / `--live --approve-live` | Inspect or recover the recorded component transition for the explicitly selected services; W06/W07 |
 | `setup run --services <ids> --preview` | Initial requested optional set plus foundations and dependency closure; show reasons, resources, routes/artifacts/credentials required; W03/W04 |
 | `setup run --services <ids> --live --approve-live` | Install/verify exact resolved selection and persist it; existing installation uses its persisted set, rejects implicit removal and directs additions to `services add`; W04 |
 | `setup run --minimal --preview` or `--live --approve-live` | Initial foundations plus disclosed unavoidable dependency closure; rejects conflicting selection/preset flags; W03/W04 |
@@ -115,15 +135,15 @@ This finalizes the parent issue's explicitly provisional spelling.
 | `platform reconcile` | Retain current platform-node scope. Whole-selection reconciliation uses selection-aware setup; never report a product upgrade |
 | `platform update ... [--preview]` / `platform update --recover ...` | Retain #297 syntax and behavior without deprecation/removal. Explicit compatibility layer above it adds catalog selection/persistence; no reinterpretation as product upgrade |
 
-For planned catalog/product operations, use the same command with either
-`--resume --operation <id>` or `--recover --operation <id>` instead of new
-target/selection arguments. These modes are mutually exclusive and support
-`--preview` or existing live-consent flags. Resume retains the recorded forward
-plan; recover requests its recorded supported recovery direction and never
-toggles it on repeated calls. Refuse absent, foreign, stale or unsupported
-operation records before mutation. W06/W07/W08 own these modes for their
-respective operations; unsupported reverse migrations remain blocked. Legacy
-`platform update --recover --stack ... --service ...` retains its original syntax.
+Use only implemented recovery syntax: product recovery requires
+`product upgrade --to <release> --recover`; component recovery requires
+`services update --services <ids> --recover`; legacy stack recovery retains
+`platform update --recover --stack <stack> --service <service>`. Preview is
+read-only; applying recovery requires the existing explicit live-consent
+boundary. There is no `--resume` or `--operation <id>` CLI option. Recovery is
+scoped to a recorded, supported operation and refuses absent, foreign, stale or
+unsupported state before mutation. Unsupported reverse migrations remain
+blocked.
 
 `<ids>` is a comma-separated set of canonical lowercase service IDs; reject empty
 entries, unknown IDs, wildcards and duplicate IDs. Normalize deterministic order.

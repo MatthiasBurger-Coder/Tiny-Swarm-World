@@ -7,8 +7,9 @@ Engine inside those containers.
 
 The current implementation is the **Classic profile** for internal development
 and testing. Native Ubuntu 24.04/26.04 x86_64 and Windows 11 with Ubuntu WSL2
-are bootstrap candidates. W09 verified selected **existing Ubuntu 26.04 hosts**;
-clean-host installation and global release qualification remain unverified.
+are bootstrap candidates. Historical W09 runs verified bounded scenarios on selected existing Ubuntu 26.04 hosts;
+this candidate has not been live-qualified. Clean-host installation and global release
+qualification remain unverified.
 See the [bootstrap completion audit](documentation/evidence/issue-462-bootstrap-completion-audit.md)
 for exact versions, source revisions and deferred scenarios.
 
@@ -240,9 +241,16 @@ without a manifest report adoption required. See the
 [manifest, catalog and adoption contract](documentation/contracts/installation-manifest.md)
 for schema ownership, drift diagnostics and current support limits.
 
-Discover catalog targets with `tiny-swarm-world services updates --json` and plan
-an explicit installed batch with
-`tiny-swarm-world services update --services jenkins,nexus --preview`.
-The current catalog has baseline references but no qualified upgrade transitions;
-unsupported previews return exit 1. See [component planning](documentation/user_guide/component-updates.md)
-for metadata availability, migration restrictions and execution ownership.
+Discover admitted targets with `tiny-swarm-world services updates --json` and
+plan an explicit batch with
+`tiny-swarm-world services update --services swagger,traefik --preview`.
+The catalog records two fixed stateless image-transition candidates, which
+remain non-executable pending current-source live qualification:
+Traefik 3.7.4→3.7.5 and Swagger UI 5.32.6→5.32.7. Historical bounded live
+results used an earlier transition-runner source and do not qualify the current
+runner. See [LCM-W09 evidence](documentation/evidence/lcm-w09-qualification.md)
+and its [source-hash applicability](documentation/evidence/lcm-w09-transition-proposal.md).
+This does not close the broader W09 acceptance. Other generic services have no admitted
+upgrade targets and unsupported previews return exit 1. See
+[component planning](documentation/user_guide/component-updates.md) for the
+exact targets, migration restrictions and execution ownership.

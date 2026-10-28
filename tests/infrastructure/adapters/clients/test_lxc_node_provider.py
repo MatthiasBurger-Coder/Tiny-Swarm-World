@@ -1050,10 +1050,10 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             runner.calls,
             [
-                (("incus", "list", "swarm-manager", "--format", "json"), 5.0),
-                (("incus", "list", "swarm-worker-1", "--format", "json"), 5.0),
-                (("incus", "delete", "swarm-manager", "--force"), 300.0),
-                (("incus", "list", "swarm-manager", "--format", "json"), 5.0),
+                (("incus", "list", "--project", "default", "swarm-manager", "--format", "json"), 5.0),
+                (("incus", "list", "--project", "default", "swarm-worker-1", "--format", "json"), 5.0),
+                (("incus", "delete", "--project", "default", "swarm-manager", "--force"), 300.0),
+                (("incus", "list", "--project", "default", "swarm-manager", "--format", "json"), 5.0),
             ],
         )
         self.assertEvidenceIsSummaryOnly(result)
@@ -1085,7 +1085,7 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(
             runner.calls,
-            [(("lxc", "list", "swarm-manager", "--format", "json"), 5.0)],
+            [(("lxc", "list", "--project", "default", "swarm-manager", "--format", "json"), 5.0)],
         )
         self.assertEvidenceIsSummaryOnly(result)
 
@@ -1125,7 +1125,7 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(
             runner.calls,
-            [(("lxc", "list", "swarm-manager", "--format", "json"), 5.0)],
+            [(("lxc", "list", "--project", "default", "swarm-manager", "--format", "json"), 5.0)],
         )
         self.assertEvidenceIsSummaryOnly(result)
 
@@ -1155,7 +1155,7 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("first_failure_repair_action", result.evidence)
         self.assertEqual(
             runner.calls,
-            [(("lxc", "list", "swarm-manager", "--format", "json"), 5.0)],
+            [(("lxc", "list", "--project", "default", "swarm-manager", "--format", "json"), 5.0)],
         )
         self.assertEvidenceIsSummaryOnly(result)
 
@@ -1193,8 +1193,8 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             runner.calls,
             [
-                (("incus", "list", "swarm-manager", "--format", "json"), 5.0),
-                (("incus", "list", "swarm-worker-1", "--format", "json"), 5.0),
+                (("incus", "list", "--project", "default", "swarm-manager", "--format", "json"), 5.0),
+                (("incus", "list", "--project", "default", "swarm-worker-1", "--format", "json"), 5.0),
             ],
         )
         self.assertEvidenceIsSummaryOnly(result)
@@ -1231,7 +1231,7 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result.evidence["blocked_count"], "1")
         self.assertEqual(
             runner.calls,
-            [(("incus", "list", "swarm-manager", "--format", "json"), 5.0)],
+            [(("incus", "list", "--project", "default", "swarm-manager", "--format", "json"), 5.0)],
         )
         self.assertEvidenceIsSummaryOnly(result)
 
@@ -1250,7 +1250,7 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("applied", result.evidence)
         self.assertEqual(
             runner.calls,
-            [(("lxc", "list", "swarm-manager", "--format", "json"), 5.0)],
+            [(("lxc", "list", "--project", "default", "swarm-manager", "--format", "json"), 5.0)],
         )
         self.assertEvidenceIsSummaryOnly(result)
 
@@ -1271,7 +1271,7 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(
             runner.calls,
-            [(("incus", "list", "swarm-manager", "--format", "json"), 5.0)],
+            [(("incus", "list", "--project", "default", "swarm-manager", "--format", "json"), 5.0)],
         )
         self.assertEvidenceIsSummaryOnly(result)
 
@@ -1297,9 +1297,9 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             runner.calls,
             [
-                (("incus", "list", "swarm-manager", "--format", "json"), 5.0),
-                (("incus", "delete", "swarm-manager", "--force"), 300.0),
-                (("incus", "list", "swarm-manager", "--format", "json"), 5.0),
+                (("incus", "list", "--project", "default", "swarm-manager", "--format", "json"), 5.0),
+                (("incus", "delete", "--project", "default", "swarm-manager", "--force"), 300.0),
+                (("incus", "list", "--project", "default", "swarm-manager", "--format", "json"), 5.0),
             ],
         )
         self.assertEvidenceIsSummaryOnly(result)
@@ -1321,9 +1321,9 @@ class TestLxcNodeProvider(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             runner.calls,
             [
-                (("incus", "list", "swarm-manager", "--format", "json"), 5.0),
-                (("incus", "delete", "swarm-manager", "--force"), 42.0),
-                (("incus", "list", "swarm-manager", "--format", "json"), 5.0),
+                (("incus", "list", "--project", "default", "swarm-manager", "--format", "json"), 5.0),
+                (("incus", "delete", "--project", "default", "swarm-manager", "--force"), 42.0),
+                (("incus", "list", "--project", "default", "swarm-manager", "--format", "json"), 5.0),
             ],
         )
         self.assertEvidenceIsSummaryOnly(result)
@@ -1797,6 +1797,9 @@ def _assert_safe_teardown_command(args) -> None:
         raise AssertionError(f"unexpected provider executable: {argv!r}")
     if any(not isinstance(item, str) for item in argv):
         raise AssertionError(f"provider argv must contain strings only: {argv!r}")
+    if argv[2:4] != ("--project", "default"):
+        raise AssertionError(f"provider teardown must pin the default project: {argv!r}")
+    argv = argv[:2] + argv[4:]
     if argv[:2] in {("incus", "delete"), ("lxc", "delete")}:
         if len(argv) != 4 or argv[2] not in {
             "swarm-manager",

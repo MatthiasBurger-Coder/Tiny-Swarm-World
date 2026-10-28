@@ -9,6 +9,10 @@ _IMAGE_REFERENCE = re.compile(r"^[^\s$`;&|<>]+$")
 
 IMAGE_OVERRIDE_ENVIRONMENT_BY_STACK_SERVICE = {
     "traefik:traefik": "TSW_TRAEFIK_IMAGE",
+    "swagger:swagger-editor": "TSW_SWAGGER_EDITOR_IMAGE",
+    "swagger:swagger-ui": "TSW_SWAGGER_UI_IMAGE",
+    "swagger:swagger-api": "TSW_SWAGGER_API_IMAGE",
+    "swagger:swagger-nginx": "TSW_SWAGGER_NGINX_IMAGE",
     "nexus:nexus": "TSW_NEXUS_IMAGE",
     "jenkins:jenkins": "TSW_JENKINS_IMAGE",
     "pulsar:pulsar": "TSW_PULSAR_IMAGE",

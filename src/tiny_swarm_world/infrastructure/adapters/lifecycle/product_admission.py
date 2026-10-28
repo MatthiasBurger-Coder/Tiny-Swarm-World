@@ -15,7 +15,10 @@ from tiny_swarm_world.infrastructure.adapters.lifecycle.manifest import decode_m
 
 def plan(installation, target):
     require_settled_updates(installation.root)
-    installation._clean_source()
+    _clean_source(installation, allow_external=True)
+    from tiny_swarm_world.infrastructure.adapters.lifecycle.product_configuration_source import prepare, reserve_bytes
+
+    binding = prepare(installation)
     snapshot = installation.manifests.load()
     if any(item.startswith('interrupted_write') for item in snapshot.diagnostics):
         raise LifecycleStateError('Interrupted manifest write requires review before product upgrade.')
@@ -34,7 +37,8 @@ def plan(installation, target):
     target_release, changes = installation.source.resolve(target)
     admit_release_pair(source, target_release)
     plan = ProductPlan(source=source, target=target_release, manifest=manifest, manifest_token=snapshot.token,
-                       adoption=snapshot.manifest is None, configuration_changes=changes)
+                       adoption=snapshot.manifest is None, configuration_changes=changes,
+                       configuration_source=binding, resource_bytes=2147483648 + reserve_bytes(binding))
     installation.validate(plan)
     return plan
 
@@ -48,9 +52,9 @@ def _source_identity(installation):
     except (OSError, ValueError, KeyError):
         raise LifecycleStateError('Source checkout identity cannot be verified.') from None
 
-def _clean_source(installation):
+def _clean_source(installation, *, allow_external=False):
     configured_infra = os.environ.get('TSW_INFRA_ROOT')
-    if configured_infra and Path(configured_infra).expanduser().resolve() != installation.root / 'infra':
+    if not allow_external and configured_infra and Path(configured_infra).expanduser().resolve() != installation.root / 'infra':
         raise LifecycleStateError('Product controller requires anchor infrastructure; unset TSW_INFRA_ROOT and inventory effective overrides before upgrading.')
     if installation._command(('git', 'status', '--porcelain', '--untracked-files=normal')):
         raise LifecycleStateError('Dirty checkout or unrelated untracked files; preserve operator work and commit or move it before upgrading.')
@@ -69,7 +73,10 @@ def _clean_source(installation):
 
 def validate(installation, plan):
     require_settled_updates(installation.root)
-    installation._clean_source()
+    _clean_source(installation, allow_external=plan.configuration_source is not None)
+    from tiny_swarm_world.infrastructure.adapters.lifecycle.product_configuration_source import validate as validate_configuration
+
+    validate_configuration(installation, plan)
     if installation._source_identity() != plan.source:
         raise LifecycleStateError('Source checkout changed since admission; preserve checkpoint and inspect drift.')
     resolved, changes = installation.source.resolve(plan.target.product.release)

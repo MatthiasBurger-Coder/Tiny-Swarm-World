@@ -7,7 +7,7 @@ import io
 import json
 import tempfile
 import unittest
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -503,6 +503,23 @@ class IncusHandoffTests(unittest.TestCase):
             handle.start()
             self.addCleanup(handle.stop)
 
+    def test_stale_checkpoint_blocks_before_package_or_incus_mutation(self):
+        from tiny_swarm_world.prepare_linux import main
+
+        self.evidence.validate.side_effect = OSError("stale checkpoint")
+        with (
+            patch("tiny_swarm_world.prepare_linux.build_native_preparation_service", return_value=self.native),
+            patch("tiny_swarm_world.prepare_linux.build_native_preparation_evidence_writer", return_value=self.evidence),
+            patch("tiny_swarm_world.prepare_linux._prepare_remaining", return_value=0) as prepare_remaining,
+            redirect_stderr(io.StringIO()),
+        ):
+            self.assertEqual(main(()), 2)
+
+        self.assertEqual(self.evidence.validate.call_count, 1)
+        self.evidence.write.assert_not_called()
+        prepare_remaining.assert_called_once_with(read_only=True, service_profile="service-access")
+        self.assertEqual(self.host.inventory["storage-pools"], [])
+
     def test_prepare_linux_actual_delegation_read_only_apply_and_ready_rerun(self):
         from tiny_swarm_world.prepare_linux import main
         from tiny_swarm_world.prepare_incus import main as incus_main
@@ -512,6 +529,7 @@ class IncusHandoffTests(unittest.TestCase):
             calls.append((args, kwargs))
             return subprocess.CompletedProcess(args, incus_main(args[args.index("--service-profile"):]))
         with (patch("tiny_swarm_world.prepare_linux.build_native_preparation_service", return_value=self.native),
+              patch("tiny_swarm_world.prepare_linux.build_native_preparation_evidence_writer", return_value=self.evidence),
               patch("tiny_swarm_world.prepare_linux._validate_mutation_paths", return_value=("same",)),
               patch("tiny_swarm_world.infrastructure.composition_installation._python_imports_available", return_value=True),
               patch("tiny_swarm_world.infrastructure.composition_installation._paths_from_env", return_value=Mock(native_linux_venv=Path("/venv"))),
@@ -538,6 +556,7 @@ class IncusHandoffTests(unittest.TestCase):
         def child(args, **kwargs):
             return subprocess.CompletedProcess(args, incus_main(()))
         with (patch("tiny_swarm_world.prepare_linux.build_native_preparation_service", return_value=self.native),
+              patch("tiny_swarm_world.prepare_linux.build_native_preparation_evidence_writer", return_value=self.evidence),
               patch("tiny_swarm_world.prepare_linux._validate_mutation_paths", return_value=("same",)),
               patch("tiny_swarm_world.infrastructure.composition_installation._python_imports_available", return_value=True),
               patch("tiny_swarm_world.infrastructure.composition_installation._paths_from_env", return_value=Mock(native_linux_venv=Path("/venv"))),

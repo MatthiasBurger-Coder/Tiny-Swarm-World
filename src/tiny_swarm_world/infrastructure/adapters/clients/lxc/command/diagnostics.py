@@ -3,10 +3,22 @@
 from __future__ import annotations
 
 import re
-import subprocess
+from typing import Protocol
 
 
 _INCUS_CHILD_PID_FAILURE = "Failed to retrieve PID of executing child process"
+
+
+class CommandDiagnostic(Protocol):
+    """Minimal output needed to classify retryable Incus child failures."""
+
+    @property
+    def returncode(self) -> int: ...
+
+    @property
+    def stderr(self) -> str: ...
+
+
 _SENSITIVE_LOG_ASSIGNMENT_PATTERN = re.compile(
     r"\b([A-Za-z0-9_]*(?:PASSWORD|TOKEN|SECRET|KEY)[A-Za-z0-9_]*)="
     r"(?:'[^']*'|\"[^\"]*\"|\S+)",
@@ -22,10 +34,16 @@ _SENSITIVE_TOKEN_PARAMETER_PATTERN = re.compile(
 )
 
 
-def is_transient_manager_shell_failure(result: subprocess.CompletedProcess[str]) -> bool:
-    """Return whether an LXC shell result is safe to retry."""
+def is_transient_incus_child_process_failure(result: CommandDiagnostic) -> bool:
+    """Return whether Incus failed to retrieve the executing child PID."""
 
     return result.returncode == 255 and _INCUS_CHILD_PID_FAILURE in result.stderr
+
+
+def is_transient_manager_shell_failure(result: CommandDiagnostic) -> bool:
+    """Return whether an LXC manager-shell result is safe to retry."""
+
+    return is_transient_incus_child_process_failure(result)
 
 
 def safe_log_text(value: str, limit: int = 500) -> str:

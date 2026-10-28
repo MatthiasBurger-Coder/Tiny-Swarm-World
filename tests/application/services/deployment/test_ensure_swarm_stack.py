@@ -16,6 +16,19 @@ from tiny_swarm_world.domain.inventory import VerificationStatus
 
 
 class TestEnsureSwarmStack(unittest.IsolatedAsyncioTestCase):
+    async def test_portainer_server_agent_pins_and_existing_settings_survive_runtime_boundary(self):
+        pins = {'TSW_PORTAINER_IMAGE': 'portainer/portainer-ce@sha256:' + '1' * 64,
+                'TSW_PORTAINER_AGENT_IMAGE': 'portainer/agent@sha256:' + '2' * 64,
+                'TSW_REMOTE_STACK_ROOT': '/protected/stacks'}
+        definition = StackDefinition(name='portainer', compose_content='services: {}')
+        runtime = _FakeSwarmRuntime(stack_exists=True)
+        service = EnsureSwarmStack(_FakeComposeRepository(definition), runtime,
+                                  ServiceStackContract('portainer', ('portainer', 'agent')), pins)
+        await service.run()
+        self.assertEqual(runtime.deployed_stacks, [(definition, pins)])
+        self.assertEqual(service.stack_environment, pins)
+        self.assertEqual((await service.verify()).status, VerificationStatus.VERIFIED)
+
     async def test_prepared_stack_survives_repository_substitution(self):
         original = StackDefinition(name="jenkins", compose_content="services: {jenkins: {image: original}}")
         repository = _FakeComposeRepository(original)
