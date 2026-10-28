@@ -1,7 +1,7 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: `S02C_CANDIDATE_SYNCED — current runner 7929f9dc5d6fea32c55125c3b9f8fb4f02b72a07d3ea0ef80cb0a2aea6279c12; tests 6f888dc59182c7b02ed86fd3e80ddbadb5d7e5a6286e27b4c67d5d3eeb7fcba3; 95 focused tests PASS on approved PC WSL; full QUALITY PASS on Python 3.14.4 private venv with CI-pinned tools (43 architecture tests, 2,969 tests, 18 skipped; log SHA-256 daa2d3952b97aef496035ea773ede718fa5e79e61df1f832c9761ab15126e8df, mode 0600, parent directory mode 0700); exact candidate not run on CI Python 3.12; current workflow-hash reviews and S3D approval pending; native/WSL inventories captured; native route state PASS; WSL route state JIT_COMMAND_FAILED; native preflight BLOCKED by active snap.lxd.daemon.service; host admission and scenario GO remain blocked`
+Status: `S02C_CANDIDATE_SYNCED — current runner 7929f9dc5d6fea32c55125c3b9f8fb4f02b72a07d3ea0ef80cb0a2aea6279c12; tests 6f888dc59182c7b02ed86fd3e80ddbadb5d7e5a6286e27b4c67d5d3eeb7fcba3; 95 focused tests PASS on approved PC WSL; full QUALITY PASS on Python 3.14.4 private venv with CI-pinned tools (43 architecture tests, 2,969 tests, 18 skipped; log SHA-256 daa2d3952b97aef496035ea773ede718fa5e79e61df1f832c9761ab15126e8df, mode 0600, parent directory mode 0700); exact candidate not run on CI Python 3.12; The private ext4 approval record at `.tiny-swarm/evidence/issue-449/s449-private-20261027/workflow-execution-approval-current-20261028.md` binds its exact workflow/context hashes and four role decisions; the directory must be mode 0700 and the record mode 0600. Workflow execution requires four `APPROVED` decisions and S3D `EXECUTION_PLAN` for the same tuple. Host/scenario GO and normalized host admission are separate prerequisites. S3D, per-host/per-scenario GO and normalized host admission are pending; no host mutation is claimed. native/WSL inventories captured; native route state PASS; WSL route state JIT_COMMAND_FAILED; native preflight BLOCKED by active snap.lxd.daemon.service; host admission and scenario GO remain blocked`
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
@@ -557,7 +557,7 @@ read/reservation/NOT_RUN artifact, owned mode-0700 directory,
 exclusive no-follow mode-0600 output with no overwrite or symlink acceptance,
 and byte-identical
 snapshot/digest parity with JIT. Record exact source/test hashes for S02.
-Historical v1.32 evidence: runner/test `f37ab8fbe98b288b75451b8798607d588b2bef0458f6730cf8af405acc740628` / `8168ffbdcf0a5ac816134c23a25de1052f276189f4ab60066ffb7ebeb9e45668`, 85 focused tests, and full QUALITY log SHA-256 `247da0bd35bbf91138811ba7355f39681fd7dc5b3e47c78474cdc4b806a90e26` remain historical and are not current candidate evidence. Current candidate runner SHA-256 `7929f9dc5d6fea32c55125c3b9f8fb4f02b72a07d3ea0ef80cb0a2aea6279c12`; test SHA-256 `6f888dc59182c7b02ed86fd3e80ddbadb5d7e5a6286e27b4c67d5d3eeb7fcba3`; focused suite 95 PASS on approved PC WSL. Full QUALITY PASS: GATE_EXIT=0 on Python 3.14.4 in a private venv with CI-pinned tools; 43 architecture tests, 2,969 total tests, 18 skipped; private log SHA-256 `daa2d3952b97aef496035ea773ede718fa5e79e61df1f832c9761ab15126e8df`, file mode 0600, parent directory mode 0700. This exact candidate was not run on CI Python 3.12. Same-commit project inventories were captured on native Linux and WSL2. Native route-state capture passed with digest `fe31f78643962ce3757e8bcfc8cc8ed1e9c9eb46a2c1728f52f773fbc2f84758`; WSL route-state capture returned `JIT_COMMAND_FAILED`. Native read-only preflight is blocked by active `snap.lxd.daemon.service`. Native inventory confirms only the default LXD project and three stopped TSW containers; no host-stop GO exists. Native resource observations are 8 CPUs, 20,111,052,800 bytes MemTotal, 15,452,803,072 bytes MemAvailable, 724,140,146,688 bytes free disk, ext4 `/`, and `incus version` reports Client/Server 6.0.5. MemTotal is below the unchanged 19 GiB baseline guard; the host therefore does not pass resource admission. These observations do not constitute a normalized resource-admission artifact or PASS, and Incus 6.0.5 observation does not establish capability support. Current four-role workflow-hash reviews and S3D approval are pending; the v1.32 approval record and its S3D result remain historical. No host admission, scenario GO, or target mutation is claimed.
+Historical v1.32 evidence: runner/test `f37ab8fbe98b288b75451b8798607d588b2bef0458f6730cf8af405acc740628` / `8168ffbdcf0a5ac816134c23a25de1052f276189f4ab60066ffb7ebeb9e45668`, 85 focused tests, and full QUALITY log SHA-256 `247da0bd35bbf91138811ba7355f39681fd7dc5b3e47c78474cdc4b806a90e26` remain historical and are not current candidate evidence. Current candidate runner SHA-256 `7929f9dc5d6fea32c55125c3b9f8fb4f02b72a07d3ea0ef80cb0a2aea6279c12`; test SHA-256 `6f888dc59182c7b02ed86fd3e80ddbadb5d7e5a6286e27b4c67d5d3eeb7fcba3`; focused suite 95 PASS on approved PC WSL. Full QUALITY PASS: GATE_EXIT=0 on Python 3.14.4 in a private venv with CI-pinned tools; 43 architecture tests, 2,969 total tests, 18 skipped; private log SHA-256 `daa2d3952b97aef496035ea773ede718fa5e79e61df1f832c9761ab15126e8df`, file mode 0600, parent directory mode 0700. This exact candidate was not run on CI Python 3.12. Same-commit project inventories were captured on native Linux and WSL2. Native route-state capture passed with digest `fe31f78643962ce3757e8bcfc8cc8ed1e9c9eb46a2c1728f52f773fbc2f84758`; WSL route-state capture returned `JIT_COMMAND_FAILED`. Native read-only preflight is blocked by active `snap.lxd.daemon.service`. Native inventory confirms only the default LXD project and three stopped TSW containers; no host-stop GO exists. Native resource observations are 8 CPUs, 20,111,052,800 bytes MemTotal, 15,452,803,072 bytes MemAvailable, 724,140,146,688 bytes free disk, ext4 `/`, and `incus version` reports Client/Server 6.0.5. For native R449-33, the accepted resource floor is 18,253,611,008 bytes (17 GiB), CPU >= 8 and free disk >= 150 GiB; observed MemTotal, CPU and disk meet those numerical floors. The 19 GiB default-node guard applies only where that baseline applies; the accepted ADR supports a 17 GiB TSW_INFRA_ROOT override for this host. MemAvailable is recorded as an observation, not an admission threshold. This numerical comparison is not a normalized resource-admission artifact or PASS: active snap.lxd.daemon.service blocks read-only service-access preflight, and the exact admission artifact and per-scenario GO are absent. Incus 6.0.5 does not establish capability support. The private ext4 approval record at `.tiny-swarm/evidence/issue-449/s449-private-20261027/workflow-execution-approval-current-20261028.md` binds its exact workflow/context hashes and four role decisions; its directory is mode 0700 and file mode 0600. Workflow execution requires all four `APPROVED` decisions and S3D `EXECUTION_PLAN` for the same tuple. Per-host/per-scenario GO and normalized host admission are separate prerequisites. The current candidate has no S3D `EXECUTION_PLAN`, no host/scenario GO, no normalized admission and no host mutation. The v1.32 approval record and its S3D result remain historical. No host admission, scenario GO, or target mutation is claimed.
 sanitization, schema rejection, output metadata, sanitized-artifact-only hash,
 private exclusive ext4 write, and no GO/reservation/NOT_RUN/Incus-write behavior.
 S449-02 may not collect or claim this inventory before that implementation and
@@ -608,7 +608,7 @@ Native `service-access` floor is CPU >= 8, RAM >= 15 GiB and free disk >=
 10/6/1 GiB, CPU 2/2/4 and disk 20/50/10 GiB, totaling 17 GiB RAM, 8 CPU and
 80 GiB disk. Native host admission is `max(service-access 15 GiB, selection
 17 GiB) = 17 GiB` RAM, CPU >= 8 and free disk >= 150 GiB. Existing default
-19 GiB guard is unchanged wherever its baseline applies. These are accepted
+19 GiB default-node guard applies only where that baseline applies; the accepted ADR supports a 17 GiB TSW_INFRA_ROOT override for this native host. These are accepted
 Three-Amigos requirement thresholds, not a host admission result or per-host
 GO. They are tied to `src/tiny_swarm_world/infrastructure/adapters/host/native_preparation.py`,
 `documentation/arc42/09_decisions/adr-native-linux-preparation-and-install-lifecycle.adoc`,
@@ -1217,25 +1217,29 @@ reviewed changes only after required checks and evidence pass.
 
 Workflow authoring is not workflow readiness. Record the four mandatory reviews
 against the final workflow/context-pack hashes here; a prior design-only
-approval of R67j is not a workflow review.
+approval of R67j is not a workflow review. The private ext4 approval record at `.tiny-swarm/evidence/issue-449/s449-private-20261027/workflow-execution-approval-current-20261028.md` binds its exact workflow/context hashes and four role decisions; its directory is mode 0700 and file mode 0600. Workflow execution requires all four `APPROVED` decisions and S3D `EXECUTION_PLAN` for the same tuple. Per-host/per-scenario GO and normalized host admission are separate prerequisites. The current candidate has no S3D `EXECUTION_PLAN`, no host/scenario GO, no normalized admission and no host mutation. The record path is
+`.tiny-swarm/evidence/issue-449/s449-private-20261027/workflow-execution-approval-current-20261028.md`;
+S3D and per-host GO remain pending. The private record binds decisions to the
+exact workflow/context hashes; every reviewed tuple is tracked there.
 
 | Role | Required review | Current candidate status |
 |---|---|---|
-| Senior Requirement Engineer | R449-01–38, AC1–AC5, W10, EPIC #440 and traceability | PENDING — review current hashes |
-| Senior System Architect | hexagonal boundaries, Incus profile ownership, persistence, arc42 and locks | PENDING — review current hashes |
-| Senior Python Automation Developer | ports/adapters/composition, slice paths, testability and lock ownership | PENDING — review current hashes |
-| Senior Tester | acceptance evidence, exact test gates, live/local state and lock ownership | PENDING — review current hashes |
+| Senior Requirement Engineer | R449-01–38, AC1–AC5, W10, EPIC #440 and traceability | See private record for decisions bound to the final hashes |
+| Senior System Architect | hexagonal boundaries, Incus profile ownership, persistence, arc42 and locks | See private record for decisions bound to the final hashes |
+| Senior Python Automation Developer | ports/adapters/composition, slice paths, testability and lock ownership | See private record for decisions bound to the final hashes |
+| Senior Tester | acceptance evidence, exact test gates, live/local state and lock ownership | See private record for decisions bound to the final hashes |
 
-Release decision: execution is eligible only when the four-role record contains
+Release decision: every workflow/context hash tuple must receive four-role review, and the private record binds the exact reviewed hashes. Execution is eligible only when the record contains
 `APPROVED` decisions for one workflow/context hash set and S3/S3D returns
 `EXECUTION_PLAN` for that same revision. The v1.32 approval record and its
-`EXECUTION_PLAN` are historical and do not approve this candidate. The v1.5–v1.11 approvals and preflight
+`EXECUTION_PLAN` are historical and do not approve this candidate. A private ext4 record becomes authoritative only after its exact hash-bound decisions and storage controls are verified. Each
+workflow/context tuple must be reviewed and recorded with its exact hashes.
+The v1.5–v1.11 approvals and preflight
 do not authorize the current candidate amendment. The v1.6 workflow approval record and
 any later pre-v1.12 approval records are superseded. The private
 `workflow-execution-approval-v1.32-20261028.md` is historical and must not be
-treated as the approval record for this candidate. Create a new private record
-only after its path and current workflow/context hashes are established; that
-record does not yet exist.
+treated as the approval record for this candidate. The current approval state
+must be recorded at `.tiny-swarm/evidence/issue-449/s449-private-20261027/workflow-execution-approval-current-20261028.md` after the record is verified on ext4.
 
 ## S3 / S3D Preflight and Clean Execution Handoff
 
