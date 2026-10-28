@@ -865,6 +865,56 @@ class ProjectInventoryCaptureTests(_FixtureBehaviorTestCase):
         self.assertIn(('incus', 'query', fixture._instance_api_path('vm', 'qa')), seen)
         self.assertEqual(set(inventory), {'projects', 'command_records'})
 
+    def test_inventory_records_inherited_profiles_once_and_keeps_project_instances(self):
+        shared_used_by = ['/1.0/instances/swarm-manager?project=issue447']
+        instance = {'name': 'swarm-manager', 'project': 'issue447', 'config': {}, 'devices': {},
+                    'profiles': ['default'], 'expanded_config': {}, 'expanded_devices': {}}
+        responses = {
+            ('incus', 'project', 'list', '--format', 'json'):
+                b'[{"name":"default"},{"name":"issue447"},{"name":"legacy"}]',
+            ('incus', 'query', '/1.0/projects/default'):
+                b'{"name":"default","description":"","config":{"features.profiles":"true"}}',
+            ('incus', 'query', '/1.0/projects/issue447'):
+                b'{"name":"issue447","description":"","config":{"features.profiles":"false"}}',
+            ('incus', 'query', '/1.0/projects/legacy'):
+                b'{"name":"legacy","description":"","config":{}}',
+            ('incus', 'profile', 'list', '--project', 'default', '--format', 'json'):
+                b'[{"name":"shared"}]',
+            ('incus', 'query', '/1.0/profiles/shared?project=default'):
+                json.dumps({'name': 'shared', 'project': 'default', 'config': {}, 'devices': {},
+                            'used_by': shared_used_by}).encode(),
+            ('incus', 'list', '--project', 'default', '--format', 'json'): b'[]',
+            ('incus', 'list', '--project', 'issue447', '--format', 'json'):
+                b'[{"name":"swarm-manager","status":"Running","type":"container","profiles":["default"],"project":"issue447"}]',
+            ('incus', 'query', fixture._instance_api_path('swarm-manager', 'issue447')):
+                json.dumps(instance).encode(),
+            ('incus', 'list', '--project', 'legacy', '--format', 'json'): b'[]',
+        }
+        seen = []
+
+        def read(argv):
+            key = tuple(argv)
+            seen.append(key)
+            return responses[key]
+
+        with (patch.object(fixture, '_assert_host_identity_inventory'),
+              patch.object(fixture, '_assert_local_incus_remote_inventory'),
+              patch.object(fixture, '_require_local_incus_admin'),
+              patch.object(fixture, '_inventory_command', side_effect=read)):
+            inventory = fixture._capture_project_inventory('192.168.178.33')
+
+        default, inherited, unset = inventory['projects']
+        self.assertEqual(default['profiles'], [{'name': 'shared', 'used_by': shared_used_by, 'devices': {}}])
+        self.assertEqual(inherited['isolation']['features.profiles'], False)
+        self.assertEqual(inherited['profiles'], [])
+        self.assertEqual(inherited['instances'][0]['profiles'], ['default'])
+        self.assertIsNone(unset['isolation']['features.profiles'])
+        self.assertEqual(unset['profiles'], [])
+        self.assertEqual(seen.count(('incus', 'profile', 'list', '--project', 'default', '--format', 'json')), 1)
+        self.assertNotIn(('incus', 'profile', 'list', '--project', 'issue447', '--format', 'json'), seen)
+        self.assertNotIn(('incus', 'profile', 'list', '--project', 'legacy', '--format', 'json'), seen)
+        self.assertIn(('incus', 'list', '--project', 'issue447', '--format', 'json'), seen)
+
     def test_inventory_refuses_to_list_projects_without_completeness_authority(self):
         with (patch.object(fixture, '_assert_host_identity_inventory'), patch.object(fixture, '_assert_local_incus_remote_inventory'),
               patch.object(fixture, '_require_local_incus_admin',

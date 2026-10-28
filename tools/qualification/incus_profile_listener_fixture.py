@@ -1010,7 +1010,10 @@ def _capture_project_inventory(host: str) -> dict[str, Any]:
                                    or len(set(pdata['used_by'])) != len(pdata['used_by'])):
             raise TargetDrift('INCUS_PROJECT_INVENTORY_UNREADABLE')
         isolation = _project_isolation(pdata.get('config'))
-        profiles_raw = strict_json(_inventory_command(['incus', 'profile', 'list', '--project', project, '--format', 'json']))
+        profile_project_local = project == 'default' or isolation['features.profiles'] is True
+        profiles_raw = (strict_json(_inventory_command(
+            ['incus', 'profile', 'list', '--project', project, '--format', 'json']))
+            if profile_project_local else [])
         if not isinstance(profiles_raw, list) or len(profiles_raw) > _INVENTORY_MAX_ENTITIES or any(not isinstance(x, dict) or set(x) - {'name', 'description', 'used_by', 'config', 'devices', 'project'} or not isinstance(x.get('name'), str) for x in profiles_raw):
             raise TargetDrift('INCUS_PROFILE_INVENTORY_UNREADABLE')
         _account_inventory_entities(len(profiles_raw), 'INCUS_PROFILE_INVENTORY_UNREADABLE')
