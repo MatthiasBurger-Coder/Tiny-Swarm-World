@@ -10,6 +10,7 @@ from __future__ import annotations
 from tiny_swarm_world.domain.deployment.service_stack_contract import ServiceStackContract
 
 from .composition_selection import persisted_runtime_selection, selection_options, includes_service, selected_secret_entries, uses_infisical_setup
+from .composition_deployment_selection import minimal_apply_checks
 
 from tiny_swarm_world.infrastructure.adapters.repositories.secret_manifest_yaml_repository import SecretManifestYamlRepository
 
@@ -254,6 +255,8 @@ def build_lxc_deployment_services(
     )
     swarm_runtime = DockerSwarmRuntime(delegate=lxc_swarm_runtime)
     stack_environment = _deployment_stack_environment(selected_service_profile, resolved_services) if resolved_services is not None else _deployment_stack_environment(selected_service_profile)
+    for contract in service_stack_contracts:
+        stack_environment.setdefault(contract.stack_name, {})
     apply_desired_stack_images(stack_environment, effective_environment)
     secret_manifest_entries = (
         SecretManifestRenderer(SecretManifestYamlRepository(
@@ -457,6 +460,8 @@ def build_lxc_deployment_services(
                 pre_apply_checks=pre_apply_checks,
                 prerequisite_checks=prerequisite_checks,
                 configuration_preparation=prepare_selected_configuration,
+                empty_selection_checks=minimal_apply_checks(
+                    resolved_services, update_stack_name, service_stack_contracts, application_steps, bootstrap_steps),
             ),
             verify=DeploymentVerifyWorkflow(
                 readiness_checks,

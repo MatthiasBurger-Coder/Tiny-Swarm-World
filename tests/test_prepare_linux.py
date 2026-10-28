@@ -505,6 +505,7 @@ class NativePreparationCliTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             project = Path(directory) / "tiny-swarm-world"
             project.mkdir(mode=0o755)
+            project.chmod(0o755)
             with self.assertRaisesRegex(OSError, "not private"):
                 NativePreparationEvidenceWriter(Path(directory)).write(
                     platform_release="26.04", status="started", planned=("incus",),

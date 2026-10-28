@@ -17,7 +17,11 @@ from tiny_swarm_world.application.services.platform.workflow.types import Platfo
 from tiny_swarm_world.domain.preflight import LiveConsent
 from tiny_swarm_world.domain.update import ClassicUpdatePlan
 
-from .composition_models import ApplicationServices, ArtifactServices, DeploymentServices
+from .composition_models import (
+    ArtifactServices,
+    DeploymentServices,
+    PlatformServices,
+)
 
 
 async def execute_cli_workflow(
@@ -36,7 +40,7 @@ async def execute_cli_workflow(
     update_stack_name: str | None,
     update_service_name: str | None,
     build_classic_update_workflow: Callable[..., Any],
-    build_application_services: Callable[..., ApplicationServices],
+    build_platform_services: Callable[..., PlatformServices],
     build_artifact_services: Callable[..., ArtifactServices],
     build_deployment_services: Callable[..., DeploymentServices],
     run_setup_with_terminal_status: Callable[..., Any],
@@ -58,7 +62,7 @@ async def execute_cli_workflow(
             ),
         )
     if platform_kind is not None:
-        services = build_application_services(
+        services = build_platform_services(
             live_consent=live_consent,
             service_profile=service_profile,
             node_provider_request=node_provider_request,
@@ -87,11 +91,11 @@ async def execute_cli_workflow(
 
 
 async def run_platform_workflow(
-    services: ApplicationServices,
+    services: PlatformServices,
     kind: PlatformWorkflowKind,
     confirmation: str | None,
 ) -> Any:
-    return await run_platform_action(services.platform.lifecycle, kind, confirmation)
+    return await run_platform_action(services.lifecycle, kind, confirmation)
 
 
 async def run_artifact_workflow(services: ArtifactServices, action: str) -> Any:

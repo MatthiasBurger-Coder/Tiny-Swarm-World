@@ -1,7 +1,9 @@
 import subprocess
 import tempfile
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
+import os
+import shlex
 
 from tiny_swarm_world.domain.deployment import StackDefinition
 from pathlib import Path
@@ -13,6 +15,24 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc.swarm.swarm_stack_runt
 
 
 class TestLxcSwarmStackRuntime(unittest.TestCase):
+    def test_explicit_portainer_pair_reaches_remote_interpolation_without_ambient_images(self):
+        shell = Mock(return_value=subprocess.CompletedProcess([], 0, stdout='', stderr=''))
+        runtime = LxcSwarmStackRuntime(remote_stack_root='/remote/stacks', service_list_timeout_seconds=30,
+            run_manager_shell=shell, run_node_shell=Mock(), prepare_stack_assets=Mock(), ensure_stack_prerequisites=Mock())
+        pins = {'TSW_PORTAINER_IMAGE': 'portainer/portainer-ce@sha256:' + '1' * 64,
+                'TSW_PORTAINER_AGENT_IMAGE': 'portainer/agent@sha256:' + '2' * 64}
+        definition = StackDefinition(name='portainer', compose_content='services: {portainer: {image: "${TSW_PORTAINER_IMAGE}"}}')
+        with patch.dict(os.environ, {'TSW_PORTAINER_IMAGE': 'ambient:unapproved', 'TSW_NEXUS_IMAGE': 'excluded:unapproved'}):
+            runtime.deploy_stack(definition, pins)
+        upload, deploy = shell.call_args_list
+        self.assertEqual(upload.kwargs['input_text'], definition.compose_content)
+        tokens = shlex.split(deploy.args[0])
+        assignments = dict(token.split('=', 1) for token in tokens[:tokens.index('docker')])
+        self.assertEqual(assignments, {'TSW_REMOTE_STACK_ROOT': '/remote/stacks', **pins})
+        self.assertIn('--resolve-image never', deploy.args[0])
+        self.assertNotIn('ambient:', deploy.args[0])
+        self.assertNotIn('TSW_NEXUS_IMAGE', deploy.args[0])
+
     def test_second_swagger_asset_failure_prevents_deployment(self):
         calls = []
 

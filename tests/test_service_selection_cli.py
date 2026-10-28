@@ -7,9 +7,11 @@ import unittest
 from unittest.mock import patch
 
 from tiny_swarm_world.__main__ import main
+from tiny_swarm_world.application.services.service_selection import ServiceSelectionService
 from tiny_swarm_world.infrastructure.adapters.cli.parser import parse_args
 from tiny_swarm_world.infrastructure.adapters.lifecycle.manifest import JsonManifestRepository
 from tiny_swarm_world.infrastructure.composition import build_installation_lifecycle_service
+from tests.application.services.test_lifecycle import adoption_fixture
 
 
 class SelectionCliTests(unittest.IsolatedAsyncioTestCase):
@@ -64,6 +66,32 @@ class SelectionCliTests(unittest.IsolatedAsyncioTestCase):
                     await self.preview(command, service)
                 self.assertEqual(caught.exception.code, 2)
             self.assertEqual(list(root.iterdir()), [])
+
+    async def test_optional_removal_preview_reports_impact_without_runtime_or_manifest_writes(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            manifest_path = root / "state.json"
+            service = build_installation_lifecycle_service(Path(__file__).resolve().parents[1])
+            service.manifests = JsonManifestRepository(manifest_path)
+            selection = ServiceSelectionService(service.manifests, service.catalog)
+            service.manifests.save(adoption_fixture(service.catalog.load()), expected_token=None)
+            selection.persist(selection.preview(("jenkins",), add=True), approved=True)
+            before_bytes = manifest_path.read_bytes()
+            before_mtime = manifest_path.stat().st_mtime_ns
+
+            result = await self.preview(
+                ["services", "remove", "--services", "nexus", "--preview"],
+                service,
+            )
+
+            self.assertEqual(result["status"], "selection_preview")
+            self.assertEqual(result["execution"], "not performed (read-only preview)")
+            self.assertEqual(result["data_policy"], "deployments and persistent data are retained")
+            self.assertEqual(result["plan"]["removals"], ["nexus"])
+            self.assertEqual(result["plan"]["removal_impact"], {"nexus": ["jenkins"]})
+            self.assertTrue(result["plan"]["retained_data"])
+            self.assertEqual(manifest_path.read_bytes(), before_bytes)
+            self.assertEqual(manifest_path.stat().st_mtime_ns, before_mtime)
 
     def test_help_is_readonly_and_tracks_explicit_preset(self):
         for command in (["setup", "run"], ["services", "add"], ["services", "remove"]):

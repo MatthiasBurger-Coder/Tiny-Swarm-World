@@ -11,6 +11,7 @@ from .composition_selection import selection_options, includes_service, persiste
 
 from tiny_swarm_world.domain.lifecycle.selection import SelectionPlan
 
+import asyncio
 import os
 from pathlib import Path
 
@@ -117,6 +118,14 @@ async def run_setup_with_terminal_status(
             result=_setup_result_status(result),
         )
         return result
+    except asyncio.CancelledError:
+        ui.update_status(
+            AGGREGATE_INSTANCE,
+            task="setup run",
+            step="cancelled",
+            result=STATUS_ERROR,
+        )
+        raise
     except Exception:
         ui.update_status(
             AGGREGATE_INSTANCE,

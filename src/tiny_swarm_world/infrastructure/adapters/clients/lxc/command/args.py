@@ -16,6 +16,8 @@ from tiny_swarm_world.infrastructure.adapters.repositories.node_provider_config_
     ProviderBackendResourceResolution,
 )
 
+DEFAULT_INCUS_PROJECT = "default"
+
 
 def profile_show_args(backend: ManagedLxcBackend, profile_name: str) -> tuple[str, ...]:
     return (backend_cli(backend), "profile", "show", profile_name)
@@ -46,8 +48,17 @@ def profile_set_args(
     return (backend_cli(backend), "profile", "set", profile_name, key, value)
 
 
-def list_args(backend: ManagedLxcBackend, node_name: str) -> tuple[str, ...]:
-    return (backend_cli(backend), "list", node_name, "--format", "json")
+def list_args(
+    backend: ManagedLxcBackend,
+    node_name: str,
+    *,
+    project: str | None = None,
+) -> tuple[str, ...]:
+    args = [backend_cli(backend), "list"]
+    if project is not None:
+        args.extend(("--project", project))
+    args.extend((node_name, "--format", "json"))
+    return tuple(args)
 
 
 def start_args(backend: ManagedLxcBackend, node_name: str) -> tuple[str, ...]:
@@ -58,8 +69,17 @@ def image_info_args(backend: ManagedLxcBackend, image_ref: str) -> tuple[str, ..
     return (backend_cli(backend), "image", "info", image_ref)
 
 
-def delete_args(backend: ManagedLxcBackend, node_name: str) -> tuple[str, ...]:
-    return (backend_cli(backend), "delete", node_name, "--force")
+def delete_args(
+    backend: ManagedLxcBackend,
+    node_name: str,
+    *,
+    project: str | None = None,
+) -> tuple[str, ...]:
+    args = [backend_cli(backend), "delete"]
+    if project is not None:
+        args.extend(("--project", project))
+    args.extend((node_name, "--force"))
+    return tuple(args)
 
 
 def launch_args(

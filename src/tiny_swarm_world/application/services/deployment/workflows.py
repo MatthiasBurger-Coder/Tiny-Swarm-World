@@ -14,6 +14,7 @@ from tiny_swarm_world.application.ports.clients.port_portainer_admin_client impo
 from tiny_swarm_world.application.ports.operation_result import OperationFailure, OperationOutcome, OperationResult
 from tiny_swarm_world.application.services.shared.operation_results import aggregate_operation, failure_from_exception, verification_failures, prefixed_operation_result
 from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
+from tiny_swarm_world.application.services.deployment.empty_apply import has_apply_contract
 
 
 class DeploymentWorkflowKind(str, Enum):
@@ -146,6 +147,7 @@ class DeploymentApplyWorkflow:
         kind: DeploymentWorkflowKind = DeploymentWorkflowKind.APPLY,
         prerequisite_checks: Sequence[DeploymentPreApplyCheck] = (),
         configuration_preparation: Callable[[], object] | None = None,
+        empty_selection_checks: Sequence[DeploymentPreApplyCheck] = (),
     ):
         self.configuration_preparation = configuration_preparation
         self.steps = tuple(steps)
@@ -154,6 +156,7 @@ class DeploymentApplyWorkflow:
         self.prerequisite_checks = tuple(prerequisite_checks)
         self.blocked_reason = blocked_reason
         self.kind = kind
+        self.empty_selection_checks = tuple(empty_selection_checks)
         self.logger = logging.getLogger(self.__class__.__name__)
 
     async def prepare_configuration(self) -> None:
@@ -171,7 +174,8 @@ class DeploymentApplyWorkflow:
 
     async def run(self) -> DeploymentWorkflowResult:
         progress = _DeploymentProgress([f"deployment.{self.kind.value}.step.{index}.verify" for index in range(1, len(self.steps) + 1)])
-        if not self.steps:
+        if not has_apply_contract(self.steps, self.empty_selection_checks,
+                                  application_phase=self.kind is DeploymentWorkflowKind.APPLY):
             return progress.result(
                 kind=self.kind,
                 status=DeploymentWorkflowStatus.BLOCKED,
@@ -214,6 +218,9 @@ class DeploymentApplyWorkflow:
         )
         if pre_apply_result is not None:
             return pre_apply_result
+
+        if not self.steps:
+            return await _verify_empty_selection(self, verification_results, progress)
 
         for index, step in enumerate(self.steps, 1):
             identity = f"deployment.{self.kind.value}.step.{index}"
@@ -303,6 +310,18 @@ class DeploymentApplyWorkflow:
             executed=True,
             verification_results=tuple(verification_results),
         )
+
+
+async def _verify_empty_selection(workflow, results, progress):
+    failure = await _run_pre_apply_checks(workflow.empty_selection_checks, workflow.kind, results, progress)
+    if failure is not None:
+        return failure
+    progress.completed.extend(f'deployment.apply.foundation.{index}.verify'
+                              for index in range(1, len(workflow.empty_selection_checks) + 1))
+    return progress.result(kind=workflow.kind, status=DeploymentWorkflowStatus.COMPLETED,
+        message='No selected application stacks require deployment; foundation access verified.',
+        reason='explicit minimal selection has no application stacks to apply',
+        executed=False, verification_results=tuple(results))
 
 
 class DeploymentVerifyWorkflow:

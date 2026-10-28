@@ -5,6 +5,14 @@ from tiny_swarm_world.domain.inventory import VerificationStatus
 
 
 class TestEnsurePortainerEndpoint(unittest.IsolatedAsyncioTestCase):
+    async def test_nonpositive_boolean_or_nonnumeric_endpoint_is_not_verified(self):
+        for endpoint_id in (0, -1, True, '7', None):
+            with self.subTest(endpoint_id=endpoint_id):
+                client = _RecordingPortainerClient(endpoint_id=endpoint_id)
+                result = await EnsurePortainerEndpoint(client, 'local', max_attempts=1, wait_seconds=0).verify()
+                self.assertEqual(result.status, VerificationStatus.FAILED_TO_VERIFY)
+                self.assertEqual(result.evidence['endpoint_ready'], 'false')
+
     async def test_run_ensures_local_endpoint(self):
         client = _RecordingPortainerClient(endpoint_id=7)
         service = EnsurePortainerEndpoint(client, "local")

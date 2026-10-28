@@ -43,6 +43,24 @@ async def prepare_setup_selection_state(lifecycle, plan, backend, runner):
     return state
 
 
+async def complete_setup_selection_state(state, backend, runner):
+    """Observe new pinned components only after the existing setup/auth checks passed."""
+    import logging
+    from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
+    from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.manager_shell_gateway import LxcManagerShellGateway
+    from tiny_swarm_world.infrastructure.adapters.update.lxc_runtime_observer import LxcUpdateRuntimeObserver
+
+    if not state.observation_required:
+        return
+    if backend is None:
+        raise LifecycleStateError("Source observation requires the admitted Incus backend.")
+    observer = LxcUpdateRuntimeObserver(LxcManagerShellGateway(
+        backend=backend, manager_node="swarm-manager", timeout_seconds=10,
+        logger=logging.getLogger("setup_source_observer"), process_runner=runner,
+    ))
+    await state.observe_new_components(observer)
+
+
 def build_component_update_execution(lifecycle, node_provider_request=None, *, classic_workflow_factory):
     """Reuse Classic runtime adapters and installation-local durable state."""
     from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError

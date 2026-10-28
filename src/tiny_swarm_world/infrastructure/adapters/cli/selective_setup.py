@@ -6,7 +6,7 @@ from dataclasses import replace
 import json
 
 from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
-from tiny_swarm_world.application.ports.operation_result import OperationFailure, OperationOutcome, OperationResult
+from tiny_swarm_world.application.ports.operation_result import OperationError, OperationFailure, OperationOutcome, OperationResult
 from tiny_swarm_world.application.services.service_selection import ServiceSelectionService
 from tiny_swarm_world.application.services.setup.workflow import SetupWorkflowKind, SetupWorkflowResult, SetupWorkflowStatus
 from tiny_swarm_world.domain.preflight import LiveConsent
@@ -43,6 +43,16 @@ async def run_selective_setup(args: Namespace, consent: LiveConsent | None) -> S
     )
     if result.status is not SetupWorkflowStatus.COMPLETED:
         return result
+    try:
+        await composition.complete_setup_selection_state(state, request)
+    except (LifecycleStateError, OperationError, TimeoutError):
+        return replace(result, status=SetupWorkflowStatus.FAILED_TO_VERIFY,
+                       message="Runtime setup completed but source observations failed. Preserve runtime/data and inspect pinned images/tasks before retrying.",
+                       reason="selection_observation_failed", operation_result=OperationResult(
+                           OperationOutcome.PARTIAL,
+                           failures=(OperationFailure.for_cause("selection.observe", "runtime_observer", "observation_unavailable"),),
+                           completed_operations=("setup.runtime",), pending_operations=("selection.persist",),
+                       ))
     try:
         state.commit()
     except LifecycleStateError:

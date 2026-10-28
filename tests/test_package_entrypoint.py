@@ -232,7 +232,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
     async def test_default_entrypoint_does_not_build_or_run_services(self):
         output = io.StringIO()
 
-        with patch.object(cli_dispatcher, "build_application_services") as build_services:
+        with patch.object(cli_dispatcher, "build_platform_services") as build_services:
             with redirect_stdout(output):
                 await entrypoint.main([])
 
@@ -252,7 +252,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
     async def test_list_workflows_does_not_build_or_run_services(self):
         output = io.StringIO()
 
-        with patch.object(cli_dispatcher, "build_application_services") as build_services:
+        with patch.object(cli_dispatcher, "build_platform_services") as build_services:
             with redirect_stdout(output):
                 await entrypoint.main(["--list-workflows"])
 
@@ -323,7 +323,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
                 "ensure_common_executable_paths",
             ) as ensure_paths,
             patch.object(cli_dispatcher, "build_application_logger") as build_logger,
-            patch.object(cli_dispatcher, "build_application_services") as build_services,
+            patch.object(cli_dispatcher, "build_platform_services") as build_services,
             redirect_stdout(output),
         ):
             await entrypoint.main(["host", "detect"])
@@ -510,7 +510,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         output = io.StringIO()
 
         with patch.dict(os.environ, {"TSW_DEBUG_JSON": "true"}):
-            with patch.object(cli_dispatcher, "build_application_services", return_value=services):
+            with patch.object(cli_dispatcher, "build_platform_services", return_value=services.platform):
                 with redirect_stdout(output):
                     await entrypoint.main(["platform", "verify"])
 
@@ -560,7 +560,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
     async def test_mutating_workflow_requires_live_consent_before_building_services(self):
         output = io.StringIO()
 
-        with patch.object(cli_dispatcher, "build_application_services") as build_services:
+        with patch.object(cli_dispatcher, "build_platform_services") as build_services:
             with redirect_stdout(output):
                 with self.assertRaises(SystemExit) as raised:
                     await entrypoint.main(["platform", "init"])
@@ -574,7 +574,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         output = io.StringIO()
 
         with patch("builtins.input", return_value="n"):
-            with patch.object(cli_dispatcher, "build_application_services") as build_services:
+            with patch.object(cli_dispatcher, "build_platform_services") as build_services:
                 with redirect_stdout(output):
                     with self.assertRaises(SystemExit) as raised:
                         await entrypoint.main(["platform", "init", "--live"])
@@ -588,7 +588,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         output = io.StringIO()
 
         with patch("builtins.input", return_value="y"):
-            with patch.object(cli_dispatcher, "build_application_services", return_value=services):
+            with patch.object(cli_dispatcher, "build_platform_services", return_value=services.platform):
                 with redirect_stdout(output):
                     await entrypoint.main(["platform", "init", "--live"])
 
@@ -601,7 +601,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         output = io.StringIO()
 
         with patch("builtins.input", side_effect=AssertionError("prompt must not run")):
-            with patch.object(cli_dispatcher, "build_application_services", return_value=services):
+            with patch.object(cli_dispatcher, "build_platform_services", return_value=services.platform):
                 with redirect_stdout(output):
                     await entrypoint.main(["platform", "init", "--live", "--approve-live"])
 
@@ -613,7 +613,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         output = io.StringIO()
 
         with patch("builtins.input", side_effect=EOFError):
-            with patch.object(cli_dispatcher, "build_application_services") as build_services:
+            with patch.object(cli_dispatcher, "build_platform_services") as build_services:
                 with redirect_stdout(output):
                     with self.assertRaises(SystemExit) as raised:
                         await entrypoint.main(["platform", "init", "--live"])
@@ -627,7 +627,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         output = io.StringIO()
 
         with patch("builtins.input", return_value="y"):
-            with patch.object(cli_dispatcher, "build_application_services", return_value=services):
+            with patch.object(cli_dispatcher, "build_platform_services", return_value=services.platform):
                 with redirect_stdout(output):
                     await entrypoint.main(["platform", "init", "--live"])
 
@@ -643,7 +643,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         )
         output = io.StringIO()
 
-        with patch.object(cli_dispatcher, "build_application_services", return_value=services):
+        with patch.object(cli_dispatcher, "build_platform_services", return_value=services.platform):
             with redirect_stdout(output):
                 with self.assertRaises(SystemExit) as raised:
                     await entrypoint.main(["platform", "init", "--live", "--approve-live"])
@@ -681,7 +681,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         )
         output = io.StringIO()
 
-        with patch.object(cli_dispatcher, "build_application_services", return_value=services):
+        with patch.object(cli_dispatcher, "build_platform_services", return_value=services.platform):
             with redirect_stdout(output):
                 await entrypoint.main(
                     ["platform", "reconcile", "--live", "--approve-live", "--json"]
@@ -700,7 +700,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         output = io.StringIO()
 
         with patch("builtins.input", return_value="y"):
-            with patch.object(cli_dispatcher, "build_application_services", return_value=services):
+            with patch.object(cli_dispatcher, "build_platform_services", return_value=services.platform):
                 with redirect_stdout(output):
                     with self.assertRaises(SystemExit) as raised:
                         await entrypoint.main(["platform", "init", "--live", "--json"])
@@ -721,7 +721,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         services, workflows = _application_services_with_platform_workflows()
         output = io.StringIO()
 
-        with patch.object(cli_dispatcher, "build_application_services", return_value=services) as build_services:
+        with patch.object(cli_dispatcher, "build_platform_services", return_value=services.platform) as build_services:
             with redirect_stdout(output):
                 await entrypoint.main(["platform", "verify"])
 
@@ -781,7 +781,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         services, workflows = _application_services_with_platform_workflows()
         output = io.StringIO()
 
-        with patch.object(cli_dispatcher, "build_application_services", return_value=services) as build_services:
+        with patch.object(cli_dispatcher, "build_platform_services", return_value=services.platform) as build_services:
             with redirect_stdout(output):
                 await entrypoint.main(["--lxc-backend", "incus", "platform", "verify"])
 
@@ -801,7 +801,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         output = io.StringIO()
 
         with patch("builtins.input", return_value="y"):
-            with patch.object(cli_dispatcher, "build_application_services", return_value=services):
+            with patch.object(cli_dispatcher, "build_platform_services", return_value=services.platform):
                 with redirect_stdout(output):
                     await entrypoint.main(["platform", "expose", "--live"])
 
@@ -815,7 +815,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         output = io.StringIO()
 
         with patch("builtins.input", return_value="y"):
-            with patch.object(cli_dispatcher, "build_application_services", return_value=services):
+            with patch.object(cli_dispatcher, "build_platform_services", return_value=services.platform):
                 with redirect_stdout(output):
                     await entrypoint.main(["platform", "repair-lxc-proxy-drift", "--live"])
 
@@ -827,7 +827,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
     async def test_reset_refuses_missing_confirmation_before_building_services(self):
         output = io.StringIO()
 
-        with patch.object(cli_dispatcher, "build_application_services") as build_services:
+        with patch.object(cli_dispatcher, "build_platform_services") as build_services:
             with redirect_stdout(output):
                 with self.assertRaises(SystemExit) as raised:
                     await entrypoint.main(["platform", "reset"])
@@ -840,7 +840,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
     async def test_destroy_refuses_wrong_confirmation_before_building_services(self):
         output = io.StringIO()
 
-        with patch.object(cli_dispatcher, "build_application_services") as build_services:
+        with patch.object(cli_dispatcher, "build_platform_services") as build_services:
             with redirect_stdout(output):
                 with self.assertRaises(SystemExit) as raised:
                     await entrypoint.main(["platform", "destroy", "--confirm", "wrong"])
@@ -854,7 +854,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         services, workflows = _application_services_with_platform_workflows()
 
         with patch("builtins.input", return_value="y"):
-            with patch.object(cli_dispatcher, "build_application_services", return_value=services):
+            with patch.object(cli_dispatcher, "build_platform_services", return_value=services.platform):
                 with redirect_stdout(io.StringIO()):
                     await entrypoint.main(
                         [
@@ -873,7 +873,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         services, workflows = _application_services_with_platform_workflows()
 
         with patch("builtins.input", return_value="y"):
-            with patch.object(cli_dispatcher, "build_application_services", return_value=services):
+            with patch.object(cli_dispatcher, "build_platform_services", return_value=services.platform):
                 with redirect_stdout(io.StringIO()):
                     await entrypoint.main(
                         [
@@ -900,7 +900,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
             with self.subTest(command=command):
                 output = io.StringIO()
 
-                with patch.object(cli_dispatcher, "build_application_services") as build_services:
+                with patch.object(cli_dispatcher, "build_platform_services") as build_services:
                     with patch.object(
                         cli_dispatcher,
                         "build_artifact_services_for_provider",
@@ -944,9 +944,9 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
 
                 with patch.object(
                     cli_dispatcher,
-                    "build_application_services",
+                    "build_platform_services",
                     side_effect=AssertionError("boundary workflow must not build platform services"),
-                ) as build_application_services:
+                ) as build_platform_services:
                     with patch.object(
                         cli_dispatcher,
                         "build_artifact_services_for_provider",
@@ -966,7 +966,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
                                         await entrypoint.main([*command, "--json"])
 
                 self.assertEqual(1, raised.exception.code)
-                build_application_services.assert_not_called()
+                build_platform_services.assert_not_called()
                 if namespace == "artifacts":
                     build_artifact_services.assert_called_once_with(
                         node_provider_request=None
@@ -1004,7 +1004,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
             ) as run_setup:
                 with patch.object(
                     cli_dispatcher,
-                    "build_application_services",
+                    "build_platform_services",
                     side_effect=AssertionError("setup must use setup services"),
                 ):
                     with redirect_stdout(output):
@@ -1245,7 +1245,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         output = io.StringIO()
 
         with patch.object(cli_commands, "build_preflight_service", return_value=preflight) as build_preflight:
-            with patch.object(cli_dispatcher, "build_application_services") as build_services:
+            with patch.object(cli_dispatcher, "build_platform_services") as build_services:
                 with redirect_stdout(output):
                     await entrypoint.main(["--preflight"])
 
@@ -1334,7 +1334,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         output = io.StringIO()
 
         with patch.object(cli_commands, "build_network_doctor_service", return_value=doctor):
-            with patch.object(cli_dispatcher, "build_application_services") as build_services:
+            with patch.object(cli_dispatcher, "build_platform_services") as build_services:
                 with redirect_stdout(output):
                     await entrypoint.main(["doctor", "network"])
 
@@ -1357,7 +1357,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         output = io.StringIO()
 
         with patch.object(cli_commands, "build_network_repair_service", return_value=repair):
-            with patch.object(cli_dispatcher, "build_application_services") as build_services:
+            with patch.object(cli_dispatcher, "build_platform_services") as build_services:
                 with redirect_stdout(output):
                     await entrypoint.main(["network", "repair", "--runtime", "wsl2-nat"])
 

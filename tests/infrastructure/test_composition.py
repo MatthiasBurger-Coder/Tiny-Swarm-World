@@ -417,6 +417,44 @@ class TestComposition(unittest.TestCase):
             service.project_path,
         )
 
+    def test_selected_preflight_projects_port_registry_to_selected_services(self):
+        from tiny_swarm_world.domain.network import (
+            PortExposureClass,
+            PortRange,
+            ServicePortMapping,
+        )
+
+        registry = PortRegistry(
+            ranges=(PortRange("core-gateway", 10000, 10100),),
+            mappings=(
+                ServicePortMapping(
+                    "portainer", "portainer-http", 9000, 10001,
+                    PortExposureClass.COMPATIBILITY, "core-gateway",
+                    required_for_preflight=False,
+                ),
+                ServicePortMapping(
+                    "nexus", "nexus-http", 8081, 10002,
+                    PortExposureClass.COMPATIBILITY, "core-gateway",
+                    required_for_preflight=False,
+                ),
+            ),
+            metadata={"source": "test"},
+        )
+        from tiny_swarm_world.infrastructure import composition_runtime
+
+        selected_registry = composition_runtime._project_port_registry(
+            registry, ("portainer",)
+        )
+        self.assertEqual(("portainer-http",), tuple(
+            mapping.port_id for mapping in selected_registry.mappings
+        ))
+        self.assertEqual(registry.ranges, selected_registry.ranges)
+        self.assertEqual(dict(registry.metadata), dict(selected_registry.metadata))
+        self.assertEqual((10001,), PreflightService(
+            Mock(), port_registry=selected_registry
+        )._windows_bridge_expected_ports())
+        self.assertIs(registry, composition_runtime._project_port_registry(registry, None))
+
     def test_build_preflight_service_wires_resource_inspection_and_evidence(self):
         from tiny_swarm_world.domain.preflight.completeness import PreflightConstruction
         service = composition.build_preflight_service()
@@ -833,6 +871,27 @@ class TestComposition(unittest.TestCase):
         self.assertIs(services.node_provider_selection, reset_step.provider_selection)
         self.assertIs(services.node_provider_selection, destroy_step.provider_selection)
 
+    def test_platform_composition_does_not_require_infisical_secrets(self):
+        with patch.dict(os.environ):
+            for name in tuple(os.environ):
+                if name.startswith("TSW_INFISICAL_"):
+                    os.environ.pop(name)
+            with patch.object(
+                composition,
+                "build_deployment_services_for_provider",
+                side_effect=AssertionError("platform composition must not build deployments"),
+            ):
+                services = composition.build_platform_services(
+                    service_profile=ServiceStackProfile.SERVICE_ACCESS
+                )
+
+        self.assertIsInstance(services.workflows.reset, composition.PlatformResetWorkflow)
+        self.assertEqual(1, len(services.workflows.reset.steps))
+        self.assertIsInstance(
+            services.workflows.reset.steps[0],
+            composition.NodeProviderResetManagedNodesStep,
+        )
+
     def test_build_platform_services_does_not_run_lxc_commands_during_wiring(self):
         async def fail_if_called(*_args, **_kwargs):
             raise AssertionError("composition must not run LXC commands during wiring")
@@ -1224,6 +1283,10 @@ class TestComposition(unittest.TestCase):
 
     def test_all_supported_image_overrides_update_artifact_contracts(self):
         overrides = {
+            "swagger-editor": "TSW_SWAGGER_EDITOR_IMAGE",
+            "swagger-ui": "TSW_SWAGGER_UI_IMAGE",
+            "swagger-api": "TSW_SWAGGER_API_IMAGE",
+            "swagger-nginx": "TSW_SWAGGER_NGINX_IMAGE",
             "nexus": "TSW_NEXUS_IMAGE",
             "jenkins": "TSW_JENKINS_IMAGE",
             "service-access-dashboard": "TSW_SERVICE_ACCESS_DASHBOARD_IMAGE",
@@ -1493,6 +1556,7 @@ class TestComposition(unittest.TestCase):
             swarm_runtime.call_args.kwargs["tls_contract_resolver"],
         )
 
+    @patch.dict(os.environ, {"TSW_TRAEFIK_GUI_USERS_HTPASSWD": ""})
     def test_build_deployment_services_keeps_service_access_assets_out_of_default_profile(
         self,
     ):
@@ -1767,6 +1831,7 @@ class TestComposition(unittest.TestCase):
             ),
         )
 
+    @patch.dict(os.environ, {"TSW_TRAEFIK_GUI_USERS_HTPASSWD": ""})
     def test_build_deployment_services_wires_routing_evidence_from_selected_model_profile(
         self,
     ):
@@ -2126,6 +2191,20 @@ class TestComposition(unittest.TestCase):
         with patch.dict("os.environ", env, clear=True):
             with patch.object(composition, "ComposeFileRepositoryYaml"):
                 with self.assertRaises(ValueError):
+                    composition.build_lxc_deployment_services(
+                        backend=composition.ManagedLxcBackend.INCUS,
+                        service_profile=ServiceStackProfile.SERVICE_ACCESS,
+                    )
+
+    def test_build_service_access_deployment_still_requires_infisical_login(self):
+        env = _required_infisical_bootstrap_env()
+        env.pop("TSW_INFISICAL_LOGIN_EMAIL")
+        with patch.dict("os.environ", env, clear=True):
+            with patch.object(composition, "ComposeFileRepositoryYaml"):
+                with self.assertRaisesRegex(
+                    ValueError,
+                    "Required operator secret is missing: TSW_INFISICAL_LOGIN_EMAIL",
+                ):
                     composition.build_lxc_deployment_services(
                         backend=composition.ManagedLxcBackend.INCUS,
                         service_profile=ServiceStackProfile.SERVICE_ACCESS,

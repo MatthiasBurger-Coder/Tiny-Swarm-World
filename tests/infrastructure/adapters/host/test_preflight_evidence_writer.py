@@ -26,6 +26,7 @@ class PreflightEvidenceWriterTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / "evidence"
             root.mkdir(mode=0o755)
+            root.chmod(0o755)
 
             with self.assertRaises(ValueError):
                 PreflightEvidenceWriter(root).write({}, "preflight.json")
