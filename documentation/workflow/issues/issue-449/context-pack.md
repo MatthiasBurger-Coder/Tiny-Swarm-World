@@ -1,6 +1,24 @@
 # Context pack — issue-449-lcm-w09
 
-## Current v1.43 diagnostic amendment
+## Current v1.44 drop-in diagnostic amendment
+
+The separately reviewed native F5 diagnosis at source
+04a0c3cf3b641775cad59da12a7951e0eb5035cc returned BLOCKED_UNKNOWN /
+DROPIN_CONTENT and exit 2. It is an observation only: no contents, safety,
+ownership, inventory admission or host mutation. The protected F5 plan, GO
+and result remain on native ext4 and need review before any F6 host GO.
+
+S449-02F6 is PLANNED; no implementation, F6 quality pass or F6 host GO is
+claimed. Its only CLI, closed structural reason enum, trusted path, no
+environment read, rechecks and F4/F5 invariants are specified in
+.codex/evidence/slice-449-02F6-design.md. Six same-hash reviews, S3D, PC WSL
+exact-source quality, and a separate post-commit native plan and host GO
+remain required. F6 does not release a guard change or inventory rerun.
+S449-02F remains BLOCKED; 02G/02H retain their existing prerequisites.
+The user-owned proposed ADR amendment in another worktree is not changed
+or accepted here.
+
+## Historical v1.43 diagnostic amendment
 
 The 2026-10-29 separately reviewed native S449-02F attempt on source
 `1ec15b3e9f7f943cdde85e43d00ec01ff9c7e9fd` exited 2 with
@@ -8,7 +26,7 @@ The 2026-10-29 separately reviewed native S449-02F attempt on source
 occurred. Private plan, host GO and result remain on the native ext4 test
 checkout. The cause is unknown. The user requested a bounded diagnostic
 extension; S449-02F5 and its D01–D08 contract are **planned**, not implemented
-or approved to run. Review the finalized workflow/context/design tuple anew;
+at that historical authoring point. F5 has since been implemented and diagnosed as recorded below. Review the finalized workflow/context/design tuple anew;
 all six specialist roles and a slice-specific S3D plan are required before
 implementation. Exact-byte targeted/full PC WSL quality and a separate
 post-commit native diagnosis plan/GO follow. An observation cannot establish
@@ -23,7 +41,7 @@ trusted-file rechecks, stop order and exact budgets.
 The pending user-owned ADR amendment in the separate primary worktree is not
 part of this contract and is not accepted by this workflow amendment.
 
-- Workflow document version: 1.43; status `ACTIVE_FOR_ISSUE_449`. Historical v1.42 detail: the user authorized completing #449 on the named test hosts. Every slice still requires fresh same-hash reviews and its own S3D `EXECUTION_PLAN`; live host changes still require exact host/scenario admission and GO. S449-02D is committed at `6a687bddab9893d29c081bc8b8cdd0aa489c16ab`; S449-02E is committed at `6c48b1d0ef90ec0316769257e8a821946b2200c8`. S02D runner/test hashes `4d1bef40aa2be3f3f477d33c98db173bf43290cf23a71f33f9937e0fd089221f` / `deb5a79c706b8f277df55e36e040e2ca0c33289a4b7b1debe58a7f260822b1bc`; S02E runner/test hashes `6982861d785cdfa97f4de14e4f7b2cac8cd355eaff7e2478004c2619b1db72fd` / `86e874528a62664c2d2c6c452a733178cb9c0b6d63fc29f1e19a18a7e6ef413b`. On approved PC WSL, S02E focused suite passed 121 tests and full quality gate passed (43 architecture tests; 2,995 total, 18 skipped). S02F implementation and PC WSL quality verification are complete under v1.37. The v1.36 read-only attempt returned UNIT_SCHEMA_INVALID, produced no artifact, and made no host changes. The v1.37 native retry returned BLOCKED:EXECUTABLE_IDENTITY_BLOCKED with no artifact. S449-02F2 commit 9c311145 ran the bounded symbolic diagnostic, which returned BLOCKED_UNKNOWN for snap.lxd.daemon.service; no artifact or runtime mutation occurred. S449-02F3 is planned to classify only the already-read rejected value into a fixed symbolic reason. Its read-only queries must bind to already-active full-access service identities and cannot trigger service/socket activation. Version 1.36 reconciles project used_by membership without treating storage pools as project consumers, checks pool-level profile/instance disk reciprocity, includes exact storage-volume list/show argv, and blocks inherited/shared volume owner mismatches at both list and detail stages. The v1.36 S02F attempt contacted only the native test host for a bounded read-only inventory; it returned UNIT_SCHEMA_INVALID and produced no artifact. Native service-access preflight remains blocked by active snap.lxd.daemon.service; the previous WSL route capture failed with JIT_COMMAND_FAILED; no normalized admission or host/scenario GO exists.
+- Workflow document version: 1.44; status `ACTIVE_FOR_ISSUE_449`. Historical v1.42 detail: the user authorized completing #449 on the named test hosts. Every slice still requires fresh same-hash reviews and its own S3D `EXECUTION_PLAN`; live host changes still require exact host/scenario admission and GO. S449-02D is committed at `6a687bddab9893d29c081bc8b8cdd0aa489c16ab`; S449-02E is committed at `6c48b1d0ef90ec0316769257e8a821946b2200c8`. S02D runner/test hashes `4d1bef40aa2be3f3f477d33c98db173bf43290cf23a71f33f9937e0fd089221f` / `deb5a79c706b8f277df55e36e040e2ca0c33289a4b7b1debe58a7f260822b1bc`; S02E runner/test hashes `6982861d785cdfa97f4de14e4f7b2cac8cd355eaff7e2478004c2619b1db72fd` / `86e874528a62664c2d2c6c452a733178cb9c0b6d63fc29f1e19a18a7e6ef413b`. On approved PC WSL, S02E focused suite passed 121 tests and full quality gate passed (43 architecture tests; 2,995 total, 18 skipped). S02F implementation and PC WSL quality verification are complete under v1.37. The v1.36 read-only attempt returned UNIT_SCHEMA_INVALID, produced no artifact, and made no host changes. The v1.37 native retry returned BLOCKED:EXECUTABLE_IDENTITY_BLOCKED with no artifact. S449-02F2 commit 9c311145 ran the bounded symbolic diagnostic, which returned BLOCKED_UNKNOWN for snap.lxd.daemon.service; no artifact or runtime mutation occurred. S449-02F3 is planned to classify only the already-read rejected value into a fixed symbolic reason. Its read-only queries must bind to already-active full-access service identities and cannot trigger service/socket activation. Version 1.36 reconciles project used_by membership without treating storage pools as project consumers, checks pool-level profile/instance disk reciprocity, includes exact storage-volume list/show argv, and blocks inherited/shared volume owner mismatches at both list and detail stages. The v1.36 S02F attempt contacted only the native test host for a bounded read-only inventory; it returned UNIT_SCHEMA_INVALID and produced no artifact. Native service-access preflight remains blocked by active snap.lxd.daemon.service; the previous WSL route capture failed with JIT_COMMAND_FAILED; no normalized admission or host/scenario GO exists.
 - Issue: #449, parent EPIC #440, bounded coordination with #318
 - Workflow: `documentation/workflow/issues/issue-449/workflow.md`
 - Index: `documentation/workflow/workflow.index.md`
