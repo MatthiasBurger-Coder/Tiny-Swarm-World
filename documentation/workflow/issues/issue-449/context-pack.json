@@ -1,6 +1,6 @@
 {
   "workflow_id": "issue-449-lcm-w09",
-  "workflow_version": "1.55",
+  "workflow_version": "1.58",
   "workflow_amendment_v1_43": {
     "slice_id": "S449-02F5",
     "status": "HISTORICAL: F5 implemented and bounded native diagnosis executed",
@@ -191,10 +191,10 @@
   },
   "workflow_artifacts_sha256": {
     "documentation/arc42/09_architecture_decisions.adoc": "9b2b38c377bd75d3059b877d6ac679173f7eea9bb22dee9460c6d4fcad42284e",
-    "documentation/workflow/issues/issue-449/context-pack.md": "13ea17cfbad6e798fee9398344d6b145a74bc4e5332e7671f53a1bc1c183f1ee",
-    "documentation/workflow/issues/issue-449/workflow.md": "d71fbbca9b196bcd7c927a3548493b5149670fcbc71a069198de5ac37a884fd7",
+    "documentation/workflow/issues/issue-449/context-pack.md": "865461bac6e41057b463e55034fa27834db7b97dfc5fed52eec68165b2fede67",
+    "documentation/workflow/issues/issue-449/workflow.md": "ec723d8cecf1654fa79b20baaed475e51fc1ea380b491e5d2016974dedaabd54",
     ".agents/skills/workflow-executor/SKILL.md": "04a9325b2cec2dfa6feab24c261c636fdfa295158661d20e981e4182e5bfb46c",
-    "documentation/workflow/workflow.index.md": "0cb7071102ff2fb2ccb61fff1722650705ec4fc533146e95c156a44d25166b42"
+    "documentation/workflow/workflow.index.md": "b2dad9dbb6d38649c84681d9e17c9138902491043117b2f4b93ce8b1ad900b2d"
   },
   "skill_hashes_sha256": {
     ".agents/skills/three-amigos-requirement-gatekeeper/SKILL.md": "76659e618cb706e8990cdf44441aeaed219465044175826adca5357ae8acc5b4",
@@ -742,7 +742,7 @@
   },
   "workflow_amendment_v1_52": {
     "slice_id": "S449-MANIFEST-G2B",
-    "status": "PLANNED; reviews and S3D pending",
+    "status": "HISTORICAL: G2b completed in d2fbc06e6f1cfce51bce557499427c9d8c548c9d",
     "baseline": "81acdd5c512820b3f69ca193c11d232cb6761ef6",
     "dependencies": [
       "S449-MANIFEST-G2A"
@@ -783,5 +783,53 @@
     "baseline": "8b6017098f949b7a119d43a248f2211288c9b74e",
     "boundary": "Add only services migration-preview to the existing fixed workflow-list expectation; preserve all existing legacy expectations.",
     "contract_sha256": "87f3a7c70b3c06c62a617366b0a43cc18c2a590b5c100791fde7dbaba4ca7a2d"
+  },
+  "workflow_amendment_v1_56": {
+    "slice_id": "S449-MANIFEST-G2C",
+    "status": "BLOCKED / AUTHORITY_GAP; specialist reviews NO-GO, not executable",
+    "baseline": "d2fbc06e6f1cfce51bce557499427c9d8c548c9d",
+    "dependencies": [
+      "S449-CAPABILITY-G1",
+      "S449-MANIFEST-G2A",
+      "S449-MANIFEST-G2B",
+      "S449-ROUTE-POLICY-P0"
+    ],
+    "contract": ".codex/evidence/slice-449-manifest-g2c-contract.md",
+    "contract_sha256": "70fa7d46bb87f52175a405428b3676333b7905b9a19c2666c40e64e3bade150c",
+    "boundary": "Strict domain v2 and pure explicit conversion, no I/O, persistence, host ownership inference or runtime schema acceptance.",
+    "baseline_source_sha256": {
+      "src/tiny_swarm_world/domain/lifecycle/models.py": "7c7f7d9ddae7b2805a0e4374801cd822d0fe1d5bd753d1acde2098d819db22a2",
+      "src/tiny_swarm_world/domain/lifecycle/manifest_v2.py": "f99c93ea7be2734eacc410c513443be02aaba6fc4d8b3ff04292a994d79f6640",
+      "src/tiny_swarm_world/domain/network/lxc_proxy_device_plan.py": "e26e9e869b48d6a09c643bf66064f5e4ddcd6d4773855e2ca0ec045414dbd21f",
+      "documentation/arc42/09_decisions/adr-classic-selection-exposure-stack-ownership.adoc": "06a003fc35775854653c5985db84fabdb15bd096b75c9611a9868901d2534da0",
+      "documentation/arc42/09_decisions/adr-installation-scoped-incus-profile.adoc": "1fb3b9700635f797456c8a87ff0d6d8d6e394e25a775583aee6b2134f73dcf23"
+    }
+  },
+  "workflow_amendment_v1_57": {
+    "slice_id": "S449-ROUTE-POLICY-P0",
+    "status": "BLOCKED / AUTHORITY_GAP; source inventory, explicit profile-name ADR decision, full locks/reviews/S3D pending",
+    "contract": ".codex/evidence/slice-449-manifest-g2c-contract.md",
+    "contract_sha256": "70fa7d46bb87f52175a405428b3676333b7905b9a19c2666c40e64e3bade150c",
+    "boundary": "Pure typed versioned selection and port authority; required TCP/10001, complete nat/proxy_protocol; missing evidence remains UNKNOWN/BLOCKED. No host admission.",
+    "candidate": "Versioned immutable built-in policy or separately trust-bound typed snapshot; UUID-byte/SHA-256 profile-name candidate; listen addresses and nat/proxy_protocol decisions remain open."
+  },
+  "workflow_amendment_v1_58": {
+    "slice_id": "S449-ROUTE-POLICY-P0A",
+    "status": "PLANNED; six-role reviews and S3D pending",
+    "baseline": "d2fbc06e6f1cfce51bce557499427c9d8c548c9d",
+    "dependencies": [
+      "S449-CAPABILITY-G1",
+      "S449-MANIFEST-G2A",
+      "S449-MANIFEST-G2B"
+    ],
+    "contract": ".codex/evidence/slice-449-route-p0a-contract.md",
+    "contract_sha256": "a4afb02761adf81300b2bb2f69b55d7734258c530dd71faac03157f64a2aff3a",
+    "boundary": "Pure legacy published candidate only, source legacy_setup_code_unverified_runtime, unknown flags/identities; no scoped route authority or G2c unblock.",
+    "baseline_source_sha256": {
+      "src/tiny_swarm_world/domain/preflight/setup_manifest.py": "f9f2a8927aa3c9ee7b35bead87a7fef1119b7453703ea218da61fecd470da46a",
+      "src/tiny_swarm_world/application/services/platform/incus/lxc_service_exposure.py": "560a4866dd49f2a1af2cc9083a8c01e7fb6e72c24f18e61cd1f14b4faf0ad2e5",
+      "src/tiny_swarm_world/domain/network/lxc_proxy_device_plan.py": "e26e9e869b48d6a09c643bf66064f5e4ddcd6d4773855e2ca0ec045414dbd21f",
+      "src/tiny_swarm_world/domain/deployment/service_stack_contract.py": "bebd811519f4223edc2091af5678bbf85c8c20775513f4fdd4de82a92d668a21"
+    }
   }
 }

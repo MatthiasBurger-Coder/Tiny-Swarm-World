@@ -1,3 +1,15 @@
+## Amendment v1.58 — P0a unverified legacy candidate
+
+P0a is PLANNED as a separate pure domain representation of every legacy FULL setup required port, including compatibility 7750, with unverified-runtime marker and UNKNOWN flags/identities. Internal Swagger and custom/alternate infrastructure remain blocked. It does not establish scoped authority or unblock G2c; same-hash reviews and S3D remain required. Contract `.codex/evidence/slice-449-route-p0a-contract.md`.
+
+## Amendment v1.57 — G2c route authority gap
+
+G2c is BLOCKED / AUTHORITY_GAP, not execution-ready. Separate route policy P0 must first inventory authoritative stack ports, PortRegistry, SetupManifest and ADRs, establish an immutable versioned selection/port snapshot and full deterministic tuples including TCP/10001, nat and proxy_protocol, with explicit provenance/UNKNOWN. A concrete versioned UUID/SHA-256 candidate and typed route-policy input are documented for independent decision; Portainer legacy proxy target and Nexus 13501 mapping are known; trusted policy binding, listen addresses and nat/proxy_protocol decisions remain blocked. Profile naming needs its own accepted decision. Missing authority blocks; no two caller-provided sets establish completeness.
+
+## Amendment v1.56 — domain schema G2c
+
+G2b completed at `d2fbc06e6f1cfce51bce557499427c9d8c548c9d`. G2c was initially proposed and is now BLOCKED / AUTHORITY_GAP: strict canonical domain v2 and pure plan require explicitly supplied structurally validated project/profile/routes; UNKNOWN blocks and no actual host ownership is inferred. V1 fields and G2b operator-local unverified preview remain intact. Runtime decode/persistence, version support and host/fixture gates remain unchanged. Contract: `.codex/evidence/slice-449-manifest-g2c-contract.md`.
+
 ## Amendment v1.55 — G2b workflow-list test lock
 
 G2b may add `services migration-preview` to the existing expected workflow list in `tests/test_package_entrypoint.py::test_every_declared_workflow_keeps_its_command_name`, preserving all existing expectations. The previously reported targeted failure is not a pass.
@@ -10,7 +22,9 @@ G2b uses pinned unverified root, fixed no-follow relative FD traversal, regular 
 
 Every G2b result uses `source=operator_local_unverified`; applied/qualified are false and identities UNKNOWN. Local assets are checked for structural validity and read-only use, not provenance or authority; missing, malformed, inconsistent, unsafe symlink or permission failures block without disclosure. No preview is live-admission, release or EPIC evidence. Revised contract requires fresh same-hash reviews and S3D.
 
-## Amendment v1.52 — G2b CLI preview
+## Historical amendment v1.52 — G2b CLI preview
+
+G2b completed at `d2fbc06e6f1cfce51bce557499427c9d8c548c9d`; the following planned status is historical.
 
 G2a completed at `81acdd5c512820b3f69ca193c11d232cb6761ef6`. G2b is PLANNED: `services migration-preview` uses only validated manifest/catalog loads, early routing and an allowlisted safe DTO, with fixed Classic stack-ID whitelist, verified read-only handling of operator-local unverified assets, no host runtime, write, adoption, secrets or version-support claim; the implementation slice updates the selective-setup operator guide. Reviews and S3D remain required. Contract: `.codex/evidence/slice-449-manifest-g2b-contract.md`.
 

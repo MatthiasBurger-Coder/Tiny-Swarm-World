@@ -64,3 +64,9 @@ Workflow v1.52 plans the read-only sanitized G2b migration-preview CLI; no adopt
 Workflow v1.53 narrows G2b to an explicitly operator-local unverified preview; no catalog authority or host admission follows.
 
 Workflow v1.54 adds bounded preview-only FD asset readers to G2b, preserving unverified-source and legacy behavior boundaries.
+
+Historical workflow v1.56 proposed G2c strict domain v2; review found AUTHORITY_GAP and G2c remains BLOCKED pending route policy P0. Runtime/live gates remain unchanged.
+
+Workflow v1.57 requires separately reviewed route authority and profile-name decision before G2c; missing authority blocks.
+
+Workflow v1.58 plans an unverified legacy published route candidate P0a; authoritative scoped P0/G2c remain blocked.

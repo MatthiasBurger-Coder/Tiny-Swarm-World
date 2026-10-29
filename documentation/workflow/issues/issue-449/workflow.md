@@ -1,13 +1,13 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: ACTIVE_FOR_ISSUE_449 v1.55 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
+Status: ACTIVE_FOR_ISSUE_449 v1.58 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
 Workflow authoring branch: `docs/workflow-lcm-w09-route-baseline-20261027`
 Baseline: `a0310224946b63e2152ff4086d22a450c3d0f214`
-ACTIVE_FOR_ISSUE_449 v1.55. The user explicitly authorized completion of issue #449 on the named test hosts and a bounded diagnosis of the latest native blocker. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
+ACTIVE_FOR_ISSUE_449 v1.58. The user explicitly authorized completion of issue #449 on the named test hosts and a bounded diagnosis of the latest native blocker. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
 Execution profile: `FULL_PATH — lifecycle/provider implementation, regression, documentation, native and WSL2 qualification`
 
 ## Executive Summary
@@ -2908,7 +2908,9 @@ stop_conditions: [missing same-hash reviews or S3D, invalid or ambiguous v1 or c
 
 Six independent Requirement, Architecture, Security, Python, Tester and DevOps reviews of identical workflow/contract/source hashes and S3D EXECUTION_PLAN precede G2a edits. Exact source targeted/direct Ruff/full quality run on SSH PC WSL. G2a does not complete S449-03 or release existing fixture/host gates.
 
-## Execution-phase amendment v1.52 — sanitized migration preview CLI G2b
+## Historical execution-phase amendment v1.52 — sanitized migration preview CLI G2b
+
+G2b completed at `d2fbc06e6f1cfce51bce557499427c9d8c548c9d`; the following planned status describes earlier authoring.
 
 Status PLANNED after G2a completion in `81acdd5c512820b3f69ca193c11d232cb6761ef6`. The early `services migration-preview` action loads only existing manifest/catalog ports and projects a closed safe DTO; no full v1 snapshot, credentials, host identity, paths, token or exception is exposed. It does not write, adopt, construct runtime services or prove schema-v2 support. Exact CLI/error/output semantics, tests and no-I/O boundary are specified by `.codex/evidence/slice-449-manifest-g2b-contract.md`. The existing generic lifecycle `inspect()` cannot supply this output. G2a is historical/completed; G2c and all host/fixture/version gates remain unchanged.
 
@@ -2949,3 +2951,69 @@ G2b uses an unverified operator-selected root pinned once and fixed relative no-
 ## Execution-phase amendment v1.55 — G2b workflow-list regression scope
 
 G2b may update only the fixed expected workflow list in `tests/test_package_entrypoint.py::test_every_declared_workflow_keeps_its_command_name` to include `services migration-preview`. Existing expectations and all other legacy CLI tests remain intact. Targeted execution reported one failure in this existing list assertion after adding the command; this amendment adds its file lock and does not claim that a revised test or full gate has passed. All other G2b and host safety gates remain unchanged.
+
+## Execution-phase amendment v1.56 — strict domain schema and conversion plan G2c
+
+Status BLOCKED / AUTHORITY_GAP; all specialist reviews NO-GO. G2b completed in `d2fbc06e6f1cfce51bce557499427c9d8c548c9d`. The desired future G2c would introduce a strict domain-only v2 using canonical shared v1 fields/invariants and an explicit pure conversion plan requiring validated supplied identities and complete expected routes. UNKNOWN or ambiguous inputs cannot produce valid v2; supplied values establish structural consistency only, never verified host ownership. The detailed contract is `.codex/evidence/slice-449-manifest-g2c-contract.md`. Existing runtime decoder, persistence, host integration, G2b unverified preview, version-support and live gates remain unchanged. If pure route/identity binding cannot be specified from accepted domain authority, STOP for architecture/requirements rather than guess.
+
+```yaml
+slice_id: S449-MANIFEST-G2C
+profile: DOMAIN_AND_TESTS
+owner: Senior Python Automation Developer
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior Tester, Senior DevOps Engineer]
+affected_files: [src/tiny_swarm_world/domain/lifecycle/models.py, src/tiny_swarm_world/domain/lifecycle/manifest_v2.py, tests/domain/lifecycle/test_manifest_v2_conversion.py, .codex/evidence/slice-449-manifest-g2c-contract.md, .codex/evidence/slice-449-manifest-g2c-distribution.md, .codex/evidence/slice-449-manifest-g2c-consolidation.md]
+affected_modules: [canonical lifecycle manifest domain, pure v1 to v2 conversion]
+affected_contracts: [strict schema2 domain value, canonical v1 preservation, explicit typed profile project route binding, stack and Swagger compatibility, no host adoption]
+dependencies: [S449-CAPABILITY-G1, S449-MANIFEST-G2A, S449-MANIFEST-G2B, S449-ROUTE-POLICY-P0]
+parallel_group: sequential
+file_locks: [src/tiny_swarm_world/domain/lifecycle/models.py, src/tiny_swarm_world/domain/lifecycle/manifest_v2.py, tests/domain/lifecycle/test_manifest_v2_conversion.py, .codex/evidence/slice-449-manifest-g2c-contract.md, .codex/evidence/slice-449-manifest-g2c-distribution.md, .codex/evidence/slice-449-manifest-g2c-consolidation.md]
+module_locks: [canonical lifecycle manifest and migration preview]
+contract_locks: [schema1 invariants and values, schema2 strict validation, complete explicit route/profile identity, no ownership inference]
+architecture_locks: [domain only, no I/O, no runtime decoder or persistence, no host mutation]
+quality_gates:
+  targeted: [PYTHONPATH=src python3 -m unittest tests.domain.lifecycle.test_manifest_v2 tests.domain.lifecycle.test_manifest_v2_conversion tests.domain.lifecycle.test_models tests.test_migration_preview_cli, python3 -m ruff check src/tiny_swarm_world/domain/lifecycle/models.py src/tiny_swarm_world/domain/lifecycle/manifest_v2.py tests/domain/lifecycle/test_manifest_v2_conversion.py]
+  required: [python3 tools/quality_gate.py quality, git diff --check]
+documentation:
+  arc42: follow accepted Classic selection exposure ownership and profile ADRs
+  adr: no change
+stop_conditions: [missing same-hash reviews or S3D, route identity authority ambiguous, schema1 regression, shared mutable state, UNKNOWN admitted, host ownership inferred, runtime decoder or host operation]
+```
+
+All specialist reviews returned NO-GO: G2c is not executable. Required preceding `S449-ROUTE-POLICY-P0` is itself BLOCKED / AUTHORITY_GAP pending source inventory and accepted profile-name decision, as specified in the contract. Its exact locks and S3D metadata must be authored after authority is resolved; no speculative product code is authorized. After P0, fresh six-role same-hash reviews and S3D precede any G2c implementation; targeted/full quality runs on SSH PC WSL.
+
+## Execution-phase amendment v1.57 — route authority before G2c
+
+G2c remains BLOCKED / AUTHORITY_GAP and not done. A separately governed `S449-ROUTE-POLICY-P0` must establish a versioned typed selection/port snapshot with explicit provenance and deterministic complete route policy, including mandatory Portainer TCP/10001, nat and proxy_protocol. Inventory existing service-stack port IDs, PortRegistry, SetupManifest, ports configuration and accepted ADRs; missing authoritative values remain UNKNOWN/BLOCKED. Profile naming requires its own reviewed proposed ADR decision, not a guessed suffix. No product implementation or live outcome is implied.
+
+### P0 candidate decision inputs (not accepted)
+
+The G2c contract records a source-backed `RoutePolicyInputV1` candidate, exact unresolved binding inputs and a proposed versioned SHA-256/UUID profile-name decision. Current PortRegistry maps Portainer 9000 internal / 10001 external, while the legacy proxy target is `127.0.0.1:10001`; SetupManifest/preflight does not establish complete routes. Nexus 13501 maps to `nexus-docker-https` (internal 5001) and published Swagger IDs map to 16080/16081, suppressed for internal exposure. A caller-set REVIEWED_POLICY enum is not authority; a versioned immutable built-in policy or separately reviewed trust binding is required. Listen addresses and nat/proxy_protocol false remain proposals requiring explicit decisions. Missing reviewed bindings remain AUTHORITY_GAP; no two caller lists or operator-local unverified assets prove completeness. P0 and G2c remain BLOCKED pending independent decisions, concrete slice metadata/reviews and S3D.
+
+## Execution-phase amendment v1.58 — legacy published route candidate P0a
+
+P0a is PLANNED as an independently reviewable pure legacy-code candidate, not the still-blocked authoritative scoped P0 and not a G2c unblock. It uses all `default_setup_manifest` required ports, including compatibility ports, and returns `legacy_setup_code_unverified_runtime`, UNKNOWN nat/proxy_protocol, false applied/qualified and unknown identities. It does not infer internal Swagger, alternative infrastructure overrides, profile ownership or host state. Source conflict, exact contract and tests: `.codex/evidence/slice-449-route-p0a-contract.md`. The separate scoped profile-name decision and actual route authority remain pending.
+
+```yaml
+slice_id: S449-ROUTE-POLICY-P0A
+profile: DOMAIN_AND_TESTS
+owner: Senior Python Automation Developer
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior Tester, Senior DevOps Engineer]
+affected_files: [src/tiny_swarm_world/domain/lifecycle/legacy_route_candidate.py, tests/domain/lifecycle/test_legacy_route_candidate.py, .codex/evidence/slice-449-route-p0a-contract.md, .codex/evidence/slice-449-route-p0a-distribution.md, .codex/evidence/slice-449-route-p0a-consolidation.md]
+affected_modules: [domain-only legacy route candidate]
+affected_contracts: [validated explicit selection and preset, all legacy setup required ports, unverified-runtime marker, unknown flags and identities, no host authority]
+dependencies: [S449-CAPABILITY-G1, S449-MANIFEST-G2A, S449-MANIFEST-G2B]
+parallel_group: sequential
+file_locks: [src/tiny_swarm_world/domain/lifecycle/legacy_route_candidate.py, tests/domain/lifecycle/test_legacy_route_candidate.py, .codex/evidence/slice-449-route-p0a-contract.md, .codex/evidence/slice-449-route-p0a-distribution.md, .codex/evidence/slice-449-route-p0a-consolidation.md]
+module_locks: [domain legacy route candidate]
+contract_locks: [all required ports including compatibility, explicit stock applicability, published only, unknown flags and host identity]
+architecture_locks: [domain only, no I/O, no runtime wiring, no authoritative scoped policy]
+quality_gates:
+  targeted: [PYTHONPATH=src python3 -m unittest tests.domain.lifecycle.test_legacy_route_candidate tests.domain.lifecycle.test_manifest_v2 tests.application.services.platform.test_lxc_service_exposure, python3 -m ruff check src/tiny_swarm_world/domain/lifecycle/legacy_route_candidate.py tests/domain/lifecycle/test_legacy_route_candidate.py]
+  required: [python3 tools/quality_gate.py quality, git diff --check]
+documentation:
+  arc42: existing ADR unchanged; candidate is unverified runtime
+  adr: no change; scoped profile-name decision remains separate
+stop_conditions: [missing same-hash reviews or S3D, unknown stock applicability, inferred internal exposure or flags, missing 10001 or 7750, domain I/O, host ownership claim, G2c authority claim]
+```
+
+Six independent Requirement, Architecture, Security, Python, Tester and DevOps reviews of identical workflow/contract/source hashes plus S3D EXECUTION_PLAN precede code. Exact-source tests and quality run on SSH PC WSL. P0a completion cannot unblock G2c without a separate accepted scoped authority decision.
