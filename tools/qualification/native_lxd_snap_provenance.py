@@ -56,6 +56,15 @@ class ProvenanceError(Exception):
         super().__init__(code if code in allowed else "SNAP_WRAPPER_FILE_UNVERIFIED")
 
 
+class _StageNegative(ProvenanceError):
+    """An explicit comparison failure; sensitive snapshots remain in memory."""
+
+    def __init__(self, stage: str, code: str, snapshots: tuple[Any, ...]):
+        super().__init__(code)
+        self.stage = stage
+        self.snapshots = snapshots
+
+
 class RunnerPort(Protocol):
     def run(self, argv: list[str], *, command_id: str, safe_args: list[str]) -> tuple[int, bytes, bytes]: ...
 
@@ -387,18 +396,28 @@ class _Proof:
 
     def process(self, pid: int, group: str) -> Process:
         root = f"/proc/{pid}"
-        text = _text(self.observe(root + "/stat", limit=PROC_LIMIT).data, "SNAP_WRAPPER_PROC_INVALID")
+        stat_observation = self.observe(root + "/stat", limit=PROC_LIMIT)
+        text = _text(stat_observation.data, "SNAP_WRAPPER_PROC_INVALID")
         close = text.rfind(")")
         prefix, fields = text[:close + 1], text[close + 1:].split()
         if close < 0 or not prefix.startswith(f"{pid} (") or len(fields) < 20 or not re.fullmatch(r"[0-9]+", fields[1], re.ASCII):
             raise ProvenanceError("SNAP_WRAPPER_PROC_INVALID")
         parent, started = int(fields[1]), _positive(fields[19])
-        status = _text(self.observe(root + "/status", limit=PROC_LIMIT).data, "SNAP_WRAPPER_PROC_INVALID")
+        status_observation = self.observe(root + "/status", limit=PROC_LIMIT)
+        status = _text(status_observation.data, "SNAP_WRAPPER_PROC_INVALID")
         uid = [line for line in status.splitlines() if line.startswith("Uid:")]
         if len(uid) != 1 or not re.fullmatch(r"Uid:[ \t]+0[ \t]+0[ \t]+0[ \t]+0[ \t]*", uid[0], re.ASCII):
             raise ProvenanceError("SNAP_WRAPPER_PROC_INVALID")
-        cgroup = self.observe(root + "/cgroup", limit=PROC_LIMIT).data
+        cgroup_observation = self.observe(root + "/cgroup", limit=PROC_LIMIT)
+        cgroup = cgroup_observation.data
         if cgroup not in {f"0::{group}".encode(), f"0::{group}\n".encode()}:
+            try:
+                observed_group = cgroup.decode("utf-8", "strict").removesuffix("\n")
+            except UnicodeError as exc:
+                raise ProvenanceError("SNAP_WRAPPER_PROC_INVALID") from exc
+            if observed_group.startswith("0::") and _normal_path(observed_group[3:]):
+                raise _StageNegative("PROCESS_BINDING", "SNAP_WRAPPER_PROC_INVALID",
+                                     (stat_observation, status_observation, cgroup_observation))
             raise ProvenanceError("SNAP_WRAPPER_PROC_INVALID")
         executable = self.trusted(self.observe(root + "/exe", follow=True), executable=True)
         return Process(pid, parent, started, executable)
@@ -435,14 +454,14 @@ class _Proof:
         values = tuple(self.trusted(self.observe(path, follow=True), executable=True) for path in (
             f"/proc/{pid}/root{shell}", f"/proc/{pid}/root/bin/sh"))
         if any(value.identity != process.executable.identity for value in values):
-            raise ProvenanceError("SNAP_WRAPPER_FILE_UNVERIFIED")
+            raise _StageNegative("SHELL_BINDING", "SNAP_WRAPPER_FILE_UNVERIFIED", values)
         return values[0], values[1]
 
     def pair(self, pid: int, path: str, *, limit: int | None = None, executable: bool = False) -> tuple[Observation, Observation]:
         values = tuple(self.trusted(self.observe(view, limit=limit), executable=executable, readonly=True)
                        for view in (path, f"/proc/{pid}/root{path}"))
         if values[0].identity != values[1].identity or values[0].data != values[1].data:
-            raise ProvenanceError("SNAP_WRAPPER_FILE_UNVERIFIED")
+            raise _StageNegative("SCRIPT_PAIR_OR_DIGEST", "SNAP_WRAPPER_FILE_UNVERIFIED", values)
         return values[0], values[1]
 
     def package(self, pid: int, base: str) -> tuple[tuple[Any, ...], tuple[int, int]]:
@@ -625,39 +644,139 @@ def _generator_form(raw: bytes) -> bool:
     return len(tokens) <= 256 and all(part in allowed for part in tokens)
 
 
-def diagnose_generator_form(runner: RunnerPort, expected: dict[str, Any], *, fs: ReadOnlyFS | None = None,
-                            clock: Callable[[], float] = time.monotonic) -> str:
-    """Compare a fixed, stable package and drop-in without admitting an identity."""
+def _same_diagnostic_unit(before: dict[str, str], after: dict[str, str]) -> bool:
+    """Compare only F7's validated, semantically stable unit fields."""
+    left, right = dict(before), dict(after)
+    if (_context_reason(before) != "EXECSTART_FORMAT_OR_TIME"
+            and _context_reason(after) != "EXECSTART_FORMAT_OR_TIME"):
+        left["ExecStart"] = right["ExecStart"] = "snap-run-lxd-daemon"
+    return left == right
+
+
+def _stage_reobserve(proof: _Proof, observed: list[tuple[str, Observation | None]]) -> bool:
+    """Compare only successful trusted reads; unavailable data is never drift."""
+    current: list[Observation] = []
+    for path, original in observed:
+        if original is None:
+            raise ProvenanceError("SNAP_WRAPPER_FILE_UNVERIFIED")
+        current.append(proof.trusted(proof.observe(path, limit=None if path == UNIT_FILE else PROC_LIMIT)))
+    return all(item == original for item, (_, original) in zip(current, observed))
+
+
+def _negative_again(call: Callable[[], Any], original: _StageNegative) -> bool:
+    """Confirm the same explicit failure with the same private observations."""
+    try:
+        call()
+    except _StageNegative as current:
+        return current.stage == original.stage and current.snapshots == original.snapshots
+    return False
+
+
+def _probe_generator_form(runner: RunnerPort, expected: dict[str, Any], *, fs: ReadOnlyFS | None,
+                          clock: Callable[[], float], stages: bool) -> str:
+    """One shared F7/F8 probe; failed/ambiguous observations never establish identity."""
     try:
         proof = _Proof(runner, fs or LocalReadOnlyFS(), clock)
         before = proof.diagnostic_unit(expected)
-        if _context_reason(before) is not None or before["DropInPaths"] != DROP_IN:
-            return "UNKNOWN"
+        visited: list[tuple[str, Observation | None]] = []
+        process: Process | None = None
+        environment: tuple[str, tuple[bytes, ...], tuple[tuple[bytes, bytes], ...]] | None = None
+        shell: tuple[Observation, Observation] | None = None
+        script: tuple[Observation, Observation] | None = None
         pid, group = _positive(before["MainPID"]), before["ControlGroup"]
-        unit_file = proof.trusted(proof.observe(UNIT_FILE))
-        drop = proof.trusted(proof.observe(DROP_IN, limit=PROC_LIMIT))
-        if _dropin_form(drop.data) != "DEPENDENCY_VARIANT" or not _generator_form(drop.data):
+
+        def stable_prior() -> bool:
+            after = proof.diagnostic_unit(expected)
+            if not _same_diagnostic_unit(before, after):
+                return False
+            if not _stage_reobserve(proof, visited):
+                return False
+            if process is not None and proof.process(pid, group) != process:
+                return False
+            if environment is not None and proof.main_environment(pid) != environment:
+                return False
+            if shell is not None and environment is not None and process is not None:
+                if proof.shell(pid, environment[1], process) != shell:
+                    return False
+            if script is not None and environment is not None:
+                if proof.pair(pid, environment[0] + "/commands/daemon.start", limit=METADATA_LIMIT) != script:
+                    return False
+            return True
+
+        def rejected(reason: str) -> str:
+            if not stages:
+                return "UNKNOWN"
+            return reason if stable_prior() else "UNKNOWN"
+
+        context_reason = _context_reason(before)
+        if context_reason in {"EXECSTART_FORMAT_OR_TIME", "CONTROL_GROUP"}:
             return "UNKNOWN"
-        process = proof.process(pid, group)
+        if context_reason is not None or before["DropInPaths"] != DROP_IN:
+            return rejected("UNIT_CONTEXT")
+        visited.append((UNIT_FILE, proof.trusted(proof.observe(UNIT_FILE))))
+        drop = proof.trusted(proof.observe(DROP_IN, limit=PROC_LIMIT))
+        visited.append((DROP_IN, drop))
+        dropin_form = _dropin_form(drop.data)
+        if dropin_form == "UNKNOWN":
+            return "UNKNOWN"
+        if dropin_form != "DEPENDENCY_VARIANT" or not _generator_form(drop.data):
+            return rejected("DROPIN_TRUST_OR_FORM")
+        try:
+            process = proof.process(pid, group)
+        except _StageNegative as failure:
+            if not stages or not stable_prior():
+                return "UNKNOWN"
+            return failure.stage if _negative_again(lambda: proof.process(pid, group), failure) else "UNKNOWN"
         environment = proof.main_environment(pid)
         base, argv, _ = environment
         if base != "/snap/lxd/" + _GENERATOR_REVISION:
-            return "UNKNOWN"
-        shell = proof.shell(pid, argv, process)
-        script = proof.pair(pid, base + "/commands/daemon.start", limit=METADATA_LIMIT)
+            return rejected("REVISION_BINDING")
+        try:
+            shell = proof.shell(pid, argv, process)
+        except _StageNegative as failure:
+            if not stages or not stable_prior():
+                return "UNKNOWN"
+            return failure.stage if _negative_again(lambda: proof.shell(pid, argv, process), failure) else "UNKNOWN"
+        try:
+            script = proof.pair(pid, base + "/commands/daemon.start", limit=METADATA_LIMIT)
+        except _StageNegative as failure:
+            if not stages or not stable_prior():
+                return "UNKNOWN"
+            return failure.stage if _negative_again(
+                lambda: proof.pair(pid, base + "/commands/daemon.start", limit=METADATA_LIMIT), failure) else "UNKNOWN"
         if hashlib.sha256(script[0].data).hexdigest() != _GENERATOR_DIGEST:
-            return "UNKNOWN"
+            return rejected("SCRIPT_PAIR_OR_DIGEST")
         after = proof.diagnostic_unit(expected)
         if _context_reason(after) is not None:
             return "UNKNOWN"
-        before_compare, after_compare = dict(before), dict(after)
-        before_compare["ExecStart"] = after_compare["ExecStart"] = "snap-run-lxd-daemon"
-        observed = ((UNIT_FILE, unit_file), (DROP_IN, drop))
-        if (before_compare != after_compare or proof.process(pid, group) != process
-                or proof.main_environment(pid) != environment or proof.shell(pid, argv, process) != shell
-                or proof.pair(pid, base + "/commands/daemon.start", limit=METADATA_LIMIT) != script
-                or not proof.diagnostic_reobserve(observed)):
-            return "UNKNOWN"
-        return "MATCH"
+        unit_equal = _same_diagnostic_unit(before, after)
+        if not stages:
+            if (not unit_equal or proof.process(pid, group) != process
+                    or proof.main_environment(pid) != environment or proof.shell(pid, argv, process) != shell
+                    or proof.pair(pid, base + "/commands/daemon.start", limit=METADATA_LIMIT) != script
+                    or not proof.diagnostic_reobserve(tuple(visited))):
+                return "UNKNOWN"
+            return "MATCH"
+        current_process = proof.process(pid, group)
+        current_environment = proof.main_environment(pid)
+        current_shell = proof.shell(pid, argv, process)
+        current_script = proof.pair(pid, base + "/commands/daemon.start", limit=METADATA_LIMIT)
+        files_equal = _stage_reobserve(proof, visited)
+        if (not unit_equal or current_process != process or current_environment != environment
+                or current_shell != shell or current_script != script or not files_equal):
+            return "RECHECK_DRIFT" if stages else "UNKNOWN"
+        return "UNKNOWN" if stages else "MATCH"
     except Exception:
         return "UNKNOWN"
+
+
+def diagnose_generator_form(runner: RunnerPort, expected: dict[str, Any], *, fs: ReadOnlyFS | None = None,
+                            clock: Callable[[], float] = time.monotonic) -> str:
+    """Compare a fixed, stable package and drop-in without admitting an identity."""
+    return _probe_generator_form(runner, expected, fs=fs, clock=clock, stages=False)
+
+
+def diagnose_generator_stage(runner: RunnerPort, expected: dict[str, Any], *, fs: ReadOnlyFS | None = None,
+                             clock: Callable[[], float] = time.monotonic) -> str:
+    """Report a stable fixed failure stage without admitting an identity."""
+    return _probe_generator_form(runner, expected, fs=fs, clock=clock, stages=True)

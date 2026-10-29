@@ -1438,5 +1438,34 @@ class SnapGeneratorCliTests(unittest.TestCase):
         importer.assert_not_called()
 
 
+class SnapGeneratorStageCliTests(unittest.TestCase):
+    def test_invalid_combinations_never_access_host_or_leak(self) -> None:
+        cases = (["--diagnose-snap-generator-stage=secret"], ["--diagnose-snap-generator-stage", "secret"],
+                 ["--diagnose-snap-generator-stage", "--help"],
+                 ["--diagnose-snap-generator-stage", "--diagnose-snap-generator-form"],
+                 ["--diagnose-snap-generator-form", "--diagnose-snap-generator-stage"],
+                 ["--diagnose-snap-generator-stage", "--diagnose-snap-generator-stage"])
+        for argv in cases:
+            with self.subTest(argv=argv), patch.object(inventory, "diagnose_snap_generator_stage") as diagnose:
+                out, err = StringIO(), StringIO()
+                with redirect_stdout(out), redirect_stderr(err):
+                    self.assertEqual(inventory.main(argv), 2)
+                self.assertEqual(out.getvalue(), '{"status":"BLOCKED_UNKNOWN","reason":"UNKNOWN"}\n')
+                self.assertEqual(err.getvalue(), "")
+                diagnose.assert_not_called()
+
+    def test_valid_mode_returns_fixed_stage_and_internal_failures_are_redacted(self) -> None:
+        out, err = StringIO(), StringIO()
+        with patch.object(inventory, "diagnose_snap_generator_stage", return_value="DROPIN_TRUST_OR_FORM"), \
+                redirect_stdout(out), redirect_stderr(err):
+            self.assertEqual(inventory.main(["--diagnose-snap-generator-stage"]), 2)
+        self.assertEqual(out.getvalue(), '{"status":"BLOCKED_UNKNOWN","reason":"DROPIN_TRUST_OR_FORM"}\n')
+        self.assertEqual(err.getvalue(), "")
+        runner = Mock()
+        runner.run.side_effect = PermissionError("secret-token /private/path")
+        self.assertEqual(inventory.diagnose_snap_generator_stage(runner=runner), "UNKNOWN")
+        self.assertEqual(runner.run.call_count, 1)
+
+
 if __name__ == "__main__":
     unittest.main()

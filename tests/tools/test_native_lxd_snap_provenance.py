@@ -966,5 +966,130 @@ class GeneratorFormTests(unittest.TestCase):
         self.assertEqual(self.diagnose(), "UNKNOWN")
 
 
+class GeneratorStageTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.fixture = GeneratorFormTests("runTest")
+        self.fixture.setUp()
+        self.fs = self.fixture.fs
+        self.row = self.fixture.row
+        self.runner = self.fixture.runner
+        self.values = self.fixture.fixture.values
+
+    def stage(self, *, digest_value: str = proof._GENERATOR_DIGEST) -> str:
+        digest = Mock()
+        digest.hexdigest.return_value = digest_value
+        with patch.object(proof.hashlib, "sha256", return_value=digest):
+            return proof.diagnose_generator_stage(self.runner, self.row, fs=self.fs, clock=lambda: 0.0)
+
+    def test_successful_generator_proof_remains_blocked_unknown(self) -> None:
+        self.assertEqual(self.stage(), "UNKNOWN")
+        self.assertNotIn("/etc/environment", [call[0] for call in self.fs.calls])
+        self.assertEqual(self.runner.run.call_count, 2)
+
+    def test_stable_unit_and_dropin_rejections_report_only_first_stage(self) -> None:
+        self.values["FragmentPath"] = "/private-secret"
+        self.assertEqual(self.stage(), "UNIT_CONTEXT")
+        self.assertEqual(self.fs.calls, [])
+        self.assertEqual(self.runner.run.call_count, 2)
+        self.setUp()
+        self.fs.files[proof.DROP_IN] = regular(999, b"[Unit]\nAfter=private-secret.service\n", readonly=False)
+        self.assertEqual(self.stage(), "DROPIN_TRUST_OR_FORM")
+        self.assertEqual([item[0] for item in self.fs.calls], [proof.UNIT_FILE, proof.DROP_IN] * 2)
+        self.assertEqual(self.runner.run.call_count, 2)
+
+    def test_explicit_process_cgroup_mismatch_requires_identical_rejection(self) -> None:
+        path = "/proc/101/cgroup"
+        self.fs.files[path] = regular(3101, b"0::/other-group\n", readonly=False)
+        self.assertEqual(self.stage(), "PROCESS_BINDING")
+        self.assertNotIn("/proc/101/environ", [call[0] for call in self.fs.calls])
+        self.setUp()
+        self.fs.sequences[path] = [regular(3101, b"0::/other-group\n", readonly=False),
+                                   regular(3101, b"0::/different-group\n", readonly=False)]
+        self.assertEqual(self.stage(), "UNKNOWN")
+
+    def test_revision_and_shell_rejections_require_valid_prior_snapshots(self) -> None:
+        self.fs.files["/proc/101/environ"] = regular(41, b"SNAP_NAME=lxd\x00SNAP_REVISION=124\x00SNAP=/snap/lxd/124\x00")
+        self.fs.files["/proc/101/cmdline"] = regular(40, b"/bin/sh\x00/snap/lxd/124/commands/daemon.start\x00")
+        self.assertEqual(self.stage(), "REVISION_BINDING")
+        self.assertNotIn("/snap/lxd/124/commands/daemon.start", [call[0] for call in self.fs.calls])
+        self.setUp()
+        self.fs.files["/proc/101/root/bin/sh"] = regular(21, executable=True)
+        self.assertEqual(self.stage(), "SHELL_BINDING")
+        self.assertNotIn("/snap/lxd/40958/commands/daemon.start", [call[0] for call in self.fs.calls])
+
+    def test_script_identity_or_digest_rejections_are_rechecked(self) -> None:
+        self.fs.files["/proc/101/root/snap/lxd/40958/commands/daemon.start"] = regular(51, b"source fixture", executable=True)
+        self.assertEqual(self.stage(), "SCRIPT_PAIR_OR_DIGEST")
+        self.setUp()
+        self.assertEqual(self.stage(digest_value="0" * 64), "SCRIPT_PAIR_OR_DIGEST")
+
+    def test_trusted_comparable_drift_is_distinct_from_io_or_untrusted_failure(self) -> None:
+        original = self.fs.files[proof.DROP_IN]
+        self.fs.sequences[proof.DROP_IN] = [original, replace(original, inode=1234)]
+        self.assertEqual(self.stage(), "RECHECK_DRIFT")
+        self.setUp()
+        del self.fs.files["/proc/101/environ"]
+        self.assertEqual(self.stage(), "UNKNOWN")
+        self.setUp()
+        self.fs.files[proof.DROP_IN] = replace(self.fs.files[proof.DROP_IN], uid=1000)
+        self.assertEqual(self.stage(), "UNKNOWN")
+
+    def test_missing_or_denied_recheck_is_unknown_not_drift(self) -> None:
+        for target in (proof.UNIT_FILE, proof.DROP_IN, "/proc/101/environ",
+                       "/snap/lxd/40958/commands/daemon.start"):
+            with self.subTest(target=target):
+                self.setUp()
+                original_observe = self.fs.observe
+                visits = 0
+
+                def observe(path: str, *, limit: int | None = None, follow: bool = False) -> proof.Observation:
+                    nonlocal visits
+                    if path == target:
+                        visits += 1
+                        if visits == 2:
+                            raise FileNotFoundError("private-secret")
+                    return original_observe(path, limit=limit, follow=follow)
+
+                with patch.object(self.fs, "observe", side_effect=observe):
+                    self.assertEqual(self.stage(), "UNKNOWN")
+                self.assertNotIn("/etc/environment", [call[0] for call in self.fs.calls])
+        self.setUp()
+        original = self.fs.files[proof.DROP_IN]
+        self.fs.sequences[proof.DROP_IN] = [original, replace(original, inode=1234)]
+        self.assertEqual(self.stage(), "RECHECK_DRIFT")
+
+    def test_failed_or_expired_early_recheck_is_unknown_without_later_reads(self) -> None:
+        self.values["FragmentPath"] = "/private-secret"
+        initial = self.fixture.fixture.unit_bytes()
+        for failure in (PermissionError("secret-token"), OSError("private-secret")):
+            with self.subTest(failure=type(failure).__name__):
+                self.setUp()
+                self.values["FragmentPath"] = "/private-secret"
+                initial = self.fixture.fixture.unit_bytes()
+                self.runner.run.side_effect = [(0, initial, b""), failure]
+                self.assertEqual(self.stage(), "UNKNOWN")
+                self.assertEqual(self.fs.calls, [])
+        self.setUp()
+        self.values["FragmentPath"] = "/private-secret"
+        clock = iter([0.0, 0.0, 0.0, 60.0])
+        result = proof.diagnose_generator_stage(self.runner, self.row, fs=self.fs, clock=lambda: next(clock))
+        self.assertEqual(result, "UNKNOWN")
+        self.assertEqual(self.runner.run.call_count, 1)
+        self.assertEqual(self.fs.calls, [])
+
+    def test_unknown_for_malformed_and_unstable_inputs_and_all_stages_remain_redacted(self) -> None:
+        self.values["ExecStart"] = "secret-token"
+        self.assertEqual(self.stage(), "UNKNOWN")
+        self.setUp()
+        initial = self.fixture.fixture.unit_bytes()
+        changed = initial.replace(b"FragmentPath=", b"FragmentPath=/private-secret")
+        self.runner.run.side_effect = [(0, initial, b""), (0, changed, b"")]
+        self.assertEqual(self.stage(), "UNKNOWN")
+        self.setUp()
+        self.runner.run.side_effect = PermissionError("secret-token /private/path")
+        self.assertEqual(self.stage(), "UNKNOWN")
+        self.assertNotIn("/etc/environment", [call[0] for call in self.fs.calls])
+
+
 if __name__ == "__main__":
     unittest.main()
