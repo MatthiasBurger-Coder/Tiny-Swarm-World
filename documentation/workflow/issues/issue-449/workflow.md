@@ -1,13 +1,13 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: ACTIVE_FOR_ISSUE_449 v1.44 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
+Status: ACTIVE_FOR_ISSUE_449 v1.45 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
 Workflow authoring branch: `docs/workflow-lcm-w09-route-baseline-20261027`
 Baseline: `a0310224946b63e2152ff4086d22a450c3d0f214`
-ACTIVE_FOR_ISSUE_449 v1.44. The user explicitly authorized completion of issue #449 on the named test hosts and a bounded diagnosis of the latest native blocker. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
+ACTIVE_FOR_ISSUE_449 v1.45. The user explicitly authorized completion of issue #449 on the named test hosts and a bounded diagnosis of the latest native blocker. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
 Execution profile: `FULL_PATH — lifecycle/provider implementation, regression, documentation, native and WSL2 qualification`
 
 ## Executive Summary
@@ -1326,7 +1326,7 @@ stop_conditions: [unknown or drifting identities, unsafe path or disclosure, alt
 
 ##### Slice 02F6 — Classify the rejected Snap drop-in form without disclosure
 
-Status: PLANNED. A separately reviewed native F5 diagnosis on source
+Historical authoring status: PLANNED. F6 was implemented at 4f52873330b665ab013b607c26d7172194ff375b and a bounded native result is recorded in F7; that private result still needs independent review. A separately reviewed native F5 diagnosis on source
 04a0c3cf3b641775cad59da12a7951e0eb5035cc returned BLOCKED_UNKNOWN /
 DROPIN_CONTENT and exit 2. It did not disclose file values or admit inventory,
 identity, support or ownership. Private evidence must be independently reviewed
@@ -1391,6 +1391,64 @@ documentation:
   arc42: no change; qualification-only diagnosis
   adr: no change; no ownership, version admission or runtime policy change
 stop_conditions: [unverified F5 result, unknown or drifting identity, unsafe path or disclosure, altered F4 or F5 behavior, environment read, extra host command or resource call, deadline or output limit, missing review, mismatched source, any host mutation]
+```
+
+##### Slice 02F7 — Compare a source-bound Snap generator form
+
+Status: PLANNED. Native F6 source 4f52873330b665ab013b607c26d7172194ff375b
+returned BLOCKED_UNKNOWN / DEPENDENCY_VARIANT, exit 2; private F6 evidence
+requires independent review before F7 host phase. The exact public source,
+digest, sixteen static tokens and bounded subset grammar are normative in
+`.codex/evidence/slice-449-02F7-design.md`; this is a read/contract lock.
+
+Only `--diagnose-snap-generator-form` alone is valid. Every result is a
+closed JSON status BLOCKED_UNKNOWN with reason MATCH or UNKNOWN and exit 2.
+Invalid CLI combinations produce UNKNOWN without host I/O. MATCH is only
+stable form correlation, never actual authorship, identity, safety or
+inventory admission. No raw data, path, PID, argv or secret hash is emitted.
+
+Use the existing fixed F5 initial unit query plus at most two F4 detailed
+queries. Reproduce F6 rejection on fixed trusted UNIT_FILE/DROP_IN. Bind the
+active fixed service/PID/cgroup and Snap revision 40958 through existing
+bounded `_Proof.process`, `_Proof.main_environment` and `_Proof.shell`.
+Use `_Proof.pair` to read only the fixed validated-revision script in host
+and PID-root views with no-follow, root/mode, read-only package device,
+identity/bytes equality, 1 MiB cap and exact pinned public SHA-256; never
+execute it. Process environment/argv stay in memory and are not emitted,
+retained or hashed. Do not read `/etc/environment`. Recheck unit, process,
+script and fixed drop-in descriptors/identity/bytes before output. Fixed
+closed grammar, deadlines and aggregate budgets are in the F7 design. Unknown,
+trust, I/O, malformed syntax, changed revision or drift => UNKNOWN. No
+additional systemctl, client, socket, resource, network or host mutation.
+
+This F7-only extension to F6's no-extra-file contract does not change normal
+F4/F5/F6 behavior or admit identity. Six same-hash role reviews, S3D,
+exact-source SSH PC WSL targeted tests, direct Ruff and full QUALITY are
+required. A separate post-commit native plan/S3D/JIT/GO is required before
+one host diagnostic; correction and S449-02F inventory each need separately
+reviewed phases. S449-02F remains BLOCKED; 02G and 02H retain prerequisites.
+
+```yaml
+slice_id: S449-02F7
+profile: BACKEND_AND_TESTS
+owner: Senior Python Automation Developer
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior DevOps Engineer, Senior Tester]
+affected_files: [tools/qualification/native_runtime_inventory.py, tools/qualification/native_lxd_snap_provenance.py, tests/tools/test_native_runtime_inventory.py, tests/tools/test_native_lxd_snap_provenance.py, documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, documentation/workflow/workflow.index.md, .codex/evidence/slice-449-02F7-design.md, .codex/evidence/slice-449-02F7-distribution.md, .codex/evidence/slice-449-02F7-consolidation.md]
+affected_modules: [native Snap source-bound generator-form diagnosis]
+affected_contracts: [pinned source and revision, closed symbolic result, unchanged F4 F5 F6 behavior, no disclosure or host mutation]
+dependencies: [S449-02F6]
+parallel_group: sequential
+file_locks: [tools/qualification/native_runtime_inventory.py, tools/qualification/native_lxd_snap_provenance.py, tests/tools/test_native_runtime_inventory.py, tests/tools/test_native_lxd_snap_provenance.py, documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, documentation/workflow/workflow.index.md, .codex/evidence/slice-449-02F7-design.md, .codex/evidence/slice-449-02F7-distribution.md, .codex/evidence/slice-449-02F7-consolidation.md]
+module_locks: [native Snap proof and diagnostics]
+contract_locks: [closed F7 result, fixed source grammar, F4 F5 F6 behavior unchanged, no sensitive output or artifact]
+architecture_locks: [qualification only, no product or host mutation]
+quality_gates:
+  targeted: [PYTHONPATH=src python3 -m unittest tests.tools.test_native_runtime_inventory tests.tools.test_native_lxd_snap_provenance, python3 -m ruff check tools/qualification/native_runtime_inventory.py tools/qualification/native_lxd_snap_provenance.py]
+  required: [python3 tools/quality_gate.py quality, git diff --check]
+documentation:
+  arc42: no change; qualification-only diagnosis
+  adr: no change; no ownership, support or runtime policy change
+stop_conditions: [unverified F6 result, unknown or drifting unit PID revision script or drop-in, unsafe path or disclosure, altered F4 F5 F6 behavior, environment-file read, extra host command or resource call, deadline or output limit, missing review, mismatched source, any host mutation]
 ```
 
 ##### Conditional Slice 02G — Native LXD maintenance for TSW replacement
@@ -2162,7 +2220,7 @@ S449-01 → S449-02C → S449-02D → S449-02E → S449-02F; S449-02F → S449-0
 ```
 
 The 2026-10-29 blocked native attempt adds the separate serial diagnostic
-`S449-02F4 → S449-02F5 → separately reviewed post-commit F5 diagnosis → S449-02F6 → separately reviewed post-commit F6 diagnosis`.
+`S449-02F4 → S449-02F5 → separately reviewed post-commit F5 diagnosis → S449-02F6 → separately reviewed post-commit F6 diagnosis → S449-02F7 → separately reviewed post-commit F7 diagnosis`.
 The diagnostic observation alone does not release the next inventory retry;
 any supported correction needs a separately governed decision, then a fresh
 post-commit S449-02F plan and GO. This phase-specific retry is not a new edge

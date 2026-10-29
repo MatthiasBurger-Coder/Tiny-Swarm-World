@@ -15,7 +15,7 @@ establish a native inventory, ownership, support or live GO. S449-02F remains
 blocked until a new complete inventory succeeds; S449-02H retains its explicit
 S449-02F dependency.
 
-Workflow v1.44: native F5 source 04a0c3cf3b641775cad59da12a7951e0eb5035cc
+Historical v1.44 authoring snapshot: native F5 source 04a0c3cf3b641775cad59da12a7951e0eb5035cc
 returned BLOCKED_UNKNOWN / DROPIN_CONTENT, exit 2. S449-02F6 is PLANNED as a
 separate structural diagnosis; implementation, quality and separate host GO
 remain open. S449-02F remains BLOCKED and 02G/02H prerequisites remain intact.
@@ -30,3 +30,10 @@ infer an issue workflow from file recency or execute an indexed workflow whose
 branch, context pack or status cannot be verified.
 
 Code-only publication amendment v1.42: issue449 S449-C01→C02→C03→C04 integrates the exact86candidate in PR #499 under local-quality/required-CI authority. Live evidence is excluded for this publication; #449 and future S02/S03–S09 capability/qualification work remain INCOMPLETE. See issue-local workflow for exact files/locks and root consolidation for actual execution state.
+
+Workflow v1.45: native F6 source 4f52873330b665ab013b607c26d7172194ff375b
+returned BLOCKED_UNKNOWN / DEPENDENCY_VARIANT, exit 2. S449-02F7 is PLANNED
+as a source-bound read-only generator-form diagnosis. F6 private evidence
+requires independent validation. S449-02F remains BLOCKED; 02G/02H retain
+their successful-inventory prerequisites. No F7 implementation or host GO
+is claimed.
