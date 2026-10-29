@@ -1,6 +1,6 @@
 ## Amendment v1.64 — proposed scoped 8086 decision
 
-G2e completed at `b9f2543f3fea21fd7565a6f6bf02c72e6dc8f448`. A PROPOSED ADR amendment assigns desired 8086 compatibility route to service-access with Infisical backend under complete dependency closure, validates exact legacy tuples before a narrow versioned transformation, and leaves legacy unchanged. Existing 8086 AUTHORITY_GAP continues until independent decision and separate implementation; no host/live/support claim.
+G2e completed at `b9f2543f3fea21fd7565a6f6bf02c72e6dc8f448`. An ACCEPTED desired-policy-only ADR amendment assigns desired 8086 compatibility route to service-access with Infisical backend under complete dependency closure, validates exact legacy tuples before a narrow versioned transformation, and leaves legacy unchanged. Existing 8086 code AUTHORITY_GAP continues until separate implementation and quality; no host/live/support claim.
 
 ## G2e registry-loop test scope amendment
 

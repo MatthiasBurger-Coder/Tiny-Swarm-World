@@ -35,7 +35,7 @@ This design acceptance does not implement P0 or G2c, resolve the 8086 source con
 
 == Proposed amendment — scoped ownership of compatibility route 8086
 
-Status: PROPOSED, not accepted. This targeted amendment does not alter the historical accepted decision or current runtime behavior. It proposes to resolve only the 8086 selection authority gap after independent same-hash Requirement, Architecture, Security, Python, Tester and DevOps review and S3D. Until accepted and implemented, the existing AUTHORITY_GAP remains.
+Historical proposal status: PROPOSED; the subsequent acceptance record below supersedes this status. This targeted amendment does not alter the historical accepted decision or current runtime behavior. It proposes to resolve only the 8086 selection authority gap after independent same-hash Requirement, Architecture, Security, Python, Tester and DevOps review and S3D. Until accepted and implemented, the existing AUTHORITY_GAP remains.
 
 === Source evidence and question
 
@@ -50,3 +50,9 @@ For source drift, first compare the complete selected legacy `default_setup_mani
 === Consequences and remaining gates
 
 If independently accepted, author a separate pure-domain scoped policy slice with exact source/contract locks, fail-closed tests and SSH PC WSL quality. It may remove the scoped policy's 8086 AUTHORITY_GAP only for the precise supported selections above; it does not by itself change G2c persistence or existing runtime composition, prove an actual source/host, admit an Incus version, or authorize a route. Future runtime integration must separately verify effective infrastructure/overrides, installed selection, source, collision/ownership and checkpoint/lock; capability support, fixture, consent, firewall/route-specific JIT and GO remain required. In particular WSL TCP/10001-only scope is not permission to expose 8086.
+
+== Acceptance record — desired scoped 8086 policy
+
+Decision: ACCEPTED for future desired scoped policy only. The Requirement, Architecture, Security, Python, Tester and DevOps independent proposal reviews were reported GO on ADR SHA-256 `979937e94a92f44cc181c29fe71af5f92c98a6679333e531b984b25f6344ef9d`, workflow SHA-256 `7707194ef9bc4fb5fdb11f30aa027fe16dbea10ff12fd1a18ded8706f711d883` and pre-review evidence SHA-256 `9cb3bdcbc8feaba3d61272772f672a6db77875380351e54a25bd08d38326a578`. The reviewed proposal was committed in base `ff9995913518fe7d268a64e367ef85b551794731`; these hashes describe pre-acceptance bytes, not this appended record. S3/S3D `EXECUTION_PLAN` for D0 acceptance on that clean base was reported by the execution coordinator.
+
+This decision narrowly supersedes the prior desired-policy 8086 AUTHORITY_GAP only after the separately reviewed scoped implementation validates complete legacy tuples before the prescribed versioned transformation. Until implementation and quality pass, the existing code's 8086 block remains. Legacy SetupManifest, legacy candidate and current runtime are unchanged. This does not prove live source, host route, consumer ownership or service state, add capability support, approve a fixture, grant a route or authorize host mutation. WSL TCP/10001-only permission is not a live 8086 permission.

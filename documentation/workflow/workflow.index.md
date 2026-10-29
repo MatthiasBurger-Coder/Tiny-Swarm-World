@@ -81,4 +81,4 @@ Historical workflow v1.62 planned G2d, completed at ef1e863b755faa3f8127a364b792
 
 Workflow v1.63 plans early read-only G2e migration-check CLI with fixed blocked output.
 
-Workflow v1.64 proposes a scoped 8086 route authority amendment; current gap and live gates remain until acceptance and implementation.
+Workflow v1.64 accepts the scoped desired 8086 policy; current code gap and live gates remain until separate implementation and qualification.

@@ -3163,7 +3163,7 @@ Within the already locked `tests/test_package_entrypoint.py`, the existing regis
 
 ## Execution-phase amendment v1.64 — proposed 8086 scoped authority decision
 
-The scoped route/profile ADR contains a PROPOSED 8086-only amendment, with source evidence in `.codex/evidence/slice-449-route-8086-decision.md`. It distinguishes service-access route owner and Infisical backend, requires full dependency closure for 8086 and preserves Infisical-only 17080. Exact legacy tuples must be validated before a narrowly versioned transformation; other drift blocks. Existing accepted 8086 AUTHORITY_GAP remains until decision acceptance and separately reviewed pure-domain implementation. No current runtime, source, host, version or live route claim follows.
+The scoped route/profile ADR contains an ACCEPTED desired-policy-only 8086 amendment, with source evidence in `.codex/evidence/slice-449-route-8086-decision.md`. It distinguishes service-access route owner and Infisical backend, requires full dependency closure for 8086 and preserves Infisical-only 17080. Exact legacy tuples must be validated before a narrowly versioned transformation; other drift blocks. Existing code retains 8086 AUTHORITY_GAP until separately reviewed pure-domain implementation and quality pass. No current runtime, source, host, version or live route claim follows.
 
 ```yaml
 slice_id: S449-ROUTE-8086-ADR-D0
@@ -3183,9 +3183,13 @@ quality_gates:
   targeted: [git diff --check, verify source evidence and review hashes]
   required: [independent six-role same-hash decision review, S3D EXECUTION_PLAN]
 documentation:
-  arc42: append proposed amendment retaining accepted history
-  adr: proposed until independently accepted
+  arc42: append accepted desired-policy amendment retaining historical decisions
+  adr: accepted desired policy only; runtime implementation remains separate
 stop_conditions: [ambiguous source or selection closure, lost historical authority, missing reviews or S3D, claimed live or support outcome, host operation]
 ```
 
 After independent decision acceptance, author a separate serial scoped-domain slice limited initially to `src/tiny_swarm_world/domain/lifecycle/scoped_route_policy.py` and its tests. Tests must prove Infisical-only 17080/no8086, full service-access closure 10000/8086/17080 exactly once, invalid dependency closure, exact legacy source validation before transformation, unrelated drift blocking, no changed legacy candidate/setup, and no host I/O. Its exact locks, versioned identity, six-role reviews, S3D and SSH PC WSL targeted/full quality are separate. G2c/G2e and host gates are not discharged by this proposal.
+
+### D0 decision accepted — implementation still pending
+
+S3/S3D EXECUTION_PLAN was reported for the clean base `ff9995913518fe7d268a64e367ef85b551794731` and six independent proposal reviews. The 8086 ADR decision is accepted as future desired policy; current scoped code continues to block until the separately reviewed implementation, exact-source quality and downstream G2c/G2d/G2e regressions pass. No legacy or host behavior changed.
