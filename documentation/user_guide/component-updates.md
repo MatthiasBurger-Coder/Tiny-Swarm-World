@@ -10,6 +10,11 @@ tiny-swarm-world services update --services swagger,traefik --preview --json
 tiny-swarm-world services update --services swagger --to swagger-ui-5-32-7 --preview --json
 ```
 
+When an existing stack is updated through Portainer, the update request does
+not prune services omitted from the submitted stack definition. Such services
+can remain. Explicit service removal and ownership verification require
+separate reviewed workflows; this setting does not prove full convergence.
+
 Run these commands from the prepared environment. Alternatively use
 `PYTHONPATH=src python3 -m tiny_swarm_world` in place of `tiny-swarm-world`.
 `services updates` defaults to the persisted installed selection. Update preview

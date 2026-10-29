@@ -143,6 +143,7 @@ class TestPortainerHttpClient(unittest.TestCase):
         self.assertEqual(request["method"], "PUT")
         self.assertEqual(request["url"], "https://portainer.local/api/stacks/42?endpointId=7")
         self.assertEqual(request["json"]["stackFileContent"], "services: {}")
+        self.assertIs(request["json"]["prune"], False)
 
     def test_successful_apply_provides_one_consumable_registration_snapshot(self):
         session = _FakeSession(
@@ -488,7 +489,7 @@ class TestPortainerHttpClient(unittest.TestCase):
         self.assertEqual(
             {
                 "env": [],
-                "prune": True,
+                "prune": False,
                 "pullImage": False,
                 "stackFileContent": "services: {}",
             },

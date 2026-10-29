@@ -131,7 +131,7 @@ class PortainerHttpClient(PortPortainerClient, PortDeploymentGateway):
             timeout=self.stack_request_timeout_seconds,
             json={
                 "env": _portainer_environment(stack_environment),
-                "prune": True,
+                "prune": False,
                 "pullImage": False,
                 "stackFileContent": stack_definition.compose_content,
             },
