@@ -1,6 +1,6 @@
 {
   "workflow_id": "issue-449-lcm-w09",
-  "workflow_version": "1.69",
+  "workflow_version": "1.70",
   "workflow_amendment_v1_43": {
     "slice_id": "S449-02F5",
     "status": "HISTORICAL: F5 implemented and bounded native diagnosis executed",
@@ -191,10 +191,10 @@
   },
   "workflow_artifacts_sha256": {
     "documentation/arc42/09_architecture_decisions.adoc": "779b320ac681e3d3250389eef8245865559e395366a5931705c2093bf32f9515",
-    "documentation/workflow/issues/issue-449/context-pack.md": "37e79234984c5929c51422d7c061d4b748977cd323a9e83d3bf92fcd2f74ac06",
-    "documentation/workflow/issues/issue-449/workflow.md": "bb1c3f6117a94c8cd812415d3f0eb40cd95b93d24ca3376b1e8d3d4b3c89e194",
+    "documentation/workflow/issues/issue-449/context-pack.md": "10204adcd41aeeec97d22b0279a6301e10fa9271744d0ad17797020e3d22b9d7",
+    "documentation/workflow/issues/issue-449/workflow.md": "f65943e5b3bd6c2662e83976f2db1b3b535fda0bb0b6b9f8eb7e375dab10febc",
     ".agents/skills/workflow-executor/SKILL.md": "04a9325b2cec2dfa6feab24c261c636fdfa295158661d20e981e4182e5bfb46c",
-    "documentation/workflow/workflow.index.md": "e8ac7b5af209d33e8a318d9afa3df1e8da1b3a5d608310871922142332169fb1"
+    "documentation/workflow/workflow.index.md": "d155d38d04c249110842f789a760c2f74c4995c43afacee3b8affb465b3653e9"
   },
   "skill_hashes_sha256": {
     ".agents/skills/three-amigos-requirement-gatekeeper/SKILL.md": "76659e618cb706e8990cdf44441aeaed219465044175826adca5357ae8acc5b4",
@@ -1029,15 +1029,15 @@
   },
   "workflow_amendment_v1_69": {
     "slice_id": "S449-PORTAINER-ENDPOINT-STACK",
-    "status": "PLANNED; six roles GO on current contract/workflow; S3D pending",
+    "status": "HISTORICAL reviewed pre-v1.70; fresh v1.70 reviews and S3D pending",
     "baseline": "c3443ea56c420184124cdf0c8de892b18d301ecf",
     "dependencies": [
       "S449-PORTAINER-NO-PRUNE"
     ],
     "contract": ".codex/evidence/slice-449-portainer-endpoint-stack-contract.md",
-    "contract_sha256": "a4dbc3abf6beb6707c99f5f9e3ab6e43522f1f7965cbef97fc483afff94f262e",
+    "contract_sha256": "9a7113b6bbbeba4f0baf5d9caa90bbf9fd9fd120e317db79c275184571c4d027",
     "distribution": ".codex/evidence/slice-449-portainer-endpoint-stack-distribution.md",
-    "distribution_sha256": "d1dcbf3afc06c5ecc47060333eed1a9145c2cd1d971314508edd84f670fdf3eb",
+    "distribution_sha256": "fd7835762d36b0bf0a6ebf2efb3b803bb124d3b297a39df7f88f2ab7d180d079",
     "baseline_source_sha256": {
       "src/tiny_swarm_world/application/ports/clients/port_portainer_client.py": "56054074e3650b03c591b7341e0c9513ed2f2e76c849dd13627a34f366d6d70b",
       "src/tiny_swarm_world/infrastructure/adapters/clients/portainer_http_client.py": "7b9f8670662dcd8ed405b55c9b136668507b6cbca0b2822f06d9f5af6ccde038",
@@ -1047,5 +1047,17 @@
     "boundary": "Two visible snapshots reject conflicts before mutation; legacy create and 404/405 fallback unchanged; no global uniqueness, ownership, admission or atomicity claim.",
     "reviewed_contract_sha256": "a4dbc3abf6beb6707c99f5f9e3ab6e43522f1f7965cbef97fc483afff94f262e",
     "reviewed_workflow_sha256": "bb1c3f6117a94c8cd812415d3f0eb40cd95b93d24ca3376b1e8d3d4b3c89e194"
+  },
+  "workflow_amendment_v1_70": {
+    "slice_id": "S449-PORTAINER-ENDPOINT-STACK",
+    "status": "PLANNED; six role GO rebind on current contract/workflow reported; S3D and quality evidence separately required",
+    "quality_failure": "grown-critical-class and grown-module-complexity",
+    "added_file_locks": [
+      "src/tiny_swarm_world/infrastructure/adapters/clients/portainer_apply_resolution.py",
+      "tests/infrastructure/adapters/clients/test_portainer_apply_resolution.py"
+    ],
+    "boundary": "Preserve strict two snapshots, sanitized errors and effect ordering, existing legacy semantics, all guardrails and no ownership or host admission.",
+    "reviewed_contract_sha256": "9a7113b6bbbeba4f0baf5d9caa90bbf9fd9fd120e317db79c275184571c4d027",
+    "reviewed_workflow_sha256": "f65943e5b3bd6c2662e83976f2db1b3b535fda0bb0b6b9f8eb7e375dab10febc"
   }
 }

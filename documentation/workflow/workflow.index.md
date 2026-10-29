@@ -92,3 +92,5 @@ Workflow v1.67 plans V2 repository decomposition after a failed complexity gate;
 Historical workflow v1.68 planned NoPrune, completed in c3443ea56c420184124cdf0c8de892b18d301ecf; ownership and live qualification remain separate.
 
 Workflow v1.69 plans strict endpoint/stack uniqueness on both apply paths; ownership proof and live gates remain separate.
+
+Issue #449 v1.70: visible-conflict complexity remediation adds a focused helper to existing slice locks; no quality-guardrail weakening or host admission.

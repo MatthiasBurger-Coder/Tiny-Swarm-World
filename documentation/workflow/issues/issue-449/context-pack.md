@@ -1,6 +1,10 @@
-## Amendment v1.69 — Portainer endpoint/stack uniqueness
+## Amendment v1.70 — visible conflict complexity remediation
 
-Planned after NoPrune `c3443ea56c420184124cdf0c8de892b18d301ecf`: both apply paths require strict unique endpoint/name/stack identity and recheck before first effect, with full absence for create. Same-endpoint foreign ownership, direct update bypass and non-atomic gap remain explicit limitations. Contract `.codex/evidence/slice-449-portainer-endpoint-stack-contract.md`; reviews/S3D pending.
+Full QUALITY failed grown critical class and module complexity; remediation adds a focused resolution helper and optional tests to serial locks, preserving strict snapshot/effect ordering, legacy behavior and guardrails. Fresh six-role reviews, S3D, targeted tests and full SSH PC WSL QUALITY remain required. No host admission follows.
+
+## Historical amendment v1.69 — visible endpoint/stack conflicts
+
+The global uniqueness proposal was blocked and superseded by a visibility-limited conflict check; it does not establish absence or ownership and preserves legacy create.
 
 ## Historical amendment v1.68 — shared Portainer no-prune
 
