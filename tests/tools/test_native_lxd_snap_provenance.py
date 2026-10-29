@@ -772,5 +772,199 @@ class ContextDiagnosticTests(unittest.TestCase):
                 self.assertNotIn("secret-token", result)
 
 
+class GeneratorFormTests(unittest.TestCase):
+    def setUp(self) -> None:
+        fixture = WrapperProofTests("runTest")
+        fixture.setUp()
+        self.fixture = fixture
+        self.fs = fixture.fs
+        self.row = fixture.row
+        self.runner = fixture.runner
+        fixture.values["DropInPaths"] = proof.DROP_IN
+        self.fs.files[proof.DROP_IN] = regular(999, proof._GENERATOR_PREFIX + b"\n", readonly=False)
+        base = "/snap/lxd/40958"
+        self.fs.files["/proc/101/cmdline"] = regular(40, b"/bin/sh\x00" + (base + "/commands/daemon.start").encode() + b"\x00")
+        self.fs.files["/proc/101/environ"] = regular(41, b"SNAP_NAME=lxd\x00SNAP_REVISION=40958\x00SNAP=/snap/lxd/40958\x00")
+        script = regular(50, b"source fixture", executable=True)
+        self.fs.files[base + "/commands/daemon.start"] = script
+        self.fs.files["/proc/101/root" + base + "/commands/daemon.start"] = script
+
+    def diagnose(self) -> str:
+        # Synthetic script bytes are not the public package; simulate only the
+        # pinned digest so every other proof boundary runs through MemoryFS.
+        digest = Mock()
+        digest.hexdigest.return_value = proof._GENERATOR_DIGEST
+        with patch.object(proof.hashlib, "sha256", return_value=digest):
+            return proof.diagnose_generator_form(self.runner, self.row, fs=self.fs, clock=lambda: 0.0)
+
+    def test_public_source_static_literals_and_script_digest_input(self) -> None:
+        # Independent, source-pinned fixture: Canonical LXD 3a06799 daemon.start.
+        source_tokens = (
+            "snap.microceph.daemon.service", "snap.microceph.mds.service",
+            "snap.microceph.mgr.service", "snap.microceph.mon.service",
+            "snap.microceph.nfs.service", "snap.microceph.osd.service",
+            "snap.microceph.rgw.service", "snap.microceph.rbd-mirror.service",
+            "snap.microceph.cephfs-mirror.service", "snap.microovn.daemon.service",
+            "snap.microovn.ovn-ovsdb-server-nb.service", "snap.microovn.ovn-ovsdb-server-sb.service",
+            "snap.microovn.ovn-northd.service", "snap.microovn.chassis.service",
+            "snap.microovn.switch.service", "snap.microovn.bird.service",
+        )
+        self.assertEqual(proof._GENERATOR_TOKENS, source_tokens)
+        self.assertEqual(proof._GENERATOR_PREFIX, ("[Unit]\nAfter=" + " ".join(source_tokens) + " ").encode("ascii"))
+        digest = Mock()
+        digest.hexdigest.return_value = "7ecbe39a07dc02666af544327dbaf5cfbe9967868bfb9d7c627061f14916b562"
+        with patch.object(proof.hashlib, "sha256", return_value=digest) as hasher:
+            self.assertEqual(proof.diagnose_generator_form(self.runner, self.row, fs=self.fs, clock=lambda: 0.0), "MATCH")
+        hasher.assert_called_once_with(b"source fixture")
+
+    def test_static_form_and_all_dynamic_members_duplicates_and_bounds(self) -> None:
+        members = [item.encode() for item in proof._GENERATOR_TOKENS]
+        suffixes = [b"", *(item + b" " for item in members), members[0] + b"  " + members[0] + b" ",
+                    (members[0] + b" ") * 256]
+        for suffix in suffixes:
+            with self.subTest(length=len(suffix)):
+                self.fs.files[proof.DROP_IN] = regular(999, proof._GENERATOR_PREFIX + suffix + b"\n", readonly=False)
+                self.assertEqual(self.diagnose(), "MATCH")
+                self.assertNotIn("/etc/environment", [call[0] for call in self.fs.calls])
+        self.fs.files[proof.DROP_IN] = regular(999, proof._GENERATOR_PREFIX + (members[0] + b" ") * 257 + b"\n")
+        self.assertEqual(self.diagnose(), "UNKNOWN")
+
+    def test_every_static_position_cannot_be_replaced_removed_or_shifted(self) -> None:
+        tokens = list(proof._GENERATOR_TOKENS)
+        for index in range(len(tokens)):
+            for kind in ("replace", "remove", "reverse"):
+                changed = tokens.copy()
+                if kind == "replace":
+                    changed[index] = "secret-value.service"
+                elif kind == "remove":
+                    del changed[index]
+                else:
+                    changed[index], changed[(index + 1) % len(tokens)] = changed[(index + 1) % len(tokens)], changed[index]
+                raw = ("[Unit]\nAfter=" + " ".join(changed) + " \n").encode()
+                with self.subTest(index=index, kind=kind):
+                    self.assertFalse(proof._generator_form(raw))
+
+    def test_unsafe_forms_and_foreign_tokens_never_match(self) -> None:
+        prefix = proof._GENERATOR_PREFIX
+        for raw in (prefix + b"evil.service \n", prefix + b" secret-value \n", prefix + b"\n[Service]\n",
+                    prefix + b"\r\n", prefix + b"\x00\n", prefix + b"\t\n", prefix + b"'x' \n",
+                    prefix + b"\\x \n", prefix + b"%x \n", prefix + b"\xff\n", prefix[:-1] + b"\n",
+                    prefix + b"snap.microceph.daemon.service\n", prefix + b"\nX"):
+            with self.subTest(case=len(raw)):
+                self.assertFalse(proof._generator_form(raw))
+
+    def test_wrong_revision_or_script_digest_remains_unknown(self) -> None:
+        self.fs.files["/proc/101/environ"] = regular(41, b"SNAP_NAME=lxd\x00SNAP_REVISION=123\x00SNAP=/snap/lxd/123\x00")
+        self.assertEqual(self.diagnose(), "UNKNOWN")
+        self.setUp()
+        digest = Mock()
+        digest.hexdigest.return_value = "0" * 64
+        with patch.object(proof.hashlib, "sha256", return_value=digest):
+            self.assertEqual(proof.diagnose_generator_form(self.runner, self.row, fs=self.fs, clock=lambda: 0.0), "UNKNOWN")
+
+    def test_trust_process_and_script_pair_fail_closed(self) -> None:
+        script_path = "/snap/lxd/40958/commands/daemon.start"
+        for path, changed in ((proof.DROP_IN, regular(999, proof._GENERATOR_PREFIX + b"\n", readonly=False)),
+                              (script_path, regular(50, b"other", executable=True))):
+            with self.subTest(path=path):
+                if path == proof.DROP_IN:
+                    changed = replace(changed, uid=123)
+                self.fs.files[path] = changed
+                self.assertEqual(self.diagnose(), "UNKNOWN")
+                self.setUp()
+        self.fs.files["/proc/101/status"] = regular(2101, b"Uid:\t1\t1\t1\t1\n", readonly=False)
+        self.assertEqual(self.diagnose(), "UNKNOWN")
+
+    def test_unit_process_script_and_dropin_drift_are_unknown(self) -> None:
+        script_path = "/snap/lxd/40958/commands/daemon.start"
+        original = self.fs.files[script_path]
+        self.fs.sequences[script_path] = [original, replace(original, inode=51)]
+        self.assertEqual(self.diagnose(), "UNKNOWN")
+        self.setUp()
+        drop = self.fs.files[proof.DROP_IN]
+        self.fs.sequences[proof.DROP_IN] = [drop, replace(drop, data=drop.data + b"secret-value")]
+        self.assertEqual(self.diagnose(), "UNKNOWN")
+        self.setUp()
+        proc = self.fs.files["/proc/101/stat"]
+        self.fs.sequences["/proc/101/stat"] = [proc, replace(proc, data=proc_stat(101, 1, 12))]
+        self.assertEqual(self.diagnose(), "UNKNOWN")
+        self.setUp()
+        before = self.fixture.unit_bytes()
+        self.runner.run.side_effect = [(0, before, b""), (0, before.replace(b"MainPID=101", b"MainPID=102"), b"")]
+        self.assertEqual(self.diagnose(), "UNKNOWN")
+
+    def test_missing_symlink_timeout_and_input_errors_do_not_leak(self) -> None:
+        self.fs.links["/snap/lxd/40958/commands/daemon.start"] = "secret-path"
+        self.assertEqual(self.diagnose(), "UNKNOWN")
+        self.setUp()
+        del self.fs.files[proof.DROP_IN]
+        self.assertEqual(self.diagnose(), "UNKNOWN")
+        self.runner.run.side_effect = ValueError("secret-value")
+        self.assertEqual(self.diagnose(), "UNKNOWN")
+
+
+    def test_cooperative_deadline_stops_before_unit_or_file_access(self) -> None:
+        times = iter((0.0, float(proof.MAX_SECONDS)))
+        self.runner.reset_mock()
+        self.fs.calls.clear()
+        result = proof.diagnose_generator_form(self.runner, self.row, fs=self.fs, clock=lambda: next(times))
+        self.assertEqual(result, "UNKNOWN")
+        self.runner.run.assert_not_called()
+        self.assertEqual(self.fs.calls, [])
+
+    def test_script_and_dropin_exact_bounds_and_overflow(self) -> None:
+        host = "/snap/lxd/40958/commands/daemon.start"
+        proc = "/proc/101/root" + host
+        for size, expected in ((proof.METADATA_LIMIT, "MATCH"), (proof.METADATA_LIMIT + 1, "UNKNOWN")):
+            with self.subTest(kind="script", size=size):
+                self.setUp()
+                script = regular(50, b"x" * size, executable=True)
+                self.fs.files[host] = self.fs.files[proc] = script
+                self.assertEqual(self.diagnose(), expected)
+        member = proof._GENERATOR_TOKENS[0].encode()
+        for size, expected in ((proof.PROC_LIMIT, "MATCH"), (proof.PROC_LIMIT + 1, "UNKNOWN")):
+            with self.subTest(kind="dropin", size=size):
+                self.setUp()
+                tail = member + b" " * (size - len(proof._GENERATOR_PREFIX) - len(member) - 1) + b"\n"
+                self.fs.files[proof.DROP_IN] = regular(999, proof._GENERATOR_PREFIX + tail, readonly=False)
+                self.assertEqual(self.diagnose(), expected)
+
+    def test_each_script_pair_trust_and_identity_failure_is_unknown(self) -> None:
+        host = "/snap/lxd/40958/commands/daemon.start"
+        proc = "/proc/101/root" + host
+        original = regular(50, b"source fixture", executable=True)
+        cases = ((host, replace(original, readonly=False)),
+                 (host, replace(original, uid=1000)),
+                 (host, replace(original, mode=stat.S_IFREG | 0o777)),
+                 (proc, replace(original, inode=51)),
+                 (proc, replace(original, device=2)),
+                 (proc, replace(original, data=b"secret mismatch")))
+        for path, value in cases:
+            with self.subTest(path=path, mode=value.mode):
+                self.setUp()
+                self.fs.files[path] = value
+                self.assertEqual(self.diagnose(), "UNKNOWN")
+
+    def test_wrong_argv_and_rechecked_process_context_remain_unknown(self) -> None:
+        for path, data in (("/proc/101/cmdline", b"/bin/sh\x00/snap/lxd/123/commands/daemon.start\x00"),
+                           ("/proc/101/environ", b"SNAP_NAME=lxd\x00SNAP_REVISION=40958\x00SNAP=/snap/lxd/123\x00")):
+            with self.subTest(path=path):
+                self.setUp()
+                self.fs.files[path] = regular(40, data)
+                self.assertEqual(self.diagnose(), "UNKNOWN")
+        self.setUp()
+        path = "/proc/101/environ"
+        initial = self.fs.files[path]
+        altered = replace(initial, data=b"SNAP_NAME=lxd\x00SNAP_REVISION=123\x00SNAP=/snap/lxd/123\x00")
+        self.fs.sequences[path] = [initial, altered]
+        self.assertEqual(self.diagnose(), "UNKNOWN")
+        self.setUp()
+        path = "/proc/101/cmdline"
+        initial = self.fs.files[path]
+        altered = replace(initial, data=b"/bin/sh\x00/snap/lxd/123/commands/daemon.start\x00")
+        self.fs.sequences[path] = [initial, altered]
+        self.assertEqual(self.diagnose(), "UNKNOWN")
+
+
 if __name__ == "__main__":
     unittest.main()

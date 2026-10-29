@@ -1402,5 +1402,41 @@ class SnapContextCliTests(unittest.TestCase):
         importer.assert_not_called()
 
 
+class SnapGeneratorCliTests(unittest.TestCase):
+    def test_invalid_combinations_do_not_access_host_or_leak(self) -> None:
+        cases = (["--diagnose-snap-generator-form=secret"], ["--diagnose-snap-generator-form", "secret"],
+                 ["--diagnose-snap-generator-form", "--help"], ["--diagnose-snap-generator-form", "--diagnose-units"],
+                 ["--diagnose-snap-generator-form", "--diagnose-snap-context"],
+                 ["--diagnose-snap-generator-form", "--diagnose-snap-dropin"],
+                 ["--diagnose-snap-generator-form", "--diagnose-snap-generator-form"])
+        for argv in cases:
+            with self.subTest(argv=argv), patch.object(inventory, "diagnose_snap_generator_form") as diagnose:
+                out, err = StringIO(), StringIO()
+                with redirect_stdout(out), redirect_stderr(err):
+                    self.assertEqual(inventory.main(argv), 2)
+                self.assertEqual(out.getvalue(), '{"status":"BLOCKED_UNKNOWN","reason":"UNKNOWN"}\n')
+                self.assertEqual(err.getvalue(), "")
+                diagnose.assert_not_called()
+
+    def test_valid_mode_and_internal_exceptions_are_redacted(self) -> None:
+        out, err = StringIO(), StringIO()
+        with patch.object(inventory, "diagnose_snap_generator_form", return_value="MATCH"), \
+                redirect_stdout(out), redirect_stderr(err):
+            self.assertEqual(inventory.main(["--diagnose-snap-generator-form"]), 2)
+        self.assertEqual(out.getvalue(), '{"status":"BLOCKED_UNKNOWN","reason":"MATCH"}\n')
+        self.assertEqual(err.getvalue(), "")
+        runner = Mock()
+        runner.run.side_effect = RuntimeError("secret-token /private/path")
+        self.assertEqual(inventory.diagnose_snap_generator_form(runner=runner), "UNKNOWN")
+        self.assertEqual(runner.run.call_count, 1)
+
+    def test_inactive_snapshot_stops_before_helper(self) -> None:
+        row = {"load_state": "loaded", "active_state": "inactive", "sub_state": "dead", "main_pid": 0}
+        with patch.object(inventory, "_systemctl_show", return_value=row), \
+                patch("importlib.import_module") as importer:
+            self.assertEqual(inventory.diagnose_snap_generator_form(runner=Mock()), "UNKNOWN")
+        importer.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()

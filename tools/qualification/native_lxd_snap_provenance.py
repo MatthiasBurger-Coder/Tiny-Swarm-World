@@ -4,6 +4,7 @@ from __future__ import annotations
 from contextlib import contextmanager, suppress
 from dataclasses import dataclass
 from datetime import datetime
+import hashlib
 import os
 from pathlib import PurePosixPath
 import re
@@ -591,5 +592,72 @@ def diagnose_dropin(runner: RunnerPort, expected: dict[str, Any], *, fs: ReadOnl
         if before_compare != after_compare or not proof.diagnostic_reobserve(observed):
             return "UNKNOWN"
         return reason
+    except Exception:
+        return "UNKNOWN"
+
+
+# A deliberately narrow subset of Canonical LXD 3a06799's generator form.
+_GENERATOR_DIGEST = "7ecbe39a07dc02666af544327dbaf5cfbe9967868bfb9d7c627061f14916b562"
+_GENERATOR_REVISION = "40958"
+_GENERATOR_TOKENS = (
+    "snap.microceph.daemon.service", "snap.microceph.mds.service", "snap.microceph.mgr.service",
+    "snap.microceph.mon.service", "snap.microceph.nfs.service", "snap.microceph.osd.service",
+    "snap.microceph.rgw.service", "snap.microceph.rbd-mirror.service", "snap.microceph.cephfs-mirror.service",
+    "snap.microovn.daemon.service", "snap.microovn.ovn-ovsdb-server-nb.service",
+    "snap.microovn.ovn-ovsdb-server-sb.service", "snap.microovn.ovn-northd.service",
+    "snap.microovn.chassis.service", "snap.microovn.switch.service", "snap.microovn.bird.service",
+)
+_GENERATOR_PREFIX = ("[Unit]\nAfter=" + " ".join(_GENERATOR_TOKENS) + " ").encode("ascii")
+
+
+def _generator_form(raw: bytes) -> bool:
+    """Match a bounded subset of the pinned public generator; never expose input."""
+    if len(raw) > PROC_LIMIT or not raw.startswith(_GENERATOR_PREFIX) or not raw.endswith(b"\n"):
+        return False
+    suffix = raw[len(_GENERATOR_PREFIX):-1]
+    if not suffix:
+        return True
+    if suffix.startswith(b" ") or not suffix.endswith(b" "):
+        return False
+    parts = suffix.split(b" ")
+    tokens = [part for part in parts if part]
+    allowed = {token.encode("ascii") for token in _GENERATOR_TOKENS}
+    return len(tokens) <= 256 and all(part in allowed for part in tokens)
+
+
+def diagnose_generator_form(runner: RunnerPort, expected: dict[str, Any], *, fs: ReadOnlyFS | None = None,
+                            clock: Callable[[], float] = time.monotonic) -> str:
+    """Compare a fixed, stable package and drop-in without admitting an identity."""
+    try:
+        proof = _Proof(runner, fs or LocalReadOnlyFS(), clock)
+        before = proof.diagnostic_unit(expected)
+        if _context_reason(before) is not None or before["DropInPaths"] != DROP_IN:
+            return "UNKNOWN"
+        pid, group = _positive(before["MainPID"]), before["ControlGroup"]
+        unit_file = proof.trusted(proof.observe(UNIT_FILE))
+        drop = proof.trusted(proof.observe(DROP_IN, limit=PROC_LIMIT))
+        if _dropin_form(drop.data) != "DEPENDENCY_VARIANT" or not _generator_form(drop.data):
+            return "UNKNOWN"
+        process = proof.process(pid, group)
+        environment = proof.main_environment(pid)
+        base, argv, _ = environment
+        if base != "/snap/lxd/" + _GENERATOR_REVISION:
+            return "UNKNOWN"
+        shell = proof.shell(pid, argv, process)
+        script = proof.pair(pid, base + "/commands/daemon.start", limit=METADATA_LIMIT)
+        if hashlib.sha256(script[0].data).hexdigest() != _GENERATOR_DIGEST:
+            return "UNKNOWN"
+        after = proof.diagnostic_unit(expected)
+        if _context_reason(after) is not None:
+            return "UNKNOWN"
+        before_compare, after_compare = dict(before), dict(after)
+        before_compare["ExecStart"] = after_compare["ExecStart"] = "snap-run-lxd-daemon"
+        observed = ((UNIT_FILE, unit_file), (DROP_IN, drop))
+        if (before_compare != after_compare or proof.process(pid, group) != process
+                or proof.main_environment(pid) != environment or proof.shell(pid, argv, process) != shell
+                or proof.pair(pid, base + "/commands/daemon.start", limit=METADATA_LIMIT) != script
+                or not proof.diagnostic_reobserve(observed)):
+            return "UNKNOWN"
+        return "MATCH"
     except Exception:
         return "UNKNOWN"
