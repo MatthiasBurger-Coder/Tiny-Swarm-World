@@ -34,3 +34,28 @@ The initial full QUALITY run reported FAIL on four complexity guardrails in the 
 ## Complexity-remediation contract review
 
 The execution coordinator reports independent Requirement, Architecture, Security, Python, Tester and DevOps GO on the identical revised contract SHA-256 `307e8b2ee45e8dd3f12dbc66e510e0ec05ed433ebfe6883c550e29c91147f36a` and workflow SHA-256 `c8a64ed887738d18880068110ced9b46a8ce3fceb8b04ec7f673a396e6dc5394`. The earlier full QUALITY complexity failure remains a failure; these are review decisions, not a new test pass. The new file locks require a fresh S3D plan before implementation resumes, and targeted/full SSH PC WSL quality must be rerun. No host or admission result follows.
+
+## Remediation preflight and final candidate
+
+The integration owner reports serial S3/S3D EXECUTION_PLAN for the amended
+locks at clean checkpoint `9626d804d3272bae6208eecf9ecc97c3a196ef22`.
+The exact task-only overlay was restored and source hashes verified before the
+split. Security, Architecture, Tester, Requirement, Python and DevOps GO are
+reported for the final facade, JSON, filesystem and adapter-test hashes below.
+DevOps additionally reviewed task scope. These reports cover those four hashes,
+not an asserted independent full seven-file tuple GO.
+
+Final source and test SHA-256 values:
+- `src/tiny_swarm_world/domain/lifecycle/manifest_v2_record.py`: `2501a16a5d287318a0ab8718c4217220c6cbb0ce6dc32ba8680dfb5abfe602b3`
+- `src/tiny_swarm_world/application/ports/lifecycle/versioned_manifest.py`: `1d2a4a28e7bdcf0a867242fd9d8a061ba2269e61c1b1dbca44be96feac763779`
+- `src/tiny_swarm_world/infrastructure/adapters/lifecycle/versioned_manifest_repository.py`: `110e19570631b87629b487852dea38fb356dab1a48a8b765e21cae762c68f367`
+- `src/tiny_swarm_world/infrastructure/adapters/lifecycle/versioned_manifest_json.py`: `c3398a0231be0ddbacc8ba54dce0a795067560c9149231db2bc2cbd9d305a55e`
+- `src/tiny_swarm_world/infrastructure/adapters/lifecycle/versioned_manifest_fs.py`: `845e34af7717b7ab5e323bc3dd21fc9d43562cf15f539b8c3304d54af3400db5`
+- `tests/domain/lifecycle/test_manifest_v2_record.py`: `0fc9a473a337c2cf5b37ded6467d40a5151f2ca8d90fd390bcb03acb88d32ca5`
+- `tests/infrastructure/adapters/lifecycle/test_versioned_manifest_repository.py`: `60686ee2b23b855dd1c87f1d35311191996fe4b9b64964774e1a554a6bbc173c`
+
+The integration owner reports exact-source designated SSH PC WSL targeted
+tests, Ruff and full quality PASS using transferred candidate tar SHA-256
+prefix `071ec104`; see consolidation. Python 3.12 and live host execution
+were not tested. This isolated UNADOPTED primitive is not canonical installation
+persistence or host qualification.
