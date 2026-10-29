@@ -67,10 +67,4 @@ class PortainerUpgradeApi:
         return stack, content, detail['Env']
 
     def prove_update(self):
-        stack, content, environment = self.proof_definition()
-        identifier, endpoint = stack['Id'], stack['EndpointId']
-        response = self.client._send('PUT', f'/api/stacks/{identifier}?endpointId={endpoint}',
-                                     timeout=self.client.stack_request_timeout_seconds,
-                                     json={'stackFileContent': content, 'env': environment, 'prune': False, 'pullImage': False})
-        self.client._ensure_success(response, 'Portainer managed update proof')
-        return stack['Name']
+        raise LifecycleStateError('Portainer update blocked: persisted ownership proof is unavailable.')

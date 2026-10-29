@@ -4,12 +4,12 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from tests.domain.lifecycle.test_update_planning import update_fixture
 from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
 from tiny_swarm_world.application.services.portainer_upgrade import PortainerUpgradeService
-from tiny_swarm_world.domain.lifecycle.portainer_upgrade import images, versions
+from tiny_swarm_world.domain.lifecycle.portainer_upgrade import PortainerCheckpoint, images, versions
 from tiny_swarm_world.domain.preflight import LiveConsent
 from tiny_swarm_world.infrastructure.adapters.lifecycle.manifest import JsonManifestRepository
 from tiny_swarm_world.infrastructure.adapters.lifecycle.portainer_journal import JsonPortainerJournal
@@ -85,55 +85,43 @@ class PortainerRuntimeIntegrationTests(unittest.IsolatedAsyncioTestCase):
         payload = {} if method == 'PUT' else data[path]
         return SimpleNamespace(json=lambda: payload, status_code=200)
 
-    async def test_end_to_end_mock_upgrade_and_repeat_noop(self):
-        result = await self.service.run(target=None, consent=LiveConsent(True, confirmed=True))
-        self.assertEqual(result['status'], 'completed')
-        self.assertEqual(self.version, '2.45.1')
-        put = [item for item in self.http_calls if item[0] == 'PUT']
-        self.assertEqual(len(put), 1)
-        self.assertFalse(put[0][2]['json']['prune'])
-        self.assertEqual(put[0][2]['json']['env'], [{'name': 'EXISTING', 'value': 'private-value'}])
-        checkpoint = self.journal.path.read_text()
-        self.assertNotIn('private-value', checkpoint)
-        self.assertNotIn('UserAccesses', checkpoint)
-        self.assertIn('sha256:' + self.backup_digest, checkpoint)
-        count = len(self.commands)
-        result = await self.service.run(target=None, consent=LiveConsent(True, confirmed=True))
-        self.assertEqual(result['status'], 'no_op')
-        self.assertEqual(len([item for item in self.http_calls if item[0] == 'PUT']), 1)
-        self.assertFalse(any(item.startswith('docker service update') for item in self.commands[count:]))
+    async def checkpoint(self, stage='upgrading', backup=True):
+        before = await self.runtime.inspect()
+        snapshot = self.manifests.load()
+        checkpoint = PortainerCheckpoint(
+            operation_id='operation', installation_id=snapshot.manifest.installation_id,
+            original=snapshot.manifest, before=before, manifest_token=snapshot.token,
+            stage=stage, backup_digest='sha256:' + self.backup_digest if backup else None,
+        )
+        self.journal.save(checkpoint)
+        return checkpoint
 
-    async def test_failed_target_can_restore_with_api_down_and_preserves_failed_data(self):
-        self.fail_command = 'docker service update --detach=true --no-resolve-image --image ' + images('2.45.1')['portainer']
-        with self.assertRaises(LifecycleStateError):
+    async def test_upgrade_blocks_matching_visible_inventory_without_effect(self):
+        with self.assertRaisesRegex(LifecycleStateError, 'ownership proof'):
             await self.service.run(target=None, consent=LiveConsent(True, confirmed=True))
-        self.fail_command = None
+        self.assertIsNone(self.journal.load())
+        self.assertFalse(any(method == 'PUT' for method, _, _ in self.http_calls))
+        self.assertFalse(any('docker service scale' in item or 'docker service update' in item for item in self.commands))
+
+    async def test_legacy_restore_with_api_down_remains_uncertain(self):
+        await self.checkpoint()
         self.api_unavailable = True
-        before_http = len(self.http_calls)
-        result = await self.service.run(target=None, consent=LiveConsent(True, confirmed=True), recovery=True)
-        self.assertEqual(result['status'], 'recovered')
-        self.assertEqual(self.version, '2.45.0')
-        self.assertGreater(len(self.http_calls), before_http)  # verification after runtime restore
-        self.assertTrue(any('failed-state.XXXXXX' in item and 'mv -t' in item for item in self.commands))
-        self.assertFalse(any('rm -' in item for item in self.commands))
-        self.assertEqual(self.journal.load().stage, 'recovered')
+        self.assertEqual((await self.service.run(target=None, consent=LiveConsent(True, confirmed=True), recovery=True))['status'], 'unknown')
+        self.assertEqual(self.journal.load().stage, 'recovering')
+        self.assertFalse(any(method == 'PUT' for method, _, _ in self.http_calls))
 
     async def test_tampered_backup_blocks_restore_before_scale_or_images(self):
-        self.fail_command = 'docker service update'
-        with self.assertRaises(LifecycleStateError):
-            await self.service.run(target=None, consent=LiveConsent(True, confirmed=True))
-        self.fail_command = None
+        await self.checkpoint()
         self.backup_digest = 'b' * 64
         start = len(self.commands)
-        with self.assertRaises(LifecycleStateError):
-            await self.service.run(target=None, consent=LiveConsent(True, confirmed=True), recovery=True)
+        self.assertEqual((await self.service.run(target=None, consent=LiveConsent(True, confirmed=True), recovery=True))['status'], 'unknown')
         self.assertFalse(any('docker service scale' in item or 'docker service update' in item for item in self.commands[start:]))
 
-    async def test_backup_failure_restarts_unchanged_source_and_never_updates_images(self):
-        self.fail_command = 'tar -cpf'
-        with self.assertRaises(LifecycleStateError):
-            await self.service.run(target=None, consent=LiveConsent(True, confirmed=True))
-        self.assertEqual(self.replicas, 1)
+    async def test_admitted_cancel_keeps_source_and_waits_for_proof(self):
+        await self.checkpoint('admitted', backup=False)
+        self.assertEqual((await self.service.run(target=None, consent=LiveConsent(True, confirmed=True), recovery=True))['status'],
+                         'recovery_pending_proof')
+        self.assertEqual(self.journal.load().stage, 'recovery_pending_proof')
         self.assertEqual(self.version, '2.45.0')
         self.assertFalse(any('docker service update' in item for item in self.commands))
 
@@ -144,38 +132,26 @@ class PortainerRuntimeIntegrationTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(any('docker service scale' in item or 'docker service update' in item for item in self.commands))
         self.assertIsNone(self.journal.load())
 
-    async def test_ownership_drift_fails_verification_and_does_not_commit(self):
-        original = self.runtime.state.set_images
-        def update_and_drift(version):
-            original(version)
-            self.owner_changed = True
-        self.runtime.state.set_images = update_and_drift
-        with self.assertRaises(LifecycleStateError):
-            await self.service.run(target=None, consent=LiveConsent(True, confirmed=True))
-        self.assertEqual(self.journal.load().stage, 'upgrading')
-        self.assertEqual(next(item for item in self.manifests.load().manifest.components if item.component_id == 'portainer').desired.upstream_version, '2.45.0')
+    async def test_ownership_drift_fails_read_only_inspection(self):
+        checkpoint = await self.checkpoint('recovery_pending_proof')
+        self.owner_changed = True
+        self.assertEqual((await self.service.run(target=None, consent=LiveConsent(True, confirmed=True), recovery=True))['status'], 'unknown')
+        self.assertEqual(self.journal.load().stage, checkpoint.stage)
+        self.assertFalse(any(method == 'PUT' for method, _, _ in self.http_calls))
 
     async def test_task_convergence_failure_never_reports_success(self):
         self.fail_command = 'timeout 120 sh -c'
         with self.assertRaises(LifecycleStateError):
             await self.runtime.inspect()
 
-    async def test_shutdown_inventory_failure_restores_source_without_target_mutation(self):
-        self.fail_command = 'timeout 60 sh -c'
-        with self.assertRaises(LifecycleStateError):
-            await self.service.run(target=None, consent=LiveConsent(True, confirmed=True))
-        self.assertEqual(self.replicas, 1)
-        self.assertFalse(any('docker service update' in item for item in self.commands))
-        self.fail_command = None
-        result = await self.service.run(target=None, consent=LiveConsent(True, confirmed=True), recovery=True)
-        self.assertEqual(result['status'], 'recovered')
-        self.assertFalse(any('tar -xpf' in item for item in self.commands))
+    async def test_interrupted_cancel_never_replays_source_mutation(self):
+        await self.checkpoint('cancel_in_progress', backup=False)
+        start = len(self.commands)
+        self.assertEqual((await self.service.run(target=None, consent=LiveConsent(True, confirmed=True), recovery=True))['status'], 'unknown')
+        self.assertFalse(any('docker service scale' in item or 'docker service update' in item for item in self.commands[start:]))
 
     async def test_recovery_rejects_changed_volume_binding_before_mutation(self):
-        self.fail_command = 'docker service update'
-        with self.assertRaises(LifecycleStateError):
-            await self.service.run(target=None, consent=LiveConsent(True, confirmed=True))
-        self.fail_command = None
+        await self.checkpoint()
         original = self.command
         def changed_mount(script, **kwargs):
             result = original(script, **kwargs)
@@ -186,9 +162,39 @@ class PortainerRuntimeIntegrationTests(unittest.IsolatedAsyncioTestCase):
             return result
         self.shell.run_manager_shell.side_effect = changed_mount
         start = len(self.commands)
-        with self.assertRaises(LifecycleStateError):
-            await self.service.run(target=None, consent=LiveConsent(True, confirmed=True), recovery=True)
+        self.assertEqual((await self.service.run(target=None, consent=LiveConsent(True, confirmed=True), recovery=True))['status'], 'unknown')
         self.assertFalse(any('docker service scale' in item or 'tar -xpf' in item for item in self.commands[start:]))
+
+    async def test_direct_recovery_port_errors_are_fixed_and_redacted(self):
+        before = await self.runtime.inspect()
+        checkpoint = await self.checkpoint()
+        for name, operation, argument in (
+            ('cancel_backup', self.runtime.backups, checkpoint),
+            ('restore', self.runtime.backups, checkpoint),
+            ('_inspect_recovery', self.runtime, before),
+        ):
+            for failure in (RuntimeError('runtime-secret'), LifecycleStateError('lifecycle-secret')):
+                with self.subTest(operation=name, failure=type(failure).__name__):
+                    with patch.object(operation, name, side_effect=failure):
+                        action = self.runtime.inspect_recovery if name == '_inspect_recovery' else getattr(self.runtime, name)
+                        with self.assertRaises(LifecycleStateError) as raised:
+                            await action(argument)
+                    self.assertNotIn('secret', str(raised.exception))
+
+    async def test_direct_proof_and_verify_fail_before_any_put(self):
+        before = await self.runtime.inspect()
+        checkpoint = await self.checkpoint()
+        start_commands, start_http = len(self.commands), len(self.http_calls)
+        with self.assertRaisesRegex(LifecycleStateError, 'ownership proof'):
+            self.runtime.api.prove_update()
+        with self.assertRaisesRegex(LifecycleStateError, 'ownership proof'):
+            await self.runtime.verify(before, recovery=False)
+        with self.assertRaisesRegex(LifecycleStateError, 'ownership proof'):
+            await self.runtime.backup(checkpoint)
+        with self.assertRaisesRegex(LifecycleStateError, 'ownership proof'):
+            await self.runtime.upgrade(checkpoint)
+        self.assertEqual(len(self.commands), start_commands)
+        self.assertEqual(len(self.http_calls), start_http)
 
     async def test_unreadable_proof_definition_blocks_before_backup(self):
         original = self.request
@@ -227,12 +233,12 @@ class PortainerRuntimeIntegrationTests(unittest.IsolatedAsyncioTestCase):
     async def test_generic_component_journal_rejects_gateway_interruption_under_lock(self):
         from tiny_swarm_world.infrastructure.adapters.lifecycle.update_journal import JsonUpdateJournal
 
-        self.fail_command = 'docker service update'
-        with self.assertRaises(LifecycleStateError):
-            await self.service.run(target=None, consent=LiveConsent(True, confirmed=True))
-        with self.assertRaises(LifecycleStateError):
-            with JsonUpdateJournal(self.root / 'component-update.json').exclusive():
-                self.fail('unsettled gateway checkpoint was bypassed')
+        for stage in ('cancel_in_progress', 'recovery_pending_proof'):
+            with self.subTest(stage=stage):
+                await self.checkpoint(stage, backup=stage != 'cancel_in_progress')
+                with self.assertRaises(LifecycleStateError):
+                    with JsonUpdateJournal(self.root / 'component-update.json').exclusive():
+                        self.fail('unsettled gateway checkpoint was bypassed')
 
     async def test_upgrade_authenticates_using_existing_http_client_and_credentials(self):
         from tiny_swarm_world.infrastructure.adapters.clients.portainer_http_client import PortainerHttpClient
@@ -241,12 +247,12 @@ class PortainerRuntimeIntegrationTests(unittest.IsolatedAsyncioTestCase):
         session.post.return_value = SimpleNamespace(status_code=200, json=lambda: {'jwt': 'private-jwt'})
         session.request.side_effect = lambda method, url, **kwargs: self.request(method, url.removeprefix('http://manager:10001'), **kwargs)
         self.runtime.api.client = PortainerHttpClient('http://manager:10001', 'admin', 'existing-private-password', session=session)
-        result = await self.service.run(target=None, consent=LiveConsent(True, confirmed=True))
-        self.assertEqual(result['status'], 'completed')
-        self.assertGreaterEqual(session.post.call_count, 2)
+        with self.assertRaisesRegex(LifecycleStateError, 'ownership proof'):
+            await self.service.run(target=None, consent=LiveConsent(True, confirmed=True))
+        self.assertGreaterEqual(session.post.call_count, 1)
         self.assertTrue(all(call.kwargs['json']['Password'] == 'existing-private-password' for call in session.post.call_args_list))
-        self.assertNotIn('existing-private-password', self.journal.path.read_text())
-        self.assertNotIn('private-jwt', self.journal.path.read_text())
+        self.assertIsNone(self.journal.load())
+        self.assertFalse(any(call.args[0] == 'PUT' for call in session.request.call_args_list))
 
     def test_shutdown_shell_fails_closed_when_docker_inventory_fails(self):
         import os
@@ -311,7 +317,8 @@ class PortainerRuntimeIntegrationTests(unittest.IsolatedAsyncioTestCase):
         repository.save(manifest, expected_token=None)
         journal = JsonPortainerJournal(repository.path.parent / 'portainer-upgrade.json')
         service = PortainerUpgradeService(repository, journal, self.runtime)
-        self.assertEqual((await service.run(target=None, consent=LiveConsent(True, confirmed=True)))['status'], 'completed')
+        # A previously committed legacy target manifest still feeds downstream readers.
+        service._commit(repository.load(), '2.45.1')
         after = repository.load().manifest
         with patch.dict('os.environ', {}, clear=True):
             environment = effective_image_environment({}, self.root)
@@ -338,12 +345,14 @@ class PortainerRuntimeIntegrationTests(unittest.IsolatedAsyncioTestCase):
         from tiny_swarm_world.domain.lifecycle.update_planning import plan_component_updates
 
         canonical = JsonPortainerJournal(self.root / '.tiny-swarm-world/installation/portainer-upgrade.json')
+        canonical.path.parent.mkdir(parents=True, exist_ok=True)
         self.service.journal = canonical
-        self.fail_command = 'docker service update'
-        with self.assertRaises(LifecycleStateError):
-            await self.service.run(target=None, consent=LiveConsent(True, confirmed=True))
-        with self.assertRaisesRegex(LifecycleStateError, 'Portainer upgrade incomplete'):
-            require_settled_updates(self.root)
+        self.journal = canonical
+        for stage in ('cancel_in_progress', 'recovery_pending_proof'):
+            with self.subTest(stage=stage):
+                await self.checkpoint(stage, backup=stage != 'cancel_in_progress')
+                with self.assertRaisesRegex(LifecycleStateError, 'Portainer upgrade incomplete'):
+                    require_settled_updates(self.root)
         # The reverse direction is checked while the same execution lock is held.
         catalog, manifest = update_fixture()
         plan = plan_component_updates(catalog, manifest, ('nexus',))
@@ -351,7 +360,7 @@ class PortainerRuntimeIntegrationTests(unittest.IsolatedAsyncioTestCase):
                                    source=component.desired, target=component.target)
                        for item in plan.services for component in item.components)
         batch = UpdateBatch(original=manifest, plan=plan, stages=stages)
-        other = JsonUpdateJournal(self.root / 'component-update.json')
+        other = JsonUpdateJournal(canonical.path.with_name('component-update.json'))
         other.path.parent.mkdir(parents=True, exist_ok=True)
         other.save(batch)
         with self.assertRaisesRegex(LifecycleStateError, 'component batch'):

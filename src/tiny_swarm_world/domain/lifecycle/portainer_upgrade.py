@@ -44,7 +44,7 @@ class PortainerCheckpoint(Contract):
     before: PortainerObservation
     manifest_token: str
     backup_digest: Digest | None = None
-    stage: Literal['admitted', 'backed_up', 'upgrading', 'verified', 'recovering', 'recovered', 'completed'] = 'admitted'
+    stage: Literal['admitted', 'backed_up', 'upgrading', 'verified', 'recovering', 'cancel_in_progress', 'recovery_pending_proof', 'recovered', 'completed'] = 'admitted'
 
     @property
     def settled(self) -> bool:

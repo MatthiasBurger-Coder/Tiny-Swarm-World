@@ -6,7 +6,7 @@ import requests
 
 from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
 from tiny_swarm_world.application.ports.operation_result import OperationError
-from tiny_swarm_world.domain.lifecycle.portainer_upgrade import SOURCE_VERSION, TARGET_VERSION
+from tiny_swarm_world.domain.lifecycle.portainer_upgrade import SOURCE_VERSION
 from tiny_swarm_world.infrastructure.adapters.lifecycle.portainer_api import PortainerUpgradeApi
 from tiny_swarm_world.infrastructure.adapters.lifecycle.portainer_backup import PortainerColdBackup
 from tiny_swarm_world.infrastructure.adapters.lifecycle.portainer_inspection import PortainerInspection
@@ -33,28 +33,33 @@ class ClassicPortainerUpgradeRuntime:
         return await self._stage(self.inspection.inspect)
 
     async def backup(self, checkpoint):
-        return await self._stage(self.backups.backup, checkpoint)
+        raise LifecycleStateError('Portainer upgrade blocked: persisted ownership proof is unavailable.')
 
     async def upgrade(self, checkpoint):
-        return await self._stage(self._upgrade, checkpoint)
+        raise LifecycleStateError('Portainer upgrade blocked: persisted ownership proof is unavailable.')
+
+    async def _recovery_stage(self, operation, *args):
+        try:
+            return await self._stage(operation, *args)
+        except Exception:
+            raise LifecycleStateError('Portainer recovery unavailable; manual reconciliation required.') from None
 
     async def cancel_backup(self, checkpoint):
-        return await self._stage(self.backups.cancel_backup, checkpoint)
+        return await self._recovery_stage(self.backups.cancel_backup, checkpoint)
 
     async def restore(self, checkpoint):
-        return await self._stage(self.backups.restore, checkpoint)
-
-    def _upgrade(self, checkpoint):
-        self.backups.check_backup(checkpoint)
-        self.state.set_images(TARGET_VERSION)
-
+        return await self._recovery_stage(self.backups.restore, checkpoint)
 
     async def verify(self, before, *, recovery):
-        await self._stage(self._verify, before, recovery)
+        raise LifecycleStateError('Portainer update blocked: persisted ownership proof is unavailable.')
+
+    async def inspect_recovery(self, before):
+        await self._recovery_stage(self._inspect_recovery, before)
 
 
-    def _verify(self, before, recovery):
-        version = SOURCE_VERSION if recovery else TARGET_VERSION
+
+    def _inspect_recovery(self, before):
+        version = SOURCE_VERSION
         self.state.wait_images(version)
         for attempt in range(30):
             try:
@@ -68,10 +73,3 @@ class ClassicPortainerUpgradeRuntime:
                 or current.endpoints != before.endpoints or current.ownership != before.ownership
                 or (current.server_id, current.agent_id, current.swarm_id) != (before.server_id, before.agent_id, before.swarm_id)):
             raise LifecycleStateError('Portainer version, access, endpoints or stack ownership changed; recovery required.')
-        stack = self.api.prove_update()
-        # Verify the managed update through Swarm readiness,
-        # rather than treating the PUT response as deployment proof.
-        self.state.wait_stack(stack)
-        after = self.api.inventory()
-        if after != (current.version, before.endpoints, before.ownership):
-            raise LifecycleStateError('Gateway proof changed endpoint or stack ownership.')

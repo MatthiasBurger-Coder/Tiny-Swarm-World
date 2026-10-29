@@ -302,3 +302,9 @@ not proof of ownership and a missing name is not proof of global absence. Legacy
 creation and the 404/405 fallback remain in place; those responses do not prove
 that no mutation occurred. Concurrent changes can occur after the recheck. Direct
 `update_stack` calls bypass these apply checks.
+
+Portainer management-gateway upgrades are blocked until independently persisted
+ownership proof is implemented. The checked target-version no-op remains available.
+Recovery can cancel an admitted backup or restore a checked backup, then remains
+pending ownership proof. Interrupted recovery markers require manual reconciliation;
+re-entry performs read-only checks and does not replay cancellation or restoration.
