@@ -1368,6 +1368,39 @@ class SnapContextCliTests(unittest.TestCase):
             self.assertEqual(inventory.diagnose_snap_context(runner=Mock()), "UNKNOWN")
         importer.assert_not_called()
 
+    def test_dropin_invalid_cli_is_constant_and_has_no_host_io(self) -> None:
+        cases = (["--diagnose-snap-dropin=secret"], ["--diagnose-snap-dropin", "secret"],
+                 ["--diagnose-snap-dropin", "--help"], ["--diagnose-snap-dropin", "--diagnose-units"],
+                 ["--diagnose-snap-dropin", "--diagnose-snap-context"],
+                 ["--diagnose-snap-dropin", "--diagnose-snap-dropin"])
+        for argv in cases:
+            with self.subTest(argv=argv), patch.object(inventory, "diagnose_snap_dropin") as diagnose:
+                out, err = StringIO(), StringIO()
+                with redirect_stdout(out), redirect_stderr(err):
+                    self.assertEqual(inventory.main(argv), 2)
+                self.assertEqual(out.getvalue(), '{"status":"BLOCKED_UNKNOWN","reason":"UNKNOWN"}\n')
+                self.assertEqual(err.getvalue(), "")
+                diagnose.assert_not_called()
+
+    def test_dropin_valid_cli_is_symbolic_and_fail_closed(self) -> None:
+        out, err = StringIO(), StringIO()
+        with patch.object(inventory, "diagnose_snap_dropin", return_value="DEPENDENCY_VARIANT"), \
+                redirect_stdout(out), redirect_stderr(err):
+            self.assertEqual(inventory.main(["--diagnose-snap-dropin"]), 2)
+        self.assertEqual(out.getvalue(), '{"status":"BLOCKED_UNKNOWN","reason":"DEPENDENCY_VARIANT"}\n')
+        self.assertEqual(err.getvalue(), "")
+        runner = Mock()
+        runner.run.side_effect = RuntimeError("secret-token /private/path")
+        self.assertEqual(inventory.diagnose_snap_dropin(runner=runner), "UNKNOWN")
+        self.assertEqual(runner.run.call_count, 1)
+
+    def test_dropin_inactive_snapshot_stops_before_helper(self) -> None:
+        row = {"load_state": "loaded", "active_state": "inactive", "sub_state": "dead", "main_pid": 0}
+        with patch.object(inventory, "_systemctl_show", return_value=row), \
+                patch("importlib.import_module") as importer:
+            self.assertEqual(inventory.diagnose_snap_dropin(runner=Mock()), "UNKNOWN")
+        importer.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()

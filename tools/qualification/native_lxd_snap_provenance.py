@@ -546,3 +546,50 @@ def diagnose_context(runner: RunnerPort, expected: dict[str, Any], *, fs: ReadOn
         return reason or "UNKNOWN"
     except Exception:
         return "UNKNOWN"
+
+
+def _dropin_form(raw: bytes) -> str:
+    """Classify only unambiguous text without returning any observed values."""
+    text = raw.decode("utf-8", "strict")
+    if any(ord(char) < 32 and char not in "\n\t" or ord(char) > 126 for char in text) or "\\" in text:
+        return "UNKNOWN"
+    lines = [line for line in text.split("\n") if line.strip() and not line.lstrip().startswith("#")]
+    expected = ["[Unit]", "After=snap.microceph.daemon.service snap.microovn.daemon.service"]
+    if lines == expected:
+        return "UNKNOWN"
+    if any('"' in line or "'" in line for line in lines):
+        return "UNKNOWN"
+    if any(re.fullmatch(r"\[[A-Za-z][A-Za-z0-9]*\]", line, re.ASCII) is None
+           and re.fullmatch(r"[A-Za-z][A-Za-z0-9]*=[ -~]*", line, re.ASCII) is None
+           for line in lines):
+        return "UNKNOWN"
+    sections = [index for index, line in enumerate(lines) if line.startswith("[") and line.endswith("]")]
+    if not lines or lines[0] != "[Unit]" or sections != [0]:
+        return "SECTION_SHAPE"
+    if len(lines) != 2 or not lines[1].startswith("After="):
+        return "UNKNOWN_DIRECTIVE"
+    return "DEPENDENCY_VARIANT"
+
+
+def diagnose_dropin(runner: RunnerPort, expected: dict[str, Any], *, fs: ReadOnlyFS | None = None,
+                    clock: Callable[[], float] = time.monotonic) -> str:
+    """Classify a stable rejected fixed drop-in without admitting an identity."""
+    try:
+        proof = _Proof(runner, fs or LocalReadOnlyFS(), clock)
+        before = proof.diagnostic_unit(expected)
+        if _context_reason(before) is not None or before["DropInPaths"] != DROP_IN:
+            return "UNKNOWN"
+        unit_file = proof.trusted(proof.observe(UNIT_FILE))
+        drop = proof.trusted(proof.observe(DROP_IN, limit=PROC_LIMIT))
+        reason = _dropin_form(drop.data)
+        after = proof.diagnostic_unit(expected)
+        if _context_reason(after) is not None:
+            return "UNKNOWN"
+        before_compare, after_compare = dict(before), dict(after)
+        before_compare["ExecStart"] = after_compare["ExecStart"] = "snap-run-lxd-daemon"
+        observed = ((UNIT_FILE, unit_file), (DROP_IN, drop))
+        if before_compare != after_compare or not proof.diagnostic_reobserve(observed):
+            return "UNKNOWN"
+        return reason
+    except Exception:
+        return "UNKNOWN"

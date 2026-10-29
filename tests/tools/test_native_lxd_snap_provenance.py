@@ -643,6 +643,134 @@ class ContextDiagnosticTests(unittest.TestCase):
         self.assertEqual(self.diagnose(), "UNKNOWN")
         self.assertEqual(self.runner.run.call_args.args, (proof.UNIT_ARGV,))
 
+    def dropin_diagnose(self) -> str:
+        return proof.diagnose_dropin(self.runner, self.row, fs=self.fs, clock=lambda: 0.0)
+
+    def test_dropin_form_categories_and_no_environment_read(self) -> None:
+        self.values["DropInPaths"] = proof.DROP_IN
+        self.values["EnvironmentFiles"] = "/etc/environment (ignore_errors=yes)"
+        cases = ((b"[Other]\nAfter=secret-token\n", "SECTION_SHAPE"),
+                 (b"[Unit]\nAfter=secret-token\n[Other]\n", "SECTION_SHAPE"),
+                 (b"[Unit]\n", "UNKNOWN_DIRECTIVE"),
+                 (b"[Unit]\nOther=secret-token\n", "UNKNOWN_DIRECTIVE"),
+                 (b"[Unit]\nAfter=one\nAfter=two\n", "UNKNOWN_DIRECTIVE"),
+                 (b"# comment\n[Unit]\n\nAfter=secret-token\n", "DEPENDENCY_VARIANT"),
+                 (b"[Unit]\nAfter=snap.microceph.daemon.service snap.microovn.daemon.service\n", "UNKNOWN"),
+                 (b"[Unit]\nAfter=secret-token\r\n", "UNKNOWN"),
+                 (b"[Unit]\nAfter=secret\x00\n", "UNKNOWN"),
+                 (b"[Unit]\nAfter=secret\\\n continuation\n", "UNKNOWN"),
+                 (b"[Unit]\nAfter=\xff\n", "UNKNOWN"),
+                 (b"[Unit\nAfter=secret\n", "UNKNOWN"))
+        for raw, expected in cases:
+            with self.subTest(expected=expected, raw=raw):
+                self.fs.files[proof.DROP_IN] = regular(7, raw)
+                self.fs.calls.clear()
+                self.runner.reset_mock()
+                result = self.dropin_diagnose()
+                self.assertEqual(result, expected)
+                self.assertNotIn("secret-token", result)
+                invalid_utf8 = raw == b"[Unit]\nAfter=\xff\n"
+                self.assertEqual(self.runner.run.call_count, 1 if invalid_utf8 else 2)
+                expected_paths = [proof.UNIT_FILE, proof.DROP_IN]
+                self.assertEqual([item[0] for item in self.fs.calls],
+                                 expected_paths if invalid_utf8 else expected_paths * 2)
+                self.assertNotIn("/etc/environment", [item[0] for item in self.fs.calls])
+
+    def test_dropin_unit_failures_stop_before_files(self) -> None:
+        self.values["DropInPaths"] = "secret-token"
+        self.assertEqual(self.dropin_diagnose(), "UNKNOWN")
+        self.assertEqual(self.fs.calls, [])
+        self.assertEqual(self.runner.run.call_count, 1)
+        self.values["DropInPaths"] = ""
+        self.assertEqual(self.dropin_diagnose(), "UNKNOWN")
+        self.assertEqual(self.fs.calls, [])
+
+    def test_dropin_trust_missing_size_and_drift_fail_closed(self) -> None:
+        self.values["DropInPaths"] = proof.DROP_IN
+        for value in (replace(regular(7, b"[Unit]\nAfter=secret\n"), uid=1000),
+                      regular(7, b"x" * (proof.PROC_LIMIT + 1))):
+            with self.subTest(value=value):
+                self.fs.files[proof.DROP_IN] = value
+                self.assertEqual(self.dropin_diagnose(), "UNKNOWN")
+        self.fs.files.pop(proof.DROP_IN)
+        self.assertEqual(self.dropin_diagnose(), "UNKNOWN")
+        self.fs.links[proof.DROP_IN] = "/tmp/secret-token"
+        self.assertEqual(self.dropin_diagnose(), "UNKNOWN")
+        self.fs.links.clear()
+        self.fs.sequences[proof.DROP_IN] = [regular(7, b"[Unit]\nAfter=one\n"),
+                                              regular(7, b"[Unit]\nAfter=two\n")]
+        self.assertEqual(self.dropin_diagnose(), "UNKNOWN")
+
+    def test_dropin_unit_drift_and_io_failure_are_unknown(self) -> None:
+        self.values["DropInPaths"] = proof.DROP_IN
+        self.fs.files[proof.DROP_IN] = regular(7, b"[Unit]\nAfter=secret-token\n")
+        initial = self.unit_bytes()
+        self.values["ControlGroup"] = "/different"
+        self.runner.run.side_effect = [(0, initial, b""), (0, self.unit_bytes(), b"")]
+        self.assertEqual(self.dropin_diagnose(), "UNKNOWN")
+        self.runner.run.side_effect = OSError("secret-token")
+        self.assertEqual(self.dropin_diagnose(), "UNKNOWN")
+        self.assertEqual(proof.diagnose_dropin(self.runner, self.row, fs=self.fs,
+                                               clock=iter([0.0, 61.0]).__next__), "UNKNOWN")
+
+    def test_dropin_categories_reproduce_f5_rejection(self) -> None:
+        self.values["DropInPaths"] = proof.DROP_IN
+        self.values["EnvironmentFiles"] = "/etc/environment (ignore_errors=yes)"
+        cases = ((b"[Other]\nAfter=secret\n", "SECTION_SHAPE"),
+                 (b"[Unit]\nOther=secret\n", "UNKNOWN_DIRECTIVE"),
+                 (b"[Unit]\nAfter=secret\n", "DEPENDENCY_VARIANT"))
+        for raw, reason in cases:
+            with self.subTest(reason=reason):
+                self.fs.files[proof.DROP_IN] = regular(7, raw)
+                self.fs.calls.clear()
+                self.assertEqual(self.diagnose(), "DROPIN_CONTENT")
+                self.assertNotIn("/etc/environment", [item[0] for item in self.fs.calls])
+                self.fs.calls.clear()
+                self.assertEqual(self.dropin_diagnose(), reason)
+                self.assertNotIn("/etc/environment", [item[0] for item in self.fs.calls])
+
+    def test_dropin_identity_mode_and_unit_failure_cannot_be_classified(self) -> None:
+        self.values["DropInPaths"] = proof.DROP_IN
+        raw = b"[Unit]\nAfter=secret-token\n"
+        self.fs.files[proof.DROP_IN] = replace(regular(7, raw), mode=stat.S_IFREG | 0o666)
+        self.assertEqual(self.dropin_diagnose(), "UNKNOWN")
+        self.fs.files[proof.DROP_IN] = regular(7, raw)
+        self.fs.sequences[proof.DROP_IN] = [regular(7, raw), regular(8, raw)]
+        self.assertEqual(self.dropin_diagnose(), "UNKNOWN")
+        self.fs.sequences.clear()
+        self.fs.sequences[proof.UNIT_FILE] = [regular(10), regular(11)]
+        self.assertEqual(self.dropin_diagnose(), "UNKNOWN")
+        self.fs.sequences.clear()
+        self.runner.run.side_effect = [(0, self.unit_bytes(), b""), OSError("secret-token")]
+        self.assertEqual(self.dropin_diagnose(), "UNKNOWN")
+
+    def test_dropin_unsafe_syntax_overrides_structural_categories(self) -> None:
+        self.values["DropInPaths"] = proof.DROP_IN
+        for raw in (b"[Other]\nAfter=secret\\\n", b"[Unit]\nOther=secret\r\n",
+                    b"[Other]\nAfter=secret\x00\n", b"[Unit]\nAfter=\xff\n"):
+            with self.subTest(raw=raw):
+                self.fs.files[proof.DROP_IN] = regular(7, raw)
+                self.assertEqual(self.dropin_diagnose(), "UNKNOWN")
+
+    def test_dropin_malformed_lines_never_report_structural_category(self) -> None:
+        self.values["DropInPaths"] = proof.DROP_IN
+        cases = (b"[Unit]\nnot-an-assignment secret-token\n",
+                 b"[broken\nAfter=secret-token\n",
+                 b"[Unit]\n[broken\nAfter=secret-token\n",
+                 b"[Other]\nnot-an-assignment secret-token\n",
+                 b"[Unit]\nInvalid Name=secret-token\n",
+                 b'[Unit]\nAfter="secret-token\n',
+                 b'[Unit]\nAfter="secret-token"\n',
+                 b"[Unit]\nAfter='secret-token'\n",
+                 b'[Other]\nAfter="secret-token\n',
+                 b"[Unit]\nOther='secret-token'\n")
+        for raw in cases:
+            with self.subTest(raw=raw):
+                self.fs.files[proof.DROP_IN] = regular(7, raw)
+                result = self.dropin_diagnose()
+                self.assertEqual(result, "UNKNOWN")
+                self.assertNotIn("secret-token", result)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1287,8 +1287,29 @@ def diagnose_snap_context(*, runner: Runner | None = None) -> str:
         return "UNKNOWN"
 
 
+def diagnose_snap_dropin(*, runner: Runner | None = None) -> str:
+    """Return a fixed structural category without admitting the service."""
+    try:
+        import importlib
+        runner = runner or Runner()
+        row = _systemctl_show(runner, "snap.lxd.daemon.service")
+        if (row["load_state"], row["active_state"], row["sub_state"]) != ("loaded", "active", "running") or row["main_pid"] <= 0:
+            return "UNKNOWN"
+        name = f"{__package__}.native_lxd_snap_provenance" if __package__ else "native_lxd_snap_provenance"
+        proof = importlib.import_module(name)
+        reason = proof.diagnose_dropin(runner, row)
+        allowed = {"SECTION_SHAPE", "UNKNOWN_DIRECTIVE", "DEPENDENCY_VARIANT", "UNKNOWN"}
+        return reason if reason in allowed else "UNKNOWN"
+    except Exception:
+        return "UNKNOWN"
+
+
 def main(argv: list[str] | None = None) -> int:
     arguments = list(sys.argv[1:] if argv is None else argv)
+    if any(arg == "--diagnose-snap-dropin" or arg.startswith("--diagnose-snap-dropin=") for arg in arguments):
+        reason = diagnose_snap_dropin() if arguments == ["--diagnose-snap-dropin"] else "UNKNOWN"
+        print(json.dumps({"status": "BLOCKED_UNKNOWN", "reason": reason}, separators=(",", ":"), ensure_ascii=True))
+        return 2
     if any(arg == "--diagnose-snap-context" or arg.startswith("--diagnose-snap-context=") for arg in arguments):
         reason = diagnose_snap_context() if arguments == ["--diagnose-snap-context"] else "UNKNOWN"
         print(json.dumps({"status": "BLOCKED_UNKNOWN", "reason": reason}, separators=(",", ":"), ensure_ascii=True))
