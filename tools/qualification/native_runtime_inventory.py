@@ -1354,8 +1354,27 @@ def diagnose_snap_cgroup_relation(*, runner: Runner | None = None) -> str:
     except Exception:
         return "UNKNOWN"
 
+def diagnose_snap_reader_namespace(*, runner: Runner | None = None) -> str:
+    """Compare only the current reader and visible PID 1 namespaces."""
+    try:
+        import importlib
+        runner = runner or Runner()
+        row = _systemctl_show(runner, "snap.lxd.daemon.service")
+        if (row["load_state"], row["active_state"], row["sub_state"]) != ("loaded", "active", "running") or row["main_pid"] <= 0:
+            return "UNKNOWN"
+        name = f"{__package__}.native_lxd_snap_provenance" if __package__ else "native_lxd_snap_provenance"
+        result = importlib.import_module(name).diagnose_reader_namespace(runner, row)
+        return result if result in {"SAME", "DIFFERENT"} else "UNKNOWN"
+    except Exception:
+        return "UNKNOWN"
+
+
 def main(argv: list[str] | None = None) -> int:
     arguments = list(sys.argv[1:] if argv is None else argv)
+    if any(arg == "--diagnose-snap-reader-namespace" or arg.startswith("--diagnose-snap-reader-namespace=") for arg in arguments):
+        reason = diagnose_snap_reader_namespace() if arguments == ["--diagnose-snap-reader-namespace"] else "UNKNOWN"
+        print(json.dumps({"status": "BLOCKED_UNKNOWN", "reason": reason}, separators=(",", ":"), ensure_ascii=True))
+        return 2
     if any(arg == "--diagnose-snap-cgroup-relation" or arg.startswith("--diagnose-snap-cgroup-relation=") for arg in arguments):
         reason = diagnose_snap_cgroup_relation() if arguments == ["--diagnose-snap-cgroup-relation"] else "UNKNOWN"
         print(json.dumps({"status": "BLOCKED_UNKNOWN", "reason": reason}, separators=(",", ":"), ensure_ascii=True))

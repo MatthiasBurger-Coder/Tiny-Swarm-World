@@ -1230,5 +1230,293 @@ class CgroupRelationTests(unittest.TestCase):
         self.assertEqual(self.diagnose(), "UNKNOWN")
         self.assertEqual(self.fs.calls, [])
 
+
+class ReaderNamespaceTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.fixture = CgroupRelationTests("runTest")
+        self.fixture.setUp()
+        self.fixture.fs.files["/proc/101/cgroup"] = regular(3101, b"0::/\n", readonly=False)
+
+    def diagnose(self) -> str:
+        fixture = self.fixture
+        return proof.diagnose_reader_namespace(fixture.runner, fixture.row, fs=fixture.fs, clock=lambda: 0.0)
+
+    def test_comparison_requires_stable_f9_root_and_revalidation(self) -> None:
+        for result in ("SAME", "DIFFERENT"):
+            with self.subTest(result=result):
+                self.setUp()
+                with patch.object(proof, "_compare_reader_namespace",
+                                  side_effect=lambda _proof, check: result if check() else "UNKNOWN") as compare:
+                    self.assertEqual(self.diagnose(), result)
+                compare.assert_called_once()
+                self.assertEqual(self.fixture.runner.run.call_count, 2)
+                self.assertNotIn("/etc/environment", [call[0] for call in self.fixture.fs.calls])
+                self.assertNotIn("/proc/101/environ", [call[0] for call in self.fixture.fs.calls])
+
+    def test_non_root_and_ambiguous_result_never_admit(self) -> None:
+        self.fixture.fs.files["/proc/101/cgroup"] = regular(3101, b"0::/other\n", readonly=False)
+        with patch.object(proof, "_compare_reader_namespace") as compare:
+            self.assertEqual(self.diagnose(), "UNKNOWN")
+            compare.assert_not_called()
+        self.setUp()
+        with patch.object(proof, "_compare_reader_namespace", return_value="private secret"):
+            self.assertEqual(self.diagnose(), "UNKNOWN")
+
+    def test_process_negative_snapshot_drift_during_revalidation_is_rejected(self) -> None:
+        path = "/proc/101/cgroup"
+        first = regular(3101, b"0::/\n", readonly=False)
+        changed = regular(3101, b"0::/other\n", readonly=False)
+        self.fixture.fs.sequences[path] = [first, changed]
+        with patch.object(proof, "_compare_reader_namespace",
+                          side_effect=lambda _proof, check: "SAME" if check() else "UNKNOWN") as compare:
+            self.assertEqual(self.diagnose(), "UNKNOWN")
+        compare.assert_called_once()
+        self.assertEqual(self.fixture.runner.run.call_count, 2)
+
+    def test_unit_drift_during_comparison_fails_closed(self) -> None:
+        def change(_proof: Any, check: Any) -> str:
+            self.fixture.values["FragmentPath"] = "/secret"
+            return "SAME" if check() else "UNKNOWN"
+        with patch.object(proof, "_compare_reader_namespace", side_effect=change):
+            self.assertEqual(self.diagnose(), "UNKNOWN")
+
+    def test_unsupported_abi_and_hostile_self_fail_closed(self) -> None:
+        instance = proof._Proof(Mock(), MemoryFS(), lambda: 0.0)
+        with patch("platform.machine", return_value="unsupported"):
+            self.assertEqual(proof._compare_reader_namespace(instance, lambda: True), "UNKNOWN")
+        with patch("os.readlink", return_value="../private"):
+            self.assertEqual(proof._compare_reader_namespace(instance, lambda: True), "UNKNOWN")
+
+    def test_real_namespace_probe_closes_descriptors_and_compares(self) -> None:
+        import ctypes
+        import fcntl
+        import platform
+        import sys
+
+        if sys.platform != "linux" or platform.machine() != "x86_64" or ctypes.sizeof(ctypes.c_long) != 8:
+            self.skipTest("F10 supports Linux x86_64 LP64 only")
+        opened = []
+        libc = ctypes.CDLL(None, use_errno=True)
+        libc.syscall.restype = ctypes.c_long
+        try:
+            try:
+                procfd = os.open("/proc", os.O_PATH | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC)
+                opened.append(procfd)
+                own = os.readlink("self", dir_fd=procfd)
+                if own != str(os.getpid()):
+                    self.skipTest("procfs PID view does not match this reader")
+                for path in ("/proc/self/ns/cgroup", "/proc/1/ns/cgroup"):
+                    fd = os.open(path, os.O_RDONLY | os.O_CLOEXEC)
+                    opened.append(fd)
+                    if fcntl.ioctl(fd, 0xB703) != 0x02000000:
+                        self.skipTest("cgroup namespace descriptor type unavailable")
+                how = (ctypes.c_uint64 * 3)(os.O_PATH | os.O_DIRECTORY | os.O_CLOEXEC, 0, 0x0D)
+                probe = libc.syscall(ctypes.c_long(437), ctypes.c_int(procfd), ctypes.c_char_p(own.encode()),
+                                     ctypes.byref(how), ctypes.c_size_t(24))
+                if probe < 0:
+                    self.skipTest("openat2 with required resolution flags unavailable")
+                opened.append(probe)
+                statx = (ctypes.c_ubyte * 256)()
+                rc = libc.syscall(ctypes.c_long(332), ctypes.c_int(procfd), ctypes.c_char_p(b""),
+                                  ctypes.c_int(0x1000), ctypes.c_uint(0x1000), ctypes.byref(statx))
+                if rc != 0 or not ctypes.c_uint32.from_buffer(statx).value & 0x1000:
+                    self.skipTest("statx mount ID unavailable")
+                first, second = (os.fstat(fd) for fd in opened[1:3])
+                expected = "SAME" if (first.st_dev, first.st_ino) == (second.st_dev, second.st_ino) else "DIFFERENT"
+            except (OSError, PermissionError):
+                self.skipTest("procfs namespace descriptors inaccessible")
+        finally:
+            for fd in reversed(opened):
+                os.close(fd)
+        instance = proof._Proof(Mock(), MemoryFS(), lambda: 0.0)
+        before = set(os.listdir("/proc/self/fd"))
+        self.assertEqual(proof._compare_reader_namespace(instance, lambda: True), expected)
+        self.assertEqual(set(os.listdir("/proc/self/fd")), before)
+
+
+class NamespaceDescriptorFixtureTests(unittest.TestCase):
+    """Exercise descriptor identity and error paths without changing namespaces."""
+
+    def setUp(self) -> None:
+        import ctypes
+        from types import SimpleNamespace
+
+        self.ctypes = ctypes
+        self.SimpleNamespace = SimpleNamespace
+        self.next_fd = 10
+        self.handles: dict[int, tuple[str, int]] = {}
+        self.bytes_read: set[int] = set()
+        self.closed: set[int] = set()
+        self.reader_inode = 200
+        self.init_inode = 201
+        self.mount_id = 11
+        self.mask = 0x1000
+        self.ioctl_result = 0x02000000
+        self.fail_openat = False
+        self.fail_link = False
+        self.self_link = "123"
+        self.bad_procfs = False
+        self.bad_nsfs = False
+        self.bad_statfs = False
+        self.substitute_stat = False
+        self.stat_open_count = 0
+        self.change_mount_after = 0
+        self.statx_calls = 0
+        self.stat_read_count = 0
+        self.change_start = False
+        self.proc = proof._Proof(Mock(), MemoryFS(), lambda: 0.0)
+        self.libc = SimpleNamespace(syscall=Mock(side_effect=self.syscall),
+                                    fstatfs=Mock(side_effect=self.fstatfs))
+
+    def allocate(self, kind: str, pid: int = 0) -> int:
+        self.next_fd += 1
+        self.handles[self.next_fd] = (kind, pid)
+        return self.next_fd
+
+    def syscall(self, number: Any, *args: Any) -> int:
+        if number.value == 437:
+            parent, name, _how, _size = args
+            if self.fail_openat:
+                return -1
+            kind, pid = self.handles[parent.value]
+            value = name.value.decode()
+            if kind == "proc" and value in {"123", "1"}:
+                return self.allocate("process", int(value))
+            if kind == "process" and value == "ns":
+                return self.allocate("nsdir", pid)
+            if kind == "process" and value == "stat":
+                self.stat_open_count += 1
+                item = self.allocate("stat", pid)
+                if self.substitute_stat and self.stat_open_count == 2:
+                    self.handles[item] = ("substituted_stat", pid)
+                return item
+            return -1
+        if number.value == 332:
+            fd, _path, _flags, _mask, buffer = args
+            if fd.value not in self.handles:
+                return -1
+            self.statx_calls += 1
+            self.ctypes.memset(buffer, 0, 256)
+            self.ctypes.cast(buffer, self.ctypes.POINTER(self.ctypes.c_uint32))[0] = self.mask
+            address = self.ctypes.addressof(buffer._obj)
+            drift = self.change_mount_after and self.statx_calls > self.change_mount_after
+            self.ctypes.c_uint64.from_address(address + 144).value = self.mount_id + bool(drift)
+            return 0
+        return -1
+
+    def fstatfs(self, fd: Any, buffer: Any) -> int:
+        kind, _pid = self.handles[fd]
+        value = 0x6E736673 if kind == "namespace" else 0x9FA0
+        if ((kind == "namespace" and self.bad_nsfs) or (kind != "namespace" and self.bad_procfs)
+                or (kind in {"stat", "substituted_stat"} and self.bad_statfs)):
+            value = 0
+        self.ctypes.cast(buffer, self.ctypes.POINTER(self.ctypes.c_long))[0] = value
+        return 0
+
+    def open(self, path: str, flags: int, *, dir_fd: int | None = None) -> int:
+        if path == "/proc" and dir_fd is None:
+            return self.allocate("proc")
+        if dir_fd is None:
+            raise OSError("missing parent descriptor")
+        kind, pid = self.handles[dir_fd]
+        if path == "stat" and kind == "process":
+            return self.allocate("stat", pid)
+        if path == "cgroup" and kind == "nsdir":
+            if self.fail_link:
+                raise PermissionError("secret")
+            return self.allocate("link" if flags & os.O_NOFOLLOW else "namespace", pid)
+        raise OSError("unexpected open")
+
+    def fstat(self, fd: int) -> Any:
+        kind, pid = self.handles[fd]
+        if kind in {"proc", "process", "nsdir"}:
+            mode = stat.S_IFDIR | 0o555
+            inode = {"proc": 1, "process": 10 + pid, "nsdir": 20 + pid}[kind]
+        elif kind == "link":
+            mode, inode = stat.S_IFLNK | 0o777, 30 + pid
+        elif kind in {"stat", "substituted_stat"}:
+            mode, inode = stat.S_IFREG | 0o444, 40 + pid + (kind == "substituted_stat")
+        else:
+            mode = stat.S_IFREG | 0o444
+            inode = self.reader_inode if pid == 123 else self.init_inode
+        return self.SimpleNamespace(st_dev=1, st_ino=inode, st_mode=mode, st_uid=0)
+
+    def read(self, fd: int, _size: int) -> bytes:
+        if fd in self.bytes_read:
+            return b""
+        self.bytes_read.add(fd)
+        self.stat_read_count += 1
+        started = 43 if self.change_start and self.stat_read_count > 2 else 42
+        return proc_stat(self.handles[fd][1], 1, started)
+
+    def close(self, fd: int) -> None:
+        if fd in self.closed:
+            raise OSError("duplicate close")
+        self.closed.add(fd)
+
+    def run_probe(self, revalidate: Any = lambda: True) -> str:
+        with patch("platform.machine", return_value="x86_64"), \
+                patch("ctypes.CDLL", return_value=self.libc), \
+                patch("os.open", side_effect=self.open), \
+                patch("os.fstat", side_effect=self.fstat), \
+                patch("os.read", side_effect=self.read), \
+                patch("os.close", side_effect=self.close), \
+                patch("os.readlink", side_effect=lambda *_a, **_kw: self.self_link), \
+                patch("os.getpid", return_value=123), \
+                patch("fcntl.ioctl", side_effect=lambda *_a: self.ioctl_result):
+            return proof._compare_reader_namespace(self.proc, revalidate)
+
+    def test_same_and_different_require_full_revalidation_and_cleanup(self) -> None:
+        for same in (True, False):
+            with self.subTest(same=same):
+                self.setUp()
+                self.init_inode = self.reader_inode if same else self.reader_inode + 1
+                seen = []
+                def revalidate() -> bool:
+                    seen.append(len(self.handles) - len(self.closed))
+                    return True
+                self.assertEqual(self.run_probe(revalidate), "SAME" if same else "DIFFERENT")
+                self.assertGreater(seen[0], 0)
+                self.assertEqual(set(self.handles), self.closed)
+
+    def test_unsupported_syscall_missing_mount_id_or_wrong_namespace_type(self) -> None:
+        for failure in ("openat", "mask", "type", "permission", "recheck"):
+            with self.subTest(failure=failure):
+                self.setUp()
+                self.fail_openat = failure == "openat"
+                self.mask = 0 if failure == "mask" else 0x1000
+                self.ioctl_result = 0 if failure == "type" else 0x02000000
+                self.fail_link = failure == "permission"
+                self.assertEqual(self.run_probe(lambda: failure != "recheck"), "UNKNOWN")
+                self.assertEqual(set(self.handles), self.closed)
+
+    def test_self_procfs_namespace_mount_and_start_identity_are_bound(self) -> None:
+        for failure in ("self", "procfs", "nsfs", "mount", "start", "statfs", "stat-retarget"):
+            with self.subTest(failure=failure):
+                self.setUp()
+                self.self_link = "124" if failure == "self" else "123"
+                self.bad_procfs = failure == "procfs"
+                self.bad_nsfs = failure == "nsfs"
+                self.change_mount_after = 3 if failure == "mount" else 0
+                self.change_start = failure == "start"
+                self.bad_statfs = failure == "statfs"
+                self.substitute_stat = failure == "stat-retarget"
+                self.assertEqual(self.run_probe(), "UNKNOWN")
+                self.assertEqual(set(self.handles), self.closed)
+
+    def test_changing_namespace_identity_on_reopen_fails_closed(self) -> None:
+        original = self.open
+        count = 0
+        def changing(path: str, flags: int, *, dir_fd: int | None = None) -> int:
+            nonlocal count
+            if path == "cgroup" and not flags & os.O_NOFOLLOW:
+                count += 1
+                if count == 3:
+                    self.reader_inode += 1
+            return original(path, flags, dir_fd=dir_fd)
+        with patch.object(self, "open", side_effect=changing):
+            self.assertEqual(self.run_probe(), "UNKNOWN")
+        self.assertEqual(set(self.handles), self.closed)
+
 if __name__ == "__main__":
     unittest.main()

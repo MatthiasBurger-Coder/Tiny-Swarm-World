@@ -700,7 +700,8 @@ def _cgroup_relation(unit_group: str, raw: bytes) -> str:
 
 
 def _probe_generator_form(runner: RunnerPort, expected: dict[str, Any], *, fs: ReadOnlyFS | None,
-                          clock: Callable[[], float], stages: bool, relation: bool = False) -> str:
+                          clock: Callable[[], float], stages: bool, relation: bool = False,
+                          namespace: bool = False) -> str:
     """One shared F7/F8 probe; failed/ambiguous observations never establish identity."""
     try:
         proof = _Proof(runner, fs or LocalReadOnlyFS(), clock)
@@ -753,9 +754,20 @@ def _probe_generator_form(runner: RunnerPort, expected: dict[str, Any], *, fs: R
         try:
             process = proof.process(pid, group)
         except _StageNegative as failure:
-            if not stages or not stable_prior():
+            if not stages:
                 return "UNKNOWN"
-            if not _negative_again(lambda: proof.process(pid, group), failure):
+            if namespace:
+                if not relation or failure.stage != "PROCESS_BINDING" or len(failure.snapshots) != 3:
+                    return "UNKNOWN"
+                observation = failure.snapshots[2]
+                if not isinstance(observation, Observation) or _cgroup_relation(group, observation.data) != "PROC_ROOT":
+                    return "UNKNOWN"
+                def revalidate(failure: _StageNegative = failure) -> bool:
+                    return stable_prior() and _negative_again(lambda: proof.process(pid, group), failure)
+
+                result = _compare_reader_namespace(proof, revalidate)
+                return result if result in {"SAME", "DIFFERENT"} else "UNKNOWN"
+            if not stable_prior() or not _negative_again(lambda: proof.process(pid, group), failure):
                 return "UNKNOWN"
             if relation:
                 if failure.stage != "PROCESS_BINDING" or len(failure.snapshots) != 3:
@@ -826,3 +838,200 @@ def diagnose_cgroup_relation(runner: RunnerPort, expected: dict[str, Any], *, fs
                              clock: Callable[[], float] = time.monotonic) -> str:
     """Report a stable path relation without admitting an identity."""
     return _probe_generator_form(runner, expected, fs=fs, clock=clock, stages=True, relation=True)
+
+
+def diagnose_reader_namespace(runner: RunnerPort, expected: dict[str, Any], *,
+                              fs: ReadOnlyFS | None = None,
+                              clock: Callable[[], float] = time.monotonic) -> str:
+    """Compare current reader with visible PID 1; never admit the service."""
+    return _probe_generator_form(runner, expected, fs=fs, clock=clock,
+                                 stages=True, relation=True, namespace=True)
+
+
+def _compare_reader_namespace(proof: _Proof, revalidate: Callable[[], bool]) -> str:
+    """Inspect two fixed namespace links under the trusted procfs boundary."""
+    import ctypes
+    import fcntl
+    import platform
+    import sys
+    from contextlib import ExitStack
+
+    class OpenHow(ctypes.Structure):
+        _fields_ = [("flags", ctypes.c_uint64), ("mode", ctypes.c_uint64),
+                    ("resolve", ctypes.c_uint64)]
+
+    class Statx(ctypes.Structure):
+        _fields_ = [("mask", ctypes.c_uint32), ("prefix", ctypes.c_ubyte * 140),
+                    ("mount_id", ctypes.c_uint64), ("suffix", ctypes.c_ubyte * 104)]
+
+    class Statfs(ctypes.Structure):
+        _fields_ = [("kind", ctypes.c_long), ("rest", ctypes.c_ubyte * 112)]
+
+    if (sys.platform != "linux" or platform.machine() != "x86_64"
+            or sys.byteorder != "little" or ctypes.sizeof(ctypes.c_long) != 8
+            or ctypes.sizeof(ctypes.c_void_p) != 8 or ctypes.sizeof(OpenHow) != 24
+            or ctypes.sizeof(Statx) != 256 or Statx.mount_id.offset != 144
+            or ctypes.sizeof(Statfs) != 120):
+        return "UNKNOWN"
+    libc = ctypes.CDLL(None, use_errno=True)
+    libc.syscall.restype = ctypes.c_long
+    libc.fstatfs.argtypes = [ctypes.c_int, ctypes.POINTER(Statfs)]
+    libc.fstatfs.restype = ctypes.c_int
+
+    def timed() -> None:
+        proof.check_time()
+
+    def fs_type(fd: int) -> int:
+        timed()
+        value = Statfs()
+        if libc.fstatfs(fd, ctypes.byref(value)) != 0:
+            raise OSError("fstatfs")
+        timed()
+        return value.kind
+
+    def mount(fd: int) -> int:
+        timed()
+        value = Statx()
+        result = libc.syscall(ctypes.c_long(332), ctypes.c_int(fd), ctypes.c_char_p(b""),
+                              ctypes.c_int(0x1000), ctypes.c_uint(0x1000), ctypes.byref(value))
+        if result != 0 or not value.mask & 0x1000 or not value.mount_id:
+            raise OSError("statx")
+        timed()
+        return value.mount_id
+
+    def identity(fd: int) -> tuple[int, int, int, int]:
+        info = os.fstat(fd)
+        return info.st_dev, info.st_ino, info.st_mode, info.st_uid
+
+    def open_fixed(parent: int, name: bytes, flags: int) -> int:
+        timed()
+        how = OpenHow(flags | os.O_CLOEXEC, 0, 0x01 | 0x04 | 0x08)
+        fd = libc.syscall(ctypes.c_long(437), ctypes.c_int(parent), ctypes.c_char_p(name),
+                          ctypes.byref(how), ctypes.c_size_t(ctypes.sizeof(how)))
+        if fd < 0:
+            raise OSError("openat2")
+        return int(fd)
+
+    def open_dir(parent: int, name: bytes) -> int:
+        return open_fixed(parent, name, os.O_PATH | os.O_DIRECTORY)
+
+    def start_time(fd: int, pid: int, root_mount: int) -> int:
+        timed()
+        child = open_fixed(fd, b"stat", os.O_RDONLY | os.O_NOFOLLOW)
+        try:
+            original = identity(child)
+            if (not stat.S_ISREG(original[2]) or fs_type(child) != 0x9FA0
+                    or mount(child) != root_mount):
+                raise OSError("stat trust")
+            raw = bytearray()
+            while len(raw) <= PROC_LIMIT:
+                chunk = os.read(child, min(65536, PROC_LIMIT + 1 - len(raw)))
+                if not chunk:
+                    break
+                raw.extend(chunk)
+            proof.total += len(raw)
+            if len(raw) > PROC_LIMIT or proof.total > TOTAL_LIMIT:
+                raise OSError("budget")
+            text = bytes(raw).decode("utf-8", "strict")
+            close = text.rfind(")")
+            fields = text[close + 1:].split()
+            if close < 0 or not text.startswith(f"{pid} (") or len(fields) < 20:
+                raise OSError("stat")
+            value = _positive(fields[19])
+            replacement = open_fixed(fd, b"stat", os.O_RDONLY | os.O_NOFOLLOW)
+            try:
+                if (identity(child) != original or identity(replacement) != original
+                        or fs_type(child) != 0x9FA0 or fs_type(replacement) != 0x9FA0
+                        or mount(child) != root_mount or mount(replacement) != root_mount):
+                    raise OSError("stat drift")
+            finally:
+                os.close(replacement)
+            timed()
+            return value
+        finally:
+            os.close(child)
+
+    def self_id(root: int) -> int:
+        timed()
+        value = os.readlink("self", dir_fd=root)
+        proof.total += len(value.encode("utf-8", "strict"))
+        if (proof.total > TOTAL_LIMIT or not _DECIMAL.fullmatch(value)
+                or int(value) != os.getpid()):
+            raise OSError("self")
+        timed()
+        return int(value)
+
+    def ns_type(fd: int) -> tuple[int, int, int, int]:
+        timed()
+        if fs_type(fd) != 0x6E736673 or fcntl.ioctl(fd, 0xB703) != 0x02000000:
+            raise OSError("namespace")
+        return identity(fd)
+
+    try:
+        with ExitStack() as stack:
+            def hold(fd: int) -> int:
+                stack.callback(os.close, fd)
+                return fd
+
+            root = hold(os.open("/proc", os.O_PATH | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC))
+            if fs_type(root) != 0x9FA0:
+                return "UNKNOWN"
+            root_mount = mount(root)
+            own_pid = self_id(root)
+            dirs = [root]
+            process_dirs = []
+            namespace_dirs = []
+            for pid in (own_pid, 1):
+                process_fd = hold(open_dir(root, str(pid).encode("ascii")))
+                ns_fd = hold(open_dir(process_fd, b"ns"))
+                dirs.extend((process_fd, ns_fd))
+                process_dirs.append(process_fd)
+                namespace_dirs.append(ns_fd)
+            dir_info = []
+            for fd in dirs:
+                value = identity(fd)
+                if not stat.S_ISDIR(value[2]) or fs_type(fd) != 0x9FA0 or mount(fd) != root_mount:
+                    return "UNKNOWN"
+                dir_info.append(value)
+            starts = [start_time(fd, pid, root_mount) for fd, pid in zip(process_dirs, (own_pid, 1))]
+            links = []
+            namespaces = []
+            for fd in namespace_dirs:
+                link = hold(os.open("cgroup", os.O_PATH | os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=fd))
+                link_info = identity(link)
+                if not stat.S_ISLNK(link_info[2]) or mount(link) != root_mount:
+                    return "UNKNOWN"
+                links.append((link, link_info))
+                namespace_fd = hold(os.open("cgroup", os.O_RDONLY | os.O_CLOEXEC, dir_fd=fd))
+                namespaces.append((namespace_fd, ns_type(namespace_fd)))
+            for fd, (link, link_info), (ns_fd, ns_info) in zip(namespace_dirs, links, namespaces):
+                new_link = hold(os.open("cgroup", os.O_PATH | os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=fd))
+                if (identity(link) != link_info or identity(new_link) != link_info
+                        or mount(link) != root_mount or mount(new_link) != root_mount):
+                    return "UNKNOWN"
+                new_ns = hold(os.open("cgroup", os.O_RDONLY | os.O_CLOEXEC, dir_fd=fd))
+                if ns_type(ns_fd) != ns_info or ns_type(new_ns) != ns_info:
+                    return "UNKNOWN"
+            if (self_id(root) != own_pid
+                    or [start_time(fd, pid, root_mount) for fd, pid in zip(process_dirs, (own_pid, 1))] != starts):
+                return "UNKNOWN"
+            for fd, original in zip(dirs, dir_info):
+                if identity(fd) != original or fs_type(fd) != 0x9FA0 or mount(fd) != root_mount:
+                    return "UNKNOWN"
+            current_root = hold(os.open("/proc", os.O_PATH | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC))
+            if (identity(current_root) != dir_info[0] or fs_type(current_root) != 0x9FA0
+                    or mount(current_root) != root_mount or self_id(current_root) != own_pid):
+                return "UNKNOWN"
+            for index, pid in enumerate((own_pid, 1)):
+                current_process = hold(open_dir(current_root, str(pid).encode("ascii")))
+                current_ns = hold(open_dir(current_process, b"ns"))
+                for fd, original in ((current_process, dir_info[1 + index * 2]),
+                                     (current_ns, dir_info[2 + index * 2])):
+                    if identity(fd) != original or fs_type(fd) != 0x9FA0 or mount(fd) != root_mount:
+                        return "UNKNOWN"
+            if not revalidate():
+                return "UNKNOWN"
+            timed()
+            return "SAME" if namespaces[0][1][:2] == namespaces[1][1][:2] else "DIFFERENT"
+    except Exception:
+        return "UNKNOWN"

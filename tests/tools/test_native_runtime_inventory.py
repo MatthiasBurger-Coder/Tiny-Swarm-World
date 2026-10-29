@@ -1493,5 +1493,32 @@ class SnapCgroupRelationCliTests(unittest.TestCase):
         self.assertEqual(inventory.diagnose_snap_cgroup_relation(runner=runner), "UNKNOWN")
         self.assertEqual(runner.run.call_count, 1)
 
+
+class SnapReaderNamespaceCliTests(unittest.TestCase):
+    def test_invalid_combinations_do_not_access_host(self) -> None:
+        flag = "--diagnose-snap-reader-namespace"
+        for argv in ([flag + "=secret"], [flag, "secret"], [flag, "--help"],
+                     [flag, flag], [flag, "--diagnose-snap-cgroup-relation"],
+                     ["--diagnose-snap-cgroup-relation", flag]):
+            with self.subTest(argv=argv), patch.object(inventory, "diagnose_snap_reader_namespace") as diagnose:
+                out, err = StringIO(), StringIO()
+                with redirect_stdout(out), redirect_stderr(err):
+                    self.assertEqual(inventory.main(argv), 2)
+                self.assertEqual(out.getvalue(), '{"status":"BLOCKED_UNKNOWN","reason":"UNKNOWN"}\n')
+                self.assertEqual(err.getvalue(), "")
+                diagnose.assert_not_called()
+
+    def test_fixed_outputs_and_failure_redaction(self) -> None:
+        for result in ("SAME", "DIFFERENT", "UNKNOWN"):
+            with self.subTest(result=result), patch.object(inventory, "diagnose_snap_reader_namespace", return_value=result):
+                out, err = StringIO(), StringIO()
+                with redirect_stdout(out), redirect_stderr(err):
+                    self.assertEqual(inventory.main(["--diagnose-snap-reader-namespace"]), 2)
+                self.assertEqual(out.getvalue(), '{"status":"BLOCKED_UNKNOWN","reason":"' + result + '"}\n')
+                self.assertEqual(err.getvalue(), "")
+        runner = Mock()
+        runner.run.side_effect = PermissionError("private secret")
+        self.assertEqual(inventory.diagnose_snap_reader_namespace(runner=runner), "UNKNOWN")
+
 if __name__ == "__main__":
     unittest.main()
