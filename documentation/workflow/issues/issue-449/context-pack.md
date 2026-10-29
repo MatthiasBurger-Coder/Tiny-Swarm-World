@@ -1,3 +1,7 @@
+## G2e registry-loop test scope amendment
+
+The locked package-entrypoint test may supply the three valid required options for `services migration-check` in its existing registry loop, without skips or weakening any assertions; a separate missing-options test must block before load. Fresh review/S3D apply.
+
 ## Amendment v1.63 — G2e operator migration-check
 
 G2d completed at `ef1e863b755faa3f8127a364b7926244abc35329`. G2e is PLANNED: an early bounded local `services migration-check` exposes only sanitized blocked G2d outcomes; candidate version is operator-supplied and not measured. No host, migration, support or admission follows. Six-role reviews/S3D pending. Contract `.codex/evidence/slice-449-migration-g2e-contract.md`.

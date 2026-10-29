@@ -3154,3 +3154,7 @@ stop_conditions: [missing role reviews or S3D, argument leak or legacy regressio
 ```
 
 Six Requirement, Architecture, Security, Python, Tester and DevOps same-hash reviews and S3D EXECUTION_PLAN precede edits. Tests and full quality run on designated SSH PC WSL using exact source.
+
+### G2e narrow registry-loop test amendment
+
+Within the already locked `tests/test_package_entrypoint.py`, the existing registry loop may append valid `--version`, `--exposure` and `--listen-address` arguments only for `services migration-check`, in addition to its workflow-list entry. Preserve all existing registry/workflow assertions and all other entries; no skip. A separate negative CLI test must prove missing options return fixed blocked JSON/exit 2 before repository load. This changes test scope only and does not relax the required CLI grammar. Fresh review and S3D apply to this amendment.
