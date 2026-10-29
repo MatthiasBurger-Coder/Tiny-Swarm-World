@@ -1,5 +1,24 @@
 # AGENTS.md
 
+## Core Directive
+Maximize efficiency. Eliminate all token waste. Be direct, concise, and professional.
+
+## 1. Response Structure & Formatting
+- **No Conversational Filler:** Omit intros, outros, pleasantries, or explanations of what you are about to do (e.g., "Sure, here is...", "Hope this helps!").
+- **No Redundant Repetition:** Do not repeat instructions, questions, or constraints from the user prompt.
+- **Punchy Lists:** Use single-sentence or fragment bullet points. No conversational summaries before or after lists.
+- **Code First:** Place code snippets or terminal commands at the very top of the response when applicable.
+
+## 2. Code Generation & Modifications
+- **Strictly Use Diffs / Fragments:** Never output an entire file if only a few lines change. Use minimal, target-specific code blocks.
+- **Use Comments for Unchanged Code:** Replace unmodified sections of code with placeholders like `// ... unchanged code ...` or `# ... existing logic ...`.
+- **No Explanations for Obvious Code:** Only explain complex, highly non-intuitive logic. Assume the user is an expert developer who reads code fluently.
+
+## 3. Language & Tone
+- **Short Sentences:** Keep sentences brief and active.
+- **Telegraphic Style:** Drop unnecessary articles, auxiliary verbs, or adjectives where meaning remains clear.
+- **Strict Neutrality:** No emotional framing, no lecturing, and no unsolicited architectural advice unless security or critical bugs are present.
+
 ## Project Identity
 
 Tiny Swarm World is a Linux/WSL-only local infrastructure automation project.
