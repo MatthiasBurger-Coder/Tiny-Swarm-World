@@ -34,6 +34,21 @@ def build_migration_preview_service(repository_root: Path | None = None):
                                       NativeComponentCatalog(root, text_reader=reader.read_text))
 
 
+@contextmanager
+def build_migration_admission_service(repository_root: Path | None = None):
+    """Compose G2d with one bounded local reader and no runtime services."""
+    from tiny_swarm_world.application.services.migration_admission import MigrationAdmissionService
+    from tiny_swarm_world.infrastructure.adapters.lifecycle.catalog import NativeComponentCatalog
+    from tiny_swarm_world.infrastructure.adapters.lifecycle.preview_file_reader import PreviewFileReader
+    from tiny_swarm_world.infrastructure.adapters.lifecycle.preview_manifest import PreviewManifestRepository
+    from tiny_swarm_world.infrastructure.project_paths import _configured_repository_root
+
+    root = repository_root if repository_root is not None else _configured_repository_root()
+    with PreviewFileReader(root) as reader:
+        yield MigrationAdmissionService(PreviewManifestRepository(reader),
+                                        NativeComponentCatalog(root, text_reader=reader.read_text))
+
+
 async def prepare_setup_selection_state(lifecycle, plan, backend, runner):
     """Admit selected setup through bounded inventory before runtime composition."""
     import asyncio

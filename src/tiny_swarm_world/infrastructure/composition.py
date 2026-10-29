@@ -283,6 +283,12 @@ def build_migration_preview_service(repository_root: Path | None = None) -> Any:
     return implementation(repository_root)
 
 
+def build_migration_admission_service(repository_root: Path | None = None) -> Any:
+    from .composition_lifecycle import build_migration_admission_service as implementation
+
+    return implementation(repository_root)
+
+
 async def prepare_setup_selection_state(lifecycle, plan, request):
     from .composition_lifecycle import prepare_setup_selection_state as implementation
 

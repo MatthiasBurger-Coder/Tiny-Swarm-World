@@ -51,6 +51,21 @@ does not establish catalog authority, release provenance or host safety.
 Only fixed Compose assets under the local project root are previewed;
 `TSW_INFRA_ROOT` is not evaluated. Missing project-root assets block the preview.
 
+A separate non-admitting migration check accepts a manually supplied version
+candidate. Use `published` when Swagger is selected; otherwise use
+`not_applicable`:
+
+```bash
+PYTHONPATH=src python3 -m tiny_swarm_world services migration-check --version 6.0.5 --exposure published --listen-address 127.0.0.1
+```
+
+The compact JSON result is `BLOCKED_UNKNOWN` or `BLOCKED_UNSUPPORTED`,
+with `source: operator_local_unverified`, `applied: false`, and
+`qualified: false`; both exit 2. The version is a supplied candidate, not
+a detected host version. This command does not inspect the host, qualify
+support, migrate or adopt anything. It reads only fixed local project-root
+assets; `TSW_INFRA_ROOT` is not evaluated.
+
 Apply uses the existing explicit live-consent boundary. These are operator commands,
 not commands executed as development verification:
 

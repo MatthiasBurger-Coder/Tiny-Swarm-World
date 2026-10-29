@@ -91,6 +91,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         supported_names = (
             "product version",
             "product upgrade",
+            "services migration-check",
             "services migration-preview",
             "services list",
             "services updates",
@@ -127,6 +128,9 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
                     )
                 if workflow.namespace == "services" and workflow.action in {"add", "remove", "update"}:
                     argv.extend(["--services", "jenkins", "--preview"])
+                if (workflow.namespace, workflow.action) == ("services", "migration-check"):
+                    argv.extend(["--version", "6.0.5", "--exposure", "not_applicable",
+                                 "--listen-address", "127.0.0.1"])
                 if (workflow.namespace, workflow.action) == ('product', 'upgrade'):
                     argv.extend(['--to', '0.5.0', '--preview'])
                 parsed = cli_parser.parse_args(argv)

@@ -9,7 +9,9 @@ from tiny_swarm_world.application.services.platform.workflow.types import (
 from tiny_swarm_world.domain.deployment import ServiceStackProfile
 from tiny_swarm_world.domain.node_provider import ManagedLxcBackend, NodeProviderKind
 from tiny_swarm_world.domain.update import ClassicUpdatePlan
-from tiny_swarm_world.infrastructure.adapters.cli.registry import CLI_WORKFLOWS_BY_KEY, prepare_migration_preview_args
+from tiny_swarm_world.infrastructure.adapters.cli.registry import (
+    CLI_WORKFLOWS_BY_KEY, prepare_migration_check_args, prepare_migration_preview_args,
+)
 from tiny_swarm_world.infrastructure.composition import (
     DEFAULT_SETUP_SERVICE_PROFILE,
     NodeProviderSelectionRequest,
@@ -19,7 +21,8 @@ from tiny_swarm_world.infrastructure.composition import (
 
 
 def parse_args(argv: Sequence[str] | None = None) -> Namespace:
-    raw = prepare_migration_preview_args(argv)
+    raw, migration_admission_request = prepare_migration_check_args(argv)
+    raw = prepare_migration_preview_args(raw)
     parser = ArgumentParser(description="Tiny Swarm World automation entrypoint.")
     parser.add_argument(
         "--list-workflows",
@@ -137,6 +140,7 @@ def parse_args(argv: Sequence[str] | None = None) -> Namespace:
     parser.add_argument("workflow_namespace", nargs="?", help="Workflow namespace.")
     parser.add_argument("workflow_action", nargs="?", help="Workflow action.")
     args = parser.parse_args(raw)
+    args.migration_admission_request = migration_admission_request
 
     args.service_profile_explicit = args.service_profile is not None
     args.service_profile = args.service_profile or DEFAULT_SETUP_SERVICE_PROFILE.value
