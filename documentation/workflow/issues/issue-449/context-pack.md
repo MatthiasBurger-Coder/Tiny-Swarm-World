@@ -1,3 +1,7 @@
+## Amendment v1.60 — scoped domain route policy P0
+
+P0 is PLANNED after accepted ADR checkpoint `4886c84c92d7cb9ac628fe75e7a973829f36d713`: pure immutable ideal scoped route/profile reference, runtime_source always UNKNOWN and no actual source/override attestation; a future pre-effect adapter verifies effective sources and blocks unknown; 8086 and unproven internal ingress remain AUTHORITY_GAP. G2c stays BLOCKED until P0 is implemented and independently reviewed. Contract `.codex/evidence/slice-449-scoped-route-p0-contract.md`; six reviews/S3D and SSH PC WSL quality are pending.
+
 ## Amendment v1.59 — accepted scoped route/profile design
 
 P0a completed at `f5f0ea1520a1abdb6ee281bb700c8635c9ad4e93` as unverified legacy candidate. Separate ADR D0 accepted code-bound scoped-route-policy-v1 and profile-name-v1 on six independent pre-acceptance same-hash role decisions; 8086 Infisical versus service-access ownership remains AUTHORITY_GAP for affected selections. Final checkpoint re-review and S3D remain pending. It does not qualify a version, route, owner or host; G2c/P0 remain blocked pending acceptance and separate implementation.

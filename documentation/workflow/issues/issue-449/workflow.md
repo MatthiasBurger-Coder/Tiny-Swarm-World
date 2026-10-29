@@ -1,13 +1,13 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: ACTIVE_FOR_ISSUE_449 v1.59 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
+Status: ACTIVE_FOR_ISSUE_449 v1.60 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
 Workflow authoring branch: `docs/workflow-lcm-w09-route-baseline-20261027`
 Baseline: `a0310224946b63e2152ff4086d22a450c3d0f214`
-ACTIVE_FOR_ISSUE_449 v1.59. The user explicitly authorized completion of issue #449 on the named test hosts and a bounded diagnosis of the latest native blocker. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
+ACTIVE_FOR_ISSUE_449 v1.60. The user explicitly authorized completion of issue #449 on the named test hosts and a bounded diagnosis of the latest native blocker. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
 Execution profile: `FULL_PATH — lifecycle/provider implementation, regression, documentation, native and WSL2 qualification`
 
 ## Executive Summary
@@ -3048,3 +3048,32 @@ stop_conditions: [unresolved authority or policy choice, missing review or S3D, 
 ```
 
 A later separately authored pure-domain policy slice needs exact product/test file locks, its own tests and SSH PC WSL full quality. G2c depends on an accepted decision and completed policy, not this draft.
+
+## Execution-phase amendment v1.60 — scoped route policy P0
+
+Status PLANNED; accepted scoped route/profile ADR checkpoint `4886c84c92d7cb9ac628fe75e7a973829f36d713`. P0 introduces only code-bound immutable pure domain policy and deterministic profile identity, with explicit AUTHORITY_GAP for 8086-affected selections, default preset with Traefik and selected internal Swagger absent trustworthy shared-ingress proof. Detailed contract `.codex/evidence/slice-449-scoped-route-p0-contract.md`. It produces only an ideal code-policy reference with runtime_source=UNKNOWN; it cannot inspect environment or claim effective source/override applicability. A future separately reviewed pre-effect adapter must verify effective sources and block unknown. No public source self-attestation, host I/O, v1 runtime behavior change, ownership, capability support or live claim. G2c remains BLOCKED pending actual P0 completion and review.
+
+```yaml
+slice_id: S449-ROUTE-POLICY-P0
+profile: DOMAIN_AND_TESTS
+owner: Senior Python Automation Developer
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior Tester, Senior DevOps Engineer]
+affected_files: [src/tiny_swarm_world/domain/lifecycle/scoped_route_policy.py, tests/domain/lifecycle/test_scoped_route_policy.py, .codex/evidence/slice-449-scoped-route-p0-contract.md, .codex/evidence/slice-449-scoped-route-p0-distribution.md, .codex/evidence/slice-449-scoped-route-p0-consolidation.md]
+affected_modules: [code-bound scoped route policy and profile identity]
+affected_contracts: [immutable code-policy reference and pure tuple drift check, runtime_source UNKNOWN, explicit profile-name-v1, no caller authority, 8086 gap, no observed host claims]
+dependencies: [S449-SCOPED-ROUTE-ADR-D0, S449-ROUTE-POLICY-P0A]
+parallel_group: sequential
+file_locks: [src/tiny_swarm_world/domain/lifecycle/scoped_route_policy.py, tests/domain/lifecycle/test_scoped_route_policy.py, .codex/evidence/slice-449-scoped-route-p0-contract.md, .codex/evidence/slice-449-scoped-route-p0-distribution.md, .codex/evidence/slice-449-scoped-route-p0-consolidation.md]
+module_locks: [scoped route policy and profile identity]
+contract_locks: [immutable ideal code policy, runtime_source UNKNOWN, explicit selection and listen, 8086 and internal ingress gap, UUID version, unchanged legacy]
+architecture_locks: [domain only, no I/O or runtime integration, no source self-attestation]
+quality_gates:
+  targeted: [PYTHONPATH=src python3 -m unittest tests.domain.lifecycle.test_scoped_route_policy tests.domain.lifecycle.test_legacy_route_candidate tests.domain.lifecycle.test_manifest_v2 tests.domain.lifecycle.test_models, python3 -m ruff check src/tiny_swarm_world/domain/lifecycle/scoped_route_policy.py tests/domain/lifecycle/test_scoped_route_policy.py]
+  required: [python3 tools/quality_gate.py quality, git diff --check]
+documentation:
+  arc42: follow accepted scoped route profile ADR
+  adr: no change
+stop_conditions: [missing six reviews or S3D, source drift, fabricated source trust, 8086 or ingress ambiguity, unsupported selection, mutable policy, runtime or host effect, UUID or legacy regression]
+```
+
+Six independent Requirement, Architecture, Security, Python, Tester and DevOps reviews on identical workflow/contract/source hashes and S3D EXECUTION_PLAN precede changes. Targeted/direct Ruff/full quality run on designated SSH PC WSL with exact source. Existing host/fixture/version gates remain in force.
