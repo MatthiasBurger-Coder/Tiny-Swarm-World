@@ -62,3 +62,5 @@ Historical workflow v1.51 planned G2a, completed in 81acdd5c512820b3f69ca193c11d
 Workflow v1.52 plans the read-only sanitized G2b migration-preview CLI; no adoption or runtime qualification is claimed.
 
 Workflow v1.53 narrows G2b to an explicitly operator-local unverified preview; no catalog authority or host admission follows.
+
+Workflow v1.54 adds bounded preview-only FD asset readers to G2b, preserving unverified-source and legacy behavior boundaries.

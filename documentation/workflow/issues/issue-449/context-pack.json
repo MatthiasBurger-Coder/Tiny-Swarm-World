@@ -1,6 +1,6 @@
 {
   "workflow_id": "issue-449-lcm-w09",
-  "workflow_version": "1.53",
+  "workflow_version": "1.54",
   "workflow_amendment_v1_43": {
     "slice_id": "S449-02F5",
     "status": "HISTORICAL: F5 implemented and bounded native diagnosis executed",
@@ -191,10 +191,10 @@
   },
   "workflow_artifacts_sha256": {
     "documentation/arc42/09_architecture_decisions.adoc": "9b2b38c377bd75d3059b877d6ac679173f7eea9bb22dee9460c6d4fcad42284e",
-    "documentation/workflow/issues/issue-449/context-pack.md": "765d88f209881db5717aa70af8fae36c4890be8be25965e406e9d48eaa44379f",
-    "documentation/workflow/issues/issue-449/workflow.md": "fd2c946f36eaa2e91868b4e248f6431d4aaf72b0c7e35e2b6667b8861ffe129c",
+    "documentation/workflow/issues/issue-449/context-pack.md": "22993c57c201fd761755826c7d66551e528e84587b792eb261fe40fc27698318",
+    "documentation/workflow/issues/issue-449/workflow.md": "b62c546363af5a7da44ff8c3a2eb272c339eab39431a92092d3e45a768132586",
     ".agents/skills/workflow-executor/SKILL.md": "04a9325b2cec2dfa6feab24c261c636fdfa295158661d20e981e4182e5bfb46c",
-    "documentation/workflow/workflow.index.md": "35642904e8fb7566b2ac43b8ee2c0a722d5b300ec9e3c3af034b54cfca7c00b3"
+    "documentation/workflow/workflow.index.md": "0cb7071102ff2fb2ccb61fff1722650705ec4fc533146e95c156a44d25166b42"
   },
   "skill_hashes_sha256": {
     ".agents/skills/three-amigos-requirement-gatekeeper/SKILL.md": "76659e618cb706e8990cdf44441aeaed219465044175826adca5357ae8acc5b4",
@@ -748,7 +748,7 @@
       "S449-MANIFEST-G2A"
     ],
     "contract": ".codex/evidence/slice-449-manifest-g2b-contract.md",
-    "contract_sha256": "0a636418174d0a01872df63c79d2a2f63168af206ff38d2629989bf1404d88ec",
+    "contract_sha256": "552c29528a75affe1f454436d9a9a3cd2256e0ba7a039f0847b6cc7e47dda222",
     "baseline_source_sha256": {
       "src/tiny_swarm_world/domain/lifecycle/manifest_v2.py": "f99c93ea7be2734eacc410c513443be02aaba6fc4d8b3ff04292a994d79f6640",
       "src/tiny_swarm_world/application/ports/lifecycle/__init__.py": "b237f5a8eebf37926d3163faef036f0cf47fb271b8037f5cfd5b810e8e2c0630",
@@ -765,7 +765,16 @@
     "status": "PLANNED; revised contract requires same-hash reviews and S3D",
     "source": "operator_local_unverified",
     "contract": ".codex/evidence/slice-449-manifest-g2b-contract.md",
-    "contract_sha256": "0a636418174d0a01872df63c79d2a2f63168af206ff38d2629989bf1404d88ec",
+    "contract_sha256": "552c29528a75affe1f454436d9a9a3cd2256e0ba7a039f0847b6cc7e47dda222",
     "boundary": "Valid local unverified assets only; fail closed, no provenance, host safety, live admission or EPIC completion claim."
+  },
+  "workflow_amendment_v1_54": {
+    "slice_id": "S449-MANIFEST-G2B",
+    "status": "PLANNED; fresh same-hash reviews and S3D pending",
+    "baseline": "dfe6e29324012f081ddb6ea8cce46c77fb276478",
+    "contract": ".codex/evidence/slice-449-manifest-g2b-contract.md",
+    "contract_sha256": "552c29528a75affe1f454436d9a9a3cd2256e0ba7a039f0847b6cc7e47dda222",
+    "limits": "1 MiB/file, 16 MiB total, 16 files; current 9 Compose + 1 manifest",
+    "boundary": "Preview-only no-follow FD reader, unverified root, no host/admission/provenance or ABA/hard CPU guarantees; legacy catalog default unchanged. Only project-root Compose assets; alternate TSW_INFRA_ROOT is not evaluated; missing project assets or explicit alternate requests block."
   }
 }

@@ -1,3 +1,7 @@
+## Amendment v1.54 — bounded preview-only FD reader
+
+G2b uses pinned unverified root, fixed no-follow relative FD traversal, regular file checks and before/after drift rechecks; 1 MiB per file, 16 MiB aggregate, 16 files. Current catalog has nine Compose files plus one manifest at `.tiny-swarm-world/installation/manifest.json`. Compose reads use only project-root assets; `TSW_INFRA_ROOT` is not evaluated, missing project-root assets block, and explicit alternate-infrastructure requests are rejected before loading. Catalog injection is preview-only and legacy default unchanged; preview manifest save always rejects. Privileged ABA/hardlink or hard CPU limits are not claimed. Fresh reviews/S3D remain necessary.
+
 ## Amendment v1.53 — G2b operator-local unverified preview
 
 Every G2b result uses `source=operator_local_unverified`; applied/qualified are false and identities UNKNOWN. Local assets are checked for structural validity and read-only use, not provenance or authority; missing, malformed, inconsistent, unsafe symlink or permission failures block without disclosure. No preview is live-admission, release or EPIC evidence. Revised contract requires fresh same-hash reviews and S3D.
