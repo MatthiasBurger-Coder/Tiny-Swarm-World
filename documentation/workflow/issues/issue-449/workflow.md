@@ -1,13 +1,13 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: ACTIVE_FOR_ISSUE_449 v1.51 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
+Status: ACTIVE_FOR_ISSUE_449 v1.52 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
 Workflow authoring branch: `docs/workflow-lcm-w09-route-baseline-20261027`
 Baseline: `a0310224946b63e2152ff4086d22a450c3d0f214`
-ACTIVE_FOR_ISSUE_449 v1.51. The user explicitly authorized completion of issue #449 on the named test hosts and a bounded diagnosis of the latest native blocker. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
+ACTIVE_FOR_ISSUE_449 v1.52. The user explicitly authorized completion of issue #449 on the named test hosts and a bounded diagnosis of the latest native blocker. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
 Execution profile: `FULL_PATH — lifecycle/provider implementation, regression, documentation, native and WSL2 qualification`
 
 ## Executive Summary
@@ -2877,7 +2877,9 @@ stop_conditions: [R67k acceptance or approved workflow unverifiable, G1 contract
 
 All Python tests, Ruff and full quality run on the designated SSH PC WSL host against exact source. At authoring, G1 was pending its own contract refinement, reviews and S3D; this decision does not itself authorize editing product code or automatically change existing S449-03/04 dependencies. Before G2/G3/G4, author their exact file/module/contract/architecture locks, host-effect guard integrations and targeted negative regression matrices, then obtain six same-hash reviews and S3D separately. Fixture, separate support decision, host admission and both-host scenarios remain prerequisites for live new-capability use.
 
-## Execution-phase amendment v1.51 — domain-only migration preview G2a
+## Historical execution-phase amendment v1.51 — domain-only migration preview G2a
+
+G2a was subsequently completed in `81acdd5c512820b3f69ca193c11d232cb6761ef6`; planned status and pre-execution conditions below describe the earlier authoring state.
 
 Status: PLANNED; R67k sequencing accepted, D0 and G1 completed at baseline `55c42029a7c1f0e7c219d1708060c4ed6b708dea`. G2a is a strictly domain-only immutable `MigrationPreview` from validated v1 manifest and catalog; it is not a schema-v2 installation, runtime decoder change, adoption, host protection or live qualification. Normative behavior and tests: `.codex/evidence/slice-449-manifest-g2a-contract.md`. ADR defaults are policy only; actual project/profile/routes/owner identity remains UNKNOWN. Existing S449-03/04 and host/fixture dependencies remain in force for their original scopes. G2b/G2c require independently authored boundaries and gates.
 
@@ -2905,3 +2907,33 @@ stop_conditions: [missing same-hash reviews or S3D, invalid or ambiguous v1 or c
 ```
 
 Six independent Requirement, Architecture, Security, Python, Tester and DevOps reviews of identical workflow/contract/source hashes and S3D EXECUTION_PLAN precede G2a edits. Exact source targeted/direct Ruff/full quality run on SSH PC WSL. G2a does not complete S449-03 or release existing fixture/host gates.
+
+## Execution-phase amendment v1.52 — sanitized migration preview CLI G2b
+
+Status PLANNED after G2a completion in `81acdd5c512820b3f69ca193c11d232cb6761ef6`. The early `services migration-preview` action loads only existing manifest/catalog ports and projects a closed safe DTO; no full v1 snapshot, credentials, host identity, paths, token or exception is exposed. It does not write, adopt, construct runtime services or prove schema-v2 support. Exact CLI/error/output semantics, tests and no-I/O boundary are specified by `.codex/evidence/slice-449-manifest-g2b-contract.md`. The existing generic lifecycle `inspect()` cannot supply this output. G2a is historical/completed; G2c and all host/fixture/version gates remain unchanged.
+
+```yaml
+slice_id: S449-MANIFEST-G2B
+profile: BACKEND_AND_TESTS
+owner: Senior Python Automation Developer
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior Tester, Senior DevOps Engineer]
+affected_files: [src/tiny_swarm_world/application/services/migration_preview.py, src/tiny_swarm_world/infrastructure/adapters/cli/migration_preview.py, src/tiny_swarm_world/infrastructure/adapters/cli/dispatcher.py, src/tiny_swarm_world/infrastructure/adapters/cli/parser.py, src/tiny_swarm_world/infrastructure/adapters/cli/registry.py, src/tiny_swarm_world/infrastructure/composition_lifecycle.py, src/tiny_swarm_world/infrastructure/composition.py, tests/application/services/test_migration_preview.py, tests/test_migration_preview_cli.py, documentation/user_guide/selective-setup.md, .codex/evidence/slice-449-manifest-g2b-contract.md, .codex/evidence/slice-449-manifest-g2b-distribution.md, .codex/evidence/slice-449-manifest-g2b-consolidation.md]
+affected_modules: [application migration preview, early CLI, local read-only composition]
+affected_contracts: [manifest and catalog load only, strict safe DTO, fixed sanitized errors, no runtime construction, unchanged legacy CLI]
+dependencies: [S449-MANIFEST-G2A]
+parallel_group: sequential
+file_locks: [src/tiny_swarm_world/application/services/migration_preview.py, src/tiny_swarm_world/infrastructure/adapters/cli/migration_preview.py, src/tiny_swarm_world/infrastructure/adapters/cli/dispatcher.py, src/tiny_swarm_world/infrastructure/adapters/cli/parser.py, src/tiny_swarm_world/infrastructure/adapters/cli/registry.py, src/tiny_swarm_world/infrastructure/composition_lifecycle.py, src/tiny_swarm_world/infrastructure/composition.py, tests/application/services/test_migration_preview.py, tests/test_migration_preview_cli.py, documentation/user_guide/selective-setup.md, .codex/evidence/slice-449-manifest-g2b-contract.md, .codex/evidence/slice-449-manifest-g2b-distribution.md, .codex/evidence/slice-449-manifest-g2b-consolidation.md]
+module_locks: [lifecycle preview ports and CLI routing]
+contract_locks: [closed output whitelist and fixed canonical stack-ID enum, verified read-only native catalog provenance, no secret disclosure or argv reflection, reject flags before I/O, load only, legacy CLI parity]
+architecture_locks: [application depends on ports, infrastructure composes local adapters, no host runtime or writes]
+quality_gates:
+  targeted: [PYTHONPATH=src python3 -m unittest tests.application.services.test_migration_preview tests.test_migration_preview_cli tests.test_service_selection_cli tests.test_package_entrypoint, python3 -m ruff check src/tiny_swarm_world/application/services/migration_preview.py src/tiny_swarm_world/infrastructure/adapters/cli/migration_preview.py src/tiny_swarm_world/infrastructure/adapters/cli/dispatcher.py src/tiny_swarm_world/infrastructure/adapters/cli/parser.py src/tiny_swarm_world/infrastructure/adapters/cli/registry.py src/tiny_swarm_world/infrastructure/composition_lifecycle.py src/tiny_swarm_world/infrastructure/composition.py tests/application/services/test_migration_preview.py tests/test_migration_preview_cli.py]
+  required: [python3 tools/quality_gate.py quality, git diff --check]
+documentation:
+  user_guide: document real command and non-adoption after implementation
+  arc42: follow accepted selection exposure and ownership ADR
+  adr: no change
+stop_conditions: [missing same-hash reviews or S3D, unverified read-only loaders, disclosure, runtime construction, write or adoption, unsafe flags, changed legacy CLI, host operation]
+```
+
+Six independent Requirement, Architecture, Security, Python, Tester and DevOps reviews on identical workflow/contract/source hashes plus S3D EXECUTION_PLAN precede edits. SSH PC WSL targeted/direct Ruff/full quality uses exact source. No future G2c or live gate is discharged.

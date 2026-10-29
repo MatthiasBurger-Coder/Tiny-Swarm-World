@@ -1,6 +1,6 @@
 {
   "workflow_id": "issue-449-lcm-w09",
-  "workflow_version": "1.51",
+  "workflow_version": "1.52",
   "workflow_amendment_v1_43": {
     "slice_id": "S449-02F5",
     "status": "HISTORICAL: F5 implemented and bounded native diagnosis executed",
@@ -191,10 +191,10 @@
   },
   "workflow_artifacts_sha256": {
     "documentation/arc42/09_architecture_decisions.adoc": "9b2b38c377bd75d3059b877d6ac679173f7eea9bb22dee9460c6d4fcad42284e",
-    "documentation/workflow/issues/issue-449/context-pack.md": "8688612914fcf664fdc070f0489bb40b6eb1642f00de006ebc92e2dbcdb6ba04",
-    "documentation/workflow/issues/issue-449/workflow.md": "78c32b31d808d612e2b48cb6c310ac820f54ca3cfbbf74b6149ce6b7715a3103",
+    "documentation/workflow/issues/issue-449/context-pack.md": "21320ed6974a3a3801b232a8ab0c7ee16b0728e9422774d2087fe4c636d3ce80",
+    "documentation/workflow/issues/issue-449/workflow.md": "10b4469a80cc2dd7b38548742266492dcb7129ee8a7082f109f82777ae6e0349",
     ".agents/skills/workflow-executor/SKILL.md": "04a9325b2cec2dfa6feab24c261c636fdfa295158661d20e981e4182e5bfb46c",
-    "documentation/workflow/workflow.index.md": "904d155e09f8127a43acc108ddd844d1072acd80a8c0c60f5cfe10d5dec90f23"
+    "documentation/workflow/workflow.index.md": "cc6eef5def715c4b7b5ab19b23225dac5e961bf3133c596812cf2e8a103b50d4"
   },
   "skill_hashes_sha256": {
     ".agents/skills/three-amigos-requirement-gatekeeper/SKILL.md": "76659e618cb706e8990cdf44441aeaed219465044175826adca5357ae8acc5b4",
@@ -723,7 +723,7 @@
   },
   "workflow_amendment_v1_51": {
     "slice_id": "S449-MANIFEST-G2A",
-    "status": "PLANNED; reviews and S3D pending",
+    "status": "HISTORICAL: G2a completed in 81acdd5c512820b3f69ca193c11d232cb6761ef6",
     "baseline": "55c42029a7c1f0e7c219d1708060c4ed6b708dea",
     "dependencies": [
       "S449-ADR-SEQUENCE-D0",
@@ -739,5 +739,25 @@
       "documentation/arc42/09_decisions/adr-classic-selection-exposure-stack-ownership.adoc": "06a003fc35775854653c5985db84fabdb15bd096b75c9611a9868901d2534da0",
       "src/tiny_swarm_world/infrastructure/adapters/lifecycle/catalog.py": "94db11c63556806f22203fb2bc736e57342b861f429c3b03836be289a738f3c3"
     }
+  },
+  "workflow_amendment_v1_52": {
+    "slice_id": "S449-MANIFEST-G2B",
+    "status": "PLANNED; reviews and S3D pending",
+    "baseline": "81acdd5c512820b3f69ca193c11d232cb6761ef6",
+    "dependencies": [
+      "S449-MANIFEST-G2A"
+    ],
+    "contract": ".codex/evidence/slice-449-manifest-g2b-contract.md",
+    "contract_sha256": "9cba04ab38f6769275c83c33e4e6dd0407a804deafb5ef758e72fc204d4adc0a",
+    "baseline_source_sha256": {
+      "src/tiny_swarm_world/domain/lifecycle/manifest_v2.py": "f99c93ea7be2734eacc410c513443be02aaba6fc4d8b3ff04292a994d79f6640",
+      "src/tiny_swarm_world/application/ports/lifecycle/__init__.py": "b237f5a8eebf37926d3163faef036f0cf47fb271b8037f5cfd5b810e8e2c0630",
+      "src/tiny_swarm_world/infrastructure/adapters/cli/dispatcher.py": "013cfc77ac193118ac6954b600f45418edaddf43522773df6ebd8f178b7ebaca",
+      "src/tiny_swarm_world/infrastructure/adapters/cli/parser.py": "5941cdcb53df4e4f67d4a76ce366ef7139045a419d3bd802630be4cb0d0ad8e2",
+      "src/tiny_swarm_world/infrastructure/adapters/cli/registry.py": "3668717ca203daa1ec1a68aec31557348c0430b8b01c0fcaea27de3082ce3697",
+      "src/tiny_swarm_world/infrastructure/composition_lifecycle.py": "44eb505e7c67888616fd62c98c3258901f0e79cda3fd2e770f9d0bc4a264bf65",
+      "src/tiny_swarm_world/infrastructure/adapters/lifecycle/manifest.py": "e1695c9da9e291f44b4d603ad236619ed92a69c1d91a49464d08e6502cfdbca2"
+    },
+    "boundary": "Early load-only sanitized CLI preview, no snapshot disclosure, host runtime, adoption, write or version support."
   }
 }

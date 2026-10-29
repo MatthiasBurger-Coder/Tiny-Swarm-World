@@ -1,4 +1,10 @@
-## Amendment v1.51 — G2a migration preview
+## Amendment v1.52 — G2b CLI preview
+
+G2a completed at `81acdd5c512820b3f69ca193c11d232cb6761ef6`. G2b is PLANNED: `services migration-preview` uses only validated manifest/catalog loads, early routing and an allowlisted safe DTO, with exact reviewed Classic stack-ID whitelist, proven read-only native catalog provenance, no host runtime, write, adoption, secrets or version-support claim; the implementation slice updates the selective-setup operator guide. Reviews and S3D remain required. Contract: `.codex/evidence/slice-449-manifest-g2b-contract.md`.
+
+## Historical amendment v1.51 — G2a migration preview
+
+G2a completed in `81acdd5c512820b3f69ca193c11d232cb6761ef6`; its planned status below is historical.
 
 G2a is PLANNED after D0/G1 at `55c42029a7c1f0e7c219d1708060c4ed6b708dea`: domain-only immutable detached `MigrationPreview`, strict revalidation and unique service/component IDs, canonical incus/portainer foundation kinds, selected-stack swarm policy and Swagger stack published/not-applicable, host ownership identities UNKNOWN. It is neither valid persisted schema 2 nor runtime integration. Independent same-hash reviews and S3D precede implementation; G2b/c and live gates remain unchanged. Contract: `.codex/evidence/slice-449-manifest-g2a-contract.md`.
 

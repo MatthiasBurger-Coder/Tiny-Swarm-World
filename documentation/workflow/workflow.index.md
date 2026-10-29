@@ -57,4 +57,6 @@ Workflow v1.49 records a S449-02F11 end-to-end host-admission proposal marked NO
 
 Historical workflow v1.50 recorded accepted R67k sequencing and planned G1; G1 was completed in 55c42029a7c1f0e7c219d1708060c4ed6b708dea. Existing host/fixture dependencies remain effective.
 
-Workflow v1.51 plans domain-only G2a migration preview after D0/G1; runtime schema, host admission and fixture gates remain unchanged.
+Historical workflow v1.51 planned G2a, completed in 81acdd5c512820b3f69ca193c11d232cb6761ef6; runtime schema, host admission and fixture gates remain unchanged.
+
+Workflow v1.52 plans the read-only sanitized G2b migration-preview CLI; no adoption or runtime qualification is claimed.
