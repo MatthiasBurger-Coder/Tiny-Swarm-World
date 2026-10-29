@@ -1,13 +1,13 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: ACTIVE_FOR_ISSUE_449 v1.67 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
+Status: ACTIVE_FOR_ISSUE_449 v1.68 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
 Workflow authoring branch: `docs/workflow-lcm-w09-route-baseline-20261027`
 Baseline: `a0310224946b63e2152ff4086d22a450c3d0f214`
-ACTIVE_FOR_ISSUE_449 v1.67. The user explicitly authorized completion of issue #449 on the named test hosts and a bounded diagnosis of the latest native blocker. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
+ACTIVE_FOR_ISSUE_449 v1.68. The user explicitly authorized completion of issue #449 on the named test hosts and a bounded diagnosis of the latest native blocker. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
 Execution profile: `FULL_PATH — lifecycle/provider implementation, regression, documentation, native and WSL2 qualification`
 
 ## Executive Summary
@@ -3257,3 +3257,33 @@ One serial implementation owner; role review/S3D before edits. All agent Python 
 ## Execution-phase amendment v1.67 — V2 repository complexity remediation
 
 Initial full QUALITY failed four complexity guardrails for the new module/class/CAS/JSON parser; no quality pass is claimed. The same serial slice may split bounded JSON parsing and pinned FD/CAS primitives into the two additionally locked modules while retaining the existing repository facade and all security/failure semantics. No quality threshold, baseline or exception is weakened. Contract `.codex/evidence/slice-449-manifest-v2-repository-contract.md` specifies the decomposition. Fresh same-hash six-role reviews and S3D are required before continuing implementation; repeat targeted and full gates on SSH PC WSL.
+
+## Execution-phase amendment v1.68 — Portainer shared update no-prune
+
+S449-PORTAINER-NO-PRUNE is PLANNED on baseline `29be9194c86a35f448f12f3b7905956dc7a430d2`: shared Portainer HTTP stack update sends `prune=False` for direct and LXC-delegated paths. Omitted services may remain; explicit removal and authenticated endpoint/stack/ResourceControl/definition ownership guard remain separately unresolved. No host/live outcome is claimed. Contract `.codex/evidence/slice-449-portainer-no-prune-contract.md`.
+
+```yaml
+slice_id: S449-PORTAINER-NO-PRUNE
+profile: BACKEND_AND_TESTS
+owner: Senior Python Automation Developer
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior Tester, Senior DevOps Engineer]
+affected_files: [src/tiny_swarm_world/infrastructure/adapters/clients/portainer_http_client.py, tests/infrastructure/adapters/clients/test_portainer_http_client.py, tests/infrastructure/adapters/clients/lxc/services/test_lxc_service_clients.py, documentation/user_guide/component-updates.md, .codex/evidence/slice-449-portainer-no-prune-contract.md, .codex/evidence/slice-449-portainer-no-prune-distribution.md, .codex/evidence/slice-449-portainer-no-prune-consolidation.md]
+affected_modules: [Portainer shared HTTP stack update, LXC wrapper regression]
+affected_contracts: [no automatic prune, omitted services may remain, unchanged create env auth timeout, ownership guard separately open]
+dependencies: [S449-01]
+parallel_group: sequential
+file_locks: [src/tiny_swarm_world/infrastructure/adapters/clients/portainer_http_client.py, tests/infrastructure/adapters/clients/test_portainer_http_client.py, tests/infrastructure/adapters/clients/lxc/services/test_lxc_service_clients.py, documentation/user_guide/component-updates.md, .codex/evidence/slice-449-portainer-no-prune-contract.md, .codex/evidence/slice-449-portainer-no-prune-distribution.md, .codex/evidence/slice-449-portainer-no-prune-consolidation.md]
+module_locks: [Portainer HTTP update and wrapper contract]
+contract_locks: [no prune, omitted service retention, unchanged request parameters, no ownership admission]
+architecture_locks: [infrastructure adapter boundary, no live operation]
+quality_gates:
+  targeted: [PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_portainer_http_client tests.infrastructure.adapters.clients.lxc.services.test_lxc_service_clients tests.infrastructure.adapters.lifecycle.test_portainer_runtime, python3 -m ruff check src/tiny_swarm_world/infrastructure/adapters/clients/portainer_http_client.py tests/infrastructure/adapters/clients/test_portainer_http_client.py tests/infrastructure/adapters/clients/lxc/services/test_lxc_service_clients.py]
+  required: [python3 tools/quality_gate.py quality, git diff --check]
+documentation:
+  user_guide: explain omitted-service retention and separate ownership/removal
+  arc42: accepted selection exposure ownership ADR unchanged
+  adr: no change
+stop_conditions: [missing reviews or S3D, unverified removal semantics, changed create auth env timeout, ownership or convergence claimed, live host action]
+```
+
+Six Requirement, Architecture, Security, Python, Tester and DevOps same-hash reviews and S3D EXECUTION_PLAN precede edits. Targeted/full quality runs on designated SSH PC WSL exact source.

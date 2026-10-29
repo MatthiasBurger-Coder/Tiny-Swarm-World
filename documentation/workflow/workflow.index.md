@@ -88,3 +88,5 @@ Workflow v1.65 plans coupled pure scoped 8086 policy and consumers after ADR acc
 Workflow v1.66 plans strict unadopted v2 record and isolated versioned CAS; ADR reconciliation and reviews pending, no runtime migration.
 
 Workflow v1.67 plans V2 repository decomposition after a failed complexity gate; no quality pass or weakened guardrail is claimed.
+
+Workflow v1.68 plans shared Portainer stack update with no prune; ownership validation and live qualification remain separate.

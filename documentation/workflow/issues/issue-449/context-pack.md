@@ -1,3 +1,7 @@
+## Amendment v1.68 — shared Portainer no-prune
+
+S449-PORTAINER-NO-PRUNE is PLANNED at `29be9194c86a35f448f12f3b7905956dc7a430d2`: the shared HTTP stack update changes to prune false for direct and LXC-delegated paths. Omitted services may remain; authenticated ownership guard and explicit deletion are separate. No live action or full issue completion follows. Six reviews/S3D pending. Contract `.codex/evidence/slice-449-portainer-no-prune-contract.md`.
+
 ## Amendment v1.67 — V2 repository complexity remediation
 
 Initial full QUALITY failed four complexity guardrails. Proposed serial decomposition adds bounded JSON and filesystem/CAS modules to the slice locks without changing thresholds or safety semantics. Fresh reviews/S3D and rerun targeted/full SSH PC WSL quality remain required.
