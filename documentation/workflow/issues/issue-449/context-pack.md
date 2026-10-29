@@ -1,3 +1,7 @@
+## Amendment v1.65 — coupled scoped 8086 P1
+
+P1 is PLANNED after desired-policy ADR acceptance at `90b5665e7fe01f198e78c5d4a130c3b5babcb6ac`: exact ordered legacy tuple-sequence validation, including reorder rejection, precedes a narrow versioned scoped 8086 transformation, and G2c/G2d version and tuple consumers change together with G2e regression. Legacy runtime, support, source UNKNOWN and host/live gates remain unchanged. Six reviews/S3D pending; contract `.codex/evidence/slice-449-route-8086-p1-contract.md`.
+
 ## Amendment v1.64 — proposed scoped 8086 decision
 
 G2e completed at `b9f2543f3fea21fd7565a6f6bf02c72e6dc8f448`. An ACCEPTED desired-policy-only ADR amendment assigns desired 8086 compatibility route to service-access with Infisical backend under complete dependency closure, validates exact legacy tuples before a narrow versioned transformation, and leaves legacy unchanged. Existing 8086 code AUTHORITY_GAP continues until separate implementation and quality; no host/live/support claim.

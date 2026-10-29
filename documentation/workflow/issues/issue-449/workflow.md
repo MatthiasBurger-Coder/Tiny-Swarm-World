@@ -1,13 +1,13 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: ACTIVE_FOR_ISSUE_449 v1.64 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
+Status: ACTIVE_FOR_ISSUE_449 v1.65 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
 Workflow authoring branch: `docs/workflow-lcm-w09-route-baseline-20261027`
 Baseline: `a0310224946b63e2152ff4086d22a450c3d0f214`
-ACTIVE_FOR_ISSUE_449 v1.64. The user explicitly authorized completion of issue #449 on the named test hosts and a bounded diagnosis of the latest native blocker. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
+ACTIVE_FOR_ISSUE_449 v1.65. The user explicitly authorized completion of issue #449 on the named test hosts and a bounded diagnosis of the latest native blocker. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
 Execution profile: `FULL_PATH — lifecycle/provider implementation, regression, documentation, native and WSL2 qualification`
 
 ## Executive Summary
@@ -3193,3 +3193,32 @@ After independent decision acceptance, author a separate serial scoped-domain sl
 ### D0 decision accepted — implementation still pending
 
 S3/S3D EXECUTION_PLAN was reported for the clean base `ff9995913518fe7d268a64e367ef85b551794731` and six independent proposal reviews. The 8086 ADR decision is accepted as future desired policy; current scoped code continues to block until the separately reviewed implementation, exact-source quality and downstream G2c/G2d/G2e regressions pass. No legacy or host behavior changed.
+
+## Execution-phase amendment v1.65 — coupled scoped 8086 implementation P1
+
+Status PLANNED after accepted D0 `90b5665e7fe01f198e78c5d4a130c3b5babcb6ac`. P1 implements only versioned pure scoped desired-policy transformation, validating the exact ordered historic SetupManifest tuple sequence before narrowly reclassifying/removing 8086; G2c and G2d exact policy/version consumers are updated together and G2e fixed blocked output regressed. Normative contract `.codex/evidence/slice-449-route-8086-p1-contract.md`. Legacy runtime/P0a, actual host identities, source UNKNOWN, empty capability support, fixture and live gates remain unchanged.
+
+```yaml
+slice_id: S449-ROUTE-8086-P1
+profile: BACKEND_AND_TESTS
+owner: Senior Python Automation Developer
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior Tester, Senior DevOps Engineer]
+affected_files: [src/tiny_swarm_world/domain/lifecycle/scoped_route_policy.py, src/tiny_swarm_world/domain/lifecycle/desired_manifest_v2.py, src/tiny_swarm_world/application/services/migration_admission.py, tests/domain/lifecycle/test_scoped_route_policy.py, tests/domain/lifecycle/test_desired_manifest_v2.py, tests/application/services/test_migration_admission.py, tests/test_migration_admission_cli.py, .codex/evidence/slice-449-route-8086-p1-contract.md, .codex/evidence/slice-449-route-8086-p1-distribution.md, .codex/evidence/slice-449-route-8086-p1-consolidation.md]
+affected_modules: [scoped policy, desired v2 conversion, migration admission]
+affected_contracts: [exact ordered legacy tuple sequence before 8086 transform, scoped policy v2 identity, exact coupled consumers, fail-closed capability, unchanged legacy runtime]
+dependencies: [S449-ROUTE-8086-ADR-D0, S449-ROUTE-POLICY-P0, S449-MANIFEST-G2C, S449-MIGRATION-G2D, S449-MIGRATION-G2E]
+parallel_group: sequential
+file_locks: [src/tiny_swarm_world/domain/lifecycle/scoped_route_policy.py, src/tiny_swarm_world/domain/lifecycle/desired_manifest_v2.py, src/tiny_swarm_world/application/services/migration_admission.py, tests/domain/lifecycle/test_scoped_route_policy.py, tests/domain/lifecycle/test_desired_manifest_v2.py, tests/application/services/test_migration_admission.py, tests/test_migration_admission_cli.py, .codex/evidence/slice-449-route-8086-p1-contract.md, .codex/evidence/slice-449-route-8086-p1-distribution.md, .codex/evidence/slice-449-route-8086-p1-consolidation.md]
+module_locks: [scoped route policy, desired conversion, migration admission]
+contract_locks: [exact legacy source sequence validation including reorder drift, 8086 versioned transformation, strict consumer version and exact tuples, blocked scoped capability]
+architecture_locks: [domain and application boundaries, no runtime integration or host effects, no invented source authority]
+quality_gates:
+  targeted: [PYTHONPATH=src python3 -m unittest tests.domain.lifecycle.test_scoped_route_policy tests.domain.lifecycle.test_desired_manifest_v2 tests.domain.lifecycle.test_legacy_route_candidate tests.application.services.test_migration_admission tests.test_migration_admission_cli tests.test_migration_preview_cli, python3 -m ruff check src/tiny_swarm_world/domain/lifecycle/scoped_route_policy.py src/tiny_swarm_world/domain/lifecycle/desired_manifest_v2.py src/tiny_swarm_world/application/services/migration_admission.py tests/domain/lifecycle/test_scoped_route_policy.py tests/domain/lifecycle/test_desired_manifest_v2.py tests/application/services/test_migration_admission.py tests/test_migration_admission_cli.py]
+  required: [python3 tools/quality_gate.py quality, git diff --check]
+documentation:
+  arc42: follow accepted scoped 8086 amendment
+  adr: no change
+stop_conditions: [missing same-hash reviews or S3D, accepted decision mismatch, legacy source drift, version/consumer mismatch, unguarded capability, legacy/runtime regression, host or file I/O]
+```
+
+One serial worker and six independent Requirement, Architecture, Security, Python, Tester and DevOps same-hash reviews plus S3D EXECUTION_PLAN precede edits. Targeted/direct Ruff/full QUALITY run on designated SSH PC WSL with exact source; this slice proves no live success.
