@@ -1,4 +1,10 @@
-## Amendment v1.65 — coupled scoped 8086 P1
+## Amendment v1.66 — unadopted v2 record and isolated CAS
+
+S449-MANIFEST-V2-REPOSITORY is PLANNED at `eacbdc418b6b7179e69441b718f7226609f96470`. It proposes a strict typed UNADOPTED v2 draft at fixed noncanonical staging path and separate dual-read/isolated CAS port and adapter. Locking assumes cooperating clients and no hostile same-UID writer; bytehash CAS cannot detect byte-identical ABA. Post-replace crash or directory-fsync failure is UNCERTAIN; read-only reconciliation may find the complete old or new file. ADR-owner GO was reported for the earlier isolated UNADOPTED draft; the current revision needs fresh same-hash review and S3D, and versioned draft migration is mandatory before production use; V1 runtime decoder, consumers and host remain unchanged. Six role reviews/S3D and SSH PC WSL quality are pending. Contract `.codex/evidence/slice-449-manifest-v2-repository-contract.md`.
+
+## Historical amendment v1.65 — coupled scoped 8086 P1
+
+P1 subsequently completed at `eacbdc418b6b7179e69441b718f7226609f96470`; planned status below is historical.
 
 P1 is PLANNED after desired-policy ADR acceptance at `90b5665e7fe01f198e78c5d4a130c3b5babcb6ac`: exact ordered legacy tuple-sequence validation, including reorder rejection, precedes a narrow versioned scoped 8086 transformation, and G2c/G2d version and tuple consumers change together with G2e regression. Legacy runtime, support, source UNKNOWN and host/live gates remain unchanged. Six reviews/S3D pending; contract `.codex/evidence/slice-449-route-8086-p1-contract.md`.
 

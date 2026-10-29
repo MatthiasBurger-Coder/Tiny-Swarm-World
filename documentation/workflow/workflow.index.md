@@ -84,3 +84,5 @@ Workflow v1.63 plans early read-only G2e migration-check CLI with fixed blocked 
 Workflow v1.64 accepts the scoped desired 8086 policy; current code gap and live gates remain until separate implementation and qualification.
 
 Workflow v1.65 plans coupled pure scoped 8086 policy and consumers after ADR acceptance; legacy/runtime/live boundaries remain unchanged.
+
+Workflow v1.66 plans strict unadopted v2 record and isolated versioned CAS; ADR reconciliation and reviews pending, no runtime migration.

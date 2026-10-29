@@ -1,13 +1,13 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: ACTIVE_FOR_ISSUE_449 v1.65 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
+Status: ACTIVE_FOR_ISSUE_449 v1.66 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
 Workflow authoring branch: `docs/workflow-lcm-w09-route-baseline-20261027`
 Baseline: `a0310224946b63e2152ff4086d22a450c3d0f214`
-ACTIVE_FOR_ISSUE_449 v1.65. The user explicitly authorized completion of issue #449 on the named test hosts and a bounded diagnosis of the latest native blocker. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
+ACTIVE_FOR_ISSUE_449 v1.66. The user explicitly authorized completion of issue #449 on the named test hosts and a bounded diagnosis of the latest native blocker. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
 Execution profile: `FULL_PATH — lifecycle/provider implementation, regression, documentation, native and WSL2 qualification`
 
 ## Executive Summary
@@ -3194,7 +3194,9 @@ After independent decision acceptance, author a separate serial scoped-domain sl
 
 S3/S3D EXECUTION_PLAN was reported for the clean base `ff9995913518fe7d268a64e367ef85b551794731` and six independent proposal reviews. The 8086 ADR decision is accepted as future desired policy; current scoped code continues to block until the separately reviewed implementation, exact-source quality and downstream G2c/G2d/G2e regressions pass. No legacy or host behavior changed.
 
-## Execution-phase amendment v1.65 — coupled scoped 8086 implementation P1
+## Historical execution-phase amendment v1.65 — coupled scoped 8086 implementation P1
+
+P1 subsequently completed at `eacbdc418b6b7179e69441b718f7226609f96470`; planned status below is historical.
 
 Status PLANNED after accepted D0 `90b5665e7fe01f198e78c5d4a130c3b5babcb6ac`. P1 implements only versioned pure scoped desired-policy transformation, validating the exact ordered historic SetupManifest tuple sequence before narrowly reclassifying/removing 8086; G2c and G2d exact policy/version consumers are updated together and G2e fixed blocked output regressed. Normative contract `.codex/evidence/slice-449-route-8086-p1-contract.md`. Legacy runtime/P0a, actual host identities, source UNKNOWN, empty capability support, fixture and live gates remain unchanged.
 
@@ -3222,3 +3224,32 @@ stop_conditions: [missing same-hash reviews or S3D, accepted decision mismatch, 
 ```
 
 One serial worker and six independent Requirement, Architecture, Security, Python, Tester and DevOps same-hash reviews plus S3D EXECUTION_PLAN precede edits. Targeted/direct Ruff/full QUALITY run on designated SSH PC WSL with exact source; this slice proves no live success.
+
+## Execution-phase amendment v1.66 — versioned manifest record and isolated CAS
+
+S449-MANIFEST-V2-REPOSITORY is PLANNED after P1 `eacbdc418b6b7179e69441b718f7226609f96470`. It proposes a strict typed UNADOPTED v2 draft at fixed noncanonical `.tiny-swarm-world/staging/manifest-v2-draft.json` and dedicated dual-read/isolated CAS port and adapter, not a runtime or canonical-manifest migration. ADR does not define exact wire/provenance shape; reported ADR-owner GO covers the prior isolated UNADOPTED-draft candidate only. The revised contract `.codex/evidence/slice-449-manifest-v2-repository-contract.md` still needs fresh independent same-hash role review/S3D; versioned migration is required before later production use. V1 decoder/consumers remain unchanged and fail closed for v2; no host/support/adoption is claimed.
+
+```yaml
+slice_id: S449-MANIFEST-V2-REPOSITORY
+profile: BACKEND_AND_TESTS
+owner: Senior Python Automation Developer
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior Tester, Senior DevOps Engineer]
+affected_files: [src/tiny_swarm_world/domain/lifecycle/manifest_v2_record.py, src/tiny_swarm_world/application/ports/lifecycle/versioned_manifest.py, src/tiny_swarm_world/infrastructure/adapters/lifecycle/versioned_manifest_repository.py, tests/domain/lifecycle/test_manifest_v2_record.py, tests/infrastructure/adapters/lifecycle/test_versioned_manifest_repository.py, .codex/evidence/slice-449-manifest-v2-repository-contract.md, .codex/evidence/slice-449-manifest-v2-repository-distribution.md, .codex/evidence/slice-449-manifest-v2-repository-consolidation.md]
+affected_modules: [domain unadopted v2 record, versioned repository port, isolated filesystem CAS adapter]
+affected_contracts: [closed strict wire, canonical v1 preservation, UNKNOWN provenance, dual read no migration, isolated CAS durability]
+dependencies: [S449-ROUTE-8086-P1, S449-MANIFEST-G2C, S449-MIGRATION-G2E]
+parallel_group: sequential
+file_locks: [src/tiny_swarm_world/domain/lifecycle/manifest_v2_record.py, src/tiny_swarm_world/application/ports/lifecycle/versioned_manifest.py, src/tiny_swarm_world/infrastructure/adapters/lifecycle/versioned_manifest_repository.py, tests/domain/lifecycle/test_manifest_v2_record.py, tests/infrastructure/adapters/lifecycle/test_versioned_manifest_repository.py, .codex/evidence/slice-449-manifest-v2-repository-contract.md, .codex/evidence/slice-449-manifest-v2-repository-distribution.md, .codex/evidence/slice-449-manifest-v2-repository-consolidation.md]
+module_locks: [versioned manifest record and isolated repository]
+contract_locks: [closed unadopted draft wire and persisted listen input, UNKNOWN provenance, fixed staging path, bounded JSON, redacted repr, cooperating lock inode, bytehash CAS ABA limitation, no admission, crash semantics]
+architecture_locks: [domain port adapter boundaries, no existing runtime wiring, no host mutation]
+quality_gates:
+  targeted: [PYTHONPATH=src python3 -m unittest tests.domain.lifecycle.test_manifest_v2_record tests.infrastructure.adapters.lifecycle.test_versioned_manifest_repository tests.infrastructure.adapters.lifecycle.test_manifest tests.test_migration_preview_cli, python3 -m ruff check src/tiny_swarm_world/domain/lifecycle/manifest_v2_record.py src/tiny_swarm_world/application/ports/lifecycle/versioned_manifest.py src/tiny_swarm_world/infrastructure/adapters/lifecycle/versioned_manifest_repository.py tests/domain/lifecycle/test_manifest_v2_record.py tests/infrastructure/adapters/lifecycle/test_versioned_manifest_repository.py]
+  required: [python3 tools/quality_gate.py quality, git diff --check]
+documentation:
+  arc42: reconcile unadopted wire shape with accepted selection and profile ADRs before implementation
+  adr: separate decision if existing ADR forbids unadopted persisted records
+stop_conditions: [unresolved draft persistence ADR or provenance semantics, missing six reviews or S3D, V1 regression, host effect, admitted state inferred, uncertain CAS or durability, secret disclosure]
+```
+
+One serial implementation owner; role review/S3D before edits. All agent Python checks run in SSH PC WSL on exact source. Follow-on operator migration, canonical persistence and every V2 consumer require separate accepted scopes; live fixture, host admission and support gates remain unchanged.
