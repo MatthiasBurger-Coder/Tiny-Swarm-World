@@ -1,3 +1,7 @@
+## Amendment v1.71 — Portainer upgrade ownership and recovery
+
+Proposed pre-backup fail-closed guard and recovery pending/uncertain states require ADR owner and independent review before implementation. No V1 swarm setup change or host admission.
+
 ## Amendment v1.70 — visible conflict complexity remediation
 
 Full QUALITY failed grown critical class and module complexity; remediation adds a focused resolution helper and optional tests to serial locks, preserving strict snapshot/effect ordering, legacy behavior and guardrails. Fresh six-role reviews, S3D, targeted tests and full SSH PC WSL QUALITY remain required. No host admission follows.

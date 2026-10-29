@@ -1,13 +1,13 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: ACTIVE_FOR_ISSUE_449 v1.70 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
+Status: ACTIVE_FOR_ISSUE_449 v1.71 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
 Workflow authoring branch: `docs/workflow-lcm-w09-route-baseline-20261027`
 Baseline: `a0310224946b63e2152ff4086d22a450c3d0f214`
-ACTIVE_FOR_ISSUE_449 v1.70. The user explicitly authorized completion of issue #449 on the named test hosts and a bounded diagnosis of the latest native blocker. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
+ACTIVE_FOR_ISSUE_449 v1.71. The user explicitly authorized completion of issue #449 on the named test hosts and a bounded diagnosis of the latest native blocker. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
 Execution profile: `FULL_PATH — lifecycle/provider implementation, regression, documentation, native and WSL2 qualification`
 
 ## Executive Summary
@@ -3326,3 +3326,31 @@ Six independent Requirement, Architecture, Security, Python, Tester and DevOps s
 ## Execution-phase amendment v1.70 — visible conflict complexity remediation
 
 The initial full QUALITY reported `grown-critical-class` for `PortainerHttpClient` and `grown-module-complexity` for its module. Do not weaken quality guardrails. Extend the existing S449-PORTAINER-ENDPOINT-STACK serial slice locks with `src/tiny_swarm_world/infrastructure/adapters/clients/portainer_apply_resolution.py` and optional `tests/infrastructure/adapters/clients/test_portainer_apply_resolution.py`. The contract specifies injection of the existing authenticated `_send`, two strict snapshots with exact 200 and no redirects, fingerprint/drift validation, sanitized errors, and unchanged effect ordering and legacy behavior. Preserve all existing regressions; run focused tests and full QUALITY on exact-source SSH PC WSL. Six fresh same-hash role reviews and S3D are required before implementing the amendment. No host action, ownership, completeness or admission follows.
+
+## Execution-phase amendment v1.71 — Portainer upgrade ownership and recovery
+
+PROPOSED, not executable pending ADR owner and six role decisions on `.codex/evidence/slice-449-portainer-upgrade-ownership-contract.md` and S3D. Missing ownership blocks new upgrade before checkpoint/backup; direct proof PUT also blocks. Recovery retains cancel/restore but must remain unsettled without proof; crash uncertainty and durable pending semantics need acceptance first: failed post-replace/fsync save may leave old or new complete checkpoint; read-only reopen, never report success or blindly retry. No V1 swarm setup block, host action or ownership admission.
+
+```yaml
+slice_id: S449-PORTAINER-UPGRADE-OWNERSHIP
+profile: BACKEND_AND_TESTS
+owner: Senior Python Automation Developer
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior Tester, Senior DevOps Engineer]
+dependencies: [S449-PORTAINER-ENDPOINT-STACK]
+parallel_group: sequential
+affected_files: [src/tiny_swarm_world/application/services/portainer_upgrade.py, src/tiny_swarm_world/application/ports/lifecycle/portainer_upgrade.py, src/tiny_swarm_world/domain/lifecycle/portainer_upgrade.py, src/tiny_swarm_world/infrastructure/adapters/lifecycle/portainer_runtime.py, src/tiny_swarm_world/infrastructure/adapters/lifecycle/portainer_api.py, src/tiny_swarm_world/infrastructure/adapters/lifecycle/portainer_journal.py, src/tiny_swarm_world/infrastructure/adapters/lifecycle/update_journal.py, src/tiny_swarm_world/infrastructure/adapters/lifecycle/desired_images.py, tests/application/services/test_portainer_upgrade.py, tests/application/services/test_component_execution.py, tests/application/services/test_product_upgrade.py, tests/infrastructure/adapters/lifecycle/test_native_component_transitions.py, tests/infrastructure/adapters/lifecycle/test_portainer_runtime.py, documentation/user_guide/component-updates.md, .codex/evidence/slice-449-portainer-upgrade-ownership-contract.md, .codex/evidence/slice-449-portainer-upgrade-ownership-distribution.md, .codex/evidence/slice-449-portainer-upgrade-ownership-consolidation.md]
+file_locks: [src/tiny_swarm_world/application/services/portainer_upgrade.py, src/tiny_swarm_world/application/ports/lifecycle/portainer_upgrade.py, src/tiny_swarm_world/domain/lifecycle/portainer_upgrade.py, src/tiny_swarm_world/infrastructure/adapters/lifecycle/portainer_runtime.py, src/tiny_swarm_world/infrastructure/adapters/lifecycle/portainer_api.py, src/tiny_swarm_world/infrastructure/adapters/lifecycle/portainer_journal.py, src/tiny_swarm_world/infrastructure/adapters/lifecycle/update_journal.py, src/tiny_swarm_world/infrastructure/adapters/lifecycle/desired_images.py, tests/application/services/test_portainer_upgrade.py, tests/application/services/test_component_execution.py, tests/application/services/test_product_upgrade.py, tests/infrastructure/adapters/lifecycle/test_native_component_transitions.py, tests/infrastructure/adapters/lifecycle/test_portainer_runtime.py, documentation/user_guide/component-updates.md, .codex/evidence/slice-449-portainer-upgrade-ownership-contract.md, .codex/evidence/slice-449-portainer-upgrade-ownership-distribution.md, .codex/evidence/slice-449-portainer-upgrade-ownership-consolidation.md]
+affected_modules: [Portainer upgrade service and recovery, lifecycle checkpoints, Portainer API]
+module_locks: [Portainer upgrade lifecycle, read-only recovery runtime port, checkpoint consumers]
+affected_contracts: [pre-backup block, no unowned proof PUT, recovery pending and uncertain crash semantics]
+contract_locks: [upgrade ownership, recovery durability, checkpoint compatibility]
+architecture_locks: [domain application infrastructure separation, V1 swarm behavior, no host admission]
+quality_gates:
+  targeted: [PYTHONPATH=src python3 -m unittest tests.application.services.test_portainer_upgrade tests.infrastructure.adapters.lifecycle.test_portainer_runtime tests.application.services.test_component_execution tests.application.services.test_product_upgrade tests.infrastructure.adapters.lifecycle.test_native_component_transitions, python3 -m ruff check src/tiny_swarm_world/application/services/portainer_upgrade.py src/tiny_swarm_world/application/ports/lifecycle/portainer_upgrade.py src/tiny_swarm_world/domain/lifecycle/portainer_upgrade.py src/tiny_swarm_world/infrastructure/adapters/lifecycle/portainer_runtime.py src/tiny_swarm_world/infrastructure/adapters/lifecycle/portainer_api.py src/tiny_swarm_world/infrastructure/adapters/lifecycle/portainer_journal.py src/tiny_swarm_world/infrastructure/adapters/lifecycle/update_journal.py src/tiny_swarm_world/infrastructure/adapters/lifecycle/desired_images.py tests/application/services/test_portainer_upgrade.py tests/application/services/test_component_execution.py tests/application/services/test_product_upgrade.py tests/infrastructure/adapters/lifecycle/test_portainer_runtime.py tests/infrastructure/adapters/lifecycle/test_native_component_transitions.py]
+  required: [python3 tools/quality_gate.py quality, git diff --check]
+documentation:
+  user_guide: explain blocked upgrade and pending recovery
+  arc42: preserve existing ownership decision and document any accepted amendment
+  adr: owner decision on pending recovery and checkpoint semantics required
+stop_conditions: [missing ADR owner or six reviews or S3D, checkpoint uncertainty unaddressed, unowned PUT, false recovered or committed status, V1 regression, host operation]
+```

@@ -1,6 +1,6 @@
 {
   "workflow_id": "issue-449-lcm-w09",
-  "workflow_version": "1.70",
+  "workflow_version": "1.71",
   "workflow_amendment_v1_43": {
     "slice_id": "S449-02F5",
     "status": "HISTORICAL: F5 implemented and bounded native diagnosis executed",
@@ -191,10 +191,10 @@
   },
   "workflow_artifacts_sha256": {
     "documentation/arc42/09_architecture_decisions.adoc": "779b320ac681e3d3250389eef8245865559e395366a5931705c2093bf32f9515",
-    "documentation/workflow/issues/issue-449/context-pack.md": "10204adcd41aeeec97d22b0279a6301e10fa9271744d0ad17797020e3d22b9d7",
-    "documentation/workflow/issues/issue-449/workflow.md": "f65943e5b3bd6c2662e83976f2db1b3b535fda0bb0b6b9f8eb7e375dab10febc",
+    "documentation/workflow/issues/issue-449/context-pack.md": "8aafd3d8e2cf7e7643dde8736e52c7dee7597bfcc87188191298908a272e8bfb",
+    "documentation/workflow/issues/issue-449/workflow.md": "04287aa16b55123be93e607450b33a5f98d3466cccf75ad0375bb20c56770c1d",
     ".agents/skills/workflow-executor/SKILL.md": "04a9325b2cec2dfa6feab24c261c636fdfa295158661d20e981e4182e5bfb46c",
-    "documentation/workflow/workflow.index.md": "d155d38d04c249110842f789a760c2f74c4995c43afacee3b8affb465b3653e9"
+    "documentation/workflow/workflow.index.md": "02f2f8c86cbb9cb5a61ed6fd1ad196c00459394c898ebd8d05a03431da4c3c73"
   },
   "skill_hashes_sha256": {
     ".agents/skills/three-amigos-requirement-gatekeeper/SKILL.md": "76659e618cb706e8990cdf44441aeaed219465044175826adca5357ae8acc5b4",
@@ -1059,5 +1059,17 @@
     "boundary": "Preserve strict two snapshots, sanitized errors and effect ordering, existing legacy semantics, all guardrails and no ownership or host admission.",
     "reviewed_contract_sha256": "9a7113b6bbbeba4f0baf5d9caa90bbf9fd9fd120e317db79c275184571c4d027",
     "reviewed_workflow_sha256": "f65943e5b3bd6c2662e83976f2db1b3b535fda0bb0b6b9f8eb7e375dab10febc"
+  },
+  "workflow_amendment_v1_71": {
+    "slice_id": "S449-PORTAINER-UPGRADE-OWNERSHIP",
+    "status": "PROPOSED; six roles and ADR owner GO rebind current workflow/contract; S3D and implementation pending",
+    "baseline": "e882888486a817b9552f47a115ed000e340eb93d",
+    "contract": ".codex/evidence/slice-449-portainer-upgrade-ownership-contract.md",
+    "contract_sha256": "ebbd10a3f3333d5d93253a982d4350e37a9c7254a233cf91f18339a2ed8a60a1",
+    "distribution": ".codex/evidence/slice-449-portainer-upgrade-ownership-distribution.md",
+    "distribution_sha256": "89aa49ee92ccf60a43d59ea48a31745fa19796ff3336d89318ce1e8c817fba07",
+    "boundary": "Block new upgrade and unowned PUT; recovery pending/uncertain requires decision; no false recovered or host admission.",
+    "reviewed_contract_sha256": "ebbd10a3f3333d5d93253a982d4350e37a9c7254a233cf91f18339a2ed8a60a1",
+    "reviewed_workflow_sha256": "04287aa16b55123be93e607450b33a5f98d3466cccf75ad0375bb20c56770c1d"
   }
 }

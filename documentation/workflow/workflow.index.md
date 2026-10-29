@@ -94,3 +94,5 @@ Historical workflow v1.68 planned NoPrune, completed in c3443ea56c420184124cdf0c
 Workflow v1.69 plans strict endpoint/stack uniqueness on both apply paths; ownership proof and live gates remain separate.
 
 Issue #449 v1.70: visible-conflict complexity remediation adds a focused helper to existing slice locks; no quality-guardrail weakening or host admission.
+
+Issue #449 v1.71: proposed Portainer upgrade ownership and crash-safe recovery; ADR owner and six reviews pending.
