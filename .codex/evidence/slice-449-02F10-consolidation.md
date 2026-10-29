@@ -34,8 +34,8 @@ establish host admission or Epic completion.
 
 On the designated SSH PC WSL test host, against the candidate source tuple:
 
-- Focused unittest suite, Python 3.12: 185 tests passed, one skipped.
-- Focused unittest suite, Python 3.14: 185 tests passed, one skipped.
+- Focused unittest suite, Python 3.12: 185 tests run: 184 passed, one skipped.
+- Focused unittest suite, Python 3.14: 185 tests run: 184 passed, one skipped.
 - The real procfs/nsfs namespace test was skipped for the normal user due to
   access prerequisites; it was executed separately as WSL root and passed
   under both Python 3.12 and Python 3.14, one test each.
