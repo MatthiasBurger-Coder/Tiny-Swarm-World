@@ -77,4 +77,6 @@ Historical workflow v1.60 planned P0, completed at 5e9f87c6b1dc1173b8d0a4609037d
 
 Historical workflow v1.61 planned G2c, completed at f45ca0b8ee3d3593eb02cd7f7a78e8a528440924.
 
-Workflow v1.62 plans G2d fail-closed migration admission; no positive admission or host effect.
+Historical workflow v1.62 planned G2d, completed at ef1e863b755faa3f8127a364b7926244abc35329; no positive admission or host effect.
+
+Workflow v1.63 plans early read-only G2e migration-check CLI with fixed blocked output.

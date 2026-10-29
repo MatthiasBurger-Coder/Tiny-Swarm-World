@@ -1,4 +1,10 @@
-## Amendment v1.62 — fail-closed migration admission G2d
+## Amendment v1.63 — G2e operator migration-check
+
+G2d completed at `ef1e863b755faa3f8127a364b7926244abc35329`. G2e is PLANNED: an early bounded local `services migration-check` exposes only sanitized blocked G2d outcomes; candidate version is operator-supplied and not measured. No host, migration, support or admission follows. Six-role reviews/S3D pending. Contract `.codex/evidence/slice-449-migration-g2e-contract.md`.
+
+## Historical amendment v1.62 — fail-closed migration admission G2d
+
+G2d completed at `ef1e863b755faa3f8127a364b7926244abc35329`; planned status below is historical.
 
 G2c completed at `f45ca0b8ee3d3593eb02cd7f7a78e8a528440924`. G2d is PLANNED as internal application-only v1/catalog inspection and desired-plan/scoped-capability check; it does not affect existing paths. Immediately following G2e must add a separately reviewed safe operator CLI/composition entrypoint, tests and guide; a nonempty string snapshot token is required and the empty support set ensures blocked results, no positive admission, host calls, writes or runtime wiring. Six same-hash reviews and S3D are pending. Contract `.codex/evidence/slice-449-migration-g2d-contract.md`.
 

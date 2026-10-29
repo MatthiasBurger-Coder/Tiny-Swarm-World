@@ -1,6 +1,6 @@
 {
   "workflow_id": "issue-449-lcm-w09",
-  "workflow_version": "1.62",
+  "workflow_version": "1.63",
   "workflow_amendment_v1_43": {
     "slice_id": "S449-02F5",
     "status": "HISTORICAL: F5 implemented and bounded native diagnosis executed",
@@ -191,10 +191,10 @@
   },
   "workflow_artifacts_sha256": {
     "documentation/arc42/09_architecture_decisions.adoc": "779b320ac681e3d3250389eef8245865559e395366a5931705c2093bf32f9515",
-    "documentation/workflow/issues/issue-449/context-pack.md": "7b71a30011629295f2399268bd98b62efd5de901ebf08b5eaf32172493283517",
-    "documentation/workflow/issues/issue-449/workflow.md": "08f8b0c3d13e2f4463169b209bb18a2c960df27df67de6ffe886d5fd6ce382ff",
+    "documentation/workflow/issues/issue-449/context-pack.md": "4633f9453b011a4ec61024a55e2aaa1bfae31db2149ee785964cda99622e65db",
+    "documentation/workflow/issues/issue-449/workflow.md": "8ce431ddc86d31bb91ae76bf2d08ac926cd84ed4f3308a8d32f6799ec342c76d",
     ".agents/skills/workflow-executor/SKILL.md": "04a9325b2cec2dfa6feab24c261c636fdfa295158661d20e981e4182e5bfb46c",
-    "documentation/workflow/workflow.index.md": "5ee00f7c4b9a931754922c621fd1bc18a8094d52948ef0e0982f6f012c2d77da"
+    "documentation/workflow/workflow.index.md": "c028eb8f3d84035fcef3bfb4fe23c86b346ce6dcabc5e6cd4f4815d449941626"
   },
   "skill_hashes_sha256": {
     ".agents/skills/three-amigos-requirement-gatekeeper/SKILL.md": "76659e618cb706e8990cdf44441aeaed219465044175826adca5357ae8acc5b4",
@@ -888,7 +888,7 @@
   },
   "workflow_amendment_v1_62": {
     "slice_id": "S449-MIGRATION-G2D",
-    "status": "PLANNED; six-role contract GO reported on reviewed tuple; S3D and implementation pending",
+    "status": "HISTORICAL: G2d completed in ef1e863b755faa3f8127a364b7926244abc35329",
     "baseline": "f45ca0b8ee3d3593eb02cd7f7a78e8a528440924",
     "dependencies": [
       "S449-CAPABILITY-G1",
@@ -908,5 +908,25 @@
     },
     "boundary": "Internal preparation only; no current path affected; token must be nonempty string; immediately followed by separately reviewed G2e CLI/composition/operator guide.",
     "next_slice": "S449-MIGRATION-G2E"
+  },
+  "workflow_amendment_v1_63": {
+    "slice_id": "S449-MIGRATION-G2E",
+    "status": "PLANNED; six role contract GO reported on reviewed tuple; S3D and implementation pending",
+    "baseline": "ef1e863b755faa3f8127a364b7926244abc35329",
+    "dependencies": [
+      "S449-MIGRATION-G2D"
+    ],
+    "contract": ".codex/evidence/slice-449-migration-g2e-contract.md",
+    "contract_sha256": "7e1df51f721034cb35bc9aa2a7b493a4069b55f4d4c334deb6c3b12def9d971b",
+    "distribution": ".codex/evidence/slice-449-migration-g2e-distribution.md",
+    "distribution_sha256": "77909acf7ba53eae095345567af16f400bf1c3fb795bbea97c13f5956a3f6d14",
+    "baseline_source_sha256": {
+      "src/tiny_swarm_world/application/services/migration_admission.py": "a497747bb7e1b3b989ad99c2950840e074b1a699e0b32ff94ccc76b0a2b3070f",
+      "src/tiny_swarm_world/application/ports/lifecycle/migration_admission.py": "b45da8d1cd31a7197a827bb13a9fa9a3289aee51f88dbb0f0e1916fec7712342",
+      "src/tiny_swarm_world/infrastructure/adapters/cli/migration_preview.py": "5736ff6ca42b3e4aa161cf728203181995de4931dd1bf41633f592a736912ddc",
+      "src/tiny_swarm_world/infrastructure/composition_lifecycle.py": "2288df3ceadf8906542961a1e14a25a3e7f57d46ad778ec78296c6082d99bfd4",
+      "src/tiny_swarm_world/infrastructure/adapters/lifecycle/preview_file_reader.py": "33a356d02a6f9d2849a5e5b2a61bc1315101a22b9e956d636e22e19b77a78e54"
+    },
+    "boundary": "Early bounded local CLI, operator-provided candidate only, fixed blocked JSON/exit 2, no host or mutation."
   }
 }

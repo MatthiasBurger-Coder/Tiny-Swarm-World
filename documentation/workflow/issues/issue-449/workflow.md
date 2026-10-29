@@ -1,13 +1,13 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: ACTIVE_FOR_ISSUE_449 v1.62 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
+Status: ACTIVE_FOR_ISSUE_449 v1.63 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
 Workflow authoring branch: `docs/workflow-lcm-w09-route-baseline-20261027`
 Baseline: `a0310224946b63e2152ff4086d22a450c3d0f214`
-ACTIVE_FOR_ISSUE_449 v1.62. The user explicitly authorized completion of issue #449 on the named test hosts and a bounded diagnosis of the latest native blocker. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
+ACTIVE_FOR_ISSUE_449 v1.63. The user explicitly authorized completion of issue #449 on the named test hosts and a bounded diagnosis of the latest native blocker. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
 Execution profile: `FULL_PATH — lifecycle/provider implementation, regression, documentation, native and WSL2 qualification`
 
 ## Executive Summary
@@ -3090,7 +3090,9 @@ G2c subsequently completed in `f45ca0b8ee3d3593eb02cd7f7a78e8a528440924`; planne
 
 Status PLANNED after completed P0 `5e9f87c6b1dc1173b8d0a4609037d477eb0f5cca`; exact current contract `.codex/evidence/slice-449-manifest-g2c-contract.md` supersedes earlier caller-supplied binding text. G2c creates only immutable desired-state conversion and internally recomputes P0; actual host, source and owner stay UNKNOWN and applied/qualified false. No schema-v2 persistence, runtime decoder, CLI, adoption, host or capability support is changed. Six independent role reviews and S3D are pending; current P0 8086/internal gaps remain.
 
-## Execution-phase amendment v1.62 — fail-closed migration admission G2d
+## Historical execution-phase amendment v1.62 — fail-closed migration admission G2d
+
+G2d subsequently completed in `ef1e863b755faa3f8127a364b7926244abc35329`; planned status below is historical.
 
 G2c completed at `f45ca0b8ee3d3593eb02cd7f7a78e8a528440924`. G2d is PLANNED as an internal application preparation step that loads V1/catalog, computes desired plan and returns only `BLOCKED_UNKNOWN` or `BLOCKED_UNSUPPORTED`, with scoped G1 classification concrete and non-injectable. The currently unconnected service does not affect existing operator paths; immediately following G2e must provide a separately reviewed CLI/composition/operator guide entrypoint. Snapshot token None, empty or non-string blocks; only a valid nonempty string reaches further checks. All valid scoped versions remain unsupported; there is no admission-positive branch, host/source/lock/checkpoint/writer call, CLI/runtime wiring, persistence or host access. Contract `.codex/evidence/slice-449-migration-g2d-contract.md` defines order and boundaries. Existing G2c/G2b/legacy and host/fixture/version gates stay unchanged.
 
@@ -3122,3 +3124,33 @@ Six independent Requirement, Architecture, Security, Python, Tester and DevOps r
 ### Required next slice S449-MIGRATION-G2E — operator entrypoint
 
 Immediately after G2d, author concrete G2e metadata with dependency `S449-MIGRATION-G2D` and execute it under independent review/S3D. Scope is early safe CLI plus read-only composition, no live runtime or host construction, fixed sanitized blocked status/exit behavior, `documentation/` operator guide and CLI/parser/composition regression tests. Until G2e exists, G2d is internal and does not alter existing commands. G2e does not itself authorize mutation, persistence or positive admission.
+
+## Execution-phase amendment v1.63 — operator migration-check G2e
+
+G2e is PLANNED after G2d commit `ef1e863b755faa3f8127a364b7926244abc35329`. It adds only a dedicated early `services migration-check` entry to expose G2d fixed blocked results using bounded local readers. Candidate version is operator supplied, never a host measurement; output is sanitized and unverified, no runtime/host mutation or admission. Exact grammar, result and no-write contract: `.codex/evidence/slice-449-migration-g2e-contract.md`.
+
+```yaml
+slice_id: S449-MIGRATION-G2E
+profile: BACKEND_AND_TESTS
+owner: Senior Python Automation Developer
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior Tester, Senior DevOps Engineer]
+affected_files: [src/tiny_swarm_world/infrastructure/adapters/cli/migration_admission.py, src/tiny_swarm_world/infrastructure/adapters/cli/parser.py, src/tiny_swarm_world/infrastructure/adapters/cli/registry.py, src/tiny_swarm_world/infrastructure/adapters/cli/dispatcher.py, src/tiny_swarm_world/infrastructure/composition_lifecycle.py, src/tiny_swarm_world/infrastructure/composition.py, tests/test_migration_admission_cli.py, tests/test_package_entrypoint.py, documentation/user_guide/selective-setup.md, .codex/evidence/slice-449-migration-g2e-contract.md, .codex/evidence/slice-449-migration-g2e-distribution.md, .codex/evidence/slice-449-migration-g2e-consolidation.md]
+affected_modules: [migration admission CLI, local read-only composition]
+affected_contracts: [strict action grammar, fixed non-admitting JSON, bounded load only, no version detection, legacy CLI parity]
+dependencies: [S449-MIGRATION-G2D]
+parallel_group: sequential
+file_locks: [src/tiny_swarm_world/infrastructure/adapters/cli/migration_admission.py, src/tiny_swarm_world/infrastructure/adapters/cli/parser.py, src/tiny_swarm_world/infrastructure/adapters/cli/registry.py, src/tiny_swarm_world/infrastructure/adapters/cli/dispatcher.py, src/tiny_swarm_world/infrastructure/composition_lifecycle.py, src/tiny_swarm_world/infrastructure/composition.py, tests/test_migration_admission_cli.py, tests/test_package_entrypoint.py, documentation/user_guide/selective-setup.md, .codex/evidence/slice-449-migration-g2e-contract.md, .codex/evidence/slice-449-migration-g2e-distribution.md, .codex/evidence/slice-449-migration-g2e-consolidation.md]
+module_locks: [migration CLI parser routing, bounded preview composition]
+contract_locks: [fixed safe output, early argument rejection, no host observation, legacy CLI behavior]
+architecture_locks: [infrastructure composes application ports, no runtime initialization or mutation]
+quality_gates:
+  targeted: [PYTHONPATH=src python3 -m unittest tests.test_migration_admission_cli tests.test_migration_preview_cli tests.test_package_entrypoint tests.application.services.test_migration_admission tests.infrastructure.adapters.lifecycle.test_preview_file_reader tests.infrastructure.adapters.lifecycle.test_preview_manifest tests.infrastructure.adapters.lifecycle.test_catalog, python3 -m ruff check src/tiny_swarm_world/infrastructure/adapters/cli/migration_admission.py src/tiny_swarm_world/infrastructure/adapters/cli/parser.py src/tiny_swarm_world/infrastructure/adapters/cli/registry.py src/tiny_swarm_world/infrastructure/adapters/cli/dispatcher.py src/tiny_swarm_world/infrastructure/composition_lifecycle.py src/tiny_swarm_world/infrastructure/composition.py tests/test_migration_admission_cli.py tests/test_package_entrypoint.py]
+  required: [python3 tools/quality_gate.py quality, git diff --check]
+documentation:
+  user_guide: document real command and unverified non-admitting meaning
+  arc42: no change
+  adr: no change
+stop_conditions: [missing role reviews or S3D, argument leak or legacy regression, unbounded reader or writes, host runtime, positive admission, unsupported capability, sensitive disclosure]
+```
+
+Six Requirement, Architecture, Security, Python, Tester and DevOps same-hash reviews and S3D EXECUTION_PLAN precede edits. Tests and full quality run on designated SSH PC WSL using exact source.
