@@ -1338,8 +1338,28 @@ def diagnose_snap_generator_stage(*, runner: Runner | None = None) -> str:
         return "UNKNOWN"
 
 
+def diagnose_snap_cgroup_relation(*, runner: Runner | None = None) -> str:
+    """Report only a fixed cgroup relation without admitting the service."""
+    try:
+        import importlib
+        runner = runner or Runner()
+        row = _systemctl_show(runner, "snap.lxd.daemon.service")
+        if (row["load_state"], row["active_state"], row["sub_state"]) != ("loaded", "active", "running") or row["main_pid"] <= 0:
+            return "UNKNOWN"
+        name = f"{__package__}.native_lxd_snap_provenance" if __package__ else "native_lxd_snap_provenance"
+        proof = importlib.import_module(name)
+        reason = proof.diagnose_cgroup_relation(runner, row)
+        allowed = {"PROC_ROOT", "PROC_STRICT_ANCESTOR", "PROC_STRICT_DESCENDANT", "DISJOINT", "UNKNOWN"}
+        return reason if reason in allowed else "UNKNOWN"
+    except Exception:
+        return "UNKNOWN"
+
 def main(argv: list[str] | None = None) -> int:
     arguments = list(sys.argv[1:] if argv is None else argv)
+    if any(arg == "--diagnose-snap-cgroup-relation" or arg.startswith("--diagnose-snap-cgroup-relation=") for arg in arguments):
+        reason = diagnose_snap_cgroup_relation() if arguments == ["--diagnose-snap-cgroup-relation"] else "UNKNOWN"
+        print(json.dumps({"status": "BLOCKED_UNKNOWN", "reason": reason}, separators=(",", ":"), ensure_ascii=True))
+        return 2
     if any(arg == "--diagnose-snap-generator-stage" or arg.startswith("--diagnose-snap-generator-stage=") for arg in arguments):
         reason = diagnose_snap_generator_stage() if arguments == ["--diagnose-snap-generator-stage"] else "UNKNOWN"
         print(json.dumps({"status": "BLOCKED_UNKNOWN", "reason": reason}, separators=(",", ":"), ensure_ascii=True))

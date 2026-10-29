@@ -1467,5 +1467,31 @@ class SnapGeneratorStageCliTests(unittest.TestCase):
         self.assertEqual(runner.run.call_count, 1)
 
 
+class SnapCgroupRelationCliTests(unittest.TestCase):
+    def test_invalid_combinations_never_access_host_or_leak(self) -> None:
+        flag = "--diagnose-snap-cgroup-relation"
+        for argv in ([flag + "=secret"], [flag, "secret"], [flag, "--help"],
+                     [flag, flag], [flag, "--diagnose-snap-generator-stage"],
+                     ["--diagnose-snap-generator-stage", flag]):
+            with self.subTest(argv=argv), patch.object(inventory, "diagnose_snap_cgroup_relation") as diagnose:
+                out, err = StringIO(), StringIO()
+                with redirect_stdout(out), redirect_stderr(err):
+                    self.assertEqual(inventory.main(argv), 2)
+                self.assertEqual(out.getvalue(), '{"status":"BLOCKED_UNKNOWN","reason":"UNKNOWN"}\n')
+                self.assertEqual(err.getvalue(), "")
+                diagnose.assert_not_called()
+
+    def test_valid_mode_and_failure_are_redacted(self) -> None:
+        out, err = StringIO(), StringIO()
+        with patch.object(inventory, "diagnose_snap_cgroup_relation", return_value="PROC_ROOT"), \
+                redirect_stdout(out), redirect_stderr(err):
+            self.assertEqual(inventory.main(["--diagnose-snap-cgroup-relation"]), 2)
+        self.assertEqual(out.getvalue(), '{"status":"BLOCKED_UNKNOWN","reason":"PROC_ROOT"}\n')
+        self.assertEqual(err.getvalue(), "")
+        runner = Mock()
+        runner.run.side_effect = PermissionError("secret /private/path")
+        self.assertEqual(inventory.diagnose_snap_cgroup_relation(runner=runner), "UNKNOWN")
+        self.assertEqual(runner.run.call_count, 1)
+
 if __name__ == "__main__":
     unittest.main()

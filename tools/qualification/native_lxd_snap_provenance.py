@@ -672,8 +672,35 @@ def _negative_again(call: Callable[[], Any], original: _StageNegative) -> bool:
     return False
 
 
+def _cgroup_relation(unit_group: str, raw: bytes) -> str:
+    """Classify canonical cgroup paths without exposing either path."""
+    try:
+        text = raw.decode("utf-8", "strict")
+        if text.endswith("\n"):
+            text = text[:-1]
+        if not text.startswith("0::"):
+            return "UNKNOWN"
+        process_group = text[3:]
+        for value in (unit_group, process_group):
+            if not _normal_path(value) or any(char in value for char in "\r\n\x00"):
+                return "UNKNOWN"
+        if unit_group == process_group:
+            return "UNKNOWN"
+        if process_group == "/":
+            return "PROC_ROOT"
+        unit_parts = PurePosixPath(unit_group).parts
+        process_parts = PurePosixPath(process_group).parts
+        if len(process_parts) < len(unit_parts) and unit_parts[:len(process_parts)] == process_parts:
+            return "PROC_STRICT_ANCESTOR"
+        if len(unit_parts) < len(process_parts) and process_parts[:len(unit_parts)] == unit_parts:
+            return "PROC_STRICT_DESCENDANT"
+        return "DISJOINT"
+    except (UnicodeError, ValueError):
+        return "UNKNOWN"
+
+
 def _probe_generator_form(runner: RunnerPort, expected: dict[str, Any], *, fs: ReadOnlyFS | None,
-                          clock: Callable[[], float], stages: bool) -> str:
+                          clock: Callable[[], float], stages: bool, relation: bool = False) -> str:
     """One shared F7/F8 probe; failed/ambiguous observations never establish identity."""
     try:
         proof = _Proof(runner, fs or LocalReadOnlyFS(), clock)
@@ -706,6 +733,8 @@ def _probe_generator_form(runner: RunnerPort, expected: dict[str, Any], *, fs: R
         def rejected(reason: str) -> str:
             if not stages:
                 return "UNKNOWN"
+            if relation:
+                return "UNKNOWN"
             return reason if stable_prior() else "UNKNOWN"
 
         context_reason = _context_reason(before)
@@ -726,7 +755,18 @@ def _probe_generator_form(runner: RunnerPort, expected: dict[str, Any], *, fs: R
         except _StageNegative as failure:
             if not stages or not stable_prior():
                 return "UNKNOWN"
-            return failure.stage if _negative_again(lambda: proof.process(pid, group), failure) else "UNKNOWN"
+            if not _negative_again(lambda: proof.process(pid, group), failure):
+                return "UNKNOWN"
+            if relation:
+                if failure.stage != "PROCESS_BINDING" or len(failure.snapshots) != 3:
+                    return "UNKNOWN"
+                observation = failure.snapshots[2]
+                if not isinstance(observation, Observation):
+                    return "UNKNOWN"
+                return _cgroup_relation(group, observation.data)
+            return failure.stage
+        if relation:
+            return "UNKNOWN"
         environment = proof.main_environment(pid)
         base, argv, _ = environment
         if base != "/snap/lxd/" + _GENERATOR_REVISION:
@@ -780,3 +820,9 @@ def diagnose_generator_stage(runner: RunnerPort, expected: dict[str, Any], *, fs
                              clock: Callable[[], float] = time.monotonic) -> str:
     """Report a stable fixed failure stage without admitting an identity."""
     return _probe_generator_form(runner, expected, fs=fs, clock=clock, stages=True)
+
+
+def diagnose_cgroup_relation(runner: RunnerPort, expected: dict[str, Any], *, fs: ReadOnlyFS | None = None,
+                             clock: Callable[[], float] = time.monotonic) -> str:
+    """Report a stable path relation without admitting an identity."""
+    return _probe_generator_form(runner, expected, fs=fs, clock=clock, stages=True, relation=True)

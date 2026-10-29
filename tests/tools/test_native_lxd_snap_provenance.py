@@ -1091,5 +1091,144 @@ class GeneratorStageTests(unittest.TestCase):
         self.assertNotIn("/etc/environment", [call[0] for call in self.fs.calls])
 
 
+class CgroupRelationTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.fixture = GeneratorStageTests("runTest")
+        self.fixture.setUp()
+        self.fs = self.fixture.fs
+        self.row = self.fixture.row
+        self.runner = self.fixture.runner
+        self.values = self.fixture.values
+
+    def diagnose(self) -> str:
+        return proof.diagnose_cgroup_relation(self.runner, self.row, fs=self.fs, clock=lambda: 0.0)
+
+    def test_component_relations_and_prefix_collisions(self) -> None:
+        cases = (
+            ("/a/b", b"0::/\n", "PROC_ROOT"),
+            ("/a/b", b"0::/a\n", "PROC_STRICT_ANCESTOR"),
+            ("/a", b"0::/a/b\n", "PROC_STRICT_DESCENDANT"),
+            ("/", b"0::/a/b\n", "PROC_STRICT_DESCENDANT"),
+            ("/a", b"0::/ab\n", "DISJOINT"),
+            ("/a/b", b"0::/a/c", "DISJOINT"),
+            ("/équipe/service unit", "0::/équipe\n".encode(), "PROC_STRICT_ANCESTOR"),
+            ("/a\tb/child", b"0::/a\tb\n", "PROC_STRICT_ANCESTOR"),
+            ("/a\u00a0b", "0::/a\u00a0b/child\n".encode(), "PROC_STRICT_DESCENDANT"),
+            ("/équipe", "0::/équipe/子 group\n".encode(), "PROC_STRICT_DESCENDANT"),
+            ("/équipe/service", "0::/équipe-other\n".encode(), "DISJOINT"),
+            ("/a", b"0::/a\n", "UNKNOWN"),
+        )
+        for unit, raw, expected in cases:
+            with self.subTest(expected=expected, unit=unit):
+                self.assertEqual(proof._cgroup_relation(unit, raw), expected)
+
+    def test_invalid_and_noncanonical_paths_are_unknown(self) -> None:
+        for raw in (b"0::/a//b\n", b"0::/a/./b\n", b"0::/a/../b\n", b"0::/a/\n",
+                    b"0::relative\n", b"0::/a\n0::/b\n", b"0::/a\r\n",
+                    b"0::/a\x00\n", b"0::/\xff\n", b"1::/a\n"):
+            with self.subTest(raw=raw):
+                self.assertEqual(proof._cgroup_relation("/system.slice/example", raw), "UNKNOWN")
+        for unit in ("/a/./b", "//a", "/a/", "/a/../b", "relative", "/a\nsecret"):
+            with self.subTest(unit=unit):
+                self.assertEqual(proof._cgroup_relation(unit, b"0::/other\n"), "UNKNOWN")
+
+    def test_stable_root_mismatch_is_classified_without_later_reads(self) -> None:
+        path = "/proc/101/cgroup"
+        self.fs.files[path] = regular(3101, b"0::/\n", readonly=False)
+        self.assertEqual(self.diagnose(), "PROC_ROOT")
+        reads = [call[0] for call in self.fs.calls]
+        self.assertEqual(self.runner.run.call_count, 2)
+        self.assertNotIn("/proc/101/environ", reads)
+        self.assertNotIn("/etc/environment", reads)
+        self.assertNotIn("/proc/101/exe", reads)
+        self.assertEqual(reads.count(path), 2)
+
+    def test_stable_ancestry_and_disjoint_are_reported_from_existing_snapshots(self) -> None:
+        path = "/proc/101/cgroup"
+        group = self.values["ControlGroup"]
+        cases = (
+            (b"0::/system.slice\n", "PROC_STRICT_ANCESTOR"),
+            (("0::" + group + "/child\n").encode(), "PROC_STRICT_DESCENDANT"),
+            (b"0::/system.slice-other\n", "DISJOINT"),
+        )
+        for raw, reason in cases:
+            with self.subTest(reason=reason):
+                self.setUp()
+                self.fs.files[path] = regular(3101, raw, readonly=False)
+                self.assertEqual(self.diagnose(), reason)
+                self.assertEqual(self.runner.run.call_count, 2)
+                self.assertNotIn("/proc/101/environ", [call[0] for call in self.fs.calls])
+
+    def test_malformed_or_unstable_process_identity_never_produces_relation(self) -> None:
+        cgroup = "/proc/101/cgroup"
+        for raw in (b"0::/x\n0::/y\n", b"0::/x\r\n", b"0::/x\x00\n", b"0::/\xff\n"):
+            with self.subTest(raw=raw):
+                self.setUp()
+                self.fs.files[cgroup] = regular(3101, raw, readonly=False)
+                self.assertEqual(self.diagnose(), "UNKNOWN")
+        for path, mutate in (
+            ("/proc/101/stat", lambda item: replace(item, data=proc_stat(101, 1, 12))),
+            ("/proc/101/status", lambda item: replace(item, data=b"Uid:\t1000\t1000\t1000\t1000\n")),
+            (proof.DROP_IN, lambda item: replace(item, inode=item.inode + 1)),
+        ):
+            with self.subTest(path=path):
+                self.setUp()
+                self.fs.files[cgroup] = regular(3101, b"0::/\n", readonly=False)
+                original = self.fs.files[path]
+                changed = mutate(original)
+                self.assertNotEqual(original, changed)
+                self.fs.sequences[path] = [original, changed]
+                self.assertEqual(self.diagnose(), "UNKNOWN")
+
+    def test_unit_root_is_rejected_before_relation(self) -> None:
+        self.values["ControlGroup"] = "/"
+        self.fs.files["/proc/101/cgroup"] = regular(3101, b"0::/a\n", readonly=False)
+        self.assertEqual(self.diagnose(), "UNKNOWN")
+        self.assertNotIn("/proc/101/cgroup", [call[0] for call in self.fs.calls])
+
+    def test_unstable_or_missing_prior_observations_are_unknown(self) -> None:
+        path = "/proc/101/cgroup"
+        first = regular(3101, b"0::/a\n", readonly=False)
+        for second in (regular(3101, b"0::/b\n", readonly=False), replace(first, inode=999)):
+            with self.subTest(second=second):
+                self.setUp()
+                self.fs.sequences[path] = [first, second]
+                self.assertEqual(self.diagnose(), "UNKNOWN")
+                self.assertNotIn("/proc/101/environ", [call[0] for call in self.fs.calls])
+        self.setUp()
+        self.fs.files[path] = first
+        original = self.fs.observe
+        visits = 0
+
+        def observe(name: str, *, limit: int | None = None, follow: bool = False) -> proof.Observation:
+            nonlocal visits
+            if name == path:
+                visits += 1
+                if visits == 2:
+                    raise PermissionError("secret /private/path")
+            return original(name, limit=limit, follow=follow)
+
+        with patch.object(self.fs, "observe", side_effect=observe):
+            self.assertEqual(self.diagnose(), "UNKNOWN")
+
+    def test_deadline_expires_without_later_reads(self) -> None:
+        self.fs.files["/proc/101/cgroup"] = regular(3101, b"0::/\n", readonly=False)
+
+        def clock() -> float:
+            return 60.0 if self.runner.run.call_count >= 2 else 0.0
+
+        reason = proof.diagnose_cgroup_relation(self.runner, self.row, fs=self.fs, clock=clock)
+        self.assertEqual(reason, "UNKNOWN")
+        self.assertEqual(self.runner.run.call_count, 2)
+        self.assertNotIn("/proc/101/environ", [call[0] for call in self.fs.calls])
+
+    def test_non_process_failures_and_matching_cgroup_never_admit_relation(self) -> None:
+        self.assertEqual(self.diagnose(), "UNKNOWN")
+        self.assertNotIn("/proc/101/environ", [call[0] for call in self.fs.calls])
+        self.setUp()
+        self.values["FragmentPath"] = "/private-secret"
+        self.assertEqual(self.diagnose(), "UNKNOWN")
+        self.assertEqual(self.fs.calls, [])
+
 if __name__ == "__main__":
     unittest.main()
