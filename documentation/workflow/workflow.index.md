@@ -55,4 +55,6 @@ Workflow v1.48 adds PLANNED S449-02F10 after F9's native `BLOCKED_UNKNOWN / PROC
 
 Workflow v1.49 records a S449-02F11 end-to-end host-admission proposal marked NOT_FEASIBLE for the current collector; existing blockers, graph and host requirements remain in force pending review and S3D.
 
-Workflow v1.50 records accepted R67k sequencing; mock-only G1 awaits its own contract review and S3D, and existing host/fixture dependencies remain effective.
+Historical workflow v1.50 recorded accepted R67k sequencing and planned G1; G1 was completed in 55c42029a7c1f0e7c219d1708060c4ed6b708dea. Existing host/fixture dependencies remain effective.
+
+Workflow v1.51 plans domain-only G2a migration preview after D0/G1; runtime schema, host admission and fixture gates remain unchanged.

@@ -1,13 +1,13 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: ACTIVE_FOR_ISSUE_449 v1.50 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
+Status: ACTIVE_FOR_ISSUE_449 v1.51 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
 Workflow authoring branch: `docs/workflow-lcm-w09-route-baseline-20261027`
 Baseline: `a0310224946b63e2152ff4086d22a450c3d0f214`
-ACTIVE_FOR_ISSUE_449 v1.50. The user explicitly authorized completion of issue #449 on the named test hosts and a bounded diagnosis of the latest native blocker. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
+ACTIVE_FOR_ISSUE_449 v1.51. The user explicitly authorized completion of issue #449 on the named test hosts and a bounded diagnosis of the latest native blocker. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
 Execution profile: `FULL_PATH — lifecycle/provider implementation, regression, documentation, native and WSL2 qualification`
 
 ## Executive Summary
@@ -2813,15 +2813,17 @@ contract, separate reviews, gates and host phase. S449-02F remains BLOCKED.
 
 `.codex/evidence/slice-449-02F11-host-admission-plan.md` records the Security decision NOT_FEASIBLE for strict endpoint binding in the current collector. A probe connection cannot bind later independent lxc connections; no host proof may execute under F11. It describes a proposed separately governed unit/process/endpoint proof and full inventory/host qualification route, scoped requirement traceability and independently reviewed alternative/parallel preparation. The proof extends prior read/socket boundaries and cannot be implemented or run until its concrete API/limits, safety model, file locks, six same-hash roles and S3D EXECUTION_PLAN are approved. No previous diagnostic, proposal or quality pass admits a host. Existing S449-02F/02G/02H and main graph dependencies remain unchanged; 02F stays BLOCKED. The uncommitted ADR proposal is not accepted by this amendment. User live-test consent remains valid; scenario JIT/GO and applicable host-operation scope remain mandatory.
 
-## Execution-phase amendment v1.50 — accepted sequencing; proposed capability foundation
+## Historical execution-phase amendment v1.50 — accepted sequencing and G1 authoring
 
-Status: D0 decision ACCEPTED on the independent six-role pre-acceptance review tuple recorded in `.codex/evidence/slice-449-adr-sequencing-review.md`; R67k supersedes R67h only for implementation sequencing. Existing live fixture, host and support dependencies remain binding. G1 is not authorized until its own contract refinement, independent same-hash reviews and S3D EXECUTION_PLAN. Existing F11 and 02F host blockers remain. The user-owned Windows ADR draft is outside this checkout and must not be overwritten. Architecture review identifies no existing new scoped-capability caller: the foundation below cannot claim to protect nonexistent call sites. Existing `lxc_node_provider.ensure_node` and fixed Classic configuration remain unchanged.
+Historical authoring state follows; G1 was subsequently completed in commit `55c42029a7c1f0e7c219d1708060c4ed6b708dea`. Pending conditions and proposed wording in this v1.50 section describe the earlier state, not current status.
+
+Status: D0 decision ACCEPTED on the independent six-role pre-acceptance review tuple recorded in `.codex/evidence/slice-449-adr-sequencing-review.md`; R67k supersedes R67h only for implementation sequencing. Existing live fixture, host and support dependencies remain binding. At authoring, G1 required its own contract refinement, independent same-hash reviews and S3D EXECUTION_PLAN. Existing F11 and 02F host blockers remain. The user-owned Windows ADR draft is outside this checkout and must not be overwritten. Architecture review identifies no existing new scoped-capability caller: the foundation below cannot claim to protect nonexistent call sites. Existing `lxc_node_provider.ensure_node` and fixed Classic configuration remain unchanged.
 
 After decision acceptance, this proposed G1 may run while the separate listener fixture remains blocked. It only defines typed scoped intent and immutable empty version support; it does not wire a caller or claim runtime guard coverage. Every future G2/G3/G4 mutating caller must be separately planned and independently reviewed, use the typed scoped identity and enforce the capability decision before any external effect, and prove direct, recovery, cleanup and bypass cases. Until that integration is verified no new-capability host mutation, retry or cleanup is permitted. Legacy Classic remains separately supported. No external CI change or host admission follows.
 
 ### Proposed decision slice D0 — R67k and workflow review
 
-D0 decision is complete: six independent role approvals on the pre-acceptance candidate tuple and accepted R67k are recorded in `.codex/evidence/slice-449-adr-sequencing-review.md`. Preserve the user-owned Windows ADR draft. G1 needs separate exact-source contract review and S3D EXECUTION_PLAN.
+D0 decision is complete: six independent role approvals on the pre-acceptance candidate tuple and accepted R67k are recorded in `.codex/evidence/slice-449-adr-sequencing-review.md`. Preserve the user-owned Windows ADR draft. At authoring, G1 required separate exact-source contract review and S3D EXECUTION_PLAN.
 
 ```yaml
 slice_id: S449-ADR-SEQUENCE-D0
@@ -2873,4 +2875,33 @@ documentation:
 stop_conditions: [R67k acceptance or approved workflow unverifiable, G1 contract not refined and independently reviewed, missing same-hash reviews or S3D, support set not empty, mutable or extensible support, malformed or ambiguous typed intent, domain dependency violation, legacy modification, external host effect, claimed caller protection]
 ```
 
-All Python tests, Ruff and full quality run on the designated SSH PC WSL host against exact source. G1 remains pending its own contract refinement, reviews and S3D; this decision does not itself authorize editing product code or automatically change existing S449-03/04 dependencies. Before G2/G3/G4, author their exact file/module/contract/architecture locks, host-effect guard integrations and targeted negative regression matrices, then obtain six same-hash reviews and S3D separately. Fixture, separate support decision, host admission and both-host scenarios remain prerequisites for live new-capability use.
+All Python tests, Ruff and full quality run on the designated SSH PC WSL host against exact source. At authoring, G1 was pending its own contract refinement, reviews and S3D; this decision does not itself authorize editing product code or automatically change existing S449-03/04 dependencies. Before G2/G3/G4, author their exact file/module/contract/architecture locks, host-effect guard integrations and targeted negative regression matrices, then obtain six same-hash reviews and S3D separately. Fixture, separate support decision, host admission and both-host scenarios remain prerequisites for live new-capability use.
+
+## Execution-phase amendment v1.51 — domain-only migration preview G2a
+
+Status: PLANNED; R67k sequencing accepted, D0 and G1 completed at baseline `55c42029a7c1f0e7c219d1708060c4ed6b708dea`. G2a is a strictly domain-only immutable `MigrationPreview` from validated v1 manifest and catalog; it is not a schema-v2 installation, runtime decoder change, adoption, host protection or live qualification. Normative behavior and tests: `.codex/evidence/slice-449-manifest-g2a-contract.md`. ADR defaults are policy only; actual project/profile/routes/owner identity remains UNKNOWN. Existing S449-03/04 and host/fixture dependencies remain in force for their original scopes. G2b/G2c require independently authored boundaries and gates.
+
+```yaml
+slice_id: S449-MANIFEST-G2A
+profile: DOMAIN_AND_TESTS
+owner: Senior Python Automation Developer
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior Tester, Senior DevOps Engineer]
+affected_files: [src/tiny_swarm_world/domain/lifecycle/manifest_v2.py, tests/domain/lifecycle/test_manifest_v2.py, .codex/evidence/slice-449-manifest-g2a-contract.md, .codex/evidence/slice-449-manifest-g2a-distribution.md, .codex/evidence/slice-449-manifest-g2a-consolidation.md]
+affected_modules: [domain lifecycle migration preview]
+affected_contracts: [strict revalidated v1 and catalog with unique service/component IDs and canonical foundation kinds, immutable detached preview, selected stack swarm policy, selected Swagger stack published or not applicable, unknown host identity, unchanged v1 runtime]
+dependencies: [S449-ADR-SEQUENCE-D0, S449-CAPABILITY-G1]
+parallel_group: sequential
+file_locks: [src/tiny_swarm_world/domain/lifecycle/manifest_v2.py, tests/domain/lifecycle/test_manifest_v2.py, .codex/evidence/slice-449-manifest-g2a-contract.md, .codex/evidence/slice-449-manifest-g2a-distribution.md, .codex/evidence/slice-449-manifest-g2a-consolidation.md]
+module_locks: [domain lifecycle manifest preview]
+contract_locks: [v1 preservation, catalog uniqueness and selection, immutable unknown identities, no runtime schema acceptance]
+architecture_locks: [domain-only, no I/O, no migration or adoption, no product runtime integration]
+quality_gates:
+  targeted: [PYTHONPATH=src python3 -m unittest tests.domain.lifecycle.test_manifest_v2 tests.domain.lifecycle.test_models, python3 -m ruff check src/tiny_swarm_world/domain/lifecycle/manifest_v2.py tests/domain/lifecycle/test_manifest_v2.py]
+  required: [python3 tools/quality_gate.py quality, git diff --check]
+documentation:
+  arc42: follow accepted selection exposure and ownership ADR
+  adr: no change
+stop_conditions: [missing same-hash reviews or S3D, invalid or ambiguous v1 or catalog, unknown identities inferred, mutable shared state, changed v1 decoder, runtime integration, any host I/O, live support claim]
+```
+
+Six independent Requirement, Architecture, Security, Python, Tester and DevOps reviews of identical workflow/contract/source hashes and S3D EXECUTION_PLAN precede G2a edits. Exact source targeted/direct Ruff/full quality run on SSH PC WSL. G2a does not complete S449-03 or release existing fixture/host gates.

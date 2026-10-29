@@ -1,6 +1,6 @@
 {
   "workflow_id": "issue-449-lcm-w09",
-  "workflow_version": "1.50",
+  "workflow_version": "1.51",
   "workflow_amendment_v1_43": {
     "slice_id": "S449-02F5",
     "status": "HISTORICAL: F5 implemented and bounded native diagnosis executed",
@@ -191,10 +191,10 @@
   },
   "workflow_artifacts_sha256": {
     "documentation/arc42/09_architecture_decisions.adoc": "9b2b38c377bd75d3059b877d6ac679173f7eea9bb22dee9460c6d4fcad42284e",
-    "documentation/workflow/issues/issue-449/context-pack.md": "990d7d4e56e09da2fb2c0211dbcbd10a9edc9b39f5bc34eae3d0fda458572c14",
-    "documentation/workflow/issues/issue-449/workflow.md": "b5b29d09475a5d39fdd05efe4176e421cd42593af269c7d067f1e6873b7097b1",
+    "documentation/workflow/issues/issue-449/context-pack.md": "8688612914fcf664fdc070f0489bb40b6eb1642f00de006ebc92e2dbcdb6ba04",
+    "documentation/workflow/issues/issue-449/workflow.md": "78c32b31d808d612e2b48cb6c310ac820f54ca3cfbbf74b6149ce6b7715a3103",
     ".agents/skills/workflow-executor/SKILL.md": "04a9325b2cec2dfa6feab24c261c636fdfa295158661d20e981e4182e5bfb46c",
-    "documentation/workflow/workflow.index.md": "09e50e18498db0b8fecf35956883baac41fd75517ecabf9ada266e0d27b443a9"
+    "documentation/workflow/workflow.index.md": "904d155e09f8127a43acc108ddd844d1072acd80a8c0c60f5cfe10d5dec90f23"
   },
   "skill_hashes_sha256": {
     ".agents/skills/three-amigos-requirement-gatekeeper/SKILL.md": "76659e618cb706e8990cdf44441aeaed219465044175826adca5357ae8acc5b4",
@@ -713,12 +713,31 @@
   },
   "workflow_amendment_v1_50": {
     "slice_id": "S449-CAPABILITY-G1",
-    "status": "R67k ACCEPTED on six-role pre-acceptance tuple; D0 decision complete; G1 contract review and S3D pending",
-    "dependency": "S449-01 and completed S449-ADR-SEQUENCE-D0; G1 separate contract review and S3D required",
+    "status": "HISTORICAL: R67k accepted and G1 completed at 55c42029a7c1f0e7c219d1708060c4ed6b708dea",
+    "dependency": "G1 completed after S449-01 and S449-ADR-SEQUENCE-D0",
     "boundary": "Typed intent and validated version via immutable closed empty registry; missing malformed unknown and 6.0.5 denied, legacy Classic separately classified, no caller or host protection claim.",
-    "sequence": "Independent decision and same-hash role reviews, S3D, G1 mock tests and full SSH PC WSL quality; future callers separately guarded and reviewed.",
+    "sequence": "Historical G1 authoring and execution; future callers separately guarded and reviewed.",
     "decision_evidence": ".codex/evidence/slice-449-adr-sequencing-review.md",
     "contract": ".codex/evidence/slice-449-capability-g1-contract.md",
     "review_provenance": "Pre-acceptance proposal bytes not separately retained; original review hash and decisions conveyed in reviewer/coordinator messages; see decision evidence."
+  },
+  "workflow_amendment_v1_51": {
+    "slice_id": "S449-MANIFEST-G2A",
+    "status": "PLANNED; reviews and S3D pending",
+    "baseline": "55c42029a7c1f0e7c219d1708060c4ed6b708dea",
+    "dependencies": [
+      "S449-ADR-SEQUENCE-D0",
+      "S449-CAPABILITY-G1"
+    ],
+    "contract": ".codex/evidence/slice-449-manifest-g2a-contract.md",
+    "contract_sha256": "d13b093914e258436a829447f3305f16c055399a9660c16ea734beb780f6bf8f",
+    "boundary": "Domain-only immutable detached preview; no valid schema2 persistence, host adoption or runtime integration. Existing live gates unchanged.",
+    "baseline_source_sha256": {
+      "src/tiny_swarm_world/domain/lifecycle/models.py": "7c7f7d9ddae7b2805a0e4374801cd822d0fe1d5bd753d1acde2098d819db22a2",
+      "src/tiny_swarm_world/domain/lifecycle/incus_capability.py": "235e03236ab1d46fa058ed852d8a21db551621aaa49dd9e26f2c96e4125debf1",
+      "src/tiny_swarm_world/infrastructure/adapters/lifecycle/manifest.py": "e1695c9da9e291f44b4d603ad236619ed92a69c1d91a49464d08e6502cfdbca2",
+      "documentation/arc42/09_decisions/adr-classic-selection-exposure-stack-ownership.adoc": "06a003fc35775854653c5985db84fabdb15bd096b75c9611a9868901d2534da0",
+      "src/tiny_swarm_world/infrastructure/adapters/lifecycle/catalog.py": "94db11c63556806f22203fb2bc736e57342b861f429c3b03836be289a738f3c3"
+    }
   }
 }
