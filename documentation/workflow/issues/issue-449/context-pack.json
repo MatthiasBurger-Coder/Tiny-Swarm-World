@@ -1,6 +1,6 @@
 {
   "workflow_id": "issue-449-lcm-w09",
-  "workflow_version": "1.45",
+  "workflow_version": "1.46",
   "workflow_amendment_v1_43": {
     "slice_id": "S449-02F5",
     "status": "HISTORICAL: F5 implemented and bounded native diagnosis executed",
@@ -191,10 +191,10 @@
   },
   "workflow_artifacts_sha256": {
     "documentation/arc42/09_architecture_decisions.adoc": "9b2b38c377bd75d3059b877d6ac679173f7eea9bb22dee9460c6d4fcad42284e",
-    "documentation/workflow/issues/issue-449/context-pack.md": "8cfbe4295c84e5f1c9904820ee6b010a3802ee47f68aadb20891c41ade093e1a",
-    "documentation/workflow/issues/issue-449/workflow.md": "01e28d3ceed69748fd9789ce7d2695c31fa8ba11b183d08da5e27a25ef2af710",
+    "documentation/workflow/issues/issue-449/context-pack.md": "da74c37bfad574e4a58d482ec54055b8f991921815535f34919b9974df3a361a",
+    "documentation/workflow/issues/issue-449/workflow.md": "b66746c6f8482e6f3dad05feff59e5327be0dd90b479efdec979d3e6d3efdf87",
     ".agents/skills/workflow-executor/SKILL.md": "04a9325b2cec2dfa6feab24c261c636fdfa295158661d20e981e4182e5bfb46c",
-    "documentation/workflow/workflow.index.md": "da3557bf9b1128e62cbccb7e062ede3648a5fb7417d7c2df8af1c84c9a720b3a"
+    "documentation/workflow/workflow.index.md": "473039a00b013e8e3372c67a43ef0d95d37fce7e757773eb0f44ba049d9993a1"
   },
   "skill_hashes_sha256": {
     ".agents/skills/three-amigos-requirement-gatekeeper/SKILL.md": "76659e618cb706e8990cdf44441aeaed219465044175826adca5357ae8acc5b4",
@@ -669,11 +669,20 @@
   },
   "workflow_amendment_v1_45": {
     "slice_id": "S449-02F7",
-    "status": "PLANNED; no implementation, F7 quality or host GO",
+    "status": "HISTORICAL: F7 implemented and native diagnostic returned UNKNOWN; private evidence awaiting independent review",
     "observation": "Native F6 at source 4f52873330b665ab013b607c26d7172194ff375b returned BLOCKED_UNKNOWN / DEPENDENCY_VARIANT, exit 2; no host mutation or inventory pass.",
     "dependency": "S449-02F6",
     "contract": ".codex/evidence/slice-449-02F7-design.md",
     "sequence": "Six same-hash reviews and S3D, F7 implementation and exact-source PC WSL quality, separate post-commit native plan/JIT/GO; correction and inventory require separately reviewed phases.",
     "boundary": "Sole --diagnose-snap-generator-form; pinned revision and source digest; only MATCH or UNKNOWN with BLOCKED_UNKNOWN/2; no disclosure, environment file, identity admission, extra commands or mutation; F4/F5/F6 unchanged; S449-02F BLOCKED, 02G/02H retain prerequisites."
+  },
+  "workflow_amendment_v1_46": {
+    "slice_id": "S449-02F8",
+    "status": "PLANNED; no implementation, F8 quality or host GO",
+    "observation": "Native F7 at source fd8dd1478329ee00a907822b4e43b19efc14a631 returned BLOCKED_UNKNOWN / UNKNOWN, exit 2; no cause, inventory or host mutation established.",
+    "dependency": "S449-02F7",
+    "contract": ".codex/evidence/slice-449-02F8-design.md",
+    "sequence": "Six same-hash roles/S3D, F8 implementation and SSH PC WSL quality, separate post-commit native plan/JIT/GO; later correction/inventory require separate reviewed phases.",
+    "boundary": "Sole --diagnose-snap-generator-stage; typed reproducible failure-stage enum only, always BLOCKED_UNKNOWN/2; no disclosure, environment-file, extra command, identity admission or mutation; F4–F7 unchanged; S449-02F BLOCKED, 02G/02H retain prerequisites."
   }
 }

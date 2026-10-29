@@ -1,6 +1,18 @@
 # Context pack — issue-449-lcm-w09
 
-## Current v1.45 source-bound generator-form amendment
+## Current v1.46 failure-stage diagnostic amendment
+
+Native F7 at fd8dd1478329ee00a907822b4e43b19efc14a631 returned
+BLOCKED_UNKNOWN / UNKNOWN, exit 2; its private record requires independent
+review. S449-02F8 is PLANNED, depends on F7 and emits only closed typed
+failure stages or UNKNOWN while always remaining BLOCKED_UNKNOWN/2. Its exact
+contract is .codex/evidence/slice-449-02F8-design.md. Six same-hash role
+reviews and S3D precede implementation; exact-source PC WSL quality and a
+separate post-commit host plan/JIT/GO precede a native diagnostic.
+F4–F7 remain unchanged. S449-02F remains BLOCKED; 02G/02H retain prerequisites.
+The unrelated user-owned ADR amendment is neither changed nor accepted.
+
+## Historical v1.45 source-bound generator-form amendment
 
 The bounded native F6 diagnosis from commit 4f52873330b665ab013b607c26d7172194ff375b
 returned BLOCKED_UNKNOWN / DEPENDENCY_VARIANT with exit 2. It established no

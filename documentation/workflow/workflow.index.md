@@ -37,3 +37,9 @@ as a source-bound read-only generator-form diagnosis. F6 private evidence
 requires independent validation. S449-02F remains BLOCKED; 02G/02H retain
 their successful-inventory prerequisites. No F7 implementation or host GO
 is claimed.
+
+Workflow v1.46: native F7 source fd8dd1478329ee00a907822b4e43b19efc14a631
+returned BLOCKED_UNKNOWN / UNKNOWN, exit 2. S449-02F8 is PLANNED as a closed,
+typed reproducible failure-stage diagnostic; private evidence needs independent
+review. F4–F7 stay unchanged; S449-02F remains BLOCKED, 02G/02H retain
+prerequisites. No F8 implementation, host GO, identity or inventory pass claimed.

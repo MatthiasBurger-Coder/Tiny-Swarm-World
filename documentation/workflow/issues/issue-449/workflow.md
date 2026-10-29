@@ -1,13 +1,13 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: ACTIVE_FOR_ISSUE_449 v1.45 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
+Status: ACTIVE_FOR_ISSUE_449 v1.46 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
 Workflow authoring branch: `docs/workflow-lcm-w09-route-baseline-20261027`
 Baseline: `a0310224946b63e2152ff4086d22a450c3d0f214`
-ACTIVE_FOR_ISSUE_449 v1.45. The user explicitly authorized completion of issue #449 on the named test hosts and a bounded diagnosis of the latest native blocker. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
+ACTIVE_FOR_ISSUE_449 v1.46. The user explicitly authorized completion of issue #449 on the named test hosts and a bounded diagnosis of the latest native blocker. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
 Execution profile: `FULL_PATH — lifecycle/provider implementation, regression, documentation, native and WSL2 qualification`
 
 ## Executive Summary
@@ -1395,7 +1395,7 @@ stop_conditions: [unverified F5 result, unknown or drifting identity, unsafe pat
 
 ##### Slice 02F7 — Compare a source-bound Snap generator form
 
-Status: PLANNED. Native F6 source 4f52873330b665ab013b607c26d7172194ff375b
+Historical authoring status: PLANNED. F7 was implemented at fd8dd1478329ee00a907822b4e43b19efc14a631 and its bounded native diagnosis returned BLOCKED_UNKNOWN / UNKNOWN, exit 2; private evidence requires independent review. Native F6 source 4f52873330b665ab013b607c26d7172194ff375b
 returned BLOCKED_UNKNOWN / DEPENDENCY_VARIANT, exit 2; private F6 evidence
 requires independent review before F7 host phase. The exact public source,
 digest, sixteen static tokens and bounded subset grammar are normative in
@@ -1449,6 +1449,65 @@ documentation:
   arc42: no change; qualification-only diagnosis
   adr: no change; no ownership, support or runtime policy change
 stop_conditions: [unverified F6 result, unknown or drifting unit PID revision script or drop-in, unsafe path or disclosure, altered F4 F5 F6 behavior, environment-file read, extra host command or resource call, deadline or output limit, missing review, mismatched source, any host mutation]
+```
+
+
+##### Slice 02F8 — Diagnose the first reproducible F7 failure stage
+
+Status: PLANNED. The separately reviewed native F7 diagnosis on source
+fd8dd1478329ee00a907822b4e43b19efc14a631 returned BLOCKED_UNKNOWN / UNKNOWN,
+exit 2; no failure cause or inventory admission follows. Private native records
+must be independently reviewed before the F8 host phase. The user requested
+continued investigation. The normative stage, stability, recheck, budget,
+disclosure and D01–D10 contract is .codex/evidence/slice-449-02F8-design.md.
+
+Only python3 tools/qualification/native_runtime_inventory.py
+--diagnose-snap-generator-stage with the flag alone is valid. Invalid, duplicate,
+combined, equals-value and help inputs return fixed UNKNOWN JSON/exit 2 without
+argparse leakage or host I/O. All outputs are two-field BLOCKED_UNKNOWN JSON and
+exit 2. Closed priority: UNIT_CONTEXT, DROPIN_TRUST_OR_FORM, PROCESS_BINDING,
+REVISION_BINDING, SHELL_BINDING, SCRIPT_PAIR_OR_DIGEST, RECHECK_DRIFT, UNKNOWN.
+
+Classify only explicit typed deterministic negative predicates, with previously
+acquired trusted observations independently and stably rechecked within the
+existing F7 limits. Never map arbitrary exception strings. I/O/permission,
+parse/schema, timeout/limits, ambiguity or incomplete/failed recheck returns
+UNKNOWN. A successful F7 path returns UNKNOWN. RECHECK_DRIFT requires two fully
+trusted semantically comparable successful observations which differ. Preserve
+the first F7-stage priority; do not access later unsafe stages to force a reason.
+No value, PID, argv, environment, secret hash, error text, path or traceback
+appears on either stream. No identity, ownership, safety or inventory admission.
+
+Only F7 fixed initial and up to two detailed systemctl queries and existing
+bounded trusted fixed unit/drop-in, validated PID/process/shell/revision, script
+pair and necessary in-memory proc reads are allowed. No extra subprocess,
+derived path, client/socket/network, /etc/environment, host mutation or
+inventory artifact. F4–F7 behavior remains unchanged. Six same-hash roles and
+S3D precede implementation. Exact-source SSH PC WSL targeted tests, direct
+Ruff and full QUALITY precede an independently reviewed post-commit host
+plan/S3D/JIT/GO. S449-02F remains BLOCKED; 02G/02H retain prerequisites.
+
+```yaml
+slice_id: S449-02F8
+profile: BACKEND_AND_TESTS
+owner: Senior Python Automation Developer
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior DevOps Engineer, Senior Tester]
+affected_files: [tools/qualification/native_runtime_inventory.py, tools/qualification/native_lxd_snap_provenance.py, tests/tools/test_native_runtime_inventory.py, tests/tools/test_native_lxd_snap_provenance.py, documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, documentation/workflow/workflow.index.md, .codex/evidence/slice-449-02F8-design.md, .codex/evidence/slice-449-02F8-distribution.md, .codex/evidence/slice-449-02F8-consolidation.md]
+affected_modules: [native Snap shared proof and stage diagnosis]
+affected_contracts: [closed typed failure-stage enum, trusted stable observations, unchanged F4 F5 F6 F7, no disclosure or host mutation]
+dependencies: [S449-02F7]
+parallel_group: sequential
+file_locks: [tools/qualification/native_runtime_inventory.py, tools/qualification/native_lxd_snap_provenance.py, tests/tools/test_native_runtime_inventory.py, tests/tools/test_native_lxd_snap_provenance.py, documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, documentation/workflow/workflow.index.md, .codex/evidence/slice-449-02F8-design.md, .codex/evidence/slice-449-02F8-distribution.md, .codex/evidence/slice-449-02F8-consolidation.md]
+module_locks: [native Snap proof and diagnostics]
+contract_locks: [closed typed stage enum, F4 F5 F6 F7 invariants, existing read and command budget, no sensitive output or artifact]
+architecture_locks: [qualification only, no product or host mutation]
+quality_gates:
+  targeted: [PYTHONPATH=src python3 -m unittest tests.tools.test_native_runtime_inventory tests.tools.test_native_lxd_snap_provenance, python3 -m ruff check tools/qualification/native_runtime_inventory.py tools/qualification/native_lxd_snap_provenance.py]
+  required: [python3 tools/quality_gate.py quality, git diff --check]
+documentation:
+  arc42: no change; qualification-only diagnostic
+  adr: no change; no ownership, support or runtime policy change
+stop_conditions: [unverified F7 result, missing exact-hash review or S3D, unstable or unsafe observations, disclosure, changed F4 F5 F6 F7 behavior, environment-file read, extra host command or resource call, deadline or output limit, any host mutation]
 ```
 
 ##### Conditional Slice 02G — Native LXD maintenance for TSW replacement
@@ -2628,3 +2687,14 @@ documentation:
   adr: no new architecture decision
 stop_conditions: [unrelated change, sensitive artifact, changed architecture, failed required check, live success or issue completion falsely claimed]
 ```
+
+## Execution-phase amendment v1.46 — F7 failure-stage diagnosis
+
+The native F7 diagnostic on fd8dd1478329ee00a907822b4e43b19efc14a631 returned
+BLOCKED_UNKNOWN / UNKNOWN, exit 2. No cause, inventory or host admission follows.
+S449-02F8 is planned after F7; private evidence must be independently reviewed.
+Sequence: F7 checkpoint and native result -> F8 same-hash review/S3D ->
+implementation -> exact-source quality -> separately reviewed F8 host plan and
+one diagnostic -> independent correction decision. S449-02F remains BLOCKED;
+02G/02H retain successful-inventory prerequisites. Previous approvals do not
+authorize F8.
