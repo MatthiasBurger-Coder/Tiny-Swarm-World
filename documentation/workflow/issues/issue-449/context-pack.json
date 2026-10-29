@@ -1,6 +1,6 @@
 {
   "workflow_id": "issue-449-lcm-w09",
-  "workflow_version": "1.47",
+  "workflow_version": "1.48",
   "workflow_amendment_v1_43": {
     "slice_id": "S449-02F5",
     "status": "HISTORICAL: F5 implemented and bounded native diagnosis executed",
@@ -191,10 +191,10 @@
   },
   "workflow_artifacts_sha256": {
     "documentation/arc42/09_architecture_decisions.adoc": "9b2b38c377bd75d3059b877d6ac679173f7eea9bb22dee9460c6d4fcad42284e",
-    "documentation/workflow/issues/issue-449/context-pack.md": "58be3ba779a3a2700f8b39e8367fb515e7de2543a042f816e211db0c6c8dbf94",
-    "documentation/workflow/issues/issue-449/workflow.md": "e2c00d81634bd39678d90f21ac98ebd48f2a244927cd4487c6fb1cd881c08c5e",
+    "documentation/workflow/issues/issue-449/context-pack.md": "f09785fa5e83182f0d4db59ae790a8962a32134ba148fc63f5b22b7a6a2d181e",
+    "documentation/workflow/issues/issue-449/workflow.md": "17f1280dce6f601d5318d650d30a0ca5eeb0c72e6f3e3e2f4bbc7cd111ca718f",
     ".agents/skills/workflow-executor/SKILL.md": "04a9325b2cec2dfa6feab24c261c636fdfa295158661d20e981e4182e5bfb46c",
-    "documentation/workflow/workflow.index.md": "c04f2eb25f8aa0e5cfcfc7298821105ac257ddd9bba536e8d1769bb14f5095e4"
+    "documentation/workflow/workflow.index.md": "6af515dab61d7ede4bee59eba07e2fa777dd2054d45c7be4ff134b93fef2b4d8"
   },
   "skill_hashes_sha256": {
     ".agents/skills/three-amigos-requirement-gatekeeper/SKILL.md": "76659e618cb706e8990cdf44441aeaed219465044175826adca5357ae8acc5b4",
@@ -687,11 +687,20 @@
   },
   "workflow_amendment_v1_47": {
     "slice_id": "S449-02F9",
-    "status": "PLANNED; no implementation, F9 quality or host GO",
+    "status": "HISTORICAL: F9 implemented and native diagnostic returned PROC_ROOT; private evidence awaiting independent review",
     "observation": "Native F8 at source 7615a29962b0fd3ae2d44e4246893335ad9fadd3 returned BLOCKED_UNKNOWN / PROCESS_BINDING, exit 2; no cause, namespace, inventory or host mutation established.",
     "dependency": "S449-02F8",
     "contract": ".codex/evidence/slice-449-02F9-design.md",
     "sequence": "Six same-hash roles and S3D, F9 implementation and exact-source SSH PC WSL quality, separate post-commit native plan/JIT/GO; later correction and inventory require separate reviewed phases.",
     "boundary": "Sole --diagnose-snap-cgroup-relation; closed componentwise reason enum, always BLOCKED_UNKNOWN/2; no namespace inference, disclosure, environment-file, extra host command, identity admission or mutation; F4-F8 unchanged; S449-02F BLOCKED and 02G/02H retain prerequisites."
+  },
+  "workflow_amendment_v1_48": {
+    "slice_id": "S449-02F10",
+    "status": "PLANNED; no implementation, F10 quality or host GO",
+    "observation": "Native F9 source 4adcdfe456afddd881820c9a060a53113a2febfd returned BLOCKED_UNKNOWN / PROC_ROOT, exit 2; private evidence requires independent review.",
+    "dependency": "S449-02F9",
+    "contract": ".codex/evidence/slice-449-02F10-design.md",
+    "boundary": "Standalone bounded current reader versus visible PID 1 only, SAME/DIFFERENT/UNKNOWN, BLOCKED_UNKNOWN/2; F4–F9 unchanged, S449-02F BLOCKED. F4 trusted-root boundary, fixed self-link/getpid binding, openat2/statx mount checks and pinned final links; uncertain trust or observations return UNKNOWN.",
+    "sequence": "Six same-hash reviews and S3D, exact-source SSH PC WSL quality, then separate host plan/JIT/GO and at most one execution."
   }
 }

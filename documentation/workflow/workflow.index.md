@@ -44,9 +44,11 @@ typed reproducible failure-stage diagnostic; private evidence needs independent
 review. F4–F7 stay unchanged; S449-02F remains BLOCKED, 02G/02H retain
 prerequisites. No F8 implementation, host GO, identity or inventory pass claimed.
 
-Workflow v1.47: native F8 source 7615a29962b0fd3ae2d44e4246893335ad9fadd3
+Historical workflow v1.47: native F8 source 7615a29962b0fd3ae2d44e4246893335ad9fadd3
 returned BLOCKED_UNKNOWN / PROCESS_BINDING, exit 2. S449-02F9 is PLANNED as
 a closed componentwise relation diagnostic; F8 private evidence needs independent
 review. F4–F8 remain unchanged; S449-02F stays BLOCKED, and 02G/02H retain
 successful-inventory prerequisites. No F9 implementation, namespace finding,
 identity admission, inventory pass or host GO is claimed.
+
+Workflow v1.48 adds PLANNED S449-02F10 after F9's native `BLOCKED_UNKNOWN / PROC_ROOT` exit 2 at `4adcdfe456afddd881820c9a060a53113a2febfd`. It compares only the current F10 reader and visible PID 1 namespace under the bounded contract; the private F9 result needs review and no host admission or inventory success follows. S449-02F remains BLOCKED.
