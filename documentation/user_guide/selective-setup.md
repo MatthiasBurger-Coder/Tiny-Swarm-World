@@ -33,6 +33,24 @@ PYTHONPATH=src python3 -m tiny_swarm_world setup run --services swagger --previe
 PYTHONPATH=src python3 -m tiny_swarm_world setup run --services jenkins,sonarqube --preview
 ```
 
+To inspect the compatibility policy for an existing v1 installation manifest,
+run the dedicated read-only preview:
+
+```bash
+PYTHONPATH=src python3 -m tiny_swarm_world services migration-preview
+```
+
+The JSON result contains `status: PREVIEW`, `source: operator_local_unverified`,
+`applied: false`, `qualified: false`, UNKNOWN project/profile/route/owner identities and
+policy labels for selected stacks. A blocked preview returns the fixed JSON
+`{"status":"BLOCKED_UNKNOWN","source":"operator_local_unverified","applied":false,"qualified":false}` and exit 2.
+The command does not migrate or adopt state, qualify the host or declare
+version support; its policy labels do not establish actual stack ownership.
+The local catalog and assets are operator-provided and unverified. The preview
+does not establish catalog authority, release provenance or host safety.
+Only fixed Compose assets under the local project root are previewed;
+`TSW_INFRA_ROOT` is not evaluated. Missing project-root assets block the preview.
+
 Apply uses the existing explicit live-consent boundary. These are operator commands,
 not commands executed as development verification:
 

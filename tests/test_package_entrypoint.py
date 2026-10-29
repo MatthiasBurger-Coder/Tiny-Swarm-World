@@ -91,6 +91,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         supported_names = (
             "product version",
             "product upgrade",
+            "services migration-preview",
             "services list",
             "services updates",
             "services update",

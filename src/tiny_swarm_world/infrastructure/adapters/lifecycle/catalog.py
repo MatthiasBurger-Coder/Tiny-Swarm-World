@@ -1,5 +1,6 @@
 """Project the single logical Classic catalog from authoritative native assets."""
 from pathlib import Path
+from typing import Callable
 import re
 
 import yaml
@@ -25,8 +26,9 @@ _STATEFUL = {"portainer", "nexus", "jenkins", "pulsar", "sonarqube", "infisical"
 
 
 class NativeComponentCatalog:
-    def __init__(self, repository_root: Path):
+    def __init__(self, repository_root: Path, *, text_reader: Callable[[str], str] | None = None):
         self.root = repository_root
+        self._text_reader = text_reader
 
     def load(self) -> ComponentCatalog:
         try:
@@ -35,6 +37,11 @@ class NativeComponentCatalog:
             raise LifecycleStateError(
                 "Catalog/native asset mismatch; restore matching Compose and image contracts before planning."
             ) from None
+
+    def _read_compose(self, relative: str) -> str:
+        if self._text_reader is not None:
+            return self._text_reader(relative)
+        return (self.root / relative).read_text(encoding="utf-8")
 
     def _load(self) -> ComponentCatalog:
         services = [ServiceDefinition(
@@ -47,7 +54,7 @@ class NativeComponentCatalog:
         )]
         for stack in service_stack_contracts_for_profile("service-access"):
             relative = f"infra/config/compose/{stack.stack_name}/docker-compose.yml"
-            payload = yaml.safe_load((self.root / relative).read_text(encoding="utf-8"))
+            payload = yaml.safe_load(self._read_compose(relative))
             if not isinstance(payload, dict) or not isinstance(payload.get("services"), dict):
                 raise ValueError("Invalid Compose services")
             native = payload["services"]

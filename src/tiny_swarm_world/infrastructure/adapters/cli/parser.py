@@ -9,14 +9,17 @@ from tiny_swarm_world.application.services.platform.workflow.types import (
 from tiny_swarm_world.domain.deployment import ServiceStackProfile
 from tiny_swarm_world.domain.node_provider import ManagedLxcBackend, NodeProviderKind
 from tiny_swarm_world.domain.update import ClassicUpdatePlan
-from tiny_swarm_world.infrastructure.adapters.cli.registry import CLI_WORKFLOWS_BY_KEY
+from tiny_swarm_world.infrastructure.adapters.cli.registry import CLI_WORKFLOWS_BY_KEY, prepare_migration_preview_args
 from tiny_swarm_world.infrastructure.composition import (
     DEFAULT_SETUP_SERVICE_PROFILE,
     NodeProviderSelectionRequest,
 )
 
 
+
+
 def parse_args(argv: Sequence[str] | None = None) -> Namespace:
+    raw = prepare_migration_preview_args(argv)
     parser = ArgumentParser(description="Tiny Swarm World automation entrypoint.")
     parser.add_argument(
         "--list-workflows",
@@ -133,7 +136,7 @@ def parse_args(argv: Sequence[str] | None = None) -> Namespace:
     parser.add_argument("--selection-config", help="YAML/JSON selection file containing a services list.")
     parser.add_argument("workflow_namespace", nargs="?", help="Workflow namespace.")
     parser.add_argument("workflow_action", nargs="?", help="Workflow action.")
-    args = parser.parse_args(argv)
+    args = parser.parse_args(raw)
 
     args.service_profile_explicit = args.service_profile is not None
     args.service_profile = args.service_profile or DEFAULT_SETUP_SERVICE_PROFILE.value
