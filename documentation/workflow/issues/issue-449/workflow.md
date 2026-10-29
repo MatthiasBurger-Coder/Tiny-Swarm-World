@@ -1,13 +1,13 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: ACTIVE_FOR_ISSUE_449 v1.58 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
+Status: ACTIVE_FOR_ISSUE_449 v1.59 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
 Workflow authoring branch: `docs/workflow-lcm-w09-route-baseline-20261027`
 Baseline: `a0310224946b63e2152ff4086d22a450c3d0f214`
-ACTIVE_FOR_ISSUE_449 v1.58. The user explicitly authorized completion of issue #449 on the named test hosts and a bounded diagnosis of the latest native blocker. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
+ACTIVE_FOR_ISSUE_449 v1.59. The user explicitly authorized completion of issue #449 on the named test hosts and a bounded diagnosis of the latest native blocker. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
 Execution profile: `FULL_PATH — lifecycle/provider implementation, regression, documentation, native and WSL2 qualification`
 
 ## Executive Summary
@@ -2989,7 +2989,9 @@ G2c remains BLOCKED / AUTHORITY_GAP and not done. A separately governed `S449-RO
 
 The G2c contract records a source-backed `RoutePolicyInputV1` candidate, exact unresolved binding inputs and a proposed versioned SHA-256/UUID profile-name decision. Current PortRegistry maps Portainer 9000 internal / 10001 external, while the legacy proxy target is `127.0.0.1:10001`; SetupManifest/preflight does not establish complete routes. Nexus 13501 maps to `nexus-docker-https` (internal 5001) and published Swagger IDs map to 16080/16081, suppressed for internal exposure. A caller-set REVIEWED_POLICY enum is not authority; a versioned immutable built-in policy or separately reviewed trust binding is required. Listen addresses and nat/proxy_protocol false remain proposals requiring explicit decisions. Missing reviewed bindings remain AUTHORITY_GAP; no two caller lists or operator-local unverified assets prove completeness. P0 and G2c remain BLOCKED pending independent decisions, concrete slice metadata/reviews and S3D.
 
-## Execution-phase amendment v1.58 — legacy published route candidate P0a
+## Historical execution-phase amendment v1.58 — legacy published route candidate P0a
+
+P0a subsequently completed at `f5f0ea1520a1abdb6ee281bb700c8635c9ad4e93`; the planned status and requirements below describe the authoring state.
 
 P0a is PLANNED as an independently reviewable pure legacy-code candidate, not the still-blocked authoritative scoped P0 and not a G2c unblock. It uses all `default_setup_manifest` required ports, including compatibility ports, and returns `legacy_setup_code_unverified_runtime`, UNKNOWN nat/proxy_protocol, false applied/qualified and unknown identities. It does not infer internal Swagger, alternative infrastructure overrides, profile ownership or host state. Source conflict, exact contract and tests: `.codex/evidence/slice-449-route-p0a-contract.md`. The separate scoped profile-name decision and actual route authority remain pending.
 
@@ -3017,3 +3019,32 @@ stop_conditions: [missing same-hash reviews or S3D, unknown stock applicability,
 ```
 
 Six independent Requirement, Architecture, Security, Python, Tester and DevOps reviews of identical workflow/contract/source hashes plus S3D EXECUTION_PLAN precede code. Exact-source tests and quality run on SSH PC WSL. P0a completion cannot unblock G2c without a separate accepted scoped authority decision.
+
+## Execution-phase amendment v1.59 — accepted scoped route/profile design ADR D0
+
+`documentation/arc42/09_decisions/adr-scoped-route-policy-profile-identity.adoc` records ACCEPTED design policy on code-bound scoped-route-policy-v1 and UUID-byte/SHA-256 profile-name-v1; no existing ADR history or Windows user draft is modified. The candidate requires total-or-reject selection/preset semantics, explicit fixed proxy flags/listen address, published/internal Swagger behavior and empty supported-version set. The 8086 source conflict between SetupManifest Infisical and ports.yaml service-access is AUTHORITY_GAP for affected selections pending a separate decision. No actual host ownership, route, runtime version, live fixture or admission is claimed. Six independent Requirement, Architecture, Security, Python, Tester and DevOps roles approved the same pre-acceptance candidate tuple recorded in the decision evidence. Final checkpoint re-review and S3D remain required; the 8086 authority gap remains unresolved. P0a completed at `f5f0ea1520a1abdb6ee281bb700c8635c9ad4e93` but is unverified; P0/G2c remain BLOCKED until a separate accepted decision and reviewed implementation.
+
+```yaml
+slice_id: S449-SCOPED-ROUTE-ADR-D0
+profile: GOVERNANCE_AND_DOCUMENTATION
+owner: Senior Workflow Architect
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior Python Automation Developer, Senior Tester, Senior DevOps Engineer]
+affected_files: [documentation/arc42/09_decisions/adr-scoped-route-policy-profile-identity.adoc, documentation/arc42/09_architecture_decisions.adoc, documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, documentation/workflow/workflow.index.md, .codex/evidence/slice-449-scoped-route-decision.md]
+affected_modules: [scoped route policy decision, profile identity decision, issue-449 workflow]
+affected_contracts: [code-bound versioned selection route policy, strict explicit route flags, versioned UUID profile identity, no host claims]
+dependencies: [S449-ROUTE-POLICY-P0A]
+parallel_group: sequential
+file_locks: [documentation/arc42/09_decisions/adr-scoped-route-policy-profile-identity.adoc, documentation/arc42/09_architecture_decisions.adoc, documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, documentation/workflow/workflow.index.md, .codex/evidence/slice-449-scoped-route-decision.md]
+module_locks: [scoped route policy ADR, profile identity ADR, issue-449 workflow]
+contract_locks: [immutable policy authority, selection and exposure, profile naming, existing host and support gates]
+architecture_locks: [domain policy only, no host operations, preserve ADR history]
+quality_gates:
+  targeted: [git diff --check, verify ADR workflow and context hashes, verify reviewed source mapping]
+  required: [independent six-role same-hash decision review, S3D EXECUTION_PLAN]
+documentation:
+  arc42: separate accepted design decision with historical candidate retained
+  adr: accepted design policy; final checkpoint review and S3D pending
+stop_conditions: [unresolved authority or policy choice, missing review or S3D, unsupported route inferred, changed existing ADR or user draft, host mutation or support claim]
+```
+
+A later separately authored pure-domain policy slice needs exact product/test file locks, its own tests and SSH PC WSL full quality. G2c depends on an accepted decision and completed policy, not this draft.

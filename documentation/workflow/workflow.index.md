@@ -70,3 +70,5 @@ Historical workflow v1.56 proposed G2c strict domain v2; review found AUTHORITY_
 Workflow v1.57 requires separately reviewed route authority and profile-name decision before G2c; missing authority blocks.
 
 Workflow v1.58 plans an unverified legacy published route candidate P0a; authoritative scoped P0/G2c remain blocked.
+
+Workflow v1.59 records accepted scoped route/profile design; P0/G2c, affected 8086 selections and live gates remain blocked.

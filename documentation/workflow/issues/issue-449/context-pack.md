@@ -1,4 +1,10 @@
-## Amendment v1.58 — P0a unverified legacy candidate
+## Amendment v1.59 — accepted scoped route/profile design
+
+P0a completed at `f5f0ea1520a1abdb6ee281bb700c8635c9ad4e93` as unverified legacy candidate. Separate ADR D0 accepted code-bound scoped-route-policy-v1 and profile-name-v1 on six independent pre-acceptance same-hash role decisions; 8086 Infisical versus service-access ownership remains AUTHORITY_GAP for affected selections. Final checkpoint re-review and S3D remain pending. It does not qualify a version, route, owner or host; G2c/P0 remain blocked pending acceptance and separate implementation.
+
+## Historical amendment v1.58 — P0a unverified legacy candidate
+
+P0a subsequently completed at `f5f0ea1520a1abdb6ee281bb700c8635c9ad4e93`; the planned status below is historical.
 
 P0a is PLANNED as a separate pure domain representation of every legacy FULL setup required port, including compatibility 7750, with unverified-runtime marker and UNKNOWN flags/identities. Internal Swagger and custom/alternate infrastructure remain blocked. It does not establish scoped authority or unblock G2c; same-hash reviews and S3D remain required. Contract `.codex/evidence/slice-449-route-p0a-contract.md`.
 
