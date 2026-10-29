@@ -1,6 +1,6 @@
 {
   "workflow_id": "issue-449-lcm-w09",
-  "workflow_version": "1.52",
+  "workflow_version": "1.53",
   "workflow_amendment_v1_43": {
     "slice_id": "S449-02F5",
     "status": "HISTORICAL: F5 implemented and bounded native diagnosis executed",
@@ -191,10 +191,10 @@
   },
   "workflow_artifacts_sha256": {
     "documentation/arc42/09_architecture_decisions.adoc": "9b2b38c377bd75d3059b877d6ac679173f7eea9bb22dee9460c6d4fcad42284e",
-    "documentation/workflow/issues/issue-449/context-pack.md": "21320ed6974a3a3801b232a8ab0c7ee16b0728e9422774d2087fe4c636d3ce80",
-    "documentation/workflow/issues/issue-449/workflow.md": "10b4469a80cc2dd7b38548742266492dcb7129ee8a7082f109f82777ae6e0349",
+    "documentation/workflow/issues/issue-449/context-pack.md": "765d88f209881db5717aa70af8fae36c4890be8be25965e406e9d48eaa44379f",
+    "documentation/workflow/issues/issue-449/workflow.md": "fd2c946f36eaa2e91868b4e248f6431d4aaf72b0c7e35e2b6667b8861ffe129c",
     ".agents/skills/workflow-executor/SKILL.md": "04a9325b2cec2dfa6feab24c261c636fdfa295158661d20e981e4182e5bfb46c",
-    "documentation/workflow/workflow.index.md": "cc6eef5def715c4b7b5ab19b23225dac5e961bf3133c596812cf2e8a103b50d4"
+    "documentation/workflow/workflow.index.md": "35642904e8fb7566b2ac43b8ee2c0a722d5b300ec9e3c3af034b54cfca7c00b3"
   },
   "skill_hashes_sha256": {
     ".agents/skills/three-amigos-requirement-gatekeeper/SKILL.md": "76659e618cb706e8990cdf44441aeaed219465044175826adca5357ae8acc5b4",
@@ -748,7 +748,7 @@
       "S449-MANIFEST-G2A"
     ],
     "contract": ".codex/evidence/slice-449-manifest-g2b-contract.md",
-    "contract_sha256": "9cba04ab38f6769275c83c33e4e6dd0407a804deafb5ef758e72fc204d4adc0a",
+    "contract_sha256": "0a636418174d0a01872df63c79d2a2f63168af206ff38d2629989bf1404d88ec",
     "baseline_source_sha256": {
       "src/tiny_swarm_world/domain/lifecycle/manifest_v2.py": "f99c93ea7be2734eacc410c513443be02aaba6fc4d8b3ff04292a994d79f6640",
       "src/tiny_swarm_world/application/ports/lifecycle/__init__.py": "b237f5a8eebf37926d3163faef036f0cf47fb271b8037f5cfd5b810e8e2c0630",
@@ -758,6 +758,14 @@
       "src/tiny_swarm_world/infrastructure/composition_lifecycle.py": "44eb505e7c67888616fd62c98c3258901f0e79cda3fd2e770f9d0bc4a264bf65",
       "src/tiny_swarm_world/infrastructure/adapters/lifecycle/manifest.py": "e1695c9da9e291f44b4d603ad236619ed92a69c1d91a49464d08e6502cfdbca2"
     },
-    "boundary": "Early load-only sanitized CLI preview, no snapshot disclosure, host runtime, adoption, write or version support."
+    "boundary": "Early load-only sanitized operator_local_unverified CLI preview; no catalog provenance or authority, snapshot disclosure, host runtime, adoption, write or version support."
+  },
+  "workflow_amendment_v1_53": {
+    "slice_id": "S449-MANIFEST-G2B",
+    "status": "PLANNED; revised contract requires same-hash reviews and S3D",
+    "source": "operator_local_unverified",
+    "contract": ".codex/evidence/slice-449-manifest-g2b-contract.md",
+    "contract_sha256": "0a636418174d0a01872df63c79d2a2f63168af206ff38d2629989bf1404d88ec",
+    "boundary": "Valid local unverified assets only; fail closed, no provenance, host safety, live admission or EPIC completion claim."
   }
 }

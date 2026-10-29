@@ -1,13 +1,13 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: ACTIVE_FOR_ISSUE_449 v1.52 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
+Status: ACTIVE_FOR_ISSUE_449 v1.53 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
 Workflow authoring branch: `docs/workflow-lcm-w09-route-baseline-20261027`
 Baseline: `a0310224946b63e2152ff4086d22a450c3d0f214`
-ACTIVE_FOR_ISSUE_449 v1.52. The user explicitly authorized completion of issue #449 on the named test hosts and a bounded diagnosis of the latest native blocker. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
+ACTIVE_FOR_ISSUE_449 v1.53. The user explicitly authorized completion of issue #449 on the named test hosts and a bounded diagnosis of the latest native blocker. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
 Execution profile: `FULL_PATH — lifecycle/provider implementation, regression, documentation, native and WSL2 qualification`
 
 ## Executive Summary
@@ -2924,7 +2924,7 @@ dependencies: [S449-MANIFEST-G2A]
 parallel_group: sequential
 file_locks: [src/tiny_swarm_world/application/services/migration_preview.py, src/tiny_swarm_world/infrastructure/adapters/cli/migration_preview.py, src/tiny_swarm_world/infrastructure/adapters/cli/dispatcher.py, src/tiny_swarm_world/infrastructure/adapters/cli/parser.py, src/tiny_swarm_world/infrastructure/adapters/cli/registry.py, src/tiny_swarm_world/infrastructure/composition_lifecycle.py, src/tiny_swarm_world/infrastructure/composition.py, tests/application/services/test_migration_preview.py, tests/test_migration_preview_cli.py, documentation/user_guide/selective-setup.md, .codex/evidence/slice-449-manifest-g2b-contract.md, .codex/evidence/slice-449-manifest-g2b-distribution.md, .codex/evidence/slice-449-manifest-g2b-consolidation.md]
 module_locks: [lifecycle preview ports and CLI routing]
-contract_locks: [closed output whitelist and fixed canonical stack-ID enum, verified read-only native catalog provenance, no secret disclosure or argv reflection, reject flags before I/O, load only, legacy CLI parity]
+contract_locks: [closed output whitelist and fixed stack-ID enum, operator-local unverified asset source, read-only asset handling without provenance or authority claim, no secret disclosure or argv reflection, reject flags before I/O, load only, legacy CLI parity]
 architecture_locks: [application depends on ports, infrastructure composes local adapters, no host runtime or writes]
 quality_gates:
   targeted: [PYTHONPATH=src python3 -m unittest tests.application.services.test_migration_preview tests.test_migration_preview_cli tests.test_service_selection_cli tests.test_package_entrypoint, python3 -m ruff check src/tiny_swarm_world/application/services/migration_preview.py src/tiny_swarm_world/infrastructure/adapters/cli/migration_preview.py src/tiny_swarm_world/infrastructure/adapters/cli/dispatcher.py src/tiny_swarm_world/infrastructure/adapters/cli/parser.py src/tiny_swarm_world/infrastructure/adapters/cli/registry.py src/tiny_swarm_world/infrastructure/composition_lifecycle.py src/tiny_swarm_world/infrastructure/composition.py tests/application/services/test_migration_preview.py tests/test_migration_preview_cli.py]
@@ -2937,3 +2937,7 @@ stop_conditions: [missing same-hash reviews or S3D, unverified read-only loaders
 ```
 
 Six independent Requirement, Architecture, Security, Python, Tester and DevOps reviews on identical workflow/contract/source hashes plus S3D EXECUTION_PLAN precede edits. SSH PC WSL targeted/direct Ruff/full quality uses exact source. No future G2c or live gate is discharged.
+
+## Execution-phase amendment v1.53 — G2b operator-local unverified source
+
+G2b is a bounded read-only operator preview. Every success and blocked output includes `source=operator_local_unverified`; `applied` and `qualified` remain false and host identities UNKNOWN. Local asset validity and no-write behavior must be checked, but their provenance, catalog authority, release identity, host safety and live admission are not established. No unverified asset or output can discharge a live or EPIC gate. Asset drift, missing/malformed/inconsistent files, symlink and permission failures follow the fixed fail-closed contract and reveal no sensitive content. The exact revised contract requires independent same-hash reviews and new S3D before code. Legacy CLI/parser regression remains mandatory.

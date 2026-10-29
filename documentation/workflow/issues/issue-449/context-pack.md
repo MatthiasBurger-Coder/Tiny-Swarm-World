@@ -1,6 +1,10 @@
+## Amendment v1.53 — G2b operator-local unverified preview
+
+Every G2b result uses `source=operator_local_unverified`; applied/qualified are false and identities UNKNOWN. Local assets are checked for structural validity and read-only use, not provenance or authority; missing, malformed, inconsistent, unsafe symlink or permission failures block without disclosure. No preview is live-admission, release or EPIC evidence. Revised contract requires fresh same-hash reviews and S3D.
+
 ## Amendment v1.52 — G2b CLI preview
 
-G2a completed at `81acdd5c512820b3f69ca193c11d232cb6761ef6`. G2b is PLANNED: `services migration-preview` uses only validated manifest/catalog loads, early routing and an allowlisted safe DTO, with exact reviewed Classic stack-ID whitelist, proven read-only native catalog provenance, no host runtime, write, adoption, secrets or version-support claim; the implementation slice updates the selective-setup operator guide. Reviews and S3D remain required. Contract: `.codex/evidence/slice-449-manifest-g2b-contract.md`.
+G2a completed at `81acdd5c512820b3f69ca193c11d232cb6761ef6`. G2b is PLANNED: `services migration-preview` uses only validated manifest/catalog loads, early routing and an allowlisted safe DTO, with fixed Classic stack-ID whitelist, verified read-only handling of operator-local unverified assets, no host runtime, write, adoption, secrets or version-support claim; the implementation slice updates the selective-setup operator guide. Reviews and S3D remain required. Contract: `.codex/evidence/slice-449-manifest-g2b-contract.md`.
 
 ## Historical amendment v1.51 — G2a migration preview
 

@@ -60,3 +60,5 @@ Historical workflow v1.50 recorded accepted R67k sequencing and planned G1; G1 w
 Historical workflow v1.51 planned G2a, completed in 81acdd5c512820b3f69ca193c11d232cb6761ef6; runtime schema, host admission and fixture gates remain unchanged.
 
 Workflow v1.52 plans the read-only sanitized G2b migration-preview CLI; no adoption or runtime qualification is claimed.
+
+Workflow v1.53 narrows G2b to an explicitly operator-local unverified preview; no catalog authority or host admission follows.
