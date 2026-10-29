@@ -79,6 +79,8 @@ class TestPortainerHttpClient(unittest.TestCase):
             request_responses=[
                 _FakeResponse(200, [{"Name": "local", "Id": 7}]),
                 _FakeResponse(200, []),
+                _FakeResponse(200, [{"Name": "local", "Id": 7}]),
+                _FakeResponse(200, []),
                 _swarm_info_response(),
                 _FakeResponse(200, {}),
             ],
@@ -104,12 +106,12 @@ class TestPortainerHttpClient(unittest.TestCase):
         self.assertEqual(session.request_calls[0]["url"], "https://portainer.local/api/endpoints")
         self.assertEqual(session.request_calls[1]["url"], "https://portainer.local/api/stacks")
         self.assertEqual(
-            session.request_calls[2]["url"],
+            session.request_calls[4]["url"],
             "https://portainer.local/api/endpoints/7/docker/info",
         )
-        self.assertEqual(session.request_calls[3]["json"]["name"], "jenkins")
+        self.assertEqual(session.request_calls[5]["json"]["name"], "jenkins")
         self.assertEqual(
-            session.request_calls[3]["json"]["env"],
+            session.request_calls[5]["json"]["env"],
             [{"name": "TSW_JENKINS_IMAGE", "value": "jenkins:latest"}],
         )
 
@@ -118,7 +120,9 @@ class TestPortainerHttpClient(unittest.TestCase):
             post_responses=[_FakeResponse(200, {"jwt": "jwt-token"})],
             request_responses=[
                 _FakeResponse(200, [{"Name": "local", "Id": 7}]),
-                _FakeResponse(200, [{"Name": "swagger", "Id": 42}]),
+                _FakeResponse(200, [{"Name": "swagger", "Id": 42, "EndpointId": 7}]),
+                _FakeResponse(200, [{"Name": "local", "Id": 7}]),
+                _FakeResponse(200, [{"Name": "swagger", "Id": 42, "EndpointId": 7}]),
                 _FakeResponse(200, {}),
             ],
         )
@@ -139,7 +143,7 @@ class TestPortainerHttpClient(unittest.TestCase):
             )
         )
 
-        request = session.request_calls[2]
+        request = session.request_calls[4]
         self.assertEqual(request["method"], "PUT")
         self.assertEqual(request["url"], "https://portainer.local/api/stacks/42?endpointId=7")
         self.assertEqual(request["json"]["stackFileContent"], "services: {}")
@@ -149,6 +153,8 @@ class TestPortainerHttpClient(unittest.TestCase):
         session = _FakeSession(
             post_responses=[_FakeResponse(200, {"jwt": "jwt-token"})],
             request_responses=[
+                _FakeResponse(200, [{"Name": "local", "Id": 7}]),
+                _FakeResponse(200, []),
                 _FakeResponse(200, [{"Name": "local", "Id": 7}]),
                 _FakeResponse(200, []),
                 _swarm_info_response(),
@@ -174,9 +180,9 @@ class TestPortainerHttpClient(unittest.TestCase):
         )
 
         self.assertTrue(client.stack_registered("jenkins"))
-        self.assertEqual(len(session.request_calls), 4)
+        self.assertEqual(len(session.request_calls), 6)
         self.assertFalse(client.stack_registered("jenkins"))
-        self.assertEqual(len(session.request_calls), 5)
+        self.assertEqual(len(session.request_calls), 7)
 
     def test_stack_registered_uses_portainer_stack_lookup_inside_adapter(self):
         session = _FakeSession(

@@ -1530,6 +1530,9 @@ class _FakePortainerDelegate:
         self.created_stacks: list[tuple[StackDefinition, int, dict[str, str]]] = []
         self.updated_stacks: list[tuple[int, StackDefinition, int, dict[str, str]]] = []
 
+    def resolve_apply_target(self, endpoint_name: str, stack_name: str) -> tuple[int, int | None]:
+        return self.get_endpoint_id_by_name(endpoint_name), self.find_stack_id_by_name(stack_name)
+
     def get_endpoint_id_by_name(self, endpoint_name: str) -> int:
         self.requested_endpoints.append(endpoint_name)
         return 1

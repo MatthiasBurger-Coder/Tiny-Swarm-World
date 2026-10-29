@@ -101,8 +101,9 @@ class LxcPortainerHttpClient(PortPortainerClient, PortDeploymentGateway):
         )
 
     def apply_stack(self, request: DeploymentStackRequest) -> None:
-        endpoint_id = self.get_endpoint_id_by_name("local")
-        stack_id = self.find_stack_id_by_name(request.stack_definition.name)
+        endpoint_id, stack_id = self._client().resolve_apply_target(
+            "local", request.stack_definition.name
+        )
         if stack_id is None:
             self.create_stack(
                 request.stack_definition,

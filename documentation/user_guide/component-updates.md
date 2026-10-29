@@ -294,3 +294,11 @@ W09 must retain exact tested SHA, host/profile, selected services, version/diges
 bundle, commands/exit codes and redacted before/after authentication, endpoint,
 ownership, convergence and managed-update observations for upgrade and induced
 failure/recovery. Local mocked tests do not establish live or browser success.
+
+Portainer apply checks two visible endpoint and stack inventories and blocks visible
+ambiguity, conflicting endpoint identities, malformed records, and drift before
+stack or overlay-network changes. Portainer may omit stacks; a visible match is
+not proof of ownership and a missing name is not proof of global absence. Legacy
+creation and the 404/405 fallback remain in place; those responses do not prove
+that no mutation occurred. Concurrent changes can occur after the recheck. Direct
+`update_stack` calls bypass these apply checks.
