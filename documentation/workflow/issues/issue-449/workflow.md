@@ -1,13 +1,13 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: ACTIVE_FOR_ISSUE_449 v1.66 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
+Status: ACTIVE_FOR_ISSUE_449 v1.67 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
 Workflow authoring branch: `docs/workflow-lcm-w09-route-baseline-20261027`
 Baseline: `a0310224946b63e2152ff4086d22a450c3d0f214`
-ACTIVE_FOR_ISSUE_449 v1.66. The user explicitly authorized completion of issue #449 on the named test hosts and a bounded diagnosis of the latest native blocker. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
+ACTIVE_FOR_ISSUE_449 v1.67. The user explicitly authorized completion of issue #449 on the named test hosts and a bounded diagnosis of the latest native blocker. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
 Execution profile: `FULL_PATH — lifecycle/provider implementation, regression, documentation, native and WSL2 qualification`
 
 ## Executive Summary
@@ -3234,17 +3234,17 @@ slice_id: S449-MANIFEST-V2-REPOSITORY
 profile: BACKEND_AND_TESTS
 owner: Senior Python Automation Developer
 secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior Tester, Senior DevOps Engineer]
-affected_files: [src/tiny_swarm_world/domain/lifecycle/manifest_v2_record.py, src/tiny_swarm_world/application/ports/lifecycle/versioned_manifest.py, src/tiny_swarm_world/infrastructure/adapters/lifecycle/versioned_manifest_repository.py, tests/domain/lifecycle/test_manifest_v2_record.py, tests/infrastructure/adapters/lifecycle/test_versioned_manifest_repository.py, .codex/evidence/slice-449-manifest-v2-repository-contract.md, .codex/evidence/slice-449-manifest-v2-repository-distribution.md, .codex/evidence/slice-449-manifest-v2-repository-consolidation.md]
+affected_files: [src/tiny_swarm_world/domain/lifecycle/manifest_v2_record.py, src/tiny_swarm_world/application/ports/lifecycle/versioned_manifest.py, src/tiny_swarm_world/infrastructure/adapters/lifecycle/versioned_manifest_repository.py, src/tiny_swarm_world/infrastructure/adapters/lifecycle/versioned_manifest_json.py, src/tiny_swarm_world/infrastructure/adapters/lifecycle/versioned_manifest_fs.py, tests/domain/lifecycle/test_manifest_v2_record.py, tests/infrastructure/adapters/lifecycle/test_versioned_manifest_repository.py, .codex/evidence/slice-449-manifest-v2-repository-contract.md, .codex/evidence/slice-449-manifest-v2-repository-distribution.md, .codex/evidence/slice-449-manifest-v2-repository-consolidation.md]
 affected_modules: [domain unadopted v2 record, versioned repository port, isolated filesystem CAS adapter]
 affected_contracts: [closed strict wire, canonical v1 preservation, UNKNOWN provenance, dual read no migration, isolated CAS durability]
 dependencies: [S449-ROUTE-8086-P1, S449-MANIFEST-G2C, S449-MIGRATION-G2E]
 parallel_group: sequential
-file_locks: [src/tiny_swarm_world/domain/lifecycle/manifest_v2_record.py, src/tiny_swarm_world/application/ports/lifecycle/versioned_manifest.py, src/tiny_swarm_world/infrastructure/adapters/lifecycle/versioned_manifest_repository.py, tests/domain/lifecycle/test_manifest_v2_record.py, tests/infrastructure/adapters/lifecycle/test_versioned_manifest_repository.py, .codex/evidence/slice-449-manifest-v2-repository-contract.md, .codex/evidence/slice-449-manifest-v2-repository-distribution.md, .codex/evidence/slice-449-manifest-v2-repository-consolidation.md]
-module_locks: [versioned manifest record and isolated repository]
+file_locks: [src/tiny_swarm_world/domain/lifecycle/manifest_v2_record.py, src/tiny_swarm_world/application/ports/lifecycle/versioned_manifest.py, src/tiny_swarm_world/infrastructure/adapters/lifecycle/versioned_manifest_repository.py, src/tiny_swarm_world/infrastructure/adapters/lifecycle/versioned_manifest_json.py, src/tiny_swarm_world/infrastructure/adapters/lifecycle/versioned_manifest_fs.py, tests/domain/lifecycle/test_manifest_v2_record.py, tests/infrastructure/adapters/lifecycle/test_versioned_manifest_repository.py, .codex/evidence/slice-449-manifest-v2-repository-contract.md, .codex/evidence/slice-449-manifest-v2-repository-distribution.md, .codex/evidence/slice-449-manifest-v2-repository-consolidation.md]
+module_locks: [versioned manifest record, bounded JSON parser, isolated filesystem CAS and repository facade]
 contract_locks: [closed unadopted draft wire and persisted listen input, UNKNOWN provenance, fixed staging path, bounded JSON, redacted repr, cooperating lock inode, bytehash CAS ABA limitation, no admission, crash semantics]
 architecture_locks: [domain port adapter boundaries, no existing runtime wiring, no host mutation]
 quality_gates:
-  targeted: [PYTHONPATH=src python3 -m unittest tests.domain.lifecycle.test_manifest_v2_record tests.infrastructure.adapters.lifecycle.test_versioned_manifest_repository tests.infrastructure.adapters.lifecycle.test_manifest tests.test_migration_preview_cli, python3 -m ruff check src/tiny_swarm_world/domain/lifecycle/manifest_v2_record.py src/tiny_swarm_world/application/ports/lifecycle/versioned_manifest.py src/tiny_swarm_world/infrastructure/adapters/lifecycle/versioned_manifest_repository.py tests/domain/lifecycle/test_manifest_v2_record.py tests/infrastructure/adapters/lifecycle/test_versioned_manifest_repository.py]
+  targeted: [PYTHONPATH=src python3 -m unittest tests.domain.lifecycle.test_manifest_v2_record tests.infrastructure.adapters.lifecycle.test_versioned_manifest_repository tests.infrastructure.adapters.lifecycle.test_manifest tests.test_migration_preview_cli, python3 -m ruff check src/tiny_swarm_world/domain/lifecycle/manifest_v2_record.py src/tiny_swarm_world/application/ports/lifecycle/versioned_manifest.py src/tiny_swarm_world/infrastructure/adapters/lifecycle/versioned_manifest_repository.py src/tiny_swarm_world/infrastructure/adapters/lifecycle/versioned_manifest_json.py src/tiny_swarm_world/infrastructure/adapters/lifecycle/versioned_manifest_fs.py tests/domain/lifecycle/test_manifest_v2_record.py tests/infrastructure/adapters/lifecycle/test_versioned_manifest_repository.py]
   required: [python3 tools/quality_gate.py quality, git diff --check]
 documentation:
   arc42: reconcile unadopted wire shape with accepted selection and profile ADRs before implementation
@@ -3253,3 +3253,7 @@ stop_conditions: [unresolved draft persistence ADR or provenance semantics, miss
 ```
 
 One serial implementation owner; role review/S3D before edits. All agent Python checks run in SSH PC WSL on exact source. Follow-on operator migration, canonical persistence and every V2 consumer require separate accepted scopes; live fixture, host admission and support gates remain unchanged.
+
+## Execution-phase amendment v1.67 — V2 repository complexity remediation
+
+Initial full QUALITY failed four complexity guardrails for the new module/class/CAS/JSON parser; no quality pass is claimed. The same serial slice may split bounded JSON parsing and pinned FD/CAS primitives into the two additionally locked modules while retaining the existing repository facade and all security/failure semantics. No quality threshold, baseline or exception is weakened. Contract `.codex/evidence/slice-449-manifest-v2-repository-contract.md` specifies the decomposition. Fresh same-hash six-role reviews and S3D are required before continuing implementation; repeat targeted and full gates on SSH PC WSL.

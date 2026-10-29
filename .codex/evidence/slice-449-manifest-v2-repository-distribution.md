@@ -15,3 +15,22 @@ The coordinator reports ADR-owner GO for the isolated UNADOPTED draft candidate 
 The execution coordinator reports independent Requirement, Architecture, Security, Python, Tester and DevOps GO, plus ADR Owner GO, on the identical revised contract SHA-256 `51f9d8d5b514a46714b5cb4a5f73ec455d1db9f76ac64d9fb5501b6292bf9edc` and workflow SHA-256 `7551302889998400cc454266a61ecda101fdc989b7f9bf081af47898b81d4eb1`. This is a reported contract/isolated-draft design decision, not S3D, product implementation, canonical admitted V2, host approval or live evidence.
 
 Earlier reviewers returned NO-GO for unspecified safe path/lock/token/ABA/crash rules and ADR drift ambiguity. The revised contract records fixed isolated path and bounds, cooperating-only lock and bytehash ABA limit, closed CAS results, post-replace UNCERTAIN/read-only reconciliation, no read-time rewrite, production-use migration prerequisite and exact P1 8086 validation. Earlier reviews are not silently rewritten. Independent S3D EXECUTION_PLAN and exact-source quality remain pending.
+
+## Implementation preflight
+
+The integration owner reports serial S3/S3D EXECUTION_PLAN at clean checkpoint
+`a75b592982b1af14fbce071ae106cd26eb76b157`, bound to the six-role and ADR-owner
+reviewed workflow/contract tuple above. One serial implementation stream owns
+the locked domain record, application port, isolated staging adapter, their
+tests and evidence; root integrates. Independent final candidate review and
+exact-source designated SSH PC WSL targeted tests, Ruff and full quality
+remain pending. No canonical persistence, CLI/runtime integration, host
+operation, admitted state or live qualification is authorized.
+
+## Complexity-gate failure and proposed remediation
+
+The initial full QUALITY run reported FAIL on four complexity guardrails in the new module/class/CAS/JSON parser. The proposed same-slice serial split introduces separately locked `versioned_manifest_json.py` and `versioned_manifest_fs.py`, preserves the facade and all safety/uncertainty checks, and does not change baselines, exceptions or thresholds. No pass is claimed; six-role same-hash review and S3D must approve revised locks before the worker continues.
+
+## Complexity-remediation contract review
+
+The execution coordinator reports independent Requirement, Architecture, Security, Python, Tester and DevOps GO on the identical revised contract SHA-256 `307e8b2ee45e8dd3f12dbc66e510e0ec05ed433ebfe6883c550e29c91147f36a` and workflow SHA-256 `c8a64ed887738d18880068110ced9b46a8ce3fceb8b04ec7f673a396e6dc5394`. The earlier full QUALITY complexity failure remains a failure; these are review decisions, not a new test pass. The new file locks require a fresh S3D plan before implementation resumes, and targeted/full SSH PC WSL quality must be rerun. No host or admission result follows.

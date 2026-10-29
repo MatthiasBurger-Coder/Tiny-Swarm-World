@@ -1,6 +1,6 @@
 {
   "workflow_id": "issue-449-lcm-w09",
-  "workflow_version": "1.66",
+  "workflow_version": "1.67",
   "workflow_amendment_v1_43": {
     "slice_id": "S449-02F5",
     "status": "HISTORICAL: F5 implemented and bounded native diagnosis executed",
@@ -191,10 +191,10 @@
   },
   "workflow_artifacts_sha256": {
     "documentation/arc42/09_architecture_decisions.adoc": "779b320ac681e3d3250389eef8245865559e395366a5931705c2093bf32f9515",
-    "documentation/workflow/issues/issue-449/context-pack.md": "6faff7d38f831151b88cf5f91ad5942e1b7120f3178b16d89b5dd204131da608",
-    "documentation/workflow/issues/issue-449/workflow.md": "7551302889998400cc454266a61ecda101fdc989b7f9bf081af47898b81d4eb1",
+    "documentation/workflow/issues/issue-449/context-pack.md": "88bf73ca383fe20a4a114e0f5902b211d53ef40f4e6e93bfc01b8149da2f0ee8",
+    "documentation/workflow/issues/issue-449/workflow.md": "c8a64ed887738d18880068110ced9b46a8ce3fceb8b04ec7f673a396e6dc5394",
     ".agents/skills/workflow-executor/SKILL.md": "04a9325b2cec2dfa6feab24c261c636fdfa295158661d20e981e4182e5bfb46c",
-    "documentation/workflow/workflow.index.md": "7d2f1b73847f6cdfc0c8fd1babdf7e8e6a12ba5f37e8824a9f62162f04dba247"
+    "documentation/workflow/workflow.index.md": "c5f7ed36106715a1bc6e79d7612b9c461fe4c0f96d38c574dab8ccdda593a0a6"
   },
   "skill_hashes_sha256": {
     ".agents/skills/three-amigos-requirement-gatekeeper/SKILL.md": "76659e618cb706e8990cdf44441aeaed219465044175826adca5357ae8acc5b4",
@@ -989,9 +989,9 @@
       "S449-MIGRATION-G2E"
     ],
     "contract": ".codex/evidence/slice-449-manifest-v2-repository-contract.md",
-    "contract_sha256": "51f9d8d5b514a46714b5cb4a5f73ec455d1db9f76ac64d9fb5501b6292bf9edc",
+    "contract_sha256": "307e8b2ee45e8dd3f12dbc66e510e0ec05ed433ebfe6883c550e29c91147f36a",
     "distribution": ".codex/evidence/slice-449-manifest-v2-repository-distribution.md",
-    "distribution_sha256": "8306417a9af0a137fc2b7465f843492df1e0e871b0d3865d1e6a4ac1a2fe8a5e",
+    "distribution_sha256": "69a4ee0f5b6910926b6b19f2187eb853e6dbc47b6b49c0b3f0e09a3dc6d22dae",
     "baseline_source_sha256": {
       "src/tiny_swarm_world/domain/lifecycle/models.py": "7c7f7d9ddae7b2805a0e4374801cd822d0fe1d5bd753d1acde2098d819db22a2",
       "src/tiny_swarm_world/domain/lifecycle/desired_manifest_v2.py": "b7de6c2b9cf06abbbfd5feb0eb9aad79a61cf4b61c172973fed53b6870426b3c",
@@ -1000,5 +1000,12 @@
       "documentation/arc42/09_decisions/adr-classic-selection-exposure-stack-ownership.adoc": "06a003fc35775854653c5985db84fabdb15bd096b75c9611a9868901d2534da0"
     },
     "boundary": "Noncanonical fixed UNADOPTED draft and isolated dual-read/CAS; cooperating-only bytehash token with ABA limitation, no runtime admission."
+  },
+  "workflow_amendment_v1_67": {
+    "slice_id": "S449-MANIFEST-V2-REPOSITORY",
+    "status": "PLANNED; six-role revised-contract GO reported; fresh S3D and quality rerun pending",
+    "contract": ".codex/evidence/slice-449-manifest-v2-repository-contract.md",
+    "contract_sha256": "307e8b2ee45e8dd3f12dbc66e510e0ec05ed433ebfe6883c550e29c91147f36a",
+    "boundary": "Split bounded JSON and pinned filesystem CAS without weakened guardrails, security checks or write uncertainty semantics."
   }
 }

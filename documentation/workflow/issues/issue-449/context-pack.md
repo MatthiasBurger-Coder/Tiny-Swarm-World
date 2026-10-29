@@ -1,3 +1,7 @@
+## Amendment v1.67 — V2 repository complexity remediation
+
+Initial full QUALITY failed four complexity guardrails. Proposed serial decomposition adds bounded JSON and filesystem/CAS modules to the slice locks without changing thresholds or safety semantics. Fresh reviews/S3D and rerun targeted/full SSH PC WSL quality remain required.
+
 ## Amendment v1.66 — unadopted v2 record and isolated CAS
 
 S449-MANIFEST-V2-REPOSITORY is PLANNED at `eacbdc418b6b7179e69441b718f7226609f96470`. It proposes a strict typed UNADOPTED v2 draft at fixed noncanonical staging path and separate dual-read/isolated CAS port and adapter. Locking assumes cooperating clients and no hostile same-UID writer; bytehash CAS cannot detect byte-identical ABA. Post-replace crash or directory-fsync failure is UNCERTAIN; read-only reconciliation may find the complete old or new file. ADR-owner GO was reported for the earlier isolated UNADOPTED draft; the current revision needs fresh same-hash review and S3D, and versioned draft migration is mandatory before production use; V1 runtime decoder, consumers and host remain unchanged. Six role reviews/S3D and SSH PC WSL quality are pending. Contract `.codex/evidence/slice-449-manifest-v2-repository-contract.md`.
