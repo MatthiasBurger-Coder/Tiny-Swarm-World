@@ -1,3 +1,27 @@
+# S449-MANIFEST-G2C — unadopted desired v2 conversion contract
+
+Status PLANNED; P0 completed at `5e9f87c6b1dc1173b8d0a4609037d477eb0f5cca`. Architecture GO for the bounded desired-state interpretation, Security READY for contract authoring and conditional Requirement GO were communicated; they are not implementation approval. Six same-hash Requirement, Architecture, Security, Python, Tester and DevOps reviews of this exact contract and S3D EXECUTION_PLAN precede edits. This contract supersedes the historical earlier G2c caller-supplied project/profile/routes proposal retained below. It does not authorize runtime parsing, persistence, CLI, host I/O or live use.
+
+## Domain boundary and inputs
+
+Implement a separate immutable `DesiredManifestV2` and `ConversionPlan` as unadopted **desired domain values**, not a valid persisted or installed `InstallationManifest`. Existing schema-1 `InstallationManifest` in `models.py` remains the canonical source for shared fields/invariants. Existing v1 decoder and runtime repository continue to reject schema 2; do not edit them, G2a, G2b, P0, current Classic callers or version-support registry.
+
+Inputs are explicit v1 manifest, component catalog, P0 `SwaggerMode` and listen address, strictly revalidated via existing G2a/P0 logic including forged `model_construct`/`model_copy`, duplicate/ambiguous IDs and unknown fields. Call `scoped_route_reference` **internally from the same validated inputs**; do not accept a caller-supplied P0 result, project, profile name, route set or `REVIEWED` assertion. Require P0 REFERENCE and exact supported policy/profile algorithm versions; any AUTHORITY_GAP, 8086-affected Infisical/service-access, default Traefik, source drift, selected internal Swagger without separately provable shared-ingress evidence, invalid listen/preset/UUID or unknown selection blocks. This slice cannot obtain host/source evidence; it cannot use caller claims to bypass gaps.
+
+Desired output preserves all validated v1 data, original UUID text, selection/order/provenance, component/product/configuration/credential references and operation/checkpoint references exactly, as an immutable detached snapshot with no shared mutable dictionaries or nested objects. Never re-resolve or adopt a selection. Derive expected route/profile policy only from the internally recomputed P0 result. The desired target project `default`, deterministic profile-name-v1, expected route tuples and selected stack `swarm` / selected Swagger `published` are policy fields, not observed host identity or ownership. Actual project, profile, route, owner, host and runtime source remain typed UNKNOWN; applied and qualified are false. No user-supplied binding, owner or token upgrades these values. The result is not persistable as a verified schema-v2 manifest and is not proof of fixture/version support or admission.
+
+## Failure and tests
+
+Return one typed non-admitting failure or raise a fixed sanitized domain error; no partial desired output, dynamic error content, IO, environment/registry access, persistence, network, client or host effect. Preserve existing v1 parsing and G2b `operator_local_unverified` CLI semantics. Verify minimal Portainer 10001, Nexus 13501, Pulsar 7750 and published Swagger; stable UUID text and canonical bytes/name vectors; v1 field and provenance preservation; duplicate/unknown/version/bool/alias/forged model failures; 8086 and internal Swagger gaps; no accepted caller-supplied/forged P0 value or runtime-source attestation; nested mutability isolation, deterministic outputs, no IO and no secrets in errors. P0 source drift or wrong policy version blocks. Existing `tests.infrastructure.adapters.lifecycle.test_manifest` must still prove runtime schema 2 rejection; G2a/P0/G2b/legacy tests remain unchanged.
+
+Test first on the designated SSH PC WSL host against exact source: `PYTHONPATH=src python3 -m unittest tests.domain.lifecycle.test_desired_manifest_v2 tests.domain.lifecycle.test_manifest_v2 tests.domain.lifecycle.test_scoped_route_policy tests.domain.lifecycle.test_models tests.infrastructure.adapters.lifecycle.test_manifest tests.test_migration_preview_cli`; direct Ruff the two new files; then `python3 tools/quality_gate.py quality` and `git diff --check`. A future separately reviewed admitted-binding/persistence slice must establish source/overrides, actual route/profile ownership, installation lock/checkpoint, capability support and host JIT/GO before any write. This G2c slice proves none of these.
+
+---
+
+## Historical G2c / P0 authority-gap authoring (superseded for execution)
+
+The following material records earlier analysis and proposed caller-supplied binding ideas. Those ideas are not the current G2c contract; use only the domain boundary above. P0 subsequently completed, but runtime source and ownership remain UNKNOWN.
+
 # S449-MANIFEST-G2C — strict domain v2 and explicit conversion plan
 
 Status BLOCKED / AUTHORITY_GAP; baseline `d2fbc06e6f1cfce51bce557499427c9d8c548c9d`. The desired future slice defines a genuine strict domain schema and pure conversion plan; it is not execution-ready until the separate route/profile authority decision below is accepted; it does not change runtime v1 decoder/repository, persist migration, inspect or adopt host resources, grant supported-version status, or qualify a host. G2b remains `operator_local_unverified` and must never supply authenticated ownership or source identity by implication.

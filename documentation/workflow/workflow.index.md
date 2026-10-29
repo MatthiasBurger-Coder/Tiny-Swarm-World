@@ -73,4 +73,6 @@ Workflow v1.58 plans an unverified legacy published route candidate P0a; authori
 
 Workflow v1.59 records accepted scoped route/profile design; P0/G2c, affected 8086 selections and live gates remain blocked.
 
-Workflow v1.60 plans pure scoped route policy P0 after accepted ADR; G2c and live gates remain blocked.
+Historical workflow v1.60 planned P0, completed at 5e9f87c6b1dc1173b8d0a4609037d477eb0f5cca; live gates remain blocked.
+
+Workflow v1.61 plans domain-only unadopted desired-manifest G2c; independent reviews/S3D remain pending.

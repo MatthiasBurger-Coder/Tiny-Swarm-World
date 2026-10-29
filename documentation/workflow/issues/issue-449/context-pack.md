@@ -1,4 +1,10 @@
-## Amendment v1.60 — scoped domain route policy P0
+## Amendment v1.61 — unadopted desired manifest G2c
+
+P0 completed at `5e9f87c6b1dc1173b8d0a4609037d477eb0f5cca`. G2c is PLANNED as immutable domain-only `DesiredManifestV2`/`ConversionPlan`; it internally recomputes P0 from v1/catalog, preserves v1 data and leaves actual host/source/owner UNKNOWN. Previous caller-supplied binding contract is superseded; no schema2 runtime/persistence, adoption or live claim. Six independent reviews and S3D remain pending.
+
+## Historical amendment v1.60 — scoped domain route policy P0
+
+P0 subsequently completed at `5e9f87c6b1dc1173b8d0a4609037d477eb0f5cca`; planned state below is historical.
 
 P0 is PLANNED after accepted ADR checkpoint `4886c84c92d7cb9ac628fe75e7a973829f36d713`: pure immutable ideal scoped route/profile reference, runtime_source always UNKNOWN and no actual source/override attestation; a future pre-effect adapter verifies effective sources and blocks unknown; 8086 and unproven internal ingress remain AUTHORITY_GAP. G2c stays BLOCKED until P0 is implemented and independently reviewed. Contract `.codex/evidence/slice-449-scoped-route-p0-contract.md`; six reviews/S3D and SSH PC WSL quality are pending.
 
@@ -12,7 +18,9 @@ P0a subsequently completed at `f5f0ea1520a1abdb6ee281bb700c8635c9ad4e93`; the pl
 
 P0a is PLANNED as a separate pure domain representation of every legacy FULL setup required port, including compatibility 7750, with unverified-runtime marker and UNKNOWN flags/identities. Internal Swagger and custom/alternate infrastructure remain blocked. It does not establish scoped authority or unblock G2c; same-hash reviews and S3D remain required. Contract `.codex/evidence/slice-449-route-p0a-contract.md`.
 
-## Amendment v1.57 — G2c route authority gap
+## Historical amendment v1.57 — G2c route authority gap
+
+P0 subsequently completed in `5e9f87c6b1dc1173b8d0a4609037d477eb0f5cca`; the earlier blocked state below is historical; host/source gaps remain.
 
 G2c is BLOCKED / AUTHORITY_GAP, not execution-ready. Separate route policy P0 must first inventory authoritative stack ports, PortRegistry, SetupManifest and ADRs, establish an immutable versioned selection/port snapshot and full deterministic tuples including TCP/10001, nat and proxy_protocol, with explicit provenance/UNKNOWN. A concrete versioned UUID/SHA-256 candidate and typed route-policy input are documented for independent decision; Portainer legacy proxy target and Nexus 13501 mapping are known; trusted policy binding, listen addresses and nat/proxy_protocol decisions remain blocked. Profile naming needs its own accepted decision. Missing authority blocks; no two caller-provided sets establish completeness.
 
