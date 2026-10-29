@@ -1,13 +1,13 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: ACTIVE_FOR_ISSUE_449 v1.48 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
+Status: ACTIVE_FOR_ISSUE_449 v1.49 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
 Workflow authoring branch: `docs/workflow-lcm-w09-route-baseline-20261027`
 Baseline: `a0310224946b63e2152ff4086d22a450c3d0f214`
-ACTIVE_FOR_ISSUE_449 v1.48. The user explicitly authorized completion of issue #449 on the named test hosts and a bounded diagnosis of the latest native blocker. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
+ACTIVE_FOR_ISSUE_449 v1.49. The user explicitly authorized completion of issue #449 on the named test hosts and a bounded diagnosis of the latest native blocker. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
 Execution profile: `FULL_PATH — lifecycle/provider implementation, regression, documentation, native and WSL2 qualification`
 
 ## Executive Summary
@@ -2808,3 +2808,7 @@ inventory or ownership admission. F9 is planned after F8; private F8 evidence
 must be independently reviewed before F9 host execution. No namespace or
 cause is inferred. See the F9 design and metadata for the closed relation
 contract, separate reviews, gates and host phase. S449-02F remains BLOCKED.
+
+## Execution-phase amendment v1.49 — End-to-end host admission proposal
+
+`.codex/evidence/slice-449-02F11-host-admission-plan.md` records the Security decision NOT_FEASIBLE for strict endpoint binding in the current collector. A probe connection cannot bind later independent lxc connections; no host proof may execute under F11. It describes a proposed separately governed unit/process/endpoint proof and full inventory/host qualification route, scoped requirement traceability and independently reviewed alternative/parallel preparation. The proof extends prior read/socket boundaries and cannot be implemented or run until its concrete API/limits, safety model, file locks, six same-hash roles and S3D EXECUTION_PLAN are approved. No previous diagnostic, proposal or quality pass admits a host. Existing S449-02F/02G/02H and main graph dependencies remain unchanged; 02F stays BLOCKED. The uncommitted ADR proposal is not accepted by this amendment. User live-test consent remains valid; scenario JIT/GO and applicable host-operation scope remain mandatory.

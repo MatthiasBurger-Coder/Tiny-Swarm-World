@@ -52,3 +52,5 @@ successful-inventory prerequisites. No F9 implementation, namespace finding,
 identity admission, inventory pass or host GO is claimed.
 
 Workflow v1.48 adds PLANNED S449-02F10 after F9's native `BLOCKED_UNKNOWN / PROC_ROOT` exit 2 at `4adcdfe456afddd881820c9a060a53113a2febfd`. It compares only the current F10 reader and visible PID 1 namespace under the bounded contract; the private F9 result needs review and no host admission or inventory success follows. S449-02F remains BLOCKED.
+
+Workflow v1.49 records a S449-02F11 end-to-end host-admission proposal marked NOT_FEASIBLE for the current collector; existing blockers, graph and host requirements remain in force pending review and S3D.

@@ -1,6 +1,6 @@
 {
   "workflow_id": "issue-449-lcm-w09",
-  "workflow_version": "1.48",
+  "workflow_version": "1.49",
   "workflow_amendment_v1_43": {
     "slice_id": "S449-02F5",
     "status": "HISTORICAL: F5 implemented and bounded native diagnosis executed",
@@ -191,10 +191,10 @@
   },
   "workflow_artifacts_sha256": {
     "documentation/arc42/09_architecture_decisions.adoc": "9b2b38c377bd75d3059b877d6ac679173f7eea9bb22dee9460c6d4fcad42284e",
-    "documentation/workflow/issues/issue-449/context-pack.md": "f09785fa5e83182f0d4db59ae790a8962a32134ba148fc63f5b22b7a6a2d181e",
-    "documentation/workflow/issues/issue-449/workflow.md": "17f1280dce6f601d5318d650d30a0ca5eeb0c72e6f3e3e2f4bbc7cd111ca718f",
+    "documentation/workflow/issues/issue-449/context-pack.md": "13023c76c09454e882befba454c3f3d90d625509cfe846b4c73f0f72634f8879",
+    "documentation/workflow/issues/issue-449/workflow.md": "cb768303577827f734af3283b8596968ead97b415735e379b262187ee9364cfe",
     ".agents/skills/workflow-executor/SKILL.md": "04a9325b2cec2dfa6feab24c261c636fdfa295158661d20e981e4182e5bfb46c",
-    "documentation/workflow/workflow.index.md": "6af515dab61d7ede4bee59eba07e2fa777dd2054d45c7be4ff134b93fef2b4d8"
+    "documentation/workflow/workflow.index.md": "3f05a43089829cf4f181710ce40dc46ac45d1997e873d9095eda3d82979233cb"
   },
   "skill_hashes_sha256": {
     ".agents/skills/three-amigos-requirement-gatekeeper/SKILL.md": "76659e618cb706e8990cdf44441aeaed219465044175826adca5357ae8acc5b4",
@@ -702,5 +702,13 @@
     "contract": ".codex/evidence/slice-449-02F10-design.md",
     "boundary": "Standalone bounded current reader versus visible PID 1 only, SAME/DIFFERENT/UNKNOWN, BLOCKED_UNKNOWN/2; F4–F9 unchanged, S449-02F BLOCKED. F4 trusted-root boundary, fixed self-link/getpid binding, openat2/statx mount checks and pinned final links; uncertain trust or observations return UNKNOWN.",
     "sequence": "Six same-hash reviews and S3D, exact-source SSH PC WSL quality, then separate host plan/JIT/GO and at most one execution."
+  },
+  "workflow_amendment_v1_49": {
+    "slice_id": "S449-02F11",
+    "status": "NOT_FEASIBLE for current collector; no implementation, host GO or admission",
+    "dependency": "S449-02F10; existing 02F and main graph dependencies unchanged",
+    "contract": ".codex/evidence/slice-449-02F11-host-admission-plan.md",
+    "boundary": "Reviewed fixed unit/process/endpoint proof is not inventory or host admission; unknown blocks, no unapproved host mutations or acceptance of proposed ADR. Probe connection cannot bind independent lxc connections; alternative isolated VM availability is unverified and WSL remains separate.",
+    "sequence": "Concrete contract and six same-hash role reviews, S3D, exact-source SSH PC WSL quality, separate host JIT and GO, full inventory and existing scenario graph."
   }
 }

@@ -1,3 +1,7 @@
+## Amendment v1.49 — Host admission end-to-end proposal
+
+S449-02F11 is NOT_FEASIBLE for the current collector: a probe connection cannot bind later independent lxc connections. The retained proof-and-qualification draft in `.codex/evidence/slice-449-02F11-host-admission-plan.md`: fixed unit, pidfd, manager mapping and socket peer require new reviewed read/socket scope; binding is not inventory or admission. Six same-hash role reviews, S3D and distinct host JIT/GO remain required. S449-02F is BLOCKED; existing dependencies, target scope and proposed/unaccepted ADR remain unchanged.
+
 ## Amendment v1.48 — S449-02F10 planned
 
 F9 native source `4adcdfe456afddd881820c9a060a53113a2febfd` returned `BLOCKED_UNKNOWN / PROC_ROOT`, exit 2; private evidence requires independent review. F10 plans a separate, read-only comparison of the current diagnostic reader and visible PID 1 cgroup namespace only. It cannot establish the F9 reader, target, host or initial namespace, cause, safety or admission. It requires six same-hash reviews, S3D, exact-source SSH PC WSL quality, and a separate host plan/JIT/GO; no implementation or F10 host execution is implied. F10 uses the existing F4 trusted local-root boundary, fixed self-link/getpid binding, pinned openat2/statx mount checks and validated fixed final link descriptors; uncertain trust or observations return UNKNOWN. F10 depends on F9; S449-02F remains BLOCKED and 02G/02H retain inventory prerequisites. Normative details: `.codex/evidence/slice-449-02F10-design.md` and `workflow.md`.
