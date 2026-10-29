@@ -1,6 +1,21 @@
 # Context pack — issue-449-lcm-w09
 
-## Current v1.46 failure-stage diagnostic amendment
+## Current v1.47 process-cgroup relation diagnostic amendment
+
+Native F8 at 7615a29962b0fd3ae2d44e4246893335ad9fadd3 returned
+BLOCKED_UNKNOWN / PROCESS_BINDING, exit 2. This is a bounded cgroup mismatch
+stage, not process identity, safety, namespace or inventory admission.
+Private F8 evidence requires independent review. S449-02F9 is PLANNED after
+F8; its sole CLI, closed componentwise relation enum, trusted stable F8
+observations, budgets and D01–D10 are in
+.codex/evidence/slice-449-02F9-design.md. Six same-hash reviews and S3D,
+exact-source SSH PC WSL quality, and a separate post-commit host plan/JIT/GO
+are required. F4–F8 remain unchanged; S449-02F remains BLOCKED and 02G/02H
+retain successful-inventory prerequisites. No F9 implementation or host GO
+is claimed. The unrelated user-owned ADR amendment remains untouched.
+
+
+## Historical v1.46 failure-stage diagnostic amendment
 
 Native F7 at fd8dd1478329ee00a907822b4e43b19efc14a631 returned
 BLOCKED_UNKNOWN / UNKNOWN, exit 2; its private record requires independent

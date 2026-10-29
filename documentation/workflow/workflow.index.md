@@ -43,3 +43,10 @@ returned BLOCKED_UNKNOWN / UNKNOWN, exit 2. S449-02F8 is PLANNED as a closed,
 typed reproducible failure-stage diagnostic; private evidence needs independent
 review. F4–F7 stay unchanged; S449-02F remains BLOCKED, 02G/02H retain
 prerequisites. No F8 implementation, host GO, identity or inventory pass claimed.
+
+Workflow v1.47: native F8 source 7615a29962b0fd3ae2d44e4246893335ad9fadd3
+returned BLOCKED_UNKNOWN / PROCESS_BINDING, exit 2. S449-02F9 is PLANNED as
+a closed componentwise relation diagnostic; F8 private evidence needs independent
+review. F4–F8 remain unchanged; S449-02F stays BLOCKED, and 02G/02H retain
+successful-inventory prerequisites. No F9 implementation, namespace finding,
+identity admission, inventory pass or host GO is claimed.
