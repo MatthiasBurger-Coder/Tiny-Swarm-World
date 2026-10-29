@@ -87,7 +87,17 @@ class MigrationAdmissionTests(unittest.TestCase):
         manifest, catalog = make_fixture(("infisical",), "service-access")
         self.manifests.load.return_value = ManifestSnapshot(manifest, "token")
         self.catalog.load.return_value = catalog
-        self.assertIs(self.service.evaluate(self.request).status, MigrationAdmissionStatus.BLOCKED_UNKNOWN)
+        self.assertIs(self.service.evaluate(self.request).status, MigrationAdmissionStatus.BLOCKED_UNSUPPORTED)
+        self.manifests.save.assert_not_called()
+
+    def test_scoped_service_access_remains_unsupported_without_host_effects(self) -> None:
+        manifest, catalog = make_fixture(("service-access", "nexus", "infisical", "traefik"), "service-access")
+        self.manifests.load.return_value = ManifestSnapshot(manifest, "SECRET")
+        self.catalog.load.return_value = catalog
+        result = self.service.evaluate(self.request)
+        self.assertIs(result.status, MigrationAdmissionStatus.BLOCKED_UNSUPPORTED)
+        self.assertFalse(result.applied)
+        self.assertNotIn("SECRET", repr(result))
         self.manifests.save.assert_not_called()
 
     def test_load_failures_and_forged_plans_are_redacted(self) -> None:

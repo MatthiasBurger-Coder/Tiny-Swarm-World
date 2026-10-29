@@ -51,7 +51,7 @@ def _matches_request(desired: DesiredManifestV2, manifest: InstallationManifest,
     preview = preview_migration(manifest, catalog)
     reference = scoped_route_reference(manifest, catalog, exposure=request.exposure, listen_address=request.listen_address)
     return (type(reference) is ScopedPolicyReference and reference.status is PolicyStatus.REFERENCE
-            and type(reference.policy_version) is str and reference.policy_version == "scoped-route-policy-v1"
+            and type(reference.policy_version) is str and reference.policy_version == "scoped-route-policy-v2"
             and type(reference.profile_algorithm) is str and reference.profile_algorithm == "profile-name-v1"
             and reference.runtime_source is UnknownIdentity.UNKNOWN
             and reference.host is UnknownIdentity.UNKNOWN and reference.project is UnknownIdentity.UNKNOWN

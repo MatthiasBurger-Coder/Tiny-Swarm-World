@@ -205,6 +205,40 @@ class MigrationCheckCliTests(unittest.IsolatedAsyncioTestCase):
                 self.assertNotIn("SECRET", out.getvalue() + err.getvalue())
                 manifests.save.assert_not_called()
 
+    async def test_scoped_8086_cases_stay_fixed_unsupported_without_host_effects(self) -> None:
+        from tests.domain.lifecycle.test_scoped_route_policy import make_fixture
+        from tiny_swarm_world.application.ports.lifecycle import ManifestSnapshot
+        from tiny_swarm_world.application.services.migration_admission import MigrationAdmissionService
+
+        for selected in (("infisical",), ("service-access", "nexus", "infisical", "traefik")):
+            with self.subTest(selected=selected):
+                manifest, catalog = make_fixture(selected, "service-access")
+                manifests, catalog_port = Mock(), Mock()
+                manifests.load.return_value = ManifestSnapshot(manifest, "SECRET_TOKEN")
+                catalog_port.load.return_value = catalog
+                service = MigrationAdmissionService(manifests, catalog_port)
+                args = ACTION + ["--version", "6.0.5", "--exposure", "not_applicable",
+                                 "--listen-address", "127.0.0.1"]
+                out, err = StringIO(), StringIO()
+                with patch("tiny_swarm_world.infrastructure.adapters.cli.migration_admission.build_migration_admission_service",
+                           return_value=nullcontext(service)), \
+                        patch.object(dispatcher, "build_application_logger") as logger, \
+                        patch.object(dispatcher, "run_cli_workflow") as runtime, \
+                        patch("os.system", side_effect=AssertionError("host command")), \
+                        patch("subprocess.Popen", side_effect=AssertionError("host process")), \
+                        patch("socket.socket", side_effect=AssertionError("network")), \
+                        redirect_stdout(out), redirect_stderr(err), self.assertRaises(SystemExit) as stopped:
+                    await dispatcher.main(args)
+                self.assertEqual(stopped.exception.code, 2)
+                self.assertEqual(out.getvalue(),
+                                 '{"status":"BLOCKED_UNSUPPORTED","source":"operator_local_unverified",'
+                                 '"applied":false,"qualified":false}\n')
+                self.assertEqual(err.getvalue(), "")
+                self.assertNotIn("SECRET", out.getvalue() + err.getvalue())
+                manifests.save.assert_not_called()
+                logger.assert_not_called()
+                runtime.assert_not_called()
+
     async def test_real_bounded_local_load_yields_unsupported_without_writes(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

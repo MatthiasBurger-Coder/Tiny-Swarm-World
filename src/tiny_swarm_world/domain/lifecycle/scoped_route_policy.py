@@ -43,7 +43,7 @@ class ScopedPolicyReference:
     installation_id: str | None = None
     profile_name: str | None = None
     routes: tuple[ScopedRoute, ...] = ()
-    policy_version: str = "scoped-route-policy-v1"
+    policy_version: str = "scoped-route-policy-v2"
     profile_algorithm: str = "profile-name-v1"
     runtime_source: UnknownIdentity = UnknownIdentity.UNKNOWN
     host: UnknownIdentity = UnknownIdentity.UNKNOWN
@@ -55,7 +55,7 @@ class ScopedPolicyReference:
 
 _GAP = ScopedPolicyReference(status=PolicyStatus.AUTHORITY_GAP)
 # service -> complete reviewed (port, legacy display label) tuple
-_POLICY: tuple[tuple[str, tuple[tuple[int, str], ...]], ...] = (
+_LEGACY_POLICY: tuple[tuple[str, tuple[tuple[int, str], ...]], ...] = (
     ("portainer", ((10001, "Portainer"),)),
     ("nexus", ((13081, "Nexus"), (13500, "Nexus Docker registry"), (13501, "Nexus Docker proxy registry"))),
     ("jenkins", ((11080, "Jenkins"), (11050, "Jenkins inbound agent"))),
@@ -64,7 +64,11 @@ _POLICY: tuple[tuple[str, tuple[tuple[int, str], ...]], ...] = (
     ("sonarqube", ((12000, "SonarQube"),)),
     ("swagger", ((16080, "Swagger UI"), (16081, "Swagger/NGINX"))),
     ("traefik", ((80, "Traefik HTTP ingress"), (443, "Traefik HTTPS ingress"))),
+    ("service-access", ((10000, "Service Access"),)),
+    ("infisical", ((8086, "Infisical legacy route"), (17080, "Infisical"))),
 )
+# Compatibility alias remains immutable and is checked against reviewed source.
+_POLICY = _LEGACY_POLICY
 # Reviewed Classic identity and dependency semantics; caller catalogs cannot
 # redefine these values or expand the supported service set.
 _CATALOG_POLICY: tuple[tuple[str, str, bool, tuple[str, ...], tuple[str, ...]], ...] = (
@@ -87,7 +91,6 @@ _PARENT_SERVICE_IDS: tuple[tuple[str, str], ...] = (
 _ALLOWED = frozenset({"incus", "portainer", "nexus", "jenkins", "pulsar", "sonarqube",
                       "swagger", "traefik", "infisical", "service-access"})
 _DEFAULT_FORBIDDEN = frozenset({"traefik", "infisical", "service-access"})
-_CONFLICT = frozenset({"infisical", "service-access"})
 
 
 def _listener_collision(routes: tuple[ScopedRoute, ...]) -> bool:
@@ -127,16 +130,16 @@ def scoped_route_reference(manifest: object, catalog: object, *, exposure: objec
             return _GAP
         chosen = set(selected)
         if (not {"incus", "portainer"} <= chosen or len(chosen) != len(selected)
-                or chosen & _CONFLICT or (preset == "default" and chosen & _DEFAULT_FORBIDDEN)):
+                or (preset == "default" and chosen & _DEFAULT_FORBIDDEN)):
             return _GAP
         if (("swagger" in chosen and exposure is not SwaggerMode.PUBLISHED)
                 or ("swagger" not in chosen and exposure is not SwaggerMode.NOT_APPLICABLE)):
             return _GAP
         setup = default_setup_manifest(profile=SetupProfile.FULL, service_profile=preset,
                                        resolved_services=selected)
-        if len({service for service, _ in _POLICY}) != len(_POLICY):
+        if _POLICY is not _LEGACY_POLICY or len({service for service, _ in _LEGACY_POLICY}) != len(_LEGACY_POLICY):
             return _GAP
-        expected = tuple((service, port, label) for service, entries in _POLICY if service in chosen
+        expected = tuple((service, port, label) for service, entries in _LEGACY_POLICY if service in chosen
                          for port, label in entries)
         if any(type(port) is not int or not 1 <= port <= 65535 or type(label) is not str
                for _, port, label in expected):
@@ -149,15 +152,20 @@ def scoped_route_reference(manifest: object, catalog: object, *, exposure: objec
             return _GAP
         observed = tuple((parent_ids[group.name], item.port, item.service)
                          for group in setup.services for item in group.ports)
-        if any(type(port) is not int or type(label) is not str for _, port, label in observed):
+        if (any(type(port) is not int or type(label) is not str for _, port, label in observed)
+                or any(type(item.host_preflight_required) is not bool for group in setup.services for item in group.ports)
+                or expected != observed):
             return _GAP
-        if sorted(expected) != sorted(observed):
-            return _GAP
+        transformed = tuple(
+            ("service-access", port, label) if service == "infisical" and port == 8086 else (service, port, label)
+            for service, port, label in expected
+            if not (service == "infisical" and port == 8086 and "service-access" not in chosen)
+        )
         routes = tuple(sorted((ScopedRoute(service_id=service, device_name=f"tsw-proxy-{port}",
                                            protocol="tcp", listen_address=listen_address, listen_port=port,
                                            connect_address="127.0.0.1", connect_port=port, bind="host",
                                            nat=False, proxy_protocol=False)
-                               for service, port, _ in expected), key=lambda item: item.listen_port))
+                               for service, port, _ in transformed), key=lambda item: item.listen_port))
         if (len({item.device_name for item in routes}) != len(routes)
                 or _listener_collision(routes)):
             return _GAP
@@ -167,3 +175,35 @@ def scoped_route_reference(manifest: object, catalog: object, *, exposure: objec
                                      profile_name=profile, routes=routes)
     except Exception:
         return _GAP
+
+
+
+def matches_scoped_reference(reference: object, manifest: object, catalog: object, *,
+                             exposure: object, listen_address: object) -> bool:
+    """Recompute and strictly validate a v2 ideal reference, never host authority."""
+    try:
+        if type(reference) is not ScopedPolicyReference or type(reference.routes) is not tuple:
+            return False
+        if (reference.status is not PolicyStatus.REFERENCE
+                or type(reference.policy_version) is not str or reference.policy_version != "scoped-route-policy-v2"
+                or type(reference.profile_algorithm) is not str or reference.profile_algorithm != "profile-name-v1"
+                or type(reference.installation_id) is not str or type(reference.profile_name) is not str
+                or reference.runtime_source is not UnknownIdentity.UNKNOWN
+                or reference.host is not UnknownIdentity.UNKNOWN or reference.project is not UnknownIdentity.UNKNOWN
+                or reference.ownership is not UnknownIdentity.UNKNOWN
+                or reference.applied is not False or reference.qualified is not False):
+            return False
+        for route in reference.routes:
+            if type(route) is not ScopedRoute:
+                return False
+            text = (route.service_id, route.device_name, route.protocol, route.listen_address,
+                    route.connect_address, route.bind)
+            if (any(type(item) is not str for item in text)
+                    or type(route.listen_port) is not int or type(route.connect_port) is not int
+                    or type(route.nat) is not bool or type(route.proxy_protocol) is not bool):
+                return False
+        expected = scoped_route_reference(manifest, catalog, exposure=exposure, listen_address=listen_address)
+        return (expected.status is PolicyStatus.REFERENCE and reference.installation_id == expected.installation_id
+                and reference.profile_name == expected.profile_name and reference.routes == expected.routes)
+    except Exception:
+        return False

@@ -4,16 +4,14 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from enum import Enum
-import hashlib
 from types import MappingProxyType
-from uuid import UUID
 
 from pydantic import BaseModel
 
 from tiny_swarm_world.domain.lifecycle.manifest_v2 import SwaggerExposure, UnknownIdentity, preview_migration
 from tiny_swarm_world.domain.lifecycle.models import ComponentCatalog, InstallationManifest
 from tiny_swarm_world.domain.lifecycle.scoped_route_policy import (
-    PolicyStatus, ScopedPolicyReference, ScopedRoute, _POLICY, scoped_route_reference,
+    PolicyStatus, ScopedPolicyReference, ScopedRoute, matches_scoped_reference, scoped_route_reference,
 )
 
 
@@ -93,34 +91,6 @@ def _make_desired(snapshot: Mapping[str, object], reference: ScopedPolicyReferen
     return result
 
 
-def _strict_route(route: ScopedRoute) -> bool:
-    strings = (route.service_id, route.device_name, route.protocol, route.listen_address,
-               route.connect_address, route.bind)
-    return (all(type(value) is str for value in strings)
-            and type(route.listen_port) is int and type(route.connect_port) is int
-            and type(route.nat) is bool and type(route.proxy_protocol) is bool)
-
-
-def _reference_matches_snapshot(reference: ScopedPolicyReference, snapshot: Mapping[str, object],
-                                listen_address: object) -> bool:
-    installation_id = snapshot["installation_id"]
-    selected = snapshot["resolved_services"]
-    if (type(installation_id) is not str or type(selected) is not tuple
-            or type(listen_address) is not str or listen_address not in {"127.0.0.1", "0.0.0.0"}):
-        return False
-    if any(not _strict_route(route) for route in reference.routes):
-        return False
-    profile = "tsw-profile-" + hashlib.sha256(
-        b"tiny-swarm-world/incus-profile/v1\x00" + UUID(installation_id).bytes).hexdigest()[:32]
-    expected = tuple(sorted((ScopedRoute(service_id=service, device_name=f"tsw-proxy-{port}",
-                                        protocol="tcp", listen_address=listen_address, listen_port=port,
-                                        connect_address="127.0.0.1", connect_port=port, bind="host",
-                                        nat=False, proxy_protocol=False)
-                             for service, entries in _POLICY if service in selected
-                             for port, _ in entries), key=lambda item: item.listen_port))
-    return reference.profile_name == profile and reference.routes == expected
-
-
 def _reject_unknown_fields(value: object, active: set[int]) -> None:
     """Detect extras model_dump could silently omit, including nested models."""
     if not isinstance(value, (BaseModel, dict, list, tuple)):
@@ -162,7 +132,7 @@ def plan_desired_manifest_v2(manifest: object, catalog: object, *, exposure: obj
         reference = scoped_route_reference(checked_manifest, checked_catalog,
                                            exposure=exposure, listen_address=listen_address)
         if (type(reference) is not ScopedPolicyReference or reference.status is not PolicyStatus.REFERENCE
-                or type(reference.policy_version) is not str or reference.policy_version != "scoped-route-policy-v1"
+                or type(reference.policy_version) is not str or reference.policy_version != "scoped-route-policy-v2"
                 or type(reference.profile_algorithm) is not str or reference.profile_algorithm != "profile-name-v1"
                 or type(reference.installation_id) is not str
                 or reference.installation_id != preview.v1_snapshot["installation_id"]
@@ -174,7 +144,8 @@ def plan_desired_manifest_v2(manifest: object, catalog: object, *, exposure: obj
                 or reference.project is not UnknownIdentity.UNKNOWN
                 or reference.ownership is not UnknownIdentity.UNKNOWN
                 or reference.applied is not False or reference.qualified is not False
-                or not _reference_matches_snapshot(reference, preview.v1_snapshot, listen_address)):
+                or not matches_scoped_reference(reference, checked_manifest, checked_catalog,
+                                                exposure=exposure, listen_address=listen_address)):
             return _GAP
         desired = _make_desired(preview.v1_snapshot, reference, preview.stack_policies, preview.swagger_exposure)
         return ConversionPlan(status=ConversionStatus.DESIRED, desired=desired)

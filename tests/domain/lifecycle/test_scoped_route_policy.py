@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import shutil
 import tempfile
+from typing import cast
 import unittest
 from unittest.mock import patch
 
@@ -86,11 +87,21 @@ class ScopedRoutePolicyTests(unittest.TestCase):
         result = reference(manifest, catalog, exposure=policy.SwaggerMode.PUBLISHED)
         ports = {route.listen_port for route in result.routes}
         self.assertTrue({10001, 13501, 7750, 16080, 16081} <= ports)
-        for selected in (("infisical",), ("service-access", "nexus", "infisical", "traefik")):
+        cases = ((("infisical",), {10001, 17080}),
+                 (("service-access", "nexus", "infisical", "traefik"), {10001, 10000, 8086, 17080, 80, 443, 13081, 13500, 13501}))
+        for selected, expected in cases:
             with self.subTest(selected=selected):
                 manifest, catalog = make_fixture(selected, "service-access")
                 preview_migration(manifest, catalog)
-                self.assertIs(reference(manifest, catalog).status, policy.PolicyStatus.AUTHORITY_GAP)
+                result = reference(manifest, catalog)
+                self.assertIs(result.status, policy.PolicyStatus.REFERENCE)
+                self.assertEqual({route.listen_port for route in result.routes}, expected)
+                self.assertEqual(result.policy_version, "scoped-route-policy-v2")
+                for route in result.routes:
+                    if route.listen_port == 8086:
+                        self.assertEqual(route.service_id, "service-access")
+        manifest, catalog = make_fixture(("service-access", "infisical"), "service-access")
+        self.assertIs(reference(manifest, catalog).status, policy.PolicyStatus.AUTHORITY_GAP)
 
     def test_selected_internal_and_untyped_exposure_or_self_attestation_block(self) -> None:
         manifest, catalog = make_fixture(("swagger",))
@@ -186,6 +197,29 @@ class ScopedRoutePolicyTests(unittest.TestCase):
                          sorted((item.port, item.service) for group in groups for item in group.ports))
         self.assertTrue(pulsar.ports)
         with patch.object(policy, "default_setup_manifest", return_value=replace(setup, services=groups)):
+            self.assertIs(reference(manifest, catalog).status, policy.PolicyStatus.AUTHORITY_GAP)
+
+    def test_full_ordered_legacy_source_is_checked_before_transform(self) -> None:
+        manifest, catalog = make_fixture(("service-access", "nexus", "infisical", "traefik"), "service-access")
+        setup = default_setup_manifest(profile=SetupProfile.FULL, service_profile="service-access",
+                                       resolved_services=manifest.resolved_services)
+        self.assertIs(reference(manifest, catalog).status, policy.PolicyStatus.REFERENCE)
+        infisical = next(group for group in setup.services if group.name == "Infisical")
+        port_8086 = infisical.ports[0]
+        variants = (
+            replace(infisical, ports=infisical.ports[1:]),
+            replace(infisical, ports=(port_8086, port_8086) + infisical.ports[1:]),
+            replace(infisical, ports=(replace(port_8086, service="altered"),) + infisical.ports[1:]),
+            replace(infisical, ports=tuple(reversed(infisical.ports))),
+            replace(infisical, ports=(replace(port_8086, host_preflight_required=cast(bool, 1)),) + infisical.ports[1:]),
+        )
+        for group in variants:
+            with self.subTest(group=group):
+                groups = tuple(group if item.name == "Infisical" else item for item in setup.services)
+                with patch.object(policy, "default_setup_manifest", return_value=replace(setup, services=groups)):
+                    self.assertIs(reference(manifest, catalog).status, policy.PolicyStatus.AUTHORITY_GAP)
+        reordered = replace(setup, services=tuple(reversed(setup.services)))
+        with patch.object(policy, "default_setup_manifest", return_value=reordered):
             self.assertIs(reference(manifest, catalog).status, policy.PolicyStatus.AUTHORITY_GAP)
 
     def test_changed_policy_boolean_or_duplicate_service_fails_closed(self) -> None:

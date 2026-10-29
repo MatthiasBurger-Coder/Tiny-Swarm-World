@@ -82,8 +82,6 @@ class DesiredManifestV2Tests(unittest.TestCase):
 
     def test_gaps_and_unsolicited_bindings_never_produce_partial_desired(self) -> None:
         for selected, preset, mode in (
-            (("infisical",), "service-access", SwaggerMode.NOT_APPLICABLE),
-            (("service-access", "nexus", "infisical", "traefik"), "service-access", SwaggerMode.NOT_APPLICABLE),
             (("traefik",), "default", SwaggerMode.NOT_APPLICABLE),
             (("swagger",), "default", SwaggerMode.INTERNAL),
         ):
@@ -98,6 +96,30 @@ class DesiredManifestV2Tests(unittest.TestCase):
                 plan = convert(manifest, catalog, **extra)
                 self.assertIs(plan.status, conversion.ConversionStatus.AUTHORITY_GAP)
                 self.assertNotIn("SECRET", repr(plan))
+
+    def test_scoped_v2_8086_desired_values_are_exact_and_unadopted(self) -> None:
+        for selected, expected_8086 in ((("infisical",), False),
+                                        (("service-access", "nexus", "infisical", "traefik"), True)):
+            with self.subTest(selected=selected):
+                manifest, catalog = make_fixture(selected, "service-access")
+                plan = convert(manifest, catalog)
+                self.assertIs(plan.status, conversion.ConversionStatus.DESIRED)
+                desired = plan.desired
+                assert desired is not None
+                routes = [route for route in desired.desired_routes if route.listen_port == 8086]
+                self.assertEqual(bool(routes), expected_8086)
+                if routes:
+                    self.assertEqual(len(routes), 1)
+                    self.assertEqual(routes[0].service_id, "service-access")
+                self.assertIn(17080, [route.listen_port for route in desired.desired_routes])
+                self.assertIs(desired.runtime_source, UnknownIdentity.UNKNOWN)
+                self.assertFalse(desired.applied)
+        manifest, catalog = make_fixture()
+        original = scoped_route_reference(manifest, catalog, exposure=SwaggerMode.NOT_APPLICABLE,
+                                          listen_address="127.0.0.1")
+        with patch.object(conversion, "scoped_route_reference",
+                          return_value=replace(original, policy_version="scoped-route-policy-v1")):
+            self.assertIs(convert(manifest, catalog).status, conversion.ConversionStatus.AUTHORITY_GAP)
 
     def test_forged_invalid_nested_unknown_fields_and_types_fail_closed(self) -> None:
         manifest, catalog = make_fixture()
