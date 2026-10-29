@@ -1,13 +1,13 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: ACTIVE_FOR_ISSUE_449 v1.63 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
+Status: ACTIVE_FOR_ISSUE_449 v1.64 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
 Workflow authoring branch: `docs/workflow-lcm-w09-route-baseline-20261027`
 Baseline: `a0310224946b63e2152ff4086d22a450c3d0f214`
-ACTIVE_FOR_ISSUE_449 v1.63. The user explicitly authorized completion of issue #449 on the named test hosts and a bounded diagnosis of the latest native blocker. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
+ACTIVE_FOR_ISSUE_449 v1.64. The user explicitly authorized completion of issue #449 on the named test hosts and a bounded diagnosis of the latest native blocker. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
 Execution profile: `FULL_PATH — lifecycle/provider implementation, regression, documentation, native and WSL2 qualification`
 
 ## Executive Summary
@@ -3125,7 +3125,9 @@ Six independent Requirement, Architecture, Security, Python, Tester and DevOps r
 
 Immediately after G2d, author concrete G2e metadata with dependency `S449-MIGRATION-G2D` and execute it under independent review/S3D. Scope is early safe CLI plus read-only composition, no live runtime or host construction, fixed sanitized blocked status/exit behavior, `documentation/` operator guide and CLI/parser/composition regression tests. Until G2e exists, G2d is internal and does not alter existing commands. G2e does not itself authorize mutation, persistence or positive admission.
 
-## Execution-phase amendment v1.63 — operator migration-check G2e
+## Historical execution-phase amendment v1.63 — operator migration-check G2e
+
+G2e completed at `b9f2543f3fea21fd7565a6f6bf02c72e6dc8f448`; planned status below is historical.
 
 G2e is PLANNED after G2d commit `ef1e863b755faa3f8127a364b7926244abc35329`. It adds only a dedicated early `services migration-check` entry to expose G2d fixed blocked results using bounded local readers. Candidate version is operator supplied, never a host measurement; output is sanitized and unverified, no runtime/host mutation or admission. Exact grammar, result and no-write contract: `.codex/evidence/slice-449-migration-g2e-contract.md`.
 
@@ -3158,3 +3160,32 @@ Six Requirement, Architecture, Security, Python, Tester and DevOps same-hash rev
 ### G2e narrow registry-loop test amendment
 
 Within the already locked `tests/test_package_entrypoint.py`, the existing registry loop may append valid `--version`, `--exposure` and `--listen-address` arguments only for `services migration-check`, in addition to its workflow-list entry. Preserve all existing registry/workflow assertions and all other entries; no skip. A separate negative CLI test must prove missing options return fixed blocked JSON/exit 2 before repository load. This changes test scope only and does not relax the required CLI grammar. Fresh review and S3D apply to this amendment.
+
+## Execution-phase amendment v1.64 — proposed 8086 scoped authority decision
+
+The scoped route/profile ADR contains a PROPOSED 8086-only amendment, with source evidence in `.codex/evidence/slice-449-route-8086-decision.md`. It distinguishes service-access route owner and Infisical backend, requires full dependency closure for 8086 and preserves Infisical-only 17080. Exact legacy tuples must be validated before a narrowly versioned transformation; other drift blocks. Existing accepted 8086 AUTHORITY_GAP remains until decision acceptance and separately reviewed pure-domain implementation. No current runtime, source, host, version or live route claim follows.
+
+```yaml
+slice_id: S449-ROUTE-8086-ADR-D0
+profile: GOVERNANCE_AND_DOCUMENTATION
+owner: Senior Workflow Architect
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior Python Automation Developer, Senior Tester, Senior DevOps Engineer]
+affected_files: [documentation/arc42/09_decisions/adr-scoped-route-policy-profile-identity.adoc, documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, documentation/workflow/workflow.index.md, .codex/evidence/slice-449-route-8086-decision.md]
+affected_modules: [scoped route authority decision, issue-449 workflow]
+affected_contracts: [8086 selection ownership and backend, exact legacy source drift before versioned transformation, unchanged legacy and host gates]
+dependencies: [S449-SCOPED-ROUTE-ADR-D0, S449-ROUTE-POLICY-P0, S449-MIGRATION-G2E]
+parallel_group: sequential
+file_locks: [documentation/arc42/09_decisions/adr-scoped-route-policy-profile-identity.adoc, documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, documentation/workflow/workflow.index.md, .codex/evidence/slice-449-route-8086-decision.md]
+module_locks: [scoped route ADR, issue-449 workflow]
+contract_locks: [8086 owner and backend, versioned source transformation, no host admission]
+architecture_locks: [preserve legacy behavior and accepted ADR history, no runtime effects]
+quality_gates:
+  targeted: [git diff --check, verify source evidence and review hashes]
+  required: [independent six-role same-hash decision review, S3D EXECUTION_PLAN]
+documentation:
+  arc42: append proposed amendment retaining accepted history
+  adr: proposed until independently accepted
+stop_conditions: [ambiguous source or selection closure, lost historical authority, missing reviews or S3D, claimed live or support outcome, host operation]
+```
+
+After independent decision acceptance, author a separate serial scoped-domain slice limited initially to `src/tiny_swarm_world/domain/lifecycle/scoped_route_policy.py` and its tests. Tests must prove Infisical-only 17080/no8086, full service-access closure 10000/8086/17080 exactly once, invalid dependency closure, exact legacy source validation before transformation, unrelated drift blocking, no changed legacy candidate/setup, and no host I/O. Its exact locks, versioned identity, six-role reviews, S3D and SSH PC WSL targeted/full quality are separate. G2c/G2e and host gates are not discharged by this proposal.

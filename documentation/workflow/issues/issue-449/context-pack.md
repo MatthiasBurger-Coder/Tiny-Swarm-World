@@ -1,8 +1,14 @@
+## Amendment v1.64 — proposed scoped 8086 decision
+
+G2e completed at `b9f2543f3fea21fd7565a6f6bf02c72e6dc8f448`. A PROPOSED ADR amendment assigns desired 8086 compatibility route to service-access with Infisical backend under complete dependency closure, validates exact legacy tuples before a narrow versioned transformation, and leaves legacy unchanged. Existing 8086 AUTHORITY_GAP continues until independent decision and separate implementation; no host/live/support claim.
+
 ## G2e registry-loop test scope amendment
 
 The locked package-entrypoint test may supply the three valid required options for `services migration-check` in its existing registry loop, without skips or weakening any assertions; a separate missing-options test must block before load. Fresh review/S3D apply.
 
-## Amendment v1.63 — G2e operator migration-check
+## Historical amendment v1.63 — G2e operator migration-check
+
+G2e subsequently completed at `b9f2543f3fea21fd7565a6f6bf02c72e6dc8f448`; planned state below is historical.
 
 G2d completed at `ef1e863b755faa3f8127a364b7926244abc35329`. G2e is PLANNED: an early bounded local `services migration-check` exposes only sanitized blocked G2d outcomes; candidate version is operator-supplied and not measured. No host, migration, support or admission follows. Six-role reviews/S3D pending. Contract `.codex/evidence/slice-449-migration-g2e-contract.md`.
 
