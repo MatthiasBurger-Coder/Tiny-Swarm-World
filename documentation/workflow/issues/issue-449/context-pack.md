@@ -1,4 +1,10 @@
-## Amendment v1.68 — shared Portainer no-prune
+## Amendment v1.69 — Portainer endpoint/stack uniqueness
+
+Planned after NoPrune `c3443ea56c420184124cdf0c8de892b18d301ecf`: both apply paths require strict unique endpoint/name/stack identity and recheck before first effect, with full absence for create. Same-endpoint foreign ownership, direct update bypass and non-atomic gap remain explicit limitations. Contract `.codex/evidence/slice-449-portainer-endpoint-stack-contract.md`; reviews/S3D pending.
+
+## Historical amendment v1.68 — shared Portainer no-prune
+
+NoPrune subsequently completed at `c3443ea56c420184124cdf0c8de892b18d301ecf`; planned status below is historical.
 
 S449-PORTAINER-NO-PRUNE is PLANNED at `29be9194c86a35f448f12f3b7905956dc7a430d2`: the shared HTTP stack update changes to prune false for direct and LXC-delegated paths. Omitted services may remain; authenticated ownership guard and explicit deletion are separate. No live action or full issue completion follows. Six reviews/S3D pending. Contract `.codex/evidence/slice-449-portainer-no-prune-contract.md`.
 

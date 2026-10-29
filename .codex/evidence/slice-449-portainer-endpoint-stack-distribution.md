@@ -1,0 +1,15 @@
+# S449-PORTAINER-ENDPOINT-STACK — review distribution
+
+Status PLANNED. One serial Python owner handles both apply paths, their shared port/client, matching test fakes and guide; parallel writers overlap and are unsafe. Requirement, Architecture, Security, Python, Tester and DevOps review identical contract/workflow/source hashes. S3D validates files, consumers and locks before implementation. The scope does not solve same-endpoint foreign ownership, raw update bypass or the non-atomic recheck-to-write gap. No quality pass or host action is claimed.
+
+Historical global-guard review: authentication itself uses POST. The revised contract permits authentication POST and read-only inventory GETs before validation while blocking stack and network mutations until the validated recheck; complete inventory must be demonstrable from the API contract. Fresh same-hash reviews remain required.
+
+Historical global-guard Security NO-GO: /stacks can omit limited stacks even for admin, so global absence is not established; endpoint visibility and 404/405 no-mutation are unverified. Slice is BLOCKED / NOT EXECUTABLE. Existing-only visible-conflict detection and global apply blocking are alternatives requiring fresh independent review, not approved behavior. No apparent-absence create or uncertain retry.
+
+Current narrower candidate PLANNED: reject visible conflicts in both legacy apply paths after two snapshots; legacy create and 404/405 fallback unchanged and documented as unproven. No global uniqueness, ownership or admission claim. Prior global guard remains blocked historical. Six new same-hash role reviews and S3D required.
+
+## Narrow-scope review handoff
+
+Requirement, Architecture, Security, Python, Tester and DevOps reported GO on contract SHA256 `a4dbc3abf6beb6707c99f5f9e3ab6e43522f1f7965cbef97fc483afff94f262e` and workflow SHA256 `38bb8ae14d7fcad493b4d0211bc3be98a9b93b48c61173641e00949169654ac3`. Security confirmed the earlier global guard NO-GO remains superseded, not resolved: Portainer can omit limited stacks. Architecture recommended the subsequent heading-only clarification to visible endpoint/stack conflicts; the heading edit changes the workflow hash, so these are reviews of the specified prior bytes, not a claim of fresh reviews of the modified workflow. S3D and any required post-edit review remain pending. No host operation or ownership admission follows.
+
+Final rebind: Requirement, Architecture, Security, Python, Tester and DevOps each reported GO for the unchanged contract SHA256 `a4dbc3abf6beb6707c99f5f9e3ab6e43522f1f7965cbef97fc483afff94f262e` and heading-clarified workflow SHA256 `bb1c3f6117a94c8cd812415d3f0eb40cd95b93d24ca3376b1e8d3d4b3c89e194`. S3D remains required. This review does not establish global visibility, ownership, live admission or atomicity.

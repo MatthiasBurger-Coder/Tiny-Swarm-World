@@ -1,13 +1,13 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: ACTIVE_FOR_ISSUE_449 v1.68 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
+Status: ACTIVE_FOR_ISSUE_449 v1.69 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
 Workflow authoring branch: `docs/workflow-lcm-w09-route-baseline-20261027`
 Baseline: `a0310224946b63e2152ff4086d22a450c3d0f214`
-ACTIVE_FOR_ISSUE_449 v1.68. The user explicitly authorized completion of issue #449 on the named test hosts and a bounded diagnosis of the latest native blocker. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
+ACTIVE_FOR_ISSUE_449 v1.69. The user explicitly authorized completion of issue #449 on the named test hosts and a bounded diagnosis of the latest native blocker. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
 Execution profile: `FULL_PATH — lifecycle/provider implementation, regression, documentation, native and WSL2 qualification`
 
 ## Executive Summary
@@ -3258,7 +3258,9 @@ One serial implementation owner; role review/S3D before edits. All agent Python 
 
 Initial full QUALITY failed four complexity guardrails for the new module/class/CAS/JSON parser; no quality pass is claimed. The same serial slice may split bounded JSON parsing and pinned FD/CAS primitives into the two additionally locked modules while retaining the existing repository facade and all security/failure semantics. No quality threshold, baseline or exception is weakened. Contract `.codex/evidence/slice-449-manifest-v2-repository-contract.md` specifies the decomposition. Fresh same-hash six-role reviews and S3D are required before continuing implementation; repeat targeted and full gates on SSH PC WSL.
 
-## Execution-phase amendment v1.68 — Portainer shared update no-prune
+## Historical execution-phase amendment v1.68 — Portainer shared update no-prune
+
+NoPrune subsequently completed in `c3443ea56c420184124cdf0c8de892b18d301ecf`; planned status below is historical.
 
 S449-PORTAINER-NO-PRUNE is PLANNED on baseline `29be9194c86a35f448f12f3b7905956dc7a430d2`: shared Portainer HTTP stack update sends `prune=False` for direct and LXC-delegated paths. Omitted services may remain; explicit removal and authenticated endpoint/stack/ResourceControl/definition ownership guard remain separately unresolved. No host/live outcome is claimed. Contract `.codex/evidence/slice-449-portainer-no-prune-contract.md`.
 
@@ -3287,3 +3289,33 @@ stop_conditions: [missing reviews or S3D, unverified removal semantics, changed 
 ```
 
 Six Requirement, Architecture, Security, Python, Tester and DevOps same-hash reviews and S3D EXECUTION_PLAN precede edits. Targeted/full quality runs on designated SSH PC WSL exact source.
+
+## Execution-phase amendment v1.69 — visible endpoint/stack conflicts
+
+Status PLANNED for the narrower visible-conflict rejection in both legacy apply paths, after NoPrune `c3443ea56c420184124cdf0c8de892b18d301ecf`; the former global-guard proposal is historical and blocked. Reject visible duplicates, foreign endpoint, malformed records and drift before stack or network mutations after two snapshots. Auth POST and inventory GET are allowed. Legacy create and 404/405 fallback remain unchanged with an operator warning; no new retries, global absence/uniqueness, ownership, atomicity, S449-05 admission or direct update coverage claim. Contract `.codex/evidence/slice-449-portainer-endpoint-stack-contract.md`; fresh six-role reviews and S3D required.
+
+```yaml
+slice_id: S449-PORTAINER-ENDPOINT-STACK
+profile: BACKEND_AND_TESTS
+owner: Senior Python Automation Developer
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior Tester, Senior DevOps Engineer]
+affected_files: [src/tiny_swarm_world/application/ports/clients/port_portainer_client.py, src/tiny_swarm_world/infrastructure/adapters/clients/portainer_http_client.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc/services/lxc_portainer_http_client.py, tests/infrastructure/adapters/clients/test_portainer_http_client.py, tests/infrastructure/adapters/clients/lxc/services/test_lxc_service_clients.py, tests/infrastructure/adapters/clients/test_lxc_swarm_runtime.py, tests/application/services/deployment/test_ensure_portainer_endpoint.py, tests/infrastructure/adapters/exceptions/test_operation_failure_mapping.py, documentation/user_guide/component-updates.md, .codex/evidence/slice-449-portainer-endpoint-stack-contract.md, .codex/evidence/slice-449-portainer-endpoint-stack-distribution.md, .codex/evidence/slice-449-portainer-endpoint-stack-consolidation.md]
+affected_modules: [Portainer endpoint and stack resolution, direct and LXC apply]
+affected_contracts: [strict visible-conflict rejection, two snapshots before mutation, legacy create unchanged, no global uniqueness or ownership claim]
+dependencies: [S449-PORTAINER-NO-PRUNE]
+parallel_group: sequential
+file_locks: [src/tiny_swarm_world/application/ports/clients/port_portainer_client.py, src/tiny_swarm_world/infrastructure/adapters/clients/portainer_http_client.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc/services/lxc_portainer_http_client.py, tests/infrastructure/adapters/clients/test_portainer_http_client.py, tests/infrastructure/adapters/clients/lxc/services/test_lxc_service_clients.py, tests/infrastructure/adapters/clients/test_lxc_swarm_runtime.py, tests/application/services/deployment/test_ensure_portainer_endpoint.py, tests/infrastructure/adapters/exceptions/test_operation_failure_mapping.py, documentation/user_guide/component-updates.md, .codex/evidence/slice-449-portainer-endpoint-stack-contract.md, .codex/evidence/slice-449-portainer-endpoint-stack-distribution.md, .codex/evidence/slice-449-portainer-endpoint-stack-consolidation.md]
+module_locks: [Portainer port, HTTP and LXC apply, shared fakes]
+contract_locks: [visible endpoint stack conflicts and recheck, unchanged legacy create, no prune, direct update bypass documented]
+architecture_locks: [application port infrastructure adapters, no host operations]
+quality_gates:
+  targeted: [PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_portainer_http_client tests.infrastructure.adapters.clients.lxc.services.test_lxc_service_clients tests.infrastructure.adapters.clients.test_lxc_swarm_runtime tests.application.services.deployment.test_ensure_portainer_endpoint tests.infrastructure.adapters.exceptions.test_operation_failure_mapping, python3 -m ruff check src/tiny_swarm_world/application/ports/clients/port_portainer_client.py src/tiny_swarm_world/infrastructure/adapters/clients/portainer_http_client.py src/tiny_swarm_world/infrastructure/adapters/clients/lxc/services/lxc_portainer_http_client.py tests/infrastructure/adapters/clients/test_portainer_http_client.py tests/infrastructure/adapters/clients/lxc/services/test_lxc_service_clients.py tests/infrastructure/adapters/clients/test_lxc_swarm_runtime.py tests/application/services/deployment/test_ensure_portainer_endpoint.py tests/infrastructure/adapters/exceptions/test_operation_failure_mapping.py]
+  required: [python3 tools/quality_gate.py quality, git diff --check]
+documentation:
+  user_guide: document ambiguous identity refusal and ownership limitation
+  arc42: accepted ownership ADR unchanged
+  adr: no change
+stop_conditions: [missing role review or S3D, ambiguous visible endpoint or stack, malformed or failed snapshot, mutating stack POST/PUT or network/manager command before recheck, no-prune regression, ownership or atomicity claim, host action]
+```
+
+Six independent Requirement, Architecture, Security, Python, Tester and DevOps same-hash reviews and S3D EXECUTION_PLAN precede edits. Targeted and full quality run on designated SSH PC WSL with exact source.

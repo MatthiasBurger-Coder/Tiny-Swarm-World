@@ -89,4 +89,6 @@ Workflow v1.66 plans strict unadopted v2 record and isolated versioned CAS; ADR 
 
 Workflow v1.67 plans V2 repository decomposition after a failed complexity gate; no quality pass or weakened guardrail is claimed.
 
-Workflow v1.68 plans shared Portainer stack update with no prune; ownership validation and live qualification remain separate.
+Historical workflow v1.68 planned NoPrune, completed in c3443ea56c420184124cdf0c8de892b18d301ecf; ownership and live qualification remain separate.
+
+Workflow v1.69 plans strict endpoint/stack uniqueness on both apply paths; ownership proof and live gates remain separate.
