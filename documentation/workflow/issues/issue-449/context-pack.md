@@ -1,4 +1,10 @@
-## Amendment v1.61 — unadopted desired manifest G2c
+## Amendment v1.62 — fail-closed migration admission G2d
+
+G2c completed at `f45ca0b8ee3d3593eb02cd7f7a78e8a528440924`. G2d is PLANNED as internal application-only v1/catalog inspection and desired-plan/scoped-capability check; it does not affect existing paths. Immediately following G2e must add a separately reviewed safe operator CLI/composition entrypoint, tests and guide; a nonempty string snapshot token is required and the empty support set ensures blocked results, no positive admission, host calls, writes or runtime wiring. Six same-hash reviews and S3D are pending. Contract `.codex/evidence/slice-449-migration-g2d-contract.md`.
+
+## Historical amendment v1.61 — unadopted desired manifest G2c
+
+G2c completed at `f45ca0b8ee3d3593eb02cd7f7a78e8a528440924`; planned status below is historical.
 
 P0 completed at `5e9f87c6b1dc1173b8d0a4609037d477eb0f5cca`. G2c is PLANNED as immutable domain-only `DesiredManifestV2`/`ConversionPlan`; it internally recomputes P0 from v1/catalog, preserves v1 data and leaves actual host/source/owner UNKNOWN. Previous caller-supplied binding contract is superseded; no schema2 runtime/persistence, adoption or live claim. Six independent reviews and S3D remain pending.
 
