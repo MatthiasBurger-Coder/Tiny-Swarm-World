@@ -1,6 +1,15 @@
 {
   "workflow_id": "issue-449-lcm-w09",
-  "workflow_version": "1.42",
+  "workflow_version": "1.43",
+  "workflow_amendment_v1_43": {
+    "slice_id": "S449-02F5",
+    "status": "PLANNED; no implementation or host GO",
+    "observation": "The native S449-02F inventory at source 1ec15b3e9f7f943cdde85e43d00ec01ff9c7e9fd exited 2 with BLOCKED:SNAP_WRAPPER_CONTEXT_BLOCKED; no inventory artifact or host mutation occurred. Cause unknown.",
+    "dependency": "S449-02F4",
+    "contract": ".codex/evidence/slice-449-02F5-design.md",
+    "sequence": "Six-role same-hash review and S3D, F5 implementation and exact-source PC WSL quality, separate post-commit native diagnosis plan and GO, independently reviewed result, separately governed correction if warranted, fresh S449-02F inventory plan and GO.",
+    "boundary": "Sole standalone --diagnose-snap-context mode; invalid combinations produce fixed UNKNOWN JSON and exit 2 without argparse leakage. Fixed symbolic reason only; always BLOCKED_UNKNOWN and exit 2; no identity admission, artifact, new host commands, disclosure or mutation. F4 normal proof remains unchanged. S449-02F remains BLOCKED until a new complete inventory succeeds; S449-02H retains its S449-02F dependency. Existing 02G and fixture gates remain applicable."
+  },
   "workflow_path": "documentation/workflow/issues/issue-449/workflow.md",
   "workflow_index_path": "documentation/workflow/workflow.index.md",
   "context_pack_path": "documentation/workflow/issues/issue-449/context-pack.md",
@@ -182,10 +191,10 @@
   },
   "workflow_artifacts_sha256": {
     "documentation/arc42/09_architecture_decisions.adoc": "9b2b38c377bd75d3059b877d6ac679173f7eea9bb22dee9460c6d4fcad42284e",
-    "documentation/workflow/issues/issue-449/context-pack.md": "55af42af6cd0ed7229c29d52d217d2d16c65dee803048a02e3931aa36b898728",
-    "documentation/workflow/issues/issue-449/workflow.md": "0ac86d6cff0ca1b581c35f32503771770af9f8c889c1725129fb488d32300607",
+    "documentation/workflow/issues/issue-449/context-pack.md": "381419088db731b55a9e990b11c62fffdb9fd6bbed782707082e5b8c00fe56a4",
+    "documentation/workflow/issues/issue-449/workflow.md": "cc4de900050f826537b817b0d8b34921939930e3538c278aeb27ef3489cdcd35",
     ".agents/skills/workflow-executor/SKILL.md": "04a9325b2cec2dfa6feab24c261c636fdfa295158661d20e981e4182e5bfb46c",
-    "documentation/workflow/workflow.index.md": "32c2346504ecab8c150bc11556d4053fa6bf7b3faa39b81bbd0c93bb72c5c7b2"
+    "documentation/workflow/workflow.index.md": "f42c4ca0f03ebdaa3fc260f495f7e2f411b47b4055839702b69948cb161c1e5f"
   },
   "skill_hashes_sha256": {
     ".agents/skills/three-amigos-requirement-gatekeeper/SKILL.md": "76659e618cb706e8990cdf44441aeaed219465044175826adca5357ae8acc5b4",
