@@ -1328,5 +1328,46 @@ class SnapWrapperIntegrationTests(unittest.TestCase):
         client.assert_not_called()
 
 
+class SnapContextCliTests(unittest.TestCase):
+    def test_invalid_diagnostic_combinations_have_no_host_io_or_leaks(self) -> None:
+        cases = (["--diagnose-snap-context=secret"], ["--diagnose-snap-context", "secret"],
+                 ["--diagnose-snap-context", "--help"], ["--diagnose-snap-context", "--diagnose-units"],
+                 ["--diagnose-snap-context", "--diagnose-snap-context"])
+        for argv in cases:
+            with self.subTest(argv=argv), patch.object(inventory, "diagnose_snap_context") as diagnose:
+                out, err = StringIO(), StringIO()
+                with redirect_stdout(out), redirect_stderr(err):
+                    self.assertEqual(inventory.main(argv), 2)
+                self.assertEqual(out.getvalue(), '{"status":"BLOCKED_UNKNOWN","reason":"UNKNOWN"}\n')
+                self.assertEqual(err.getvalue(), "")
+                diagnose.assert_not_called()
+
+    def test_valid_mode_returns_only_fixed_json(self) -> None:
+        out, err = StringIO(), StringIO()
+        with patch.object(inventory, "diagnose_snap_context", return_value="CONTROL_GROUP"), \
+                redirect_stdout(out), redirect_stderr(err):
+            self.assertEqual(inventory.main(["--diagnose-snap-context"]), 2)
+        self.assertEqual(out.getvalue(), '{"status":"BLOCKED_UNKNOWN","reason":"CONTROL_GROUP"}\n')
+        self.assertEqual(err.getvalue(), "")
+
+    def test_initial_snapshot_failure_and_exceptions_are_sanitized(self) -> None:
+        runner = Mock()
+        runner.run.side_effect = RuntimeError("secret-token /private/path")
+        out, err = StringIO(), StringIO()
+        with patch.object(inventory, "Runner", return_value=runner), redirect_stdout(out), redirect_stderr(err):
+            self.assertEqual(inventory.main(["--diagnose-snap-context"]), 2)
+        self.assertEqual(out.getvalue(), '{"status":"BLOCKED_UNKNOWN","reason":"UNKNOWN"}\n')
+        self.assertEqual(err.getvalue(), "")
+        self.assertEqual(runner.run.call_count, 1)
+        self.assertEqual(runner.run.call_args.args[0][:3], ["/usr/bin/systemctl", "show", "snap.lxd.daemon.service"])
+
+    def test_inactive_snapshot_stops_before_helper(self) -> None:
+        row = {"load_state": "loaded", "active_state": "inactive", "sub_state": "dead", "main_pid": 0}
+        with patch.object(inventory, "_systemctl_show", return_value=row), \
+                patch("importlib.import_module") as importer:
+            self.assertEqual(inventory.diagnose_snap_context(runner=Mock()), "UNKNOWN")
+        importer.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()

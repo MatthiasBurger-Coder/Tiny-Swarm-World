@@ -1269,8 +1269,30 @@ def _write_private(path: Path, raw: bytes) -> None:
         raise
 
 
+def diagnose_snap_context(*, runner: Runner | None = None) -> str:
+    """Return only a fixed context category; this never admits the service."""
+    try:
+        import importlib
+        runner = runner or Runner()
+        row = _systemctl_show(runner, "snap.lxd.daemon.service")
+        if (row["load_state"], row["active_state"], row["sub_state"]) != ("loaded", "active", "running") or row["main_pid"] <= 0:
+            return "UNKNOWN"
+        name = f"{__package__}.native_lxd_snap_provenance" if __package__ else "native_lxd_snap_provenance"
+        proof = importlib.import_module(name)
+        reason = proof.diagnose_context(runner, row)
+        allowed = {"EXECSTART_FORMAT_OR_TIME", "CONTROL_GROUP", "FRAGMENT_OR_HOOK", "DROPIN_OR_ENV_SETTING",
+                   "ENVIRONMENT_FILE_SPEC", "DROPIN_CONTENT", "ENVIRONMENT_FILE_CONTENT", "UNKNOWN"}
+        return reason if reason in allowed else "UNKNOWN"
+    except Exception:
+        return "UNKNOWN"
+
+
 def main(argv: list[str] | None = None) -> int:
     arguments = list(sys.argv[1:] if argv is None else argv)
+    if any(arg == "--diagnose-snap-context" or arg.startswith("--diagnose-snap-context=") for arg in arguments):
+        reason = diagnose_snap_context() if arguments == ["--diagnose-snap-context"] else "UNKNOWN"
+        print(json.dumps({"status": "BLOCKED_UNKNOWN", "reason": reason}, separators=(",", ":"), ensure_ascii=True))
+        return 2
     if any(arg == "--diagnose-units" or arg.startswith("--diagnose-units=") for arg in arguments):
         if arguments != ["--diagnose-units"]:
             print("BLOCKED:DIAGNOSTIC_ARGUMENTS_INVALID", file=sys.stderr)

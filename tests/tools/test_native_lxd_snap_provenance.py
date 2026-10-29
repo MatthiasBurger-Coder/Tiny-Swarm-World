@@ -8,6 +8,7 @@ from pathlib import Path
 import stat
 import tempfile
 import unittest
+from typing import Any
 from unittest.mock import Mock, patch
 
 from tools.qualification import native_lxd_snap_provenance as proof
@@ -426,6 +427,221 @@ class DescriptorAdapterTests(unittest.TestCase):
             with self.assertRaisesRegex(proof.ProvenanceError, "^SNAP_WRAPPER_LIMIT_EXCEEDED$"):
                 proof.LocalReadOnlyFS().observe("/fixed", limit=3)
         closed.assert_called_once_with(7)
+
+
+class ContextDiagnosticTests(unittest.TestCase):
+    fs: MemoryFS
+    row: dict[str, Any]
+    values: dict[str, str]
+    runner: Mock
+
+    def setUp(self) -> None:
+        self.fs = MemoryFS()
+        self.row = {"unit": proof.UNIT, "load_state": "loaded", "active_state": "active", "sub_state": "running",
+                    "unit_file_state": "enabled", "main_pid": 101}
+        self.values = dict.fromkeys(proof.PROPERTIES, "")
+        self.values.update(LoadState="loaded", ActiveState="active", SubState="running", UnitFileState="enabled",
+                           MainPID="101", ControlGroup="/system.slice/" + proof.UNIT, FragmentPath=proof.UNIT_FILE,
+                           ExecStart="{ path=/usr/bin/snap ; argv[]=/usr/bin/snap run lxd.daemon ; ignore_errors=no ; "
+                                     "start_time=[Wed 2026-10-28 10:00:00 UTC] ; stop_time=[n/a] ; pid=101 ; code=(null) ; status=0/0 }")
+        self.runner = Mock()
+        self.runner.run.side_effect = lambda *_a, **_kw: (0, self.unit_bytes(), b"")
+        self.fs.files[proof.UNIT_FILE] = regular(10, readonly=False)
+        self.add_process(101, 1, 11, 20)
+        self.add_process(202, 101, 22, 30)
+        self.fs.files["/proc/101/root/bin/sh"] = regular(20, executable=True)
+        self.fs.files["/proc/101/cmdline"] = regular(40, b"/bin/sh\x00/snap/lxd/123/commands/daemon.start\x00")
+        self.fs.files["/proc/101/environ"] = regular(41, b"SNAP_NAME=lxd\x00SNAP_REVISION=123\x00SNAP=/snap/lxd/123\x00LD_LIBRARY_PATH=/snap/extra\x00")
+        self.fs.files["/proc/101/task/101/children"] = regular(42, b"202 ")
+        self.pair("commands/daemon.start", regular(50, executable=True))
+        self.pair("meta/snap.yaml", regular(51, b"name: lxd\napps:\n  daemon:\n    command: commands/daemon.start\n    daemon: simple\n"))
+        self.pair("sbin/lxd", regular(30, executable=True))
+
+    def unit_bytes(self) -> bytes:
+        return "".join(f"{key}={value}\n" for key, value in self.values.items()).encode()
+
+    def add_process(self, pid: int, parent: int, started: int, executable: int) -> None:
+        self.fs.files[f"/proc/{pid}/stat"] = regular(1000 + pid, proc_stat(pid, parent, started), readonly=False)
+        self.fs.files[f"/proc/{pid}/status"] = regular(2000 + pid, b"Name:\tignored\nUid:\t0\t0\t0\t0\n", readonly=False)
+        self.fs.files[f"/proc/{pid}/cgroup"] = regular(3000 + pid, ("0::" + self.values["ControlGroup"] + "\n").encode(), readonly=False)
+        self.fs.files[f"/proc/{pid}/exe"] = regular(executable, executable=True)
+
+    def pair(self, relative: str, value: proof.Observation) -> None:
+        self.fs.files["/snap/lxd/123/" + relative] = value
+        self.fs.files["/proc/101/root/snap/lxd/123/" + relative] = value
+
+    def run_proof(self, *, clock=lambda: 0.0) -> tuple[str, str]:
+        return proof.prove_snap_wrapper(self.runner, self.row, fs=self.fs, clock=clock)
+
+    def assert_blocked(self, code: str | None = None) -> None:
+        with self.assertRaises(proof.ProvenanceError) as caught:
+            self.run_proof()
+        self.assertTrue(str(caught.exception).startswith("SNAP_WRAPPER_"))
+        self.assertNotIn("secret-value", str(caught.exception))
+        if code is not None:
+            self.assertEqual(str(caught.exception), code)
+
+    def diagnose(self) -> str:
+        return proof.diagnose_context(self.runner, self.row, fs=self.fs, clock=lambda: 0.0)
+
+    def test_unit_categories_and_normal_proof_parity(self) -> None:
+        cases = (("ExecStart", "secret-token", "EXECSTART_FORMAT_OR_TIME"),
+                 ("ControlGroup", "secret-token", "CONTROL_GROUP"),
+                 ("FragmentPath", "secret-token", "FRAGMENT_OR_HOOK"),
+                 ("DropInPaths", "secret-token", "DROPIN_OR_ENV_SETTING"),
+                 ("EnvironmentFiles", "secret-token", "ENVIRONMENT_FILE_SPEC"))
+        for field, value, reason in cases:
+            with self.subTest(field=field):
+                original = self.values[field]
+                self.values[field] = value
+                self.runner.reset_mock()
+                self.fs.calls.clear()
+                self.assertEqual(self.diagnose(), reason)
+                self.assertEqual(self.runner.run.call_count, 2)
+                self.assertEqual(self.fs.calls, [])
+                self.assert_blocked("SNAP_WRAPPER_CONTEXT_BLOCKED")
+                self.values[field] = original
+
+    def test_priority_and_no_lower_file_reads(self) -> None:
+        self.values.update(ExecStart="secret", ControlGroup="secret", EnvironmentFiles="secret")
+        self.assertEqual(self.diagnose(), "EXECSTART_FORMAT_OR_TIME")
+        self.assertEqual(self.fs.calls, [])
+
+    def test_pairwise_unit_priority(self) -> None:
+        cases = (("ExecStart", "EXECSTART_FORMAT_OR_TIME"), ("ControlGroup", "CONTROL_GROUP"),
+                 ("FragmentPath", "FRAGMENT_OR_HOOK"), ("DropInPaths", "DROPIN_OR_ENV_SETTING"),
+                 ("EnvironmentFiles", "ENVIRONMENT_FILE_SPEC"))
+        original = dict(self.values)
+        for index, (field, reason) in enumerate(cases):
+            for later_field, _ in cases[index + 1:]:
+                with self.subTest(first=field, second=later_field):
+                    self.values = dict(original)
+                    self.values[field] = self.values[later_field] = "secret-token"
+                    self.assertEqual(self.diagnose(), reason)
+                    self.assertEqual(self.fs.calls, [])
+
+    def test_unit_rejection_precedes_each_rejected_context_file(self) -> None:
+        cases = (("ExecStart", "EXECSTART_FORMAT_OR_TIME"), ("ControlGroup", "CONTROL_GROUP"),
+                 ("FragmentPath", "FRAGMENT_OR_HOOK"), ("DropInPaths", "DROPIN_OR_ENV_SETTING"),
+                 ("EnvironmentFiles", "ENVIRONMENT_FILE_SPEC"))
+        original = dict(self.values)
+        good_drop = b"[Unit]\nAfter=snap.microceph.daemon.service snap.microovn.daemon.service\n"
+        for field, reason in cases:
+            for rejected_file in ("dropin", "environment"):
+                with self.subTest(field=field, rejected_file=rejected_file):
+                    self.values = dict(original)
+                    self.values["DropInPaths"] = proof.DROP_IN
+                    self.values["EnvironmentFiles"] = "/etc/environment (ignore_errors=yes)"
+                    self.fs.files[proof.DROP_IN] = regular(7, b"secret\n" if rejected_file == "dropin" else good_drop)
+                    self.fs.files["/etc/environment"] = regular(8, b"SECRET=value\n" if rejected_file == "environment" else b"")
+                    self.values[field] = "secret-token"
+                    self.fs.calls.clear()
+                    self.runner.reset_mock()
+                    self.assertEqual(self.diagnose(), reason)
+                    self.assertEqual(self.fs.calls, [])
+                    self.assertEqual(self.runner.run.call_count, 2)
+
+    def test_malformed_duplicate_timeout_and_second_query_error_are_unknown(self) -> None:
+        valid = self.unit_bytes()
+        for raw in (valid + b"MainPID=101\n", valid + b"NotAllowed=secret\n", b"\xff"):
+            self.runner.run.side_effect = None
+            self.runner.run.return_value = (0, raw, b"")
+            self.assertEqual(self.diagnose(), "UNKNOWN")
+        self.values["ControlGroup"] = "secret"
+        self.runner.run.side_effect = [(0, self.unit_bytes(), b""), OSError("secret")]
+        self.assertEqual(self.diagnose(), "UNKNOWN")
+        self.runner.run.side_effect = None
+        self.runner.run.return_value = (0, self.unit_bytes(), b"")
+        self.assertEqual(proof.diagnose_context(self.runner, self.row, fs=self.fs,
+                                                clock=iter([0.0, 61.0]).__next__), "UNKNOWN")
+
+    def test_dropin_and_environment_categories_reobserve_only_trusted_fixed_files(self) -> None:
+        self.values["DropInPaths"] = proof.DROP_IN
+        self.values["EnvironmentFiles"] = "/etc/environment (ignore_errors=yes)"
+        self.fs.files[proof.DROP_IN] = regular(7, b"secret-content\n")
+        self.fs.files["/etc/environment"] = regular(8, b"SECRET=secret-content\n")
+        self.assertEqual(self.diagnose(), "DROPIN_CONTENT")
+        self.assertNotIn("/etc/environment", [item[0] for item in self.fs.calls])
+        self.fs.files[proof.DROP_IN] = regular(7, b"[Unit]\nAfter=snap.microceph.daemon.service snap.microovn.daemon.service\n")
+        self.fs.calls.clear()
+        self.assertEqual(self.diagnose(), "ENVIRONMENT_FILE_CONTENT")
+        self.assertEqual([item[0] for item in self.fs.calls], [proof.UNIT_FILE, proof.DROP_IN, "/etc/environment"] * 2)
+
+    def test_content_rejections_match_original_proof_and_do_not_read_later_files(self) -> None:
+        unit = {"DropInPaths": proof.DROP_IN, "EnvironmentFiles": "/etc/environment (ignore_errors=yes)"}
+        self.values.update(unit)
+        self.fs.files[proof.DROP_IN] = regular(7, b"[Unit]\nsecret-token\n")
+        with self.assertRaisesRegex(proof.ProvenanceError, "^SNAP_WRAPPER_CONTEXT_BLOCKED$"):
+            proof._Proof(self.runner, self.fs, lambda: 0.0).context(unit)
+        self.fs.calls.clear()
+        self.assertEqual(self.diagnose(), "DROPIN_CONTENT")
+        self.assertNotIn("/etc/environment", [call[0] for call in self.fs.calls])
+        self.fs.files[proof.DROP_IN] = regular(7, b"[Unit]\nAfter=snap.microceph.daemon.service snap.microovn.daemon.service\n")
+        self.fs.files["/etc/environment"] = regular(8, b"SECRET=secret-token\n")
+        with self.assertRaisesRegex(proof.ProvenanceError, "^SNAP_WRAPPER_CONTEXT_BLOCKED$"):
+            proof._Proof(self.runner, self.fs, lambda: 0.0).context(unit)
+        self.assertEqual(self.diagnose(), "ENVIRONMENT_FILE_CONTENT")
+
+    def test_invalid_properties_and_untrusted_paths_stop_before_context_reads(self) -> None:
+        self.values["EnvironmentFiles"] = "/tmp/secret-token"
+        self.assertEqual(self.diagnose(), "ENVIRONMENT_FILE_SPEC")
+        self.assertEqual(self.fs.calls, [])
+        self.values["EnvironmentFiles"] = "/etc/environment (ignore_errors=yes)"
+        self.fs.links["/etc/environment"] = "/tmp/secret-token"
+        self.assertEqual(self.diagnose(), "UNKNOWN")
+        self.assertNotIn("/tmp/secret-token", [call[0] for call in self.fs.calls])
+
+    def test_no_rejection_and_invalid_unicode_return_unknown(self) -> None:
+        self.assertEqual(self.diagnose(), "UNKNOWN")
+        self.values["EnvironmentFiles"] = "/etc/environment (ignore_errors=yes)"
+        self.fs.files["/etc/environment"] = regular(8, b"\xffsecret")
+        self.assertEqual(self.diagnose(), "UNKNOWN")
+
+    def test_execstart_calendar_validation_and_drift_never_leak(self) -> None:
+        valid = self.values["ExecStart"]
+        first_invalid = valid.replace("2026-10-28", "2026-02-31")
+        second_invalid = valid.replace("2026-10-28", "2026-02-30")
+        valid_other = valid.replace("2026-10-28", "2026-02-28").replace("Wed ", "Sat ")
+        for first, second, expected in (
+            (first_invalid, valid_other, "UNKNOWN"),
+            (valid_other, first_invalid, "UNKNOWN"),
+            (first_invalid, second_invalid, "UNKNOWN"),
+            (first_invalid, first_invalid, "EXECSTART_FORMAT_OR_TIME"),
+        ):
+            with self.subTest(expected=expected, first_valid=first == valid_other, second_valid=second == valid_other):
+                self.values["ExecStart"] = first
+                initial = self.unit_bytes()
+                self.values["ExecStart"] = second
+                final = self.unit_bytes()
+                self.runner.run.side_effect = [(0, initial, b"secret-token"), (0, final, b"secret-token")]
+                result = self.diagnose()
+                self.assertEqual(result, expected)
+                self.assertNotIn("secret-token", result)
+                self.assertNotIn(first, result)
+                self.assertNotIn(second, result)
+
+    def test_unit_and_file_drift_and_recheck_failure_return_unknown(self) -> None:
+        self.values["ControlGroup"] = "secret"
+        first = self.unit_bytes()
+        self.values["ControlGroup"] = "other-secret"
+        self.runner.run.side_effect = [(0, first, b""), (0, self.unit_bytes(), b"")]
+        self.assertEqual(self.diagnose(), "UNKNOWN")
+        self.runner.run.side_effect = lambda *_a, **_kw: (0, self.unit_bytes(), b"")
+        self.values["ControlGroup"] = "/system.slice/" + proof.UNIT
+        self.values["EnvironmentFiles"] = "/etc/environment (ignore_errors=yes)"
+        self.fs.sequences["/etc/environment"] = [regular(8, b"SECRET=one\n"), regular(8, b"SECRET=two\n")]
+        self.assertEqual(self.diagnose(), "UNKNOWN")
+        self.runner.run.side_effect = OSError("secret-token")
+        self.assertEqual(self.diagnose(), "UNKNOWN")
+
+    def test_untrusted_files_and_invalid_unit_never_emit_values(self) -> None:
+        self.values["EnvironmentFiles"] = "/etc/environment (ignore_errors=yes)"
+        self.fs.files["/etc/environment"] = replace(regular(8, b"SECRET=value"), uid=1000)
+        self.assertEqual(self.diagnose(), "UNKNOWN")
+        self.runner.run.side_effect = None
+        self.runner.run.return_value = (0, self.unit_bytes() + b"SECRET=secret-token\n", b"")
+        self.assertEqual(self.diagnose(), "UNKNOWN")
+        self.assertEqual(self.runner.run.call_args.args, (proof.UNIT_ARGV,))
 
 
 if __name__ == "__main__":

@@ -221,7 +221,7 @@ def _valid_time(value: str) -> bool:
         return False
 
 
-def _unit(raw: bytes, expected: dict[str, Any]) -> dict[str, str]:
+def _unit_fields(raw: bytes, expected: dict[str, Any]) -> dict[str, str]:
     if len(raw) > PROC_LIMIT:
         raise ProvenanceError("SNAP_WRAPPER_LIMIT_EXCEEDED")
     values: dict[str, str] = {}
@@ -240,17 +240,28 @@ def _unit(raw: bytes, expected: dict[str, Any]) -> dict[str, str]:
     if tuple(values[key] for key in BASE_PROPERTIES) != supplied or supplied[:3] != ("loaded", "active", "running"):
         raise ProvenanceError("SNAP_WRAPPER_UNIT_INVALID")
     _positive(values["MainPID"])
+    return values
+
+
+def _context_reason(values: dict[str, str]) -> str | None:
     match = _EXEC_START.fullmatch(values["ExecStart"])
     if match is None or not all(_valid_time(value) for value in match.group(1, 2)):
-        raise ProvenanceError("SNAP_WRAPPER_CONTEXT_BLOCKED")
+        return "EXECSTART_FORMAT_OR_TIME"
     if not _normal_path(values["ControlGroup"]) or values["ControlGroup"] == "/":
-        raise ProvenanceError("SNAP_WRAPPER_CONTEXT_BLOCKED")
+        return "CONTROL_GROUP"
     if values["FragmentPath"] != UNIT_FILE or any(values[key] for key in (
             "ExecCondition", "ExecStartPre", "ExecStartPost", "RootDirectory", "RootImage", "BindPaths", "BindReadOnlyPaths")):
-        raise ProvenanceError("SNAP_WRAPPER_CONTEXT_BLOCKED")
+        return "FRAGMENT_OR_HOOK"
     if values["DropInPaths"] not in {"", DROP_IN} or values["Environment"] not in {"", "SNAPD_DEBUG=0"}:
-        raise ProvenanceError("SNAP_WRAPPER_CONTEXT_BLOCKED")
+        return "DROPIN_OR_ENV_SETTING"
     if values["EnvironmentFiles"] not in {"", "/etc/environment (ignore_errors=yes)"}:
+        return "ENVIRONMENT_FILE_SPEC"
+    return None
+
+
+def _unit(raw: bytes, expected: dict[str, Any]) -> dict[str, str]:
+    values = _unit_fields(raw, expected)
+    if _context_reason(values) is not None:
         raise ProvenanceError("SNAP_WRAPPER_CONTEXT_BLOCKED")
     return {**values, "ExecStart": "snap-run-lxd-daemon"}
 
@@ -329,6 +340,49 @@ class _Proof:
                     raise ProvenanceError("SNAP_WRAPPER_CONTEXT_BLOCKED")
                 result.append(environment)
         return tuple(result)
+
+    def diagnostic_unit(self, expected: dict[str, Any]) -> dict[str, str]:
+        self.check_time()
+        _, raw, _ = self.runner.run(list(UNIT_ARGV), command_id="systemctl_show_unit", safe_args=[UNIT])
+        self.check_time()
+        self.total += len(raw)
+        if self.total > TOTAL_LIMIT:
+            raise ProvenanceError("SNAP_WRAPPER_LIMIT_EXCEEDED")
+        return _unit_fields(raw, expected)
+
+    def diagnostic_files(self, unit: dict[str, str]) -> tuple[str | None, tuple[tuple[str, Observation | None], ...]]:
+        observed: list[tuple[str, Observation | None]] = []
+        observed.append((UNIT_FILE, self.trusted(self.observe(UNIT_FILE))))
+        if unit["DropInPaths"]:
+            drop = self.trusted(self.observe(DROP_IN, limit=PROC_LIMIT))
+            observed.append((DROP_IN, drop))
+            text = drop.data.decode("utf-8", "strict")
+            significant = [line for line in text.split("\n") if line.strip() and not line.lstrip().startswith("#")]
+            if "\r" in text or "\x00" in text or significant != ["[Unit]", "After=snap.microceph.daemon.service snap.microovn.daemon.service"]:
+                return "DROPIN_CONTENT", tuple(observed)
+        if unit["EnvironmentFiles"]:
+            try:
+                environment = self.trusted(self.observe("/etc/environment", limit=PROC_LIMIT))
+            except FileNotFoundError:
+                environment = None
+            observed.append(("/etc/environment", environment))
+            if environment is not None:
+                text = environment.data.decode("utf-8", "strict")
+                assignments = [line for line in text.split("\n") if line.strip() and not line.lstrip().startswith("#")]
+                if ("\x00" in text or "\r" in text or len(assignments) > 1
+                        or any(line not in {"PATH=" + CANONICAL_PATH, 'PATH="' + CANONICAL_PATH + '"'} for line in assignments)):
+                    return "ENVIRONMENT_FILE_CONTENT", tuple(observed)
+        return None, tuple(observed)
+
+    def diagnostic_reobserve(self, observed: tuple[tuple[str, Observation | None], ...]) -> bool:
+        for path, original in observed:
+            try:
+                current = self.trusted(self.observe(path, limit=None if path == UNIT_FILE else PROC_LIMIT))
+            except FileNotFoundError:
+                current = None
+            if current != original:
+                return False
+        return True
 
     def process(self, pid: int, group: str) -> Process:
         root = f"/proc/{pid}"
@@ -469,3 +523,26 @@ def prove_snap_wrapper(runner: RunnerPort, row: dict[str, Any], *, fs: ReadOnlyF
         raise
     except (OSError, ValueError, TypeError, IndexError, OverflowError, RecursionError) as exc:
         raise ProvenanceError("SNAP_WRAPPER_FILE_UNVERIFIED") from exc
+
+
+def diagnose_context(runner: RunnerPort, expected: dict[str, Any], *, fs: ReadOnlyFS | None = None,
+                     clock: Callable[[], float] = time.monotonic) -> str:
+    """Classify one stable rejection without admitting an identity or exposing inputs."""
+    try:
+        proof = _Proof(runner, fs or LocalReadOnlyFS(), clock)
+        before = proof.diagnostic_unit(expected)
+        reason = _context_reason(before)
+        observed: tuple[tuple[str, Observation | None], ...] = ()
+        if reason is None:
+            reason, observed = proof.diagnostic_files(before)
+        after = proof.diagnostic_unit(expected)
+        before_compare, after_compare = dict(before), dict(after)
+        # Valid ExecStart records carry systemd runtime counters that F4 intentionally normalizes.
+        if (_context_reason(before) != "EXECSTART_FORMAT_OR_TIME"
+                and _context_reason(after) != "EXECSTART_FORMAT_OR_TIME"):
+            before_compare["ExecStart"] = after_compare["ExecStart"] = "snap-run-lxd-daemon"
+        if before_compare != after_compare or not proof.diagnostic_reobserve(observed):
+            return "UNKNOWN"
+        return reason or "UNKNOWN"
+    except Exception:
+        return "UNKNOWN"
