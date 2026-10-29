@@ -1,0 +1,63 @@
+# Issue 449 — proposed ADR sequencing decision and workflow amendment
+
+Historical authoring status: PROPOSED; independent same-hash decision and S3D had not yet been recorded. R67k was subsequently accepted as recorded in `.codex/evidence/slice-449-adr-sequencing-review.md`; G1 still requires its own reviewed contract and S3D. This is an authoring proposal only, not a change to the accepted ADR, active workflow, support matrix, execution authorization or live evidence. Authoring baseline: `05e0317876c1505e50017aee266b4c257462b3a3`. The user-owned Windows working-tree ADR amendment has SHA-256 `af45ffbc5296d29fb06c9342f5004bb063d3794655b8ee244b34a4afdcbfdae5`; it was read only and remains user-owned. Its independent review findings must be tied to those exact bytes; neither this proposal nor a prior review silently accepts it. Do not copy, overwrite, stage or modify that working-tree file as part of authoring.
+
+## Decision request and historic authority
+
+R67j accepted the profile ownership/selection design, with the new capability's supported-version set empty. R67h additionally prohibits implementing this capability path before independently reviewed listener fixture evidence. Current active workflow gates S449-03 on S449-02 and S449-04 on both S449-03 and the independently accepted fixture. Preserve these historic decisions and graph until a reviewed, explicit superseding amendment is accepted. The proposed decision is to supersede only the R67h *implementation sequencing* prohibition, leaving all version-support, fixture, mutation, host admission and recovery requirements intact. The amendment must clearly identify the superseded R67h sentence, preserve its historical text, and record rationale, scope, consequences, review hashes and date. The status is PROPOSED until independent owners approve exact proposed bytes; unresolved conflict means BLOCKED, not implicit acceptance.
+
+Proposed decision text for independent review, not an accepted ADR:
+
+> Implement and test the planned installation-scoped reconciliation and lifecycle contracts using mocks and deterministic fixtures before the live listener fixture, provided a capability-specific empty version registry blocks every host-effect path before its first mutation. This includes setup, update, upgrade, recovery, cleanup, uncertain-outcome replay, direct adapter and alternate-entrypoint calls. Unsupported, missing, malformed and unknown capability or version all fail closed. No fallback, override, migration, recovery or cleanup path may reach a host mutation for this capability before independent fixture acceptance and an explicit support-matrix decision. Legacy full-manifest Classic behavior outside this new capability remains supported as previously defined and is not gated by the new empty registry. Neither mocked tests nor acceptance of this decision prove runtime support, qualify a version, admit a host, approve live GO or authorize release.
+
+The actual boundary between legacy Classic behavior and new capability must be made precise and demonstrated before execution. If it cannot be enforced without regression or a bypass, stop. The accepted R67h uncertain-outcome and ownership rules continue to apply after admission; do not claim recovery is safe without their proofs. Incus 6.0.5 remains a candidate only, never an admitted version. No new external CI configuration is included. Extended nightly evidence is a future separately scoped change; the existing nightly is not evidence for scenarios it does not run.
+
+## Decision and workflow-authoring slice D0 — proposed, not executable
+
+```yaml
+slice_id: S449-ADR-SEQUENCE-D0
+profile: GOVERNANCE_AND_DOCUMENTATION
+owner: Senior Workflow Architect
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior Tester, Senior DevOps Engineer]
+affected_files: [documentation/arc42/09_decisions/adr-installation-scoped-incus-profile.adoc, documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, documentation/workflow/workflow.index.md, .codex/evidence/slice-449-adr-sequencing-workflow-proposal.md, .codex/evidence/slice-449-adr-sequencing-review.md]
+affected_modules: [profile policy decision, issue-449 workflow]
+affected_contracts: [R67h sequencing, capability version support, legacy Classic compatibility, live host admission]
+dependencies: [S449-01]
+parallel_group: sequential
+file_locks: [documentation/arc42/09_decisions/adr-installation-scoped-incus-profile.adoc, documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, documentation/workflow/workflow.index.md, .codex/evidence/slice-449-adr-sequencing-workflow-proposal.md, .codex/evidence/slice-449-adr-sequencing-review.md]
+module_locks: [ADR history, issue-449 dependency graph]
+contract_locks: [precise sequencing supersession, capability-specific empty support, no host effects, legacy compatibility]
+architecture_locks: [hexagonal boundaries, host admission and recovery unchanged]
+quality_gates:
+  targeted: [git diff --check, verify exact ADR and workflow review hashes, verify context artifact hashes]
+  required: [independent same-hash Requirement Architecture Security Tester DevOps review, S3D EXECUTION_PLAN]
+documentation:
+  arc42: preserve existing ADR and append independently accepted decision only after review
+  adr: proposed until exact-byte independent acceptance
+stop_conditions: [ambiguous or conflicting ADR status, user-owned working-tree change overwritten, bypass of support guard, unknown legacy boundary, conflicting locks, missing review, unsupported version admitted, host mutation]
+```
+
+D0 must reconcile the separately owned uncommitted ADR safely with the user’s bytes: do not use force checkout or replace the original. Before final acceptance, inspect the full candidate diff and content-hash relationship; independent Requirement, Architecture, Security, Tester and DevOps approve the exact final candidate and its historic supersession. The precise artifact to become canonical, and whether the user-owned draft is included in it, are decisions for that review. Record accepted or rejected explicitly. S3D plans only after metadata and exact affected files/locks are reviewed. This proposal does not create or claim an approval. User already requested product work and authorized live tests on the named hosts; this review is technical decision governance, not a demand for renewed general consent.
+
+## Historical proposed implementation ordering — superseded by architecture refinement below
+
+The G1–G4 outline in this section is retained as authoring history only. The G1 guard-first claim is superseded by the architecture refinement at the end of this document; it must not be executed.
+
+Keep current S449-02 fixture and both-host qualification in the graph. Amend the graph, with traceable new slice IDs and dependency/lock metadata, to permit mock-only work in parallel with blocked host qualification. Do not merely delete S449-02 from S449-03/04 and run existing write-capable slices: first split and add an auditable non-bypassable guard. The following historical candidate slices are retained as context only; the narrower domain-only G1 and explicit subsequent caller gates replace them. Do not execute these historical descriptions.
+
+1. **Historical guard-first G1 — replaced, not executable:** implement deny-by-default capability admission at every relevant entrypoint and before every host write. Candidate owned files: `infra/config/node-providers/incus-profile-capability.yaml`, `src/tiny_swarm_world/infrastructure/adapters/clients/lxc/profile/capability.py`, `tests/infrastructure/adapters/clients/lxc/profile/test_capability.py`, plus exact composition/caller files identified during review; tests use mock command runners. Contract lock: empty/missing/malformed/unknown version and all alternative mutation/recovery/cleanup paths deny before commands. Establish and test an explicit legacy Classic/non-capability boundary. Guard tests must cover direct adapter calls, retry, reconciliation, install/update/upgrade/recovery, uncertain outcomes, malformed checkpoints and bypasses. Until these are demonstrably guarded, later implementation cannot enter the graph.
+2. **Mock-only lifecycle G2 (S449-03 scope):** after G1, implement durable state, v1 migration and product-source contracts in the existing S449-03 approved file list, using mocked external ports. File/module locks cover lifecycle domain, manifest, checkpoints, installation lock and product-upgrade adapters; contract locks cover v1 published/swarm defaults without read-time mutation, source/configuration/secrets preservation and lock order. No live operation or accidental capability enablement.
+3. **Mock-only profile G3 (S449-04 scope):** after G1 and necessary G2 contracts, implement the profile adapter against the existing S449-04 allowed files, keeping the version registry empty and all writes blocked before host effects. Scope the test runner and direct adapter paths explicitly; guard must remain non-bypassable. Tests assert selection, exact route/profile ownership, stopped-init/start ordering in mocks and denied real command runner. Never add a 6.0.5 support entry.
+4. **Mock-only selection/Portainer G4 (S449-05/06 scope):** after G2/G3 contracts, implement selection persistence, no-prune stack ownership and interruption behavior in existing per-slice locks. Overlapping composition, CLI or contract changes prohibit parallel writers. Preserve independent WSL feature applicability and named-host requirements. WSL/Portainer test/design preparation can run in isolated worktrees only where file, module, contract and architecture locks do not overlap. Actual writes, live scenarios, listener fixture, version-support decision and release remain downstream of exact-source quality, independent evidence, host JIT and scenario GO.
+
+Before any G1–G4 write, author complete S3D metadata individually: exact dependencies, affected files, file/module/contract/architecture locks, role owners, targeted tests, SSH PC WSL full `python3 tools/quality_gate.py quality`, documentation, stop conditions and single-slice commit scope. G1/G2/G3 ordering above is a candidate, not authority to edit outside the currently active workflow. Six same-hash Requirement, Architecture, Python, Tester, Security and DevOps reviews plus S3D must precede each execution group. Full quality runs only over verified exact changed bytes on `pc@192.168.178.58` inside WSL, after targeted tests. No local project tests.
+
+## Verification and release gates
+
+Required automated evidence: empty-registry behavior at every write, direct adapter and recovery entrypoint; unsupported/malformed/version mismatch; no fallback or real command even when checkpoints exist; external calls mocked; legacy Classic regression; data/auth/selection preservation; fault-injected uncertain outcomes; targeted and full quality on exact source. Security must review all host-effect boundaries and a test capable of detecting accidental command invocation. No tests or static checks substitute for live listener semantics.
+
+After G1–G4, 02F host admission remains BLOCKED; F11 for the current collector is NOT_FEASIBLE. A separately governed host plan must resolve or change the actual admission path and complete the approved two-host fixture. Only exact-version fixture evidence plus independent review and a separate support-matrix decision may introduce a capability version; then run fresh exact-source host JIT, per-scenario GO and native/WSL scenarios. End with issue-completion-auditor mapping all #449 requirements and actual parent #440 child issues to evidence; #440 cannot be completed on this proposal alone.
+
+## Architecture refinement — typed foundation without fictional caller coverage
+
+Architecture review reports no existing scoped-capability caller. Replace the earlier guard-first implementation assumption with proposed S449-CAPABILITY-G1 in workflow v1.50: domain typed intent plus immutable empty support matrix and tests only. Do not touch legacy `lxc_node_provider.ensure_node` or fixed Classic configuration. G1 has no runtime caller and proves no host-effect guard; every future G2/G3/G4 mutating caller must separately integrate and test a pre-effect gate, including direct, recovery, cleanup and bypass paths, with typed capability identity, same-hash reviews and S3D. No existing workflow dependency changes until exact-byte R67k acceptance and workflow approval.

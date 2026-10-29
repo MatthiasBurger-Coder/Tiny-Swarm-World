@@ -429,3 +429,27 @@ alone, or cleanup. Test the same rules in recovery.
 == R67j canonical acceptance and review-status reconciliation
 
 The R67f review status above is historical and does not describe the current decision. The final R67j proposal SHA-256 `9ce138b3bd61196e9942862e1a349254f3dd18e0d9c5ff47b6c7f5b6e70ba132` received same-hash Requirements, Architecture, Security, DevOps and Test/Evidence approval for canonical ADR acceptance as design policy. The accepted policy explicitly keeps this capability's supported-version set empty until the listener fixture, independent review and separate support-matrix decision pass. This acceptance does not establish implementation success, runtime support, live GO, or host mutation authorization. The active workflow controls implementation and requires exact-source quality, independent review, fresh native/WSL JIT and a new scenario GO.
+
+== Proposed R67k — sequencing of mock-only implementation
+
+Historical review status at this candidate: PROPOSED; not accepted. The later R67k acceptance entry below records the independent decisions and supersedes this historical status. R67h and R67j remain historically visible; the later acceptance changes only R67h implementation sequencing.
+
+=== Context and question
+
+R67h forbids implementing the new installation-scoped profile-reconciliation path before independently reviewed listener-fixture evidence. The fixture and host admission are currently blocked. Can typed, deterministic and mock-only implementation proceed while retaining the empty capability support set and all runtime safety gates?
+
+=== Proposed decision
+
+Upon independent acceptance only, supersede R67h solely regarding the order of implementation and the listener fixture. Permit typed models and mock-only implementation/tests before the fixture under separately reviewed workflow slices. The supported-version set for this new capability remains immutable and empty until exact-version fixture evidence is independently accepted and a separate support-matrix decision is recorded. No live setup, update, upgrade, recovery, cleanup, retry, alternate entrypoint or direct adapter may perform a new-capability host effect while support is empty or unknown. Every future mutating caller must explicitly invoke the fail-closed capability gate before any effect and prove that fact with direct and recovery/cleanup tests. The initial typed foundation has no such caller and does not claim their protection.
+
+Legacy full-manifest Classic behavior and its fixed configuration stay separate and unchanged. The existing `lxc_node_provider.ensure_node` is not a new scoped-capability entrypoint and must not be changed or gated merely to implement the foundation. No new external CI is authorized. Existing host admission, fixture, version review, per-scenario JIT/GO and uncertain-write recovery rules remain effective; nothing here establishes support, runtime safety, live evidence or a release.
+
+=== Rationale and consequences
+
+This separation allows deterministic product progress while live qualification remains blocked, provided every future host-effect route is independently guarded and verified. Unsupported versions remain unsupported, and incomplete or ambiguous typed identity must fail closed. Because no caller currently exists, the foundation alone cannot guarantee enforcement by future code. Each new caller or capability path requires its own explicit guard integration, tests, architecture/security review, exact-source quality and S3D plan. If legacy behavior and the new capability cannot be separated or a bypass cannot be ruled out, stop before changes to that path. Preserve R67h and R67j without rewriting history; acceptance, if granted, must record exact review hashes and the narrow supersession here.
+
+== R67k acceptance — sequencing only
+
+Decision: ACCEPTED. The Requirement, Architecture, Security, Python, Tester and DevOps reviewers approved the same pre-acceptance candidate identified by ADR SHA-256 `3bda72e41bd0947347f4d8b1fc050fe5a9542d0a563bdf30731d4fa147b56b18`, workflow SHA-256 `9ef8679f1c5b8b46928e05b80e6c65f60f37b766f44b6397e995d6dfe1ab5e7b` and proposal SHA-256 `13e14301115bfdf2ae453f5c03d46285126fae991ed16380e801ce2c40f8dcf3`. The review record is `.codex/evidence/slice-449-adr-sequencing-review.md`. These hashes refer to the candidate before this acceptance entry, not the resulting ADR file.
+
+R67k supersedes R67h solely on the order of mock-only implementation relative to the listener fixture. R67h and R67j remain historically visible and all other requirements remain in force. The new capability support set remains empty; no new-capability host-effect caller is admitted or proven guarded by this decision. Legacy Classic remains separate and unchanged. Each future caller needs its own pre-effect gate, direct/recovery/cleanup and bypass tests, independent review and S3D. No live host admission, fixture success, version support, release, host mutation or new external CI is implied.

@@ -1,6 +1,6 @@
 {
   "workflow_id": "issue-449-lcm-w09",
-  "workflow_version": "1.49",
+  "workflow_version": "1.50",
   "workflow_amendment_v1_43": {
     "slice_id": "S449-02F5",
     "status": "HISTORICAL: F5 implemented and bounded native diagnosis executed",
@@ -191,10 +191,10 @@
   },
   "workflow_artifacts_sha256": {
     "documentation/arc42/09_architecture_decisions.adoc": "9b2b38c377bd75d3059b877d6ac679173f7eea9bb22dee9460c6d4fcad42284e",
-    "documentation/workflow/issues/issue-449/context-pack.md": "13023c76c09454e882befba454c3f3d90d625509cfe846b4c73f0f72634f8879",
-    "documentation/workflow/issues/issue-449/workflow.md": "cb768303577827f734af3283b8596968ead97b415735e379b262187ee9364cfe",
+    "documentation/workflow/issues/issue-449/context-pack.md": "990d7d4e56e09da2fb2c0211dbcbd10a9edc9b39f5bc34eae3d0fda458572c14",
+    "documentation/workflow/issues/issue-449/workflow.md": "b5b29d09475a5d39fdd05efe4176e421cd42593af269c7d067f1e6873b7097b1",
     ".agents/skills/workflow-executor/SKILL.md": "04a9325b2cec2dfa6feab24c261c636fdfa295158661d20e981e4182e5bfb46c",
-    "documentation/workflow/workflow.index.md": "3f05a43089829cf4f181710ce40dc46ac45d1997e873d9095eda3d82979233cb"
+    "documentation/workflow/workflow.index.md": "09e50e18498db0b8fecf35956883baac41fd75517ecabf9ada266e0d27b443a9"
   },
   "skill_hashes_sha256": {
     ".agents/skills/three-amigos-requirement-gatekeeper/SKILL.md": "76659e618cb706e8990cdf44441aeaed219465044175826adca5357ae8acc5b4",
@@ -710,5 +710,15 @@
     "contract": ".codex/evidence/slice-449-02F11-host-admission-plan.md",
     "boundary": "Reviewed fixed unit/process/endpoint proof is not inventory or host admission; unknown blocks, no unapproved host mutations or acceptance of proposed ADR. Probe connection cannot bind independent lxc connections; alternative isolated VM availability is unverified and WSL remains separate.",
     "sequence": "Concrete contract and six same-hash role reviews, S3D, exact-source SSH PC WSL quality, separate host JIT and GO, full inventory and existing scenario graph."
+  },
+  "workflow_amendment_v1_50": {
+    "slice_id": "S449-CAPABILITY-G1",
+    "status": "R67k ACCEPTED on six-role pre-acceptance tuple; D0 decision complete; G1 contract review and S3D pending",
+    "dependency": "S449-01 and completed S449-ADR-SEQUENCE-D0; G1 separate contract review and S3D required",
+    "boundary": "Typed intent and validated version via immutable closed empty registry; missing malformed unknown and 6.0.5 denied, legacy Classic separately classified, no caller or host protection claim.",
+    "sequence": "Independent decision and same-hash role reviews, S3D, G1 mock tests and full SSH PC WSL quality; future callers separately guarded and reviewed.",
+    "decision_evidence": ".codex/evidence/slice-449-adr-sequencing-review.md",
+    "contract": ".codex/evidence/slice-449-capability-g1-contract.md",
+    "review_provenance": "Pre-acceptance proposal bytes not separately retained; original review hash and decisions conveyed in reviewer/coordinator messages; see decision evidence."
   }
 }
