@@ -429,3 +429,50 @@ alone, or cleanup. Test the same rules in recovery.
 == R67j canonical acceptance and review-status reconciliation
 
 The R67f review status above is historical and does not describe the current decision. The final R67j proposal SHA-256 `9ce138b3bd61196e9942862e1a349254f3dd18e0d9c5ff47b6c7f5b6e70ba132` received same-hash Requirements, Architecture, Security, DevOps and Test/Evidence approval for canonical ADR acceptance as design policy. The accepted policy explicitly keeps this capability's supported-version set empty until the listener fixture, independent review and separate support-matrix decision pass. This acceptance does not establish implementation success, runtime support, live GO, or host mutation authorization. The active workflow controls implementation and requires exact-source quality, independent review, fresh native/WSL JIT and a new scenario GO.
+
+== Proposed amendment: implementation and nightly qualification
+
+This amendment is proposed for review; it does not alter the historical R67j
+approval or claim that the current nightly already covers these scenarios.
+It resolves the sequencing deadlock in R67h: implementation and deterministic
+tests of this contract may proceed before an Incus version is admitted, using
+mocked or otherwise non-mutating tests. The R67h prohibition on implementing
+the path before the listener fixture is superseded when this amendment is
+accepted. Version admission, release of the capability and live use remain
+separate decisions. Until admission, the supported-version set remains empty
+and the implementation must refuse live profile reconciliation before mutation.
+
+An extended Nightly Classic Live workflow may provide the evidence for version
+admission and WSL qualification. The existing nightly is not evidence for a
+scenario it does not execute. Its extension must explicitly select an owned,
+disposable target, the exact controller revision and Incus client/server
+versions, and a scenario-specific approved route set. A scheduled invocation
+does not itself grant consent to host changes. The protected environment and
+the applicable live-approval and maintenance-window requirements still apply.
+Unknown consumers, external writers, unsupported controllers or unexpected
+routes remain blocking conditions for the affected live operation.
+
+The isolated listener fixture can be run as a separately authorized nightly
+stage, before capability admission, solely to establish the listener behavior
+on the candidate version. It must meet the R67h fixture criteria, preserve the
+existing 10001 route and Windows rules, and retain attributable results. A
+passing fixture and independent evidence review permit a separate support-matrix
+decision; they do not automatically qualify the controller or authorize a
+production installation. Subsequent nightly runs may exercise the admitted
+capability on an approved target after exact-source quality and scenario
+preflight have passed. The fixture itself is not a customer route.
+
+For WSL Portainer upgrade and interruption/recovery qualification, a nightly
+extension must create or admit the required isolated baseline, execute the
+actual scenario and retain redacted evidence binding the run identifier, source
+and target identities, command and exit status, timestamps, checkpoint stages,
+and before/after service, data, authentication and route observations. An
+interruption must be tied to the process and checkpoint it affected. Missing,
+ambiguous or mismatched evidence is unverified, not a pass. Historical
+unattributed artifacts remain unchanged; a new attributable run can satisfy the
+corresponding requirement after independent review. Record the result and its
+scope in the qualification matrix; do not infer aggregate issue completion.
+
+Implementation, fixture automation and nightly coverage are future work under
+the active workflow. Acceptance of this amendment alone does not establish
+runtime support, a passing nightly, live consent or completed qualification.
