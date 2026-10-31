@@ -1,9 +1,0 @@
-{
-  "state": "OWNED_NATIVE_FIXTURE_STOPPED_CAPACITY_OBSERVED",
-  "native_guest_state": "Off",
-  "physical_available_gib": 38.77,
-  "commit_available_gib": 28.725,
-  "commit_limit_gib": 72.291,
-  "windows32gib_fixture_boot_ready": false,
-  "observed_at_utc": "2026-10-11T00:09:22.0542806Z"
-}

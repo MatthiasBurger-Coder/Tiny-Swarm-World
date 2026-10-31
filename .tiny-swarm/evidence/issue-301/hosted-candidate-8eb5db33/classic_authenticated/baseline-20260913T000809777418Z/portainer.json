@@ -1,8 +1,0 @@
-{
-  "evidence_kind": "routed_browser_e2e_result",
-  "redacted_reason": "",
-  "result": "passed",
-  "route_name": "portainer",
-  "status": "passed",
-  "url": "https://portainer.tsw.local"
-}
