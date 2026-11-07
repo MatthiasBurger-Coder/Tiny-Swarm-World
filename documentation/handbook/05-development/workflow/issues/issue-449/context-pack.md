@@ -1,6 +1,6 @@
 # Context pack — issue-449-lcm-w09
 
-## Current continuation — v1.47, 2026-11-07
+## Current continuation — v1.48, 2026-11-07
 
 Branch `fix/epic440-completion-20261107`, baseline `b87fe5c9`. The user requests
 complete Epic #440 remediation on the two named hosts. Current bounded phase:
@@ -15,21 +15,24 @@ Bounded LXD/Incus volume DTO pool identity follows
 `.codex/evidence/epic440-volume-dto-20261107.md`; ownership and schema 2 remain
 unchanged. No runtime or capture release follows this amendment.
 
-Native artifact schema 4 explicitly supersedes schema 3 under
-`.codex/evidence/epic440-profile-inventory-20261107.md`. Inherited profile views
-retain actual canonical owner/digest/effective scope, exact ordered membership
-and cross-project consumers. Canonical raw profile producers are counted once
-in owner scopes; local and expanded instance producers remain in instance scopes.
-No feature/profile mutation or implicit adoption. Older artifacts stay historical;
-no synthetic migration. Existing schema3 root/storage and network resource
-semantics, strict returned volume ownership and all unsupported cases otherwise
-remain. The two fixed initial/final root GETs per active family (max four), full
-pinned DTO/noncluster/CLI admission, original provenance and limits are unchanged.
-Admitted active families still require exactly one default project; inactive
-families remain empty/null-admitted. Reader phase order and observation identity
-agreement remain required. Raw root/profile configuration stays unexported.
-Exact code/PC verification and a fresh schema4 capture are separate releases;
-no fixture, runtime capability or maintenance permission follows this amendment.
+Native artifact schema 5 explicitly supersedes schema 4 under
+`.codex/evidence/epic440-snapshot-inventory-20261107.md`. Stored snapshot leaves
+remain separate and bound to validated actual-owner parents. One fixed raw
+snapshot GET per observed leaf is proposed; strict DTO/common RAM equality,
+parent/detail/command bijection and phase order remain required. Incus returned
+child edges are filtered empty/absent; LXD child relations are explicit. No
+inferred Incus consumer or historical instance/profile/device safety is claimed.
+Project volume membership is corrected to LXD all owned parents versus Incus
+custom parents only; neither includes children. Parent root/owner proofs stay.
+
+Schema4 canonical profile-owner/view/order and schema3 current storage/network
+semantics otherwise remain, including separate raw/local API versus expanded
+instance consumers. Root admission still uses two fixed initial/final GETs per
+active family, no extra root probe. All new snapshot GETs/rechecks count within
+unchanged limits/provenance; unsupported disk selectors/images/buckets/member/
+shared-custom cases remain blocked. Older artifacts stay historical with no
+synthetic migration. Source/PC qualification and fresh schema5 capture require
+separate exact reviews; no host, fixture, capability or maintenance GO follows.
 
 Native F4 command allowance is explicitly 2048 total, including every repeated
 trust check; the earlier native 256 allowance is superseded only for this

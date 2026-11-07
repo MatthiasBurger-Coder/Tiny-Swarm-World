@@ -1,7 +1,7 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: ACTIVE_FOR_ISSUE_449 v1.47 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
+Status: ACTIVE_FOR_ISSUE_449 v1.48 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
@@ -30,9 +30,37 @@ fixed commands/provenance/budgets and private evidence remain unchanged.
 Implementation, PC verification and any new native capture remain separately
 exact-reviewed phases. This amendment grants no runtime or capture authority.
 
-The current inherited-profile inventory contract is
-`.codex/evidence/epic440-profile-inventory-20261107.md`. Overall native artifact
-schema 4 explicitly supersedes schema 3. Verified effective profile scope,
+The current storage-snapshot contract is
+`.codex/evidence/epic440-snapshot-inventory-20261107.md`. Overall native artifact
+schema 5 explicitly supersedes schema 4. Existing flat storage lists retain
+validated parent/leaf identities as separate parent-bound stored snapshots,
+without adding current roots or replaying historical profile/device configuration.
+Actual flat owner/pool/type/content/location and validated parent establish leaf
+context; strict snapshot detail has no invented owner/type/location fields.
+
+Returned edges are family-specific after the final API filter: Incus snapshot
+used_by and pool child links are empty/absent; LXD exposes exact root/custom child
+links. Observed Incus links are never fabricated. Project volume membership is
+also corrected explicitly: LXD includes all owned PARENTS, Incus CUSTOM PARENTS
+only, neither includes children. Current root bijection and actual returned
+parent-volume owner admission remain strict. Earlier shared Project-root and
+internal-helper-only returned-edge assumptions are historical and superseded.
+
+The only new query scope is one fixed guarded raw GET per validated stored leaf:
+/1.0/storage-pools/{pool}/volumes/{type}/{parent}/snapshots/{leaf}?project={owner},
+with separately validated four components, exact family executable/GET/envelope,
+strict six-field Snapshot DTO and direct shared raw-metadata equality. No recursive
+snapshot list or historical InstanceSnapshot query. Reader leaf/detail command
+bijection, matching-parent-before-leaf and existing admission/graph/final phase
+checks are mandatory. All new GETs/rechecks/records count under unchanged
+2048-command/entity/byte/process/wall limits; budget exhaustion stays blocked.
+Snapshot storage inventory proves no independently fetched historical counterpart
+metadata, device safety or maintenance effects. No restore/delete, selector
+engine, feature/profile write or runtime capability follows this contract.
+
+The retained inherited-profile field contract is
+`.codex/evidence/epic440-profile-inventory-20261107.md`. Profile field semantics introduced by schema 4 remain under schema 5.
+Effective profile scope,
 mandatory actual DTO owner and metadata digest retain complete canonical and
 inherited views without treating a requesting project as owner. Profile consumers
 resolve across projects; ordered unique instance profile sequences remain exact.
@@ -46,24 +74,26 @@ permits no project feature write, shared profile mutation, adoption or capabilit
 claim. Profile whole-device override semantics are reflected in fixtures; no
 hidden expansion or property-merge engine is introduced. Missing/filtered/drifting
 views, owner mismatches and malformed ordered membership remain blockers.
-Existing root admission/default-project/phase-order, returned volume ownership,
-network/storage resource rules, queries and all limits remain unchanged.
+The retained profile model leaves root admission/default-project/phase-order,
+returned volume ownership and network/storage resource rules intact. Its query
+set and limits are unchanged; new snapshot queries are specified above.
 Exact independent plan/normative and source/test review, PC gates and a separately
-released committed schema4 capture remain mandatory. No live GO follows v1.47.
+released committed schema5 capture remain mandatory. No live GO follows this amendment.
 
 The retained storage graph field contract is specified in
 `.codex/evidence/epic440-storage-graph-20261107.md`. It explicitly supersedes
 the historical schema 2 with its schema 3 field contract: canonical pool views,
 type-dependent consumers, separate raw/local API and expanded effective storage
 projections, retained root/producer evidence and independent structural checks.
-Returned volume ownership and Project root-volume URLs are preserved. Network
-field semantics remain those of the reviewed network contract; earlier schema
+Returned parent-volume ownership and current root bijection are preserved.
+Project parent membership follows the corrected LXD-all/Incus-custom rule above.
+Network field semantics remain those of the reviewed network contract; earlier schema
 numbers are historical and are never silently migrated.
 
-This amendment explicitly proposes two fixed local raw GET /1.0 observations per
+The retained root admission uses two fixed local raw GET /1.0 observations per
 active queried daemon, before and after its graph queries, to admit only strict
-trusted/default-project/family/nonclustered state. This is the only query-set
-expansion: up to four root GETs plus existing per-query provenance rechecks, all
+trusted/default-project/family/nonclustered state. This earlier query-set
+expansion remains: up to four root GETs plus existing per-query provenance rechecks, all
 counted under unchanged 2048-command/time/byte/entity limits. The full pinned
 family DTO and exact CLI version relationship must be validated; root config,
 certificates, addresses and auth identity stay in RAM. No API PID/Wrapper MainPID
@@ -78,12 +108,13 @@ instance type/location and volume content/location must agree before storage
 identity is trusted. These are completeness and observation-consistency checks;
 no query, privilege or budget expansion follows this clarification.
 
-Unsupported storage images/inheritance/selectors/snapshots/buckets/member/daemon
-relations remain explicit blockers; no consumer is discarded to pass. Existing
-network/provenance/private-evidence and mandatory returned volume owner checks
+Unsupported images/shared-custom inheritance, disk selectors/subpaths, buckets,
+member/daemon relations and historical restore/delete operations remain blocked.
+Stored snapshot leaves are supported only under the bounded contract above;
+no consumer is discarded to pass. Existing network/provenance/private-evidence and mandatory returned volume owner checks
 remain. Exact plan/query-scope and implementation reviews, PC gates and a
-separate fresh committed-source schema4 capture plan are required. Native drivers
-must require schema 4 and exact current contract/source/test/workflow pins.
+separate fresh committed-source schema5 capture plan are required. Native drivers
+must require schema 5 and exact current contract/source/test/workflow pins.
 Authoring this continuation grants no capture, fixture, capability or runtime maintenance GO.
 
 The current F4 native collector explicitly supersedes its earlier total

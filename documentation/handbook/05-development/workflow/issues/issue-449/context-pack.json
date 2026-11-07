@@ -1,6 +1,6 @@
 {
   "workflow_id": "issue-449-lcm-w09",
-  "workflow_version": "1.47",
+  "workflow_version": "1.48",
   "continuation_20261107": {
     "branch": "fix/epic440-completion-20261107",
     "baseline": "b87fe5c96b4e8627c56f48d9a7b3c691076447fc",
@@ -10,7 +10,7 @@
     "execution_record": ".codex/evidence/epic440-20261107.md",
     "runtime_mutation_released": false,
     "native_inventory_command_cap": 2048,
-    "native_inventory_schema": 4,
+    "native_inventory_schema": 5,
     "native_network_contract": ".codex/evidence/epic440-network-inventory-20261107.md",
     "native_inventory_budget_scope": "Native F4 only; repeated trust checks counted; all other hard limits and fixture budgets unchanged",
     "s02i_record": ".codex/evidence/epic440-store-wsl2-20261107.md",
@@ -28,7 +28,9 @@
     "native_server_root_gets_per_active_family": 2,
     "native_server_root_query_scope": "Fixed raw local GET /1.0 initial/final, exact family DTO/noncluster admission; all provenance and global limits unchanged; no live GO",
     "native_default_project_required_for_admitted_family": true,
-    "native_profile_inventory_contract": ".codex/evidence/epic440-profile-inventory-20261107.md"
+    "native_profile_inventory_contract": ".codex/evidence/epic440-profile-inventory-20261107.md",
+    "native_snapshot_inventory_contract": ".codex/evidence/epic440-snapshot-inventory-20261107.md",
+    "native_snapshot_detail_query_scope": "One fixed guarded raw storage-snapshot GET per validated flat-list leaf; no recursive list or historical-instance query; unchanged budgets and no live GO"
   },
   "workflow_path": "documentation/handbook/05-development/workflow/issues/issue-449/workflow.md",
   "workflow_index_path": "documentation/handbook/05-development/workflow/workflow.index.md",

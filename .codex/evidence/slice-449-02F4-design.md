@@ -1,5 +1,35 @@
 # S449-02F4 — normalize the verified Snap wrapper and direct LXD child
 
+## 2026-11-07 stored snapshot leaves and schema 5 (workflow v1.48)
+
+The normative contract is `.codex/evidence/epic440-snapshot-inventory-20261107.md`,
+plan SHA256 `00e5317fa446f27dbc87e0e880ad6c909083c9bc60e641a21f5ab018103d0ee6`.
+Overall schema 5 supersedes schema 4 without inventing old missing evidence.
+Flat storage snapshots become explicit separate leaves bound to actual-owner
+validated parents. Snapshot detail returns no owner/type/pool/location fields;
+context comes from typed flat identity/parent/query, with direct full shared
+metadata equality before digest. Historical config stays RAM-only; no historical
+InstanceSnapshot/configuration/device safety or maintenance effect is proved.
+
+This explicitly corrects prior family assumptions: Incus final API filtering
+removes snapshot used_by/pool child links, while LXD returns exact typed child
+relations. Project references include LXD all parent volume types, Incus custom
+parents only, never snapshot children. No observed Incus relation is synthesized
+and no unexpected actual edge is discarded. Existing current-root bijection,
+parent actual-owner admission, canonical profiles/networks/global pools and
+raw/local API versus expanded instance graph boundaries remain otherwise.
+
+New query scope is one fixed guarded raw GET per observed valid leaf, arity four
+pool/type/parent/leaf and explicit owner project, strict six-field Snapshot DTO.
+No recursive snapshot or historical instance query. Reader checks exact leaf/
+command bijection, matching parent detail before leaf, and original before/after
+admission phase. Existing query provenance, 2048 commands and every byte/time/
+entity/private-evidence limit stay; added GETs/rechecks count normally. Disk
+selectors/subpaths, images, buckets, clustered/member/target and shared-custom
+inheritance remain unsupported. Exact plan/normative, source/test and PC reviews
+precede any separately approved committed schema5 capture. This grants no
+snapshot/profile/feature mutation, runtime capability, fixture or maintenance GO.
+
 ## 2026-11-07 inherited profile views and schema 4 (workflow v1.47)
 
 The normative contract is `.codex/evidence/epic440-profile-inventory-20261107.md`,
