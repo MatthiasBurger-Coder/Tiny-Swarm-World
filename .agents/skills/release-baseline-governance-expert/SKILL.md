@@ -26,7 +26,7 @@ Release process updates, baseline decisions, changelog policy, release
 readiness findings, and release evidence requirements.
 
 ## Required checks
-Run `git diff --check`; require `python3 tools/quality_gate.py quality` for
+Run `git diff --check`; require `python3 tools/linux/quality_gate.py quality` for
 release readiness when practical.
 
 ## Evidence rules

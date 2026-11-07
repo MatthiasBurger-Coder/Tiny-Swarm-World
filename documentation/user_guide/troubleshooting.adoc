@@ -25,14 +25,14 @@ and configuration used by the failing run. Preserve its evidence directory.
 [source,bash]
 ----
 source .venv/bin/activate
-python3 tools/install_debugger.py
+python3 bootstrap/linux/install_debugger.py
 tiny-swarm-world --preflight
 ----
 . For an installed environment, use `platform verify` before selecting a
   repair. It does not modify the platform.
 . Correct the named cause and choose the operation in
   link:{user-guide-prefix}usage.adoc#daily-operation[Daily operation]. On native
-  Ubuntu 24.04 or 26.04, run `./prepare_linux.sh --preflight` for missing host packages
+  Ubuntu 24.04 or 26.04, run `./bootstrap/linux/prepare_linux.sh --preflight` for missing host packages
   before retrying the non-destructive installer. On WSL2, inspect a fresh plan
   before retrying; ordinary `./install.sh` reconciles existing state, while
   `--confirm-reset` separately requests the deprecated destructive reset.
@@ -41,7 +41,7 @@ tiny-swarm-world --preflight
 |===
 | What you see | Next check
 | `windows-wsl-bridge` / `state_invalid`, followed by an exact-state ACL error during bridge installation | Follow <<windows-wsl-bridge-acl,Windows bridge ACL recovery>> and inspect for a leftover state backup.
-| `ModuleNotFoundError` or missing CLI | On native Ubuntu, rerun `./prepare_linux.sh` to prepare the checkout-local Python environment; for development, activate `.venv` as described in link:{user-guide-prefix}installation.adoc#_python_environment[Python Environment]. Do not reset the platform.
+| `ModuleNotFoundError` or missing CLI | On native Ubuntu, rerun `./bootstrap/linux/prepare_linux.sh` to prepare the checkout-local Python environment; for development, activate `.venv` as described in link:{user-guide-prefix}installation.adoc#_python_environment[Python Environment]. Do not reset the platform.
 | Override permission error | Verify file ownership, `0600` file and `0700` parent on a Linux-native filesystem; see link:{user-guide-prefix}installation.adoc#operator-credential-overrides[optional overrides].
 | No password file after installation | Normal for the default path. Use the link:{user-reference-prefix}arc42/08_configuration/internal-test-credential-catalog.md[credential catalog].
 | Login page responds but login fails | Check the effective service identity and credential source; HTTP 200 is not authentication.
@@ -146,7 +146,7 @@ In the same elevated Windows PowerShell window:
 
 [source,powershell]
 ----
-.\tools\windows\tws-wsl-bridge.ps1 -Action install
+.\bootstrap\windows\tws-wsl-bridge.ps1 -Action install
 ----
 
 After that command succeeds, check the service and discovery state:
@@ -154,7 +154,7 @@ After that command succeeds, check the service and discovery state:
 [source,powershell]
 ----
 Get-Service -Name TinySwarmWorldWslBridge
-.\tools\windows\tws-wsl-bridge.ps1 -Action discover
+.\bootstrap\windows\tws-wsl-bridge.ps1 -Action discover
 ----
 
 Expect the service to be `Running` and discovery to report `READY`. If the
@@ -193,7 +193,7 @@ Then rerun:
 
 [source,bash]
 ----
-python3 tools/quality_gate.py quality
+python3 tools/linux/quality_gate.py quality
 ----
 
 == Import Errors For tiny_swarm_world
@@ -436,7 +436,7 @@ definitions, or evidence logs are the problem:
 
 [source,bash]
 ----
-python3 tools/install_debugger.py
+python3 bootstrap/linux/install_debugger.py
 ----
 
 The default mode analyzes the `install.sh` bootstrap contract, repository
@@ -452,14 +452,14 @@ For live host diagnostics, including `systemctl is-system-running`, use:
 
 [source,bash]
 ----
-python3 tools/install_debugger.py --live
+python3 bootstrap/linux/install_debugger.py --live
 ----
 
 To allow narrow repository permission repairs, add `--fix-permissions`:
 
 [source,bash]
 ----
-python3 tools/install_debugger.py --live --fix-permissions
+python3 bootstrap/linux/install_debugger.py --live --fix-permissions
 ----
 
 This repair mode is intentionally limited to the installer execute bit and the
@@ -481,7 +481,7 @@ Prepare or repair it from elevated Windows PowerShell:
 ----
 cd D:\Projects\Tiny-Swarm-World
 Set-ExecutionPolicy -Scope Process Bypass
-.\tools\windows\tws-wsl-bridge.ps1 -Action install
+.\bootstrap\windows\tws-wsl-bridge.ps1 -Action install
 ----
 
 After `wsl --shutdown`, the Windows service discovery agent normally repairs the

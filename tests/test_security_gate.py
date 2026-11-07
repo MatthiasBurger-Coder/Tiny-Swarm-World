@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from tools import security_gate
+from tools.linux import security_gate
 
 
 class TestSecurityGate(unittest.TestCase):
@@ -23,7 +23,7 @@ class TestSecurityGate(unittest.TestCase):
 
     def test_container_config_check_requires_explicit_trivy_installation(self):
         with patch("sys.argv", ["security_gate.py", "container-config"]):
-            with patch("tools.security_gate.shutil.which", return_value=None):
+            with patch("tools.linux.security_gate.shutil.which", return_value=None):
                 with self.assertRaisesRegex(SystemExit, "trivy"):
                     security_gate.main()
 

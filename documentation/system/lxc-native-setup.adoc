@@ -31,7 +31,7 @@ silently fall back to another provider.
 
 == Incus Installation
 
-On qualified Ubuntu 24.04/26.04 Linux/WSL2 hosts, `./prepare_linux.sh` prepares
+On qualified Ubuntu 24.04/26.04 Linux/WSL2 hosts, `./bootstrap/linux/prepare_linux.sh` prepares
 packages/Python, then separately plans and confirms Incus startup, current-user
 access and absent resolved pool/bridge/Swarm profiles. Read-only `--dry-run`
 never starts a daemon or writes host/configuration/state/evidence. Existing

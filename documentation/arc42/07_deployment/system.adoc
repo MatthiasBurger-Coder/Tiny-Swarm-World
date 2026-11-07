@@ -109,7 +109,7 @@ Run the development quality gate before changing deployment-related code:
 
 [source,bash]
 ----
-python3 tools/quality_gate.py quality
+python3 tools/linux/quality_gate.py quality
 ----
 
 When a virtual environment is active, `python` can be used instead of `python3`.

@@ -49,7 +49,7 @@ def _installation_evidence_directory(
     # The source checkout may stay on /mnt/*, but mutable installer evidence
     # must live on the verified Linux-native filesystem. Setup preflight
     # validates the same configured root before platform mutation begins.
-    from tools.live.secure_runtime_paths import ensure_secure_directory
+    from tools.linux.live.secure_runtime_paths import ensure_secure_directory
 
     ensure_secure_directory(root)
     host_root = root / host_runtime.name

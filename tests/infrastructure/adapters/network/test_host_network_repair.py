@@ -280,8 +280,8 @@ class TestHostNetworkRepair(unittest.TestCase):
 
     def test_windows_scripts_read_ports_from_registry(self):
         root = Path(__file__).resolve().parents[4]
-        repair_script = root / "tools" / "windows" / "repair-wsl-portproxy.ps1"
-        doctor_script = root / "tools" / "windows" / "doctor-portproxy.ps1"
+        repair_script = root / "bootstrap" / "windows" / "repair-wsl-portproxy.ps1"
+        doctor_script = root / "bootstrap" / "windows" / "doctor-portproxy.ps1"
 
         for script in (repair_script, doctor_script):
             text = script.read_text(encoding="utf-8")

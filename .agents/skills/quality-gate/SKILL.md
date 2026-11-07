@@ -29,7 +29,7 @@ Identifies and executes the repository quality gate without weakening existing v
 
 ## Expected Inputs
 - QUALITY.md
-- tools/quality_gate.py
+- tools/linux/quality_gate.py
 - requirements.txt
 - setup.py
 - .importlinter

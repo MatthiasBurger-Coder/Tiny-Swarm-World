@@ -28,7 +28,7 @@ async def prepare(*, read_only: bool, service_profile: str) -> int:
         stop_code = report_result(result, earlier_changes=earlier_changes)
         if stop_code is not None:
             return stop_code
-    print("BLOCKED: Stage budget exhausted. Next: ./prepare_linux.sh --dry-run")
+    print("BLOCKED: Stage budget exhausted. Next: ./bootstrap/linux/prepare_linux.sh --dry-run")
     return 2
 
 
@@ -36,10 +36,10 @@ def report_plan(plan, *, earlier_changes: bool, read_only: bool) -> int | None:
     for blocker in plan.blockers:
         print(f"BLOCKED: {blocker}")
     if plan.blockers:
-        print("Next: ./prepare_linux.sh --dry-run after resolving the reported blocker.")
+        print("Next: ./bootstrap/linux/prepare_linux.sh --dry-run after resolving the reported blocker.")
         return 4 if earlier_changes else 2
     if plan.restart_required:
-        print("RESTART_REQUIRED: Log out and log in to activate incus-admin access; then ./prepare_linux.sh. No install handoff.")
+        print("RESTART_REQUIRED: Log out and log in to activate incus-admin access; then ./bootstrap/linux/prepare_linux.sh. No install handoff.")
         return 3
     if plan.verified:
         report_ready()
@@ -48,7 +48,7 @@ def report_plan(plan, *, earlier_changes: bool, read_only: bool) -> int | None:
         print(f"Incus plan: {action.id}; properties={action.payload or action.name}; privilege={action.privilege}; timeout={action.timeout_seconds:g}s; retries=0; restart={action.restart}.")
     print("Preserve existing daemon configuration, pools, bridges, profiles and unrelated instances.")
     if read_only:
-        print("BLOCKED: Incus preparation actions are pending; no host/configuration/state/evidence changes. Next: ./prepare_linux.sh")
+        print("BLOCKED: Incus preparation actions are pending; no host/configuration/state/evidence changes. Next: ./bootstrap/linux/prepare_linux.sh")
         return 2
     return None
 
@@ -68,7 +68,7 @@ def report_result(result, *, earlier_changes: bool) -> int | None:
             report_ready()
         return result.exit_code
     if not result.completed:
-        print("Next: ./prepare_linux.sh --dry-run")
+        print("Next: ./bootstrap/linux/prepare_linux.sh --dry-run")
         return 4 if earlier_changes else result.exit_code
     return None
 
@@ -83,13 +83,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         return asyncio.run(prepare(read_only=args.preflight or args.dry_run, service_profile=args.service_profile))
     except KeyboardInterrupt:
-        print("Incus preparation interrupted; effects may be partial. Next: ./prepare_linux.sh --dry-run")
+        print("Incus preparation interrupted; effects may be partial. Next: ./bootstrap/linux/prepare_linux.sh --dry-run")
         return 130
     except IncusPreparationFailure as error:
-        print(f"BLOCKED: {error.code} Next: ./prepare_linux.sh --dry-run")
+        print(f"BLOCKED: {error.code} Next: ./bootstrap/linux/prepare_linux.sh --dry-run")
         return error.exit_code or 2
     except (OSError, RuntimeError, ValueError):
-        print("BLOCKED: Incus preparation inventory/evidence failed; inspect the declared provider, host and private state directory. Next: ./prepare_linux.sh --dry-run")
+        print("BLOCKED: Incus preparation inventory/evidence failed; inspect the declared provider, host and private state directory. Next: ./bootstrap/linux/prepare_linux.sh --dry-run")
         return 2
 
 

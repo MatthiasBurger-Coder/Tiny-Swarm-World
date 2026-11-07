@@ -59,7 +59,7 @@ class AptHostPackageManager:
                 capture_output=True,
             )
             if update.returncode != 0:
-                raise HostPackagePreparationFailure(stage, update.returncode, "APT index update failed; inspect connectivity/package locks, then rerun ./prepare_linux.sh --dry-run.")
+                raise HostPackagePreparationFailure(stage, update.returncode, "APT index update failed; inspect connectivity/package locks, then rerun ./bootstrap/linux/prepare_linux.sh --dry-run.")
             if self._candidate_consent is not None:
                 stage = "apt_candidates"
                 try:
@@ -86,7 +86,7 @@ class AptHostPackageManager:
                 capture_output=True,
             )
             if install.returncode != 0:
-                raise HostPackagePreparationFailure(stage, install.returncode, "APT package installation failed; inspect APT locks/connectivity, then rerun ./prepare_linux.sh --dry-run.")
+                raise HostPackagePreparationFailure(stage, install.returncode, "APT package installation failed; inspect APT locks/connectivity, then rerun ./bootstrap/linux/prepare_linux.sh --dry-run.")
         except (ProcessLaunchError, ProcessTimeoutError) as error:
             raise HostPackagePreparationFailure(stage, 124 if isinstance(error, ProcessTimeoutError) else 1,
                                                 "APT command could not finish; inspect package state before retry.") from None
@@ -99,7 +99,7 @@ class AptHostPackageManager:
             versions = [line.strip().partition(":")[2].strip()
                         for line in result.stdout.splitlines() if line.strip().startswith("Candidate:")]
             if result.returncode or len(versions) != 1 or not re.fullmatch(r"[A-Za-z0-9.+:~_-]+", versions[0]):
-                raise RuntimeError("Package candidate unavailable after index refresh; retry ./prepare_linux.sh --dry-run.")
+                raise RuntimeError("Package candidate unavailable after index refresh; retry ./bootstrap/linux/prepare_linux.sh --dry-run.")
             candidates.append(f"{package}={versions[0]}")
         return tuple(candidates)
 
@@ -109,7 +109,7 @@ class AptHostPackageManager:
         if not self._candidate_consent(candidates):
             raise RuntimeError("Package consent declined after APT index refresh; no packages installed.")
         if self._target_snapshot and self._target_snapshot() != snapshot:
-            raise RuntimeError("Host target changed after consent; review ./prepare_linux.sh --dry-run.")
+            raise RuntimeError("Host target changed after consent; review ./bootstrap/linux/prepare_linux.sh --dry-run.")
         if self.missing(packages) != packages or self._candidates(packages) != candidates:
             raise RuntimeError("Package plan or candidates changed after consent; review again.")
         return candidates

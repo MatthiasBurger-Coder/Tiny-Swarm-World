@@ -1,6 +1,6 @@
 param([Parameter(Mandatory=$true)][string]$RepositoryRoot)
 $ErrorActionPreference='Stop'
-Import-Module (Join-Path $RepositoryRoot 'tools/windows/preparation/Preparation.psm1') -Force -DisableNameChecking
+Import-Module (Join-Path $RepositoryRoot 'bootstrap/windows/preparation/Preparation.psm1') -Force -DisableNameChecking
 $m=Get-Module Preparation
 $count=0
 function Assert($value,$name){if(!$value){throw "FAIL: $name"};$script:count++}
@@ -67,18 +67,18 @@ $p=& $m {param($o) Get-PreparationResourceProjection $o} $o
 Assert ($p.node_budget.memory_gib -eq 19 -and $p.profile.disk_gib -eq 150) 'canonical projection'
 $sandbox=Join-Path ([IO.Path]::GetTempPath()) ('tsw-projection-'+[guid]::NewGuid().ToString('N'))
 try{
-    $projectionText=Get-Content -Raw -LiteralPath (Join-Path $RepositoryRoot 'tools/windows/preparation/resource-projection.json')
-    $assetNames=@('tools/windows/preparation/resource-projection.json','src/tiny_swarm_world/domain/preflight/resources.py','src/tiny_swarm_world/domain/host_environment.py','infra/config/node-providers/provider_config.yaml')
+    $projectionText=Get-Content -Raw -LiteralPath (Join-Path $RepositoryRoot 'bootstrap/windows/preparation/resource-projection.json')
+    $assetNames=@('bootstrap/windows/preparation/resource-projection.json','src/tiny_swarm_world/domain/preflight/resources.py','src/tiny_swarm_world/domain/host_environment.py','infra/config/node-providers/provider_config.yaml')
     foreach($asset in $assetNames){$target=Join-Path $sandbox $asset;[void][IO.Directory]::CreateDirectory((Split-Path -Parent $target));[IO.File]::WriteAllBytes($target,[IO.File]::ReadAllBytes((Join-Path $RepositoryRoot $asset)))}
     $sandboxOptions=@{RepositoryRoot=$sandbox;ServiceProfile='service-access'}
     $source=Join-Path $sandbox 'infra/config/node-providers/provider_config.yaml';[IO.File]::AppendAllText($source,"`n# drift")
     $refused=$false;try{& $m {param($o) Get-PreparationResourceProjection $o} $sandboxOptions | Out-Null}catch{$refused=$true};Assert $refused 'canonical source drift blocks Windows projection'
     [IO.File]::WriteAllBytes($source,[IO.File]::ReadAllBytes((Join-Path $RepositoryRoot 'infra/config/node-providers/provider_config.yaml')))
     $invalid=$projectionText | ConvertFrom-Json;$invalid.sources.PSObject.Properties.Remove('src/tiny_swarm_world/domain/host_environment.py')
-    [IO.File]::WriteAllText((Join-Path $sandbox 'tools/windows/preparation/resource-projection.json'),($invalid | ConvertTo-Json -Depth 10))
+    [IO.File]::WriteAllText((Join-Path $sandbox 'bootstrap/windows/preparation/resource-projection.json'),($invalid | ConvertTo-Json -Depth 10))
     $refused=$false;try{& $m {param($o) Get-PreparationResourceProjection $o} $sandboxOptions | Out-Null}catch{$refused=$true};Assert $refused 'incomplete source hash inventory blocked'
     $invalid=$projectionText | ConvertFrom-Json;$invalid.node_budget.memory_gib=0
-    [IO.File]::WriteAllText((Join-Path $sandbox 'tools/windows/preparation/resource-projection.json'),($invalid | ConvertTo-Json -Depth 10))
+    [IO.File]::WriteAllText((Join-Path $sandbox 'bootstrap/windows/preparation/resource-projection.json'),($invalid | ConvertTo-Json -Depth 10))
     $refused=$false;try{& $m {param($o) Get-PreparationResourceProjection $o} $sandboxOptions | Out-Null}catch{$refused=$true};Assert $refused 'malformed projection amounts blocked'
 }finally{if(Test-Path -LiteralPath $sandbox){Remove-Item -LiteralPath $sandbox -Recurse -Force}}
 $output="effective_physical_memory_bytes=22548578304`neffective_memory_bytes=22000000000`neffective_processors=8`neffective_swap_bytes=0`neffective_disk_bytes=200000000000`n"

@@ -1,6 +1,6 @@
 import unittest
 
-from tools.skill_audit import audit, audit_activation, classify_skill
+from tools.linux.skill_audit import audit, audit_activation, classify_skill
 
 
 class TestSkillAudit(unittest.TestCase):

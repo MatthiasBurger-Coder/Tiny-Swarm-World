@@ -1112,7 +1112,7 @@ def _host_environment_remediation(host_environment: HostEnvironmentReport) -> st
 def _windows_wsl_bridge_remediation(reason: str) -> str:
     install = (
         "Run PowerShell as Administrator: "
-        "tools/windows/tws-wsl-bridge.ps1 -Action install."
+        "bootstrap/windows/tws-wsl-bridge.ps1 -Action install."
     )
     restart = (
         "Request immediate discovery/reconcile: "

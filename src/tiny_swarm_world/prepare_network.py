@@ -22,7 +22,7 @@ async def prepare(*, read_only: bool, service_profile: str) -> int:
         print("READY: Linux network prerequisites and applicable Windows bridge registration/configuration/agent observed. Endpoints and login UNVERIFIED; services_verified=false.")
         return 0
     if read_only:
-        print("BLOCKED: Network actions pending; no host/configuration/state/evidence changes. Next: ./prepare_linux.sh")
+        print("BLOCKED: Network actions pending; no host/configuration/state/evidence changes. Next: ./bootstrap/linux/prepare_linux.sh")
         return 2
     approved = await request_network_consent()
     result = await service.apply(plan, approved=approved)
@@ -42,13 +42,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         return asyncio.run(prepare(read_only=args.preflight or args.dry_run, service_profile=args.service_profile))
     except KeyboardInterrupt:
-        print("PARTIAL: Network preparation interrupted; inspect ./prepare_linux.sh --dry-run.")
+        print("PARTIAL: Network preparation interrupted; inspect ./bootstrap/linux/prepare_linux.sh --dry-run.")
         return 130
     except NetworkPreparationFailure as error:
         print(f"BLOCKED: {error.code}")
         return error.exit_code or 2
     except (OSError, RuntimeError, ValueError, TimeoutError):
-        print("BLOCKED: Network inventory/evidence unavailable; inspect ./prepare_linux.sh --dry-run.")
+        print("BLOCKED: Network inventory/evidence unavailable; inspect ./bootstrap/linux/prepare_linux.sh --dry-run.")
         return 2
 
 

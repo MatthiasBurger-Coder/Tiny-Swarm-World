@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
-INSTALL_DEBUGGER_PATH = REPOSITORY_ROOT / "tools" / "install_debugger.py"
+INSTALL_DEBUGGER_PATH = REPOSITORY_ROOT / "bootstrap" / "linux" / "install_debugger.py"
 
 
 def _load_install_debugger():

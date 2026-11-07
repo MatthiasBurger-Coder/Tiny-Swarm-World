@@ -1,6 +1,6 @@
 # Windows / WSL2 lifecycle and resource preparation
 
-`prepare_windows.ps1` prepares the selected Windows/WSL2 lifecycle baseline and
+`bootstrap/windows/prepare_windows.ps1` prepares the selected Windows/WSL2 lifecycle baseline and
 plans global WSL2 memory, processors and swap against the selected fixed profile
 and configured managed nodes. Product commands and Python still run in Linux/WSL.
 Incus, Windows browser routing and installation retain their separate owners.
@@ -11,10 +11,10 @@ Use the trusted complete release or repository checkout. Help needs neither
 Python nor elevation and performs no host probes:
 
 ```powershell
-./prepare_windows.ps1 -Help
-./prepare_windows.ps1 -Distro Ubuntu-24.04 -Preflight
-./prepare_windows.ps1 -Distro Ubuntu-24.04 -DryRun -Json
-./prepare_windows.ps1 -Distro Ubuntu -UbuntuRelease 26.04 -Preflight
+./bootstrap/windows/prepare_windows.ps1 -Help
+./bootstrap/windows/prepare_windows.ps1 -Distro Ubuntu-24.04 -Preflight
+./bootstrap/windows/prepare_windows.ps1 -Distro Ubuntu-24.04 -DryRun -Json
+./bootstrap/windows/prepare_windows.ps1 -Distro Ubuntu -UbuntuRelease 26.04 -Preflight
 ```
 
 Windows-side preparation requires elevated PowerShell on a candidate Windows 11
@@ -35,7 +35,7 @@ Linux home (`~/Tiny-Swarm-World` by default). A Windows-mounted checkout is not 
 standard product execution path. Existing checkouts can be selected explicitly:
 
 ```powershell
-./prepare_windows.ps1 -Distro Ubuntu-24.04 -LinuxCheckout /home/operator/Tiny-Swarm-World -Preflight
+./bootstrap/windows/prepare_windows.ps1 -Distro Ubuntu-24.04 -LinuxCheckout /home/operator/Tiny-Swarm-World -Preflight
 ```
 
 The bounded read-only probe checks an already-running registration, ordinary account,
@@ -49,7 +49,7 @@ Windows-mounted checkouts produce a blocked handoff with a placement remedy.
 
 After Windows lifecycle/resources/bridge readiness, `handoff.operator_command`
 selects the exact distribution and observed user, changes to the quoted Linux
-checkout, runs `prepare_linux.sh`, and runs `install.sh` only after preparation exits
+checkout, runs `bootstrap/linux/prepare_linux.sh`, and runs `install.sh` only after preparation exits
 zero. It preserves the selected fixed service profile. Copy the printed command
 into the interactive PowerShell console: WSL inherits its stdin for stage consent
 and returns the Linux exit code in `$LASTEXITCODE`. There is no automated install
@@ -95,10 +95,10 @@ commit/tree/blob hashes prove membership and integrity, not publisher authentici
 Release packaging on Linux/WSL creates the proof from a clean committed checkout:
 
 ```bash
-python3 tools/build_windows_preparation_manifest.py --repository . --output /tmp/tsw-release-manifest.json
+python3 tools/windows/build_windows_preparation_manifest.py --repository . --output /tmp/tsw-release-manifest.json
 ```
 
-Include that file as `tools/windows/preparation/release-manifest.json` in the complete
+Include that file as `bootstrap/windows/preparation/release-manifest.json` in the complete
 extracted release. Proof verification on Windows needs neither Git nor Python.
 An altered asset, wrong expected revision, malformed proof or unsafe path blocks
 qualification. A Git checkout uses clean HEAD and current raw blob comparisons.
@@ -163,7 +163,7 @@ never counts as physical service RAM. Its default is ceil(allocated WSL RAM/4).
 Inspect explicit overrides without writing any configuration:
 
 ```powershell
-./prepare_windows.ps1 -Distro Ubuntu-24.04 -ServiceProfile service-access -DryRun -Json -WslMemoryGiB 24 -WslProcessors 8 -WslSwapGiB 6
+./bootstrap/windows/prepare_windows.ps1 -Distro Ubuntu-24.04 -ServiceProfile service-access -DryRun -Json -WslMemoryGiB 24 -WslProcessors 8 -WslSwapGiB 6
 ```
 
 Memory/processors must be positive integral values; swap can be zero. Overrides
@@ -218,7 +218,7 @@ The resource-only projection reuses canonical Python WSL profiles and provider Y
 there is no additional service graph. Packaging from Linux/WSL verifies it with:
 
 ```bash
-PYTHONPATH=src python3 tools/build_wsl_resource_projection.py --check
+PYTHONPATH=src python3 tools/windows/build_wsl_resource_projection.py --check
 ```
 
 After an intentional canonical resource change, regenerate with the same command
@@ -234,7 +234,7 @@ repository quality checks from Linux/WSL:
 
 ```bash
 PYTHONPATH=src python3 -m unittest tests.test_prepare_windows tests.test_windows_source_proof tests.test_wsl_resource_projection
-python3 tools/quality_gate.py quality
+python3 tools/linux/quality_gate.py quality
 ```
 
 Missing/skipped core PowerShell behavior execution is an acceptance gap, not proof
@@ -248,7 +248,7 @@ are tracked separately.
 
 The operator-approved 2026-10-10 amendment requires actual existing-WSL and native
 Ubuntu preparation, rerun, preservation and applicable recovery evidence for #456.
-The native host uses `prepare_linux.sh`. Clean Windows preparation remains locally
+The native host uses `bootstrap/linux/prepare_linux.sh`. Clean Windows preparation remains locally
 tested and is not live-qualified by these scenarios. Windows feature/WSL/distro
 installation is outside this amended live run. Recovery records must cover the
 specific selected configuration and service/resource changes, not claim full
@@ -293,7 +293,7 @@ For a strictly read-only diagnostic, use the distro and IPv4 address already
 observed in its running WSL shell:
 
 ```powershell
-./tools/windows/tws-wsl-bridge.ps1 -Action inventory -Distro <selected-distro> -ObservedAddress <observed-IPv4>
+./bootstrap/windows/tws-wsl-bridge.ps1 -Action inventory -Distro <selected-distro> -ObservedAddress <observed-IPv4>
 ```
 
 This emits one JSON inventory without starting a distro, creating mutex/state/

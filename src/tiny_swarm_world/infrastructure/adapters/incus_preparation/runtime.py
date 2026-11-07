@@ -33,7 +33,7 @@ async def command(args: tuple[str, ...], timeout: float = 5.0) -> AsyncProcessRe
 async def checked_command(args: tuple[str, ...], timeout: float = 5.0) -> str:
     result = await command(args, timeout)
     if result.returncode:
-        raise IncusPreparationFailure("Incus preparation command failed; inspect permissions/systemd/resource state, then ./prepare_linux.sh --dry-run.")
+        raise IncusPreparationFailure("Incus preparation command failed; inspect permissions/systemd/resource state, then ./bootstrap/linux/prepare_linux.sh --dry-run.")
     return result.stdout
 
 

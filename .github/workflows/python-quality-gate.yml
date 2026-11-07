@@ -56,7 +56,7 @@ jobs:
             "types-requests==2.33.0.20260712"
 
       - name: Run Canonical Quality Gate
-        run: python3 tools/quality_gate.py quality
+        run: python3 tools/linux/quality_gate.py quality
 
       - name: Generate Sonar Coverage Handoff
         run: |

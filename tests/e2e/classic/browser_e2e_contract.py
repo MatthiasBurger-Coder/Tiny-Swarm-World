@@ -20,7 +20,7 @@ from tiny_swarm_world.infrastructure.adapters.repositories.compose_file_reposito
     ComposeFileRepositoryYaml,
 )
 from tests.support.effective_access_model_fixture import effective_access_model_fixture
-from tools.live.secure_runtime_paths import ensure_secure_directory
+from tools.linux.live.secure_runtime_paths import ensure_secure_directory
 
 webdriver: Any
 By: Any

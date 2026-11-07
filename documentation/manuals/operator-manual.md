@@ -14,8 +14,8 @@ in a Linux or WSL2 shell with the project's Python environment active.
 
 ## Before the first live run
 
-Run `./prepare_linux.sh --dry-run` to inspect the preparation plan on supported
-Ubuntu 24.04/26.04 x86_64 Linux or WSL2 hosts. `./prepare_linux.sh` separately
+Run `./bootstrap/linux/prepare_linux.sh --dry-run` to inspect the preparation plan on supported
+Ubuntu 24.04/26.04 x86_64 Linux or WSL2 hosts. `./bootstrap/linux/prepare_linux.sh` separately
 requests consent for package/Python preparation, Incus startup/access and absent
 configured resources, then kernel/network preparation. Compatible resources are
 reused; collisions block. New group membership requires logout/login and a rerun.

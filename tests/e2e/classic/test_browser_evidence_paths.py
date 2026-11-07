@@ -69,7 +69,7 @@ class BrowserEvidencePathsTest(unittest.TestCase):
         with TemporaryDirectory() as directory:
             root = Path(directory) / "blocked"
             with patch.dict(os.environ, {"TSW_LIVE_EVIDENCE_ROOT": str(root)}, clear=True):
-                with patch("tools.live.secure_runtime_paths.classify_path",
+                with patch("tools.linux.live.secure_runtime_paths.classify_path",
                            return_value="windows_mounted"):
                     with self.assertRaises(RuntimeError):
                         browser.live_browser_evidence_root()

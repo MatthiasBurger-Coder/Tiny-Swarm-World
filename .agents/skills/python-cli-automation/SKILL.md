@@ -47,4 +47,4 @@ execution behind ports and adapters.
 ## Quality expectations
 
 - Add focused CLI tests for new behavior.
-- Run `python3 tools/quality_gate.py test` and `git diff --check`.
+- Run `python3 tools/linux/quality_gate.py test` and `git diff --check`.

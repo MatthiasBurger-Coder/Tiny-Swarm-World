@@ -23,7 +23,7 @@ from tiny_swarm_world.domain.configuration.credential_resolution import Credenti
 from tiny_swarm_world.domain.configuration.internal_test_credentials import internal_test_catalog
 from tiny_swarm_world.infrastructure.adapters.clients.infisical_cli_client import InfisicalCliClient
 from tiny_swarm_world.simple_installer import _prepare_bootstrap_environment
-from tools.live.secure_runtime_paths import ensure_secure_directory
+from tools.linux.live.secure_runtime_paths import ensure_secure_directory
 from tests.e2e.classic.test_post_install_browser_live import _load_shell_environment
 
 KEY = "TSW_JENKINS_ADMIN_PASSWORD"

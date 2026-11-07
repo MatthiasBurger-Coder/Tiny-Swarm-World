@@ -4,8 +4,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tools.live import run_classic_acceptance
-from tools.live.secure_runtime_paths import (
+from tests.e2e.classic import run_classic_acceptance
+from tools.linux.live.secure_runtime_paths import (
     NATIVE_LINUX,
     WINDOWS_MOUNTED,
     assess_secret_file,

@@ -10,7 +10,7 @@ from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
 
-from tools.live import run_classic_acceptance as runner
+from tests.e2e.classic import run_classic_acceptance as runner
 
 
 def authenticated_payload() -> dict:

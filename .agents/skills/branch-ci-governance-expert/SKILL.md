@@ -27,7 +27,7 @@ Branch protection expectations, CI quality-gate policy, PR review policy, and
 merge-readiness findings.
 
 ## Required checks
-Run `git diff --check`; require `python3 tools/quality_gate.py quality` for
+Run `git diff --check`; require `python3 tools/linux/quality_gate.py quality` for
 release or merge-readiness changes when practical.
 
 ## Evidence rules

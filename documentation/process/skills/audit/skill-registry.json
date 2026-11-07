@@ -171,7 +171,7 @@
         "documentation/security/sbom-policy.md",
         "documentation/security/dependency-scan-policy.md",
         "documentation/security/container-image-scan-policy.md",
-        "tools/security_gate.py"
+        "tools/linux/security_gate.py"
       ],
       "supported_workflows": ["supply-chain security"],
       "related_issues": [127],

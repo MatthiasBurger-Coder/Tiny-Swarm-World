@@ -69,7 +69,7 @@ security, branch/CI governance, documentation audiences, and release baselines.
 | `traceability-engineer` | Audit and quality | Senior Requirement Engineer | `documentation/traceability/` | #124 |
 | `isms-light-security-governance-expert` | Security | Security Owner | `documentation/security/` | #123 |
 | `owasp-asvs-local-infrastructure-expert` | Security | Security Owner | `documentation/security/owasp-asvs-mapping.md`, `documentation/security/admin-surface-rbac.md`, `documentation/security/service-access-threat-model.md` | #126 |
-| `supply-chain-security-expert` | Security | Security Owner | `documentation/security/supply-chain-security.md`, `documentation/security/sbom-policy.md`, `documentation/security/dependency-scan-policy.md`, `documentation/security/container-image-scan-policy.md`, `tools/security_gate.py` | #127 |
+| `supply-chain-security-expert` | Security | Security Owner | `documentation/security/supply-chain-security.md`, `documentation/security/sbom-policy.md`, `documentation/security/dependency-scan-policy.md`, `documentation/security/container-image-scan-policy.md`, `tools/linux/security_gate.py` | #127 |
 | `live-evidence-validation-expert` | Operations, CI, and release governance | Senior DevOps Engineer | `documentation/evidence/`, `documentation/system/live-operation-surfaces.adoc` | #125 |
 | `branch-ci-governance-expert` | Operations, CI, and release governance | Senior DevOps Engineer | `documentation/governance/branch-protection.md`, `documentation/governance/ci-quality-gates.md`, `documentation/governance/pr-review-policy.md` | #128 |
 | `release-baseline-governance-expert` | Operations, CI, and release governance | Root Architect | `documentation/release/`, `pyproject.toml`, `README.md` | #130 |

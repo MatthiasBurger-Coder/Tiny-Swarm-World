@@ -4,7 +4,7 @@ Generate the runtime dependency SBOM from the same hashed lock used by the
 dependency audit:
 
 ```bash
-python3 tools/security_gate.py sbom
+python3 tools/linux/security_gate.py sbom
 ```
 
 The default CycloneDX JSON output is written below ignored

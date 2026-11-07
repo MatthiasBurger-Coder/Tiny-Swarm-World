@@ -56,6 +56,9 @@ explicit task changes the product scope.
 
 ## Repository Map
 
+- `bootstrap/windows`: Windows/WSL installation preparation, bridge and host diagnostics.
+- `bootstrap/linux`: native Linux and shared Linux/WSL installation prerequisites and diagnostics.
+- `tools`: quality, audit, packaging, live-test and developer tools, grouped by target system.
 - `src/tiny_swarm_world/domain`: core business concepts and rules.
 - `src/tiny_swarm_world/application`: use cases, orchestration services, and ports.
 - `src/tiny_swarm_world/application/ports`: interfaces for commands, repositories, file
@@ -134,15 +137,18 @@ inspection.
 
 ## Testing
 
+- Do not start agent-run tests or quality gates during ongoing development.
+  Run them when creating a pull request or when the user explicitly requests
+  verification. Providing test-host credentials alone does not authorize a run.
 - Run agent tests and quality gates inside WSL on the SSH test host specified
   under Operating Assumptions. Resolve the remote checkout path before using
   `wsl bash -lc` to run commands from its repository root.
 - Preferred quality gate from the repository root:
-  `python3 tools/quality_gate.py quality`
-- During development, run the nearest relevant sub-gate first:
-  `python3 tools/quality_gate.py lint`,
-  `python3 tools/quality_gate.py typecheck`, or
-  `python3 tools/quality_gate.py test`
+  `python3 tools/linux/quality_gate.py quality`
+- When verification is authorized, run the nearest relevant sub-gate first:
+  `python3 tools/linux/quality_gate.py lint`,
+  `python3 tools/linux/quality_gate.py typecheck`, or
+  `python3 tools/linux/quality_gate.py test`
 - For targeted changes, run the nearest relevant test file, for example:
   `PYTHONPATH=src python -m unittest tests.infrastructure.adapters.ui.test_linux_ui`
 - The quality gate sets `PYTHONPATH=src` automatically. Manual Python test

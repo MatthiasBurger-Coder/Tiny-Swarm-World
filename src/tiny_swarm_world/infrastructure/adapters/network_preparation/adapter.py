@@ -38,7 +38,7 @@ class LocalNetworkPreparation:
                 self.evidence.validate(platform_release=self.release, capability="network")
             except OSError:
                 from dataclasses import replace
-                self._snapshot = replace(self._snapshot, blockers=self._snapshot.blockers + ("Bootstrap state blocked; preserve evidence. Next: ./prepare_linux.sh --dry-run",))
+                self._snapshot = replace(self._snapshot, blockers=self._snapshot.blockers + ("Bootstrap state blocked; preserve evidence. Next: ./bootstrap/linux/prepare_linux.sh --dry-run",))
         except (NetworkPreparationFailure, IncusPreparationFailure, OSError, RuntimeError, ValueError) as error:
             if isinstance(error, NetworkPreparationFailure) and error.exit_code:
                 raise

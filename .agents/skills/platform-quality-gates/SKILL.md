@@ -48,6 +48,6 @@ without weakening root `QUALITY.md`.
 
 ## Quality expectations
 
-- Prefer `python3 tools/quality_gate.py quality` before commit or push.
+- Prefer `python3 tools/linux/quality_gate.py quality` before commit or push.
 - Use `git diff --check` for governance-only changes.
 - Report exact commands and results.

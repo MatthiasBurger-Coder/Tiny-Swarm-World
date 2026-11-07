@@ -1,6 +1,6 @@
 param([string]$RepositoryRoot, [string]$FixtureCatalog)
 $ErrorActionPreference = 'Stop'
-. (Join-Path $RepositoryRoot 'tools/windows/preparation/SourceProof.ps1')
+. (Join-Path $RepositoryRoot 'bootstrap/windows/preparation/SourceProof.ps1')
 $cases = Get-Content -LiteralPath $FixtureCatalog -Raw | ConvertFrom-Json
 $count = 0
 foreach ($case in $cases) {

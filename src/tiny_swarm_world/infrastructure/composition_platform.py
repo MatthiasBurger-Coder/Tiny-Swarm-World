@@ -107,7 +107,7 @@ def build_host_preparation_service(
 ) -> HostPreparationService:
     _, resolved_services = persisted_runtime_selection(DEFAULT_SETUP_SERVICE_PROFILE, resolved_services)
     project_paths = default_project_paths()
-    bridge_root = project_paths.repository_root / "tools" / "windows"
+    bridge_root = project_paths.repository_root / "bootstrap" / "windows"
     script_path = Path(
         os.getenv("TSW_WINDOWS_BRIDGE_SCRIPT_PATH", str(bridge_root / "tws-wsl-bridge.ps1"))
     )

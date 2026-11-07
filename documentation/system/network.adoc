@@ -19,8 +19,8 @@ For installation prerequisites, use the separate staged preparation owner:
 
 [source,bash]
 ----
-./prepare_linux.sh --dry-run
-./prepare_linux.sh
+./bootstrap/linux/prepare_linux.sh --dry-run
+./bootstrap/linux/prepare_linux.sh
 ----
 
 This plans required kernel controls, managed-bridge forwarding and canonical local
@@ -103,15 +103,15 @@ elevated PowerShell before starting a WSL2 live installation:
 [source,powershell]
 ----
 Set-ExecutionPolicy -Scope Process Bypass
-.\tools\windows\tws-wsl-bridge.ps1 -Action prerequisites
-.\tools\windows\tws-wsl-bridge.ps1 -Action install
+.\bootstrap\windows\tws-wsl-bridge.ps1 -Action prerequisites
+.\bootstrap\windows\tws-wsl-bridge.ps1 -Action install
 ----
 
 The prerequisite action is read-only and requires Windows 10 or 11, a running
 WSL 2 distribution with systemd as PID 1, elevated PowerShell, a running IP
 Helper service, and the Windows Firewall and Service cmdlets. The
 dedicated reproducible setup and repair guide is
-`tools/windows/README.windows-wsl-bridge.md`.
+`bootstrap/windows/README.windows-wsl-bridge.md`.
 
 The install action registers an automatic Windows service discovery agent. It
 runs periodically, discovers the current WSL IP and reconciles only
@@ -140,7 +140,7 @@ powershell.exe -NoProfile -Command "Restart-Service -Name TinySwarmWorldWslBridg
 ----
 
 The bridge reads TCP ports and route hostnames from `infra/config/ports.yaml`.
-`tools/windows/tws-wsl-bridge.config.json` is limited to Windows-side
+`bootstrap/windows/tws-wsl-bridge.config.json` is limited to Windows-side
 settings such as distro selection, listen address, hosts address, discovery
 interval, and additional hostname aliases. Do not maintain a separate Windows
 port list.
@@ -162,8 +162,8 @@ manual repair:
 
 [source,powershell]
 ----
-powershell.exe -ExecutionPolicy Bypass -File .\tools\windows\doctor-portproxy.ps1
-powershell.exe -ExecutionPolicy Bypass -File .\tools\windows\repair-wsl-portproxy.ps1
+powershell.exe -ExecutionPolicy Bypass -File .\bootstrap\windows\doctor-portproxy.ps1
+powershell.exe -ExecutionPolicy Bypass -File .\bootstrap\windows\repair-wsl-portproxy.ps1
 ----
 
 == Targeted Network Repair

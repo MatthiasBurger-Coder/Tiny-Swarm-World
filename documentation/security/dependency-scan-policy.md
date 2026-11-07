@@ -4,7 +4,7 @@ Runtime dependency audits use the hashed `requirements.lock` file and fail on
 known vulnerabilities or incomplete collection:
 
 ```bash
-python3 tools/security_gate.py dependencies
+python3 tools/linux/security_gate.py dependencies
 ```
 
 Regenerate the lock from the declared ranges with the supported Python 3.12

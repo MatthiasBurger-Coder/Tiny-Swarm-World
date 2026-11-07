@@ -44,7 +44,7 @@ Files explicitly forbidden:
 - `infra`
 - `tests`
 - `.importlinter`
-- `tools/quality_gate.py`
+- `tools/linux/quality_gate.py`
 
 Expected behavior change:
 
@@ -60,8 +60,8 @@ Tests to add/update:
 
 Quality gate command:
 
-- `python3 tools/quality_gate.py arch-lint`
-- `python3 tools/quality_gate.py arch-tests`
+- `python3 tools/linux/quality_gate.py arch-lint`
+- `python3 tools/linux/quality_gate.py arch-tests`
 
 Rollback strategy:
 
@@ -111,9 +111,9 @@ Tests to add/update:
 
 Quality gate command:
 
-- `python3 tools/quality_gate.py arch-lint`
-- `python3 tools/quality_gate.py arch-tests`
-- `python3 tools/quality_gate.py test` if only static/unit tests are touched.
+- `python3 tools/linux/quality_gate.py arch-lint`
+- `python3 tools/linux/quality_gate.py arch-tests`
+- `python3 tools/linux/quality_gate.py test` if only static/unit tests are touched.
 
 Rollback strategy:
 
@@ -166,7 +166,7 @@ Tests to add/update:
 
 Quality gate command:
 
-- `python3 tools/quality_gate.py quality`
+- `python3 tools/linux/quality_gate.py quality`
 
 Rollback strategy:
 
@@ -218,7 +218,7 @@ Tests to add/update:
 
 Quality gate command:
 
-- `python3 tools/quality_gate.py quality`
+- `python3 tools/linux/quality_gate.py quality`
 
 Rollback strategy:
 
@@ -266,7 +266,7 @@ Tests to add/update:
 
 Quality gate command:
 
-- `python3 tools/quality_gate.py quality`
+- `python3 tools/linux/quality_gate.py quality`
 
 Rollback strategy:
 
@@ -313,7 +313,7 @@ Tests to add/update:
 
 Quality gate command:
 
-- `python3 tools/quality_gate.py quality`
+- `python3 tools/linux/quality_gate.py quality`
 
 Rollback strategy:
 
@@ -359,7 +359,7 @@ Tests to add/update:
 
 Quality gate command:
 
-- `python3 tools/quality_gate.py quality`
+- `python3 tools/linux/quality_gate.py quality`
 
 Rollback strategy:
 
@@ -404,7 +404,7 @@ Tests to add/update:
 
 Quality gate command:
 
-- `python3 tools/quality_gate.py quality`
+- `python3 tools/linux/quality_gate.py quality`
 
 Rollback strategy:
 

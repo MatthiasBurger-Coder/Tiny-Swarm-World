@@ -31,7 +31,7 @@ BOOT-W06 must extend these owners rather than introduce competing routing logic.
 
 === Preparation boundary and authority
 
-Extend prepare_linux.sh through a W06 application capability service and explicit
+Extend bootstrap/linux/prepare_linux.sh through a W06 application capability service and explicit
 application ports after package/Python and Incus prerequisites are verified.
 Compose concrete adapters in infrastructure composition. Keep shell/PowerShell
 entrypoints thin and keep product Python in Linux/WSL. Native preparation must

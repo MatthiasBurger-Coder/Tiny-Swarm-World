@@ -87,7 +87,7 @@ class NativePreparationEvidenceWriter:
         }
         payload.update(operation=self._checkpoint.operation, context=identity,
                        exit_code=_exit_for(status, exit_code),
-                       next_command=f"./prepare_linux.sh --service-profile {self.selection} --dry-run",
+                       next_command=f"./bootstrap/linux/prepare_linux.sh --service-profile {self.selection} --dry-run",
                        rollback="No automatic package/resource removal; inspect protected backups before explicit restoration.")
         checkpoint = {"stage": stage, "status": status, "planned": list(planned),
                       "confirmed": list(added), "uncertain": list(uncertain),

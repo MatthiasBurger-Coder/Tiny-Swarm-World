@@ -545,7 +545,7 @@ part of default architecture tests or the default quality gate.
 
 === Separate Host Preparation Flow
 
-`prepare_linux.sh` prepares supported Ubuntu 24.04/26.04 x86_64 native Linux
+`bootstrap/linux/prepare_linux.sh` prepares supported Ubuntu 24.04/26.04 x86_64 native Linux
 and WSL2 hosts separately from installation. The shell boundary can bootstrap
 missing Python/venv prerequisites from a complete trusted release. Subsequent
 stages use the prepared Python runtime for package dependencies, Incus
@@ -555,7 +555,7 @@ requires separate consent; compatible existing resources are reused and
 conflicts block. Read-only modes do not create preparation evidence or activate
 a stopped daemon. New group membership requires logout/login and reinventory.
 
-On Windows, `prepare_windows.ps1` separately owns selected-distribution lifecycle
+On Windows, `bootstrap/windows/prepare_windows.ps1` separately owns selected-distribution lifecycle
 and WSL capacity planning/configuration. Ordinary Apply remains blocked pending
 applicable live qualification; explicit candidate qualification uses the guarded
 consent contract. Windows browser routing delegates to the existing protected

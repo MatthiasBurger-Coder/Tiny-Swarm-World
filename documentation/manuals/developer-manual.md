@@ -28,7 +28,7 @@ rollback and verification-state semantics.
 
 ## Local Python environment
 
-Operators use `./prepare_linux.sh` from the trusted checkout, followed by
+Operators use `./bootstrap/linux/prepare_linux.sh` from the trusted checkout, followed by
 `./install.sh`. For manual development setup from the repository root:
 
 ```bash
@@ -47,10 +47,14 @@ These commands do not prepare Incus or verify installed services.
 
 ## Quality
 
+Locations follow the [bootstrap and developer-tool layout](tools-layout.md):
+installation prerequisites live in `bootstrap/windows` and `bootstrap/linux`;
+quality, audit, packaging and developer tools live in `tools`.
+
 `QUALITY.md` is the quality authority. The standard local command is:
 
 ```bash
-python3 tools/quality_gate.py quality
+python3 tools/linux/quality_gate.py quality
 ```
 
 Run focused tests first, then the required gate. Use WSL/Linux for project

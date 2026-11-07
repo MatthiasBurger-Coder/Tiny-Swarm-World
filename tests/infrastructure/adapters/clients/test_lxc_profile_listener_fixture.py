@@ -12,7 +12,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from tools.qualification import incus_profile_listener_fixture as fixture
+from tools.linux.qualification import incus_profile_listener_fixture as fixture
 
 
 class PrivateEvidenceFilesystemTests(unittest.TestCase):

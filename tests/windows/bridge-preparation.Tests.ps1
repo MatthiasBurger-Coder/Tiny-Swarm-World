@@ -2,7 +2,7 @@ param([Parameter(Mandatory=$true)][string]$RepositoryRoot)
 $ErrorActionPreference='Stop'
 Import-Module Microsoft.PowerShell.Utility
 Import-Module Microsoft.PowerShell.Management
-. (Join-Path $RepositoryRoot 'tools/windows/tws-wsl-bridge.ps1')
+. (Join-Path $RepositoryRoot 'bootstrap/windows/tws-wsl-bridge.ps1')
 $count=0
 $originalHostsReader=${function:Get-PreparationHostsText}
 $originalWslDescriptor=${function:Test-PreparationWslPathDescriptor}
@@ -583,7 +583,7 @@ function Test-BridgeServiceAccountMatchesCurrentIdentity{param($AccountName) ret
 $c=Request-BridgeServiceCredential 'owner';Assert ($c.UserName -eq 'owner') 'existing credential owner accepts matching identity'
 $script:credential=[pscustomobject]@{UserName='foreign'};$threw=$false;try{Request-BridgeServiceCredential 'owner' | Out-Null}catch{$threw=$true};Assert $threw 'foreign credential owner blocked'
 $script:credential=$null;$threw=$false;try{Request-BridgeServiceCredential 'owner' | Out-Null}catch{$threw=$true};Assert $threw 'credential cancellation stops'
-. (Join-Path $RepositoryRoot 'tools/windows/preparation/Bridge.ps1')
+. (Join-Path $RepositoryRoot 'bootstrap/windows/preparation/Bridge.ps1')
 $script:bridgeProbeCalls=@()
 function Get-PreparationExecutable{param($Name) return $Name}
 function Invoke-PreparationProcess{param($Executable,$Arguments,$TimeoutSeconds) $script:bridgeProbeCalls+=,@($Arguments);return @{exit_code=0;stdout='Ubuntu-26.04';stderr=''}}

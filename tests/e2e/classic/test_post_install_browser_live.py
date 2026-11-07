@@ -64,7 +64,7 @@ from tests.e2e.classic.browser_e2e_contract import (
     browser_route_expectations,
     live_browser_evidence_root,
 )
-from tools.live.secure_runtime_paths import ensure_secure_directory
+from tools.linux.live.secure_runtime_paths import ensure_secure_directory
 from tests.support.effective_access_model_fixture import effective_access_model_fixture
 from tests.support.sonar_safe_literals import sample_text, sample_url
 

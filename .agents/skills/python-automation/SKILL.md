@@ -30,22 +30,22 @@ hexagonal architecture and Linux/WSL-only operating model.
 Run the nearest meaningful gate first:
 
 ```bash
-python3 tools/quality_gate.py lint
-python3 tools/quality_gate.py typecheck
-python3 tools/quality_gate.py test
+python3 tools/linux/quality_gate.py lint
+python3 tools/linux/quality_gate.py typecheck
+python3 tools/linux/quality_gate.py test
 ```
 
 For architecture-sensitive changes, also run:
 
 ```bash
-python3 tools/quality_gate.py arch-lint
-python3 tools/quality_gate.py arch-tests
+python3 tools/linux/quality_gate.py arch-lint
+python3 tools/linux/quality_gate.py arch-tests
 ```
 
 Before commit or push, run the full gate when practical:
 
 ```bash
-python3 tools/quality_gate.py quality
+python3 tools/linux/quality_gate.py quality
 ```
 
 ## Stop Conditions

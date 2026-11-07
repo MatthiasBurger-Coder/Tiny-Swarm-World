@@ -29,8 +29,8 @@ avoiding production-code changes.
 ### Acceptance criteria
 - Current files are classified by responsibility.
 - Mixed-boundary findings include owner, risk, and follow-up agent.
-- `python3 tools/quality_gate.py arch-lint` and
-  `python3 tools/quality_gate.py arch-tests` pass or blockers are recorded.
+- `python3 tools/linux/quality_gate.py arch-lint` and
+  `python3 tools/linux/quality_gate.py arch-tests` pass or blockers are recorded.
 
 ### Dependencies
 - None
@@ -177,7 +177,7 @@ without executing live infrastructure.
 
 ### Evidence
 - `.importlinter`
-- `tools/quality_gate.py`
+- `tools/linux/quality_gate.py`
 - `tests/architecture/test_hexagonal_imports.py`
 
 ### Recommended remediation

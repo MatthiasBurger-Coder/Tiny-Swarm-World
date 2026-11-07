@@ -242,13 +242,13 @@ Run the narrowest meaningful verification first when applicable, then the requir
 The current minimum Python quality command is:
 
 ```bash
-python3 tools/quality_gate.py test
+python3 tools/linux/quality_gate.py test
 ```
 
 The current full local quality gate is:
 
 ```bash
-python3 tools/quality_gate.py quality
+python3 tools/linux/quality_gate.py quality
 ```
 
 For documentation-only and agent-instruction-only changes, run the minimum quality command when practical. If it is skipped, report the reason and do not claim it passed.

@@ -38,7 +38,7 @@ intentionally on a WSL Windows mount, the applicable commands also need
 | Inspect current platform | `platform verify` | Read-only checks; does not repair.
 | Reconcile managed platform | `platform reconcile --live` | Mutates managed platform state; does not constitute a full service update.
 | Run the broader setup again | `setup run --live` | Mutates infrastructure and services without the wrapper's preliminary reset.
-| Prepare a native Ubuntu 24.04 or 26.04 host | `./prepare_linux.sh` | Separately installs only missing approved host packages after confirmation.
+| Prepare a native Ubuntu 24.04 or 26.04 host | `./bootstrap/linux/prepare_linux.sh` | Separately installs only missing approved host packages after confirmation.
 | Install or reconcile on native Ubuntu 24.04 or 26.04 | `./install.sh` | Checks preparation and runs setup without a reset.
 | Install or reconcile on supported WSL2 Ubuntu | `./install.sh` | Checks preparation and runs setup without reset.
 | Recreate a disposable WSL2 environment | `./install.sh --confirm-reset` | Explicit deprecated destructive compatibility; live approval remains separate.
@@ -279,18 +279,18 @@ and run the full gate before handing off changes:
 
 [source,bash]
 ----
-python3 tools/quality_gate.py quality
+python3 tools/linux/quality_gate.py quality
 ----
 
 Available subcommands:
 
 [source,bash]
 ----
-python3 tools/quality_gate.py lint
-python3 tools/quality_gate.py arch-lint
-python3 tools/quality_gate.py arch-tests
-python3 tools/quality_gate.py typecheck
-python3 tools/quality_gate.py test
+python3 tools/linux/quality_gate.py lint
+python3 tools/linux/quality_gate.py arch-lint
+python3 tools/linux/quality_gate.py arch-tests
+python3 tools/linux/quality_gate.py typecheck
+python3 tools/linux/quality_gate.py test
 ----
 
 The gate runs Ruff, import-linter, architecture tests, mypy, and unittest
@@ -496,7 +496,7 @@ phase evidence when live Nexus, registry, Portainer, Swarm, external-input, or
 observed-state prerequisites are unavailable.
 
 Optional live smoke validation is a separate operator action, not part of
-`python3 tools/quality_gate.py quality`. Run `setup run --live` only on a
+`python3 tools/linux/quality_gate.py quality`. Run `setup run --live` only on a
 disposable or recoverable local environment and only when Incus/LXC or
 provider state, Docker Swarm, networking, Portainer,
 Nexus, Jenkins, Apache Pulsar, SonarQube, Swagger/NGINX, image, and stack changes

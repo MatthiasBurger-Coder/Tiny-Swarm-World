@@ -64,7 +64,7 @@ def _prerequisite_snapshot(inspector: NativePreparationInspector, root: Path, pr
     failures = qualification_failures(facts, needs_network=True, prerequisites_only=True,
                                       allow_wsl=True, service_profile=profile)
     if failures:
-        raise RuntimeError("Host prerequisites changed; review ./prepare_linux.sh --dry-run.")
+        raise RuntimeError("Host prerequisites changed; review ./bootstrap/linux/prepare_linux.sh --dry-run.")
     return preparation_target(facts) + validate_preparation_paths(root, is_wsl=facts.is_wsl)
 
 

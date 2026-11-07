@@ -49,7 +49,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         try:
             path_identity = _validate_mutation_paths(is_wsl=plan.facts.is_wsl)
         except (OSError, RuntimeError):
-            print("BLOCKED: Use an ordinary account, complete trusted release and owned Linux-native checkout/venv. Next: ./prepare_linux.sh --dry-run", file=sys.stderr)
+            print("BLOCKED: Use an ordinary account, complete trusted release and owned Linux-native checkout/venv. Next: ./bootstrap/linux/prepare_linux.sh --dry-run", file=sys.stderr)
             return 2
     if plan.failures:
         for failure in plan.failures:
@@ -82,7 +82,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         if _validate_mutation_paths(is_wsl=plan.facts.is_wsl) != path_identity:
             raise RuntimeError("Release assets changed.")
     except (OSError, RuntimeError):
-        print("BLOCKED: Release/path changed after consent. Next: ./prepare_linux.sh --dry-run", file=sys.stderr)
+        print("BLOCKED: Release/path changed after consent. Next: ./bootstrap/linux/prepare_linux.sh --dry-run", file=sys.stderr)
         return 2
     try:
         started_path = evidence.write(
@@ -129,7 +129,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         except OSError:
             print("ERROR: Package preparation failed and local evidence could not be written.", file=sys.stderr)
             return {124: 124, 130: 130}.get(failure_exit, 1)
-        print(f"ERROR: Package preparation stopped at stage {failed_stage}. Inspect APT connectivity/locks; package indexes may have changed. Next: ./prepare_linux.sh --dry-run", file=sys.stderr)
+        print(f"ERROR: Package preparation stopped at stage {failed_stage}. Inspect APT connectivity/locks; package indexes may have changed. Next: ./bootstrap/linux/prepare_linux.sh --dry-run", file=sys.stderr)
         print(f"Evidence: {path}", file=sys.stderr)
         return {124: 124, 130: 130}.get(failure_exit, 1)
     try:
@@ -156,7 +156,7 @@ def _checkpoint_blocked(evidence, plan) -> bool:
             evidence.validate(platform_release=plan.facts.version_id, capability=capability)
     except OSError:
         print("Observed missing host packages: " + ", ".join(plan.missing_packages))
-        print("BLOCKED: Bootstrap checkpoint is stale, corrupt or foreign. Preserve it for review. Next: ./prepare_linux.sh --dry-run", file=sys.stderr)
+        print("BLOCKED: Bootstrap checkpoint is stale, corrupt or foreign. Preserve it for review. Next: ./bootstrap/linux/prepare_linux.sh --dry-run", file=sys.stderr)
         return True
     return False
 
@@ -195,21 +195,21 @@ def _prepare_python_dependencies(*, read_only: bool, service_profile: str = "ser
             _validate_mutation_paths(is_wsl=runtime.name == "wsl2")
             ready = installer._python_imports_available(prepared_python.as_posix(), env)
     except (installer.InstallerError, OSError, RuntimeError):
-        print("BLOCKED: Python probe failed or timed out. Next: ./prepare_linux.sh --dry-run", file=sys.stderr)
+        print("BLOCKED: Python probe failed or timed out. Next: ./bootstrap/linux/prepare_linux.sh --dry-run", file=sys.stderr)
         return 2
     if ready:
         print("Python dependencies are already prepared; services are not verified.")
-        print("Next: ./prepare_linux.sh --preflight")
+        print("Next: ./bootstrap/linux/prepare_linux.sh --preflight")
         return 0
     print("Python dependencies are missing from the system interpreter and prepared venv.")
     if read_only:
-        print("BLOCKED: No Python environment was changed. Next: ./prepare_linux.sh")
+        print("BLOCKED: No Python environment was changed. Next: ./bootstrap/linux/prepare_linux.sh")
         return 2
     try:
         runtime = installer.detect_host_runtime(env)
         identity = _validate_mutation_paths(is_wsl=runtime.name == "wsl2")
     except (OSError, RuntimeError):
-        print("BLOCKED: Python target is unsafe. Next: ./prepare_linux.sh --dry-run", file=sys.stderr)
+        print("BLOCKED: Python target is unsafe. Next: ./bootstrap/linux/prepare_linux.sh --dry-run", file=sys.stderr)
         return 2
     try:
         answer = input("Prepare the local Python environment? Type 'yes' to continue: ")
@@ -219,7 +219,7 @@ def _prepare_python_dependencies(*, read_only: bool, service_profile: str = "ser
         print("\nPython preparation interrupted before bootstrap.", file=sys.stderr)
         return 130
     if answer != "yes":
-        print("Python preparation cancelled; rerun ./prepare_linux.sh before installing.")
+        print("Python preparation cancelled; rerun ./bootstrap/linux/prepare_linux.sh before installing.")
         return 2
     python_evidence = build_native_preparation_evidence_writer(service_profile=service_profile)
     try:
@@ -234,11 +234,11 @@ def _prepare_python_dependencies(*, read_only: bool, service_profile: str = "ser
         record_python_preparation("succeeded", writer=python_evidence)
     except KeyboardInterrupt:
         _record_python_failure("interrupted", python_evidence)
-        print("PARTIAL: Python preparation interrupted. Next: ./prepare_linux.sh --dry-run", file=sys.stderr)
+        print("PARTIAL: Python preparation interrupted. Next: ./bootstrap/linux/prepare_linux.sh --dry-run", file=sys.stderr)
         return 130
     except (installer.InstallerError, OSError, RuntimeError):
         _record_python_failure("failed", python_evidence)
-        print("ERROR: Python preparation failed; inspect the local venv and rerun ./prepare_linux.sh.", file=sys.stderr)
+        print("ERROR: Python preparation failed; inspect the local venv and rerun ./bootstrap/linux/prepare_linux.sh.", file=sys.stderr)
         return 1
     print("Local Python dependencies are prepared; Incus/network readiness and services are not verified.")
     return 0
@@ -254,7 +254,7 @@ def _record_python_failure(status: str, writer=None) -> None:
     try:
         record_python_preparation(status, writer=writer)
     except OSError:
-        print("PARTIAL: Python preparation stopped and evidence write failed. Next: ./prepare_linux.sh --dry-run", file=sys.stderr)
+        print("PARTIAL: Python preparation stopped and evidence write failed. Next: ./bootstrap/linux/prepare_linux.sh --dry-run", file=sys.stderr)
 
 
 if __name__ == "__main__":  # pragma: no cover

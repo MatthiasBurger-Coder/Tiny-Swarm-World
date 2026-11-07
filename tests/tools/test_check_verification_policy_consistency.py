@@ -5,7 +5,7 @@ import shutil
 import tempfile
 import unittest
 
-from tools.check_verification_policy_consistency import check_repository
+from tools.linux.check_verification_policy_consistency import check_repository
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]

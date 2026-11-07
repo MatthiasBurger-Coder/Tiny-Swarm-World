@@ -162,7 +162,7 @@ def _run_installer_subprocess(
             stderr=stderr,
         )
     except subprocess.CalledProcessError as exc:
-        raise InstallerError("Python dependency command failed; inspect the user venv and retry ./prepare_linux.sh --dry-run.") from exc
+        raise InstallerError("Python dependency command failed; inspect the user venv and retry ./bootstrap/linux/prepare_linux.sh --dry-run.") from exc
     except subprocess.TimeoutExpired as exc:
         raise InstallerError(
             f"Installer subprocess timed out after {timeout:g}s."

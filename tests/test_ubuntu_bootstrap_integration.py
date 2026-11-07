@@ -112,7 +112,7 @@ class UbuntuJoinedBootstrapTests(unittest.TestCase):
             self.assertEqual(_prepare_python_dependencies(read_only=True), 2)
         bootstrap.assert_not_called()
         prompt.assert_not_called()
-        self.assertIn("./prepare_linux.sh --dry-run", output.getvalue())
+        self.assertIn("./bootstrap/linux/prepare_linux.sh --dry-run", output.getvalue())
 
     def test_candidate_decline_or_drift_stops_package_install_after_refresh(self):
         for decline, target_drift, candidate_drift in ((True, False, False), (False, True, False), (False, False, True)):
