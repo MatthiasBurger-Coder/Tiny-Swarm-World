@@ -1,5 +1,41 @@
 # S449-02F4 — normalize the verified Snap wrapper and direct LXD child
 
+## 2026-11-07 global storage graph and schema 3 (workflow v1.46)
+
+The normative amendment is `.codex/evidence/epic440-storage-graph-20261107.md`,
+plan SHA256 `f7a4999a050dceaeae901b2203b9fedb20281109d9352451c33915de92a7b826`.
+Schema 3 explicitly supersedes the previous overall native schema 2 while
+preserving its network field semantics. Canonical global pools, type-dependent
+pool users, unchanged Project-owned root volume URLs, separate raw/local API and
+expanded effective storage projections, root bijection and retained evidence
+replace the erroneous per-project/all-volume pool rule. Returned volume owner
+admission stays strict. The reader validates retained graph structure, not
+hidden raw semantics or a live daemon. No prior artifact is migrated.
+
+This is an explicit query-scope amendment: two fixed local raw GET /1.0 probes
+per active queried family (initial/final, max four across LXD/Incus), with strict
+full pinned family DTO/trusted/default/family/noncluster/version admission.
+Existing provenance runs before every probe; all 2048-command/byte/time/entity
+and private evidence bounds remain unchanged. Root secrets are RAM-only; stable
+admission is compared, with no wrapper/API PID equality or atomicity claim.
+Images/shared custom/snapshots/selectors/buckets/member/daemon cases remain named
+unsupported boundaries. Exact independent plan/normative and later source/test
+reviews, PC verification and a separately released committed-source schema3
+capture remain mandatory. This amendment releases no host/capability/maintenance
+or fixture action; prior failed captures remain nonpasses.
+
+### v1.46 completeness clarification before implementation release
+
+The storage contract amendment requires exactly one default project in every
+admitted active family's complete collection; empty/default-missing collections
+block capture and reader. Inactive/unqueried families remain empty with null
+admission. Existing duplicate/order checks remain. Reader command records must
+bind version→initial→all family graph queries→final, and existing list/detail
+instance type/location and volume content/location must agree before storage
+identity is admitted. No new query, privilege or budget follows. This explicit
+amendment needs fresh exact record/normative review before its new default-project
+invariant is implemented; prior plan f7a4999a remains a historical review anchor.
+
 ## 2026-11-07 bounded volume DTO identity (workflow v1.45)
 
 The normative amendment is `.codex/evidence/epic440-volume-dto-20261107.md`.

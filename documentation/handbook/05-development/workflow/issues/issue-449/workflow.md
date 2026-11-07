@@ -1,7 +1,7 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: ACTIVE_FOR_ISSUE_449 v1.45 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
+Status: ACTIVE_FOR_ISSUE_449 v1.46 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
@@ -30,16 +30,40 @@ fixed commands/provenance/budgets and private evidence remain unchanged.
 Implementation, PC verification and any new native capture remain separately
 exact-reviewed phases. This amendment grants no runtime or capture authority.
 
-The current native network contract is schema 2, specified in
-`.codex/evidence/epic440-network-inventory-20261107.md`. It preserves every
-interface/view and consumer while explicitly distinguishing canonical scope,
-daemon management and TSW ownership. Schema 1 remains historical; no read-time
-upgrade invents missing ownership. Supported inheritance/producer relations
-must match canonical state; unsupported profiles/restrictions/transforms and
-network dependency kinds remain blocked. Existing storage/volume and provenance
-policies remain unchanged. Native capture drivers must explicitly require the
-new schema and exact reviewed contract/source/test/workflow pins. No live GO
-is granted by authoring v1.44.
+The current storage graph contract is specified in
+`.codex/evidence/epic440-storage-graph-20261107.md`. It explicitly supersedes
+native artifact schema 2 with schema 3: canonical daemon-global pool views,
+type-dependent consumers, separate raw/local API and expanded effective storage
+projections, retained root/producer evidence and independent structural checks.
+Returned volume ownership and Project root-volume URLs are preserved. Network
+field semantics remain those of the reviewed network contract; earlier schema
+numbers are historical and are never silently migrated.
+
+This amendment explicitly proposes two fixed local raw GET /1.0 observations per
+active queried daemon, before and after its graph queries, to admit only strict
+trusted/default-project/family/nonclustered state. This is the only query-set
+expansion: up to four root GETs plus existing per-query provenance rechecks, all
+counted under unchanged 2048-command/time/byte/entity limits. The full pinned
+family DTO and exact CLI version relationship must be validated; root config,
+certificates, addresses and auth identity stay in RAM. No API PID/Wrapper MainPID
+equality, continuous observation or atomic snapshot is inferred.
+
+An admitted active family must include exactly one default project in its full
+project collection; an empty or default-missing view is incomplete and blocked
+in capture and reader. An unqueried inactive family remains empty with null
+admission. Reader query provenance must bind version, initial root proof, every
+family graph query, then final root proof in that order. Existing list/detail
+instance type/location and volume content/location must agree before storage
+identity is trusted. These are completeness and observation-consistency checks;
+no query, privilege or budget expansion follows this clarification.
+
+Unsupported storage images/inheritance/selectors/snapshots/buckets/member/daemon
+relations remain explicit blockers; no consumer is discarded to pass. Existing
+network/provenance/private-evidence and mandatory returned volume owner checks
+remain. Exact plan/query-scope and implementation reviews, PC gates and a
+separate fresh committed-source schema3 capture plan are required. Native drivers
+must require schema 3 and exact current contract/source/test/workflow pins.
+Authoring v1.46 grants no capture, fixture, capability or runtime maintenance GO.
 
 The current F4 native collector explicitly supersedes its earlier total
 256-command allowance with a finite 2048-command cap, counting all repeated

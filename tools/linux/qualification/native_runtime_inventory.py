@@ -176,6 +176,12 @@ class Runner:
                 raise InventoryError("ENDPOINT_ENV_INVALID")
         elif argv[0] not in {"/usr/bin/systemctl", "/usr/bin/readlink", "/usr/bin/test"} or set(child_env) != {"LC_ALL", "PATH"}:
             raise InventoryError("COMMAND_IDENTITY_BLOCKED")
+        if command_id in {"lxd_server_root_initial", "lxd_server_root_final", "incus_server_root_initial", "incus_server_root_final"}:
+            root_family = "incus" if incus_client else "lxd"
+            if (not (lxd_client or incus_client) or not command_id.startswith(root_family + "_")
+                    or argv[1:] != ["--force-local", "query", "--request", "GET", "--raw", "/1.0"]
+                    or safe_args not in (None, [])):
+                raise InventoryError("ROOT_COMMAND_IDENTITY_BLOCKED")
         process = None
         try:
             process = self.popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -391,25 +397,12 @@ def _validate_complete_ownership(rows: list[dict[str, Any]]) -> None:
             }
             if actual_users != expected_users:
                 raise InventoryError("PROFILE_CONSUMER_RECIPROCITY_MISMATCH")
-        for kind in ("profiles", "networks", "pools"):
+        for kind in ("profiles", "networks"):
             for resource in row[kind]:
                 for ref in resource["used_by"]:
-                    if kind == "pools" and ref["kind"] == "storage-volumes":
-                        continue
                     target = resources.get(ref["project"])
                     if target is None or ref["name"] not in target[ref["kind"]]:
                         raise InventoryError("CONSUMER_REFERENCE_UNRESOLVED")
-        for pool in row["pools"]:
-            volume_refs = {ref["name"] for ref in pool["used_by"] if ref["kind"] == "storage-volumes"}
-            expected_volume_refs = {f"{pool['name']}/{volume['type']}/{volume['name']}"
-                                    for volume in pool["volumes"]}
-            if volume_refs != expected_volume_refs:
-                raise InventoryError("POOL_VOLUME_OWNERSHIP_MISMATCH")
-            for volume in pool["volumes"]:
-                for ref in volume["used_by"]:
-                    target = resources.get(ref["project"])
-                    if target is None or ref["name"] not in target[ref["kind"]]:
-                        raise InventoryError("VOLUME_CONSUMER_UNRESOLVED")
 
 
 def _project_network_flags(config: Any, project: str) -> tuple[bool | None, bool | None, str]:
@@ -556,6 +549,343 @@ def _validate_network_graph(rows: list[dict[str, Any]]) -> None:
             raise InventoryError("NETWORK_CONSUMER_RECIPROCITY_MISMATCH")
 
 
+ROOT_STRINGS = {"api_status", "api_version", "auth", "auth_user_name", "auth_user_method"}
+ROOT_ENV_STRINGS = {"certificate", "certificate_fingerprint", "driver", "driver_version", "firewall",
+                    "kernel", "kernel_architecture", "kernel_version", "os_name", "os_version", "project",
+                    "server", "server_event_mode", "server_name", "server_version", "storage", "storage_version"}
+
+
+def _root_string(value: Any, *, key: bool = False) -> None:
+    try:
+        valid = type(value) is str and len(value.encode("utf-8", "strict")) <= (256 if key else 65536)
+    except UnicodeError as exc:
+        raise InventoryError("SERVER_SCHEMA_INVALID") from exc
+    if not valid:
+        raise InventoryError("SERVER_SCHEMA_INVALID")
+
+
+def _root_array(value: Any, element: Callable[[Any], None], *, nullable: bool = True) -> None:
+    if value is None and nullable:
+        return
+    if not isinstance(value, list) or len(value) > MAX_ENTITIES:
+        raise InventoryError("SERVER_SCHEMA_INVALID")
+    for entry in value:
+        element(entry)
+
+
+def _root_map(value: Any, *, hidden: bool = False, nullable: bool = False) -> None:
+    if value is None and nullable:
+        return
+    if not isinstance(value, dict) or len(value) > MAX_ENTITIES:
+        raise InventoryError("SERVER_SCHEMA_INVALID")
+    for field_name, field_value in value.items():
+        _root_string(field_name, key=True)
+        if not (hidden and field_value is True):
+            _root_string(field_value)
+
+
+def _root_driver(value: Any) -> None:
+    if not isinstance(value, dict) or set(value) != {"Name", "Version", "Remote"} or type(value["Remote"]) is not bool:
+        raise InventoryError("SERVER_SCHEMA_INVALID")
+    _root_string(value["Name"])
+    _root_string(value["Version"])
+
+
+def _root_uint(value: Any) -> None:
+    if type(value) is not int or not 0 <= value <= 4294967295:
+        raise InventoryError("SERVER_SCHEMA_INVALID")
+
+
+def _validate_server_root(value: Any, *, incus: bool, cli_version: str) -> dict[str, Any]:
+    fields = ROOT_STRINGS | {"public", "api_extensions", "auth_methods", "config", "environment"}
+    if not incus:
+        fields |= {"client_certificate"}
+    optional = set() if incus else {"access_entitlements"}
+    if not isinstance(value, dict) or set(value) - optional != fields:
+        raise InventoryError("SERVER_SCHEMA_INVALID")
+    for field_name in ROOT_STRINGS:
+        _root_string(value[field_name])
+    for field_name in ("public",) if incus else ("public", "client_certificate"):
+        if type(value[field_name]) is not bool:
+            raise InventoryError("SERVER_SCHEMA_INVALID")
+    for field_name in ("api_extensions", "auth_methods"):
+        _root_array(value[field_name], _root_string)
+    if "access_entitlements" in value:
+        _root_array(value["access_entitlements"], _root_string, nullable=False)
+    _root_map(value["config"], hidden=not incus)
+    environment = value["environment"]
+    env_fields = ROOT_ENV_STRINGS | {"server_clustered", "server_pid", "addresses", "architectures",
+                                    "kernel_features", "lxc_features", "storage_supported_drivers"}
+    if not incus:
+        env_fields |= {"backup_metadata_version_range", "instance_types", "server_lts"}
+    if not isinstance(environment, dict) or set(environment) != env_fields:
+        raise InventoryError("SERVER_SCHEMA_INVALID")
+    for field_name in ROOT_ENV_STRINGS:
+        _root_string(environment[field_name])
+    if type(environment["server_clustered"]) is not bool or type(environment["server_pid"]) is not int or environment["server_pid"] < 0:
+        raise InventoryError("SERVER_SCHEMA_INVALID")
+    for field_name in ("addresses", "architectures"):
+        _root_array(environment[field_name], _root_string)
+    for field_name in ("kernel_features", "lxc_features"):
+        _root_map(environment[field_name], nullable=True)
+    _root_array(environment["storage_supported_drivers"], _root_driver)
+    if not incus:
+        if type(environment["server_lts"]) is not bool:
+            raise InventoryError("SERVER_SCHEMA_INVALID")
+        _root_array(environment["backup_metadata_version_range"], _root_uint)
+        _root_array(environment["instance_types"], _root_string)
+    version = environment["server_version"]
+    if not re.fullmatch(r"[A-Za-z0-9_.+-]{1,64}", version):
+        raise InventoryError("SERVER_ADMISSION_BLOCKED")
+    rendered = version + (" LTS" if not incus and environment["server_lts"] else "")
+    if (value["auth"] != "trusted" or value["public"] is not False or value["api_version"] != "1.0"
+            or value["api_status"] != "stable" or environment["server"] != ("incus" if incus else "lxd")
+            or environment["project"] != "default" or environment["server_clustered"] is not False
+            or rendered != cli_version):
+        raise InventoryError("SERVER_ADMISSION_BLOCKED")
+    projection = {key: value[key] for key in ("auth", "public", "api_version", "api_status")}
+    projection.update({key: environment[key] for key in ("server", "project", "server_version", "server_clustered")})
+    if not incus:
+        projection["server_lts"] = environment["server_lts"]
+    return projection
+
+
+def _read_server_root(runner: Runner, prefix: list[str], env: dict[str, str], before_query: Callable[[], None],
+                      *, incus: bool, cli_version: str, phase: str) -> dict[str, Any]:
+    if phase not in {"initial", "final"}:
+        raise InventoryError("DETAIL_PATH_INVALID")
+    # Validate the fixed path/prefix before either the provenance guard or a spawn.
+    _detail_uri("server-root", (), "default")
+    allowed = (["/usr/bin/incus", "--force-local"],) if incus else (
+        ["/usr/bin/lxc", "--force-local"], ["/snap/bin/lxc", "--force-local"])
+    if prefix not in allowed:
+        raise InventoryError("COMMAND_IDENTITY_BLOCKED")
+    before_query()
+    family = "incus" if incus else "lxd"
+    raw = _detail(runner, prefix, "server-root", (), "default", command_id=f"{family}_server_root_{phase}",
+                  env=env, safe_args=[])
+    return _validate_server_root(raw, incus=incus, cli_version=cli_version)
+
+
+def _storage_consumer_refs(value: Any, project: str, *, project_users: bool = False) -> list[dict[str, str]]:
+    if not isinstance(value, list):
+        raise InventoryError("RESOURCE_SCHEMA_INVALID")
+    refs = []
+    for link in value:
+        if not isinstance(link, str):
+            raise InventoryError("RESOURCE_SCHEMA_INVALID")
+        parsed = urlsplit(link)
+        parts = parsed.path.split("/")
+        if parsed.path == "/1.0":
+            raise InventoryError("STORAGE_DAEMON_CONSUMER_UNSUPPORTED")
+        if len(parts) > 2 and parts[2] == "images":
+            raise InventoryError("STORAGE_IMAGE_UNSUPPORTED")
+        if "snapshots" in parts:
+            raise InventoryError("STORAGE_SNAPSHOT_OR_SELECTOR_UNSUPPORTED")
+        if "buckets" in parts:
+            raise InventoryError("STORAGE_BUCKET_UNSUPPORTED")
+        if "target" in parse_qs(parsed.query, keep_blank_values=True):
+            raise InventoryError("STORAGE_MEMBER_SCOPE_UNSUPPORTED")
+        fallback = project if project_users and not (len(parts) > 2 and parts[2] == "storage-pools") else "default"
+        refs.extend(_consumer_refs([link], fallback))
+    return [dict(zip(("kind", "name", "project"), ref))
+            for ref in sorted({(ref["kind"], ref["name"], ref["project"]) for ref in refs})]
+
+
+def _storage_location(row: dict[str, Any]) -> str:
+    value = row.get("location")
+    if type(value) is not str or value not in {"", "none"}:
+        raise InventoryError("STORAGE_MEMBER_SCOPE_UNSUPPORTED")
+    return value
+
+
+def _pool_digest(row: dict[str, Any]) -> str:
+    if row.get("locations") not in (None, [], ["none"]):
+        raise InventoryError("STORAGE_MEMBER_SCOPE_UNSUPPORTED")
+    return _network_digest({key: value for key, value in row.items() if key not in {"name", "project", "used_by"}})
+
+
+def _storage_devices(devices: dict[str, dict[str, str]]) -> list[dict[str, Any]]:
+    records = []
+    for device_name, device in sorted(devices.items()):
+        if device["type"] != "disk" or not device.get("pool"):
+            continue
+        pool = _name(device["pool"])
+        source = device.get("source", "")
+        if "/" in source or (device.get("path") == "/" and source):
+            raise InventoryError("STORAGE_SNAPSHOT_OR_SELECTOR_UNSUPPORTED")
+        selector = "root" if device.get("path") == "/" else ("custom" if source else "pool_only")
+        records.append({"device": device_name, "pool": pool, "selector": selector,
+                        "source": _name(source) if source else None})
+    return records
+
+
+def _ref_set(value: Any) -> set[tuple[str, str, str]]:
+    if not isinstance(value, list) or any(not isinstance(ref, dict) or set(ref) != {"kind", "name", "project"} for ref in value):
+        raise InventoryError("ARTIFACT_RESOURCE_LINK_INVALID")
+    keys = []
+    for ref in value:
+        if type(ref["kind"]) is not str or ref["kind"] not in {"profiles", "instances", "networks", "storage-pools", "storage-volumes"}:
+            raise InventoryError("ARTIFACT_RESOURCE_LINK_INVALID")
+        name = ref["name"]
+        if ref["kind"] == "storage-volumes":
+            if not isinstance(name, str) or len(name.split("/")) != 3:
+                raise InventoryError("ARTIFACT_RESOURCE_LINK_INVALID")
+            pool, volume_type, volume_name = name.split("/")
+            _name(pool)
+            _volume_type(volume_type)
+            _name(volume_name)
+        else:
+            _name(name)
+        keys.append((ref["kind"], name, _name(ref["project"])))
+    if keys != sorted(set(keys)):
+        raise InventoryError("ARTIFACT_RESOURCE_LINK_INVALID")
+    return set(keys)
+
+
+def _canonical_pools(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [{key: pool[key] for key in ("name", "type", "metadata_digest", "used_by")}
+            for pool in rows[0]["pools"]] if rows else []
+
+
+def _storage_producers(producer: dict[str, Any], field: str, device_field: str) -> list[dict[str, Any]]:
+    entries = producer[field]
+    devices = producer[device_field]
+    if not isinstance(entries, list) or not isinstance(devices, list):
+        raise InventoryError("ARTIFACT_STORAGE_PRODUCER_INVALID")
+    disk_names = [device["name"] for device in devices if device["type"] == "disk"]
+    all_names = [device["name"] for device in devices]
+    if len(all_names) != len(set(all_names)) or len(entries) > len(disk_names):
+        raise InventoryError("ARTIFACT_STORAGE_PRODUCER_INVALID")
+    names = []
+    for entry in entries:
+        if not isinstance(entry, dict) or set(entry) != {"device", "pool", "selector", "source"}:
+            raise InventoryError("ARTIFACT_STORAGE_PRODUCER_INVALID")
+        names.append(_name(entry["device"]))
+        _name(entry["pool"])
+        if entry["device"] not in disk_names or type(entry["selector"]) is not str or entry["selector"] not in {"root", "custom", "pool_only"}:
+            raise InventoryError("ARTIFACT_STORAGE_PRODUCER_INVALID")
+        if entry["selector"] == "custom":
+            _name(entry["source"])
+        elif entry["source"] is not None:
+            raise InventoryError("ARTIFACT_STORAGE_PRODUCER_INVALID")
+    if names != sorted(set(names)):
+        raise InventoryError("ARTIFACT_STORAGE_PRODUCER_INVALID")
+    return entries
+
+
+def _validate_storage_graph(rows: list[dict[str, Any]], canonical: Any) -> None:
+    if not isinstance(canonical, list):
+        raise InventoryError("POOL_GLOBAL_VIEW_MISMATCH")
+    if canonical != _canonical_pools(rows):
+        raise InventoryError("POOL_GLOBAL_VIEW_MISMATCH")
+    pools = {}
+    for pool in canonical:
+        if not isinstance(pool, dict) or set(pool) != {"name", "type", "metadata_digest", "used_by"}:
+            raise InventoryError("POOL_GLOBAL_VIEW_MISMATCH")
+        name = _name(pool["name"])
+        _safe_enum(pool["type"])
+        if not isinstance(pool["metadata_digest"], str) or not re.fullmatch(r"[0-9a-f]{64}", pool["metadata_digest"]):
+            raise InventoryError("POOL_GLOBAL_VIEW_MISMATCH")
+        _ref_set(pool["used_by"])
+        if name in pools:
+            raise InventoryError("POOL_GLOBAL_VIEW_MISMATCH")
+        pools[name] = pool
+    if list(pools) != sorted(pools):
+        raise InventoryError("POOL_GLOBAL_VIEW_MISMATCH")
+    instances = {(row["project"], instance["name"]): instance for row in rows for instance in row["instances"]}
+    volumes = {}
+    root_volumes = {}
+    expected_pools: dict[str, set[tuple[str, str, str]]] = {name: set() for name in pools}
+    for row in rows:
+        flag = row["features_storage_volumes"]
+        if flag is not None and type(flag) is not bool:
+            raise InventoryError("STORAGE_FEATURE_INVALID")
+        if [pool["name"] for pool in row["pools"]] != list(pools):
+            raise InventoryError("POOL_GLOBAL_VIEW_MISMATCH")
+        for pool in row["pools"]:
+            if {key: pool[key] for key in ("name", "type", "metadata_digest", "used_by")} != pools[pool["name"]]:
+                raise InventoryError("POOL_GLOBAL_VIEW_MISMATCH")
+            for volume in pool["volumes"]:
+                if volume["type"] == "image":
+                    raise InventoryError("STORAGE_IMAGE_UNSUPPORTED")
+                if volume["owner_project"] != row["project"]:
+                    raise InventoryError("VOLUME_OWNER_PROJECT_UNSUPPORTED")
+                if type(volume["storage_location"]) is not str or volume["storage_location"] not in {"", "none"}:
+                    raise InventoryError("STORAGE_MEMBER_SCOPE_UNSUPPORTED")
+                key = (row["project"], pool["name"], volume["type"], volume["name"])
+                if key in volumes:
+                    raise InventoryError("RESOURCE_DUPLICATE")
+                volumes[key] = volume
+                if volume["type"] == "custom":
+                    if row["project"] != "default" and flag is not True:
+                        raise InventoryError("STORAGE_SHARED_CUSTOM_UNSUPPORTED")
+                    expected_pools[pool["name"]].add(("storage-volumes", f"{pool['name']}/custom/{volume['name']}", row["project"]))
+                else:
+                    instance_key = (row["project"], volume["name"])
+                    instance = instances.get(instance_key)
+                    wanted_type = "container" if volume["type"] == "container" else "virtual-machine"
+                    content = "filesystem" if volume["type"] == "container" else "block"
+                    if (instance_key in root_volumes or instance is None or instance["type"] != wanted_type
+                            or volume["content_type"] != content or instance["storage_location"] != volume["storage_location"]):
+                        raise InventoryError("STORAGE_ROOT_MISMATCH")
+                    root_volumes[instance_key] = key
+                    expected_pools[pool["name"]].add(("instances", volume["name"], row["project"]))
+    api_users: dict[tuple[str, str, str, str], set[tuple[str, str, str]]] = {}
+    for row in rows:
+        project = row["project"]
+        for kind in ("profiles", "instances"):
+            for producer in row[kind]:
+                if kind == "instances" and (type(producer["storage_location"]) is not str or producer["storage_location"] not in {"", "none"}):
+                    raise InventoryError("STORAGE_MEMBER_SCOPE_UNSUPPORTED")
+                api = _storage_producers(producer, "api_storage_devices", "devices" if kind == "profiles" else "local_devices")
+                effective = _storage_producers(producer, "effective_storage_devices", "expanded_devices") if kind == "instances" else []
+                if kind == "instances":
+                    roots = [entry for entry in effective if entry["selector"] == "root"]
+                    expected_root = root_volumes.get((project, producer["name"]))
+                    if len(roots) != 1 or expected_root is None or roots[0]["pool"] != expected_root[1]:
+                        raise InventoryError("STORAGE_ROOT_MISMATCH")
+                for projection, entries in (("api", api), ("effective", effective)):
+                    for entry in entries:
+                        if entry["pool"] not in pools:
+                            raise InventoryError("POOL_DEVICE_REFERENCE_UNRESOLVED")
+                        if kind == "profiles":
+                            expected_pools[entry["pool"]].add(("profiles", producer["name"], project))
+                        if entry["selector"] == "pool_only":
+                            if projection == "effective":
+                                raise InventoryError("STORAGE_SNAPSHOT_OR_SELECTOR_UNSUPPORTED")
+                            continue
+                        if entry["selector"] == "root":
+                            if kind == "profiles":
+                                continue
+                            key = (project, entry["pool"], producer["type"], producer["name"])
+                        else:
+                            if project != "default" and row["features_storage_volumes"] is not True:
+                                raise InventoryError("STORAGE_SHARED_CUSTOM_UNSUPPORTED")
+                            key = (project, entry["pool"], "custom", entry["source"])
+                        volume = volumes.get(key)
+                        if volume is None:
+                            raise InventoryError("VOLUME_DEVICE_REFERENCE_UNRESOLVED")
+                        if kind == "instances" and producer["storage_location"] != volume["storage_location"]:
+                            raise InventoryError("STORAGE_MEMBER_SCOPE_UNSUPPORTED")
+                        if projection == "api" and entry["selector"] == "custom":
+                            api_users.setdefault(key, set()).add((kind, producer["name"], project))
+        expected_project = {(kind, entry["name"], project) for kind in ("profiles", "instances") for entry in row[kind]}
+        expected_project.update(("networks", entry["name"], project) for entry in row["networks"]
+                                if entry["managed"] and entry["owner_project"] == project)
+        expected_project.update(("storage-volumes", f"{pool['name']}/{volume['type']}/{volume['name']}", project)
+                                for pool in row["pools"] for volume in pool["volumes"])
+        if _ref_set(row["used_by"]) != expected_project:
+            raise InventoryError("PROJECT_CONSUMER_RECIPROCITY_MISMATCH")
+    for key, volume in volumes.items():
+        expected = api_users.get(key, set()) if volume["type"] == "custom" else {("instances", volume["name"], key[0])}
+        if _ref_set(volume["used_by"]) != expected:
+            raise InventoryError("VOLUME_CONSUMER_RECIPROCITY_MISMATCH")
+    for name, pool in pools.items():
+        if _ref_set(pool["used_by"]) != expected_pools[name]:
+            raise InventoryError("POOL_CONSUMER_RECIPROCITY_MISMATCH")
+
+
 def _volume_device_users(devices: dict[str, dict[str, str]], project: str,
                          kind: str, name: str, instance_type: str = "") -> dict[tuple[str, str, str], set[tuple[str, str, str]]]:
     refs: dict[tuple[str, str, str], set[tuple[str, str, str]]] = {}
@@ -646,10 +976,12 @@ def _devices(value: Any) -> dict[str, dict[str, str]]:
     for name, device in value.items():
         _name(name)
         row = _string_map(device)
-        if set(row) - {"type", "name", "nictype", "parent", "network", "vlan", "listen", "connect", "bind", "ports", "path", "source", "pool", "size", "readonly", "required", "shift", "limits.cpu", "limits.memory", "boot.priority"}:
+        if set(row) - {"type", "name", "nictype", "parent", "network", "vlan", "source.type", "source.snapshot", "listen", "connect", "bind", "ports", "path", "source", "pool", "size", "readonly", "required", "shift", "limits.cpu", "limits.memory", "boot.priority"}:
             raise InventoryError("RESOURCE_SCHEMA_INVALID")
         if row.get("type") not in {"disk", "nic", "proxy"}:
             raise InventoryError("RESOURCE_SCHEMA_INVALID")
+        if {"source.type", "source.snapshot"} & set(row):
+            raise InventoryError("STORAGE_SNAPSHOT_OR_SELECTOR_UNSUPPORTED" if row["type"] == "disk" else "RESOURCE_SCHEMA_INVALID")
         if "vlan" in row and row["type"] != "nic":
             raise InventoryError("RESOURCE_SCHEMA_INVALID")
         result[name] = row
@@ -688,9 +1020,13 @@ def _consumer_refs(value: Any, project: str) -> list[dict[str, str]]:
 
 def _detail_uri(kind: str, names: tuple[str, ...], project: str) -> str:
     arities = {"projects": 1, "profiles": 1, "instances": 1, "networks": 1,
-               "storage-pools": 1, "storage-volumes": 3, "instance-list": 0}
+               "storage-pools": 1, "storage-volumes": 3, "instance-list": 0, "server-root": 0}
     if kind not in arities or len(names) != arities[kind]:
         raise InventoryError("DETAIL_PATH_INVALID")
+    if kind == "server-root":
+        if project != "default" or type(names) is not tuple or names != ():
+            raise InventoryError("DETAIL_PATH_INVALID")
+        return "/1.0"
     encoded_project = quote(_name(project), safe="")
     if kind == "instance-list":
         return f"/1.0/instances?project={encoded_project}&recursion=1"
@@ -776,7 +1112,7 @@ def _validate_pool_show(value: Any, name: str, project: str) -> dict[str, Any]:
     if "used_by" not in row:
         raise InventoryError("RESOURCE_SCHEMA_INVALID")
     _string_map(row.get("config"))
-    _consumer_refs(row["used_by"], project)
+    _storage_consumer_refs(row.get("used_by"), project)
     _validate_list_metadata(row, project)
     return row
 
@@ -785,6 +1121,12 @@ def _validate_volume_dto(value: Any, pool: str, *, incus: bool) -> dict[str, Any
     fields = {"name", "type", "content_type", "project", "description", "config",
               "used_by", "location", "created_at"}
     row = _only_keys(value, fields if incus else fields | {"pool"})
+    if row.get("type") == "image":
+        raise InventoryError("STORAGE_IMAGE_UNSUPPORTED")
+    if isinstance(row.get("name"), str) and "/" in row["name"]:
+        raise InventoryError("STORAGE_SNAPSHOT_OR_SELECTOR_UNSUPPORTED")
+    if "used_by" in row:
+        _storage_consumer_refs(row["used_by"], "default")
     if not incus:
         observed_pool = row.get("pool")
         if (type(observed_pool) is not str or not NAME.fullmatch(observed_pool)
@@ -825,7 +1167,7 @@ def _server_version(raw: bytes) -> str:
 
 
 def _inventory_client(runner: Runner, identity: str, socket: str, *, incus: bool,
-                      before_query: Callable[[], None]) -> tuple[str, list[dict[str, Any]]]:
+                      before_query: Callable[[], None], proof: dict[str, Any] | None = None) -> tuple[str, list[dict[str, Any]]]:
     binary = "/usr/bin/incus" if incus else ("/snap/bin/lxc" if identity == "lxd_snap" else "/usr/bin/lxc")
     variable = "INCUS_SOCKET" if incus else "LXD_SOCKET"
     env = {**ENV_BASE, variable: socket}
@@ -834,6 +1176,8 @@ def _inventory_client(runner: Runner, identity: str, socket: str, *, incus: bool
     before_query()
     _, version_raw, _ = runner.run(prefix + ["version"], command_id=f"{kind}_version", env=env, safe_args=[])
     server_version = _server_version(version_raw)
+    initial_admission = _read_server_root(runner, prefix, env, before_query, incus=incus,
+                                          cli_version=server_version, phase="initial")
     before_query()
     projects = _parse_json_command(runner, prefix + ["project", "list", "--format", "json"],
                                    command_id=f"{kind}_project_list", env=env, safe_args=[])
@@ -846,18 +1190,17 @@ def _inventory_client(runner: Runner, identity: str, socket: str, *, incus: bool
         project_name = _name(row.get("name"))
         if "used_by" not in row:
             raise InventoryError("RESOURCE_SCHEMA_INVALID")
+        _storage_consumer_refs(row["used_by"], project_name, project_users=True)
         _validate_list_metadata(row, project_name)
         names.append(project_name)
         project_entries[project_name] = row
     if len(set(names)) != len(names):
         raise InventoryError("PROJECT_DUPLICATE")
+    if names.count("default") != 1:
+        raise InventoryError("PROJECT_DEFAULT_MISSING")
     rows: list[dict[str, Any]] = []
     entity_count = len(names)
     network_producers: dict[tuple[str, str, str], dict[str, dict[str, str]]] = {}
-    volume_users: dict[tuple[str, str, str, str], set[tuple[str, str, str]]] = {}
-    pool_device_refs: set[tuple[str, str]] = set()
-    pool_device_users: dict[tuple[str, str], set[tuple[str, str, str]]] = {}
-    project_consumers: dict[str, set[tuple[str, str, str]]] = {}
     for project in names:
         before_query()
         show = _detail(runner, prefix, "projects", (project,), project,
@@ -867,16 +1210,17 @@ def _inventory_client(runner: Runner, identity: str, socket: str, *, incus: bool
             raise InventoryError("PROJECT_IDENTITY_MISMATCH")
         if "used_by" not in show:
             raise InventoryError("RESOURCE_SCHEMA_INVALID")
+        project_refs = _storage_consumer_refs(show["used_by"], project, project_users=True)
         _validate_list_metadata(show, project)
-        if not _same_consumers(project_entries[project]["used_by"], show["used_by"], project):
+        if _storage_consumer_refs(project_entries[project]["used_by"], project, project_users=True) != project_refs:
             raise InventoryError("PROJECT_CONSUMER_LIST_MISMATCH")
         if _string_map(project_entries[project].get("config")) != _string_map(show.get("config")):
             raise InventoryError("PROJECT_CONFIGURATION_DRIFT")
         network_flag, profile_flag, network_project = _project_network_flags(show["config"], project)
-        project_consumers[project] = {
-            (ref["kind"], ref["name"], ref["project"])
-            for ref in _consumer_refs(show["used_by"], project)
-        }
+        storage_flag_raw = show["config"].get("features.storage.volumes")
+        if storage_flag_raw not in {None, "true", "false"}:
+            raise InventoryError("STORAGE_FEATURE_INVALID")
+        storage_flag = None if storage_flag_raw is None else storage_flag_raw == "true"
         before_query()
         profiles = _parse_json_command(runner, prefix + ["profile", "list", "--project", project, "--format", "json"],
                                        command_id=f"{kind}_profile_list", env=env, safe_args=[project])
@@ -907,18 +1251,12 @@ def _inventory_client(runner: Runner, identity: str, socket: str, *, incus: bool
             if not _same_consumers(p["used_by"], pdetail["used_by"], project):
                 raise InventoryError("PROFILE_CONSUMER_LIST_MISMATCH")
             network_producers[(project, "profiles", pname)] = pdetail["devices"]
-            for (pool_ref, volume_type, volume_name), users in _volume_device_users(
-                    pdetail["devices"], project, "profiles", pname).items():
-                volume_users.setdefault((project, pool_ref, volume_type, volume_name), set()).update(users)
-            pool_device_refs.update((project, pool_ref) for pool_ref in _pool_device_refs(pdetail["devices"]))
-            for pool_ref in _pool_device_refs(pdetail["devices"]):
-                pool_device_users.setdefault((project, pool_ref), set()).add(("profiles", pname, project))
             device_rows = _device_types(pdetail["devices"])
             entity_count += len(device_rows)
             if entity_count > MAX_ENTITIES:
                 raise InventoryError("ENTITY_LIMIT")
             profile_rows.append({"name": pname, "used_by": _consumer_refs(pdetail["used_by"], project),
-                                 "devices": device_rows})
+                                 "devices": device_rows, "api_storage_devices": _storage_devices(pdetail["devices"])})
         instance_rows: list[dict[str, Any]] = []
         for item in instances:
             i = _only_keys(item, {"name", "project", "architecture", "config", "devices", "ephemeral",
@@ -943,22 +1281,21 @@ def _inventory_client(runner: Runner, identity: str, socket: str, *, incus: bool
                     list_profiles != sorted(set(_name(v) for v in expanded["profiles"])):
                 raise InventoryError("INSTANCE_PROFILE_LIST_MISMATCH")
             instance_type = _safe_enum(i.get("type"))
+            if (local.get("type") != instance_type or expanded.get("type") != instance_type
+                    or _storage_location(i) != _storage_location(local)
+                    or _storage_location(local) != _storage_location(expanded)):
+                raise InventoryError("INSTANCE_CONFIGURATION_DRIFT")
             if instance_type not in {"container", "virtual-machine"}:
                 raise InventoryError("INSTANCE_TYPE_UNSUPPORTED")
             network_producers[(project, "instances", iname)] = expanded["devices"]
-            for (pool_ref, volume_type, volume_name), users in _volume_device_users(
-                    {**expanded["devices"], **local["devices"]}, project, "instances", iname, instance_type).items():
-                volume_users.setdefault((project, pool_ref, volume_type, volume_name), set()).update(users)
-            pool_device_refs.update((project, pool_ref) for pool_ref in _pool_device_refs(
-                {**expanded["devices"], **local["devices"]}))
-            for pool_ref in _pool_device_refs({**expanded["devices"], **local["devices"]}):
-                pool_device_users.setdefault((project, pool_ref), set()).add(("instances", iname, project))
             entity_count += len(local["devices"]) + len(expanded["devices"])
             if entity_count > MAX_ENTITIES:
                 raise InventoryError("ENTITY_LIMIT")
             instance_rows.append({"name": iname, "status": _safe_enum(i.get("status")),
                                   "type": instance_type,
-                                  "profiles": list_profiles,
+                                  "profiles": list_profiles, "storage_location": _storage_location(local),
+                                  "api_storage_devices": _storage_devices(local["devices"]),
+                                  "effective_storage_devices": _storage_devices(expanded["devices"]),
                                   "local_devices": _device_types(local["devices"]),
                                   "expanded_devices": _device_types(expanded["devices"])})
         network_rows: list[dict[str, Any]] = []
@@ -987,6 +1324,7 @@ def _inventory_client(runner: Runner, identity: str, socket: str, *, incus: bool
         for item in pools:
             p = _only_keys(item, {"name", "project", "driver", "config", "description", "used_by",
                                   "status", "locations"})
+            _storage_consumer_refs(p.get("used_by"), project)
             _validate_list_metadata(p, project)
             if "used_by" not in p:
                 raise InventoryError("RESOURCE_SCHEMA_INVALID")
@@ -994,8 +1332,10 @@ def _inventory_client(runner: Runner, identity: str, socket: str, *, incus: bool
             before_query()
             pdetail = _validate_pool_show(_detail(runner, prefix, "storage-pools", (pool_name,), project,
                 command_id=f"{kind}_storage_show", env=env, safe_args=[pool_name, project]), pool_name, project)
-            if not _same_consumers(p["used_by"], pdetail["used_by"], project):
+            if _storage_consumer_refs(p["used_by"], project) != _storage_consumer_refs(pdetail["used_by"], project):
                 raise InventoryError("POOL_CONSUMER_LIST_MISMATCH")
+            if _pool_digest(p) != _pool_digest(pdetail):
+                raise InventoryError("POOL_GLOBAL_VIEW_MISMATCH")
             before_query()
             volumes = _parse_json_command(runner, prefix + ["storage", "volume", "list", pool_name,
                 "--project", project, "--format", "json"], command_id=f"{kind}_storage_volume_list",
@@ -1025,64 +1365,39 @@ def _inventory_client(runner: Runner, identity: str, socket: str, *, incus: bool
                 before_query()
                 detail = _validate_volume_show(_detail(runner, prefix, "storage-volumes", (pool_name, vtype, vname), project, command_id=f"{kind}_storage_volume_show", env=env,
                     safe_args=[pool_name, vtype, vname, project]), pool_name, vtype, vname, project, incus=incus)
-                if not _same_consumers(volume["used_by"], detail["used_by"], project):
+                if (_volume_content_type(volume.get("content_type")) != _volume_content_type(detail.get("content_type"))
+                        or _storage_location(volume) != _storage_location(detail)):
+                    raise InventoryError("VOLUME_METADATA_LIST_MISMATCH")
+                if _storage_consumer_refs(volume["used_by"], project) != _storage_consumer_refs(detail["used_by"], project):
                     raise InventoryError("VOLUME_CONSUMER_LIST_MISMATCH")
                 volume_rows.append({"name": vname, "type": vtype,
                                     "content_type": _volume_content_type(detail.get("content_type")),
-                                    "used_by": _consumer_refs(detail["used_by"], project)})
+                                    "owner_project": project, "storage_location": _storage_location(detail),
+                                    "used_by": _storage_consumer_refs(detail["used_by"], project)})
             volume_rows.sort(key=lambda row: (row["type"], row["name"]))
             pool_rows.append({"name": pool_name, "type": _safe_enum(pdetail["driver"]),
-                              "used_by": _consumer_refs(pdetail["used_by"], project), "volumes": volume_rows})
+                              "metadata_digest": _pool_digest(pdetail),
+                              "used_by": _storage_consumer_refs(pdetail["used_by"], project), "volumes": volume_rows})
         profile_rows.sort(key=lambda row: row["name"])
         instance_rows.sort(key=lambda row: row["name"])
         network_rows.sort(key=lambda row: row["name"])
         pool_rows.sort(key=lambda row: row["name"])
-        rows.append({"project": project, "features_networks": network_flag, "features_profiles": profile_flag,
+        rows.append({"project": project, "used_by": project_refs, "features_storage_volumes": storage_flag,
+                     "features_networks": network_flag, "features_profiles": profile_flag,
                      "effective_network_project": network_project, "profiles": profile_rows, "instances": instance_rows,
                      "networks": network_rows, "pools": pool_rows})
     rows.sort(key=lambda row: row["project"])
     _resolve_network_refs(rows, network_producers)
     _validate_network_graph(rows)
     _validate_complete_ownership(rows)
-    for row in rows:
-        project = row["project"]
-        expected_project_users = {
-            (kind, item["name"], project)
-            for kind, resources in (("profiles", row["profiles"]), ("instances", row["instances"]),
-                                    ("networks", row["networks"]))
-            for item in resources
-            if kind != "networks" or (item["managed"] and item["owner_project"] == project)
-        }
-        expected_project_users.update(
-            ("storage-volumes", f"{pool['name']}/{volume['type']}/{volume['name']}", project)
-            for pool in row["pools"] for volume in pool["volumes"]
-        )
-        if project_consumers[project] != expected_project_users:
-            raise InventoryError("PROJECT_CONSUMER_RECIPROCITY_MISMATCH")
-    available_volumes = {(row["project"], pool["name"], volume["type"], volume["name"])
-                         for row in rows for pool in row["pools"] for volume in pool["volumes"]}
-    available_pools = {(row["project"], pool["name"]) for row in rows for pool in row["pools"]}
-    if pool_device_refs - available_pools:
-        raise InventoryError("POOL_DEVICE_REFERENCE_UNRESOLVED")
-    if set(volume_users) - available_volumes:
-        raise InventoryError("VOLUME_DEVICE_REFERENCE_UNRESOLVED")
-    for project_row in rows:
-        project = project_row["project"]
-        for pool in project_row["pools"]:
-            actual_pool_users = {(ref["kind"], ref["name"], ref["project"])
-                                 for ref in pool["used_by"]}
-            expected_pool_users = set(pool_device_users.get((project, pool["name"]), set()))
-            expected_pool_users.update(
-                ("storage-volumes", f"{pool['name']}/{volume['type']}/{volume['name']}", project)
-                for volume in pool["volumes"]
-            )
-            if actual_pool_users != expected_pool_users:
-                raise InventoryError("POOL_CONSUMER_RECIPROCITY_MISMATCH")
-            for volume in pool["volumes"]:
-                actual = {(ref["kind"], ref["name"], ref["project"]) for ref in volume["used_by"]}
-                expected = volume_users.get((project, pool["name"], volume["type"], volume["name"]), set())
-                if actual != expected:
-                    raise InventoryError("VOLUME_CONSUMER_RECIPROCITY_MISMATCH")
+    canonical = _canonical_pools(rows)
+    _validate_storage_graph(rows, canonical)
+    final_admission = _read_server_root(runner, prefix, env, before_query, incus=incus,
+                                        cli_version=server_version, phase="final")
+    if initial_admission != final_admission:
+        raise InventoryError("SERVER_ADMISSION_DRIFT")
+    if proof is not None:
+        proof.update(pools=canonical, admission={"initial": initial_admission, "final": final_admission})
     return server_version, rows
 
 
@@ -1144,6 +1459,7 @@ def capture(source_commit: str, *, runner: Runner | None = None, now: Callable[[
         raise InventoryError("LXD_RUNTIME_INVENTORY_UNAVAILABLE")
     clients: dict[str, tuple[str, str, str]] = {}
     client_projects: dict[str, list[dict[str, Any]]] = {}
+    client_proofs: dict[str, dict[str, Any]] = {}
     for unit in lxd_active:
         identity = executables[unit]["identity_id"]
         path = "/var/snap/lxd/common/lxd/unix.socket" if identity == "lxd_snap" else "/var/lib/lxd/unix.socket"
@@ -1177,7 +1493,9 @@ def capture(source_commit: str, *, runner: Runner | None = None, now: Callable[[
             _recheck_all(runner, units, executables, endpoints)
             for client_key, (_client_unit, _client_identity, client_path) in clients.items():
                 _require_full_local_access(client_path, incus=(client_key == "incus"))
-        version, rows = _inventory_client(runner, identity, path, incus=(key == "incus"), before_query=recheck)
+        client_proofs[key] = {}
+        version, rows = _inventory_client(runner, identity, path, incus=(key == "incus"), before_query=recheck,
+                                          proof=client_proofs[key])
         executables[unit]["version"] = version
         client_projects[key] = rows
     # Repeat every fixed service, socket unit, executable and endpoint before evidence is durable.
@@ -1189,12 +1507,16 @@ def capture(source_commit: str, *, runner: Runner | None = None, now: Callable[[
                     "unit": "snap.lxd.daemon.unix.socket" if endpoint.startswith("lxd_") and endpoint == "lxd_snap" else
                     "incus.socket" if endpoint.startswith("incus_") else ""}
                    for _, (endpoint, present) in endpoints.items()]
-    return {"schema_version": 2, "target_host": TARGET, "source_commit": source_commit,
+    return {"schema_version": 3, "target_host": TARGET, "source_commit": source_commit,
             "captured_at_utc": stamp,
             "lxd_units": [units[u] for u in UNITS[:3]], "incus_units": [units[u] for u in UNITS[3:]],
             "lxd_executables": [executables[u] for u in ("lxd.service", "snap.lxd.daemon.service") if u in executables],
             "incus_executables": [executables["incus.service"]] if "incus.service" in executables else [],
             "sockets": socket_rows,
+            "lxd_admission": client_proofs.get("lxd", {}).get("admission"),
+            "incus_admission": client_proofs.get("incus", {}).get("admission"),
+            "lxd_pools": client_proofs.get("lxd", {}).get("pools", []),
+            "incus_pools": client_proofs.get("incus", {}).get("pools", []),
             "lxd_projects": client_projects.get("lxd", []),
             "incus_projects": client_projects.get("incus", []),
             "command_records": runner.records, "decision": "READ_ONLY_INVENTORY_COMPLETE"}
@@ -1220,12 +1542,57 @@ def _recheck_all(runner: Runner, initial_units: dict[str, dict[str, Any]],
         raise InventoryError("RUNTIME_ENDPOINT_DRIFT")
 
 
+def _validate_artifact_admissions(artifact: dict[str, Any]) -> None:
+    for family in ("lxd", "incus"):
+        proof = artifact[f"{family}_admission"]
+        executables = artifact[f"{family}_executables"]
+        initial_id, final_id = f"{family}_server_root_initial", f"{family}_server_root_final"
+        records = [row for row in artifact["command_records"] if row["command_id"] in {initial_id, final_id}]
+        family_records = [row["command_id"] for row in artifact["command_records"] if row["command_id"].startswith(family + "_")]
+        if not executables:
+            if proof is not None or family_records or artifact[f"{family}_pools"] or artifact[f"{family}_projects"]:
+                raise InventoryError("ARTIFACT_SERVER_ADMISSION_INVALID")
+            continue
+        if sum(row["project"] == "default" for row in artifact[f"{family}_projects"]) != 1:
+            raise InventoryError("PROJECT_DEFAULT_MISSING")
+        if not isinstance(proof, dict) or set(proof) != {"initial", "final"} or proof["initial"] != proof["final"]:
+            raise InventoryError("ARTIFACT_SERVER_ADMISSION_INVALID")
+        fields = {"auth", "public", "api_version", "api_status", "server", "project", "server_version", "server_clustered"}
+        if family == "lxd":
+            fields.add("server_lts")
+        for admission in (proof["initial"], proof["final"]):
+            if not isinstance(admission, dict) or set(admission) != fields:
+                raise InventoryError("ARTIFACT_SERVER_ADMISSION_INVALID")
+            version = admission["server_version"]
+            if not isinstance(version, str) or not re.fullmatch(r"[A-Za-z0-9_.+-]{1,64}", version):
+                raise InventoryError("ARTIFACT_SERVER_ADMISSION_INVALID")
+            if (admission["auth"] != "trusted" or admission["public"] is not False or admission["api_version"] != "1.0"
+                    or admission["api_status"] != "stable" or admission["server"] != family
+                    or admission["project"] != "default" or admission["server_clustered"] is not False):
+                raise InventoryError("ARTIFACT_SERVER_ADMISSION_INVALID")
+            if family == "lxd" and type(admission["server_lts"]) is not bool:
+                raise InventoryError("ARTIFACT_SERVER_ADMISSION_INVALID")
+            rendered = version + (" LTS" if family == "lxd" and admission["server_lts"] else "")
+            if len(executables) != 1 or executables[0]["version"] != rendered:
+                raise InventoryError("ARTIFACT_SERVER_ADMISSION_INVALID")
+        if (family_records.count(family + "_version") != 1 or family_records.count(family + "_project_list") != 1
+                or len(family_records) < 4 or family_records[:2] != [family + "_version", initial_id]
+                or family_records[-1] != final_id):
+            raise InventoryError("ARTIFACT_SERVER_ADMISSION_INVALID")
+        if ([row["command_id"] for row in records] != [initial_id, final_id]
+                or any(row["safe_args"] or type(row["exit_status"]) is not int or row["exit_status"] != 0
+                       or any(type(row[field]) is not int or not 0 <= row[field] <= MAX_STREAM
+                              for field in ("stdout_bytes", "stderr_bytes")) for row in records)):
+            raise InventoryError("ARTIFACT_SERVER_ADMISSION_INVALID")
+
+
 def _validate_artifact(artifact: dict[str, Any]) -> bytes:
     expected = {"schema_version", "target_host", "source_commit", "captured_at_utc", "lxd_units", "incus_units",
-                "lxd_executables", "incus_executables", "sockets", "lxd_projects", "incus_projects", "command_records", "decision"}
+                "lxd_executables", "incus_executables", "sockets", "lxd_projects", "incus_projects", "command_records", "decision",
+                "lxd_pools", "incus_pools", "lxd_admission", "incus_admission"}
     if set(artifact) != expected or artifact["decision"] != "READ_ONLY_INVENTORY_COMPLETE":
         raise InventoryError("ARTIFACT_SCHEMA_INVALID")
-    if type(artifact["schema_version"]) is not int or artifact["schema_version"] != 2 or artifact["target_host"] != TARGET or not HEX40.fullmatch(artifact["source_commit"]):
+    if type(artifact["schema_version"]) is not int or artifact["schema_version"] != 3 or artifact["target_host"] != TARGET or not HEX40.fullmatch(artifact["source_commit"]):
         raise InventoryError("ARTIFACT_IDENTITY_INVALID")
     unit_keys = {"unit", "load_state", "active_state", "sub_state", "unit_file_state", "main_pid"}
     for key, wanted in (("lxd_units", set(UNITS[:3])), ("incus_units", set(UNITS[3:]))):
@@ -1309,7 +1676,8 @@ def _validate_artifact(artifact: dict[str, Any]) -> bytes:
                    "incus_profile_show", "incus_instance_list", "incus_instance_config_show",
                    "incus_instance_config_show_expanded", "incus_network_list", "incus_network_show",
                    "incus_storage_list", "incus_storage_show", "lxd_storage_volume_list",
-                   "lxd_storage_volume_show", "incus_storage_volume_list", "incus_storage_volume_show"}
+                   "lxd_storage_volume_show", "incus_storage_volume_list", "incus_storage_volume_show",
+                   "lxd_server_root_initial", "lxd_server_root_final", "incus_server_root_initial", "incus_server_root_final"}
     if not isinstance(artifact["command_records"], list) or len(artifact["command_records"]) > MAX_COMMANDS:
         raise InventoryError("ARTIFACT_COMMANDS_INVALID")
     for row in artifact["command_records"]:
@@ -1327,14 +1695,14 @@ def _validate_artifact(artifact: dict[str, Any]) -> bytes:
         if project_names != sorted(set(project_names)):
             raise InventoryError("ARTIFACT_PROJECT_ORDER_INVALID")
         for project in projects:
-            if set(project) != {"project", "features_networks", "features_profiles", "effective_network_project", "profiles", "instances", "networks", "pools"}:
+            if not isinstance(project, dict) or set(project) != {"project", "used_by", "features_storage_volumes", "features_networks", "features_profiles", "effective_network_project", "profiles", "instances", "networks", "pools"}:
                 raise InventoryError("ARTIFACT_RESOURCE_SCHEMA_INVALID")
             _name(project["project"])
             _name(project["effective_network_project"])
-            for field, keys in (("profiles", {"name", "used_by", "devices", "network_refs"}),
-                                ("instances", {"name", "status", "type", "profiles", "local_devices", "expanded_devices", "network_refs"}),
+            for field, keys in (("profiles", {"name", "used_by", "devices", "network_refs", "api_storage_devices"}),
+                                ("instances", {"name", "status", "type", "profiles", "local_devices", "expanded_devices", "network_refs", "storage_location", "api_storage_devices", "effective_storage_devices"}),
                                 ("networks", {"name", "type", "managed", "owner_project", "config_digest", "used_by"}),
-                                ("pools", {"name", "type", "used_by", "volumes"})):
+                                ("pools", {"name", "type", "metadata_digest", "used_by", "volumes"})):
                 if not isinstance(project[field], list):
                     raise InventoryError("ARTIFACT_RESOURCE_SCHEMA_INVALID")
                 names = [_name(resource.get("name")) for resource in project[field] if isinstance(resource, dict)]
@@ -1375,7 +1743,7 @@ def _validate_artifact(artifact: dict[str, Any]) -> bytes:
                             raise InventoryError("ARTIFACT_VOLUME_INVALID")
                         volume_ids = set()
                         for volume in volumes:
-                            if set(volume) != {"name", "type", "content_type", "used_by"}:
+                            if set(volume) != {"name", "type", "content_type", "owner_project", "storage_location", "used_by"}:
                                 raise InventoryError("ARTIFACT_VOLUME_INVALID")
                             volume_identity = (_volume_type(volume["type"]), _name(volume["name"]))
                             if volume_identity in volume_ids:
@@ -1409,6 +1777,8 @@ def _validate_artifact(artifact: dict[str, Any]) -> bytes:
                                     raise InventoryError("ARTIFACT_DEVICE_INVALID")
         _validate_network_graph(projects)
         _validate_complete_ownership(projects)
+        _validate_storage_graph(projects, artifact[family.replace("_projects", "_pools")])
+    _validate_artifact_admissions(artifact)
     encoded = (json.dumps(artifact, sort_keys=True, separators=(",", ":"), ensure_ascii=True) + "\n").encode("ascii")
     if len(encoded) > MAX_ARTIFACT:
         raise InventoryError("ARTIFACT_LIMIT")

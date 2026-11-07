@@ -1,6 +1,6 @@
 # Context pack — issue-449-lcm-w09
 
-## Current continuation — v1.45, 2026-11-07
+## Current continuation — v1.46, 2026-11-07
 
 Branch `fix/epic440-completion-20261107`, baseline `b87fe5c9`. The user requests
 complete Epic #440 remediation on the two named hosts. Current bounded phase:
@@ -15,11 +15,19 @@ Bounded LXD/Incus volume DTO pool identity follows
 `.codex/evidence/epic440-volume-dto-20261107.md`; ownership and schema 2 remain
 unchanged. No runtime or capture release follows this amendment.
 
-Native network inventory uses explicit schema 2 under
-`.codex/evidence/epic440-network-inventory-20261107.md`; schema 1 cannot be
-silently upgraded. Canonical scope, daemon management and TSW ownership remain
-distinct, all interfaces/consumers preserved, unsupported relations blocked.
-Source/schema verification and future capture are separate exact-hash phases.
+Native artifact schema 3 explicitly supersedes schema 2 under
+`.codex/evidence/epic440-storage-graph-20261107.md`; earlier schema files stay
+historical, with no invented migration. Global pools, separate API/effective
+storage graphs and retained producer/root evidence preserve actual ownership.
+Network field semantics remain unchanged. Proposed fixed server-root initial
+and final raw GETs (two per active queried family, max four) require strict
+trusted/default/family/noncluster admission and exact pinned DTO/version checks,
+all original per-query guards and unchanged limits. Root secrets remain RAM-only.
+Admitted active families require exactly one default project; empty/default-
+missing inventories are incomplete. Inactive families remain empty/null-admitted.
+Reader command order and list/detail storage identity agreement are required.
+Unsupported cases remain blockers. Code verification, fresh schema3 capture and
+runtime qualification are separate releases; none is implied by this amendment.
 
 Native F4 command allowance is explicitly 2048 total, including every repeated
 trust check; the earlier native 256 allowance is superseded only for this
