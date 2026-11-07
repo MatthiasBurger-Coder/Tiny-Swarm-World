@@ -388,7 +388,7 @@ def _reset_failure_guidance_lines(log_text: str) -> tuple[str, ...]:
         "    incus profile get docker-swarm security.privileged",
         "  If these are disposable Tiny Swarm World nodes, unset only the",
         "  setting that reports true, then rerun install.sh.",
-        "  Details: documentation/user_guide/troubleshooting.adoc#first-response",
+        "  Details: documentation/handbook/03-user-guide/user_guide/troubleshooting.adoc#first-response",
     )
 
 

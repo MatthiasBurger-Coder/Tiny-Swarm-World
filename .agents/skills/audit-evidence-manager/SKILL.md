@@ -10,7 +10,7 @@ Own audit evidence structure, findings register, evidence matrix, remediation
 plans, and evidence status language for Tiny Swarm World.
 
 ## Scope
-Maintains `documentation/audit/` when present and reviews audit-related links in
+Maintains `documentation/handbook/06-quality-security/audit/` when present and reviews audit-related links in
 QMS, ISMS, traceability, live evidence, release, and workflow documentation.
 
 ## Non-goals
@@ -46,7 +46,7 @@ to `isms-light-security-governance-expert`, live run evidence to
 This skill is review-only and does not declare an issue `DONE`. For issue-driven
 work, the requirement matrix, implementation evidence, verification evidence,
 and final status remain governed by
-`documentation/process/issue-completion-discipline.md` and
+`documentation/handbook/05-development/process/issue-completion-discipline.md` and
 `issue-completion-auditor`. Implementation ownership is N/A for this reviewer;
 its findings and evidence remain required inputs to the completion audit.
 

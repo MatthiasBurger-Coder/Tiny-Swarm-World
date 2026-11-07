@@ -44,11 +44,11 @@ Inspect the relevant subset of:
 - user requirement and acceptance criteria
 - root `AGENTS.md`
 - root `QUALITY.md`
-- `documentation/process/issue-completion-discipline.md`
-- `documentation/epics`
-- `documentation/arc42`
+- `documentation/handbook/05-development/process/issue-completion-discipline.md`
+- `documentation/handbook/01-product/epics`
+- `documentation/handbook/02-architecture/arc42`
 - `documentation/adr`
-- existing `documentation/workflow`
+- existing `documentation/handbook/05-development/workflow`
 - `.agents/orchestrator`
 - `.agents/roles`
 - `.agents/skills`
@@ -59,7 +59,7 @@ Use EPIC source precedence:
 
 1. the EPIC explicitly named by the user
 2. the EPIC referenced by the active workflow
-3. the EPIC that directly matches the requested domain area under `documentation/epics`
+3. the EPIC that directly matches the requested domain area under `documentation/handbook/01-product/epics`
 4. no EPIC, reported as an open traceability gap
 
 When an active workflow exists and the user asks for a new requirement or workflow, first determine whether the request extends, replaces or conflicts with the active workflow. Return `REQUIRES_REFINEMENT` if that relationship is unclear.
@@ -105,7 +105,7 @@ Does the implementation still match the EPIC?
 
 Before implementation can be approved, the gatekeeper must require a
 requirement matrix that follows
-`documentation/process/issue-completion-discipline.md`.
+`documentation/handbook/05-development/process/issue-completion-discipline.md`.
 
 The matrix must include every explicit and implicit behavior requirement,
 mentioned file, service, port, command, workflow and evidence path from the

@@ -3,8 +3,8 @@
 ## Rules
 
 - Larger workflow execution should happen on a dedicated branch.
-- New workflow creation must ensure a dedicated workflow branch exists, is checked out and is verified before any workflow artifact is created or modified: `workflow.md`, `documentation/workflow/**`, workplans, slice definitions, workflow-specific documentation changes, implementation tasks or write-capable agent assignments.
-- Branch naming follows the matrix in `documentation/process/branch-governance.md`.
+- New workflow creation must ensure a dedicated workflow branch exists, is checked out and is verified before any workflow artifact is created or modified: `workflow.md`, `documentation/handbook/05-development/workflow/**`, workplans, slice definitions, workflow-specific documentation changes, implementation tasks or write-capable agent assignments.
+- Branch naming follows the matrix in `documentation/handbook/05-development/process/branch-governance.md`.
 - `skills update` uses `docs/skills-<short-topic>-<yyyyMMdd>` for documentation and registry-only changes, or `architecture/agents-<short-topic>-<yyyyMMdd>` for role, routing or process structure changes.
 - For `workflow create`, use `feature/workflow-<short-topic>-<yyyyMMdd>` by default, with `fix/`, `docs/` or `architecture/` only when the workflow scope clearly matches that category.
 - For `workflow execute`, use the branch declared by the active checked workflow and stop on branch mismatch.

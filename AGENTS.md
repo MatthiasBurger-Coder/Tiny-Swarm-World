@@ -69,7 +69,9 @@ explicit task changes the product scope.
   configuration data.
 - `infra/config/compose`: image build contexts and related Dockerfiles for stack services.
 - `tests`: unit tests organized by architecture layer.
-- `documentation`: arc42, deployment, system, and user guide documentation.
+- `documentation`: Product Handbook; `documentation/README.adoc` is the master
+  index and `documentation/document.adoc` is the continuous edition. arc42 is
+  the architecture part of the handbook.
 
 ## Architecture Rules
 
@@ -162,7 +164,7 @@ inspection.
 - Keep Linux/WSL behavior as the baseline in tests.
 
 The canonical verification-state policy is
-`documentation/process/verification-state-policy.md`. It governs the
+`documentation/handbook/05-development/process/verification-state-policy.md`. It governs the
 distinction between default local verification, Three-Amigos applicability,
 explicit live consent, live prerequisite/result states, and external quality
 gate availability. A local quality-gate pass must not be reported as live,
@@ -170,6 +172,14 @@ Selenium, or SonarQube success without executed evidence.
 
 ## Documentation
 
+- Use `documentation/README.adoc` as the master documentation hierarchy.
+  Assign each new source to exactly one of the seven handbook parts and add
+  its link to that part's `README.adoc` source catalogue. Store the source
+  physically under `documentation/handbook/<part>/`; do not create parallel
+  specialist directories directly under `documentation/`.
+- Keep one canonical source per topic. Architecture lives under
+  `documentation/handbook/02-architecture/`; audit registers live under
+  `documentation/handbook/06-quality-security/audit/`.
 - Keep documentation aligned with the Linux/WSL-only operating model.
 - Prefer forward-slash paths in documentation and examples.
 - Update the relevant file under `documentation/` when a behavior, workflow, or
@@ -194,7 +204,7 @@ This is the repository governance identity for Tiny Swarm World agent and skill
 work. It is not a new callable role file. It applies root `AGENTS.md`,
 `QUALITY.md`, the active workflow, and the owner map before specialist routing.
 Issue-driven work also applies
-`documentation/process/issue-completion-discipline.md` as the completion
+`documentation/handbook/05-development/process/issue-completion-discipline.md` as the completion
 authority for requirement extraction, evidence, verification and final status.
 
 Tiny Swarm World is currently Docker Swarm first. Tiny Swarm World must remain
@@ -227,10 +237,10 @@ tiny-swarm-world-lead-architect
 
 Canonical audit and navigation paths:
 
-- `documentation/process/skills/audit/skill-registry.md`
-- `documentation/process/skills/audit/skill-registry.json`
-- `documentation/process/skills/audit/organigramm.md`
-- `documentation/process/skills/audit/owner-map.md`
+- `documentation/handbook/05-development/process/skills/audit/skill-registry.md`
+- `documentation/handbook/05-development/process/skills/audit/skill-registry.json`
+- `documentation/handbook/05-development/process/skills/audit/organigramm.md`
+- `documentation/handbook/05-development/process/skills/audit/owner-map.md`
 
 Repository files remain authoritative. The registry and organigramm are audit,
 navigation, and coordination artifacts.
@@ -312,13 +322,13 @@ authoritative skill entrypoints.
   Follow the skill's duplicate checks, ID validation and conflict handling.
   Skill invocation alone does not authorize GitHub publication.
 - Issue and workflow text must follow
-  `documentation/process/verification-state-policy.md`: local quality is the
+  `documentation/handbook/05-development/process/verification-state-policy.md`: local quality is the
   default authority; live and external checks require applicability, explicit
   consent or access, and state-specific evidence.
 
 - Exact `workflow execute` uses `.agents/skills/workflow-executor/SKILL.md`.
 - Issue-driven work must follow
-  `documentation/process/issue-completion-discipline.md`: extract a
+  `documentation/handbook/05-development/process/issue-completion-discipline.md`: extract a
   requirement matrix before implementation, map every requirement to
   implementation and verification evidence, and block `DONE` when any
   requirement is open or unverified.

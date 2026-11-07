@@ -35,14 +35,14 @@ Read these files before implementation:
 
 1. Root `AGENTS.md`.
 2. Root `QUALITY.md`.
-3. `documentation/process/issue-completion-discipline.md`.
-4. Active workflow under `documentation/workflow`.
+3. `documentation/handbook/05-development/process/issue-completion-discipline.md`.
+4. Active workflow under `documentation/handbook/05-development/workflow`.
 5. `.agents/orchestrator/routing-rules.md`.
 6. `.agents/orchestrator/swarm-orchestrator.md`.
 7. Relevant `.agents/roles` files for the slice.
 8. Relevant `.agents/skills` files for the slice.
 
-When the selected workflow is issue-local, read its sibling `context-pack.md` and `context-pack.json` first. Do not substitute the root context pack, which may belong to another issue. For the root workflow, use `documentation/workflow/context-pack.*`. Reopen authoritative files when a recorded hash changed, the slice touches governance files, or any conflict is detected.
+When the selected workflow is issue-local, read its sibling `context-pack.md` and `context-pack.json` first. Do not substitute the root context pack, which may belong to another issue. For the root workflow, use `documentation/handbook/05-development/workflow/context-pack.*`. Reopen authoritative files when a recorded hash changed, the slice touches governance files, or any conflict is detected.
 
 ## Active Workflow Discovery
 
@@ -51,12 +51,12 @@ Resolve the workflow for the request in this order:
 1. If the user or orchestration explicitly supplies a workflow path, require a
    normalized repository-relative path and select that exact file.
 2. If the request identifies an issue number, find exactly one matching row in
-   `documentation/workflow/workflow.index.md` whose state is
+   `documentation/handbook/05-development/workflow/workflow.index.md` whose state is
    `ACTIVE_FOR_ISSUE_<number>`. Verify the workflow and sibling context-pack
    paths exist and that the workflow Branch matches the index row.
 3. If no issue/path was supplied, preserve the legacy root behavior and select
-   `documentation/workflow/workflow.md` when present.
-4. Consult `documentation/workflow/README.md` only when the earlier rules do
+   `documentation/handbook/05-development/workflow/workflow.md` when present.
+4. Consult `documentation/handbook/05-development/workflow/README.md` only when the earlier rules do
    not select a workflow.
 
 Stop if the index has duplicate active rows for the requested issue, the
@@ -69,7 +69,7 @@ issue-local workflow is selected while the #355 root workflow remains intact.
 `workflow execute` may start only when both are present and checked:
 
 1. the complete selected workflow file and its selected context pack;
-2. checked or updated `documentation/arc42/**` documentation for that workflow.
+2. checked or updated `documentation/handbook/02-architecture/arc42/**` documentation for that workflow.
 
 The selected workflow may be the root file or an issue-local indexed file.
 Stop when either artifact is missing or contradicts `AGENTS.md`, `QUALITY.md`,
@@ -295,7 +295,7 @@ automatically.
 Before the first write-capable slice and whenever a slice depends on cached
 governance context, verify the selected workflow's sibling `context-pack.json`
 against the current files it hashes. For an issue-local workflow, do not use
-`documentation/workflow/context-pack.json`; that file belongs to the root
+`documentation/handbook/05-development/workflow/context-pack.json`; that file belongs to the root
 workflow. A stale selected context pack is not a failure when the active slice
 is responsible for refreshing it; otherwise it is a S3/S3D blocker and the
 executor must reread authoritative files directly.
@@ -303,7 +303,7 @@ executor must reread authoritative files directly.
 ## Process Performance Metrics
 
 When `.agents/skills/process-performance-profiler/SKILL.md` exists, use it to
-record workflow-process diagnostics under `documentation/workflow/metrics/**` when the
+record workflow-process diagnostics under `documentation/handbook/05-development/workflow/metrics/**` when the
 active workflow requests metrics. Metrics may include phase timing, role count,
 file-read count, quality command count, repeated governance reads, retry count,
 blocker count, longest critical path and unused parallelization opportunities.
@@ -322,7 +322,7 @@ The `workflow execute` command authorizes the configured subagent workflow for t
 ## Issue Completion Discipline
 
 For every issue-driven workflow slice, apply
-`documentation/process/issue-completion-discipline.md` as a hard execution
+`documentation/handbook/05-development/process/issue-completion-discipline.md` as a hard execution
 gate.
 
 Before implementation:
@@ -408,9 +408,9 @@ slices or commit unresolved failures.
 
 For each slice:
 
-1. Read `documentation/workflow/workflow.md`.
+1. Read `documentation/handbook/05-development/workflow/workflow.md`.
 2. Read root `AGENTS.md` and relevant skill definitions.
-3. Read `documentation/process/issue-completion-discipline.md`.
+3. Read `documentation/handbook/05-development/process/issue-completion-discipline.md`.
 4. Create or verify the requirement matrix before implementation.
 5. Run the Three Amigos or specialist review gate for the slice.
 6. Run S3D dependency, topological-order and conflict-lock checks.
@@ -515,7 +515,7 @@ Stop and report if:
 - a quality or validation failure cannot be classified except as `UNKNOWN_FAILURE`
 - the typed error owner cannot be mapped to a verified role, skill or documented interim owner
 - typed-router retries exceed `maxRetries = 3`
-- checked `documentation/workflow/workflow.md` is missing
+- checked `documentation/handbook/05-development/workflow/workflow.md` is missing
 - checked or updated arc42 documentation is missing
 - the workflow branch is missing, inactive, or cannot be verified as a local ref
 - a change would introduce shared Java code modules between microservices

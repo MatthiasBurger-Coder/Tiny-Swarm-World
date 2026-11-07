@@ -9,7 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 SKILLS = ROOT / ".agents" / "skills"
-REGISTRY = ROOT / "documentation/process/skills/audit/skill-registry.json"
+REGISTRY = ROOT / "documentation/handbook/05-development/process/skills/audit/skill-registry.json"
 
 
 def classify_skill(name: str) -> str:

@@ -43,7 +43,7 @@ Record:
 - Confidence Level
 - Decision
 
-Ask focused clarification questions when blocking questions remain. Do not create a final `documentation/workflow/workflow.md` and do not release `workflow execute` while blocking questions remain.
+Ask focused clarification questions when blocking questions remain. Do not create a final `documentation/handbook/05-development/workflow/workflow.md` and do not release `workflow execute` while blocking questions remain.
 
 Automatic clarification attempts are capped at `maxRetries = 3`. After the third unresolved attempt, return `REQUIRES_REFINEMENT`, stop the loop and escalate to the Root Architect.
 
@@ -123,7 +123,7 @@ Generate only a gate-level slice outline:
 
 When the decision is `REQUIRES_REFINEMENT`, slice outlines are provisional only and must name the missing decision, contract or ownership point that prevents execution.
 
-Do not create or regenerate `documentation/workflow` here. Route that work to `workflow-authoring` after a `READY_FOR_WORKFLOW` decision.
+Do not create or regenerate `documentation/handbook/05-development/workflow` here. Route that work to `workflow-authoring` after a `READY_FOR_WORKFLOW` decision.
 
 ## Inspection Depth Rule
 

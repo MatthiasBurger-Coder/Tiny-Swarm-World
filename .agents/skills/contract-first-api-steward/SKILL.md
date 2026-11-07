@@ -36,7 +36,7 @@ The Contract-First API Steward may block workflow slices that introduce or chang
 
 - `AGENTS.md`
 - `QUALITY.md`
-- active `documentation/workflow/**`
+- active `documentation/handbook/05-development/workflow/**`
 - REST/OpenAPI docs when present
 - protobuf files when present
 - adapter source files named by the slice

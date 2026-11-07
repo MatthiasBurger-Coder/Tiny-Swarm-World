@@ -6,7 +6,7 @@ Read the authoritative sources before classifying conflicts:
 
 1. `AGENTS.md`
 2. `QUALITY.md`
-3. active `documentation/workflow/**`
+3. active `documentation/handbook/05-development/workflow/**`
 4. `.agents/orchestrator/**`
 5. `.agents/skills/**`
 6. `.agents/roles/**`

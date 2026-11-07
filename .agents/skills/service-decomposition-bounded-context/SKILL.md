@@ -63,9 +63,9 @@ Inspect the relevant subset of:
 
 - root `AGENTS.md`
 - root `QUALITY.md`
-- active `documentation/workflow/**`
+- active `documentation/handbook/05-development/workflow/**`
 - `documentation/adr/**`, especially service, contract and data ownership ADRs
-- `documentation/arc42/**`
+- `documentation/handbook/02-architecture/arc42/**`
 - `docs/workplan/**` when referenced by the workflow
 - current Gradle modules and source package layout when a concrete service
   boundary is named

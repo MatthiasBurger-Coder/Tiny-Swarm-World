@@ -19,7 +19,7 @@ Read before auditing:
 
 1. Root `AGENTS.md`.
 2. Root `QUALITY.md`.
-3. `documentation/process/issue-completion-discipline.md`.
+3. `documentation/handbook/05-development/process/issue-completion-discipline.md`.
 4. The complete issue, workflow slice or user request under audit.
 5. The requirement matrix for the issue or slice.
 6. Changed files in the branch.

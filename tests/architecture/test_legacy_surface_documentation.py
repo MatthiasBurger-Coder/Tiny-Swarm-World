@@ -5,9 +5,9 @@ from pathlib import Path
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 INFRA_ROOT = REPOSITORY_ROOT / "infra"
 LIVE_SURFACE_CATALOG = (
-    REPOSITORY_ROOT / "documentation" / "system" / "live-operation-surfaces.adoc"
+    REPOSITORY_ROOT / "documentation/handbook/04-operations/system" / "live-operation-surfaces.adoc"
 )
-DEPLOYMENT_DOC = REPOSITORY_ROOT / "documentation" / "arc42" / "07_deployment" / "system.adoc"
+DEPLOYMENT_DOC = REPOSITORY_ROOT / "documentation/handbook/02-architecture/arc42" / "07_deployment" / "system.adoc"
 
 
 class TestLegacySurfaceDocumentation(unittest.TestCase):
@@ -218,12 +218,12 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
         self.assertEqual([], present_paths)
 
     def test_operator_docs_reference_live_operation_surface_catalog(self):
-        catalog_path = "documentation/system/live-operation-surfaces.adoc"
+        catalog_path = "documentation/handbook/04-operations/system/live-operation-surfaces.adoc"
         docs = [
             REPOSITORY_ROOT / "README.md",
             DEPLOYMENT_DOC,
-            REPOSITORY_ROOT / "documentation" / "user_guide" / "usage.adoc",
-            REPOSITORY_ROOT / "documentation" / "user_guide" / "installation.adoc",
+            REPOSITORY_ROOT / "documentation/handbook/03-user-guide/user_guide" / "usage.adoc",
+            REPOSITORY_ROOT / "documentation/handbook/03-user-guide/user_guide" / "installation.adoc",
         ]
 
         missing_reference = [

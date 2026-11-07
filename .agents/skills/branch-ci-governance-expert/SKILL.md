@@ -10,9 +10,9 @@ Own branch protection expectations, CI quality gate policy, PR review evidence,
 and merge governance.
 
 ## Scope
-Maintains `documentation/governance/branch-protection.md`,
-`documentation/governance/ci-quality-gates.md`, and
-`documentation/governance/pr-review-policy.md` when present.
+Maintains `documentation/handbook/06-quality-security/governance/branch-protection.md`,
+`documentation/handbook/06-quality-security/governance/ci-quality-gates.md`, and
+`documentation/handbook/06-quality-security/governance/pr-review-policy.md` when present.
 
 ## Non-goals
 Does not merge PRs, bypass required checks, weaken quality gates, or execute
@@ -43,7 +43,7 @@ failures to `quality-gate-orchestrator`.
 This skill is review-only and does not declare an issue `DONE`. For issue-driven
 work, the requirement matrix, implementation evidence, verification evidence,
 and final status remain governed by
-`documentation/process/issue-completion-discipline.md` and
+`documentation/handbook/05-development/process/issue-completion-discipline.md` and
 `issue-completion-auditor`. Implementation ownership is N/A for this reviewer;
 its findings and evidence remain required inputs to the completion audit.
 

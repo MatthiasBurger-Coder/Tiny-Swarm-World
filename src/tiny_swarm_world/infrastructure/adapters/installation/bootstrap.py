@@ -136,7 +136,7 @@ def _print_operator_credentials(env: Mapping[str, str]) -> None:
     print(f"  User:     {env['TSW_INFISICAL_LOGIN_EMAIL']}")
     print("  Password: catalog default or protected operator override")
     print(
-        "See: documentation/arc42/08_configuration/internal-test-credential-catalog.md"
+        "See: documentation/handbook/02-architecture/arc42/08_configuration/internal-test-credential-catalog.md"
     )
     print("\nAll other catalog-managed secrets are internal and are not printed.")
 

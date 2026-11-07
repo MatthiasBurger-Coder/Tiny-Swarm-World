@@ -10,12 +10,12 @@ Own ISMS-light security governance, security scope, risk register, control
 mapping, incident response, and secret-handling policy.
 
 ## Scope
-Maintains `documentation/security/isms-scope.md`,
-`documentation/security/risk-register.md`,
-`documentation/security/statement-of-applicability.md`,
-`documentation/security/security-controls.md`,
-`documentation/security/incident-response.md`, and
-`documentation/security/secret-handling-policy.md`.
+Maintains `documentation/handbook/06-quality-security/security/isms-scope.md`,
+`documentation/handbook/06-quality-security/security/risk-register.md`,
+`documentation/handbook/06-quality-security/security/statement-of-applicability.md`,
+`documentation/handbook/06-quality-security/security/security-controls.md`,
+`documentation/handbook/06-quality-security/security/incident-response.md`, and
+`documentation/handbook/06-quality-security/security/secret-handling-policy.md`.
 
 ## Non-goals
 Does not claim ISO/IEC 27001 certification, run active attacks, expose secrets,
@@ -47,7 +47,7 @@ supply-chain concerns to `supply-chain-security-expert`, and live evidence to
 This skill is review-only and does not declare an issue `DONE`. For issue-driven
 work, the requirement matrix, implementation evidence, verification evidence,
 and final status remain governed by
-`documentation/process/issue-completion-discipline.md` and
+`documentation/handbook/05-development/process/issue-completion-discipline.md` and
 `issue-completion-auditor`. Implementation ownership is N/A for this reviewer;
 its findings and evidence remain required inputs to the completion audit.
 

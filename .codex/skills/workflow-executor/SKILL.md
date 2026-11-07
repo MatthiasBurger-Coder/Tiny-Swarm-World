@@ -24,7 +24,7 @@ Read, when present:
 - root `AGENTS.md`
 - root `QUALITY.md`
 - `.codex/workflow/workflow-execution-rules.md`
-- project workflow files such as `documentation/workflow/workflow.md`, `documentation/workflow/README.md`, or the newest relevant `documentation/workflow/*.md`
+- project workflow files such as `documentation/handbook/05-development/workflow/workflow.md`, `documentation/handbook/05-development/workflow/README.md`, or the newest relevant `documentation/handbook/05-development/workflow/*.md`
 - project-specific workflow, routing, role, or skill files under `.agents/`
 
 ## Workflow

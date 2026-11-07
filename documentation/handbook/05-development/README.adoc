@@ -1,0 +1,81 @@
+= Development and project processes
+
+ifndef::handbook-root[]
+:handbook-root: ../../
+endif::[]
+
+link:{handbook-root}README.adoc[Product Handbook] / Part 5
+
+Start with the link:{handbook-root}handbook/05-development/manuals/developer-manual.md[Developer Manual]
+and link:{handbook-root}handbook/05-development/manuals/tools-layout.md[directory responsibilities].
+Process documents own development workflows, issue completion, verification
+states, skill maintenance and agent responsibilities. Workflow records retain
+their issue, revision, branch and execution scope; their presence does not
+select a workflow for execution.
+
+The repository-level link:{handbook-root}../AGENTS.md[AGENTS.md] and
+link:{handbook-root}../QUALITY.md[QUALITY.md] remain the authorities for agent
+work and quality checks. Handbook navigation does not override them.
+
+The repository link:{handbook-root}../README.md[entry point] and
+link:{handbook-root}../commit_push.md[publication instructions] stay at their
+discovery paths. Component-local instructions are reached through
+link:{handbook-root}handbook/05-development/manuals/tools-layout.md[the repository and tool layout]
+and the source tree; their canonical procedures stay beside the component.
+
+== Source catalogue
+
+Each source below has this part as its primary handbook assignment.
+Cross-references from other parts do not change that ownership.
+
+=== Documentation layout
+
+* link:{handbook-root}handbook/05-development/documentation-layout-migration.md[Directory migration and historical references]
+
+=== manuals
+
+* link:{handbook-root}handbook/05-development/manuals/developer-manual.md[developer-manual.md]
+* link:{handbook-root}handbook/05-development/manuals/tools-layout.md[tools-layout.md]
+
+=== process
+
+* link:{handbook-root}handbook/05-development/process/branch-governance.md[branch-governance.md]
+* link:{handbook-root}handbook/05-development/process/issue-447-completion.md[issue-447-completion.md]
+* link:{handbook-root}handbook/05-development/process/issue-completion-discipline.md[issue-completion-discipline.md]
+* link:{handbook-root}handbook/05-development/process/performance-evidence-contract.md[performance-evidence-contract.md]
+* link:{handbook-root}handbook/05-development/process/skill-agent-creation.md[skill-agent-creation.md]
+* link:{handbook-root}handbook/05-development/process/skills-update.md[skills-update.md]
+* link:{handbook-root}handbook/05-development/process/verification-state-policy.md[verification-state-policy.md]
+* link:{handbook-root}handbook/05-development/process/workflow-create.md[workflow-create.md]
+* link:{handbook-root}handbook/05-development/process/workflow-execute.md[workflow-execute.md]
+
+=== process/agent-plans
+
+* link:{handbook-root}handbook/05-development/process/agent-plans/agent-split-plan.md[agent-split-plan.md]
+
+=== process/agent-tasks
+
+* link:{handbook-root}handbook/05-development/process/agent-tasks/import-ready-agent-tasks.md[import-ready-agent-tasks.md]
+
+=== process/skills/audit
+
+* link:{handbook-root}handbook/05-development/process/skills/audit/organigramm.md[organigramm.md]
+* link:{handbook-root}handbook/05-development/process/skills/audit/owner-map.md[owner-map.md]
+* link:{handbook-root}handbook/05-development/process/skills/audit/skill-registry.json[skill-registry.json]
+* link:{handbook-root}handbook/05-development/process/skills/audit/skill-registry.md[skill-registry.md]
+
+=== workflow
+
+* link:{handbook-root}handbook/05-development/workflow/authoring-review.md[authoring-review.md]
+* link:{handbook-root}handbook/05-development/workflow/context-pack.json[context-pack.json]
+* link:{handbook-root}handbook/05-development/workflow/context-pack.md[context-pack.md]
+* link:{handbook-root}handbook/05-development/workflow/lifecycle-failure-inventory.md[lifecycle-failure-inventory.md]
+* link:{handbook-root}handbook/05-development/workflow/requirement-matrix.md[requirement-matrix.md]
+* link:{handbook-root}handbook/05-development/workflow/workflow.index.md[workflow.index.md]
+* link:{handbook-root}handbook/05-development/workflow/workflow.md[workflow.md]
+
+=== workflow/issues/issue-449
+
+* link:{handbook-root}handbook/05-development/workflow/issues/issue-449/context-pack.json[context-pack.json]
+* link:{handbook-root}handbook/05-development/workflow/issues/issue-449/context-pack.md[context-pack.md]
+* link:{handbook-root}handbook/05-development/workflow/issues/issue-449/workflow.md[workflow.md]

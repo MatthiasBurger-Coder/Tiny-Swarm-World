@@ -14,11 +14,11 @@ consistent, explicit and safe for `skills update`, `workflow create`,
 
 ## Responsibilities
 
-- Audit `documentation/governance/workflow/level-1-overview.md`.
-- Audit `documentation/governance/workflow/level-2-subgraphs.md`.
-- Compare diagrams with `AGENTS.md`, `documentation/process/**`,
-  `documentation/workflow/**`, `documentation/process/skills/audit/**`, legacy
-  `documentation/agents/**` references when present, `documentation/arc42/**`
+- Audit `documentation/handbook/06-quality-security/governance/workflow/level-1-overview.md`.
+- Audit `documentation/handbook/06-quality-security/governance/workflow/level-2-subgraphs.md`.
+- Compare diagrams with `AGENTS.md`, `documentation/handbook/05-development/process/**`,
+  `documentation/handbook/05-development/workflow/**`, `documentation/handbook/05-development/process/skills/audit/**`, legacy
+  `documentation/agents/**` references when present, `documentation/handbook/02-architecture/arc42/**`
   and ADRs.
 - Verify that every decision node has explicit labeled outcomes, such as
   `yes`, `no`, `ready`, `blocked`, `success`, `failed` or `default`.
@@ -52,14 +52,14 @@ consistent, explicit and safe for `skills update`, `workflow create`,
 
 - `AGENTS.md`
 - `QUALITY.md`
-- `documentation/governance/workflow/README.md`
-- `documentation/governance/workflow/level-1-overview.md`
-- `documentation/governance/workflow/level-2-subgraphs.md`
-- `documentation/process/**`
-- `documentation/process/skills/audit/**`
+- `documentation/handbook/06-quality-security/governance/workflow/README.md`
+- `documentation/handbook/06-quality-security/governance/workflow/level-1-overview.md`
+- `documentation/handbook/06-quality-security/governance/workflow/level-2-subgraphs.md`
+- `documentation/handbook/05-development/process/**`
+- `documentation/handbook/05-development/process/skills/audit/**`
 - legacy `documentation/agents/**` references when present
 - `documentation/adr/**`
-- `documentation/arc42/**`
+- `documentation/handbook/02-architecture/arc42/**`
 - `.agents/orchestrator/routing-rules.md`
 
 ## Outputs

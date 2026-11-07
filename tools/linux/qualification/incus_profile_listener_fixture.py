@@ -731,7 +731,7 @@ def git_preflight() -> tuple[str, bytes, bytes, bytes]:
     head = git('rev-parse', '--verify', 'HEAD').decode('ascii').strip()
     if not HASH40.fullmatch(head) or git('status', '--porcelain', '--untracked-files=all'):
         raise FixtureError('CHECKOUT_NOT_CLEAN')
-    wf = git('show', 'HEAD:documentation/workflow/issues/issue-449/workflow.md')
+    wf = git('show', 'HEAD:documentation/handbook/05-development/workflow/issues/issue-449/workflow.md')
     runner = git('show', 'HEAD:tools/linux/qualification/incus_profile_listener_fixture.py')
     tests = git('show', 'HEAD:tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py')
     return head, wf, runner, tests

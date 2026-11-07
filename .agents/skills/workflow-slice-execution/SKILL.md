@@ -12,7 +12,7 @@ Execute small, traceable implementation increments.
 ## Practices
 
 1. Read-only verification.
-2. Read `documentation/process/issue-completion-discipline.md` for
+2. Read `documentation/handbook/05-development/process/issue-completion-discipline.md` for
    issue-driven slices.
 3. Create or verify the requirement matrix before implementation.
 4. Slice plan with affected files and quality checks.

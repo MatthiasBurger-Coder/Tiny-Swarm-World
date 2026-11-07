@@ -8,14 +8,14 @@ Use for `skills update` before changing skills, agents, roles, prompts, Codex ag
 
 - `AGENTS.md`
 - `QUALITY.md`
-- active `documentation/workflow/**`
+- active `documentation/handbook/05-development/workflow/**`
 - `.agents/skills/**`
 - `.agents/roles/**`
 - `.agents/orchestrator/**`
 - `.codex/skills/**`
 - `.codex/agents/**`
 - `documentation/adr/**`
-- `documentation/process/skills/audit/**`
+- `documentation/handbook/05-development/process/skills/audit/**`
 
 ## Required Output
 

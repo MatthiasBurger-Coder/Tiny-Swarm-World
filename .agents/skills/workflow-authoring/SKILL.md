@@ -1,6 +1,6 @@
 ---
 name: workflow-authoring
-description: Use for creating or regenerating the current project workflows with verified baselines, executable slices, dependency ordering, subagent ownership, architecture constraints, resilience requirements, quality gates, stop conditions, and full documentation/workflow lifecycle control.
+description: Use for creating or regenerating the current project workflows with verified baselines, executable slices, dependency ordering, subagent ownership, architecture constraints, resilience requirements, quality gates, stop conditions, and full documentation/handbook/05-development/workflow lifecycle control.
 ---
 
 # Skill: Workflow Authoring
@@ -62,7 +62,7 @@ For a new workflow this means creating and checking out a workflow branch before
 
 Read-only verification, requirement intake, routing-rule inspection, and role selection may occur before branch creation. Mutating workflow creation must not.
 
-This rule applies before any workflow artifact is created or modified: `workflow.md`, `documentation/workflow/**`, workplans, slice definitions, workflow-specific documentation changes, implementation tasks, or write-capable agent assignments.
+This rule applies before any workflow artifact is created or modified: `workflow.md`, `documentation/handbook/05-development/workflow/**`, workplans, slice definitions, workflow-specific documentation changes, implementation tasks, or write-capable agent assignments.
 
 Required order:
 
@@ -137,10 +137,10 @@ Read before authoring or regenerating a workflow:
 1. User request.
 2. Root `AGENTS.md`.
 3. Root `QUALITY.md`.
-4. `documentation/process/issue-completion-discipline.md`.
-5. Existing `documentation/workflow` if present.
-6. Relevant EPIC files under `documentation/epics` if present.
-7. Relevant `documentation/arc42` and `documentation/adr` files.
+4. `documentation/handbook/05-development/process/issue-completion-discipline.md`.
+5. Existing `documentation/handbook/05-development/workflow` if present.
+6. Relevant EPIC files under `documentation/handbook/01-product/epics` if present.
+7. Relevant `documentation/handbook/02-architecture/arc42` and `documentation/adr` files.
 8. Relevant `.agents/skills` and `.agents/roles` files.
 9. Python tooling or CI files only when quality-gate behavior is affected.
 
@@ -150,8 +150,8 @@ Before creating a new workflow:
 
 1. Verify the repository root and the absolute target path.
 2. Verify that the dedicated workflow branch exists and is active.
-3. Delete `documentation/workflow` completely, unless the user explicitly asks to preserve an existing workflow.
-4. Recreate `documentation/workflow`.
+3. Delete `documentation/handbook/05-development/workflow` completely, unless the user explicitly asks to preserve an existing workflow.
+4. Recreate `documentation/handbook/05-development/workflow`.
 5. Regenerate the full workflow structure.
 
 Do not partially overwrite old slices. Do not keep stale workflow files unless the user explicitly asks to archive them outside the active workflow.
@@ -160,16 +160,16 @@ Do not partially overwrite old slices. Do not keep stale workflow files unless t
 
 When a user explicitly asks to create workflows for multiple issues before
 executing any of them, do not overwrite the single active workflow file for
-each issue. Preserve `documentation/workflow/workflow.md` unless the user
+each issue. Preserve `documentation/handbook/05-development/workflow/workflow.md` unless the user
 explicitly asks to replace the active workflow.
 
 Use this indexed layout:
 
 ```text
-documentation/workflow/workflow.index.md
-documentation/workflow/issues/issue-<number>/workflow.md
-documentation/workflow/issues/issue-<number>/context-pack.md
-documentation/workflow/issues/issue-<number>/context-pack.json
+documentation/handbook/05-development/workflow/workflow.index.md
+documentation/handbook/05-development/workflow/issues/issue-<number>/workflow.md
+documentation/handbook/05-development/workflow/issues/issue-<number>/context-pack.md
+documentation/handbook/05-development/workflow/issues/issue-<number>/context-pack.json
 ```
 
 The index must list each included issue, workflow id, workflow path, branch,
@@ -234,8 +234,8 @@ Every workflow should include:
 
 When a workflow is created or regenerated, create or update:
 
-- `documentation/workflow/context-pack.md`
-- `documentation/workflow/context-pack.json`
+- `documentation/handbook/05-development/workflow/context-pack.md`
+- `documentation/handbook/05-development/workflow/context-pack.json`
 
 The context pack is a workflow-local navigation aid. It must record the active
 workflow version, branch, process strand, execution profile, affected areas,
@@ -249,8 +249,8 @@ conflict is detected.
 
 Workflow creation is complete only when both of these artifacts have been checked:
 
-1. complete checked `documentation/workflow/workflow.md`
-2. checked or updated `documentation/arc42/**` documentation
+1. complete checked `documentation/handbook/05-development/workflow/workflow.md`
+2. checked or updated `documentation/handbook/02-architecture/arc42/**` documentation
 
 ## Slice Rules
 
@@ -418,7 +418,7 @@ Stop and report if:
 - the branch name collides with an existing local or remote branch and no clear unique suffix can be chosen
 - the dedicated workflow branch cannot be created, checked out, verified as a local ref, or verified as active
 - the active branch is `main`, `master`, `develop`, or another shared branch when workflow files would be created
-- `documentation/workflow` cannot be safely deleted and regenerated
+- `documentation/handbook/05-development/workflow` cannot be safely deleted and regenerated
 - architecture conflicts are unclear
 - EPIC contradicts implementation and the source of truth is unclear
 - multiple active workflows conflict
@@ -429,13 +429,13 @@ Stop and report if:
 - blocking requirement questions remain
 - requirement matrix expectations or issue-completion evidence expectations
   are unclear for issue-driven workflows
-- `documentation/workflow/workflow.md` cannot be validated
+- `documentation/handbook/05-development/workflow/workflow.md` cannot be validated
 - arc42 documentation cannot be checked or updated
 - continuing would require guessing governance decisions
 
 ## Expected Outputs
 
-- fully regenerated `documentation/workflow`
+- fully regenerated `documentation/handbook/05-development/workflow`
 - ordered slice plan
 - dependency graph or dependency summary
 - role ownership map

@@ -18,10 +18,10 @@ Inspect the relevant subset of:
 - user request
 - `AGENTS.md`
 - `QUALITY.md`
-- `documentation/epics`
-- `documentation/arc42`
+- `documentation/handbook/01-product/epics`
+- `documentation/handbook/02-architecture/arc42`
 - `documentation/adr`
-- `documentation/workflow`
+- `documentation/handbook/05-development/workflow`
 - affected source, tests, schemas, examples or fixtures
 - affected `.agents/skills` and `.agents/roles`
 
@@ -92,7 +92,7 @@ If drift is detected:
 1. Update the EPIC when the requirement baseline changed, or document why the EPIC update is blocked.
 2. Update arc42 when architecture, runtime, deployment or crosscutting behavior changed.
 3. Review ADR references.
-4. Regenerate or update `documentation/workflow` through `workflow-authoring`.
+4. Regenerate or update `documentation/handbook/05-development/workflow` through `workflow-authoring`.
 5. Review related skills and roles.
 6. Document unresolved conflicts.
 

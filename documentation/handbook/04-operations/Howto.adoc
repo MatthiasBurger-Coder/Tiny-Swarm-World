@@ -1,0 +1,77 @@
+== HowTo
+
+This page collects operational entry points for the current implementation.
+Use it together with the user guide pages under `documentation/handbook/03-user-guide/user_guide`.
+
+== Safe Development Checks
+
+Run the full project gate from the repository root:
+
+[source,bash]
+----
+python3 tools/linux/quality_gate.py quality
+----
+
+If a virtual environment is active:
+
+[source,bash]
+----
+python tools/linux/quality_gate.py quality
+----
+
+== Run The Current Python Entrypoint
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world
+----
+
+The entry point delegates to the workflow CLI. Without a selected workflow, it
+reports that no workflow was selected. List supported workflows explicitly:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world --list-workflows
+----
+
+Follow the link:../03-user-guide/user_guide/installation.adoc[installation guide] for host
+preparation and installation. The installer reconciles without a reset on
+native Linux; WSL2 retains the explicitly confirmed managed-state reset.
+
+== Run The Guided Setup
+
+The guided setup path is the Python workflow-level command:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+----
+
+When prompted, answer `y` only if changing the local Incus/LXC, Docker Swarm,
+networking, service bootstrap, image, and stack state is intentional. Former
+direct Portainer and Nexus preparation scripts have been
+retired.
+
+== Stack Deployment
+
+Stack deployment is handled by the workflow-level setup command. Compose files
+under `infra/config/compose` are source assets, not direct
+operator scripts.
+
+== Service Routes
+
+Preferred local service access after stack deployment uses Traefik host routes:
+
+* Service Access landing page and route overview: `https://service-access.tsw.local`
+* Portainer: `https://portainer.tsw.local`
+* Nexus: `https://nexus.tsw.local`
+* Jenkins: `https://jenkins.tsw.local`
+* SonarQube: `https://sonarqube.tsw.local`
+* Swagger/NGINX: `https://swagger.tsw.local`
+* Infisical: `https://infisical.tsw.local`
+* Pulsar Manager: `https://pulsar.tsw.local`
+* Pulsar Admin API: `https://pulsar-api.tsw.local/admin/v2/clusters`
+
+Traefik owns local ingress ports `80` and `443`. Direct localhost ports are
+diagnostic or compatibility access and depend on the active compose files and
+local forwarding setup.

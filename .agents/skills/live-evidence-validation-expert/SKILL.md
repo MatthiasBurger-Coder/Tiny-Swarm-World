@@ -10,8 +10,8 @@ Own live greenpath evidence contracts, live run templates, redaction rules,
 live smoke checklist, and pass/fail state discipline.
 
 ## Scope
-Maintains `documentation/evidence/` and reviews live-operation links such as
-`documentation/system/live-operation-surfaces.adoc`.
+Maintains `documentation/handbook/07-evidence-release/evidence/` and reviews live-operation links such as
+`documentation/handbook/04-operations/system/live-operation-surfaces.adoc`.
 
 ## Non-goals
 Does not run live infrastructure commands unless an explicit live workflow
@@ -43,7 +43,7 @@ claims to `release-baseline-governance-expert`, and quality status to
 This skill is review-only and does not declare an issue `DONE`. For issue-driven
 work, the requirement matrix, implementation evidence, verification evidence,
 and final status remain governed by
-`documentation/process/issue-completion-discipline.md` and
+`documentation/handbook/05-development/process/issue-completion-discipline.md` and
 `issue-completion-auditor`. Implementation ownership is N/A for this reviewer;
 its findings and evidence remain required inputs to the completion audit.
 

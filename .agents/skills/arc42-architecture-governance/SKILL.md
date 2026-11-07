@@ -7,7 +7,7 @@ description: Use for keeping arc42 architecture documentation synchronized with 
 
 ## Purpose
 
-Keep `documentation/arc42` aligned with verified requirements, architecture decisions, runtime behavior and workflows.
+Keep `documentation/handbook/02-architecture/arc42` aligned with verified requirements, architecture decisions, runtime behavior and workflows.
 
 This skill updates architecture documentation. It does not create architecture decisions from guesses.
 
@@ -17,10 +17,10 @@ Inspect the relevant subset of:
 
 - `AGENTS.md`
 - `QUALITY.md`
-- `documentation/epics`
-- `documentation/arc42`
+- `documentation/handbook/01-product/epics`
+- `documentation/handbook/02-architecture/arc42`
 - `documentation/adr`
-- `documentation/workflow`
+- `documentation/handbook/05-development/workflow`
 - affected source, tests, schemas or examples
 - affected skills and roles
 

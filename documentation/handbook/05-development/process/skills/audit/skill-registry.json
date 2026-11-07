@@ -1,0 +1,226 @@
+{
+  "status": "CURRENT_WITH_VALIDATED_DISCOVERY_AND_ISSUE_COMPLETION_GATES",
+  "canonical_paths": {
+    "skill_registry_markdown": "documentation/handbook/05-development/process/skills/audit/skill-registry.md",
+    "skill_registry_json": "documentation/handbook/05-development/process/skills/audit/skill-registry.json",
+    "organigramm": "documentation/handbook/05-development/process/skills/audit/organigramm.md",
+    "owner_map": "documentation/handbook/05-development/process/skills/audit/owner-map.md"
+  },
+  "skill_format": ".agents/skills/<skill-name>/SKILL.md",
+  "counts": {
+    "project_skill_entrypoints": 133,
+    "project_skill_entrypoints_with_valid_metadata": 133,
+    "codex_skill_entrypoints": 6,
+    "required_tiny_swarm_world_skills": 49,
+    "removed_stale_microservice_artifacts": 4
+  },
+  "governing_hashes": {
+    "AGENTS.md": "DFAC7357117DDEFB88E1778082701CE6B73D624364B95094F908C2ED74EE9F05",
+    "QUALITY.md": "1705388C1A7887A6F57A2079541DBA94089100029B2E15C910AD82A317AB81B2",
+    "README.md": "F40AF322D91731F9D9CBB168F4E7E4506C2490D28705D44CF22AD10985A9B156",
+    "documentation/handbook/02-architecture/arc42/08_concepts.adoc": "583334244B4F994B7F0036D3776A9409A64A2EB3EB59C829572FCAF06793ABFB",
+    "documentation/handbook/05-development/process/issue-completion-discipline.md": "3DB2D080B7CFBBC3737907A61C67CE6A361485C8993CF4A20C1C5FE2DC743BC3",
+    "documentation/handbook/05-development/process/skills/audit/skill-registry.md": "A643CFFD488F0B3F33C867D98531AD0D21CA9C34D5438BF7F77EB83D1DEB5E65",
+    "documentation/handbook/05-development/process/skills/audit/organigramm.md": "32FDE4D3114551C3191CE575C678E23F3A169662077F4FF1995BA1A11C0332FC",
+    "documentation/handbook/05-development/process/skills/audit/owner-map.md": "999E58063429B41CD8473DFDB5F7A3493463CD5C2223F26F1220C851B751625F"
+  },
+  "required_tiny_swarm_world_skills": [
+    "github-sub-issues",
+    "tdd-expert",
+    "bdd-expert",
+    "platform-quality-gates",
+    "acceptance-checks",
+    "issue-completion-auditor",
+    "hexagonal-architecture-expert",
+    "mapping-dsl-expert",
+    "strangler-command-adapter-pattern",
+    "sca-migration-expert",
+    "llm-analysis-expert",
+    "kubernetes-expert",
+    "python-senior-developer",
+    "python-pip-packaging-expert",
+    "setup-bootstrap-expert",
+    "python-cli-automation",
+    "python-test-automation",
+    "tiny-swarm-world-system-architecture",
+    "platform-layout-governance",
+    "workflow-orchestration",
+    "linux-host-preparation",
+    "network-topology-design",
+    "docker-engine-installation",
+    "docker-swarm-initialization",
+    "swarm-node-management",
+    "swarm-stack-deployment",
+    "swarm-volume-network-governance",
+    "registry-infrastructure",
+    "nexus-bootstrap",
+    "docker-registry-bootstrap",
+    "maven-repository-bootstrap",
+    "image-build-publish",
+    "image-versioning-tagging",
+    "image-verification",
+    "jenkins-bootstrap",
+    "sonarqube-bootstrap",
+    "portainer-bootstrap",
+    "swagger-ui-bootstrap",
+    "reverse-proxy-routing",
+    "platform-verification",
+    "platform-reset-and-recovery",
+    "observability-and-diagnostics",
+    "secrets-and-config-management",
+    "idempotent-platform-automation",
+    "documentation-generation",
+    "frontend-developer",
+    "console-status-ui-developer",
+    "terminal-status-dashboard"
+  ],
+  "source_of_truth": [
+    "AGENTS.md",
+    "QUALITY.md",
+    "documentation/handbook/05-development/process/issue-completion-discipline.md",
+    ".agents/skills",
+    ".agents/roles",
+    ".agents/orchestrator",
+    ".codex"
+  ],
+  "notes": [
+    "Repository files remain authoritative.",
+    "This registry is an audit and navigation artifact.",
+    ".codex skills remain reusable fallback or portable team assets.",
+    "Governing hashes require refresh after audit-derived governance skill changes."
+  ],
+  "epic_creation_skills": [
+    {
+      "name": "github-sub-issues",
+      "group": "Governance and requirements",
+      "owner_role": "Senior Requirement Engineer",
+      "primary_paths": [".agents/skills/github-sub-issues/SKILL.md"],
+      "supported_workflows": ["Epic creation", "native GitHub Sub-Issue management"],
+      "conflict_notes": "Mandatory for every Epic creation; complements requirement-engineering. Local drafts record pending linkage verification; GitHub publication requires verified native relationships and existing authorization."
+    }
+  ],
+  "audit_derived_governance_skills": [
+    {
+      "name": "issue-completion-auditor",
+      "group": "Governance and quality",
+      "owner_role": "Senior Requirement Engineer",
+      "primary_paths": [
+        ".agents/skills/issue-completion-auditor/SKILL.md",
+        "documentation/handbook/05-development/process/issue-completion-discipline.md",
+        ".tiny-swarm/evidence/"
+      ],
+      "supported_workflows": ["issue completion discipline"],
+      "related_issues": [],
+      "conflict_notes": "Audits completion after implementation; does not implement code or replace quality gates."
+    },
+    {
+      "name": "audit-evidence-manager",
+      "group": "Audit and quality",
+      "owner_role": "Senior Documentation Engineer",
+      "primary_paths": ["documentation/handbook/06-quality-security/audit/"],
+      "supported_workflows": ["audit evidence remediation"],
+      "related_issues": [121],
+      "conflict_notes": "No equivalent narrow audit evidence owner found."
+    },
+    {
+      "name": "qms-light-governance-expert",
+      "group": "Audit and quality",
+      "owner_role": "Senior Tester",
+      "primary_paths": ["documentation/handbook/06-quality-security/qms/", "QUALITY.md", "AGENTS.md"],
+      "supported_workflows": ["QMS-light governance"],
+      "related_issues": [122],
+      "conflict_notes": "Complements quality-gate skills without replacing them."
+    },
+    {
+      "name": "traceability-engineer",
+      "group": "Audit and quality",
+      "owner_role": "Senior Requirement Engineer",
+      "primary_paths": ["documentation/handbook/07-evidence-release/traceability/"],
+      "supported_workflows": ["traceability matrix"],
+      "related_issues": [124],
+      "conflict_notes": "Complements requirement-engineering with evidence mapping ownership."
+    },
+    {
+      "name": "isms-light-security-governance-expert",
+      "group": "Security",
+      "owner_role": "Security Owner",
+      "primary_paths": ["documentation/handbook/06-quality-security/security/"],
+      "supported_workflows": ["ISMS-light governance"],
+      "related_issues": [123],
+      "conflict_notes": "Complements security-threat-modeling with governance ownership."
+    },
+    {
+      "name": "owasp-asvs-local-infrastructure-expert",
+      "group": "Security",
+      "owner_role": "Security Owner",
+      "primary_paths": [
+        "documentation/handbook/06-quality-security/security/owasp-asvs-mapping.md",
+        "documentation/handbook/06-quality-security/security/admin-surface-rbac.md",
+        "documentation/handbook/06-quality-security/security/service-access-threat-model.md"
+      ],
+      "supported_workflows": ["OWASP ASVS local infrastructure mapping"],
+      "related_issues": [126],
+      "conflict_notes": "Scopes ASVS to local infrastructure and admin surfaces."
+    },
+    {
+      "name": "supply-chain-security-expert",
+      "group": "Security",
+      "owner_role": "Security Owner",
+      "primary_paths": [
+        "documentation/handbook/06-quality-security/security/supply-chain-security.md",
+        "documentation/handbook/06-quality-security/security/sbom-policy.md",
+        "documentation/handbook/06-quality-security/security/dependency-scan-policy.md",
+        "documentation/handbook/06-quality-security/security/container-image-scan-policy.md",
+        "tools/linux/security_gate.py"
+      ],
+      "supported_workflows": ["supply-chain security"],
+      "related_issues": [127],
+      "conflict_notes": "Does not introduce external static-analysis CI by default."
+    },
+    {
+      "name": "live-evidence-validation-expert",
+      "group": "Operations, CI, and release governance",
+      "owner_role": "Senior DevOps Engineer",
+      "primary_paths": ["documentation/handbook/07-evidence-release/evidence/", "documentation/handbook/04-operations/system/live-operation-surfaces.adoc"],
+      "supported_workflows": ["live evidence contract"],
+      "related_issues": [125],
+      "conflict_notes": "Does not run live commands without explicit live workflow approval."
+    },
+    {
+      "name": "branch-ci-governance-expert",
+      "group": "Operations, CI, and release governance",
+      "owner_role": "Senior DevOps Engineer",
+      "primary_paths": [
+        "documentation/handbook/06-quality-security/governance/branch-protection.md",
+        "documentation/handbook/06-quality-security/governance/ci-quality-gates.md",
+        "documentation/handbook/06-quality-security/governance/pr-review-policy.md"
+      ],
+      "supported_workflows": ["branch and CI governance"],
+      "related_issues": [128],
+      "conflict_notes": "Complements release-branch-governance and quality-gate-orchestrator."
+    },
+    {
+      "name": "release-baseline-governance-expert",
+      "group": "Operations, CI, and release governance",
+      "owner_role": "Root Architect",
+      "primary_paths": ["documentation/handbook/07-evidence-release/release/", "pyproject.toml", "README.md"],
+      "supported_workflows": ["release and baseline process"],
+      "related_issues": [130],
+      "conflict_notes": "Does not create release tags or distribute artifacts."
+    },
+    {
+      "name": "documentation-audience-architect",
+      "group": "Documentation governance",
+      "owner_role": "Senior Documentation Engineer",
+      "primary_paths": [
+        "documentation/manuals/",
+        "README.md",
+        "documentation/README.adoc",
+        "documentation/handbook/03-user-guide/user_guide/"
+      ],
+      "supported_workflows": ["documentation audience architecture"],
+      "related_issues": [129],
+      "conflict_notes": "Complements documentation-sync with audience ownership."
+    }
+  ]
+}

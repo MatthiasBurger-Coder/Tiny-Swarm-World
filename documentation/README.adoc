@@ -1,103 +1,103 @@
-= Tiny Swarm World Documentation
+= Tiny Swarm World Product Handbook
 :toc:
 :sectnums:
 
-Start with the task you want to complete:
+This is the master index for all Tiny Swarm World product documentation.
+The handbook covers product foundations, architecture, user procedures,
+operations, development, quality, security, audits, evidence and releases.
+The link:handbook/02-architecture/arc42.adoc[arc42 book] is its architecture part.
+
+Use this index for navigation or read the
+link:document.adoc[continuous Product Handbook]. Both use the same canonical
+source files. Reference material and historical records are linked from the
+part catalogues rather than copied into a second handbook.
+
+== Handbook parts
+
+[options="header"]
+|===
+| Part | Contents | Entry point
+| 1. Product foundations | Product intent, requirements and delivery contracts | link:handbook/01-product/README.adoc[Product foundations and delivery contracts]
+| 2. Architecture | The twelve arc42 sections, analyses, ADRs and architecture references | link:handbook/02-architecture/README.adoc[System architecture (arc42)]
+| 3. User guide | Installation, usage, troubleshooting, preparation and upgrades | link:handbook/03-user-guide/README.adoc[User guide]
+| 4. Operations | Operator navigation and runtime, network and recovery reference | link:handbook/04-operations/README.adoc[Operations and system reference]
+| 5. Development | Developer guidance, project processes, workflows and agent governance | link:handbook/05-development/README.adoc[Development and project processes]
+| 6. Quality, security and audits | QMS, ISMS, review policy, findings and remediation | link:handbook/06-quality-security/README.adoc[Quality, security and audits]
+| 7. Evidence and releases | Verification artifacts, traceability, reviews and release decisions | link:handbook/07-evidence-release/README.adoc[Verification evidence, traceability and releases]
+|===
+
+== Start with your task
 
 [options="header"]
 |===
 | Task | Entry point
-| First installation | link:user_guide/installation.adoc[Installation guide]
-| Daily operation and recovery choice | link:user_guide/usage.adoc#daily-operation[Usage]
-| Select or add Classic services | link:user_guide/selective-setup.md[Selective setup]
-| Service URLs and login details | link:user_guide/usage.adoc#open-the-services[Service access and login]
-| Failed installation or login | link:user_guide/troubleshooting.adoc#first-response[Troubleshooting]
-| Code changes and local tests | link:manuals/developer-manual.md[Developer Manual]
+| First installation | link:handbook/03-user-guide/user_guide/installation.adoc[Installation guide]
+| Daily operation and recovery choice | link:handbook/03-user-guide/user_guide/usage.adoc#daily-operation[Usage]
+| Select or add Classic services | link:handbook/03-user-guide/user_guide/selective-setup.md[Selective setup]
+| Service URLs and login details | link:handbook/03-user-guide/user_guide/usage.adoc#open-the-services[Service access and login]
+| Failed installation or login | link:handbook/03-user-guide/user_guide/troubleshooting.adoc#first-response[Troubleshooting]
+| Code changes and development checks | link:handbook/05-development/manuals/developer-manual.md[Developer Manual]
+| Architecture and runtime extensions | link:handbook/02-architecture/arc42/05_analysis/arch-03-21-resulting-architecture.md[Resulting architecture]
+| Security controls and incidents | link:handbook/06-quality-security/manuals/security-manual.md[Security Manual]
+| Audit findings and remediation | link:handbook/06-quality-security/manuals/audit-manual.md[Audit Manual]
+| Consent and evidence for live validation | link:handbook/07-evidence-release/manuals/live-validation-manual.md[Live Validation Manual]
 |===
 
-On native Linux, the installer reconciles managed state without a reset. On
-WSL2, it resets managed state after explicit confirmation before setup.
-Existing-installation operators should start with Usage before choosing a command.
-The link:release/rc1-decision.md[RC1 decision] records acceptance for named
-September candidates; link:evidence/issue-363-final-validation-20261003.md[October validation]
-records later scoped lifecycle results. Current bootstrap changes and each
-supported host need their own applicable qualification; see
-link:contracts/bootstrap.md[the bootstrap delivery contract].
+== Source ownership and directory assignment
 
-This directory also contains the following reference material:
-
-* xref:arc42.adoc[System Architecture, arc42] for the complete system model,
-  architecture constraints, runtime behavior, deployment topology, risks, and
-  decision references.
-* xref:user_guide/installation.adoc[Installation],
-  xref:user_guide/usage.adoc[Usage], and
-  xref:user_guide/troubleshooting.adoc[Troubleshooting] for operator tasks.
-* xref:arc42/08_configuration/operator-configuration-contract.md[Operator Configuration
-  Contract] for supported environment variables and secret lifecycle rules.
-* xref:system/live-operation-surfaces.adoc[Live Operation Surfaces] for commands
-  and assets that can mutate local infrastructure.
-* xref:qms/qms-light.md[QMS-light] for quality objectives, CAPA, change control
-  and internal audit guidance. This is governance guidance, not certification
-  evidence.
-* xref:governance/branch-protection.md[Branch protection] for main-branch
-  protection expectations.
-* xref:governance/ci-quality-gates.md[CI quality gates] for the canonical local
-  gate and actual-vs-target CI status.
-* xref:governance/pr-review-policy.md[PR review policy] for review triggers and
-  required evidence.
-* xref:security/owasp-asvs-mapping.md[OWASP ASVS mapping] for local
-  infrastructure applicability.
-* xref:security/admin-surface-rbac.md[Admin-surface RBAC] for role boundaries.
-* xref:security/service-access-threat-model.md[Service Access threat model] for
-  dashboard and admin-routing risks.
-
-The audience-specific manuals provide concise entry points:
-
-* xref:manuals/operator-manual.md[Operator Manual] for guarded installation,
-  operation, secrets and recovery boundaries.
-* xref:manuals/developer-manual.md[Developer Manual] for architecture,
-  workflow slices, tests and quality gates.
-* xref:manuals/security-manual.md[Security Manual] for ISMS, ASVS, secrets and
-  admin-surface controls.
-* xref:manuals/audit-manual.md[Audit Manual] for evidence, traceability and
-  review state.
-* xref:manuals/live-validation-manual.md[Live Validation Manual] for explicit
-  consent-gated A/B/C validation and redacted evidence.
-
-== Documentation Structure
+The handbook parts define both the documentation hierarchy and physical
+directory layout. Every specialist source is stored below its owning part in
+`handbook/`. Each part's `README.adoc` lists its sources, including machine
+readable artifacts. Links, tools and documentation consumers use these paths.
 
 [options="header"]
 |===
-| Path | Role
-| `arc42.adoc` | Canonical architecture book assembled from `documentation/arc42`.
-| `arc42/` | Maintained arc42 section sources, introduction requirement baselines under `arc42/01_introduction/`, deployment system references under `arc42/07_deployment/`, architecture decision records under `arc42/09_decisions/`, architecture analyses under `arc42/05_analysis/`, configuration contracts under `arc42/08_configuration/`, deployment configuration notes under `arc42/08_deployment_configuration/`, and migration plans under `arc42/11_migration/`.
-| `user_guide/` | Canonical installation, usage (including service access and credentials), and troubleshooting guides.
-| `system/` | Runtime, LXC-native, networking, and live-operation reference pages.
-| `audit/` | Versioned audit evidence index, findings register, evidence matrix, and remediation plan. This is governance evidence, not certification evidence.
-| `qms/` | QMS-light quality objectives, CAPA, change-control and internal-audit guidance.
-| `governance/` | Branch protection, CI quality-gate and pull-request review policy.
-| `deployment/` | Legacy deployment workspace. Current deployment system references live under `arc42/07_deployment/`; Infisical setup configuration lives under `arc42/08_deployment_configuration/`.
-| `configuration/` | Legacy configuration workspace. Current operator configuration contracts live under `arc42/08_configuration/`.
-| `architecture/` | Legacy architecture workspace. Current ADRs, analyses, and migration plans live under `arc42/`; process execution plans live under `process/`.
-| `epics/` | Legacy EPIC workspace. Current introduction and requirement baselines live under `arc42/01_introduction/`.
-| `process/` | Repository process, workflow, and skill/agent documentation.
-| `process/agent-plans/` | Agent-oriented work split plans.
-| `process/agent-tasks/` | Import-ready agent task lists.
-| `workflow/` | Active and issue-scoped workflow records. Operator instructions belong in `user_guide/`.
-| `process/skills/audit/` | Skill registry and ownership audit artifacts.
-| `manuals/` | Audience-specific entry points that link to canonical sources.
+| Directory below `handbook/` | Sources stored there
+| `01-product/` | `contracts/`, `epics/`
+| `02-architecture/` | `arc42.adoc`, `arc42/`, `arc42-template.adoc`; includes architecture requirement baselines, ADRs, analyses, configuration contracts and deployment references.
+| `03-user-guide/` | `user_guide/`
+| `04-operations/` | `system/`, `Howto.adoc`, `manuals/operator-manual.md`
+| `05-development/` | `process/`, `workflow/`, developer and tool manuals; includes `process/skills/audit/` for the skill registry.
+| `06-quality-security/` | `audit/`, `qms/`, `security/`, `governance/`, security and audit manuals
+| `07-evidence-release/` | `evidence/`, `traceability/`, `release/`, `reviews/`, live-validation manual
 |===
 
-== Consolidation Rules
+`README.adoc` and `document.adoc` stay at the documentation root as the master
+index and continuous edition. Every part has its own `README.adoc`.
+The link:handbook/05-development/documentation-layout-migration.md[migration map]
+records previous source locations. Historical source snapshots and hash
+manifests retain their recorded paths and bytes; those paths identify their
+original revision rather than the current filesystem layout.
 
-Use `arc42.adoc` for architecture and the three task-oriented pages in
-`user_guide/` for operators. `document.adoc` assembles those same sources for
-continuous reading; do not maintain a separate handbook or duplicate their
-procedures in another file.
-Keep detailed reference pages in their existing folders when they carry
-specialized operational, ADR, or workflow evidence. Do not copy password values,
-tokens, host-specific IP addresses, or generated local evidence into committed
-documentation.
+Repository-root documents remain at their required discovery paths.
+link:../README.md[README.md] is the short product entry point;
+link:../AGENTS.md[AGENTS.md] and link:../QUALITY.md[QUALITY.md] govern
+agent work and verification and are referenced from Part 5;
+link:../OPERATIONAL_READINESS_CHECKLIST.md[the readiness checklist] and
+link:../CHANGELOG.md[CHANGELOG.md] belong to Part 7.
+link:../commit_push.md[Publication instructions] belong to Part 5.
+Component-local README files and tool instructions stay beside their code;
+Part 5 links the repository and tool responsibilities.
 
-When behavior changes, update the nearest source page and then update the
-navigation or aggregate includes that expose the behavior to readers.
+== Maintenance rules
+
+. Give every new document or evidence artifact one primary handbook part.
+  Store it below that part's directory and add a link to its `README.adoc`
+  source catalogue in the same change. Do not create parallel specialist
+  directories at the documentation root.
+. Keep one canonical source for each procedure, contract, policy or register.
+  Other chapters link to it; aggregates include existing sources.
+. Update this master index when a part or source-directory responsibility changes.
+  Keep `document.adoc` aligned with the same seven parts.
+. Keep architecture in arc42's twelve sections. Link from architecture to
+  operational manuals, audit registers and evidence in their handbook parts.
+. Keep planned requirements, implemented behavior, verification results and
+  historical decisions distinct. Moving or indexing a record does not change
+  its status or qualify a new candidate.
+. Preserve stable finding IDs, ADR history, issue scope, evidence revisions and
+  source hashes. Retarget maintained links and path consumers when sources
+  move; preserve the recorded content of historical source and hash snapshots.
+. Keep secrets, private host details and raw runtime evidence out of committed
+  documentation. Follow link:handbook/07-evidence-release/evidence/redaction-rules.md[the redaction rules].
+. Maintain repository documentation in English and run checks according to
+  link:../AGENTS.md[AGENTS.md] and link:../QUALITY.md[QUALITY.md].

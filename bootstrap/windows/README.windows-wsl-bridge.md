@@ -35,7 +35,7 @@ which remain `UNVERIFIED`. The existing `verify` action retains its stronger TCP
 checks; neither action proves actual service login. Explicit distro selection is
 bound only in the protected staged configuration, preserving the shared source
 configuration and owned registration credentials. See
-[Windows preparation](../../documentation/user_guide/windows-preparation.md#w06-bridge-preparation-and-browser-access-stages).
+[Windows preparation](../../documentation/handbook/03-user-guide/user_guide/windows-preparation.md#w06-bridge-preparation-and-browser-access-stages).
 
 Windows inventory can preserve an additional WSL relay listener on `::1` beside
 an independently verified owned IPv4 forwarding listener for a resolved mapped
@@ -205,7 +205,7 @@ a leftover `.bridge-state.json.<id>.bak` file in
 `%ProgramData%\TinySwarmWorld\WslBridge` can trigger the failure. The final
 check rejects unexpected files as well as incorrect permissions.
 
-Follow the [bridge ACL recovery steps](../../documentation/user_guide/troubleshooting.adoc#windows-wsl-bridge-acl):
+Follow the [bridge ACL recovery steps](../../documentation/handbook/03-user-guide/user_guide/troubleshooting.adoc#windows-wsl-bridge-acl):
 open Windows PowerShell as Administrator, list the backup files, confirm that
 the regular `bridge-state.json` remains present, delete only the exact leftover
 backup, and rerun `-Action install`. Then check bridge readiness and return to
@@ -325,14 +325,14 @@ cd ~/Tiny-Swarm-World
 Use the Linux-native checkout owned by the selected WSL account. Ordinary
 installation reconciles existing state. The deprecated WSL `--confirm-reset`
 option requests a separate destructive reset and is not needed for a retry.
-See [manual host steps](../../documentation/user_guide/manual-host-steps.md) for
+See [manual host steps](../../documentation/handbook/03-user-guide/user_guide/manual-host-steps.md) for
 sudo and login boundaries, public-CA trust, and restart/recovery checks. Bridge
 readiness does not install a browser CA or prove authenticated service access.
 
 The optional `tsw-tls-trust.ps1` helper has explicit current-user CA inspection,
 import and receipt-backed removal actions. It is separate from bridge installation
 and uses the independently verified public certificate's DER SHA-256 fingerprint.
-Follow the [manual certificate procedure](../../documentation/user_guide/manual-host-steps.md#optional-windows-current-user-trust-helper),
+Follow the [manual certificate procedure](../../documentation/handbook/03-user-guide/user_guide/manual-host-steps.md#optional-windows-current-user-trust-helper),
 including interactive Windows confirmation, exact ownership checks and any
 explicit Schannel revocation policy. Neither bridge readiness nor CA import alone
 establishes browser login.

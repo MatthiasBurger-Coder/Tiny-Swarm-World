@@ -6,9 +6,9 @@ Use when the user writes `workflow execute`.
 
 1. Load root `AGENTS.md`.
 2. Load root `QUALITY.md`.
-3. Locate the active workflow under `documentation/workflow`.
-4. Verify that the active workflow includes a checked `documentation/workflow/workflow.md`.
-5. Verify that checked or updated `documentation/arc42/**` documentation exists for the workflow.
+3. Locate the active workflow under `documentation/handbook/05-development/workflow`.
+4. Verify that the active workflow includes a checked `documentation/handbook/05-development/workflow/workflow.md`.
+5. Verify that checked or updated `documentation/handbook/02-architecture/arc42/**` documentation exists for the workflow.
 6. Load `.agents/skills/workflow-executor/SKILL.md`.
 7. Load `.agents/orchestrator/routing-rules.md`.
 8. Load `.agents/orchestrator/swarm-orchestrator.md`.
@@ -53,11 +53,11 @@ git status --short --branch
    version or failed required quality gate.
 23. Create or update `.codex/evidence/slice-<number>-consolidation.md`.
 24. After each successful slice, create the `CP_RECORD` defined by
-   `documentation/process/workflow-execute.md` with workflow version, slice ID, slice
+   `documentation/handbook/05-development/process/workflow-execute.md` with workflow version, slice ID, slice
    title, responsible agent, changed files, quality-gate commands,
    quality-gate result, rollback reference, arc42 update status and ADR update
    status.
-25. Run the slice checkpoint push defined by `documentation/process/workflow-execute.md`.
+25. Run the slice checkpoint push defined by `documentation/handbook/05-development/process/workflow-execute.md`.
 26. After `CP_COMMIT` succeeds, record the actual commit hash and push result.
 27. Route asynchronous execution-report findings through `Q11`; Q11 is
    non-blocking by default unless the workflow explicitly declares a regulatory
@@ -73,7 +73,7 @@ git status --short --branch
 Stop when:
 
 - active workflow cannot be identified;
-- checked `documentation/workflow/workflow.md` is missing;
+- checked `documentation/handbook/05-development/workflow/workflow.md` is missing;
 - checked or updated arc42 documentation is missing;
 - active workflow branch is missing, inactive, or has no local ref;
 - skill registry was skipped;

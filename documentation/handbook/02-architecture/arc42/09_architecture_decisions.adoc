@@ -1,0 +1,111 @@
+== Architectural Decisions
+
+This section includes the active ADRs from `documentation/handbook/02-architecture/arc42/09_decisions/` in
+the assembled arc42 book. Standalone ADR files keep their own history and
+status; this chapter groups and includes them without renumbering or rewriting
+ADR history.
+
+In the assembled `documentation/handbook/02-architecture/arc42.adoc` book this section is rendered as
+chapter 10 because the book starts with a generated system overview chapter
+before the maintained arc42 section files.
+
+=== ADR Location Convention
+
+Standalone ADR files currently live under `documentation/handbook/02-architecture/arc42/09_decisions/`
+with the naming pattern `adr-<decision-slug>.adoc`.
+
+`documentation/handbook/02-architecture/arc42/09_architecture_decisions.adoc` is the active arc42 entry
+point for those decisions. Existing ADR files must not be silently renumbered
+or renamed as part of documentation consolidation or workflow execution.
+
+The repository does not currently use `documentation/adr/**`. Introducing that
+path requires a separate convention decision, including
+`documentation/adr/README.md`, reference migration, and history-preserving
+links from existing ADR files.
+
+=== Infrastructure & Architecture Decisions
+
+Examples: cloud or local provider choices, monolith versus microservices,
+runtime topology, ingress, workflow safety, and responsibility ownership.
+
+include::09_decisions/adr-separate-platform-artifacts-deployment.adoc[leveloffset=+3]
+
+include::09_decisions/adr-explicit-operation-results.adoc[leveloffset=+3]
+
+include::09_decisions/adr-shared-ubuntu-prerequisite-bootstrap.adoc[leveloffset=+3]
+
+include::09_decisions/adr-native-linux-preparation-and-install-lifecycle.adoc[leveloffset=+3]
+
+include::09_decisions/adr-windows-wsl-lifecycle-preparation.adoc[leveloffset=+3]
+
+include::09_decisions/adr-explicit-incus-preparation.adoc[leveloffset=+3]
+
+include::09_decisions/adr-scoped-bootstrap-network-preparation.adoc[leveloffset=+3]
+
+include::09_decisions/adr-lxc-native-node-provider.adoc[leveloffset=+3]
+
+include::09_decisions/adr-installation-scoped-incus-profile.adoc[leveloffset=+3]
+
+include::09_decisions/adr-retire-multipass-legacy-provider.adoc[leveloffset=+3]
+
+include::09_decisions/adr-traefik-https-ingress-existing-ca.adoc[leveloffset=+3]
+
+include::09_decisions/adr-traefik-managed-or-operator-ca.adoc[leveloffset=+3]
+
+include::09_decisions/adr-dedicated-wsl2-host-platform-boundary.adoc[leveloffset=+3]
+
+include::09_decisions/adr-windows-wsl-bridge-service-agent.adoc[leveloffset=+3]
+
+include::09_decisions/adr-mutating-operation-recovery.adoc[leveloffset=+3]
+
+=== Technology & Framework Decisions
+
+Examples: language and runtime direction, runner technology, UI framework
+boundaries, command catalog format, and observability implementation style.
+
+include::09_decisions/adr-installer-console-reporting-policy.adoc[leveloffset=+3]
+
+include::09_decisions/adr-cross-cutting-method-trace-logging.adoc[leveloffset=+3]
+
+include::09_decisions/command-runner-responsibility.adoc[leveloffset=+3]
+
+=== Data & Persistence Decisions
+
+Examples: desired-state configuration, observed-state storage, local evidence,
+report files, secrets, and credential persistence boundaries.
+
+include::09_decisions/adr-service-access-dashboard-vaultwarden.adoc[leveloffset=+3]
+
+include::09_decisions/adr-product-effective-infrastructure-source.adoc[leveloffset=+3]
+
+=== Functional & Product Decisions
+
+Examples: setup behavior, operator-facing service access, safety prompts,
+management landing pages, and current product capability boundaries.
+
+include::09_decisions/adr-autonomous-setup-safety.adoc[leveloffset=+3]
+
+include::09_decisions/adr-explicit-non-interactive-live-consent.adoc[leveloffset=+3]
+include::09_decisions/adr-test-only-credential-override.adoc[leveloffset=+3]
+
+include::09_decisions/adr-classic-update-contract.adoc[leveloffset=+3]
+
+include::09_decisions/adr-classic-product-component-lifecycle.adoc[leveloffset=+3]
+
+include::09_decisions/adr-classic-selection-exposure-stack-ownership.adoc[leveloffset=+3]
+
+=== ADR Backlog
+
+The typed command catalog, inventory/evidence ownership, workflow-level CLI,
+workflow taxonomy, verify-after-apply, evidence/report redaction, and command
+runner responsibility decisions are currently recorded in this arc42 index,
+active workflow records, or non-ADR decision records. Dedicated standalone ADRs
+can be added later if the project decides these policies need separate
+long-lived records.
+
+The bootstrap extension is proposed only; it does not supersede the accepted
+native lifecycle until the implementing work packages accept their transitions.
+
+include::09_decisions/adr-bootstrap-command-readiness-contract.adoc[leveloffset=+3]
+
+include::09_decisions/adr-wsl-capacity-adaptation.adoc[leveloffset=+3]

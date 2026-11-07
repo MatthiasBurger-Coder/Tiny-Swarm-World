@@ -1,9 +1,14 @@
 # Tiny Swarm World
 
+The [Product Handbook](documentation/README.adoc) is the master documentation
+index for product foundations, architecture, usage, operations, development,
+quality, security, audits and release evidence. Read the
+[continuous edition](documentation/document.adoc) for the assembled handbook.
+
 Installation prerequisites live in [`bootstrap/windows`](bootstrap/windows) for
 Windows/WSL and [`bootstrap/linux`](bootstrap/linux) for native Linux and shared
 Linux/WSL preparation. [`tools`](tools) contains quality, audit and developer tools.
-See [directory responsibilities and system handoff](documentation/manuals/tools-layout.md).
+See [directory responsibilities and system handoff](documentation/handbook/05-development/manuals/tools-layout.md).
 
 Tiny Swarm World creates a local development and test environment with Docker
 Swarm, Portainer, Infisical, Nexus, Jenkins, Pulsar, SonarQube and supporting
@@ -15,13 +20,13 @@ and testing. Native Ubuntu 24.04/26.04 x86_64 and Windows 11 with Ubuntu WSL2
 are bootstrap candidates. Historical W09 runs verified bounded scenarios on selected existing Ubuntu 26.04 hosts;
 this candidate has not been live-qualified. Clean-host installation and global release
 qualification remain unverified.
-See the [bootstrap completion audit](documentation/evidence/issue-462-bootstrap-completion-audit.md)
+See the [bootstrap completion audit](documentation/handbook/07-evidence-release/evidence/issue-462-bootstrap-completion-audit.md)
 for exact versions, source revisions and deferred scenarios.
 
 ## Prepare, then install
 
 For an existing prepared-Git installation, see the
-[product upgrade guide](documentation/user_guide/product-upgrades.md) for the
+[product upgrade guide](documentation/handbook/03-user-guide/user_guide/product-upgrades.md) for the
 pinned `0.4.0 → 0.5.0 (RC-5)` workflow, explicit legacy inventory and recovery.
 It uses separate management tooling; live qualification remains W09-owned.
 
@@ -54,7 +59,7 @@ PowerShell and select the exact distribution. For example:
 Before the handoff, create the ordinary Ubuntu account interactively when
 prompted and place the matching checkout in its Linux home (`~/Tiny-Swarm-World`
 by default); Windows preparation does not copy it. If the source probe reports
-missing system Python, first run `./bootstrap/linux/prepare_linux.sh` from that Linux checkout,
+missing system Python, first run `bootstrap/linux/prepare_linux.sh` from that Linux checkout,
 then rerun Windows preparation. This boundary can add commands to the short path.
 Use `-LinuxCheckout` for another Linux-native location; custom distro names also
 need the matching `-UbuntuRelease`.
@@ -68,7 +73,7 @@ succeeds. Product Python runs entirely in WSL.
 The short path describes the delivered handoff, not an unattended clean-host
 success promise. `-Preflight` / `-DryRun` inspect without mutation. Qualification
 requires a separately authorized recoverable target and exact source/plan binding;
-see [Windows preparation](documentation/user_guide/windows-preparation.md#qualification-and-consent).
+see [Windows preparation](documentation/handbook/03-user-guide/user_guide/windows-preparation.md#qualification-and-consent).
 A closed W09 issue does not remove this guard. A plain extracted archive also
 needs the trusted release source proof for Windows qualification and does not
 resolve the installer's Git-metadata limitation.
@@ -94,9 +99,9 @@ If blocked, follow the named stage and next command: authenticate with `sudo -v`
 in the preparation terminal for elevation failures; log out/in for stale groups;
 resolve active LXD conflicts without deleting instances; free capacity or choose a
 fitting reviewed profile for resource failures. Do not overwrite foreign Incus,
-firewall or bridge resources. See the [installation guide](documentation/user_guide/installation.adoc),
-[manual host and certificate checklist](documentation/user_guide/manual-host-steps.md)
-and [troubleshooting](documentation/user_guide/troubleshooting.adoc#first-response)
+firewall or bridge resources. See the [installation guide](documentation/handbook/03-user-guide/user_guide/installation.adoc),
+[manual host and certificate checklist](documentation/handbook/03-user-guide/user_guide/manual-host-steps.md)
+and [troubleshooting](documentation/handbook/03-user-guide/user_guide/troubleshooting.adoc#first-response)
 for stage-specific recovery and CA trust. APT/features are not transactional;
 resumption does not promise whole-host rollback.
 
@@ -104,17 +109,17 @@ resumption does not promise whole-host rollback.
 
 | What you want to do | Read |
 |---|---|
-| Prepare a machine and install for the first time | [Installation guide](documentation/user_guide/installation.adoc) |
-| Find service URLs and sign in | [Default logins](#default-logins-after-a-fresh-installation), [Service access and login](documentation/user_guide/usage.adoc#open-the-services) and [credential catalog](documentation/arc42/08_configuration/internal-test-credential-catalog.md) |
-| Inspect or reconcile an existing installation | [Daily operation](documentation/user_guide/usage.adoc#daily-operation) |
-| Diagnose a failed run | [Troubleshooting](documentation/user_guide/troubleshooting.adoc#first-response) |
-| Change code or run development tests | [Developer Manual](documentation/manuals/developer-manual.md) |
-| Understand architecture or extend runtime support | [Resulting architecture and runtime extension guide](documentation/arc42/05_analysis/arch-03-21-resulting-architecture.md) |
-| Find architecture, security or audit references | [Documentation index](documentation/README.adoc) |
+| Prepare a machine and install for the first time | [Installation guide](documentation/handbook/03-user-guide/user_guide/installation.adoc) |
+| Find service URLs and sign in | [Default logins](#default-logins-after-a-fresh-installation), [Service access and login](documentation/handbook/03-user-guide/user_guide/usage.adoc#open-the-services) and [credential catalog](documentation/handbook/02-architecture/arc42/08_configuration/internal-test-credential-catalog.md) |
+| Inspect or reconcile an existing installation | [Daily operation](documentation/handbook/03-user-guide/user_guide/usage.adoc#daily-operation) |
+| Diagnose a failed run | [Troubleshooting](documentation/handbook/03-user-guide/user_guide/troubleshooting.adoc#first-response) |
+| Change code or run development tests | [Developer Manual](documentation/handbook/05-development/manuals/developer-manual.md) |
+| Understand architecture or extend runtime support | [Resulting architecture and runtime extension guide](documentation/handbook/02-architecture/arc42/05_analysis/arch-03-21-resulting-architecture.md) |
+| Find architecture, security or audit references | [Product Handbook](documentation/README.adoc) |
 
 ## Default logins after a fresh installation
 
-For a successful fresh `./install.sh` installation using the standard
+For a successful fresh `install.sh` installation using the standard
 `internal-test` defaults, use these browser logins:
 
 | Service | Username / email | Default password |
@@ -165,10 +170,10 @@ installation does not create a separate password file. You can use the
 Infisical login above without first retrieving it from Infisical itself.
 Service entries in Infisical are available only after synchronization.
 
-The [canonical credential catalog](documentation/arc42/08_configuration/internal-test-credential-catalog.md)
+The [canonical credential catalog](documentation/handbook/02-architecture/arc42/08_configuration/internal-test-credential-catalog.md)
 documents all test values, API tokens and component-specific exceptions.
 For custom credentials, follow the
-[optional credential setup](documentation/user_guide/installation.adoc#operator-credential-overrides).
+[optional credential setup](documentation/handbook/03-user-guide/user_guide/installation.adoc#operator-credential-overrides).
 
 ## Open services and verify the result
 
@@ -199,11 +204,11 @@ PYTHONPATH=src python3 -m tiny_swarm_world --service-profile service-access plat
 Then sign in to the required services from the browser you intend to use.
 An HTTP 200 response or a login page proves neither authentication nor a fully
 working installation. See the
-[verification steps](documentation/user_guide/installation.adoc#verify-installed-runtime).
+[verification steps](documentation/handbook/03-user-guide/user_guide/installation.adoc#verify-installed-runtime).
 
 If a route is unavailable, distinguish name resolution, forwarding, TLS,
 service readiness and authentication using the
-[troubleshooting guide](documentation/user_guide/troubleshooting.adoc#first-response).
+[troubleshooting guide](documentation/handbook/03-user-guide/user_guide/troubleshooting.adoc#first-response).
 Use the evidence directory printed for your run, inspect exit codes first,
 and redact diagnostics before sharing them.
 
@@ -214,10 +219,10 @@ and redact diagnostics before sharing them.
 | `platform verify` | Inspect the existing platform without repairing it. |
 | `platform reconcile --live` | Reconcile managed platform state with explicit consent; it is not a complete application update. |
 | `setup run --live` | Run the broader setup workflow without a reset; it still changes infrastructure. |
-| `./bootstrap/linux/prepare_linux.sh` | Prepare shared native/WSL2 Ubuntu prerequisites and Incus access/resources with staged confirmation. |
-| `./install.sh` on native Linux | Verify preparation, then run setup without a reset. |
-| `./install.sh` on WSL2 | Reconcile existing managed state; explicit WSL `--confirm-reset` alone selects deprecated destructive compatibility. |
-| Product upgrade | `product upgrade` controls the bounded TSW release transition; see the [product upgrade guide](documentation/user_guide/product-upgrades.md) for prerequisites and qualification limits. |
+| `bootstrap/linux/prepare_linux.sh` | Prepare shared native/WSL2 Ubuntu prerequisites and Incus access/resources with staged confirmation. |
+| `install.sh` on native Linux | Verify preparation, then run setup without a reset. |
+| `install.sh` on WSL2 | Reconcile existing managed state; explicit WSL `--confirm-reset` alone selects deprecated destructive compatibility. |
+| Product upgrade | `product upgrade` controls the bounded TSW release transition; see the [product upgrade guide](documentation/handbook/03-user-guide/user_guide/product-upgrades.md) for prerequisites and qualification limits. |
 | Component update | `services updates` and `services update` inspect and plan selected components; `platform update` retains the single stack-service image transition contract. |
 
 Use `platform update --stack ... --service ... --from-image ... --to-image ... --preview`
@@ -225,23 +230,23 @@ before an explicitly consented live apply. Use `platform update --recover
 --stack ... --service ...` for the last recorded rollback transition. Pulling
 new source code and running reconcile does not establish a supported upgrade.
 
-See [Daily operation](documentation/user_guide/usage.adoc#daily-operation) for
+See [Daily operation](documentation/handbook/03-user-guide/user_guide/usage.adoc#daily-operation) for
 commands, configuration continuity and recovery choices. The
-[live operation surface catalog](documentation/system/live-operation-surfaces.adoc)
+[live operation surface catalog](documentation/handbook/04-operations/system/live-operation-surfaces.adoc)
 identifies supported workflow boundaries and retained compatibility assets.
 
 For a new Classic installation, preview `setup run --minimal --preview` or
 `setup run --services jenkins,sonarqube --preview`. Incus/LXC is a host
 prerequisite and Portainer is a mandatory managed foundation; the planner
 explains added dependencies. Add services later with
-`services add --services swagger --preview`. See [selective setup](documentation/user_guide/selective-setup.md)
+`services add --services swagger --preview`. See [selective setup](documentation/handbook/03-user-guide/user_guide/selective-setup.md)
 for prerequisites, live consent and removal limits. Cross-host qualification
-remains incomplete; see [W09 evidence](documentation/evidence/lcm-w09-qualification.md).
+remains incomplete; see [W09 evidence](documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md).
 
 ## For contributors
 
 The Python code follows a domain/application/infrastructure split.
-Start with the [Developer Manual](documentation/manuals/developer-manual.md),
+Start with the [Developer Manual](documentation/handbook/05-development/manuals/developer-manual.md),
 [AGENTS.md](AGENTS.md) and [QUALITY.md](QUALITY.md).
 
 The future [multi-runtime vision](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/251)
@@ -252,7 +257,7 @@ Inspect recorded installation identity and component versions with
 `tiny-swarm-world product version --json` and `tiny-swarm-world services list --json`
 from the prepared environment. These commands write nothing; legacy installations
 without a manifest report adoption required. See the
-[manifest, catalog and adoption contract](documentation/contracts/installation-manifest.md)
+[manifest, catalog and adoption contract](documentation/handbook/01-product/contracts/installation-manifest.md)
 for schema ownership, drift diagnostics and current support limits.
 
 Discover admitted targets with `tiny-swarm-world services updates --json` and
@@ -262,9 +267,9 @@ The catalog records two fixed stateless image-transition candidates, which
 remain non-executable pending current-source live qualification:
 Traefik 3.7.4→3.7.5 and Swagger UI 5.32.6→5.32.7. Historical bounded live
 results used an earlier transition-runner source and do not qualify the current
-runner. See [LCM-W09 evidence](documentation/evidence/lcm-w09-qualification.md)
-and its [source-hash applicability](documentation/evidence/lcm-w09-transition-proposal.md).
+runner. See [LCM-W09 evidence](documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md)
+and its [source-hash applicability](documentation/handbook/07-evidence-release/evidence/lcm-w09-transition-proposal.md).
 This does not close the broader W09 acceptance. Other generic services have no admitted
 upgrade targets and unsupported previews return exit 1. See
-[component planning](documentation/user_guide/component-updates.md) for the
+[component planning](documentation/handbook/03-user-guide/user_guide/component-updates.md) for the
 exact targets, migration restrictions and execution ownership.

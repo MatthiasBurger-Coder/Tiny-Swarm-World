@@ -1,0 +1,36 @@
+= Operations and system reference
+
+ifndef::handbook-root[]
+:handbook-root: ../../
+endif::[]
+
+link:{handbook-root}README.adoc[Product Handbook] / Part 4
+
+The link:{handbook-root}handbook/04-operations/manuals/operator-manual.md[Operator Manual]
+provides task-oriented navigation. System references explain runtime,
+networking, Incus/LXC setup, idempotency and recovery, and the
+link:{handbook-root}handbook/04-operations/system/live-operation-surfaces.adoc[live operation surfaces].
+Follow the procedures in Part 3 before changing managed infrastructure.
+Configuration definitions and deployment design remain architecture sources
+in Part 2; this part owns operational reference and navigation.
+
+== Source catalogue
+
+Each source below has this part as its primary handbook assignment.
+Cross-references from other parts do not change that ownership.
+
+=== Book and supporting sources
+
+* link:{handbook-root}handbook/04-operations/Howto.adoc[Howto.adoc]
+
+=== manuals
+
+* link:{handbook-root}handbook/04-operations/manuals/operator-manual.md[operator-manual.md]
+
+=== system
+
+* link:{handbook-root}handbook/04-operations/system/idempotency-recovery.adoc[idempotency-recovery.adoc]
+* link:{handbook-root}handbook/04-operations/system/live-operation-surfaces.adoc[live-operation-surfaces.adoc]
+* link:{handbook-root}handbook/04-operations/system/lxc-native-setup.adoc[lxc-native-setup.adoc]
+* link:{handbook-root}handbook/04-operations/system/network.adoc[network.adoc]
+* link:{handbook-root}handbook/04-operations/system/system.adoc[system.adoc]

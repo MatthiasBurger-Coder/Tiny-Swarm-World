@@ -13,7 +13,7 @@ Creates a structured slice-based implementation plan from a task, repository rul
 2. Read AGENTS.md.
 3. Read QUALITY.md.
 4. Inspect relevant repository files.
-5. Apply `workflow-authoring` when creating or regenerating `documentation/workflow`.
+5. Apply `workflow-authoring` when creating or regenerating `documentation/handbook/05-development/workflow`.
 6. Apply `engineering-governance` when EPIC, arc42, requirement, resilience, quality or role synchronization is affected.
 7. Identify the smallest meaningful implementation slices.
 8. Order slices by dependency and risk.

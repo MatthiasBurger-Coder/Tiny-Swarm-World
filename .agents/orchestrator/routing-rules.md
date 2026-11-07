@@ -39,7 +39,7 @@ gates. Unclear impact defaults to `FULL_PATH`.
 - Test strategy, regression coverage, Python architecture checks or quality-gate design routes to `roles/senior-tester.md`.
 - Requirement matrix, acceptance verification, evidence completeness or
   no-silent-scope-reduction concerns route through
-  `documentation/process/issue-completion-discipline.md`,
+  `documentation/handbook/05-development/process/issue-completion-discipline.md`,
   `skills/three-amigos-requirement-gatekeeper/SKILL.md` and
   `skills/issue-completion-auditor/SKILL.md` by phase.
 - Quality or validation failures in `workflow execute` route through the Typed Error Router before any retry:
@@ -50,7 +50,7 @@ gates. Unclear impact defaults to `FULL_PATH`.
   - `LOCK_CONFLICT` routes to `roles/senior-execution-orchestrator.md`, `skills/s3d-execution-orchestrator/SKILL.md`, Senior Swarm Orchestrator coordination and Root Architect escalation.
   - `UNKNOWN_FAILURE` routes to Root Architect escalation.
 - Python tooling, Docker, Kubernetes, CI, observability or deployment work routes to `roles/senior-devops.md`.
-- New workflow creation, full `documentation/workflow` regeneration, slice dependency planning or planning-risk review routes to `roles/senior-workflow-architect/SKILL.md`.
+- New workflow creation, full `documentation/handbook/05-development/workflow` regeneration, slice dependency planning or planning-risk review routes to `roles/senior-workflow-architect/SKILL.md`.
 - EPIC consistency, requirement drift, requirement classification, assumption tracking or requirement-to-architecture synchronization routes to `roles/senior-requirement-engineer/SKILL.md`.
 - Incoming requirement gatekeeping before workflow authoring, Three Amigos review, acceptance-criteria validation, dependency/deadlock checks or `READY_FOR_WORKFLOW` versus `REQUIRES_REFINEMENT` decisions route to `skills/three-amigos-requirement-gatekeeper/SKILL.md`.
 - Multi-role coordination, conflict resolution or slice planning routes to `roles/senior-swarm-orchestrator.md`.

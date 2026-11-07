@@ -90,7 +90,7 @@ The branch matrix rule is mandatory:
 
 1. Inspect the current branch with `git status --short --branch` or `git branch --show-current`.
 2. When the branch is exactly `main`, identify the active strand: `skills update`, `workflow create`, `workflow execute`, exact `push`, exact `push auto`, or ad-hoc implementation.
-3. Create the non-`main` branch required by `documentation/process/branch-governance.md`.
+3. Create the non-`main` branch required by `documentation/handbook/05-development/process/branch-governance.md`.
 4. If the branch name already exists, choose the next clear unique suffix after checking local and remote branch names.
 5. Preserve existing unstaged or staged task changes when switching to the new branch.
 6. Rerun `git status --short --branch` after branch creation and continue only from the new branch.

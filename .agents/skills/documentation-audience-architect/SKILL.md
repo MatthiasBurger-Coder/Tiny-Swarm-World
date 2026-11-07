@@ -10,9 +10,10 @@ Own ISO/IEC/IEEE 26514-oriented documentation audience separation and
 navigation.
 
 ## Scope
-Maintains `documentation/manuals/`, `README.md`,
-`documentation/README.adoc`, and `documentation/user_guide/` when
-audience structure changes.
+Maintains `README.md`, `documentation/README.adoc`, the seven part indexes
+under `documentation/handbook/`, audience manuals inside their owning parts,
+and `documentation/handbook/03-user-guide/user_guide/` when audience structure
+changes. All specialist documentation is physically stored below its part.
 
 ## Non-goals
 Does not rewrite product behavior, claim implemented features from planned
@@ -43,7 +44,7 @@ Escalate architecture docs to `arc42-architecture-governance`, release docs to
 This skill is review-only and does not declare an issue `DONE`. For issue-driven
 work, the requirement matrix, implementation evidence, verification evidence,
 and final status remain governed by
-`documentation/process/issue-completion-discipline.md` and
+`documentation/handbook/05-development/process/issue-completion-discipline.md` and
 `issue-completion-auditor`. Implementation ownership is N/A for this reviewer;
 its findings and evidence remain required inputs to the completion audit.
 

@@ -10,10 +10,10 @@ Own dependency security, SBOM policy, container image scan policy, and optional
 security gate strategy.
 
 ## Scope
-Maintains `documentation/security/supply-chain-security.md`,
-`documentation/security/sbom-policy.md`,
-`documentation/security/dependency-scan-policy.md`,
-`documentation/security/container-image-scan-policy.md`, and
+Maintains `documentation/handbook/06-quality-security/security/supply-chain-security.md`,
+`documentation/handbook/06-quality-security/security/sbom-policy.md`,
+`documentation/handbook/06-quality-security/security/dependency-scan-policy.md`,
+`documentation/handbook/06-quality-security/security/container-image-scan-policy.md`, and
 `tools/linux/security_gate.py` if introduced by a future workflow.
 
 ## Non-goals
@@ -45,7 +45,7 @@ baseline implications to `release-baseline-governance-expert`, and CI policy to
 This skill is review-only and does not declare an issue `DONE`. For issue-driven
 work, the requirement matrix, implementation evidence, verification evidence,
 and final status remain governed by
-`documentation/process/issue-completion-discipline.md` and
+`documentation/handbook/05-development/process/issue-completion-discipline.md` and
 `issue-completion-auditor`. Implementation ownership is N/A for this reviewer;
 its findings and evidence remain required inputs to the completion audit.
 
