@@ -53,6 +53,120 @@ $o=Options;$o.ApproveApply=$true;$r=Invoke-WindowsPreparation $o $ports;Assert (
 $artifacts=Get-PreparationArtifacts;Assert ($artifacts.wsl.sha256.Length -eq 64 -and $artifacts['Ubuntu-26.04'].version -eq '26.04.1') 'immutable artifact identity'
 # Pure host/help predicates cover the actual Hyper-V and WSL help observations.
 $module=Get-Module Preparation
+function StoreWsl2Facts {
+    $f=Facts
+    $f.features_missing=@('Microsoft-Windows-Subsystem-Linux')
+    $f.feature_states=@{'Microsoft-Windows-Subsystem-Linux'='Disabled';VirtualMachinePlatform='Enabled'}
+    $f.wsl_store_package_known=$true
+    $f.wsl_store_package=@{name='MicrosoftCorporationII.WindowsSubsystemForLinux';publisher_id='8wekyb3d8bbwe';version='3.0.1.0'}
+    return $f
+}
+# Store WSL2 needs VMP, while the legacy component is optional only with exact facts.
+$script:facts=StoreWsl2Facts
+$beforeFacts=Get-PreparationDigest $script:facts
+$beforeEffects=@($script:writes,$script:protected,$script:executions) -join ','
+$r=Invoke-WindowsPreparation (Options) $ports
+Assert ($r.result.outcome -eq 'READY' -and $r.actions.Count -eq 0) 'verified Store WSL2 needs no legacy component action'
+Assert ((Get-PreparationDigest $script:facts) -ceq $beforeFacts -and $script:facts.features_missing.Count -eq 1) 'Store exception preserves observed facts'
+Assert ((@($script:writes,$script:protected,$script:executions) -join ',') -ceq $beforeEffects) 'Store preflight has no effects'
+foreach($case in @(@('wsl_store_package_known',$false),@('wsl_store_package_known','true'),@('wsl_store_package',$null),@('wsl_present',$false),@('wsl_present','true'),@('wsl_version','2.3.0'),@('wsl_version','3.0.2'),@('wsl_version','broken'),@('distro_inventory_known',$false),@('distro_inventory_known','true'),@('distro_present',$false),@('distro_present','true'),@('wsl_generation',1),@('wsl_generation','2'),@('wsl_generation',$true),@('wsl_generation',$null),@('features_known',$false),@('features_known','true'))) {
+    $script:facts=StoreWsl2Facts;$script:facts[$case[0]]=$case[1]
+    $eligible=& $module {param($f) Test-PreparationStoreWsl2 $f} $script:facts
+    Assert (!$eligible) ('Store exception typed predicate '+$case[0])
+    $r=Invoke-WindowsPreparation (Options) $ports
+    Assert ($r.result.outcome -ne 'READY') ('Store unsupported facts stay blocked '+$case[0])
+}
+foreach($case in @(@('name','Other'),@('name',@('MicrosoftCorporationII.WindowsSubsystemForLinux')),@('publisher_id','unknown'),@('version','2.3.0.0'),@('version','3.0.2.0'),@('version','3.0.1'),@('version','03.0.1.0'),@('version','99999999999999999.0.0.0'),@('version',$null))) {
+    $script:facts=StoreWsl2Facts;$script:facts.wsl_store_package[$case[0]]=$case[1]
+    $r=Invoke-WindowsPreparation (Options) $ports
+    Assert ($r.actions.Count -eq 1 -and $r.actions[0].id -ceq 'enable_features') ('Store malformed identity retains feature gate '+$case[0])
+}
+foreach($feature in @('VirtualMachinePlatform','Microsoft-Windows-Subsystem-Linux')) {
+    foreach($state in @('Enable Pending','Disable Pending','unknown',$null)) {
+        $script:facts=StoreWsl2Facts;$script:facts.feature_states[$feature]=$state
+        $r=Invoke-WindowsPreparation (Options) $ports
+        Assert ($r.actions.Count -eq 1 -and $r.actions[0].id -ceq 'enable_features') ('Store unknown feature state '+$feature)
+    }
+}
+$script:facts=StoreWsl2Facts;$script:facts.feature_states.VirtualMachinePlatform='Disabled';$script:facts.features_missing+=@('VirtualMachinePlatform','OtherFeature')
+$r=Invoke-WindowsPreparation (Options) $ports
+Assert (($r.actions[0].before -join ',') -ceq 'Microsoft-Windows-Subsystem-Linux,VirtualMachinePlatform,OtherFeature') 'Store exception cannot hide VMP or unrelated missing feature'
+$script:facts=StoreWsl2Facts;$script:facts.features_missing+=@('OtherFeature')
+$r=Invoke-WindowsPreparation (Options) $ports
+Assert (($r.actions[0].before -join ',') -ceq 'OtherFeature') 'Store exception removes only legacy component'
+foreach($case in @(@('elevated',$false,'elevation_required'),@('reboot_pending',$true,'reboot_pending'),@('virtualization',$false,'virtualization_unavailable'))) {
+    $script:facts=StoreWsl2Facts;$script:facts[$case[0]]=$case[1]
+    $r=Invoke-WindowsPreparation (Options) $ports
+    Assert (@($r.blockers | Where-Object{$_.code -ceq $case[2]}).Count -eq 1) ('Store exception preserves independent '+$case[0])
+}
+$script:facts=StoreWsl2Facts;$script:facts.resource_facts.physical_memory_bytes=[long]1073741824
+$r=Invoke-WindowsPreparation (Options) $ports
+Assert ($r.result.outcome -eq 'BLOCKED' -and $r.resources.state -cne 'LIFECYCLE_PREREQUISITES_REQUIRED') 'Store exception still evaluates and refuses insufficient resources'
+$script:facts=StoreWsl2Facts;$r=Invoke-WindowsPreparation (Options) $ports;$storeFingerprint=$r.plan_fingerprint
+$script:facts.wsl_store_package.version='3.0.1.1';$r=Invoke-WindowsPreparation (Options) $ports
+Assert ($r.result.outcome -eq 'READY' -and $r.plan_fingerprint -cne $storeFingerprint) 'Store package revision drift changes consent fingerprint'
+$script:facts.wsl_version='3.0.1.1';$r=Invoke-WindowsPreparation (Options) $ports
+Assert ($r.result.outcome -eq 'READY') 'matching four-part WSL runtime supported'
+$script:facts.wsl_version='3.0.1.2';$r=Invoke-WindowsPreparation (Options) $ports
+Assert ($r.result.outcome -eq 'BLOCKED') 'different explicit runtime revision cannot bypass feature'
+# Exercise the real adapter observation path, with both process calls mocked.
+$originalStoreProcess=& $module {${function:Invoke-PreparationProcess}}
+$originalStoreExecutable=& $module {${function:Get-PreparationExecutable}}
+try {
+    & $module {
+        $script:storeAdapterCalls=New-Object Collections.ArrayList
+        $script:storeProbe=@{exit_code=0;stdout='{"msi":false,"store":1,"packages":[{"name":"MicrosoftCorporationII.WindowsSubsystemForLinux","publisher_id":"8wekyb3d8bbwe","version":"3.0.1.0"}]}';stderr=''}
+        $script:storeVersion=@{exit_code=0;stdout="WSL version: 3.0.1.0`n";stderr=''}
+        function script:Get-PreparationExecutable {param($Name) if($Name -cne 'powershell.exe'){throw 'unexpected_store_binary'};return 'mock-powershell'}
+        function script:Invoke-PreparationProcess {
+            param($File,$Arguments,$TimeoutSeconds,$InputText)
+            [void]$script:storeAdapterCalls.Add(@{file=$File;arguments=$Arguments;timeout=$TimeoutSeconds})
+            if($File -ceq 'mock-wsl' -and $Arguments.Count -eq 1 -and $Arguments[0] -ceq '--version'){return $script:storeVersion}
+            if($File -ceq 'mock-powershell' -and $Arguments[-1] -cmatch 'Get-AppxPackage -Name MicrosoftCorporationII.WindowsSubsystemForLinux'){return $script:storeProbe}
+            throw 'unexpected_store_probe'
+        }
+    }
+    $observed=& $module {Get-PreparationWslRuntimeInventory 'mock-wsl' {7}}
+    Assert ($observed.wsl_present -and $observed.wsl_version -ceq '3.0.1.0' -and $observed.wsl_store_package_known -and $observed.wsl_store_package.version -ceq '3.0.1.0') 'actual runtime adapter preserves full Store and runtime versions'
+    $calls=& $module {@($script:storeAdapterCalls.ToArray())}
+    Assert ($calls.Count -eq 2 -and $calls[0].timeout -eq 7 -and $calls[1].timeout -eq 7) 'Store runtime observations use two bounded probes'
+    $script:facts=StoreWsl2Facts;foreach($key in $observed.Keys){$script:facts[$key]=$observed[$key]};$r=Invoke-WindowsPreparation (Options) $ports
+    Assert ($r.result.outcome -eq 'READY') 'actual adapter Store facts reach optional-feature policy'
+    foreach($case in @(@('3.0.1','READY'),@('3.0.1.1','BLOCKED'),@('3.0.1.0','READY'))) {
+        $module.SessionState.PSVariable.Set('storeVersion',@{exit_code=0;stdout=('WSL version: '+$case[0]+"`n");stderr=''})
+        $observed=& $module {Get-PreparationWslRuntimeInventory 'mock-wsl' {7}}
+        $script:facts=StoreWsl2Facts;foreach($key in $observed.Keys){$script:facts[$key]=$observed[$key]};$r=Invoke-WindowsPreparation (Options) $ports
+        Assert ($observed.wsl_version -ceq $case[0] -and $r.result.outcome -ceq $case[1]) 'real adapter preserves runtime revision mismatch for policy'
+    }
+    foreach($probe in @(@{exit_code=$false;stdout="WSL version: 3.0.1.0`n";stderr=''},@{exit_code='0';stdout="WSL version: 3.0.1.0`n";stderr=''},@{exit_code=0;stdout=$null;stderr=''},@{exit_code=0;stdout=42;stderr=''},@{exit_code=0;stdout=('x'*65537);stderr=''},@{exit_code=0;stdout="WSL version: 3.0.1.0`n";stderr='warning'},@{exit_code=0;stdout="WSL version: 3.0.1.0`n";stderr=$null},@{exit_code=0;stdout="WSL version: 3.0.1.0`n";stderr=0},@{exit_code=0;stdout="WSL version: 03.0.1.0`n";stderr=''},@{exit_code=0;stdout="unknown first line`nKernel version: 3.0.1.0`n";stderr=''})) {
+        $module.SessionState.PSVariable.Set('storeVersion',$probe)
+        $observed=& $module {Get-PreparationWslRuntimeInventory 'mock-wsl' {7}}
+        $script:facts=StoreWsl2Facts;foreach($key in $observed.Keys){$script:facts[$key]=$observed[$key]};$r=Invoke-WindowsPreparation (Options) $ports
+        Assert ($observed.wsl_present -and $null -eq $observed.wsl_version -and $r.result.outcome -ceq 'BLOCKED') 'malformed runtime result stays present unknown and cannot bypass feature'
+    }
+    $module.SessionState.PSVariable.Set('storeVersion',@{exit_code=0;stdout="WSL version: 3.0.1.0`n";stderr=''})
+    foreach($raw in @('{"msi":false,"store":0,"packages":[]}', '{"msi":true,"store":0,"packages":[]}', '{"msi":false,"store":2,"packages":[]}', '{"msi":false,"store":"1","packages":[]}', '{"msi":false,"store":1,"packages":[{"name":"Other","publisher_id":"8wekyb3d8bbwe","version":"3.0.1.0"}]}', '{"msi":false,"store":1,"packages":[{"name":"MicrosoftCorporationII.WindowsSubsystemForLinux","publisher_id":"other","version":"3.0.1.0"}]}', '{"msi":false,"store":1,"packages":[{"name":"MicrosoftCorporationII.WindowsSubsystemForLinux","publisher_id":"8wekyb3d8bbwe","version":"bad"}]}', '{"msi":false,"store":0,"store":1,"packages":[]}', '{"msi":false,"store":0,"packages":[],"unknown":"secret"}', 'not-json')) {
+        $module.SessionState.PSVariable.Set('storeProbe',@{exit_code=0;stdout=$raw;stderr=''})
+        $observed=& $module {Get-PreparationWslRuntimeInventory 'mock-wsl' {7}}
+        $script:facts=StoreWsl2Facts;foreach($key in $observed.Keys){$script:facts[$key]=$observed[$key]};$r=Invoke-WindowsPreparation (Options) $ports
+        Assert ($r.result.outcome -eq 'BLOCKED' -and $null -eq $observed.wsl_store_package) 'unknown inbox MSI or malformed actual package probe cannot bypass feature'
+    }
+    foreach($probe in @(@{exit_code=124;stdout='';stderr='timeout'},@{exit_code=1;stdout='';stderr='failed'},@{exit_code=0;stdout=('x'*65537);stderr=''},@{exit_code=0;stdout='{}';stderr='error'})) {
+        $module.SessionState.PSVariable.Set('storeProbe',$probe)
+        $observed=& $module {Get-PreparationWslRuntimeInventory 'mock-wsl' {7}}
+        Assert (!$observed.wsl_store_package_known -and $null -eq $observed.wsl_store_package) 'failed bounded package probe remains unknown'
+    }
+    $module.SessionState.PSVariable.Set('storeVersion',@{exit_code=1;stdout='';stderr='unsupported'})
+    foreach($msi in @($false,$true)) {
+        $raw=@{msi=$msi;store=0;packages=@()} | ConvertTo-Json -Compress
+        $module.SessionState.PSVariable.Set('storeProbe',@{exit_code=0;stdout=$raw;stderr=''})
+        $observed=& $module {Get-PreparationWslRuntimeInventory 'mock-wsl' {7}}
+        Assert ($observed.wsl_present -eq $msi -and $null -eq $observed.wsl_version) 'existing absent-runtime versus MSI fallback remains'
+    }
+} finally {
+    & $module {param($process,$executable) Set-Item Function:script:Invoke-PreparationProcess $process;Set-Item Function:script:Get-PreparationExecutable $executable} $originalStoreProcess $originalStoreExecutable
+}
+$script:facts=Facts
 foreach($case in @(@($true,@($false),$true),@($false,@($true),$true),@($false,@($false),$false),@($null,@($true),$null),@($true,@($null),$null),@('true',@($false),$null))) {
     $v=& $module {param($h,$f) Get-PreparationVirtualization @{hypervisor_present=$h;firmware_values=$f}} $case[0] $case[1]
     Assert ($v.available -eq $case[2]) 'typed hypervisor/firmware observation'

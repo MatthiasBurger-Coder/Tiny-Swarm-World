@@ -122,6 +122,42 @@ function Get-PreparationExecutable($Name) {
     if($Name -eq 'powershell.exe'){return Join-Path $base 'WindowsPowerShell/v1.0/powershell.exe'}
     return Join-Path $base $Name
 }
+function ConvertFrom-PreparationWslPackageProbe($Probe) {
+    $unknown=@{known=$false;msi=$null;store=$null;store_package=$null}
+    if($Probe.exit_code -isnot [int] -or $Probe.exit_code -ne 0 -or $Probe.stdout -isnot [string] -or $Probe.stdout.Length -gt 65536 -or $Probe.stderr -isnot [string] -or $Probe.stderr.Length -ne 0){return $unknown}
+    if($Probe.stdout.Contains('\')){return $unknown}
+    $names=@([regex]::Matches($Probe.stdout,'"([a-z_]+)"\s*:') | ForEach-Object{$_.Groups[1].Value})
+    if(@($names | Group-Object | Where-Object{$_.Count -gt 1}).Count -gt 0){return $unknown}
+    try {$document=$Probe.stdout | ConvertFrom-Json -ErrorAction Stop} catch {return $unknown}
+    if($null -eq $document -or (@($document.PSObject.Properties.Name | Sort-Object) -join ',') -cne 'msi,packages,store'){return $unknown}
+    if($document.msi -isnot [bool] -or $document.store -isnot [int] -or $document.store -lt 0 -or $document.store -gt 1 -or $document.packages -isnot [array] -or $document.packages.Count -ne $document.store){return $unknown}
+    $result=@{known=$true;msi=$document.msi;store=$document.store;store_package=$null}
+    if($document.store -eq 0){return $result}
+    $package=$document.packages[0]
+    if($null -eq $package -or (@($package.PSObject.Properties.Name | Sort-Object) -join ',') -cne 'name,publisher_id,version'){return $unknown}
+    $version=$null
+    if($package.name -isnot [string] -or $package.name -cne 'MicrosoftCorporationII.WindowsSubsystemForLinux' -or $package.publisher_id -isnot [string] -or $package.publisher_id -cne '8wekyb3d8bbwe' -or $package.version -isnot [string] -or $package.version -cnotmatch '\A(?:0|[1-9][0-9]{0,4})(?:\.(?:0|[1-9][0-9]{0,4})){3}\z' -or ![version]::TryParse($package.version,[ref]$version)){return $unknown}
+    $result.store_package=@{name=$package.name;publisher_id=$package.publisher_id;version=$package.version}
+    return $result
+}
+function Get-PreparationWslPackageInventory($TimeoutSeconds) {
+    $probe=Invoke-PreparationProcess (Get-PreparationExecutable 'powershell.exe') @('-NoProfile','-NonInteractive','-Command', '$ErrorActionPreference="Stop"; $p=@(Get-AppxPackage -Name MicrosoftCorporationII.WindowsSubsystemForLinux -ErrorAction Stop); @{msi=(Test-Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Lxss\MSI");store=$p.Count;packages=@($p | ForEach-Object {@{name=$_.Name;publisher_id=$_.PublisherId;version=$_.Version.ToString()}})} | ConvertTo-Json -Depth 5 -Compress') $TimeoutSeconds
+    return ConvertFrom-PreparationWslPackageProbe $probe
+}
+function Get-PreparationWslRuntimeInventory($WslPath,[scriptblock]$RemainingTimeout) {
+    $package=Get-PreparationWslPackageInventory (& $RemainingTimeout)
+    $facts=@{wsl_present=$true;wsl_version=$null;wsl_store_package_known=$package.known;wsl_store_package=$package.store_package}
+    $version=Invoke-PreparationProcess $WslPath @('--version') (& $RemainingTimeout)
+    if($version.exit_code -isnot [int]){return $facts}
+    if($version.exit_code -ne 0){
+        # Inbox WSL without readable modern version is unsupported, not absent.
+        if($package.known -and !$package.msi -and $package.store -eq 0){$facts.wsl_present=$false}
+        return $facts
+    }
+    if($version.stdout -isnot [string] -or $version.stdout.Length -gt 65536 -or $version.stderr -isnot [string] -or $version.stderr.Length -ne 0){return $facts}
+    if(($version.stdout -replace "`0",'') -cmatch '\A[^\r\n:]{1,64}:[ \t]*((?:0|[1-9][0-9]{0,4})(?:\.(?:0|[1-9][0-9]{0,4})){2,3})[ \t]*(?:\r?\n|\z)'){$facts.wsl_version=$Matches[1]}
+    return $facts
+}
 function Get-PreparationInventory($Options) {
     $inventoryDeadline=[Diagnostics.Stopwatch]::StartNew()
     function Get-InventoryRemaining {
@@ -144,6 +180,8 @@ function Get-PreparationInventory($Options) {
     reboot_pending=$false
     wsl_present=$null
     wsl_version=$null
+    wsl_store_package_known=$false
+    wsl_store_package=$null
     install_capable=$false
     distro_present=$null
     running=$false
@@ -181,18 +219,9 @@ function Get-PreparationInventory($Options) {
     if(Test-Path -LiteralPath $wslPath){$wsl=@{Source=$wslPath}}
     if(!$wsl){$facts.wsl_present=$false
     return $facts}
-    $version=Invoke-PreparationProcess $wsl.Source @('--version') (Get-InventoryRemaining)
-    if($version.exit_code -ne 0){
-        # Inbox WSL without readable modern version is unsupported, not absent.
-        $packageProbe=Invoke-PreparationProcess (Get-PreparationExecutable 'powershell.exe') @('-NoProfile','-NonInteractive','-Command', '@{msi=(Test-Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Lxss\MSI");store=@(Get-AppxPackage -Name MicrosoftCorporationII.WindowsSubsystemForLinux -ErrorAction Stop).Count} | ConvertTo-Json -Compress') (Get-InventoryRemaining)
-        if($packageProbe.exit_code -eq 0){$package=$packageProbe.stdout | ConvertFrom-Json
-        if($package.msi -is [bool] -and $package.store -is [int] -and !$package.msi -and $package.store -eq 0){$facts.wsl_present=$false
-        return $facts}}
-        $facts.wsl_present=$true
-        return $facts
-    }
-    $facts.wsl_present=$true
-    if(($version.stdout -replace "`0",'') -match '(?m)^.*?:\s*(\d+\.\d+\.\d+)(?:\.\d+)?\s*$'){$facts.wsl_version=$Matches[1]}
+    $runtime=Get-PreparationWslRuntimeInventory $wsl.Source ${function:Get-InventoryRemaining}
+    foreach($key in $runtime.Keys){$facts[$key]=$runtime[$key]}
+    if(!$facts.wsl_present -or !$facts.wsl_version){return $facts}
     $help=Invoke-PreparationProcess $wsl.Source @('--help') (Get-InventoryRemaining)
     $facts.install_capable=Test-PreparationInstallCapabilities $help
     $list=Invoke-PreparationProcess $wsl.Source @('--list','--verbose') (Get-InventoryRemaining)

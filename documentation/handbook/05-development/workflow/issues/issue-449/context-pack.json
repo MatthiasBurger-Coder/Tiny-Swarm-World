@@ -9,6 +9,8 @@
     "normative_contract": ".codex/evidence/slice-449-02F4-design.md",
     "execution_record": ".codex/evidence/epic440-20261107.md",
     "runtime_mutation_released": false,
+    "s02i_record": ".codex/evidence/epic440-store-wsl2-20261107.md",
+    "s02i_paths": ["bootstrap/windows/preparation/Policy.ps1", "bootstrap/windows/preparation/Adapters.ps1", "tests/windows/prepare-windows.Tests.ps1"],
     "historical_artifact_map": "Existing artifact hashes below bind their historical phase, not this continuation. Current exact-byte hashes are recorded in the execution record."
   },
   "workflow_path": "documentation/handbook/05-development/workflow/issues/issue-449/workflow.md",
