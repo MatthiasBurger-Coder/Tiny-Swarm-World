@@ -1,5 +1,38 @@
 # S449-02F4 — normalize the verified Snap wrapper and direct LXD child
 
+## 2026-11-07 nullable cluster-location metadata
+
+Normal 6a317fc6 native collection at 14:52:58 UTC returned RESOURCE_SCHEMA_INVALID,
+no artifact. A separately reviewed fixed-schema-only diagnostic at 14:55:21 UTC
+observed command count 323, last lxd_network_show exit 0; first failure was
+_validate_list_metadata on a network with locations:null and every other
+present field of its expected type; no unknown fields. No identity/value leaked.
+
+Pinned LXD5.21.9 and Incus6.0.5 Network/StoragePool definitions declare Locations
+as []string without omitempty. A nil Go string slice serializes as JSON null.
+https://raw.githubusercontent.com/canonical/lxd/lxd-5.21.9/shared/api/network.go
+https://raw.githubusercontent.com/canonical/lxd/lxd-5.21.9/shared/api/storage_pool.go
+https://raw.githubusercontent.com/lxc/incus/v6.0.5/shared/api/network.go
+https://raw.githubusercontent.com/lxc/incus/v6.0.5/shared/api/storage_pool.go
+
+Narrowly permit null ONLY for the already optional API metadata field locations
+in _validate_list_metadata. A present non-null value must remain a list of
+strings; wrong scalar/map/nested/nonstring items still fail. Do not mutate or
+fill the observed object. No generic null coercion; no acceptance of null
+used_by, config, devices, profiles, identity, expanded maps or API envelopes.
+Locations are already validated/discarded metadata and not used to infer owner,
+consumer, cluster admission, routing, executable identity or capability.
+All projected identities and reciprocal relationships stay exact and mandatory.
+No schema/artifact/command/budget changes or supporting-version admission.
+
+Serial locks: native collector/test and F4 design/master authoring only. Tests
+cover absent/null/empty/string-list locations in actual network and pool detail
+validators and real mocked _inventory_client flow, preserving input bytes/value
+and identical redacted projection. Reject non-null malformed shapes and retain
+null refusal on mandatory ownership/configuration collections. Keep all prior
+closed-schema/identity/graph/drift/redaction/budget tests. Independent exact
+reviews then focused/full PC-WSL gates and a new post-commit capture phase.
+
 ## 2026-11-07 bounded full native-inventory command accounting
 
 Normal native capture of clean 635e67f0 at 14:42:04 UTC returns

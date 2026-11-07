@@ -814,6 +814,50 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
         with self.assertRaises(inventory.InventoryError):
             inventory._validate_instance_config({**instance, "unknown": "value"}, "web", "alpha")
 
+    def test_nullable_cluster_locations_are_validated_without_mutating_metadata(self) -> None:
+        network: dict[str, Any] = {"name": "net", "project": "alpha", "type": "bridge", "managed": True,
+                   "config": {}, "used_by": []}
+        pool: dict[str, Any] = {"name": "pool", "project": "alpha", "driver": "dir", "config": {}, "used_by": []}
+        locations: Any
+        for locations in (None, [], ["member-1"]):
+            for base, validator in ((network, inventory._validate_network_show),
+                                    (pool, inventory._validate_pool_show)):
+                row = {**base, "locations": locations}
+                before = json.dumps(row)
+                self.assertEqual(validator(row, base["name"], "alpha"), row)
+                self.assertEqual(json.dumps(row), before)
+        for locations in (False, 0, "", {}, [None], [2], [["member-1"]]):
+            for base, validator in ((network, inventory._validate_network_show),
+                                    (pool, inventory._validate_pool_show)):
+                with self.subTest(locations=locations, name=base["name"]):
+                    with self.assertRaises(inventory.InventoryError):
+                        validator({**base, "locations": locations}, base["name"], "alpha")
+
+    def test_nullable_locations_keep_projection_and_ownership_checks_unchanged(self) -> None:
+        runner = self._InventoryRunner()
+        _, expected = inventory._inventory_client(runner, "incus_system", "/run/incus/unix.socket",
+                                                   incus=True, before_query=lambda: None)
+        runner = self._InventoryRunner()
+        runner.list_rows["networks"] = [{"name": "net", "project": "alpha", "type": "bridge", "managed": True,
+                                         "config": {}, "used_by": runner.network_used_by, "locations": None}]
+        runner.list_rows["pools"] = [{"name": "pool", "project": "alpha", "driver": "dir", "config": {},
+                                      "used_by": runner.pool_used_by, "locations": None}]
+        runner.detail_overrides["incus_network_show"] = {"locations": None}
+        runner.detail_overrides["incus_storage_show"] = {"locations": None}
+        _, actual = inventory._inventory_client(runner, "incus_system", "/run/incus/unix.socket",
+                                                 incus=True, before_query=lambda: None)
+        self.assertEqual(actual, expected)
+        self.assertIsNone(runner.list_rows["networks"][0]["locations"])
+        self.assertIsNone(runner.list_rows["pools"][0]["locations"])
+        self.assertNotIn("locations", str(actual))
+        for field in ("config", "used_by", "name", "project"):
+            with self.subTest(field=field):
+                runner = self._InventoryRunner()
+                runner.detail_overrides["incus_network_show"] = {"locations": None, field: None}
+                with self.assertRaises(inventory.InventoryError):
+                    inventory._inventory_client(runner, "incus_system", "/run/incus/unix.socket",
+                                                incus=True, before_query=lambda: None)
+
     def test_network_and_pool_detail_reject_project_scope_mismatch(self) -> None:
         network = {"name": "br0", "project": "alpha", "type": "bridge", "managed": True, "config": {}, "used_by": []}
         pool = {"name": "default", "project": "alpha", "driver": "dir", "config": {}, "used_by": []}

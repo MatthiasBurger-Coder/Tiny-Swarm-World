@@ -490,7 +490,8 @@ def _validate_list_metadata(row: dict[str, Any], project: str) -> None:
             raise InventoryError("RESOURCE_SCHEMA_INVALID")
         for profile in row["profiles"]:
             _name(profile)
-    if "locations" in row:
+    # Network/StoragePool Locations is a nullable Go []string, discarded after validation.
+    if "locations" in row and row["locations"] is not None:
         if not isinstance(row["locations"], list) or any(not isinstance(location, str) for location in row["locations"]):
             raise InventoryError("RESOURCE_SCHEMA_INVALID")
     if "used_by" in row:
