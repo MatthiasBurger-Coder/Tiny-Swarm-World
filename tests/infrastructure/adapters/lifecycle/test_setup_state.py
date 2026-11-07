@@ -1,4 +1,5 @@
 """Selection admission and persistence using synthetic inventory and checkout identity."""
+from tests.infrastructure.adapters.lifecycle.test_installation_operation_lock import FakeInstallationLock
 
 import asyncio
 from dataclasses import replace
@@ -40,8 +41,8 @@ class SetupSelectionStateTests(unittest.TestCase):
         self.path = self.root / "private" / "manifest.json"
         self.repository = JsonManifestRepository(self.path)
         self.catalog = NativeComponentCatalog(ROOT)
-        self.lifecycle = InstallationLifecycleService(self.repository, self.catalog)
-        self.selection = ServiceSelectionService(self.repository, self.catalog)
+        self.lifecycle = InstallationLifecycleService(self.repository, self.catalog, operation_lock=FakeInstallationLock())
+        self.selection = ServiceSelectionService(self.repository, self.catalog, operation_lock=FakeInstallationLock())
         self.nodes = ("swarm-manager", "swarm-worker-1")
 
     def _runner(self, inventory="[]", returncode=0):
@@ -273,8 +274,8 @@ class SetupSourceObservationTests(unittest.IsolatedAsyncioTestCase):
         (self.root / "requirements.lock").write_text("synthetic-lock\n")
         self.repository = JsonManifestRepository(self.root / ".tiny-swarm-world/installation/manifest.json")
         self.catalog = NativeComponentCatalog(ROOT)
-        self.lifecycle = InstallationLifecycleService(self.repository, self.catalog)
-        self.selection = ServiceSelectionService(self.repository, self.catalog)
+        self.lifecycle = InstallationLifecycleService(self.repository, self.catalog, operation_lock=FakeInstallationLock())
+        self.selection = ServiceSelectionService(self.repository, self.catalog, operation_lock=FakeInstallationLock())
 
     def _pins(self, services, *, target=False):
         environment = {}

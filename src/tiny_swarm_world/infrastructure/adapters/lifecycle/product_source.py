@@ -71,6 +71,7 @@ def release_policy():
     return {'schema_version': 1, 'source_release': '0.4.0', 'source_revision': SOURCE_REVISION,
             'source_package_version': '0.2.0', 'target_release': '0.5.0', 'target_revision': TARGET_REVISION,
             'target_package_version': '0.2.0',
+            'source_supported_manifest_schemas': [1], 'target_supported_manifest_schemas': [1],
             'hosts': ['native-linux', 'wsl2'], 'configuration_schema': 1,
             'migrations': ['protected-infra-v1', 'installation-product-v1'],
             'component_policy': 'preserve-installed-images', 'downgrade': 'unsupported'}

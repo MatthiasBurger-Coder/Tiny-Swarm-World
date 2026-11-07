@@ -1,4 +1,5 @@
 """Product transport validation, preview isolation and consent regressions."""
+from tests.infrastructure.adapters.lifecycle.test_installation_operation_lock import use_fake_composition_locks
 from contextlib import redirect_stdout, redirect_stderr
 import io
 import unittest
@@ -10,6 +11,9 @@ from tiny_swarm_world.infrastructure.adapters.cli.parser import parse_args
 
 
 class ProductCliTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        use_fake_composition_locks(self)
+
     def test_valid_preview_live_and_recovery_commands(self):
         for mode in (['--preview'], ['--live', '--approve-live'], ['--live', '--approve-live', '--recover']):
             args = parse_args(['product', 'upgrade', '--to', '0.5.0', *mode])

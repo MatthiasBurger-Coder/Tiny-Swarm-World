@@ -2,6 +2,7 @@
 import asyncio
 
 from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
+from tiny_swarm_world.application.ports.lifecycle.installation_profile import InstallationLease
 from tiny_swarm_world.application.ports.operation_result import OperationError
 from tiny_swarm_world.application.services.platform.workflow.update import ClassicUpdateWorkflow
 from tiny_swarm_world.domain.lifecycle.models import VersionIdentity
@@ -27,6 +28,16 @@ def compose_service(stage: UpdateStage) -> str:
 class ClassicComponentRuntime:
     def __init__(self, workflow: ClassicUpdateWorkflow):
         self.workflow = workflow
+
+    def for_operation(self, lease: InstallationLease) -> 'ClassicComponentRuntime':
+        from copy import copy
+
+        lease.require_active()
+        workflow = copy(self.workflow)
+        workflow.operation_lease = lease
+        runtime = copy(self)
+        runtime.workflow = workflow
+        return runtime
 
     def validate(self, stages: tuple[UpdateStage, ...]) -> None:
         for stage in stages:

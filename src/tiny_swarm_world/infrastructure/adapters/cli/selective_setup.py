@@ -6,6 +6,7 @@ from dataclasses import replace
 import json
 
 from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
+from tiny_swarm_world.application.ports.lifecycle.installation_profile import InstallationLease, installation_operation
 from tiny_swarm_world.application.ports.operation_result import OperationError, OperationFailure, OperationOutcome, OperationResult
 from tiny_swarm_world.application.services.service_selection import ServiceSelectionService
 from tiny_swarm_world.application.services.setup.workflow import SetupWorkflowKind, SetupWorkflowResult, SetupWorkflowStatus
@@ -17,8 +18,16 @@ from tiny_swarm_world.infrastructure.adapters.cli.selection import _configured_s
 
 async def run_selective_setup(args: Namespace, consent: LiveConsent | None) -> SetupWorkflowResult | None:
     if consent is None or not consent.accepted:
-        raise ValueError("Selective setup requires accepted live consent")
+        raise ValueError('Selective setup requires accepted live consent')
     lifecycle = composition.build_installation_lifecycle_service()
+    with installation_operation(lifecycle.operation_lock, 'setup') as admitted:
+        return await _run_selective_setup(args, consent, lifecycle, admitted)
+
+
+async def _run_selective_setup(args: Namespace, consent: LiveConsent | None, lifecycle,
+                               operation_lease: InstallationLease) -> SetupWorkflowResult | None:
+    if consent is None or not consent.accepted:
+        raise ValueError("Selective setup requires accepted live consent")
     explicit = args.services is not None or args.minimal or args.selection_config is not None
     if not explicit and lifecycle.manifests.load().manifest is None:
         return None
@@ -31,7 +40,7 @@ async def run_selective_setup(args: Namespace, consent: LiveConsent | None) -> S
             add=(args.workflow_namespace, args.workflow_action) == ("services", "add"),
         )
         request = _node_provider_request_from_args(args)
-        state = await composition.prepare_setup_selection_state(lifecycle, plan, request)
+        state = await composition.prepare_setup_selection_state(lifecycle, plan, request, operation_lease=operation_lease)
     except (LifecycleStateError, ValueError) as error:
         return SetupWorkflowResult(SetupWorkflowKind.RUN, SetupWorkflowStatus.BLOCKED, str(error), "selection_admission_blocked")
     if not args.json:
@@ -39,7 +48,7 @@ async def run_selective_setup(args: Namespace, consent: LiveConsent | None) -> S
                           "resource_policy": "fixed Classic node topology and compatibility host floors; selected native demand remains unknown where undeclared"}, sort_keys=True))
     result = await composition.run_setup_with_terminal_status(
         consent, "run", service_profile=plan.service_preset, node_provider_request=request,
-        allow_wsl_windows_filesystem=args.allow_wsl_windows_filesystem, selection_plan=plan,
+        allow_wsl_windows_filesystem=args.allow_wsl_windows_filesystem, selection_plan=plan, operation_lease=operation_lease,
     )
     if result.status is not SetupWorkflowStatus.COMPLETED:
         return result

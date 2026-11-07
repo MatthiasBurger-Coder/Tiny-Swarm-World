@@ -7,6 +7,8 @@ calls so legacy facade patch points remain effective.
 
 from __future__ import annotations
 
+from tiny_swarm_world.infrastructure.adapters.lifecycle.installation_operation_lock import locked_services
+
 from tiny_swarm_world.domain.deployment.service_stack_contract import ServiceStackContract
 
 from .composition_selection import persisted_runtime_selection, selection_options, includes_service, selected_secret_entries, uses_infisical_setup
@@ -146,7 +148,7 @@ def build_deployment_services_for_provider(
             update_stack_name=update_stack_name,
             **selection_options(resolved_services),
         )
-    return DeploymentServices(
+    return locked_services(DeploymentServices(
         workflows=DeploymentWorkflows(
             bootstrap=cast(
                 DeploymentApplyWorkflow,
@@ -170,7 +172,7 @@ def build_deployment_services_for_provider(
                 ),
             ),
         )
-    )
+    ), default_project_paths().repository_root, 'deployment')
 def build_lxc_deployment_services(
     *,
     backend: ManagedLxcBackend,
@@ -436,7 +438,7 @@ def build_lxc_deployment_services(
                            if infisical_secret_sync_step is not None else ()),
         )
 
-    return DeploymentServices(
+    return locked_services(DeploymentServices(
         workflows=DeploymentWorkflows(
             bootstrap=DeploymentApplyWorkflow(
                 bootstrap_steps,
@@ -472,7 +474,7 @@ def build_lxc_deployment_services(
                 ),
             ),
         )
-    )
+    ), default_project_paths().repository_root, 'deployment')
 
 
 def _uses_ingress(profile: ServiceStackProfile, update_stack: str | None, selected: tuple[str, ...] | None) -> bool:

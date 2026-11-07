@@ -1,3 +1,4 @@
+from tests.infrastructure.adapters.lifecycle.test_installation_operation_lock import FakeInstallationLock, use_fake_composition_locks
 import contextlib
 import io
 import json
@@ -15,6 +16,9 @@ from tests.application.services.test_lifecycle import adoption_fixture
 
 
 class SelectionCliTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        use_fake_composition_locks(self)
+
     async def preview(self, options, service, config_root=None):
         with patch("tiny_swarm_world.infrastructure.adapters.cli.selection.Path.cwd", return_value=config_root or Path.cwd()), patch("tiny_swarm_world.infrastructure.adapters.cli.selection.build_installation_lifecycle_service", return_value=service), patch("tiny_swarm_world.infrastructure.adapters.cli.dispatcher.ensure_common_executable_paths") as paths, patch("tiny_swarm_world.infrastructure.adapters.cli.dispatcher.build_application_logger") as logger, contextlib.redirect_stdout(io.StringIO()) as output:
             await main(options + ["--json"])
@@ -73,7 +77,7 @@ class SelectionCliTests(unittest.IsolatedAsyncioTestCase):
             manifest_path = root / "state.json"
             service = build_installation_lifecycle_service(Path(__file__).resolve().parents[1])
             service.manifests = JsonManifestRepository(manifest_path)
-            selection = ServiceSelectionService(service.manifests, service.catalog)
+            selection = ServiceSelectionService(service.manifests, service.catalog, operation_lock=FakeInstallationLock())
             service.manifests.save(adoption_fixture(service.catalog.load()), expected_token=None)
             selection.persist(selection.preview(("jenkins",), add=True), approved=True)
             before_bytes = manifest_path.read_bytes()

@@ -20,8 +20,9 @@ verification. Do not repoint or rewrite an existing release tag.
 Set `TSW_REPOSITORY_ROOT` to the **existing 0.4.0 installation checkout**, not
 the management checkout. The existing installation remains the state anchor.
 Do not run setup, reconcile, deployment, component updates or other installation
-writers concurrently. The controller shares current component/gateway locks,
-but older released programs cannot honor a guard they do not contain.
+writers concurrently. The controller acquires the installation operation lock before its dedicated
+product journal lock. Current component/gateway writers acquire the same outer
+lock. Older released programs cannot honor a guard they do not contain.
 
 ```bash
 # Run inside the management checkout and its Python 3.12 environment.
@@ -188,3 +189,14 @@ Do not publish those directories; they contain protected configuration and may
 contain runtime credentials. Evidence must remain redacted and separate from
 credential sources, and W09 must identify the exact management SHA and source/
 target release, host/profile, selection, commands, exits and before/after results.
+
+### Manifest reader compatibility
+
+Release metadata explicitly declares `supported_manifest_schemas`; legacy metadata
+without it means schema 1 only. Both pinned releases above support schema 1 only.
+The controller checks that contract before runtime verification, staging or
+activation and again when resuming the original checkpoint. A schema 1 upgrade
+therefore remains schema 1 at product completion. A schema 2 source cannot activate
+these targets. No read-only projection, guessed version capability, or implicit
+schema downgrade makes an incompatible target safe. A future schema 2 target
+requires separate qualification of its actual reader.

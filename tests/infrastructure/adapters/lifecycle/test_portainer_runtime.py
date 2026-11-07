@@ -1,4 +1,5 @@
 """Mocked integration of orchestration, cold backup, manager runtime and gateway API."""
+from tests.infrastructure.adapters.lifecycle.test_installation_operation_lock import FakeInstallationLock
 import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -42,7 +43,7 @@ class PortainerRuntimeIntegrationTests(unittest.IsolatedAsyncioTestCase):
         self.client._send.side_effect = self.request
         self.client.stack_request_timeout_seconds = 180
         self.runtime = ClassicPortainerUpgradeRuntime(self.shell, self.client, managed_stacks=('nexus',))
-        self.service = PortainerUpgradeService(self.manifests, self.journal, self.runtime)
+        self.service = PortainerUpgradeService(self.manifests, self.journal, self.runtime, operation_lock=FakeInstallationLock())
 
     def command(self, script, **kwargs):
         self.commands.append(script)
@@ -310,7 +311,7 @@ class PortainerRuntimeIntegrationTests(unittest.IsolatedAsyncioTestCase):
         repository = JsonManifestRepository(self.root / '.tiny-swarm-world/installation/manifest.json')
         repository.save(manifest, expected_token=None)
         journal = JsonPortainerJournal(repository.path.parent / 'portainer-upgrade.json')
-        service = PortainerUpgradeService(repository, journal, self.runtime)
+        service = PortainerUpgradeService(repository, journal, self.runtime, operation_lock=FakeInstallationLock())
         self.assertEqual((await service.run(target=None, consent=LiveConsent(True, confirmed=True)))['status'], 'completed')
         after = repository.load().manifest
         with patch.dict('os.environ', {}, clear=True):

@@ -86,3 +86,48 @@ class JsonManifestRepositoryTests(unittest.TestCase):
         self.path.symlink_to(target)
         with self.assertRaises(LifecycleStateError):
             self.repository.load()
+
+
+class ManifestV2FileBoundaryTests(unittest.TestCase):
+    def test_reads_and_preview_preserve_exact_v1_bytes_then_explicit_cas_migrates(self):
+        from tiny_swarm_world.domain.lifecycle.models import migrate_manifest_v1
+        from tiny_swarm_world.infrastructure.adapters.lifecycle.installation_operation_lock import JsonInstallationOperationLock
+
+        with TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            lock = JsonInstallationOperationLock(root)
+            repository = JsonManifestRepository(root / '.tiny-swarm-world/installation/manifest.json')
+            self.assertIsNone(repository.load().manifest)
+            self.assertFalse(lock.path.parent.exists())
+            original = manifest_fixture()
+            with lock.exclusive('adoption'):
+                snapshot = repository.save(original, expected_token=None)
+            content = repository.path.read_bytes()
+            stamp = repository.path.stat().st_mtime_ns
+            for _ in range(2):
+                observed = repository.load()
+                proposed = migrate_manifest_v1(observed.manifest)
+                self.assertEqual(observed.manifest, original)
+                self.assertEqual(proposed.schema_version, 2)
+            self.assertEqual(repository.path.read_bytes(), content)
+            self.assertEqual(repository.path.stat().st_mtime_ns, stamp)
+            with lock.exclusive('selection'):
+                migrated = repository.save(proposed, expected_token=snapshot.token)
+            self.assertEqual(migrated.manifest.schema_version, 2)
+            self.assertEqual(migrated.manifest.installation_id, original.installation_id)
+            self.assertIsNone(migrated.manifest.installation_profile)
+            with lock.exclusive('selection'), self.assertRaises(LifecycleStateError):
+                repository.save(original, expected_token=snapshot.token)
+            self.assertEqual(repository.load(), migrated)
+
+    def test_nonempty_v1_and_v2_json_arrays_roundtrip_through_real_file_boundary(self):
+        from tests.domain.lifecycle.test_update_planning import update_fixture
+        from tiny_swarm_world.domain.lifecycle.models import migrate_manifest_v1
+
+        _, original = update_fixture()
+        for manifest in (original, migrate_manifest_v1(original)):
+            with self.subTest(schema=manifest.schema_version), TemporaryDirectory() as temporary:
+                repository = JsonManifestRepository(Path(temporary) / 'manifest.json')
+                saved = repository.save(manifest, expected_token=None)
+                self.assertEqual(saved.manifest, manifest)
+                self.assertEqual(repository.load().manifest, manifest)

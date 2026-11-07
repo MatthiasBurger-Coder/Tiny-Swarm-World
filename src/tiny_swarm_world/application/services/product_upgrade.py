@@ -1,6 +1,7 @@
 """Ordered, restartable product upgrades through existing lifecycle boundaries."""
 import asyncio
 
+from tiny_swarm_world.application.ports.lifecycle.installation_profile import InstallationLease, InstallationOperationLock, installation_operation
 from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError, ManifestRepository
 from tiny_swarm_world.application.ports.lifecycle.product_upgrade import ProductInstallation, ProductRuntime, ProductUpgradeJournal
 from tiny_swarm_world.domain.lifecycle.product_upgrade import ProductCheckpoint, ProductPlan, TARGET_RELEASE
@@ -32,11 +33,13 @@ async def _settle(worker):
 
 class ProductUpgradeService:
     def __init__(self, manifests: ManifestRepository, installation: ProductInstallation,
-                 journal: ProductUpgradeJournal, runtime: ProductRuntime):
+                 journal: ProductUpgradeJournal, runtime: ProductRuntime, *,
+                 operation_lock: InstallationOperationLock | None = None, operation_lease: InstallationLease | None = None):
         self.manifests = manifests
         self.installation = installation
         self.journal = journal
         self.runtime = runtime
+        self.operation_lock, self.operation_lease = operation_lock, operation_lease
 
     async def preview(self, target: str, *, recovery: bool = False) -> dict[str, object]:
         checkpoint = self.journal.load()
@@ -60,8 +63,10 @@ class ProductUpgradeService:
             return {'status': 'refused', 'diagnostics': list(consent.missing_reasons)}
         if target != TARGET_RELEASE:
             raise LifecycleStateError('Unsupported product release or downgrade; use target 0.5.0.')
-        with self.journal.exclusive():
+        with installation_operation(self.operation_lock, 'product-upgrade', self.operation_lease) as lease, lease.journal('product'), self.journal.exclusive():
             checkpoint = self.journal.load()
+            if checkpoint is not None:
+                ProductCheckpoint.model_validate(checkpoint.model_dump())
             if checkpoint is not None and checkpoint.plan.target.product.release != target:
                 raise LifecycleStateError('Another product target owns the checkpoint.')
             if checkpoint is not None and checkpoint.stage == 'completed':
@@ -72,6 +77,8 @@ class ProductUpgradeService:
                 if recovery:
                     raise LifecycleStateError('No product checkpoint to recover.')
                 plan = await asyncio.to_thread(self.installation.plan, target)
+                ProductPlan.model_validate(plan.model_dump())
+                await _blocking(self.installation.validate, plan)
                 identities = await self.runtime.verify(plan.manifest, plan=plan)
                 checkpoint = ProductCheckpoint(plan=plan, stage='admitted', service_identities=identities)
                 self.journal.save(checkpoint)
@@ -118,7 +125,7 @@ class ProductUpgradeService:
 
     def _commit(self, plan: ProductPlan) -> None:
         snapshot = self.manifests.load()
-        desired = plan.manifest.model_copy(update={'product': plan.target.product})
+        desired = plan.committed_manifest()
         if snapshot.manifest == desired:
             return
         if snapshot.token != plan.manifest_token or (snapshot.manifest is not None and snapshot.manifest != plan.manifest):
@@ -128,7 +135,7 @@ class ProductUpgradeService:
     async def _verify_completed(self, checkpoint: ProductCheckpoint) -> None:
         plan = checkpoint.plan
         snapshot = self.manifests.load()
-        if snapshot.manifest != plan.manifest.model_copy(update={'product': plan.target.product}):
+        if snapshot.manifest != plan.committed_manifest():
             raise LifecycleStateError('Completed product state drifted; inspect manifest before retrying.')
         await asyncio.to_thread(self.installation.validate, plan)
         await asyncio.to_thread(self.installation.verify_product, plan)

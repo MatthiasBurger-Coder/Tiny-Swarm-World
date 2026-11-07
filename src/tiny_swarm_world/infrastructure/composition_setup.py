@@ -7,26 +7,13 @@ calls so legacy facade patch points remain effective.
 
 from __future__ import annotations
 
+from . import composition_operation as operation
 from .composition_selection import selection_options, includes_service, persisted_setup_plan
 
 from tiny_swarm_world.domain.lifecycle.selection import SelectionPlan
 
 import asyncio
-import os
-from pathlib import Path
 
-from tiny_swarm_world.application.services.platform.workflow.update import (
-    ClassicUpdateWorkflow,
-)
-from tiny_swarm_world.domain.update import image_override_environment_name
-from tiny_swarm_world.infrastructure.adapters.update import JsonUpdateStateStore
-from tiny_swarm_world.infrastructure.adapters.update.lxc_runtime_observer import (
-    LxcUpdateRuntimeObserver,
-)
-from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.manager_shell_gateway import (
-    LxcManagerShellGateway,
-)
-from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 
 from .composition_runtime import (
     AGGREGATE_INSTANCE,
@@ -79,12 +66,27 @@ _refresh_runtime_symbols()
 
 
 async def run_setup_with_terminal_status(
+    live_consent: LiveConsent, action: str,
+    service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
+    node_provider_request: NodeProviderSelectionRequest | None = None,
+    allow_wsl_windows_filesystem: bool = False, selection_plan: SelectionPlan | None = None,
+    operation_lease: operation.InstallationLease | None = None,
+) -> SetupWorkflowResult:
+    if not live_consent.accepted:
+        raise ValueError('setup run requires accepted live consent')
+    return await operation.run_setup_operation(default_project_paths().repository_root, operation_lease,
+        lambda admitted: _run_setup_with_terminal_status(live_consent, action, service_profile,
+            node_provider_request, allow_wsl_windows_filesystem, selection_plan, admitted))
+
+
+async def _run_setup_with_terminal_status(
     live_consent: LiveConsent,
     action: str,
     service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
     node_provider_request: NodeProviderSelectionRequest | None = None,
     allow_wsl_windows_filesystem: bool = False,
     selection_plan: SelectionPlan | None = None,
+    operation_lease: operation.InstallationLease | None = None,
 ) -> SetupWorkflowResult:
     if not live_consent.accepted:
         raise ValueError("setup run requires accepted live consent")
@@ -105,6 +107,7 @@ async def run_setup_with_terminal_status(
             ui=ui,
             configuration_validation=facade.build_configuration_validation_service(),
             **({"selection_plan": selection_plan} if selection_plan is not None else {}),
+            operation_lease=operation_lease,
         )
         match action:
             case "run":
@@ -146,6 +149,7 @@ def build_setup_services(
     configuration_validation: ConfigurationValidationService | None = None,
     allow_wsl_windows_filesystem: bool = False,
     selection_plan: SelectionPlan | None = None,
+    operation_lease: operation.InstallationLease | None = None,
 ) -> SetupServices:
     import os
     from tiny_swarm_world.infrastructure.adapters.repositories.installer_configuration_repository import InstallerConfigurationRepository
@@ -213,177 +217,146 @@ def build_setup_services(
         progress=workflow_progress,
         **selection_kwargs,
     )
-    method_trace = _build_method_trace_sink(ui)
-    static_preflight_result: PreflightResult | None = None
-    artifact_bootstrap_result: ArtifactWorkflowResult | None = None
+    def compose_operation(platform, deployment):
+        method_trace = _build_method_trace_sink(ui)
+        static_preflight_result: PreflightResult | None = None
+        artifact_bootstrap_result: ArtifactWorkflowResult | None = None
 
-    async def run_artifact_contract_preflight() -> PreflightResult:
-        nonlocal static_preflight_result
-        InstallerConfigurationRepository.validate_environment(
-            setup_environment,
-            stack_names=tuple(contract.stack_name for contract in service_stack_contracts_for_profile(selected_service_profile, resolved_services)),
-            include_setup=True,
-            deferred_keys=(("TSW_JENKINS_ADMIN_PASSWORD",)
-                           if selected_service_profile is ServiceStackProfile.SERVICE_ACCESS and includes_service(resolved_services, "infisical") else ()),
-        )
-        for workflow in (deployment.workflows.bootstrap, deployment.workflows.apply):
-            prepare = getattr(workflow, "prepare_configuration", None)
-            if callable(prepare):
-                await prepare()
-        static_preflight_result = artifact_contract_preflight.run()
-        return static_preflight_result
+        async def run_artifact_contract_preflight() -> PreflightResult:
+            nonlocal static_preflight_result
+            InstallerConfigurationRepository.validate_environment(
+                setup_environment,
+                stack_names=tuple(contract.stack_name for contract in service_stack_contracts_for_profile(selected_service_profile, resolved_services)),
+                include_setup=True,
+                deferred_keys=(("TSW_JENKINS_ADMIN_PASSWORD",)
+                               if selected_service_profile is ServiceStackProfile.SERVICE_ACCESS and includes_service(resolved_services, "infisical") else ()),
+            )
+            for workflow in (deployment.workflows.bootstrap, deployment.workflows.apply):
+                prepare = getattr(workflow, "prepare_configuration", None)
+                if callable(prepare):
+                    await prepare()
+            static_preflight_result = artifact_contract_preflight.run()
+            return static_preflight_result
 
-    async def run_artifact_bootstrap():
-        nonlocal artifact_bootstrap_result
-        artifact_bootstrap_result = await artifacts.workflows.prepare.run_bootstrap()
-        return artifact_bootstrap_result
+        async def run_artifact_bootstrap():
+            nonlocal artifact_bootstrap_result
+            artifact_bootstrap_result = await artifacts.workflows.prepare.run_bootstrap()
+            return artifact_bootstrap_result
 
-    def run_artifact_readiness_gate() -> PreflightResult:
-        return artifact_readiness_gate.run(
-            static_preflight=static_preflight_result,
-            artifact_bootstrap=artifact_bootstrap_result,
-        )
+        def run_artifact_readiness_gate() -> PreflightResult:
+            return artifact_readiness_gate.run(
+                static_preflight=static_preflight_result,
+                artifact_bootstrap=artifact_bootstrap_result,
+            )
 
-    def traced_phase(name: str, runner) -> SetupWorkflowPhase:
-        return SetupWorkflowPhase(
-            name,
-            runner,
-            method_trace=method_trace,
-            trace_correlation_id=trace_correlation_id,
-        )
-
-    return SetupServices(
-        workflows=SetupWorkflows(
-            run=SetupWorkflow(
-                (
-                    traced_phase("preflight", lambda: preflight.run(live_consent)),
-                    traced_phase(
-                        "artifact contract preflight",
-                        run_artifact_contract_preflight,
-                    ),
-                    traced_phase("host prepare", host_preparation.prepare),
-                    traced_phase("host verify", host_preparation.verify),
-                    traced_phase("platform init", lambda: platform.workflows.init.run()),
-                    traced_phase(
-                        "platform reconcile",
-                        lambda: platform.workflows.reconcile.run(),
-                    ),
-                    traced_phase(
-                        "cluster docker",
-                        lambda: platform.workflows.cluster.docker.run(),
-                    ),
-                    traced_phase(
-                        "cluster swarm bootstrap",
-                        lambda: platform.workflows.cluster.swarm_bootstrap.run(),
-                    ),
-                    traced_phase(
-                        "cluster verify",
-                        lambda: platform.workflows.cluster.verify.run(),
-                    ),
-                    traced_phase(
-                        "platform expose",
-                        lambda: platform.workflows.expose.run(),
-                    ),
-                    traced_phase(
-                        "deployment bootstrap",
-                        lambda: deployment.workflows.bootstrap.run(),
-                    ),
-                    traced_phase("artifact bootstrap", run_artifact_bootstrap),
-                    traced_phase("artifact readiness gate", run_artifact_readiness_gate),
-                    traced_phase(
-                        "artifacts prepare",
-                        lambda: artifacts.workflows.prepare.run_after_bootstrap(
-                            artifact_bootstrap_result
-                        ),
-                    ),
-                    traced_phase(
-                        "artifacts verify",
-                        lambda: artifacts.workflows.verify.run(),
-                    ),
-                    traced_phase(
-                        "deployment apply",
-                        lambda: deployment.workflows.apply.run(),
-                    ),
-                    traced_phase(
-                        "deployment verify",
-                        lambda: deployment.workflows.verify.run(),
-                    ),
-                    traced_phase("platform verify", lambda: platform.workflows.verify.run()),
-                ),
-                live_consent=live_consent,
-                progress=workflow_progress,
+        def traced_phase(name: str, runner) -> SetupWorkflowPhase:
+            return SetupWorkflowPhase(
+                name,
+                runner,
                 method_trace=method_trace,
                 trace_correlation_id=trace_correlation_id,
-                installation_plan=default_installation_plan() if selection_plan is None else None,
-                timeout_seconds=_operator_config_float(
-                    "TSW_SETUP_WORKFLOW_TIMEOUT_SECONDS",
-                    3600.0,
-                    minimum=1.0,
-                ),
-                heartbeat_interval_seconds=_operator_config_float(
-                    "TSW_SETUP_HEARTBEAT_INTERVAL_SECONDS",
-                    30.0,
-                    minimum=1.0,
-                ),
-                max_concurrency=_operator_config_int(
-                    "TSW_SETUP_MAX_CONCURRENCY",
-                    2,
-                    minimum=1,
-                ),
+            )
+
+        return SetupServices(
+            workflows=SetupWorkflows(
+                run=SetupWorkflow(
+                    (
+                        traced_phase("preflight", lambda: preflight.run(live_consent)),
+                        traced_phase(
+                            "artifact contract preflight",
+                            run_artifact_contract_preflight,
+                        ),
+                        traced_phase("host prepare", host_preparation.prepare),
+                        traced_phase("host verify", host_preparation.verify),
+                        traced_phase("platform init", lambda: platform.workflows.init.run()),
+                        traced_phase(
+                            "platform reconcile",
+                            lambda: platform.workflows.reconcile.run(),
+                        ),
+                        traced_phase(
+                            "cluster docker",
+                            lambda: platform.workflows.cluster.docker.run(),
+                        ),
+                        traced_phase(
+                            "cluster swarm bootstrap",
+                            lambda: platform.workflows.cluster.swarm_bootstrap.run(),
+                        ),
+                        traced_phase(
+                            "cluster verify",
+                            lambda: platform.workflows.cluster.verify.run(),
+                        ),
+                        traced_phase(
+                            "platform expose",
+                            lambda: platform.workflows.expose.run(),
+                        ),
+                        traced_phase(
+                            "deployment bootstrap",
+                            lambda: deployment.workflows.bootstrap.run(),
+                        ),
+                        traced_phase("artifact bootstrap", run_artifact_bootstrap),
+                        traced_phase("artifact readiness gate", run_artifact_readiness_gate),
+                        traced_phase(
+                            "artifacts prepare",
+                            lambda: artifacts.workflows.prepare.run_after_bootstrap(
+                                artifact_bootstrap_result
+                            ),
+                        ),
+                        traced_phase(
+                            "artifacts verify",
+                            lambda: artifacts.workflows.verify.run(),
+                        ),
+                        traced_phase(
+                            "deployment apply",
+                            lambda: deployment.workflows.apply.run(),
+                        ),
+                        traced_phase(
+                            "deployment verify",
+                            lambda: deployment.workflows.verify.run(),
+                        ),
+                        traced_phase("platform verify", lambda: platform.workflows.verify.run()),
+                    ),
+                    live_consent=live_consent,
+                    progress=workflow_progress,
+                    method_trace=method_trace,
+                    trace_correlation_id=trace_correlation_id,
+                    installation_plan=default_installation_plan() if selection_plan is None else None,
+                    timeout_seconds=_operator_config_float(
+                        "TSW_SETUP_WORKFLOW_TIMEOUT_SECONDS",
+                        3600.0,
+                        minimum=1.0,
+                    ),
+                    heartbeat_interval_seconds=_operator_config_float(
+                        "TSW_SETUP_HEARTBEAT_INTERVAL_SECONDS",
+                        30.0,
+                        minimum=1.0,
+                    ),
+                    max_concurrency=_operator_config_int(
+                        "TSW_SETUP_MAX_CONCURRENCY",
+                        2,
+                        minimum=1,
+                    ),
+                )
             )
         )
+
+    services = compose_operation(platform, deployment)
+    return operation.setup_services(
+        services, project_paths.repository_root,
+        lambda admitted: compose_operation(operation.private_services(platform, admitted),
+                                           operation.private_services(deployment, admitted)),
+        operation_lease,
     )
 
 
 def build_classic_update_workflow(
     service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
     node_provider_request: NodeProviderSelectionRequest | None = None,
-) -> ClassicUpdateWorkflow:
+) -> operation.ClassicUpdateWorkflow:
     from . import composition as facade
 
-    compose_repository = facade.build_compose_file_repository(
-        service_profile=service_profile,
-    )
-    provider_request = node_provider_request or _runtime._default_node_provider_request()
-    backend = _runtime._lxc_backend_for_provider_request(provider_request)
-    observer = (
-        LxcUpdateRuntimeObserver(LxcManagerShellGateway(
-            backend=backend,
-            manager_node="swarm-manager",
-            timeout_seconds=10,
-            logger=LoggerFactory.get_logger("classic_update_observer"),
-            process_runner=facade.build_process_runner(),
-        ))
-        if backend is not None else None
-    )
+    return operation.build_classic_workflow(facade, _runtime, default_project_paths,
+                                             service_profile, node_provider_request)
 
-    def deployment_workflow_for(plan):
-        image_environment = image_override_environment_name(
-            plan.stack_name,
-            plan.service_name,
-        )
-        services = facade.build_deployment_services_for_provider(
-            service_profile=service_profile,
-            node_provider_request=node_provider_request,
-            image_overrides={image_environment: plan.target_image},
-            update_stack_name=plan.stack_name,
-        )
-        return services.workflows.apply
-
-    configured_state_root = os.environ.get("TSW_UPDATE_STATE_ROOT", "").strip()
-    if configured_state_root:
-        state_root = Path(configured_state_root).expanduser()
-    else:
-        state_home = os.environ.get("XDG_STATE_HOME", "").strip()
-        state_root = (
-            Path(state_home).expanduser() if state_home else Path.home() / ".local" / "state"
-        ) / "tiny-swarm-world" / "updates"
-    return ClassicUpdateWorkflow(
-        compose_repository=compose_repository,
-        deployment_workflow_factory=deployment_workflow_for,
-        state_store=JsonUpdateStateStore(state_root),
-        runtime_observer=observer,
-    )
 
 def build_application_services(
     live_consent: LiveConsent | None = None,

@@ -13,12 +13,12 @@ from tiny_swarm_world.domain.lifecycle.models import InstallationManifest
 
 
 def decode_manifest(content: bytes) -> InstallationManifest:
-    """Identity migration for v1; no legacy/future migration is admitted yet."""
+    """Read strict schema one/two without migrating or writing observed state."""
     try:
         payload = json.loads(content, object_pairs_hook=_unique_object)
         if not isinstance(payload, dict) or type(payload.get("schema_version")) is not int:
             raise ValueError("Missing schema")
-        if payload["schema_version"] != 1:
+        if payload["schema_version"] not in {1, 2}:
             raise LifecycleStateError(
                 "Unsupported installation schema; use matching TSW code or a reviewed explicit migration."
             )

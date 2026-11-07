@@ -1,3 +1,4 @@
+from tests.infrastructure.adapters.lifecycle.test_installation_operation_lock import FakeInstallationLock
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
@@ -25,7 +26,7 @@ class LifecycleServiceTests(unittest.TestCase):
         self.path = Path(self.directory.name) / "new" / "manifest.json"
         self.repository = JsonManifestRepository(self.path)
         self.catalog = NativeComponentCatalog(ROOT)
-        self.service = InstallationLifecycleService(self.repository, self.catalog)
+        self.service = InstallationLifecycleService(self.repository, self.catalog, operation_lock=FakeInstallationLock())
         self.manifest = adoption_fixture(self.catalog.load())
 
     def test_inspection_and_adoption_preview_do_not_mutate(self):
@@ -72,7 +73,7 @@ class LifecycleServiceTests(unittest.TestCase):
     def test_persistence_failure_propagates_without_claiming_success(self):
         manifests = Mock(wraps=self.repository)
         manifests.save.side_effect = LifecycleStateError("write failed")
-        service = InstallationLifecycleService(manifests, self.catalog)
+        service = InstallationLifecycleService(manifests, self.catalog, operation_lock=FakeInstallationLock())
         with self.assertRaises(LifecycleStateError):
             service.adopt(self.manifest, preview=False, approved=True)
 

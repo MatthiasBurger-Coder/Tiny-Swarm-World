@@ -1,3 +1,4 @@
+from tests.infrastructure.adapters.lifecycle.test_installation_operation_lock import FakeInstallationLock
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
@@ -20,7 +21,7 @@ class SelectionServiceTests(unittest.TestCase):
         self.path = Path(self.directory.name) / "state" / "manifest.json"
         self.repository = JsonManifestRepository(self.path)
         self.catalog = NativeComponentCatalog(ROOT)
-        self.service = ServiceSelectionService(self.repository, self.catalog)
+        self.service = ServiceSelectionService(self.repository, self.catalog, operation_lock=FakeInstallationLock())
         self.manifest = adoption_fixture(self.catalog.load())
 
     def adopt(self):
@@ -62,7 +63,11 @@ class SelectionServiceTests(unittest.TestCase):
         self.adopt()
         noop = self.service.preview()
         stamp = self.path.stat().st_mtime_ns
+        content = self.path.read_bytes()
         self.service.persist(noop, approved=True)
+        self.service.persist(noop, approved=True, verified_migration=True)
+        self.assertEqual(self.path.read_bytes(), content)
+        self.assertEqual(self.repository.load().manifest.schema_version, 1)
         self.assertEqual(self.path.stat().st_mtime_ns, stamp)
         plan = self.service.preview(("jenkins",), add=True)
         self.service.persist(self.service.preview(("pulsar",), add=True), approved=True)
@@ -89,7 +94,7 @@ class SelectionServiceTests(unittest.TestCase):
         self.adopt()
         repository = Mock(wraps=self.repository)
         repository.save.side_effect = LifecycleStateError("write failed")
-        service = ServiceSelectionService(repository, self.catalog)
+        service = ServiceSelectionService(repository, self.catalog, operation_lock=FakeInstallationLock())
         with self.assertRaisesRegex(LifecycleStateError, "write failed"):
             service.persist(service.preview(("jenkins",), add=True), approved=True)
 
@@ -111,7 +116,7 @@ class SelectionServiceTests(unittest.TestCase):
     def test_changed_resources_in_catalog_block_persistence(self):
         self.adopt()
         catalog = Mock(wraps=self.catalog)
-        service = ServiceSelectionService(self.repository, catalog)
+        service = ServiceSelectionService(self.repository, catalog, operation_lock=FakeInstallationLock())
         plan = service.preview(("jenkins",), add=True)
         original = self.catalog.load()
         changed_services = tuple(item.model_copy(update={"resources": item.resources.model_copy(update={

@@ -1,4 +1,5 @@
 """Cancellation must terminate the real empty-instance setup status worker."""
+from tests.infrastructure.adapters.lifecycle.test_installation_operation_lock import use_fake_composition_locks
 import asyncio
 from contextlib import suppress
 from types import SimpleNamespace
@@ -13,6 +14,9 @@ from tiny_swarm_world.infrastructure.adapters.ui.linux_ui import LinuxUI
 
 
 class SetupStatusCancellationTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        use_fake_composition_locks(self)
+
     async def test_cancelled_real_workflow_joins_empty_linux_ui_and_propagates_cancellation(self):
         entered = asyncio.Event()
         finalized = asyncio.Event()

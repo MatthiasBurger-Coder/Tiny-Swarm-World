@@ -396,6 +396,9 @@ def build_platform_services(
             ),
         ),
     )
+    from tiny_swarm_world.infrastructure.adapters.lifecycle.installation_operation_lock import locked_workflows
+
+    workflows = locked_workflows(workflows, project_paths.repository_root, 'platform')
 
     lifecycle = PlatformLifecycleOrchestrator(
         PlatformLifecycleWorkflows(

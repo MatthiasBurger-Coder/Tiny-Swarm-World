@@ -1,4 +1,5 @@
 """Local composition regressions; all credentials below are synthetic fixtures."""
+from tests.infrastructure.adapters.lifecycle.test_installation_operation_lock import FakeInstallationLock, use_fake_composition_locks
 
 import os
 import asyncio
@@ -24,6 +25,9 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class SetupObservationCompositionTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        use_fake_composition_locks(self)
+
     async def test_ineligible_state_builds_no_observer_runner_or_runtime_profile(self):
         state = Mock(observation_required=False)
         with patch.object(composition, "build_process_runner") as runner, \
@@ -59,6 +63,9 @@ class SetupObservationCompositionTests(unittest.IsolatedAsyncioTestCase):
 
 
 class MinimalApplyExecutionTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        use_fake_composition_locks(self)
+
     def build_minimal(self, events):
         with (patch.dict(os.environ, {'TSW_PORTAINER_ADMIN_PASSWORD': 'synthetic-portainer-value'}, clear=True),
               patch.object(composition, 'LxcSwarmRuntime') as swarm,
@@ -156,7 +163,7 @@ class MinimalApplyExecutionTests(unittest.IsolatedAsyncioTestCase):
             return await runtime.run()
 
         with TemporaryDirectory() as directory:
-            lifecycle = InstallationLifecycleService(JsonManifestRepository(Path(directory) / 'manifest.json'), NativeComponentCatalog(ROOT))
+            lifecycle = InstallationLifecycleService(JsonManifestRepository(Path(directory) / 'manifest.json'), NativeComponentCatalog(ROOT), operation_lock=FakeInstallationLock())
             components = tuple(component for service in lifecycle.catalog.load().services
                                if service.service_id in ('incus', 'portainer') for component in service.components)
             manifest = manifest_fixture().model_copy(update={'components': components})
@@ -203,6 +210,9 @@ class MinimalApplyExecutionTests(unittest.IsolatedAsyncioTestCase):
 
 
 class SelectedImageExecutionTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        use_fake_composition_locks(self)
+
     async def test_composed_bootstrap_and_swagger_forward_exact_pins_to_remote_compose(self):
         import shlex
         import subprocess
@@ -250,6 +260,7 @@ class SelectedImageExecutionTests(unittest.IsolatedAsyncioTestCase):
 
 class SelectiveSetupCompositionTests(unittest.TestCase):
     def setUp(self):
+        use_fake_composition_locks(self)
         self.catalog = NativeComponentCatalog(ROOT).load()
         self.environment = {
             "TSW_PORTAINER_ADMIN_PASSWORD": "synthetic-portainer-value",

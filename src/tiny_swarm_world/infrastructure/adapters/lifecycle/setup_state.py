@@ -1,23 +1,21 @@
 """Admit proven-fresh Classic setups and commit verified desired selection metadata."""
 from __future__ import annotations
 
-import hashlib
-import json
 import os
 from pathlib import Path
-import tomllib
-from uuid import uuid4
 from typing import Literal
 
 from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
+from tiny_swarm_world.application.ports.lifecycle.installation_profile import InstallationLease, require_legacy_runtime_policy
 from tiny_swarm_world.application.ports.update import PortUpdateRuntimeObserver
 from tiny_swarm_world.application.services.lifecycle import InstallationLifecycleService
 from tiny_swarm_world.application.services.service_selection import ServiceSelectionService
-from tiny_swarm_world.domain.lifecycle.models import ComponentState, ConfigurationReference, CredentialReference, InstallationManifest, ProductIdentity
+from tiny_swarm_world.domain.lifecycle.models import ComponentState, ConfigurationReference, CredentialReference, InstallationManifest, migrate_manifest_v1
 from tiny_swarm_world.domain.preflight.setup_manifest import default_setup_manifest
 from tiny_swarm_world.infrastructure.adapters.repositories.secret_manifest_yaml_repository import SecretManifestYamlRepository
 from tiny_swarm_world.domain.lifecycle.selection import SelectionPlan
-from tiny_swarm_world.infrastructure.process.runner import ProcessRunner, ProcessRunnerError
+from tiny_swarm_world.infrastructure.process.runner import ProcessRunner
+from tiny_swarm_world.infrastructure.adapters.lifecycle import setup_inventory
 from tiny_swarm_world.infrastructure.adapters.lifecycle.setup_observations import (
     SetupComponentObservations, enrich_setup_inventory, observations_required, require_complete_observations,
 )
@@ -28,6 +26,7 @@ class SetupSelectionState:
         self.lifecycle = lifecycle
         self.plan = plan
         self.root = root
+        self.operation_lease: InstallationLease | None = None
         self.fresh: InstallationManifest | None = None
         self.component_inventory: tuple[ComponentState, ...] = ()
         self.credential_inventory: tuple[CredentialReference, ...] = ()
@@ -51,6 +50,7 @@ class SetupSelectionState:
             self.component_inventory, self.lifecycle.catalog.load(), snapshot.manifest,
         )
         if snapshot.manifest is not None:
+            require_legacy_runtime_policy(snapshot.manifest)
             self.lifecycle.catalog.load().validate_manifest(snapshot.manifest)
             if snapshot.manifest.host != host:
                 raise LifecycleStateError("Installation manifest host differs; inspect/adopt the correct host before mutation.")
@@ -61,41 +61,11 @@ class SetupSelectionState:
         self.fresh = self._fresh_manifest(runner, host)
 
     def _require_fresh(self, runner: ProcessRunner, backend: str, node_names: tuple[str, ...]) -> None:
-        if backend != "incus":
-            raise LifecycleStateError("Selective Classic setup requires the supported Incus backend.")
-        try:
-            result = runner.run_text((backend, "list", "--format", "json"), timeout=10)
-            payload = json.loads(result.stdout)
-            if result.returncode or not isinstance(payload, list):
-                raise ValueError
-            for node in payload:
-                if not isinstance(node, dict) or not isinstance(node.get("name"), str) or not isinstance(node.get("config"), dict):
-                    raise ValueError
-                if node["name"] in node_names or any(key.startswith("user.tiny_swarm_world.") for key in node["config"]):
-                    raise LifecycleStateError("Existing managed nodes have no manifest; explicitly inventory/adopt them before selective setup. No reset was performed.")
-        except LifecycleStateError:
-            raise
-        except (ProcessRunnerError, OSError, ValueError, TypeError):
-            raise LifecycleStateError("Cannot prove a fresh installation from bounded Incus inventory; inspect/adopt before mutation.") from None
+        setup_inventory.require_fresh(runner, backend, node_names)
 
     def _fresh_manifest(self, runner: ProcessRunner, host: Literal["native-linux", "wsl2"]) -> InstallationManifest:
-        try:
-            revision = runner.run_text(("git", "rev-parse", "--verify", "HEAD"), cwd=self.root, timeout=5)
-            if revision.returncode:
-                raise ValueError
-            project = tomllib.loads((self.root / "pyproject.toml").read_text(encoding="utf-8"))["project"]
-            product = ProductIdentity(release=project["version"], revision=revision.stdout.strip(),
-                                      dependency_lock="sha256:" + hashlib.sha256((self.root / "requirements.lock").read_bytes()).hexdigest())
-            components = self.component_inventory
-            return InstallationManifest(
-                installation_id=str(uuid4()), host=host, service_preset=self.plan.service_preset,
-                product=product, requested_services=self.plan.requested_services,
-                resolved_services=self.plan.resolved_services, selection_reasons=self.plan.selection_reasons,
-                components=components, credential_references=self.credential_inventory,
-                configuration_references=self.configuration_inventory,
-            )
-        except (ProcessRunnerError, OSError, KeyError, ValueError):
-            raise LifecycleStateError("Prepared checkout identity cannot be verified; inspect product revision and lock before setup.") from None
+        return setup_inventory.fresh_manifest(runner, host, self.root, self.plan,
+            self.component_inventory, self.credential_inventory, self.configuration_inventory)
 
     @property
     def observation_required(self) -> bool:
@@ -109,9 +79,11 @@ class SetupSelectionState:
     def commit(self) -> None:
         require_complete_observations(self._observations)
         if self.fresh is not None:
-            self.lifecycle.adopt(self.fresh, approved=True, preview=False)
+            saved = self.lifecycle.adopt(migrate_manifest_v1(self.fresh), approved=True, preview=False, operation_lease=self.operation_lease)
+            self.fresh = saved.manifest
         else:
-            ServiceSelectionService(self.lifecycle.manifests, self.lifecycle.catalog).persist(self.plan, approved=True, component_inventory=self.component_inventory,
+            ServiceSelectionService(self.lifecycle.manifests, self.lifecycle.catalog, operation_lock=self.lifecycle.operation_lock).persist(self.plan, approved=True,
+                operation_lease=self.operation_lease, verified_migration=True, component_inventory=self.component_inventory,
                 credential_inventory=self.credential_inventory, configuration_inventory=self.configuration_inventory)
 
     def _effective_inventory(self, existing: InstallationManifest | None) -> tuple[ComponentState, ...]:

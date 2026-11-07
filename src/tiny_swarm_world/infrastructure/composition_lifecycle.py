@@ -12,13 +12,15 @@ def build_installation_lifecycle_service(repository_root: Path | None = None) ->
     from tiny_swarm_world.infrastructure.project_paths import default_project_paths
 
     root = repository_root or default_project_paths().repository_root
+    from tiny_swarm_world.infrastructure.adapters.lifecycle.installation_operation_lock import JsonInstallationOperationLock
+
     return InstallationLifecycleService(
         JsonManifestRepository(local_state_file(root=root, relative_path="installation/manifest.json")),
-        NativeComponentCatalog(root),
+        NativeComponentCatalog(root), operation_lock=JsonInstallationOperationLock(root),
     )
 
 
-async def prepare_setup_selection_state(lifecycle, plan, backend, runner):
+async def prepare_setup_selection_state(lifecycle, plan, backend, runner, *, operation_lease=None):
     """Admit selected setup through bounded inventory before runtime composition."""
     import asyncio
     from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
@@ -36,6 +38,7 @@ async def prepare_setup_selection_state(lifecycle, plan, backend, runner):
         raise LifecycleStateError("Selective setup requires supported native Linux or WSL2.")
     paths = default_project_paths()
     state = SetupSelectionState(lifecycle, plan, paths.repository_root)
+    state.operation_lease = operation_lease
     nodes = NodeProviderConfigYamlRepository(project_paths=paths).load().nodes
     await asyncio.to_thread(state.admit, runner, backend=backend_cli(backend),
                             node_names=tuple(node.spec.name for node in nodes),
@@ -81,7 +84,7 @@ def build_component_update_execution(lifecycle, node_provider_request=None, *, c
     runtime = ClassicComponentRuntime(classic_workflow_factory(
         service_profile=snapshot.manifest.service_preset, node_provider_request=node_provider_request))
     return ComponentUpdateExecution(ComponentUpdateService(lifecycle.manifests, lifecycle.catalog),
-                                    lifecycle.manifests, JsonUpdateJournal(journal_path), runtime)
+                                    lifecycle.manifests, JsonUpdateJournal(journal_path), runtime, operation_lock=lifecycle.operation_lock)
 
 
 
@@ -114,7 +117,7 @@ def build_portainer_upgrade(lifecycle, node_provider_request=None, *, resolve_pr
     runtime = ClassicPortainerUpgradeRuntime(shell, client._client(), managed_stacks=tuple(
         name for name in snapshot.manifest.resolved_services if name not in {'incus', 'portainer'}))
     journal = JsonPortainerJournal(lifecycle.manifests.path.parent / 'portainer-upgrade.json')
-    return PortainerUpgradeService(lifecycle.manifests, journal, runtime)
+    return PortainerUpgradeService(lifecycle.manifests, journal, runtime, operation_lock=lifecycle.operation_lock)
 
 
 def build_portainer_upgrade_journal(lifecycle):

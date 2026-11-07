@@ -34,4 +34,4 @@ def build_product_upgrade(*, adoption_file=None, runtime_factory, platform_facto
                                    configuration_verifier=installation.verify_bound_runtime)
     return ProductUpgradeService(lifecycle.manifests, installation,
         JsonProductJournal(lifecycle.manifests.path.parent / 'product-upgrade.json',
-                           source_binder=installation.bind_configuration), runtime)
+                           source_binder=installation.bind_configuration), runtime, operation_lock=lifecycle.operation_lock)

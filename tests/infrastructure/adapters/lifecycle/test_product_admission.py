@@ -9,6 +9,7 @@ from unittest.mock import Mock, patch
 from tests.application.services.test_product_upgrade import product_plan
 from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
 from tiny_swarm_world.infrastructure.adapters.lifecycle.manifest import JsonManifestRepository
+from tiny_swarm_world.infrastructure.adapters.lifecycle.installation_operation_lock import JsonInstallationOperationLock
 from tiny_swarm_world.infrastructure.adapters.lifecycle.product_installation import PreparedProductInstallation
 from tiny_swarm_world.infrastructure.adapters.lifecycle.product_source import OFFICIAL_REPOSITORY
 
@@ -150,7 +151,7 @@ class ProductCompositionTests(unittest.TestCase):
         self.addCleanup(directory.cleanup)
         root = Path(directory.name)
         lifecycle = SimpleNamespace(manifests=JsonManifestRepository(root / 'installation/manifest.json'),
-                                    catalog=Mock(root=root))
+                                    catalog=Mock(root=root), operation_lock=JsonInstallationOperationLock(root))
         with (patch('tiny_swarm_world.infrastructure.composition_lifecycle.build_installation_lifecycle_service', return_value=lifecycle),
               patch.object(composition_runtime, '_required_operator_secret_value', return_value='fixture-only') as secret,
               patch('tiny_swarm_world.infrastructure.adapters.clients.lxc.command.manager_shell_gateway.LxcManagerShellGateway') as shell,
@@ -158,6 +159,7 @@ class ProductCompositionTests(unittest.TestCase):
             service = composition.build_product_upgrade(adoption_file='inventory.json')
             self.assertEqual(service.installation.adoption_file, 'inventory.json')
             self.assertEqual(service.installation.root, root)
+            self.assertIs(service.operation_lock, lifecycle.operation_lock)
             secret.assert_not_called()
             shell.assert_not_called()
             client.assert_not_called()

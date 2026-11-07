@@ -1,9 +1,10 @@
 """Dedicated Portainer stages within the existing lifecycle/consent contract."""
 from uuid import uuid4
 
+from tiny_swarm_world.application.ports.lifecycle.installation_profile import InstallationLease, InstallationOperationLock, installation_operation, require_legacy_runtime_policy
 from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError, ManifestRepository
 from tiny_swarm_world.application.ports.lifecycle.portainer_upgrade import PortainerUpgradeJournal, PortainerUpgradeRuntime
-from tiny_swarm_world.domain.lifecycle.models import ConfigurationReference
+from tiny_swarm_world.domain.lifecycle.models import ConfigurationReference, comparable_manifest, migrate_manifest_v1
 from tiny_swarm_world.domain.lifecycle.portainer_upgrade import (
     PortainerCheckpoint, SOURCE_VERSION, TARGET_ID, TARGET_VERSION, versions,
 )
@@ -11,18 +12,21 @@ from tiny_swarm_world.domain.preflight import LiveConsent
 
 
 class PortainerUpgradeService:
-    def __init__(self, manifests: ManifestRepository, journal: PortainerUpgradeJournal, runtime: PortainerUpgradeRuntime):
+    def __init__(self, manifests: ManifestRepository, journal: PortainerUpgradeJournal, runtime: PortainerUpgradeRuntime, *,
+                 operation_lock: InstallationOperationLock | None = None, operation_lease: InstallationLease | None = None):
         self.manifests, self.journal, self.runtime = manifests, journal, runtime
+        self.operation_lock, self.operation_lease = operation_lock, operation_lease
 
     async def run(self, *, target: str | None, consent: LiveConsent, recovery: bool = False) -> dict[str, object]:
         if not consent.accepted:
             return {'status': 'refused', 'diagnostics': list(consent.missing_reasons)}
         if target not in {None, TARGET_ID} or (recovery and target is not None):
             raise LifecycleStateError('Unsupported Portainer target; recovery uses the original checkpoint.')
-        with self.journal.exclusive():
+        with installation_operation(self.operation_lock, 'portainer-upgrade', self.operation_lease) as lease, lease.journal('component'), self.journal.exclusive():
             snapshot = self.manifests.load()
             if snapshot.manifest is None or snapshot.diagnostics or snapshot.token is None:
                 raise LifecycleStateError('Portainer upgrade requires a valid adopted Classic installation.')
+            require_legacy_runtime_policy(snapshot.manifest)
             checkpoint = self.journal.load()
             if checkpoint is not None and checkpoint.installation_id != snapshot.manifest.installation_id:
                 raise LifecycleStateError('Portainer recovery belongs to another installation.')
@@ -87,7 +91,7 @@ class PortainerUpgradeService:
         return {'status': 'recovered', 'version': SOURCE_VERSION}
 
     def _commit(self, snapshot, version):
-        manifest = snapshot.manifest
+        manifest = migrate_manifest_v1(snapshot.manifest)
         identities = versions(version)
         components = tuple(item.model_copy(update={'desired': identities[item.component_id], 'observed': identities[item.component_id]})
                            if item.service_id == 'portainer' else item for item in manifest.components)
@@ -102,7 +106,7 @@ class PortainerUpgradeService:
     @staticmethod
     def _validate_manifest(checkpoint, manifest):
         def normalized(value):
-            payload = value.model_dump(mode='json')
+            payload = comparable_manifest(value)
             payload['components'] = [item for item in payload['components'] if item['service_id'] != 'portainer']
             payload['configuration_references'] = [item for item in payload['configuration_references']
                 if item['key'] not in {'component-update.portainer', 'component-update.portainer-agent'}]

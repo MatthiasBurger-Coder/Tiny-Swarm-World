@@ -3,9 +3,11 @@ from __future__ import annotations
 import asyncio
 from dataclasses import replace
 
+from tiny_swarm_world.application.ports.lifecycle.installation_profile import InstallationLease, InstallationOperationLock
+from tiny_swarm_world.application.services.platform.workflow.update_admission import with_update_operation
 from tiny_swarm_world.application.ports.operation_result import OperationError, OperationFailure, OperationOutcome, OperationResult
 from tiny_swarm_world.application.services.shared.operation_results import aggregate_operation, failure_from_exception
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from typing import Protocol
 
 from tiny_swarm_world.application.ports.repositories.port_compose_file_repository import (
@@ -42,7 +44,7 @@ from tiny_swarm_world.domain.update import ClassicUpdatePlan, UpdateRuntimeObser
 
 
 class _DeploymentWorkflowFactory(Protocol):
-    def __call__(self, plan: ClassicUpdatePlan) -> DeploymentApplyWorkflow: ...
+    def __call__(self, plan: ClassicUpdatePlan, *, operation_lease: InstallationLease | None = None) -> DeploymentApplyWorkflow: ...
 
 
 class ClassicUpdateWorkflow:
@@ -60,6 +62,9 @@ class ClassicUpdateWorkflow:
         verification_attempts: int = 30,
         poll_interval_seconds: float = 2.0,
         observation_timeout_seconds: float = 10.0,
+        operation_lock: InstallationOperationLock | None = None,
+        operation_lease: InstallationLease | None = None,
+        mutation_policy_guard: Callable[[], None] | None = None,
     ):
         if (
             verification_attempts < 1
@@ -76,6 +81,8 @@ class ClassicUpdateWorkflow:
         self.verification_attempts = verification_attempts
         self.poll_interval_seconds = poll_interval_seconds
         self.observation_timeout_seconds = observation_timeout_seconds
+        self.operation_lock, self.operation_lease = operation_lock, operation_lease
+        self.mutation_policy_guard = mutation_policy_guard
 
     async def run(
         self,
@@ -84,9 +91,10 @@ class ClassicUpdateWorkflow:
         preview: bool,
         live_consent: LiveConsent | None,
     ) -> PlatformWorkflowResult:
-        return await self._run(
-            plan, preview=preview, live_consent=live_consent, recovery=False
-        )
+        return await with_update_operation(self.operation_lock, self.operation_lease,
+            self.mutation_policy_guard, 'classic-update', preview, live_consent,
+            lambda admitted: self._run(plan, preview=preview, live_consent=live_consent,
+                                       recovery=False, operation_lease=admitted))
 
     async def _run(
         self,
@@ -95,6 +103,7 @@ class ClassicUpdateWorkflow:
         preview: bool,
         live_consent: LiveConsent | None,
         recovery: bool,
+        operation_lease: InstallationLease | None = None,
     ) -> PlatformWorkflowResult:
         current = self._current_service(plan, recovery=recovery)
         if isinstance(current, PlatformWorkflowResult):
@@ -186,7 +195,7 @@ class ClassicUpdateWorkflow:
                     {"reason": "state_unavailable"},
                     failures=(failure_from_exception(error, "platform.update.state", "platform"),),
                 )
-        return await self._apply_and_verify(plan, observed, recovery=recovery)
+        return await self._apply_and_verify(plan, observed, recovery=recovery, operation_lease=operation_lease)
 
     async def _apply_and_verify(
         self,
@@ -194,9 +203,10 @@ class ClassicUpdateWorkflow:
         before: UpdateRuntimeObservation,
         *,
         recovery: bool,
+        operation_lease: InstallationLease | None = None,
     ) -> PlatformWorkflowResult:
         try:
-            deployment_result = await self.deployment_workflow_factory(plan).run()
+            deployment_result = await self.deployment_workflow_factory(plan, operation_lease=operation_lease).run()
         except (OSError, ValueError, RuntimeError) as error:
             return self._runtime_failure(
                 plan, "deployment_failed", PlatformWorkflowStatus.FAILED_TO_APPLY,
@@ -375,13 +385,21 @@ class ClassicUpdateWorkflow:
             ),
         )
 
-    async def recover(
+    async def recover(self, stack_name: str, service_name: str, *, preview: bool,
+                      live_consent: LiveConsent | None) -> PlatformWorkflowResult:
+        return await with_update_operation(self.operation_lock, self.operation_lease,
+            self.mutation_policy_guard, 'recovery', preview, live_consent,
+            lambda admitted: self._recover(stack_name, service_name, preview=preview,
+                                           live_consent=live_consent, operation_lease=admitted))
+
+    async def _recover(
         self,
         stack_name: str,
         service_name: str,
         *,
         preview: bool,
         live_consent: LiveConsent | None,
+        operation_lease: InstallationLease | None = None,
     ) -> PlatformWorkflowResult:
         failures: tuple[OperationFailure, ...] = ()
         try:
@@ -425,6 +443,7 @@ class ClassicUpdateWorkflow:
             preview=preview,
             live_consent=live_consent,
             recovery=True,
+            operation_lease=operation_lease,
         )
 
     def _current_service(

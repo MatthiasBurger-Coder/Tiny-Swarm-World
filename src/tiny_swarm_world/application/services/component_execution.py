@@ -1,34 +1,42 @@
 """Sequential selected-batch coordination around the existing Classic executor."""
+from tiny_swarm_world.application.ports.lifecycle.installation_profile import InstallationLease, InstallationOperationLock, installation_operation, require_legacy_runtime_policy
 from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError, ManifestRepository
 from tiny_swarm_world.application.ports.lifecycle.component_execution import ComponentRuntime, UpdateJournal
 from tiny_swarm_world.application.services.component_updates import ComponentUpdateService
-from tiny_swarm_world.domain.lifecycle.models import ConfigurationReference
+from tiny_swarm_world.domain.lifecycle.models import ConfigurationReference, comparable_manifest, migrate_manifest_v1
 from tiny_swarm_world.domain.lifecycle.update_execution import UpdateBatch, UpdateStage
 from tiny_swarm_world.domain.preflight import LiveConsent
 
 
 class ComponentUpdateExecution:
     def __init__(self, planning: ComponentUpdateService, manifests: ManifestRepository,
-                 journal: UpdateJournal, runtime: ComponentRuntime):
+                 journal: UpdateJournal, runtime: ComponentRuntime, *,
+                 operation_lock: InstallationOperationLock | None = None, operation_lease: InstallationLease | None = None):
         self.planning, self.manifests = planning, manifests
         self.journal, self.runtime = journal, runtime
+        self.operation_lock, self.operation_lease = operation_lock, operation_lease
 
     async def run(self, requested: tuple[str, ...], target_id: str | None = None, *,
                   consent: LiveConsent | None, recovery: bool = False) -> dict[str, object]:
         if consent is None or not consent.accepted:
             return {'status': 'refused', 'diagnostics': ['Explicit live consent required.']}
-        with self.journal.exclusive():
+        with installation_operation(self.operation_lock, 'component-update', self.operation_lease) as lease, lease.journal('component'), self.journal.exclusive():
+            from copy import copy
+
+            execution = copy(self)
+            execution.runtime = self.runtime.for_operation(lease)
             batch = self._admit(requested, target_id, recovery)
-            self.runtime.validate(batch.stages)
+            execution.runtime.validate(batch.stages)
             batch = batch.model_copy(update={'direction': 'recover' if recovery else 'apply'})
             self.journal.save(batch)
-            return await _execute(self, batch, consent, recovery)
+            return await _execute(execution, batch, consent, recovery)
 
     def _admit(self, requested: tuple[str, ...], target_id: str | None, recovery: bool) -> UpdateBatch:
         snapshot = self.manifests.load()
         previous = self.journal.load()
         if snapshot.manifest is None or snapshot.diagnostics:
             raise LifecycleStateError('Valid installation state required before execution.')
+        require_legacy_runtime_policy(snapshot.manifest)
         if previous is not None:
             matching = (tuple(sorted(requested)) == previous.plan.requested_services
                         and (target_id is None or all(item.target and item.target.target_id == target_id
@@ -88,7 +96,7 @@ def _validate_manifest(batch, current):
     if retained != original_refs:
         raise LifecycleStateError('Unrelated configuration changed during update.')
     ignored = {'components', 'configuration_references'}
-    if current.model_dump(exclude=ignored) != batch.original.model_dump(exclude=ignored):
+    if {key: value for key, value in comparable_manifest(current).items() if key not in ignored} != {key: value for key, value in comparable_manifest(batch.original).items() if key not in ignored}:
         raise LifecycleStateError('Installation selection or credentials changed; inspect before resuming.')
 
 
@@ -120,6 +128,10 @@ def _commit(execution, batch, stage, recovery):
     if snapshot.manifest is None or snapshot.diagnostics:
         raise LifecycleStateError('Runtime verified but configuration commit unavailable; resume the original operation.')
     _validate_manifest(batch, snapshot.manifest)
+    service_plan = next(item for item in batch.plan.services if item.service_id == stage.service_id)
+    if service_plan.status == 'no_op':
+        # Live revalidation settles the journal without rewriting admitted state.
+        return
     version = stage.source if recovery else stage.target
     components = tuple(item.model_copy(update={'desired': version, 'observed': version})
                        if item.component_id == stage.component_id else item for item in snapshot.manifest.components)
@@ -127,7 +139,7 @@ def _commit(execution, batch, stage, recovery):
                        if item.key != 'component-update.' + stage.component_id)
     reference = ConfigurationReference(key='component-update.' + stage.component_id,
                                        source='managed_default', reference=stage.component_id)
-    updated = snapshot.manifest.model_copy(update={'components': components, 'configuration_references': (*references, reference)})
+    updated = migrate_manifest_v1(snapshot.manifest).model_copy(update={'components': components, 'configuration_references': (*references, reference)})
     execution.manifests.save(updated, expected_token=snapshot.token)
 
 

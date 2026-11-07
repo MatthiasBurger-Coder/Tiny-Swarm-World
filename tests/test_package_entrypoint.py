@@ -1,3 +1,4 @@
+from tests.infrastructure.adapters.lifecycle.test_installation_operation_lock import use_fake_composition_locks
 import asyncio
 import ast
 import io
@@ -7,7 +8,7 @@ import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import ANY, AsyncMock, Mock, patch
 
 from tiny_swarm_world import __main__ as entrypoint
 from tiny_swarm_world.infrastructure.adapters.cli import commands as cli_commands
@@ -75,6 +76,9 @@ ENTRYPOINT_PATH = REPOSITORY_ROOT / "src" / "tiny_swarm_world" / "__main__.py"
 
 
 class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        use_fake_composition_locks(self)
+
     async def test_package_main_delegates_argv_to_canonical_cli_adapter(self):
         argv = ["--list-workflows"]
         with patch.object(cli_dispatcher, "main", AsyncMock()) as run_cli:
@@ -1019,11 +1023,13 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             run_setup.call_args.kwargs,
             {
+                "operation_lease": ANY,
                 "service_profile": ServiceStackProfile.SERVICE_ACCESS.value,
                 "node_provider_request": None,
                 "allow_wsl_windows_filesystem": False,
             },
         )
+        self.assertFalse(run_setup.call_args.kwargs['operation_lease'].active)
         payload = _json_payload_from_output(output.getvalue())
         self.assertEqual("setup run", payload["workflow"])
         self.assertEqual("blocked", payload["status"])

@@ -72,6 +72,8 @@ def _clean_source(installation, *, allow_external=False):
     require_private_product_paths(installation)
 
 def validate(installation, plan):
+    # Revalidate persisted reader metadata before source/runtime/staging effects.
+    ProductPlan.model_validate(plan.model_dump())
     require_settled_updates(installation.root)
     _clean_source(installation, allow_external=plan.configuration_source is not None)
     from tiny_swarm_world.infrastructure.adapters.lifecycle.product_configuration_source import validate as validate_configuration
@@ -84,7 +86,7 @@ def validate(installation, plan):
         raise LifecycleStateError('Release ref/content moved; pinned operation cannot resume against a different target.')
     installation._host_and_resources(plan)
     snapshot = installation.manifests.load()
-    expected = plan.manifest.model_copy(update={'product': plan.target.product})
+    expected = plan.committed_manifest()
     if not ((snapshot.token == plan.manifest_token and snapshot.manifest == (None if plan.adoption else plan.manifest))
             or snapshot.manifest == expected):
         raise LifecycleStateError('Installation state changed since product admission.')

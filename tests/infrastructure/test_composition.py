@@ -1,3 +1,4 @@
+from tests.infrastructure.adapters.lifecycle.test_installation_operation_lock import use_fake_composition_locks
 import asyncio
 import os
 import shutil
@@ -70,6 +71,13 @@ def _required_infisical_bootstrap_env() -> dict[str, str]:
 
 
 class TestComposition(unittest.TestCase):
+    def assertGuardedWorkflow(self, workflow, expected_type):
+        from tiny_swarm_world.infrastructure.adapters.lifecycle.installation_operation_lock import InstallationLockedWorkflow
+
+        self.assertIsInstance(workflow, InstallationLockedWorkflow)
+        self.assertIsNone(workflow.lease)
+        self.assertIsInstance(workflow.workflow, expected_type)
+
     def test_runtime_network_builders_forward_to_capability_wiring(self):
         from tiny_swarm_world.infrastructure import composition_network, composition_runtime
 
@@ -170,6 +178,7 @@ class TestComposition(unittest.TestCase):
         self.assertEqual("jenkins", step.service_stack.stack_name)
 
     def setUp(self):
+        use_fake_composition_locks(self)
         self._infisical_env_patcher = patch.dict(
             os.environ,
             _required_infisical_bootstrap_env(),
@@ -717,32 +726,32 @@ class TestComposition(unittest.TestCase):
                 trace_correlation_id="trace-test"
             )
 
-        self.assertIsInstance(services.workflows.init, composition.PlatformInitWorkflow)
-        self.assertIsInstance(
+        self.assertGuardedWorkflow(services.workflows.init, composition.PlatformInitWorkflow)
+        self.assertGuardedWorkflow(
             services.workflows.reconcile, composition.PlatformReconcileWorkflow
         )
-        self.assertIsInstance(
+        self.assertGuardedWorkflow(
             services.workflows.expose, composition.PlatformExposeWorkflow
         )
-        self.assertIsInstance(
+        self.assertGuardedWorkflow(
             services.workflows.repair_lxc_proxy_drift,
             composition.PlatformRepairLxcProxyDriftWorkflow,
         )
-        self.assertIsInstance(
+        self.assertGuardedWorkflow(
             services.workflows.reset, composition.PlatformResetWorkflow
         )
-        self.assertIsInstance(
+        self.assertGuardedWorkflow(
             services.workflows.destroy, composition.PlatformDestroyWorkflow
         )
         self.assertIsInstance(
             services.workflows.verify, composition.PlatformVerifyWorkflow
         )
         self.assertIsInstance(services.workflows.cluster, composition.ClusterWorkflows)
-        self.assertIsInstance(
+        self.assertGuardedWorkflow(
             services.workflows.cluster.docker,
             composition.PlatformInitWorkflow,
         )
-        self.assertIsInstance(
+        self.assertGuardedWorkflow(
             services.workflows.cluster.swarm_bootstrap,
             composition.PlatformInitWorkflow,
         )
@@ -885,7 +894,7 @@ class TestComposition(unittest.TestCase):
                     service_profile=ServiceStackProfile.SERVICE_ACCESS
                 )
 
-        self.assertIsInstance(services.workflows.reset, composition.PlatformResetWorkflow)
+        self.assertGuardedWorkflow(services.workflows.reset, composition.PlatformResetWorkflow)
         self.assertEqual(1, len(services.workflows.reset.steps))
         self.assertIsInstance(
             services.workflows.reset.steps[0],
@@ -907,21 +916,21 @@ class TestComposition(unittest.TestCase):
     def test_build_platform_services_wires_workflow_types_without_evidence_patch(self):
         services = composition.build_platform_services()
 
-        self.assertIsInstance(services.workflows.init, composition.PlatformInitWorkflow)
-        self.assertIsInstance(
+        self.assertGuardedWorkflow(services.workflows.init, composition.PlatformInitWorkflow)
+        self.assertGuardedWorkflow(
             services.workflows.reconcile, composition.PlatformReconcileWorkflow
         )
-        self.assertIsInstance(
+        self.assertGuardedWorkflow(
             services.workflows.expose, composition.PlatformExposeWorkflow
         )
-        self.assertIsInstance(
+        self.assertGuardedWorkflow(
             services.workflows.repair_lxc_proxy_drift,
             composition.PlatformRepairLxcProxyDriftWorkflow,
         )
-        self.assertIsInstance(
+        self.assertGuardedWorkflow(
             services.workflows.reset, composition.PlatformResetWorkflow
         )
-        self.assertIsInstance(
+        self.assertGuardedWorkflow(
             services.workflows.destroy, composition.PlatformDestroyWorkflow
         )
         self.assertIsInstance(
@@ -991,7 +1000,9 @@ class TestComposition(unittest.TestCase):
             ui,
             configuration_validation,
             allow_wsl_windows_filesystem,
+            operation_lease,
         ):
+            operation_lease.require_active()
             calls.append("services built")
             self.assertIs(live_consent, consent)
             self.assertEqual(ServiceStackProfile.SERVICE_ACCESS, service_profile)
@@ -1331,10 +1342,10 @@ class TestComposition(unittest.TestCase):
                     backend=composition.ManagedLxcBackend.INCUS,
                 )
 
-        self.assertIsInstance(
+        self.assertGuardedWorkflow(
             services.workflows.bootstrap, composition.DeploymentApplyWorkflow
         )
-        self.assertIsInstance(
+        self.assertGuardedWorkflow(
             services.workflows.apply, composition.DeploymentApplyWorkflow
         )
         self.assertIsInstance(
@@ -1659,7 +1670,7 @@ class TestComposition(unittest.TestCase):
         with patch.object(composition.shutil, "which", return_value="/usr/bin/incus"):
             services = composition.build_deployment_services_for_provider()
 
-        self.assertIsInstance(
+        self.assertGuardedWorkflow(
             services.workflows.bootstrap, composition.DeploymentApplyWorkflow
         )
         self.assertEqual(
@@ -1687,7 +1698,7 @@ class TestComposition(unittest.TestCase):
         services = composition.build_lxc_deployment_services(
             backend=composition.ManagedLxcBackend.INCUS,
         )
-        self.assertIsInstance(
+        self.assertGuardedWorkflow(
             services.workflows.apply, composition.DeploymentApplyWorkflow
         )
 
@@ -2415,7 +2426,7 @@ class TestComposition(unittest.TestCase):
                                 allow_wsl_windows_filesystem=True,
                             )
 
-        self.assertIsInstance(services.workflows.run, composition.SetupWorkflow)
+        self.assertGuardedWorkflow(services.workflows.run, composition.SetupWorkflow)
         self.assertTrue(services.workflows.run.live_consent.accepted)
         self.assertIsInstance(
             services.workflows.run.progress,
@@ -2541,7 +2552,7 @@ class TestComposition(unittest.TestCase):
                 node_provider_request=request,
             )
 
-        self.assertIsInstance(services.workflows.run, composition.SetupWorkflow)
+        self.assertGuardedWorkflow(services.workflows.run, composition.SetupWorkflow)
         self.assertIs(request, build_preflight.call_args.args[1])
         self.assertIs(request, build_artifact_readiness.call_args.args[1])
         self.assertIs(request, build_platform.call_args.args[2])
@@ -3554,6 +3565,9 @@ def _setup_result(status: SetupWorkflowStatus) -> SetupWorkflowResult:
 
 
 class TestSocatStructuredFailureComposition(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        use_fake_composition_locks(self)
+
     async def test_partial_starts_and_safe_failures_keep_existing_status_and_counts(self):
         from types import SimpleNamespace
         from tiny_swarm_world.application.ports.operation_result import OperationFailure
@@ -3581,6 +3595,9 @@ class TestSocatStructuredFailureComposition(unittest.IsolatedAsyncioTestCase):
 
 
 class TestBlockedOperationResults(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        use_fake_composition_locks(self)
+
     async def test_real_blocked_producers_expose_results_through_setup(self):
         from tiny_swarm_world.infrastructure.composition_blocked_workflows import BlockedArtifactWorkflow, BlockedDeploymentWorkflow
         from tiny_swarm_world.application.services.artifacts.workflows import ArtifactWorkflowKind

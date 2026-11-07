@@ -1,4 +1,5 @@
 """Real native policy through Classic update, persistence and recovery; runtime is mocked."""
+from tests.infrastructure.adapters.lifecycle.test_installation_operation_lock import FakeInstallationLock
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
@@ -133,10 +134,10 @@ class NativeTransitionExecutionTests(unittest.IsolatedAsyncioTestCase):
             for c in self.original.components if c.service_id == stack)))
         self.store = JsonUpdateStateStore(self.root / "classic-updates")
         workflow = ClassicUpdateWorkflow(compose, self.deployment, self.store, self.observer,
-                                         verification_attempts=2, poll_interval_seconds=0)
+                                         verification_attempts=2, poll_interval_seconds=0, operation_lock=FakeInstallationLock())
         self.journal = JsonUpdateJournal(self.manifests.path.parent / "component-update.json")
         self.executor = ComponentUpdateExecution(ComponentUpdateService(self.manifests, self.catalog),
-                                                 self.manifests, self.journal, ClassicComponentRuntime(workflow))
+                                                 self.manifests, self.journal, ClassicComponentRuntime(workflow), operation_lock=FakeInstallationLock())
 
     async def observe(self, stack, name):
         image = self.images[name]
@@ -145,7 +146,7 @@ class NativeTransitionExecutionTests(unittest.IsolatedAsyncioTestCase):
         return UpdateRuntimeObservation(stack, name, "id-" + name, 1, image, 1,
                                         (UpdateTaskObservation("task-" + name, task, "running", "running"),), "completed")
 
-    def deployment(self, plan):
+    def deployment(self, plan, *, operation_lease=None):
         async def run():
             self.calls.append(plan)
             status = DeploymentWorkflowStatus.FAILED_TO_APPLY if plan.service_name in self.fail else DeploymentWorkflowStatus.COMPLETED

@@ -1,9 +1,9 @@
 """Durable update intent; original transition and installation remain immutable."""
 from typing import Literal, Self
 
-from pydantic import model_validator
+from pydantic import SerializerFunctionWrapHandler, model_serializer, model_validator
 
-from tiny_swarm_world.domain.lifecycle.models import Contract, Identifier, InstallationManifest, VersionIdentity
+from tiny_swarm_world.domain.lifecycle.models import InstallationProfileIntent, Contract, Identifier, InstallationManifest, VersionIdentity
 from tiny_swarm_world.domain.lifecycle.update_planning import ComponentUpdatePlan
 
 
@@ -21,6 +21,14 @@ class UpdateBatch(Contract):
     plan: ComponentUpdatePlan
     stages: tuple[UpdateStage, ...]
     direction: Literal['apply', 'recover'] = 'apply'
+    profile_intent: InstallationProfileIntent | None = None
+
+    @model_serializer(mode='wrap')
+    def legacy_serialization(self, handler: SerializerFunctionWrapHandler) -> dict[str, object]:
+        result = handler(self)
+        if self.profile_intent is None:
+            result.pop('profile_intent', None)
+        return result
 
     @property
     def settled(self) -> bool:
@@ -29,6 +37,12 @@ class UpdateBatch(Contract):
 
     @model_validator(mode='after')
     def coherent_intent(self) -> Self:
+        if self.profile_intent is not None:
+            self.profile_intent.validate_manifest(self.original)
+            if (self.profile_intent.operation_kind not in {'component-update', 'recovery'}
+                    or self.profile_intent.product_target_revision is not None
+                    or self.profile_intent.manifest_token != self.plan.manifest_token):
+                raise ValueError('Component intent differs from the original operation.')
         if self.plan.status == 'blocked' or not self.plan.services:
             raise ValueError('Batch requires an admitted nonempty plan.')
         if tuple(item.service_id for item in self.plan.services) != self.plan.dependency_order:

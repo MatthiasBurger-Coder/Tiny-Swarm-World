@@ -1,9 +1,12 @@
 """Synthetic transition policies exercise real Classic convergence and persistence."""
+from tests.infrastructure.adapters.lifecycle.test_installation_operation_lock import FakeInstallationLock
+import asyncio
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 import unittest
-from unittest.mock import AsyncMock, Mock
+import json
+from unittest.mock import AsyncMock, Mock, patch
 
 from tests.domain.lifecycle.test_update_planning import update_fixture
 from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
@@ -47,10 +50,10 @@ class ComponentExecutionTests(unittest.IsolatedAsyncioTestCase):
         compose.get_services_of.side_effect = lambda stack: (ComposeServiceDefinition(name=stack, image_ref=self.images[stack]),)
         self.store = JsonUpdateStateStore(self.root / 'classic-updates')
         workflow = ClassicUpdateWorkflow(compose, self.deployment, self.store, self.observer,
-                                         verification_attempts=2, poll_interval_seconds=0)
+                                         verification_attempts=2, poll_interval_seconds=0, operation_lock=FakeInstallationLock())
         self.runtime = ClassicComponentRuntime(workflow)
         self.planning = ComponentUpdateService(self.manifests, self.catalogs)
-        self.executor = ComponentUpdateExecution(self.planning, self.manifests, self.journal, self.runtime)
+        self.executor = ComponentUpdateExecution(self.planning, self.manifests, self.journal, self.runtime, operation_lock=FakeInstallationLock())
 
     async def observe(self, stack, name):
         image = self.images[name]
@@ -58,7 +61,7 @@ class ComponentExecutionTests(unittest.IsolatedAsyncioTestCase):
         return UpdateRuntimeObservation(stack, name, self.identities[name], 1, image, 1,
                                         (UpdateTaskObservation('task-' + name, task, 'running', 'running'),), 'completed')
 
-    def deployment(self, plan):
+    def deployment(self, plan, *, operation_lease=None):
         async def run():
             self.calls.append(plan)
             if plan.service_name in self.fail:
@@ -237,7 +240,7 @@ class ComponentExecutionTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_runtime_identity_change_cannot_commit_target(self):
         deploy = self.deployment
-        def changed(plan):
+        def changed(plan, *, operation_lease=None):
             workflow = deploy(plan)
             run = workflow.run
             async def run_changed():
@@ -402,7 +405,7 @@ class ComponentExecutionTests(unittest.IsolatedAsyncioTestCase):
         client = PortainerHttpClient('https://portainer.local', 'admin', OPERATOR_CREDENTIAL, session=session)
         async def denied():
             client.get_endpoint_id_by_name('local')
-        self.runtime.workflow.deployment_workflow_factory = lambda plan: SimpleNamespace(run=denied)
+        self.runtime.workflow.deployment_workflow_factory = lambda plan, **_options: SimpleNamespace(run=denied)
         result = await self.apply()
         self.assertEqual(result['status'], 'failed')
         self.assertEqual(self.manifests.load().manifest, self.original)
@@ -411,3 +414,130 @@ class ComponentExecutionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(session.request_calls, [])
         self.assertNotIn(OPERATOR_CREDENTIAL, json.dumps(result))
         self.assertNotIn('private-response', self.journal.path.read_text())
+
+    async def test_outer_lock_is_required_and_success_migrates_after_runtime_verification(self):
+        original_bytes = self.manifests.path.read_bytes()
+        self.executor.operation_lock = None
+        with self.assertRaisesRegex(LifecycleStateError, 'lock'):
+            await self.apply()
+        self.assertEqual(self.manifests.path.read_bytes(), original_bytes)
+        self.assertIsNone(self.journal.load())
+        self.assertEqual(self.calls, [])
+        lock = FakeInstallationLock()
+        self.executor.operation_lock = lock
+        await self.apply()
+        self.assertEqual(self.manifests.load().manifest.schema_version, 2)
+        self.assertEqual(self.journal.load().original.schema_version, 1)
+        self.assertNotIn('profile_intent', json.loads(self.journal.path.read_text()))
+        self.assertIsNone(self.runtime.workflow.operation_lease)
+        self.assertEqual(lock.events[0:2], ['operation:component-update', 'journal:component'])
+        self.assertEqual(lock.events[-2:], ['journal-release:component', 'operation-release:component-update'])
+
+    async def test_new_profile_policy_is_not_executed_by_legacy_component_runtime(self):
+        from tiny_swarm_world.domain.lifecycle.models import InstallationProfileBinding, installation_profile_name, migrate_manifest_v1
+
+        changed = migrate_manifest_v1(self.original)
+        payload = changed.model_dump()
+        payload['installation_profile'] = InstallationProfileBinding(
+            profile_name=installation_profile_name(changed.installation_id), routes=())
+        from tiny_swarm_world.domain.lifecycle.models import InstallationManifest
+        changed = InstallationManifest.model_validate(payload)
+        self.manifests.save(changed, expected_token=self.manifests.load().token)
+        with self.assertRaisesRegex(LifecycleStateError, 'capability'):
+            await self.apply()
+        self.assertEqual(self.calls, [])
+        self.assertIsNone(self.journal.load())
+        self.assertIsNone(self.runtime.workflow.operation_lease)
+        self.assertEqual(self.manifests.load().manifest, changed)
+
+    async def test_runtime_lease_is_cleared_on_admission_failure_and_cancellation(self):
+        with patch.object(self.planning, 'preview', side_effect=LifecycleStateError('stale')):
+            with self.assertRaisesRegex(LifecycleStateError, 'stale'):
+                await self.apply()
+        self.assertIsNone(self.runtime.workflow.operation_lease)
+        entered = asyncio.Event()
+        async def wait_transition(*args, **kwargs):
+            entered.set()
+            await asyncio.Event().wait()
+        with patch.object(self.runtime, 'transition', new=wait_transition):
+            task = asyncio.create_task(self.apply())
+            await entered.wait()
+            task.cancel()
+            with self.assertRaises(asyncio.CancelledError):
+                await task
+        self.assertIsNone(self.runtime.workflow.operation_lease)
+        self.assertFalse(self.executor.operation_lock.held)
+
+    async def test_runtime_delegation_copies_authority_without_mutating_public_workflow(self):
+        lock = FakeInstallationLock()
+        with lock.exclusive('component-update') as lease:
+            private = self.runtime.for_operation(lease)
+            self.assertIsNot(private, self.runtime)
+            self.assertIsNot(private.workflow, self.runtime.workflow)
+            self.assertIs(private.workflow.operation_lease, lease)
+            self.assertIsNone(self.runtime.workflow.operation_lease)
+        with self.assertRaises(LifecycleStateError):
+            private.workflow.operation_lease.require_active()
+        self.assertIsNone(self.runtime.workflow.operation_lease)
+
+    async def test_bound_intent_roundtrip_rejects_tampering_before_checkpoint_overwrite(self):
+        from tiny_swarm_world.domain.lifecycle.models import InstallationProfileIntent
+        from tiny_swarm_world.domain.lifecycle.update_execution import UpdateBatch
+        import json
+
+        await self.apply()
+        batch = self.journal.load()
+        original = batch.original
+        intent = InstallationProfileIntent(operation_id='c' * 32, operation_kind='component-update',
+            installation_id=original.installation_id, controller_revision='d' * 40,
+            product_source_revision=original.product.revision, product_target_revision=None,
+            incus_version='6.0.5', manifest_token=batch.plan.manifest_token,
+            requested_services=original.requested_services, resolved_services=original.resolved_services,
+            service_exposure=original.effective_exposure(), stack_ownership=original.effective_stack_ownership(), profile=None)
+        bound = batch.model_copy(update={'profile_intent': intent})
+        self.journal.save(bound)
+        self.assertEqual(self.journal.load().profile_intent, intent)
+        content = self.journal.path.read_bytes()
+        forged = bound.model_copy(update={'profile_intent': intent.model_copy(update={'installation_id': 'private-intent-canary'})})
+        with self.assertRaises(LifecycleStateError) as error:
+            self.journal.save(forged)
+        self.assertEqual(self.journal.path.read_bytes(), content)
+        self.assertNotIn('private-intent-canary', str(error.exception))
+        legacy = json.loads(content)
+        legacy.pop('profile_intent', None)
+        self.journal.path.write_text(json.dumps(legacy))
+        self.assertIsNone(self.journal.load().profile_intent)
+        self.assertEqual(json.loads(self.journal.path.read_text()), legacy)
+        # An invalid explicitly supplied target must not acquire a new authority.
+        legacy['profile_intent'] = intent.model_dump(mode='json')
+        legacy['profile_intent']['product_target_revision'] = 'a' * 40
+        with self.assertRaises(ValueError):
+            UpdateBatch.model_validate_json(json.dumps(legacy))
+
+    async def test_fresh_v1_already_target_noop_and_recovery_preserve_exact_manifest(self):
+        targets = {name: version for service in self.catalog.services
+                   if service.service_id in {'nexus', 'jenkins'}
+                   for name, version in service.update_targets[0].versions.items()}
+        self.original = self.original.model_copy(update={'components': tuple(
+            item.model_copy(update={'desired': targets[item.component_id], 'observed': targets[item.component_id]})
+            if item.component_id in targets else item for item in self.original.components)})
+        self.manifests.save(self.original, expected_token=self.manifests.load().token)
+        self.images = {name: image_reference(version) for name, version in targets.items()}
+        self.assertIsNone(self.journal.load())
+        self.assertEqual(self.original.schema_version, 1)
+        plan = self.planning.preview(('nexus', 'jenkins'))
+        self.assertEqual(plan.status, 'no_op')
+        self.assertTrue(all(item.status == 'no_op' for item in plan.services))
+        content = self.manifests.path.read_bytes()
+        stamp = self.manifests.path.stat().st_mtime_ns
+        self.assertEqual((await self.apply())['status'], 'completed')
+        self.assertEqual(self.manifests.path.read_bytes(), content)
+        self.assertEqual(self.manifests.path.stat().st_mtime_ns, stamp)
+        self.assertEqual(self.manifests.load().manifest.schema_version, 1)
+        self.assertEqual(self.calls, [])
+        self.assertTrue(self.journal.load().settled)
+        self.assertTrue(all(item.status == 'no_op' for item in self.journal.load().plan.services))
+        self.assertEqual((await self.apply(recovery=True))['status'], 'recovered')
+        self.assertEqual(self.manifests.path.read_bytes(), content)
+        self.assertEqual(self.manifests.path.stat().st_mtime_ns, stamp)
+        self.assertEqual(self.calls, [])
