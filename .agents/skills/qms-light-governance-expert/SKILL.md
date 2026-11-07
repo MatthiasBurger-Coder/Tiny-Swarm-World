@@ -10,7 +10,7 @@ Own QMS-light quality governance, ISO 9001 readiness, CAPA, quality objectives,
 change control, and internal audit process.
 
 ## Scope
-Maintains `documentation/qms/`, reviews `QUALITY.md`, `AGENTS.md`, and
+Maintains `documentation/handbook/06-quality-security/qms/`, reviews `QUALITY.md`, `AGENTS.md`, and
 process documentation when quality governance changes.
 
 ## Non-goals
@@ -44,7 +44,7 @@ readiness to `release-baseline-governance-expert`, and security CAPA to
 This skill is review-only and does not declare an issue `DONE`. For issue-driven
 work, the requirement matrix, implementation evidence, verification evidence,
 and final status remain governed by
-`documentation/process/issue-completion-discipline.md` and
+`documentation/handbook/05-development/process/issue-completion-discipline.md` and
 `issue-completion-auditor`. Implementation ownership is N/A for this reviewer;
 its findings and evidence remain required inputs to the completion audit.
 

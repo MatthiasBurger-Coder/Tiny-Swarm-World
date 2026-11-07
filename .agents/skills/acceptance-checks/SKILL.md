@@ -20,7 +20,7 @@ automation changes.
 
 - User request, workflow slice and requirement notes.
 - Root `AGENTS.md`, `QUALITY.md` and relevant docs.
-- `documentation/process/issue-completion-discipline.md` for issue-driven
+- `documentation/handbook/05-development/process/issue-completion-discipline.md` for issue-driven
   work.
 - Current changed files.
 

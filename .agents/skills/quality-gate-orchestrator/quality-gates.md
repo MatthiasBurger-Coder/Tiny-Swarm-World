@@ -31,7 +31,7 @@ Documentation-only checks do not replace the minimum quality command when claimi
 | Impact | Typical files | Required gate |
 |---|---|---|
 | `DOC_ONLY` | Markdown-only documentation with no command, branch, quality, routing, architecture or process-authority change | `git diff --check` plus targeted documentation review |
-| `GOVERNANCE_METADATA` | `.agents/**`, `.codex/**`, `documentation/process/**`, `documentation/workflow/**` without product-build impact | `git diff --check` plus targeted registry, routing, structured-format, arc42 or ADR checks |
+| `GOVERNANCE_METADATA` | `.agents/**`, `.codex/**`, `documentation/handbook/05-development/process/**`, `documentation/handbook/05-development/workflow/**` without product-build impact | `git diff --check` plus targeted registry, routing, structured-format, arc42 or ADR checks |
 | `PRODUCT_BUILD_AFFECTING` | product source, tests, build logic, contracts, deployment, runtime wiring or `QUALITY.md` | targeted checks plus the applicable `QUALITY.md` Python gate |
 | `UNKNOWN` | unknown or conflicting impact | stop and escalate instead of guessing |
 

@@ -14,7 +14,7 @@ strand and must not rewrite workflow-create artifacts.
 
 ## Required Inputs
 
-- Checked active `documentation/workflow/workflow.md`.
+- Checked active `documentation/handbook/05-development/workflow/workflow.md`.
 - Slice YAML metadata.
 - Dependency map.
 - Current branch and workflow branch.

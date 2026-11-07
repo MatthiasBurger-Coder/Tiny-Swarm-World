@@ -10,9 +10,9 @@ Map OWASP ASVS to Tiny Swarm World's local infrastructure automation and admin
 surfaces without forcing unrelated web-application assumptions.
 
 ## Scope
-Maintains `documentation/security/owasp-asvs-mapping.md`,
-`documentation/security/admin-surface-rbac.md`, and
-`documentation/security/service-access-threat-model.md` when present.
+Maintains `documentation/handbook/06-quality-security/security/owasp-asvs-mapping.md`,
+`documentation/handbook/06-quality-security/security/admin-surface-rbac.md`, and
+`documentation/handbook/06-quality-security/security/service-access-threat-model.md` when present.
 
 ## Non-goals
 Does not claim ASVS certification, run live attacks, add web-app requirements
@@ -43,7 +43,7 @@ or service exposure changes to architecture and DevOps owners.
 This skill is review-only and does not declare an issue `DONE`. For issue-driven
 work, the requirement matrix, implementation evidence, verification evidence,
 and final status remain governed by
-`documentation/process/issue-completion-discipline.md` and
+`documentation/handbook/05-development/process/issue-completion-discipline.md` and
 `issue-completion-auditor`. Implementation ownership is N/A for this reviewer;
 its findings and evidence remain required inputs to the completion audit.
 

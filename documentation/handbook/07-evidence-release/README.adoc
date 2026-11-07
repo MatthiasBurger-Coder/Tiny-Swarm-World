@@ -1,0 +1,123 @@
+= Verification evidence, traceability and releases
+
+ifndef::handbook-root[]
+:handbook-root: ../../
+endif::[]
+
+link:{handbook-root}README.adoc[Product Handbook] / Part 7
+
+This part owns requirement-to-evidence mappings, review records, release
+policies, candidate decisions and dated verification artifacts. Use the
+link:{handbook-root}handbook/07-evidence-release/traceability/traceability-matrix.md[traceability matrix],
+link:{handbook-root}handbook/07-evidence-release/manuals/live-validation-manual.md[Live Validation Manual]
+and link:{handbook-root}handbook/07-evidence-release/release/release-process.md[release process].
+
+Historical reports retain their candidate, source revision, scope and status.
+Linking them here does not qualify the current checkout. The
+link:{handbook-root}handbook/05-development/process/verification-state-policy.md[verification-state policy]
+remains authoritative; planned, blocked, missing and failed evidence stays
+separate from executed success. Live runs require explicit authorization and
+redacted retained evidence.
+
+Repository-root sources assigned to this part are the
+link:{handbook-root}../OPERATIONAL_READINESS_CHECKLIST.md[operational readiness checklist]
+and link:{handbook-root}../CHANGELOG.md[product changelog]. Their existing
+paths remain the canonical sources.
+
+== Source catalogue
+
+Each source below has this part as its primary handbook assignment.
+Cross-references from other parts do not change that ownership.
+
+=== evidence
+
+* link:{handbook-root}handbook/07-evidence-release/evidence/ci-documentation-sync-20260909.md[ci-documentation-sync-20260909.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/classic-public-beta-rc1-scenario-contract.md[classic-public-beta-rc1-scenario-contract.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/cred08-browser-acceptance.md[cred08-browser-acceptance.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/cred09-source-precedence-20260912.json[cred09-source-precedence-20260912.json]
+* link:{handbook-root}handbook/07-evidence-release/evidence/cred09-source-precedence-completion.md[cred09-source-precedence-completion.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/credential-transition-verification.md[credential-transition-verification.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/issue-363-credential-cookie-form-20261003.md[issue-363-credential-cookie-form-20261003.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/issue-363-final-source-applicability-20261003.md[issue-363-final-source-applicability-20261003.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/issue-363-final-validation-20261003.md[issue-363-final-validation-20261003.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/issue-363-full-completion-audit-20261003.md[issue-363-full-completion-audit-20261003.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/issue-363-isolated-wsl-restart-20261003.md[issue-363-isolated-wsl-restart-20261003.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/issue-363-native-fresh-install-20261003.md[issue-363-native-fresh-install-20261003.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/issue-363-node-mutation-evidence-20261003.md[issue-363-node-mutation-evidence-20261003.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/issue-363-quality-findings-20261003.md[issue-363-quality-findings-20261003.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/issue-427-native-linux-e2e.md[issue-427-native-linux-e2e.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/issue-441-completion-audit.md[issue-441-completion-audit.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/issue-441-requirement-matrix.md[issue-441-requirement-matrix.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/issue-441-source-snapshot.json[issue-441-source-snapshot.json]
+* link:{handbook-root}handbook/07-evidence-release/evidence/issue-442-completion-audit.md[issue-442-completion-audit.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/issue-442-requirement-matrix.md[issue-442-requirement-matrix.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/issue-442-source-snapshot.json[issue-442-source-snapshot.json]
+* link:{handbook-root}handbook/07-evidence-release/evidence/issue-445-acceptance-checklist.md[issue-445-acceptance-checklist.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/issue-445-changed-files.md[issue-445-changed-files.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/issue-445-completion-audit.md[issue-445-completion-audit.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/issue-445-implementation-summary.md[issue-445-implementation-summary.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/issue-445-remaining-risks.md[issue-445-remaining-risks.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/issue-445-requirement-matrix.md[issue-445-requirement-matrix.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/issue-445-source-hashes.json[issue-445-source-hashes.json]
+* link:{handbook-root}handbook/07-evidence-release/evidence/issue-445-test-results.md[issue-445-test-results.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/issue-450-epic-audit.md[issue-450-epic-audit.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/issue-450-requirement-matrix.md[issue-450-requirement-matrix.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/issue-462-bootstrap-completion-audit.md[issue-462-bootstrap-completion-audit.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/lcm-w09-ac5-traceability.md[lcm-w09-ac5-traceability.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/lcm-w09-blocker-refinement.md[lcm-w09-blocker-refinement.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/lcm-w09-q12-design-proposal.md[lcm-w09-q12-design-proposal.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/lcm-w09-q16-wsl-r52.md[lcm-w09-q16-wsl-r52.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/lcm-w09-q16-wsl-r54.md[lcm-w09-q16-wsl-r54.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/lcm-w09-qualification.md[lcm-w09-qualification.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/lcm-w09-transition-proposal.md[lcm-w09-transition-proposal.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/live-greenpath-evidence-contract.md[live-greenpath-evidence-contract.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/live-run-template.md[live-run-template.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/live-smoke-checklist.md[live-smoke-checklist.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/native-linux-cold-start-recovery.md[native-linux-cold-start-recovery.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/nightly-classic-runner-recovery-20261018.md[nightly-classic-runner-recovery-20261018.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/rc1-wsl-planned-restart-20260913.md[rc1-wsl-planned-restart-20260913.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/redaction-rules.md[redaction-rules.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/user-documentation-review-20260909.md[user-documentation-review-20260909.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/user-documentation-review-20260912.md[user-documentation-review-20260912.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/wsl2-secure-live-path.md[wsl2-secure-live-path.md]
+
+=== evidence/issue-443
+
+* link:{handbook-root}handbook/07-evidence-release/evidence/issue-443/acceptance_checklist.md[acceptance_checklist.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/issue-443/changed_files.md[changed_files.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/issue-443/completion_audit.md[completion_audit.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/issue-443/implementation_summary.md[implementation_summary.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/issue-443/preflight.md[preflight.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/issue-443/remaining_risks.md[remaining_risks.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/issue-443/requirement_matrix.md[requirement_matrix.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/issue-443/source.json[source.json]
+* link:{handbook-root}handbook/07-evidence-release/evidence/issue-443/test_results.md[test_results.md]
+
+=== evidence/issue-444
+
+* link:{handbook-root}handbook/07-evidence-release/evidence/issue-444/preflight.md[preflight.md]
+
+=== manuals
+
+* link:{handbook-root}handbook/07-evidence-release/manuals/live-validation-manual.md[live-validation-manual.md]
+
+=== release
+
+* link:{handbook-root}handbook/07-evidence-release/release/baseline-policy.md[baseline-policy.md]
+* link:{handbook-root}handbook/07-evidence-release/release/changelog-policy.md[changelog-policy.md]
+* link:{handbook-root}handbook/07-evidence-release/release/rc1-candidate-evidence.md[rc1-candidate-evidence.md]
+* link:{handbook-root}handbook/07-evidence-release/release/rc1-decision.md[rc1-decision.md]
+* link:{handbook-root}handbook/07-evidence-release/release/rc1-release-notes.md[rc1-release-notes.md]
+* link:{handbook-root}handbook/07-evidence-release/release/release-process.md[release-process.md]
+
+=== reviews
+
+* link:{handbook-root}handbook/07-evidence-release/reviews/issue-157-fixing-loop-20260627.md[issue-157-fixing-loop-20260627.md]
+* link:{handbook-root}handbook/07-evidence-release/reviews/issue-157-traefik-access-review-20260627.md[issue-157-traefik-access-review-20260627.md]
+
+=== traceability
+
+* link:{handbook-root}handbook/07-evidence-release/traceability/live-evidence-map.md[live-evidence-map.md]
+* link:{handbook-root}handbook/07-evidence-release/traceability/requirements.md[requirements.md]
+* link:{handbook-root}handbook/07-evidence-release/traceability/test-coverage-map.md[test-coverage-map.md]
+* link:{handbook-root}handbook/07-evidence-release/traceability/traceability-matrix.md[traceability-matrix.md]

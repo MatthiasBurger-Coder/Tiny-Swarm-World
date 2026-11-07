@@ -1,0 +1,324 @@
+= Deployment
+
+:sectnums:
+:toc:
+
+== Purpose
+
+Tiny Swarm World deploys local infrastructure services into a Docker Swarm
+environment whose default node provider is managed LXC through Incus.
+The deployment documentation is intentionally limited to the workflows that
+exist in this repository today.
+
+This project is developed and operated from WSL or Linux shells. Windows-specific shell commands are not the default execution model.
+
+== Deployment model
+
+The repository separates deployment work into three areas:
+
+* `src/tiny_swarm_world/__main__.py` contains the Python entry point for infrastructure orchestration.
+* `infra/config/compose` contains stack definitions and service image/runtime assets for workflow-managed deployment.
+
+The active Python entry point exposes workflow-level commands. Running without
+arguments does not execute infrastructure commands, and `--list-workflows`
+returns the declared workflow list without building application services.
+Static preflight is available through `--preflight` for the default
+`lxc_native` provider.
+
+Implemented platform workflows are `platform init`, `platform reconcile`,
+`platform expose`, `platform repair-lxc-proxy-drift`, `platform verify`,
+`platform reset`, and `platform destroy`. Mutating platform workflows require
+live consent before service construction. Reset and destroy also require exact
+confirmation and currently block after confirmation until retention and
+teardown semantics are implemented. Default platform init uses
+the `lxc_native` provider selection path and blocks before mutation when
+Incus readiness or profile requirements are not satisfied. Default
+platform expose creates or updates profile-level LXC proxy devices in the
+manager-specific `docker-swarm-manager` profile for published setup-manifest
+ports. The `swarm-manager` node receives that profile in addition to the common
+Docker Swarm profile; workers do not receive it. Direct instance-level
+`tsw-proxy-*` devices on `swarm-manager` are drift, not expected deployment
+state. The explicit `platform repair-lxc-proxy-drift` workflow can remove stale
+direct `tsw-proxy-*` devices only after the equivalent manager-profile device
+is verified. The non-mutating `platform verify` workflow runs post-install
+preflight plus read-only checks for managed LXC node presence, Docker Engine
+readiness, Swarm membership, profile-level proxy devices, and the Portainer
+local endpoint when an LXC backend is selected. Platform reconcile, artifact
+workflows, and deployment workflows
+block at provider-native boundaries until their LXC-native contracts are wired.
+Unsupported node-provider values fail closed; they are not remapped to another
+provider.
+
+Deployment bootstrap includes Portainer application initialization. After the
+Portainer stack and admin credentials are available, the bootstrap workflow
+ensures the local Docker endpoint named `local` exists in Portainer before
+Portainer-managed application stacks are applied.
+
+The Deployment boundary now contains tested post-bootstrap stack application
+services and a provider-neutral deployment gateway port. The current
+infrastructure implementation is Portainer-backed, but Portainer endpoint IDs,
+stack IDs, Swarm IDs, and API fallback behavior remain inside the adapter. The
+CLI composition root wires this boundary only after first-time Portainer
+bootstrap and verify-after-apply evidence are available.
+
+The Deployment boundary also contains a generic `EnsureServiceStack` contract
+and stack plans for the default service set plus selected service profiles.
+The base service set covers Portainer, Nexus, Jenkins, Apache Pulsar, SonarQube,
+and Swagger/NGINX. The full guided setup selects the service-access profile by
+default, which adds the `service-access` management stack. The
+Portainer-managed plan intentionally excludes the Portainer stack itself to
+avoid a bootstrap cycle and can exclude bootstrap-owned Nexus. These
+contracts can apply a stack through the deployment gateway port, then record
+stack-registration context. They do not claim container health or application
+readiness; readiness remains separate observed-state verification.
+
+The canonical autonomous setup command is `setup run`. It is a workflow-level
+orchestrator over preflight, platform, artifacts, deployment, and final
+verification phases. It refuses missing live consent before setup service
+construction and preserves blocked, resource-gated, failed-to-apply, and
+failed-to-verify states instead of reporting full deployment success without
+observed evidence.
+
+Setup sequencing is mirrored in `infra/config/installation-plan.yaml` and
+represented by the typed `InstallationPlan` model. Runtime composition
+currently passes the typed `default_installation_plan()` into `SetupWorkflow`;
+the YAML file is the committed declarative contract and static validation
+surface, not yet a runtime-loaded repository adapter. The current phase order
+is preflight, platform, cluster, network/routing, secrets, artifacts, CI/CD,
+quality, messaging, observability, control, docs, and validation. The workflow
+fails closed for dependency cycles, missing required phases, missing required
+services, or missing required workflow phases.
+
+Service registry data is centralized in `infra/config/services.yml` as a
+static selected-service catalogue used for cross-file validation and
+documentation. Runtime stack selection still comes from
+`ServiceStackContract` domain contracts. Each enabled stack maps to an
+installation phase, service-stack contract, readiness target, port-registry
+IDs, and any compatibility published ports. Portainer remains outside the
+Portainer-managed deployment plan to avoid a bootstrap cycle. Apache Pulsar
+remains the selected messaging stack.
+
+Setup preflight is idempotent for an already running Tiny Swarm World
+environment. Required ports pass when they are either free or already serve the
+expected local service, reported as `source=existing_expected_service`.
+Unknown port owners still fail before live execution.
+
+== Development gate before deployment work
+
+Run the development quality gate before changing deployment-related code:
+
+[source,bash]
+----
+python3 tools/linux/quality_gate.py quality
+----
+
+When a virtual environment is active, `python` can be used instead of `python3`.
+
+The quality gate covers linting, import architecture checks, architecture
+tests, type checks, and unittest discovery. It does not start Incus/LXC
+containers, initialize Docker Swarm, or deploy live services.
+
+== Service preparation
+
+Portainer, Nexus, image publication, and stack deployment are owned by the
+canonical setup workflow boundaries. On the default `lxc_native` path they
+remain blocked until provider-native artifact, deployment, and observed-state
+contracts are wired:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+----
+
+Former direct preparation scripts and host-side orchestration scripts have
+been removed so setup behavior stays behind the workflow-level CLI consent
+guard. They are not development quality-gate commands.
+The Portainer compose asset under `infra/config/compose/portainer` mounts the
+host Docker socket for the Portainer server and agent, and the agent also
+mounts Docker volumes. Treat that asset as privileged Docker-control
+configuration for intentional local Swarm bootstrap only.
+The canonical live-operation surface catalog is
+`documentation/handbook/04-operations/system/live-operation-surfaces.adoc`.
+
+== Nexus bootstrap
+
+Nexus setup is owned by the Python setup workflow boundary. The `lxc_native`
+composition wires managed-node stack bootstrap, administrator access and
+repository readiness through deployment and artifact services. Missing or
+failed observed prerequisites stop dependent phases. The
+link:../../../07-evidence-release/evidence/issue-363-final-validation-20261003.md[Issue #363 validation]
+records successful historical installation and authentication for named
+candidates; a current target still needs observed readiness evidence.
+
+The validated operator contract and placeholder template are maintained in
+`documentation/handbook/02-architecture/arc42/08_configuration/operator-configuration-contract.md` and
+`.env.example`. The standard installer resolves disposable internal-test
+catalog defaults; real operator overrides belong in a protected local file or
+the process environment. The
+link:../08_configuration/internal-test-credential-catalog.md[credential catalog]
+defines component-specific defaults and their isolated-test scope.
+
+[options="header"]
+|===
+| Variable | Purpose
+| `TSW_PORTAINER_USERNAME`, `TSW_PORTAINER_ADMIN_PASSWORD` | Portainer login identity and explicit credential override.
+| `TSW_NEXUS_ADMIN_USERNAME`, `TSW_NEXUS_ADMIN_PASSWORD` | Nexus login identity and explicit credential override.
+| `TSW_NEXUS_DOCKER_HUB_PROXY_REPOSITORY` | Managed Docker proxy repository name; default `docker-hub-proxy`.
+| `TSW_NEXUS_DOCKER_HUB_PROXY_PORT` | Proxy connector port; default `5001`.
+| `TSW_LXC_DOCKER_REGISTRY_MIRROR` | Optional external mirror reachable from managed nodes. Localhost is rejected; no local container is auto-detected.
+|===
+
+Managed-LXC clients derive transport, endpoint and polling from composition.
+The old `TSW_PORTAINER_ENDPOINT`, `TSW_NEXUS_STACK_NAME`, `TSW_NEXUS_URL`,
+`TSW_NEXUS_INITIAL_PASSWORD_PATH`, `TSW_NEXUS_MAX_ATTEMPTS` and
+`TSW_NEXUS_WAIT_SECONDS` names are historical documentation inputs, not
+supported overrides for this path. `TSW_PORTAINER_URL` does not select the
+managed-LXC client transport. See the configuration inventory's documentation-only keys.
+
+The committed port registry is `infra/config/ports.yaml`. Traefik owns public
+ingress ports `80` and `443`. High-numbered service allocations are desired
+diagnostic or compatibility targets. Existing compose files may still publish
+legacy host ports; these are classified in `services.yml` and are not silently
+treated as migrated port-registry behavior.
+
+== Stack deployment
+
+The supported stack deployment boundary is the workflow-level setup command.
+Compose files under `infra/config/compose` are read by Python deployment
+adapters. On the default `lxc_native` path, provider-native stack deployment
+remains blocked until the reviewed setup workflow wires and verifies those
+contracts.
+
+== Service-access routing
+
+The service-access dashboard capability is implemented as repository assets,
+setup-selected service contracts, and routing design. It is not claimed as a
+live-installed management surface for the default `lxc_native` path until
+provider-native deployment and service readiness are verified. The current
+repository design uses Traefik as the local ingress owner for the
+service-access setup profile. Swagger/NGINX moves to its own `8084` published
+route after a verified deployment.
+
+Implemented repository behavior:
+
+* `infra/config/compose/service-access/docker-compose.yml` defines the
+  dashboard and service-access NGINX stack.
+* `infra/config/compose/service-access/dashboard/**` and
+  `infra/config/compose/service-access/nginx/**` provide image-packaged
+  assets for the Portainer-managed path. The dashboard asset is rendered from
+  the effective service-access model and committed for image packaging.
+* The LXC Swarm runtime renders the dashboard from the same effective model
+  during stack asset preparation and writes it to
+  `${TSW_REMOTE_STACK_ROOT}/service-access/dashboard/index.html` before the
+  service-access stack deployment consumes the compose config.
+* The setup CLI uses `ServiceStackProfile.SERVICE_ACCESS` by default so the
+  selected setup profile includes the service-access landing page contract.
+  Operators can use `--service-profile default` to run only the older base
+  service set.
+* The setup manifest for the service-access profile records Traefik ingress
+  ports `80` and `443` as the LXC/WSL exposure targets.
+* Compose metadata is parsed from each `docker-compose.yml`; the
+  service-access NGINX compose service publishes ports `10000` and `8086`.
+
+The accepted routing direction is Traefik-backed local ingress:
+
+* Traefik owns published ports `80` and `443` for the service-access setup
+  profile.
+* Service Access remains the dashboard stack and serves the preferred local
+  management overview through `https://service-access.tsw.local` when route
+  hostnames resolve in the operator environment.
+* Service HTTP links prefer routed hostnames such as
+  `https://jenkins.tsw.local`, `https://nexus.tsw.local`,
+  `https://portainer.tsw.local`, `https://pulsar.tsw.local`,
+  `https://pulsar-api.tsw.local`, `https://sonarqube.tsw.local`,
+  `https://swagger.tsw.local`, and `https://infisical.tsw.local`.
+* Direct published ports such as service-access `10000`, Infisical `17080`,
+  and the historical gateway `10080/10443` values are compatibility,
+  diagnostic, fallback, rollback, or transitional access only.
+* The service-access NGINX compose service still publishes `8086` as a local
+  compatibility route.
+* Wider-than-local exposure and public certificate automation require later
+  ADR coverage and tests.
+
+== Health And Validation Registries
+
+`infra/config/health-checks.yaml` declares desired readiness checks by stack,
+target ID, phase, evidence kind, and required services. `live_default: false`
+means the registry is not a live health probe and is not part of the default
+quality gate.
+
+`infra/config/validation-plan.yaml` declares the current greenpath evidence
+targets. Tests align the YAML declarations with service contracts and health
+checks. Runtime verification does not yet load those YAML files directly; when
+the application `ValidationPlan` is explicitly evaluated, it accepts observed
+`VerificationResult` records only. Missing required evidence, blocked
+evidence, failed evidence, or verified evidence without observed runtime
+fields reports `failed_to_verify` or `blocked`; static stack registration does
+not satisfy service readiness.
+
+Portainer may manage the service-access stack only after Portainer is
+reachable. First-time Portainer bootstrap remains outside Portainer-managed
+stack upload.
+
+For a Portainer-managed service-access stack, dashboard and NGINX assets are
+image-packaged. Do not rely on bind-mounted repository files unless a later
+slice adds a tested asset-preparation boundary.
+
+For the LXC Swarm runtime path, the tested asset-preparation boundary is the
+`deployment:service-access-stack-assets` step. It writes freshly generated
+dashboard HTML to the remote stack root path used by the compose config; the
+committed static dashboard remains package and review material.
+
+The dashboard is a generated management table with `Service`, `URL`, `User`
+and `Password` columns. Service entries use central route paths and Infisical
+item references from the effective access model. Password values remain
+visible only through the configured secret-management surface.
+
+Current live verification note:
+
+* The routed `https://service-access.tsw.local` dashboard route requires a
+  fresh provider-specific service-access stack deployment, hostname
+  resolution, certificate trust, and explicit live browser evidence before it
+  is claimed as live-verified.
+
+== Verification
+
+Useful checks after deployment:
+
+[source,bash]
+----
+incus list swarm-manager --format json
+docker node ls
+docker stack ls
+docker service ls
+----
+
+Use `incus` commands for provider-node diagnostics.
+
+Service-specific web interfaces depend on the published stack ports. Typical local defaults are documented in `documentation/handbook/04-operations/Howto.adoc`.
+
+Optional live smoke validation is separate from the development quality gate
+and should be run only on a disposable or recoverable local Swarm target:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+----
+
+When prompted, answer `y` only if the operator intentionally accepts local
+Incus/LXC provider state, Docker Swarm,
+networking, service bootstrap, image, and stack changes. A live smoke result
+is evidence for that local run only and must not be treated as the default
+repository quality gate.
+
+== Operational caution
+
+The guided setup workflow can create or modify provider nodes, Docker
+configuration, Swarm state, network settings, and service credentials. Review
+the live-operation surface catalog and environment values before running it
+against an existing local environment.
+
+Removed legacy helper areas remain documented as unsupported historical surfaces
+until a dedicated cleanup slice verifies replacement parity. Do not add,
+restore, or promote any direct live-operation script without updating
+`documentation/handbook/04-operations/system/live-operation-surfaces.adoc`, tests, and rollback notes.

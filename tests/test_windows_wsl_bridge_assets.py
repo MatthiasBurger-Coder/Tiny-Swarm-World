@@ -15,8 +15,8 @@ BRIDGE_SERVICE_RUNNER = REPOSITORY_ROOT / "bootstrap" / "windows" / "tws-wsl-bri
 BRIDGE_PESTER_TESTS = REPOSITORY_ROOT / "tests" / "windows" / "tws-wsl-bridge.Tests.ps1"
 BRIDGE_GUIDE = REPOSITORY_ROOT / "bootstrap" / "windows" / "README.windows-wsl-bridge.md"
 BRIDGE_CONFIG = REPOSITORY_ROOT / "bootstrap" / "windows" / "tws-wsl-bridge.config.json"
-NETWORK_GUIDE = REPOSITORY_ROOT / "documentation" / "system" / "network.adoc"
-INSTALLATION_GUIDE = REPOSITORY_ROOT / "documentation" / "user_guide" / "installation.adoc"
+NETWORK_GUIDE = REPOSITORY_ROOT / "documentation/handbook/04-operations/system" / "network.adoc"
+INSTALLATION_GUIDE = REPOSITORY_ROOT / "documentation/handbook/03-user-guide/user_guide" / "installation.adoc"
 WINDOWS_POWERSHELL = Path(
     "/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe"
 )

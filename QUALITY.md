@@ -7,7 +7,7 @@ authoritative source for verification commands used by workflow, agent, commit,
 and push procedures.
 
 The canonical state and applicability policy is
-[`documentation/process/verification-state-policy.md`](documentation/process/verification-state-policy.md).
+[`documentation/handbook/05-development/process/verification-state-policy.md`](documentation/handbook/05-development/process/verification-state-policy.md).
 It defines how local, live, browser, installation, and external quality-gate
 results are classified. A quality command passing locally does not imply live
 or external success.

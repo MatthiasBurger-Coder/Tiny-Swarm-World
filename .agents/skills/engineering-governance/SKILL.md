@@ -18,11 +18,11 @@ Inspect the relevant subset of:
 - user request
 - `AGENTS.md`
 - `QUALITY.md`
-- `documentation/process/issue-completion-discipline.md`
-- `documentation/epics`
-- `documentation/arc42`
+- `documentation/handbook/05-development/process/issue-completion-discipline.md`
+- `documentation/handbook/01-product/epics`
+- `documentation/handbook/02-architecture/arc42`
 - `documentation/adr`
-- `documentation/workflow`
+- `documentation/handbook/05-development/workflow`
 - `.agents/skills`
 - `.agents/roles`
 - `.agents/orchestrator`
@@ -48,7 +48,7 @@ EPIC
   <-> requirements
   <-> arc42
   <-> ADR references
-  <-> documentation/workflow
+  <-> documentation/handbook/05-development/workflow
   <-> skills
   <-> roles
   <-> QUALITY.md
@@ -98,11 +98,11 @@ Require:
 
 ### Workflow Consistency
 
-- Dedicated workflow branch created, checked out and verified before any workflow artifact is created or modified: `workflow.md`, `documentation/workflow/**`, workplans, slice definitions, workflow-specific documentation changes, implementation tasks or write-capable agent assignments.
+- Dedicated workflow branch created, checked out and verified before any workflow artifact is created or modified: `workflow.md`, `documentation/handbook/05-development/workflow/**`, workplans, slice definitions, workflow-specific documentation changes, implementation tasks or write-capable agent assignments.
 - Working tree checked before branch creation; unrelated or unclear uncommitted changes stop workflow creation.
 - Detached or unclear branch state and unresolved local or remote branch-name collisions stop workflow creation.
 - No workflow creation or implementation work runs on `main`, `master`, `develop` or another shared branch.
-- `documentation/workflow` deleted before new workflow generation, unless the user explicitly asks to preserve an existing workflow.
+- `documentation/handbook/05-development/workflow` deleted before new workflow generation, unless the user explicitly asks to preserve an existing workflow.
 - Full workflow structure regenerated.
 - No stale slices remain.
 - Dependencies, parallelization, stop conditions and verification commands are explicit.
@@ -129,7 +129,7 @@ Require:
 
 ### Issue Completion Consistency
 
-- `documentation/process/issue-completion-discipline.md` reviewed for
+- `documentation/handbook/05-development/process/issue-completion-discipline.md` reviewed for
   issue-driven work.
 - Requirement matrix exists before implementation.
 - Every requirement maps to implementation evidence and verification evidence.

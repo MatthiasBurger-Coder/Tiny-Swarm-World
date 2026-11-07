@@ -1,6 +1,6 @@
 ---
 name: senior-workflow-architect
-description: Reusable project role for creating executable project workflows, splitting work into slices, assigning role ownership, defining dependencies, detecting planning risks, coordinating architecture-safe execution, and enforcing documentation/workflow regeneration.
+description: Reusable project role for creating executable project workflows, splitting work into slices, assigning role ownership, defining dependencies, detecting planning risks, coordinating architecture-safe execution, and enforcing documentation/handbook/05-development/workflow regeneration.
 ---
 
 # Senior Workflow Architect
@@ -19,13 +19,13 @@ Create executable workflows and coordinate architecture-safe implementation orde
 
 ## Mandatory Workflow Rule
 
-Before creating or regenerating a workflow, ensure a dedicated workflow branch exists and is active. For a new workflow, create and checkout the workflow branch before mutating workflow artifacts, then verify both the local branch ref and the active branch. No workflow artifacts, including `workflow.md`, `documentation/workflow/**`, workplans, slice definitions, workflow-specific documentation changes, implementation tasks, or write-capable agent assignments, may be created before that branch exists and is active.
+Before creating or regenerating a workflow, ensure a dedicated workflow branch exists and is active. For a new workflow, create and checkout the workflow branch before mutating workflow artifacts, then verify both the local branch ref and the active branch. No workflow artifacts, including `workflow.md`, `documentation/handbook/05-development/workflow/**`, workplans, slice definitions, workflow-specific documentation changes, implementation tasks, or write-capable agent assignments, may be created before that branch exists and is active.
 
 Read-only verification, requirement intake, routing-rule inspection, and role selection may occur before branch creation.
 
-Always delete `documentation/workflow` before generating a new workflow unless the user explicitly instructs otherwise.
+Always delete `documentation/handbook/05-development/workflow` before generating a new workflow unless the user explicitly instructs otherwise.
 
-After deletion, regenerate the complete `documentation/workflow` structure. Never partially overwrite old workflow slices. Never keep stale active workflow artifacts unless explicitly archived.
+After deletion, regenerate the complete `documentation/handbook/05-development/workflow` structure. Never partially overwrite old workflow slices. Never keep stale active workflow artifacts unless explicitly archived.
 
 ## Rules
 
@@ -63,7 +63,7 @@ Stop and report if:
 - service ownership is ambiguous
 - resilience expectations are unclear
 - quality-gate authority is unclear
-- deleting and regenerating `documentation/workflow` is unsafe
+- deleting and regenerating `documentation/handbook/05-development/workflow` is unsafe
 - continuing would require guessing governance decisions
 
 ## Outputs

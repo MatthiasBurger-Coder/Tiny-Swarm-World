@@ -6,7 +6,7 @@ Read-only verification, requirement intake, routing-rule inspection and role sel
 
 ## Requirement Clarification Loop
 
-Before authoring or regenerating `documentation/workflow/workflow.md`, run the requirement clarification loop from `documentation/process/workflow-create.md` and `.agents/skills/three-amigos-requirement-gatekeeper/SKILL.md`.
+Before authoring or regenerating `documentation/handbook/05-development/workflow/workflow.md`, run the requirement clarification loop from `documentation/handbook/05-development/process/workflow-create.md` and `.agents/skills/three-amigos-requirement-gatekeeper/SKILL.md`.
 
 Record:
 
@@ -101,7 +101,7 @@ git branch --show-current
     merge, remote branch deletion or local cleanup unless the user explicitly
     confirms a workflow-documentation-only PR merge after the
     workflow-create guard is reported.
-22. Validate that `documentation/workflow/workflow.md` and checked or updated `documentation/arc42/**` documentation exist before releasing `workflow execute`.
+22. Validate that `documentation/handbook/05-development/workflow/workflow.md` and checked or updated `documentation/handbook/02-architecture/arc42/**` documentation exist before releasing `workflow execute`.
 
 For microservice migration workflows, record the Three Amigos decision before
 workflow authoring continues. The decision must include scope, non-scope,
@@ -136,7 +136,7 @@ Stop when:
 - workflow rules conflict and cannot be resolved from repository sources;
 - creating or modifying workflow artifacts would happen on `main`, `master`, `develop`, or another shared branch.
 - blocking requirement questions remain;
-- `documentation/workflow/workflow.md` cannot be validated;
+- `documentation/handbook/05-development/workflow/workflow.md` cannot be validated;
 - arc42 documentation cannot be checked or updated.
 
 Use this stop report:

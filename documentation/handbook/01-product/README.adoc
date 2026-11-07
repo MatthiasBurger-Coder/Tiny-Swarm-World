@@ -1,0 +1,34 @@
+= Product foundations and delivery contracts
+
+ifndef::handbook-root[]
+:handbook-root: ../../
+endif::[]
+
+link:{handbook-root}README.adoc[Product Handbook] / Part 1
+
+Product purpose and requirement baselines are introduced in
+link:{handbook-root}handbook/02-architecture/arc42/01_introduction.adoc[Introduction and goals].
+Delivery contracts define the expected bootstrap, lifecycle, installation
+manifest and service-selection boundaries. Their requirements do not imply
+that every capability has been implemented or qualified.
+
+Start with link:{handbook-root}handbook/01-product/contracts/bootstrap.md[the bootstrap contract]
+and link:{handbook-root}handbook/01-product/contracts/lifecycle.md[the lifecycle contract].
+Architecture-owned requirement baselines remain indexed in Part 2; their
+references here do not create a second source of truth.
+
+== Source catalogue
+
+Each source below has this part as its primary handbook assignment.
+Cross-references from other parts do not change that ownership.
+
+=== contracts
+
+* link:{handbook-root}handbook/01-product/contracts/bootstrap.md[bootstrap.md]
+* link:{handbook-root}handbook/01-product/contracts/installation-manifest.md[installation-manifest.md]
+* link:{handbook-root}handbook/01-product/contracts/lifecycle.md[lifecycle.md]
+* link:{handbook-root}handbook/01-product/contracts/service-selection.md[service-selection.md]
+
+=== epics
+
+* link:{handbook-root}handbook/01-product/epics/sonarcloud-remediation.md[sonarcloud-remediation.md]

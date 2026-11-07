@@ -42,13 +42,13 @@ ALLOWED_APPLICATION_SERVICE_DIRECTORIES = {
 }
 REQUIRED_ARCHITECTURE_DOCUMENTS = {
     "responsibility-separation-analysis.md": (
-        DOCUMENTATION_ROOT / "arc42" / "05_analysis" / "responsibility-separation-analysis.md"
+        DOCUMENTATION_ROOT / "handbook/02-architecture/arc42" / "05_analysis" / "responsibility-separation-analysis.md"
     ),
     "adr-separate-platform-artifacts-deployment.adoc": (
-        DOCUMENTATION_ROOT / "arc42" / "09_decisions" / "adr-separate-platform-artifacts-deployment.adoc"
+        DOCUMENTATION_ROOT / "handbook/02-architecture/arc42" / "09_decisions" / "adr-separate-platform-artifacts-deployment.adoc"
     ),
-    "migration-plan.md": DOCUMENTATION_ROOT / "arc42" / "11_migration" / "migration-plan.md",
-    "agent-split-plan.md": DOCUMENTATION_ROOT / "process" / "agent-plans" / "agent-split-plan.md",
+    "migration-plan.md": DOCUMENTATION_ROOT / "handbook/02-architecture/arc42" / "11_migration" / "migration-plan.md",
+    "agent-split-plan.md": DOCUMENTATION_ROOT / "handbook/05-development/process" / "agent-plans" / "agent-split-plan.md",
 }
 KNOWN_MIXED_BOUNDARY_FILES = (
     "src/tiny_swarm_world/application/services/nexus/bootstrap_nexus.py",

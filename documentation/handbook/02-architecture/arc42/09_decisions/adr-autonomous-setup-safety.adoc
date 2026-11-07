@@ -1,0 +1,209 @@
+= ADR: Autonomous Setup Safety Contract
+
+*Date:* 2026-05-24
+*Status:* Accepted as setup-safety contract; fail-closed orchestration implemented
+*Decision makers:* Tiny Swarm World architecture governance; original named
+decision makers were not recorded in this ADR.
+
+== Implementation Status
+
+Slice 01 of the autonomous runnable setup workflow established the requirement
+baseline in `documentation/handbook/02-architecture/arc42/01_introduction/autonomous-runnable-setup.md`.
+
+This ADR accepts the safety contract that implementation slices must preserve.
+Slice 09 implemented the canonical `setup run` command as a fail-closed,
+live-consent-gated orchestration over setup phases. Current Platform,
+Artifacts, and Deployment behavior remains fail-closed where verification,
+bootstrap, publication, registry, or service-readiness contracts are missing.
+This ADR does not claim that full live runnable installation is verified.
+The later
+`documentation/handbook/02-architecture/arc42/09_decisions/adr-explicit-non-interactive-live-consent.adoc`
+amends only the non-interactive consent scope while retaining this ADR's
+fail-closed safety rules.
+The later
+`documentation/handbook/02-architecture/arc42/09_decisions/adr-dedicated-wsl2-host-platform-boundary.adoc`
+adds one narrowly protected local-installation-evidence exception for the
+resolved project path and its filesystem decision; all other path and evidence
+restrictions below remain active.
+Issue #218 FR-2 implements that exception and the preceding fail-closed
+filesystem gate. Static and live preflight, platform init, setup, and the
+installer now stop after host classification when the repository filesystem is
+blocked. Only an applied explicit WSL Windows-filesystem exception writes the
+protected XDG document; later live readiness and consent rules remain
+unchanged.
+
+== Context
+
+Tiny Swarm World should provide one canonical setup path that can install a
+local Linux/WSL Docker Swarm-first environment into a runnable state after
+explicit operator consent.
+
+The setup can affect local managed nodes, networking, Docker Engine, Docker
+Swarm, Portainer, Nexus, Jenkins, Apache Pulsar, SonarQube, Swagger/NGINX,
+image build and push behavior, service stacks, credentials, and local evidence
+files. These are live infrastructure surfaces and must not be changed silently.
+
+The repository already has these constraints:
+
+* Tiny Swarm World is Linux/WSL-only and Docker Swarm-first.
+* Python automation is the architecture driver.
+* Platform, Artifacts, Deployment, Shared, and Console/status UI are
+  in-process responsibility boundaries, not microservices.
+* `src/tiny_swarm_world/infrastructure/composition.py` remains the composition
+  root.
+* Default quality gates must not run live infrastructure commands.
+* Former direct setup scripts and host-side orchestration scripts are removed
+  from the repository. Reintroducing any direct helper surface remains outside
+  the canonical workflow until it is migrated behind ports, adapters, tests,
+  and consent controls.
+
+== Decision
+
+Autonomous setup is accepted only as a consent-gated, fail-closed orchestration
+contract over the existing in-process responsibility boundaries.
+
+The canonical setup path must preserve these rules:
+
+* Mutating setup execution requires the current live-consent signals until a
+  later ADR changes that contract:
+** `--live`
+** `y` at the short interactive live-infrastructure confirmation prompt
+* Missing live consent must be refused before Incus, LXC container
+  lifecycle, Docker Swarm, netplan, socat, compose, Portainer, Nexus, Jenkins,
+  Apache Pulsar, SonarQube, Swagger/NGINX, image build, image push, stack
+  upload, service bootstrap, or removed-provider commands can run.
+* After live consent is accepted, host-runtime readiness checks may run
+  non-mutating probes. Incus readiness must distinguish executable
+  presence from daemon, socket, permission, backend selection, and profile
+  usability before mutating setup phases start. Removed provider selections
+  such as `multipass_legacy` must fail closed instead of probing a legacy
+  provider.
+* Direct `platform init --live` and setup-driven `platform init` must use the
+  same application-level live-readiness guard before managed node creation,
+  networking, Docker installation, or Swarm initialization steps run.
+* Non-interactive live setup is out of scope until a later ADR defines a
+  separate consent model.
+* Automatic host package installation is out of scope until a later ADR defines
+  package ownership, rollback, permissions, and operator consent.
+* The setup orchestrator must use Platform, Artifacts, Deployment, Shared, and
+  Console/status UI contracts. It must not create a new service boundary or
+  move concrete infrastructure adapters into application services.
+* Direct scripts must not become the canonical setup path unless a later slice
+  wraps the behavior behind ports, adapters, tests, verification, and consent
+  controls.
+* Verification evidence must be redacted, summary-oriented, and stored only
+  under ignored local state such as `.tiny-swarm-world/evidence/...`.
+* Raw command strings, stdout, stderr, environment payloads, tokens, passwords,
+  Swarm join tokens, local IP addresses, gateways, user names, and host-specific
+  absolute paths must not be persisted in committed files or general evidence
+  bundles. The sole exception is the normalized resolved `project_path` plus
+  filesystem classification and explicit override decision in the allowlisted,
+  ignored, atomically written, owner-only installation-evidence document
+  governed by the dedicated WSL2 host-platform ADR.
+* Full runnable success and resource-gated success must remain distinct.
+  Hosts below the approved full-run resource contract must not be reported as a
+  full pass.
+* Optional live smoke validation remains a separate explicit operator action,
+  not part of the default quality gate.
+
+== Considered Options
+
+=== Silent host mutation
+
+*Pros:*
+
+* would reduce setup interaction.
+
+*Cons:*
+
+Rejected because Tiny Swarm World setup can change local infrastructure,
+networking, credentials, and service state. Silent mutation would contradict
+the current live-operation safety model.
+
+=== Non-interactive consent by default
+
+*Pros:*
+
+* would support unattended setup runs.
+
+*Cons:*
+
+Rejected for this workflow. Non-interactive execution needs a separate
+architecture decision that defines the trust boundary, credentials source,
+operator approval semantics, and audit evidence.
+
+=== Automatic host package installation
+
+*Pros:*
+
+* would make missing host prerequisites easier to remediate.
+
+*Cons:*
+
+Rejected for this workflow. Installing host packages changes the operator's
+machine outside the repository and needs a separate decision covering
+permissions, rollback, and supported distributions.
+
+=== Direct scripts as canonical installer
+
+*Pros:*
+
+* would reuse a familiar script-based setup style.
+
+*Cons:*
+
+Rejected because direct scripts bypass the hexagonal ports/adapters,
+verification, redaction, and CLI consent contracts that the Python automation
+must enforce.
+
+== Consequences
+
+Later implementation slices must keep preflight non-mutating until live consent
+is present and must fail closed when required verification contracts are
+missing.
+
+Live preflight may use read-only runtime probes after consent. These probes are
+allowed to classify Incus host prerequisites, but they must not repair the
+host, change drivers, start services, create nodes, probe removed providers, or
+persist raw command payloads.
+
+Platform init owns an additional pre-apply guard using the same live preflight
+contract. This preserves setup phase reporting while also protecting direct
+platform workflow execution from bypassing host-readiness checks.
+
+Setup orchestration can be added only through the Python automation
+composition root and application services. Entry-point code must remain thin:
+parse operator intent, enforce consent, compose services, and delegate.
+
+Service readiness must be based on observed-state contracts, test-backed
+verification, or explicitly approved live smoke evidence. Documentation must
+not describe planned setup behavior as implemented behavior.
+
+Default development verification remains mocked or static and may not create
+nodes, change networking, initialize Docker Swarm, deploy compose stacks,
+contact Portainer or Nexus, run service bootstraps, build images, or push
+images.
+
+== Risks And Follow-Up
+
+The accepted safety contract increases implementation work because every live
+phase needs preflight, consent, apply/verify behavior, redacted evidence, and
+operator-facing blocked or failed states.
+
+Future ADRs are required before changing these areas:
+
+* automatic host package installation;
+* non-interactive live setup consent;
+* direct script promotion or removal as canonical setup behavior;
+* a material change to evidence semantics or credential storage;
+* a material change to the default service set or full-run resource contract.
+
+== References
+
+* Affects: `documentation/handbook/02-architecture/arc42/04_context_and_scope.adoc`
+* Affects: `documentation/handbook/02-architecture/arc42/05_building_blocks.adoc`
+* Affects: `documentation/handbook/02-architecture/arc42/06_runtime_view.adoc`
+* Affects: `documentation/handbook/02-architecture/arc42/07_deployment_view.adoc`
+* Affects: `documentation/handbook/02-architecture/arc42/08_concepts.adoc`
+* Related code: `src/tiny_swarm_world/application/services/setup`
+* Related code: `src/tiny_swarm_world/infrastructure/composition.py`

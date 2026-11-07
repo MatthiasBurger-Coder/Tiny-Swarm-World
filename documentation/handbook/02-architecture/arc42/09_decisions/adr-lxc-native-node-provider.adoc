@@ -1,0 +1,222 @@
+= ADR: LXC Native Node Provider
+
+*Date:* 2026-05-26
+*Status:* Accepted as LXD/Incus provider direction; partially implemented;
+superseded for Multipass compatibility by
+`adr-retire-multipass-legacy-provider.adoc`
+*Decision makers:* Tiny Swarm World architecture governance; original named
+decision makers were not recorded in this ADR.
+
+== Implementation Status
+
+This ADR records the provider direction for the LXC-native node provider
+migration workflow. The implementation now selects `lxc_native` by default,
+uses managed LXC through Incus, models provider configuration and
+profile requirements, checks provider readiness, wires LXC-native lifecycle
+adapters into setup/platform init, installs or verifies Docker Engine inside
+the managed LXC nodes through provider-selected adapters, bootstraps or
+verifies the Docker Swarm manager and workers. Multipass compatibility was
+removed by the later accepted decision in
+`documentation/handbook/02-architecture/arc42/09_decisions/adr-retire-multipass-legacy-provider.adoc`.
+
+This ADR does not claim full live success. Docker Swarm inside Incus
+containers and WSL2 remain unverified until target-specific live smoke
+evidence exists. Provider-native artifact publication, provider-native
+deployment, and end-to-end service readiness remain incomplete or blocked.
+
+== Context
+
+Tiny Swarm World has been a Linux/WSL-only, Docker Swarm-first Python
+automation project whose platform substrate was historically described and
+wired around Multipass virtual machines.
+
+The accepted product direction changes the default node provider target:
+
+* LXC-native through Incus is the default provider path.
+* Raw low-level LXC command automation is not the first implementation path.
+* Multipass stops being a supported node provider.
+
+The external source baseline for WSL, Incus, Docker-in-container, and LXC
+security assumptions is recorded in
+`documentation/handbook/05-development/workflow/reports/03-external-wsl-provider-sources.md`. That
+report is planning evidence only; it is not live proof that WSL2, Incus,
+Docker-in-container, or Docker Swarm-in-container works in this repository.
+
+The existing autonomous setup safety contract remains active. Mutating setup
+still requires live consent and must fail closed before host mutation when
+provider readiness, profile requirements, credentials, resources, or
+verification contracts are absent.
+
+== Decision
+
+Tiny Swarm World accepts `lxc_native` as the default provider family.
+The first LXC-native implementation must use managed LXC through Incus.
+It must not automate raw `lxc-*` lifecycle commands as the default provider
+surface.
+
+Provider selection must follow these target rules:
+
+* an explicit configured backend wins;
+* exactly one usable managed backend may be selected automatically;
+* no usable backend blocks before mutation;
+* multiple usable backends without explicit preference blocks with
+  remediation guidance;
+* removed provider selections, including `multipass_legacy`, fail closed;
+* failure of the LXC-native path must not silently fall back to another
+  provider.
+
+The default static and mocked quality gates must not run live Incus,
+Multipass, Docker Swarm, compose, netplan, `socat`, bridge, firewall, or
+service bootstrap commands.
+
+Native Linux is the first intended live LXC-native target. WSL2 remains in
+scope as a capability-gated Linux/WSL path. WSL1 is unsupported for this
+provider direction. WSL2 success must be validated from an actual WSL2
+environment and must not be inferred from native Linux, sandbox, static tests,
+or external documentation.
+
+Docker Swarm remains the runtime target. Docker-in-container profile
+requirements for Incus containers must be explicit, validated before
+node creation where possible, and risk-labeled. Privileged containers, broad
+host mounts, daemon repairs, package installation, group membership changes,
+bridge changes, firewall changes, or non-interactive live consent must not
+become silent defaults. Material changes in those areas require explicit
+operator consent and, where they alter the safety contract, a later ADR.
+
+The provider migration must preserve the hexagonal architecture:
+
+* domain code owns provider-neutral concepts and imports no infrastructure;
+* application services orchestrate ports and domain objects;
+* Incus, Docker, socket, filesystem, subprocess, profile, and
+  host-network details remain in infrastructure adapters;
+* `src/tiny_swarm_world/infrastructure/composition.py` remains the concrete
+  wiring root;
+* `src/tiny_swarm_world/__main__.py` remains a thin entry point.
+
+== Considered Options
+
+=== Continue repairing Multipass as the primary path
+
+*Pros:*
+
+* would preserve the earlier provider model.
+
+*Cons:*
+
+Rejected because the accepted product direction changes the provider target to
+managed LXC through Incus. Multipass compatibility has since been
+retired by `adr-retire-multipass-legacy-provider.adoc`.
+
+=== Raw LXC-only default provider
+
+*Pros:*
+
+* would avoid depending on the Incus management layer.
+
+*Cons:*
+
+Rejected for the first implementation because raw low-level LXC commands would
+expose container lifecycle, profile, and host isolation details directly to the
+automation surface. Incus provides the managed control layer required
+for a safer first provider implementation.
+
+=== Silent fallback to Multipass
+
+*Pros:*
+
+* would hide some provider-readiness failures from operators.
+
+*Cons:*
+
+Rejected because it would hide LXD/Incus readiness failures and could make the
+operator believe the default provider succeeded when a legacy path was used
+instead.
+
+=== Automatic host repair or package installation
+
+*Pros:*
+
+* would reduce manual remediation for missing host prerequisites.
+
+*Cons:*
+
+Rejected for this ADR. Installing packages, repairing daemons, changing
+permissions, altering bridges or firewall state, and changing provider
+profiles are host mutations that need explicit operator control and may need
+later ADR coverage.
+
+=== Privileged container profile as a silent default
+
+*Pros:*
+
+* could make Docker-in-container setup easier on some hosts.
+
+*Cons:*
+
+Rejected because Docker-in-container choices are security-sensitive. Any
+privileged or broad host-access profile must be explicit, risk-labeled, and
+approved before use.
+
+== Consequences
+
+Completed implementation slices have introduced provider-neutral node and
+readiness concepts, Incus readiness checks, provider configuration,
+provider lifecycle adapters, setup/platform init wiring, provider-selected
+Docker Engine setup and Swarm bootstrap inside managed LXC nodes, and
+fail-closed rejection for removed provider selections.
+
+The ADR, EPIC, and arc42 documentation may describe LXC-native through
+Incus as the implemented default selection and setup/platform init
+direction. They must continue to describe artifact publication, deployment,
+Docker Swarm-in-container live health, and WSL2 live success as blocked or
+unverified until later slices provide evidence.
+
+Provider readiness checks must be non-mutating by default, timeout-bound,
+sanitized, and able to distinguish missing executable, missing daemon access,
+permission or group issues, unsupported WSL version, missing systemd,
+ambiguous backend selection, missing Docker-in-container profile support, and
+other blocked states without persisting raw command output.
+
+Multipass code, command configuration, and current operator documentation are
+not a supported compatibility surface. `multipass_legacy` must be rejected
+rather than selected automatically or manually.
+
+Optional live smoke evidence must be separated by target:
+
+* native Linux LXC-native;
+* WSL2 LXC-native.
+
+Evidence from one target must not be reported as proof for another target.
+
+== Risks And Follow-Up
+
+Docker Swarm inside Incus containers can require nesting, cgroup,
+AppArmor, seccomp, capability, and profile choices that need security and
+DevOps review before mutating setup can use them.
+
+WSL2 provider behavior can differ from native Linux. The workflow must keep
+WSL2 capability gates and live evidence separate from native Linux evidence.
+
+Some legacy code and documentation still use VM and Multipass terms. Later
+slices must migrate those names in small, test-backed steps without hiding
+planned behavior as implemented behavior.
+
+Future ADRs are required before changing these areas:
+
+* automatic host package installation or daemon repair;
+* non-interactive live setup consent;
+* privileged container profiles as defaults;
+* host bridge, firewall, or broad mount mutation as default behavior;
+* reintroducing any alternate node provider compatibility path.
+
+== References
+
+* Affects: `documentation/handbook/02-architecture/arc42/02_constraints.adoc`
+* Affects: `documentation/handbook/02-architecture/arc42/04_context_and_scope.adoc`
+* Affects: `documentation/handbook/02-architecture/arc42/06_runtime_view.adoc`
+* Affects: `documentation/handbook/02-architecture/arc42/07_deployment_view.adoc`
+* Affects: `documentation/handbook/02-architecture/arc42/08_concepts.adoc`
+* Related concept: managed LXC through Incus.
+* Related code: `src/tiny_swarm_world/domain`
+* Related code: `src/tiny_swarm_world/application/services/platform`
+* Related code: `src/tiny_swarm_world/infrastructure/adapters`

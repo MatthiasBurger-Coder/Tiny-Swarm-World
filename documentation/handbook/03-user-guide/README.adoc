@@ -1,0 +1,36 @@
+= User guide
+
+ifndef::handbook-root[]
+:handbook-root: ../../
+endif::[]
+
+link:{handbook-root}README.adoc[Product Handbook] / Part 3
+
+Use link:{handbook-root}handbook/03-user-guide/user_guide/installation.adoc[Installation],
+link:{handbook-root}handbook/03-user-guide/user_guide/usage.adoc[Usage] and
+link:{handbook-root}handbook/03-user-guide/user_guide/troubleshooting.adoc[Troubleshooting] for
+operator procedures. Additional guides cover host preparation, service
+selection, component updates, product upgrades and migrations.
+
+These source pages own the procedures and their consent, recovery and
+qualification boundaries. The continuous handbook includes the three main
+guides from those same sources; reference pages remain linked.
+
+== Source catalogue
+
+Each source below has this part as its primary handbook assignment.
+Cross-references from other parts do not change that ownership.
+
+=== user_guide
+
+* link:{handbook-root}handbook/03-user-guide/user_guide/component-updates.md[component-updates.md]
+* link:{handbook-root}handbook/03-user-guide/user_guide/installation.adoc[installation.adoc]
+* link:{handbook-root}handbook/03-user-guide/user_guide/installer-console-output.md[installer-console-output.md]
+* link:{handbook-root}handbook/03-user-guide/user_guide/jenkins-home-migration.md[jenkins-home-migration.md]
+* link:{handbook-root}handbook/03-user-guide/user_guide/manual-host-steps.md[manual-host-steps.md]
+* link:{handbook-root}handbook/03-user-guide/user_guide/network-preparation.md[network-preparation.md]
+* link:{handbook-root}handbook/03-user-guide/user_guide/product-upgrades.md[product-upgrades.md]
+* link:{handbook-root}handbook/03-user-guide/user_guide/selective-setup.md[selective-setup.md]
+* link:{handbook-root}handbook/03-user-guide/user_guide/troubleshooting.adoc[troubleshooting.adoc]
+* link:{handbook-root}handbook/03-user-guide/user_guide/usage.adoc[usage.adoc]
+* link:{handbook-root}handbook/03-user-guide/user_guide/windows-preparation.md[windows-preparation.md]

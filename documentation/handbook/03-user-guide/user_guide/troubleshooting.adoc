@@ -1,0 +1,899 @@
+= Troubleshooting
+
+ifndef::user-guide-prefix[]
+:user-guide-prefix:
+endif::[]
+ifndef::user-reference-prefix[]
+:user-reference-prefix: ../../../
+endif::[]
+
+[[first-response]]
+== First Response For Operators
+
+Start in the repository root with the same Python environment, service profile
+and configuration used by the failing run. Preserve its evidence directory.
+
+. Read the first failed phase and the printed evidence path.
+. For CA trust, login/group refresh and scoped restart prerequisites, use the
+  link:{user-guide-prefix}manual-host-steps.md[manual host checklist].
+. Inspect `setup-run.exit` in the printed installation evidence directory.
+  Only for a WSL2 run explicitly requested with `--confirm-reset`, inspect
+  `reset-run.exit` first; if reset failed, setup did not start.
+  Ordinary installation reconciles existing state without a reset phase.
+. Run static diagnostics after runtime dependencies are available:
++
+[source,bash]
+----
+source .venv/bin/activate
+python3 bootstrap/linux/install_debugger.py
+tiny-swarm-world --preflight
+----
+. For an installed environment, use `platform verify` before selecting a
+  repair. It does not modify the platform.
+. Correct the named cause and choose the operation in
+  link:{user-guide-prefix}usage.adoc#daily-operation[Daily operation]. On native
+  Ubuntu 24.04 or 26.04, run `./bootstrap/linux/prepare_linux.sh --preflight` for missing host packages
+  before retrying the non-destructive installer. On WSL2, inspect a fresh plan
+  before retrying; ordinary `install.sh` reconciles existing state, while
+  `--confirm-reset` separately requests the deprecated destructive reset.
+
+[options="header"]
+|===
+| What you see | Next check
+| `windows-wsl-bridge` / `state_invalid`, followed by an exact-state ACL error during bridge installation | Follow <<windows-wsl-bridge-acl,Windows bridge ACL recovery>> and inspect for a leftover state backup.
+| `ModuleNotFoundError` or missing CLI | On native Ubuntu, rerun `bootstrap/linux/prepare_linux.sh` to prepare the checkout-local Python environment; for development, activate `.venv` as described in link:{user-guide-prefix}installation.adoc#_python_environment[Python Environment]. Do not reset the platform.
+| Override permission error | Verify file ownership, `0600` file and `0700` parent on a Linux-native filesystem; see link:{user-guide-prefix}installation.adoc#operator-credential-overrides[optional overrides].
+| No password file after installation | Normal for the default path. Use the link:{user-reference-prefix}handbook/02-architecture/arc42/08_configuration/internal-test-credential-catalog.md[credential catalog].
+| Login page responds but login fails | Check the effective service identity and credential source; HTTP 200 is not authentication.
+| DNS, connection or certificate error | Diagnose name resolution, forwarding and TLS separately from credentials.
+| Missing `--update` option | This revision has no supported update command; see https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/297[#297].
+|===
+
+Before reporting a problem, record the commit (`git rev-parse HEAD`), host
+type, selected profile, failed phase, exit code and redacted error summary.
+Inspect logs privately and remove credentials, tokens, cookies, private keys
+and sensitive command output before sharing. A printed log path is not a
+redaction guarantee.
+
+If the installation evidence directory is no longer visible in your terminal,
+locate candidate evidence files under the configured root:
+
+[source,bash]
+----
+TSW_INSTALL_EVIDENCE_ROOT="${TSW_LIVE_EVIDENCE_ROOT:-${XDG_STATE_HOME:-$HOME/.local/state}/tiny-swarm-world/evidence/installation-tests}"
+find "$TSW_INSTALL_EVIDENCE_ROOT" -maxdepth 3 -type f \
+  \( -name 'context.txt' -o -name 'reset-run.exit' -o -name 'setup-run.exit' \) \
+  -print
+----
+
+Select the run matching the failing installation; timestamps alone are not
+proof that the logs describe the current environment.
+
+The detailed sections below cover individual failures. Development quality
+tools are needed only when running the corresponding developer checks.
+
+[[windows-wsl-bridge-acl]]
+== Windows Bridge Installation Fails With An Exact-State ACL Error
+
+This procedure covers the following sequence:
+
+. In WSL, `./install.sh --allow-wsl-windows-filesystem` stops at
+  `windows-wsl-bridge`, reports `Reason: state_invalid`, and lists missing
+  bridge ports.
+. In elevated Windows PowerShell, `-Action install` reports
+  `PREREQUISITE OK` for all prerequisites, including WSL2, systemd, and IPv4.
+. Bridge installation then stops with:
+
+[source,text]
+----
+The Windows bridge service ACL did not reach the required exact state.
+----
+
+The final service-tree check rejects unexpected files as well as incorrect
+access permissions. A leftover `.bridge-state.json.<id>.bak` backup in
+`%ProgramData%\TinySwarmWorld\WslBridge` is one confirmed trigger. The bridge
+creates these backups when atomically replacing its state file and normally
+removes them afterwards. The error alone does not prove that a backup is the
+cause; inspect the directory first.
+
+=== 1. Open Windows PowerShell As Administrator
+
+The application installer runs in WSL, but bridge repair runs on Windows.
+From your WSL terminal, open an elevated Windows PowerShell:
+
+[source,bash]
+----
+powershell.exe -NoProfile -Command "Start-Process powershell.exe -Verb RunAs"
+----
+
+Accept the Windows elevation prompt. Run the following PowerShell commands in
+the *new window*. Adjust the repository path if your checkout is elsewhere:
+
+[source,powershell]
+----
+cd D:\Projects\Tiny-Swarm-World
+Set-ExecutionPolicy -Scope Process Bypass
+$bridgeRoot = Join-Path $env:ProgramData 'TinySwarmWorld\WslBridge'
+Get-Item -LiteralPath (Join-Path $bridgeRoot 'bridge-state.json') -Force
+Get-ChildItem -LiteralPath $bridgeRoot -Force -File -Filter '.bridge-state.json.*.bak' |
+    Select-Object Name, LastWriteTime, Length
+----
+
+Confirm that the regular `bridge-state.json` exists and identify the leftover
+backup from the failed run. Do not remove a backup while another bridge
+installation or state update is in progress. If there is no matching leftover
+backup, or the regular state file is missing, this cleanup procedure does not
+establish the cause; retain the error and directory listing for diagnosis.
+
+=== 2. Delete Only The Confirmed Leftover Backup
+
+The observed failure included the filename below. Replace it with the exact
+filename from your listing if the identifier differs:
+
+[source,powershell]
+----
+$backupName = '.bridge-state.json.4de6f050ea0640bc8a02edc3014855f0.bak'
+Remove-Item -LiteralPath (Join-Path $bridgeRoot $backupName) -Force
+----
+
+This deletes the leftover backup; keep the regular `bridge-state.json`,
+`installation-manifest.json`, service executable, configuration, and bundle.
+Do not use wildcard deletion, delete the whole directory, or loosen its ACLs.
+
+=== 3. Install And Check The Bridge Again
+
+In the same elevated Windows PowerShell window:
+
+[source,powershell]
+----
+.\bootstrap\windows\tws-wsl-bridge.ps1 -Action install
+----
+
+After that command succeeds, check the service and discovery state:
+
+[source,powershell]
+----
+Get-Service -Name TinySwarmWorldWslBridge
+.\bootstrap\windows\tws-wsl-bridge.ps1 -Action discover
+----
+
+Expect the service to be `Running` and discovery to report `READY`. If the
+ACL error persists or the backup reappears, retain the new output and directory
+listing for diagnosis instead of deleting additional files. A TCP `verify`
+can fail before the application services are deployed; it is not the readiness
+check for this pre-installation repair.
+
+=== 4. Return To WSL And Reinspect The Intended Installation
+
+Once the bridge is ready, return to the original WSL terminal:
+
+[source,bash]
+----
+cd ~/Tiny-Swarm-World
+./install.sh --preflight
+----
+
+Use the selected ordinary account's Linux-native checkout. After preparation
+and preflight pass, an ordinary `install.sh` rerun reconciles existing state.
+It does not ask for a platform reset. An existing deployment that only needed
+bridge repair can finish with step 3 and its service checks. Destructive reset
+requires a separate explicit request; never use it merely to retry bridge repair.
+
+== Quality Gate Fails: Missing Tool
+
+If Ruff, mypy, import-linter, or the Requests type stubs are missing, install
+the development tools in the active Python environment:
+
+[source,bash]
+----
+python3 -m pip install -r requirements-dev.txt
+----
+
+Then rerun:
+
+[source,bash]
+----
+python3 tools/linux/quality_gate.py quality
+----
+
+== Import Errors For tiny_swarm_world
+
+Activate the environment and install the runtime package from the repository
+root as described in link:{user-guide-prefix}installation.adoc#_python_environment[Python Environment].
+Verify imports without starting infrastructure:
+
+[source,bash]
+----
+python3 -c 'import tiny_swarm_world; import pydantic; import yaml; import requests'
+----
+
+Source-checkout commands additionally need `PYTHONPATH=src`. The quality gate
+sets that variable itself, but it does not install missing dependencies.
+
+== import-linter Cannot Find Configuration
+
+The architecture lint gate expects `.importlinter` in the repository root.
+Run the gate from the repository root, not from a source or test subdirectory.
+
+== Common Failure Decision Path
+
+Start with the newest evidence directory and the first failed phase. Do not
+repeat a mutating command until the named prerequisite is corrected and live
+consent is still intentional. Use the detailed section named in the table for
+the bounded commands and evidence interpretation.
+
+[options="header"]
+|===
+| Symptom or marker | First bounded action | Detailed source
+
+| `REFUSED_LIVE_CONSENT_MISSING`
+| Add `--live` only when local mutation is intentional; otherwise keep the run static.
+| `REFUSED_LIVE_CONSENT_MISSING` below
+
+| Incus/LXD command unavailable, daemon denied, or profile/storage not ready
+| From the installer shell, run `incus version` and `incus info` without `sudo`, then run static preflight.
+| LXC Native Provider Is Not Ready below
+
+| `managed_nodes_reset_blocked` or `unsafe_instance_config`
+| Inspect the named node/profile markers and guarded settings; never use broad container cleanup.
+| `REFUSED_WORKFLOW_CONFIRMATION_MISSING` below
+
+| `platform init: failed_to_apply` with `apt_repository_unreachable`
+| Run read-only network diagnosis, then configure only LXC-reachable APT mirrors if needed.
+| Docker Installation Fails During Platform Init below
+
+| Occupied ports or `WINDOWS-WSL-BRIDGE`
+| Inspect expected ownership and bridge status; repair only service-owned state with explicit approval.
+| WSL2 Setup Stops At WINDOWS-WSL-BRIDGE below
+
+| Service endpoint unavailable after setup
+| Verify profile, managed-node services, routing ports, and current WSL forwarding; do not infer live success from static configuration.
+| Service Access Is Not Reachable below
+|===
+
+The default quality gate and static preflight do not perform these live recovery
+actions. Never paste secrets, join tokens, or host-specific IPs into shared
+evidence.
+
+== LXC Native Provider Is Not Ready
+
+The default node provider is `lxc_native` through Incus. Check the
+selected backend from the same Linux/WSL shell that will run Tiny Swarm World.
+Incus/LXD is a host prerequisite: Tiny Swarm World does not install or
+initialize it, repair its daemon, create its storage/network/profile state, or
+change host group membership. The current user must run the provider client
+without `sudo` from that same shell. Use the canonical prerequisite checklist
+in `documentation/handbook/03-user-guide/user_guide/installation.adoc` before applying a recovery
+action. If the optional temporary-container smoke is needed, follow the
+bounded sequence in that checklist and delete only its named test container.
+
+Provider preflight allows up to 60 seconds for daemon startup via `admin
+waitready`, plus five seconds for the client to exit. Version and info checks
+retain their five-second timeouts. This accommodates socket activation on a
+cold WSL2 host. A timeout still blocks reset/setup before mutation; inspect
+`systemctl status incus.service incus.socket` if startup does not complete.
+
+For Incus:
+
+[source,bash]
+----
+incus version
+incus info
+----
+
+If the configured backend should be selected explicitly for this run:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend incus --preflight
+----
+
+In WSL, verify that the distribution is WSL2 and that systemd, cgroup, and
+user namespace support are available. WSL1 is not a supported target for the
+default provider.
+
+Provider readiness checks are read-only. They do not install packages, start
+or repair daemons, create profiles, change group membership, or mutate
+provider networking.
+
+== Unsupported Node Provider Selection
+
+The supported node provider is `lxc_native`. If an old command line uses a
+removed provider value, rerun with the default provider or select the Incus
+backend explicitly:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend incus setup run --live
+----
+
+== IntelliJ Run Configuration Cannot Start Live Setup
+
+Use IntelliJ as a WSL/Linux shell launcher. The run configuration must use the
+WSL or Linux interpreter, the repository root as working directory, and the
+same environment as a successful terminal run.
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+----
+
+The live prompt needs stdin. If the IDE runner cannot answer the prompt, use
+the IntelliJ terminal or an external WSL/Linux terminal.
+
+== Lifecycle Preview Or Recovery Is Blocked
+
+Read the reported stage and diagnostics before retrying. A missing installation
+manifest requires reviewed inventory or adoption; a dirty checkout, unsupported
+target, unknown image identity, drift or unqualified transition can block a
+preview before mutation. Do not reset the environment to bypass these guards.
+See link:selective-setup.md[selective setup], link:component-updates.md[component
+updates] and link:product-upgrades.md[product upgrades] for the applicable
+admission and recovery steps.
+
+Portainer has a dedicated backup and recovery path: retain its protected backup
+and checkpoint, and follow the component guide's API-independent recovery
+instructions if its API is unavailable. Reverting an image does not restore
+persistent data or reverse a data migration. Restore compatible data only from
+a separately verified backup using the documented recovery procedure.
+
+== Docker Or Portainer Calls Fail
+
+Check that Docker is reachable from the same shell:
+
+[source,bash]
+----
+docker info
+----
+
+Check Portainer manually before running stack upload or Nexus bootstrap:
+
+[source,bash]
+----
+curl -k -s https://portainer.tsw.local
+----
+
+== Artifact Contract Preflight Fails
+
+The artifact contract preflight runs before host, platform, image or stack
+mutation during `setup run`. It can fail when the selected service profile has
+an image without a matching contract, a contract has an implicit `latest` or
+mutable reference, image targets or build contexts conflict, or a repository-
+local build context is missing. Resolve the reported contract target or
+context and rerun the non-mutating checks before attempting live setup. A
+static failure means that `docker build`, pull, push and dependent deployment
+were not authorized by the artifact phase.
+
+The default profile is `service-access`; pass `--service-profile default` only
+when the base profile is intentionally selected. Image overrides are resolved
+once for Compose rendering and artifact preparation. Review supported
+`TSW_*_IMAGE` values in the configuration contract before changing an image
+reference, and keep tags or digests immutable.
+
+== Artifact Readiness Gate Blocks Setup
+
+After the required Nexus and registry bootstrap, the setup workflow checks the
+manager Docker daemon, registry endpoint, Nexus endpoint and repositories,
+manager storage, repository build inputs, and public pull access. The checks
+are bounded and read-only. A failed, unavailable, timed-out, unknown, partial
+or degraded target is a mandatory blocker; `artifacts prepare`,
+`artifacts verify`, and dependent deployment phases are skipped.
+
+Readiness results contain target IDs, typed status, safe remediation and a
+verification scope. They do not contain credentials, tokens, HTTP bodies,
+raw command output or secret values. The canonical live policy distinguishes
+`LIVE_CONSENT_MISSING`, `LIVE_PREREQUISITE_MISSING`,
+`LIVE_BLOCKED_BEFORE_MUTATION`, `LIVE_PARTIAL`, `LIVE_DEGRADED`, and
+`LIVE_FAILED_AFTER_MUTATION` from `LIVE_VERIFIED`. Do not treat a local quality
+pass, an endpoint configuration, or a skipped live check as live success.
+
+== Portainer Admin Initialization Returns HTTP 409
+
+`PortainerAdminInitializationRejected HTTP 409` means Portainer rejected the
+administrator initialization call. Only a WSL2 run explicitly requested with
+`--confirm-reset` first runs the managed platform reset. A 409 after that reset
+is evidence to review rather than a readiness delay. Ordinary reconciliation
+preserves existing account state.
+
+The deployment workflow treats a rejected initialization as already achieved
+only when the same configured Portainer username and password authenticate
+immediately afterward. If those requested credentials do not authenticate,
+the failure stays explicit because the remaining cause is usually stale or
+unmanaged Portainer state, an incomplete reset, or a credential mismatch.
+
+Inspect reset evidence only when that destructive phase was explicitly requested;
+ordinary reconciliation has no reset phase:
+
+[source,bash]
+----
+# Replace this placeholder with the complete directory printed by your run.
+TSW_RUN_DIR='/path/printed/by/the/installer'
+if [ -f "$TSW_RUN_DIR/reset-run.exit" ]; then
+  cat "$TSW_RUN_DIR/reset-run.exit"
+fi
+if [ -f "$TSW_RUN_DIR/setup-run.exit" ]; then
+  cat "$TSW_RUN_DIR/setup-run.exit"
+fi
+----
+
+Use the actual path printed by the wrapper; the placeholder above is not an
+existing directory. Supported
+host runtime directories are `wsl2` and `native_linux`; the run context file
+also records `host_runtime_type` and `selected_evidence_directory`.
+
+Then verify that the resolved `TSW_PORTAINER_USERNAME` and
+`TSW_PORTAINER_ADMIN_PASSWORD` values are the intended values for this local
+installation. They may come from the disposable catalog or an explicit
+operator override. Do not paste password values into issue reports, logs, or
+committed documentation.
+
+== Installation Debugger For WSL2
+
+Use the installation debugger when `install.sh` aborts and the next question is
+whether the checkout, host runtime, WSL2 systemd availability, service
+definitions, or evidence logs are the problem:
+
+[source,bash]
+----
+python3 bootstrap/linux/install_debugger.py
+----
+
+The default mode analyzes the `install.sh` bootstrap contract, repository
+permissions, ownership markers, WSL2/systemd indicators, systemd unit
+definitions, and the newest installation evidence directory across supported
+host directories. `install.sh` must delegate to
+`python3 -m tiny_swarm_world.simple_installer`; the Python installer owns the reset,
+setup, terminal recording, headless logging, and evidence policy. The debugger
+also prints exact `grep`, `tail`, `systemctl`, and `journalctl` commands for
+finding the abort point after a `Service` log line.
+
+For live host diagnostics, including `systemctl is-system-running`, use:
+
+[source,bash]
+----
+python3 bootstrap/linux/install_debugger.py --live
+----
+
+To allow narrow repository permission repairs, add `--fix-permissions`:
+
+[source,bash]
+----
+python3 bootstrap/linux/install_debugger.py --live --fix-permissions
+----
+
+This repair mode is intentionally limited to the installer execute bit and the
+local secret-file mode. Ownership mismatches are reported with a review command
+instead of being changed automatically.
+
+== WSL2 Setup Stops At WINDOWS-WSL-BRIDGE
+
+When WSL2 live setup requires Windows browser access, Tiny Swarm World checks
+the Windows-side bridge before platform mutation. A failed
+`WINDOWS-WSL-BRIDGE` preflight check means the Windows portproxy, Firewall,
+hosts-file and Windows service bridge has not been prepared, is stale, or no
+longer matches the current WSL IP. A legacy bridge without a supported
+discovery-agent contract is also rejected.
+
+Prepare or repair it from elevated Windows PowerShell:
+
+[source,powershell]
+----
+cd D:\Projects\Tiny-Swarm-World
+Set-ExecutionPolicy -Scope Process Bypass
+.\bootstrap\windows\tws-wsl-bridge.ps1 -Action install
+----
+
+After `wsl --shutdown`, the Windows service discovery agent normally repairs the
+changed address within the configured interval. Trigger immediate reconcile
+with:
+
+[source,powershell]
+----
+Restart-Service -Name TinySwarmWorldWslBridge
+----
+
+From WSL, the same refresh can be triggered without changing Linux network
+state:
+
+[source,bash]
+----
+powershell.exe -NoProfile -Command "Restart-Service -Name TinySwarmWorldWslBridge"
+----
+
+The installer does not set Windows portproxy, Firewall, hosts-file or Windows
+service state by itself. It requires the registered agent to have written a
+`ready` heartbeat within the last five minutes. To run WSL2 without Windows
+localhost exposure, set `TSW_WINDOWS_EXPOSURE=disabled` explicitly before
+setup.
+
+== Setup Preflight Reports Occupied Ports
+
+`setup run --live` is intentionally re-runnable. During preflight, an occupied
+port is accepted only when the local host probe recognizes the expected Tiny
+Swarm World service on that port.
+
+Expected already-running services are reported with
+`source=existing_expected_service` and the port check passes. Unknown port
+owners still fail preflight and must be stopped or remapped before live
+execution.
+
+If a port fails although the service should already be running, verify the
+service from the same WSL shell:
+
+[source,bash]
+----
+curl -k -s https://portainer.tsw.local/api/status
+curl -k -s https://nexus.tsw.local/service/rest/v1/status
+curl -s http://localhost:13500/v2/
+curl -k -s https://jenkins.tsw.local/login
+curl -k -s https://pulsar-api.tsw.local/admin/v2/clusters
+curl -k -s https://sonarqube.tsw.local/api/system/status
+----
+
+== SonarQube Admin Access Cannot Be Reconciled
+
+After the SonarQube stack becomes available, deployment verifies the configured
+`TSW_SONARQUBE_ADMIN_PASSWORD`. If that credential is already active, no
+password change is made. Otherwise the post-stack step verifies the initial
+local `admin` credential, rotates it to the configured value, and verifies the
+new login without writing either value to logs or evidence.
+
+Deployment fails closed when neither the configured nor initial credential can
+be verified. In that case, inspect SonarQube readiness and use the current
+ignored local secret source; do not paste password values into terminal logs,
+issues, or evidence. A manually changed administrator credential must first be
+reconciled with the approved local secret source before rerunning deployment.
+
+== Infisical Remains Unavailable After An Interrupted Migration
+
+If all normal Infisical readiness attempts are exhausted, the live deployment
+adapter may attempt one constrained migration-lock recovery before checking
+readiness again. It discovers the active `infisical_infisical-db` Swarm task,
+requires exactly one task node and one matching container, and touches only the
+known `infisical_migrations_lock` and
+`infisical_migrations_startup_lock` tables when those tables exist. Any
+ambiguous placement, container count, database command, or update fails closed
+and preserves the original readiness failure.
+
+This is a high-impact recovery action even though its table allowlist is
+fixed. Before manual database intervention, retain or snapshot the owned
+Infisical database volume and inspect redacted service/task diagnostics. The
+rollback for an incorrect manual database change is restoration from that
+owned volume backup; do not broaden the automated table list or run arbitrary
+SQL through the recovery path.
+
+== Nexus Bootstrap Cannot Authenticate
+
+Use the canonical setup workflow and provide explicit credentials through
+environment variables where supported:
+
+[source,bash]
+----
+TSW_PORTAINER_USERNAME=admin \
+TSW_PORTAINER_ADMIN_PASSWORD='<portainer-password>' \
+TSW_NEXUS_ADMIN_PASSWORD='<new-nexus-admin-password>' \
+PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+----
+
+If Nexus is still starting, increase:
+
+* `TSW_NEXUS_MAX_ATTEMPTS`
+* `TSW_NEXUS_WAIT_SECONDS`
+
+== Service Access Is Not Reachable
+
+The full guided setup selects the service-access profile by default. The
+default `lxc_native` path uses configured artifact image-publication, stack
+deployment, and Swarm service-readiness contracts, but each phase can still
+block or fail when live prerequisites such as registry access, external Swarm
+inputs, or observed service readiness are unavailable. Service-access
+dashboard and NGINX assets are committed repository inputs and are packaged
+into their respective images by the artifact workflow; live reachability still
+requires explicit deployment evidence.
+
+The committed dashboard is generated from the effective service-access model.
+For LXC stack deployment, the runtime renders the dashboard again and writes
+the generated HTML to
+`$\{TSW_REMOTE_STACK_ROOT}/service-access/dashboard/index.html` before the
+service-access stack is deployed. The dashboard intentionally does not claim
+service reachability until observed evidence exists. Password values are not
+present in the dashboard; use the listed secret item reference only through
+the configured secret-management surface.
+
+Check the non-secret prerequisites before a live run:
+
+* the service-access setup profile exposes Traefik ingress ports `80` and
+  `443`;
+* the service-access NGINX compose service publishes `10000` for the dashboard
+  and `8086` for the Infisical compatibility route as stack metadata;
+* the service-access dashboard and NGINX images are available to the Swarm
+  registry;
+* the service-access dashboard stack asset preparation step has synchronized
+  the generated `dashboard/index.html` under the remote stack root;
+* the service-access stack has been deployed intentionally through a reviewed
+  live path.
+
+In WSL, `localhost`, `localhost:10000`, and `localhost:8086` depend on host-forwarding state
+and may be out of sync even when the stack is reachable on the Swarm node IPs.
+The service-access setup profile treats an unexpected local listener on those
+ports as a mandatory preflight blocker. If `http://localhost:10000` returns an
+unexpected page, clear the stale local listener or redeploy the updated
+service-access stack.
+
+Preferred HTTP access uses Traefik host routes such as
+`https://service-access.tsw.local`; direct localhost ports are diagnostic or
+compatibility surfaces.
+
+Endpoint configuration does not prove service health. Treat local route
+defaults as operator targets only; use deployment verification or explicit live
+smoke evidence before claiming a service is reachable.
+
+If deployment apply reports `failed_to_prepare`, inspect the routing-evidence
+write before investigating Docker. The target is
+`.tiny-swarm-world/evidence/solid-typed-evidence/routing/effective-access-model.json`.
+Directory, permission, serialization, flush, or atomic-replacement failures
+stop before stack apply and preserve a previous complete file where one
+exists. Do not interpret `result: generated` as evidence that DNS, TLS, HTTP,
+Swarm readiness, or login succeeded.
+
+For browser verification, compare the suite summary with the current
+`service_access_links`. A missing expected route is reported as `missing` and
+fails the suite; disabled optional services are not expected and remain
+`service_not_enabled` in routing evidence. Live Selenium is opt-in. Missing
+consent, Selenium, or approved credentials should appear as redacted skip
+evidence, not as a static-gate failure.
+
+== Git Shows Generated Python Files
+
+Generated files such as `__pycache__/`, `.ruff_cache/`, `.mypy_cache/`, and
+PyCharm debugger folders are ignored by `.gitignore`. If they still appear,
+verify that the current branch includes the repository `.gitignore` changes and
+run:
+
+[source,bash]
+----
+git status --ignored --short
+----
+
+== Git Shows .tiny-swarm-world Files
+
+Observed inventory and verification evidence are local runtime artifacts under
+`.tiny-swarm-world/`. The directory is ignored and must not be committed. If
+files below that path appear as tracked changes, stop and verify whether they
+were accidentally added before continuing.
+
+== REFUSED_LIVE_CONSENT_MISSING
+
+Mutating workflow-level commands such as `setup run`, `platform init`,
+`platform reconcile`, `platform expose`, `artifacts prepare`, and
+`deployment apply` require all
+live-consent controls. For the canonical setup path:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+----
+
+When prompted:
+
+[source,text]
+----
+Live setup can change local infrastructure. Continue? [y/N]:
+----
+
+Answer `y` only when changing local infrastructure is intentional. The
+workflow refuses before building application services if `--live` or the
+short live confirmation is missing.
+
+This refusal is expected for a plain `setup run` command without consent. It
+does not mean the default quality gate failed.
+
+== REFUSED_WORKFLOW_CONFIRMATION_MISSING
+
+`platform reset` and `platform destroy` require exact confirmation:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world platform reset --confirm RESET_TINY_SWARM_PLATFORM --live
+PYTHONPATH=src python3 -m tiny_swarm_world platform destroy --confirm DESTROY_TINY_SWARM_PLATFORM --live
+----
+
+After confirmation, reset and destroy act only on configured managed
+LXC-native nodes whose Tiny Swarm World ownership evidence is verified before
+mutation. Already absent managed nodes are valid reset/destroy evidence.
+Missing, mismatched, or unmanaged ownership evidence blocks before deletion.
+Do not use these commands as broad Incus cleanup, and do not treat a
+confirmation phrase as permission to delete unrelated containers.
+
+If reset reports `managed_nodes_reset_blocked` with
+`first_failure_classification=reset_existing_node_not_managed`, a configured
+node name already exists but does not fully match the expected Tiny Swarm
+World ownership, profile, config, or device safety evidence. The marker
+fields may still report `matches` when another safety check blocks mutation.
+Inspect the reset evidence for `first_failure_node`,
+`first_failure_mismatch_reasons`, and
+`first_failure_unsafe_instance_settings` when present. A mismatch reason of
+`unsafe_instance_config` means the existing instance has guarded Incus/LXC
+config such as `security.privileged=true` without the explicit privileged
+ingress override, or a `raw.*` config key. Resolve that named container
+manually before rerunning the installer: keep it if it is unrelated,
+rename/remove it only if you intentionally own that local resource, or
+recreate it through the guarded setup workflow so the managed markers and
+expected config are written by automation.
+
+For `first_failure_unsafe_instance_settings: security.privileged`, inspect
+both the configured instances and the shared profile. Profile-level
+`security.privileged=true` can make every configured node fail the reset
+preflight even when each node's ownership markers match:
+
+[source,bash]
+----
+for node in swarm-manager swarm-worker-1 swarm-worker-2; do
+  printf '\n== %s ==\n' "$node"
+  incus config get "$node" user.tiny_swarm_world.managed
+  incus config get "$node" user.tiny_swarm_world.node
+  incus config get "$node" user.tiny_swarm_world.image_alias
+  incus config get "$node" security.privileged
+done
+incus profile get docker-swarm security.privileged
+----
+
+Before changing a shared profile, inspect all of its consumers, not just the
+three expected TSW nodes:
+
+[source,bash]
+----
+incus profile show docker-swarm
+----
+
+Review its `used_by` entries. If another workload uses the profile, ask the
+host operator to isolate or repair the TSW configuration without changing that
+workload. Confirm ownership and the intended privileged-ingress policy before
+changing any setting. Remove only the diagnosed setting at the specific
+instance or profile that owns it; do not unset every location as a batch.
+
+Recheck the guarded preflight afterwards. Run the fresh installer again only
+if discarding and recreating the managed environment is intentional; otherwise
+use link:{user-guide-prefix}usage.adoc#daily-operation[the appropriate operation].
+
+If `raw.*` appears, inspect the exact raw setting on the named instance or
+profile and remove only the setting that belongs to disposable Tiny Swarm
+World state. Do not use wildcard cleanup for raw Incus/LXC settings.
+Direct instance-level `tsw-proxy-<port>` devices are drift. Current
+`platform expose` manages equivalent proxy devices in the manager-specific
+profile instead of creating direct manager instance devices. If reset reports
+`unsafe_instance_devices` for stale direct project proxy devices, first ensure
+the manager-profile devices are present, then run the explicit repair command:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world platform repair-lxc-proxy-drift --live
+----
+
+The repair refuses devices whose equivalent manager-profile state is missing
+or drifted. Any remaining `unsafe_instance_devices` evidence points to direct
+runtime state that must be inspected and resolved intentionally.
+
+== Docker Installation Fails During Platform Init
+
+If live setup stops at `platform init: failed_to_apply`, inspect the setup
+evidence for `platform:init:lxc-container-runtime`. When the evidence includes
+`first_failure_reason: apt_repository_unreachable`, Tiny Swarm World created
+the managed LXC nodes, but Docker Engine installation inside those nodes could
+not reach Ubuntu or Docker APT repositories.
+
+Typical evidence:
+
+[source,text]
+----
+- platform:init:lxc-container-runtime: failed_to_apply
+  Evidence:
+  - classification: container_runtime_not_verified
+  - failed_apply_count: 3
+  - failed_nodes: swarm-manager,swarm-worker-1,swarm-worker-2
+  - first_failure_classification: docker_install_failed
+  - first_failure_node: swarm-manager
+  - first_failure_reason: apt_repository_unreachable
+----
+
+The Docker registry mirror and the Ubuntu/Docker APT mirrors are separate.
+`TSW_LXC_DOCKER_REGISTRY_MIRROR` does not replace `archive.ubuntu.com` or the
+Docker APT repository used during Docker Engine installation.
+
+First run the read-only network diagnosis from the same WSL/Linux shell:
+
+[source,bash]
+----
+./tsw doctor network
+----
+
+If setup reaches `artifacts prepare` and times out waiting for Nexus while
+`docker service ls` reports `nexus_nexus 1/1`, inspect Docker logs on the node
+that runs Nexus. Messages such as `Module ip_vs not found` or `Failed to create
+a new service ... operation not permitted` mean Docker Swarm `ingress`/VIP
+routing is unavailable in the current WSL2/LXC runtime. Tiny Swarm World's
+`wsl2-nat` profile avoids this by publishing external service ports in
+`mode: host` on the manager node instead of relying on the Swarm routing mesh.
+
+If the diagnosis reports Docker blocking Incus bridge forwarding, apply only
+the targeted forwarding repair:
+
+[source,bash]
+----
+./tsw network repair --linux-forwarding --apply
+----
+
+=== Forwarding Service Failed Before the Incus Bridge Appeared
+
+If the WSL host has internet access but LXC nodes cannot reach repository
+addresses, inspect the existing forwarding service and rules:
+
+[source,bash]
+----
+systemctl status tsw-incus-forwarding.service --no-pager
+journalctl -u tsw-incus-forwarding.service -n 30 --no-pager
+sudo iptables -S FORWARD
+----
+
+A service error such as `Incus bridge incusbr0 did not become available within
+60 seconds`, together with a `FORWARD DROP` policy and no applicable bridge
+allowances, indicates that the forwarding repair did not activate. Older
+installed units do not automatically retry when the bridge later appears.
+
+From the repository root, install the updated repair and verify networking:
+
+[source,bash]
+----
+sudo -v
+./tsw network repair --linux-forwarding --apply
+sudo env PYTHONPATH=src .venv/bin/python -m tiny_swarm_world doctor network
+----
+
+The last command uses the repository's existing `.venv` and reads firewall
+rules with elevated privileges. Without sufficient permissions, the current
+network doctor reports `FORWARDING_UNVERIFIED` and `UNKNOWN`; older versions
+could incorrectly report `FORWARDING_OK` or missing NAT.
+
+The repair updates and restarts the installed service. Failed starts retry
+every 15 seconds; updating the repository alone does not update the host unit.
+The service does not continuously monitor rules after a successful start.
+Verify successful service startup and container DNS/HTTP access before retrying
+the installer. An ordinary installer rerun reconciles existing managed nodes.
+Only an explicitly requested WSL2 `--confirm-reset` run performs the deprecated
+destructive reset first.
+
+`docker_apt_gpg_unreachable` identifies a failed Docker signing-key download;
+`docker_apt_repository_unreachable` identifies the Docker repository update.
+Earlier Ubuntu APT warnings can coexist with these failures. Neither result
+establishes that an external Nexus application-artifact source is unavailable.
+
+=== Configuring Reachable APT Mirrors
+
+If outbound internet is intentionally blocked or unreliable, configure APT
+mirrors that are reachable from inside the Incus containers. The example below
+then performs a *deliberate WSL2 fresh reset*: use it only when the managed
+environment is disposable. To retain existing state, choose a retry through
+link:{user-guide-prefix}usage.adoc#daily-operation[Daily operation] instead.
+
+[source,bash]
+----
+export TSW_LXC_UBUNTU_APT_MIRROR=http://<lxc-reachable-host>:8081/repository/ubuntu-apt-proxy
+export TSW_LXC_UBUNTU_SECURITY_APT_MIRROR=http://<lxc-reachable-host>:8081/repository/ubuntu-security-apt-proxy
+export TSW_LXC_DOCKER_APT_MIRROR=http://<lxc-reachable-host>:8081/repository/docker-apt-proxy
+export TSW_LXC_DOCKER_APT_GPG_URL=http://<lxc-reachable-host>:8081/repository/docker-apt-proxy/gpg
+
+./install.sh --headless --confirm-reset --non-interactive-live-approval
+----
+
+Use an address reachable from inside the LXC nodes. Do not use `localhost`,
+`127.0.0.1`, or a Windows-only address for these mirror URLs.
+
+== Git Shows Line Ending Only Changes
+
+The repository uses `.gitattributes` to normalize text files to LF. If a large
+number of files appears modified after switching between Windows Git and WSL,
+refresh the checkout with Git after saving any real work.
+
+Do not commit line-ending-only changes unless the change is an intentional
+normalization commit.

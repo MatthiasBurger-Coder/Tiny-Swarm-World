@@ -9,7 +9,7 @@ from tools.linux.check_verification_policy_consistency import check_repository
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
-POLICY_PATH = REPOSITORY_ROOT / "documentation/process/verification-state-policy.md"
+POLICY_PATH = REPOSITORY_ROOT / "documentation/handbook/05-development/process/verification-state-policy.md"
 
 
 class VerificationPolicyConsistencyTests(unittest.TestCase):
@@ -52,10 +52,10 @@ class VerificationPolicyConsistencyTests(unittest.TestCase):
     def _repository_fixture(self, governance_line: str):
         temporary_directory = tempfile.TemporaryDirectory()
         root = Path(temporary_directory.name)
-        policy_target = root / "documentation/process/verification-state-policy.md"
+        policy_target = root / "documentation/handbook/05-development/process/verification-state-policy.md"
         policy_target.parent.mkdir(parents=True)
         shutil.copyfile(POLICY_PATH, policy_target)
-        governance_target = root / "documentation/process/governance.md"
+        governance_target = root / "documentation/handbook/05-development/process/governance.md"
         governance_target.write_text(governance_line + "\n", encoding="utf-8")
         return _TemporaryRepository(temporary_directory, root)
 

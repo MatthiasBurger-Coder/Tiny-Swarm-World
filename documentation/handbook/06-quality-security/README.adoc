@@ -1,0 +1,71 @@
+= Quality, security and audits
+
+ifndef::handbook-root[]
+:handbook-root: ../../
+endif::[]
+
+link:{handbook-root}README.adoc[Product Handbook] / Part 6
+
+This part owns quality management, security policies, engineering review
+policy and audit tracking. Start with
+link:{handbook-root}handbook/06-quality-security/qms/qms-light.md[QMS-light],
+link:{handbook-root}handbook/06-quality-security/manuals/security-manual.md[the Security Manual] and
+link:{handbook-root}handbook/06-quality-security/audit/README.md[the audit evidence index].
+
+The `audit/` registers connect findings to owners, remediation, evidence and
+review decisions. They are subordinate to this handbook part, rather than
+another documentation master. Part 7 owns linked evidence artifacts and
+traceability. Documentation, a planned artifact or an open register is not a
+passed verification or a certification.
+
+== Source catalogue
+
+Each source below has this part as its primary handbook assignment.
+Cross-references from other parts do not change that ownership.
+
+=== audit
+
+* link:{handbook-root}handbook/06-quality-security/audit/README.md[README.md]
+* link:{handbook-root}handbook/06-quality-security/audit/audit-register.md[audit-register.md]
+* link:{handbook-root}handbook/06-quality-security/audit/audit-summary.md[audit-summary.md]
+* link:{handbook-root}handbook/06-quality-security/audit/documentation-currency-review-20261010.json[documentation-currency-review-20261010.json]
+* link:{handbook-root}handbook/06-quality-security/audit/documentation-currency-review-20261010.md[documentation-currency-review-20261010.md]
+* link:{handbook-root}handbook/06-quality-security/audit/evidence-matrix.md[evidence-matrix.md]
+* link:{handbook-root}handbook/06-quality-security/audit/findings-register.md[findings-register.md]
+* link:{handbook-root}handbook/06-quality-security/audit/remediation-plan.md[remediation-plan.md]
+
+=== governance
+
+* link:{handbook-root}handbook/06-quality-security/governance/branch-protection.md[branch-protection.md]
+* link:{handbook-root}handbook/06-quality-security/governance/ci-quality-gates.md[ci-quality-gates.md]
+* link:{handbook-root}handbook/06-quality-security/governance/pr-review-policy.md[pr-review-policy.md]
+
+=== manuals
+
+* link:{handbook-root}handbook/06-quality-security/manuals/audit-manual.md[audit-manual.md]
+* link:{handbook-root}handbook/06-quality-security/manuals/security-manual.md[security-manual.md]
+
+=== qms
+
+* link:{handbook-root}handbook/06-quality-security/qms/capa-process.md[capa-process.md]
+* link:{handbook-root}handbook/06-quality-security/qms/change-control.md[change-control.md]
+* link:{handbook-root}handbook/06-quality-security/qms/internal-audit-process.md[internal-audit-process.md]
+* link:{handbook-root}handbook/06-quality-security/qms/qms-light.md[qms-light.md]
+* link:{handbook-root}handbook/06-quality-security/qms/quality-objectives.md[quality-objectives.md]
+
+=== security
+
+* link:{handbook-root}handbook/06-quality-security/security/admin-surface-rbac.md[admin-surface-rbac.md]
+* link:{handbook-root}handbook/06-quality-security/security/container-image-scan-policy.md[container-image-scan-policy.md]
+* link:{handbook-root}handbook/06-quality-security/security/dependency-scan-policy.md[dependency-scan-policy.md]
+* link:{handbook-root}handbook/06-quality-security/security/incident-response.md[incident-response.md]
+* link:{handbook-root}handbook/06-quality-security/security/isms-scope.md[isms-scope.md]
+* link:{handbook-root}handbook/06-quality-security/security/owasp-asvs-mapping.md[owasp-asvs-mapping.md]
+* link:{handbook-root}handbook/06-quality-security/security/rc1-classic-security-evidence.md[rc1-classic-security-evidence.md]
+* link:{handbook-root}handbook/06-quality-security/security/risk-register.md[risk-register.md]
+* link:{handbook-root}handbook/06-quality-security/security/sbom-policy.md[sbom-policy.md]
+* link:{handbook-root}handbook/06-quality-security/security/secret-handling-policy.md[secret-handling-policy.md]
+* link:{handbook-root}handbook/06-quality-security/security/security-controls.md[security-controls.md]
+* link:{handbook-root}handbook/06-quality-security/security/service-access-threat-model.md[service-access-threat-model.md]
+* link:{handbook-root}handbook/06-quality-security/security/statement-of-applicability.md[statement-of-applicability.md]
+* link:{handbook-root}handbook/06-quality-security/security/supply-chain-security.md[supply-chain-security.md]

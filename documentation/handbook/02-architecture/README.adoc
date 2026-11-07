@@ -1,0 +1,127 @@
+= System architecture (arc42)
+
+ifndef::handbook-root[]
+:handbook-root: ../../
+endif::[]
+
+link:{handbook-root}README.adoc[Product Handbook] / Part 2
+
+The link:{handbook-root}handbook/02-architecture/arc42.adoc[arc42 architecture book] is the
+architecture part of the Product Handbook. It retains the twelve arc42
+sections, detailed analyses, configuration contracts, deployment references,
+ADRs and migration plans. The handbook supplies the overall documentation
+hierarchy; arc42 supplies the architecture structure within it.
+
+Use link:{handbook-root}handbook/02-architecture/arc42/05_analysis/arch-03-21-resulting-architecture.md[the resulting architecture]
+for package ownership and extension guidance. Quality requirements belong in
+arc42 section 10, architecture risks in section 11, and the verification
+approach in section 8. Operational audit registers belong to Part 6 and
+executed evidence belongs to Part 7.
+
+== Source catalogue
+
+Each source below has this part as its primary handbook assignment.
+Cross-references from other parts do not change that ownership.
+
+=== Book and supporting sources
+
+* link:{handbook-root}handbook/02-architecture/arc42-template.adoc[arc42-template.adoc]
+* link:{handbook-root}handbook/02-architecture/arc42.adoc[arc42.adoc]
+
+=== arc42
+
+* link:{handbook-root}handbook/02-architecture/arc42/01_introduction.adoc[01_introduction.adoc]
+* link:{handbook-root}handbook/02-architecture/arc42/02_constraints.adoc[02_constraints.adoc]
+* link:{handbook-root}handbook/02-architecture/arc42/03_solution_strategy.adoc[03_solution_strategy.adoc]
+* link:{handbook-root}handbook/02-architecture/arc42/04_context_and_scope.adoc[04_context_and_scope.adoc]
+* link:{handbook-root}handbook/02-architecture/arc42/05_building_blocks.adoc[05_building_blocks.adoc]
+* link:{handbook-root}handbook/02-architecture/arc42/06_runtime_view.adoc[06_runtime_view.adoc]
+* link:{handbook-root}handbook/02-architecture/arc42/07_deployment_view.adoc[07_deployment_view.adoc]
+* link:{handbook-root}handbook/02-architecture/arc42/08_concepts.adoc[08_concepts.adoc]
+* link:{handbook-root}handbook/02-architecture/arc42/09_architecture_decisions.adoc[09_architecture_decisions.adoc]
+* link:{handbook-root}handbook/02-architecture/arc42/10_quality_requirements.adoc[10_quality_requirements.adoc]
+* link:{handbook-root}handbook/02-architecture/arc42/11_risks_and_debt.adoc[11_risks_and_debt.adoc]
+* link:{handbook-root}handbook/02-architecture/arc42/12_glossary.adoc[12_glossary.adoc]
+
+=== arc42/01_introduction
+
+* link:{handbook-root}handbook/02-architecture/arc42/01_introduction/autonomous-runnable-setup.md[autonomous-runnable-setup.md]
+* link:{handbook-root}handbook/02-architecture/arc42/01_introduction/service-access-dashboard-vaultwarden.md[service-access-dashboard-vaultwarden.md]
+* link:{handbook-root}handbook/02-architecture/arc42/01_introduction/system-unification.md[system-unification.md]
+
+=== arc42/05_analysis
+
+* link:{handbook-root}handbook/02-architecture/arc42/05_analysis/arch-03-01-architecture-violation-map.md[arch-03-01-architecture-violation-map.md]
+* link:{handbook-root}handbook/02-architecture/arc42/05_analysis/arch-03-01-dependency-map.md[arch-03-01-dependency-map.md]
+* link:{handbook-root}handbook/02-architecture/arc42/05_analysis/arch-03-01-responsibility-ownership.md[arch-03-01-responsibility-ownership.md]
+* link:{handbook-root}handbook/02-architecture/arc42/05_analysis/arch-03-01-violation-inventory.md[arch-03-01-violation-inventory.md]
+* link:{handbook-root}handbook/02-architecture/arc42/05_analysis/arch-03-02-layer-contracts.md[arch-03-02-layer-contracts.md]
+* link:{handbook-root}handbook/02-architecture/arc42/05_analysis/arch-03-03-orchestration-hotspot-ranking.md[arch-03-03-orchestration-hotspot-ranking.md]
+* link:{handbook-root}handbook/02-architecture/arc42/05_analysis/arch-03-04-platform-preflight-use-case.md[arch-03-04-platform-preflight-use-case.md]
+* link:{handbook-root}handbook/02-architecture/arc42/05_analysis/arch-03-05-runtime-profile-resolution.md[arch-03-05-runtime-profile-resolution.md]
+* link:{handbook-root}handbook/02-architecture/arc42/05_analysis/arch-03-06-runtime-port-docker-swarm-adapter.md[arch-03-06-runtime-port-docker-swarm-adapter.md]
+* link:{handbook-root}handbook/02-architecture/arc42/05_analysis/arch-03-07-state-reconcile-planning.md[arch-03-07-state-reconcile-planning.md]
+* link:{handbook-root}handbook/02-architecture/arc42/05_analysis/arch-03-08-platform-lifecycle-orchestrator.md[arch-03-08-platform-lifecycle-orchestrator.md]
+* link:{handbook-root}handbook/02-architecture/arc42/05_analysis/arch-03-09-configuration-parsing-boundary.md[arch-03-09-configuration-parsing-boundary.md]
+* link:{handbook-root}handbook/02-architecture/arc42/05_analysis/arch-03-11-process-execution.md[arch-03-11-process-execution.md]
+* link:{handbook-root}handbook/02-architecture/arc42/05_analysis/arch-03-12-operation-results.md[arch-03-12-operation-results.md]
+* link:{handbook-root}handbook/02-architecture/arc42/05_analysis/arch-03-14-runtime-conditionals.md[arch-03-14-runtime-conditionals.md]
+* link:{handbook-root}handbook/02-architecture/arc42/05_analysis/arch-03-17-dead-path-audit.md[arch-03-17-dead-path-audit.md]
+* link:{handbook-root}handbook/02-architecture/arc42/05_analysis/arch-03-18-complexity-baseline.json[arch-03-18-complexity-baseline.json]
+* link:{handbook-root}handbook/02-architecture/arc42/05_analysis/arch-03-18-complexity-exceptions.json[arch-03-18-complexity-exceptions.json]
+* link:{handbook-root}handbook/02-architecture/arc42/05_analysis/arch-03-18-complexity-guardrails.md[arch-03-18-complexity-guardrails.md]
+* link:{handbook-root}handbook/02-architecture/arc42/05_analysis/arch-03-21-resulting-architecture.md[arch-03-21-resulting-architecture.md]
+* link:{handbook-root}handbook/02-architecture/arc42/05_analysis/rc1-maintenance-triage.adoc[rc1-maintenance-triage.adoc]
+* link:{handbook-root}handbook/02-architecture/arc42/05_analysis/responsibility-separation-analysis.md[responsibility-separation-analysis.md]
+
+=== arc42/07_deployment
+
+* link:{handbook-root}handbook/02-architecture/arc42/07_deployment/system.adoc[system.adoc]
+
+=== arc42/08_configuration
+
+* link:{handbook-root}handbook/02-architecture/arc42/08_configuration/config-contract-inventory.md[config-contract-inventory.md]
+* link:{handbook-root}handbook/02-architecture/arc42/08_configuration/credential-source-precedence.md[credential-source-precedence.md]
+* link:{handbook-root}handbook/02-architecture/arc42/08_configuration/internal-test-credential-catalog.md[internal-test-credential-catalog.md]
+* link:{handbook-root}handbook/02-architecture/arc42/08_configuration/operator-configuration-contract.md[operator-configuration-contract.md]
+* link:{handbook-root}handbook/02-architecture/arc42/08_configuration/rc1-simple-secret-bootstrap.md[rc1-simple-secret-bootstrap.md]
+
+=== arc42/08_deployment_configuration
+
+* link:{handbook-root}handbook/02-architecture/arc42/08_deployment_configuration/infisical-silent-setup.adoc[infisical-silent-setup.adoc]
+
+=== arc42/09_decisions
+
+* link:{handbook-root}handbook/02-architecture/arc42/09_decisions/adr-autonomous-setup-safety.adoc[adr-autonomous-setup-safety.adoc]
+* link:{handbook-root}handbook/02-architecture/arc42/09_decisions/adr-bootstrap-command-readiness-contract.adoc[adr-bootstrap-command-readiness-contract.adoc]
+* link:{handbook-root}handbook/02-architecture/arc42/09_decisions/adr-classic-product-component-lifecycle.adoc[adr-classic-product-component-lifecycle.adoc]
+* link:{handbook-root}handbook/02-architecture/arc42/09_decisions/adr-classic-selection-exposure-stack-ownership.adoc[adr-classic-selection-exposure-stack-ownership.adoc]
+* link:{handbook-root}handbook/02-architecture/arc42/09_decisions/adr-classic-update-contract.adoc[adr-classic-update-contract.adoc]
+* link:{handbook-root}handbook/02-architecture/arc42/09_decisions/adr-cross-cutting-method-trace-logging.adoc[adr-cross-cutting-method-trace-logging.adoc]
+* link:{handbook-root}handbook/02-architecture/arc42/09_decisions/adr-dedicated-wsl2-host-platform-boundary.adoc[adr-dedicated-wsl2-host-platform-boundary.adoc]
+* link:{handbook-root}handbook/02-architecture/arc42/09_decisions/adr-explicit-incus-preparation.adoc[adr-explicit-incus-preparation.adoc]
+* link:{handbook-root}handbook/02-architecture/arc42/09_decisions/adr-explicit-non-interactive-live-consent.adoc[adr-explicit-non-interactive-live-consent.adoc]
+* link:{handbook-root}handbook/02-architecture/arc42/09_decisions/adr-explicit-operation-results.adoc[adr-explicit-operation-results.adoc]
+* link:{handbook-root}handbook/02-architecture/arc42/09_decisions/adr-installation-scoped-incus-profile.adoc[adr-installation-scoped-incus-profile.adoc]
+* link:{handbook-root}handbook/02-architecture/arc42/09_decisions/adr-installer-console-reporting-policy.adoc[adr-installer-console-reporting-policy.adoc]
+* link:{handbook-root}handbook/02-architecture/arc42/09_decisions/adr-lxc-native-node-provider.adoc[adr-lxc-native-node-provider.adoc]
+* link:{handbook-root}handbook/02-architecture/arc42/09_decisions/adr-mutating-operation-recovery.adoc[adr-mutating-operation-recovery.adoc]
+* link:{handbook-root}handbook/02-architecture/arc42/09_decisions/adr-native-linux-preparation-and-install-lifecycle.adoc[adr-native-linux-preparation-and-install-lifecycle.adoc]
+* link:{handbook-root}handbook/02-architecture/arc42/09_decisions/adr-product-effective-infrastructure-source.adoc[adr-product-effective-infrastructure-source.adoc]
+* link:{handbook-root}handbook/02-architecture/arc42/09_decisions/adr-retire-multipass-legacy-provider.adoc[adr-retire-multipass-legacy-provider.adoc]
+* link:{handbook-root}handbook/02-architecture/arc42/09_decisions/adr-scoped-bootstrap-network-preparation.adoc[adr-scoped-bootstrap-network-preparation.adoc]
+* link:{handbook-root}handbook/02-architecture/arc42/09_decisions/adr-separate-platform-artifacts-deployment.adoc[adr-separate-platform-artifacts-deployment.adoc]
+* link:{handbook-root}handbook/02-architecture/arc42/09_decisions/adr-service-access-dashboard-vaultwarden.adoc[adr-service-access-dashboard-vaultwarden.adoc]
+* link:{handbook-root}handbook/02-architecture/arc42/09_decisions/adr-shared-ubuntu-prerequisite-bootstrap.adoc[adr-shared-ubuntu-prerequisite-bootstrap.adoc]
+* link:{handbook-root}handbook/02-architecture/arc42/09_decisions/adr-test-only-credential-override.adoc[adr-test-only-credential-override.adoc]
+* link:{handbook-root}handbook/02-architecture/arc42/09_decisions/adr-traefik-https-ingress-existing-ca.adoc[adr-traefik-https-ingress-existing-ca.adoc]
+* link:{handbook-root}handbook/02-architecture/arc42/09_decisions/adr-traefik-managed-or-operator-ca.adoc[adr-traefik-managed-or-operator-ca.adoc]
+* link:{handbook-root}handbook/02-architecture/arc42/09_decisions/adr-windows-wsl-bridge-service-agent.adoc[adr-windows-wsl-bridge-service-agent.adoc]
+* link:{handbook-root}handbook/02-architecture/arc42/09_decisions/adr-windows-wsl-lifecycle-preparation.adoc[adr-windows-wsl-lifecycle-preparation.adoc]
+* link:{handbook-root}handbook/02-architecture/arc42/09_decisions/adr-wsl-capacity-adaptation.adoc[adr-wsl-capacity-adaptation.adoc]
+* link:{handbook-root}handbook/02-architecture/arc42/09_decisions/adr-wsl-install-reconciliation.adoc[adr-wsl-install-reconciliation.adoc]
+* link:{handbook-root}handbook/02-architecture/arc42/09_decisions/command-runner-responsibility.adoc[command-runner-responsibility.adoc]
+
+=== arc42/11_migration
+
+* link:{handbook-root}handbook/02-architecture/arc42/11_migration/migration-plan.md[migration-plan.md]

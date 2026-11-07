@@ -1,25 +1,40 @@
-= Tiny Swarm World
+= Tiny Swarm World Product Handbook
 :doctype: book
-:toc-title: table of contents
+:toc-title: Contents
 :toc: macro
-:numbered:
 :sectnums:
 :sectnumlevels: 5
 :lang: en
 :chapter-label:
+:handbook-root:
 
 toc::[]
 
-**Your tiny Docker swarm for big ideas.**
+This is the continuous reading edition of the Product Handbook.
+link:README.adoc[The master index] defines source ownership and maintenance
+rules. The seven parts below use the same canonical sources; specialised
+references and dated records are available through their source catalogues.
 
-include::README.adoc[leveloffset=+1]
+include::handbook/01-product/README.adoc[leveloffset=+1]
 
-include::arc42.adoc[leveloffset=+1]
+include::handbook/02-architecture/README.adoc[leveloffset=+1]
 
-:user-guide-prefix: user_guide/
+include::handbook/02-architecture/arc42.adoc[leveloffset=+2]
+
+include::handbook/03-user-guide/README.adoc[leveloffset=+1]
+
+:user-guide-prefix: handbook/03-user-guide/user_guide/
 :user-reference-prefix:
-include::user_guide/installation.adoc[leveloffset=+1]
-include::user_guide/usage.adoc[leveloffset=+1]
-include::user_guide/troubleshooting.adoc[leveloffset=+1]
+include::handbook/03-user-guide/user_guide/installation.adoc[leveloffset=+2]
+include::handbook/03-user-guide/user_guide/usage.adoc[leveloffset=+2]
+include::handbook/03-user-guide/user_guide/troubleshooting.adoc[leveloffset=+2]
 :user-guide-prefix!:
 :user-reference-prefix!:
+
+include::handbook/04-operations/README.adoc[leveloffset=+1]
+
+include::handbook/05-development/README.adoc[leveloffset=+1]
+
+include::handbook/06-quality-security/README.adoc[leveloffset=+1]
+
+include::handbook/07-evidence-release/README.adoc[leveloffset=+1]

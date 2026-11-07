@@ -2,8 +2,8 @@
 
 Record the target, selected profile, executed revision, evidence and reviewer
 for each applicable item. An unchecked box is not a pass. Use the
-[installation guide](documentation/user_guide/installation.adoc) for procedures
-and the [verification-state policy](documentation/process/verification-state-policy.md)
+[installation guide](documentation/handbook/03-user-guide/user_guide/installation.adoc) for procedures
+and the [verification-state policy](documentation/handbook/05-development/process/verification-state-policy.md)
 for local, live and external classifications.
 
 ## Host environment readiness
@@ -19,7 +19,7 @@ for local, live and external classifications.
 - [ ] `default` host has at least four CPU threads, 16 GiB RAM and 60 GiB free disk.
 - [ ] Managed-node capacity is checked separately. Default nodes total 19 GiB;
       Windows capacity planning includes 2 GiB WSL overhead and Windows reserve.
-      See [resource planning](documentation/user_guide/windows-preparation.md).
+      See [resource planning](documentation/handbook/03-user-guide/user_guide/windows-preparation.md).
 
 ## Python environment readiness
 - [ ] Virtual environment creation documented.

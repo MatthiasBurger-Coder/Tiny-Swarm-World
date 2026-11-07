@@ -9,7 +9,7 @@ description: Use for requirement-to-architecture-to-test-to-evidence traceabilit
 Own requirement-to-architecture-to-test-to-evidence traceability.
 
 ## Scope
-Maintains `documentation/traceability/` and reviews links between requirements,
+Maintains `documentation/handbook/07-evidence-release/traceability/` and reviews links between requirements,
 architecture, implementation, tests, quality gates, and evidence.
 
 ## Non-goals
@@ -40,7 +40,7 @@ Tester, and live evidence to `live-evidence-validation-expert`.
 This skill is review-only and does not declare an issue `DONE`. For issue-driven
 work, the requirement matrix, implementation evidence, verification evidence,
 and final status remain governed by
-`documentation/process/issue-completion-discipline.md` and
+`documentation/handbook/05-development/process/issue-completion-discipline.md` and
 `issue-completion-auditor`. Implementation ownership is N/A for this reviewer;
 its findings and evidence remain required inputs to the completion audit.
 

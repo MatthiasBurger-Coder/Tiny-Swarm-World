@@ -13,8 +13,8 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "src" / "tiny_swarm_world"
-BASELINE = ROOT / "documentation" / "arc42" / "05_analysis" / "arch-03-18-complexity-baseline.json"
-EXCEPTIONS = ROOT / "documentation" / "arc42" / "05_analysis" / "arch-03-18-complexity-exceptions.json"
+BASELINE = ROOT / "documentation/handbook/02-architecture/arc42" / "05_analysis" / "arch-03-18-complexity-baseline.json"
+EXCEPTIONS = ROOT / "documentation/handbook/02-architecture/arc42" / "05_analysis" / "arch-03-18-complexity-exceptions.json"
 def covered_paths(source: Path = SOURCE) -> list[Path]:
     paths = set(source.glob("*.py"))
     paths.update((source / "infrastructure").glob("composition*.py"))

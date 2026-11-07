@@ -31,7 +31,7 @@ required role reviews, STOP rules, S3/S3D checks, D8 quality decisions or
 - Record parallelization opportunities not used and the reason, such as file
   lock overlap, architecture lock overlap, missing metadata or quality-gate
   attribution risk.
-- Write metrics only under `documentation/workflow/metrics/**`.
+- Write metrics only under `documentation/handbook/05-development/workflow/metrics/**`.
 
 ## Forbidden
 
@@ -60,7 +60,7 @@ required role reviews, STOP rules, S3/S3D checks, D8 quality decisions or
 Write run reports under:
 
 ```text
-documentation/workflow/metrics/<workflow-id>-run.md
+documentation/handbook/05-development/workflow/metrics/<workflow-id>-run.md
 ```
 
 Use stable identifiers and summarize measurements. Do not include raw command

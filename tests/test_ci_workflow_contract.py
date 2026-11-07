@@ -161,7 +161,7 @@ class CiWorkflowContractTests(unittest.TestCase):
         self.assertLess(runner.index('"recovery"'), runner.index('"recovery_e2e"'))
 
     def test_branch_protection_status_checks_are_documented(self) -> None:
-        documentation = (REPOSITORY_ROOT / "documentation/governance/ci-quality-gates.md").read_text(
+        documentation = (REPOSITORY_ROOT / "documentation/handbook/06-quality-security/governance/ci-quality-gates.md").read_text(
             encoding="utf-8"
         )
 

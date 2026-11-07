@@ -10,8 +10,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 SKILLS_ROOT = REPOSITORY_ROOT / ".agents" / "skills"
 REGISTRY_PATH = (
     REPOSITORY_ROOT
-    / "documentation"
-    / "process"
+    / "documentation/handbook/05-development/process"
     / "skills"
     / "audit"
     / "skill-registry.json"

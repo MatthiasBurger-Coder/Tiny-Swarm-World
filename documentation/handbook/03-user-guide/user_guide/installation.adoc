@@ -1,0 +1,1606 @@
+= Installation
+
+ifndef::user-guide-prefix[]
+:user-guide-prefix:
+endif::[]
+ifndef::user-reference-prefix[]
+:user-reference-prefix: ../../../
+endif::[]
+
+Tiny Swarm World is developed and operated from a Linux or WSL shell.
+Windows-native product execution is not supported. The elevated Windows bridge
+prework documented for default WSL2 browser exposure is a supported host setup
+step; project automation itself continues to run from Linux or WSL.
+
+== Quick start: preparation then installation
+
+Obtain a complete trusted release or checkout and enter its root. The currently
+exercised installer path requires retained Git metadata for secret-ignore checks;
+a plain source ZIP or `git archive` is insufficient. A release manifest proves
+Windows preparation asset membership but does not replace that installer check.
+When Git is available, acquire the checkout in the ordinary Linux user's home:
+
+[source,bash]
+----
+git clone https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World.git ~/Tiny-Swarm-World
+cd ~/Tiny-Swarm-World
+----
+
+On native Ubuntu 24.04/26.04 x86_64, from that checkout:
+
+[source,bash]
+----
+./bootstrap/linux/prepare_linux.sh
+./install.sh
+----
+
+Preparation bootstraps missing Python, venv and locked local dependencies. Use an
+ordinary sudo-capable account; only individual privileged stages elevate. Review
+each plan and type exact `yes` when requested. Installation requires separate live
+approval. Network access to Ubuntu packages, Python and image registries is needed.
+
+On Windows 11 x86_64, from the complete trusted Windows checkout in elevated
+PowerShell:
+
+[source,powershell]
+----
+./bootstrap/windows/prepare_windows.ps1 -Distro Ubuntu-26.04
+----
+
+The second command is the printed `handoff.operator_command`: copy it into the
+interactive PowerShell console. It selects the observed ordinary user and matching
+Linux-native checkout, runs Linux preparation, then installation only on success.
+Windows never runs product Python. Ordinary Windows Apply currently blocks as
+unqualified: these are command/handoff contracts, not a qualified clean-host
+walkthrough. Do not add qualification flags simply to bypass a blocker. Follow
+link:{user-guide-prefix}windows-preparation.md[Windows preparation] for the exact
+authorized-target, source proof and recovery requirements.
+
+Select the exact registered Ubuntu distro; custom names require matching
+`-UbuntuRelease 24.04` or `26.04`. If missing, a canonical selected distribution
+is installed only during approved preparation. Complete first-launch ordinary
+account creation interactively. Place the matching checkout under that user's
+Linux home (`~/Tiny-Swarm-World` default); `-LinuxCheckout` selects another owned
+Linux-native path. Preparation does not copy the Windows checkout. If system
+Python is absent for the read-only source probe, run `bootstrap/linux/prepare_linux.sh` in that
+Linux checkout first, then rerun Windows preparation. This prerequisite can add
+a command to the short path; it is not hidden automatic Windows execution.
+
+Expect pauses for Windows feature activation, selected-distro/systemd restart,
+capacity changes or new Incus group membership. Perform the reported scoped
+restart or full logout/login, then rerun the same preparation selection with fresh
+consent. Use WSL-wide shutdown only when the reviewed resource plan explicitly
+reports that scope; it affects all WSL2 registrations. Otherwise use the reported
+selected-distro restart. Never delete state to force readiness.
+Preserve reviewed configuration and credential overrides between terminals.
+
+The current service-access allocation plans 19 GiB node RAM plus 2 GiB WSL
+overhead, eight allocated CPU threads and 150 GiB usable disk, in addition to
+Windows reserve. A 16 GiB Windows host cannot fit it. Review actual capacity before
+apply; the plan preserves existing unrelated settings and blocks collisions.
+Preflight/dry-run are read-only; they do not establish authenticated service health.
+
+[mermaid]
+----
+flowchart TD
+  A[Trusted complete checkout] --> B{Host}
+  B -->|Native Ubuntu| C[Linux preparation]
+  B -->|Windows and WSL2| D[Windows preparation and qualification guard]
+  D --> E[Interactive account and Linux checkout]
+  E --> C
+  C --> F{Observed ready?}
+  F -->|No| G[Reported remedy or scoped restart]
+  G --> C
+  F -->|Yes and separate consent| H[Non-destructive install]
+  H --> I[Verify routes, CA trust and authentication]
+----
+
+Start at `https://service-access.tsw.local` after installation. Other configured
+routes include `https://portainer.tsw.local`, `https://jenkins.tsw.local`,
+`https://nexus.tsw.local` and `https://sonarqube.tsw.local`; DNS/bridge and public
+CA trust must be ready. See link:{user-guide-prefix}usage.adoc#open-the-services[service URLs and login].
+The default internal-test catalog is public disposable test material. Operator
+credentials take precedence; the protected default file is
+`~/.local/state/tiny-swarm-world/live-installation.env`, or the selected
+`TSW_INSTALL_ENV_FILE`. Preserve it; do not print secrets in support evidence.
+
+For elevation failure, run `sudo -v` in the same ordinary-user terminal and review
+the plan again. For new groups, fully log out/in. For active LXD, resource
+collisions or capacity blockers, preserve existing state and resolve the reported
+conflict before retrying. APT and Windows features are not transactional; automatic
+whole-host rollback is not promised. Ordinary install reconciles; explicit WSL
+`--confirm-reset` is deprecated destructive compatibility, not recovery.
+See link:{user-guide-prefix}manual-host-steps.md[manual host, CA trust and recovery]
+and link:{user-guide-prefix}troubleshooting.adoc#first-response[troubleshooting].
+
+W09's amended acceptance verifies existing Ubuntu 26.04 installations/reruns and
+selected recovery/restart cases, not fresh hosts or global release qualification.
+Ubuntu 24.04 remains an implemented candidate without W09 live qualification.
+Exact tested versions, source revisions and unresolved EPIC closure criteria are
+in link:{user-reference-prefix}handbook/07-evidence-release/evidence/issue-462-bootstrap-completion-audit.md[the bootstrap completion audit].
+
+== Choose The Right Operation
+
+This page describes installation. On supported WSL2 and native Ubuntu 24.04 or
+26.04, ordinary installation reconciles without an automatic reset. Existing
+managed nodes, data and credentials are preserved. Explicit WSL `--confirm-reset`
+is a deprecated destructive compatibility request; its managed-node data may be lost. For an existing
+environment, start with link:{user-guide-prefix}usage.adoc#daily-operation[Daily operation].
+A reset is not a repair step or a product update.
+
+For a first installation, follow the quick start above, then use
+<<ready-for-install-checklist>>. The default internal-test
+path needs no password file. Optional overrides are covered separately below.
+
+Historical RC1 acceptance does not qualify the current bootstrap candidate;
+use the source-bound bootstrap audit above for its current limits.
+
+== Operating Model
+
+Tiny Swarm World prepares a local Docker Swarm target environment on managed
+LXC nodes through Incus. The supported operator surface is the
+`tiny-swarm-world` CLI and the Linux/WSL `install.sh` wrapper. Multipass and
+Windows-native execution are not supported node-provider paths.
+
+[plantuml,installation-operator-map,svg]
+----
+@startuml
+skinparam componentStyle rectangle
+skinparam shadowing false
+
+actor Operator
+component "Linux/WSL shell" as Shell
+component "install.sh" as Installer
+component "tiny-swarm-world CLI" as CLI
+component "Incus" as Provider
+node "Managed Docker Swarm" as Swarm
+component "Service Access\nlanding page" as Access
+component "Infisical" as Infisical
+database "Ignored local env\nand evidence" as Local
+
+Operator --> Shell
+Shell --> Installer
+Shell --> CLI
+Installer --> CLI
+CLI --> Provider
+Provider --> Swarm
+Swarm --> Access
+Swarm --> Infisical
+Installer --> Local
+CLI --> Local
+Access --> Infisical : credential references
+@enduml
+----
+
+== Intended Identity Boundary
+
+Tiny Swarm World is an internal development and test environment tool. The
+deterministic catalog values are `INTERNAL/TEST ONLY` material for disposable
+local acceptance; unchanged defaults are not suitable for production, shared,
+public, or untrusted exposure.
+
+Enterprise identity and reachability remain outside the bootstrap path. AD,
+LDAP, SSO, VPN, firewall, network segmentation, and IAM policy are supplied
+and governed by the surrounding organization. When stronger or environment-
+specific credentials are required, provide them through the documented
+protected operator override or applicable Infisical path; do not edit the
+catalog or copy passwords into evidence.
+
+== Windows 11 / WSL2: Start Here
+
+This is the canonical first-install route for Windows users. Windows prepares
+the selected WSL distribution, resources and browser bridge; all TSW product
+commands execute inside Ubuntu. Do not separately install host Docker as a
+substitute for the managed-node runtime: the default `lxc_native` provider
+runs Docker Engine and Swarm **inside Incus-managed nodes**.
+
+=== 1. Check the target and available capacity
+
+* Windows 11 x86_64 with hardware virtualization enabled; an explicitly selected
+  supported Ubuntu 24.04 or 26.04 WSL2 distribution.
+* WSL2 with working systemd (PID 1), cgroups and user namespaces. Incus needs
+  usable storage, networking, and ordinary-user access.
+* Linux-native owned checkout (for example
+  `/home/<user>/projects/Tiny-Swarm-World`); do not use `/mnt/c` or `/mnt/d`
+  for the ordinary installation, protected secrets or evidence.
+* Python 3.12 or newer and venv, Git, Incus for the default backend; `socat`
+  where WSL forwarding is necessary. Optional CLI helpers include `curl` and
+  `jq`. The Linux preparation script plans the missing dependencies; do not
+  assume all packages must be manually preinstalled.
+* The `service-access` WSL preflight currently checks a 16 GiB RAM,
+  eight-thread and 150 GiB free-disk host minimum. This **does not** establish
+  sufficient aggregate capacity for the configured managed nodes. The
+  Windows W05 resource plan currently accounts for 19 GiB node memory plus
+  2 GiB WSL overhead (= 21 GiB minimum planned WSL RAM), Windows RAM/CPU
+  reserve and disk/swap requirements. Its observed plan is authoritative:
+  a 16 GiB Windows host cannot fit that default allocation. Other profiles
+  and customized node configurations may require different resources.
+  See link:{user-guide-prefix}windows-preparation.md[Windows preparation and
+  capacity planning] for the exact model and blockers.
+
+=== 2. Inspect Windows safely (elevated PowerShell)
+
+Use a complete trusted release/checkout. Preflight and dry-run are read-only:
+
+[source,powershell]
+----
+./bootstrap/windows/prepare_windows.ps1 -Help
+./bootstrap/windows/prepare_windows.ps1 -Distro Ubuntu-24.04 -Preflight
+./bootstrap/windows/prepare_windows.ps1 -Distro Ubuntu-24.04 -DryRun -Json
+----
+
+Select the exact existing distro; for a non-canonical registration, provide the
+explicit matching `-UbuntuRelease`. WSL1 is not silently converted. Preflight
+does not install missing Windows features, launch a stopped distro, or repair a
+blocked host. Apply/qualification and approval are separate, guarded operations,
+not an unattended setup shortcut. Follow the displayed remedies, restart scope
+and recheck. Windows `READY` means Windows capability readiness only; it does
+not mean Linux preparation or services have passed.
+
+=== 3. Prepare Ubuntu and run installation
+
+Keep the checkout in the ordinary user's Linux home. The Windows preparation
+handoff prints the exact distribution/user-specific command. Run that command
+interactively rather than reconstructing another distro's command. Within the
+selected Ubuntu checkout, the corresponding Linux stages are:
+
+[source,bash]
+----
+./bootstrap/linux/prepare_linux.sh --dry-run
+./bootstrap/linux/prepare_linux.sh
+./bootstrap/linux/prepare_linux.sh --preflight
+./install.sh
+----
+
+Approve each mutating preparation stage only after reviewing its plan. A pending
+account/group change or restart requires the reported operator action and a
+fresh preflight before proceeding. Installation is not automatically started
+after a blocked or partial preparation. Ordinary installation reconciles
+existing state; do not use `--confirm-reset` for routine recovery.
+
+The normal setup sequence is: verify Incus on the WSL host; prepare managed
+Incus manager/worker nodes; install or verify Docker Engine inside those nodes;
+bootstrap and verify their Docker Swarm; configure routing; deploy selected
+services; verify runtime and browser access. Host `docker info` is **not**
+proof of managed-node readiness.
+
+=== 4. Verify the installed stack
+
+Use the existing <<verify-installed-runtime,Verify The Runtime>> checks, including
+`incus list` and `incus exec swarm-manager -- docker node ls`. For Windows
+browser access, confirm the owned WSL bridge and the configured routes using
+link:{user-guide-prefix}windows-preparation.md[Windows preparation] and
+link:{user-guide-prefix}network-preparation.md[network preparation].
+A DNS entry or bridge heartbeat alone does not prove an authenticated Portainer
+login. Follow link:{user-guide-prefix}usage.adoc#open-the-services[Service access
+and login] for the service URL and effective credentials, and
+link:{user-guide-prefix}troubleshooting.adoc#first-response[Troubleshooting]
+for failures.
+
+=== Responsibility and status overview
+
+[cols="2,3,3",options="header"]
+|===
+| Stage | Owner/entry point | Success means
+| Windows prerequisites, WSL lifecycle and resource plan
+| `bootstrap/windows/prepare_windows.ps1`
+| Windows capability observed ready, **not** an installed TSW
+| Windows browser bridge
+| Owned Windows bridge, normally orchestrated by Windows preparation
+| Routing agent/configuration ready, **not** endpoint/login verification
+| Linux packages, Python, Incus access/resources and kernel/network preparation
+| `bootstrap/linux/prepare_linux.sh`
+| Linux stages observed ready for install
+| Runtime stack and managed Docker Swarm
+| `install.sh` / TSW setup
+| Managed node and deployment verification still required
+| Browser/service credentials
+| User guide usage + tested service endpoint
+| Separately verified browser access and login
+|===
+
+The older manual `bootstrap/windows/tws-wsl-bridge.ps1` entry points documented
+under <<windows-wsl-prework>> are bridge-specific operational controls, not an
+alternative end-to-end first-install recipe. Use the canonical Windows
+preparation handoff unless the documented recovery or bridge procedure calls
+for those controls explicitly.
+
+== Prerequisites
+
+For the actions that remain operator-owned, follow the
+link:{user-guide-prefix}manual-host-steps.md[manual host, certificate and recovery checklist].
+It separates preparation from CA trust in Ubuntu/WSL and Windows browsers, and
+explains authentication, group refresh, LXD conflicts and restart boundaries.
+
+On native or WSL2 Ubuntu 24.04/26.04 x86_64, use a complete trusted release
+and run `bootstrap/linux/prepare_linux.sh` as an ordinary user from an owned Linux-native
+directory. It bootstraps missing Python >=3.12/venv, Git, Incus and profile
+packages with consent, then hash-locked local Python dependencies and separately
+confirmed Incus daemon/access/resources. WSL2 must
+have working systemd before Linux preparation; the Windows lifecycle stage
+guides its setup and restart separately.
+The required runtime prerequisites are:
+
+* Python 3.12 or newer, with virtual-environment support (CI covers 3.12, 3.13 and 3.14)
+* Git
+* Incus for the default `lxc_native` node provider
+* WSL2 with systemd, cgroup, and user-namespace support when running under WSL
+* a WSL Linux-native repository path, preferably
+  `/home/<user>/projects/Tiny-Swarm-World`, when running under WSL2
+* `socat`, when WSL port forwarding is needed
+
+Optional tools for service preparation:
+
+* `curl`
+* `jq`
+
+The default `service-access` profile pulls public base images, including the
+Infisical stack image, through the managed node Docker daemon. Repeated
+fresh-install runs can hit Docker Hub rate limits. Use authenticated pulls on
+the managed node path or provide a reviewed, operator-managed external cache
+through `TSW_LXC_DOCKER_REGISTRY_MIRROR`. The former repository helper that
+rewrote the host Docker daemon configuration was removed because it bypassed
+the governed Python workflow.
+
+The managed Swarm Nexus stack still prepares its own Docker proxy repository
+for repository service behavior. Its defaults are:
+
+[source,bash]
+----
+TSW_NEXUS_DOCKER_HUB_PROXY_REPOSITORY=docker-hub-proxy
+TSW_NEXUS_DOCKER_HUB_PROXY_PORT=5001
+----
+
+The upstream defaults to `https://registry-1.docker.io`. It is derived from
+`TSW_LXC_DOCKER_REGISTRY_MIRROR` when that supported mirror override is set;
+there is no separate `TSW_NEXUS_DOCKER_HUB_PROXY_REMOTE_URL` override.
+
+If Docker Hub already blocks a required image and no local cache is available,
+point the image variables at an approved reachable cache before running
+`install.sh`:
+
+[source,bash]
+----
+export TSW_NEXUS_IMAGE=registry.local:5000/sonatype/nexus3:3.75.1
+export TSW_INFISICAL_IMAGE=registry.local:5000/infisical:v0.159.1
+export TSW_INFISICAL_POSTGRES_IMAGE=registry.local:5000/postgres:14.23-alpine3.23
+export TSW_INFISICAL_REDIS_IMAGE=registry.local:5000/redis:7.4.9-alpine3.21
+----
+
+=== Fresh nftables Hosts And Incus 6.0 LTS
+
+The network preparation inventory accepts the exact subnet-scoped single-bridge
+masquerade emitted by Incus 6.0 LTS, as well as the bridge-set/bypass pair used by
+newer Incus versions. The older form is accepted only for one managed bridge;
+multi-bridge, broadened or unrecognized NAT remains blocked.
+
+On a fresh iptables-nft host, an empty `iptables-save` result is followed by an
+explicit `iptables-save -t filter` observation. A nonempty incomplete dump still
+blocks preparation. This read-only fallback does not install firewall rules or
+replace the full nftables ownership and NAT checks.
+
+== WSL Project Filesystem Policy
+
+On WSL2, clone or place the repository on the distribution's Linux filesystem,
+for example below `/home/<user>/projects/Tiny-Swarm-World`. A checkout on a
+Windows-mounted filesystem such as `/mnt/c`, `/mnt/d`, or `/mnt/e` is supported
+only through an explicit exception and blocks live installation by default.
+Tiny Swarm World resolves symlinks and evaluates the longest matching
+`/proc/self/mountinfo` entry, including `drvfs` and WSL `9p`/`v9fs` DrvFS
+mounts. It does not hard-code one drive letter and does not move or copy the
+checkout.
+
+The non-mutating check is part of static preflight immediately after host
+classification:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world --preflight
+----
+
+The `HOST-FILESYSTEM` result reports only the filesystem classification,
+decision, override state, and safe remediation. It never exposes the resolved
+project path. An unreadable, contradictory, or unrecognized WSL mount table
+fails closed.
+
+When running intentionally from a Windows-mounted checkout, add the exact
+override to the installer:
+
+[source,bash]
+----
+./install.sh --allow-wsl-windows-filesystem
+----
+
+The override applies only to a confirmed WSL2 Windows-mounted repository. It
+does not permit unsupported hosts or an unknown filesystem. Before the legacy installer's dependency-bootstrap and live workflow phases,
+the installer records an applied override in:
+
+[source,text]
+----
+${XDG_STATE_HOME:-$HOME/.local/state}/tiny-swarm-world/installation/project-filesystem-decision.json
+----
+
+The evidence is an allowlisted schema-v1 JSON document, written atomically
+with directory mode `0700` and file mode `0600`. Its target must itself be on a
+verified Linux-native or WSL Linux filesystem. A relative `XDG_STATE_HOME`, a
+Windows-mounted evidence target, or permissions that cannot be enforced blocks
+installation. The exact resolved project path is permitted only in this
+protected local document; normal evidence, logs, CLI output, CI artifacts, and
+committed files remain path-free.
+
+== Direct CLI commands after preparation
+
+The two-command path uses wrappers and does not require manual environment setup.
+For the direct `tiny-swarm-world` commands later in this reference, activate the
+runtime environment when preparation created one, from the checkout root:
+
+[source,bash]
+----
+if [ -f "${TSW_NATIVE_LINUX_VENV:-.tiny-swarm-world/install-venv}/bin/activate" ]; then
+  source "${TSW_NATIVE_LINUX_VENV:-.tiny-swarm-world/install-venv}/bin/activate"
+fi
+----
+
+Use the same reviewed override if preparation selected a different path. Child
+preparation processes cannot activate the calling shell. In a new terminal,
+repeat activation before direct CLI commands; `install.sh` needs no activation.
+If preparation reused available system dependencies, no local venv may exist;
+use that same system Python. Module commands below do not require an installed
+`tiny-swarm-world` executable on PATH.
+
+[[_python_environment]]
+== Advanced developer setup
+
+Manual venv/pip setup and development quality gates are documented in the
+link:{user-reference-prefix}handbook/05-development/manuals/developer-manual.md#local-python-environment[Developer Manual].
+Operators use preparation above; no separate manual Python setup is required.
+
+== Artifact Contract And Readiness Preflight
+
+The selected service profile is the source of the required image inventory.
+The default `service-access` profile includes the management-stack images;
+use `--service-profile default` when the base profile is intentionally
+selected. During `setup run`, the artifact contract preflight runs after the
+general preflight and before host or platform mutation. It is non-mutating and
+checks the effective Compose image references against the typed image
+contracts, immutable tags or digests, duplicate/conflicting targets, and
+repository-local build contexts. Build-context inspection crosses the
+`PortLocalFileStorage` application port; filesystem details remain in the
+infrastructure adapter.
+
+After deployment bootstrap, the setup artifact path runs the required artifact
+bootstrap, then the bounded readiness gate, and only then `artifacts prepare`
+and `artifacts verify`. The readiness gate observes manager Docker, registry
+and Nexus endpoints/repositories, manager storage, build inputs, and the
+public pull prerequisite. Every observation uses a five-second timeout and one
+attempt by default. A failed, unknown, partial, degraded, or unavailable
+mandatory result stops image mutation and dependent deployment phases.
+
+Static contract checks and the default quality gate never call Docker, Incus,
+Swarm, registry or Nexus infrastructure. The readiness phase is live and
+requires the normal explicit live-consent contract. A local test or configured
+endpoint is not live evidence; only redacted evidence from an authorized run
+may be reported as `LIVE_VERIFIED`.
+
+During `setup run`, the executable order is: host preparation and verification,
+managed-node `platform init` and `platform reconcile`, `cluster docker`,
+`cluster swarm bootstrap`, `cluster verify`, routing exposure, and then the
+artifact and deployment phases. `platform init` does not install Docker or
+initialize Swarm; the cluster phases own those operations. If a cluster phase
+is blocked or fails, later routing, artifact, and deployment phases are marked
+`not_run`.
+
+The operator-facing installation order is therefore:
+
+. prepare and verify the Linux/WSL host and the Incus daemon;
+. select and verify the managed `lxc_native` provider resources;
+. create or reconcile the three configured managed LXC nodes;
+. install or verify Docker Engine *inside* those managed nodes;
+. initialize and verify Docker Swarm inside the managed nodes;
+. expose the configured routing/proxy boundary;
+. prepare artifacts, apply selected service stacks, and verify readiness.
+
+Host Docker is not the workload runtime for this path. A host Docker CLI may
+be installed for diagnostics, local cache helpers, or evidence probes, but the
+setup workflow installs and verifies the service workload Docker Engine inside
+the Incus-managed nodes. Do not interpret `docker info` on the host as proof
+that node-local Docker or Swarm is ready; use the managed-node checks in the
+runtime verification section.
+
+== LXC Native Provider Baseline
+
+=== Hard Host Prerequisite Boundary
+
+An active or unobservable LXD runtime blocks preparation, even when its instances
+are stopped. Preserve those instances and inspect `lxd.service`,
+`snap.lxd.daemon.service` and `snap.lxd.daemon.unix.socket` with `systemctl show`
+before retrying. The presence of an inactive LXD executable alone does not block.
+Preparation never stops, disables, removes or migrates LXD automatically. Resolve
+the conflict through a separately planned, reversible operator action or use an
+isolated host; do not delete LXD state to make preflight pass.
+
+The default provider is `lxc_native` through the managed Incus backend. An
+Incus host management layer is therefore a hard prerequisite before a live
+Tiny Swarm World run. The separate `bootstrap/linux/prepare_linux.sh` step can install the
+Ubuntu Incus package and its bridge dependency `dnsmasq-base` after operator
+confirmation. After package/Python readiness, it explicitly plans and separately
+confirms Incus daemon startup, current-user group access and missing resolved
+storage/network/Swarm profiles. It never runs `admin init`, edits the global
+default profile, replaces an existing pool/bridge, or repairs/restarts a failed
+daemon. Compatible resources are reused; incompatible names, settings, host
+interfaces or overlapping subnets block with remediation. Initial setup uses
+the declared resource names, a directory pool, and a collision-free private IPv4
+NAT/DHCP bridge. Existing compatible storage drivers and bridge subnets survive.
+
+Run `./bootstrap/linux/prepare_linux.sh --dry-run` to inspect the exact stage without writing host,
+configuration, state or evidence. Apply prompts for exact `yes` at each newly
+observable stage; EOF/refusal stops it. Startup/group actions use narrow `sudo -n`
+commands: authenticate with `sudo -v` if required, then review and rerun preparation.
+Privileged preparation subprocesses retain that terminal session while running
+in separate process groups for bounded timeout/cancellation cleanup. This lets
+`sudo -n` use the terminal-scoped authentication established by `sudo -v`;
+preparation does not collect passwords or change the host's sudo policy.
+The Windows bridge subprocess prioritizes its own PowerShell built-in modules
+over inherited module paths and emits UTF-8. It does not change persistent
+Windows execution policy; explicit install retains the existing credential dialog.
+The bridge fingerprints the hosts file as plain UTF-8 text, excluding PowerShell
+filesystem-provider metadata that could otherwise stall read-only inventory.
+Read-only Windows bridge inventory has a bounded 90-second budget for firewall
+and service queries. Listener ownership accepts System or the verified running
+LocalSystem IP Helper service at the canonical Windows service-host path, with
+the existing exact protected portproxy mapping still required.
+If preparation reports that noninteractive sudo authentication is unavailable,
+run the following commands in the same WSL terminal and keep that terminal open:
+
+[source,bash]
+----
+sudo -v
+./bootstrap/linux/prepare_linux.sh --dry-run
+./bootstrap/linux/prepare_linux.sh
+./bootstrap/linux/prepare_linux.sh --preflight
+./install.sh --preflight --headless
+----
+
+Review each proposed stage before entering `yes`. A successful preparation and
+installer preflight confirm prerequisites only; service endpoints and logins
+remain unverified until the installation and applicable service checks complete.
+
+New persisted `incus-admin` membership returns RESTART_REQUIRED/3; log out and
+log back in (opening another shell in the same login may retain stale groups),
+then rerun `bootstrap/linux/prepare_linux.sh`. No resource mutations follow an access restart.
+Version/info and every declared resource must be observed as the ordinary user
+without sudo before Incus READY/0. Pending/collision/refusal is BLOCKED/2; failures
+with confirmed or uncertain effects are PARTIAL/4, with transport timeout/124 or
+interruption/130 retained. Redacted action evidence uses the existing private
+state evidence directory. No automatic rollback/deletion or installation follows.
+Incus READY is capability readiness; kernel controls, Windows/browser access,
+full installation handoff and working services retain their own checks.
+See `documentation/handbook/02-architecture/arc42/09_decisions/adr-explicit-incus-preparation.adoc`.
+
+From the same Linux/WSL shell that will run `install.sh`, the current user
+must be able to run the provider client without `sudo`:
+
+[source,bash]
+----
+incus version
+incus info
+----
+
+If the host operator changed `incus-admin` or another provider-access group,
+log out and log back in before running these checks. Do not hide a missing
+permission behind `sudo`; the installer and preflight must observe the same
+user-level access that the live workflow will use.
+
+The ready-for-install checklist below is the operator path. The technical
+provider boundary and optional target-specific smoke are maintained in
+`documentation/handbook/04-operations/system/lxc-native-setup.adoc`.
+
+Backend selection first honors an explicit `--lxc-backend incus` override,
+then `backend_selection.preferred_backend` in
+`infra/config/node-providers/provider_config.yaml`.
+
+Backend resource names are configured under
+`provider_resource_resolution.backends.<backend>`. The committed defaults map
+Incus `control` traffic to `incusbr0` with `default` as the storage pool.
+Override the Incus section before live setup when the local network bridge or
+storage pool uses a different name.
+
+For Incus, follow the official installation instructions for the host
+distribution, then verify access from the same shell:
+
+[source,bash]
+----
+incus version
+incus info
+----
+
+Run the project preflight before live mutation:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world --preflight
+PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend incus --preflight
+----
+
+The live `setup run` sequence performs `host prepare` and read-only `host
+verify` after preflight; the separate preparation command owns Incus initialization. To prepare the
+Windows/WSL bridge independently, use the dedicated host command and provide
+the explicit live consent flags. If WSL does not expose the canonical
+ProgramData location at `/mnt/c`, set `TSW_WINDOWS_WSL_BRIDGE_STATE_PATH` to
+the protected bridge-state file before running preflight.
+
+See `documentation/handbook/04-operations/system/lxc-native-setup.adoc` for the full WSL2 and
+Incus setup notes and official references.
+
+[[ready-for-install-checklist]]
+== Ready-For-Install Checklist
+
+Complete this checklist from the same Linux/WSL shell that will run
+`install.sh`. The first items are static/read-only checks. The optional
+temporary-container smoke is a small live provider check and requires explicit
+operator approval; it is not part of the repository quality gate.
+
+* [ ] The shell is native Linux or WSL2 with the required systemd/cgroup/user-
+  namespace capabilities.
+* [ ] The repository is on a Linux-native path when running under WSL2, or the
+  explicit filesystem override is intentionally approved.
+* [ ] Incus is installed and initialized by the host operator; the current user
+  runs `incus version` and `incus info` without `sudo`.
+* [ ] The selected Incus storage pool, network bridge, and required profile
+  state are available to that same user.
+* [ ] Python dependencies are installed and `python3 tools/linux/quality_gate.py
+  quality` is green when local development verification is required.
+* [ ] `PYTHONPATH=src python3 -m tiny_swarm_world --preflight` passes its static
+  checks before any live consent is supplied.
+* [ ] The standard internal-test catalog is selected, or intentional overrides
+  are available from the protected source described below. The default path
+  requires no credential file.
+* [ ] The managed environment is disposable or its needed data is backed up;
+  native Linux installation reconciles without an automatic reset, while the
+  separately confirmed WSL fresh-install path may reset managed state.
+* [ ] For WSL2 Windows-browser access, the required Windows bridge is ready.
+  Native Linux does not need that bridge.
+
+The detailed optional smoke appears in the Incus baseline below. After this
+checklist, continue with the ordered runtime path: host preparation and
+verification, managed LXC nodes, Docker Engine inside those nodes, Swarm
+bootstrap, routing, artifacts, deployment, and final verification.
+
+== Advanced developer runtime checklist
+
+Use this checklist when preparing a new developer workstation for the default
+local runtime environment. Run project commands from a Linux or WSL shell in
+the repository root. The browser can run on the host operating system, but the
+automation commands remain Linux/WSL commands.
+
+=== 1. Verify The Host Shell
+
+Confirm that the shell is Linux or WSL2 and that the repository is reachable
+through a Linux path. Under WSL2, prefer a path below the Linux home directory:
+
+[source,bash]
+----
+pwd
+uname -a
+python3 --version
+git status --short --branch
+----
+
+When using WSL, verify that systemd is available:
+
+[source,bash]
+----
+systemctl is-system-running || true
+cat /proc/sys/kernel/unprivileged_userns_clone 2>/dev/null || true
+----
+
+`unprivileged_userns_clone` should be `1` when the file exists. If group
+membership was changed for Incus access, close and reopen the shell before
+continuing.
+
+=== 2. Prepare Python Dependencies
+
+Complete <<_advanced_developer_setup,Advanced developer setup>> once per checkout,
+then activate the development `.venv` in each new shell. Operators use the
+preparation quick start instead. Development verification is a separate step;
+install `requirements-dev.txt` before running its quality gate.
+
+=== 3. Verify Incus Baseline And Optional Smoke
+
+The default provider is Incus-backed `lxc_native`. Verify the daemon first.
+The temporary-container smoke below is optional and changes provider state;
+run it only when that isolated test and its cleanup are intentional:
+
+[source,bash]
+----
+incus version
+incus info
+incus launch images:ubuntu/24.04 test-incus
+incus exec test-incus -- cat /etc/os-release
+incus delete test-incus --force
+----
+
+Run the temporary-container block only when a live provider smoke is approved.
+If `incus launch` succeeds but a later command fails, delete the named
+`test-incus` container before retrying. Do not use broad container cleanup.
+
+The normal project setup creates and owns the managed nodes. Do not manually
+create `swarm-manager`, `swarm-worker-1`, or `swarm-worker-2` unless a
+documented recovery step tells you to do so.
+
+=== 4. Prepare Kernel And Bridge Networking
+
+The installer and native `host prepare` verify the required kernel controls.
+The separately consented W06 preparation capability plans and applies them on
+Linux and WSL, including safe module/sysctl persistence and scoped forwarding:
+
+[source,bash]
+----
+./bootstrap/linux/prepare_linux.sh --dry-run
+./bootstrap/linux/prepare_linux.sh
+./bootstrap/linux/prepare_linux.sh --preflight
+----
+
+Review each stage before approving it. W06 loads `br_netfilter` only when
+required and changes only the three canonical controls. It preserves existing
+firewall ownership and incompatible persistence files. The owned sysctl target
+is `/etc/sysctl.d/90-tiny-swarm-world.conf`; cleanup does not remove host
+persistence. See link:network-preparation.md[Kernel and browser-access
+preparation] for blockers, preservation and rerun behavior.
+
+Native `deployment bootstrap` and `deployment apply` check current host kernel
+prerequisites before deployment mutation. Their verification alone does not
+prove boot persistence or service recovery. After an explicitly approved host
+reboot, verify module-load logs and all three effective controls:
+
+[source,bash]
+----
+sysctl net.ipv4.ip_forward
+sysctl net.bridge.bridge-nf-call-iptables
+sysctl net.bridge.bridge-nf-call-ip6tables
+----
+
+If Docker started while the required controls were missing, inspect its startup
+logs and approve a targeted restart through the managed-node runtime access
+path. Verify convergence and authenticated access separately. Stop if errors
+persist; do not delete networks, volumes or Swarm state as automatic recovery.
+
+Docker Swarm overlay networking uses VXLAN. On WSL, `lsmod` may not show a
+separate `vxlan` module even when VXLAN links can be created. Use a temporary
+link test instead:
+
+[source,bash]
+----
+DEFAULT_IFACE="$(ip route show default | awk '{print $5; exit}')"
+sudo ip link add vxlan-test type vxlan id 42 dev "$DEFAULT_IFACE" dstport 4789
+echo "vxlan_create=$?"
+ip link show vxlan-test
+sudo ip link delete vxlan-test
+----
+
+`vxlan_create=0` confirms that the kernel path is usable for the local Swarm
+overlay test. Remove the test link immediately as shown above.
+
+For host kernel, scoped forwarding and local names, inspect and approve the
+separate preparation command before rerunning setup:
+
+[source,bash]
+----
+./bootstrap/linux/prepare_linux.sh --dry-run
+./bootstrap/linux/prepare_linux.sh
+----
+
+Preparation resolves the declared provider bridge/subnet, preserves the host
+firewall owner and blocks conflicting rules. See
+link:network-preparation.md[Kernel and browser-access preparation] for supported
+owners, preservation and separate readiness stages.
+
+[[operator-credential-overrides]]
+=== 5. Optional Operator Credential Overrides
+
+The standard internal-test path requires no credential preparation. It resolves
+the deterministic `INTERNAL/TEST ONLY` catalog values documented in the
+canonical link:{user-reference-prefix}handbook/02-architecture/arc42/08_configuration/internal-test-credential-catalog.md[credential catalog]
+and prints service targets after a successful run without printing passwords.
+
+For standalone preflight on an isolated, disposable test system, the
+link:{user-reference-prefix}handbook/02-architecture/arc42/08_configuration/internal-test-credential-catalog.md[catalog]
+values can be written once to a protected local file:
+
+[source,bash]
+----
+export TSW_INSTALL_ENV_FILE="$HOME/.local/state/tiny-swarm-world/live-installation.env"
+install -d -m 700 "$(dirname "$TSW_INSTALL_ENV_FILE")"
+PYTHONPATH=src python3 tools/linux/create_internal_test_env_file.py "$TSW_INSTALL_ENV_FILE"
+PYTHONPATH=src python3 -m tiny_swarm_world --preflight
+----
+
+The helper preserves an existing file. The catalog values are public test
+credentials; a future production or shared deployment must use operator-owned
+credentials instead. An existing file with empty entries still needs values
+before standalone preflight can pass.
+
+Copy `.env.example` only when you need to provide an explicit operator
+override:
+
+[source,bash]
+----
+install -d -m 700 "$HOME/.local/state/tiny-swarm-world"
+export TSW_INSTALL_ENV_FILE="$HOME/.local/state/tiny-swarm-world/live-installation.env"
+# Copy only for a new override file; preserve an existing file.
+if [ ! -e "$TSW_INSTALL_ENV_FILE" ]; then
+  (umask 077; cp .env.example "$TSW_INSTALL_ENV_FILE")
+fi
+chmod 600 "$TSW_INSTALL_ENV_FILE"
+----
+
+Use a private editor to set only the overrides you intend; leave other entries
+empty to use the catalog. The file and its immediate directory must belong to
+your effective user and group, with modes `0600` and `0700` respectively.
+Do not use symlinked files/directories. Keep this location Linux-native even
+when the source checkout is under `/mnt/*`. Export `TSW_INSTALL_ENV_FILE` again
+in a new shell so the installer selects the same file. This file is an optional operator override input; the normal installer resolves all other
+values from the catalog and does not generate or rotate credential files. Do
+not paste values from it into logs, issues, chat, commits, or documentation.
+
+For an authorized WSL2 live run from a checkout under `/mnt/<drive>`, set
+`TSW_INSTALL_ENV_FILE` to a WSL-native `0600` file outside the checkout and
+keep live evidence under a verified WSL-native `0700` root. The source-tree
+override does not make a mounted Windows filesystem safe for credentials. See
+`documentation/handbook/07-evidence-release/evidence/wsl2-secure-live-path.md` for the complete procedure.
+
+Important login-related keys include:
+
+* `TSW_PORTAINER_USERNAME`
+* `TSW_PORTAINER_ADMIN_PASSWORD`
+* `TSW_PULSAR_ADMIN_TOKEN`
+* `TSW_PULSAR_MANAGER_ADMIN_PASSWORD`
+
+Use the catalog for default login details and the protected source for explicit
+overrides. Dashboard references do not prove that service values have been
+synchronized into Infisical. The current self-hosted workflow rejects external
+Infisical mode; see
+link:{user-reference-prefix}handbook/02-architecture/arc42/08_configuration/credential-source-precedence.md[credential source precedence].
+
+[[optional-infisical-seeding]]
+==== Optional Infisical Item Seeding For A Fresh Run
+
+To request legacy Infisical item seeding during the fresh installation in
+step 7, set this option in the same Linux/WSL shell:
+
+[source,bash]
+----
+export TSW_SEED_INFISICAL_ITEMS=1
+----
+
+Continue with route preparation and installation below. Ordinary installation
+reconciles managed state without resetting it. Do not run the full installer
+solely to populate missing Infisical items in an existing environment; review
+the supported synchronization contract first.
+
+The default installer value is `TSW_SEED_INFISICAL_ITEMS=0`, so do not assume
+that every catalog-managed service credential has already been copied into
+Infisical unless the setup evidence confirms it.
+
+=== 6. Configure Local Route Names
+
+Traefik owns local HTTP and HTTPS ingress on ports `80` and `443`. Hostname
+resolution must map the routed names to the local machine; DNS does not route
+traffic by itself. It only makes the browser send the correct host name to
+Traefik.
+
+Prometheus, Grafana, app, and API host routes are conditional. They appear in
+the generated access model, dashboard, health targets, and browser matrix only
+when the corresponding service is enabled by the selected configuration.
+
+[[windows-wsl-prework]]
+==== Complete The Required Windows Prework For WSL2
+
+When running Tiny Swarm World in WSL2 with the default Windows exposure, prepare
+the Windows side *before* starting `install.sh`. The installer deliberately
+stops before platform mutation when this bridge is missing, degraded, or stale.
+
+First confirm from Windows PowerShell that the intended WSL2 distribution is
+running and uses `systemd` as PID 1:
+
+[source,powershell]
+----
+wsl --list --verbose
+wsl -d <DistributionName> --exec sh -lc "ps -p 1 -o comm="
+----
+
+The second command must print `systemd`. Then open *PowerShell as
+Administrator* in the Tiny Swarm World repository root. If this is not the
+Windows default WSL distribution, first set its exact name in
+`bootstrap/windows/tws-wsl-bridge.config.json` instead of keeping the automatic
+`"distro": "auto"` selection. Then run:
+
+[source,powershell]
+----
+Set-ExecutionPolicy -Scope Process Bypass
+.\bootstrap\windows\tws-wsl-bridge.ps1 -Action prerequisites
+.\bootstrap\windows\tws-wsl-bridge.ps1 -Action install
+----
+
+The first service installation opens a Windows credential dialog. Use the
+Windows account that owns the WSL distribution and enter its normal Windows
+password, not the Windows Hello PIN. The password is passed to the Windows
+Service Control Manager and is not stored in the repository.
+
+Installation publishes a protected runtime bundle below
+`%ProgramData%\TinySwarmWorld\WslBridge`; the service does not execute mutable
+files directly from the checkout. Re-run the elevated `-Action install` after
+reviewed bridge, configuration, or port-registry changes to upgrade that
+bundle.
+
+The protected heartbeat is stored at
+`%ProgramData%\TinySwarmWorld\WslBridge\bridge-state.json` and read from WSL via
+`/mnt/c/ProgramData/TinySwarmWorld/WslBridge/bridge-state.json`. The service does
+not write a checkout mirror. Hosts with a non-default WSL automount must expose
+the canonical ProgramData location before live setup.
+
+The tracked default uses `"listenAddress": "0.0.0.0"` and managed inbound
+Firewall rules, so its listeners are not limited to Windows loopback. Review
+the bridge configuration and Windows network profile before installation when
+the host is connected to an untrusted network.
+
+Verify the completed prework before returning to the WSL shell:
+
+[source,powershell]
+----
+Get-Service -Name TinySwarmWorldWslBridge
+.\bootstrap\windows\tws-wsl-bridge.ps1 -Action status
+----
+
+The service must report `Running`, and bridge discovery must report `READY`.
+The service then keeps the Windows portproxy, Firewall, `*.tsw.local` hosts
+entries, and current WSL address aligned automatically.
+
+Only when Windows browser and localhost exposure are intentionally not needed,
+disable that contract explicitly in the WSL shell before installation:
+
+[source,bash]
+----
+export TSW_WINDOWS_EXPOSURE=disabled
+----
+
+If all prerequisites pass but `-Action install` reports
+`The Windows bridge service ACL did not reach the required exact state.`,
+inspect for a leftover `.bridge-state.json.<id>.bak` file using
+link:{user-guide-prefix}troubleshooting.adoc#windows-wsl-bridge-acl[the bridge ACL recovery steps].
+That procedure explains the Windows administrator commands, deletion of the
+confirmed backup, bridge reinstallation, and return to the WSL installer.
+The filesystem exception `--allow-wsl-windows-filesystem` does not bypass or
+repair bridge preparation.
+
+See `bootstrap/windows/README.windows-wsl-bridge.md` for distro selection, repair,
+status, verification, and uninstall details.
+
+==== Linux Shell Name Resolution
+
+The separately consented `bootstrap/linux/prepare_linux.sh` network stage maintains a
+delimited Linux `/etc/hosts` block from the canonical port registry. Review with
+`./bootstrap/linux/prepare_linux.sh --dry-run`; existing unrelated entries and metadata are
+preserved. Conflicting names outside the owned block stop preparation for owner
+review instead of creating duplicates. See
+link:network-preparation.md[Kernel and browser-access preparation].
+
+For Windows browsers, use the managed bridge configured above. The bridge
+maintains the Windows host entries; do not add a second competing set.
+Name resolution alone does not establish forwarding, TLS trust or service health.
+
+=== 7. Run The WSL2 Installation
+
+This WSL2 step reconciles the managed environment. Complete the checklist above
+and shared Linux preparation first; keep checkout/runtime/evidence on Linux-native storage. Use the default
+`service-access` profile for the full local runtime. The
+current LXC Swarm ingress path requires an explicit privileged-ingress opt-in
+when the managed Incus profile needs privileged Swarm settings:
+
+[source,bash]
+----
+export TSW_LXC_ALLOW_PRIVILEGED_SWARM_INGRESS=1
+./install.sh --headless --non-interactive-live-approval
+----
+
+Without `--headless`, the installer uses the interactive terminal recorder.
+Without `--confirm-reset`, reset is skipped. The flag explicitly requests and
+confirms deprecated destructive fresh-reset compatibility; it forwards the exact
+`RESET_TINY_SWARM_PLATFORM` confirmation to the reset CLI. Without `--non-interactive-live-approval`, it asks the
+normal live-infrastructure confirmation prompt.
+
+Only an explicit WSL `--confirm-reset` request first runs:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world platform reset --live --confirm RESET_TINY_SWARM_PLATFORM --service-profile service-access
+----
+
+Ordinary installation runs setup directly; explicit reset installation proceeds
+to setup only after reset succeeds:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world setup run --live --service-profile service-access
+----
+
+The run writes evidence under
+`${XDG_STATE_HOME:-$HOME/.local/state}/tiny-swarm-world/evidence/installation-tests/<host-runtime>/<UTC timestamp>/`
+by default. If `TSW_LIVE_EVIDENCE_ROOT` is set, it selects the root before
+`<host-runtime>/<UTC timestamp>/` is appended. The root and run directories
+must be protected Linux-native storage. Use the exact directory printed by
+the installer; old checkout-local evidence is historical.
+Use `reset-run.exit`, `setup-run.exit`, and the matching logs to diagnose a
+failed or blocked run.
+
+The WSL2 `service-access` preflight retains its 16 GiB RAM, eight-thread and
+150 GiB free-disk minimum. Native Linux clean-host preparation uses a separate
+15 GiB RAM floor. This host minimum does not reserve managed-node memory or
+establish live qualification at that capacity. Managed node limit checks still protect capacity during
+node creation; a previously installed platform can reconcile when those checks
+and the current resource and memory-pressure checks pass.
+
+Before stack apply, the deployment workflow also writes the selected effective
+access model to
+`.tiny-swarm-world/evidence/solid-typed-evidence/routing/effective-access-model.json`.
+This redacted file contains configured routing evidence and only credential
+labels plus Infisical item references. Its `result: generated` value does not
+prove that a route is deployed or reachable.
+
+The cluster boundary is verified before routing or deployment continues. The
+Docker phase checks every configured managed node. The Swarm bootstrap phase
+initializes the manager before any worker join and refuses a missing or
+unavailable worker credential. The cluster verification phase reads structured
+membership from the managed manager and requires all expected nodes to be
+observed as Docker `Ready` and `Active`, with the manager in `Leader` state.
+These checks are live-operation behavior; this guide does not claim that they
+have passed on a live host without matching redacted `LIVE_*` evidence.
+
+For public-CA inspection, explicit Windows current-user trust through the
+optional helper or certificate GUI, and trust removal, follow the
+link:{user-guide-prefix}manual-host-steps.md#optional-windows-current-user-trust-helper[manual certificate steps].
+Neither installation nor the bridge imports a Windows CA automatically.
+
+[[verify-installed-runtime]]
+=== 8. Verify The Runtime
+
+Start with the non-mutating workflow, keeping the installed service profile:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world --service-profile service-access platform verify
+----
+
+Then verify the managed nodes and Swarm state:
+
+[source,bash]
+----
+incus list --format compact
+incus exec swarm-manager -- docker node ls
+incus exec swarm-manager -- docker stack ls
+incus exec swarm-manager -- docker service ls
+----
+
+Then check routed service reachability from the same environment where the
+browser will run. The following `-k` probes deliberately skip certificate
+verification; they are diagnostic HTTP checks only, not TLS or login acceptance.
+Repeat the required checks without `-k` once the configured CA is trusted, and
+verify actual authenticated access separately:
+
+[source,bash]
+----
+curl -k -sS -o /dev/null -w 'service-access %{http_code}\n' https://service-access.tsw.local/
+curl -k -sS -o /dev/null -w 'portainer %{http_code}\n' https://portainer.tsw.local/
+curl -k -sS -o /dev/null -w 'nexus %{http_code}\n' https://nexus.tsw.local/
+curl -k -sS -o /dev/null -w 'jenkins %{http_code}\n' https://jenkins.tsw.local/login
+curl -k -sS -o /dev/null -w 'pulsar-manager %{http_code}\n' https://pulsar.tsw.local/
+curl -k -sS -o /dev/null -w 'pulsar-api %{http_code}\n' https://pulsar-api.tsw.local/admin/v2/clusters
+curl -k -sS -o /dev/null -w 'sonarqube %{http_code}\n' https://sonarqube.tsw.local/api/system/status
+curl -k -sS -o /dev/null -w 'swagger %{http_code}\n' https://swagger.tsw.local/
+curl -k -sS -o /dev/null -w 'infisical %{http_code}\n' https://infisical.tsw.local/
+----
+
+For authentication-protected endpoints, `401`, `403`, or a login page can be
+valid reachability evidence. For the Pulsar Admin API, a request without the
+bearer token should be treated as a route/authentication check, not as a
+service failure. For an authenticated check, obtain the effective token privately
+from its configured source and use an approved private API client that does not
+expose the token in shell history, process arguments or shared diagnostics.
+Do not source the optional override file unconditionally: a default installation
+does not create that file, and an empty placeholder is not a resolved token.
+A successful authenticated cluster-list response should include `standalone`.
+A login page or HTTP 200 from Jenkins likewise does not prove authentication.
+The Jenkins image must install `setup.groovy` readable by the `jenkins` user
+(`jenkins:jenkins`, mode `0644`). If a fresh install serves anonymous Jenkins
+responses despite a configured admin password, inspect the image file mode and
+the current service task log before accepting the installation as complete.
+
+=== 9. Login Targets
+
+Open link:{user-guide-prefix}usage.adoc#open-the-services[the service routes] from your intended
+browser, then follow link:{user-guide-prefix}usage.adoc#infisical-credentials[the credential access
+procedure]. Those sections are the canonical sources for service URLs,
+service-specific identities and Infisical synchronization limits.
+
+=== 10. Re-run And Recovery Rules
+
+Stack-asset reruns validate complete received bytes before updating live files.
+Identical content leaves file inode, mode and modification time unchanged;
+changed content preserves the inode required by existing Docker bind mounts.
+A truncated receive fails before publication. The final local write is not
+crash-atomic: a publication failure remains an error and needs a successful
+rerun. Unknown exit code 255 errors are not automatically classified as transient.
+
+Start with read-only verification and classify the first failed phase.
+Use link:{user-guide-prefix}usage.adoc#daily-operation[Daily operation] to choose between platform
+reconciliation, broader setup without a preliminary reset, and a deliberate
+fresh reset. Reuse the same service profile and effective configuration.
+
+Ordinary `install.sh` reruns reconcile the broader platform on both WSL2 and
+native Linux. WSL2 fresh reset requires the explicit deprecated `--confirm-reset`
+option; prefer the separately confirmed reset below when destruction is intended.
+Use the canonical `platform update` contract for a reviewed
+single-service image transition and follow it with the acceptance checks.
+
+If a developer intentionally needs to discard the managed local environment,
+use the governed reset path rather than deleting arbitrary Incus resources:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world platform reset --live --confirm RESET_TINY_SWARM_PLATFORM --service-profile service-access
+----
+
+If direct `tsw-proxy-*` instance devices block reset or expose operations,
+repair only the reviewed Tiny Swarm World proxy drift:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world platform repair-lxc-proxy-drift --live
+----
+
+Do not commit `.tiny-swarm-world/`, `.tiny-swarm/`, `.venv/`, coverage files,
+or any local secret file.
+
+== Repository Runtime Model
+
+Python source code lives under `src/tiny_swarm_world` and uses package imports
+such as `tiny_swarm_world.application...`,
+`tiny_swarm_world.domain...`, and `tiny_swarm_world.infrastructure...`.
+Install the repository in editable mode from a Linux or WSL shell before
+operator runs:
+
+Example:
+
+[source,bash]
+----
+python3 -m pip install --no-deps -e .
+tiny-swarm-world
+----
+
+Manual source-checkout commands can still use
+`PYTHONPATH=src python3 -m tiny_swarm_world`. `tools/linux/quality_gate.py` sets the
+needed source path for repository checks.
+
+List supported workflow-level commands without building application services:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world --list-workflows
+----
+
+== IntelliJ Execution Context
+
+IntelliJ is supported as a Linux/WSL shell surface for this project. Configure
+the run configuration to use the WSL or Linux Python interpreter, repository
+root working directory, and the same environment that passes the shell
+preflight checks. The command remains:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+----
+
+The live confirmation prompt requires stdin. Run the command from an IntelliJ
+terminal or a run configuration that can answer the prompt. This does not add
+Windows-native execution support.
+
+The safe setup probe is:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world setup run
+----
+
+Without the complete live-consent contract, `setup run` refuses before setup
+services are constructed and prints `REFUSED_LIVE_CONSENT_MISSING`. This is
+the expected safe default.
+
+The canonical live operator command uses `lxc_native` by default:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+----
+
+For native Ubuntu 24.04 or 26.04 LTS on x86_64, run host preparation separately before
+the installer. Review the read-only plan first. `bootstrap/linux/prepare_linux.sh` uses only
+Ubuntu host packages needed by the Incus profile; Docker Engine and Swarm are
+installed inside managed Incus nodes by the setup workflow.
+
+Issue #427 qualifies a clean first installation, safe second run and recovery
+on Ubuntu 26.04 LTS. Ubuntu 24.04 is still accepted by the host preflight,
+but its live release qualification is tracked separately. A rerun on an
+already populated host proves reconciliation, not a first installation.
+
+[source,bash]
+----
+./bootstrap/linux/prepare_linux.sh --preflight
+./bootstrap/linux/prepare_linux.sh --dry-run
+./bootstrap/linux/prepare_linux.sh
+./install.sh --preflight
+./install.sh --dry-run
+./install.sh
+----
+
+`install.sh --preflight` checks native host prerequisites, package inventory,
+configuration, credentials and setup readiness without writes. `--dry-run`
+performs the same checks and prints the planned installer stages. Run
+`bootstrap/linux/prepare_linux.sh` first when the local Python environment is missing.
+
+`bootstrap/linux/prepare_linux.sh` asks the operator to type `yes` before changing packages or
+preparing the checkout-local Python environment from `requirements.lock`.
+Its read-only modes report that work without creating a virtual environment.
+After packages/Python, it separately plans and confirms Incus startup/access
+and resolved resource creation, then kernel/forwarding/local-name preparation.
+Each stage has its own consent and preservation checks. It does not deploy
+services. `install.sh` never invokes it. If preparation is missing, the native
+installer stops and prints the separate preparation command; it does not
+bootstrap Python dependencies itself. The preparation shell can bootstrap
+missing Python >=3.12 and venv support after explicit interpreter-stage consent;
+help, preflight and dry-run need no Python and write no state/evidence.
+Only narrowly scoped package, Incus and network actions elevate; the ordinary
+account owns the checkout, Python environment and preparation evidence.
+Unsupported releases, WSL1, missing WSL systemd, root
+execution or unsafe project/venv ownership block mutation. An unknown nonempty
+venv target is preserved; choose a different `TSW_NATIVE_LINUX_VENV`. A native rerun
+rechecks prerequisites and runs the existing setup reconciliation without an
+automatic reset. A deliberate reset uses the separately confirmed `platform
+reset` command.
+
+The native preflight requires Ubuntu 24.04 or 26.04 LTS on x86_64. For the
+`service-access` profile, provide at least eight CPU threads, 15 GiB RAM and
+150 GiB free space on the repository filesystem. The `default` profile
+requires four CPU threads, 16 GiB RAM and 60 GiB free space. Preparation
+checks the selected profile's resource floor before package changes. It
+checks package privilege, repository write access and conflicting runtimes.
+Kernel controls and host ports remain installer-readiness guards, outside
+the package/Python substage. WSL service-access retains 16 GiB RAM. A healthy rerun
+with all host packages present relies on setup's profile-aware port preflight.
+DNS and HTTPS connectivity to Ubuntu
+package sources are required when packages are missing. Review kernel, Incus,
+bridge and firewall plans through the separate preparation command. Unknown
+owners and incompatible existing resources remain preserved and blocked;
+preparation never silently replaces them or disables the firewall.
+For a password-protected sudo account, run `sudo -v` in the same terminal
+before preparation so the read-only permission probe can verify APT access.
+
+APT changes are not transactional. A failed preparation records confirmed
+package state observed after the attempt and uncertain package state in protected
+local evidence. A protected operation-start record is written before APT.
+Inspect APT state and the printed evidence file, correct the cause, then rerun
+`./bootstrap/linux/prepare_linux.sh --preflight` and `bootstrap/linux/prepare_linux.sh`. The next run
+installs only packages still missing. Do not remove packages automatically:
+other applications may use them. For uninstall, first use the separately
+confirmed managed-platform destroy or reset operation as appropriate; review
+the preparation evidence and remove only operator-approved host packages
+whose other consumers have been checked. Existing credentials and operator
+configuration are preserved on native installer reruns.
+
+[[native-node-memory-budget]]
+=== Native node memory budget and deliberate fresh installation
+
+The 15 GiB host floor is separate from the configured node limits. The
+repository defaults are manager 10 GiB, worker 1 8 GiB and worker 2 1 GiB
+(19 GiB total). Reducing the host floor does not reduce these limits or
+establish that all services fit on a 15 GiB host.
+
+For a host-specific allocation, copy the infrastructure configuration and use
+the supported `TSW_INFRA_ROOT` override:
+
+[source,bash]
+----
+mkdir -p .tiny-swarm-world/local
+cp -a infra .tiny-swarm-world/local/installation-infra
+export TSW_INFRA_ROOT="$PWD/.tiny-swarm-world/local/installation-infra"
+----
+
+Use a new destination for this copy; preserve an existing local installation
+configuration. Edit `config/node-providers/provider_config.yaml` under that
+local infrastructure root using its YAML `nodes[].resources.memory` fields.
+Reuse the same override for installation, verification and subsequent
+operations. Keep local configuration and credentials out of Git.
+
+The 2026-10-03 native Linux run used manager 8 GiB, worker 1 6 GiB and worker 2
+3 GiB (17 GiB total) on an 18.73 GiB host. Installer and platform verification
+passed, as did 25 functional E2E tests and seven API authentication checks.
+The manager reached its 8 GiB limit with memory-limit events; no node OOM or
+node swap was observed. Host swap was already occupied and increased during
+the run. The workers' observed peaks were below 1 GiB; spare worker RAM is
+not automatically available to services placed on the manager. Treat this
+allocation as functionally tested with little manager reserve, rather than
+sustained-load qualification. Formal E2E acceptance remained `LIVE_PARTIAL`
+because the tested source had uncommitted changes. See
+link:{user-reference-prefix}handbook/07-evidence-release/evidence/issue-363-native-fresh-install-20261003.md[the redacted run summary].
+
+For an explicitly intended fresh managed installation on native Linux, reset
+the configured managed nodes separately before invoking the installer:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world platform reset --live --confirm RESET_TINY_SWARM_PLATFORM --service-profile service-access
+./install.sh --headless --non-interactive-live-approval
+----
+
+Run the installer only after reset succeeds. This discards the managed nodes
+and their service data. The prepared host, operator configuration and
+unrelated provider resources are retained; this is a fresh managed platform,
+not the clean-host qualification scenario in issue #427.
+
+For ordinary WSL2 reconciliation with local evidence capture, use:
+
+[source,bash]
+----
+./install.sh
+----
+
+`install.sh` is intentionally a minimal Linux/WSL bootstrapper. The
+authoritative installer policy is `python3 -m tiny_swarm_world.simple_installer`:
+that Python entry point owns secret handling, host-runtime detection, evidence
+layout, shared reconciliation sequencing, prepared-Python selection, and headless
+execution. The shell wrapper only verifies the repository shape and delegates.
+
+For deliberately destructive WSL2 test-system automation, the deprecated reset
+compatibility request requires its explicit exact confirmation flag:
+
+[source,bash]
+----
+./install.sh --confirm-reset
+----
+
+The CLI live-infrastructure prompt is separate from the reset prompt. Normal
+wrapper runs keep that prompt interactive inside the terminal recorder, which
+inherits the calling terminal's standard input. Answer `y` when prompted in setup (and reset only for an explicit reset request). For
+deliberate non-interactive automation, pass an explicit live-approval flag:
+
+[source,bash]
+----
+./install.sh --non-interactive-live-approval
+PYTHONPATH=src python3 -m tiny_swarm_world setup run --live --approve-live
+----
+
+The automation flag is an approval source; it does not remove the `--live`
+requirement.
+
+Terminal recording is optional presentation. For headless systems that cannot
+or should not start the terminal recorder/TUI surface, use:
+
+[source,bash]
+----
+./install.sh --headless
+TSW_INSTALL_HEADLESS=1 ./install.sh
+----
+
+Headless mode executes the same host-specific setup commands and preserves
+command exit codes. Ordinary WSL2 and native Linux write setup evidence with an
+explicit reset-skipped context entry. Reset evidence exists only for explicit WSL
+fresh-reset compatibility.
+
+The wrapper writes run context, reset logs, setup logs and exit codes below
+`${XDG_STATE_HOME:-$HOME/.local/state}/tiny-swarm-world/evidence/installation-tests/<host-runtime>/<UTC timestamp>/`
+by default. If `TSW_LIVE_EVIDENCE_ROOT` is set, it selects the root before
+`<host-runtime>/<UTC timestamp>/` is appended. The root and run directories
+must be protected Linux-native storage. Use the exact directory printed by
+the installer; old checkout-local evidence is historical.
+The stable host directory is `wsl2` for WSL2 and `native_linux` for native
+Linux. The run `context.txt` records `host_runtime_type`,
+`host_runtime_detection_source`, `selected_evidence_directory`,
+`live_execution_mode`, `live_approval_source`, and `terminal_recording_mode`
+alongside `setup-run.log` and `setup-run.exit`. Reset logs and exit evidence
+exist only when the WSL2 reset phase runs. Native package preparation writes
+redacted evidence to `${XDG_STATE_HOME:-$HOME/.local/state}/tiny-swarm-world/evidence/native-preparation/` after an explicitly confirmed package operation or an already-prepared no-op run. Read-only flags do not write evidence.
+It resolves catalog-backed `TSW_*` credentials and optional operator overrides
+without printing secret values. It does not generate a local credential file.
+Required local bootstrap values are derived from
+`infra/config/secrets/infisical-secrets.yaml`; installer code does not maintain
+a separate required-secret list.
+The default path requires no credential file. For intentional overrides, follow
+<<operator-credential-overrides>>; the process environment takes precedence
+over file values. Static checks validate configuration, not service login.
+After the Python entry point has imported successfully, its internal fallback
+can prepare missing subprocess dependencies in an ignored local environment at
+`.tiny-swarm-world/install-venv` and uses its Python interpreter for the reset
+and setup commands. That bootstrap installs the lock with hash verification,
+then installs the editable project without resolving dependencies again. WSL
+keeps the existing `python3` execution path when the required imports are
+already available.
+Ensure the current shell can access the Incus daemon before running
+`install.sh`; reopen the shell after group membership changes when required by
+the host distribution.
+
+On native Linux, Docker Swarm also requires that the managed LXC containers can
+reach each other on the selected backend bridge. Use the bridge name resolved
+from `provider_resource_resolution.backends.<backend>.network_mappings.control`
+when applying host firewall rules. If workers can reach the configured bridge
+gateway but cannot ping the manager container or connect to Swarm port `2377`,
+inspect the separately owned preparation plan:
+
+[source,bash]
+----
+./bootstrap/linux/prepare_linux.sh --dry-run
+./bootstrap/linux/prepare_linux.sh
+----
+
+The scoped preparation path handles the supported iptables-nft/UFW owners and
+canonical Incus NAT without global rule saves or broad forwarding allowances.
+Foreign denies and unknown ownership block for review. After preparation,
+verify the current manager address from `incus list` and the node path:
+
+[source,bash]
+----
+incus exec swarm-worker-1 -- ping -c 2 <manager-ip>
+incus exec swarm-worker-1 -- nc -vz <manager-ip> 2377
+----
+
+These deployed-node checks are separate from host preparation readiness.
+See link:network-preparation.md[Kernel and browser-access preparation].
+
+Swarm bootstrap needs container-to-container access for `2377/tcp`, and later
+Swarm traffic uses `7946/tcp`, `7946/udp`, and `4789/udp`. The bridge-internal
+FORWARD rule above allows that managed backend-node traffic on the configured
+bridge.
+
+Portainer stack create and update calls can take longer than ordinary API
+lookups while Docker Swarm pulls images or reconciles services. The installer
+uses a longer Portainer stack operation timeout by default. On especially slow
+hosts, raise it before an explicitly intended fresh reset, or use the
+non-reset setup path in link:{user-guide-prefix}usage.adoc#daily-operation[Daily operation]:
+
+[source,bash]
+----
+export TSW_PORTAINER_STACK_REQUEST_TIMEOUT_SECONDS=300
+./install.sh --confirm-reset
+----
+
+Installer-side Python environment bootstrap commands are also bounded. The
+default per-command limit is 900 seconds and can be lowered or raised through
+the explicit environment setting below; a timeout is reported as a timeout
+error and does not silently continue:
+
+[source,bash]
+----
+export TSW_INSTALL_SUBPROCESS_TIMEOUT_SECONDS=900
+----
+
+On WSL2, ordinary `install.sh` reconciles existing state. Only the deprecated
+explicit `./install.sh --confirm-reset` compatibility request first calls the
+governed destructive reset workflow:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world platform reset --live --confirm RESET_TINY_SWARM_PLATFORM
+----
+
+The wrapper passes the selected service profile to reset and setup. The
+default is `service-access`, so the effective reset command is:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world platform reset --live --confirm RESET_TINY_SWARM_PLATFORM --service-profile service-access
+----
+
+Ordinary installation calls the canonical live setup workflow directly; an
+explicit reset request reaches setup only after successful reset:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world setup run --live --service-profile service-access
+----
+
+If reset is blocked or fails, setup is not started and the script exits with
+the reset exit code. The reset scope is intentionally narrow: it may discard
+only the managed Tiny Swarm World local system, such as configured LXC-native
+provider nodes or marker-verified project-owned instances. It must not delete
+all host Incus containers or unrelated provider resources.
+
+== Live Infrastructure Warning
+
+The canonical setup workflow and some legacy helper areas can create or delete
+provider nodes or virtual machines, change networking, install Docker, or
+deploy stacks. Run live automation only when you intend to change local
+infrastructure state. Former direct preparation helpers
+and host-side compose
+orchestration scripts have been retired.
+The canonical classification for these live-operation surfaces is
+`documentation/handbook/04-operations/system/live-operation-surfaces.adoc`.
+
+Mutating workflow-level commands such as `platform init`, `platform reconcile`,
+`cluster docker`, `cluster swarm bootstrap`, `platform expose`, `platform
+repair-lxc-proxy-drift`, `artifacts prepare`, `deployment apply`, and `setup
+run` require:
+
+* `--live`;
+* answering `y` at the short live-infrastructure confirmation prompt.
+
+`platform reset` and `platform destroy` additionally require their exact
+confirmation phrases. Ordinary `install.sh` has no reset prelude. Explicit WSL
+`--confirm-reset` requests and confirms its deprecated destructive compatibility
+prelude, which calls `platform reset --confirm RESET_TINY_SWARM_PLATFORM`.
+Headless mode and live approval never imply reset intent.
+
+== LXC Proxy Drift Repair
+
+`platform expose` configures published setup-manifest ports as profile-level
+proxy devices in the manager-specific `docker-swarm-manager` profile. The
+`swarm-manager` node receives that profile in addition to the common Docker
+Swarm profile. Worker nodes do not receive the manager proxy profile.
+
+Direct instance-level `tsw-proxy-*` devices on `swarm-manager` are not expected
+normal state. They are treated as `unsafe_instance_devices` drift so normal
+install, reset, reinstall, init, reconcile, expose and setup flows stop rather
+than silently deleting local provider state.
+
+When the manager-profile proxy devices are already present and verified, a
+stale direct project proxy can be repaired explicitly:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world platform repair-lxc-proxy-drift --live
+----
+
+Answer `y` only when removing stale direct `tsw-proxy-*` devices from the
+manager is intentional. The repair refuses unrelated devices, unknown project
+proxy names, and direct project proxy devices whose equivalent
+manager-profile device is missing or drifted. It reports summary counts for
+removed, refused, lookup-failed and removal-failed devices without printing raw
+provider command output.
+
+Optional live smoke validation is separate from the default quality gate. Run
+it only on a disposable or recoverable local environment after reviewing the
+live-operation surface catalog:
+
+[source,bash]
+----
+PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+----
+
+When prompted, answer `y` only if changing the local Incus/LXC provider
+state, Docker Swarm, networking, Portainer, Nexus,
+Jenkins, Apache Pulsar, SonarQube, and Swagger/NGINX environment is intentional.
+
+== Service Access Management Prerequisites
+
+The full guided setup includes the service-access management stack with a
+dashboard asset rendered from the effective service-access model and
+service-access NGINX assets. The setup CLI selects this profile by default.
+Operators who intentionally want only the older base service set can pass
+`--service-profile default`.
+
+The service-access setup profile exposes Traefik ingress ports `80` and `443`
+through the LXC/WSL exposure workflow. The service-access NGINX compose
+service publishes registry-backed dashboard port `10000` and explicit
+compatibility/rollback port `8086` as stack metadata parsed from
+`infra/config/compose/service-access/docker-compose.yml`. The Compose target
+ports remain the image-compatible internal ports. WSL `localhost` forwarding
+is a separate host-network concern. Endpoint defaults are configuration hints,
+not service-health evidence, and local effective-port evidence is not live
+readiness evidence. If localhost forwarding is stale, use the current Swarm
+node IP only for manual diagnosis until the forwarding issue is repaired.
+
+The service-access dashboard is a generated management table. It lists
+service links, users and Infisical item references from the effective access
+model; password values are visible only through the configured
+secret-management surface. Preferred links use routed HTTPS URLs without the
+diagnostic ports `10080` or `10443`. Runtime renderer output is authoritative;
+the committed `infra/config/compose/service-access/dashboard/index.html` is a
+default-profile fallback/image asset guarded by a renderer drift test, and the
+dashboard Dockerfile packages it into the default `service-access` setup path.

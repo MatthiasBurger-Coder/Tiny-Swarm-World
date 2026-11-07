@@ -23,7 +23,7 @@ class PlatformLayoutTests(unittest.TestCase):
             for relative in (
                 "tools/linux/quality_gate.py",
                 "tools/linux/check_verification_policy_consistency.py",
-                "documentation/process/verification-state-policy.md",
+                "documentation/handbook/05-development/process/verification-state-policy.md",
             ):
                 target = checkout / relative
                 target.parent.mkdir(parents=True, exist_ok=True)

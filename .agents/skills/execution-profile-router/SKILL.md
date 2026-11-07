@@ -68,7 +68,7 @@ Examples:
 - Active process strand.
 - Root `AGENTS.md`.
 - Root `QUALITY.md`.
-- Active `documentation/workflow/workflow.md` when present.
+- Active `documentation/handbook/05-development/workflow/workflow.md` when present.
 - `.agents/orchestrator/routing-rules.md`.
 - Changed or planned file set.
 - Relevant ADR, arc42, process, skill-registry, role, and workflow documents.
@@ -96,7 +96,7 @@ stopConditions=<profile-specific blockers>
 - Consult Senior Tester or quality-gate skills before classifying a quality
   gate as not applicable.
 - Consult Skill Registry Conflict Auditor when `.agents/**`, `.codex/**`,
-  `documentation/process/skills/audit/**`, legacy `documentation/agents/**` references,
+  `documentation/handbook/05-development/process/skills/audit/**`, legacy `documentation/agents/**` references,
   or routing rules change.
 
 ## Forbidden

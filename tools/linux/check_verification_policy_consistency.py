@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 import re
 
-POLICY_RELATIVE_PATH = Path("documentation/process/verification-state-policy.md")
+POLICY_RELATIVE_PATH = Path("documentation/handbook/05-development/process/verification-state-policy.md")
 DEFAULT_LOCAL_GATE = "python3 tools/linux/quality_gate.py quality"
 LIVE_INSTALL_COMMAND = (
     "./install.sh --headless --confirm-reset --non-interactive-live-approval"
@@ -143,8 +143,8 @@ def _validate_canonical_policy(policy_text: str) -> list[Finding]:
 
 def _governance_documents(repository_root: Path) -> tuple[Path, ...]:
     paths = [repository_root / "AGENTS.md", repository_root / "QUALITY.md"]
-    process_root = repository_root / "documentation" / "process"
-    workflow_root = repository_root / "documentation" / "workflow"
+    process_root = repository_root / "documentation/handbook/05-development/process"
+    workflow_root = repository_root / "documentation/handbook/05-development/workflow"
     for directory in (process_root, workflow_root):
         if directory.is_dir():
             paths.extend(sorted(directory.rglob("*.md")))

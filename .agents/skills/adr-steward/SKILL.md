@@ -36,7 +36,7 @@ The ADR Steward may block slices that introduce architecture decisions without A
 ## Inputs
 
 - `documentation/adr/**`
-- `documentation/arc42/**`
+- `documentation/handbook/02-architecture/arc42/**`
 - active workflow
 - `AGENTS.md`
 - `QUALITY.md`
