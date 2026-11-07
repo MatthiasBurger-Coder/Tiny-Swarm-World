@@ -21,6 +21,14 @@ Its exact source/review/aggregate PC-WSL evidence is in
 `.codex/evidence/epic440-store-wsl2-20261107.md`; no host feature, restart or
 network mutation was performed. Fresh committed-source preflight is pending.
 
+S02I durable checkpoints preserve complete three/four-component WSL versions;
+source and exact verification are recorded in
+`.codex/evidence/epic440-wsl-state-20261107.md`. The distinct native W05 product
+recovery classification is in
+`.codex/evidence/epic440-product-recovery-classification-20261107.md`.
+It leaves all workflow/fixture authority on private ext4 and grants no live GO;
+running bridge preservation remains a separate prerequisite.
+
 The native Windows source-path correction is recorded in
 `.codex/evidence/epic440-windows-source-path-20261107.md`; canonical ProviderPath
 is passed to native Source/Resource adapters with existing guards retained.

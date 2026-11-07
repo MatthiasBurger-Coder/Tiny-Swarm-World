@@ -38,6 +38,12 @@ exact source reviews and aggregate PC-WSL results are recorded in
 `.codex/evidence/epic440-store-wsl2-20261107.md`. This is code verification only;
 fresh read-only host preflight, route admission and S02 fixture remain required.
 
+A further S02I checkpoint correction preserves complete three/four-component
+WSL versions in durable state; see
+`.codex/evidence/epic440-wsl-state-20261107.md`. Native W05 product recovery
+classification is a distinct governance checkpoint recorded below and in its
+own evidence file; neither code verification nor classification grants live GO.
+
 Its subsequent actual preflight exposed native source-path transport for WSL
 UNC checkouts. The bounded correction canonicalizes ProviderPath in the actual
 Windows entrypoint; real Source/Resource native argument builders are covered
@@ -205,6 +211,25 @@ current user, SYSTEM and Administrators; reject broad `Users` or
 `Authenticated Users` principals. These human-only files are never read or
 written by the fixture runner. All workflow-release approval records and all
 other private evidence require the POSIX ext4 rule below.
+
+The current continuation additionally classifies only existing native W05
+product operational recovery files, as accepted in
+`.codex/evidence/epic440-product-recovery-classification-20261107.md`.
+The protected Windows LocalAppData/TinySwarmWorld/preparation store may retain
+bootstrap.state.json, bootstrap.lock, GUID.json intent/effect/backup metadata,
+wslconfig-GUID.backup and unique transaction temporaries. The validated Windows
+user-profile configuration directory may retain .wslconfig, .tsw-wslconfig.lock,
+.tsw-wslconfig-GUID.tmp and .tsw-displaced-GUID.backup generated only by the
+existing resource adapter under a separate exact resource-only host GO.
+Original ACL/metadata required for restoration stays solely in that protected
+native product store; target configuration retains its validated original
+metadata. All existing owner/ACL/no-reparse/lock/exclusive-backup/snapshot/drift
+and atomic-replacement checks remain mandatory. No raw configuration, ACL/SID,
+backup path or native recovery record is exported or used as fixture authority.
+This is an explicit narrow classification exception to the preceding general
+private-evidence sentence, not an extension of the four human-only exceptions.
+All workflow/fixture approvals and sanitized audit records still obey the ext4
+rule below. No Apply, restart, service, firewall or PortProxy change is released.
 
 Every runner-used S02 capture, GO, reservation/NOT_RUN, review and result
 artifact must reside in the private evidence directory of an approved live
