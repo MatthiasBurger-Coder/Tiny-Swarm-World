@@ -234,9 +234,11 @@ class WrapperProofTests(unittest.TestCase):
             with self.subTest(runtime=runtime):
                 self.runner.reset_mock()
                 line = "After=" + " ".join([*units, *runtime])
-                self.fs.files[proof.DROP_IN] = regular(61, ("# installed generator\n\n[Unit]\n" + line + "\n").encode(), readonly=False)
-                self.assertEqual(self.run_proof(), ("lxd_snap", "snap:lxd"))
-                self.assertEqual(self.runner.run.call_count, 2)
+                for terminal in ("", " "):
+                    self.runner.reset_mock()
+                    self.fs.files[proof.DROP_IN] = regular(61, ("# installed generator\n\n[Unit]\n" + line + terminal + "\n").encode(), readonly=False)
+                    self.assertEqual(self.run_proof(), ("lxd_snap", "snap:lxd"))
+                    self.assertEqual(self.runner.run.call_count, 2)
 
     def test_shutdown_missing_or_reordered_static_prefix_blocks_before_process_reads(self) -> None:
         self.values["DropInPaths"] = proof.DROP_IN
@@ -257,7 +259,8 @@ class WrapperProofTests(unittest.TestCase):
         cases = [valid.replace(b"After=", b"After= "), valid.replace(b"After=", b" After="),
                  valid.replace(b" ", b"  ", 1), valid.replace(b" ", b"\t", 1),
                  valid.replace(b"\n", b"\r\n"), valid.replace(b"\n", b"\x00", 1),
-                 valid[:-1] + b" \n", valid[:-1] + b" # comment\n", valid + b"[Unit]\n",
+                 valid[:-1] + b"  \n", valid[:-1] + b" # comment\n", valid + b"[Unit]\n",
+                 b"[Unit]\nAfter=snap.microceph.daemon.service snap.microovn.daemon.service \n",
                  valid + b"After=snap.microceph.daemon.service\n", valid + b"Before=unrelated.service\n",
                  valid + b"[Service]\nExecStart=secret-value\n", valid + b"\xff",
                  valid.replace(b" ", b" \\\n", 1)]
@@ -283,6 +286,15 @@ class WrapperProofTests(unittest.TestCase):
             with self.subTest(mode=invalid.mode, uid=invalid.uid):
                 self.fs.files[proof.DROP_IN] = invalid
                 self.assert_blocked("SNAP_WRAPPER_FILE_UNVERIFIED")
+
+    def test_shutdown_optional_terminal_space_is_not_normalized_during_recheck(self) -> None:
+        self.values["DropInPaths"] = proof.DROP_IN
+        plain = regular(61, ("[Unit]\nAfter=" + SHUTDOWN_STATIC + "\n").encode(), readonly=False)
+        spaced = replace(plain, data=plain.data[:-1] + b" \n")
+        for first, final in ((plain, spaced), (spaced, plain)):
+            with self.subTest(terminal_space=first.data.endswith(b" \n")):
+                self.fs.sequences[proof.DROP_IN] = [first, final]
+                self.assert_blocked("SNAP_WRAPPER_DRIFT")
 
     def test_forged_or_duplicate_selected_environment_cannot_establish_identity(self) -> None:
         original = self.fs.files["/proc/101/environ"]

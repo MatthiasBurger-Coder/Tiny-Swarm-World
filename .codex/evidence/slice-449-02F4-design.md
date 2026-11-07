@@ -39,8 +39,12 @@ snap.microovn.bird.service
 
 The prefix may be followed by zero to sixteen runtime tokens from this same
 closed list, sorted lexicographically and unique within the runtime suffix.
-One ASCII space separates tokens; leading/trailing/doubled spaces, tabs,
-continuations and inline comments are unsupported. Repetition between the
+One ASCII space separates tokens. The new static16 form additionally accepts
+exactly one optional final ASCII space, as emitted by the installed generator's
+newline-to-space runtime list. Remove at most that single terminal space before
+validation; never normalize the retained observation. Leading/doubled spaces,
+tabs, continuations and inline comments are unsupported. The legacy two-unit
+form remains exact and does not accept a terminal space. Repetition between the
 static prefix and runtime suffix is expected. Preserve full-line comments and
 blank lines, existing UTF-8/LF/CR/NUL checks, root ownership, no-follow opens,
 byte limits and exact observation equality across rechecks. Do not normalize

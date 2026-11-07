@@ -277,7 +277,7 @@ def _shutdown_dependencies_supported(lines: list[str]) -> bool:
     dependencies = lines[1].removeprefix("After=")
     if dependencies == "snap.microceph.daemon.service snap.microovn.daemon.service":
         return True
-    units = dependencies.split(" ")
+    units = dependencies.removesuffix(" ").split(" ")
     prefix_size = len(_SHUTDOWN_STATIC_UNITS)
     runtime = units[prefix_size:]
     return (tuple(units[:prefix_size]) == _SHUTDOWN_STATIC_UNITS
