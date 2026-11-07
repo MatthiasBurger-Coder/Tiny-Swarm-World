@@ -266,6 +266,50 @@ class NativeMaintenanceTests(unittest.TestCase):
                 port.start_node('foreign')
             self.assertEqual(run.call_count, 4)
 
+    def test_stopped_restart_admission_rejects_implicit_and_explicit_autostart(self) -> None:
+        safe: tuple[dict[str, str], ...] = ({}, {'volatile.last_state.power': 'STOPPED'},
+                                          {'volatile.last_state.power': 'RUNNING'})
+        for config in safe:
+            maintenance.require_restart_safe({'expanded_config': {'boot.autostart': 'false'}, 'config': config})
+        for autostart in ('', None):
+            expanded = {} if autostart is None else {'boot.autostart': autostart}
+            for config in ({}, {'volatile.last_state.power': 'STOPPED'}):
+                maintenance.require_restart_safe({'expanded_config': expanded, 'config': config})
+            for last_power in ('RUNNING', '', 'stopped', 'unknown'):
+                with self.assertRaisesRegex(maintenance.MaintenanceError, 'STOPPED_NODE_AUTOSTART_UNSAFE'):
+                    maintenance.require_restart_safe({'expanded_config': expanded,
+                                                      'config': {'volatile.last_state.power': last_power}})
+        for autostart in ('true', '1', 'FALSE', 'unknown'):
+            with self.assertRaisesRegex(maintenance.MaintenanceError, 'STOPPED_NODE_AUTOSTART_UNSAFE'):
+                maintenance.require_restart_safe({'expanded_config': {'boot.autostart': autostart}, 'config': {}})
+
+    def test_real_node_read_rechecks_originally_stopped_but_allows_own_stopped_running_node(self) -> None:
+        port = maintenance.NativePort('a' * 40, 'b' * 64, 1000)
+        port.baseline = baseline()
+        row: dict[str, Any] = {'config': {'volatile.uuid': '12345678-1234-1234-1234-123456789abc',
+                          'volatile.last_state.power': 'RUNNING'},
+               'expanded_config': {}, 'type': 'container', 'status': 'Stopped',
+               'created_at': 'fixed', 'profiles': ['default']}
+        with patch.object(port, 'budget'), patch.object(port, 'check_binding'), \
+                patch.object(maintenance.inventory, '_detail', return_value={}), \
+                patch.object(maintenance.inventory, '_validate_instance_config', return_value=row), \
+                patch.object(maintenance, 'config_projection', return_value={}):
+            self.assertEqual(port.node('swarm-manager')['status'], 'Stopped')
+            port.baseline['nodes']['swarm-manager']['status'] = 'Stopped'
+            with self.assertRaisesRegex(maintenance.MaintenanceError, 'STOPPED_NODE_AUTOSTART_UNSAFE'):
+                port.node('swarm-manager')
+            port.baseline = None
+            with patch.object(maintenance.inventory, '_systemctl_show', return_value={}), \
+                    patch.object(maintenance.inventory, '_resolve_executable', return_value=('lxd_snap', 'snap:lxd')), \
+                    patch.object(maintenance.inventory, '_endpoint', return_value=('', True)), \
+                    patch.object(maintenance.inventory, '_require_full_local_access'):
+                with self.assertRaisesRegex(maintenance.MaintenanceError, 'STOPPED_NODE_AUTOSTART_UNSAFE'):
+                    port.node('swarm-manager')
+            port.baseline = baseline()
+            port.baseline['nodes']['swarm-manager']['status'] = 'Stopped'
+            row['expanded_config']['boot.autostart'] = 'false'
+            self.assertEqual(port.node('swarm-manager')['status'], 'Stopped')
+
     def test_shutdown_timeout_enters_recovery_without_running_fixture(self) -> None:
         port, _events, transaction = self.transaction()
         port.failure = 'shutdown-before'
@@ -275,16 +319,16 @@ class NativeMaintenanceTests(unittest.TestCase):
     def test_fresh_source_host_fixture_expiry_and_reviews_are_required(self) -> None:
         now = datetime.now(timezone.utc)
         proposal: dict[str, Any] = {'source_commit': 'a' * 40, 'pins': {'source': 'a' * 64},
-                    'host_id_sha256': 'b' * 64, 'fixture_go_sha256': 'c' * 64, 'baseline': baseline()}
+                    'host_id_sha256': 'b' * 64, 'fixture_intent_sha256': 'c' * 64, 'baseline': baseline()}
         go = {'schema_version': 1, 'decision': 'GO', 'proposal_sha256': 'd' * 64,
               'source_commit': proposal['source_commit'], 'pins': proposal['pins'],
-              'host_id_sha256': proposal['host_id_sha256'], 'fixture_go_sha256': proposal['fixture_go_sha256'],
-              'expires_at_utc': (now + timedelta(minutes=10)).isoformat(),
+              'host_id_sha256': proposal['host_id_sha256'], 'fixture_intent_sha256': proposal['fixture_intent_sha256'],
+              'expires_at_utc': (now + timedelta(minutes=29)).isoformat(),
               'reviews': dict.fromkeys(maintenance.fixture.REVIEW_KEYS, 'APPROVED')}
         maintenance.validate_approval(go, proposal, 'd' * 64, 'a' * 40, proposal['pins'], now)
         for field, value in (('schema_version', True), ('decision', 'PENDING'), ('proposal_sha256', 'f' * 64),
                              ('source_commit', 'b' * 40), ('host_id_sha256', 'f' * 64),
-                             ('fixture_go_sha256', 'f' * 64), ('pins', {}), ('reviews', {}),
+                             ('fixture_intent_sha256', 'f' * 64), ('pins', {}), ('reviews', {}),
                              ('expires_at_utc', now.isoformat()),
                              ('expires_at_utc', (now + timedelta(hours=1)).isoformat())):
             bad = {**go, field: value}
@@ -295,12 +339,12 @@ class NativeMaintenanceTests(unittest.TestCase):
         now = datetime.now(timezone.utc)
         fixture_raw = b'{}'
         proposal: dict[str, Any] = {'source_commit': 'a' * 40, 'pins': {}, 'host_id_sha256': maintenance.digest(b'host'),
-                    'fixture_go_sha256': maintenance.digest(fixture_raw), 'baseline': baseline()}
+                    'fixture_intent_sha256': maintenance.digest(fixture_raw), 'baseline': baseline()}
         proposal_raw = maintenance.canonical(proposal)
         go = {'schema_version': 1, 'decision': 'PENDING', 'proposal_sha256': maintenance.digest(proposal_raw),
               'source_commit': 'a' * 40, 'pins': {}, 'host_id_sha256': proposal['host_id_sha256'],
-              'fixture_go_sha256': proposal['fixture_go_sha256'],
-              'expires_at_utc': (now + timedelta(minutes=10)).isoformat(),
+              'fixture_intent_sha256': proposal['fixture_intent_sha256'],
+              'expires_at_utc': (now + timedelta(minutes=29)).isoformat(),
               'reviews': dict.fromkeys(maintenance.fixture.REVIEW_KEYS, 'APPROVED')}
         go_raw = maintenance.canonical(go)
         with patch.object(maintenance.os, 'geteuid', return_value=0), \
@@ -315,7 +359,7 @@ class NativeMaintenanceTests(unittest.TestCase):
                 patch.object(maintenance, 'NativePort') as adapter, \
                 patch.object(maintenance.sys, 'stderr'):
             self.assertEqual(maintenance.main(['execute', '--run-id', 'a' * 32,
-                '--fixture-go-sha256', maintenance.digest(fixture_raw),
+                '--fixture-intent-sha256', maintenance.digest(fixture_raw),
                 '--expected-go-sha256', maintenance.digest(go_raw)]), 2)
             lock.assert_not_called()
             adapter.assert_not_called()
@@ -425,6 +469,121 @@ class NativeMaintenanceTests(unittest.TestCase):
         self.assertEqual(maintenance.config_projection(raw), raw)
         self.assertNotIn('used_by', maintenance.config_projection(raw | {'used_by': ['observed']}))
         self.assertEqual(maintenance.config_projection(raw | {'description': 'preserve'})['description'], 'preserve')
+
+
+
+
+class PausedAdmissionTests(unittest.TestCase):
+    def inputs(self) -> tuple[dict[str, Any], dict[str, Any], bytes, bytes, bytes, datetime]:
+        now = datetime.now(timezone.utc)
+        static = {'source_commit': 'a' * 40, 'target': {'run_id': 'b' * 32}}
+        intent: dict[str, Any] = {'fixture': static, 'provider_config_sha256': 'c' * 64}
+        resource = maintenance.canonical({'schema_version': 'tsw.resource-admission.v1',
+            'target_host': maintenance.HOST, 'platform': 'native_linux', 'scenario_id': 'R449-33',
+            'source_commit': 'a' * 40, 'decision': 'PASS', 'checks': dict.fromkeys(maintenance.RESOURCE_CHECKS, True),
+            'candidate': {'provider_config_sha256': 'c' * 64}})
+        route = maintenance.canonical({'schema_version': 'tsw.route-state.v2', 'source_commit': 'a' * 40,
+                                      'target_host': maintenance.HOST, 'approved_route_state_sha256': 'd' * 64})
+        go = maintenance.canonical(static | {'decision': 'GO', 'resource_admission_sha256': maintenance.digest(resource),
+                                             'approved_route_state_sha256': 'd' * 64})
+        activation = {'decision': 'GO', 'intent_sha256': 'e' * 64,
+            'resource_sha256': maintenance.digest(resource), 'route_sha256': maintenance.digest(route),
+            'fixture_go_sha256': maintenance.digest(go), 'expires_at_utc': (now + timedelta(minutes=20)).isoformat()}
+        return intent, activation, resource, route, go, now
+
+    def test_final_go_binds_actual_paused_files_and_independent_static_intent(self) -> None:
+        intent, activation, resource, route, go, now = self.inputs()
+        with patch.object(maintenance.fixture, 'validate_go') as checked, \
+                patch.object(maintenance.Path, 'read_bytes', return_value=b'fixed'):
+            result = maintenance.validate_paused_admission(activation, intent, 'e' * 64, resource, route, go, 'a' * 40, now)
+            self.assertEqual(result, maintenance.digest(go))
+            self.assertEqual(checked.call_args.args[0], json.loads(go))
+            for field, value in (('resource_sha256', 'f' * 64), ('route_sha256', 'f' * 64),
+                                 ('intent_sha256', 'f' * 64), ('fixture_go_sha256', 'f' * 64),
+                                 ('decision', 'INTENT_ONLY'), ('expires_at_utc', now.isoformat())):
+                with self.subTest(field=field), self.assertRaises(maintenance.MaintenanceError):
+                    maintenance.validate_paused_admission(dict(activation, **{field: value}), intent, 'e' * 64,
+                                                          resource, route, go, 'a' * 40, now)
+            payloads: tuple[dict[str, Any], ...] = ({'decision': 'BLOCKED'}, {'checks': {}}, {'checks': {'capacity': 1}},
+                                                  {'source_commit': 'f' * 40}, {'target_host': 'other'})
+            for payload in payloads:
+                bad_resource = maintenance.canonical(json.loads(resource) | payload)
+                rebound = dict(activation, resource_sha256=maintenance.digest(bad_resource))
+                bad_go = maintenance.canonical(json.loads(go) | {'resource_admission_sha256': maintenance.digest(bad_resource)})
+                rebound['fixture_go_sha256'] = maintenance.digest(bad_go)
+                with self.subTest(payload=payload), self.assertRaises(maintenance.MaintenanceError):
+                    maintenance.validate_paused_admission(rebound, intent, 'e' * 64, bad_resource, route, bad_go, 'a' * 40, now)
+
+    def test_named_phase_budgets_are_fresh_and_commands_never_shrink(self) -> None:
+        port = maintenance.NativePort('a' * 40, 'b' * 64, 1000)
+        with patch.object(maintenance.time, 'monotonic', return_value=1100):
+            port.phase('capture')
+            self.assertEqual(port.deadline, 1460)
+        with patch.object(maintenance.time, 'monotonic', return_value=1400):
+            port.phase('approval')
+            self.assertEqual(port.deadline, 1580)
+        with patch.object(maintenance.time, 'monotonic', return_value=1570):
+            port.phase('fixture')
+            self.assertEqual(port.deadline, 2595)
+        with patch.object(maintenance.time, 'monotonic', return_value=1571), \
+                patch.object(maintenance, 'bounded', return_value=b'ok') as command:
+            self.assertEqual(port.command(['/fixed/fixture'], 900, interrupt_grace=120), b'ok')
+            self.assertEqual(command.call_args.args, (['/fixed/fixture'], 900))
+            self.assertEqual(command.call_args.kwargs['interrupt_grace'], 120)
+        with patch.object(maintenance.time, 'monotonic', return_value=1576), \
+                patch.object(maintenance, 'bounded') as command:
+            with self.assertRaisesRegex(maintenance.MaintenanceError, 'MAINTENANCE_DEADLINE'):
+                port.command(['/fixed/fixture'], 900, interrupt_grace=120)
+            command.assert_not_called()
+        self.assertEqual(maintenance.MAINTENANCE_START_RESERVE, 1740)
+        with self.assertRaisesRegex(maintenance.MaintenanceError, 'PHASE_INVALID'):
+            port.phase('arbitrary')
+
+    def test_timeout_refusal_and_capture_failure_recover_own_stops_without_fixture_effect(self) -> None:
+        for code in ('PAUSED_ADMISSION_TIMEOUT', 'RESOURCE_ADMISSION_NOT_PASS', 'FINAL_FIXTURE_GO_MISMATCH'):
+            original = baseline()
+            port = FakePort(original)
+            events = Events(port)
+            transaction = maintenance.Transaction(port, events, original)
+            with patch.object(port, 'run_fixture', side_effect=maintenance.MaintenanceError(code)):
+                self.assertEqual(transaction.execute()['status'], 'QUALIFICATION_FAILED_RECOVERED')
+            self.assertEqual(port.state, original)
+            self.assertEqual(port.daemon, 'active')
+            self.assertFalse(any(action == 'fixture' for action, _ in port.calls))
+
+    def test_preservation_only_admits_actual_fixture_cache_addition(self) -> None:
+        fingerprint = 'b' * 64
+        original = baseline()
+        original['binding']['fixture_image'] = fingerprint
+        project = {'project': 'default', 'images': [{'fingerprint': fingerprint}],
+            'profiles': [{'name': 'default', 'api_storage_devices': [{'selector': 'root', 'pool': 'pool'}]}],
+            'pools': [{'name': 'pool', 'image_cache': [], 'used_by': []}]}
+        original['preserve'].update(incus_projects=[project], incus_pools=[{'name': 'pool', 'used_by': []}],
+                                    configuration_digests={})
+        after = copy.deepcopy(original)
+        cache = {'fingerprint': fingerprint, 'owner_project': 'default', 'content_type': 'filesystem',
+                 'storage_location': 'none', 'metadata_digest': 'c' * 64, 'used_by': []}
+        after['preserve']['incus_projects'][0]['pools'][0]['image_cache'] = [cache]
+        links = [{'kind': 'images', 'name': fingerprint, 'project': 'default'}]
+        after['preserve']['incus_projects'][0]['pools'][0]['used_by'] = links
+        after['preserve']['incus_pools'][0]['used_by'] = links
+        after['preserve']['configuration_digests']['incus_image_cache_show:pool:' + fingerprint + ':default'] = 'c' * 64
+        self.assertTrue(maintenance.preserved_snapshot(original, after))
+        for change in ('foreign_cache', 'foreign_config', 'wrong_digest', 'existing_image_change', 'wrong_pool'):
+            bad = copy.deepcopy(after)
+            if change == 'foreign_cache':
+                bad['preserve']['incus_projects'][0]['pools'][0]['image_cache'][0]['fingerprint'] = 'f' * 64
+            elif change == 'foreign_config':
+                bad['preserve']['foreign'] = True
+            elif change == 'wrong_digest':
+                bad['preserve']['configuration_digests']['incus_image_cache_show:pool:' + fingerprint + ':default'] = 'f' * 64
+            elif change == 'existing_image_change':
+                bad['preserve']['incus_projects'][0]['images'][0]['fingerprint'] = 'f' * 64
+            else:
+                bad['preserve']['incus_projects'][0]['pools'][0]['name'] = 'foreign'
+            with self.subTest(change=change):
+                self.assertFalse(maintenance.preserved_snapshot(original, bad))
+        self.assertEqual(original['preserve']['incus_projects'][0]['pools'][0]['image_cache'], [])
 
 
 if __name__ == '__main__':

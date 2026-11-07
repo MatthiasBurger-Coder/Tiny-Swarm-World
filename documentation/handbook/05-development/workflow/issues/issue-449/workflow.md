@@ -1,7 +1,7 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: ACTIVE_FOR_ISSUE_449 v1.51 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
+Status: ACTIVE_FOR_ISSUE_449 v1.52 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
@@ -17,6 +17,20 @@ checks passed. Exclusive installation/global-resource ownership remains unproven
 Current policy work enables temporary maintenance without asserting adoption.
 Execution/evidence remains in `.codex/evidence/epic440-20261107.md`; full S02–S09
 completion remains required.
+
+## Native bootstrap and explicit image preservation — v1.52
+
+Apply the reviewed and PC-qualified concrete contract
+[epic440-native-bootstrap-contract-20261107.md](../../../../../../.codex/evidence/epic440-native-bootstrap-contract-20261107.md).
+The final fixture GO is created from actual resource/route observations during
+the bounded pause. Prior intent binds static source/host/image/profile fields;
+no predicted PASS. Inventory schema6 is an explicit image-aware opt-in; default
+schema5 remains unchanged. Preserve actual images/caches and admit only the
+exact intent image's implicit new optimized cache, with full graph/digest proof.
+Preparation1200s, capture360s, approval180s, fixture1025s and separate600s recovery
+replace the earlier clamped aggregate deadline; no arbitrary callback or force
+fallback. Existing source/private-config/host/GO and finally restoration remain.
+Source/PC acceptance does not release an unreviewed host phase or qualify Incus.
 
 ## Source implementation scheduling — v1.51
 

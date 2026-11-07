@@ -1,6 +1,15 @@
 # Context pack — issue-449-lcm-w09
 
-## Current continuation — v1.51, 2026-11-07
+## Current continuation — v1.52, 2026-11-07
+
+Native bootstrap source has passed root independent review and PC WSL all-seven
+QUALITY (3381 discovery/36skips;345 focused). v1.52 applies the explicit contract
+`.codex/evidence/epic440-native-bootstrap-contract-20261107.md`: opt-in schema6
+images/caches, actual paused resource/route capture and finite final GO, explicit
+phase budgets and separate recovery. Default schema5 remains. No native host
+phase or supported Incus capability follows from code acceptance. WSL forwarding
+repair alone completed; S03 source quality passed. Other maintenance/live work
+remains separately bound and unexecuted.
 
 S02 image prerequisite is the fixed official Alpine3.21 default/amd64 build
 20261107_13:00, combined fingerprint bb8bbef5b81dbbc7f665eb12172f06d54aef055327f1b4381767bf8c7b18fe66.

@@ -2527,7 +2527,7 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
                                  [{"kind": "instances", "name": "web", "project": "alpha"}])
 
     def test_storage_graph_named_unsupported_and_identity_boundaries(self) -> None:
-        for link, code in (("/1.0/images/image", "STORAGE_IMAGE_UNSUPPORTED"),
+        for link, code in (("/1.0/images/image", "IMAGE_IDENTITY_INVALID"),
                            ("/1.0/storage-pools/pool/buckets/bucket", "STORAGE_BUCKET_UNSUPPORTED"),
                            ("/1.0/instances/web?target=member", "STORAGE_MEMBER_SCOPE_UNSUPPORTED"),
                            ("/1.0", "STORAGE_DAEMON_CONSUMER_UNSUPPORTED")):
@@ -3399,5 +3399,140 @@ class SnapWrapperIntegrationTests(unittest.TestCase):
         client.assert_not_called()
 
 
-if __name__ == "__main__":
+
+
+class ImageAwareInventoryTests(unittest.TestCase):
+    FP = 'b' * 64
+
+    @classmethod
+    def image(cls) -> dict[str, Any]:
+        return {'auto_update': False, 'properties': {'os': 'alpinelinux', 'release': '3.21'}, 'public': False,
+                'expires_at': '0001-01-01T00:00:00Z', 'profiles': ['default'], 'aliases': [],
+                'architecture': 'x86_64', 'cached': False, 'filename': 'fixture', 'fingerprint': cls.FP,
+                'size': 3300000, 'type': 'container', 'created_at': '2026-11-07T13:00:00Z',
+                'last_used_at': '0001-01-01T00:00:00Z', 'uploaded_at': '2026-11-07T14:00:00Z', 'project': ''}
+
+    @classmethod
+    def cache(cls) -> dict[str, Any]:
+        return {'name': cls.FP, 'type': 'image', 'content_type': 'filesystem', 'project': 'default',
+                'description': '', 'config': {'volatile.rootfs.size': '3300000'}, 'location': 'none',
+                'created_at': '2026-11-07T14:00:00Z', 'used_by': [f'/1.0/images/{cls.FP}?target=none']}
+
+    class ImageRunner(NativeRuntimeInventoryTests._InventoryRunner):
+        def __init__(self) -> None:
+            super().__init__()
+            self.project_used_by.append('/1.0/images/' + ImageAwareInventoryTests.FP + '?project=alpha')
+            self.pool_used_by.append('/1.0/images/' + ImageAwareInventoryTests.FP + '?project=alpha&target=none')
+
+        def run(self, argv: list[str], *, env: dict[str, str] | None = None, command_id: str,
+                safe_args: list[str] | None = None, expected: set[int] | None = None) -> tuple[int, bytes, bytes]:
+            if command_id in {'incus_image_show', 'incus_image_cache_show'}:
+                self.calls.append((list(argv), dict(env or {}), command_id))
+                metadata = ImageAwareInventoryTests.image() if command_id.endswith('_image_show') else ImageAwareInventoryTests.cache()
+                out = self._json({'type': 'sync', 'status': 'Success', 'status_code': 200, 'operation': '',
+                                  'error_code': 0, 'error': '', 'metadata': metadata})
+                self.records.append({'command_id': command_id, 'safe_args': list(safe_args or []),
+                                     'exit_status': 0, 'stdout_bytes': len(out), 'stderr_bytes': 0})
+                return 0, out, b''
+            result = super().run(argv, env=env, command_id=command_id, safe_args=safe_args, expected=expected)
+            if argv[2:] == ['storage', 'volume', 'list', 'pool', '--project', 'default', '--format', 'json']:
+                out = self._json([ImageAwareInventoryTests.cache()])
+                self.records[-1]['stdout_bytes'] = len(out)
+                return 0, out, b''
+            return result
+
+    def test_real_client_preserves_image_project_and_global_cache_edges_without_adoption(self) -> None:
+        runner = self.ImageRunner()
+        _, rows = inventory._inventory_client(runner, 'incus_system', '/run/incus/unix.socket', incus=True,
+                                               before_query=lambda: None, image_aware=True)
+        self.assertEqual(rows[0]['images'][0]['owner_project'], 'alpha')
+        self.assertEqual(rows[1]['pools'][0]['image_cache'][0]['owner_project'], 'default')
+        self.assertEqual(rows[1]['pools'][0]['image_cache'][0]['used_by'],
+                         [{'kind': 'images', 'name': self.FP, 'project': 'default'}])
+        queries = [call[0] for call in runner.calls if call[2] in {'incus_image_show', 'incus_image_cache_show'}]
+        self.assertEqual(queries, [
+            ['/usr/bin/incus', '--force-local', 'query', '--request', 'GET', '--raw', f'/1.0/images/{self.FP}?project=alpha'],
+            ['/usr/bin/incus', '--force-local', 'query', '--request', 'GET', '--raw', f'/1.0/storage-pools/pool/volumes/image/{self.FP}?project=default']])
+        with self.assertRaisesRegex(inventory.InventoryError, 'STORAGE_IMAGE_UNSUPPORTED'):
+            inventory._inventory_client(self.ImageRunner(), 'incus_system', '/run/incus/unix.socket', incus=True,
+                                        before_query=lambda: None)
+
+    def test_image_metadata_is_preserved_except_actual_last_use(self) -> None:
+        original = self.image()
+        before = copy.deepcopy(original)
+        expected = inventory._image_projection(original, self.FP, 'alpha')
+        changed = dict(original, last_used_at='2026-11-07T20:00:00Z')
+        self.assertEqual(inventory._image_projection(changed, self.FP, 'alpha'), expected)
+        for field, value in (('aliases', [{'name': 'foreign', 'description': ''}]), ('profiles', []),
+                             ('properties', {'secret-canary': 'DO_NOT_EXPORT'}), ('auto_update', True)):
+            self.assertNotEqual(inventory._image_projection(dict(original, **{field: value}), self.FP, 'alpha'), expected)
+        self.assertEqual(original, before)
+        self.assertNotIn('DO_NOT_EXPORT', json.dumps(expected))
+        invalid: tuple[dict[str, Any], ...] = ({'fingerprint': 'b' * 63}, {'size': True}, {'project': 'foreign'},
+            {'public': 0}, {'aliases': [{'name': 'a', 'description': 4}]}, {'unknown': 'not-discarded'})
+        for change in invalid:
+            with self.subTest(change=change), self.assertRaises(inventory.InventoryError):
+                inventory._image_projection(dict(original, **change), self.FP, 'alpha')
+
+    def test_cache_boundary_and_graph_refuse_drift_unknown_image_and_member_selectors(self) -> None:
+        for incus in (False, True):
+            listed = self.cache() | ({} if incus else {'pool': 'pool'})
+            inventory._image_cache_projection(listed, copy.deepcopy(listed), 'pool', 'default', incus=incus)
+            changes: tuple[dict[str, Any], ...] = ({'project': 'foreign'}, {'location': 'member1'}, {'name': 'a' * 63},
+                                                 {'used_by': []}, {'unknown': True})
+            for change in changes:
+                with self.subTest(incus=incus, change=change), self.assertRaises(inventory.InventoryError):
+                    inventory._image_cache_projection(listed, dict(listed, **change), 'pool', 'default', incus=incus)
+        for link in (f'/1.0/images/{self.FP}?target=member1', f'/1.0/images/{self.FP}?target=none&target=none',
+                     f'/1.0/images/{self.FP}?unknown=x'):
+            with self.assertRaises(inventory.InventoryError):
+                inventory._storage_consumer_refs([link], 'default')
+        _, rows = inventory._inventory_client(self.ImageRunner(), 'incus_system', '/run/incus/unix.socket',
+                                               incus=True, before_query=lambda: None, image_aware=True)
+        for mutation in ('missing_image', 'cache_content', 'wrong_pool_user', 'duplicate_image'):
+            changed = copy.deepcopy(rows)
+            if mutation == 'missing_image':
+                changed[0]['images'] = []
+            elif mutation == 'cache_content':
+                changed[1]['pools'][0]['image_cache'][0]['content_type'] = 'block'
+            elif mutation == 'wrong_pool_user':
+                for row in changed:
+                    row['pools'][0]['used_by'] = [ref for ref in row['pools'][0]['used_by'] if ref['kind'] != 'images']
+            else:
+                changed[0]['images'] *= 2
+            with self.subTest(mutation=mutation), self.assertRaises(inventory.InventoryError):
+                inventory._validate_storage_graph(changed, inventory._canonical_pools(changed), incus=True)
+
+    def test_schema_six_reader_checks_image_graph_and_exact_detail_evidence(self) -> None:
+        runner = self.ImageRunner()
+        _, rows = inventory._inventory_client(runner, 'incus_system', '/run/incus/unix.socket',
+                                               incus=True, before_query=lambda: None, image_aware=True)
+        helper = NativeRuntimeInventoryTests()
+        artifact = helper._valid_artifact()
+        helper._bind_artifact(artifact, rows, incus=True)
+        artifact['schema_version'] = 6
+        image_records = [record for record in runner.records if record['command_id'] in {'incus_image_show', 'incus_image_cache_show'}]
+        artifact['command_records'][-1:-1] = image_records
+        encoded = inventory._validate_artifact(artifact)
+        self.assertEqual(json.loads(encoded)['schema_version'], 6)
+        self.assertNotIn(b'alpinelinux', encoded)
+        for mutation in ('schema5', 'missing_command', 'duplicate_command', 'failed_command', 'cache_owner', 'missing_cache_field'):
+            value = copy.deepcopy(artifact)
+            if mutation == 'schema5':
+                value['schema_version'] = 5
+            elif mutation == 'missing_command':
+                value['command_records'] = [record for record in value['command_records'] if record['command_id'] != 'incus_image_show']
+            elif mutation == 'duplicate_command':
+                value['command_records'].append(copy.deepcopy(image_records[0]))
+            elif mutation == 'failed_command':
+                next(record for record in value['command_records'] if record['command_id'] == 'incus_image_show')['exit_status'] = 1
+            elif mutation == 'cache_owner':
+                value['incus_projects'][1]['pools'][0]['image_cache'][0]['owner_project'] = 'alpha'
+            else:
+                value['incus_projects'][0]['pools'][0].pop('image_cache')
+            with self.subTest(mutation=mutation), self.assertRaises(inventory.InventoryError):
+                inventory._validate_artifact(value)
+
+
+if __name__ == '__main__':
     unittest.main()

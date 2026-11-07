@@ -1,11 +1,11 @@
 {
   "workflow_id": "issue-449-lcm-w09",
-  "workflow_version": "1.51",
+  "workflow_version": "1.52",
   "continuation_20261107": {
     "branch": "fix/epic440-completion-20261107",
     "baseline": "b87fe5c96b4e8627c56f48d9a7b3c691076447fc",
     "authorization": "User explicitly requests complete Epic 440 remediation using both named test hosts; historical code-only publication scope does not limit this request.",
-    "phase": "Preserving native/WSL maintenance policy after successful committed schema5 inventory; independent policy review accepted; concrete implementation/execution pending",
+    "phase": "WSL forwarding repair complete; S03 integrated/full PC quality PASS; image-aware native bootstrap integrated/full PC quality PASS; resource/fixture host phases pending",
     "normative_contract": ".codex/evidence/slice-449-02F4-design.md",
     "execution_record": ".codex/evidence/epic440-20261107.md",
     "runtime_mutation_released": false,
@@ -68,6 +68,26 @@
       "authority": "Renewed user request for complete remediation; root architecture routing decision",
       "retained_gate": "Empty supported-version matrix and no runtime enablement until both-host S02 acceptance; focused/full exact PC WSL checks and independent source review before integration",
       "integration_owner": "root; overlapping composition changes serialized"
+    },
+    "completed_runtime_maintenance": [
+      "Existing WSL generated forwarding script and exactly three missing configured-target rules; foreign firewall/NAT/hosts/service identity preserved"
+    ],
+    "native_maintenance_bootstrap": {
+      "contract": ".codex/evidence/epic440-native-bootstrap-contract-20261107.md",
+      "status": "ROOT_SOURCE_REVIEW_AND_PC_QUALITY_PASS",
+      "image_inventory_schema": 6,
+      "opt_in": true,
+      "default_inventory_schema": 5,
+      "final_fixture_admission": "Actual paused resource/route captures and finite final17-key GO; no predicted poststate",
+      "phase_seconds": {
+        "preparation": 1200,
+        "capture": 360,
+        "approval": 180,
+        "fixture": 1025,
+        "recovery": 600
+      },
+      "host_phase_released": false,
+      "capability_accepted": false
     }
   },
   "workflow_path": "documentation/handbook/05-development/workflow/issues/issue-449/workflow.md",
