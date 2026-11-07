@@ -156,7 +156,7 @@ def _ensure_native_python(native: bool, entrypoint_args: tuple[str, ...], *, is_
             python_bin.as_posix(), os.environ
         ):
             raise SimpleInstallerError(
-                "Native Python dependencies are missing. Run ./prepare_linux.sh separately, then retry ./install.sh."
+                "Native Python dependencies are missing. Run ./bootstrap/linux/prepare_linux.sh separately, then retry ./install.sh."
             )
         try:
             os.execvpe(

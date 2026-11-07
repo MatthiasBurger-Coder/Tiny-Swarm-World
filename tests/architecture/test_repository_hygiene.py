@@ -11,6 +11,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 COMMENT_SCAN_ROOTS = (
     REPOSITORY_ROOT / "src",
     REPOSITORY_ROOT / "tests",
+    REPOSITORY_ROOT / "bootstrap",
     REPOSITORY_ROOT / "tools",
     REPOSITORY_ROOT / "infra",
 )

@@ -48,5 +48,5 @@ Python 3.12 compatibility and hexagonal architecture.
 ## Quality expectations
 
 - Run focused unit tests first.
-- Run `python3 tools/quality_gate.py lint`, `typecheck` or `test` as relevant.
+- Run `python3 tools/linux/quality_gate.py lint`, `typecheck` or `test` as relevant.
 - Run the full quality gate before commit when practical.

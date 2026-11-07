@@ -250,7 +250,7 @@ smoke validation is a separate operator action and requires:
 - disposable or recoverable local target environment;
 - live consent;
 - redacted evidence bundle;
-- clear separation from `python3 tools/quality_gate.py quality`.
+- clear separation from `python3 tools/linux/quality_gate.py quality`.
 
 ## Acceptance Criteria
 

@@ -19,10 +19,10 @@ from tests.e2e.classic.browser_e2e_contract import (
     BrowserRouteE2EContract, _approved_credential,
     browser_route_expectations, live_browser_evidence_root,
 )
-from tools.live.secure_runtime_paths import (
+from tools.linux.live.secure_runtime_paths import (
     assess_secret_file, ensure_secure_directory, host_classification,
 )
-from tools.live.run_classic_acceptance import EXPECTED_READINESS_TESTS, SAFE_FAILURE_TYPES
+from tests.e2e.classic.run_classic_acceptance import EXPECTED_READINESS_TESTS, SAFE_FAILURE_TYPES
 
 
 class _TypedFailureResult(unittest.TextTestResult):

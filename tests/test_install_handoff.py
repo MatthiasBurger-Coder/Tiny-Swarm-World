@@ -18,12 +18,12 @@ class TestInstallHandoff(unittest.TestCase):
         self.addCleanup(self.temporary.cleanup)
         self.checkout = Path(self.temporary.name) / "checkout with spaces"
         self.checkout.mkdir()
-        for name in ("install.sh", "prepare_linux.sh", "requirements.lock", "requirements.build.lock", "pyproject.toml", "src/tiny_swarm_world/prepare_linux.py"):
+        for name in ("install.sh", "bootstrap/linux/prepare_linux.sh", "requirements.lock", "requirements.build.lock", "pyproject.toml", "src/tiny_swarm_world/prepare_linux.py"):
             path = self.checkout / name
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text("# fixture bytes\n")
         (self.checkout / "install.sh").chmod(0o755)
-        (self.checkout / "prepare_linux.sh").chmod(0o755)
+        (self.checkout / "bootstrap/linux/prepare_linux.sh").chmod(0o755)
         self.git("init", "--quiet")
         self.git("add", ".")
         self.git("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "--quiet", "-m", "fixture")
@@ -34,7 +34,7 @@ class TestInstallHandoff(unittest.TestCase):
 
     def probe(self, path=None, revision=None):
         return subprocess.run(["sh", "-s", "--", str(path or self.checkout), revision or self.revision],
-                              input=(ROOT / "tools/windows/preparation/linux-handoff.sh").read_text(),
+                              input=(ROOT / "bootstrap/windows/preparation/linux-handoff.sh").read_text(),
                               text=True, capture_output=True, check=False, timeout=15)
 
     def test_read_only_matching_checkout_has_no_writes(self):
@@ -52,6 +52,16 @@ class TestInstallHandoff(unittest.TestCase):
         self.git("update-index", "--assume-unchanged", asset)
         (self.checkout / asset).write_text("edited product implementation\n")
         result = self.probe()
+        self.assertEqual(result.returncode, 2)
+        self.assertNotIn("handoff_ready=true", result.stdout)
+
+    def test_unreviewed_bootstrap_helper_is_refused(self):
+        helper = self.checkout / "bootstrap/windows/preparation/unreviewed.sh"
+        helper.parent.mkdir(parents=True)
+        helper.write_text("#!/bin/sh\nexit 0\n")
+
+        result = self.probe()
+
         self.assertEqual(result.returncode, 2)
         self.assertNotIn("handoff_ready=true", result.stdout)
 
@@ -77,7 +87,7 @@ class TestInstallHandoff(unittest.TestCase):
                     "trees": [{"id": key, "data": value} for key, value in trees.items()]}
         import shutil
         shutil.rmtree(self.checkout / ".git")
-        path = self.checkout / "tools/windows/preparation/release-manifest.json"
+        path = self.checkout / "bootstrap/windows/preparation/release-manifest.json"
         path.parent.mkdir(parents=True)
         path.write_text(json.dumps(manifest))
         result = self.probe()
@@ -90,9 +100,9 @@ class TestInstallHandoff(unittest.TestCase):
             with self.subTest(prepare_exit=prepare_exit, install_exit=install_exit):
                 marker = self.checkout / "called"
                 marker.unlink(missing_ok=True)
-                (self.checkout / "prepare_linux.sh").write_text(f"#!/bin/sh\nread answer\n[ \"$answer\" = yes ] || exit 2\nexit {prepare_exit}\n")
+                (self.checkout / "bootstrap/linux/prepare_linux.sh").write_text(f"#!/bin/sh\nread answer\n[ \"$answer\" = yes ] || exit 2\nexit {prepare_exit}\n")
                 (self.checkout / "install.sh").write_text(f"#!/bin/sh\ntouch called\nexit {install_exit}\n")
-                chain = f"cd -- '{self.checkout}' && ./prepare_linux.sh --service-profile default && exec ./install.sh --service-profile default"
+                chain = f"cd -- '{self.checkout}' && ./bootstrap/linux/prepare_linux.sh --service-profile default && exec ./install.sh --service-profile default"
                 result = subprocess.run(["bash", "-lc", chain], input="yes\n", text=True, capture_output=True,
                                         env={**os.environ}, check=False, timeout=10)
                 self.assertEqual(result.returncode, prepare_exit or install_exit)

@@ -27,7 +27,7 @@ control consistency findings.
 
 ## Required checks
 Run `git diff --check` for documentation changes and require
-`python3 tools/quality_gate.py quality` when implementation or test quality
+`python3 tools/linux/quality_gate.py quality` when implementation or test quality
 rules are changed.
 
 ## Evidence rules

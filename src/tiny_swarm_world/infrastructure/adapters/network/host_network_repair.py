@@ -188,7 +188,7 @@ class SubprocessNetworkRepair:
         try:
             writes = _forwarding_write_targets()
         except (OSError, RuntimeError, ValueError):
-            return _repair_blocked("linux-forwarding", "Forwarding persistence collision or unsafe metadata; preserve the current owner and use ./prepare_linux.sh --dry-run.", commands)
+            return _repair_blocked("linux-forwarding", "Forwarding persistence collision or unsafe metadata; preserve the current owner and use ./bootstrap/linux/prepare_linux.sh --dry-run.", commands)
         install_script = (_protected_forwarding_install(FORWARDING_SCRIPT_PATH, _forwarding_script().encode(), 0o755)
                           if FORWARDING_SCRIPT_PATH in writes else CommandObservation(command="compatible-script-reused", return_code=0))
         install_service = (_protected_forwarding_install(FORWARDING_SERVICE_PATH, _forwarding_service().encode(), 0o644)

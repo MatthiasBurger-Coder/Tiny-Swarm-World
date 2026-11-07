@@ -1,6 +1,6 @@
 # Pester 4-compatible syntax; all certificate-store access is mocked.
 $repositoryRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-. (Join-Path $repositoryRoot 'tools/windows/tsw-tls-trust.ps1')
+. (Join-Path $repositoryRoot 'bootstrap/windows/tsw-tls-trust.ps1')
 
 function New-TswTestCa {
     param([string]$Path, [bool]$Ca = $true, [bool]$Expired = $false, [string]$KeyUsage = '')

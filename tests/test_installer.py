@@ -997,7 +997,7 @@ class TestInstaller(unittest.TestCase):
             root = Path(tempdir)
             _write_ports_registry(root, (80, 10000))
             _write_windows_bridge_state(root, "172.20.0.2", (80, 10000))
-            state_path = root / "tools" / "windows" / ".tws-wsl-bridge.state.json"
+            state_path = root / "bootstrap" / "windows" / ".tws-wsl-bridge.state.json"
             pending = json.loads(state_path.read_text(encoding="utf-8"))
             pending["agentStatus"] = "degraded"
             pending["driftReasons"] = ["reconcile_in_progress"]
@@ -1042,7 +1042,7 @@ class TestInstaller(unittest.TestCase):
             presentation._windows_wsl_bridge_suggested_commands("agent_not_ready"),
             (
                 'powershell.exe -NoProfile -Command "Restart-Service -Name TinySwarmWorldWslBridge"',
-                "powershell.exe -ExecutionPolicy Bypass -File tools/windows/tws-wsl-bridge.ps1 -Action install",
+                "powershell.exe -ExecutionPolicy Bypass -File bootstrap/windows/tws-wsl-bridge.ps1 -Action install",
             ),
         )
 
@@ -1050,7 +1050,7 @@ class TestInstaller(unittest.TestCase):
         guard = installer.WindowsWslBridgeGuardResult(
             passed=False,
             reason="agent_not_ready",
-            state_path=Path("tools/windows/.tws-wsl-bridge.state.json"),
+            state_path=Path("bootstrap/windows/.tws-wsl-bridge.state.json"),
         )
         stderr = io.StringIO()
 
@@ -1078,7 +1078,7 @@ class TestInstaller(unittest.TestCase):
             (
                 "./tsw doctor network",
                 "./tsw network repair --linux-forwarding --apply",
-                "powershell.exe -ExecutionPolicy Bypass -File .\\tools\\windows\\doctor-portproxy.ps1",
+                "powershell.exe -ExecutionPolicy Bypass -File .\\bootstrap\\windows\\doctor-portproxy.ps1",
             ),
         )
         self.assertEqual(
@@ -1391,13 +1391,13 @@ def _test_windows_wsl_bridge_guard(
 ) -> installer.WindowsWslBridgeGuardResult:
     with patch.dict(
         env,
-        {"TSW_WINDOWS_WSL_BRIDGE_STATE_PATH": "tools/windows/.tws-wsl-bridge.state.json"},
+        {"TSW_WINDOWS_WSL_BRIDGE_STATE_PATH": "bootstrap/windows/.tws-wsl-bridge.state.json"},
     ):
         return host._windows_wsl_bridge_guard(host_runtime, env, root)
 
 
 def _write_windows_bridge_state(root: Path, wsl_ip: str, ports: tuple[int, ...]) -> None:
-    state_path = root / "tools" / "windows" / ".tws-wsl-bridge.state.json"
+    state_path = root / "bootstrap" / "windows" / ".tws-wsl-bridge.state.json"
     state_path.parent.mkdir(parents=True, exist_ok=True)
     state = {
         "contractVersion": 2,

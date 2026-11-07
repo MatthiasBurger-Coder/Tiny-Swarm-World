@@ -50,8 +50,8 @@ class NativeLinuxHostPreparation(PortHostPreparation):
                 "Required native Linux kernel controls are active."
                 if ready
                 else "Required native Linux kernel controls are not ready; review "
-                "./prepare_linux.sh --dry-run, then approve the separate preparation "
-                "steps with ./prepare_linux.sh and retry."
+                "./bootstrap/linux/prepare_linux.sh --dry-run, then approve the separate preparation "
+                "steps with ./bootstrap/linux/prepare_linux.sh and retry."
             ),
             changed=False,
             verified=ready,

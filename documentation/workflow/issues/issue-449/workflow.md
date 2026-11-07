@@ -1365,7 +1365,7 @@ stop_conditions: [feature necessity unverified, GO/hash mismatch, unsupported di
 Author this separate compatibility slice only if S449-02H records authoritative
 Microsoft requirements and exact host evidence showing Store-managed WSL makes
 `Microsoft-Windows-Subsystem-Linux` optional for this target. The existing
-blocker is produced by `prepare_windows.ps1` policy in
+blocker is produced by `bootstrap/windows/prepare_windows.ps1` policy in
 `tools/windows/preparation/Policy.ps1`, before WSL version and distro checks;
 do not change the unrelated Python host-preparation adapter. In `Policy.ps1`
 and its host-fact adapter, permit bypassing only this missing-feature action
@@ -1453,7 +1453,7 @@ free -b
 df -B1 --output=avail "$ROOT"
 incus version
 ip -j -4 addr
-./prepare_linux.sh --preflight --service-profile service-access
+./bootstrap/linux/prepare_linux.sh --preflight --service-profile service-access
 ```
 Require `HEAD` to equal the reviewed candidate commit, clean tracked tree and
 exact SHA-256 values computed from the committed Git blob bytes for the
@@ -1472,7 +1472,7 @@ result and exit and stop on failure/unknown output. Do not install packages or
 mutate the host. Raw stdout hash is permitted only for `git status --short
 --branch`, `nproc --all`, `free -b`, `df -B1 --output=avail "$ROOT"` and
 `incus version` (hash only the exact text output; parse client/server version fields without inferring capability support). For `git rev-parse`, `sha256sum`, `findmnt`,
-`ip` and `./prepare_linux.sh`, keep only parsed commit, file hashes,
+`ip` and `./bootstrap/linux/prepare_linux.sh`, keep only parsed commit, file hashes,
 filesystem/identity facts and resource fields; no raw output or raw-output
 hash. The route-state capture follows its separate route-state contract.
 
@@ -1502,7 +1502,7 @@ preflight; preserve only allowlisted parsed resource fields and exit code plus
 safe command metadata, never argv or raw PowerShell output/hash:
 
 ```powershell
-prepare_windows.ps1 -Distro <exact distro> -Preflight -Json -LinuxCheckout <ext4 ROOT>
+bootstrap/windows/prepare_windows.ps1 -Distro <exact distro> -Preflight -Json -LinuxCheckout <ext4 ROOT>
 ```
 Inside that exact distro and ext4 checkout, run the same Git/hash/filesystem,
 CPU/RAM/disk and Incus-version commands listed above, plus `uname -r`. Require

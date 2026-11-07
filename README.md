@@ -1,5 +1,10 @@
 # Tiny Swarm World
 
+Installation prerequisites live in [`bootstrap/windows`](bootstrap/windows) for
+Windows/WSL and [`bootstrap/linux`](bootstrap/linux) for native Linux and shared
+Linux/WSL preparation. [`tools`](tools) contains quality, audit and developer tools.
+See [directory responsibilities and system handoff](documentation/manuals/tools-layout.md).
+
 Tiny Swarm World creates a local development and test environment with Docker
 Swarm, Portainer, Infisical, Nexus, Jenkins, Pulsar, SonarQube and supporting
 services. It provisions managed Linux containers through Incus and runs Docker
@@ -35,7 +40,7 @@ x86_64. Preparation installs missing packages/Python and its local environment;
 manual pip/venv steps are unnecessary.
 
 ```bash
-./prepare_linux.sh
+./bootstrap/linux/prepare_linux.sh
 ./install.sh
 ```
 
@@ -43,13 +48,13 @@ manual pip/venv steps are unnecessary.
 PowerShell and select the exact distribution. For example:
 
 ```powershell
-./prepare_windows.ps1 -Distro Ubuntu-26.04
+./bootstrap/windows/prepare_windows.ps1 -Distro Ubuntu-26.04
 ```
 
 Before the handoff, create the ordinary Ubuntu account interactively when
 prompted and place the matching checkout in its Linux home (`~/Tiny-Swarm-World`
 by default); Windows preparation does not copy it. If the source probe reports
-missing system Python, first run `./prepare_linux.sh` from that Linux checkout,
+missing system Python, first run `./bootstrap/linux/prepare_linux.sh` from that Linux checkout,
 then rerun Windows preparation. This boundary can add commands to the short path.
 Use `-LinuxCheckout` for another Linux-native location; custom distro names also
 need the matching `-UbuntuRelease`.
@@ -69,7 +74,7 @@ needs the trusted release source proof for Windows qualification and does not
 resolve the installer's Git-metadata limitation.
 
 Review each plan before typing exact `yes`; installation has its own live approval.
-Use `./prepare_linux.sh --dry-run` or `./install.sh --preflight` for read-only checks.
+Use `./bootstrap/linux/prepare_linux.sh --dry-run` or `./install.sh --preflight` for read-only checks.
 Do not run the whole installer with sudo. Internet access to Ubuntu packages,
 locked Python dependencies and container registries is required. The current
 service-access plan needs at least 21 GiB WSL RAM for configured nodes/overhead,
@@ -209,7 +214,7 @@ and redact diagnostics before sharing them.
 | `platform verify` | Inspect the existing platform without repairing it. |
 | `platform reconcile --live` | Reconcile managed platform state with explicit consent; it is not a complete application update. |
 | `setup run --live` | Run the broader setup workflow without a reset; it still changes infrastructure. |
-| `./prepare_linux.sh` | Prepare shared native/WSL2 Ubuntu prerequisites and Incus access/resources with staged confirmation. |
+| `./bootstrap/linux/prepare_linux.sh` | Prepare shared native/WSL2 Ubuntu prerequisites and Incus access/resources with staged confirmation. |
 | `./install.sh` on native Linux | Verify preparation, then run setup without a reset. |
 | `./install.sh` on WSL2 | Reconcile existing managed state; explicit WSL `--confirm-reset` alone selects deprecated destructive compatibility. |
 | Product upgrade | `product upgrade` controls the bounded TSW release transition; see the [product upgrade guide](documentation/user_guide/product-upgrades.md) for prerequisites and qualification limits. |

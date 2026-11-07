@@ -244,13 +244,13 @@ Run checks from the repository root in Linux/WSL; manual test commands need
 
 | Check | Enforced property / evidence |
 |---|---|
-| `python3 tools/quality_gate.py arch-lint` | Seven `.importlinter` contracts: domain isolation; application excludes infrastructure and bootstrap; infrastructure excludes bootstrap facades; ports exclude services |
-| `python3 tools/quality_gate.py arch-tests` | Canonical hexagonal and architecture regression suites: exact root/CLI boundaries, thin executable delegation, installer technology/state access, renderer workflow construction, parser and state boundaries, operation diagnostics, relative imports, prohibited-import mutation probes and no new composition cycle edges |
+| `python3 tools/linux/quality_gate.py arch-lint` | Seven `.importlinter` contracts: domain isolation; application excludes infrastructure and bootstrap; infrastructure excludes bootstrap facades; ports exclude services |
+| `python3 tools/linux/quality_gate.py arch-tests` | Canonical hexagonal and architecture regression suites: exact root/CLI boundaries, thin executable delegation, installer technology/state access, renderer workflow construction, parser and state boundaries, operation diagnostics, relative imports, prohibited-import mutation probes and no new composition cycle edges |
 | `PYTHONPATH=src python3 -m unittest tests.architecture.test_process_spawn_boundaries` | Three-module production spawn allowlist and deliberate spawn regression probes |
 | `PYTHONPATH=src python3 -m unittest tests.domain.inventory.test_reconciliation tests.application.services.platform.test_runtime_profile tests.application.services.platform.test_platform_lifecycle` | Deterministic plans/profile decisions and typed lifecycle dispatch |
 | `PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_docker_swarm_runtime tests.application.services.deployment.test_ensure_swarm_stack tests.infrastructure.test_composition` | Classic delegation, apply/stack registration and composition seams with mocks |
-| `python3 tools/quality_gate.py complexity` | Reviewed complexity thresholds/baselines and explicit exceptions; no blanket size rule |
-| `python3 tools/quality_gate.py quality` | Verification-policy, complexity, lint, arch-lint, arch-tests, typecheck and full unit suite |
+| `python3 tools/linux/quality_gate.py complexity` | Reviewed complexity thresholds/baselines and explicit exceptions; no blanket size rule |
+| `python3 tools/linux/quality_gate.py quality` | Verification-policy, complexity, lint, arch-lint, arch-tests, typecheck and full unit suite |
 | `git diff --check` | Documentation/change whitespace hygiene |
 
 The canonical `arch-tests` command runs two named suites, not every architecture

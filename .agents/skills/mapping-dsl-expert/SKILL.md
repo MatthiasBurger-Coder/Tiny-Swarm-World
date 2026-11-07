@@ -47,4 +47,4 @@ descriptions without bypassing structured YAML or architecture boundaries.
 ## Quality expectations
 
 - Add focused tests for parser or mapping behavior.
-- Run `python3 tools/quality_gate.py test` and `git diff --check`.
+- Run `python3 tools/linux/quality_gate.py test` and `git diff --check`.

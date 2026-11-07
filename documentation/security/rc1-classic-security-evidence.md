@@ -24,9 +24,9 @@ for the isolated internal-test profile.
 
 Run from the candidate checkout:
 
-    python3 tools/security_gate.py dependencies
-    python3 tools/security_gate.py sbom
-    python3 tools/security_gate.py container-config
+    python3 tools/linux/security_gate.py dependencies
+    python3 tools/linux/security_gate.py sbom
+    python3 tools/linux/security_gate.py container-config
 
 Record tool versions, candidate SHA, date, result and redacted output location.
 The first two checks are local prerequisites; the container-config check

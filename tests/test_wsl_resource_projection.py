@@ -12,7 +12,7 @@ from tests.test_prepare_windows import WINDOWS_POWERSHELL, _powershell, _runtime
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location(
-    "wsl_projection", ROOT / "tools/build_wsl_resource_projection.py"
+    "wsl_projection", ROOT / "tools/windows/build_wsl_resource_projection.py"
 )
 assert SPEC and SPEC.loader
 projection = importlib.util.module_from_spec(SPEC)
@@ -68,7 +68,7 @@ class TestResourceProjection(unittest.TestCase):
             identity.write_text("0::/group/nested\n")
             meminfo = root / "meminfo"
             meminfo.write_text("MemTotal: 24000000 kB\nSwapTotal: 6000000 kB\n")
-            script = (ROOT / "tools/windows/preparation/linux-resources.sh").read_text()
+            script = (ROOT / "bootstrap/windows/preparation/linux-resources.sh").read_text()
             script = script.replace("/sys/fs/cgroup", str(root)).replace("/proc/self/cgroup", str(identity)).replace("/proc/meminfo", str(meminfo))
             result = subprocess.run(["sh", "-s"], input=script, text=True, capture_output=True, timeout=10, check=False)
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -103,7 +103,7 @@ class TestResourceProjection(unittest.TestCase):
             valid = ("Node 0, zone DMA32\n  spanned 1048576\n  present 1015455\n"
                      "Node 0, zone Normal\n  spanned 5000000\n  present 4489216\n"
                      "Node 0, zone Device\n  present 1000000\n")
-            script = (ROOT / "tools/windows/preparation/linux-resources.sh").read_text()
+            script = (ROOT / "bootstrap/windows/preparation/linux-resources.sh").read_text()
             script = (script.replace("/sys/fs/cgroup", str(root))
                       .replace("/proc/self/cgroup", str(root / "identity"))
                       .replace("/proc/meminfo", str(root / "meminfo"))

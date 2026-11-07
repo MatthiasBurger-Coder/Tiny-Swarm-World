@@ -17,8 +17,8 @@ def preparation_asset_hashes(repository_root: Path, *, is_wsl: bool) -> tuple[st
     runtime = tuple(sorted((repository_root / "src/tiny_swarm_world").rglob("*.py")))
     inputs = tuple(repository_root / name for name in assets) + runtime
     if is_wsl:
-        inputs += tuple(sorted((repository_root / "tools/windows").rglob("*.ps1")))
-        inputs += (repository_root / "tools/windows/tws-wsl-bridge.config.json",)
+        inputs += tuple(sorted((repository_root / "bootstrap/windows").rglob("*.ps1")))
+        inputs += (repository_root / "bootstrap/windows/tws-wsl-bridge.config.json",)
     if any(path.is_symlink() or not path.is_file() or any(parent.is_symlink() for parent in path.parents)
            for path in inputs):
         raise RuntimeError("Preparation source/configuration asset is unsafe or unavailable.")

@@ -49,5 +49,5 @@ automation model and Python hexagonal architecture.
 ## Quality expectations
 
 - Run the nearest focused test first.
-- Run `python3 tools/quality_gate.py test` for Python behavior changes.
+- Run `python3 tools/linux/quality_gate.py test` for Python behavior changes.
 - Run `git diff --check` for documentation or governance-only changes.

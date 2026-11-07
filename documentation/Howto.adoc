@@ -9,14 +9,14 @@ Run the full project gate from the repository root:
 
 [source,bash]
 ----
-python3 tools/quality_gate.py quality
+python3 tools/linux/quality_gate.py quality
 ----
 
 If a virtual environment is active:
 
 [source,bash]
 ----
-python tools/quality_gate.py quality
+python tools/linux/quality_gate.py quality
 ----
 
 == Run The Current Python Entrypoint

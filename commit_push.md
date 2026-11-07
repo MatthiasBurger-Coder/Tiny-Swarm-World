@@ -54,7 +54,7 @@ convention, use it.
 For this project, prefer running from the repository root:
 
 ```bash
-python3 tools/quality_gate.py quality
+python3 tools/linux/quality_gate.py quality
 ```
 
 If `python3` is unavailable but an activated virtual environment provides

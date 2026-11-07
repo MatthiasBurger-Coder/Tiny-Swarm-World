@@ -16,12 +16,12 @@ Incus/LXC profile belong inside managed nodes, not on the host.
 
 == Decision
 
-The operator runs `./prepare_linux.sh` separately before `./install.sh`.
+The operator runs `./bootstrap/linux/prepare_linux.sh` separately before `./install.sh`.
 `install.sh` never invokes preparation or a host package manager. It checks the
-host prerequisites and gives a `./prepare_linux.sh` remediation when they are
+host prerequisites and gives a `./bootstrap/linux/prepare_linux.sh` remediation when they are
 missing. Direct remote pipe-to-shell bootstrap is not a supported entry point.
 
-`prepare_linux.sh` is a thin repository-local entry point for a Python
+`bootstrap/linux/prepare_linux.sh` is a thin repository-local entry point for a Python
 application service. Qualification and package planning are read-only and run
 before mutation. The initial mutating preparation target is native Ubuntu
 24.04 or 26.04 LTS on x86_64. WSL, other releases and other architectures fail closed;

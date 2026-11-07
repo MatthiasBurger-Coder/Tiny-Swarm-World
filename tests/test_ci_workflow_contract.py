@@ -15,7 +15,7 @@ class CiWorkflowContractTests(unittest.TestCase):
         self.assertIn("name: Python Quality Gate", workflow)
         self.assertIn("  push:\n    branches: [main]", workflow)
         self.assertIn("  pull_request:\n    branches: [main]", workflow)
-        self.assertIn("python3 tools/quality_gate.py quality", workflow)
+        self.assertIn("python3 tools/linux/quality_gate.py quality", workflow)
         self.assertIn("pip install --require-hashes -r requirements.lock", workflow)
         self.assertIn("pip install --no-deps -e .", workflow)
         self.assertIn("actions/upload-artifact@", workflow)
@@ -55,7 +55,7 @@ class CiWorkflowContractTests(unittest.TestCase):
         self.assertIn("exit 1", workflow)
         self.assertIn("SonarSource/sonarqube-scan-action@", workflow)
         self.assertEqual(2, workflow.count("-Dsonar.python.version=3.12,3.13,3.14"))
-        self.assertNotIn("tools/quality_gate.py quality", workflow)
+        self.assertNotIn("tools/linux/quality_gate.py quality", workflow)
         self.assertNotIn("Skip SonarCloud Scan", workflow)
 
     def test_sonar_workflow_does_not_duplicate_the_locked_runtime_gate(self) -> None:
@@ -65,7 +65,7 @@ class CiWorkflowContractTests(unittest.TestCase):
         self.assertIn("ref: ${{ github.event.workflow_run.head_sha }}", workflow)
         self.assertIn("-Dsonar.scm.revision=${{ github.event.workflow_run.head_sha }}", workflow)
         self.assertIn("-Dsonar.qualitygate.wait=true", workflow)
-        self.assertNotIn("tools/quality_gate.py quality", workflow)
+        self.assertNotIn("tools/linux/quality_gate.py quality", workflow)
         self.assertNotIn("pip install --require-hashes -r requirements.lock", workflow)
 
     def test_python_compatibility_workflow_runs_the_declared_conda_matrix(self) -> None:
@@ -119,7 +119,7 @@ class CiWorkflowContractTests(unittest.TestCase):
         self.assertNotIn("docker swarm", workflow.lower())
 
     def test_classic_live_runner_records_only_redacted_terminal_evidence(self) -> None:
-        runner = (REPOSITORY_ROOT / "tools/live/run_classic_acceptance.py").read_text(
+        runner = (REPOSITORY_ROOT / "tests/e2e/classic/run_classic_acceptance.py").read_text(
             encoding="utf-8"
         )
 
@@ -130,7 +130,7 @@ class CiWorkflowContractTests(unittest.TestCase):
             "LIVE_VERIFIED",
             "checksums.sha256",
             "raw stdout, stderr, credentials and environment values were not written",
-            "tools/install_debugger.py",
+            "bootstrap/linux/install_debugger.py",
             '"classic_e2e"',
             '"reconcile"',
             '"reconcile_e2e"',

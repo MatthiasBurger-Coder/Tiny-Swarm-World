@@ -44,8 +44,8 @@ class WindowsNetworkPreparation:
 
     async def _run(self, action, distro, address, timeout):
         result = await asyncio.to_thread(self.runner.run, action,
-             script_path=self.root / "tools/windows/tws-wsl-bridge.ps1",
-             config_path=self.root / "tools/windows/tws-wsl-bridge.config.json",
+             script_path=self.root / "bootstrap/windows/tws-wsl-bridge.ps1",
+             config_path=self.root / "bootstrap/windows/tws-wsl-bridge.config.json",
              port_registry_path=self.config_root / "ports.yaml", timeout_seconds=timeout,
              distro=distro, observed_address=address)
         if result.timed_out:

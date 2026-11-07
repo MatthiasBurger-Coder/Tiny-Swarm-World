@@ -10,7 +10,7 @@ accepted this narrow transition before product edits on 2026-10-04.
 
 == Decision
 
-Add thin prepare_windows.ps1 delegating to a dependency-light PowerShell preparation
+Add thin bootstrap/windows/prepare_windows.ps1 delegating to a dependency-light PowerShell preparation
 module: pure plan/result policy, injectable inventory/action/evidence ports and
 concrete Windows adapters. Windows features and first WSL installation precede
 Linux/Python availability, so this bounded pre-Linux boundary cannot require product

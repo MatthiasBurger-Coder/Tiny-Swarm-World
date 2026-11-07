@@ -13,7 +13,7 @@ def validate_assets(root: Path) -> None:
     for relative in ("requirements.lock", "requirements.build.lock", "pyproject.toml", "src/tiny_swarm_world/prepare_linux.py"):
         path = root / relative
         if path.is_symlink() or not path.is_file():
-            raise InstallerError("Complete trusted release assets are required; extract the release and retry ./prepare_linux.sh --dry-run.")
+            raise InstallerError("Complete trusted release assets are required; extract the release and retry ./bootstrap/linux/prepare_linux.sh --dry-run.")
     # Validate the hash-locked grammar before creating a venv or invoking pip.
     for name in ("requirements.lock", "requirements.build.lock"):
         _validate_lock(root / name)
@@ -33,10 +33,10 @@ def _validate_lock(path: Path) -> None:
 
 def validate_user_paths(root: Path, venv: Path, *, is_wsl: bool) -> None:
     if os.geteuid() == 0:
-        raise InstallerError("Run ./prepare_linux.sh as an ordinary user; only package installation elevates.")
+        raise InstallerError("Run ./bootstrap/linux/prepare_linux.sh as an ordinary user; only package installation elevates.")
     for path in (root.absolute(), venv.absolute()):
         if is_wsl and re.match(r"^/mnt/[a-z](?:/|$)", path.as_posix()):
-            raise InstallerError("Use an owned Linux-native checkout and venv, then retry ./prepare_linux.sh --dry-run.")
+            raise InstallerError("Use an owned Linux-native checkout and venv, then retry ./bootstrap/linux/prepare_linux.sh --dry-run.")
         for ancestor in (path, *path.parents):
             if ancestor.is_symlink():
                 raise InstallerError("Preparation paths must not contain symlinks; choose an owned Linux-native directory.")

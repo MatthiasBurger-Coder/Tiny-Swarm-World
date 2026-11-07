@@ -1,6 +1,6 @@
 $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
-$bridgeScript = Join-Path $repositoryRoot "tools\windows\tws-wsl-bridge.ps1"
-$runnerScript = Join-Path $repositoryRoot "tools\windows\tws-wsl-bridge-service.ps1"
+$bridgeScript = Join-Path $repositoryRoot "bootstrap\windows\tws-wsl-bridge.ps1"
+$runnerScript = Join-Path $repositoryRoot "bootstrap\windows\tws-wsl-bridge-service.ps1"
 
 . $bridgeScript
 

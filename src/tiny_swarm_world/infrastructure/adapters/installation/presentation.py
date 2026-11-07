@@ -160,7 +160,7 @@ def _suggested_checks_for_phase(name: str, *, log_text: str = "") -> tuple[str, 
             commands = [
                 "./tsw doctor network",
                 "./tsw network repair --linux-forwarding --apply",
-                "powershell.exe -ExecutionPolicy Bypass -File .\\tools\\windows\\doctor-portproxy.ps1",
+                "powershell.exe -ExecutionPolicy Bypass -File .\\bootstrap\\windows\\doctor-portproxy.ps1",
             ]
         else:
             commands = [
@@ -231,10 +231,10 @@ def _windows_wsl_bridge_suggested_commands(reason: str) -> tuple[str, ...]:
     if reason in {"wsl_ip_changed", "state_stale_by_age", "agent_not_ready"}:
         return (
             'powershell.exe -NoProfile -Command "Restart-Service -Name TinySwarmWorldWslBridge"',
-            "powershell.exe -ExecutionPolicy Bypass -File tools/windows/tws-wsl-bridge.ps1 -Action install",
+            "powershell.exe -ExecutionPolicy Bypass -File bootstrap/windows/tws-wsl-bridge.ps1 -Action install",
         )
     return (
-        "powershell.exe -ExecutionPolicy Bypass -File tools/windows/tws-wsl-bridge.ps1 -Action install",
+        "powershell.exe -ExecutionPolicy Bypass -File bootstrap/windows/tws-wsl-bridge.ps1 -Action install",
     )
 
 
@@ -255,7 +255,7 @@ def _print_windows_wsl_bridge_failure(
         )
     print("", file=sys.stderr)
     print("Run PowerShell as Administrator:", file=sys.stderr)
-    print("  tools/windows/tws-wsl-bridge.ps1 -Action install", file=sys.stderr)
+    print("  bootstrap/windows/tws-wsl-bridge.ps1 -Action install", file=sys.stderr)
     if guard.reason in {"wsl_ip_changed", "state_stale_by_age", "agent_not_ready"}:
         print("", file=sys.stderr)
         print("Or restart the existing Windows bridge service:", file=sys.stderr)

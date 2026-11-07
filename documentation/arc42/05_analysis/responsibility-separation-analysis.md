@@ -26,7 +26,7 @@ Required files inspected first:
 - `infra/AGENTS.md`
 - `.importlinter`
 - `README.md`
-- `tools/quality_gate.py`
+- `tools/linux/quality_gate.py`
 
 Additional relevant areas inspected:
 
@@ -194,7 +194,7 @@ artifact, or deployment decisions.
 
 ### Repository and Quality Tooling
 
-- `tools/quality_gate.py`
+- `tools/linux/quality_gate.py`
 - `.importlinter`
 - `.gitattributes`
 - `.gitignore`

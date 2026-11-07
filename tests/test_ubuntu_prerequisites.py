@@ -88,7 +88,7 @@ class UbuntuPreparationAcceptanceTests(unittest.TestCase):
         self.assertEqual(final["uncertain"], ("incus",))
         python.assert_not_called()
         self.assertNotIn("sensitive", output.getvalue())
-        self.assertIn("./prepare_linux.sh --dry-run", output.getvalue())
+        self.assertIn("./bootstrap/linux/prepare_linux.sh --dry-run", output.getvalue())
 
     def test_ac3_read_only_never_validates_mutation_paths_writes_evidence_or_prompts(self):
         service = NativePreparationService(Mock(inspect=Mock(return_value=QUALIFIED)), Mock(missing=Mock(return_value=("incus",))), prerequisites_only=True)
@@ -121,7 +121,7 @@ class UbuntuPreparationAcceptanceTests(unittest.TestCase):
 
     def test_pip_failure_is_safe_and_actionable(self):
         with patch.object(process, "run_process", side_effect=subprocess.CalledProcessError(1, "pip", stderr="secret")):
-            with self.assertRaisesRegex(RuntimeError, "./prepare_linux.sh --dry-run") as error:
+            with self.assertRaisesRegex(RuntimeError, "./bootstrap/linux/prepare_linux.sh --dry-run") as error:
                 process._run_installer_subprocess(("python3", "-m", "pip"), env={}, check=True)
         self.assertNotIn("secret", str(error.exception))
 
@@ -197,10 +197,10 @@ class MissingInterpreterShellTests(unittest.TestCase):
             release_file = root / "os-release"
             release_file.write_text(f'ID=ubuntu\nVERSION_ID="{release}"\n')
             (root / "systemd").mkdir()
-            helper = (ROOT / "tools/ubuntu_python_prerequisites.sh").read_text().replace("/etc/os-release", str(release_file)).replace("/run/systemd/system", str(root / "systemd"))
+            helper = (ROOT / "bootstrap/linux/ubuntu_python_prerequisites.sh").read_text().replace("/etc/os-release", str(release_file)).replace("/run/systemd/system", str(root / "systemd"))
             (root / "helper.sh").write_text(helper)
-            (root / "tools").mkdir()
-            (root / "tools/ubuntu_python_prerequisites.sh").write_text(helper)
+            (root / "bootstrap/linux").mkdir(parents=True)
+            (root / "bootstrap/linux/ubuntu_python_prerequisites.sh").write_text(helper)
             scripts = root / "bin"
             scripts.mkdir()
             for name, body in {
@@ -264,7 +264,7 @@ class MissingInterpreterShellTests(unittest.TestCase):
         self.assertEqual(failed.returncode, 4)
         self.assertNotIn("install --yes", commands)
         self.assertIn("Observed python3", failed.stderr)
-        self.assertIn("./prepare_linux.sh --dry-run", failed.stderr)
+        self.assertIn("./bootstrap/linux/prepare_linux.sh --dry-run", failed.stderr)
         cancelled, commands, changed = self.run_boundary(consent="no\n")
         self.assertEqual(cancelled.returncode, 2)
         self.assertEqual((commands, changed), ("", set()))
@@ -289,7 +289,7 @@ class MissingInterpreterShellTests(unittest.TestCase):
         self.assertEqual((commands, changed), ("", set()))
 
     def test_entrypoint_help_is_dependency_light(self):
-        result = subprocess.run(["bash", str(ROOT / "prepare_linux.sh"), "--help"], capture_output=True, text=True, timeout=10)
+        result = subprocess.run(["bash", str(ROOT / "bootstrap/linux/prepare_linux.sh"), "--help"], cwd="/tmp", capture_output=True, text=True, timeout=10)
         self.assertEqual(result.returncode, 0)
         self.assertIn("Services are not verified", result.stdout)
 

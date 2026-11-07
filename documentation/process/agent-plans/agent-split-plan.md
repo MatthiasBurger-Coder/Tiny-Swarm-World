@@ -12,7 +12,7 @@ accepted.
 
 - Work in WSL/Linux from the repository root.
 - Read `AGENTS.md`, `src/tiny_swarm_world/AGENTS.md`, `infra/AGENTS.md`,
-  `.importlinter`, `README.md`, and `tools/quality_gate.py` before changing
+  `.importlinter`, `README.md`, and `tools/linux/quality_gate.py` before changing
   files.
 - Inspect `git status --short` before edits.
 - Do not overwrite unrelated user changes.
@@ -59,7 +59,7 @@ Required reading:
 - `infra/AGENTS.md`
 - `.importlinter`
 - `README.md`
-- `tools/quality_gate.py`
+- `tools/linux/quality_gate.py`
 - `documentation/arc42/05_analysis/responsibility-separation-analysis.md`
 - `documentation/arc42/09_decisions/adr-separate-platform-artifacts-deployment.adoc`
 
@@ -81,8 +81,8 @@ Output artifacts:
 
 Tests and quality gates:
 
-- `python3 tools/quality_gate.py arch-lint`
-- `python3 tools/quality_gate.py arch-tests`
+- `python3 tools/linux/quality_gate.py arch-lint`
+- `python3 tools/linux/quality_gate.py arch-tests`
 
 Stop-and-report conditions:
 
@@ -161,10 +161,10 @@ Output artifacts:
 
 Tests and quality gates:
 
-- `python3 tools/quality_gate.py arch-lint`
-- `python3 tools/quality_gate.py arch-tests`
-- `python3 tools/quality_gate.py test`
-- `python3 tools/quality_gate.py quality` when production code changes
+- `python3 tools/linux/quality_gate.py arch-lint`
+- `python3 tools/linux/quality_gate.py arch-tests`
+- `python3 tools/linux/quality_gate.py test`
+- `python3 tools/linux/quality_gate.py quality` when production code changes
 
 Stop-and-report conditions:
 
@@ -238,10 +238,10 @@ Output artifacts:
 
 Tests and quality gates:
 
-- `python3 tools/quality_gate.py arch-lint`
-- `python3 tools/quality_gate.py arch-tests`
-- `python3 tools/quality_gate.py test`
-- `python3 tools/quality_gate.py quality` when production code changes
+- `python3 tools/linux/quality_gate.py arch-lint`
+- `python3 tools/linux/quality_gate.py arch-tests`
+- `python3 tools/linux/quality_gate.py test`
+- `python3 tools/linux/quality_gate.py quality` when production code changes
 
 Stop-and-report conditions:
 
@@ -317,10 +317,10 @@ Output artifacts:
 
 Tests and quality gates:
 
-- `python3 tools/quality_gate.py arch-lint`
-- `python3 tools/quality_gate.py arch-tests`
-- `python3 tools/quality_gate.py test`
-- `python3 tools/quality_gate.py quality` when production code changes
+- `python3 tools/linux/quality_gate.py arch-lint`
+- `python3 tools/linux/quality_gate.py arch-tests`
+- `python3 tools/linux/quality_gate.py test`
+- `python3 tools/linux/quality_gate.py quality` when production code changes
 
 Stop-and-report conditions:
 
@@ -386,10 +386,10 @@ Output artifacts:
 
 Tests and quality gates:
 
-- `python3 tools/quality_gate.py arch-lint`
-- `python3 tools/quality_gate.py arch-tests`
-- `python3 tools/quality_gate.py test`
-- `python3 tools/quality_gate.py quality` when production code changes
+- `python3 tools/linux/quality_gate.py arch-lint`
+- `python3 tools/linux/quality_gate.py arch-tests`
+- `python3 tools/linux/quality_gate.py test`
+- `python3 tools/linux/quality_gate.py quality` when production code changes
 
 Stop-and-report conditions:
 
@@ -421,7 +421,7 @@ Allowed files:
 
 - `tests`
 - `.importlinter`
-- `tools/quality_gate.py` only if needed and justified
+- `tools/linux/quality_gate.py` only if needed and justified
 - quality gate documentation
 - `documentation/arc42/05_analysis`
 - `documentation/arc42/11_migration`
@@ -456,9 +456,9 @@ Output artifacts:
 
 Tests and quality gates:
 
-- `python3 tools/quality_gate.py arch-lint`
-- `python3 tools/quality_gate.py arch-tests`
-- `python3 tools/quality_gate.py quality` if safe and no live commands are
+- `python3 tools/linux/quality_gate.py arch-lint`
+- `python3 tools/linux/quality_gate.py arch-tests`
+- `python3 tools/linux/quality_gate.py quality` if safe and no live commands are
   triggered
 
 Stop-and-report conditions:
@@ -534,8 +534,8 @@ Output artifacts:
 
 Tests and quality gates:
 
-- `python3 tools/quality_gate.py arch-lint`
-- `python3 tools/quality_gate.py arch-tests`
+- `python3 tools/linux/quality_gate.py arch-lint`
+- `python3 tools/linux/quality_gate.py arch-tests`
 
 Stop-and-report conditions:
 

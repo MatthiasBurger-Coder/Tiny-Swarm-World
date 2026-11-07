@@ -50,14 +50,14 @@ class NetworkPreparationService:
                 if expected.blockers or expected.invariant != plan.invariant:
                     raise NetworkPreparationFailure("Network prerequisites changed after an effect.")
         except (asyncio.CancelledError, KeyboardInterrupt):
-            self._finish("PARTIAL", planned, completed, uncertain, f"Interrupted at {uncertain[-1] if uncertain else 'network_preparation'}. Next: ./prepare_linux.sh --dry-run.", 130)
+            self._finish("PARTIAL", planned, completed, uncertain, f"Interrupted at {uncertain[-1] if uncertain else 'network_preparation'}. Next: ./bootstrap/linux/prepare_linux.sh --dry-run.", 130)
             raise
         except (NetworkPreparationFailure, OSError, RuntimeError, ValueError, TimeoutError) as error:
             transport = error.exit_code if isinstance(error, NetworkPreparationFailure) else None
             if isinstance(error, TimeoutError):
                 transport = 124
             return self._finish("PARTIAL" if completed or uncertain else "FAILED", planned,
-                                completed, uncertain, f"Stage {uncertain[-1] if uncertain else 'network_preparation'} stopped. Next: ./prepare_linux.sh --dry-run.", transport)
+                                completed, uncertain, f"Stage {uncertain[-1] if uncertain else 'network_preparation'} stopped. Next: ./bootstrap/linux/prepare_linux.sh --dry-run.", transport)
         return self._finish("READY" if expected.verified else "PARTIAL", planned, completed,
                             uncertain, "Prerequisites observed; endpoints and login remain unverified.")
 

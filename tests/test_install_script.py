@@ -537,10 +537,10 @@ class _InstallScriptFixture:
             ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "*.pyo"),
         )
         self.fake_bin.mkdir()
-        tools_live_target = self.root / "tools" / "live"
+        tools_live_target = self.root / "tools" / "linux" / "live"
         tools_live_target.mkdir(parents=True, exist_ok=True)
         shutil.copy2(
-            REPOSITORY_ROOT / "tools" / "live" / "secure_runtime_paths.py",
+            REPOSITORY_ROOT / "tools" / "linux" / "live" / "secure_runtime_paths.py",
             tools_live_target / "secure_runtime_paths.py",
         )
         _write_executable(self.fake_bin / "python3", _fake_python3())

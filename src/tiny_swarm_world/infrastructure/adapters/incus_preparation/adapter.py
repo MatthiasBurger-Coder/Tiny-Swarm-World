@@ -38,7 +38,7 @@ class LocalIncusPreparation:
                 raise
             return IncusSnapshot("blocked", blockers=(error.code,))
         except (OSError, RuntimeError, ValueError):
-            return IncusSnapshot("blocked", blockers=("Host/release/provider configuration cannot be qualified; review ./prepare_linux.sh --dry-run.",))
+            return IncusSnapshot("blocked", blockers=("Host/release/provider configuration cannot be qualified; review ./bootstrap/linux/prepare_linux.sh --dry-run.",))
 
     async def _inspect(self) -> IncusSnapshot:
         actions: tuple[IncusAction, ...]
@@ -59,7 +59,7 @@ class LocalIncusPreparation:
             if persisted and not active:
                 return self._snapshot(base, (), restart=True)
             if active:
-                raise IncusPreparationFailure("Active incus-admin session cannot access Incus; inspect daemon/socket permissions, then ./prepare_linux.sh --dry-run.")
+                raise IncusPreparationFailure("Active incus-admin session cannot access Incus; inspect daemon/socket permissions, then ./bootstrap/linux/prepare_linux.sh --dry-run.")
             actions = (IncusAction("access:add-group", "access", user, privilege="sudo", restart="login"),)
             return self._snapshot(base, actions)
         await runtime.checked_command((*runtime.LOCAL_INCUS, "version"))
@@ -96,7 +96,7 @@ class LocalIncusPreparation:
             await runtime.checked_command(args, action.timeout_seconds)
         except IncusPreparationFailure as error:
             if action.privilege == "sudo":
-                raise IncusPreparationFailure("Privileged Incus stage stopped; run sudo -v, inspect systemctl status incus.service, then ./prepare_linux.sh --dry-run.", exit_code=error.exit_code) from None
+                raise IncusPreparationFailure("Privileged Incus stage stopped; run sudo -v, inspect systemctl status incus.service, then ./bootstrap/linux/prepare_linux.sh --dry-run.", exit_code=error.exit_code) from None
             raise
 
     async def action_verified(self, action: IncusAction) -> bool:
@@ -140,7 +140,7 @@ def _with_checkpoint_blocker(observed: IncusSnapshot, evidence: NativePreparatio
     try:
         evidence.validate(platform_release=release, capability="incus")
     except OSError:
-        return replace(observed, blockers=observed.blockers + ("Bootstrap state blocked; preserve evidence. Next: ./prepare_linux.sh --dry-run",))
+        return replace(observed, blockers=observed.blockers + ("Bootstrap state blocked; preserve evidence. Next: ./bootstrap/linux/prepare_linux.sh --dry-run",))
     return observed
 
 

@@ -89,7 +89,7 @@ def choose_subnet(occupied: list[tuple[str, IPv4Network]]) -> IPv4Network:
         candidate = IPv4Network(f"10.231.{index}.0/24")
         if not any(candidate.overlaps(subnet) for _, subnet in occupied):
             return candidate
-    raise IncusPreparationFailure("No collision-free bootstrap subnet; resolve overlapping host/VPN routes, then ./prepare_linux.sh --dry-run.")
+    raise IncusPreparationFailure("No collision-free bootstrap subnet; resolve overlapping host/VPN routes, then ./bootstrap/linux/prepare_linux.sh --dry-run.")
 
 
 def verify_bridge(network: dict[str, Any], occupied: list[tuple[str, IPv4Network]]) -> None:

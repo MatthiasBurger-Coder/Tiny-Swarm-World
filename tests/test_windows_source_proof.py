@@ -13,7 +13,7 @@ import unittest
 
 from tests.test_prepare_windows import ROOT, _powershell, _runtime_path
 from tests.powershell_test_runtime import powershell_script_command
-from tools.build_windows_preparation_manifest import ASSETS, build, git
+from tools.windows.build_windows_preparation_manifest import ASSETS, build, git
 
 
 class TestWindowsSourceProof(unittest.TestCase):
@@ -52,10 +52,10 @@ class TestWindowsSourceProof(unittest.TestCase):
                 variant = json.loads(json.dumps(manifest))
                 revision = expected_revision
                 runtime_tamper_assets = {
-                    "tamper_bridge_helper": "tools/windows/preparation/Bridge.ps1",
-                    "tamper_bridge_script": "tools/windows/tws-wsl-bridge.ps1",
-                    "tamper_bridge_service": "tools/windows/tws-wsl-bridge-service.ps1",
-                    "tamper_bridge_config": "tools/windows/tws-wsl-bridge.config.json",
+                    "tamper_bridge_helper": "bootstrap/windows/preparation/Bridge.ps1",
+                    "tamper_bridge_script": "bootstrap/windows/tws-wsl-bridge.ps1",
+                    "tamper_bridge_service": "bootstrap/windows/tws-wsl-bridge-service.ps1",
+                    "tamper_bridge_config": "bootstrap/windows/tws-wsl-bridge.config.json",
                     "tamper_port_registry": "infra/config/ports.yaml",
                 }
                 if name in runtime_tamper_assets:
@@ -88,13 +88,13 @@ class TestWindowsSourceProof(unittest.TestCase):
                         raw_tree = b"100644 bad\0" + b"\0" * 19
                     else:
                         mode = b"120000" if name == "symlink_mode" else b"160000"
-                        raw_tree = raw_tree.replace(b"100644 prepare_windows.ps1\0", mode + b" prepare_windows.ps1\0")
+                        raw_tree = raw_tree.replace(b"100644 install.sh\0", mode + b" install.sh\0")
                     new_tree = hashlib.sha1(b"tree " + str(len(raw_tree)).encode() + b"\0" + raw_tree).hexdigest()
                     tree.update(id=new_tree, data=base64.b64encode(raw_tree).decode())
                     raw_commit = raw_commit.replace(root_identity.encode(), new_tree.encode(), 1)
                     revision = hashlib.sha1(b"commit " + str(len(raw_commit)).encode() + b"\0" + raw_commit).hexdigest()
                     variant.update(revision=revision, commit=base64.b64encode(raw_commit).decode())
-                manifest_path = target / "tools/windows/preparation/release-manifest.json"
+                manifest_path = target / "bootstrap/windows/preparation/release-manifest.json"
                 manifest_path.write_text(json.dumps(variant))
                 if name == "duplicate_json_key":
                     manifest_path.write_text('{"revision": "' + revision + '",' + json.dumps(variant)[1:])

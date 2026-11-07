@@ -47,5 +47,5 @@ repository quality authority or runtime architecture.
 
 ## Quality expectations
 
-- Run `python3 tools/quality_gate.py quality` before commit when practical.
+- Run `python3 tools/linux/quality_gate.py quality` before commit when practical.
 - Run `git diff --check` for documentation-only setup changes.

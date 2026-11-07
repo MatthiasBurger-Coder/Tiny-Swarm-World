@@ -6,7 +6,7 @@ import tempfile
 from typing import Any
 import unittest
 
-from tools import check_complexity_guardrails as guard
+from tools.linux import check_complexity_guardrails as guard
 
 
 class ComplexityGuardrailTests(unittest.TestCase):

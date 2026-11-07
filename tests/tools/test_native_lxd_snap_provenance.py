@@ -10,7 +10,7 @@ import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
-from tools.qualification import native_lxd_snap_provenance as proof
+from tools.linux.qualification import native_lxd_snap_provenance as proof
 
 
 def regular(inode: int, data: bytes = b"", *, executable: bool = False, readonly: bool = True) -> proof.Observation:

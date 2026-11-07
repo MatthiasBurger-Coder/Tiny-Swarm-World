@@ -1,0 +1,773 @@
+#!/usr/bin/env python3
+"""Run the authorized Classic live chain and write only redacted evidence."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+import platform
+import re
+import shlex
+import subprocess
+import sys
+from dataclasses import dataclass
+from datetime import UTC, datetime
+from pathlib import Path
+from time import monotonic
+
+
+REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
+if str(REPOSITORY_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPOSITORY_ROOT))
+
+from tools.linux.live.secure_runtime_paths import (  # noqa: E402
+    RuntimePathAssessment,
+    assess_evidence_directory,
+    assess_secret_file,
+    ensure_secure_directory,
+    host_classification,
+)
+
+DEFAULT_ENV_FILE = REPOSITORY_ROOT / ".tiny-swarm-world/local/live-installation.env"
+EVIDENCE_ROOT = (
+    Path(os.environ["TSW_LIVE_EVIDENCE_ROOT"]).expanduser()
+    if os.environ.get("TSW_LIVE_EVIDENCE_ROOT", "").strip()
+    else (
+        Path(os.environ.get("XDG_STATE_HOME", "")).expanduser()
+        if os.environ.get("XDG_STATE_HOME", "").strip()
+        else Path.home() / ".local" / "state"
+    ) / "tiny-swarm-world" / "evidence" / "live-greenpath"
+)
+TEST_COUNT_PATTERN = re.compile(r"^Ran (\d+) tests? in ([0-9.]+)s$", re.MULTILINE)
+SKIP_PATTERN = re.compile(r"skipped=(\d+)")
+EXPECTED_READINESS_TESTS = 8
+READINESS_MODULE = "tests.e2e.classic.test_post_install_browser_live"
+SAFE_FAILURE_TYPES = frozenset({
+    "AssertionError", "TimeoutError", "ConnectionError", "SSLError",
+    "ReadinessDeadlineExceeded", "RuntimeError", "ValueError", "OtherError",
+})
+NON_SUCCESS_STATUSES = frozenset({
+    "failed", "blocked", "degraded", "partial", "skipped", "refused",
+    "failed_to_verify", "failed_to_apply", "failed_to_prepare", "not_run", "unknown",
+    "resource_gated",
+})
+CLASSIC_E2E_COMMAND = (
+    "env",
+    "PYTHONPATH=src",
+    "TSW_RUN_POST_INSTALL_BROWSER_LIVE=1",
+    "python3",
+    "-m",
+    "unittest",
+    f"{READINESS_MODULE}.PostInstallBrowserLiveTest",
+)
+
+
+@dataclass(frozen=True)
+class CommandResult:
+    operation: str
+    started_at: str
+    finished_at: str
+    duration_seconds: float
+    exit_code: int
+    summary: dict[str, object]
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--approve-live", action="store_true")
+    parser.add_argument("--env-file", type=Path, default=None)
+    parser.add_argument("--evidence-root", type=Path, default=EVIDENCE_ROOT)
+    parser.add_argument(
+        "--credential-rotation-reference",
+        help="Non-secret reference proving the previously exposed credential was rotated or revoked.",
+    )
+    parser.add_argument(
+        "--test-only",
+        action="store_true",
+        help="Run the disposable test profile; credential rotation is not applicable.",
+    )
+    parser.add_argument("--update-stack", default=os.environ.get("TSW_CLASSIC_UPDATE_STACK"))
+    parser.add_argument("--update-service", default=os.environ.get("TSW_CLASSIC_UPDATE_SERVICE"))
+    parser.add_argument("--update-from-image", default=os.environ.get("TSW_CLASSIC_UPDATE_FROM_IMAGE"))
+    parser.add_argument("--update-to-image", default=os.environ.get("TSW_CLASSIC_UPDATE_TO_IMAGE"))
+    args = parser.parse_args()
+
+    started_at = _utc_now()
+    run_id = started_at.replace("-", "").replace(":", "").replace("+00:00", "Z")
+    env_file = _resolve_env_file(args.env_file)
+    try:
+        evidence_storage = ensure_secure_directory(args.evidence_root)
+        evidence_dir = args.evidence_root / run_id
+        ensure_secure_directory(evidence_dir)
+    except (OSError, RuntimeError):
+        return 1
+
+    if not args.approve_live:
+        return _write_terminal_result(
+            evidence_dir,
+            run_id=run_id,
+            started_at=started_at,
+            status="LIVE_CONSENT_MISSING",
+            operations=(),
+            reason="--approve-live was not supplied",
+            source_filesystem=None,
+            secret_storage=None,
+            evidence_storage=evidence_storage,
+            credential_rotation_reference=None,
+            test_only=args.test_only,
+        )
+
+    if not env_file.is_file():
+        return _write_terminal_result(
+            evidence_dir,
+            run_id=run_id,
+            started_at=started_at,
+            status="LIVE_PREREQUISITE_MISSING",
+            operations=(),
+            reason="live environment source is missing",
+            source_filesystem=None,
+            secret_storage=None,
+            evidence_storage=evidence_storage,
+            credential_rotation_reference=None,
+            test_only=args.test_only,
+        )
+
+    if not _rotation_reference_valid_for_profile(
+        args.test_only, args.credential_rotation_reference
+    ):
+        return _write_terminal_result(
+            evidence_dir,
+            run_id=run_id,
+            started_at=started_at,
+            status="LIVE_PREREQUISITE_MISSING",
+            operations=(),
+            reason="credential rotation or revocation reference is missing or invalid",
+            source_filesystem=None,
+            secret_storage=None,
+            evidence_storage=evidence_storage,
+            credential_rotation_reference=None,
+            test_only=args.test_only,
+        )
+
+    source_filesystem = assess_evidence_directory(
+        REPOSITORY_ROOT,
+        host=host_classification(),
+    )
+    secret_storage = assess_secret_file(
+        env_file,
+        host=host_classification(),
+    )
+    if (
+        source_filesystem.filesystem_classification == "unknown"
+        or not secret_storage.allowed
+    ):
+        return _write_terminal_result(
+            evidence_dir,
+            run_id=run_id,
+            started_at=started_at,
+            status="LIVE_BLOCKED_BEFORE_MUTATION",
+            operations=(),
+            reason="source or mutable secret storage failed secure-path qualification",
+            source_filesystem=source_filesystem,
+            secret_storage=secret_storage,
+            evidence_storage=evidence_storage,
+            credential_rotation_reference=args.credential_rotation_reference,
+            test_only=args.test_only,
+        )
+
+    update_values = (
+        args.update_stack,
+        args.update_service,
+        args.update_from_image,
+        args.update_to_image,
+    )
+    if any(not value or not value.strip() for value in update_values):
+        return _write_terminal_result(
+            evidence_dir,
+            run_id=run_id,
+            started_at=started_at,
+            status="LIVE_PREREQUISITE_MISSING",
+            operations=(),
+            reason="canonical update stack, service and source/target images are required",
+            source_filesystem=source_filesystem,
+            secret_storage=secret_storage,
+            evidence_storage=evidence_storage,
+            credential_rotation_reference=args.credential_rotation_reference,
+            test_only=args.test_only,
+        )
+
+    environment = os.environ.copy()
+    # Keep application-generated preflight evidence inside the runner's
+    # already-qualified evidence root, including when the root was selected by
+    # the default WSL-native state path rather than an environment override.
+    environment["TSW_INSTALL_ENV_FILE"] = env_file.as_posix()
+    environment["TSW_LIVE_INSTALLATION_ENV"] = env_file.as_posix()
+    authenticated_command = (
+        "env", "PYTHONPATH=src", "python3", "-m",
+        "tests.e2e.classic.run_authenticated_acceptance_live",
+        "--approve-live", "--phase", "baseline", "--env-file", env_file.as_posix(),
+    )
+    operations: list[CommandResult] = []
+    commands = (
+        ("diagnostics", ("python3", "bootstrap/linux/install_debugger.py", "--live"), 120),
+        (
+            "setup",
+            (
+                "bash",
+                "tsw",
+                "--live",
+                "--approve-live",
+                "--json",
+                "--service-profile",
+                "service-access",
+                "--allow-wsl-windows-filesystem",
+                "setup",
+                "run",
+            ),
+            1800,
+        ),
+        (
+            "platform_verify",
+            (
+                "bash",
+                "tsw",
+                "--json",
+                "--service-profile",
+                "service-access",
+                "--allow-wsl-windows-filesystem",
+                "platform",
+                "verify",
+            ),
+            300,
+        ),
+        (
+            "classic_e2e",
+            CLASSIC_E2E_COMMAND,
+            900,
+        ),
+        ("classic_authenticated", authenticated_command, 900),
+        (
+            "reconcile",
+            (
+                "bash",
+                "tsw",
+                "--live",
+                "--approve-live",
+                "--json",
+                "--service-profile",
+                "service-access",
+                "platform",
+                "reconcile",
+            ),
+            1800,
+        ),
+        (
+            "reconcile_e2e",
+            CLASSIC_E2E_COMMAND,
+            900,
+        ),
+        ("reconcile_authenticated", authenticated_command, 900),
+        (
+            "update",
+            (
+                "bash",
+                "tsw",
+                "--live",
+                "--approve-live",
+                "--json",
+                "--service-profile",
+                "service-access",
+                "platform",
+                "update",
+                "--stack",
+                args.update_stack.strip(),
+                "--service",
+                args.update_service.strip(),
+                "--from-image",
+                args.update_from_image.strip(),
+                "--to-image",
+                args.update_to_image.strip(),
+            ),
+            1800,
+        ),
+        (
+            "update_e2e",
+            CLASSIC_E2E_COMMAND,
+            900,
+        ),
+        ("update_authenticated", authenticated_command, 900),
+        (
+            "recovery",
+            (
+                "bash",
+                "tsw",
+                "--live",
+                "--approve-live",
+                "--json",
+                "--service-profile",
+                "service-access",
+                "platform",
+                "update",
+                "--recover",
+                "--stack",
+                args.update_stack.strip(),
+                "--service",
+                args.update_service.strip(),
+            ),
+            1800,
+        ),
+        (
+            "recovery_e2e",
+            CLASSIC_E2E_COMMAND,
+            900,
+        ),
+        ("recovery_authenticated", authenticated_command, 900),
+    )
+
+    status = "LIVE_VERIFIED"
+    for operation, command, timeout in commands:
+        operation_root = evidence_dir / operation
+        ensure_secure_directory(operation_root)
+        operation_environment = {
+            **environment, "TSW_LIVE_EVIDENCE_ROOT": operation_root.resolve().as_posix(),
+        }
+        result = _run_operation(operation, command, timeout, env_file, operation_environment)
+        operations.append(result)
+        if not _operation_succeeded(result):
+            status = _failure_live_state(result)
+            break
+
+    return _write_terminal_result(
+        evidence_dir,
+        run_id=run_id,
+        started_at=started_at,
+        status=status,
+        operations=tuple(operations),
+        reason=None,
+        source_filesystem=source_filesystem,
+        secret_storage=secret_storage,
+        evidence_storage=evidence_storage,
+        credential_rotation_reference=args.credential_rotation_reference,
+        test_only=args.test_only,
+    )
+
+
+def _run_operation(
+    operation: str,
+    command: tuple[str, ...],
+    timeout: int,
+    env_file: Path,
+    environment: dict[str, str],
+) -> CommandResult:
+    started_at = _utc_now()
+    started = monotonic()
+    # Operator configuration cannot redirect an operation into a shared/stale
+    # evidence directory or select a different credential file after qualification.
+    pinned_environment = (
+        f"TSW_LIVE_EVIDENCE_ROOT={environment['TSW_LIVE_EVIDENCE_ROOT']}",
+        f"TSW_INSTALL_ENV_FILE={env_file.as_posix()}",
+        f"TSW_LIVE_INSTALLATION_ENV={env_file.as_posix()}",
+    )
+    shell_command = (
+        f"set -ae; . {shlex.quote(env_file.as_posix())}; set +a; "
+        f"exec {shlex.join(('env', *pinned_environment, *command))}"
+    )
+    try:
+        completed = subprocess.run(
+            ["bash", "-c", shell_command],
+            cwd=REPOSITORY_ROOT,
+            env=environment,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False,
+        )
+        exit_code = completed.returncode
+        summary = _summarize(operation, completed.stdout, completed.stderr)
+    except subprocess.TimeoutExpired:
+        exit_code = 124
+        summary = {"result": "timed_out", "timeout_seconds": timeout}
+    except OSError:
+        exit_code = 126
+        summary = {"result": "execution_error"}
+    finished_at = _utc_now()
+    return CommandResult(
+        operation=operation,
+        started_at=started_at,
+        finished_at=finished_at,
+        duration_seconds=round(monotonic() - started, 3),
+        exit_code=exit_code,
+        summary=summary,
+    )
+
+
+def _summarize(operation: str, stdout: str, stderr: str) -> dict[str, object]:
+    if operation.endswith("_authenticated"):
+        return _summarize_authenticated(stdout)
+    if operation.endswith("_e2e"):
+        output = stdout + "\n" + stderr
+        matches = list(TEST_COUNT_PATTERN.finditer(output))
+        match = matches[0] if len(matches) == 1 else None
+        skips = SKIP_PATTERN.search(output)
+        passed = (
+            match is not None
+            and int(match.group(1)) == EXPECTED_READINESS_TESTS
+            and output.strip().endswith("\nOK")
+            and "FAILED" not in output and not skips
+        )
+        return {
+            "result": "passed" if passed else "failed",
+            "reason": None if passed else "readiness_count_or_result_failed",
+            "tests": int(match.group(1)) if match else None,
+            "expected_tests": EXPECTED_READINESS_TESTS,
+            "runtime_seconds": float(match.group(2)) if match else None,
+            "skipped": int(skips.group(1)) if skips else 0,
+            "failure_types": sorted(set(re.findall(
+                r"^([A-Za-z]+(?:Error|Exception|Exceeded)):", output, re.MULTILINE,
+            )) & SAFE_FAILURE_TYPES)[:20],
+        }
+    payload = _find_structured_payload(stdout, stderr)
+    if payload is None:
+        return {"result": "completed_without_structured_summary" if not stderr else "failed"}
+    if not isinstance(payload, dict):
+        return {"result": "completed_without_structured_summary"}
+    outcome = payload.get("outcome")
+    outcome_dict = outcome if isinstance(outcome, dict) else {}
+    verification_results = payload.get("verification_results", outcome_dict.get("verification_results"))
+    result_count = len(verification_results) if isinstance(verification_results, list) else 0
+    return {
+        "result": _structured_result(payload),
+        "status": payload.get("status"),
+        "message": _safe_structured_detail(payload.get("message")),
+        "reason": _safe_structured_detail(payload.get("reason")),
+        "phase_results": _safe_phase_results(payload.get("phase_results")),
+        "verification": outcome_dict.get("verification"),
+        "mutation": outcome_dict.get("mutation", {}).get("result")
+        if isinstance(outcome_dict.get("mutation"), dict)
+        else None,
+        "result_count": result_count,
+        "verification_results": _safe_failed_checks(verification_results, "target_id"),
+    }
+
+
+def _summarize_authenticated(stdout: str) -> dict[str, object]:
+    """Accept only the helper's terminal schema; never persist arbitrary JSON."""
+    invalid: dict[str, object] = {"result": "failed", "reason": "authenticated_summary_invalid"}
+    lines = stdout.strip().splitlines()
+    if not lines or len(lines[-1]) > 16_384:
+        return invalid
+    try:
+        payload = json.loads(lines[-1])
+    except (ValueError, RecursionError):
+        return invalid
+    if not isinstance(payload, dict):
+        return invalid
+    summary = payload.get("acceptance_summary")
+    if not isinstance(summary, dict) or summary.get("schema") != "classic_authenticated_acceptance_v1":
+        return invalid
+    count_names = (
+        "readiness_before_tests", "readiness_after_tests", "expected_browser_tests",
+        "browser_tests", "expected_api_checks", "api_checks", "live_tests",
+        "failures", "errors", "skipped",
+    )
+    if any(type(summary.get(key)) is not int or not 0 <= summary[key] <= 10_000 for key in count_names):
+        return invalid
+    counts = {key: summary[key] for key in count_names}
+    passed = (
+        payload.get("status") == "LIVE_VERIFIED" and summary.get("passed") is True
+        and counts["readiness_before_tests"] == counts["readiness_after_tests"] == EXPECTED_READINESS_TESTS
+        and counts["browser_tests"] == counts["expected_browser_tests"] > 0
+        and counts["api_checks"] == counts["expected_api_checks"] > 0
+        and counts["live_tests"] == 2 * EXPECTED_READINESS_TESTS + counts["browser_tests"]
+        and counts["failures"] == counts["errors"] == counts["skipped"] == 0
+    )
+    failure_types = summary.get("failure_types", [])
+    return {
+        "result": "passed" if passed else "failed",
+        "reason": None if passed else "authenticated_checks_failed",
+        **counts,
+        "failure_types": sorted({
+            item for item in failure_types if isinstance(item, str) and item in SAFE_FAILURE_TYPES
+        })[:20] if isinstance(failure_types, list) else [],
+    }
+
+
+def _safe_structured_detail(value: object) -> str | None:
+    if not isinstance(value, str):
+        return None
+    detail = re.sub(
+        r"(?i)(password|token|secret|credential|authorization|bearer)\s*[:=]\s*\S+",
+        r"\1=<redacted>",
+        value,
+    )
+    return detail[:240]
+
+
+def _safe_phase_results(value: object) -> dict[str, object]:
+    if not isinstance(value, list):
+        return {"count": 0, "failed": []}
+    failed: list[dict[str, object]] = []
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        status = str(item.get("status", "")).casefold()
+        if status not in {"completed", "passed", "verified", "ok", "success"}:
+            name = item.get("name") or item.get("phase") or item.get("target_id")
+            if isinstance(name, str):
+                failure: dict[str, object] = {"name": name[:120]}
+                for detail_key in ("reason", "message", "safe_message"):
+                    detail = _safe_structured_detail(item.get(detail_key))
+                    if detail:
+                        failure[detail_key] = detail
+                result = item.get("result")
+                if isinstance(result, dict):
+                    for field, identifier in (("checks", "check_id"), ("verification_results", "target_id")):
+                        checks = _safe_failed_checks(result.get(field), identifier)
+                        if checks:
+                            failure[field] = checks
+                failed.append(failure)
+    return {"count": len(value), "failed": failed[:20]}
+
+
+def _safe_failed_checks(value: object, identifier: str) -> list[dict[str, str]]:
+    """Retain bounded check identifiers/statuses, never messages or evidence values."""
+    if not isinstance(value, list):
+        return []
+    checks = []
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        status = str(item.get("status", "")).casefold()
+        name = item.get(identifier)
+        if status not in NON_SUCCESS_STATUSES:
+            continue
+        check = {"status": status}
+        if isinstance(name, str) and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_:.-]{0,95}", name):
+            check[identifier] = name
+        checks.append(check)
+        if len(checks) == 20:
+            break
+    return checks
+
+
+def _find_structured_payload(
+    stdout: str, stderr: str
+) -> dict[str, object] | list[object] | None:
+    decoder = json.JSONDecoder()
+    for stream in (stdout, stderr):
+        candidates: list[dict[str, object] | list[object]] = []
+        for match in re.finditer(r"(?m)^[\[{]", stream):
+            try:
+                payload, _ = decoder.raw_decode(stream[match.start() :])
+            except json.JSONDecodeError:
+                continue
+            if isinstance(payload, (dict, list)):
+                candidates.append(payload)
+        if candidates:
+            return candidates[-1]
+    return None
+
+
+def _structured_result(payload: dict[str, object]) -> str:
+    status = str(payload.get("status", "")).casefold()
+    outcome = payload.get("outcome")
+    if status in NON_SUCCESS_STATUSES:
+        return status
+    if isinstance(outcome, dict):
+        nested_status = str(outcome.get("status", "")).casefold()
+        status = nested_status or status
+    if status in NON_SUCCESS_STATUSES:
+        return status
+    return "passed" if status in {"completed", "passed", "verified", "ok"} else "completed"
+
+
+def _operation_succeeded(result: CommandResult) -> bool:
+    if result.exit_code != 0:
+        return False
+    if result.operation == "diagnostics":
+        return result.summary.get("result") in {
+            "passed", "completed", "completed_without_structured_summary",
+        }
+    return result.summary.get("result") == "passed"
+
+
+def _failure_live_state(result: CommandResult) -> str:
+    if result.operation == "diagnostics":
+        return "LIVE_PREREQUISITE_MISSING"
+    phases = result.summary.get("phase_results")
+    failed = phases.get("failed") if isinstance(phases, dict) else None
+    first_failed = failed[0] if isinstance(failed, list) and failed else None
+    if (
+        result.operation == "setup"
+        and result.summary.get("mutation") is None
+        and isinstance(first_failed, dict)
+        and first_failed.get("name") == "preflight"
+    ):
+        return "LIVE_BLOCKED_BEFORE_MUTATION"
+    return "LIVE_FAILED_AFTER_MUTATION"
+
+
+def _write_terminal_result(
+    evidence_dir: Path,
+    *,
+    run_id: str,
+    started_at: str,
+    status: str,
+    operations: tuple[CommandResult, ...],
+    reason: str | None,
+    source_filesystem: RuntimePathAssessment | None,
+    secret_storage: RuntimePathAssessment | None,
+    evidence_storage: RuntimePathAssessment,
+    credential_rotation_reference: str | None,
+    test_only: bool = False,
+) -> int:
+    finished_at = _utc_now()
+    payload = {
+        "run_id": run_id,
+        "repository_commit": _git_commit(),
+        "scenario": "classic_live_chain",
+        "execution_profile": "disposable_test" if test_only else "protected_live",
+        "host_class": _host_class(),
+        "host": {
+            "class": _host_class(),
+            "kernel_release": platform.release(),
+            "pid1": _safe_pid1(),
+            "systemd_directory_present": Path("/run/systemd/system").is_dir(),
+        },
+        "runner": {
+            "name": _safe_runner_name(),
+            "label": os.environ.get("CLASSIC_LIVE_RUNNER_LABEL", "tsw-classic"),
+            "target_owner_reference_present": bool(
+                os.environ.get("TSW_CLASSIC_TARGET_OWNER", "").strip()
+            ),
+        },
+        "consent_state": "LIVE_APPROVED" if status != "LIVE_CONSENT_MISSING" else status,
+        "started_at_utc": started_at,
+        "finished_at_utc": finished_at,
+        "status": status,
+        "reason": reason,
+        "source_filesystem": (
+            source_filesystem.to_safe_dict() if source_filesystem is not None else {}
+        ),
+        "secret_storage": (
+            secret_storage.to_safe_dict() if secret_storage is not None else {}
+        ),
+        "evidence_storage": evidence_storage.to_safe_dict(),
+        "credential_rotation": {
+            "status": _rotation_evidence_status(test_only, credential_rotation_reference),
+            "reference_present": (
+                bool(credential_rotation_reference) if not test_only else False
+            ),
+            "reference_value": "not_recorded",
+        },
+        "operations": [
+            {
+                "operation": operation.operation,
+                "started_at_utc": operation.started_at,
+                "finished_at_utc": operation.finished_at,
+                "duration_seconds": operation.duration_seconds,
+                "exit_code": operation.exit_code,
+                "command": _safe_command_label(operation.operation),
+                "evidence_directory": operation.operation,
+                "summary": operation.summary,
+            }
+            for operation in operations
+        ],
+        "redaction": "raw stdout, stderr, credentials and environment values were not written",
+    }
+    summary_path = evidence_dir / "run-summary.json"
+    summary_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    _private(summary_path)
+    checksum_path = evidence_dir / "checksums.sha256"
+    digest = hashlib.sha256(summary_path.read_bytes()).hexdigest()
+    checksum_path.write_text(f"{digest}  run-summary.json\n", encoding="utf-8")
+    _private(checksum_path)
+    checksum_digest = hashlib.sha256(checksum_path.read_bytes()).hexdigest()
+    terminal_path = evidence_dir / "checksums.sha256.sha256"
+    terminal_path.write_text(f"{checksum_digest}  checksums.sha256\n", encoding="utf-8")
+    _private(terminal_path)
+    return 0 if status == "LIVE_VERIFIED" else 1
+
+
+def _resolve_env_file(value: Path | None) -> Path:
+    configured = value
+    if configured is None:
+        configured_text = os.environ.get("TSW_INSTALL_ENV_FILE", "").strip()
+        configured = Path(configured_text) if configured_text else DEFAULT_ENV_FILE
+    return configured if configured.is_absolute() else REPOSITORY_ROOT / configured
+
+
+def _safe_command_label(operation: str) -> str:
+    if operation.endswith("_authenticated"):
+        return (
+            "env PYTHONPATH=src python3 -m tests.e2e.classic.run_authenticated_acceptance_live "
+            "--approve-live --phase baseline --env-file <protected>"
+        )
+    if operation.endswith("_e2e"):
+        return shlex.join(CLASSIC_E2E_COMMAND)
+    return {
+        "diagnostics": "python3 bootstrap/linux/install_debugger.py --live",
+        "setup": "bash tsw --live --approve-live --json setup run",
+        "platform_verify": "bash tsw --json platform verify",
+        "reconcile": "bash tsw --live --approve-live --json platform reconcile",
+        "update": "bash tsw --live --approve-live --json platform update --stack <configured> --service <configured>",
+        "recovery": "bash tsw --live --approve-live --json platform update --recover --stack <configured> --service <configured>",
+    }.get(operation, operation)
+
+
+def _valid_rotation_reference(value: str | None) -> bool:
+    return bool(value and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:-]{1,127}", value))
+
+
+def _rotation_reference_valid_for_profile(test_only: bool, value: str | None) -> bool:
+    return test_only or _valid_rotation_reference(value)
+
+
+def _rotation_evidence_status(test_only: bool, value: str | None) -> str:
+    if test_only:
+        return "not_applicable_test_only"
+    return "recorded" if value else "not_recorded"
+
+
+def _git_commit() -> str:
+    result = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=REPOSITORY_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=10,
+    )
+    return result.stdout.strip() if result.returncode == 0 else "unknown"
+
+
+def _host_class() -> str:
+    if Path("/run/WSL").exists() or "microsoft" in platform.release().casefold():
+        return "wsl2"
+    return "native_linux"
+
+
+def _safe_pid1() -> str:
+    try:
+        return Path("/proc/1/comm").read_text(encoding="utf-8").strip() or "unknown"
+    except OSError:
+        return "unavailable"
+
+
+def _safe_runner_name() -> str:
+    value = os.environ.get("RUNNER_NAME", "").strip()
+    return value if re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}", value) else "unknown"
+
+
+def _private(path: Path) -> None:
+    path.chmod(0o700 if path.is_dir() else 0o600)
+
+
+def _utc_now() -> str:
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

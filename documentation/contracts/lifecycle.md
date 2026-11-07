@@ -46,7 +46,7 @@ Paths below are relative to the repository root and identify implementation auth
 
 | Surface | Verified behavior | Boundary / source |
 |---|---|---|
-| `./prepare_linux.sh` | Separate guarded prerequisite preparation; readiness is not service acceptance | `application/services/native_preparation.py`, `incus_preparation.py`, `network_preparation.py` and their infrastructure adapters under `src/tiny_swarm_world`; [bootstrap contract](bootstrap.md) |
+| `./bootstrap/linux/prepare_linux.sh` | Separate guarded prerequisite preparation; readiness is not service acceptance | `application/services/native_preparation.py`, `incus_preparation.py`, `network_preparation.py` and their infrastructure adapters under `src/tiny_swarm_world`; [bootstrap contract](bootstrap.md) |
 | `./install.sh` | Dependency-light wrapper selects simple installer; ordinary native/WSL installation reconciles after preparation | `install.sh`, `simple_installer.py`, `application/services/installation.py`, `infrastructure/adapters/installation/` |
 | Installer `--preflight`, `--dry-run` | Validate without installation mutation; dry-run describes reconciliation, not an exact release or selection transition | `InstallationService.run`; installer presentation/configuration adapters |
 | Installer reset | Explicit deprecated WSL `--confirm-reset`; native rejects it; separate exact reset intent and live consent | `_validate_install_mode`, [accepted reconciliation ADR](../arc42/09_decisions/adr-wsl-install-reconciliation.adoc) |

@@ -24,7 +24,7 @@ class IncusPreparationService:
         if current != plan:
             return IncusPreparationResult("BLOCKED", message="Incus plan changed; review again.")
         if current.restart_required:
-            return IncusPreparationResult("RESTART_REQUIRED", message="Log out and log in; rerun ./prepare_linux.sh.")
+            return IncusPreparationResult("RESTART_REQUIRED", message="Log out and log in; rerun ./bootstrap/linux/prepare_linux.sh.")
         if not plan.actions:
             return IncusPreparationResult("READY" if current.verified else "BLOCKED")
         return await self._execute_plan(plan)
@@ -64,7 +64,7 @@ class IncusPreparationService:
         elif expected.verified:
             status = "READY"
         return self._finish(status, planned, completed, uncertain,
-                            "Log out and log in; rerun ./prepare_linux.sh." if expected.restart_required
+                            "Log out and log in; rerun ./bootstrap/linux/prepare_linux.sh." if expected.restart_required
                             else "Reinventory and approve the next Incus stage; services are not verified.",
                             stage_complete=not expected.restart_required and not expected.verified)
 
@@ -82,7 +82,7 @@ class IncusPreparationService:
         return self._finish(status, planned, completed, uncertain,
                             f"Stage {action.id} stopped; inspect permissions/systemd/resources"
                             + (" and run sudo -v" if action.privilege == "sudo" else "")
-                            + ", then ./prepare_linux.sh --dry-run.", transport)
+                            + ", then ./bootstrap/linux/prepare_linux.sh --dry-run.", transport)
 
     def _finish(self, status: str, planned: tuple[str, ...], completed: list[str],
                 uncertain: list[str], message: str, transport: int | None = None,

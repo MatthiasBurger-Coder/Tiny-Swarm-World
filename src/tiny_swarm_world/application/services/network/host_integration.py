@@ -586,9 +586,9 @@ def _windows_portproxy_section(runtime: RuntimeObservation) -> NetworkDiagnostic
         (
             "Windows-side checks require elevated PowerShell.",
             "Run:",
-            "  powershell.exe -ExecutionPolicy Bypass -File .\\tools\\windows\\doctor-portproxy.ps1",
+            "  powershell.exe -ExecutionPolicy Bypass -File .\\bootstrap\\windows\\doctor-portproxy.ps1",
             "Repair:",
-            "  powershell.exe -ExecutionPolicy Bypass -File .\\tools\\windows\\repair-wsl-portproxy.ps1",
+            "  powershell.exe -ExecutionPolicy Bypass -File .\\bootstrap\\windows\\repair-wsl-portproxy.ps1",
         ),
         (
             _warn(

@@ -5,7 +5,7 @@
 From `QUALITY.md`:
 
 ```bash
-python3 tools/quality_gate.py test
+python3 tools/linux/quality_gate.py test
 ```
 
 ## Full Local Quality Gate
@@ -13,7 +13,7 @@ python3 tools/quality_gate.py test
 From `QUALITY.md`:
 
 ```bash
-python3 tools/quality_gate.py quality
+python3 tools/linux/quality_gate.py quality
 ```
 
 ## Documentation And Governance Checks

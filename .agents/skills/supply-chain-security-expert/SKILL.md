@@ -14,7 +14,7 @@ Maintains `documentation/security/supply-chain-security.md`,
 `documentation/security/sbom-policy.md`,
 `documentation/security/dependency-scan-policy.md`,
 `documentation/security/container-image-scan-policy.md`, and
-`tools/security_gate.py` if introduced by a future workflow.
+`tools/linux/security_gate.py` if introduced by a future workflow.
 
 ## Non-goals
 Does not introduce external static-analysis CI by default, claim vulnerability

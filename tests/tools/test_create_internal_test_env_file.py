@@ -5,7 +5,7 @@ from pathlib import Path
 
 from tiny_swarm_world.domain.configuration.internal_test_credentials import internal_test_catalog
 from tiny_swarm_world.infrastructure.adapters.configuration import ShellEnvFileConfigurationSource
-from tools.create_internal_test_env_file import create_internal_test_env_file
+from tools.linux.create_internal_test_env_file import create_internal_test_env_file
 
 
 class TestCreateInternalTestEnvFile(unittest.TestCase):

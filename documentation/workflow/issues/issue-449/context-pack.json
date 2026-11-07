@@ -243,7 +243,7 @@
       "default_guard_bytes": 20401094656,
       "default_guard_applies": false,
       "default_guard_applicability": "Not applicable to native R449-33 selected budget; accepted 17-GiB TSW_INFRA_ROOT override applies. The 19-GiB default-node guard applies only where that baseline applies.",
-      "command": "./prepare_linux.sh --preflight --service-profile service-access"
+      "command": "./bootstrap/linux/prepare_linux.sh --preflight --service-profile service-access"
     },
     "wsl": {
       "scenario_id": "R449-34",
@@ -269,7 +269,7 @@
       "windows_physical_ram_min_bytes": 30064771072,
       "windows_logical_cpu_min": 11,
       "windows_storage_after_swap_min_bytes": 21474836480,
-      "command": "prepare_windows.ps1 -Distro <exact distro> -Preflight -Json -LinuxCheckout <ext4 ROOT>",
+      "command": "bootstrap/windows/prepare_windows.ps1 -Distro <exact distro> -Preflight -Json -LinuxCheckout <ext4 ROOT>",
       "physical_ram_formula": "configured_wsl_ram + max(4 GiB, ceil(physical RAM/4)) <= physical RAM",
       "logical_cpu_formula": "8 + max(1, ceil(logical CPUs/4)) <= logical CPUs"
     },
@@ -368,8 +368,8 @@
       "findmnt",
       "ip",
       "uname",
-      "prepare_linux.sh preflight",
-      "prepare_windows.ps1 preflight",
+      "bootstrap/linux/prepare_linux.sh preflight",
+      "bootstrap/windows/prepare_windows.ps1 preflight",
       "Incus project/profile/instance config output"
     ],
     "inventory": "command_records metadata only; hash no raw Incus output; external GO SHA-256 binds sanitized artifact"

@@ -199,7 +199,7 @@ class InterpreterCheckpointTests(unittest.TestCase):
     def test_ac2_ac3_shell_state_validation_is_write_free_and_retains_actual_exit(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            source = Path("tools/ubuntu_python_prerequisites.sh").resolve()
+            source = Path("bootstrap/linux/ubuntu_python_prerequisites.sh").resolve()
             script = '''source "$1"
                 umask 077
                 mkdir -p "$2/tiny-swarm-world/evidence/native-preparation"

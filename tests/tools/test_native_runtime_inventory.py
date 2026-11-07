@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import Mock, patch
 
-from tools.qualification import native_runtime_inventory as inventory
+from tools.linux.qualification import native_runtime_inventory as inventory
 
 
 class NativeRuntimeInventoryTests(unittest.TestCase):
@@ -1262,7 +1262,7 @@ class SnapWrapperIntegrationTests(unittest.TestCase):
                     "sub_state": "running", "unit_file_state": "enabled", "main_pid": 101}
 
     def test_fallback_normalizes_only_the_snap_unit_after_helper_success(self) -> None:
-        from tools.qualification import native_lxd_snap_provenance as proof
+        from tools.linux.qualification import native_lxd_snap_provenance as proof
         runner = Mock()
         with patch.object(inventory, "_read_executable_path", return_value="/usr/bin/dash"), \
                 patch.object(proof, "prove_snap_wrapper", return_value=("lxd_snap", "snap:lxd")) as verify:
@@ -1270,14 +1270,14 @@ class SnapWrapperIntegrationTests(unittest.TestCase):
         verify.assert_called_once_with(runner, self.row)
 
     def test_direct_existing_identity_does_not_need_the_helper(self) -> None:
-        from tools.qualification import native_lxd_snap_provenance as proof
+        from tools.linux.qualification import native_lxd_snap_provenance as proof
         with patch.object(inventory, "_read_executable_path", return_value="/snap/lxd/123/bin/lxd"), \
                 patch.object(proof, "prove_snap_wrapper") as verify:
             self.assertEqual(inventory._resolve_executable(Mock(), self.row), ("lxd_snap", "snap:lxd"))
         verify.assert_not_called()
 
     def test_other_units_and_readlink_failures_do_not_reach_fallback(self) -> None:
-        from tools.qualification import native_lxd_snap_provenance as proof
+        from tools.linux.qualification import native_lxd_snap_provenance as proof
         with patch.object(inventory, "_read_executable_path", return_value="/usr/bin/dash"), \
                 patch.object(proof, "prove_snap_wrapper") as verify:
             with self.assertRaisesRegex(inventory.InventoryError, "^EXECUTABLE_IDENTITY_BLOCKED$"):
@@ -1297,7 +1297,7 @@ class SnapWrapperIntegrationTests(unittest.TestCase):
                 inventory._resolve_executable(Mock(), self.row)
 
     def test_failed_proof_blocks_capture_before_endpoint_client_or_artifact_work(self) -> None:
-        from tools.qualification import native_lxd_snap_provenance as proof
+        from tools.linux.qualification import native_lxd_snap_provenance as proof
         inactive = {"unit": "", "load_state": "not-found", "active_state": "inactive", "sub_state": "dead",
                     "unit_file_state": "", "main_pid": 0, "listen": ""}
         rows = {unit: ({**self.row} if unit == self.row["unit"] else {**inactive, "unit": unit}) for unit in inventory.UNITS}
@@ -1314,7 +1314,7 @@ class SnapWrapperIntegrationTests(unittest.TestCase):
         writer.assert_not_called()
 
     def test_successful_proof_still_requires_existing_socket_binding(self) -> None:
-        from tools.qualification import native_lxd_snap_provenance as proof
+        from tools.linux.qualification import native_lxd_snap_provenance as proof
         inactive = {"unit": "", "load_state": "not-found", "active_state": "inactive", "sub_state": "dead",
                     "unit_file_state": "", "main_pid": 0, "listen": ""}
         rows = {unit: ({**self.row} if unit == self.row["unit"] else {**inactive, "unit": unit}) for unit in inventory.UNITS}

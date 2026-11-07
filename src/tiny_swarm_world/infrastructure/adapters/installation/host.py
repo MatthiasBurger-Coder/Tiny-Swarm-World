@@ -267,9 +267,9 @@ class HostPreparationAdapter:
             raise InstallerError(
                 "Native host packages are missing: "
                 + ", ".join(plan.missing_packages)
-                + ". Run ./prepare_linux.sh separately, then retry ./install.sh."
+                + ". Run ./bootstrap/linux/prepare_linux.sh separately, then retry ./install.sh."
             )
         if not _python_imports_available(sys.executable, env):
             raise InstallerError(
-                "Native Python dependencies are missing. Run ./prepare_linux.sh separately, then retry ./install.sh."
+                "Native Python dependencies are missing. Run ./bootstrap/linux/prepare_linux.sh separately, then retry ./install.sh."
             )

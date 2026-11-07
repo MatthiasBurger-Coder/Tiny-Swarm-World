@@ -21,7 +21,7 @@ model, and live-infrastructure restrictions.
 - Use Linux or WSL. Do not use Windows-native command examples for normal
   development verification.
 - Prefer `python3`.
-- `tools/quality_gate.py` configures `PYTHONPATH=src` for its own checks.
+- `tools/linux/quality_gate.py` configures `PYTHONPATH=src` for its own checks.
 - Manual Python commands still need `PYTHONPATH=src` when they import
   `tiny_swarm_world`.
 
@@ -37,12 +37,14 @@ project scope.
 
 ## Full Local Quality Gate
 
-Run this before commit or push when practical, and for any change that affects
-Python source, tests, architecture rules, quality policy, command construction,
-YAML handling, path handling, repositories, or adapters:
+Run this when creating a pull request or when the user explicitly requests
+verification, for changes affecting Python source, tests, architecture rules,
+quality policy, command construction, YAML handling, path handling, repositories,
+or adapters. Do not start tests or quality gates automatically during ongoing
+development; providing test-host credentials alone does not authorize a run.
 
 ```bash
-python3 tools/quality_gate.py quality
+python3 tools/linux/quality_gate.py quality
 ```
 
 This executes, in order:
@@ -57,15 +59,15 @@ This executes, in order:
 
 ## Targeted Gates
 
-Use the nearest meaningful gate during development:
+When verification is authorized, use the nearest meaningful gate first:
 
 ```bash
-python3 tools/quality_gate.py lint
-python3 tools/quality_gate.py complexity
-python3 tools/quality_gate.py arch-lint
-python3 tools/quality_gate.py arch-tests
-python3 tools/quality_gate.py typecheck
-python3 tools/quality_gate.py test
+python3 tools/linux/quality_gate.py lint
+python3 tools/linux/quality_gate.py complexity
+python3 tools/linux/quality_gate.py arch-lint
+python3 tools/linux/quality_gate.py arch-tests
+python3 tools/linux/quality_gate.py typecheck
+python3 tools/linux/quality_gate.py test
 ```
 
 For a focused unit test, run it with `PYTHONPATH=src`, for example:
@@ -90,8 +92,8 @@ governance-only change, record the reason and do not claim it passed.
 
 The repository architecture checks are Python-based:
 
-- `python3 tools/quality_gate.py arch-lint`
-- `python3 tools/quality_gate.py arch-tests`
+- `python3 tools/linux/quality_gate.py arch-lint`
+- `python3 tools/linux/quality_gate.py arch-tests`
 
 `arch-lint` requires `.importlinter` and the `lint-imports` executable.
 `arch-tests` requires `tests.architecture.test_hexagonal_imports` and

@@ -40,7 +40,7 @@ file. Re-running or recreating an internal-test environment therefore resolves
 the same catalog values without credential filesystem state.
 
 For standalone preflight on an isolated test system, the operator may explicitly
-run `tools/create_internal_test_env_file.py` to create a protected file from
+run `tools/linux/create_internal_test_env_file.py` to create a protected file from
 the same catalog. It creates the file only when absent and never replaces
 existing operator values. This opt-in helper is separate from `./install.sh`.
 

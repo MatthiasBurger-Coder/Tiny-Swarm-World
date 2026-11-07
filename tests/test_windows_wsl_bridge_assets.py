@@ -10,11 +10,11 @@ from tests.powershell_test_runtime import powershell_command
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
-BRIDGE_SCRIPT = REPOSITORY_ROOT / "tools" / "windows" / "tws-wsl-bridge.ps1"
-BRIDGE_SERVICE_RUNNER = REPOSITORY_ROOT / "tools" / "windows" / "tws-wsl-bridge-service.ps1"
+BRIDGE_SCRIPT = REPOSITORY_ROOT / "bootstrap" / "windows" / "tws-wsl-bridge.ps1"
+BRIDGE_SERVICE_RUNNER = REPOSITORY_ROOT / "bootstrap" / "windows" / "tws-wsl-bridge-service.ps1"
 BRIDGE_PESTER_TESTS = REPOSITORY_ROOT / "tests" / "windows" / "tws-wsl-bridge.Tests.ps1"
-BRIDGE_GUIDE = REPOSITORY_ROOT / "tools" / "windows" / "README.windows-wsl-bridge.md"
-BRIDGE_CONFIG = REPOSITORY_ROOT / "tools" / "windows" / "tws-wsl-bridge.config.json"
+BRIDGE_GUIDE = REPOSITORY_ROOT / "bootstrap" / "windows" / "README.windows-wsl-bridge.md"
+BRIDGE_CONFIG = REPOSITORY_ROOT / "bootstrap" / "windows" / "tws-wsl-bridge.config.json"
 NETWORK_GUIDE = REPOSITORY_ROOT / "documentation" / "system" / "network.adoc"
 INSTALLATION_GUIDE = REPOSITORY_ROOT / "documentation" / "user_guide" / "installation.adoc"
 WINDOWS_POWERSHELL = Path(
@@ -267,7 +267,7 @@ class TestWindowsWslBridgeAssets(unittest.TestCase):
                 self.assertIn(expected, bridge_guide)
 
         self.assertIn("-Action prerequisites", network_guide)
-        self.assertIn("tools/windows/README.windows-wsl-bridge.md", network_guide)
+        self.assertIn("bootstrap/windows/README.windows-wsl-bridge.md", network_guide)
         for expected in (
             "Complete The Required Windows Prework For WSL2",
             "-Action prerequisites",
@@ -391,11 +391,11 @@ def _pester_command(script_path: str) -> str:
         "if ($testScript.StartsWith('\\\\')) { "
         "$sourceRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $testScript)); "
         "$stagingRoot = Join-Path ([IO.Path]::GetTempPath()) ('tsw-pester-' + [guid]::NewGuid()); "
-        "foreach ($directory in @('tests\\windows', 'tools\\windows', 'infra\\config')) { "
+        "foreach ($directory in @('tests\\windows', 'bootstrap\\windows', 'infra\\config')) { "
         "New-Item -ItemType Directory -Path (Join-Path $stagingRoot $directory) -Force | Out-Null }; "
         "foreach ($asset in @('tests\\windows\\tws-wsl-bridge.Tests.ps1', "
-        "'tools\\windows\\tws-wsl-bridge.ps1', 'tools\\windows\\tws-wsl-bridge-service.ps1', "
-        "'tools\\windows\\tws-wsl-bridge.config.json', 'infra\\config\\ports.yaml')) { "
+        "'bootstrap\\windows\\tws-wsl-bridge.ps1', 'bootstrap\\windows\\tws-wsl-bridge-service.ps1', "
+        "'bootstrap\\windows\\tws-wsl-bridge.config.json', 'infra\\config\\ports.yaml')) { "
         "Copy-Item -LiteralPath (Join-Path $sourceRoot $asset) -Destination (Join-Path $stagingRoot $asset) }; "
         "$testScript = Join-Path $stagingRoot 'tests\\windows\\tws-wsl-bridge.Tests.ps1' }; "
         "Import-Module Pester; "
