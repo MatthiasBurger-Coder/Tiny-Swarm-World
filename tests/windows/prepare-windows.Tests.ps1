@@ -586,20 +586,90 @@ $r=Invoke-WindowsPreparation $o $ports
 Assert ($script:executions -eq $before -and $script:stateRecords.Count -eq 2) 'W08 observed satisfied resume skips mutation and writes'
 Write-Output 'PASS W08 mocked recovery contracts'
 
+# Actual application checkpoint validation retains four-part runtime observations.
+$versionModule=Get-Module Preparation
+$versionPorts=@{};foreach($key in $ports.Keys){$versionPorts[$key]=$ports[$key]}
+$script:versionRecords=New-Object Collections.ArrayList
+$script:versionExecutions=0
+$versionPorts.ReadState={param($o,$identity) return $null}
+$versionPorts.WriteState={
+    param($store,$state)
+    $wire=$state | ConvertTo-Json -Depth 12 -Compress
+    & $versionModule {param($text,$identity) Assert-PreparationState (ConvertFrom-PreparationStateJson $text) $identity} $wire $state.identity
+    [void]$script:versionRecords.Add($state)
+}
+$versionPorts.Execute={
+    param($action,$o,$facts,$plan)
+    if($action.id -cne 'adapt_wsl_resources' -or $script:versionRecords.Count -ne 1 -or $script:versionRecords[0].status -cne 'pending' -or $script:versionRecords[0].versions.wsl -cne '3.0.3.0'){throw 'version_checkpoint_missing_before_execution'}
+    $script:versionExecutions++
+    return @{confirmed=$true;uncertain=$false;exit_code=0}
+}
+$script:facts=StoreWsl2Facts;$script:facts.wsl_version='3.0.3.0';$script:facts.wsl_store_package.version='3.0.3.0'
+$script:facts.resource_facts.config_values.memory='25GB';$script:facts.resource_facts.config_values.swap='4GB'
+$o=Options;$o.Mode='Apply';$o.ApproveApply=$true;$o.QualificationRun=$true
+$r=Invoke-WindowsPreparation $o $versionPorts
+Assert ($r.result.exit_code -eq 3 -and $r.result.completed_actions[0] -ceq 'adapt_wsl_resources' -and $script:versionExecutions -eq 1) 'four-part pending checkpoint permits only the mocked resource action'
+Assert ($script:versionRecords.Count -eq 2 -and $script:versionRecords[1].status -ceq 'effect' -and $script:versionRecords[1].versions.wsl -ceq '3.0.3.0') 'four-part runtime survives actual pending and effect validation unchanged'
+$invalidWslVersions=@(
+    @{value='3.0'},@{value='3.0.3.0.1'},@{value='3..3'},@{value='3.0.3.'},@{value=' 3.0.3'},@{value='3.0.3 '},
+    @{value="3.0.3`n"},@{value="3.0.3.0`r`n"},@{value='3.a.3'},@{value=(([string][char]0x0663)+'.0.3')},
+    @{value=$false},@{value=0},@{value=3.0},@{value=@('3.0.3')},@{value=@{major=3}}
+)
+$versionPorts.ReadState={
+    param($o,$identity)
+    $wire=$script:versionRecords[0] | ConvertTo-Json -Depth 12 -Compress
+    $state=& $versionModule {param($text) ConvertFrom-PreparationStateJson $text} $wire
+    $state.versions.wsl=$script:invalidWslVersion
+    & $versionModule {param($state,$identity) Assert-PreparationState $state $identity} $state $identity
+    return $state
+}
+foreach($case in $invalidWslVersions){
+    $script:invalidWslVersion=$case.value
+    $beforeExecutions=$script:versionExecutions;$beforeRecords=$script:versionRecords.Count
+    $r=Invoke-WindowsPreparation $o $versionPorts
+    Assert ($r.result.exit_code -eq 2 -and @($r.blockers | Where-Object{$_.code -ceq 'bootstrap_state_invalid'}).Count -eq 1 -and $script:versionExecutions -eq $beforeExecutions -and $script:versionRecords.Count -eq $beforeRecords) 'invalid stored WSL version blocks before execution or another checkpoint'
+}
+Write-Output 'PASS W08 full WSL version application boundaries (mocked effects)'
+
 # Exercise durable create-then-replace IO; only Windows ACL boundaries are mocked.
 $stateModule=Import-Module (Join-Path $RepositoryRoot 'bootstrap/windows/preparation/Preparation.psm1') -Force -DisableNameChecking -PassThru
 $stateStore=Join-Path ([IO.Path]::GetTempPath()) ('tsw-state-'+[guid]::NewGuid().ToString('N'))
 [void][IO.Directory]::CreateDirectory($stateStore)
 try {
-    & $stateModule {
-        param($store,$pending,$effect)
+    $versionIo=& $stateModule {
+        param($store,$pending,$effect,$invalidVersions)
         function Assert-PreparationEvidencePath($Path) {
             if(!$Path.StartsWith($store,[StringComparison]::Ordinal) -or !(Test-Path -LiteralPath $Path)){throw 'unexpected_test_evidence_path'}
         }
         function Set-PreparationPrivateAcl($Path) {}
         Write-PreparationState $store $pending
         Write-PreparationState $store $effect
-    } $stateStore $script:stateRecords[0] $script:stateRecords[1]
+        $roundtrips=0
+        foreach($case in @(@{value='3.0.1'},@{value='3.0.3.0'},@{value='03.0.1'},@{value=$null},@{value=''})){
+            foreach($record in @($pending,$effect)){
+                $copy=ConvertTo-PreparationHashtable (ConvertFrom-PreparationStateJson ($record | ConvertTo-Json -Depth 12 -Compress))
+                $copy.versions.wsl=$case.value
+                Write-PreparationState $store $copy
+                $persisted=ConvertFrom-PreparationStateJson (Get-Content -Raw -LiteralPath (Join-Path $store 'bootstrap.state.json'))
+                Assert-PreparationState $persisted $copy.identity
+                if($persisted.status -cne $copy.status){throw 'state_roundtrip_status_changed'}
+                if($null -eq $case.value){if($null -ne $persisted.versions.wsl){throw 'state_roundtrip_unknown_changed'}}
+                elseif($persisted.versions.wsl -isnot [string] -or $persisted.versions.wsl -cne $case.value){throw 'state_roundtrip_version_changed'}
+                $roundtrips++
+            }
+        }
+        $statePath=Join-Path $store 'bootstrap.state.json'
+        $beforeHash=(Get-FileHash -LiteralPath $statePath -Algorithm SHA256).Hash
+        foreach($case in $invalidVersions){
+            $copy=ConvertTo-PreparationHashtable (ConvertFrom-PreparationStateJson ($effect | ConvertTo-Json -Depth 12 -Compress))
+            $copy.versions.wsl=$case.value
+            $blocked=$false
+            try{Write-PreparationState $store $copy}catch{$blocked=$true}
+            if(!$blocked -or (Get-FileHash -LiteralPath $statePath -Algorithm SHA256).Hash -cne $beforeHash -or @(Get-ChildItem -LiteralPath $store -Force).Count -ne 1){throw 'invalid_version_changed_durable_checkpoint'}
+        }
+        return @{roundtrips=$roundtrips;invalid_versions=$invalidVersions.Count}
+    } $stateStore $script:stateRecords[0] $script:stateRecords[1] $invalidWslVersions
+    Assert ($versionIo.roundtrips -eq 10 -and $versionIo.invalid_versions -eq $invalidWslVersions.Count) 'actual pending/effect IO preserves full legacy/new/null/empty versions and refuses malformed replacement'
     $persisted=& $stateModule {param($text) ConvertFrom-PreparationStateJson $text} (Get-Content -Raw -LiteralPath (Join-Path $stateStore 'bootstrap.state.json'))
     Assert ($persisted.status -ceq 'effect' -and $persisted.confirmed -and !$persisted.uncertain -and $persisted.restart -ceq 'distro') 'durable effect replaces pending state'
     Assert (@(Get-ChildItem -LiteralPath $stateStore -Force).Count -eq 1) 'atomic replacement leaves only the checkpoint'
