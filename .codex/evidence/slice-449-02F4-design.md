@@ -1,5 +1,18 @@
 # S449-02F4 — normalize the verified Snap wrapper and direct LXD child
 
+## 2026-11-07 bounded volume DTO identity (workflow v1.45)
+
+The normative amendment is `.codex/evidence/epic440-volume-dto-20261107.md`.
+LXD 5.21.9 supplies a mandatory pool string in list/detail StorageVolume DTOs;
+both observations must equal the exact queried pool. Incus 6.0.5 retains its
+separate pinned DTO without that field. This changes DTO validation only;
+mandatory owner-project admission, volume/consumer reciprocity, normalized
+schema 2 and all network/provenance/command/budget/private-evidence guards
+remain unchanged. No missing or empty identity is inferred or repaired.
+Exact independent implementation reviews and PC verification precede any
+separately released fresh committed-source native capture. The previous
+RESOURCE_SCHEMA_INVALID failures remain retained; this record grants no live GO.
+
 ## 2026-11-07 native network schema 2 contract (workflow v1.44)
 
 The complete normative amendment is

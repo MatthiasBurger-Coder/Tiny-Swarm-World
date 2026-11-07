@@ -37,6 +37,10 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
             self.pool_used_by = ["/1.0/profiles/bravo?project=alpha", "/1.0/instances/web?project=alpha",
                                  "/1.0/storage-pools/pool/volumes/container/web?project=alpha"]
             self.volume_owner_project = "alpha"
+            self.volume_list_pool: object = "pool"
+            self.volume_detail_pool: object = "pool"
+            self.omit_volume_list_pool = False
+            self.omit_volume_detail_pool = False
             self.detail_overrides: dict[str, dict[str, Any]] = {}
 
         @staticmethod
@@ -116,9 +120,17 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
                                   "created_at": "2026-10-01T00:00:00Z", "used_by": self.volume_used_by, "location": "none"})
             else:
                 raise AssertionError(f"unexpected inventory argv: {argv}")
+            if argv[0] != "/usr/bin/incus" and suffix[:3] == ["storage", "volume", "list"]:
+                volume_list = json.loads(out)
+                for listed_volume in volume_list:
+                    if not self.omit_volume_list_pool:
+                        listed_volume["pool"] = self.volume_list_pool
+                out = self._json(volume_list)
             if suffix[0] == "query":
                 metadata = json.loads(out)
                 if isinstance(metadata, dict):
+                    if argv[0] != "/usr/bin/incus" and command_id == "lxd_storage_volume_show" and not self.omit_volume_detail_pool:
+                        metadata["pool"] = self.volume_detail_pool
                     metadata.update(self.detail_overrides.get(command_id, {}))
                 out = self._json({"type": "sync", "status": "Success", "status_code": 200,
                                   "operation": "", "error_code": 0, "error": "", "metadata": metadata})
@@ -1337,11 +1349,129 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
     def test_volume_detail_created_at_must_be_a_string_when_present(self) -> None:
         volume = {"name": "data", "type": "custom", "content_type": "filesystem", "project": "alpha",
                   "config": {}, "used_by": [], "created_at": "2026-10-01T00:00:00Z"}
-        self.assertEqual(inventory._validate_volume_show(volume, "pool", "custom", "data", "alpha")["name"], "data")
+        self.assertEqual(inventory._validate_volume_show(volume, "pool", "custom", "data", "alpha", incus=True)["name"], "data")
         with self.assertRaisesRegex(inventory.InventoryError, "RESOURCE_SCHEMA_INVALID"):
-            inventory._validate_volume_show({**volume, "created_at": 123}, "pool", "custom", "data", "alpha")
+            inventory._validate_volume_show({**volume, "created_at": 123}, "pool", "custom", "data", "alpha", incus=True)
         with self.assertRaisesRegex(inventory.InventoryError, "VOLUME_OWNER_PROJECT_UNSUPPORTED"):
-            inventory._validate_volume_show({**volume, "project": "default"}, "pool", "custom", "data", "alpha")
+            inventory._validate_volume_show({**volume, "project": "default"}, "pool", "custom", "data", "alpha", incus=True)
+
+    def test_volume_family_pool_identity_preserves_normalized_schema_two_graph(self) -> None:
+        incus_runner = self._InventoryRunner()
+        incus_rows = inventory._inventory_client(incus_runner, "incus_system", "/run/incus/unix.socket",
+                                                incus=True, before_query=lambda: None)[1]
+        for identity in ("lxd_system", "lxd_snap"):
+            runner = self._InventoryRunner()
+            runner.version_output = b"Client version: 5.21.9\nServer version: 5.21.9 LTS\n"
+            version, rows = inventory._inventory_client(runner, identity,
+                "/var/lib/lxd/unix.socket" if identity == "lxd_system" else "/var/snap/lxd/common/lxd/unix.socket",
+                incus=False, before_query=lambda: None)
+            self.assertEqual(version, "5.21.9 LTS")
+            self.assertEqual(rows, incus_rows)
+            volume = rows[0]["pools"][0]["volumes"][0]
+            self.assertEqual(set(volume), {"name", "type", "content_type", "used_by"})
+            volume_calls = [call[0][2:] for call in runner.calls if call[2] in {
+                "lxd_storage_volume_list", "lxd_storage_volume_show"}]
+            self.assertEqual(volume_calls, [
+                ["storage", "volume", "list", "pool", "--project", "alpha", "--format", "json"],
+                ["query", "--request", "GET", "--raw", "/1.0/storage-pools/pool/volumes/container/web?project=alpha"],
+            ])
+            artifact = self._valid_artifact()
+            artifact["lxd_projects"] = rows
+            self.assertEqual(json.loads(inventory._validate_artifact(artifact))["schema_version"], 2)
+
+    def test_lxd_malformed_pool_blocks_each_real_adapter_boundary(self) -> None:
+        malformed_pools: tuple[object, ...] = (None, False, True, 0, 1.0, [], {}, "", " pool", "pool\n",
+                                              "../pool", "/pool", "po%6fl", "POOL", "other", "pöol")
+        for boundary in ("list", "detail"):
+            for malformed_pool in malformed_pools:
+                runner = self._InventoryRunner()
+                if boundary == "list":
+                    runner.volume_list_pool = malformed_pool
+                else:
+                    runner.volume_detail_pool = malformed_pool
+                with self.subTest(boundary=boundary, pool=malformed_pool):
+                    with self.assertRaisesRegex(inventory.InventoryError, "VOLUME_POOL_IDENTITY_MISMATCH"):
+                        inventory._inventory_client(runner, "lxd_system", "/var/lib/lxd/unix.socket",
+                                                    incus=False, before_query=lambda: None)
+                    detail_count = sum(call[2] == "lxd_storage_volume_show" for call in runner.calls)
+                    self.assertEqual(detail_count, 0 if boundary == "list" else 1)
+
+    def test_lxd_missing_pool_blocks_main_before_private_artifact_write(self) -> None:
+        for boundary in ("list", "detail"):
+            runner = self._InventoryRunner()
+            runner.omit_volume_list_pool = boundary == "list"
+            runner.omit_volume_detail_pool = boundary == "detail"
+            with self.subTest(boundary=boundary):
+                self._assert_main_blocks_without_private_artifact(runner, "VOLUME_POOL_IDENTITY_MISMATCH")
+
+    def test_incus_pool_field_stays_unknown_at_both_real_boundaries(self) -> None:
+        unexpected_pools: tuple[object, ...] = ("pool", "", None, False, 0, [], {})
+        for boundary in ("list", "detail"):
+            for unexpected_pool in unexpected_pools:
+                runner = self._InventoryRunner()
+                if boundary == "list":
+                    runner.list_rows["volumes"] = [{"name": "web", "type": "container", "content_type": "filesystem",
+                        "project": "alpha", "config": {}, "used_by": runner.volume_used_by, "pool": unexpected_pool}]
+                else:
+                    runner.detail_overrides["incus_storage_volume_show"] = {"pool": unexpected_pool}
+                with self.subTest(boundary=boundary, pool=unexpected_pool), self.assertRaisesRegex(
+                        inventory.InventoryError, "RESOURCE_SCHEMA_INVALID"):
+                    inventory._inventory_client(runner, "incus_system", "/run/incus/unix.socket",
+                                                incus=True, before_query=lambda: None)
+
+    def test_volume_detail_requires_explicit_family_and_preserves_existing_denials(self) -> None:
+        volume: dict[str, object] = {"name": "data", "type": "custom", "content_type": "filesystem",
+                                     "project": "alpha", "config": {}, "used_by": []}
+        lxd_volume = {**volume, "pool": "pool"}
+        self.assertEqual(inventory._validate_volume_show(lxd_volume, "pool", "custom", "data", "alpha", incus=False), lxd_volume)
+        self.assertEqual(inventory._validate_volume_show(volume, "pool", "custom", "data", "alpha", incus=True), volume)
+        invalid_changes: tuple[dict[str, object], ...] = (
+            {"project": "foreign"}, {"project": None}, {"name": "foreign"}, {"type": "future"},
+            {"config": []}, {"config": {"x": None}}, {"used_by": None}, {"used_by": ""},
+            {"used_by": ["not-an-api-link"]}, {"created_at": 123}, {"unknown": "new"},
+        )
+        for incus in (False, True):
+            base = volume if incus else lxd_volume
+            for changes in invalid_changes:
+                with self.subTest(incus=incus, changes=changes), self.assertRaises(inventory.InventoryError):
+                    inventory._validate_volume_show({**base, **changes}, "pool", "custom", "data", "alpha", incus=incus)
+            for missing_field in ("project", "config", "used_by"):
+                incomplete = {key: value for key, value in base.items() if key != missing_field}
+                with self.subTest(incus=incus, missing=missing_field), self.assertRaises(inventory.InventoryError):
+                    inventory._validate_volume_show(incomplete, "pool", "custom", "data", "alpha", incus=incus)
+
+    def test_valid_lxd_pool_never_weakens_owner_or_consumer_graph(self) -> None:
+        cases = ("foreign_owner", "consumer_drift", "unresolved_consumer", "pool_reciprocity", "volume_reciprocity", "unknown_field", "content_type", "duplicate")
+        for case in cases:
+            runner = self._InventoryRunner()
+            expected_code = "RESOURCE_SCHEMA_INVALID"
+            if case == "foreign_owner":
+                runner.volume_owner_project = "default"
+                expected_code = "VOLUME_OWNER_PROJECT_UNSUPPORTED"
+            elif case == "consumer_drift":
+                runner.detail_overrides["lxd_storage_volume_show"] = {"used_by": []}
+                expected_code = "VOLUME_CONSUMER_LIST_MISMATCH"
+            elif case == "unresolved_consumer":
+                runner.volume_used_by = ["/1.0/instances/missing?project=alpha"]
+                expected_code = "VOLUME_CONSUMER_UNRESOLVED"
+            elif case == "pool_reciprocity":
+                runner.pool_used_by = ["/1.0/storage-pools/pool/volumes/container/web?project=alpha"]
+                expected_code = "POOL_CONSUMER_RECIPROCITY_MISMATCH"
+            elif case == "volume_reciprocity":
+                runner.volume_used_by = []
+                expected_code = "VOLUME_CONSUMER_RECIPROCITY_MISMATCH"
+            elif case == "unknown_field":
+                runner.detail_overrides["lxd_storage_volume_show"] = {"unknown": "new"}
+            elif case == "content_type":
+                runner.detail_overrides["lxd_storage_volume_show"] = {"content_type": "future"}
+                expected_code = "VOLUME_CONTENT_TYPE_UNSUPPORTED"
+            else:
+                volume_row = {"name": "web", "type": "container", "content_type": "filesystem",
+                              "project": "alpha", "config": {}, "used_by": runner.volume_used_by}
+                runner.list_rows["volumes"] = [dict(volume_row), dict(volume_row)]
+                expected_code = "RESOURCE_DUPLICATE"
+            with self.subTest(case=case):
+                self._assert_main_blocks_without_private_artifact(runner, expected_code)
 
     def test_volume_list_created_at_must_be_a_string_when_present(self) -> None:
         runner = self._InventoryRunner()

@@ -1,6 +1,6 @@
 # Context pack — issue-449-lcm-w09
 
-## Current continuation — v1.44, 2026-11-07
+## Current continuation — v1.45, 2026-11-07
 
 Branch `fix/epic440-completion-20261107`, baseline `b87fe5c9`. The user requests
 complete Epic #440 remediation on the two named hosts. Current bounded phase:
@@ -10,6 +10,10 @@ rechecks, redaction and command/time budgets remain unchanged.
 No runtime mutation, capability qualification or completion is implied. Current
 execution/evidence: `.codex/evidence/epic440-20261107.md`. The v1.42 and earlier
 records below retain their historical scope and hashes.
+
+Bounded LXD/Incus volume DTO pool identity follows
+`.codex/evidence/epic440-volume-dto-20261107.md`; ownership and schema 2 remain
+unchanged. No runtime or capture release follows this amendment.
 
 Native network inventory uses explicit schema 2 under
 `.codex/evidence/epic440-network-inventory-20261107.md`; schema 1 cannot be

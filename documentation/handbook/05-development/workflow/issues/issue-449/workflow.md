@@ -1,7 +1,7 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: ACTIVE_FOR_ISSUE_449 v1.44 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
+Status: ACTIVE_FOR_ISSUE_449 v1.45 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
@@ -21,6 +21,14 @@ and its tests remain unchanged in this detail-transport correction. Authoring lo
 workflow, its context pair, F4 design/consolidation and
 `.codex/evidence/epic440-20261107.md`. Current execution, reviews and evidence
 are recorded there. Full S02–S09 completion remains required.
+
+The current bounded volume DTO amendment is specified in
+`.codex/evidence/epic440-volume-dto-20261107.md`: LXD 5.21.9 list and detail
+must bind the required pool string to the exact queried pool; Incus 6.0.5 keeps
+its distinct DTO shape. Owner-project and consumer graph admission, schema 2,
+fixed commands/provenance/budgets and private evidence remain unchanged.
+Implementation, PC verification and any new native capture remain separately
+exact-reviewed phases. This amendment grants no runtime or capture authority.
 
 The current native network contract is schema 2, specified in
 `.codex/evidence/epic440-network-inventory-20261107.md`. It preserves every

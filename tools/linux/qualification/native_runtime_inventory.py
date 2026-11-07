@@ -781,9 +781,21 @@ def _validate_pool_show(value: Any, name: str, project: str) -> dict[str, Any]:
     return row
 
 
-def _validate_volume_show(value: Any, pool: str, volume_type: str, name: str, project: str) -> dict[str, Any]:
-    row = _only_keys(value, {"name", "type", "content_type", "project", "description", "config",
-                             "used_by", "location", "created_at"})
+def _validate_volume_dto(value: Any, pool: str, *, incus: bool) -> dict[str, Any]:
+    fields = {"name", "type", "content_type", "project", "description", "config",
+              "used_by", "location", "created_at"}
+    row = _only_keys(value, fields if incus else fields | {"pool"})
+    if not incus:
+        observed_pool = row.get("pool")
+        if (type(observed_pool) is not str or not NAME.fullmatch(observed_pool)
+                or observed_pool != pool):
+            raise InventoryError("VOLUME_POOL_IDENTITY_MISMATCH")
+    return row
+
+
+def _validate_volume_show(value: Any, pool: str, volume_type: str, name: str,
+                          project: str, *, incus: bool) -> dict[str, Any]:
+    row = _validate_volume_dto(value, pool, incus=incus)
     if _name(row.get("name")) != name or _volume_type(row.get("type")) != volume_type:
         raise InventoryError("RESOURCE_IDENTITY_MISMATCH")
     if "project" not in row or _name(row["project"]) != project:
@@ -996,8 +1008,7 @@ def _inventory_client(runner: Runner, identity: str, socket: str, *, incus: bool
             volume_rows: list[dict[str, Any]] = []
             volume_ids: set[tuple[str, str]] = set()
             for volume_item in volumes:
-                volume = _only_keys(volume_item, {"name", "type", "content_type", "project", "description",
-                                                  "config", "created_at", "used_by", "location"})
+                volume = _validate_volume_dto(volume_item, pool_name, incus=incus)
                 vname = _name(volume.get("name"))
                 vtype = _volume_type(volume.get("type"))
                 if "used_by" not in volume:
@@ -1013,7 +1024,7 @@ def _inventory_client(runner: Runner, identity: str, socket: str, *, incus: bool
                 _validate_list_metadata(volume, project)
                 before_query()
                 detail = _validate_volume_show(_detail(runner, prefix, "storage-volumes", (pool_name, vtype, vname), project, command_id=f"{kind}_storage_volume_show", env=env,
-                    safe_args=[pool_name, vtype, vname, project]), pool_name, vtype, vname, project)
+                    safe_args=[pool_name, vtype, vname, project]), pool_name, vtype, vname, project, incus=incus)
                 if not _same_consumers(volume["used_by"], detail["used_by"], project):
                     raise InventoryError("VOLUME_CONSUMER_LIST_MISMATCH")
                 volume_rows.append({"name": vname, "type": vtype,
