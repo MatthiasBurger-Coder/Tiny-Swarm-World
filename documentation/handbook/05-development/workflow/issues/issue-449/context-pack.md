@@ -11,6 +11,10 @@ No runtime mutation, capability qualification or completion is implied. Current
 execution/evidence: `.codex/evidence/epic440-20261107.md`. The v1.42 and earlier
 records below retain their historical scope and hashes.
 
+Native F4 command allowance is explicitly 2048 total, including every repeated
+trust check; the earlier native 256 allowance is superseded only for this
+collector. Other hard bounds and separate fixture/route budgets are unchanged.
+
 The current S449-02I Store WSL2 applicability correction uses the moved
 `bootstrap/windows/preparation/` adapters/policy and mocked Windows contract.
 Its exact source/review/aggregate PC-WSL evidence is in

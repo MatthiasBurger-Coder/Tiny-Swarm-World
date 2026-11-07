@@ -26,7 +26,8 @@ MAX_STREAM = 2 * 1024 * 1024
 MAX_TOTAL_BYTES = 16 * 1024 * 1024
 MAX_ARTIFACT = 8 * 1024 * 1024
 MAX_ENTITIES = 10_000
-MAX_COMMANDS = 256
+# Includes every repeated service/socket/provenance check, not only API queries.
+MAX_COMMANDS = 2048
 MAX_WALL_SECONDS = 300
 ENV_BASE = {"LC_ALL": "C", "PATH": "/usr/bin:/bin"}
 UNITS = ("lxd.service", "snap.lxd.daemon.service", "snap.lxd.daemon.unix.socket",

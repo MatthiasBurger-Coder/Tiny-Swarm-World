@@ -1,5 +1,60 @@
 # S449-02F4 — normalize the verified Snap wrapper and direct LXD child
 
+## 2026-11-07 bounded full native-inventory command accounting
+
+Normal native capture of clean 635e67f0 at 14:42:04 UTC returns
+INVENTORY_BUDGET_EXCEEDED, exit 2, no artifact. Current 256 total commands count
+all fixed provenance/service/socket checks before every API read, as well as
+resource queries. Prior schema diagnosis observed 197 commands before the
+first Instance detail; a real two-daemon/multiple-project inventory requires
+more than this old aggregate allowance. Existing private plan/result timestamps
+are 14:42:01.929387 and 14:42:04.151927 UTC, elapsed 2.223 seconds, so this was
+the command cap, not the shared 300-second wall failure. Do not skip checks.
+
+Accounting model for a complete client: Q = version + project-list + sum over
+projects(project-detail + four resource lists + profile-count + twice instance-
+count + network-count + twice pool-count + volume-count). Each query also runs
+R fixed trust-check commands, plus initial/final overhead. The prior current
+partial diagnostic already measured 197 commands before the first instance
+detail; three named TSW instances and native coexistence are established host
+context, while complete resource counts cannot be established before collection
+succeeds. Thus 2048 is an explicit finite engineering allowance for about 100
+fully checked queries at the observed cost, not a claimed upper bound of the
+unobserved full graph or a guarantee the host will qualify. Larger graphs still
+fail closed. The named target's complete redacted counts must be recorded after
+a successful normal collection; no resource is inferred from the budget.
+
+Proposed serial native collector correction, separate from fixture budget:
+raise ONLY this collector's MAX_COMMANDS from 256 to 2048; its final artifact's
+command-record limit follows the same finite constant. Existing command/env/
+socket/URI/method allowlists and full checks before each query stay unchanged.
+No new command, endpoint, resource class, privilege or mutation is admitted.
+No successful incomplete/partial inventory artifact is allowed.
+
+Hard limits remain: 30 seconds per process, 300 seconds aggregate wall time,
+2 MiB per stream, 16 MiB aggregate Runner output,
+8 MiB final artifact, 10,000 entities and all existing file/proc/context limits. The helper's separate 16-MiB
+filesystem read budget is per proof invocation, not capture-global; this
+amendment neither changes nor misrepresents that existing scope.
+Any other limit can still stop before 2048 commands; no preflight/capture retries
+or automatic budget escalation. 2048 accommodates roughly 100 separately
+checked queries at the observed trust-check cost, not arbitrary large hosts.
+No fixtures/S02D/E inventory budget change is included.
+
+Locks: native collector/test, F4 normative design/consolidation, current master
+record, issue-449 workflow/context pair. Explicitly amend the F4 native budget
+contract; all other 256-command limits below remain historical or apply to
+separate fixture/route collectors and are not raised by this amendment.
+Independent requirement/architecture/security and tester/DevOps review precedes
+code. New tests cover actual admission beyond the former 256 bound, exact last
+allowed command and refusal before spawning the next, unchanged aggregate wall
+and byte refusal, and final artifact record-count boundary. Keep the whole
+current fixed GET/raw/schema/identity/graph/drift/redaction suite. PC-WSL focused
+then all seven QUALITY gates on exact candidate. A subsequent committed-source
+normal native capture remains a new separately approved protected-root phase.
+No ownership, maintenance, listener fixture, capability or Epic completion is
+inferred from this corrective work.
+
 ## 2026-11-07 ordinary Instance collection transport
 
 The exact f495969e normal native collector returned RESOURCE_SCHEMA_INVALID,

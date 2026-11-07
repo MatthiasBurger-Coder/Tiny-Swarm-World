@@ -22,6 +22,13 @@ workflow, its context pair, F4 design/consolidation and
 `.codex/evidence/epic440-20261107.md`. Current execution, reviews and evidence
 are recorded there. Full S02–S09 completion remains required.
 
+The current F4 native collector explicitly supersedes its earlier total
+256-command allowance with a finite 2048-command cap, counting all repeated
+trust checks. Process/wall/output/artifact/entity limits and every check remain
+unchanged. This affects only native_runtime_inventory and its record cap;
+fixture/route capture budgets below stay unchanged. See its current normative
+amendment and master record for the measured failure and exact verification.
+
 The same continuation also implements S449-02I after official Microsoft Store
 WSL2 feature applicability review. Current paths are
 `bootstrap/windows/preparation/Policy.ps1`, `Adapters.ps1` and

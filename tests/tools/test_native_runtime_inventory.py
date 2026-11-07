@@ -552,6 +552,66 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
                 self.assertRaises(inventory.InventoryError):
             runner.run(["/usr/bin/systemctl", "show"], command_id="x")
 
+    def test_native_command_budget_admits_old_boundary_and_stops_before_overflow_spawn(self) -> None:
+        for previous in (256, 2047):
+            with self.subTest(previous=previous):
+                proc = Mock(pid=88)
+                proc.stdout.fileno.return_value = 101
+                proc.stderr.fileno.return_value = 102
+                proc.poll.return_value = 0
+                proc.wait.return_value = 0
+                popen = Mock(return_value=proc)
+                runner = inventory.Runner(popen=popen, clock=lambda: 0.0)
+                runner.commands = previous
+                with patch.object(inventory.selectors, "DefaultSelector", self._Selector), \
+                        patch.object(inventory.os, "read", return_value=b""):
+                    self.assertEqual(runner.run(["/usr/bin/systemctl", "show"], command_id="fixture"),
+                                     (0, b"", b""))
+                self.assertEqual(runner.commands, previous + 1)
+                self.assertEqual(popen.call_count, 1)
+                self.assertEqual(len(runner.records), 1)
+                if previous == 2047:
+                    before = (runner.commands, runner.total_bytes, list(runner.records))
+                    with self.assertRaisesRegex(inventory.InventoryError, "INVENTORY_BUDGET_EXCEEDED"):
+                        runner.run(["/usr/bin/systemctl", "show"], command_id="fixture")
+                    self.assertEqual(popen.call_count, 1)
+                    self.assertEqual((runner.commands, runner.total_bytes, runner.records), before)
+
+    def test_native_larger_command_budget_does_not_extend_wall_or_output_bounds(self) -> None:
+        clock = {"now": 0.0}
+        popen = Mock()
+        runner = inventory.Runner(popen=popen, clock=lambda: clock["now"])
+        clock["now"] = 301.0
+        with self.assertRaisesRegex(inventory.InventoryError, "INVENTORY_BUDGET_EXCEEDED"):
+            runner.run(["/usr/bin/systemctl", "show"], command_id="fixture")
+        popen.assert_not_called()
+        self.assertEqual(runner.commands, 0)
+        proc = Mock(pid=88)
+        proc.stdout.fileno.return_value = 101
+        proc.stderr.fileno.return_value = 102
+        proc.poll.return_value = 0
+        proc.wait.return_value = 0
+        runner = inventory.Runner(popen=Mock(return_value=proc), clock=lambda: 0.0)
+        runner.total_bytes = 16 * 1024 * 1024
+        reads = {101: [b"x", b""], 102: [b""]}
+        with patch.object(inventory.selectors, "DefaultSelector", self._Selector), \
+                patch.object(inventory.os, "read", side_effect=lambda fd, _n: reads[fd].pop(0)), \
+                patch.object(inventory, "_kill_reap") as cleanup:
+            with self.assertRaisesRegex(inventory.InventoryError, "TOTAL_OUTPUT_LIMIT"):
+                runner.run(["/usr/bin/systemctl", "show"], command_id="fixture")
+        self.assertEqual(runner.commands, 1)
+        self.assertEqual(runner.records, [])
+        cleanup.assert_called_once_with(proc)
+
+    def test_native_artifact_command_record_count_has_the_same_finite_boundary(self) -> None:
+        record = {"command_id": "systemctl_show_unit", "safe_args": ["incus.service"],
+                  "exit_status": 0, "stdout_bytes": 0, "stderr_bytes": 0}
+        artifact = self._valid_artifact([record] * 2048)
+        self.assertTrue(inventory._validate_artifact(artifact).endswith(b"\n"))
+        artifact["command_records"].append(record)
+        with self.assertRaisesRegex(inventory.InventoryError, "ARTIFACT_COMMANDS_INVALID"):
+            inventory._validate_artifact(artifact)
+
     def test_endpoint_allowlist_rejects_unrecognized_paths_and_non_socket(self) -> None:
         self.assertEqual(inventory.SOCKETS["/var/lib/incus/unix.socket"], "incus_var_lib")
         self.assertNotIn("/tmp/unknown.sock", inventory.SOCKETS)

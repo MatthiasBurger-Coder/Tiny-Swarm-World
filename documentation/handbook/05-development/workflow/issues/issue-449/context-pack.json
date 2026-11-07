@@ -9,6 +9,8 @@
     "normative_contract": ".codex/evidence/slice-449-02F4-design.md",
     "execution_record": ".codex/evidence/epic440-20261107.md",
     "runtime_mutation_released": false,
+    "native_inventory_command_cap": 2048,
+    "native_inventory_budget_scope": "Native F4 only; repeated trust checks counted; all other hard limits and fixture budgets unchanged",
     "s02i_record": ".codex/evidence/epic440-store-wsl2-20261107.md",
     "windows_source_path_record": ".codex/evidence/epic440-windows-source-path-20261107.md",
     "s02i_paths": ["bootstrap/windows/preparation/Policy.ps1", "bootstrap/windows/preparation/Adapters.ps1", "tests/windows/prepare-windows.Tests.ps1"],
