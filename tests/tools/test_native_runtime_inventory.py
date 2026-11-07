@@ -1,6 +1,7 @@
 """Regression tests for the fail-closed native runtime inventory."""
 from __future__ import annotations
 
+import copy
 import json
 import subprocess
 import tempfile
@@ -21,6 +22,7 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
             self.records: list[dict[str, Any]] = []
             self.version_output = b"Client version: 6.0\nServer version: 6.0.5\n"
             self.list_rows: dict[str, list[dict[str, Any]]] = {}
+            self.project_config = {"features.networks": "true", "features.profiles": "true"}
             self.detail_profiles = ["bravo"]
             self.instance_network = "net"
             self.instance_pool = "pool"
@@ -49,10 +51,10 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
             if suffix == ["version"]:
                 out = self.version_output
             elif suffix == ["project", "list", "--format", "json"]:
-                out = self._json(self.list_rows.get("projects", [{"name": "alpha", "description": "", "config": {},
+                out = self._json(self.list_rows.get("projects", [{"name": "alpha", "description": "", "config": self.project_config,
                                                                     "used_by": self.project_used_by}]))
             elif suffix == ["query", "--request", "GET", "--raw", "/1.0/projects/alpha?project=alpha"]:
-                out = self._json({"name": "alpha", "config": {}, "used_by": self.project_used_by})
+                out = self._json({"name": "alpha", "config": self.project_config, "used_by": self.project_used_by})
             elif suffix == ["profile", "list", "--project", "alpha", "--format", "json"]:
                 out = self._json(self.list_rows.get("profiles", [
                     {"name": "zeta", "project": "alpha", "description": "", "config": {}, "devices": {}, "used_by": []},
@@ -124,6 +126,122 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
                                  "stdout_bytes": len(out), "stderr_bytes": 0})
             return 0, out, b""
 
+    class _NetworkRunner(_InventoryRunner):
+        def __init__(self):
+            super().__init__()
+            self.configs = {"alpha": {"features.profiles": "true", "features.networks": "false"}, "default": {}}
+            self.profile_devices = {"alpha": {"eth0": {"type": "nic", "network": "net"}}, "default": {}}
+            self.expanded_devices = {"alpha": {"eth0": {"type": "nic", "network": "net"}}, "default": {}}
+            self.local_devices: dict[str, dict[str, dict[str, str]]] = {"alpha": {}, "default": {}}
+            self.networks = {
+                "alpha": [self.network("eth0", False, "physical"), self.network("lo", False, "loopback"), self.network("net", True)],
+                "default": [self.network("eth0", False, "physical"), self.network("lo", False, "loopback"), self.network("net", True)],
+            }
+            self.network_users = {"eth0": [], "lo": [], "net": ["/1.0/profiles/profile?project=alpha", "/1.0/instances/web?project=alpha"]}
+            self.list_mutation: Any = lambda _project, _rows: None
+            self.detail_mutation: Any = lambda _project, _kind, _row: None
+            self.project_links: Any = None
+            self.project_override: Any = None
+            self.default_profile = False
+
+        @staticmethod
+        def network(name, managed, kind="bridge"):
+            return {"name": name, "type": kind, "managed": managed,
+                    "status": "Created" if managed else "", "config": {}, "used_by": [], "locations": None}
+
+        def run(self, argv, *, env=None, command_id, safe_args=None, expected=None):
+            from urllib.parse import parse_qs, urlsplit
+            suffix = argv[2:]
+            if suffix == ["version"]:
+                value = b"Client version: 6.0\nServer version: 6.0.5\n"
+            else:
+                project = ""
+                if suffix[:2] == ["project", "list"]:
+                    value = [self.project_row(name) for name in self.configs]
+                elif suffix[0] == "query":
+                    uri = urlsplit(suffix[-1])
+                    query = parse_qs(uri.query)
+                    project = query["project"][0]
+                    parts = uri.path.split("/")[2:]
+                    kind, name = parts[0], parts[1] if len(parts) > 1 else ""
+                    if kind == "projects":
+                        value = self.project_row(project)
+                    elif kind == "instances" and not name:
+                        value = [self.instance_row(project)] if project == "alpha" else []
+                    elif kind == "instances":
+                        value = self.instance_row(project)
+                    elif kind == "profiles":
+                        value = self.profile_row(project)
+                    elif kind == "networks":
+                        value = copy.deepcopy(next(row for row in self.networks[project] if row["name"] == name))
+                        value["used_by"] = list(self.network_users.get(name, []))
+                        value["project"] = self.dto_project(argv, project)
+                    else:
+                        raise AssertionError(argv)
+                    if isinstance(value, dict):
+                        self.detail_mutation(project, kind, value)
+                    value = {"type": "sync", "status": "Success", "status_code": 200,
+                             "operation": "", "error_code": 0, "error": "", "metadata": value}
+                else:
+                    project = suffix[suffix.index("--project") + 1]
+                    if suffix[0] == "network":
+                        value = copy.deepcopy(self.networks[project])
+                        for row in value:
+                            row["used_by"] = list(self.network_users.get(row["name"], []))
+                            row["project"] = self.dto_project(argv, project)
+                        self.list_mutation(project, value)
+                    elif suffix[0] == "profile":
+                        value = [self.profile_row(project)] if project == "alpha" or self.default_profile else []
+                    elif suffix[0] == "storage":
+                        value = []
+                    else:
+                        raise AssertionError(argv)
+                value = self._json(value)
+            self.calls.append((list(argv), dict(env or {}), command_id))
+            self.records.append({"command_id": command_id, "safe_args": safe_args or [], "exit_status": 0,
+                                 "stdout_bytes": len(value), "stderr_bytes": 0})
+            return 0, value, b""
+
+        def dto_project(self, argv, project):
+            if self.project_override is not None:
+                return self.project_override(argv, project)
+            own = self.configs[project].get("features.networks") == "true"
+            return project if argv[0] != "/usr/bin/incus" or own else "default"
+
+        def project_row(self, project):
+            links = []
+            if project == "alpha":
+                links = ["/1.0/profiles/profile?project=alpha", "/1.0/instances/web?project=alpha"]
+            if project == "default" and self.default_profile:
+                links.append("/1.0/profiles/profile")
+            for network in self.networks[project]:
+                if network["managed"] and (project == "default" or self.configs[project].get("features.networks") == "true"):
+                    links.append("/1.0/networks/" + network["name"] + "?project=" + project)
+            if self.project_links is not None:
+                links = self.project_links(project, links)
+            return {"name": project, "config": self.configs[project], "used_by": links}
+
+        def profile_row(self, project):
+            return {"name": "profile", "project": project, "config": {}, "devices": self.profile_devices[project],
+                    "used_by": ["/1.0/instances/web?project=alpha"] if project == "alpha" else []}
+
+        def instance_row(self, project):
+            return {"name": "web", "project": project, "config": {}, "devices": self.local_devices[project],
+                    "expanded_config": {}, "expanded_devices": self.expanded_devices[project],
+                    "profiles": ["profile"], "ephemeral": False, "stateful": False,
+                    "status": "Running", "type": "container"}
+
+    def _network_rows(self, runner=None, *, incus=True):
+        runner = runner or self._NetworkRunner()
+        return inventory._inventory_client(runner, "incus_system" if incus else "lxd_system",
+                                           "/run/incus/unix.socket" if incus else "/var/lib/lxd/unix.socket",
+                                           incus=incus, before_query=lambda: None)[1]
+
+    def _network_artifact(self):
+        artifact = self._valid_artifact()
+        artifact["incus_projects"] = self._network_rows()
+        return artifact
+
     class _Selector:
         def __init__(self) -> None:
             self.items: dict[Any, str] = {}
@@ -150,7 +268,7 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
             if unit.endswith(".socket"):
                 row["listen"] = ""
             units.append(row)
-        return {"schema_version": 1, "target_host": inventory.TARGET, "source_commit": "a" * 40,
+        return {"schema_version": 2, "target_host": inventory.TARGET, "source_commit": "a" * 40,
                 "captured_at_utc": "2026-01-01T00:00:00Z", "lxd_units": units[:3], "incus_units": units[3:],
                 "lxd_executables": [], "incus_executables": [],
                 "sockets": [{"endpoint_id": endpoint, "state": "absent", "unit": ""}
@@ -1331,7 +1449,7 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
 
     def test_list_and_detail_consumer_views_must_match(self) -> None:
         mismatched_rows: dict[str, list[dict[str, Any]]] = {
-            "projects": [{"name": "alpha", "description": "", "config": {},
+            "projects": [{"name": "alpha", "description": "", "config": {"features.networks": "true", "features.profiles": "true"},
                           "used_by": ["/1.0/profiles/bravo?project=alpha"]}],
             "profiles": [{"name": "bravo", "project": "alpha", "description": "", "config": {},
                           "devices": {}, "used_by": []}],
@@ -1422,14 +1540,16 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
     def test_artifact_schema_size_and_redaction_are_enforced(self) -> None:
         artifact = self._valid_artifact()
         self.assertTrue(inventory._validate_artifact(artifact).endswith(b"\n"))
-        artifact["lxd_projects"] = [{"project": "alpha", "profiles": [], "instances": [], "networks": [],
+        artifact["lxd_projects"] = [{"project": "alpha", "features_networks": True, "features_profiles": True,
+                                     "effective_network_project": "alpha", "profiles": [], "instances": [], "networks": [],
                                      "pools": [{"name": "pool", "type": "dir", "used_by": [{
                                          "kind": "storage-volumes", "name": "pool/container/web", "project": "alpha"}],
                                                 "volumes": [{"name": "web", "type": "container",
                                                              "content_type": "filesystem", "used_by": []}]}]}]
         self.assertTrue(inventory._validate_artifact(artifact).endswith(b"\n"))
         malformed_volume = self._valid_artifact()
-        malformed_volume["lxd_projects"] = [{"project": "alpha", "profiles": [], "instances": [], "networks": [],
+        malformed_volume["lxd_projects"] = [{"project": "alpha", "features_networks": True, "features_profiles": True,
+                                     "effective_network_project": "alpha", "profiles": [], "instances": [], "networks": [],
                                               "pools": [{"name": "pool", "type": "dir", "used_by": [],
                                                          "volumes": [{"name": "web", "type": "container",
                                                                       "content_type": "filesystem", "used_by": [],
@@ -1461,22 +1581,278 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
             self.assertNotIn(forbidden, raw)
 
     def test_artifact_preserves_typed_project_scoped_consumer_references(self) -> None:
-        artifact = self._valid_artifact()
-        artifact["lxd_projects"] = [
-            {"project": "alpha", "profiles": [], "instances": [],
-             "networks": [{"name": "net", "type": "bridge", "used_by": [
-                 {"kind": "instances", "name": "web", "project": "beta"}]}], "pools": []},
-            {"project": "beta", "profiles": [], "instances": [{"name": "web", "status": "Running",
-             "type": "container", "profiles": [], "local_devices": [], "expanded_devices": []}],
-             "networks": [], "pools": []},
-        ]
+        artifact = self._network_artifact()
         encoded = inventory._validate_artifact(artifact)
-        self.assertIn(b'"kind":"instances","name":"web","project":"beta"', encoded)
-        malformed = {**artifact, "lxd_projects": [
-            {**artifact["lxd_projects"][0], "networks": [{"name": "net", "type": "bridge", "used_by": [
-                {"kind": "instances", "name": "web"}]}]}, artifact["lxd_projects"][1]]}
+        self.assertIn(b'"kind":"instances","name":"web","project":"alpha"', encoded)
+        malformed = copy.deepcopy(artifact)
+        malformed["incus_projects"][0]["networks"][2]["used_by"][0].pop("project")
         with self.assertRaises(inventory.InventoryError):
             inventory._validate_artifact(malformed)
+
+    def test_network_schema_two_keeps_unmanaged_interfaces_and_default_last(self) -> None:
+        for incus in (False, True):
+            with self.subTest(incus=incus):
+                runner = self._NetworkRunner()
+                rows = self._network_rows(runner, incus=incus)
+                self.assertEqual(list(runner.configs), ["alpha", "default"])
+                self.assertEqual([row["project"] for row in rows], ["alpha", "default"])
+                for row in rows:
+                    self.assertEqual(row["effective_network_project"], "default")
+                    self.assertEqual([net["name"] for net in row["networks"]], ["eth0", "lo", "net"])
+                    self.assertEqual([net["owner_project"] for net in row["networks"]], [None, None, "default"])
+                    self.assertEqual([net["managed"] for net in row["networks"]], [False, False, True])
+                self.assertEqual(rows[0]["networks"], rows[1]["networks"])
+                self.assertTrue(all(call[0][2] in {"version", "project", "profile", "query", "network", "storage"}
+                                    for call in runner.calls))
+                artifact = self._valid_artifact()
+                artifact["incus_projects" if incus else "lxd_projects"] = rows
+                encoded = inventory._validate_artifact(artifact)
+                self.assertEqual(json.loads(encoded)["schema_version"], 2)
+                self.assertNotIn(b'"config":', encoded)
+
+    def test_network_empty_status_is_explicitly_unmanaged_only(self) -> None:
+        row = self._NetworkRunner.network("eth0", False, "physical")
+        for valid_status in ("", "Created"):
+            self.assertEqual(inventory._validate_network_show({**row, "status": valid_status}, "eth0", "default")["status"], valid_status)
+        for managed, status in ((True, ""), (None, ""), (0, ""), ("false", ""), (False, None), (False, 0), (False, False)):
+            with self.subTest(managed=managed, status=status), self.assertRaises(inventory.InventoryError):
+                inventory._validate_network_show({**row, "managed": managed, "status": status}, "eth0", "default")
+        missing = dict(row)
+        missing.pop("managed")
+        with self.assertRaises(inventory.InventoryError):
+            inventory._validate_network_show(missing, "eth0", "default")
+        with self.assertRaises(inventory.InventoryError):
+            inventory._validate_pool_show({"name": "pool", "driver": "dir", "config": {}, "used_by": [], "status": ""}, "pool", "default")
+        with self.assertRaises(inventory.InventoryError):
+            inventory._validate_list_metadata({"type": "container", "status": ""}, "default")
+
+    def test_network_metadata_drift_and_family_project_binding(self) -> None:
+        for field, value in (("managed", False), ("type", "physical"), ("config", {"user.changed": "yes"})):
+            runner = self._NetworkRunner()
+            def change(project, kind, row):
+                if project == "alpha" and kind == "networks" and row["name"] == "net":
+                    row[field] = value
+            runner.detail_mutation = change
+            with self.subTest(field=field), self.assertRaisesRegex(inventory.InventoryError, "NETWORK_METADATA_LIST_MISMATCH"):
+                self._network_rows(runner)
+        for incus in (True, False):
+            runner = self._NetworkRunner()
+            runner.project_override = lambda _argv, project: ("alpha" if incus else "default") if project == "alpha" else "default"
+            with self.subTest(incus=incus), self.assertRaises(inventory.InventoryError):
+                self._network_rows(runner, incus=incus)
+
+    def test_network_feature_values_and_explicit_unsupported_project_boundaries(self) -> None:
+        runner = self._NetworkRunner()
+        runner.configs["alpha"]["features.networks"] = "true"
+        with self.assertRaisesRegex(inventory.InventoryError, "UNMANAGED_NETWORK_SCOPE_INVALID"):
+            self._network_rows(runner)
+        runner = self._NetworkRunner()
+        runner.configs["alpha"].pop("features.networks")
+        self.assertIsNone(self._network_rows(runner)[0]["features_networks"])
+        for flag in (None, "false", "true"):
+            config: dict[str, Any] = {"features.profiles": "true"}
+            if flag is not None:
+                config["features.networks"] = flag
+            self.assertEqual(inventory._project_network_flags(config, "alpha")[2], "alpha" if flag == "true" else "default")
+            self.assertEqual(inventory._project_network_flags(config, "default")[2], "default")
+        for key in ("features.networks", "features.profiles", "restricted"):
+            for value in ("", "TRUE", "1", " false", "false\n", True):
+                config = {"features.profiles": "true", key: value}
+                with self.subTest(key=key, value=value), self.assertRaises(inventory.InventoryError):
+                    inventory._project_network_flags(config, "alpha")
+        for config, code in (({}, "PROJECT_PROFILE_INHERITANCE_UNSUPPORTED"),
+                             ({"features.profiles": "false"}, "PROJECT_PROFILE_INHERITANCE_UNSUPPORTED"),
+                             ({"features.profiles": "true", "restricted": "true"}, "PROJECT_NETWORK_RESTRICTIONS_UNSUPPORTED"),
+                             ({"features.profiles": "true", "restricted.devices.nic": "managed"}, "PROJECT_NETWORK_RESTRICTIONS_UNSUPPORTED"),
+                             ({"features.profiles": "true", "restricted.networks.access": "net"}, "PROJECT_NETWORK_RESTRICTIONS_UNSUPPORTED")):
+            with self.subTest(config=config), self.assertRaisesRegex(inventory.InventoryError, code):
+                inventory._project_network_flags(config, "alpha")
+        runner = self._NetworkRunner()
+        runner.detail_mutation = lambda project, kind, row: row.update(config={"features.profiles": "true"}) if project == "alpha" and kind == "projects" else None
+        with self.assertRaisesRegex(inventory.InventoryError, "PROJECT_CONFIGURATION_DRIFT"):
+            self._network_rows(runner)
+
+    def test_inherited_network_missing_default_and_view_drift_fail_closed(self) -> None:
+        cases = ("missing_default", "missing_row", "extra_row", "duplicate", "managed", "config", "consumers")
+        for case in cases:
+            runner = self._NetworkRunner()
+            if case == "missing_default":
+                del runner.configs["default"]
+            elif case == "missing_row":
+                runner.networks["alpha"].pop(0)
+            elif case == "extra_row":
+                runner.networks["alpha"].append(runner.network("extra", False))
+            elif case == "duplicate":
+                runner.networks["default"].append(runner.network("net", True))
+            elif case == "managed":
+                runner.networks["alpha"][0]["managed"] = True
+                runner.networks["alpha"][0]["status"] = "Created"
+            elif case == "config":
+                runner.networks["alpha"][2]["config"] = {"user.drift": "x"}
+            else:
+                def change(project, rows):
+                    if project == "alpha":
+                        rows[2]["used_by"] = rows[2]["used_by"][:1]
+                runner.list_mutation = change
+                def detail_change(project, kind, row):
+                    if project == "alpha" and kind == "networks" and row["name"] == "net":
+                        row["used_by"] = row["used_by"][:1]
+                runner.detail_mutation = detail_change
+            with self.subTest(case=case), self.assertRaises(inventory.InventoryError):
+                self._network_rows(runner)
+
+    def test_project_membership_never_claims_unmanaged_or_inherited_networks(self) -> None:
+        for project, name in (("alpha", "net"), ("default", "eth0")):
+            runner = self._NetworkRunner()
+            runner.project_links = lambda current, links: links + ["/1.0/networks/" + name + "?project=" + project] if current == project else links
+            with self.subTest(project=project, name=name), self.assertRaisesRegex(inventory.InventoryError, "PROJECT_CONSUMER_RECIPROCITY_MISMATCH"):
+                self._network_rows(runner)
+
+    def test_expanded_nics_override_local_and_keep_profile_consumer(self) -> None:
+        runner = self._NetworkRunner()
+        runner.local_devices["alpha"] = {"stale": {"type": "nic", "network": "missing", "vlan": "123"}}
+        runner.expanded_devices["alpha"] = {"eth0": {"type": "nic", "parent": "eth0"},
+                                            "eth1": {"type": "nic", "parent": "eth0"}}
+        runner.network_users["net"] = ["/1.0/profiles/profile?project=alpha"]
+        runner.network_users["eth0"] = ["/1.0/instances/web?project=alpha", "/1.0/instances/web?project=alpha"]
+        rows = self._network_rows(runner)
+        instance = rows[0]["instances"][0]
+        self.assertEqual(instance["network_refs"], [{"project": "default", "name": "eth0"}])
+        self.assertEqual(rows[0]["profiles"][0]["network_refs"], [{"project": "default", "name": "net"}])
+        self.assertEqual(len(rows[1]["networks"][0]["used_by"]), 1)
+        artifact = self._valid_artifact()
+        artifact["incus_projects"] = rows
+        inventory._validate_artifact(artifact)
+        runner.expanded_devices["alpha"]["eth2"] = {"type": "nic", "network": "net"}
+        runner.network_users["net"].append("/1.0/instances/web?project=alpha")
+        rows = self._network_rows(runner)
+        self.assertEqual(len(rows[0]["instances"][0]["network_refs"]), 2)
+
+    def test_literal_parent_support_and_named_unsupported_nic_boundaries(self) -> None:
+        for parent in ("eth0", "net"):
+            runner = self._NetworkRunner()
+            runner.profile_devices["alpha"] = {"eth0": {"type": "nic", "parent": parent}}
+            runner.expanded_devices["alpha"] = copy.deepcopy(runner.profile_devices["alpha"])
+            runner.network_users[parent] = runner.network_users.pop("net") if parent != "net" else runner.network_users["net"]
+            self.assertEqual(self._network_rows(runner)[0]["profiles"][0]["network_refs"][0]["name"], parent)
+        for device, code in (({"network":
+            "net", "vlan": "123"}, "NETWORK_VLAN_UNSUPPORTED"),
+                             ({"parent": "eth0", "vlan": "123"}, "NETWORK_VLAN_UNSUPPORTED"),
+                             ({"network": "net", "parent": "net"}, "NETWORK_DEVICE_AMBIGUOUS"),
+                             ({"parent": "lo"}, "NETWORK_LOOPBACK_CONSUMER_UNSUPPORTED"),
+                             ({"parent": "missing"}, "NETWORK_DEVICE_REFERENCE_UNRESOLVED"),
+                             ({"network": "eth0"}, "NETWORK_MANAGED_REFERENCE_REQUIRED")):
+            runner = self._NetworkRunner()
+            runner.profile_devices["alpha"] = {"eth0": {"type": "nic", **device}}
+            with self.subTest(device=device), self.assertRaisesRegex(inventory.InventoryError, code):
+                self._network_rows(runner)
+        runner = self._NetworkRunner()
+        runner.profile_devices["alpha"] = {"eth0": {"type": "nic", "parent": "net"}}
+        for rows in runner.networks.values():
+            rows[2]["type"] = "ovn"
+        with self.assertRaisesRegex(inventory.InventoryError, "NETWORK_OVN_PARENT_UNSUPPORTED"):
+            self._network_rows(runner)
+        for kind in ("disk", "proxy"):
+            for vlan in ("", "1"):
+                with self.subTest(kind=kind, vlan=vlan), self.assertRaises(inventory.InventoryError):
+                    inventory._devices({"device": {"type": kind, "vlan": vlan}})
+
+    def test_network_uplinks_peer_and_other_consumer_kinds_fail_explicitly(self) -> None:
+        for config in ({"network":
+            "net"}, {"parent": "eth0"}):
+            runner = self._NetworkRunner()
+            for rows in runner.networks.values():
+                rows[2]["config"] = config
+            with self.subTest(config=config), self.assertRaisesRegex(inventory.InventoryError, "NETWORK_UPLINK_UNSUPPORTED"):
+                self._network_rows(runner)
+        for link, code in (("/1.0/networks/net", "NETWORK_PEERING_OR_DEPENDENCY_UNSUPPORTED"),
+                           ("/1.0/storage-pools/pool", "NETWORK_CONSUMER_KIND_UNSUPPORTED")):
+            runner = self._NetworkRunner()
+            runner.network_users["net"].append(link)
+            with self.subTest(link=link), self.assertRaisesRegex(inventory.InventoryError, code):
+                self._network_rows(runner)
+
+    def test_network_default_consumer_urls_and_distinct_project_scopes(self) -> None:
+        runner = self._NetworkRunner()
+        runner.default_profile = True
+        runner.profile_devices["default"] = {"eth0": {"type": "nic", "network": "net"}}
+        runner.network_users["net"].append("/1.0/profiles/profile")
+        rows = self._network_rows(runner)
+        self.assertIn({"kind": "profiles", "name": "profile", "project": "default"}, rows[0]["networks"][2]["used_by"])
+        artifact = self._valid_artifact()
+        artifact["incus_projects"] = rows
+        inventory._validate_artifact(artifact)
+        runner = self._NetworkRunner()
+        # An omitted project must resolve to default, never the requesting alpha view.
+        runner.network_users["net"].append("/1.0/profiles/missing")
+        with self.assertRaisesRegex(inventory.InventoryError, "NETWORK_CONSUMER_RECIPROCITY_MISMATCH"):
+            self._network_rows(runner)
+        for incus in (False, True):
+            runner = self._NetworkRunner()
+            runner.configs["alpha"]["features.networks"] = "true"
+            runner.networks["alpha"] = [runner.network("net", True)]
+            # Separate scopes expose separate complete consumer sets.
+            def list_users(project, rows):
+                if project == "default":
+                    for row in rows:
+                        row["used_by"] = []
+            runner.list_mutation = list_users
+            def detail_users(project, kind, row):
+                if project == "default" and kind == "networks":
+                    row["used_by"] = []
+            runner.detail_mutation = detail_users
+            rows = self._network_rows(runner, incus=incus)
+            self.assertEqual(rows[0]["networks"][0]["owner_project"], "alpha")
+            self.assertEqual(rows[1]["networks"][2]["used_by"], [])
+
+    def test_schema_two_independently_rejects_scope_owner_and_edge_tampering(self) -> None:
+        artifact = self._network_artifact()
+        self.assertEqual(json.loads(inventory._validate_artifact(artifact)), artifact)
+        for case in ("schema1", "missing_managed", "bool_managed", "unmanaged_owner", "wrong_owner", "scope", "flags", "missing_default", "duplicate", "config_digest", "consumer", "no_nic", "only_local_nic", "excess_refs", "duplicate_nics", "duplicate_refs", "missing_refs", "peer"):
+            value = copy.deepcopy(artifact)
+            projects = value["incus_projects"]
+            alpha, default = projects
+            if case == "schema1":
+                value["schema_version"] = 1
+            elif case == "missing_managed":
+                alpha["networks"][0].pop("managed")
+            elif case == "bool_managed":
+                alpha["networks"][0]["managed"] = 0
+            elif case == "unmanaged_owner":
+                alpha["networks"][0]["owner_project"] = "default"
+            elif case == "wrong_owner":
+                alpha["networks"][2]["owner_project"] = "alpha"
+            elif case == "scope":
+                alpha["effective_network_project"] = "alpha"
+            elif case == "flags":
+                alpha["features_networks"] = "false"
+            elif case == "missing_default":
+                projects.pop()
+            elif case == "duplicate":
+                default["networks"].append(copy.deepcopy(default["networks"][0]))
+            elif case == "config_digest":
+                alpha["networks"][2]["config_digest"] = "a" * 64
+            elif case == "consumer":
+                for project in projects:
+                    project["networks"][2]["used_by"].pop()
+            elif case == "no_nic":
+                alpha["profiles"][0]["devices"] = []
+            elif case == "only_local_nic":
+                alpha["instances"][0]["local_devices"] = alpha["instances"][0]["expanded_devices"]
+                alpha["instances"][0]["expanded_devices"] = []
+            elif case == "excess_refs":
+                alpha["instances"][0]["network_refs"].insert(0, {"project": "default", "name": "eth0"})
+            elif case == "duplicate_nics":
+                alpha["instances"][0]["expanded_devices"] *= 2
+            elif case == "duplicate_refs":
+                alpha["instances"][0]["network_refs"] *= 2
+            elif case == "missing_refs":
+                alpha["instances"][0]["network_refs"] = []
+            else:
+                for project in projects:
+                    project["networks"][2]["used_by"].insert(1, {"kind": "networks", "name": "net", "project": "default"})
+            with self.subTest(case=case), self.assertRaises(inventory.InventoryError):
+                inventory._validate_artifact(value)
 
     def test_device_entries_are_counted_toward_inventory_entity_cap(self) -> None:
         runner = self._InventoryRunner()

@@ -1,5 +1,28 @@
 # S449-02F4 — normalize the verified Snap wrapper and direct LXD child
 
+## 2026-11-07 native network schema 2 contract (workflow v1.44)
+
+The complete normative amendment is
+`.codex/evidence/epic440-network-inventory-20261107.md`, independently reviewed
+before implementation at plan SHA-256
+`32feb15da2e590d92cf9a40d2b1d497ff5a1241e877d067d9aed2a2884ae3e7c`.
+Root imports only the reviewed worker source/tests and records final candidate
+hashes/results before committing. This explicit contract supersedes the earlier
+unchanged-schema condition only for the native inventory artifact: schema 2
+records canonical network scope, daemon management, nullable owner and bounded
+producer references/digests. Schema 1 is historical and cannot gain invented
+ownership through read-time normalization.
+
+Unmanaged host interfaces and inherited views remain visible and preserved.
+Management is not TSW ownership. Exact list/detail and canonical consumer graphs
+must agree; unsupported profiles/restrictions/VLAN/OVN-parent/uplink/peer cases
+remain explicit blockers. Raw configuration and addresses are not exported;
+digests establish identity comparison, not confidentiality. No provenance,
+command/byte/time/private-evidence limit or storage/volume policy is relaxed.
+No new host queries, runtime effect, fixture support or maintenance is released.
+Current implementation verification and post-commit capture remain separate
+phases bound to exact hashes; all previous failed observations stay retained.
+
 ## 2026-11-07 nullable cluster-location metadata
 
 Normal 6a317fc6 native collection at 14:52:58 UTC returned RESOURCE_SCHEMA_INVALID,

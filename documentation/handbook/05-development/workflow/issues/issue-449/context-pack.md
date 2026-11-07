@@ -1,6 +1,6 @@
 # Context pack — issue-449-lcm-w09
 
-## Current continuation — v1.43, 2026-11-07
+## Current continuation — v1.44, 2026-11-07
 
 Branch `fix/epic440-completion-20261107`, baseline `b87fe5c9`. The user requests
 complete Epic #440 remediation on the two named hosts. Current bounded phase:
@@ -10,6 +10,12 @@ rechecks, redaction and command/time budgets remain unchanged.
 No runtime mutation, capability qualification or completion is implied. Current
 execution/evidence: `.codex/evidence/epic440-20261107.md`. The v1.42 and earlier
 records below retain their historical scope and hashes.
+
+Native network inventory uses explicit schema 2 under
+`.codex/evidence/epic440-network-inventory-20261107.md`; schema 1 cannot be
+silently upgraded. Canonical scope, daemon management and TSW ownership remain
+distinct, all interfaces/consumers preserved, unsupported relations blocked.
+Source/schema verification and future capture are separate exact-hash phases.
 
 Native F4 command allowance is explicitly 2048 total, including every repeated
 trust check; the earlier native 256 allowance is superseded only for this

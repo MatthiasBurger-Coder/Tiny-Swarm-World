@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 from datetime import datetime, timezone
 import grp
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -411,14 +412,148 @@ def _validate_complete_ownership(rows: list[dict[str, Any]]) -> None:
                         raise InventoryError("VOLUME_CONSUMER_UNRESOLVED")
 
 
-def _network_device_users(devices: dict[str, dict[str, str]], project: str,
-                          kind: str, name: str) -> dict[str, set[tuple[str, str, str]]]:
-    refs: dict[str, set[tuple[str, str, str]]] = {}
-    for device in devices.values():
-        if device.get("type") == "nic" and "network" in device:
-            network = _name(device["network"])
-            refs.setdefault(network, set()).add((kind, name, project))
-    return refs
+def _project_network_flags(config: Any, project: str) -> tuple[bool | None, bool | None, str]:
+    config = _string_map(config)
+    flags = []
+    for key in ("features.networks", "features.profiles"):
+        value = config.get(key)
+        if value is not None and value not in {"true", "false"}:
+            raise InventoryError("PROJECT_NETWORK_CONFIG_INVALID")
+        flags.append(None if value is None else value == "true")
+    if config.get("restricted") not in {None, "true", "false"}:
+        raise InventoryError("PROJECT_NETWORK_CONFIG_INVALID")
+    if config.get("restricted") == "true" or any(
+            value for key, value in config.items()
+            if key.startswith("restricted.networks.") or key == "restricted.devices.nic"):
+        raise InventoryError("PROJECT_NETWORK_RESTRICTIONS_UNSUPPORTED")
+    networks, profiles = flags
+    if project != "default" and profiles is not True:
+        raise InventoryError("PROJECT_PROFILE_INHERITANCE_UNSUPPORTED")
+    return networks, profiles, project if networks is True else "default"
+
+
+def _network_digest(config: dict[str, str]) -> str:
+    return hashlib.sha256(json.dumps(config, sort_keys=True, separators=(",", ":"),
+                                     ensure_ascii=True).encode("utf-8")).hexdigest()
+
+
+def _network_index(rows: list[dict[str, Any]]) -> dict[tuple[str, str], dict[str, Any]]:
+    canonical = {}
+    for row in rows:
+        if row["effective_network_project"] != row["project"]:
+            continue
+        for network in row["networks"]:
+            key = (row["project"], network["name"])
+            if key in canonical:
+                raise InventoryError("RESOURCE_DUPLICATE")
+            canonical[key] = network
+    return canonical
+
+
+def _resolve_network_refs(rows: list[dict[str, Any]],
+                          producers: dict[tuple[str, str, str], dict[str, dict[str, str]]]) -> None:
+    canonical = _network_index(rows)
+    project_names = {row["project"] for row in rows}
+    if any(row["effective_network_project"] not in project_names for row in rows):
+        raise InventoryError("NETWORK_CANONICAL_SCOPE_UNRESOLVED")
+    for row in rows:
+        scope = row["effective_network_project"]
+        for kind in ("profiles", "instances"):
+            for producer in row[kind]:
+                refs = set()
+                for device in producers[(row["project"], kind, producer["name"])].values():
+                    if device["type"] != "nic":
+                        continue
+                    network, parent = device.get("network", ""), device.get("parent", "")
+                    if device.get("vlan", ""):
+                        raise InventoryError("NETWORK_VLAN_UNSUPPORTED")
+                    if network and parent:
+                        raise InventoryError("NETWORK_DEVICE_AMBIGUOUS")
+                    if not network and not parent:
+                        continue
+                    name = _name(network or parent)
+                    target = canonical.get((scope, name))
+                    if target is None:
+                        raise InventoryError("NETWORK_DEVICE_REFERENCE_UNRESOLVED")
+                    if target["type"] == "loopback":
+                        raise InventoryError("NETWORK_LOOPBACK_CONSUMER_UNSUPPORTED")
+                    if parent and target["type"] == "ovn":
+                        raise InventoryError("NETWORK_OVN_PARENT_UNSUPPORTED")
+                    if network and not target["managed"]:
+                        raise InventoryError("NETWORK_MANAGED_REFERENCE_REQUIRED")
+                    refs.add((scope, name))
+                producer["network_refs"] = [{"project": project, "name": name}
+                                            for project, name in sorted(refs)]
+
+
+def _validate_network_graph(rows: list[dict[str, Any]]) -> None:
+    projects = {row["project"]: row for row in rows}
+    if len(projects) != len(rows):
+        raise InventoryError("PROJECT_DUPLICATE")
+    for row in rows:
+        for flag_name in ("features_networks", "features_profiles"):
+            if row[flag_name] is not None and type(row[flag_name]) is not bool:
+                raise InventoryError("ARTIFACT_NETWORK_SCOPE_INVALID")
+        scope = row["project"] if row["features_networks"] is True else "default"
+        if row["effective_network_project"] != scope or scope not in projects:
+            raise InventoryError("NETWORK_CANONICAL_SCOPE_UNRESOLVED")
+        if row["project"] != "default" and row["features_profiles"] is not True:
+            raise InventoryError("PROJECT_PROFILE_INHERITANCE_UNSUPPORTED")
+        names = [network["name"] for network in row["networks"]]
+        if len(set(names)) != len(names):
+            raise InventoryError("RESOURCE_DUPLICATE")
+        for network in row["networks"]:
+            _name(network["name"])
+            _safe_enum(network["type"])
+            if type(network["managed"]) is not bool:
+                raise InventoryError("ARTIFACT_NETWORK_OWNER_INVALID")
+            owner = scope if network["managed"] else None
+            if network["owner_project"] != owner:
+                raise InventoryError("ARTIFACT_NETWORK_OWNER_INVALID")
+            if not network["managed"] and scope != "default":
+                raise InventoryError("UNMANAGED_NETWORK_SCOPE_INVALID")
+            if not isinstance(network["config_digest"], str) or not re.fullmatch(r"[0-9a-f]{64}", network["config_digest"]):
+                raise InventoryError("ARTIFACT_NETWORK_CONFIG_INVALID")
+    canonical = _network_index(rows)
+    expected: dict[tuple[str, str], set[tuple[str, str, str]]] = {}
+    for row in rows:
+        scope = row["effective_network_project"]
+        if scope != row["project"]:
+            default = projects["default"]["networks"]
+            if {network["name"] for network in row["networks"]} != {network["name"] for network in default}:
+                raise InventoryError("NETWORK_INHERITED_VIEW_MISMATCH")
+        for network in row["networks"]:
+            target = canonical.get((scope, network["name"]))
+            if target is None:
+                raise InventoryError("NETWORK_CANONICAL_SCOPE_UNRESOLVED")
+            if network != target:
+                raise InventoryError("NETWORK_INHERITED_VIEW_MISMATCH")
+            for ref in network["used_by"]:
+                if ref["kind"] == "networks":
+                    raise InventoryError("NETWORK_PEERING_OR_DEPENDENCY_UNSUPPORTED")
+                if ref["kind"] not in {"profiles", "instances"}:
+                    raise InventoryError("NETWORK_CONSUMER_KIND_UNSUPPORTED")
+        for kind in ("profiles", "instances"):
+            for producer in row[kind]:
+                refs = producer["network_refs"]
+                if not isinstance(refs, list) or any(not isinstance(ref, dict) or set(ref) != {"project", "name"} for ref in refs):
+                    raise InventoryError("ARTIFACT_NETWORK_REFERENCE_INVALID")
+                keys = [(_name(ref["project"]), _name(ref["name"])) for ref in refs]
+                devices = producer["devices"] if kind == "profiles" else producer["expanded_devices"]
+                device_names = [device["name"] for device in devices]
+                if (keys != sorted(set(keys)) or len(device_names) != len(set(device_names))
+                        or len(keys) > sum(device["type"] == "nic" for device in devices)):
+                    raise InventoryError("ARTIFACT_NETWORK_REFERENCE_INVALID")
+                for key in keys:
+                    if key[0] != scope or key not in canonical:
+                        raise InventoryError("NETWORK_DEVICE_REFERENCE_UNRESOLVED")
+                    if canonical[key]["type"] == "loopback":
+                        raise InventoryError("NETWORK_LOOPBACK_CONSUMER_UNSUPPORTED")
+                    expected.setdefault(key, set()).add((kind, producer["name"], row["project"]))
+    for key, network in canonical.items():
+        refs = [(ref["kind"], ref["name"], ref["project"]) for ref in network["used_by"]]
+        if len(set(refs)) != len(refs) or set(refs) != expected.get(key, set()):
+            raise InventoryError("NETWORK_CONSUMER_RECIPROCITY_MISMATCH")
 
 
 def _volume_device_users(devices: dict[str, dict[str, str]], project: str,
@@ -511,9 +646,11 @@ def _devices(value: Any) -> dict[str, dict[str, str]]:
     for name, device in value.items():
         _name(name)
         row = _string_map(device)
-        if set(row) - {"type", "name", "nictype", "parent", "network", "listen", "connect", "bind", "ports", "path", "source", "pool", "size", "readonly", "required", "shift", "limits.cpu", "limits.memory", "boot.priority"}:
+        if set(row) - {"type", "name", "nictype", "parent", "network", "vlan", "listen", "connect", "bind", "ports", "path", "source", "pool", "size", "readonly", "required", "shift", "limits.cpu", "limits.memory", "boot.priority"}:
             raise InventoryError("RESOURCE_SCHEMA_INVALID")
         if row.get("type") not in {"disk", "nic", "proxy"}:
+            raise InventoryError("RESOURCE_SCHEMA_INVALID")
+        if "vlan" in row and row["type"] != "nic":
             raise InventoryError("RESOURCE_SCHEMA_INVALID")
         result[name] = row
     return result
@@ -619,13 +756,16 @@ def _validate_instance_config(value: Any, name: str, project: str) -> dict[str, 
 
 def _validate_network_show(value: Any, name: str, project: str) -> dict[str, Any]:
     row = _only_keys(value, {"name", "project", "type", "managed", "status", "config", "description", "used_by", "locations"})
-    if _name(row.get("name")) != name or ("project" in row and _name(row["project"]) != project) or not isinstance(row.get("type"), str) or not isinstance(row.get("managed"), bool):
+    if _name(row.get("name")) != name or ("project" in row and _name(row["project"]) != project):
         raise InventoryError("RESOURCE_IDENTITY_MISMATCH")
-    if "used_by" not in row:
+    if type(row.get("managed")) is not bool or "used_by" not in row:
         raise InventoryError("RESOURCE_SCHEMA_INVALID")
+    _safe_enum(row.get("type"))
     _string_map(row.get("config"))
-    _consumer_refs(row["used_by"], project)
-    _validate_list_metadata(row, project)
+    _consumer_refs(row["used_by"], "default")
+    if "status" in row and not (row["managed"] is False and row["status"] == "" and type(row["status"]) is str):
+        _safe_enum(row["status"])
+    _validate_list_metadata({key: val for key, val in row.items() if key != "status"}, project)
     return row
 
 
@@ -701,7 +841,7 @@ def _inventory_client(runner: Runner, identity: str, socket: str, *, incus: bool
         raise InventoryError("PROJECT_DUPLICATE")
     rows: list[dict[str, Any]] = []
     entity_count = len(names)
-    network_users: dict[tuple[str, str], set[tuple[str, str, str]]] = {}
+    network_producers: dict[tuple[str, str, str], dict[str, dict[str, str]]] = {}
     volume_users: dict[tuple[str, str, str, str], set[tuple[str, str, str]]] = {}
     pool_device_refs: set[tuple[str, str]] = set()
     pool_device_users: dict[tuple[str, str], set[tuple[str, str, str]]] = {}
@@ -718,6 +858,9 @@ def _inventory_client(runner: Runner, identity: str, socket: str, *, incus: bool
         _validate_list_metadata(show, project)
         if not _same_consumers(project_entries[project]["used_by"], show["used_by"], project):
             raise InventoryError("PROJECT_CONSUMER_LIST_MISMATCH")
+        if _string_map(project_entries[project].get("config")) != _string_map(show.get("config")):
+            raise InventoryError("PROJECT_CONFIGURATION_DRIFT")
+        network_flag, profile_flag, network_project = _project_network_flags(show["config"], project)
         project_consumers[project] = {
             (ref["kind"], ref["name"], ref["project"])
             for ref in _consumer_refs(show["used_by"], project)
@@ -751,8 +894,7 @@ def _inventory_client(runner: Runner, identity: str, socket: str, *, incus: bool
                 command_id=f"{kind}_profile_show", env=env, safe_args=[pname, project]), pname, project)
             if not _same_consumers(p["used_by"], pdetail["used_by"], project):
                 raise InventoryError("PROFILE_CONSUMER_LIST_MISMATCH")
-            for network, users in _network_device_users(pdetail["devices"], project, "profiles", pname).items():
-                network_users.setdefault((project, network), set()).update(users)
+            network_producers[(project, "profiles", pname)] = pdetail["devices"]
             for (pool_ref, volume_type, volume_name), users in _volume_device_users(
                     pdetail["devices"], project, "profiles", pname).items():
                 volume_users.setdefault((project, pool_ref, volume_type, volume_name), set()).update(users)
@@ -791,10 +933,7 @@ def _inventory_client(runner: Runner, identity: str, socket: str, *, incus: bool
             instance_type = _safe_enum(i.get("type"))
             if instance_type not in {"container", "virtual-machine"}:
                 raise InventoryError("INSTANCE_TYPE_UNSUPPORTED")
-            for network, users in _network_device_users(local["devices"], project, "instances", iname).items():
-                network_users.setdefault((project, network), set()).update(users)
-            for network, users in _network_device_users(expanded["devices"], project, "instances", iname).items():
-                network_users.setdefault((project, network), set()).update(users)
+            network_producers[(project, "instances", iname)] = expanded["devices"]
             for (pool_ref, volume_type, volume_name), users in _volume_device_users(
                     {**expanded["devices"], **local["devices"]}, project, "instances", iname, instance_type).items():
                 volume_users.setdefault((project, pool_ref, volume_type, volume_name), set()).update(users)
@@ -811,20 +950,27 @@ def _inventory_client(runner: Runner, identity: str, socket: str, *, incus: bool
                                   "local_devices": _device_types(local["devices"]),
                                   "expanded_devices": _device_types(expanded["devices"])})
         network_rows: list[dict[str, Any]] = []
+        network_names = set()
         for item in networks:
-            n = _only_keys(item, {"name", "project", "type", "managed", "status", "config", "description",
-                                  "used_by", "locations"})
-            _validate_list_metadata(n, project)
-            if "used_by" not in n:
-                raise InventoryError("RESOURCE_SCHEMA_INVALID")
-            nname = _name(n.get("name"))
+            nname = _name(item.get("name")) if isinstance(item, dict) else _name(None)
+            if nname in network_names:
+                raise InventoryError("RESOURCE_DUPLICATE")
+            network_names.add(nname)
+            dto_project = network_project if incus else project
+            n = _validate_network_show(item, nname, dto_project)
             before_query()
             ndetail = _validate_network_show(_detail(runner, prefix, "networks", (nname,), project,
-                command_id=f"{kind}_network_show", env=env, safe_args=[nname, project]), nname, project)
-            if not _same_consumers(n["used_by"], ndetail["used_by"], project):
+                command_id=f"{kind}_network_show", env=env, safe_args=[nname, project]), nname, dto_project)
+            if any(n[field] != ndetail[field] for field in ("managed", "type", "config")):
+                raise InventoryError("NETWORK_METADATA_LIST_MISMATCH")
+            if not _same_consumers(n["used_by"], ndetail["used_by"], "default"):
                 raise InventoryError("NETWORK_CONSUMER_LIST_MISMATCH")
-            network_rows.append({"name": nname, "type": _safe_enum(ndetail["type"]),
-                                 "used_by": _consumer_refs(ndetail.get("used_by", []), project)})
+            if any(ndetail["config"].get(key) for key in ("network", "parent")):
+                raise InventoryError("NETWORK_UPLINK_UNSUPPORTED")
+            network_rows.append({"name": nname, "type": ndetail["type"], "managed": ndetail["managed"],
+                                 "owner_project": network_project if ndetail["managed"] else None,
+                                 "config_digest": _network_digest(ndetail["config"]),
+                                 "used_by": _consumer_refs(ndetail["used_by"], "default")})
         pool_rows: list[dict[str, Any]] = []
         for item in pools:
             p = _only_keys(item, {"name", "project", "driver", "config", "description", "used_by",
@@ -880,9 +1026,12 @@ def _inventory_client(runner: Runner, identity: str, socket: str, *, incus: bool
         instance_rows.sort(key=lambda row: row["name"])
         network_rows.sort(key=lambda row: row["name"])
         pool_rows.sort(key=lambda row: row["name"])
-        rows.append({"project": project, "profiles": profile_rows, "instances": instance_rows,
+        rows.append({"project": project, "features_networks": network_flag, "features_profiles": profile_flag,
+                     "effective_network_project": network_project, "profiles": profile_rows, "instances": instance_rows,
                      "networks": network_rows, "pools": pool_rows})
     rows.sort(key=lambda row: row["project"])
+    _resolve_network_refs(rows, network_producers)
+    _validate_network_graph(rows)
     _validate_complete_ownership(rows)
     for row in rows:
         project = row["project"]
@@ -891,6 +1040,7 @@ def _inventory_client(runner: Runner, identity: str, socket: str, *, incus: bool
             for kind, resources in (("profiles", row["profiles"]), ("instances", row["instances"]),
                                     ("networks", row["networks"]))
             for item in resources
+            if kind != "networks" or (item["managed"] and item["owner_project"] == project)
         }
         expected_project_users.update(
             ("storage-volumes", f"{pool['name']}/{volume['type']}/{volume['name']}", project)
@@ -898,10 +1048,6 @@ def _inventory_client(runner: Runner, identity: str, socket: str, *, incus: bool
         )
         if project_consumers[project] != expected_project_users:
             raise InventoryError("PROJECT_CONSUMER_RECIPROCITY_MISMATCH")
-    available_networks = {(row["project"], network["name"])
-                          for row in rows for network in row["networks"]}
-    if set(network_users) - available_networks:
-        raise InventoryError("NETWORK_DEVICE_REFERENCE_UNRESOLVED")
     available_volumes = {(row["project"], pool["name"], volume["type"], volume["name"])
                          for row in rows for pool in row["pools"] for volume in pool["volumes"]}
     available_pools = {(row["project"], pool["name"]) for row in rows for pool in row["pools"]}
@@ -911,11 +1057,6 @@ def _inventory_client(runner: Runner, identity: str, socket: str, *, incus: bool
         raise InventoryError("VOLUME_DEVICE_REFERENCE_UNRESOLVED")
     for project_row in rows:
         project = project_row["project"]
-        for network in project_row["networks"]:
-            actual = {(ref["kind"], ref["name"], ref["project"]) for ref in network["used_by"]}
-            expected = network_users.get((project, network["name"]), set())
-            if actual != expected:
-                raise InventoryError("NETWORK_CONSUMER_RECIPROCITY_MISMATCH")
         for pool in project_row["pools"]:
             actual_pool_users = {(ref["kind"], ref["name"], ref["project"])
                                  for ref in pool["used_by"]}
@@ -1037,7 +1178,7 @@ def capture(source_commit: str, *, runner: Runner | None = None, now: Callable[[
                     "unit": "snap.lxd.daemon.unix.socket" if endpoint.startswith("lxd_") and endpoint == "lxd_snap" else
                     "incus.socket" if endpoint.startswith("incus_") else ""}
                    for _, (endpoint, present) in endpoints.items()]
-    return {"schema_version": 1, "target_host": TARGET, "source_commit": source_commit,
+    return {"schema_version": 2, "target_host": TARGET, "source_commit": source_commit,
             "captured_at_utc": stamp,
             "lxd_units": [units[u] for u in UNITS[:3]], "incus_units": [units[u] for u in UNITS[3:]],
             "lxd_executables": [executables[u] for u in ("lxd.service", "snap.lxd.daemon.service") if u in executables],
@@ -1073,7 +1214,7 @@ def _validate_artifact(artifact: dict[str, Any]) -> bytes:
                 "lxd_executables", "incus_executables", "sockets", "lxd_projects", "incus_projects", "command_records", "decision"}
     if set(artifact) != expected or artifact["decision"] != "READ_ONLY_INVENTORY_COMPLETE":
         raise InventoryError("ARTIFACT_SCHEMA_INVALID")
-    if artifact["schema_version"] != 1 or artifact["target_host"] != TARGET or not HEX40.fullmatch(artifact["source_commit"]):
+    if type(artifact["schema_version"]) is not int or artifact["schema_version"] != 2 or artifact["target_host"] != TARGET or not HEX40.fullmatch(artifact["source_commit"]):
         raise InventoryError("ARTIFACT_IDENTITY_INVALID")
     unit_keys = {"unit", "load_state", "active_state", "sub_state", "unit_file_state", "main_pid"}
     for key, wanted in (("lxd_units", set(UNITS[:3])), ("incus_units", set(UNITS[3:]))):
@@ -1175,12 +1316,13 @@ def _validate_artifact(artifact: dict[str, Any]) -> bytes:
         if project_names != sorted(set(project_names)):
             raise InventoryError("ARTIFACT_PROJECT_ORDER_INVALID")
         for project in projects:
-            if set(project) != {"project", "profiles", "instances", "networks", "pools"}:
+            if set(project) != {"project", "features_networks", "features_profiles", "effective_network_project", "profiles", "instances", "networks", "pools"}:
                 raise InventoryError("ARTIFACT_RESOURCE_SCHEMA_INVALID")
             _name(project["project"])
-            for field, keys in (("profiles", {"name", "used_by", "devices"}),
-                                ("instances", {"name", "status", "type", "profiles", "local_devices", "expanded_devices"}),
-                                ("networks", {"name", "type", "used_by"}),
+            _name(project["effective_network_project"])
+            for field, keys in (("profiles", {"name", "used_by", "devices", "network_refs"}),
+                                ("instances", {"name", "status", "type", "profiles", "local_devices", "expanded_devices", "network_refs"}),
+                                ("networks", {"name", "type", "managed", "owner_project", "config_digest", "used_by"}),
                                 ("pools", {"name", "type", "used_by", "volumes"})):
                 if not isinstance(project[field], list):
                     raise InventoryError("ARTIFACT_RESOURCE_SCHEMA_INVALID")
@@ -1254,6 +1396,7 @@ def _validate_artifact(artifact: dict[str, Any]) -> bytes:
                             for device in devices:
                                 if set(device) != {"name", "type"} or not NAME.fullmatch(device["name"]) or device["type"] not in {"disk", "nic", "proxy"}:
                                     raise InventoryError("ARTIFACT_DEVICE_INVALID")
+        _validate_network_graph(projects)
         _validate_complete_ownership(projects)
     encoded = (json.dumps(artifact, sort_keys=True, separators=(",", ":"), ensure_ascii=True) + "\n").encode("ascii")
     if len(encoded) > MAX_ARTIFACT:

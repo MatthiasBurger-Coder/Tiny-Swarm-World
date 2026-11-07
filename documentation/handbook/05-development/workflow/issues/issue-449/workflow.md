@@ -1,7 +1,7 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: ACTIVE_FOR_ISSUE_449 v1.43 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
+Status: ACTIVE_FOR_ISSUE_449 v1.44 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
@@ -21,6 +21,17 @@ and its tests remain unchanged in this detail-transport correction. Authoring lo
 workflow, its context pair, F4 design/consolidation and
 `.codex/evidence/epic440-20261107.md`. Current execution, reviews and evidence
 are recorded there. Full S02–S09 completion remains required.
+
+The current native network contract is schema 2, specified in
+`.codex/evidence/epic440-network-inventory-20261107.md`. It preserves every
+interface/view and consumer while explicitly distinguishing canonical scope,
+daemon management and TSW ownership. Schema 1 remains historical; no read-time
+upgrade invents missing ownership. Supported inheritance/producer relations
+must match canonical state; unsupported profiles/restrictions/transforms and
+network dependency kinds remain blocked. Existing storage/volume and provenance
+policies remain unchanged. Native capture drivers must explicitly require the
+new schema and exact reviewed contract/source/test/workflow pins. No live GO
+is granted by authoring v1.44.
 
 The current F4 native collector explicitly supersedes its earlier total
 256-command allowance with a finite 2048-command cap, counting all repeated

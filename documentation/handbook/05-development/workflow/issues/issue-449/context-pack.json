@@ -1,6 +1,6 @@
 {
   "workflow_id": "issue-449-lcm-w09",
-  "workflow_version": "1.43",
+  "workflow_version": "1.44",
   "continuation_20261107": {
     "branch": "fix/epic440-completion-20261107",
     "baseline": "b87fe5c96b4e8627c56f48d9a7b3c691076447fc",
@@ -10,6 +10,8 @@
     "execution_record": ".codex/evidence/epic440-20261107.md",
     "runtime_mutation_released": false,
     "native_inventory_command_cap": 2048,
+    "native_inventory_schema": 2,
+    "native_network_contract": ".codex/evidence/epic440-network-inventory-20261107.md",
     "native_inventory_budget_scope": "Native F4 only; repeated trust checks counted; all other hard limits and fixture budgets unchanged",
     "s02i_record": ".codex/evidence/epic440-store-wsl2-20261107.md",
     "wsl_checkpoint_record": ".codex/evidence/epic440-wsl-state-20261107.md",
