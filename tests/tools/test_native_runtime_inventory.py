@@ -1,6 +1,7 @@
 """Regression tests for the fail-closed native runtime inventory."""
 from __future__ import annotations
 
+import json
 import subprocess
 import tempfile
 import unittest
@@ -34,6 +35,7 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
             self.pool_used_by = ["/1.0/profiles/bravo?project=alpha", "/1.0/instances/web?project=alpha",
                                  "/1.0/storage-pools/pool/volumes/container/web?project=alpha"]
             self.volume_owner_project = "alpha"
+            self.detail_overrides: dict[str, dict[str, Any]] = {}
 
         @staticmethod
         def _json(value: Any) -> bytes:
@@ -49,7 +51,7 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
             elif suffix == ["project", "list", "--format", "json"]:
                 out = self._json(self.list_rows.get("projects", [{"name": "alpha", "description": "", "config": {},
                                                                     "used_by": self.project_used_by}]))
-            elif suffix == ["project", "show", "alpha", "--format", "json"]:
+            elif suffix == ["query", "--request", "GET", "--raw", "/1.0/projects/alpha?project=alpha"]:
                 out = self._json({"name": "alpha", "config": {}, "used_by": self.project_used_by})
             elif suffix == ["profile", "list", "--project", "alpha", "--format", "json"]:
                 out = self._json(self.list_rows.get("profiles", [
@@ -73,42 +75,50 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
                 out = self._json(self.list_rows.get("pools", [{"name": "pool", "project": "alpha", "driver": "dir",
                     "config": {}, "description": "", "used_by": self.pool_used_by,
                     "status": "Created", "locations": []}]))
-            elif len(suffix) >= 3 and suffix[0] == "profile" and suffix[1] == "show" and suffix[3:] == ["--project", "alpha", "--format", "json"]:
-                profile = {"name": suffix[2], "project": "alpha", "description": "", "config": {},
+            elif suffix in (
+                    ["query", "--request", "GET", "--raw", "/1.0/profiles/bravo?project=alpha"],
+                    ["query", "--request", "GET", "--raw", "/1.0/profiles/zeta?project=alpha"]):
+                profile_name = "bravo" if suffix[-1] == "/1.0/profiles/bravo?project=alpha" else "zeta"
+                profile = {"name": profile_name, "project": "alpha", "description": "", "config": {},
                            "devices": ({"root": {"type": "disk", "path": "/", "pool": "pool"},
                                         "eth0": {"type": "nic", "network": "net"}}
-                                       if suffix[2] == "bravo" else {}),
-                           "used_by": ["/1.0/instances/web?project=alpha"] if suffix[2] == "bravo" else []}
+                                       if profile_name == "bravo" else {}),
+                           "used_by": ["/1.0/instances/web?project=alpha"] if profile_name == "bravo" else []}
                 out = self._json(profile)
-            elif suffix == ["config", "show", "web", "--project", "alpha", "--format", "json"]:
+            elif suffix == ["query", "--request", "GET", "--raw", "/1.0/instances/web?project=alpha"]:
                 devices = {}
                 if self.instance_custom_source is not None:
                     devices["custom"] = {"type": "disk", "path": "/data", "pool": self.instance_pool,
-                                          "source": self.instance_custom_source}
-                out = self._json({"name": "web", "project": "alpha", "config": {},
-                                  "devices": devices,
-                                  "ephemeral": False, "profiles": self.detail_profiles, "stateful": False})
-            elif suffix == ["config", "show", "web", "--project", "alpha", "--format", "json", "--expanded"]:
-                out = self._json({"name": "web", "project": "alpha", "config": {},
-                                  "devices": {"root": {"type": "disk", "path": "/", "pool": self.instance_pool},
-                                              "eth0": {"type": "nic", "network": self.instance_network}},
-                                  "ephemeral": False, "profiles": self.detail_profiles, "stateful": False})
-            elif suffix == ["network", "show", "net", "--project", "alpha", "--format", "json"]:
+                                         "source": self.instance_custom_source}
+                out = self._json({"name": "web", "project": "alpha", "config": {}, "devices": devices,
+                                  "expanded_config": {"security.nesting": "true"},
+                                  "expanded_devices": {"root": {"type": "disk", "path": "/", "pool": self.instance_pool},
+                                                       "eth0": {"type": "nic", "network": self.instance_network}},
+                                  "ephemeral": False, "profiles": self.detail_profiles, "stateful": False,
+                                  "architecture": "x86_64", "description": "", "created_at": "2026-10-01T00:00:00Z",
+                                  "last_used_at": "2026-10-02T00:00:00Z", "status": "Running", "status_code": 103,
+                                  "type": "container", "location": "none"})
+            elif suffix == ["query", "--request", "GET", "--raw", "/1.0/networks/net?project=alpha"]:
                 out = self._json({"name": "net", "project": "alpha", "type": "bridge", "managed": True,
                                   "config": {}, "used_by": self.network_used_by})
-            elif suffix == ["storage", "show", "pool", "--project", "alpha", "--format", "json"]:
+            elif suffix == ["query", "--request", "GET", "--raw", "/1.0/storage-pools/pool?project=alpha"]:
                 out = self._json({"name": "pool", "project": "alpha", "driver": "dir", "config": {},
                                   "used_by": self.pool_used_by})
             elif suffix == ["storage", "volume", "list", "pool", "--project", "alpha", "--format", "json"]:
                 out = self._json(self.list_rows.get("volumes", [{"name": "web", "type": "container",
                     "content_type": "filesystem", "project": "alpha", "description": "", "config": {"size": "10GiB"},
                     "created_at": "2026-10-01T00:00:00Z", "used_by": self.volume_used_by, "location": "none"}]))
-            elif suffix == ["storage", "volume", "show", "pool", "container/web", "--project", "alpha", "--format", "json"]:
+            elif suffix == ["query", "--request", "GET", "--raw", "/1.0/storage-pools/pool/volumes/container/web?project=alpha"]:
                 out = self._json({"name": "web", "type": "container", "content_type": "filesystem",
                                   "project": self.volume_owner_project, "description": "", "config": {"size": "10GiB"},
                                   "created_at": "2026-10-01T00:00:00Z", "used_by": self.volume_used_by, "location": "none"})
             else:
                 raise AssertionError(f"unexpected inventory argv: {argv}")
+            if suffix[0] == "query":
+                metadata = json.loads(out)
+                metadata.update(self.detail_overrides.get(command_id, {}))
+                out = self._json({"type": "sync", "status": "Success", "status_code": 200,
+                                  "operation": "", "error_code": 0, "error": "", "metadata": metadata})
             self.records.append({"command_id": command_id, "safe_args": safe_args or [], "exit_status": 0,
                                  "stdout_bytes": len(out), "stderr_bytes": 0})
             return 0, out, b""
@@ -547,6 +557,131 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
         with self.assertRaises(inventory.InventoryError):
             inventory._endpoint(Mock(), "/tmp/unknown.sock", unit="")
 
+    @staticmethod
+    def _api_response(metadata):
+        return {"type": "sync", "status": "Success", "status_code": 200,
+                "operation": "", "error_code": 0, "error": "", "metadata": metadata}
+
+    def test_detail_path_templates_encode_validated_components_and_explicit_project(self) -> None:
+        cases = [
+            ("projects", ("a+b",), "a+b", "/1.0/projects/a%2Bb?project=a%2Bb"),
+            ("profiles", ("a+b",), "p+q", "/1.0/profiles/a%2Bb?project=p%2Bq"),
+            ("instances", ("web",), "default", "/1.0/instances/web?project=default"),
+            ("networks", ("net",), "default", "/1.0/networks/net?project=default"),
+            ("storage-pools", ("pool",), "default", "/1.0/storage-pools/pool?project=default"),
+            ("storage-volumes", ("pool", "virtual-machine", "web"), "default",
+             "/1.0/storage-pools/pool/volumes/virtual-machine/web?project=default"),
+        ]
+        for kind, names, project, expected in cases:
+            with self.subTest(kind=kind):
+                self.assertEqual(inventory._detail_uri(kind, names, project), expected)
+
+    def test_detail_rejects_injected_or_unknown_paths_before_execution(self) -> None:
+        runner = Mock()
+        env = {**inventory.ENV_BASE, "INCUS_SOCKET": "/run/incus/unix.socket"}
+        cases = [("unknown", ("web",), "alpha"), ("profiles", (), "alpha"),
+                 ("profiles", ("web", "other"), "alpha"),
+                 ("projects", ("other",), "alpha"),
+                 ("storage-volumes", ("pool", "DELETE", "web"), "alpha")]
+        for value in ("../web", ".", "..", "/web", "web?project=other", "web#x", "web%2Fx",
+                      "remote:web", "https://remote/web", "--request=DELETE", "--data", "web\n"):
+            cases.extend([("profiles", (value,), "alpha"), ("profiles", ("web",), value)])
+        for kind, names, project in cases:
+            with self.subTest(kind=kind, names=names, project=project):
+                with self.assertRaises(inventory.InventoryError):
+                    inventory._detail(runner, ["/usr/bin/incus", "--force-local"], kind, names, project,
+                                      command_id="incus_profile_show", env=env, safe_args=[])
+        for prefix in (["incus", "--force-local"], ["/usr/bin/incus", "--project", "alpha"],
+                       ["/usr/bin/incus", "--force-local", "--request", "DELETE"]):
+            with self.assertRaises(inventory.InventoryError):
+                inventory._detail(runner, prefix, "profiles", ("web",), "alpha",
+                                  command_id="incus_profile_show", env=env, safe_args=[])
+        runner.run.assert_not_called()
+
+    def test_raw_detail_rejects_zero_exit_error_async_or_malformed_envelopes(self) -> None:
+        valid = self._api_response({"name": "web"})
+        invalid: list[Any] = [None, [], {**valid, "unknown": "value"}]
+        invalid.extend({k: v for k, v in valid.items() if k != omitted} for omitted in valid)
+        mutations: dict[str, list[Any]] = {
+            "type": ["async", "error", None], "status": ["Failure", "success"],
+            "status_code": [True, "200", 200.0, 400], "operation": ["/1.0/operations/private", None],
+            "error_code": [False, "0", 0.0, 403], "error": ["private-message", None],
+            "metadata": [None, [], "value"],
+        }
+        for key, values in mutations.items():
+            invalid.extend({**valid, key: value} for value in values)
+        for response in invalid:
+            with self.subTest(response=response):
+                runner = Mock()
+                runner.run.return_value = (0, json.dumps(response).encode(), b"")
+                with self.assertRaisesRegex(inventory.InventoryError, "API_RESPONSE_INVALID"):
+                    inventory._detail(runner, ["/snap/bin/lxc", "--force-local"], "profiles", ("web",), "alpha",
+                                      command_id="lxd_profile_show", env={}, safe_args=[])
+
+    def test_raw_detail_preserves_strict_nested_duplicate_json_rejection(self) -> None:
+        valid = json.dumps(self._api_response({"name": "web"})).encode()
+        for raw in (b"{", valid.replace(b'"name": "web"', b'"name":"web","name":"other"'),
+                    valid.replace(b'"type": "sync"', b'"type":"sync","type":"sync"'),
+                    valid.replace(b'"name": "web"', b'"name":NaN')):
+            with self.subTest(raw=raw):
+                runner = Mock()
+                runner.run.return_value = (0, raw, b"")
+                with self.assertRaises(inventory.InventoryError):
+                    inventory._detail(runner, ["/usr/bin/incus", "--force-local"], "profiles", ("web",), "alpha",
+                                      command_id="incus_profile_show", env={}, safe_args=[])
+
+    def test_historical_unsupported_show_json_is_not_a_fixture_contract(self) -> None:
+        with self.assertRaises(AssertionError):
+            self._InventoryRunner().run(
+                ["/snap/bin/lxc", "--force-local", "project", "show", "alpha", "--format", "json"],
+                command_id="lxd_project_show")
+
+    def test_every_inventory_request_is_prechecked_and_independent_devices_survive(self) -> None:
+        runner = self._InventoryRunner()
+        checks = Mock()
+        _, rows = inventory._inventory_client(runner, "incus_system", "/run/incus/unix.socket",
+                                               incus=True, before_query=checks)
+        self.assertEqual(checks.call_count, len(runner.calls))
+        instance = rows[0]["instances"][0]
+        self.assertEqual(instance["local_devices"], [])
+        self.assertEqual(instance["expanded_devices"], [{"name": "eth0", "type": "nic"},
+                                                        {"name": "root", "type": "disk"}])
+        self.assertNotIn("security.nesting", str(rows))
+
+    def test_instance_api_omitted_empty_maps_are_not_local_fallbacks(self) -> None:
+        instance = {"name": "web", "config": {"private": "value"},
+                    "devices": {"local": {"type": "disk", "source": "/private"}},
+                    "ephemeral": False, "profiles": [], "stateful": False}
+        parsed = inventory._validate_instance_config(instance, "web", "alpha")
+        self.assertEqual(parsed["expanded_config"], {})
+        self.assertEqual(parsed["expanded_devices"], {})
+        for key, value in (("expanded_config", None), ("expanded_devices", []),
+                           ("status_code", True), ("created_at", 5), ("unknown", "value")):
+            with self.subTest(key=key):
+                with self.assertRaises(inventory.InventoryError):
+                    inventory._validate_instance_config({**instance, key: value}, "web", "alpha")
+
+    def test_instance_api_rejects_drift_or_unknown_fields_before_projection(self) -> None:
+        changes: list[dict[str, Any]] = [{"config": {"changed": "yes"}}, {"devices": {}},
+                   {"expanded_devices": {}}, {"expanded_config": {}},
+                   {"profiles": []}, {"project": "other"}, {"name": "other"},
+                   {"location": "other"}, {"created_at": "other"}, {"private_new_field": "value"}]
+        # The local device map starts empty; use a nonempty map for its drift case.
+        changes[1] = {"devices": {"new": {"type": "disk"}}}
+        for change in changes:
+            with self.subTest(change=change):
+                runner = self._InventoryRunner()
+                runner.detail_overrides["incus_instance_config_show_expanded"] = change
+                with self.assertRaises(inventory.InventoryError):
+                    inventory._inventory_client(runner, "incus_system", "/run/incus/unix.socket",
+                                                incus=True, before_query=lambda: None)
+                self.assertEqual(runner.calls[-1][2], "incus_instance_config_show_expanded")
+        runner = self._InventoryRunner()
+        runner.detail_overrides["incus_instance_config_show_expanded"] = {
+            "status": "Stopped", "status_code": 102, "last_used_at": "2026-11-07T00:00:00Z"}
+        inventory._inventory_client(runner, "incus_system", "/run/incus/unix.socket",
+                                    incus=True, before_query=lambda: None)
+
     def test_detail_responses_are_validated_then_reduced_to_safe_identity(self) -> None:
         profile = {"name": "default", "description": "", "config": {},
                    "devices": {"eth0": {"type": "nic", "parent": "br0"}},
@@ -641,19 +776,19 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
         suffixes = [call[0][2:] for call in runner.calls]
         self.assertEqual(suffixes, [
             ["version"], ["project", "list", "--format", "json"],
-            ["project", "show", "alpha", "--format", "json"],
+            ["query", "--request", "GET", "--raw", "/1.0/projects/alpha?project=alpha"],
             ["profile", "list", "--project", "alpha", "--format", "json"],
             ["list", "--project", "alpha", "--format", "json"],
             ["network", "list", "--project", "alpha", "--format", "json"],
             ["storage", "list", "--project", "alpha", "--format", "json"],
-            ["profile", "show", "zeta", "--project", "alpha", "--format", "json"],
-            ["profile", "show", "bravo", "--project", "alpha", "--format", "json"],
-            ["config", "show", "web", "--project", "alpha", "--format", "json"],
-            ["config", "show", "web", "--project", "alpha", "--format", "json", "--expanded"],
-            ["network", "show", "net", "--project", "alpha", "--format", "json"],
-            ["storage", "show", "pool", "--project", "alpha", "--format", "json"],
+            ["query", "--request", "GET", "--raw", "/1.0/profiles/zeta?project=alpha"],
+            ["query", "--request", "GET", "--raw", "/1.0/profiles/bravo?project=alpha"],
+            ["query", "--request", "GET", "--raw", "/1.0/instances/web?project=alpha"],
+            ["query", "--request", "GET", "--raw", "/1.0/instances/web?project=alpha"],
+            ["query", "--request", "GET", "--raw", "/1.0/networks/net?project=alpha"],
+            ["query", "--request", "GET", "--raw", "/1.0/storage-pools/pool?project=alpha"],
             ["storage", "volume", "list", "pool", "--project", "alpha", "--format", "json"],
-            ["storage", "volume", "show", "pool", "container/web", "--project", "alpha", "--format", "json"],
+            ["query", "--request", "GET", "--raw", "/1.0/storage-pools/pool/volumes/container/web?project=alpha"],
         ])
         self.assertTrue(all(call[1] == {**inventory.ENV_BASE, "LXD_SOCKET": "/var/lib/lxd/unix.socket"}
                             for call in runner.calls))
@@ -673,19 +808,19 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
                             for call in runner.calls))
         self.assertEqual([call[0][2:] for call in runner.calls], [
             ["version"], ["project", "list", "--format", "json"],
-            ["project", "show", "alpha", "--format", "json"],
+            ["query", "--request", "GET", "--raw", "/1.0/projects/alpha?project=alpha"],
             ["profile", "list", "--project", "alpha", "--format", "json"],
             ["list", "--project", "alpha", "--format", "json"],
             ["network", "list", "--project", "alpha", "--format", "json"],
             ["storage", "list", "--project", "alpha", "--format", "json"],
-            ["profile", "show", "zeta", "--project", "alpha", "--format", "json"],
-            ["profile", "show", "bravo", "--project", "alpha", "--format", "json"],
-            ["config", "show", "web", "--project", "alpha", "--format", "json"],
-            ["config", "show", "web", "--project", "alpha", "--format", "json", "--expanded"],
-            ["network", "show", "net", "--project", "alpha", "--format", "json"],
-            ["storage", "show", "pool", "--project", "alpha", "--format", "json"],
+            ["query", "--request", "GET", "--raw", "/1.0/profiles/zeta?project=alpha"],
+            ["query", "--request", "GET", "--raw", "/1.0/profiles/bravo?project=alpha"],
+            ["query", "--request", "GET", "--raw", "/1.0/instances/web?project=alpha"],
+            ["query", "--request", "GET", "--raw", "/1.0/instances/web?project=alpha"],
+            ["query", "--request", "GET", "--raw", "/1.0/networks/net?project=alpha"],
+            ["query", "--request", "GET", "--raw", "/1.0/storage-pools/pool?project=alpha"],
             ["storage", "volume", "list", "pool", "--project", "alpha", "--format", "json"],
-            ["storage", "volume", "show", "pool", "container/web", "--project", "alpha", "--format", "json"],
+            ["query", "--request", "GET", "--raw", "/1.0/storage-pools/pool/volumes/container/web?project=alpha"],
         ])
         self.assertIn("incus_profile_show", [record["command_id"] for record in runner.records])
         self.assertIn("incus_network_show", [record["command_id"] for record in runner.records])

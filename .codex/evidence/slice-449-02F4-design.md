@@ -1,5 +1,82 @@
 # S449-02F4 — normalize the verified Snap wrapper and direct LXD child
 
+## 2026-11-07 exact CLI read-only detail API compatibility
+
+Current a0ee2ccd normal capture returns COMMAND_FAILED. The separately reviewed
+command-ID-only diagnostic at 14:13:12 UTC identifies lxd_project_show, exit 1,
+command count 71. Exact LXD 5.21.9 project.go implements YAML-only project show,
+with no --format. Existing mocked tests wrongly accepted this syntax.
+
+Primary contracts (version-pinned upstream source):
+- https://raw.githubusercontent.com/canonical/lxd/lxd-5.21.9/lxc/project.go
+- https://raw.githubusercontent.com/canonical/lxd/lxd-5.21.9/lxc/query.go
+- https://raw.githubusercontent.com/canonical/lxd/lxd-5.21.9/shared/api/response.go
+- https://raw.githubusercontent.com/canonical/lxd/lxd-5.21.9/shared/api/instance.go
+- https://raw.githubusercontent.com/lxc/incus/v6.0.5/cmd/incus/query.go
+- https://raw.githubusercontent.com/lxc/incus/v6.0.5/shared/api/response.go
+- https://raw.githubusercontent.com/lxc/incus/v6.0.5/shared/api/instance.go
+
+Serial source locks: native_runtime_inventory.py and its test module only;
+workflow/context, F4 normative design/consolidation and master evidence are
+authoring locks. No provenance-helper changes. This amendment changes only
+read-only detail transport and the instance detail DTO's known API shape.
+
+Replace every unsupported detail show --format json with exactly the existing
+fixed local binary + --force-local + query --request GET --raw + one internally
+constructed URI. No --project CLI flag (query explicitly rejects it), data,
+wait, remote, caller-provided URI or method. Closed resource templates:
+projects/{project}, profiles/{name}, instances/{name}, networks/{name},
+storage-pools/{pool}, storage-pools/{pool}/volumes/{type}/{name}, all below /1.0.
+Validate each component with existing _name or _volume_type before URI quoting
+safe=''; explicit ?project={encoded_project} for each scoped detail, project
+identity is also explicit in its path. Reject unknown kind/arity, malformed
+identifiers or nonfixed prefix before any runner call. The normal list/version
+commands remain unchanged. Command IDs and sanitized argument records remain
+unchanged. Per-query before_query, socket environment, no-shell execution,
+command/time/stream/aggregate limits and final checks remain unchanged.
+
+Use --raw because normal query unmarshals metadata into a generic map before
+rendering. The raw response preserves metadata as json.RawMessage. Parse the
+returned JSON with existing strict duplicate-key/constant/UTF-8 guards. Require
+exact envelope keys type,status,status_code,operation,error_code,error,metadata;
+require type='sync', status='Success', integer (not bool) status_code=200,
+operation='', integer (not bool) error_code=0, error=''. Reject async/error/null,
+extra/missing keys and failed envelopes even when Incus --raw exits zero.
+Validate metadata with existing closed DTO/identity/relationship rules before
+redacted projection. This guards the CLI output, not original wire envelope
+keys already decoded by the CLI. No YAML or permissive fallback.
+
+Instance GET returns the complete known Instance API DTO. Permit only the
+existing list DTO fields; require identity, local config/devices, profile list,
+boolean ephemeral/stateful, and validate every present metadata/expanded field.
+The exact upstream omitempty contract allows absent expanded_config and
+expanded_devices to mean empty maps; reject null/wrongly typed present values.
+Validate the complete object before deriving the existing local or expanded
+config/devices projection. Keep two separately rechecked instance GETs for the
+two existing observations; neither local nor expanded state may be inferred
+from the other. Compare the complete normalized instance DTOs across the two
+reads, excluding only status, status_code and last_used_at; configuration,
+identity, creation, location and device drift blocks before projection. A
+missing expanded map is only its exact upstream omitempty empty-map contract,
+not a fallback to local or list data. Unknown API fields remain blocking.
+
+Tests: independently enumerated literal new argv and real API envelope/DTO
+fixtures for both LXD and Incus; historical unsupported syntax explicitly
+rejected. Retain all current graph/identity/redaction/drift regressions. Cover
+all closed path templates, plus escaping; deny injected path/method/remote,
+unknown kind/arity/prefix before command execution; envelope missing/extra/
+coerced/error/async/duplicate metadata; full instance known fields, omission
+semantics, typed and unknown fields, independent local/expanded device maps.
+Focused inventory/provenance/fixture tests then all seven QUALITY gates run
+only on exact-hash PC WSL candidate; no live fixtures in these tests.
+
+Architecture/security and tester/DevOps review this exact amendment before
+implementation and exact final source afterward. Commit only this F4 correction.
+Any new normal native capture requires its own committed-source, protected-root
+one-shot plan and review. No budget enlargement, maintenance, runtime mutation,
+capability admission or issue/epic completion is released by this amendment.
+
+
 ## 2026-11-07 bounded shutdown dependency compatibility
 
 This extension supersedes only the historical two-unit-only drop-in grammar

@@ -16,7 +16,7 @@ import subprocess
 import sys
 import time
 from typing import Any, Callable
-from urllib.parse import parse_qs, urlsplit
+from urllib.parse import parse_qs, quote, urlsplit
 
 TARGET = "native-linux-test-host"
 ROOT = Path(__file__).resolve().parents[3]
@@ -547,10 +547,40 @@ def _consumer_refs(value: Any, project: str) -> list[dict[str, str]]:
             for kind, name, consumer_project in sorted(refs)]
 
 
-def _show(runner: Runner, prefix: list[str], args: list[str], *, command_id: str,
-          env: dict[str, str], safe_args: list[str]) -> dict[str, Any]:
-    return _parse_json_command(runner, prefix + args, command_id=command_id, env=env,
-                               safe_args=safe_args)
+def _detail_uri(kind: str, names: tuple[str, ...], project: str) -> str:
+    arities = {"projects": 1, "profiles": 1, "instances": 1, "networks": 1,
+               "storage-pools": 1, "storage-volumes": 3}
+    if kind not in arities or len(names) != arities[kind]:
+        raise InventoryError("DETAIL_PATH_INVALID")
+    encoded_project = quote(_name(project), safe="")
+    encoded = [quote(_volume_type(name) if kind == "storage-volumes" and index == 1
+                     else _name(name), safe="") for index, name in enumerate(names)]
+    if kind == "projects" and names[0] != project:
+        raise InventoryError("RESOURCE_PROJECT_MISMATCH")
+    if kind == "storage-volumes":
+        path = f"storage-pools/{encoded[0]}/volumes/{encoded[1]}/{encoded[2]}"
+    else:
+        path = f"{kind}/{encoded[0]}"
+    return f"/1.0/{path}?project={encoded_project}"
+
+
+def _detail(runner: Runner, prefix: list[str], kind: str, names: tuple[str, ...],
+            project: str, *, command_id: str, env: dict[str, str], safe_args: list[str]) -> dict[str, Any]:
+    if prefix not in (["/usr/bin/incus", "--force-local"], ["/usr/bin/lxc", "--force-local"],
+                      ["/snap/bin/lxc", "--force-local"]):
+        raise InventoryError("COMMAND_IDENTITY_BLOCKED")
+    uri = _detail_uri(kind, names, project)
+    response = _parse_json_command(runner, prefix + ["query", "--request", "GET", "--raw", uri],
+                                   command_id=command_id, env=env, safe_args=safe_args)
+    keys = {"type", "status", "status_code", "operation", "error_code", "error", "metadata"}
+    if (not isinstance(response, dict) or set(response) != keys
+            or response["type"] != "sync" or response["status"] != "Success"
+            or type(response["status_code"]) is not int or response["status_code"] != 200
+            or response["operation"] != "" or type(response["error_code"]) is not int
+            or response["error_code"] != 0 or response["error"] != ""
+            or not isinstance(response["metadata"], dict)):
+        raise InventoryError("API_RESPONSE_INVALID")
+    return response["metadata"]
 
 
 def _validate_profile_show(value: Any, name: str, project: str) -> dict[str, Any]:
@@ -566,7 +596,8 @@ def _validate_profile_show(value: Any, name: str, project: str) -> dict[str, Any
 
 def _validate_instance_config(value: Any, name: str, project: str) -> dict[str, Any]:
     row = _only_keys(value, {"name", "project", "description", "architecture", "config", "devices",
-                            "ephemeral", "profiles", "stateful", "location", "type"})
+                            "ephemeral", "profiles", "stateful", "location", "type", "expanded_config",
+                            "expanded_devices", "status", "status_code", "created_at", "last_used_at"})
     if _name(row.get("name")) != name or ("project" in row and _name(row["project"]) != project):
         raise InventoryError("RESOURCE_IDENTITY_MISMATCH")
     _string_map(row.get("config"))
@@ -576,7 +607,8 @@ def _validate_instance_config(value: Any, name: str, project: str) -> dict[str, 
     if not isinstance(row.get("ephemeral"), bool) or not isinstance(row.get("stateful"), bool):
         raise InventoryError("RESOURCE_SCHEMA_INVALID")
     _validate_list_metadata(row, project)
-    return row
+    # The version-pinned Instance API omits only empty expanded maps.
+    return {"expanded_config": {}, "expanded_devices": {}, **row}
 
 
 def _validate_network_show(value: Any, name: str, project: str) -> dict[str, Any]:
@@ -670,8 +702,8 @@ def _inventory_client(runner: Runner, identity: str, socket: str, *, incus: bool
     project_consumers: dict[str, set[tuple[str, str, str]]] = {}
     for project in names:
         before_query()
-        show = _parse_json_command(runner, prefix + ["project", "show", project, "--format", "json"],
-                                   command_id=f"{kind}_project_show", env=env, safe_args=[project])
+        show = _detail(runner, prefix, "projects", (project,), project,
+                       command_id=f"{kind}_project_show", env=env, safe_args=[project])
         show = _only_keys(show, {"name", "description", "config", "used_by"})
         if _name(show.get("name")) != project:
             raise InventoryError("PROJECT_IDENTITY_MISMATCH")
@@ -709,8 +741,7 @@ def _inventory_client(runner: Runner, identity: str, socket: str, *, incus: bool
             _validate_list_metadata(p, project)
             pname = _name(p.get("name"))
             before_query()
-            pdetail = _validate_profile_show(_show(runner, prefix,
-                ["profile", "show", pname, "--project", project, "--format", "json"],
+            pdetail = _validate_profile_show(_detail(runner, prefix, "profiles", (pname,), project,
                 command_id=f"{kind}_profile_show", env=env, safe_args=[pname, project]), pname, project)
             if not _same_consumers(p["used_by"], pdetail["used_by"], project):
                 raise InventoryError("PROFILE_CONSUMER_LIST_MISMATCH")
@@ -736,13 +767,17 @@ def _inventory_client(runner: Runner, identity: str, socket: str, *, incus: bool
             _validate_list_metadata(i, project)
             iname = _name(i.get("name"))
             before_query()
-            local = _validate_instance_config(_show(runner, prefix,
-                ["config", "show", iname, "--project", project, "--format", "json"],
+            local = _validate_instance_config(_detail(runner, prefix, "instances", (iname,), project,
                 command_id=f"{kind}_instance_config_show", env=env, safe_args=[iname, project]), iname, project)
             before_query()
-            expanded = _validate_instance_config(_show(runner, prefix,
-                ["config", "show", iname, "--project", project, "--format", "json", "--expanded"],
+            expanded = _validate_instance_config(_detail(runner, prefix, "instances", (iname,), project,
                 command_id=f"{kind}_instance_config_show_expanded", env=env, safe_args=[iname, project]), iname, project)
+            volatile = {"status", "status_code", "last_used_at"}
+            if ({key: value for key, value in local.items() if key not in volatile}
+                    != {key: value for key, value in expanded.items() if key not in volatile}):
+                raise InventoryError("INSTANCE_CONFIGURATION_DRIFT")
+            expanded = {**expanded, "config": expanded["expanded_config"],
+                        "devices": expanded["expanded_devices"]}
             list_profiles = sorted(set(_name(v) for v in _strings(i.get("profiles"))))
             if list_profiles != sorted(set(_name(v) for v in local["profiles"])) or \
                     list_profiles != sorted(set(_name(v) for v in expanded["profiles"])):
@@ -778,8 +813,7 @@ def _inventory_client(runner: Runner, identity: str, socket: str, *, incus: bool
                 raise InventoryError("RESOURCE_SCHEMA_INVALID")
             nname = _name(n.get("name"))
             before_query()
-            ndetail = _validate_network_show(_show(runner, prefix,
-                ["network", "show", nname, "--project", project, "--format", "json"],
+            ndetail = _validate_network_show(_detail(runner, prefix, "networks", (nname,), project,
                 command_id=f"{kind}_network_show", env=env, safe_args=[nname, project]), nname, project)
             if not _same_consumers(n["used_by"], ndetail["used_by"], project):
                 raise InventoryError("NETWORK_CONSUMER_LIST_MISMATCH")
@@ -794,8 +828,7 @@ def _inventory_client(runner: Runner, identity: str, socket: str, *, incus: bool
                 raise InventoryError("RESOURCE_SCHEMA_INVALID")
             pool_name = _name(p.get("name"))
             before_query()
-            pdetail = _validate_pool_show(_show(runner, prefix,
-                ["storage", "show", pool_name, "--project", project, "--format", "json"],
+            pdetail = _validate_pool_show(_detail(runner, prefix, "storage-pools", (pool_name,), project,
                 command_id=f"{kind}_storage_show", env=env, safe_args=[pool_name, project]), pool_name, project)
             if not _same_consumers(p["used_by"], pdetail["used_by"], project):
                 raise InventoryError("POOL_CONSUMER_LIST_MISMATCH")
@@ -827,9 +860,7 @@ def _inventory_client(runner: Runner, identity: str, socket: str, *, incus: bool
                         raise InventoryError("RESOURCE_SCHEMA_INVALID")
                 _validate_list_metadata(volume, project)
                 before_query()
-                detail = _validate_volume_show(_show(runner, prefix,
-                    ["storage", "volume", "show", pool_name, f"{vtype}/{vname}", "--project", project,
-                     "--format", "json"], command_id=f"{kind}_storage_volume_show", env=env,
+                detail = _validate_volume_show(_detail(runner, prefix, "storage-volumes", (pool_name, vtype, vname), project, command_id=f"{kind}_storage_volume_show", env=env,
                     safe_args=[pool_name, vtype, vname, project]), pool_name, vtype, vname, project)
                 if not _same_consumers(volume["used_by"], detail["used_by"], project):
                     raise InventoryError("VOLUME_CONSUMER_LIST_MISMATCH")

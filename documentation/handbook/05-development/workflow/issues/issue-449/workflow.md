@@ -11,11 +11,13 @@ Current continuation: `fix/epic440-completion-20261107`, baseline `b87fe5c9`.
 The 2026-11-07 user request resumes complete Epic #440 remediation on the two
 named test hosts. The historical code-only v1.42 publication limit does not
 limit this request. Existing preservation, qualification and host/scenario
-boundaries remain. Current phase: serial S449-02F4 shutdown dependency grammar
-compatibility, as specified at the top of its normative design; exact static16
-and finite sorted runtime subset only, no host mutation. Source/test locks use
-`tools/linux/qualification/native_lxd_snap_provenance.py` and
-`tests/tools/test_native_lxd_snap_provenance.py`. Authoring locks cover this
+boundaries remain. Current phase: serial S449-02F4 native inventory compatibility, as specified
+at the top of its normative design. Bounded provenance and CLI GET/raw detail
+transport retain ownership, recheck, redaction and budget guards; no host
+mutation. Current source/test locks use
+`tools/linux/qualification/native_runtime_inventory.py` and
+`tests/tools/test_native_runtime_inventory.py`; the reviewed provenance helper
+and its tests remain unchanged in this detail-transport correction. Authoring locks cover this
 workflow, its context pair, F4 design/consolidation and
 `.codex/evidence/epic440-20261107.md`. Current execution, reviews and evidence
 are recorded there. Full S02–S09 completion remains required.

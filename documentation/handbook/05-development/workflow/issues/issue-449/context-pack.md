@@ -4,8 +4,9 @@
 
 Branch `fix/epic440-completion-20261107`, baseline `b87fe5c9`. The user requests
 complete Epic #440 remediation on the two named hosts. Current bounded phase:
-same-slice F4 closed shutdown dependency grammar compatibility; normative exact
-static16 and finite sorted suffix contract is at the top of the F4 design.
+same-slice F4 native inventory compatibility; the normative design includes
+bounded provenance and fixed GET/raw API detail transport. Existing ownership,
+rechecks, redaction and command/time budgets remain unchanged.
 No runtime mutation, capability qualification or completion is implied. Current
 execution/evidence: `.codex/evidence/epic440-20261107.md`. The v1.42 and earlier
 records below retain their historical scope and hashes.

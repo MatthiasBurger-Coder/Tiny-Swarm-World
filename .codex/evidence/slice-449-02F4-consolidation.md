@@ -17,6 +17,11 @@ and later diagnostics retain their separately gated scope and non-pass results.
 Historical v1.41 results below retain their original scope. Any new native
 capture requires a fresh post-commit exact-source read-only plan.
 
+The continuation also corrects exact LTS version parsing and unsupported
+JSON detail CLI syntax. Current full source/review/test and separate actual
+host observations remain in the master record above. No historic or local
+result substitutes for current complete ownership inventory.
+
 ## Current corrective checkpoint — v1.41
 
 Commit `45c56359c9d18b1dd5f2dbdbd8e05fb81c5d646b` contains the original verified implementation below. Its separately approved native S02F capture returned `BLOCKED:SNAP_WRAPPER_UNIT_INVALID`, actual exit 2, with no inventory artifact. The source and the retained F3 private plan were verified unchanged. No runtime mutation occurred; only the approved private evidence-directory ownership and control records were prepared.

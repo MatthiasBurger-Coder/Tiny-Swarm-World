@@ -5,7 +5,7 @@
     "branch": "fix/epic440-completion-20261107",
     "baseline": "b87fe5c96b4e8627c56f48d9a7b3c691076447fc",
     "authorization": "User explicitly requests complete Epic 440 remediation using both named test hosts; historical code-only publication scope does not limit this request.",
-    "phase": "S449-02F4 bounded shutdown dependency grammar compatibility; serial root implementation and PC-WSL verification only",
+    "phase": "S449-02F4 bounded provenance and fixed GET/raw native inventory compatibility; serial root implementation and PC-WSL verification only",
     "normative_contract": ".codex/evidence/slice-449-02F4-design.md",
     "execution_record": ".codex/evidence/epic440-20261107.md",
     "runtime_mutation_released": false,
