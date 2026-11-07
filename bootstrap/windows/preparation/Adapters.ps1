@@ -422,7 +422,7 @@ function Assert-PreparationState($State,$Identity) {
     if((@($State.identity.PSObject.Properties.Name | Sort-Object) -join '|') -cne 'contract|distro|host|release|revision|selection'){throw 'invalid_bootstrap_identity'}
     foreach($key in @('contract','revision','host','distro','release','selection')){if($State.identity.$key -isnot [string] -or $State.identity.$key -cne $Identity[$key]){throw 'stale_foreign_bootstrap_state'}}
     if((@($State.versions.PSObject.Properties.Name | Sort-Object) -join '|') -cne 'ubuntu|windows_build|wsl' -or ($State.versions.windows_build -isnot [int] -and $State.versions.windows_build -isnot [long]) -or ($State.versions.wsl -and $State.versions.wsl -cnotmatch '^\d+\.\d+\.\d+$') -or ($State.versions.ubuntu -and $State.versions.ubuntu -cnotin @('24.04','26.04'))){throw 'invalid_bootstrap_versions'}
-    if($State.next_command -isnot [string] -or $State.next_command -cnotmatch '^\./prepare_windows\.ps1 -Distro [A-Za-z0-9._-]+ -UbuntuRelease (?:24\.04|26\.04) -ServiceProfile (?:default|service-access) -Preflight(?: -Wsl(?:MemoryGiB|Processors|SwapGiB) [0-9]+)*$'){throw 'invalid_bootstrap_recovery_command'}
+    if($State.next_command -isnot [string] -or $State.next_command -cnotmatch '^\./bootstrap/windows/prepare_windows\.ps1 -Distro [A-Za-z0-9._-]+ -UbuntuRelease (?:24\.04|26\.04) -ServiceProfile (?:default|service-access) -Preflight(?: -Wsl(?:MemoryGiB|Processors|SwapGiB) [0-9]+)*$'){throw 'invalid_bootstrap_recovery_command'}
 }
 function Lock-PreparationState($Store) {
     Assert-PreparationEvidencePath $Store
