@@ -30,6 +30,14 @@ TOTAL_LIMIT = 16 * 1024 * 1024
 MAX_CHILDREN = 64
 MAX_SECONDS = 60
 CANONICAL_PATH = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin"
+_SHUTDOWN_STATIC_UNITS = (
+    "snap.microceph.daemon.service", "snap.microceph.mds.service", "snap.microceph.mgr.service",
+    "snap.microceph.mon.service", "snap.microceph.nfs.service", "snap.microceph.osd.service",
+    "snap.microceph.rgw.service", "snap.microceph.rbd-mirror.service", "snap.microceph.cephfs-mirror.service",
+    "snap.microovn.daemon.service", "snap.microovn.ovn-ovsdb-server-nb.service",
+    "snap.microovn.ovn-ovsdb-server-sb.service", "snap.microovn.ovn-northd.service",
+    "snap.microovn.chassis.service", "snap.microovn.switch.service", "snap.microovn.bird.service",
+)
 _DECIMAL = re.compile(r"[1-9][0-9]{0,18}\Z", re.ASCII)
 _EXEC_START = re.compile(
     r"\{ path=/usr/bin/snap ; argv\[\]=/usr/bin/snap run lxd\.daemon ; ignore_errors=no ; "
@@ -263,6 +271,21 @@ class Process:
     executable: Observation
 
 
+def _shutdown_dependencies_supported(lines: list[str]) -> bool:
+    if len(lines) != 2 or lines[0] != "[Unit]" or not lines[1].startswith("After="):
+        return False
+    dependencies = lines[1].removeprefix("After=")
+    if dependencies == "snap.microceph.daemon.service snap.microovn.daemon.service":
+        return True
+    units = dependencies.split(" ")
+    prefix_size = len(_SHUTDOWN_STATIC_UNITS)
+    runtime = units[prefix_size:]
+    return (tuple(units[:prefix_size]) == _SHUTDOWN_STATIC_UNITS
+            and len(runtime) <= prefix_size
+            and runtime == sorted(set(runtime))
+            and set(runtime).issubset(_SHUTDOWN_STATIC_UNITS))
+
+
 class _Proof:
     def __init__(self, runner: RunnerPort, fs: ReadOnlyFS, clock: Callable[[], float]):
         self.runner, self.fs, self.clock = runner, fs, clock
@@ -312,7 +335,7 @@ class _Proof:
             if "\r" in lines or "\x00" in lines:
                 raise ProvenanceError("SNAP_WRAPPER_CONTEXT_BLOCKED")
             significant = [line for line in lines.split("\n") if line.strip() and not line.lstrip().startswith("#")]
-            if significant != ["[Unit]", "After=snap.microceph.daemon.service snap.microovn.daemon.service"]:
+            if not _shutdown_dependencies_supported(significant):
                 raise ProvenanceError("SNAP_WRAPPER_CONTEXT_BLOCKED")
             result.append(drop)
         if unit["EnvironmentFiles"]:

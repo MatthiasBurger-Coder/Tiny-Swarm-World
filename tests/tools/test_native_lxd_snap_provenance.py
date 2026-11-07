@@ -12,6 +12,15 @@ from unittest.mock import Mock, patch
 
 from tools.linux.qualification import native_lxd_snap_provenance as proof
 
+SHUTDOWN_STATIC = (
+    "snap.microceph.daemon.service snap.microceph.mds.service snap.microceph.mgr.service "
+    "snap.microceph.mon.service snap.microceph.nfs.service snap.microceph.osd.service "
+    "snap.microceph.rgw.service snap.microceph.rbd-mirror.service snap.microceph.cephfs-mirror.service "
+    "snap.microovn.daemon.service snap.microovn.ovn-ovsdb-server-nb.service "
+    "snap.microovn.ovn-ovsdb-server-sb.service snap.microovn.ovn-northd.service "
+    "snap.microovn.chassis.service snap.microovn.switch.service snap.microovn.bird.service"
+)
+
 
 def regular(inode: int, data: bytes = b"", *, executable: bool = False, readonly: bool = True) -> proof.Observation:
     return proof.Observation(1, inode, stat.S_IFREG | (0o555 if executable else 0o444), 0, readonly, data)
@@ -216,6 +225,64 @@ class WrapperProofTests(unittest.TestCase):
             with self.subTest(content=content[-20:]):
                 self.fs.files[proof.DROP_IN] = regular(61, content, readonly=False)
                 self.assert_blocked("SNAP_WRAPPER_CONTEXT_BLOCKED")
+
+    def test_shutdown_static_and_sorted_runtime_dependencies_preserve_full_proof(self) -> None:
+        self.values["DropInPaths"] = proof.DROP_IN
+        units = SHUTDOWN_STATIC.split(" ")
+        suffixes = [[], sorted(units), sorted(units[::2]), *[[unit] for unit in units]]
+        for runtime in suffixes:
+            with self.subTest(runtime=runtime):
+                self.runner.reset_mock()
+                line = "After=" + " ".join([*units, *runtime])
+                self.fs.files[proof.DROP_IN] = regular(61, ("# installed generator\n\n[Unit]\n" + line + "\n").encode(), readonly=False)
+                self.assertEqual(self.run_proof(), ("lxd_snap", "snap:lxd"))
+                self.assertEqual(self.runner.run.call_count, 2)
+
+    def test_shutdown_missing_or_reordered_static_prefix_blocks_before_process_reads(self) -> None:
+        self.values["DropInPaths"] = proof.DROP_IN
+        units = SHUTDOWN_STATIC.split(" ")
+        cases = [units[:index] + units[index + 1:] for index in range(len(units))]
+        cases += [list(reversed(units)), sorted(units), units + ["snap.other.daemon.service"]]
+        cases += [units + list(reversed(sorted(units))), units + [units[0], units[0]], units + sorted(units) + [units[0]]]
+        for tokens in cases:
+            with self.subTest(tokens=tokens):
+                self.fs.calls.clear()
+                self.fs.files[proof.DROP_IN] = regular(61, ("[Unit]\nAfter=" + " ".join(tokens) + "\n").encode(), readonly=False)
+                self.assert_blocked("SNAP_WRAPPER_CONTEXT_BLOCKED")
+                self.assertFalse(any(path.startswith("/proc/") for path, _, _ in self.fs.calls))
+
+    def test_shutdown_strict_spacing_bytes_and_directive_boundary(self) -> None:
+        self.values["DropInPaths"] = proof.DROP_IN
+        valid = ("[Unit]\nAfter=" + SHUTDOWN_STATIC + "\n").encode()
+        cases = [valid.replace(b"After=", b"After= "), valid.replace(b"After=", b" After="),
+                 valid.replace(b" ", b"  ", 1), valid.replace(b" ", b"\t", 1),
+                 valid.replace(b"\n", b"\r\n"), valid.replace(b"\n", b"\x00", 1),
+                 valid[:-1] + b" \n", valid[:-1] + b" # comment\n", valid + b"[Unit]\n",
+                 valid + b"After=snap.microceph.daemon.service\n", valid + b"Before=unrelated.service\n",
+                 valid + b"[Service]\nExecStart=secret-value\n", valid + b"\xff",
+                 valid.replace(b" ", b" \\\n", 1)]
+        for raw in cases:
+            with self.subTest(raw=raw[:30]):
+                self.fs.files[proof.DROP_IN] = regular(61, raw, readonly=False)
+                self.assert_blocked("SNAP_WRAPPER_CONTEXT_BLOCKED")
+
+    def test_shutdown_supported_runtime_change_or_inode_change_is_still_drift(self) -> None:
+        self.values["DropInPaths"] = proof.DROP_IN
+        first = regular(61, ("[Unit]\nAfter=" + SHUTDOWN_STATIC + "\n").encode(), readonly=False)
+        changed = ("[Unit]\nAfter=" + SHUTDOWN_STATIC + " snap.microceph.daemon.service\n").encode()
+        for final in (replace(first, data=changed), replace(first, inode=62), replace(first, data=first.data + b"# changed\n")):
+            with self.subTest(final=final.inode):
+                self.fs.sequences[proof.DROP_IN] = [first, final]
+                self.assert_blocked("SNAP_WRAPPER_DRIFT")
+
+    def test_shutdown_new_grammar_does_not_relax_trusted_file_checks(self) -> None:
+        self.values["DropInPaths"] = proof.DROP_IN
+        valid = regular(61, ("[Unit]\nAfter=" + SHUTDOWN_STATIC + "\n").encode(), readonly=False)
+        for invalid in (replace(valid, uid=1000), replace(valid, mode=stat.S_IFREG | 0o666),
+                        replace(valid, mode=stat.S_IFLNK | 0o777)):
+            with self.subTest(mode=invalid.mode, uid=invalid.uid):
+                self.fs.files[proof.DROP_IN] = invalid
+                self.assert_blocked("SNAP_WRAPPER_FILE_UNVERIFIED")
 
     def test_forged_or_duplicate_selected_environment_cannot_establish_identity(self) -> None:
         original = self.fs.files["/proc/101/environ"]

@@ -1,11 +1,24 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: ACTIVE_FOR_ISSUE_449 v1.42 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
+Status: ACTIVE_FOR_ISSUE_449 v1.43 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
 Workflow authoring branch: `docs/workflow-lcm-w09-route-baseline-20261027`
+
+Current continuation: `fix/epic440-completion-20261107`, baseline `b87fe5c9`.
+The 2026-11-07 user request resumes complete Epic #440 remediation on the two
+named test hosts. The historical code-only v1.42 publication limit does not
+limit this request. Existing preservation, qualification and host/scenario
+boundaries remain. Current phase: serial S449-02F4 shutdown dependency grammar
+compatibility, as specified at the top of its normative design; exact static16
+and finite sorted runtime subset only, no host mutation. Source/test locks use
+`tools/linux/qualification/native_lxd_snap_provenance.py` and
+`tests/tools/test_native_lxd_snap_provenance.py`. Authoring locks cover this
+workflow, its context pair, F4 design/consolidation and
+`.codex/evidence/epic440-20261107.md`. Current execution, reviews and evidence
+are recorded there. Full S02–S09 completion remains required.
 Baseline: `a0310224946b63e2152ff4086d22a450c3d0f214`
 ACTIVE_FOR_ISSUE_449 v1.42. The user explicitly authorized completion of issue #449 on the named test hosts. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
 Execution profile: `FULL_PATH — lifecycle/provider implementation, regression, documentation, native and WSL2 qualification`

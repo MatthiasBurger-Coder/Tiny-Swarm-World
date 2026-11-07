@@ -1,5 +1,58 @@
 # S449-02F4 — normalize the verified Snap wrapper and direct LXD child
 
+## 2026-11-07 bounded shutdown dependency compatibility
+
+This extension supersedes only the historical two-unit-only drop-in grammar
+below; every other proof requirement remains authoritative.
+
+The current exact-source native read-only attempt at `b87fe5c9` returned
+`SNAP_WRAPPER_CONTEXT_BLOCKED` before inventory/artifact creation. Effective
+unit checks and the canonical environment passed. The installed read-only LXD
+wrapper generates a larger shutdown-order drop-in than the historical two-unit
+form. Inspection of the bounded installed generator establishes this shape;
+the moving upstream branch still showing the older generator is not proof of
+the installed revision. No host file or service was changed.
+
+Keep the exact legacy `[Unit]` and
+`After=snap.microceph.daemon.service snap.microovn.daemon.service` form.
+Also accept exactly `[Unit]` and one `After=` line with the following ordered
+static prefix, separated by one ASCII space:
+
+```text
+snap.microceph.daemon.service
+snap.microceph.mds.service
+snap.microceph.mgr.service
+snap.microceph.mon.service
+snap.microceph.nfs.service
+snap.microceph.osd.service
+snap.microceph.rgw.service
+snap.microceph.rbd-mirror.service
+snap.microceph.cephfs-mirror.service
+snap.microovn.daemon.service
+snap.microovn.ovn-ovsdb-server-nb.service
+snap.microovn.ovn-ovsdb-server-sb.service
+snap.microovn.ovn-northd.service
+snap.microovn.chassis.service
+snap.microovn.switch.service
+snap.microovn.bird.service
+```
+
+The prefix may be followed by zero to sixteen runtime tokens from this same
+closed list, sorted lexicographically and unique within the runtime suffix.
+One ASCII space separates tokens; leading/trailing/doubled spaces, tabs,
+continuations and inline comments are unsupported. Repetition between the
+static prefix and runtime suffix is expected. Preserve full-line comments and
+blank lines, existing UTF-8/LF/CR/NUL checks, root ownership, no-follow opens,
+byte limits and exact observation equality across rechecks. Do not normalize
+accepted bytes or inode identity. Reject any other unit/directive/section.
+
+This same-slice extension adds no host command, executable allowance, runtime
+capability, schema or maintenance permission. Reviews: requirements by
+`requirements_audit`, architecture/security boundary by `architecture_review`,
+test/DevOps by `preflight_review`, automation and integration by root. Review
+messages accept the contract; exact source review and PC-WSL gates follow.
+The current execution record is `.codex/evidence/epic440-20261107.md`.
+
 Current execution, review, verification and checkpoint state is recorded only in `.codex/evidence/slice-449-02F4-consolidation.md`; historical observations below do not grant a new release or native invocation.
 
 The normative proof below defines the S449-02F4 v1.41 corrective checkpoint on the same slice; its release state is recorded in consolidation. No signatures, REST API, package downloads or general mount-namespace framework are added.

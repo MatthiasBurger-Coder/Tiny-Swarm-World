@@ -1,5 +1,16 @@
 # S449-02F4 execution record
 
+## Current continuation — v1.43, 2026-11-07
+
+The bounded installed shutdown-dependency grammar extension, actual blocked
+baseline capture, independent exact-source reviews and PC-WSL verification are
+recorded in [epic440-20261107.md](epic440-20261107.md). Corrected helper/test
+hashes are bound there; focused 235 PASS, all seven QUALITY stages PASS with
+3,232 tests and 36 skipped, exit 0. This is a local correction contribution,
+not native ownership admission, listener capability or issue completion.
+Historical v1.41 results below retain their original scope. Any new native
+capture requires a fresh post-commit exact-source read-only plan.
+
 ## Current corrective checkpoint — v1.41
 
 Commit `45c56359c9d18b1dd5f2dbdbd8e05fb81c5d646b` contains the original verified implementation below. Its separately approved native S02F capture returned `BLOCKED:SNAP_WRAPPER_UNIT_INVALID`, actual exit 2, with no inventory artifact. The source and the retained F3 private plan were verified unchanged. No runtime mutation occurred; only the approved private evidence-directory ownership and control records were prepared.

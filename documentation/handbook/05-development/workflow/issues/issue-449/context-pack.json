@@ -1,6 +1,16 @@
 {
   "workflow_id": "issue-449-lcm-w09",
-  "workflow_version": "1.42",
+  "workflow_version": "1.43",
+  "continuation_20261107": {
+    "branch": "fix/epic440-completion-20261107",
+    "baseline": "b87fe5c96b4e8627c56f48d9a7b3c691076447fc",
+    "authorization": "User explicitly requests complete Epic 440 remediation using both named test hosts; historical code-only publication scope does not limit this request.",
+    "phase": "S449-02F4 bounded shutdown dependency grammar compatibility; serial root implementation and PC-WSL verification only",
+    "normative_contract": ".codex/evidence/slice-449-02F4-design.md",
+    "execution_record": ".codex/evidence/epic440-20261107.md",
+    "runtime_mutation_released": false,
+    "historical_artifact_map": "Existing artifact hashes below bind their historical phase, not this continuation. Current exact-byte hashes are recorded in the execution record."
+  },
   "workflow_path": "documentation/handbook/05-development/workflow/issues/issue-449/workflow.md",
   "workflow_index_path": "documentation/handbook/05-development/workflow/workflow.index.md",
   "context_pack_path": "documentation/handbook/05-development/workflow/issues/issue-449/context-pack.md",
