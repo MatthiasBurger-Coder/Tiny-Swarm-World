@@ -1,7 +1,7 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: ACTIVE_FOR_ISSUE_449 v1.48 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
+Status: ACTIVE_FOR_ISSUE_449 v1.49 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
@@ -11,16 +11,72 @@ Current continuation: `fix/epic440-completion-20261107`, baseline `b87fe5c9`.
 The 2026-11-07 user request resumes complete Epic #440 remediation on the two
 named test hosts. The historical code-only v1.42 publication limit does not
 limit this request. Existing preservation, qualification and host/scenario
-boundaries remain. Current phase: serial S449-02F4 native inventory compatibility, as specified
-at the top of its normative design. Bounded provenance and CLI GET/raw detail
-transport retain ownership, recheck, redaction and budget guards; no host
-mutation. Current source/test locks use
-`tools/linux/qualification/native_runtime_inventory.py` and
-`tests/tools/test_native_runtime_inventory.py`; the reviewed provenance helper
-and its tests remain unchanged in this detail-transport correction. Authoring locks cover this
-workflow, its context pair, F4 design/consolidation and
-`.codex/evidence/epic440-20261107.md`. Current execution, reviews and evidence
-are recorded there. Full S02–S09 completion remains required.
+boundaries remain, with the narrow v1.49 preserving-maintenance amendment below.
+Current native schema5 inventory from committed 711f397d is complete; exact PC
+checks passed. Exclusive installation/global-resource ownership remains unproven.
+Current policy work enables temporary maintenance without asserting adoption.
+Execution/evidence remains in `.codex/evidence/epic440-20261107.md`; full S02–S09
+completion remains required.
+
+## Current operative maintenance amendment — v1.49
+
+The renewed user instruction authorizes necessary preserving maintenance on the
+named test hosts. Apply
+`adr-preserving-host-maintenance-for-qualification.adoc` in the arc42 decision
+index; architecture and independent Tester/DevOps review accepted this policy.
+The policy alone authorizes no unreviewed host action.
+A single accepted decision and concrete tested transaction replace repeated
+policy questions. Temporary service authority is distinct from object ownership.
+
+For the preserving S02G path, supersede only exclusive-owner eligibility and
+stop/replace sequencing: allow bounded Snap LXD socket/daemon stop with all
+existing data/configuration/objects preserved and mandatory finally recovery.
+No adoption, deletion/replacement, permanent disable/mask, force/kill or reboot.
+Leave an already inactive socket inactive; only stop it if originally active.
+Exact previously Running nodes may first be stopped gracefully without force.
+Capture actual stop-hook/deadline semantics and prestate first; ordinary shutdown
+may stop containers. The observed unit has a ten-minute systemd stop timeout and
+SIGKILL escalation. Use a verified finite graceful-shutdown path and confirm
+exit before unit-stop bookkeeping; never submit systemctl stop on the live
+daemon under this no-force policy. A controller timeout does not cancel a
+systemd stop job. Graceful timeout blocks qualification and enters recovery.
+Restore only previously Running exact allowlisted instances
+and captured service/socket state, including on failed qualification or timeout.
+Unexpected reactivation/concurrent drift ends qualification; recovery remains
+identity-bound and independently verified. Incus existing objects stay unchanged;
+only existing admitted disposable fixture objects may be created/cleaned up.
+
+For necessary W05 resource restart only, admit bounded selected-Ubuntu restart
+with no other running WSL distribution, then connectaddress-only reconciliation
+of existing product-bound PortProxy rules to that same registration's freshly
+observed IPv4. Preserve complete firewall state, protocol/family/listen tuple,
+connectport/count, every foreign rule and existing bridge identity/configuration.
+A required existing bridge service stop/start must be explicit in the concrete
+plan and restore captured running state. No new rule/listener/route, feature or
+Windows reboot. Compare-before-write and reviewed recovery govern partial/drift
+outcomes. This narrow exception supersedes conflicting absolute equality and
+manual-only restart wording only inside prerequisite maintenance; afterward
+capture a fresh baseline/digest. S02 fixtures and later scenarios preserve that
+baseline byte-for-byte with no such exception.
+
+Code/source verification, concrete bounded recovery plan and exact host/scenario
+review remain required before execution. Existing private evidence and native
+product recovery protection remain unchanged. S02 still gates S03–S09 runtime enablement and live scenarios;
+maintenance success is not capability admission or Epic completion.
+
+A narrow scheduling exception allows isolated pure S03 manifest-v2 migration,
+installation lock and checkpoint/selection persistence code to proceed while S02
+maintenance/fixture is pending, after a concrete code-plan review. Scoped
+integration consumers include component_execution.py, portainer_upgrade.py,
+portainer_journal.py and composition_lifecycle.py; the implementation plan must
+name their current canonical paths and required domain/port/persistence locks.
+S04 provider wiring in composition_platform.py remains separate. Run focused and
+full exact-source checks before integration; verified pure-code integration may
+precede S02. No supported Incus version, profile
+capability, host mutation or aggregate acceptance follows from this parallel
+pure-code path; those retain S02 and subsequent acceptance dependencies. Historical
+paragraphs below retain their evidence; conflicting operative constraints apply
+outside this expressly preserving path.
 
 The current bounded volume DTO amendment is specified in
 `.codex/evidence/epic440-volume-dto-20261107.md`: LXD 5.21.9 list and detail
@@ -1417,56 +1473,56 @@ documentation:
 stop_conditions: [missing exact-hash role GO or S3D, unsupported unit or process schema, unverified wrapper or child relation, raw-value leakage, expanded allowlist, changed F3 or artifact schema, host mutation, failed quality gate]
 ```
 
-##### Conditional Slice 02G — Native LXD maintenance for TSW replacement
+##### Conditional Slice 02G — Preserving temporary native LXD maintenance
 
-This slice may be authored only if S449-02F exact evidence proves the active
-LXD service owns exclusively the three named TSW instances
-`swarm-manager`, `swarm-worker-1` and `swarm-worker-2`, with no unrelated
-instances, profiles, networks, storage pools, projects, consumers or host
-services. Any unknown, shared or unrelated resource keeps native qualification
-`BLOCKED` and forbids this slice. User authorization to replace these three TSW
-instances does not itself approve a service stop.
+Under v1.49, S02G may be authored for the preserving temporary-maintenance
+transaction specified by the current operative amendment and its ADR. Exclusive
+TSW resource ownership is not a prerequisite for service maintenance; it remains
+unproved and must not be inferred. Preserve all existing LXD/Incus objects and
+configuration; no instance replacement/deletion or shared-resource mutation is
+included. Historical stop/replace permission does not expand this path.
 
-If eligible, create a separate maintenance/recovery plan and obtain fresh
-Requirement, Architecture, Security, DevOps and Test/Evidence approval bound to
-one native host/scenario GO before any write. The GO must bind exact source and
-inventory hashes, the exact LXD unit and three instance identities, private
-pre-state and intended new post-state, maintenance window, bounded stop/restart
-commands, expected exit/state at each checkpoint, and qualification-run
-recovery behavior. Store the GO and result only on verified ext4 below the
-existing owner-only evidence directory, mode 0700, with each file mode 0600.
-No backup or restoration of the old three TSW instance
-contents is required; their replacement is explicitly authorized. Stop only
-the exact verified TSW-owned service, replace only the three named TSW
-instances, then restart only that service and verify the intended new runnable
-TSW state, endpoints, network and storage identity. Verify service recovery
-after restart. A host reboot is an optional, separate
-host-wide operation and requires separate explicit authorization, its own exact
-GO and recovery evidence; no reboot is automatic. Never stop,
-restart or modify Incus, another LXD service, unrelated host services, shared
-profiles, firewall/PortProxy state, or any unlisted resource.
+Bind fresh exact source/inventory, effective units/stop-hook/deadlines, Running/
+Stopped instance states and the complete preserve set. Stop the verified Snap
+LXD socket only if originally active, then use verified graceful daemon shutdown
+for the qualification window. The inspected vendor clean-exit/stop-hook branch
+avoids kill fallback. Bind /snap/bin/lxd shutdown --timeout 60 without --force to
+its verified Snap command/package/socket; do not accept inherited endpoint or
+LXD_DIR overrides. Confirm clean exit before unit-stop bookkeeping, avoiding
+the observed systemd SIGKILL escalation. Always restore captured
+service/socket state and only previously Running allowlisted instances in finally,
+including after refusal/failure/interruption. Keep finite recovery state privately
+for controller-loss recovery; require identity/drift checks before replay and
+verify resource equality and service usability afterward. Record uncertain
+recovery as RECOVERY_REQUIRED and stop qualification.
+
+A single concrete maintenance/recovery plan receives Requirement, Architecture,
+Security/DevOps and Test/Evidence review bound to exact source and native host.
+This is execution admission within renewed user authority, not another abstract
+policy permission request. No reboot, force/kill, persistent mask/disable,
+package change or modification of Incus/foreign services is included.
 
 ```yaml
 slice_id: S449-02G
 profile: RUNTIME_QUALIFICATION
 owner: Senior DevOps Engineer
 secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior DevOps Engineer, Test/Evidence Reviewer]
-affected_files: [documentation/handbook/05-development/workflow/issues/issue-449/workflow.md, documentation/handbook/05-development/workflow/issues/issue-449/context-pack.md, documentation/handbook/05-development/workflow/issues/issue-449/context-pack.json, tools/qualification/native_lxd_maintenance.py, tests/tools/test_native_lxd_maintenance.py, .tiny-swarm/evidence/issue-449/s449-private-20261027/native-maintenance-go.json, .tiny-swarm/evidence/issue-449/s449-private-20261027/native-maintenance-result.json, .codex/evidence/slice-449-02G-distribution.md, .codex/evidence/slice-449-02G-consolidation.md]
-affected_modules: [native LXD service maintenance, three TSW instance replacement and recovery]
+affected_files: [documentation/handbook/05-development/workflow/issues/issue-449/workflow.md, documentation/handbook/05-development/workflow/issues/issue-449/context-pack.md, documentation/handbook/05-development/workflow/issues/issue-449/context-pack.json, tools/linux/qualification/native_lxd_maintenance.py, tests/tools/test_native_lxd_maintenance.py, .tiny-swarm/evidence/issue-449/s449-private-20261027/native-maintenance-go.json, .tiny-swarm/evidence/issue-449/s449-private-20261027/native-maintenance-result.json, .codex/evidence/slice-449-02G-distribution.md, .codex/evidence/slice-449-02G-consolidation.md]
+affected_modules: [temporary Snap LXD socket/service maintenance, exact pre-state restoration, preserved LXD/Incus resource graph]
 affected_contracts: [exact native five-role GO, exact unit and instance allowlist, private pre-state and intended new post-state, bounded stop/restart and service recovery, qualification-run recovery evidence]
 dependencies: [S449-02F]
 parallel_group: serialized-live
-file_locks: [documentation/handbook/05-development/workflow/issues/issue-449/workflow.md, documentation/handbook/05-development/workflow/issues/issue-449/context-pack.md, documentation/handbook/05-development/workflow/issues/issue-449/context-pack.json, tools/qualification/native_lxd_maintenance.py, tests/tools/test_native_lxd_maintenance.py, .tiny-swarm/evidence/issue-449/s449-private-20261027/native-maintenance-go.json, .tiny-swarm/evidence/issue-449/s449-private-20261027/native-maintenance-result.json, .codex/evidence/slice-449-02G-distribution.md, .codex/evidence/slice-449-02G-consolidation.md]
-module_locks: [native host LXD service and the three allowlisted TSW instances]
+file_locks: [documentation/handbook/05-development/workflow/issues/issue-449/workflow.md, documentation/handbook/05-development/workflow/issues/issue-449/context-pack.md, documentation/handbook/05-development/workflow/issues/issue-449/context-pack.json, tools/linux/qualification/native_lxd_maintenance.py, tests/tools/test_native_lxd_maintenance.py, .tiny-swarm/evidence/issue-449/s449-private-20261027/native-maintenance-go.json, .tiny-swarm/evidence/issue-449/s449-private-20261027/native-maintenance-result.json, .codex/evidence/slice-449-02G-distribution.md, .codex/evidence/slice-449-02G-consolidation.md]
+module_locks: [native Snap LXD socket/service runtime state and recovery of previously Running allowlisted instances]
 contract_locks: [five-role host/scenario GO, explicit instance allowlist, exact intended new state, qualification recovery and service recovery]
-architecture_locks: [no shared or unowned host resource mutation]
+architecture_locks: [no existing object/configuration mutation outside exact approved runtime-state restoration]
 quality_gates:
   targeted: [PYTHONPATH=src python3 -m unittest tests.tools.test_native_lxd_maintenance]
-  required: [python3 tools/quality_gate.py quality]
+  required: [python3 tools/linux/quality_gate.py quality]
 documentation:
   arc42: update only if an accepted coexistence decision changes architecture
   adr: required before changing LXD/Incus coexistence or runtime ownership policy
-stop_conditions: [inventory not exclusive to the three named TSW instances, any unlisted/unknown resource, GO/hash mismatch, ext4/0700/0600 evidence check failure, pre-state drift, stop/restart timeout or unexpected exit, intended new TSW state or qualification recovery failure, optional separately approved reboot recovery failure, any unrelated service/resource/network/storage/profile drift]
+stop_conditions: [source/host binding mismatch, incomplete stop-hook or recovery state, unsafe private evidence, unexpected pre-state drift or reactivation, stop/restart timeout, failed or uncertain recovery, any existing object/configuration change outside approved runtime-state restoration, Incus/foreign service or resource drift]
 ```
 
 ##### Conditional Slice 02H — Resolve WSL feature readiness before admission

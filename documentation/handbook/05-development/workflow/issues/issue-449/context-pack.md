@@ -1,15 +1,42 @@
 # Context pack — issue-449-lcm-w09
 
-## Current continuation — v1.48, 2026-11-07
+## Current continuation — v1.49, 2026-11-07
 
 Branch `fix/epic440-completion-20261107`, baseline `b87fe5c9`. The user requests
 complete Epic #440 remediation on the two named hosts. Current bounded phase:
-same-slice F4 native inventory compatibility; the normative design includes
+preserving maintenance policy after complete committed schema5 native inventory; the retained F4 normative design includes
 bounded provenance and fixed GET/raw API detail transport. Existing ownership,
 rechecks, redaction and command/time budgets remain unchanged.
 No runtime mutation, capability qualification or completion is implied. Current
 execution/evidence: `.codex/evidence/epic440-20261107.md`. The v1.42 and earlier
 records below retain their historical scope and hashes.
+
+The renewed instruction authorizes bounded maintenance with preservation. Current
+operative authority is workflow v1.49 and
+`adr-preserving-host-maintenance-for-qualification.adoc` (architecture and independent Tester/DevOps review accepted). Existing unknown installation ownership does not prevent temporary
+service maintenance and is not converted into adoption. The observed systemd
+stop can escalate after ten minutes: use verified finite graceful shutdown,
+confirm exit before unit-stop bookkeeping, and enter recovery rather than
+submitting a live-daemon stop job on timeout. Supersede old S02G
+exclusive-owner/replace sequencing only for a preserving transaction: stop exact
+Snap LXD socket/daemon, then always restore captured runtime/previously Running
+allowlisted instance state in finally. Existing LXD/Incus objects/configuration
+remain unchanged; no destructive fallback, force/kill, persistent disable or reboot.
+
+Necessary selected-Ubuntu resource restart may reconcile only connectaddress of
+existing product-bound PortProxy rules to its fresh authoritative IPv4, with no
+other running distribution. Complete firewall and all other rule fields/foreign
+rules remain identical; any required existing bridge stop/start restores its prior
+runtime state. Compare-before-write and bounded recovery are mandatory. This
+exception is only prerequisite maintenance: capture a fresh baseline afterward,
+then S02 and later fixtures preserve it byte-for-byte. No new listener/route,
+feature, bridge identity/configuration change or Windows reboot is included.
+One concrete source-bound implementation/recovery/execution review remains;
+no further abstract policy answer is needed. Pure S03 manifest-v2/installation
+lock/checkpoint persistence code may proceed in isolation after code-plan review
+while S02 maintenance/fixture is pending. Run focused/full checks before
+integration. S02 still gates runtime enablement, S04 provider wiring, supported
+Incus versions and later qualification/acceptance; no host action by authoring.
 
 Bounded LXD/Incus volume DTO pool identity follows
 `.codex/evidence/epic440-volume-dto-20261107.md`; ownership and schema 2 remain

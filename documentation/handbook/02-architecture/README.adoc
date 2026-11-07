@@ -28,6 +28,8 @@ Cross-references from other parts do not change that ownership.
 * link:{handbook-root}handbook/02-architecture/arc42-template.adoc[arc42-template.adoc]
 * link:{handbook-root}handbook/02-architecture/arc42.adoc[arc42.adoc]
 
+* link:{handbook-root}handbook/02-architecture/arc42/09_decisions/adr-preserving-host-maintenance-for-qualification.adoc[Preserving host maintenance for Epic 440 qualification]
+
 === arc42
 
 * link:{handbook-root}handbook/02-architecture/arc42/01_introduction.adoc[01_introduction.adoc]
