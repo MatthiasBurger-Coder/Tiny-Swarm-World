@@ -197,6 +197,20 @@ def validate_snapshot(value: Any) -> dict[str, Any]:
     return value
 
 
+def incus_socket(baseline: dict[str, Any]) -> dict[str, Any]:
+    """Use the validated socket observation, never a service-only field."""
+    units = baseline['preserve'].get('incus_units')
+    require(isinstance(units, list) and all(isinstance(row, dict) for row in units), 'INCUS_SOCKET_INVALID')
+    matches = [row for row in units if row.get('unit') == 'incus.socket']
+    require(len(matches) == 1, 'INCUS_SOCKET_INVALID')
+    row = matches[0]
+    require(set(row) == {'unit', 'load_state', 'active_state', 'sub_state', 'unit_file_state', 'main_pid', 'listen'}
+            and row['load_state'] == 'loaded' and isinstance(row['listen'], str)
+            and row['listen'] in {'incus_run', 'incus_var_lib'}
+            and type(row['main_pid']) is int and row['main_pid'] == 0, 'INCUS_SOCKET_INVALID')
+    return cast(dict[str, Any], row)
+
+
 def preserved_snapshot(baseline: dict[str, Any], observed: dict[str, Any]) -> bool:
     """Retain the one optional optimized cache created by this fixture's init."""
     if observed == baseline:
@@ -508,6 +522,8 @@ class NativePort:
         self.budget()
         require(self.installed_binding() == baseline['binding']['installed'], 'INSTALLED_BINDING_DRIFT')
         runner = inventory.Runner()
+        expected_socket = incus_socket(baseline)
+        require(inventory._systemctl_show(runner, 'incus.socket') == expected_socket, 'INCUS_SOCKET_DRIFT')
         incus = inventory._systemctl_show(runner, 'incus.service')
         require(incus == baseline['binding']['incus_unit'], 'INCUS_SERVICE_DRIFT')
         require(inventory._resolve_executable(runner, incus) == ('incus_system', 'system:incus'), 'INCUS_IDENTITY_DRIFT')
@@ -651,7 +667,7 @@ class NativePort:
         resource['candidate'].update(workflow_sha256=pins[FILES[6]], runner_sha256=pins[FILES[4]],
                                      test_sha256=pins[FILES[5]], clean_tracked_tree=True)
         self.check_binding(cast(dict[str, Any], self.baseline), active=False)
-        endpoint = cast(dict[str, Any], self.baseline)['binding']['incus_unit']['listen']
+        endpoint = incus_socket(cast(dict[str, Any], self.baseline))['listen']
         require(endpoint in {'incus_run', 'incus_var_lib'}, 'INCUS_ENDPOINT_DRIFT')
         socket_path = '/run/incus/unix.socket' if endpoint == 'incus_run' else '/var/lib/incus/unix.socket'
         version_runner = inventory.Runner()

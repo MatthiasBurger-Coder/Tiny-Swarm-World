@@ -514,6 +514,108 @@ class PausedAdmissionTests(unittest.TestCase):
                 with self.subTest(payload=payload), self.assertRaises(maintenance.MaintenanceError):
                     maintenance.validate_paused_admission(rebound, intent, 'e' * 64, bad_resource, route, bad_go, 'a' * 40, now)
 
+
+    def socket_baseline(self, endpoint: str = 'incus_var_lib') -> dict[str, Any]:
+        # Actual service DTO intentionally has no Listen field.
+        service = {'unit': 'incus.service', 'load_state': 'loaded', 'active_state': 'active',
+                   'sub_state': 'running', 'unit_file_state': 'enabled', 'main_pid': 42}
+        socket = {'unit': 'incus.socket', 'load_state': 'loaded', 'active_state': 'active',
+                  'sub_state': 'running', 'unit_file_state': 'enabled', 'main_pid': 0, 'listen': endpoint}
+        return {'binding': {'installed': {}, 'incus_unit': service},
+                'preserve': {'incus_units': [service, socket]}}
+
+    def test_actual_await_admission_uses_socket_dto_and_rechecks_it_before_version_query(self) -> None:
+        for endpoint, socket_path in (('incus_run', '/run/incus/unix.socket'),
+                                      ('incus_var_lib', '/var/lib/incus/unix.socket')):
+            with self.subTest(endpoint=endpoint), tempfile.TemporaryDirectory() as temporary:
+                directory = Path(temporary)
+                port = maintenance.NativePort('a' * 40, 'e' * 64, 0)
+                port.baseline = self.socket_baseline(endpoint)
+                port.admission_directory = directory
+                self.assertNotIn('listen', port.baseline['binding']['incus_unit'])
+                resource: dict[str, Any] = {'candidate': {}, 'observed': {}, 'checks': {}, 'commands': []}
+                intent = {'provider_config_sha256': 'c' * 64}
+                intent_raw = maintenance.canonical(intent)
+                port.fixture_sha = maintenance.digest(intent_raw)
+                route_raw = b'{"schema_version":"tsw.route-state.v2"}'
+                activation = {'expires_at_utc': (datetime.now(timezone.utc) + timedelta(minutes=25)).isoformat()}
+                captured: dict[str, bytes] = {}
+                def save(name: str, value: Any) -> None:
+                    captured[name] = maintenance.canonical(value)
+                def read(path: Path) -> bytes:
+                    if path == maintenance.ROOT / maintenance.INTENT_REL:
+                        return intent_raw
+                    if path == directory / 'activation.json':
+                        return maintenance.canonical(activation)
+                    if path == directory / 'paused-resource.json':
+                        return captured['paused-resource.json']
+                    if path == maintenance.ROOT / maintenance.fixture.GO_REL:
+                        return b'{}'
+                    return route_raw
+                def unit(_runner: Any, name: str) -> dict[str, Any]:
+                    assert port.baseline is not None
+                    if name == 'incus.socket':
+                        return maintenance.incus_socket(port.baseline)
+                    if name == 'incus.service':
+                        return port.baseline['binding']['incus_unit']
+                    self.assertEqual(name, maintenance.DAEMON)
+                    return {'active_state': 'inactive'}
+                with patch.object(maintenance, 'read_private', side_effect=read), \
+                        patch.object(maintenance, 'validate_fixture_intent', return_value=intent), \
+                        patch.object(maintenance, 'source_pins', return_value=('a' * 40, dict.fromkeys(maintenance.FILES, 'f' * 64))), \
+                        patch.object(port, 'installed_binding', return_value={}), \
+                        patch.object(maintenance.inventory, '_systemctl_show', side_effect=unit) as observed_units, \
+                        patch.object(maintenance.inventory, '_resolve_executable', return_value=('incus_system', 'system:incus')), \
+                        patch.object(port, 'interpreter', return_value='/trusted/python'), \
+                        patch.object(port, 'command', return_value=maintenance.canonical(resource)) as command, \
+                        patch.object(maintenance.inventory.Runner, 'run', return_value=(0, b'Client version: 6.0.5\nServer version: 6.0.5\n', b'')) as version, \
+                        patch.object(maintenance, 'Journal') as journal, \
+                        patch.object(maintenance.Path, 'exists', return_value=True), \
+                        patch.object(maintenance, 'validate_paused_admission', return_value='b' * 64) as validate, \
+                        patch.object(port, 'unit', return_value='inactive'):
+                    journal.return_value.save.side_effect = save
+                    self.assertEqual(port.await_admission(), 'b' * 64)
+                    version.assert_called_once()
+                    self.assertEqual(version.call_args.args[0], ['/usr/bin/incus', '--force-local', 'version'])
+                    self.assertEqual(version.call_args.kwargs['env']['INCUS_SOCKET'], socket_path)
+                    self.assertEqual(command.call_count, 2)  # fixed resource child and route capture, no effects
+                    self.assertEqual(json.loads(captured['paused-resource.json'])['observed']['incus_server_version'], ['6.0.5'])
+                    self.assertEqual(validate.call_args.args[4], route_raw)
+                    self.assertEqual(sum(call.args[1] == 'incus.socket' for call in observed_units.call_args_list), 3)
+
+    def test_missing_duplicate_unloaded_and_noncanonical_socket_observations_refuse(self) -> None:
+        valid = self.socket_baseline()
+        socket = copy.deepcopy(valid['preserve']['incus_units'][1])
+        variants: tuple[list[dict[str, Any]], ...] = ([], [socket, socket],
+            [socket | {'listen': 'foreign'}], [socket | {'listen': []}],
+            [socket | {'load_state': 'not-found'}], [socket | {'main_pid': True}],
+            [socket | {'extra': 'unknown'}])
+        for rows in variants:
+            value = copy.deepcopy(valid)
+            value['preserve']['incus_units'] = rows
+            port = maintenance.NativePort('a' * 40, 'b' * 64, 1000)
+            with self.subTest(rows=rows), patch.object(port, 'budget'), \
+                    patch.object(port, 'installed_binding', return_value={}), \
+                    patch.object(maintenance.inventory, '_systemctl_show') as show, \
+                    patch.object(maintenance.inventory.Runner, 'run') as command:
+                with self.assertRaisesRegex(maintenance.MaintenanceError, 'INCUS_SOCKET_INVALID'):
+                    port.check_binding(value, active=False)
+                show.assert_not_called()
+                command.assert_not_called()
+
+    def test_current_full_socket_drift_blocks_before_service_or_version_query(self) -> None:
+        value = self.socket_baseline()
+        current = maintenance.incus_socket(value) | {'unit_file_state': 'disabled'}
+        port = maintenance.NativePort('a' * 40, 'b' * 64, 1000)
+        with patch.object(port, 'budget'), patch.object(port, 'installed_binding', return_value={}), \
+                patch.object(maintenance.inventory, '_systemctl_show', return_value=current) as show, \
+                patch.object(maintenance.inventory.Runner, 'run') as command:
+            with self.assertRaisesRegex(maintenance.MaintenanceError, 'INCUS_SOCKET_DRIFT'):
+                port.check_binding(value, active=False)
+            self.assertEqual(show.call_args.args[1], 'incus.socket')
+            self.assertEqual(show.call_count, 1)
+            command.assert_not_called()
+
     def test_named_phase_budgets_are_fresh_and_commands_never_shrink(self) -> None:
         port = maintenance.NativePort('a' * 40, 'b' * 64, 1000)
         with patch.object(maintenance.time, 'monotonic', return_value=1100):
