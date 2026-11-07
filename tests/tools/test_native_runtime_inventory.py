@@ -59,7 +59,7 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
                     {"name": "bravo", "project": "alpha", "description": "", "config": {}, "devices": {},
                      "used_by": ["/1.0/instances/web?project=alpha"]},
                 ]))
-            elif suffix == ["list", "--project", "alpha", "--format", "json"]:
+            elif suffix == ["query", "--request", "GET", "--raw", "/1.0/instances?project=alpha&recursion=1"]:
                 out = self._json(self.list_rows.get("instances", [{
                     "name": "web", "project": "alpha", "architecture": "x86_64", "config": {}, "devices": {},
                     "ephemeral": False, "expanded_config": {}, "expanded_devices": {}, "profiles": ["bravo"],
@@ -116,7 +116,8 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
                 raise AssertionError(f"unexpected inventory argv: {argv}")
             if suffix[0] == "query":
                 metadata = json.loads(out)
-                metadata.update(self.detail_overrides.get(command_id, {}))
+                if isinstance(metadata, dict):
+                    metadata.update(self.detail_overrides.get(command_id, {}))
                 out = self._json({"type": "sync", "status": "Success", "status_code": 200,
                                   "operation": "", "error_code": 0, "error": "", "metadata": metadata})
             self.records.append({"command_id": command_id, "safe_args": safe_args or [], "exit_status": 0,
@@ -567,6 +568,7 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
             ("projects", ("a+b",), "a+b", "/1.0/projects/a%2Bb?project=a%2Bb"),
             ("profiles", ("a+b",), "p+q", "/1.0/profiles/a%2Bb?project=p%2Bq"),
             ("instances", ("web",), "default", "/1.0/instances/web?project=default"),
+            ("instance-list", (), "p+q", "/1.0/instances?project=p%2Bq&recursion=1"),
             ("networks", ("net",), "default", "/1.0/networks/net?project=default"),
             ("storage-pools", ("pool",), "default", "/1.0/storage-pools/pool?project=default"),
             ("storage-volumes", ("pool", "virtual-machine", "web"), "default",
@@ -581,6 +583,7 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
         env = {**inventory.ENV_BASE, "INCUS_SOCKET": "/run/incus/unix.socket"}
         cases = [("unknown", ("web",), "alpha"), ("profiles", (), "alpha"),
                  ("profiles", ("web", "other"), "alpha"),
+                 ("instance-list", ("recursion=2",), "alpha"),
                  ("projects", ("other",), "alpha"),
                  ("storage-volumes", ("pool", "DELETE", "web"), "alpha")]
         for value in ("../web", ".", "..", "/web", "web?project=other", "web#x", "web%2Fx",
@@ -629,6 +632,46 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
                 with self.assertRaises(inventory.InventoryError):
                     inventory._detail(runner, ["/usr/bin/incus", "--force-local"], "profiles", ("web",), "alpha",
                                       command_id="incus_profile_show", env={}, safe_args=[])
+
+    def test_instance_collection_requires_bounded_array_metadata(self) -> None:
+        runner = Mock()
+        env = {**inventory.ENV_BASE, "INCUS_SOCKET": "/run/incus/unix.socket"}
+        metadata: Any
+        for metadata in (None, {}, "value", 2):
+            with self.subTest(metadata=metadata):
+                runner.run.return_value = (0, json.dumps(self._api_response(metadata)).encode(), b"")
+                with self.assertRaisesRegex(inventory.InventoryError, "API_RESPONSE_INVALID"):
+                    inventory._detail(runner, ["/usr/bin/incus", "--force-local"], "instance-list", (), "alpha",
+                                      command_id="incus_instance_list", env=env, safe_args=["alpha"])
+        runner.run.return_value = (0, json.dumps(self._api_response([{}] * 8)).encode(), b"")
+        with patch.object(inventory, "MAX_ENTITIES", 7):
+            with self.assertRaisesRegex(inventory.InventoryError, "ENTITY_LIMIT"):
+                inventory._detail(runner, ["/usr/bin/incus", "--force-local"], "instance-list", (), "alpha",
+                                  command_id="incus_instance_list", env=env, safe_args=["alpha"])
+        runner.run.return_value = (0, json.dumps(self._api_response([])).encode(), b"")
+        self.assertEqual(inventory._detail(runner, ["/usr/bin/incus", "--force-local"], "instance-list", (), "alpha",
+                                          command_id="incus_instance_list", env=env, safe_args=["alpha"]), [])
+        runner.run.assert_called_with(
+            ["/usr/bin/incus", "--force-local", "query", "--request", "GET", "--raw",
+             "/1.0/instances?project=alpha&recursion=1"], env=env, command_id="incus_instance_list", safe_args=["alpha"])
+
+    def test_instance_collection_rejects_full_state_fields_and_nonobject_rows(self) -> None:
+        base = {"name": "web", "project": "alpha", "config": {}, "devices": {}, "ephemeral": False,
+                "profiles": ["bravo"], "stateful": False, "type": "container", "status": "Running"}
+        for extra in ("state", "backups", "snapshots"):
+            runner = self._InventoryRunner()
+            runner.list_rows["instances"] = [{**base, extra: []}]
+            with self.subTest(extra=extra), self.assertRaisesRegex(inventory.InventoryError, "RESOURCE_SCHEMA_INVALID"):
+                inventory._inventory_client(runner, "incus_system", "/run/incus/unix.socket", incus=True,
+                                            before_query=lambda: None)
+        runner = self._InventoryRunner()
+        runner.list_rows["instances"] = [None]  # type: ignore[list-item]
+        with self.assertRaisesRegex(inventory.InventoryError, "RESOURCE_SCHEMA_INVALID"):
+            inventory._inventory_client(runner, "incus_system", "/run/incus/unix.socket", incus=True,
+                                        before_query=lambda: None)
+        with self.assertRaises(AssertionError):
+            self._InventoryRunner().run(["/snap/bin/lxc", "--force-local", "list", "--project", "alpha", "--format", "json"],
+                                        command_id="lxd_instance_list")
 
     def test_historical_unsupported_show_json_is_not_a_fixture_contract(self) -> None:
         with self.assertRaises(AssertionError):
@@ -778,7 +821,7 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
             ["version"], ["project", "list", "--format", "json"],
             ["query", "--request", "GET", "--raw", "/1.0/projects/alpha?project=alpha"],
             ["profile", "list", "--project", "alpha", "--format", "json"],
-            ["list", "--project", "alpha", "--format", "json"],
+            ["query", "--request", "GET", "--raw", "/1.0/instances?project=alpha&recursion=1"],
             ["network", "list", "--project", "alpha", "--format", "json"],
             ["storage", "list", "--project", "alpha", "--format", "json"],
             ["query", "--request", "GET", "--raw", "/1.0/profiles/zeta?project=alpha"],
@@ -810,7 +853,7 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
             ["version"], ["project", "list", "--format", "json"],
             ["query", "--request", "GET", "--raw", "/1.0/projects/alpha?project=alpha"],
             ["profile", "list", "--project", "alpha", "--format", "json"],
-            ["list", "--project", "alpha", "--format", "json"],
+            ["query", "--request", "GET", "--raw", "/1.0/instances?project=alpha&recursion=1"],
             ["network", "list", "--project", "alpha", "--format", "json"],
             ["storage", "list", "--project", "alpha", "--format", "json"],
             ["query", "--request", "GET", "--raw", "/1.0/profiles/zeta?project=alpha"],

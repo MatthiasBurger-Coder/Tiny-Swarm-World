@@ -549,10 +549,12 @@ def _consumer_refs(value: Any, project: str) -> list[dict[str, str]]:
 
 def _detail_uri(kind: str, names: tuple[str, ...], project: str) -> str:
     arities = {"projects": 1, "profiles": 1, "instances": 1, "networks": 1,
-               "storage-pools": 1, "storage-volumes": 3}
+               "storage-pools": 1, "storage-volumes": 3, "instance-list": 0}
     if kind not in arities or len(names) != arities[kind]:
         raise InventoryError("DETAIL_PATH_INVALID")
     encoded_project = quote(_name(project), safe="")
+    if kind == "instance-list":
+        return f"/1.0/instances?project={encoded_project}&recursion=1"
     encoded = [quote(_volume_type(name) if kind == "storage-volumes" and index == 1
                      else _name(name), safe="") for index, name in enumerate(names)]
     if kind == "projects" and names[0] != project:
@@ -565,7 +567,7 @@ def _detail_uri(kind: str, names: tuple[str, ...], project: str) -> str:
 
 
 def _detail(runner: Runner, prefix: list[str], kind: str, names: tuple[str, ...],
-            project: str, *, command_id: str, env: dict[str, str], safe_args: list[str]) -> dict[str, Any]:
+            project: str, *, command_id: str, env: dict[str, str], safe_args: list[str]) -> Any:
     if prefix not in (["/usr/bin/incus", "--force-local"], ["/usr/bin/lxc", "--force-local"],
                       ["/snap/bin/lxc", "--force-local"]):
         raise InventoryError("COMMAND_IDENTITY_BLOCKED")
@@ -578,8 +580,10 @@ def _detail(runner: Runner, prefix: list[str], kind: str, names: tuple[str, ...]
             or type(response["status_code"]) is not int or response["status_code"] != 200
             or response["operation"] != "" or type(response["error_code"]) is not int
             or response["error_code"] != 0 or response["error"] != ""
-            or not isinstance(response["metadata"], dict)):
+            or type(response["metadata"]) is not (list if kind == "instance-list" else dict)):
         raise InventoryError("API_RESPONSE_INVALID")
+    if len(response["metadata"]) > MAX_ENTITIES:
+        raise InventoryError("ENTITY_LIMIT")
     return response["metadata"]
 
 
@@ -720,8 +724,8 @@ def _inventory_client(runner: Runner, identity: str, socket: str, *, incus: bool
         profiles = _parse_json_command(runner, prefix + ["profile", "list", "--project", project, "--format", "json"],
                                        command_id=f"{kind}_profile_list", env=env, safe_args=[project])
         before_query()
-        instances = _parse_json_command(runner, prefix + ["list", "--project", project, "--format", "json"],
-                                        command_id=f"{kind}_instance_list", env=env, safe_args=[project])
+        instances = _detail(runner, prefix, "instance-list", (), project,
+                            command_id=f"{kind}_instance_list", env=env, safe_args=[project])
         before_query()
         networks = _parse_json_command(runner, prefix + ["network", "list", "--project", project, "--format", "json"],
                                        command_id=f"{kind}_network_list", env=env, safe_args=[project])

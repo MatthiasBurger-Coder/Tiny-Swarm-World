@@ -1,5 +1,44 @@
 # S449-02F4 — normalize the verified Snap wrapper and direct LXD child
 
+## 2026-11-07 ordinary Instance collection transport
+
+The exact f495969e normal native collector returned RESOURCE_SCHEMA_INVALID,
+no artifact, at 14:27:38 UTC. Separate approved schema-only diagnosis at
+14:29:56 UTC identifies _only_keys on an Instance-shaped object with three
+unknown fields, last query lxd_profile_show exit 0, command count 197. The
+previous nil-collection hypothesis is not established and grants no coercion.
+
+Pinned LXD5.21.9 lxc/list.go renders []api.InstanceFull, whose extra state,
+backups and snapshots are outside this collector's closed ordinary Instance
+DTO. Their actual unknown names were not emitted by the diagnostic and are
+not claimed as observed. This independently known CLI/DTO mismatch is enough
+to replace the collection transport; no unknown field is admitted or dropped.
+https://raw.githubusercontent.com/canonical/lxd/lxd-5.21.9/lxc/list.go
+https://raw.githubusercontent.com/canonical/lxd/lxd-5.21.9/shared/api/instance.go
+https://raw.githubusercontent.com/lxc/incus/v6.0.5/shared/api/instance.go
+
+Serial F4 collector/test and normative/workflow/evidence authoring locks remain.
+Extend the existing closed URI template set by ONLY instance-list, arity zero:
+/1.0/instances?project={encoded_validated_project}&recursion=1. Fixed request GET,
+--raw, fixed local client/--force-local and explicit selected socket. No caller
+URI, recursion override, filter, all-projects, method, data or remote option.
+Recursion 1 requests ordinary Instance objects, not full runtime/snapshot data.
+Validate the same exact typed synchronous seven-key success envelope. Require
+metadata to be an actual list of at most MAX_ENTITIES; detail-kind metadata
+must still be a dict. Reuse strict JSON duplicate/constant/UTF-8 rejection.
+Every member then passes existing closed Instance DTO/schema/ownership checks.
+
+Replace only the current instance collection CLI list command; preserve its
+command ID/safe arguments, before_query position, all detail observations,
+identity/reciprocity/redaction and command/time/byte/entity limits. Other CLI
+list/version commands remain unchanged. No normalization or budget increase.
+Tests independently assert exact fixed collection GET/raw URI on both client
+paths, positive complete ordinary API rows, malformed/error/duplicate envelope,
+wrong/oversized metadata, and that full Instance DTO extra fields are rejected
+rather than discarded. Keep all existing graph/drift/refusal regressions.
+Focused then all seven PC-WSL gates on exact source. No live release until a
+new committed-source normal capture phase is independently reviewed.
+
 ## 2026-11-07 exact CLI read-only detail API compatibility
 
 Current a0ee2ccd normal capture returns COMMAND_FAILED. The separately reviewed
