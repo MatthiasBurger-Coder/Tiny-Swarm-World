@@ -382,3 +382,43 @@ snapshot selectors stay unsupported. A fresh committed-source driver/bundle/
 14-pin review is required before ONE new native read-only capture. No snapshot,
 profile, feature, instance, daemon/service, data or Windows-rule mutation;
 fixture acceptance, runtime capability and Epic completion remain unreleased.
+
+
+## Native schema5 execution and bounded result
+
+Both independent roles approved one normal read-only capture after clean commit
+`711f397d5a3c5796f7da4c943976d5a362c50d6a`, using fresh root task and14pins.
+Driver SHA256 `7608d8bbf58685eca7a11a345b7991b8bf2b34e4f0967f1346050bb9fa3c1569`,
+command `4251339b64fbf5606fd59836b0341f0a88bf68e13322efdd9883069e1d0dc927`,
+bundle `b6e4a0f2c1b91222739496e4f91082a2f38b44fc4089339b60e3eb7bc4800c17`.
+All checked sequential staging steps exited0. Protected bundle/driver hashes
+matched before root isolated execution. Exactly one collector call completed
+at2026-11-07T18:43:06.830375+00:00, exit0 READ_ONLY_INVENTORY_COMPLETE.
+Validated schema5 artifact SHA256
+`e800b8c9d0d34722368daff7dddc723c76c79bb5d8f202eb22dfd62d921d09ab`,
+197712bytes/1546 command records: unchanged2048/byte/time limits sufficed.
+
+Both roles separately reviewed artifact-only transport command
+`f534c73d5d704aac11db916a74fc2a512c126c486e2feff7d62162c6d0c40942`:
+bounded fixedrootfile O_NOFOLLOW/root600, twiceexpectedhash/stableFDmetadata,
+user700directoryFD/freshopenat O_EXCL|O_NOFOLLOW0600, FDfchown/fsync. It ran
+once exit0. Root exclusive private0600 ext4 copy matches exactartifact SHA.
+No new runtime queries or raw DTO/proc/env/log exports. No snapshot mutation.
+
+Actual LXD inventory contains the exactthree named instances, all Running;
+that supersedes historical stopped observations. The Incus issue447 instance
+is Stopped and retains two stored snapshots; other Incus projects/resources
+remain protected. Collection and canonical graph validation are now live-proven
+for this capture, including inherited views and these Incus stored leaves.
+There were no observed LXD leaves, so LXD snapshot support remains mocked-only.
+No historical instance safety or maintenance authority follows.
+
+Both independent roles assess S02G BLOCKED: exclusive product ownership of
+LXD daemon/defaultprofile/lxdbr0/defaultpool is not established. Defaultprofile
+is an additional pool/network consumer despite empty instance used_by. Interface
+visibility with managed=false is not daemonownership. Names/digests/consumer
+closure are not TSW adoption, physical storage identity or installation proof.
+No service stop/replacement, qualification fixture, capability or Epic completion.
+Further progress requires ownership/coexistence-policy clarification and fresh
+scenario-specific maintenance/recovery review, separately from this successful
+read-only collection. Existing state remains unchanged.
