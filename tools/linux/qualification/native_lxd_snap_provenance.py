@@ -416,8 +416,10 @@ class _Proof:
             raise ProvenanceError("SNAP_WRAPPER_FILE_UNVERIFIED")
         return values[0], values[1]
 
-    def package(self, pid: int, base: str) -> tuple[tuple[Any, ...], tuple[int, int]]:
+    def package(self, pid: int, base: str, *, root_mode: bool = False) -> tuple[tuple[Any, ...], tuple[int, int]]:
         script = self.pair(pid, base + "/commands/daemon.start", limit=METADATA_LIMIT)
+        if root_mode and hashlib.sha256(script[0].data).hexdigest() != _ESCAPED_ROOT_WRAPPER_SHA256:
+            raise ProvenanceError("SNAP_WRAPPER_FILE_UNVERIFIED")
         metadata = self.pair(pid, base + "/meta/snap.yaml", limit=METADATA_LIMIT)
         try:
             document = yaml.load(_text(metadata[0].data, "SNAP_WRAPPER_METADATA_INVALID"), Loader=_UniqueLoader)
@@ -428,6 +430,13 @@ class _Proof:
                 raise ProvenanceError("SNAP_WRAPPER_METADATA_INVALID")
         except (yaml.YAMLError, ValueError, TypeError, RecursionError) as exc:
             raise ProvenanceError("SNAP_WRAPPER_METADATA_INVALID") from exc
+        if root_mode:
+            server = self.pair(pid, base + "/sbin/lxd", executable=True)
+            stop_hook = self.pair(pid, base + "/bin/lxd", executable=True)
+            if server[0].identity == stop_hook[0].identity:
+                raise ProvenanceError("SNAP_WRAPPER_FILE_UNVERIFIED")
+            split_binaries = (("sbin/lxd", server), ("bin/lxd", stop_hook))
+            return (script, metadata, split_binaries), server[0].identity
         binaries: list[tuple[str, tuple[Observation, Observation]]] = []
         for suffix, other in (("sbin/lxd", "bin/lxd"), ("bin/lxd", "sbin/lxd")):
             path = base + "/" + suffix
@@ -469,11 +478,8 @@ class _Proof:
         environment = self.main_environment(pid)
         base, argv, _ = environment
         shell = self.shell(pid, argv, main)
-        package, binary = self.package(pid, base)
-        if main.cgroup in {b"0::/", b"0::/\n"}:
-            script = package[0][0]
-            if hashlib.sha256(script.data).hexdigest() != _ESCAPED_ROOT_WRAPPER_SHA256:
-                raise ProvenanceError("SNAP_WRAPPER_FILE_UNVERIFIED")
+        root_mode = main.cgroup in {b"0::/", b"0::/\n"}
+        package, binary = self.package(pid, base, root_mode=root_mode)
         children = self.children(pid)
         candidates = [self.process(child, group) for child in children]
         if any(child.cgroup != main.cgroup for child in candidates):
@@ -486,7 +492,7 @@ class _Proof:
         selected = matches[0]
         if (self.unit(row) != unit or self.context(unit) != context or self.process(pid, group) != main
                 or self.main_environment(pid) != environment or self.shell(pid, argv, main) != shell
-                or self.package(pid, base) != (package, binary) or self.children(pid) != children
+                or self.package(pid, base, root_mode=root_mode) != (package, binary) or self.children(pid) != children
                 or self.process(selected.pid, group) != selected):
             raise ProvenanceError("SNAP_WRAPPER_DRIFT")
         return "lxd_snap", "snap:lxd"

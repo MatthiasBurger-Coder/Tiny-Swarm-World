@@ -9,11 +9,11 @@ hashes are bound there; focused 235 PASS, all seven QUALITY stages PASS with
 3,232 tests and 36 skipped, exit 0. Its subsequent installed-generator terminal
 space correction passed 236 focused tests and all seven gates (3,233 tests,
 36 skipped, exit 0); exact source/review/log hashes are in the same record.
-This is a local correction contribution,
-including the later pinned escaped-root proof documented in the current record:
+The later pinned escaped-root proof is documented in the current record:
 243 focused tests and combined F4+S02I quality (3,240 tests, 36 skipped, all
-seven gates, exit 0). Read-only elevated capture remains separately gated.
-not native ownership admission, listener capability or issue completion.
+seven gates, exit 0). These are local corrections, not native ownership
+admission, listener capability or issue completion. Elevated read-only capture
+and later diagnostics retain their separately gated scope and non-pass results.
 Historical v1.41 results below retain their original scope. Any new native
 capture requires a fresh post-commit exact-source read-only plan.
 

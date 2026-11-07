@@ -117,6 +117,7 @@ class WrapperProofTests(unittest.TestCase):
     def root_wrapper(self, group: bytes = b"0::/\n") -> bytes:
         script = b"# synthetic pinned wrapper fixture; never executed\n"
         self.pair("commands/daemon.start", regular(50, script, executable=True))
+        self.pair("bin/lxd", regular(31, executable=True))
         for pid in (101, 202):
             self.fs.files[f"/proc/{pid}/cgroup"] = regular(3000 + pid, group, readonly=False)
         return script
@@ -157,6 +158,7 @@ class WrapperProofTests(unittest.TestCase):
         with patch.object(proof, "_ESCAPED_ROOT_WRAPPER_SHA256", hashlib.sha256(script).hexdigest()):
             for main, child in cases:
                 with self.subTest(main=main, child=child):
+                    self.pair("bin/lxd", regular(30 if main == legacy else 31, executable=True))
                     self.fs.files["/proc/101/cgroup"] = regular(3101, main, readonly=False)
                     self.fs.files["/proc/202/cgroup"] = regular(3202, child, readonly=False)
                     self.assert_blocked("SNAP_WRAPPER_PROC_INVALID")
@@ -170,6 +172,9 @@ class WrapperProofTests(unittest.TestCase):
                     with self.subTest(initial=initial, pid=pid):
                         self.fs.sequences.clear()
                         self.root_wrapper(initial)
+                        if initial == legacy:
+                            self.pair("bin/lxd", regular(30, executable=True))
+                        self.assertEqual(self.run_proof(), ("lxd_snap", "snap:lxd"))
                         path = f"/proc/{pid}/cgroup"
                         first = self.fs.files[path]
                         self.fs.sequences[path] = [first, replace(first, data=final)]
@@ -206,6 +211,55 @@ class WrapperProofTests(unittest.TestCase):
                 with self.subTest(inode=final.inode):
                     self.fs.sequences[path] = [first, final]
                     self.assert_blocked()
+
+    def test_root_split_layout_never_qualifies_the_stop_hook_as_daemon(self) -> None:
+        script = self.root_wrapper()
+        self.fs.files["/proc/202/exe"] = regular(31, executable=True)
+        with patch.object(proof, "_ESCAPED_ROOT_WRAPPER_SHA256", hashlib.sha256(script).hexdigest()):
+            self.assert_blocked("SNAP_WRAPPER_CHILD_ABSENT")
+
+    def test_root_requires_both_distinct_regular_trusted_binary_views(self) -> None:
+        for suffix in ("sbin/lxd", "bin/lxd"):
+            for variant in ("missing", "alias", "same_inode", "uid", "writable", "not_readonly", "mismatched_view"):
+                with self.subTest(suffix=suffix, variant=variant):
+                    self.setUp()
+                    script = self.root_wrapper()
+                    path = "/snap/lxd/123/" + suffix
+                    original = self.fs.files[path]
+                    if variant == "missing":
+                        del self.fs.files[path]
+                    elif variant == "alias":
+                        self.fs.links[path] = "../" + ("bin/lxd" if suffix == "sbin/lxd" else "sbin/lxd")
+                    elif variant == "same_inode":
+                        self.pair(suffix, replace(original, inode=(31 if suffix == "sbin/lxd" else 30)))
+                    elif variant == "uid":
+                        self.pair(suffix, replace(original, uid=1000))
+                    elif variant == "writable":
+                        self.pair(suffix, replace(original, mode=stat.S_IFREG | 0o777))
+                    elif variant == "not_readonly":
+                        self.pair(suffix, replace(original, readonly=False))
+                    else:
+                        self.fs.files["/proc/101/root" + path] = replace(original, inode=999)
+                    with patch.object(proof, "_ESCAPED_ROOT_WRAPPER_SHA256", hashlib.sha256(script).hexdigest()):
+                        self.assert_blocked("SNAP_WRAPPER_FILE_UNVERIFIED")
+
+    def test_root_rechecks_server_and_stop_hook_inodes(self) -> None:
+        for suffix in ("sbin/lxd", "bin/lxd"):
+            with self.subTest(suffix=suffix):
+                self.setUp()
+                script = self.root_wrapper()
+                for prefix in ("", "/proc/101/root"):
+                    path = prefix + "/snap/lxd/123/" + suffix
+                    first = self.fs.files[path]
+                    self.fs.sequences[path] = [first, replace(first, inode=999)]
+                with patch.object(proof, "_ESCAPED_ROOT_WRAPPER_SHA256", hashlib.sha256(script).hexdigest()):
+                    self.assert_blocked("SNAP_WRAPPER_DRIFT")
+
+    def test_legacy_reverse_alias_remains_supported_without_root_pin(self) -> None:
+        self.pair("bin/lxd", regular(30, executable=True))
+        for prefix in ("", "/proc/101/root"):
+            self.fs.links[prefix + "/snap/lxd/123/sbin/lxd"] = "../bin/lxd"
+        self.assertEqual(self.run_proof(), ("lxd_snap", "snap:lxd"))
 
     def test_wrapper_without_child_cannot_establish_identity(self) -> None:
         self.fs.files["/proc/101/task/101/children"] = regular(42)

@@ -50,6 +50,43 @@ of the root process executable/environment are unavailable. A future elevated
 read-only capture requires a separate exact-source plan with root-private
 evidence; never change proc permissions or claim the unavailable reads passed.
 
+### Pinned-root split server/stop-hook layout
+
+The separately approved privileged capture and one proof diagnostic remained
+non-pass. The last entered stage was package identity. Bounded inspection of
+the active numeric Snap package confirmed the exact pinned wrapper and two
+distinct root-owned, non-writable, read-only regular files at `sbin/lxd` and
+`bin/lxd`. Canonical packaging explicitly builds the actual server at `sbin/lxd`
+and maps the stop-hook wrapper to `bin/lxd`:
+https://raw.githubusercontent.com/canonical/lxd-pkg-snap/latest-edge/snapcraft.yaml.
+That establishes package roles, not authenticity of the installed revision.
+
+For observed-root mode only, the full paired wrapper digest must match the
+literal approved pin before binary selection. Require both fixed paths as
+distinct no-follow root-owned regular read-only executables, with matching
+host/process views. Select ONLY `sbin/lxd` as the unique direct-child executable
+authority. Retain both pairs in the package snapshot and stable rereads. Never
+infer authority from PATH, argv, a filename alone, or either-inode fallback.
+The exact script/package/metadata/MainPID/shell/UID/PPID/start/cgroup proof is
+still required. Debug/unrelated or stop-hook-only children cannot qualify.
+
+Derive root mode only from the already observed main cgroup in `run()` and
+reuse that bound mode during rechecks. Traditional unit-group mode retains the
+original one-inode/alias algorithm. Unknown wrapper pins, missing files,
+symlinks/aliases, same-inode root layouts, untrusted/mismatched views and any
+drift remain blocked. Snapshotting the stop-hook must not be omitted just
+because only the server is the authority. Binary identity observations remain
+protected by their paired readonly package mounts; no unbounded binary-content
+read is introduced.
+
+Architecture/security and tester/DevOps accepted this bounded same-slice
+compatibility decision before code. Required regressions include known-root
+split success, stop-hook-only/debug/missing/ambiguous children, same-inode or
+alias root layouts, either missing/untrusted/mismatched file, server/stop-hook
+inode drift, and all earlier unknown-pin/group/process failures. Preserve
+legacy unpinned alias success and separate-inode refusal. Exact source review,
+focused/full PC-WSL verification and a new host plan precede another capture.
+
 The current exact-source native read-only attempt at `b87fe5c9` returned
 `SNAP_WRAPPER_CONTEXT_BLOCKED` before inventory/artifact creation. Effective
 unit checks and the canonical environment passed. The installed read-only LXD
