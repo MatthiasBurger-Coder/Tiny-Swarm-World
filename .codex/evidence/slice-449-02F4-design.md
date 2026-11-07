@@ -1,5 +1,29 @@
 # S449-02F4 — normalize the verified Snap wrapper and direct LXD child
 
+## 2026-11-07 inherited profile views and schema 4 (workflow v1.47)
+
+The normative contract is `.codex/evidence/epic440-profile-inventory-20261107.md`,
+plan SHA256 `b05ec03d298bdaee8098cb19bcfc2b11a1f7062805c23b7812c9d0a60d84051e`.
+Overall native schema 4 supersedes schema 3 without migrating old artifacts.
+Verified project profile flags determine effective scope; BOTH pinned family
+Profile DTOs must name the actual owner. Full inherited sets/metadata/users/
+producer evidence must equal canonical default views. Ordered unique instance
+profile lists retain API sequence; membership and consumer relations resolve
+through actual profile owner. Profile ownership is not TSW ownership.
+
+Canonical raw profile NIC/storage producers are counted once in owner feature
+scope; instance local/expanded producers remain in their own scope. Project
+profile membership includes only owned rows. Whole-device local override is the
+primary-source fixture model; production does not reconstruct hidden expansion.
+This complete model replaces only the earlier profile-inheritance unsupported
+boundary. No project/profile writes or adoption. Root admission, global pools,
+returned volume owner checks, network/storage resource semantics, all existing
+queries/2048/time/byte/entity limits and private evidence controls remain.
+Exact independent plan/normative and implementation reviews, PC gates and a
+separately released committed schema4 capture remain required. No runtime,
+capability, fixture or maintenance GO follows. Historical schema3/earlier
+contracts and failed observations below retain their exact prior scope.
+
 ## 2026-11-07 global storage graph and schema 3 (workflow v1.46)
 
 The normative amendment is `.codex/evidence/epic440-storage-graph-20261107.md`,

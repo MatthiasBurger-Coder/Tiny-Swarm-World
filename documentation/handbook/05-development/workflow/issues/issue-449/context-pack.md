@@ -1,6 +1,6 @@
 # Context pack — issue-449-lcm-w09
 
-## Current continuation — v1.46, 2026-11-07
+## Current continuation — v1.47, 2026-11-07
 
 Branch `fix/epic440-completion-20261107`, baseline `b87fe5c9`. The user requests
 complete Epic #440 remediation on the two named hosts. Current bounded phase:
@@ -15,19 +15,21 @@ Bounded LXD/Incus volume DTO pool identity follows
 `.codex/evidence/epic440-volume-dto-20261107.md`; ownership and schema 2 remain
 unchanged. No runtime or capture release follows this amendment.
 
-Native artifact schema 3 explicitly supersedes schema 2 under
-`.codex/evidence/epic440-storage-graph-20261107.md`; earlier schema files stay
-historical, with no invented migration. Global pools, separate API/effective
-storage graphs and retained producer/root evidence preserve actual ownership.
-Network field semantics remain unchanged. Proposed fixed server-root initial
-and final raw GETs (two per active queried family, max four) require strict
-trusted/default/family/noncluster admission and exact pinned DTO/version checks,
-all original per-query guards and unchanged limits. Root secrets remain RAM-only.
-Admitted active families require exactly one default project; empty/default-
-missing inventories are incomplete. Inactive families remain empty/null-admitted.
-Reader command order and list/detail storage identity agreement are required.
-Unsupported cases remain blockers. Code verification, fresh schema3 capture and
-runtime qualification are separate releases; none is implied by this amendment.
+Native artifact schema 4 explicitly supersedes schema 3 under
+`.codex/evidence/epic440-profile-inventory-20261107.md`. Inherited profile views
+retain actual canonical owner/digest/effective scope, exact ordered membership
+and cross-project consumers. Canonical raw profile producers are counted once
+in owner scopes; local and expanded instance producers remain in instance scopes.
+No feature/profile mutation or implicit adoption. Older artifacts stay historical;
+no synthetic migration. Existing schema3 root/storage and network resource
+semantics, strict returned volume ownership and all unsupported cases otherwise
+remain. The two fixed initial/final root GETs per active family (max four), full
+pinned DTO/noncluster/CLI admission, original provenance and limits are unchanged.
+Admitted active families still require exactly one default project; inactive
+families remain empty/null-admitted. Reader phase order and observation identity
+agreement remain required. Raw root/profile configuration stays unexported.
+Exact code/PC verification and a fresh schema4 capture are separate releases;
+no fixture, runtime capability or maintenance permission follows this amendment.
 
 Native F4 command allowance is explicitly 2048 total, including every repeated
 trust check; the earlier native 256 allowance is superseded only for this

@@ -369,9 +369,97 @@ def _same_consumers(left: Any, right: Any, project: str) -> bool:
     return _consumer_refs(left, project) == _consumer_refs(right, project)
 
 
+def _ordered_profiles(value: Any) -> list[str]:
+    if not isinstance(value, list) or len(value) > MAX_ENTITIES:
+        raise InventoryError("PROFILE_LIST_INVALID")
+    names = []
+    for entry in value:
+        if not isinstance(entry, str) or not NAME.fullmatch(entry):
+            raise InventoryError("PROFILE_LIST_INVALID")
+        names.append(entry)
+    if len(names) != len(set(names)):
+        raise InventoryError("PROFILE_LIST_INVALID")
+    return names
+
+
+def _profile_metadata(row: dict[str, Any]) -> dict[str, Any]:
+    return {key: row[key] for key in ("description", "config", "devices") if key in row}
+
+
+def _profile_digest(row: dict[str, Any]) -> str:
+    return _network_digest(_profile_metadata(row))
+
+
+def _validate_profile_observations(rows: list[dict[str, Any]],
+                                   metadata: dict[tuple[str, str], dict[str, Any]]) -> None:
+    projects = {row["project"]: row for row in rows}
+    for row in rows:
+        owner = row["effective_profile_project"]
+        if owner not in projects:
+            raise InventoryError("PROFILE_CANONICAL_SCOPE_UNRESOLVED")
+        if owner != row["project"] and {profile["name"] for profile in row["profiles"]} != {
+                profile["name"] for profile in projects[owner]["profiles"]}:
+            raise InventoryError("PROFILE_INHERITED_VIEW_MISMATCH")
+        for profile in row["profiles"]:
+            canonical_key = (owner, profile["name"])
+            if canonical_key not in metadata:
+                raise InventoryError("PROFILE_CANONICAL_SCOPE_UNRESOLVED")
+            if metadata[(row["project"], profile["name"])] != metadata[canonical_key]:
+                raise InventoryError("PROFILE_INHERITED_VIEW_MISMATCH")
+
+
+def _profile_index(rows: list[dict[str, Any]]) -> dict[tuple[str, str], dict[str, Any]]:
+    projects = {row["project"]: row for row in rows}
+    canonical = {}
+    for row in rows:
+        flag = row["features_profiles"]
+        if flag is not None and type(flag) is not bool:
+            raise InventoryError("PROFILE_CANONICAL_SCOPE_UNRESOLVED")
+        owner = row["project"] if flag is True else "default"
+        if row["effective_profile_project"] != owner or owner not in projects:
+            raise InventoryError("PROFILE_CANONICAL_SCOPE_UNRESOLVED")
+        names = [_name(profile["name"]) for profile in row["profiles"]]
+        if len(names) != len(set(names)):
+            raise InventoryError("RESOURCE_DUPLICATE")
+        for profile in row["profiles"]:
+            if type(profile["owner_project"]) is not str or profile["owner_project"] != owner:
+                raise InventoryError("PROFILE_OWNER_PROJECT_MISMATCH")
+            if not isinstance(profile["metadata_digest"], str) or not re.fullmatch(r"[0-9a-f]{64}", profile["metadata_digest"]):
+                raise InventoryError("PROFILE_INHERITED_VIEW_MISMATCH")
+            if owner == row["project"]:
+                key = (owner, profile["name"])
+                if key in canonical:
+                    raise InventoryError("RESOURCE_DUPLICATE")
+                canonical[key] = profile
+    for row in rows:
+        owner = row["effective_profile_project"]
+        if owner != row["project"] and {profile["name"] for profile in row["profiles"]} != {
+                profile["name"] for profile in projects[owner]["profiles"]}:
+            raise InventoryError("PROFILE_INHERITED_VIEW_MISMATCH")
+        for profile in row["profiles"]:
+            target = canonical.get((owner, profile["name"]))
+            if target is None:
+                raise InventoryError("PROFILE_CANONICAL_SCOPE_UNRESOLVED")
+            if profile != target:
+                raise InventoryError("PROFILE_INHERITED_VIEW_MISMATCH")
+    return canonical
+
+
 def _validate_complete_ownership(rows: list[dict[str, Any]]) -> None:
     """Reject profile and consumer edges that do not resolve in the full inventory."""
     projects = {row["project"]: row for row in rows}
+    canonical_profiles = _profile_index(rows)
+    profile_users: dict[tuple[str, str], set[tuple[str, str, str]]] = {}
+    for row in rows:
+        for instance in row["instances"]:
+            for name in _ordered_profiles(instance["profiles"]):
+                key = (row["effective_profile_project"], name)
+                if key not in canonical_profiles:
+                    raise InventoryError("PROFILE_REFERENCE_UNRESOLVED")
+                profile_users.setdefault(key, set()).add(("instances", instance["name"], row["project"]))
+    for key, profile in canonical_profiles.items():
+        if _ref_set(profile["used_by"]) != profile_users.get(key, set()):
+            raise InventoryError("PROFILE_CONSUMER_RECIPROCITY_MISMATCH")
     resources: dict[str, dict[str, set[str]]] = {}
     for project, row in projects.items():
         resources[project] = {
@@ -383,20 +471,6 @@ def _validate_complete_ownership(rows: list[dict[str, Any]]) -> None:
                                 for pool in row["pools"] for volume in pool["volumes"]},
         }
     for project, row in projects.items():
-        for instance in row["instances"]:
-            if not set(instance["profiles"]).issubset(resources[project]["profiles"]):
-                raise InventoryError("PROFILE_REFERENCE_UNRESOLVED")
-        for profile in row["profiles"]:
-            expected_users = {
-                ("instances", instance["name"], project)
-                for instance in row["instances"] if profile["name"] in instance["profiles"]
-            }
-            actual_users = {
-                (ref["kind"], ref["name"], ref["project"])
-                for ref in profile["used_by"]
-            }
-            if actual_users != expected_users:
-                raise InventoryError("PROFILE_CONSUMER_RECIPROCITY_MISMATCH")
         for kind in ("profiles", "networks"):
             for resource in row[kind]:
                 for ref in resource["used_by"]:
@@ -420,8 +494,6 @@ def _project_network_flags(config: Any, project: str) -> tuple[bool | None, bool
             if key.startswith("restricted.networks.") or key == "restricted.devices.nic"):
         raise InventoryError("PROJECT_NETWORK_RESTRICTIONS_UNSUPPORTED")
     networks, profiles = flags
-    if project != "default" and profiles is not True:
-        raise InventoryError("PROJECT_PROFILE_INHERITANCE_UNSUPPORTED")
     return networks, profiles, project if networks is True else "default"
 
 
@@ -445,14 +517,17 @@ def _network_index(rows: list[dict[str, Any]]) -> dict[tuple[str, str], dict[str
 
 def _resolve_network_refs(rows: list[dict[str, Any]],
                           producers: dict[tuple[str, str, str], dict[str, dict[str, str]]]) -> None:
+    _profile_index(rows)
+    projects = {row["project"]: row for row in rows}
     canonical = _network_index(rows)
-    project_names = {row["project"] for row in rows}
+    project_names = set(projects)
     if any(row["effective_network_project"] not in project_names for row in rows):
         raise InventoryError("NETWORK_CANONICAL_SCOPE_UNRESOLVED")
     for row in rows:
-        scope = row["effective_network_project"]
         for kind in ("profiles", "instances"):
             for producer in row[kind]:
+                owner = producer["owner_project"] if kind == "profiles" else row["project"]
+                scope = projects[owner]["effective_network_project"]
                 refs = set()
                 for device in producers[(row["project"], kind, producer["name"])].values():
                     if device["type"] != "nic":
@@ -480,6 +555,7 @@ def _resolve_network_refs(rows: list[dict[str, Any]],
 
 
 def _validate_network_graph(rows: list[dict[str, Any]]) -> None:
+    _profile_index(rows)
     projects = {row["project"]: row for row in rows}
     if len(projects) != len(rows):
         raise InventoryError("PROJECT_DUPLICATE")
@@ -490,8 +566,6 @@ def _validate_network_graph(rows: list[dict[str, Any]]) -> None:
         scope = row["project"] if row["features_networks"] is True else "default"
         if row["effective_network_project"] != scope or scope not in projects:
             raise InventoryError("NETWORK_CANONICAL_SCOPE_UNRESOLVED")
-        if row["project"] != "default" and row["features_profiles"] is not True:
-            raise InventoryError("PROJECT_PROFILE_INHERITANCE_UNSUPPORTED")
         names = [network["name"] for network in row["networks"]]
         if len(set(names)) != len(names):
             raise InventoryError("RESOURCE_DUPLICATE")
@@ -528,6 +602,10 @@ def _validate_network_graph(rows: list[dict[str, Any]]) -> None:
                     raise InventoryError("NETWORK_CONSUMER_KIND_UNSUPPORTED")
         for kind in ("profiles", "instances"):
             for producer in row[kind]:
+                owner = producer["owner_project"] if kind == "profiles" else row["project"]
+                if kind == "profiles" and owner != row["project"]:
+                    continue
+                producer_scope = projects[owner]["effective_network_project"]
                 refs = producer["network_refs"]
                 if not isinstance(refs, list) or any(not isinstance(ref, dict) or set(ref) != {"project", "name"} for ref in refs):
                     raise InventoryError("ARTIFACT_NETWORK_REFERENCE_INVALID")
@@ -538,11 +616,11 @@ def _validate_network_graph(rows: list[dict[str, Any]]) -> None:
                         or len(keys) > sum(device["type"] == "nic" for device in devices)):
                     raise InventoryError("ARTIFACT_NETWORK_REFERENCE_INVALID")
                 for key in keys:
-                    if key[0] != scope or key not in canonical:
+                    if key[0] != producer_scope or key not in canonical:
                         raise InventoryError("NETWORK_DEVICE_REFERENCE_UNRESOLVED")
                     if canonical[key]["type"] == "loopback":
                         raise InventoryError("NETWORK_LOOPBACK_CONSUMER_UNSUPPORTED")
-                    expected.setdefault(key, set()).add((kind, producer["name"], row["project"]))
+                    expected.setdefault(key, set()).add((kind, producer["name"], owner))
     for key, network in canonical.items():
         refs = [(ref["kind"], ref["name"], ref["project"]) for ref in network["used_by"]]
         if len(set(refs)) != len(refs) or set(refs) != expected.get(key, set()):
@@ -686,7 +764,7 @@ def _storage_consumer_refs(value: Any, project: str, *, project_users: bool = Fa
             raise InventoryError("STORAGE_BUCKET_UNSUPPORTED")
         if "target" in parse_qs(parsed.query, keep_blank_values=True):
             raise InventoryError("STORAGE_MEMBER_SCOPE_UNSUPPORTED")
-        fallback = project if project_users and not (len(parts) > 2 and parts[2] == "storage-pools") else "default"
+        fallback = project if project_users and not (len(parts) > 2 and parts[2] in {"storage-pools", "profiles"}) else "default"
         refs.extend(_consumer_refs([link], fallback))
     return [dict(zip(("kind", "name", "project"), ref))
             for ref in sorted({(ref["kind"], ref["name"], ref["project"]) for ref in refs})]
@@ -775,6 +853,7 @@ def _storage_producers(producer: dict[str, Any], field: str, device_field: str) 
 
 
 def _validate_storage_graph(rows: list[dict[str, Any]], canonical: Any) -> None:
+    _profile_index(rows)
     if not isinstance(canonical, list):
         raise InventoryError("POOL_GLOBAL_VIEW_MISMATCH")
     if canonical != _canonical_pools(rows):
@@ -836,6 +915,8 @@ def _validate_storage_graph(rows: list[dict[str, Any]], canonical: Any) -> None:
         project = row["project"]
         for kind in ("profiles", "instances"):
             for producer in row[kind]:
+                if kind == "profiles" and producer["owner_project"] != project:
+                    continue
                 if kind == "instances" and (type(producer["storage_location"]) is not str or producer["storage_location"] not in {"", "none"}):
                     raise InventoryError("STORAGE_MEMBER_SCOPE_UNSUPPORTED")
                 api = _storage_producers(producer, "api_storage_devices", "devices" if kind == "profiles" else "local_devices")
@@ -870,7 +951,8 @@ def _validate_storage_graph(rows: list[dict[str, Any]], canonical: Any) -> None:
                             raise InventoryError("STORAGE_MEMBER_SCOPE_UNSUPPORTED")
                         if projection == "api" and entry["selector"] == "custom":
                             api_users.setdefault(key, set()).add((kind, producer["name"], project))
-        expected_project = {(kind, entry["name"], project) for kind in ("profiles", "instances") for entry in row[kind]}
+        expected_project = {(kind, entry["name"], project) for kind in ("profiles", "instances") for entry in row[kind]
+                            if kind != "profiles" or entry["owner_project"] == project}
         expected_project.update(("networks", entry["name"], project) for entry in row["networks"]
                                 if entry["managed"] and entry["owner_project"] == project)
         expected_project.update(("storage-volumes", f"{pool['name']}/{volume['type']}/{volume['name']}", project)
@@ -951,10 +1033,7 @@ def _validate_list_metadata(row: dict[str, Any], project: str) -> None:
     if "status_code" in row and (not isinstance(row["status_code"], int) or isinstance(row["status_code"], bool)):
         raise InventoryError("RESOURCE_SCHEMA_INVALID")
     if "profiles" in row:
-        if not isinstance(row["profiles"], list):
-            raise InventoryError("RESOURCE_SCHEMA_INVALID")
-        for profile in row["profiles"]:
-            _name(profile)
+        _ordered_profiles(row["profiles"])
     # Network/StoragePool Locations is a nullable Go []string, discarded after validation.
     if "locations" in row and row["locations"] is not None:
         if not isinstance(row["locations"], list) or any(not isinstance(location, str) for location in row["locations"]):
@@ -1064,11 +1143,13 @@ def _detail(runner: Runner, prefix: list[str], kind: str, names: tuple[str, ...]
 
 def _validate_profile_show(value: Any, name: str, project: str) -> dict[str, Any]:
     row = _only_keys(value, {"name", "project", "description", "config", "devices", "used_by"})
-    if _name(row.get("name")) != name or ("project" in row and _name(row["project"]) != project):
+    if _name(row.get("name")) != name:
         raise InventoryError("RESOURCE_IDENTITY_MISMATCH")
+    if type(row.get("project")) is not str or not NAME.fullmatch(row["project"]) or row["project"] != project:
+        raise InventoryError("PROFILE_OWNER_PROJECT_MISMATCH")
     _string_map(row.get("config"))
     _devices(row.get("devices"))
-    _consumer_refs(row.get("used_by"), project)
+    _consumer_refs(row.get("used_by"), "default")
     _validate_list_metadata(row, project)
     return row
 
@@ -1081,8 +1162,7 @@ def _validate_instance_config(value: Any, name: str, project: str) -> dict[str, 
         raise InventoryError("RESOURCE_IDENTITY_MISMATCH")
     _string_map(row.get("config"))
     _devices(row.get("devices"))
-    if not isinstance(row.get("profiles"), list) or any(not isinstance(v, str) for v in row["profiles"]):
-        raise InventoryError("RESOURCE_SCHEMA_INVALID")
+    _ordered_profiles(row.get("profiles"))
     if not isinstance(row.get("ephemeral"), bool) or not isinstance(row.get("stateful"), bool):
         raise InventoryError("RESOURCE_SCHEMA_INVALID")
     _validate_list_metadata(row, project)
@@ -1201,6 +1281,7 @@ def _inventory_client(runner: Runner, identity: str, socket: str, *, incus: bool
     rows: list[dict[str, Any]] = []
     entity_count = len(names)
     network_producers: dict[tuple[str, str, str], dict[str, dict[str, str]]] = {}
+    profile_metadata: dict[tuple[str, str], dict[str, Any]] = {}
     for project in names:
         before_query()
         show = _detail(runner, prefix, "projects", (project,), project,
@@ -1217,6 +1298,7 @@ def _inventory_client(runner: Runner, identity: str, socket: str, *, incus: bool
         if _string_map(project_entries[project].get("config")) != _string_map(show.get("config")):
             raise InventoryError("PROJECT_CONFIGURATION_DRIFT")
         network_flag, profile_flag, network_project = _project_network_flags(show["config"], project)
+        profile_project = project if profile_flag is True else "default"
         storage_flag_raw = show["config"].get("features.storage.volumes")
         if storage_flag_raw not in {None, "true", "false"}:
             raise InventoryError("STORAGE_FEATURE_INVALID")
@@ -1240,22 +1322,23 @@ def _inventory_client(runner: Runner, identity: str, socket: str, *, incus: bool
             raise InventoryError("ENTITY_LIMIT")
         profile_rows: list[dict[str, Any]] = []
         for item in profiles:
-            p = _only_keys(item, {"name", "project", "description", "config", "devices", "used_by"})
-            if "used_by" not in p:
-                raise InventoryError("RESOURCE_SCHEMA_INVALID")
-            _validate_list_metadata(p, project)
-            pname = _name(p.get("name"))
+            pname = _name(item.get("name")) if isinstance(item, dict) else _name(None)
+            p = _validate_profile_show(item, pname, profile_project)
             before_query()
             pdetail = _validate_profile_show(_detail(runner, prefix, "profiles", (pname,), project,
-                command_id=f"{kind}_profile_show", env=env, safe_args=[pname, project]), pname, project)
-            if not _same_consumers(p["used_by"], pdetail["used_by"], project):
+                command_id=f"{kind}_profile_show", env=env, safe_args=[pname, project]), pname, profile_project)
+            if _profile_metadata(p) != _profile_metadata(pdetail):
+                raise InventoryError("PROFILE_METADATA_LIST_MISMATCH")
+            profile_metadata[(project, pname)] = _profile_metadata(pdetail)
+            if not _same_consumers(p["used_by"], pdetail["used_by"], "default"):
                 raise InventoryError("PROFILE_CONSUMER_LIST_MISMATCH")
             network_producers[(project, "profiles", pname)] = pdetail["devices"]
             device_rows = _device_types(pdetail["devices"])
             entity_count += len(device_rows)
             if entity_count > MAX_ENTITIES:
                 raise InventoryError("ENTITY_LIMIT")
-            profile_rows.append({"name": pname, "used_by": _consumer_refs(pdetail["used_by"], project),
+            profile_rows.append({"name": pname, "owner_project": pdetail["project"], "metadata_digest": _profile_digest(pdetail),
+                                 "used_by": _consumer_refs(pdetail["used_by"], "default"),
                                  "devices": device_rows, "api_storage_devices": _storage_devices(pdetail["devices"])})
         instance_rows: list[dict[str, Any]] = []
         for item in instances:
@@ -1270,16 +1353,15 @@ def _inventory_client(runner: Runner, identity: str, socket: str, *, incus: bool
             before_query()
             expanded = _validate_instance_config(_detail(runner, prefix, "instances", (iname,), project,
                 command_id=f"{kind}_instance_config_show_expanded", env=env, safe_args=[iname, project]), iname, project)
+            list_profiles = _ordered_profiles(i.get("profiles"))
+            if list_profiles != _ordered_profiles(local["profiles"]) or list_profiles != _ordered_profiles(expanded["profiles"]):
+                raise InventoryError("INSTANCE_PROFILE_LIST_MISMATCH")
             volatile = {"status", "status_code", "last_used_at"}
             if ({key: value for key, value in local.items() if key not in volatile}
                     != {key: value for key, value in expanded.items() if key not in volatile}):
                 raise InventoryError("INSTANCE_CONFIGURATION_DRIFT")
             expanded = {**expanded, "config": expanded["expanded_config"],
                         "devices": expanded["expanded_devices"]}
-            list_profiles = sorted(set(_name(v) for v in _strings(i.get("profiles"))))
-            if list_profiles != sorted(set(_name(v) for v in local["profiles"])) or \
-                    list_profiles != sorted(set(_name(v) for v in expanded["profiles"])):
-                raise InventoryError("INSTANCE_PROFILE_LIST_MISMATCH")
             instance_type = _safe_enum(i.get("type"))
             if (local.get("type") != instance_type or expanded.get("type") != instance_type
                     or _storage_location(i) != _storage_location(local)
@@ -1384,9 +1466,10 @@ def _inventory_client(runner: Runner, identity: str, socket: str, *, incus: bool
         pool_rows.sort(key=lambda row: row["name"])
         rows.append({"project": project, "used_by": project_refs, "features_storage_volumes": storage_flag,
                      "features_networks": network_flag, "features_profiles": profile_flag,
-                     "effective_network_project": network_project, "profiles": profile_rows, "instances": instance_rows,
+                     "effective_network_project": network_project, "effective_profile_project": profile_project, "profiles": profile_rows, "instances": instance_rows,
                      "networks": network_rows, "pools": pool_rows})
     rows.sort(key=lambda row: row["project"])
+    _validate_profile_observations(rows, profile_metadata)
     _resolve_network_refs(rows, network_producers)
     _validate_network_graph(rows)
     _validate_complete_ownership(rows)
@@ -1507,7 +1590,7 @@ def capture(source_commit: str, *, runner: Runner | None = None, now: Callable[[
                     "unit": "snap.lxd.daemon.unix.socket" if endpoint.startswith("lxd_") and endpoint == "lxd_snap" else
                     "incus.socket" if endpoint.startswith("incus_") else ""}
                    for _, (endpoint, present) in endpoints.items()]
-    return {"schema_version": 3, "target_host": TARGET, "source_commit": source_commit,
+    return {"schema_version": 4, "target_host": TARGET, "source_commit": source_commit,
             "captured_at_utc": stamp,
             "lxd_units": [units[u] for u in UNITS[:3]], "incus_units": [units[u] for u in UNITS[3:]],
             "lxd_executables": [executables[u] for u in ("lxd.service", "snap.lxd.daemon.service") if u in executables],
@@ -1592,7 +1675,7 @@ def _validate_artifact(artifact: dict[str, Any]) -> bytes:
                 "lxd_pools", "incus_pools", "lxd_admission", "incus_admission"}
     if set(artifact) != expected or artifact["decision"] != "READ_ONLY_INVENTORY_COMPLETE":
         raise InventoryError("ARTIFACT_SCHEMA_INVALID")
-    if type(artifact["schema_version"]) is not int or artifact["schema_version"] != 3 or artifact["target_host"] != TARGET or not HEX40.fullmatch(artifact["source_commit"]):
+    if type(artifact["schema_version"]) is not int or artifact["schema_version"] != 4 or artifact["target_host"] != TARGET or not HEX40.fullmatch(artifact["source_commit"]):
         raise InventoryError("ARTIFACT_IDENTITY_INVALID")
     unit_keys = {"unit", "load_state", "active_state", "sub_state", "unit_file_state", "main_pid"}
     for key, wanted in (("lxd_units", set(UNITS[:3])), ("incus_units", set(UNITS[3:]))):
@@ -1695,11 +1778,12 @@ def _validate_artifact(artifact: dict[str, Any]) -> bytes:
         if project_names != sorted(set(project_names)):
             raise InventoryError("ARTIFACT_PROJECT_ORDER_INVALID")
         for project in projects:
-            if not isinstance(project, dict) or set(project) != {"project", "used_by", "features_storage_volumes", "features_networks", "features_profiles", "effective_network_project", "profiles", "instances", "networks", "pools"}:
+            if not isinstance(project, dict) or set(project) != {"project", "used_by", "features_storage_volumes", "features_networks", "features_profiles", "effective_network_project", "effective_profile_project", "profiles", "instances", "networks", "pools"}:
                 raise InventoryError("ARTIFACT_RESOURCE_SCHEMA_INVALID")
             _name(project["project"])
             _name(project["effective_network_project"])
-            for field, keys in (("profiles", {"name", "used_by", "devices", "network_refs", "api_storage_devices"}),
+            _name(project["effective_profile_project"])
+            for field, keys in (("profiles", {"name", "owner_project", "metadata_digest", "used_by", "devices", "network_refs", "api_storage_devices"}),
                                 ("instances", {"name", "status", "type", "profiles", "local_devices", "expanded_devices", "network_refs", "storage_location", "api_storage_devices", "effective_storage_devices"}),
                                 ("networks", {"name", "type", "managed", "owner_project", "config_digest", "used_by"}),
                                 ("pools", {"name", "type", "metadata_digest", "used_by", "volumes"})):

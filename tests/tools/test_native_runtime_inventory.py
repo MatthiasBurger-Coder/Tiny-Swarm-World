@@ -98,7 +98,8 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
             elif suffix == ["profile", "list", "--project", "alpha", "--format", "json"]:
                 out = self._json(self.list_rows.get("profiles", [
                     {"name": "zeta", "project": "alpha", "description": "", "config": {}, "devices": {}, "used_by": []},
-                    {"name": "bravo", "project": "alpha", "description": "", "config": {}, "devices": {},
+                    {"name": "bravo", "project": "alpha", "description": "", "config": {},
+                     "devices": {"root": {"type": "disk", "path": "/", "pool": "pool"}, "eth0": {"type": "nic", "network": "net"}},
                      "used_by": ["/1.0/instances/web?project=alpha"]},
                 ]))
             elif suffix == ["query", "--request", "GET", "--raw", "/1.0/instances?project=alpha&recursion=1"]:
@@ -228,7 +229,7 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
                     elif kind == "instances":
                         value = self.instance_row(project)
                     elif kind == "profiles":
-                        value = self.profile_row(project)
+                        value = next(row for row in self.profile_rows(project) if row["name"] == name)
                     elif kind == "storage-pools":
                         if "volumes" in parts:
                             value = copy.deepcopy(next(volume for volume in self.volume_rows(project, name)
@@ -256,7 +257,7 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
                             row["project"] = self.dto_project(argv, project)
                         self.list_mutation(project, value)
                     elif suffix[0] == "profile":
-                        value = [self.profile_row(project)] if project == "alpha" or self.default_profile else []
+                        value = self.profile_rows(project)
                     elif suffix[:3] == ["storage", "volume", "list"]:
                         value = self.volume_rows(project, suffix[3])
                         if argv[0] != "/usr/bin/incus":
@@ -295,6 +296,9 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
                 links = self.project_links(project, links)
             return {"name": project, "config": self.configs[project], "used_by": links}
 
+        def profile_rows(self, project):
+            return [self.profile_row(project)] if project == "alpha" or self.default_profile else []
+
         def profile_row(self, project):
             return {"name": "profile", "project": project, "config": {}, "devices": {"root": {"type": "disk", "path": "/", "pool": self.root_pools[project]}, **self.profile_devices[project]},
                     "used_by": ["/1.0/instances/web" + ("" if project == "default" else "?project=" + project)] if project in self.instance_projects else []}
@@ -320,6 +324,81 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
 
         def volume_rows(self, project, pool):
             return copy.deepcopy(self.storage_volumes.get((project, pool), []))
+
+    class _InheritedProfileRunner(_NetworkRunner):
+        def __init__(self):
+            super().__init__()
+            self.configs["alpha"]["features.profiles"] = "false"
+            self.default_profile = True
+            self.profile_names = ["profile"]
+            self.profile_order = {"alpha": ["profile"], "default": ["profile"]}
+            self.profile_view_changes: dict[str, dict[str, Any]] = {}
+            self.profile_list_changes: dict[str, dict[str, Any]] = {}
+            self.missing_profile_views: set[str] = set()
+            self.extra_profile_views: set[str] = set()
+            self.profile_devices["default"] = copy.deepcopy(self.profile_devices["alpha"])
+            self.network_users["net"] = ["/1.0/profiles/profile", "/1.0/instances/web?project=alpha"]
+
+        def profile_owner(self, project):
+            return project if self.configs[project].get("features.profiles") == "true" else "default"
+
+        def profile_rows(self, project):
+            if project in self.missing_profile_views:
+                return []
+            owner = self.profile_owner(project)
+            rows = []
+            names = self.profile_names + (["extra"] if project in self.extra_profile_views else [])
+            for name in names:
+                used_by = ["/1.0/instances/web" + ("" if user == "default" else "?project=" + user)
+                           for user in self.instance_projects
+                           if self.profile_owner(user) == owner and name in self.profile_order[user]]
+                devices = ({"root": {"type": "disk", "path": "/", "pool": self.root_pools[owner]},
+                            **self.profile_devices[owner]}) if name == "profile" else {}
+                row = {"name": name, "project": owner, "description": "profile metadata", "config": {},
+                       "devices": copy.deepcopy(devices), "used_by": used_by}
+                row.update(copy.deepcopy(self.profile_view_changes.get(project, {})))
+                rows.append(row)
+            return rows
+
+        def profile_row(self, project):
+            return self.profile_rows(project)[0]
+
+        def instance_row(self, project):
+            return {**super().instance_row(project), "profiles": list(self.profile_order[project])}
+
+        def project_row(self, project):
+            row = super().project_row(project)
+            row["used_by"] = [link for link in row["used_by"] if not link.startswith("/1.0/profiles/")]
+            if self.profile_owner(project) == project:
+                suffix = "" if project == "default" else "?project=" + project
+                row["used_by"].extend("/1.0/profiles/" + name + suffix for name in self.profile_names)
+            return row
+
+        def pool_row(self, pool_name):
+            users = []
+            for (owner, pool), volumes in self.storage_volumes.items():
+                if pool != pool_name:
+                    continue
+                suffix = "" if owner == "default" else "?project=" + owner
+                for volume in volumes:
+                    path = "/1.0/instances/" + volume["name"] if volume["type"] in {"container", "virtual-machine"} else "/1.0/storage-pools/" + pool_name + "/volumes/" + volume["type"] + "/" + volume["name"]
+                    users.append(path + suffix)
+            for owner in {self.profile_owner(project) for project in self.configs}:
+                devices = {"root": {"type": "disk", "path": "/", "pool": self.root_pools[owner]}, **self.profile_devices[owner]}
+                if "profile" in self.profile_names and any(device.get("type") == "disk" and device.get("pool") == pool_name for device in devices.values()):
+                    users.append("/1.0/profiles/profile" + ("" if owner == "default" else "?project=" + owner))
+            return {"name": pool_name, "driver": "dir", "config": {}, "description": "", "status": "Created",
+                    "locations": [], "used_by": self.pool_users_override.get(pool_name, users)}
+
+        def run(self, argv, **kwargs):
+            status, raw, err = super().run(argv, **kwargs)
+            if argv[2:4] == ["profile", "list"]:
+                project = argv[argv.index("--project") + 1]
+                profiles = json.loads(raw)
+                for row in profiles:
+                    row.update(copy.deepcopy(self.profile_list_changes.get(project, {})))
+                raw = self._json(profiles)
+            return status, raw, err
 
     def _network_rows(self, runner=None, *, incus=True):
         runner = runner or self._NetworkRunner()
@@ -378,7 +457,7 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
             if unit.endswith(".socket"):
                 row["listen"] = ""
             units.append(row)
-        return {"schema_version": 3, "target_host": inventory.TARGET, "source_commit": "a" * 40,
+        return {"schema_version": 4, "target_host": inventory.TARGET, "source_commit": "a" * 40,
                 "captured_at_utc": "2026-01-01T00:00:00Z", "lxd_units": units[:3], "incus_units": units[3:],
                 "lxd_executables": [], "incus_executables": [],
                 "sockets": [{"endpoint_id": endpoint, "state": "absent", "unit": ""}
@@ -1015,12 +1094,12 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
                                     incus=True, before_query=lambda: None)
 
     def test_detail_responses_are_validated_then_reduced_to_safe_identity(self) -> None:
-        profile = {"name": "default", "description": "", "config": {},
+        profile = {"name": "default", "project": "alpha", "description": "", "config": {},
                    "devices": {"eth0": {"type": "nic", "parent": "br0"}},
                    "used_by": ["/1.0/instances/web"]}
         parsed = inventory._validate_profile_show(profile, "default", "alpha")
-        self.assertEqual(inventory._consumer_refs(parsed["used_by"], "alpha"),
-                         [{"kind": "instances", "name": "web", "project": "alpha"}])
+        self.assertEqual(inventory._consumer_refs(parsed["used_by"], "default"),
+                         [{"kind": "instances", "name": "web", "project": "default"}])
         self.assertEqual(inventory._device_types(parsed["devices"]), [{"name": "eth0", "type": "nic"}])
         private_device = inventory._validate_profile_show(
             {**profile, "devices": {"secret": {"type": "disk", "source": "/host/private"}}}, "default", "alpha")
@@ -1497,7 +1576,7 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
             ])
             artifact = self._valid_artifact()
             self._bind_artifact(artifact, rows, incus=False, cli_version="5.21.9 LTS")
-            self.assertEqual(json.loads(inventory._validate_artifact(artifact))["schema_version"], 3)
+            self.assertEqual(json.loads(inventory._validate_artifact(artifact))["schema_version"], 4)
 
     def test_lxd_malformed_pool_blocks_each_real_adapter_boundary(self) -> None:
         malformed_pools: tuple[object, ...] = (None, False, True, 0, 1.0, [], {}, "", " pool", "pool\n",
@@ -1712,7 +1791,7 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
             "projects": [{"name": "alpha", "description": "", "config": {"features.networks": "true", "features.profiles": "true"},
                           "used_by": ["/1.0/profiles/bravo?project=alpha"]}],
             "profiles": [{"name": "bravo", "project": "alpha", "description": "", "config": {},
-                          "devices": {}, "used_by": []}],
+                          "devices": {"root": {"type": "disk", "path": "/", "pool": "pool"}, "eth0": {"type": "nic", "network": "net"}}, "used_by": []}],
             "networks": [{"name": "net", "project": "alpha", "type": "bridge", "managed": True,
                           "status": "Created", "config": {}, "description": "", "used_by": [], "locations": []}],
             "pools": [{"name": "pool", "project": "alpha", "driver": "dir", "config": {},
@@ -1863,7 +1942,7 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
                 artifact = self._valid_artifact()
                 self._bind_artifact(artifact, rows, incus=incus)
                 encoded = inventory._validate_artifact(artifact)
-                self.assertEqual(json.loads(encoded)["schema_version"], 3)
+                self.assertEqual(json.loads(encoded)["schema_version"], 4)
                 self.assertNotIn(b'"config":', encoded)
 
     def test_network_empty_status_is_explicitly_unmanaged_only(self) -> None:
@@ -1916,9 +1995,7 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
                 config = {"features.profiles": "true", key: value}
                 with self.subTest(key=key, value=value), self.assertRaises(inventory.InventoryError):
                     inventory._project_network_flags(config, "alpha")
-        for config, code in (({}, "PROJECT_PROFILE_INHERITANCE_UNSUPPORTED"),
-                             ({"features.profiles": "false"}, "PROJECT_PROFILE_INHERITANCE_UNSUPPORTED"),
-                             ({"features.profiles": "true", "restricted": "true"}, "PROJECT_NETWORK_RESTRICTIONS_UNSUPPORTED"),
+        for config, code in (({"features.profiles": "true", "restricted": "true"}, "PROJECT_NETWORK_RESTRICTIONS_UNSUPPORTED"),
                              ({"features.profiles": "true", "restricted.devices.nic": "managed"}, "PROJECT_NETWORK_RESTRICTIONS_UNSUPPORTED"),
                              ({"features.profiles": "true", "restricted.networks.access": "net"}, "PROJECT_NETWORK_RESTRICTIONS_UNSUPPORTED")):
             with self.subTest(config=config), self.assertRaisesRegex(inventory.InventoryError, code):
@@ -2282,8 +2359,7 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
             {"name": "unused", "type": "custom", "content_type": "filesystem", "project": "alpha", "config": {}, "location": "none", "used_by": []}]
         runner.profile_devices["alpha"]["data"] = {"type": "disk", "path": "/data", "pool": "data", "source": "shared"}
         runner.expanded_devices["alpha"]["data"] = dict(runner.profile_devices["alpha"]["data"])
-        # A partial local override is not a local API volume ref; expansion supplies its inherited pool.
-        runner.local_devices["alpha"]["data"] = {"type": "disk", "source": "shared", "path": "/data"}
+        # A profile-inherited device has no same-name local entry; devices are not property-merged.
         rows = self._network_rows(runner)
         instance = rows[0]["instances"][0]
         self.assertEqual(instance["api_storage_devices"], [])
@@ -2291,12 +2367,15 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
         data_pool = next(pool for pool in rows[0]["pools"] if pool["name"] == "data")
         self.assertNotIn({"kind": "instances", "name": "web", "project": "alpha"}, data_pool["used_by"])
         self.assertEqual(len(data_pool["volumes"]), 2)
-        runner.local_devices["alpha"]["data"]["pool"] = "data"
+        runner.local_devices["alpha"]["data"] = dict(runner.expanded_devices["alpha"]["data"])
         runner.storage_volumes[("alpha", "data")][0]["used_by"].append("/1.0/instances/web?project=alpha")
         rows = self._network_rows(runner)
         self.assertEqual(rows[0]["instances"][0]["api_storage_devices"][0]["source"], "shared")
-        # Stale local custom refs must not be unioned into the effective projection.
-        runner.expanded_devices["alpha"]["data"]["source"] = "unused"
+        # A complete local override replaces the whole inherited device; raw profile remains a user.
+        runner.local_devices["alpha"]["data"]["source"] = "unused"
+        runner.expanded_devices["alpha"]["data"] = dict(runner.local_devices["alpha"]["data"])
+        runner.storage_volumes[("alpha", "data")][0]["used_by"].remove("/1.0/instances/web?project=alpha")
+        runner.storage_volumes[("alpha", "data")][1]["used_by"].append("/1.0/instances/web?project=alpha")
         rows = self._network_rows(runner)
         effective = rows[0]["instances"][0]["effective_storage_devices"]
         self.assertEqual([entry["source"] for entry in effective if entry["selector"] == "custom"], ["unused"])
@@ -2479,6 +2558,243 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
             runner.list_rows["instances"] = [listed]
             with self.subTest(case=case), self.assertRaises(inventory.InventoryError):
                 inventory._inventory_client(runner, "incus_system", "/run/incus/unix.socket", incus=True, before_query=lambda: None)
+
+    def test_schema_four_inherited_profiles_both_families_false_absent_and_default_last(self) -> None:
+        for incus in (False, True):
+            for flag in (None, "false"):
+                runner = self._InheritedProfileRunner()
+                if flag is None:
+                    runner.configs["alpha"].pop("features.profiles")
+                rows = self._network_rows(runner, incus=incus)
+                self.assertEqual(list(runner.configs), ["alpha", "default"])
+                self.assertEqual(rows[0]["effective_profile_project"], "default")
+                self.assertEqual(rows[0]["profiles"], rows[1]["profiles"])
+                profile = rows[0]["profiles"][0]
+                self.assertEqual(profile["owner_project"], "default")
+                self.assertEqual(profile["used_by"], [{"kind": "instances", "name": "web", "project": "alpha"}])
+                self.assertNotIn({"kind": "profiles", "name": "profile", "project": "alpha"}, rows[0]["used_by"])
+                pool_users = rows[0]["pools"][0]["used_by"]
+                self.assertEqual(sum(ref["kind"] == "profiles" for ref in pool_users), 1)
+                self.assertIn({"kind": "profiles", "name": "profile", "project": "default"}, pool_users)
+                artifact = self._valid_artifact()
+                self._bind_artifact(artifact, rows, incus=incus)
+                self.assertEqual(json.loads(inventory._validate_artifact(artifact))["schema_version"], 4)
+                self.assertEqual(sum(call[2].endswith("profile_show") for call in runner.calls), 2)
+
+    def test_canonical_profile_users_span_default_and_inheriting_projects(self) -> None:
+        runner = self._InheritedProfileRunner()
+        runner.instance_projects.add("default")
+        runner.expanded_devices["default"] = copy.deepcopy(runner.profile_devices["default"])
+        runner.storage_volumes[("default", "pool")] = [{"name": "web", "type": "container", "content_type": "filesystem",
+            "project": "default", "config": {}, "location": "none", "used_by": ["/1.0/instances/web"]}]
+        runner.network_users["net"].append("/1.0/instances/web")
+        rows = self._network_rows(runner)
+        self.assertEqual(rows[1]["profiles"][0]["used_by"], [
+            {"kind": "instances", "name": "web", "project": "alpha"},
+            {"kind": "instances", "name": "web", "project": "default"}])
+        self.assertEqual(rows[0]["profiles"], rows[1]["profiles"])
+
+    def test_owned_same_name_profile_stays_distinct_from_inherited_default(self) -> None:
+        runner = self._InheritedProfileRunner()
+        runner.configs = {"alpha": runner.configs["alpha"],
+                          "beta": {"features.profiles": "true", "features.networks": "false"}, "default": {}}
+        runner.profile_devices["beta"] = {}
+        runner.expanded_devices["beta"] = {}
+        runner.local_devices["beta"] = {}
+        runner.root_pools["beta"] = "pool"
+        runner.networks["beta"] = copy.deepcopy(runner.networks["default"])
+        runner.instance_projects.add("beta")
+        runner.profile_order["beta"] = ["profile"]
+        runner.storage_volumes[("beta", "pool")] = [{"name": "web", "type": "container", "content_type": "filesystem",
+            "project": "beta", "config": {}, "location": "none", "used_by": ["/1.0/instances/web?project=beta"]}]
+        rows = self._network_rows(runner)
+        self.assertEqual([row["project"] for row in rows], ["alpha", "beta", "default"])
+        self.assertEqual(rows[1]["profiles"][0]["owner_project"], "beta")
+        self.assertEqual(rows[1]["profiles"][0]["used_by"], [{"kind": "instances", "name": "web", "project": "beta"}])
+        self.assertEqual(rows[0]["profiles"], rows[2]["profiles"])
+        self.assertNotEqual(rows[1]["profiles"], rows[2]["profiles"])
+
+    def test_profile_owner_is_mandatory_actual_effective_owner_at_each_boundary(self) -> None:
+        malformed_owners: tuple[object, ...] = (None, False, 0, [], {}, "", "alpha", "foreign")
+        for incus in (False, True):
+            for boundary in ("list", "detail"):
+                for owner in malformed_owners:
+                    runner = self._InheritedProfileRunner()
+                    if boundary == "list":
+                        runner.profile_list_changes["alpha"] = {"project": owner}
+                    else:
+                        def change(project, kind, row):
+                            if project == "alpha" and kind == "profiles":
+                                row["project"] = owner
+                        runner.detail_mutation = change
+                    with self.subTest(incus=incus, boundary=boundary, owner=owner):
+                        self._assert_main_blocks_without_private_artifact(runner, "PROFILE_OWNER_PROJECT_MISMATCH", incus=incus)
+        row = {"name": "profile", "config": {}, "devices": {}, "used_by": []}
+        with self.assertRaisesRegex(inventory.InventoryError, "PROFILE_OWNER_PROJECT_MISMATCH"):
+            inventory._validate_profile_show(row, "profile", "default")
+
+    def test_profile_complete_view_metadata_and_users_are_compared_without_union(self) -> None:
+        for case in ("missing_inherited", "missing_canonical", "extra_inherited", "duplicate", "config", "description", "devices", "users"):
+            runner = self._InheritedProfileRunner()
+            if case == "missing_inherited":
+                runner.missing_profile_views.add("alpha")
+            elif case == "missing_canonical":
+                runner.missing_profile_views.add("default")
+            elif case == "extra_inherited":
+                runner.extra_profile_views.add("alpha")
+            elif case == "duplicate":
+                runner.profile_names.append("profile")
+            elif case == "config":
+                runner.profile_view_changes["alpha"] = {"config": {"user.changed": "x"}}
+            elif case == "description":
+                runner.profile_view_changes["alpha"] = {"description": "different"}
+            elif case == "devices":
+                runner.profile_view_changes["alpha"] = {"devices": {"root": {"type": "disk", "pool": "pool", "path": "/"}}}
+            else:
+                runner.profile_view_changes["alpha"] = {"used_by": []}
+            with self.subTest(case=case), self.assertRaises(inventory.InventoryError):
+                self._network_rows(runner)
+        for field, changed in (("config", {"user.changed": "x"}), ("description", "different"), ("devices", {})):
+            runner = self._InheritedProfileRunner()
+            runner.profile_list_changes["alpha"] = {field: changed}
+            with self.subTest(field=field):
+                self._assert_main_blocks_without_private_artifact(runner, "PROFILE_METADATA_LIST_MISMATCH")
+        # Optional-field absence and an explicit empty value are different observations.
+        runner = self._InheritedProfileRunner()
+        runner.profile_view_changes = {"alpha": {"description": ""}, "default": {"description": ""}}
+        def omit_description(project, kind, row):
+            if project == "alpha" and kind == "profiles":
+                row.pop("description")
+        runner.detail_mutation = omit_description
+        with patch.object(inventory, "_profile_digest", return_value="a" * 64):
+            self._assert_main_blocks_without_private_artifact(runner, "PROFILE_METADATA_LIST_MISMATCH")
+        # Digest identity cannot substitute for exact RAM map observation equality.
+        runner = self._InheritedProfileRunner()
+        runner.profile_view_changes["alpha"] = {"config": {"user.changed": "x"}}
+        with patch.object(inventory, "_profile_digest", return_value="a" * 64):
+            self._assert_main_blocks_without_private_artifact(runner, "PROFILE_INHERITED_VIEW_MISMATCH")
+
+    def test_profile_membership_keeps_order_and_rejects_duplicates_at_all_observations(self) -> None:
+        runner = self._InheritedProfileRunner()
+        runner.profile_names.append("second")
+        runner.profile_order["alpha"] = ["second", "profile"]
+        rows = self._network_rows(runner)
+        self.assertEqual(rows[0]["instances"][0]["profiles"], ["second", "profile"])
+        class ProfileOrderRunner(NativeRuntimeInventoryTests._InheritedProfileRunner):
+            def __init__(self, boundary, duplicate):
+                super().__init__()
+                self.profile_names.append("second")
+                self.profile_order["alpha"] = ["second", "profile"]
+                self.boundary = boundary
+                self.duplicate = duplicate
+
+            def run(self, argv, **kwargs):
+                status, raw, err = super().run(argv, **kwargs)
+                if kwargs["command_id"].endswith(self.boundary) and "alpha" in (kwargs.get("safe_args") or []):
+                    envelope = json.loads(raw)
+                    row = envelope["metadata"][0] if isinstance(envelope["metadata"], list) else envelope["metadata"]
+                    row["profiles"] = ["profile", "profile"] if self.duplicate else ["profile", "second"]
+                    raw = self._json(envelope)
+                return status, raw, err
+        for boundary in ("instance_list", "instance_config_show", "instance_config_show_expanded"):
+            for duplicate in (False, True):
+                fixture = ProfileOrderRunner(boundary, duplicate)
+                with self.subTest(boundary=boundary, duplicate=duplicate):
+                    self._assert_main_blocks_without_private_artifact(fixture,
+                        "PROFILE_LIST_INVALID" if duplicate else "INSTANCE_PROFILE_LIST_MISMATCH")
+        runner = self._InheritedProfileRunner()
+        runner.profile_order["alpha"] = ["missing"]
+        with self.assertRaisesRegex(inventory.InventoryError, "PROFILE_REFERENCE_UNRESOLVED"):
+            self._network_rows(runner)
+
+    def test_profile_owner_and_instance_network_custom_scopes_are_independent(self) -> None:
+        runner = self._InheritedProfileRunner()
+        runner.configs["alpha"].update({"features.networks": "true", "features.storage.volumes": "true"})
+        runner.networks["alpha"] = [runner.network("net", True)]
+        runner.storage_pools.append("data")
+        runner.profile_devices["default"]["data"] = {"type": "disk", "path": "/data", "pool": "data", "source": "shared"}
+        runner.expanded_devices["alpha"]["data"] = dict(runner.profile_devices["default"]["data"])
+        runner.storage_volumes[("default", "data")] = [{"name": "shared", "type": "custom", "content_type": "filesystem",
+            "project": "default", "config": {}, "location": "none", "used_by": ["/1.0/profiles/profile"]}]
+        runner.storage_volumes[("alpha", "data")] = [{"name": "shared", "type": "custom", "content_type": "filesystem",
+            "project": "alpha", "config": {}, "location": "none", "used_by": []}]
+        def network_users(project, rows):
+            for network in rows:
+                if network["name"] == "net":
+                    network["used_by"] = ["/1.0/instances/web?project=alpha"] if project == "alpha" else ["/1.0/profiles/profile"]
+        runner.list_mutation = network_users
+        def detail_users(project, kind, row):
+            if kind == "networks":
+                network_users(project, [row])
+        runner.detail_mutation = detail_users
+        for incus in (False, True):
+            rows = self._network_rows(runner, incus=incus)
+            self.assertEqual(rows[0]["profiles"][0]["network_refs"], [{"project": "default", "name": "net"}])
+            self.assertEqual(rows[0]["instances"][0]["network_refs"], [{"project": "alpha", "name": "net"}])
+            data_default = next(pool for pool in rows[1]["pools"] if pool["name"] == "data")
+            data_alpha = next(pool for pool in rows[0]["pools"] if pool["name"] == "data")
+            self.assertEqual(data_default["volumes"][0]["used_by"], [{"kind": "profiles", "name": "profile", "project": "default"}])
+            self.assertEqual(data_alpha["volumes"][0]["used_by"], [])
+            self.assertEqual(rows[0]["instances"][0]["api_storage_devices"], [])
+            artifact = self._valid_artifact()
+            self._bind_artifact(artifact, rows, incus=incus)
+            inventory._validate_artifact(artifact)
+
+    def test_profile_metadata_canaries_stay_in_ram_and_fixed_errors(self) -> None:
+        canary = "profile-canary-not-for-evidence"
+        runner = self._InheritedProfileRunner()
+        change = {"config": {"user.private": canary}, "description": canary}
+        runner.profile_view_changes = {"alpha": dict(change), "default": dict(change)}
+        runner.profile_devices["default"]["host"] = {"type": "disk", "source": "/private/" + canary}
+        raw = self._assert_main_blocks_without_private_artifact(runner, None)
+        self.assertNotIn(canary.encode(), raw or b"")
+        self.assertNotIn(canary, json.dumps(runner.records))
+        runner = self._InheritedProfileRunner()
+        runner.profile_view_changes["alpha"] = {"description": canary}
+        self._assert_main_blocks_without_private_artifact(runner, "PROFILE_INHERITED_VIEW_MISMATCH")
+
+    def test_schema_four_reader_rejects_owner_scope_view_membership_and_producer_tampering(self) -> None:
+        runner = self._InheritedProfileRunner()
+        rows = self._network_rows(runner)
+        original = self._valid_artifact()
+        self._bind_artifact(original, rows, incus=True)
+        inventory._validate_artifact(original)
+        for case in ("schema3", "scope", "owner", "owner_type", "flag", "canonical_missing", "inherited_extra", "digest", "consumer_missing", "consumer_wrong_project", "order_duplicate", "membership_missing", "producer_scope", "storage_view", "project_owned_link"):
+            value = copy.deepcopy(original)
+            alpha, default = value["incus_projects"]
+            if case == "schema3":
+                value["schema_version"] = 3
+            elif case == "scope":
+                alpha["effective_profile_project"] = "alpha"
+            elif case == "owner":
+                alpha["profiles"][0]["owner_project"] = "alpha"
+            elif case == "owner_type":
+                alpha["profiles"][0]["owner_project"] = None
+            elif case == "flag":
+                alpha["features_profiles"] = "false"
+            elif case == "canonical_missing":
+                default["profiles"] = []
+            elif case == "inherited_extra":
+                extra = copy.deepcopy(alpha["profiles"][0])
+                extra["name"] = "extra"
+                alpha["profiles"].insert(0, extra)
+            elif case == "digest":
+                alpha["profiles"][0]["metadata_digest"] = "f" * 64
+            elif case in {"consumer_missing", "consumer_wrong_project"}:
+                for project in (alpha, default):
+                    project["profiles"][0]["used_by"] = [] if case == "consumer_missing" else [{"kind": "instances", "name": "web", "project": "default"}]
+            elif case == "order_duplicate":
+                alpha["instances"][0]["profiles"] *= 2
+            elif case == "membership_missing":
+                alpha["instances"][0]["profiles"] = ["missing"]
+            elif case == "producer_scope":
+                alpha["profiles"][0]["network_refs"][0]["project"] = "alpha"
+            elif case == "storage_view":
+                alpha["profiles"][0]["api_storage_devices"] = []
+            else:
+                alpha["used_by"].append({"kind": "profiles", "name": "profile", "project": "alpha"})
+            with self.subTest(case=case), self.assertRaises(inventory.InventoryError):
+                inventory._validate_artifact(value)
 
     def test_device_entries_are_counted_toward_inventory_entity_cap(self) -> None:
         runner = self._InventoryRunner()

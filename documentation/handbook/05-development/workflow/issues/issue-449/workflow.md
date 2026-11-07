@@ -1,7 +1,7 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: ACTIVE_FOR_ISSUE_449 v1.46 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
+Status: ACTIVE_FOR_ISSUE_449 v1.47 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
@@ -30,9 +30,30 @@ fixed commands/provenance/budgets and private evidence remain unchanged.
 Implementation, PC verification and any new native capture remain separately
 exact-reviewed phases. This amendment grants no runtime or capture authority.
 
-The current storage graph contract is specified in
+The current inherited-profile inventory contract is
+`.codex/evidence/epic440-profile-inventory-20261107.md`. Overall native artifact
+schema 4 explicitly supersedes schema 3. Verified effective profile scope,
+mandatory actual DTO owner and metadata digest retain complete canonical and
+inherited views without treating a requesting project as owner. Profile consumers
+resolve across projects; ordered unique instance profile sequences remain exact.
+Canonical raw profile NIC/API-storage producers are counted once in the actual
+owner's feature scope, while local/expanded instance producers retain instance
+scope. Project.used_by includes only profiles physically owned there.
+
+This explicitly replaces the earlier unsupported-profile-inheritance boundary
+only when complete canonical owner/view/membership/consumer checks pass. It
+permits no project feature write, shared profile mutation, adoption or capability
+claim. Profile whole-device override semantics are reflected in fixtures; no
+hidden expansion or property-merge engine is introduced. Missing/filtered/drifting
+views, owner mismatches and malformed ordered membership remain blockers.
+Existing root admission/default-project/phase-order, returned volume ownership,
+network/storage resource rules, queries and all limits remain unchanged.
+Exact independent plan/normative and source/test review, PC gates and a separately
+released committed schema4 capture remain mandatory. No live GO follows v1.47.
+
+The retained storage graph field contract is specified in
 `.codex/evidence/epic440-storage-graph-20261107.md`. It explicitly supersedes
-native artifact schema 2 with schema 3: canonical daemon-global pool views,
+the historical schema 2 with its schema 3 field contract: canonical pool views,
 type-dependent consumers, separate raw/local API and expanded effective storage
 projections, retained root/producer evidence and independent structural checks.
 Returned volume ownership and Project root-volume URLs are preserved. Network
@@ -61,9 +82,9 @@ Unsupported storage images/inheritance/selectors/snapshots/buckets/member/daemon
 relations remain explicit blockers; no consumer is discarded to pass. Existing
 network/provenance/private-evidence and mandatory returned volume owner checks
 remain. Exact plan/query-scope and implementation reviews, PC gates and a
-separate fresh committed-source schema3 capture plan are required. Native drivers
-must require schema 3 and exact current contract/source/test/workflow pins.
-Authoring v1.46 grants no capture, fixture, capability or runtime maintenance GO.
+separate fresh committed-source schema4 capture plan are required. Native drivers
+must require schema 4 and exact current contract/source/test/workflow pins.
+Authoring this continuation grants no capture, fixture, capability or runtime maintenance GO.
 
 The current F4 native collector explicitly supersedes its earlier total
 256-command allowance with a finite 2048-command cap, counting all repeated
