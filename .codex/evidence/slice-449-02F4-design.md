@@ -5,6 +5,51 @@
 This extension supersedes only the historical two-unit-only drop-in grammar
 below; every other proof requirement remains authoritative.
 
+## 2026-11-07 bounded escaped-root wrapper proof
+
+This extension additionally supersedes only the historical universal
+same-systemd-cgroup assumption for the exact installed wrapper below. The
+current native candidate passes context but returns `SNAP_WRAPPER_PROC_INVALID`:
+root UID/stat predicates pass, while the wrapper reports exactly `0::/`.
+Canonical's wrapper intentionally moves itself to the cgroup-v2 root:
+https://raw.githubusercontent.com/canonical/lxd-pkg-snap/latest-edge/snapcraft/commands/daemon.start.
+The installed bounded script was inspected; it is a root-owned, non-writable,
+read-only regular file of 35,348 bytes with SHA-256
+`7ecbe39a07dc02666af544327dbaf5cfbe9967868bfb9d7c627061f14916b562`.
+The digest binds those installed bytes; moving upstream is not installed proof.
+
+Keep the existing exact effective-systemd-ControlGroup mode. Add only exact
+root `0::/` (with the existing optional final LF) as a preliminary process
+observation. Bind original cgroup bytes in the Process equality snapshot.
+All inspected direct children must have exactly the same observed cgroup bytes
+as the main process. Mixed groups, arbitrary paths, v1/multiple records and
+`/.lxc` remain unsupported. Do not infer namespace identity or call root
+membership proof of systemd-unit membership.
+
+Root mode can produce the existing identity tuple only after every unchanged
+systemctl MainPID/ExecStart/context/root UID/shell/package/unique direct-child
+PPID/start/inode proof succeeds, and the paired immutable installed wrapper
+matches that literal full SHA-256. Read both wrapper views with a 1-MiB limit
+per read, charged to the existing 16-MiB aggregate and deadline. Preserve paired
+inode/byte equality and exact second-pass equality, including raw cgroup and
+wrapper bytes. Unit-group mode has no new digest pin but also retains bounded
+script observations. No substring/shell parser or command execution is added.
+
+Tests must retain legacy unpinned success and exercise known pinned root mode,
+unknown/changed/mismatched/oversized script, mixed or malformed groups,
+root-to-unit and unit-to-root drift (main and child), cgroup LF-byte drift,
+and unchanged denial of UID/PPID/package/child ambiguity violations. Test-only
+synthetic script digests may be patched; the production digest remains the
+literal inspected value. Source review and exact-source PC-WSL focused/full
+gates precede any new native invocation.
+
+Architecture/security and tester/DevOps accepted this bounded design as the
+same qualification adapter, not a new product capability. No namespace read,
+privileged invocation or host mutation is released here. Standard-user reads
+of the root process executable/environment are unavailable. A future elevated
+read-only capture requires a separate exact-source plan with root-private
+evidence; never change proc permissions or claim the unavailable reads passed.
+
 The current exact-source native read-only attempt at `b87fe5c9` returned
 `SNAP_WRAPPER_CONTEXT_BLOCKED` before inventory/artifact creation. Effective
 unit checks and the canonical environment passed. The installed read-only LXD

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 import errno
+import hashlib
 import os
 from pathlib import Path
 import stat
@@ -112,6 +113,99 @@ class WrapperProofTests(unittest.TestCase):
             self.assertEqual(call.args, (proof.UNIT_ARGV,))
             self.assertEqual(call.kwargs, {"command_id": "systemctl_show_unit", "safe_args": [proof.UNIT]})
         self.assertLessEqual(len(proof.UNIT_ARGV), 16)
+
+    def root_wrapper(self, group: bytes = b"0::/\n") -> bytes:
+        script = b"# synthetic pinned wrapper fixture; never executed\n"
+        self.pair("commands/daemon.start", regular(50, script, executable=True))
+        for pid in (101, 202):
+            self.fs.files[f"/proc/{pid}/cgroup"] = regular(3000 + pid, group, readonly=False)
+        return script
+
+    def test_escaped_root_requires_known_paired_wrapper_and_complete_stable_proof(self) -> None:
+        for group in (b"0::/", b"0::/\n"):
+            with self.subTest(group=group):
+                script = self.root_wrapper(group)
+                self.runner.reset_mock()
+                with patch.object(proof, "_ESCAPED_ROOT_WRAPPER_SHA256", hashlib.sha256(script).hexdigest()):
+                    self.assertEqual(self.run_proof(), ("lxd_snap", "snap:lxd"))
+                self.assertEqual(self.runner.run.call_count, 2)
+                reads = [limit for path, limit, _ in self.fs.calls if path.endswith("/commands/daemon.start")]
+                self.assertTrue(reads)
+                self.assertTrue(all(limit == proof.METADATA_LIMIT for limit in reads))
+
+    def test_root_group_does_not_allow_unknown_wrapper_or_mismatched_script_views(self) -> None:
+        script = self.root_wrapper()
+        self.assert_blocked("SNAP_WRAPPER_FILE_UNVERIFIED")
+        with patch.object(proof, "_ESCAPED_ROOT_WRAPPER_SHA256", hashlib.sha256(script).hexdigest()):
+            original = self.fs.files["/proc/101/root/snap/lxd/123/commands/daemon.start"]
+            self.fs.files["/proc/101/root/snap/lxd/123/commands/daemon.start"] = replace(original, data=script + b"# changed\n")
+            self.assert_blocked("SNAP_WRAPPER_FILE_UNVERIFIED")
+
+    def test_root_wrapper_reads_are_bounded_and_required(self) -> None:
+        script = self.root_wrapper()
+        with patch.object(proof, "_ESCAPED_ROOT_WRAPPER_SHA256", hashlib.sha256(script).hexdigest()):
+            self.pair("commands/daemon.start", regular(50, b"x" * (proof.METADATA_LIMIT + 1), executable=True))
+            self.assert_blocked("SNAP_WRAPPER_LIMIT_EXCEEDED")
+            del self.fs.files["/snap/lxd/123/commands/daemon.start"]
+            self.assert_blocked("SNAP_WRAPPER_FILE_UNVERIFIED")
+
+    def test_mixed_main_and_child_groups_or_unsupported_root_variants_fail(self) -> None:
+        script = self.root_wrapper()
+        legacy = ("0::" + self.values["ControlGroup"] + "\n").encode()
+        cases = [(b"0::/\n", legacy), (legacy, b"0::/\n")]
+        cases += [(raw, raw) for raw in (b"0::/.lxc\n", b"0::/other\n", b"1:legacy:/\n", b"0::/\n0::/\n", b"0::/\r\n")]
+        with patch.object(proof, "_ESCAPED_ROOT_WRAPPER_SHA256", hashlib.sha256(script).hexdigest()):
+            for main, child in cases:
+                with self.subTest(main=main, child=child):
+                    self.fs.files["/proc/101/cgroup"] = regular(3101, main, readonly=False)
+                    self.fs.files["/proc/202/cgroup"] = regular(3202, child, readonly=False)
+                    self.assert_blocked("SNAP_WRAPPER_PROC_INVALID")
+
+    def test_raw_cgroup_changes_for_main_or_child_are_drift_in_either_mode(self) -> None:
+        script = self.root_wrapper()
+        legacy = ("0::" + self.values["ControlGroup"] + "\n").encode()
+        with patch.object(proof, "_ESCAPED_ROOT_WRAPPER_SHA256", hashlib.sha256(script).hexdigest()):
+            for initial, final in ((b"0::/\n", legacy), (legacy, b"0::/\n"), (b"0::/\n", b"0::/")):
+                for pid in (101, 202):
+                    with self.subTest(initial=initial, pid=pid):
+                        self.fs.sequences.clear()
+                        self.root_wrapper(initial)
+                        path = f"/proc/{pid}/cgroup"
+                        first = self.fs.files[path]
+                        self.fs.sequences[path] = [first, replace(first, data=final)]
+                        self.assert_blocked("SNAP_WRAPPER_DRIFT")
+
+    def test_known_root_wrapper_does_not_rescue_forged_process_or_package_relations(self) -> None:
+        for variant in ("uid", "parent", "binary", "missing", "ambiguous", "metadata"):
+            with self.subTest(variant=variant):
+                self.setUp()
+                script = self.root_wrapper()
+                if variant == "uid":
+                    self.fs.files["/proc/202/status"] = regular(2202, b"Uid:\t1000\t1000\t1000\t1000\n", readonly=False)
+                elif variant == "parent":
+                    self.fs.files["/proc/202/stat"] = regular(1202, proc_stat(202, 1, 22), readonly=False)
+                elif variant == "binary":
+                    self.pair("sbin/lxd", regular(999, executable=True))
+                elif variant == "missing":
+                    self.fs.files["/proc/101/task/101/children"] = regular(42)
+                elif variant == "ambiguous":
+                    self.add_process(203, 101, 23, 30)
+                    self.fs.files["/proc/203/cgroup"] = regular(3203, b"0::/\n", readonly=False)
+                    self.fs.files["/proc/101/task/101/children"] = regular(42, b"202 203")
+                else:
+                    self.pair("meta/snap.yaml", regular(51, b"name: wrong\n"))
+                with patch.object(proof, "_ESCAPED_ROOT_WRAPPER_SHA256", hashlib.sha256(script).hexdigest()):
+                    self.assert_blocked()
+
+    def test_pinned_root_script_bytes_and_inode_are_rechecked(self) -> None:
+        script = self.root_wrapper()
+        path = "/snap/lxd/123/commands/daemon.start"
+        first = self.fs.files[path]
+        with patch.object(proof, "_ESCAPED_ROOT_WRAPPER_SHA256", hashlib.sha256(script).hexdigest()):
+            for final in (replace(first, data=script + b"# changed\n"), replace(first, inode=999)):
+                with self.subTest(inode=final.inode):
+                    self.fs.sequences[path] = [first, final]
+                    self.assert_blocked()
 
     def test_wrapper_without_child_cannot_establish_identity(self) -> None:
         self.fs.files["/proc/101/task/101/children"] = regular(42)

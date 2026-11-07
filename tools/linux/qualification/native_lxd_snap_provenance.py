@@ -4,6 +4,7 @@ from __future__ import annotations
 from contextlib import contextmanager, suppress
 from dataclasses import dataclass
 from datetime import datetime
+import hashlib
 import os
 from pathlib import PurePosixPath
 import re
@@ -38,6 +39,7 @@ _SHUTDOWN_STATIC_UNITS = (
     "snap.microovn.ovn-ovsdb-server-sb.service", "snap.microovn.ovn-northd.service",
     "snap.microovn.chassis.service", "snap.microovn.switch.service", "snap.microovn.bird.service",
 )
+_ESCAPED_ROOT_WRAPPER_SHA256 = "7ecbe39a07dc02666af544327dbaf5cfbe9967868bfb9d7c627061f14916b562"
 _DECIMAL = re.compile(r"[1-9][0-9]{0,18}\Z", re.ASCII)
 _EXEC_START = re.compile(
     r"\{ path=/usr/bin/snap ; argv\[\]=/usr/bin/snap run lxd\.daemon ; ignore_errors=no ; "
@@ -269,6 +271,7 @@ class Process:
     parent: int
     started: int
     executable: Observation
+    cgroup: bytes
 
 
 def _shutdown_dependencies_supported(lines: list[str]) -> bool:
@@ -366,10 +369,10 @@ class _Proof:
         if len(uid) != 1 or not re.fullmatch(r"Uid:[ \t]+0[ \t]+0[ \t]+0[ \t]+0[ \t]*", uid[0], re.ASCII):
             raise ProvenanceError("SNAP_WRAPPER_PROC_INVALID")
         cgroup = self.observe(root + "/cgroup", limit=PROC_LIMIT).data
-        if cgroup not in {f"0::{group}".encode(), f"0::{group}\n".encode()}:
+        if cgroup not in {f"0::{group}".encode(), f"0::{group}\n".encode(), b"0::/", b"0::/\n"}:
             raise ProvenanceError("SNAP_WRAPPER_PROC_INVALID")
         executable = self.trusted(self.observe(root + "/exe", follow=True), executable=True)
-        return Process(pid, parent, started, executable)
+        return Process(pid, parent, started, executable, cgroup)
 
     def main_environment(self, pid: int) -> tuple[str, tuple[bytes, ...], tuple[tuple[bytes, bytes], ...]]:
         raw = self.observe(f"/proc/{pid}/environ", limit=ENV_LIMIT).data
@@ -414,7 +417,7 @@ class _Proof:
         return values[0], values[1]
 
     def package(self, pid: int, base: str) -> tuple[tuple[Any, ...], tuple[int, int]]:
-        script = self.pair(pid, base + "/commands/daemon.start")
+        script = self.pair(pid, base + "/commands/daemon.start", limit=METADATA_LIMIT)
         metadata = self.pair(pid, base + "/meta/snap.yaml", limit=METADATA_LIMIT)
         try:
             document = yaml.load(_text(metadata[0].data, "SNAP_WRAPPER_METADATA_INVALID"), Loader=_UniqueLoader)
@@ -467,8 +470,14 @@ class _Proof:
         base, argv, _ = environment
         shell = self.shell(pid, argv, main)
         package, binary = self.package(pid, base)
+        if main.cgroup in {b"0::/", b"0::/\n"}:
+            script = package[0][0]
+            if hashlib.sha256(script.data).hexdigest() != _ESCAPED_ROOT_WRAPPER_SHA256:
+                raise ProvenanceError("SNAP_WRAPPER_FILE_UNVERIFIED")
         children = self.children(pid)
         candidates = [self.process(child, group) for child in children]
+        if any(child.cgroup != main.cgroup for child in candidates):
+            raise ProvenanceError("SNAP_WRAPPER_PROC_INVALID")
         matches = [child for child in candidates if child.parent == pid and child.executable.identity == binary]
         if not matches:
             raise ProvenanceError("SNAP_WRAPPER_CHILD_ABSENT")
