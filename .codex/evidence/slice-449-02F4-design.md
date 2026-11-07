@@ -87,6 +87,30 @@ inode drift, and all earlier unknown-pin/group/process failures. Preserve
 legacy unpinned alias success and separate-inode refusal. Exact source review,
 focused/full PC-WSL verification and a new host plan precede another capture.
 
+### Exact server-version LTS label
+
+The next separately approved normal capture at `a09d104f` passed wrapper
+provenance and reached local version discovery, then returned
+`VERSION_SCHEMA_INVALID` without an inventory artifact. The fixed local CLI
+reports `Client version: 5.21.9 LTS` and `Server version: 5.21.9 LTS`.
+
+Extend only the closed server-version token with an optional literal single
+ASCII-space plus uppercase `LTS`. Preserve the complete observed string,
+including the label, in the existing string field; do not strip it or infer
+supported transitions. Existing unlabelled tokens remain valid. Require exactly
+one `Server version:` record and a complete valid parse of that record; a valid
+record plus a malformed second record is still a duplicate and must fail.
+Reject doubled/tab separators within the LTS suffix, lowercase/unknown suffixes,
+extra words, malformed/empty records and duplicate records before project or
+resource queries. Retain strict UTF-8, read-only command/budget, artifact schema
+and all service/socket/provenance checks.
+
+Requirements/root, architecture/security and tester/DevOps accepted this
+inventory-format correction before implementation. Tests must traverse the
+real mocked `_inventory_client` flow, retain plain and exact LTS versions and
+prove rejected versions issue no later resource queries. Focused/full gates
+and a fresh exact-source capture plan remain required.
+
 The current exact-source native read-only attempt at `b87fe5c9` returned
 `SNAP_WRAPPER_CONTEXT_BLOCKED` before inventory/artifact creation. Effective
 unit checks and the canonical environment passed. The installed read-only LXD

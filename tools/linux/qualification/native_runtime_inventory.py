@@ -620,6 +620,20 @@ def _validate_volume_show(value: Any, pool: str, volume_type: str, name: str, pr
     return row
 
 
+def _server_version(raw: bytes) -> str:
+    try:
+        text = raw.decode("utf-8", "strict")
+    except UnicodeError as exc:
+        raise InventoryError("VERSION_OUTPUT_INVALID") from exc
+    records = [line for line in text.splitlines() if line.startswith("Server version:")]
+    if len(records) != 1:
+        raise InventoryError("VERSION_SCHEMA_INVALID")
+    match = re.fullmatch(r"Server version:[ \t]*([A-Za-z0-9_.+-]{1,64}(?: LTS)?)[ \t]*", records[0])
+    if match is None:
+        raise InventoryError("VERSION_SCHEMA_INVALID")
+    return match.group(1)
+
+
 def _inventory_client(runner: Runner, identity: str, socket: str, *, incus: bool,
                       before_query: Callable[[], None]) -> tuple[str, list[dict[str, Any]]]:
     binary = "/usr/bin/incus" if incus else ("/snap/bin/lxc" if identity == "lxd_snap" else "/usr/bin/lxc")
@@ -629,13 +643,7 @@ def _inventory_client(runner: Runner, identity: str, socket: str, *, incus: bool
     kind = "incus" if incus else "lxd"
     before_query()
     _, version_raw, _ = runner.run(prefix + ["version"], command_id=f"{kind}_version", env=env, safe_args=[])
-    try:
-        version_text = version_raw.decode("utf-8", "strict")
-    except UnicodeError as exc:
-        raise InventoryError("VERSION_OUTPUT_INVALID") from exc
-    versions = re.findall(r"^Server version:\s*([A-Za-z0-9_.+-]{1,64})\s*$", version_text, re.MULTILINE)
-    if len(versions) != 1:
-        raise InventoryError("VERSION_SCHEMA_INVALID")
+    server_version = _server_version(version_raw)
     before_query()
     projects = _parse_json_command(runner, prefix + ["project", "list", "--format", "json"],
                                    command_id=f"{kind}_project_list", env=env, safe_args=[])
@@ -886,7 +894,7 @@ def _inventory_client(runner: Runner, identity: str, socket: str, *, incus: bool
                 expected = volume_users.get((project, pool["name"], volume["type"], volume["name"]), set())
                 if actual != expected:
                     raise InventoryError("VOLUME_CONSUMER_RECIPROCITY_MISMATCH")
-    return versions[0], rows
+    return server_version, rows
 
 
 def _strings(value: Any) -> list[str]:

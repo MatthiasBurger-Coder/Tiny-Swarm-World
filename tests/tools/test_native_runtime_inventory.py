@@ -18,6 +18,7 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
         def __init__(self):
             self.calls: list[tuple[list[str], dict[str, str], str]] = []
             self.records: list[dict[str, Any]] = []
+            self.version_output = b"Client version: 6.0\nServer version: 6.0.5\n"
             self.list_rows: dict[str, list[dict[str, Any]]] = {}
             self.detail_profiles = ["bravo"]
             self.instance_network = "net"
@@ -44,7 +45,7 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
             self.calls.append((list(argv), dict(env or {}), command_id))
             suffix = argv[2:]
             if suffix == ["version"]:
-                out = b"Client version: 6.0\nServer version: 6.0.5\n"
+                out = self.version_output
             elif suffix == ["project", "list", "--format", "json"]:
                 out = self._json(self.list_rows.get("projects", [{"name": "alpha", "description": "", "config": {},
                                                                     "used_by": self.project_used_by}]))
@@ -605,6 +606,32 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
                             ("/snap/bin/lxc", {**inventory.ENV_BASE, "LXD_SOCKET": "/var/lib/lxd/unix.socket"})):
             with self.subTest(binary=binary, env=env), self.assertRaises(inventory.InventoryError):
                 runner.run([binary, "--force-local", "version"], env=env, command_id="version")
+
+    def test_inventory_preserves_plain_and_exact_lts_server_version(self) -> None:
+        for version, newline in (("6.0.5", "\n"), ("5.21.9 LTS", "\n"), ("5.21.9 LTS", "\r\n")):
+            with self.subTest(version=version, newline=newline):
+                runner = self._InventoryRunner()
+                runner.version_output = ("Client version: " + version + newline + "Server version: " + version + newline).encode()
+                observed, projects = inventory._inventory_client(
+                    runner, "lxd_snap", "/var/snap/lxd/common/lxd/unix.socket", incus=False, before_query=lambda: None)
+                self.assertEqual(observed, version)
+                self.assertEqual(len(projects), 1)
+                self.assertIn(["project", "list", "--format", "json"], [call[0][2:] for call in runner.calls])
+
+    def test_invalid_or_duplicate_version_records_block_before_resource_queries(self) -> None:
+        values = [b"5.21.9  LTS", b"5.21.9\tLTS", b"5.21.9 lts", b"5.21.9 LTS extra", b"5.21.9 preview", b"",
+                  b"5.21.9\nServer version: 5.21.9 LTS", b"5.21.9\nServer version: malformed value", b"\xff"]
+        for value in values:
+            with self.subTest(value=value):
+                runner = self._InventoryRunner()
+                runner.version_output = b"Client version: 5.21.9 LTS\nServer version: " + value + b"\n"
+                before = Mock()
+                code = "VERSION_OUTPUT_INVALID" if value == b"\xff" else "VERSION_SCHEMA_INVALID"
+                with self.assertRaisesRegex(inventory.InventoryError, "^" + code + "$"):
+                    inventory._inventory_client(runner, "lxd_snap", "/var/snap/lxd/common/lxd/unix.socket",
+                                                incus=False, before_query=before)
+                self.assertEqual([call[0][2:] for call in runner.calls], [["version"]])
+                before.assert_called_once_with()
 
     def test_inventory_client_uses_exact_detail_argv_and_projects_safe_consumer_identity(self) -> None:
         runner = self._InventoryRunner()
