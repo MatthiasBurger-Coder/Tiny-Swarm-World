@@ -1,7 +1,7 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: ACTIVE_FOR_ISSUE_449 v1.49 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
+Status: ACTIVE_FOR_ISSUE_449 v1.51 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
@@ -17,6 +17,39 @@ checks passed. Exclusive installation/global-resource ownership remains unproven
 Current policy work enables temporary maintenance without asserting adoption.
 Execution/evidence remains in `.codex/evidence/epic440-20261107.md`; full S02–S09
 completion remains required.
+
+## Source implementation scheduling — v1.51
+
+Under the renewed complete-remediation instruction, root routes capability-independent
+S04 and internal-exposure S06 implementation into isolated worktrees while S02
+maintenance qualification runs. This extends the v1.49 pure-source parallel path.
+The S04 supported-version matrix stays empty; runtime mutation remains refused
+until actual both-host S02 evidence is independently accepted. New profile and
+exposure code must cover its explicit intent, locking, no implicit route expansion,
+convergence and recovery contracts before integration, using focused/full PC WSL
+checks. This changes source scheduling only; S02 remains the runtime capability
+and live-acceptance gate, and S05/S07–09 acceptance remains ordered. Root integrates
+all overlapping composition changes serially. No live pass or EPIC completion
+is implied by code authoring or unit tests.
+
+## Current fixture image prerequisite — v1.50
+
+S02 uses the fixed official Alpine 3.21 default/amd64 build
+`20261107_13:00`, not the no-longer-published Alpine 3.20 prerequisite.
+Official source:
+https://images.linuxcontainers.org/images/alpine/3.21/amd64/default/20261107_13:00/
+Metadata SHA256 `3100ebd0999fb3adf9cf52724b4cf57c95a10fe437660614911aae5f6b236ea7`;
+rootfs SHA256 `5f4503fbfa10e24634e972e2646e243648c66c3bb64ad48615eb60cb0c69cd6e`;
+expected combined image fingerprint
+`bb8bbef5b81dbbc7f665eb12172f06d54aef055327f1b4381767bf8c7b18fe66`.
+Verify imports and actual architecture/OS/release before maintenance proposals.
+No floating alias, custom rebuild or image deletion. Capture the fresh image/cache
+baseline before the maintenance window; any resulting unsupported cache-volume
+shape must be resolved explicitly, never ignored. Existing proxy/listener,
+Incus6.0.5, fixed-route/source/GO/cleanup and preservation rules stay unchanged.
+Historical 3.20 evidence does not qualify this image; new code and both live
+host fixtures remain required before capability admission. Independent
+architecture accepted this prerequisite design; root owns implementation/tests.
 
 ## Current operative maintenance amendment — v1.49
 

@@ -1816,8 +1816,8 @@ def jit(go: dict[str, Any], host: str) -> dict[str, Any]:
         raise TargetDrift('INCUS_IMAGE_DRIFT')
     image_info = strict_json(command(['incus', 'image', 'info', target['image_fingerprint'], '--project', 'default', '--format', 'json']))
     properties = image_info.get('properties')
-    if not isinstance(properties, dict) or 'alpine' not in str(properties.get('os', '')).lower() or properties.get('release') != '3.20':
-        raise TargetDrift('INCUS_IMAGE_NOT_ALPINE_320')
+    if not isinstance(properties, dict) or 'alpine' not in str(properties.get('os', '')).lower() or properties.get('release') != '3.21':
+        raise TargetDrift('INCUS_IMAGE_NOT_ALPINE_321')
     profile = _read_default_profile(go, go['default_profile_used_by'])
     memory_output = command(['free', '-b'])
     disk_output = command(['df', '-B1', '--output=avail', str(ROOT)])

@@ -1,6 +1,10 @@
 # Context pack — issue-449-lcm-w09
 
-## Current continuation — v1.49, 2026-11-07
+## Current continuation — v1.51, 2026-11-07
+
+S02 image prerequisite is the fixed official Alpine3.21 default/amd64 build
+20261107_13:00, combined fingerprint bb8bbef5b81dbbc7f665eb12172f06d54aef055327f1b4381767bf8c7b18fe66.
+Historical3.20 observations remain historical; new fixtures still required.
 
 Branch `fix/epic440-completion-20261107`, baseline `b87fe5c9`. The user requests
 complete Epic #440 remediation on the two named hosts. Current bounded phase:
@@ -35,8 +39,12 @@ One concrete source-bound implementation/recovery/execution review remains;
 no further abstract policy answer is needed. Pure S03 manifest-v2/installation
 lock/checkpoint persistence code may proceed in isolation after code-plan review
 while S02 maintenance/fixture is pending. Run focused/full checks before
-integration. S02 still gates runtime enablement, S04 provider wiring, supported
-Incus versions and later qualification/acceptance; no host action by authoring.
+integration. S02 still gates runtime enablement, supported Incus versions and later
+qualification/acceptance. Under v1.51, capability-independent S04 provider/profile
+and S06 internal-exposure code may proceed in isolated source worktrees with an
+empty supported-version matrix and refused runtime effects. Root serializes
+overlapping integration after focused/full exact PC WSL gates. No host action
+or capability acceptance follows from authoring.
 
 Bounded LXD/Incus volume DTO pool identity follows
 `.codex/evidence/epic440-volume-dto-20261107.md`; ownership and schema 2 remain

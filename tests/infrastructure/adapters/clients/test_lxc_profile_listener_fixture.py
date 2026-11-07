@@ -1999,6 +1999,27 @@ class JitNoMutationTests(_FixtureBehaviorTestCase):
                     fixture.TargetDrift, 'INCUS_VERSION_UNREADABLE'):
                 fixture._parse_incus_version(output)
 
+    def test_fixture_image_rejects_retired_or_unapproved_release_before_profile_read(self):
+        fingerprint = 'e' * 64
+        go = {'target': {'server_version': '6.0.5', 'image_fingerprint': fingerprint}}
+        for properties in ({'os': 'Alpine Linux', 'release': '3.20'},
+                           {'os': 'Alpine Linux', 'release': '3.22'},
+                           {'os': 'Ubuntu', 'release': '3.21'},
+                           {'os': 'Alpine Linux', 'release': '3.21\n'},
+                           {'os': 'Alpine Linux', 'release': True}):
+            outputs = [b'Client version: 6.0.5\nServer version: 6.0.5\n',
+                       json.dumps([{'fingerprint': fingerprint}]).encode(),
+                       json.dumps({'properties': properties}).encode()]
+            with (self.subTest(properties=properties),
+                  patch.object(fixture, '_assert_host_identity'),
+                  patch.object(fixture, '_assert_local_incus_remote_inventory'),
+                  patch.object(fixture, 'command', side_effect=outputs) as called,
+                  patch.object(fixture, '_read_default_profile') as profile):
+                with self.assertRaisesRegex(fixture.TargetDrift, 'INCUS_IMAGE_NOT_ALPINE_321'):
+                    fixture.jit(go, '192.168.178.33')
+                profile.assert_not_called()
+                self.assertEqual(called.call_count, 3)
+
     def test_default_profile_digest_mismatch_is_a_jit_drift(self):
         run_id = 'a' * 32
         fingerprint = 'e' * 64
@@ -2014,7 +2035,7 @@ class JitNoMutationTests(_FixtureBehaviorTestCase):
         outputs = [b'[{"addr_info":[{"local":"192.168.178.33"}]}]',
                    b'Client version: 6.0.5\nServer version: 6.0.5\n',
                    json.dumps([{'fingerprint': fingerprint}]).encode(),
-                   b'{"properties":{"os":"Alpine Linux","release":"3.20"}}',
+                   b'{"properties":{"os":"Alpine Linux","release":"3.21"}}',
                    json.dumps(profile).encode()]
         seen = []
         def command(argv):
@@ -2048,7 +2069,7 @@ class JitNoMutationTests(_FixtureBehaviorTestCase):
             if argv[1:3] == ['image', 'list']:
                 return json.dumps([{'fingerprint': fingerprint}]).encode()
             if argv[1:3] == ['image', 'info']:
-                return b'{"properties":{"os":"Alpine Linux","release":"3.20"}}'
+                return b'{"properties":{"os":"Alpine Linux","release":"3.21"}}'
             if argv[:2] == ['incus', 'query'] and argv[2] == fixture._profile_api_path('default', 'default'):
                 return json.dumps(profile).encode()
             raise AssertionError(f'unexpected command {argv!r}')
@@ -2163,7 +2184,7 @@ class JitNoMutationTests(_FixtureBehaviorTestCase):
             ('incus', 'project', 'list', '--format', 'json'): b'[{"name":"default"}]',
             ('incus', 'query', '/1.0/projects/default'): b'{"name":"default","description":"","config":{}}',
             ('incus', 'image', 'list', '--project', 'default', '--format', 'json'): json.dumps([{'fingerprint': fingerprint}]).encode(),
-            ('incus', 'image', 'info', fingerprint, '--project', 'default', '--format', 'json'): b'{"properties":{"os":"Alpine Linux","release":"3.20"}}',
+            ('incus', 'image', 'info', fingerprint, '--project', 'default', '--format', 'json'): b'{"properties":{"os":"Alpine Linux","release":"3.21"}}',
             ('free', '-b'): b'header\nMem: 40000000000 1000000 2000000 0 3000000 35000000000',
             ('df', '-B1', '--output=avail', str(fixture.ROOT)): b'Avail\n100000000000',
             ('ss', '-H', '-ltn'): b'LISTEN 0 1 127.0.0.1:10001 0.0.0.0:*',
@@ -2251,7 +2272,7 @@ class WslJitTests(_FixtureBehaviorTestCase):
         outputs = [b'[{"addr_info":[{"local":"192.168.178.33"}]}]',
                    b'Client version: 6.0.5\nServer version: 6.0.5\n',
                    json.dumps([{'fingerprint': case.go['target']['image_fingerprint']}]).encode(),
-                   b'{"properties":{"os":"Alpine Linux","release":"3.20"}}',
+                   b'{"properties":{"os":"Alpine Linux","release":"3.21"}}',
                    b'{"name":"default","project":"default","config":{},"devices":{},"used_by":["/1.0/instances/other"]}']
         with (patch.object(fixture, 'command', side_effect=outputs),
               patch.object(fixture, '_inventory_command', return_value=outputs[-1])):
@@ -2285,7 +2306,7 @@ class WslJitTests(_FixtureBehaviorTestCase):
                 ('incus', 'project', 'list', '--format', 'json'): b'[{"name":"default"}]',
                 ('incus', 'query', '/1.0/projects/default'): b'{"name":"default","description":"","config":{}}',
                 ('incus', 'image', 'list', '--project', 'default', '--format', 'json'): json.dumps([{'fingerprint': fingerprint}]).encode(),
-                ('incus', 'image', 'info', fingerprint, '--project', 'default', '--format', 'json'): b'{"properties":{"os":"Alpine Linux","release":"3.20"}}',
+                ('incus', 'image', 'info', fingerprint, '--project', 'default', '--format', 'json'): b'{"properties":{"os":"Alpine Linux","release":"3.21"}}',
                 ('incus', 'query', fixture._profile_api_path('default', 'default')): json.dumps(profile).encode(),
                 ('free', '-b'): b'header\nMem: 40000000000 1000000 2000000 0 3000000 35000000000',
                 ('df', '-B1', '--output=avail', str(fixture.ROOT)): b'Avail\n100000000000',

@@ -1,6 +1,6 @@
 {
   "workflow_id": "issue-449-lcm-w09",
-  "workflow_version": "1.49",
+  "workflow_version": "1.51",
   "continuation_20261107": {
     "branch": "fix/epic440-completion-20261107",
     "baseline": "b87fe5c96b4e8627c56f48d9a7b3c691076447fc",
@@ -33,7 +33,7 @@
     "native_snapshot_detail_query_scope": "One fixed guarded raw storage-snapshot GET per validated flat-list leaf; no recursive list or historical-instance query; unchanged budgets and no live GO",
     "maintenance_policy": {
       "adr": "documentation/handbook/02-architecture/arc42/09_decisions/adr-preserving-host-maintenance-for-qualification.adoc",
-      "status": "USER_SCOPE_ACCEPTED_INDEPENDENT_DECISION_REVIEW_PENDING",
+      "status": "ACCEPTED_ARCHITECTURE_AND_INDEPENDENT_TESTER_DEVOPS_REVIEW",
       "native": "Temporary exact Snap LXD socket/daemon stop; preserve all objects/configuration; mandatory identity-bound finally recovery of captured runtime and previously Running allowlisted instances; no ownership/adoption inference or replacement",
       "windows": "Necessary selected-Ubuntu resource restart with no other running distro; only existing product-bound PortProxy connectaddress may become same registration fresh IPv4; firewall/other fields/foreign rules unchanged; any explicit bridge runtime restart restores prior state",
       "supersession": "Only preserving S02G exclusive-owner/replace requirement, prerequisite PortProxy absolute equality and manual-only W05 restart; later fixture baseline equality and all other guards remain",
@@ -50,6 +50,24 @@
         "composition_lifecycle.py"
       ],
       "retained_gate": "Focused/full exact-source checks before integration; S02 still gates runtime enablement, supported Incus versions, profile capability, S04 provider wiring in composition_platform.py and live acceptance"
+    },
+    "fixture_image": {
+      "os": "Alpine",
+      "release": "3.21",
+      "architecture": "x86_64",
+      "variant": "default",
+      "build": "20261107_13:00",
+      "source": "https://images.linuxcontainers.org/images/alpine/3.21/amd64/default/20261107_13:00/",
+      "metadata_sha256": "3100ebd0999fb3adf9cf52724b4cf57c95a10fe437660614911aae5f6b236ea7",
+      "rootfs_sha256": "5f4503fbfa10e24634e972e2646e243648c66c3bb64ad48615eb60cb0c69cd6e",
+      "combined_fingerprint": "bb8bbef5b81dbbc7f665eb12172f06d54aef055327f1b4381767bf8c7b18fe66",
+      "capability_accepted": false
+    },
+    "source_parallel_scheduling": {
+      "scope": "Isolated capability-independent S04 profile lifecycle and S06 internal exposure implementation alongside S02",
+      "authority": "Renewed user request for complete remediation; root architecture routing decision",
+      "retained_gate": "Empty supported-version matrix and no runtime enablement until both-host S02 acceptance; focused/full exact PC WSL checks and independent source review before integration",
+      "integration_owner": "root; overlapping composition changes serialized"
     }
   },
   "workflow_path": "documentation/handbook/05-development/workflow/issues/issue-449/workflow.md",
