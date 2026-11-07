@@ -28,6 +28,14 @@ are historical). Its isolated worker/root integration, requirement matrix,
 exact source reviews and aggregate PC-WSL results are recorded in
 `.codex/evidence/epic440-store-wsl2-20261107.md`. This is code verification only;
 fresh read-only host preflight, route admission and S02 fixture remain required.
+
+Its subsequent actual preflight exposed native source-path transport for WSL
+UNC checkouts. The bounded correction canonicalizes ProviderPath in the actual
+Windows entrypoint; real Source/Resource native argument builders are covered
+for UNC and drive roots. See
+`.codex/evidence/epic440-windows-source-path-20261107.md` for exact review and
+aggregate PC-WSL verification. Source/resource authority remains unchanged;
+fresh actual host admission is still required.
 Baseline: `a0310224946b63e2152ff4086d22a450c3d0f214`
 ACTIVE_FOR_ISSUE_449 v1.42. The user explicitly authorized completion of issue #449 on the named test hosts. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
 Execution profile: `FULL_PATH — lifecycle/provider implementation, regression, documentation, native and WSL2 qualification`
