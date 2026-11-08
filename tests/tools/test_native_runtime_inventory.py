@@ -26,9 +26,9 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
             for value in ("true", "false"):
                 device = {"proxy": {"type": "proxy", flag: value}}
                 self.assertEqual(inventory._devices(device), device)
-            for value in invalid:
-                with self.subTest(flag=flag, value=value), self.assertRaises(inventory.InventoryError):
-                    inventory._devices({"proxy": {"type": "proxy", flag: value}})
+            for invalid_value in invalid:
+                with self.subTest(flag=flag, value=invalid_value), self.assertRaises(inventory.InventoryError):
+                    inventory._devices({"proxy": {"type": "proxy", flag: invalid_value}})
             for kind in ("nic", "disk"):
                 with self.subTest(flag=flag, kind=kind), self.assertRaises(inventory.InventoryError):
                     inventory._devices({"device": {"type": kind, flag: "false"}})
