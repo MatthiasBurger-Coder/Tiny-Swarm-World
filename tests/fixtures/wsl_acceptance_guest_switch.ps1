@@ -194,4 +194,36 @@ foreach($fault in @('running','third-registration','registry','bridge','client',
  $denied=$false;try{$null=Assert-WslSwitchResetBoundary $s $v $o new $bridge $children}catch{$denied=$true}
  Assert $denied ('reset_boundary_'+$fault);$cases++
 }
+# Execute the actual Save body on new private fixture files. The second save
+# reaches File.Replace, including Windows PowerShell's explicit null binding.
+$tokens=$null;$parseErrors=$null
+$tree=[Management.Automation.Language.Parser]::ParseFile((Join-Path $RepositoryRoot 'tools/windows/qualification/wsl_acceptance_guest_switch.ps1'),[ref]$tokens,[ref]$parseErrors)
+Assert ($parseErrors.Count -eq 0) 'source parses for actual Save'
+$saveDefinitions=@($tree.FindAll({param($a) $a -is [Management.Automation.Language.FunctionDefinitionAst] -and $a.Name -ceq 'Save'},$true))
+Assert ($saveDefinitions.Count -eq 1) 'unique actual Save'
+$saveRoot=Join-Path ([IO.Path]::GetTempPath()) ('tsw-switch-save-'+[Guid]::NewGuid().ToString('N'))
+[void][IO.Directory]::CreateDirectory($saveRoot)
+try{
+ $saveModule=New-Module -ArgumentList $saveRoot,$saveDefinitions[0].Extent.Text -ScriptBlock {
+  param($root,$body)
+  $script:parent=$root;$script:directory=$root;$script:bookmark=Join-Path $root 'guest-switch.json';$script:loaded=$null
+  function Assert-WslSwitchBookmark($state,$spec) {}
+  function CheckPath($p) {if(!(Test-Path -LiteralPath $p)){throw 'SAVE_PATH_MISSING'}}
+  function Assert-WslSwitch($value,$code) {if(!$value){throw $code}}
+  function Get-WslSwitchBytes($value) {return ,([Text.Encoding]::UTF8.GetBytes(($value|ConvertTo-Json -Compress)))}
+  function Get-WslSwitchRawHash($raw) {$h=[Security.Cryptography.SHA256]::Create();try{return [Convert]::ToBase64String($h.ComputeHash($raw))}finally{$h.Dispose()}}
+  function ReadJson($path,$limit) {return @{raw=[IO.File]::ReadAllBytes($path)}}
+  $script:prep=New-Module -ScriptBlock {function Set-PreparationPrivateAcl($path) {if(!(Test-Path -LiteralPath $path)){throw 'SAVE_TEMP_ABSENT'}}}
+  . ([scriptblock]::Create($body))
+  $null=Save @{} @{stage='intent'}
+  $null=Save @{} @{stage='pending'}
+  $actual=[IO.File]::ReadAllText($bookmark)|ConvertFrom-Json
+  if($actual.stage -cne 'pending' -or @(Get-ChildItem $root -Filter '*.tmp').Count -ne 0){throw 'ACTUAL_SAVE_REPLACE_FAILED'}
+  [IO.File]::WriteAllText($bookmark,'{"stage":"foreign"}')
+  $blocked=$false;try{$null=Save @{} @{stage='forbidden'}}catch{$blocked=$_.Exception.Message -ceq 'SWITCH_BOOKMARK_CAS'}
+  if(!$blocked -or ([IO.File]::ReadAllText($bookmark)|ConvertFrom-Json).stage -cne 'foreign'){throw 'ACTUAL_SAVE_CAS_BYPASSED'}
+  Export-ModuleMember -Function @() -Alias @()
+ }
+ Remove-Module $saveModule -Force;$cases++
+}finally{Remove-Item -LiteralPath $saveRoot -Recurse -Force}
 @{status='PASS';cases=$cases;actual_guest_effects=0;actual_preparation=$false;originals_touched=$false;application_ready=$false}|ConvertTo-Json -Compress

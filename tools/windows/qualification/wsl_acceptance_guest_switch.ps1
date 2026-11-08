@@ -690,7 +690,7 @@ print('{"status":"IMMUTABLE_DRIVER_VERIFIED"}')
    try{
     $stream=[IO.FileStream]::new($tmp,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)
     try{& $prep {param($p) Set-PreparationPrivateAcl $p} $tmp;$stream.Write($raw,0,$raw.Length);$stream.Flush($true)}finally{$stream.Dispose()}
-    if(Test-Path -LiteralPath $bookmark){[IO.File]::Replace($tmp,$bookmark,$null)}else{[IO.File]::Move($tmp,$bookmark)}
+    if(Test-Path -LiteralPath $bookmark){[IO.File]::Replace($tmp,$bookmark,[System.Management.Automation.Language.NullString]::Value)}else{[IO.File]::Move($tmp,$bookmark)}
     $script:loaded=Get-WslSwitchRawHash $raw;return $state
    }finally{if(Test-Path -LiteralPath $tmp){Remove-Item -LiteralPath $tmp -Force -ErrorAction Stop}}
   }
