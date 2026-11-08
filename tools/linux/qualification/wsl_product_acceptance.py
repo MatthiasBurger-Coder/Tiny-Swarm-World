@@ -518,8 +518,9 @@ class WslCasePort:
              and bridge['scope'] == 'PRESERVING_ACCEPTANCE_BRIDGE' and bridge['phase'] == 'Bind'
              and bridge['changed'] is True and bridge['recovery_required'] is False and bridge['error'] == 'NONE', 'CASE_COORDINATOR_RECEIPT_SCHEMA')
         need(prep['kind'] == 'NEW_GUEST_PREPARATION' and prep['run_id'] == self.intent.run_id
-             and prep['source_commit'] == self.intent.source_commit and bridge['status'] == 'NEW_BINDING_READY'
+             and bridge['status'] == 'NEW_BINDING_READY'
              and bridge['application_ready'] is False, 'CASE_COORDINATOR_NOT_READY')
+        qualification = self.qualification_revision(prep['source_commit'])
         windows = windows_scope(self.intent)
         observed = inventory.strict_json(self.command(['/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe',
             '-NoProfile', '-NonInteractive', '-Command', windows], 30))
@@ -527,7 +528,19 @@ class WslCasePort:
              'name': 'TSW-Q440-' + self.intent.run_id, 'host': self.intent.windows_host,
              'bundle_id': self.intent.bridge_bundle_id, 'sole_running': True}, 'CASE_WINDOWS_SCOPE_DRIFT')
         return {'machine_id_sha256': machine, 'boot_id_sha256': boot, 'new_guid': self.intent.new_guid,
-                'new_vhd_sha256': self.intent.new_vhd_sha256}
+                'new_vhd_sha256': self.intent.new_vhd_sha256, 'qualification_source_commit': qualification,
+                'product_source_commit': self.intent.source_commit}
+
+    def qualification_revision(self, qualification: Any) -> str:
+        """Keep the original receipt; only one data-only admission commit may follow it."""
+        need(isinstance(qualification, str) and bool(inventory.HEX40.fullmatch(qualification)), 'CASE_QUALIFICATION_SOURCE')
+        product = self.intent.source_commit
+        if qualification != product:
+            git = ['/usr/bin/git', '--no-optional-locks', '-C', str(ROOT)]
+            parents = self.command(git + ['rev-list', '--parents', '-n', '1', product], 10).decode('ascii').split()
+            changes = self.command(git + ['diff', '--name-only', '--no-renames', qualification, product, '--'], 10).decode('ascii').splitlines()
+            need(parents == [product, qualification] and changes == [CAPABILITY], 'CASE_QUALIFICATION_PROMOTION')
+        return qualification
 
     def prerequisites(self) -> None:
         capability = ROOT / CAPABILITY; trusted(capability)

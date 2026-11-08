@@ -109,6 +109,36 @@ class WslProductAcceptanceTests(unittest.TestCase):
                         public.assert_called_once_with(suite.CASE_RECIPES['minimal'].args(preview=True), timeout=120)
                         preview.assert_called_once_with(b'actual-preview-transport', suite.CASE_RECIPES['minimal'])
 
+    def test_qualification_receipt_allows_only_one_matrix_only_child(self) -> None:
+        port = suite.WslCasePort(intent(), Mock())
+        qualification, product = 'a' * 40, intent().source_commit
+        command = Mock()
+        with patch.object(port, 'command', command):
+            self.assertEqual(port.qualification_revision(product), product)
+            command.assert_not_called()
+            variants: tuple[tuple[bytes, bytes, bool], ...] = (
+                (f'{product} {qualification}\n'.encode(), (suite.CAPABILITY + '\n').encode(), True),
+                (f'{product} {qualification} {"c" * 40}\n'.encode(), (suite.CAPABILITY + '\n').encode(), False),
+                (f'{product} {"c" * 40}\n'.encode(), (suite.CAPABILITY + '\n').encode(), False),
+                (f'{product} {qualification}\n'.encode(), b'', False),
+                (f'{product} {qualification}\n'.encode(), (suite.CAPABILITY + '\ntools/code.py\n').encode(), False),
+                (f'{product} {qualification}\n'.encode(), b'infra/config/other.json\n', False),
+            )
+            for parents, changes, allowed in variants:
+                with self.subTest(parents=parents, changes=changes):
+                    command.reset_mock(side_effect=True)
+                    command.side_effect = [parents, changes]
+                    if allowed:
+                        self.assertEqual(port.qualification_revision(qualification), qualification)
+                    else:
+                        with self.assertRaisesRegex(suite.CaseError, 'CASE_QUALIFICATION_PROMOTION'):
+                            port.qualification_revision(qualification)
+                    self.assertEqual(command.call_args_list[0].args[0][-5:], ['rev-list', '--parents', '-n', '1', product])
+                    self.assertEqual(command.call_args_list[1].args[0][-6:], ['diff', '--name-only', '--no-renames', qualification, product, '--'])
+            for invalid in (None, True, '', 'main', 'a' * 39):
+                with self.subTest(invalid=invalid), self.assertRaisesRegex(suite.CaseError, 'CASE_QUALIFICATION_SOURCE'):
+                    port.qualification_revision(invalid)
+
     def test_upgrade_and_engine_recovery_have_distinct_fixed_go_phases(self) -> None:
         current = replace(intent(), case='upgrade-batch-service-access-portainer-published')
         proposal = {'pins': {'actual': 'c' * 64}}

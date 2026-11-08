@@ -351,8 +351,8 @@ def trusted(path,directory=False):
     for p in (path,*path.parents):
         s=p.lstat();need(s.st_uid==0 and not stat.S_ISLNK(s.st_mode) and not s.st_mode&0o022)
     need(path.is_dir() if directory else path.is_file())
-def private(path):
-    trusted(path);s=path.stat();need(stat.S_IMODE(s.st_mode)==0o600 and s.st_nlink==1 and s.st_size<=65536)
+def private(path,limit=65536):
+    trusted(path);s=path.stat();need(stat.S_IMODE(s.st_mode)==0o600 and s.st_nlink==1 and s.st_size<=limit)
     return path.read_bytes()
 def unique(pairs):
     result={}
@@ -362,11 +362,32 @@ def strict(raw):return json.loads(raw,object_pairs_hook=unique,parse_constant=la
 def digest(value):return hashlib.sha256(json.dumps(value,sort_keys=True,separators=(',',':'),ensure_ascii=True,allow_nan=False).encode()).hexdigest()
 trusted(root,True);trusted(checkout,True);trusted(checkout/'.git',True)
 env={'LC_ALL':'C','PATH':'/usr/sbin:/usr/bin:/sbin:/bin','HOME':'/root','GIT_CONFIG_NOSYSTEM':'1','GIT_CONFIG_GLOBAL':'/dev/null','GIT_OPTIONAL_LOCKS':'0'}
-def git(args,exits=(0,)):
-    p=subprocess.run(['/usr/bin/git','--no-optional-locks','-C',str(checkout),'-c','core.fsmonitor=false','-c','core.hooksPath=/dev/null','-c','core.untrackedCache=false',*args],env=env,stdin=subprocess.DEVNULL,capture_output=True,timeout=10)
+def git(args,exits=(0,),directory=checkout):
+    p=subprocess.run(['/usr/bin/git','--no-optional-locks','-C',str(directory),'-c','core.fsmonitor=false','-c','core.hooksPath=/dev/null','-c','core.untrackedCache=false',*args],env=env,stdin=subprocess.DEVNULL,capture_output=True,timeout=10)
     need(p.returncode in exits and not p.stderr and len(p.stdout)<=1048576);return p.stdout
 need(git(['config','--local','--includes','--null','--get-regexp',r'^filter\.'],(0,1))==b'')
+def admitted_product_revision(qualification,product,parents,changes):
+    need(re.fullmatch('[0-9a-f]{40}',qualification) and re.fullmatch('[0-9a-f]{40}',product))
+    if product!=qualification:need(parents==[product,qualification] and changes==['infra/config/incus-profile-capabilities.json'])
+    return product
+def validate_promoted_capability():
+    capraw=git(['show',product_source+':infra/config/incus-profile-capabilities.json']);need(len(capraw)<=65536)
+    matrix=strict(capraw);need(isinstance(matrix,dict) and set(matrix)=={'schema_version','capability','admitted_versions'} and type(matrix['schema_version']) is int and matrix['schema_version']==1 and matrix['capability']=='installation-scoped-incus-manager-profile' and isinstance(matrix['admitted_versions'],list) and len(matrix['admitted_versions'])==1)
+    entry=matrix['admitted_versions'][0];need(isinstance(entry,dict) and set(entry)=={'client_version','server_version','fixture_source_revision','fixture_sha256'} and entry['client_version']==entry['server_version']=='6.0.5' and re.fullmatch('[0-9a-f]{40}',entry['fixture_source_revision']) and re.fullmatch('[0-9a-f]{64}',entry['fixture_sha256']))
+    from preserving_product_acceptance import validate_host_artifacts
+    proof=strict(private(root/'both-host-profile-capability.json'))
+    artifacts={host:private(root/('profile-capability-'+host+'.json'),8388608) for host in ('native_linux','wsl2')}
+    sources=validate_host_artifacts(proof,hashlib.sha256(capraw).hexdigest(),entry['fixture_sha256'],artifacts)
+    for revision in (product_source,entry['fixture_source_revision'],*sources.values()):need(hashlib.sha256(git(['show',revision+':tools/linux/qualification/incus_profile_listener_fixture.py'])).hexdigest()==entry['fixture_sha256'])
+    return capraw
+path=root/('preparation.json' if kind=='prepared' else 'new-case-stop.json');raw=private(path);need(hashlib.sha256(raw).hexdigest()==expected);receipt=strict(raw)
+need(type(receipt['schema_version']) is int and receipt['schema_version']==1 and receipt['run_id']==run and isinstance(receipt['source_commit'],str))
+product_source=source if kind=='prepared' else receipt['source_commit']
+need(re.fullmatch('[0-9a-f]{40}',product_source))
 need(git(['rev-parse','HEAD']).decode().strip()==source and git(['status','--porcelain=v1','--untracked-files=all'])==b'')
+parents=git(['rev-list','--parents','-n','1',product_source]).decode().split() if product_source!=source else []
+changes=git(['diff','--name-only','--no-renames',source,product_source,'--']).decode().splitlines() if product_source!=source else []
+admitted_product_revision(source,product_source,parents,changes)
 import base64
 pins=strict(base64.b64decode(encoded));need(set(pins)=={'native_runtime_inventory.py','native_lxd_snap_provenance.py'})
 for name,sha in pins.items():
@@ -383,8 +404,7 @@ def query(uri):
     raw=r.run(['/usr/bin/incus','--force-local','query','--request','GET','--raw',uri],env=env,command_id='guest_switch_read',safe_args=[])[1]
     value=strict(raw);need(set(value)=={'type','status','status_code','operation','error_code','error','metadata'} and value['type']=='sync' and value['status']=='Success' and value['status_code']==200 and value['error_code']==0 and value['operation']=='' and value['error']=='')
     return value['metadata']
-path=root/('preparation.json' if kind=='prepared' else 'new-case-stop.json');raw=private(path);need(hashlib.sha256(raw).hexdigest()==expected);receipt=strict(raw)
-need(type(receipt['schema_version']) is int and receipt['schema_version']==1 and receipt['run_id']==run and receipt['source_commit']==source)
+need(receipt['source_commit']==product_source)
 sock=binding();version=r.run(['/usr/bin/incus','--version'],env={'LC_ALL':'C','PATH':n.ENV_BASE['PATH'],'INCUS_SOCKET':sock},command_id='guest_switch_version')[1].decode().strip();need(version=='6.0.5')
 metadata=n._read_server_root(n.Runner(),['/usr/bin/incus','--force-local'],{'LC_ALL':'C','PATH':n.ENV_BASE['PATH'],'INCUS_SOCKET':sock},binding,incus=True,cli_version='6.0.5',phase='initial')
 need(metadata['server_version']=='6.0.5')
@@ -402,6 +422,19 @@ def case_ledger_names(ledger,run,source):
 def case_ledger_directory_names(ledger,names,recipes):
     need(isinstance(names,list) and len(names)<=len(recipes) and all(type(name) is str and name in recipes for name in names) and len(set(names))==len(names))
     need(set(names)=={row['case'] for row in ledger['cases']})
+def verify_case_checkout(case_name,capraw):
+    casecheckout=root/'cases'/case_name/'checkout';trusted(casecheckout,True);trusted(casecheckout/'.git',True)
+    need(git(['config','--local','--includes','--null','--get-regexp',r'^filter\.'],(0,1),casecheckout)==b'')
+    need(git(['rev-parse','HEAD'],directory=casecheckout).decode().strip()==product_source and git(['status','--porcelain=v1','--untracked-files=all'],directory=casecheckout)==b'')
+    cap=casecheckout/'infra/config/incus-profile-capabilities.json';trusted(cap);need(cap.read_bytes()==capraw)
+def case_requires_checkout(outcome,effect_markers,child_intents):
+    if outcome['status'] not in ('CASE_NOT_EXECUTED','CASE_NOT_IMPLEMENTED'):return True
+    need(set(outcome)=={'status','run_id','source_commit','case','epic_complete'} and outcome['epic_complete'] is False and not effect_markers)
+    for row in child_intents:
+        need(isinstance(row,dict) and set(row)=={'argv_sha256','timeout','public'} and type(row['public']) is bool and isinstance(row['argv_sha256'],str) and re.fullmatch('[0-9a-f]{64}',row['argv_sha256']) and type(row['timeout']) is int and row['timeout']>0)
+    # A successful prepare can already run the real public --preview. That is
+    # a source claim requiring the normal clean checkout, not the absent-source exception.
+    return any(row['public'] for row in child_intents)
 if kind=='prepared':
     need(set(receipt)=={'schema_version','run_id','source_commit','kind','package_versions','python_version'} and receipt['kind']=='NEW_GUEST_PREPARATION')
     versions=subprocess.run(['/usr/bin/dpkg-query','--show','--showformat=${Package}=${Version}\n','incus','incus-base','incus-client'],env=env,stdin=subprocess.DEVNULL,capture_output=True,timeout=10)
@@ -422,13 +455,25 @@ if kind=='prepared':
 else:
     need(kind=='stopped' and set(receipt)=={'schema_version','run_id','source_commit','kind','case_journal_sha256','machine_id_sha256','boot_id_sha256'} and receipt['kind']=='OWNED_CASES_DISPOSED')
     ledgerraw=private(root/'product-case-ledger.json');need(hashlib.sha256(ledgerraw).hexdigest()==receipt['case_journal_sha256']);ledger=strict(ledgerraw)
-    recipes=case_ledger_names(ledger,run,source)
+    if product_source!=source:
+        # The one changed tracked asset must carry the actual paired admission;
+        # unchanged code does not turn a matrix edit into qualification evidence.
+        capraw=validate_promoted_capability()
+    recipes=case_ledger_names(ledger,run,product_source)
     declared=list((root/'cases').iterdir());need(len(declared)<=len(recipes))
     need(all(p.is_dir() and not p.is_symlink() for p in declared));case_ledger_directory_names(ledger,[p.name for p in declared],recipes)
     seen=[]
     for case in ledger['cases']:
         need(set(case)=={'case','outcome_sha256'} and case['case'] in recipes and re.fullmatch('[0-9a-f]{64}',case['outcome_sha256']))
         seen.append(recipes.index(case['case']));journal=root/'cases'/case['case']/'journal';trusted(journal,True)
+        files=list(journal.glob('outcome-*.json'));need(0<len(files)<=64);matches=0;matched=None
+        for file in files:
+            need(re.fullmatch(r'outcome-[0-9a-f]{32}\.json',file.name));content=private(file)
+            if hashlib.sha256(content).hexdigest()==case['outcome_sha256']:
+                actual=strict(content)
+                need(actual.get('run_id')==run and actual.get('source_commit')==product_source and actual.get('case')==case['case'] and actual.get('status') in ('CASE_PASS_DISPOSED','CASE_FAILED_DISPOSED','CASE_RECOVERED','CASE_NOT_EXECUTED','CASE_NOT_EXERCISED','CASE_NOT_IMPLEMENTED'))
+                matches+=1;matched=actual
+        need(matches==1 and matched is not None)
         intents=list(journal.glob('child-*-intent.json'));need(len(intents)<=1024)
         for intent in intents:
             stem=intent.name.removesuffix('-intent.json');pidfile=journal/(stem+'-pid.json')
@@ -438,14 +483,12 @@ else:
             try:os.killpg(child['pid'],0)
             except ProcessLookupError:pass
             else:need(False)
-        files=list(journal.glob('outcome-*.json'));need(0<len(files)<=64);matches=0
-        for file in files:
-            need(re.fullmatch(r'outcome-[0-9a-f]{32}\.json',file.name));content=private(file)
-            if hashlib.sha256(content).hexdigest()==case['outcome_sha256']:
-                actual=strict(content)
-                need(actual.get('run_id')==run and actual.get('source_commit')==source and actual.get('case')==case['case'] and actual.get('status') in ('CASE_PASS_DISPOSED','CASE_FAILED_DISPOSED','CASE_RECOVERED','CASE_NOT_EXECUTED','CASE_NOT_EXERCISED','CASE_NOT_IMPLEMENTED'))
-                matches+=1
-        need(matches==1)
+        if product_source!=source:
+            effects=list(journal.glob('execution-intent-*.json'))+list(journal.glob('engine-recovery-started.json'))+list(journal.glob('disposal-intent.json'))
+            unexecuted=matched['status'] in ('CASE_NOT_EXECUTED','CASE_NOT_IMPLEMENTED')
+            child_rows=[strict(private(p)) for p in intents] if unexecuted else []
+            if case_requires_checkout(matched,effects,child_rows):
+                verify_case_checkout(case['case'],capraw)
     need(seen==sorted(set(seen)))
     projects=query('/1.0/projects?recursion=1');need(isinstance(projects,list) and len(projects)==1 and projects[0]['name']=='default')
     need(query('/1.0/instances?recursion=1&project=default')==[])
@@ -469,7 +512,7 @@ boot=Path('/proc/sys/kernel/random/boot_id').read_text().strip();need(str(UUID(b
 machine=Path('/etc/machine-id').read_bytes().strip();need(re.fullmatch(b'[0-9a-f]{32}',machine))
 bootsha=hashlib.sha256(boot.encode()).hexdigest();machinesha=hashlib.sha256(machine).hexdigest()
 if receipt.get('kind')=='OWNED_CASES_DISPOSED':need(receipt['boot_id_sha256']==bootsha and receipt['machine_id_sha256']==machinesha)
-binding();print(json.dumps({'status':status,'receipt_sha256':expected,'observation_sha256':digest(metadata),'boot_id_sha256':bootsha,'machine_id_sha256':machinesha},sort_keys=True,separators=(',',':')))
+binding();print(json.dumps({'status':status,'receipt_sha256':expected,'observation_sha256':digest(metadata),'qualification_source_commit':source,'product_source_commit':product_source,'boot_id_sha256':bootsha,'machine_id_sha256':machinesha},sort_keys=True,separators=(',',':')))
 '@
 }
 

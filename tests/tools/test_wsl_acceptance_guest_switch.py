@@ -8,6 +8,7 @@ import re
 import socket
 import struct
 import subprocess
+import tempfile
 import unittest
 from typing import Any
 from unittest.mock import patch
@@ -19,6 +20,115 @@ CONTROLLER = ROOT / "tools/windows/qualification/wsl_acceptance_guest_switch.ps1
 
 
 class UpgradeLedgerTests(unittest.TestCase):
+    def test_actual_promoted_case_source_preserves_unexecuted_recovery_without_checkout(self):
+        source = CONTROLLER.read_text()
+        start = source.index('def verify_case_checkout(')
+        end = source.index("if kind=='prepared':", start)
+        def need(value):
+            if not value:
+                raise ValueError('CASE_SOURCE_DENIED')
+        namespace: dict[str, Any] = {'need': need, 're': re}
+        exec(compile(ast.parse(source[start:end]), str(CONTROLLER), 'exec'), namespace)
+        required = namespace['case_requires_checkout']
+        outcome = {'status': 'CASE_NOT_EXECUTED', 'run_id': 'a' * 32, 'source_commit': 'b' * 40,
+            'case': 'minimal', 'epic_complete': False}
+        readonly_child = {'argv_sha256': 'c' * 64, 'timeout': 10, 'public': False}
+        # This branch must not touch or require a checkout at all.
+        self.assertFalse(required(outcome, [], []))
+        self.assertFalse(required(outcome | {'status': 'CASE_NOT_IMPLEMENTED'}, [], [readonly_child]))
+        self.assertTrue(required(outcome, [], [readonly_child | {'public': True}]))
+        for status in ('CASE_PASS_DISPOSED', 'CASE_FAILED_DISPOSED', 'CASE_RECOVERED', 'CASE_NOT_EXERCISED'):
+            self.assertTrue(required(outcome | {'status': status}, [], []))
+        for changed, effects, children in (({'epic_complete': True}, [], []), ({}, ['execution-intent.json'], []),
+                                            ({}, [], [{'public': False}])):
+            with self.subTest(changed=changed, effects=effects, children=children), self.assertRaises(ValueError):
+                required(outcome | changed, effects, children)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            checkout = root / 'cases/minimal/checkout'
+            (checkout / '.git').mkdir(parents=True)
+            cap = checkout / 'infra/config/incus-profile-capabilities.json'
+            cap.parent.mkdir(parents=True)
+            cap.write_bytes(b'approved-matrix')
+            for fault in ('valid', 'head', 'dirty', 'filter', 'matrix'):
+                def git(args, exits=(0,), directory=None):
+                    del exits, directory
+                    if args[0] == 'config':
+                        return b'filter.bad' if fault == 'filter' else b''
+                    if args[0] == 'rev-parse':
+                        return ('c' * 40 if fault == 'head' else 'b' * 40).encode()
+                    return b'changed' if fault == 'dirty' else b''
+                namespace.update(root=root, git=git, trusted=lambda *a: None, product_source='b' * 40)
+                with self.subTest(checkout=fault):
+                    if fault == 'valid':
+                        namespace['verify_case_checkout']('minimal', b'approved-matrix')
+                    else:
+                        with self.assertRaises(ValueError):
+                            namespace['verify_case_checkout']('minimal', b'wrong' if fault == 'matrix' else b'approved-matrix')
+            checkout.rename(checkout.with_name('partial-staging'))
+            self.assertFalse(required(outcome, [], []))
+            if required(outcome, [], [readonly_child | {'public': True}]):
+                with self.assertRaises(FileNotFoundError):
+                    namespace['verify_case_checkout']('minimal', b'approved-matrix')
+
+    def test_actual_embedded_promotion_gate_refuses_code_merge_and_grandchild(self):
+        source = CONTROLLER.read_text()
+        start = source.index('def admitted_product_revision(')
+        end = source.index("path=root/('preparation.json'", start)
+        def need(value):
+            if not value:
+                raise ValueError('PROMOTION_DENIED')
+        namespace: dict[str, Any] = {'need': need, 're': re}
+        exec(compile(ast.parse(source[start:end]), str(CONTROLLER), 'exec'), namespace)
+        gate = namespace['admitted_product_revision']
+        q, r = 'a' * 40, 'b' * 40
+        matrix = 'infra/config/incus-profile-capabilities.json'
+        self.assertEqual(gate(q, q, [], []), q)
+        self.assertEqual(gate(q, r, [r, q], [matrix]), r)
+        for parents, changes in (([r, q, 'c' * 40], [matrix]), ([r, 'c' * 40], [matrix]),
+                                 ([r, q], [matrix, 'code.py']), ([r, q], []), ([r, q], ['other.json'])):
+            with self.subTest(parents=parents, changes=changes), self.assertRaises(ValueError):
+                gate(q, r, parents, changes)
+        for bad in ('main', 'a' * 39):
+            with self.assertRaises(ValueError):
+                gate(q, bad, [bad, q], [matrix])
+
+    def test_actual_embedded_promotion_requires_paired_host_proof_and_fixture_bytes(self):
+        from tools.linux.qualification import preserving_product_acceptance as proof_module
+        from tests.tools.test_preserving_product_acceptance import altered_capability
+        source = CONTROLLER.read_text()
+        start = source.index('def validate_promoted_capability(')
+        end = source.index("path=root/('preparation.json'", start)
+        code = b'fixed-real-fixture-source-for-unit-test'
+        matrix = {'schema_version': 1, 'capability': 'installation-scoped-incus-manager-profile',
+            'admitted_versions': [{'client_version': '6.0.5', 'server_version': '6.0.5',
+                'fixture_source_revision': 'b' * 40, 'fixture_sha256': proof_module.native.digest(code)}]}
+        capraw = proof_module.native.canonical(matrix)
+        for kind in ('valid', 'copied-native', 'wrong-host', 'missing-host', 'source', 'fixture', 'fixture-code'):
+            proof, artifacts, _ = altered_capability(kind, proof_module.native.digest(capraw))
+            def private(path, limit=65536):
+                del limit
+                if path.name == 'both-host-profile-capability.json':
+                    return proof_module.native.canonical(proof)
+                return artifacts[path.name.removeprefix('profile-capability-').removesuffix('.json')]
+            def git(args):
+                if args[-1].endswith('incus-profile-capabilities.json'):
+                    return capraw
+                return b'changed-fixture' if kind == 'fixture-code' else code
+            def need(value):
+                if not value:
+                    raise ValueError('PROMOTION_DENIED')
+            namespace: dict[str, Any] = {'need': need, 're': re, 'git': git, 'private': private,
+                'strict': json.loads, 'root': Path('/never-accessed'), 'product_source': 'c' * 40,
+                'hashlib': __import__('hashlib')}
+            exec(compile(ast.parse(source[start:end]), str(CONTROLLER), 'exec'), namespace)
+            with self.subTest(kind=kind), patch.dict('sys.modules', {'preserving_product_acceptance': proof_module}):
+                if kind == 'valid':
+                    self.assertEqual(namespace['validate_promoted_capability'](), capraw)
+                else:
+                    with self.assertRaises(ValueError):
+                        namespace['validate_promoted_capability']()
+
     def test_actual_embedded_ledger_parser_preserves_v1_and_closes_v2(self):
         from tools.linux.qualification import product_upgrade_cases as cases
         source = CONTROLLER.read_text()
