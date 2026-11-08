@@ -1,5 +1,14 @@
 # Context pack — issue-449-lcm-w09
 
+## Current original-runtime source authority — v1.61
+
+The original WSL quiesce refused an old detail aggregate before any stop or
+quiesce-started marker. All four UUID/config/status identities and complete graph
+remain equal; the historical detail cause is unproven. New R3 source engineering
+adds typed, intent-bound veth runtime evidence and per-detail hash coverage with
+unchanged distinct driver/GuestSwitch budgets. Old source/history stay immutable.
+Fresh complete current baseline and independent GO precede any effect.
+
 ## Current cache prerequisite source authority — v1.60
 
 Workflow v1.60 permits only the independently reviewed fixed Portainer cache

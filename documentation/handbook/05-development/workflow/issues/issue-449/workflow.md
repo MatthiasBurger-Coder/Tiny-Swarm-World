@@ -1,7 +1,7 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: ACTIVE_FOR_ISSUE_449 v1.60 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
+Status: ACTIVE_FOR_ISSUE_449 v1.61 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
@@ -17,6 +17,30 @@ checks passed. Exclusive installation/global-resource ownership remains unproven
 Current policy work enables temporary maintenance without asserting adoption.
 Execution/evidence remains in `.codex/evidence/epic440-20261107.md`; full S02–S09
 completion remains required.
+
+## Typed original WSL NIC runtime and fresh baseline — v1.61
+
+Root and independent architecture approve source engineering only under
+`.codex/evidence/epic440-original-runtime-r3-plan-20261108.md`, SHA256
+b9c6d079899e7a91c550514d4294a877e22f43c3ff65a6ae5f16a7166a5d5d65. New Original-driver source namespace
+is cb8c0e27 /root/tsw440-wsl-r5-20261108; old71d2/92b4 and history remain immutable.
+Only validated known used_by sets are canonicalized as complete sorted copies.
+Only actual typed eth0 host-veth metadata is separated from stable node/detail
+hashes and checked through exact source/UUID/proposal-bound stop/start intent,
+phase and durable post-start runtime receipts. All other config/MAC/idmap/device/
+ordered-profile/foreign metadata remains protected; workers never start. Add
+bounded per-detail coverage/hash records and realistic transport/phase tests.
+Original driver75s child,1800s invocation/128 claims, delegated capture300s and
+settlement25+5 stay; GuestSwitch650s is separate. No new effects or budget increase.
+
+Actual old quiesce refused BEFORE quiesce-started/stop intent; no original effect.
+Current graph/binding and allfour stable UUID/config/status identities equal the
+old proposal, while old aggregate detail cause remains UNPROVEN. Preserve that
+rejection. A fresh current complete preserve set/new namespace/independent Root GO
+may precede the first effect; no old unavailable raw-detail equality is claimed.
+This zero-effect retirement cannot authorize replay after partial/uncertain effects.
+Exact new source review and required PC tests precede deployment/path/hash repin
+and any new original action. Root serializes GuestSwitch pin integration with S-U1.
 
 ## Closed post-baseline Portainer image-cache prerequisite — v1.60
 

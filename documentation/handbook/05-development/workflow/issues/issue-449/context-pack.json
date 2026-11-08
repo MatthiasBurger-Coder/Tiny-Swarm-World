@@ -1,6 +1,6 @@
 {
   "workflow_id": "issue-449-lcm-w09",
-  "workflow_version": "1.60",
+  "workflow_version": "1.61",
   "continuation_20261107": {
     "branch": "fix/epic440-completion-20261107",
     "baseline": "b87fe5c96b4e8627c56f48d9a7b3c691076447fc",
@@ -233,6 +233,24 @@
       "maximum_actual_pulls_per_pair": 1,
       "public_scoped_artifacts_guard": "UNCHANGED_REFUSED",
       "runtime_mutation_released": false
+    },
+    "original_runtime_r3": {
+      "record": ".codex/evidence/epic440-original-runtime-r3-plan-20261108.md",
+      "record_sha256": "b9c6d079899e7a91c550514d4294a877e22f43c3ff65a6ae5f16a7166a5d5d65",
+      "status": "SOURCE_ENGINEERING_ONLY",
+      "source_commit": "cb8c0e27c5890c39c03c45502423f2b8bf372ecc",
+      "root": "/root/tsw440-wsl-r5-20261108",
+      "old_zero_effect_attempt": "REJECTED_STALE_DETAIL_DIGEST_CAUSE_UNPROVEN",
+      "budgets": {
+        "child_seconds": 75,
+        "invocation_seconds": 1800,
+        "own_command_claims": 128,
+        "capture_seconds": 300,
+        "settlement_seconds": 25,
+        "settlement_cleanup_seconds": 5,
+        "outer_guestswitch_seconds": 650
+      },
+      "host_effects_released": false
     }
   },
   "workflow_path": "documentation/handbook/05-development/workflow/issues/issue-449/workflow.md",
