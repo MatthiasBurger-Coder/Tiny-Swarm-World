@@ -712,6 +712,8 @@ public static class TswAcceptanceFileIdentity {
         $script:bindingPorts=$ports
         # Ports invoke this module explicitly; never replace caller helpers.
         Export-ModuleMember -Function @() -Alias @()
+        # Ports invoke this module explicitly; never replace caller helpers.
+        Export-ModuleMember -Function @() -Alias @()
     }
     }finally{foreach($handle in $handles){$handle.Dispose()}}
     $result=@{}
