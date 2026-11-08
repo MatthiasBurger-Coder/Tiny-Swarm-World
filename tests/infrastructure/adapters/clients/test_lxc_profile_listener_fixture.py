@@ -1759,6 +1759,9 @@ class FixtureLifecycleTests(_FixtureBehaviorTestCase):
                     state['ambiguous_create'] = None
                     raise fixture.TargetDrift('JIT_COMMAND_FAILED')
             if args[:1] == ('init',):
+                # Qualified Incus 6.0.5 init creates stopped instances and has no --no-start flag.
+                if '--no-start' in args:
+                    raise fixture.TargetDrift('INCUS_INIT_UNSUPPORTED_FLAG')
                 state['instance'] = True
                 if state['ambiguous_create'] == 'instance':
                     state['ambiguous_create'] = None

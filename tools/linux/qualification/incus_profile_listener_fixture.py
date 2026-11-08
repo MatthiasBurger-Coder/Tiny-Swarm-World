@@ -2021,10 +2021,10 @@ def _run_fixture(go: dict[str, Any], baseline: dict[str, Any]) -> dict[str, Any]
         _read_default_profile(go, go['default_profile_used_by'])
         _assert_fixture_profile(go, strict_json(_incus('query', _profile_api_path(profile, 'default'))), [])
         prepare_write('init', target['image_fingerprint'], instance, '--project', 'default',
-                      '--profile', base_profile, '--profile', profile, '--no-start')
+                      '--profile', base_profile, '--profile', profile)
         try:
             _incus('init', target['image_fingerprint'], instance, '--project', 'default',
-                   '--profile', base_profile, '--profile', profile, '--no-start')
+                   '--profile', base_profile, '--profile', profile)
             created_instance = True
         except Exception:
             recover_instance_create()
