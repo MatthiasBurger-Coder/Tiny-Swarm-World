@@ -1088,7 +1088,7 @@ class OwnedTransitionObservationTests(unittest.TestCase):
             unit.assert_called_once()
 
     def test_own_start_provenance_classes_require_subsequent_full_proof_not_a_successful_exception(self) -> None:
-        for reason in ('SNAP_WRAPPER_FILE_UNVERIFIED', 'SNAP_WRAPPER_PROC_INVALID', 'SNAP_WRAPPER_CHILD_ABSENT'):
+        for reason in ('SNAP_WRAPPER_FILE_UNVERIFIED', 'SNAP_WRAPPER_PROC_INVALID', 'SNAP_WRAPPER_CHILD_ABSENT', 'SNAP_WRAPPER_CHILD_AMBIGUOUS'):
             port = self.port()
             port.recovering = True
             with (self.subTest(reason=reason), patch.object(port, '_stable_environment'),
@@ -1252,7 +1252,7 @@ class OwnedTransitionObservationTests(unittest.TestCase):
 
 class CausalWrapperReadinessTests(unittest.TestCase):
     def test_real_inventory_wrapper_must_be_followed_by_full_original_binding(self) -> None:
-        for reason in ('SNAP_WRAPPER_FILE_UNVERIFIED', 'SNAP_WRAPPER_PROC_INVALID', 'SNAP_WRAPPER_CHILD_ABSENT'):
+        for reason in ('SNAP_WRAPPER_FILE_UNVERIFIED', 'SNAP_WRAPPER_PROC_INVALID', 'SNAP_WRAPPER_CHILD_ABSENT', 'SNAP_WRAPPER_CHILD_AMBIGUOUS'):
             port = maintenance.NativePort('a' * 40, 'b' * 64, time.monotonic() + 600)
             saved = baseline()
             expected = {'server_version': '5.21.9', 'server_lts': False}
@@ -1276,7 +1276,7 @@ class CausalWrapperReadinessTests(unittest.TestCase):
             effects.assert_not_called()
 
     def test_same_text_without_exact_direct_cause_and_own_start_is_never_retryable(self) -> None:
-        for reason in ('SNAP_WRAPPER_FILE_UNVERIFIED', 'SNAP_WRAPPER_PROC_INVALID', 'SNAP_WRAPPER_CHILD_ABSENT'):
+        for reason in ('SNAP_WRAPPER_FILE_UNVERIFIED', 'SNAP_WRAPPER_PROC_INVALID', 'SNAP_WRAPPER_CHILD_ABSENT', 'SNAP_WRAPPER_CHILD_AMBIGUOUS'):
             for owner, cause in ((False, maintenance.provenance.ProvenanceError(reason)),
                                  (True, None), (True, RuntimeError(reason)),
                                  (True, maintenance.provenance.ProvenanceError('SNAP_WRAPPER_CONTEXT_BLOCKED'))):
@@ -1304,6 +1304,30 @@ class CausalWrapperReadinessTests(unittest.TestCase):
             self.assertEqual(port.recovery_state(transition_owned=True, start_owned=True), 'active')
         self.assertEqual(ready.call_count, 2)
         effects.assert_not_called()
+
+
+class AmbiguousOwnedStartTests(unittest.TestCase):
+    def test_persistent_causal_ambiguity_cannot_restore_original_nodes(self) -> None:
+        port = maintenance.NativePort('a' * 40, 'b' * 64, 1000)
+        saved = baseline()
+        port.baseline = saved
+        port.recovering = port._owned_start = True
+        clock = [10.0]
+        def sleep(_seconds: float) -> None:
+            clock[0] += 10
+        with patch.object(port, 'ready_binding', side_effect=wrapped_provenance('SNAP_WRAPPER_CHILD_AMBIGUOUS')) as ready, \
+                patch.object(maintenance.time, 'monotonic', side_effect=lambda: clock[0]), \
+                patch.object(maintenance.time, 'sleep', side_effect=sleep), \
+                patch.object(maintenance.signal, 'getitimer', return_value=(0.0, 0.0)), \
+                patch.object(maintenance.signal, 'signal'), patch.object(maintenance.signal, 'setitimer') as timer, \
+                patch.object(port, 'start_node') as nodes, patch.object(port, 'command') as effects:
+            with self.assertRaisesRegex(maintenance.MaintenanceError, 'LXD_READINESS_TIMEOUT'):
+                port.wait_ready()
+        self.assertEqual(ready.call_count, 3)
+        nodes.assert_not_called()
+        effects.assert_not_called()
+        self.assertEqual(timer.call_args_list[-1].args, (maintenance.signal.ITIMER_REAL, 0))
+        self.assertIsNone(port._read_deadline)
 
 if __name__ == '__main__':
     unittest.main()

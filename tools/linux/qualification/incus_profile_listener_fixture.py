@@ -1625,6 +1625,14 @@ def _route_string_map(value: Any, code: str) -> dict[str, str]:
     return {key: item for key, item in value.items()}
 
 
+def _canonical_used_by(value: Any, code: str) -> list[str]:
+    """API references have no ordering contract; reject loss before canonical copy."""
+    if (not isinstance(value, list) or len(value) > _INVENTORY_MAX_ENTITIES
+            or any(not isinstance(user, str) for user in value) or len(set(value)) != len(value)):
+        raise TargetDrift(code)
+    return sorted(value)
+
+
 def _route_profile(row: Any, project: str) -> dict[str, Any]:
     code = 'INCUS_PROFILE_INVENTORY_UNREADABLE'
     if (not isinstance(row, dict) or set(row) - {'name', 'project', 'description', 'config', 'devices', 'used_by'}
@@ -1634,10 +1642,7 @@ def _route_profile(row: Any, project: str) -> dict[str, Any]:
         raise TargetDrift(code)
     _route_string_map(row.get('config'), code)
     _strict_devices(row.get('devices'), code, allow_implicit_bind=True)
-    users = row.get('used_by')
-    if not isinstance(users, list) or any(not isinstance(user, str) for user in users) or users != sorted(set(users)):
-        raise TargetDrift(code)
-    return row
+    return {**row, 'used_by': _canonical_used_by(row.get('used_by'), code)}
 
 
 def _route_instance(row: Any, project: str, profiles: dict[str, dict[str, Any]]) -> dict[str, Any]:
@@ -1689,14 +1694,13 @@ def _incus_route_inventory() -> tuple[list[str], list[dict[str, Any]]]:
     for row in project_rows:
         if (not isinstance(row, dict) or set(row) - {'name', 'description', 'config', 'used_by'}
                 or not isinstance(row.get('name'), str) or not row['name']
-                or ('used_by' in row and (not isinstance(row['used_by'], list)
-                    or any(not isinstance(user, str) for user in row['used_by'])
-                    or row['used_by'] != sorted(set(row['used_by']))))
                 or ('description' in row and not isinstance(row['description'], str))
                 or ('config' in row and (not isinstance(row['config'], dict)
                     or any(not isinstance(key, str) or not isinstance(value, str)
                            for key, value in row['config'].items())))):
             raise TargetDrift('INCUS_PROJECT_INVENTORY_UNREADABLE')
+        if 'used_by' in row:
+            _canonical_used_by(row['used_by'], 'INCUS_PROJECT_INVENTORY_UNREADABLE')
         projects.append(row['name'])
     if not projects or len(set(projects)) != len(projects):
         raise TargetDrift('INCUS_PROJECT_INVENTORY_UNREADABLE')
@@ -1713,12 +1717,10 @@ def _incus_route_inventory() -> tuple[list[str], list[dict[str, Any]]]:
                 or not isinstance(project_data.get('description'), str)
                 or not isinstance(project_data.get('config'), dict)
                 or any(not isinstance(key, str) or not isinstance(value, str)
-                       for key, value in project_data['config'].items())
-                or ('used_by' in project_data and
-                    (not isinstance(project_data['used_by'], list)
-                     or any(not isinstance(item, str) for item in project_data['used_by'])
-                     or project_data['used_by'] != sorted(set(project_data['used_by']))))):
+                       for key, value in project_data['config'].items())):
             raise TargetDrift('INCUS_PROJECT_INVENTORY_UNREADABLE')
+        if 'used_by' in project_data:
+            _canonical_used_by(project_data['used_by'], 'INCUS_PROJECT_INVENTORY_UNREADABLE')
         profile_project_local = (project == 'default'
                                  or _project_isolation(project_data['config'])['features.profiles'] is True)
         profiles = (strict_json(command(['incus', 'profile', 'list', '--project', project, '--format', 'json']))
@@ -1825,9 +1827,8 @@ def _read_default_profile(go: dict[str, Any], expected_consumers: list[str]) -> 
     devices = _strict_devices(profile.get('devices'), 'DEFAULT_PROFILE_UNREADABLE')
     if canonical_profile_sha256(profile['config'], devices) != go['default_profile_sha256']:
         raise TargetDrift('DEFAULT_PROFILE_DRIFT')
-    consumers = profile.get('used_by')
-    if (not isinstance(consumers, list) or any(not isinstance(item, str) for item in consumers)
-            or consumers != sorted(set(consumers)) or consumers != expected_consumers):
+    consumers = _canonical_used_by(profile.get('used_by'), 'DEFAULT_PROFILE_CONSUMERS_DRIFT')
+    if consumers != expected_consumers:
         raise TargetDrift('DEFAULT_PROFILE_CONSUMERS_DRIFT')
     derived = _derive_fixture_base({'config': profile['config'], 'devices': devices})
     if canonical_profile_sha256(derived['config'], derived['devices']) != go['fixture_base_profile_sha256']:
@@ -1850,9 +1851,8 @@ def _assert_fixture_profile(go: dict[str, Any], data: dict[str, Any],
     devices = _strict_devices(data.get('devices'), 'FIXTURE_PROFILE_DEVICE_UNVERIFIED')
     if devices != expected_device:
         raise TargetDrift('FIXTURE_PROFILE_DEVICE_UNVERIFIED')
-    consumers = data.get('used_by')
-    if (not isinstance(consumers, list) or any(not isinstance(item, str) for item in consumers)
-            or consumers != sorted(set(consumers)) or consumers != expected_consumers):
+    consumers = _canonical_used_by(data.get('used_by'), 'FIXTURE_PROFILE_CONSUMERS_UNVERIFIED')
+    if consumers != expected_consumers:
         raise TargetDrift('FIXTURE_PROFILE_CONSUMERS_UNVERIFIED')
     return {'config': data['config'], 'devices': devices, 'used_by': consumers}
 
@@ -1869,9 +1869,8 @@ def _assert_base_profile(go: dict[str, Any], data: dict[str, Any],
         raise TargetDrift('FIXTURE_BASE_PROFILE_DEVICE_UNVERIFIED')
     if canonical_profile_sha256(data['config'], devices) != go['fixture_base_profile_sha256']:
         raise TargetDrift('FIXTURE_BASE_PROFILE_DIGEST_MISMATCH')
-    consumers = data.get('used_by')
-    if (not isinstance(consumers, list) or any(not isinstance(item, str) for item in consumers)
-            or consumers != sorted(set(consumers)) or consumers != expected_consumers):
+    consumers = _canonical_used_by(data.get('used_by'), 'FIXTURE_BASE_PROFILE_CONSUMERS_UNVERIFIED')
+    if consumers != expected_consumers:
         raise TargetDrift('FIXTURE_BASE_PROFILE_CONSUMERS_UNVERIFIED')
     return {'config': data['config'], 'devices': devices, 'used_by': consumers}
 
@@ -1895,9 +1894,10 @@ def _fixture_profile_cleanup_prefix_owned(data: Any, profile: str, project: str,
             or data.get('config') != {'user.q449.run_id': run_id}
             or data.get('devices') not in ({}, {'q449-listener': expected_device})):
         return False
-    consumers = data.get('used_by')
-    return (isinstance(consumers, list) and consumers == sorted(set(consumers))
-            and consumers == expected_consumers)
+    try:
+        return _canonical_used_by(data.get('used_by'), 'PROFILE_OWNERSHIP_UNVERIFIED') == expected_consumers
+    except TargetDrift:
+        return False
 
 
 _UUID4 = re.compile(r'[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\Z')
@@ -2554,10 +2554,10 @@ def _run_fixture(go: dict[str, Any], baseline: dict[str, Any]) -> dict[str, Any]
                     or set(devices) - set(derived['devices'])
                     or any(value != derived['devices'][key] for key, value in devices.items())):
                 raise TargetDrift('FIXTURE_BASE_PROFILE_OWNERSHIP_UNVERIFIED')
-            if (not isinstance(observed.get('used_by'), list)
-                    or observed['used_by'] != expected_consumers):
+            consumers = _canonical_used_by(observed.get('used_by'), 'FIXTURE_BASE_PROFILE_CONSUMERS_UNVERIFIED')
+            if consumers != expected_consumers:
                 raise TargetDrift('FIXTURE_BASE_PROFILE_CONSUMERS_UNVERIFIED')
-            return observed
+            return {**observed, 'used_by': consumers}
 
         if created_instance:
             state = _instance_state(instance)

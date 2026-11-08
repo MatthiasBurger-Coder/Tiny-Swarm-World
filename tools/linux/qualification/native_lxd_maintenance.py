@@ -760,7 +760,7 @@ class NativePort:
 
     def _retry_provenance(self, exc: provenance.ProvenanceError | inventory.InventoryError) -> bool:
         if not self._owned_start or str(exc) not in {'SNAP_WRAPPER_FILE_UNVERIFIED',
-                'SNAP_WRAPPER_PROC_INVALID', 'SNAP_WRAPPER_CHILD_ABSENT'}:
+                'SNAP_WRAPPER_PROC_INVALID', 'SNAP_WRAPPER_CHILD_ABSENT', 'SNAP_WRAPPER_CHILD_AMBIGUOUS'}:
             return False
         return isinstance(exc, provenance.ProvenanceError) or (
             isinstance(exc.__cause__, provenance.ProvenanceError) and str(exc.__cause__) == str(exc))

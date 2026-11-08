@@ -3289,13 +3289,26 @@ class _FullGraphFixtureTransport:
     def _json(self, value):
         return json.dumps(value, sort_keys=True).encode()
 
+    def _project_row(self, project):
+        rows = list(self.foreign_rows[project])
+        if project == 'default' and self.current is not None:
+            rows.append(self._instance())
+        # Pinned API appends by resource family, NOT URL lexical order.
+        refs = [('/1.0/instances/' + row['name'] if project == 'default' else
+                 fixture._instance_api_path(row['name'], project)) for row in rows]
+        if project == 'default':
+            refs += ['/1.0/images/' + 'b' * 64]
+            refs += ['/1.0/profiles/' + name for name in self.profiles]
+        return {'name': project, 'description': '', 'config':
+                {'features.profiles': 'true' if project == 'default' else 'false'}, 'used_by': refs}
+
     def read(self, args):
         if args == ['remote', 'list', '--format', 'json']:
             return self._json({'local': {'Addr': 'unix://', 'Public': False, 'Protocol': 'incus', 'Static': True}})
         if args == ['remote', 'get-default']:
             return b'local\n'
         if args == ['project', 'list', '--format', 'json']:
-            return self._json([{'name': project} for project in self.projects])
+            return self._json([self._project_row(project) for project in self.projects])
         if args[:2] == ['profile', 'list']:
             return self._json(list(self.profiles.values()))
         if args[:1] == ['list']:
@@ -3312,8 +3325,7 @@ class _FullGraphFixtureTransport:
             path = args[1]
             if path.startswith('/1.0/projects/'):
                 project = path.rsplit('/', 1)[-1]
-                return self._json({'name': project, 'description': '', 'config':
-                                   {'features.profiles': 'true' if project == 'default' else 'false'}})
+                return self._json(self._project_row(project))
             if path.startswith('/1.0/images/'):
                 return self._json({'properties': {'os': 'Alpine', 'release': '3.21'}})
             for name, profile in self.profiles.items():
@@ -4153,6 +4165,106 @@ class InstanceStateApiTests(_FixtureBehaviorTestCase):
         self.assertEqual(set(transport.profiles), {'default', 'legacy-base', 'legacy-route'})
         self.assertGreaterEqual(reads.count(['query', fixture._instance_api_path(transport.instance, 'default')]), 2)
         self.assertFalse(any('--force' in args for args, _ in transport.effects))
+
+
+class UsedByOrderingContractTests(_FixtureBehaviorTestCase):
+    def test_used_by_permutation_is_complete_canonical_copy_not_input_mutation(self):
+        raw = ['/1.0/profiles/z', '/1.0/images/' + 'b' * 64, '/1.0/instances/a']
+        before = list(raw)
+        canonical = fixture._canonical_used_by(raw, 'REFERENCES_INVALID')
+        self.assertEqual(canonical, sorted(before))
+        self.assertEqual(raw, before)
+        self.assertIsNot(canonical, raw)
+        profile = {'name': 'p', 'project': 'default', 'config': {}, 'devices': {}, 'used_by': raw}
+        left = fixture._route_profile(profile, 'default')
+        right = fixture._route_profile({**profile, 'used_by': list(reversed(raw))}, 'default')
+        self.assertEqual(left, right)
+        self.assertEqual(fixture.digest(json.dumps(left, sort_keys=True).encode()),
+                         fixture.digest(json.dumps(right, sort_keys=True).encode()))
+        self.assertEqual(profile['used_by'], before)
+        self.assertNotEqual(left, fixture._route_profile({**profile, 'used_by': raw[:-1]}, 'default'))
+
+    def test_default_own_base_and_cleanup_profiles_compare_full_canonical_consumers(self):
+        transport = _FullGraphFixtureTransport(self)
+        go = transport.go
+        users = ['/1.0/instances/a', '/1.0/instances/z']
+        default = {**transport.profiles['default'], 'used_by': list(reversed(users))}
+        with patch.object(fixture, '_inventory_command', return_value=json.dumps(default).encode()):
+            observed = fixture._read_default_profile(go, users)
+        self.assertEqual(observed['used_by'], users)
+        data = {'name': transport.profile, 'project': 'default', 'config': {'user.q449.run_id': transport.run_id},
+                'devices': {'q449-listener': {'type': 'proxy', **go['proxy']}}, 'used_by': list(reversed(users))}
+        self.assertEqual(fixture._assert_fixture_profile(go, data, users)['used_by'], users)
+        self.assertTrue(fixture._fixture_profile_cleanup_prefix_owned(data, transport.profile, 'default',
+            transport.run_id, data['devices']['q449-listener'], users))
+        base = {'name': transport.base, 'project': 'default', 'config': observed['derived']['config'],
+                'devices': observed['derived']['devices'], 'used_by': list(reversed(users))}
+        self.assertEqual(fixture._assert_base_profile(go, base, users, observed['derived'])['used_by'], users)
+        for malformed in (users + [users[0]], users[:1]):
+            with self.subTest(users=malformed), self.assertRaises(fixture.TargetDrift):
+                fixture._assert_fixture_profile(go, {**data, 'used_by': malformed}, users)
+            self.assertFalse(fixture._fixture_profile_cleanup_prefix_owned({**data, 'used_by': malformed},
+                transport.profile, 'default', transport.run_id, data['devices']['q449-listener'], users))
+
+    def test_used_by_invalid_duplicate_mixed_null_or_over_cap_never_collapses_to_set(self):
+        invalid: tuple[object, ...] = (None, {}, 'url', [None], ['x', 1], ['x', True], ['x', 'x'],
+            ['url-' + str(i) for i in range(fixture._INVENTORY_MAX_ENTITIES + 1)])
+        for raw in invalid:
+            with self.subTest(kind=type(raw).__name__), self.assertRaisesRegex(fixture.TargetDrift, 'REFERENCES_INVALID'):
+                fixture._canonical_used_by(raw, 'REFERENCES_INVALID')
+
+    def test_real_three_object_flow_accepts_unsorted_project_api_sets_and_preserves_all_foreign_data(self):
+        transport = _FullGraphFixtureTransport(self)
+        fixture._INVENTORY_RESERVE_CLEANUP = True
+        original = transport.read
+        unsorted_reads = [0]
+        def read(args):
+            raw = original(args)
+            if args[:3] == ['project', 'list', '--format'] or args[:1] == ['query'] and args[1].startswith('/1.0/projects/'):
+                data = fixture.strict_json(raw)
+                rows = data if isinstance(data, list) else [data]
+                for row in rows:
+                    refs = row['used_by']
+                    if refs != sorted(refs):
+                        unsorted_reads[0] += 1
+            return raw
+        with (patch.object(transport, 'read', side_effect=read),
+              patch.object(fixture.subprocess, 'Popen', side_effect=transport.popen),
+              patch.object(fixture.subprocess, 'run', side_effect=transport.run)):
+            baseline = fixture.jit(transport.go, '192.168.178.33')
+            result = fixture._run_fixture(transport.go, baseline)
+            # Match main's explicit post-cleanup verification within its reserved budget.
+            with patch.object(fixture, '_INVENTORY_CLEANUP_MODE', True):
+                self.assertEqual(fixture._incus_route_inventory(), (baseline['incus_projects'], baseline['incus_10001_routes']))
+        self.assertEqual(result['status'], 'PASS')
+        self.assertGreater(unsorted_reads[0], 0)
+        self.assertIsNone(transport.current)
+        self.assertEqual(set(transport.profiles), {'default', 'legacy-base', 'legacy-route'})
+        self.assertEqual(json.dumps(transport.foreign_rows, sort_keys=True), transport.foreign_rows_before)
+        self.assertFalse(any('--force' in args for args, _ in transport.effects))
+
+    def test_duplicate_project_refs_still_refuse_complete_read_before_any_effect(self):
+        for where in ('list', 'detail'):
+            self.setUp()
+            transport = _FullGraphFixtureTransport(self)
+            original = transport.read
+            def read(args):
+                raw = original(args)
+                if where == 'list' and args == ['project', 'list', '--format', 'json']:
+                    rows = fixture.strict_json(raw)
+                    rows[0]['used_by'] *= 2
+                    return json.dumps(rows).encode()
+                if where == 'detail' and args == ['query', fixture._project_api_path('default')]:
+                    row = fixture.strict_json(raw)
+                    row['used_by'] *= 2
+                    return json.dumps(row).encode()
+                return raw
+            with self.subTest(where=where), patch.object(transport, 'read', side_effect=read), \
+                    patch.object(fixture.subprocess, 'Popen', side_effect=transport.popen), \
+                    patch.object(fixture.subprocess, 'run', side_effect=transport.run), \
+                    self.assertRaisesRegex(fixture.TargetDrift, 'INCUS_PROJECT_INVENTORY_UNREADABLE'):
+                fixture._incus_route_inventory()
+            self.assertEqual(transport.effects, [])
 
 if __name__ == '__main__':
     unittest.main()
