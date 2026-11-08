@@ -345,7 +345,7 @@ class NativePreparationCliTests(unittest.TestCase):
             redirect_stdout(io.StringIO()) as output,
         ):
             self.assertEqual(_prepare_remaining(read_only=True, service_profile="default"), 0)
-        self.assertIn("cd -- '/home/operator/TSW checkout' && ./install.sh --service-profile default", output.getvalue())
+        self.assertIn("cd -- '/home/operator/TSW checkout' && ./bootstrap/linux/install.sh --service-profile default", output.getvalue())
         self.assertIn("services are not verified", output.getvalue())
 
     def test_python_dependencies_are_prepared_only_after_separate_consent(self) -> None:

@@ -442,7 +442,7 @@ python3 bootstrap/linux/install_debugger.py
 The default mode analyzes the `install.sh` bootstrap contract, repository
 permissions, ownership markers, WSL2/systemd indicators, systemd unit
 definitions, and the newest installation evidence directory across supported
-host directories. `install.sh` must delegate to
+host directories. The core `bootstrap/linux/install.sh`, reached through the public `install.sh`, must delegate to
 `python3 -m tiny_swarm_world.simple_installer`; the Python installer owns the reset,
 setup, terminal recording, headless logging, and evidence policy. The debugger
 also prints exact `grep`, `tail`, `systemctl`, and `journalctl` commands for

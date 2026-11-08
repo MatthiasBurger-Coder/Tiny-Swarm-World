@@ -176,7 +176,7 @@ def _prepare_remaining(*, read_only: bool, service_profile: str) -> int:
         return result
     result = run_network_preparation(read_only=read_only, service_profile=service_profile)
     if result == 0:
-        command = f"cd -- {shlex.quote(str(Path.cwd()))} && ./install.sh --service-profile {shlex.quote(service_profile)}"
+        command = f"cd -- {shlex.quote(str(Path.cwd()))} && ./bootstrap/linux/install.sh --service-profile {shlex.quote(service_profile)}"
         print("Linux preparation ready; services are not verified.")
         print("Next: " + command)
     return result

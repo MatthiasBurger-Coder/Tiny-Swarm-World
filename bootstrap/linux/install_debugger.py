@@ -28,7 +28,7 @@ from tools.linux.live.secure_runtime_paths import (  # noqa: E402
     host_classification,
 )
 
-INSTALL_SCRIPT = "install.sh"
+INSTALL_SCRIPT = "bootstrap/linux/install.sh"
 SECRET_ENV_FILE = ".tiny-swarm-world/local/live-installation.env"
 EVIDENCE_ROOT = ".tiny-swarm-world/evidence/installation-tests"
 SUPPORTED_EVIDENCE_HOST_DIRECTORIES = ("wsl2", "native_linux")
@@ -48,7 +48,7 @@ EXCLUDED_SCAN_DIRS = {
 }
 PERMISSION_SCAN_PATHS = (
     ".",
-    "install.sh",
+    INSTALL_SCRIPT,
     "README.md",
     "requirements.txt",
     "bootstrap",
@@ -263,7 +263,7 @@ def check_install_script(
                 "FAIL",
                 INSTALL_SH_EXECUTABLE_LABEL,
                 "install.sh is not executable.",
-                ("Run: chmod u+x install.sh",),
+                ("Run: chmod u+x bootstrap/linux/install.sh",),
             )
         )
     return findings
@@ -401,7 +401,7 @@ def _filesystem_permission_findings(repo_root: Path) -> list[Finding]:
             "Shell scripts without execute bit",
             non_executable_shell_scripts,
             "WARN",
-            ("Run targeted chmod only for scripts you execute, for example: chmod u+x install.sh",),
+            ("Run targeted chmod only for scripts you execute, for example: chmod u+x bootstrap/linux/install.sh",),
         ),
     ]
 

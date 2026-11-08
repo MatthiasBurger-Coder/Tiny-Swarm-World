@@ -479,7 +479,9 @@ class TestSimpleInstallerSecretBootstrap(unittest.TestCase):
         self.assertIn("All other catalog-managed secrets are internal", rendered)
 
     def test_normal_cli_no_longer_exposes_secret_modes(self):
-        install_script = (REPOSITORY_ROOT / "install.sh").read_text(encoding="utf-8")
+        compatibility_script = (REPOSITORY_ROOT / "install.sh").read_text(encoding="utf-8")
+        self.assertIn('exec "$SCRIPT_DIR/bootstrap/linux/install.sh" "$@"', compatibility_script)
+        install_script = (REPOSITORY_ROOT / "bootstrap/linux/install.sh").read_text(encoding="utf-8")
         self.assertIn("tiny_swarm_world.simple_installer", install_script)
         self.assertNotIn("tiny_swarm_world.installer", install_script)
         simple_source = (

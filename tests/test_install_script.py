@@ -524,6 +524,9 @@ class _InstallScriptFixture:
 
     def _prepare(self) -> None:
         shutil.copy2(INSTALL_SCRIPT, self.root / "install.sh")
+        core_bootstrap = self.root / "bootstrap/linux"
+        core_bootstrap.mkdir(parents=True)
+        shutil.copy2(REPOSITORY_ROOT / "bootstrap/linux/install.sh", core_bootstrap / "install.sh")
         # Exercise the actual parser with both core-owned runtime namespaces.
         # Lifecycle commands still terminate in the fake python/script runners.
         for package in ("tiny_swarm_world", "tsw_core"):
