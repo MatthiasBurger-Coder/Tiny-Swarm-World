@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 else:
     native = importlib.import_module((__package__ + "." if __package__ else "") + "native_runtime_inventory")
 
-COLLECTOR_SHA = "1c6e62b8c3553d1d185ff3243770f28d16583cb5ffc01e4662a76c620edbaccf"
+COLLECTOR_SHA = "e25e66fce5636bb778a53fb649b0dee414be21c299586769a19d140ea5ac8856"
 PROVENANCE_SHA = "96213743fdfaa31a9e75690b5e49a975167f9f7025862b71611633ef894da9d9"
 DETAIL_KINDS = {"project_show", "profile_show", "instance_config_show", "instance_config_show_expanded", "network_show",
                 "storage_show", "storage_volume_show", "storage_snapshot_show", "image_show", "image_cache_show"}

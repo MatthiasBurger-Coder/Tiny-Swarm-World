@@ -669,6 +669,19 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
         with self.assertRaises(inventory.InventoryError):
             inventory._unit_state("incus.service", {**row, "UnitFileState": "disabled"})
 
+    def test_not_found_socket_may_omit_socket_properties_only_in_exact_absent_state(self) -> None:
+        values = {"LoadState": "not-found", "ActiveState": "inactive", "SubState": "dead", "UnitFileState": ""}
+        runner = Mock()
+        runner.run.return_value = (0, b"LoadState=not-found\nActiveState=inactive\nSubState=dead\nUnitFileState=\n", b"")
+        result = inventory._systemctl_show(runner, "snap.lxd.daemon.unix.socket")
+        self.assertEqual((result["load_state"], result["listen"], result["main_pid"]), ("not-found", "", 0))
+        for state in ({"LoadState": "loaded"}, {"ActiveState": "active"}, {"SubState": "running"},
+                      {"MainPID": "1"}, {"UnitFileState": "enabled"}, {"unknown": "value"}):
+            with self.subTest(state=state), self.assertRaises(inventory.InventoryError):
+                inventory._unit_state("snap.lxd.daemon.unix.socket", values | state)
+        with self.assertRaises(inventory.InventoryError):
+            inventory._unit_state("unknown.socket", values)
+
     def test_socket_unit_requires_zero_pid_and_allowlisted_listen(self) -> None:
         row = {"LoadState": "loaded", "ActiveState": "active", "SubState": "listening",
                "UnitFileState": "enabled", "MainPID": "0", "Listen": "/run/incus/unix.socket (Stream)"}

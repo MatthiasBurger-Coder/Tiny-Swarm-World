@@ -76,6 +76,11 @@ def strict_json(raw: bytes) -> Any:
 
 def _unit_state(unit: str, values: dict[str, str]) -> dict[str, Any]:
     socket_unit = unit in {"incus.socket", "snap.lxd.daemon.unix.socket"}
+    if (socket_unit and "Listen" not in values and values.get("LoadState") == "not-found"
+            and values.get("ActiveState") == "inactive" and values.get("SubState") == "dead"
+            and values.get("UnitFileState") in {"", "not-found"} and values.get("MainPID", "0") == "0"):
+        # systemd omits socket-specific properties for a nonexistent unit.
+        values = dict(values, Listen="")
     expected = set(PROPERTIES) | ({"Listen"} if socket_unit else set())
     if socket_unit and "MainPID" not in values:
         expected.remove("MainPID")
