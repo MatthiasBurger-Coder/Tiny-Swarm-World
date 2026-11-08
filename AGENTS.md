@@ -41,6 +41,11 @@ explicit task changes the product scope.
   current task changes before running checks. If SSH or WSL is unavailable,
   report verification as blocked instead of silently using another host.
   Never store SSH passwords in repository files or command examples.
+- For every authorized agent-run test or quality gate, read SSH credentials
+  from `~/.access` in the agent user's home directory. Keep credentials out of
+  tool output, logs, command arguments, and repository files. If the file is
+  missing or unusable, report verification as blocked. This credential source
+  does not change the required Windows-host/WSL test target or authorize tests.
 - When the host shell is Windows or PowerShell, execute project Python
   through WSL; tests and quality gates use the SSH test host specified above.
 - Do not run project Python commands through Windows Python, Windows virtual
