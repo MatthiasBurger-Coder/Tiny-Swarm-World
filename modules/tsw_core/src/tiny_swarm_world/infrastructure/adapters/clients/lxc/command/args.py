@@ -130,3 +130,34 @@ def image_ref(
         if backend_key in image_references:
             return image_references[backend_key]
     return image_references.get(image_alias, image_alias)
+
+
+def scoped_node_config(intent, node):
+    """Exact creation config for a checkpoint-bound manager or selected worker."""
+    return {**intent.markers(), MANAGED_MARKER: 'true', NODE_MARKER: node.node_name,
+            IMAGE_ALIAS_MARKER: node.image_fingerprint, 'limits.cpu': str(node.cpu),
+            'limits.memory': node.memory, 'boot.autostart': 'false'}
+
+
+def scoped_init_args(intent, node_name: str) -> tuple[str, ...]:
+    """Stopped creation only, with an explicit fixed project and immutable image."""
+    from tiny_swarm_world.domain.lifecycle.profile_lifecycle import ManagerCreateIntent, WorkerCreateIntent
+
+    checked = ManagerCreateIntent.model_validate_json(intent.model_dump_json())
+    node: ManagerCreateIntent | WorkerCreateIntent
+    if checked.node_name == node_name:
+        node = checked
+        profiles = checked.attachments()
+    else:
+        worker = next((item for item in checked.workers if item.node_name == node_name), None)
+        if worker is None:
+            raise ValueError('Node is outside the bound scoped topology.')
+        node = worker
+        profiles = worker.base_profiles
+    args = ['--project', 'default', 'init', node.image_fingerprint, node.node_name]
+    for profile in profiles:
+        args.extend(('--profile', profile))
+    args.extend(('--network', node.network, '--storage', node.storage_pool, '-d', 'root,size=' + node.disk))
+    for key, value in scoped_node_config(checked, node).items():
+        args.extend(('-c', key + '=' + value))
+    return tuple(args)

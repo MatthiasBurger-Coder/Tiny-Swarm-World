@@ -6,9 +6,21 @@
   "target_release": "0.5.0",
   "target_revision": "b3de7fa16e24c5702d61f855851c6c3255871489",
   "target_package_version": "0.2.0",
-  "hosts": ["native-linux", "wsl2"],
+  "hosts": [
+    "native-linux",
+    "wsl2"
+  ],
   "configuration_schema": 1,
-  "migrations": ["protected-infra-v1", "installation-product-v1"],
+  "migrations": [
+    "protected-infra-v1",
+    "installation-product-v1"
+  ],
   "component_policy": "preserve-installed-images",
-  "downgrade": "unsupported"
+  "downgrade": "unsupported",
+  "source_supported_manifest_schemas": [
+    1
+  ],
+  "target_supported_manifest_schemas": [
+    1
+  ]
 }

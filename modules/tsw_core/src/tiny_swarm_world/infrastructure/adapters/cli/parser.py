@@ -124,11 +124,14 @@ def parse_args(argv: Sequence[str] | None = None) -> Namespace:
     parser.add_argument(
         "--recover",
         action="store_true",
-        help="Recover the recorded platform or component image transition; requires live consent.",
+        help="Recover the exact recorded setup/profile or image transition; requires live consent.",
     )
     parser.add_argument("--services", help="Comma-separated canonical service IDs for selective setup or preview.")
     parser.add_argument("--to", help="Explicit product release for product upgrade, or catalog target ID for one services update.")
     parser.add_argument('--adoption-manifest', help='Verified legacy installation inventory for product upgrade; contains references, never credential values.')
+    parser.add_argument("--swagger-exposure", choices=("published", "internal"),
+                        help="Swagger exposure: published (default) or internal container-only access.")
+    parser.add_argument("--stack-owner", choices=("swarm", "portainer"), help="Management writer for newly installed optional stacks; existing ownership is retained.")
     parser.add_argument("--minimal", action="store_true", help="Select mandatory Classic foundations only.")
     parser.add_argument("--selection-config", help="YAML/JSON selection file containing a services list.")
     parser.add_argument("workflow_namespace", nargs="?", help="Workflow namespace.")
@@ -190,7 +193,7 @@ def _assign_workflow(parser: ArgumentParser, args: Namespace) -> None:
     update_options_present = any(
         value is not None
         for value in (args.stack, args.service, args.from_image, args.to_image)
-    ) or (args.preview and not args.selection_preview and not args.component_update_command) or args.recover
+    ) or (args.preview and not args.selection_preview and not args.component_update_command) or (args.recover and (args.workflow_namespace, args.workflow_action) not in {("setup", "run"), ("services", "add")})
     if not is_update and not args.component_update_command and not args.product_upgrade_command and update_options_present:
         parser.error("update options require command: platform update")
     if is_update:

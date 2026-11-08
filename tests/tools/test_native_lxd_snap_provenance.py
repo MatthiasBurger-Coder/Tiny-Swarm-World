@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 import errno
+import hashlib
 import os
 from pathlib import Path
 import stat
@@ -11,6 +12,15 @@ import unittest
 from unittest.mock import Mock, patch
 
 from tools.linux.qualification import native_lxd_snap_provenance as proof
+
+SHUTDOWN_STATIC = (
+    "snap.microceph.daemon.service snap.microceph.mds.service snap.microceph.mgr.service "
+    "snap.microceph.mon.service snap.microceph.nfs.service snap.microceph.osd.service "
+    "snap.microceph.rgw.service snap.microceph.rbd-mirror.service snap.microceph.cephfs-mirror.service "
+    "snap.microovn.daemon.service snap.microovn.ovn-ovsdb-server-nb.service "
+    "snap.microovn.ovn-ovsdb-server-sb.service snap.microovn.ovn-northd.service "
+    "snap.microovn.chassis.service snap.microovn.switch.service snap.microovn.bird.service"
+)
 
 
 def regular(inode: int, data: bytes = b"", *, executable: bool = False, readonly: bool = True) -> proof.Observation:
@@ -103,6 +113,153 @@ class WrapperProofTests(unittest.TestCase):
             self.assertEqual(call.args, (proof.UNIT_ARGV,))
             self.assertEqual(call.kwargs, {"command_id": "systemctl_show_unit", "safe_args": [proof.UNIT]})
         self.assertLessEqual(len(proof.UNIT_ARGV), 16)
+
+    def root_wrapper(self, group: bytes = b"0::/\n") -> bytes:
+        script = b"# synthetic pinned wrapper fixture; never executed\n"
+        self.pair("commands/daemon.start", regular(50, script, executable=True))
+        self.pair("bin/lxd", regular(31, executable=True))
+        for pid in (101, 202):
+            self.fs.files[f"/proc/{pid}/cgroup"] = regular(3000 + pid, group, readonly=False)
+        return script
+
+    def test_escaped_root_requires_known_paired_wrapper_and_complete_stable_proof(self) -> None:
+        for group in (b"0::/", b"0::/\n"):
+            with self.subTest(group=group):
+                script = self.root_wrapper(group)
+                self.runner.reset_mock()
+                with patch.object(proof, "_ESCAPED_ROOT_WRAPPER_SHA256", hashlib.sha256(script).hexdigest()):
+                    self.assertEqual(self.run_proof(), ("lxd_snap", "snap:lxd"))
+                self.assertEqual(self.runner.run.call_count, 2)
+                reads = [limit for path, limit, _ in self.fs.calls if path.endswith("/commands/daemon.start")]
+                self.assertTrue(reads)
+                self.assertTrue(all(limit == proof.METADATA_LIMIT for limit in reads))
+
+    def test_root_group_does_not_allow_unknown_wrapper_or_mismatched_script_views(self) -> None:
+        script = self.root_wrapper()
+        self.assert_blocked("SNAP_WRAPPER_FILE_UNVERIFIED")
+        with patch.object(proof, "_ESCAPED_ROOT_WRAPPER_SHA256", hashlib.sha256(script).hexdigest()):
+            original = self.fs.files["/proc/101/root/snap/lxd/123/commands/daemon.start"]
+            self.fs.files["/proc/101/root/snap/lxd/123/commands/daemon.start"] = replace(original, data=script + b"# changed\n")
+            self.assert_blocked("SNAP_WRAPPER_FILE_UNVERIFIED")
+
+    def test_root_wrapper_reads_are_bounded_and_required(self) -> None:
+        script = self.root_wrapper()
+        with patch.object(proof, "_ESCAPED_ROOT_WRAPPER_SHA256", hashlib.sha256(script).hexdigest()):
+            self.pair("commands/daemon.start", regular(50, b"x" * (proof.METADATA_LIMIT + 1), executable=True))
+            self.assert_blocked("SNAP_WRAPPER_LIMIT_EXCEEDED")
+            del self.fs.files["/snap/lxd/123/commands/daemon.start"]
+            self.assert_blocked("SNAP_WRAPPER_FILE_UNVERIFIED")
+
+    def test_mixed_main_and_child_groups_or_unsupported_root_variants_fail(self) -> None:
+        script = self.root_wrapper()
+        legacy = ("0::" + self.values["ControlGroup"] + "\n").encode()
+        cases = [(b"0::/\n", legacy), (legacy, b"0::/\n")]
+        cases += [(raw, raw) for raw in (b"0::/.lxc\n", b"0::/other\n", b"1:legacy:/\n", b"0::/\n0::/\n", b"0::/\r\n")]
+        with patch.object(proof, "_ESCAPED_ROOT_WRAPPER_SHA256", hashlib.sha256(script).hexdigest()):
+            for main, child in cases:
+                with self.subTest(main=main, child=child):
+                    self.pair("bin/lxd", regular(30 if main == legacy else 31, executable=True))
+                    self.fs.files["/proc/101/cgroup"] = regular(3101, main, readonly=False)
+                    self.fs.files["/proc/202/cgroup"] = regular(3202, child, readonly=False)
+                    self.assert_blocked("SNAP_WRAPPER_PROC_INVALID")
+
+    def test_raw_cgroup_changes_for_main_or_child_are_drift_in_either_mode(self) -> None:
+        script = self.root_wrapper()
+        legacy = ("0::" + self.values["ControlGroup"] + "\n").encode()
+        with patch.object(proof, "_ESCAPED_ROOT_WRAPPER_SHA256", hashlib.sha256(script).hexdigest()):
+            for initial, final in ((b"0::/\n", legacy), (legacy, b"0::/\n"), (b"0::/\n", b"0::/")):
+                for pid in (101, 202):
+                    with self.subTest(initial=initial, pid=pid):
+                        self.fs.sequences.clear()
+                        self.root_wrapper(initial)
+                        if initial == legacy:
+                            self.pair("bin/lxd", regular(30, executable=True))
+                        self.assertEqual(self.run_proof(), ("lxd_snap", "snap:lxd"))
+                        path = f"/proc/{pid}/cgroup"
+                        first = self.fs.files[path]
+                        self.fs.sequences[path] = [first, replace(first, data=final)]
+                        self.assert_blocked("SNAP_WRAPPER_DRIFT")
+
+    def test_known_root_wrapper_does_not_rescue_forged_process_or_package_relations(self) -> None:
+        for variant in ("uid", "parent", "binary", "missing", "ambiguous", "metadata"):
+            with self.subTest(variant=variant):
+                self.setUp()
+                script = self.root_wrapper()
+                if variant == "uid":
+                    self.fs.files["/proc/202/status"] = regular(2202, b"Uid:\t1000\t1000\t1000\t1000\n", readonly=False)
+                elif variant == "parent":
+                    self.fs.files["/proc/202/stat"] = regular(1202, proc_stat(202, 1, 22), readonly=False)
+                elif variant == "binary":
+                    self.pair("sbin/lxd", regular(999, executable=True))
+                elif variant == "missing":
+                    self.fs.files["/proc/101/task/101/children"] = regular(42)
+                elif variant == "ambiguous":
+                    self.add_process(203, 101, 23, 30)
+                    self.fs.files["/proc/203/cgroup"] = regular(3203, b"0::/\n", readonly=False)
+                    self.fs.files["/proc/101/task/101/children"] = regular(42, b"202 203")
+                else:
+                    self.pair("meta/snap.yaml", regular(51, b"name: wrong\n"))
+                with patch.object(proof, "_ESCAPED_ROOT_WRAPPER_SHA256", hashlib.sha256(script).hexdigest()):
+                    self.assert_blocked()
+
+    def test_pinned_root_script_bytes_and_inode_are_rechecked(self) -> None:
+        script = self.root_wrapper()
+        path = "/snap/lxd/123/commands/daemon.start"
+        first = self.fs.files[path]
+        with patch.object(proof, "_ESCAPED_ROOT_WRAPPER_SHA256", hashlib.sha256(script).hexdigest()):
+            for final in (replace(first, data=script + b"# changed\n"), replace(first, inode=999)):
+                with self.subTest(inode=final.inode):
+                    self.fs.sequences[path] = [first, final]
+                    self.assert_blocked()
+
+    def test_root_split_layout_never_qualifies_the_stop_hook_as_daemon(self) -> None:
+        script = self.root_wrapper()
+        self.fs.files["/proc/202/exe"] = regular(31, executable=True)
+        with patch.object(proof, "_ESCAPED_ROOT_WRAPPER_SHA256", hashlib.sha256(script).hexdigest()):
+            self.assert_blocked("SNAP_WRAPPER_CHILD_ABSENT")
+
+    def test_root_requires_both_distinct_regular_trusted_binary_views(self) -> None:
+        for suffix in ("sbin/lxd", "bin/lxd"):
+            for variant in ("missing", "alias", "same_inode", "uid", "writable", "not_readonly", "mismatched_view"):
+                with self.subTest(suffix=suffix, variant=variant):
+                    self.setUp()
+                    script = self.root_wrapper()
+                    path = "/snap/lxd/123/" + suffix
+                    original = self.fs.files[path]
+                    if variant == "missing":
+                        del self.fs.files[path]
+                    elif variant == "alias":
+                        self.fs.links[path] = "../" + ("bin/lxd" if suffix == "sbin/lxd" else "sbin/lxd")
+                    elif variant == "same_inode":
+                        self.pair(suffix, replace(original, inode=(31 if suffix == "sbin/lxd" else 30)))
+                    elif variant == "uid":
+                        self.pair(suffix, replace(original, uid=1000))
+                    elif variant == "writable":
+                        self.pair(suffix, replace(original, mode=stat.S_IFREG | 0o777))
+                    elif variant == "not_readonly":
+                        self.pair(suffix, replace(original, readonly=False))
+                    else:
+                        self.fs.files["/proc/101/root" + path] = replace(original, inode=999)
+                    with patch.object(proof, "_ESCAPED_ROOT_WRAPPER_SHA256", hashlib.sha256(script).hexdigest()):
+                        self.assert_blocked("SNAP_WRAPPER_FILE_UNVERIFIED")
+
+    def test_root_rechecks_server_and_stop_hook_inodes(self) -> None:
+        for suffix in ("sbin/lxd", "bin/lxd"):
+            with self.subTest(suffix=suffix):
+                self.setUp()
+                script = self.root_wrapper()
+                for prefix in ("", "/proc/101/root"):
+                    path = prefix + "/snap/lxd/123/" + suffix
+                    first = self.fs.files[path]
+                    self.fs.sequences[path] = [first, replace(first, inode=999)]
+                with patch.object(proof, "_ESCAPED_ROOT_WRAPPER_SHA256", hashlib.sha256(script).hexdigest()):
+                    self.assert_blocked("SNAP_WRAPPER_DRIFT")
+
+    def test_legacy_reverse_alias_remains_supported_without_root_pin(self) -> None:
+        self.pair("bin/lxd", regular(30, executable=True))
+        for prefix in ("", "/proc/101/root"):
+            self.fs.links[prefix + "/snap/lxd/123/sbin/lxd"] = "../bin/lxd"
+        self.assertEqual(self.run_proof(), ("lxd_snap", "snap:lxd"))
 
     def test_wrapper_without_child_cannot_establish_identity(self) -> None:
         self.fs.files["/proc/101/task/101/children"] = regular(42)
@@ -216,6 +373,76 @@ class WrapperProofTests(unittest.TestCase):
             with self.subTest(content=content[-20:]):
                 self.fs.files[proof.DROP_IN] = regular(61, content, readonly=False)
                 self.assert_blocked("SNAP_WRAPPER_CONTEXT_BLOCKED")
+
+    def test_shutdown_static_and_sorted_runtime_dependencies_preserve_full_proof(self) -> None:
+        self.values["DropInPaths"] = proof.DROP_IN
+        units = SHUTDOWN_STATIC.split(" ")
+        suffixes = [[], sorted(units), sorted(units[::2]), *[[unit] for unit in units]]
+        for runtime in suffixes:
+            with self.subTest(runtime=runtime):
+                self.runner.reset_mock()
+                line = "After=" + " ".join([*units, *runtime])
+                for terminal in ("", " "):
+                    self.runner.reset_mock()
+                    self.fs.files[proof.DROP_IN] = regular(61, ("# installed generator\n\n[Unit]\n" + line + terminal + "\n").encode(), readonly=False)
+                    self.assertEqual(self.run_proof(), ("lxd_snap", "snap:lxd"))
+                    self.assertEqual(self.runner.run.call_count, 2)
+
+    def test_shutdown_missing_or_reordered_static_prefix_blocks_before_process_reads(self) -> None:
+        self.values["DropInPaths"] = proof.DROP_IN
+        units = SHUTDOWN_STATIC.split(" ")
+        cases = [units[:index] + units[index + 1:] for index in range(len(units))]
+        cases += [list(reversed(units)), sorted(units), units + ["snap.other.daemon.service"]]
+        cases += [units + list(reversed(sorted(units))), units + [units[0], units[0]], units + sorted(units) + [units[0]]]
+        for tokens in cases:
+            with self.subTest(tokens=tokens):
+                self.fs.calls.clear()
+                self.fs.files[proof.DROP_IN] = regular(61, ("[Unit]\nAfter=" + " ".join(tokens) + "\n").encode(), readonly=False)
+                self.assert_blocked("SNAP_WRAPPER_CONTEXT_BLOCKED")
+                self.assertFalse(any(path.startswith("/proc/") for path, _, _ in self.fs.calls))
+
+    def test_shutdown_strict_spacing_bytes_and_directive_boundary(self) -> None:
+        self.values["DropInPaths"] = proof.DROP_IN
+        valid = ("[Unit]\nAfter=" + SHUTDOWN_STATIC + "\n").encode()
+        cases = [valid.replace(b"After=", b"After= "), valid.replace(b"After=", b" After="),
+                 valid.replace(b" ", b"  ", 1), valid.replace(b" ", b"\t", 1),
+                 valid.replace(b"\n", b"\r\n"), valid.replace(b"\n", b"\x00", 1),
+                 valid[:-1] + b"  \n", valid[:-1] + b" # comment\n", valid + b"[Unit]\n",
+                 b"[Unit]\nAfter=snap.microceph.daemon.service snap.microovn.daemon.service \n",
+                 valid + b"After=snap.microceph.daemon.service\n", valid + b"Before=unrelated.service\n",
+                 valid + b"[Service]\nExecStart=secret-value\n", valid + b"\xff",
+                 valid.replace(b" ", b" \\\n", 1)]
+        for raw in cases:
+            with self.subTest(raw=raw[:30]):
+                self.fs.files[proof.DROP_IN] = regular(61, raw, readonly=False)
+                self.assert_blocked("SNAP_WRAPPER_CONTEXT_BLOCKED")
+
+    def test_shutdown_supported_runtime_change_or_inode_change_is_still_drift(self) -> None:
+        self.values["DropInPaths"] = proof.DROP_IN
+        first = regular(61, ("[Unit]\nAfter=" + SHUTDOWN_STATIC + "\n").encode(), readonly=False)
+        changed = ("[Unit]\nAfter=" + SHUTDOWN_STATIC + " snap.microceph.daemon.service\n").encode()
+        for final in (replace(first, data=changed), replace(first, inode=62), replace(first, data=first.data + b"# changed\n")):
+            with self.subTest(final=final.inode):
+                self.fs.sequences[proof.DROP_IN] = [first, final]
+                self.assert_blocked("SNAP_WRAPPER_DRIFT")
+
+    def test_shutdown_new_grammar_does_not_relax_trusted_file_checks(self) -> None:
+        self.values["DropInPaths"] = proof.DROP_IN
+        valid = regular(61, ("[Unit]\nAfter=" + SHUTDOWN_STATIC + "\n").encode(), readonly=False)
+        for invalid in (replace(valid, uid=1000), replace(valid, mode=stat.S_IFREG | 0o666),
+                        replace(valid, mode=stat.S_IFLNK | 0o777)):
+            with self.subTest(mode=invalid.mode, uid=invalid.uid):
+                self.fs.files[proof.DROP_IN] = invalid
+                self.assert_blocked("SNAP_WRAPPER_FILE_UNVERIFIED")
+
+    def test_shutdown_optional_terminal_space_is_not_normalized_during_recheck(self) -> None:
+        self.values["DropInPaths"] = proof.DROP_IN
+        plain = regular(61, ("[Unit]\nAfter=" + SHUTDOWN_STATIC + "\n").encode(), readonly=False)
+        spaced = replace(plain, data=plain.data[:-1] + b" \n")
+        for first, final in ((plain, spaced), (spaced, plain)):
+            with self.subTest(terminal_space=first.data.endswith(b" \n")):
+                self.fs.sequences[proof.DROP_IN] = [first, final]
+                self.assert_blocked("SNAP_WRAPPER_DRIFT")
 
     def test_forged_or_duplicate_selected_environment_cannot_establish_identity(self) -> None:
         original = self.fs.files["/proc/101/environ"]

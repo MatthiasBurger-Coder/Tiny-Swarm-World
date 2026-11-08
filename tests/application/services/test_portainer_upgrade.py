@@ -1,7 +1,9 @@
 """Dedicated gateway lifecycle with real journal and manifest persistence."""
+from tests.infrastructure.adapters.lifecycle.test_installation_operation_lock import FakeInstallationLock
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
+import json
 from unittest.mock import AsyncMock, Mock
 
 from tests.domain.lifecycle.test_update_planning import update_fixture
@@ -41,7 +43,7 @@ class PortainerUpgradeTests(unittest.IsolatedAsyncioTestCase):
         self.runtime.verify = AsyncMock()
         self.runtime.restore = AsyncMock()
         self.runtime.cancel_backup = AsyncMock()
-        self.service = PortainerUpgradeService(self.manifests, self.journal, self.runtime)
+        self.service = PortainerUpgradeService(self.manifests, self.journal, self.runtime, operation_lock=FakeInstallationLock())
 
     async def test_upgrade_commits_whole_bundle_preserving_other_installation_state(self):
         result = await self.service.run(target=None, consent=CONSENT)
@@ -54,6 +56,7 @@ class PortainerUpgradeTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(set(self.original.configuration_references) <= set(after.configuration_references))
         self.assertEqual(after.resolved_services, self.original.resolved_services)
         self.assertEqual(self.journal.load().stage, 'completed')
+        self.assertNotIn('profile_intent', json.loads(self.journal.path.read_text()))
         self.runtime.verify.assert_awaited_once_with(self.before, recovery=False)
         self.assertEqual(self.journal.path.stat().st_mode & 0o777, 0o600)
 
@@ -127,3 +130,24 @@ class PortainerUpgradeTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaisesRegex(LifecycleStateError, 'another installation'):
             await self.service.run(target=None, consent=CONSENT, recovery=True)
         self.runtime.restore.assert_not_called()
+
+    async def test_bound_intent_survives_checkpoint_serialization(self):
+        from tiny_swarm_world.domain.lifecycle.models import InstallationProfileIntent
+        from tiny_swarm_world.domain.lifecycle.portainer_upgrade import PortainerCheckpoint
+
+        await self.service.run(target=None, consent=CONSENT)
+        checkpoint = self.journal.load()
+        original = checkpoint.original
+        intent = InstallationProfileIntent(
+            operation_id=checkpoint.operation_id, operation_kind='portainer-upgrade',
+            installation_id=original.installation_id, controller_revision='c' * 40,
+            product_source_revision=original.product.revision, product_target_revision=None,
+            incus_version='6.0.5', manifest_token=checkpoint.manifest_token,
+            requested_services=original.requested_services, resolved_services=original.resolved_services,
+            service_exposure=original.effective_exposure(), stack_ownership=original.effective_stack_ownership(),
+            profile=None, stage='completed',
+        )
+        bound = PortainerCheckpoint.model_validate(checkpoint.model_copy(update={'profile_intent': intent}).model_dump())
+        self.journal.save(bound)
+        self.assertIn('profile_intent', bound.model_dump())
+        self.assertEqual(self.journal.load().profile_intent, intent)

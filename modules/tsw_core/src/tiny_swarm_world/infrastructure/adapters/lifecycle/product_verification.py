@@ -36,7 +36,7 @@ def verify_bound_runtime(installation, plan, manifest):
     """Run this controller's full verifier with isolated child configuration."""
     from tiny_swarm_world.infrastructure.adapters.lifecycle.product_configuration_source import runtime_source
 
-    expected = plan.manifest.model_copy(update={'product': plan.target.product})
+    expected = plan.committed_manifest()
     if manifest not in (plan.manifest, expected):
         raise LifecycleStateError('Runtime verification differs from the admitted installation selection.')
     infra = runtime_source(installation, plan)

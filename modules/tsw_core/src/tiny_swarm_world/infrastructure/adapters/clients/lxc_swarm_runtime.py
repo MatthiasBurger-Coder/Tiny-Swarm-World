@@ -161,6 +161,11 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
     def list_stack_services(self, stack_name: str) -> tuple[SwarmServiceStatus, ...]:
         return self.swarm_stack_runtime.list_stack_services(stack_name)
 
+    def internal_swagger_ready(self) -> bool:
+        from tiny_swarm_world.infrastructure.adapters.clients.lxc.swarm.swagger_readiness import probe_internal_swagger
+
+        return probe_internal_swagger(self._run_manager_shell)
+
     def external_secret_exists(self, name: str) -> bool:
         return self.swarm_stack_runtime.external_secret_exists(name)
 

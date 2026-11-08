@@ -28,6 +28,8 @@ Cross-references from other parts do not change that ownership.
 * link:{handbook-root}handbook/02-architecture/arc42-template.adoc[arc42-template.adoc]
 * link:{handbook-root}handbook/02-architecture/arc42.adoc[arc42.adoc]
 
+* link:{handbook-root}handbook/02-architecture/arc42/09_decisions/adr-preserving-host-maintenance-for-qualification.adoc[Preserving host maintenance for Epic 440 qualification]
+
 === arc42
 
 * link:{handbook-root}handbook/02-architecture/arc42/01_introduction.adoc[01_introduction.adoc]
@@ -91,6 +93,8 @@ Cross-references from other parts do not change that ownership.
 * link:{handbook-root}handbook/02-architecture/arc42/08_deployment_configuration/infisical-silent-setup.adoc[infisical-silent-setup.adoc]
 
 === arc42/09_decisions
+
+* link:{handbook-root}handbook/02-architecture/arc42/09_decisions/adr-preserving-product-acceptance-transactions.adoc[Preserving product acceptance transactions for Epic 440]
 
 * link:{handbook-root}handbook/02-architecture/arc42/09_decisions/adr-autonomous-setup-safety.adoc[adr-autonomous-setup-safety.adoc]
 * link:{handbook-root}handbook/02-architecture/arc42/09_decisions/adr-bootstrap-command-readiness-contract.adoc[adr-bootstrap-command-readiness-contract.adoc]

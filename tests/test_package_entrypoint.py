@@ -1,13 +1,16 @@
+from tests.infrastructure.adapters.lifecycle.test_installation_operation_lock import use_fake_composition_locks
 import asyncio
 import ast
 import io
 import json
 import os
+import shutil
+from tempfile import TemporaryDirectory
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import ANY, AsyncMock, Mock, patch
 
 from tiny_swarm_world import __main__ as entrypoint
 from tiny_swarm_world.infrastructure.adapters.cli import commands as cli_commands
@@ -75,6 +78,24 @@ ENTRYPOINT_PATH = REPOSITORY_ROOT / "modules/tsw_core/src" / "tiny_swarm_world" 
 
 
 class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        use_fake_composition_locks(self)
+
+    def _isolate_fresh_setup_repository(self):
+        directory = TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        root = Path(directory.name)
+        source = Path(__file__).resolve().parents[1]
+        shutil.copytree(source / 'infra', root / 'infra')
+        for name in ('AGENTS.md', 'QUALITY.md'):
+            shutil.copy2(source / name, root / name)
+        package = root / 'src/tiny_swarm_world'
+        package.mkdir(parents=True)
+        shutil.copy2(source / 'src/tiny_swarm_world/__init__.py', package / '__init__.py')
+        self.enterContext(patch.dict(os.environ, {'TSW_REPOSITORY_ROOT': str(root),
+                                                'TSW_INFRA_ROOT': str(root / 'infra')}))
+        return root
+
     async def test_package_main_delegates_argv_to_canonical_cli_adapter(self):
         argv = ["--list-workflows"]
         with patch.object(cli_dispatcher, "main", AsyncMock()) as run_cli:
@@ -987,6 +1008,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
                 await asyncio.sleep(0)
 
     async def test_setup_run_dispatches_to_setup_workflow_after_live_consent(self):
+        self._isolate_fresh_setup_repository()
         setup_result = SetupWorkflowResult(
             kind=SetupWorkflowKind.RUN,
             status=SetupWorkflowStatus.BLOCKED,
@@ -1019,16 +1041,19 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             run_setup.call_args.kwargs,
             {
+                "operation_lease": ANY,
                 "service_profile": ServiceStackProfile.SERVICE_ACCESS.value,
                 "node_provider_request": None,
                 "allow_wsl_windows_filesystem": False,
             },
         )
+        self.assertFalse(run_setup.call_args.kwargs['operation_lease'].active)
         payload = _json_payload_from_output(output.getvalue())
         self.assertEqual("setup run", payload["workflow"])
         self.assertEqual("blocked", payload["status"])
 
     async def test_setup_run_propagates_explicit_wsl_filesystem_override(self):
+        self._isolate_fresh_setup_repository()
         setup_result = SetupWorkflowResult(
             kind=SetupWorkflowKind.RUN,
             status=SetupWorkflowStatus.BLOCKED,
@@ -1059,6 +1084,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         )
 
     async def test_setup_run_propagates_composition_lifecycle_failure(self):
+        self._isolate_fresh_setup_repository()
         with patch("builtins.input", return_value="y"):
             with patch.object(
                 cli_dispatcher,

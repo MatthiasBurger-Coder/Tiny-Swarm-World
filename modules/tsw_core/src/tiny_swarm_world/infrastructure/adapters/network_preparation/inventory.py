@@ -39,15 +39,20 @@ async def inspect_network(self) -> NetworkSnapshot:
     daemon = await incus.daemon_state()
     if daemon["ActiveState"] != "active":
         raise NetworkPreparationFailure("Incus is stopped; network inventory cannot activate it. Run Incus preparation.")
+    owner_args = ("systemctl", "show", "incus.service", "--property=LoadState,ActiveState,UnitFileState,MainPID", "--no-pager")
+    owner_before = configuration.incus_owner_identity(await runtime.command(owner_args))
     networks = incus.named_resources(await incus.query("/1.0/networks?recursion=1&project=default"), "networks")
     instances = incus.named_resources(await incus.query("/1.0/instances?recursion=1&project=default"), "instances")
     routes = await incus.json_command(("ip", "-j", "-4", "route", "show", "table", "all"))
-    links = stable_links(await incus.json_command(("ip", "-j", "address", "show")))
+    links = stable_links(await incus.json_command(("ip", "-j", "-d", "address", "show")))
+    if configuration.incus_owner_identity(await runtime.command(owner_args)) != owner_before:
+        raise NetworkPreparationFailure("Incus owner process changed during network observation.")
     bridges = configuration.resolve_bridges(self.config_root / "node-providers/provider_config.yaml", networks, routes, links)
+    owners = configuration.managed_bridge_owners(networks, links, bridges[0].egress)
     names, ports, exposure = configuration.local_names(self.config_root / "ports.yaml", self.profile)
     listeners = await runtime.privileged(("ss", "-H", "-O", "-ltnpe"))
     provenance = await configuration.verify_listeners(listeners, ports, instances, exposure)
-    firewall = await firewall_inventory.inventory(bridges, ports)
+    firewall = await firewall_inventory.inventory(bridges, ports, owners=owners)
     firewall["ports"] = ports
     firewall["desired_rules"] = tuple((chain, rule) for bridge in bridges
         for chain, rules in (("FORWARD", forwarding_rules(bridge)), ("INPUT", input_rules(bridge) if firewall["input_restricted"] else ()))

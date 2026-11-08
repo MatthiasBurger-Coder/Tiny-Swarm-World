@@ -8,6 +8,7 @@ import stat
 import tempfile
 from collections.abc import Mapping
 from pathlib import Path
+from tiny_swarm_world.infrastructure.adapters.repositories.managed_state_directory import prepare_managed_state_root
 
 from tiny_swarm_world.application.ports.host.port_project_filesystem_inspector import (
     PortProjectFilesystemInspector,
@@ -85,6 +86,7 @@ class ProjectFilesystemEvidenceLocalRepository(
         temporary_path: Path | None = None
         descriptor = -1
         try:
+            prepare_managed_state_root(self.path)
             self.path.parent.mkdir(parents=True, exist_ok=True)
             _set_private_mode(self.path.parent, 0o700)
             descriptor, temporary_name = tempfile.mkstemp(

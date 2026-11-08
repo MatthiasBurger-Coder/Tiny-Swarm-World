@@ -1,10 +1,11 @@
 from __future__ import annotations
+from tests.infrastructure.adapters.lifecycle.test_installation_operation_lock import FakeInstallationLock
 
 from types import SimpleNamespace
 import asyncio
 import unittest
 from dataclasses import replace
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import ANY, AsyncMock, Mock
 
 from tiny_swarm_world.application.services.deployment.workflows import (
     DeploymentWorkflowStatus,
@@ -79,7 +80,7 @@ def _workflow(
             observer,
             verification_attempts=2,
             poll_interval_seconds=0,
-        ),
+         operation_lock=FakeInstallationLock()),
         factory,
         state_store,
         deployment,
@@ -150,7 +151,10 @@ class ClassicUpdateWorkflowTest(unittest.IsolatedAsyncioTestCase):
             "old:1", result.verification_results[0].evidence["observed_source_image"]
         )
         state_store.save.assert_called_once_with(_plan())
-        factory.assert_called_once_with(_plan())
+        factory.assert_called_once_with(_plan(), operation_lease=ANY)
+        self.assertIsNotNone(factory.call_args.kwargs['operation_lease'])
+        self.assertFalse(factory.call_args.kwargs['operation_lease'].active)
+        self.assertIsNone(workflow.operation_lease)
         deployment.run.assert_awaited_once_with()
 
     async def test_source_mismatch_blocks_without_downstream_mutation(self) -> None:
@@ -198,7 +202,7 @@ class ClassicUpdateWorkflowTest(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(PlatformWorkflowStatus.COMPLETED, result.status)
-        factory.assert_called_once_with(_plan().rollback_plan)
+        factory.assert_called_once_with(_plan().rollback_plan, operation_lease=ANY)
         state_store.save.assert_not_called()
 
     async def test_recover_uses_recorded_plan_when_static_compose_still_has_source(
@@ -215,7 +219,7 @@ class ClassicUpdateWorkflowTest(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(PlatformWorkflowStatus.COMPLETED, result.status)
-        factory.assert_called_once_with(_plan().rollback_plan)
+        factory.assert_called_once_with(_plan().rollback_plan, operation_lease=ANY)
         state_store.save.assert_not_called()
 
     async def test_repeated_recovery_never_reverses_the_original_plan_again(
@@ -240,7 +244,7 @@ class ClassicUpdateWorkflowTest(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(_plan(), recorded.plan)
-        factory.assert_called_once_with(_plan().rollback_plan)
+        factory.assert_called_once_with(_plan().rollback_plan, operation_lease=ANY)
         state_store.save.assert_not_called()
 
     async def test_completed_rollback_recovery_is_noop(self) -> None:
@@ -287,7 +291,7 @@ class ClassicUpdateWorkflowTest(unittest.IsolatedAsyncioTestCase):
                 )
                 self.assertEqual(PlatformWorkflowStatus.FAILED_TO_VERIFY, result.status)
                 self.assertTrue(result.executed)
-                factory.assert_called_once_with(_plan().rollback_plan)
+                factory.assert_called_once_with(_plan().rollback_plan, operation_lease=ANY)
                 store.save.assert_not_called()
 
     async def test_apply_uses_running_source_even_when_compose_is_stale(self) -> None:
@@ -422,7 +426,7 @@ class ClassicUpdateWorkflowTest(unittest.IsolatedAsyncioTestCase):
         result = await workflow.run(_plan(), preview=False, live_consent=_consent())
         self.assertEqual(PlatformWorkflowStatus.COMPLETED, result.status)
         self.assertEqual("2", result.verification_results[0].evidence["observation_attempts"])
-        factory.assert_called_once_with(_plan())
+        factory.assert_called_once_with(_plan(), operation_lease=ANY)
         deployment.run.assert_awaited_once()
         store.save.assert_called_once_with(_plan())
 

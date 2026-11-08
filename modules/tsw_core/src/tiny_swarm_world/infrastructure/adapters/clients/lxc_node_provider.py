@@ -83,6 +83,7 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc.node.results import (
 from tiny_swarm_world.infrastructure.adapters.clients.lxc.resource.qualification import (
     LxcResourceQualification,
 )
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.node import scoped as scoped_node
 from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 
 
@@ -123,6 +124,8 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
         allow_live_mutation: bool = False,
         logger: Logger | None = None,
         host_resource_inspector: object | None = None,
+        profile_operation=None,
+        profile_observer=None,
     ):
         if launch_timeout_seconds <= 0:
             raise ValueError("LXC launch timeout must be positive.")
@@ -143,12 +146,16 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
         self.logger = logger or LoggerFactory.get_logger(self.__class__.__name__)
         self.host_resource_inspector = host_resource_inspector
         self.resource_qualification = LxcResourceQualification(runner)
+        self.profile_operation, self.profile_observer = profile_operation, profile_observer
 
     async def verify_node(
         self,
         node: NodeSpec,
         selection: ProviderSelection,
     ) -> VerificationResult:
+        scoped = await scoped_node.verify(self, node, selection)
+        if scoped is not None:
+            return scoped
         backend_selection = _selected_backend(node, selection)
         if isinstance(backend_selection, VerificationResult):
             return backend_selection
@@ -204,6 +211,7 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
         node: NodeSpec,
         selection: ProviderSelection,
     ) -> VerificationResult:
+        scoped_node.require_writer(self)
         backend_selection = _selected_backend(node, selection)
         if isinstance(backend_selection, VerificationResult):
             return backend_selection
@@ -217,6 +225,10 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
         capacity_block = self._host_capacity_block(node, selection, config)
         if capacity_block is not None:
             return capacity_block
+
+        scoped = await scoped_node.ensure(self, node, selection)
+        if scoped is not None:
+            return scoped
 
         resource_result = await self._verify_provider_resources(
             node,
@@ -358,6 +370,7 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
         nodes: Sequence[NodeSpec],
         selection: ProviderSelection,
     ) -> VerificationResult:
+        scoped_node.refuse_teardown(self)
         return await self._teardown_nodes(tuple(nodes), selection, "reset")
 
     async def destroy_nodes(
@@ -365,6 +378,7 @@ class LxcNodeProvider(PortNodeLifecycle, PortManagedNodeTeardown):
         nodes: Sequence[NodeSpec],
         selection: ProviderSelection,
     ) -> VerificationResult:
+        scoped_node.refuse_teardown(self)
         return await self._teardown_nodes(tuple(nodes), selection, "destroy")
 
     async def _teardown_nodes(
@@ -1635,3 +1649,6 @@ def _teardown_summary_classification(
 
 def _safe_log_text(value: str, limit: int = 400) -> str:
     return safe_log_text(value, limit=limit)
+
+
+_scoped_node = scoped_node.dispatch

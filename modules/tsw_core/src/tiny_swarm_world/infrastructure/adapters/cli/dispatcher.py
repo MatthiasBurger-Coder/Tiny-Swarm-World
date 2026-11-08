@@ -1,6 +1,7 @@
 """CLI command routing and delegation to composed application workflows."""
 
 from argparse import Namespace
+
 from collections.abc import Sequence
 
 from tiny_swarm_world.application.services.artifacts import ArtifactWorkflowResult
@@ -50,6 +51,7 @@ from tiny_swarm_world.infrastructure.composition import (
     build_platform_services,
     ensure_common_executable_paths,
     execute_cli_workflow,
+    run_installation_cli_operation,
     run_setup_with_terminal_status,
 )
 
@@ -166,7 +168,7 @@ def _selected_workflow(args: Namespace) -> CliWorkflow | None:
     return workflow
 
 
-async def run_cli_workflow(
+async def _run_cli_workflow(
     workflow: CliWorkflow,
     confirmation: str | None,
     live_consent: LiveConsent | None = None,
@@ -199,3 +201,21 @@ async def run_cli_workflow(
         build_deployment_services=build_deployment_services_for_provider,
         run_setup_with_terminal_status=run_setup_with_terminal_status,
     )
+
+
+async def run_cli_workflow(
+    workflow: CliWorkflow, confirmation: str | None, live_consent: LiveConsent | None = None,
+    service_profile: ServiceStackProfile | str = DEFAULT_SETUP_SERVICE_PROFILE,
+    node_provider_request: NodeProviderSelectionRequest | None = None,
+    allow_wsl_windows_filesystem: bool = False, update_plan: ClassicUpdatePlan | None = None,
+    update_preview: bool = False, update_recover: bool = False,
+    update_stack_name: str | None = None, update_service_name: str | None = None,
+) -> WorkflowResult:
+    return await run_installation_cli_operation(workflow, confirmation, live_consent, service_profile,
+        node_provider_request, allow_wsl_windows_filesystem, update_plan, update_preview,
+        update_recover, update_stack_name, update_service_name,
+        fallback=_run_cli_workflow, execute=execute_cli_workflow,
+        classic_factory=build_classic_update_workflow, platform_factory=build_platform_services,
+        artifact_factory=build_artifact_services_for_provider,
+        deployment_factory=build_deployment_services_for_provider,
+        setup_runner=run_setup_with_terminal_status)

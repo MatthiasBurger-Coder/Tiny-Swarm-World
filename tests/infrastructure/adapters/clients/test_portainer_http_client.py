@@ -6,6 +6,7 @@ from tiny_swarm_world.application.ports.clients.port_deployment_gateway import (
     DeploymentStackRequest,
 )
 from tiny_swarm_world.domain.deployment.stack_definition import StackDefinition
+from tiny_swarm_world.application.ports.clients.port_portainer_client import PortainerClientError
 from tiny_swarm_world.infrastructure.adapters.clients.portainer_http_client import (
     PortainerHttpClient,
 )
@@ -113,7 +114,7 @@ class TestPortainerHttpClient(unittest.TestCase):
             [{"name": "TSW_JENKINS_IMAGE", "value": "jenkins:latest"}],
         )
 
-    def test_apply_stack_updates_existing_stack_through_deployment_gateway(self):
+    def test_same_name_existing_stack_never_grants_update_authority(self):
         session = _FakeSession(
             post_responses=[_FakeResponse(200, {"jwt": "jwt-token"})],
             request_responses=[
@@ -129,20 +130,10 @@ class TestPortainerHttpClient(unittest.TestCase):
             session=session,
         )
 
-        client.apply_stack(
-            DeploymentStackRequest(
-                target_stack="swagger",
-                stack_definition=StackDefinition(
-                    name="swagger",
-                    compose_content="services: {}",
-                ),
-            )
-        )
-
-        request = session.request_calls[2]
-        self.assertEqual(request["method"], "PUT")
-        self.assertEqual(request["url"], "https://portainer.local/api/stacks/42?endpointId=7")
-        self.assertEqual(request["json"]["stackFileContent"], "services: {}")
+        with self.assertRaises(PortainerClientError):
+            client.apply_stack(DeploymentStackRequest(
+                target_stack='swagger', stack_definition=StackDefinition(name='swagger', compose_content='services: {}')))
+        self.assertFalse(any(call['method'] == 'PUT' for call in session.request_calls))
 
     def test_successful_apply_provides_one_consumable_registration_snapshot(self):
         session = _FakeSession(
@@ -488,7 +479,7 @@ class TestPortainerHttpClient(unittest.TestCase):
         self.assertEqual(
             {
                 "env": [],
-                "prune": True,
+                "prune": False,
                 "pullImage": False,
                 "stackFileContent": "services: {}",
             },

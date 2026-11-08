@@ -1,3 +1,4 @@
+from tiny_swarm_world.infrastructure.adapters.repositories.compose_port_exposure import ComposePortExposure
 from tiny_swarm_world.application.ports.repositories.port_repository_failure import RepositoryConfigurationError, RepositoryStorageError, RepositoryNotFoundError
 from tiny_swarm_world.application.ports.operation_result import OperationError, OperationFailure
 import hashlib
@@ -86,6 +87,7 @@ class ComposeFileRepositoryYaml(
         environment: Mapping[str, str] | None = None,
         write_logs: bool = True,
         resolved_services: tuple[str, ...] | None = None,
+        service_exposure: Mapping[str, str] | None = None,
         transition_overrides: Mapping[str, str] | None = None,
     ):
         paths = project_paths or default_project_paths()
@@ -97,6 +99,8 @@ class ComposeFileRepositoryYaml(
             project_paths=paths
         ).load()
         self.resolved_services = resolved_services
+        self._port_exposure = ComposePortExposure(resolved_services, service_exposure, self.port_registry)
+        self.service_exposure = self._port_exposure.service_exposure
         self.service_profile = ServiceStackProfile(service_profile)
         from tiny_swarm_world.infrastructure.adapters.lifecycle.desired_images import effective_image_environment
 
@@ -148,11 +152,9 @@ class ComposeFileRepositoryYaml(
                 except UnicodeError:
                     raise RepositoryConfigurationError("Selected Compose configuration could not be read.") from None
                 _validate_swarm_stack_compose(stack_name, compose_content)
-                compose_content = _resolve_direct_published_ports(
-                    stack_name,
-                    compose_content,
-                    self.port_registry,
-                )
+                payload = _validated_compose_payload(compose_content)
+                if self._port_exposure.apply(stack_name, payload):
+                    compose_content = _dump_yaml_payload(payload)
                 compose_content = _resolve_traefik_route_labels(
                     stack_name,
                     compose_content,
@@ -255,6 +257,7 @@ class ComposeFileRepositoryYaml(
             ),
             port_registry=self.port_registry,
             resolved_services=self.resolved_services,
+            service_exposure=self.service_exposure,
         )
 
     def _desired_routes_for_compose(self) -> tuple[DesiredHttpsRoute, ...]:
@@ -491,26 +494,6 @@ def _published_port_from_short_syntax(value: str) -> int | None:
     if "-" in host_side:
         host_side = host_side.split("-", 1)[0]
     return int(host_side) if host_side.isdigit() else None
-
-
-def _resolve_direct_published_ports(
-    stack_name: str,
-    compose_content: str,
-    port_registry: PortRegistry,
-) -> str:
-    payload = _load_configuration_yaml(compose_content)
-    if not isinstance(payload, Mapping):
-        return compose_content
-    services = payload.get("services")
-    if not isinstance(services, Mapping):
-        return compose_content
-
-    ports_by_id = {mapping.port_id: mapping for mapping in port_registry.mappings}
-    mutated = _apply_direct_published_ports(stack_name, services, ports_by_id)
-    if not mutated:
-        return compose_content
-
-    return _dump_yaml_payload(payload)
 
 
 def _resolve_traefik_route_labels(
@@ -886,79 +869,3 @@ def _dashboard_credentials_for(
             f'rel="noopener noreferrer"><code>{escape(item)}</code></a><small>{escape(note)}</small></span>'
         ),
     )
-
-
-def _apply_direct_published_ports(
-    stack_name: str,
-    services: Mapping[object, object],
-    ports_by_id: Mapping[str, ServicePortMapping],
-) -> bool:
-    mutated = False
-    for service_name, service_payload in services.items():
-        if not isinstance(service_name, str) or not isinstance(service_payload, Mapping):
-            continue
-        configured_ports = service_payload.get("ports")
-        if not isinstance(configured_ports, list):
-            continue
-
-        for entry in configured_ports:
-            mutated = _apply_direct_published_port(
-                stack_name,
-                service_name,
-                entry,
-                ports_by_id,
-            ) or mutated
-    return mutated
-
-
-def _apply_direct_published_port(
-    stack_name: str,
-    service_name: str,
-    entry: object,
-    ports_by_id: Mapping[str, ServicePortMapping],
-) -> bool:
-    if not isinstance(entry, dict):
-        return False
-    port_id = _port_id_for_entry(stack_name, service_name, entry)
-    if port_id is None:
-        return False
-    mapping = ports_by_id.get(port_id)
-    if mapping is None:
-        raise RepositoryConfigurationError(f"direct port '{port_id}' is missing from the port registry")
-    if mapping.external_port is None:
-        return False
-    if entry.get("published") == mapping.external_port:
-        return False
-    entry["published"] = mapping.external_port
-    return True
-
-
-def _port_id_for_entry(
-    stack_name: str,
-    service_name: str,
-    port_entry: Mapping[object, object],
-) -> str | None:
-    target = port_entry.get("target")
-    if not isinstance(target, int):
-        return None
-    return _DIRECT_PUBLISHED_PORT_IDS.get((stack_name, service_name, target))
-
-
-_DIRECT_PUBLISHED_PORT_IDS: dict[tuple[str, str, int], str] = {
-    ("portainer", "portainer", 9000): "portainer-http",
-    ("jenkins", "jenkins", 8080): "jenkins-http",
-    ("jenkins", "jenkins", 50000): "jenkins-agent",
-    ("nexus", "nexus", 8081): "nexus-http",
-    ("nexus", "nexus", 5000): "nexus-docker-http",
-    ("nexus", "nexus", 5001): "nexus-docker-https",
-    ("infisical", "infisical", 8080): "infisical-http",
-    ("service-access", "service-access-nginx", 80): "service-access-http",
-    ("pulsar", "pulsar", 6650): "pulsar-broker",
-    ("pulsar", "pulsar", 8080): "pulsar-admin-api",
-    ("pulsar", "pulsar-manager", 9527): "pulsar-manager-gui",
-    ("sonarqube", "sonarqube", 9000): "sonarqube-http",
-    ("swagger", "swagger-ui", 8080): "swagger-ui",
-    ("swagger", "swagger-nginx", 8084): "openapi-aggregator",
-    ("traefik", "traefik", 80): "traefik-http",
-    ("traefik", "traefik", 443): "traefik-https",
-}

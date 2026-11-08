@@ -1,20 +1,26 @@
 """Read-only selection previews and explicitly approved local metadata persistence."""
+from collections.abc import Mapping
+from tiny_swarm_world.application.ports.lifecycle.installation_profile import InstallationLease, InstallationOperationLock, installation_operation
 from tiny_swarm_world.application.ports.lifecycle import (
     CatalogRepository, LifecycleStateError, ManifestRepository, ManifestSnapshot,
 )
-from tiny_swarm_world.domain.lifecycle.models import ComponentState, CredentialReference, ConfigurationReference, InstallationManifest
+from tiny_swarm_world.domain.lifecycle.models import migrate_manifest_v1, ComponentState, CredentialReference, ConfigurationReference
 from tiny_swarm_world.domain.lifecycle.selection import SelectionPlan, plan_selection
+from tiny_swarm_world.application.services.selection_commit import selection_candidate
 
 
 class ServiceSelectionService:
-    def __init__(self, manifests: ManifestRepository, catalog: CatalogRepository):
+    def __init__(self, manifests: ManifestRepository, catalog: CatalogRepository, *,
+                 operation_lock: InstallationOperationLock | None = None):
         self.manifests = manifests
         self.catalog = catalog
+        self.operation_lock = operation_lock
 
     def preview(
         self, requested: tuple[str, ...] | None = None, configured: tuple[str, ...] | None = None,
         *, minimal: bool = False, preset: str | None = None, remove: tuple[str, ...] = (),
         add: bool = False, available_capabilities: tuple[str, ...] | None = None,
+        service_exposure: Mapping[str, str] | None = None, stack_owner=None,
     ) -> SelectionPlan:
         catalog = self.catalog.load()
         snapshot = self.manifests.load()
@@ -26,12 +32,24 @@ class ServiceSelectionService:
         plan = plan_selection(
             catalog, requested, configured, persisted=snapshot.manifest, minimal=minimal,
             preset=preset, remove=remove, add=add, available_capabilities=available_capabilities,
+            service_exposure=service_exposure, stack_owner=stack_owner,
         )
         return plan.model_copy(update={"manifest_token": snapshot.token, "diagnostics": snapshot.diagnostics})
 
     def persist(self, plan: SelectionPlan, *, approved: bool = False, component_inventory: tuple[ComponentState, ...] | None = None,
                 credential_inventory: tuple[CredentialReference, ...] | None = None,
-                configuration_inventory: tuple[ConfigurationReference, ...] | None = None) -> ManifestSnapshot:
+                configuration_inventory: tuple[ConfigurationReference, ...] | None = None,
+                stack_ownership_inventory=None, operation_lease: InstallationLease | None = None, verified_migration: bool = False) -> ManifestSnapshot:
+        if not approved:
+            raise LifecycleStateError("Explicit local selection approval is required before persistence.")
+        with installation_operation(self.operation_lock, 'selection', operation_lease):
+            return self._persist(plan, approved=approved, component_inventory=component_inventory,
+                                 credential_inventory=credential_inventory, configuration_inventory=configuration_inventory, stack_ownership_inventory=stack_ownership_inventory,
+                                 verified_migration=verified_migration)
+
+    def _persist(self, plan: SelectionPlan, *, approved: bool = False, component_inventory: tuple[ComponentState, ...] | None = None,
+                credential_inventory: tuple[CredentialReference, ...] | None = None,
+                configuration_inventory: tuple[ConfigurationReference, ...] | None = None, stack_ownership_inventory=None, verified_migration: bool = False) -> ManifestSnapshot:
         """Save desired metadata only; this does not install or verify any service."""
         if not approved:
             raise LifecycleStateError("Explicit local selection approval is required before persistence.")
@@ -42,42 +60,14 @@ class ServiceSelectionService:
             raise LifecycleStateError("Adopt and verify the installation identity before persisting selection.")
         if snapshot.token != plan.manifest_token:
             raise LifecycleStateError("Selection preview is stale; inspect the current installation and preview again.")
+        if snapshot.manifest.schema_version == 1 and 'internal' in plan.service_exposure.values() and not verified_migration:
+            raise LifecycleStateError('Internal exposure migration requires a verified runtime commit.')
         catalog = self.catalog.load()
-        catalog.validate_manifest(snapshot.manifest)
-        changed_preset = plan.service_preset != snapshot.manifest.service_preset
-        validated = plan_selection(
-            catalog, plan.requested_services if plan.requested_services else None,
-            persisted=snapshot.manifest, minimal=not plan.requested_services,
-            preset=plan.service_preset if changed_preset else None,
-        )
-        if (validated.resolved_services != plan.resolved_services
-                or validated.selection_reasons != plan.selection_reasons
-                or validated.service_preset != plan.service_preset
-                or validated.resources != plan.resources):
-            raise LifecycleStateError("Selection/catalog changed since preview; inspect and preview again.")
-        if not set(snapshot.manifest.resolved_services) <= set(plan.resolved_services):
-            raise LifecycleStateError("Implicit removal is unsupported; use removal-impact preview.")
-        existing = {item.component_id: item for item in snapshot.manifest.components}
-        components = tuple(existing.get(item.component_id, item)
-                           for name in plan.resolved_services for service in catalog.services
-                           if service.service_id == name for item in service.components)
-        if component_inventory is not None:
-            proposed = {item.component_id: item for item in component_inventory}
-            if (len(proposed) != len(component_inventory) or set(proposed) != {item.component_id for item in components}
-                    or any(proposed[name] != item for name, item in existing.items())):
-                raise LifecycleStateError("Effective inventory cannot change existing component identity or desired state during addition.")
-            components = component_inventory
-        payload = snapshot.manifest.model_dump()
-        payload.update(requested_services=plan.requested_services, resolved_services=plan.resolved_services,
-                       selection_reasons=plan.selection_reasons, service_preset=plan.service_preset,
-                       components=components)
-        for key, inventory in (("credential_references", credential_inventory), ("configuration_references", configuration_inventory)):
-            if inventory is not None:
-                if any(item not in inventory for item in getattr(snapshot.manifest, key)):
-                    raise LifecycleStateError("Addition cannot discard existing configuration or credential provenance.")
-                payload[key] = inventory
-        manifest = InstallationManifest.model_validate(payload)
-        catalog.validate_manifest(manifest)
+        manifest = selection_candidate(catalog, snapshot.manifest, plan, component_inventory,
+                                       credential_inventory, configuration_inventory, stack_ownership_inventory)
         if manifest == snapshot.manifest:
             return snapshot
+        if verified_migration:
+            manifest = migrate_manifest_v1(manifest)
+        catalog.validate_manifest(manifest)
         return self.manifests.save(manifest, expected_token=snapshot.token)

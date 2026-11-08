@@ -1,4 +1,5 @@
 """Selective CLI consent, dispatch and metadata failure regressions with fake runtime."""
+from tests.infrastructure.adapters.lifecycle.test_installation_operation_lock import FakeInstallationLock, use_fake_composition_locks
 import contextlib
 import asyncio
 import io
@@ -23,6 +24,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class SelectiveCliTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        use_fake_composition_locks(self)
+
     def test_apply_argument_and_consent_boundaries(self):
         for command in (["setup", "run", "--minimal"], ["services", "add", "--services", "swagger"],
                         ["services", "remove", "--services", "swagger", "--live", "--approve-live"],
@@ -49,7 +53,7 @@ class SelectiveCliTests(unittest.IsolatedAsyncioTestCase):
 
     async def _exercise(self, outcome, commit_error=False):
         with TemporaryDirectory() as directory:
-            lifecycle = InstallationLifecycleService(JsonManifestRepository(Path(directory) / "state.json"), NativeComponentCatalog(ROOT))
+            lifecycle = InstallationLifecycleService(JsonManifestRepository(Path(directory) / "state.json"), NativeComponentCatalog(ROOT), operation_lock=FakeInstallationLock())
             lifecycle.manifests.save(adoption_fixture(lifecycle.catalog.load()), expected_token=None)
             args = parse_args(["services", "add", "--services", "swagger", "--live", "--approve-live", "--json"])
             result = SetupWorkflowResult(SetupWorkflowKind.RUN, outcome, "fixture", "fixture", executed=True)
@@ -57,7 +61,7 @@ class SelectiveCliTests(unittest.IsolatedAsyncioTestCase):
                  patch(MODULE + ".composition.prepare_setup_selection_state", new_callable=AsyncMock) as admission, \
                  patch(MODULE + ".composition.complete_setup_selection_state", new_callable=AsyncMock) as observation, \
                  patch(MODULE + ".composition.run_setup_with_terminal_status", new_callable=AsyncMock, return_value=result) as setup:
-                state = Mock()
+                state = Mock(profile_operation=None)
                 events = Mock()
                 events.attach_mock(setup, "runtime")
                 events.attach_mock(observation, "observe")
@@ -87,12 +91,12 @@ class SelectiveCliTests(unittest.IsolatedAsyncioTestCase):
     async def test_observation_failure_reports_partial_runtime_without_commit_or_secret_leak(self):
         for failure in (LifecycleStateError("SECRET_SENTINEL"), TimeoutError("SECRET_SENTINEL")):
             with self.subTest(failure_type=type(failure).__name__), TemporaryDirectory() as directory:
-                lifecycle = InstallationLifecycleService(JsonManifestRepository(Path(directory) / "state.json"), NativeComponentCatalog(ROOT))
+                lifecycle = InstallationLifecycleService(JsonManifestRepository(Path(directory) / "state.json"), NativeComponentCatalog(ROOT), operation_lock=FakeInstallationLock())
                 lifecycle.manifests.save(adoption_fixture(lifecycle.catalog.load()), expected_token=None)
                 before = lifecycle.manifests.path.read_bytes()
                 args = parse_args(["services", "add", "--services", "swagger", "--live", "--approve-live", "--json"])
                 completed = SetupWorkflowResult(SetupWorkflowKind.RUN, SetupWorkflowStatus.COMPLETED, "verified runtime", "fixture", executed=True)
-                state = Mock()
+                state = Mock(profile_operation=None)
                 with patch(MODULE + ".composition.build_installation_lifecycle_service", return_value=lifecycle), \
                      patch(MODULE + ".composition.prepare_setup_selection_state", new_callable=AsyncMock, return_value=state), \
                      patch(MODULE + ".composition.run_setup_with_terminal_status", new_callable=AsyncMock, return_value=completed), \
@@ -109,11 +113,11 @@ class SelectiveCliTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_observation_cancellation_propagates_without_metadata_commit(self):
         with TemporaryDirectory() as directory:
-            lifecycle = InstallationLifecycleService(JsonManifestRepository(Path(directory) / "state.json"), NativeComponentCatalog(ROOT))
+            lifecycle = InstallationLifecycleService(JsonManifestRepository(Path(directory) / "state.json"), NativeComponentCatalog(ROOT), operation_lock=FakeInstallationLock())
             lifecycle.manifests.save(adoption_fixture(lifecycle.catalog.load()), expected_token=None)
             args = parse_args(["services", "add", "--services", "swagger", "--live", "--approve-live", "--json"])
             completed = SetupWorkflowResult(SetupWorkflowKind.RUN, SetupWorkflowStatus.COMPLETED, "verified runtime", "fixture", executed=True)
-            state = Mock()
+            state = Mock(profile_operation=None)
             with patch(MODULE + ".composition.build_installation_lifecycle_service", return_value=lifecycle), \
                  patch(MODULE + ".composition.prepare_setup_selection_state", new_callable=AsyncMock, return_value=state), \
                  patch(MODULE + ".composition.run_setup_with_terminal_status", new_callable=AsyncMock, return_value=completed), \

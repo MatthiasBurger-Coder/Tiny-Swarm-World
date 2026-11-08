@@ -32,5 +32,8 @@ class JsonPortainerJournal:
             raise LifecycleStateError('Portainer checkpoint invalid; preserve state and inspect recovery metadata.') from None
 
     def save(self, checkpoint: PortainerCheckpoint) -> None:
-        PortainerCheckpoint.model_validate_json(checkpoint.model_dump_json())
+        try:
+            PortainerCheckpoint.model_validate_json(checkpoint.model_dump_json())
+        except ValueError:
+            raise LifecycleStateError('Invalid operation checkpoint; retain the original state.') from None
         JsonManifestRepository(self.path)._replace(checkpoint.model_dump_json(indent=2).encode() + b'\n')

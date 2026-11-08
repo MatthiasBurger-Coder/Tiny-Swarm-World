@@ -21,6 +21,12 @@ Windows-side preparation requires elevated PowerShell on a candidate Windows 11
 x86_64 host with observed virtualization. Select `Ubuntu-24.04` or `Ubuntu-26.04`
 explicitly; a registration name alone does not prove its actual release or WSL2
 status. An existing WSL1 selection is blocked, never automatically converted.
+For an existing Store WSL2 registration, the legacy
+`Microsoft-Windows-Subsystem-Linux` feature may remain disabled. Preflight
+requires verified matching Store/runtime versions, generation 2 and enabled
+`VirtualMachinePlatform` before omitting that legacy feature from the plan.
+Unknown identities and feature states remain blocked; resource, restart and
+network checks still determine overall readiness.
 An existing custom registration such as `Ubuntu` requires an explicit supported
 `-UbuntuRelease`. Its actual release must match. Missing custom registrations block;
 the script installs only explicitly selected canonical catalogue registrations.

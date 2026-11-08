@@ -239,7 +239,9 @@ For a new Classic installation, preview `setup run --minimal --preview` or
 `setup run --services jenkins,sonarqube --preview`. Incus/LXC is a host
 prerequisite and Portainer is a mandatory managed foundation; the planner
 explains added dependencies. Add services later with
-`services add --services swagger --preview`. See [selective setup](documentation/handbook/03-user-guide/user_guide/selective-setup.md)
+`services add --services swagger --preview`. Swagger defaults to published access;
+`setup run --services swagger --swagger-exposure internal --preview` plans
+container-only Swagger with separately admitted private-profile execution. See [selective setup](documentation/handbook/03-user-guide/user_guide/selective-setup.md)
 for prerequisites, live consent and removal limits. Cross-host qualification
 remains incomplete; see [W09 evidence](documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md).
 

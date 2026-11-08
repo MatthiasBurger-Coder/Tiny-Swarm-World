@@ -1,4 +1,5 @@
 """Read-only lifecycle inspection and explicit adoption, outside execution engines."""
+from tiny_swarm_world.application.ports.lifecycle.installation_profile import InstallationLease, InstallationOperationLock, installation_operation
 from tiny_swarm_world.application.ports.lifecycle import (
     CatalogRepository, LifecycleStateError, ManifestRepository, ManifestSnapshot,
 )
@@ -6,9 +7,11 @@ from tiny_swarm_world.domain.lifecycle.models import InstallationManifest
 
 
 class InstallationLifecycleService:
-    def __init__(self, manifests: ManifestRepository, catalog: CatalogRepository):
+    def __init__(self, manifests: ManifestRepository, catalog: CatalogRepository, *,
+                 operation_lock: InstallationOperationLock | None = None):
         self.manifests = manifests
         self.catalog = catalog
+        self.operation_lock = operation_lock
 
     def inspect(self) -> dict[str, object]:
         catalog = self.catalog.load()
@@ -32,7 +35,14 @@ class InstallationLifecycleService:
             ],
         }
 
-    def adopt(self, manifest: InstallationManifest, *, approved: bool = False, preview: bool = True) -> ManifestSnapshot:
+    def adopt(self, manifest: InstallationManifest, *, approved: bool = False, preview: bool = True,
+              operation_lease: InstallationLease | None = None) -> ManifestSnapshot:
+        if preview or not approved:
+            return self._adopt(manifest, approved=approved, preview=preview)
+        with installation_operation(self.operation_lock, 'adoption', operation_lease):
+            return self._adopt(manifest, approved=approved, preview=False)
+
+    def _adopt(self, manifest: InstallationManifest, *, approved: bool, preview: bool) -> ManifestSnapshot:
         """Admit an explicitly inventoried instance, never infer it from directory presence.
 
         Callers own acquisition/verification of product and configuration references.

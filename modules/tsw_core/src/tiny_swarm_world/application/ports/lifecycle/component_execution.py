@@ -2,6 +2,7 @@
 from contextlib import AbstractContextManager
 from typing import Protocol
 
+from tiny_swarm_world.application.ports.lifecycle.installation_profile import InstallationLease
 from tiny_swarm_world.domain.lifecycle.update_execution import UpdateBatch, UpdateStage
 from tiny_swarm_world.domain.preflight import LiveConsent
 
@@ -13,5 +14,6 @@ class UpdateJournal(Protocol):
 
 
 class ComponentRuntime(Protocol):
+    def for_operation(self, lease: InstallationLease) -> "ComponentRuntime": ...
     def validate(self, stages: tuple[UpdateStage, ...]) -> None: ...
     async def transition(self, stage: UpdateStage, consent: LiveConsent, *, recovery: bool) -> bool: ...

@@ -1,7 +1,8 @@
 """Bounded management-gateway policy; host qualification belongs to W09."""
-from typing import Literal
+from typing import Literal, Self
+from pydantic import SerializerFunctionWrapHandler, model_serializer, model_validator
 
-from tiny_swarm_world.domain.lifecycle.models import Contract, Digest, InstallationManifest, VersionIdentity
+from tiny_swarm_world.domain.lifecycle.models import InstallationProfileIntent, Contract, Digest, InstallationManifest, VersionIdentity
 
 SOURCE_VERSION = '2.45.0'
 TARGET_VERSION = '2.45.1'
@@ -43,8 +44,27 @@ class PortainerCheckpoint(Contract):
     original: InstallationManifest
     before: PortainerObservation
     manifest_token: str
+    profile_intent: InstallationProfileIntent | None = None
     backup_digest: Digest | None = None
     stage: Literal['admitted', 'backed_up', 'upgrading', 'verified', 'recovering', 'recovered', 'completed'] = 'admitted'
+
+    @model_serializer(mode='wrap')
+    def legacy_serialization(self, handler: SerializerFunctionWrapHandler) -> dict[str, object]:
+        result = handler(self)
+        if self.profile_intent is None:
+            result.pop('profile_intent', None)
+        return result
+
+    @model_validator(mode='after')
+    def coherent_profile_intent(self) -> Self:
+        if self.profile_intent is not None:
+            self.profile_intent.validate_manifest(self.original)
+            if (self.profile_intent.operation_id != self.operation_id or self.profile_intent.installation_id != self.installation_id
+                    or self.profile_intent.operation_kind not in {'portainer-upgrade', 'recovery'}
+                    or self.profile_intent.manifest_token != self.manifest_token
+                    or self.profile_intent.product_target_revision is not None):
+                raise ValueError('Portainer intent differs from the original operation.')
+        return self
 
     @property
     def settled(self) -> bool:

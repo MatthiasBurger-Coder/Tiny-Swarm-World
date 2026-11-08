@@ -1,6 +1,6 @@
 # Installation manifest and component catalog (LCM-W02 / #442)
 
-Contract version 1. Implements the persistence/inspection part of the accepted
+Contract versions 1 and 2. Implements the persistence/inspection part of the accepted
 [Classic lifecycle ADR](../../02-architecture/arc42/09_decisions/adr-classic-product-component-lifecycle.adoc).
 Classic on native Linux and WSL2 only. Runtime execution, arbitrary selective
 setup and qualified upgrades remain owned by W04–W09. W03 adds
@@ -38,8 +38,8 @@ for legacy inventory, protected anchor, management-tooling and recovery requirem
 
 `domain/lifecycle/models.py` is the canonical machine-validated logical contract
 shared with #318. `InstallationManifest.model_json_schema()` and
-`ComponentCatalog.model_json_schema()` expose the schemas. Both use schema and
-catalog version 1; extra fields and malformed types are rejected. The manifest
+`ComponentCatalog.model_json_schema()` expose the schemas. The catalog remains version 1; manifests accept exact schema versions 1 and 2.
+Extra fields and malformed types are rejected. The manifest
 contains a UUID installation identity, host, Classic runtime profile, distinct
 service preset, requested/resolved service IDs and provenance for every added
 service; full selected component inventory; symbolic effective configuration
@@ -157,3 +157,51 @@ cross-host qualification is claimed. W09 consumes this local evidence and must
 record exact committed SHA, host/profile, actual product/component identities,
 resolved selection, commands, exit codes and redacted before/after observations
 for every separate live claim. Missing/skipped/inconclusive checks remain non-pass.
+
+## Schema 2 and installation operation ownership (#449 S03)
+
+Schema 1 reads retain their original meaning and bytes. They never create state,
+rewrite files or migrate a journal. Schema 2 explicitly records `service_exposure`
+(exactly Swagger when selected, `published` or `internal`), `stack_ownership`
+(for each selected optional stack, `swarm` or typed Portainer identity), and
+`installation_profile` (null for legacy/unbound, or a deterministic installation
+profile name and complete ordered IPv4 TCP proxy tuples). Unknown fields and
+partial policy records fail. Portainer identity includes strict positive endpoint,
+stack and resource-control IDs plus ownership and definition fingerprints; a
+serialized claim is not proof of authenticated live ownership.
+
+The pure v1 migration preserves installation/product/component/configuration/
+credential/selection identities, projects published exposure and Swarm ownership,
+and leaves the profile unbound. Verified setup/add, component and Portainer
+completion may persist that migration at their existing successful CAS boundary.
+Previews, reads, failed operations and old checkpoint payloads do not migrate.
+Product completion separately respects the activated target reader: published
+0.4.0/0.5.0 support schema 1 only, so their upgrades retain schema 1 and refuse a
+schema 2 source before effects. There is no implicit downgrade.
+
+Every current mutation composition uses the anchor's
+`.tiny-swarm-world/installation/operation.lock` before subordinate journals and
+runtime/configuration effects. It is an owner-only regular 0600 single-link file
+under owner-only 0700 state directories on a verified Linux filesystem. Safe
+root/user ancestor directories may be 0755. Unsafe legacy layouts fail explicitly;
+the controller neither changes their modes nor relocates their state. Older
+released writers do not honor this lock and must be kept stopped during maintenance.
+
+The descriptor-bound lease is explicitly delegated through private operation
+views. Shared public workflows remain unbound. One lease permits at most one
+component/Portainer or product journal holder; product uses its own journal lock.
+An optional strict profile intent can bind an existing checkpoint to operation,
+installation, source/target, manifest token, selection and policy. Old journals
+without it remain readable and are never silently retrofitted.
+
+This S03 state implementation does not enable scoped Incus profiles, internal
+runtime exposure or Portainer-managed deployment. Current runtime writers refuse
+such policies until their separate capability slices are accepted. Pure state
+inspection retains them without substituting legacy runtime defaults.
+
+For legacy checkpoint wire compatibility, unbound optional profile intent is
+omitted, and release-reader metadata `(1,)` uses its established absence default.
+Bound intent and nondefault metadata remain explicit. A reader1 target cannot
+consume a bound profile intent. The published target has no product-upgrade
+command; compatibility with the older management-controller journal is a separate
+contract from its manifest/component readers.

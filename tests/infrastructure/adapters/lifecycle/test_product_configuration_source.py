@@ -1,4 +1,5 @@
 """Bound input authority, private capture, failure recovery and memory migration."""
+from tests.infrastructure.adapters.lifecycle.test_installation_operation_lock import FakeInstallationLock
 import hashlib
 import json
 import os
@@ -615,7 +616,7 @@ class BoundConfigurationTests(unittest.TestCase):
     def test_real_product_composition_freezes_child_authority_initial_resume_and_noop(self):
         from tiny_swarm_world.infrastructure.composition import build_product_upgrade
 
-        lifecycle = SimpleNamespace(catalog=Mock(root=self.root),
+        lifecycle = SimpleNamespace(catalog=Mock(root=self.root), operation_lock=FakeInstallationLock(),
             manifests=JsonManifestRepository(self.root / '.tiny-swarm-world/installation/manifest.json'))
         with patch('tiny_swarm_world.infrastructure.composition_lifecycle.build_installation_lifecycle_service', return_value=lifecycle):
             service = build_product_upgrade()

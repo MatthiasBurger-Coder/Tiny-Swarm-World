@@ -32,11 +32,34 @@ function Get-PreparationDigest($Value) {
     $sha = [Security.Cryptography.SHA256]::Create()
     try { return ([BitConverter]::ToString($sha.ComputeHash($bytes))).Replace('-', '').ToLowerInvariant() } finally { $sha.Dispose() }
 }
+function Test-PreparationStoreWsl2($Facts) {
+    $package=$Facts.wsl_store_package
+    if($Facts.wsl_store_package_known -isnot [bool] -or !$Facts.wsl_store_package_known -or $null -eq $package){return $false}
+    if($package.name -isnot [string] -or $package.name -cne 'MicrosoftCorporationII.WindowsSubsystemForLinux' -or $package.publisher_id -isnot [string] -or $package.publisher_id -cne '8wekyb3d8bbwe'){return $false}
+    if($package.version -isnot [string] -or $package.version -cnotmatch '\A(?:0|[1-9][0-9]{0,4})(?:\.(?:0|[1-9][0-9]{0,4})){3}\z'){return $false}
+    $packageVersion=$null
+    $wslVersion=$null
+    if(![version]::TryParse($package.version,[ref]$packageVersion) -or $packageVersion -lt [version]'2.4.10.0'){return $false}
+    if($Facts.wsl_present -isnot [bool] -or !$Facts.wsl_present -or $Facts.wsl_version -isnot [string] -or $Facts.wsl_version -cnotmatch '\A(?:0|[1-9][0-9]{0,4})(?:\.(?:0|[1-9][0-9]{0,4})){2,3}\z'){return $false}
+    if(![version]::TryParse($Facts.wsl_version,[ref]$wslVersion) -or $wslVersion -lt [version]'2.4.10'){return $false}
+    if($wslVersion.ToString(3) -cne $packageVersion.ToString(3) -or ($wslVersion.Revision -ge 0 -and $wslVersion.Revision -ne $packageVersion.Revision)){return $false}
+    return ($Facts.distro_inventory_known -is [bool] -and $Facts.distro_inventory_known -and
+        $Facts.distro_present -is [bool] -and $Facts.distro_present -and
+        $Facts.wsl_generation -is [int] -and $Facts.wsl_generation -eq 2 -and
+        $Facts.features_known -is [bool] -and $Facts.features_known -and
+        $Facts.feature_states.'Microsoft-Windows-Subsystem-Linux' -is [string] -and
+        $Facts.feature_states.'Microsoft-Windows-Subsystem-Linux' -ceq 'Disabled' -and
+        $Facts.feature_states.VirtualMachinePlatform -is [string] -and
+        $Facts.feature_states.VirtualMachinePlatform -ceq 'Enabled')
+}
 function New-PreparationPlan($Options, $Facts, $Source) {
     $blockers = New-Object Collections.ArrayList
     $actions = New-Object Collections.ArrayList
     $restart = @{scope='none'
     operator_command=$null}
+    $missingFeatures=@()
+    if($null -ne $Facts.features_missing){$missingFeatures=@($Facts.features_missing)}
+    if(Test-PreparationStoreWsl2 $Facts){$missingFeatures=@($missingFeatures | Where-Object{$_ -cne 'Microsoft-Windows-Subsystem-Linux'})}
     function Block($Code, $Remedy) { [void]$blockers.Add(@{code=$Code
     stage='windows_wsl'
     remedy=$Remedy}) }
@@ -65,7 +88,7 @@ function New-PreparationPlan($Options, $Facts, $Source) {
     Block 'reboot_pending' 'Restart Windows yourself, then rerun preflight.' }
     if(!$Options.InstallArtifact -and $Facts.distro_present -ne $true){Block $(if($Facts.distro_present -eq $false){'custom_registration_missing'}else{'custom_registration_unknown'}) 'Select an observed existing registration with its explicit UbuntuRelease; missing custom registrations never install prerequisites.'}
     elseif ($Facts.features_known -ne $true) { Block 'features_unknown' 'Inspect required Windows optional feature states.' }
-    elseif ($Facts.features_missing.Count -gt 0) { Action 'enable_features' @($Facts.features_missing) 'Enabled' 'Windows' }
+    elseif ($missingFeatures.Count -gt 0) { Action 'enable_features' $missingFeatures 'Enabled' 'Windows' }
     elseif ($Facts.wsl_present -eq $false) { Action 'install_wsl' 'absent' '3.0.1' 'Windows' }
     elseif ($Facts.wsl_present -ne $true -or !$Facts.wsl_version -or ([version]$Facts.wsl_version -lt [version]'2.4.10')) { Block 'wsl_version_unsupported' 'Install a reviewed WSL release >=2.4.10; no automatic upgrade of existing WSL.' }
     elseif ($Facts.distro_inventory_known -ne $true) { Block 'distro_inventory_unknown' 'Inspect authoritative distribution names, generations and defaults; no replacement/install is allowed from ambiguous enumeration.' }
@@ -147,6 +170,9 @@ function New-PreparationPlan($Options, $Facts, $Source) {
     artifacts=(Get-PreparationArtifacts)}
     $boundFacts=ConvertTo-PreparationHashtable ($Facts | ConvertTo-Json -Depth 30 -Compress | ConvertFrom-Json)
     if($boundFacts.resource_facts){foreach($key in @('distro_free_bytes','swap_free_bytes','effective_disk_bytes')){$boundFacts.resource_facts.Remove($key)}}
+    # W05 changes only global resource config. W06 observations remain in raw
+    # facts/target, but cannot revoke this distinct single-action consent.
+    if($plan.actions.Count -eq 1 -and $plan.actions[0].id -ceq 'adapt_wsl_resources'){$boundFacts.Remove('bridge_facts')}
     $plan['plan_fingerprint']=Get-PreparationDigest @($boundFacts,$Source,$plan.selection,$plan.resources,$plan.actions,@($plan.blockers | Where-Object{$_.code -ne 'prerequisite_missing'}),$plan.artifacts)
     return $plan
 }

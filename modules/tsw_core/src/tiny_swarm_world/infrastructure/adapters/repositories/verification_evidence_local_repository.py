@@ -5,6 +5,7 @@ from tiny_swarm_world.application.ports.repositories.port_repository_failure imp
 
 import json
 from pathlib import Path
+from tiny_swarm_world.infrastructure.adapters.repositories.managed_state_directory import prepare_managed_state_root, managed_state_root_for_repository
 from typing import Any
 
 from tiny_swarm_world.application.ports.repositories.port_verification_evidence_repository import (
@@ -26,11 +27,13 @@ class VerificationEvidenceLocalRepository(PortVerificationEvidenceRepository):
         relative_path: str | Path = DEFAULT_VERIFICATION_EVIDENCE_PATH,
     ):
         self.path = local_state_file(root=root, relative_path=relative_path)
+        self._managed_state_root = managed_state_root_for_repository(root)
 
     def append(self, result: VerificationResult) -> None:
         try:
             results = [verification.to_dict() for verification in self.list_all()]
             results.append(result.to_dict())
+            prepare_managed_state_root(self._managed_state_root)
             self.path.parent.mkdir(parents=True, exist_ok=True)
             self.path.write_text(
                 json.dumps({"results": results}, indent=2, sort_keys=True) + "\n",

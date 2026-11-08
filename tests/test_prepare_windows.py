@@ -41,6 +41,78 @@ def _runtime_path(path: Path, executable: str) -> str:
 
 class TestWindowsPreparation(unittest.TestCase):
     @unittest.skipUnless(
+        os.name == "posix" and WINDOWS_POWERSHELL.exists(),
+        "Windows PowerShell UNC transport requires the approved WSL test runtime.",
+    )
+    def test_entrypoint_passes_native_unc_and_drive_roots_to_source_and_resource_adapters(self) -> None:
+        executable = str(WINDOWS_POWERSHELL)
+        temp_query = subprocess.run(
+            [executable, "-NoProfile", "-NonInteractive", "-Command", "[IO.Path]::GetTempPath()"],
+            check=False, text=True, capture_output=True, timeout=10,
+        )
+        self.assertEqual(temp_query.returncode, 0, temp_query.stderr)
+        translated = subprocess.run(
+            ["wslpath", "-u", temp_query.stdout.strip()],
+            check=False, text=True, capture_output=True, timeout=10,
+        )
+        self.assertEqual(translated.returncode, 0, translated.stderr)
+        windows_temporary = Path(translated.stdout.strip())
+        for parent, expected_unc in ((Path("/tmp"), True), (windows_temporary, False)):
+            with self.subTest(unc=expected_unc), tempfile.TemporaryDirectory(
+                prefix="tsw-native-source-", dir=parent,
+            ) as directory:
+                fixture = Path(directory)
+                shutil.copytree(ROOT / "bootstrap", fixture / "bootstrap")
+                for relative in (
+                    "install.sh", "src/tiny_swarm_world/domain/preflight/resources.py",
+                    "src/tiny_swarm_world/domain/host_environment.py",
+                    "infra/config/node-providers/provider_config.yaml", "infra/config/ports.yaml",
+                    "tools/windows/build_wsl_resource_projection.py",
+                    "tools/windows/qualification/windows_firewall_snapshot.ps1",
+                    "tools/windows/qualification/windows_firewall_certificate.ps1",
+                ):
+                    destination = fixture / relative
+                    destination.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(ROOT / relative, destination)
+                shutil.copy2(
+                    ROOT / "tests/windows/prepare-windows-source-path.fixture.psm1",
+                    fixture / "bootstrap/windows/preparation/Preparation.psm1",
+                )
+                arguments = [executable, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File",
+                     _runtime_path(fixture / "bootstrap/windows/prepare_windows.ps1", executable),
+                     "-Preflight", "-Json", "-Distro", "Ubuntu", "-UbuntuRelease", "26.04",
+                     "-ProbeTimeoutSeconds", "7"]
+                completed = subprocess.run(
+                    arguments,
+                    check=False, text=True, encoding="utf-8", errors="replace",
+                    capture_output=True, timeout=30,
+                )
+                self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
+                envelope = json.loads(completed.stdout)
+                self.assertTrue(envelope["read_only"])
+                self.assertTrue(envelope["source_verified"])
+                self.assertTrue(envelope["resource_transport_verified"])
+                self.assertEqual(envelope["unc_root"], expected_unc)
+                self.assertEqual(envelope["drive_root"], not expected_unc)
+                self.assertGreater(envelope["native_git_calls"], 3)
+                self.assertEqual(envelope["native_resource_calls"], 1)
+                self.assertFalse(envelope["result"]["changed"])
+                if expected_unc:
+                    entrypoint = fixture / "bootstrap/windows/prepare_windows.ps1"
+                    candidate = entrypoint.read_bytes()
+                    legacy = b"".join(
+                        b"$RepositoryRoot=(Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../..')).Path\n"
+                        if line.startswith(b"$RepositoryRoot=") else line
+                        for line in candidate.splitlines(keepends=True)
+                    )
+                    self.assertNotEqual(legacy, candidate)
+                    entrypoint.write_bytes(legacy)
+                    rejected = subprocess.run(
+                        arguments, check=False, text=True, capture_output=True, timeout=30,
+                    )
+                    self.assertNotEqual(rejected.returncode, 0, "Fixture must reject the historical provider-qualified transport.")
+
+    @unittest.skipUnless(
         os.name == "nt" or WINDOWS_POWERSHELL.exists(),
         "Windows PowerShell native bridge behavior unavailable.",
     )

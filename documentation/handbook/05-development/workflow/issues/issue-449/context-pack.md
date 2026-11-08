@@ -1,5 +1,171 @@
 # Context pack — issue-449-lcm-w09
 
+## Current original-runtime source authority — v1.61
+
+The original WSL quiesce refused an old detail aggregate before any stop or
+quiesce-started marker. All four UUID/config/status identities and complete graph
+remain equal; the historical detail cause is unproven. New R3 source engineering
+adds typed, intent-bound veth runtime evidence and per-detail hash coverage with
+unchanged distinct driver/GuestSwitch budgets. Old source/history stay immutable.
+Fresh complete current baseline and independent GO precede any effect.
+
+## Current cache prerequisite source authority — v1.60
+
+Workflow v1.60 permits only the independently reviewed fixed Portainer cache
+prerequisite after its own nodes/baseline exist: twelve policy-ref/node pairs,
+real artifact engine, same scoped lease/UUID/manifest guards and one900seconds
+inside exercise3600. Public scoped-artifact refusal remains. Actual image/cache,
+unchanged source auth/runtime/whole graph and fresh per-case GO precede upgrade.
+No cache/live/product compatibility or completion result is asserted here.
+
+## Current source authority — v1.59, 2026-11-08
+
+Workflow v1.59 and the exact R2 upgrade plan698cbdfc authorize only isolated
+S-U1/S-U2 source engineering: sixteen upgrade plus eight fresh/add cases;
+strict schema2 ledger24; explicit per-recipe finite containing budgets. Private
+actual-catalog qualification input remains unpublished/unqualified until every
+declared two-host/preset/owner/exposure tuple and other required proof is accepted.
+Legacy ownership/disposal is separate; foreign profile consumers block before
+released setup. No host GO, capability promotion or EPIC acceptance follows.
+Workflow v1.56/57/58 independently govern all-stopped VM handoff, immutable
+original-driver repin and owned finite EOF WSL maintenance lifetime/budgets.
+The following older checkpoints retain their historical version and attribution.
+
+## Current continuation — v1.55, 2026-11-08
+
+v1.55 releases exact shared-certificate/WSL650-300-350 source engineering and
+names the protected bridge operational archive/descriptor and exact minimal
+guest-switch.json operational bookmark exceptions. Native
+stays300-60. Full a6a5 raw query actual-repeat passed; new shared consumers still
+need exact gates/actual proof. Official26.04.1 WSL image and resolute6.0.5-8 index
+are signature-verified inputs only, not imported. Noble container image unchanged.
+Bridge Bind/Resume caps360s; StopOriginal is explicit180s, and all guest/identity/
+network/preservation guards remain. See workflow v1.55 for exact boundaries.
+
+v1.54 binds the native structural-slot/atomic-create/UUID-receipt correction,
+operation-specific recovery approval, aggregate deadlines and owned query reap,
+plus the complete shared typed Windows snapshot contract described in workflow
+v1.54. Source and actual host verification remain pending separately. The actual
+c6cd Windows getter refused unreadable provider data; this is NOT_PASS, with
+original source preserved and no runtime effect. Native R3 remains a historical
+failure with successful explicit recovery.
+
+Accepted preserving-product-acceptance ADR and independently reviewed amended
+source plan release only the closed prerequisite engineering described in
+workflow v1.53. New initially-Stopped WSL registration remains on the same PC;
+original guest/VHD/objects are preserved. Exact switch/reverse-restore sequence
+and actual shared-kernel network absence precede new guest network setup.
+Real singleton-bridge state/heartbeat and separate route/case/source GO remain
+mandatory. The existing resource-only window and old fixture callback stay
+unchanged. No new registration/import, bridge rebind, case disposal, component
+qualification or acceptance result is asserted.
+
+Native R2/R3 listener attempts failed and were explicitly fully recovered; all
+three original LXD nodes Running, original socket inactive and complete source-
+bound preservation checked by the recovery controller. S02 is still NOT_PASS.
+WSL network repair and S03 source integration remain the completed prior work.
+Exact execution artifacts remain private in the root continuation ledger.
+
+
+Native bootstrap source has passed root independent review and PC WSL all-seven
+QUALITY (3381 discovery/36skips;345 focused). v1.52 applies the explicit contract
+`.codex/evidence/epic440-native-bootstrap-contract-20261107.md`: opt-in schema6
+images/caches, actual paused resource/route capture and finite final GO, explicit
+phase budgets and separate recovery. Default schema5 remains. No native host
+phase or supported Incus capability follows from code acceptance. WSL forwarding
+repair alone completed; S03 source quality passed. Other maintenance/live work
+remains separately bound and unexecuted.
+
+S02 image prerequisite is the fixed official Alpine3.21 default/amd64 build
+20261107_13:00, combined fingerprint bb8bbef5b81dbbc7f665eb12172f06d54aef055327f1b4381767bf8c7b18fe66.
+Historical3.20 observations remain historical; new fixtures still required.
+
+Branch `fix/epic440-completion-20261107`, baseline `b87fe5c9`. The user requests
+complete Epic #440 remediation on the two named hosts. Current bounded phase:
+preserving maintenance policy after complete committed schema5 native inventory; the retained F4 normative design includes
+bounded provenance and fixed GET/raw API detail transport. Existing ownership,
+rechecks, redaction and command/time budgets remain unchanged.
+No runtime mutation, capability qualification or completion is implied. Current
+execution/evidence: `.codex/evidence/epic440-20261107.md`. The v1.42 and earlier
+records below retain their historical scope and hashes.
+
+The renewed instruction authorizes bounded maintenance with preservation. Current
+operative authority is workflow v1.49 and
+`adr-preserving-host-maintenance-for-qualification.adoc` (architecture and independent Tester/DevOps review accepted). Existing unknown installation ownership does not prevent temporary
+service maintenance and is not converted into adoption. The observed systemd
+stop can escalate after ten minutes: use verified finite graceful shutdown,
+confirm exit before unit-stop bookkeeping, and enter recovery rather than
+submitting a live-daemon stop job on timeout. Supersede old S02G
+exclusive-owner/replace sequencing only for a preserving transaction: stop exact
+Snap LXD socket/daemon, then always restore captured runtime/previously Running
+allowlisted instance state in finally. Existing LXD/Incus objects/configuration
+remain unchanged; no destructive fallback, force/kill, persistent disable or reboot.
+
+Necessary selected-Ubuntu resource restart may reconcile only connectaddress of
+existing product-bound PortProxy rules to its fresh authoritative IPv4, with no
+other running distribution. Complete firewall and all other rule fields/foreign
+rules remain identical; any required existing bridge stop/start restores its prior
+runtime state. Compare-before-write and bounded recovery are mandatory. This
+exception is only prerequisite maintenance: capture a fresh baseline afterward,
+then S02 and later fixtures preserve it byte-for-byte. No new listener/route,
+feature, bridge identity/configuration change or Windows reboot is included.
+One concrete source-bound implementation/recovery/execution review remains;
+no further abstract policy answer is needed. Pure S03 manifest-v2/installation
+lock/checkpoint persistence code may proceed in isolation after code-plan review
+while S02 maintenance/fixture is pending. Run focused/full checks before
+integration. S02 still gates runtime enablement, supported Incus versions and later
+qualification/acceptance. Under v1.51, capability-independent S04 provider/profile
+and S06 internal-exposure code may proceed in isolated source worktrees with an
+empty supported-version matrix and refused runtime effects. Root serializes
+overlapping integration after focused/full exact PC WSL gates. No host action
+or capability acceptance follows from authoring.
+
+Bounded LXD/Incus volume DTO pool identity follows
+`.codex/evidence/epic440-volume-dto-20261107.md`; ownership and schema 2 remain
+unchanged. No runtime or capture release follows this amendment.
+
+Native artifact schema 5 explicitly supersedes schema 4 under
+`.codex/evidence/epic440-snapshot-inventory-20261107.md`. Stored snapshot leaves
+remain separate and bound to validated actual-owner parents. One fixed raw
+snapshot GET per observed leaf is proposed; strict DTO/common RAM equality,
+parent/detail/command bijection and phase order remain required. Incus returned
+child edges are filtered empty/absent; LXD child relations are explicit. No
+inferred Incus consumer or historical instance/profile/device safety is claimed.
+Project volume membership is corrected to LXD all owned parents versus Incus
+custom parents only; neither includes children. Parent root/owner proofs stay.
+
+Schema4 canonical profile-owner/view/order and schema3 current storage/network
+semantics otherwise remain, including separate raw/local API versus expanded
+instance consumers. Root admission still uses two fixed initial/final GETs per
+active family, no extra root probe. All new snapshot GETs/rechecks count within
+unchanged limits/provenance; unsupported disk selectors/images/buckets/member/
+shared-custom cases remain blocked. Older artifacts stay historical with no
+synthetic migration. Source/PC qualification and fresh schema5 capture require
+separate exact reviews; no host, fixture, capability or maintenance GO follows.
+
+Native F4 command allowance is explicitly 2048 total, including every repeated
+trust check; the earlier native 256 allowance is superseded only for this
+collector. Other hard bounds and separate fixture/route budgets are unchanged.
+
+The current S449-02I Store WSL2 applicability correction uses the moved
+`bootstrap/windows/preparation/` adapters/policy and mocked Windows contract.
+Its exact source/review/aggregate PC-WSL evidence is in
+`.codex/evidence/epic440-store-wsl2-20261107.md`; no host feature, restart or
+network mutation was performed. Fresh committed-source preflight is pending.
+
+S02I durable checkpoints preserve complete three/four-component WSL versions;
+source and exact verification are recorded in
+`.codex/evidence/epic440-wsl-state-20261107.md`. The distinct native W05 product
+recovery classification is in
+`.codex/evidence/epic440-product-recovery-classification-20261107.md`.
+It leaves all workflow/fixture authority on private ext4 and grants no live GO;
+running bridge preservation remains a separate prerequisite.
+
+The native Windows source-path correction is recorded in
+`.codex/evidence/epic440-windows-source-path-20261107.md`; canonical ProviderPath
+is passed to native Source/Resource adapters with existing guards retained.
+Only local verification is complete; fresh read-only host admission is pending.
+
 - Workflow document version: 1.42; status `ACTIVE_FOR_ISSUE_449`. The user authorized completing #449 on the named test hosts. Every slice still requires fresh same-hash reviews and its own S3D `EXECUTION_PLAN`; live host changes still require exact host/scenario admission and GO. S449-02D is committed at `6a687bddab9893d29c081bc8b8cdd0aa489c16ab`; S449-02E is committed at `6c48b1d0ef90ec0316769257e8a821946b2200c8`. S02D runner/test hashes `4d1bef40aa2be3f3f477d33c98db173bf43290cf23a71f33f9937e0fd089221f` / `deb5a79c706b8f277df55e36e040e2ca0c33289a4b7b1debe58a7f260822b1bc`; S02E runner/test hashes `6982861d785cdfa97f4de14e4f7b2cac8cd355eaff7e2478004c2619b1db72fd` / `86e874528a62664c2d2c6c452a733178cb9c0b6d63fc29f1e19a18a7e6ef413b`. On approved PC WSL, S02E focused suite passed 121 tests and full quality gate passed (43 architecture tests; 2,995 total, 18 skipped). S02F implementation and PC WSL quality verification are complete under v1.37. The v1.36 read-only attempt returned UNIT_SCHEMA_INVALID, produced no artifact, and made no host changes. The v1.37 native retry returned BLOCKED:EXECUTABLE_IDENTITY_BLOCKED with no artifact. S449-02F2 commit 9c311145 ran the bounded symbolic diagnostic, which returned BLOCKED_UNKNOWN for snap.lxd.daemon.service; no artifact or runtime mutation occurred. S449-02F3 is planned to classify only the already-read rejected value into a fixed symbolic reason. Its read-only queries must bind to already-active full-access service identities and cannot trigger service/socket activation. Version 1.36 reconciles project used_by membership without treating storage pools as project consumers, checks pool-level profile/instance disk reciprocity, includes exact storage-volume list/show argv, and blocks inherited/shared volume owner mismatches at both list and detail stages. The v1.36 S02F attempt contacted only the native test host for a bounded read-only inventory; it returned UNIT_SCHEMA_INVALID and produced no artifact. Native service-access preflight remains blocked by active snap.lxd.daemon.service; the previous WSL route capture failed with JIT_COMMAND_FAILED; no normalized admission or host/scenario GO exists.
 - Issue: #449, parent EPIC #440, bounded coordination with #318
 - Workflow: `documentation/handbook/05-development/workflow/issues/issue-449/workflow.md`

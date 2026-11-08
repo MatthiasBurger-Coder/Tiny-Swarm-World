@@ -1,9 +1,10 @@
 """Dedicated Portainer stages within the existing lifecycle/consent contract."""
 from uuid import uuid4
 
+from tiny_swarm_world.application.ports.lifecycle.installation_profile import InstallationLease, InstallationOperationLock, installation_operation
 from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError, ManifestRepository
 from tiny_swarm_world.application.ports.lifecycle.portainer_upgrade import PortainerUpgradeJournal, PortainerUpgradeRuntime
-from tiny_swarm_world.domain.lifecycle.models import ConfigurationReference
+from tiny_swarm_world.domain.lifecycle.models import ConfigurationReference, comparable_manifest, migrate_manifest_v1
 from tiny_swarm_world.domain.lifecycle.portainer_upgrade import (
     PortainerCheckpoint, SOURCE_VERSION, TARGET_ID, TARGET_VERSION, versions,
 )
@@ -11,25 +12,33 @@ from tiny_swarm_world.domain.preflight import LiveConsent
 
 
 class PortainerUpgradeService:
-    def __init__(self, manifests: ManifestRepository, journal: PortainerUpgradeJournal, runtime: PortainerUpgradeRuntime):
+    def __init__(self, manifests: ManifestRepository, journal: PortainerUpgradeJournal, runtime: PortainerUpgradeRuntime, *,
+                 operation_lock: InstallationOperationLock | None = None, operation_lease: InstallationLease | None = None,
+                 profile_runtime_factory=None):
         self.manifests, self.journal, self.runtime = manifests, journal, runtime
+        self.operation_lock, self.operation_lease = operation_lock, operation_lease
+        self.profile_runtime_factory = profile_runtime_factory
 
     async def run(self, *, target: str | None, consent: LiveConsent, recovery: bool = False) -> dict[str, object]:
         if not consent.accepted:
             return {'status': 'refused', 'diagnostics': list(consent.missing_reasons)}
         if target not in {None, TARGET_ID} or (recovery and target is not None):
             raise LifecycleStateError('Unsupported Portainer target; recovery uses the original checkpoint.')
-        with self.journal.exclusive():
+        with installation_operation(self.operation_lock, 'portainer-upgrade', self.operation_lease) as lease, lease.journal('component'), self.journal.exclusive():
             snapshot = self.manifests.load()
             if snapshot.manifest is None or snapshot.diagnostics or snapshot.token is None:
                 raise LifecycleStateError('Portainer upgrade requires a valid adopted Classic installation.')
+            from tiny_swarm_world.application.services.runtime_policy import admit_runtime_policy
+
+            profile_operation = await admit_runtime_policy(snapshot.manifest, lease,
+                'recovery' if recovery else 'portainer-upgrade', consent, self.profile_runtime_factory)
             checkpoint = self.journal.load()
             if checkpoint is not None and checkpoint.installation_id != snapshot.manifest.installation_id:
                 raise LifecycleStateError('Portainer recovery belongs to another installation.')
             if checkpoint is not None and not checkpoint.settled:
                 self._validate_manifest(checkpoint, snapshot.manifest)
             if recovery:
-                return await self._recover(checkpoint)
+                return await self._recover(checkpoint, profile_operation)
             if checkpoint is not None and not checkpoint.settled:
                 raise LifecycleStateError('Interrupted Portainer operation; recover before another upgrade.')
             before = await self.runtime.inspect()
@@ -46,20 +55,28 @@ class PortainerUpgradeService:
             checkpoint = PortainerCheckpoint(operation_id=uuid4().hex, installation_id=snapshot.manifest.installation_id,
                                              before=before, manifest_token=snapshot.token, original=snapshot.manifest)
             self.journal.save(checkpoint)
+            from tiny_swarm_world.application.services.runtime_policy import recheck_runtime_policy
+
+            await recheck_runtime_policy(profile_operation)
             digest = await self.runtime.backup(checkpoint)
             checkpoint = checkpoint.model_copy(update={'backup_digest': digest, 'stage': 'backed_up'})
             self.journal.save(checkpoint)
             checkpoint = checkpoint.model_copy(update={'stage': 'upgrading'})
             self.journal.save(checkpoint)
+            await recheck_runtime_policy(profile_operation)
             await self.runtime.upgrade(checkpoint)
             await self.runtime.verify(before, recovery=False)
+            await recheck_runtime_policy(profile_operation)
             checkpoint = checkpoint.model_copy(update={'stage': 'verified'})
             self.journal.save(checkpoint)
             self._commit(snapshot, TARGET_VERSION)
             self.journal.save(checkpoint.model_copy(update={'stage': 'completed'}))
             return {'status': 'completed', 'version': TARGET_VERSION, 'stages': ['backup', 'upgrade', 'verify', 'managed-update', 'commit']}
 
-    async def _recover(self, checkpoint):
+    async def _recover(self, checkpoint, profile_operation=None):
+        from tiny_swarm_world.application.services.runtime_policy import recheck_runtime_policy
+
+        await recheck_runtime_policy(profile_operation)
         if checkpoint is None:
             raise LifecycleStateError('No Portainer operation exists to recover.')
         if checkpoint.stage == 'recovered':
@@ -87,7 +104,7 @@ class PortainerUpgradeService:
         return {'status': 'recovered', 'version': SOURCE_VERSION}
 
     def _commit(self, snapshot, version):
-        manifest = snapshot.manifest
+        manifest = migrate_manifest_v1(snapshot.manifest)
         identities = versions(version)
         components = tuple(item.model_copy(update={'desired': identities[item.component_id], 'observed': identities[item.component_id]})
                            if item.service_id == 'portainer' else item for item in manifest.components)
@@ -102,7 +119,7 @@ class PortainerUpgradeService:
     @staticmethod
     def _validate_manifest(checkpoint, manifest):
         def normalized(value):
-            payload = value.model_dump(mode='json')
+            payload = comparable_manifest(value)
             payload['components'] = [item for item in payload['components'] if item['service_id'] != 'portainer']
             payload['configuration_references'] = [item for item in payload['configuration_references']
                 if item['key'] not in {'component-update.portainer', 'component-update.portainer-agent'}]

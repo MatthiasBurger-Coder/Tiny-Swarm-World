@@ -1,4 +1,5 @@
 """Mocked integration of orchestration, cold backup, manager runtime and gateway API."""
+from tests.infrastructure.adapters.lifecycle.test_installation_operation_lock import FakeInstallationLock
 import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -11,6 +12,9 @@ from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
 from tiny_swarm_world.application.services.portainer_upgrade import PortainerUpgradeService
 from tiny_swarm_world.domain.lifecycle.portainer_upgrade import images, versions
 from tiny_swarm_world.domain.preflight import LiveConsent
+from tiny_swarm_world.domain.lifecycle.models import PortainerOwnership
+from tiny_swarm_world.domain.deployment.stack_definition import StackDefinition
+from tiny_swarm_world.infrastructure.adapters.lifecycle.managed_stack_api import fingerprint, definition_fingerprint
 from tiny_swarm_world.infrastructure.adapters.lifecycle.manifest import JsonManifestRepository
 from tiny_swarm_world.infrastructure.adapters.lifecycle.portainer_journal import JsonPortainerJournal
 from tiny_swarm_world.infrastructure.adapters.lifecycle.portainer_runtime import ClassicPortainerUpgradeRuntime
@@ -41,8 +45,13 @@ class PortainerRuntimeIntegrationTests(unittest.IsolatedAsyncioTestCase):
         self.client = Mock()
         self.client._send.side_effect = self.request
         self.client.stack_request_timeout_seconds = 180
-        self.runtime = ClassicPortainerUpgradeRuntime(self.shell, self.client, managed_stacks=('nexus',))
-        self.service = PortainerUpgradeService(self.manifests, self.journal, self.runtime)
+        identity = {'Id': 10, 'Name': 'nexus', 'Type': 1, 'EndpointId': 1,
+                    'ResourceControl': {'Id': 3, 'ResourceId': '1_nexus', 'Type': 6, 'UserAccesses': [1]}}
+        owner = PortainerOwnership(owner='portainer', endpoint_id=1, stack_id=10, resource_control_id=3,
+            ownership_fingerprint=fingerprint(identity), definition_fingerprint=definition_fingerprint(
+                StackDefinition(name='nexus', compose_content='services: {nexus: {image: example/image}}'), {'EXISTING': 'private-value'}))
+        self.runtime = ClassicPortainerUpgradeRuntime(self.shell, self.client, managed_stacks=('nexus',), managed_ownership={'nexus': owner})
+        self.service = PortainerUpgradeService(self.manifests, self.journal, self.runtime, operation_lock=FakeInstallationLock())
 
     def command(self, script, **kwargs):
         self.commands.append(script)
@@ -77,10 +86,10 @@ class PortainerRuntimeIntegrationTests(unittest.IsolatedAsyncioTestCase):
             raise LifecycleStateError('API unavailable')
         endpoints = [{'Id': 1, 'Name': 'local', 'URL': 'unix:///var/run/docker.sock', 'Type': 1, 'Status': 1}]
         stacks = [{'Id': 10, 'Name': 'nexus', 'Type': 1, 'EndpointId': 1,
-                   'ResourceControl': {'UserAccesses': [2 if self.owner_changed else 1]}}]
+                   'ResourceControl': {'Id': 3, 'ResourceId': '1_nexus', 'Type': 6, 'UserAccesses': [2 if self.owner_changed else 1]}}]
         data = {'/api/system/status': {'Version': self.version}, '/api/endpoints': endpoints,
                 '/api/stacks': stacks, '/api/endpoints/1/docker/info': {'Swarm': {'Cluster': {'ID': 'swarm-id'}}},
-                '/api/stacks/10': {'Env': [{'name': 'EXISTING', 'value': 'private-value'}]},
+                '/api/stacks/10': {**stacks[0], 'Env': [{'name': 'EXISTING', 'value': 'private-value'}]},
                 '/api/stacks/10/file': {'StackFileContent': 'services: {nexus: {image: example/image}}'}}
         payload = {} if method == 'PUT' else data[path]
         return SimpleNamespace(json=lambda: payload, status_code=200)
@@ -310,7 +319,7 @@ class PortainerRuntimeIntegrationTests(unittest.IsolatedAsyncioTestCase):
         repository = JsonManifestRepository(self.root / '.tiny-swarm-world/installation/manifest.json')
         repository.save(manifest, expected_token=None)
         journal = JsonPortainerJournal(repository.path.parent / 'portainer-upgrade.json')
-        service = PortainerUpgradeService(repository, journal, self.runtime)
+        service = PortainerUpgradeService(repository, journal, self.runtime, operation_lock=FakeInstallationLock())
         self.assertEqual((await service.run(target=None, consent=LiveConsent(True, confirmed=True)))['status'], 'completed')
         after = repository.load().manifest
         with patch.dict('os.environ', {}, clear=True):

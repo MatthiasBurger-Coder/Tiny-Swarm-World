@@ -78,11 +78,13 @@ class MockHost:
         self.nft = nft_fixture()
         self.denied = False
         self.listening = ""
-        self.networks = [{"name": "incusbr0", "managed": True, "type": "bridge", "status": "Created",
+        self.networks = [{"name": "incusbr0", "project": "default", "managed": True, "type": "bridge", "status": "Created",
                           "config": {"ipv4.address": "10.231.50.1/24", "ipv4.nat": "true",
                                      "ipv4.dhcp": "true", "ipv6.address": "none"}}]
         self.routes = [{"dst": "default", "dev": "eth0"}]
-        self.links = [{"ifname": "eth0", "addr_info": [{"family": "inet", "local": "172.20.1.2", "prefixlen": 20}]}]
+        self.links = [{"ifname": "eth0", "addr_info": [{"family": "inet", "local": "172.20.1.2", "prefixlen": 20}]},
+                      {"ifname": "incusbr0", "linkinfo": {"info_kind": "bridge"},
+                       "addr_info": [{"family": "inet", "local": "10.231.50.1", "prefixlen": 24}]}]
 
     def observe(self, path):
         content, mode = self.files.get(str(path), (b"", 0o644))
@@ -126,6 +128,8 @@ class MockHost:
     async def command(self, args, timeout=5, **kwargs):
         if args == ("iptables", "--version"):
             return "iptables v1.8.10 (nf_tables)"
+        if args[0] == "systemctl" and "incus.service" in args:
+            return "LoadState=loaded\nActiveState=active\nUnitFileState=enabled\nMainPID=4242\n"
         if args[0] == "systemctl" and "firewalld.service" in args:
             return "ActiveState=inactive\nUnitFileState=disabled\n"
         if args[0] == "systemctl":

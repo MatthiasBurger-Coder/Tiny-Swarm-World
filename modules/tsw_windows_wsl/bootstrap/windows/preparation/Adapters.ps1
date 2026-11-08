@@ -1,4 +1,17 @@
 # All host-dependent operations are isolated here; application consumes ports.
+function Get-PreparationDismEncoding {
+    if($null -eq ('TswPreparationOemCodePage' -as [type])){
+        Add-Type -TypeDefinition @'
+using System.Runtime.InteropServices;
+public static class TswPreparationOemCodePage {
+    [DllImport("kernel32.dll")] public static extern uint GetOEMCP();
+}
+'@
+    }
+    $codePage=[int][TswPreparationOemCodePage]::GetOEMCP()
+    if($codePage -le 0){throw 'invalid_oem_code_page'}
+    return [Text.Encoding]::GetEncoding($codePage,[Text.EncoderExceptionFallback]::new(),[Text.DecoderExceptionFallback]::new())
+}
 function Invoke-PreparationProcess {
     param([string]$File, [string[]]$Arguments, [int]$TimeoutSeconds, [string]$InputText='')
     if ($TimeoutSeconds -le 0) {throw 'invalid_timeout'}
@@ -9,6 +22,11 @@ function Invoke-PreparationProcess {
     $info.RedirectStandardOutput=$true
     $info.RedirectStandardError=$true
     $info.RedirectStandardInput=$true
+    if([StringComparer]::OrdinalIgnoreCase.Equals([IO.Path]::GetFileName($File),'dism.exe')){
+        $dismEncoding=Get-PreparationDismEncoding
+        $info.StandardOutputEncoding=$dismEncoding
+        $info.StandardErrorEncoding=$dismEncoding
+    }
     # WSL parses raw option tokens; quoting every flag turns --version into a Linux command.
     # Quote other arguments using CommandLineToArgvW, preserving quotes/trailing slashes.
     $encoded=foreach ($arg in $Arguments) {
@@ -50,7 +68,7 @@ function Invoke-PreparationProcess {
     } finally {$process.Dispose()}
 }
 function Get-PreparationSource($Options) {
-    $assets=@('modules/tsw_core/bootstrap/linux/install.sh','modules/tsw_core/bootstrap/linux/prepare_linux.sh','modules/tsw_windows_wsl/bootstrap/windows/preparation/Handoff.ps1','modules/tsw_windows_wsl/bootstrap/windows/preparation/linux-handoff.sh','modules/tsw_windows_wsl/bootstrap/windows/prepare_windows.ps1','modules/tsw_windows_wsl/bootstrap/windows/preparation/Preparation.psm1','modules/tsw_windows_wsl/bootstrap/windows/preparation/Policy.ps1','modules/tsw_windows_wsl/bootstrap/windows/preparation/Application.ps1','modules/tsw_windows_wsl/bootstrap/windows/preparation/Adapters.ps1','modules/tsw_windows_wsl/bootstrap/windows/preparation/linux-config.sh','modules/tsw_windows_wsl/bootstrap/windows/preparation/Download.ps1','modules/tsw_windows_wsl/bootstrap/windows/preparation/SourceProof.ps1','modules/tsw_windows_wsl/bootstrap/windows/preparation/Resources.ps1','modules/tsw_windows_wsl/bootstrap/windows/preparation/ResourceAdapters.ps1','modules/tsw_windows_wsl/bootstrap/windows/preparation/ResourceHost.ps1','modules/tsw_windows_wsl/bootstrap/windows/preparation/linux-resources.sh','modules/tsw_windows_wsl/bootstrap/windows/preparation/resource-projection.json','modules/tsw_core/src/tiny_swarm_world/domain/preflight/resources.py','modules/tsw_core/src/tiny_swarm_world/domain/host_environment.py','modules/tsw_core/infra/config/node-providers/provider_config.yaml','modules/tsw_windows_wsl/tools/windows/build_wsl_resource_projection.py','modules/tsw_windows_wsl/bootstrap/windows/preparation/Bridge.ps1','modules/tsw_windows_wsl/bootstrap/windows/tws-wsl-bridge.ps1','modules/tsw_windows_wsl/bootstrap/windows/tws-wsl-bridge-service.ps1','modules/tsw_windows_wsl/bootstrap/windows/tws-wsl-bridge.config.json','modules/tsw_core/infra/config/ports.yaml')
+    $assets=@('modules/tsw_core/bootstrap/linux/install.sh','modules/tsw_core/bootstrap/linux/prepare_linux.sh','modules/tsw_windows_wsl/bootstrap/windows/preparation/Handoff.ps1','modules/tsw_windows_wsl/bootstrap/windows/preparation/linux-handoff.sh','modules/tsw_windows_wsl/bootstrap/windows/prepare_windows.ps1','modules/tsw_windows_wsl/bootstrap/windows/preparation/Preparation.psm1','modules/tsw_windows_wsl/bootstrap/windows/preparation/Policy.ps1','modules/tsw_windows_wsl/bootstrap/windows/preparation/Application.ps1','modules/tsw_windows_wsl/bootstrap/windows/preparation/Adapters.ps1','modules/tsw_windows_wsl/bootstrap/windows/preparation/linux-config.sh','modules/tsw_windows_wsl/bootstrap/windows/preparation/Download.ps1','modules/tsw_windows_wsl/bootstrap/windows/preparation/SourceProof.ps1','modules/tsw_windows_wsl/bootstrap/windows/preparation/Resources.ps1','modules/tsw_windows_wsl/bootstrap/windows/preparation/ResourceAdapters.ps1','modules/tsw_windows_wsl/bootstrap/windows/preparation/ResourceHost.ps1','modules/tsw_windows_wsl/bootstrap/windows/preparation/linux-resources.sh','modules/tsw_windows_wsl/bootstrap/windows/preparation/resource-projection.json','modules/tsw_core/src/tiny_swarm_world/domain/preflight/resources.py','modules/tsw_core/src/tiny_swarm_world/domain/host_environment.py','modules/tsw_core/infra/config/node-providers/provider_config.yaml','modules/tsw_windows_wsl/tools/windows/build_wsl_resource_projection.py','modules/tsw_windows_wsl/bootstrap/windows/preparation/Bridge.ps1','modules/tsw_windows_wsl/bootstrap/windows/tws-wsl-bridge.ps1','modules/tsw_windows_wsl/bootstrap/windows/tws-wsl-bridge-service.ps1','modules/tsw_windows_wsl/bootstrap/windows/tws-wsl-bridge.config.json','modules/tsw_core/infra/config/ports.yaml','modules/tsw_windows_wsl/tools/windows/qualification/windows_firewall_snapshot.ps1','modules/tsw_windows_wsl/tools/windows/qualification/windows_firewall_certificate.ps1')
     if(Test-Path -LiteralPath (Join-Path $Options.RepositoryRoot 'bootstrap/windows/prepare_windows.ps1') -PathType Leaf){$assets+=@('bootstrap/windows/prepare_windows.ps1')}
     $hashes=[ordered]@{}
     foreach($asset in $assets){$path=Join-Path $Options.RepositoryRoot $asset
@@ -123,6 +141,42 @@ function Get-PreparationExecutable($Name) {
     if($Name -eq 'powershell.exe'){return Join-Path $base 'WindowsPowerShell/v1.0/powershell.exe'}
     return Join-Path $base $Name
 }
+function ConvertFrom-PreparationWslPackageProbe($Probe) {
+    $unknown=@{known=$false;msi=$null;store=$null;store_package=$null}
+    if($Probe.exit_code -isnot [int] -or $Probe.exit_code -ne 0 -or $Probe.stdout -isnot [string] -or $Probe.stdout.Length -gt 65536 -or $Probe.stderr -isnot [string] -or $Probe.stderr.Length -ne 0){return $unknown}
+    if($Probe.stdout.Contains('\')){return $unknown}
+    $names=@([regex]::Matches($Probe.stdout,'"([a-z_]+)"\s*:') | ForEach-Object{$_.Groups[1].Value})
+    if(@($names | Group-Object | Where-Object{$_.Count -gt 1}).Count -gt 0){return $unknown}
+    try {$document=$Probe.stdout | ConvertFrom-Json -ErrorAction Stop} catch {return $unknown}
+    if($null -eq $document -or (@($document.PSObject.Properties.Name | Sort-Object) -join ',') -cne 'msi,packages,store'){return $unknown}
+    if($document.msi -isnot [bool] -or $document.store -isnot [int] -or $document.store -lt 0 -or $document.store -gt 1 -or $document.packages -isnot [array] -or $document.packages.Count -ne $document.store){return $unknown}
+    $result=@{known=$true;msi=$document.msi;store=$document.store;store_package=$null}
+    if($document.store -eq 0){return $result}
+    $package=$document.packages[0]
+    if($null -eq $package -or (@($package.PSObject.Properties.Name | Sort-Object) -join ',') -cne 'name,publisher_id,version'){return $unknown}
+    $version=$null
+    if($package.name -isnot [string] -or $package.name -cne 'MicrosoftCorporationII.WindowsSubsystemForLinux' -or $package.publisher_id -isnot [string] -or $package.publisher_id -cne '8wekyb3d8bbwe' -or $package.version -isnot [string] -or $package.version -cnotmatch '\A(?:0|[1-9][0-9]{0,4})(?:\.(?:0|[1-9][0-9]{0,4})){3}\z' -or ![version]::TryParse($package.version,[ref]$version)){return $unknown}
+    $result.store_package=@{name=$package.name;publisher_id=$package.publisher_id;version=$package.version}
+    return $result
+}
+function Get-PreparationWslPackageInventory($TimeoutSeconds) {
+    $probe=Invoke-PreparationProcess (Get-PreparationExecutable 'powershell.exe') @('-NoProfile','-NonInteractive','-Command', '$ErrorActionPreference="Stop"; $p=@(Get-AppxPackage -Name MicrosoftCorporationII.WindowsSubsystemForLinux -ErrorAction Stop); @{msi=(Test-Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Lxss\MSI");store=$p.Count;packages=@($p | ForEach-Object {@{name=$_.Name;publisher_id=$_.PublisherId;version=$_.Version.ToString()}})} | ConvertTo-Json -Depth 5 -Compress') $TimeoutSeconds
+    return ConvertFrom-PreparationWslPackageProbe $probe
+}
+function Get-PreparationWslRuntimeInventory($WslPath,[scriptblock]$RemainingTimeout) {
+    $package=Get-PreparationWslPackageInventory (& $RemainingTimeout)
+    $facts=@{wsl_present=$true;wsl_version=$null;wsl_store_package_known=$package.known;wsl_store_package=$package.store_package}
+    $version=Invoke-PreparationProcess $WslPath @('--version') (& $RemainingTimeout)
+    if($version.exit_code -isnot [int]){return $facts}
+    if($version.exit_code -ne 0){
+        # Inbox WSL without readable modern version is unsupported, not absent.
+        if($package.known -and !$package.msi -and $package.store -eq 0){$facts.wsl_present=$false}
+        return $facts
+    }
+    if($version.stdout -isnot [string] -or $version.stdout.Length -gt 65536 -or $version.stderr -isnot [string] -or $version.stderr.Length -ne 0){return $facts}
+    if(($version.stdout -replace "`0",'') -cmatch '\A[^\r\n:]{1,64}:[ \t]*((?:0|[1-9][0-9]{0,4})(?:\.(?:0|[1-9][0-9]{0,4})){2,3})[ \t]*(?:\r?\n|\z)'){$facts.wsl_version=$Matches[1]}
+    return $facts
+}
 function Get-PreparationInventory($Options) {
     $inventoryDeadline=[Diagnostics.Stopwatch]::StartNew()
     function Get-InventoryRemaining {
@@ -145,6 +199,8 @@ function Get-PreparationInventory($Options) {
     reboot_pending=$false
     wsl_present=$null
     wsl_version=$null
+    wsl_store_package_known=$false
+    wsl_store_package=$null
     install_capable=$false
     distro_present=$null
     running=$false
@@ -182,18 +238,9 @@ function Get-PreparationInventory($Options) {
     if(Test-Path -LiteralPath $wslPath){$wsl=@{Source=$wslPath}}
     if(!$wsl){$facts.wsl_present=$false
     return $facts}
-    $version=Invoke-PreparationProcess $wsl.Source @('--version') (Get-InventoryRemaining)
-    if($version.exit_code -ne 0){
-        # Inbox WSL without readable modern version is unsupported, not absent.
-        $packageProbe=Invoke-PreparationProcess (Get-PreparationExecutable 'powershell.exe') @('-NoProfile','-NonInteractive','-Command', '@{msi=(Test-Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Lxss\MSI");store=@(Get-AppxPackage -Name MicrosoftCorporationII.WindowsSubsystemForLinux -ErrorAction Stop).Count} | ConvertTo-Json -Compress') (Get-InventoryRemaining)
-        if($packageProbe.exit_code -eq 0){$package=$packageProbe.stdout | ConvertFrom-Json
-        if($package.msi -is [bool] -and $package.store -is [int] -and !$package.msi -and $package.store -eq 0){$facts.wsl_present=$false
-        return $facts}}
-        $facts.wsl_present=$true
-        return $facts
-    }
-    $facts.wsl_present=$true
-    if(($version.stdout -replace "`0",'') -match '(?m)^.*?:\s*(\d+\.\d+\.\d+)(?:\.\d+)?\s*$'){$facts.wsl_version=$Matches[1]}
+    $runtime=Get-PreparationWslRuntimeInventory $wsl.Source ${function:Get-InventoryRemaining}
+    foreach($key in $runtime.Keys){$facts[$key]=$runtime[$key]}
+    if(!$facts.wsl_present -or !$facts.wsl_version){return $facts}
     $help=Invoke-PreparationProcess $wsl.Source @('--help') (Get-InventoryRemaining)
     $facts.install_capable=Test-PreparationInstallCapabilities $help
     $list=Invoke-PreparationProcess $wsl.Source @('--list','--verbose') (Get-InventoryRemaining)
@@ -422,7 +469,9 @@ function Assert-PreparationState($State,$Identity) {
     if(($State.schema -isnot [int] -and $State.schema -isnot [long]) -or $State.schema -ne 1 -or $State.operation -isnot [string] -or $State.operation -cnotmatch '^[a-f0-9]{32}$' -or $State.stage -notin @('enable_features','install_wsl','install_distro','enable_systemd','adapt_wsl_resources','bridge_install','bridge_refresh') -or $State.status -notin @('pending','effect') -or ($State.exit_code -isnot [int] -and $State.exit_code -isnot [long]) -or $State.exit_code -lt 0 -or $State.exit_code -gt 3010 -or $State.confirmed -isnot [bool] -or $State.uncertain -isnot [bool] -or ($State.confirmed -and $State.uncertain) -or $State.observation -isnot [string] -or $State.observation -cnotmatch '^[a-f0-9]{64}$' -or $State.restart -notin @('none','login','distro','Windows','WSL-wide') -or $State.timestamp_utc -isnot [string] -or $State.timestamp_utc -cnotmatch '^\d{4}-\d{2}-\d{2}T[0-9:.]+Z$'){throw 'invalid_bootstrap_state'}
     if((@($State.identity.PSObject.Properties.Name | Sort-Object) -join '|') -cne 'contract|distro|host|release|revision|selection'){throw 'invalid_bootstrap_identity'}
     foreach($key in @('contract','revision','host','distro','release','selection')){if($State.identity.$key -isnot [string] -or $State.identity.$key -cne $Identity[$key]){throw 'stale_foreign_bootstrap_state'}}
-    if((@($State.versions.PSObject.Properties.Name | Sort-Object) -join '|') -cne 'ubuntu|windows_build|wsl' -or ($State.versions.windows_build -isnot [int] -and $State.versions.windows_build -isnot [long]) -or ($State.versions.wsl -and $State.versions.wsl -cnotmatch '^\d+\.\d+\.\d+$') -or ($State.versions.ubuntu -and $State.versions.ubuntu -cnotin @('24.04','26.04'))){throw 'invalid_bootstrap_versions'}
+    $wslVersion=$State.versions.wsl
+    $wslVersionValid=$null -eq $wslVersion -or ($wslVersion -is [string] -and ($wslVersion -ceq '' -or $wslVersion -cmatch '\A[0-9]+(?:\.[0-9]+){2,3}\z'))
+    if((@($State.versions.PSObject.Properties.Name | Sort-Object) -join '|') -cne 'ubuntu|windows_build|wsl' -or ($State.versions.windows_build -isnot [int] -and $State.versions.windows_build -isnot [long]) -or !$wslVersionValid -or ($State.versions.ubuntu -and $State.versions.ubuntu -cnotin @('24.04','26.04'))){throw 'invalid_bootstrap_versions'}
     if($State.next_command -isnot [string] -or $State.next_command -cnotmatch '^\./(?:modules/tsw_windows_wsl/)?bootstrap/windows/prepare_windows\.ps1 -Distro [A-Za-z0-9._-]+ -UbuntuRelease (?:24\.04|26\.04) -ServiceProfile (?:default|service-access) -Preflight(?: -Wsl(?:MemoryGiB|Processors|SwapGiB) [0-9]+)*$'){throw 'invalid_bootstrap_recovery_command'}
 }
 function Lock-PreparationState($Store) {

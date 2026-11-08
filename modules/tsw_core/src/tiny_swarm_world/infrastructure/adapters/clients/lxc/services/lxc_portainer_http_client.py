@@ -110,12 +110,8 @@ class LxcPortainerHttpClient(PortPortainerClient, PortDeploymentGateway):
                 request.stack_environment,
             )
             return
-        self.update_stack(
-            stack_id,
-            request.stack_definition,
-            endpoint_id,
-            request.stack_environment,
-        )
+        # Existing optional stacks require the typed guarded ownership writer.
+        raise PortainerClientError(OperationFailure.for_cause("service.request", "portainer", "request_failed"))
 
     def stack_registered(self, stack_name: str) -> bool:
         return self.find_stack_id_by_name(stack_name) is not None

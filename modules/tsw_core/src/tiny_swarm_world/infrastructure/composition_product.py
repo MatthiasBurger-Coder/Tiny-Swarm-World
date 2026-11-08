@@ -4,7 +4,7 @@ import logging
 
 def build_product_upgrade(*, adoption_file=None, runtime_factory, platform_factory, deployment_factory):
     from tiny_swarm_world.application.services.product_upgrade import ProductUpgradeService
-    from tiny_swarm_world.infrastructure.composition_lifecycle import build_installation_lifecycle_service
+    from tiny_swarm_world.infrastructure.composition_lifecycle import build_installation_lifecycle_service, profile_runtime_factory
     from tiny_swarm_world.infrastructure.adapters.lifecycle.product_installation import PreparedProductInstallation
     from tiny_swarm_world.infrastructure.adapters.lifecycle.product_journal import JsonProductJournal
     from tiny_swarm_world.infrastructure.adapters.lifecycle.product_source import OfficialProductSource
@@ -34,4 +34,4 @@ def build_product_upgrade(*, adoption_file=None, runtime_factory, platform_facto
                                    configuration_verifier=installation.verify_bound_runtime)
     return ProductUpgradeService(lifecycle.manifests, installation,
         JsonProductJournal(lifecycle.manifests.path.parent / 'product-upgrade.json',
-                           source_binder=installation.bind_configuration), runtime)
+                           source_binder=installation.bind_configuration), runtime, operation_lock=lifecycle.operation_lock, profile_runtime_factory=profile_runtime_factory(lifecycle))

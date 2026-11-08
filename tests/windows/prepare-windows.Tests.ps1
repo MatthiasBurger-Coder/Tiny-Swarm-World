@@ -53,6 +53,120 @@ $o=Options;$o.ApproveApply=$true;$r=Invoke-WindowsPreparation $o $ports;Assert (
 $artifacts=Get-PreparationArtifacts;Assert ($artifacts.wsl.sha256.Length -eq 64 -and $artifacts['Ubuntu-26.04'].version -eq '26.04.1') 'immutable artifact identity'
 # Pure host/help predicates cover the actual Hyper-V and WSL help observations.
 $module=Get-Module Preparation
+function StoreWsl2Facts {
+    $f=Facts
+    $f.features_missing=@('Microsoft-Windows-Subsystem-Linux')
+    $f.feature_states=@{'Microsoft-Windows-Subsystem-Linux'='Disabled';VirtualMachinePlatform='Enabled'}
+    $f.wsl_store_package_known=$true
+    $f.wsl_store_package=@{name='MicrosoftCorporationII.WindowsSubsystemForLinux';publisher_id='8wekyb3d8bbwe';version='3.0.1.0'}
+    return $f
+}
+# Store WSL2 needs VMP, while the legacy component is optional only with exact facts.
+$script:facts=StoreWsl2Facts
+$beforeFacts=Get-PreparationDigest $script:facts
+$beforeEffects=@($script:writes,$script:protected,$script:executions) -join ','
+$r=Invoke-WindowsPreparation (Options) $ports
+Assert ($r.result.outcome -eq 'READY' -and $r.actions.Count -eq 0) 'verified Store WSL2 needs no legacy component action'
+Assert ((Get-PreparationDigest $script:facts) -ceq $beforeFacts -and $script:facts.features_missing.Count -eq 1) 'Store exception preserves observed facts'
+Assert ((@($script:writes,$script:protected,$script:executions) -join ',') -ceq $beforeEffects) 'Store preflight has no effects'
+foreach($case in @(@('wsl_store_package_known',$false),@('wsl_store_package_known','true'),@('wsl_store_package',$null),@('wsl_present',$false),@('wsl_present','true'),@('wsl_version','2.3.0'),@('wsl_version','3.0.2'),@('wsl_version','broken'),@('distro_inventory_known',$false),@('distro_inventory_known','true'),@('distro_present',$false),@('distro_present','true'),@('wsl_generation',1),@('wsl_generation','2'),@('wsl_generation',$true),@('wsl_generation',$null),@('features_known',$false),@('features_known','true'))) {
+    $script:facts=StoreWsl2Facts;$script:facts[$case[0]]=$case[1]
+    $eligible=& $module {param($f) Test-PreparationStoreWsl2 $f} $script:facts
+    Assert (!$eligible) ('Store exception typed predicate '+$case[0])
+    $r=Invoke-WindowsPreparation (Options) $ports
+    Assert ($r.result.outcome -ne 'READY') ('Store unsupported facts stay blocked '+$case[0])
+}
+foreach($case in @(@('name','Other'),@('name',@('MicrosoftCorporationII.WindowsSubsystemForLinux')),@('publisher_id','unknown'),@('version','2.3.0.0'),@('version','3.0.2.0'),@('version','3.0.1'),@('version','03.0.1.0'),@('version','99999999999999999.0.0.0'),@('version',$null))) {
+    $script:facts=StoreWsl2Facts;$script:facts.wsl_store_package[$case[0]]=$case[1]
+    $r=Invoke-WindowsPreparation (Options) $ports
+    Assert ($r.actions.Count -eq 1 -and $r.actions[0].id -ceq 'enable_features') ('Store malformed identity retains feature gate '+$case[0])
+}
+foreach($feature in @('VirtualMachinePlatform','Microsoft-Windows-Subsystem-Linux')) {
+    foreach($state in @('Enable Pending','Disable Pending','unknown',$null)) {
+        $script:facts=StoreWsl2Facts;$script:facts.feature_states[$feature]=$state
+        $r=Invoke-WindowsPreparation (Options) $ports
+        Assert ($r.actions.Count -eq 1 -and $r.actions[0].id -ceq 'enable_features') ('Store unknown feature state '+$feature)
+    }
+}
+$script:facts=StoreWsl2Facts;$script:facts.feature_states.VirtualMachinePlatform='Disabled';$script:facts.features_missing+=@('VirtualMachinePlatform','OtherFeature')
+$r=Invoke-WindowsPreparation (Options) $ports
+Assert (($r.actions[0].before -join ',') -ceq 'Microsoft-Windows-Subsystem-Linux,VirtualMachinePlatform,OtherFeature') 'Store exception cannot hide VMP or unrelated missing feature'
+$script:facts=StoreWsl2Facts;$script:facts.features_missing+=@('OtherFeature')
+$r=Invoke-WindowsPreparation (Options) $ports
+Assert (($r.actions[0].before -join ',') -ceq 'OtherFeature') 'Store exception removes only legacy component'
+foreach($case in @(@('elevated',$false,'elevation_required'),@('reboot_pending',$true,'reboot_pending'),@('virtualization',$false,'virtualization_unavailable'))) {
+    $script:facts=StoreWsl2Facts;$script:facts[$case[0]]=$case[1]
+    $r=Invoke-WindowsPreparation (Options) $ports
+    Assert (@($r.blockers | Where-Object{$_.code -ceq $case[2]}).Count -eq 1) ('Store exception preserves independent '+$case[0])
+}
+$script:facts=StoreWsl2Facts;$script:facts.resource_facts.physical_memory_bytes=[long]1073741824
+$r=Invoke-WindowsPreparation (Options) $ports
+Assert ($r.result.outcome -eq 'BLOCKED' -and $r.resources.state -cne 'LIFECYCLE_PREREQUISITES_REQUIRED') 'Store exception still evaluates and refuses insufficient resources'
+$script:facts=StoreWsl2Facts;$r=Invoke-WindowsPreparation (Options) $ports;$storeFingerprint=$r.plan_fingerprint
+$script:facts.wsl_store_package.version='3.0.1.1';$r=Invoke-WindowsPreparation (Options) $ports
+Assert ($r.result.outcome -eq 'READY' -and $r.plan_fingerprint -cne $storeFingerprint) 'Store package revision drift changes consent fingerprint'
+$script:facts.wsl_version='3.0.1.1';$r=Invoke-WindowsPreparation (Options) $ports
+Assert ($r.result.outcome -eq 'READY') 'matching four-part WSL runtime supported'
+$script:facts.wsl_version='3.0.1.2';$r=Invoke-WindowsPreparation (Options) $ports
+Assert ($r.result.outcome -eq 'BLOCKED') 'different explicit runtime revision cannot bypass feature'
+# Exercise the real adapter observation path, with both process calls mocked.
+$originalStoreProcess=& $module {${function:Invoke-PreparationProcess}}
+$originalStoreExecutable=& $module {${function:Get-PreparationExecutable}}
+try {
+    & $module {
+        $script:storeAdapterCalls=New-Object Collections.ArrayList
+        $script:storeProbe=@{exit_code=0;stdout='{"msi":false,"store":1,"packages":[{"name":"MicrosoftCorporationII.WindowsSubsystemForLinux","publisher_id":"8wekyb3d8bbwe","version":"3.0.1.0"}]}';stderr=''}
+        $script:storeVersion=@{exit_code=0;stdout="WSL version: 3.0.1.0`n";stderr=''}
+        function script:Get-PreparationExecutable {param($Name) if($Name -cne 'powershell.exe'){throw 'unexpected_store_binary'};return 'mock-powershell'}
+        function script:Invoke-PreparationProcess {
+            param($File,$Arguments,$TimeoutSeconds,$InputText)
+            [void]$script:storeAdapterCalls.Add(@{file=$File;arguments=$Arguments;timeout=$TimeoutSeconds})
+            if($File -ceq 'mock-wsl' -and $Arguments.Count -eq 1 -and $Arguments[0] -ceq '--version'){return $script:storeVersion}
+            if($File -ceq 'mock-powershell' -and $Arguments[-1] -cmatch 'Get-AppxPackage -Name MicrosoftCorporationII.WindowsSubsystemForLinux'){return $script:storeProbe}
+            throw 'unexpected_store_probe'
+        }
+    }
+    $observed=& $module {Get-PreparationWslRuntimeInventory 'mock-wsl' {7}}
+    Assert ($observed.wsl_present -and $observed.wsl_version -ceq '3.0.1.0' -and $observed.wsl_store_package_known -and $observed.wsl_store_package.version -ceq '3.0.1.0') 'actual runtime adapter preserves full Store and runtime versions'
+    $calls=& $module {@($script:storeAdapterCalls.ToArray())}
+    Assert ($calls.Count -eq 2 -and $calls[0].timeout -eq 7 -and $calls[1].timeout -eq 7) 'Store runtime observations use two bounded probes'
+    $script:facts=StoreWsl2Facts;foreach($key in $observed.Keys){$script:facts[$key]=$observed[$key]};$r=Invoke-WindowsPreparation (Options) $ports
+    Assert ($r.result.outcome -eq 'READY') 'actual adapter Store facts reach optional-feature policy'
+    foreach($case in @(@('3.0.1','READY'),@('3.0.1.1','BLOCKED'),@('3.0.1.0','READY'))) {
+        $module.SessionState.PSVariable.Set('storeVersion',@{exit_code=0;stdout=('WSL version: '+$case[0]+"`n");stderr=''})
+        $observed=& $module {Get-PreparationWslRuntimeInventory 'mock-wsl' {7}}
+        $script:facts=StoreWsl2Facts;foreach($key in $observed.Keys){$script:facts[$key]=$observed[$key]};$r=Invoke-WindowsPreparation (Options) $ports
+        Assert ($observed.wsl_version -ceq $case[0] -and $r.result.outcome -ceq $case[1]) 'real adapter preserves runtime revision mismatch for policy'
+    }
+    foreach($probe in @(@{exit_code=$false;stdout="WSL version: 3.0.1.0`n";stderr=''},@{exit_code='0';stdout="WSL version: 3.0.1.0`n";stderr=''},@{exit_code=0;stdout=$null;stderr=''},@{exit_code=0;stdout=42;stderr=''},@{exit_code=0;stdout=('x'*65537);stderr=''},@{exit_code=0;stdout="WSL version: 3.0.1.0`n";stderr='warning'},@{exit_code=0;stdout="WSL version: 3.0.1.0`n";stderr=$null},@{exit_code=0;stdout="WSL version: 3.0.1.0`n";stderr=0},@{exit_code=0;stdout="WSL version: 03.0.1.0`n";stderr=''},@{exit_code=0;stdout="unknown first line`nKernel version: 3.0.1.0`n";stderr=''})) {
+        $module.SessionState.PSVariable.Set('storeVersion',$probe)
+        $observed=& $module {Get-PreparationWslRuntimeInventory 'mock-wsl' {7}}
+        $script:facts=StoreWsl2Facts;foreach($key in $observed.Keys){$script:facts[$key]=$observed[$key]};$r=Invoke-WindowsPreparation (Options) $ports
+        Assert ($observed.wsl_present -and $null -eq $observed.wsl_version -and $r.result.outcome -ceq 'BLOCKED') 'malformed runtime result stays present unknown and cannot bypass feature'
+    }
+    $module.SessionState.PSVariable.Set('storeVersion',@{exit_code=0;stdout="WSL version: 3.0.1.0`n";stderr=''})
+    foreach($raw in @('{"msi":false,"store":0,"packages":[]}', '{"msi":true,"store":0,"packages":[]}', '{"msi":false,"store":2,"packages":[]}', '{"msi":false,"store":"1","packages":[]}', '{"msi":false,"store":1,"packages":[{"name":"Other","publisher_id":"8wekyb3d8bbwe","version":"3.0.1.0"}]}', '{"msi":false,"store":1,"packages":[{"name":"MicrosoftCorporationII.WindowsSubsystemForLinux","publisher_id":"other","version":"3.0.1.0"}]}', '{"msi":false,"store":1,"packages":[{"name":"MicrosoftCorporationII.WindowsSubsystemForLinux","publisher_id":"8wekyb3d8bbwe","version":"bad"}]}', '{"msi":false,"store":0,"store":1,"packages":[]}', '{"msi":false,"store":0,"packages":[],"unknown":"secret"}', 'not-json')) {
+        $module.SessionState.PSVariable.Set('storeProbe',@{exit_code=0;stdout=$raw;stderr=''})
+        $observed=& $module {Get-PreparationWslRuntimeInventory 'mock-wsl' {7}}
+        $script:facts=StoreWsl2Facts;foreach($key in $observed.Keys){$script:facts[$key]=$observed[$key]};$r=Invoke-WindowsPreparation (Options) $ports
+        Assert ($r.result.outcome -eq 'BLOCKED' -and $null -eq $observed.wsl_store_package) 'unknown inbox MSI or malformed actual package probe cannot bypass feature'
+    }
+    foreach($probe in @(@{exit_code=124;stdout='';stderr='timeout'},@{exit_code=1;stdout='';stderr='failed'},@{exit_code=0;stdout=('x'*65537);stderr=''},@{exit_code=0;stdout='{}';stderr='error'})) {
+        $module.SessionState.PSVariable.Set('storeProbe',$probe)
+        $observed=& $module {Get-PreparationWslRuntimeInventory 'mock-wsl' {7}}
+        Assert (!$observed.wsl_store_package_known -and $null -eq $observed.wsl_store_package) 'failed bounded package probe remains unknown'
+    }
+    $module.SessionState.PSVariable.Set('storeVersion',@{exit_code=1;stdout='';stderr='unsupported'})
+    foreach($msi in @($false,$true)) {
+        $raw=@{msi=$msi;store=0;packages=@()} | ConvertTo-Json -Compress
+        $module.SessionState.PSVariable.Set('storeProbe',@{exit_code=0;stdout=$raw;stderr=''})
+        $observed=& $module {Get-PreparationWslRuntimeInventory 'mock-wsl' {7}}
+        Assert ($observed.wsl_present -eq $msi -and $null -eq $observed.wsl_version) 'existing absent-runtime versus MSI fallback remains'
+    }
+} finally {
+    & $module {param($process,$executable) Set-Item Function:script:Invoke-PreparationProcess $process;Set-Item Function:script:Get-PreparationExecutable $executable} $originalStoreProcess $originalStoreExecutable
+}
+$script:facts=Facts
 foreach($case in @(@($true,@($false),$true),@($false,@($true),$true),@($false,@($false),$false),@($null,@($true),$null),@($true,@($null),$null),@('true',@($false),$null))) {
     $v=& $module {param($h,$f) Get-PreparationVirtualization @{hypervisor_present=$h;firmware_values=$f}} $case[0] $case[1]
     Assert ($v.available -eq $case[2]) 'typed hypervisor/firmware observation'
@@ -89,6 +203,54 @@ $p=Invoke-PreparationProcess $testPowerShell @('-NoProfile','-NonInteractive','-
 Assert ($p.exit_code -eq 0 -and $p.stdout -match '\s-NoProfile -NonInteractive -Command ') 'native flags remain unquoted for WSL option parsing'
 $p=Invoke-PreparationProcess $testPowerShell @('-NoProfile','-NonInteractive','-Command','Start-Sleep -Seconds 10') 1
 Assert ($p.exit_code -eq 124) 'native finite timeout'
+if([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT){
+# Exact DISM basename alone selects actual OEM decoding; no Windows features are queried.
+$dismFixture=Join-Path ([IO.Path]::GetTempPath()) ('tsw-dism-oem-'+[Guid]::NewGuid().ToString('N'))
+$originalOutputEncoding=[Console]::OutputEncoding
+$originalCurrentDirectory=[Environment]::CurrentDirectory
+[void][IO.Directory]::CreateDirectory($dismFixture)
+try{
+    $oem=& (Get-Module Preparation) {Get-PreparationDismEncoding}
+    $sample=$null
+    foreach($value in 128..255){
+        try{$decoded=$oem.GetString([byte[]]@($value));if($decoded.Length -eq 1 -and [int][char]$decoded -ge 32){$sample=$decoded;break}}catch{}
+    }
+    if($null -eq $sample){$sample=[string][char]252}
+    $text='OEM='+$sample+"`nState : Enabled`n"
+    [byte[]]$bytes=$oem.GetBytes($text)
+    $dism=Join-Path $dismFixture 'Dism.exe';$other=Join-Path $dismFixture 'Other.exe'
+    # Keep executable trust intact under Application Control: only the basename
+    # changes; cmd's built-in type copies our exact bytes to both native pipes.
+    $trustedCmd=Join-Path ([Environment]::SystemDirectory) 'cmd.exe'
+    $signature=Get-AuthenticodeSignature -LiteralPath $trustedCmd
+    Assert ($signature.Status -eq 'Valid' -and $signature.SignerCertificate.Subject -match 'O=Microsoft Corporation(?:,|$)') 'oem_fixture_trusted_microsoft_cmd'
+    [IO.File]::Copy($trustedCmd,$dism)
+    [IO.File]::Copy($trustedCmd,$other)
+    Assert ((Get-FileHash -LiteralPath $dism -Algorithm SHA256).Hash -ceq (Get-FileHash -LiteralPath $trustedCmd -Algorithm SHA256).Hash -and
+        (Get-FileHash -LiteralPath $other -Algorithm SHA256).Hash -ceq (Get-FileHash -LiteralPath $trustedCmd -Algorithm SHA256).Hash) 'oem_fixture_copies_preserve_signed_bytes'
+    [IO.File]::WriteAllBytes((Join-Path $dismFixture 'oem.bin'),$bytes)
+    [Environment]::CurrentDirectory=$dismFixture
+    $emitBytes=@('/d','/a','/c','type oem.bin & type oem.bin 1>&2')
+    [Console]::OutputEncoding=[Text.UTF8Encoding]::new($false,$true)
+    $captured=Invoke-PreparationProcess $dism $emitBytes 10
+    Assert ($captured.exit_code -eq 0 -and $captured.stdout -ceq $text -and $captured.stderr -ceq $text -and
+        $captured.stdout -match 'State : Enabled') 'dism_real_process_oem_stdout_stderr_under_strict_utf8'
+    $notUtf8=$false
+    try{$null=([Text.UTF8Encoding]::new($false,$true)).GetString($bytes)}catch [Text.DecoderFallbackException]{$notUtf8=$true}
+    if($notUtf8){
+        $refused=$false
+        try{$null=Invoke-PreparationProcess $other $emitBytes 10}catch{$refused=$_.Exception.ToString().Contains('DecoderFallbackException')}
+        Assert $refused 'non_dism_identical_oem_bytes_still_strict_utf8_refused'
+    }else{
+        $unchanged=Invoke-PreparationProcess $other $emitBytes 10
+        Assert ($unchanged.stdout -ceq $text) 'utf8_oem_host_keeps_other_reader_behavior'
+    }
+}finally{
+    [Console]::OutputEncoding=$originalOutputEncoding
+    [Environment]::CurrentDirectory=$originalCurrentDirectory
+    Remove-Item -LiteralPath $dismFixture -Recurse -Force
+}
+}
 $unsafePorts=@{};foreach($k in $ports.Keys){$unsafePorts[$k]=$ports[$k]};$unsafePorts.EvidencePreflight={return $false}
 $script:facts=Facts;$r=Invoke-WindowsPreparation (Options) $unsafePorts
 Assert ($r.blockers[0].code -eq 'unsafe_evidence_storage' -and !$r.result.changed) 'read-only evidence preflight refusal'
@@ -472,22 +634,160 @@ $r=Invoke-WindowsPreparation $o $ports
 Assert ($script:executions -eq $before -and $script:stateRecords.Count -eq 2) 'W08 observed satisfied resume skips mutation and writes'
 Write-Output 'PASS W08 mocked recovery contracts'
 
+# Actual application checkpoint validation retains four-part runtime observations.
+$versionModule=Get-Module Preparation
+$versionPorts=@{};foreach($key in $ports.Keys){$versionPorts[$key]=$ports[$key]}
+$script:versionRecords=New-Object Collections.ArrayList
+$script:versionExecutions=0
+$versionPorts.ReadState={param($o,$identity) return $null}
+$versionPorts.WriteState={
+    param($store,$state)
+    $wire=$state | ConvertTo-Json -Depth 12 -Compress
+    & $versionModule {param($text,$identity) Assert-PreparationState (ConvertFrom-PreparationStateJson $text) $identity} $wire $state.identity
+    [void]$script:versionRecords.Add($state)
+}
+$versionPorts.Execute={
+    param($action,$o,$facts,$plan)
+    if($action.id -cne 'adapt_wsl_resources' -or $script:versionRecords.Count -ne 1 -or $script:versionRecords[0].status -cne 'pending' -or $script:versionRecords[0].versions.wsl -cne '3.0.3.0'){throw 'version_checkpoint_missing_before_execution'}
+    $script:versionExecutions++
+    return @{confirmed=$true;uncertain=$false;exit_code=0}
+}
+$script:facts=StoreWsl2Facts;$script:facts.wsl_version='3.0.3.0';$script:facts.wsl_store_package.version='3.0.3.0'
+$script:facts.resource_facts.config_values.memory='25GB';$script:facts.resource_facts.config_values.swap='4GB'
+$o=Options;$o.Mode='Apply';$o.ApproveApply=$true;$o.QualificationRun=$true
+$r=Invoke-WindowsPreparation $o $versionPorts
+Assert ($r.result.exit_code -eq 3 -and $r.result.completed_actions[0] -ceq 'adapt_wsl_resources' -and $script:versionExecutions -eq 1) 'four-part pending checkpoint permits only the mocked resource action'
+Assert ($script:versionRecords.Count -eq 2 -and $script:versionRecords[1].status -ceq 'effect' -and $script:versionRecords[1].versions.wsl -ceq '3.0.3.0') 'four-part runtime survives actual pending and effect validation unchanged'
+$invalidWslVersions=@(
+    @{value='3.0'},@{value='3.0.3.0.1'},@{value='3..3'},@{value='3.0.3.'},@{value=' 3.0.3'},@{value='3.0.3 '},
+    @{value="3.0.3`n"},@{value="3.0.3.0`r`n"},@{value='3.a.3'},@{value=(([string][char]0x0663)+'.0.3')},
+    @{value=$false},@{value=0},@{value=3.0},@{value=@('3.0.3')},@{value=@{major=3}}
+)
+$versionPorts.ReadState={
+    param($o,$identity)
+    $wire=$script:versionRecords[0] | ConvertTo-Json -Depth 12 -Compress
+    $state=& $versionModule {param($text) ConvertFrom-PreparationStateJson $text} $wire
+    $state.versions.wsl=$script:invalidWslVersion
+    & $versionModule {param($state,$identity) Assert-PreparationState $state $identity} $state $identity
+    return $state
+}
+foreach($case in $invalidWslVersions){
+    $script:invalidWslVersion=$case.value
+    $beforeExecutions=$script:versionExecutions;$beforeRecords=$script:versionRecords.Count
+    $r=Invoke-WindowsPreparation $o $versionPorts
+    Assert ($r.result.exit_code -eq 2 -and @($r.blockers | Where-Object{$_.code -ceq 'bootstrap_state_invalid'}).Count -eq 1 -and $script:versionExecutions -eq $beforeExecutions -and $script:versionRecords.Count -eq $beforeRecords) 'invalid stored WSL version blocks before execution or another checkpoint'
+}
+Write-Output 'PASS W08 full WSL version application boundaries (mocked effects)'
+
 # Exercise durable create-then-replace IO; only Windows ACL boundaries are mocked.
 $stateModule=Import-Module (Join-Path $RepositoryRoot 'modules/tsw_windows_wsl/bootstrap/windows/preparation/Preparation.psm1') -Force -DisableNameChecking -PassThru
 $stateStore=Join-Path ([IO.Path]::GetTempPath()) ('tsw-state-'+[guid]::NewGuid().ToString('N'))
 [void][IO.Directory]::CreateDirectory($stateStore)
 try {
-    & $stateModule {
-        param($store,$pending,$effect)
+    $versionIo=& $stateModule {
+        param($store,$pending,$effect,$invalidVersions)
         function Assert-PreparationEvidencePath($Path) {
             if(!$Path.StartsWith($store,[StringComparison]::Ordinal) -or !(Test-Path -LiteralPath $Path)){throw 'unexpected_test_evidence_path'}
         }
         function Set-PreparationPrivateAcl($Path) {}
         Write-PreparationState $store $pending
         Write-PreparationState $store $effect
-    } $stateStore $script:stateRecords[0] $script:stateRecords[1]
+        $roundtrips=0
+        foreach($case in @(@{value='3.0.1'},@{value='3.0.3.0'},@{value='03.0.1'},@{value=$null},@{value=''})){
+            foreach($record in @($pending,$effect)){
+                $copy=ConvertTo-PreparationHashtable (ConvertFrom-PreparationStateJson ($record | ConvertTo-Json -Depth 12 -Compress))
+                $copy.versions.wsl=$case.value
+                Write-PreparationState $store $copy
+                $persisted=ConvertFrom-PreparationStateJson (Get-Content -Raw -LiteralPath (Join-Path $store 'bootstrap.state.json'))
+                Assert-PreparationState $persisted $copy.identity
+                if($persisted.status -cne $copy.status){throw 'state_roundtrip_status_changed'}
+                if($null -eq $case.value){if($null -ne $persisted.versions.wsl){throw 'state_roundtrip_unknown_changed'}}
+                elseif($persisted.versions.wsl -isnot [string] -or $persisted.versions.wsl -cne $case.value){throw 'state_roundtrip_version_changed'}
+                $roundtrips++
+            }
+        }
+        $statePath=Join-Path $store 'bootstrap.state.json'
+        $beforeHash=(Get-FileHash -LiteralPath $statePath -Algorithm SHA256).Hash
+        foreach($case in $invalidVersions){
+            $copy=ConvertTo-PreparationHashtable (ConvertFrom-PreparationStateJson ($effect | ConvertTo-Json -Depth 12 -Compress))
+            $copy.versions.wsl=$case.value
+            $blocked=$false
+            try{Write-PreparationState $store $copy}catch{$blocked=$true}
+            if(!$blocked -or (Get-FileHash -LiteralPath $statePath -Algorithm SHA256).Hash -cne $beforeHash -or @(Get-ChildItem -LiteralPath $store -Force).Count -ne 1){throw 'invalid_version_changed_durable_checkpoint'}
+        }
+        return @{roundtrips=$roundtrips;invalid_versions=$invalidVersions.Count}
+    } $stateStore $script:stateRecords[0] $script:stateRecords[1] $invalidWslVersions
+    Assert ($versionIo.roundtrips -eq 10 -and $versionIo.invalid_versions -eq $invalidWslVersions.Count) 'actual pending/effect IO preserves full legacy/new/null/empty versions and refuses malformed replacement'
     $persisted=& $stateModule {param($text) ConvertFrom-PreparationStateJson $text} (Get-Content -Raw -LiteralPath (Join-Path $stateStore 'bootstrap.state.json'))
     Assert ($persisted.status -ceq 'effect' -and $persisted.confirmed -and !$persisted.uncertain -and $persisted.restart -ceq 'distro') 'durable effect replaces pending state'
     Assert (@(Get-ChildItem -LiteralPath $stateStore -Force).Count -eq 1) 'atomic replacement leaves only the checkpoint'
 } finally {Remove-Item -LiteralPath $stateStore -Recurse -Force}
+
+# Actual W05 observation variants: unavailable W06 query versus owned bridge
+# with foreign-listener refusal. Neither is admitted as a healthy bridge.
+$resourceFingerprintModule=Get-Module Preparation
+$script:resourceBridgeVariants=@(
+    @{state='BLOCKED';blockers=@('bridge_inventory_unavailable')},
+    @{schema_version=1;ownership='owned';bridge_ready=$false;routing_ready=$false;agent_ready=$false;
+      login_state='UNVERIFIED';endpoint_state='UNVERIFIED';action=$null;blockers=@('foreign_or_unknown_listener');fingerprint='observed-w06'}
+)
+function ResourceFingerprintFacts($Bridge){
+    $value=Facts
+    $value.resource_facts.config_values.memory='25GB';$value.resource_facts.config_values.swap='4GB'
+    $value.bridge_facts=$Bridge
+    return $value
+}
+$script:source=@{verified=$true;clean=$true;revision=('a'*40)}
+$resourceFingerprintPorts=@{};foreach($key in $ports.Keys){$resourceFingerprintPorts[$key]=$ports[$key]}
+$resourceFingerprintPorts.ProtectEvidence={param($o) return 'protected-mocked-resource-store'}
+$resourceFingerprintPorts.WriteEvidence={param($store,$event)}
+$resourceFingerprintPorts.LockState={param($store) return [IO.MemoryStream]::new()}
+$resourceFingerprintPorts.ReadState={param($o,$identity) return $null}
+$resourceFingerprintPorts.WriteState={param($store,$state)}
+$script:resourceReinventories=0;$script:resourceEffects=0;$script:resourceDrift=$false
+$resourceFingerprintPorts.Inventory={
+    param($o)
+    $script:resourceReinventories++
+    $value=ResourceFingerprintFacts $script:resourceBridgeVariants[($script:resourceReinventories-1)%2]
+    if($script:resourceDrift -and $script:resourceReinventories -gt 1){$value.resource_facts.config_snapshot.hash='unexpected-config-change'}
+    return $value
+}
+$resourceFingerprintPorts.SourceIdentity={param($o) return $script:source}
+$resourceFingerprintPorts.Execute={param($action,$o,$facts,$store)
+    if($action.id -cne 'adapt_wsl_resources'){throw 'unexpected_resource_test_action'}
+    $script:resourceEffects++
+    return @{confirmed=$true;uncertain=$false;exit_code=0}
+}
+$o=Options
+$resourceFirst=Invoke-WindowsPreparation $o $resourceFingerprintPorts
+$resourceSecond=Invoke-WindowsPreparation $o $resourceFingerprintPorts
+Assert ($resourceFirst.actions.Count -eq 1 -and $resourceFirst.actions[0].id -ceq 'adapt_wsl_resources' -and
+    $resourceFirst.plan_fingerprint -ceq $resourceSecond.plan_fingerprint) 'resource_only_consent_excludes_unrelated_bridge_observation'
+Assert ($resourceFirst.target.bridge_facts.blockers[0] -ceq 'bridge_inventory_unavailable' -and
+    $resourceSecond.target.bridge_facts.blockers[0] -ceq 'foreign_or_unknown_listener' -and
+    $script:resourceBridgeVariants[0].ContainsKey('state') -and $script:resourceBridgeVariants[1].ContainsKey('fingerprint')) 'resource_projection_preserves_raw_target_and_input_bridge_evidence'
+$script:resourceReinventories=0
+$o.Mode='Apply';$o.ApproveApply=$true;$o.QualificationRun=$true;$o.ApprovedPlan=$resourceFirst.plan_fingerprint
+$resourceApplied=Invoke-WindowsPreparation $o $resourceFingerprintPorts
+Assert ($script:resourceReinventories -eq 3 -and $script:resourceEffects -eq 1 -and
+    $resourceApplied.result.exit_code -eq 3 -and $resourceApplied.result.completed_actions[0] -ceq 'adapt_wsl_resources') 'resource_apply_three_real_reinventories_allow_w06_observation_alternation_without_bridge_effect'
+$script:resourceReinventories=0;$script:resourceEffects=0;$script:resourceDrift=$true
+$resourceRefused=Invoke-WindowsPreparation $o $resourceFingerprintPorts
+Assert ($script:resourceEffects -eq 0 -and $resourceRefused.result.exit_code -eq 2 -and
+    $resourceRefused.blockers[-1].code -ceq 'consent_drift') 'resource_config_snapshot_drift_still_refuses_before_effect'
+$bridgeFingerprintPorts=@{};foreach($key in $resourceFingerprintPorts.Keys){$bridgeFingerprintPorts[$key]=$resourceFingerprintPorts[$key]}
+$script:bridgeFingerprint='first-observation'
+$bridgeFingerprintPorts.Inventory={param($o)
+    $value=Facts
+    $value.bridge_facts=@{schema_version=1;distro='Ubuntu-24.04';observed_address='172.20.0.2';ownership='owned';
+        bridge_ready=$false;routing_ready=$false;agent_ready=$false;action='refresh';blockers=@();fingerprint=$script:bridgeFingerprint}
+    return $value
+}
+$o=Options
+$bridgeFirst=Invoke-WindowsPreparation $o $bridgeFingerprintPorts
+$script:bridgeFingerprint='changed-observation'
+$bridgeSecond=Invoke-WindowsPreparation $o $bridgeFingerprintPorts
+Assert ($bridgeFirst.actions.Count -eq 1 -and $bridgeFirst.actions[0].id -ceq 'bridge_refresh' -and
+    $bridgeFirst.plan_fingerprint -cne $bridgeSecond.plan_fingerprint) 'bridge_mutation_retains_exact_bridge_fingerprint_binding'
+
 Write-Output 'PASS durable checkpoint filesystem contracts (mocked ACL boundaries)'

@@ -1,0 +1,162 @@
+= ADR: Preserving host maintenance for Epic 440 qualification
+:status: Accepted; user-authorized scope, independent architecture and Tester/DevOps review
+:date: 2026-11-07
+
+== Context and authority
+
+The user renewed the instruction to solve, implement and verify all remaining
+Epic #440 work on the two named test hosts and close it only when complete.
+That authority includes necessary bounded maintenance with existing resources
+preserved. It does not establish installation ownership or waive qualification.
+This decision resolves the two previously pending preservation interpretations;
+it is not an instruction to ask the user the same policy questions again.
+
+Native schema5 capture from commit 711f397d completed and retained the three
+Running LXD instances, default/shared resources and separate Incus projects.
+Inventory graph consistency does not prove exclusive TSW ownership. Requiring
+that proof before any temporary service maintenance conflates maintenance
+permission with adoption. WSL resource adaptation can change the selected
+Ubuntu IPv4; preserving an obsolete PortProxy destination prevents recovery of
+an otherwise identical existing route.
+
+== Decision
+
+Accept a bounded maintenance path that preserves resources and restores prior
+service/runtime state. Do not adopt or replace an existing resource through this
+path. Implementation and exact-host execution follow the active workflow with
+source-bound verification and one concrete maintenance/recovery plan. This ADR
+records policy; its draft or acceptance alone is not an executable host GO.
+
+=== Native Linux: temporary Snap LXD maintenance
+
+* Scope the transaction to snap.lxd.daemon.unix.socket and
+  snap.lxd.daemon.service on the named native test host. Preserve unit enablement,
+  installed package, persistent configuration and every existing LXD/Incus
+  project, instance, profile, network, pool, volume and snapshot. Interface
+  visibility is not daemon ownership; equal names across daemons prove neither
+  shared storage nor distinct backing storage.
+* Bind a fresh prestate to source/inventory identity, effective unit/stop-hook
+  behavior and deadlines, existing Running/Stopped states and preserved resource
+  projections. The three observed LXD instance names are an exact recovery
+  allowlist, not evidence of adoption. New/unexpected objects or concurrent
+  writers require fresh assessment before maintenance starts.
+* If the socket is active, stop it before daemon shutdown; if already inactive,
+  leave it inactive throughout recovery. The fresh observation currently reports
+  inactive/dead with RemoveOnStop=no: socket-path presence alone proves no
+  activation state. The three previously Running nodes may first be stopped
+  gracefully with bounded no-force operations after identity verification.
+  The inspected vendor wrapper records shutdown after clean child exit; its
+  stop hook then exits before helper/kill fallback. Use exact trusted
+  /snap/bin/lxd shutdown --timeout 60 without --force only after proving its
+  Snap app-command/package/socket binding, or the same reviewed installed
+  command through an equivalent explicitly bound executable. No arbitrary
+  executable path or inherited LXD_DIR override is accepted.
+  Use this graceful shutdown path with a finite controller deadline, then observe daemon exit before any
+  unit-stop bookkeeping. The current unit has TimeoutStopUSec=10min,
+  KillMode=control-group and SendSIGKILL=yes: invoking systemctl stop on a live
+  daemon could escalate automatically and is outside this no-force path.
+  Do not rely on a shorter controller timeout to cancel a systemd stop job.
+  If graceful shutdown times out, do not submit that stop job; end qualification
+  and enter recovery/re-observation. Exact graceful argv/socket/package binding
+  must be verified in the concrete plan; do not improvise an unbound client.
+  Use finite deadlines and explicit observed outcomes. No permanent disable/mask, package operation,
+  reboot, force stop, kill or automatic destructive fallback. Ordinary LXD
+  shutdown may also stop containers; model that as expected temporary downtime
+  with restoration, never claim workload-transparent pause.
+* Run the bounded native admission/fixture window only while LXD stays inactive.
+  Unexpected reactivation or timeout ends qualification and enters recovery.
+  Keep Incus and its existing objects unchanged; qualification writes only its
+  separately admitted disposable run objects under existing fixture contracts.
+* A finally recovery path runs after success, refusal, timeout or interruption:
+  restore the captured daemon/socket runtime state and any previously Running
+  allowlisted LXD instance stopped by maintenance. Never start an instance that
+  was previously Stopped. Re-observe actual state before each recovery effect;
+  no blind replay against changed identities. Check service/API usability and
+  resource/configuration/consumer preserve-set equality after recovery, including
+  separate Incus identities and snapshots. Normal shutdown/start may update guest
+  filesystem contents and operational metadata; never claim bitwise disk-data
+  equality from API projections or undo those writes with rollback.
+  Uncertain or failed restoration is RECOVERY_REQUIRED, never PASS or cleanup
+  permission for pre-existing data. Retain enough protected state to resume
+  bounded recovery after controller loss; recovery is not a new provisioning
+  engine and may not bypass identity/drift checks.
+
+No exclusive TSW ownership proof is needed to author this preserving transaction.
+Object deletion/replacement/adoption is outside it, even for the three named
+nodes. Any later authorized replacement needs its own ownership/lifecycle
+contract; this decision supplies none.
+
+=== Windows/WSL: existing route destination reconciliation
+
+Use existing W05 allocation/configuration authority and backup/ACL/CAS rules.
+A source-bound plan may perform the necessary bounded selected-Ubuntu restart
+instead of requiring a separate manual policy answer. Bind authoritative WSL
+registration identity and affected running distributions; this path admits no
+other running distribution. Restore prior running/service state on failure.
+No Windows reboot, feature change or unrelated service operation is included.
+
+Preserve the complete firewall state. For existing product-bound PortProxy rules
+only, permit changing connectaddress to the freshly and authoritatively observed
+IPv4 of the same selected Ubuntu registration after its restart. Unknown or
+foreign rules remain untouched. Existing bridge service identity and rule
+membership must be proved from its current product contract, not inferred from
+port numbers, names or the new address. Do not create a bridge installation,
+new rule, listener, address exposure or route under this exception.
+
+Bind a private prestate and approved rule set; compare before each write. Preserve
+protocol/address family, listenaddress/listenport, connectport and rule count.
+Only the admitted connectaddress substitution may differ. Existing bridge
+reconciliation may perform that exact change; verify actual state rather than
+assuming the service did it. Any required bridge service stop/start must be
+explicit in the concrete plan and restore its captured running state, without
+changing service configuration or identity. Other services stay unchanged.
+Partial or ambiguous outcomes enter reviewed recovery and block qualification;
+never overwrite foreign/racing changes with an old global rule snapshot.
+
+After resources are effective and reconciliation succeeds, capture a fresh route
+baseline/digest and use that for S02 and subsequent scenarios. Their ordinary
+byte-for-byte rule preservation remains mandatory. The exception applies only
+to this prerequisite maintenance transaction, not to fixture/device listeners,
+service selection or application route exposure. Configuration write alone is
+not effective capacity, and a reachable route alone is not services_verified.
+
+== Supersession and remaining contracts
+
+For this preserving maintenance path only, supersede S449-02G's exclusive-owner
+precondition and stop/replace/restart procedure, the absolute PortProxy equality
+rule during prerequisite restart, and W05's operator-only restart sequencing.
+Retain the exclusive-owner/no-adoption rules for destructive actions and shared
+resource mutation. Retain all other preservation, consent/source/host binding,
+resource floors, ACL/backup protection, live evidence and recovery requirements.
+
+S02 admission precedes runtime enablement and live scenarios of S03 and later
+slices; verified pure-code integration may precede S02.
+Pure S03 persistence work may be planned, reviewed and implemented in an
+isolated worktree while S02 host maintenance/fixture is pending: manifest-v2
+migration, installation locking and source-bound checkpoint/selection storage
+require no new runtime capability assumption. Keep provider wiring, profile
+capability admission and every live operation gated by accepted S02. S04 actual
+provider wiring remains separately reviewed. Run applicable focused/full checks
+before integration; do not add supported Incus versions from code-only tests.
+This scheduling exception does not waive any acceptance criterion. This is not Incus coexistence
+support in the product, not version capability admission, not an ownership
+migration, and not Epic acceptance. New native/WSL preflight, fixture and later
+scenario evidence must be executed and reported against their actual source.
+Private authority/evidence stays verified ext4 0700/0600; existing W05 native
+product recovery files retain their separately accepted protection contract.
+No raw configuration, ACL/SID, process environment or secret export is added.
+
+== Verification and review
+
+Require independent Tester/DevOps/Security review of this decision and concrete
+implementation. Mock service stop failures, reactivation, every finally branch,
+interruption/recovery and pre/post drift. Test bridge owner/registration mismatch,
+foreign rules, destination-only change, partial failure and complete firewall
+preservation. Test that qualified fixtures use the refreshed baseline and still
+refuse any other route change. Run applicable exact-source PC WSL checks before
+execution. Record live results separately; no test, maintenance or acceptance
+has been performed by authoring this decision.
+
+Primary shutdown semantics:
+https://raw.githubusercontent.com/canonical/lxd/lxd-5.21.9/lxd/main_shutdown.go
+Existing capacity authority: xref:adr-wsl-capacity-adaptation.adoc[].

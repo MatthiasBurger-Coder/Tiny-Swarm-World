@@ -4,6 +4,7 @@ from __future__ import annotations
 from contextlib import contextmanager, suppress
 from dataclasses import dataclass
 from datetime import datetime
+import hashlib
 import os
 from pathlib import PurePosixPath
 import re
@@ -30,6 +31,15 @@ TOTAL_LIMIT = 16 * 1024 * 1024
 MAX_CHILDREN = 64
 MAX_SECONDS = 60
 CANONICAL_PATH = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin"
+_SHUTDOWN_STATIC_UNITS = (
+    "snap.microceph.daemon.service", "snap.microceph.mds.service", "snap.microceph.mgr.service",
+    "snap.microceph.mon.service", "snap.microceph.nfs.service", "snap.microceph.osd.service",
+    "snap.microceph.rgw.service", "snap.microceph.rbd-mirror.service", "snap.microceph.cephfs-mirror.service",
+    "snap.microovn.daemon.service", "snap.microovn.ovn-ovsdb-server-nb.service",
+    "snap.microovn.ovn-ovsdb-server-sb.service", "snap.microovn.ovn-northd.service",
+    "snap.microovn.chassis.service", "snap.microovn.switch.service", "snap.microovn.bird.service",
+)
+_ESCAPED_ROOT_WRAPPER_SHA256 = "7ecbe39a07dc02666af544327dbaf5cfbe9967868bfb9d7c627061f14916b562"
 _DECIMAL = re.compile(r"[1-9][0-9]{0,18}\Z", re.ASCII)
 _EXEC_START = re.compile(
     r"\{ path=/usr/bin/snap ; argv\[\]=/usr/bin/snap run lxd\.daemon ; ignore_errors=no ; "
@@ -261,6 +271,22 @@ class Process:
     parent: int
     started: int
     executable: Observation
+    cgroup: bytes
+
+
+def _shutdown_dependencies_supported(lines: list[str]) -> bool:
+    if len(lines) != 2 or lines[0] != "[Unit]" or not lines[1].startswith("After="):
+        return False
+    dependencies = lines[1].removeprefix("After=")
+    if dependencies == "snap.microceph.daemon.service snap.microovn.daemon.service":
+        return True
+    units = dependencies.removesuffix(" ").split(" ")
+    prefix_size = len(_SHUTDOWN_STATIC_UNITS)
+    runtime = units[prefix_size:]
+    return (tuple(units[:prefix_size]) == _SHUTDOWN_STATIC_UNITS
+            and len(runtime) <= prefix_size
+            and runtime == sorted(set(runtime))
+            and set(runtime).issubset(_SHUTDOWN_STATIC_UNITS))
 
 
 class _Proof:
@@ -312,7 +338,7 @@ class _Proof:
             if "\r" in lines or "\x00" in lines:
                 raise ProvenanceError("SNAP_WRAPPER_CONTEXT_BLOCKED")
             significant = [line for line in lines.split("\n") if line.strip() and not line.lstrip().startswith("#")]
-            if significant != ["[Unit]", "After=snap.microceph.daemon.service snap.microovn.daemon.service"]:
+            if not _shutdown_dependencies_supported(significant):
                 raise ProvenanceError("SNAP_WRAPPER_CONTEXT_BLOCKED")
             result.append(drop)
         if unit["EnvironmentFiles"]:
@@ -343,10 +369,10 @@ class _Proof:
         if len(uid) != 1 or not re.fullmatch(r"Uid:[ \t]+0[ \t]+0[ \t]+0[ \t]+0[ \t]*", uid[0], re.ASCII):
             raise ProvenanceError("SNAP_WRAPPER_PROC_INVALID")
         cgroup = self.observe(root + "/cgroup", limit=PROC_LIMIT).data
-        if cgroup not in {f"0::{group}".encode(), f"0::{group}\n".encode()}:
+        if cgroup not in {f"0::{group}".encode(), f"0::{group}\n".encode(), b"0::/", b"0::/\n"}:
             raise ProvenanceError("SNAP_WRAPPER_PROC_INVALID")
         executable = self.trusted(self.observe(root + "/exe", follow=True), executable=True)
-        return Process(pid, parent, started, executable)
+        return Process(pid, parent, started, executable, cgroup)
 
     def main_environment(self, pid: int) -> tuple[str, tuple[bytes, ...], tuple[tuple[bytes, bytes], ...]]:
         raw = self.observe(f"/proc/{pid}/environ", limit=ENV_LIMIT).data
@@ -390,8 +416,10 @@ class _Proof:
             raise ProvenanceError("SNAP_WRAPPER_FILE_UNVERIFIED")
         return values[0], values[1]
 
-    def package(self, pid: int, base: str) -> tuple[tuple[Any, ...], tuple[int, int]]:
-        script = self.pair(pid, base + "/commands/daemon.start")
+    def package(self, pid: int, base: str, *, root_mode: bool = False) -> tuple[tuple[Any, ...], tuple[int, int]]:
+        script = self.pair(pid, base + "/commands/daemon.start", limit=METADATA_LIMIT)
+        if root_mode and hashlib.sha256(script[0].data).hexdigest() != _ESCAPED_ROOT_WRAPPER_SHA256:
+            raise ProvenanceError("SNAP_WRAPPER_FILE_UNVERIFIED")
         metadata = self.pair(pid, base + "/meta/snap.yaml", limit=METADATA_LIMIT)
         try:
             document = yaml.load(_text(metadata[0].data, "SNAP_WRAPPER_METADATA_INVALID"), Loader=_UniqueLoader)
@@ -402,6 +430,13 @@ class _Proof:
                 raise ProvenanceError("SNAP_WRAPPER_METADATA_INVALID")
         except (yaml.YAMLError, ValueError, TypeError, RecursionError) as exc:
             raise ProvenanceError("SNAP_WRAPPER_METADATA_INVALID") from exc
+        if root_mode:
+            server = self.pair(pid, base + "/sbin/lxd", executable=True)
+            stop_hook = self.pair(pid, base + "/bin/lxd", executable=True)
+            if server[0].identity == stop_hook[0].identity:
+                raise ProvenanceError("SNAP_WRAPPER_FILE_UNVERIFIED")
+            split_binaries = (("sbin/lxd", server), ("bin/lxd", stop_hook))
+            return (script, metadata, split_binaries), server[0].identity
         binaries: list[tuple[str, tuple[Observation, Observation]]] = []
         for suffix, other in (("sbin/lxd", "bin/lxd"), ("bin/lxd", "sbin/lxd")):
             path = base + "/" + suffix
@@ -443,9 +478,12 @@ class _Proof:
         environment = self.main_environment(pid)
         base, argv, _ = environment
         shell = self.shell(pid, argv, main)
-        package, binary = self.package(pid, base)
+        root_mode = main.cgroup in {b"0::/", b"0::/\n"}
+        package, binary = self.package(pid, base, root_mode=root_mode)
         children = self.children(pid)
         candidates = [self.process(child, group) for child in children]
+        if any(child.cgroup != main.cgroup for child in candidates):
+            raise ProvenanceError("SNAP_WRAPPER_PROC_INVALID")
         matches = [child for child in candidates if child.parent == pid and child.executable.identity == binary]
         if not matches:
             raise ProvenanceError("SNAP_WRAPPER_CHILD_ABSENT")
@@ -454,7 +492,7 @@ class _Proof:
         selected = matches[0]
         if (self.unit(row) != unit or self.context(unit) != context or self.process(pid, group) != main
                 or self.main_environment(pid) != environment or self.shell(pid, argv, main) != shell
-                or self.package(pid, base) != (package, binary) or self.children(pid) != children
+                or self.package(pid, base, root_mode=root_mode) != (package, binary) or self.children(pid) != children
                 or self.process(selected.pid, group) != selected):
             raise ProvenanceError("SNAP_WRAPPER_DRIFT")
         return "lxd_snap", "snap:lxd"

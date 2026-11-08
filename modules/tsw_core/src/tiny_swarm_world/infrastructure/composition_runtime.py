@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from .composition_selection import persisted_runtime_selection, selection_options, includes_service, selected_preflight, artifact_targets, scoped_stack_environment, needs_registry_images
+from . import composition_selection_options as selection_policy
+
+from .composition_selection import persisted_service_exposure, persisted_runtime_selection, selection_options, includes_service, selected_preflight, artifact_targets, scoped_stack_environment, needs_registry_images
 
 from tiny_swarm_world.domain.preflight.completeness import PreflightConstruction
 
@@ -461,6 +463,7 @@ class _WslSocatExposeStep:
         live_consent: LiveConsent | None,
         os_type: OsTypes | None = None,
         resolved_services: tuple[str, ...] | None = None,
+        service_exposure: Mapping[str, str] | None = None,
     ) -> None:
         self.socat_manager = socat_manager
         self.socat_exposure = socat_exposure
@@ -468,10 +471,11 @@ class _WslSocatExposeStep:
         self.live_consent = live_consent
         self.os_type = os_type
         self.resolved_services = resolved_services
+        self.service_exposure = service_exposure
 
     async def run(self) -> VerificationResult:
         os_type = self.os_type or OsTypes.detect_current()
-        plans = _wsl_socat_forwarding_plans(self.service_profile, **({"resolved_services": self.resolved_services} if self.resolved_services is not None else {}))
+        plans = _wsl_socat_forwarding_plans(self.service_profile, **selection_options(self.resolved_services, self.service_exposure))
         commands = self.socat_manager.set_service_socat_ports(os_type, plans)
         if not commands:
             return VerificationResult(
@@ -640,8 +644,10 @@ def build_preflight_service(
     include_secret_checks: bool = True,
     include_port_checks: bool = True,
     resolved_services: tuple[str, ...] | None = None,
+    service_exposure: Mapping[str, str] | None = None,
 ) -> PreflightService:
     service_profile, resolved_services = persisted_runtime_selection(service_profile, resolved_services)
+    service_exposure = persisted_service_exposure(resolved_services, service_exposure)
     project_paths = default_project_paths()
     port_registry = PortRegistryYamlRepository(project_paths=project_paths).load()
     evaluator, authorizer = _build_project_filesystem_services()
@@ -651,7 +657,7 @@ def build_preflight_service(
             host_environment_detector=build_host_environment_detector(),
             process_runner=build_process_runner(),
         ),
-        _preflight_configuration_for_provider(service_profile, node_provider_request, **selection_options(resolved_services)),
+        _preflight_configuration_for_provider(service_profile, node_provider_request, **selection_options(resolved_services, service_exposure)),
         construction=PreflightConstruction.STANDARD_SETUP,
         configuration_validation=configuration_validation,
         port_registry=port_registry,
@@ -790,10 +796,12 @@ def build_post_install_preflight_service(
     configuration_validation: ConfigurationValidationService | None = None,
     allow_wsl_windows_filesystem: bool = False,
     resolved_services: tuple[str, ...] | None = None,
+    service_exposure: Mapping[str, str] | None = None,
 ) -> PreflightService:
     service_profile, resolved_services = persisted_runtime_selection(service_profile, resolved_services)
+    service_exposure = persisted_service_exposure(resolved_services, service_exposure)
     project_paths = default_project_paths()
-    configuration = _preflight_configuration_for_provider(service_profile, node_provider_request, **selection_options(resolved_services))
+    configuration = _preflight_configuration_for_provider(service_profile, node_provider_request, **selection_options(resolved_services, service_exposure))
     evaluator, authorizer = _build_project_filesystem_services()
     return PreflightService(
         HostPreflightProbe(
@@ -882,6 +890,7 @@ def _build_artifact_readiness_gate(
     project_paths: ProjectPaths,
     node_provider_request: NodeProviderSelectionRequest | None = None,
     resolved_services: tuple[str, ...] | None = None,
+    service_exposure: Mapping[str, str] | None = None,
 ) -> ArtifactReadinessGate:
     nexus_base_url = os.getenv(
         "TSW_NEXUS_READINESS_BASE_URL",
@@ -991,39 +1000,15 @@ def _build_platform_services_for_request(
     trace_correlation_id: str | None = None,
     allow_wsl_windows_filesystem: bool = False,
     resolved_services: tuple[str, ...] | None = None,
+    service_exposure: Mapping[str, str] | None = None,
+    profile_operation=None,
 ) -> PlatformServices:
-    if node_provider_request is None:
-        if ui is None and trace_correlation_id is None:
-            return build_platform_services(
-                service_profile=service_profile,
-                **selection_options(resolved_services),
-                live_consent=live_consent,
-                allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
-            )
-        return build_platform_services(
-            service_profile=service_profile,
-                **selection_options(resolved_services),
-            live_consent=live_consent,
-            ui=ui,
-            trace_correlation_id=trace_correlation_id,
-            allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
-        )
-    if ui is None and trace_correlation_id is None:
-        return build_platform_services(
-            service_profile=service_profile,
-                **selection_options(resolved_services),
-            live_consent=live_consent,
-            node_provider_request=node_provider_request,
-            allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
-        )
     return build_platform_services(
         service_profile=service_profile,
-                **selection_options(resolved_services),
         live_consent=live_consent,
-        node_provider_request=node_provider_request,
-        ui=ui,
-        trace_correlation_id=trace_correlation_id,
         allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
+        **selection_policy.platform_request_options(selection_options(resolved_services, service_exposure),
+            node_provider_request, ui, trace_correlation_id, profile_operation),
     )
 
 
@@ -1033,33 +1018,14 @@ def _build_deployment_services_for_request(
     ui: PortUI | None = None,
     progress: PortWorkflowProgress | None = None,
     resolved_services: tuple[str, ...] | None = None,
+    service_exposure: Mapping[str, str] | None = None,
+    profile_operation=None,
 ) -> DeploymentServices:
-    if ui is None:
-        if progress is None:
-            return build_deployment_services_for_provider(
-                service_profile=service_profile,
-                **selection_options(resolved_services),
-                node_provider_request=node_provider_request,
-            )
-        return build_deployment_services_for_provider(
-            service_profile=service_profile,
-                **selection_options(resolved_services),
-            node_provider_request=node_provider_request,
-            progress=progress,
-        )
-    if progress is None:
-        return build_deployment_services_for_provider(
-            service_profile=service_profile,
-                **selection_options(resolved_services),
-            node_provider_request=node_provider_request,
-            ui=ui,
-        )
     return build_deployment_services_for_provider(
         service_profile=service_profile,
-                **selection_options(resolved_services),
         node_provider_request=node_provider_request,
-        ui=ui,
-        progress=progress,
+        **selection_policy.deployment_request_options(selection_options(resolved_services, service_exposure),
+            ui, progress, profile_operation),
     )
 
 
@@ -1070,6 +1036,7 @@ def _build_preflight_service_for_request(
     project_paths: ProjectPaths | None = None,
     allow_wsl_windows_filesystem: bool = False,
     resolved_services: tuple[str, ...] | None = None,
+    service_exposure: Mapping[str, str] | None = None,
 ) -> PreflightService:
     if configuration_validation is not None and resolved_services is not None:
         configuration_validation = configuration_validation.for_scopes(set(resolved_services) | {"platform", "deployment"})
@@ -1077,7 +1044,7 @@ def _build_preflight_service_for_request(
     if node_provider_request is None:
         node_provider_request = None
     port_registry = PortRegistryYamlRepository(project_paths=paths).load()
-    port_registry = _project_port_registry(port_registry, resolved_services)
+    port_registry = _project_port_registry(port_registry, resolved_services, service_exposure)
     evaluator, authorizer = _build_project_filesystem_services()
     return PreflightService(
         HostPreflightProbe(
@@ -1085,7 +1052,7 @@ def _build_preflight_service_for_request(
             host_environment_detector=build_host_environment_detector(),
             process_runner=build_process_runner(),
         ),
-        _preflight_configuration_for_provider(service_profile, node_provider_request, **selection_options(resolved_services)),
+        _preflight_configuration_for_provider(service_profile, node_provider_request, **selection_options(resolved_services, service_exposure)),
         construction=PreflightConstruction.STANDARD_SETUP,
         configuration_validation=configuration_validation,
         port_registry=port_registry,
@@ -1105,25 +1072,10 @@ def _build_preflight_service_for_request(
 def _project_port_registry(
     port_registry: PortRegistry,
     resolved_services: tuple[str, ...] | None,
+    service_exposure: Mapping[str, str] | None = None,
 ) -> PortRegistry:
-    if resolved_services is None:
-        return port_registry
-    selected_port_ids = {
-        port_id
-        for contract in service_stack_contracts_for_profile(
-            ServiceStackProfile.SERVICE_ACCESS, resolved_services
-        )
-        for port_id in contract.port_ids
-    }
-    return PortRegistry(
-        ranges=port_registry.ranges,
-        mappings=tuple(
-            mapping
-            for mapping in port_registry.mappings
-            if mapping.port_id in selected_port_ids
-        ),
-        metadata=port_registry.metadata,
-    )
+    return selection_policy.project_port_registry(port_registry, resolved_services, service_exposure,
+        contracts=service_stack_contracts_for_profile, profile=ServiceStackProfile.SERVICE_ACCESS, registry=PortRegistry)
 
 
 def _build_post_install_preflight_service_for_request(
@@ -1133,11 +1085,12 @@ def _build_post_install_preflight_service_for_request(
     project_paths: ProjectPaths | None = None,
     allow_wsl_windows_filesystem: bool = False,
     resolved_services: tuple[str, ...] | None = None,
+    service_exposure: Mapping[str, str] | None = None,
 ) -> PreflightService:
     if configuration_validation is not None and resolved_services is not None:
         configuration_validation = configuration_validation.for_scopes(set(resolved_services) | {"platform", "deployment"})
     paths = project_paths or default_project_paths()
-    configuration = _preflight_configuration_for_provider(service_profile, node_provider_request, **selection_options(resolved_services))
+    configuration = _preflight_configuration_for_provider(service_profile, node_provider_request, **selection_options(resolved_services, service_exposure))
     evaluator, authorizer = _build_project_filesystem_services()
     return PreflightService(
         HostPreflightProbe(
@@ -1217,6 +1170,7 @@ def _preflight_configuration_for_provider(
     node_provider_request: NodeProviderSelectionRequest | None,
     host_environment: HostEnvironmentKind | None = None,
     resolved_services: tuple[str, ...] | None = None,
+    service_exposure: Mapping[str, str] | None = None,
 ) -> PreflightConfiguration:
     resolved_profile = resolve_runtime_profile(service_profile, node_provider_request)
     configuration = replace(
@@ -1236,7 +1190,7 @@ def _preflight_configuration_for_provider(
             disk_path=configuration.resources.disk_path,
         ),
     )
-    configuration = selected_preflight(configuration, service_profile, resolved_services)
+    configuration = selected_preflight(configuration, service_profile, resolved_services, service_exposure)
     provider_request = node_provider_request or _default_node_provider_request()
     if provider_request.requested_provider is not NodeProviderKind.LXC_NATIVE:
         return replace(
@@ -1340,6 +1294,7 @@ def _platform_expose_steps(
     service_profile: ServiceStackProfile,
     live_consent: LiveConsent | None,
     resolved_services: tuple[str, ...] | None = None,
+    service_exposure: Mapping[str, str] | None = None,
 ) -> tuple[AsyncWorkflowStep, ...]:
     return (
         LxcServiceExposureStep(lxc_service_exposure),
@@ -1348,7 +1303,7 @@ def _platform_expose_steps(
             socat_exposure,
             service_profile=ServiceStackProfile(service_profile),
             live_consent=live_consent,
-            **selection_options(resolved_services),
+            **selection_options(resolved_services, service_exposure),
         ),
     )
 
@@ -1421,19 +1376,10 @@ def _portainer_endpoint_verify_step(
 def _wsl_socat_forwarding_plans(
     service_profile: ServiceStackProfile,
     resolved_services: tuple[str, ...] | None = None,
+    service_exposure: Mapping[str, str] | None = None,
 ) -> tuple[PortForwardingPlan, ...]:
-    return tuple(
-        PortForwardingPlan(
-            strategy=ForwardingStrategy.WSL2_SOCAT,
-            service=requirement.service,
-            listen_port=requirement.port,
-            target_port=requirement.port,
-            remediation=("Start WSL socat forwarding after live consent.",),
-        )
-        for requirement in default_setup_manifest(
-            service_profile=service_profile, resolved_services=resolved_services
-        ).required_ports
-    )
+    return selection_policy.forwarding_plans(service_profile, resolved_services, service_exposure,
+        manifest=default_setup_manifest, plan=PortForwardingPlan, strategy=ForwardingStrategy.WSL2_SOCAT)
 
 
 def _wsl_socat_expose_message(status: VerificationStatus) -> str:
@@ -1517,6 +1463,7 @@ def _lxc_manager_node() -> NodeSpec:
 def _deployment_stack_environment(
     service_profile: ServiceStackProfile,
     resolved_services: tuple[str, ...] | None = None,
+    service_exposure: Mapping[str, str] | None = None,
 ) -> dict[str, dict[str, str]]:
     registry_endpoint = (_swarm_registry_endpoint() if needs_registry_images(resolved_services) else "")
     environment = {
@@ -1635,6 +1582,7 @@ def _deployment_stack_environment(
 def _infisical_secret_seed_steps(
     service_profile: ServiceStackProfile,
     resolved_services: tuple[str, ...] | None = None,
+    service_exposure: Mapping[str, str] | None = None,
 ) -> list[EnsureInfisicalSecretItems]:
     if service_profile is not ServiceStackProfile.SERVICE_ACCESS:
         return []

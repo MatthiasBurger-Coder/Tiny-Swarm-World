@@ -9,7 +9,7 @@ param(
     [int]$ProbeTimeoutSeconds=15,[int]$ActionTimeoutSeconds=900
 )
 $ErrorActionPreference='Stop'
-$RepositoryRoot=(Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../../../..')).Path
+$RepositoryRoot=[IO.Path]::GetFullPath((Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../../../..')).ProviderPath)
 $requiredAssets=@(
     'modules/tsw_windows_wsl/bootstrap/windows/preparation/Preparation.psm1','modules/tsw_windows_wsl/bootstrap/windows/preparation/Policy.ps1',
     'modules/tsw_windows_wsl/bootstrap/windows/preparation/Application.ps1','modules/tsw_windows_wsl/bootstrap/windows/preparation/Adapters.ps1',

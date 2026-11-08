@@ -8,20 +8,21 @@ from pathlib import Path
 
 from tiny_swarm_world.application.ports.network_preparation import NetworkPreparationFailure
 from tiny_swarm_world.infrastructure.adapters.network_preparation import runtime
-from tiny_swarm_world.infrastructure.adapters.network_preparation.nat_policy import bypass, bridge_set, legacy_nat, verify_filter
+from tiny_swarm_world.infrastructure.adapters.network_preparation.nat_policy import bypass, bridge_set, legacy_nat, verify_filter, checked_expressions, validate_bridge_scope
 from tiny_swarm_world.infrastructure.adapters.network_preparation import nat_conflicts
 from tiny_swarm_world.infrastructure.adapters.network_preparation.firewall import (
     Bridge, equivalent, exact_present, forwarding_rules, input_rules, parse_rules, verify_no_foreign_denies,
 )
 
 
-async def inventory(bridges: tuple[Bridge, ...], ports: tuple[int, ...] = ()) -> dict[str, Any]:
+async def inventory(bridges: tuple[Bridge, ...], ports: tuple[int, ...] = (), *, owners: tuple[Bridge, ...] | None = None) -> dict[str, Any]:
     version = await runtime.command(("iptables", "--version"))
     if "nf_tables" not in version:
         raise NetworkPreparationFailure("iptables-nft backend required; preserve the current firewall owner.")
-    owners = await runtime.command(("systemctl", "show", "firewalld.service", "nftables.service",
+    managed_owners = owners
+    owner_status = await runtime.command(("systemctl", "show", "firewalld.service", "nftables.service",
                                    "--property=Id", "--property=ActiveState", "--property=UnitFileState"))
-    if "ActiveState=active" in owners or "UnitFileState=enabled" in owners:
+    if "ActiveState=active" in owner_status or "UnitFileState=enabled" in owner_status:
         raise NetworkPreparationFailure("Custom nftables/firewalld owner is unsupported; preserve it.")
     status = await ufw_status()
     if not status.startswith(("Status: active", "Status: inactive", "Status: absent")):
@@ -39,14 +40,14 @@ async def inventory(bridges: tuple[Bridge, ...], ports: tuple[int, ...] = ()) ->
         raise NetworkPreparationFailure("Residual UFW rules without its executable; preserve that owner.")
     verify_no_foreign_denies(rules, ufw=ufw)
     nft = await runtime.json_command(("nft", "-j", "list", "ruleset"), privileged_read=True)
-    verify_nft(nft, bridges)
+    verify_nft(nft, bridges, owners=managed_owners)
     verify_compatibility(nft, saved)
     if ":OUTPUT ACCEPT " not in saved and (not ufw or "allow (outgoing)" not in status):
         raise NetworkPreparationFailure("Restrictive/unknown OUTPUT prevents DHCP replies; consult firewall owner.")
     added = await runtime.privileged(("ufw", "show", "added")) if ufw else ""
     missing = missing_rules(bridges, rules, input_restricted=ufw or ":INPUT ACCEPT " not in saved, ufw=ufw)
     return {"ufw": ufw, "status": status, "saved": "\n".join(line for line in saved.splitlines() if not line.startswith("#")), "nft": stable_nft(nft), "missing": missing,
-            "owners": owners, "added": added, "input_restricted": ufw or ":INPUT ACCEPT " not in saved}
+            "owners": owner_status, "managed_bridge_owners": managed_owners, "added": added, "input_restricted": ufw or ":INPUT ACCEPT " not in saved}
 
 
 async def ufw_status() -> str:
@@ -105,37 +106,57 @@ def missing_rules(bridges: tuple[Bridge, ...], rules: dict[str, list[tuple[str, 
     return tuple(missing)
 
 
-def verify_nft(value: Any, bridges: tuple[Bridge, ...]) -> None:
+def verify_nft(value: Any, bridges: tuple[Bridge, ...], *, owners: tuple[Bridge, ...] | None = None) -> None:
     if not isinstance(value, dict) or not isinstance(value.get("nftables"), list):
         raise NetworkPreparationFailure("Complete nft ruleset is required.")
+    explicit_owners = owners is not None
+    managed = bridges if owners is None else owners
+    validate_bridge_scope(bridges, managed)
     recognized = {("ip", "filter"), ("ip", "nat"), ("ip", "mangle"), ("ip", "raw"),
                   ("ip6", "filter"), ("ip6", "nat"), ("ip6", "mangle"), ("ip6", "raw"), ("inet", "incus")}
     nat: list[dict[str, Any]] = []
     nat_chains = set()
+    incus_chains = set()
     for entry in value["nftables"]:
         if not isinstance(entry, dict):
             raise NetworkPreparationFailure("Unreadable nft rule entry.")
         chain = entry.get("chain", {})
         if "hook" in chain or chain.get("table") == "incus":
-            verify_chain(chain, recognized, bridges)
+            verify_chain(chain, recognized, managed)
+            if chain.get("table") == "incus":
+                if chain["name"] in incus_chains:
+                    raise NetworkPreparationFailure("Duplicate native Incus chain definition.")
+                incus_chains.add(chain["name"])
             if chain.get("table") == "incus" and chain.get("hook") == "postrouting":
                 nat_chains.add(chain.get("name"))
         rule = entry.get("rule", {})
         if rule.get("table") == "incus":
+            allowed_chains = {prefix + bridge.name for bridge in managed for prefix in ("in.", "out.", "fwd.", "pstrt.")}
+            if rule.get("family") != "inet" or rule.get("chain") not in allowed_chains:
+                raise NetworkPreparationFailure("Native Incus rule has no authoritative bridge owner.")
             text = json.dumps(rule, sort_keys=True)
             if '"drop"' in text or '"reject"' in text or "acl." in rule.get("chain", ""):
                 raise NetworkPreparationFailure("Incus ACL/deny effectiveness cannot be proven.")
             if not rule.get("chain", "").startswith("pstrt."):
-                verify_filter(rule, bridges)
+                verify_filter(rule, managed)
             nat.append(rule)
-    for bridge in bridges:
+    expected_chains = {prefix + bridge.name for bridge in managed for prefix in ("in.", "out.", "fwd.", "pstrt.")}
+    if incus_chains != expected_chains:
+        raise NetworkPreparationFailure("Incomplete native Incus bridge chain ownership.")
+    native_sets = [entry["set"] for entry in value["nftables"] if "set" in entry and entry["set"].get("table") == "incus"]
+    if native_sets and not bridge_set(value["nftables"], managed):
+        raise NetworkPreparationFailure("Native Incus bridge set differs from complete owner scope.")
+    for entry in value["nftables"]:
+        item = entry.get("set", {})
+        if item.get("table") == "incus" and (item.get("family") != "inet" or item.get("name") != "bridges"):
+            raise NetworkPreparationFailure("Unknown native Incus set owner.")
+    for bridge in managed:
         scoped = [rule for rule in nat if rule.get("chain") == "pstrt." + bridge.name]
-        paired = (bridge_set(value["nftables"], bridges) and len(scoped) == 2
+        paired = (bridge_set(value["nftables"], managed) and len(scoped) == 2
                   and bypass(scoped[0], bridge) and managed_nat(scoped[1], bridge))
-        # Incus 6.0 LTS uses one subnet-scoped masquerade, without a bridge
-        # set/bypass pair. Limit that form to a single managed bridge so it
-        # cannot masquerade traffic between managed bridge subnets.
-        legacy = len(bridges) == 1 and len(scoped) == 1 and legacy_nat(scoped[0], bridge)
+        # Existing Incus 6.0 rules may NAT between bridges. Recognize that
+        # preserved behavior only with explicit complete owner proof; TSW adds no NAT.
+        legacy = (explicit_owners or len(bridges) == 1) and len(scoped) == 1 and legacy_nat(scoped[0], bridge)
         if "pstrt." + bridge.name not in nat_chains or not (paired or legacy):
             raise NetworkPreparationFailure("Incus-owned effective NAT missing; inspect Incus network readiness. No TSW NAT is created.")
 
@@ -149,7 +170,7 @@ def verify_chain(chain, recognized, bridges) -> None:
                      for prefix, hook, priority in (("in.", "input", 0), ("out.", "output", 0),
                                                     ("fwd.", "forward", 0), ("pstrt.", "postrouting", 100))}
         actual = (chain.get("name"), chain.get("hook"), chain.get("prio"))
-        if actual not in permitted or chain.get("policy") != "accept" or chain.get("type") != ("nat" if chain.get("hook") == "postrouting" else "filter"):
+        if type(chain.get("prio")) is not int or actual not in permitted or chain.get("policy") != "accept" or chain.get("type") != ("nat" if chain.get("hook") == "postrouting" else "filter"):
             raise NetworkPreparationFailure("Incus hook/policy/priority differs from supported owner.")
     else:
         canonical = {"INPUT": "input", "OUTPUT": "output", "FORWARD": "forward",
@@ -168,26 +189,11 @@ def managed_nat(rule: dict[str, Any], bridge: Bridge) -> bool:
         return False
     if rule.get("chain") != "pstrt." + bridge.name:
         return False
-    expressions = rule.get("expr", [])
-    if not any("masquerade" in item or "snat" in item for item in expressions):
-        return False
     subnet = ip_network(bridge.subnet)
-    source = False
-    destination = False
-    for expression in expressions:
-        if "masquerade" in expression or "snat" in expression or "counter" in expression:
-            continue
-        match = expression.get("match", {})
-        payload = match.get("left", {}).get("payload", {})
-        prefix = match.get("right", {}).get("prefix", {}) if isinstance(match.get("right"), dict) else {}
-        if (match.get("op") == "==" and payload == {"protocol": "ip", "field": "saddr"}
-                and prefix == {"addr": str(subnet.network_address), "len": subnet.prefixlen}):
-            source = True
-        elif (match.get("op") == "!=" and payload == {"protocol": "ip", "field": "daddr"}
-              and prefix == {"addr": str(subnet.network_address), "len": subnet.prefixlen}):
-            destination = True
-        elif match == {"op": "!=", "left": {"meta": {"key": "oifname"}}, "right": bridge.name}:
-            continue
-        else:
-            return False
-    return source and destination
+    prefix = {"prefix": {"addr": str(subnet.network_address), "len": subnet.prefixlen}}
+    source = {"match": {"op": "==", "left": {"payload": {"protocol": "ip", "field": "saddr"}}, "right": prefix}}
+    destination = {"match": {"op": "!=", "left": {"payload": {"protocol": "ip", "field": "daddr"}}, "right": prefix}}
+    output = {"match": {"op": "!=", "left": {"meta": {"key": "oifname"}}, "right": bridge.name}}
+    expressions = checked_expressions(rule)
+    return expressions in ([source, destination, {"masquerade": None}],
+                           [source, destination, output, {"masquerade": None}])

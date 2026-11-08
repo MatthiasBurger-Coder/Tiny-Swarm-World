@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 from datetime import datetime, timezone
 import hashlib
 import ipaddress
@@ -23,9 +24,12 @@ ROOT = Path(__file__).resolve().parents[5]
 TRUSTED_BIN = {'incus': '/usr/bin/incus', 'ip': '/usr/sbin/ip', 'ss': '/usr/bin/ss', 'uname': '/usr/bin/uname', 'free': '/usr/bin/free', 'df': '/usr/bin/df', 'curl': '/usr/bin/curl', 'git': '/usr/bin/git'}
 TRUSTED_PATH = '/usr/sbin:/usr/bin:/sbin:/bin'
 PRIVATE_EVIDENCE_REL = Path('.tiny-swarm/evidence/issue-449/s449-private-20261027')
+WINDOWS_SNAPSHOT_REL = Path('tools/windows/qualification/windows_firewall_snapshot.ps1')
+WINDOWS_CERTIFICATE_REL = Path('tools/windows/qualification/windows_firewall_certificate.ps1')
+WINDOWS_CERTIFICATE_SHA256 = '2ed11f507292e8abad5367856929e2698c26c4db11f8cf9d00c19fa2da34f458'
 GO_REL = PRIVATE_EVIDENCE_REL / 'three-amigos-s02-live-go.json'
 RESULT_REL = PRIVATE_EVIDENCE_REL / 'r67-incus-6.0.5-listener-fixture.json'
-GO_KEYS = {'decision','source_commit','workflow_sha256','runner_sha256','test_sha256','resource_admission_sha256','issue447_inventory_sha256','target','proxy','cleanup','reviews','windows_rules_unchanged','external_routes_enabled','default_profile_sha256','default_profile_used_by','approved_route_state_sha256','fixture_base_profile_sha256'}
+GO_KEYS = {'decision','source_commit','workflow_sha256','runner_sha256','test_sha256','resource_admission_sha256','issue447_inventory_sha256','target','proxy','cleanup','reviews','windows_rules_unchanged','external_routes_enabled','default_profile_sha256','default_profile_used_by','approved_route_state_sha256','fixture_base_profile_sha256','windows_snapshot_sha256','windows_certificate_sha256'}
 TARGET_KEYS = {'host','endpoint','project','server_version','run_id','profile','base_profile','instance','image_fingerprint'}
 PROXY_KEYS = {'listen','connect','bind'}
 REVIEW_KEYS = {'requirements','architecture','security','devops','test_evidence'}
@@ -42,17 +46,23 @@ SUPPORTED_PROXY_PROTOCOL_PAIRS = {
 _SECRET_CONFIG_KEY = re.compile(r'(?i)(password|passphrase|secret|token|credential|private[_-]?key)')
 _INVENTORY_COMMAND_MAX_BYTES = 2 * 1024 * 1024
 _INVENTORY_MAX_ENTITIES = 10_000
+_INVENTORY_JSON_MAX_DEPTH = 32
 _INVENTORY_ARTIFACT_MAX_BYTES = 8 * 1024 * 1024
 _INVENTORY_MAX_COMMANDS = 256
 _INVENTORY_TOTAL_COMMAND_MAX_BYTES = 16 * 1024 * 1024
 _INVENTORY_HOST_COMMAND_TIMEOUT_SECONDS = 30
 _INVENTORY_TOTAL_TIMEOUT_SECONDS = 300
-_INVENTORY_CLEANUP_COMMAND_RESERVE = 32
+_WSL_INVENTORY_TOTAL_TIMEOUT_SECONDS = 650
+_WSL_INVENTORY_CLEANUP_TIMEOUT_RESERVE_SECONDS = 300
+_INVENTORY_TARGET_HOST = '192.168.178.33'
+_INVENTORY_CLEANUP_COMMAND_RESERVE = 110
 _INVENTORY_CLEANUP_BYTE_RESERVE = 8 * 1024 * 1024
 _INVENTORY_CLEANUP_ENTITY_RESERVE = 5_000
 _INVENTORY_CLEANUP_TIMEOUT_RESERVE_SECONDS = 60
 _INVENTORY_BYTES_CAPTURED = 0
 _INVENTORY_ENTITIES_CAPTURED = 0
+_JSON_SLOT_PATH = tuple[tuple[str, str | int], ...]
+_INVENTORY_ENTITY_SLOTS: set[tuple[tuple[str, ...], _JSON_SLOT_PATH]] = set()
 _INVENTORY_STARTED_AT: float | None = None
 _INVENTORY_RESERVE_CLEANUP = False
 _INVENTORY_CLEANUP_MODE = False
@@ -66,11 +76,14 @@ _WINDOWS_SNAPSHOT_METADATA: dict[str, Any] = {}
 
 def _inventory_budgets() -> tuple[int, int, int, float]:
     reserve = _INVENTORY_RESERVE_CLEANUP and not _INVENTORY_CLEANUP_MODE
+    wsl = _INVENTORY_TARGET_HOST == '192.168.178.58'
+    total = _WSL_INVENTORY_TOTAL_TIMEOUT_SECONDS if wsl else _INVENTORY_TOTAL_TIMEOUT_SECONDS
+    cleanup = _WSL_INVENTORY_CLEANUP_TIMEOUT_RESERVE_SECONDS if wsl else _INVENTORY_CLEANUP_TIMEOUT_RESERVE_SECONDS
     return (
         _INVENTORY_MAX_COMMANDS - (_INVENTORY_CLEANUP_COMMAND_RESERVE if reserve else 0),
         _INVENTORY_TOTAL_COMMAND_MAX_BYTES - (_INVENTORY_CLEANUP_BYTE_RESERVE if reserve else 0),
         _INVENTORY_MAX_ENTITIES - (_INVENTORY_CLEANUP_ENTITY_RESERVE if reserve else 0),
-        _INVENTORY_TOTAL_TIMEOUT_SECONDS - (_INVENTORY_CLEANUP_TIMEOUT_RESERVE_SECONDS if reserve else 0),
+        total - (cleanup if reserve else 0),
     )
 
 class FixtureError(Exception):
@@ -78,6 +91,39 @@ class FixtureError(Exception):
 
 class TargetDrift(FixtureError):
     """Post-reservation target state differs from approved state."""
+
+
+class _BoundedCommandFailure(TargetDrift):
+    """Retain only output lengths when a bounded transport cannot complete."""
+
+    def __init__(self, code: str, stdout_bytes: int, stderr_bytes: int) -> None:
+        super().__init__(code)
+        self.stdout_bytes = stdout_bytes
+        self.stderr_bytes = stderr_bytes
+
+
+def _inventory_budget_profile() -> dict[str, Any]:
+    wsl = _INVENTORY_TARGET_HOST == '192.168.178.58'
+    total = _WSL_INVENTORY_TOTAL_TIMEOUT_SECONDS if wsl else _INVENTORY_TOTAL_TIMEOUT_SECONDS
+    reserve = (_WSL_INVENTORY_CLEANUP_TIMEOUT_RESERVE_SECONDS if wsl else
+               _INVENTORY_CLEANUP_TIMEOUT_RESERVE_SECONDS) if _INVENTORY_RESERVE_CLEANUP else 0
+    return {'target_host': _INVENTORY_TARGET_HOST, 'total_seconds': total,
+            'cleanup_reserve_seconds': reserve, 'active_seconds': total - reserve}
+
+
+def _begin_inventory(host: str, *, reserve_cleanup: bool) -> None:
+    global _INVENTORY_TARGET_HOST, _INVENTORY_BYTES_CAPTURED, _INVENTORY_ENTITIES_CAPTURED
+    global _INVENTORY_STARTED_AT, _INVENTORY_RESERVE_CLEANUP, _INVENTORY_CLEANUP_MODE, _WINDOWS_SNAPSHOT_METADATA
+    if host not in {'192.168.178.33', '192.168.178.58'}:
+        raise FixtureError('HOST_IDENTITY_DRIFT')
+    _INVENTORY_TARGET_HOST = host
+    _COMMAND_AUDIT.clear()
+    _INVENTORY_BYTES_CAPTURED = _INVENTORY_ENTITIES_CAPTURED = 0
+    _INVENTORY_ENTITY_SLOTS.clear()
+    _INVENTORY_STARTED_AT = None
+    _INVENTORY_RESERVE_CLEANUP = reserve_cleanup
+    _INVENTORY_CLEANUP_MODE = False
+    _WINDOWS_SNAPSHOT_METADATA = {}
 
 
 def _pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -293,13 +339,40 @@ def _derive_fixture_base(profile: dict[str, Any]) -> dict[str, dict[str, Any]]:
     return {'config': config, 'devices': devices}
 
 
-def _json_entity_count(value: Any) -> int:
-    if isinstance(value, dict):
-        return 1 + sum(_json_entity_count(key) + _json_entity_count(item)
-                       for key, item in value.items())
-    if isinstance(value, list):
-        return 1 + sum(_json_entity_count(item) for item in value)
-    return 1
+def _json_slot_paths(value: Any, code: str) -> set[_JSON_SLOT_PATH]:
+    """Bound one complete response traversal; paths are RAM-only resource slots."""
+    pending: list[tuple[Any, _JSON_SLOT_PATH, int]] = [(value, (), 0)]
+    slots: set[_JSON_SLOT_PATH] = set()
+    while pending:
+        item, path, depth = pending.pop()
+        if depth > _INVENTORY_JSON_MAX_DEPTH:
+            raise TargetDrift(code)
+        slots.add(path)
+        if len(slots) > _INVENTORY_MAX_ENTITIES:
+            raise TargetDrift(code)
+        if isinstance(item, dict):
+            for key, child in item.items():
+                if not isinstance(key, str):
+                    raise TargetDrift(code)
+                slots.add((*path, ('key', key)))
+                if len(slots) > _INVENTORY_MAX_ENTITIES:
+                    raise TargetDrift(code)
+                pending.append((child, (*path, ('value', key)), depth + 1))
+        elif isinstance(item, list):
+            if len(item) > _INVENTORY_MAX_ENTITIES:
+                raise TargetDrift(code)
+            pending.extend((child, (*path, ('index', index)), depth + 1)
+                           for index, child in enumerate(item))
+    return slots
+
+
+def _account_inventory_json(argv: list[str], value: Any, code: str) -> None:
+    """Only callers after allowlist validation may supply the exact read scope."""
+    scope = tuple(argv)
+    observed = {(scope, path) for path in _json_slot_paths(value, code)}
+    new = observed - _INVENTORY_ENTITY_SLOTS
+    _account_inventory_entities(len(new), code)
+    _INVENTORY_ENTITY_SLOTS.update(new)
 
 
 def approved_route_state_sha256(listeners_10001: list[bytes],
@@ -505,6 +578,8 @@ def validate_go(go: Any, args: argparse.Namespace, head: str, workflow: bytes, r
         raise FixtureError('INVALID_DECISION')
     if not isinstance(go['source_commit'], str) or not HASH40.fullmatch(go['source_commit']) or go['source_commit'] != head:
         raise FixtureError('SOURCE_HEAD_MISMATCH')
+    _windows_snapshot_query(_hash(go['windows_snapshot_sha256'], HASH64, 'INVALID_GO_HASH'))
+    _windows_certificate_source(_hash(go['windows_certificate_sha256'], HASH64, 'INVALID_GO_HASH'))
     bindings = {'workflow_sha256': workflow, 'runner_sha256': runner, 'test_sha256': tests}
     for key, raw in bindings.items():
         expected = _hash(go[key], HASH64, 'INVALID_GO_HASH')
@@ -550,62 +625,149 @@ def validate_go(go: Any, args: argparse.Namespace, head: str, workflow: bytes, r
 
 
 def command(argv: list[str]) -> bytes:
+    global _INVENTORY_BYTES_CAPTURED, _INVENTORY_STARTED_AT
     argv = list(argv)
-    if argv == ['/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe',
-                '-NoProfile', '-NonInteractive', '-Command', _WINDOWS_ACTIVE_STORE_QUERY]:
-        return _snapshot_process(argv, 120, 14 * 1024 * 1024, 2 * 1024 * 1024,
-                                 'WINDOWS_FIREWALL_SNAPSHOT_UNREADABLE')
+    if argv[:2] == ['incus', 'info']:
+        raise FixtureError('INVENTORY_COMMAND_NOT_ALLOWLISTED')
+    if (argv and argv[0] == '/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe'
+            and argv != [argv[0], '-NoProfile', '-NonInteractive', '-Command',
+                         '(Get-NetIPAddress -AddressFamily IPv4).IPAddress']):
+        if argv != [argv[0], '-NoProfile', '-NonInteractive', '-Command', _windows_snapshot_wrapper()]:
+            raise FixtureError('WINDOWS_SNAPSHOT_COMMAND_NOT_ALLOWLISTED')
+        return _snapshot_process(argv, 120, 2 * 1024 * 1024, 2 * 1024 * 1024,
+                                 'WINDOWS_FIREWALL_SNAPSHOT_UNREADABLE', require_empty_stderr=True)
     if argv == ['/mnt/c/Windows/System32/netsh.exe', 'interface', 'portproxy', 'show', 'all']:
         return _snapshot_process(argv, 30, 2 * 1024 * 1024, 2 * 1024 * 1024,
                                  'WINDOWS_FIREWALL_SNAPSHOT_UNREADABLE')
     if (argv and argv[0] == 'incus' and len(argv) > 1
-            and (argv[1] in {'query', 'list', 'info'}
+            and (argv[1] in {'query', 'list'}
                  or argv[1:3] in (['project', 'list'], ['profile', 'list'],
                                   ['image', 'list'], ['image', 'info']))):
-        raw = _inventory_command(argv)
-        parsed = strict_json(raw)
-        _account_inventory_entities(_json_entity_count(parsed), 'INCUS_INVENTORY_UNREADABLE')
-        return raw
+        return _inventory_command(argv)
     if argv and argv[0] in TRUSTED_BIN:
         argv[0] = TRUSTED_BIN[argv[0]]
     if not argv or not os.path.isabs(argv[0]):
         raise TargetDrift('UNTRUSTED_EXECUTABLE')
+    command_limit, byte_limit, _, total_timeout = _inventory_budgets()
+    if len(_COMMAND_AUDIT) >= command_limit:
+        raise TargetDrift('INCUS_INVENTORY_COMMAND_LIMIT_EXCEEDED')
+    if _INVENTORY_STARTED_AT is None:
+        _INVENTORY_STARTED_AT = time.monotonic()
+    remaining = total_timeout - (time.monotonic() - _INVENTORY_STARTED_AT)
+    if remaining <= 0:
+        raise TargetDrift('INCUS_INVENTORY_TOTAL_TIMEOUT')
+    if byte_limit - _INVENTORY_BYTES_CAPTURED < 2:
+        raise TargetDrift('INCUS_INVENTORY_OUTPUT_TOO_LARGE')
     try:
-        result = subprocess.run(argv, cwd=ROOT, env={'PATH': TRUSTED_PATH, 'LANG': 'C.UTF-8'}, check=False, stdout=subprocess.PIPE,
-                                stderr=subprocess.DEVNULL, timeout=20)
-    except (OSError, subprocess.TimeoutExpired) as exc:
-        raise TargetDrift('JIT_COMMAND_FAILED') from exc
-    _COMMAND_AUDIT.append(_safe_command_record(argv, result.returncode, len(result.stdout), 0))
-    if result.returncode:
+        stdout, stderr, status = _bounded_process_output(argv, min(20, remaining),
+            min(_INVENTORY_COMMAND_MAX_BYTES, (byte_limit - _INVENTORY_BYTES_CAPTURED) // 2),
+            error_code='JIT_COMMAND_FAILED')
+    except _BoundedCommandFailure as exc:
+        _COMMAND_AUDIT.append(_safe_command_record(argv, None, exc.stdout_bytes, exc.stderr_bytes))
+        _INVENTORY_BYTES_CAPTURED += exc.stdout_bytes + exc.stderr_bytes
+        raise
+    _COMMAND_AUDIT.append(_safe_command_record(argv, status, len(stdout), len(stderr)))
+    _INVENTORY_BYTES_CAPTURED += len(stdout) + len(stderr)
+    if time.monotonic() - _INVENTORY_STARTED_AT > total_timeout:
+        raise TargetDrift('INCUS_INVENTORY_TOTAL_TIMEOUT')
+    if status:
         raise TargetDrift('JIT_COMMAND_FAILED')
-    return result.stdout
+    return stdout
 
 
-_WINDOWS_ACTIVE_STORE_QUERY = r'''
-$ErrorActionPreference = 'Stop'
-[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)
-$profiles = @(Get-NetFirewallProfile -PolicyStore ActiveStore | Sort-Object Name | Select-Object *)
-$settings = @(Get-NetFirewallSetting -PolicyStore ActiveStore | Select-Object *)
-$rules = @(Get-NetFirewallRule -PolicyStore ActiveStore | Sort-Object Name | ForEach-Object {
-  $rule = $_
-  [ordered]@{
-    rule = $rule | Select-Object *
-    profiles = @(Get-NetFirewallProfile -AssociatedNetFirewallRule $rule -PolicyStore ActiveStore | Select-Object *)
-    address = @(Get-NetFirewallAddressFilter -AssociatedNetFirewallRule $rule -PolicyStore ActiveStore | Select-Object *)
-    application = @(Get-NetFirewallApplicationFilter -AssociatedNetFirewallRule $rule -PolicyStore ActiveStore | Select-Object *)
-    interface = @(Get-NetFirewallInterfaceFilter -AssociatedNetFirewallRule $rule -PolicyStore ActiveStore | Select-Object *)
-    interface_type = @(Get-NetFirewallInterfaceTypeFilter -AssociatedNetFirewallRule $rule -PolicyStore ActiveStore | Select-Object *)
-    port = @(Get-NetFirewallPortFilter -AssociatedNetFirewallRule $rule -PolicyStore ActiveStore | Select-Object *)
-    security = @(Get-NetFirewallSecurityFilter -AssociatedNetFirewallRule $rule -PolicyStore ActiveStore | Select-Object *)
-    service = @(Get-NetFirewallServiceFilter -AssociatedNetFirewallRule $rule -PolicyStore ActiveStore | Select-Object *)
-  }
+def _windows_snapshot_query(expected_sha256: str | None = None) -> str:
+    return _windows_source_asset(WINDOWS_SNAPSHOT_REL, expected_sha256)
+
+
+def _windows_source_asset(relative: Path, expected_sha256: str | None = None) -> str:
+    """Read only a fixed plain bounded source asset; retain no raw host data."""
+    path = ROOT / relative
+    current = ROOT
+    try:
+        for component in relative.parts[:-1]:
+            current = current / component
+            if not stat.S_ISDIR(current.lstat().st_mode) or current.is_symlink():
+                raise FixtureError('WINDOWS_SNAPSHOT_ASSET_UNSAFE')
+        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC)
+        try:
+            before = os.fstat(fd)
+            if not stat.S_ISREG(before.st_mode) or not 0 < before.st_size <= 65536:
+                raise FixtureError('WINDOWS_SNAPSHOT_ASSET_UNSAFE')
+            raw = bytearray()
+            while len(raw) <= 65536:
+                part = os.read(fd, min(8192, 65537 - len(raw)))
+                if not part:
+                    break
+                raw.extend(part)
+            after = os.fstat(fd)
+            if (len(raw) != before.st_size or len(raw) > 65536
+                    or (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns, before.st_ctime_ns)
+                       != (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns, after.st_ctime_ns)):
+                raise FixtureError('WINDOWS_SNAPSHOT_ASSET_UNSAFE')
+        finally:
+            os.close(fd)
+        data = bytes(raw)
+        if expected_sha256 is not None and (not isinstance(expected_sha256, str)
+                or HASH64.fullmatch(expected_sha256) is None or digest(data) != expected_sha256):
+            raise FixtureError('WINDOWS_SNAPSHOT_ASSET_MISMATCH')
+        text = data.decode('utf-8', errors='strict')
+        if text.startswith('\ufeff') or not text.strip() or '\x00' in text:
+            raise FixtureError('WINDOWS_SNAPSHOT_ASSET_UNSAFE')
+        return text
+    except (OSError, UnicodeError) as exc:
+        raise FixtureError('WINDOWS_SNAPSHOT_ASSET_UNSAFE') from exc
+
+
+def _windows_certificate_source(expected_sha256: str | None = None) -> str:
+    if expected_sha256 is not None and expected_sha256 != WINDOWS_CERTIFICATE_SHA256:
+        raise FixtureError('WINDOWS_SNAPSHOT_ASSET_MISMATCH')
+    return _windows_source_asset(WINDOWS_CERTIFICATE_REL, WINDOWS_CERTIFICATE_SHA256)
+
+
+def _windows_snapshot_wrapper(expected_sha256: str | None = None, certificate_sha256: str | None = None) -> str:
+    query = _windows_snapshot_query(expected_sha256).encode('utf-8')
+    producer = _windows_certificate_source(certificate_sha256)
+    if producer.count('QUERY_BASE64') != 1 or producer.count('QUERY_SHA256') != 1:
+        raise FixtureError('WINDOWS_SNAPSHOT_TEMPLATE_INVALID')
+    wrapper = producer.replace('QUERY_BASE64', base64.b64encode(query).decode('ascii')).replace(
+        'QUERY_SHA256', digest(query))
+    # Conservative headroom for executable/argv quoting under CreateProcessW.
+    if len(subprocess.list2cmdline(['powershell.exe', '-NoProfile', '-NonInteractive', '-Command', wrapper]).encode('utf-16-le')) // 2 > 30000:
+        raise FixtureError('WINDOWS_SNAPSHOT_COMMAND_TOO_LARGE')
+    return wrapper
+
+
+_WINDOWS_FIXTURE_EXECUTABLES = frozenset({
+    '/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe',
+    '/mnt/c/Windows/System32/netsh.exe',
 })
-[ordered]@{profiles=$profiles;settings=$settings;rules=$rules} | ConvertTo-Json -Depth 100 -Compress
-'''.strip()
+
+
+def _fixture_process_cwd(argv: list[str]) -> Path:
+    return Path('/mnt/c/Windows/System32') if argv and argv[0] in _WINDOWS_FIXTURE_EXECUTABLES else ROOT
+
+
+def _fixture_process_environment(argv: list[str]) -> dict[str, str]:
+    env = {'PATH': TRUSTED_PATH, 'LANG': 'C.UTF-8'}
+    if not argv or argv[0] not in _WINDOWS_FIXTURE_EXECUTABLES:
+        return env
+    interop = os.environ.get('WSL_INTEROP', '')
+    if not interop:
+        return env
+    if not re.fullmatch(r'/run/WSL/[0-9]+_interop', interop):
+        raise TargetDrift('WINDOWS_INTEROP_UNVERIFIED')
+    try:
+        mode = Path(interop).lstat().st_mode
+    except OSError as exc:
+        raise TargetDrift('WINDOWS_INTEROP_UNVERIFIED') from exc
+    if not stat.S_ISSOCK(mode):
+        raise TargetDrift('WINDOWS_INTEROP_UNVERIFIED')
+    env['WSL_INTEROP'] = interop
+    return env
 
 
 def _snapshot_process(argv: list[str], timeout_seconds: float, stdout_limit: int,
-                      stderr_limit: int, failure_code: str) -> bytes:
+                      stderr_limit: int, failure_code: str, *, require_empty_stderr: bool = False) -> bytes:
     """Capture one allowlisted Windows snapshot process under shared budgets."""
     global _INVENTORY_BYTES_CAPTURED, _INVENTORY_STARTED_AT
     command_limit, byte_limit, _, total_timeout = _inventory_budgets()
@@ -620,8 +782,9 @@ def _snapshot_process(argv: list[str], timeout_seconds: float, stdout_limit: int
     selector = None
     stdout, stderr = bytearray(), bytearray()
     started = time.monotonic()
+    env = _fixture_process_environment(argv)
     try:
-        process = subprocess.Popen(argv, cwd=ROOT, env={'PATH': TRUSTED_PATH, 'LANG': 'C.UTF-8'},
+        process = subprocess.Popen(argv, cwd=_fixture_process_cwd(argv), env=env,
                                    stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         assert process.stdout is not None and process.stderr is not None
         selector = selectors.DefaultSelector()
@@ -691,7 +854,7 @@ def _snapshot_process(argv: list[str], timeout_seconds: float, stdout_limit: int
     _COMMAND_AUDIT.append(_safe_command_record(argv, exit_status, len(stdout), len(stderr)) |
                           {'duration_ms': duration_ms})
     _INVENTORY_BYTES_CAPTURED += len(stdout) + len(stderr)
-    if exit_status:
+    if exit_status or require_empty_stderr and stderr:
         raise TargetDrift('WINDOWS_SNAPSHOT_COMMAND_FAILED')
     if time.monotonic() - _INVENTORY_STARTED_AT > total_timeout:
         raise TargetDrift('INCUS_INVENTORY_TOTAL_TIMEOUT')
@@ -804,59 +967,48 @@ def _assert_windows_unchanged(before: bytes, after: bytes) -> None:
         raise TargetDrift('WINDOWS_RULES_CHANGED')
 
 
-def _windows_snapshot() -> bytes:
+_WINDOWS_FILTER_KINDS = ('address', 'application', 'interface', 'interface_type',
+                         'port', 'security', 'service')
+def _windows_firewall_certificate(value: Any, expected_sha256: str) -> dict[str, Any]:
+    code = 'WINDOWS_FIREWALL_SNAPSHOT_UNREADABLE'
+    keys = {'schema_version', 'query_sha256', 'snapshot_sha256', 'snapshot_bytes',
+            'snapshot_schema_version', 'store', 'association_model', 'counts'}
+    if (not isinstance(value, dict) or set(value) != keys
+            or value['schema_version'] != 'tsw.windows-firewall-certificate.v1'
+            or not isinstance(value['query_sha256'], str) or HASH64.fullmatch(value['query_sha256']) is None
+            or value['query_sha256'] != expected_sha256
+            or not isinstance(value['snapshot_sha256'], str) or HASH64.fullmatch(value['snapshot_sha256']) is None
+            or type(value['snapshot_bytes']) is not int or not 0 <= value['snapshot_bytes'] <= 14680064
+            or type(value['snapshot_schema_version']) is not int or value['snapshot_schema_version'] != 2
+            or value['store'] != 'ActiveStore' or value['association_model'] != 'PROVIDER_IDENTITY_ONE_TO_ONE'
+            or not isinstance(value['counts'], dict)
+            or set(value['counts']) != {'rules', 'profiles', 'settings', *_WINDOWS_FILTER_KINDS}):
+        raise TargetDrift(code)
+    limits = {'profiles': 16, 'settings': 128}
+    for kind, count in value['counts'].items():
+        if type(count) is not int or not 0 <= count <= limits.get(kind, 8192):
+            raise TargetDrift(code)
+        if kind in _WINDOWS_FILTER_KINDS and count != value['counts']['rules']:
+            raise TargetDrift(code)
+    return value
+
+
+def _windows_snapshot(expected_sha256: str | None = None, certificate_sha256: str | None = None) -> bytes:
     exe = '/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe'
-    raw_firewall = command([exe, '-NoProfile', '-NonInteractive', '-Command', _WINDOWS_ACTIVE_STORE_QUERY])
-    firewall_value = strict_json(raw_firewall)
-    if not isinstance(firewall_value, dict) or set(firewall_value) != {'profiles', 'settings', 'rules'}:
-        raise TargetDrift('WINDOWS_FIREWALL_SNAPSHOT_UNREADABLE')
-    for key in ('profiles', 'settings', 'rules'):
-        if (not isinstance(firewall_value[key], list)
-                or any(not isinstance(item, dict) for item in firewall_value[key])):
-            raise TargetDrift('WINDOWS_FIREWALL_SNAPSHOT_UNREADABLE')
-    if (any('Name' not in item or not isinstance(item['Name'], str) for item in firewall_value['profiles'])
-            or len({item['Name'] for item in firewall_value['profiles']}) != len(firewall_value['profiles'])):
-        raise TargetDrift('WINDOWS_FIREWALL_SNAPSHOT_UNREADABLE')
-    active_profiles = {item['Name'] for item in firewall_value['profiles']}
-    required_rule_keys = {'rule', 'profiles', 'address', 'application', 'interface',
-                          'interface_type', 'port', 'security', 'service'}
-    if any(set(rule) != required_rule_keys or not isinstance(rule.get('rule'), dict)
-           or not isinstance(rule['rule'].get('Name'), str) for rule in firewall_value['rules']):
-        raise TargetDrift('WINDOWS_FIREWALL_SNAPSHOT_UNREADABLE')
-    rule_names = [rule['rule']['Name'] for rule in firewall_value['rules']]
-    if len(rule_names) != len(set(rule_names)):
-        raise TargetDrift('WINDOWS_FIREWALL_SNAPSHOT_UNREADABLE')
-    firewall_value['profiles'].sort(key=lambda item: str(item.get('Name', '')))
-    firewall_value['settings'].sort(key=lambda item: json.dumps(
-        item, sort_keys=True, separators=(',', ':'), ensure_ascii=False))
-    firewall_value['rules'].sort(key=lambda item: str(item.get('rule', {}).get('Name', '')))
-    for rule in firewall_value['rules']:
-        for key in ('profiles', 'address', 'application', 'interface', 'interface_type', 'port', 'security', 'service'):
-            rows = rule.get(key)
-            if (not isinstance(rows, list) or not rows
-                    or any(not isinstance(item, dict) or not item for item in rows)):
-                raise TargetDrift('WINDOWS_FIREWALL_SNAPSHOT_UNREADABLE')
-            if key == 'profiles' and any(
-                    not isinstance(item.get('Name'), str) or item['Name'] not in active_profiles
-                    for item in rows):
-                raise TargetDrift('WINDOWS_FIREWALL_SNAPSHOT_UNREADABLE')
-            if key != 'profiles' and len(rows) != 1:
-                raise TargetDrift('WINDOWS_FIREWALL_SNAPSHOT_UNREADABLE')
-            canonical_rows = [json.dumps(item, sort_keys=True, separators=(',', ':'), ensure_ascii=False)
-                              for item in rows]
-            if len(canonical_rows) != len(set(canonical_rows)):
-                raise TargetDrift('WINDOWS_FIREWALL_SNAPSHOT_UNREADABLE')
-            rows.sort(key=lambda item: json.dumps(item, sort_keys=True, separators=(',', ':'), ensure_ascii=False))
+    query_sha256 = digest(_windows_snapshot_query(expected_sha256).encode('utf-8'))
+    raw_firewall = command([exe, '-NoProfile', '-NonInteractive', '-Command', _windows_snapshot_wrapper(query_sha256, certificate_sha256)])
+    firewall_value = _windows_firewall_certificate(strict_json(raw_firewall), query_sha256)
     firewall = json.dumps(firewall_value, sort_keys=True, separators=(',', ':'),
                           ensure_ascii=False).encode('utf-8')
     portproxy = command(['/mnt/c/Windows/System32/netsh.exe', 'interface', 'portproxy', 'show', 'all'])
     global _WINDOWS_SNAPSHOT_METADATA
     _WINDOWS_SNAPSHOT_METADATA = {
-        'schema_version': 'tsw.windows-route-snapshot.v1',
-        'firewall_bytes': len(firewall), 'firewall_sha256': digest(firewall),
+        'schema_version': 'tsw.windows-route-snapshot.v2',
+        'firewall_bytes': firewall_value['snapshot_bytes'], 'firewall_sha256': firewall_value['snapshot_sha256'],
+        'query_sha256': query_sha256, 'certificate_sha256': WINDOWS_CERTIFICATE_SHA256,
         'portproxy_bytes': len(portproxy), 'portproxy_sha256': digest(portproxy),
-        'profile_count': len(firewall_value['profiles']),
-        'setting_count': len(firewall_value['settings']), 'rule_count': len(firewall_value['rules']),
+        'profile_count': firewall_value['counts']['profiles'],
+        'setting_count': firewall_value['counts']['settings'], 'rule_count': firewall_value['counts']['rules'],
         'captured_at': datetime.now(timezone.utc).isoformat(),
     }
     # Length-prefix each exact component. The byte sequence stays in memory for
@@ -886,15 +1038,18 @@ def _assert_host_identity(host: str) -> None:
 
 
 def _bounded_process_output(command_argv: list[str], timeout_seconds: float,
-                            max_stream_bytes: int) -> tuple[bytes, bytes, int]:
+                            max_stream_bytes: int, *, stdin_descriptor: int | None = None,
+                            error_code: str = 'HOST_IDENTITY_DRIFT') -> tuple[bytes, bytes, int]:
     """Capture bounded stdout/stderr and kill a process on overflow or timeout."""
+    env = _fixture_process_environment(command_argv)
     process = None
     selector = None
     stdout = bytearray()
     stderr = bytearray()
     try:
-        process = subprocess.Popen(command_argv, cwd=ROOT, env={'PATH': TRUSTED_PATH, 'LANG': 'C.UTF-8'},
-                                   stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        process = subprocess.Popen(command_argv, cwd=_fixture_process_cwd(command_argv), env=env,
+                                   stdin=subprocess.DEVNULL if stdin_descriptor is None else stdin_descriptor,
+                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         assert process.stdout is not None and process.stderr is not None
         selector = selectors.DefaultSelector()
         for stream, target in ((process.stdout, stdout), (process.stderr, stderr)):
@@ -924,8 +1079,8 @@ def _bounded_process_output(command_argv: list[str], timeout_seconds: float,
             try:
                 process.wait(timeout=0.5)
             except (subprocess.TimeoutExpired, OSError):
-                _kill_and_reap(process, 'HOST_IDENTITY_DRIFT')
-        raise TargetDrift('HOST_IDENTITY_DRIFT') from exc
+                _kill_and_reap(process, error_code)
+        raise _BoundedCommandFailure(error_code, len(stdout), len(stderr)) from exc
     finally:
         if selector is not None:
             selector.close()
@@ -1020,11 +1175,7 @@ def _serialize_route_state_artifact(payload: dict[str, Any]) -> bytes:
 
 
 def capture_route_state(host: str, output: str) -> None:
-    global _INVENTORY_RESERVE_CLEANUP, _INVENTORY_CLEANUP_MODE, _WINDOWS_SNAPSHOT_METADATA
-    _COMMAND_AUDIT.clear()
-    _INVENTORY_RESERVE_CLEANUP = False
-    _INVENTORY_CLEANUP_MODE = False
-    _WINDOWS_SNAPSHOT_METADATA = {}
+    _begin_inventory(host, reserve_cleanup=False)
     path = _capture_output_path(output)
     head, _, _, _ = git_preflight()
     state = _route_state(host)
@@ -1032,7 +1183,7 @@ def capture_route_state(host: str, output: str) -> None:
     windows_metadata = dict(globals().get('_WINDOWS_SNAPSHOT_METADATA', {}))
     payload = {'schema_version': 'tsw.route-state.v2', 'source_commit': head,
                'captured_at': datetime.now(timezone.utc).isoformat(),
-               'target_host': host, 'target_ip': host,
+               'target_host': host, 'target_ip': host, 'inventory_budget': _inventory_budget_profile(),
                'listeners_10001_count': len(safe_listeners),
                'listeners_10001': safe_listeners,
                'listeners_10001_sha256': digest(json.dumps(
@@ -1089,6 +1240,8 @@ def _is_incus_query_argv(argv: list[str]) -> bool:
     resource = parts[2]
     if _canonical_incus_name(parts[3]) is None:
         return False
+    if resource == 'images':
+        return HASH64.fullmatch(parts[3]) is not None and separator == '?' and query == 'project=default'
     if resource == 'projects':
         return not separator
     if resource not in {'profiles', 'instances'} or not separator:
@@ -1120,11 +1273,6 @@ def _inventory_command(argv: list[str]) -> bytes:
         argv == ['incus', 'remote', 'get-default'] or
         argv == ['incus', 'project', 'list', '--format', 'json'] or
         argv == ['incus', 'image', 'list', '--project', 'default', '--format', 'json'] or
-        (len(argv) == 8 and argv[1:3] == ['image', 'info']
-         and HASH64.fullmatch(argv[3]) is not None
-         and argv[4:] == ['--project', 'default', '--format', 'json']) or
-        (len(argv) == 5 and argv[1] == 'info' and _canonical_incus_name(argv[2]) is not None
-         and argv[3:] == ['--format', 'json']) or
         _is_incus_query_argv(argv) or
         (len(argv) == 6 and argv[1] == 'list' and argv[2] == '--project'
          and argv[3] and argv[4:] == ['--format', 'json']) or
@@ -1137,8 +1285,9 @@ def _inventory_command(argv: list[str]) -> bytes:
         raise TargetDrift('INCUS_INVENTORY_COMMAND_LIMIT_EXCEEDED')
     if _INVENTORY_STARTED_AT is None:
         _INVENTORY_STARTED_AT = time.monotonic()
-    if time.monotonic() - _INVENTORY_STARTED_AT > total_timeout:
+    if time.monotonic() - _INVENTORY_STARTED_AT >= total_timeout:
         raise TargetDrift('INCUS_INVENTORY_TOTAL_TIMEOUT')
+    aggregate_deadline = _INVENTORY_STARTED_AT + total_timeout
     executable = TRUSTED_BIN['incus']
     command_argv = [executable, *argv[1:]]
     process = None
@@ -1153,7 +1302,7 @@ def _inventory_command(argv: list[str]) -> bytes:
         for stream, target in ((process.stdout, stdout), (process.stderr, stderr)):
             os.set_blocking(stream.fileno(), False)
             selector.register(stream, selectors.EVENT_READ, target)
-        deadline = time.monotonic() + _INVENTORY_HOST_COMMAND_TIMEOUT_SECONDS
+        deadline = min(time.monotonic() + _INVENTORY_HOST_COMMAND_TIMEOUT_SECONDS, aggregate_deadline)
         while selector.get_map():
             remaining = deadline - time.monotonic()
             if remaining <= 0:
@@ -1170,7 +1319,10 @@ def _inventory_command(argv: list[str]) -> bytes:
                 if (len(key.data) > _INVENTORY_COMMAND_MAX_BYTES
                         or _INVENTORY_BYTES_CAPTURED + len(stdout) + len(stderr) > byte_limit):
                     raise OverflowError
-        exit_status = process.wait(timeout=max(0.1, deadline - time.monotonic()))
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError
+        exit_status = process.wait(timeout=remaining)
     except (TimeoutError, subprocess.TimeoutExpired) as exc:
         if process is not None:
             _kill_and_reap(process, 'INCUS_INVENTORY_COMMAND_FAILED')
@@ -1201,7 +1353,10 @@ def _inventory_command(argv: list[str]) -> bytes:
     if (_INVENTORY_STARTED_AT is not None
             and time.monotonic() - _INVENTORY_STARTED_AT > total_timeout):
         raise TargetDrift('INCUS_INVENTORY_TOTAL_TIMEOUT')
-    return bytes(stdout)
+    raw = bytes(stdout)
+    if argv != ['incus', 'remote', 'get-default']:
+        _account_inventory_json(argv, strict_json(raw), 'INCUS_INVENTORY_UNREADABLE')
+    return raw
 
 
 def _inventory_config(value: Any, code: str) -> None:
@@ -1300,6 +1455,7 @@ def _capture_project_inventory(host: str) -> dict[str, Any]:
     global _INVENTORY_BYTES_CAPTURED, _INVENTORY_ENTITIES_CAPTURED, _INVENTORY_STARTED_AT
     _INVENTORY_BYTES_CAPTURED = 0
     _INVENTORY_ENTITIES_CAPTURED = 0
+    _INVENTORY_ENTITY_SLOTS.clear()
     _INVENTORY_STARTED_AT = None
     commands_start = len(_COMMAND_AUDIT)
     _assert_host_identity_inventory(host)
@@ -1454,14 +1610,7 @@ def _capture_project_inventory(host: str) -> dict[str, Any]:
 
 
 def capture_project_inventory(host: str, output: str) -> None:
-    global _INVENTORY_STARTED_AT, _INVENTORY_BYTES_CAPTURED, _INVENTORY_ENTITIES_CAPTURED
-    global _INVENTORY_RESERVE_CLEANUP, _INVENTORY_CLEANUP_MODE
-    _COMMAND_AUDIT.clear()
-    _INVENTORY_RESERVE_CLEANUP = False
-    _INVENTORY_CLEANUP_MODE = False
-    _INVENTORY_STARTED_AT = None
-    _INVENTORY_BYTES_CAPTURED = 0
-    _INVENTORY_ENTITIES_CAPTURED = 0
+    _begin_inventory(host, reserve_cleanup=False)
     # Verify filesystem and path first, but defer directory creation until after source preflight.
     _require_private_ext4(ROOT)
     rel = Path(output)
@@ -1500,18 +1649,89 @@ def capture_project_inventory(host: str, output: str) -> None:
         os.close(fd)
 
 
+def _route_string_map(value: Any, code: str) -> dict[str, str]:
+    if not isinstance(value, dict) or any(not isinstance(key, str) or not isinstance(item, str)
+                                         for key, item in value.items()):
+        raise TargetDrift(code)
+    return {key: item for key, item in value.items()}
+
+
+def _canonical_used_by(value: Any, code: str) -> list[str]:
+    """API references have no ordering contract; reject loss before canonical copy."""
+    if (not isinstance(value, list) or len(value) > _INVENTORY_MAX_ENTITIES
+            or any(not isinstance(user, str) for user in value) or len(set(value)) != len(value)):
+        raise TargetDrift(code)
+    return sorted(value)
+
+
+def _route_profile(row: Any, project: str) -> dict[str, Any]:
+    code = 'INCUS_PROFILE_INVENTORY_UNREADABLE'
+    if (not isinstance(row, dict) or set(row) - {'name', 'project', 'description', 'config', 'devices', 'used_by'}
+            or not isinstance(row.get('name'), str) or not row['name']
+            or ('project' in row and row['project'] != project)
+            or ('description' in row and not isinstance(row['description'], str))):
+        raise TargetDrift(code)
+    _route_string_map(row.get('config'), code)
+    _strict_devices(row.get('devices'), code, allow_implicit_bind=True)
+    return {**row, 'used_by': _canonical_used_by(row.get('used_by'), code)}
+
+
+def _route_instance(row: Any, project: str, profiles: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    code = 'INCUS_INSTANCE_INVENTORY_UNREADABLE'
+    fields = {'name', 'status', 'status_code', 'type', 'profiles', 'architecture', 'created_at', 'last_used_at',
+              'location', 'description', 'stateful', 'ephemeral', 'project', 'config', 'devices',
+              'expanded_config', 'expanded_devices', 'backups', 'snapshots', 'state'}
+    if (not isinstance(row, dict) or set(row) - fields or not isinstance(row.get('name'), str) or not row['name']
+            or not isinstance(row.get('status'), str) or not isinstance(row.get('type'), str)
+            or ('project' in row and row['project'] != project)):
+        raise TargetDrift(code)
+    selected = row.get('profiles')
+    if (not isinstance(selected, list) or any(not isinstance(name, str) or not name or name not in profiles for name in selected)
+            or len(set(selected)) != len(selected)):
+        raise TargetDrift(code)
+    for key in ('architecture', 'created_at', 'last_used_at', 'location', 'description'):
+        if key in row and not isinstance(row[key], str):
+            raise TargetDrift(code)
+    for key in ('stateful', 'ephemeral'):
+        if key in row and type(row[key]) is not bool:
+            raise TargetDrift(code)
+    if 'status_code' in row and type(row['status_code']) is not int:
+        raise TargetDrift(code)
+    for key in ('backups', 'snapshots'):
+        if key in row and row[key] is not None and (not isinstance(row[key], list)
+                or any(not isinstance(item, dict) for item in row[key])):
+            raise TargetDrift(code)
+    if 'state' in row and row['state'] is not None and not isinstance(row['state'], dict):
+        raise TargetDrift(code)
+    _route_string_map(row.get('config'), code)
+    _strict_devices(row.get('devices'), code, allow_implicit_bind=True)
+    for local, expanded in (('config', 'expanded_config'), ('devices', 'expanded_devices')):
+        if expanded in row:
+            if local == 'config':
+                _route_string_map(row[expanded], code)
+            else:
+                _strict_devices(row[expanded], code, allow_implicit_bind=True)
+        elif row[local] or any(profiles[name][local] for name in selected):
+            # Pinned DTO omitempty is safe only with complete observed empty inputs.
+            raise TargetDrift(code)
+    return row
+
+
 def _incus_route_inventory() -> tuple[list[str], list[dict[str, Any]]]:
     project_rows = strict_json(command(['incus', 'project', 'list', '--format', 'json']))
     if not isinstance(project_rows, list):
         raise TargetDrift('INCUS_PROJECT_INVENTORY_UNREADABLE')
     projects: list[str] = []
     for row in project_rows:
-        if (not isinstance(row, dict) or not isinstance(row.get('name'), str) or not row['name']
+        if (not isinstance(row, dict) or set(row) - {'name', 'description', 'config', 'used_by'}
+                or not isinstance(row.get('name'), str) or not row['name']
                 or ('description' in row and not isinstance(row['description'], str))
                 or ('config' in row and (not isinstance(row['config'], dict)
                     or any(not isinstance(key, str) or not isinstance(value, str)
                            for key, value in row['config'].items())))):
             raise TargetDrift('INCUS_PROJECT_INVENTORY_UNREADABLE')
+        if 'used_by' in row:
+            _canonical_used_by(row['used_by'], 'INCUS_PROJECT_INVENTORY_UNREADABLE')
         projects.append(row['name'])
     if not projects or len(set(projects)) != len(projects):
         raise TargetDrift('INCUS_PROJECT_INVENTORY_UNREADABLE')
@@ -1519,7 +1739,8 @@ def _incus_route_inventory() -> tuple[list[str], list[dict[str, Any]]]:
     if 'default' not in projects:
         raise TargetDrift('INCUS_PROJECT_DRIFT')
     routes: list[dict[str, Any]] = []
-    for project in projects:
+    profile_views: dict[str, dict[str, dict[str, Any]]] = {}
+    for project in sorted(projects, key=lambda name: (name != 'default', name)):
         project_data = strict_json(command(['incus', 'query', _project_api_path(project)]))
         if (not isinstance(project_data, dict) or project_data.get('name') != project
                 or not {'name', 'description', 'config'} <= set(project_data)
@@ -1527,12 +1748,10 @@ def _incus_route_inventory() -> tuple[list[str], list[dict[str, Any]]]:
                 or not isinstance(project_data.get('description'), str)
                 or not isinstance(project_data.get('config'), dict)
                 or any(not isinstance(key, str) or not isinstance(value, str)
-                       for key, value in project_data['config'].items())
-                or ('used_by' in project_data and
-                    (not isinstance(project_data['used_by'], list)
-                     or any(not isinstance(item, str) for item in project_data['used_by'])
-                     or project_data['used_by'] != sorted(set(project_data['used_by']))))):
+                       for key, value in project_data['config'].items())):
             raise TargetDrift('INCUS_PROJECT_INVENTORY_UNREADABLE')
+        if 'used_by' in project_data:
+            _canonical_used_by(project_data['used_by'], 'INCUS_PROJECT_INVENTORY_UNREADABLE')
         profile_project_local = (project == 'default'
                                  or _project_isolation(project_data['config'])['features.profiles'] is True)
         profiles = (strict_json(command(['incus', 'profile', 'list', '--project', project, '--format', 'json']))
@@ -1542,19 +1761,10 @@ def _incus_route_inventory() -> tuple[list[str], list[dict[str, Any]]]:
                        for row in profiles)
                 or len({row['name'] for row in profiles}) != len(profiles)):
             raise TargetDrift('INCUS_PROFILE_INVENTORY_UNREADABLE')
-        for row in profiles:
-            name = row['name']
-            data = strict_json(command(['incus', 'query', _profile_api_path(name, project)]))
-            if (not isinstance(data, dict) or data.get('name') != name
-                    or ('project' in data and data['project'] != project)
-                    or not isinstance(data.get('config'), dict)):
-                raise TargetDrift('INCUS_PROFILE_INVENTORY_UNREADABLE')
-            devices = _strict_devices(data.get('devices'), 'INCUS_PROFILE_INVENTORY_UNREADABLE',
-                                      allow_implicit_bind=True)
-            used_by = data.get('used_by')
-            if (not isinstance(used_by, list) or any(not isinstance(item, str) for item in used_by)
-                    or used_by != sorted(set(used_by))):
-                raise TargetDrift('INCUS_PROFILE_INVENTORY_UNREADABLE')
+        observed_profiles = {row['name']: _route_profile(row, project) for row in profiles}
+        profile_views[project] = observed_profiles if profile_project_local else profile_views['default']
+        for name, data in observed_profiles.items():
+            devices = data['devices']
             for device_name, device in devices.items():
                 if device.get('type') == 'proxy' and _is_approved_10001_proxy(device['listen']):
                     routes.append(_safe_route_row(project, 'profile', name, device_name,
@@ -1566,19 +1776,8 @@ def _incus_route_inventory() -> tuple[list[str], list[dict[str, Any]]]:
                 or len({row['name'] for row in instances}) != len(instances)):
             raise TargetDrift('INCUS_INSTANCE_INVENTORY_UNREADABLE')
         for row in instances:
-            name = row['name']
-            data = strict_json(command(['incus', 'query', _instance_api_path(name, project)]))
-            if (not isinstance(data, dict) or data.get('name') != name
-                    or ('project' in data and data['project'] != project)
-                    or not isinstance(data.get('config'), dict)
-                    or any(not isinstance(key, str) or not isinstance(value, str)
-                           for key, value in data['config'].items())):
-                raise TargetDrift('INCUS_INSTANCE_INVENTORY_UNREADABLE')
-            devices = _strict_devices(data.get('devices'), 'INCUS_INSTANCE_INVENTORY_UNREADABLE',
-                                      allow_implicit_bind=True)
-            instance_profiles = data.get('profiles')
-            if not isinstance(instance_profiles, list) or any(not isinstance(item, str) for item in instance_profiles):
-                raise TargetDrift('INCUS_INSTANCE_INVENTORY_UNREADABLE')
+            data = _route_instance(row, project, profile_views[project])
+            name, devices, instance_profiles = data['name'], data['devices'], data['profiles']
             for device_name, device in devices.items():
                 if device.get('type') == 'proxy' and _is_approved_10001_proxy(device['listen']):
                     routes.append(_safe_route_row(project, 'instance', name, device_name,
@@ -1648,8 +1847,8 @@ def _assert_local_incus_remote_inventory() -> None:
 
 
 def _read_default_profile(go: dict[str, Any], expected_consumers: list[str]) -> dict[str, Any]:
-    profile = strict_json(_inventory_command(['incus', 'query', _profile_api_path('default', 'default')]))
-    _account_inventory_entities(_json_entity_count(profile), 'DEFAULT_PROFILE_UNREADABLE')
+    argv = ['incus', 'query', _profile_api_path('default', 'default')]
+    profile = strict_json(_inventory_command(argv))
     if (not isinstance(profile, dict) or set(profile) - {'name', 'project', 'description', 'config', 'devices', 'used_by'}
             or profile.get('name') != 'default'
             or ('project' in profile and profile['project'] != 'default')
@@ -1659,9 +1858,8 @@ def _read_default_profile(go: dict[str, Any], expected_consumers: list[str]) -> 
     devices = _strict_devices(profile.get('devices'), 'DEFAULT_PROFILE_UNREADABLE')
     if canonical_profile_sha256(profile['config'], devices) != go['default_profile_sha256']:
         raise TargetDrift('DEFAULT_PROFILE_DRIFT')
-    consumers = profile.get('used_by')
-    if (not isinstance(consumers, list) or any(not isinstance(item, str) for item in consumers)
-            or consumers != sorted(set(consumers)) or consumers != expected_consumers):
+    consumers = _canonical_used_by(profile.get('used_by'), 'DEFAULT_PROFILE_CONSUMERS_DRIFT')
+    if consumers != expected_consumers:
         raise TargetDrift('DEFAULT_PROFILE_CONSUMERS_DRIFT')
     derived = _derive_fixture_base({'config': profile['config'], 'devices': devices})
     if canonical_profile_sha256(derived['config'], derived['devices']) != go['fixture_base_profile_sha256']:
@@ -1684,9 +1882,8 @@ def _assert_fixture_profile(go: dict[str, Any], data: dict[str, Any],
     devices = _strict_devices(data.get('devices'), 'FIXTURE_PROFILE_DEVICE_UNVERIFIED')
     if devices != expected_device:
         raise TargetDrift('FIXTURE_PROFILE_DEVICE_UNVERIFIED')
-    consumers = data.get('used_by')
-    if (not isinstance(consumers, list) or any(not isinstance(item, str) for item in consumers)
-            or consumers != sorted(set(consumers)) or consumers != expected_consumers):
+    consumers = _canonical_used_by(data.get('used_by'), 'FIXTURE_PROFILE_CONSUMERS_UNVERIFIED')
+    if consumers != expected_consumers:
         raise TargetDrift('FIXTURE_PROFILE_CONSUMERS_UNVERIFIED')
     return {'config': data['config'], 'devices': devices, 'used_by': consumers}
 
@@ -1703,18 +1900,19 @@ def _assert_base_profile(go: dict[str, Any], data: dict[str, Any],
         raise TargetDrift('FIXTURE_BASE_PROFILE_DEVICE_UNVERIFIED')
     if canonical_profile_sha256(data['config'], devices) != go['fixture_base_profile_sha256']:
         raise TargetDrift('FIXTURE_BASE_PROFILE_DIGEST_MISMATCH')
-    consumers = data.get('used_by')
-    if (not isinstance(consumers, list) or any(not isinstance(item, str) for item in consumers)
-            or consumers != sorted(set(consumers)) or consumers != expected_consumers):
+    consumers = _canonical_used_by(data.get('used_by'), 'FIXTURE_BASE_PROFILE_CONSUMERS_UNVERIFIED')
+    if consumers != expected_consumers:
         raise TargetDrift('FIXTURE_BASE_PROFILE_CONSUMERS_UNVERIFIED')
     return {'config': data['config'], 'devices': devices, 'used_by': consumers}
 
 
-def _profile_create_readback_owned(data: Any, expected_name: str) -> bool:
-    """Recognize only the exact empty, newly-created run-named profile state."""
+def _profile_create_readback_owned(data: Any, expected_name: str,
+                                   expected: dict[str, Any] | None = None) -> bool:
+    """Recognize only the exact intended newly-created run-named profile state."""
+    expected = {'config': {}, 'devices': {}} if expected is None else expected
     return (isinstance(data, dict) and data.get('name') == expected_name
             and data.get('project', 'default') == 'default'
-            and data.get('config') == {} and data.get('devices') == {}
+            and data.get('config') == expected['config'] and data.get('devices') == expected['devices']
             and data.get('used_by') == [])
 
 
@@ -1727,28 +1925,173 @@ def _fixture_profile_cleanup_prefix_owned(data: Any, profile: str, project: str,
             or data.get('config') != {'user.q449.run_id': run_id}
             or data.get('devices') not in ({}, {'q449-listener': expected_device})):
         return False
-    consumers = data.get('used_by')
-    return (isinstance(consumers, list) and consumers == sorted(set(consumers))
-            and consumers == expected_consumers)
-
-
-def _instance_create_readback_owned(data: Any, instance: str, run_id: str,
-                                    base_profile: str, fixture_profile: str) -> bool:
-    """Accept an ambiguous init only when exact name/profile binding proves ownership."""
-    if (not isinstance(data, dict) or data.get('name') != instance
-            or data.get('project', 'default') != 'default'
-            or data.get('profiles') != [base_profile, fixture_profile]
-            or data.get('devices') not in ({}, None)):
+    try:
+        return _canonical_used_by(data.get('used_by'), 'PROFILE_OWNERSHIP_UNVERIFIED') == expected_consumers
+    except TargetDrift:
         return False
-    config = data.get('config')
-    return (isinstance(config, dict) and set(config) <= {'user.q449.run_id'}
-            and config.get('user.q449.run_id') in (None, run_id))
+
+
+_UUID4 = re.compile(r'[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\Z')
+_INSTANCE_VOLATILE_KEYS = {
+    'volatile.base_image', 'volatile.uuid', 'volatile.uuid.generation', 'volatile.cloud-init.instance-id',
+    'volatile.idmap.base', 'volatile.idmap.current', 'volatile.idmap.next', 'volatile.last_state.idmap',
+    'volatile.last_state.power', 'volatile.last_state.ready', 'volatile.apply_template',
+    'volatile.eth0.hwaddr', 'volatile.eth0.name', 'volatile.eth0.host_name', 'volatile.cpu.nodes',
+}
+
+
+def _fixture_idmap(raw: str) -> list[dict[str, Any]]:
+    code = 'INSTANCE_METADATA_UNVERIFIED'
+    if len(raw) > 16384:
+        raise TargetDrift(code)
+    value = strict_json(raw.encode())
+    if not isinstance(value, list) or len(value) > 16:
+        raise TargetDrift(code)
+    for entry in value:
+        if (not isinstance(entry, dict) or set(entry) != {'Isuid', 'Isgid', 'Hostid', 'Nsid', 'Maprange'}
+                or type(entry['Isuid']) is not bool or type(entry['Isgid']) is not bool
+                or not (entry['Isuid'] or entry['Isgid'])
+                or any(type(entry[key]) is not int or not 0 <= entry[key] < 2**63
+                       for key in ('Hostid', 'Nsid', 'Maprange'))
+                or entry['Maprange'] == 0
+                or any(entry[key] + entry['Maprange'] > 2**63 for key in ('Hostid', 'Nsid'))):
+            raise TargetDrift(code)
+    return value
+
+
+class _FixtureInstanceReceipt:
+    """One run-owned identity; full metadata stays in RAM, exported evidence is hashed."""
+
+    def __init__(self, go: dict[str, Any], baseline: dict[str, Any], observed: dict[str, Any]) -> None:
+        self.target, self.proxy = go['target'], go['proxy']
+        self.derived: dict[str, dict[str, Any]] = baseline['derived_base_profile']
+        properties = baseline['image_properties']
+        _route_string_map(properties, 'INSTANCE_IMAGE_UNVERIFIED')
+        self.image_config = {'image.' + key: value for key, value in properties.items()}
+        self.stable: dict[str, str] = {}
+        self.host_name: str | None = None
+        self.idmap_values: dict[str, str] = {}
+        self.observe(observed, 'init')
+        self.uuid = self.stable['volatile.uuid']
+        self.binding_sha256 = digest(json.dumps({'target': self.target, 'proxy': self.proxy,
+            'derived': self.derived, 'image_config': self.image_config, 'initial_metadata': self.stable},
+            sort_keys=True, separators=(',', ':')).encode())
+
+    def _metadata(self, config: dict[str, str]) -> None:
+        code = 'INSTANCE_METADATA_UNVERIFIED'
+        for key in ('volatile.uuid', 'volatile.uuid.generation', 'volatile.cloud-init.instance-id'):
+            if not _UUID4.fullmatch(config.get(key, '')):
+                raise TargetDrift(code)
+        if config['volatile.uuid.generation'] != config['volatile.uuid']:
+            raise TargetDrift(code)
+        for key in ('volatile.idmap.current', 'volatile.idmap.next', 'volatile.last_state.idmap'):
+            if key in config:
+                _fixture_idmap(config[key])
+        if 'volatile.idmap.base' in config and (re.fullmatch(r'0|[1-9][0-9]{0,18}', config['volatile.idmap.base']) is None
+                or int(config['volatile.idmap.base']) >= 2**63):
+            raise TargetDrift(code)
+        if 'volatile.eth0.hwaddr' in config and re.fullmatch(r'10:66:6a(?::[0-9a-f]{2}){3}', config['volatile.eth0.hwaddr']) is None:
+            raise TargetDrift(code)
+        if 'volatile.eth0.name' in config and config['volatile.eth0.name'] != 'eth0':
+            raise TargetDrift(code)
+        if any(key.startswith('volatile.eth0.') for key in config) and 'eth0' not in self.derived['devices']:
+            raise TargetDrift(code)
+        if 'volatile.cpu.nodes' in config:
+            nodes = config['volatile.cpu.nodes'].split(',')
+            if len(nodes) > 256 or len(set(nodes)) != len(nodes) or any(re.fullmatch(r'0|[1-9][0-9]{0,9}', node) is None for node in nodes):
+                raise TargetDrift(code)
+
+    def _transitions(self, config: dict[str, str], phase: str) -> None:
+        code = 'INSTANCE_METADATA_DRIFT'
+        if phase not in {'init', 'starting', 'running', 'stopping', 'stopped'}:
+            raise TargetDrift(code)
+        allowed_power: dict[str, set[str | None]] = {'init': {None, 'STOPPED'}, 'starting': {None, 'STOPPED', 'RUNNING'},
+                         'running': {'RUNNING'}, 'stopping': {'RUNNING', 'STOPPED'}, 'stopped': {'STOPPED'}}
+        if config.get('volatile.last_state.power') not in allowed_power[phase]:
+            raise TargetDrift(code)
+        allowed_ready = ({None, 'false', 'true'} if phase in {'starting', 'running', 'stopping'}
+                         else ({'false'} if phase == 'stopped' else {None, 'false'}))
+        if config.get('volatile.last_state.ready') not in allowed_ready:
+            raise TargetDrift(code)
+        allowed_template = {None, 'create'} if phase in {'init', 'starting'} else {None}
+        if config.get('volatile.apply_template') not in allowed_template:
+            raise TargetDrift(code)
+        next_map = _fixture_idmap(config.get('volatile.idmap.next', '[]'))
+        maps = dict(self.idmap_values)
+        for key in ('volatile.idmap.current', 'volatile.last_state.idmap'):
+            if key not in config:
+                if key in maps:
+                    raise TargetDrift(code)
+                continue
+            parsed = _fixture_idmap(config[key])
+            if parsed not in ([], next_map):
+                raise TargetDrift(code)
+            old = maps.get(key)
+            if old is not None and old != config[key] and not (
+                    phase in {'starting', 'running', 'stopping'} and _fixture_idmap(old) == [] and parsed == next_map):
+                raise TargetDrift(code)
+            maps[key] = config[key]
+        if phase in {'running', 'stopped'} and 'volatile.idmap.next' in config and (
+                'volatile.idmap.current' not in config or _fixture_idmap(config['volatile.idmap.current']) != next_map
+                or 'volatile.last_state.idmap' not in config):
+            # DiskIdmap can remain [] with idmapped storage; the loop above still
+            # binds its typed []/next value and initial receipt continuity.
+            raise TargetDrift(code)
+        host = config.get('volatile.eth0.host_name')
+        if host is not None:
+            if (phase in {'init', 'stopped'} or re.fullmatch(r'veth[a-zA-Z0-9]{1,11}', host) is None
+                    or self.host_name is not None and host != self.host_name):
+                raise TargetDrift(code)
+        if phase == 'running' and 'eth0' in self.derived['devices'] and (
+                host is None or 'volatile.eth0.hwaddr' not in config):
+            raise TargetDrift(code)
+        transient = {'volatile.last_state.power', 'volatile.last_state.ready', 'volatile.apply_template',
+                     'volatile.eth0.host_name', 'volatile.idmap.current', 'volatile.last_state.idmap'}
+        current_stable = {key: value for key, value in config.items() if key not in transient}
+        additions = set(current_stable) - set(self.stable)
+        if self.stable and additions and (phase not in {'starting', 'running', 'stopping'} or additions - {
+                'volatile.idmap.next', 'volatile.idmap.base', 'volatile.eth0.hwaddr', 'volatile.eth0.name', 'volatile.cpu.nodes'}):
+            raise TargetDrift(code)
+        if any(current_stable.get(key) != value for key, value in self.stable.items()):
+            raise TargetDrift(code)
+        # Publish observed additions only after the entire identity/spec/transition passes.
+        self.stable.update(current_stable)
+        self.idmap_values = maps
+        if host is not None:
+            self.host_name = host
+
+    def observe(self, data: Any, phase: str) -> None:
+        code = 'INSTANCE_OWNERSHIP_UNVERIFIED'
+        if (not isinstance(data, dict) or data.get('name') != self.target['instance']
+                or data.get('project') != 'default' or data.get('type') != 'container'
+                or data.get('profiles') != [self.target['base_profile'], self.target['profile']]
+                or data.get('devices') != {} or not isinstance(data.get('status'), str)):
+            raise TargetDrift(code)
+        states = {'init': {'stopped'}, 'starting': {'stopped', 'running'}, 'running': {'running'},
+                  'stopping': {'running', 'stopped'}, 'stopped': {'stopped'}}
+        if phase not in states or data['status'].lower() not in states[phase]:
+            raise TargetDrift(code)
+        config = _route_string_map(data.get('config'), code)
+        if (set(config) - {'user.q449.run_id', *self.image_config, *_INSTANCE_VOLATILE_KEYS}
+                or config.get('user.q449.run_id') != self.target['run_id']
+                or config.get('volatile.base_image') != self.target['image_fingerprint']
+                or {key: value for key, value in config.items() if key.startswith('image.')} != self.image_config):
+            raise TargetDrift(code)
+        self._metadata(config)
+        expected_devices = {**self.derived['devices'], 'q449-listener': {'type': 'proxy', **self.proxy}}
+        if (data.get('expanded_devices') != expected_devices
+                or data.get('expanded_config') != {**self.derived['config'], **config}):
+            raise TargetDrift('EFFECTIVE_INSTANCE_SPEC_UNVERIFIED')
+        self._transitions(config, phase)
 
 
 def _verify_effective_instance(go: dict[str, Any], default_profile: dict[str, Any],
-                               fixture_profile: dict[str, Any]) -> dict[str, Any]:
+                               fixture_profile: dict[str, Any], receipt: _FixtureInstanceReceipt | None = None,
+                               phase: str = 'init') -> dict[str, Any]:
     target, instance = go['target'], go['target']['instance']
     local = strict_json(_incus('query', _instance_api_path(instance, 'default')))
+    if receipt is not None:
+        receipt.observe(local, phase)
     if (not isinstance(local, dict) or local.get('name') != instance
             or ('project' in local and local['project'] != 'default')):
         raise TargetDrift('INSTANCE_CONFIG_UNREADABLE')
@@ -1808,16 +2151,17 @@ def jit(go: dict[str, Any], host: str) -> dict[str, Any]:
     target = go['target']
     _assert_host_identity(host)
     _assert_local_incus_remote_inventory()
-    _, server_version = _parse_incus_version(command(['incus', 'version']))
-    if server_version != target['server_version']:
+    client_version, server_version = _parse_incus_version(command(['incus', 'version']))
+    if client_version != '6.0.5' or server_version != target['server_version']:
         raise TargetDrift('INCUS_VERSION_DRIFT')
     image = strict_json(command(['incus', 'image', 'list', '--project', 'default', '--format', 'json']))
     if not any(i.get('fingerprint') == target['image_fingerprint'] for i in image):
         raise TargetDrift('INCUS_IMAGE_DRIFT')
-    image_info = strict_json(command(['incus', 'image', 'info', target['image_fingerprint'], '--project', 'default', '--format', 'json']))
-    properties = image_info.get('properties')
-    if not isinstance(properties, dict) or 'alpine' not in str(properties.get('os', '')).lower() or properties.get('release') != '3.20':
-        raise TargetDrift('INCUS_IMAGE_NOT_ALPINE_320')
+    image_info = strict_json(command(['incus', 'query', '/1.0/images/' + target['image_fingerprint'] + '?project=default']))
+    properties = image_info.get('properties') if isinstance(image_info, dict) else None
+    if not isinstance(properties, dict) or 'alpine' not in str(properties.get('os', '')).lower() or properties.get('release') != '3.21':
+        raise TargetDrift('INCUS_IMAGE_NOT_ALPINE_321')
+    _route_string_map(properties, 'INCUS_IMAGE_NOT_ALPINE_321')
     profile = _read_default_profile(go, go['default_profile_used_by'])
     memory_output = command(['free', '-b'])
     disk_output = command(['df', '-B1', '--output=avail', str(ROOT)])
@@ -1847,27 +2191,86 @@ def jit(go: dict[str, Any], host: str) -> dict[str, Any]:
         raise TargetDrift('INCUS_PROJECT_DRIFT')
     windows = b''
     if host == '192.168.178.58':
-        windows = _windows_snapshot()
+        windows = _windows_snapshot(go['windows_snapshot_sha256'], go['windows_certificate_sha256'])
     _assert_approved_route_state(go, listener_rows, incus_routes, windows, incus_projects)
     return {'listeners_10001': listener_rows, 'incus_10001_routes': incus_routes,
             'incus_projects': incus_projects,
             'windows_rules_portproxy': windows, 'resources': resource_baseline,
             'approved_route_state_sha256': go['approved_route_state_sha256'],
             'default_profile_sha256': profile['sha256'],
-            'derived_base_profile': profile['derived']}
+            'derived_base_profile': profile['derived'], 'image_properties': dict(properties)}
 
 
 
 
-def _incus(*args: str) -> bytes:
-    if args and (args[0] == 'query' or args[:1] == ('info',)):
+def _incus(*args: str, profile_data: dict[str, Any] | None = None) -> bytes:
+    if profile_data is not None:
+        return _create_profile_command(list(args), profile_data)
+    if args and args[0] == 'query':
         return _inventory_command(['incus', *args])
     return command(['incus', *args])
 
 
+def _create_profile_command(args: list[str], profile_data: Any) -> bytes:
+    """Send only the canonical run-owned profile body through a bounded RAM fd."""
+    global _INVENTORY_BYTES_CAPTURED, _INVENTORY_STARTED_AT
+    if (len(args) != 5 or args[:2] != ['profile', 'create'] or args[3:] != ['--project', 'default']
+            or re.fullmatch(r'tsw-q449-[0-9a-f]{32}-(base|profile)', args[2]) is None
+            or not isinstance(profile_data, dict) or set(profile_data) != {'config', 'devices'}):
+        raise FixtureError('PROFILE_CREATE_BODY_INVALID')
+    _inventory_config(profile_data['config'], 'PROFILE_CREATE_BODY_INVALID')
+    _strict_devices(profile_data['devices'], 'PROFILE_CREATE_BODY_INVALID')
+    raw = json.dumps(profile_data, sort_keys=True, separators=(',', ':'), ensure_ascii=True, allow_nan=False).encode()
+    if len(raw) > 65536:
+        raise FixtureError('PROFILE_CREATE_BODY_INVALID')
+    command_limit, byte_limit, _, total_timeout = _inventory_budgets()
+    if len(_COMMAND_AUDIT) >= command_limit:
+        raise TargetDrift('INCUS_INVENTORY_COMMAND_LIMIT_EXCEEDED')
+    if _INVENTORY_STARTED_AT is None:
+        _INVENTORY_STARTED_AT = time.monotonic()
+    remaining = total_timeout - (time.monotonic() - _INVENTORY_STARTED_AT)
+    if remaining <= 0:
+        raise TargetDrift('INCUS_INVENTORY_TOTAL_TIMEOUT')
+    if byte_limit - _INVENTORY_BYTES_CAPTURED < 2:
+        raise TargetDrift('INCUS_INVENTORY_OUTPUT_TOO_LARGE')
+    fd = os.memfd_create('tsw-owned-profile', os.MFD_CLOEXEC)
+    argv = [TRUSTED_BIN['incus'], *args]
+    try:
+        view = memoryview(raw)
+        while view:
+            written = os.write(fd, view)
+            if written <= 0:
+                raise OSError('Profile input write failed.')
+            view = view[written:]
+        os.lseek(fd, 0, os.SEEK_SET)
+        stdout, stderr, status = _bounded_process_output(argv, min(20, remaining),
+            min(_INVENTORY_COMMAND_MAX_BYTES, (byte_limit - _INVENTORY_BYTES_CAPTURED) // 2),
+            stdin_descriptor=fd, error_code='PROFILE_CREATE_UNCERTAIN')
+    except _BoundedCommandFailure as exc:
+        _COMMAND_AUDIT.append(_safe_command_record(argv, None, exc.stdout_bytes, exc.stderr_bytes))
+        _INVENTORY_BYTES_CAPTURED += exc.stdout_bytes + exc.stderr_bytes
+        raise
+    except OSError as exc:
+        raise TargetDrift('PROFILE_CREATE_UNCERTAIN') from exc
+    finally:
+        os.close(fd)
+    _COMMAND_AUDIT.append(_safe_command_record(argv, status, len(stdout), len(stderr)))
+    _INVENTORY_BYTES_CAPTURED += len(stdout) + len(stderr)
+    if (_INVENTORY_STARTED_AT is not None
+            and time.monotonic() - _INVENTORY_STARTED_AT > total_timeout):
+        raise TargetDrift('PROFILE_CREATE_UNCERTAIN')
+    if status or stderr:
+        raise TargetDrift('PROFILE_CREATE_UNCERTAIN')
+    return stdout
+
+
 def _instance_state(instance: str) -> str:
-    data = strict_json(_incus('info', instance, '--format', 'json'))
-    return str(data.get('status', data.get('state', ''))).lower()
+    data = strict_json(_incus('query', _instance_api_path(instance, 'default')))
+    if (not isinstance(data, dict) or data.get('name') != instance or data.get('project') != 'default'
+            or data.get('type') != 'container' or not isinstance(data.get('status'), str)
+            or data['status'] not in {'Running', 'Stopped'}):
+        raise TargetDrift('INSTANCE_STATE_UNVERIFIED')
+    return {'Running': 'running', 'Stopped': 'stopped'}[data['status']]
 
 
 def _listeners() -> bytes:
@@ -1879,15 +2282,86 @@ def _assert_no_fixture_listener(port: str) -> None:
         raise TargetDrift('FIXTURE_LISTENER_EARLY')
 
 
-def _run_fixture(go: dict[str, Any], baseline: dict[str, Any]) -> dict[str, Any]:
+def _fixture_responder_script(run_id: str) -> str:
+    """One bounded response from built-in Alpine applets; no readiness connection."""
+    if not isinstance(run_id, str) or RUN_ID.fullmatch(run_id) is None:
+        raise FixtureError('INVALID_RUN_ID')
+    return r'''set -eu
+(printf 'HTTP/1.1 200 OK\r\nContent-Length: 32\r\nConnection: close\r\nContent-Type: text/plain\r\n\r\n%s' 'RUN_NONCE' |
+ busybox nc -l -s 127.0.0.1 -p 8080 -w 15) </dev/null >/dev/null 2>&1 &
+responder=$!
+attempt=0
+while [ "$attempt" -lt 25 ]; do
+  kill -0 "$responder" 2>/dev/null || exit 1
+  if busybox netstat -ltn 2>/dev/null | busybox awk '$1 == "tcp" && $4 == "127.0.0.1:8080" && $6 == "LISTEN" { ready=1 } END { exit !ready }'; then
+    exit 0
+  fi
+  attempt=$((attempt + 1))
+  busybox sleep 0.2
+done
+exit 1
+'''.replace('RUN_NONCE', run_id)
+
+
+def _write_initial_receipt(go: dict[str, Any], receipt: _FixtureInstanceReceipt,
+                           approved_go_sha256: str) -> str:
+    """Durably bind the actual initial UUID before Start; no raw metadata leaves RAM."""
+    target = go['target']
+    if (not isinstance(approved_go_sha256, str) or HASH64.fullmatch(approved_go_sha256) is None
+            or not isinstance(go.get('source_commit'), str) or HASH40.fullmatch(go['source_commit']) is None
+            or not isinstance(target.get('run_id'), str) or RUN_ID.fullmatch(target['run_id']) is None
+            or receipt.target != target):
+        raise FixtureError('INITIAL_RECEIPT_BINDING_INVALID')
+    value = {'schema_version': 1, 'scope': 'Q449_INITIAL_INSTANCE_RECEIPT', 'run_id': target['run_id'],
+        'source_commit': go['source_commit'], 'go_sha256': approved_go_sha256,
+        'instance_name_sha256': digest(target['instance'].encode('ascii')),
+        'initial_uuid_sha256': digest(receipt.uuid.encode('ascii')), 'binding_sha256': receipt.binding_sha256,
+        'image_fingerprint': target['image_fingerprint'],
+        'profiles_sha256': digest(json.dumps([target['base_profile'], target['profile']], separators=(',', ':')).encode('ascii'))}
+    raw = json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=True).encode('ascii')
+    path = ROOT / PRIVATE_EVIDENCE_REL / ('listener-initial-' + target['run_id'] + '.json')
+    _require_private_evidence_dir(path)
+    directory = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC)
+    try:
+        info = os.fstat(directory)
+        if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) != 0o700:
+            raise FixtureError('INITIAL_RECEIPT_PARENT_UNSAFE')
+        descriptor = os.open(path.name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC,
+                             0o600, dir_fd=directory)
+        try:
+            info = os.fstat(descriptor)
+            if (not stat.S_ISREG(info.st_mode) or info.st_uid != os.geteuid()
+                    or stat.S_IMODE(info.st_mode) != 0o600 or info.st_nlink != 1):
+                raise FixtureError('INITIAL_RECEIPT_FILE_UNSAFE')
+            view = memoryview(raw)
+            while view:
+                written = os.write(descriptor, view)
+                if written <= 0:
+                    raise FixtureError('INITIAL_RECEIPT_WRITE_UNCERTAIN')
+                view = view[written:]
+            os.fsync(descriptor)
+        finally:
+            os.close(descriptor)
+        os.fsync(directory)
+    finally:
+        os.close(directory)
+    return digest(raw)
+
+
+def _run_fixture(go: dict[str, Any], baseline: dict[str, Any], *, approved_go_sha256: str) -> dict[str, Any]:
     """Execute the one-shot, uniquely named loopback fixture after JIT approval."""
     global _INVENTORY_CLEANUP_MODE
     _INVENTORY_CLEANUP_MODE = False
+    if not isinstance(approved_go_sha256, str) or HASH64.fullmatch(approved_go_sha256) is None:
+        raise FixtureError('INITIAL_RECEIPT_BINDING_INVALID')
     target, proxy = go['target'], go['proxy']
+    responder_script = _fixture_responder_script(target['run_id'])
     instance, profile, base_profile = target['instance'], target['profile'], target['base_profile']
     port = proxy['listen'].rsplit(':', 1)[1]
     created_profile = created_base = created_instance = False
     profile_marker_set = False
+    instance_receipt: _FixtureInstanceReceipt | None = None
+    instance_phase = 'init'
     derived = baseline['derived_base_profile']
     evidence: dict[str, Any] = {'status': 'RUNNING', 'source_commit': go['source_commit'],
                                 'target_endpoint': target['endpoint'], 'project': target['project'],
@@ -1898,7 +2372,7 @@ def _run_fixture(go: dict[str, Any], baseline: dict[str, Any]) -> dict[str, Any]
                                 'approved_route_state_sha256': baseline['approved_route_state_sha256'],
                                 'default_profile_used_by': go['default_profile_used_by'],
                                 'run_id': target['run_id'], 'target_host': target['host'],
-                                'listener_before_sha256': _listener_digest(_listeners(), 10001)[1],
+                                'listener_before_sha256': _listener_digest(b'\n'.join(baseline['listeners_10001']), 10001)[1],
                                 'listener_10001_before_count': len(baseline['listeners_10001']),
                                 'listener_10001_before_sha256': approved_route_state_sha256(
                                     baseline['listeners_10001'], [], b'', []) and
@@ -1911,21 +2385,25 @@ def _run_fixture(go: dict[str, Any], baseline: dict[str, Any]) -> dict[str, Any]
                                 'windows_rules_before_sha256': digest(baseline['windows_rules_portproxy']),
                                 'resource_baseline': baseline['resources']}
 
-    def checkpoint() -> None:
+    def checkpoint() -> bytes:
         _read_default_profile(go, go['default_profile_used_by'])
-        listeners = _listener_rows(_listeners(), 10001)
+        listener_snapshot = _listeners()
+        listeners = _listener_rows(listener_snapshot, 10001)
         if listeners != baseline['listeners_10001']:
             raise TargetDrift('AUTHORIZED_LISTENER_CHANGED')
         projects, routes = _incus_route_inventory()
         if projects != baseline['incus_projects'] or routes != baseline['incus_10001_routes']:
             raise TargetDrift('INCUS_10001_ROUTE_CHANGED')
         if target['host'] == '192.168.178.58':
-            _assert_windows_unchanged(baseline['windows_rules_portproxy'], _windows_snapshot())
+            _assert_windows_unchanged(baseline['windows_rules_portproxy'], _windows_snapshot(go['windows_snapshot_sha256'], go['windows_certificate_sha256']))
         _assert_approved_route_state(go, listeners, routes,
                                      baseline['windows_rules_portproxy'], projects)
+        return listener_snapshot
 
     def prepare_write(*args: str) -> None:
-        checkpoint()
+        listener_snapshot = checkpoint()
+        if args[:1] == ('start',) and _listener_rows(listener_snapshot, int(port)):
+            raise TargetDrift('FIXTURE_LISTENER_EARLY')
         if args[:2] == ('profile', 'create'):
             names = strict_json(_incus('profile', 'list', '--project', 'default', '--format', 'json'))
             if (not isinstance(names, list)
@@ -1942,8 +2420,14 @@ def _run_fixture(go: dict[str, Any], baseline: dict[str, Any]) -> dict[str, Any]
                 raise TargetDrift('INSTANCE_NAME_COLLISION')
 
     def write(*args: str) -> bytes:
+        nonlocal instance_phase
         prepare_write(*args)
-        return _incus(*args)
+        if args[:1] == ('start',):
+            instance_phase = 'starting'
+        result = _incus(*args)
+        if args[:1] == ('start',):
+            instance_phase = 'running'
+        return result
 
     def query_profile(name: str) -> dict[str, Any] | None:
         try:
@@ -1957,6 +2441,7 @@ def _run_fixture(go: dict[str, Any], baseline: dict[str, Any]) -> dict[str, Any]
         return response
 
     def query_instance() -> dict[str, Any] | None:
+        nonlocal instance_receipt
         try:
             response = strict_json(_incus('query', _instance_api_path(instance, 'default')))
         except TargetDrift as exc:
@@ -1965,75 +2450,70 @@ def _run_fixture(go: dict[str, Any], baseline: dict[str, Any]) -> dict[str, Any]
             raise
         if not isinstance(response, dict) or response.get('name') != instance:
             raise TargetDrift('TEMP_INSTANCE_READBACK_UNVERIFIED')
+        if instance_receipt is None:
+            instance_receipt = _FixtureInstanceReceipt(go, baseline, response)
+        else:
+            instance_receipt.observe(response, instance_phase)
         return response
 
     def recover_profile_create(name: str, *, is_base: bool) -> None:
-        nonlocal created_base, created_profile
+        nonlocal created_base, created_profile, profile_marker_set
         observed = query_profile(name)
-        if _profile_create_readback_owned(observed, name):
+        expected = derived if is_base else {'config': {'user.q449.run_id': target['run_id']},
+            'devices': {'q449-listener': {'type': 'proxy', **proxy}}}
+        if _profile_create_readback_owned(observed, name, expected):
             if is_base:
                 created_base = True
             else:
                 created_profile = True
+                profile_marker_set = True
 
     def recover_instance_create() -> None:
         nonlocal created_instance
         observed = query_instance()
-        if _instance_create_readback_owned(observed, instance, target['run_id'], base_profile, profile):
+        if observed is not None and instance_receipt is not None:
             created_instance = True
 
     try:
         prepare_write('profile', 'create', base_profile, '--project', 'default')
         try:
-            _incus('profile', 'create', base_profile, '--project', 'default')
+            _incus('profile', 'create', base_profile, '--project', 'default', profile_data=derived)
             created_base = True
         except Exception:
             recover_profile_create(base_profile, is_base=True)
             raise
-        for key, value in sorted(derived['config'].items()):
-            write('profile', 'set', base_profile, key, value, '--project', 'default')
-        if 'root' in derived['devices']:
-            device = derived['devices']['root']
-            write('profile', 'device', 'add', base_profile, 'root', 'disk',
-                  'path=/', f'pool={device["pool"]}', '--project', 'default')
-        if 'eth0' in derived['devices']:
-            device = derived['devices']['eth0']
-            write('profile', 'device', 'add', base_profile, 'eth0', 'nic',
-                  'name=eth0', f'network={device["network"]}', '--project', 'default')
+        _assert_base_profile(go, strict_json(_incus('query', _profile_api_path(base_profile, 'default'))), [], derived)
         prepare_write('profile', 'create', profile, '--project', 'default')
         try:
-            _incus('profile', 'create', profile, '--project', 'default')
+            _incus('profile', 'create', profile, '--project', 'default', profile_data={
+                'config': {'user.q449.run_id': target['run_id']},
+                'devices': {'q449-listener': {'type': 'proxy', **proxy}}})
             created_profile = True
         except Exception:
             recover_profile_create(profile, is_base=False)
             raise
-        try:
-            write('profile', 'set', profile, 'user.q449.run_id', target['run_id'], '--project', 'default')
-            profile_marker_set = True
-        except Exception:
-            observed = query_profile(profile)
-            if (observed is not None and observed.get('config') == {'user.q449.run_id': target['run_id']}):
-                profile_marker_set = True
-            raise
-        write('profile', 'device', 'add', profile, 'q449-listener', 'proxy',
-              f'listen={proxy["listen"]}', f'connect={proxy["connect"]}', f'bind={proxy["bind"]}',
-              '--project', 'default')
+        _assert_fixture_profile(go, strict_json(_incus('query', _profile_api_path(profile, 'default'))), [])
+        profile_marker_set = True
         _assert_no_fixture_listener(port)
         _read_default_profile(go, go['default_profile_used_by'])
         _assert_fixture_profile(go, strict_json(_incus('query', _profile_api_path(profile, 'default'))), [])
         prepare_write('init', target['image_fingerprint'], instance, '--project', 'default',
-                      '--profile', base_profile, '--profile', profile, '--no-start')
+                      '--profile', base_profile, '--profile', profile, '-c', 'user.q449.run_id=' + target['run_id'])
         try:
             _incus('init', target['image_fingerprint'], instance, '--project', 'default',
-                   '--profile', base_profile, '--profile', profile, '--no-start')
+                   '--profile', base_profile, '--profile', profile, '-c', 'user.q449.run_id=' + target['run_id'])
             created_instance = True
         except Exception:
             recover_instance_create()
             raise
-        write('config', 'set', instance, 'user.q449.run_id', target['run_id'], '--project', 'default')
-        shown = strict_json(write('query', _instance_api_path(instance, 'default')))
-        if shown.get('config', {}).get('user.q449.run_id') != target['run_id'] or _instance_state(instance) != 'stopped':
+        shown = query_instance()
+        if shown is None or shown.get('config', {}).get('user.q449.run_id') != target['run_id'] or _instance_state(instance) != 'stopped':
             raise TargetDrift('INSTANCE_NOT_STOPPED')
+        if instance_receipt is None:
+            raise TargetDrift('INSTANCE_RECEIPT_MISSING')
+        evidence['instance_uuid_sha256'] = digest(instance_receipt.uuid.encode('ascii'))
+        evidence['instance_receipt_sha256'] = instance_receipt.binding_sha256
+        evidence['initial_receipt_sha256'] = _write_initial_receipt(go, instance_receipt, approved_go_sha256)
         fixture_consumers = [f'/1.0/instances/{instance}']
         default_before_start = _read_default_profile(go, go['default_profile_used_by'])
         fixture_before_start = _assert_fixture_profile(
@@ -2043,10 +2523,10 @@ def _run_fixture(go: dict[str, Any], baseline: dict[str, Any]) -> dict[str, Any]
             go, strict_json(_incus('query', _profile_api_path(base_profile, 'default'))),
             fixture_consumers, derived)
         default_before_start['derived'] = derived
-        _verify_effective_instance(go, default_before_start, fixture_before_start)
-        _assert_no_fixture_listener(port)
+        _verify_effective_instance(go, default_before_start, fixture_before_start, instance_receipt, instance_phase)
         write('start', instance, '--project', 'default')
         if _instance_state(instance) != 'running':
+            instance_phase = 'starting'
             raise TargetDrift('INSTANCE_START_UNVERIFIED')
         listeners = _listeners()
         evidence['listener_after_start'] = _listener_digest(listeners, int(port))[1]
@@ -2064,12 +2544,12 @@ def _run_fixture(go: dict[str, Any], baseline: dict[str, Any]) -> dict[str, Any]
             fixture_consumers, derived)
         default_after_start['derived'] = derived
         evidence['effective_devices_after_start'] = _verify_effective_instance(
-            go, default_after_start, fixture_after_start)
-        write('exec', instance, '--project', 'default', '--', 'sh', '-c',
-              'busybox httpd -f -p 127.0.0.1:8080 >/dev/null 2>&1 &')
-        response = command(['curl', '--fail', '--silent', '--show-error', '--max-time', '5',
+            go, default_after_start, fixture_after_start, instance_receipt, instance_phase)
+        write('exec', instance, '--project', 'default', '--', 'sh', '-c', responder_script)
+        response = command(['curl', '--disable', '--fail', '--silent', '--show-error', '--noproxy', '*',
+                            '--proto', '=http', '--max-redirs', '0', '--connect-timeout', '2', '--max-time', '5',
                             f'http://127.0.0.1:{port}/'])
-        if not response:
+        if response != target['run_id'].encode('ascii'):
             raise TargetDrift('FIXTURE_HTTP_UNVERIFIED')
         evidence['http_response_sha256'] = digest(response)
         after_10001 = _listener_rows(command(['ss', '-H', '-ltnp']), 10001)
@@ -2080,7 +2560,7 @@ def _run_fixture(go: dict[str, Any], baseline: dict[str, Any]) -> dict[str, Any]
             raise TargetDrift('INCUS_10001_ROUTE_CHANGED')
         after_windows = b''
         if target['host'] == '192.168.178.58':
-            after_windows = _windows_snapshot()
+            after_windows = _windows_snapshot(go['windows_snapshot_sha256'], go['windows_certificate_sha256'])
             _assert_windows_unchanged(baseline['windows_rules_portproxy'], after_windows)
         after_route_state_sha256 = approved_route_state_sha256(
             after_10001, incus_routes_after, after_windows, incus_projects_after)
@@ -2088,7 +2568,7 @@ def _run_fixture(go: dict[str, Any], baseline: dict[str, Any]) -> dict[str, Any]
             raise TargetDrift('APPROVED_ROUTE_STATE_CHANGED')
         evidence['listener_10001_after_count'] = len(after_10001)
         evidence['listener_10001_after_sha256'] = _listener_digest(
-            command(['ss', '-H', '-ltnp']), 10001)[1]
+            b'\n'.join(after_10001), 10001)[1]
         evidence['incus_10001_routes_after_count'] = len(incus_routes_after)
         evidence['incus_10001_routes_after_sha256'] = digest(json.dumps(
             incus_routes_after, sort_keys=True, separators=(',', ':')).encode())
@@ -2110,19 +2590,18 @@ def _run_fixture(go: dict[str, Any], baseline: dict[str, Any]) -> dict[str, Any]
                 cleanup_route_errors.append(exc)
 
         def cleanup_write(*args: str) -> bytes:
+            nonlocal instance_phase
             cleanup_checkpoint()
-            return _incus(*args)
+            if args[:1] == ('stop',):
+                instance_phase = 'stopping'
+            result = _incus(*args)
+            if args[:1] == ('stop',):
+                instance_phase = 'stopped'
+            return result
 
         def owned_instance() -> dict[str, Any]:
             observed = query_instance()
-            config = observed.get('config') if observed is not None else None
-            if (observed is None or observed.get('project', 'default') != 'default'
-                    or observed.get('profiles') != [base_profile, profile]
-                    or observed.get('devices') not in ({}, None)
-                    or not isinstance(config, dict)
-                    or set(config) - {'user.q449.run_id'}
-                    or ('user.q449.run_id' in config
-                        and config['user.q449.run_id'] != target['run_id'])):
+            if observed is None or instance_receipt is None:
                 raise TargetDrift('INSTANCE_OWNERSHIP_UNVERIFIED')
             return observed
 
@@ -2156,13 +2635,15 @@ def _run_fixture(go: dict[str, Any], baseline: dict[str, Any]) -> dict[str, Any]
                     or set(devices) - set(derived['devices'])
                     or any(value != derived['devices'][key] for key, value in devices.items())):
                 raise TargetDrift('FIXTURE_BASE_PROFILE_OWNERSHIP_UNVERIFIED')
-            if (not isinstance(observed.get('used_by'), list)
-                    or observed['used_by'] != expected_consumers):
+            consumers = _canonical_used_by(observed.get('used_by'), 'FIXTURE_BASE_PROFILE_CONSUMERS_UNVERIFIED')
+            if consumers != expected_consumers:
                 raise TargetDrift('FIXTURE_BASE_PROFILE_CONSUMERS_UNVERIFIED')
-            return observed
+            return {**observed, 'used_by': consumers}
 
         if created_instance:
             state = _instance_state(instance)
+            if state == 'stopped' and instance_phase == 'running':
+                instance_phase = 'stopped'
             owned_instance()
             fixture_consumers = [f'/1.0/instances/{instance}']
             owned_fixture_profile(fixture_consumers)
@@ -2200,6 +2681,7 @@ def _run_fixture(go: dict[str, Any], baseline: dict[str, Any]) -> dict[str, Any]
 
 
 def main(argv: list[str] | None = None) -> int:
+    global _INVENTORY_CLEANUP_MODE
     parser = argparse.ArgumentParser()
     parser.add_argument('--expected-approval-sha256')
     parser.add_argument('--target-host', required=True, choices=['192.168.178.33', '192.168.178.58'])
@@ -2231,13 +2713,7 @@ def main(argv: list[str] | None = None) -> int:
             return 2
     evidence_fd: int | None = None
     try:
-        global _INVENTORY_BYTES_CAPTURED, _INVENTORY_ENTITIES_CAPTURED, _INVENTORY_STARTED_AT
-        global _INVENTORY_RESERVE_CLEANUP, _INVENTORY_CLEANUP_MODE
-        _INVENTORY_BYTES_CAPTURED = 0
-        _INVENTORY_ENTITIES_CAPTURED = 0
-        _INVENTORY_STARTED_AT = None
-        _INVENTORY_RESERVE_CLEANUP = True
-        _INVENTORY_CLEANUP_MODE = False
+        _begin_inventory(args.target_host, reserve_cleanup=True)
         if not args.expected_approval_sha256 or not HASH64.fullmatch(args.expected_approval_sha256):
             raise FixtureError('INVALID_EXPECTED_SHA256')
         head, workflow, runner, tests = git_preflight()
@@ -2253,7 +2729,7 @@ def main(argv: list[str] | None = None) -> int:
             write_result(evidence_fd, {'status': 'BLOCKED_TARGET_DRIFT', 'code': str(code), 'commands': _COMMAND_AUDIT, 'go_sha256': digest(raw), 'source_commit': head})
             return 2
         try:
-            result = _run_fixture(go, baseline)
+            result = _run_fixture(go, baseline, approved_go_sha256=digest(raw))
             _INVENTORY_CLEANUP_MODE = True
             port = go['proxy']['listen'].rsplit(':', 1)[1]
             final_listeners = _listeners()
@@ -2266,7 +2742,7 @@ def main(argv: list[str] | None = None) -> int:
             if final_projects != baseline['incus_projects'] or final_routes != baseline['incus_10001_routes']:
                 raise TargetDrift('INCUS_10001_ROUTE_CHANGED')
             if args.target_host == '192.168.178.58':
-                _assert_windows_unchanged(baseline['windows_rules_portproxy'], _windows_snapshot())
+                _assert_windows_unchanged(baseline['windows_rules_portproxy'], _windows_snapshot(go['windows_snapshot_sha256'], go['windows_certificate_sha256']))
             result['listener_after_cleanup_sha256'] = _listener_digest(
                 final_listeners, int(port))[1]
             result['commands'] = _COMMAND_AUDIT
@@ -2276,7 +2752,7 @@ def main(argv: list[str] | None = None) -> int:
             code = exc.args[0] if isinstance(exc, FixtureError) else 'FIXTURE_FAILED'
             write_result(evidence_fd, {'status': 'BLOCKED_TARGET_DRIFT', 'code': str(code), 'commands': _COMMAND_AUDIT, 'go_sha256': digest(raw), 'source_commit': head})
             return 2
-        result.update({'go_sha256': digest(raw), 'workflow_sha256': go['workflow_sha256'], 'runner_sha256': go['runner_sha256'], 'test_sha256': go['test_sha256'], 'source_commit': head, 'issue447_inventory_sha256': go['issue447_inventory_sha256'], 'resource_admission_sha256': go['resource_admission_sha256']})
+        result.update({'inventory_budget': _inventory_budget_profile(), 'windows_certificate_sha256': go['windows_certificate_sha256'], 'go_sha256': digest(raw), 'workflow_sha256': go['workflow_sha256'], 'runner_sha256': go['runner_sha256'], 'test_sha256': go['test_sha256'], 'source_commit': head, 'issue447_inventory_sha256': go['issue447_inventory_sha256'], 'resource_admission_sha256': go['resource_admission_sha256']})
         write_result(evidence_fd, result)
         return 0
     except FixtureError as exc:

@@ -125,3 +125,14 @@ live baseline/source/task/auth checks still required. Catalog and mappings are
 implemented under R449-23–26; bounded native transitions and persistence checks
 are independently accepted. Aggregate WSL qualification and remaining variants remain open, although bounded WSL transition scenarios have verified results. See the
 [W09 qualification matrix](lcm-w09-qualification.md) for the wider still-open scope.
+
+## S03 pure-state integration note (2026-11-07)
+
+The schema 2 implementation adds an outer installation operation lock, explicit
+private lease delegation, single-holder nested journal arbitration and optional
+immutable profile intent. Successful verified component/Portainer completion may
+persist the pure legacy-policy migration; interrupted original payloads remain
+original. Runtime admission refuses policy that needs the separate scoped-profile
+or Portainer-ownership capabilities. This changes no catalog qualification or
+live transition evidence. Candidate verification is pending the root-owned PC/WSL
+gates; no live qualification follows from this source change.

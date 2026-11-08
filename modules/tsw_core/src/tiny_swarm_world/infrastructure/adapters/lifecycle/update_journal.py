@@ -49,6 +49,10 @@ class JsonUpdateJournal:
             raise LifecycleStateError('Invalid or unavailable update journal; preserve it for recovery.') from None
 
     def save(self, batch: UpdateBatch) -> None:
+        try:
+            UpdateBatch.model_validate_json(batch.model_dump_json())
+        except ValueError:
+            raise LifecycleStateError('Invalid component checkpoint; retain the original operation.') from None
         temporary = None
         try:
             with tempfile.NamedTemporaryFile(dir=self.path.parent, prefix='.component-update-', delete=False) as stream:

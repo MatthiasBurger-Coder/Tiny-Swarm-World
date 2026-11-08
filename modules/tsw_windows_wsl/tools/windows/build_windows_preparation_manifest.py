@@ -42,6 +42,8 @@ ASSETS = (
     "modules/tsw_windows_wsl/bootstrap/windows/tws-wsl-bridge-service.ps1",
     "modules/tsw_windows_wsl/bootstrap/windows/tws-wsl-bridge.config.json",
     "modules/tsw_core/infra/config/ports.yaml",
+    "modules/tsw_windows_wsl/tools/windows/qualification/windows_firewall_snapshot.ps1",
+    "modules/tsw_windows_wsl/tools/windows/qualification/windows_firewall_certificate.ps1",
 )
 
 

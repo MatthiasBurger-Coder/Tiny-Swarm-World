@@ -1,11 +1,649 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: ACTIVE_FOR_ISSUE_449 v1.42 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
+Status: ACTIVE_FOR_ISSUE_449 v1.61 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
 Workflow authoring branch: `docs/workflow-lcm-w09-route-baseline-20261027`
+
+Current continuation: `fix/epic440-completion-20261107`, baseline `b87fe5c9`.
+The 2026-11-07 user request resumes complete Epic #440 remediation on the two
+named test hosts. The historical code-only v1.42 publication limit does not
+limit this request. Existing preservation, qualification and host/scenario
+boundaries remain, with the narrow v1.49 preserving-maintenance amendment below.
+Current native schema5 inventory from committed 711f397d is complete; exact PC
+checks passed. Exclusive installation/global-resource ownership remains unproven.
+Current policy work enables temporary maintenance without asserting adoption.
+Execution/evidence remains in `.codex/evidence/epic440-20261107.md`; full S02–S09
+completion remains required.
+
+## Continued WSL resource and guest recovery binding — 2026-11-08
+
+Root and independent source review retain all existing preservation/effect bounds.
+The actual Collector hash is rebound in the stopped-only Guest helper. Its
+semantic projection validates absent-or-exact-string-false readiness on both
+configuration maps before omitting only that volatile stopped-ready marker from
+a copy; every other field and all raw observations remain intact. This models
+the actual R5 cold-restart observation without accepting ready/running drift.
+Original runtime R4 uses the same typed own-stop semantics, with fresh R6
+resource-window and distinct R7 guest-switch journals on immutable source8c9.
+The task-only parent consumes PREPARE once and keeps its finite production lease
+on refusal until external original restoration and explicit CLOSE. No automatic
+operation retry, fabricated observation, timeout increase or old-journal reset.
+Root PC runtime21 and Guest/switch/controller24 contracts passed before rebinding.
+
+## Typed original WSL NIC runtime and fresh baseline — v1.61
+
+Root and independent architecture approve source engineering only under
+`.codex/evidence/epic440-original-runtime-r3-plan-20261108.md`, SHA256
+b9c6d079899e7a91c550514d4294a877e22f43c3ff65a6ae5f16a7166a5d5d65. New Original-driver source namespace
+is cb8c0e27 /root/tsw440-wsl-r5-20261108; old71d2/92b4 and history remain immutable.
+Only validated known used_by sets are canonicalized as complete sorted copies.
+Only actual typed eth0 host-veth metadata is separated from stable node/detail
+hashes and checked through exact source/UUID/proposal-bound stop/start intent,
+phase and durable post-start runtime receipts. All other config/MAC/idmap/device/
+ordered-profile/foreign metadata remains protected; workers never start. Add
+bounded per-detail coverage/hash records and realistic transport/phase tests.
+Original driver75s child,1800s invocation/128 claims, delegated capture300s and
+settlement25+5 stay; GuestSwitch650s is separate. No new effects or budget increase.
+
+Actual old quiesce refused BEFORE quiesce-started/stop intent; no original effect.
+Current graph/binding and allfour stable UUID/config/status identities equal the
+old proposal, while old aggregate detail cause remains UNPROVEN. Preserve that
+rejection. A fresh current complete preserve set/new namespace/independent Root GO
+may precede the first effect; no old unavailable raw-detail equality is claimed.
+This zero-effect retirement cannot authorize replay after partial/uncertain effects.
+Exact new source review and required PC tests precede deployment/path/hash repin
+and any new original action. Root serializes GuestSwitch pin integration with S-U1.
+
+## Closed post-baseline Portainer image-cache prerequisite — v1.60
+
+Root and separate independent architecture review accept the source contract
+`.codex/evidence/epic440-upgrade-cache-prerequisite-20261108.md`, SHA256
+a8e358e592c7b992383827bbf33f0151fb28f74d060df5f9a8a9f38a996a3bcf. Engineering only; no live GO or qualification.
+Fresh own nodes need this explicit prerequisite after baseline, before public
+Portainer upgrade: twelve combinations of fixed source/target server+agent refs
+from actual policy and three proven own nodes. Real ArtifactPrepareWorkflow /
+EnsureContainerImage / publisher, same scoped profile and active installation
+lease, current UUID/spec/routes/manifest CAS before each exact local Incus image
+inspect/pull. Host cache fallback is rejected before execution; no stack writes,
+other image refs, retries or public scoped-artifact guard relaxation. Actual
+initial presence/absence and final12 ImageID+RepoDigest observations plus unchanged
+source auth/runtime/whole graph/manifest are mandatory. One900second aggregate
+inside exercise3600 includes all calls/proof; each call clamps remaining budget.
+Unknown remote operations block later writers/disposal until genuinely settled.
+Only pre-node image-prestage timing is superseded for these closed recipes;
+all source/case/host GO, preservation and publication guards remain. Existing
+S-U1 thirteen file locks suffice; code review and exact PC gates still required.
+
+## Closed upgrade acceptance source slices — v1.59
+
+Root accepts the independently corrected source design
+`.codex/evidence/epic440-upgrade-implementation-plan-20261108.md`, exact SHA256
+698cbdfc9560a882f628c4a5f49c6096d9f2d39ec3f8fe2c6106b04066baf2b4.
+Requirement author and independent architecture/security/DevOps reviewer are
+separate real agents; Root is integrator. This authorizes only ordered isolated
+source slices S-U1 then S-U2 with the exact fifteen file locks in that design.
+No new host action, live GO, matrix promotion or publication follows.
+
+S-U1 adds the shared closed upgrade fixture and dispatch in both existing case
+ports, genuine private NativeCatalog qualification input and strict schema2 ledger
+consumer/producer. S-U2 adds the separate actual official0.4.0 legacy baseline and
+UUID/spec/root-volume-bound disposal. Existing scoped disposal never accepts
+missing scoped checkpoints/markers. Legacy shared-profile foreign consumers are
+checked before the released setup child; affected foreign effective specifications
+or an unclosed expected delta refuse before launch. Cleanup uses exact CAS only.
+
+The closed union is eight existing fresh/add plus sixteen named upgrade cases,
+not eighteen total. Its eight normal component batch recipes explicitly cover
+both presets x both optional writers x both Swagger exposures on each host.
+Every batch runs both complete fixed image transitions. Preset is passed only
+to supported setup; subsequent public update commands must revalidate the stored
+preset and omit the unsupported option. All sixteen actual host/tuple proofs and
+other required cases plus independent evidence acceptance precede public promotion.
+The actual catalog in a private unpublished qualification revision may mark only
+the two fixed targets executable; this is test input, never released compatibility.
+No alternate catalog, temporary policy bypass or fabricated runtime proof is allowed.
+The same executing bytes must be accepted before publication.
+
+Finite source budget tables are explicit. Existing fresh/add budgets remain.
+Component/Portainer engine case is baseline5400+exercise3600=9000seconds:
+WSL containing10500; native prepare1200+pause600+approval180+case9000+teardown900+
+restore600=12480. Official-v1 case is baseline7200+exercise10800=18000:
+WSL containing19500; native21480. Every phase and containing operation use
+monotonic deadlines/reserves and are selected by the closed recipe before any
+child starts. A separate engine-recovery mode and fresh GO select public3300 or
+10800seconds, containing WSL4800/12300 and native6780/14280 respectively.
+Existing disposal-only900 recovery is unchanged and cannot run engine recovery.
+No budget reset per child/read/retry. Concrete actual source/host/case approval
+and sufficient expiry/headroom remain mandatory before each live transaction.
+
+PC nearest and all seven exact-source quality gates, independent source review,
+actual both-host S02 and capability evidence remain prerequisites. Preserve all
+historical failures and current original installations. Aggregate EPIC440/W09/W10
+remains INCOMPLETE until the full requirement matrix is actually accepted.
+
+## Finite WSL maintenance foreground lifetime and 24-route budget — v1.58
+
+Actual Source-bound read-only observations found WSL stopping/restarting after
+foreground clients exited, despite systemd services. A finite owned foreground
+client let Incus finish startup: strict active/running and /internal/ready200,
+two original managers Running with unchanged UUIDs, two original workers Stopped.
+No daemon, network, autostart, drop-in or permanent WSL configuration repair was
+performed. Microsoft explicitly documents this systemd lifecycle behavior:
+https://learn.microsoft.com/en-us/windows/wsl/systemd . The private diagnosis is
+`epic440-wsl-incus-readiness-diagnosis.md`, SHA256
+68083dbfef7dd7b2d60752f7a23f3cc9f50685f5f7609a216218ae1427568048.
+
+Authorize source engineering for the existing source-bound W05 maintenance
+controller ONLY: an owned finite native-wsl foreground read lease. Fixed literal
+Python child accepts no stdin data, emits READY, waits bounded by remaining phase,
+and emits CLOSED/exit0 on parent stdin EOF; nonempty input/expiry/error refuses.
+Own native executable/handle/PID/start identity and exact marker/exit/reap prove
+settlement; killing the Windows launcher alone is not Linux cleanup proof.
+Everything remains RAM-only, with no new native evidence store or permanent
+bridge policy. Prepare remains passive. Execute begins the lease before Observe;
+Root may inspect its status and settle the older diagnostic keeper only after
+new ownership is confirmed. Shutdown closes/reaps this own lease before the
+existing explicitly admitted shutdown. Relaunch keeps the selected Ubuntu alive
+and waits at most120s for strict Incus unit/API readiness before complete guest
+proof. Recovery retains/renews only its independent finite allowance; finally
+closes the owned pipe and verifies settlement. No other guest/process/service is
+started, stopped or adopted. Failed readiness remains failure, never new parser
+acceptance. Independent source review and exact PC gates precede live admission.
+
+The actual canonical bridge owns24 mappings. Preserve ALL existing full fresh
+firewall/hosts/registry/service snapshots and per-route checkpoints: a changed
+address causes8+3*24=80 normal snapshots, at least264 base command claims;
+recovery6+2*24=54 snapshots, at least186 base claims. At the actually measured
+39.544s full fresh query, their query costs alone are3163.52s and2135.376s.
+The previous1800/256 normal and600/128 recovery caps cannot cover this scenario.
+
+Approve finite parent allowances NORMAL4800s/512commands and independent once-only
+RECOVERY3600s/384commands, with admission of at most24 canonical mappings BEFORE
+any effect. Retain64MiB parent output,120s/14MiB complete-query child and all
+source/stream/ownership/route/atomic-state boundaries. No checkpoint is dropped,
+merged, cached or replaced by a subset. Do not reset budgets per route/read or
+borrow between phases. These measured margins do not guarantee arbitrarily
+stalled queries fit; exhaustion remains fail-closed with owned-reader cleanup.
+Root records requirement/architecture/automation/security-DevOps/test role passes
+as ONE integrator, plus independent preflight diagnosis/source planning. This
+policy grants source work only, not an actual scenario/expiry/effect GO.
+
+## Versioned original-runtime driver reader repin — v1.57
+
+Actual NativeR5 exposed the shared collector's missing selector/pipe closure.
+The independently reviewed narrow reader correction passed the actual PC
+RLIMIT64/GC-disabled96-reader regression and all7 gates (3626 tests). The old
+WSL runtime-window driver71d2 and its df30 checkout stay immutable historical
+artifacts; do not execute a writer knowingly depending on the defective reader.
+
+Authorize a NEW versioned original-runtime driver derived from exactly71d2 with
+ONLY its SOURCE, ROOT and three existing PINS repinned to a clean current
+foundation checkout containing the accepted handle cleanup. Preserve all exact
+four original UUID/name/state/autostart checks, two-manager stop/start ordering,
+650s child and300s observation caps, private locks, durable nonreplayable intents,
+independent restoration and complete graph/config proofs. No control-flow,
+command, target, policy or lifecycle expansion. Reexecute its14 fake contracts
+on PC/WSL, review the literal delta, then capture a fresh actual proposal and
+bind new per-scenario GO. Historical unused proposals/approvals never qualify
+this new driver.
+
+The guest-switch adapter may serially repin ONLY the corresponding fixed driver
+path/hash in its source/tests/record, retaining the separate immutable original
+runtime source and its exact actual binding. Do not update old files in place or
+invent successful quiescence/restore. Explicit new driver/reader/source hashes
+and actual new results remain required before original-runtime effects.
+
+## All-stopped WSL utility-VM handoff — v1.56
+
+Root accepts the independent architecture design review of 2026-11-08 and
+records requirement, architecture, automation, security/DevOps and test-evidence
+role passes by one Root integrator, not five independent reviewers. This is a
+source-engineering decision; no current/future scenario GO follows from it.
+Microsoft's [shutdown contract](https://learn.microsoft.com/en-us/windows/wsl/basic-commands#shutdown)
+terminates the WSL2 utility VM. Its [security model](https://github.com/microsoft/WSL/blob/master/doc/docs/technical-documentation/security.md)
+scopes WSL sessions to the Windows user. A cold kernel avoids carrying a new
+guest's kernel networking back into the original guest; it does not repair or
+clear Windows HNS, firewall, hosts or PortProxy state.
+
+Supersede ONLY the blanket prohibition on global WSL shutdown for this closed
+acceptance handoff. Permit at most ONE fixed trusted `wsl.exe --shutdown` per
+handoff direction after the exact admitted original and campaign registrations
+are ALL Stopped, with no third registration, no Running distribution, the owned
+bridge Stopped, no unsettled test child, and fresh original/new UUID-bound node
+quiescence receipts. Bind the same Windows actor, source, GUIDs and VHD identities;
+retain default distribution, VHDs, configuration, service policy and all original
+resources. Original cold-boot autostart safety is mandatory, including the workers
+that were originally Stopped. A new or foreign registration/running guest blocks;
+never stop it to make admission pass.
+
+Under the existing coordinator/bridge owner locks, recheck the entire registration
+set and empty Running list immediately before the effect. Flush a minimal reset
+intent and outcome to the protected operational bookmark before/after the single
+fixed command. Reset cap60s plus30s empty-state verification, with independent
+restoration allowance. Unknown outcomes are not replayed automatically. The
+existing bookmark may additionally retain only previous/next kernel boot-ID
+hashes and reset action identity/outcome; no raw inventories or authority.
+
+Capture the LAST ACTUAL pre-termination boot ID while the selected guest is
+already Running; never wake a guest merely to fill missing evidence. The next
+sole-selected launch must prove a valid different Linux kernel boot ID and exact
+registration/VHD/machine/source binding. EnterNew still performs the full initial
+kernel/network-absence observation BEFORE installing or initializing Incus.
+ReturnOriginal may instead prove own-new nodes/bridge stopped, terminateNew,
+prove all Stopped, reset the VM, then cold-start only Original and prove changed
+boot ID before original graph/bridge/runtime restoration. Original Incus may
+recreate only its preserved original graph. Retain full Windows preservation
+certificates and original graph/data/UUID/state verification; original managers
+resume only through the existing runtime window, workers remain Stopped.
+
+No table deletion, firewall flush, module unload, unregistration or default switch
+is authorized. The source controller must state the residual check-to-use race:
+registration inspection plus shutdown is not atomically exclusive against an
+outside manual/automatic WSL launch. Controlled known launchers and JIT checks
+bound this risk; do not claim a Windows-wide lock or visibility into other users.
+Existing strict handoff code remains closed until this exact refinement is
+implemented, independently reviewed and verified against concrete scenarios.
+
+## Complete certificate transport and preserving guest handoff — v1.55
+
+Root accepts the exact source plan `epic440-shared-firewall-certificate-plan.md`
+(SHA256470c141f4b6d63f7c38eb87dd5d9ffd716cf64ef5f5ec89284ed87327d1c1634)
+and the reviewed bridge design record
+`.codex/evidence/epic440-wsl-acceptance-bridge-binding-20261108.md`.
+This releases only the named source engineering and exact verification. No
+registration, resource change, bridge/guest switch or product acceptance GO
+follows from this policy text.
+
+The complete a6a5 Windows query passed twice on the actual PC:543 rules and all
+7x543 filter rows,3profiles/1settings,8,903,516 UTF8 bytes,22.874s/33.095s,
+identical complete digests. Actual repeat artifact SHA256
+ed8ed6e8b5a98c8a4c71c2609421d405ef1ecd356d89dcb5aa145c030b460294.
+Transport that full fresh query through ONE shared fixed source-bound Windows-RAM
+certificate producer. Every required checkpoint executes the whole query again;
+no caching, field omission or raw/truncated fallback. Keep120s/14MiB inside the
+child and64MiB resource-parent aggregate. The closed v1 certificate has exactly8
+root fields and10 count fields; complete snapshot SHA covers every native and
+adapted datum including the exact source-bound conversion descriptors. Add
+required `windows_certificate_sha256` to BOTH-host fixture GOs and static intents;
+retain `windows_snapshot_sha256` as the full query hash. Append the shared producer
+to native source pins serially after the owned-transition correction. All old
+GO/prestate/source bindings remain historical, never reinterpreted.
+
+Measured fixture cost requires a host-specific finite allowance: WSL650s total,
+300s cleanup reserve,350s active. The unchanged successful flow reads the complete
+firewall13times (7active,6cleanup); cleanup alone costs198.57s at the slower sample.
+Native remains300total/60cleanup/240active. Command, byte, stream, entity and
+artifact bounds remain unchanged. Scope/reset counters atomically from an exact
+validated target host at main/capture entry; no reset at cleanup and no WSL budget
+leak into native. These engineering margins do not guarantee stalled providers
+will fit. Boundary overrun remains refusal with exact owned-reader cleanup.
+
+For the NEW stopped WSL registration, supersede only the previously proposed
+24.04.5 HOST image with official26.04.1, matching the existing host OS and signed
+resolute Incus6.0.5-8 package index. Noble's current archive has6.0.0 and current
+Zabbly Noble LTS has6.0.7; cross-suite transplantation and silent version widening
+are refused. The new image is418495746 bytes, SHA256
+48d56724b5c8e60f24893e83e73bbb58c60b3ca22fba3da977075420acd54104;
+signed SUMS validated with843938DF228D22F7B3742BC0D94AA3F0EFE21092.
+Resolute InRelease was validated with archive signer
+F6ECB3762474EDA9D21B7022871920D1991BC93C; exact package/dependency hashes remain
+private input evidence. First launch is explicit root, with no OOBE/UID1000
+assumption; new machine identity must be generated and observed. This does NOT
+change the separate Noble Incus CONTAINER fingerprint21c802d47e64cedcf7153503a1b5dbcc8821919b2af993646756868b775a5383.
+
+Enumerate a narrow additional WINDOWS NATIVE OPERATIONAL recovery class beneath
+canonical `CommonApplicationData/TinySwarmWorld/WslBridge`: the exact source-owned
+`.staging-acceptance-<runid>-original` archive/payload and its `descriptor.json`,
+plus existing checked transaction staging/rollback/journal paths. Archive maximum
+4096members/32MiB; protect with the existing canonical ACL, retain original bytes,
+reject unknown/reparse/foreign layouts and preserve after Complete. Raw payload,
+ACL/SID and archive metadata stay ONLY in this protected operational store. They
+are not workflow approvals/evidence or mutation authority. GO/review/result records
+remain private ext4 or already verified RAM; never wake a stopped guest just to
+read evidence. This exact exception extends the previous W05-only classification;
+it permits no general NTFS evidence store or arbitrary ProgramData writes.
+
+The guest-switch coordinator additionally owns ONLY
+`CommonApplicationData/TinySwarmWorld/maintenance/acceptance-<runid>/guest-switch.json`
+as a minimal native operational bookmark. It may contain schema/run/scenario/source
+hashes, original/new registration GUIDs and VHD identity digests, phase/intent/action
+identities and hashed receipt pointers. No raw inventory, firewall, ACL/SID,
+configuration, secrets or GO authority. Apply the existing canonical ACL only to
+its own new run directory; unknown existing namespace/maintenance ownership or ACL
+blocks without migration or repair. It is not a guest-state proof: every resume
+requires current source/registration/runtime/sole-Running observations.
+
+Bridge phases reuse existing owned payload transaction and actual heartbeat:
+Prepare/Archive/StopOriginal/StageRestore180s each; Bind/ResumeOriginal360s each;
+explicit recovery300s. Bind/Resume reserve two120s full certificate queries,
+30s service start,45s heartbeat and10s owned-reader cleanup before effects; lack
+of remaining budget refuses. Recovery may stage original bytes while Stopped;
+starting service still requires the independently admitted Resume phase. Stop
+Original only after fresh exact original-node quiescence, before termination.
+New name is `TSW-Q440-<runid>`; bind explicit new name. Restore exact original
+config, XML, wrapper and installation-manifest, retaining archive and service
+identity/account/right/startup policy. If original distro is auto/empty, its
+captured GUID must be the unchanged default GUID before any possible lookup.
+Original/new/both/no Running predicates and actual shared-kernel network absence
+remain mandatory. No global WSL shutdown, flush, adoption, route creation or
+unregistration is added. Heartbeat proves real routing reconciliation, not an
+application endpoint/login. Existing original2managers are restored only through
+their UUID-bound runtime window; originally Stopped workers stay Stopped.
+
+## Bounded fixture and recovery correction — v1.54
+
+The retained real native R3 attempt exhausted repeated structural accounting
+before instance creation; its later explicit recovery restored the original
+runtime. Neither result is a fixture PASS. Apply the exact implementation
+record `.codex/evidence/epic440-native-r3-budget-recovery-20261108.md` after
+independent source review and exact PC gates.
+
+The unchanged 10000 entity cap / 5000 cleanup reserve count unique allowlisted
+read-scope plus typed JSON field/index slots. Every full response is still
+freshly read, parsed and validated, independently bounded to 10000 nodes and
+depth32. Every visit charges bytes, commands and monotonic time. Keep256 commands,
+16MiB aggregate,2MiB per stream,300s aggregate and60s cleanup time; reserve110
+commands for cleanup. Full recursive profile/instance list DTOs supply the same
+complete graph; missing required data remains refusal. No foreign rows or
+ownership checks are dropped.
+
+Create each exact run-owned full profile atomically through bounded64KiB RAM
+stdin, and include the run marker atomically in stopped init. Bind canonical
+UUID/generation, exact image metadata and typed finite volatile transitions
+before start; cleanup requires that same receipt and exact profiles/consumers.
+A failed or uncertain write is observed once, never blindly replayed.
+
+Maintenance approval schema2 adds exact operation execute/recover. Execute keeps
+1740s minimum remaining validity; recovery uses its independent600s reserve.
+A recovery GO cannot authorize execute. A post-owned-start provenance retry is
+bounded by the existing25s readiness deadline plus5s child reap; every attempt
+must prove the complete source/package/process/API binding. Unknown identity is
+never success. Every reader clips its deadline to aggregate remaining time;
+external alarms/interrupts reap their exact owned query child before propagating.
+
+The shared fixed pure Windows snapshot asset is source-bound in preparation,
+release assets and both-host fixture GOs via required windows_snapshot_sha256.
+Its complete typed ActiveStore DTOv2 includes rules/profiles/settings and all
+seven independent filter arrays with exact identity-set and native association
+checks. Getter errors refuse. The fixture executes that same full query freshly
+before every effect in Windows RAM and transports only a strict bounded
+certificate of its full UTF8 digest, bytes, layout and counts; PortProxy remains
+a separate complete observation. Controller120s/14MiB and parent limits stay.
+Old or synthetic passes do not qualify a new asset; actual size, duration and
+repeat stability must pass before any dependent Windows maintenance.
+
+Root integrates the seven native correction paths, the shared Windows asset,
+its loader/release binding/tests and records serially. No capability matrix
+admission, host action or EPIC completion follows from this source amendment.
+
+## Preserving product acceptance prerequisite plan — v1.53
+
+Apply the accepted source-planning ADR
+[adr-preserving-product-acceptance-transactions.adoc](../../../../02-architecture/arc42/09_decisions/adr-preserving-product-acceptance-transactions.adoc)
+and exact design record `.codex/evidence/epic440-preserving-acceptance-design-20261108.md`.
+Root independently reviewed the full requirement/architecture/effect boundaries;
+independent architecture review accepted the amended exact switch and network
+absence preconditions. This releases bounded prerequisite SOURCE engineering,
+not an import, rebind, teardown, product callback, capability or host GO.
+
+New serial prerequisite owners/locks are closed qualification tools under
+`tools/windows/qualification/` and `tools/linux/qualification/`, their matching
+`tests/tools/` and `tests/fixtures/` files, source-asset binding in the existing
+Windows preparation adapter, and this ADR/context/evidence. Root integrates
+overlapping fixture/asset/composition files serially. No generic runner, old
+fixture callback expansion, new public destructive command or ownership waiver.
+Each implementation requires exact review, designated PC gates and fresh host/
+case admission before effect. S02 and all ordinary slice dependencies remain.
+
+Native product cases use only separately reviewed fixed CLI scenarios and
+positively created UUID-bound disposable case resources; existing LXD/Incus/
+Issue447 objects remain preserved and original LXD runtime is restored.
+WSL uses a new initially Stopped owned registration on the SAME approved PC.
+The exact old/new switch sequence, actual shared-kernel network absence, real
+protected singleton-bridge binding/heartbeat/CAS restoration and independent
+recovery reserve are mandatory. Never adopt/delete/flush old objects, change
+the default registration or use global WSL shutdown. The original resource
+maintenance exception remains destination-IP-only and is NOT expanded.
+
+Candidate transition promotion requires real exact-source lower-level fixture
+evidence followed by independent canonical policy review and new public CLI
+acceptance. A current v2 setup is not relabeled an old v1 release source.
+S07–09/W10 and Epic440 remain INCOMPLETE until all real required cells pass.
+
+## Native bootstrap and explicit image preservation — v1.52
+
+Apply the reviewed and PC-qualified concrete contract
+[epic440-native-bootstrap-contract-20261107.md](../../../../../../.codex/evidence/epic440-native-bootstrap-contract-20261107.md).
+The final fixture GO is created from actual resource/route observations during
+the bounded pause. Prior intent binds static source/host/image/profile fields;
+no predicted PASS. Inventory schema6 is an explicit image-aware opt-in; default
+schema5 remains unchanged. Preserve actual images/caches and admit only the
+exact intent image's implicit new optimized cache, with full graph/digest proof.
+Preparation1200s, capture360s, approval180s, fixture1025s and separate600s recovery
+replace the earlier clamped aggregate deadline; no arbitrary callback or force
+fallback. Existing source/private-config/host/GO and finally restoration remain.
+Source/PC acceptance does not release an unreviewed host phase or qualify Incus.
+
+## Source implementation scheduling — v1.51
+
+Under the renewed complete-remediation instruction, root routes capability-independent
+S04 and internal-exposure S06 implementation into isolated worktrees while S02
+maintenance qualification runs. This extends the v1.49 pure-source parallel path.
+The S04 supported-version matrix stays empty; runtime mutation remains refused
+until actual both-host S02 evidence is independently accepted. New profile and
+exposure code must cover its explicit intent, locking, no implicit route expansion,
+convergence and recovery contracts before integration, using focused/full PC WSL
+checks. This changes source scheduling only; S02 remains the runtime capability
+and live-acceptance gate, and S05/S07–09 acceptance remains ordered. Root integrates
+all overlapping composition changes serially. No live pass or EPIC completion
+is implied by code authoring or unit tests.
+
+## Current fixture image prerequisite — v1.50
+
+S02 uses the fixed official Alpine 3.21 default/amd64 build
+`20261107_13:00`, not the no-longer-published Alpine 3.20 prerequisite.
+Official source:
+https://images.linuxcontainers.org/images/alpine/3.21/amd64/default/20261107_13:00/
+Metadata SHA256 `3100ebd0999fb3adf9cf52724b4cf57c95a10fe437660614911aae5f6b236ea7`;
+rootfs SHA256 `5f4503fbfa10e24634e972e2646e243648c66c3bb64ad48615eb60cb0c69cd6e`;
+expected combined image fingerprint
+`bb8bbef5b81dbbc7f665eb12172f06d54aef055327f1b4381767bf8c7b18fe66`.
+Verify imports and actual architecture/OS/release before maintenance proposals.
+No floating alias, custom rebuild or image deletion. Capture the fresh image/cache
+baseline before the maintenance window; any resulting unsupported cache-volume
+shape must be resolved explicitly, never ignored. Existing proxy/listener,
+Incus6.0.5, fixed-route/source/GO/cleanup and preservation rules stay unchanged.
+Historical 3.20 evidence does not qualify this image; new code and both live
+host fixtures remain required before capability admission. Independent
+architecture accepted this prerequisite design; root owns implementation/tests.
+
+## Current operative maintenance amendment — v1.49
+
+The renewed user instruction authorizes necessary preserving maintenance on the
+named test hosts. Apply
+`adr-preserving-host-maintenance-for-qualification.adoc` in the arc42 decision
+index; architecture and independent Tester/DevOps review accepted this policy.
+The policy alone authorizes no unreviewed host action.
+A single accepted decision and concrete tested transaction replace repeated
+policy questions. Temporary service authority is distinct from object ownership.
+
+For the preserving S02G path, supersede only exclusive-owner eligibility and
+stop/replace sequencing: allow bounded Snap LXD socket/daemon stop with all
+existing data/configuration/objects preserved and mandatory finally recovery.
+No adoption, deletion/replacement, permanent disable/mask, force/kill or reboot.
+Leave an already inactive socket inactive; only stop it if originally active.
+Exact previously Running nodes may first be stopped gracefully without force.
+Capture actual stop-hook/deadline semantics and prestate first; ordinary shutdown
+may stop containers. The observed unit has a ten-minute systemd stop timeout and
+SIGKILL escalation. Use a verified finite graceful-shutdown path and confirm
+exit before unit-stop bookkeeping; never submit systemctl stop on the live
+daemon under this no-force policy. A controller timeout does not cancel a
+systemd stop job. Graceful timeout blocks qualification and enters recovery.
+Restore only previously Running exact allowlisted instances
+and captured service/socket state, including on failed qualification or timeout.
+Unexpected reactivation/concurrent drift ends qualification; recovery remains
+identity-bound and independently verified. Incus existing objects stay unchanged;
+only existing admitted disposable fixture objects may be created/cleaned up.
+
+For necessary W05 resource restart only, admit bounded selected-Ubuntu restart
+with no other running WSL distribution, then connectaddress-only reconciliation
+of existing product-bound PortProxy rules to that same registration's freshly
+observed IPv4. Preserve complete firewall state, protocol/family/listen tuple,
+connectport/count, every foreign rule and existing bridge identity/configuration.
+A required existing bridge service stop/start must be explicit in the concrete
+plan and restore captured running state. No new rule/listener/route, feature or
+Windows reboot. Compare-before-write and reviewed recovery govern partial/drift
+outcomes. This narrow exception supersedes conflicting absolute equality and
+manual-only restart wording only inside prerequisite maintenance; afterward
+capture a fresh baseline/digest. S02 fixtures and later scenarios preserve that
+baseline byte-for-byte with no such exception.
+
+Code/source verification, concrete bounded recovery plan and exact host/scenario
+review remain required before execution. Existing private evidence and native
+product recovery protection remain unchanged. S02 still gates S03–S09 runtime enablement and live scenarios;
+maintenance success is not capability admission or Epic completion.
+
+A narrow scheduling exception allows isolated pure S03 manifest-v2 migration,
+installation lock and checkpoint/selection persistence code to proceed while S02
+maintenance/fixture is pending, after a concrete code-plan review. Scoped
+integration consumers include component_execution.py, portainer_upgrade.py,
+portainer_journal.py and composition_lifecycle.py; the implementation plan must
+name their current canonical paths and required domain/port/persistence locks.
+S04 provider wiring in composition_platform.py remains separate. Run focused and
+full exact-source checks before integration; verified pure-code integration may
+precede S02. No supported Incus version, profile
+capability, host mutation or aggregate acceptance follows from this parallel
+pure-code path; those retain S02 and subsequent acceptance dependencies. Historical
+paragraphs below retain their evidence; conflicting operative constraints apply
+outside this expressly preserving path.
+
+The current bounded volume DTO amendment is specified in
+`.codex/evidence/epic440-volume-dto-20261107.md`: LXD 5.21.9 list and detail
+must bind the required pool string to the exact queried pool; Incus 6.0.5 keeps
+its distinct DTO shape. Owner-project and consumer graph admission, schema 2,
+fixed commands/provenance/budgets and private evidence remain unchanged.
+Implementation, PC verification and any new native capture remain separately
+exact-reviewed phases. This amendment grants no runtime or capture authority.
+
+The current storage-snapshot contract is
+`.codex/evidence/epic440-snapshot-inventory-20261107.md`. Overall native artifact
+schema 5 explicitly supersedes schema 4. Existing flat storage lists retain
+validated parent/leaf identities as separate parent-bound stored snapshots,
+without adding current roots or replaying historical profile/device configuration.
+Actual flat owner/pool/type/content/location and validated parent establish leaf
+context; strict snapshot detail has no invented owner/type/location fields.
+
+Returned edges are family-specific after the final API filter: Incus snapshot
+used_by and pool child links are empty/absent; LXD exposes exact root/custom child
+links. Observed Incus links are never fabricated. Project volume membership is
+also corrected explicitly: LXD includes all owned PARENTS, Incus CUSTOM PARENTS
+only, neither includes children. Current root bijection and actual returned
+parent-volume owner admission remain strict. Earlier shared Project-root and
+internal-helper-only returned-edge assumptions are historical and superseded.
+
+The only new query scope is one fixed guarded raw GET per validated stored leaf:
+/1.0/storage-pools/{pool}/volumes/{type}/{parent}/snapshots/{leaf}?project={owner},
+with separately validated four components, exact family executable/GET/envelope,
+strict six-field Snapshot DTO and direct shared raw-metadata equality. No recursive
+snapshot list or historical InstanceSnapshot query. Reader leaf/detail command
+bijection, matching-parent-before-leaf and existing admission/graph/final phase
+checks are mandatory. All new GETs/rechecks/records count under unchanged
+2048-command/entity/byte/process/wall limits; budget exhaustion stays blocked.
+Snapshot storage inventory proves no independently fetched historical counterpart
+metadata, device safety or maintenance effects. No restore/delete, selector
+engine, feature/profile write or runtime capability follows this contract.
+
+The retained inherited-profile field contract is
+`.codex/evidence/epic440-profile-inventory-20261107.md`. Profile field semantics introduced by schema 4 remain under schema 5.
+Effective profile scope,
+mandatory actual DTO owner and metadata digest retain complete canonical and
+inherited views without treating a requesting project as owner. Profile consumers
+resolve across projects; ordered unique instance profile sequences remain exact.
+Canonical raw profile NIC/API-storage producers are counted once in the actual
+owner's feature scope, while local/expanded instance producers retain instance
+scope. Project.used_by includes only profiles physically owned there.
+
+This explicitly replaces the earlier unsupported-profile-inheritance boundary
+only when complete canonical owner/view/membership/consumer checks pass. It
+permits no project feature write, shared profile mutation, adoption or capability
+claim. Profile whole-device override semantics are reflected in fixtures; no
+hidden expansion or property-merge engine is introduced. Missing/filtered/drifting
+views, owner mismatches and malformed ordered membership remain blockers.
+The retained profile model leaves root admission/default-project/phase-order,
+returned volume ownership and network/storage resource rules intact. Its query
+set and limits are unchanged; new snapshot queries are specified above.
+Exact independent plan/normative and source/test review, PC gates and a separately
+released committed schema5 capture remain mandatory. No live GO follows this amendment.
+
+The retained storage graph field contract is specified in
+`.codex/evidence/epic440-storage-graph-20261107.md`. It explicitly supersedes
+the historical schema 2 with its schema 3 field contract: canonical pool views,
+type-dependent consumers, separate raw/local API and expanded effective storage
+projections, retained root/producer evidence and independent structural checks.
+Returned parent-volume ownership and current root bijection are preserved.
+Project parent membership follows the corrected LXD-all/Incus-custom rule above.
+Network field semantics remain those of the reviewed network contract; earlier schema
+numbers are historical and are never silently migrated.
+
+The retained root admission uses two fixed local raw GET /1.0 observations per
+active queried daemon, before and after its graph queries, to admit only strict
+trusted/default-project/family/nonclustered state. This earlier query-set
+expansion remains: up to four root GETs plus existing per-query provenance rechecks, all
+counted under unchanged 2048-command/time/byte/entity limits. The full pinned
+family DTO and exact CLI version relationship must be validated; root config,
+certificates, addresses and auth identity stay in RAM. No API PID/Wrapper MainPID
+equality, continuous observation or atomic snapshot is inferred.
+
+An admitted active family must include exactly one default project in its full
+project collection; an empty or default-missing view is incomplete and blocked
+in capture and reader. An unqueried inactive family remains empty with null
+admission. Reader query provenance must bind version, initial root proof, every
+family graph query, then final root proof in that order. Existing list/detail
+instance type/location and volume content/location must agree before storage
+identity is trusted. These are completeness and observation-consistency checks;
+no query, privilege or budget expansion follows this clarification.
+
+Unsupported images/shared-custom inheritance, disk selectors/subpaths, buckets,
+member/daemon relations and historical restore/delete operations remain blocked.
+Stored snapshot leaves are supported only under the bounded contract above;
+no consumer is discarded to pass. Existing network/provenance/private-evidence and mandatory returned volume owner checks
+remain. Exact plan/query-scope and implementation reviews, PC gates and a
+separate fresh committed-source schema5 capture plan are required. Native drivers
+must require schema 5 and exact current contract/source/test/workflow pins.
+Authoring this continuation grants no capture, fixture, capability or runtime maintenance GO.
+
+The current F4 native collector explicitly supersedes its earlier total
+256-command allowance with a finite 2048-command cap, counting all repeated
+trust checks. Process/wall/output/artifact/entity limits and every check remain
+unchanged. This affects only native_runtime_inventory and its record cap;
+fixture/route capture budgets below stay unchanged. See its current normative
+amendment and master record for the measured failure and exact verification.
+
+The same continuation also implements S449-02I after official Microsoft Store
+WSL2 feature applicability review. Current paths are
+`bootstrap/windows/preparation/Policy.ps1`, `Adapters.ps1` and
+`tests/windows/prepare-windows.Tests.ps1` (the older tools/windows paths below
+are historical). Its isolated worker/root integration, requirement matrix,
+exact source reviews and aggregate PC-WSL results are recorded in
+`.codex/evidence/epic440-store-wsl2-20261107.md`. This is code verification only;
+fresh read-only host preflight, route admission and S02 fixture remain required.
+
+A further S02I checkpoint correction preserves complete three/four-component
+WSL versions in durable state; see
+`.codex/evidence/epic440-wsl-state-20261107.md`. Native W05 product recovery
+classification is a distinct governance checkpoint recorded below and in its
+own evidence file; neither code verification nor classification grants live GO.
+
+Its subsequent actual preflight exposed native source-path transport for WSL
+UNC checkouts. The bounded correction canonicalizes ProviderPath in the actual
+Windows entrypoint; real Source/Resource native argument builders are covered
+for UNC and drive roots. See
+`.codex/evidence/epic440-windows-source-path-20261107.md` for exact review and
+aggregate PC-WSL verification. Source/resource authority remains unchanged;
+fresh actual host admission is still required.
 Baseline: `a0310224946b63e2152ff4086d22a450c3d0f214`
 ACTIVE_FOR_ISSUE_449 v1.42. The user explicitly authorized completion of issue #449 on the named test hosts. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
 Execution profile: `FULL_PATH — lifecycle/provider implementation, regression, documentation, native and WSL2 qualification`
@@ -166,6 +804,25 @@ current user, SYSTEM and Administrators; reject broad `Users` or
 `Authenticated Users` principals. These human-only files are never read or
 written by the fixture runner. All workflow-release approval records and all
 other private evidence require the POSIX ext4 rule below.
+
+The current continuation additionally classifies only existing native W05
+product operational recovery files, as accepted in
+`.codex/evidence/epic440-product-recovery-classification-20261107.md`.
+The protected Windows LocalAppData/TinySwarmWorld/preparation store may retain
+bootstrap.state.json, bootstrap.lock, GUID.json intent/effect/backup metadata,
+wslconfig-GUID.backup and unique transaction temporaries. The validated Windows
+user-profile configuration directory may retain .wslconfig, .tsw-wslconfig.lock,
+.tsw-wslconfig-GUID.tmp and .tsw-displaced-GUID.backup generated only by the
+existing resource adapter under a separate exact resource-only host GO.
+Original ACL/metadata required for restoration stays solely in that protected
+native product store; target configuration retains its validated original
+metadata. All existing owner/ACL/no-reparse/lock/exclusive-backup/snapshot/drift
+and atomic-replacement checks remain mandatory. No raw configuration, ACL/SID,
+backup path or native recovery record is exported or used as fixture authority.
+This is an explicit narrow classification exception to the preceding general
+private-evidence sentence, not an extension of the four human-only exceptions.
+All workflow/fixture approvals and sanitized audit records still obey the ext4
+rule below. No Apply, restart, service, firewall or PortProxy change is released.
 
 Every runner-used S02 capture, GO, reservation/NOT_RUN, review and result
 artifact must reside in the private evidence directory of an approved live
@@ -1258,56 +1915,56 @@ documentation:
 stop_conditions: [missing exact-hash role GO or S3D, unsupported unit or process schema, unverified wrapper or child relation, raw-value leakage, expanded allowlist, changed F3 or artifact schema, host mutation, failed quality gate]
 ```
 
-##### Conditional Slice 02G — Native LXD maintenance for TSW replacement
+##### Conditional Slice 02G — Preserving temporary native LXD maintenance
 
-This slice may be authored only if S449-02F exact evidence proves the active
-LXD service owns exclusively the three named TSW instances
-`swarm-manager`, `swarm-worker-1` and `swarm-worker-2`, with no unrelated
-instances, profiles, networks, storage pools, projects, consumers or host
-services. Any unknown, shared or unrelated resource keeps native qualification
-`BLOCKED` and forbids this slice. User authorization to replace these three TSW
-instances does not itself approve a service stop.
+Under v1.49, S02G may be authored for the preserving temporary-maintenance
+transaction specified by the current operative amendment and its ADR. Exclusive
+TSW resource ownership is not a prerequisite for service maintenance; it remains
+unproved and must not be inferred. Preserve all existing LXD/Incus objects and
+configuration; no instance replacement/deletion or shared-resource mutation is
+included. Historical stop/replace permission does not expand this path.
 
-If eligible, create a separate maintenance/recovery plan and obtain fresh
-Requirement, Architecture, Security, DevOps and Test/Evidence approval bound to
-one native host/scenario GO before any write. The GO must bind exact source and
-inventory hashes, the exact LXD unit and three instance identities, private
-pre-state and intended new post-state, maintenance window, bounded stop/restart
-commands, expected exit/state at each checkpoint, and qualification-run
-recovery behavior. Store the GO and result only on verified ext4 below the
-existing owner-only evidence directory, mode 0700, with each file mode 0600.
-No backup or restoration of the old three TSW instance
-contents is required; their replacement is explicitly authorized. Stop only
-the exact verified TSW-owned service, replace only the three named TSW
-instances, then restart only that service and verify the intended new runnable
-TSW state, endpoints, network and storage identity. Verify service recovery
-after restart. A host reboot is an optional, separate
-host-wide operation and requires separate explicit authorization, its own exact
-GO and recovery evidence; no reboot is automatic. Never stop,
-restart or modify Incus, another LXD service, unrelated host services, shared
-profiles, firewall/PortProxy state, or any unlisted resource.
+Bind fresh exact source/inventory, effective units/stop-hook/deadlines, Running/
+Stopped instance states and the complete preserve set. Stop the verified Snap
+LXD socket only if originally active, then use verified graceful daemon shutdown
+for the qualification window. The inspected vendor clean-exit/stop-hook branch
+avoids kill fallback. Bind /snap/bin/lxd shutdown --timeout 60 without --force to
+its verified Snap command/package/socket; do not accept inherited endpoint or
+LXD_DIR overrides. Confirm clean exit before unit-stop bookkeeping, avoiding
+the observed systemd SIGKILL escalation. Always restore captured
+service/socket state and only previously Running allowlisted instances in finally,
+including after refusal/failure/interruption. Keep finite recovery state privately
+for controller-loss recovery; require identity/drift checks before replay and
+verify resource equality and service usability afterward. Record uncertain
+recovery as RECOVERY_REQUIRED and stop qualification.
+
+A single concrete maintenance/recovery plan receives Requirement, Architecture,
+Security/DevOps and Test/Evidence review bound to exact source and native host.
+This is execution admission within renewed user authority, not another abstract
+policy permission request. No reboot, force/kill, persistent mask/disable,
+package change or modification of Incus/foreign services is included.
 
 ```yaml
 slice_id: S449-02G
 profile: RUNTIME_QUALIFICATION
 owner: Senior DevOps Engineer
 secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior DevOps Engineer, Test/Evidence Reviewer]
-affected_files: [documentation/handbook/05-development/workflow/issues/issue-449/workflow.md, documentation/handbook/05-development/workflow/issues/issue-449/context-pack.md, documentation/handbook/05-development/workflow/issues/issue-449/context-pack.json, tools/qualification/native_lxd_maintenance.py, tests/tools/test_native_lxd_maintenance.py, .tiny-swarm/evidence/issue-449/s449-private-20261027/native-maintenance-go.json, .tiny-swarm/evidence/issue-449/s449-private-20261027/native-maintenance-result.json, .codex/evidence/slice-449-02G-distribution.md, .codex/evidence/slice-449-02G-consolidation.md]
-affected_modules: [native LXD service maintenance, three TSW instance replacement and recovery]
+affected_files: [documentation/handbook/05-development/workflow/issues/issue-449/workflow.md, documentation/handbook/05-development/workflow/issues/issue-449/context-pack.md, documentation/handbook/05-development/workflow/issues/issue-449/context-pack.json, tools/linux/qualification/native_lxd_maintenance.py, tests/tools/test_native_lxd_maintenance.py, .tiny-swarm/evidence/issue-449/s449-private-20261027/native-maintenance-go.json, .tiny-swarm/evidence/issue-449/s449-private-20261027/native-maintenance-result.json, .codex/evidence/slice-449-02G-distribution.md, .codex/evidence/slice-449-02G-consolidation.md]
+affected_modules: [temporary Snap LXD socket/service maintenance, exact pre-state restoration, preserved LXD/Incus resource graph]
 affected_contracts: [exact native five-role GO, exact unit and instance allowlist, private pre-state and intended new post-state, bounded stop/restart and service recovery, qualification-run recovery evidence]
 dependencies: [S449-02F]
 parallel_group: serialized-live
-file_locks: [documentation/handbook/05-development/workflow/issues/issue-449/workflow.md, documentation/handbook/05-development/workflow/issues/issue-449/context-pack.md, documentation/handbook/05-development/workflow/issues/issue-449/context-pack.json, tools/qualification/native_lxd_maintenance.py, tests/tools/test_native_lxd_maintenance.py, .tiny-swarm/evidence/issue-449/s449-private-20261027/native-maintenance-go.json, .tiny-swarm/evidence/issue-449/s449-private-20261027/native-maintenance-result.json, .codex/evidence/slice-449-02G-distribution.md, .codex/evidence/slice-449-02G-consolidation.md]
-module_locks: [native host LXD service and the three allowlisted TSW instances]
+file_locks: [documentation/handbook/05-development/workflow/issues/issue-449/workflow.md, documentation/handbook/05-development/workflow/issues/issue-449/context-pack.md, documentation/handbook/05-development/workflow/issues/issue-449/context-pack.json, tools/linux/qualification/native_lxd_maintenance.py, tests/tools/test_native_lxd_maintenance.py, .tiny-swarm/evidence/issue-449/s449-private-20261027/native-maintenance-go.json, .tiny-swarm/evidence/issue-449/s449-private-20261027/native-maintenance-result.json, .codex/evidence/slice-449-02G-distribution.md, .codex/evidence/slice-449-02G-consolidation.md]
+module_locks: [native Snap LXD socket/service runtime state and recovery of previously Running allowlisted instances]
 contract_locks: [five-role host/scenario GO, explicit instance allowlist, exact intended new state, qualification recovery and service recovery]
-architecture_locks: [no shared or unowned host resource mutation]
+architecture_locks: [no existing object/configuration mutation outside exact approved runtime-state restoration]
 quality_gates:
   targeted: [PYTHONPATH=modules/tsw_core/src python3 -m unittest tests.tools.test_native_lxd_maintenance]
   required: [python3 tools/quality_gate.py quality]
 documentation:
   arc42: update only if an accepted coexistence decision changes architecture
   adr: required before changing LXD/Incus coexistence or runtime ownership policy
-stop_conditions: [inventory not exclusive to the three named TSW instances, any unlisted/unknown resource, GO/hash mismatch, ext4/0700/0600 evidence check failure, pre-state drift, stop/restart timeout or unexpected exit, intended new TSW state or qualification recovery failure, optional separately approved reboot recovery failure, any unrelated service/resource/network/storage/profile drift]
+stop_conditions: [source/host binding mismatch, incomplete stop-hook or recovery state, unsafe private evidence, unexpected pre-state drift or reactivation, stop/restart timeout, failed or uncertain recovery, any existing object/configuration change outside approved runtime-state restoration, Incus/foreign service or resource drift]
 ```
 
 ##### Conditional Slice 02H — Resolve WSL feature readiness before admission

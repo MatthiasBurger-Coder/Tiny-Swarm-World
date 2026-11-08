@@ -17,7 +17,7 @@ def render_script(bridges: tuple[Bridge, ...], firewall: dict[str, Any]) -> byte
         name = shlex.quote(bridge.name)
         lines.extend((f"while ! timeout 3 ip link show dev {name} >/dev/null 2>&1; do",
                       '  if (( SECONDS >= deadline )); then exit 1; fi', "  sleep 1", "done"))
-    lines.append(render_guard(bridges, firewall["ufw"], absent=firewall["status"].startswith("Status: absent"), ports=firewall.get("ports", ())))
+    lines.append(render_guard(bridges, firewall["ufw"], absent=firewall["status"].startswith("Status: absent"), ports=firewall.get("ports", ()), owners=firewall.get("managed_bridge_owners")))
     # No NAT, policies, flushes or broad accepts. Recheck collisions/owner in fresh
     # preparation before installing this immutable, explicitly scoped asset.
     if not firewall["ufw"]:
