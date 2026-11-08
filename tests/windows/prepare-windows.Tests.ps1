@@ -207,6 +207,7 @@ if([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT){
 # Exact DISM basename alone selects actual OEM decoding; no Windows features are queried.
 $dismFixture=Join-Path ([IO.Path]::GetTempPath()) ('tsw-dism-oem-'+[Guid]::NewGuid().ToString('N'))
 $originalOutputEncoding=[Console]::OutputEncoding
+$originalCurrentDirectory=[Environment]::CurrentDirectory
 [void][IO.Directory]::CreateDirectory($dismFixture)
 try{
     $oem=& (Get-Module Preparation) {Get-PreparationDismEncoding}
@@ -217,28 +218,36 @@ try{
     if($null -eq $sample){$sample=[string][char]252}
     $text='OEM='+$sample+"`nState : Enabled`n"
     [byte[]]$bytes=$oem.GetBytes($text)
-    $data=($bytes | ForEach-Object{[string]$_}) -join ','
-    $type='DismFixture'+[Guid]::NewGuid().ToString('N')
-    $code='public static class '+$type+' { public static void Main(){ byte[] b=new byte[]{'+$data+'}; var o=System.Console.OpenStandardOutput();o.Write(b,0,b.Length);o.Flush();var e=System.Console.OpenStandardError();e.Write(b,0,b.Length);e.Flush();} }'
     $dism=Join-Path $dismFixture 'Dism.exe';$other=Join-Path $dismFixture 'Other.exe'
-    Add-Type -TypeDefinition $code -OutputAssembly $dism -OutputType ConsoleApplication
-    [IO.File]::Copy($dism,$other)
+    # Keep executable trust intact under Application Control: only the basename
+    # changes; cmd's built-in type copies our exact bytes to both native pipes.
+    $trustedCmd=Join-Path ([Environment]::SystemDirectory) 'cmd.exe'
+    $signature=Get-AuthenticodeSignature -LiteralPath $trustedCmd
+    Assert ($signature.Status -eq 'Valid' -and $signature.SignerCertificate.Subject -match 'O=Microsoft Corporation(?:,|$)') 'oem_fixture_trusted_microsoft_cmd'
+    [IO.File]::Copy($trustedCmd,$dism)
+    [IO.File]::Copy($trustedCmd,$other)
+    Assert ((Get-FileHash -LiteralPath $dism -Algorithm SHA256).Hash -ceq (Get-FileHash -LiteralPath $trustedCmd -Algorithm SHA256).Hash -and
+        (Get-FileHash -LiteralPath $other -Algorithm SHA256).Hash -ceq (Get-FileHash -LiteralPath $trustedCmd -Algorithm SHA256).Hash) 'oem_fixture_copies_preserve_signed_bytes'
+    [IO.File]::WriteAllBytes((Join-Path $dismFixture 'oem.bin'),$bytes)
+    [Environment]::CurrentDirectory=$dismFixture
+    $emitBytes=@('/d','/a','/c','type oem.bin & type oem.bin 1>&2')
     [Console]::OutputEncoding=[Text.UTF8Encoding]::new($false,$true)
-    $captured=Invoke-PreparationProcess $dism @() 10
+    $captured=Invoke-PreparationProcess $dism $emitBytes 10
     Assert ($captured.exit_code -eq 0 -and $captured.stdout -ceq $text -and $captured.stderr -ceq $text -and
         $captured.stdout -match 'State : Enabled') 'dism_real_process_oem_stdout_stderr_under_strict_utf8'
     $notUtf8=$false
     try{$null=([Text.UTF8Encoding]::new($false,$true)).GetString($bytes)}catch [Text.DecoderFallbackException]{$notUtf8=$true}
     if($notUtf8){
         $refused=$false
-        try{$null=Invoke-PreparationProcess $other @() 10}catch{$refused=$_.Exception.ToString().Contains('DecoderFallbackException')}
+        try{$null=Invoke-PreparationProcess $other $emitBytes 10}catch{$refused=$_.Exception.ToString().Contains('DecoderFallbackException')}
         Assert $refused 'non_dism_identical_oem_bytes_still_strict_utf8_refused'
     }else{
-        $unchanged=Invoke-PreparationProcess $other @() 10
+        $unchanged=Invoke-PreparationProcess $other $emitBytes 10
         Assert ($unchanged.stdout -ceq $text) 'utf8_oem_host_keeps_other_reader_behavior'
     }
 }finally{
     [Console]::OutputEncoding=$originalOutputEncoding
+    [Environment]::CurrentDirectory=$originalCurrentDirectory
     Remove-Item -LiteralPath $dismFixture -Recurse -Force
 }
 }
