@@ -1,6 +1,6 @@
 param([Parameter(Mandatory=$true)][string]$RepositoryRoot)
 $ErrorActionPreference='Stop'
-. (Join-Path $RepositoryRoot 'tools/windows/qualification/wsl_acceptance_guest_switch.ps1')
+. (Join-Path $RepositoryRoot 'modules/tsw_windows_wsl/tools/windows/qualification/wsl_acceptance_guest_switch.ps1')
 function Assert($yes,[string]$reason){if(!$yes){throw $reason}}
 function Copy-SwitchFixtureValue($v){
  if($null -eq $v -or $v -is [string] -or $v -is [ValueType]){return $v}
@@ -197,7 +197,7 @@ foreach($fault in @('running','third-registration','registry','bridge','client',
 # Execute the actual Save body on new private fixture files. The second save
 # reaches File.Replace, including Windows PowerShell's explicit null binding.
 $tokens=$null;$parseErrors=$null
-$tree=[Management.Automation.Language.Parser]::ParseFile((Join-Path $RepositoryRoot 'tools/windows/qualification/wsl_acceptance_guest_switch.ps1'),[ref]$tokens,[ref]$parseErrors)
+$tree=[Management.Automation.Language.Parser]::ParseFile((Join-Path $RepositoryRoot 'modules/tsw_windows_wsl/tools/windows/qualification/wsl_acceptance_guest_switch.ps1'),[ref]$tokens,[ref]$parseErrors)
 Assert ($parseErrors.Count -eq 0) 'source parses for actual Save'
 $saveDefinitions=@($tree.FindAll({param($a) $a -is [Management.Automation.Language.FunctionDefinitionAst] -and $a.Name -ceq 'Save'},$true))
 Assert ($saveDefinitions.Count -eq 1) 'unique actual Save'

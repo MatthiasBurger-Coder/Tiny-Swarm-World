@@ -32,7 +32,7 @@ else:
     provenance = importlib.import_module(module_prefix + 'native_lxd_snap_provenance')
     fixture = importlib.import_module(module_prefix + 'incus_profile_listener_fixture')
 
-ROOT = Path(__file__).resolve().parents[3]
+ROOT = Path(__file__).resolve().parents[5]
 PRIVATE = ROOT / fixture.PRIVATE_EVIDENCE_REL
 HOST = '192.168.178.33'
 DAEMON = 'snap.lxd.daemon.service'
@@ -43,20 +43,20 @@ ENV = {'LC_ALL': 'C', 'PATH': '/usr/bin:/bin'}
 HEX = re.compile(r'[0-9a-f]{64}\Z', re.ASCII)
 RUN_ID = re.compile(r'[0-9a-f]{32}\Z', re.ASCII)
 FILES = (
-    'tools/linux/qualification/native_lxd_maintenance.py',
+    'modules/tsw_core/tools/linux/qualification/native_lxd_maintenance.py',
     'tests/tools/test_native_lxd_maintenance.py',
-    'tools/linux/qualification/native_runtime_inventory.py',
-    'tools/linux/qualification/native_lxd_snap_provenance.py',
-    'tools/linux/qualification/incus_profile_listener_fixture.py',
+    'modules/tsw_core/tools/linux/qualification/native_runtime_inventory.py',
+    'modules/tsw_core/tools/linux/qualification/native_lxd_snap_provenance.py',
+    'modules/tsw_core/tools/linux/qualification/incus_profile_listener_fixture.py',
     'tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py',
     'documentation/handbook/05-development/workflow/issues/issue-449/workflow.md',
-    'tools/linux/qualification/native_resource_admission.py',
+    'modules/tsw_core/tools/linux/qualification/native_resource_admission.py',
     'tests/tools/test_native_resource_admission.py',
     'tests/tools/test_native_runtime_inventory.py',
-    'src/tiny_swarm_world/domain/native_preparation.py',
-    'src/tiny_swarm_world/infrastructure/adapters/host/native_preparation.py',
-    'tools/windows/qualification/windows_firewall_snapshot.ps1',
-    'tools/windows/qualification/windows_firewall_certificate.ps1',
+    'modules/tsw_core/src/tiny_swarm_world/domain/native_preparation.py',
+    'modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/host/native_preparation.py',
+    'modules/tsw_windows_wsl/tools/windows/qualification/windows_firewall_snapshot.ps1',
+    'modules/tsw_windows_wsl/tools/windows/qualification/windows_firewall_certificate.ps1',
 )
 LIMIT = 8 * 1024 * 1024
 HOST_LOCK_PARENT = Path('/run/tsw-epic440-native-maintenance')
@@ -942,7 +942,7 @@ def source_pins() -> tuple[str, dict[str, str]]:
 
 
 INTENT_REL = fixture.PRIVATE_EVIDENCE_REL / 'native-fixture-intent.json'
-RESOURCE_SCRIPT = 'tools/linux/qualification/native_resource_admission.py'
+RESOURCE_SCRIPT = 'modules/tsw_core/tools/linux/qualification/native_resource_admission.py'
 DYNAMIC_GO_KEYS = {'decision', 'resource_admission_sha256', 'approved_route_state_sha256'}
 RESOURCE_CHECKS = {'structured_service_access_preflight', 'selection_budget', 'memory', 'cpu', 'disk',
                    'config_source', 'native', 'private_ext4', 'incus_version', 'source_clean', 'candidate_hashes', 'private_evidence'}

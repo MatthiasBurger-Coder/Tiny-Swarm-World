@@ -22,9 +22,9 @@ import time
 from typing import Any
 from uuid import uuid4
 
-SCRIPT = 'tools/linux/qualification/product_upgrade_cases.py'
-CATALOG = 'src/tiny_swarm_world/infrastructure/adapters/lifecycle/component_transitions.py'
-ROOT = Path(__file__).resolve().parents[3]
+SCRIPT = 'modules/tsw_core/tools/linux/qualification/product_upgrade_cases.py'
+CATALOG = 'modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/lifecycle/component_transitions.py'
+ROOT = Path(__file__).resolve().parents[5]
 FRESH_NAMES = ('minimal', 'swagger-internal', 'swagger-published', 'swagger-traefik-swarm',
                'swagger-traefik-portainer', 'swagger-add-traefik', 'full-swarm', 'full-portainer')
 
@@ -737,6 +737,19 @@ def run(port: Any, *, engine_recovery: bool = False) -> None:
     port.deadline = min(outer_deadline, time.monotonic() + 3600)
     before = observe(port, 'source')
     port.upgrade_before = before
+    if port.intent.case == 'upgrade-batch-default-swarm-internal':
+        single = UpgradeRecipe(('swagger',), value.preset, value.owner, value.exposure)
+        port.public(['services', 'list', '--json'], timeout=120)
+        preview = json.loads(port.public(single.update(preview=True), timeout=120))
+        require(preview.get('status') == 'preview', 'UPGRADE_SINGLE_PREVIEW_BLOCKED')
+        result = json.loads(port.public(single.update(), timeout=900))
+        require(result.get('status') == 'completed', 'UPGRADE_SINGLE_APPLY_FAILED')
+        preserve(before, observe(port, 'single-target'))
+        preview = json.loads(port.public(single.update(preview=True, recover=True), timeout=120))
+        require(preview.get('status') == 'preview', 'UPGRADE_SINGLE_RECOVERY_PREVIEW_BLOCKED')
+        result = json.loads(port.public(single.update(recover=True), timeout=900))
+        require(result.get('status') == 'recovered', 'UPGRADE_SINGLE_RECOVERY_FAILED')
+        preserve(before, observe(port, 'recovered'))
     if value.kind == 'portainer':
         cache_stage(port, before)
     port.public(['services', 'updates', '--services', 'portainer' if value.kind == 'portainer' else ','.join(value.services), '--json'], timeout=120)
@@ -775,10 +788,20 @@ def run(port: Any, *, engine_recovery: bool = False) -> None:
                                     'publication_qualified': False, 'epic_complete': False})
 
 
+def _expected_component_versions(value: UpgradeRecipe, name: str, definition: Any, stage: str) -> Any:
+    policy = definition.update_transitions[0]
+    source = (stage in {'source', 'cache-source', 'recovered'} or value.kind == 'portainer'
+              or stage == 'single-target' and name != 'swagger'
+              or stage in {'noop', 'persistent'} and value.fault)
+    return policy.source_versions if source else next(
+        target.versions for target in definition.update_targets if target.target_id == policy.target_id)
+
+
 def read_runtime(case: str, stage: str) -> dict[str, Any]:
     """Use production read-only observers; stdout contains no credentials or Env."""
     value = recipe(case)
-    require(stage in {'source', 'cache-source', 'target', 'recovered', 'noop', 'persistent'}, 'UPGRADE_PROOF_STAGE')
+    require(stage in {'source', 'cache-source', 'single-target', 'target', 'recovered', 'noop', 'persistent'}
+        and (stage != 'single-target' or case == 'upgrade-batch-default-swarm-internal'), 'UPGRADE_PROOF_STAGE')
     import logging
     import shlex
     from tiny_swarm_world.infrastructure.composition_lifecycle import build_installation_lifecycle_service
@@ -844,11 +867,7 @@ def read_runtime(case: str, stage: str) -> dict[str, Any]:
         definitions = {service.service_id: service for service in lifecycle.catalog.load().services}
         selected = {item.component_id: item for item in manifest.components}
         for name in value.services:
-            policy = definitions[name].update_transitions[0]
-            expected = policy.source_versions if stage in {'source', 'cache-source', 'recovered'} or value.kind == 'portainer' else next(
-                target.versions for target in definitions[name].update_targets if target.target_id == policy.target_id)
-            if stage in {'noop', 'persistent'}:
-                expected = policy.source_versions if value.fault or value.kind == 'portainer' else expected
+            expected = _expected_component_versions(value, name, definitions[name], stage)
             for component, identity in expected.items():
                 require(selected[component].desired.image_repository == identity.image_repository
                     and selected[component].desired.image_digest == identity.image_digest, 'UPGRADE_BUNDLE_PIN_DRIFT')
@@ -914,11 +933,11 @@ def read_runtime(case: str, stage: str) -> dict[str, Any]:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument('--case', choices=tuple(RECIPES), required=True)
-    parser.add_argument('--stage', choices=('source', 'cache-source', 'cache-targets', 'cache-reconcile', 'target', 'recovered', 'noop', 'persistent'), required=True)
+    parser.add_argument('--stage', choices=('source', 'cache-source', 'cache-targets', 'cache-reconcile', 'single-target', 'target', 'recovered', 'noop', 'persistent'), required=True)
     args = parser.parse_args()
     require(os.geteuid() == 0, 'UPGRADE_ROOT_REQUIRED')
     import sys
-    sys.path.insert(0, str(ROOT / 'src'))
+    sys.path.insert(0, str(ROOT / 'modules/tsw_core/src'))
     signal.signal(signal.SIGTERM, lambda *_: (_ for _ in ()).throw(KeyboardInterrupt()))
     print(json.dumps(prepare_target_cache(args.case, read_only=args.stage == 'cache-reconcile')
         if args.stage in {'cache-targets', 'cache-reconcile'} else read_runtime(args.case, args.stage)))

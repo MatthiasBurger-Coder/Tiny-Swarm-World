@@ -4,7 +4,7 @@ $ProgressPreference='SilentlyContinue'
 # Load the installed CIM SDK through its shipped module; no provider command.
 Import-Module (Join-Path ([Environment]::GetFolderPath('System')) 'WindowsPowerShell/v1.0/Modules/CimCmdlets/CimCmdlets.psd1') -ErrorAction Stop
 if($DynamicTargetContract){Import-Module NetSecurity -ErrorAction Stop -DisableNameChecking}
-. (Join-Path $RepositoryRoot 'tools/windows/qualification/wsl_resource_maintenance.ps1')
+. (Join-Path $RepositoryRoot 'modules/tsw_windows_wsl/tools/windows/qualification/wsl_resource_maintenance.ps1')
 function Assert($Condition,[string]$Code){if(!$Condition){throw $Code}}
 $command=Get-WslMaintenanceFirewallCommand
 function Fixture([int]$Count=3){
@@ -116,11 +116,11 @@ if($SourceGuardContract){
  if(Test-Path -LiteralPath $scratch){throw 'scratch_exists'}
  [void][IO.Directory]::CreateDirectory($scratch)
  try{
-  $original=Join-Path $RepositoryRoot 'tools/windows/qualification/windows_firewall_snapshot.ps1'
+  $original=Join-Path $RepositoryRoot 'modules/tsw_windows_wsl/tools/windows/qualification/windows_firewall_snapshot.ps1'
   $asset=Join-Path $scratch 'windows_firewall_snapshot.ps1'
   Copy-Item -LiteralPath $original -Destination $asset
   $controller=Join-Path $scratch 'wsl_resource_maintenance.ps1'
-  Copy-Item -LiteralPath (Join-Path $RepositoryRoot 'tools/windows/qualification/wsl_resource_maintenance.ps1') -Destination $controller
+  Copy-Item -LiteralPath (Join-Path $RepositoryRoot 'modules/tsw_windows_wsl/tools/windows/qualification/wsl_resource_maintenance.ps1') -Destination $controller
   . $controller
   Assert ((Get-WslMaintenanceFirewallCommand) -ceq [IO.File]::ReadAllText($original)) 'fixed_source_exact_bytes'
   $cases=1

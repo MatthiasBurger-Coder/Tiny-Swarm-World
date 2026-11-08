@@ -17,7 +17,7 @@ def _unique(pairs: list[tuple[str, object]]) -> dict[str, object]:
 
 class IncusProfileCapabilityRepository:
     def __init__(self, root: Path):
-        self.path = root / 'infra/config/incus-profile-capabilities.json'
+        self.path = root / 'modules/tsw_core/infra/config/incus-profile-capabilities.json'
 
     def load(self) -> ProfileCapabilityMatrix:
         try:

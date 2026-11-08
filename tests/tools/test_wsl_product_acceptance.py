@@ -122,7 +122,7 @@ class WslProductAcceptanceTests(unittest.TestCase):
                 (f'{product} {"c" * 40}\n'.encode(), (suite.CAPABILITY + '\n').encode(), False),
                 (f'{product} {qualification}\n'.encode(), b'', False),
                 (f'{product} {qualification}\n'.encode(), (suite.CAPABILITY + '\ntools/code.py\n').encode(), False),
-                (f'{product} {qualification}\n'.encode(), b'infra/config/other.json\n', False),
+                (f'{product} {qualification}\n'.encode(), b'modules/tsw_core/infra/config/other.json\n', False),
             )
             for parents, changes, allowed in variants:
                 with self.subTest(parents=parents, changes=changes):

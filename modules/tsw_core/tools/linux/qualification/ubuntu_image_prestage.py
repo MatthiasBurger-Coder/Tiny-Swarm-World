@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 else:
     inventory = importlib.import_module((__package__ + '.' if __package__ else '') + 'native_runtime_inventory')
 
-ROOT = Path(__file__).resolve().parents[3]
+ROOT = Path(__file__).resolve().parents[5]
 FINGERPRINT = '21c802d47e64cedcf7153503a1b5dbcc8821919b2af993646756868b775a5383'
 ALIAS = 'ubuntu-24.04'
 FILES = (('incus.tar.xz', 680, '58eb156ee168ce406ec7c0ed6501b79c44d9e6962db373e937b71656cbdad687'),
@@ -34,9 +34,9 @@ FILES = (('incus.tar.xz', 680, '58eb156ee168ce406ec7c0ed6501b79c44d9e6962db373e9
 PROPERTIES = {'architecture': 'amd64', 'description': 'Ubuntu noble amd64 (20261107_07:42)',
               'name': 'ubuntu-noble-amd64-default-20261107_07:42', 'os': 'ubuntu',
               'release': 'noble', 'serial': '20261107_07:42', 'variant': 'default'}
-SOURCE_FILES = ('tools/linux/qualification/ubuntu_image_prestage.py',
+SOURCE_FILES = ('modules/tsw_core/tools/linux/qualification/ubuntu_image_prestage.py',
                 'tests/tools/test_ubuntu_image_prestage.py',
-                'tools/linux/qualification/native_runtime_inventory.py')
+                'modules/tsw_core/tools/linux/qualification/native_runtime_inventory.py')
 ENV = {'LC_ALL': 'C', 'PATH': '/usr/bin:/bin'}
 SOCKETS = {'incus_run': '/run/incus/unix.socket', 'incus_var_lib': '/var/lib/incus/unix.socket'}
 HEX = re.compile(r'[0-9a-f]{64}\Z')

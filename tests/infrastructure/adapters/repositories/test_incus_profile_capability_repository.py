@@ -13,7 +13,7 @@ class CapabilityRepositoryTests(unittest.TestCase):
     def test_empty_asset_refuses_every_version_and_qualified_provenance_is_retained(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            path = root / 'infra/config/incus-profile-capabilities.json'
+            path = root / 'modules/tsw_core/infra/config/incus-profile-capabilities.json'
             path.parent.mkdir(parents=True)
             path.write_text('{"schema_version":1,"capability":"installation-scoped-incus-manager-profile","admitted_versions":[]}')
             repository = IncusProfileCapabilityRepository(root)
@@ -26,7 +26,7 @@ class CapabilityRepositoryTests(unittest.TestCase):
     def test_missing_unknown_duplicate_malformed_and_symlink_assets_refuse(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            path = root / 'infra/config/incus-profile-capabilities.json'
+            path = root / 'modules/tsw_core/infra/config/incus-profile-capabilities.json'
             path.parent.mkdir(parents=True)
             repository = IncusProfileCapabilityRepository(root)
             with self.assertRaises(LifecycleStateError):

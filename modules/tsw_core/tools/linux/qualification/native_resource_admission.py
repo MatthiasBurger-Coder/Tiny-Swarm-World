@@ -15,8 +15,8 @@ import stat
 import sys
 from typing import TYPE_CHECKING, Any
 
-ROOT = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(ROOT / 'src'))
+ROOT = Path(__file__).resolve().parents[5]
+sys.path.insert(0, str(ROOT / 'modules/tsw_core/src'))
 if TYPE_CHECKING:
     from tiny_swarm_world.domain.native_preparation import qualification_failures
     from tiny_swarm_world.infrastructure.adapters.host.native_preparation import NativePreparationInspector

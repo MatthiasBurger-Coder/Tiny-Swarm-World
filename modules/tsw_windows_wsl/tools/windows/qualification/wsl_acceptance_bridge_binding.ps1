@@ -225,8 +225,8 @@ function New-WslAcceptanceBridgeProductionPorts($Scenario) {
         if(!$item.PSIsContainer -or ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -or
             (Get-Acl -LiteralPath $path).GetOwner([Security.Principal.SecurityIdentifier]).Value -cne $actor){throw 'BINDING_SOURCE_OWNER'}
     }
-    $assets=@('tools/windows/qualification/wsl_acceptance_bridge_binding.ps1','tools/windows/qualification/wsl_resource_maintenance.ps1',
-        'tools/windows/qualification/windows_firewall_snapshot.ps1','tools/windows/qualification/windows_firewall_certificate.ps1',
+    $assets=@('modules/tsw_windows_wsl/tools/windows/qualification/wsl_acceptance_bridge_binding.ps1','modules/tsw_windows_wsl/tools/windows/qualification/wsl_resource_maintenance.ps1',
+        'modules/tsw_windows_wsl/tools/windows/qualification/windows_firewall_snapshot.ps1','modules/tsw_windows_wsl/tools/windows/qualification/windows_firewall_certificate.ps1',
         'bootstrap/windows/tws-wsl-bridge.ps1','bootstrap/windows/tws-wsl-bridge-service.ps1')
     Assert-WslBindingFields $Scenario.pins $assets 'BINDING_SOURCE_PINS'
     # Verify bytes before dot sourcing any helper. Hash-matched source is read
@@ -249,8 +249,8 @@ function New-WslAcceptanceBridgeProductionPorts($Scenario) {
         }
     $module=New-Module -Name ('Epic440BridgeBinding'+$Scenario.run_id) -ArgumentList $Scenario -ScriptBlock {
         param($spec)
-        . (Join-Path $spec.source_root 'tools/windows/qualification/wsl_acceptance_bridge_binding.ps1')
-        . (Join-Path $spec.source_root 'tools/windows/qualification/wsl_resource_maintenance.ps1')
+        . (Join-Path $spec.source_root 'modules/tsw_windows_wsl/tools/windows/qualification/wsl_acceptance_bridge_binding.ps1')
+        . (Join-Path $spec.source_root 'modules/tsw_windows_wsl/tools/windows/qualification/wsl_resource_maintenance.ps1')
         . (Join-Path $spec.source_root 'bootstrap/windows/tws-wsl-bridge.ps1') -Action inventory
         $script:bindingSpec=$spec;$script:bindingClock=$null;$script:bindingDeadline=0;$script:bindingCommands=0;$script:bindingBytes=0
         $script:bindingPhase='';$script:bindingTransaction=$null;$script:bindingDescriptor=$null
@@ -295,8 +295,8 @@ function New-WslAcceptanceBridgeProductionPorts($Scenario) {
             }
         }
         function Source {
-            $assets=@('tools/windows/qualification/wsl_acceptance_bridge_binding.ps1','tools/windows/qualification/wsl_resource_maintenance.ps1',
-                'tools/windows/qualification/windows_firewall_snapshot.ps1','tools/windows/qualification/windows_firewall_certificate.ps1',
+            $assets=@('modules/tsw_windows_wsl/tools/windows/qualification/wsl_acceptance_bridge_binding.ps1','modules/tsw_windows_wsl/tools/windows/qualification/wsl_resource_maintenance.ps1',
+                'modules/tsw_windows_wsl/tools/windows/qualification/windows_firewall_snapshot.ps1','modules/tsw_windows_wsl/tools/windows/qualification/windows_firewall_certificate.ps1',
                 'bootstrap/windows/tws-wsl-bridge.ps1','bootstrap/windows/tws-wsl-bridge-service.ps1')
             Assert-WslBindingFields $bindingSpec.pins $assets 'BINDING_SOURCE_PINS'
             foreach($relative in $assets){

@@ -64,19 +64,19 @@ class TestWindowsPreparation(unittest.TestCase):
                 fixture = Path(directory)
                 shutil.copytree(ROOT / "bootstrap", fixture / "bootstrap")
                 for relative in (
-                    "install.sh", "src/tiny_swarm_world/domain/preflight/resources.py",
-                    "src/tiny_swarm_world/domain/host_environment.py",
-                    "infra/config/node-providers/provider_config.yaml", "infra/config/ports.yaml",
+                    "install.sh", "modules/tsw_core/src/tiny_swarm_world/domain/preflight/resources.py",
+                    "modules/tsw_core/src/tiny_swarm_world/domain/host_environment.py",
+                    "modules/tsw_core/infra/config/node-providers/provider_config.yaml", "modules/tsw_core/infra/config/ports.yaml",
                     "tools/windows/build_wsl_resource_projection.py",
-                    "tools/windows/qualification/windows_firewall_snapshot.ps1",
-                    "tools/windows/qualification/windows_firewall_certificate.ps1",
+                    "modules/tsw_windows_wsl/tools/windows/qualification/windows_firewall_snapshot.ps1",
+                    "modules/tsw_windows_wsl/tools/windows/qualification/windows_firewall_certificate.ps1",
                 ):
                     destination = fixture / relative
                     destination.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copy2(ROOT / relative, destination)
                 shutil.copy2(
                     ROOT / "tests/windows/prepare-windows-source-path.fixture.psm1",
-                    fixture / "bootstrap/windows/preparation/Preparation.psm1",
+                    fixture / "modules/tsw_windows_wsl/bootstrap/windows/preparation/Preparation.psm1",
                 )
                 arguments = [executable, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File",
                      _runtime_path(fixture / "bootstrap/windows/prepare_windows.ps1", executable),

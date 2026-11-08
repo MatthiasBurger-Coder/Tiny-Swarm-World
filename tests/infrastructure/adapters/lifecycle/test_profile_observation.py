@@ -71,13 +71,13 @@ class PublicScopedVerificationTests(unittest.IsolatedAsyncioTestCase):
     async def test_actual_public_composed_node_and_exposure_verification_are_read_only_and_keep_unbound_writers_blocked(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            shutil.copytree(_ROOT / 'infra', root / 'infra')
+            shutil.copytree(_ROOT / 'modules/tsw_core/infra', root / 'infra')
             for name in ('AGENTS.md', 'QUALITY.md'):
                 shutil.copy2(_ROOT / name, root / name)
             package = root / 'src/tiny_swarm_world'
             package.mkdir(parents=True)
-            shutil.copy2(_ROOT / 'src/tiny_swarm_world/__init__.py', package / '__init__.py')
-            asset = root / 'infra/config/incus-profile-capabilities.json'
+            shutil.copy2(_ROOT / 'modules/tsw_core/src/tiny_swarm_world/__init__.py', package / '__init__.py')
+            asset = root / 'modules/tsw_core/infra/config/incus-profile-capabilities.json'
             asset.parent.mkdir(parents=True, exist_ok=True)
             asset.write_text(admitted_fixture().model_dump_json())
             runner = OwnedFrameRunner(root)
@@ -104,7 +104,7 @@ class PublicScopedVerificationTests(unittest.IsolatedAsyncioTestCase):
                         observation_sha256='a' * 64), expected=None, lease=lease)
                 repository.save(InstallationManifest.model_validate_json(manifest.model_dump_json()), expected_token=None)
             before = repository.path.read_bytes()
-            with patch.dict(os.environ, {'TSW_REPOSITORY_ROOT': str(root), 'TSW_INFRA_ROOT': str(_ROOT / 'infra')}), \
+            with patch.dict(os.environ, {'TSW_REPOSITORY_ROOT': str(root), 'TSW_INFRA_ROOT': str(_ROOT / 'modules/tsw_core/infra')}), \
                     patch('tiny_swarm_world.infrastructure.adapters.lifecycle.profile_observation.AsyncLxcNodeCommandRunner', return_value=runner), \
                     patch('tiny_swarm_world.infrastructure.adapters.clients.lxc.profile.lifecycle.assert_local_socket'):
                 services = build_platform_services(service_profile='default', resolved_services=('incus', 'portainer'))

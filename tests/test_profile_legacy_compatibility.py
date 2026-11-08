@@ -22,7 +22,7 @@ class FullClassicCompatibilityTests(unittest.IsolatedAsyncioTestCase):
     async def test_parse_dispatch_full_classic_reaches_legacy_runner_but_new_requests_do_not_fallback(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            asset = root / 'infra/config/incus-profile-capabilities.json'
+            asset = root / 'modules/tsw_core/infra/config/incus-profile-capabilities.json'
             asset.parent.mkdir(parents=True)
             asset.write_text('{"schema_version":1,"capability":"installation-scoped-incus-manager-profile","admitted_versions":[]}')
             catalog = SimpleNamespace(root=root, load=NativeComponentCatalog(_ROOT).load)

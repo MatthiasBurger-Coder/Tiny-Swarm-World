@@ -69,8 +69,8 @@ class WslResourceMaintenanceTests(unittest.TestCase):
                 "Set-Acl -LiteralPath $path -AclObject $acl};"
                 "Copy-Item -LiteralPath (Join-Path $source 'bootstrap') "
                 "-Destination (Join-Path $root 'bootstrap') -Recurse;"
-                "Copy-Item -LiteralPath (Join-Path $source 'infra/config/ports.yaml') "
-                "-Destination (Join-Path $root 'infra/config/ports.yaml')"
+                "Copy-Item -LiteralPath (Join-Path $source 'modules/tsw_core/infra/config/ports.yaml') "
+                "-Destination (Join-Path $root 'modules/tsw_core/infra/config/ports.yaml')"
             )
             subprocess.run(
                 [executable, "-NoProfile", "-NonInteractive", "-EncodedCommand",
@@ -95,7 +95,7 @@ class WslMaintenanceLifetimeProtocolTests(unittest.TestCase):
     """Execute the fixed Linux child with actual pipes; no WSL/provider effects."""
 
     def program(self, name: str) -> str:
-        text = (ROOT / "tools/windows/qualification/wsl_resource_maintenance.ps1").read_text()
+        text = (ROOT / "modules/tsw_windows_wsl/tools/windows/qualification/wsl_resource_maintenance.ps1").read_text()
         match = re.search(r"function " + re.escape(name) + r" \{.*?return @'\n(.*?)\n'@", text, re.S)
         self.assertIsNotNone(match)
         assert match is not None

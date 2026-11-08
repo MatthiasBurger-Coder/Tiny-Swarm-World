@@ -1,7 +1,7 @@
 #requires -Version 5.1
 param([Parameter(Mandatory=$true)][string]$RepositoryRoot)
 $ErrorActionPreference='Stop'
-. (Join-Path $RepositoryRoot 'tools/windows/qualification/wsl_acceptance_bridge_binding.ps1')
+. (Join-Path $RepositoryRoot 'modules/tsw_windows_wsl/tools/windows/qualification/wsl_acceptance_bridge_binding.ps1')
 $script:cases=0
 function Check([bool]$condition,[string]$message){if(!$condition){throw ('Fixture: '+$message)}}
 function Refuses([scriptblock]$action,[string]$code){
@@ -43,7 +43,7 @@ Refuses {Read-WslBindingWire ([Convert]::ToBase64String($duplicate)) (Get-WslBin
 # query. This requires the separately integrated, hash-pinned loader assets.
 $loader=New-Module -ArgumentList $RepositoryRoot -ScriptBlock {
     param($root)
-    . (Join-Path $root 'tools/windows/qualification/wsl_resource_maintenance.ps1')
+    . (Join-Path $root 'modules/tsw_windows_wsl/tools/windows/qualification/wsl_resource_maintenance.ps1')
 }
 $command=& $loader {Get-WslMaintenanceFirewallCertificateCommand}
 $exe=Join-Path ([Environment]::GetFolderPath('System')) 'WindowsPowerShell\v1.0\powershell.exe'
@@ -126,7 +126,7 @@ Refuses {Assert-WslBindingApproval $go $s 'Bind' ('9'*64)} 'BINDING_GO_EXPIRED'
 # replacing only observations and the SCM transport. Payload drift must refuse
 # before Start-BridgeServiceChecked, including after a previously admitted GO.
 $tokens=$null;$parseErrors=$null
-$tree=[Management.Automation.Language.Parser]::ParseFile((Join-Path $RepositoryRoot 'tools/windows/qualification/wsl_acceptance_bridge_binding.ps1'),[ref]$tokens,[ref]$parseErrors)
+$tree=[Management.Automation.Language.Parser]::ParseFile((Join-Path $RepositoryRoot 'modules/tsw_windows_wsl/tools/windows/qualification/wsl_acceptance_bridge_binding.ps1'),[ref]$tokens,[ref]$parseErrors)
 Check ($parseErrors.Count -eq 0) 'binding source parses'
 # Execute the actual nested module constructor, without the factory's provider
 # preflight or any port effect. Internal helpers must not replace the caller's
@@ -153,7 +153,7 @@ $definitions=@($tree.FindAll({param($a) $a -is [Management.Automation.Language.F
 Check ($definitions.Count -eq 1) 'one actual StartOwned body'
 $startModule=New-Module -ArgumentList $RepositoryRoot,$definitions[0].Extent.Text -ScriptBlock {
     param($root,$body)
-    . (Join-Path $root 'tools/windows/qualification/wsl_acceptance_bridge_binding.ps1')
+    . (Join-Path $root 'modules/tsw_windows_wsl/tools/windows/qualification/wsl_acceptance_bridge_binding.ps1')
     function Claim {param($Reserve) return 360}
     function Registrations {return $script:testRegs}
     function Running {return $script:testRunning}

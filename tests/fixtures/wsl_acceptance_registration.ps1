@@ -1,6 +1,6 @@
 param([Parameter(Mandatory=$true)][string]$RepositoryRoot,[switch]$CertificateTransportContract,[switch]$NativeExecutableContract,[switch]$BridgeLogContract,[switch]$StateSaveContract)
 $ErrorActionPreference='Stop'
-. (Join-Path $RepositoryRoot 'tools/windows/qualification/wsl_acceptance_registration.ps1')
+. (Join-Path $RepositoryRoot 'modules/tsw_windows_wsl/tools/windows/qualification/wsl_acceptance_registration.ps1')
 function Assert($yes,[string]$code){if(!$yes){throw $code}}
 function Copy-RegistrationFixtureValue($x){return ConvertTo-PreparationHashtable ($x|ConvertTo-Json -Depth 30 -Compress|ConvertFrom-Json)}
 # Pure local conversion only; no production transport is installed in this fixture.
@@ -288,7 +288,7 @@ $p=Ports;$s=Scenario $p._ctx.before;$r=Invoke-WslAcceptanceRegistration $s 'Veri
 Assert ($r.status -ceq 'BLOCKED' -and $p._ctx.imports -eq 0) 'verify_unknown_receipt';$cases++
 # Inspect the actual production import function AST: no arbitrary argv or effects.
 $tokens=$null;$errors=$null
-$ast=[Management.Automation.Language.Parser]::ParseFile((Join-Path $RepositoryRoot 'tools/windows/qualification/wsl_acceptance_registration.ps1'),[ref]$tokens,[ref]$errors)
+$ast=[Management.Automation.Language.Parser]::ParseFile((Join-Path $RepositoryRoot 'modules/tsw_windows_wsl/tools/windows/qualification/wsl_acceptance_registration.ps1'),[ref]$tokens,[ref]$errors)
 Assert ($errors.Count -eq 0) 'production_syntax'
 $import=$ast.Find({param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -ceq 'ImportGuest'},$true).Extent.Text
 Assert ($import.Contains("@('--import',"+'$name,'+'$script:install,'+'$script:image,'+"'--version','2') 600 1048576")) 'production_argv'

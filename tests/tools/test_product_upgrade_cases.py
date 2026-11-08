@@ -55,6 +55,63 @@ class Transport:
 
 
 class ClosedRecipeTests(unittest.TestCase):
+    def test_one_owned_baseline_runs_single_recovery_then_both_change_batch(self):
+        port = Transport('upgrade-batch-default-swarm-internal')
+        cases.run(port)
+        updates = [row[0] for row in port.calls if isinstance(row[0], tuple)
+                   and row[0][:2] == ('services', 'update') and '--preview' not in row[0]]
+        self.assertEqual([(args[args.index('--services') + 1], '--recover' in args) for args in updates],
+                         [('swagger', False), ('swagger', True), ('swagger,traefik', False), ('swagger,traefik', False)])
+        self.assertEqual(updates[0][updates[0].index('--to') + 1], 'swagger-ui-5-32-7')
+        self.assertNotIn('--to', updates[1])
+        self.assertIn((('services', 'list', '--json'), 120, False), port.calls)
+        self.assertEqual([row[1] for row in port.calls if row[0] == 'proof'],
+                         ['source', 'single-target', 'recovered', 'target', 'noop', 'persistent'])
+        setup = [row for row in port.calls if isinstance(row[0], tuple) and row[0][:2] == ('setup', 'run')]
+        self.assertEqual([row[2] for row in setup], [True, False])
+        # The public single preview and recovery preview must precede their writes.
+        public = [row[0] for row in port.calls if isinstance(row[0], tuple)]
+        single = cases.UpgradeRecipe(('swagger',), exposure='internal')
+        for preview, live in ((single.update(preview=True), single.update()),
+                              (single.update(preview=True, recover=True), single.update(recover=True))):
+            self.assertLess(public.index(tuple(preview)), public.index(tuple(live)))
+
+    def test_single_partial_failure_or_unverified_mixed_state_never_starts_batch(self):
+        for failure in ('partial', 'proof'):
+            with self.subTest(failure=failure):
+                port = Transport('upgrade-batch-default-swarm-internal')
+                original = port.public
+                def public(args, *, timeout):
+                    result = original(args, timeout=timeout)
+                    if failure == 'partial' and args[:2] == ['services', 'update'] and '--preview' not in args:
+                        return json.dumps({'status': 'partial'}).encode()
+                    return result
+                helper = port.upgrade_helper
+                def observe(stage):
+                    return {'status': 'UNVERIFIED'} if failure == 'proof' and stage == 'single-target' else helper(stage)
+                with patch.object(port, 'public', side_effect=public), patch.object(port, 'upgrade_helper', side_effect=observe):
+                    with self.assertRaisesRegex(cases.UpgradeError, 'SINGLE_APPLY_FAILED|PROOF_UNAVAILABLE'):
+                        cases.run(port)
+                self.assertFalse(any(isinstance(row[0], tuple) and 'swagger,traefik' in row[0]
+                                     and row[0][:2] == ('services', 'update') for row in port.calls))
+                self.assertFalse(any(name == 'upgrade-accepted' for name, _ in port.records))
+
+    def test_mixed_single_target_uses_actual_target_swagger_and_source_traefik(self):
+        from tiny_swarm_world.infrastructure.adapters.lifecycle.catalog import NativeComponentCatalog
+        definitions = {item.service_id: item for item in NativeComponentCatalog(cases.ROOT).load().services}
+        value = cases.recipe('upgrade-batch-default-swarm-internal')
+        for name in value.services:
+            definition = definitions[name]
+            mixed = cases._expected_component_versions(value, name, definition, 'single-target')
+            policy = definition.update_transitions[0]
+            target = next(item.versions for item in definition.update_targets if item.target_id == policy.target_id)
+            self.assertEqual(mixed, target if name == 'swagger' else policy.source_versions)
+            self.assertNotEqual(policy.source_versions, target)
+            self.assertEqual(cases._expected_component_versions(value, name, definition, 'recovered'), policy.source_versions)
+            self.assertEqual(cases._expected_component_versions(value, name, definition, 'target'), target)
+        with self.assertRaisesRegex(cases.UpgradeError, 'UPGRADE_PROOF_STAGE'):
+            cases.read_runtime('upgrade-batch-default-portainer-published', 'single-target')
+
     def test_complete_cartesian_coverage_and_preset_only_on_setup(self):
         rows = [(r.preset, r.owner, r.exposure) for name, r in cases.RECIPES.items() if name.startswith('upgrade-batch-')]
         self.assertEqual(set(rows), {(p, o, e) for p in ('default', 'service-access')

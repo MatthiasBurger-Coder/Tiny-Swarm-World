@@ -465,7 +465,7 @@ function New-WslMaintenanceProductionPorts {
         $script:leaseProgram=$leaseProgram;$script:readyProgram=$readyProgram
         $script:s=$Scenario
         $script:root=$s.repository_root
-        Import-Module (Join-Path $root 'bootstrap/windows/preparation/Preparation.psm1') -Force -DisableNameChecking
+        Import-Module (Join-Path $root 'modules/tsw_windows_wsl/bootstrap/windows/preparation/Preparation.psm1') -Force -DisableNameChecking
         $script:preparation=Get-Module Preparation
         $script:preparationPorts=& $preparation {New-PreparationPorts}
         $script:options=@{Mode='Check';Json=$true;Distro='Ubuntu';UbuntuRelease='26.04';ExpectedRelease='26.04';
@@ -474,7 +474,7 @@ function New-WslMaintenanceProductionPorts {
             WslMemoryGiB=21;WslProcessors=8;WslSwapGiB=6;ApproveApply=$false;QualificationRun=$false;ApprovedPlan=$null}
         . (Join-Path $root 'bootstrap/windows/tws-wsl-bridge.ps1') -Action inventory -Distro Ubuntu `
             -ConfigPath (Join-Path $root 'bootstrap/windows/tws-wsl-bridge.config.json') `
-            -PortRegistryPath (Join-Path $root 'infra/config/ports.yaml')
+            -PortRegistryPath (Join-Path $root 'modules/tsw_core/infra/config/ports.yaml')
         $script:resumedAt=$null;$script:expectedRegistry=$null;$script:stateOriginal=$null;$script:routeSets=0
         $script:lease=$null;$script:retiredLeases=@()
         function PhaseRemaining {
@@ -661,7 +661,7 @@ function New-WslMaintenanceProductionPorts {
             if([Environment]::MachineName -cne $s.host){throw 'HOST_MISMATCH'}
             $value=& $preparationPorts.SourceIdentity $options
             if(!$value.verified -or !$value.clean -or $value.revision -cne $s.source_commit){throw 'SOURCE_MISMATCH'}
-            $nativeHelper=Join-Path $root 'tools/linux/qualification/wsl_guest_inventory.py'
+            $nativeHelper=Join-Path $root 'modules/tsw_core/tools/linux/qualification/wsl_guest_inventory.py'
             if((Get-FileHash -LiteralPath $nativeHelper -Algorithm SHA256).Hash.ToLowerInvariant() -cne $s.guest_helper_sha256){throw 'SOURCE_MISMATCH'}
             $null=Registration
         }

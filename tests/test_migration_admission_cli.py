@@ -244,7 +244,7 @@ class MigrationCheckCliTests(unittest.IsolatedAsyncioTestCase):
             root = Path(directory)
             destination = root / "infra" / "config" / "compose"
             destination.parent.mkdir(parents=True)
-            shutil.copytree(ROOT / "infra" / "config" / "compose", destination)
+            shutil.copytree(ROOT / "modules/tsw_core/infra" / "config" / "compose", destination)
             catalog = NativeComponentCatalog(root).load()
             manifest, _ = fixtures()
             manifest = manifest.model_copy(update={"components": tuple(

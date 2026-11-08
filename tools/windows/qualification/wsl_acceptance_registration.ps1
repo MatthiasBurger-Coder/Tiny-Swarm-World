@@ -1,2 +1,3 @@
 # Compatibility entry point for the physical Windows/WSL module.
-& (Join-Path $PSScriptRoot '../../../modules/tsw_windows_wsl/tools/windows/qualification/wsl_acceptance_registration.ps1') @args
+$tswImplementationPath=Join-Path $PSScriptRoot '../../../modules/tsw_windows_wsl/tools/windows/qualification/wsl_acceptance_registration.ps1'
+if($MyInvocation.InvocationName -eq '.') { . $tswImplementationPath @args } else { & $tswImplementationPath @args }

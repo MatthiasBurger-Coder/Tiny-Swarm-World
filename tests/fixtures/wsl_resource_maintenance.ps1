@@ -1,6 +1,6 @@
 param([Parameter(Mandatory=$true)][string]$RepositoryRoot,[string]$NativeFixtureRoot='')
 $ErrorActionPreference='Stop'
-. (Join-Path $RepositoryRoot 'tools/windows/qualification/wsl_resource_maintenance.ps1')
+. (Join-Path $RepositoryRoot 'modules/tsw_windows_wsl/tools/windows/qualification/wsl_resource_maintenance.ps1')
 function Assert($Condition,[string]$Code){if(!$Condition){throw $Code}}
 function Scenario {
     return @{schema_version=1;source_commit=('a'*40);host='TEST-HOST';registration_sha256=('b'*64);

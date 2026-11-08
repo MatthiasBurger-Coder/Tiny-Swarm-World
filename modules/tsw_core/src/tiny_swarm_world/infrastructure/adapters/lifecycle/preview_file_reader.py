@@ -12,7 +12,7 @@ STACK_IDS = frozenset({
     "portainer", "traefik", "nexus", "jenkins", "pulsar", "sonarqube", "swagger", "infisical", "service-access",
 })
 MANIFEST = ".tiny-swarm-world/installation/manifest.json"
-COMPOSE_FILES = frozenset(f"infra/config/compose/{name}/docker-compose.yml" for name in STACK_IDS)
+COMPOSE_FILES = frozenset(f"modules/tsw_core/infra/config/compose/{name}/docker-compose.yml" for name in STACK_IDS)
 ALLOWED = COMPOSE_FILES | {MANIFEST}
 MAX_FILE_BYTES = 1024 * 1024
 MAX_TOTAL_BYTES = 16 * 1024 * 1024

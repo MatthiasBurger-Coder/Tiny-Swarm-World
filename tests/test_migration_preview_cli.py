@@ -209,7 +209,7 @@ class ReadOnlyLoaderTests(unittest.TestCase):
             root = Path(directory)
             destination = root / "infra" / "config" / "compose"
             destination.parent.mkdir(parents=True)
-            shutil.copytree(ROOT / "infra" / "config" / "compose", destination)
+            shutil.copytree(ROOT / "modules/tsw_core/infra" / "config" / "compose", destination)
             asset = next(destination.rglob("docker-compose.yml"))
             original = asset.read_text(encoding="utf-8")
             asset.write_text(original + "\n# operator local change\n", encoding="utf-8")
@@ -235,7 +235,7 @@ class ReadOnlyLoaderTests(unittest.TestCase):
             root = Path(directory) / "project"
             destination = root / "infra" / "config" / "compose"
             destination.parent.mkdir(parents=True)
-            shutil.copytree(ROOT / "infra" / "config" / "compose", destination)
+            shutil.copytree(ROOT / "modules/tsw_core/infra" / "config" / "compose", destination)
             catalog = NativeComponentCatalog(root).load()
             manifest, _ = fixtures()
             manifest = manifest.model_copy(update={"components": tuple(
@@ -258,7 +258,7 @@ class ReadOnlyLoaderTests(unittest.TestCase):
             root = Path(directory) / "project"
             alternate = Path(directory) / "alternate"
             root.mkdir()
-            shutil.copytree(ROOT / "infra", alternate)
+            shutil.copytree(ROOT / "modules/tsw_core/infra", alternate)
             manifest, _ = fixtures()
             state = root / ".tiny-swarm-world" / "installation" / "manifest.json"
             state.parent.mkdir(parents=True)
@@ -274,7 +274,7 @@ class ReadOnlyLoaderTests(unittest.TestCase):
             root = Path(directory)
             destination = root / "infra" / "config" / "compose"
             destination.parent.mkdir(parents=True)
-            shutil.copytree(ROOT / "infra" / "config" / "compose", destination)
+            shutil.copytree(ROOT / "modules/tsw_core/infra" / "config" / "compose", destination)
             manifest, _ = fixtures()
             state = root / ".tiny-swarm-world" / "installation" / "manifest.json"
             state.parent.mkdir(parents=True)
@@ -290,7 +290,7 @@ class ReadOnlyLoaderTests(unittest.TestCase):
             root = Path(directory)
             destination = root / "infra" / "config" / "compose"
             destination.parent.mkdir(parents=True)
-            shutil.copytree(ROOT / "infra" / "config" / "compose", destination)
+            shutil.copytree(ROOT / "modules/tsw_core/infra" / "config" / "compose", destination)
             before = {str(path.relative_to(root)): path.read_bytes()
                       for path in root.rglob("*") if path.is_file()}
             with patch.object(Path, "mkdir", side_effect=AssertionError("write")), \

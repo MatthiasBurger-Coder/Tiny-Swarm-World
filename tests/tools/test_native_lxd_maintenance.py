@@ -949,7 +949,7 @@ class RecoveryAdmissionCorrectionTests(unittest.TestCase):
 
 class SharedSnapshotIntentBindingTests(unittest.TestCase):
     def test_native_static_intent_pins_the_same_asset_and_preserves_existing_pin_indices(self) -> None:
-        self.assertEqual(maintenance.FILES[4], 'tools/linux/qualification/incus_profile_listener_fixture.py')
+        self.assertEqual(maintenance.FILES[4], 'modules/tsw_core/tools/linux/qualification/incus_profile_listener_fixture.py')
         self.assertEqual(maintenance.FILES[5], 'tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py')
         self.assertEqual(maintenance.FILES[6], 'documentation/handbook/05-development/workflow/issues/issue-449/workflow.md')
         self.assertEqual(maintenance.FILES[12], str(maintenance.fixture.WINDOWS_SNAPSHOT_REL))

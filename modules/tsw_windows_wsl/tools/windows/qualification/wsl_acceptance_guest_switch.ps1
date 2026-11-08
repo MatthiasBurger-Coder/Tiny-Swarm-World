@@ -33,14 +33,14 @@ function Read-WslSwitchWire([string]$Wire,[string]$Hash){
  return $value
 }
 function Get-WslSwitchAssets {
- return @('tools/windows/qualification/wsl_acceptance_guest_switch.ps1','tests/fixtures/wsl_acceptance_guest_switch.ps1',
- 'tests/tools/test_wsl_acceptance_guest_switch.py','tools/windows/qualification/wsl_acceptance_registration.ps1',
- 'tools/windows/qualification/wsl_acceptance_bridge_binding.ps1','tools/windows/qualification/wsl_resource_maintenance.ps1',
- 'tools/windows/qualification/windows_firewall_snapshot.ps1','tools/windows/qualification/windows_firewall_certificate.ps1',
- 'bootstrap/windows/tws-wsl-bridge.ps1','bootstrap/windows/tws-wsl-bridge-service.ps1','bootstrap/windows/preparation/Preparation.psm1',
- 'bootstrap/windows/preparation/Resources.ps1','bootstrap/windows/preparation/ResourceAdapters.ps1','bootstrap/windows/preparation/SourceProof.ps1',
- 'bootstrap/windows/preparation/Bridge.ps1','bootstrap/windows/preparation/Handoff.ps1','bootstrap/windows/preparation/Policy.ps1',
- 'bootstrap/windows/preparation/Application.ps1','bootstrap/windows/preparation/Adapters.ps1')
+ return @('modules/tsw_windows_wsl/tools/windows/qualification/wsl_acceptance_guest_switch.ps1','tests/fixtures/wsl_acceptance_guest_switch.ps1',
+ 'tests/tools/test_wsl_acceptance_guest_switch.py','modules/tsw_windows_wsl/tools/windows/qualification/wsl_acceptance_registration.ps1',
+ 'modules/tsw_windows_wsl/tools/windows/qualification/wsl_acceptance_bridge_binding.ps1','modules/tsw_windows_wsl/tools/windows/qualification/wsl_resource_maintenance.ps1',
+ 'modules/tsw_windows_wsl/tools/windows/qualification/windows_firewall_snapshot.ps1','modules/tsw_windows_wsl/tools/windows/qualification/windows_firewall_certificate.ps1',
+ 'bootstrap/windows/tws-wsl-bridge.ps1','bootstrap/windows/tws-wsl-bridge-service.ps1','modules/tsw_windows_wsl/bootstrap/windows/preparation/Preparation.psm1',
+ 'modules/tsw_windows_wsl/bootstrap/windows/preparation/Resources.ps1','modules/tsw_windows_wsl/bootstrap/windows/preparation/ResourceAdapters.ps1','modules/tsw_windows_wsl/bootstrap/windows/preparation/SourceProof.ps1',
+ 'modules/tsw_windows_wsl/bootstrap/windows/preparation/Bridge.ps1','modules/tsw_windows_wsl/bootstrap/windows/preparation/Handoff.ps1','modules/tsw_windows_wsl/bootstrap/windows/preparation/Policy.ps1',
+ 'modules/tsw_windows_wsl/bootstrap/windows/preparation/Application.ps1','modules/tsw_windows_wsl/bootstrap/windows/preparation/Adapters.ps1')
 }
 function Assert-WslSwitchScenario($s){
  Assert-WslSwitchFields $s @('schema_version','run_id','host','source_commit','pins','original_machine_sha256',
@@ -368,17 +368,17 @@ def git(args,exits=(0,),directory=checkout):
 need(git(['config','--local','--includes','--null','--get-regexp',r'^filter\.'],(0,1))==b'')
 def admitted_product_revision(qualification,product,parents,changes):
     need(re.fullmatch('[0-9a-f]{40}',qualification) and re.fullmatch('[0-9a-f]{40}',product))
-    if product!=qualification:need(parents==[product,qualification] and changes==['infra/config/incus-profile-capabilities.json'])
+    if product!=qualification:need(parents==[product,qualification] and changes==['modules/tsw_core/infra/config/incus-profile-capabilities.json'])
     return product
 def validate_promoted_capability():
-    capraw=git(['show',product_source+':infra/config/incus-profile-capabilities.json']);need(len(capraw)<=65536)
+    capraw=git(['show',product_source+':modules/tsw_core/infra/config/incus-profile-capabilities.json']);need(len(capraw)<=65536)
     matrix=strict(capraw);need(isinstance(matrix,dict) and set(matrix)=={'schema_version','capability','admitted_versions'} and type(matrix['schema_version']) is int and matrix['schema_version']==1 and matrix['capability']=='installation-scoped-incus-manager-profile' and isinstance(matrix['admitted_versions'],list) and len(matrix['admitted_versions'])==1)
     entry=matrix['admitted_versions'][0];need(isinstance(entry,dict) and set(entry)=={'client_version','server_version','fixture_source_revision','fixture_sha256'} and entry['client_version']==entry['server_version']=='6.0.5' and re.fullmatch('[0-9a-f]{40}',entry['fixture_source_revision']) and re.fullmatch('[0-9a-f]{64}',entry['fixture_sha256']))
     from preserving_product_acceptance import validate_host_artifacts
     proof=strict(private(root/'both-host-profile-capability.json'))
     artifacts={host:private(root/('profile-capability-'+host+'.json'),8388608) for host in ('native_linux','wsl2')}
     sources=validate_host_artifacts(proof,hashlib.sha256(capraw).hexdigest(),entry['fixture_sha256'],artifacts)
-    for revision in (product_source,entry['fixture_source_revision'],*sources.values()):need(hashlib.sha256(git(['show',revision+':tools/linux/qualification/incus_profile_listener_fixture.py'])).hexdigest()==entry['fixture_sha256'])
+    for revision in (product_source,entry['fixture_source_revision'],*sources.values()):need(hashlib.sha256(git(['show',revision+':modules/tsw_core/tools/linux/qualification/incus_profile_listener_fixture.py'])).hexdigest()==entry['fixture_sha256'])
     return capraw
 path=root/('preparation.json' if kind=='prepared' else 'new-case-stop.json');raw=private(path);need(hashlib.sha256(raw).hexdigest()==expected);receipt=strict(raw)
 need(type(receipt['schema_version']) is int and receipt['schema_version']==1 and receipt['run_id']==run and isinstance(receipt['source_commit'],str))
@@ -391,7 +391,7 @@ admitted_product_revision(source,product_source,parents,changes)
 import base64
 pins=strict(base64.b64decode(encoded));need(set(pins)=={'native_runtime_inventory.py','native_lxd_snap_provenance.py'})
 for name,sha in pins.items():
-    p=checkout/'tools/linux/qualification'/name;trusted(p);raw=p.read_bytes();need(len(raw)<=1048576 and hashlib.sha256(raw).hexdigest()==sha and raw==git(['show',source+':tools/linux/qualification/'+name]))
+    p=checkout/'tools/linux/qualification'/name;trusted(p);raw=p.read_bytes();need(len(raw)<=1048576 and hashlib.sha256(raw).hexdigest()==sha and raw==git(['show',source+':modules/tsw_core/tools/linux/qualification/'+name]))
 sys.path.insert(0,str(checkout/'tools/linux/qualification'));import native_runtime_inventory as n
 r=n.Runner()
 def binding():
@@ -426,7 +426,7 @@ def verify_case_checkout(case_name,capraw):
     casecheckout=root/'cases'/case_name/'checkout';trusted(casecheckout,True);trusted(casecheckout/'.git',True)
     need(git(['config','--local','--includes','--null','--get-regexp',r'^filter\.'],(0,1),casecheckout)==b'')
     need(git(['rev-parse','HEAD'],directory=casecheckout).decode().strip()==product_source and git(['status','--porcelain=v1','--untracked-files=all'],directory=casecheckout)==b'')
-    cap=casecheckout/'infra/config/incus-profile-capabilities.json';trusted(cap);need(cap.read_bytes()==capraw)
+    cap=casecheckout/'modules/tsw_core/infra/config/incus-profile-capabilities.json';trusted(cap);need(cap.read_bytes()==capraw)
 def case_requires_checkout(outcome,effect_markers,child_intents):
     if outcome['status'] not in ('CASE_NOT_EXECUTED','CASE_NOT_IMPLEMENTED'):return True
     need(set(outcome)=={'status','run_id','source_commit','case','epic_complete'} and outcome['epic_complete'] is False and not effect_markers)
@@ -519,7 +519,7 @@ binding();print(json.dumps({'status':status,'receipt_sha256':expected,'observati
 function New-WslAcceptanceGuestSwitchProductionPorts($Scenario){
  Assert-WslSwitchScenario $Scenario
  Assert-WslSwitch ([Environment]::Is64BitProcess -and [Environment]::Is64BitOperatingSystem -and [Environment]::MachineName -ceq $Scenario.host) 'SWITCH_NATIVE_HOST'
- $root=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../..'))
+ $root=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../../..'))
  Assert-WslSwitch ([IO.Path]::GetFullPath($Scenario.bridge_scenario.source_root) -ceq $root) 'SWITCH_SOURCE_ROOT'
  # Verify every transitive preparation import before any of its code executes.
  $actor=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value
@@ -534,10 +534,10 @@ function New-WslAcceptanceGuestSwitchProductionPorts($Scenario){
    $parent=$parent.Parent
   }
  }
- Import-Module (Join-Path $root 'bootstrap/windows/preparation/Preparation.psm1') -Force -DisableNameChecking
+ Import-Module (Join-Path $root 'modules/tsw_windows_wsl/bootstrap/windows/preparation/Preparation.psm1') -Force -DisableNameChecking
  $prep=Get-Module Preparation
- . (Join-Path $root 'tools/windows/qualification/wsl_acceptance_registration.ps1')
- . (Join-Path $root 'tools/windows/qualification/wsl_acceptance_bridge_binding.ps1')
+ . (Join-Path $root 'modules/tsw_windows_wsl/tools/windows/qualification/wsl_acceptance_registration.ps1')
+ . (Join-Path $root 'modules/tsw_windows_wsl/tools/windows/qualification/wsl_acceptance_bridge_binding.ps1')
  Assert-AcceptanceRegistrationScenario (& $prep {param($v) ConvertTo-PreparationHashtable $v} $Scenario.registration_scenario)
  Assert-WslBindingScenario $Scenario.bridge_scenario
  foreach($relative in @($Scenario.bridge_scenario.pins.PSObject.Properties.Name)){
@@ -599,7 +599,7 @@ function New-WslAcceptanceGuestSwitchProductionPorts($Scenario){
    $query=@'
 $ErrorActionPreference='Stop';$WarningPreference='SilentlyContinue'
 $r=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('@ROOT@'))
-Import-Module (Join-Path $r 'bootstrap/windows/preparation/Preparation.psm1') -Force -DisableNameChecking
+Import-Module (Join-Path $r 'modules/tsw_windows_wsl/bootstrap/windows/preparation/Preparation.psm1') -Force -DisableNameChecking
 $m=Get-Module Preparation;$o=@{RepositoryRoot=$r;QualificationRevision='@SOURCE@';ProbeTimeoutSeconds=15}
 & $m {param($o) Get-PreparationSource $o} $o | ConvertTo-Json -Depth 20 -Compress
 '@

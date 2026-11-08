@@ -42,15 +42,15 @@ else:
     RECIPES, validate_preview = recipes.RECIPES, recipes.validate_preview
     operator_credentials, validate_host_artifacts, CAPABILITY_HOSTS = recipes.operator_credentials, recipes.validate_host_artifacts, recipes.CAPABILITY_HOSTS
 
-ROOT = Path(__file__).resolve().parents[3]
+ROOT = Path(__file__).resolve().parents[5]
 BASE = Path('/root/tsw440-acceptance')
-SCRIPT = 'tools/linux/qualification/wsl_product_acceptance.py'
-CAPABILITY = 'infra/config/incus-profile-capabilities.json'
-FILES = (SCRIPT, 'tools/linux/qualification/owned_case_disposal.py',
-         'tools/linux/qualification/preserving_product_acceptance.py',
-         'tools/linux/qualification/native_runtime_inventory.py',
-         'tools/linux/qualification/native_lxd_snap_provenance.py', CAPABILITY, upgrades.SCRIPT,
-         upgrades.CATALOG, 'src/tiny_swarm_world/infrastructure/adapters/lifecycle/catalog.py')
+SCRIPT = 'modules/tsw_core/tools/linux/qualification/wsl_product_acceptance.py'
+CAPABILITY = 'modules/tsw_core/infra/config/incus-profile-capabilities.json'
+FILES = (SCRIPT, 'modules/tsw_core/tools/linux/qualification/owned_case_disposal.py',
+         'modules/tsw_core/tools/linux/qualification/preserving_product_acceptance.py',
+         'modules/tsw_core/tools/linux/qualification/native_runtime_inventory.py',
+         'modules/tsw_core/tools/linux/qualification/native_lxd_snap_provenance.py', CAPABILITY, upgrades.SCRIPT,
+         upgrades.CATALOG, 'modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/lifecycle/catalog.py')
 CASE_RECIPES = RECIPES | upgrades.RECIPES
 LIMIT = 8 * 1024 * 1024
 HEX = re.compile(r'[0-9a-f]{64}\Z')
@@ -558,7 +558,7 @@ class WslCasePort:
         revisions = (entry.fixture_source_revision, *sources.values())
         for revision in revisions:
             blob = self.command(['/usr/bin/git', '--no-optional-locks', 'show', revision +
-                ':tools/linux/qualification/incus_profile_listener_fixture.py'], 10)
+                ':modules/tsw_core/tools/linux/qualification/incus_profile_listener_fixture.py'], 10)
             need(sha(blob) == entry.fixture_sha256, 'CASE_CAPABILITY_SOURCE_DRIFT')
         self.operator_values()
         infra = self.intent.home / 'infra'
@@ -1000,7 +1000,7 @@ def main(argv: list[str] | None = None) -> int:
             raise KeyboardInterrupt
         signal.signal(signal.SIGTERM, interrupted)
         signal.signal(signal.SIGINT, interrupted)
-        sys.path.insert(0, str(ROOT / 'src'))
+        sys.path.insert(0, str(ROOT / 'modules/tsw_core/src'))
         if args.mode in {'observe', 'prerequisites'}:
             need(all(v is None for v in (args.run_id, args.case, args.intent_sha256, args.go_sha256)), 'CASE_ARGUMENTS')
             helper(args.mode); return 0

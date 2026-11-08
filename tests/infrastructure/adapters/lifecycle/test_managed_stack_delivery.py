@@ -192,7 +192,7 @@ class ManagedStackDeliveryTests(unittest.IsolatedAsyncioTestCase):
         self.directory = TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
         self.root = Path(self.directory.name)
-        shutil.copytree(ROOT / 'infra', self.root / 'infra')
+        shutil.copytree(ROOT / 'modules/tsw_core/infra', self.root / 'infra')
         self.catalog = NativeComponentCatalog(ROOT)
         self.plan = plan_selection(self.catalog.load(), ('swagger',), stack_owner='portainer',
                                    service_exposure={'swagger': 'internal'})
@@ -215,7 +215,7 @@ class ManagedStackDeliveryTests(unittest.IsolatedAsyncioTestCase):
         self.http = PortainerHttpClient('http://fixture.invalid', 'admin', RAM_VALUE, session=self.server)
         self.transport_client = SimpleNamespace(_client=lambda: self.http,
                                                 _ensure_external_overlay_networks=lambda _definition: None)
-        self.compose = ComposeFileRepositoryYaml(project_paths=ProjectPaths.from_roots(self.root, ROOT / 'infra'),
+        self.compose = ComposeFileRepositoryYaml(project_paths=ProjectPaths.from_roots(self.root, ROOT / 'modules/tsw_core/infra'),
             resolved_services=self.plan.resolved_services, service_exposure=self.plan.service_exposure)
         self.compose.validate_and_snapshot(('swagger',))
         self.server.deployment_images['portainer'] = {item.name: item.image_ref for item in self.compose.get_services_of('portainer')}
@@ -341,7 +341,7 @@ class ManagedStackDeliveryTests(unittest.IsolatedAsyncioTestCase):
         actions = list(self.runtime.calls)
         writes = list(self.server.writes)
         self.server.completion_readonly = True
-        (self.root / 'infra/config/incus-profile-capabilities.json').write_text(admitted_fixture().model_dump_json())
+        (self.root / 'modules/tsw_core/infra/config/incus-profile-capabilities.json').write_text(admitted_fixture().model_dump_json())
         intent = checkpoint.intent
         root = self.root
         class GitTransport:

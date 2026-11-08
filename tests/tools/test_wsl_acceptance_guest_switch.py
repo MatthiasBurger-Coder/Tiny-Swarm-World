@@ -16,7 +16,7 @@ from unittest.mock import patch
 from tests.test_prepare_windows import _powershell, _runtime_path
 
 ROOT = Path(__file__).resolve().parents[2]
-CONTROLLER = ROOT / "tools/windows/qualification/wsl_acceptance_guest_switch.ps1"
+CONTROLLER = ROOT / "modules/tsw_windows_wsl/tools/windows/qualification/wsl_acceptance_guest_switch.ps1"
 
 
 class UpgradeLedgerTests(unittest.TestCase):
@@ -47,7 +47,7 @@ class UpgradeLedgerTests(unittest.TestCase):
             root = Path(directory)
             checkout = root / 'cases/minimal/checkout'
             (checkout / '.git').mkdir(parents=True)
-            cap = checkout / 'infra/config/incus-profile-capabilities.json'
+            cap = checkout / 'modules/tsw_core/infra/config/incus-profile-capabilities.json'
             cap.parent.mkdir(parents=True)
             cap.write_bytes(b'approved-matrix')
             for fault in ('valid', 'head', 'dirty', 'filter', 'matrix'):
@@ -82,7 +82,7 @@ class UpgradeLedgerTests(unittest.TestCase):
         exec(compile(ast.parse(source[start:end]), str(CONTROLLER), 'exec'), namespace)
         gate = namespace['admitted_product_revision']
         q, r = 'a' * 40, 'b' * 40
-        matrix = 'infra/config/incus-profile-capabilities.json'
+        matrix = 'modules/tsw_core/infra/config/incus-profile-capabilities.json'
         self.assertEqual(gate(q, q, [], []), q)
         self.assertEqual(gate(q, r, [r, q], [matrix]), r)
         for parents, changes in (([r, q, 'c' * 40], [matrix]), ([r, 'c' * 40], [matrix]),

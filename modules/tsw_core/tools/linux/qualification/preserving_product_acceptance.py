@@ -49,11 +49,11 @@ PROFILE_STATE = ROOT / '.tiny-swarm-world/installation/profile-operation.json'
 MANIFEST = ROOT / '.tiny-swarm-world/installation/manifest.json'
 INFRA = PRIVATE / 'native-infra-override'
 OPERATOR = INFRA / 'operator.env'
-CAPABILITY = ROOT / 'infra/config/incus-profile-capabilities.json'
-SUITE_FILES = ('tools/linux/qualification/preserving_product_acceptance.py',
-    'tools/linux/qualification/owned_case_disposal.py', 'tests/tools/test_preserving_product_acceptance.py',
-    'tests/tools/test_owned_case_disposal.py', 'infra/config/incus-profile-capabilities.json',
-    upgrades.SCRIPT, upgrades.CATALOG, 'src/tiny_swarm_world/infrastructure/adapters/lifecycle/catalog.py')
+CAPABILITY = ROOT / 'modules/tsw_core/infra/config/incus-profile-capabilities.json'
+SUITE_FILES = ('modules/tsw_core/tools/linux/qualification/preserving_product_acceptance.py',
+    'modules/tsw_core/tools/linux/qualification/owned_case_disposal.py', 'tests/tools/test_preserving_product_acceptance.py',
+    'tests/tools/test_owned_case_disposal.py', 'modules/tsw_core/infra/config/incus-profile-capabilities.json',
+    upgrades.SCRIPT, upgrades.CATALOG, 'modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/lifecycle/catalog.py')
 
 
 @dataclass(frozen=True)
@@ -1142,7 +1142,7 @@ def main(argv: list[str] | None = None) -> int:
         def interrupted(_number: int, _frame: Any) -> None:
             raise KeyboardInterrupt
         signal.signal(signal.SIGTERM, interrupted)
-        sys.path.insert(0, str(ROOT / 'src'))
+        sys.path.insert(0, str(ROOT / 'modules/tsw_core/src'))
         if args.mode in {'observe', 'prerequisites'}:
             native.require(args.run_id is None and args.intent_sha256 is None and args.expected_go_sha256 is None,
                            'SUITE_ARGUMENT_INVALID')

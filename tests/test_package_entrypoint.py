@@ -91,7 +91,7 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
             shutil.copy2(source / name, root / name)
         package = root / 'src/tiny_swarm_world'
         package.mkdir(parents=True)
-        shutil.copy2(source / 'src/tiny_swarm_world/__init__.py', package / '__init__.py')
+        shutil.copy2(source / 'modules/tsw_core/src/tiny_swarm_world/__init__.py', package / '__init__.py')
         self.enterContext(patch.dict(os.environ, {'TSW_REPOSITORY_ROOT': str(root),
                                                 'TSW_INFRA_ROOT': str(root / 'infra')}))
         return root

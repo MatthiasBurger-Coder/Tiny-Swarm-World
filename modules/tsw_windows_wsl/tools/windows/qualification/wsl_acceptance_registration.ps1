@@ -110,12 +110,12 @@ function Invoke-WslAcceptanceRegistration($s,[string]$Mode,[Collections.IDiction
 }
 
 function New-WslAcceptanceRegistrationProductionPorts($s){
- $root=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../..'))
- Import-Module (Join-Path $root 'bootstrap/windows/preparation/Preparation.psm1') -Force -DisableNameChecking
+ $root=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../../..'))
+ Import-Module (Join-Path $root 'modules/tsw_windows_wsl/bootstrap/windows/preparation/Preparation.psm1') -Force -DisableNameChecking
  $preparation=Get-Module Preparation
  # Reuse read-only registry and the reviewed complete firewall getter. The old
  # timeout-prone per-rule snapshot is never used as a compatibility fallback.
- . (Join-Path $root 'tools/windows/qualification/wsl_resource_maintenance.ps1')
+ . (Join-Path $root 'modules/tsw_windows_wsl/tools/windows/qualification/wsl_resource_maintenance.ps1')
  if(!(Get-Command Get-WslMaintenanceFirewallCertificateCommand -ErrorAction SilentlyContinue)){throw 'FIREWALL_SNAPSHOT_DEPENDENCY_UNAVAILABLE'}
  $firewall=Get-WslMaintenanceFirewallCertificateCommand
  $certificateValidator=${function:ConvertFrom-WslMaintenanceFirewallCertificate}
@@ -187,14 +187,14 @@ public static class Epic440RegistrationFile {
    Require ([Environment]::MachineName -ceq $s.host) 'HOST_MISMATCH'
    Require (Test-Path -LiteralPath (Join-Path $script:root '.git')) 'COMMITTED_GIT_SOURCE_REQUIRED'
    $encoded=[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($script:root))
-   $query='$ErrorActionPreference="Stop";$ProgressPreference="SilentlyContinue";$root=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String("'+$encoded+'"));Import-Module (Join-Path $root "bootstrap/windows/preparation/Preparation.psm1") -Force -DisableNameChecking;$m=Get-Module Preparation;$o=@{RepositoryRoot=$root;ProbeTimeoutSeconds=15;QualificationRevision="'+$s.source_commit+'"};& $m {param($options) Get-PreparationSource $options} $o | ConvertTo-Json -Depth 12 -Compress'
+   $query='$ErrorActionPreference="Stop";$ProgressPreference="SilentlyContinue";$root=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String("'+$encoded+'"));Import-Module (Join-Path $root "modules/tsw_windows_wsl/bootstrap/windows/preparation/Preparation.psm1") -Force -DisableNameChecking;$m=Get-Module Preparation;$o=@{RepositoryRoot=$root;ProbeTimeoutSeconds=15;QualificationRevision="'+$s.source_commit+'"};& $m {param($options) Get-PreparationSource $options} $o | ConvertTo-Json -Depth 12 -Compress'
    $exe=& $script:prep {Get-PreparationExecutable 'powershell.exe'}
    $query64=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($query))
    $probe=Run $exe @('-NoProfile','-NonInteractive','-EncodedCommand',$query64) 180 2097152
    $source=$probe.stdout|ConvertFrom-Json -ErrorAction Stop
    Require ($source.verified -eq $true -and $source.clean -eq $true -and $source.revision -ceq $s.source_commit) 'SOURCE_MISMATCH'
    $pins=[ordered]@{}
-   foreach($relative in @('tools/windows/qualification/wsl_acceptance_registration.ps1','tools/windows/qualification/wsl_resource_maintenance.ps1',
+   foreach($relative in @('modules/tsw_windows_wsl/tools/windows/qualification/wsl_acceptance_registration.ps1','modules/tsw_windows_wsl/tools/windows/qualification/wsl_resource_maintenance.ps1',
       'tests/fixtures/wsl_acceptance_registration.ps1','tests/tools/test_wsl_acceptance_registration.py')){
     $path=Join-Path $script:root $relative
     & $script:prep {param($p) Assert-PreparationEvidencePath $p} $path
