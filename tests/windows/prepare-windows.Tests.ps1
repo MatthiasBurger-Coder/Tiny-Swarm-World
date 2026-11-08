@@ -203,6 +203,45 @@ $p=Invoke-PreparationProcess $testPowerShell @('-NoProfile','-NonInteractive','-
 Assert ($p.exit_code -eq 0 -and $p.stdout -match '\s-NoProfile -NonInteractive -Command ') 'native flags remain unquoted for WSL option parsing'
 $p=Invoke-PreparationProcess $testPowerShell @('-NoProfile','-NonInteractive','-Command','Start-Sleep -Seconds 10') 1
 Assert ($p.exit_code -eq 124) 'native finite timeout'
+if([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT){
+# Exact DISM basename alone selects actual OEM decoding; no Windows features are queried.
+$dismFixture=Join-Path ([IO.Path]::GetTempPath()) ('tsw-dism-oem-'+[Guid]::NewGuid().ToString('N'))
+$originalOutputEncoding=[Console]::OutputEncoding
+[void][IO.Directory]::CreateDirectory($dismFixture)
+try{
+    $oem=& (Get-Module Preparation) {Get-PreparationDismEncoding}
+    $sample=$null
+    foreach($value in 128..255){
+        try{$decoded=$oem.GetString([byte[]]@($value));if($decoded.Length -eq 1 -and [int][char]$decoded -ge 32){$sample=$decoded;break}}catch{}
+    }
+    if($null -eq $sample){$sample=[string][char]252}
+    $text='OEM='+$sample+"`nState : Enabled`n"
+    [byte[]]$bytes=$oem.GetBytes($text)
+    $data=($bytes | ForEach-Object{[string]$_}) -join ','
+    $type='DismFixture'+[Guid]::NewGuid().ToString('N')
+    $code='public static class '+$type+' { public static void Main(){ byte[] b=new byte[]{'+$data+'}; var o=System.Console.OpenStandardOutput();o.Write(b,0,b.Length);o.Flush();var e=System.Console.OpenStandardError();e.Write(b,0,b.Length);e.Flush();} }'
+    $dism=Join-Path $dismFixture 'Dism.exe';$other=Join-Path $dismFixture 'Other.exe'
+    Add-Type -TypeDefinition $code -OutputAssembly $dism -OutputType ConsoleApplication
+    [IO.File]::Copy($dism,$other)
+    [Console]::OutputEncoding=[Text.UTF8Encoding]::new($false,$true)
+    $captured=Invoke-PreparationProcess $dism @() 10
+    Assert ($captured.exit_code -eq 0 -and $captured.stdout -ceq $text -and $captured.stderr -ceq $text -and
+        $captured.stdout -match 'State : Enabled') 'dism_real_process_oem_stdout_stderr_under_strict_utf8'
+    $notUtf8=$false
+    try{$null=([Text.UTF8Encoding]::new($false,$true)).GetString($bytes)}catch [Text.DecoderFallbackException]{$notUtf8=$true}
+    if($notUtf8){
+        $refused=$false
+        try{$null=Invoke-PreparationProcess $other @() 10}catch{$refused=$_.Exception.ToString().Contains('DecoderFallbackException')}
+        Assert $refused 'non_dism_identical_oem_bytes_still_strict_utf8_refused'
+    }else{
+        $unchanged=Invoke-PreparationProcess $other @() 10
+        Assert ($unchanged.stdout -ceq $text) 'utf8_oem_host_keeps_other_reader_behavior'
+    }
+}finally{
+    [Console]::OutputEncoding=$originalOutputEncoding
+    Remove-Item -LiteralPath $dismFixture -Recurse -Force
+}
+}
 $unsafePorts=@{};foreach($k in $ports.Keys){$unsafePorts[$k]=$ports[$k]};$unsafePorts.EvidencePreflight={return $false}
 $script:facts=Facts;$r=Invoke-WindowsPreparation (Options) $unsafePorts
 Assert ($r.blockers[0].code -eq 'unsafe_evidence_storage' -and !$r.result.changed) 'read-only evidence preflight refusal'

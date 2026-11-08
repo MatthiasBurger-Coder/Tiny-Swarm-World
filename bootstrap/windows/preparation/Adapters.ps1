@@ -1,4 +1,17 @@
 # All host-dependent operations are isolated here; application consumes ports.
+function Get-PreparationDismEncoding {
+    if($null -eq ('TswPreparationOemCodePage' -as [type])){
+        Add-Type -TypeDefinition @'
+using System.Runtime.InteropServices;
+public static class TswPreparationOemCodePage {
+    [DllImport("kernel32.dll")] public static extern uint GetOEMCP();
+}
+'@
+    }
+    $codePage=[int][TswPreparationOemCodePage]::GetOEMCP()
+    if($codePage -le 0){throw 'invalid_oem_code_page'}
+    return [Text.Encoding]::GetEncoding($codePage,[Text.EncoderExceptionFallback]::new(),[Text.DecoderExceptionFallback]::new())
+}
 function Invoke-PreparationProcess {
     param([string]$File, [string[]]$Arguments, [int]$TimeoutSeconds, [string]$InputText='')
     if ($TimeoutSeconds -le 0) {throw 'invalid_timeout'}
@@ -9,6 +22,11 @@ function Invoke-PreparationProcess {
     $info.RedirectStandardOutput=$true
     $info.RedirectStandardError=$true
     $info.RedirectStandardInput=$true
+    if([StringComparer]::OrdinalIgnoreCase.Equals([IO.Path]::GetFileName($File),'dism.exe')){
+        $dismEncoding=Get-PreparationDismEncoding
+        $info.StandardOutputEncoding=$dismEncoding
+        $info.StandardErrorEncoding=$dismEncoding
+    }
     # WSL parses raw option tokens; quoting every flag turns --version into a Linux command.
     # Quote other arguments using CommandLineToArgvW, preserving quotes/trailing slashes.
     $encoded=foreach ($arg in $Arguments) {
