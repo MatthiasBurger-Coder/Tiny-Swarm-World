@@ -107,13 +107,6 @@ def build_host_preparation_service(
 ) -> HostPreparationService:
     _, resolved_services = persisted_runtime_selection(DEFAULT_SETUP_SERVICE_PROFILE, resolved_services)
     project_paths = default_project_paths()
-    bridge_root = project_paths.repository_root / "bootstrap" / "windows"
-    script_path = Path(
-        os.getenv("TSW_WINDOWS_BRIDGE_SCRIPT_PATH", str(bridge_root / "tws-wsl-bridge.ps1"))
-    )
-    config_path = Path(
-        os.getenv("TSW_WINDOWS_BRIDGE_CONFIG_PATH", str(bridge_root / "tws-wsl-bridge.config.json"))
-    )
     registry_path = Path(
         os.getenv(
             "TSW_WINDOWS_BRIDGE_PORT_REGISTRY_PATH",
@@ -125,6 +118,16 @@ def build_host_preparation_service(
         120.0,
         minimum=1.0,
     )
+    def build_wsl_adapter():
+        from tiny_swarm_world.infrastructure.host_bindings import windows_bridge_binding
+
+        binding = windows_bridge_binding(project_paths.repository_root)
+        return _build_wsl_host_preparation(
+            script_path=binding.script, config_path=binding.config,
+            registry_path=registry_path, timeout_seconds=timeout_seconds,
+            **_selected_bridge_options(resolved_services),
+        )
+
     return HostPreparationService(
         build_host_environment_detector(),
         {
@@ -132,13 +135,7 @@ def build_host_preparation_service(
                 _build_native_linux_host_preparation
             ),
             HostEnvironmentKind.WSL2: HostPreparationAdapterFactory(
-                lambda: _build_wsl_host_preparation(
-                    script_path=script_path,
-                    config_path=config_path,
-                    registry_path=registry_path,
-                    timeout_seconds=timeout_seconds,
-                    **_selected_bridge_options(resolved_services),
-                )
+                build_wsl_adapter
             ),
         },
         live_consent,

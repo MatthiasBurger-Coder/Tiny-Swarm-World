@@ -26,6 +26,11 @@ def context(release: str, selection: str = "service-access") -> dict[str, str]:
     for path in (*assets, *sorted((root / "src/tiny_swarm_world").rglob("*.py"))):
         digest.update(str(path.relative_to(root)).encode())
         digest.update(path.read_bytes())
+    core = root / "src/tsw_core"
+    for path in (*sorted(core.rglob("*.py")), core / "module.json"):
+        if core.is_dir():
+            digest.update(str(path.relative_to(root)).encode())
+            digest.update(path.read_bytes())
     identity = Path("/etc/machine-id").read_bytes().strip()
     if not identity:
         raise OSError("Bootstrap host identity unavailable.")

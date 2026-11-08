@@ -246,9 +246,10 @@ class TestRealBoundaryFailureMapping(unittest.IsolatedAsyncioTestCase):
         from unittest.mock import patch
         from tiny_swarm_world.infrastructure.adapters.preflight.host_preflight_probe import HostPreflightProbe
         marker = "sensitive-memory-payload"
+        probe = HostPreflightProbe()
         with patch.object(Path, "exists", return_value=True), patch.object(Path, "read_text", return_value="MemTotal: " + marker):
             try:
-                HostPreflightProbe().memory_bytes()
+                probe.memory_bytes()
             except OperationError as error:
                 self.assertEqual("observation_unavailable", error.failure.cause)
                 self.assertNotIn(marker, "".join(traceback.format_exception(error)))

@@ -6,6 +6,8 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
+from tsw_core import discover_root, resource_root
+
 
 @dataclass(frozen=True)
 class ProjectPaths:
@@ -23,13 +25,13 @@ class ProjectPaths:
         infra_root: Path | None = None,
     ) -> "ProjectPaths":
         repository = repository_root.expanduser().resolve()
-        infra = infra_root.expanduser().resolve() if infra_root else repository / "infra"
+        infra = infra_root.expanduser().resolve() if infra_root else resource_root(repository, "infra_root")
         local_state = repository / ".tiny-swarm-world"
         return cls(
             repository_root=repository,
-            source_root=repository / "src",
+            source_root=resource_root(repository, "source_root"),
             infra_root=infra,
-            config_root=infra / "config",
+            config_root=infra / "config" if infra_root else resource_root(repository, "config_root"),
             local_state_root=local_state,
             logs_root=local_state / "logs",
         )
@@ -74,11 +76,7 @@ def _configured_repository_root() -> Path:
     if configured_root:
         return Path(configured_root).expanduser().resolve()
 
-    for candidate in Path(__file__).resolve().parents:
-        if (candidate / "infra").is_dir() and (candidate / "src").is_dir():
-            return candidate
-
-    raise RuntimeError("Could not locate the Tiny Swarm World repository root.")
+    return discover_root()
 
 
 def _configured_infra_root() -> Path | None:

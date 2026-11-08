@@ -15,10 +15,14 @@ def preparation_asset_hashes(repository_root: Path, *, is_wsl: bool) -> tuple[st
     if any(path.is_symlink() for path in (repository_root / "src").rglob("*")):
         raise RuntimeError("Preparation runtime directory links are unsafe.")
     runtime = tuple(sorted((repository_root / "src/tiny_swarm_world").rglob("*.py")))
+    core = repository_root / "src/tsw_core"
+    if core.is_dir():
+        runtime += tuple(sorted(core.rglob("*.py"))) + (core / "module.json",)
     inputs = tuple(repository_root / name for name in assets) + runtime
     if is_wsl:
-        inputs += tuple(sorted((repository_root / "bootstrap/windows").rglob("*.ps1")))
-        inputs += (repository_root / "bootstrap/windows/tws-wsl-bridge.config.json",)
+        from tiny_swarm_world.infrastructure.host_bindings import windows_bridge_binding
+
+        inputs += windows_bridge_binding(repository_root).identity_assets
     if any(path.is_symlink() or not path.is_file() or any(parent.is_symlink() for parent in path.parents)
            for path in inputs):
         raise RuntimeError("Preparation source/configuration asset is unsafe or unavailable.")
