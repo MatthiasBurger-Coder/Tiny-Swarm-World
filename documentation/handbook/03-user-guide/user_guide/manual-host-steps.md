@@ -28,14 +28,14 @@ A successful preparation check alone does not establish installer readiness.
 1. Review the current plan from the terminal that will run preparation:
 
    ```bash
-   ./modules/tsw_core/bootstrap/linux/prepare_linux.sh --dry-run --service-profile service-access
+   ./modules/tsw_native_linux/boostrap/prepare_linux.sh --dry-run --service-profile service-access
    ```
 
 2. Authenticate privileged stages in that same ordinary-user terminal, then
    review and approve the displayed actions:
 
    ```bash
-   sudo -v && ./modules/tsw_core/bootstrap/linux/prepare_linux.sh --service-profile service-access
+   sudo -v && ./modules/tsw_native_linux/boostrap/prepare_linux.sh --service-profile service-access
    ```
 
    A cached login in another terminal, SSH connection or Windows-to-WSL process
@@ -50,7 +50,7 @@ A successful preparation check alone does not establish installer readiness.
    id -nG
    incus version
    incus info
-   ./modules/tsw_core/bootstrap/linux/prepare_linux.sh --preflight --service-profile service-access
+   ./modules/tsw_native_linux/boostrap/prepare_linux.sh --preflight --service-profile service-access
    ```
 
    Running Incus with sudo does not prove ordinary-user access. Resume only
@@ -206,7 +206,7 @@ explicitly changes them.
 ## Optional Windows current-user trust helper
 
 The GUI procedure above remains available. Alternatively, the reviewed
-`modules/tsw_windows_wsl/bootstrap/windows/tsw-tls-trust.ps1` helper provides separate `inspect`, `install`
+`modules/tsw_windows_wsl/bootstrap/tsw-tls-trust.ps1` helper provides separate `inspect`, `install`
 and `remove` actions for `CurrentUser/Root` only. It never modifies machine-wide
 trust and is not invoked by ordinary installation or the Windows bridge.
 
@@ -226,8 +226,8 @@ actual local fixed-drive location. From the checkout in PowerShell, under the
 Windows account that will use the services:
 
 ```powershell
-./modules/tsw_windows_wsl/bootstrap/windows/tsw-tls-trust.ps1 -Action inspect -CertificatePath C:/certs/tsw-ca.crt
-./modules/tsw_windows_wsl/bootstrap/windows/tsw-tls-trust.ps1 -Action install -CertificatePath C:/certs/tsw-ca.crt -ExpectedSha256 <verified-DER-SHA256> -Approve
+./modules/tsw_windows_wsl/bootstrap/tsw-tls-trust.ps1 -Action inspect -CertificatePath C:/certs/tsw-ca.crt
+./modules/tsw_windows_wsl/bootstrap/tsw-tls-trust.ps1 -Action install -CertificatePath C:/certs/tsw-ca.crt -ExpectedSha256 <verified-DER-SHA256> -Approve
 ```
 
 Run installation in that user's interactive Windows session and accept the
@@ -250,7 +250,7 @@ For helper-owned rollback, retain the original public certificate and matching
 DER fingerprint and use the same Windows account:
 
 ```powershell
-./modules/tsw_windows_wsl/bootstrap/windows/tsw-tls-trust.ps1 -Action remove -CertificatePath C:/certs/tsw-ca.crt -ExpectedSha256 <verified-DER-SHA256> -Approve
+./modules/tsw_windows_wsl/bootstrap/tsw-tls-trust.ps1 -Action remove -CertificatePath C:/certs/tsw-ca.crt -ExpectedSha256 <verified-DER-SHA256> -Approve
 ```
 
 Removal requires the matching protected receipt; pre-existing trust and GUI
@@ -283,7 +283,7 @@ cannot substitute for that interactive dialog. An owned matching registration
 reuses its credentials; foreign paths or account mismatches block.
 
 Use the existing [Windows preparation guide](windows-preparation.md) and
-[bridge lifecycle instructions](../../../../modules/tsw_windows_wsl/bootstrap/windows/README.windows-wsl-bridge.md)
+[bridge lifecycle instructions](../../../../modules/tsw_windows_wsl/bootstrap/README.windows-wsl-bridge.md)
 for the selected distribution, bridge status and verification. The bridge remains
 the owner of Windows hosts entries, portproxy, firewall rules and its service.
 Do not add a competing updater. Bridge readiness and TCP checks do not establish

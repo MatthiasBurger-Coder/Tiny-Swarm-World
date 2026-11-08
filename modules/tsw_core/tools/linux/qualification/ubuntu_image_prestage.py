@@ -22,7 +22,7 @@ from typing import TYPE_CHECKING, Any, Iterator
 from urllib.parse import quote
 
 if TYPE_CHECKING:
-    from tools.linux.qualification import native_runtime_inventory as inventory
+    from modules.tsw_native_linux.tools.qualification import native_runtime_inventory as inventory
 else:
     inventory = importlib.import_module((__package__ + '.' if __package__ else '') + 'native_runtime_inventory')
 
@@ -35,7 +35,7 @@ PROPERTIES = {'architecture': 'amd64', 'description': 'Ubuntu noble amd64 (20261
               'name': 'ubuntu-noble-amd64-default-20261107_07:42', 'os': 'ubuntu',
               'release': 'noble', 'serial': '20261107_07:42', 'variant': 'default'}
 SOURCE_FILES = ('modules/tsw_core/tools/linux/qualification/ubuntu_image_prestage.py',
-                'tests/tools/test_ubuntu_image_prestage.py',
+                'modules/tsw_native_linux/tests/tools/test_ubuntu_image_prestage.py',
                 'modules/tsw_core/tools/linux/qualification/native_runtime_inventory.py')
 ENV = {'LC_ALL': 'C', 'PATH': '/usr/bin:/bin'}
 SOCKETS = {'incus_run': '/run/incus/unix.socket', 'incus_var_lib': '/var/lib/incus/unix.socket'}

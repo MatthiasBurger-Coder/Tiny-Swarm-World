@@ -44,7 +44,7 @@ packages from ordinary implementation workflows. A candidate must identify:
 
 Before approval, collect:
 
-- quality evidence from `python3 tools/linux/quality_gate.py quality`;
+- quality evidence from `python3 modules/tsw_native_linux/tools/quality_gate.py quality`;
 - architecture evidence for changed boundaries, ADRs, or arc42 sections;
 - security evidence for secrets, local admin surfaces, dependency and image risk;
 - documentation evidence for operator-facing and governance changes;

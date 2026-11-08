@@ -214,9 +214,9 @@ Out of scope:
 - Linux/WSL-only operation remains the baseline.
 - Documentation examples use POSIX paths and shell commands.
 - Tests do not execute live infrastructure commands.
-- `modules/tsw_core/src/tiny_swarm_world/infrastructure/composition.py` remains the concrete
+- `../../../../../modules/tsw_core/src/infrastructure` remains the concrete
   wiring root.
-- `modules/tsw_core/src/tiny_swarm_world/__main__.py` remains thin.
+- `modules/tsw_core/src/__main__.py` remains thin.
 - Local runtime artifacts stay under ignored local-state paths.
 
 ## Stop Conditions

@@ -11,7 +11,7 @@ An independent read-only reviewer verified the link, hash and minimal diff.
 
 Verification:
 
-- `PYTHONPATH=src python3 -m unittest tests.architecture.test_legacy_surface_documentation tests.architecture.test_skill_registry_integrity`:
+- `PYTHONPATH=. python3 -m unittest modules.tsw_core.tests.architecture.test_legacy_surface_documentation modules.tsw_core.tests.architecture.test_skill_registry_integrity`:
   PASS, 16 tests.
 - The first full gate under a Linux-native temporary checkout failed one
   existing legacy test that requires a Windows-translatable checkout path.

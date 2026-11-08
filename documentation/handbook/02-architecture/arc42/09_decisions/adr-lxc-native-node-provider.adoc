@@ -89,9 +89,9 @@ The provider migration must preserve the hexagonal architecture:
 * application services orchestrate ports and domain objects;
 * Incus, Docker, socket, filesystem, subprocess, profile, and
   host-network details remain in infrastructure adapters;
-* `modules/tsw_core/src/tiny_swarm_world/infrastructure/composition.py` remains the concrete
+* `modules/tsw_core/src/infrastructure/composition.py` remains the concrete
   wiring root;
-* `modules/tsw_core/src/tiny_swarm_world/__main__.py` remains a thin entry point.
+* `modules/tsw_core/src/__main__.py` remains a thin entry point.
 
 == Considered Options
 
@@ -217,6 +217,6 @@ Future ADRs are required before changing these areas:
 * Affects: `documentation/handbook/02-architecture/arc42/07_deployment_view.adoc`
 * Affects: `documentation/handbook/02-architecture/arc42/08_concepts.adoc`
 * Related concept: managed LXC through Incus.
-* Related code: `modules/tsw_core/src/tiny_swarm_world/domain`
-* Related code: `modules/tsw_core/src/tiny_swarm_world/application/services/platform`
-* Related code: `modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters`
+* Related code: `modules/tsw_core/src/domain`
+* Related code: `modules/tsw_core/src/application/services/platform`
+* Related code: `modules/tsw_core/src/infrastructure/adapters`

@@ -6,7 +6,7 @@
 == Decision
 
 Ordinary install reconciles on native Ubuntu and supported WSL2 Ubuntu. Preparation
-remains a separate operator action using modules/tsw_core/bootstrap/linux/prepare_linux.sh for package/Python,
+remains a separate operator action using modules/tsw_native_linux/boostrap/prepare_linux.sh for package/Python,
 Incus and network capabilities. Installation checks prerequisites; it never
 implicitly resets or runs host preparation. Linux-native checkout, runtime and
 evidence storage remain required by the standard path.

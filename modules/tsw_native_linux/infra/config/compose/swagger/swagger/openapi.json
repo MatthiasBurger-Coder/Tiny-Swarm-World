@@ -1,0 +1,19 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Tiny Swarm World Local API",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/status": {
+      "get": {
+        "summary": "Local status smoke endpoint",
+        "responses": {
+          "200": {
+            "description": "Tiny Swarm World local API placeholder is reachable"
+          }
+        }
+      }
+    }
+  }
+}

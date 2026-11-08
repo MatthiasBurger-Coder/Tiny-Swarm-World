@@ -1,0 +1,72 @@
+services:
+  swagger-editor:
+    image: ${TSW_SWAGGER_EDITOR_IMAGE:-swaggerapi/swagger-editor:v5.6.2-unprivileged}
+    networks:
+      - service_access_link
+    deploy:
+      replicas: 1
+      endpoint_mode: dnsrr
+      placement:
+        constraints:
+          - node.role == manager
+
+  swagger-ui:
+    image: ${TSW_SWAGGER_UI_IMAGE:-swaggerapi/swagger-ui:v5.32.6}
+    ports:
+      - target: 8080
+        published: 16080
+        protocol: tcp
+        mode: host
+    volumes:
+      - ${TSW_REMOTE_STACK_ROOT:-/var/lib/tiny-swarm-world/stacks}/swagger/swagger/openapi.json:/openapi.json:ro
+    environment:
+      SWAGGER_JSON: /openapi.json
+      # API_URL: ""
+    networks:
+      - service_access_link
+    deploy:
+      replicas: 1
+      endpoint_mode: dnsrr
+      placement:
+        constraints:
+          - node.role == manager
+
+  swagger-api:
+    image: ${TSW_SWAGGER_API_IMAGE:-danielgtaylor/apisprout@sha256:6c07143937e57095d8478efc8ab7eab52b44e67c7673285f8c0a2bf4a7b137ad}
+    volumes:
+      - ${TSW_REMOTE_STACK_ROOT:-/var/lib/tiny-swarm-world/stacks}/swagger/swagger/openapi.json:/openapi.json:ro
+    command: /openapi.json
+    networks:
+      service_access_link:
+        aliases:
+          - local.swagger.apisprout
+    deploy:
+      replicas: 1
+      endpoint_mode: dnsrr
+      placement:
+        constraints:
+          - node.role == manager
+
+  swagger-nginx:
+    image: ${TSW_SWAGGER_NGINX_IMAGE:-nginx:1.29.8-alpine}
+    ports:
+      - target: 8084
+        published: 16081
+        protocol: tcp
+        mode: host
+    volumes:
+      - ${TSW_REMOTE_STACK_ROOT:-/var/lib/tiny-swarm-world/stacks}/swagger/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      service_access_link:
+        aliases:
+          - local.swagger.api
+    deploy:
+      replicas: 1
+      endpoint_mode: dnsrr
+      placement:
+        constraints:
+          - node.role == manager
+networks:
+  service_access_link:
+    name: service_access_link
+    external: true

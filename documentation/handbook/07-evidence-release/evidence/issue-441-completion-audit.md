@@ -48,8 +48,8 @@ Host: WSL2, Linux 6.18.33.2-microsoft-standard-WSL2, Python 3.14.4.
 | Command / evidence | Result |
 |---|---|
 | Focused lifecycle/update/Portainer/handoff unittest modules (exact command in issue test_results.md) | PASS, exit 0; 63 tests |
-| `PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint` | PASS, exit 0; 69 tests |
-| `PYTHONPATH=src python3 -m tiny_swarm_world --help` and `--list-workflows` | PASS, both exit 0 |
+| `PYTHONPATH=. python3 -m unittest modules.tsw_core.tests.test_package_entrypoint` | PASS, exit 0; 69 tests |
+| `PYTHONPATH=. python3 -m tiny_swarm_world --help` and `--list-workflows` | PASS, both exit 0 |
 | `python3 tools/quality_gate.py quality` | FAIL, exit 1; 2631 tests, 3 installer failures, 18 skipped; system user-site dependencies inaccessible when tests isolate HOME |
 | Three named failing tests rerun with `.venv/bin/python -m unittest` | PASS unchanged, exit 0; 3 tests; isolated-HOME import probe confirms interpreter cause |
 | `.venv/bin/python tools/quality_gate.py quality` | PASS, exit 0; all seven sub-gates; 43 architecture tests; mypy checks 808 files; full suite 2631 tests in 533.196s, 18 skipped |

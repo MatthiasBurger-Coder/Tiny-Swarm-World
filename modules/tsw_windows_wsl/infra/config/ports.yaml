@@ -1,0 +1,337 @@
+schema_version: "1"
+metadata:
+  ingress_baseline: "traefik"
+  public_ingress_policy: "Traefik owns public ingress ports 80 and 443."
+  direct_port_policy: "High-numbered ports are direct, diagnostic, compatibility, or preflight allocations unless a later ADR changes public ingress."
+ranges:
+  - id: public-ingress
+    start: 80
+    end: 443
+    description: "ADR-backed local public ingress owned by Traefik."
+  - id: core-gateway
+    start: 10000
+    end: 10999
+    description: "Core access, gateway, and control surfaces."
+  - id: cicd
+    start: 11000
+    end: 11999
+    description: "CI/CD service access."
+  - id: code-quality
+    start: 12000
+    end: 12999
+    description: "Code quality service access."
+  - id: artifacts
+    start: 13000
+    end: 13999
+    description: "Artifact, registry, and repository service access."
+  - id: messaging
+    start: 14000
+    end: 14999
+    description: "Messaging service access."
+  - id: observability
+    start: 15000
+    end: 15999
+    description: "Observability service access."
+  - id: documentation
+    start: 16000
+    end: 16999
+    description: "Documentation and API explorer service access."
+  - id: security-secrets
+    start: 17000
+    end: 17999
+    description: "Security and secret-management service access."
+  - id: tiny-services
+    start: 18000
+    end: 18999
+    description: "Tiny Swarm World internal application surfaces."
+  - id: reserved-experimental
+    start: 19000
+    end: 19999
+    description: "Reserved experimental allocations."
+ports:
+  - id: traefik-http
+    service_id: traefik
+    internal_port: 80
+    external_port: 80
+    exposure: public_ingress
+    range_id: public-ingress
+    protocol: tcp
+    route_host: tsw.local
+    required_for_preflight: true
+    metadata:
+      route_name: none
+  - id: traefik-https
+    service_id: traefik
+    internal_port: 443
+    external_port: 443
+    exposure: public_ingress
+    range_id: public-ingress
+    protocol: tcp
+    route_host: traefik.tsw.local
+    required_for_preflight: true
+    metadata:
+      route_name: none
+  - id: portainer-http
+    service_id: portainer
+    internal_port: 9000
+    external_port: 10001
+    exposure: compatibility
+    range_id: core-gateway
+    protocol: tcp
+    route_host: portainer.tsw.local
+    required_for_preflight: false
+    metadata:
+      route_enabled_by_default: "true"
+      upstream_service: portainer
+      credential_user: admin
+      credential_item_ref: platform/portainer
+      credential_note: "Open Infisical item"
+  - id: service-access-http
+    service_id: service-access
+    internal_port: 80
+    external_port: 10000
+    exposure: diagnostic
+    range_id: core-gateway
+    protocol: tcp
+    route_host: service-access.tsw.local
+    required_for_preflight: false
+    metadata:
+      route_enabled_by_default: "true"
+      upstream_service: service-access-dashboard
+      no_login_note: "Dashboard does not require a login"
+  - id: service-access-legacy-http
+    service_id: service-access
+    internal_port: 8086
+    external_port: 8086
+    exposure: compatibility
+    protocol: tcp
+    required_for_preflight: false
+    metadata:
+      route_name: none
+  - id: api-gateway-http
+    service_id: api-gateway
+    internal_port: 80
+    external_port: 10080
+    exposure: diagnostic
+    range_id: core-gateway
+    protocol: tcp
+    route_host: gateway.tsw.local
+    required_for_preflight: false
+    metadata:
+      route_name: none
+  - id: api-gateway-https
+    service_id: api-gateway
+    internal_port: 443
+    external_port: 10443
+    exposure: diagnostic
+    range_id: core-gateway
+    protocol: tcp
+    route_host: gateway.tsw.local
+    required_for_preflight: false
+    metadata:
+      route_name: none
+  - id: jenkins-http
+    service_id: jenkins
+    internal_port: 8080
+    external_port: 11080
+    exposure: diagnostic
+    range_id: cicd
+    protocol: tcp
+    route_host: jenkins.tsw.local
+    required_for_preflight: false
+    metadata:
+      route_enabled_by_default: "true"
+      upstream_service: jenkins
+      credential_user: admin
+      credential_item_ref: platform/jenkins
+      credential_note: "Open Infisical item"
+  - id: jenkins-agent
+    service_id: jenkins
+    internal_port: 50000
+    external_port: 11050
+    exposure: diagnostic
+    range_id: cicd
+    protocol: tcp
+    required_for_preflight: false
+  - id: sonarqube-http
+    service_id: sonarqube
+    internal_port: 9000
+    external_port: 12000
+    exposure: diagnostic
+    range_id: code-quality
+    protocol: tcp
+    route_host: sonarqube.tsw.local
+    required_for_preflight: false
+    metadata:
+      route_enabled_by_default: "true"
+      upstream_service: sonarqube
+      credential_user: admin
+      credential_item_ref: platform/sonarqube
+      credential_note: "Open Infisical item"
+  - id: nexus-http
+    service_id: nexus
+    internal_port: 8081
+    external_port: 13081
+    exposure: diagnostic
+    range_id: artifacts
+    protocol: tcp
+    route_host: nexus.tsw.local
+    required_for_preflight: false
+    metadata:
+      route_enabled_by_default: "true"
+      upstream_service: nexus
+      credential_user: admin
+      credential_item_ref: platform/nexus
+      credential_note: "Open Infisical item"
+  - id: nexus-docker-http
+    service_id: nexus
+    internal_port: 5000
+    external_port: 13500
+    exposure: diagnostic
+    range_id: artifacts
+    protocol: tcp
+    required_for_preflight: false
+  - id: nexus-docker-https
+    service_id: nexus
+    internal_port: 5001
+    external_port: 13501
+    exposure: diagnostic
+    range_id: artifacts
+    protocol: tcp
+    required_for_preflight: false
+  - id: pulsar-broker
+    service_id: pulsar
+    internal_port: 6650
+    external_port: 14001
+    exposure: diagnostic
+    range_id: messaging
+    protocol: tcp
+    required_for_preflight: false
+  - id: pulsar-admin-api
+    service_id: pulsar
+    internal_port: 8080
+    external_port: 14080
+    exposure: diagnostic
+    range_id: messaging
+    protocol: tcp
+    route_host: pulsar-api.tsw.local
+    required_for_preflight: false
+    metadata:
+      route_enabled_by_default: "true"
+      route_name: pulsar-admin-api
+      upstream_service: pulsar
+      health_path: /admin/v2/clusters
+      service_access_path: /admin/v2/clusters
+      credential_user: admin
+      credential_item_ref: platform/pulsar
+      credential_note: "Open Infisical item"
+  - id: pulsar-manager-gui
+    service_id: pulsar
+    internal_port: 9527
+    external_port: 14081
+    exposure: diagnostic
+    range_id: messaging
+    protocol: tcp
+    route_host: pulsar.tsw.local
+    required_for_preflight: false
+    metadata:
+      route_enabled_by_default: "true"
+      route_name: pulsar-manager
+      upstream_service: pulsar-manager
+      credential_user: admin
+      credential_item_ref: platform/pulsar-manager
+      credential_note: "Open Infisical item"
+  - id: prometheus-http
+    service_id: prometheus
+    internal_port: 9090
+    external_port: 15090
+    exposure: diagnostic
+    range_id: observability
+    protocol: tcp
+    route_host: prometheus.tsw.local
+    required_for_preflight: false
+    metadata:
+      upstream_service: prometheus
+  - id: grafana-http
+    service_id: grafana
+    internal_port: 3000
+    external_port: 15300
+    exposure: diagnostic
+    range_id: observability
+    protocol: tcp
+    route_host: grafana.tsw.local
+    required_for_preflight: false
+    metadata:
+      upstream_service: grafana
+  - id: swagger-ui
+    service_id: swagger
+    internal_port: 8080
+    external_port: 16080
+    exposure: diagnostic
+    range_id: documentation
+    protocol: tcp
+    route_host: swagger.tsw.local
+    required_for_preflight: false
+    metadata:
+      route_name: none
+  - id: openapi-aggregator
+    service_id: swagger
+    internal_port: 8084
+    external_port: 16081
+    exposure: diagnostic
+    range_id: documentation
+    protocol: tcp
+    route_host: swagger.tsw.local
+    required_for_preflight: false
+    metadata:
+      route_enabled_by_default: "true"
+      route_name: swagger
+      upstream_service: swagger-nginx
+      no_login_note: "Swagger/NGINX does not require a login"
+  - id: infisical-http
+    service_id: infisical
+    internal_port: 8080
+    external_port: 17080
+    exposure: diagnostic
+    range_id: security-secrets
+    protocol: tcp
+    route_host: infisical.tsw.local
+    required_for_preflight: false
+    metadata:
+      route_enabled_by_default: "true"
+      upstream_service: infisical
+      credential_user: admin
+      credential_item_ref: platform/infisical
+      credential_note: "Open Infisical item"
+  - id: tiny-swarm-frontend
+    service_id: tiny-swarm
+    internal_port: 8080
+    external_port: 18080
+    exposure: diagnostic
+    range_id: tiny-services
+    protocol: tcp
+    route_host: app.tsw.local
+    required_for_preflight: false
+    metadata:
+      route_name: app
+      upstream_service: tiny-swarm
+  - id: tiny-swarm-backend
+    service_id: tiny-swarm
+    internal_port: 8081
+    external_port: 18081
+    exposure: diagnostic
+    range_id: tiny-services
+    protocol: tcp
+    route_host: api.tsw.local
+    required_for_preflight: false
+    metadata:
+      route_name: api
+      upstream_service: tiny-swarm
+  - id: tiny-swarm-agent
+    service_id: tiny-swarm-agent
+    internal_port: 8082
+    external_port: 18082
+    exposure: diagnostic
+    range_id: tiny-services
+    protocol: tcp
+    required_for_preflight: false

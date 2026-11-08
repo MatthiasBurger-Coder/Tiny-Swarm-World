@@ -6,7 +6,7 @@ Parent: [#313](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/3
 
 ## Implemented ownership
 
-Source paths below are relative to `modules/tsw_core/src/tiny_swarm_world/`.
+Source paths below are relative to `modules/tsw_core/src/`.
 `application/ports/operation_result.py` owns immutable `OperationFailure` and
 `OperationResult`, the outcome/recoverability enums, and typed `OperationError`.
 Domain remains independent of application. Infrastructure translates expected
@@ -84,10 +84,10 @@ policy belongs to ARCH-03.13 / #356.
 ## Migration and evidence
 
 The [active workflow](../../../05-development/workflow/workflow.md) records the seven implementation slices and their checkpoint history.
-Deterministic tests include `tests.application.ports.test_operation_result`,
-`tests.application.services.shared.test_operation_results`,
-`tests.infrastructure.adapters.exceptions.test_operation_failure_mapping`,
-`tests.test_package_entrypoint` and `tests.test_classic_update_cli`, together with
+Deterministic tests include `modules.tsw_core.tests.application.ports.test_operation_result`,
+`modules.tsw_core.tests.application.services.shared.test_operation_results`,
+`modules.tsw_core.tests.infrastructure.adapters.exceptions.test_operation_failure_mapping`,
+`modules.tsw_core.tests.test_package_entrypoint` and `modules.tsw_core.tests.test_classic_update_cli`, together with
 the inventory's adapter and workflow suites. Exact commands, results and requirement
 coverage are maintained in `.tiny-swarm/evidence/issue-355/`.
 

@@ -39,15 +39,15 @@ capability check proves only that capability, never complete installation readin
 
 | Surface / requirement | Delivered owner and behavior | Gap / follow-up owner |
 |---|---|---|
-| `modules/tsw_core/bootstrap/linux/prepare_linux.sh`, BOOT-01/04 | `prepare_linux.py`, `infrastructure/composition_native_preparation.py`, `application/services/native_preparation.py`; qualify native Ubuntu, list/install missing profile packages after confirmation | W02: clean-host Python and WSL Ubuntu bootstrap; W01: full host-plan contract |
+| `../../../../modules/tsw_native_linux/boostrap/prepare_linux.sh`, BOOT-01/04 | `prepare_linux.py`, `infrastructure/composition_native_preparation.py`, `application/services/native_preparation.py`; qualify native Ubuntu, list/install missing profile packages after confirmation | W02: clean-host Python and WSL Ubuntu bootstrap; W01: full host-plan contract |
 | Package facts/policy | `domain/native_preparation.py`, `application/ports/native_preparation.py`, `infrastructure/adapters/host/native_preparation.py`, `infrastructure/adapters/native_package_manager.py`; recheck before APT | W02 extends existing inspector/package ports; no parallel package service |
 | Python dependency bootstrap | `composition_installation.py` facade and `infrastructure/adapters/installation/process.py`; user-local venv, hash-checked `requirements.lock`, editable install without dependency resolution | W02 supplies interpreter/venv prerequisites before dependency imports |
 | `install.sh`, BOOT-07 | `simple_installer.py`, `composition_installation.py`, `application/services/installation.py`, installation ports/adapters; native/WSL reconcile without reset; explicit deprecated WSL confirmed fresh reset | W07: selected-user/checkout handoff is locally delivered; W09 live qualification remains separate |
 | `tsw`, `host prepare` | `__main__.py`, CLI registry/parser/consent/commands, `PrepareHostWithPreflight`, `HostPreparationService`, `PortHostPreparation` | Already consent-guarded; not a bare-host package bootstrap command |
-| Native `host prepare` | `NativeLinuxHostPreparation` verifies kernel controls; does not change them | Separate `modules/tsw_core/bootstrap/linux/prepare_linux.sh` capabilities own consented W03 Incus and W06 kernel/network preparation; installer/host prepare remain verification-only |
+| Native `host prepare` | `NativeLinuxHostPreparation` verifies kernel controls; does not change them | Separate `../../../../modules/tsw_native_linux/boostrap/prepare_linux.sh` capabilities own consented W03 Incus and W06 kernel/network preparation; installer/host prepare remain verification-only |
 | `host verify` | CLI command calls read-only hang diagnostics; capability-level diagnostics, not aggregate installation readiness | W01 defines aggregate below; implementation integration in W07 |
-| Windows bridge, BOOT-06 | `modules/tsw_windows_wsl/bootstrap/windows/tws-wsl-bridge.ps1`, service script, config, `WslHostPreparation`, `PortWindowsCommandRunner`; protected ownership/ACL/collision lifecycle | W06 preparation inventory separates routing/agent readiness from endpoint checks, delegates consented install/owned refresh and reuses canonical `modules/tsw_core/infra/config/ports.yaml`; no second portproxy/firewall owner |
-| Windows preparation, BOOT-02/03 | `modules/tsw_windows_wsl/bootstrap/windows/prepare_windows.ps1` and dependency-light `modules/tsw_windows_wsl/bootstrap/windows/preparation` owners implement explicit candidate-only Windows features/WSL2/selected-distro/systemd lifecycle; ordinary Apply unqualified-blocked; W05 resource plan/configuration and effective verification extend those owners | W06/W07 integration and W09 actual live qualification |
+| Windows bridge, BOOT-06 | `modules/tsw_windows_wsl/bootstrap/tws-wsl-bridge.ps1`, service script, config, `WslHostPreparation`, `PortWindowsCommandRunner`; protected ownership/ACL/collision lifecycle | W06 preparation inventory separates routing/agent readiness from endpoint checks, delegates consented install/owned refresh and reuses canonical `modules/tsw_core/infra/config/ports.yaml`; no second portproxy/firewall owner |
+| Windows preparation, BOOT-02/03 | `modules/tsw_windows_wsl/bootstrap/prepare_windows.ps1` and dependency-light `modules/tsw_windows_wsl/bootstrap/preparation` owners implement explicit candidate-only Windows features/WSL2/selected-distro/systemd lifecycle; ordinary Apply unqualified-blocked; W05 resource plan/configuration and effective verification extend those owners | W06/W07 integration and W09 actual live qualification |
 | Recovery/evidence, BOOT-08 | Native preparation re-inventories packages after failure; `native_preparation_evidence.py` writes protected, redacted evidence; installer phase timeout/interruption handling exists | W08: shared resumable stage records and protected cross-host recovery |
 | Qualification/help, BOOT-09 | #427 delivered native lifecycle and its recorded Ubuntu 26.04 scenarios; Ubuntu 24.04 qualification is separate | W09: fresh/repeat/restart/recovery qualification on both families; W10: final copyable guide |
 
@@ -69,8 +69,8 @@ product dependencies and is not the bare-host entrypoint.
 
 | Target entrypoint | Read-only | Apply / handoff |
 |---|---|---|
-| Elevated Windows PowerShell: `./modules/tsw_windows_wsl/bootstrap/windows/prepare_windows.ps1 -Distro Ubuntu-24.04` | `-Preflight` or `-DryRun`; `-Json` for machine output; `-Help` without elevation/probes | Default invocation shows plan then asks exact `yes`; unattended `-ApproveApply` explicitly consents to that preparation plan |
-| Linux/WSL: `modules/tsw_core/bootstrap/linux/prepare_linux.sh` | `--preflight` or `--dry-run`; `--json`; `--help` without Python/probes | Default invocation shows plan then asks exact `yes`; unattended `--approve-apply` explicitly consents to that preparation plan |
+| Elevated Windows PowerShell: `./modules/tsw_windows_wsl/bootstrap/prepare_windows.ps1 -Distro Ubuntu-24.04` | `-Preflight` or `-DryRun`; `-Json` for machine output; `-Help` without elevation/probes | Default invocation shows plan then asks exact `yes`; unattended `-ApproveApply` explicitly consents to that preparation plan |
+| Linux/WSL: `../../../../modules/tsw_native_linux/boostrap/prepare_linux.sh` | `--preflight` or `--dry-run`; `--json`; `--help` without Python/probes | Default invocation shows plan then asks exact `yes`; unattended `--approve-apply` explicitly consents to that preparation plan |
 | Selected Linux/WSL shell: `install.sh` | `--preflight` or `--dry-run`; preserve selected profile | Ordinary setup/reconcile, no implicit reset; existing live approval remains required; preparation approval is not install approval |
 
 `--service-profile default|service-access` / `-ServiceProfile` selects the
@@ -81,8 +81,8 @@ returns BLOCKED. JSON emits one envelope to stdout, diagnostics to stderr;
 it never prompts and therefore needs explicit approval for apply.
 Help is read-only and explains supported targets, modes, privilege/restart
 boundaries and that READY means preparation only. It includes a concrete
-first command, for example `./modules/tsw_core/bootstrap/linux/prepare_linux.sh --preflight` or
-`./modules/tsw_windows_wsl/bootstrap/windows/prepare_windows.ps1 -Distro Ubuntu-24.04 -Preflight`.
+first command, for example `./modules/tsw_native_linux/boostrap/prepare_linux.sh --preflight` or
+`./modules/tsw_windows_wsl/bootstrap/prepare_windows.ps1 -Distro Ubuntu-24.04 -Preflight`.
 
 An apply invocation recomputes inventory and displays the entire plan before
 consent. Recheck immediately before each stage. A changed target, selection,
@@ -122,7 +122,7 @@ See the accepted `adr-shared-ubuntu-prerequisite-bootstrap.adoc` for this narrow
 W02 amendment; full bootstrap and live qualification remain separate.
 
 An extracted, versioned release must contain executable Linux scripts,
-`modules/tsw_windows_wsl/bootstrap/windows/prepare_windows.ps1`, the dependency-light source used by preparation,
+`modules/tsw_windows_wsl/bootstrap/prepare_windows.ps1`, the dependency-light source used by preparation,
 `pyproject.toml`, `requirements.lock`, `requirements.build.lock`, `modules/tsw_core/infra/config`, and the existing bridge
 assets. The trusted release is downloaded/extracted using OS-provided tools;
 Git, Python and pip are not prerequisites to locating scripts or printing help.
@@ -265,7 +265,7 @@ Illustrative target output, not an output captured from an implemented command:
 Preparation: BLOCKED (packages_missing); services have not been verified.
 Plan: install missing incus from Ubuntu APT; requires package-stage sudo.
 Preserve: existing Incus daemon, storage, networks, profiles and credentials.
-Next: ./modules/tsw_core/bootstrap/linux/prepare_linux.sh
+Next: ./modules/tsw_native_linux/boostrap/prepare_linux.sh
 ```
 
 Minimal illustrative JSON projection for an unchanged, already prepared host;
@@ -300,9 +300,9 @@ whether changes occurred, restart scope, and exactly one concrete next command.
 Use the selected distro/user/checkout in Windows handoffs, rather than unresolved
 placeholders. For a stopped selected distro: `wsl.exe -d Ubuntu-24.04`.
 For an apply-capable Windows preparation blocker:
-`./modules/tsw_windows_wsl/bootstrap/windows/prepare_windows.ps1 -Distro Ubuntu-24.04` in elevated PowerShell.
+`./modules/tsw_windows_wsl/bootstrap/prepare_windows.ps1 -Distro Ubuntu-24.04` in elevated PowerShell.
 For Windows reboot: `Restart-Computer` with explicit whole-host scope.
-For Linux package recovery: `./modules/tsw_core/bootstrap/linux/prepare_linux.sh --dry-run`; do not automatically
+For Linux package recovery: `./modules/tsw_native_linux/boostrap/prepare_linux.sh --dry-run`; do not automatically
 remove packages or run blanket APT repair. Commands are advice only and must
 not contain credentials. Failed/blocked messages never say services are ready.
 
@@ -381,7 +381,7 @@ remains LIVE_CONSENT_MISSING for the new bootstrap behavior.
 
 ## BOOT-W03 delivered Incus capability
 
-After the W02 package/Python substage, `modules/tsw_core/bootstrap/linux/prepare_linux.sh` delegates to the
+After the W02 package/Python substage, `../../../../modules/tsw_native_linux/boostrap/prepare_linux.sh` delegates to the
 prepared user Python runtime for canonical YAML/provider policy. Separate exact
 stage consent covers daemon startup, ordinary-user access, then absent resolved
 storage/bridge/profiles. This is create-only explicit initialization, without
@@ -412,7 +412,7 @@ bootstrap live qualification remains LIVE_CONSENT_MISSING. See the accepted
 
 ## BOOT-W04 delivered lifecycle capability
 
-`modules/tsw_windows_wsl/bootstrap/windows/prepare_windows.ps1` is a thin PowerShell boundary for pure policy and injectable
+`modules/tsw_windows_wsl/bootstrap/prepare_windows.ps1` is a thin PowerShell boundary for pure policy and injectable
 application/host/evidence ports. Help has no host probes; no-write preflight/dry-run
 never start a stopped distro. Explicit candidate qualification prepares Windows
 features, pinned WSL and only the named Ubuntu registration in bounded stages,
@@ -510,7 +510,7 @@ host/configuration/state/evidence or start a stopped distro.
 W05 local implementation owners: `Resources.ps1` contains pure policy/INI merge;
 `ResourceAdapters.ps1` provides resource ports; `ResourceHost.ps1` bounds Windows
 registry/volume/ACL/config IO; `linux-resources.sh` is an already-running-distro
-read-only probe. `modules/tsw_windows_wsl/tools/windows/build_wsl_resource_projection.py` generates
+read-only probe. `../../../../modules/tsw_windows_wsl/tools/build_wsl_resource_projection.py` generates
 `resource-projection.json` from canonical sources on Linux/WSL. All runtime helpers,
 projection and canonical inputs participate in extracted-release source proof.
 See the [Windows capacity guide](../../03-user-guide/user_guide/windows-preparation.md#capacity-plan-and-resource-overrides).

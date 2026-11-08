@@ -33,7 +33,7 @@ infrastructure. Re-run from the repository root with:
 python3 - <<'PY'
 import ast, pathlib, subprocess
 
-root = pathlib.Path("modules/tsw_core/src/tiny_swarm_world")
+root = pathlib.Path("modules/tsw_core/src")
 paths = [root / "__main__.py", root / "installer.py", root / "simple_installer.py"]
 paths += sorted((root / "infrastructure").glob("composition*.py"))
 for path in paths:

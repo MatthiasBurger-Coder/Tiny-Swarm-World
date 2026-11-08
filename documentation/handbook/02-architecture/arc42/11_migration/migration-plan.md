@@ -90,10 +90,10 @@ Affected files/directories:
 
 Files explicitly forbidden:
 
-- former `modules/tsw_core/src/tiny_swarm_world/application/services/multipass` (superseded)
-- `modules/tsw_core/src/tiny_swarm_world/application/services/network`
-- `modules/tsw_core/src/tiny_swarm_world/application/services/vm`
-- `modules/tsw_core/src/tiny_swarm_world/application/services/nexus`
+- former `../../../../../modules/tsw_core/src/application` (superseded)
+- `../../../../../modules/tsw_core/src/application`
+- `../../../../../modules/tsw_core/src/application`
+- `../../../../../modules/tsw_core/src/application`
 - `infra`
 
 Expected behavior change:
@@ -135,11 +135,11 @@ Goal:
 
 Affected files/directories:
 
-- former `modules/tsw_core/src/tiny_swarm_world/domain/multipass` (superseded)
-- `modules/tsw_core/src/tiny_swarm_world/domain/network`
-- former `modules/tsw_core/src/tiny_swarm_world/application/services/multipass` (superseded)
-- `modules/tsw_core/src/tiny_swarm_world/application/services/network`
-- `modules/tsw_core/src/tiny_swarm_world/application/services/vm`
+- former `../../../../../modules/tsw_core/src/domain` (superseded)
+- `../../../../../modules/tsw_core/src/domain`
+- former `../../../../../modules/tsw_core/src/application` (superseded)
+- `../../../../../modules/tsw_core/src/application`
+- `../../../../../modules/tsw_core/src/application`
 - platform-related ports and adapters
 - platform-related tests
 - platform sections in `documentation/handbook/02-architecture/arc42/05_analysis`
@@ -186,11 +186,11 @@ Goal:
 
 Affected files/directories:
 
-- `modules/tsw_core/src/tiny_swarm_world/domain/deployment`
-- `modules/tsw_core/src/tiny_swarm_world/application/ports/clients/port_portainer_client.py`
-- `modules/tsw_core/src/tiny_swarm_world/application/ports/repositories/port_compose_file_repository.py`
-- `modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/portainer_http_client.py`
-- `modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py`
+- `../../../../../modules/tsw_core/src/domain`
+- `../../../../../modules/tsw_core/src/application`
+- `../../../../../modules/tsw_core/src/application`
+- `../../../../../modules/tsw_core/src/infrastructure`
+- `../../../../../modules/tsw_core/src/infrastructure`
 - `modules/tsw_core/infra/config/compose`
 - `modules/tsw_core/infra/config/compose`
 - deployment-related tests and docs
@@ -238,10 +238,10 @@ Goal:
 
 Affected files/directories:
 
-- `modules/tsw_core/src/tiny_swarm_world/domain/nexus`
-- `modules/tsw_core/src/tiny_swarm_world/application/services/nexus`
-- `modules/tsw_core/src/tiny_swarm_world/application/ports/clients/port_nexus_client.py`
-- `modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/nexus_http_client.py`
+- `../../../../../modules/tsw_core/src/domain`
+- `../../../../../modules/tsw_core/src/application`
+- `../../../../../modules/tsw_core/src/application`
+- `../../../../../modules/tsw_core/src/infrastructure`
 - artifact-related tests and docs
 
 Files explicitly forbidden:
@@ -288,8 +288,8 @@ Goal:
 
 Affected files/directories:
 
-- `modules/tsw_core/src/tiny_swarm_world/__main__.py`
-- `modules/tsw_core/src/tiny_swarm_world/infrastructure/composition.py`
+- `modules/tsw_core/src/__main__.py`
+- `../../../../../modules/tsw_core/src/infrastructure`
 - CLI-facing documentation
 - workflow orchestration tests
 

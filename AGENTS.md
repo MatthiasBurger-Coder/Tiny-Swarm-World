@@ -61,22 +61,24 @@ explicit task changes the product scope.
 
 ## Repository Map
 
-- `modules/tsw_windows_wsl/bootstrap/windows`: Windows/WSL installation preparation, bridge and host diagnostics.
-- `modules/tsw_core/bootstrap/linux`: native Linux and shared Linux/WSL installation prerequisites and diagnostics.
+- `modules/tsw_windows_wsl/bootstrap`: Windows/WSL installation preparation, bridge and host diagnostics.
+- `modules/tsw_native_linux/boostrap`: native Linux and shared Linux/WSL installation prerequisites and diagnostics.
 - `modules/tsw_core`: shared runtime, configuration, bootstrap and Linux tooling.
 - `modules/tsw_native_linux`: native Linux entry points delegating to core.
 - `modules/tsw_windows_wsl`: Windows bootstrap, bridge, WSL handoff and tooling.
-- Root `src`, `bootstrap` and `tools`: thin compatibility forwarders only.
-- `modules/tsw_core/src/tiny_swarm_world/domain`: core business concepts and rules.
-- `modules/tsw_core/src/tiny_swarm_world/application`: use cases, orchestration services, and ports.
-- `modules/tsw_core/src/tiny_swarm_world/application/ports`: interfaces for commands, repositories, file
+- Root `install.sh` and `tsw`: thin compatibility forwarders to the Linux module.
+- `modules/tsw_core/src/domain`: core business concepts and rules.
+- `modules/tsw_core/src/application`: use cases, orchestration services, and ports.
+- `modules/tsw_core/src/application`: interfaces for commands, repositories, file
   management, UI, and external clients.
-- `modules/tsw_core/src/tiny_swarm_world/infrastructure`: concrete adapters, dependency wiring, logging,
+- `modules/tsw_core/src/infrastructure`: concrete adapters, dependency wiring, logging,
   YAML handling, command runners, UI adapters, and file management.
 - `modules/tsw_core/infra/config`: YAML command, node-provider, network, and compose stack
   configuration data.
 - `modules/tsw_core/infra/config/compose`: image build contexts and related Dockerfiles for stack services.
-- `tests`: unit tests organized by architecture layer.
+- `modules/tsw_core/tests`: shared runtime, architecture, domain, application and adapter tests.
+- `modules/tsw_native_linux/tests`: Linux bootstrap and native qualification tests.
+- `modules/tsw_windows_wsl/tests`: Windows/WSL preparation, bridge and PowerShell fixtures.
 - `documentation`: Product Handbook; `documentation/README.adoc` is the master
   index and `documentation/document.adoc` is the continuous edition. arc42 is
   the architecture part of the handbook.
@@ -95,16 +97,16 @@ explicit task changes the product scope.
 - Infrastructure adapters implement ports and contain technology-specific
   details.
 - Keep standard runtime wiring in
-  `modules/tsw_core/src/tiny_swarm_world/infrastructure/composition.py`; do not move concrete
+  `modules/tsw_core/src/infrastructure`; do not move concrete
   adapter construction into application services.
-- Entry-point code such as `modules/tsw_core/src/tiny_swarm_world/__main__.py` should stay thin:
+- Entry-point code such as `modules/tsw_core/src/__main__.py` should stay thin:
   compose dependencies, invoke application services, and report progress.
 - Prefer small services with explicit dependencies over global lookups. Where
   the current container is used, keep registrations clear and local.
 
 ## Python Conventions
 
-- Run Python code from the repository root with `PYTHONPATH=src` when needed.
+- Run Python code from the repository root with `PYTHONPATH=.` when needed.
 - Use package imports in the existing style, for example
   `from tiny_swarm_world.application.services...` and
   `from tiny_swarm_world.infrastructure.adapters...`.
@@ -160,12 +162,11 @@ inspection.
   `python3 modules/tsw_core/tools/linux/quality_gate.py typecheck`, or
   `python3 modules/tsw_core/tools/linux/quality_gate.py test`
 - For targeted changes, run the nearest relevant test file, for example:
-  `PYTHONPATH=src python -m unittest tests.infrastructure.adapters.ui.test_linux_ui`
-- The quality gate sets `PYTHONPATH=modules/tsw_core/src` automatically.
-  `PYTHONPATH=src` remains a compatibility import surface; new direct checks
-  should use the physical core source root.
+  `PYTHONPATH=. python -m unittest modules.tsw_core.tests.infrastructure.adapters.ui.test_linux_ui`
+- The quality gate sets `PYTHONPATH=.` automatically.
+  `PYTHONPATH=.` remains a compatibility import surface; install the package with `python3 -m pip install --no-deps -e .` before development checks.
 - `arch-lint` requires `.importlinter`; `arch-tests` requires
-  `tests.architecture.test_hexagonal_imports`.
+  `modules.tsw_core.tests.architecture.test_hexagonal_imports`.
 - Add or update tests when changing domain behavior, application orchestration,
   command construction, YAML parsing, path handling, repositories, or adapters.
 - Mock command execution, network calls, node-provider or VM operations, and

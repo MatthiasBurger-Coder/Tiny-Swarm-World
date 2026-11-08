@@ -16,7 +16,7 @@ This project is developed and operated from WSL or Linux shells. Windows-specifi
 
 The repository separates deployment work into three areas:
 
-* `modules/tsw_core/src/tiny_swarm_world/__main__.py` contains the Python entry point for infrastructure orchestration.
+* `modules/tsw_core/src/__main__.py` contains the Python entry point for infrastructure orchestration.
 * `modules/tsw_core/infra/config/compose` contains stack definitions and service image/runtime assets for workflow-managed deployment.
 
 The active Python entry point exposes workflow-level commands. Running without
@@ -127,7 +127,7 @@ contracts are wired:
 
 [source,bash]
 ----
-PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world setup run --live
+PYTHONPATH=. python3 -m tiny_swarm_world setup run --live
 ----
 
 Former direct preparation scripts and host-side orchestration scripts have
@@ -302,7 +302,7 @@ and should be run only on a disposable or recoverable local Swarm target:
 
 [source,bash]
 ----
-PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world setup run --live
+PYTHONPATH=. python3 -m tiny_swarm_world setup run --live
 ----
 
 When prompted, answer `y` only if the operator intentionally accepts local

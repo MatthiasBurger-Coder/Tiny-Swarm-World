@@ -8,15 +8,15 @@ modules/
     src/tiny_swarm_world/       # domain, application and infrastructure
     src/tsw_core/               # core discovery and packaged descriptor
     infra/config/              # one service catalog and runtime asset tree
-    bootstrap/linux/           # shared Linux/WSL preparation, install and CLI
-    tools/linux/               # common qualification and developer tooling
+    modules/tsw_native_linux/boostrap/           # shared Linux/WSL preparation, install and CLI
+    modules/tsw_native_linux/tools/               # common qualification and developer tooling
   tsw_native_linux/
     install.sh                 # native platform-to-core handoff
     tsw
     module.json
   tsw_windows_wsl/
-    bootstrap/windows/         # bootstrap, distro selection, bridge and probes
-    tools/windows/
+    modules/tsw_windows_wsl/bootstrap/         # bootstrap, distro selection, bridge and probes
+    modules/tsw_windows_wsl/tools/
     module.json
 ```
 
@@ -35,14 +35,14 @@ release checkouts retain their old source/configuration topology; lifecycle
 adapters distinguish those from incomplete physical module deployments. A
 missing new core cannot be hidden by legacy directories.
 
-Public `./install.sh`, `./tsw`, documented `bootstrap/linux` commands and public
+Public `./install.sh`, `./tsw`, documented `../../../modules/tsw_native_linux/linux` commands and public
 Windows scripts are thin compatibility forwarders. Native implementation lives
 in its module and executes core. Windows runs its physical owner, whose bridge
 registration copies the actual bridge implementation and adjacent assets. Its
 selected distribution/account handoff invokes physical core preparation then
 installation directly. Flags, quoting, stdin, environment and status propagate
-through the forwarding entry points. `PYTHONPATH=modules/tsw_core/src` remains an import
-compatibility surface; both that path and `PYTHONPATH=modules/tsw_core/src`
+through the forwarding entry points. `PYTHONPATH=.` remains an import
+compatibility surface; both that path and `PYTHONPATH=.`
 load the same physical implementation. Core execution does not need the shims.
 
 The root `host-bindings.json` is compatibility composition data pointing at
@@ -55,7 +55,7 @@ admission; missing, modified or symlinked core/WSL assets remain blockers.
 Focused verification on the mandated Windows-host WSL target:
 
 ```sh
-PYTHONPATH=modules/tsw_core/src python3 -m unittest tests.architecture.test_core_module tests.architecture.test_edition_modules tests.test_install_handoff tests.infrastructure.adapters.lifecycle.test_product_layout
+PYTHONPATH=. python3 -m unittest modules.tsw_core.tests.architecture.test_core_module modules.tsw_core.tests.architecture.test_edition_modules modules.tsw_native_linux.tests.test_install_handoff modules.tsw_core.tests.infrastructure.adapters.lifecycle.test_product_layout
 ```
 
 Fixtures assert physical ownership and removal of old implementation trees,

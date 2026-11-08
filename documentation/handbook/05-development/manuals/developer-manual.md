@@ -13,7 +13,7 @@ Start with [arc42](../../02-architecture/arc42.adoc), the
 [runtime view](../../02-architecture/arc42/06_runtime_view.adoc) and the
 [deployment view](../../02-architecture/arc42/07_deployment_view.adoc). Domain code stays
 independent of application and infrastructure; concrete adapters are wired in
-`modules/tsw_core/src/tiny_swarm_world/infrastructure/composition.py`.
+`../../../../modules/tsw_core/src/infrastructure`.
 
 Read the [resulting architecture and runtime extension guide](../../02-architecture/arc42/05_analysis/arch-03-21-resulting-architecture.md)
 for package ownership, dependency rules, Classic wiring, fitness functions and
@@ -30,7 +30,7 @@ rollback and verification-state semantics.
 
 ## Local Python environment
 
-Operators use `./modules/tsw_core/bootstrap/linux/prepare_linux.sh` from the trusted checkout, followed by
+Operators use `./modules/tsw_native_linux/boostrap/prepare_linux.sh` from the trusted checkout, followed by
 `./install.sh`. For manual development setup from the repository root:
 
 ```bash
@@ -44,13 +44,13 @@ python3 -m pip install -r requirements-dev.txt
 
 The runtime lock is installed before the editable project to avoid a second
 runtime dependency resolution. Development dependencies are for local checks.
-Run manual tests with `PYTHONPATH=modules/tsw_core/src`; the quality wrapper sets it automatically.
+Run manual tests with `PYTHONPATH=.`; the quality wrapper sets it automatically.
 These commands do not prepare Incus or verify installed services.
 
 ## Quality
 
 Locations follow the [bootstrap and developer-tool layout](tools-layout.md):
-installation prerequisites live in `modules/tsw_windows_wsl/bootstrap/windows` and `modules/tsw_core/bootstrap/linux`;
+installation prerequisites live in `modules/tsw_windows_wsl/bootstrap` and `modules/tsw_native_linux/boostrap`;
 quality, audit, packaging and developer tools live in `tools`.
 
 `QUALITY.md` is the quality authority. The standard local command is:
@@ -68,3 +68,15 @@ requirements to source, tests and evidence.
 Update the nearest canonical source, relevant arc42/ADR material and audience
 manual links when behavior changes. Do not document planned or live behavior
 as implemented without evidence.
+
+
+### Module-owned tests
+
+Install the checkout with `python3 -m pip install --no-deps -e .` before development checks.
+Shared runtime and architecture tests live in `modules/tsw_core/tests`; Linux
+bootstrap and native qualification tests live in `modules/tsw_native_linux/tests`;
+Windows/WSL tests and PowerShell fixtures live in `modules/tsw_windows_wsl/tests`.
+Shared fixtures remain in `modules/tsw_core/tests/support` and
+`modules/tsw_core/tests/fixtures`. Use explicit module-qualified imports across
+these test trees. The canonical quality gate discovers all three trees through
+`python3 -m unittest discover -s modules -t .`.

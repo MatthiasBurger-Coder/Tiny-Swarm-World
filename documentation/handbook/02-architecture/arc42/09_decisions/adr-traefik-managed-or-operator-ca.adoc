@@ -174,7 +174,7 @@ or abandoning the E2E stabilization path.
 * Supersedes: `documentation/handbook/02-architecture/arc42/09_decisions/adr-traefik-https-ingress-existing-ca.adoc`
 * Affects: `documentation/handbook/02-architecture/arc42/08_configuration/operator-configuration-contract.md`
 * Affects: `documentation/handbook/02-architecture/arc42/08_configuration/config-contract-inventory.md`
-* Affects: `modules/tsw_core/src/tiny_swarm_world/installer.py`
-* Affects: `modules/tsw_core/src/tiny_swarm_world/infrastructure/composition_configuration.py`
+* Affects: `modules/tsw_core/src/installer.py`
+* Affects: `modules/tsw_core/src/infrastructure/composition_configuration.py`
 * Affects: `modules/tsw_core/infra/config/compose/traefik/**`
-* Affects: `tests/e2e/classic/test_post_install_browser_live.py`
+* Affects: `modules/tsw_core/tests/e2e/classic/test_post_install_browser_live.py`

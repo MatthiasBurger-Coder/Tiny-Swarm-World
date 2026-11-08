@@ -33,7 +33,7 @@ These comparisons returned no differences:
 ```sh
 git diff --exit-code 1bd3dafd bdd73f58 -- src infra tools .github pyproject.toml setup.cfg setup.py requirements.txt requirements.lock .importlinter
 git diff --exit-code bdd73f58 89357c4a -- infra tools .github src/tiny_swarm_world/application src/tiny_swarm_world/domain 'src/tiny_swarm_world/infrastructure/composition*'
-git diff --exit-code bdd73f58 89357c4a -- tests/e2e/classic/run_authenticated_acceptance_live.py tests/e2e/classic/browser_e2e_contract.py tests/e2e/classic/authenticated_service_contract.py tools/live/run_classic_acceptance.py
+git diff --exit-code bdd73f58 89357c4a -- modules/tsw_core/tests/e2e/classic/run_authenticated_acceptance_live.py modules/tsw_core/tests/e2e/classic/browser_e2e_contract.py modules/tsw_core/tests/e2e/classic/authenticated_service_contract.py tools/live/run_classic_acceptance.py
 ```
 
 Consequently, retain unaffected physical installation, update, recovery,

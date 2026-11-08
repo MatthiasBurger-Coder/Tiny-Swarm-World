@@ -1,0 +1,30 @@
+services:
+  jenkins:
+    image: ${TSW_JENKINS_IMAGE:-127.0.0.1:13500/jenkins:0.2.0}
+    environment:
+      TSW_JENKINS_ADMIN_PASSWORD: ${TSW_JENKINS_ADMIN_PASSWORD}
+    volumes:
+      - jenkins_home:/var/jenkins_home
+    networks:
+      - service_access_link
+    ports:
+      - target: 8080
+        published: 11080
+        protocol: tcp
+        mode: host
+      - target: 50000
+        published: 11050
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+volumes:
+  jenkins_home:
+
+networks:
+  service_access_link:
+    name: service_access_link
+    external: true

@@ -50,9 +50,9 @@ netplan handling, socat, Docker daemon installation, and Swarm init/join
 behavior.
 
 ### Evidence
-- former `modules/tsw_core/src/tiny_swarm_world/application/services/multipass` (superseded)
-- `modules/tsw_core/src/tiny_swarm_world/application/services/network`
-- `modules/tsw_core/src/tiny_swarm_world/application/services/vm`
+- former `../../../../../modules/tsw_core/src/application` (superseded)
+- `../../../../../modules/tsw_core/src/application`
+- `../../../../../modules/tsw_core/src/application`
 - former `modules/tsw_core/infra/config/multipass` (superseded)
 - `modules/tsw_core/infra/config/docker`
 - `modules/tsw_core/infra/config/network`
@@ -82,10 +82,10 @@ Separate Dockerfile generation, image build/tag/push, Nexus registry setup, and
 Maven repository setup from platform provisioning and stack deployment.
 
 ### Evidence
-- `modules/tsw_core/src/tiny_swarm_world/application/services/nexus`
-- `modules/tsw_core/src/tiny_swarm_world/domain/nexus`
-- `modules/tsw_core/src/tiny_swarm_world/application/ports/clients/port_nexus_client.py`
-- `modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/nexus_http_client.py`
+- `../../../../../modules/tsw_core/src/application`
+- `../../../../../modules/tsw_core/src/domain`
+- `../../../../../modules/tsw_core/src/application`
+- `../../../../../modules/tsw_core/src/infrastructure`
 - `modules/tsw_core/infra/config/compose/**/Dockerfile`
 - Python artifact workflow contracts
 
@@ -113,11 +113,11 @@ Separate compose stack definitions, Portainer stack upload, and service
 deployment lifecycle from platform provisioning and artifact publishing.
 
 ### Evidence
-- `modules/tsw_core/src/tiny_swarm_world/domain/deployment`
-- `modules/tsw_core/src/tiny_swarm_world/application/ports/clients/port_portainer_client.py`
-- `modules/tsw_core/src/tiny_swarm_world/application/ports/repositories/port_compose_file_repository.py`
-- `modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/portainer_http_client.py`
-- `modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py`
+- `../../../../../modules/tsw_core/src/domain`
+- `../../../../../modules/tsw_core/src/application`
+- `../../../../../modules/tsw_core/src/application`
+- `../../../../../modules/tsw_core/src/infrastructure`
+- `../../../../../modules/tsw_core/src/infrastructure`
 - `modules/tsw_core/infra/config/compose`
 - image build contexts under `modules/tsw_core/infra/config/compose`
 - `modules/tsw_core/infra/config/compose`
@@ -147,8 +147,8 @@ Make `__main__.py` and `composition.py` reflect separated platform, artifact,
 and deployment workflows while preserving a thin entry point.
 
 ### Evidence
-- `modules/tsw_core/src/tiny_swarm_world/__main__.py`
-- `modules/tsw_core/src/tiny_swarm_world/infrastructure/composition.py`
+- `modules/tsw_core/src/__main__.py`
+- `../../../../../modules/tsw_core/src/infrastructure`
 
 ### Recommended remediation
 Add or prepare boundary-specific builder functions and keep concrete adapter
@@ -178,7 +178,7 @@ without executing live infrastructure.
 ### Evidence
 - `.importlinter`
 - `modules/tsw_core/tools/linux/quality_gate.py`
-- `tests/architecture/test_hexagonal_imports.py`
+- `modules/tsw_core/tests/architecture/test_hexagonal_imports.py`
 
 ### Recommended remediation
 Add conservative responsibility-boundary tests and document any missing tooling

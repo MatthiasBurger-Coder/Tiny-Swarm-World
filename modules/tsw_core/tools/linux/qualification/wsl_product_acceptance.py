@@ -50,7 +50,7 @@ FILES = (SCRIPT, 'modules/tsw_core/tools/linux/qualification/owned_case_disposal
          'modules/tsw_core/tools/linux/qualification/preserving_product_acceptance.py',
          'modules/tsw_core/tools/linux/qualification/native_runtime_inventory.py',
          'modules/tsw_core/tools/linux/qualification/native_lxd_snap_provenance.py', CAPABILITY, upgrades.SCRIPT,
-         upgrades.CATALOG, 'modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/lifecycle/catalog.py')
+         upgrades.CATALOG, 'modules/tsw_core/src/infrastructure/adapters/lifecycle/catalog.py')
 CASE_RECIPES = RECIPES | upgrades.RECIPES
 LIMIT = 8 * 1024 * 1024
 HEX = re.compile(r'[0-9a-f]{64}\Z')

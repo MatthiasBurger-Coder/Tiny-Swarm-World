@@ -18,9 +18,9 @@
 - `src/tiny_swarm_world/infrastructure/adapters/cli/parser.py`
 - `src/tiny_swarm_world/infrastructure/adapters/cli/registry.py`
 - `src/tiny_swarm_world/infrastructure/adapters/cli/selection.py`
-- `tests/application/services/test_service_selection.py`
-- `tests/domain/lifecycle/test_selection.py`
-- `tests/test_package_entrypoint.py`
-- `tests/test_service_selection_cli.py`
+- `modules/tsw_core/tests/application/services/test_service_selection.py`
+- `modules/tsw_core/tests/domain/lifecycle/test_selection.py`
+- `modules/tsw_core/tests/test_package_entrypoint.py`
+- `modules/tsw_core/tests/test_service_selection_cli.py`
 
 Local required evidence: `.tiny-swarm/evidence/issue-443/` (ignored runtime path). Tracked reviewable mirror: `documentation/handbook/07-evidence-release/evidence/issue-443/`. Full-gate and focused logs are local; exact outcomes are summarized in test_results.md.

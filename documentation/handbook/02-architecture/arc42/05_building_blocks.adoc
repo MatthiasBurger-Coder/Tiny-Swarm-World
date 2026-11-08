@@ -7,7 +7,7 @@ Tiny Swarm World now separates three repository roles explicitly.
 
 === Python Automation
 
-`modules/tsw_core/src/tiny_swarm_world` contains the Python orchestration code.
+`modules/tsw_core/src` contains the Python orchestration code.
 
 * `domain` contains core command, node-provider, retained legacy command
   template naming, network, deployment, and Nexus concepts.
@@ -17,12 +17,12 @@ Tiny Swarm World now separates three repository roles explicitly.
   access.
 
 The canonical development import root is `src`, and commands that execute the
-Python package use `PYTHONPATH=modules/tsw_core/src`.
+Python package use `PYTHONPATH=.`.
 
-`modules/tsw_core/src/tiny_swarm_world/infrastructure/composition.py` is the stable public
+`modules/tsw_core/src/infrastructure/composition.py` is the stable public
 composition facade for the Python automation. It routes construction to
 focused infrastructure composition modules and keeps
-`modules/tsw_core/src/tiny_swarm_world/__main__.py` thin. Services are constructed with explicit
+`modules/tsw_core/src/__main__.py` thin. Services are constructed with explicit
 ports and repositories instead of creating infrastructure adapters inside the
 application layer.
 Repository-relative path configuration is centralized as the immutable

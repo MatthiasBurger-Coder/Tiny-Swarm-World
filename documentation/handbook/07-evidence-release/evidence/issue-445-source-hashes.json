@@ -15,9 +15,9 @@
     "src/tiny_swarm_world/infrastructure/adapters/cli/registry.py": "1df432ac633cfc05460b522918a5fb32e5d3fbdf056a25f78067de799cd63915",
     "src/tiny_swarm_world/infrastructure/adapters/cli/selection.py": "f5cce7062297a73dbfd5758c4393419a0a4c162f08ad127492a974c18c97f197",
     "src/tiny_swarm_world/infrastructure/adapters/lifecycle/catalog.py": "1eb6ffe09f206e090c1b6430cadda0b877928c70cedce2661cd2a0fbd726551a",
-    "tests/application/services/test_component_updates.py": "f072d7ef29ebd6d0d87c5645b391fa812c1826b52b540fafafc38fc67d560db9",
-    "tests/domain/lifecycle/test_update_planning.py": "2f8b5ce4a0ca8cdb3c0afe7aac8f73676332315948f9fbf88e66d7bfd539579f",
-    "tests/test_component_updates_cli.py": "6c75287a8932e9a0e06420a3bc2885c892e69d1d1035459ca36084746a588849",
-    "tests/test_package_entrypoint.py": "b0399d88f8f01535fa4bf575e5e5818450c2146be3f12066c0d326ad8f765d57"
+    "modules/tsw_core/tests/application/services/test_component_updates.py": "f072d7ef29ebd6d0d87c5645b391fa812c1826b52b540fafafc38fc67d560db9",
+    "modules/tsw_core/tests/domain/lifecycle/test_update_planning.py": "2f8b5ce4a0ca8cdb3c0afe7aac8f73676332315948f9fbf88e66d7bfd539579f",
+    "modules/tsw_core/tests/test_component_updates_cli.py": "6c75287a8932e9a0e06420a3bc2885c892e69d1d1035459ca36084746a588849",
+    "modules/tsw_core/tests/test_package_entrypoint.py": "b0399d88f8f01535fa4bf575e5e5818450c2146be3f12066c0d326ad8f765d57"
   }
 }

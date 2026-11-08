@@ -1,0 +1,43 @@
+services:
+  service-access-dashboard:
+    image: ${TSW_SERVICE_ACCESS_DASHBOARD_IMAGE:-127.0.0.1:13500/service-access-dashboard:0.2.0}
+    configs:
+      - source: service_access_dashboard_index
+        target: /usr/share/nginx/html/index.html
+    networks:
+      - service_access_link
+    deploy:
+      replicas: 1
+      endpoint_mode: dnsrr
+      placement:
+        constraints:
+          - node.role == manager
+
+  service-access-nginx:
+    image: ${TSW_SERVICE_ACCESS_NGINX_IMAGE:-127.0.0.1:13500/service-access-nginx:0.2.0}
+    ports:
+      - target: 80
+        published: 10000
+        protocol: tcp
+        mode: host
+      - target: 8086
+        published: 8086
+        protocol: tcp
+        mode: host
+    networks:
+      - service_access_link
+    deploy:
+      replicas: 1
+      endpoint_mode: dnsrr
+      placement:
+        constraints:
+          - node.role == manager
+
+networks:
+  service_access_link:
+    name: service_access_link
+    external: true
+
+configs:
+  service_access_dashboard_index:
+    file: ${TSW_REMOTE_STACK_ROOT:-/var/lib/tiny-swarm-world/stacks}/service-access/dashboard/index.html

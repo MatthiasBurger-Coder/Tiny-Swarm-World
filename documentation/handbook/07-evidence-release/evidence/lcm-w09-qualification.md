@@ -1245,7 +1245,7 @@ Snapshot provenance: source HEAD
 `6d2f25ee843a01066fcdcfe4855666849513ff06`; initial full workspace transfer
 archive SHA-256
 `7ce193d04e9917ff4a4aba63c42a2f1da7c339a91bb4939d3308f93ec6bf2f61`; after
-archive extraction, `tests/test_incus_preparation.py` was synchronized to the
+archive extraction, `modules/tsw_native_linux/tests/test_incus_preparation.py` was synchronized to the
 current local SHA-256
 `a4f1a357d3070f9f39927a21239f6baeabe3f8dfdba66f4056dda6cdb699288b`.
 Quality log: `<private-wsl-root>/projects/tsw-449-active-20261026/quality-gate-python312.log`,
@@ -1261,12 +1261,12 @@ After adding deterministic stale-bootstrap-checkpoint refusal coverage, the
 full Python 3.12.15 gate reran in the isolated WSL worktree
 `<private-wsl-root>/projects/tsw-449-active-20261026` on `approved WSL2 test host`. All seven
 QUALITY gates passed with exit 0: 2,978 tests passed, 36 skipped. The focused
-`tests.test_incus_preparation.IncusHandoffTests` run passed 3/3.
+`modules.tsw_native_linux.tests.test_incus_preparation.IncusHandoffTests` run passed 3/3.
 
 Snapshot identity: source HEAD
 `6d2f25ee843a01066fcdcfe4855666849513ff06`, transferred workspace archive SHA-256
 `7ce193d04e9917ff4a4aba63c42a2f1da7c339a91bb4939d3308f93ec6bf2f61`, plus
-`tests/test_incus_preparation.py` SHA-256
+`modules/tsw_native_linux/tests/test_incus_preparation.py` SHA-256
 `b677bcb098b4649a3343544780f19408830be48e06c2baa09a0f3edf39175043`.
 Quality log: `<private-wsl-root>/projects/tsw-449-active-20261026/quality-gate-python312-r2.log`,
 47,561 bytes, SHA-256

@@ -32,7 +32,7 @@ publicly exposed environments.
 The standard internal-test source of truth is the committed catalog:
 
 ```text
-modules/tsw_core/src/tiny_swarm_world/domain/configuration/internal_test_credentials.py
+modules/tsw_core/src/domain/configuration/internal_test_credentials.py
 ```
 
 The standard path does not create or require a local password or recovery

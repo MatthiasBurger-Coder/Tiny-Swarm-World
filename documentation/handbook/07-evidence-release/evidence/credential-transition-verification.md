@@ -13,7 +13,7 @@ At that checkpoint, the issue remained **PARTIAL**; the unsupported cases below 
 
 ## Executed scope
 
-The opt-in runner `tests/e2e/classic/run_credential_transition_live.py` exercises
+The opt-in runner `modules/tsw_core/tests/e2e/classic/run_credential_transition_live.py` exercises
 the existing Jenkins startup override with a matching Infisical value. It uses
 the canonical resolver, CLI deployment and reconcile operations. It does not
 introduce a rotation API. The target must already have a healthy installation,

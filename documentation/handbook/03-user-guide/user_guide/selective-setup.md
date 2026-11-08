@@ -28,16 +28,16 @@ Inspect first; the following preview commands perform no runtime composition,
 secret generation or state writes:
 
 ```bash
-PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world setup run --minimal --preview
-PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world setup run --services swagger --preview
-PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world setup run --services jenkins,sonarqube --preview
+PYTHONPATH=. python3 -m tiny_swarm_world setup run --minimal --preview
+PYTHONPATH=. python3 -m tiny_swarm_world setup run --services swagger --preview
+PYTHONPATH=. python3 -m tiny_swarm_world setup run --services jenkins,sonarqube --preview
 ```
 
 To inspect the compatibility policy for an existing v1 installation manifest,
 run the dedicated read-only preview:
 
 ```bash
-PYTHONPATH=src python3 -m tiny_swarm_world services migration-preview
+PYTHONPATH=. python3 -m tiny_swarm_world services migration-preview
 ```
 
 The JSON result contains `status: PREVIEW`, `source: operator_local_unverified`,
@@ -56,7 +56,7 @@ candidate. Use `published` when Swagger is selected; otherwise use
 `not_applicable`:
 
 ```bash
-PYTHONPATH=src python3 -m tiny_swarm_world services migration-check --version 6.0.5 --exposure published --listen-address 127.0.0.1
+PYTHONPATH=. python3 -m tiny_swarm_world services migration-check --version 6.0.5 --exposure published --listen-address 127.0.0.1
 ```
 
 The compact JSON result is `BLOCKED_UNKNOWN` or `BLOCKED_UNSUPPORTED`,
@@ -70,10 +70,10 @@ Apply uses the existing explicit live-consent boundary. These are operator comma
 not commands executed as development verification:
 
 ```bash
-PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world setup run --minimal --live --approve-live
-PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world services add --services swagger --preview
-PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world services add --services swagger --live --approve-live
-PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world deployment verify
+PYTHONPATH=. python3 -m tiny_swarm_world setup run --minimal --live --approve-live
+PYTHONPATH=. python3 -m tiny_swarm_world services add --services swagger --preview
+PYTHONPATH=. python3 -m tiny_swarm_world services add --services swagger --live --approve-live
+PYTHONPATH=. python3 -m tiny_swarm_world deployment verify
 ```
 
 `--services` takes precedence over `--selection-config`; an overridden file is not
@@ -149,8 +149,8 @@ Swagger defaults to `published`. Choose `internal` explicitly when planning a
 container-only Swagger stack:
 
 ```bash
-PYTHONPATH=src python3 -m tiny_swarm_world setup run --services swagger --swagger-exposure internal --preview
-PYTHONPATH=src python3 -m tiny_swarm_world services add --services swagger --swagger-exposure internal --preview
+PYTHONPATH=. python3 -m tiny_swarm_world setup run --services swagger --swagger-exposure internal --preview
+PYTHONPATH=. python3 -m tiny_swarm_world services add --services swagger --swagger-exposure internal --preview
 ```
 
 The preview contains the complete `service_exposure` policy. Existing v1

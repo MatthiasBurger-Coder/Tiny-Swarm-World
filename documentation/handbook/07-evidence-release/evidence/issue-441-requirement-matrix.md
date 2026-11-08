@@ -104,7 +104,7 @@ No parent implementation or live qualification is claimed by this matrix.
 
 | Acceptance | Architecture contract | Meaningful current verification / future scenario evidence |
 |---|---|---|
-| LCM-W01-AC1 | ADR decision; contract §1–3; existing composition/ports | System Architect acceptance; current CLI help and `tests.test_classic_update_cli`; no second engine or product-code edits |
+| LCM-W01-AC1 | ADR decision; contract §1–3; existing composition/ports | System Architect acceptance; current CLI help and `modules.tsw_core.tests.test_classic_update_cli`; no second engine or product-code edits |
 | LCM-W01-AC2 | Contract §2 identity authority table | Static inventory of pyproject, artifact contracts and Compose image references; independent definition review; downstream S01/S04 tests |
 | LCM-W01-AC3 | Contract §4 full dependency inventory | Source comparison against all nine stack files, ServiceStackContract and setup/deployment/artifact composition; current Portainer bootstrap regression suites; downstream S07–S10 |
 | LCM-W01-AC4 | All expanded parent rows; §7 scenarios S01–S12 | Independent requirement/evidence review confirms unit/integration/live owners; W09 consumes downstream scenario results; W10 audits parent |

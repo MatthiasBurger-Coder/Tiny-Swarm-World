@@ -126,6 +126,6 @@ rules define a stricter or incompatible policy:
 These guardrails do not authorize speculative service extraction. Service
 extraction requires a dedicated verified slice or explicit user request.
 
-For this repository, Python automation under `modules/tsw_core/src/tiny_swarm_world` is the
+For this repository, Python automation under `modules/tsw_core/src` is the
 primary architecture. Java deployment-example files are handled only when a task
 explicitly targets them.

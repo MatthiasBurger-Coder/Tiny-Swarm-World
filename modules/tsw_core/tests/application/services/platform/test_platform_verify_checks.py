@@ -1,0 +1,365 @@
+import unittest
+
+from modules.tsw_core.tests.support.async_helpers import async_checkpoint
+
+from tiny_swarm_world.application.ports.node_provider import LxcProxyDeviceState
+from tiny_swarm_world.application.services.platform import (
+    LxcDockerInstallService,
+    LxcDockerVerifyStep,
+    LxcServiceExposureService,
+    LxcServiceExposureVerifyStep,
+    LxcSwarmBootstrapService,
+    LxcSwarmVerifyStep,
+)
+from tiny_swarm_world.domain.deployment import ServiceStackProfile
+from tiny_swarm_world.domain.inventory import VerificationStatus
+from tiny_swarm_world.domain.network import LxcProxyDevicePlan
+from tiny_swarm_world.domain.node_provider import (
+    ContainerDockerInstallOutcome,
+    ContainerDockerReadiness,
+    DockerEngineState,
+    DockerInstallState,
+    NodeProviderKind,
+    NodeRole,
+    NodeSpec,
+    SwarmManagerBootstrapOutcome,
+    SwarmManagerState,
+    SwarmNodeReadinessEvidence,
+    SwarmNodeState,
+    SwarmWorkerJoinCredential,
+    SwarmWorkerJoinOutcome,
+    WorkerJoinState,
+)
+from tiny_swarm_world.domain.preflight import default_setup_manifest
+
+
+class TestPlatformVerifyChecks(unittest.IsolatedAsyncioTestCase):
+    async def test_docker_verify_uses_inspect_only(self):
+        runtime = _DockerRuntime(
+            readiness=ContainerDockerReadiness(
+                node=_manager(),
+                observed=True,
+                engine_state=DockerEngineState.READY,
+            )
+        )
+        step = LxcDockerVerifyStep(
+            LxcDockerInstallService(runtime),
+            (_manager(),),
+        )
+
+        result = await step.run()
+
+        self.assertEqual(VerificationStatus.VERIFIED, result.status)
+        self.assertEqual(result.evidence["classification"], "container_runtime_verified")
+        self.assertEqual(runtime.inspect_calls, ["swarm-manager"])
+        self.assertEqual(runtime.install_calls, 0)
+        self.assertEqual(runtime.verify_calls, 0)
+
+    async def test_docker_verify_reports_unready_node(self):
+        runtime = _DockerRuntime(
+            readiness=ContainerDockerReadiness(
+                node=_manager(),
+                observed=True,
+                engine_state=DockerEngineState.MISSING,
+            )
+        )
+        step = LxcDockerVerifyStep(LxcDockerInstallService(runtime), (_manager(),))
+
+        result = await step.run()
+
+        self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, result.status)
+        self.assertEqual(result.evidence["observed"], "one_or_more_nodes_not_ready")
+        self.assertEqual(result.evidence["failed_nodes"], "swarm-manager")
+
+    async def test_swarm_verify_uses_inspect_only(self):
+        swarm = _SwarmRuntime(
+            manager=SwarmManagerBootstrapOutcome(
+                node=_manager(),
+                state=SwarmManagerState.ACTIVE,
+                manager_count=1,
+            ),
+            worker=SwarmWorkerJoinOutcome(
+                node=_worker(),
+                state=WorkerJoinState.ALREADY_JOINED,
+                verified=True,
+            ),
+        )
+        step = LxcSwarmVerifyStep(
+            LxcSwarmBootstrapService(swarm, _NetworkIdentity()),
+            (_manager(), _worker()),
+        )
+
+        result = await step.run()
+
+        self.assertEqual(VerificationStatus.VERIFIED, result.status)
+        self.assertEqual(result.evidence["classification"], "swarm_membership_verified")
+        self.assertEqual(swarm.membership_inspections, ["swarm-manager"])
+        self.assertEqual(swarm.manager_inspections, [])
+        self.assertEqual(swarm.worker_inspections, [])
+        self.assertEqual(swarm.init_calls, 0)
+        self.assertEqual(swarm.credential_calls, 0)
+        self.assertEqual(swarm.join_calls, 0)
+
+    async def test_swarm_verify_reports_worker_not_joined(self):
+        swarm = _SwarmRuntime(
+            manager=SwarmManagerBootstrapOutcome(
+                node=_manager(),
+                state=SwarmManagerState.ACTIVE,
+                manager_count=1,
+            ),
+            worker=SwarmWorkerJoinOutcome(
+                node=_worker(),
+                state=WorkerJoinState.UNKNOWN,
+                verified=False,
+            ),
+        )
+        step = LxcSwarmVerifyStep(
+            LxcSwarmBootstrapService(swarm, _NetworkIdentity()),
+            (_manager(), _worker()),
+        )
+
+        result = await step.run()
+
+        self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, result.status)
+        self.assertEqual(result.evidence["observed"], "one_or_more_nodes_not_joined")
+        self.assertEqual(result.evidence["failed_nodes"], "swarm-worker-1")
+
+    async def test_proxy_verify_uses_inspect_only(self):
+        runtime = _ProxyRuntime(default_state=LxcProxyDeviceState.PRESENT)
+        step = LxcServiceExposureVerifyStep(
+            LxcServiceExposureService(
+                runtime,
+                gateway_node=_manager(),
+                manager_profile_name="docker-swarm-manager",
+                setup_manifest=default_setup_manifest(
+                    service_profile=ServiceStackProfile.SERVICE_ACCESS
+                ),
+                listen_address="0.0.0.0",
+            )
+        )
+
+        result = await step.run()
+
+        self.assertEqual(VerificationStatus.VERIFIED, result.status)
+        self.assertEqual(result.evidence["classification"], "lxc_proxy_devices_verified")
+        self.assertEqual(result.evidence["present_count"], "18")
+        self.assertEqual(runtime.create_calls, 0)
+        self.assertEqual(runtime.update_calls, 0)
+
+    async def test_proxy_verify_reports_missing_or_drifted_devices(self):
+        runtime = _ProxyRuntime(
+            states={
+                80: LxcProxyDeviceState.MISSING,
+                443: LxcProxyDeviceState.DRIFTED,
+            },
+            default_state=LxcProxyDeviceState.PRESENT,
+        )
+        step = LxcServiceExposureVerifyStep(
+            LxcServiceExposureService(
+                runtime,
+                gateway_node=_manager(),
+                manager_profile_name="docker-swarm-manager",
+                setup_manifest=default_setup_manifest(
+                    service_profile=ServiceStackProfile.SERVICE_ACCESS
+                ),
+                listen_address="0.0.0.0",
+            )
+        )
+
+        result = await step.run()
+
+        self.assertEqual(VerificationStatus.FAILED_TO_VERIFY, result.status)
+        self.assertEqual(
+            result.evidence["observed"],
+            "one_or_more_proxy_devices_missing_or_drifted",
+        )
+        self.assertEqual(result.evidence["missing_count"], "1")
+        self.assertEqual(result.evidence["drifted_count"], "1")
+        self.assertEqual(runtime.create_calls, 0)
+        self.assertEqual(runtime.update_calls, 0)
+
+
+class _DockerRuntime:
+    def __init__(self, *, readiness: ContainerDockerReadiness) -> None:
+        self.readiness = readiness
+        self.inspect_calls: list[str] = []
+        self.install_calls = 0
+        self.verify_calls = 0
+
+    async def inspect_docker(self, node: NodeSpec) -> ContainerDockerReadiness:
+        await async_checkpoint()
+        self.inspect_calls.append(node.name)
+        return self.readiness
+
+    async def install_docker(self, node: NodeSpec) -> ContainerDockerInstallOutcome:
+        await async_checkpoint()
+        self.install_calls += 1
+        return ContainerDockerInstallOutcome(
+            node=node,
+            state=DockerInstallState.FAILED,
+            verified=False,
+        )
+
+    async def verify_docker(self, node: NodeSpec) -> ContainerDockerReadiness:
+        await async_checkpoint()
+        self.verify_calls += 1
+        return self.readiness
+
+
+class _NetworkIdentity:
+    async def manager_advertise_address(self, node: NodeSpec) -> str:
+        await async_checkpoint()
+        return "manager-address"
+
+
+class _SwarmRuntime:
+    def __init__(
+        self,
+        *,
+        manager: SwarmManagerBootstrapOutcome,
+        worker: SwarmWorkerJoinOutcome,
+    ) -> None:
+        self.manager = manager
+        self.worker = worker
+        self.membership_inspections: list[str] = []
+        self.manager_inspections: list[str] = []
+        self.worker_inspections: list[str] = []
+        self.init_calls = 0
+        self.credential_calls = 0
+        self.join_calls = 0
+
+    async def inspect_membership(
+        self,
+        manager: NodeSpec,
+        expected_nodes: tuple[NodeSpec, ...],
+    ) -> tuple[SwarmNodeReadinessEvidence, ...]:
+        await async_checkpoint()
+        self.membership_inspections.append(manager.name)
+        return (
+            SwarmNodeReadinessEvidence(
+                node=self.manager.node,
+                docker_engine_observed=True,
+                docker_engine_ready=True,
+                swarm_state_observed=True,
+                swarm_state=SwarmNodeState.ACTIVE,
+                observed_role=NodeRole.MANAGER,
+                manager_state="leader",
+                manager_count=1,
+                expected_node_count=len(expected_nodes),
+                observed_node_count=len(expected_nodes),
+            ),
+            SwarmNodeReadinessEvidence(
+                node=self.worker.node,
+                docker_engine_observed=True,
+                docker_engine_ready=True,
+                swarm_state_observed=True,
+                swarm_state=(
+                    SwarmNodeState.ACTIVE
+                    if self.worker.verified
+                    else SwarmNodeState.PENDING
+                ),
+                observed_role=NodeRole.WORKER,
+                manager_count=1,
+                expected_node_count=len(expected_nodes),
+                observed_node_count=len(expected_nodes),
+            ),
+        )
+
+    async def inspect_manager(self, node: NodeSpec) -> SwarmManagerBootstrapOutcome:
+        await async_checkpoint()
+        self.manager_inspections.append(node.name)
+        return self.manager
+
+    async def initialize_manager(
+        self,
+        node: NodeSpec,
+        advertise_address: str,
+    ) -> SwarmManagerBootstrapOutcome:
+        await async_checkpoint()
+        self.init_calls += 1
+        return self.manager
+
+    async def worker_join_credential(self, node: NodeSpec) -> SwarmWorkerJoinCredential:
+        await async_checkpoint()
+        self.credential_calls += 1
+        return SwarmWorkerJoinCredential("unused")
+
+    async def inspect_worker(self, node: NodeSpec) -> SwarmWorkerJoinOutcome:
+        await async_checkpoint()
+        self.worker_inspections.append(node.name)
+        return self.worker
+
+    async def join_worker(
+        self,
+        node: NodeSpec,
+        manager_address: str,
+        credential: SwarmWorkerJoinCredential,
+    ) -> SwarmWorkerJoinOutcome:
+        await async_checkpoint()
+        self.join_calls += 1
+        return self.worker
+
+
+class _ProxyRuntime:
+    def __init__(
+        self,
+        *,
+        default_state: LxcProxyDeviceState,
+        states: dict[int, LxcProxyDeviceState] | None = None,
+    ) -> None:
+        self.default_state = default_state
+        self.states = states or {}
+        self.inspect_calls: list[tuple[str, int]] = []
+        self.create_calls = 0
+        self.update_calls = 0
+
+    async def inspect_proxy_device(
+        self,
+        profile_name: str,
+        plan: LxcProxyDevicePlan,
+    ) -> LxcProxyDeviceState:
+        await async_checkpoint()
+        self.inspect_calls.append((profile_name, plan.listen_port))
+        return self.states.get(plan.listen_port, self.default_state)
+
+    async def create_proxy_device(
+        self,
+        profile_name: str,
+        plan: LxcProxyDevicePlan,
+    ) -> bool:
+        await async_checkpoint()
+        self.create_calls += 1
+        return False
+
+    async def update_proxy_device(
+        self,
+        profile_name: str,
+        plan: LxcProxyDevicePlan,
+    ) -> bool:
+        await async_checkpoint()
+        self.update_calls += 1
+        return False
+
+    async def repair_stale_proxy_devices(self, *_args) -> object:
+        await async_checkpoint()
+        raise AssertionError("repair_stale_proxy_devices was not expected")
+
+
+def _manager() -> NodeSpec:
+    return NodeSpec(
+        name="swarm-manager",
+        role=NodeRole.MANAGER,
+        provider=NodeProviderKind.LXC_NATIVE,
+    )
+
+
+def _worker() -> NodeSpec:
+    return NodeSpec(
+        name="swarm-worker-1",
+        role=NodeRole.WORKER,
+        provider=NodeProviderKind.LXC_NATIVE,
+    )
+
+
+if __name__ == "__main__":
+    unittest.main()

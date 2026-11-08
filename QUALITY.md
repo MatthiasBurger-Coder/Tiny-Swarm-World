@@ -21,9 +21,12 @@ model, and live-infrastructure restrictions.
 - Use Linux or WSL. Do not use Windows-native command examples for normal
   development verification.
 - Prefer `python3`.
-- `modules/tsw_core/tools/linux/quality_gate.py` configures `PYTHONPATH=src` for its own checks.
-- Manual Python commands still need `PYTHONPATH=src` when they import
-  `tiny_swarm_world`.
+- `modules/tsw_core/tools/linux/quality_gate.py` configures `PYTHONPATH=.` for its own checks.
+- Install the project with `python3 -m pip install --no-deps -e .` before development checks.
+  Packaging maps `tiny_swarm_world` to `modules/tsw_core/src` and `tsw_core` to
+  `modules/tsw_core`; no source-directory aliases are required.
+- Test discovery uses `modules` with the repository as its top-level directory,
+  covering all three module test trees.
 
 ## Build Tool Authority
 
@@ -70,10 +73,10 @@ python3 modules/tsw_core/tools/linux/quality_gate.py typecheck
 python3 modules/tsw_core/tools/linux/quality_gate.py test
 ```
 
-For a focused unit test, run it with `PYTHONPATH=src`, for example:
+For a focused unit test, run it with `PYTHONPATH=.`, for example:
 
 ```bash
-PYTHONPATH=src python3 -m unittest tests.infrastructure.test_composition
+PYTHONPATH=. python3 -m unittest modules.tsw_core.tests.infrastructure.test_composition
 ```
 
 ## Documentation And Governance Checks
@@ -96,8 +99,8 @@ The repository architecture checks are Python-based:
 - `python3 modules/tsw_core/tools/linux/quality_gate.py arch-tests`
 
 `arch-lint` requires `.importlinter` and the `lint-imports` executable.
-`arch-tests` requires `tests.architecture.test_hexagonal_imports` and
-`tests.architecture.test_architecture_regressions`.
+`arch-tests` requires `modules.tsw_core.tests.architecture.test_hexagonal_imports` and
+`modules.tsw_core.tests.architecture.test_architecture_regressions`.
 
 ## External Systems
 

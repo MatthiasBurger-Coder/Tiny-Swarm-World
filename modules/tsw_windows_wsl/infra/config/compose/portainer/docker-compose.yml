@@ -1,0 +1,54 @@
+services:
+  portainer:
+    image: ${TSW_PORTAINER_IMAGE:-portainer/portainer-ce:2.45.1}
+    command:
+      - --admin-password-file
+      - /run/secrets/portainer_admin_password
+    restart: always
+    secrets:
+      - source: portainer_admin_password
+        target: portainer_admin_password
+    volumes:
+      - portainer_data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - service_access_link
+    ports:
+      - target: 9000
+        published: 10001
+        protocol: tcp
+        mode: host
+    deploy:
+      mode: replicated # Run only the Portainer service as a replica.
+      replicas: 1
+      endpoint_mode: dnsrr
+      placement:
+        constraints:
+          - node.role == manager
+  agent:
+    image: ${TSW_PORTAINER_AGENT_IMAGE:-portainer/agent:2.45.1}
+    environment:
+      AGENT_CLUSTER_ADDR: tasks.agent # Swarm communication.
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/lib/docker/volumes:/var/lib/docker/volumes
+    networks:
+      - service_access_link
+    deploy:
+      mode: global # Run the agent on every Linux node.
+      endpoint_mode: dnsrr
+      placement:
+        constraints:
+          - node.platform.os == linux
+volumes:
+  portainer_data:
+
+secrets:
+  portainer_admin_password:
+    external: true
+    name: tsw_portainer_admin_password
+
+networks:
+  service_access_link:
+    name: service_access_link
+    external: true

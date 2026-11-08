@@ -156,5 +156,5 @@ CI-compatible proof.
 * Inventory projection:
   `modules/tsw_core/infra/config/inventory/desired_inventory.yaml`
 * Implementation root:
-  `modules/tsw_core/src/tiny_swarm_world/infrastructure/composition.py`
+  `modules/tsw_core/src/infrastructure/composition.py`
 * Issue: GitHub Issue #218

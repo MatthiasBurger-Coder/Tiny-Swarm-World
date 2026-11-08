@@ -5,6 +5,8 @@
   ],
   "owned_assets": [
     "modules/tsw_native_linux/install.sh",
-    "modules/tsw_native_linux/tsw"
-  ]
+    "modules/tsw_native_linux/tsw",
+    "modules/tsw_native_linux/boostrap"
+  ],
+  "test_root": "modules/tsw_native_linux/tests"
 }

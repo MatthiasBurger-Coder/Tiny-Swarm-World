@@ -25,25 +25,25 @@ inventory continues to describe operator configuration and source contracts.
 
 The current configuration surface is spread across these repository areas:
 
-- `modules/tsw_core/src/tiny_swarm_world/installer.py`: installer-local override path, required
+- `modules/tsw_core/src/installer.py`: installer-local override path, required
   secret bootstrap derived from the secret manifest, default Traefik secret
   names, and setup invocation flags.
-- `modules/tsw_core/src/tiny_swarm_world/infrastructure/composition_configuration.py`:
+- `../../../../../modules/tsw_core/src/infrastructure`:
   operator configuration keys, defaults, secret lookup, and typed validation
   helpers used by composition wiring. The public facade remains
   `infrastructure/composition.py`.
-- `modules/tsw_core/src/tiny_swarm_world/domain/preflight/setup_manifest.py`: required setup
+- `../../../../../modules/tsw_core/src/domain`: required setup
   secret names by service profile.
-- `modules/tsw_core/src/tiny_swarm_world/application/services/deployment/secret_management.py`:
+- `../../../../../modules/tsw_core/src/application`:
   typed secret-manifest consumption, redaction, catalog-backed synchronization,
   and tracked-file secret discovery. YAML loading and schema conversion belong
   to `infrastructure/adapters/repositories/secret_manifest_yaml_repository.py`.
-- `modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/repositories/installer_configuration_repository.py`:
+- `../../../../../modules/tsw_core/src/infrastructure`:
   selected installer/composition input validation and effective environment
   snapshot; private file staging remains in `installer.py`.
-- `modules/tsw_core/src/tiny_swarm_world/infrastructure/project_paths.py`: immutable
+- `../../../../../modules/tsw_core/src/infrastructure`: immutable
   `ProjectPaths` construction plus repository and infra root overrides.
-- `modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/infisical_cli_client.py`:
+- `../../../../../modules/tsw_core/src/infrastructure`:
   Infisical URL, token, login email, and bootstrap password reads.
 - `modules/tsw_core/infra/config/compose/**/docker-compose.yml`: compose-time environment
   placeholders for service images, credentials, secret names, stack paths, and

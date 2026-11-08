@@ -1,0 +1,24 @@
+{
+  "name": "tsw_core",
+  "project_dependencies": [],
+  "source_root": "modules/tsw_core/src",
+  "python_packages": [
+    "tiny_swarm_world",
+    "tsw_core"
+  ],
+  "infra_root": "modules/tsw_core/infra",
+  "config_root": "modules/tsw_core/infra/config",
+  "shared_bootstrap": [],
+  "runtime_metadata": [
+    "pyproject.toml",
+    "setup.py",
+    "requirements.txt",
+    "requirements.lock",
+    "requirements.build.lock"
+  ],
+  "module_root": "modules/tsw_core",
+  "tool_roots": [
+    "modules/tsw_core/tools/linux"
+  ],
+  "test_root": "modules/tsw_core/tests"
+}

@@ -17,10 +17,10 @@ boundary coupling.
 
 The audit covers:
 
-- `modules/tsw_core/src/tiny_swarm_world/__main__.py`
-- `modules/tsw_core/src/tiny_swarm_world/installer.py`
-- `modules/tsw_core/src/tiny_swarm_world/simple_installer.py`
-- `modules/tsw_core/src/tiny_swarm_world/infrastructure/composition.py`
+- `modules/tsw_core/src/__main__.py`
+- `modules/tsw_core/src/installer.py`
+- `modules/tsw_core/src/simple_installer.py`
+- `../../../../../modules/tsw_core/src/infrastructure`
 - root-level modules that import both application/domain and concrete infrastructure
 - the focused `infrastructure/composition_*.py` modules that implement the facade
 
@@ -55,7 +55,7 @@ Composition implementation modules
 ```
 
 The application and domain layer contracts remain directionally protected by
-`.importlinter` and `tests/architecture/test_hexagonal_imports.py`. The gap is
+`.importlinter` and `modules/tsw_core/tests/architecture/test_hexagonal_imports.py`. The gap is
 at the executable and installer edge: root-level modules are allowed to import
 both inner-layer concepts and concrete infrastructure, so the existing rules
 do not constrain those modules as architectural boundaries.

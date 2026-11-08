@@ -66,14 +66,14 @@ dated amendments to the explicit Incus and scoped network preparation decisions.
 
 ## Verification
 
-`tests.infrastructure.process.test_execution_contract` covers functional results,
+`modules.tsw_core.tests.infrastructure.process.test_execution_contract` covers functional results,
 nonzero exits, missing commands, timeout, cancellation, launch classifications,
 traceback secrecy and process-group termination. Existing installer, network,
 LXC and bridge regression tests verify capability-specific mappings.
-`tests.architecture.test_process_spawn_boundaries` enforces the single ownership
+`modules.tsw_core.tests.architecture.test_process_spawn_boundaries` enforces the single ownership
 boundary; `test_hexagonal_imports` protects application imports.
 
-`tests.test_preparation_login_session` checks real unprivileged SID/PGID behavior,
+`modules.tsw_native_linux.tests.test_preparation_login_session` checks real unprivileged SID/PGID behavior,
 timeout/cancellation descendant cleanup in both modes and trusted adapter selection.
 The native sudo-rs same-TTY comparison is recorded under issue461; it establishes
 authentication behavior, not successful preparation of the owned WSL candidate.

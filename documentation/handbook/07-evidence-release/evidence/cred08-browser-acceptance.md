@@ -35,7 +35,7 @@ Run inside Linux/WSL, from a clean candidate checkout with installed test/browse
 dependencies and the existing TLS trust bundle:
 
 ```bash
-PYTHONPATH=src python3 -m tests.e2e.classic.run_authenticated_acceptance_live \
+PYTHONPATH=. python3 -m modules.tsw_core.tests.e2e.classic.run_authenticated_acceptance_live \
   --approve-live --phase baseline
 ```
 

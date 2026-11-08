@@ -12,8 +12,11 @@ from pathlib import Path
 PYTHON = sys.executable
 REPOSITORY_ROOT = Path(__file__).resolve().parents[4]
 SOURCE_ROOT = REPOSITORY_ROOT / "modules/tsw_core/src"
-PACKAGE_ROOT = SOURCE_ROOT / "tiny_swarm_world"
-TEST_ROOT = REPOSITORY_ROOT / "tests"
+PACKAGE_ROOT = SOURCE_ROOT
+TEST_ROOT = REPOSITORY_ROOT / "modules"
+TEST_ROOTS = [TEST_ROOT / module / "tests" for module in (
+    "tsw_core", "tsw_native_linux", "tsw_windows_wsl",
+)]
 SOURCE_TARGETS = [
     PACKAGE_ROOT / "__main__.py",
     PACKAGE_ROOT / "cli_presentation.py",
@@ -67,14 +70,14 @@ COMMANDS: dict[str, list[str]] = {
         "ruff",
         "check",
         *map(str, SOURCE_TARGETS),
-        str(TEST_ROOT),
+        *map(str, TEST_ROOTS),
     ],
     "arch-tests": [
         PYTHON,
         "-m",
         "unittest",
-        "tests.architecture.test_hexagonal_imports",
-        "tests.architecture.test_architecture_regressions",
+        "modules.tsw_core.tests.architecture.test_hexagonal_imports",
+        "modules.tsw_core.tests.architecture.test_architecture_regressions",
     ],
     "typecheck": [
         PYTHON,
@@ -82,7 +85,7 @@ COMMANDS: dict[str, list[str]] = {
         "mypy",
         "--explicit-package-bases",
         *map(str, SOURCE_TARGETS),
-        str(TEST_ROOT),
+        *map(str, TEST_ROOTS),
     ],
     "test": [
         PYTHON,
@@ -155,13 +158,13 @@ def _command_for_name(command_name: str) -> list[str]:
 
 def _python_environment() -> dict[str, str]:
     environment = os.environ.copy()
-    python_path = str(SOURCE_ROOT)
+    python_path = str(REPOSITORY_ROOT)
     existing_python_path = environment.get("PYTHONPATH")
     if existing_python_path:
         python_path = os.pathsep.join([python_path, existing_python_path])
     environment["PYTHONPATH"] = python_path
     environment["MYPYPATH"] = _prepend_environment_path(
-        str(SOURCE_ROOT),
+        str(REPOSITORY_ROOT),
         environment.get("MYPYPATH"),
     )
     environment["PATH"] = _prepend_environment_path(

@@ -1,0 +1,498 @@
+import io
+import os
+import tempfile
+import unittest
+from contextlib import redirect_stderr, redirect_stdout
+from pathlib import Path
+from unittest.mock import patch
+
+from tiny_swarm_world import installer
+from tiny_swarm_world.domain.configuration.configuration_contract import validate_traefik_htpasswd
+from tiny_swarm_world.domain.configuration.internal_test_credentials import (
+    INTERNAL_TEST_PASSWORD,
+    internal_test_credential,
+)
+from tiny_swarm_world.domain.configuration.credential_resolution import CredentialSource
+from tiny_swarm_world.application.services.credential_resolution import (
+    CREDENTIAL_SOURCE_MAP_ENVIRONMENT,
+    decode_source_metadata,
+)
+from tiny_swarm_world.infrastructure.adapters.installation.bootstrap import main, _print_operator_credentials
+from tiny_swarm_world.infrastructure.adapters.installation.bootstrap_configuration import (
+    SimpleInstallerError,
+    _load_explicit_bootstrap_override,
+    _prepare_bootstrap_environment,
+    _validate_secure_override_path,
+)
+
+
+REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
+
+
+class TestSimpleInstallerSecretBootstrap(unittest.TestCase):
+    def test_native_missing_system_dependencies_restarts_in_prepared_venv(self):
+        runtime = installer.HostRuntime("native_linux", "test")
+        with tempfile.TemporaryDirectory() as temporary_dir:
+            python_bin = Path(temporary_dir) / "bin" / "python"
+            python_bin.parent.mkdir()
+            python_bin.touch()
+            with (
+            patch("tiny_swarm_world.infrastructure.adapters.installation.host.detect_host_runtime", return_value=runtime),
+            patch("tiny_swarm_world.infrastructure.adapters.installation.process._python_imports_available", side_effect=(False, True)),
+            patch("tiny_swarm_world.application.services.installation.InstallationService.run") as preflight,
+            patch("tiny_swarm_world.infrastructure.adapters.installation.configuration._paths_from_env", return_value=installer.InstallerPaths(Path("/tmp/unused"), Path(temporary_dir))),
+            patch("tiny_swarm_world.infrastructure.adapters.installation.process.ensure_python_environment") as bootstrap,
+            patch("tiny_swarm_world.infrastructure.adapters.installation.bootstrap.os.execvpe", side_effect=SystemExit(0)) as restart,
+            patch("tiny_swarm_world.infrastructure.adapters.installation.bootstrap._prepare_bootstrap_environment") as credentials,
+            ):
+                with self.assertRaises(SystemExit) as restarted:
+                    main(("--headless", "--non-interactive-live-approval"))
+                self.assertEqual(restarted.exception.code, 0)
+        preflight.assert_not_called()
+        bootstrap.assert_not_called()
+        self.assertEqual(
+            restart.call_args.args[:2],
+            (python_bin.as_posix(), (python_bin.as_posix(), "-m", "tiny_swarm_world.simple_installer", "--headless", "--non-interactive-live-approval")),
+        )
+        credentials.assert_not_called()
+
+    def test_native_missing_prepared_venv_does_not_bootstrap_python(self):
+        runtime = installer.HostRuntime("native_linux", "test")
+        with (
+            patch("tiny_swarm_world.infrastructure.adapters.installation.host.detect_host_runtime", return_value=runtime),
+            patch("tiny_swarm_world.infrastructure.adapters.installation.process._python_imports_available", return_value=False),
+            patch("tiny_swarm_world.application.services.installation.InstallationService.run") as run,
+            patch("tiny_swarm_world.infrastructure.adapters.installation.configuration._paths_from_env", return_value=installer.InstallerPaths(Path("/tmp/unused"), Path("/tmp/nonexistent-issue427-venv"))),
+            patch("tiny_swarm_world.infrastructure.adapters.installation.process.ensure_python_environment") as bootstrap,
+            redirect_stderr(io.StringIO()),
+        ):
+            self.assertEqual(main(()), 1)
+        bootstrap.assert_not_called()
+        run.assert_not_called()
+
+    def test_native_classic_alias_and_read_only_flags_reach_reconcile_path(self):
+        with (
+            patch("tiny_swarm_world.infrastructure.adapters.installation.host.detect_host_runtime", return_value=installer.HostRuntime("native_linux", "test")),
+            patch("tiny_swarm_world.application.services.installation.InstallationService.run", return_value=0) as run,
+            patch("tiny_swarm_world.infrastructure.adapters.installation.bootstrap._prepare_bootstrap_environment") as credentials,
+            redirect_stdout(io.StringIO()),
+        ):
+            self.assertEqual(main(("--profile", "classic", "--preflight")), 0)
+        options = run.call_args.args[0]
+        self.assertEqual(options.service_profile, "default")
+        self.assertTrue(options.native_reconcile)
+        self.assertTrue(options.preflight_only)
+        credentials.assert_called_once()
+
+    def test_native_reset_flag_is_rejected_before_mutation(self):
+        with (
+            patch("tiny_swarm_world.infrastructure.adapters.installation.host.detect_host_runtime", return_value=installer.HostRuntime("native_linux", "test")),
+            patch("tiny_swarm_world.application.services.installation.InstallationService.run") as run,
+            redirect_stderr(io.StringIO()),
+        ):
+            self.assertEqual(main(("--confirm-reset",)), 1)
+        run.assert_not_called()
+
+    def test_wsl_default_and_read_only_use_prepared_reconciliation(self):
+        for arguments in ((), ("--preflight",), ("--dry-run",), ("--headless", "--non-interactive-live-approval")):
+            with (
+                self.subTest(arguments=arguments),
+                patch("tiny_swarm_world.infrastructure.adapters.installation.host.detect_host_runtime", return_value=installer.HostRuntime("wsl2", "test")),
+                patch("tiny_swarm_world.infrastructure.adapters.installation.host.authorize_project_filesystem") as authorize,
+                patch("tiny_swarm_world.infrastructure.adapters.installation.process._python_imports_available", return_value=True),
+                patch("tiny_swarm_world.application.services.installation.InstallationService.run", return_value=0) as run,
+                redirect_stdout(io.StringIO()),
+            ):
+                self.assertEqual(main(arguments), 0)
+                self.assertTrue(run.call_args.args[0].native_reconcile)
+                self.assertFalse(run.call_args.args[0].confirm_reset)
+                self.assertFalse(authorize.call_args.kwargs["allow_wsl_windows_filesystem"])
+
+    def test_explicit_wsl_reset_compatibility_warns_and_keeps_confirmation(self):
+        with (
+            patch("tiny_swarm_world.infrastructure.adapters.installation.host.detect_host_runtime", return_value=installer.HostRuntime("wsl2", "test")),
+            patch("tiny_swarm_world.infrastructure.adapters.installation.process._python_imports_available", return_value=True),
+            patch("tiny_swarm_world.application.services.installation.InstallationService.run", return_value=17) as run,
+            redirect_stderr(io.StringIO()) as output,
+        ):
+            self.assertEqual(main(("--confirm-reset", "--headless")), 17)
+        self.assertTrue(run.call_args.args[0].confirm_reset)
+        self.assertFalse(run.call_args.args[0].native_reconcile)
+        self.assertIn("DEPRECATED", output.getvalue())
+        self.assertIn("destructive", output.getvalue())
+
+    def test_lower_level_compatibility_entrypoint_warns_and_preserves_exit(self):
+        from tiny_swarm_world.infrastructure.adapters.installation import presentation
+
+        with (
+            patch("tiny_swarm_world.infrastructure.composition_installation.build_installation_service") as build,
+            redirect_stderr(io.StringIO()) as output,
+        ):
+            build.return_value.run.return_value = 17
+            self.assertEqual(presentation.main(("--confirm-reset",)), 17)
+        options = build.return_value.run.call_args.args[0]
+        self.assertTrue(options.confirm_reset)
+        self.assertFalse(options.native_reconcile)
+        self.assertIn("DEPRECATED", output.getvalue())
+        self.assertIn("destructive", output.getvalue())
+
+    def test_resolves_catalog_defaults_without_creating_recovery_state(self):
+        with tempfile.TemporaryDirectory() as temporary_dir:
+            state_dir = Path(temporary_dir) / "state"
+            base_env = {
+                "HOME": temporary_dir,
+            }
+
+            first = _prepare_bootstrap_environment(base_env, REPOSITORY_ROOT)
+            second = _prepare_bootstrap_environment(base_env, REPOSITORY_ROOT)
+
+            secret_file = state_dir / "bootstrap-secrets.env"
+            self.assertFalse(secret_file.exists())
+            self.assertEqual(
+                first["TSW_PORTAINER_ADMIN_PASSWORD"],
+                INTERNAL_TEST_PASSWORD,
+            )
+            self.assertEqual(
+                first["TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD"],
+                internal_test_credential("TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD"),
+            )
+            self.assertEqual(first, second)
+            self.assertNotIn("TSW_SECRETS_MODE", first)
+            sources = decode_source_metadata(first[CREDENTIAL_SOURCE_MAP_ENVIRONMENT])
+            self.assertEqual(sources["TSW_PORTAINER_ADMIN_PASSWORD"], CredentialSource.DEFAULT)
+
+    def test_traefik_secret_name_defaults_keep_handoff_semantics(self):
+        names = (
+            "TSW_TRAEFIK_TLS_CERT_SECRET_NAME",
+            "TSW_TRAEFIK_TLS_KEY_SECRET_NAME",
+            "TSW_TRAEFIK_GUI_USERS_SECRET_NAME",
+        )
+        for supplied, expected_bootstrap in (
+            ({}, "tsw_traefik_gui_users"),
+            ({names[2]: "custom-users"}, "custom-users"),
+            ({names[2]: ""}, ""),
+        ):
+            with self.subTest(supplied=supplied):
+                with tempfile.TemporaryDirectory() as temporary_dir:
+                    bootstrap = _prepare_bootstrap_environment(
+                        {"HOME": temporary_dir, **supplied}, REPOSITORY_ROOT,
+                    )
+                self.assertEqual(bootstrap[names[2]], expected_bootstrap)
+                self.assertEqual(bootstrap[names[0]], "tsw_traefik_tls_cert")
+                self.assertEqual(bootstrap[names[1]], "tsw_traefik_tls_key")
+                prepared = dict(bootstrap)
+                installer._ensure_default_config_exports(prepared)
+                self.assertEqual(
+                    prepared[names[2]],
+                    expected_bootstrap or "tsw_traefik_gui_users",
+                )
+
+    def test_resolves_catalog_traefik_htpasswd_without_random_generation(self):
+        with tempfile.TemporaryDirectory() as temporary_dir:
+            env = _prepare_bootstrap_environment(
+                {"HOME": temporary_dir},
+                REPOSITORY_ROOT,
+            )
+
+            value = env["TSW_TRAEFIK_GUI_USERS_HTPASSWD"]
+            validate_traefik_htpasswd(value)
+            self.assertEqual(
+                value,
+                internal_test_credential("TSW_TRAEFIK_GUI_USERS_HTPASSWD"),
+            )
+
+    def test_preserves_explicit_environment_override(self):
+        env = _prepare_bootstrap_environment(
+            {
+                "TSW_PORTAINER_ADMIN_PASSWORD": "operator-portainer-password",
+                "TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD": "operator-infisical-password",
+            },
+            REPOSITORY_ROOT,
+        )
+
+        self.assertEqual(env["TSW_PORTAINER_ADMIN_PASSWORD"], "operator-portainer-password")
+        self.assertEqual(
+            env["TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD"],
+            "operator-infisical-password",
+        )
+        self.assertEqual(
+            env["TSW_JENKINS_ADMIN_PASSWORD"],
+            INTERNAL_TEST_PASSWORD,
+        )
+        sources = decode_source_metadata(env[CREDENTIAL_SOURCE_MAP_ENVIRONMENT])
+        self.assertEqual(sources["TSW_PORTAINER_ADMIN_PASSWORD"], CredentialSource.OPERATOR)
+        self.assertEqual(sources["TSW_JENKINS_ADMIN_PASSWORD"], CredentialSource.DEFAULT)
+
+    def test_process_environment_overrides_operator_install_file(self):
+        with tempfile.TemporaryDirectory() as temporary_dir:
+            operator_file = Path(temporary_dir) / "operator.env"
+            operator_file.write_text(
+                "export TSW_PORTAINER_ADMIN_PASSWORD='file-portainer-password'\n"
+                "export TSW_JENKINS_ADMIN_PASSWORD='file-jenkins-password'\n",
+                encoding="utf-8",
+            )
+            operator_file.chmod(0o600)
+            env = _prepare_bootstrap_environment(
+                {
+                    "TSW_INSTALL_ENV_FILE": operator_file.as_posix(),
+                    "TSW_PORTAINER_ADMIN_PASSWORD": "process-portainer-password",
+                },
+                REPOSITORY_ROOT,
+            )
+
+        self.assertEqual(env["TSW_PORTAINER_ADMIN_PASSWORD"], "process-portainer-password")
+        self.assertEqual(env["TSW_JENKINS_ADMIN_PASSWORD"], "file-jenkins-password")
+        sources = decode_source_metadata(env[CREDENTIAL_SOURCE_MAP_ENVIRONMENT])
+        self.assertEqual(sources["TSW_PORTAINER_ADMIN_PASSWORD"], CredentialSource.OPERATOR)
+        self.assertEqual(sources["TSW_JENKINS_ADMIN_PASSWORD"], CredentialSource.OPERATOR)
+
+    def test_repeated_bootstrap_preserves_operator_credentials_and_file(self):
+        with tempfile.TemporaryDirectory() as directory:
+            operator_file = Path(directory) / "operator.env"
+            operator_file.write_text("export TSW_PORTAINER_ADMIN_PASSWORD='existing-operator-password'\n")
+            operator_file.chmod(0o600)
+            before = operator_file.read_bytes()
+            env = {"TSW_INSTALL_ENV_FILE": str(operator_file)}
+            first = _prepare_bootstrap_environment(env, REPOSITORY_ROOT)
+            second = _prepare_bootstrap_environment(env, REPOSITORY_ROOT)
+            self.assertEqual(first, second)
+            self.assertEqual(second["TSW_PORTAINER_ADMIN_PASSWORD"], "existing-operator-password")
+            self.assertEqual(operator_file.read_bytes(), before)
+            self.assertEqual(operator_file.stat().st_mode & 0o777, 0o600)
+            self.assertEqual(list(Path(directory).iterdir()), [operator_file])
+
+    def test_rejects_unprotected_operator_install_file_before_reading(self):
+        with tempfile.TemporaryDirectory() as temporary_dir:
+            operator_file = Path(temporary_dir) / "operator.env"
+            operator_file.write_text(
+                "export TSW_PORTAINER_ADMIN_PASSWORD='file-portainer-password'\n",
+                encoding="utf-8",
+            )
+            operator_file.chmod(0o644)
+
+            with self.assertRaisesRegex(SimpleInstallerError, "0600"):
+                _prepare_bootstrap_environment(
+                    {"TSW_INSTALL_ENV_FILE": operator_file.as_posix()},
+                    REPOSITORY_ROOT,
+                )
+
+    def test_rejects_invalid_operator_file_syntax(self):
+        with tempfile.TemporaryDirectory() as temporary_dir:
+            operator_file = Path(temporary_dir) / "operator.env"
+            operator_file.write_text("export TSW_PASSWORD=$(unsafe)\n", encoding="utf-8")
+            operator_file.chmod(0o600)
+
+            with self.assertRaisesRegex(SimpleInstallerError, "invalid"):
+                _prepare_bootstrap_environment(
+                    {"TSW_INSTALL_ENV_FILE": operator_file.as_posix()},
+                    REPOSITORY_ROOT,
+                )
+
+    def test_rejects_invalid_explicit_bootstrap_file_syntax(self):
+        with tempfile.TemporaryDirectory() as temporary_dir:
+            override_file = Path(temporary_dir) / "bootstrap.env"
+            override_file.write_text("export TSW_PASSWORD=$(unsafe)\n", encoding="utf-8")
+            override_file.chmod(0o600)
+
+            with self.assertRaisesRegex(SimpleInstallerError, "invalid"):
+                _load_explicit_bootstrap_override(
+                    {"TSW_BOOTSTRAP_SECRET_ENV_FILE": override_file.as_posix()},
+                    REPOSITORY_ROOT,
+                )
+
+    def test_rejects_symlinked_bootstrap_override(self):
+        with tempfile.TemporaryDirectory() as temporary_dir:
+            root = Path(temporary_dir)
+            target = root / "target.env"
+            target.write_text("export TSW_PORTAINER_ADMIN_PASSWORD='value'\n", encoding="utf-8")
+            target.chmod(0o600)
+            link = root / "link.env"
+            link.symlink_to(target)
+
+            with self.assertRaisesRegex(SimpleInstallerError, "symbolic links"):
+                _validate_secure_override_path(link)
+
+    def test_rejects_windows_mounted_override_path(self):
+        with self.assertRaisesRegex(SimpleInstallerError, "WSL-native"):
+            _validate_secure_override_path(Path("/mnt/d/credential-override.env"))
+
+    def test_rejects_override_when_metadata_cannot_be_verified(self):
+        with tempfile.TemporaryDirectory() as temporary_dir:
+            override_file = Path(temporary_dir) / "override.env"
+            override_file.write_text("export TSW_PASSWORD='value'\n", encoding="utf-8")
+            override_file.chmod(0o600)
+
+            with (
+                patch.object(Path, "resolve", return_value=override_file),
+                patch.object(Path, "is_symlink", return_value=False),
+                patch.object(Path, "stat", side_effect=OSError("stat failed")),
+            ):
+                with self.assertRaisesRegex(SimpleInstallerError, "metadata"):
+                    _validate_secure_override_path(override_file)
+
+    def test_populates_every_required_manifest_key_from_catalog(self):
+        env = _prepare_bootstrap_environment({}, REPOSITORY_ROOT)
+        entries = installer._required_installer_secret_entries(
+            REPOSITORY_ROOT / installer.DEFAULT_SECRET_MANIFEST_PATH,
+        )
+
+        for entry in entries:
+            with self.subTest(key=entry.key):
+                self.assertEqual(env[entry.key], internal_test_credential(entry.key))
+
+    def test_main_passes_single_credential_contract_to_legacy_execution(self):
+        with (
+            tempfile.TemporaryDirectory() as temporary_dir,
+            patch.dict(os.environ, {"HOME": temporary_dir}, clear=True),
+            patch("tiny_swarm_world.infrastructure.adapters.installation.bootstrap.Path.cwd", return_value=REPOSITORY_ROOT),
+            patch("tiny_swarm_world.infrastructure.adapters.installation.host.authorize_project_filesystem"),
+            patch("tiny_swarm_world.application.services.installation.InstallationService.run", return_value=0) as run,
+            patch("tiny_swarm_world.infrastructure.adapters.installation.bootstrap._print_operator_credentials"),
+        ):
+            result = main(("--headless",))
+
+        self.assertEqual(result, 0)
+        options = run.call_args.args[0]
+        self.assertEqual(options.service_profile, "service-access")
+        self.assertNotIn("TSW_SECRETS_MODE", run.call_args.kwargs["env"])
+
+    def test_main_preserves_child_exit_and_only_prints_credentials_on_success(self):
+        for exit_code in (0, 1, 2, 124, 130):
+            with (
+                self.subTest(exit_code=exit_code),
+                tempfile.TemporaryDirectory() as temporary_dir,
+                patch.dict(os.environ, {"HOME": temporary_dir}, clear=True),
+                patch("tiny_swarm_world.infrastructure.adapters.installation.bootstrap.Path.cwd", return_value=REPOSITORY_ROOT),
+            patch("tiny_swarm_world.infrastructure.adapters.installation.host.authorize_project_filesystem"),
+                patch("tiny_swarm_world.application.services.installation.InstallationService.run", return_value=exit_code),
+                patch("tiny_swarm_world.infrastructure.adapters.installation.bootstrap._print_operator_credentials") as print_credentials,
+            ):
+                result = main(("--headless",))
+            self.assertEqual(result, exit_code)
+            self.assertEqual(print_credentials.call_count, 1 if exit_code == 0 else 0)
+
+    def test_main_reports_installer_error_without_exposing_values(self):
+        stderr = io.StringIO()
+        with (
+            tempfile.TemporaryDirectory() as temporary_dir,
+            patch.dict(os.environ, {"HOME": temporary_dir}, clear=True),
+            patch("tiny_swarm_world.infrastructure.adapters.installation.bootstrap.Path.cwd", return_value=REPOSITORY_ROOT),
+            patch("tiny_swarm_world.infrastructure.adapters.installation.host.authorize_project_filesystem"),
+            patch(
+                "tiny_swarm_world.application.services.installation.InstallationService.run",
+                side_effect=installer.InstallerError("setup failed for a redacted reason"),
+            ),
+            redirect_stdout(io.StringIO()),
+            redirect_stderr(stderr),
+        ):
+            result = main(("--headless",))
+
+        self.assertEqual(result, 1)
+        self.assertIn("setup failed for a redacted reason", stderr.getvalue())
+
+    def test_relative_explicit_override_paths_resolve_from_cwd(self):
+        with tempfile.TemporaryDirectory() as temporary_dir:
+            root = Path(temporary_dir)
+            override_file = root / "override.env"
+            override_file.write_text(
+                "export TSW_PORTAINER_ADMIN_PASSWORD='relative-file-password'\n",
+                encoding="utf-8",
+            )
+            override_file.chmod(0o600)
+            state_file = root / "state" / "bootstrap-secrets.env"
+            state_file.parent.mkdir()
+            state_file.parent.chmod(0o700)
+            state_file.write_text(
+                "export TSW_PORTAINER_ADMIN_PASSWORD='relative-state-password'\n",
+                encoding="utf-8",
+            )
+            state_file.chmod(0o600)
+
+            file_values = _load_explicit_bootstrap_override(
+                {"TSW_BOOTSTRAP_SECRET_ENV_FILE": "override.env"},
+                root,
+            )
+            state_values = _load_explicit_bootstrap_override(
+                {"TSW_BOOTSTRAP_STATE_DIR": "state"},
+                root,
+            )
+
+        self.assertEqual(file_values["TSW_PORTAINER_ADMIN_PASSWORD"], "relative-file-password")
+        self.assertEqual(state_values["TSW_PORTAINER_ADMIN_PASSWORD"], "relative-state-password")
+
+    def test_loads_only_explicit_bootstrap_override_file(self):
+        with tempfile.TemporaryDirectory() as temporary_dir:
+            override_file = Path(temporary_dir) / "bootstrap.env"
+            override_file.write_text(
+                "export TSW_PORTAINER_ADMIN_PASSWORD='file-portainer-password'\n",
+                encoding="utf-8",
+            )
+            override_file.chmod(0o600)
+
+            env = _prepare_bootstrap_environment(
+                {"TSW_BOOTSTRAP_SECRET_ENV_FILE": override_file.as_posix()},
+                REPOSITORY_ROOT,
+            )
+
+        self.assertEqual(env["TSW_PORTAINER_ADMIN_PASSWORD"], "file-portainer-password")
+
+    def test_missing_explicit_bootstrap_override_fails_before_resolution(self):
+        with self.assertRaisesRegex(RuntimeError, "(?i)explicit bootstrap credential override"):
+            _prepare_bootstrap_environment(
+                {"TSW_BOOTSTRAP_SECRET_ENV_FILE": "/missing/bootstrap.env"},
+                REPOSITORY_ROOT,
+            )
+
+    def test_conflicting_explicit_bootstrap_override_paths_fail(self):
+        with self.assertRaisesRegex(RuntimeError, "mutually exclusive"):
+            _prepare_bootstrap_environment(
+                {
+                    "TSW_BOOTSTRAP_SECRET_ENV_FILE": "/tmp/bootstrap.env",
+                    "TSW_BOOTSTRAP_STATE_DIR": "/tmp/bootstrap-state",
+                },
+                REPOSITORY_ROOT,
+            )
+
+    def test_completion_output_exposes_targets_without_printing_credential_values(self):
+        env = {
+            "TSW_PORTAINER_ADMIN_PASSWORD": "portainer-visible",
+            "TSW_INFISICAL_LOGIN_EMAIL": "admin@example.invalid",
+            "TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD": "infisical-visible",
+            "TSW_INFISICAL_ENCRYPTION_KEY": "must-stay-hidden",
+            "TSW_POSTGRES_PASSWORD": "also-hidden",
+        }
+        output = io.StringIO()
+
+        with redirect_stdout(output):
+            _print_operator_credentials(env)
+
+        rendered = output.getvalue()
+        self.assertIn("http://localhost:10001", rendered)
+        self.assertIn("admin@example.invalid", rendered)
+        self.assertIn("INTERNAL/TEST ONLY", rendered)
+        self.assertIn("catalog default or protected operator override", rendered)
+        self.assertIn("internal-test-credential-catalog.md", rendered)
+        self.assertNotIn("portainer-visible", rendered)
+        self.assertNotIn("infisical-visible", rendered)
+        self.assertNotIn("must-stay-hidden", rendered)
+        self.assertNotIn("also-hidden", rendered)
+        self.assertIn("All other catalog-managed secrets are internal", rendered)
+
+    def test_normal_cli_no_longer_exposes_secret_modes(self):
+        compatibility_script = (REPOSITORY_ROOT / "install.sh").read_text(encoding="utf-8")
+        self.assertIn('exec "$SCRIPT_DIR/modules/tsw_native_linux/install.sh" "$@"', compatibility_script)
+        native_script = (REPOSITORY_ROOT / "modules/tsw_native_linux/install.sh").read_text(encoding="utf-8")
+        self.assertIn('modules/tsw_native_linux/boostrap/install.sh', native_script)
+        install_script = (REPOSITORY_ROOT / "modules/tsw_native_linux/boostrap/install.sh").read_text(encoding="utf-8")
+        self.assertIn("tiny_swarm_world.simple_installer", install_script)
+        self.assertNotIn("tiny_swarm_world.installer", install_script)
+        simple_source = (
+            REPOSITORY_ROOT / "modules/tsw_core/src/simple_installer.py"
+        ).read_text(encoding="utf-8")
+        self.assertNotIn('"--secrets-mode"', simple_source)
+        self.assertNotIn('"--no-generate-secrets"', simple_source)
+        self.assertNotIn("_generated_secret_values", simple_source)
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -123,7 +123,7 @@ compatible evidence.
 `nightly-classic-live.yml` is intentionally separate from the hosted quality
 path. It accepts only the `self-hosted`, `linux`, `tsw-classic` runner label,
 requires a protected `tiny-swarm-world-classic-live` environment and explicit
-target ownership, and invokes `tests/e2e/classic/run_classic_acceptance.py` with live
+target ownership, and invokes `modules/tsw_core/tests/e2e/classic/run_classic_acceptance.py` with live
 approval. The runner must already hold the private ignored operator env file;
 the workflow never prints or uploads it. Missing runner capability, approval,
 ownership, credentials or redacted evidence is a blocked/non-success state.

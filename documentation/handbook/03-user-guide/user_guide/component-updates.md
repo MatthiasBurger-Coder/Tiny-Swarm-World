@@ -16,7 +16,7 @@ can remain. Explicit service removal and ownership verification require
 separate reviewed workflows; this setting does not prove full convergence.
 
 Run these commands from the prepared environment. Alternatively use
-`PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world` in place of `tiny-swarm-world`.
+`PYTHONPATH=. python3 -m tiny_swarm_world` in place of `tiny-swarm-world`.
 `services updates` defaults to the persisted installed selection. Update preview
 requires an explicit nonempty comma-separated selection; it never adds services
 or updates dependencies implicitly. `--to` selects a catalog **target ID** for one

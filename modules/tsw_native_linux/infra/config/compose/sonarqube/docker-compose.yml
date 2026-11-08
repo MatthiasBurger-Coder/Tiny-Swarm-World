@@ -1,0 +1,67 @@
+services:
+  sonarqube:
+    image: sonarqube:26.6.0.123539-community
+    depends_on:
+      - sonar_db
+    environment:
+      SONAR_JDBC_URL: jdbc:postgresql://tasks.sonar_db:5432/sonar
+      SONAR_JDBC_USERNAME: sonar
+      SONAR_JDBC_PASSWORD: ${TSW_SONARQUBE_POSTGRES_PASSWORD:-${TSW_POSTGRES_PASSWORD}}
+    entrypoint:
+      - bash
+      - -lc
+    command:
+      - |
+        until timeout 2 bash -c '</dev/tcp/tasks.sonar_db/5432' >/dev/null 2>&1; do
+          sleep 2
+        done
+        exec /opt/sonarqube/docker/entrypoint.sh
+    ports:
+      - target: 9000
+        published: 12000
+        protocol: tcp
+        mode: host
+    volumes:
+      - sonarqube_conf:/opt/sonarqube/conf
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      - sonarqube_logs:/opt/sonarqube/logs
+      - sonarqube_temp:/opt/sonarqube/temp
+    networks:
+      - service_access_link
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+
+  sonar_db:
+    image: postgres:13.23
+    environment:
+      POSTGRES_USER: sonar
+      POSTGRES_PASSWORD: ${TSW_SONARQUBE_POSTGRES_PASSWORD:-${TSW_POSTGRES_PASSWORD}}
+      POSTGRES_DB: sonar
+    volumes:
+      - sonar_db:/var/lib/postgresql
+      - sonar_db_data:/var/lib/postgresql/data
+    networks:
+      - service_access_link
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == swarm-worker-2
+
+volumes:
+  sonarqube_conf:
+  sonarqube_data:
+  sonarqube_extensions:
+  sonarqube_logs:
+  sonarqube_temp:
+  sonar_db:
+  sonar_db_data:
+
+networks:
+  service_access_link:
+    name: service_access_link
+    external: true

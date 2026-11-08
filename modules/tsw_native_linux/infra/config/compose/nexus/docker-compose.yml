@@ -1,0 +1,32 @@
+services:
+  nexus:
+    image: ${TSW_NEXUS_IMAGE:-sonatype/nexus3:3.75.1}
+    volumes:
+      - nexus-data:/nexus-data
+    networks:
+      - service_access_link
+    ports:
+      - target: 8081
+        published: 13081
+        protocol: tcp
+        mode: host
+      - target: 5000
+        published: 13500
+        protocol: tcp
+        mode: host
+      - target: 5001
+        published: 13501
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+volumes:
+  nexus-data:
+
+networks:
+  service_access_link:
+    name: service_access_link
+    external: true

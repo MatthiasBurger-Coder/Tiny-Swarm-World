@@ -11,7 +11,7 @@ accepted.
 ## General Rules for All Agents
 
 - Work in WSL/Linux from the repository root.
-- Read `AGENTS.md`, `modules/tsw_core/src/tiny_swarm_world/AGENTS.md`, `infra/AGENTS.md`,
+- Read `AGENTS.md`, `modules/tsw_core/src/AGENTS.md`, `infra/AGENTS.md`,
   `.importlinter`, `README.md`, and `modules/tsw_core/tools/linux/quality_gate.py` before changing
   files.
 - Inspect `git status --short` before edits.
@@ -55,7 +55,7 @@ Forbidden files:
 Required reading:
 
 - `AGENTS.md`
-- `modules/tsw_core/src/tiny_swarm_world/AGENTS.md`
+- `modules/tsw_core/src/AGENTS.md`
 - `infra/AGENTS.md`
 - `.importlinter`
 - `README.md`
@@ -114,11 +114,11 @@ Scope:
 
 Allowed files after architecture approval:
 
-- former `modules/tsw_core/src/tiny_swarm_world/domain/multipass` (superseded)
-- `modules/tsw_core/src/tiny_swarm_world/domain/network`
-- former `modules/tsw_core/src/tiny_swarm_world/application/services/multipass` (superseded)
-- `modules/tsw_core/src/tiny_swarm_world/application/services/network`
-- `modules/tsw_core/src/tiny_swarm_world/application/services/vm`
+- former `../../../../../modules/tsw_core/src/domain` (superseded)
+- `../../../../../modules/tsw_core/src/domain`
+- former `../../../../../modules/tsw_core/src/application` (superseded)
+- `../../../../../modules/tsw_core/src/application`
+- `../../../../../modules/tsw_core/src/application`
 - platform-related ports
 - platform-related infrastructure adapters
 - former `modules/tsw_core/infra/config/multipass` (superseded)
@@ -195,11 +195,11 @@ Scope:
 
 Allowed files after architecture approval:
 
-- `modules/tsw_core/src/tiny_swarm_world/domain/nexus`
-- `modules/tsw_core/src/tiny_swarm_world/application/services/nexus`
-- `modules/tsw_core/src/tiny_swarm_world/application/ports/clients/port_nexus_client.py`
+- `../../../../../modules/tsw_core/src/domain`
+- `../../../../../modules/tsw_core/src/application`
+- `../../../../../modules/tsw_core/src/application`
 - artifact-related ports
-- `modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/nexus_http_client.py`
+- `../../../../../modules/tsw_core/src/infrastructure`
 - artifact-related adapters
 - artifact-related docs and tests
 
@@ -217,7 +217,7 @@ Required reading:
 - all general required files
 - `documentation/handbook/02-architecture/arc42/05_analysis/responsibility-separation-analysis.md`
 - `documentation/handbook/02-architecture/arc42/09_decisions/adr-separate-platform-artifacts-deployment.adoc`
-- `tests/application/services/nexus/test_bootstrap_nexus.py`
+- `modules/tsw_native_linux/tests/application/services/nexus/test_bootstrap_nexus.py`
 
 Exact task steps:
 
@@ -274,12 +274,12 @@ Scope:
 
 Allowed files after architecture approval:
 
-- `modules/tsw_core/src/tiny_swarm_world/domain/deployment`
-- `modules/tsw_core/src/tiny_swarm_world/application/ports/clients/port_portainer_client.py`
-- `modules/tsw_core/src/tiny_swarm_world/application/ports/repositories/port_compose_file_repository.py`
+- `../../../../../modules/tsw_core/src/domain`
+- `../../../../../modules/tsw_core/src/application`
+- `../../../../../modules/tsw_core/src/application`
 - deployment-related application services
-- `modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/portainer_http_client.py`
-- `modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py`
+- `../../../../../modules/tsw_core/src/infrastructure`
+- `../../../../../modules/tsw_core/src/infrastructure`
 - `modules/tsw_core/infra/config/compose`
 - `modules/tsw_core/infra/config/compose`
 - deployment-related tests and docs
@@ -298,7 +298,7 @@ Required reading:
 - all general required files
 - `documentation/handbook/02-architecture/arc42/05_analysis/responsibility-separation-analysis.md`
 - `documentation/handbook/02-architecture/arc42/09_decisions/adr-separate-platform-artifacts-deployment.adoc`
-- `tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py`
+- `modules/tsw_core/tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py`
 
 Exact task steps:
 
@@ -342,15 +342,15 @@ Role:
 
 Scope:
 
-- `modules/tsw_core/src/tiny_swarm_world/__main__.py`
-- `modules/tsw_core/src/tiny_swarm_world/infrastructure/composition.py`
+- `modules/tsw_core/src/__main__.py`
+- `../../../../../modules/tsw_core/src/infrastructure`
 - workflow orchestration boundaries
 - CLI/service workflow naming
 
 Allowed files after architecture approval:
 
-- `modules/tsw_core/src/tiny_swarm_world/__main__.py`
-- `modules/tsw_core/src/tiny_swarm_world/infrastructure/composition.py`
+- `modules/tsw_core/src/__main__.py`
+- `../../../../../modules/tsw_core/src/infrastructure`
 - workflow orchestration objects
 - CLI-facing documentation
 - tests for composition and entry point behavior
@@ -366,8 +366,8 @@ Required reading:
 
 - all general required files
 - `documentation/handbook/02-architecture/arc42/09_decisions/adr-separate-platform-artifacts-deployment.adoc`
-- current `modules/tsw_core/src/tiny_swarm_world/infrastructure/composition.py`
-- current `modules/tsw_core/src/tiny_swarm_world/__main__.py`
+- current `../../../../../modules/tsw_core/src/infrastructure`
+- current `../../../../../modules/tsw_core/src/__main__.py`
 
 Exact task steps:
 
@@ -435,7 +435,7 @@ Forbidden files:
 Required reading:
 
 - all general required files
-- `tests/architecture/test_hexagonal_imports.py`
+- `modules/tsw_core/tests/architecture/test_hexagonal_imports.py`
 - `documentation/handbook/02-architecture/arc42/09_decisions/adr-separate-platform-artifacts-deployment.adoc`
 - `documentation/handbook/03-user-guide/user_guide/troubleshooting.adoc`
 

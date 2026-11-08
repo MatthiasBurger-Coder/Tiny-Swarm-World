@@ -1,0 +1,5 @@
+{
+  "schema_version": 1,
+  "capability": "installation-scoped-incus-manager-profile",
+  "admitted_versions": []
+}

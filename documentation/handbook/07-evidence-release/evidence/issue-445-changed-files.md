@@ -14,10 +14,10 @@
 - `src/tiny_swarm_world/infrastructure/adapters/cli/parser.py`
 - `src/tiny_swarm_world/infrastructure/adapters/cli/registry.py`
 - `src/tiny_swarm_world/infrastructure/adapters/cli/selection.py`
-- `tests/domain/lifecycle/test_update_planning.py`
-- `tests/application/services/test_component_updates.py`
-- `tests/test_component_updates_cli.py`
-- `tests/test_package_entrypoint.py`
+- `modules/tsw_core/tests/domain/lifecycle/test_update_planning.py`
+- `modules/tsw_core/tests/application/services/test_component_updates.py`
+- `modules/tsw_core/tests/test_component_updates_cli.py`
+- `modules/tsw_core/tests/test_package_entrypoint.py`
 
 Required issue evidence: `.tiny-swarm/evidence/issue-445/`; reviewable evidence
 mirror: `documentation/handbook/07-evidence-release/evidence/issue-445-*.md`. No unrelated files are changed.

@@ -51,9 +51,9 @@ INFRA = PRIVATE / 'native-infra-override'
 OPERATOR = INFRA / 'operator.env'
 CAPABILITY = ROOT / 'modules/tsw_core/infra/config/incus-profile-capabilities.json'
 SUITE_FILES = ('modules/tsw_core/tools/linux/qualification/preserving_product_acceptance.py',
-    'modules/tsw_core/tools/linux/qualification/owned_case_disposal.py', 'tests/tools/test_preserving_product_acceptance.py',
-    'tests/tools/test_owned_case_disposal.py', 'modules/tsw_core/infra/config/incus-profile-capabilities.json',
-    upgrades.SCRIPT, upgrades.CATALOG, 'modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/lifecycle/catalog.py')
+    'modules/tsw_core/tools/linux/qualification/owned_case_disposal.py', 'modules/tsw_native_linux/tests/tools/test_preserving_product_acceptance.py',
+    'modules/tsw_native_linux/tests/tools/test_owned_case_disposal.py', 'modules/tsw_core/infra/config/incus-profile-capabilities.json',
+    upgrades.SCRIPT, upgrades.CATALOG, 'modules/tsw_core/src/infrastructure/adapters/lifecycle/catalog.py')
 
 
 @dataclass(frozen=True)

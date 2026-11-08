@@ -12,7 +12,7 @@ from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[4]
-SOURCE = ROOT / "modules/tsw_core/src" / "tiny_swarm_world"
+SOURCE = ROOT / "modules/tsw_core/src"
 BASELINE = ROOT / "documentation/handbook/02-architecture/arc42" / "05_analysis" / "arch-03-18-complexity-baseline.json"
 EXCEPTIONS = ROOT / "documentation/handbook/02-architecture/arc42" / "05_analysis" / "arch-03-18-complexity-exceptions.json"
 def covered_paths(source: Path = SOURCE) -> list[Path]:

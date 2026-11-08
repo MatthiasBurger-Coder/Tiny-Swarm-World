@@ -19,8 +19,8 @@ For installation prerequisites, use the separate staged preparation owner:
 
 [source,bash]
 ----
-./modules/tsw_core/bootstrap/linux/prepare_linux.sh --dry-run
-./modules/tsw_core/bootstrap/linux/prepare_linux.sh
+./modules/tsw_native_linux/boostrap/prepare_linux.sh --dry-run
+./modules/tsw_native_linux/boostrap/prepare_linux.sh
 ----
 
 This plans required kernel controls, managed-bridge forwarding and canonical local
@@ -76,7 +76,7 @@ already verified:
 
 [source,bash]
 ----
-PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world platform repair-lxc-proxy-drift --live
+PYTHONPATH=. python3 -m tiny_swarm_world platform repair-lxc-proxy-drift --live
 ----
 
 Repair evidence records summary counts and device names. It does not record
@@ -111,7 +111,7 @@ The prerequisite action is read-only and requires Windows 10 or 11, a running
 WSL 2 distribution with systemd as PID 1, elevated PowerShell, a running IP
 Helper service, and the Windows Firewall and Service cmdlets. The
 dedicated reproducible setup and repair guide is
-`modules/tsw_windows_wsl/bootstrap/windows/README.windows-wsl-bridge.md`.
+`modules/tsw_windows_wsl/bootstrap/README.windows-wsl-bridge.md`.
 
 The install action registers an automatic Windows service discovery agent. It
 runs periodically, discovers the current WSL IP and reconciles only
@@ -140,7 +140,7 @@ powershell.exe -NoProfile -Command "Restart-Service -Name TinySwarmWorldWslBridg
 ----
 
 The bridge reads TCP ports and route hostnames from `modules/tsw_core/infra/config/ports.yaml`.
-`modules/tsw_windows_wsl/bootstrap/windows/tws-wsl-bridge.config.json` is limited to Windows-side
+`modules/tsw_windows_wsl/bootstrap/tws-wsl-bridge.config.json` is limited to Windows-side
 settings such as distro selection, listen address, hosts address, discovery
 interval, and additional hostname aliases. Do not maintain a separate Windows
 port list.

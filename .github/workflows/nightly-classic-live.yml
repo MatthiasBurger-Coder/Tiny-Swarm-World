@@ -62,7 +62,7 @@ jobs:
           test -n "${TARGET_OWNER}"
           test -n "${TSW_INSTALL_ENV_FILE}"
           test -n "${TSW_LIVE_EVIDENCE_ROOT}"
-          python3 modules/tsw_core/bootstrap/linux/install_debugger.py --live --env-file "${TSW_INSTALL_ENV_FILE}"
+          python3 modules/tsw_native_linux/boostrap/install_debugger.py --live --env-file "${TSW_INSTALL_ENV_FILE}"
           python3 - <<'PY'
           import platform
           import sys
@@ -94,7 +94,7 @@ jobs:
       - name: Run redacted Classic live chain
         run: |
           set -Eeuo pipefail
-          python3 tests/e2e/classic/run_classic_acceptance.py --approve-live \
+          python3 modules/tsw_core/tests/e2e/classic/run_classic_acceptance.py --approve-live \
             --test-only \
             --env-file "${TSW_INSTALL_ENV_FILE}" \
             --evidence-root "${TSW_LIVE_EVIDENCE_ROOT}"

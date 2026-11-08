@@ -43,7 +43,7 @@ environment on Linux/WSL. The repository currently combines multiple concerns:
 * Shared command execution, YAML handling, file/path handling, logging, and
   dependency wiring.
 
-The code already has a hexagonal layer split under `modules/tsw_core/src/tiny_swarm_world`:
+The code already has a hexagonal layer split under `modules/tsw_core/src`:
 
 * `domain`
 * `application`
@@ -73,25 +73,25 @@ The long-term source layout should move toward this shape:
 
 [source,text]
 ----
-modules/tsw_core/src/tiny_swarm_world/domain/platform
-modules/tsw_core/src/tiny_swarm_world/domain/artifacts
-modules/tsw_core/src/tiny_swarm_world/domain/deployment
-modules/tsw_core/src/tiny_swarm_world/domain/shared
+modules/tsw_core/src/domain/platform
+modules/tsw_core/src/domain/artifacts
+modules/tsw_core/src/domain/deployment
+modules/tsw_core/src/domain/shared
 
-modules/tsw_core/src/tiny_swarm_world/application/services/platform
-modules/tsw_core/src/tiny_swarm_world/application/services/artifacts
-modules/tsw_core/src/tiny_swarm_world/application/services/deployment
-modules/tsw_core/src/tiny_swarm_world/application/services/shared
+modules/tsw_core/src/application/services/platform
+modules/tsw_core/src/application/services/artifacts
+modules/tsw_core/src/application/services/deployment
+modules/tsw_core/src/application/services/shared
 
-modules/tsw_core/src/tiny_swarm_world/application/ports/platform
-modules/tsw_core/src/tiny_swarm_world/application/ports/artifacts
-modules/tsw_core/src/tiny_swarm_world/application/ports/deployment
-modules/tsw_core/src/tiny_swarm_world/application/ports/shared
+modules/tsw_core/src/application/ports/platform
+modules/tsw_core/src/application/ports/artifacts
+modules/tsw_core/src/application/ports/deployment
+modules/tsw_core/src/application/ports/shared
 
-modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/platform
-modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/artifacts
-modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/deployment
-modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/shared
+modules/tsw_core/src/infrastructure/adapters/platform
+modules/tsw_core/src/infrastructure/adapters/artifacts
+modules/tsw_core/src/infrastructure/adapters/deployment
+modules/tsw_core/src/infrastructure/adapters/shared
 ----
 
 Future responsibility-owned infra asset directories should be introduced only
@@ -230,7 +230,7 @@ Adapters should implement ports in the same responsibility area:
 * deployment adapters for Portainer HTTP and compose repositories.
 * shared adapters for command runners, YAML, file management, UI, and logging.
 
-`modules/tsw_core/src/tiny_swarm_world/infrastructure/composition.py` remains the wiring root.
+`modules/tsw_core/src/infrastructure/composition.py` remains the wiring root.
 It may expose boundary-specific builder functions such as
 `build_platform_services`, `build_artifact_services`, and
 `build_deployment_services`, while `__main__.py` remains thin.
@@ -311,7 +311,7 @@ is documented and tested.
 * Affects: `documentation/handbook/02-architecture/arc42/08_concepts.adoc`
 * Related concept: platform, artifacts, deployment, and shared responsibility
   boundaries.
-* Related code: `modules/tsw_core/src/tiny_swarm_world/domain`
-* Related code: `modules/tsw_core/src/tiny_swarm_world/application`
-* Related code: `modules/tsw_core/src/tiny_swarm_world/infrastructure`
-* Related code: `modules/tsw_core/src/tiny_swarm_world/infrastructure/composition.py`
+* Related code: `modules/tsw_core/src/domain`
+* Related code: `modules/tsw_core/src/application`
+* Related code: `modules/tsw_core/src/infrastructure`
+* Related code: `modules/tsw_core/src/infrastructure/composition.py`

@@ -70,7 +70,7 @@ Fixes:
 Verification:
 
 - Targeted documentation/route tests:
-  `PYTHONPATH=src python3 -m unittest tests.architecture.test_legacy_surface_documentation tests.domain.ingress.test_desired_state tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml tests.integration.test_service_access_routing tests.live.browser_e2e_contract tests.live.test_post_install_browser_live`
+  `PYTHONPATH=. python3 -m unittest modules.tsw_core.tests.architecture.test_legacy_surface_documentation modules.tsw_core.tests.domain.ingress.test_desired_state modules.tsw_core.tests.infrastructure.adapters.repositories.test_compose_file_repository_yaml modules.tsw_core.tests.integration.test_service_access_routing tests.live.browser_e2e_contract tests.live.test_post_install_browser_live`
 - Result: passed.
 - Drift search for old primary ports `9000`, `8081`, `8087` and old evidence
   path: no remaining source/documentation hits.

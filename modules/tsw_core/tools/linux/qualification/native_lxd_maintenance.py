@@ -44,19 +44,19 @@ HEX = re.compile(r'[0-9a-f]{64}\Z', re.ASCII)
 RUN_ID = re.compile(r'[0-9a-f]{32}\Z', re.ASCII)
 FILES = (
     'modules/tsw_core/tools/linux/qualification/native_lxd_maintenance.py',
-    'tests/tools/test_native_lxd_maintenance.py',
+    'modules/tsw_native_linux/tests/tools/test_native_lxd_maintenance.py',
     'modules/tsw_core/tools/linux/qualification/native_runtime_inventory.py',
     'modules/tsw_core/tools/linux/qualification/native_lxd_snap_provenance.py',
     'modules/tsw_core/tools/linux/qualification/incus_profile_listener_fixture.py',
-    'tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py',
+    'modules/tsw_core/tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py',
     'documentation/handbook/05-development/workflow/issues/issue-449/workflow.md',
     'modules/tsw_core/tools/linux/qualification/native_resource_admission.py',
-    'tests/tools/test_native_resource_admission.py',
-    'tests/tools/test_native_runtime_inventory.py',
-    'modules/tsw_core/src/tiny_swarm_world/domain/native_preparation.py',
-    'modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/host/native_preparation.py',
-    'modules/tsw_windows_wsl/tools/windows/qualification/windows_firewall_snapshot.ps1',
-    'modules/tsw_windows_wsl/tools/windows/qualification/windows_firewall_certificate.ps1',
+    'modules/tsw_native_linux/tests/tools/test_native_resource_admission.py',
+    'modules/tsw_native_linux/tests/tools/test_native_runtime_inventory.py',
+    'modules/tsw_core/src/domain/native_preparation.py',
+    'modules/tsw_core/src/infrastructure/adapters/host/native_preparation.py',
+    'modules/tsw_windows_wsl/tools/qualification/windows_firewall_snapshot.ps1',
+    'modules/tsw_windows_wsl/tools/qualification/windows_firewall_certificate.ps1',
 )
 LIMIT = 8 * 1024 * 1024
 HOST_LOCK_PARENT = Path('/run/tsw-epic440-native-maintenance')

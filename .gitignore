@@ -79,7 +79,7 @@ pydevd_attach_to_process/
 ### Tiny Swarm World local runtime artifacts ###
 /.tiny-swarm-world/
 /.tiny-swarm/
-/bootstrap/windows/.tws-wsl-bridge.state.json
+/modules/tsw_windows_wsl/bootstrap/.tws-wsl-bridge.state.json
 .env
 .env.local
 

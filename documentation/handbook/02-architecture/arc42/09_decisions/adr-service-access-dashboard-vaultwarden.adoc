@@ -77,7 +77,7 @@ Repository constraints already require:
 * Docker Swarm-first deployment;
 * no React frontend project unless a separate workflow verifies such scope;
 * no Traefik routing implementation without architecture coverage;
-* `modules/tsw_core/src/tiny_swarm_world/infrastructure/composition.py` as the concrete wiring
+* `modules/tsw_core/src/infrastructure/composition.py` as the concrete wiring
   root.
 
 == Decision
@@ -236,5 +236,5 @@ Open follow-up items:
 * Related concept: service-access management landing page and credential
   display safety.
 * Related code: `modules/tsw_core/infra/config/compose/service-access`
-* Related code: `modules/tsw_core/src/tiny_swarm_world/domain/deployment`
-* Related code: `modules/tsw_core/src/tiny_swarm_world/application/services/deployment`
+* Related code: `modules/tsw_core/src/domain/deployment`
+* Related code: `modules/tsw_core/src/application/services/deployment`

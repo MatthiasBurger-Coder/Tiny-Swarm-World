@@ -89,5 +89,5 @@ archival rather than current guidance.
 * Affects: `documentation/handbook/02-architecture/arc42/04_context_and_scope.adoc`
 * Affects: `documentation/handbook/02-architecture/arc42/07_deployment_view.adoc`
 * Related concept: LXC-native provider direction.
-* Related code: `modules/tsw_core/src/tiny_swarm_world/infrastructure/composition.py`
+* Related code: `modules/tsw_core/src/infrastructure/composition.py`
 * Related code: `modules/tsw_core/infra/config`

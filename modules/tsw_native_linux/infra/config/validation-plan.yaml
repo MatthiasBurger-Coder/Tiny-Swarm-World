@@ -1,0 +1,18 @@
+schema_version: "1"
+metadata:
+  workflow_id: workflow-install-order-and-port-allocation-20260620
+  policy: "Validation evaluates observed evidence only; missing evidence is failed-to-verify."
+plans:
+  greenpath:
+    required_targets:
+      - deployment:portainer-service-readiness
+      - deployment:nexus-service-readiness
+      - deployment:jenkins-service-readiness
+      - deployment:pulsar-service-readiness
+      - deployment:sonarqube-service-readiness
+      - deployment:swagger-service-readiness
+      - deployment:infisical-service-readiness
+      - deployment:service-access-service-readiness
+      - deployment:traefik-service-readiness
+    optional_targets: []
+    live_default: false

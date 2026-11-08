@@ -9,7 +9,7 @@ policy, never evidence of an actual supported release or live transition.
 Command (exit 0; 40 tests PASS):
 
 ```bash
-PYTHONPATH=src python3 -m unittest tests.domain.lifecycle.test_update_planning tests.application.services.test_component_updates tests.test_component_updates_cli tests.test_lifecycle_cli tests.test_service_selection_cli tests.infrastructure.adapters.lifecycle.test_catalog tests.application.services.test_lifecycle
+PYTHONPATH=. python3 -m unittest modules.tsw_core.tests.domain.lifecycle.test_update_planning modules.tsw_core.tests.application.services.test_component_updates modules.tsw_core.tests.test_component_updates_cli modules.tsw_core.tests.test_lifecycle_cli modules.tsw_core.tests.test_service_selection_cli modules.tsw_core.tests.infrastructure.adapters.lifecycle.test_catalog modules.tsw_core.tests.application.services.test_lifecycle
 ```
 
 Read-only tests compare all installation-directory file bytes and modification
@@ -60,7 +60,7 @@ Additional compatibility command (exit 0; 19 tests PASS on Python 3.12.14):
 ```bash
 python3.12 -m venv /tmp/issue-445-py312
 /tmp/issue-445-py312/bin/python -m pip install --require-hashes -r requirements.lock
-PYTHONPATH=src /tmp/issue-445-py312/bin/python -m unittest tests.domain.lifecycle.test_update_planning tests.application.services.test_component_updates tests.test_component_updates_cli
+PYTHONPATH=. /tmp/issue-445-py312/bin/python -m unittest modules.tsw_core.tests.domain.lifecycle.test_update_planning modules.tsw_core.tests.application.services.test_component_updates modules.tsw_core.tests.test_component_updates_cli
 ```
 
 The bare Python 3.12 interpreter initially lacked pydantic; the isolated locked

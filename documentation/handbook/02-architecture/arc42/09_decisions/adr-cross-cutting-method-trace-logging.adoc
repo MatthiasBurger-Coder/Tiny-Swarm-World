@@ -19,7 +19,7 @@ runtime flow. The implementation now provides:
 * composition-owned setup console lifecycle and trace correlation wiring.
 
 The implemented scope is the declared installation runtime path protected by
-`tests/architecture/test_installation_method_trace_coverage.py`. Future
+`modules/tsw_core/tests/architecture/test_installation_method_trace_coverage.py`. Future
 expansion of the runtime owner set must update that guard and the related
 tests.
 
@@ -197,6 +197,6 @@ Future ADR coverage is required before:
 * Affects: `documentation/handbook/02-architecture/arc42/06_runtime_view.adoc`
 * Affects: `documentation/handbook/02-architecture/arc42/08_concepts.adoc`
 * Related concept: installation observability and safe trace metadata.
-* Related code: `modules/tsw_core/src/tiny_swarm_world/application/ports`
-* Related code: `modules/tsw_core/src/tiny_swarm_world/infrastructure/logging`
-* Related code: `tests/architecture/test_installation_method_trace_coverage.py`
+* Related code: `modules/tsw_core/src/application/ports`
+* Related code: `modules/tsw_core/src/infrastructure/logging`
+* Related code: `modules/tsw_core/tests/architecture/test_installation_method_trace_coverage.py`

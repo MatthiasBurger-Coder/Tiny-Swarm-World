@@ -82,8 +82,8 @@ Host preparation remains a separate operator step. The ordinary live-install
 command omits the destructive reset flag:
 
 ```bash
-./modules/tsw_core/bootstrap/linux/prepare_linux.sh --preflight
-./modules/tsw_core/bootstrap/linux/prepare_linux.sh
+./modules/tsw_native_linux/boostrap/prepare_linux.sh --preflight
+./modules/tsw_native_linux/boostrap/prepare_linux.sh
 ./install.sh --headless --non-interactive-live-approval
 ```
 

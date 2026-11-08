@@ -52,4 +52,4 @@ jobs:
         shell: bash -el {0}
         run: |
           set -Eeuo pipefail
-          PYTHONPATH=modules/tsw_core/src python -m unittest discover -s tests -t .
+          PYTHONPATH=. python -m unittest discover -s modules -t .

@@ -9,11 +9,11 @@ is retained when no selection or installation manifest is present.
 From the repository root on Linux/WSL:
 
 ```bash
-PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world setup run --minimal --preview
-PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world setup run --services jenkins,sonarqube --preview --json
-PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world setup run --selection-config selection.yml --preview
-PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world services add --services swagger --preview
-PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world services remove --services jenkins --preview
+PYTHONPATH=. python3 -m tiny_swarm_world setup run --minimal --preview
+PYTHONPATH=. python3 -m tiny_swarm_world setup run --services jenkins,sonarqube --preview --json
+PYTHONPATH=. python3 -m tiny_swarm_world setup run --selection-config selection.yml --preview
+PYTHONPATH=. python3 -m tiny_swarm_world services add --services swagger --preview
+PYTHONPATH=. python3 -m tiny_swarm_world services remove --services jenkins --preview
 ```
 
 The selection file must resolve to a regular file within the current working

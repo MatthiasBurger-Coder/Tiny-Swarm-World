@@ -23,7 +23,7 @@ python modules/tsw_core/tools/linux/quality_gate.py quality
 
 [source,bash]
 ----
-PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world
+PYTHONPATH=. python3 -m tiny_swarm_world
 ----
 
 The entry point delegates to the workflow CLI. Without a selected workflow, it
@@ -31,7 +31,7 @@ reports that no workflow was selected. List supported workflows explicitly:
 
 [source,bash]
 ----
-PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world --list-workflows
+PYTHONPATH=. python3 -m tiny_swarm_world --list-workflows
 ----
 
 Follow the link:../03-user-guide/user_guide/installation.adoc[installation guide] for host
@@ -44,7 +44,7 @@ The guided setup path is the Python workflow-level command:
 
 [source,bash]
 ----
-PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world setup run --live
+PYTHONPATH=. python3 -m tiny_swarm_world setup run --live
 ----
 
 When prompted, answer `y` only if changing the local Incus/LXC, Docker Swarm,

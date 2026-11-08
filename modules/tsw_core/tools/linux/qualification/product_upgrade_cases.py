@@ -23,7 +23,7 @@ from typing import Any
 from uuid import uuid4
 
 SCRIPT = 'modules/tsw_core/tools/linux/qualification/product_upgrade_cases.py'
-CATALOG = 'modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/lifecycle/component_transitions.py'
+CATALOG = 'modules/tsw_core/src/infrastructure/adapters/lifecycle/component_transitions.py'
 ROOT = Path(__file__).resolve().parents[5]
 FRESH_NAMES = ('minimal', 'swagger-internal', 'swagger-published', 'swagger-traefik-swarm',
                'swagger-traefik-portainer', 'swagger-add-traefik', 'full-swarm', 'full-portainer')

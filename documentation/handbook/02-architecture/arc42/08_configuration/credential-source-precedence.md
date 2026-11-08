@@ -104,7 +104,7 @@ for databases, Infisical's own bootstrap material, or every service.
 
 ## Live transition qualification
 
-The opt-in runner `tests/e2e/classic/run_credential_transition_live.py` supports
+The opt-in runner `modules/tsw_core/tests/e2e/classic/run_credential_transition_live.py` supports
 `--scenario matching-override`, `--scenario vault-only`, and
 `--scenario conflicting-sources`. Each requires `--approve-live` and a protected
 `--env-file` on an authorized healthy target with its named Jenkins home already

@@ -24,8 +24,8 @@ ROOT = Path(__file__).resolve().parents[5]
 TRUSTED_BIN = {'incus': '/usr/bin/incus', 'ip': '/usr/sbin/ip', 'ss': '/usr/bin/ss', 'uname': '/usr/bin/uname', 'free': '/usr/bin/free', 'df': '/usr/bin/df', 'curl': '/usr/bin/curl', 'git': '/usr/bin/git'}
 TRUSTED_PATH = '/usr/sbin:/usr/bin:/sbin:/bin'
 PRIVATE_EVIDENCE_REL = Path('.tiny-swarm/evidence/issue-449/s449-private-20261027')
-WINDOWS_SNAPSHOT_REL = Path('modules/tsw_windows_wsl/tools/windows/qualification/windows_firewall_snapshot.ps1')
-WINDOWS_CERTIFICATE_REL = Path('modules/tsw_windows_wsl/tools/windows/qualification/windows_firewall_certificate.ps1')
+WINDOWS_SNAPSHOT_REL = Path('modules/tsw_windows_wsl/tools/qualification/windows_firewall_snapshot.ps1')
+WINDOWS_CERTIFICATE_REL = Path('modules/tsw_windows_wsl/tools/qualification/windows_firewall_certificate.ps1')
 WINDOWS_CERTIFICATE_SHA256 = '2ed11f507292e8abad5367856929e2698c26c4db11f8cf9d00c19fa2da34f458'
 GO_REL = PRIVATE_EVIDENCE_REL / 'three-amigos-s02-live-go.json'
 RESULT_REL = PRIVATE_EVIDENCE_REL / 'r67-incus-6.0.5-listener-fixture.json'
@@ -896,7 +896,7 @@ def git_preflight() -> tuple[str, bytes, bytes, bytes]:
         raise FixtureError('CHECKOUT_NOT_CLEAN')
     wf = git('show', 'HEAD:documentation/handbook/05-development/workflow/issues/issue-449/workflow.md')
     runner = git('show', 'HEAD:modules/tsw_core/tools/linux/qualification/incus_profile_listener_fixture.py')
-    tests = git('show', 'HEAD:tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py')
+    tests = git('show', 'HEAD:modules/tsw_core/tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py')
     return head, wf, runner, tests
 
 

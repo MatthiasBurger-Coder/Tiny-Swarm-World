@@ -1,0 +1,67 @@
+services:
+  infisical:
+    image: ${TSW_INFISICAL_IMAGE:-infisical/infisical:v0.159.1}
+    environment:
+      NODE_ENV: production
+      SITE_URL: ${TSW_INFISICAL_SITE_URL:-http://localhost:17080}
+      ENCRYPTION_KEY: ${TSW_INFISICAL_ENCRYPTION_KEY}
+      AUTH_SECRET: ${TSW_INFISICAL_AUTH_SECRET}
+      INITIAL_BOOTSTRAP_ADMIN_EMAIL: ${TSW_INFISICAL_LOGIN_EMAIL}
+      INITIAL_BOOTSTRAP_ADMIN_FIRST_NAME: ${TSW_INFISICAL_ADMIN_FIRST_NAME:-Tiny}
+      INITIAL_BOOTSTRAP_ADMIN_LAST_NAME: ${TSW_INFISICAL_ADMIN_LAST_NAME:-Admin}
+      INITIAL_BOOTSTRAP_ADMIN_PASSWORD: ${TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD}
+      DB_CONNECTION_URI: postgres://${TSW_INFISICAL_POSTGRES_USER:-infisical}:${TSW_INFISICAL_POSTGRES_PASSWORD}@tasks.infisical-db:5432/${TSW_INFISICAL_POSTGRES_DB:-infisical}
+      REDIS_URL: redis://tasks.infisical-redis:6379
+    volumes:
+      - infisical_uploads:/app/infisical/uploads
+    ports:
+      - target: 8080
+        published: 17080
+        protocol: tcp
+        mode: host
+    networks:
+      - service_access_link
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+
+  infisical-db:
+    image: ${TSW_INFISICAL_POSTGRES_IMAGE:-postgres:14.23-alpine3.23}
+    environment:
+      POSTGRES_USER: ${TSW_INFISICAL_POSTGRES_USER:-infisical}
+      POSTGRES_PASSWORD: ${TSW_INFISICAL_POSTGRES_PASSWORD}
+      POSTGRES_DB: ${TSW_INFISICAL_POSTGRES_DB:-infisical}
+    volumes:
+      - infisical_pg_data:/var/lib/postgresql/data
+    networks:
+      - service_access_link
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == swarm-worker-1
+
+  infisical-redis:
+    image: ${TSW_INFISICAL_REDIS_IMAGE:-redis:7.4.9-alpine3.21}
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - infisical_redis_data:/data
+    networks:
+      - service_access_link
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == swarm-worker-1
+
+volumes:
+  infisical_pg_data:
+  infisical_redis_data:
+  infisical_uploads:
+
+networks:
+  service_access_link:
+    name: service_access_link
+    external: true

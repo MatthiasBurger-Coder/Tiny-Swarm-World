@@ -22,7 +22,7 @@ Repository state before documentation changes:
 Required files inspected first:
 
 - `AGENTS.md`
-- `modules/tsw_core/src/tiny_swarm_world/AGENTS.md`
+- `modules/tsw_core/src/AGENTS.md`
 - `infra/AGENTS.md`
 - `.importlinter`
 - `README.md`
@@ -30,9 +30,9 @@ Required files inspected first:
 
 Additional relevant areas inspected:
 
-- `modules/tsw_core/src/tiny_swarm_world/domain`
-- `modules/tsw_core/src/tiny_swarm_world/application`
-- `modules/tsw_core/src/tiny_swarm_world/infrastructure`
+- `../../../../../modules/tsw_core/src/domain`
+- `../../../../../modules/tsw_core/src/application`
+- `../../../../../modules/tsw_core/src/infrastructure`
 - `modules/tsw_core/infra/config`
 - `modules/tsw_core/infra/config/compose`
 - `tests`
@@ -68,17 +68,17 @@ cluster substrate.
 
 ### Source Code
 
-- former `modules/tsw_core/src/tiny_swarm_world/domain/multipass` (superseded)
-- `modules/tsw_core/src/tiny_swarm_world/domain/network`
-- former `modules/tsw_core/src/tiny_swarm_world/application/services/multipass` (superseded)
-- `modules/tsw_core/src/tiny_swarm_world/application/services/network`
-- `modules/tsw_core/src/tiny_swarm_world/application/services/platform`
+- former `../../../../../modules/tsw_core/src/domain` (superseded)
+- `../../../../../modules/tsw_core/src/domain`
+- former `../../../../../modules/tsw_core/src/application` (superseded)
+- `../../../../../modules/tsw_core/src/application`
+- `../../../../../modules/tsw_core/src/application`
   compatibility namespace for the incremental platform boundary migration
-- `modules/tsw_core/src/tiny_swarm_world/application/services/vm`
-- `modules/tsw_core/src/tiny_swarm_world/application/ports/repositories/port_vm_repository.py`
-- former `modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/repositories/vm_repository_yaml.py`
+- `../../../../../modules/tsw_core/src/application`
+- `../../../../../modules/tsw_core/src/application`
+- former `../../../../../modules/tsw_core/src/infrastructure`
   retired after verification found no active product consumer
-- former `modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/repositories/netplan_repository.py`
+- former `../../../../../modules/tsw_core/src/infrastructure`
   retired after verification found no active product consumer
 
 ### Infrastructure Assets
@@ -108,15 +108,15 @@ Nexus repository behavior, and future Maven or Docker registry workflows.
 
 ### Source Code
 
-- `modules/tsw_core/src/tiny_swarm_world/domain/nexus`
-- `modules/tsw_core/src/tiny_swarm_world/application/services/artifacts`
+- `../../../../../modules/tsw_core/src/domain`
+- `../../../../../modules/tsw_core/src/application`
   compatibility namespace for the incremental artifact boundary migration
-- `modules/tsw_core/src/tiny_swarm_world/application/ports/clients/port_nexus_client.py`
-- `modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/nexus_http_client.py`
-- `modules/tsw_core/src/tiny_swarm_world/application/services/nexus/enable_nexus_anonymous_access.py`
-- `modules/tsw_core/src/tiny_swarm_world/application/services/nexus/ensure_nexus_admin_access.py`
-- `modules/tsw_core/src/tiny_swarm_world/application/services/nexus/wait_for_nexus_ready.py`
-- `modules/tsw_core/src/tiny_swarm_world/application/services/nexus/nexus_bootstrap_configuration.py`
+- `../../../../../modules/tsw_core/src/application`
+- `../../../../../modules/tsw_core/src/infrastructure`
+- `../../../../../modules/tsw_core/src/application`
+- `../../../../../modules/tsw_core/src/application`
+- `../../../../../modules/tsw_core/src/application`
+- `../../../../../modules/tsw_core/src/application`
 
 ### Infrastructure Assets
 
@@ -136,14 +136,14 @@ Portainer stack APIs, and service lifecycle through Portainer or Docker Swarm.
 
 ### Source Code
 
-- `modules/tsw_core/src/tiny_swarm_world/domain/deployment`
-- `modules/tsw_core/src/tiny_swarm_world/application/services/deployment`
+- `../../../../../modules/tsw_core/src/domain`
+- `../../../../../modules/tsw_core/src/application`
   compatibility namespace for the incremental deployment boundary migration
-- `modules/tsw_core/src/tiny_swarm_world/application/ports/clients/port_portainer_client.py`
-- `modules/tsw_core/src/tiny_swarm_world/application/ports/repositories/port_compose_file_repository.py`
-- `modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/portainer_http_client.py`
-- `modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py`
-- `modules/tsw_core/src/tiny_swarm_world/application/services/nexus/ensure_nexus_stack.py`
+- `../../../../../modules/tsw_core/src/application`
+- `../../../../../modules/tsw_core/src/application`
+- `../../../../../modules/tsw_core/src/infrastructure`
+- `../../../../../modules/tsw_core/src/infrastructure`
+- `../../../../../modules/tsw_core/src/application`
   currently belongs here by behavior, despite living under `services/nexus`.
 
 ### Infrastructure Assets
@@ -159,7 +159,7 @@ Portainer stack APIs, and service lifecycle through Portainer or Docker Swarm.
 
 ### Tests and Documentation
 
-- `tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py`
+- `modules/tsw_core/tests/infrastructure/adapters/repositories/test_compose_file_repository_yaml.py`
 - Portainer/stack related tests that may be added later
 - deployment sections in `documentation/handbook/02-architecture/arc42/07_deployment/system.adoc`
 - service deployment sections in `documentation/handbook/03-user-guide/user_guide/usage.adoc`
@@ -171,24 +171,24 @@ artifact, or deployment decisions.
 
 ### Source Code
 
-- `modules/tsw_core/src/tiny_swarm_world/domain/command`
-- `modules/tsw_core/src/tiny_swarm_world/application/services/commands`
-- `modules/tsw_core/src/tiny_swarm_world/application/ports/commands`
-- `modules/tsw_core/src/tiny_swarm_world/application/ports/file_management`
-- `modules/tsw_core/src/tiny_swarm_world/application/ports/ui`
-- `modules/tsw_core/src/tiny_swarm_world/application/ports/repositories/port_command_repository.py`
-- `modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/command_runner`
-- `modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/file_management`
-- `modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/yaml`
-- `modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/ui`
-- `modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/repositories/command_multipass_init_repository_yaml.py`
-- `modules/tsw_core/src/tiny_swarm_world/infrastructure/logging`
-- `modules/tsw_core/src/tiny_swarm_world/infrastructure/project_paths.py`
+- `../../../../../modules/tsw_core/src/domain`
+- `../../../../../modules/tsw_core/src/application`
+- `../../../../../modules/tsw_core/src/application`
+- `../../../../../modules/tsw_core/src/application`
+- `../../../../../modules/tsw_core/src/application`
+- `../../../../../modules/tsw_core/src/application`
+- `../../../../../modules/tsw_core/src/infrastructure`
+- `../../../../../modules/tsw_core/src/infrastructure`
+- `../../../../../modules/tsw_core/src/infrastructure`
+- `../../../../../modules/tsw_core/src/infrastructure`
+- `../../../../../modules/tsw_core/src/infrastructure`
+- `../../../../../modules/tsw_core/src/infrastructure`
+- `../../../../../modules/tsw_core/src/infrastructure`
   now owns the immutable `ProjectPaths` value object, environment-backed
   default construction, and compatibility functions for repository-relative
   paths used by infrastructure adapters.
-- `modules/tsw_core/src/tiny_swarm_world/infrastructure/os_types.py`
-- `modules/tsw_core/src/tiny_swarm_world/infrastructure/composition.py`
+- `../../../../../modules/tsw_core/src/infrastructure`
+- `../../../../../modules/tsw_core/src/infrastructure`
   now exposes `build_platform_services()` and keeps
   `build_application_services()` as a compatibility wrapper
 
@@ -224,8 +224,8 @@ These areas need explicit classification before any cleanup:
 
 | ID | File or Area | Current Responsibility | Conflicting Responsibility | Boundary Problem | Proposed Target Owner | Risk | Follow-up Agent |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| C-001 | `modules/tsw_core/src/tiny_swarm_world/application/services/nexus/ensure_nexus_stack.py` | Nexus bootstrap | Portainer stack deployment | A Nexus service directly owns stack creation/update through Portainer. | Deployment | Medium | Stack Deployment Agent |
-| C-002 | `modules/tsw_core/src/tiny_swarm_world/application/services/nexus/bootstrap_nexus.py` | Nexus workflow orchestration | Deployment plus registry configuration | A single workflow combines stack deployment, readiness, credential rotation, and anonymous access. | Split between Deployment and Artifacts | Medium | Artifact Registry Agent plus Stack Deployment Agent |
+| C-001 | `../../../../../modules/tsw_core/src/application` | Nexus bootstrap | Portainer stack deployment | A Nexus service directly owns stack creation/update through Portainer. | Deployment | Medium | Stack Deployment Agent |
+| C-002 | `../../../../../modules/tsw_core/src/application` | Nexus workflow orchestration | Deployment plus registry configuration | A single workflow combines stack deployment, readiness, credential rotation, and anonymous access. | Split between Deployment and Artifacts | Medium | Artifact Registry Agent plus Stack Deployment Agent |
 | C-003 | `infra/prepare/nexus/setup.py` | Retired Nexus setup entrypoint | Composition root, Portainer client, Docker runtime, Nexus client | The former direct script wired concrete deployment and artifact adapters outside the main composition root. | Resolved by removal; behavior belongs behind setup workflow contracts | Retired | Composition / CLI Workflow Agent |
 | C-004 | Former `create_dockerfiles.sh` helper | Retired image build and registry push helper | Stack deployment directory | The former helper mixed Dockerfile generation, build, login, push, and registry credentials. | Resolved by removal; artifacts behavior belongs to Python artifact workflow | Retired | Artifact Registry Agent |
 | C-005 | Former `upload_all_stacks.sh` helper | Retired stack upload helper | Image build and push | The former helper sourced image publishing before stack processing. | Resolved by removal; deployment should call artifact output through workflow contracts | Retired | Stack Deployment Agent |
@@ -233,8 +233,8 @@ These areas need explicit classification before any cleanup:
 | C-007 | `infra/prepare/portainer/portain_setup.py` | Retired Portainer setup duplicate | Multipass, socat, iptables, Docker cleanup, stack deploy | The former script coupled platform networking and deployment. | Resolved by removal; split behavior across Platform and Deployment workflow contracts | Retired | Platform Provisioning Agent plus Stack Deployment Agent |
 | C-008 | `infra/prepare/portainer/prepare.sh` | Retired Portainer stack deployment helper | Docker system prune and volume removal | The former helper mixed deployment bootstrap with destructive Docker cleanup. | Resolved by removal; reset behavior must stay explicit | Retired | Stack Deployment Agent |
 | C-009 | `modules/tsw_core/infra/config/docker` | Docker install and Swarm commands | Artifact Docker image build meaning | Directory name `docker` can mean platform daemon setup or artifact image workflows. | Platform for current files; future artifact config elsewhere | Low | Platform Provisioning Agent |
-| C-010 | `modules/tsw_core/src/tiny_swarm_world/infrastructure/composition.py` | Wiring root | Boundary service bundles | Composition now exposes platform, artifact, and deployment builders and keeps the existing application builder as a compatibility wrapper; live artifact and deployment behavior remains blocked behind explicit workflow contracts. | Shared composition root with boundary-specific builders | Medium | Composition / CLI Workflow Agent |
-| C-011 | `modules/tsw_core/src/tiny_swarm_world/__main__.py` | Command parsing, consent, dispatch and exit status | Previously selected and sequenced application workflows, host preflight and host mutation, and result rendering | Issue #358 moved workflow selection to `infrastructure/composition_cli.py`, host preflight sequencing to `PrepareHostWithPreflight`, setup plan data gathering to `build_setup_installation_plan`, and output formatting to `cli_presentation.py`. The CLI still owns safety prompts and exit mapping. | CLI adapter plus explicit application use cases and composition | Low | Composition / CLI Workflow Agent |
+| C-010 | `../../../../../modules/tsw_core/src/infrastructure` | Wiring root | Boundary service bundles | Composition now exposes platform, artifact, and deployment builders and keeps the existing application builder as a compatibility wrapper; live artifact and deployment behavior remains blocked behind explicit workflow contracts. | Shared composition root with boundary-specific builders | Medium | Composition / CLI Workflow Agent |
+| C-011 | `../../../../../modules/tsw_core/src/__main__.py` | Command parsing, consent, dispatch and exit status | Previously selected and sequenced application workflows, host preflight and host mutation, and result rendering | Issue #358 moved workflow selection to `infrastructure/composition_cli.py`, host preflight sequencing to `PrepareHostWithPreflight`, setup plan data gathering to `build_setup_installation_plan`, and output formatting to `cli_presentation.py`. The CLI still owns safety prompts and exit mapping. | CLI adapter plus explicit application use cases and composition | Low | Composition / CLI Workflow Agent |
 | C-013 | `tests` | Layer-based grouping | Missing responsibility boundary checks | Tests protect hexagonal imports but not platform/artifact/deployment ownership. | Test and Quality Gate | Low | Test and Quality Gate Agent |
 
 ## High Confidence Target Owners

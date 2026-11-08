@@ -12,8 +12,8 @@ selection persistence over these contracts.
 Run from the prepared checkout/environment:
 
 ```bash
-PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world product version --json
-PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world services list --json
+PYTHONPATH=. python3 -m tiny_swarm_world product version --json
+PYTHONPATH=. python3 -m tiny_swarm_world services list --json
 ```
 
 These commands read native catalog assets and
@@ -147,7 +147,7 @@ AC1 maps to codec/schema/migration rejection tests; AC2 to atomic repository,
 preview/no-op and read-only CLI tests; AC3 to identity/drift and bundle catalog
 tests; AC4 to adoption inventory/approval/conflict tests and the blocked operator
 path above. `tests/domain/lifecycle`, `tests/infrastructure/adapters/lifecycle`,
-`tests/application/services/test_lifecycle.py` and `tests/test_lifecycle_cli.py`
+`modules/tsw_core/tests/application/services/test_lifecycle.py` and `modules/tsw_core/tests/test_lifecycle_cli.py`
 provide deterministic local evidence. Issue evidence lives under
 `.tiny-swarm/evidence/issue-442/`; tracked completion evidence is linked from
 `documentation/handbook/07-evidence-release/evidence/issue-442-completion-audit.md`.

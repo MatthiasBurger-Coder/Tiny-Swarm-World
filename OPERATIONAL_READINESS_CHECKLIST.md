@@ -91,7 +91,7 @@ for local, live and external classifications.
       fresh-reset automation also uses `--confirm-reset`; native installation
       reconciles without reset. Other destructive CLI operations require their
       exact confirmation phrase separately.
-- [ ] `tests/e2e/classic/run_classic_acceptance.py` requires `--approve-live`, protected
+- [ ] `modules/tsw_core/tests/e2e/classic/run_classic_acceptance.py` requires `--approve-live`, protected
       operator inputs and an explicitly owned authorized target.
 - [ ] Preparation stages have their own consent; preparation approval does
       not authorize installation or qualify live services.

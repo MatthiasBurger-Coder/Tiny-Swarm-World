@@ -15,7 +15,7 @@ dependencies.
 - Use mocks for command execution, network calls, VM operations and Docker
   operations.
 - Use temporary directories for filesystem tests.
-- Keep test imports aligned with package style and `PYTHONPATH=src`.
+- Keep test imports aligned with package style and `PYTHONPATH=.`.
 
 ## Inputs
 

@@ -3,7 +3,7 @@
 Source: GitHub #355 goal, scope and five acceptance criteria; parent #313 and accepted ADR.
 Every requirement is retained. Product evidence and final S07 quality are verified (2259 tests; 18 exclusions).
 Independent completion audit PASS; all requirements are complete. See completion_audit.md in the issue evidence package.
-Implementation paths below are relative to modules/tsw_core/src/tiny_swarm_world; service paths
+Implementation paths below are relative to modules/tsw_core/src; service paths
 are relative to application/services.
 
 | ID | Requirement from issue | Type | Files / slices | Implementation evidence | Test evidence | Status |
@@ -29,21 +29,21 @@ are relative to application/services.
 Each method above belongs to the listed module (subsequent names in a cell use
 the same module until another key appears).
 
-- C: `tests/application/ports/test_operation_result.py`
-- U: `tests/application/services/platform/test_classic_update_workflow.py`
-- P: `tests/application/services/platform/test_platform_workflows.py`
-- I: `tests/application/services/setup/test_operation_result_integration.py`
-- CLI: `tests/test_package_entrypoint.py`
-- COMP: `tests/infrastructure/test_composition.py`
-- READ: `tests/infrastructure/adapters/preflight/test_artifact_readiness.py`
-- INF: `tests/application/services/deployment/test_infisical_silent_install.py`
-- CONFIG: `tests/application/services/artifacts/test_static_contract_preflight.py`
-- M: `tests/infrastructure/adapters/exceptions/test_operation_failure_mapping.py`
-- A: `tests/infrastructure/adapters/command_runner/test_async_command_runner.py`
-- ARCH: `tests/architecture/test_hexagonal_imports.py`
-- INST: `tests/test_installer.py`
-- SIMPLE: `tests/test_simple_installer.py`
-- AUTH: `tests/application/services/deployment/test_ensure_infisical_secret_items.py`
+- C: `modules/tsw_core/tests/application/ports/test_operation_result.py`
+- U: `modules/tsw_core/tests/application/services/platform/test_classic_update_workflow.py`
+- P: `modules/tsw_core/tests/application/services/platform/test_platform_workflows.py`
+- I: `modules/tsw_core/tests/application/services/setup/test_operation_result_integration.py`
+- CLI: `modules/tsw_core/tests/test_package_entrypoint.py`
+- COMP: `modules/tsw_core/tests/infrastructure/test_composition.py`
+- READ: `modules/tsw_core/tests/infrastructure/adapters/preflight/test_artifact_readiness.py`
+- INF: `modules/tsw_core/tests/application/services/deployment/test_infisical_silent_install.py`
+- CONFIG: `modules/tsw_core/tests/application/services/artifacts/test_static_contract_preflight.py`
+- M: `modules/tsw_core/tests/infrastructure/adapters/exceptions/test_operation_failure_mapping.py`
+- A: `modules/tsw_core/tests/infrastructure/adapters/command_runner/test_async_command_runner.py`
+- ARCH: `modules/tsw_core/tests/architecture/test_hexagonal_imports.py`
+- INST: `modules/tsw_core/tests/test_installer.py`
+- SIMPLE: `modules/tsw_core/tests/test_simple_installer.py`
+- AUTH: `modules/tsw_core/tests/application/services/deployment/test_ensure_infisical_secret_items.py`
 
 ## Applicability and retained boundaries
 

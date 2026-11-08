@@ -38,7 +38,7 @@ intentionally on a WSL Windows mount, the applicable commands also need
 | Inspect current platform | `platform verify` | Read-only checks; does not repair.
 | Reconcile managed platform | `platform reconcile --live` | Mutates managed platform state; does not constitute a full service update.
 | Run the broader setup again | `setup run --live` | Mutates infrastructure and services without the wrapper's preliminary reset.
-| Prepare a native Ubuntu 24.04 or 26.04 host | `modules/tsw_core/bootstrap/linux/prepare_linux.sh` | Separately installs only missing approved host packages after confirmation.
+| Prepare a native Ubuntu 24.04 or 26.04 host | `modules/tsw_native_linux/boostrap/prepare_linux.sh` | Separately installs only missing approved host packages after confirmation.
 | Install or reconcile on native Ubuntu 24.04 or 26.04 | `install.sh` | Checks preparation and runs setup without a reset.
 | Install or reconcile on supported WSL2 Ubuntu | `install.sh` | Checks preparation and runs setup without reset.
 | Recreate a disposable WSL2 environment | `./install.sh --confirm-reset` | Explicit deprecated destructive compatibility; live approval remains separate.
@@ -125,7 +125,7 @@ without mutation or runtime observation; it does not qualify the running image:
 
 [source,bash]
 ----
-PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world platform update \
+PYTHONPATH=. python3 -m tiny_swarm_world platform update \
   --stack jenkins --service jenkins \
   --from-image 127.0.0.1:13500/jenkins:0.2.0 \
   --to-image 127.0.0.1:13500/jenkins:0.3.0 --preview --json
@@ -294,7 +294,7 @@ python3 modules/tsw_core/tools/linux/quality_gate.py test
 ----
 
 The gate runs Ruff, import-linter, architecture tests, mypy, and unittest
-discovery against the `modules/tsw_core/src/tiny_swarm_world` source tree and root `tests/`
+discovery against the `modules/tsw_core/src` source tree and root `tests/`
 directory.
 
 == Main Python Entrypoint
@@ -308,7 +308,7 @@ tiny-swarm-world
 ----
 
 For source-checkout diagnostics before installation, the equivalent module
-fallback remains `PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world`.
+fallback remains `PYTHONPATH=. python3 -m tiny_swarm_world`.
 
 Running without arguments does not execute infrastructure commands. List the
 workflow-level commands first:
@@ -538,7 +538,7 @@ The canonical classification is maintained in
 [options="header"]
 |===
 | Path | Status
-| `modules/tsw_core/src/tiny_swarm_world/__main__.py` | Supported workflow-level entry point with live-consent and confirmation contracts.
+| `modules/tsw_core/src/__main__.py` | Supported workflow-level entry point with live-consent and confirmation contracts.
 | `modules/tsw_core/infra/config/compose/**/docker-compose.yml` | Supported stack assets, not standalone quality-gate commands.
 | `modules/tsw_core/infra/config/compose/**/Dockerfile` | Supported image source assets used by the Python setup workflow.
 |===
@@ -596,7 +596,7 @@ nodes. Do not use `127.0.0.1`, because that would point at the node itself:
 [source,bash]
 ----
 export TSW_LXC_DOCKER_REGISTRY_MIRROR='http://<lxc-reachable-host-ip>:5001'
-PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world setup run --live
+PYTHONPATH=. python3 -m tiny_swarm_world setup run --live
 ----
 
 The LXC Docker installation step writes this value into each node's

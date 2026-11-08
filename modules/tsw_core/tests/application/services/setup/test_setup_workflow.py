@@ -1,0 +1,1044 @@
+import asyncio
+import unittest
+from contextlib import redirect_stdout
+from io import StringIO
+from modules.tsw_core.tests.support.sonar_safe_literals import sensitive_assignment
+
+from tiny_swarm_world.application.ports.method_trace import (
+    MethodTraceEvent,
+    PortMethodTrace,
+)
+from tiny_swarm_world.application.ports.progress import (
+    PortWorkflowProgress,
+    WorkflowProgressEvent,
+)
+from tiny_swarm_world.application.services.artifacts import (
+    ArtifactWorkflowKind,
+    ArtifactWorkflowResult,
+    ArtifactWorkflowStatus,
+)
+from tiny_swarm_world.application.services.deployment import (
+    DeploymentWorkflowKind,
+    DeploymentWorkflowResult,
+    DeploymentWorkflowStatus,
+)
+from tiny_swarm_world.application.services.setup import (
+    SetupWorkflow,
+    SetupWorkflowKind,
+    SetupWorkflowPhase,
+    SetupWorkflowStatus,
+)
+from tiny_swarm_world.application.services.platform.workflow_taxonomy import (
+    PlatformWorkflowKind,
+    PlatformWorkflowResult,
+    PlatformWorkflowStatus,
+)
+from tiny_swarm_world.domain.inventory import VerificationResult, VerificationStatus
+from tiny_swarm_world.domain.preflight import (
+    HostPreparationResult,
+    HostPreparationStatus,
+    InstallationPhase,
+    InstallationPlan,
+    LIVE_CONSENT_ENVIRONMENT_VALUE,
+    LIVE_CONSENT_PHRASE,
+    LiveConsent,
+    PreflightCategory,
+    PreflightCheck,
+    PreflightResult,
+    PreflightSeverity,
+    PreflightStatus,
+    default_installation_plan,
+)
+
+
+class TestSetupWorkflow(unittest.IsolatedAsyncioTestCase):
+    async def test_host_preparation_success_result_is_serializable_and_continues(self):
+        calls: list[str] = []
+        result = await SetupWorkflow(
+            (
+                SetupWorkflowPhase(
+                    "host prepare",
+                    lambda: HostPreparationResult(
+                        "prepare",
+                        "native_linux",
+                        HostPreparationStatus.SUCCESS,
+                        "ok",
+                        verified=True,
+                    ),
+                ),
+                SetupWorkflowPhase(
+                    "platform init",
+                    lambda: _completed_result("platform init", calls),
+                ),
+            ),
+            live_consent=_accepted_live_consent(),
+        ).run()
+
+        self.assertEqual(SetupWorkflowStatus.COMPLETED, result.status)
+        self.assertEqual(["host prepare", "platform init"], [item.name for item in result.phase_results])
+
+    async def test_blocks_when_no_phases_are_configured(self):
+        result = await SetupWorkflow(live_consent=_accepted_live_consent()).run()
+
+        self.assertEqual(SetupWorkflowKind.RUN, result.kind)
+        self.assertEqual(SetupWorkflowStatus.BLOCKED, result.status)
+        self.assertFalse(result.executed)
+        self.assertEqual("setup run", result.workflow_name)
+
+    async def test_refuses_without_accepted_live_consent(self):
+        calls: list[str] = []
+        result = await SetupWorkflow(
+            (SetupWorkflowPhase("preflight", lambda: _completed_result("preflight", calls)),)
+        ).run()
+
+        self.assertEqual(SetupWorkflowStatus.REFUSED, result.status)
+        self.assertFalse(result.executed)
+        self.assertEqual([], calls)
+
+    async def test_completes_all_configured_phases_in_order(self):
+        calls: list[str] = []
+        workflow = SetupWorkflow(
+            (
+                SetupWorkflowPhase("preflight", lambda: _completed_result("preflight", calls)),
+                SetupWorkflowPhase("platform init", lambda: _completed_result("platform init", calls)),
+            ),
+            live_consent=_accepted_live_consent(),
+        )
+
+        result = await workflow.run()
+
+        self.assertEqual(SetupWorkflowStatus.COMPLETED, result.status)
+        self.assertTrue(result.executed)
+        self.assertEqual(["preflight", "platform init"], calls)
+        self.assertEqual(["preflight", "platform init"], [phase.name for phase in result.phase_results])
+
+    async def test_installation_plan_orders_configured_phases_before_execution(self):
+        calls: list[str] = []
+        workflow = SetupWorkflow(
+            (
+                SetupWorkflowPhase("validation", lambda: _completed_result("validation", calls)),
+                SetupWorkflowPhase("preflight", lambda: _completed_result("preflight", calls)),
+                SetupWorkflowPhase("platform init", lambda: _completed_result("platform init", calls)),
+            ),
+            live_consent=_accepted_live_consent(),
+            installation_plan=_minimal_installation_plan(),
+        )
+
+        result = await workflow.run()
+
+        self.assertEqual(SetupWorkflowStatus.COMPLETED, result.status)
+        self.assertEqual(calls, ["preflight", "platform init", "validation"])
+        self.assertEqual(
+            [phase.name for phase in result.phase_results],
+            ["preflight", "platform init", "validation"],
+        )
+
+    async def test_installation_plan_missing_required_phase_blocks_before_execution(self):
+        calls: list[str] = []
+        workflow = SetupWorkflow(
+            (
+                SetupWorkflowPhase("preflight", lambda: _completed_result("preflight", calls)),
+                SetupWorkflowPhase("platform init", lambda: _completed_result("platform init", calls)),
+            ),
+            live_consent=_accepted_live_consent(),
+            installation_plan=_minimal_installation_plan(),
+        )
+
+        result = await workflow.run()
+
+        self.assertEqual(SetupWorkflowStatus.BLOCKED, result.status)
+        self.assertFalse(result.executed)
+        self.assertEqual(calls, [])
+        self.assertIn("required setup workflow phases are missing", result.reason)
+
+    async def test_installation_plan_preserves_downstream_not_run_after_blocked_phase(self):
+        calls: list[str] = []
+        workflow = SetupWorkflow(
+            (
+                SetupWorkflowPhase("validation", lambda: _completed_result("validation", calls)),
+                SetupWorkflowPhase("preflight", lambda: _completed_result("preflight", calls)),
+                SetupWorkflowPhase("platform init", lambda: _blocked_result("platform init", calls)),
+            ),
+            live_consent=_accepted_live_consent(),
+            installation_plan=_minimal_installation_plan(),
+        )
+
+        result = await workflow.run()
+
+        self.assertEqual(SetupWorkflowStatus.BLOCKED, result.status)
+        self.assertEqual(calls, ["preflight", "platform init"])
+        self.assertEqual(
+            [phase.status for phase in result.phase_results],
+            ["completed", "blocked", "not_run"],
+        )
+
+    async def test_cluster_failure_marks_all_downstream_installation_phases_not_run(self):
+        calls: list[str] = []
+        phase_names = default_installation_plan().ordered_workflow_phase_names()
+
+        workflow = SetupWorkflow(
+            tuple(
+                SetupWorkflowPhase(
+                    name,
+                    (
+                        (lambda name=name: _blocked_result(name, calls))
+                        if name == "cluster verify"
+                        else (lambda name=name: _completed_result(name, calls))
+                    ),
+                )
+                for name in phase_names
+            ),
+            live_consent=_accepted_live_consent(),
+            installation_plan=default_installation_plan(),
+        )
+
+        result = await workflow.run()
+
+        self.assertEqual(SetupWorkflowStatus.BLOCKED, result.status)
+        self.assertEqual(
+            calls,
+            list(phase_names[: phase_names.index("cluster verify") + 1]),
+        )
+        phase_statuses = {
+            phase.name: phase.status for phase in result.phase_results
+        }
+        self.assertEqual(phase_statuses["cluster verify"], "blocked")
+        self.assertEqual(
+            {
+                "platform expose",
+                "deployment bootstrap",
+                "artifact bootstrap",
+                "artifact readiness gate",
+                "artifacts prepare",
+                "artifacts verify",
+                "deployment apply",
+                "deployment verify",
+                "platform verify",
+            },
+            {
+                name
+                for name, status in phase_statuses.items()
+                if status == "not_run"
+            },
+        )
+
+    async def test_default_installation_plan_success_keeps_cluster_boundary_order(self):
+        calls: list[str] = []
+        phase_names = default_installation_plan().ordered_workflow_phase_names()
+        workflow = SetupWorkflow(
+            tuple(
+                SetupWorkflowPhase(
+                    name,
+                    lambda name=name: _completed_result(name, calls),
+                )
+                for name in phase_names
+            ),
+            live_consent=_accepted_live_consent(),
+            installation_plan=default_installation_plan(),
+        )
+
+        result = await workflow.run()
+
+        self.assertEqual(SetupWorkflowStatus.COMPLETED, result.status)
+        self.assertEqual(calls, list(phase_names))
+        self.assertLess(
+            calls.index("platform reconcile"),
+            calls.index("cluster docker"),
+        )
+        self.assertLess(
+            calls.index("cluster verify"),
+            calls.index("platform expose"),
+        )
+
+    async def test_does_not_print_progress_directly(self):
+        calls: list[str] = []
+        workflow = SetupWorkflow(
+            (
+                SetupWorkflowPhase("preflight", lambda: _completed_result("preflight", calls)),
+                SetupWorkflowPhase("platform init", lambda: _completed_result("platform init", calls)),
+            ),
+            live_consent=_accepted_live_consent(),
+        )
+        output = StringIO()
+
+        with redirect_stdout(output):
+            await workflow.run()
+
+        self.assertEqual(output.getvalue(), "")
+
+    async def test_reports_progress_for_refused_setup(self):
+        progress = _RecordingProgress()
+        result = await SetupWorkflow(
+            (SetupWorkflowPhase("preflight", lambda: _completed_result("preflight", [])),),
+            progress=progress,
+        ).run()
+
+        self.assertEqual(SetupWorkflowStatus.REFUSED, result.status)
+        self.assertEqual(
+            progress.summary(),
+            [("setup", "live consent", "refused", "refused")],
+        )
+
+    async def test_reports_method_trace_for_workflow_and_phase_completion(self):
+        trace = _RecordingMethodTrace()
+        workflow = SetupWorkflow(
+            (
+                SetupWorkflowPhase(
+                    "preflight",
+                    lambda: _completed_result("preflight", []),
+                    method_trace=trace,
+                    trace_correlation_id="trace-setup",
+                ),
+            ),
+            live_consent=_accepted_live_consent(),
+            method_trace=trace,
+            trace_correlation_id="trace-setup",
+        )
+
+        result = await workflow.run()
+
+        self.assertEqual(SetupWorkflowStatus.COMPLETED, result.status)
+        self.assertEqual(
+            trace.summary(),
+            [
+                ("SetupWorkflow", "run", "entered", "pending", None),
+                ("SetupWorkflowPhase", "run", "entered", "pending", None),
+                ("SetupWorkflowPhase", "run", "returned", "completed", None),
+                ("SetupWorkflow", "run", "returned", "completed", None),
+            ],
+        )
+        self.assertEqual({event.correlation_id for event in trace.events}, {"trace-setup"})
+
+    async def test_reports_method_trace_for_phase_exception_before_conversion(self):
+        trace = _RecordingMethodTrace()
+        workflow = SetupWorkflow(
+            (
+                SetupWorkflowPhase(
+                    "preflight",
+                    _raise_secret_error,
+                    method_trace=trace,
+                    trace_correlation_id="trace-setup",
+                ),
+            ),
+            live_consent=_accepted_live_consent(),
+            method_trace=trace,
+            trace_correlation_id="trace-setup",
+        )
+
+        result = await workflow.run()
+
+        self.assertEqual(SetupWorkflowStatus.FAILED, result.status)
+        self.assertIn(
+            ("SetupWorkflowPhase", "run", "raised", "failed", "RuntimeError"),
+            trace.summary(),
+        )
+        self.assertEqual(
+            trace.summary()[-1],
+            ("SetupWorkflow", "run", "returned", "failed", None),
+        )
+        self.assertNotIn(sensitive_assignment(), str(trace.events[-2].to_dict()))
+
+    async def test_reports_progress_for_blocked_setup_without_phases(self):
+        progress = _RecordingProgress()
+
+        result = await SetupWorkflow(
+            live_consent=_accepted_live_consent(),
+            progress=progress,
+        ).run()
+
+        self.assertEqual(SetupWorkflowStatus.BLOCKED, result.status)
+        self.assertEqual(
+            progress.summary(),
+            [("setup", "phase configuration", "blocked", "blocked")],
+        )
+
+    async def test_reports_progress_for_each_phase_and_final_completed(self):
+        calls: list[str] = []
+        progress = _RecordingProgress()
+        workflow = SetupWorkflow(
+            (
+                SetupWorkflowPhase("preflight", lambda: _completed_result("preflight", calls)),
+                SetupWorkflowPhase("platform init", lambda: _completed_result("platform init", calls)),
+            ),
+            live_consent=_accepted_live_consent(),
+            progress=progress,
+        )
+
+        result = await workflow.run()
+
+        self.assertEqual(SetupWorkflowStatus.COMPLETED, result.status)
+        self.assertEqual(
+            progress.summary(),
+            [
+                ("preflight", "phase progress", "started", "pending"),
+                ("preflight", "phase progress", "completed", "completed"),
+                ("platform init", "phase progress", "started", "pending"),
+                ("platform init", "phase progress", "completed", "completed"),
+                ("setup", "workflow completed", "completed", "completed"),
+            ],
+        )
+
+    async def test_stops_on_blocked_phase_without_running_later_phases(self):
+        calls: list[str] = []
+        workflow = SetupWorkflow(
+            (
+                SetupWorkflowPhase("preflight", lambda: _completed_result("preflight", calls)),
+                SetupWorkflowPhase("artifacts prepare", lambda: _blocked_result("artifacts prepare", calls)),
+                SetupWorkflowPhase("deployment apply", lambda: _completed_result("deployment apply", calls)),
+            ),
+            live_consent=_accepted_live_consent(),
+        )
+
+        result = await workflow.run()
+
+        self.assertEqual(SetupWorkflowStatus.BLOCKED, result.status)
+        self.assertTrue(result.executed)
+        self.assertEqual(["preflight", "artifacts prepare"], calls)
+        self.assertEqual("phase 'artifacts prepare' returned blocked", result.reason)
+        self.assertEqual(3, len(result.phase_results))
+        self.assertEqual("not_run", result.phase_results[2].status)
+
+    async def test_failed_artifact_readiness_gate_stops_image_and_deployment_phases(self):
+        calls: list[str] = []
+        workflow = SetupWorkflow(
+            (
+                SetupWorkflowPhase("artifact bootstrap", lambda: _completed_result("artifact bootstrap", calls)),
+                SetupWorkflowPhase("artifact readiness gate", lambda: _failed_preflight_result(calls)),
+                SetupWorkflowPhase("artifacts prepare", lambda: _completed_result("artifacts prepare", calls)),
+                SetupWorkflowPhase("artifacts verify", lambda: _completed_result("artifacts verify", calls)),
+                SetupWorkflowPhase("deployment apply", lambda: _completed_result("deployment apply", calls)),
+            ),
+            live_consent=_accepted_live_consent(),
+        )
+
+        result = await workflow.run()
+
+        self.assertEqual(SetupWorkflowStatus.FAILED, result.status)
+        self.assertEqual(["artifact bootstrap", "preflight"], calls)
+        self.assertEqual(
+            [phase.status for phase in result.phase_results],
+            ["completed", "failed", "not_run", "not_run", "not_run"],
+        )
+
+    async def test_reports_stopped_and_downstream_not_run_progress(self):
+        calls: list[str] = []
+        progress = _RecordingProgress()
+        workflow = SetupWorkflow(
+            (
+                SetupWorkflowPhase("preflight", lambda: _completed_result("preflight", calls)),
+                SetupWorkflowPhase("artifacts prepare", lambda: _blocked_result("artifacts prepare", calls)),
+                SetupWorkflowPhase("deployment apply", lambda: _completed_result("deployment apply", calls)),
+            ),
+            live_consent=_accepted_live_consent(),
+            progress=progress,
+        )
+
+        result = await workflow.run()
+
+        self.assertEqual(SetupWorkflowStatus.BLOCKED, result.status)
+        self.assertEqual(
+            progress.summary(),
+            [
+                ("preflight", "phase progress", "started", "pending"),
+                ("preflight", "phase progress", "completed", "completed"),
+                ("artifacts prepare", "phase progress", "started", "pending"),
+                ("artifacts prepare", "phase progress", "blocked", "blocked"),
+                ("deployment apply", "phase progress", "not_run", "not_run"),
+                ("setup", "workflow stopped", "stopped", "blocked"),
+            ],
+        )
+
+    async def test_failed_preflight_stops_before_platform_init_phase(self):
+        calls: list[str] = []
+        progress = _RecordingProgress()
+        workflow = SetupWorkflow(
+            (
+                SetupWorkflowPhase("preflight", lambda: _failed_preflight_result(calls)),
+                SetupWorkflowPhase("platform init", lambda: _completed_result("platform init", calls)),
+            ),
+            live_consent=_accepted_live_consent(),
+            progress=progress,
+        )
+
+        result = await workflow.run()
+
+        self.assertEqual(SetupWorkflowStatus.FAILED, result.status)
+        self.assertEqual(calls, ["preflight"])
+        self.assertEqual(result.reason, "phase 'preflight' returned failed")
+        self.assertEqual(result.phase_results[1].status, "not_run")
+        self.assertEqual(
+            progress.summary(),
+            [
+                ("preflight", "phase progress", "started", "pending"),
+                ("preflight", "phase progress", "failed", "failed"),
+                ("platform init", "phase progress", "not_run", "not_run"),
+                ("setup", "workflow stopped", "stopped", "failed"),
+            ],
+        )
+
+    async def test_provider_blocked_platform_init_marks_downstream_phases_not_run(self):
+        calls: list[str] = []
+        workflow = SetupWorkflow(
+            (
+                SetupWorkflowPhase("preflight", lambda: _completed_result("preflight", calls)),
+                SetupWorkflowPhase("platform init", lambda: _provider_blocked_platform_init(calls)),
+                SetupWorkflowPhase("platform reconcile", lambda: _completed_result("platform reconcile", calls)),
+                SetupWorkflowPhase("deployment bootstrap", lambda: _completed_result("deployment bootstrap", calls)),
+            ),
+            live_consent=_accepted_live_consent(),
+        )
+
+        result = await workflow.run()
+        payload = result.to_dict()
+
+        self.assertEqual(SetupWorkflowStatus.BLOCKED, result.status)
+        self.assertEqual(calls, ["preflight", "platform init"])
+        self.assertEqual(result.reason, "phase 'platform init' returned blocked")
+        self.assertEqual(
+            [phase["status"] for phase in payload["phase_results"]],
+            ["completed", "blocked", "not_run", "not_run"],
+        )
+        self.assertEqual(
+            payload["phase_results"][1]["result"]["verification_results"][0]["evidence"]["reason"],
+            "provider_selection_blocked",
+        )
+        self.assertNotIn("multipass_legacy", repr(payload))
+
+    async def test_redacted_platform_init_failure_stops_before_downstream_phases(self):
+        calls: list[str] = []
+        workflow = SetupWorkflow(
+            (
+                SetupWorkflowPhase("preflight", lambda: _completed_result("preflight", calls)),
+                SetupWorkflowPhase("platform init", lambda: _failed_platform_init(calls)),
+                SetupWorkflowPhase("deployment apply", lambda: _completed_result("deployment apply", calls)),
+            ),
+            live_consent=_accepted_live_consent(),
+        )
+
+        result = await workflow.run()
+        payload = result.to_dict()
+
+        self.assertEqual(SetupWorkflowStatus.FAILED_TO_APPLY, result.status)
+        self.assertEqual(calls, ["preflight", "platform init"])
+        self.assertEqual(result.reason, "phase 'platform init' returned failed_to_apply")
+        self.assertEqual(result.phase_results[2].status, "not_run")
+        self.assertNotIn("stdout", str(payload).lower())
+        self.assertNotIn("stderr", str(payload).lower())
+        self.assertNotIn("cannot connect to the provider socket", str(payload).lower())
+
+    async def test_sanitizes_phase_exceptions(self):
+        progress = _RecordingProgress()
+        workflow = SetupWorkflow(
+            (SetupWorkflowPhase("deployment apply", _raise_secret_error),),
+            live_consent=_accepted_live_consent(),
+            progress=progress,
+        )
+
+        result = await workflow.run()
+
+        self.assertEqual(SetupWorkflowStatus.FAILED, result.status)
+        self.assertEqual("phase 'deployment apply' failed with RuntimeError", result.reason)
+        self.assertNotIn("secret", result.reason)
+        self.assertEqual(
+            progress.summary(),
+            [
+                ("deployment apply", "phase progress", "started", "pending"),
+                ("deployment apply", "phase progress", "failed", "failed"),
+                ("setup", "workflow stopped", "stopped", "failed"),
+            ],
+        )
+
+    async def test_to_dict_preserves_phase_statuses(self):
+        workflow = SetupWorkflow(
+            (SetupWorkflowPhase("artifacts prepare", lambda: _blocked_result("artifacts prepare", [])),),
+            live_consent=_accepted_live_consent(),
+        )
+
+        result = await workflow.run()
+
+        payload = result.to_dict()
+        self.assertEqual("setup run", payload["workflow"])
+        self.assertEqual("blocked", payload["phase_results"][0]["status"])
+
+    async def test_to_dict_preserves_platform_verification_results(self):
+        verification = VerificationResult(
+            target_id="platform:init:lxc-nodes",
+            status=VerificationStatus.BLOCKED,
+            message="Command-backed verification is not configured.",
+            evidence={"reason": "command_backed_verification_missing"},
+        )
+        workflow = SetupWorkflow(
+            (
+                SetupWorkflowPhase(
+                    "platform init",
+                    lambda: PlatformWorkflowResult(
+                        kind=PlatformWorkflowKind.INIT,
+                        status=PlatformWorkflowStatus.BLOCKED,
+                        message="init workflow blocked.",
+                        executed=False,
+                        verification_results=(verification,),
+                    ),
+                ),
+            ),
+            live_consent=_accepted_live_consent(),
+        )
+
+        payload = (await workflow.run()).to_dict()
+
+        phase_payload = payload["phase_results"][0]["result"]
+        self.assertEqual("platform init", phase_payload["workflow"])
+        self.assertEqual(phase_payload["verification_results"][0]["target_id"], "platform:init:lxc-nodes")
+
+    async def test_preserves_failed_to_verify_as_distinct_terminal_status(self):
+        workflow = SetupWorkflow(
+            (
+                SetupWorkflowPhase(
+                    "deployment verify",
+                    lambda: DeploymentWorkflowResult(
+                        kind=DeploymentWorkflowKind.VERIFY,
+                        status=DeploymentWorkflowStatus.FAILED_TO_VERIFY,
+                        message="deployment verify failed.",
+                        reason="observed service readiness failed",
+                        executed=True,
+                    ),
+                ),
+            ),
+            live_consent=_accepted_live_consent(),
+        )
+
+        result = await workflow.run()
+
+        self.assertEqual(SetupWorkflowStatus.FAILED_TO_VERIFY, result.status)
+        self.assertEqual("phase 'deployment verify' returned failed_to_verify", result.reason)
+
+    async def test_stops_after_failed_bootstrap_verification_without_running_later_phases(self):
+        calls: list[str] = []
+        workflow = SetupWorkflow(
+            (
+                SetupWorkflowPhase("preflight", lambda: _completed_result("preflight", calls)),
+                SetupWorkflowPhase(
+                    "deployment bootstrap",
+                    lambda: _failed_deployment_bootstrap(calls),
+                ),
+                SetupWorkflowPhase("artifacts prepare", lambda: _completed_result("artifacts prepare", calls)),
+            ),
+            live_consent=_accepted_live_consent(),
+        )
+
+        result = await workflow.run()
+
+        self.assertEqual(SetupWorkflowStatus.FAILED_TO_VERIFY, result.status)
+        self.assertEqual(["preflight", "deployment bootstrap"], calls)
+        self.assertEqual("phase 'deployment bootstrap' returned failed_to_verify", result.reason)
+        self.assertEqual("not_run", result.phase_results[2].status)
+
+    async def test_preserves_deployment_apply_failure_as_failed_to_apply(self):
+        calls: list[str] = []
+        workflow = SetupWorkflow(
+            (
+                SetupWorkflowPhase("preflight", lambda: _completed_result("preflight", calls)),
+                SetupWorkflowPhase("deployment apply", lambda: _failed_deployment_apply(calls)),
+                SetupWorkflowPhase("deployment verify", lambda: _completed_result("deployment verify", calls)),
+            ),
+            live_consent=_accepted_live_consent(),
+        )
+
+        result = await workflow.run()
+
+        self.assertEqual(SetupWorkflowStatus.FAILED_TO_APPLY, result.status)
+        self.assertEqual(calls, ["preflight", "deployment apply"])
+        self.assertEqual(result.reason, "phase 'deployment apply' returned failed_to_apply")
+        self.assertEqual(result.phase_results[1].status, "failed_to_apply")
+        self.assertEqual(result.phase_results[2].status, "not_run")
+
+    async def test_rejects_unknown_phase_payload_types_as_failed_status(self):
+        class UnsafeResult:
+            status = "completed"
+
+            def to_dict(self) -> dict[str, object]:
+                return {"status": "completed", "stdout": "secret"}
+
+        workflow = SetupWorkflow(
+            (SetupWorkflowPhase("unsafe", lambda: UnsafeResult()),),
+            live_consent=_accepted_live_consent(),
+        )
+
+        result = await workflow.run()
+        payload = result.to_dict()
+
+        self.assertEqual(SetupWorkflowStatus.FAILED, result.status)
+        self.assertEqual("phase 'unsafe' returned unsafe result payload", result.reason)
+        self.assertNotIn("stdout", str(payload))
+
+    async def test_rejects_unsafe_mapping_payload_keys_as_failed_status(self):
+        workflow = SetupWorkflow(
+            (
+                SetupWorkflowPhase(
+                    "unsafe",
+                    lambda: {"status": "completed", "stdout": "secret"},
+                ),
+            ),
+            live_consent=_accepted_live_consent(),
+        )
+
+        result = await workflow.run()
+        payload = result.to_dict()
+
+        self.assertEqual(SetupWorkflowStatus.FAILED, result.status)
+        self.assertEqual("phase 'unsafe' returned unsafe result payload", result.reason)
+        self.assertNotIn("stdout", str(payload))
+
+    async def test_outer_timeout_returns_timed_out_without_running_later_phases(self):
+        calls: list[str] = []
+
+        async def hangs() -> object:
+            calls.append("hanging")
+            import asyncio
+            await asyncio.sleep(1)
+            return None
+
+        workflow = SetupWorkflow(
+            (SetupWorkflowPhase("hanging", hangs),),
+            live_consent=_accepted_live_consent(),
+            timeout_seconds=0.001,
+        )
+        result = await workflow.run()
+        self.assertEqual(SetupWorkflowStatus.TIMED_OUT, result.status)
+        self.assertEqual(["hanging"], calls)
+
+    async def test_long_phase_emits_bounded_heartbeat_events(self):
+        progress = _RecordingProgress()
+
+        async def slow_phase() -> object:
+            import asyncio
+
+            await asyncio.sleep(0.03)
+            return _completed_result("slow", [])
+
+        workflow = SetupWorkflow(
+            (SetupWorkflowPhase("slow", slow_phase),),
+            live_consent=_accepted_live_consent(),
+            progress=progress,
+            heartbeat_interval_seconds=0.01,
+        )
+
+        result = await workflow.run()
+
+        self.assertEqual(SetupWorkflowStatus.COMPLETED, result.status)
+        heartbeats = [event for event in progress.events if event.step == "heartbeat"]
+        self.assertGreaterEqual(len(heartbeats), 1)
+        self.assertTrue(all(event.status == "running" for event in heartbeats))
+
+    async def test_dependency_group_runs_ready_phases_with_bounded_concurrency(self):
+        active = 0
+        maximum_active = 0
+        calls: list[str] = []
+
+        async def run_phase(name: str) -> ArtifactWorkflowResult:
+            nonlocal active, maximum_active
+            active += 1
+            maximum_active = max(maximum_active, active)
+            await asyncio.sleep(0.02)
+            active -= 1
+            calls.append(name)
+            return _completed_result(name, [])
+
+        plan = InstallationPlan(
+            phases=(
+                InstallationPhase("preflight", 0, workflow_phase_names=("preflight",)),
+                InstallationPhase(
+                    "alpha",
+                    10,
+                    depends_on=("preflight",),
+                    workflow_phase_names=("alpha",),
+                    parallel_group="workers",
+                ),
+                InstallationPhase(
+                    "beta",
+                    10,
+                    depends_on=("preflight",),
+                    workflow_phase_names=("beta",),
+                    parallel_group="workers",
+                ),
+                InstallationPhase(
+                    "gamma",
+                    10,
+                    depends_on=("preflight",),
+                    workflow_phase_names=("gamma",),
+                    parallel_group="workers",
+                ),
+                InstallationPhase(
+                    "validation",
+                    20,
+                    depends_on=("alpha", "beta", "gamma"),
+                    workflow_phase_names=("validation",),
+                ),
+            )
+        )
+        workflow = SetupWorkflow(
+            tuple(
+                SetupWorkflowPhase(name, lambda name=name: run_phase(name))
+                for name in ("preflight", "alpha", "beta", "gamma", "validation")
+            ),
+            live_consent=_accepted_live_consent(),
+            installation_plan=plan,
+            max_concurrency=2,
+        )
+
+        result = await workflow.run()
+
+        self.assertEqual(SetupWorkflowStatus.COMPLETED, result.status)
+        self.assertEqual(
+            [phase.name for phase in result.phase_results],
+            ["preflight", "alpha", "beta", "gamma", "validation"],
+        )
+        self.assertEqual(maximum_active, 2)
+        self.assertEqual(set(calls), {"preflight", "alpha", "beta", "gamma", "validation"})
+        self.assertEqual(
+            [group.group_id for group in result.phase_group_results],
+            ["preflight", "workers", "validation"],
+        )
+        worker_group = result.phase_group_results[1]
+        self.assertEqual(worker_group.maximum_concurrency, 2)
+        self.assertEqual(worker_group.phase_ids, ("alpha", "beta", "gamma"))
+        self.assertTrue(worker_group.started_at.endswith("Z"))
+        self.assertTrue(worker_group.finished_at.endswith("Z"))
+        self.assertGreaterEqual(worker_group.duration_seconds, 0.0)
+        self.assertEqual(
+            result.to_dict()["phase_group_results"][1]["phase_names"],
+            ["alpha", "beta", "gamma"],
+        )
+
+    async def test_failed_group_member_keeps_independent_result_and_blocks_dependents(self):
+        calls: list[str] = []
+        plan = InstallationPlan(
+            phases=(
+                InstallationPhase("preflight", 0, workflow_phase_names=("preflight",)),
+                InstallationPhase(
+                    "alpha",
+                    10,
+                    depends_on=("preflight",),
+                    workflow_phase_names=("alpha",),
+                    parallel_group="workers",
+                ),
+                InstallationPhase(
+                    "beta",
+                    10,
+                    depends_on=("preflight",),
+                    workflow_phase_names=("beta",),
+                    parallel_group="workers",
+                ),
+                InstallationPhase(
+                    "validation",
+                    20,
+                    depends_on=("alpha", "beta"),
+                    workflow_phase_names=("validation",),
+                ),
+            )
+        )
+
+        async def fail_alpha() -> ArtifactWorkflowResult:
+            calls.append("alpha")
+            return _blocked_result("alpha", [])
+
+        async def complete_beta() -> ArtifactWorkflowResult:
+            await asyncio.sleep(0.01)
+            calls.append("beta")
+            return _completed_result("beta", [])
+
+        workflow = SetupWorkflow(
+            (
+                SetupWorkflowPhase("preflight", lambda: _completed_result("preflight", calls)),
+                SetupWorkflowPhase("alpha", fail_alpha),
+                SetupWorkflowPhase("beta", complete_beta),
+                SetupWorkflowPhase("validation", lambda: _completed_result("validation", calls)),
+            ),
+            live_consent=_accepted_live_consent(),
+            installation_plan=plan,
+            max_concurrency=2,
+        )
+
+        result = await workflow.run()
+
+        self.assertEqual(SetupWorkflowStatus.BLOCKED, result.status)
+        statuses = {phase.name: phase.status for phase in result.phase_results}
+        self.assertEqual(statuses["alpha"], "blocked")
+        self.assertEqual(statuses["beta"], "completed")
+        self.assertEqual(statuses["validation"], "not_run")
+        self.assertIn("dependency group", str(result.phase_results[-1].result))
+        self.assertEqual(set(calls), {"preflight", "alpha", "beta"})
+        self.assertEqual(result.phase_group_results[1].status, "blocked")
+        self.assertGreaterEqual(result.phase_group_results[1].duration_seconds, 0.0)
+
+
+def _completed_result(name: str, calls: list[str]) -> ArtifactWorkflowResult:
+    calls.append(name)
+    return ArtifactWorkflowResult(
+        kind=ArtifactWorkflowKind.VERIFY,
+        status=ArtifactWorkflowStatus.COMPLETED,
+        message=f"{name} completed.",
+        reason="completed",
+        executed=True,
+    )
+
+
+def _minimal_installation_plan() -> InstallationPlan:
+    return InstallationPlan(
+        phases=(
+            InstallationPhase(
+                "preflight",
+                0,
+                workflow_phase_names=("preflight",),
+            ),
+            InstallationPhase(
+                "platform",
+                10,
+                depends_on=("preflight",),
+                workflow_phase_names=("platform init",),
+            ),
+            InstallationPhase(
+                "validation",
+                20,
+                depends_on=("platform",),
+                workflow_phase_names=("validation",),
+            ),
+        )
+    )
+
+
+def _blocked_result(name: str, calls: list[str]) -> ArtifactWorkflowResult:
+    calls.append(name)
+    return ArtifactWorkflowResult(
+        kind=ArtifactWorkflowKind.PREPARE,
+        status=ArtifactWorkflowStatus.BLOCKED,
+        message=f"{name} blocked.",
+        reason="blocked",
+    )
+
+
+def _failed_deployment_bootstrap(calls: list[str]) -> DeploymentWorkflowResult:
+    calls.append("deployment bootstrap")
+    return DeploymentWorkflowResult(
+        kind=DeploymentWorkflowKind.BOOTSTRAP,
+        status=DeploymentWorkflowStatus.FAILED_TO_VERIFY,
+        message="deployment bootstrap failed.",
+        reason="verification failed for deployment:portainer-admin-access",
+        executed=True,
+    )
+
+
+def _failed_deployment_apply(calls: list[str]) -> DeploymentWorkflowResult:
+    calls.append("deployment apply")
+    return DeploymentWorkflowResult(
+        kind=DeploymentWorkflowKind.APPLY,
+        status=DeploymentWorkflowStatus.FAILED_TO_APPLY,
+        message="deployment apply failed.",
+        reason="apply failed with RuntimeError",
+        executed=True,
+    )
+
+
+def _failed_preflight_result(calls: list[str]) -> PreflightResult:
+    calls.append("preflight")
+    return PreflightResult(
+        (
+            PreflightCheck(
+                check_id="PROVIDER-LXC-DAEMON",
+                category=PreflightCategory.DEPENDENCY,
+                status=PreflightStatus.FAILED,
+                severity=PreflightSeverity.MANDATORY,
+                message="LXC provider daemon is not reachable.",
+                remediation="Repair LXD/Incus daemon access and rerun setup.",
+                evidence={"classification": "provider_daemon_unavailable"},
+            ),
+        )
+    )
+
+
+def _failed_platform_init(calls: list[str]) -> PlatformWorkflowResult:
+    calls.append("platform init")
+    return PlatformWorkflowResult(
+        kind=PlatformWorkflowKind.INIT,
+        status=PlatformWorkflowStatus.FAILED_TO_APPLY,
+        message="init apply failed for platform:init:lxc-nodes.",
+        executed=True,
+        verification_results=(
+            VerificationResult(
+                target_id="platform:init:lxc-nodes",
+                status=VerificationStatus.FAILED_TO_APPLY,
+                message="Apply failed for platform:init:lxc-nodes: CommandExecutionFailed",
+                evidence={"phase": "apply", "return_code": "2"},
+            ),
+        ),
+    )
+
+
+def _provider_blocked_platform_init(calls: list[str]) -> PlatformWorkflowResult:
+    calls.append("platform init")
+    return PlatformWorkflowResult(
+        kind=PlatformWorkflowKind.INIT,
+        status=PlatformWorkflowStatus.BLOCKED,
+        message="init workflow blocked by provider selection before mutation.",
+        executed=False,
+        verification_results=(
+            VerificationResult(
+                target_id="platform:node-provider:lxc_native",
+                status=VerificationStatus.BLOCKED,
+                message="Provider selection blocked platform mutation.",
+                evidence={
+                    "phase": "pre_apply",
+                    "reason": "provider_selection_blocked",
+                    "requested_provider": "lxc_native",
+                    "selected_provider": "lxc_native",
+                    "selection_status": "blocked",
+                    "backend_status": "missing",
+                },
+            ),
+        ),
+    )
+
+
+def _raise_secret_error() -> object:
+    raise RuntimeError(sensitive_assignment())
+
+
+class _RecordingProgress(PortWorkflowProgress):
+    def __init__(self) -> None:
+        self.events: list[WorkflowProgressEvent] = []
+
+    def report(self, event: WorkflowProgressEvent) -> None:
+        self.events.append(event)
+
+    def summary(self) -> list[tuple[str, str, str, str]]:
+        return [
+            (event.phase, event.step, event.status, event.result)
+            for event in self.events
+        ]
+
+
+class _RecordingMethodTrace(PortMethodTrace):
+    def __init__(self) -> None:
+        self.events: list[MethodTraceEvent] = []
+
+    def report(self, event: MethodTraceEvent) -> None:
+        self.events.append(event)
+
+    def summary(self) -> list[tuple[str, str, str, str | None, str | None]]:
+        return [
+            (
+                event.class_name,
+                event.method_name,
+                event.status,
+                event.safe_result,
+                event.exception_type,
+            )
+            for event in self.events
+        ]
+
+
+def _accepted_live_consent() -> LiveConsent:
+    return LiveConsent(
+        live_flag=True,
+        environment_value=LIVE_CONSENT_ENVIRONMENT_VALUE,
+        typed_phrase=LIVE_CONSENT_PHRASE,
+    )
