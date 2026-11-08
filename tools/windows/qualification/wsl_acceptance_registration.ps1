@@ -143,9 +143,28 @@ function New-WslAcceptanceRegistrationProductionPorts($s){
   function TrustedWsl {
    $path=& $script:prep {Get-PreparationExecutable 'wsl.exe'}
    Require ([Environment]::Is64BitProcess -and [Environment]::Is64BitOperatingSystem) 'NATIVE_WINDOWS_REQUIRED'
-   & $script:prep {param($p) Assert-PreparationLocalPath $p;Assert-PreparationEvidencePath $p} $path
+   & $script:prep {param($p) Assert-PreparationLocalPath $p} $path
+   $expected=Join-Path ([Environment]::GetFolderPath('System')) 'wsl.exe'
+   Require ([IO.Path]::GetFullPath($path) -ieq [IO.Path]::GetFullPath($expected)) 'WSL_EXECUTABLE_PATH'
+   # OS binaries have a different ownership contract from private evidence.
+   $trusted=@('S-1-5-18','S-1-5-32-544','S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464')
+   $current=$path;$leaf=$true
+   while($current){
+    $item=Get-Item -LiteralPath $current -Force -ErrorAction Stop
+    Require (!($item.Attributes -band [IO.FileAttributes]::ReparsePoint)) 'WSL_EXECUTABLE_REPARSE'
+    if($leaf){Require (!$item.PSIsContainer) 'WSL_EXECUTABLE_PATH'}
+    $acl=Get-Acl -LiteralPath $current -ErrorAction Stop
+    Require ($acl.GetOwner([Security.Principal.SecurityIdentifier]).Value -cin $trusted) 'WSL_EXECUTABLE_OWNER'
+    $mask=[Security.AccessControl.FileSystemRights]::Delete -bor [Security.AccessControl.FileSystemRights]::DeleteSubdirectoriesAndFiles -bor [Security.AccessControl.FileSystemRights]::ChangePermissions -bor [Security.AccessControl.FileSystemRights]::TakeOwnership
+    if($leaf){$mask=$mask -bor [Security.AccessControl.FileSystemRights]::WriteData -bor [Security.AccessControl.FileSystemRights]::AppendData -bor [Security.AccessControl.FileSystemRights]::WriteAttributes -bor [Security.AccessControl.FileSystemRights]::WriteExtendedAttributes}
+    foreach($rule in $acl.GetAccessRules($true,$true,[Security.Principal.SecurityIdentifier])){
+     Require (($rule.PropagationFlags -band [Security.AccessControl.PropagationFlags]::InheritOnly) -or $rule.AccessControlType -ne 'Allow' -or
+      !($rule.FileSystemRights -band $mask) -or $rule.IdentityReference.Value -cin ($trusted+@('S-1-3-0'))) 'WSL_EXECUTABLE_ACL'
+    }
+    $leaf=$false;$current=Split-Path -Parent $current
+   }
    $sig=Get-AuthenticodeSignature -LiteralPath $path -ErrorAction Stop
-   Require ($sig.Status -eq 'Valid' -and $sig.SignerCertificate.Subject -match 'Microsoft') 'WSL_EXECUTABLE_UNTRUSTED'
+   Require ($sig.Status -eq 'Valid' -and $sig.SignerCertificate.Subject -match '(?:^|,\s*)O=Microsoft Corporation(?:,|$)') 'WSL_EXECUTABLE_UNTRUSTED'
    return $path
   }
   function FileIdentity([string]$path){

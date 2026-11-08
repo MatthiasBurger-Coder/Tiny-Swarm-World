@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$RepositoryRoot,[switch]$CertificateTransportContract)
+param([Parameter(Mandatory=$true)][string]$RepositoryRoot,[switch]$CertificateTransportContract,[switch]$NativeExecutableContract)
 $ErrorActionPreference='Stop'
 . (Join-Path $RepositoryRoot 'tools/windows/qualification/wsl_acceptance_registration.ps1')
 function Assert($yes,[string]$code){if(!$yes){throw $code}}
@@ -58,6 +58,53 @@ function Ports([string]$fault=''){
   return $b
  }.GetNewClosure()
  $p._ctx=$ctx;return $p
+}
+if($NativeExecutableContract){
+ $s=Scenario (Baseline);$ports=New-WslAcceptanceRegistrationProductionPorts $s
+ $adapter=$ports.Source.Module.SessionState.PSVariable.GetValue('module')
+ Assert ($null -ne $adapter) 'registration_native_module'
+ # Exercise the actual OS-native chain/signature validator before fake faults.
+ $actual=& $adapter {TrustedWsl}
+ Assert ([IO.Path]::GetFullPath($actual) -ieq (Join-Path ([Environment]::GetFolderPath('System')) 'wsl.exe')) 'actual_native_wsl'
+ $transport=New-Module -ScriptBlock {
+  function Get-PreparationExecutable($Name){return Join-Path ([Environment]::GetFolderPath('System')) 'wsl.exe'}
+  function Assert-PreparationLocalPath($Path){}
+ }
+ & $adapter {
+  param($transport)
+  $original=$script:prep;$script:prep=$transport
+  try{
+   function Get-Item {param($LiteralPath,[switch]$Force,$ErrorAction)
+    return [pscustomobject]@{Attributes=$(if($script:fault -ceq 'reparse'){[IO.FileAttributes]::ReparsePoint}else{[IO.FileAttributes]::Normal});PSIsContainer=$false}
+   }
+   function Get-Acl {param($LiteralPath,$ErrorAction)
+    $acl=[pscustomobject]@{Fault=$script:fault}
+    $acl|Add-Member ScriptMethod GetOwner {param($type)
+     $sid=if($this.Fault -ceq 'foreign-owner'){'S-1-5-21-111-222-333-444'}else{'S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464'}
+     return [Security.Principal.SecurityIdentifier]::new($sid)
+    }
+    $acl|Add-Member ScriptMethod GetAccessRules {param($explicit,$inherited,$type)
+     if($this.Fault -ceq 'untrusted-write'){
+      return @([pscustomobject]@{PropagationFlags=[Security.AccessControl.PropagationFlags]::None;AccessControlType='Allow';FileSystemRights=[Security.AccessControl.FileSystemRights]::WriteData;IdentityReference=[Security.Principal.SecurityIdentifier]::new('S-1-1-0')})
+     };return @()
+    }
+    return $acl
+   }
+   function Get-AuthenticodeSignature {param($LiteralPath,$ErrorAction)
+    return @{Status=$(if($script:fault -ceq 'signature'){'Invalid'}else{'Valid'});SignerCertificate=@{Subject=$(if($script:fault -ceq 'signer'){'CN=Microsoft impostor, O=Foreign'}else{'CN=Microsoft Windows, O=Microsoft Corporation, C=US'})}}
+   }
+   $script:fault='';[void](TrustedWsl)
+   foreach($case in @(@('foreign-owner','WSL_EXECUTABLE_OWNER'),@('reparse','WSL_EXECUTABLE_REPARSE'),@('untrusted-write','WSL_EXECUTABLE_ACL'),@('signature','WSL_EXECUTABLE_UNTRUSTED'),@('signer','WSL_EXECUTABLE_UNTRUSTED'))){
+    $script:fault=$case[0];$code='';try{[void](TrustedWsl)}catch{$code=$_.Exception.Message}
+    if($code -cne $case[1]){throw 'native_fault_not_rejected'}
+   }
+   & $transport {function script:Get-PreparationExecutable($Name){return Join-Path ([Environment]::GetFolderPath('UserProfile')) 'wsl.exe'}}
+   $script:fault='';$code='';try{[void](TrustedWsl)}catch{$code=$_.Exception.Message}
+   if($code -cne 'WSL_EXECUTABLE_PATH'){throw 'native_wrong_path_admitted'}
+  }finally{$script:prep=$original}
+ } $transport
+ [ordered]@{status='PASS';cases=8;runtime_mutations=0;actual_native_binary_verified=$true;imports=0}|ConvertTo-Json -Compress
+ exit 0
 }
 if($CertificateTransportContract){
  $s=Scenario (Baseline);$ports=New-WslAcceptanceRegistrationProductionPorts $s
