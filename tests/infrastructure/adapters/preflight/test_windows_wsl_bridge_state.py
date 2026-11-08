@@ -14,7 +14,7 @@ from tiny_swarm_world.infrastructure.adapters.preflight.windows_wsl_bridge_state
 from tiny_swarm_world.domain.preflight import WindowsWslBridgeStatus
 
 
-TEST_BRIDGE_STATE_PATH = Path("bootstrap/windows/.tws-wsl-bridge.state.json")
+TEST_BRIDGE_STATE_PATH = Path("modules/tsw_windows_wsl/bootstrap/windows/.tws-wsl-bridge.state.json")
 
 
 class TestWindowsWslBridgeState(unittest.TestCase):
@@ -500,7 +500,7 @@ class TestWindowsWslBridgeState(unittest.TestCase):
         status = WindowsWslBridgeStatus(
             prepared=False,
             reason="generated_at_missing",
-            state_path="bootstrap/windows/.tws-wsl-bridge.state.json",
+            state_path="modules/tsw_windows_wsl/bootstrap/windows/.tws-wsl-bridge.state.json",
         )
 
         self.assertTrue(status.stale)

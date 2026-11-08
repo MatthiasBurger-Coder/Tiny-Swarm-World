@@ -169,7 +169,7 @@ class NativeTransitionExecutionTests(unittest.IsolatedAsyncioTestCase):
         contracts = resolve_container_image_contracts(tuple(c for c in DEFAULT_CONTAINER_IMAGE_CONTRACTS
                                                            if c.build_context in self.images), environment)
         self.assertEqual({c.build_context: c.image_ref for c in contracts}, self.images)
-        paths = ProjectPaths.from_roots(self.root, ROOT / "infra")
+        paths = ProjectPaths.from_roots(self.root, ROOT / "modules/tsw_core/infra")
         repository = ComposeFileRepositoryYaml(project_paths=paths, environment={}, write_logs=False)
         for stack in ("swagger", "traefik"):
             self.assertEqual({s.name: s.image_ref for s in repository.get_services_of(stack)},

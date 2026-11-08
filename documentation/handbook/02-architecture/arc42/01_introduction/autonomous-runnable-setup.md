@@ -61,11 +61,11 @@ validation, and WSL2 live proof remain incomplete and fail closed.
 The setup baseline now has committed declarative registries for installation
 phases, ports, services, health checks, and greenpath validation evidence:
 
-- `infra/config/installation-plan.yaml`
-- `infra/config/ports.yaml`
-- `infra/config/services.yml`
-- `infra/config/health-checks.yaml`
-- `infra/config/validation-plan.yaml`
+- `modules/tsw_core/infra/config/installation-plan.yaml`
+- `modules/tsw_core/infra/config/ports.yaml`
+- `modules/tsw_core/infra/config/services.yml`
+- `modules/tsw_core/infra/config/health-checks.yaml`
+- `modules/tsw_core/infra/config/validation-plan.yaml`
 
 These registries are tested as desired-state and evidence contracts. Runtime
 execution currently uses typed domain defaults and service contracts where no
@@ -250,7 +250,7 @@ smoke validation is a separate operator action and requires:
 - disposable or recoverable local target environment;
 - live consent;
 - redacted evidence bundle;
-- clear separation from `python3 tools/linux/quality_gate.py quality`.
+- clear separation from `python3 modules/tsw_core/tools/linux/quality_gate.py quality`.
 
 ## Acceptance Criteria
 

@@ -25,14 +25,14 @@ and configuration used by the failing run. Preserve its evidence directory.
 [source,bash]
 ----
 source .venv/bin/activate
-python3 bootstrap/linux/install_debugger.py
+python3 modules/tsw_core/bootstrap/linux/install_debugger.py
 tiny-swarm-world --preflight
 ----
 . For an installed environment, use `platform verify` before selecting a
   repair. It does not modify the platform.
 . Correct the named cause and choose the operation in
   link:{user-guide-prefix}usage.adoc#daily-operation[Daily operation]. On native
-  Ubuntu 24.04 or 26.04, run `./bootstrap/linux/prepare_linux.sh --preflight` for missing host packages
+  Ubuntu 24.04 or 26.04, run `./modules/tsw_core/bootstrap/linux/prepare_linux.sh --preflight` for missing host packages
   before retrying the non-destructive installer. On WSL2, inspect a fresh plan
   before retrying; ordinary `install.sh` reconciles existing state, while
   `--confirm-reset` separately requests the deprecated destructive reset.
@@ -41,7 +41,7 @@ tiny-swarm-world --preflight
 |===
 | What you see | Next check
 | `windows-wsl-bridge` / `state_invalid`, followed by an exact-state ACL error during bridge installation | Follow <<windows-wsl-bridge-acl,Windows bridge ACL recovery>> and inspect for a leftover state backup.
-| `ModuleNotFoundError` or missing CLI | On native Ubuntu, rerun `bootstrap/linux/prepare_linux.sh` to prepare the checkout-local Python environment; for development, activate `.venv` as described in link:{user-guide-prefix}installation.adoc#_python_environment[Python Environment]. Do not reset the platform.
+| `ModuleNotFoundError` or missing CLI | On native Ubuntu, rerun `modules/tsw_core/bootstrap/linux/prepare_linux.sh` to prepare the checkout-local Python environment; for development, activate `.venv` as described in link:{user-guide-prefix}installation.adoc#_python_environment[Python Environment]. Do not reset the platform.
 | Override permission error | Verify file ownership, `0600` file and `0700` parent on a Linux-native filesystem; see link:{user-guide-prefix}installation.adoc#operator-credential-overrides[optional overrides].
 | No password file after installation | Normal for the default path. Use the link:{user-reference-prefix}handbook/02-architecture/arc42/08_configuration/internal-test-credential-catalog.md[credential catalog].
 | Login page responds but login fails | Check the effective service identity and credential source; HTTP 200 is not authentication.
@@ -193,7 +193,7 @@ Then rerun:
 
 [source,bash]
 ----
-python3 tools/linux/quality_gate.py quality
+python3 modules/tsw_core/tools/linux/quality_gate.py quality
 ----
 
 == Import Errors For tiny_swarm_world
@@ -207,7 +207,7 @@ Verify imports without starting infrastructure:
 python3 -c 'import tiny_swarm_world; import pydantic; import yaml; import requests'
 ----
 
-Source-checkout commands additionally need `PYTHONPATH=src`. The quality gate
+Source-checkout commands additionally need `PYTHONPATH=modules/tsw_core/src`. The quality gate
 sets that variable itself, but it does not install missing dependencies.
 
 == import-linter Cannot Find Configuration
@@ -285,7 +285,7 @@ If the configured backend should be selected explicitly for this run:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend incus --preflight
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world --lxc-backend incus --preflight
 ----
 
 In WSL, verify that the distribution is WSL2 and that systemd, cgroup, and
@@ -304,8 +304,8 @@ backend explicitly:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
-PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend incus setup run --live
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world setup run --live
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world --lxc-backend incus setup run --live
 ----
 
 == IntelliJ Run Configuration Cannot Start Live Setup
@@ -316,7 +316,7 @@ same environment as a successful terminal run.
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world setup run --live
 ----
 
 The live prompt needs stdin. If the IDE runner cannot answer the prompt, use
@@ -436,13 +436,13 @@ definitions, or evidence logs are the problem:
 
 [source,bash]
 ----
-python3 bootstrap/linux/install_debugger.py
+python3 modules/tsw_core/bootstrap/linux/install_debugger.py
 ----
 
 The default mode analyzes the `install.sh` bootstrap contract, repository
 permissions, ownership markers, WSL2/systemd indicators, systemd unit
 definitions, and the newest installation evidence directory across supported
-host directories. The core `bootstrap/linux/install.sh`, reached through the public `install.sh`, must delegate to
+host directories. The core `modules/tsw_core/bootstrap/linux/install.sh`, reached through the public `install.sh`, must delegate to
 `python3 -m tiny_swarm_world.simple_installer`; the Python installer owns the reset,
 setup, terminal recording, headless logging, and evidence policy. The debugger
 also prints exact `grep`, `tail`, `systemctl`, and `journalctl` commands for
@@ -452,14 +452,14 @@ For live host diagnostics, including `systemctl is-system-running`, use:
 
 [source,bash]
 ----
-python3 bootstrap/linux/install_debugger.py --live
+python3 modules/tsw_core/bootstrap/linux/install_debugger.py --live
 ----
 
 To allow narrow repository permission repairs, add `--fix-permissions`:
 
 [source,bash]
 ----
-python3 bootstrap/linux/install_debugger.py --live --fix-permissions
+python3 modules/tsw_core/bootstrap/linux/install_debugger.py --live --fix-permissions
 ----
 
 This repair mode is intentionally limited to the installer execute bit and the
@@ -573,7 +573,7 @@ environment variables where supported:
 TSW_PORTAINER_USERNAME=admin \
 TSW_PORTAINER_ADMIN_PASSWORD='<portainer-password>' \
 TSW_NEXUS_ADMIN_PASSWORD='<new-nexus-admin-password>' \
-PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world setup run --live
 ----
 
 If Nexus is still starting, increase:
@@ -672,7 +672,7 @@ live-consent controls. For the canonical setup path:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world setup run --live
 ----
 
 When prompted:
@@ -695,8 +695,8 @@ does not mean the default quality gate failed.
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world platform reset --confirm RESET_TINY_SWARM_PLATFORM --live
-PYTHONPATH=src python3 -m tiny_swarm_world platform destroy --confirm DESTROY_TINY_SWARM_PLATFORM --live
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world platform reset --confirm RESET_TINY_SWARM_PLATFORM --live
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world platform destroy --confirm DESTROY_TINY_SWARM_PLATFORM --live
 ----
 
 After confirmation, reset and destroy act only on configured managed
@@ -768,7 +768,7 @@ the manager-profile devices are present, then run the explicit repair command:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world platform repair-lxc-proxy-drift --live
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world platform repair-lxc-proxy-drift --live
 ----
 
 The repair refuses devices whose equivalent manager-profile state is missing
@@ -847,7 +847,7 @@ From the repository root, install the updated repair and verify networking:
 ----
 sudo -v
 ./tsw network repair --linux-forwarding --apply
-sudo env PYTHONPATH=src .venv/bin/python -m tiny_swarm_world doctor network
+sudo env PYTHONPATH=modules/tsw_core/src .venv/bin/python -m tiny_swarm_world doctor network
 ----
 
 The last command uses the repository's existing `.venv` and reads firewall

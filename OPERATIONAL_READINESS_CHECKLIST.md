@@ -25,7 +25,7 @@ for local, live and external classifications.
 - [ ] Virtual environment creation documented.
 - [ ] Dependencies installed from canonical file.
 - [ ] Canonical entrypoint runs from repo root.
-- [ ] `python3 tools/linux/quality_gate.py quality` runs as the authoritative
+- [ ] `python3 modules/tsw_core/tools/linux/quality_gate.py quality` runs as the authoritative
       default quality gate.
 
 ## LXC-native provider readiness
@@ -75,9 +75,9 @@ for local, live and external classifications.
       recorded as `PASS_WITH_RESOURCE_GATES`, not `PASS`.
 
 ## Test readiness
-- [ ] `python3 tools/linux/quality_gate.py quality` passes from the repository root.
+- [ ] `python3 modules/tsw_core/tools/linux/quality_gate.py quality` passes from the repository root.
 - [ ] Optional `pytest` compatibility, if introduced later, is documented as
-      secondary and does not replace `tools/linux/quality_gate.py`.
+      secondary and does not replace `modules/tsw_core/tools/linux/quality_gate.py`.
 - [ ] Critical orchestration units have active tests.
 
 ## Smoke test readiness

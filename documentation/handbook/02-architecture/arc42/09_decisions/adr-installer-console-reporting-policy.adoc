@@ -95,5 +95,5 @@ payload markers, and internal event object representations in console output.
 * Affects: `documentation/handbook/02-architecture/arc42/06_runtime_view.adoc`
 * Affects: `documentation/handbook/02-architecture/arc42/08_concepts.adoc`
 * Related concept: installer progress and reporting.
-* Related code: `src/tiny_swarm_world/infrastructure/adapters/ui`
-* Related code: `src/tiny_swarm_world/application/ports/ui`
+* Related code: `modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/ui`
+* Related code: `modules/tsw_core/src/tiny_swarm_world/application/ports/ui`

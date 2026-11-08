@@ -4,7 +4,7 @@ Committed Dockerfiles and compose configuration can be checked without
 building or pulling images:
 
 ```bash
-python3 tools/linux/security_gate.py container-config
+python3 modules/tsw_core/tools/linux/security_gate.py container-config
 ```
 
 This command requires an explicitly installed Trivy executable and fails on

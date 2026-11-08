@@ -1,21 +1,5 @@
-"""Run Tiny Swarm World static preflight validation."""
-
-from __future__ import annotations
-
-import asyncio
-import sys
+"""Compatibility entry point for the physical tsw_core module."""
 from pathlib import Path
-
-
-REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
-SOURCE_ROOT = REPOSITORY_ROOT / "src"
-if str(SOURCE_ROOT) not in sys.path:
-    sys.path.insert(0, str(SOURCE_ROOT))
-
-from tiny_swarm_world.__main__ import main  # noqa: E402
-
-
-if __name__ == "__main__":
-    # Preserve the safe static default while allowing an explicitly requested
-    # live preflight to use the same secure source/secret-path checks.
-    raise SystemExit(asyncio.run(main(["--preflight", *sys.argv[1:]])))
+_impl = Path(__file__).resolve().parents[2] / 'modules/tsw_core/bootstrap/linux/preflight.py'
+__file__ = str(_impl)
+exec(compile(_impl.read_bytes(), str(_impl), "exec"), globals(), globals())

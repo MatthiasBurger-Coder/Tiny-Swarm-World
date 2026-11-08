@@ -20,7 +20,7 @@ ordinary unqualified Apply blocking and separately bound qualification consent.
 No new service graph, provisioning engine, bridge owner or durable recovery engine.
 
 Consume a generated resource-only JSON projection of the existing Python WSL fixed
-profile requirements and infra/config/node-providers/provider_config.yaml. A Linux
+profile requirements and modules/tsw_core/infra/config/node-providers/provider_config.yaml. A Linux
 build helper and tests verify canonical source hashes, node amounts and profile
 floors; Windows verifies source/projection identities before use. It contains no
 selection graph and supports only current fixed profiles pending #440/#444. Changed

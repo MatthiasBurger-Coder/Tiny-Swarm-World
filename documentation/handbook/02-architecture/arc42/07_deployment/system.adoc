@@ -16,8 +16,8 @@ This project is developed and operated from WSL or Linux shells. Windows-specifi
 
 The repository separates deployment work into three areas:
 
-* `src/tiny_swarm_world/__main__.py` contains the Python entry point for infrastructure orchestration.
-* `infra/config/compose` contains stack definitions and service image/runtime assets for workflow-managed deployment.
+* `modules/tsw_core/src/tiny_swarm_world/__main__.py` contains the Python entry point for infrastructure orchestration.
+* `modules/tsw_core/infra/config/compose` contains stack definitions and service image/runtime assets for workflow-managed deployment.
 
 The active Python entry point exposes workflow-level commands. Running without
 arguments does not execute infrastructure commands, and `--list-workflows`
@@ -79,7 +79,7 @@ construction and preserves blocked, resource-gated, failed-to-apply, and
 failed-to-verify states instead of reporting full deployment success without
 observed evidence.
 
-Setup sequencing is mirrored in `infra/config/installation-plan.yaml` and
+Setup sequencing is mirrored in `modules/tsw_core/infra/config/installation-plan.yaml` and
 represented by the typed `InstallationPlan` model. Runtime composition
 currently passes the typed `default_installation_plan()` into `SetupWorkflow`;
 the YAML file is the committed declarative contract and static validation
@@ -89,7 +89,7 @@ quality, messaging, observability, control, docs, and validation. The workflow
 fails closed for dependency cycles, missing required phases, missing required
 services, or missing required workflow phases.
 
-Service registry data is centralized in `infra/config/services.yml` as a
+Service registry data is centralized in `modules/tsw_core/infra/config/services.yml` as a
 static selected-service catalogue used for cross-file validation and
 documentation. Runtime stack selection still comes from
 `ServiceStackContract` domain contracts. Each enabled stack maps to an
@@ -109,7 +109,7 @@ Run the development quality gate before changing deployment-related code:
 
 [source,bash]
 ----
-python3 tools/linux/quality_gate.py quality
+python3 modules/tsw_core/tools/linux/quality_gate.py quality
 ----
 
 When a virtual environment is active, `python` can be used instead of `python3`.
@@ -127,13 +127,13 @@ contracts are wired:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world setup run --live
 ----
 
 Former direct preparation scripts and host-side orchestration scripts have
 been removed so setup behavior stays behind the workflow-level CLI consent
 guard. They are not development quality-gate commands.
-The Portainer compose asset under `infra/config/compose/portainer` mounts the
+The Portainer compose asset under `modules/tsw_core/infra/config/compose/portainer` mounts the
 host Docker socket for the Portainer server and agent, and the agent also
 mounts Docker volumes. Treat that asset as privileged Docker-control
 configuration for intentional local Swarm bootstrap only.
@@ -175,7 +175,7 @@ The old `TSW_PORTAINER_ENDPOINT`, `TSW_NEXUS_STACK_NAME`, `TSW_NEXUS_URL`,
 supported overrides for this path. `TSW_PORTAINER_URL` does not select the
 managed-LXC client transport. See the configuration inventory's documentation-only keys.
 
-The committed port registry is `infra/config/ports.yaml`. Traefik owns public
+The committed port registry is `modules/tsw_core/infra/config/ports.yaml`. Traefik owns public
 ingress ports `80` and `443`. High-numbered service allocations are desired
 diagnostic or compatibility targets. Existing compose files may still publish
 legacy host ports; these are classified in `services.yml` and are not silently
@@ -184,7 +184,7 @@ treated as migrated port-registry behavior.
 == Stack deployment
 
 The supported stack deployment boundary is the workflow-level setup command.
-Compose files under `infra/config/compose` are read by Python deployment
+Compose files under `modules/tsw_core/infra/config/compose` are read by Python deployment
 adapters. On the default `lxc_native` path, provider-native stack deployment
 remains blocked until the reviewed setup workflow wires and verifies those
 contracts.
@@ -201,10 +201,10 @@ route after a verified deployment.
 
 Implemented repository behavior:
 
-* `infra/config/compose/service-access/docker-compose.yml` defines the
+* `modules/tsw_core/infra/config/compose/service-access/docker-compose.yml` defines the
   dashboard and service-access NGINX stack.
-* `infra/config/compose/service-access/dashboard/**` and
-  `infra/config/compose/service-access/nginx/**` provide image-packaged
+* `modules/tsw_core/infra/config/compose/service-access/dashboard/**` and
+  `modules/tsw_core/infra/config/compose/service-access/nginx/**` provide image-packaged
   assets for the Portainer-managed path. The dashboard asset is rendered from
   the effective service-access model and committed for image packaging.
 * The LXC Swarm runtime renders the dashboard from the same effective model
@@ -242,12 +242,12 @@ The accepted routing direction is Traefik-backed local ingress:
 
 == Health And Validation Registries
 
-`infra/config/health-checks.yaml` declares desired readiness checks by stack,
+`modules/tsw_core/infra/config/health-checks.yaml` declares desired readiness checks by stack,
 target ID, phase, evidence kind, and required services. `live_default: false`
 means the registry is not a live health probe and is not part of the default
 quality gate.
 
-`infra/config/validation-plan.yaml` declares the current greenpath evidence
+`modules/tsw_core/infra/config/validation-plan.yaml` declares the current greenpath evidence
 targets. Tests align the YAML declarations with service contracts and health
 checks. Runtime verification does not yet load those YAML files directly; when
 the application `ValidationPlan` is explicitly evaluated, it accepts observed
@@ -302,7 +302,7 @@ and should be run only on a disposable or recoverable local Swarm target:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world setup run --live
 ----
 
 When prompted, answer `y` only if the operator intentionally accepts local

@@ -153,7 +153,7 @@ class TestObservedInventoryLocalRepository(unittest.TestCase):
 
         self.assertEqual(inventory, loaded)
         self.assertIn(".tiny-swarm-world", str(repository.path))
-        self.assertNotIn("infra/config", str(repository.path).replace("\\", "/"))
+        self.assertNotIn("modules/tsw_core/infra/config", str(repository.path).replace("\\", "/"))
 
     def test_rejects_absolute_local_state_path(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -168,12 +168,12 @@ class TestObservedInventoryLocalRepository(unittest.TestCase):
             with self.assertRaises(LocalStatePathError):
                 ObservedInventoryLocalRepository(
                     root=Path(temporary_directory),
-                    relative_path="../infra/config/observed.json",
+                    relative_path="../modules/tsw_core/infra/config/observed.json",
                 )
 
     def test_rejects_repository_root_inside_infra_config(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
-            root = Path(temporary_directory) / "infra" / "config"
+            root = Path(temporary_directory) / "modules/tsw_core/infra/config"
             root.mkdir(parents=True)
 
             with self.assertRaises(LocalStatePathError):

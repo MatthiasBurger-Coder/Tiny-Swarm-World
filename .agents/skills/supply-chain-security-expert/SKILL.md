@@ -14,7 +14,7 @@ Maintains `documentation/handbook/06-quality-security/security/supply-chain-secu
 `documentation/handbook/06-quality-security/security/sbom-policy.md`,
 `documentation/handbook/06-quality-security/security/dependency-scan-policy.md`,
 `documentation/handbook/06-quality-security/security/container-image-scan-policy.md`, and
-`tools/linux/security_gate.py` if introduced by a future workflow.
+`modules/tsw_core/tools/linux/security_gate.py` if introduced by a future workflow.
 
 ## Non-goals
 Does not introduce external static-analysis CI by default, claim vulnerability

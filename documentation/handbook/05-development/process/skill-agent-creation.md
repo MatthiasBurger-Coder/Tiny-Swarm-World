@@ -44,4 +44,4 @@ Run:
 git diff --check
 ```
 
-Run `python3 tools/linux/quality_gate.py quality` when practical before commit or push.
+Run `python3 modules/tsw_core/tools/linux/quality_gate.py quality` when practical before commit or push.

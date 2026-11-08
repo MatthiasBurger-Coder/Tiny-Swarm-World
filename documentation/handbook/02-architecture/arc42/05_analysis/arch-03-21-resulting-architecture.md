@@ -27,7 +27,7 @@ not independently deployed services. Python runs on Linux or WSL2.
 | `infrastructure/adapters/cli/` | Parser, registry, consent translation, command dispatch and rendering | Inward use cases/results and public composition; renderer does not construct workflows |
 | `application/services/installation.py` | InstallationService, InstallationPhases and InstallationRunEvidence own installation sequencing and provenance intent | Six installation ports; no host/filesystem/process implementation |
 | `infrastructure/adapters/installation/` | Host, configuration, credentials, process, evidence, presentation and operator bootstrap implementations | Inward installation contracts and focused composition |
-| `infra/config/` and `infra/config/compose/` | Product command/provider/network/stack configuration and image contexts | Parsed by infrastructure; external syntax does not enter domain/application |
+| `modules/tsw_core/infra/config/` and `modules/tsw_core/infra/config/compose/` | Product command/provider/network/stack configuration and image contexts | Parsed by infrastructure; external syntax does not enter domain/application |
 
 Dependency arrows point toward contracts, even when a workflow calls an adapter:
 
@@ -63,7 +63,7 @@ LXC nodes. Keep three selection axes distinct:
   stack contracts. There is no `CLASSIC` enum member in that type and no generic
   engine plugin selector. Podman/Kubernetes remain future scope.
 
-[`RuntimeProfileResolver`](../../../../../src/tiny_swarm_world/application/services/platform/runtime_profile.py)
+[`RuntimeProfileResolver`](../../../../../modules/tsw_core/src/tiny_swarm_world/application/services/platform/runtime_profile.py)
 is deterministic capability policy over supplied facts. It returns `resolved`,
 `unsupported` or `unavailable`; it performs no executable discovery itself.
 Composition's `resolve_runtime_profile` gathers CLI availability and supplies the
@@ -73,13 +73,13 @@ preflight still check executables/provider readiness and fail closed. Unsupporte
 intent must never silently fall back to Classic.
 
 The proven stack contract is
-[`PortSwarmStackRuntime`](../../../../../src/tiny_swarm_world/application/ports/clients/port_swarm_stack_runtime.py):
+[`PortSwarmStackRuntime`](../../../../../modules/tsw_core/src/tiny_swarm_world/application/ports/clients/port_swarm_stack_runtime.py):
 `deploy_stack`, `stack_exists`, `list_stack_services`, `external_secret_exists`
 and `ensure_external_secret`. It returns typed `SwarmServiceStatus` observations,
 not Docker command output. This contract is deliberately Swarm-specific.
 
 Current wiring in
-[`composition_deployment.py`](../../../../../src/tiny_swarm_world/infrastructure/composition_deployment.py)
+[`composition_deployment.py`](../../../../../modules/tsw_core/src/tiny_swarm_world/infrastructure/composition_deployment.py)
 creates `LxcSwarmRuntime`, wraps it in `DockerSwarmRuntime`, and injects that
 application port into `EnsureSwarmStack`. The wrapper delegates proven operations;
 the LXC adapter owns manager transport, stack assets and technical failures.
@@ -106,7 +106,7 @@ all runtime adapters implement implicitly.
 
 ## Composition root and orchestration flow
 
-[`composition.py`](../../../../../src/tiny_swarm_world/infrastructure/composition.py)
+[`composition.py`](../../../../../modules/tsw_core/src/tiny_swarm_world/infrastructure/composition.py)
 is the stable public facade, including established patch seams. Capability
 builders live in `composition_platform.py`, `composition_artifacts.py`,
 `composition_deployment.py`, `composition_setup.py` and `composition_network.py`.
@@ -126,7 +126,7 @@ The current workflow route is:
 2. Composition binds selected provider/host capabilities and supplies workflow
    steps. Native Linux/WSL2 preparation uses lazy factories keyed by host kind;
    the general preparation use case does not construct concrete adapters.
-3. [`PlatformLifecycleOrchestrator`](../../../../../src/tiny_swarm_world/application/services/platform/lifecycle.py)
+3. [`PlatformLifecycleOrchestrator`](../../../../../modules/tsw_core/src/tiny_swarm_world/application/services/platform/lifecycle.py)
    dispatches a typed lifecycle request to exactly one supplied workflow.
    Reset/destroy receive confirmation explicitly. Setup retains its composed
    phase sequencing rather than routing every phase through the CLI.
@@ -140,7 +140,7 @@ The current workflow route is:
    observes readiness, persists allowed evidence through repositories and
    reports typed capability results. CLI/UI render those results.
 
-[`OperationResult`](../../../../../src/tiny_swarm_world/application/ports/operation_result.py)
+[`OperationResult`](../../../../../modules/tsw_core/src/tiny_swarm_world/application/ports/operation_result.py)
 is additive to existing platform/artifact/deployment/setup result families.
 Expected adapter failures carry safe operation/component/cause, recoverability
 and recommended action. Shared aggregation retains confirmed, pending and
@@ -161,7 +161,7 @@ complete runtime readiness.
 
 ## Planning versus execution
 
-[`domain/inventory/reconciliation.py`](../../../../../src/tiny_swarm_world/domain/inventory/reconciliation.py)
+[`domain/inventory/reconciliation.py`](../../../../../modules/tsw_core/src/tiny_swarm_world/domain/inventory/reconciliation.py)
 defines immutable `DesiredState`, `CurrentState`, `ReconcilePlan` and
 `ReconcileResult`. `ReconcilePlanner` compares supplied values without I/O and
 returns explainable `NOOP`, `CREATE`, `UPDATE` or `REMOVE` actions in stable
@@ -214,7 +214,7 @@ this architecture description does not assert a new live installation result.
   configuration before mutation. Installer configuration staging/snapshots are
   `infrastructure/adapters/installation/configuration.py` concerns, exposed
   through ConfigurationPreparation rather than an application YAML API.
-  [`PortConfigurationSource`](../../../../../src/tiny_swarm_world/application/ports/configuration/port_configuration_source.py)
+  [`PortConfigurationSource`](../../../../../modules/tsw_core/src/tiny_swarm_world/application/ports/configuration/port_configuration_source.py)
   exposes application input through a port. See
   [configuration parsing](arch-03-09-configuration-parsing-boundary.md) and the
   [operator configuration contract](../08_configuration/operator-configuration-contract.md).
@@ -240,17 +240,17 @@ this architecture description does not assert a new live installation result.
 ## Architecture fitness functions
 
 Run checks from the repository root in Linux/WSL; manual test commands need
-`PYTHONPATH=src`. [QUALITY.md](../../../../../QUALITY.md) is the command authority.
+`PYTHONPATH=modules/tsw_core/src`. [QUALITY.md](../../../../../QUALITY.md) is the command authority.
 
 | Check | Enforced property / evidence |
 |---|---|
-| `python3 tools/linux/quality_gate.py arch-lint` | Seven `.importlinter` contracts: domain isolation; application excludes infrastructure and bootstrap; infrastructure excludes bootstrap facades; ports exclude services |
-| `python3 tools/linux/quality_gate.py arch-tests` | Canonical hexagonal and architecture regression suites: exact root/CLI boundaries, thin executable delegation, installer technology/state access, renderer workflow construction, parser and state boundaries, operation diagnostics, relative imports, prohibited-import mutation probes and no new composition cycle edges |
-| `PYTHONPATH=src python3 -m unittest tests.architecture.test_process_spawn_boundaries` | Three-module production spawn allowlist and deliberate spawn regression probes |
-| `PYTHONPATH=src python3 -m unittest tests.domain.inventory.test_reconciliation tests.application.services.platform.test_runtime_profile tests.application.services.platform.test_platform_lifecycle` | Deterministic plans/profile decisions and typed lifecycle dispatch |
-| `PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_docker_swarm_runtime tests.application.services.deployment.test_ensure_swarm_stack tests.infrastructure.test_composition` | Classic delegation, apply/stack registration and composition seams with mocks |
-| `python3 tools/linux/quality_gate.py complexity` | Reviewed complexity thresholds/baselines and explicit exceptions; no blanket size rule |
-| `python3 tools/linux/quality_gate.py quality` | Verification-policy, complexity, lint, arch-lint, arch-tests, typecheck and full unit suite |
+| `python3 modules/tsw_core/tools/linux/quality_gate.py arch-lint` | Seven `.importlinter` contracts: domain isolation; application excludes infrastructure and bootstrap; infrastructure excludes bootstrap facades; ports exclude services |
+| `python3 modules/tsw_core/tools/linux/quality_gate.py arch-tests` | Canonical hexagonal and architecture regression suites: exact root/CLI boundaries, thin executable delegation, installer technology/state access, renderer workflow construction, parser and state boundaries, operation diagnostics, relative imports, prohibited-import mutation probes and no new composition cycle edges |
+| `PYTHONPATH=modules/tsw_core/src python3 -m unittest tests.architecture.test_process_spawn_boundaries` | Three-module production spawn allowlist and deliberate spawn regression probes |
+| `PYTHONPATH=modules/tsw_core/src python3 -m unittest tests.domain.inventory.test_reconciliation tests.application.services.platform.test_runtime_profile tests.application.services.platform.test_platform_lifecycle` | Deterministic plans/profile decisions and typed lifecycle dispatch |
+| `PYTHONPATH=modules/tsw_core/src python3 -m unittest tests.infrastructure.adapters.clients.test_docker_swarm_runtime tests.application.services.deployment.test_ensure_swarm_stack tests.infrastructure.test_composition` | Classic delegation, apply/stack registration and composition seams with mocks |
+| `python3 modules/tsw_core/tools/linux/quality_gate.py complexity` | Reviewed complexity thresholds/baselines and explicit exceptions; no blanket size rule |
+| `python3 modules/tsw_core/tools/linux/quality_gate.py quality` | Verification-policy, complexity, lint, arch-lint, arch-tests, typecheck and full unit suite |
 | `git diff --check` | Documentation/change whitespace hygiene |
 
 The canonical `arch-tests` command runs two named suites, not every architecture

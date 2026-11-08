@@ -19,8 +19,8 @@ For installation prerequisites, use the separate staged preparation owner:
 
 [source,bash]
 ----
-./bootstrap/linux/prepare_linux.sh --dry-run
-./bootstrap/linux/prepare_linux.sh
+./modules/tsw_core/bootstrap/linux/prepare_linux.sh --dry-run
+./modules/tsw_core/bootstrap/linux/prepare_linux.sh
 ----
 
 This plans required kernel controls, managed-bridge forwarding and canonical local
@@ -76,7 +76,7 @@ already verified:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world platform repair-lxc-proxy-drift --live
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world platform repair-lxc-proxy-drift --live
 ----
 
 Repair evidence records summary counts and device names. It does not record
@@ -111,7 +111,7 @@ The prerequisite action is read-only and requires Windows 10 or 11, a running
 WSL 2 distribution with systemd as PID 1, elevated PowerShell, a running IP
 Helper service, and the Windows Firewall and Service cmdlets. The
 dedicated reproducible setup and repair guide is
-`bootstrap/windows/README.windows-wsl-bridge.md`.
+`modules/tsw_windows_wsl/bootstrap/windows/README.windows-wsl-bridge.md`.
 
 The install action registers an automatic Windows service discovery agent. It
 runs periodically, discovers the current WSL IP and reconciles only
@@ -122,7 +122,7 @@ state contains a versioned owned-agent contract, bundle identity, and heartbeat.
 Privileged code does not mirror state into the checkout. During WSL2 live
 preflight, Tiny Swarm World requires the agent to report `ready`, a heartbeat no
 older than five minutes, the current WSL IP, and every external TCP port from
-`infra/config/ports.yaml`. If the state is missing or stale, setup stops before
+`modules/tsw_core/infra/config/ports.yaml`. If the state is missing or stale, setup stops before
 platform mutation with a `WINDOWS-WSL-BRIDGE` preflight failure.
 
 After `wsl --shutdown` or another WSL restart, the agent repairs the changed
@@ -139,15 +139,15 @@ Restart-Service -Name TinySwarmWorldWslBridge
 powershell.exe -NoProfile -Command "Restart-Service -Name TinySwarmWorldWslBridge"
 ----
 
-The bridge reads TCP ports and route hostnames from `infra/config/ports.yaml`.
-`bootstrap/windows/tws-wsl-bridge.config.json` is limited to Windows-side
+The bridge reads TCP ports and route hostnames from `modules/tsw_core/infra/config/ports.yaml`.
+`modules/tsw_windows_wsl/bootstrap/windows/tws-wsl-bridge.config.json` is limited to Windows-side
 settings such as distro selection, listen address, hosts address, discovery
 interval, and additional hostname aliases. Do not maintain a separate Windows
 port list.
 
 == Published Port Classification
 
-`infra/config/ports.yaml` is the source of truth for registry-backed external
+`modules/tsw_core/infra/config/ports.yaml` is the source of truth for registry-backed external
 published ports. In Compose, `target` remains the image-compatible internal
 container port and `published` is the external host/service port resolved from
 the registry. Traefik owns public ingress on `80` and `443`; direct diagnostic

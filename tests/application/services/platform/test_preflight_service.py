@@ -596,7 +596,7 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
                 windows_bridge_status=WindowsWslBridgeStatus(
                     prepared=False,
                     reason="state_missing",
-                    state_path="bootstrap/windows/.tws-wsl-bridge.state.json",
+                    state_path="modules/tsw_windows_wsl/bootstrap/windows/.tws-wsl-bridge.state.json",
                     expected_ports=(80, 10000),
                     missing_ports=(80, 10000),
                 ),
@@ -610,7 +610,7 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(result.passed)
         self.assertEqual(bridge_check.category.value, "WINDOWS_EXPOSURE")
         self.assertIn("Windows <-> WSL bridge is not prepared", bridge_check.message)
-        self.assertIn("bootstrap/windows/tws-wsl-bridge.ps1 -Action install", bridge_check.remediation)
+        self.assertIn("modules/tsw_windows_wsl/bootstrap/windows/tws-wsl-bridge.ps1 -Action install", bridge_check.remediation)
         self.assertEqual(bridge_check.evidence["missing_ports"], "80,10000")
 
     async def test_wsl2_live_preflight_reports_stale_bridge_refresh_guidance(self):
@@ -620,7 +620,7 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
                 windows_bridge_status=WindowsWslBridgeStatus(
                     prepared=False,
                     reason="wsl_ip_changed",
-                    state_path="bootstrap/windows/.tws-wsl-bridge.state.json",
+                    state_path="modules/tsw_windows_wsl/bootstrap/windows/.tws-wsl-bridge.state.json",
                     current_wsl_ip="172.21.0.9",
                     state_wsl_ip="172.20.0.2",
                     expected_ports=(80,),
@@ -680,7 +680,7 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
                 windows_bridge_status=WindowsWslBridgeStatus(
                     prepared=False,
                     reason="state_missing",
-                    state_path="bootstrap/windows/.tws-wsl-bridge.state.json",
+                    state_path="modules/tsw_windows_wsl/bootstrap/windows/.tws-wsl-bridge.state.json",
                 ),
             ),
             configuration,
@@ -1224,7 +1224,7 @@ class _FakeProbe(PortHostPreflightProbe):
         return WindowsWslBridgeStatus(
             prepared=True,
             reason="prepared",
-            state_path="bootstrap/windows/.tws-wsl-bridge.state.json",
+            state_path="modules/tsw_windows_wsl/bootstrap/windows/.tws-wsl-bridge.state.json",
             current_wsl_ip="172.20.0.2",
             state_wsl_ip="172.20.0.2",
             generated_at="2026-07-05T09:00:00+00:00",

@@ -18,12 +18,12 @@ class TestInstallHandoff(unittest.TestCase):
         self.addCleanup(self.temporary.cleanup)
         self.checkout = Path(self.temporary.name) / "checkout with spaces"
         self.checkout.mkdir()
-        for name in ("host-bindings.json", "bootstrap/linux/install.sh", "bootstrap/linux/prepare_linux.sh", "requirements.lock", "requirements.build.lock", "pyproject.toml", "src/tiny_swarm_world/prepare_linux.py"):
+        for name in ("host-bindings.json", "modules/tsw_core/bootstrap/linux/install.sh", "modules/tsw_core/bootstrap/linux/prepare_linux.sh", "requirements.lock", "requirements.build.lock", "pyproject.toml", "modules/tsw_core/src/tiny_swarm_world/prepare_linux.py"):
             path = self.checkout / name
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text("# fixture bytes\n")
-        (self.checkout / "bootstrap/linux/install.sh").chmod(0o755)
-        (self.checkout / "bootstrap/linux/prepare_linux.sh").chmod(0o755)
+        (self.checkout / "modules/tsw_core/bootstrap/linux/install.sh").chmod(0o755)
+        (self.checkout / "modules/tsw_core/bootstrap/linux/prepare_linux.sh").chmod(0o755)
         self.git("init", "--quiet")
         self.git("add", ".")
         self.git("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "--quiet", "-m", "fixture")
@@ -34,7 +34,7 @@ class TestInstallHandoff(unittest.TestCase):
 
     def probe(self, path=None, revision=None):
         return subprocess.run(["sh", "-s", "--", str(path or self.checkout), revision or self.revision],
-                              input=(ROOT / "bootstrap/windows/preparation/linux-handoff.sh").read_text(),
+                              input=(ROOT / "modules/tsw_windows_wsl/bootstrap/windows/preparation/linux-handoff.sh").read_text(),
                               text=True, capture_output=True, check=False, timeout=15)
 
     def test_read_only_matching_checkout_has_no_writes(self):
@@ -47,8 +47,8 @@ class TestInstallHandoff(unittest.TestCase):
         self.assertEqual(before, after)
 
     def test_native_edition_is_not_required_but_missing_core_installer_is_refused(self):
-        native = self.checkout / "src/tsw_native_linux/module.json"
-        native.parent.mkdir()
+        native = self.checkout / "modules/tsw_native_linux/module.json"
+        native.parent.mkdir(parents=True)
         native.write_text('{"name":"tsw_native_linux"}\n')
         public = self.checkout / "install.sh"
         public.write_text("# native compatibility fixture\n")
@@ -59,12 +59,12 @@ class TestInstallHandoff(unittest.TestCase):
         native.parent.rmdir()
         public.unlink()
         self.assertEqual(self.probe().returncode, 0)
-        (self.checkout / "bootstrap/linux/install.sh").unlink()
+        (self.checkout / "modules/tsw_core/bootstrap/linux/install.sh").unlink()
         self.assertEqual(self.probe().returncode, 2)
 
     def test_mismatched_revision_and_edits_hidden_from_git_status_are_refused(self):
         self.assertEqual(self.probe(revision="a" * 40).returncode, 2)
-        asset = "src/tiny_swarm_world/prepare_linux.py"
+        asset = "modules/tsw_core/src/tiny_swarm_world/prepare_linux.py"
         self.git("update-index", "--assume-unchanged", asset)
         (self.checkout / asset).write_text("edited product implementation\n")
         result = self.probe()
@@ -77,7 +77,7 @@ class TestInstallHandoff(unittest.TestCase):
         self.assertEqual(self.probe().returncode, 2)
 
     def test_unreviewed_bootstrap_helper_is_refused(self):
-        helper = self.checkout / "bootstrap/windows/preparation/unreviewed.sh"
+        helper = self.checkout / "modules/tsw_windows_wsl/bootstrap/windows/preparation/unreviewed.sh"
         helper.parent.mkdir(parents=True)
         helper.write_text("#!/bin/sh\nexit 0\n")
 
@@ -91,10 +91,10 @@ class TestInstallHandoff(unittest.TestCase):
         link = self.checkout.parent / "linked"
         link.symlink_to(self.checkout)
         self.assertEqual(self.probe(path=link).returncode, 2)
-        (self.checkout / "bootstrap/linux/install.sh").chmod(0o644)
+        (self.checkout / "modules/tsw_core/bootstrap/linux/install.sh").chmod(0o644)
         self.assertEqual(self.probe().returncode, 2)
-        (self.checkout / "bootstrap/linux/install.sh").chmod(0o755)
-        (self.checkout / "src/extra.py").write_text("untracked implementation\n")
+        (self.checkout / "modules/tsw_core/bootstrap/linux/install.sh").chmod(0o755)
+        (self.checkout / "modules/tsw_core/src/extra.py").write_text("untracked implementation\n")
         self.assertEqual(self.probe().returncode, 2)
 
     def test_extracted_release_proof_preserves_source_binding_without_git(self):
@@ -108,7 +108,7 @@ class TestInstallHandoff(unittest.TestCase):
                     "trees": [{"id": key, "data": value} for key, value in trees.items()]}
         import shutil
         shutil.rmtree(self.checkout / ".git")
-        path = self.checkout / "bootstrap/windows/preparation/release-manifest.json"
+        path = self.checkout / "modules/tsw_windows_wsl/bootstrap/windows/preparation/release-manifest.json"
         path.parent.mkdir(parents=True)
         path.write_text(json.dumps(manifest))
         result = self.probe()
@@ -121,9 +121,9 @@ class TestInstallHandoff(unittest.TestCase):
             with self.subTest(prepare_exit=prepare_exit, install_exit=install_exit):
                 marker = self.checkout / "called"
                 marker.unlink(missing_ok=True)
-                (self.checkout / "bootstrap/linux/prepare_linux.sh").write_text(f"#!/bin/sh\nread answer\n[ \"$answer\" = yes ] || exit 2\nexit {prepare_exit}\n")
-                (self.checkout / "bootstrap/linux/install.sh").write_text(f"#!/bin/sh\ntouch called\nexit {install_exit}\n")
-                chain = f"cd -- '{self.checkout}' && ./bootstrap/linux/prepare_linux.sh --service-profile default && exec ./bootstrap/linux/install.sh --service-profile default"
+                (self.checkout / "modules/tsw_core/bootstrap/linux/prepare_linux.sh").write_text(f"#!/bin/sh\nread answer\n[ \"$answer\" = yes ] || exit 2\nexit {prepare_exit}\n")
+                (self.checkout / "modules/tsw_core/bootstrap/linux/install.sh").write_text(f"#!/bin/sh\ntouch called\nexit {install_exit}\n")
+                chain = f"cd -- '{self.checkout}' && ./modules/tsw_core/bootstrap/linux/prepare_linux.sh --service-profile default && exec ./modules/tsw_core/bootstrap/linux/install.sh --service-profile default"
                 result = subprocess.run(["bash", "-lc", chain], input="yes\n", text=True, capture_output=True,
                                         env={**os.environ}, check=False, timeout=10)
                 self.assertEqual(result.returncode, prepare_exit or install_exit)

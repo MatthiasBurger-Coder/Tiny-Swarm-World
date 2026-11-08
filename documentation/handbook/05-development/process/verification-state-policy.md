@@ -12,7 +12,7 @@ applicable and separate operator consent is available, implementation
 verification consists of:
 
 ```bash
-python3 tools/linux/quality_gate.py quality
+python3 modules/tsw_core/tools/linux/quality_gate.py quality
 ```
 
 plus focused unit, integration, architecture, contract, or mocked-adapter
@@ -82,8 +82,8 @@ Host preparation remains a separate operator step. The ordinary live-install
 command omits the destructive reset flag:
 
 ```bash
-./bootstrap/linux/prepare_linux.sh --preflight
-./bootstrap/linux/prepare_linux.sh
+./modules/tsw_core/bootstrap/linux/prepare_linux.sh --preflight
+./modules/tsw_core/bootstrap/linux/prepare_linux.sh
 ./install.sh --headless --non-interactive-live-approval
 ```
 

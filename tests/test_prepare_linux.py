@@ -345,7 +345,7 @@ class NativePreparationCliTests(unittest.TestCase):
             redirect_stdout(io.StringIO()) as output,
         ):
             self.assertEqual(_prepare_remaining(read_only=True, service_profile="default"), 0)
-        self.assertIn("cd -- '/home/operator/TSW checkout' && ./bootstrap/linux/install.sh --service-profile default", output.getvalue())
+        self.assertIn("cd -- '/home/operator/TSW checkout' && ./modules/tsw_core/bootstrap/linux/install.sh --service-profile default", output.getvalue())
         self.assertIn("services are not verified", output.getvalue())
 
     def test_python_dependencies_are_prepared_only_after_separate_consent(self) -> None:
@@ -404,7 +404,7 @@ class NativePreparationCliTests(unittest.TestCase):
     def test_entrypoint_imports_without_third_party_dependencies(self) -> None:
         result = subprocess.run(
             [sys.executable, "-S", "-c", "import tiny_swarm_world.prepare_linux"],
-            env={**os.environ, "PYTHONPATH": "src"},
+            env={**os.environ, "PYTHONPATH": "modules/tsw_core/src"},
             text=True,
             capture_output=True,
             check=False,

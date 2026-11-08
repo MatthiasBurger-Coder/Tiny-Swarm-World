@@ -9,21 +9,21 @@ Run the full project gate from the repository root:
 
 [source,bash]
 ----
-python3 tools/linux/quality_gate.py quality
+python3 modules/tsw_core/tools/linux/quality_gate.py quality
 ----
 
 If a virtual environment is active:
 
 [source,bash]
 ----
-python tools/linux/quality_gate.py quality
+python modules/tsw_core/tools/linux/quality_gate.py quality
 ----
 
 == Run The Current Python Entrypoint
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world
 ----
 
 The entry point delegates to the workflow CLI. Without a selected workflow, it
@@ -31,7 +31,7 @@ reports that no workflow was selected. List supported workflows explicitly:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world --list-workflows
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world --list-workflows
 ----
 
 Follow the link:../03-user-guide/user_guide/installation.adoc[installation guide] for host
@@ -44,7 +44,7 @@ The guided setup path is the Python workflow-level command:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world setup run --live
 ----
 
 When prompted, answer `y` only if changing the local Incus/LXC, Docker Swarm,
@@ -55,7 +55,7 @@ retired.
 == Stack Deployment
 
 Stack deployment is handled by the workflow-level setup command. Compose files
-under `infra/config/compose` are source assets, not direct
+under `modules/tsw_core/infra/config/compose` are source assets, not direct
 operator scripts.
 
 == Service Routes

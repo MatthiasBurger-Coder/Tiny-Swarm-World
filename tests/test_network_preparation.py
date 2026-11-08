@@ -56,7 +56,7 @@ def nft_fixture():
 class LocalNamesTests(unittest.TestCase):
     def test_admin_alias_and_selected_routes_preserve_ports_and_exposure(self):
         with patch(PACKAGE + ".configuration._lxc_proxy_listen_address", return_value="127.0.0.1"):
-            names, ports, exposure = local_names(ROOT / "infra/config/ports.yaml", "service-access")
+            names, ports, exposure = local_names(ROOT / "modules/tsw_core/infra/config/ports.yaml", "service-access")
         self.assertIn("tsw.local", names)
         self.assertIn("traefik.tsw.local", names)
         self.assertIn("service-access.tsw.local", names)
@@ -190,7 +190,7 @@ class NetworkPreparationTests(unittest.IsolatedAsyncioTestCase):
     async def test_stopped_daemon_does_not_query_or_activate_in_inventory(self):
         with tempfile.TemporaryDirectory() as directory:
             host = MockHost(Path(directory))
-            adapter = LocalNetworkPreparation(ROOT, ROOT / "infra/config", release="24.04", profile="service-access",
+            adapter = LocalNetworkPreparation(ROOT, ROOT / "modules/tsw_core/infra/config", release="24.04", profile="service-access",
                         proc_root=host.proc, target_snapshot=lambda: (host.source,), evidence=Mock())
             with host.patches(), patch(INCUS + ".daemon_state", return_value={"ActiveState": "inactive"}), patch(INCUS + ".query") as query:
                 self.assertTrue((await adapter.inspect()).blockers)
@@ -202,7 +202,7 @@ class NetworkPreparationTests(unittest.IsolatedAsyncioTestCase):
         with tempfile.TemporaryDirectory() as directory:
             host = MockHost(Path(directory))
             evidence = Mock()
-            adapter = LocalNetworkPreparation(ROOT, ROOT / "infra/config", release="24.04", profile="service-access",
+            adapter = LocalNetworkPreparation(ROOT, ROOT / "modules/tsw_core/infra/config", release="24.04", profile="service-access",
                         proc_root=host.proc, target_snapshot=lambda: (host.source,), evidence=evidence)
             with host.patches(), patch("tiny_swarm_world.prepare_network.build_network_preparation_service", return_value=NetworkPreparationService(adapter)), patch("builtins.input", side_effect=EOFError):
                 self.assertEqual(await prepare(read_only=True, service_profile="service-access"), 2)
@@ -288,7 +288,7 @@ class NetworkPreparationTests(unittest.IsolatedAsyncioTestCase):
                              {"type": "proxy", "listen": "tcp:0.0.0.0:443", "connect": "tcp:127.0.0.1:443"}}}]
                 return await original_query(path)
             host.query = query
-            adapter = LocalNetworkPreparation(ROOT, ROOT / "infra/config", release="24.04", profile="service-access",
+            adapter = LocalNetworkPreparation(ROOT, ROOT / "modules/tsw_core/infra/config", release="24.04", profile="service-access",
                         proc_root=host.proc, target_snapshot=lambda: (host.source,), evidence=Mock())
             with host.patches(), patch(PACKAGE + ".runtime.privileged", side_effect=host.privileged) as reads, \
                     patch(PACKAGE + ".trusted_process.verify", return_value=(99, "/trusted/incus", 1, 2, "start")):
@@ -315,8 +315,8 @@ class NetworkPreparationTests(unittest.IsolatedAsyncioTestCase):
                     state.update(ownership="owned", routing_ready=True, agent_ready=True, bridge_ready=True, action=None, fingerprint="ready")
                 return WindowsCommandResult(0, stdout=json.dumps(state))
             runner.run.side_effect = windows_run
-            windows = WindowsNetworkPreparation(runner, ROOT, ROOT / "infra/config") if wsl else None
-            adapter = LocalNetworkPreparation(ROOT, ROOT / "infra/config", release="24.04", profile="service-access",
+            windows = WindowsNetworkPreparation(runner, ROOT, ROOT / "modules/tsw_core/infra/config") if wsl else None
+            adapter = LocalNetworkPreparation(ROOT, ROOT / "modules/tsw_core/infra/config", release="24.04", profile="service-access",
                         proc_root=host.proc, target_snapshot=lambda: (host.source,), evidence=evidence, windows=windows)
             with host.patches(), patch.dict("os.environ", WSL_DISTRO_NAME="Ubuntu-24.04"):
                 service = NetworkPreparationService(adapter)
@@ -358,7 +358,7 @@ class NetworkPreparationTests(unittest.IsolatedAsyncioTestCase):
     async def test_source_drift_and_foreign_port_block_before_any_effect(self):
         with tempfile.TemporaryDirectory() as directory:
             host = MockHost(Path(directory))
-            adapter = LocalNetworkPreparation(ROOT, ROOT / "infra/config", release="24.04", profile="service-access",
+            adapter = LocalNetworkPreparation(ROOT, ROOT / "modules/tsw_core/infra/config", release="24.04", profile="service-access",
                         proc_root=host.proc, target_snapshot=lambda: (host.source,), evidence=Mock())
             with host.patches():
                 service = NetworkPreparationService(adapter)
@@ -382,7 +382,7 @@ class NetworkPreparationTests(unittest.IsolatedAsyncioTestCase):
                         raise OSError("private state denied")
                     return "/redacted/evidence"
                 evidence.write.side_effect = record
-                adapter = LocalNetworkPreparation(ROOT, ROOT / "infra/config", release="24.04", profile="service-access",
+                adapter = LocalNetworkPreparation(ROOT, ROOT / "modules/tsw_core/infra/config", release="24.04", profile="service-access",
                             proc_root=host.proc, target_snapshot=lambda: (host.source,), evidence=evidence)
                 with host.patches():
                     service = NetworkPreparationService(adapter)
@@ -399,7 +399,7 @@ class NetworkPreparationTests(unittest.IsolatedAsyncioTestCase):
             with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as directory:
                 host = MockHost(Path(directory))
                 mutation(host)
-                adapter = LocalNetworkPreparation(ROOT, ROOT / "infra/config", release="24.04", profile="service-access",
+                adapter = LocalNetworkPreparation(ROOT, ROOT / "modules/tsw_core/infra/config", release="24.04", profile="service-access",
                             proc_root=host.proc, target_snapshot=lambda: (host.source,), evidence=Mock())
                 with host.patches():
                     plan = await adapter.inspect()
@@ -419,7 +419,7 @@ class NetworkPreparationTests(unittest.IsolatedAsyncioTestCase):
                         else:
                             host.files["/etc/hosts"] = (b"127.0.0.1 localhost\n192.0.2.8 changed.example\n", 0o644)
                     return output
-                adapter = LocalNetworkPreparation(ROOT, ROOT / "infra/config", release="24.04", profile="service-access",
+                adapter = LocalNetworkPreparation(ROOT, ROOT / "modules/tsw_core/infra/config", release="24.04", profile="service-access",
                             proc_root=host.proc, target_snapshot=lambda: (host.source,), evidence=Mock())
                 with host.patches(), patch(PACKAGE + ".runtime.privileged", side_effect=mutate):
                     service = NetworkPreparationService(adapter)
@@ -432,7 +432,7 @@ class NetworkPreparationTests(unittest.IsolatedAsyncioTestCase):
         with tempfile.TemporaryDirectory() as directory:
             host = MockHost(Path(directory))
             host.nft["nftables"][-1]["rule"]["expr"].append({"counter": {"packets": 1, "bytes": 64}})
-            adapter = LocalNetworkPreparation(ROOT, ROOT / "infra/config", release="24.04", profile="service-access",
+            adapter = LocalNetworkPreparation(ROOT, ROOT / "modules/tsw_core/infra/config", release="24.04", profile="service-access",
                         proc_root=host.proc, target_snapshot=lambda: (host.source,), evidence=Mock())
             with host.patches():
                 before = await adapter.inspect()
@@ -445,7 +445,7 @@ class NetworkPreparationTests(unittest.IsolatedAsyncioTestCase):
         for error in (NetworkPreparationFailure("timeout", exit_code=124), None):
             with self.subTest(error=error), tempfile.TemporaryDirectory() as directory:
                 host = MockHost(Path(directory))
-                adapter = LocalNetworkPreparation(ROOT, ROOT / "infra/config", release="24.04", profile="service-access",
+                adapter = LocalNetworkPreparation(ROOT, ROOT / "modules/tsw_core/infra/config", release="24.04", profile="service-access",
                             proc_root=host.proc, target_snapshot=lambda: (host.source,), evidence=Mock())
                 with host.patches(), patch.object(adapter, "execute", side_effect=error), patch.object(adapter, "action_verified", return_value=False):
                     service = NetworkPreparationService(adapter)
@@ -459,7 +459,7 @@ class NetworkPreparationTests(unittest.IsolatedAsyncioTestCase):
         with tempfile.TemporaryDirectory() as directory:
             host = MockHost(Path(directory))
             evidence = Mock()
-            adapter = LocalNetworkPreparation(ROOT, ROOT / "infra/config", release="24.04", profile="service-access",
+            adapter = LocalNetworkPreparation(ROOT, ROOT / "modules/tsw_core/infra/config", release="24.04", profile="service-access",
                         proc_root=host.proc, target_snapshot=lambda: (host.source,), evidence=evidence)
             with host.patches(), patch.object(adapter, "execute", side_effect=asyncio.CancelledError):
                 service = NetworkPreparationService(adapter)
@@ -540,15 +540,15 @@ class FirewallNegativeTests(unittest.TestCase):
     def test_source_digest_binds_all_helpers_configs_and_rejects_linked_ancestor(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            shutil.copytree(ROOT / "src", root / "src", ignore=shutil.ignore_patterns("__pycache__"))
-            shutil.copytree(ROOT / "infra/config", root / "infra/config")
+            shutil.copytree(ROOT / "modules/tsw_core/src", root / "modules/tsw_core/src", ignore=shutil.ignore_patterns("__pycache__"))
+            shutil.copytree(ROOT / "modules/tsw_core/infra/config", root / "modules/tsw_core/infra/config")
             for name in ("requirements.lock", "requirements.build.lock", "pyproject.toml"):
                 shutil.copyfile(ROOT / name, root / name)
             before = preparation_asset_hashes(root, is_wsl=False)
-            helper = root / "src/tiny_swarm_world/infrastructure/adapters/network_preparation/trusted_process.py"
+            helper = root / "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/network_preparation/trusted_process.py"
             helper.write_text(helper.read_text() + "\n# source drift\n")
             self.assertNotEqual(preparation_asset_hashes(root, is_wsl=False), before)
-            original = root / "infra/config/host"
+            original = root / "modules/tsw_core/infra/config/host"
             protected = root / "outside-host"
             original.rename(protected)
             original.symlink_to(protected, target_is_directory=True)

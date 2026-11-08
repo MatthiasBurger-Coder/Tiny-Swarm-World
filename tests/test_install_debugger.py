@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
-INSTALL_DEBUGGER_PATH = REPOSITORY_ROOT / "bootstrap" / "linux" / "install_debugger.py"
+INSTALL_DEBUGGER_PATH = REPOSITORY_ROOT / "modules/tsw_core/bootstrap/linux" / "install_debugger.py"
 
 
 def _load_install_debugger():
@@ -26,7 +26,7 @@ class TestInstallDebugger(unittest.TestCase):
     def test_diagnose_reports_install_script_contract_and_missing_execute_bit(self):
         with tempfile.TemporaryDirectory() as tempdir:
             root = _minimal_repo(Path(tempdir))
-            install_script = root / "bootstrap/linux/install.sh"
+            install_script = root / "modules/tsw_core/bootstrap/linux/install.sh"
             install_script.parent.mkdir(parents=True, exist_ok=True)
             install_script.write_text(_install_script_text(), encoding="utf-8")
             install_script.chmod(0o644)
@@ -41,7 +41,7 @@ class TestInstallDebugger(unittest.TestCase):
     def test_live_fix_permissions_repairs_install_script_and_secret_mode(self):
         with tempfile.TemporaryDirectory() as tempdir:
             root = _minimal_repo(Path(tempdir))
-            install_script = root / "bootstrap/linux/install.sh"
+            install_script = root / "modules/tsw_core/bootstrap/linux/install.sh"
             install_script.parent.mkdir(parents=True, exist_ok=True)
             install_script.write_text(_install_script_text(), encoding="utf-8")
             install_script.chmod(0o644)
@@ -71,7 +71,7 @@ class TestInstallDebugger(unittest.TestCase):
     def test_service_definition_reports_wsl_systemd_and_windows_command_issues(self):
         with tempfile.TemporaryDirectory() as tempdir:
             root = _minimal_repo(Path(tempdir))
-            unit = root / "infra" / "systemd" / "bad.service"
+            unit = root / "modules/tsw_core/infra" / "systemd" / "bad.service"
             unit.parent.mkdir(parents=True)
             unit.write_text(
                 "\n".join(
@@ -158,7 +158,7 @@ class TestInstallDebugger(unittest.TestCase):
 
 
 def _minimal_repo(root: Path) -> Path:
-    (root / "src" / "tiny_swarm_world").mkdir(parents=True)
+    (root / "modules/tsw_core/src" / "tiny_swarm_world").mkdir(parents=True)
     return root
 
 

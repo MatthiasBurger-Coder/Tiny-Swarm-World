@@ -15,12 +15,12 @@
     "removed_stale_microservice_artifacts": 4
   },
   "governing_hashes": {
-    "AGENTS.md": "BA2C6D681B9BBE55E04934F5A5E45759EC13AECCE45D3C81180DAFF287673923",
-    "QUALITY.md": "1705388C1A7887A6F57A2079541DBA94089100029B2E15C910AD82A317AB81B2",
-    "README.md": "F40AF322D91731F9D9CBB168F4E7E4506C2490D28705D44CF22AD10985A9B156",
-    "documentation/handbook/02-architecture/arc42/08_concepts.adoc": "583334244B4F994B7F0036D3776A9409A64A2EB3EB59C829572FCAF06793ABFB",
+    "AGENTS.md": "D28D97A0908582A646E49077F1640DF99D9FA13007E4F3D89F339C3D015BD61C",
+    "QUALITY.md": "0EDA427D7F38ED3961CA1FFE64CF683BF68BFCA4476B533F51E105E1A620974A",
+    "README.md": "27B603598E61B3DEB1EE1C3ABA562C6F59C28597CC75C9936FC443510FEE18EC",
+    "documentation/handbook/02-architecture/arc42/08_concepts.adoc": "5C13EED20B2D9AF2E5BD126A846097E7525806C39A5822E74134E9E8F17B1DEB",
     "documentation/handbook/05-development/process/issue-completion-discipline.md": "3DB2D080B7CFBBC3737907A61C67CE6A361485C8993CF4A20C1C5FE2DC743BC3",
-    "documentation/handbook/05-development/process/skills/audit/skill-registry.md": "A643CFFD488F0B3F33C867D98531AD0D21CA9C34D5438BF7F77EB83D1DEB5E65",
+    "documentation/handbook/05-development/process/skills/audit/skill-registry.md": "F29B3FA6D7DABF9CE684E5688F03AA3AC28A31812375A4E703355818C3455AF6",
     "documentation/handbook/05-development/process/skills/audit/organigramm.md": "32FDE4D3114551C3191CE575C678E23F3A169662077F4FF1995BA1A11C0332FC",
     "documentation/handbook/05-development/process/skills/audit/owner-map.md": "999E58063429B41CD8473DFDB5F7A3493463CD5C2223F26F1220C851B751625F"
   },
@@ -171,7 +171,7 @@
         "documentation/handbook/06-quality-security/security/sbom-policy.md",
         "documentation/handbook/06-quality-security/security/dependency-scan-policy.md",
         "documentation/handbook/06-quality-security/security/container-image-scan-policy.md",
-        "tools/linux/security_gate.py"
+        "modules/tsw_core/tools/linux/security_gate.py"
       ],
       "supported_workflows": ["supply-chain security"],
       "related_issues": [127],

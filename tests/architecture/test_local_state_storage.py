@@ -6,7 +6,7 @@ from tiny_swarm_world.infrastructure.project_paths import logs_root
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
-DOMAIN_INVENTORY_ROOT = REPOSITORY_ROOT / "src" / "tiny_swarm_world" / "domain" / "inventory"
+DOMAIN_INVENTORY_ROOT = REPOSITORY_ROOT / "modules/tsw_core/src" / "tiny_swarm_world" / "domain" / "inventory"
 GITIGNORE = REPOSITORY_ROOT / ".gitignore"
 FORBIDDEN_DOMAIN_IMPORTS = {
     "pathlib",
@@ -43,7 +43,7 @@ class TestLocalStateStorageArchitecture(unittest.TestCase):
         self.assertEqual([], violations)
 
     def test_no_observed_state_configuration_is_committed_under_infra_config(self):
-        config_root = REPOSITORY_ROOT / "infra" / "config"
+        config_root = REPOSITORY_ROOT / "modules/tsw_core/infra" / "config"
         forbidden_names = {
             "observed_inventory.json",
             "observed_inventory.yaml",

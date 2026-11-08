@@ -37,10 +37,10 @@ class OfficialReleaseTests(unittest.TestCase):
         self.lock = response({})
         self.lock.content = b'example==1.0\n'
         self.comparison = response({'status': 'ahead', 'files': [
-            {'filename': 'infra/config/compose/portainer/docker-compose.yml', 'status': 'modified'}]})
-        self.before_tree = response({'truncated': False, 'tree': [{'path': 'infra/config/compose/portainer/docker-compose.yml',
+            {'filename': 'modules/tsw_core/infra/config/compose/portainer/docker-compose.yml', 'status': 'modified'}]})
+        self.before_tree = response({'truncated': False, 'tree': [{'path': 'modules/tsw_core/infra/config/compose/portainer/docker-compose.yml',
                                    'mode': '100644', 'type': 'blob', 'sha': 'a' * 40}]})
-        self.after_tree = response({'truncated': False, 'tree': [{'path': 'infra/config/compose/portainer/docker-compose.yml',
+        self.after_tree = response({'truncated': False, 'tree': [{'path': 'modules/tsw_core/infra/config/compose/portainer/docker-compose.yml',
                                   'mode': '100644', 'type': 'blob', 'sha': 'b' * 40}]})
         self.responses = [self.release, self.ref, self.project, self.lock, self.comparison, self.before_tree, self.after_tree]
 
@@ -49,7 +49,7 @@ class OfficialReleaseTests(unittest.TestCase):
             release, changes = self.source.resolve('0.5.0')
         self.assertEqual(release.product.revision, TARGET_REVISION)
         self.assertEqual(release.product.dependency_lock, 'sha256:' + hashlib.sha256(self.lock.content).hexdigest())
-        self.assertEqual(changes, ('infra/config/compose/portainer/docker-compose.yml',))
+        self.assertEqual(changes, ('modules/tsw_core/infra/config/compose/portainer/docker-compose.yml',))
         self.assertTrue(all(call.kwargs['allow_redirects'] is False for call in get.call_args_list))
 
     def test_moved_target_ref_is_rejected(self):
@@ -76,11 +76,11 @@ class OfficialReleaseTests(unittest.TestCase):
         self.comparison.json.return_value['files'] *= 300
         with patch('tiny_swarm_world.infrastructure.adapters.lifecycle.product_source.requests.get', side_effect=self.responses):
             _, changes = self.source.resolve('0.5.0')
-        self.assertEqual(changes, ('infra/config/compose/portainer/docker-compose.yml',))
+        self.assertEqual(changes, ('modules/tsw_core/infra/config/compose/portainer/docker-compose.yml',))
 
     def test_support_asset_matches_machine_policy(self):
         root = Path(__file__).resolve().parents[4]
-        self.assertEqual(json.loads((root / 'infra/config/product-releases.json').read_text()), release_policy())
+        self.assertEqual(json.loads((root / 'modules/tsw_core/infra/config/product-releases.json').read_text()), release_policy())
 
 
 class ProductFilesystemTests(unittest.TestCase):
@@ -89,14 +89,17 @@ class ProductFilesystemTests(unittest.TestCase):
         self.addCleanup(temporary.cleanup)
         self.root = Path(temporary.name)
         self.installation = PreparedProductInstallation(self.root, Mock(), Mock(), Mock(), Mock())
-        self.plan = product_plan().model_copy(update={'configuration_changes': ('infra/config/default.yml',)})
+        self.plan = product_plan().model_copy(update={'configuration_changes': ('modules/tsw_core/infra/config/default.yml',)})
         self.code = self.installation.directory(self.plan)
-        (self.root / 'infra/config').mkdir(parents=True)
-        (self.code / 'infra/config').mkdir(parents=True)
-        (self.root / 'infra/config/default.yml').write_text('old-default')
-        (self.root / 'infra/config/local.env').write_text('PRIVATE_SENTINEL')
-        (self.code / 'infra/config/default.yml').write_text('new-default')
-        self.installation._command = Mock(return_value='infra/config/default.yml')
+        physical_source = self.code / 'modules/tsw_core/src/tiny_swarm_world'
+        physical_source.mkdir(parents=True)
+        (physical_source / '__main__.py').write_text('# release source fixture, never executed\n')
+        (self.root / 'modules/tsw_core/infra/config').mkdir(parents=True)
+        (self.code / 'modules/tsw_core/infra/config').mkdir(parents=True)
+        (self.root / 'modules/tsw_core/infra/config/default.yml').write_text('old-default')
+        (self.root / 'modules/tsw_core/infra/config/local.env').write_text('PRIVATE_SENTINEL')
+        (self.code / 'modules/tsw_core/infra/config/default.yml').write_text('new-default')
+        self.installation._command = Mock(return_value='modules/tsw_core/infra/config/default.yml')
 
     def test_migration_preserves_overrides_and_originals_while_updating_defaults(self):
         migrate_product_infra(self.installation, self.plan)
@@ -104,8 +107,8 @@ class ProductFilesystemTests(unittest.TestCase):
         self.assertEqual((effective / 'config/default.yml').read_text(), 'new-default')
         self.assertEqual((effective / 'config/local.env').read_text(), 'PRIVATE_SENTINEL')
         self.assertEqual((effective / 'config/local.env').stat().st_mode & 0o777, 0o600)
-        self.assertEqual((self.root / 'infra/config/default.yml').read_text(), 'old-default')
-        self.assertEqual((self.root / 'infra/config/local.env').read_text(), 'PRIVATE_SENTINEL')
+        self.assertEqual((self.root / 'modules/tsw_core/infra/config/default.yml').read_text(), 'old-default')
+        self.assertEqual((self.root / 'modules/tsw_core/infra/config/local.env').read_text(), 'PRIVATE_SENTINEL')
 
     def test_interrupted_private_copy_is_rebuilt_without_modifying_source(self):
         pending = self.installation.state / 'infra' / (TARGET_REVISION + '.pending')
@@ -113,10 +116,10 @@ class ProductFilesystemTests(unittest.TestCase):
         (pending / 'partial').write_text('incomplete')
         migrate_product_infra(self.installation, self.plan)
         self.assertFalse(pending.exists())
-        self.assertTrue((self.root / 'infra/config/local.env').exists())
+        self.assertTrue((self.root / 'modules/tsw_core/infra/config/local.env').exists())
 
     def test_symlinked_configuration_is_rejected_without_copy(self):
-        (self.root / 'infra/config/external').symlink_to('/etc/passwd')
+        (self.root / 'modules/tsw_core/infra/config/external').symlink_to('/etc/passwd')
         with self.assertRaises(LifecycleStateError):
             migrate_product_infra(self.installation, self.plan)
 
@@ -124,7 +127,7 @@ class ProductFilesystemTests(unittest.TestCase):
         self.installation._command.return_value = ''
         with self.assertRaises(LifecycleStateError):
             migrate_product_infra(self.installation, self.plan)
-        self.assertEqual((self.root / 'infra/config/default.yml').read_text(), 'old-default')
+        self.assertEqual((self.root / 'modules/tsw_core/infra/config/default.yml').read_text(), 'old-default')
 
     def test_atomic_activation_and_repetition_point_to_real_code_and_private_infra(self):
         migrate_product_infra(self.installation, self.plan)
@@ -189,7 +192,7 @@ class ProductFilesystemTests(unittest.TestCase):
         self.installation.verify_target_runtime(self.plan)
         call = self.installation._command.call_args
         self.assertEqual(call.args[0][0], str(self.code / '.venv/bin/python'))
-        self.assertEqual(call.kwargs['env']['PYTHONPATH'], str(self.code / 'src'))
+        self.assertEqual(call.kwargs['env']['PYTHONPATH'], str(self.code / 'modules/tsw_core/src'))
         self.assertEqual(call.kwargs['env']['TSW_REPOSITORY_ROOT'], str(self.root))
         self.assertEqual(call.kwargs['env']['TSW_INFRA_ROOT'], str(self.installation.state / 'infra' / TARGET_REVISION))
         self.assertEqual(json.loads(call.kwargs['input'])['resolved_services'], list(self.plan.manifest.resolved_services))
@@ -263,6 +266,9 @@ class ProductEnvironmentTests(unittest.TestCase):
         self.installation = PreparedProductInstallation(self.root, Mock(), Mock(), Mock(), Mock())
         self.plan = product_plan()
         self.code = self.installation.directory(self.plan)
+        physical_source = self.code / 'modules/tsw_core/src/tiny_swarm_world'
+        physical_source.mkdir(parents=True)
+        (physical_source / '__main__.py').write_text('# release source fixture, never executed\n')
         (self.code / '.venv/bin').mkdir(parents=True)
         (self.code / '.venv/bin/python').write_text('fixture, never executed')
         (self.code / 'pyproject.toml').write_text('[project]\nversion="0.2.0"\n')
@@ -346,7 +352,7 @@ class ProductEnvironmentTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         version = next(script for script in scripts if 'sys.version_info' in script)
         wrong_interpreter = version.replace('(3,12)', '(0,0)')
-        environment = {**os.environ, 'PYTHONPATH': str(Path(__file__).resolve().parents[4] / 'src')}
+        environment = {**os.environ, 'PYTHONPATH': str(Path(__file__).resolve().parents[4] / 'modules/tsw_core/src')}
         result = subprocess.run([sys.executable, '-O', '-c', wrong_interpreter], cwd=self.code, env=environment,
                                 capture_output=True, text=True, timeout=10)
         self.assertEqual(result.returncode, 1)
@@ -390,7 +396,7 @@ class ProductWholeInventoryTests(unittest.TestCase):
         portainer = next(service for service in catalog.services if service.service_id == 'portainer')
         native = yaml.safe_load((root / portainer.native_asset).read_text())
         native['services'] = {'authority_' + name: definition for name, definition in native['services'].items()}
-        asset = infra / Path(portainer.native_asset).relative_to('infra')
+        asset = infra / Path(portainer.native_asset).relative_to('modules/tsw_core/infra')
         asset.parent.mkdir(parents=True)
         asset.write_text(yaml.safe_dump(native))
         api = Mock()

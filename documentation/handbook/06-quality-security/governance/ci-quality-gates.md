@@ -5,7 +5,7 @@
 The repository authority is `QUALITY.md`. The canonical local command is:
 
 ```bash
-python3 tools/linux/quality_gate.py quality
+python3 modules/tsw_core/tools/linux/quality_gate.py quality
 ```
 
 It executes these stages in order:
@@ -62,7 +62,7 @@ real run. A workflow file or local test pass does not satisfy this addendum.
 
 | Check | Current repository evidence | Classification |
 | --- | --- | --- |
-| Python quality gate | `tools/linux/quality_gate.py` and `.github/workflows/python-quality-gate.yml` define it | Current repository contract; hosted result must be observed. |
+| Python quality gate | `modules/tsw_core/tools/linux/quality_gate.py` and `.github/workflows/python-quality-gate.yml` define it | Current repository contract; hosted result must be observed. |
 | Dependency audit | #127 policy artifacts | Policy/current documentation; execution evidence is separate. |
 | SBOM generation | #127 policy artifacts | Target/release evidence when accepted by the release workflow. |
 | Container image scan | #127 policy artifacts | Target/release evidence; no scan claim here. |
@@ -81,7 +81,7 @@ SonarQube, Portainer, Swagger or Traefik.
 
 `python-quality-gate.yml` is the required PR/push check. It installs the
 hashed runtime lock, explicitly pinned quality tools, runs
-`python3 tools/linux/quality_gate.py quality`, and publishes the generated
+`python3 modules/tsw_core/tools/linux/quality_gate.py quality`, and publishes the generated
 `coverage.xml` as a short-lived handoff artifact.
 
 `sonar_external_gate.yml` is triggered only after the trusted default-branch

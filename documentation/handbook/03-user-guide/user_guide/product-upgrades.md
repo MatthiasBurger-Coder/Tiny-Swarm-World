@@ -27,8 +27,8 @@ but older released programs cannot honor a guard they do not contain.
 # Run inside the management checkout and its Python 3.12 environment.
 export TSW_REPOSITORY_ROOT="$HOME/tsw-installed"
 unset TSW_INFRA_ROOT
-PYTHONPATH=src python3 -m tiny_swarm_world product upgrade --help
-PYTHONPATH=src python3 -m tiny_swarm_world product upgrade --to 0.5.0 \
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world product upgrade --help
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world product upgrade --to 0.5.0 \
   --adoption-manifest "$HOME/tsw-inventory.json" --preview --json
 ```
 
@@ -126,7 +126,7 @@ migrations and component changes. This release transition preserves installed
 component images; it does not invoke the component or Portainer upgrade engines.
 
 ```bash
-PYTHONPATH=src python3 -m tiny_swarm_world product upgrade --to 0.5.0 \
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world product upgrade --to 0.5.0 \
   --adoption-manifest "$HOME/tsw-inventory.json" --live --approve-live --json
 ```
 
@@ -164,8 +164,8 @@ checkout commands above for recovery and repeated upgrades.
 
 ```bash
 # Always run these from the preserved management checkout/environment.
-PYTHONPATH=src python3 -m tiny_swarm_world product upgrade --to 0.5.0 --recover --preview --json
-PYTHONPATH=src python3 -m tiny_swarm_world product upgrade --to 0.5.0 --recover --live --approve-live --json
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world product upgrade --to 0.5.0 --recover --preview --json
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world product upgrade --to 0.5.0 --recover --live --approve-live --json
 ```
 
 Recovery uses the original pinned inventory, revisions, locks and per-stage

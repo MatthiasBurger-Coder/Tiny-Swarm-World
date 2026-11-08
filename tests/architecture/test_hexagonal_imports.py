@@ -12,7 +12,7 @@ from pathlib import Path
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
-SOURCE_ROOT = REPOSITORY_ROOT / "src" / "tiny_swarm_world"
+SOURCE_ROOT = REPOSITORY_ROOT / "modules/tsw_core/src" / "tiny_swarm_world"
 DOMAIN_ROOT = SOURCE_ROOT / "domain"
 APPLICATION_ROOT = SOURCE_ROOT / "application"
 APPLICATION_PORTS_ROOT = APPLICATION_ROOT / "ports"
@@ -51,29 +51,29 @@ REQUIRED_ARCHITECTURE_DOCUMENTS = {
     "agent-split-plan.md": DOCUMENTATION_ROOT / "handbook/05-development/process" / "agent-plans" / "agent-split-plan.md",
 }
 KNOWN_MIXED_BOUNDARY_FILES = (
-    "src/tiny_swarm_world/application/services/nexus/bootstrap_nexus.py",
-    "src/tiny_swarm_world/infrastructure/composition.py",
+    "modules/tsw_core/src/tiny_swarm_world/application/services/nexus/bootstrap_nexus.py",
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/composition.py",
 )
 ROOT_BOUNDARY_EXCEPTION_IMPORTS = {
-    "src/tiny_swarm_world/cli_presentation.py": {
+    "modules/tsw_core/src/tiny_swarm_world/cli_presentation.py": {
         "tiny_swarm_world.infrastructure.adapters.cli.presentation",
     },
 }
 ROOT_ENTRYPOINTS = {
-    "src/tiny_swarm_world/prepare_network.py": {"tiny_swarm_world.infrastructure.composition_native_preparation"},
-    "src/tiny_swarm_world/prepare_incus.py": {
+    "modules/tsw_core/src/tiny_swarm_world/prepare_network.py": {"tiny_swarm_world.infrastructure.composition_native_preparation"},
+    "modules/tsw_core/src/tiny_swarm_world/prepare_incus.py": {
         "tiny_swarm_world.infrastructure.composition_native_preparation",
     },
-    "src/tiny_swarm_world/__main__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/__main__.py": {
         "tiny_swarm_world.infrastructure.adapters.cli.dispatcher",
     },
-    "src/tiny_swarm_world/installer.py": {
+    "modules/tsw_core/src/tiny_swarm_world/installer.py": {
         "tiny_swarm_world.infrastructure.composition_installation",
     },
-    "src/tiny_swarm_world/simple_installer.py": {
+    "modules/tsw_core/src/tiny_swarm_world/simple_installer.py": {
         "tiny_swarm_world.infrastructure.composition_installation",
     },
-    "src/tiny_swarm_world/prepare_linux.py": {
+    "modules/tsw_core/src/tiny_swarm_world/prepare_linux.py": {
         "tiny_swarm_world.infrastructure.composition_native_preparation",
         "tiny_swarm_world.infrastructure.composition_installation",
     },
@@ -251,7 +251,7 @@ class TestHexagonalImports(unittest.TestCase):
         from tiny_swarm_world.infrastructure.adapters.repositories.port_registry_yaml_repository import PortRegistryYamlRepository
         from tiny_swarm_world.infrastructure.adapters.repositories.secret_manifest_yaml_repository import SecretManifestYamlRepository
 
-        config = REPOSITORY_ROOT / "infra" / "config"
+        config = REPOSITORY_ROOT / "modules/tsw_core/infra" / "config"
         inventory = DesiredInventoryYamlRepository(config / "inventory" / "desired_inventory.yaml").load()
         provider = NodeProviderConfigYamlRepository(config / "node-providers" / "provider_config.yaml").load()
         ports = PortRegistryYamlRepository(config / "ports.yaml").load()

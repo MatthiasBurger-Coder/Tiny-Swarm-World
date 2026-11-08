@@ -19,7 +19,7 @@ dependencies = [
 tiny-swarm-world = "tiny_swarm_world.__main__:cli"
 
 [tool.setuptools.packages.find]
-where = ["src"]
+where = ["modules/tsw_core/src"]
 include = ["tiny_swarm_world", "tiny_swarm_world.*", "tsw_core"]
 
 [tool.setuptools.package-data]

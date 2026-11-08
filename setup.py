@@ -16,8 +16,8 @@ def _runtime_requirements() -> list[str]:
 setup(
     name="tiny-swarm-world",
     version="0.2.0",
-    packages=find_packages(where="src", include=["tiny_swarm_world", "tiny_swarm_world.*", "tsw_core"]),
-    package_dir={"": "src"},
+    packages=find_packages(where="modules/tsw_core/src", include=["tiny_swarm_world", "tiny_swarm_world.*", "tsw_core"]),
+    package_dir={"": "modules/tsw_core/src"},
     include_package_data=True,
     package_data={"tsw_core": ["module.json"]},
     install_requires=_runtime_requirements(),

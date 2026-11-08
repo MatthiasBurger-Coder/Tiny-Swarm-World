@@ -27,7 +27,7 @@ remain applicable within their documented contracts.
 | `composition.py` facade and `composition_runtime.py` wrappers | The CLI and tests use public `composition.build_*` symbols, including patch seams. Focused `composition_*` modules own capability assembly, while the facade synchronizes legacy patch points. Architecture and composition tests assert the surface. | Retained compatibility delegation. Removing it requires consumer and patch-seam migration. New builder ownership remains in focused composition modules. |
 | Ansible and REST command runner placeholder adapters | The factory selects only `async`. The placeholder classes have no product construction sites; tests instantiate them directly. The accepted `command-runner-responsibility.adoc` decision explicitly requires direct instantiation to fail closed. The enum values also remain legacy configuration compatibility values. | Retained under the accepted decision. They cannot execute commands or report success. Deleting them would change that decision and direct import compatibility. |
 
-The reference audit searched `src`, `tests`, `infra/config`, entry scripts,
+The reference audit searched `src`, `tests`, `modules/tsw_core/infra/config`, entry scripts,
 `tools`, and documentation. Internal absence alone cannot prove that a public
 Python import path has no external consumer, so this change removes the inert
 private group helper and the private secret-name helper superseded by the

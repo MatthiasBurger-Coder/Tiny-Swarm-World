@@ -12,7 +12,7 @@ from ruamel.yaml import YAML
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 DRIVER_PATH = REPOSITORY_ROOT / ".tiny-swarm/evidence/issue-449/wsl-r46-live-driver.py"
-SOURCE_PORTS_PATH = REPOSITORY_ROOT / "infra/config/ports.yaml"
+SOURCE_PORTS_PATH = REPOSITORY_ROOT / "modules/tsw_core/infra/config/ports.yaml"
 DRIVER = None
 if DRIVER_PATH.is_file():
     SPEC = importlib.util.spec_from_file_location("wsl_r46_live_driver", DRIVER_PATH)

@@ -31,7 +31,7 @@ BOOT-W06 must extend these owners rather than introduce competing routing logic.
 
 === Preparation boundary and authority
 
-Extend bootstrap/linux/prepare_linux.sh through a W06 application capability service and explicit
+Extend modules/tsw_core/bootstrap/linux/prepare_linux.sh through a W06 application capability service and explicit
 application ports after package/Python and Incus prerequisites are verified.
 Compose concrete adapters in infrastructure composition. Keep shell/PowerShell
 entrypoints thin and keep product Python in Linux/WSL. Native preparation must
@@ -45,7 +45,7 @@ ordinary WSL install transition remains a separate decision.
 
 === Kernel controls and persistence
 
-Consume the existing infra/config/host/tiny-swarm-world-sysctl.conf for exactly
+Consume the existing modules/tsw_core/infra/config/host/tiny-swarm-world-sysctl.conf for exactly
 net.ipv4.ip_forward, net.bridge.bridge-nf-call-iptables and
 net.bridge.bridge-nf-call-ip6tables. Plan missing bridge-module availability and
 only the required values, without a broad sysctl reload or network-stack reset.
@@ -110,7 +110,7 @@ before mutation and a stale port/configuration/route observation invalidates con
 === Windows bridge integration
 
 Windows hosts, portproxy, firewall, SCM service and WinSW remain exclusively owned
-by tools/windows/tws-wsl-bridge.ps1 and its protected agent. Preparation delegates
+by modules/tsw_windows_wsl/tools/windows/tws-wsl-bridge.ps1 and its protected agent. Preparation delegates
 to those existing lifecycle operations and PortWindowsCommandRunner; it does not
 write these resources or copy secrets into preparation state. Bind the explicitly
 selected distro without editing the shared auto-distro configuration silently.

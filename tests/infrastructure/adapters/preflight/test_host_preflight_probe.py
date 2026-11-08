@@ -24,7 +24,7 @@ from tiny_swarm_world.infrastructure.adapters.preflight import (
     ensure_common_executable_paths,
 )
 
-TEST_BRIDGE_STATE_PATH = Path("bootstrap/windows/.tws-wsl-bridge.state.json")
+TEST_BRIDGE_STATE_PATH = Path("modules/tsw_windows_wsl/bootstrap/windows/.tws-wsl-bridge.state.json")
 
 
 class TestHostPreflightProbe(unittest.TestCase):
@@ -420,7 +420,7 @@ class TestHostPreflightProbe(unittest.TestCase):
         self.assertFalse(status.prepared)
         self.assertEqual(status.reason, "state_missing")
         self.assertEqual(status.missing_ports, (80, 10000))
-        self.assertEqual(status.state_path, "bootstrap/windows/.tws-wsl-bridge.state.json")
+        self.assertEqual(status.state_path, "modules/tsw_windows_wsl/bootstrap/windows/.tws-wsl-bridge.state.json")
 
     def test_windows_wsl_bridge_status_accepts_current_ip_and_all_expected_ports(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -808,8 +808,8 @@ class TestHostPreflightProbe(unittest.TestCase):
     def test_tracked_secret_scan_falls_back_when_git_is_unavailable(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             root = Path(temporary_directory)
-            source_file = root / "src" / "example.py"
-            source_file.parent.mkdir()
+            source_file = root / "modules/tsw_core/src" / "example.py"
+            source_file.parent.mkdir(parents=True)
             source_file.write_text("TOKEN = 'safe-value'\n", encoding="utf-8")
             probe = HostPreflightProbe(root)
 
@@ -823,14 +823,14 @@ class TestHostPreflightProbe(unittest.TestCase):
         marker_value = sample_text("synthetic-test-", "to", "ken")
         with tempfile.TemporaryDirectory() as temporary_directory:
             root = Path(temporary_directory)
-            source_file = root / "src" / "example.py"
-            source_file.parent.mkdir()
+            source_file = root / "modules/tsw_core/src" / "example.py"
+            source_file.parent.mkdir(parents=True)
             source_file.write_text(f"TOKEN = '{marker_value}'\n", encoding="utf-8")
             probe = HostPreflightProbe(root)
             completed = subprocess.CompletedProcess(
                 args=["git", "ls-files"],
                 returncode=0,
-                stdout="src/example.py\n",
+                stdout="modules/tsw_core/src/example.py\n",
             )
 
             with patch(
@@ -893,7 +893,7 @@ def _write_os_signal(root: Path, *parts: str, text: str) -> None:
 
 
 def _write_bridge_state(root: Path, *, wsl_ip: str, ports: tuple[int, ...]) -> None:
-    target = root / "bootstrap" / "windows" / ".tws-wsl-bridge.state.json"
+    target = root / "modules/tsw_windows_wsl/bootstrap/windows" / ".tws-wsl-bridge.state.json"
     target.parent.mkdir(parents=True, exist_ok=True)
     state = {
         "contractVersion": 2,

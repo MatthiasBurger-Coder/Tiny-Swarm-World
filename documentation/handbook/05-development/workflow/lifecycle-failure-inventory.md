@@ -2,7 +2,7 @@
 
 Status: ACCEPTED in S355-01; Requirement, Architect, Python and Test reviews PASS.
 Baseline: 05e3bc5646a1c37ce63c4c1287cde2e3d189ee90. Workflow version 1.0.
-All paths below are relative to src/tiny_swarm_world unless tests/documentation
+All paths below are relative to modules/tsw_core/src/tiny_swarm_world unless tests/documentation
 are explicit. Table shorthand: adapters/ means infrastructure/adapters/; ports/
 means application/ports/; composition_* means infrastructure/composition_*;
 platform/ means application/services/platform/; local_state_paths.py means

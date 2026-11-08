@@ -21,7 +21,7 @@ from tiny_swarm_world.infrastructure.adapters.native_preparation_evidence import
 from tiny_swarm_world.infrastructure.process.async_runner import AsyncProcessResult
 from tiny_swarm_world.prepare_incus import prepare
 
-CONFIG = Path(__file__).resolve().parents[1] / "infra/config/node-providers/provider_config.yaml"
+CONFIG = Path(__file__).resolve().parents[1] / "modules/tsw_core/infra/config/node-providers/provider_config.yaml"
 RUNTIME = "tiny_swarm_world.infrastructure.adapters.incus_preparation.runtime"
 
 

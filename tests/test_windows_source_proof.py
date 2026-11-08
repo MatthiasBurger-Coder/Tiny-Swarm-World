@@ -42,7 +42,7 @@ class TestWindowsSourceProof(unittest.TestCase):
                 "tampered_blob", "missing_asset", "duplicate_object",
                 "malformed_tree", "oversized_manifest", "duplicate_entry",
                 "symlink_mode", "gitlink_mode", "missing_expected_revision",
-                "symlink_asset", "duplicate_json_key",
+                "symlink_asset", "duplicate_json_key", "tree_limit", "over_tree_limit",
                 "tamper_bridge_helper", "tamper_bridge_script", "tamper_bridge_service",
                 "tamper_bridge_config", "tamper_port_registry",
             )
@@ -52,13 +52,19 @@ class TestWindowsSourceProof(unittest.TestCase):
                 variant = json.loads(json.dumps(manifest))
                 revision = expected_revision
                 runtime_tamper_assets = {
-                    "tamper_bridge_helper": "bootstrap/windows/preparation/Bridge.ps1",
-                    "tamper_bridge_script": "bootstrap/windows/tws-wsl-bridge.ps1",
-                    "tamper_bridge_service": "bootstrap/windows/tws-wsl-bridge-service.ps1",
-                    "tamper_bridge_config": "bootstrap/windows/tws-wsl-bridge.config.json",
-                    "tamper_port_registry": "infra/config/ports.yaml",
+                    "tamper_bridge_helper": "modules/tsw_windows_wsl/bootstrap/windows/preparation/Bridge.ps1",
+                    "tamper_bridge_script": "modules/tsw_windows_wsl/bootstrap/windows/tws-wsl-bridge.ps1",
+                    "tamper_bridge_service": "modules/tsw_windows_wsl/bootstrap/windows/tws-wsl-bridge-service.ps1",
+                    "tamper_bridge_config": "modules/tsw_windows_wsl/bootstrap/windows/tws-wsl-bridge.config.json",
+                    "tamper_port_registry": "modules/tsw_core/infra/config/ports.yaml",
                 }
-                if name in runtime_tamper_assets:
+                if name in ("tree_limit", "over_tree_limit"):
+                    limit = 144 if name == "tree_limit" else 145
+                    for index in range(limit - len(variant["trees"])):
+                        data = b"100644 fixture" + str(index).encode() + b"\0" + b"\0" * 20
+                        digest = hashlib.sha1(b"tree " + str(len(data)).encode() + b"\0" + data).hexdigest()
+                        variant["trees"].append({"id": digest, "data": base64.b64encode(data).decode()})
+                elif name in runtime_tamper_assets:
                     (target / runtime_tamper_assets[name]).write_text("tampered runtime bytes")
                 elif name == "wrong_revision":
                     revision = "f" * 40
@@ -89,15 +95,15 @@ class TestWindowsSourceProof(unittest.TestCase):
                     else:
                         mode = b"120000" if name == "symlink_mode" else b"160000"
                         # The installer now lives below bootstrap; reject unsafe ancestor modes.
-                        entry = b"40000 bootstrap\0"
+                        entry = b"40000 modules\0"
                         self.assertIn(entry, raw_tree)
-                        raw_tree = raw_tree.replace(entry, mode + b" bootstrap\0")
+                        raw_tree = raw_tree.replace(entry, mode + b" modules\0")
                     new_tree = hashlib.sha1(b"tree " + str(len(raw_tree)).encode() + b"\0" + raw_tree).hexdigest()
                     tree.update(id=new_tree, data=base64.b64encode(raw_tree).decode())
                     raw_commit = raw_commit.replace(root_identity.encode(), new_tree.encode(), 1)
                     revision = hashlib.sha1(b"commit " + str(len(raw_commit)).encode() + b"\0" + raw_commit).hexdigest()
                     variant.update(revision=revision, commit=base64.b64encode(raw_commit).decode())
-                manifest_path = target / "bootstrap/windows/preparation/release-manifest.json"
+                manifest_path = target / "modules/tsw_windows_wsl/bootstrap/windows/preparation/release-manifest.json"
                 manifest_path.write_text(json.dumps(variant))
                 if name == "duplicate_json_key":
                     manifest_path.write_text('{"revision": "' + revision + '",' + json.dumps(variant)[1:])
@@ -105,7 +111,7 @@ class TestWindowsSourceProof(unittest.TestCase):
                     manifest_path.write_text(" " * (8388608 + 1))
                 cases.append({
                     "name": name, "root": _runtime_path(target, executable),
-                    "assets": ASSETS, "revision": revision, "expected": name == "valid",
+                    "assets": ASSETS, "revision": revision, "expected": name in ("valid", "tree_limit"),
                 })
             catalog = workspace / "cases.json"
             catalog.write_text(json.dumps(cases))
@@ -118,7 +124,7 @@ class TestWindowsSourceProof(unittest.TestCase):
                 capture_output=True, timeout=30,
             )
             self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
-            self.assertIn("PASS 20", completed.stdout)
+            self.assertIn("PASS 22", completed.stdout)
             (source / ASSETS[0]).write_text("dirty")
             with self.assertRaisesRegex(ValueError, "clean committed"):
                 build(source)

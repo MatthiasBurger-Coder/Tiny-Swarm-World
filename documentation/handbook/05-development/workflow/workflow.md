@@ -59,7 +59,7 @@ preserved: no domain dependency inversion, new engine or safety-policy changes.
 
 ## Architecture Constraints and Proposed Semantics
 
-The proposed shared file is `src/tiny_swarm_world/application/ports/operation_result.py`.
+The proposed shared file is `modules/tsw_core/src/tiny_swarm_world/application/ports/operation_result.py`.
 It must not depend on services or infrastructure; domain must not import it.
 Use immutable values and explicit expected port failures. Existing result wrappers
 remain capability-owned and add operation_result with compatible defaults. Keep
@@ -221,11 +221,11 @@ Allowed write scope and locks:
     "Senior Tester"
   ],
   "affected_files": [
-    "src/tiny_swarm_world/application/ports/operation_result.py",
-    "src/tiny_swarm_world/application/ports/commands/port_command_runner.py",
-    "src/tiny_swarm_world/infrastructure/adapters/command_runner/async_command_runner.py",
-    "src/tiny_swarm_world/infrastructure/adapters/exceptions/exception_command_execution.py",
-    "src/tiny_swarm_world/application/services/platform/workflow/results.py",
+    "modules/tsw_core/src/tiny_swarm_world/application/ports/operation_result.py",
+    "modules/tsw_core/src/tiny_swarm_world/application/ports/commands/port_command_runner.py",
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/command_runner/async_command_runner.py",
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/exceptions/exception_command_execution.py",
+    "modules/tsw_core/src/tiny_swarm_world/application/services/platform/workflow/results.py",
     "tests/application/ports/test_operation_result.py",
     "tests/infrastructure/adapters/command_runner/test_async_command_runner.py",
     "tests/application/services/platform/test_platform_workflows.py",
@@ -244,11 +244,11 @@ Allowed write scope and locks:
   ],
   "parallel_group": "serial",
   "file_locks": [
-    "src/tiny_swarm_world/application/ports/operation_result.py",
-    "src/tiny_swarm_world/application/ports/commands/port_command_runner.py",
-    "src/tiny_swarm_world/infrastructure/adapters/command_runner/async_command_runner.py",
-    "src/tiny_swarm_world/infrastructure/adapters/exceptions/exception_command_execution.py",
-    "src/tiny_swarm_world/application/services/platform/workflow/results.py",
+    "modules/tsw_core/src/tiny_swarm_world/application/ports/operation_result.py",
+    "modules/tsw_core/src/tiny_swarm_world/application/ports/commands/port_command_runner.py",
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/command_runner/async_command_runner.py",
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/exceptions/exception_command_execution.py",
+    "modules/tsw_core/src/tiny_swarm_world/application/services/platform/workflow/results.py",
     "tests/application/ports/test_operation_result.py",
     "tests/infrastructure/adapters/command_runner/test_async_command_runner.py",
     "tests/application/services/platform/test_platform_workflows.py",
@@ -267,7 +267,7 @@ Allowed write scope and locks:
   ],
   "quality_gates": {
     "targeted": [
-      "PYTHONPATH=src python3 -m unittest tests.application.ports.test_operation_result tests.infrastructure.adapters.command_runner.test_async_command_runner tests.infrastructure.adapters.ui.test_command_runner_ui_failure_semantics tests.application.services.platform.test_platform_workflows"
+      "PYTHONPATH=modules/tsw_core/src python3 -m unittest tests.application.ports.test_operation_result tests.infrastructure.adapters.command_runner.test_async_command_runner tests.infrastructure.adapters.ui.test_command_runner_ui_failure_semantics tests.application.services.platform.test_platform_workflows"
     ],
     "required": [
       "git diff --check",
@@ -315,42 +315,42 @@ Allowed write scope and locks:
     "Senior Tester"
   ],
   "affected_files": [
-    "src/tiny_swarm_world/application/ports/clients/**",
-    "src/tiny_swarm_world/application/ports/node_provider/**",
-    "src/tiny_swarm_world/application/ports/update/**",
-    "src/tiny_swarm_world/application/ports/repositories/**",
-    "src/tiny_swarm_world/infrastructure/adapters/clients/**",
-    "src/tiny_swarm_world/infrastructure/adapters/update/**",
-    "src/tiny_swarm_world/infrastructure/adapters/repositories/**",
+    "modules/tsw_core/src/tiny_swarm_world/application/ports/clients/**",
+    "modules/tsw_core/src/tiny_swarm_world/application/ports/node_provider/**",
+    "modules/tsw_core/src/tiny_swarm_world/application/ports/update/**",
+    "modules/tsw_core/src/tiny_swarm_world/application/ports/repositories/**",
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/**",
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/update/**",
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/repositories/**",
     "tests/infrastructure/adapters/clients/**",
     "tests/infrastructure/adapters/update/**",
     "tests/infrastructure/adapters/repositories/**",
-    "src/tiny_swarm_world/application/ports/configuration/**",
-    "src/tiny_swarm_world/infrastructure/adapters/configuration/**",
+    "modules/tsw_core/src/tiny_swarm_world/application/ports/configuration/**",
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/configuration/**",
     "tests/infrastructure/adapters/configuration/**",
-    "src/tiny_swarm_world/application/ports/file_management/port_local_file_storage.py",
-    "src/tiny_swarm_world/infrastructure/adapters/file_management/local_file_storage.py",
+    "modules/tsw_core/src/tiny_swarm_world/application/ports/file_management/port_local_file_storage.py",
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/file_management/local_file_storage.py",
     "tests/infrastructure/adapters/file_management/test_local_file_storage.py",
-    "src/tiny_swarm_world/infrastructure/adapters/preflight/host_preflight_probe.py",
-    "src/tiny_swarm_world/infrastructure/adapters/preflight/artifact_readiness.py",
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/preflight/host_preflight_probe.py",
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/preflight/artifact_readiness.py",
     "tests/infrastructure/adapters/preflight/test_host_preflight_probe.py",
     "tests/infrastructure/adapters/preflight/test_artifact_readiness.py",
-    "src/tiny_swarm_world/application/ports/network/port_wsl_socat_exposure.py",
-    "src/tiny_swarm_world/infrastructure/adapters/network/wsl_socat_exposure.py",
+    "modules/tsw_core/src/tiny_swarm_world/application/ports/network/port_wsl_socat_exposure.py",
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/network/wsl_socat_exposure.py",
     "tests/infrastructure/adapters/network/test_wsl_socat_exposure.py",
-    "src/tiny_swarm_world/infrastructure/composition_runtime.py",
-    "src/tiny_swarm_world/infrastructure/composition_probes.py",
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/composition_runtime.py",
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/composition_probes.py",
     "tests/infrastructure/test_composition.py",
     "tests/infrastructure/test_composition_configuration.py",
     "tests/infrastructure/test_composition_probes.py",
-    "src/tiny_swarm_world/infrastructure/adapters/host/wsl_host_preparation.py",
-    "src/tiny_swarm_world/application/ports/host/port_host_preparation.py",
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/host/wsl_host_preparation.py",
+    "modules/tsw_core/src/tiny_swarm_world/application/ports/host/port_host_preparation.py",
     "tests/infrastructure/adapters/host/test_host_preparation.py",
-    "src/tiny_swarm_world/application/ports/preflight/port_host_preflight_probe.py",
-    "src/tiny_swarm_world/infrastructure/adapters/exceptions/operation_failure_mapping.py",
+    "modules/tsw_core/src/tiny_swarm_world/application/ports/preflight/port_host_preflight_probe.py",
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/exceptions/operation_failure_mapping.py",
     "tests/infrastructure/adapters/exceptions/__init__.py",
     "tests/infrastructure/adapters/exceptions/test_operation_failure_mapping.py",
-    "src/tiny_swarm_world/application/ports/operation_result.py",
+    "modules/tsw_core/src/tiny_swarm_world/application/ports/operation_result.py",
     "tests/application/ports/test_operation_result.py",
     "tests/infrastructure/adapters/file_management/test_file_manager.py"
   ],
@@ -367,13 +367,13 @@ Allowed write scope and locks:
   ],
   "parallel_group": "serial",
   "file_locks": [
-    "src/tiny_swarm_world/application/ports/clients/**",
-    "src/tiny_swarm_world/application/ports/node_provider/**",
-    "src/tiny_swarm_world/application/ports/update/**",
-    "src/tiny_swarm_world/application/ports/repositories/**",
-    "src/tiny_swarm_world/infrastructure/adapters/clients/**",
-    "src/tiny_swarm_world/infrastructure/adapters/update/**",
-    "src/tiny_swarm_world/infrastructure/adapters/repositories/**",
+    "modules/tsw_core/src/tiny_swarm_world/application/ports/clients/**",
+    "modules/tsw_core/src/tiny_swarm_world/application/ports/node_provider/**",
+    "modules/tsw_core/src/tiny_swarm_world/application/ports/update/**",
+    "modules/tsw_core/src/tiny_swarm_world/application/ports/repositories/**",
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/**",
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/update/**",
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/repositories/**",
     "tests/infrastructure/adapters/clients/**",
     "tests/infrastructure/adapters/update/**",
     "tests/infrastructure/adapters/repositories/**",
@@ -381,32 +381,32 @@ Allowed write scope and locks:
     ".codex/evidence/slice-*-distribution.md",
     ".codex/evidence/slice-*-consolidation.md",
     "documentation/handbook/05-development/workflow/**",
-    "src/tiny_swarm_world/application/ports/configuration/**",
-    "src/tiny_swarm_world/infrastructure/adapters/configuration/**",
+    "modules/tsw_core/src/tiny_swarm_world/application/ports/configuration/**",
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/configuration/**",
     "tests/infrastructure/adapters/configuration/**",
-    "src/tiny_swarm_world/application/ports/file_management/port_local_file_storage.py",
-    "src/tiny_swarm_world/infrastructure/adapters/file_management/local_file_storage.py",
+    "modules/tsw_core/src/tiny_swarm_world/application/ports/file_management/port_local_file_storage.py",
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/file_management/local_file_storage.py",
     "tests/infrastructure/adapters/file_management/test_local_file_storage.py",
-    "src/tiny_swarm_world/infrastructure/adapters/preflight/host_preflight_probe.py",
-    "src/tiny_swarm_world/infrastructure/adapters/preflight/artifact_readiness.py",
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/preflight/host_preflight_probe.py",
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/preflight/artifact_readiness.py",
     "tests/infrastructure/adapters/preflight/test_host_preflight_probe.py",
     "tests/infrastructure/adapters/preflight/test_artifact_readiness.py",
-    "src/tiny_swarm_world/application/ports/network/port_wsl_socat_exposure.py",
-    "src/tiny_swarm_world/infrastructure/adapters/network/wsl_socat_exposure.py",
+    "modules/tsw_core/src/tiny_swarm_world/application/ports/network/port_wsl_socat_exposure.py",
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/network/wsl_socat_exposure.py",
     "tests/infrastructure/adapters/network/test_wsl_socat_exposure.py",
-    "src/tiny_swarm_world/infrastructure/composition_runtime.py",
-    "src/tiny_swarm_world/infrastructure/composition_probes.py",
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/composition_runtime.py",
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/composition_probes.py",
     "tests/infrastructure/test_composition.py",
     "tests/infrastructure/test_composition_configuration.py",
     "tests/infrastructure/test_composition_probes.py",
-    "src/tiny_swarm_world/infrastructure/adapters/host/wsl_host_preparation.py",
-    "src/tiny_swarm_world/application/ports/host/port_host_preparation.py",
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/host/wsl_host_preparation.py",
+    "modules/tsw_core/src/tiny_swarm_world/application/ports/host/port_host_preparation.py",
     "tests/infrastructure/adapters/host/test_host_preparation.py",
-    "src/tiny_swarm_world/application/ports/preflight/port_host_preflight_probe.py",
-    "src/tiny_swarm_world/infrastructure/adapters/exceptions/operation_failure_mapping.py",
+    "modules/tsw_core/src/tiny_swarm_world/application/ports/preflight/port_host_preflight_probe.py",
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/exceptions/operation_failure_mapping.py",
     "tests/infrastructure/adapters/exceptions/__init__.py",
     "tests/infrastructure/adapters/exceptions/test_operation_failure_mapping.py",
-    "src/tiny_swarm_world/application/ports/operation_result.py",
+    "modules/tsw_core/src/tiny_swarm_world/application/ports/operation_result.py",
     "tests/application/ports/test_operation_result.py",
     "tests/infrastructure/adapters/file_management/test_file_manager.py"
   ],
@@ -419,9 +419,9 @@ Allowed write scope and locks:
   ],
   "quality_gates": {
     "targeted": [
-      "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.lxc.command.test_node_command tests.infrastructure.adapters.clients.test_docker_swarm_runtime tests.infrastructure.adapters.clients.test_lxc_node_provider tests.infrastructure.adapters.update.test_lxc_runtime_observer tests.infrastructure.adapters.update.test_json_state_store tests.infrastructure.process.test_execution_contract",
-      "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.file_management.test_local_file_storage tests.infrastructure.adapters.preflight.test_host_preflight_probe tests.infrastructure.adapters.preflight.test_artifact_readiness tests.infrastructure.adapters.network.test_wsl_socat_exposure tests.infrastructure.adapters.host.test_host_preparation tests.infrastructure.test_composition_probes tests.infrastructure.test_composition_configuration",
-      "PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.exceptions.test_operation_failure_mapping tests.application.ports.test_operation_result"
+      "PYTHONPATH=modules/tsw_core/src python3 -m unittest tests.infrastructure.adapters.clients.lxc.command.test_node_command tests.infrastructure.adapters.clients.test_docker_swarm_runtime tests.infrastructure.adapters.clients.test_lxc_node_provider tests.infrastructure.adapters.update.test_lxc_runtime_observer tests.infrastructure.adapters.update.test_json_state_store tests.infrastructure.process.test_execution_contract",
+      "PYTHONPATH=modules/tsw_core/src python3 -m unittest tests.infrastructure.adapters.file_management.test_local_file_storage tests.infrastructure.adapters.preflight.test_host_preflight_probe tests.infrastructure.adapters.preflight.test_artifact_readiness tests.infrastructure.adapters.network.test_wsl_socat_exposure tests.infrastructure.adapters.host.test_host_preparation tests.infrastructure.test_composition_probes tests.infrastructure.test_composition_configuration",
+      "PYTHONPATH=modules/tsw_core/src python3 -m unittest tests.infrastructure.adapters.exceptions.test_operation_failure_mapping tests.application.ports.test_operation_result"
     ],
     "required": [
       "git diff --check",
@@ -469,16 +469,16 @@ Allowed write scope and locks:
     "Senior Tester"
   ],
   "affected_files": [
-    "src/tiny_swarm_world/application/services/platform/workflow/**",
-    "src/tiny_swarm_world/application/services/platform/incus/lxc_docker_install.py",
-    "src/tiny_swarm_world/application/services/platform/lifecycle.py",
+    "modules/tsw_core/src/tiny_swarm_world/application/services/platform/workflow/**",
+    "modules/tsw_core/src/tiny_swarm_world/application/services/platform/incus/lxc_docker_install.py",
+    "modules/tsw_core/src/tiny_swarm_world/application/services/platform/lifecycle.py",
     "tests/application/services/platform/test_platform_workflows.py",
     "tests/application/services/platform/test_platform_lifecycle.py",
     "tests/application/services/platform/test_classic_update_workflow.py",
     "tests/application/services/platform/test_lxc_docker_install.py",
-    "src/tiny_swarm_world/application/services/platform/preflight_service.py",
+    "modules/tsw_core/src/tiny_swarm_world/application/services/platform/preflight_service.py",
     "tests/application/services/platform/test_preflight_service.py",
-    "src/tiny_swarm_world/application/services/shared/operation_results.py",
+    "modules/tsw_core/src/tiny_swarm_world/application/services/shared/operation_results.py",
     "tests/application/services/shared/test_operation_results.py"
   ],
   "affected_modules": [
@@ -494,9 +494,9 @@ Allowed write scope and locks:
   ],
   "parallel_group": "serial",
   "file_locks": [
-    "src/tiny_swarm_world/application/services/platform/workflow/**",
-    "src/tiny_swarm_world/application/services/platform/incus/lxc_docker_install.py",
-    "src/tiny_swarm_world/application/services/platform/lifecycle.py",
+    "modules/tsw_core/src/tiny_swarm_world/application/services/platform/workflow/**",
+    "modules/tsw_core/src/tiny_swarm_world/application/services/platform/incus/lxc_docker_install.py",
+    "modules/tsw_core/src/tiny_swarm_world/application/services/platform/lifecycle.py",
     "tests/application/services/platform/test_platform_workflows.py",
     "tests/application/services/platform/test_platform_lifecycle.py",
     "tests/application/services/platform/test_classic_update_workflow.py",
@@ -505,9 +505,9 @@ Allowed write scope and locks:
     ".codex/evidence/slice-*-distribution.md",
     ".codex/evidence/slice-*-consolidation.md",
     "documentation/handbook/05-development/workflow/**",
-    "src/tiny_swarm_world/application/services/platform/preflight_service.py",
+    "modules/tsw_core/src/tiny_swarm_world/application/services/platform/preflight_service.py",
     "tests/application/services/platform/test_preflight_service.py",
-    "src/tiny_swarm_world/application/services/shared/operation_results.py",
+    "modules/tsw_core/src/tiny_swarm_world/application/services/shared/operation_results.py",
     "tests/application/services/shared/test_operation_results.py"
   ],
   "contract_locks": [
@@ -519,7 +519,7 @@ Allowed write scope and locks:
   ],
   "quality_gates": {
     "targeted": [
-      "PYTHONPATH=src python3 -m unittest tests.application.services.platform.test_platform_workflows tests.application.services.platform.test_platform_lifecycle tests.application.services.platform.test_classic_update_workflow tests.application.services.platform.test_lxc_docker_install tests.application.services.platform.test_preflight_service"
+      "PYTHONPATH=modules/tsw_core/src python3 -m unittest tests.application.services.platform.test_platform_workflows tests.application.services.platform.test_platform_lifecycle tests.application.services.platform.test_classic_update_workflow tests.application.services.platform.test_lxc_docker_install tests.application.services.platform.test_preflight_service"
     ],
     "required": [
       "git diff --check",
@@ -567,25 +567,25 @@ Allowed write scope and locks:
     "Senior Tester"
   ],
   "affected_files": [
-    "src/tiny_swarm_world/application/services/artifacts/**",
-    "src/tiny_swarm_world/application/services/deployment/**",
-    "src/tiny_swarm_world/application/services/setup/**",
+    "modules/tsw_core/src/tiny_swarm_world/application/services/artifacts/**",
+    "modules/tsw_core/src/tiny_swarm_world/application/services/deployment/**",
+    "modules/tsw_core/src/tiny_swarm_world/application/services/setup/**",
     "tests/application/services/artifacts/**",
     "tests/application/services/deployment/**",
     "tests/application/services/setup/**",
-    "src/tiny_swarm_world/infrastructure/composition_artifacts.py",
-    "src/tiny_swarm_world/infrastructure/composition_deployment.py",
-    "src/tiny_swarm_world/infrastructure/composition_setup.py",
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/composition_artifacts.py",
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/composition_deployment.py",
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/composition_setup.py",
     "tests/infrastructure/test_composition.py",
-    "src/tiny_swarm_world/application/services/shared/operation_results.py",
+    "modules/tsw_core/src/tiny_swarm_world/application/services/shared/operation_results.py",
     "tests/application/services/shared/test_operation_results.py",
-    "src/tiny_swarm_world/application/services/nexus/wait_for_nexus_ready.py",
-    "src/tiny_swarm_world/application/services/nexus/ensure_nexus_admin_access.py",
-    "src/tiny_swarm_world/application/services/nexus/ensure_nexus_repository.py",
+    "modules/tsw_core/src/tiny_swarm_world/application/services/nexus/wait_for_nexus_ready.py",
+    "modules/tsw_core/src/tiny_swarm_world/application/services/nexus/ensure_nexus_admin_access.py",
+    "modules/tsw_core/src/tiny_swarm_world/application/services/nexus/ensure_nexus_repository.py",
     "tests/application/services/nexus/test_bootstrap_nexus.py",
     "tests/application/services/nexus/test_nexus_repository_contracts.py",
-    "src/tiny_swarm_world/infrastructure/composition_blocked_workflows.py",
-    "src/tiny_swarm_world/infrastructure/adapters/preflight/artifact_readiness.py",
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/composition_blocked_workflows.py",
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/preflight/artifact_readiness.py",
     "tests/infrastructure/adapters/preflight/test_artifact_readiness.py"
   ],
   "affected_modules": [
@@ -601,29 +601,29 @@ Allowed write scope and locks:
   ],
   "parallel_group": "serial",
   "file_locks": [
-    "src/tiny_swarm_world/application/services/artifacts/**",
-    "src/tiny_swarm_world/application/services/deployment/**",
-    "src/tiny_swarm_world/application/services/setup/**",
+    "modules/tsw_core/src/tiny_swarm_world/application/services/artifacts/**",
+    "modules/tsw_core/src/tiny_swarm_world/application/services/deployment/**",
+    "modules/tsw_core/src/tiny_swarm_world/application/services/setup/**",
     "tests/application/services/artifacts/**",
     "tests/application/services/deployment/**",
     "tests/application/services/setup/**",
-    "src/tiny_swarm_world/infrastructure/composition_artifacts.py",
-    "src/tiny_swarm_world/infrastructure/composition_deployment.py",
-    "src/tiny_swarm_world/infrastructure/composition_setup.py",
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/composition_artifacts.py",
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/composition_deployment.py",
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/composition_setup.py",
     "tests/infrastructure/test_composition.py",
     ".tiny-swarm/evidence/issue-355/**",
     ".codex/evidence/slice-*-distribution.md",
     ".codex/evidence/slice-*-consolidation.md",
     "documentation/handbook/05-development/workflow/**",
-    "src/tiny_swarm_world/application/services/shared/operation_results.py",
+    "modules/tsw_core/src/tiny_swarm_world/application/services/shared/operation_results.py",
     "tests/application/services/shared/test_operation_results.py",
-    "src/tiny_swarm_world/application/services/nexus/wait_for_nexus_ready.py",
-    "src/tiny_swarm_world/application/services/nexus/ensure_nexus_admin_access.py",
-    "src/tiny_swarm_world/application/services/nexus/ensure_nexus_repository.py",
+    "modules/tsw_core/src/tiny_swarm_world/application/services/nexus/wait_for_nexus_ready.py",
+    "modules/tsw_core/src/tiny_swarm_world/application/services/nexus/ensure_nexus_admin_access.py",
+    "modules/tsw_core/src/tiny_swarm_world/application/services/nexus/ensure_nexus_repository.py",
     "tests/application/services/nexus/test_bootstrap_nexus.py",
     "tests/application/services/nexus/test_nexus_repository_contracts.py",
-    "src/tiny_swarm_world/infrastructure/composition_blocked_workflows.py",
-    "src/tiny_swarm_world/infrastructure/adapters/preflight/artifact_readiness.py",
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/composition_blocked_workflows.py",
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/preflight/artifact_readiness.py",
     "tests/infrastructure/adapters/preflight/test_artifact_readiness.py"
   ],
   "contract_locks": [
@@ -635,7 +635,7 @@ Allowed write scope and locks:
   ],
   "quality_gates": {
     "targeted": [
-      "PYTHONPATH=src python3 -m unittest tests.application.services.artifacts.test_artifact_workflows tests.application.services.deployment.test_deployment_workflows tests.application.services.setup.test_setup_workflow tests.infrastructure.test_composition"
+      "PYTHONPATH=modules/tsw_core/src python3 -m unittest tests.application.services.artifacts.test_artifact_workflows tests.application.services.deployment.test_deployment_workflows tests.application.services.setup.test_setup_workflow tests.infrastructure.test_composition"
     ],
     "required": [
       "git diff --check",
@@ -684,11 +684,11 @@ Allowed write scope and locks:
     "Console/status UI reviewer"
   ],
   "affected_files": [
-    "src/tiny_swarm_world/__main__.py",
-    "src/tiny_swarm_world/installer.py",
-    "src/tiny_swarm_world/simple_installer.py",
-    "src/tiny_swarm_world/infrastructure/adapters/ui/install_reporter.py",
-    "src/tiny_swarm_world/application/ports/install_reporter.py",
+    "modules/tsw_core/src/tiny_swarm_world/__main__.py",
+    "modules/tsw_core/src/tiny_swarm_world/installer.py",
+    "modules/tsw_core/src/tiny_swarm_world/simple_installer.py",
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/ui/install_reporter.py",
+    "modules/tsw_core/src/tiny_swarm_world/application/ports/install_reporter.py",
     "tests/test_package_entrypoint.py",
     "tests/test_classic_update_cli.py",
     "tests/test_installer.py",
@@ -709,11 +709,11 @@ Allowed write scope and locks:
   ],
   "parallel_group": "serial",
   "file_locks": [
-    "src/tiny_swarm_world/__main__.py",
-    "src/tiny_swarm_world/installer.py",
-    "src/tiny_swarm_world/simple_installer.py",
-    "src/tiny_swarm_world/infrastructure/adapters/ui/install_reporter.py",
-    "src/tiny_swarm_world/application/ports/install_reporter.py",
+    "modules/tsw_core/src/tiny_swarm_world/__main__.py",
+    "modules/tsw_core/src/tiny_swarm_world/installer.py",
+    "modules/tsw_core/src/tiny_swarm_world/simple_installer.py",
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/ui/install_reporter.py",
+    "modules/tsw_core/src/tiny_swarm_world/application/ports/install_reporter.py",
     "tests/test_package_entrypoint.py",
     "tests/test_classic_update_cli.py",
     "tests/test_installer.py",
@@ -734,7 +734,7 @@ Allowed write scope and locks:
   ],
   "quality_gates": {
     "targeted": [
-      "PYTHONPATH=src python3 -m unittest tests.test_package_entrypoint tests.test_classic_update_cli tests.test_installer tests.test_simple_installer tests.infrastructure.adapters.ui.test_install_reporter"
+      "PYTHONPATH=modules/tsw_core/src python3 -m unittest tests.test_package_entrypoint tests.test_classic_update_cli tests.test_installer tests.test_simple_installer tests.infrastructure.adapters.ui.test_install_reporter"
     ],
     "required": [
       "git diff --check",
@@ -916,7 +916,7 @@ source baseline drift and locks before every write-capable assignment.
 
 Use targeted tests above first, then full `python3 tools/quality_gate.py quality`
 for every product slice. It runs verification-policy, lint, arch-lint, arch-tests,
-typecheck and test. Manual tests require PYTHONPATH=src. New module tests become
+typecheck and test. Manual tests require PYTHONPATH=modules/tsw_core/src. New module tests become
 executable only after their declared files exist. S355-01 is documentation-only;
 run architecture checks and diff validation. Never weaken tests or guards.
 

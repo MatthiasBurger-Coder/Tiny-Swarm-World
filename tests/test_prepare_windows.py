@@ -108,7 +108,7 @@ class TestWindowsPreparation(unittest.TestCase):
                 completed = subprocess.run(
                     [
                         executable, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File",
-                        _runtime_path(ROOT / "bootstrap/windows/prepare_windows.ps1", executable),
+                        _runtime_path(ROOT / "modules/tsw_windows_wsl/bootstrap/windows/prepare_windows.ps1", executable),
                         *arguments,
                     ],
                     check=False,
@@ -144,7 +144,7 @@ class TestWindowsLinuxConfiguration(unittest.TestCase):
     def _run(
         self, mode: str, expected: str = "", metadata: str | None = None
     ) -> subprocess.CompletedProcess[str]:
-        helper = ROOT / "bootstrap/windows/preparation/linux-config.sh"
+        helper = ROOT / "modules/tsw_windows_wsl/bootstrap/windows/preparation/linux-config.sh"
         script = helper.read_text()
         # Map only privileged paths/identity to this account's disposable fixture.
         # Configuration parsing, safety predicates and CAS/merge logic stay intact.

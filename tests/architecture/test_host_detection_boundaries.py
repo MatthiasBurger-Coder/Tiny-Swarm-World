@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
-SOURCE_ROOT = REPOSITORY_ROOT / "src" / "tiny_swarm_world"
+SOURCE_ROOT = REPOSITORY_ROOT / "modules/tsw_core/src" / "tiny_swarm_world"
 
 
 class TestHostDetectionBoundaries(unittest.TestCase):

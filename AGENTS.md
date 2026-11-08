@@ -61,18 +61,21 @@ explicit task changes the product scope.
 
 ## Repository Map
 
-- `bootstrap/windows`: Windows/WSL installation preparation, bridge and host diagnostics.
-- `bootstrap/linux`: native Linux and shared Linux/WSL installation prerequisites and diagnostics.
-- `tools`: quality, audit, packaging, live-test and developer tools, grouped by target system.
-- `src/tiny_swarm_world/domain`: core business concepts and rules.
-- `src/tiny_swarm_world/application`: use cases, orchestration services, and ports.
-- `src/tiny_swarm_world/application/ports`: interfaces for commands, repositories, file
+- `modules/tsw_windows_wsl/bootstrap/windows`: Windows/WSL installation preparation, bridge and host diagnostics.
+- `modules/tsw_core/bootstrap/linux`: native Linux and shared Linux/WSL installation prerequisites and diagnostics.
+- `modules/tsw_core`: shared runtime, configuration, bootstrap and Linux tooling.
+- `modules/tsw_native_linux`: native Linux entry points delegating to core.
+- `modules/tsw_windows_wsl`: Windows bootstrap, bridge, WSL handoff and tooling.
+- Root `src`, `bootstrap` and `tools`: thin compatibility forwarders only.
+- `modules/tsw_core/src/tiny_swarm_world/domain`: core business concepts and rules.
+- `modules/tsw_core/src/tiny_swarm_world/application`: use cases, orchestration services, and ports.
+- `modules/tsw_core/src/tiny_swarm_world/application/ports`: interfaces for commands, repositories, file
   management, UI, and external clients.
-- `src/tiny_swarm_world/infrastructure`: concrete adapters, dependency wiring, logging,
+- `modules/tsw_core/src/tiny_swarm_world/infrastructure`: concrete adapters, dependency wiring, logging,
   YAML handling, command runners, UI adapters, and file management.
-- `infra/config`: YAML command, node-provider, network, and compose stack
+- `modules/tsw_core/infra/config`: YAML command, node-provider, network, and compose stack
   configuration data.
-- `infra/config/compose`: image build contexts and related Dockerfiles for stack services.
+- `modules/tsw_core/infra/config/compose`: image build contexts and related Dockerfiles for stack services.
 - `tests`: unit tests organized by architecture layer.
 - `documentation`: Product Handbook; `documentation/README.adoc` is the master
   index and `documentation/document.adoc` is the continuous edition. arc42 is
@@ -92,9 +95,9 @@ explicit task changes the product scope.
 - Infrastructure adapters implement ports and contain technology-specific
   details.
 - Keep standard runtime wiring in
-  `src/tiny_swarm_world/infrastructure/composition.py`; do not move concrete
+  `modules/tsw_core/src/tiny_swarm_world/infrastructure/composition.py`; do not move concrete
   adapter construction into application services.
-- Entry-point code such as `src/tiny_swarm_world/__main__.py` should stay thin:
+- Entry-point code such as `modules/tsw_core/src/tiny_swarm_world/__main__.py` should stay thin:
   compose dependencies, invoke application services, and report progress.
 - Prefer small services with explicit dependencies over global lookups. Where
   the current container is used, keep registrations clear and local.
@@ -116,14 +119,14 @@ explicit task changes the product scope.
 
 ## Configuration And YAML
 
-- Treat files under `infra/config` as part of the product behavior, not as
+- Treat files under `modules/tsw_core/infra/config` as part of the product behavior, not as
   throwaway examples.
 - Use structured YAML APIs or existing YAML adapter helpers instead of ad hoc
   string manipulation.
 - Keep command templates readable and deterministic.
 - Avoid embedding host-specific absolute paths, user names, IP addresses, or
   secrets in committed configuration.
-- Preserve service stack boundaries under `infra/config/compose`.
+- Preserve service stack boundaries under `modules/tsw_core/infra/config/compose`.
 
 ## External System Safety
 
@@ -151,15 +154,16 @@ inspection.
   under Operating Assumptions. Resolve the remote checkout path before using
   `wsl bash -lc` to run commands from its repository root.
 - Preferred quality gate from the repository root:
-  `python3 tools/linux/quality_gate.py quality`
+  `python3 modules/tsw_core/tools/linux/quality_gate.py quality`
 - When verification is authorized, run the nearest relevant sub-gate first:
-  `python3 tools/linux/quality_gate.py lint`,
-  `python3 tools/linux/quality_gate.py typecheck`, or
-  `python3 tools/linux/quality_gate.py test`
+  `python3 modules/tsw_core/tools/linux/quality_gate.py lint`,
+  `python3 modules/tsw_core/tools/linux/quality_gate.py typecheck`, or
+  `python3 modules/tsw_core/tools/linux/quality_gate.py test`
 - For targeted changes, run the nearest relevant test file, for example:
   `PYTHONPATH=src python -m unittest tests.infrastructure.adapters.ui.test_linux_ui`
-- The quality gate sets `PYTHONPATH=src` automatically. Manual Python test
-  commands still need `PYTHONPATH=src`.
+- The quality gate sets `PYTHONPATH=modules/tsw_core/src` automatically.
+  `PYTHONPATH=src` remains a compatibility import surface; new direct checks
+  should use the physical core source root.
 - `arch-lint` requires `.importlinter`; `arch-tests` requires
   `tests.architecture.test_hexagonal_imports`.
 - Add or update tests when changing domain behavior, application orchestration,

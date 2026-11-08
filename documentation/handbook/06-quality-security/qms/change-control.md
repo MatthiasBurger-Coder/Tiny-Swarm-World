@@ -42,7 +42,7 @@ behavior; planned behavior stays labeled planned.
 - The PR body records summary, changed files, requirement/evidence mapping,
   quality-gate result, no-live confirmation and remaining gaps.
 - The applicable quality gate must pass before merge. For #122, this includes
-  `git diff --check` and `python3 tools/linux/quality_gate.py quality`.
+  `git diff --check` and `python3 modules/tsw_core/tools/linux/quality_gate.py quality`.
 - Reviewers verify architecture, requirement coverage, security impact,
   documentation consistency and evidence integrity.
 - Unavailable, skipped, blocked or failed checks are recorded as such and do not

@@ -103,6 +103,6 @@ automation without weakening the fail-closed boundary.
 * Requirement baseline:
   `documentation/handbook/02-architecture/arc42/01_introduction/autonomous-runnable-setup.md`
 * Operator guide: `documentation/handbook/03-user-guide/user_guide/installation.adoc`
-* Related code: `src/tiny_swarm_world/__main__.py`
-* Related code: `src/tiny_swarm_world/installer.py`
+* Related code: `modules/tsw_core/src/tiny_swarm_world/__main__.py`
+* Related code: `modules/tsw_core/src/tiny_swarm_world/installer.py`
 * Implementation history: commit `89ee3f3` (`Separate installer live approval modes`)

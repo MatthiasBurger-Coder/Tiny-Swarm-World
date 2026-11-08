@@ -3,7 +3,7 @@
 The default quality gate runs only static safety tests in this module. The
 live checks run only with:
 
-TSW_RUN_POST_INSTALL_BROWSER_LIVE=1 PYTHONPATH=src python3 -m unittest \
+TSW_RUN_POST_INSTALL_BROWSER_LIVE=1 PYTHONPATH=modules/tsw_core/src python3 -m unittest \
   tests.e2e.classic.test_post_install_browser_live
 
 This is the canonical Classic post-install browser/API suite. It absorbs the
@@ -76,8 +76,8 @@ MISSING_TEST_CA_BUNDLE = ".tiny-swarm-world/local/missing-ca-bundle.pem"
 TEST_CA_BUNDLE = "/etc/ssl/certs/tiny-swarm-world-ca.pem"
 DEFAULT_EVIDENCE_ROOT = Path(".tiny-swarm-world/evidence/classic-public-beta-rc1")
 EVIDENCE_ROOT_ENV = "TSW_CLASSIC_EVIDENCE_ROOT"
-SERVICE_ACCESS_DASHBOARD = Path("infra/config/compose/service-access/dashboard/index.html")
-INFISICAL_SECRET_MANIFEST = Path("infra/config/secrets/infisical-secrets.yaml")
+SERVICE_ACCESS_DASHBOARD = Path("modules/tsw_core/infra/config/compose/service-access/dashboard/index.html")
+INFISICAL_SECRET_MANIFEST = Path("modules/tsw_core/infra/config/secrets/infisical-secrets.yaml")
 EXPECTED_INFISICAL_ITEMS = (
     "platform/portainer",
     "platform/nexus",

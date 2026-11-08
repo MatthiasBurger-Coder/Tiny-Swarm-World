@@ -49,7 +49,7 @@ The repository already has these constraints:
 * Python automation is the architecture driver.
 * Platform, Artifacts, Deployment, Shared, and Console/status UI are
   in-process responsibility boundaries, not microservices.
-* `src/tiny_swarm_world/infrastructure/composition.py` remains the composition
+* `modules/tsw_core/src/tiny_swarm_world/infrastructure/composition.py` remains the composition
   root.
 * Default quality gates must not run live infrastructure commands.
 * Former direct setup scripts and host-side orchestration scripts are removed
@@ -205,5 +205,5 @@ Future ADRs are required before changing these areas:
 * Affects: `documentation/handbook/02-architecture/arc42/06_runtime_view.adoc`
 * Affects: `documentation/handbook/02-architecture/arc42/07_deployment_view.adoc`
 * Affects: `documentation/handbook/02-architecture/arc42/08_concepts.adoc`
-* Related code: `src/tiny_swarm_world/application/services/setup`
-* Related code: `src/tiny_swarm_world/infrastructure/composition.py`
+* Related code: `modules/tsw_core/src/tiny_swarm_world/application/services/setup`
+* Related code: `modules/tsw_core/src/tiny_swarm_world/infrastructure/composition.py`

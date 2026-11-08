@@ -2240,7 +2240,7 @@
       }
     },
     {
-      "path": "src/tiny_swarm_world/AGENTS.md",
+      "path": "modules/tsw_core/src/tiny_swarm_world/AGENTS.md",
       "lines": 20,
       "sha256": "5d819622d912e27c5e82f54bc869f16fcdcd1f57a6d5f5a204fd5f32b4d96b0d",
       "matches": {
@@ -2252,7 +2252,7 @@
       }
     },
     {
-      "path": "tools/windows/CODEX_WORKFLOW_WINDOWS_WSL_BRIDGE.md",
+      "path": "modules/tsw_windows_wsl/tools/windows/CODEX_WORKFLOW_WINDOWS_WSL_BRIDGE.md",
       "lines": 180,
       "sha256": "33f836e33f7b0ff0e40c1ca4041b6d7bddcfd672e3f2da0b2c6a1e3b9d4cbe73",
       "matches": {
@@ -2264,7 +2264,7 @@
       }
     },
     {
-      "path": "tools/windows/README.windows-wsl-bridge.md",
+      "path": "modules/tsw_windows_wsl/tools/windows/README.windows-wsl-bridge.md",
       "lines": 372,
       "sha256": "06d208d952ecc91ef1c80d22e5437828e2b334feafe9125a80dc97f8837f15e3",
       "matches": {

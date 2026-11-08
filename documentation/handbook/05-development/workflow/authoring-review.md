@@ -14,7 +14,7 @@ aggregate evidence make default implementation serial. No write agents were used
 ## Baseline verification
 
 Senior Tester executed:
-`PYTHONPATH=src python3 -m unittest tests.test_classic_update_cli tests.infrastructure.adapters.ui.test_command_runner_ui_failure_semantics tests.application.services.platform.test_classic_update_workflow`
+`PYTHONPATH=modules/tsw_core/src python3 -m unittest tests.test_classic_update_cli tests.infrastructure.adapters.ui.test_command_runner_ui_failure_semantics tests.application.services.platform.test_classic_update_workflow`
 Result: PASS, 47 tests. Expected negative-fixture errors/logs were emitted.
 These tests establish baseline compatibility only, not #355 implementation.
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Native Linux compatibility entry point; shared execution belongs to tsw_core.
+# Compatibility entry point; implementation belongs to its physical module.
 set -Eeuo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-exec "$SCRIPT_DIR/bootstrap/linux/install.sh" "$@"
+exec "$SCRIPT_DIR/modules/tsw_native_linux/install.sh" "$@"

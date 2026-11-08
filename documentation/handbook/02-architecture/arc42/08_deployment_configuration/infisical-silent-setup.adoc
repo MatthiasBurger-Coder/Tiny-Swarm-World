@@ -7,7 +7,7 @@ to the Infisical database.
 
 == Configuration
 
-The local service declaration is in `infra/config/services.yml`:
+The local service declaration is in `modules/tsw_core/infra/config/services.yml`:
 
 [source,yaml]
 ----

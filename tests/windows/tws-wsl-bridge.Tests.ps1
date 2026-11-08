@@ -1,12 +1,12 @@
 $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
-$bridgeScript = Join-Path $repositoryRoot "bootstrap\windows\tws-wsl-bridge.ps1"
-$runnerScript = Join-Path $repositoryRoot "bootstrap\windows\tws-wsl-bridge-service.ps1"
+$bridgeScript = Join-Path $repositoryRoot "modules/tsw_windows_wsl/bootstrap/windows/tws-wsl-bridge.ps1"
+$runnerScript = Join-Path $repositoryRoot "modules/tsw_windows_wsl/bootstrap/windows/tws-wsl-bridge-service.ps1"
 
 . $bridgeScript
 
 Describe "Canonical ingress aliases" {
     It "retains the HTTP alias and includes the Traefik admin alias" {
-        $registry = Read-TswPortRegistry -RegistryPath (Join-Path $repositoryRoot "infra\config\ports.yaml")
+        $registry = Read-TswPortRegistry -RegistryPath (Join-Path $repositoryRoot "modules/tsw_core/infra/config/ports.yaml")
         $names = Get-BridgeHostNames -Config ([pscustomobject]@{hostNames = @("custom.example")}) -RegistryHostNames $registry.HostNames
         ($names -contains "tsw.local") | Should Be $true
         ($names -contains "traefik.tsw.local") | Should Be $true

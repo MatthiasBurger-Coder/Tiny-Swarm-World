@@ -6,13 +6,13 @@ Deployment strategy and distribution.
 
 Tiny Swarm World remains a single local Python automation application for this
 workflow slice. Desired inventory belongs to committed configuration and may be
-stored under `infra/config`.
+stored under `modules/tsw_core/infra/config`.
 
 Observed inventory and verification evidence are deployment-local runtime
 artifacts. They are stored under the ignored `.tiny-swarm-world/` directory in
 the repository root. That directory is not a deployment input, is not part of
 the default quality gate outputs, and must not be committed or moved under
-`infra/config`.
+`modules/tsw_core/infra/config`.
 
 The productive effective-access-model projection is stored at
 `.tiny-swarm-world/evidence/solid-typed-evidence/routing/effective-access-model.json`.
@@ -72,19 +72,19 @@ presence/source classifications in verification evidence.
 
 The deployment configuration model is now split across committed registries:
 
-* `infra/config/installation-plan.yaml` mirrors the typed default setup phase
+* `modules/tsw_core/infra/config/installation-plan.yaml` mirrors the typed default setup phase
   plan and dependencies;
-* `infra/config/ports.yaml` declares desired internal/external service port
+* `modules/tsw_core/infra/config/ports.yaml` declares desired internal/external service port
   allocations;
-* `infra/config/services.yml` is a static selected-service catalogue that maps
+* `modules/tsw_core/infra/config/services.yml` is a static selected-service catalogue that maps
   selected stacks to phases, service-stack contracts, port-registry IDs,
   readiness target IDs, and compatibility published ports;
-* `infra/config/health-checks.yaml` and
-  `infra/config/validation-plan.yaml` declare desired observed evidence
+* `modules/tsw_core/infra/config/health-checks.yaml` and
+  `modules/tsw_core/infra/config/validation-plan.yaml` declare desired observed evidence
   targets without running live checks or being loaded by default deployment
   verification.
 
-Active directly published Compose values resolve from `infra/config/ports.yaml`.
+Active directly published Compose values resolve from `modules/tsw_core/infra/config/ports.yaml`.
 The Compose `target` is the image-compatible internal port; `published` is the
 effective external port. The service-access NGINX `8086` listener remains an
 explicit compatibility/rollback port, while Traefik owns the public ingress
@@ -122,7 +122,7 @@ is reachable. First-time Portainer bootstrap remains outside the
 Portainer-managed upload path.
 
 For the Portainer-managed path, service-access dashboard and NGINX assets are
-image-packaged under `infra/config/compose/service-access/**`. Bind-mounted
+image-packaged under `modules/tsw_core/infra/config/compose/service-access/**`. Bind-mounted
 repository files are not an accepted Portainer path unless a later slice adds
 a tested asset-preparation port or adapter and documents when it runs.
 
@@ -173,8 +173,8 @@ routing, LXC public port reconciliation, certificate validation and
 browser-visible HTTPS behavior.
 
 The repository now includes static Traefik Swarm ingress configuration under
-`infra/config/compose/traefik/docker-compose.yml` plus the dynamic TLS summary
-configuration under `infra/config/compose/traefik/dynamic/tls.yml`. The Traefik stack
+`modules/tsw_core/infra/config/compose/traefik/docker-compose.yml` plus the dynamic TLS summary
+configuration under `modules/tsw_core/infra/config/compose/traefik/dynamic/tls.yml`. The Traefik stack
 uses Swarm discovery with `exposedByDefault=false`, `web` on `:80`,
 `websecure` on `:443`, published public ingress ports `80` and `443`,
 HTTP-to-HTTPS redirect, external certificate secrets, and no insecure API
@@ -247,7 +247,7 @@ without accepted live consent.
 
 The provider deployment target is now `lxc_native` through Incus by
 default. The committed provider configuration in
-`infra/config/node-providers/provider_config.yaml` declares the ordered
+`modules/tsw_core/infra/config/node-providers/provider_config.yaml` declares the ordered
 Incus backend candidate, Docker Swarm node names, Docker-in-container
 profile risk labels, the common `docker-swarm` profile, the manager-only
 `docker-swarm-manager` proxy profile, and verification metadata. The manager

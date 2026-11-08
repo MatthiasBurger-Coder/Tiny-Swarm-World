@@ -9,9 +9,9 @@ without storing secret values or fingerprints.
 
 | Area | Current contract | Evidence source |
 |---|---|---|
-| Image references | Compose service images and approved overrides; immutable digest where configured | infra/config/compose and services.yml |
+| Image references | Compose service images and approved overrides; immutable digest where configured | modules/tsw_core/infra/config/compose and services.yml |
 | Python dependencies | requirements.lock | requirements.lock |
-| Admin surfaces | Portainer, Nexus, Jenkins, SonarQube, Pulsar Manager, Infisical and Service Access routes | infra/config/ports.yaml and services.yml |
+| Admin surfaces | Portainer, Nexus, Jenkins, SonarQube, Pulsar Manager, Infisical and Service Access routes | modules/tsw_core/infra/config/ports.yaml and services.yml |
 | Docker socket | Portainer and agent mount the socket; Traefik uses a read-only socket mount | compose files for portainer and traefik |
 | Credential source | Operator overrides or internal-test catalog/Infisical contracts | arc42 credential contracts and secret manifest |
 | Reachability | Published ports and routed hostnames are profile-specific | ports.yaml and access-model evidence |
@@ -24,9 +24,9 @@ for the isolated internal-test profile.
 
 Run from the candidate checkout:
 
-    python3 tools/linux/security_gate.py dependencies
-    python3 tools/linux/security_gate.py sbom
-    python3 tools/linux/security_gate.py container-config
+    python3 modules/tsw_core/tools/linux/security_gate.py dependencies
+    python3 modules/tsw_core/tools/linux/security_gate.py sbom
+    python3 modules/tsw_core/tools/linux/security_gate.py container-config
 
 Record tool versions, candidate SHA, date, result and redacted output location.
 The first two checks are local prerequisites; the container-config check

@@ -4,7 +4,7 @@ Status: implemented locally for issue #357.
 
 ## Inventory and relocation
 
-A search of `src/tiny_swarm_world/application/services` for Docker, Podman,
+A search of `modules/tsw_core/src/tiny_swarm_world/application/services` for Docker, Podman,
 Kubernetes, Incus, LXC, WSL, Linux, runtime, platform, provider and profile
 conditionals found no Docker/Podman/Kubernetes switch in a general application
 workflow. The host preparation service was the general workflow that selected

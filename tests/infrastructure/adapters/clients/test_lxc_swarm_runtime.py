@@ -75,7 +75,7 @@ class TestRuntimeAssetExecution(unittest.TestCase):
         self.addCleanup(temporary.cleanup)
         root = Path(temporary.name)
         for name, content in (("swagger/openapi.json", "{}"), ("nginx/default.conf", "server {}")):
-            path = root / "infra/config/compose/swagger" / name
+            path = root / "modules/tsw_core/infra/config/compose/swagger" / name
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(content)
         self.runner = Mock()
@@ -245,7 +245,7 @@ class TestLxcSwarmRuntime(unittest.TestCase):
             repository_root = Path(temporary_directory)
             dashboard_file = (
                 repository_root
-                / "infra"
+                / "modules/tsw_core/infra"
                 / "config"
                 / "compose"
                 / "service-access"

@@ -20,7 +20,7 @@ class NetworkResourceProjectionTests(unittest.IsolatedAsyncioTestCase):
         self.addCleanup(self.directory.cleanup)
         self.host = MockHost(Path(self.directory.name))
         self.adapter = LocalNetworkPreparation(
-            ROOT, ROOT / "infra/config", release="24.04", profile="service-access",
+            ROOT, ROOT / "modules/tsw_core/infra/config", release="24.04", profile="service-access",
             proc_root=self.host.proc, target_snapshot=lambda: (self.host.source,), evidence=Mock())
 
     async def observe(self):

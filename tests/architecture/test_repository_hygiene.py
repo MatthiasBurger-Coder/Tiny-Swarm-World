@@ -9,11 +9,11 @@ from tiny_swarm_world.domain.configuration import default_configuration_contract
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 COMMENT_SCAN_ROOTS = (
-    REPOSITORY_ROOT / "src",
+    REPOSITORY_ROOT / "modules/tsw_core/src",
     REPOSITORY_ROOT / "tests",
     REPOSITORY_ROOT / "bootstrap",
     REPOSITORY_ROOT / "tools",
-    REPOSITORY_ROOT / "infra",
+    REPOSITORY_ROOT / "modules/tsw_core/infra",
 )
 CODE_COMMENT_SUFFIXES = {".py", ".sh"}
 GERMAN_COMMENT_MARKERS = re.compile(
@@ -33,7 +33,7 @@ class TestRepositoryHygiene(unittest.TestCase):
             REPOSITORY_ROOT / "docker" / "swarm" / "prepere.py",
             REPOSITORY_ROOT / "docker" / "setup.py_old",
             REPOSITORY_ROOT
-            / "src"
+            / "modules/tsw_core/src"
             / "tiny_swarm_world"
             / "infrastructure"
             / "adapters"

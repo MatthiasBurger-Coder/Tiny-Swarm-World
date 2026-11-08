@@ -41,13 +41,14 @@ class CoreModuleTests(unittest.TestCase):
         self.assertEqual(metadata["project"]["name"], "tiny-swarm-world")
         self.assertEqual(metadata["project"]["version"], "0.2.0")
         self.assertEqual(metadata["project"]["scripts"], {"tiny-swarm-world": "tiny_swarm_world.__main__:cli"})
+        self.assertEqual(metadata["tool"]["setuptools"]["packages"]["find"]["where"], ["modules/tsw_core/src"])
         included = metadata["tool"]["setuptools"]["packages"]["find"]["include"]
         self.assertEqual(set(included), {"tiny_swarm_world", "tiny_swarm_world.*", "tsw_core"})
         self.assertEqual(set(module_descriptor()["python_packages"]), {"tiny_swarm_world", "tsw_core"})
 
     def test_core_never_imports_editions_or_constructs_edition_paths(self):
         for package in module_descriptor()["python_packages"]:
-            for source in (ROOT / "src" / package).rglob("*.py"):
+            for source in (ROOT / "modules/tsw_core/src" / package).rglob("*.py"):
                 for node in ast.walk(ast.parse(source.read_text())):
                     names = []
                     if isinstance(node, ast.Import):
@@ -60,20 +61,20 @@ class CoreModuleTests(unittest.TestCase):
         # path composition and identity hashing must use injected bindings.
         for name in ("composition_platform.py", "host_bindings.py",
                      "adapters/network_preparation/windows.py", "adapters/network_preparation/source_identity.py"):
-            source = (ROOT / "src/tiny_swarm_world/infrastructure" / name).read_text()
-            self.assertNotIn('"bootstrap/windows', source)
+            source = (ROOT / "modules/tsw_core/src/tiny_swarm_world/infrastructure" / name).read_text()
+            self.assertNotIn('"modules/tsw_windows_wsl/bootstrap/windows', source)
             self.assertNotIn('/ "windows"', source)
 
     def test_cli_loads_with_only_core_owned_runtime_and_assets(self):
         with tempfile.TemporaryDirectory() as directory:
             isolated = Path(directory)
             for package in module_descriptor()["python_packages"]:
-                shutil.copytree(ROOT / "src" / package, isolated / "src" / package,
+                shutil.copytree(ROOT / "modules/tsw_core/src" / package, isolated / "modules/tsw_core/src" / package,
                                 ignore=shutil.ignore_patterns("__pycache__"))
-            shutil.copytree(ROOT / "infra", isolated / "infra")
+            shutil.copytree(ROOT / "modules/tsw_core/infra", isolated / "modules/tsw_core/infra")
             env = {key: value for key, value in os.environ.items()
                    if not key.startswith("TSW_") and key != "PYTHONPATH"}
-            env.update(PYTHONPATH=str(isolated / "src"), PYTHONDONTWRITEBYTECODE="1")
+            env.update(PYTHONPATH=str(isolated / "modules/tsw_core/src"), PYTHONDONTWRITEBYTECODE="1")
             code = ('from tsw_core import discover_root; '
                     'from tiny_swarm_world.__main__ import cli; '
                     'from tiny_swarm_world.infrastructure.project_paths import default_project_paths; '
@@ -85,7 +86,7 @@ class CoreModuleTests(unittest.TestCase):
                 result = subprocess.run((sys.executable, *arguments), cwd=isolated, env=env,
                                         capture_output=True, text=True, timeout=45)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-            self.assertFalse((isolated / "bootstrap/windows").exists())
+            self.assertFalse((isolated / "modules/tsw_windows_wsl/bootstrap/windows").exists())
             self.assertFalse((isolated / "host-bindings.json").exists())
 
     def test_malformed_host_binding_is_a_blocked_runtime_error(self):
@@ -123,19 +124,25 @@ class CoreModuleTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             for relative in ("requirements.lock", "requirements.build.lock", "pyproject.toml",
-                             "infra/config/host/tiny-swarm-world-sysctl.conf",
-                             "infra/config/host/tiny-swarm-world-modules.conf",
-                             "infra/config/node-providers/provider_config.yaml", "infra/config/ports.yaml",
-                             "src/tiny_swarm_world/prepare_network.py", "src/tiny_swarm_world/domain/network_preparation.py",
-                             "src/tiny_swarm_world/application/ports/network_preparation.py",
-                             "src/tiny_swarm_world/application/services/network_preparation.py",
-                             "src/tiny_swarm_world/infrastructure/composition_network_preparation.py",
-                             "src/tiny_swarm_world/infrastructure/adapters/network_preparation/files.py",
-                             "src/tiny_swarm_world/infrastructure/adapters/network_preparation/privileged_files.py",
+                             "modules/tsw_core/infra/config/host/tiny-swarm-world-sysctl.conf",
+                             "modules/tsw_core/infra/config/host/tiny-swarm-world-modules.conf",
+                             "modules/tsw_core/infra/config/node-providers/provider_config.yaml", "modules/tsw_core/infra/config/ports.yaml",
+                             "modules/tsw_core/src/tiny_swarm_world/prepare_network.py", "modules/tsw_core/src/tiny_swarm_world/domain/network_preparation.py",
+                             "modules/tsw_core/src/tiny_swarm_world/application/ports/network_preparation.py",
+                             "modules/tsw_core/src/tiny_swarm_world/application/services/network_preparation.py",
+                             "modules/tsw_core/src/tiny_swarm_world/infrastructure/composition_network_preparation.py",
+                             "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/network_preparation/files.py",
+                             "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/network_preparation/privileged_files.py",
                              "external-host/bridge.ps1", "external-host/config.json"):
                 path = root / relative
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text("fixture")
+            shim = root / "src/tsw_core/__init__.py"
+            shim.parent.mkdir(parents=True)
+            shim.write_text("# trusted compatibility fixture\n")
+            initial_core = preparation_asset_hashes(root, is_wsl=False)
+            shim.write_text("# altered compatibility fixture\n")
+            self.assertNotEqual(initial_core, preparation_asset_hashes(root, is_wsl=False))
             binding = root / "host-bindings.json"
             binding.write_text(json.dumps({"windows_bridge": {"script": "external-host/bridge.ps1",
                 "config": "external-host/config.json", "identity_glob": "external-host/**/*.ps1"}}))

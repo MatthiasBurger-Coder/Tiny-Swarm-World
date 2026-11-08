@@ -480,12 +480,14 @@ class TestSimpleInstallerSecretBootstrap(unittest.TestCase):
 
     def test_normal_cli_no_longer_exposes_secret_modes(self):
         compatibility_script = (REPOSITORY_ROOT / "install.sh").read_text(encoding="utf-8")
-        self.assertIn('exec "$SCRIPT_DIR/bootstrap/linux/install.sh" "$@"', compatibility_script)
-        install_script = (REPOSITORY_ROOT / "bootstrap/linux/install.sh").read_text(encoding="utf-8")
+        self.assertIn('exec "$SCRIPT_DIR/modules/tsw_native_linux/install.sh" "$@"', compatibility_script)
+        native_script = (REPOSITORY_ROOT / "modules/tsw_native_linux/install.sh").read_text(encoding="utf-8")
+        self.assertIn('modules/tsw_core/bootstrap/linux/install.sh', native_script)
+        install_script = (REPOSITORY_ROOT / "modules/tsw_core/bootstrap/linux/install.sh").read_text(encoding="utf-8")
         self.assertIn("tiny_swarm_world.simple_installer", install_script)
         self.assertNotIn("tiny_swarm_world.installer", install_script)
         simple_source = (
-            REPOSITORY_ROOT / "src/tiny_swarm_world/simple_installer.py"
+            REPOSITORY_ROOT / "modules/tsw_core/src/tiny_swarm_world/simple_installer.py"
         ).read_text(encoding="utf-8")
         self.assertNotIn('"--secrets-mode"', simple_source)
         self.assertNotIn('"--no-generate-secrets"', simple_source)
