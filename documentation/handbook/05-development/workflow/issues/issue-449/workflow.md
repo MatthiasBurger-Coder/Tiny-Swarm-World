@@ -1,7 +1,7 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: ACTIVE_FOR_ISSUE_449 v1.57 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
+Status: ACTIVE_FOR_ISSUE_449 v1.58 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
@@ -17,6 +17,53 @@ checks passed. Exclusive installation/global-resource ownership remains unproven
 Current policy work enables temporary maintenance without asserting adoption.
 Execution/evidence remains in `.codex/evidence/epic440-20261107.md`; full S02–S09
 completion remains required.
+
+## Finite WSL maintenance foreground lifetime and 24-route budget — v1.58
+
+Actual Source-bound read-only observations found WSL stopping/restarting after
+foreground clients exited, despite systemd services. A finite owned foreground
+client let Incus finish startup: strict active/running and /internal/ready200,
+two original managers Running with unchanged UUIDs, two original workers Stopped.
+No daemon, network, autostart, drop-in or permanent WSL configuration repair was
+performed. Microsoft explicitly documents this systemd lifecycle behavior:
+https://learn.microsoft.com/en-us/windows/wsl/systemd . The private diagnosis is
+`epic440-wsl-incus-readiness-diagnosis.md`, SHA256
+68083dbfef7dd7b2d60752f7a23f3cc9f50685f5f7609a216218ae1427568048.
+
+Authorize source engineering for the existing source-bound W05 maintenance
+controller ONLY: an owned finite native-wsl foreground read lease. Fixed literal
+Python child accepts no stdin data, emits READY, waits bounded by remaining phase,
+and emits CLOSED/exit0 on parent stdin EOF; nonempty input/expiry/error refuses.
+Own native executable/handle/PID/start identity and exact marker/exit/reap prove
+settlement; killing the Windows launcher alone is not Linux cleanup proof.
+Everything remains RAM-only, with no new native evidence store or permanent
+bridge policy. Prepare remains passive. Execute begins the lease before Observe;
+Root may inspect its status and settle the older diagnostic keeper only after
+new ownership is confirmed. Shutdown closes/reaps this own lease before the
+existing explicitly admitted shutdown. Relaunch keeps the selected Ubuntu alive
+and waits at most120s for strict Incus unit/API readiness before complete guest
+proof. Recovery retains/renews only its independent finite allowance; finally
+closes the owned pipe and verifies settlement. No other guest/process/service is
+started, stopped or adopted. Failed readiness remains failure, never new parser
+acceptance. Independent source review and exact PC gates precede live admission.
+
+The actual canonical bridge owns24 mappings. Preserve ALL existing full fresh
+firewall/hosts/registry/service snapshots and per-route checkpoints: a changed
+address causes8+3*24=80 normal snapshots, at least264 base command claims;
+recovery6+2*24=54 snapshots, at least186 base claims. At the actually measured
+39.544s full fresh query, their query costs alone are3163.52s and2135.376s.
+The previous1800/256 normal and600/128 recovery caps cannot cover this scenario.
+
+Approve finite parent allowances NORMAL4800s/512commands and independent once-only
+RECOVERY3600s/384commands, with admission of at most24 canonical mappings BEFORE
+any effect. Retain64MiB parent output,120s/14MiB complete-query child and all
+source/stream/ownership/route/atomic-state boundaries. No checkpoint is dropped,
+merged, cached or replaced by a subset. Do not reset budgets per route/read or
+borrow between phases. These measured margins do not guarantee arbitrarily
+stalled queries fit; exhaustion remains fail-closed with owned-reader cleanup.
+Root records requirement/architecture/automation/security-DevOps/test role passes
+as ONE integrator, plus independent preflight diagnosis/source planning. This
+policy grants source work only, not an actual scenario/expiry/effect GO.
 
 ## Versioned original-runtime driver reader repin — v1.57
 
