@@ -690,7 +690,7 @@ function New-WslMaintenanceProductionPorts {
                 }else{$_}
             })
         }
-        function Snapshot {
+        function Snapshot([switch]$RoutingOnly) {
             Assert-BridgeRuntimeStateAuthority
             $powershell=& $preparation {Get-PreparationExecutable 'powershell.exe'}
             $taskQuery='$ErrorActionPreference="Stop";$ProgressPreference="SilentlyContinue";$t=@(Get-ScheduledTask -ErrorAction Stop);if($t.Count -gt 8192){throw "task_limit"};$m=@($t | Where-Object{$_.TaskName -ceq "TinySwarmWorld-WslBridge"});@{conflicts=@($m | Where-Object{[string]$_.State -cne "Disabled" -or $_.Settings.Enabled -ne $false}).Count} | ConvertTo-Json -Compress'
@@ -704,15 +704,18 @@ function New-WslMaintenanceProductionPorts {
             $identity=Get-WslMaintenanceDigest @((Get-BridgeServiceDefinitionFields),$details,(Get-BridgeBundleIdentity),
                 (Get-WslMaintenanceRegistrySnapshot -ServiceConfiguration),
                 (Get-FileHash -LiteralPath $InstalledConfigPath -Algorithm SHA256).Hash)
-            $firewall=Firewall
+            $firewall=$null
+            if(!$RoutingOnly){$firewall=Firewall}
             $hosts=[IO.File]::ReadAllBytes($HostsPath)
             $records=@(Get-WslMaintenanceRegistrySnapshot)
             $all=NetshAll
             $netshProof=ConvertFrom-WslMaintenanceNetshAll $all $records
-            return @{identity=$identity;owner=$owner;firewall=(Get-WslMaintenanceDigest $firewall);
+            $result=@{proof_kind=$(if($RoutingOnly){'ROUTING_CAS'}else{'FULL_PRESERVATION'});identity=$identity;owner=$owner;
                 hosts=(Get-WslMaintenanceDigest $hosts);registry=$records;netsh=$netshProof;
                 all=$all;state=(Get-ProtectedBridgeState);service_state=[string]$owner.Service.Status;
                 running=($owner.Service.Status -eq 'Running')}
+            if(!$RoutingOnly){$result.firewall=Get-WslMaintenanceDigest $firewall}
+            return $result
         }
         function AssertMappingCount($State) {
             if(@($State.mappings).Count -gt 24){throw 'MAPPING_COUNT_BOUND'}
@@ -773,8 +776,14 @@ function New-WslMaintenanceProductionPorts {
             $null=Registration
             if((@(Running) -join ',') -cne 'Ubuntu'){throw 'RUNNING_REGISTRATION_MISMATCH'}
             if($Phase -ceq 'RECOVERY' -and (@(Running) -join ',') -cne 'Ubuntu'){throw 'RECOVERY_REENTRY_REQUIRED'}
-            $net=Snapshot
-            if($net.identity -cne $Before.net.identity -or $net.firewall -cne $Before.net.firewall -or
+            $routingOnly=$Phase -in @('BEFORE_ROUTE','AFTER_ROUTE')
+            $net=Snapshot -RoutingOnly:$routingOnly
+            $kind=if($routingOnly){'ROUTING_CAS'}else{'FULL_PRESERVATION'}
+            if($net -isnot [Collections.IDictionary] -or $net.proof_kind -cne $kind -or
+                $Before.net.proof_kind -cne 'FULL_PRESERVATION' -or
+                ($routingOnly -and $net.Contains('firewall')) -or
+                (!$routingOnly -and (!$net.Contains('firewall') -or $net.firewall -cne $Before.net.firewall))){throw 'PRESERVATION_PROOF_INVALID'}
+            if($net.identity -cne $Before.net.identity -or
                 $net.hosts -cne $Before.net.hosts -or (Get-WslMaintenanceDigest $net.registry) -cne
                 (Get-WslMaintenanceDigest $script:expectedRegistry)){throw 'PRESERVATION_DRIFT'}
             if($net.netsh.layout -cne $Before.net.netsh.layout -or
@@ -816,7 +825,7 @@ function New-WslMaintenanceProductionPorts {
                 if((Get-WslMaintenanceDigest $facts.resource_facts.config_snapshot) -cne $Before.resource_config -or
                     (Get-WslMaintenanceDigest (LinuxBinding $facts)) -cne $Before.os){throw 'RESOURCE_CONFIG_DRIFT'}
             }
-            if($Phase -in @('BEFORE_SHUTDOWN','FINAL','RESTORED')){
+            if($Phase -in @('BEFORE_SHUTDOWN','BEFORE_STATE','FINAL','RESTORED','RECOVERY','RECOVERY_ORIGINAL')){
                 if((Get-WslMaintenanceDigest (Guest)) -cne (Get-WslMaintenanceDigest $Before.guest)){throw 'GUEST_PRESERVATION_DRIFT'}
             }
             if($Phase -in @('FINAL','RESTORED')){AssertAddress $Before $Before.new_address}

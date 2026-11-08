@@ -87,7 +87,7 @@ class WslResourceMaintenanceTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             report = json.loads(result.stdout)
             self.assertEqual(report["status"], "PASS")
-            self.assertGreaterEqual(report["cases"], 31)
+            self.assertGreaterEqual(report["cases"], 34)
             self.assertEqual(report["runtime_mutations"], 0)
 
 

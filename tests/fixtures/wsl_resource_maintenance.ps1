@@ -264,7 +264,7 @@ if($NativeFixtureRoot){
         Assert $denied 'guest_reader_array_or_duplicate_refused';$cases++
     }
     & $adapter {
-        $script:fixture=@{writes=0;runs=[Collections.ArrayList]::new();foreign=$false;netsh_corrupt=$false;enforce_budget=$false;address='192.0.2.8'}
+        $script:fixture=@{fullSnapshots=0;routingSnapshots=0;firewallDrift=$false;writes=0;runs=[Collections.ArrayList]::new();foreign=$false;netsh_corrupt=$false;enforce_budget=$false;address='192.0.2.8'}
         $script:fixtureService=$null
         $script:fixtureMappings=@([pscustomobject]@{Name='one';ListenPort=1111;ConnectPort=2222},
             [pscustomobject]@{Name='two';ListenPort=3333;ConnectPort=4444})
@@ -288,7 +288,8 @@ if($NativeFixtureRoot){
         function script:Read-TswPortRegistry {param($Path) return @{Mappings=@()}}
         function script:Get-PortMappings {return $script:fixtureMappings}
         function script:Get-ProtectedBridgeState {return $script:fixtureState}
-        function script:Snapshot {
+        function script:Snapshot([switch]$RoutingOnly) {
+            if($RoutingOnly){$script:fixture.routingSnapshots++}else{$script:fixture.fullSnapshots++}
             if($script:fixture.enforce_budget){$null=ClaimCommand}
             $rows=$script:fixtureRegistry | ConvertTo-Json -Depth 10 -Compress | ConvertFrom-Json
             if($script:fixture.foreign){$rows[3].value=@(7,8)}
@@ -301,8 +302,10 @@ if($NativeFixtureRoot){
             if($script:fixture.netsh_corrupt){$text+="::1 9999 ::1 9998`r`n"}
             $bytes=[Text.Encoding]::ASCII.GetBytes($text)
             $proof=ConvertFrom-WslMaintenanceNetshAll $bytes $rows
-            return @{identity='same-bridge';firewall='same-firewall';hosts='same-hosts';registry=@($rows);
+            $result=@{proof_kind=$(if($RoutingOnly){'ROUTING_CAS'}else{'FULL_PRESERVATION'});identity='same-bridge';hosts='same-hosts';registry=@($rows);
                 all=$bytes;netsh=$proof;state=$script:fixtureState;service_state=$(if($null -ne $script:fixtureService){[string]$script:fixtureService.Status}else{'Stopped'});running=($null -ne $script:fixtureService -and $script:fixtureService.Status -eq 'Running')}
+            if(!$RoutingOnly){$result.firewall=$(if($script:fixture.firewallDrift){'foreign-firewall-drift'}else{'same-firewall'})}
+            return $result
         }
         function script:Run($File,$Arguments,$Timeout,$OutputLimit){
             [void]$script:fixture.runs.Add(@($Arguments))
@@ -323,6 +326,18 @@ if($NativeFixtureRoot){
             bridge_running=$false;old_address='192.0.2.5';new_address='192.0.2.8'}
     }
     $before=& $adapter {$script:fixtureBefore}
+    & $adapter {$script:fixture.fullSnapshots=0;$script:fixture.routingSnapshots=0}
+    & $ports.CheckPreservation $before 'BEFORE_ROUTE'
+    & $ports.CheckPreservation $before 'AFTER_ROUTE'
+    Assert ((& $adapter {$script:fixture.fullSnapshots -eq 0 -and $script:fixture.routingSnapshots -eq 2})) 'route_checks_use_only_fresh_routing_proof'
+    & $adapter {$script:fixture.firewallDrift=$true}
+    & $ports.CheckPreservation $before 'BEFORE_ROUTE'
+    $denied=$false;try{& $ports.CheckPreservation $before 'BEFORE_STATE'}catch{$denied=$true}
+    Assert $denied 'full_afterbatch_detects_foreign_firewall_drift'
+    & $adapter {$script:fixture.firewallDrift=$false}
+    & $ports.CheckPreservation $before 'BEFORE_STATE'
+    Assert ((& $adapter {$script:fixture.fullSnapshots -eq 2 -and $script:fixture.routingSnapshots -eq 3})) 'full_afterbatch_is_fresh_not_cached'
+    $cases+=3
     $changes=@(& $ports.Routes $before '192.0.2.8')
     Assert ($changes.Count -eq 2) 'owned_changes_only'
     # Foreign change and invented tuple refuse before the production Run seam.
