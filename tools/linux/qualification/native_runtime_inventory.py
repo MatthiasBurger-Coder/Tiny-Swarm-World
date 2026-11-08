@@ -188,6 +188,7 @@ class Runner:
                     or safe_args not in (None, [])):
                 raise InventoryError("ROOT_COMMAND_IDENTITY_BLOCKED")
         process = None
+        selector = None
         try:
             process = self.popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                  shell=False, close_fds=True, env=child_env, start_new_session=True)
@@ -234,6 +235,14 @@ class Runner:
             if process is not None:
                 _kill_reap(process)
             raise
+        finally:
+            # Repeated full captures must release each reader's epoll and pipes.
+            if selector is not None:
+                selector.close()
+            if process is not None:
+                for stream in (process.stdout, process.stderr):
+                    if stream is not None:
+                        stream.close()
 
 
 def _kill_reap(process: Any) -> None:

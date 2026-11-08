@@ -4,6 +4,7 @@ from __future__ import annotations
 import copy
 import json
 import subprocess
+import sys
 import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
@@ -570,6 +571,9 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
         def unregister(self, fileobj: Any) -> None:
             self.items.pop(fileobj)
 
+        def close(self) -> None:
+            self.items.clear()
+
     @staticmethod
     def _valid_artifact(command_records=None):
         units = []
@@ -945,6 +949,30 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
         self.assertIs(kwargs["stdin"], subprocess.DEVNULL)
         self.assertEqual(kwargs["env"], {"LC_ALL": "C", "PATH": "/usr/bin:/bin"})
         self.assertTrue(kwargs["start_new_session"])
+        proc.stdout.close.assert_called_once_with()
+        proc.stderr.close.assert_called_once_with()
+
+    @unittest.skipUnless(sys.platform == 'linux' and Path('/proc/self/fd').is_dir(), 'Linux descriptor accounting required')
+    def test_repeated_real_readers_fit_a_fixed_low_descriptor_limit_without_gc(self) -> None:
+        # The limit belongs to this child only; other host workers are unaffected.
+        script = '''import gc,json,resource
+from pathlib import Path
+from tools.linux.qualification.native_runtime_inventory import Runner
+gc.disable()
+soft,hard=resource.getrlimit(resource.RLIMIT_NOFILE)
+resource.setrlimit(resource.RLIMIT_NOFILE,(min(64,hard),hard))
+before=len(list(Path('/proc/self/fd').iterdir()))
+runner=Runner()
+for _ in range(96):
+    assert runner.run(['/usr/bin/readlink','-f','/dev/null'],command_id='reader_cleanup')[1]==b'/dev/null\\n'
+after=len(list(Path('/proc/self/fd').iterdir()))
+assert after<=before+1,(before,after)
+print(json.dumps({'commands':runner.commands,'retained_descriptors':after-before}))
+'''
+        result = subprocess.run([sys.executable, '-c', script], cwd=Path(__file__).resolve().parents[2],
+                                capture_output=True, text=True, timeout=30, check=False)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout)['commands'], 96)
 
     def test_runner_reaps_owned_client_on_external_phase_alarm_or_interrupt(self) -> None:
         class PhaseAlarm(RuntimeError):
@@ -966,6 +994,9 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
                 self.assertIs(caught.exception, failure)
                 reap.assert_called_once_with(proc)
                 self.assertEqual(runner.records, [])
+                selector.close.assert_called_once_with()
+                proc.stdout.close.assert_called_once_with()
+                proc.stderr.close.assert_called_once_with()
 
     def test_runner_rejects_unbounded_or_nonabsolute_argv_and_bad_environment(self) -> None:
         runner = inventory.Runner(popen=Mock())
