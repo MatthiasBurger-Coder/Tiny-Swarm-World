@@ -946,6 +946,27 @@ class NativeRuntimeInventoryTests(unittest.TestCase):
         self.assertEqual(kwargs["env"], {"LC_ALL": "C", "PATH": "/usr/bin:/bin"})
         self.assertTrue(kwargs["start_new_session"])
 
+    def test_runner_reaps_owned_client_on_external_phase_alarm_or_interrupt(self) -> None:
+        class PhaseAlarm(RuntimeError):
+            pass
+        for failure in (PhaseAlarm("LXD_READINESS_TIMEOUT"), KeyboardInterrupt()):
+            proc = Mock()
+            proc.stdout.fileno.return_value = 101
+            proc.stderr.fileno.return_value = 102
+            proc.pid = 88
+            selector = Mock()
+            selector.get_map.return_value = {101: object()}
+            selector.select.side_effect = failure
+            runner = inventory.Runner(popen=Mock(return_value=proc))
+            with self.subTest(failure=type(failure).__name__), \
+                    patch.object(inventory.selectors, "DefaultSelector", return_value=selector), \
+                    patch.object(inventory, "_kill_reap") as reap:
+                with self.assertRaises(type(failure)) as caught:
+                    runner.run(["/usr/bin/systemctl", "show"], command_id="fixture")
+                self.assertIs(caught.exception, failure)
+                reap.assert_called_once_with(proc)
+                self.assertEqual(runner.records, [])
+
     def test_runner_rejects_unbounded_or_nonabsolute_argv_and_bad_environment(self) -> None:
         runner = inventory.Runner(popen=Mock())
         for argv, env in ((["systemctl"], None), (["/usr/bin/x", "x\x00y"], None),

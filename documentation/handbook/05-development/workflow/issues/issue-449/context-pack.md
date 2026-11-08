@@ -1,6 +1,14 @@
 # Context pack — issue-449-lcm-w09
 
-## Current continuation — v1.53, 2026-11-08
+## Current continuation — v1.54, 2026-11-08
+
+v1.54 binds the native structural-slot/atomic-create/UUID-receipt correction,
+operation-specific recovery approval, aggregate deadlines and owned query reap,
+plus the complete shared typed Windows snapshot contract described in workflow
+v1.54. Source and actual host verification remain pending separately. The actual
+c6cd Windows getter refused unreadable provider data; this is NOT_PASS, with
+original source preserved and no runtime effect. Native R3 remains a historical
+failure with successful explicit recovery.
 
 Accepted preserving-product-acceptance ADR and independently reviewed amended
 source plan release only the closed prerequisite engineering described in

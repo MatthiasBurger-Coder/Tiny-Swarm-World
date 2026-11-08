@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import hashlib
 import json
 import os
@@ -9,12 +10,74 @@ import signal
 import subprocess
 import threading
 from types import SimpleNamespace
+from typing import Any
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from tools.linux.qualification import incus_profile_listener_fixture as fixture
+
+
+def _snapshot_asset_digest():
+    return fixture.digest((fixture.ROOT / fixture.WINDOWS_SNAPSHOT_REL).read_bytes())
+
+
+def _firewall_v2_fixture(legacy):
+    """Literal provider protocol fixture with opaque POCO values, not a production converter."""
+    kinds = ('address', 'application', 'interface', 'interface_type', 'port', 'security', 'service')
+    return {'schema_version': 2, 'store': 'ActiveStore', 'association_model': 'PROVIDER_IDENTITY_ONE_TO_ONE',
+            'profiles': [{'identity': item['Name'], 'value': item} for item in legacy['profiles']],
+            'settings': [{'identity': json.dumps(item, sort_keys=True), 'value': item} for item in legacy['settings']],
+            'rules': [{'identity': item['rule']['Name'], 'value': item['rule']} for item in legacy['rules']],
+            'filters': {kind: [{'identity': item['rule']['Name'], 'value': item[kind][0]}
+                               for item in legacy['rules']] for kind in kinds},
+            'cim_layout': {'provider_identity': ['class_name', 'namespace', 'server', 'path'],
+                           'native_property': ['cim_type', 'flags', 'value'],
+                           'adapted_override': ['member_type', 'clr_type', 'alias_target', 'value'],
+                           'enum_view': ['clr_type', 'name'],
+                           'equivalent_rule': 'same-name exact CLR type/value',
+                           'alias_rule': 'native referenced-member exact CLR type/value'}}
+
+
+def _certificate_fixture(legacy):
+    full = _firewall_v2_fixture(legacy)
+    for kind in ('profiles', 'settings', 'rules'):
+        full[kind].sort(key=lambda row: row['identity'])
+    for rows in full['filters'].values():
+        rows.sort(key=lambda row: row['identity'])
+    raw = json.dumps(full, sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode()
+    counts = {kind: len(full[kind]) for kind in ('rules', 'profiles', 'settings')}
+    counts.update({kind: len(rows) for kind, rows in full['filters'].items()})
+    return {'schema_version': 'tsw.windows-firewall-certificate.v1', 'query_sha256': _snapshot_asset_digest(),
+            'snapshot_sha256': fixture.digest(raw), 'snapshot_bytes': len(raw), 'snapshot_schema_version': 2,
+            'store': 'ActiveStore', 'association_model': 'PROVIDER_IDENTITY_ONE_TO_ONE', 'counts': counts}
+
+
+def _fixture_instance_dto(go, derived, properties, phase='init'):
+    maps = json.dumps([{'Isuid': True, 'Isgid': False, 'Hostid': 1000000, 'Nsid': 0, 'Maprange': 65536},
+                       {'Isuid': False, 'Isgid': True, 'Hostid': 1000000, 'Nsid': 0, 'Maprange': 65536}], separators=(',', ':'))
+    config = {'user.q449.run_id': go['target']['run_id'], 'volatile.base_image': go['target']['image_fingerprint'],
+              'volatile.uuid': '11111111-1111-4111-8111-111111111111',
+              'volatile.uuid.generation': '11111111-1111-4111-8111-111111111111',
+              'volatile.cloud-init.instance-id': '22222222-2222-4222-8222-222222222222',
+              'volatile.idmap.base': '1000000', 'volatile.idmap.next': maps,
+              'volatile.last_state.idmap': '[]', 'volatile.apply_template': 'create',
+              **{'image.' + key: value for key, value in properties.items()}}
+    if phase != 'init':
+        config.pop('volatile.apply_template')
+        config.update({'volatile.idmap.current': maps, 'volatile.last_state.idmap': maps,
+                       'volatile.last_state.power': 'RUNNING' if phase == 'running' else 'STOPPED',
+                       'volatile.last_state.ready': 'false', 'volatile.cpu.nodes': '0'})
+        if 'eth0' in derived['devices']:
+            config['volatile.eth0.hwaddr'] = '10:66:6a:00:00:01'
+            if phase == 'running':
+                config['volatile.eth0.host_name'] = 'vethabc123'
+    return {'name': go['target']['instance'], 'project': 'default', 'type': 'container',
+            'status': 'Running' if phase == 'running' else 'Stopped',
+            'config': config, 'devices': {}, 'profiles': [go['target']['base_profile'], go['target']['profile']],
+            'expanded_config': {**derived['config'], **config},
+            'expanded_devices': {**derived['devices'], 'q449-listener': {'type': 'proxy', **go['proxy']}}}
 
 
 class PrivateEvidenceFilesystemTests(unittest.TestCase):
@@ -79,6 +142,7 @@ class _FixtureBehaviorTestCase(unittest.TestCase):
         fixture._COMMAND_AUDIT.clear()
         fixture._INVENTORY_BYTES_CAPTURED = 0
         fixture._INVENTORY_ENTITIES_CAPTURED = 0
+        fixture._INVENTORY_ENTITY_SLOTS.clear()
         fixture._INVENTORY_STARTED_AT = None
         fixture._INVENTORY_RESERVE_CLEANUP = False
         fixture._INVENTORY_CLEANUP_MODE = False
@@ -279,7 +343,7 @@ class RouteStateDigestTests(_FixtureBehaviorTestCase):
                 ('incus', 'query', '/1.0/projects/legacy'):
                     b'{"name":"legacy","description":"","config":{}}',
                 ('incus', 'profile', 'list', '--project', 'default', '--format', 'json'):
-                    b'[{"name":"shared"}]',
+                    b'[{"name":"shared","project":"default","config":{},"devices":{"listener":{"type":"proxy","listen":"tcp:0.0.0.0:10001","connect":"tcp:127.0.0.1:8080"}},"used_by":["/1.0/instances/swarm-manager?project=issue447"]}]',
                 ('incus', 'query', '/1.0/profiles/shared?project=default'):
                     b'{"name":"shared","project":"default","config":{},"devices":{"listener":{"type":"proxy","listen":"tcp:0.0.0.0:10001","connect":"tcp:127.0.0.1:8080"}},"used_by":["/1.0/instances/swarm-manager?project=issue447"]}',
                 ('incus', 'list', '--project', 'default', '--format', 'json'): b'[]',
@@ -419,7 +483,7 @@ class RouteStateCaptureTests(_FixtureBehaviorTestCase):
         capture.assert_called_once_with('192.168.178.33',
             '.tiny-swarm/evidence/issue-449/s449-private-20261027/capture.json')
 
-    def test_route_inventory_rejects_profile_identity_mismatch(self):
+    def test_route_inventory_rejects_names_only_profile_summary_without_detail_fallback(self):
         def command(argv):
             if argv == ['incus', 'project', 'list', '--format', 'json']:
                 return b'[{"name":"default"}]'
@@ -435,7 +499,7 @@ class RouteStateCaptureTests(_FixtureBehaviorTestCase):
             with self.assertRaisesRegex(fixture.TargetDrift, 'INCUS_PROFILE_INVENTORY_UNREADABLE'):
                 fixture._incus_route_inventory()
 
-    def test_route_inventory_rejects_instance_identity_mismatch(self):
+    def test_route_inventory_rejects_names_only_instance_summary_without_detail_fallback(self):
         def command(argv):
             if argv == ['incus', 'project', 'list', '--format', 'json']:
                 return b'[{"name":"default"}]'
@@ -462,9 +526,9 @@ class RouteStateCaptureTests(_FixtureBehaviorTestCase):
                     if argv == ['incus', 'query', '/1.0/projects/default']:
                         return b'{"name":"default","description":"","config":{}}'
                     if argv == ['incus', 'profile', 'list', '--project', 'default', '--format', 'json']:
-                        return b'[{"name":"expected"}]' if resource == 'profile' else b'[]'
+                        return json.dumps([{'name': 'expected', 'project': 'other', 'config': {}, 'devices': {}, 'used_by': []}]).encode() if resource == 'profile' else b'[]'
                     if argv == ['incus', 'list', '--project', 'default', '--format', 'json']:
-                        return b'[{"name":"expected"}]' if resource == 'instance' else b'[]'
+                        return json.dumps([{'name': 'expected', 'project': 'other', 'status': 'Running', 'type': 'container', 'config': {}, 'devices': {}, 'profiles': []}]).encode() if resource == 'instance' else b'[]'
                     if argv[:2] == ['incus', 'query']:
                         identity = {'name': 'expected', 'project': 'other',
                                     'config': {}, 'devices': {}}
@@ -487,7 +551,7 @@ class RouteStateCaptureTests(_FixtureBehaviorTestCase):
                     with self.assertRaisesRegex(fixture.TargetDrift, 'DEFAULT_PROFILE_UNREADABLE'):
                         fixture._read_default_profile({
                             'default_profile_sha256': fixture.canonical_profile_sha256({}, {}),
-                            'fixture_base_profile_sha256': fixture.canonical_profile_sha256(
+                            'windows_snapshot_sha256': _snapshot_asset_digest(), 'fixture_base_profile_sha256': fixture.canonical_profile_sha256(
                                 {'boot.autostart': 'false'}, {})}, [])
 
     def test_capture_executes_read_only_inventory_allowlist_and_binds_all_projects(self):
@@ -514,12 +578,12 @@ class RouteStateCaptureTests(_FixtureBehaviorTestCase):
                         b'{"name":"qa","description":"","config":{"features.profiles":"true"}}',
                     ('incus', 'profile', 'list', '--project', 'default', '--format', 'json'): b'[]',
                     ('incus', 'profile', 'list', '--project', 'qa', '--format', 'json'):
-                        b'[{"name":"qa-profile"}]',
+                        json.dumps([{'name': 'qa-profile', 'project': 'qa', 'config': {}, 'devices': {'web': route_device}, 'used_by': []}]).encode(),
                     ('incus', 'query', fixture._profile_api_path('qa-profile', 'qa')):
                         json.dumps({'name': 'qa-profile', 'project': 'qa', 'config': {}, 'devices': {'web': route_device}, 'used_by': []}).encode(),
                     ('incus', 'list', '--project', 'default', '--format', 'json'): b'[]',
                     ('incus', 'list', '--project', 'qa', '--format', 'json'):
-                        b'[{"name":"qa-instance"}]',
+                        json.dumps([{'name': 'qa-instance', 'project': 'qa', 'status': 'Running', 'type': 'container', 'config': {}, 'devices': {'web': route_device}, 'expanded_config': {}, 'expanded_devices': {'web': route_device}, 'profiles': ['qa-profile']}]).encode(),
                     ('incus', 'query', fixture._instance_api_path('qa-instance', 'qa')):
                         json.dumps({'name': 'qa-instance', 'project': 'qa', 'config': {}, 'devices': {'web': route_device},
                                     'profiles': ['default']}).encode(),
@@ -573,7 +637,7 @@ class RouteStateCaptureTests(_FixtureBehaviorTestCase):
             payload = fixture.strict_json((evidence / 'pre-go-route-state.json').read_bytes())
             self.assertEqual(payload['incus_projects'], ['default', 'qa'])
             expected_routes = [
-                fixture._safe_route_row('qa', 'instance', 'qa-instance', 'web', route_device, ['default']),
+                fixture._safe_route_row('qa', 'instance', 'qa-instance', 'web', route_device, ['qa-profile']),
                 fixture._safe_route_row('qa', 'profile', 'qa-profile', 'web', route_device, ['qa-profile']),
             ]
             self.assertEqual(payload['incus_10001_routes'], expected_routes)
@@ -1275,7 +1339,7 @@ class GoValidationTests(_FixtureBehaviorTestCase):
             'reviews': {k: 'APPROVED' for k in fixture.REVIEW_KEYS},
             'windows_rules_unchanged': True, 'external_routes_enabled': False,
             'default_profile_sha256': fixture.canonical_profile_sha256({}, {}), 'default_profile_used_by': [],
-            'fixture_base_profile_sha256': fixture.canonical_profile_sha256({'boot.autostart': 'false'}, {}),
+            'windows_snapshot_sha256': _snapshot_asset_digest(), 'fixture_base_profile_sha256': fixture.canonical_profile_sha256({'boot.autostart': 'false'}, {}),
             'approved_route_state_sha256': '0' * 64,
         }
 
@@ -1378,10 +1442,10 @@ class NoMutationTests(_FixtureBehaviorTestCase):
         subprocess_mock.run.assert_not_called()
 
     def test_command_audit_records_only_safe_metadata(self):
-        result = type('Completed', (), {'returncode': 0, 'stdout': b'secret output'})()
         fixture._COMMAND_AUDIT.clear()
-        with patch.object(fixture.subprocess, 'run', return_value=result):
+        with patch.object(fixture.subprocess, 'Popen', return_value=_BoundedMemoryProcess(b'secret output')) as process:
             self.assertEqual(fixture.command(['/usr/bin/mock-command']), b'secret output')
+        self.assertEqual(process.call_args.args[0], ['/usr/bin/mock-command'])
         record = fixture._COMMAND_AUDIT[-1]
         self.assertEqual(set(record), {'command_id', 'safe_args', 'exit_status', 'stdout_bytes', 'stderr_bytes'})
         self.assertEqual(record['stdout_bytes'], len(b'secret output'))
@@ -1471,7 +1535,7 @@ class GoValidationMatrixTests(_FixtureBehaviorTestCase):
 
     def test_every_sha256_and_source_hash_rejects_bad_syntax(self):
         keys = ('workflow_sha256', 'runner_sha256', 'test_sha256', 'resource_admission_sha256',
-                'issue447_inventory_sha256', 'default_profile_sha256', 'fixture_base_profile_sha256',
+                'issue447_inventory_sha256', 'default_profile_sha256', 'fixture_base_profile_sha256', 'windows_snapshot_sha256',
                 'approved_route_state_sha256')
         for key in keys:
             candidate = json.loads(json.dumps(self.base))
@@ -1615,7 +1679,7 @@ class FixtureLifecycleTests(_FixtureBehaviorTestCase):
                       'proxy': {'listen': 'tcp:127.0.0.1:61000',
                                 'connect': 'tcp:127.0.0.1:8080', 'bind': 'host'},
                       'default_profile_sha256': fixture.canonical_profile_sha256({}, {}),
-                      'fixture_base_profile_sha256': fixture.canonical_profile_sha256(
+                      'windows_snapshot_sha256': _snapshot_asset_digest(), 'fixture_base_profile_sha256': fixture.canonical_profile_sha256(
                           {'boot.autostart': 'false'}, {}),
                       'default_profile_used_by': []}
                 windows = b'approved windows state' if drift == 'wsl' else b''
@@ -1624,7 +1688,7 @@ class FixtureLifecycleTests(_FixtureBehaviorTestCase):
                 baseline = {'listeners_10001': [], 'incus_10001_routes': [],
                             'incus_projects': ['default'], 'windows_rules_portproxy': windows,
                             'approved_route_state_sha256': route_digest,
-                            'derived_base_profile': {'config': {'boot.autostart': 'false'}, 'devices': {}},
+                            'image_properties': {}, 'derived_base_profile': {'config': {'boot.autostart': 'false'}, 'devices': {}},
                             'resources': {'memory_total_bytes': 4, 'memory_available_bytes': 3,
                                           'filesystem_available_bytes': 2}}
                 writes = []
@@ -1636,12 +1700,12 @@ class FixtureLifecycleTests(_FixtureBehaviorTestCase):
                 def command(argv):
                     if argv[0] == 'ss':
                         listener_reads['count'] += 1
-                        if drift == 'listener' and listener_reads['count'] == 2:
+                        if drift == 'listener' and listener_reads['count'] == 1:
                             return b'LISTEN 0 1 127.0.0.1:10001 0.0.0.0:*\n'
                         return b''
                     raise AssertionError(argv)
 
-                def incus(*args):
+                def incus(*args, profile_data=None):
                     if args[:1] == ('list',) or args[:2] == ('profile', 'list'):
                         return b'[]'
                     writes.append(args)
@@ -1672,20 +1736,18 @@ class FixtureLifecycleTests(_FixtureBehaviorTestCase):
                             {**valid_profile, 'used_by': ['/1.0/instances/foreign']}):
                 with self.subTest(name=name, altered=altered):
                     self.assertFalse(fixture._profile_create_readback_owned(altered, name))
-        valid_instance = {'name': 'tsw-q449-run-fixture', 'project': 'default',
-                          'profiles': ['tsw-q449-run-base', 'tsw-q449-run-profile'],
-                          'devices': {}, 'config': {}}
-        self.assertTrue(fixture._instance_create_readback_owned(
-            valid_instance, 'tsw-q449-run-fixture', 'a' * 32,
-            'tsw-q449-run-base', 'tsw-q449-run-profile'))
+        transport = _FullGraphFixtureTransport(self)
+        derived = fixture._derive_fixture_base(transport.profiles['default'])
+        properties = {'os': 'Alpine', 'release': '3.21'}
+        baseline = {'derived_base_profile': derived, 'image_properties': properties}
+        valid_instance = _fixture_instance_dto(transport.go, derived, properties)
+        fixture._FixtureInstanceReceipt(transport.go, baseline, valid_instance)
         for altered in ({**valid_instance, 'name': 'foreign'},
-                        {**valid_instance, 'profiles': ['default', 'tsw-q449-run-profile']},
+                        {**valid_instance, 'profiles': ['default', transport.profile]},
                         {**valid_instance, 'config': {'user.q449.run_id': 'b' * 32}},
                         {**valid_instance, 'devices': {'foreign': {'type': 'disk'}}}):
-            with self.subTest(altered=altered):
-                self.assertFalse(fixture._instance_create_readback_owned(
-                    altered, 'tsw-q449-run-fixture', 'a' * 32,
-                    'tsw-q449-run-base', 'tsw-q449-run-profile'))
+            with self.subTest(altered_keys=sorted(altered)), self.assertRaises(fixture.TargetDrift):
+                fixture._FixtureInstanceReceipt(transport.go, baseline, altered)
 
     def test_cleanup_accepts_only_exact_fixture_profile_prefixes(self):
         device = {'type': 'proxy', 'listen': 'tcp:127.0.0.1:61000',
@@ -1717,7 +1779,7 @@ class FixtureLifecycleTests(_FixtureBehaviorTestCase):
                        'instance': f'tsw-q449-{run_id}-fixture'},
             'proxy': {'listen': 'tcp:127.0.0.1:61000', 'connect': 'tcp:127.0.0.1:8080', 'bind': 'host'},
             'default_profile_sha256': fixture.canonical_profile_sha256({}, {}), 'default_profile_used_by': [],
-            'fixture_base_profile_sha256': fixture.canonical_profile_sha256({'boot.autostart': 'false'}, {}),
+            'windows_snapshot_sha256': _snapshot_asset_digest(), 'fixture_base_profile_sha256': fixture.canonical_profile_sha256({'boot.autostart': 'false'}, {}),
         }
         state = {'instance': False, 'profile_marker': False, 'instance_marker': False,
                  'status': 'stopped', 'foreign_consumer': False, 'base_exists': False,
@@ -1736,15 +1798,18 @@ class FixtureLifecycleTests(_FixtureBehaviorTestCase):
             [listener.splitlines()[1]], [], b'', ['default'])
         go['approved_route_state_sha256'] = approved_route_state
 
-        def incus(*args):
+        def incus(*args, profile_data=None):
             calls.append(args)
             if args[:2] == ('profile', 'create') and args[2] == base_profile:
                 state['base_exists'] = True
+                state['base_config'] = dict(profile_data['config'])
                 if state['ambiguous_create'] == 'base':
                     state['ambiguous_create'] = None
                     raise fixture.TargetDrift('JIT_COMMAND_FAILED')
             if args[:2] == ('profile', 'create') and args[2] == profile:
                 state['profile_exists'] = True
+                state['profile_marker'] = profile_data['config'] == {'user.q449.run_id': run_id}
+                state['profile_device'] = profile_data['devices'] == {'q449-listener': device}
                 if state['ambiguous_create'] == 'profile':
                     state['ambiguous_create'] = None
                     raise fixture.TargetDrift('JIT_COMMAND_FAILED')
@@ -1765,6 +1830,8 @@ class FixtureLifecycleTests(_FixtureBehaviorTestCase):
                 if '--no-start' in args:
                     raise fixture.TargetDrift('INCUS_INIT_UNSUPPORTED_FLAG')
                 state['instance'] = True
+                state['ever_started'] = False
+                state['instance_marker'] = '-c' in args and args[args.index('-c') + 1] == 'user.q449.run_id=' + run_id
                 if state['ambiguous_create'] == 'instance':
                     state['ambiguous_create'] = None
                     raise fixture.TargetDrift('JIT_COMMAND_FAILED')
@@ -1772,6 +1839,7 @@ class FixtureLifecycleTests(_FixtureBehaviorTestCase):
                 state['instance_marker'] = True
             if args[:1] == ('start',):
                 state['status'] = 'running'
+                state['ever_started'] = True
             if args[:1] == ('stop',):
                 state['status'] = 'stopped'
             if args[:1] == ('delete',):
@@ -1807,11 +1875,11 @@ class FixtureLifecycleTests(_FixtureBehaviorTestCase):
                                    'config': dict(state['base_config']), 'devices': {},
                                    'used_by': [route] if state['instance'] else []}).encode()
             if args[:1] == ('query',) and args[1] == fixture._instance_api_path(instance, 'default'):
-                return json.dumps({'name': instance, 'project': 'default',
-                                   'config': {'user.q449.run_id': run_id} if state['instance_marker'] else {},
-                                   'devices': {}, 'profiles': [base_profile, profile],
-                                   'expanded_config': {'user.q449.run_id': run_id},
-                                   'expanded_devices': {'q449-listener': device}}).encode()
+                data = _fixture_instance_dto(go, {'config': dict(state['base_config']), 'devices': {}}, {},
+                    'running' if state['status'] == 'running' else ('stopped' if state.get('ever_started') else 'init'))
+                if not state['instance_marker']:
+                    data['config'].pop('user.q449.run_id')
+                return json.dumps(data).encode()
             if args[:1] == ('info',):
                 return json.dumps({'status': state['status']}).encode()
             return b''
@@ -1839,7 +1907,7 @@ class FixtureLifecycleTests(_FixtureBehaviorTestCase):
         baseline = {'listeners_10001': [listener.splitlines()[1]], 'incus_projects': ['default'],
                     'incus_10001_routes': [], 'windows_rules_portproxy': b'',
                     'approved_route_state_sha256': approved_route_state,
-                    'derived_base_profile': {'config': {'boot.autostart': 'false'}, 'devices': {}},
+                    'image_properties': {}, 'derived_base_profile': {'config': {'boot.autostart': 'false'}, 'devices': {}},
                     'resources': {'memory_total_bytes': 4, 'memory_available_bytes': 3, 'filesystem_available_bytes': 2}}
         with (
             patch.object(fixture, '_incus', side_effect=incus),
@@ -1890,7 +1958,7 @@ class FixtureLifecycleTests(_FixtureBehaviorTestCase):
                                           'incus_projects': ['default'],
                                           'incus_10001_routes': [], 'windows_rules_portproxy': b'',
                                           'approved_route_state_sha256': approved_route_state,
-                                          'derived_base_profile': {'config': {'boot.autostart': 'false'}, 'devices': {}},
+                                          'image_properties': {}, 'derived_base_profile': {'config': {'boot.autostart': 'false'}, 'devices': {}},
                                           'resources': {'memory_total_bytes': 4, 'memory_available_bytes': 3,
                                                         'filesystem_available_bytes': 2}})
         self.assertNotIn(('profile', 'delete', profile, '--project', 'default'), calls)
@@ -1924,7 +1992,7 @@ class FixtureLifecycleTests(_FixtureBehaviorTestCase):
                     'listeners_10001': [listener.splitlines()[1]], 'incus_projects': ['default'],
                     'incus_10001_routes': [], 'windows_rules_portproxy': b'',
                     'approved_route_state_sha256': approved_route_state,
-                    'derived_base_profile': {'config': {'boot.autostart': 'false'}, 'devices': {}},
+                    'image_properties': {}, 'derived_base_profile': {'config': {'boot.autostart': 'false'}, 'devices': {}},
                     'resources': {'memory_total_bytes': 4, 'memory_available_bytes': 3,
                                   'filesystem_available_bytes': 2}})
         self.assertTrue(state['instance'] is False)
@@ -1934,7 +2002,7 @@ class FixtureLifecycleTests(_FixtureBehaviorTestCase):
         self.assertIn(('profile', 'delete', base_profile, '--project', 'default'), calls)
         self.assertGreaterEqual(checkpoints['count'], 2)
 
-        for resource in ('base', 'profile', 'instance', 'marker', 'listener'):
+        for resource in ('base', 'profile', 'instance'):
             with self.subTest(ambiguous_resource=resource):
                 state.update({'instance': False, 'profile_marker': False,
                               'instance_marker': False, 'status': 'stopped',
@@ -1956,7 +2024,7 @@ class FixtureLifecycleTests(_FixtureBehaviorTestCase):
                             'listeners_10001': [listener.splitlines()[1]], 'incus_projects': ['default'],
                             'incus_10001_routes': [], 'windows_rules_portproxy': b'',
                             'approved_route_state_sha256': approved_route_state,
-                            'derived_base_profile': {'config': {'boot.autostart': 'false'}, 'devices': {}},
+                            'image_properties': {}, 'derived_base_profile': {'config': {'boot.autostart': 'false'}, 'devices': {}},
                             'resources': {'memory_total_bytes': 4, 'memory_available_bytes': 3,
                                           'filesystem_available_bytes': 2}})
                 if resource == 'base':
@@ -1997,7 +2065,7 @@ class FixtureLifecycleTests(_FixtureBehaviorTestCase):
                         'listeners_10001': [listener.splitlines()[1]], 'incus_projects': ['default'],
                         'incus_10001_routes': [], 'windows_rules_portproxy': b'',
                         'approved_route_state_sha256': approved_route_state,
-                        'derived_base_profile': {'config': {'boot.autostart': 'false'}, 'devices': {}},
+                        'image_properties': {}, 'derived_base_profile': {'config': {'boot.autostart': 'false'}, 'devices': {}},
                         'resources': {'memory_total_bytes': 4, 'memory_available_bytes': 3,
                                       'filesystem_available_bytes': 2}})
             self.assertNotIn(('delete', instance, '--project', 'default'), calls)
@@ -2131,7 +2199,7 @@ class JitNoMutationTests(_FixtureBehaviorTestCase):
                          'image_fingerprint': fingerprint},
               'proxy': {'listen': 'tcp:127.0.0.1:61000'},
               'default_profile_sha256': '0' * 64, 'default_profile_used_by': [],
-              'fixture_base_profile_sha256': fixture.canonical_profile_sha256({'boot.autostart': 'false'}, {})}
+              'windows_snapshot_sha256': _snapshot_asset_digest(), 'fixture_base_profile_sha256': fixture.canonical_profile_sha256({'boot.autostart': 'false'}, {})}
         outputs = [b'[{"addr_info":[{"local":"192.168.178.33"}]}]',
                    b'Client version: 6.0.5\nServer version: 6.0.5\n',
                    json.dumps([{'fingerprint': fingerprint}]).encode(),
@@ -2179,7 +2247,7 @@ class JitNoMutationTests(_FixtureBehaviorTestCase):
                          'base_profile': f'tsw-q449-{run_id}-base', 'image_fingerprint': fingerprint},
               'proxy': {'listen': 'tcp:127.0.0.1:61000'},
               'default_profile_sha256': fixture.canonical_profile_sha256(profile['config'], profile['devices']),
-              'fixture_base_profile_sha256': fixture.canonical_profile_sha256({'boot.autostart': 'false'}, {}),
+              'windows_snapshot_sha256': _snapshot_asset_digest(), 'fixture_base_profile_sha256': fixture.canonical_profile_sha256({'boot.autostart': 'false'}, {}),
               'default_profile_used_by': []}
         with (patch.object(fixture, '_incus_10001_routes', return_value=[]),
               patch.object(fixture, 'command', side_effect=command) as command_mock,
@@ -2290,8 +2358,7 @@ class JitNoMutationTests(_FixtureBehaviorTestCase):
             ('ss', '-H', '-ltn'): b'LISTEN 0 1 127.0.0.1:10001 0.0.0.0:*',
             ('ss', '-H', '-ltnp'): b'LISTEN 0 1 127.0.0.1:10001 0.0.0.0:* users:(("incusd",pid=77,fd=3))',
             ('incus', 'list', '--project', 'default', '--format', 'json'): b'[]',
-            ('incus', 'profile', 'list', '--project', 'default', '--format', 'json'): b'[{"name":"legacy"}]',
-            ('incus', 'query', fixture._profile_api_path('legacy', 'default')): json.dumps(route).encode(),
+            ('incus', 'profile', 'list', '--project', 'default', '--format', 'json'): json.dumps([route]).encode(),
         }
         go = {'target': {'host': '192.168.178.33', 'server_version': '6.0.5',
                          'instance': f'tsw-q449-{run_id}-fixture',
@@ -2299,7 +2366,7 @@ class JitNoMutationTests(_FixtureBehaviorTestCase):
                          'image_fingerprint': fingerprint},
               'proxy': {'listen': 'tcp:127.0.0.1:61000'},
               'default_profile_sha256': fixture.canonical_profile_sha256({}, {}),
-              'fixture_base_profile_sha256': fixture.canonical_profile_sha256({'boot.autostart': 'false'}, {}),
+              'windows_snapshot_sha256': _snapshot_asset_digest(), 'fixture_base_profile_sha256': fixture.canonical_profile_sha256({'boot.autostart': 'false'}, {}),
               'default_profile_used_by': []}
         go['approved_route_state_sha256'] = fixture.approved_route_state_sha256(
             [b'LISTEN 0 1 127.0.0.1:10001 0.0.0.0:* users:(("incusd",pid=77,fd=3))'],
@@ -2316,7 +2383,6 @@ class JitNoMutationTests(_FixtureBehaviorTestCase):
             ('incus', 'project', 'list', '--format', 'json'),
             ('incus', 'query', '/1.0/projects/default'),
             ('incus', 'profile', 'list', '--project', 'default', '--format', 'json'),
-            ('incus', 'query', fixture._profile_api_path('legacy', 'default')),
             ('incus', 'list', '--project', 'default', '--format', 'json'),
         ]
         self.assertEqual(set(command_order), set(responses))
@@ -2367,7 +2433,7 @@ class WslJitTests(_FixtureBehaviorTestCase):
                          'image_fingerprint': case.go['target']['image_fingerprint']},
               'proxy': {'listen': 'tcp:127.0.0.1:61000'},
               'default_profile_sha256': fixture.canonical_profile_sha256({}, {}),
-              'fixture_base_profile_sha256': fixture.canonical_profile_sha256({'boot.autostart': 'false'}, {}),
+              'windows_snapshot_sha256': _snapshot_asset_digest(), 'fixture_base_profile_sha256': fixture.canonical_profile_sha256({'boot.autostart': 'false'}, {}),
               'default_profile_used_by': []}
         outputs = [b'[{"addr_info":[{"local":"192.168.178.33"}]}]',
                    b'Client version: 6.0.5\nServer version: 6.0.5\n',
@@ -2395,8 +2461,8 @@ class WslJitTests(_FixtureBehaviorTestCase):
                 script = argv[-1]
                 if 'Get-NetIPAddress' in script:
                     return b'192.168.178.58\n'
-                if 'Get-NetFirewallRule' in script:
-                    return b'{"profiles":[],"settings":[],"rules":[]}'
+                if 'tsw.windows-firewall-certificate.v1' in script:
+                    return json.dumps(_certificate_fixture({'profiles': [], 'settings': [], 'rules': []})).encode()
             if argv[0].endswith('/netsh.exe'):
                 return b'listen 0.0.0.0:10001 connect 127.0.0.1:10001\r\n'
             mapping = {
@@ -2413,9 +2479,8 @@ class WslJitTests(_FixtureBehaviorTestCase):
                 ('ss', '-H', '-ltn'): b'LISTEN 0 1 127.0.0.1:10001 0.0.0.0:*',
                 ('ss', '-H', '-ltnp'): b'LISTEN 0 1 127.0.0.1:10001 0.0.0.0:* users:(("incusd",pid=77,fd=3))',
                 ('incus', 'list', '--project', 'default', '--format', 'json'): b'[]',
-                ('incus', 'profile', 'list', '--project', 'default', '--format', 'json'): b'[{"name":"legacy"}]',
-                ('incus', 'query', fixture._profile_api_path('legacy', 'default')): json.dumps(route).encode(),
-            }
+                ('incus', 'profile', 'list', '--project', 'default', '--format', 'json'): json.dumps([route]).encode(),
+                }
             return mapping[tuple(argv)]
 
         go = {'target': {'host': '192.168.178.58', 'server_version': '6.0.5',
@@ -2425,9 +2490,10 @@ class WslJitTests(_FixtureBehaviorTestCase):
                          'image_fingerprint': fingerprint},
               'proxy': {'listen': 'tcp:127.0.0.1:61000'},
               'default_profile_sha256': fixture.canonical_profile_sha256({}, {}),
-              'fixture_base_profile_sha256': fixture.canonical_profile_sha256({'boot.autostart': 'false'}, {}),
+              'windows_snapshot_sha256': _snapshot_asset_digest(), 'fixture_base_profile_sha256': fixture.canonical_profile_sha256({'boot.autostart': 'false'}, {}),
               'default_profile_used_by': []}
-        firewall_bytes = b'{"profiles":[],"rules":[],"settings":[]}'
+        firewall_bytes = json.dumps(_certificate_fixture({'profiles': [], 'settings': [], 'rules': []}),
+                                    sort_keys=True, separators=(',', ':')).encode()
         portproxy_bytes = b'listen 0.0.0.0:10001 connect 127.0.0.1:10001\r\n'
         windows_snapshot = fixture._pack_windows_snapshot(firewall_bytes, portproxy_bytes)
         go['approved_route_state_sha256'] = fixture.approved_route_state_sha256(
@@ -2440,21 +2506,23 @@ class WslJitTests(_FixtureBehaviorTestCase):
         self.assertEqual(baseline['windows_rules_portproxy'], windows_snapshot)
         self.assertTrue(any(argv[0].endswith('powershell.exe') and 'Get-NetIPAddress' in argv[-1] for argv in seen))
         firewall_command = next(argv[-1] for argv in seen if argv[0].endswith('powershell.exe')
-                                and 'Get-NetFirewallRule' in argv[-1])
-        for cmdlet in ('Get-NetFirewallProfile -PolicyStore ActiveStore',
-                       'Get-NetFirewallSetting -PolicyStore ActiveStore',
+                                and 'tsw.windows-firewall-certificate.v1' in argv[-1])
+        self.assertEqual(firewall_command, fixture._windows_snapshot_wrapper(go['windows_snapshot_sha256']))
+        query_source = fixture._windows_snapshot_query(go['windows_snapshot_sha256'])
+        for cmdlet in ('Get-NetFirewallProfile',
+                       'Get-NetFirewallSetting',
                        'Get-NetFirewallAddressFilter', 'Get-NetFirewallApplicationFilter',
                        'Get-NetFirewallInterfaceFilter', 'Get-NetFirewallInterfaceTypeFilter',
                        'Get-NetFirewallPortFilter', 'Get-NetFirewallSecurityFilter',
-                       'Get-NetFirewallServiceFilter', 'Select-Object *'):
-            self.assertIn(cmdlet, firewall_command)
+                       'Get-NetFirewallServiceFilter'):
+            self.assertIn(cmdlet, query_source)
         self.assertTrue(any(argv[0].endswith('/netsh.exe') and argv[1:] == [
             'interface', 'portproxy', 'show', 'all'] for argv in seen))
         self.assertEqual(baseline['incus_10001_routes'][0]['owner'], 'legacy')
 
         seen.clear()
         def fail_firewall_snapshot(argv):
-            if argv[0].endswith('powershell.exe') and 'Get-NetFirewallRule' in argv[-1]:
+            if argv[0].endswith('powershell.exe') and 'tsw.windows-firewall-certificate.v1' in argv[-1]:
                 seen.append(argv)
                 raise fixture.TargetDrift('WINDOWS_SNAPSHOT_TIMEOUT')
             return command(argv)
@@ -2503,8 +2571,8 @@ class WslJitTests(_FixtureBehaviorTestCase):
         for rule in reordered['rules']:
             rule['profiles'].reverse()
         portproxy = b'raw exact portproxy bytes\r\n'
-        outputs = [json.dumps(base).encode(), portproxy,
-                   json.dumps(reordered).encode(), portproxy]
+        outputs = [json.dumps(_certificate_fixture(base)).encode(), portproxy,
+                   json.dumps(_certificate_fixture(reordered)).encode(), portproxy]
         with patch.object(fixture, 'command', side_effect=outputs):
             first = fixture._windows_snapshot()
             first_digest = fixture._WINDOWS_SNAPSHOT_METADATA['windows_snapshot_sha256']
@@ -2539,8 +2607,8 @@ class WslJitTests(_FixtureBehaviorTestCase):
             if argv[0].endswith('powershell.exe'):
                 if 'Get-NetIPAddress' in argv[-1]:
                     return b'192.168.178.58\n'
-                if 'Get-NetFirewallRule' in argv[-1]:
-                    return json.dumps(firewall_value).encode('utf-8')
+                if 'tsw.windows-firewall-certificate.v1' in argv[-1]:
+                    return json.dumps(_certificate_fixture(firewall_value)).encode('utf-8')
             if argv[0].endswith('/netsh.exe'):
                 return raw_portproxy
             if argv[0] == 'ss':
@@ -2571,11 +2639,9 @@ class WslJitTests(_FixtureBehaviorTestCase):
               patch.object(fixture, '_assert_local_incus_remote_inventory', side_effect=remote_inventory)):
             state = fixture._route_state('192.168.178.58')
 
-        expected_firewall = json.dumps({
-            'profiles': sorted(firewall_value['profiles'], key=lambda item: item['Name']),
-            'settings': firewall_value['settings'],
-            'rules': sorted(firewall_value['rules'], key=lambda item: item['rule']['Name'])},
-            sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode('utf-8')
+        expected_value = _certificate_fixture(firewall_value)
+        expected_firewall = json.dumps(expected_value, sort_keys=True, separators=(',', ':'),
+                                       ensure_ascii=False).encode('utf-8')
         expected_snapshot = fixture._pack_windows_snapshot(expected_firewall, raw_portproxy)
         self.assertEqual(state['windows_snapshot'], expected_snapshot)
         self.assertEqual(state['approved_route_state_sha256'],
@@ -2763,12 +2829,12 @@ class BoundedWindowsSnapshotProcessTests(_FixtureBehaviorTestCase):
 
     def test_windows_command_dispatch_uses_required_timeout_and_caps(self):
         powershell = ['/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe',
-                      '-NoProfile', '-NonInteractive', '-Command', fixture._WINDOWS_ACTIVE_STORE_QUERY]
+                      '-NoProfile', '-NonInteractive', '-Command', fixture._windows_snapshot_wrapper()]
         netsh = ['/mnt/c/Windows/System32/netsh.exe', 'interface', 'portproxy', 'show', 'all']
         with patch.object(fixture, '_snapshot_process', return_value=b'ok') as snapshot:
             self.assertEqual(fixture.command(powershell), b'ok')
-            snapshot.assert_called_with(powershell, 120, 14 * 1024 * 1024,
-                                        2 * 1024 * 1024, 'WINDOWS_FIREWALL_SNAPSHOT_UNREADABLE')
+            snapshot.assert_called_with(powershell, 120, 2 * 1024 * 1024,
+                                        2 * 1024 * 1024, 'WINDOWS_FIREWALL_SNAPSHOT_UNREADABLE', require_empty_stderr=True)
             self.assertEqual(fixture.command(netsh), b'ok')
             snapshot.assert_called_with(netsh, 30, 2 * 1024 * 1024,
                                         2 * 1024 * 1024, 'WINDOWS_FIREWALL_SNAPSHOT_UNREADABLE')
@@ -3048,7 +3114,7 @@ class SafeRouteProjectionTests(_FixtureBehaviorTestCase):
                      'approved_route_state_sha256': 'a' * 64}
             def route_state(_host):
                 fixture._WINDOWS_SNAPSHOT_METADATA = {
-                    'schema_version': 'tsw.windows-route-snapshot.v1',
+                    'schema_version': 'tsw.windows-route-snapshot.v2',
                     'firewall_bytes': len(raw_firewall), 'firewall_sha256': fixture.digest(raw_firewall),
                     'portproxy_bytes': len(raw_portproxy), 'portproxy_sha256': fixture.digest(raw_portproxy),
                     'windows_snapshot_sha256': fixture.digest(state['windows_snapshot']),
@@ -3067,6 +3133,861 @@ class SafeRouteProjectionTests(_FixtureBehaviorTestCase):
             payload = fixture.strict_json(encoded)
             self.assertEqual(payload['windows_snapshot']['windows_snapshot_sha256'],
                              fixture.digest(state['windows_snapshot']))
+
+
+
+class _BoundedMemoryProcess:
+    """Native transport substitute; real pipe reads/selectors/accounting stay active."""
+
+    def __init__(self, payload=b'', status=0):
+        self.status = status
+        self.threads: list[threading.Thread] = []
+        self.stdout = self._pipe(payload)
+        self.stderr = self._pipe(b'')
+
+    def _pipe(self, payload):
+        read_fd, write_fd = os.pipe()
+
+        def emit():
+            try:
+                view = memoryview(payload)
+                while view:
+                    view = view[os.write(write_fd, view):]
+            except OSError:
+                pass
+            finally:
+                os.close(write_fd)
+
+        worker = threading.Thread(target=emit, daemon=True)
+        self.threads.append(worker)
+        worker.start()
+        return os.fdopen(read_fd, 'rb', buffering=0)
+
+    def wait(self, timeout=None):
+        for worker in self.threads:
+            worker.join(timeout)
+        return self.status
+
+    def terminate(self):
+        self.status = -15
+
+    def kill(self):
+        self.status = -9
+
+
+class _FullGraphFixtureTransport:
+    """Three projects, inherited profiles and full foreign metadata; no kernel/Incus calls."""
+
+    def __init__(self, testcase, *, wsl=False):
+        self.is_wsl = wsl
+        self.testcase = testcase
+        self.run_id = 'a' * 32
+        self.base = 'tsw-q449-' + self.run_id + '-base'
+        self.profile = 'tsw-q449-' + self.run_id + '-profile'
+        self.instance = 'tsw-q449-' + self.run_id + '-fixture'
+        self.projects = ['default', 'issue447'] if wsl else ['default', 'foreign', 'inherited']
+        self.profiles: dict[str, dict[str, Any]] = {name: {'name': name, 'project': 'default', 'config': {}, 'devices': {}, 'used_by': []}
+                         for name in ('default', 'legacy-base', 'legacy-route')}
+        self.profiles['default']['devices'] = {'root': {'type': 'disk', 'path': '/', 'pool': 'default'},
+                                               'eth0': {'type': 'nic', 'name': 'eth0', 'network': 'incusbr0'}}
+        self.profiles['legacy-route']['devices'] = {'web': {'type': 'proxy', 'listen': 'tcp:127.0.0.1:10001',
+                                                          'connect': 'tcp:127.0.0.1:80', 'bind': 'host'}}
+        # A realistic full foreign list DTO exceeds the pipe capacity. Every checkpoint rereads it.
+        self.foreign: dict[str, Any] = {'name': 'foreign-manager', 'project': 'foreign', 'status': 'Running',
+                        'type': 'container', 'architecture': 'x86_64', 'description': '',
+                        'config': {f'user.metadata.{i}': 'x' * 95 for i in range(80)},
+                        'devices': {}, 'expanded_config': {}, 'expanded_devices': {},
+                        'profiles': ['legacy-route'], 'backups': [], 'snapshots': [], 'state': {},
+                        'created_at': '2026-11-08T00:00:00Z', 'ephemeral': False,
+                        'stateful': False, 'status_code': 103, 'location': 'none'}
+        self.foreign['expanded_config'] = dict(self.foreign['config'])
+        self.foreign['expanded_devices'] = json.loads(json.dumps(self.profiles['legacy-route']['devices']))
+        self.profiles['legacy-route']['used_by'] = ['/1.0/instances/foreign-manager?project=foreign']
+        self.foreign_before = json.dumps(self.foreign, sort_keys=True)
+        self.foreign_rows: dict[str, list[dict[str, Any]]] = {project: [] for project in self.projects}
+        if wsl:
+            for index in range(4):
+                row = json.loads(self.foreign_before)
+                project = 'default' if index < 3 else 'issue447'
+                row.update(name='existing-' + str(index), project=project,
+                           status='Stopped' if index in (1, 2) else 'Running',
+                           status_code=102 if index in (1, 2) else 103)
+                if index != 0:
+                    row['profiles'] = ['legacy-base']
+                    row['expanded_devices'] = {}
+                self.foreign_rows[project].append(row)
+            self.profiles['legacy-route']['used_by'] = sorted(
+                fixture._instance_api_path(row['name'], project) for project, rows in self.foreign_rows.items()
+                for row in rows if 'legacy-route' in row['profiles'])
+        else:
+            self.foreign_rows['foreign'] = [self.foreign]
+        self.foreign_rows_before = json.dumps(self.foreign_rows, sort_keys=True)
+        self.firewall = {'schema_version': 'tsw.windows-firewall-certificate.v1',
+                         'query_sha256': _snapshot_asset_digest(), 'snapshot_sha256': 'c' * 64,
+                         'snapshot_bytes': 9000000, 'snapshot_schema_version': 2, 'store': 'ActiveStore',
+                         'association_model': 'PROVIDER_IDENTITY_ONE_TO_ONE',
+                         'counts': {'rules': 500, 'profiles': 3, 'settings': 1,
+                                    **dict.fromkeys(('address', 'application', 'interface', 'interface_type',
+                                                    'port', 'security', 'service'), 500)}}
+        self.portproxy = b'existing exact portproxy rows\r\n'
+        self.windows_snapshot = fixture._pack_windows_snapshot(
+            json.dumps(self.firewall, sort_keys=True, separators=(',', ':')).encode(), self.portproxy) if wsl else b''
+        self.current: dict[str, Any] | None = None
+        self.running = False
+        self.events: list[tuple[str, ...]] = []
+        self.effects: list[tuple[tuple[str, ...], int]] = []
+        self.active_peak = 0
+        self.foreign_lists = 0
+        self.fail_effect: tuple[str, ...] | None = None
+        self.lost_create: str | None = None
+        self.exhaust_after_base = False
+        self.lost_init = False
+        self.corrupt_after_exec = False
+        self.listener = b'LISTEN 0 4096 127.0.0.1:10001 0.0.0.0:* users:(("incusd",pid=44,fd=5))\n'
+        self.go: dict[str, Any] = {'source_commit': 'f' * 40,
+                   'target': {'host': '192.168.178.58' if wsl else '192.168.178.33', 'endpoint': 'unix://', 'project': 'default',
+                              'server_version': '6.0.5', 'run_id': self.run_id, 'base_profile': self.base,
+                              'profile': self.profile, 'instance': self.instance, 'image_fingerprint': 'b' * 64},
+                   'proxy': {'listen': 'tcp:127.0.0.1:61000', 'connect': 'tcp:127.0.0.1:8080', 'bind': 'host'},
+                   'default_profile_used_by': []}
+        default = self.profiles['default']
+        self.go['windows_snapshot_sha256'] = _snapshot_asset_digest()
+        self.go['default_profile_sha256'] = fixture.canonical_profile_sha256(default['config'], default['devices'])
+        self.go['fixture_base_profile_sha256'] = fixture.canonical_profile_sha256(
+            {'boot.autostart': 'false'}, default['devices'])
+        route = fixture._safe_route_row('default', 'profile', 'legacy-route', 'web',
+                                        self.profiles['legacy-route']['devices']['web'], ['legacy-route'])
+        self.go['approved_route_state_sha256'] = fixture.approved_route_state_sha256(
+            [self.listener.rstrip(b'\n')], [route], self.windows_snapshot, self.projects)
+
+    def _observe(self, args):
+        self.events.append(tuple(args))
+        if not fixture._INVENTORY_CLEANUP_MODE:
+            self.active_peak = max(self.active_peak, len(fixture._COMMAND_AUDIT) + 1)
+
+    def _before_effect(self, args):
+        # Every effect requires a newly completed full graph since the preceding effect.
+        since = self.events[self.effects[-1][1] + 1:] if self.effects else self.events
+        required = [('project', 'list', '--format', 'json')]
+        required += [('query', fixture._project_api_path(project)) for project in self.projects]
+        required += [('list', '--project', project, '--format', 'json') for project in self.projects]
+        required += [('profile', 'list', '--project', 'default', '--format', 'json')]
+        for read in required:
+            self.testcase.assertIn(read, since)
+        self.effects.append((tuple(args), len(self.events) - 1))
+        if self.fail_effect == tuple(args):
+            raise OSError('simulated transport loss before effect')
+
+    def _instance(self):
+        if self.current is None:
+            return None
+        data = dict(self.current)
+        data['status'] = 'Running' if self.running else 'Stopped'
+        return data
+
+    def _json(self, value):
+        return json.dumps(value, sort_keys=True).encode()
+
+    def read(self, args):
+        if args == ['remote', 'list', '--format', 'json']:
+            return self._json({'local': {'Addr': 'unix://', 'Public': False, 'Protocol': 'incus', 'Static': True}})
+        if args == ['remote', 'get-default']:
+            return b'local\n'
+        if args == ['project', 'list', '--format', 'json']:
+            return self._json([{'name': project} for project in self.projects])
+        if args[:2] == ['profile', 'list']:
+            return self._json(list(self.profiles.values()))
+        if args[:1] == ['list']:
+            project = args[args.index('--project') + 1]
+            rows = list(self.foreign_rows[project])
+            if rows:
+                self.foreign_lists += 1
+            if project == 'default' and self.current is not None:
+                rows.append(self._instance())
+            return self._json(rows)
+        if args[:1] == ['info']:
+            return self._json({'status': 'running' if self.running else 'stopped'})
+        if args[:2] == ['image', 'list']:
+            return self._json([{'fingerprint': 'b' * 64}])
+        if args[:1] == ['query']:
+            path = args[1]
+            if path.startswith('/1.0/projects/'):
+                project = path.rsplit('/', 1)[-1]
+                return self._json({'name': project, 'description': '', 'config':
+                                   {'features.profiles': 'true' if project == 'default' else 'false'}})
+            if path.startswith('/1.0/images/'):
+                return self._json({'properties': {'os': 'Alpine', 'release': '3.21'}})
+            for name, profile in self.profiles.items():
+                if path == fixture._profile_api_path(name, 'default'):
+                    return self._json(profile)
+            if path == fixture._instance_api_path('foreign-manager', 'foreign'):
+                return self._json(self.foreign)
+            if self.current is not None and path == fixture._instance_api_path(self.instance, 'default'):
+                return self._json(self._instance())
+        raise AssertionError(f'unexpected Incus read: {args!r}')
+
+    def popen(self, argv, **kwargs):
+        args = argv[1:]
+        if (argv[0] != fixture.TRUSTED_BIN['incus']
+                or args[:1] in (['version'], ['init'], ['start'], ['stop'], ['delete'], ['exec'])
+                or args[:2] == ['profile', 'delete']):
+            response = self.run(argv, **kwargs)
+            return _BoundedMemoryProcess(response.stdout, response.returncode)
+        self._observe(args)
+        if args[:2] == ['profile', 'create']:
+            self._before_effect(args)
+            self.testcase.assertIsInstance(kwargs['stdin'], int)
+            self.testcase.assertNotEqual(kwargs['stdin'], subprocess.DEVNULL)
+            body = json.loads(os.read(kwargs['stdin'], 65537))
+            self.testcase.assertEqual(set(body), {'config', 'devices'})
+            self.profiles[args[2]] = {'name': args[2], 'project': 'default', 'used_by': [], **body}
+            if self.exhaust_after_base and args[2] == self.base:
+                # Keep the actual total cap; spend only active capacity, preserving cleanup reserve.
+                fixture._COMMAND_AUDIT.extend({} for _ in range(145 - len(fixture._COMMAND_AUDIT)))
+            return _BoundedMemoryProcess(status=1 if self.lost_create == args[2] else 0)
+        self.testcase.assertEqual(kwargs['stdin'], subprocess.DEVNULL)
+        return _BoundedMemoryProcess(self.read(args))
+
+    def run(self, argv, **kwargs):
+        command_name, args = Path(argv[0]).name, argv[1:]
+        self.testcase.assertEqual(kwargs['stdin'], subprocess.DEVNULL)
+        self._observe(args if command_name == 'incus' else [command_name, *args])
+        if command_name == 'incus':
+            if args == ['version']:
+                output = b'Client version: 6.0.5\nServer version: 6.0.5\n'
+            else:
+                self._before_effect(args)
+                if args[:1] == ['init']:
+                    self.testcase.assertEqual(args[-2:], ['-c', 'user.q449.run_id=' + self.run_id])
+                    self.current = _fixture_instance_dto(self.go, self.profiles[self.base], {'os': 'Alpine', 'release': '3.21'})
+                    for name in (self.base, self.profile):
+                        self.profiles[name]['used_by'] = ['/1.0/instances/' + self.instance]
+                elif args[:1] == ['start']:
+                    self.running = True
+                    self.current = _fixture_instance_dto(self.go, self.profiles[self.base], {'os': 'Alpine', 'release': '3.21'}, 'running')
+                elif args[:1] == ['stop']:
+                    self.running = False
+                    self.current = _fixture_instance_dto(self.go, self.profiles[self.base], {'os': 'Alpine', 'release': '3.21'}, 'stopped')
+                elif args[:1] == ['delete']:
+                    self.current = None
+                    for name in (self.base, self.profile):
+                        self.profiles[name]['used_by'] = []
+                elif args[:2] == ['profile', 'delete']:
+                    del self.profiles[args[2]]
+                else:
+                    self.testcase.assertEqual(args[0], 'exec')
+                    if self.corrupt_after_exec:
+                        assert self.current is not None
+                        for field in ('volatile.uuid', 'volatile.uuid.generation'):
+                            self.current['config'][field] = '33333333-3333-4333-8333-333333333333'
+                            self.current['expanded_config'][field] = '33333333-3333-4333-8333-333333333333'
+                output = b''
+        elif command_name == 'powershell.exe':
+            output = (b'192.168.178.58\n' if 'Get-NetIPAddress' in args[-1]
+                      else self._json(self.firewall))
+        elif command_name == 'netsh.exe':
+            output = self.portproxy
+        elif command_name == 'uname':
+            output = b'6.6.87.2-microsoft-standard-WSL2'
+        elif command_name == 'ip':
+            output = b'[{"addr_info":[{"local":"192.168.178.33"}]}]'
+        elif command_name == 'free':
+            output = b'              total used free shared buff/cache available\nMem: 4000000000 1 2 0 1 3000000000\n'
+        elif command_name == 'df':
+            output = b'Avail\n10000000000\n'
+        elif command_name == 'ss':
+            output = self.listener
+            if self.running:
+                output += b'LISTEN 0 4096 127.0.0.1:61000 0.0.0.0:* users:(("incusd",pid=123,fd=4))\n'
+        elif command_name == 'curl':
+            output = self.run_id.encode()
+        else:
+            raise AssertionError(f'unexpected native command: {argv!r}')
+        return SimpleNamespace(returncode=1 if self.lost_init and command_name == 'incus' and args[:1] == ['init'] else 0, stdout=output)
+
+
+class R3BudgetAndAtomicTransportTests(_FixtureBehaviorTestCase):
+    def test_incus_read_cannot_spend_active_or_cleanup_time_reserve(self):
+        for cleanup, total in ((False, 240), (True, 300)):
+            with self.subTest(cleanup=cleanup):
+                self.setUp()
+                fixture._INVENTORY_STARTED_AT = 0.0
+                fixture._INVENTORY_RESERVE_CLEANUP = True
+                fixture._INVENTORY_CLEANUP_MODE = cleanup
+                clock = [total - 0.1]
+                process = Mock()
+                process.stdout.fileno.return_value = 101
+                process.stderr.fileno.return_value = 102
+                selector = Mock()
+                selector.get_map.return_value = {101: object()}
+                def advance(timeout):
+                    self.assertLessEqual(timeout, 0.101)
+                    clock[0] += timeout
+                    return []
+                selector.select.side_effect = advance
+                with (patch.object(fixture.subprocess, 'Popen', return_value=process) as spawn,
+                      patch.object(fixture.selectors, 'DefaultSelector', return_value=selector),
+                      patch.object(fixture.os, 'set_blocking'),
+                      patch.object(fixture.time, 'monotonic', side_effect=lambda: clock[0]),
+                      patch.object(fixture, '_kill_and_reap') as reap):
+                    with self.assertRaisesRegex(fixture.TargetDrift, 'INCUS_INVENTORY_COMMAND_FAILED'):
+                        fixture._inventory_command(['incus', 'project', 'list', '--format', 'json'])
+                    reap.assert_called_once_with(process, 'INCUS_INVENTORY_COMMAND_FAILED')
+                    self.assertEqual(spawn.call_count, 1)
+                    self.assertLessEqual(clock[0], total)
+                    self.assertEqual(len(fixture._COMMAND_AUDIT), 1)
+                    with self.assertRaisesRegex(fixture.TargetDrift, 'INCUS_INVENTORY_TOTAL_TIMEOUT'):
+                        fixture._inventory_command(['incus', 'project', 'list', '--format', 'json'])
+                    self.assertEqual(spawn.call_count, 1)
+
+    def test_real_full_fresh_graph_success_fits_qualification_and_cleanup_budgets(self):
+        transport = _FullGraphFixtureTransport(self)
+        fixture._INVENTORY_RESERVE_CLEANUP = True
+        with (patch.object(fixture.subprocess, 'Popen', side_effect=transport.popen),
+              patch.object(fixture.subprocess, 'run', side_effect=transport.run)):
+            baseline = fixture.jit(transport.go, '192.168.178.33')
+            result = fixture._run_fixture(transport.go, baseline)
+            fixture._INVENTORY_CLEANUP_MODE = True
+            # Exact main() post-cleanup proof reads, including both listener observations.
+            self.assertFalse(fixture._listener_rows(fixture._listeners(), 61000))
+            self.assertEqual(fixture._listener_rows(fixture.command(['ss', '-H', '-ltnp']), 10001),
+                             baseline['listeners_10001'])
+            self.assertEqual(fixture._incus_route_inventory(),
+                             (baseline['incus_projects'], baseline['incus_10001_routes']))
+        self.assertEqual(result['status'], 'PASS')
+        self.assertEqual(transport.active_peak, 106)
+        self.assertEqual(len(fixture._COMMAND_AUDIT), 180)
+        self.assertLessEqual(transport.active_peak, fixture._INVENTORY_MAX_COMMANDS - fixture._INVENTORY_CLEANUP_COMMAND_RESERVE)
+        self.assertLessEqual(len(fixture._COMMAND_AUDIT), fixture._INVENTORY_MAX_COMMANDS)
+        self.assertLess(fixture._INVENTORY_BYTES_CAPTURED, fixture._INVENTORY_TOTAL_COMMAND_MAX_BYTES)
+        self.assertGreaterEqual(transport.foreign_lists, 12)
+        self.assertGreater(len(json.dumps(transport.foreign)), 9461)
+        self.assertEqual(json.dumps(transport.foreign, sort_keys=True), transport.foreign_before)
+        self.assertIsNone(transport.current)
+        self.assertEqual(set(transport.profiles), {'default', 'legacy-base', 'legacy-route'})
+        self.assertEqual(len(transport.effects), 9)
+        self.assertNotIn('xxxxxxxx', json.dumps(fixture._COMMAND_AUDIT))
+
+    def test_cleanup_transport_failures_retain_exact_owned_remainders_without_force_or_retry(self):
+        for stage in ('stop', 'delete-instance', 'delete-profile', 'delete-base'):
+            with self.subTest(stage=stage):
+                self.setUp()
+                transport = _FullGraphFixtureTransport(self)
+                failures = {
+                    'stop': ('stop', transport.instance, '--project', 'default', '--timeout', '30'),
+                    'delete-instance': ('delete', transport.instance, '--project', 'default'),
+                    'delete-profile': ('profile', 'delete', transport.profile, '--project', 'default'),
+                    'delete-base': ('profile', 'delete', transport.base, '--project', 'default'),
+                }
+                transport.fail_effect = failures[stage]
+                fixture._INVENTORY_RESERVE_CLEANUP = True
+                with (patch.object(fixture.subprocess, 'Popen', side_effect=transport.popen),
+                      patch.object(fixture.subprocess, 'run', side_effect=transport.run)):
+                    baseline = fixture.jit(transport.go, '192.168.178.33')
+                    with self.assertRaisesRegex(fixture.TargetDrift, 'JIT_COMMAND_FAILED'):
+                        fixture._run_fixture(transport.go, baseline)
+                self.assertEqual(sum(args == failures[stage] for args, _ in transport.effects), 1)
+                self.assertEqual(transport.current is not None, stage in {'stop', 'delete-instance'})
+                self.assertEqual(transport.profile in transport.profiles, stage != 'delete-base')
+                self.assertIn(transport.base, transport.profiles)
+                self.assertEqual(json.dumps(transport.foreign, sort_keys=True), transport.foreign_before)
+                self.assertFalse(any('--force' in args for args, _ in transport.effects))
+                self.assertLessEqual(len(fixture._COMMAND_AUDIT), fixture._INVENTORY_MAX_COMMANDS)
+
+    def test_qualification_budget_denial_prevents_create_without_spending_cleanup_reserve(self):
+        transport = _FullGraphFixtureTransport(self)
+        fixture._INVENTORY_RESERVE_CLEANUP = True
+        with (patch.object(fixture.subprocess, 'Popen', side_effect=transport.popen),
+              patch.object(fixture.subprocess, 'run', side_effect=transport.run)):
+            baseline = fixture.jit(transport.go, '192.168.178.33')
+            fixture._COMMAND_AUDIT.extend({} for _ in range(146 - len(fixture._COMMAND_AUDIT)))
+            with self.assertRaisesRegex(fixture.TargetDrift, 'INCUS_INVENTORY_COMMAND_LIMIT_EXCEEDED'):
+                fixture._run_fixture(transport.go, baseline)
+        self.assertFalse(transport.effects)
+        self.assertIsNone(transport.current)
+        self.assertEqual(set(transport.profiles), {'default', 'legacy-base', 'legacy-route'})
+        self.assertEqual(json.dumps(transport.foreign, sort_keys=True), transport.foreign_before)
+
+    def test_repeated_foreign_full_reads_charge_bytes_and_commands_but_not_repeated_structural_slots(self):
+        transport = _FullGraphFixtureTransport(self)
+        argv = ['incus', 'list', '--project', 'foreign', '--format', 'json']
+        with patch.object(fixture.subprocess, 'Popen', side_effect=transport.popen):
+            first = fixture.command(argv)
+            initial_slots = fixture._INVENTORY_ENTITIES_CAPTURED
+            for _ in range(21):
+                self.assertEqual(fixture.command(argv), first)
+            self.assertEqual(fixture._INVENTORY_ENTITIES_CAPTURED, initial_slots)
+            self.assertEqual(len(fixture._COMMAND_AUDIT), 22)
+            self.assertEqual(fixture._INVENTORY_BYTES_CAPTURED, 22 * len(first))
+            transport.foreign['config']['user.new-observed-field'] = 'changed current observation'
+            latest = json.loads(fixture.command(argv))
+            self.assertIn('user.new-observed-field', latest[0]['config'])
+            self.assertGreater(fixture._INVENTORY_ENTITIES_CAPTURED, initial_slots)
+            self.assertEqual(transport.foreign_lists, 23)
+        self.assertNotIn('changed current observation', json.dumps(fixture._COMMAND_AUDIT))
+
+    def test_slots_are_project_object_field_and_array_position_specific_and_failed_debit_is_atomic(self):
+        code = 'INCUS_INVENTORY_UNREADABLE'
+        first = ['incus', 'list', '--project', 'foreign', '--format', 'json']
+        fixture._account_inventory_json(first, [{'name': 'one'}], code)
+        count = fixture._INVENTORY_ENTITIES_CAPTURED
+        fixture._account_inventory_json(first, [{'name': 'different scalar'}], code)
+        self.assertEqual(fixture._INVENTORY_ENTITIES_CAPTURED, count)
+        fixture._account_inventory_json(first, [{'name': 'one'}, {'name': 'two'}], code)
+        self.assertGreater(fixture._INVENTORY_ENTITIES_CAPTURED, count)
+        for scope in (['incus', 'list', '--project', 'other', '--format', 'json'],
+                      ['incus', 'query', fixture._instance_api_path('one', 'foreign')],
+                      ['incus', 'query', fixture._instance_api_path('two', 'foreign')]):
+            before = fixture._INVENTORY_ENTITIES_CAPTURED
+            fixture._account_inventory_json(scope, [{'name': 'one'}], code)
+            self.assertGreater(fixture._INVENTORY_ENTITIES_CAPTURED, before)
+        fixture._INVENTORY_RESERVE_CLEANUP = True
+        fixture._INVENTORY_ENTITIES_CAPTURED = 4999
+        saved = set(fixture._INVENTORY_ENTITY_SLOTS)
+        with self.assertRaisesRegex(fixture.TargetDrift, code):
+            fixture._account_inventory_json(first, [{'new': 'value'}], code)
+        self.assertEqual(fixture._INVENTORY_ENTITIES_CAPTURED, 4999)
+        self.assertEqual(fixture._INVENTORY_ENTITY_SLOTS, saved)
+        fixture._INVENTORY_CLEANUP_MODE = True
+        fixture._account_inventory_json(first, [{'new': 'value'}], code)
+        self.assertGreater(fixture._INVENTORY_ENTITIES_CAPTURED, 4999)
+
+    def test_every_response_rechecks_depth_node_and_transport_limits_even_for_an_existing_scope(self):
+        code = 'INCUS_INVENTORY_UNREADABLE'
+        scope = ['incus', 'query', fixture._instance_api_path('one', 'foreign')]
+        fixture._account_inventory_json(scope, {}, code)
+        nested: object = None
+        for _ in range(33):
+            nested = [nested]
+        for malformed in (nested, list(range(10001)), {str(i): i for i in range(5001)}):
+            with self.subTest(shape=type(malformed).__name__), self.assertRaisesRegex(fixture.TargetDrift, code):
+                fixture._account_inventory_json(scope, malformed, code)
+        transport = _FullGraphFixtureTransport(self)
+        with (patch.object(fixture.subprocess, 'Popen', side_effect=transport.popen),
+              patch.object(fixture, '_INVENTORY_COMMAND_MAX_BYTES', 10)):
+            with self.assertRaisesRegex(fixture.TargetDrift, 'INCUS_INVENTORY_OUTPUT_TOO_LARGE'):
+                fixture.command(['incus', 'list', '--project', 'foreign', '--format', 'json'])
+        with (patch.object(fixture.subprocess, 'Popen') as spawn,
+              patch.object(fixture.time, 'monotonic', return_value=301)):
+            fixture._INVENTORY_STARTED_AT = 0
+            with self.assertRaisesRegex(fixture.TargetDrift, 'INCUS_INVENTORY_TOTAL_TIMEOUT'):
+                fixture.command(scope)
+        spawn.assert_not_called()
+
+    def test_atomic_profile_body_is_bounded_canonical_ram_input_and_never_audit_payload(self):
+        name = 'tsw-q449-' + 'a' * 32 + '-profile'
+        data = {'config': {'user.q449.run_id': 'a' * 32}, 'devices': {
+            'q449-listener': {'type': 'proxy', 'listen': 'tcp:127.0.0.1:61000',
+                              'connect': 'tcp:127.0.0.1:8080', 'bind': 'host'}}}
+        observed: list[bytes] = []
+
+        def spawn(argv, **kwargs):
+            observed.append(os.read(kwargs['stdin'], 65537))
+            self.assertEqual(argv, [fixture.TRUSTED_BIN['incus'], 'profile', 'create', name, '--project', 'default'])
+            return _BoundedMemoryProcess()
+
+        with patch.object(fixture.subprocess, 'Popen', side_effect=spawn):
+            fixture._incus('profile', 'create', name, '--project', 'default', profile_data=data)
+        self.assertEqual(observed, [json.dumps(data, sort_keys=True, separators=(',', ':'), ensure_ascii=True).encode()])
+        self.assertNotIn('q449-listener', json.dumps(fixture._COMMAND_AUDIT))
+        invalid_bodies: tuple[object, ...] = ({}, {'config': {}, 'devices': {}, 'extra': True},
+                                             {'config': {'user.large': 'x' * 65537}, 'devices': {}})
+        for body in invalid_bodies:
+            with (self.subTest(body_type=type(body).__name__), patch.object(fixture.subprocess, 'Popen') as process,
+                  self.assertRaisesRegex(fixture.FixtureError, 'PROFILE_CREATE_BODY_INVALID')):
+                fixture._create_profile_command(['profile', 'create', name, '--project', 'default'], body)
+            process.assert_not_called()
+        with (patch.object(fixture.subprocess, 'Popen') as process,
+              self.assertRaisesRegex(fixture.FixtureError, 'PROFILE_CREATE_BODY_INVALID')):
+            fixture._create_profile_command(['profile', 'create', name, '--project', 'other'], data)
+        process.assert_not_called()
+
+
+
+    def test_lost_atomic_create_ack_requires_exact_full_body_readback_before_cleanup(self):
+        for resource in ('base', 'profile'):
+            with self.subTest(resource=resource):
+                fixture._COMMAND_AUDIT.clear()
+                fixture._INVENTORY_BYTES_CAPTURED = fixture._INVENTORY_ENTITIES_CAPTURED = 0
+                fixture._INVENTORY_ENTITY_SLOTS.clear()
+                fixture._INVENTORY_STARTED_AT = None
+                fixture._INVENTORY_CLEANUP_MODE = False
+                fixture._INVENTORY_RESERVE_CLEANUP = True
+                transport = _FullGraphFixtureTransport(self)
+                transport.lost_create = transport.base if resource == 'base' else transport.profile
+                with (patch.object(fixture.subprocess, 'Popen', side_effect=transport.popen),
+                      patch.object(fixture.subprocess, 'run', side_effect=transport.run)):
+                    baseline = fixture.jit(transport.go, '192.168.178.33')
+                    with self.assertRaisesRegex(fixture.TargetDrift, 'PROFILE_CREATE_UNCERTAIN'):
+                        fixture._run_fixture(transport.go, baseline)
+                self.assertEqual(set(transport.profiles), {'default', 'legacy-base', 'legacy-route'})
+                self.assertIsNone(transport.current)
+                self.assertEqual(json.dumps(transport.foreign, sort_keys=True), transport.foreign_before)
+
+    def test_active_budget_exhaustion_after_owned_create_still_uses_reserved_verified_cleanup(self):
+        transport = _FullGraphFixtureTransport(self)
+        transport.exhaust_after_base = True
+        fixture._INVENTORY_RESERVE_CLEANUP = True
+        with (patch.object(fixture.subprocess, 'Popen', side_effect=transport.popen),
+              patch.object(fixture.subprocess, 'run', side_effect=transport.run)):
+            baseline = fixture.jit(transport.go, '192.168.178.33')
+            with self.assertRaisesRegex(fixture.TargetDrift, 'INCUS_INVENTORY_COMMAND_LIMIT_EXCEEDED'):
+                fixture._run_fixture(transport.go, baseline)
+        self.assertEqual(set(transport.profiles), {'default', 'legacy-base', 'legacy-route'})
+        self.assertIsNone(transport.current)
+        self.assertLessEqual(len(fixture._COMMAND_AUDIT), 256)
+        self.assertEqual(json.dumps(transport.foreign, sort_keys=True), transport.foreign_before)
+
+
+
+class SharedWindowsSnapshotAssetTests(_FixtureBehaviorTestCase):
+    def _asset(self, root, raw=b"$ErrorActionPreference = 'Stop'\n'fixed readonly snapshot'\n"):
+        asset = root / fixture.WINDOWS_SNAPSHOT_REL
+        asset.parent.mkdir(parents=True)
+        asset.write_bytes(raw)
+        return asset, raw
+
+    def test_exact_go_asset_binding_is_required_for_both_hosts_before_effects(self):
+        template = GoValidationTests()
+        template.setUp()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            _, raw = self._asset(root)
+            with patch.object(fixture, 'ROOT', root):
+                for host in ('192.168.178.33', '192.168.178.58'):
+                    candidate = json.loads(json.dumps(template.go))
+                    candidate['target']['host'] = host
+                    candidate['windows_snapshot_sha256'] = fixture.digest(raw)
+                    args = argparse.Namespace(target_host=host)
+                    self.assertEqual(fixture.validate_go(candidate, args, 'b' * 40,
+                        template.workflow, template.runner, template.tests), candidate)
+                    for change in ('missing', 'wrong-hash', 'malformed-hash'):
+                        bad = dict(candidate)
+                        if change == 'missing':
+                            bad.pop('windows_snapshot_sha256')
+                        else:
+                            bad['windows_snapshot_sha256'] = '0' * 64 if change == 'wrong-hash' else True
+                        with self.subTest(host=host, change=change), self.assertRaises(fixture.FixtureError):
+                            fixture.validate_go(bad, args, 'b' * 40, template.workflow, template.runner, template.tests)
+
+    def test_fixed_asset_loader_refuses_missing_symlink_directory_nonutf8_bom_nul_oversize_and_drift(self):
+        invalid: tuple[bytes, ...] = (b'', b'\xff', b'\xef\xbb\xbfread', b'read\x00', b'x' * 65537)
+        for raw in invalid:
+            with self.subTest(length=len(raw)), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                self._asset(root, raw)
+                with patch.object(fixture, 'ROOT', root), self.assertRaises(fixture.FixtureError):
+                    fixture._windows_snapshot_query(fixture.digest(raw))
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            asset, raw = self._asset(root)
+            with patch.object(fixture, 'ROOT', root):
+                self.assertEqual(fixture._windows_snapshot_query(fixture.digest(raw)), raw.decode())
+                with self.assertRaisesRegex(fixture.FixtureError, 'WINDOWS_SNAPSHOT_ASSET_MISMATCH'):
+                    fixture._windows_snapshot_query('0' * 64)
+                asset.unlink()
+                target = root / 'other.ps1'
+                target.write_bytes(raw)
+                asset.symlink_to(target)
+                with self.assertRaisesRegex(fixture.FixtureError, 'WINDOWS_SNAPSHOT_ASSET_UNSAFE'):
+                    fixture._windows_snapshot_query(fixture.digest(raw))
+                asset.unlink()
+                asset.mkdir()
+                with self.assertRaisesRegex(fixture.FixtureError, 'WINDOWS_SNAPSHOT_ASSET_UNSAFE'):
+                    fixture._windows_snapshot_query(fixture.digest(raw))
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'outside').mkdir()
+            (root / 'tools').symlink_to(root / 'outside')
+            with patch.object(fixture, 'ROOT', root), self.assertRaisesRegex(fixture.FixtureError, 'WINDOWS_SNAPSHOT_ASSET_UNSAFE'):
+                fixture._windows_snapshot_query()
+
+    def test_only_exact_loaded_asset_text_can_use_powershell_snapshot_transport(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            _, raw = self._asset(root)
+            prefix = ['/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe',
+                      '-NoProfile', '-NonInteractive', '-Command']
+            with (patch.object(fixture, 'ROOT', root), patch.object(fixture, '_snapshot_process', return_value=b'{}') as run):
+                fixture.command([*prefix, fixture._windows_snapshot_wrapper(fixture.digest(raw))])
+                run.assert_called_once()
+                run.reset_mock()
+                for command in ([*prefix, raw.decode() + '; extra'], [*prefix[:-1], '-File', str(root / fixture.WINDOWS_SNAPSHOT_REL)]):
+                    with self.assertRaisesRegex(fixture.FixtureError, 'WINDOWS_SNAPSHOT_COMMAND_NOT_ALLOWLISTED'):
+                        fixture.command(command)
+                run.assert_not_called()
+
+
+
+class FirewallCertificateReaderTests(_FixtureBehaviorTestCase):
+    def test_reader_binds_query_entire_digest_exact_types_and_all_counts(self):
+        good = _certificate_fixture({'rules': [], 'profiles': [], 'settings': []})
+        expected = _snapshot_asset_digest()
+        self.assertEqual(fixture._windows_firewall_certificate(good, expected), good)
+        mutations: tuple[dict[str, object], ...] = (
+            {'query_sha256': '0' * 64}, {'snapshot_sha256': 'X' * 64}, {'snapshot_bytes': True},
+            {'snapshot_bytes': -1}, {'snapshot_bytes': 14680065}, {'snapshot_schema_version': True},
+            {'snapshot_schema_version': 1}, {'schema_version': 'legacy'}, {'store': 'PersistentStore'},
+            {'association_model': 'unknown'}, {'extra': True},
+            {'counts': {**good['counts'], 'rules': 8193}},
+            {'counts': {**good['counts'], 'profiles': 17}},
+            {'counts': {**good['counts'], 'settings': 129}},
+            {'counts': {**good['counts'], 'address': 1}},
+            {'counts': {**good['counts'], 'port': False}},
+            {'counts': {key: value for key, value in good['counts'].items() if key != 'port'}},
+        )
+        for change in mutations:
+            with self.subTest(change=change), self.assertRaisesRegex(fixture.TargetDrift, 'WINDOWS_FIREWALL_SNAPSHOT_UNREADABLE'):
+                fixture._windows_firewall_certificate({**good, **change}, expected)
+        for field in good:
+            incomplete = {key: value for key, value in good.items() if key != field}
+            with self.subTest(missing=field), self.assertRaises(fixture.TargetDrift):
+                fixture._windows_firewall_certificate(incomplete, expected)
+
+    def test_wrapper_is_exact_source_bound_and_rejects_encoded_commandline_overflow_before_spawn(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            asset = root / fixture.WINDOWS_SNAPSHOT_REL
+            asset.parent.mkdir(parents=True)
+            raw = b"'fixed test query'\n"
+            asset.write_bytes(raw)
+            with patch.object(fixture, 'ROOT', root):
+                wrapper = fixture._windows_snapshot_wrapper(fixture.digest(raw))
+                self.assertIn(base64.b64encode(raw).decode(), wrapper)
+                self.assertIn(fixture.digest(raw), wrapper)
+                self.assertIn('$outputs.Count -ne 1', wrapper)
+                self.assertIn('Hash-Bytes $bytes', wrapper)
+                self.assertNotIn('Get-NetFirewallRule', wrapper)
+                asset.write_bytes(b'x' * 24000)
+                with patch.object(fixture.subprocess, 'Popen') as spawn, self.assertRaisesRegex(
+                        fixture.FixtureError, 'WINDOWS_SNAPSHOT_COMMAND_TOO_LARGE'):
+                    fixture._windows_snapshot_wrapper(fixture.digest(asset.read_bytes()))
+                spawn.assert_not_called()
+
+
+@unittest.skipUnless(Path('/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe').is_file(),
+                     'Windows PowerShell transport unavailable; no fallback to another host')
+class FirewallCertificatePowerShellContractTests(_FixtureBehaviorTestCase):
+    """Execute only synthetic query expressions, never real firewall cmdlets."""
+
+    def _run_query(self, source):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            asset = root / fixture.WINDOWS_SNAPSHOT_REL
+            asset.parent.mkdir(parents=True)
+            raw = source.encode('utf-8')
+            asset.write_bytes(raw)
+            with patch.object(fixture, 'ROOT', root):
+                wrapper = fixture._windows_snapshot_wrapper(fixture.digest(raw))
+                result = subprocess.run(['/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe',
+                    '-NoProfile', '-NonInteractive', '-Command', wrapper], stdin=subprocess.DEVNULL,
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=20, check=False)
+            return result, fixture.digest(raw)
+
+    def _source(self, value):
+        raw = json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode()
+        return "[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('" + base64.b64encode(raw).decode() + "'))", raw
+
+    def test_actual_wrapper_hashes_entire_current_json_and_exports_only_closed_certificate(self):
+        value = _firewall_v2_fixture({'rules': [], 'profiles': [{'Name': 'Private', 'opaque': 'SID_CANARY'}], 'settings': []})
+        for suffix in ('first', 'second'):
+            value['profiles'][0]['value']['opaque'] = 'SID_CANARY_' + suffix
+            source, raw = self._source(value)
+            result, query_sha = self._run_query(source)
+            self.assertEqual(result.returncode, 0, result.stderr.decode(errors='replace'))
+            self.assertFalse(result.stderr)
+            certificate = fixture.strict_json(result.stdout)
+            self.assertEqual(fixture._windows_firewall_certificate(certificate, query_sha), certificate)
+            self.assertEqual(certificate['snapshot_sha256'], fixture.digest(raw))
+            self.assertEqual(certificate['snapshot_bytes'], len(raw))
+            self.assertEqual(certificate['counts']['profiles'], 1)
+            self.assertNotIn(b'SID_CANARY', result.stdout)
+
+    def test_actual_wrapper_rejects_incomplete_ambiguous_wrong_schema_and_unknown_layout_without_raw_errors(self):
+        full = _firewall_v2_fixture({'rules': [], 'profiles': [], 'settings': []})
+        wrong_layout = json.loads(json.dumps(full))
+        wrong_layout['cim_layout']['adapted_override'] = ['missing']
+        mutations = [dict(full, schema_version=True), dict(full, store=['ActiveStore']),
+                     dict(full, extra=True), wrong_layout,
+                     dict(full, profiles=[{'identity': 'x', 'value': {}}, {'identity': 'x', 'value': {}}]),
+                     dict(full, filters={**full['filters'], 'port': [{'identity': 'orphan', 'value': {}}]})]
+        sources = [self._source(value)[0] for value in mutations]
+        sources += ["'SID_CANARY_incomplete{'", "'SID_CANARY_first'; 'SID_CANARY_second'", "throw 'SID_CANARY_exception'"]
+        for source in sources:
+            with self.subTest(source_digest=fixture.digest(source.encode())):
+                result, _ = self._run_query(source)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertNotIn(b'SID_CANARY', result.stdout + result.stderr)
+                self.assertIn(b'WINDOWS_FIREWALL_CERTIFICATE_FAILED', result.stderr)
+
+
+
+class FullListObservationTests(_FixtureBehaviorTestCase):
+    def test_wsl_two_project_four_full_foreign_rows_fit_real_counters_and_keep_all_fresh_checks(self):
+        transport = _FullGraphFixtureTransport(self, wsl=True)
+        fixture._INVENTORY_RESERVE_CLEANUP = True
+        with (patch.object(fixture.subprocess, 'Popen', side_effect=transport.popen),
+              patch.object(fixture.subprocess, 'run', side_effect=transport.run)):
+            baseline = fixture.jit(transport.go, '192.168.178.58')
+            self.assertEqual(sum(len(rows) for rows in transport.foreign_rows.values()), 4)
+            result = fixture._run_fixture(transport.go, baseline)
+            fixture._INVENTORY_CLEANUP_MODE = True
+            self.assertFalse(fixture._listener_rows(fixture._listeners(), 61000))
+            self.assertEqual(fixture._listener_rows(fixture.command(['ss', '-H', '-ltnp']), 10001), baseline['listeners_10001'])
+            self.assertEqual(fixture._incus_route_inventory(), (baseline['incus_projects'], baseline['incus_10001_routes']))
+            fixture._assert_windows_unchanged(baseline['windows_rules_portproxy'],
+                                              fixture._windows_snapshot(transport.go['windows_snapshot_sha256']))
+        self.assertEqual(result['status'], 'PASS')
+        self.assertEqual(transport.active_peak, 107)
+        self.assertEqual(len(fixture._COMMAND_AUDIT), 181)
+        self.assertLessEqual(fixture._INVENTORY_ENTITIES_CAPTURED, 5000)
+        self.assertLess(fixture._INVENTORY_BYTES_CAPTURED, 8 * 1024 * 1024)
+        self.assertEqual(json.dumps(transport.foreign_rows, sort_keys=True), transport.foreign_rows_before)
+        self.assertIsNone(transport.current)
+        self.assertEqual(set(transport.profiles), {'default', 'legacy-base', 'legacy-route'})
+        self.assertEqual(len(transport.effects), 9)
+        windows_observations = [args for args in transport.events if args[:1] == ('powershell.exe',)
+                                and 'tsw.windows-firewall-certificate.v1' in args[-1]]
+        self.assertEqual(len(windows_observations), 13)
+        self.assertGreaterEqual(transport.foreign_lists, 20)
+        self.assertNotIn('xxxxxxxx', json.dumps(fixture._COMMAND_AUDIT))
+
+    def test_missing_expanded_maps_require_observed_empty_local_and_every_actual_profile_map(self):
+        row: dict[str, Any] = {'name': 'empty', 'status': 'Stopped', 'type': 'container', 'config': {}, 'devices': {}, 'profiles': ['p']}
+        profile: dict[str, Any] = {'name': 'p', 'config': {}, 'devices': {}, 'used_by': []}
+        self.assertEqual(fixture._route_instance(row, 'default', {'p': profile}), row)
+        cases = [dict(row, config={'user.value': 'present'}),
+                 dict(row, devices={'root': {'type': 'disk', 'path': '/', 'pool': 'default'}}),
+                 dict(row, expanded_config=None), dict(row, expanded_devices=None),
+                 dict(row, profiles=['missing']), dict(row, profiles=['p', 'p']), dict(row, unknown=True)]
+        for malformed in cases:
+            with self.subTest(fields=sorted(malformed)), self.assertRaisesRegex(fixture.TargetDrift, 'INCUS_INSTANCE_INVENTORY_UNREADABLE'):
+                fixture._route_instance(malformed, 'default', {'p': profile})
+        for field, value in (('config', {'user.value': 'present'}),
+                             ('devices', {'web': {'type': 'proxy', 'listen': 'tcp:127.0.0.1:10001',
+                                                 'connect': 'tcp:127.0.0.1:80', 'bind': 'host'}})):
+            with self.subTest(inherited_field=field), self.assertRaisesRegex(fixture.TargetDrift, 'INCUS_INSTANCE_INVENTORY_UNREADABLE'):
+                fixture._route_instance(row, 'default', {'p': {**profile, field: value}})
+        complete = {**row, 'expanded_config': {'user.value': 'present'},
+                    'expanded_devices': {'root': {'type': 'disk', 'path': '/', 'pool': 'default'}}}
+        self.assertEqual(fixture._route_instance(complete, 'default', {'p': profile}), complete)
+
+    def test_current_foreign_list_metadata_is_revalidated_before_next_effect_not_cached_or_repaired(self):
+        transport = _FullGraphFixtureTransport(self)
+        # Place the malformed observation in the last project: cleanup still attempts every scope.
+        transport.foreign_rows['foreign'] = []
+        transport.foreign['project'] = 'inherited'
+        transport.foreign_rows['inherited'] = [transport.foreign]
+        fixture._INVENTORY_RESERVE_CLEANUP = True
+        original_create = transport.popen
+
+        def corrupt_after_base(argv, **kwargs):
+            process = original_create(argv, **kwargs)
+            if argv[1:3] == ['profile', 'create'] and argv[3] == transport.base:
+                transport.foreign['expanded_config'] = None
+            return process
+
+        with (patch.object(fixture.subprocess, 'Popen', side_effect=corrupt_after_base),
+              patch.object(fixture.subprocess, 'run', side_effect=transport.run)):
+            baseline = fixture.jit(transport.go, '192.168.178.33')
+            with self.assertRaisesRegex(fixture.TargetDrift, 'INCUS_INSTANCE_INVENTORY_UNREADABLE'):
+                fixture._run_fixture(transport.go, baseline)
+        self.assertFalse(any(args[:2] == ('profile', 'create') and args[2] == transport.profile
+                             for args, _ in transport.effects))
+        self.assertNotIn(transport.base, transport.profiles)
+        self.assertIsNone(transport.current)
+        self.assertIsNone(transport.foreign['expanded_config'])
+        self.assertFalse(any(args[0] in {'delete', 'stop'} and 'foreign-manager' in args for args, _ in transport.effects))
+
+
+
+class FixtureInstanceReceiptTests(_FixtureBehaviorTestCase):
+    def inputs(self):
+        transport = _FullGraphFixtureTransport(self)
+        derived = fixture._derive_fixture_base(transport.profiles['default'])
+        properties = {'os': 'Alpine', 'release': '3.21', 'architecture': 'x86_64', 'variant': 'default'}
+        baseline = {'derived_base_profile': derived, 'image_properties': properties}
+        return transport, baseline, _fixture_instance_dto(transport.go, derived, properties)
+
+    def test_actual_created_uuid_image_and_full_spec_bind_once_before_start_and_only_hashes_export(self):
+        transport, baseline, initial = self.inputs()
+        receipt = fixture._FixtureInstanceReceipt(transport.go, baseline, initial)
+        self.assertRegex(receipt.binding_sha256, r'^[0-9a-f]{64}$')
+        running = _fixture_instance_dto(transport.go, baseline['derived_base_profile'], baseline['image_properties'], 'running')
+        receipt.observe(running, 'running')
+        receipt.observe(running, 'running')
+        stopped = _fixture_instance_dto(transport.go, baseline['derived_base_profile'], baseline['image_properties'], 'stopped')
+        receipt.observe(stopped, 'stopped')
+        for mutation in ({'volatile.uuid': '33333333-3333-4333-8333-333333333333',
+                          'volatile.uuid.generation': '33333333-3333-4333-8333-333333333333'},
+                         {'volatile.cloud-init.instance-id': '44444444-4444-4444-8444-444444444444'},
+                         {'volatile.base_image': '0' * 64}, {'image.os': 'foreign'}, {'image.foreign': 'unexpected'},
+                         {'volatile.unknown': 'unexpected'}, {'volatile.eth0.hwaddr': '10:66:6a:00:00:02'},
+                         {'volatile.idmap.base': '2000000'}, {'volatile.last_state.power': 'FROZEN'}):
+            altered = json.loads(json.dumps(stopped))
+            altered['config'].update(mutation)
+            altered['expanded_config'].update(mutation)
+            with self.subTest(keys=sorted(mutation)), self.assertRaises(fixture.TargetDrift):
+                receipt.observe(altered, 'stopped')
+        without_marker = json.loads(json.dumps(initial))
+        without_marker['config'].pop('user.q449.run_id')
+        without_marker['expanded_config'].pop('user.q449.run_id')
+        with self.assertRaisesRegex(fixture.TargetDrift, 'INSTANCE_OWNERSHIP_UNVERIFIED'):
+            fixture._FixtureInstanceReceipt(transport.go, baseline, without_marker)
+
+    def test_metadata_formats_idmap_regression_and_unmodeled_phase_changes_refuse(self):
+        transport, baseline, initial = self.inputs()
+        receipt = fixture._FixtureInstanceReceipt(transport.go, baseline, initial)
+        running = _fixture_instance_dto(transport.go, baseline['derived_base_profile'], baseline['image_properties'], 'running')
+        receipt.observe(running, 'running')
+        invalid: tuple[dict[str, object], ...] = (
+            {'volatile.idmap.current': '[]'}, {'volatile.last_state.idmap': '[]'},
+            {'volatile.idmap.next': '[{"Isuid":true}]'}, {'volatile.idmap.base': '9223372036854775808'},
+            {'volatile.uuid': 'not-a-uuid'}, {'volatile.uuid': '00000000-0000-0000-0000-000000000000'},
+            {'volatile.eth0.host_name': 'foreign-veth'}, {'volatile.eth0.hwaddr': '00:11:22:33:44:55'},
+            {'volatile.cpu.nodes': '0,0'}, {'volatile.apply_template': 'create'}, {'volatile.last_state.ready': 'unknown'})
+        for change in invalid:
+            altered = json.loads(json.dumps(running))
+            altered['config'].update(change)
+            altered['expanded_config'].update(change)
+            with self.subTest(keys=sorted(change)), self.assertRaises(fixture.TargetDrift):
+                receipt.observe(altered, 'running')
+        bad_entries: tuple[object, ...] = (None, {}, [{'Isuid': True, 'Isgid': False, 'Hostid': True, 'Nsid': 0, 'Maprange': 1}],
+            [{'Isuid': True, 'Isgid': False, 'Hostid': 0, 'Nsid': 0, 'Maprange': 0}],
+            [{'Isuid': False, 'Isgid': False, 'Hostid': 0, 'Nsid': 0, 'Maprange': 1}])
+        for entry in bad_entries:
+            with self.assertRaises(fixture.FixtureError):
+                fixture._fixture_idmap(json.dumps(entry))
+
+    def test_real_transport_lost_init_ack_requires_full_uuid_receipt_and_cleans_only_its_bound_instance(self):
+        transport = _FullGraphFixtureTransport(self)
+        transport.lost_init = True
+        fixture._INVENTORY_RESERVE_CLEANUP = True
+        with (patch.object(fixture.subprocess, 'Popen', side_effect=transport.popen),
+              patch.object(fixture.subprocess, 'run', side_effect=transport.run)):
+            baseline = fixture.jit(transport.go, '192.168.178.33')
+            with self.assertRaisesRegex(fixture.TargetDrift, 'JIT_COMMAND_FAILED'):
+                fixture._run_fixture(transport.go, baseline)
+        self.assertIsNone(transport.current)
+        self.assertEqual(set(transport.profiles), {'default', 'legacy-base', 'legacy-route'})
+        self.assertEqual(json.dumps(transport.foreign_rows, sort_keys=True), transport.foreign_rows_before)
+        self.assertFalse(any(args[0] == 'start' for args, _ in transport.effects))
+
+    def test_real_cleanup_uuid_drift_blocks_stop_delete_and_keeps_unknown_resources_intact(self):
+        transport = _FullGraphFixtureTransport(self)
+        transport.corrupt_after_exec = True
+        fixture._INVENTORY_RESERVE_CLEANUP = True
+        with (patch.object(fixture.subprocess, 'Popen', side_effect=transport.popen),
+              patch.object(fixture.subprocess, 'run', side_effect=transport.run)):
+            baseline = fixture.jit(transport.go, '192.168.178.33')
+            with self.assertRaisesRegex(fixture.TargetDrift, 'INSTANCE_METADATA_DRIFT'):
+                fixture._run_fixture(transport.go, baseline)
+        self.assertIsNotNone(transport.current)
+        self.assertTrue(transport.running)
+        self.assertIn(transport.base, transport.profiles)
+        self.assertIn(transport.profile, transport.profiles)
+        self.assertFalse(any(args[0] in {'stop', 'delete'} or args[:2] == ('profile', 'delete') for args, _ in transport.effects))
+        self.assertEqual(json.dumps(transport.foreign_rows, sort_keys=True), transport.foreign_rows_before)
 
 
 if __name__ == '__main__':

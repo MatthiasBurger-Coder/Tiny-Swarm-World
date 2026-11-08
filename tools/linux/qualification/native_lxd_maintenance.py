@@ -55,11 +55,13 @@ FILES = (
     'tests/tools/test_native_runtime_inventory.py',
     'src/tiny_swarm_world/domain/native_preparation.py',
     'src/tiny_swarm_world/infrastructure/adapters/host/native_preparation.py',
+    'tools/windows/qualification/windows_firewall_snapshot.ps1',
 )
 LIMIT = 8 * 1024 * 1024
 HOST_LOCK_PARENT = Path('/run/tsw-epic440-native-maintenance')
 PHASE_SECONDS = {'preparation': 1200, 'capture': 360, 'approval': 180, 'fixture': 1025}
 MAINTENANCE_START_RESERVE = sum(PHASE_SECONDS[name] for name in ('preparation', 'capture', 'approval'))
+RECOVERY_SECONDS = 600
 
 
 class MaintenanceError(Exception):
@@ -490,7 +492,7 @@ class NativePort:
 
     def begin_recovery(self) -> None:
         # Separate reserve; an exhausted qualification budget cannot consume it.
-        self.deadline = time.monotonic() + 600
+        self.deadline = time.monotonic() + RECOVERY_SECONDS
         self.recovering = True
 
     def unit(self, name: str) -> str:
@@ -682,7 +684,8 @@ class NativePort:
         # Reserve the existing owned-client kill/reap maximum of five seconds.
         signal.setitimer(signal.ITIMER_REAL, 25)
         deadline = time.monotonic() + 25
-        transient = {'DAEMON_STATE_DRIFT', 'SNAP_WRAPPER_CHILD_ABSENT', 'LXD_ENDPOINT_DRIFT', 'LXD_API_NOT_READY'}
+        transient = {'DAEMON_STATE_DRIFT', 'SNAP_WRAPPER_CHILD_ABSENT', 'LXD_ENDPOINT_DRIFT',
+                     'LXD_API_NOT_READY', 'SNAP_WRAPPER_PROC_INVALID'}
         try:
             while time.monotonic() < deadline:
                 try:
@@ -913,11 +916,13 @@ def validate_paused_admission(activation: Any, intent: dict[str, Any], intent_sh
 
 
 def validate_approval(go: Any, proposal: dict[str, Any], proposal_sha: str, source: str,
-                      pins: dict[str, str], now: datetime) -> None:
-    keys = {'schema_version', 'decision', 'proposal_sha256', 'source_commit', 'pins', 'host_id_sha256',
+                      pins: dict[str, str], now: datetime, *, operation: str = 'execute') -> None:
+    keys = {'schema_version', 'operation', 'decision', 'proposal_sha256', 'source_commit', 'pins', 'host_id_sha256',
             'fixture_intent_sha256', 'expires_at_utc', 'reviews'}
     require(isinstance(go, dict) and set(go) == keys and type(go['schema_version']) is int
-            and go['schema_version'] == 1 and go['decision'] == 'GO', 'APPROVAL_SCHEMA_INVALID')
+            and go['schema_version'] == 2 and go['decision'] == 'GO', 'APPROVAL_SCHEMA_INVALID')
+    require(operation in {'execute', 'recover'} and go['operation'] == operation, 'APPROVAL_OPERATION_MISMATCH')
+    minimum = RECOVERY_SECONDS if operation == 'recover' else MAINTENANCE_START_RESERVE
     require(go['proposal_sha256'] == proposal_sha and go['source_commit'] == source and go['pins'] == pins
             and proposal['source_commit'] == source and proposal['pins'] == pins
             and go['fixture_intent_sha256'] == proposal['fixture_intent_sha256']
@@ -927,7 +932,7 @@ def validate_approval(go: Any, proposal: dict[str, Any], proposal_sha: str, sour
     require(isinstance(go['expires_at_utc'], str), 'APPROVAL_EXPIRY_INVALID')
     try:
         expiry = datetime.fromisoformat(go['expires_at_utc'])
-        require(expiry.tzinfo is not None and MAINTENANCE_START_RESERVE <= (expiry - now).total_seconds() <= 1800,
+        require(expiry.tzinfo is not None and minimum <= (expiry - now).total_seconds() <= 1800,
                 'APPROVAL_EXPIRED')
     except ValueError as exc:
         raise MaintenanceError('APPROVAL_EXPIRY_INVALID') from exc
@@ -966,7 +971,7 @@ def main(argv: list[str] | None = None) -> int:
             proposal_bytes = read_private(directory / 'proposal.json')
             candidate = inventory.strict_json(proposal_bytes)
             validate_approval(inventory.strict_json(approval_raw), candidate, digest(proposal_bytes),
-                              source, pins, datetime.now(timezone.utc))
+                              source, pins, datetime.now(timezone.utc), operation=args.mode)
             require(candidate['host_id_sha256'] == host_id, 'HOST_IDENTITY_DRIFT')
         with (host_lock() if args.mode != 'prepare' else nullcontext()):
             if args.mode == 'prepare':
@@ -986,7 +991,7 @@ def main(argv: list[str] | None = None) -> int:
             require(digest(raw) == args.expected_go_sha256, 'APPROVAL_HASH_MISMATCH')
             proposal_raw = read_private(directory / 'proposal.json')
             proposal = inventory.strict_json(proposal_raw)
-            validate_approval(inventory.strict_json(raw), proposal, digest(proposal_raw), source, pins, datetime.now(timezone.utc))
+            validate_approval(inventory.strict_json(raw), proposal, digest(proposal_raw), source, pins, datetime.now(timezone.utc), operation=args.mode)
             require(proposal['host_id_sha256'] == host_id, 'HOST_IDENTITY_DRIFT')
             port = NativePort(source, args.fixture_intent_sha256, time.monotonic() + PHASE_SECONDS['preparation'])
             port.baseline = proposal['baseline']

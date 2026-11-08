@@ -8,7 +8,7 @@ import multiprocessing
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from typing import Any
 
 from tools.linux.qualification import native_lxd_maintenance as maintenance
@@ -292,7 +292,7 @@ class NativeMaintenanceTests(unittest.TestCase):
 
     def test_readiness_permanent_drift_and_expired_window_never_repeat_or_start_nodes(self) -> None:
         for reason in ('INSTALLED_BINDING_DRIFT', 'INCUS_SOCKET_DRIFT', 'INCUS_SERVICE_DRIFT',
-                       'SOURCE_HEAD_DRIFT', 'SNAP_WRAPPER_PROC_INVALID', 'SERVER_ADMISSION_BLOCKED'):
+                       'SOURCE_HEAD_DRIFT', 'SERVER_ADMISSION_BLOCKED'):
             port = maintenance.NativePort('a' * 40, 'b' * 64, 1000)
             port.baseline = baseline()
             port.recovering = True
@@ -319,6 +319,36 @@ class NativeMaintenanceTests(unittest.TestCase):
             with self.assertRaisesRegex(maintenance.MaintenanceError, 'LXD_READINESS_TIMEOUT'):
                 port.wait_ready()
             ready.assert_not_called()
+
+    def test_readiness_alarm_reaps_actual_runner_client_before_returning(self) -> None:
+        port = maintenance.NativePort('a' * 40, 'b' * 64, 1000)
+        port.baseline = baseline()
+        port.recovering = True
+        handlers: list[Any] = []
+        process = Mock()
+        process.stdout.fileno.return_value = 101
+        process.stderr.fileno.return_value = 102
+        selector = Mock()
+        selector.get_map.return_value = {101: object()}
+        def alarm(_timeout: float) -> None:
+            handlers[0](maintenance.signal.SIGALRM, None)
+        selector.select.side_effect = alarm
+        runner = maintenance.inventory.Runner(popen=Mock(return_value=process))
+        def read() -> None:
+            runner.run(['/usr/bin/systemctl', 'show'], command_id='fixture')
+        with (patch.object(port, 'ready_binding', side_effect=read),
+              patch.object(maintenance.time, 'monotonic', return_value=10),
+              patch.object(maintenance.signal, 'getitimer', return_value=(0.0, 0.0)),
+              patch.object(maintenance.signal, 'getsignal', return_value=maintenance.signal.SIG_DFL),
+              patch.object(maintenance.signal, 'signal', side_effect=lambda _s, handler: handlers.append(handler)),
+              patch.object(maintenance.signal, 'setitimer') as timer,
+              patch.object(maintenance.inventory.selectors, 'DefaultSelector', return_value=selector),
+              patch.object(maintenance.inventory, '_kill_reap') as reap):
+            with self.assertRaisesRegex(maintenance.MaintenanceError, 'LXD_READINESS_TIMEOUT'):
+                port.wait_ready()
+            reap.assert_called_once_with(process)
+            self.assertEqual(timer.call_args_list[-1].args, (maintenance.signal.ITIMER_REAL, 0))
+            self.assertEqual(runner.records, [])
 
     def test_readiness_rebinds_actual_root_api_authority_and_full_process_proof(self) -> None:
         port = maintenance.NativePort('a' * 40, 'b' * 64, 1000)
@@ -441,7 +471,7 @@ class NativeMaintenanceTests(unittest.TestCase):
         now = datetime.now(timezone.utc)
         proposal: dict[str, Any] = {'source_commit': 'a' * 40, 'pins': {'source': 'a' * 64},
                     'host_id_sha256': 'b' * 64, 'fixture_intent_sha256': 'c' * 64, 'baseline': baseline()}
-        go = {'schema_version': 1, 'decision': 'GO', 'proposal_sha256': 'd' * 64,
+        go = {'schema_version': 2, 'operation': 'execute', 'decision': 'GO', 'proposal_sha256': 'd' * 64,
               'source_commit': proposal['source_commit'], 'pins': proposal['pins'],
               'host_id_sha256': proposal['host_id_sha256'], 'fixture_intent_sha256': proposal['fixture_intent_sha256'],
               'expires_at_utc': (now + timedelta(minutes=29)).isoformat(),
@@ -462,7 +492,7 @@ class NativeMaintenanceTests(unittest.TestCase):
         proposal: dict[str, Any] = {'source_commit': 'a' * 40, 'pins': {}, 'host_id_sha256': maintenance.digest(b'host'),
                     'fixture_intent_sha256': maintenance.digest(fixture_raw), 'baseline': baseline()}
         proposal_raw = maintenance.canonical(proposal)
-        go = {'schema_version': 1, 'decision': 'PENDING', 'proposal_sha256': maintenance.digest(proposal_raw),
+        go = {'schema_version': 2, 'operation': 'execute', 'decision': 'PENDING', 'proposal_sha256': maintenance.digest(proposal_raw),
               'source_commit': 'a' * 40, 'pins': {}, 'host_id_sha256': proposal['host_id_sha256'],
               'fixture_intent_sha256': proposal['fixture_intent_sha256'],
               'expires_at_utc': (now + timedelta(minutes=29)).isoformat(),
@@ -807,6 +837,138 @@ class PausedAdmissionTests(unittest.TestCase):
             with self.subTest(change=change):
                 self.assertFalse(maintenance.preserved_snapshot(original, bad))
         self.assertEqual(original['preserve']['incus_projects'][0]['pools'][0]['image_cache'], [])
+
+
+
+class RecoveryAdmissionCorrectionTests(unittest.TestCase):
+    def approval(self, operation: str, seconds: int, now: datetime) -> tuple[dict[str, Any], dict[str, Any]]:
+        proposal: dict[str, Any] = {'source_commit': 'a' * 40, 'pins': {'source': 'a' * 64},
+            'host_id_sha256': 'b' * 64, 'fixture_intent_sha256': 'c' * 64, 'baseline': baseline()}
+        go: dict[str, Any] = {'schema_version': 2, 'operation': operation, 'decision': 'GO',
+            'proposal_sha256': 'd' * 64, 'source_commit': proposal['source_commit'], 'pins': proposal['pins'],
+            'host_id_sha256': proposal['host_id_sha256'], 'fixture_intent_sha256': proposal['fixture_intent_sha256'],
+            'expires_at_utc': (now + timedelta(seconds=seconds)).isoformat(),
+            'reviews': dict.fromkeys(maintenance.fixture.REVIEW_KEYS, 'APPROVED')}
+        return go, proposal
+
+    def test_recovery_has_its_real_reserve_and_cannot_authorize_qualification(self) -> None:
+        now = datetime.now(timezone.utc)
+        for seconds in (600, 1680, 1800):
+            go, proposal = self.approval('recover', seconds, now)
+            maintenance.validate_approval(go, proposal, 'd' * 64, 'a' * 40, proposal['pins'], now, operation='recover')
+            with self.assertRaisesRegex(maintenance.MaintenanceError, 'APPROVAL_OPERATION_MISMATCH'):
+                maintenance.validate_approval(go, proposal, 'd' * 64, 'a' * 40, proposal['pins'], now, operation='execute')
+        for seconds in (599, 0, -1, 1801):
+            go, proposal = self.approval('recover', seconds, now)
+            with self.subTest(seconds=seconds), self.assertRaisesRegex(maintenance.MaintenanceError, 'APPROVAL_EXPIRED'):
+                maintenance.validate_approval(go, proposal, 'd' * 64, 'a' * 40, proposal['pins'], now, operation='recover')
+        go, proposal = self.approval('execute', 1680, now)
+        with self.assertRaisesRegex(maintenance.MaintenanceError, 'APPROVAL_EXPIRED'):
+            maintenance.validate_approval(go, proposal, 'd' * 64, 'a' * 40, proposal['pins'], now)
+        self.assertEqual(maintenance.RECOVERY_SECONDS, 600)
+        self.assertEqual(maintenance.MAINTENANCE_START_RESERVE, 1740)
+        malformed: tuple[dict[str, Any], ...] = ({**go, 'schema_version': 1}, {key: value for key, value in go.items() if key != 'operation'},
+            {**go, 'operation': True}, {**go, 'operation': 'all'}, {**go, 'unexpected': True})
+        for value in malformed:
+            with self.subTest(value=value), self.assertRaises(maintenance.MaintenanceError):
+                maintenance.validate_approval(value, proposal, 'd' * 64, 'a' * 40, proposal['pins'], now)
+
+    def test_operation_mismatch_in_actual_cli_refuses_before_host_lock_or_effect_adapter(self) -> None:
+        fixture_raw = b'{}'
+        proposal: dict[str, Any] = {'source_commit': 'a' * 40, 'pins': {}, 'host_id_sha256': maintenance.digest(b'host'),
+            'fixture_intent_sha256': maintenance.digest(fixture_raw), 'baseline': baseline()}
+        proposal_raw = maintenance.canonical(proposal)
+        go: dict[str, Any] = {'schema_version': 2, 'operation': 'recover', 'decision': 'GO',
+            'proposal_sha256': maintenance.digest(proposal_raw), 'source_commit': 'a' * 40, 'pins': {},
+            'host_id_sha256': proposal['host_id_sha256'], 'fixture_intent_sha256': proposal['fixture_intent_sha256'],
+            'expires_at_utc': (datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat(),
+            'reviews': dict.fromkeys(maintenance.fixture.REVIEW_KEYS, 'APPROVED')}
+        go_raw = maintenance.canonical(go)
+        with patch.object(maintenance.os, 'geteuid', return_value=0), patch.object(maintenance.signal, 'signal'), \
+                patch.object(maintenance, 'private_directory'), patch.object(maintenance, 'source_pins', return_value=('a' * 40, {})), \
+                patch.object(maintenance, 'read_private', side_effect=[fixture_raw, go_raw, proposal_raw]), \
+                patch.object(maintenance, 'validate_fixture_intent'), patch.object(maintenance.fixture, '_assert_host_identity'), \
+                patch.object(maintenance.Path, 'read_bytes', return_value=b'host'), patch.object(maintenance, 'host_lock') as lock, \
+                patch.object(maintenance, 'NativePort') as adapter, patch.object(maintenance.sys, 'stderr'):
+            self.assertEqual(maintenance.main(['execute', '--run-id', 'a' * 32,
+                '--fixture-intent-sha256', maintenance.digest(fixture_raw), '--expected-go-sha256', maintenance.digest(go_raw)]), 2)
+        lock.assert_not_called()
+        adapter.assert_not_called()
+
+    def test_owned_start_proc_transition_requires_a_subsequent_full_proof_and_never_reissues_start(self) -> None:
+        port = maintenance.NativePort('a' * 40, 'b' * 64, 1000)
+        port.baseline = baseline()
+        port.recovering = True
+        with patch.object(port, 'check_binding') as binding, patch.object(port, 'command') as command, \
+                patch.object(port, 'ready_binding', side_effect=[maintenance.inventory.InventoryError('SNAP_WRAPPER_PROC_INVALID'), None]) as ready, \
+                patch.object(maintenance.time, 'monotonic', return_value=10), patch.object(maintenance.time, 'sleep'), \
+                patch.object(maintenance.signal, 'getitimer', return_value=(0.0, 0.0)), \
+                patch.object(maintenance.signal, 'getsignal', return_value=maintenance.signal.SIG_DFL), \
+                patch.object(maintenance.signal, 'signal'), patch.object(maintenance.signal, 'setitimer') as timer, \
+                patch.object(port, 'start_node') as nodes:
+            port.start_daemon()
+        binding.assert_called_once_with(port.baseline, active=False)
+        command.assert_called_once_with(['/usr/bin/systemctl', 'start', maintenance.DAEMON], 90)
+        self.assertEqual(ready.call_count, 2)
+        nodes.assert_not_called()
+        self.assertEqual(timer.call_args_list[-1].args, (maintenance.signal.ITIMER_REAL, 0))
+
+    def test_permanent_proc_invalid_times_out_without_accepting_unknown_or_starting_any_node(self) -> None:
+        port = maintenance.NativePort('a' * 40, 'b' * 64, 1000)
+        port.baseline = baseline()
+        port.recovering = True
+        with patch.object(port, 'ready_binding', side_effect=maintenance.inventory.InventoryError('SNAP_WRAPPER_PROC_INVALID')) as ready, \
+                patch.object(maintenance.time, 'monotonic', side_effect=[10, 10, 10, 10, 35]), \
+                patch.object(maintenance.time, 'sleep'), patch.object(maintenance.signal, 'getitimer', return_value=(0.0, 0.0)), \
+                patch.object(maintenance.signal, 'getsignal', return_value=maintenance.signal.SIG_DFL), \
+                patch.object(maintenance.signal, 'signal'), patch.object(maintenance.signal, 'setitimer') as timer, \
+                patch.object(port, 'command') as command, patch.object(port, 'start_node') as nodes:
+            with self.assertRaisesRegex(maintenance.MaintenanceError, 'LXD_READINESS_TIMEOUT'):
+                port.wait_ready()
+        ready.assert_called_once()
+        command.assert_not_called()
+        nodes.assert_not_called()
+        self.assertEqual(timer.call_args_list[-1].args, (maintenance.signal.ITIMER_REAL, 0))
+
+
+
+class SharedSnapshotIntentBindingTests(unittest.TestCase):
+    def test_native_static_intent_pins_the_same_asset_and_preserves_existing_pin_indices(self) -> None:
+        self.assertEqual(maintenance.FILES[4], 'tools/linux/qualification/incus_profile_listener_fixture.py')
+        self.assertEqual(maintenance.FILES[5], 'tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py')
+        self.assertEqual(maintenance.FILES[6], 'documentation/handbook/05-development/workflow/issues/issue-449/workflow.md')
+        self.assertEqual(maintenance.FILES[-1], str(maintenance.fixture.WINDOWS_SNAPSHOT_REL))
+        source = 'a' * 40
+        run = 'b' * 32
+        profile, base_profile, instance = (f'tsw-q449-{run}-{suffix}' for suffix in ('profile', 'base', 'fixture'))
+        static: dict[str, Any] = {
+            'source_commit': source,
+            'workflow_sha256': maintenance.digest((maintenance.ROOT / maintenance.FILES[6]).read_bytes()),
+            'runner_sha256': maintenance.digest((maintenance.ROOT / maintenance.FILES[4]).read_bytes()),
+            'test_sha256': maintenance.digest((maintenance.ROOT / maintenance.FILES[5]).read_bytes()),
+            'windows_snapshot_sha256': maintenance.digest((maintenance.ROOT / maintenance.FILES[-1]).read_bytes()),
+            'issue447_inventory_sha256': 'c' * 64,
+            'target': {'host': maintenance.HOST, 'endpoint': 'unix://', 'project': 'default', 'server_version': '6.0.5',
+                       'run_id': run, 'profile': profile, 'base_profile': base_profile, 'instance': instance,
+                       'image_fingerprint': 'd' * 64},
+            'proxy': {'listen': 'tcp:127.0.0.1:61000', 'connect': 'tcp:127.0.0.1:8080', 'bind': 'host'},
+            'cleanup': [instance, profile, base_profile],
+            'reviews': dict.fromkeys(maintenance.fixture.REVIEW_KEYS, 'APPROVED'),
+            'windows_rules_unchanged': True, 'external_routes_enabled': False,
+            'default_profile_sha256': 'e' * 64, 'fixture_base_profile_sha256': 'f' * 64,
+            'default_profile_used_by': [],
+        }
+        intent: dict[str, Any] = {'schema_version': 1, 'decision': 'INTENT_ONLY', 'fixture': static,
+                  'provider_config_sha256': '0' * 64}
+        self.assertEqual(maintenance.validate_fixture_intent(intent, source), intent)
+        for field_value in (None, '0' * 64):
+            forged = copy.deepcopy(intent)
+            if field_value is None:
+                del forged['fixture']['windows_snapshot_sha256']
+            else:
+                forged['fixture']['windows_snapshot_sha256'] = field_value
+            with self.subTest(field_value=field_value), self.assertRaises((maintenance.MaintenanceError, maintenance.fixture.FixtureError)):
+                maintenance.validate_fixture_intent(forged, source)
 
 
 if __name__ == '__main__':

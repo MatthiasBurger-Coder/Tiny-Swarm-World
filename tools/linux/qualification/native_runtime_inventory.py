@@ -229,6 +229,11 @@ class Runner:
             if process is not None:
                 _kill_reap(process)
             raise InventoryError("COMMAND_EXECUTION_FAILED") from exc
+        except BaseException:
+            # External phase alarms and interrupts must not leave our reader alive.
+            if process is not None:
+                _kill_reap(process)
+            raise
 
 
 def _kill_reap(process: Any) -> None:

@@ -1,7 +1,7 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: ACTIVE_FOR_ISSUE_449 v1.52 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
+Status: ACTIVE_FOR_ISSUE_449 v1.54 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
@@ -17,6 +17,52 @@ checks passed. Exclusive installation/global-resource ownership remains unproven
 Current policy work enables temporary maintenance without asserting adoption.
 Execution/evidence remains in `.codex/evidence/epic440-20261107.md`; full S02–S09
 completion remains required.
+
+## Bounded fixture and recovery correction — v1.54
+
+The retained real native R3 attempt exhausted repeated structural accounting
+before instance creation; its later explicit recovery restored the original
+runtime. Neither result is a fixture PASS. Apply the exact implementation
+record `.codex/evidence/epic440-native-r3-budget-recovery-20261108.md` after
+independent source review and exact PC gates.
+
+The unchanged 10000 entity cap / 5000 cleanup reserve count unique allowlisted
+read-scope plus typed JSON field/index slots. Every full response is still
+freshly read, parsed and validated, independently bounded to 10000 nodes and
+depth32. Every visit charges bytes, commands and monotonic time. Keep256 commands,
+16MiB aggregate,2MiB per stream,300s aggregate and60s cleanup time; reserve110
+commands for cleanup. Full recursive profile/instance list DTOs supply the same
+complete graph; missing required data remains refusal. No foreign rows or
+ownership checks are dropped.
+
+Create each exact run-owned full profile atomically through bounded64KiB RAM
+stdin, and include the run marker atomically in stopped init. Bind canonical
+UUID/generation, exact image metadata and typed finite volatile transitions
+before start; cleanup requires that same receipt and exact profiles/consumers.
+A failed or uncertain write is observed once, never blindly replayed.
+
+Maintenance approval schema2 adds exact operation execute/recover. Execute keeps
+1740s minimum remaining validity; recovery uses its independent600s reserve.
+A recovery GO cannot authorize execute. A post-owned-start provenance retry is
+bounded by the existing25s readiness deadline plus5s child reap; every attempt
+must prove the complete source/package/process/API binding. Unknown identity is
+never success. Every reader clips its deadline to aggregate remaining time;
+external alarms/interrupts reap their exact owned query child before propagating.
+
+The shared fixed pure Windows snapshot asset is source-bound in preparation,
+release assets and both-host fixture GOs via required windows_snapshot_sha256.
+Its complete typed ActiveStore DTOv2 includes rules/profiles/settings and all
+seven independent filter arrays with exact identity-set and native association
+checks. Getter errors refuse. The fixture executes that same full query freshly
+before every effect in Windows RAM and transports only a strict bounded
+certificate of its full UTF8 digest, bytes, layout and counts; PortProxy remains
+a separate complete observation. Controller120s/14MiB and parent limits stay.
+Old or synthetic passes do not qualify a new asset; actual size, duration and
+repeat stability must pass before any dependent Windows maintenance.
+
+Root integrates the seven native correction paths, the shared Windows asset,
+its loader/release binding/tests and records serially. No capability matrix
+admission, host action or EPIC completion follows from this source amendment.
 
 ## Preserving product acceptance prerequisite plan — v1.53
 
