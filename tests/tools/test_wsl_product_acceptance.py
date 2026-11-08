@@ -69,6 +69,33 @@ class CasePort:
 
 
 class WslProductAcceptanceTests(unittest.TestCase):
+    def test_upgrade_and_engine_recovery_have_distinct_fixed_go_phases(self) -> None:
+        current = replace(intent(), case='upgrade-batch-service-access-portainer-published')
+        proposal = {'pins': {'actual': 'c' * 64}}
+        for engine, total in ((False, 10500), (True, 4800)):
+            budgets = suite.upgrades.budgets(current.case, 'wsl', engine_recovery=engine)
+            value = go(proposal) | {'intent_sha256': suite.sha(suite.canonical(asdict(current))),
+                'budgets': budgets, 'phase': 'wsl-engine-recovery' if engine else 'wsl-case-run',
+                'expires_at_utc': (datetime.now(timezone.utc) + timedelta(seconds=total + 30)).isoformat()}
+            if engine:
+                value['engine_binding'] = {'actual': 'pending'}
+            suite.approval(value, current, proposal, '6' * 64, engine_recovery=engine)
+            with self.assertRaises(suite.CaseError):
+                suite.approval(value | {'budgets': dict(suite.BUDGETS)}, current, proposal, '6' * 64, engine_recovery=engine)
+            with self.assertRaises(suite.CaseError):
+                suite.approval(value, current, proposal, '6' * 64, recover=True)
+
+    def test_unexercised_upgrade_is_disposed_but_never_pass(self) -> None:
+        port = CasePort()
+        def missed():
+            raise suite.upgrades.UpgradeError('UPGRADE_NOT_EXERCISED')
+        with patch.object(port, 'run', side_effect=missed):
+            result = suite.execute(port, {'baseline': {}})
+        self.assertEqual(result['status'], 'CASE_NOT_EXERCISED')
+        self.assertFalse(result['epic_complete'])
+        self.assertFalse(port.disposal.graph['instances'])
+        self.assertNotIn('public', port.calls)
+
     def test_public_dispatch_rehashes_complete_config_and_parses_checked_operator_bytes(self) -> None:
         with tempfile.TemporaryDirectory() as directory, patch.object(suite, 'BASE', Path(directory)):
             home = Path(directory) / intent().run_id

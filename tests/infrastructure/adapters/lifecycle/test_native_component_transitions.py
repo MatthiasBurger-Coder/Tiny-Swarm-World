@@ -35,11 +35,11 @@ CONSENT = LiveConsent(True, confirmed=True)
 
 def native_installation(*, promote_candidates=True):
     catalog = NativeComponentCatalog(ROOT).load()
-    if promote_candidates:
+    if not promote_candidates:
         catalog = catalog.model_copy(update={"services": tuple(
             service.model_copy(update={"update_targets": tuple(
-                target.model_copy(update={"qualification": "qualified-transition"})
-                if target.qualification == "candidate-transition" else target
+                target.model_copy(update={"qualification": "candidate-transition"})
+                if target.target_id in {"traefik-3-7-5", "swagger-ui-5-32-7"} else target
                 for target in service.update_targets
             )}) for service in catalog.services
         )})
@@ -202,7 +202,7 @@ class NativeTransitionExecutionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((await self.apply())["status"], "partial")
         journal = self.journal.load()
         calls = tuple(self.calls)
-        candidate_catalog = NativeComponentCatalog(ROOT).load()
+        candidate_catalog, _ = native_installation(promote_candidates=False)
         self.catalog.load.return_value = candidate_catalog
         self.fail.clear()
 

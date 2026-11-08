@@ -36,6 +36,10 @@ class ComponentUpdateServiceTests(unittest.TestCase):
 
     def test_discovery_fixed_target_does_not_admit_tag_only_native_source(self):
         catalog, manifest = update_fixture(("swagger",), qualified=False)
+        catalog = catalog.model_copy(update={"services": tuple(service.model_copy(update={"update_targets": tuple(
+            target.model_copy(update={"qualification": "candidate-transition"})
+            if target.target_id == "swagger-ui-5-32-7" else target for target in service.update_targets)})
+            for service in catalog.services)})
         self.catalogs.load.return_value = catalog
         self.manifests.load.return_value = ManifestSnapshot(manifest, "token")
         found = self.service.discover(("swagger",))

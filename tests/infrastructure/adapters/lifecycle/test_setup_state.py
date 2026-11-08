@@ -266,6 +266,13 @@ class SetupSelectionStateTests(unittest.TestCase):
 
 
 class SetupSourceObservationTests(unittest.IsolatedAsyncioTestCase):
+    def _candidate_catalog(self):
+        catalog = self.catalog.load()
+        return catalog.model_copy(update={'services': tuple(service.model_copy(update={'update_targets': tuple(
+            target.model_copy(update={'qualification': 'candidate-transition'})
+            if target.target_id in {'swagger-ui-5-32-7', 'traefik-3-7-5'} else target
+            for target in service.update_targets)}) for service in catalog.services)})
+
     def setUp(self):
         temporary = TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
@@ -336,13 +343,13 @@ class SetupSourceObservationTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(saved, state.fresh)
         self.assertEqual(saved.installation_id, original.installation_id)
         self.assertEqual(saved.credential_references, original.credential_references)
-        self.assertEqual(plan_component_updates(self.catalog.load(), saved, ("swagger", "traefik")).status, "blocked")
+        self.assertEqual(plan_component_updates(self._candidate_catalog(), saved, ("swagger", "traefik")).status, "blocked")
 
     async def test_candidate_target_observations_do_not_enable_unqualified_noop(self):
         state = self._prepare(environment=self._pins(("swagger",), target=True))
         await state.observe_new_components(self._observer(state))
         state.commit()
-        self.assertEqual(plan_component_updates(self.catalog.load(), self.repository.load().manifest, ("swagger",)).status, "blocked")
+        self.assertEqual(plan_component_updates(self._candidate_catalog(), self.repository.load().manifest, ("swagger",)).status, "blocked")
 
     async def test_add_observes_only_new_bundle_and_preserves_every_existing_field(self):
         minimal = self._prepare(())
@@ -359,7 +366,7 @@ class SetupSourceObservationTests(unittest.IsolatedAsyncioTestCase):
         for field in ("installation_id", "product", "credential_references", "operation_reference", "checkpoint_reference"):
             self.assertEqual(getattr(saved, field), getattr(original, field))
         self.assertTrue(all(reference in saved.configuration_references for reference in original.configuration_references))
-        self.assertEqual(plan_component_updates(self.catalog.load(), saved, ("swagger",)).status, "blocked")
+        self.assertEqual(plan_component_updates(self._candidate_catalog(), saved, ("swagger",)).status, "blocked")
 
     async def test_tag_only_partial_and_unknown_pins_skip_without_fabricating_observations(self):
         pinned = self._pins(("swagger",))

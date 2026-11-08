@@ -31,10 +31,12 @@ from uuid import uuid4
 if TYPE_CHECKING:
     from . import native_lxd_maintenance as native
     from . import owned_case_disposal as disposal
+    from . import product_upgrade_cases as upgrades
 else:
     prefix = __package__ + '.' if __package__ else ''
     native = importlib.import_module(prefix + 'native_lxd_maintenance')
     disposal = importlib.import_module(prefix + 'owned_case_disposal')
+    upgrades = importlib.import_module(prefix + 'product_upgrade_cases')
 
 ROOT = native.ROOT
 PRIVATE = native.PRIVATE
@@ -50,7 +52,8 @@ OPERATOR = INFRA / 'operator.env'
 CAPABILITY = ROOT / 'infra/config/incus-profile-capabilities.json'
 SUITE_FILES = ('tools/linux/qualification/preserving_product_acceptance.py',
     'tools/linux/qualification/owned_case_disposal.py', 'tests/tools/test_preserving_product_acceptance.py',
-    'tests/tools/test_owned_case_disposal.py', 'infra/config/incus-profile-capabilities.json')
+    'tests/tools/test_owned_case_disposal.py', 'infra/config/incus-profile-capabilities.json',
+    upgrades.SCRIPT, upgrades.CATALOG, 'src/tiny_swarm_world/infrastructure/adapters/lifecycle/catalog.py')
 
 
 @dataclass(frozen=True)
@@ -84,6 +87,9 @@ RECIPES = {
 }
 
 
+CASE_RECIPES = RECIPES | upgrades.RECIPES
+
+
 @dataclass(frozen=True)
 class SuiteIntent:
     run_id: str
@@ -101,24 +107,28 @@ class SuiteIntent:
             'ubuntu_fingerprint', 'provider_config_sha256', 'operator_config_sha256', 'infra_sha256', 'capability_sha256'}
             and all(type(item) is str for item in value.values()), 'SUITE_INTENT_SCHEMA_INVALID')
         native.require(bool(native.RUN_ID.fullmatch(value['run_id'])) and value['source_commit'] == source
-            and bool(native.inventory.HEX40.fullmatch(source)) and value['case'] in RECIPES, 'SUITE_INTENT_IDENTITY_INVALID')
+            and bool(native.inventory.HEX40.fullmatch(source)) and value['case'] in CASE_RECIPES, 'SUITE_INTENT_IDENTITY_INVALID')
         native.require(all(native.HEX.fullmatch(value[key]) for key in ('ubuntu_fingerprint', 'provider_config_sha256',
             'operator_config_sha256', 'infra_sha256', 'capability_sha256')), 'SUITE_INTENT_DIGEST_INVALID')
         return cls(**value)
 
 
 def validate_go(value: Any, proposal: dict[str, Any], proposal_sha: str, now: datetime, *, paused: bool,
-                recovery: bool = False) -> datetime:
+                recovery: bool = False, case: str = 'minimal', engine_recovery: bool = False) -> datetime:
     keys = {'decision', 'schema_version', 'phase', 'proposal_sha256', 'source_commit', 'intent_sha256',
             'host_id_sha256', 'pins', 'budgets', 'expires_at_utc', 'reviews'}
+    selected_budgets = upgrades.budgets(case, 'native', engine_recovery=engine_recovery)
+    if engine_recovery:
+        keys.add('engine_binding')
     if paused:
         keys |= {'resource_sha256', 'route_sha256', 'preview_sha256'}
     native.require(isinstance(value, dict) and set(value) == keys and type(value['schema_version']) is int
         and value['schema_version'] == 1 and value['decision'] == 'GO'
-        and not (paused and recovery) and value['phase'] == ('paused-product-case' if paused else
-            'native-product-recovery' if recovery else 'native-product-maintenance'), 'SUITE_GO_SCHEMA_INVALID')
+        and not (paused and (recovery or engine_recovery)) and not (recovery and engine_recovery)
+        and value['phase'] == ('paused-product-case' if paused else
+            'native-product-engine-recovery' if engine_recovery else 'native-product-recovery' if recovery else 'native-product-maintenance'), 'SUITE_GO_SCHEMA_INVALID')
     native.require(isinstance(value['budgets'], dict) and all(type(item) is int for item in value['budgets'].values())
-        and value['proposal_sha256'] == proposal_sha and value['budgets'] == BUDGETS
+        and value['proposal_sha256'] == proposal_sha and value['budgets'] == selected_budgets
         and all(value[key] == proposal[key] for key in ('source_commit', 'intent_sha256', 'host_id_sha256', 'pins')),
         'SUITE_GO_BINDING_DRIFT')
     native.require(isinstance(value['reviews'], dict) and set(value['reviews']) == native.fixture.REVIEW_KEYS
@@ -128,7 +138,7 @@ def validate_go(value: Any, proposal: dict[str, Any], proposal_sha: str, now: da
         remaining = (expiry - now).total_seconds()
     except (ValueError, TypeError) as exc:
         raise native.MaintenanceError('SUITE_GO_EXPIRY_INVALID') from exc
-    minimum = (BUDGETS['teardown'] + BUDGETS['restore']) if recovery else (ACTIVATION_COVERAGE if paused else START_COVERAGE)
+    minimum = (BUDGETS['teardown'] + BUDGETS['restore']) if recovery else (sum(selected_budgets[k] for k in ('case', 'teardown', 'restore')) if paused else sum(selected_budgets.values()))
     native.require(expiry.tzinfo is not None and minimum <= remaining <= minimum + 300, 'SUITE_GO_EXPIRED')
     if paused:
         native.require(all(type(value[key]) is str and native.HEX.fullmatch(value[key]) for key in (
@@ -322,6 +332,15 @@ class SuiteNativePort(native.NativePort):
         self.in_case_window = False
         self.approval_recheck = False
         self.disposal_lease: Any | None = None
+        self.upgrade_baseline = False
+        self.upgrade_fault_armed = False
+        self.upgrade_fault_observed = False
+        self.cache_unknown = False
+        self.engine_recovery = False
+        self.purpose_budgets = upgrades.budgets(intent.case, 'native')
+        self.total_deadline: float | None = None
+        self.authorized_until: float | None = None
+        self.used_case_phases: set[str] = set()
 
     def prestate(self) -> dict[str, Any]:
         if self.baseline is None:
@@ -500,7 +519,26 @@ class SuiteNativePort(native.NativePort):
 
     def phase(self, name: str) -> None:
         native.require(name in BUDGETS, 'SUITE_PHASE_INVALID')
-        self.deadline = time.monotonic() + BUDGETS[name]
+        if self.intent.case in upgrades.RECIPES:
+            native.require(name not in self.used_case_phases, 'UPGRADE_PHASE_REPLAY')
+            self.used_case_phases.add(name)
+        self.deadline = time.monotonic() + self.purpose_budgets[name]
+        if self.total_deadline is not None:
+            native.require(self.deadline <= self.total_deadline, 'UPGRADE_TOTAL_RESERVE')
+        if self.authorized_until is not None:
+            following = {'prepare': ('pause', 'approval', 'case', 'teardown', 'restore'),
+                         'pause': ('approval', 'case', 'teardown', 'restore'),
+                         'approval': ('case', 'teardown', 'restore'), 'case': ('teardown', 'restore'),
+                         'teardown': ('restore',), 'restore': ()}
+            native.require(self.authorized_until - time.monotonic() >= self.purpose_budgets[name] +
+                sum(self.purpose_budgets[k] for k in following[name]), 'UPGRADE_GO_PHASE_RESERVE')
+
+    def budget(self) -> None:
+        super().budget()
+        if self.total_deadline is not None:
+            native.require(time.monotonic() < self.total_deadline, 'UPGRADE_TOTAL_EXPIRED')
+        if self.authorized_until is not None:
+            native.require(time.monotonic() < self.authorized_until, 'UPGRADE_GO_EXPIRED')
 
     def run_fixture(self) -> None:
         """The inherited protocol name dispatches exactly one compiled product recipe."""
@@ -533,7 +571,7 @@ class SuiteNativePort(native.NativePort):
         self.journal.save('paused-route.json', route)
         ready = self.child([self.interpreter(), '-E', '-s', '-B', str(Path(__file__)), 'prerequisites'], 180)
         native.require(native.inventory.strict_json(ready) == {'status': 'SHARED_PREREQUISITES_READY'}, 'SUITE_SHARED_PREPARATION_REQUIRED')
-        recipe = RECIPES[self.intent.case]
+        recipe = CASE_RECIPES[self.intent.case]
         preview = validate_preview(self.public(recipe.args(preview=True), 120), recipe)
         previews = {'initial': preview}
         if recipe.add_traefik:
@@ -546,12 +584,17 @@ class SuiteNativePort(native.NativePort):
         failure: BaseException | None = None
         try:
             self.journal.save('case-started.json', {'case': self.intent.case, 'source_commit': self.source})
-            self.public(RECIPES[self.intent.case].args(), 4500)
-            if RECIPES[self.intent.case].add_traefik:
-                self.public(RECIPES[self.intent.case].args(add=True), 600)
-            self.observe_completion()
+            if self.intent.case in upgrades.RECIPES:
+                upgrades.run(self)
+            else:
+                self.public(RECIPES[self.intent.case].args(), 4500)
+                if RECIPES[self.intent.case].add_traefik:
+                    self.public(RECIPES[self.intent.case].args(add=True), 600)
+                self.observe_completion()
             self.journal.save('case-verified.json', {'case': self.intent.case, 'source_commit': self.source})
         except BaseException as exc:
+            if isinstance(exc, upgrades.UpgradeError):
+                exc = native.MaintenanceError(str(exc))
             failure = exc
             self.journal.save('case-failure.json', {'case': self.intent.case, 'reason': native.failure_reason(exc)})
         finally:
@@ -583,7 +626,7 @@ class SuiteNativePort(native.NativePort):
                 value = native.inventory.strict_json(raw)
                 native.require(self.proposal is not None, 'SUITE_PROPOSAL_MISSING')
                 proposal = self.current_proposal()
-                validate_go(value, proposal, native.digest(native.canonical(proposal)), datetime.now(timezone.utc), paused=True)
+                expires = validate_go(value, proposal, native.digest(native.canonical(proposal)), datetime.now(timezone.utc), paused=True, case=self.intent.case)
                 native.require(all(value[key] == item for key, item in expected.items()), 'SUITE_PAUSED_CAPTURE_DRIFT')
                 self.approval_recheck = True
                 try:
@@ -591,6 +634,10 @@ class SuiteNativePort(native.NativePort):
                 finally:
                     self.approval_recheck = False
                 self.fresh_source()
+                if self.intent.case in upgrades.RECIPES:
+                    remaining = (expires - datetime.now(timezone.utc)).total_seconds()
+                    native.require(remaining >= sum(self.purpose_budgets[k] for k in ('case', 'teardown', 'restore')), 'UPGRADE_ACTIVATION_RESERVE')
+                    self.authorized_until = time.monotonic() + remaining
                 self.journal.save('activation-accepted.json', {'activation_sha256': native.digest(raw)})
                 return
             time.sleep(.25)
@@ -649,6 +696,8 @@ class SuiteNativePort(native.NativePort):
         return self.worker_settled and self.route_capture() == before
 
     def public(self, args: list[str], timeout: int) -> bytes:
+        if self.intent.case in upgrades.RECIPES:
+            upgrades.require_cache_settled(self)
         self.fresh_source()
         native.require(self.baseline is not None, 'SUITE_PRESTATE_MISSING')
         self.check_binding(self.prestate(), active=False)
@@ -658,7 +707,10 @@ class SuiteNativePort(native.NativePort):
     def child(self, argv: list[str], timeout: int) -> bytes:
         self.budget()
         native.require(self.deadline - time.monotonic() >= timeout + 10 and self.worker_settled, 'CASE_BUDGET_INSUFFICIENT')
-        env = native.ENV | operator_values(self.intent) | {'TSW_REPOSITORY_ROOT': str(ROOT), 'TSW_INFRA_ROOT': str(INFRA),
+        if self.intent.case in upgrades.RECIPES:
+            native.require(tree_digest(INFRA) == self.intent.infra_sha256, 'SUITE_INFRA_DRIFT')
+        baseline_images = upgrades.baseline_environment(self.intent.case) if self.upgrade_baseline else {}
+        env = native.ENV | operator_values(self.intent) | baseline_images | {'TSW_REPOSITORY_ROOT': str(ROOT), 'TSW_INFRA_ROOT': str(INFRA),
             'TSW_INSTALL_ENV_FILE': str(OPERATOR), 'TSW_LIVE_EVIDENCE_ROOT': str(self.journal.directory),
             'TSW_LOCAL_TLS_STATE_ROOT': case_tls_root(self.journal)}
         self.worker_settled = False
@@ -691,6 +743,7 @@ class SuiteNativePort(native.NativePort):
             selector.register(child.stdout, selectors.EVENT_READ)
             selector.register(child.stderr, selectors.EVENT_READ)
             while selector.get_map():
+                upgrades.poll_fault(self, child)
                 native.require(time.monotonic() < deadline, 'CASE_WORKER_TIMEOUT')
                 for selected, _event in selector.select(.2):
                     chunk = os.read(selected.fd, 65536)
@@ -726,12 +779,29 @@ class SuiteNativePort(native.NativePort):
             if child.stderr is not None:
                 child.stderr.close()
 
+    def upgrade_validate_inputs(self) -> None:
+        native.require(tree_digest(INFRA) == self.intent.infra_sha256, 'SUITE_INFRA_DRIFT')
+        values = operator_values(self.intent)
+        upgrades.proof_credentials(self.intent.case, INFRA, values)
+
+    def upgrade_children_settled(self) -> bool:
+        return self.worker_settled and previous_children_settled(self.journal)
+
+    def upgrade_helper(self, stage: str) -> dict[str, Any]:
+        self.fresh_source()
+        raw = self.child([self.interpreter(), '-E', '-s', '-B', str(ROOT / upgrades.SCRIPT),
+                          '--case', self.intent.case, '--stage', stage], min(650, max(1, int(self.deadline - time.monotonic() - 20))) if stage == 'cache-targets' else 180)
+        return native.inventory.strict_json(raw)
+
+    def upgrade_original_proof(self) -> dict[str, Any]:
+        return upgrades.original_proof(self)
+
     def observe_completion(self) -> None:
         raw = self.child([self.interpreter(), '-E', '-s', '-B', str(Path(__file__)), 'observe'], 180)
         native.require(native.inventory.strict_json(raw) == {'status': 'SELECTED_RUNTIME_VERIFIED'}, 'CASE_COMPLETION_NOT_PROVEN')
         model = importlib.import_module('tiny_swarm_world.infrastructure.adapters.lifecycle.manifest')
         actual = model.decode_manifest(native.read_private(MANIFEST))
-        recipe = RECIPES[self.intent.case]
+        recipe = CASE_RECIPES[self.intent.case]
         wanted = set(recipe.services) | ({'traefik'} if recipe.add_traefik else set())
         native.require(set(actual.requested_services) == wanted and actual.schema_version == 2
             and actual.effective_exposure().get('swagger') == (recipe.exposure if 'swagger' in wanted else None)
@@ -749,6 +819,8 @@ class SuiteNativePort(native.NativePort):
                 self.disposal_lease = None
 
     def prepare_disposal(self) -> None:
+        if self.intent.case in upgrades.RECIPES:
+            upgrades.require_cache_settled(self)
         native.require(self.worker_settled, 'CASE_WORKER_NOT_SETTLED')
         self.wait_operations()
         if not PROFILE_STATE.exists():
@@ -887,7 +959,7 @@ def operations_empty(value: Any) -> bool:
     return not any(rows.values())
 
 
-def validate_preview(raw: bytes, recipe: Recipe) -> dict[str, Any]:
+def validate_preview(raw: bytes, recipe: Recipe | upgrades.UpgradeRecipe) -> dict[str, Any]:
     value = native.inventory.strict_json(raw)
     native.require(isinstance(value, dict) and set(value) == {'status', 'plan', 'routes', 'execution', 'data_policy'}
         and value['status'] == 'selection_preview', 'CASE_PREVIEW_INVALID')
@@ -896,6 +968,8 @@ def validate_preview(raw: bytes, recipe: Recipe) -> dict[str, Any]:
     native.require(set(plan.requested_services) == set(recipe.services)
         and plan.service_exposure.get('swagger') == (recipe.exposure if 'swagger' in recipe.services else None)
         and all(mode == recipe.owner for mode in plan.stack_owners.values()), 'CASE_PREVIEW_SELECTION_DRIFT')
+    if isinstance(recipe, upgrades.UpgradeRecipe):
+        native.require(plan.service_preset == recipe.preset, 'UPGRADE_PREVIEW_PRESET_DRIFT')
     manifests = importlib.import_module('tiny_swarm_world.domain.preflight.setup_manifest')
     profiles = importlib.import_module('tiny_swarm_world.application.services.profile_setup')
     routes = value['routes']
@@ -1060,7 +1134,7 @@ def observe_prerequisites() -> None:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument('mode', choices=('prepare', 'execute', 'recover', 'observe', 'prerequisites'))
+    parser.add_argument('mode', choices=('prepare', 'execute', 'recover', 'prepare-engine-recovery', 'engine-recovery', 'observe', 'prerequisites'))
     parser.add_argument('--run-id')
     parser.add_argument('--intent-sha256')
     parser.add_argument('--expected-go-sha256')
@@ -1087,7 +1161,12 @@ def main(argv: list[str] | None = None) -> int:
         native.require(native.digest(raw) == args.intent_sha256, 'SUITE_INTENT_DRIFT')
         intent = SuiteIntent.parse(native.inventory.strict_json(raw), source)
         native.require(intent.run_id == args.run_id, 'SUITE_RUN_ID_DRIFT')
+        if intent.case in upgrades.RECIPES and upgrades.RECIPES[intent.case].kind == 'product':
+            print(native.canonical({'status': 'NOT_IMPLEMENTED', 'case': intent.case, 'requires': 'S-U2', 'epic_complete': False}).decode())
+            return 2
         check_prerequisites(intent)
+        if intent.case in upgrades.RECIPES:
+            upgrades.proof_credentials(intent.case, INFRA, operator_values(intent))
         native.fixture._assert_host_identity(native.HOST)
         host_id = native.digest(Path('/etc/machine-id').read_bytes())
         directory = PRIVATE / ('product-case-' + args.run_id)
@@ -1111,17 +1190,46 @@ def main(argv: list[str] | None = None) -> int:
             and proposal['host_id_sha256'] == host_id and proposal['pins'] == pins and proposal['source_commit'] == source
             and proposal['intent_sha256'] == native.digest(native.canonical(asdict(intent))), 'SUITE_PROPOSAL_DRIFT')
         native.validate_snapshot(proposal['baseline'])
+        if args.mode == 'prepare-engine-recovery':
+            port = SuiteNativePort(intent, journal, proposal); port.baseline = proposal['baseline']
+            binding = upgrades.engine_binding(port)
+            journal.save('engine-recovery-proposal.json', binding)
+            print(native.canonical({'status': 'PREPARED_ENGINE_RECOVERY_READ_ONLY', 'engine_binding': binding}).decode())
+            return 0
         native.require(type(args.expected_go_sha256) is str and native.HEX.fullmatch(args.expected_go_sha256), 'SUITE_GO_REQUIRED')
-        go_raw = native.read_private(directory / 'approval.json')
+        go_raw = native.read_private(directory / ('engine-recovery-go.json' if args.mode == 'engine-recovery' else 'approval.json'))
         native.require(native.digest(go_raw) == args.expected_go_sha256, 'SUITE_GO_HASH_DRIFT')
         go = native.inventory.strict_json(go_raw)
-        validate_go(go, proposal, native.digest(proposal_raw), datetime.now(timezone.utc), paused=False, recovery=args.mode == 'recover')
+        validate_go(go, proposal, native.digest(proposal_raw), datetime.now(timezone.utc), paused=False, recovery=args.mode == 'recover', case=intent.case, engine_recovery=args.mode == 'engine-recovery')
         with native.host_lock():
-            validate_go(go, proposal, native.digest(proposal_raw), datetime.now(timezone.utc), paused=False, recovery=args.mode == 'recover')
+            expires = validate_go(go, proposal, native.digest(proposal_raw), datetime.now(timezone.utc), paused=False, recovery=args.mode == 'recover', case=intent.case, engine_recovery=args.mode == 'engine-recovery')
             port = SuiteNativePort(intent, journal, proposal)
             port.baseline = proposal['baseline']
+            if intent.case in upgrades.RECIPES and args.mode != 'recover':
+                port.engine_recovery = args.mode == 'engine-recovery'
+                port.purpose_budgets = upgrades.budgets(intent.case, 'native', engine_recovery=port.engine_recovery)
+                port.total_deadline = time.monotonic() + sum(port.purpose_budgets.values())
+                port.authorized_until = time.monotonic() + (expires - datetime.now(timezone.utc)).total_seconds()
             transaction = native.Transaction(port, journal, proposal['baseline'])
-            if args.mode == 'execute':
+            if args.mode == 'engine-recovery':
+                native.require(go['engine_binding'] == upgrades.engine_binding(port) == native.inventory.strict_json(
+                    native.read_private(directory / 'engine-recovery-proposal.json')), 'UPGRADE_RECOVERY_BINDING_DRIFT')
+                port.worker_settled = previous_children_settled(journal)
+                native.require(port.worker_settled, 'CASE_WORKER_NOT_SETTLED')
+                journal.save('engine-recovery-started.json', {'go_sha256': native.digest(go_raw), 'binding': go['engine_binding']})
+                port.phase('case')
+                try:
+                    upgrades.run(port, engine_recovery=True)
+                finally:
+                    port.phase('teardown'); port.prepare_disposal()
+                    if port.owned is not None:
+                        with port.installation_lease():
+                            disposal.dispose(disposal.IncusDisposalPort(port, port.owned, journal), port.owned)
+                    route = native.inventory.strict_json(native.read_private(directory / 'paused-route.json'))
+                    port.restore_safe = port.listeners_clear(route)
+                    transaction.recover()
+                result = {'status': 'ENGINE_RECOVERED_DISPOSED'}
+            elif args.mode == 'execute':
                 current = port.snapshot()
                 native.require(current == proposal['baseline'], 'PRESTATE_DRIFT')
                 port.admit_empty(current)
@@ -1132,6 +1240,8 @@ def main(argv: list[str] | None = None) -> int:
                 port.phase('teardown')
                 port.worker_settled = previous_children_settled(journal)
                 native.require(port.worker_settled, 'CASE_WORKER_NOT_SETTLED')
+                if intent.case in upgrades.RECIPES:
+                    upgrades.reconcile_cache(port)
                 if port.unit(native.DAEMON) == 'active' and native.preserved_snapshot(proposal['baseline'], port.snapshot()):
                     transaction.recover()
                     result = {'status': 'RECOVERED'}

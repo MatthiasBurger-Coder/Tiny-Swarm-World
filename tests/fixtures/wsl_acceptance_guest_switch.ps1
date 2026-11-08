@@ -60,7 +60,7 @@ function Ports([string]$fault=''){
  }.GetNewClosure()
  $p.Network={param($s) [void]$c.events.Add('network');return @{status=$(if($c.fault -ceq 'network'){ 'KERNEL_NETWORK_RESIDUE'}elseif($c.fault -ceq 'module'){ 'KERNEL_NETWORK_UNKNOWN_PREREQUISITE_REQUIRED'}else{'KERNEL_NETWORK_ABSENT'})}}.GetNewClosure()
  $p.Prepared={param($s,$hash) [void]$c.events.Add('prepared');if($c.fault -ceq 'prepared'){throw 'BAD_PREPARATION'};return @{status='NEW_GUEST_PREPARED'}}.GetNewClosure()
- $p.Stopped={param($s,$hash) [void]$c.events.Add('stopped');if($c.fault -ceq 'stopped'){throw 'FOREIGN_OR_RUNNING_NODE'};return @{status=$(if($c.fault -ceq 'old-stopped-variant'){'NEW_OWNED_NODES_STOPPED'}else{'OWNED_CASES_DISPOSED'});boot_id_sha256=$c.boot;machine_id_sha256=('8'*64)}}.GetNewClosure()
+ $p.Stopped={param($s,$hash) [void]$c.events.Add('stopped');if($c.fault -ceq 'stopped'){throw 'FOREIGN_OR_RUNNING_NODE'};if($c.fault -ceq 'unknown-upgrade-ledger'){throw 'UNKNOWN_CASE_LEDGER'};return @{status=$(if($c.fault -ceq 'old-stopped-variant'){'NEW_OWNED_NODES_STOPPED'}else{'OWNED_CASES_DISPOSED'});boot_id_sha256=$c.boot;machine_id_sha256=('8'*64)}}.GetNewClosure()
  $p.Boot={param($who,$s)
   $boot=if($c.fault -ceq 'boot-unchanged'){$c.state.resets[$who].previous_boot_sha256}else{$c.boot}
   return @{boot_id_sha256=$boot;machine_id_sha256=$(if($who -ceq 'original'){$s.original_machine_sha256}else{'8'*64})}
@@ -165,11 +165,13 @@ foreach($raw in @('{"b":"canonical","a":1}','{"a":1,"a":1,"b":"canonical"}')){
  try{$null=Read-WslSwitchWire ([Convert]::ToBase64String($bytes)) (Get-WslSwitchRawHash $bytes)}catch{$denied=$true}
  Assert $denied 'wire_alias_or_duplicate';$cases++
 }
+foreach($ledgerFault in @('old-stopped-variant','unknown-upgrade-ledger')){
 $p=Ports;$null=Run $p $s QuiesceOriginal;$null=Run $p $s EnterNew;$null=Run $p $s VerifyPrepared ('9'*64);$null=Run $p $s BindNew
-$p._ctx.fault='old-stopped-variant';$changed=$p._ctx.changed;$resets=$p._ctx.resets
+$p._ctx.fault=$ledgerFault;$changed=$p._ctx.changed;$resets=$p._ctx.resets
 $r=Run $p $s ReturnOriginal ('9'*64)
 Assert ($r.status -ceq 'BLOCKED' -and $p._ctx.state.stage -ceq 'bound' -and !$p._ctx.state.pending -and
- $p._ctx.changed -eq $changed -and $p._ctx.resets -eq $resets -and $p._ctx.running[0] -ceq ('TSW-Q440-'+$s.run_id)) 'old_stopped_variant_admitted';$cases++
+ $p._ctx.changed -eq $changed -and $p._ctx.resets -eq $resets -and $p._ctx.running[0] -ceq ('TSW-Q440-'+$s.run_id)) ('invalid_case_ledger_admitted_'+$ledgerFault);$cases++
+}
 # The same pure boundary consumed by production Reset is exercised without an OS.
 $p=Ports;$null=Run $p $s QuiesceOriginal;$base=Copy-SwitchFixtureValue $p._ctx.state
 $base.pending='reset-to-new';$base.stage='original_stopped'

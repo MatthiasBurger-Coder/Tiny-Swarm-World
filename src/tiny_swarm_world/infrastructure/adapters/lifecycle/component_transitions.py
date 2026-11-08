@@ -35,7 +35,7 @@ def with_stack_transition(service: ServiceDefinition) -> ServiceDefinition:
     else:
         return service
     target = ComponentUpdateTarget(
-        target_id=target_id, versions=targets, qualification="candidate-transition",
+        target_id=target_id, versions=targets, qualification="qualified-transition",
         metadata_source="w09-pinned-release-policy", presets=service.presets,
     )
     transition = ComponentUpdateTransition(

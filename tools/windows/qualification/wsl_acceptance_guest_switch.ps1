@@ -230,15 +230,14 @@ function Get-WslSwitchOriginalProbe {
 import sys,os,stat,hashlib,json,importlib.util
 from pathlib import Path
 kind,machine,proposal=sys.argv[1:]
-p=Path('/root/tsw440-wsl-r4-20261108/epic440-wsl-runtime-window.py')
+p=Path('/root/tsw440-wsl-r5-20261108/epic440-wsl-runtime-window.py')
 assert p.is_file() and not p.is_symlink() and p.stat().st_uid==0 and p.stat().st_size<=1048576 and p.stat().st_nlink==1 and stat.S_IMODE(p.stat().st_mode)==0o600
-assert hashlib.sha256(p.read_bytes()).hexdigest()=='92b4a45ccb2838f52b8f3b16428386ae15a5c2f412ce29e0e003ab41bc38abe7'
+assert hashlib.sha256(p.read_bytes()).hexdigest()=='e49744db6992b621fc9410620122536369e9ec04a2ff71ee542f1eac9d3e428e'
 spec=importlib.util.spec_from_file_location('epic440_original_window',p);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
 m.trusted_tree(p);port=m.RealPort(machine);journal=m.Journal(m.PRIVATE)
 raw=m.read_proposal(journal);assert m.sha(raw)==proposal
 baseline=m.strict(raw);m.validate_baseline(baseline);port.settle()
-statuses=m.initial_statuses(baseline) if kind=='restored' else {key:'Stopped' for key in baseline['nodes']}
-current=port.snapshot();m.compare(baseline,current,statuses)
+current=port.snapshot();m.verify_observation(baseline,current,journal,restored=(kind=='restored'))
 from uuid import UUID
 boot=Path('/proc/sys/kernel/random/boot_id').read_text().strip();assert str(UUID(boot))==boot
 print(json.dumps({'boot_id_sha256':m.sha(boot.encode()),'machine_id_sha256':machine,'status':'ORIGINAL_RESTORED' if kind=='restored' else 'ORIGINAL_QUIESCENT','proposal_sha256':proposal,'observation_sha256':m.digest(current)},sort_keys=True,separators=(',',':')))
@@ -389,6 +388,20 @@ need(type(receipt['schema_version']) is int and receipt['schema_version']==1 and
 sock=binding();version=r.run(['/usr/bin/incus','--version'],env={'LC_ALL':'C','PATH':n.ENV_BASE['PATH'],'INCUS_SOCKET':sock},command_id='guest_switch_version')[1].decode().strip();need(version=='6.0.5')
 metadata=n._read_server_root(n.Runner(),['/usr/bin/incus','--force-local'],{'LC_ALL':'C','PATH':n.ENV_BASE['PATH'],'INCUS_SOCKET':sock},binding,incus=True,cli_version='6.0.5',phase='initial')
 need(metadata['server_version']=='6.0.5')
+def case_ledger_names(ledger,run,source):
+    need(isinstance(ledger,dict) and set(ledger)=={'schema_version','run_id','source_commit','cases'} and type(ledger['schema_version']) is int and ledger['schema_version'] in (1,2) and ledger['run_id']==run and ledger['source_commit']==source and isinstance(ledger['cases'],list))
+    recipes=('minimal', 'swagger-internal', 'swagger-published', 'swagger-traefik-swarm', 'swagger-traefik-portainer', 'swagger-add-traefik', 'full-swarm', 'full-portainer', 'upgrade-swagger-swarm', 'upgrade-traefik-swarm', 'upgrade-batch-default-swarm-published', 'upgrade-batch-default-swarm-internal', 'upgrade-batch-default-portainer-published', 'upgrade-batch-default-portainer-internal', 'upgrade-batch-service-access-swarm-published', 'upgrade-batch-service-access-swarm-internal', 'upgrade-batch-service-access-portainer-published', 'upgrade-batch-service-access-portainer-internal', 'recover-batch-swarm', 'recover-batch-portainer', 'upgrade-portainer', 'recover-portainer', 'upgrade-product-v1', 'recover-product-v1')
+    recipes=recipes[:8] if ledger['schema_version']==1 else recipes
+    need(0<len(ledger['cases'])<=len(recipes))
+    seen=[]
+    for row in ledger['cases']:
+        need(isinstance(row,dict) and set(row)=={'case','outcome_sha256'} and row['case'] in recipes and isinstance(row['outcome_sha256'],str) and re.fullmatch('[0-9a-f]{64}',row['outcome_sha256']))
+        seen.append(recipes.index(row['case']))
+    need(seen==sorted(set(seen)))
+    return recipes
+def case_ledger_directory_names(ledger,names,recipes):
+    need(isinstance(names,list) and len(names)<=len(recipes) and all(type(name) is str and name in recipes for name in names) and len(set(names))==len(names))
+    need(set(names)=={row['case'] for row in ledger['cases']})
 if kind=='prepared':
     need(set(receipt)=={'schema_version','run_id','source_commit','kind','package_versions','python_version'} and receipt['kind']=='NEW_GUEST_PREPARATION')
     versions=subprocess.run(['/usr/bin/dpkg-query','--show','--showformat=${Package}=${Version}\n','incus','incus-base','incus-client'],env=env,stdin=subprocess.DEVNULL,capture_output=True,timeout=10)
@@ -409,16 +422,29 @@ if kind=='prepared':
 else:
     need(kind=='stopped' and set(receipt)=={'schema_version','run_id','source_commit','kind','case_journal_sha256','machine_id_sha256','boot_id_sha256'} and receipt['kind']=='OWNED_CASES_DISPOSED')
     ledgerraw=private(root/'product-case-ledger.json');need(hashlib.sha256(ledgerraw).hexdigest()==receipt['case_journal_sha256']);ledger=strict(ledgerraw)
-    need(set(ledger)=={'schema_version','run_id','source_commit','cases'} and type(ledger['schema_version']) is int and ledger['schema_version']==1 and ledger['run_id']==run and ledger['source_commit']==source and isinstance(ledger['cases'],list) and len(ledger['cases'])<=8)
-    recipes=('minimal','swagger-internal','swagger-published','swagger-traefik-swarm','swagger-traefik-portainer','swagger-add-traefik','full-swarm','full-portainer')
+    recipes=case_ledger_names(ledger,run,source)
+    declared=list((root/'cases').iterdir());need(len(declared)<=len(recipes))
+    need(all(p.is_dir() and not p.is_symlink() for p in declared));case_ledger_directory_names(ledger,[p.name for p in declared],recipes)
     seen=[]
     for case in ledger['cases']:
         need(set(case)=={'case','outcome_sha256'} and case['case'] in recipes and re.fullmatch('[0-9a-f]{64}',case['outcome_sha256']))
         seen.append(recipes.index(case['case']));journal=root/'cases'/case['case']/'journal';trusted(journal,True)
+        intents=list(journal.glob('child-*-intent.json'));need(len(intents)<=1024)
+        for intent in intents:
+            stem=intent.name.removesuffix('-intent.json');pidfile=journal/(stem+'-pid.json')
+            if not pidfile.exists():
+                refused=journal/(stem+'-launch-refused.json');need(refused.exists() and strict(private(refused))=={'released':False});continue
+            child=strict(private(pidfile));need(set(child)=={'pid','start_time'} and type(child['pid']) is int and child['pid']>1 and type(child['start_time']) is int)
+            try:os.killpg(child['pid'],0)
+            except ProcessLookupError:pass
+            else:need(False)
         files=list(journal.glob('outcome-*.json'));need(0<len(files)<=64);matches=0
         for file in files:
             need(re.fullmatch(r'outcome-[0-9a-f]{32}\.json',file.name));content=private(file)
-            matches+=hashlib.sha256(content).hexdigest()==case['outcome_sha256']
+            if hashlib.sha256(content).hexdigest()==case['outcome_sha256']:
+                actual=strict(content)
+                need(actual.get('run_id')==run and actual.get('source_commit')==source and actual.get('case')==case['case'] and actual.get('status') in ('CASE_PASS_DISPOSED','CASE_FAILED_DISPOSED','CASE_RECOVERED','CASE_NOT_EXECUTED','CASE_NOT_EXERCISED','CASE_NOT_IMPLEMENTED'))
+                matches+=1
         need(matches==1)
     need(seen==sorted(set(seen)))
     projects=query('/1.0/projects?recursion=1');need(isinstance(projects,list) and len(projects)==1 and projects[0]['name']=='default')
@@ -437,7 +463,7 @@ else:
             with (pid/'cmdline').open('rb') as stream:cmd=stream.read(65537)
         except FileNotFoundError:continue
         need(len(cmd)<=65536);args=[x.decode('utf-8','strict') for x in cmd.split(b'\0') if x]
-        need(not any(x.endswith('/wsl_product_acceptance.py') or x in {'pytest','unittest','tiny_swarm_world'} for x in args))
+        need(not any(x.endswith(('/wsl_product_acceptance.py','/product_upgrade_cases.py')) or x in {'pytest','unittest','tiny_swarm_world'} for x in args))
     status='OWNED_CASES_DISPOSED'
 boot=Path('/proc/sys/kernel/random/boot_id').read_text().strip();need(str(UUID(boot))==boot)
 machine=Path('/etc/machine-id').read_bytes().strip();need(re.fullmatch(b'[0-9a-f]{32}',machine))
@@ -627,12 +653,12 @@ public static class Epic440SwitchFile {
    [void](Linux original @'
 import hashlib,stat
 from pathlib import Path
-p=Path('/root/tsw440-wsl-r4-20261108/epic440-wsl-runtime-window.py')
-s=p.lstat();assert stat.S_ISREG(s.st_mode) and s.st_uid==0 and stat.S_IMODE(s.st_mode)==0o600 and s.st_nlink==1 and s.st_size<=1048576 and hashlib.sha256(p.read_bytes()).hexdigest()=='92b4a45ccb2838f52b8f3b16428386ae15a5c2f412ce29e0e003ab41bc38abe7'
+p=Path('/root/tsw440-wsl-r5-20261108/epic440-wsl-runtime-window.py')
+s=p.lstat();assert stat.S_ISREG(s.st_mode) and s.st_uid==0 and stat.S_IMODE(s.st_mode)==0o600 and s.st_nlink==1 and s.st_size<=1048576 and hashlib.sha256(p.read_bytes()).hexdigest()=='e49744db6992b621fc9410620122536369e9ec04a2ff71ee542f1eac9d3e428e'
 print('{"status":"IMMUTABLE_DRIVER_VERIFIED"}')
 '@ @() 10)
    $text=Run (Wsl) @('--distribution','Ubuntu','--user','root','--exec','/usr/bin/python3','-I',
-    '/root/tsw440-wsl-r4-20261108/epic440-wsl-runtime-window.py',$kind,'--machine-id-sha256',$s.original_machine_sha256) 650
+    '/root/tsw440-wsl-r5-20261108/epic440-wsl-runtime-window.py',$kind,'--machine-id-sha256',$s.original_machine_sha256) 650
    return $text|ConvertFrom-Json -ErrorAction Stop
   }
   function NewProof([string]$kind,[string]$hash){

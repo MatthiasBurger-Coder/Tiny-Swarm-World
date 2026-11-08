@@ -91,6 +91,42 @@ class SuiteTransactionPort(FakePort):
 
 
 class PreservingProductAcceptanceTests(unittest.TestCase):
+    def test_upgrade_go_binds_distinct_complete_purpose_before_dispatch(self) -> None:
+        case_name = 'upgrade-batch-service-access-portainer-internal'
+        now = datetime.now(timezone.utc)
+        budgets = suite.upgrades.budgets(case_name, 'native')
+        go = approval(now) | {'budgets': budgets,
+            'expires_at_utc': (now + timedelta(seconds=sum(budgets.values()) + 30)).isoformat()}
+        suite.validate_go(go, proposal(), '5' * 64, now, paused=False, case=case_name)
+        for wrong in (dict(suite.BUDGETS), budgets | {'case': 18000}):
+            with self.assertRaisesRegex(native.MaintenanceError, 'BINDING_DRIFT'):
+                suite.validate_go(go | {'budgets': wrong}, proposal(), '5' * 64, now, paused=False, case=case_name)
+        recovery = suite.upgrades.budgets(case_name, 'native', engine_recovery=True)
+        engine = go | {'phase': 'native-product-engine-recovery', 'engine_binding': {'actual': 'pending'},
+            'budgets': recovery, 'expires_at_utc': (now + timedelta(seconds=sum(recovery.values()) + 30)).isoformat()}
+        suite.validate_go(engine, proposal(), '5' * 64, now, paused=False, case=case_name, engine_recovery=True)
+        with self.assertRaises(native.MaintenanceError):
+            suite.validate_go(engine, proposal(), '5' * 64, now, paused=False, case=case_name, recovery=True)
+
+    def test_upgrade_baseline_cannot_override_scope_or_tls_even_on_helper_regression(self) -> None:
+        selected = replace(intent(), case='upgrade-swagger-swarm')
+        journal = Mock(directory=Path('/private/fixture'))
+        port = suite.SuiteNativePort(selected, journal)
+        port.upgrade_baseline = True
+        port.deadline = time.monotonic() + 120
+        injected = {'TSW_REPOSITORY_ROOT': '/original', 'TSW_LOCAL_TLS_STATE_ROOT': '/original/tls',
+                    'TSW_SWAGGER_UI_IMAGE': 'fixed-source@sha256:' + 'a' * 64}
+        with patch.object(suite, 'operator_values', return_value={}), patch.object(suite, 'tree_digest', return_value=selected.infra_sha256), patch.object(suite, 'case_tls_root', return_value='/private/fixture/tls'), \
+                patch.object(suite.upgrades, 'baseline_environment', return_value=injected), \
+                patch.object(port, 'interpreter', return_value=sys.executable), \
+                patch.object(suite.subprocess, 'Popen', side_effect=OSError('launch refused')) as launched:
+            with self.assertRaises(OSError):
+                port.child([sys.executable, '-c', 'pass'], 10)
+        env = launched.call_args.kwargs['env']
+        self.assertEqual(env['TSW_REPOSITORY_ROOT'], str(suite.ROOT))
+        self.assertEqual(env['TSW_LOCAL_TLS_STATE_ROOT'], '/private/fixture/tls')
+        self.assertEqual(env['TSW_SWAGGER_UI_IMAGE'], injected['TSW_SWAGGER_UI_IMAGE'])
+
     def test_closed_credentials_equal_actual_active_catalog_and_contract_material(self) -> None:
         from tiny_swarm_world.domain.configuration.internal_test_credentials import internal_test_catalog
         from tiny_swarm_world.domain.configuration.configuration_contract import default_configuration_contract

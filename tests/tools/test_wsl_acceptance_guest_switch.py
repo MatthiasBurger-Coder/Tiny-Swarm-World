@@ -2,18 +2,51 @@
 from __future__ import annotations
 
 import json
+import ast
 from pathlib import Path
 import re
 import socket
 import struct
 import subprocess
 import unittest
+from typing import Any
 from unittest.mock import patch
 
 from tests.test_prepare_windows import _powershell, _runtime_path
 
 ROOT = Path(__file__).resolve().parents[2]
 CONTROLLER = ROOT / "tools/windows/qualification/wsl_acceptance_guest_switch.ps1"
+
+
+class UpgradeLedgerTests(unittest.TestCase):
+    def test_actual_embedded_ledger_parser_preserves_v1_and_closes_v2(self):
+        from tools.linux.qualification import product_upgrade_cases as cases
+        source = CONTROLLER.read_text()
+        start = source.index('def case_ledger_names(')
+        end = source.index("if kind=='prepared':", start)
+        tree = ast.parse(source[start:end])
+        def need(value):
+            if not value:
+                raise ValueError('LEDGER_DENIED')
+        namespace: dict[str, Any] = {'need': need, 're': re}
+        exec(compile(tree, str(CONTROLLER), 'exec'), namespace)
+        parse = namespace['case_ledger_names']
+        ledger = {'schema_version': 2, 'run_id': 'run', 'source_commit': 'source',
+            'cases': [{'case': name, 'outcome_sha256': 'a' * 64} for name in cases.ALL_NAMES]}
+        self.assertEqual(parse(ledger, 'run', 'source'), cases.ALL_NAMES)
+        directories = namespace['case_ledger_directory_names']
+        directories(ledger, list(cases.ALL_NAMES), cases.ALL_NAMES)
+        for names in (list(cases.ALL_NAMES[:-1]), [*cases.ALL_NAMES, 'unknown'], [*cases.ALL_NAMES, cases.ALL_NAMES[0]]):
+            with self.assertRaises(ValueError):
+                directories(ledger, names, cases.ALL_NAMES)
+        self.assertEqual(parse(ledger | {'schema_version': 1, 'cases': ledger['cases'][:8]}, 'run', 'source'), cases.FRESH_NAMES)
+        for change in ({'schema_version': 1}, {'schema_version': True}, {'run_id': 'foreign'},
+                       {'source_commit': 'foreign'}, {'cases': ledger['cases'][::-1]},
+                       {'cases': ledger['cases'] + ledger['cases'][:1]},
+                       {'cases': [{'case': 'arbitrary', 'outcome_sha256': 'a' * 64}]},
+                       {'cases': [{'case': cases.ALL_NAMES[0], 'outcome_sha256': 'broken'}]}):
+            with self.subTest(change=change), self.assertRaises(ValueError):
+                parse(ledger | change, 'run', 'source')
 
 
 def network_probe() -> dict:
