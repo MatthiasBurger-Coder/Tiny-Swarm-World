@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 else:
     native = importlib.import_module((__package__ + "." if __package__ else "") + "native_runtime_inventory")
 
-COLLECTOR_SHA = "e25e66fce5636bb778a53fb649b0dee414be21c299586769a19d140ea5ac8856"
+COLLECTOR_SHA = "f21b0781e92c08ae8b0ddbdd77bf7b6382a9d9714b2b1829230d678306f45dc8"
 PROVENANCE_SHA = "96213743fdfaa31a9e75690b5e49a975167f9f7025862b71611633ef894da9d9"
 DETAIL_KINDS = {"project_show", "profile_show", "instance_config_show", "instance_config_show_expanded", "network_show",
                 "storage_show", "storage_volume_show", "storage_snapshot_show", "image_show", "image_cache_show"}
@@ -36,6 +36,13 @@ def assert_restart_safe(metadata: dict[str, Any]) -> None:
     config = metadata.get("expanded_config", {})
     if not isinstance(config, dict):
         raise native.InventoryError("GUEST_AUTOSTART_UNSAFE")
+    for field in ("config", "expanded_config"):
+        observed = metadata.get(field, {})
+        if not isinstance(observed, dict):
+            raise native.InventoryError("GUEST_READY_STATE_UNSAFE")
+        if "volatile.last_state.ready" in observed and (
+                type(observed["volatile.last_state.ready"]) is not str or observed["volatile.last_state.ready"] != "false"):
+            raise native.InventoryError("GUEST_READY_STATE_UNSAFE")
     auto = config.get("boot.autostart", "")
     if not isinstance(auto, str) or auto not in {"", "false"}:
         raise native.InventoryError("GUEST_AUTOSTART_UNSAFE")
@@ -70,6 +77,12 @@ class DetailObserver(native.Runner):
                 assert_restart_safe(metadata)
                 metadata = {key: value for key, value in metadata.items()
                             if key not in {"status", "status_code", "last_used_at"}}
+                # A stopped instance may lose this non-ready marker on daemon restart.
+                # Preserve raw DTOs and every other field; omit only the validated marker.
+                for field in ("config", "expanded_config"):
+                    if field in metadata:
+                        metadata[field] = {key: value for key, value in metadata[field].items()
+                                           if key != "volatile.last_state.ready"}
             if kind == "image_show":
                 metadata = {key: value for key, value in metadata.items() if key != "last_used_at"}
             key = (command_id, *(safe_args or []))

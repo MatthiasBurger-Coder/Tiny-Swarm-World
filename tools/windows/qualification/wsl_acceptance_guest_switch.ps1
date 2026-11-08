@@ -230,9 +230,9 @@ function Get-WslSwitchOriginalProbe {
 import sys,os,stat,hashlib,json,importlib.util
 from pathlib import Path
 kind,machine,proposal=sys.argv[1:]
-p=Path('/root/tsw440-wsl-r5-20261108/epic440-wsl-runtime-window.py')
+p=Path('/root/tsw440-wsl-r7-20261108/epic440-wsl-runtime-window.py')
 assert p.is_file() and not p.is_symlink() and p.stat().st_uid==0 and p.stat().st_size<=1048576 and p.stat().st_nlink==1 and stat.S_IMODE(p.stat().st_mode)==0o600
-assert hashlib.sha256(p.read_bytes()).hexdigest()=='e49744db6992b621fc9410620122536369e9ec04a2ff71ee542f1eac9d3e428e'
+assert hashlib.sha256(p.read_bytes()).hexdigest()=='fcf16059dced9a3ed07ea54e1d346e7b67726cfe873de2849b58a202519962bd'
 spec=importlib.util.spec_from_file_location('epic440_original_window',p);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
 m.trusted_tree(p);port=m.RealPort(machine);journal=m.Journal(m.PRIVATE)
 raw=m.read_proposal(journal);assert m.sha(raw)==proposal
@@ -653,12 +653,12 @@ public static class Epic440SwitchFile {
    [void](Linux original @'
 import hashlib,stat
 from pathlib import Path
-p=Path('/root/tsw440-wsl-r5-20261108/epic440-wsl-runtime-window.py')
-s=p.lstat();assert stat.S_ISREG(s.st_mode) and s.st_uid==0 and stat.S_IMODE(s.st_mode)==0o600 and s.st_nlink==1 and s.st_size<=1048576 and hashlib.sha256(p.read_bytes()).hexdigest()=='e49744db6992b621fc9410620122536369e9ec04a2ff71ee542f1eac9d3e428e'
+p=Path('/root/tsw440-wsl-r7-20261108/epic440-wsl-runtime-window.py')
+s=p.lstat();assert stat.S_ISREG(s.st_mode) and s.st_uid==0 and stat.S_IMODE(s.st_mode)==0o600 and s.st_nlink==1 and s.st_size<=1048576 and hashlib.sha256(p.read_bytes()).hexdigest()=='fcf16059dced9a3ed07ea54e1d346e7b67726cfe873de2849b58a202519962bd'
 print('{"status":"IMMUTABLE_DRIVER_VERIFIED"}')
 '@ @() 10)
    $text=Run (Wsl) @('--distribution','Ubuntu','--user','root','--exec','/usr/bin/python3','-I',
-    '/root/tsw440-wsl-r5-20261108/epic440-wsl-runtime-window.py',$kind,'--machine-id-sha256',$s.original_machine_sha256) 650
+    '/root/tsw440-wsl-r7-20261108/epic440-wsl-runtime-window.py',$kind,'--machine-id-sha256',$s.original_machine_sha256) 650
    return $text|ConvertFrom-Json -ErrorAction Stop
   }
   function NewProof([string]$kind,[string]$hash){

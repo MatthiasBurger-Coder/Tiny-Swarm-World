@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import copy
+import hashlib
+from pathlib import Path
 import json
 import unittest
 from typing import Any
@@ -12,6 +14,53 @@ from tools.linux.qualification import wsl_guest_inventory as guest
 
 
 class WslGuestInventoryTests(unittest.TestCase):
+    def test_checked_in_collector_and_provenance_match_production_source_bindings(self) -> None:
+        qualification = Path(guest.__file__).resolve().parent
+        for filename, expected in (("native_runtime_inventory.py", guest.COLLECTOR_SHA),
+                                   ("native_lxd_snap_provenance.py", guest.PROVENANCE_SHA)):
+            with self.subTest(filename=filename):
+                self.assertEqual(hashlib.sha256((qualification / filename).read_bytes()).hexdigest(), expected)
+
+    def test_stopped_ready_marker_may_disappear_without_hiding_persistent_drift(self) -> None:
+        before: dict[str, Any] = {"status": "Stopped", "status_code": 102,
+            "config": {"volatile.last_state.ready": "false", "volatile.uuid": "preserved", "user.persist": "same"},
+            "expanded_config": {"volatile.last_state.ready": "false", "volatile.last_state.power": "STOPPED"},
+            "profiles": ["base", "manager"]}
+        after = copy.deepcopy(before)
+        for field in ("config", "expanded_config"):
+            del after[field]["volatile.last_state.ready"]
+        raw_before, raw_after = copy.deepcopy(before), copy.deepcopy(after)
+
+        def observed(value: dict[str, Any]) -> str:
+            observer = guest.DetailObserver()
+            raw = json.dumps({"metadata": value}).encode()
+            with patch.object(guest.native.Runner, "run", return_value=(0, raw, b"")):
+                observer.run(["/usr/bin/incus"], command_id="incus_instance_config_show", safe_args=["node", "default"])
+            return observer.details[("incus_instance_config_show", "node", "default")]
+
+        self.assertEqual(observed(before), observed(after))
+        self.assertEqual(before, raw_before)
+        self.assertEqual(after, raw_after)
+        for field, key in (("config", "user.persist"), ("config", "volatile.uuid"),
+                           ("expanded_config", "volatile.last_state.power")):
+            changed = copy.deepcopy(after)
+            changed[field][key] = "false" if key == "volatile.last_state.power" else "changed"
+            if key == "volatile.last_state.power":
+                with self.assertRaises(guest.native.InventoryError):
+                    observed(changed)
+            else:
+                self.assertNotEqual(observed(after), observed(changed))
+        changed = copy.deepcopy(after)
+        changed["profiles"].reverse()
+        self.assertNotEqual(observed(after), observed(changed))
+        invalid: tuple[object, ...] = ("true", "FALSE", "false ", "", True, False, None, 0)
+        for field in ("config", "expanded_config"):
+            for value in invalid:
+                changed = copy.deepcopy(after)
+                changed[field]["volatile.last_state.ready"] = value
+                with self.subTest(field=field, value=value), self.assertRaisesRegex(guest.native.InventoryError, "GUEST_READY_STATE_UNSAFE"):
+                    observed(changed)
+
     def test_restart_admission_respects_expanded_autostart_and_actual_detail_status(self) -> None:
         def dto(config: dict[str, Any]) -> dict[str, Any]:
             return {"status": "Stopped", "status_code": 102, "expanded_config": config}

@@ -18,6 +18,21 @@ Current policy work enables temporary maintenance without asserting adoption.
 Execution/evidence remains in `.codex/evidence/epic440-20261107.md`; full S02–S09
 completion remains required.
 
+## Continued WSL resource and guest recovery binding — 2026-11-08
+
+Root and independent source review retain all existing preservation/effect bounds.
+The actual Collector hash is rebound in the stopped-only Guest helper. Its
+semantic projection validates absent-or-exact-string-false readiness on both
+configuration maps before omitting only that volatile stopped-ready marker from
+a copy; every other field and all raw observations remain intact. This models
+the actual R5 cold-restart observation without accepting ready/running drift.
+Original runtime R4 uses the same typed own-stop semantics, with fresh R6
+resource-window and distinct R7 guest-switch journals on immutable source8c9.
+The task-only parent consumes PREPARE once and keeps its finite production lease
+on refusal until external original restoration and explicit CLOSE. No automatic
+operation retry, fabricated observation, timeout increase or old-journal reset.
+Root PC runtime21 and Guest/switch/controller24 contracts passed before rebinding.
+
 ## Typed original WSL NIC runtime and fresh baseline — v1.61
 
 Root and independent architecture approve source engineering only under
