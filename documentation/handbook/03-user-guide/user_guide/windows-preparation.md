@@ -49,7 +49,7 @@ Windows-mounted checkouts produce a blocked handoff with a placement remedy.
 
 After Windows lifecycle/resources/bridge readiness, `handoff.operator_command`
 selects the exact distribution and observed user, changes to the quoted Linux
-checkout, runs `bootstrap/linux/prepare_linux.sh`, and runs `install.sh` only after preparation exits
+checkout, runs `bootstrap/linux/prepare_linux.sh`, and runs the shared `bootstrap/linux/install.sh` only after preparation exits
 zero. It preserves the selected fixed service profile. Copy the printed command
 into the interactive PowerShell console: WSL inherits its stdin for stage consent
 and returns the Linux exit code in `$LASTEXITCODE`. There is no automated install

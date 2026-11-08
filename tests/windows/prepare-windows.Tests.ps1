@@ -408,7 +408,7 @@ $script:facts.handoff_ready=$true;$script:facts.handoff_checkout='/home/operator
 $o=Options;$o.LinuxCheckout='/home/operator/TSW checkout'
 $r=Invoke-WindowsPreparation $o $ports
 Assert ($r.handoff.account -ceq 'operator' -and $r.handoff.distro -ceq 'Ubuntu-24.04') 'W07 selected account and distro'
-Assert ($r.handoff.operator_command -match "--distribution 'Ubuntu-24.04' --user 'operator'" -and $r.handoff.operator_command -match "cd -- ''/home/operator/TSW checkout'' && ./bootstrap/linux/prepare_linux.sh --service-profile service-access && exec ./install.sh") 'W07 exact quoted command and preparation dependency'
+Assert ($r.handoff.operator_command -match "--distribution 'Ubuntu-24.04' --user 'operator'" -and $r.handoff.operator_command -match "cd -- ''/home/operator/TSW checkout'' && ./bootstrap/linux/prepare_linux.sh --service-profile service-access && exec ./bootstrap/linux/install.sh") 'W07 exact quoted command and preparation dependency'
 Assert (!$r.result.preparation_ready -and !$r.result.services_verified -and $r.handoff.status -eq 'LINUX_PREPARATION_REQUIRED') 'W07 no false aggregate readiness'
 $before=$script:executions
 $r=Invoke-WindowsPreparation $o $ports

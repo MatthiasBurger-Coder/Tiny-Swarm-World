@@ -8,8 +8,8 @@ function Get-PreparationHandoff($Options,$Facts) {
     # Restricted path grammar excludes shell metacharacters; single quotes preserve spaces.
     $prefix="cd -- '$checkout' && "
     $prepare=$prefix+'./bootstrap/linux/prepare_linux.sh --service-profile '+$Options.ServiceProfile
-    $install=$prefix+'exec ./install.sh --service-profile '+$Options.ServiceProfile
-    $chain=$prefix+'./bootstrap/linux/prepare_linux.sh --service-profile '+$Options.ServiceProfile+' && exec ./install.sh --service-profile '+$Options.ServiceProfile
+    $install=$prefix+'exec ./bootstrap/linux/install.sh --service-profile '+$Options.ServiceProfile
+    $chain=$prefix+'./bootstrap/linux/prepare_linux.sh --service-profile '+$Options.ServiceProfile+' && exec ./bootstrap/linux/install.sh --service-profile '+$Options.ServiceProfile
     # PowerShell single-quoted strings escape embedded POSIX quotes by doubling them.
     $command="wsl.exe --distribution '"+$Options.Distro+"' --user '"+$Facts.user+"' --exec /bin/bash -lc '"+$chain.Replace("'","''")+"'"
     return @{status='LINUX_PREPARATION_REQUIRED';distro=$Options.Distro;account=$Facts.user;checkout=$checkout
