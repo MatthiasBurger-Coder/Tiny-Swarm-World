@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$RepositoryRoot,[switch]$CertificateTransportContract,[switch]$NativeExecutableContract)
+param([Parameter(Mandatory=$true)][string]$RepositoryRoot,[switch]$CertificateTransportContract,[switch]$NativeExecutableContract,[switch]$BridgeLogContract)
 $ErrorActionPreference='Stop'
 . (Join-Path $RepositoryRoot 'tools/windows/qualification/wsl_acceptance_registration.ps1')
 function Assert($yes,[string]$code){if(!$yes){throw $code}}
@@ -58,6 +58,72 @@ function Ports([string]$fault=''){
   return $b
  }.GetNewClosure()
  $p._ctx=$ctx;return $p
+}
+if($BridgeLogContract){
+ $s=Scenario (Baseline);$ports=New-WslAcceptanceRegistrationProductionPorts $s
+ $adapter=$ports.Source.Module.SessionState.PSVariable.GetValue('module')
+ $temp=Join-Path ([IO.Path]::GetTempPath()) ('tsw-registration-log-'+[Guid]::NewGuid().ToString('N'))
+ [void][IO.Directory]::CreateDirectory((Join-Path $temp 'logs'))
+ $file=Join-Path $temp 'logs/TinySwarmWorldWslBridge.out.log.old'
+ $stream=[IO.File]::Open($file,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)
+ try{$stream.SetLength(5641197)}finally{$stream.Dispose()}
+ $transport=New-Module -ScriptBlock {
+  function Get-PreparationExecutable($Name){return 'fake-read-only-transport'}
+  function Assert-PreparationEvidencePath($Path){}
+ }
+ try{
+  & $adapter {
+   param($transport,$temp,$file)
+   $original=$script:prep;$script:prep=$transport;$script:fixtureBridge=$temp
+   try{
+    function Join-Path {param($Path,$ChildPath)
+     if($ChildPath -ceq 'TinySwarmWorld/WslBridge'){return $script:fixtureBridge}
+     return Microsoft.PowerShell.Management\Join-Path $Path $ChildPath
+    }
+    function Test-Path {param($LiteralPath,$PathType)
+     if($LiteralPath.StartsWith($script:fixtureBridge,[StringComparison]::OrdinalIgnoreCase)){return Microsoft.PowerShell.Management\Test-Path -LiteralPath $LiteralPath}
+     return $false
+    }
+    function FirewallCertificate {return @{fixed='full-certificate-contract-elsewhere'}}
+    function Run {param($Exe,$Arguments,$Seconds,$Limit) return @{stdout='unchanged-full-fixture-output';stderr='';exit_code=0}}
+    $limit=BridgeFileLimit $temp $file
+    if($limit -ne 16777216){throw 'known_log_limit'}
+    $actual=BridgeFileHash $file $limit 5641197
+    if($actual -cne (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash){throw 'full_log_hash_mismatch'}
+    $code='';try{[void](BridgeFileHash $file $limit 5641196)}catch{$code=$_.Exception.Message}
+    if($code -cne 'BRIDGE_FILE_DRIFT'){throw 'collected_size_drift_admitted'}
+    $before=GlobalProof
+    $stream=[IO.File]::Open($file,[IO.FileMode]::Open,[IO.FileAccess]::Write,[IO.FileShare]::None)
+    try{$stream.WriteByte(123)}finally{$stream.Dispose()}
+    if((GlobalProof) -ceq $before){throw 'changed_log_bytes_lost'}
+    $unknown=Join-Path $temp 'logs/foreign.out.log.old';[IO.File]::Move($file,$unknown)
+    $code='';try{[void](GlobalProof)}catch{$code=$_.Exception.Message}
+    if($code -cne 'BRIDGE_FILE_BOUND'){throw 'unknown_oversized_admitted'}
+    [IO.File]::Move($unknown,$file)
+    $nested=Join-Path $temp 'logs/nested';[void][IO.Directory]::CreateDirectory($nested)
+    $nestedFile=Join-Path $nested 'TinySwarmWorldWslBridge.out.log.old';[IO.File]::Move($file,$nestedFile)
+    $code='';try{[void](GlobalProof)}catch{$code=$_.Exception.Message}
+    if($code -cne 'BRIDGE_FILE_BOUND'){throw 'nested_log_exemption'}
+    [IO.File]::Move($nestedFile,$file);[IO.Directory]::Delete($nested)
+    $stream=[IO.File]::Open($file,[IO.FileMode]::Open,[IO.FileAccess]::Write,[IO.FileShare]::None)
+    try{$stream.SetLength(16777217)}finally{$stream.Dispose()}
+    $code='';try{[void](GlobalProof)}catch{$code=$_.Exception.Message}
+    if($code -cne 'BRIDGE_FILE_BOUND'){throw 'log_cap_ignored'}
+    $code='';try{[void](BridgeFileHash $file 16777216 16777217)}catch{$code=$_.Exception.Message}
+    if($code -cne 'BRIDGE_FILE_BOUND'){throw 'hash_read_cap_ignored'}
+    [IO.File]::Delete($file)
+    foreach($name in @('TinySwarmWorldWslBridge.out.log','TinySwarmWorldWslBridge.out.log.old','TinySwarmWorldWslBridge.err.log','TinySwarmWorldWslBridge.err.log.old')){
+     $stream=[IO.File]::Open((Join-Path $temp ('logs/'+$name)),[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)
+     try{$stream.SetLength(16777216)}finally{$stream.Dispose()}
+    }
+    [IO.File]::WriteAllBytes((Join-Path $temp 'payload.json'),[byte[]]@(1))
+    $code='';try{[void](GlobalProof)}catch{$code=$_.Exception.Message}
+    if($code -cne 'BRIDGE_TOTAL_BOUND'){throw 'aggregate_cap_ignored'}
+   }finally{$script:prep=$original}
+  } $transport $temp $file
+ }finally{if([IO.Directory]::Exists($temp)){[IO.Directory]::Delete($temp,$true)}}
+ [ordered]@{status='PASS';cases=9;full_log_bytes=5641197;runtime_mutations=0;imports=0}|ConvertTo-Json -Compress
+ exit 0
 }
 if($NativeExecutableContract){
  $s=Scenario (Baseline);$ports=New-WslAcceptanceRegistrationProductionPorts $s

@@ -208,6 +208,33 @@ public static class Epic440RegistrationFile {
    $f=Run $exe @('-NoProfile','-NonInteractive','-Command',$script:firewall) 120 4096
    return ConvertFrom-WslMaintenanceFirewallCertificate ([string]$f.stdout)
   }
+  function BridgeFileLimit([string]$Bridge,[string]$Path){
+   $logs=[IO.Path]::GetFullPath((Join-Path $Bridge 'logs')).TrimEnd('\','/')
+   $file=[IO.Path]::GetFullPath($Path)
+   $names=@('TinySwarmWorldWslBridge.out.log','TinySwarmWorldWslBridge.out.log.old','TinySwarmWorldWslBridge.err.log','TinySwarmWorldWslBridge.err.log.old')
+   if(([IO.Path]::GetDirectoryName($file)).TrimEnd('\','/') -ieq $logs -and [IO.Path]::GetFileName($file) -cin $names){return 16777216}
+   return 4194304
+  }
+  function BridgeFileHash([string]$Path,[long]$Maximum,[long]$ExpectedLength){
+   & $script:prep {param($p) Assert-PreparationEvidencePath $p} $Path
+   $before=(Get-Item -LiteralPath $Path -Force -ErrorAction Stop).LastWriteTimeUtc.Ticks
+   $stream=[IO.File]::Open($Path,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::ReadWrite)
+   $hash=[Security.Cryptography.SHA256]::Create()
+   try{
+    $length=$stream.Length;Require ($length -le $Maximum) 'BRIDGE_FILE_BOUND';Require ($length -eq $ExpectedLength) 'BRIDGE_FILE_DRIFT'
+    $buffer=New-Object byte[] 65536;$total=0L
+    while($true){
+     Require ($script:watch.Elapsed.TotalSeconds -lt 2400) 'REGISTRATION_DEADLINE'
+     $n=$stream.Read($buffer,0,[int][Math]::Min($buffer.Length,$Maximum-$total+1))
+     if(!$n){break};$total+=$n;Require ($total -le $Maximum) 'BRIDGE_FILE_BOUND'
+     [void]$hash.TransformBlock($buffer,0,$n,$buffer,0)
+    }
+    Require ($total -eq $length -and $stream.Length -eq $length -and (Get-Item -LiteralPath $Path -Force -ErrorAction Stop).LastWriteTimeUtc.Ticks -eq $before) 'BRIDGE_FILE_DRIFT'
+    [void]$hash.TransformFinalBlock([byte[]]@(),0,0)
+    & $script:prep {param($p) Assert-PreparationEvidencePath $p} $Path
+    return ([BitConverter]::ToString($hash.Hash)).Replace('-','')
+   }finally{$hash.Dispose();$stream.Dispose()}
+  }
   function GlobalProof {
    $certificate=FirewallCertificate
    $exe=& $script:prep {Get-PreparationExecutable 'powershell.exe'}
@@ -225,17 +252,22 @@ public static class Epic440RegistrationFile {
    if(Test-Path -LiteralPath $bridge){
     & $script:prep {param($p) Assert-PreparationEvidencePath $p} $bridge
     $queue=[Collections.Generic.Queue[string]]::new();$queue.Enqueue($bridge)
-    $all=[Collections.Generic.List[object]]::new();$count=0
+    $all=[Collections.Generic.List[object]]::new();$count=0;$totalFileBytes=0L
     while($queue.Count -gt 0){
      foreach($child in @(Get-ChildItem -LiteralPath $queue.Dequeue() -Force -ErrorAction Stop)){
       $count++;Require ($count -le 128) 'BRIDGE_BOUND'
       & $script:prep {param($p) Assert-PreparationEvidencePath $p} $child.FullName
-      if($child.PSIsContainer){$queue.Enqueue($child.FullName)}else{Require ($child.Length -le 4194304) 'BRIDGE_FILE_BOUND';$all.Add($child)}
+      if($child.PSIsContainer){$queue.Enqueue($child.FullName)}else{
+       $limit=BridgeFileLimit $bridge $child.FullName
+       Require ($child.Length -le $limit) 'BRIDGE_FILE_BOUND'
+       $totalFileBytes+=$child.Length;Require ($totalFileBytes -le 67108864) 'BRIDGE_TOTAL_BOUND'
+       $all.Add($child)
+      }
      }
     }
     foreach($p in @($all|Sort-Object FullName)){
      & $script:prep {param($p) Assert-PreparationEvidencePath $p} $p.FullName
-     if($p.Name -cne 'bridge-state.json'){$files[$p.FullName]=(Get-FileHash -LiteralPath $p.FullName -Algorithm SHA256).Hash}
+     if($p.Name -cne 'bridge-state.json'){$files[$p.FullName]=BridgeFileHash $p.FullName (BridgeFileLimit $bridge $p.FullName) $p.Length}
     }
    }
    return Get-AcceptanceRegistrationDigest @($certificate,$routes.stdout,$properties,$files)
