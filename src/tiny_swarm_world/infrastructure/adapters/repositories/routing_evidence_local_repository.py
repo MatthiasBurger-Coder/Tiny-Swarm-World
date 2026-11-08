@@ -7,6 +7,7 @@ import json
 import os
 import tempfile
 from pathlib import Path
+from tiny_swarm_world.infrastructure.adapters.repositories.managed_state_directory import prepare_managed_state_root, managed_state_root_for_repository
 
 from tiny_swarm_world.application.ports.repositories.port_routing_evidence_repository import (
     EffectiveAccessModelEvidence,
@@ -39,6 +40,8 @@ class RoutingEvidenceLocalRepository(PortRoutingEvidenceRepository):
             project_paths=project_paths,
             relative_path=relative_path,
         )
+        self._managed_state_root = managed_state_root_for_repository(
+            root if root is not None else project_paths.repository_root if project_paths is not None else None)
 
     def write_effective_access_model(self, evidence: EffectiveAccessModelEvidence) -> None:
         try:
@@ -48,6 +51,7 @@ class RoutingEvidenceLocalRepository(PortRoutingEvidenceRepository):
                 indent=2,
                 sort_keys=True,
             ) + "\n"
+            prepare_managed_state_root(self._managed_state_root)
             self.path.parent.mkdir(parents=True, exist_ok=True)
             _set_private_mode(self.path.parent, 0o700)
             descriptor, temporary_name = tempfile.mkstemp(

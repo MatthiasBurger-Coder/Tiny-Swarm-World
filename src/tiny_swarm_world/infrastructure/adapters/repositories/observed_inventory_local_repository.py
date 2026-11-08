@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from tiny_swarm_world.infrastructure.adapters.repositories.managed_state_directory import prepare_managed_state_root, managed_state_root_for_repository
 from typing import Any
 
 from tiny_swarm_world.application.ports.repositories.port_observed_inventory_repository import (
@@ -23,6 +24,7 @@ class ObservedInventoryLocalRepository(PortObservedInventoryRepository):
         relative_path: str | Path = DEFAULT_OBSERVED_INVENTORY_PATH,
     ):
         self.path = local_state_file(root=root, relative_path=relative_path)
+        self._managed_state_root = managed_state_root_for_repository(root)
 
     def load(self) -> ObservedInventory:
         if not self.path.exists():
@@ -33,6 +35,7 @@ class ObservedInventoryLocalRepository(PortObservedInventoryRepository):
         return ObservedInventory.from_dict(data)
 
     def save(self, inventory: ObservedInventory) -> None:
+        prepare_managed_state_root(self._managed_state_root)
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.path.write_text(
             json.dumps(_inventory_payload(inventory), indent=2, sort_keys=True) + "\n",

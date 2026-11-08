@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 
 from tiny_swarm_world.infrastructure.project_paths import ProjectPaths, default_project_paths
+from tiny_swarm_world.infrastructure.adapters.repositories.managed_state_directory import prepare_owned_log_directory, open_owned_log_stream
 
 class LoggerFactory:
     """
@@ -27,14 +28,15 @@ class LoggerFactory:
         :return: Configured logger.
         """
         paths = project_paths or default_project_paths()
-        log_path = Path(log_dir) if log_dir is not None else paths.logs_root
+        log_path = Path(os.path.abspath(Path(log_dir) if log_dir is not None else paths.logs_root))
         class_name = cls.__name__ if isinstance(cls, type) else str(cls)
         if os.environ.get("TSW_READ_ONLY_PREFLIGHT") == "1":
             return logging.Logger(f"{class_name}.read_only")
         log_file = log_path / f"{class_name}.log"
 
-        # Ensure the log directory exists
-        log_path.mkdir(parents=True, exist_ok=True)
+        if Path(class_name).name != class_name or class_name in {'.', '..'} or '\x00' in class_name:
+            raise ValueError('Logger name must identify one owned log file.')
+        prepare_owned_log_directory(log_path)
 
         logger = logging.getLogger(class_name)
         logger.setLevel(level)
@@ -47,7 +49,8 @@ class LoggerFactory:
                     handler.close()
 
         # Add file handler if none exists
-        file_handler = logging.FileHandler(log_file, mode="a")
+        file_handler = logging.FileHandler(log_file, mode="a", delay=True)
+        file_handler.stream = open_owned_log_stream(log_file, file_handler.encoding)
         formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)

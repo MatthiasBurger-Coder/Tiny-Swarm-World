@@ -48,6 +48,7 @@ class TestRoutingEvidenceLocalRepository(unittest.TestCase):
     def test_replace_failure_preserves_old_target_and_cleans_temporary_file(self):
         with TemporaryDirectory() as temporary_directory:
             repository = RoutingEvidenceLocalRepository(root=Path(temporary_directory))
+            (Path(temporary_directory) / ".tiny-swarm-world").mkdir(mode=0o700)
             repository.path.parent.mkdir(parents=True)
             repository.path.write_text("previous-complete-evidence\n", encoding="utf-8")
             replace_arguments: list[tuple[Path, Path]] = []

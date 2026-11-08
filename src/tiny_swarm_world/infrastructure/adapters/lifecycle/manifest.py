@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+from tiny_swarm_world.infrastructure.adapters.repositories.managed_state_directory import prepare_managed_state_root
 import tempfile
 
 from pydantic import ValidationError
@@ -64,6 +65,7 @@ class JsonManifestRepository:
         content = manifest.model_dump_json(indent=2).encode() + b"\n"
         decode_manifest(content)
         try:
+            prepare_managed_state_root(self.path)
             self.path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
             lock_path = self.path.with_suffix(".lock")
             descriptor = os.open(lock_path, os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
