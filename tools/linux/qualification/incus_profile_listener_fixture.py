@@ -1878,11 +1878,33 @@ def _assert_no_fixture_listener(port: str) -> None:
         raise TargetDrift('FIXTURE_LISTENER_EARLY')
 
 
+def _fixture_responder_script(run_id: str) -> str:
+    """One bounded response from built-in Alpine applets; no readiness connection."""
+    if not isinstance(run_id, str) or RUN_ID.fullmatch(run_id) is None:
+        raise FixtureError('INVALID_RUN_ID')
+    return r'''set -eu
+(printf 'HTTP/1.1 200 OK\r\nContent-Length: 32\r\nConnection: close\r\nContent-Type: text/plain\r\n\r\n%s' 'RUN_NONCE' |
+ busybox nc -l -s 127.0.0.1 -p 8080 -w 15) </dev/null >/dev/null 2>&1 &
+responder=$!
+attempt=0
+while [ "$attempt" -lt 25 ]; do
+  kill -0 "$responder" 2>/dev/null || exit 1
+  if busybox netstat -ltn 2>/dev/null | busybox awk '$1 == "tcp" && $4 == "127.0.0.1:8080" && $6 == "LISTEN" { ready=1 } END { exit !ready }'; then
+    exit 0
+  fi
+  attempt=$((attempt + 1))
+  busybox sleep 0.2
+done
+exit 1
+'''.replace('RUN_NONCE', run_id)
+
+
 def _run_fixture(go: dict[str, Any], baseline: dict[str, Any]) -> dict[str, Any]:
     """Execute the one-shot, uniquely named loopback fixture after JIT approval."""
     global _INVENTORY_CLEANUP_MODE
     _INVENTORY_CLEANUP_MODE = False
     target, proxy = go['target'], go['proxy']
+    responder_script = _fixture_responder_script(target['run_id'])
     instance, profile, base_profile = target['instance'], target['profile'], target['base_profile']
     port = proxy['listen'].rsplit(':', 1)[1]
     created_profile = created_base = created_instance = False
@@ -2064,11 +2086,11 @@ def _run_fixture(go: dict[str, Any], baseline: dict[str, Any]) -> dict[str, Any]
         default_after_start['derived'] = derived
         evidence['effective_devices_after_start'] = _verify_effective_instance(
             go, default_after_start, fixture_after_start)
-        write('exec', instance, '--project', 'default', '--', 'sh', '-c',
-              'busybox httpd -f -p 127.0.0.1:8080 >/dev/null 2>&1 &')
-        response = command(['curl', '--fail', '--silent', '--show-error', '--max-time', '5',
+        write('exec', instance, '--project', 'default', '--', 'sh', '-c', responder_script)
+        response = command(['curl', '--disable', '--fail', '--silent', '--show-error', '--noproxy', '*',
+                            '--proto', '=http', '--max-redirs', '0', '--connect-timeout', '2', '--max-time', '5',
                             f'http://127.0.0.1:{port}/'])
-        if not response:
+        if response != target['run_id'].encode('ascii'):
             raise TargetDrift('FIXTURE_HTTP_UNVERIFIED')
         evidence['http_response_sha256'] = digest(response)
         after_10001 = _listener_rows(command(['ss', '-H', '-ltnp']), 10001)

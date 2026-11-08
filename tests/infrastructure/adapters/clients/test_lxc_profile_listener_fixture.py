@@ -5,6 +5,8 @@ import argparse
 import hashlib
 import json
 import os
+import signal
+import subprocess
 import threading
 from types import SimpleNamespace
 import tempfile
@@ -1816,7 +1818,9 @@ class FixtureLifecycleTests(_FixtureBehaviorTestCase):
 
         def command(argv):
             if argv[0] == 'curl':
-                return b'fixture response'
+                self.assertIn('--disable', argv)
+                self.assertEqual(argv[argv.index('--noproxy') + 1], '*')
+                return state.get('http_body', run_id.encode('ascii'))
             if argv[0] == 'incus':
                 if argv[1:2] == ['query'] and argv[2] == fixture._profile_api_path('default', 'default'):
                     return json.dumps({'name': 'default', 'project': 'default',
@@ -1832,24 +1836,43 @@ class FixtureLifecycleTests(_FixtureBehaviorTestCase):
                                    'config': {}, 'devices': {}, 'used_by': []}).encode()
             return incus(*argv[1:])
 
+        baseline = {'listeners_10001': [listener.splitlines()[1]], 'incus_projects': ['default'],
+                    'incus_10001_routes': [], 'windows_rules_portproxy': b'',
+                    'approved_route_state_sha256': approved_route_state,
+                    'derived_base_profile': {'config': {'boot.autostart': 'false'}, 'devices': {}},
+                    'resources': {'memory_total_bytes': 4, 'memory_available_bytes': 3, 'filesystem_available_bytes': 2}}
         with (
             patch.object(fixture, '_incus', side_effect=incus),
             patch.object(fixture, '_inventory_command', side_effect=inventory_command),
             patch.object(fixture, 'command', side_effect=command),
             patch.object(fixture, '_incus_route_inventory', return_value=(['default'], [])),
         ):
-            result = fixture._run_fixture(go, {'listeners_10001': [listener.splitlines()[1]],
-                                               'incus_projects': ['default'],
-                                               'incus_10001_routes': [], 'windows_rules_portproxy': b'',
-                                               'approved_route_state_sha256': approved_route_state,
-                                               'derived_base_profile': {'config': {'boot.autostart': 'false'}, 'devices': {}},
-                                               'resources': {'memory_total_bytes': 4, 'memory_available_bytes': 3, 'filesystem_available_bytes': 2}})
+            result = fixture._run_fixture(go, baseline)
         self.assertEqual(result['status'], 'PASS')
+        self.assertEqual(result['http_response_sha256'], fixture.digest(run_id.encode('ascii')))
+        execute = next(args for args in calls if args[:1] == ('exec',))
+        self.assertEqual(execute[-1], fixture._fixture_responder_script(run_id))
         self.assertLess(calls.index(('delete', instance, '--project', 'default')),
                         calls.index(('profile', 'delete', profile, '--project', 'default')))
         self.assertLess(calls.index(('profile', 'delete', profile, '--project', 'default')),
                         calls.index(('profile', 'delete', base_profile, '--project', 'default')))
         self.assertFalse(state['instance'])
+        state.update({'base_config': {}, 'profile_marker': False, 'instance_marker': False, 'profile_device': False,
+                      'status': 'stopped', 'http_body': b'foreign response'})
+        calls.clear()
+        with (
+            patch.object(fixture, '_incus', side_effect=incus),
+            patch.object(fixture, '_inventory_command', side_effect=inventory_command),
+            patch.object(fixture, 'command', side_effect=command),
+            patch.object(fixture, '_incus_route_inventory', return_value=(['default'], [])),
+        ):
+            with self.assertRaisesRegex(fixture.TargetDrift, 'FIXTURE_HTTP_UNVERIFIED'):
+                fixture._run_fixture(go, baseline)
+        self.assertFalse(state['instance'])
+        self.assertFalse(state['profile_exists'])
+        self.assertFalse(state['base_exists'])
+        self.assertIn(('delete', instance, '--project', 'default'), calls)
+        state.pop('http_body')
         state.update({'instance': False, 'profile_marker': False, 'instance_marker': False,
                       'status': 'stopped', 'foreign_consumer': True,
                       'base_exists': False, 'base_config': {}, 'profile_exists': False,
@@ -1985,6 +2008,73 @@ class FixtureLifecycleTests(_FixtureBehaviorTestCase):
             else:
                 self.assertIn(('profile', 'delete', profile, '--project', 'default'), calls)
                 self.assertIn(('profile', 'delete', base_profile, '--project', 'default'), calls)
+
+
+class ResponderShellTests(unittest.TestCase):
+    def test_responder_uses_fixed_nonce_http_and_nonconnecting_listener_readiness(self):
+        fake = r"""#!/usr/bin/python3
+import json,os,sys,time
+from pathlib import Path
+args=sys.argv[1:]
+root=Path(os.environ['RESPONDER_FIXTURE'])
+with (root/'calls.jsonl').open('a') as stream:stream.write(json.dumps(args)+'\n')
+mode=os.environ['RESPONDER_MODE']
+if args==['nc','-l','-s','127.0.0.1','-p','8080','-w','15']:
+ data=sys.stdin.buffer.read()
+ (root/'response.bin').write_bytes(data)
+ (root/'ready').write_text('listener')
+ deadline=time.monotonic()+3
+ while not (root/'finished').exists() and time.monotonic()<deadline:time.sleep(0.01)
+ sys.exit(0)
+if args==['netstat','-ltn']:
+ if (root/'ready').exists():
+  address='0.0.0.0:8080' if mode=='foreign' else '127.0.0.1:8080'
+  print('tcp 0 0 '+address+' 0.0.0.0:* LISTEN')
+  if mode=='ready':(root/'finished').write_text('readiness observed without connecting')
+ sys.exit(0)
+if args[0]=='awk':
+ assert args[1]=='$1 == "tcp" && $4 == "127.0.0.1:8080" && $6 == "LISTEN" { ready=1 } END { exit !ready }'
+ rows=[line.split() for line in sys.stdin]
+ sys.exit(0 if any(len(row)>=6 and row[0]=='tcp' and row[3]=='127.0.0.1:8080' and row[5]=='LISTEN' for row in rows) else 1)
+if args==['sleep','0.2']:sys.exit(0)
+sys.exit(2)
+"""
+        nonce = '0123456789abcdef' * 2
+        script = fixture._fixture_responder_script(nonce)
+        for mode in ('ready', 'foreign'):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                busybox = root / 'busybox'
+                busybox.write_text(fake)
+                busybox.chmod(0o700)
+                process = subprocess.Popen(['/bin/sh', '-c', script], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                    env={'PATH': str(root) + ':/usr/bin:/bin', 'RESPONDER_FIXTURE': str(root), 'RESPONDER_MODE': mode},
+                    start_new_session=True)
+                try:
+                    stdout, stderr = process.communicate(timeout=8)
+                finally:
+                    try:
+                        os.killpg(process.pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+                    if process.poll() is None:
+                        process.wait(timeout=3)
+                self.assertEqual((stdout, stderr), (b'', b''))
+                if mode == 'ready':
+                    self.assertEqual(process.returncode, 0)
+                else:
+                    self.assertNotEqual(process.returncode, 0)
+                response = (root / 'response.bin').read_bytes()
+                headers, body = response.split(b'\r\n\r\n', 1)
+                self.assertEqual(headers, b'HTTP/1.1 200 OK\r\nContent-Length: 32\r\nConnection: close\r\nContent-Type: text/plain')
+                self.assertEqual(body, nonce.encode('ascii'))
+                calls = [json.loads(line) for line in (root / 'calls.jsonl').read_text().splitlines()]
+                self.assertEqual(sum(call[0] == 'nc' for call in calls), 1)
+                self.assertTrue(any(call == ['netstat', '-ltn'] for call in calls))
+                self.assertTrue(all(call[0] in {'nc', 'netstat', 'awk', 'sleep'} for call in calls))
+        for invalid in ('', 'A' * 32, 'a' * 31, 'a' * 33, 'a' * 31 + "'", 'a' * 32 + '\n'):
+            with self.subTest(invalid=invalid), self.assertRaises(fixture.FixtureError):
+                fixture._fixture_responder_script(invalid)
 
 
 class JitNoMutationTests(_FixtureBehaviorTestCase):
