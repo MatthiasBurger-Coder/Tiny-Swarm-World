@@ -11,7 +11,7 @@ import sys
 from types import SimpleNamespace
 from typing import Any
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, PropertyMock, patch
 
 from tools.linux.qualification import wsl_product_acceptance as suite
 from tests.tools.test_owned_case_disposal import Port, case
@@ -69,6 +69,46 @@ class CasePort:
 
 
 class WslProductAcceptanceTests(unittest.TestCase):
+    def test_closed_root_prepare_keeps_real_admission_and_preview_not_bootstrap_facade(self) -> None:
+        for fault in ('valid', 'capability', 'alias', 'preview'):
+            with self.subTest(fault=fault), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                port = suite.WslCasePort(intent(), Mock())
+                port.artifact = {'incus_projects': [{'instances': [], 'profiles': [], 'pools': [],
+                    'images': [{'fingerprint': intent().ubuntu_fingerprint, 'type': 'container'}]}]}
+                port.details = {('incus_image_show', (intent().ubuntu_fingerprint, 'default')):
+                    {'architecture': 'x86_64', 'properties': {'os': 'Ubuntu', 'release': '24.04'}}}
+                alias = {'type': 'sync', 'status': 'Success', 'status_code': 200, 'operation': '',
+                    'error_code': 0, 'error': '', 'metadata': {'name': 'ubuntu-24.04', 'type': 'container',
+                        'description': 'fixed', 'target': 'wrong' if fault == 'alias' else intent().ubuntu_fingerprint}}
+                prerequisites = Mock(side_effect=suite.CaseError('ACTUAL_ADMISSION_REFUSED') if fault == 'capability' else None)
+                public = Mock(return_value=b'actual-preview-transport')
+                preview = Mock(return_value={'validated': 'preview'},
+                    side_effect=suite.CaseError('ACTUAL_PREVIEW_REFUSED') if fault == 'preview' else None)
+                with (
+                    patch.object(suite, 'ROOT', root),
+                    patch.object(suite.Intent, 'home', new_callable=PropertyMock, return_value=root / 'campaign'),
+                    patch.multiple(port, phase=Mock(), command=Mock(return_value=b'ext4\n'), source=Mock(return_value={'pin': 'fixed'}),
+                        prerequisites=prerequisites, identity=Mock(return_value={'identity': 'actual'}), operations=Mock(),
+                        capture=Mock(), incus_env=Mock(return_value={'INCUS_SOCKET': '/var/lib/incus/unix.socket'}), public=public),
+                    patch.object(suite.inventory, '_parse_json_command', return_value=alias),
+                    patch.object(suite, 'projection', return_value={'preserved': 'baseline'}),
+                    patch.object(suite, 'validate_preview', preview),
+                    patch.object(suite, 'Journal'),
+                ):
+                    if fault == 'valid':
+                        result = port.prepare()
+                        self.assertEqual(result['baseline'], {'preserved': 'baseline'})
+                    else:
+                        with self.assertRaises(suite.CaseError):
+                            port.prepare()
+                    prerequisites.assert_called_once()
+                    if fault in {'capability', 'alias'}:
+                        public.assert_not_called()
+                    else:
+                        public.assert_called_once_with(suite.CASE_RECIPES['minimal'].args(preview=True), timeout=120)
+                        preview.assert_called_once_with(b'actual-preview-transport', suite.CASE_RECIPES['minimal'])
+
     def test_upgrade_and_engine_recovery_have_distinct_fixed_go_phases(self) -> None:
         current = replace(intent(), case='upgrade-batch-service-access-portainer-published')
         proposal = {'pins': {'actual': 'c' * 64}}

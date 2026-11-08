@@ -310,6 +310,62 @@ class PreservingProductAcceptanceTests(unittest.TestCase):
             self.assertNotIn('--live', recipe.args(preview=True))
         self.assertEqual(suite.RECIPES['swagger-add-traefik'].args(add=True)[:4], ['services', 'add', '--services', 'traefik'])
 
+    def test_real_native_case_path_keeps_resource_version_preview_and_consent_before_live(self) -> None:
+        from tiny_swarm_world.infrastructure.adapters.lifecycle.catalog import NativeComponentCatalog
+        from tiny_swarm_world.domain.lifecycle.selection import plan_selection
+        from tiny_swarm_world.domain.preflight.setup_manifest import default_setup_manifest
+        from tiny_swarm_world.application.services.profile_setup import proxy_routes_from_setup_manifest
+
+        root = Path(__file__).resolve().parents[2]
+        plan = plan_selection(NativeComponentCatalog(root).load(), minimal=True)
+        manifest = default_setup_manifest(service_profile=plan.service_preset,
+            resolved_services=plan.resolved_services, service_exposure=plan.service_exposure)
+        preview = native.canonical({'status': 'selection_preview', 'plan': plan.model_dump(mode='json'),
+            'routes': {'before': [], 'runtime_observed': False, 'listen_address': '127.0.0.1',
+                       'after': [row.model_dump(mode='json') for row in proxy_routes_from_setup_manifest(manifest, '127.0.0.1')]},
+            'execution': 'not-started', 'data_policy': 'preserve'})
+        for mode in ('ready', 'resource', 'version', 'preview'):
+            with self.subTest(mode=mode):
+                events: list[str] = []
+                journal = Mock()
+                port = suite.SuiteNativePort(intent(), journal, proposal())
+                port.baseline = baseline()
+                resource = {'checks': {'incus_version': False, 'structured_service_access_preflight': mode != 'resource'}, 'observed': {}}
+                version = b'Client version: 6.0.5\nServer version: 6.0.5\n' if mode != 'version' else b'Client version: 6.0.4\nServer version: 6.0.5\n'
+                admission = {'server_version': '6.0.5'}
+
+                def public(args: list[str], timeout: int) -> bytes:
+                    del timeout
+                    self.assertEqual(args[:2], ['setup', 'run'])
+                    events.append('preview' if '--preview' in args else 'live')
+                    return (b'{}' if mode == 'preview' else preview) if '--preview' in args else b'{}'
+
+                with patch.object(port, 'start_pause_budget'), patch.object(port, 'check_binding'), \
+                        patch.object(port, 'interpreter', return_value='/trusted/python'), \
+                        patch.object(port, 'command', return_value=native.canonical(resource)), \
+                        patch.object(port, 'capture', return_value=({'incus_admission': {'initial': admission, 'final': admission}}, Mock())), \
+                        patch.object(port, 'incus_env', return_value={}), \
+                        patch.object(native.inventory, 'Runner', return_value=SimpleNamespace(run=Mock(return_value=(0, version, b'')))), \
+                        patch.object(port, 'route_capture', return_value={'routes': 'unchanged'}), \
+                        patch.object(port, 'public', side_effect=public), \
+                        patch.object(port, 'child', side_effect=AssertionError('Whole-bootstrap actor facade must not enter the scoped case')) as child, \
+                        patch.object(port, 'await_activation', side_effect=lambda *_: events.append('consent')) as activation, \
+                        patch.object(port, 'phase'), patch.object(port, 'prepare_disposal'), \
+                        patch.object(port, 'listeners_clear', return_value=True), \
+                        patch.object(port, 'observe_completion', side_effect=lambda: events.append('verified')):
+                    if mode == 'ready':
+                        port.run_fixture()
+                        self.assertEqual(events, ['preview', 'consent', 'live', 'verified'])
+                        activation.assert_called_once()
+                        self.assertTrue(port.restore_safe)
+                    else:
+                        with self.assertRaises(native.MaintenanceError):
+                            port.run_fixture()
+                        activation.assert_not_called()
+                        self.assertNotIn('live', events)
+                        self.assertEqual(events, ['preview'] if mode == 'preview' else [])
+                    child.assert_not_called()
+
     def test_native_listener_controller_is_not_given_an_arbitrary_callback(self) -> None:
         port = suite.SuiteNativePort(intent(), Mock())
         with self.assertRaisesRegex(native.MaintenanceError, 'SUITE_PROPOSAL_MISSING'):

@@ -667,7 +667,6 @@ class WslCasePort:
              and alias['target'] == self.intent.ubuntu_fingerprint and alias['type'] == 'container'
              and type(alias['description']) is str, 'CASE_IMAGE_ALIAS_DRIFT')
         self.incus_env()
-        self.public(['prerequisites'], helper=True, timeout=120)
         recipe = CASE_RECIPES[self.intent.case]
         preview = validate_preview(self.public(recipe.args(preview=True), timeout=120), recipe)
         baseline = projection(self.artifact, self.details, None, self.intent.ubuntu_fingerprint)

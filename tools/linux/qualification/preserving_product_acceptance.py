@@ -569,8 +569,6 @@ class SuiteNativePort(native.NativePort):
         self.journal.save('paused-resource.json', resource)
         route = self.route_capture()
         self.journal.save('paused-route.json', route)
-        ready = self.child([self.interpreter(), '-E', '-s', '-B', str(Path(__file__)), 'prerequisites'], 180)
-        native.require(native.inventory.strict_json(ready) == {'status': 'SHARED_PREREQUISITES_READY'}, 'SUITE_SHARED_PREPARATION_REQUIRED')
         recipe = CASE_RECIPES[self.intent.case]
         preview = validate_preview(self.public(recipe.args(preview=True), 120), recipe)
         previews = {'initial': preview}
