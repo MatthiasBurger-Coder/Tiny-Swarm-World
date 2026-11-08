@@ -743,7 +743,7 @@ class NativePort:
                         self.check_binding(baseline, active=False)
                     return state
                 except inventory.InventoryError as exc:
-                    if not (transition_owned and str(exc) == 'UNIT_STATE_BLOCKED'):
+                    if not ((transition_owned and str(exc) == 'UNIT_STATE_BLOCKED') or self._retry_provenance(exc)):
                         raise
                 except provenance.ProvenanceError as exc:
                     if not self._retry_provenance(exc):
@@ -758,23 +758,28 @@ class NativePort:
         self.command(['/usr/bin/systemctl', 'start', DAEMON], 90)
         self.wait_ready()
 
-    def _retry_provenance(self, exc: provenance.ProvenanceError) -> bool:
-        return self._owned_start and str(exc) in {'SNAP_WRAPPER_FILE_UNVERIFIED',
-                                                'SNAP_WRAPPER_PROC_INVALID', 'SNAP_WRAPPER_CHILD_ABSENT'}
+    def _retry_provenance(self, exc: provenance.ProvenanceError | inventory.InventoryError) -> bool:
+        if not self._owned_start or str(exc) not in {'SNAP_WRAPPER_FILE_UNVERIFIED',
+                'SNAP_WRAPPER_PROC_INVALID', 'SNAP_WRAPPER_CHILD_ABSENT'}:
+            return False
+        return isinstance(exc, provenance.ProvenanceError) or (
+            isinstance(exc.__cause__, provenance.ProvenanceError) and str(exc.__cause__) == str(exc))
 
     def wait_ready(self) -> None:
         """Only full original proof can finish the existing25+5s own read window."""
         require(self.baseline is not None and self.recovering, 'RECOVERY_READINESS_NOT_ADMITTED')
-        transient = {'DAEMON_STATE_DRIFT', 'SNAP_WRAPPER_CHILD_ABSENT', 'LXD_ENDPOINT_DRIFT',
-                     'LXD_API_NOT_READY', 'SNAP_WRAPPER_PROC_INVALID'}
+        transient = {'DAEMON_STATE_DRIFT', 'LXD_ENDPOINT_DRIFT', 'LXD_API_NOT_READY'}
         with self._read_window('LXD_READINESS_TIMEOUT', reserve='RECOVERY_READINESS_RESERVE_MISSING',
                                busy='RECOVERY_READINESS_TIMER_BUSY') as deadline:
             while time.monotonic() < deadline:
                 try:
                     self.ready_binding()
                     return
-                except (MaintenanceError, inventory.InventoryError) as exc:
+                except MaintenanceError as exc:
                     if str(exc) not in transient:
+                        raise
+                except inventory.InventoryError as exc:
+                    if str(exc) not in transient and not self._retry_provenance(exc):
                         raise
                 except provenance.ProvenanceError as exc:
                     if not self._retry_provenance(exc):

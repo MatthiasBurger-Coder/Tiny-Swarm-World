@@ -627,6 +627,8 @@ def validate_go(go: Any, args: argparse.Namespace, head: str, workflow: bytes, r
 def command(argv: list[str]) -> bytes:
     global _INVENTORY_BYTES_CAPTURED, _INVENTORY_STARTED_AT
     argv = list(argv)
+    if argv[:2] == ['incus', 'info']:
+        raise FixtureError('INVENTORY_COMMAND_NOT_ALLOWLISTED')
     if (argv and argv[0] == '/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe'
             and argv != [argv[0], '-NoProfile', '-NonInteractive', '-Command',
                          '(Get-NetIPAddress -AddressFamily IPv4).IPAddress']):
@@ -638,7 +640,7 @@ def command(argv: list[str]) -> bytes:
         return _snapshot_process(argv, 30, 2 * 1024 * 1024, 2 * 1024 * 1024,
                                  'WINDOWS_FIREWALL_SNAPSHOT_UNREADABLE')
     if (argv and argv[0] == 'incus' and len(argv) > 1
-            and (argv[1] in {'query', 'list', 'info'}
+            and (argv[1] in {'query', 'list'}
                  or argv[1:3] in (['project', 'list'], ['profile', 'list'],
                                   ['image', 'list'], ['image', 'info']))):
         return _inventory_command(argv)
@@ -1240,8 +1242,6 @@ def _inventory_command(argv: list[str]) -> bytes:
         argv == ['incus', 'remote', 'get-default'] or
         argv == ['incus', 'project', 'list', '--format', 'json'] or
         argv == ['incus', 'image', 'list', '--project', 'default', '--format', 'json'] or
-        (len(argv) == 5 and argv[1] == 'info' and _canonical_incus_name(argv[2]) is not None
-         and argv[3:] == ['--format', 'json']) or
         _is_incus_query_argv(argv) or
         (len(argv) == 6 and argv[1] == 'list' and argv[2] == '--project'
          and argv[3] and argv[4:] == ['--format', 'json']) or
@@ -2173,7 +2173,7 @@ def jit(go: dict[str, Any], host: str) -> dict[str, Any]:
 def _incus(*args: str, profile_data: dict[str, Any] | None = None) -> bytes:
     if profile_data is not None:
         return _create_profile_command(list(args), profile_data)
-    if args and (args[0] == 'query' or args[:1] == ('info',)):
+    if args and args[0] == 'query':
         return _inventory_command(['incus', *args])
     return command(['incus', *args])
 
@@ -2232,8 +2232,12 @@ def _create_profile_command(args: list[str], profile_data: Any) -> bytes:
 
 
 def _instance_state(instance: str) -> str:
-    data = strict_json(_incus('info', instance, '--format', 'json'))
-    return str(data.get('status', data.get('state', ''))).lower()
+    data = strict_json(_incus('query', _instance_api_path(instance, 'default')))
+    if (not isinstance(data, dict) or data.get('name') != instance or data.get('project') != 'default'
+            or data.get('type') != 'container' or not isinstance(data.get('status'), str)
+            or data['status'] not in {'Running', 'Stopped'}):
+        raise TargetDrift('INSTANCE_STATE_UNVERIFIED')
+    return {'Running': 'running', 'Stopped': 'stopped'}[data['status']]
 
 
 def _listeners() -> bytes:

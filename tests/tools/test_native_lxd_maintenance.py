@@ -17,6 +17,12 @@ from typing import Any
 from tools.linux.qualification import native_lxd_maintenance as maintenance
 
 
+
+def wrapped_provenance(reason: str) -> maintenance.inventory.InventoryError:
+    error = maintenance.inventory.InventoryError(reason)
+    error.__cause__ = maintenance.provenance.ProvenanceError(reason)
+    return error
+
 def baseline(socket: str = 'inactive') -> dict[str, Any]:
     return {'nodes': {name: {'status': 'Running', 'identity': 'a' * 64} for name in maintenance.NODES},
             'socket': socket, 'preserve': {'config': 'digest', 'incus': ['issue447', 'snapshots']},
@@ -286,7 +292,7 @@ class NativeMaintenanceTests(unittest.TestCase):
         port.baseline = baseline()
         port.recovering = True
         with patch.object(port, 'check_binding') as check, patch.object(port, 'command') as command, \
-                patch.object(port, 'ready_binding', side_effect=[maintenance.inventory.InventoryError('SNAP_WRAPPER_CHILD_ABSENT'), None]) as ready, \
+                patch.object(port, 'ready_binding', side_effect=[wrapped_provenance('SNAP_WRAPPER_CHILD_ABSENT'), None]) as ready, \
                 patch.object(maintenance.time, 'monotonic', return_value=10), patch.object(maintenance.time, 'sleep'), \
                 patch.object(maintenance.signal, 'getitimer', return_value=(0.0, 0.0)), \
                 patch.object(maintenance.signal, 'getsignal', return_value=maintenance.signal.SIG_DFL), \
@@ -412,7 +418,7 @@ class NativeMaintenanceTests(unittest.TestCase):
             transaction.execute()
         self.assertIn(('recovery', 'START_FAILED'), events.failures)
         self.assertEqual(maintenance.failure_reason(RuntimeError('PRIVATE canary/address/pid')), 'UNCLASSIFIED_FAILURE_REDACTED')
-        self.assertEqual(maintenance.failure_reason(maintenance.inventory.InventoryError('SNAP_WRAPPER_CHILD_ABSENT')), 'SNAP_WRAPPER_CHILD_ABSENT')
+        self.assertEqual(maintenance.failure_reason(wrapped_provenance('SNAP_WRAPPER_CHILD_ABSENT')), 'SNAP_WRAPPER_CHILD_ABSENT')
         self.assertEqual(maintenance.failure_reason(maintenance.MaintenanceError('PRIVATE raw value')), 'UNCLASSIFIED_FAILURE_REDACTED')
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -909,7 +915,7 @@ class RecoveryAdmissionCorrectionTests(unittest.TestCase):
         port.baseline = baseline()
         port.recovering = True
         with patch.object(port, 'check_binding') as binding, patch.object(port, 'command') as command, \
-                patch.object(port, 'ready_binding', side_effect=[maintenance.inventory.InventoryError('SNAP_WRAPPER_PROC_INVALID'), None]) as ready, \
+                patch.object(port, 'ready_binding', side_effect=[wrapped_provenance('SNAP_WRAPPER_PROC_INVALID'), None]) as ready, \
                 patch.object(maintenance.time, 'monotonic', return_value=10), patch.object(maintenance.time, 'sleep'), \
                 patch.object(maintenance.signal, 'getitimer', return_value=(0.0, 0.0)), \
                 patch.object(maintenance.signal, 'getsignal', return_value=maintenance.signal.SIG_DFL), \
@@ -925,8 +931,8 @@ class RecoveryAdmissionCorrectionTests(unittest.TestCase):
     def test_permanent_proc_invalid_times_out_without_accepting_unknown_or_starting_any_node(self) -> None:
         port = maintenance.NativePort('a' * 40, 'b' * 64, 1000)
         port.baseline = baseline()
-        port.recovering = True
-        with patch.object(port, 'ready_binding', side_effect=maintenance.inventory.InventoryError('SNAP_WRAPPER_PROC_INVALID')) as ready, \
+        port.recovering = port._owned_start = True
+        with patch.object(port, 'ready_binding', side_effect=wrapped_provenance('SNAP_WRAPPER_PROC_INVALID')) as ready, \
                 patch.object(maintenance.time, 'monotonic', side_effect=[10, 10, 10, 10, 35]), \
                 patch.object(maintenance.time, 'sleep'), patch.object(maintenance.signal, 'getitimer', return_value=(0.0, 0.0)), \
                 patch.object(maintenance.signal, 'getsignal', return_value=maintenance.signal.SIG_DFL), \
@@ -1242,6 +1248,62 @@ class OwnedTransitionObservationTests(unittest.TestCase):
         normalized.args = ('private value/address',)
         self.assertEqual(maintenance.failure_reason(normalized), 'UNCLASSIFIED_FAILURE_REDACTED')
 
+
+
+class CausalWrapperReadinessTests(unittest.TestCase):
+    def test_real_inventory_wrapper_must_be_followed_by_full_original_binding(self) -> None:
+        for reason in ('SNAP_WRAPPER_FILE_UNVERIFIED', 'SNAP_WRAPPER_PROC_INVALID', 'SNAP_WRAPPER_CHILD_ABSENT'):
+            port = maintenance.NativePort('a' * 40, 'b' * 64, time.monotonic() + 600)
+            saved = baseline()
+            expected = {'server_version': '5.21.9', 'server_lts': False}
+            saved['preserve']['lxd_admission'] = {'initial': expected}
+            port.baseline = saved
+            port.recovering = port._owned_start = True
+            calls = [0]
+            def binding(_baseline, *, active):
+                self.assertTrue(active)
+                calls[0] += 1
+                if calls[0] == 1:
+                    maintenance.inventory._resolve_executable(Mock(), {'unit': maintenance.DAEMON, 'main_pid': 17})
+            with self.subTest(reason=reason), patch.object(port, 'check_binding', side_effect=binding), \
+                    patch.object(maintenance.inventory, '_read_executable_path', return_value='/usr/bin/snap'), \
+                    patch.object(maintenance.provenance, 'prove_snap_wrapper', side_effect=maintenance.provenance.ProvenanceError(reason)), \
+                    patch.object(maintenance.inventory, '_read_server_root', return_value=expected) as root, \
+                    patch.object(port, 'command') as effects, patch.object(maintenance.time, 'sleep'):
+                port.wait_ready()
+            self.assertEqual(calls[0], 3)
+            root.assert_called_once()
+            effects.assert_not_called()
+
+    def test_same_text_without_exact_direct_cause_and_own_start_is_never_retryable(self) -> None:
+        for reason in ('SNAP_WRAPPER_FILE_UNVERIFIED', 'SNAP_WRAPPER_PROC_INVALID', 'SNAP_WRAPPER_CHILD_ABSENT'):
+            for owner, cause in ((False, maintenance.provenance.ProvenanceError(reason)),
+                                 (True, None), (True, RuntimeError(reason)),
+                                 (True, maintenance.provenance.ProvenanceError('SNAP_WRAPPER_CONTEXT_BLOCKED'))):
+                port = maintenance.NativePort('a' * 40, 'b' * 64, time.monotonic() + 600)
+                port.baseline = baseline()
+                port.recovering = True
+                port._owned_start = owner
+                error = maintenance.inventory.InventoryError(reason)
+                error.__cause__ = cause
+                with self.subTest(reason=reason, owner=owner, cause=type(cause).__name__), \
+                        patch.object(port, 'ready_binding', side_effect=error) as ready, \
+                        patch.object(port, 'command') as effects:
+                    with self.assertRaises(maintenance.inventory.InventoryError):
+                        port.wait_ready()
+                ready.assert_called_once()
+                effects.assert_not_called()
+
+    def test_recovery_state_retries_only_the_same_causal_provenance_proof(self) -> None:
+        port = maintenance.NativePort('a' * 40, 'b' * 64, time.monotonic() + 600)
+        port.baseline = baseline()
+        port.recovering = True
+        with patch.object(port, '_stable_environment'), patch.object(port, 'unit', return_value='active'), \
+                patch.object(port, 'ready_binding', side_effect=[wrapped_provenance('SNAP_WRAPPER_FILE_UNVERIFIED'), None]) as ready, \
+                patch.object(maintenance.time, 'sleep'), patch.object(port, 'command') as effects:
+            self.assertEqual(port.recovery_state(transition_owned=True, start_owned=True), 'active')
+        self.assertEqual(ready.call_count, 2)
+        effects.assert_not_called()
 
 if __name__ == '__main__':
     unittest.main()

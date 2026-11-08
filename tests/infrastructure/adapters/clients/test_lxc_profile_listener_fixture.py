@@ -1881,8 +1881,6 @@ class FixtureLifecycleTests(_FixtureBehaviorTestCase):
                 if not state['instance_marker']:
                     data['config'].pop('user.q449.run_id')
                 return json.dumps(data).encode()
-            if args[:1] == ('info',):
-                return json.dumps({'status': state['status']}).encode()
             return b''
 
         def command(argv):
@@ -3308,8 +3306,6 @@ class _FullGraphFixtureTransport:
             if project == 'default' and self.current is not None:
                 rows.append(self._instance())
             return self._json(rows)
-        if args[:1] == ['info']:
-            return self._json({'status': 'running' if self.running else 'stopped'})
         if args[:2] == ['image', 'list']:
             return self._json([{'fingerprint': 'b' * 64}])
         if args[:1] == ['query']:
@@ -4101,6 +4097,62 @@ class FixtureInstanceReceiptTests(_FixtureBehaviorTestCase):
         self.assertFalse(any(args[0] in {'stop', 'delete'} or args[:2] == ('profile', 'delete') for args, _ in transport.effects))
         self.assertEqual(json.dumps(transport.foreign_rows, sort_keys=True), transport.foreign_rows_before)
 
+
+
+class InstanceStateApiTests(_FixtureBehaviorTestCase):
+    def test_state_uses_exact_api_identity_and_explicit_status_without_cli_info(self):
+        name = 'tsw-q449-' + 'a' * 32 + '-fixture'
+        for status, expected in (('Stopped', 'stopped'), ('Running', 'running')):
+            data = _fixture_instance_dto({'target': {'instance': name, 'run_id': 'a' * 32,
+                'image_fingerprint': 'b' * 64, 'base_profile': 'base', 'profile': 'profile'}, 'proxy': {}},
+                {'devices': {}, 'config': {}}, {}, 'running' if status == 'Running' else 'init')
+            with self.subTest(status=status), patch.object(fixture, '_incus', return_value=json.dumps(data).encode()) as query:
+                self.assertEqual(fixture._instance_state(name), expected)
+                query.assert_called_once_with('query', fixture._instance_api_path(name, 'default'))
+
+    def test_state_missing_foreign_malformed_and_unknown_status_never_become_cleanup_authority(self):
+        name = 'tsw-q449-' + 'a' * 32 + '-fixture'
+        good = {'name': name, 'project': 'default', 'type': 'container', 'status': 'Stopped'}
+        changes: tuple[dict[str, Any], ...] = ({'name': 'foreign'}, {'project': 'foreign'},
+            {'type': 'virtual-machine'}, {'status': 'stopped'}, {'status': 'RUNNING'},
+            {'status': 'Frozen'}, {'status': None}, {'status': 102}, {'status': True})
+        observations: list[object] = [dict(good, **change) for change in changes]
+        observations.extend([{key: value for key, value in good.items() if key != missing} for missing in good])
+        observations.extend([[], None, {'state': 'Stopped'}])
+        for data in observations:
+            with self.subTest(data=data), patch.object(fixture, '_incus', return_value=json.dumps(data).encode()), \
+                    self.assertRaisesRegex(fixture.TargetDrift, 'INSTANCE_STATE_UNVERIFIED'):
+                fixture._instance_state(name)
+        with patch.object(fixture, '_incus', return_value=b'{'), self.assertRaises(fixture.FixtureError):
+            fixture._instance_state(name)
+        with patch.object(fixture.subprocess, 'Popen') as spawn:
+            for execute in (fixture.command, fixture._inventory_command):
+                with self.assertRaisesRegex(fixture.FixtureError, 'INVENTORY_COMMAND_NOT_ALLOWLISTED'):
+                    execute(['incus', 'info', name, '--format', 'json'])
+            with self.assertRaisesRegex(fixture.FixtureError, 'INVENTORY_COMMAND_NOT_ALLOWLISTED'):
+                fixture._incus('info', name, '--format', 'json')
+        spawn.assert_not_called()
+
+    def test_real_full_transport_only_uses_state_api_even_when_cleanup_recovers_failed_start(self):
+        transport = _FullGraphFixtureTransport(self)
+        transport.fail_effect = ('start', transport.instance, '--project', 'default')
+        fixture._INVENTORY_RESERVE_CLEANUP = True
+        reads: list[list[str]] = []
+        original = transport.read
+        def read(args):
+            self.assertNotEqual(args[:1], ['info'])
+            reads.append(list(args))
+            return original(args)
+        with (patch.object(transport, 'read', side_effect=read),
+              patch.object(fixture.subprocess, 'Popen', side_effect=transport.popen),
+              patch.object(fixture.subprocess, 'run', side_effect=transport.run)):
+            baseline = fixture.jit(transport.go, '192.168.178.33')
+            with self.assertRaises(fixture.TargetDrift):
+                fixture._run_fixture(transport.go, baseline)
+        self.assertIsNone(transport.current)
+        self.assertEqual(set(transport.profiles), {'default', 'legacy-base', 'legacy-route'})
+        self.assertGreaterEqual(reads.count(['query', fixture._instance_api_path(transport.instance, 'default')]), 2)
+        self.assertFalse(any('--force' in args for args, _ in transport.effects))
 
 if __name__ == '__main__':
     unittest.main()
