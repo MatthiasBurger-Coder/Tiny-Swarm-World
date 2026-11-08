@@ -1258,9 +1258,12 @@ def _devices(value: Any) -> dict[str, dict[str, str]]:
     for name, device in value.items():
         _name(name)
         row = _string_map(device)
-        if set(row) - {"type", "name", "nictype", "parent", "network", "vlan", "source.type", "source.snapshot", "listen", "connect", "bind", "ports", "path", "source", "pool", "size", "readonly", "required", "shift", "limits.cpu", "limits.memory", "boot.priority"}:
+        if set(row) - {"type", "name", "nictype", "parent", "network", "vlan", "source.type", "source.snapshot", "listen", "connect", "bind", "nat", "proxy_protocol", "ports", "path", "source", "pool", "size", "readonly", "required", "shift", "limits.cpu", "limits.memory", "boot.priority"}:
             raise InventoryError("RESOURCE_SCHEMA_INVALID")
         if row.get("type") not in {"disk", "nic", "proxy"}:
+            raise InventoryError("RESOURCE_SCHEMA_INVALID")
+        if any(key in row and (row["type"] != "proxy" or row[key] not in {"true", "false"})
+               for key in ("nat", "proxy_protocol")):
             raise InventoryError("RESOURCE_SCHEMA_INVALID")
         if {"source.type", "source.snapshot"} & set(row):
             raise InventoryError("STORAGE_SNAPSHOT_OR_SELECTOR_UNSUPPORTED" if row["type"] == "disk" else "RESOURCE_SCHEMA_INVALID")

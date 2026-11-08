@@ -17,6 +17,24 @@ from tools.linux.qualification import native_runtime_inventory as inventory
 
 
 class NativeRuntimeInventoryTests(unittest.TestCase):
+    def test_proxy_boolean_flags_preserve_shipped_values_and_reject_other_types(self) -> None:
+        shipped = {"proxy": {"type": "proxy", "listen": "tcp:0.0.0.0:10001",
+                             "connect": "tcp:127.0.0.1:10001", "nat": "false", "proxy_protocol": "false"}}
+        self.assertEqual(inventory._devices(shipped), shipped)
+        invalid: tuple[object, ...] = ("", "TRUE", "False", "1", " false", False, None, 0)
+        for flag in ("nat", "proxy_protocol"):
+            for value in ("true", "false"):
+                device = {"proxy": {"type": "proxy", flag: value}}
+                self.assertEqual(inventory._devices(device), device)
+            for value in invalid:
+                with self.subTest(flag=flag, value=value), self.assertRaises(inventory.InventoryError):
+                    inventory._devices({"proxy": {"type": "proxy", flag: value}})
+            for kind in ("nic", "disk"):
+                with self.subTest(flag=flag, kind=kind), self.assertRaises(inventory.InventoryError):
+                    inventory._devices({"device": {"type": kind, flag: "false"}})
+        with self.assertRaises(inventory.InventoryError):
+            inventory._devices({"proxy": {"type": "proxy", "unknown_proxy_flag": "false"}})
+
     class _InventoryRunner(inventory.Runner):
         def __init__(self):
             self.calls: list[tuple[list[str], dict[str, str], str]] = []
