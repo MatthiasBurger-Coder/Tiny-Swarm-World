@@ -672,6 +672,7 @@ class ProjectInventoryCaptureTests(_FixtureBehaviorTestCase):
             ['incus', 'query', '/1.0/projects/qa%20blue'],
             ['incus', 'query', '/1.0/profiles/web%20blue?project=qa%20blue'],
             ['incus', 'query', '/1.0/instances/vm%20one?project=qa%20blue'],
+            ['incus', 'query', '/1.0/images/' + 'e' * 64 + '?project=default'],
         ]
         with patch.object(fixture.subprocess, 'Popen',
                           side_effect=lambda *a, **k: FakeProcess()) as run:
@@ -683,6 +684,11 @@ class ProjectInventoryCaptureTests(_FixtureBehaviorTestCase):
         self.assertEqual(set(record), {'command_id', 'safe_args', 'exit_status', 'stdout_bytes', 'stderr_bytes'})
         self.assertNotIn(valid[-1][-1], json.dumps(record))
         invalid = [
+            ['incus', 'image', 'info', 'e' * 64, '--project', 'default', '--format', 'json'],
+            ['incus', 'query', '/1.0/images/' + 'e' * 63 + '?project=default'],
+            ['incus', 'query', '/1.0/images/' + 'E' * 64 + '?project=default'],
+            ['incus', 'query', '/1.0/images/' + 'e' * 64 + '?project=qa'],
+            ['incus', 'query', '/1.0/images/' + 'e' * 64 + '?project=default&recursion=1'],
             ['incus', 'query', '/1.0/projects/qa%2fblue'],
             ['incus', 'query', '/1.0/projects/../default'],
             ['incus', 'query', '/1.0/instances/vm'],
@@ -2019,6 +2025,7 @@ class JitNoMutationTests(_FixtureBehaviorTestCase):
                     fixture.jit(go, '192.168.178.33')
                 profile.assert_not_called()
                 self.assertEqual(called.call_count, 3)
+                self.assertEqual(called.call_args.args[0], ['incus', 'query', '/1.0/images/' + fingerprint + '?project=default'])
 
     def test_default_profile_digest_mismatch_is_a_jit_drift(self):
         run_id = 'a' * 32
@@ -2068,7 +2075,7 @@ class JitNoMutationTests(_FixtureBehaviorTestCase):
                 return b'[{"name":"default"}]'
             if argv[1:3] == ['image', 'list']:
                 return json.dumps([{'fingerprint': fingerprint}]).encode()
-            if argv[1:3] == ['image', 'info']:
+            if argv == ['incus', 'query', '/1.0/images/' + fingerprint + '?project=default']:
                 return b'{"properties":{"os":"Alpine Linux","release":"3.21"}}'
             if argv[:2] == ['incus', 'query'] and argv[2] == fixture._profile_api_path('default', 'default'):
                 return json.dumps(profile).encode()
@@ -2184,7 +2191,7 @@ class JitNoMutationTests(_FixtureBehaviorTestCase):
             ('incus', 'project', 'list', '--format', 'json'): b'[{"name":"default"}]',
             ('incus', 'query', '/1.0/projects/default'): b'{"name":"default","description":"","config":{}}',
             ('incus', 'image', 'list', '--project', 'default', '--format', 'json'): json.dumps([{'fingerprint': fingerprint}]).encode(),
-            ('incus', 'image', 'info', fingerprint, '--project', 'default', '--format', 'json'): b'{"properties":{"os":"Alpine Linux","release":"3.21"}}',
+            ('incus', 'query', '/1.0/images/' + fingerprint + '?project=default'): b'{"properties":{"os":"Alpine Linux","release":"3.21"}}',
             ('free', '-b'): b'header\nMem: 40000000000 1000000 2000000 0 3000000 35000000000',
             ('df', '-B1', '--output=avail', str(fixture.ROOT)): b'Avail\n100000000000',
             ('ss', '-H', '-ltn'): b'LISTEN 0 1 127.0.0.1:10001 0.0.0.0:*',
@@ -2208,7 +2215,7 @@ class JitNoMutationTests(_FixtureBehaviorTestCase):
         command_order = [
             ('ip', '-j', '-4', 'addr'), ('incus', 'version'),
             ('incus', 'image', 'list', '--project', 'default', '--format', 'json'),
-            ('incus', 'image', 'info', fingerprint, '--project', 'default', '--format', 'json'),
+            ('incus', 'query', '/1.0/images/' + fingerprint + '?project=default'),
             ('free', '-b'), ('df', '-B1', '--output=avail', str(fixture.ROOT)),
             ('ss', '-H', '-ltn'), ('ss', '-H', '-ltnp'),
             ('incus', 'list', '--project', 'default', '--format', 'json'),
@@ -2306,7 +2313,7 @@ class WslJitTests(_FixtureBehaviorTestCase):
                 ('incus', 'project', 'list', '--format', 'json'): b'[{"name":"default"}]',
                 ('incus', 'query', '/1.0/projects/default'): b'{"name":"default","description":"","config":{}}',
                 ('incus', 'image', 'list', '--project', 'default', '--format', 'json'): json.dumps([{'fingerprint': fingerprint}]).encode(),
-                ('incus', 'image', 'info', fingerprint, '--project', 'default', '--format', 'json'): b'{"properties":{"os":"Alpine Linux","release":"3.21"}}',
+                ('incus', 'query', '/1.0/images/' + fingerprint + '?project=default'): b'{"properties":{"os":"Alpine Linux","release":"3.21"}}',
                 ('incus', 'query', fixture._profile_api_path('default', 'default')): json.dumps(profile).encode(),
                 ('free', '-b'): b'header\nMem: 40000000000 1000000 2000000 0 3000000 35000000000',
                 ('df', '-B1', '--output=avail', str(fixture.ROOT)): b'Avail\n100000000000',

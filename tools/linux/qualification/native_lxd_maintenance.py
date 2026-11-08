@@ -66,6 +66,15 @@ class MaintenanceError(Exception):
     """Only fixed symbolic reasons cross the public boundary."""
 
 
+def failure_reason(exc: BaseException) -> str:
+    """Persist trusted symbolic codes only, never arbitrary exception text."""
+    if isinstance(exc, (MaintenanceError, inventory.InventoryError, fixture.FixtureError)):
+        code = str(exc)
+        if re.fullmatch(r'[A-Z][A-Z0-9_]{0,95}', code):
+            return code
+    return 'INTERRUPTED' if isinstance(exc, (KeyboardInterrupt, SystemExit)) else 'UNCLASSIFIED_FAILURE_REDACTED'
+
+
 def require(condition: Any, code: str) -> None:
     if not condition:
         raise MaintenanceError(code)
@@ -129,6 +138,12 @@ class Journal:
         finally:
             os.close(directory)
 
+    def failure(self, stage: str, reason: str) -> None:
+        require(stage in {'qualification', 'recovery', 'recovery-node'}
+                and bool(re.fullmatch(r'[A-Z][A-Z0-9_]{0,95}', reason)), 'FAILURE_RECORD_INVALID')
+        self.save('failure-' + uuid4().hex + '.json', {'stage': stage, 'reason': reason,
+                  'utc': datetime.now(timezone.utc).isoformat()})
+
     def stopped_nodes(self) -> set[str]:
         paths = list(self.directory.glob('event-*.json'))
         require(len(paths) <= 1024, 'JOURNAL_EVENT_BOUND')
@@ -172,6 +187,7 @@ class Port(Protocol):
 
 
 class EventPort(Protocol):
+    def failure(self, stage: str, reason: str) -> None: ...
     def stopped_nodes(self) -> set[str]: ...
     def event(self, action: str, node: str = '') -> None: ...
 
@@ -295,7 +311,11 @@ class Transaction:
                     require(self.checked_node(name)['status'] == 'Running', 'NODE_RECOVERY_FAILED')
                 else:
                     require(current == wanted, 'NODE_RECOVERY_STATE_DRIFT')
-            except Exception:
+            except Exception as exc:
+                try:
+                    self.journal.failure('recovery-node', failure_reason(exc))
+                except OSError:
+                    pass
                 # A foreign/drifted node cannot prevent recovery of other own stops.
                 node_failure = True
         if self.port.unit(SOCKET) != self.baseline['socket']:
@@ -340,9 +360,10 @@ class Transaction:
             self.port.run_fixture()
             require(self.port.unit(DAEMON) == 'inactive' and self.port.unit(SOCKET) == 'inactive',
                     'DAEMON_REACTIVATED')
-        except BaseException:
+        except BaseException as exc:
             failure = True
             try:
+                self.journal.failure('qualification', failure_reason(exc))
                 self.journal.event('qualification-failed')
             except OSError:
                 pass  # No further qualification effect; recovery still runs.
@@ -350,7 +371,11 @@ class Transaction:
             try:
                 self.recover()
             except BaseException as exc:
-                self.journal.event('recovery-failed')
+                try:
+                    self.journal.failure('recovery', failure_reason(exc))
+                    self.journal.event('recovery-failed')
+                except OSError:
+                    pass
                 raise MaintenanceError('RECOVERY_REQUIRED') from exc
         return {'status': 'QUALIFICATION_FAILED_RECOVERED' if failure else 'PASS'}
 
@@ -643,6 +668,51 @@ class NativePort:
         require(self.baseline is not None, 'PRESTATE_MISSING')
         self.check_binding(cast(dict[str, Any], self.baseline), active=False)
         self.command(['/usr/bin/systemctl', 'start', DAEMON], 90)
+        self.wait_ready()
+
+    def wait_ready(self) -> None:
+        """Bound full read-only startup proof, including its running client, to 30s."""
+        require(self.baseline is not None and self.recovering, 'RECOVERY_READINESS_NOT_ADMITTED')
+        require(self.deadline - time.monotonic() >= 30, 'RECOVERY_READINESS_RESERVE_MISSING')
+        require(signal.getitimer(signal.ITIMER_REAL) == (0.0, 0.0), 'RECOVERY_READINESS_TIMER_BUSY')
+        previous = signal.getsignal(signal.SIGALRM)
+        def expired(_signal: int, _frame: Any) -> None:
+            raise MaintenanceError('LXD_READINESS_TIMEOUT')
+        signal.signal(signal.SIGALRM, expired)
+        # Reserve the existing owned-client kill/reap maximum of five seconds.
+        signal.setitimer(signal.ITIMER_REAL, 25)
+        deadline = time.monotonic() + 25
+        transient = {'DAEMON_STATE_DRIFT', 'SNAP_WRAPPER_CHILD_ABSENT', 'LXD_ENDPOINT_DRIFT', 'LXD_API_NOT_READY'}
+        try:
+            while time.monotonic() < deadline:
+                try:
+                    self.ready_binding()
+                    return
+                except (MaintenanceError, inventory.InventoryError) as exc:
+                    if str(exc) not in transient:
+                        raise
+                time.sleep(min(.2, max(0, deadline - time.monotonic())))
+            raise MaintenanceError('LXD_READINESS_TIMEOUT')
+        finally:
+            signal.setitimer(signal.ITIMER_REAL, 0)
+            signal.signal(signal.SIGALRM, previous)
+
+    def ready_binding(self) -> None:
+        require(self.baseline is not None, 'PRESTATE_MISSING')
+        baseline = cast(dict[str, Any], self.baseline)
+        self.check_binding(baseline, active=True)
+        expected = baseline['preserve']['lxd_admission']['initial']
+        version = expected['server_version'] + (' LTS' if expected['server_lts'] else '')
+        try:
+            observed = inventory._read_server_root(inventory.Runner(), ['/snap/bin/lxc', '--force-local'],
+                ENV | {'LXD_SOCKET': SOCKET_PATH}, lambda: self.check_binding(baseline, active=True),
+                incus=False, cli_version=version, phase='initial')
+        except inventory.InventoryError as exc:
+            if str(exc) in {'COMMAND_FAILED', 'COMMAND_EXECUTION_FAILED', 'COMMAND_TIMEOUT'}:
+                raise MaintenanceError('LXD_API_NOT_READY') from exc
+            raise
+        require(observed == expected, 'LXD_API_AUTHORITY_DRIFT')
+        self.check_binding(baseline, active=True)
 
     def restore_socket(self, state: str) -> None:
         require(state in {'active', 'inactive'} and self.baseline is not None, 'SOCKET_STATE_INVALID')
@@ -719,8 +789,20 @@ class NativePort:
         require(self.final_expiry is not None and (self.final_expiry - datetime.now(timezone.utc)).total_seconds()
                 >= PHASE_SECONDS['fixture'], 'PAUSED_ADMISSION_EXPIRED')
         self.phase('fixture')
-        self.command(['/usr/bin/python3', '-E', '-s', '-B', str(ROOT / FILES[4]),
-                 '--target-host', HOST, '--expected-approval-sha256', final_go_sha], 900, interrupt_grace=120)
+        try:
+            self.command(['/usr/bin/python3', '-E', '-s', '-B', str(ROOT / FILES[4]),
+                     '--target-host', HOST, '--expected-approval-sha256', final_go_sha], 900, interrupt_grace=120)
+        except MaintenanceError as exc:
+            if str(exc) == 'COMMAND_FAILED_UNCERTAIN':
+                try:
+                    failed = inventory.strict_json(read_private(ROOT / fixture.RESULT_REL))
+                except (OSError, inventory.InventoryError):
+                    failed = None
+                if (isinstance(failed, dict) and failed.get('status') == 'BLOCKED_TARGET_DRIFT'
+                        and failed.get('source_commit') == head and failed.get('go_sha256') == final_go_sha
+                        and isinstance(failed.get('code'), str) and re.fullmatch(r'[A-Z][A-Z0-9_]{0,95}', failed['code'])):
+                    raise MaintenanceError(failed['code']) from exc
+            raise
         value = inventory.strict_json(read_private(ROOT / fixture.RESULT_REL))
         require(value.get('status') == 'PASS' and value.get('go_sha256') == final_go_sha, 'FIXTURE_NOT_PASS')
 
@@ -916,7 +998,14 @@ def main(argv: list[str] | None = None) -> int:
                 result = transaction.execute()
             else:
                 require((directory / 'started.json').exists(), 'NO_STARTED_TRANSACTION')
-                transaction.recover()
+                try:
+                    transaction.recover()
+                except BaseException as exc:
+                    try:
+                        journal.failure('recovery', failure_reason(exc))
+                    except OSError:
+                        pass
+                    raise
                 result = {'status': 'RECOVERED'}
             journal.save('result-' + uuid4().hex + '.json', result)
             print(json.dumps(result))

@@ -1089,6 +1089,8 @@ def _is_incus_query_argv(argv: list[str]) -> bool:
     resource = parts[2]
     if _canonical_incus_name(parts[3]) is None:
         return False
+    if resource == 'images':
+        return HASH64.fullmatch(parts[3]) is not None and separator == '?' and query == 'project=default'
     if resource == 'projects':
         return not separator
     if resource not in {'profiles', 'instances'} or not separator:
@@ -1120,9 +1122,6 @@ def _inventory_command(argv: list[str]) -> bytes:
         argv == ['incus', 'remote', 'get-default'] or
         argv == ['incus', 'project', 'list', '--format', 'json'] or
         argv == ['incus', 'image', 'list', '--project', 'default', '--format', 'json'] or
-        (len(argv) == 8 and argv[1:3] == ['image', 'info']
-         and HASH64.fullmatch(argv[3]) is not None
-         and argv[4:] == ['--project', 'default', '--format', 'json']) or
         (len(argv) == 5 and argv[1] == 'info' and _canonical_incus_name(argv[2]) is not None
          and argv[3:] == ['--format', 'json']) or
         _is_incus_query_argv(argv) or
@@ -1814,8 +1813,8 @@ def jit(go: dict[str, Any], host: str) -> dict[str, Any]:
     image = strict_json(command(['incus', 'image', 'list', '--project', 'default', '--format', 'json']))
     if not any(i.get('fingerprint') == target['image_fingerprint'] for i in image):
         raise TargetDrift('INCUS_IMAGE_DRIFT')
-    image_info = strict_json(command(['incus', 'image', 'info', target['image_fingerprint'], '--project', 'default', '--format', 'json']))
-    properties = image_info.get('properties')
+    image_info = strict_json(command(['incus', 'query', '/1.0/images/' + target['image_fingerprint'] + '?project=default']))
+    properties = image_info.get('properties') if isinstance(image_info, dict) else None
     if not isinstance(properties, dict) or 'alpine' not in str(properties.get('os', '')).lower() or properties.get('release') != '3.21':
         raise TargetDrift('INCUS_IMAGE_NOT_ALPINE_321')
     profile = _read_default_profile(go, go['default_profile_used_by'])

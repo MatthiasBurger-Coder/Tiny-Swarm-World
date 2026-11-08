@@ -117,6 +117,12 @@ class Events:
         self.events: list[tuple[str, str]] = []
         self.port = port
         self.fail = False
+        self.failures: list[tuple[str, str]] = []
+
+    def failure(self, stage: str, reason: str) -> None:
+        if self.fail:
+            raise OSError('fsync failed')
+        self.failures.append((stage, reason))
 
     def stopped_nodes(self) -> set[str]:
         return {node for action, node in self.events if action == 'stop-node'}
@@ -265,6 +271,121 @@ class NativeMaintenanceTests(unittest.TestCase):
             with self.assertRaises(maintenance.MaintenanceError):
                 port.start_node('foreign')
             self.assertEqual(run.call_count, 4)
+
+    def test_production_start_waits_for_full_proof_after_active_without_repeating_start(self) -> None:
+        port = maintenance.NativePort('a' * 40, 'b' * 64, 1000)
+        port.baseline = baseline()
+        port.recovering = True
+        with patch.object(port, 'check_binding') as check, patch.object(port, 'command') as command, \
+                patch.object(port, 'ready_binding', side_effect=[maintenance.inventory.InventoryError('SNAP_WRAPPER_CHILD_ABSENT'), None]) as ready, \
+                patch.object(maintenance.time, 'monotonic', return_value=10), patch.object(maintenance.time, 'sleep'), \
+                patch.object(maintenance.signal, 'getitimer', return_value=(0.0, 0.0)), \
+                patch.object(maintenance.signal, 'getsignal', return_value=maintenance.signal.SIG_DFL), \
+                patch.object(maintenance.signal, 'signal') as handler, patch.object(maintenance.signal, 'setitimer') as timer:
+            port.start_daemon()
+            check.assert_called_once_with(port.baseline, active=False)
+            command.assert_called_once_with(['/usr/bin/systemctl', 'start', maintenance.DAEMON], 90)
+            self.assertEqual(ready.call_count, 2)
+            self.assertEqual(timer.call_args_list[0].args, (maintenance.signal.ITIMER_REAL, 25))
+            self.assertEqual(timer.call_args_list[-1].args, (maintenance.signal.ITIMER_REAL, 0))
+            self.assertEqual(handler.call_args_list[-1].args, (maintenance.signal.SIGALRM, maintenance.signal.SIG_DFL))
+
+    def test_readiness_permanent_drift_and_expired_window_never_repeat_or_start_nodes(self) -> None:
+        for reason in ('INSTALLED_BINDING_DRIFT', 'INCUS_SOCKET_DRIFT', 'INCUS_SERVICE_DRIFT',
+                       'SOURCE_HEAD_DRIFT', 'SNAP_WRAPPER_PROC_INVALID', 'SERVER_ADMISSION_BLOCKED'):
+            port = maintenance.NativePort('a' * 40, 'b' * 64, 1000)
+            port.baseline = baseline()
+            port.recovering = True
+            with self.subTest(reason=reason), patch.object(port, 'ready_binding', side_effect=maintenance.MaintenanceError(reason)) as ready, \
+                    patch.object(maintenance.time, 'monotonic', return_value=10), \
+                    patch.object(maintenance.signal, 'getitimer', return_value=(0.0, 0.0)), \
+                    patch.object(maintenance.signal, 'getsignal', return_value=maintenance.signal.SIG_DFL), \
+                    patch.object(maintenance.signal, 'signal'), patch.object(maintenance.signal, 'setitimer'), \
+                    patch.object(port, 'command') as command:
+                with self.assertRaisesRegex(maintenance.MaintenanceError, reason):
+                    port.wait_ready()
+                ready.assert_called_once()
+                command.assert_not_called()
+        with patch.object(maintenance.time, 'monotonic', return_value=1000), patch.object(port, 'ready_binding') as ready:
+            with self.assertRaisesRegex(maintenance.MaintenanceError, 'RECOVERY_READINESS_RESERVE_MISSING'):
+                port.wait_ready()
+            ready.assert_not_called()
+        port.deadline = 1000
+        with patch.object(maintenance.time, 'monotonic', side_effect=[10, 10, 36]), \
+                patch.object(maintenance.signal, 'getitimer', return_value=(0.0, 0.0)), \
+                patch.object(maintenance.signal, 'getsignal', return_value=maintenance.signal.SIG_DFL), \
+                patch.object(maintenance.signal, 'signal'), patch.object(maintenance.signal, 'setitimer'), \
+                patch.object(port, 'ready_binding') as ready:
+            with self.assertRaisesRegex(maintenance.MaintenanceError, 'LXD_READINESS_TIMEOUT'):
+                port.wait_ready()
+            ready.assert_not_called()
+
+    def test_readiness_rebinds_actual_root_api_authority_and_full_process_proof(self) -> None:
+        port = maintenance.NativePort('a' * 40, 'b' * 64, 1000)
+        expected = {'server_version': '5.21.9', 'server_lts': True, 'auth': 'trusted'}
+        port.baseline = baseline()
+        port.baseline['preserve']['lxd_admission'] = {'initial': expected}
+        with patch.object(port, 'check_binding') as check, \
+                patch.object(maintenance.inventory, '_read_server_root', return_value=expected) as api:
+            port.ready_binding()
+            api.call_args.args[3]()
+            self.assertEqual(check.call_count, 3)  # before, API-before-query callback, after
+            self.assertEqual(api.call_args.args[1], ['/snap/bin/lxc', '--force-local'])
+            self.assertEqual(api.call_args.args[2]['LXD_SOCKET'], maintenance.SOCKET_PATH)
+            self.assertEqual(api.call_args.kwargs['cli_version'], '5.21.9 LTS')
+            api.return_value = expected | {'auth': 'untrusted'}
+            with self.assertRaisesRegex(maintenance.MaintenanceError, 'LXD_API_AUTHORITY_DRIFT'):
+                port.ready_binding()
+            api.side_effect = maintenance.inventory.InventoryError('COMMAND_FAILED')
+            with self.assertRaisesRegex(maintenance.MaintenanceError, 'LXD_API_NOT_READY'):
+                port.ready_binding()
+            api.side_effect = maintenance.inventory.InventoryError('SERVER_SCHEMA_INVALID')
+            with self.assertRaisesRegex(maintenance.inventory.InventoryError, 'SERVER_SCHEMA_INVALID'):
+                port.ready_binding()
+
+    def test_fixture_child_failure_retains_only_same_source_go_symbolic_result_reason(self) -> None:
+        port = maintenance.NativePort('a' * 40, 'b' * 64, 1000)
+        port.final_expiry = datetime.now(timezone.utc) + timedelta(minutes=25)
+        failed: dict[str, Any] = {'status': 'BLOCKED_TARGET_DRIFT', 'source_commit': 'a' * 40,
+                                'go_sha256': 'c' * 64, 'code': 'INCUS_INVENTORY_COMMAND_FAILED'}
+        variants: tuple[dict[str, Any], ...] = ({}, {'go_sha256': 'd' * 64}, {'source_commit': 'f' * 40},
+                                               {'code': 'PRIVATE raw canary'}, {'status': 'PASS'})
+        with patch.object(port, 'unit', return_value='inactive'), \
+                patch.object(port, 'await_admission', return_value='c' * 64), \
+                patch.object(maintenance, 'source_pins', return_value=('a' * 40, {})), \
+                patch.object(port, 'command', side_effect=maintenance.MaintenanceError('COMMAND_FAILED_UNCERTAIN')), \
+                patch.object(maintenance, 'read_private') as read:
+            for change in variants:
+                read.return_value = maintenance.canonical(failed | change)
+                reason = 'COMMAND_FAILED_UNCERTAIN' if change else 'INCUS_INVENTORY_COMMAND_FAILED'
+                with self.subTest(change=change), self.assertRaisesRegex(maintenance.MaintenanceError, reason):
+                    port.run_fixture()
+
+    def test_durable_failures_keep_safe_symbolic_reason_and_never_exception_text(self) -> None:
+        port, events, transaction = self.transaction()
+        port.failure = 'fixture'
+        self.assertEqual(transaction.execute()['status'], 'QUALIFICATION_FAILED_RECOVERED')
+        self.assertIn(('qualification', 'FIXTURE_FAILED'), events.failures)
+        port, events, transaction = self.transaction()
+        port.failure = 'fixture'
+        port.start_failure = True
+        with self.assertRaisesRegex(maintenance.MaintenanceError, 'RECOVERY_REQUIRED'):
+            transaction.execute()
+        self.assertIn(('recovery', 'START_FAILED'), events.failures)
+        self.assertEqual(maintenance.failure_reason(RuntimeError('PRIVATE canary/address/pid')), 'UNCLASSIFIED_FAILURE_REDACTED')
+        self.assertEqual(maintenance.failure_reason(maintenance.inventory.InventoryError('SNAP_WRAPPER_CHILD_ABSENT')), 'SNAP_WRAPPER_CHILD_ABSENT')
+        self.assertEqual(maintenance.failure_reason(maintenance.MaintenanceError('PRIVATE raw value')), 'UNCLASSIFIED_FAILURE_REDACTED')
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            root.chmod(0o700)
+            with patch.object(maintenance, 'private_directory') as directory_proof:
+                journal = maintenance.Journal(root)
+            directory_proof.assert_called_once_with(root)
+            journal.failure('recovery', 'LXD_READINESS_TIMEOUT')
+            record = json.loads(next(root.glob('failure-*.json')).read_text())
+            self.assertEqual(set(record), {'stage', 'reason', 'utc'})
+            self.assertEqual(record['reason'], 'LXD_READINESS_TIMEOUT')
+            self.assertEqual(journal.stopped_nodes(), set())
 
     def test_stopped_restart_admission_rejects_implicit_and_explicit_autostart(self) -> None:
         safe: tuple[dict[str, str], ...] = ({}, {'volatile.last_state.power': 'STOPPED'},
