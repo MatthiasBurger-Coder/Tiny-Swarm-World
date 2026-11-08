@@ -256,3 +256,20 @@ Primary WSL authority:
 https://learn.microsoft.com/windows/wsl/basic-commands[distribution import/terminate/unregister],
 https://learn.microsoft.com/windows/wsl/wsl-config[per-distribution and global settings],
 https://wsl.dev/technical-documentation/security/[shared utility VM and non-isolation].
+
+== Closed upgrade acceptance source amendment — workflow v1.59
+
+The exact R2 source plan698cbdfc9560a882f628c4a5f49c6096d9f2d39ec3f8fe2c6106b04066baf2b4
+adds only ordered S-U1/S-U2 engineering under its fifteen file locks. Sixteen
+upgrade cases plus the existing eight use strict schema2 ledger24. Both declared
+presets, optional writers and Swagger exposures require actual normal batch
+proof on both hosts before any public qualification. The private exact actual
+catalog revision is only unpublished test input; no substitute catalog or
+synthetic observation is accepted. Official schema1 source installations and
+UUID-bound legacy cleanup remain separate from scoped manifests/disposal. Shared
+legacy profile deltas affecting foreign consumers refuse before released setup.
+
+Workflow v1.59 names finite per-recipe phase/containing forward and distinct
+engine-recovery budgets. Existing disposal-only recovery remains900seconds.
+All complete preservation, actual host/case/source GO and independent evidence
+requirements remain. This is source authority only; aggregate acceptance is open.

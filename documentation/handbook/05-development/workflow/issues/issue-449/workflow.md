@@ -1,7 +1,7 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: ACTIVE_FOR_ISSUE_449 v1.58 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
+Status: ACTIVE_FOR_ISSUE_449 v1.59 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
@@ -17,6 +17,53 @@ checks passed. Exclusive installation/global-resource ownership remains unproven
 Current policy work enables temporary maintenance without asserting adoption.
 Execution/evidence remains in `.codex/evidence/epic440-20261107.md`; full S02–S09
 completion remains required.
+
+## Closed upgrade acceptance source slices — v1.59
+
+Root accepts the independently corrected source design
+`.codex/evidence/epic440-upgrade-implementation-plan-20261108.md`, exact SHA256
+698cbdfc9560a882f628c4a5f49c6096d9f2d39ec3f8fe2c6106b04066baf2b4.
+Requirement author and independent architecture/security/DevOps reviewer are
+separate real agents; Root is integrator. This authorizes only ordered isolated
+source slices S-U1 then S-U2 with the exact fifteen file locks in that design.
+No new host action, live GO, matrix promotion or publication follows.
+
+S-U1 adds the shared closed upgrade fixture and dispatch in both existing case
+ports, genuine private NativeCatalog qualification input and strict schema2 ledger
+consumer/producer. S-U2 adds the separate actual official0.4.0 legacy baseline and
+UUID/spec/root-volume-bound disposal. Existing scoped disposal never accepts
+missing scoped checkpoints/markers. Legacy shared-profile foreign consumers are
+checked before the released setup child; affected foreign effective specifications
+or an unclosed expected delta refuse before launch. Cleanup uses exact CAS only.
+
+The closed union is eight existing fresh/add plus sixteen named upgrade cases,
+not eighteen total. Its eight normal component batch recipes explicitly cover
+both presets x both optional writers x both Swagger exposures on each host.
+Every batch runs both complete fixed image transitions. Preset is passed only
+to supported setup; subsequent public update commands must revalidate the stored
+preset and omit the unsupported option. All sixteen actual host/tuple proofs and
+other required cases plus independent evidence acceptance precede public promotion.
+The actual catalog in a private unpublished qualification revision may mark only
+the two fixed targets executable; this is test input, never released compatibility.
+No alternate catalog, temporary policy bypass or fabricated runtime proof is allowed.
+The same executing bytes must be accepted before publication.
+
+Finite source budget tables are explicit. Existing fresh/add budgets remain.
+Component/Portainer engine case is baseline5400+exercise3600=9000seconds:
+WSL containing10500; native prepare1200+pause600+approval180+case9000+teardown900+
+restore600=12480. Official-v1 case is baseline7200+exercise10800=18000:
+WSL containing19500; native21480. Every phase and containing operation use
+monotonic deadlines/reserves and are selected by the closed recipe before any
+child starts. A separate engine-recovery mode and fresh GO select public3300 or
+10800seconds, containing WSL4800/12300 and native6780/14280 respectively.
+Existing disposal-only900 recovery is unchanged and cannot run engine recovery.
+No budget reset per child/read/retry. Concrete actual source/host/case approval
+and sufficient expiry/headroom remain mandatory before each live transaction.
+
+PC nearest and all seven exact-source quality gates, independent source review,
+actual both-host S02 and capability evidence remain prerequisites. Preserve all
+historical failures and current original installations. Aggregate EPIC440/W09/W10
+remains INCOMPLETE until the full requirement matrix is actually accepted.
 
 ## Finite WSL maintenance foreground lifetime and 24-route budget — v1.58
 

@@ -1,5 +1,18 @@
 # Context pack — issue-449-lcm-w09
 
+## Current source authority — v1.59, 2026-11-08
+
+Workflow v1.59 and the exact R2 upgrade plan698cbdfc authorize only isolated
+S-U1/S-U2 source engineering: sixteen upgrade plus eight fresh/add cases;
+strict schema2 ledger24; explicit per-recipe finite containing budgets. Private
+actual-catalog qualification input remains unpublished/unqualified until every
+declared two-host/preset/owner/exposure tuple and other required proof is accepted.
+Legacy ownership/disposal is separate; foreign profile consumers block before
+released setup. No host GO, capability promotion or EPIC acceptance follows.
+Workflow v1.56/57/58 independently govern all-stopped VM handoff, immutable
+original-driver repin and owned finite EOF WSL maintenance lifetime/budgets.
+The following older checkpoints retain their historical version and attribution.
+
 ## Current continuation — v1.55, 2026-11-08
 
 v1.55 releases exact shared-certificate/WSL650-300-350 source engineering and
