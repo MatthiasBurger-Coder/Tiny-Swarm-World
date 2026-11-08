@@ -5,6 +5,28 @@ param([string]$ScenarioBase64='', [string]$ExpectedScenarioSha256='',
       [ValidateSet('Prepare','Execute','Recover')][string]$Mode='Prepare')
 $ErrorActionPreference='Stop'
 
+function Get-WslMaintenanceOwnedProcessImage {
+    param([Diagnostics.Process]$Process,[string]$Expected='')
+    if($null -eq ('TswMaintenanceOwnedImage' -as [type])){
+        Add-Type -TypeDefinition @'
+using System;
+using System.Text;
+using System.Runtime.InteropServices;
+public static class TswMaintenanceOwnedImage {
+    [DllImport("kernel32.dll", CharSet=CharSet.Unicode, SetLastError=true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool QueryFullProcessImageName(IntPtr process, uint flags, StringBuilder name, ref uint size);
+}
+'@
+    }
+    $name=[Text.StringBuilder]::new(32768);[uint32]$size=32768
+    if(![TswMaintenanceOwnedImage]::QueryFullProcessImageName($Process.Handle,0,$name,[ref]$size) -or
+       $size -le 0 -or $size -ge 32768){throw 'OWNED_PROCESS_IMAGE_UNAVAILABLE'}
+    $image=$name.ToString()
+    if($Expected -and ![StringComparer]::OrdinalIgnoreCase.Equals($image,$Expected)){throw 'OWNED_PROCESS_IMAGE_MISMATCH'}
+    return $image
+}
+
 function Get-WslMaintenanceDigest($Value) {
     function Canonical($Item){
         if($null -eq $Item -or $Item -is [string] -or $Item -is [ValueType]){return $Item}
@@ -391,9 +413,11 @@ function New-WslMaintenanceProductionPorts {
     $planValidator=${function:Assert-WslMaintenanceResourcePlan}
     $firewallCommand=Get-WslMaintenanceFirewallCertificateCommand
     $certificateValidator=${function:ConvertFrom-WslMaintenanceFirewallCertificate}
+    $imageFunction=${function:Get-WslMaintenanceOwnedProcessImage}
     $leaseProgram=Get-WslMaintenanceLeaseProgram;$readyProgram=Get-WslMaintenanceReadyProgram
-    $module=New-Module -Name Epic440WslMaintenance -ArgumentList $Scenario,$digestFunction,$registryFunction,$netshFunction,$planValidator,$firewallCommand,$certificateValidator,$leaseProgram,$readyProgram -ScriptBlock {
-        param($Scenario,$digestFunction,$registryFunction,$netshFunction,$planValidator,$firewallCommand,$certificateValidator,$leaseProgram,$readyProgram)
+    $module=New-Module -Name Epic440WslMaintenance -ArgumentList $Scenario,$digestFunction,$registryFunction,$netshFunction,$planValidator,$firewallCommand,$certificateValidator,$leaseProgram,$readyProgram,$imageFunction -ScriptBlock {
+        param($Scenario,$digestFunction,$registryFunction,$netshFunction,$planValidator,$firewallCommand,$certificateValidator,$leaseProgram,$readyProgram,$imageFunction)
+        Set-Item Function:script:Get-WslMaintenanceOwnedProcessImage $imageFunction
         Set-Item Function:script:Get-WslMaintenanceDigest $digestFunction
         Set-Item Function:script:ConvertFrom-WslMaintenanceFirewallCertificate $certificateValidator
         Set-Item Function:script:Get-WslMaintenanceRegistrySnapshot $registryFunction
@@ -423,7 +447,7 @@ function New-WslMaintenanceProductionPorts {
         function AssertLease($Lease) {
             if($null -eq $Lease -or $Lease.process.HasExited -or $Lease.process.Id -ne $Lease.pid -or
                $Lease.process.StartTime.ToUniversalTime().Ticks -ne $Lease.start -or
-               ![StringComparer]::OrdinalIgnoreCase.Equals($Lease.process.MainModule.FileName,$Lease.exe) -or
+               ![StringComparer]::OrdinalIgnoreCase.Equals((Get-WslMaintenanceOwnedProcessImage $Lease.process $Lease.exe),$Lease.exe) -or
                $Lease.stderr.Length -gt 4096 -or $Lease.closed.IsCompleted){throw 'READ_LEASE_LOST'}
         }
         function ReadLeaseStatus {
@@ -452,7 +476,7 @@ function New-WslMaintenanceProductionPorts {
                     # Kill only our still-bound Windows launcher, never infer Linux exit.
                     try{if(!$Lease.process.HasExited -and $Lease.process.Id -eq $Lease.pid -and
                         $Lease.process.StartTime.ToUniversalTime().Ticks -eq $Lease.start -and
-                        [StringComparer]::OrdinalIgnoreCase.Equals($Lease.process.MainModule.FileName,$Lease.exe)){
+                        [StringComparer]::OrdinalIgnoreCase.Equals((Get-WslMaintenanceOwnedProcessImage $Lease.process $Lease.exe),$Lease.exe)){
                         $Lease.process.StandardInput.Close();$Lease.process.Kill();[void]$Lease.process.WaitForExit(500)}}catch{}
                 }
                 $Lease.process.Dispose();$Lease.stderr.Dispose()
@@ -478,7 +502,7 @@ function New-WslMaintenanceProductionPorts {
                 if(!$process.Start()){throw 'READ_LEASE_START_FAILED'}
                 $lease=@{process=$process;pid=$process.Id;start=$process.StartTime.ToUniversalTime().Ticks;
                     exe=$exe;stderr=$stream;clock=[Diagnostics.Stopwatch]::StartNew();seconds=$seconds}
-                if(![StringComparer]::OrdinalIgnoreCase.Equals($process.MainModule.FileName,$exe)){throw 'READ_LEASE_EXECUTABLE_DRIFT'}
+                if(![StringComparer]::OrdinalIgnoreCase.Equals((Get-WslMaintenanceOwnedProcessImage $process $exe),$exe)){throw 'READ_LEASE_EXECUTABLE_DRIFT'}
                 $lease.errorTask=$process.StandardError.BaseStream.CopyToAsync($stream)
                 $ready=$process.StandardOutput.ReadLineAsync()
                 if(!$ready.Wait([Math]::Min(120,$seconds)*1000) -or $ready.Result -cne 'READY' -or $stream.Length -ne 0){throw 'READ_LEASE_START_FAILED'}
@@ -489,7 +513,7 @@ function New-WslMaintenanceProductionPorts {
                 if($null -ne $lease){
                     try{$process.StandardInput.Close();if(!$process.WaitForExit(4000)){
                         if($process.Id -eq $lease.pid -and $process.StartTime.ToUniversalTime().Ticks -eq $lease.start -and
-                           [StringComparer]::OrdinalIgnoreCase.Equals($process.MainModule.FileName,$lease.exe)){
+                           [StringComparer]::OrdinalIgnoreCase.Equals((Get-WslMaintenanceOwnedProcessImage $process $exe),$lease.exe)){
                             $process.Kill();[void]$process.WaitForExit(500)
                         }
                     }}catch{}

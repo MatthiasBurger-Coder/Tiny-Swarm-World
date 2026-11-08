@@ -122,6 +122,31 @@ foreach($bad in @(
     Assert $denied 'netsh_mutated_missing_extra_or_unknown_refused'
     $cases++
 }
+if([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT){
+    $child=[Diagnostics.Process]::new()
+    $child.StartInfo.FileName=Join-Path $env:SystemRoot 'System32/WindowsPowerShell/v1.0/powershell.exe'
+    $program="[Console]::WriteLine('READY');[Console]::Out.Flush();[Console]::ReadLine() | Out-Null"
+    $child.StartInfo.Arguments='-NoProfile -NonInteractive -EncodedCommand '+[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($program))
+    $child.StartInfo.UseShellExecute=$false;$child.StartInfo.CreateNoWindow=$true
+    $child.StartInfo.RedirectStandardInput=$true;$child.StartInfo.RedirectStandardOutput=$true
+    try{
+        Assert ($child.Start()) 'owned_image_child_start'
+        $ownedPid=$child.Id;$ownedStart=$child.StartTime.ToUniversalTime().Ticks
+        $before=Get-WslMaintenanceOwnedProcessImage $child $child.StartInfo.FileName
+        $ready=$child.StandardOutput.ReadLineAsync()
+        Assert ($ready.Wait(10000) -and $ready.Result -ceq 'READY') 'owned_image_child_ready'
+        $after=Get-WslMaintenanceOwnedProcessImage $child $child.StartInfo.FileName
+        Assert ($before -ceq $after -and $child.Id -eq $ownedPid -and $child.StartTime.ToUniversalTime().Ticks -eq $ownedStart) 'owned_image_handle_stable_before_after_ready'
+        $denied=$false;try{$null=Get-WslMaintenanceOwnedProcessImage $child ($child.StartInfo.FileName+'.foreign')}catch{$denied=$_.Exception.Message -ceq 'OWNED_PROCESS_IMAGE_MISMATCH'}
+        Assert $denied 'owned_image_wrong_expected_refused'
+        $child.StandardInput.Close();Assert ($child.WaitForExit(10000) -and $child.ExitCode -eq 0) 'owned_image_eof_settled'
+    }finally{
+        if(!$child.HasExited -and $child.Id -eq $ownedPid -and $child.StartTime.ToUniversalTime().Ticks -eq $ownedStart -and
+           (Get-WslMaintenanceOwnedProcessImage $child $child.StartInfo.FileName)){$child.Kill();$child.WaitForExit()}
+        $child.Dispose()
+    }
+    $cases++
+}
 if($NativeFixtureRoot){
     $s=Scenario;$s.repository_root=$NativeFixtureRoot
     $ports=New-WslMaintenanceProductionPorts $s
@@ -131,6 +156,7 @@ if($NativeFixtureRoot){
     # separately execute the exact literal child and prove EOF/expiry semantics.
     & $adapter {$script:realBeginLifetime=${function:BeginLifetime};$script:realEndLifetime=${function:EndLifetime};function script:BeginLifetime {};function script:EndLifetime {}}
     & $adapter {
+        function script:Get-WslMaintenanceOwnedProcessImage($Process,$Expected) {return $Process.MainModule.FileName}
         function script:FakeLease([string]$Fault='') {
             $ctx=@{closed=$false;kills=0;disposed=$false}
             $task=[pscustomobject]@{IsCompleted=$false;Result=$null}
