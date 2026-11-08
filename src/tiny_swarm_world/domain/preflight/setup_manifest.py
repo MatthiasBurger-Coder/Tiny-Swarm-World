@@ -6,6 +6,7 @@ from types import MappingProxyType
 from typing import Mapping
 
 from tiny_swarm_world.domain.deployment import ServiceStackProfile
+from tiny_swarm_world.domain.lifecycle.exposure import service_exposure_for
 
 PULSAR_MANAGER_UI = "Pulsar Manager UI"
 SWAGGER_NGINX = "Swagger/NGINX"
@@ -113,7 +114,9 @@ def default_setup_manifest(
     profile: SetupProfile = SetupProfile.FULL,
     service_profile: ServiceStackProfile | str = ServiceStackProfile.DEFAULT,
     resolved_services: tuple[str, ...] | None = None,
+    service_exposure: Mapping[str, str] | None = None,
 ) -> SetupManifest:
+    exposure = service_exposure_for(resolved_services, service_exposure)
     selected_service_profile = ServiceStackProfile(service_profile)
     centralized_ingress = (selected_service_profile is ServiceStackProfile.SERVICE_ACCESS
                            and (resolved_services is None or "traefik" in resolved_services))
@@ -196,7 +199,7 @@ def default_setup_manifest(
         ),
         SetupServiceRequirement(
             name=SWAGGER_NGINX,
-            ports=(
+            ports=() if exposure.get('swagger') == 'internal' else (
                 (
                     compatibility_port(16080, "Swagger UI"),
                     compatibility_port(16081, SWAGGER_NGINX),
@@ -252,6 +255,7 @@ def default_setup_manifest(
         metadata={
             "live_smoke": "separate-operator-action",
             "service_profile": selected_service_profile.value,
+            **({"swagger_exposure": exposure["swagger"]} if "swagger" in exposure else {}),
         },
         services=tuple(services),
     )

@@ -11,8 +11,9 @@ from tiny_swarm_world.infrastructure.adapters.lifecycle.installation_operation_l
 
 from tiny_swarm_world.domain.deployment.service_stack_contract import ServiceStackContract
 
-from .composition_selection import persisted_runtime_selection, selection_options, includes_service, selected_secret_entries, uses_infisical_setup
+from .composition_selection import persisted_service_exposure, persisted_runtime_selection, selection_options, includes_service, selected_secret_entries, uses_infisical_setup
 from .composition_deployment_selection import minimal_apply_checks
+from .composition_internal_readiness import InternalSwaggerReadinessCheck
 
 from tiny_swarm_world.infrastructure.adapters.repositories.secret_manifest_yaml_repository import SecretManifestYamlRepository
 
@@ -134,6 +135,7 @@ def build_deployment_services_for_provider(
     image_overrides: Mapping[str, str] | None = None,
     update_stack_name: str | None = None,
     resolved_services: tuple[str, ...] | None = None,
+    service_exposure: Mapping[str, str] | None = None,
 ) -> DeploymentServices:
     provider_request = node_provider_request or _default_node_provider_request()
     backend = _lxc_backend_for_provider_request(provider_request)
@@ -146,7 +148,7 @@ def build_deployment_services_for_provider(
             progress=progress,
             image_overrides=image_overrides,
             update_stack_name=update_stack_name,
-            **selection_options(resolved_services),
+            **selection_options(resolved_services, service_exposure),
         )
     return locked_services(DeploymentServices(
         workflows=DeploymentWorkflows(
@@ -182,8 +184,10 @@ def build_lxc_deployment_services(
     image_overrides: Mapping[str, str] | None = None,
     update_stack_name: str | None = None,
     resolved_services: tuple[str, ...] | None = None,
+    service_exposure: Mapping[str, str] | None = None,
 ) -> DeploymentServices:
     service_profile, resolved_services = persisted_runtime_selection(service_profile, resolved_services)
+    service_exposure = persisted_service_exposure(resolved_services, service_exposure)
     project_paths = default_project_paths()
     host_environment = HostEnvironmentDetector().detect().environment
     prerequisite_checks = () if host_environment is HostEnvironmentKind.WSL2 else (
@@ -194,7 +198,7 @@ def build_lxc_deployment_services(
     )
     local_file_storage = LocalFileStorage()
     selected_service_profile = ServiceStackProfile(service_profile)
-    service_stack_contracts = service_stack_contracts_for_profile(selected_service_profile, resolved_services)
+    service_stack_contracts = service_stack_contracts_for_profile(selected_service_profile, resolved_services, service_exposure=service_exposure)
     if update_stack_name is not None:
         service_stack_contracts = tuple(
             contract
@@ -213,7 +217,7 @@ def build_lxc_deployment_services(
         service_profile=selected_service_profile,
         environment=effective_environment,
         transition_overrides=image_overrides,
-        **selection_options(resolved_services),
+        **selection_options(resolved_services, service_exposure),
     )
     effective_environment.update(image_overrides or {})
     compose_repository.validate_and_snapshot(
@@ -378,10 +382,12 @@ def build_lxc_deployment_services(
             secret_evidence_step,
         )
         infisical_seed_steps = tuple(
-            _infisical_secret_seed_steps(selected_service_profile, **selection_options(resolved_services))
+            _infisical_secret_seed_steps(selected_service_profile, **selection_options(resolved_services, service_exposure))
         )
     readiness_checks = tuple(
-        EndpointReadinessCheck(
+        InternalSwaggerReadinessCheck(contract, lxc_swarm_runtime.internal_swagger_ready)
+        if contract.stack_name == 'swagger' and service_exposure is not None and service_exposure.get('swagger') == 'internal'
+        else EndpointReadinessCheck(
             service_stack=contract,
             max_attempts=60,
             wait_seconds=5,

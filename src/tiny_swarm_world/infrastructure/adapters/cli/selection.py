@@ -53,6 +53,7 @@ def run_selection_preview(args: Namespace) -> None:
             preset=args.service_profile if args.service_profile_explicit else None,
             remove=args.selected_services if removal else (),
             add=args.workflow_namespace == "services" and args.workflow_action == "add",
+            service_exposure=({"swagger": args.swagger_exposure} if getattr(args, "swagger_exposure", None) is not None else None),
         )
     except LifecycleStateError as error:
         print(json.dumps({"status": "blocked", "diagnostics": [str(error)]}))
@@ -67,12 +68,16 @@ def run_selection_preview(args: Namespace) -> None:
 
 def validate_selection_args(parser: ArgumentParser, args: Namespace) -> None:
     if args.component_update_command:
+        if getattr(args, "swagger_exposure", None) is not None:
+            parser.error("--swagger-exposure requires setup run or services add")
         args.selection_preview = False
         return
     command = (args.workflow_namespace, args.workflow_action)
-    selection_options = args.services is not None or args.minimal or args.selection_config is not None
+    selection_options = args.services is not None or args.minimal or args.selection_config is not None or getattr(args, "swagger_exposure", None) is not None
     selection_command = command in {("services", "add"), ("services", "remove")}
     args.selection_preview = args.preview and (selection_command or command == ("setup", "run"))
+    if getattr(args, "swagger_exposure", None) is not None and command == ("services", "remove"):
+        parser.error("--swagger-exposure cannot be combined with service removal")
     if selection_options and not (selection_command or command == ("setup", "run")):
         parser.error("selection options require setup run or services add/remove")
     if selection_command or args.selection_preview or selection_options:

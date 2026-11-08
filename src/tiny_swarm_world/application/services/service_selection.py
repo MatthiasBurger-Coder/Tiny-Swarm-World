@@ -1,4 +1,5 @@
 """Read-only selection previews and explicitly approved local metadata persistence."""
+from collections.abc import Mapping
 from tiny_swarm_world.application.ports.lifecycle.installation_profile import InstallationLease, InstallationOperationLock, installation_operation
 from tiny_swarm_world.application.ports.lifecycle import (
     CatalogRepository, LifecycleStateError, ManifestRepository, ManifestSnapshot,
@@ -19,6 +20,7 @@ class ServiceSelectionService:
         self, requested: tuple[str, ...] | None = None, configured: tuple[str, ...] | None = None,
         *, minimal: bool = False, preset: str | None = None, remove: tuple[str, ...] = (),
         add: bool = False, available_capabilities: tuple[str, ...] | None = None,
+        service_exposure: Mapping[str, str] | None = None,
     ) -> SelectionPlan:
         catalog = self.catalog.load()
         snapshot = self.manifests.load()
@@ -30,6 +32,7 @@ class ServiceSelectionService:
         plan = plan_selection(
             catalog, requested, configured, persisted=snapshot.manifest, minimal=minimal,
             preset=preset, remove=remove, add=add, available_capabilities=available_capabilities,
+            service_exposure=service_exposure,
         )
         return plan.model_copy(update={"manifest_token": snapshot.token, "diagnostics": snapshot.diagnostics})
 
@@ -57,6 +60,8 @@ class ServiceSelectionService:
             raise LifecycleStateError("Adopt and verify the installation identity before persisting selection.")
         if snapshot.token != plan.manifest_token:
             raise LifecycleStateError("Selection preview is stale; inspect the current installation and preview again.")
+        if snapshot.manifest.schema_version == 1 and 'internal' in plan.service_exposure.values() and not verified_migration:
+            raise LifecycleStateError('Internal exposure migration requires a verified runtime commit.')
         catalog = self.catalog.load()
         manifest = selection_candidate(catalog, snapshot.manifest, plan, component_inventory,
                                        credential_inventory, configuration_inventory)

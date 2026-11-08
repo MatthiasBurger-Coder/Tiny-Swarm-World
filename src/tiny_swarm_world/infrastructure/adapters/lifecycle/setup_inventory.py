@@ -9,7 +9,7 @@ from typing import Literal
 from uuid import uuid4
 
 from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
-from tiny_swarm_world.domain.lifecycle.models import ComponentState, ConfigurationReference, CredentialReference, InstallationManifest, ProductIdentity
+from tiny_swarm_world.domain.lifecycle.models import ComponentState, ConfigurationReference, CredentialReference, InstallationManifest, ProductIdentity, migrate_manifest_v1
 from tiny_swarm_world.domain.lifecycle.selection import SelectionPlan
 from tiny_swarm_world.infrastructure.process.runner import ProcessRunner, ProcessRunnerError
 
@@ -41,12 +41,17 @@ def fresh_manifest(runner: ProcessRunner, host: Literal["native-linux", "wsl2"],
         product = ProductIdentity(release=project["version"], revision=revision.stdout.strip(),
                                   dependency_lock="sha256:" + hashlib.sha256((root / "requirements.lock").read_bytes()).hexdigest())
         components = component_inventory
-        return InstallationManifest(
+        manifest = InstallationManifest(
             installation_id=str(uuid4()), host=host, service_preset=plan.service_preset,
             product=product, requested_services=plan.requested_services,
             resolved_services=plan.resolved_services, selection_reasons=plan.selection_reasons,
             components=components, credential_references=credential_inventory,
             configuration_references=configuration_inventory,
         )
+        if 'internal' in plan.service_exposure.values():
+            payload = migrate_manifest_v1(manifest).model_dump()
+            payload['service_exposure'] = plan.service_exposure
+            return InstallationManifest.model_validate(payload)
+        return manifest
     except (ProcessRunnerError, OSError, KeyError, ValueError):
         raise LifecycleStateError("Prepared checkout identity cannot be verified; inspect product revision and lock before setup.") from None

@@ -109,3 +109,43 @@ WSL2 live installation, browser access and preservation proof remain
 SHA and working-tree identity, host/profile, product/component versions, resolved
 selection, command, exit and redacted before/after observations for each actual
 live qualification scenario. Local test success is not live or SonarQube success.
+
+## Swagger exposure
+
+Swagger defaults to `published`. Choose `internal` explicitly when planning a
+container-only Swagger stack:
+
+```bash
+PYTHONPATH=src python3 -m tiny_swarm_world setup run --services swagger --swagger-exposure internal --preview
+PYTHONPATH=src python3 -m tiny_swarm_world services add --services swagger --swagger-exposure internal --preview
+```
+
+The preview contains the complete `service_exposure` policy. Existing v1
+installations retain published behavior. After verified setup commits v2,
+additions and subsequent update/recovery composition retain the stored mode;
+omitting this flag never changes an existing internal selection back to
+published. A metadata-only call cannot migrate v1 to internal without a verified
+runtime commit. The flag belongs to setup/addition, rather than component image
+update or service removal commands.
+
+Internal Compose removes all Swagger published ports and Traefik labels. The
+access model and dashboard omit its public route and diagnostic port links.
+Preflight, provider routing, socat and Windows bridge selection consume the
+same filtered manifest, without creating Swagger mappings for16080/16081.
+Ports80/443 remain required only when the resolved selection actually includes
+Traefik; internal Swagger does not add Traefik itself.
+
+Internal readiness probes HTTP from the running Swagger NGINX container to its
+local API proxy and overlay-network UI/editor services. They verify all four
+Swarm services have no published ports or Traefik route labels. The fixed NGINX
+Alpine image supplies curl; custom image overrides must retain that probe
+capability. Redirects, ambient HTTP proxies and host-port fallback are excluded.
+A successful container probe alone does not prove the Incus profile boundary.
+
+Live internal setup requires the separately admitted private Incus profile,
+active operation lease and complete local/expanded-device/listener proof. A
+shared legacy manager profile is refused, including a new internal request
+against a previously published installation. No inherited or foreign proxy is
+removed or adopted to make the request pass. Incus version qualification and
+live-consent gates remain mandatory. Read-only previews and mocked tests do not
+establish a supported live capability.

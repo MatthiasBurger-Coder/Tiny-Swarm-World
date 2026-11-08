@@ -1,4 +1,6 @@
 from __future__ import annotations
+from collections.abc import Mapping
+from tiny_swarm_world.domain.lifecycle.exposure import service_exposure_for
 
 import re
 from dataclasses import dataclass
@@ -265,7 +267,15 @@ def desired_https_ingress_for_profile(
     conditional_service_names: tuple[str, ...] = (),
     port_registry: PortRegistry | None = None,
     resolved_services: tuple[str, ...] | None = None,
+    service_exposure: Mapping[str, str] | None = None,
 ) -> DesiredHttpsIngress:
+    exposure = service_exposure_for(resolved_services, service_exposure)
+    if exposure.get('swagger') == 'internal':
+        conditional_service_names = tuple(name for name in conditional_service_names if name != 'swagger')
+        if port_registry is not None:
+            port_registry = PortRegistry(ranges=port_registry.ranges,
+                mappings=tuple(mapping for mapping in port_registry.mappings if mapping.service_id != 'swagger'),
+                metadata=port_registry.metadata)
     if resolved_services is not None and port_registry is not None:
         metadata = dict(port_registry.metadata or {})
         metadata["unsupported_routes"] = ",".join(
@@ -280,7 +290,7 @@ def desired_https_ingress_for_profile(
             metadata=metadata,
         )
     if resolved_services is not None and "traefik" not in resolved_services:
-        return _direct_access_for_selection(service_profile, port_registry, resolved_services)
+        return _direct_access_for_selection(service_profile, port_registry, resolved_services, exposure)
     route_registry = _route_registry(port_registry)
     selected_services = {
         route_name
@@ -293,7 +303,9 @@ def desired_https_ingress_for_profile(
     selected_services.update(conditional_service_names)
     routes: list[DesiredHttpsRoute] = []
     profile_endpoint_names: set[str] = set()
-    for contract in service_stack_contracts_for_profile(service_profile):
+    for contract in service_stack_contracts_for_profile(
+        service_profile, service_exposure={"swagger": exposure.get("swagger", "published")}
+    ):
         if resolved_services is not None and contract.stack_name not in resolved_services:
             continue
         for endpoint in contract.endpoints:
@@ -352,11 +364,14 @@ def _direct_access_for_selection(
     service_profile: ServiceStackProfile | str,
     port_registry: PortRegistry | None,
     resolved_services: tuple[str, ...],
+    exposure: Mapping[str, str],
 ) -> DesiredHttpsIngress:
     endpoints: list[DirectServiceEndpoint] = []
     endpoint_names = {
         endpoint.name
-        for contract in service_stack_contracts_for_profile(service_profile)
+        for contract in service_stack_contracts_for_profile(
+            service_profile, service_exposure={"swagger": exposure.get("swagger", "published")}
+        )
         if contract.stack_name in resolved_services
         for endpoint in contract.endpoints
     }

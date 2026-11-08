@@ -28,7 +28,7 @@ async def _run_selective_setup(args: Namespace, consent: LiveConsent | None, lif
                                operation_lease: InstallationLease) -> SetupWorkflowResult | None:
     if consent is None or not consent.accepted:
         raise ValueError("Selective setup requires accepted live consent")
-    explicit = args.services is not None or args.minimal or args.selection_config is not None
+    explicit = args.services is not None or args.minimal or args.selection_config is not None or getattr(args, "swagger_exposure", None) is not None
     if not explicit and lifecycle.manifests.load().manifest is None:
         return None
     try:
@@ -38,6 +38,7 @@ async def _run_selective_setup(args: Namespace, consent: LiveConsent | None, lif
             minimal=args.minimal,
             preset=args.service_profile if args.service_profile_explicit else None,
             add=(args.workflow_namespace, args.workflow_action) == ("services", "add"),
+            service_exposure=({"swagger": args.swagger_exposure} if getattr(args, "swagger_exposure", None) is not None else None),
         )
         request = _node_provider_request_from_args(args)
         state = await composition.prepare_setup_selection_state(lifecycle, plan, request, operation_lease=operation_lease)

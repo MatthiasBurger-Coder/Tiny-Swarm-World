@@ -10,12 +10,12 @@ def validate_selection(catalog, current, plan):
     validated = plan_selection(
         catalog, plan.requested_services if plan.requested_services else None,
         persisted=current, minimal=not plan.requested_services,
-        preset=plan.service_preset if changed_preset else None,
+        preset=plan.service_preset if changed_preset else None, service_exposure=plan.service_exposure,
     )
     if (validated.resolved_services != plan.resolved_services
             or validated.selection_reasons != plan.selection_reasons
             or validated.service_preset != plan.service_preset
-            or validated.resources != plan.resources):
+            or validated.resources != plan.resources or validated.service_exposure != plan.service_exposure):
         raise LifecycleStateError("Selection/catalog changed since preview; inspect and preview again.")
     if not set(current.resolved_services) <= set(plan.resolved_services):
         raise LifecycleStateError("Implicit removal is unsupported; use removal-impact preview.")
@@ -49,8 +49,8 @@ def selection_payload(current, plan, components, credential_inventory, configura
 
 
 def extend_policy(current, plan, payload):
-    if current.schema_version == 2:
-        exposure = current.effective_exposure()
+    if current.schema_version == 2 or 'internal' in plan.service_exposure.values():
+        exposure = dict(plan.service_exposure)
         owners = current.effective_stack_ownership()
         for name in plan.resolved_services:
             if name == 'swagger':
@@ -59,7 +59,8 @@ def extend_policy(current, plan, payload):
                 owners.setdefault(name, SwarmOwnership())
         if current.installation_profile is not None and plan.resolved_services != current.resolved_services:
             raise LifecycleStateError('Bound-profile selection changes require the admitted profile lifecycle before commit.')
-        payload.update(service_exposure=exposure, stack_ownership=owners)
+        payload.update(schema_version=2, service_exposure=exposure, stack_ownership=owners,
+                       installation_profile=current.installation_profile)
 
 
 def selection_candidate(catalog, current, plan, component_inventory, credential_inventory, configuration_inventory):

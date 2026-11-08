@@ -6,8 +6,9 @@ calls so legacy facade patch points remain effective.
 """
 
 from __future__ import annotations
+from collections.abc import Mapping
 
-from .composition_selection import persisted_runtime_selection, selection_options
+from .composition_selection import persisted_service_exposure, persisted_runtime_selection, selection_options
 
 from tiny_swarm_world.application.services.platform import (
     PlatformLifecycleOrchestrator,
@@ -104,8 +105,10 @@ _refresh_runtime_symbols()
 def build_host_preparation_service(
     live_consent: LiveConsent | None = None,
     resolved_services: tuple[str, ...] | None = None,
+    service_exposure: Mapping[str, str] | None = None,
 ) -> HostPreparationService:
     _, resolved_services = persisted_runtime_selection(DEFAULT_SETUP_SERVICE_PROFILE, resolved_services)
+    service_exposure = persisted_service_exposure(resolved_services, service_exposure)
     project_paths = default_project_paths()
     bridge_root = project_paths.repository_root / "bootstrap" / "windows"
     script_path = Path(
@@ -137,7 +140,7 @@ def build_host_preparation_service(
                     config_path=config_path,
                     registry_path=registry_path,
                     timeout_seconds=timeout_seconds,
-                    **_selected_bridge_options(resolved_services),
+                    **_selected_bridge_options(resolved_services, service_exposure),
                 )
             ),
         },
@@ -152,8 +155,10 @@ def build_platform_services(
     trace_correlation_id: str | None = None,
     allow_wsl_windows_filesystem: bool = False,
     resolved_services: tuple[str, ...] | None = None,
+    service_exposure: Mapping[str, str] | None = None,
 ) -> PlatformServices:
     service_profile, resolved_services = persisted_runtime_selection(service_profile, resolved_services)
+    service_exposure = persisted_service_exposure(resolved_services, service_exposure)
     project_paths = default_project_paths()
     node_provider_config_repository = NodeProviderConfigYamlRepository(
         project_paths=project_paths, freeze_on_load=True
@@ -171,14 +176,14 @@ def build_platform_services(
         provider_request,
         project_paths=project_paths,
         allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
-        **selection_options(resolved_services),
+        **selection_options(resolved_services, service_exposure),
     )
     post_install_preflight = _build_post_install_preflight_service_for_request(
         service_profile,
         provider_request,
         project_paths=project_paths,
         allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
-        **selection_options(resolved_services),
+        **selection_options(resolved_services, service_exposure),
     )
     lxc_runner = AsyncLxcNodeCommandRunner()
     lxc_node_provider = LxcNodeProvider(
@@ -250,7 +255,7 @@ def build_platform_services(
         lxc_proxy_runtime,
         gateway_node=_lxc_manager_node(),
         manager_profile_name=DEFAULT_LXC_MANAGER_PROXY_PROFILE,
-        setup_manifest=default_setup_manifest(service_profile=service_profile, resolved_services=resolved_services),
+        setup_manifest=default_setup_manifest(service_profile=service_profile, resolved_services=resolved_services, service_exposure=service_exposure),
         listen_address=_lxc_proxy_listen_address(),
         logger=LoggerFactory.get_logger("LxcServiceExposureService"),
     )
@@ -264,7 +269,7 @@ def build_platform_services(
         ),
         gateway_node=_lxc_manager_node(),
         manager_profile_name=DEFAULT_LXC_MANAGER_PROXY_PROFILE,
-        setup_manifest=default_setup_manifest(service_profile=service_profile, resolved_services=resolved_services),
+        setup_manifest=default_setup_manifest(service_profile=service_profile, resolved_services=resolved_services, service_exposure=service_exposure),
         listen_address=_lxc_proxy_listen_address(),
         logger=LoggerFactory.get_logger("LxcServiceExposureVerifyService"),
     )
@@ -272,7 +277,7 @@ def build_platform_services(
         lxc_proxy_runtime,
         gateway_node=_lxc_manager_node(),
         manager_profile_name=DEFAULT_LXC_MANAGER_PROXY_PROFILE,
-        setup_manifest=default_setup_manifest(service_profile=service_profile, resolved_services=resolved_services),
+        setup_manifest=default_setup_manifest(service_profile=service_profile, resolved_services=resolved_services, service_exposure=service_exposure),
         listen_address=_lxc_proxy_listen_address(),
     )
     socat_manager = SocatManager()
@@ -320,7 +325,7 @@ def build_platform_services(
                 socat_manager,
                 socat_exposure,
                 service_profile=ServiceStackProfile(service_profile),
-                **selection_options(resolved_services),
+                **selection_options(resolved_services, service_exposure),
                 live_consent=live_consent,
             ),
             verification_evidence_repository=verification_evidence_repository,
@@ -433,10 +438,10 @@ _BOUNDARY_DEFAULTS = {
 }
 
 
-def _selected_bridge_options(resolved_services: tuple[str, ...] | None):
+def _selected_bridge_options(resolved_services: tuple[str, ...] | None, service_exposure: Mapping[str, str] | None = None):
     from tiny_swarm_world.domain.deployment import service_stack_contracts_for_profile
 
-    if resolved_services is None:
+    if resolved_services is None and service_exposure is None:
         return {}
-    return {"selected_port_ids": tuple(port for contract in service_stack_contracts_for_profile("service-access", resolved_services)
+    return {"selected_port_ids": tuple(port for contract in service_stack_contracts_for_profile("service-access", resolved_services, service_exposure=service_exposure)
                                         for port in contract.port_ids)}

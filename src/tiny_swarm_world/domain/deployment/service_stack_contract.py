@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
+from collections.abc import Mapping
+from tiny_swarm_world.domain.lifecycle.exposure import service_exposure_for
 from enum import Enum
 from urllib.parse import urlparse
 
@@ -185,10 +187,14 @@ INFISICAL_STACK_CONTRACT = ServiceStackContract(
 def service_stack_contracts_for_profile(
     service_profile: ServiceStackProfile | str = ServiceStackProfile.DEFAULT,
     resolved_services: tuple[str, ...] | None = None,
+    service_exposure: Mapping[str, str] | None = None,
 ) -> tuple[ServiceStackContract, ...]:
+    exposure = service_exposure_for(resolved_services, service_exposure)
     profile = ServiceStackProfile(service_profile)
-    contracts = ((*DEFAULT_SERVICE_STACK_CONTRACTS, INFISICAL_STACK_CONTRACT, SERVICE_ACCESS_STACK_CONTRACT)
+    contracts: tuple[ServiceStackContract, ...] = ((*DEFAULT_SERVICE_STACK_CONTRACTS, INFISICAL_STACK_CONTRACT, SERVICE_ACCESS_STACK_CONTRACT)
                  if profile is ServiceStackProfile.SERVICE_ACCESS else DEFAULT_SERVICE_STACK_CONTRACTS)
+    if exposure.get("swagger") == "internal":
+        contracts = tuple(replace(item, port_ids=(), endpoints=()) if item.stack_name == "swagger" else item for item in contracts)
     if resolved_services is None:
         return contracts
     available = {item.stack_name: item for item in contracts}

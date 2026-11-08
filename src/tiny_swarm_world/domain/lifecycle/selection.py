@@ -5,9 +5,11 @@ import heapq
 import re
 from decimal import Decimal, InvalidOperation
 from typing import Literal
+from collections.abc import Mapping
 
-from pydantic import Field
+from pydantic import Field, model_validator
 
+from tiny_swarm_world.domain.lifecycle.exposure import Exposure, service_exposure_for
 from tiny_swarm_world.domain.lifecycle.models import (
     ComponentCatalog, Contract, InstallationManifest, ServiceDefinition,
 )
@@ -25,6 +27,7 @@ class SelectionResources(Contract):
 
 
 class SelectionPlan(Contract):
+    service_exposure: dict[str, Exposure]
     requested_services: tuple[str, ...]
     resolved_services: tuple[str, ...]
     selection_reasons: dict[str, tuple[str, ...]]
@@ -37,6 +40,12 @@ class SelectionPlan(Contract):
     resources: SelectionResources
     manifest_token: str | None = None
     diagnostics: tuple[str, ...] = Field(default_factory=tuple)
+
+
+    @model_validator(mode='after')
+    def complete_exposure(self) -> 'SelectionPlan':
+        service_exposure_for(self.resolved_services, self.service_exposure)
+        return self
 
 
 def validate_ids(values: tuple[str, ...], services: dict[str, ServiceDefinition]) -> tuple[str, ...]:
@@ -173,6 +182,7 @@ def plan_selection(
     configured: tuple[str, ...] | None = None, *, persisted: InstallationManifest | None = None,
     minimal: bool = False, preset: str | None = None, remove: tuple[str, ...] = (),
     add: bool = False, available_capabilities: tuple[str, ...] | None = None,
+    service_exposure: Mapping[str, str] | None = None,
 ) -> SelectionPlan:
     services = _catalog_services(catalog)
     removed = validate_ids(remove, services)
@@ -193,7 +203,11 @@ def plan_selection(
         raise SelectionError("Removal impact requires services selected in the installation.")
     impact = {name: tuple(sorted(candidate for candidate in previous - {name}
                                 if name in _closure((candidate,), services)[0])) for name in removed}
+    exposure = service_exposure
+    if exposure is None and persisted is not None and 'swagger' in ordered:
+        exposure = {'swagger': persisted.effective_exposure().get('swagger', 'published')}
     return SelectionPlan(
+        service_exposure=service_exposure_for(ordered, exposure),
         requested_services=chosen, resolved_services=ordered, selection_reasons=reasons,
         service_preset=effective, source="remove" if removed else source,  # type: ignore[arg-type]
         additions=tuple(name for name in ordered if name not in previous),

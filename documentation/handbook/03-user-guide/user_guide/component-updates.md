@@ -265,8 +265,8 @@ manifest drift blocks instead of silently rewriting desired state.
 
 If apply stops, preserve the journal and backup and use `--recover`. Component
 batches and Portainer operations share a nonblocking lock; unsettled operations
-block each other. Ordinary setup/deployment checks unsettled state at admission;
-it does not hold that execution lock throughout setup. Serialize all live
+block each other. Setup/deployment holds the shared installation operation lease throughout
+the workflow; component and Portainer writers also hold their journal claim. Serialize all live
 operations against the same manager/Swarm, including W09 qualification. Recovery validates the original
 Swarm, service IDs, topology and `/data` binding without using Portainer's API.
 It verifies the checksum **before** stopping the server or touching state, archives
@@ -289,3 +289,13 @@ W09 must retain exact tested SHA, host/profile, selected services, version/diges
 bundle, commands/exit codes and redacted before/after authentication, endpoint,
 ownership, convergence and managed-update observations for upgrade and induced
 failure/recovery. Local mocked tests do not establish live or browser success.
+
+### Stored Swagger exposure
+
+Component image updates and recovery retain the installation's stored Swagger
+exposure. Internal mode keeps its Compose ports and Traefik route absent and
+uses container-internal HTTP readiness. Configure exposure through the guarded
+setup/addition flow described in [selective setup](selective-setup.md#swagger-exposure).
+Private Incus profile admission still applies; the image-update command does
+not grant permission to adopt inherited legacy proxies or downgrade a v2
+manifest to a target release that only reads v1.

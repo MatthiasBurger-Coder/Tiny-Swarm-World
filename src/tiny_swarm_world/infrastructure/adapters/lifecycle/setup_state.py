@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Literal
 
 from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
-from tiny_swarm_world.application.ports.lifecycle.installation_profile import InstallationLease, require_legacy_runtime_policy
+from tiny_swarm_world.application.ports.lifecycle.installation_profile import InstallationLease, ProfileExposureAdmission, require_legacy_runtime_policy
 from tiny_swarm_world.application.ports.update import PortUpdateRuntimeObserver
 from tiny_swarm_world.application.services.lifecycle import InstallationLifecycleService
 from tiny_swarm_world.application.services.service_selection import ServiceSelectionService
@@ -27,6 +27,7 @@ class SetupSelectionState:
         self.plan = plan
         self.root = root
         self.operation_lease: InstallationLease | None = None
+        self.profile_operation: ProfileExposureAdmission | None = None
         self.fresh: InstallationManifest | None = None
         self.component_inventory: tuple[ComponentState, ...] = ()
         self.credential_inventory: tuple[CredentialReference, ...] = ()
@@ -59,6 +60,14 @@ class SetupSelectionState:
             raise LifecycleStateError("Interrupted adoption requires explicit inventory review before setup.")
         self._require_fresh(runner, backend, node_names)
         self.fresh = self._fresh_manifest(runner, host)
+
+    async def admit_exposure(self) -> None:
+        if 'internal' not in self.plan.service_exposure.values():
+            return
+        if self.profile_operation is None:
+            raise LifecycleStateError('Internal Swagger requires admitted private Incus profile exposure; shared legacy routes are not adopted.')
+        self.profile_operation.lease.require_active()
+        await self.profile_operation.admit_desired(self.plan)
 
     def _require_fresh(self, runner: ProcessRunner, backend: str, node_names: tuple[str, ...]) -> None:
         setup_inventory.require_fresh(runner, backend, node_names)
@@ -95,7 +104,8 @@ class SetupSelectionState:
         retained = () if existing is None else existing.credential_references
         keys = {item.key for item in retained}
         selected_keys = {item.name for item in default_setup_manifest(
-            service_profile=self.plan.service_preset, resolved_services=self.plan.resolved_services).required_secrets}
+            service_profile=self.plan.service_preset, resolved_services=self.plan.resolved_services,
+            service_exposure=self.plan.service_exposure).required_secrets}
         root = getattr(self.lifecycle.catalog, "root", self.root)
         entries = SecretManifestYamlRepository(root / "infra/config/secrets/infisical-secrets.yaml").load()
         return (*retained, *(CredentialReference.model_validate({"key": item.key, "source": item.source})

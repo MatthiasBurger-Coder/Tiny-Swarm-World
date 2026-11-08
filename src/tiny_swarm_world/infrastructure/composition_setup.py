@@ -162,7 +162,7 @@ def build_setup_services(
     project_paths = default_project_paths()
     selected_service_profile = ServiceStackProfile(service_profile)
     resolved_services = None if selection_plan is None else selection_plan.resolved_services
-    selection_kwargs = selection_options(resolved_services)
+    selection_kwargs = selection_options(resolved_services, None if selection_plan is None else selection_plan.service_exposure)
     if configuration_validation is not None and resolved_services is not None:
         configuration_validation = configuration_validation.for_scopes(set(resolved_services) | {"platform", "deployment"})
     preflight = _build_preflight_service_for_request(

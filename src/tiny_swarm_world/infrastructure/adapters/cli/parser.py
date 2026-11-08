@@ -129,6 +129,8 @@ def parse_args(argv: Sequence[str] | None = None) -> Namespace:
     parser.add_argument("--services", help="Comma-separated canonical service IDs for selective setup or preview.")
     parser.add_argument("--to", help="Explicit product release for product upgrade, or catalog target ID for one services update.")
     parser.add_argument('--adoption-manifest', help='Verified legacy installation inventory for product upgrade; contains references, never credential values.')
+    parser.add_argument("--swagger-exposure", choices=("published", "internal"),
+                        help="Swagger exposure: published (default) or internal container-only access.")
     parser.add_argument("--minimal", action="store_true", help="Select mandatory Classic foundations only.")
     parser.add_argument("--selection-config", help="YAML/JSON selection file containing a services list.")
     parser.add_argument("workflow_namespace", nargs="?", help="Workflow namespace.")

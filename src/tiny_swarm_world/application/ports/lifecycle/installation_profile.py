@@ -1,6 +1,10 @@
 """Opaque operation ownership; application services know no filesystem locks."""
+from __future__ import annotations
 from contextlib import AbstractContextManager, contextmanager
-from typing import Iterator, Protocol
+from typing import TYPE_CHECKING, Iterator, Protocol
+
+if TYPE_CHECKING:
+    from tiny_swarm_world.domain.lifecycle.selection import SelectionPlan
 
 from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
 
@@ -9,6 +13,11 @@ class InstallationLease(Protocol):
     operation_id: str
     def require_active(self) -> None: ...
     def journal(self, kind: str) -> AbstractContextManager[None]: ...
+
+
+class ProfileExposureAdmission(Protocol):
+    lease: InstallationLease
+    async def admit_desired(self, plan: SelectionPlan) -> None: ...
 
 
 class InstallationOperationLock(Protocol):

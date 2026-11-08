@@ -6,8 +6,9 @@ calls so legacy facade patch points remain effective.
 """
 
 from __future__ import annotations
+from collections.abc import Mapping
 
-from .composition_selection import persisted_runtime_selection, artifact_contexts
+from .composition_selection import persisted_runtime_selection, artifact_contexts, selection_options
 
 
 from tiny_swarm_world.infrastructure.composition_configuration import (
@@ -74,13 +75,14 @@ def build_artifact_services_for_provider(
     ui: PortUI | None = None,
     progress: PortWorkflowProgress | None = None,
     resolved_services: tuple[str, ...] | None = None,
+    service_exposure: Mapping[str, str] | None = None,
 ) -> ArtifactServices:
     provider_request = node_provider_request or _default_node_provider_request()
     backend = _lxc_backend_for_provider_request(provider_request)
     if backend is not None:
         return build_lxc_artifact_services(
             backend=backend, ui=ui, progress=progress,
-            **({"resolved_services": resolved_services} if resolved_services is not None else {}),
+            **selection_options(resolved_services, service_exposure),
         )
     return ArtifactServices(
         workflows=ArtifactWorkflows(
@@ -107,6 +109,7 @@ def build_lxc_artifact_services(
     ui: PortUI | None = None,
     progress: PortWorkflowProgress | None = None,
     resolved_services: tuple[str, ...] | None = None,
+    service_exposure: Mapping[str, str] | None = None,
 ) -> ArtifactServices:
     _, resolved_services = persisted_runtime_selection("default", resolved_services)
     project_paths = default_project_paths()

@@ -1,6 +1,7 @@
 """Selection projections shared by existing Classic composition boundaries."""
 from dataclasses import replace
 from typing import TypedDict
+from collections.abc import Mapping
 
 from tiny_swarm_world.domain.deployment import ServiceStackProfile
 from tiny_swarm_world.domain.preflight import ARTIFACT_READINESS_TARGETS, default_setup_manifest
@@ -10,10 +11,15 @@ from tiny_swarm_world.domain.configuration.secret_manifest import SecretManifest
 
 class SelectionOptions(TypedDict, total=False):
     resolved_services: tuple[str, ...]
+    service_exposure: Mapping[str, str]
 
 
-def selection_options(resolved_services: tuple[str, ...] | None) -> SelectionOptions:
-    return {} if resolved_services is None else {"resolved_services": resolved_services}
+def selection_options(resolved_services: tuple[str, ...] | None,
+                      service_exposure: Mapping[str, str] | None = None) -> SelectionOptions:
+    result: SelectionOptions = {} if resolved_services is None else {"resolved_services": resolved_services}
+    if service_exposure is not None:
+        result["service_exposure"] = service_exposure
+    return result
 
 
 def includes_service(resolved_services: tuple[str, ...] | None, service: str) -> bool:
@@ -21,10 +27,11 @@ def includes_service(resolved_services: tuple[str, ...] | None, service: str) ->
 
 
 def selected_preflight(configuration: PreflightConfiguration, profile: ServiceStackProfile | str,
-                       resolved_services: tuple[str, ...] | None) -> PreflightConfiguration:
-    if resolved_services is None:
+                       resolved_services: tuple[str, ...] | None,
+                       service_exposure: Mapping[str, str] | None = None) -> PreflightConfiguration:
+    if resolved_services is None and service_exposure is None:
         return configuration
-    manifest = default_setup_manifest(service_profile=profile, resolved_services=resolved_services)
+    manifest = default_setup_manifest(service_profile=profile, resolved_services=resolved_services, service_exposure=service_exposure)
     keys = {secret.name for secret in manifest.required_secrets}
     return replace(
         configuration, setup_manifest=manifest,
@@ -102,3 +109,15 @@ def scoped_stack_environment(environment: dict[str, dict[str, str]], selected: t
 
 def needs_registry_images(selected: tuple[str, ...] | None) -> bool:
     return selected is None or bool({"jenkins", "service-access"} & set(selected))
+
+
+def persisted_service_exposure(resolved_services: tuple[str, ...] | None,
+                               exposure: Mapping[str, str] | None = None) -> Mapping[str, str] | None:
+    if exposure is not None:
+        return exposure
+    plan = persisted_setup_plan()
+    if plan is None:
+        return None
+    if resolved_services is not None and 'swagger' not in resolved_services:
+        return {}
+    return {'swagger': plan.service_exposure.get('swagger', 'published')}

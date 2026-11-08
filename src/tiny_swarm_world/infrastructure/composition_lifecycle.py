@@ -43,6 +43,7 @@ async def prepare_setup_selection_state(lifecycle, plan, backend, runner, *, ope
     await asyncio.to_thread(state.admit, runner, backend=backend_cli(backend),
                             node_names=tuple(node.spec.name for node in nodes),
                             host="native-linux" if host is HostEnvironmentKind.NATIVE_LINUX else "wsl2")
+    await state.admit_exposure()
     return state
 
 
