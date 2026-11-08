@@ -83,6 +83,14 @@ class DetailObserver(native.Runner):
                     if field in metadata:
                         metadata[field] = {key: value for key, value in metadata[field].items()
                                            if key != "volatile.last_state.ready"}
+            if "used_by" in metadata:
+                users = metadata["used_by"]
+                if (not isinstance(users, list) or len(users) > 10_000
+                        or not all(type(user) is str for user in users) or len(set(users)) != len(users)):
+                    raise native.InventoryError("GUEST_DETAIL_REFERENCES_INVALID")
+                # API consumer references are a set. Preserve every reference,
+                # field and ordered profile while leaving the raw DTO unchanged.
+                metadata = {**metadata, "used_by": sorted(users)}
             if kind == "image_show":
                 metadata = {key: value for key, value in metadata.items() if key != "last_used_at"}
             key = (command_id, *(safe_args or []))

@@ -14,6 +14,46 @@ from tools.linux.qualification import wsl_guest_inventory as guest
 
 
 class WslGuestInventoryTests(unittest.TestCase):
+    def test_network_consumer_order_is_stable_without_mutating_raw_observations(self) -> None:
+        before: dict[str, Any] = {"name": "incusbr0", "type": "bridge", "managed": True,
+            "config": {"user.persistent": "preserved"},
+            "used_by": ["/1.0/instances/node?project=default", "/1.0/profiles/default?project=default"]}
+        after = copy.deepcopy(before)
+        after["used_by"].reverse()
+        originals = copy.deepcopy((before, after))
+
+        def observe(metadata: dict[str, Any]) -> str:
+            observer = guest.DetailObserver()
+            raw = json.dumps({"metadata": metadata}).encode()
+            result = (0, raw, b"")
+            with patch.object(guest.native.Runner, "run", return_value=result), patch.object(
+                    guest.native, "strict_json", return_value={"metadata": metadata}):
+                self.assertIs(observer.run(["/usr/bin/incus"], command_id="incus_network_show",
+                    safe_args=["incusbr0", "default"]), result)
+            return observer.details[("incus_network_show", "incusbr0", "default")]
+
+        self.assertEqual(observe(before), observe(after))
+        self.assertEqual((before, after), originals)
+        changed = copy.deepcopy(after)
+        changed["used_by"][0] = "/1.0/profiles/different?project=default"
+        self.assertNotEqual(observe(after), observe(changed))
+        changed = copy.deepcopy(after)
+        changed["config"]["user.persistent"] = "changed"
+        self.assertNotEqual(observe(after), observe(changed))
+        # The existing real instance-detail stopped-ready regression below
+        # separately asserts that ordered profile reversal still changes proof.
+
+    def test_consumer_reference_sets_refuse_malformed_or_oversized_values(self) -> None:
+        invalid: tuple[object, ...] = (None, "not-a-list", [None], [False], [1],
+            ["same", "same"], [str(index) for index in range(10_001)])
+        for users in invalid:
+            raw = json.dumps({"metadata": {"used_by": users}}).encode()
+            observer = guest.DetailObserver()
+            with self.subTest(kind=type(users).__name__), patch.object(
+                    guest.native.Runner, "run", return_value=(0, raw, b"")):
+                with self.assertRaisesRegex(guest.native.InventoryError, "GUEST_DETAIL_REFERENCES_INVALID"):
+                    observer.run(["/usr/bin/incus"], command_id="incus_network_show", safe_args=["bridge", "default"])
+
     def test_checked_in_collector_and_provenance_match_production_source_bindings(self) -> None:
         qualification = Path(guest.__file__).resolve().parent
         for filename, expected in (("native_runtime_inventory.py", guest.COLLECTOR_SHA),
