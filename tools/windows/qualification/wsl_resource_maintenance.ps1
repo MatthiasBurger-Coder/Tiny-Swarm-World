@@ -203,6 +203,38 @@ function Assert-WslMaintenanceResourcePlan($plan){
             $plan.plan_fingerprint -cnotmatch '\A[0-9a-f]{64}\z'){throw 'RESOURCE_PLAN_INVALID'}
 }
 
+function Get-WslMaintenanceApplyObservation($Envelope) {
+    # Only closed source-defined codes and typed scalars cross the RAM boundary.
+    function Field($Object,[string]$Name){
+        if($null -eq $Object){return $null}
+        if($Object -is [Collections.IDictionary]){return $Object[$Name]}
+        $property=$Object.PSObject.Properties[$Name];if($null -ne $property){return $property.Value}
+        return $null
+    }
+    $allowedCodes=@('consent_drift','evidence_or_action_failed','custom_registration_missing','custom_registration_unknown','allocation_below_requirements','bootstrap_state_invalid','bridge_action_unknown','bridge_inventory_required','distro_inventory_unknown','distro_stopped','distro_unknown','effective_resources_mismatch','effective_resources_unknown','elevation_required','exact_plan_consent_required','features_unknown','insufficient_effective_disk','insufficient_effective_memory','insufficient_host_capacity','insufficient_host_disk','invalid_arguments','inventory_failed','linux_checkout_required','linux_unknown','linux_unsupported','next_stage_consent_required','ordinary_account_required','prerequisite_missing','qualification_authorization_mismatch','reboot_pending','resource_inventory_unknown','resource_projection_unknown','systemd_packages_missing','systemd_restart_required','unqualified_target','unsafe_evidence_storage','unsafe_global_wsl_config','unsafe_wsl_conf','unsupported_host','unverified_source','virtualization_unavailable','virtualization_unknown','wsl1_unsupported','wsl_capabilities_unknown','wsl_version_unsupported')
+    function SafeCodes($Items,[switch]$Blockers){
+        $rows=@($Items);$safe=@()
+        for($index=0;$index -lt [Math]::Min(32,$rows.Count);$index++){
+            $code=$rows[$index];if($Blockers){$code=Field $code 'code'}
+            if($code -is [string] -and $code -cin $allowedCodes){$safe+=,$code}else{$safe+=,'UNRECOGNIZED'}
+        }
+        return ,$safe
+    }
+    $result=Field $Envelope 'result';$outcome=Field $result 'outcome';$exit=Field $result 'exit_code';$changed=Field $result 'changed'
+    if($outcome -isnot [string] -or $outcome -cnotin @('HELP','READY','BLOCKED','FAILED','PARTIAL','RESTART_REQUIRED','NO_CHANGE','COMPLETE')){$outcome='UNRECOGNIZED'}
+    if($exit -isnot [int] -or $exit -lt 0 -or $exit -gt 65535){$exit=$null}
+    if($changed -isnot [bool]){$changed=$null}
+    $completed=@(Field $result 'completed_actions');$uncertain=@(Field $result 'uncertain_actions');$blockers=@(Field $Envelope 'blockers')
+    # Apply is admitted for this one action only. Preserve unknown entries as a
+    # finite marker, never as arbitrary action text supplied by an exception.
+    $actions=@('adapt_wsl_resources');$safeCompleted=@();$safeUncertain=@()
+    foreach($row in @($completed | Select-Object -First 32)){if($row -is [string] -and $row -cin $actions){$safeCompleted+=,$row}else{$safeCompleted+=,'UNRECOGNIZED'}}
+    foreach($row in @($uncertain | Select-Object -First 32)){if($row -is [string] -and $row -cin $actions){$safeUncertain+=,$row}else{$safeUncertain+=,'UNRECOGNIZED'}}
+    return [ordered]@{outcome=$outcome;exit_code=$exit;changed=$changed;blocker_codes=(SafeCodes $blockers -Blockers);
+        completed_actions=$safeCompleted;uncertain_actions=$safeUncertain;
+        truncated=($completed.Count -gt 32 -or $uncertain.Count -gt 32 -or $blockers.Count -gt 32)}
+}
+
 function Invoke-WslResourceMaintenance {
     param([Collections.IDictionary]$Scenario,[Collections.IDictionary]$Ports)
     # Mock ports are only a dot-sourced test seam. The executable entrypoint
@@ -210,7 +242,7 @@ function Invoke-WslResourceMaintenance {
     $summary=[ordered]@{schema_version=1;scope='WSL_RESOURCE_MAINTENANCE';status='BLOCKED';
         phase='ADMISSION';changed=$false;recovery_required=$false;resource_verified=$false;
         runtime_effect_attempted=$false;shutdown_attempted=$false;relaunch_attempted=$false;
-        bridge_restored=$false;route_changes=0;services_verified=$false;error='NONE'}
+        bridge_restored=$false;route_changes=0;services_verified=$false;error='NONE';controller_refusal_code='NONE';resource_apply=$null}
     $update=$null;$reconcile=$null;$before=$null;$stopped=$false;$effectAttempted=$false;$lifetimeAttempted=$false
     try {
         Assert-WslMaintenanceScenario $Scenario
@@ -236,6 +268,7 @@ function Invoke-WslResourceMaintenance {
         & $Ports.CheckPreservation $before 'BEFORE_APPLY' | Out-Null
         $summary.phase='RESOURCE_APPLY';$effectAttempted=$true;$summary.runtime_effect_attempted=$true
         $effect=& $Ports.Apply $Scenario $plan.plan_fingerprint
+        $summary.resource_apply=Get-WslMaintenanceApplyObservation $effect
         if($effect.result.exit_code -isnot [int] -or $effect.result.exit_code -ne 3 -or
             $effect.result.outcome -cne 'RESTART_REQUIRED' -or $effect.restart.scope -cne 'WSL-wide' -or
             $effect.result.changed -isnot [bool] -or !$effect.result.changed -or
@@ -267,6 +300,9 @@ function Invoke-WslResourceMaintenance {
         $summary.status='MAINTENANCE_COMPLETE';$summary.phase='COMPLETE'
     } catch {
         $summary.error='MAINTENANCE_REFUSED_OR_FAILED'
+        $knownRefusals=@('ADDRESS_DRIFT','ADDRESS_UNVERIFIED','BASELINE_FIREWALL_OR_HOSTS_REPAIR_REQUIRED','BRIDGE_DEPENDENT_SERVICE_RUNNING','BRIDGE_FIRST_LOOP_UNVERIFIED','BRIDGE_OWNERSHIP_MISMATCH','BRIDGE_RECOVERY_UNVERIFIED','BRIDGE_RUNTIME_CONTRACT_NOT_READY','BRIDGE_RUNTIME_DRIFT','FIREWALL_CERTIFICATE_INVALID','FIREWALL_COMMAND_BOUND','FIREWALL_SOURCE_BOUND','FIREWALL_SOURCE_INVALID','FIREWALL_SOURCE_MISMATCH','FOREIGN_DEPENDENCY_START_FORBIDDEN','GUEST_FILTERS_UNKNOWN','GUEST_PRESERVATION_DRIFT','GUEST_PRESERVATION_UNPROVEN','GUEST_SOURCE_MISMATCH','HOST_COMMAND_FAILED','HOST_MISMATCH','INTENT_MISMATCH','INTENT_UNTRUSTED','LEGACY_WRITER_UNQUIESCED','LISTENER_OR_BRIDGE_DRIFT','MAINTENANCE_DEADLINE','MAINTENANCE_OUTPUT_LIMIT','MAPPING_COUNT_BOUND','NETSH_AMBIGUOUS','NETSH_CAPTURE_FAILED','NETSH_DEADLINE','NETSH_PRESERVATION_DRIFT','NETSH_REGISTRY_MISMATCH','NETSH_UNCLASSIFIABLE','OWNED_PROCESS_IMAGE_MISMATCH','OWNED_PROCESS_IMAGE_UNAVAILABLE','PORTPROXY_REGISTRY_INVALID','PORTPROXY_REGISTRY_LIMIT','PORTPROXY_REGISTRY_UNAVAILABLE','PORTS_INVALID','PRESERVATION_DRIFT','PRESERVATION_PROOF_INVALID','PRESTATE_BLOCKED','PRESTATE_MISMATCH','PROTECTED_STATE_DRIFT','READINESS_DEADLINE','READINESS_RESPONSE_INVALID','READ_LEASE_CLOSE_UNVERIFIED','READ_LEASE_DEADLINE','READ_LEASE_EXECUTABLE_DRIFT','READ_LEASE_LOST','READ_LEASE_START_FAILED','RECOVERY_ALREADY_STARTED','RECOVERY_BACKUP_UNPROVEN','RECOVERY_CONFIG_UNPROVEN','RECOVERY_EVIDENCE_LIMIT','RECOVERY_LISTENER_UNPROVEN','RECOVERY_PRESERVATION_UNPROVEN','RECOVERY_REENTRY_REQUIRED','RECOVERY_ROUTE_STATE_UNCERTAIN','RECOVERY_ROUTE_UNPROVEN','RECOVERY_STATE_UNPROVEN','REGISTRATION_MISMATCH','REGISTRATION_UNAVAILABLE','RELAUNCH_UNVERIFIED','RESOURCE_APPLY_UNCERTAIN','RESOURCE_CONFIG_DRIFT','RESOURCE_EFFECT_UNVERIFIED','RESOURCE_PLAN_INVALID','ROUTE_AUTHORITY_UNVERIFIED','RUNNING_REGISTRATION_MISMATCH','SCENARIO_DUPLICATE_KEY','SCENARIO_INVALID','SCENARIO_MISMATCH','SHUTDOWN_UNVERIFIED','SOURCE_MISMATCH','SOURCE_OWNER_MISMATCH','STATE_CAS_DRIFT','STATE_COMMIT_UNVERIFIED')
+        $message=$_.Exception.Message
+        $summary.controller_refusal_code=$(if($message -is [string] -and $message -cin $knownRefusals){$message}else{'UNCLASSIFIED_EXCEPTION'})
         $summary.recovery_required=$effectAttempted
         if($effectAttempted){$summary.status='RECOVERY_REQUIRED'}
     } finally {

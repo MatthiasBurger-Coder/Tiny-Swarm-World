@@ -24,6 +24,7 @@ function MockPorts([string]$Fault=''){
         return @{actions=@(@{id=$id});resources=@{blockers=@();state='CHANGE_REQUIRED';allocation=@{memory_gib=21;processors=8;swap_gib=6}};blockers=$codes;plan_fingerprint=('f'*64)}}.GetNewClosure()
     $p.Apply={param($s,$fingerprint) [void]$ctx.calls.Add('apply');Assert ($fingerprint -ceq ('f'*64)) 'fingerprint'
         $exit=3;$uncertain=@();if($ctx.fault -eq 'apply'){$exit=2};if($ctx.fault -eq 'uncertain'){$uncertain=@('adapt_wsl_resources')}
+        if($ctx.fault -eq 'apply_blocked'){return @{result=@{outcome='BLOCKED';exit_code=2;changed=$false;completed_actions=@();uncertain_actions=@()};blockers=@(@{code='evidence_or_action_failed';remedy='PRIVATE_IP_ACL_SID_CANARY'})}}
         return @{restart=@{scope='WSL-wide'};result=@{exit_code=$exit;outcome='RESTART_REQUIRED';changed=$true;
             completed_actions=@('adapt_wsl_resources');uncertain_actions=$uncertain}}}.GetNewClosure()
     $p.CheckPreservation={param($b,$phase) [void]$ctx.calls.Add('check:'+$phase)
@@ -81,6 +82,20 @@ foreach($fault in @('lease_begin','lease_end','observe','intent','lock2','stop',
     if($fault -eq 'stop'){Assert ($p._context.restores -eq 1) 'uncertain_stop_recovered'}
     $cases++
 }
+$p=MockPorts 'apply_blocked';$result=Invoke-WslResourceMaintenance (Scenario) $p
+Assert ($result.controller_refusal_code -ceq 'RESOURCE_APPLY_UNCERTAIN' -and $result.resource_apply.outcome -ceq 'BLOCKED' -and
+    $result.resource_apply.exit_code -eq 2 -and $result.resource_apply.changed -ceq $false -and
+    ($result.resource_apply.blocker_codes -join ',') -ceq 'evidence_or_action_failed' -and
+    @($p._context.calls | Where-Object{$_ -eq 'shutdown'}).Count -eq 0 -and $result.bridge_restored) 'apply_blocked_observation_preserved_without_shutdown'
+Assert (($result | ConvertTo-Json -Depth 8 -Compress) -notmatch 'PRIVATE_IP_ACL_SID_CANARY') 'apply_observation_no_remedy_export'
+$p=MockPorts 'uncertain';$result=Invoke-WslResourceMaintenance (Scenario) $p
+Assert (($result.resource_apply.uncertain_actions -join ',') -ceq 'adapt_wsl_resources' -and $result.controller_refusal_code -ceq 'RESOURCE_APPLY_UNCERTAIN') 'uncertain_action_observation'
+$raw=@{result=@{outcome='PRIVATE_IP_ACL_SID_CANARY';exit_code='SECRET';changed='SECRET';completed_actions=@('PRIVATE_IP_ACL_SID_CANARY');uncertain_actions=@('adapt_wsl_resources')};blockers=@(@{code='PRIVATE_IP_ACL_SID_CANARY'})}
+$safe=Get-WslMaintenanceApplyObservation $raw
+Assert (($safe | ConvertTo-Json -Depth 8 -Compress) -notmatch 'PRIVATE_IP_ACL_SID_CANARY|SECRET' -and $null -eq $safe.exit_code -and $null -eq $safe.changed) 'apply_observation_closed_typed_projection'
+$raw.blockers=@(1..40 | ForEach-Object{@{code='PRIVATE_IP_ACL_SID_CANARY'}});$safe=Get-WslMaintenanceApplyObservation $raw
+Assert ($safe.truncated -and $safe.blocker_codes.Count -eq 32) 'apply_observation_bounded_codes'
+$cases+=4
 $p=MockPorts 'original_stopped';$result=Invoke-WslResourceMaintenance (Scenario) $p
 Assert ($result.status -ceq 'MAINTENANCE_COMPLETE' -and @($p._context.calls | Where-Object{$_ -eq 'stop'}).Count -eq 0) 'stopped_preserved'
 $cases++
