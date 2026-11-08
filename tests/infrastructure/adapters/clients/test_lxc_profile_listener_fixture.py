@@ -4425,6 +4425,7 @@ class WindowsInteropEnvironmentTests(_FixtureBehaviorTestCase):
                             self.assertEqual(fixture._bounded_process_output([executable], 5, 128), (b'ok', b'', 0))
                         else:
                             self.assertEqual(fixture._snapshot_process([executable], 5, 128, 128, 'FAILED'), b'ok')
+                    self.assertEqual(popen.call_args.kwargs['cwd'], Path('/mnt/c/Windows/System32'))
                     self.assertEqual(popen.call_args.kwargs['env'], {
                         'PATH': fixture.TRUSTED_PATH, 'LANG': 'C.UTF-8', 'WSL_INTEROP': '/run/WSL/3456_interop'})
 
@@ -4456,6 +4457,17 @@ class WindowsInteropEnvironmentTests(_FixtureBehaviorTestCase):
             with patch.dict(os.environ, {'WSL_INTEROP': value, 'PRIVATE_CANARY': 'never-forward'}, clear=True):
                 self.assertEqual(fixture._fixture_process_environment(['/usr/bin/incus']), expected)
                 self.assertEqual(fixture._fixture_process_environment(['/mnt/c/Windows/System32/unapproved.exe']), expected)
+        for executable in ('/usr/bin/incus', '/mnt/c/Windows/System32/unapproved.exe'):
+            for kind in ('bounded', 'snapshot'):
+                fixture._begin_inventory('192.168.178.58', reserve_cleanup=False)
+                with (patch.dict(os.environ, {}, clear=True),
+                      patch.object(fixture.subprocess, 'Popen', return_value=_BoundedMemoryProcess(b'ok')) as popen):
+                    if kind == 'bounded':
+                        fixture._bounded_process_output([executable], 5, 128)
+                    else:
+                        fixture._snapshot_process([executable], 5, 128, 128, 'FAILED')
+                self.assertEqual(popen.call_args.kwargs['cwd'], fixture.ROOT)
+                self.assertEqual(popen.call_args.kwargs['env'], expected)
         for value in ({}, {'WSL_INTEROP': ''}):
             with patch.dict(os.environ, value, clear=True):
                 self.assertEqual(fixture._fixture_process_environment([self.WINDOWS[0]]), expected)

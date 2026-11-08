@@ -737,11 +737,19 @@ def _windows_snapshot_wrapper(expected_sha256: str | None = None, certificate_sh
     return wrapper
 
 
+_WINDOWS_FIXTURE_EXECUTABLES = frozenset({
+    '/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe',
+    '/mnt/c/Windows/System32/netsh.exe',
+})
+
+
+def _fixture_process_cwd(argv: list[str]) -> Path:
+    return Path('/mnt/c/Windows/System32') if argv and argv[0] in _WINDOWS_FIXTURE_EXECUTABLES else ROOT
+
+
 def _fixture_process_environment(argv: list[str]) -> dict[str, str]:
     env = {'PATH': TRUSTED_PATH, 'LANG': 'C.UTF-8'}
-    if not argv or argv[0] not in {
-            '/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe',
-            '/mnt/c/Windows/System32/netsh.exe'}:
+    if not argv or argv[0] not in _WINDOWS_FIXTURE_EXECUTABLES:
         return env
     interop = os.environ.get('WSL_INTEROP', '')
     if not interop:
@@ -776,7 +784,7 @@ def _snapshot_process(argv: list[str], timeout_seconds: float, stdout_limit: int
     started = time.monotonic()
     env = _fixture_process_environment(argv)
     try:
-        process = subprocess.Popen(argv, cwd=ROOT, env=env,
+        process = subprocess.Popen(argv, cwd=_fixture_process_cwd(argv), env=env,
                                    stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         assert process.stdout is not None and process.stderr is not None
         selector = selectors.DefaultSelector()
@@ -1039,7 +1047,7 @@ def _bounded_process_output(command_argv: list[str], timeout_seconds: float,
     stdout = bytearray()
     stderr = bytearray()
     try:
-        process = subprocess.Popen(command_argv, cwd=ROOT, env=env,
+        process = subprocess.Popen(command_argv, cwd=_fixture_process_cwd(command_argv), env=env,
                                    stdin=subprocess.DEVNULL if stdin_descriptor is None else stdin_descriptor,
                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         assert process.stdout is not None and process.stderr is not None
