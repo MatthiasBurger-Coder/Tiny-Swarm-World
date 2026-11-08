@@ -1,7 +1,7 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: ACTIVE_FOR_ISSUE_449 v1.55 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
+Status: ACTIVE_FOR_ISSUE_449 v1.56 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
@@ -17,6 +17,57 @@ checks passed. Exclusive installation/global-resource ownership remains unproven
 Current policy work enables temporary maintenance without asserting adoption.
 Execution/evidence remains in `.codex/evidence/epic440-20261107.md`; full S02–S09
 completion remains required.
+
+## All-stopped WSL utility-VM handoff — v1.56
+
+Root accepts the independent architecture design review of 2026-11-08 and
+records requirement, architecture, automation, security/DevOps and test-evidence
+role passes by one Root integrator, not five independent reviewers. This is a
+source-engineering decision; no current/future scenario GO follows from it.
+Microsoft's [shutdown contract](https://learn.microsoft.com/en-us/windows/wsl/basic-commands#shutdown)
+terminates the WSL2 utility VM. Its [security model](https://github.com/microsoft/WSL/blob/master/doc/docs/technical-documentation/security.md)
+scopes WSL sessions to the Windows user. A cold kernel avoids carrying a new
+guest's kernel networking back into the original guest; it does not repair or
+clear Windows HNS, firewall, hosts or PortProxy state.
+
+Supersede ONLY the blanket prohibition on global WSL shutdown for this closed
+acceptance handoff. Permit at most ONE fixed trusted `wsl.exe --shutdown` per
+handoff direction after the exact admitted original and campaign registrations
+are ALL Stopped, with no third registration, no Running distribution, the owned
+bridge Stopped, no unsettled test child, and fresh original/new UUID-bound node
+quiescence receipts. Bind the same Windows actor, source, GUIDs and VHD identities;
+retain default distribution, VHDs, configuration, service policy and all original
+resources. Original cold-boot autostart safety is mandatory, including the workers
+that were originally Stopped. A new or foreign registration/running guest blocks;
+never stop it to make admission pass.
+
+Under the existing coordinator/bridge owner locks, recheck the entire registration
+set and empty Running list immediately before the effect. Flush a minimal reset
+intent and outcome to the protected operational bookmark before/after the single
+fixed command. Reset cap60s plus30s empty-state verification, with independent
+restoration allowance. Unknown outcomes are not replayed automatically. The
+existing bookmark may additionally retain only previous/next kernel boot-ID
+hashes and reset action identity/outcome; no raw inventories or authority.
+
+Capture the LAST ACTUAL pre-termination boot ID while the selected guest is
+already Running; never wake a guest merely to fill missing evidence. The next
+sole-selected launch must prove a valid different Linux kernel boot ID and exact
+registration/VHD/machine/source binding. EnterNew still performs the full initial
+kernel/network-absence observation BEFORE installing or initializing Incus.
+ReturnOriginal may instead prove own-new nodes/bridge stopped, terminateNew,
+prove all Stopped, reset the VM, then cold-start only Original and prove changed
+boot ID before original graph/bridge/runtime restoration. Original Incus may
+recreate only its preserved original graph. Retain full Windows preservation
+certificates and original graph/data/UUID/state verification; original managers
+resume only through the existing runtime window, workers remain Stopped.
+
+No table deletion, firewall flush, module unload, unregistration or default switch
+is authorized. The source controller must state the residual check-to-use race:
+registration inspection plus shutdown is not atomically exclusive against an
+outside manual/automatic WSL launch. Controlled known launchers and JIT checks
+bound this risk; do not claim a Windows-wide lock or visibility into other users.
+Existing strict handoff code remains closed until this exact refinement is
+implemented, independently reviewed and verified against concrete scenarios.
 
 ## Complete certificate transport and preserving guest handoff — v1.55
 
