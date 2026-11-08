@@ -1,7 +1,7 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: ACTIVE_FOR_ISSUE_449 v1.54 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
+Status: ACTIVE_FOR_ISSUE_449 v1.55 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
@@ -17,6 +17,82 @@ checks passed. Exclusive installation/global-resource ownership remains unproven
 Current policy work enables temporary maintenance without asserting adoption.
 Execution/evidence remains in `.codex/evidence/epic440-20261107.md`; full S02–S09
 completion remains required.
+
+## Complete certificate transport and preserving guest handoff — v1.55
+
+Root accepts the exact source plan `epic440-shared-firewall-certificate-plan.md`
+(SHA256470c141f4b6d63f7c38eb87dd5d9ffd716cf64ef5f5ec89284ed87327d1c1634)
+and the reviewed bridge design record
+`.codex/evidence/epic440-wsl-acceptance-bridge-binding-20261108.md`.
+This releases only the named source engineering and exact verification. No
+registration, resource change, bridge/guest switch or product acceptance GO
+follows from this policy text.
+
+The complete a6a5 Windows query passed twice on the actual PC:543 rules and all
+7x543 filter rows,3profiles/1settings,8,903,516 UTF8 bytes,22.874s/33.095s,
+identical complete digests. Actual repeat artifact SHA256
+ed8ed6e8b5a98c8a4c71c2609421d405ef1ecd356d89dcb5aa145c030b460294.
+Transport that full fresh query through ONE shared fixed source-bound Windows-RAM
+certificate producer. Every required checkpoint executes the whole query again;
+no caching, field omission or raw/truncated fallback. Keep120s/14MiB inside the
+child and64MiB resource-parent aggregate. The closed v1 certificate has exactly8
+root fields and10 count fields; complete snapshot SHA covers every native and
+adapted datum including the exact source-bound conversion descriptors. Add
+required `windows_certificate_sha256` to BOTH-host fixture GOs and static intents;
+retain `windows_snapshot_sha256` as the full query hash. Append the shared producer
+to native source pins serially after the owned-transition correction. All old
+GO/prestate/source bindings remain historical, never reinterpreted.
+
+Measured fixture cost requires a host-specific finite allowance: WSL650s total,
+300s cleanup reserve,350s active. The unchanged successful flow reads the complete
+firewall13times (7active,6cleanup); cleanup alone costs198.57s at the slower sample.
+Native remains300total/60cleanup/240active. Command, byte, stream, entity and
+artifact bounds remain unchanged. Scope/reset counters atomically from an exact
+validated target host at main/capture entry; no reset at cleanup and no WSL budget
+leak into native. These engineering margins do not guarantee stalled providers
+will fit. Boundary overrun remains refusal with exact owned-reader cleanup.
+
+For the NEW stopped WSL registration, supersede only the previously proposed
+24.04.5 HOST image with official26.04.1, matching the existing host OS and signed
+resolute Incus6.0.5-8 package index. Noble's current archive has6.0.0 and current
+Zabbly Noble LTS has6.0.7; cross-suite transplantation and silent version widening
+are refused. The new image is418495746 bytes, SHA256
+48d56724b5c8e60f24893e83e73bbb58c60b3ca22fba3da977075420acd54104;
+signed SUMS validated with843938DF228D22F7B3742BC0D94AA3F0EFE21092.
+Resolute InRelease was validated with archive signer
+F6ECB3762474EDA9D21B7022871920D1991BC93C; exact package/dependency hashes remain
+private input evidence. First launch is explicit root, with no OOBE/UID1000
+assumption; new machine identity must be generated and observed. This does NOT
+change the separate Noble Incus CONTAINER fingerprint21c802d47e64cedcf7153503a1b5dbcc8821919b2af993646756868b775a5383.
+
+Enumerate a narrow additional WINDOWS NATIVE OPERATIONAL recovery class beneath
+canonical `CommonApplicationData/TinySwarmWorld/WslBridge`: the exact source-owned
+`.staging-acceptance-<runid>-original` archive/payload and its `descriptor.json`,
+plus existing checked transaction staging/rollback/journal paths. Archive maximum
+4096members/32MiB; protect with the existing canonical ACL, retain original bytes,
+reject unknown/reparse/foreign layouts and preserve after Complete. Raw payload,
+ACL/SID and archive metadata stay ONLY in this protected operational store. They
+are not workflow approvals/evidence or mutation authority. GO/review/result records
+remain private ext4 or already verified RAM; never wake a stopped guest just to
+read evidence. This exact exception extends the previous W05-only classification;
+it permits no general NTFS evidence store or arbitrary ProgramData writes.
+
+Bridge phases reuse existing owned payload transaction and actual heartbeat:
+Prepare/Archive/StopOriginal/StageRestore180s each; Bind/ResumeOriginal360s each;
+explicit recovery300s. Bind/Resume reserve two120s full certificate queries,
+30s service start,45s heartbeat and10s owned-reader cleanup before effects; lack
+of remaining budget refuses. Recovery may stage original bytes while Stopped;
+starting service still requires the independently admitted Resume phase. Stop
+Original only after fresh exact original-node quiescence, before termination.
+New name is `TSW-Q440-<runid>`; bind explicit new name. Restore exact original
+config, XML, wrapper and installation-manifest, retaining archive and service
+identity/account/right/startup policy. If original distro is auto/empty, its
+captured GUID must be the unchanged default GUID before any possible lookup.
+Original/new/both/no Running predicates and actual shared-kernel network absence
+remain mandatory. No global WSL shutdown, flush, adoption, route creation or
+unregistration is added. Heartbeat proves real routing reconciliation, not an
+application endpoint/login. Existing original2managers are restored only through
+their UUID-bound runtime window; originally Stopped workers stay Stopped.
 
 ## Bounded fixture and recovery correction — v1.54
 

@@ -1,6 +1,6 @@
 {
   "workflow_id": "issue-449-lcm-w09",
-  "workflow_version": "1.54",
+  "workflow_version": "1.55",
   "continuation_20261107": {
     "branch": "fix/epic440-completion-20261107",
     "baseline": "b87fe5c96b4e8627c56f48d9a7b3c691076447fc",
@@ -126,6 +126,65 @@
       "required_go_field": "windows_snapshot_sha256",
       "actual_windows_getter": "c6cd provider-data getter refused; NOT_PASS; exact later revision requires fresh real proof",
       "capability_accepted": false
+    },
+    "shared_windows_certificate": {
+      "plan_sha256": "470c141f4b6d63f7c38eb87dd5d9ffd716cf64ef5f5ec89284ed87327d1c1634",
+      "status": "SOURCE_ENGINEERING_ONLY_PENDING_EXACT_GATES_AND_REAL_CONSUMER_PROOF",
+      "certificate_root_fields": 8,
+      "count_fields": 10,
+      "raw_query_repeat_artifact_sha256": "ed8ed6e8b5a98c8a4c71c2609421d405ef1ecd356d89dcb5aa145c030b460294",
+      "required_go_fields": [
+        "windows_snapshot_sha256",
+        "windows_certificate_sha256"
+      ],
+      "host_seconds": {
+        "native_linux": {
+          "total": 300,
+          "cleanup": 60,
+          "active": 240
+        },
+        "wsl2": {
+          "total": 650,
+          "cleanup": 300,
+          "active": 350
+        }
+      },
+      "fresh_query_counts": {
+        "active": 7,
+        "cleanup": 6
+      },
+      "parent_bytes_unchanged": 67108864,
+      "child_full_snapshot_bytes_unchanged": 14680064
+    },
+    "acceptance_wsl_host_image": {
+      "release": "26.04.1",
+      "sha256": "48d56724b5c8e60f24893e83e73bbb58c60b3ca22fba3da977075420acd54104",
+      "bytes": 418495746,
+      "signer": "843938DF228D22F7B3742BC0D94AA3F0EFE21092",
+      "signature_verified": true,
+      "incus_packages": "6.0.5-8 from signature-verified resolute index",
+      "archive_signer": "F6ECB3762474EDA9D21B7022871920D1991BC93C",
+      "registration_name": "TSW-Q440-<runid>",
+      "imported": false,
+      "container_image_unchanged": true
+    },
+    "bridge_operational_recovery_exception": {
+      "root": "CommonApplicationData/TinySwarmWorld/WslBridge",
+      "archive": ".staging-acceptance-<runid>-original",
+      "descriptor": "descriptor.json",
+      "max_members": 4096,
+      "max_bytes": 33554432,
+      "classification": "protected native product recovery only; raw payload/ACL/SID stay native; no workflow evidence or GO authority",
+      "phase_seconds": {
+        "prepare": 180,
+        "archive": 180,
+        "stop_original": 180,
+        "bind": 360,
+        "stage_restore": 180,
+        "resume_original": 360,
+        "recovery": 300
+      },
+      "live_go": false
     }
   },
   "workflow_path": "documentation/handbook/05-development/workflow/issues/issue-449/workflow.md",

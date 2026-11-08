@@ -1,6 +1,14 @@
 # Context pack — issue-449-lcm-w09
 
-## Current continuation — v1.54, 2026-11-08
+## Current continuation — v1.55, 2026-11-08
+
+v1.55 releases exact shared-certificate/WSL650-300-350 source engineering and
+names the protected bridge operational archive/descriptor exception. Native
+stays300-60. Full a6a5 raw query actual-repeat passed; new shared consumers still
+need exact gates/actual proof. Official26.04.1 WSL image and resolute6.0.5-8 index
+are signature-verified inputs only, not imported. Noble container image unchanged.
+Bridge Bind/Resume caps360s; StopOriginal is explicit180s, and all guest/identity/
+network/preservation guards remain. See workflow v1.55 for exact boundaries.
 
 v1.54 binds the native structural-slot/atomic-create/UUID-receipt correction,
 operation-specific recovery approval, aggregate deadlines and owned query reap,
