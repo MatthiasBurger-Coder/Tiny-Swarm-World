@@ -94,6 +94,8 @@ Cross-references from other parts do not change that ownership.
 
 === arc42/09_decisions
 
+* link:{handbook-root}handbook/02-architecture/arc42/09_decisions/adr-preserving-product-acceptance-transactions.adoc[Preserving product acceptance transactions for Epic 440]
+
 * link:{handbook-root}handbook/02-architecture/arc42/09_decisions/adr-autonomous-setup-safety.adoc[adr-autonomous-setup-safety.adoc]
 * link:{handbook-root}handbook/02-architecture/arc42/09_decisions/adr-bootstrap-command-readiness-contract.adoc[adr-bootstrap-command-readiness-contract.adoc]
 * link:{handbook-root}handbook/02-architecture/arc42/09_decisions/adr-classic-product-component-lifecycle.adoc[adr-classic-product-component-lifecycle.adoc]

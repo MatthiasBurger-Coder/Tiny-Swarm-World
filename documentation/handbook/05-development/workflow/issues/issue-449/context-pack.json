@@ -1,11 +1,11 @@
 {
   "workflow_id": "issue-449-lcm-w09",
-  "workflow_version": "1.52",
+  "workflow_version": "1.53",
   "continuation_20261107": {
     "branch": "fix/epic440-completion-20261107",
     "baseline": "b87fe5c96b4e8627c56f48d9a7b3c691076447fc",
     "authorization": "User explicitly requests complete Epic 440 remediation using both named test hosts; historical code-only publication scope does not limit this request.",
-    "phase": "WSL forwarding repair complete; S03 integrated/full PC quality PASS; image-aware native bootstrap integrated/full PC quality PASS; resource/fixture host phases pending",
+    "phase": "closed preserving product acceptance prerequisite source engineering; no new host GO",
     "normative_contract": ".codex/evidence/slice-449-02F4-design.md",
     "execution_record": ".codex/evidence/epic440-20261107.md",
     "runtime_mutation_released": false,
@@ -88,6 +88,22 @@
       },
       "host_phase_released": false,
       "capability_accepted": false
+    },
+    "product_acceptance_prerequisite_plan": {
+      "adr": "documentation/handbook/02-architecture/arc42/09_decisions/adr-preserving-product-acceptance-transactions.adoc",
+      "record": ".codex/evidence/epic440-preserving-acceptance-design-20261108.md",
+      "status": "ACCEPTED_SOURCE_PLAN_ONLY",
+      "independent_architecture_review": "exact amended design R2; SHA manifest6a219f3b0551997f50d8b6918989c19e5de2cc3c8ad1cebd81e1643e2626fcca",
+      "wsl_switch": "newStopped; original nodesquiesced/ownedBridgeStopped/onlyOriginalRunning; terminateOriginal/noRunning; startNew onlywithactualkernelnetworkabsence; reverseexactoriginalrestoration",
+      "source_scope": [
+        "closed qualification controllers",
+        "exact new-case disposal",
+        "new registration only",
+        "protected singleton bridge binding",
+        "matching tests and source asset pins"
+      ],
+      "runtime_mutation_released": false,
+      "epic_status": "INCOMPLETE"
     }
   },
   "workflow_path": "documentation/handbook/05-development/workflow/issues/issue-449/workflow.md",
@@ -270,11 +286,11 @@
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-classic-product-component-lifecycle.adoc": "ba210b63996ec6c0ec92089bd6cbe911deef00791b773183875eafb62e12bbe9"
   },
   "workflow_artifacts_sha256": {
-    "documentation/handbook/02-architecture/arc42/09_architecture_decisions.adoc": "9b2b38c377bd75d3059b877d6ac679173f7eea9bb22dee9460c6d4fcad42284e",
-    "documentation/handbook/05-development/workflow/issues/issue-449/context-pack.md": "55af42af6cd0ed7229c29d52d217d2d16c65dee803048a02e3931aa36b898728",
-    "documentation/handbook/05-development/workflow/issues/issue-449/workflow.md": "0ac86d6cff0ca1b581c35f32503771770af9f8c889c1725129fb488d32300607",
-    ".agents/skills/workflow-executor/SKILL.md": "04a9325b2cec2dfa6feab24c261c636fdfa295158661d20e981e4182e5bfb46c",
-    "documentation/handbook/05-development/workflow/workflow.index.md": "32c2346504ecab8c150bc11556d4053fa6bf7b3faa39b81bbd0c93bb72c5c7b2"
+    "documentation/handbook/02-architecture/arc42/09_architecture_decisions.adoc": "9cc002c31c243dfa4284653bec7678dcac470da9608e8790281e2f35b72f457a",
+    "documentation/handbook/05-development/workflow/issues/issue-449/context-pack.md": "723064b58b0788192c2f9d1d624a89b8f0bb9c218b50e0bb7e0ba5a5af2c686b",
+    "documentation/handbook/05-development/workflow/issues/issue-449/workflow.md": "bd95d420b87e98280163670ca63686b30dd4f30cc6adcea5266c8970184889fa",
+    ".agents/skills/workflow-executor/SKILL.md": "74189be9b216d9839ba5037dd5da25f9cc6507b0cd4215c65e0dc35327801aaf",
+    "documentation/handbook/05-development/workflow/workflow.index.md": "412d0ff07d08b65a2386a537c1c67d7777626cfe0d3a5850b6c64ce780a83288"
   },
   "skill_hashes_sha256": {
     ".agents/skills/three-amigos-requirement-gatekeeper/SKILL.md": "76659e618cb706e8990cdf44441aeaed219465044175826adca5357ae8acc5b4",

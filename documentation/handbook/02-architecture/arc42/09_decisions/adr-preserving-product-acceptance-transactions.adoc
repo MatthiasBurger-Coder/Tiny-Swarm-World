@@ -1,0 +1,258 @@
+= ADR: Preserving product acceptance transactions for Epic 440
+:status: Accepted for source prerequisite planning; independent architecture review; no host GO
+:date: 2026-11-08
+
+== Authority and exact supersession
+
+The user's renewed instruction to finish all Epic 440 work on the named Linux
+and Windows/WSL hosts authorizes necessary bounded preserving qualification.
+Do not ask again for generic maintenance permission. This authority does not
+prove ownership, qualify software, or authorize an unbounded command runner.
+This draft makes that authority concrete for review. It records no host GO,
+implementation, test, runtime observation or completion result.
+
+The accepted preserving-host-maintenance ADR remains unchanged for its existing
+resource transaction. In particular, its Windows exception changes only an
+already owned PortProxy destination after the selected Ubuntu restart, preserving
+all other tuple fields and firewall rules. It authorizes no new service route.
+The current native controller still runs only its fixed listener fixture.
+
+The earlier TCP/10001-only application boundary occurs in
+adr-classic-selection-exposure-stack-ownership.adoc (Context, Exposure and routes,
+Consequences), adr-installation-scoped-incus-profile.adoc (Context and scope),
+issue-449/context-pack.md and S449-07/08. It describes that approved scenario,
+not a permanent product feature restriction. For a separately reviewed product
+acceptance transaction only, replace that application's route restriction with
+its exact selected canonical route set. Preserve the old restriction for the
+old fixture/resource window and every previously issued GO. No expiry or hash
+is inherited. All other ownership, consent, capability and evidence rules stay.
+
+== Finite acceptance transaction
+
+Each transaction binds exact host and (on Windows) registration identity,
+controller/effect-source hashes, immutable image inventory, selection/exposure,
+management modes, fresh capacity and socket admission, complete preserve set,
+exact route tuples, fixed scenario ID and recovery policy. Recoverability is
+checked before pause. No arbitrary callback, shell text, executable, project,
+instance, route, destination or teardown name is accepted from the command line.
+A versioned closed scenario table selects shipped CLI argument arrays; secrets
+are passed through the existing protected source, never argv or evidence.
+
+Use the existing host-maintenance lock and explicit installation leases. The
+host lock may span a small predeclared group of cases; public CLI processes use
+their own installation lease, never an inherited or fabricated operation.
+Journal each case before its first effect. Capture actual returned UUIDs, image
+fingerprints, manager/worker marker sets, profile consumers, volume identities,
+Swarm IDs, Windows route/service identities and result attribution. Unknown
+outcomes are re-observed; no uncertain create/delete is blindly retried.
+
+Deadlines are a finite sum of the actual product workflow bounds plus a separate
+recovery reserve. A scenario starts only when its whole execution and teardown
+budget fits. Long product setup cannot borrow the old fixture's 900-second
+window. On expiry stop later cases, settle the owned CLI process tree, then run
+bounded recovery. Do not cancel a worker and release its lease while it can
+still mutate. A host-local durable recovery descriptor survives controller loss.
+
+== Native branch: preserve original LXD, use owned default Incus cases
+
+Retain the accepted exact graceful LXD shutdown, trusted Snap binding,
+no-force behavior, original unit/socket enablement and runtime-state recovery.
+Pause only the identity-checked prestate Running instances; never start an
+original Stopped instance. The protected Issue447 projects, shared profiles,
+networks, pools, images, custom volumes and snapshots remain in the preserve set.
+
+After the pause, prove Default Incus names are absent and no foreign managed
+markers exist. Run only the closed product scenario suite, with its own fresh
+GO, while LXD stays inactive. Any reactivation stops new work. An unexpected
+object is neither adopted nor removed. Existing base profiles, network and pool
+configuration are not rewritten by the suite.
+
+For each fresh case bind an empty name prestate, an exclusive case root and its
+real creation checkpoint. The cleanup authority below is limited to that
+newly created case. After cleanup, recapture the preserve set before the next
+fresh case. At the end verify all owned test listeners are gone before restoring
+original LXD runtime. Restore original service/socket/instance states and
+verify usability and preserved configuration/consumer/identity projections.
+Guest writes caused by ordinary shutdown/start are not bitwise disk rollback.
+
+== WSL branch: fresh owned test registration, originals retained
+
+Choose a separate, newly imported Ubuntu WSL2 registration on the same approved
+Windows host and account. Do not rename, move between Incus projects, adopt,
+export as a new authority, delete, unregister or replace an original instance
+or the original Ubuntu registration/VHD. A renamed marked Default instance
+would still fail the shipped fresh guard; do not weaken that guard.
+
+Use a fixed run-derived registration name and new ACL-protected installation
+path proven absent. Bind official Ubuntu artifact authenticity/digest, actual
+registration GUID, VHD/file identity, distro release, machine identity, WSL
+runtime/kernel versions and systemd before calling it a qualified WSL target.
+Do not clone original service data/credentials into it. Import only the new
+registration first and prove it remains Stopped; do not start it for package,
+image, network or service preparation while the original guest is running.
+New-guest preparation follows only the closed switch and absence proofs below.
+Source and evidence live on its Linux ext4. No default-registration change or
+global .wslconfig change is included.
+
+A second distribution is not assumed to isolate network, CPU, memory or shared
+mounts. WSL distributions can share a utility VM. Recheck global resource
+capacity, actual port ownership and route exposure. The exact original guest
+prestate known locally has three occupied Default names, so existing default
+resources are not a fresh qualification target. Pause original running guest
+workloads gracefully by observed identity, preserving Stopped states and
+configuration. A narrow original-distro stop/restart can be part of this new
+transaction only after all affected workloads are captured and recoverable;
+never issue global wsl --shutdown or force-stop unrelated work. Stop only the
+proved original bridge service if necessary to prevent it starting the original
+distro during the test; retain its definition and restore its running state.
+
+The exact switch sequence is mandatory: first finish all test workers, prove
+the new registration Stopped, quiesce only the original two identity-bound
+Running managers and prove every original guest node Stopped. Stop the proved
+owned bridge with its original state retained. Authoritatively enumerate that
+only the original Ubuntu registration is Running, then terminate only that
+fixed original registration. Require authoritative no-distribution-Running
+observation before starting the new registration. No global WSL shutdown is
+permitted. After the suite, prove every newly owned case node Stopped, terminate
+only the exact new registration, restore the original protected bridge binding
+and original guest, then restore only the two originally Running managers and
+verify complete original runtime/configuration preservation.
+
+No-running-distribution observation alone does not prove an empty shared-kernel
+network. Before any new Incus network initialization, capture actual kernel,
+interface, bridge, listener and netfilter-owner state in the new guest and prove
+absence of conflicting original bridge/daemon/route owners. Residual original
+incusbr0 or namespace state is NO-GO. A finite read-only idle observation may
+establish eventual absence; never adopt, delete or flush residual original
+objects, automatically repeat an effect, or use global shutdown as a fallback.
+The bridge transaction and union-exposure GO bind these absence observations.
+
+The new registration is the WSL acceptance target, not a claim that the
+preexisting registration or its installation was upgraded. Each fresh case
+still uses the real Default Incus project and fixed product node names. After
+the last case, normally retain the test registration stopped with a private
+recovery descriptor; automatic unregister is not needed. Optional later
+unregister requires an explicit exact-created-registration disposition and
+successful original restoration, never a name-prefix match.
+
+=== Windows routing prerequisite, separate from resource maintenance
+
+The existing bridge is a singleton with protected bundle/configuration and
+actual service-generated heartbeat. A new distro name makes its existing
+configuration nonmatching: shipped refresh/reconcile explicitly refuses that
+change and requires the ordinary consented install/upgrade path. Therefore
+fresh-distro qualification needs a separately implemented/reviewed preserving
+bridge-binding transaction; importing the distro is not sufficient.
+
+Prefer an exact reversible binding of the already proven owned bridge to the
+new registration during this product window, using its existing protected
+staging/backup/CAS lifecycle. Bind old and new configuration/bundle hashes,
+registration GUIDs, service identity, complete PortProxy/firewall/hosts prestate
+and listener owner proof. Preserve service executable identity, startup policy,
+foreign routes and all unrelated firewall/hosts content. Generate actual bridge
+state through the real service; never write a fabricated ready state or accept
+the old heartbeat merely because the new guest has the same IPv4.
+
+Before that binding, explicitly admit the union of existing forwards that may
+now reach the guest and the selected application's required routes. An old
+wildcard forward becoming served is an exposure effect even if no tuple changes.
+Any selected route not already covered gets a newly owned, exact, collision-free
+rule through the product bridge boundary, not an arbitrary netsh callback.
+Record actual new rule IDs and exact tuple/ACL intent. Scope reachability to the
+reviewed host/client range where supported; preserve existing rules as captured
+unless their exact reversible change is part of this separate plan. The route
+contract cannot silently relabel a Windows high port as canonical guest 10001.
+
+Compare immediately before each write. Restore only the transaction's own
+changes with If-Match semantics, never a global snapshot over racing state.
+Remove newly owned routes, restore the original protected bridge binding and
+configuration, start only previously Running original workloads/service and
+verify their actual access. No unrelated service, Windows feature or reboot is
+included. If the existing bridge lifecycle cannot restore that binding safely,
+implement the bounded transaction first; do not bypass preflight or substitute
+another agent contract. This is a prerequisite, not an already shipped feature.
+
+== Exact-owned post-start case disposal
+
+This is a new qualification-only disposal operation. It does not broaden the
+product reset/destroy command or the existing pre-start-only cleanup API.
+Before effects require the original empty prestate plus actual create receipt,
+installation UUID, original operation ID, exact marker set and actual node UUIDs
+for precisely the three case nodes. A checkpoint alone is not proof: re-read
+node, attached-profile, root-volume and snapshot identities and all consumers.
+Reject foreign consumers, extra snapshots/volumes or identity/spec drift.
+The disposal intent explicitly identifies test data and its bounded loss; it
+never includes original LXD, original WSL/Issue447 or shared resources.
+
+Verify protected evidence/required recovery archives first. Stop each owned
+node gracefully, worker-2 then worker-1 then manager, with no-force finite waits.
+Delete only each exact now-Stopped owned node and its positively linked owned
+root volume; re-read ownership immediately before delete and confirm absence
+and complete graph consistency afterward. Do not use the legacy --force delete
+helper. Remove the exact generated exposure profile only after its consumer set
+is empty and its full contents still match. Never delete the base docker-swarm
+profiles, pools, networks or preexisting images/cache/volumes. Account for any
+new image caches explicitly; stable inherited cache operational timestamps are
+not a false identity drift. Do not delete an image merely because unused.
+
+All teardown stages are durable. Missing receipts, unknown ownership, timeout
+or changed consumers retain resources and enter RECOVERY_REQUIRED. There is no
+broad delete-by-prefix, blanket project wipe or uncertain cleanup fallback.
+The next fresh case waits until all former fixed names/listeners are absent and
+the preserved baseline has been verified again.
+
+== Real transition qualification before public availability
+
+Keep the public catalog target candidate and its writer refusal while deriving
+compatibility evidence. A fixed private qualification driver binds an actual
+newly owned installation, admitted profile operation/lease, exact candidate
+source/target/retained member digests and recovery source. It invokes the same
+actual lower-level owner dispatch, guarded API/Classic write adapter, journals
+and task/readiness observers used by production. It does not call the blocked
+public batch admission with a changed in-memory qualification label, fabricate
+manifest observations, mock effects or introduce a public admission override.
+
+On the fixture prove Source running/functional, then actual Target transition,
+full readback, all expected tasks and preserved configuration/auth/data/identity;
+exercise reverse image recovery and repeat observation. Cover Swarm and
+Portainer owners and native/WSL intended exposure scope. Qualify explicit failure,
+old/mixed/unreadable-task and interrupted-write behavior in owned resources.
+Lower-level fixture success establishes compatibility only, not public
+services-update persistence, dependency order or batch acceptance.
+
+Independent review then admits only those exact digests/host/preset/exposure
+combinations supported by the captured results. Change the canonical catalog in
+a separate reviewed delta; no runtime flag or writable external qualification
+registry. Verify effect-source continuity by exact hashes, rerun the prescribed
+PC gates on the final catalog/controller tuple, then run actual public single,
+batch, repeat, partial failure and recovery acceptance from fresh Source
+baselines. An uncovered owner/host/exposure combination remains unavailable;
+do not advertise a global qualified target from only one fixture branch.
+
+== Required delivery and evidence
+
+Implement separate ports/adapters or focused qualification helpers for the
+closed suite supervisor, exact-owned disposal, WSL registration preparation and
+reversible bridge binding. Reuse existing profile/installation locks and
+production writers. No new general orchestration engine. Review interruption,
+post-start disposal, stale/racing ownership, shared VM/listener collisions,
+partial bridge restore and recovery after controller loss. Run prescribed
+source-bound PC gates before any live effect.
+
+Preserve all Epic criteria: fresh minimal plus two distinct fresh optional
+selections per host, addition preservation, both component update forms,
+Portainer and product upgrade/recovery, drift/refusal/no-op, actual service/data
+proof, restoration and final W10 audit. Product 0.4.0->0.5.0 remains a separate
+real v1 release-source fixture; current S04 v2 is not that source. If its old
+verifier cannot consume current scoped profiles, qualify that precise legacy
+fixture in the new guest rather than rewriting release policy or markers.
+
+Use independent requirement, architecture/security and tester/devops review
+before execution; source hashes, host/case GO, actual exit/time/PID and sanitized
+before/after artifacts bind each result. Draft policy, test success and historical
+runs never fill a current live acceptance cell.
+
+Primary WSL authority:
+https://learn.microsoft.com/windows/wsl/basic-commands[distribution import/terminate/unregister],
+https://learn.microsoft.com/windows/wsl/wsl-config[per-distribution and global settings],
+https://wsl.dev/technical-documentation/security/[shared utility VM and non-isolation].

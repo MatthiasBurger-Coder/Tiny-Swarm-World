@@ -1,6 +1,23 @@
 # Context pack — issue-449-lcm-w09
 
-## Current continuation — v1.52, 2026-11-07
+## Current continuation — v1.53, 2026-11-08
+
+Accepted preserving-product-acceptance ADR and independently reviewed amended
+source plan release only the closed prerequisite engineering described in
+workflow v1.53. New initially-Stopped WSL registration remains on the same PC;
+original guest/VHD/objects are preserved. Exact switch/reverse-restore sequence
+and actual shared-kernel network absence precede new guest network setup.
+Real singleton-bridge state/heartbeat and separate route/case/source GO remain
+mandatory. The existing resource-only window and old fixture callback stay
+unchanged. No new registration/import, bridge rebind, case disposal, component
+qualification or acceptance result is asserted.
+
+Native R2/R3 listener attempts failed and were explicitly fully recovered; all
+three original LXD nodes Running, original socket inactive and complete source-
+bound preservation checked by the recovery controller. S02 is still NOT_PASS.
+WSL network repair and S03 source integration remain the completed prior work.
+Exact execution artifacts remain private in the root continuation ledger.
+
 
 Native bootstrap source has passed root independent review and PC WSL all-seven
 QUALITY (3381 discovery/36skips;345 focused). v1.52 applies the explicit contract

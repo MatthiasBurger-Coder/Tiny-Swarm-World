@@ -18,6 +18,40 @@ Current policy work enables temporary maintenance without asserting adoption.
 Execution/evidence remains in `.codex/evidence/epic440-20261107.md`; full S02–S09
 completion remains required.
 
+## Preserving product acceptance prerequisite plan — v1.53
+
+Apply the accepted source-planning ADR
+[adr-preserving-product-acceptance-transactions.adoc](../../../../02-architecture/arc42/09_decisions/adr-preserving-product-acceptance-transactions.adoc)
+and exact design record `.codex/evidence/epic440-preserving-acceptance-design-20261108.md`.
+Root independently reviewed the full requirement/architecture/effect boundaries;
+independent architecture review accepted the amended exact switch and network
+absence preconditions. This releases bounded prerequisite SOURCE engineering,
+not an import, rebind, teardown, product callback, capability or host GO.
+
+New serial prerequisite owners/locks are closed qualification tools under
+`tools/windows/qualification/` and `tools/linux/qualification/`, their matching
+`tests/tools/` and `tests/fixtures/` files, source-asset binding in the existing
+Windows preparation adapter, and this ADR/context/evidence. Root integrates
+overlapping fixture/asset/composition files serially. No generic runner, old
+fixture callback expansion, new public destructive command or ownership waiver.
+Each implementation requires exact review, designated PC gates and fresh host/
+case admission before effect. S02 and all ordinary slice dependencies remain.
+
+Native product cases use only separately reviewed fixed CLI scenarios and
+positively created UUID-bound disposable case resources; existing LXD/Incus/
+Issue447 objects remain preserved and original LXD runtime is restored.
+WSL uses a new initially Stopped owned registration on the SAME approved PC.
+The exact old/new switch sequence, actual shared-kernel network absence, real
+protected singleton-bridge binding/heartbeat/CAS restoration and independent
+recovery reserve are mandatory. Never adopt/delete/flush old objects, change
+the default registration or use global WSL shutdown. The original resource
+maintenance exception remains destination-IP-only and is NOT expanded.
+
+Candidate transition promotion requires real exact-source lower-level fixture
+evidence followed by independent canonical policy review and new public CLI
+acceptance. A current v2 setup is not relabeled an old v1 release source.
+S07–09/W10 and Epic440 remain INCOMPLETE until all real required cells pass.
+
 ## Native bootstrap and explicit image preservation — v1.52
 
 Apply the reviewed and PC-qualified concrete contract
