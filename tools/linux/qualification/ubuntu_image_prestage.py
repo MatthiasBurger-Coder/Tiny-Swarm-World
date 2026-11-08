@@ -266,12 +266,38 @@ class Authority:
             client.settimeout(2)
             client.connect(self.socket_path)
             pid, uid, _gid = struct.unpack('3i', client.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, 12))
-        require(uid == 0 and pid == current['main_pid'], 'INCUS_ROOT_PEER_CHANGED')
+        require(type(current['main_pid']) is int and current['main_pid'] > 1 and uid == 0,
+                'INCUS_ROOT_PEER_CHANGED')
+        if pid != current['main_pid']:
+            require(pid == 1, 'INCUS_ROOT_PEER_CHANGED')
+            self._activation_peer()
+            self._root_proof()
 
-    def query(self, uri: str) -> Any:
-        require(uri in {'/1.0', '/1.0/projects?recursion=1'} or re.fullmatch(
-            r'/1\.0/images(?:/aliases)?\?recursion=1&project=[A-Za-z0-9%_.~-]+', uri), 'QUERY_NOT_FIXED')
-        self.guard()
+    def _activation_peer(self) -> None:
+        listener = self.socket_unit
+        endpoint = listener.get('listen')
+        require(listener.get('load_state') == 'loaded' and listener.get('active_state') == 'active'
+                and listener.get('sub_state') in {'listening', 'running'}
+                and isinstance(endpoint, str) and SOCKETS.get(endpoint) == self.socket_path, 'INCUS_ACTIVATION_UNPROVEN')
+        try:
+            executable = Path(os.readlink('/proc/1/exe'))
+            require(str(executable) in {'/usr/lib/systemd/systemd', '/lib/systemd/systemd'}, 'PID1_EXECUTABLE_UNTRUSTED')
+            resolved = executable.resolve(strict=True)
+            require(str(resolved) in {'/usr/lib/systemd/systemd', '/lib/systemd/systemd'}, 'PID1_EXECUTABLE_UNTRUSTED')
+            _trusted_directory(resolved.parent)
+            info = resolved.lstat()
+            require(stat.S_ISREG(info.st_mode) and info.st_uid == 0 and not info.st_mode & 0o022
+                    and bool(info.st_mode & 0o111), 'PID1_EXECUTABLE_UNTRUSTED')
+            with open('/proc/1/status', 'rb') as stream:
+                status = stream.read(65537)
+            require(len(status) <= 65536, 'PID1_STATUS_UNTRUSTED')
+            require([line.split()[1:] for line in status.splitlines() if line.startswith(b'Uid:')]
+                    == [[b'0', b'0', b'0', b'0']], 'PID1_STATUS_UNTRUSTED')
+        except OSError as exc:
+            raise PrestageError('PID1_PROCESS_UNTRUSTED') from exc
+
+    def _raw_query(self, uri: str) -> Any:
+        # The caller fixes/validates URI before this primitive; never recurse into guard.
         _, raw, err = self.runner.run(['/usr/bin/incus', '--force-local', 'query', '--request', 'GET', '--raw', uri],
                                      env=self.env, command_id='prestage_inventory')
         value = inventory.strict_json(raw)
@@ -279,8 +305,20 @@ class Authority:
                 and value['type'] == 'sync' and value['status'] == 'Success' and type(value['status_code']) is int
                 and value['status_code'] == 200 and value['operation'] == '' and type(value['error_code']) is int
                 and value['error_code'] == 0 and value['error'] == '', 'QUERY_FAILED')
-        self.guard()
         return value['metadata']
+
+    def _root_proof(self) -> None:
+        _validate_root_pid(self._raw_query('/1.0'), self.initial['main_pid'])
+
+    def query(self, uri: str) -> Any:
+        require(uri in {'/1.0', '/1.0/projects?recursion=1'} or re.fullmatch(
+            r'/1\.0/images(?:/aliases)?\?recursion=1&project=[A-Za-z0-9%_.~-]+', uri), 'QUERY_NOT_FIXED')
+        self.guard()
+        metadata = self._raw_query(uri)
+        if uri == '/1.0':
+            _validate_root_pid(metadata, self.initial['main_pid'])
+        self.guard()
+        return metadata
 
     def effect(self, kind: str) -> None:
         self.guard()
@@ -296,9 +334,16 @@ class Authority:
         self.guard()
 
 
+def _validate_root_pid(root: Any, main_pid: int) -> dict[str, Any]:
+    admission = inventory._validate_server_root(root, incus=True, cli_version='6.0.5')
+    require(type(main_pid) is int and main_pid > 1 and root['environment']['server_pid'] == main_pid,
+            'INCUS_SERVER_PID_CHANGED')
+    return admission
+
+
 def snapshot(authority: Authority) -> dict[str, Any]:
     root = authority.query('/1.0')
-    admission = inventory._validate_server_root(root, incus=True, cli_version='6.0.5')
+    admission = _validate_root_pid(root, authority.initial['main_pid'])
     projects = authority.query('/1.0/projects?recursion=1')
     require(isinstance(projects, list) and 0 < len(projects) <= 1000, 'PROJECTS_INVALID')
     result: dict[str, Any] = {}

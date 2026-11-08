@@ -2,14 +2,15 @@
 from __future__ import annotations
 
 import copy
+from contextlib import contextmanager, ExitStack
 import hashlib
 import os
 from pathlib import Path
 import struct
 import tempfile
-from typing import Any
+from typing import Any, Iterator, cast
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, mock_open, patch
 from urllib.parse import parse_qs, urlsplit
 
 from tools.linux.qualification import ubuntu_image_prestage as stage
@@ -249,6 +250,149 @@ class AuthorityBoundaryTests(unittest.TestCase):
                 patch.object(stage.inventory, '_require_full_local_access'), patch.object(stage.socket, 'socket', return_value=client):
             with self.assertRaisesRegex(stage.PrestageError, 'INCUS_ROOT_PEER_CHANGED'):
                 authority.guard()
+
+
+class SocketActivationAuthorityTests(unittest.TestCase):
+    def authority(self, endpoint: str = 'incus_var_lib') -> stage.Authority:
+        authority = stage.Authority.__new__(stage.Authority)
+        authority.source_pins = {}
+        authority.initial = {'main_pid': 17, 'load_state': 'loaded', 'active_state': 'active', 'sub_state': 'running'}
+        authority.socket_unit = {'listen': endpoint, 'load_state': 'loaded', 'active_state': 'active', 'sub_state': 'listening'}
+        authority.socket_path = stage.SOCKETS[endpoint]
+        authority.env = stage.ENV | {'INCUS_SOCKET': authority.socket_path}
+        authority.images = Path('/images')
+        authority.runner = Mock()
+        return authority
+
+    @staticmethod
+    def root() -> dict[str, Any]:
+        return FakeAuthority(Path('/images'), Mock()).root
+
+    @staticmethod
+    def envelope(root: Any) -> bytes:
+        return stage.canonical({'type': 'sync', 'status': 'Success', 'status_code': 200,
+                                'operation': '', 'error_code': 0, 'error': '', 'metadata': root})
+
+    @contextmanager
+    def guard_transport(self, authority: stage.Authority, *, pid: int = 1, uid: int = 0) -> Iterator[None]:
+        client = Mock()
+        client.__enter__ = Mock(return_value=client)
+        client.__exit__ = Mock(return_value=False)
+        client.getsockopt.return_value = struct.pack('3i', pid, uid, uid)
+        with ExitStack() as stack:
+            stack.enter_context(patch.object(authority, 'check_source', return_value={}))
+            stack.enter_context(patch.object(stage.inventory, '_systemctl_show', side_effect=lambda _r, unit:
+                authority.initial if unit == 'incus.service' else authority.socket_unit))
+            stack.enter_context(patch.object(stage.inventory, '_resolve_executable', return_value=('incus_system', 'system:incus')))
+            stack.enter_context(patch.object(stage.inventory, '_endpoint', return_value=('incus_var_lib', True)))
+            stack.enter_context(patch.object(stage.inventory, '_require_full_local_access'))
+            stack.enter_context(patch.object(stage.socket, 'socket', return_value=client))
+            yield
+
+    def test_direct_root_daemon_preserved_without_pid1_exemption_or_additional_root_query(self):
+        for endpoint in stage.SOCKETS:
+            authority = self.authority(endpoint)
+            with self.subTest(endpoint=endpoint), self.guard_transport(authority, pid=17), \
+                    patch.object(authority, '_activation_peer') as activation:
+                authority.guard()
+            activation.assert_not_called()
+            cast(Mock, authority.runner).run.assert_not_called()
+
+    def test_pid1_requires_full_process_listener_and_actual_strict_root_proof_on_both_endpoints(self):
+        for endpoint in stage.SOCKETS:
+            authority = self.authority(endpoint)
+            cast(Mock, authority.runner).run.return_value = (0, self.envelope(self.root()), b'')
+            with self.subTest(endpoint=endpoint), self.guard_transport(authority), \
+                    patch.object(authority, '_activation_peer') as activation:
+                authority.guard()
+            activation.assert_called_once()
+            self.assertEqual(cast(Mock, authority.runner).run.call_args.args[0],
+                ['/usr/bin/incus', '--force-local', 'query', '--request', 'GET', '--raw', '/1.0'])
+            self.assertEqual(cast(Mock, authority.runner).run.call_args.kwargs['env']['INCUS_SOCKET'], stage.SOCKETS[endpoint])
+
+    def test_nonroot_or_other_peer_never_reaches_activation_or_api(self):
+        for pid, uid in ((1, 1000), (2, 0), (18, 0), (0, 0)):
+            authority = self.authority()
+            with self.subTest(pid=pid, uid=uid), self.guard_transport(authority, pid=pid, uid=uid), \
+                    patch.object(authority, '_activation_peer') as activation:
+                with self.assertRaisesRegex(stage.PrestageError, 'INCUS_ROOT_PEER_CHANGED'):
+                    authority.guard()
+            activation.assert_not_called()
+            cast(Mock, authority.runner).run.assert_not_called()
+
+    def test_activation_process_proof_is_bounded_and_root_only(self):
+        authority = self.authority()
+        executable = Path('/usr/lib/systemd/systemd')
+        trusted = os.stat_result((0o100755, 1, 1, 1, 0, 0, 1, 0, 0, 0))
+        cases: tuple[tuple[str, bytes, os.stat_result, str | None], ...] = (
+            (str(executable), b'Name: systemd\nUid:\t0\t0\t0\t0\n', trusted, None),
+            ('/tmp/systemd', b'Uid: 0 0 0 0\n', trusted, 'PID1_EXECUTABLE_UNTRUSTED'),
+            (str(executable), b'Uid: 0 1000 0 0\n', trusted, 'PID1_STATUS_UNTRUSTED'),
+            (str(executable), b'Uid: 0 0 0 0\nUid: 0 0 0 0\n', trusted, 'PID1_STATUS_UNTRUSTED'),
+            (str(executable), b'x' * 65537, trusted, 'PID1_STATUS_UNTRUSTED'),
+            (str(executable), b'Uid: 0 0 0 0\n', os.stat_result((0o100777, 1, 1, 1, 0, 0, 1, 0, 0, 0)), 'PID1_EXECUTABLE_UNTRUSTED'),
+            (str(executable), b'Uid: 0 0 0 0\n', os.stat_result((0o100755, 1, 1, 1, 1000, 0, 1, 0, 0, 0)), 'PID1_EXECUTABLE_UNTRUSTED'),
+        )
+        for link, status, info, failure in cases:
+            reader = mock_open(read_data=status)
+            with self.subTest(link=link, failure=failure), patch.object(stage.os, 'readlink', return_value=link), \
+                    patch.object(stage.Path, 'resolve', return_value=executable), \
+                    patch.object(stage.Path, 'lstat', return_value=info), \
+                    patch.object(stage, '_trusted_directory'), patch('builtins.open', reader):
+                if failure:
+                    with self.assertRaisesRegex(stage.PrestageError, failure):
+                        authority._activation_peer()
+                else:
+                    authority._activation_peer()
+                    reader().read.assert_called_once_with(65537)
+        for field, value in (('load_state', 'not-found'), ('active_state', 'inactive'),
+                             ('sub_state', 'dead'), ('listen', 'incus_run')):
+            authority = self.authority()
+            authority.socket_unit[field] = value
+            with self.subTest(field=field), self.assertRaisesRegex(stage.PrestageError, 'INCUS_ACTIVATION_UNPROVEN'):
+                authority._activation_peer()
+
+    def test_root_dto_pid_and_envelope_refuse_before_effect_without_type_coercion(self):
+        for field, value in (('server_pid', 18), ('server_pid', True), ('server_pid', '17'),
+                             ('server_clustered', True), ('server', 'lxd'), ('project', 'foreign')):
+            authority = self.authority()
+            root = self.root()
+            root['environment'][field] = value
+            cast(Mock, authority.runner).run.return_value = (0, self.envelope(root), b'')
+            with self.subTest(field=field, value=value), self.guard_transport(authority), \
+                    patch.object(authority, '_activation_peer'), patch.object(stage, 'verify_bundle') as images:
+                with self.assertRaises((stage.PrestageError, stage.inventory.InventoryError)):
+                    authority.effect('alias')
+            images.assert_not_called()
+            self.assertEqual(cast(Mock, authority.runner).run.call_count, 1)
+        authority = self.authority()
+        for raw, err in ((b'{}', b''), (self.envelope(self.root()), b'error'),
+                         (b'{"type":"sync","type":"error"}', b'')):
+            cast(Mock, authority.runner).run.return_value = (0, raw, err)
+            with self.subTest(raw_length=len(raw), stderr=bool(err)), self.assertRaises((stage.PrestageError, stage.inventory.InventoryError)):
+                authority._root_proof()
+
+    def test_real_query_and_effect_repeat_pid1_proof_before_and_after_without_recursive_guard(self):
+        for effect in (False, True):
+            authority = self.authority()
+            commands: list[list[str]] = []
+            def run(argv: list[str], **_kwargs: Any) -> tuple[int, bytes, bytes]:
+                commands.append(argv)
+                if argv[2:3] == ['query']:
+                    return (0, self.envelope(self.root()) if argv[-1] == '/1.0' else self.envelope([]), b'')
+                return (0, b'', b'')
+            cast(Mock, authority.runner).run.side_effect = run
+            with self.subTest(effect=effect), self.guard_transport(authority), \
+                    patch.object(authority, '_activation_peer') as activation, patch.object(stage, 'verify_bundle'):
+                if effect:
+                    authority.effect('alias')
+                else:
+                    self.assertEqual(authority.query('/1.0/projects?recursion=1'), [])
+            self.assertEqual(activation.call_count, 2)
+            self.assertEqual(len(commands), 3)
+            self.assertEqual(commands[0][-1], '/1.0')
+            self.assertEqual(commands[-1][-1], '/1.0')
+            self.assertEqual(commands[1][2], '--quiet' if effect else 'query')
 
 
 if __name__ == '__main__':

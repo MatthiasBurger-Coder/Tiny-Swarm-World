@@ -84,3 +84,65 @@ R2 type/full checks remain pending.
 R2 nearest11 andtype919 PASS. Full quality stopped at one unused json test
 import (log1b24d463ec43a972942ae1955026efaf06e7ef2c1f834a8582a2b63f245fdf15).
 Remove only that unused import for R3; no source behavior/guard/test assertion change.
+
+## Socket activation correction — approved source-only plan
+
+New isolated stream base176e38e7; same three file locks. Root actual prepare
+refused INCUS_ROOT_PEER_CHANGED before any image/alias effect. Sanitized proof
+showed root peer PID1, trusted systemd, unchanged active Incus service and exact
+varlib socket. This failure is retained; it is not an import success.
+
+| Requirement | Implementation and regression |
+|---|---|
+| Preserve direct daemon peer | Root peer equal to unchanged exact int MainPID>1 remains supported for either fixed endpoint. |
+| Admit only proven activation peer | Root PID1 additionally needs loaded active listening/running exact bound socket, trusted canonical systemd executable, bounded root-only process status; every other PID/UID refuses. Negatives exercise each condition. |
+| Full API identity | Private fixed /1.0 proof uses same Runner/budgets, strict sync envelope + pinned Incus6.0.5 trusted/default/noncluster DTO, exact server_pid==initial.MainPID before projection. No guard/query recursion. Malformed, wrong PID and drift refuse. |
+| Fresh pre/post checks | Existing guard calls around every API/effect remain. PID1 full activation and root proof repeat each time; no remembered PID1 exemption. Transport tests assert both boundaries and no effect after failed proof. |
+| Preserve all other limits/effects | No shared parser changes, no endpoint fallback, unchanged300s/2048commands/16MiB and existing import/alias-only durable recovery. Root owns tests/hosts/commits. |
+
+Root explicitly released this exact plan including the new API PID crosscheck.
+The previous shared validator validated server_pid type but did not compare it to
+MainPID; this amendment adds that comparison honestly rather than claiming an
+already existing binding. WSL reference is fixed fresh_runtime/validate_peer in
+the prior reviewed runtime-window controller; this does not infer host behavior
+from a fixture or grant any live authorization.
+
+Implementation handoff: direct-daemon peer retains its previous path. Only PID1
+executes the added activation and fixed root proof in every guard. The source
+reuses the unchanged strict sync-envelope decoder for both guarded public fixed
+queries and the nonrecursive private /1.0 primitive. Root proof fully validates
+the family DTO before comparing actual server_pid with the captured service PID;
+snapshot performs the same crosscheck before its projection. Both endpoint forms
+remain finite and bound, without run/varlib fallback. Additional root reads are
+charged to the SAME existing Runner; no budget reset or raise is introduced.
+
+Authored seven new regressions cover direct root daemon on both endpoints, PID1
+proof on both endpoints, other/nonroot peers denied before API, bounded/root-only
+systemd process/status and listener refusals, malformed/wrong-authority/root-PID
+DTO and sync-envelope failures before effects, and actual guard/query/effect
+transport order proving two fresh PID1/root checks around each operation. These
+are synthetic transport tests; no daemon, import or alias command was executed.
+
+Static AST parse and git diff --check PASS for this correction. Test/type/full
+verification, host execution and commits NOT_RUN by worker. Root owns independent
+review and PC gates before a separately authorized fresh prestage. The actual
+INCUS_ROOT_PEER_CHANGED refusal remains retained and had no effects. No earlier
+prepare/proposal is upgraded by this code change; a fresh source-bound proposal
+and new baseline after any successful import are still required.
+
+## Socket activation correction: Root integration evidence
+
+Actual native prepare on exact176e38e7 source refused INCUS_ROOT_PEER_CHANGED
+before any image/alias effect. Read-only binding diagnosis proved root PID1 peer,
+trusted systemd, exact loaded active/running Incus service/socket and fixed
+var-lib endpoint. The narrow reviewed activation proof retains all original
+source/API/metadata/budget constraints and adds actual root server-PID binding.
+
+PC SSH/WSL `epic440-prestage-activation-20261108-r2`, base7523f85b, three exact
+R2 paths:17 nearest tests PASS1.934s,type978 PASS, all7 quality PASS,
+3625 tests/36 skipped/283.967s. Full quality log SHA256
+`a3a7afefecef48e09c54316d16f8d97ed9a2f8a046c210e5a616bdeee1bea5e1`.
+R1 typecheck rejected optional dictionary key; RootR2 adds an explicit string
+endpoint guard. Independent source reviewer preflight_review approved original
+activation semantics; Root reviewed this strengthening. Actual import/alias
+remain NOT_RUN and require a fresh before-baseline plan.
