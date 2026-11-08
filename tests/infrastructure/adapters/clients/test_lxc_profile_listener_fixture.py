@@ -4408,5 +4408,58 @@ class InitialIdentityDurabilityTests(_FixtureBehaviorTestCase):
                 self.assertEqual(fixture.main(['--target-host', '192.168.178.33', '--expected-approval-sha256', fixture.digest(raw)]), 0)
         self.assertEqual(execute.call_args.kwargs['approved_go_sha256'], fixture.digest(raw))
 
+class WindowsInteropEnvironmentTests(_FixtureBehaviorTestCase):
+    WINDOWS = ('/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe',
+               '/mnt/c/Windows/System32/netsh.exe')
+
+    def test_both_real_process_capture_paths_forward_only_validated_windows_interop(self):
+        for executable in self.WINDOWS:
+            for kind in ('bounded', 'snapshot'):
+                with self.subTest(executable=executable, kind=kind):
+                    fixture._begin_inventory('192.168.178.58', reserve_cleanup=False)
+                    process = _BoundedMemoryProcess(b'ok')
+                    with (patch.dict(os.environ, {'WSL_INTEROP': '/run/WSL/3456_interop', 'PRIVATE_CANARY': 'never-forward'}, clear=True),
+                          patch.object(Path, 'lstat', return_value=SimpleNamespace(st_mode=stat.S_IFSOCK | 0o600)),
+                          patch.object(fixture.subprocess, 'Popen', return_value=process) as popen):
+                        if kind == 'bounded':
+                            self.assertEqual(fixture._bounded_process_output([executable], 5, 128), (b'ok', b'', 0))
+                        else:
+                            self.assertEqual(fixture._snapshot_process([executable], 5, 128, 128, 'FAILED'), b'ok')
+                    self.assertEqual(popen.call_args.kwargs['env'], {
+                        'PATH': fixture.TRUSTED_PATH, 'LANG': 'C.UTF-8', 'WSL_INTEROP': '/run/WSL/3456_interop'})
+
+    def test_invalid_present_interop_never_reaches_either_windows_spawn(self):
+        cases = (('/tmp/3456_interop', stat.S_IFSOCK), ('/run/WSL/notpid_interop', stat.S_IFSOCK),
+                 ('/run/WSL/3456_interop', stat.S_IFREG), ('/run/WSL/3456_interop', stat.S_IFLNK))
+        for executable in self.WINDOWS:
+            for value, mode in cases:
+                for kind in ('bounded', 'snapshot'):
+                    with self.subTest(executable=executable, value=value, mode=mode, kind=kind):
+                        fixture._begin_inventory('192.168.178.58', reserve_cleanup=False)
+                        with (patch.dict(os.environ, {'WSL_INTEROP': value}, clear=True),
+                              patch.object(Path, 'lstat', return_value=SimpleNamespace(st_mode=mode)),
+                              patch.object(fixture.subprocess, 'Popen') as popen,
+                              self.assertRaisesRegex(fixture.TargetDrift, 'WINDOWS_INTEROP_UNVERIFIED')):
+                            if kind == 'bounded':
+                                fixture._bounded_process_output([executable], 5, 128)
+                            else:
+                                fixture._snapshot_process([executable], 5, 128, 128, 'FAILED')
+                        popen.assert_not_called()
+        with (patch.dict(os.environ, {'WSL_INTEROP': '/run/WSL/3456_interop'}, clear=True),
+              patch.object(Path, 'lstat', side_effect=FileNotFoundError),
+              self.assertRaisesRegex(fixture.TargetDrift, 'WINDOWS_INTEROP_UNVERIFIED')):
+            fixture._fixture_process_environment([self.WINDOWS[0]])
+
+    def test_linux_environment_stays_exact_and_missing_interop_keeps_existing_behavior(self):
+        expected = {'PATH': fixture.TRUSTED_PATH, 'LANG': 'C.UTF-8'}
+        for value in ('/run/WSL/3456_interop', '/untrusted/socket'):
+            with patch.dict(os.environ, {'WSL_INTEROP': value, 'PRIVATE_CANARY': 'never-forward'}, clear=True):
+                self.assertEqual(fixture._fixture_process_environment(['/usr/bin/incus']), expected)
+                self.assertEqual(fixture._fixture_process_environment(['/mnt/c/Windows/System32/unapproved.exe']), expected)
+        for value in ({}, {'WSL_INTEROP': ''}):
+            with patch.dict(os.environ, value, clear=True):
+                self.assertEqual(fixture._fixture_process_environment([self.WINDOWS[0]]), expected)
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -737,6 +737,27 @@ def _windows_snapshot_wrapper(expected_sha256: str | None = None, certificate_sh
     return wrapper
 
 
+def _fixture_process_environment(argv: list[str]) -> dict[str, str]:
+    env = {'PATH': TRUSTED_PATH, 'LANG': 'C.UTF-8'}
+    if not argv or argv[0] not in {
+            '/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe',
+            '/mnt/c/Windows/System32/netsh.exe'}:
+        return env
+    interop = os.environ.get('WSL_INTEROP', '')
+    if not interop:
+        return env
+    if not re.fullmatch(r'/run/WSL/[0-9]+_interop', interop):
+        raise TargetDrift('WINDOWS_INTEROP_UNVERIFIED')
+    try:
+        mode = Path(interop).lstat().st_mode
+    except OSError as exc:
+        raise TargetDrift('WINDOWS_INTEROP_UNVERIFIED') from exc
+    if not stat.S_ISSOCK(mode):
+        raise TargetDrift('WINDOWS_INTEROP_UNVERIFIED')
+    env['WSL_INTEROP'] = interop
+    return env
+
+
 def _snapshot_process(argv: list[str], timeout_seconds: float, stdout_limit: int,
                       stderr_limit: int, failure_code: str, *, require_empty_stderr: bool = False) -> bytes:
     """Capture one allowlisted Windows snapshot process under shared budgets."""
@@ -753,8 +774,9 @@ def _snapshot_process(argv: list[str], timeout_seconds: float, stdout_limit: int
     selector = None
     stdout, stderr = bytearray(), bytearray()
     started = time.monotonic()
+    env = _fixture_process_environment(argv)
     try:
-        process = subprocess.Popen(argv, cwd=ROOT, env={'PATH': TRUSTED_PATH, 'LANG': 'C.UTF-8'},
+        process = subprocess.Popen(argv, cwd=ROOT, env=env,
                                    stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         assert process.stdout is not None and process.stderr is not None
         selector = selectors.DefaultSelector()
@@ -1011,12 +1033,13 @@ def _bounded_process_output(command_argv: list[str], timeout_seconds: float,
                             max_stream_bytes: int, *, stdin_descriptor: int | None = None,
                             error_code: str = 'HOST_IDENTITY_DRIFT') -> tuple[bytes, bytes, int]:
     """Capture bounded stdout/stderr and kill a process on overflow or timeout."""
+    env = _fixture_process_environment(command_argv)
     process = None
     selector = None
     stdout = bytearray()
     stderr = bytearray()
     try:
-        process = subprocess.Popen(command_argv, cwd=ROOT, env={'PATH': TRUSTED_PATH, 'LANG': 'C.UTF-8'},
+        process = subprocess.Popen(command_argv, cwd=ROOT, env=env,
                                    stdin=subprocess.DEVNULL if stdin_descriptor is None else stdin_descriptor,
                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         assert process.stdout is not None and process.stderr is not None
