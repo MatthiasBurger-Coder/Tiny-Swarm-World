@@ -20,7 +20,7 @@ def build_installation_lifecycle_service(repository_root: Path | None = None) ->
     )
 
 
-async def prepare_setup_selection_state(lifecycle, plan, backend, runner, *, operation_lease=None):
+async def prepare_setup_selection_state(lifecycle, plan, backend, runner, *, operation_lease=None, consent=None, recovery=False):
     """Admit selected setup through bounded inventory before runtime composition."""
     import asyncio
     from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
@@ -30,6 +30,7 @@ async def prepare_setup_selection_state(lifecycle, plan, backend, runner, *, ope
     from tiny_swarm_world.infrastructure.adapters.lifecycle.setup_state import SetupSelectionState
     from tiny_swarm_world.infrastructure.adapters.repositories.node_provider_config_yaml_repository import NodeProviderConfigYamlRepository
     from tiny_swarm_world.infrastructure.project_paths import default_project_paths
+    from .composition_profile import prepare_profile_state
 
     if backend is None:
         raise LifecycleStateError("Selective setup requires a resolved Incus backend; prepare the host and retry.")
@@ -39,10 +40,19 @@ async def prepare_setup_selection_state(lifecycle, plan, backend, runner, *, ope
     paths = default_project_paths()
     state = SetupSelectionState(lifecycle, plan, paths.repository_root)
     state.operation_lease = operation_lease
-    nodes = NodeProviderConfigYamlRepository(project_paths=paths).load().nodes
+    config = NodeProviderConfigYamlRepository(project_paths=paths).load()
+    recover_manifest = None
+    if recovery and lifecycle.manifests.load().manifest is None:
+        from tiny_swarm_world.infrastructure.adapters.lifecycle.profile_journal import JsonProfileLifecycleJournal
+        retained = JsonProfileLifecycleJournal(paths.repository_root).load()
+        if retained is None or retained.intent.initial_manifest is None:
+            raise LifecycleStateError('No original scoped setup checkpoint exists.')
+        recover_manifest = retained.intent.initial_manifest
     await asyncio.to_thread(state.admit, runner, backend=backend_cli(backend),
-                            node_names=tuple(node.spec.name for node in nodes),
-                            host="native-linux" if host is HostEnvironmentKind.NATIVE_LINUX else "wsl2")
+                            node_names=tuple(node.spec.name for node in config.nodes),
+                            host="native-linux" if host is HostEnvironmentKind.NATIVE_LINUX else "wsl2",
+                            recover_manifest=recover_manifest)
+    state.profile_operation = await prepare_profile_state(state, config, consent, operation_lease, recovery=recovery)
     await state.admit_exposure()
     return state
 

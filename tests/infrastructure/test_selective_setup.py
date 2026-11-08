@@ -172,7 +172,7 @@ class MinimalApplyExecutionTests(unittest.IsolatedAsyncioTestCase):
                 events.append('commit')
                 lifecycle.manifests.save(manifest, expected_token=None)
 
-            state = SimpleNamespace(commit=Mock(side_effect=commit))
+            state = SimpleNamespace(profile_operation=None, commit=Mock(side_effect=commit))
             module = 'tiny_swarm_world.infrastructure.adapters.cli.selective_setup.composition.'
             with (patch(module + 'build_installation_lifecycle_service', return_value=lifecycle),
                   patch(module + 'prepare_setup_selection_state', AsyncMock(return_value=state)),

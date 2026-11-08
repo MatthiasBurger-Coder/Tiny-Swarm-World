@@ -71,12 +71,14 @@ async def run_setup_with_terminal_status(
     node_provider_request: NodeProviderSelectionRequest | None = None,
     allow_wsl_windows_filesystem: bool = False, selection_plan: SelectionPlan | None = None,
     operation_lease: operation.InstallationLease | None = None,
+    profile_operation=None,
 ) -> SetupWorkflowResult:
     if not live_consent.accepted:
         raise ValueError('setup run requires accepted live consent')
     return await operation.run_setup_operation(default_project_paths().repository_root, operation_lease,
         lambda admitted: _run_setup_with_terminal_status(live_consent, action, service_profile,
-            node_provider_request, allow_wsl_windows_filesystem, selection_plan, admitted))
+            node_provider_request, allow_wsl_windows_filesystem, selection_plan, admitted, profile_operation),
+        **({"profile_operation": profile_operation} if profile_operation is not None else {}))
 
 
 async def _run_setup_with_terminal_status(
@@ -87,6 +89,7 @@ async def _run_setup_with_terminal_status(
     allow_wsl_windows_filesystem: bool = False,
     selection_plan: SelectionPlan | None = None,
     operation_lease: operation.InstallationLease | None = None,
+    profile_operation=None,
 ) -> SetupWorkflowResult:
     if not live_consent.accepted:
         raise ValueError("setup run requires accepted live consent")
@@ -108,6 +111,7 @@ async def _run_setup_with_terminal_status(
             configuration_validation=facade.build_configuration_validation_service(),
             **({"selection_plan": selection_plan} if selection_plan is not None else {}),
             operation_lease=operation_lease,
+            **({"profile_operation": profile_operation} if profile_operation is not None else {}),
         )
         match action:
             case "run":
@@ -150,6 +154,7 @@ def build_setup_services(
     allow_wsl_windows_filesystem: bool = False,
     selection_plan: SelectionPlan | None = None,
     operation_lease: operation.InstallationLease | None = None,
+    profile_operation=None,
 ) -> SetupServices:
     import os
     from tiny_swarm_world.infrastructure.adapters.repositories.installer_configuration_repository import InstallerConfigurationRepository
@@ -162,7 +167,7 @@ def build_setup_services(
     project_paths = default_project_paths()
     selected_service_profile = ServiceStackProfile(service_profile)
     resolved_services = None if selection_plan is None else selection_plan.resolved_services
-    selection_kwargs = selection_options(resolved_services, None if selection_plan is None else selection_plan.service_exposure)
+    selection_kwargs = selection_options(resolved_services)
     if configuration_validation is not None and resolved_services is not None:
         configuration_validation = configuration_validation.for_scopes(set(resolved_services) | {"platform", "deployment"})
     preflight = _build_preflight_service_for_request(
@@ -201,6 +206,7 @@ def build_setup_services(
         node_provider_request,
         ui=ui,
         trace_correlation_id=trace_correlation_id,
+        **({"profile_operation": profile_operation} if profile_operation is not None else {}),
         allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
         **selection_kwargs,
     )
@@ -211,6 +217,7 @@ def build_setup_services(
         **selection_kwargs,
     )
     deployment = _build_deployment_services_for_request(
+        **({"profile_operation": profile_operation} if profile_operation is not None else {}),
         service_profile=service_profile,
         node_provider_request=node_provider_request,
         ui=ui,
@@ -339,12 +346,20 @@ def build_setup_services(
             )
         )
 
+    def compose_admitted(admitted):
+        if selection_plan is not None and profile_operation is None:
+            from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
+            from tiny_swarm_world.infrastructure.adapters.lifecycle.manifest import JsonManifestRepository
+            existing = JsonManifestRepository(project_paths.repository_root / '.tiny-swarm-world/installation/manifest.json').load().manifest
+            if existing is None:
+                raise LifecycleStateError('Selective fresh setup requires its actual admitted scoped profile context.')
+        return compose_operation(operation.private_services(platform, admitted),
+                                 operation.private_services(deployment, admitted))
+
     services = compose_operation(platform, deployment)
     return operation.setup_services(
-        services, project_paths.repository_root,
-        lambda admitted: compose_operation(operation.private_services(platform, admitted),
-                                           operation.private_services(deployment, admitted)),
-        operation_lease,
+        services, project_paths.repository_root, compose_admitted, operation_lease,
+        **({"profile_operation": profile_operation} if profile_operation is not None else {}),
     )
 
 

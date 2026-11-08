@@ -116,7 +116,8 @@ class JsonInstallationOperationLock:
     @contextmanager
     def exclusive(self, operation: str, *, lease: InstallationLease | None = None) -> Iterator[InstallationLease]:
         if operation not in {'adoption', 'selection', 'setup', 'add', 'component-update', 'portainer-upgrade',
-                             'product-upgrade', 'recovery', 'cleanup', 'platform', 'deployment', 'classic-update'}:
+                             'product-upgrade', 'recovery', 'cleanup', 'platform', 'deployment', 'classic-update',
+                             'profile-lifecycle', 'profile-recovery', 'profile-cleanup', 'profile-change'}:
             raise LifecycleStateError('Unsupported installation operation.')
         if lease is not None:
             if not isinstance(lease, _Lease) or lease.authority.root != self.root:
@@ -135,6 +136,7 @@ class JsonInstallationOperationLock:
             os.fsync(directory)
             admitted = _Lease(self, directory, descriptor)
             admitted.require_active()
+            assert_profile_operation(self.root, operation)
             yield admitted
         except OSError:
             raise LifecycleStateError(_ERROR) from None
@@ -151,9 +153,10 @@ class InstallationLockedWorkflow:
     """Decorate an existing mutation workflow without introducing an executor."""
     def __init__(self, workflow: Any, lock: JsonInstallationOperationLock, operation: str,
                  lease: InstallationLease | None = None, *, expected_token: str | None = None,
-                 workflow_factory: Callable[[InstallationLease], Any] | None = None):
+                 workflow_factory: Callable[[InstallationLease], Any] | None = None, profile_operation=None, scoped_action=None):
         self.workflow, self.lock, self.operation, self.lease = workflow, lock, operation, lease
         self.expected_token, self.workflow_factory = expected_token, workflow_factory
+        self.profile_operation, self.scoped_action = profile_operation, scoped_action
 
     def __getattr__(self, name: str) -> Any:
         return getattr(self.workflow, name)
@@ -163,7 +166,17 @@ class InstallationLockedWorkflow:
 
         with self.lock.exclusive(self.operation, lease=self.lease) as admitted:
             current = JsonManifestRepository(self.lock.root / '.tiny-swarm-world' / 'installation' / 'manifest.json').load()
-            if current.manifest is not None:
+            if self.profile_operation is not None:
+                if self.scoped_action in {'reset', 'destroy', 'repair_lxc_proxy_drift'}:
+                    raise LifecycleStateError('Scoped state requires its explicit journal-bound recovery or cleanup operation.')
+                if self.profile_operation.lease is not admitted:
+                    raise LifecycleStateError('Scoped runtime capability belongs to another operation.')
+                admission = getattr(self.profile_operation, 'admit_runtime', None)
+                if admission is not None:
+                    await admission()
+                else:
+                    await self.profile_operation.admit_desired(self.profile_operation.plan)
+            elif current.manifest is not None:
                 require_legacy_runtime_policy(current.manifest)
             if self.lease is None:
                 if current.token != self.expected_token:
@@ -172,7 +185,7 @@ class InstallationLockedWorkflow:
             return await workflow.run(*args, **kwargs)
 
 
-def locked_workflows(group: Any, root: Path, operation: str, lease: InstallationLease | None = None) -> Any:
+def locked_workflows(group: Any, root: Path, operation: str, lease: InstallationLease | None = None, *, profile_operation=None) -> Any:
     """Wrap only declared mutating workflow fields; verification stays read-only."""
     from dataclasses import fields, replace
     from tiny_swarm_world.infrastructure.adapters.lifecycle.manifest import JsonManifestRepository
@@ -184,11 +197,11 @@ def locked_workflows(group: Any, root: Path, operation: str, lease: Installation
     for field in fields(group):
         value = getattr(group, field.name)
         if field.name == 'cluster':
-            changes[field.name] = locked_workflows(value, root, operation, lease)
+            changes[field.name] = locked_workflows(value, root, operation, lease, profile_operation=profile_operation)
         elif field.name in {'init', 'reconcile', 'expose', 'reset', 'destroy', 'repair_lxc_proxy_drift',
                             'docker', 'swarm_bootstrap', 'bootstrap', 'apply', 'run'}:
             changes[field.name] = InstallationLockedWorkflow(value, lock, operation, lease,
-                                                             expected_token=token)
+                                                             expected_token=token, profile_operation=profile_operation, scoped_action=field.name)
     return replace(group, **changes)
 
 
@@ -202,7 +215,7 @@ def bind_operation_lease(group: Any, lease: InstallationLease | None) -> Any:
     if isinstance(group, InstallationLockedWorkflow):
         return InstallationLockedWorkflow(
             group.workflow, group.lock, group.operation, lease,
-            expected_token=group.expected_token, workflow_factory=group.workflow_factory,
+            expected_token=group.expected_token, workflow_factory=group.workflow_factory, profile_operation=group.profile_operation, scoped_action=group.scoped_action,
         )
     if is_dataclass(group) and not isinstance(group, type):
         changes = {
@@ -226,18 +239,19 @@ def bind_operation_lease(group: Any, lease: InstallationLease | None) -> Any:
     return group
 
 
-def locked_services(services: Any, root: Path, operation: str) -> Any:
+def locked_services(services: Any, root: Path, operation: str, *, profile_operation=None) -> Any:
     from dataclasses import replace
 
-    return replace(services, workflows=locked_workflows(services.workflows, root, operation))
+    return replace(services, workflows=locked_workflows(services.workflows, root, operation,
+        None if profile_operation is None else profile_operation.lease, profile_operation=profile_operation))
 
 
 def locked_setup_services(services: Any, root: Path,
                           factory: Callable[[InstallationLease], Any],
-                          lease: InstallationLease | None = None) -> Any:
+                          lease: InstallationLease | None = None, *, profile_operation=None) -> Any:
     from dataclasses import replace
 
-    workflows = locked_workflows(services.workflows, root, 'setup', lease)
+    workflows = locked_workflows(services.workflows, root, 'setup', lease, profile_operation=profile_operation)
     workflows.run.workflow_factory = lambda active: factory(active).workflows.run
     return replace(services, workflows=workflows)
 
@@ -248,3 +262,23 @@ def require_anchor_runtime_policy(root: Path) -> None:
     snapshot = JsonManifestRepository(root / '.tiny-swarm-world' / 'installation' / 'manifest.json').load()
     if snapshot.manifest is not None:
         require_legacy_runtime_policy(snapshot.manifest)
+
+
+def assert_profile_operation(root: Path, operation: str) -> None:
+    from tiny_swarm_world.infrastructure.adapters.lifecycle.profile_journal import JsonProfileLifecycleJournal
+    from tiny_swarm_world.infrastructure.adapters.lifecycle.profile_change import JsonProfileChangeJournal
+    checkpoint = JsonProfileLifecycleJournal(root).load()
+    changed = JsonProfileChangeJournal(root).load()
+    allowed = {'profile-lifecycle', 'profile-recovery', 'profile-cleanup', 'profile-change'}
+    if changed is not None and not changed.settled and operation not in allowed:
+        raise LifecycleStateError('The original profile change requires explicit recovery before other writers.')
+    if checkpoint is not None and checkpoint.installation_committed:
+        from tiny_swarm_world.infrastructure.adapters.lifecycle.manifest import JsonManifestRepository
+        manifest = JsonManifestRepository(root / '.tiny-swarm-world/installation/manifest.json').load().manifest
+        expected = checkpoint.intent.profile.profile if changed is None else changed.intent.target.profile.profile
+        pending_before = changed is not None and not changed.settled and manifest is not None and manifest.installation_profile == changed.intent.before.profile.profile
+        if (manifest is None or manifest.installation_id != checkpoint.intent.profile.installation_id
+                or manifest.installation_profile != expected and not pending_before):
+            raise LifecycleStateError('Profile completion and installation state are inconsistent; preserve both for recovery.')
+    if checkpoint is not None and not checkpoint.settled and operation not in allowed:
+        raise LifecycleStateError('The original scoped profile operation requires explicit recovery before other writers.')

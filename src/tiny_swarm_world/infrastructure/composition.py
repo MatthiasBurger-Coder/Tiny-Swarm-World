@@ -277,11 +277,12 @@ def build_installation_lifecycle_service(repository_root: Path | None = None) ->
     return implementation(repository_root)
 
 
-async def prepare_setup_selection_state(lifecycle, plan, request, *, operation_lease=None):
+async def prepare_setup_selection_state(lifecycle, plan, request, *, operation_lease=None, consent=None, recovery=False):
     from .composition_lifecycle import prepare_setup_selection_state as implementation
 
     backend = _runtime.resolve_runtime_profile(plan.service_preset, request).backend
-    return await implementation(lifecycle, plan, backend, build_process_runner(), operation_lease=operation_lease)
+    return await implementation(lifecycle, plan, backend, build_process_runner(), operation_lease=operation_lease,
+                                consent=consent, recovery=recovery)
 
 
 async def complete_setup_selection_state(state, request):
@@ -339,3 +340,16 @@ async def run_installation_cli_operation(*args: Any, **kwargs: Any) -> Any:
     from .composition_operation import run_operation_cli
 
     return await run_operation_cli(*args, **kwargs)
+
+
+def preview_installation_routes(lifecycle, plan):
+    """Read-only desired route projection; no executable-path/runtime composition."""
+    from .composition_profile import preview_installation_routes as implementation
+
+    return implementation(lifecycle, plan)
+
+
+def legacy_full_setup_available(lifecycle):
+    from .composition_profile import legacy_full_setup_available as implementation
+
+    return implementation(lifecycle)

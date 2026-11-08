@@ -52,7 +52,10 @@ class LxcServiceExposureService:
         setup_manifest: SetupManifest,
         listen_address: str,
         logger: logging.Logger | None = None,
+        profile_operation=None,
+        profile_observer=None,
     ) -> None:
+        self.profile_operation, self.profile_observer = profile_operation, profile_observer
         self.runtime = runtime
         self.gateway_node = gateway_node
         self.manager_profile_name = manager_profile_name
@@ -61,6 +64,11 @@ class LxcServiceExposureService:
         self.logger = logger or logging.getLogger(self.__class__.__name__)
 
     async def ensure_service_exposure(self) -> VerificationResult:
+        if self.profile_operation is None and self.profile_observer is not None:
+            from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
+            raise LifecycleStateError('Read-only profile observation supplies no exposure mutation authority.')
+        if self.profile_operation is not None:
+            return await self._verify_scoped()
         plans = _plans_from_manifest(
             self.setup_manifest,
             gateway_node=self.gateway_node.name,
@@ -75,6 +83,8 @@ class LxcServiceExposureService:
         )
 
     async def verify_service_exposure(self) -> VerificationResult:
+        if self.profile_operation is not None or self.profile_observer is not None:
+            return await self._verify_scoped()
         plans = _plans_from_manifest(
             self.setup_manifest,
             gateway_node=self.gateway_node.name,
@@ -87,6 +97,12 @@ class LxcServiceExposureService:
             self.manager_profile_name,
             self.listen_address,
         )
+
+    async def _verify_scoped(self) -> VerificationResult:
+        observer = self.profile_operation if self.profile_operation is not None else self.profile_observer
+        await observer.verify_effective_routes()
+        return VerificationResult(target_id='platform:scoped-service-exposure', status=VerificationStatus.VERIFIED,
+            message='Installation-owned effective routes and listeners verified.', evidence={'scope': 'installation-owned'})
 
     async def _verify_plans(
         self,

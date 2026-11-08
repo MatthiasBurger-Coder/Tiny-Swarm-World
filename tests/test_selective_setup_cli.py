@@ -61,7 +61,7 @@ class SelectiveCliTests(unittest.IsolatedAsyncioTestCase):
                  patch(MODULE + ".composition.prepare_setup_selection_state", new_callable=AsyncMock) as admission, \
                  patch(MODULE + ".composition.complete_setup_selection_state", new_callable=AsyncMock) as observation, \
                  patch(MODULE + ".composition.run_setup_with_terminal_status", new_callable=AsyncMock, return_value=result) as setup:
-                state = Mock()
+                state = Mock(profile_operation=None)
                 events = Mock()
                 events.attach_mock(setup, "runtime")
                 events.attach_mock(observation, "observe")
@@ -96,7 +96,7 @@ class SelectiveCliTests(unittest.IsolatedAsyncioTestCase):
                 before = lifecycle.manifests.path.read_bytes()
                 args = parse_args(["services", "add", "--services", "swagger", "--live", "--approve-live", "--json"])
                 completed = SetupWorkflowResult(SetupWorkflowKind.RUN, SetupWorkflowStatus.COMPLETED, "verified runtime", "fixture", executed=True)
-                state = Mock()
+                state = Mock(profile_operation=None)
                 with patch(MODULE + ".composition.build_installation_lifecycle_service", return_value=lifecycle), \
                      patch(MODULE + ".composition.prepare_setup_selection_state", new_callable=AsyncMock, return_value=state), \
                      patch(MODULE + ".composition.run_setup_with_terminal_status", new_callable=AsyncMock, return_value=completed), \
@@ -117,7 +117,7 @@ class SelectiveCliTests(unittest.IsolatedAsyncioTestCase):
             lifecycle.manifests.save(adoption_fixture(lifecycle.catalog.load()), expected_token=None)
             args = parse_args(["services", "add", "--services", "swagger", "--live", "--approve-live", "--json"])
             completed = SetupWorkflowResult(SetupWorkflowKind.RUN, SetupWorkflowStatus.COMPLETED, "verified runtime", "fixture", executed=True)
-            state = Mock()
+            state = Mock(profile_operation=None)
             with patch(MODULE + ".composition.build_installation_lifecycle_service", return_value=lifecycle), \
                  patch(MODULE + ".composition.prepare_setup_selection_state", new_callable=AsyncMock, return_value=state), \
                  patch(MODULE + ".composition.run_setup_with_terminal_status", new_callable=AsyncMock, return_value=completed), \

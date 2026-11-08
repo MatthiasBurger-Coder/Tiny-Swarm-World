@@ -8,7 +8,7 @@ import yaml
 
 from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
 from tiny_swarm_world.application.services.service_selection import ServiceSelectionService
-from tiny_swarm_world.infrastructure.composition import build_installation_lifecycle_service
+from tiny_swarm_world.infrastructure.composition import build_installation_lifecycle_service, preview_installation_routes
 
 
 def parse_service_ids(value: str) -> tuple[str, ...]:
@@ -53,34 +53,33 @@ def run_selection_preview(args: Namespace) -> None:
             preset=args.service_profile if args.service_profile_explicit else None,
             remove=args.selected_services if removal else (),
             add=args.workflow_namespace == "services" and args.workflow_action == "add",
-            service_exposure=({"swagger": args.swagger_exposure} if getattr(args, "swagger_exposure", None) is not None else None),
         )
+        routes = preview_installation_routes(lifecycle, plan)
     except LifecycleStateError as error:
         print(json.dumps({"status": "blocked", "diagnostics": [str(error)]}))
         raise SystemExit(1) from None
     except ValueError as error:
         print(json.dumps({"status": "invalid_selection", "diagnostics": [str(error)]}))
         raise SystemExit(2) from None
-    print(json.dumps({"status": "selection_preview", "plan": plan.model_dump(mode="json"),
+    print(json.dumps({"status": "selection_preview", "plan": plan.model_dump(mode="json"), "routes": routes,
                       "execution": "not performed (read-only preview)",
                       "data_policy": "deployments and persistent data are retained"},
                      sort_keys=True, indent=None if args.json else 2))
 
 def validate_selection_args(parser: ArgumentParser, args: Namespace) -> None:
     if args.component_update_command:
-        if getattr(args, "swagger_exposure", None) is not None:
-            parser.error("--swagger-exposure requires setup run or services add")
         args.selection_preview = False
         return
     command = (args.workflow_namespace, args.workflow_action)
-    selection_options = args.services is not None or args.minimal or args.selection_config is not None or getattr(args, "swagger_exposure", None) is not None
+    scoped_recovery = args.recover and command in {('setup', 'run'), ('services', 'add')}
+    if scoped_recovery and (not args.live or args.preview or args.preflight):
+        parser.error('setup/add recovery requires --live without --preview or --preflight')
+    selection_options = args.services is not None or args.minimal or args.selection_config is not None
     selection_command = command in {("services", "add"), ("services", "remove")}
     args.selection_preview = args.preview and (selection_command or command == ("setup", "run"))
-    if getattr(args, "swagger_exposure", None) is not None and command == ("services", "remove"):
-        parser.error("--swagger-exposure cannot be combined with service removal")
     if selection_options and not (selection_command or command == ("setup", "run")):
         parser.error("selection options require setup run or services add/remove")
-    if selection_command or args.selection_preview or selection_options:
+    if selection_command or args.selection_preview or selection_options or scoped_recovery:
         if args.preview and (args.live or args.approve_live or args.confirm or args.preflight):
             parser.error("selection preview requires --preview without live/consent/preflight flags")
         if command == ("services", "remove") and not args.preview:
@@ -91,7 +90,7 @@ def validate_selection_args(parser: ArgumentParser, args: Namespace) -> None:
             parser.error("--minimal conflicts with --services, --selection-config and explicit --service-profile")
         if selection_command and (args.services is None or args.minimal or args.selection_config or args.service_profile_explicit):
             parser.error("services add/remove requires --services and forbids presets/config/minimal")
-        if args.recover or any(value is not None for value in (args.stack, args.service, args.from_image, args.to_image)):
+        if (args.recover and not scoped_recovery) or any(value is not None for value in (args.stack, args.service, args.from_image, args.to_image)):
             parser.error("selection cannot use platform update options")
         if args.services is not None:
             try:

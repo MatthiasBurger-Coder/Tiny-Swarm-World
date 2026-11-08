@@ -18,10 +18,21 @@ from tiny_swarm_world.infrastructure.adapters.lifecycle.installation_operation_l
 
 
 async def run_setup_operation(root: Path, lease: InstallationLease | None,
-                              invoke: Callable[[InstallationLease], Awaitable[Any]]) -> Any:
+                              invoke: Callable[[InstallationLease], Awaitable[Any]], *, profile_operation=None) -> Any:
     lock = JsonInstallationOperationLock(root)
     with lock.exclusive('setup', lease=lease) as admitted:
-        require_anchor_runtime_policy(root)
+        if profile_operation is None:
+            require_anchor_runtime_policy(root)
+        else:
+            from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
+
+            if profile_operation.lease is not admitted:
+                raise LifecycleStateError('Scoped setup operation belongs to another installation lease.')
+            admit_runtime = getattr(profile_operation, 'admit_runtime', None)
+            if callable(admit_runtime):
+                await admit_runtime()
+            else:
+                await profile_operation.admit_desired(profile_operation.plan)
         return await invoke(admitted)
 
 
@@ -30,8 +41,9 @@ def private_services(services: Any, lease: InstallationLease | None) -> Any:
 
 
 def setup_services(services: Any, root: Path, factory: Callable[[InstallationLease], Any],
-                   lease: InstallationLease | None) -> Any:
-    return locked_setup_services(services, root, factory, lease)
+                   lease: InstallationLease | None, *, profile_operation=None) -> Any:
+    return locked_setup_services(services, root, factory, lease,
+                                 **({'profile_operation': profile_operation} if profile_operation is not None else {}))
 
 
 class ClassicOperationArguments(TypedDict):
