@@ -1,6 +1,6 @@
 {
   "workflow_id": "issue-449-lcm-w09",
-  "workflow_version": "1.59",
+  "workflow_version": "1.60",
   "continuation_20261107": {
     "branch": "fix/epic440-completion-20261107",
     "baseline": "b87fe5c96b4e8627c56f48d9a7b3c691076447fc",
@@ -221,6 +221,17 @@
       },
       "disposal_only_recovery_seconds": 900,
       "public_promotion": "Requires every declared host/preset/owner/exposure tuple and remaining closed-case evidence plus independent acceptance; private qualification input is not released compatibility",
+      "runtime_mutation_released": false
+    },
+    "closed_portainer_image_cache": {
+      "record": ".codex/evidence/epic440-upgrade-cache-prerequisite-20261108.md",
+      "record_sha256": "a8e358e592c7b992383827bbf33f0151fb28f74d060df5f9a8a9f38a996a3bcf",
+      "status": "SOURCE_AUTHORITY_ONLY",
+      "pairs": 12,
+      "aggregate_seconds": 900,
+      "containing_phase": "exercise3600",
+      "maximum_actual_pulls_per_pair": 1,
+      "public_scoped_artifacts_guard": "UNCHANGED_REFUSED",
       "runtime_mutation_released": false
     }
   },

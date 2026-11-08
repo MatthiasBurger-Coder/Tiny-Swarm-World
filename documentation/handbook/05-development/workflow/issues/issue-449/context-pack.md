@@ -1,5 +1,14 @@
 # Context pack — issue-449-lcm-w09
 
+## Current cache prerequisite source authority — v1.60
+
+Workflow v1.60 permits only the independently reviewed fixed Portainer cache
+prerequisite after its own nodes/baseline exist: twelve policy-ref/node pairs,
+real artifact engine, same scoped lease/UUID/manifest guards and one900seconds
+inside exercise3600. Public scoped-artifact refusal remains. Actual image/cache,
+unchanged source auth/runtime/whole graph and fresh per-case GO precede upgrade.
+No cache/live/product compatibility or completion result is asserted here.
+
 ## Current source authority — v1.59, 2026-11-08
 
 Workflow v1.59 and the exact R2 upgrade plan698cbdfc authorize only isolated

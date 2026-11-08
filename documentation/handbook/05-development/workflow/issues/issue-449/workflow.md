@@ -1,7 +1,7 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: ACTIVE_FOR_ISSUE_449 v1.59 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
+Status: ACTIVE_FOR_ISSUE_449 v1.60 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
@@ -17,6 +17,26 @@ checks passed. Exclusive installation/global-resource ownership remains unproven
 Current policy work enables temporary maintenance without asserting adoption.
 Execution/evidence remains in `.codex/evidence/epic440-20261107.md`; full S02–S09
 completion remains required.
+
+## Closed post-baseline Portainer image-cache prerequisite — v1.60
+
+Root and separate independent architecture review accept the source contract
+`.codex/evidence/epic440-upgrade-cache-prerequisite-20261108.md`, SHA256
+a8e358e592c7b992383827bbf33f0151fb28f74d060df5f9a8a9f38a996a3bcf. Engineering only; no live GO or qualification.
+Fresh own nodes need this explicit prerequisite after baseline, before public
+Portainer upgrade: twelve combinations of fixed source/target server+agent refs
+from actual policy and three proven own nodes. Real ArtifactPrepareWorkflow /
+EnsureContainerImage / publisher, same scoped profile and active installation
+lease, current UUID/spec/routes/manifest CAS before each exact local Incus image
+inspect/pull. Host cache fallback is rejected before execution; no stack writes,
+other image refs, retries or public scoped-artifact guard relaxation. Actual
+initial presence/absence and final12 ImageID+RepoDigest observations plus unchanged
+source auth/runtime/whole graph/manifest are mandatory. One900second aggregate
+inside exercise3600 includes all calls/proof; each call clamps remaining budget.
+Unknown remote operations block later writers/disposal until genuinely settled.
+Only pre-node image-prestage timing is superseded for these closed recipes;
+all source/case/host GO, preservation and publication guards remain. Existing
+S-U1 thirteen file locks suffice; code review and exact PC gates still required.
 
 ## Closed upgrade acceptance source slices — v1.59
 

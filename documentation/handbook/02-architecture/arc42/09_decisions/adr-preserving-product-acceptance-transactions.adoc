@@ -273,3 +273,15 @@ Workflow v1.59 names finite per-recipe phase/containing forward and distinct
 engine-recovery budgets. Existing disposal-only recovery remains900seconds.
 All complete preservation, actual host/case/source GO and independent evidence
 requirements remain. This is source authority only; aggregate acceptance is open.
+
+== Fixed image-cache prerequisite — workflow v1.60
+
+A fresh case may, after its nodes and authenticated source baseline exist, cache
+only the exact Portainer source/target server+agent refs on its three proven own
+nodes. Twelve real artifact steps share one900second aggregate within exercise3600,
+the actual active scoped lease/profile/UUID/spec/routes/manifest authority, and
+actual before/after cache/runtime/graph/auth proof. Host Docker and all non-cache
+writers remain forbidden; public scoped-artifact refusal is unchanged. The exact
+source record is .codex/evidence/epic440-upgrade-cache-prerequisite-20261108.md.
+This changes only impossible pre-node timing for the fixed prerequisite; no live
+GO, image observation, compatibility promotion or acceptance follows from source.
