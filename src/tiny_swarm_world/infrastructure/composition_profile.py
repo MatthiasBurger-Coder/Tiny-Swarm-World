@@ -22,6 +22,11 @@ async def prepare_profile_state(state, config, consent, lease, *, recovery=False
     if state.fresh is not None:
         from tiny_swarm_world.infrastructure.adapters.lifecycle.profile_setup import prepare_profile_operation
         return await prepare_profile_operation(state, config, manifest, consent, lease, recovery=recovery, listen_address=address)
+    from tiny_swarm_world.infrastructure.adapters.lifecycle.profile_journal import JsonProfileLifecycleJournal
+    creation = JsonProfileLifecycleJournal(state.root).load()
+    if creation is not None and not creation.installation_committed:
+        from tiny_swarm_world.infrastructure.adapters.lifecycle.profile_completion import prepare_creation_completion
+        return await prepare_creation_completion(state, consent, lease, recovery=recovery)
     from tiny_swarm_world.infrastructure.adapters.lifecycle.profile_change import prepare_profile_change
     return await prepare_profile_change(state, manifest, consent, lease, recovery=recovery, listen_address=address)
 

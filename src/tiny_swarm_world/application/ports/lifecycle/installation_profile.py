@@ -1,14 +1,27 @@
 """Opaque operation ownership; application services know no filesystem locks."""
+from __future__ import annotations
+
 from contextlib import AbstractContextManager, contextmanager
-from typing import Iterator, Protocol
+from dataclasses import dataclass
+from typing import Iterator, Literal, Protocol
 
 from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
+from tiny_swarm_world.domain.lifecycle.models import PortainerOwnership
+from tiny_swarm_world.domain.lifecycle.profile_lifecycle import (
+    ManagerCreateIntent, ProfileCapabilityMatrix, ProfileLifecycleCheckpoint,
+)
+from tiny_swarm_world.domain.lifecycle.selection import SelectionPlan
 
 
 class InstallationLease(Protocol):
     operation_id: str
     def require_active(self) -> None: ...
     def journal(self, kind: str) -> AbstractContextManager[None]: ...
+
+
+class ProfileExposureAdmission(Protocol):
+    lease: InstallationLease
+    async def admit_desired(self, plan: SelectionPlan) -> None: ...
 
 
 class InstallationOperationLock(Protocol):
@@ -32,11 +45,6 @@ def require_legacy_runtime_policy(manifest) -> None:
         raise LifecycleStateError('Installation policy requires the separately admitted scoped-profile/exposure/ownership capability; no legacy runtime mutation is allowed.')
 
 
-from dataclasses import dataclass
-from typing import Literal
-from tiny_swarm_world.domain.lifecycle.profile_lifecycle import (
-    ManagerCreateIntent, ProfileCapabilityMatrix, ProfileLifecycleCheckpoint,
-)
 
 
 @dataclass(frozen=True)
@@ -88,8 +96,6 @@ class ProfileLifecycleJournal(Protocol):
     def save(self, checkpoint: ProfileLifecycleCheckpoint, *, expected: ProfileLifecycleCheckpoint | None, lease: InstallationLease) -> None: ...
 
 
-from tiny_swarm_world.domain.lifecycle.selection import SelectionPlan
-from tiny_swarm_world.domain.lifecycle.models import PortainerOwnership
 
 
 class ProfileSetupOperation(Protocol):

@@ -78,6 +78,21 @@ class ClassicProductRuntime:
         endpoints = response.json()
         if not isinstance(endpoints, list) or not endpoints or any(item.get('Status') != 1 for item in endpoints):
             raise LifecycleStateError('Authenticated Portainer endpoint verification failed.')
+        from tiny_swarm_world.domain.lifecycle.models import PortainerOwnership
+        from tiny_swarm_world.infrastructure.adapters.lifecycle.managed_stack_api import GuardedPortainerStackApi
+
+        def swarm_identity():
+            observed = shell.run_manager_shell("docker info --format '{{.Swarm.Cluster.ID}}'", check=False)
+            if observed.returncode:
+                raise LifecycleStateError('Local Swarm identity unavailable during owner verification.')
+            return observed.stdout.strip()
+        management = GuardedPortainerStackApi(api, swarm_identity)
+        for stack, owner in manifest.effective_stack_ownership().items():
+            if isinstance(owner, PortainerOwnership):
+                saved = management.inspect(stack, owner.endpoint_id, owner.stack_id)
+                if saved.ownership != owner:
+                    raise LifecycleStateError('Product upgrade changed managed stack ownership or saved definition.')
+                identities['ownership.' + stack] = str(owner.stack_id)
         identities['portainer.endpoints'] = ','.join(str(item['Id']) for item in sorted(endpoints, key=lambda item: item['Id']))
         return identities
 

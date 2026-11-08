@@ -1,6 +1,6 @@
 """Pure validated selection candidates; no locking, persistence or runtime effects."""
 from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
-from tiny_swarm_world.domain.lifecycle.models import InstallationManifest, SwarmOwnership
+from tiny_swarm_world.domain.lifecycle.models import InstallationManifest, PortainerOwnership, SwarmOwnership, migrate_manifest_v1
 from tiny_swarm_world.domain.lifecycle.selection import plan_selection
 
 
@@ -17,6 +17,10 @@ def validate_selection(catalog, current, plan):
             or validated.service_preset != plan.service_preset
             or validated.resources != plan.resources or validated.service_exposure != plan.service_exposure):
         raise LifecycleStateError("Selection/catalog changed since preview; inspect and preview again.")
+    optional = set(plan.resolved_services) - {'incus', 'portainer'}
+    modes = plan.stack_owners or {name: 'swarm' for name in optional}
+    if set(modes) != optional or any(modes.get(name) != owner.owner for name, owner in current.effective_stack_ownership().items()):
+        raise LifecycleStateError('Selection cannot change existing stack ownership or omit desired modes.')
     if not set(current.resolved_services) <= set(plan.resolved_services):
         raise LifecycleStateError("Implicit removal is unsupported; use removal-impact preview.")
 
@@ -63,11 +67,23 @@ def extend_policy(current, plan, payload):
                        installation_profile=current.installation_profile)
 
 
-def selection_candidate(catalog, current, plan, component_inventory, credential_inventory, configuration_inventory):
+def selection_candidate(catalog, current, plan, component_inventory, credential_inventory, configuration_inventory, stack_ownership_inventory=None):
     validate_selection(catalog, current, plan)
     components = selected_components(catalog, current, plan, component_inventory)
     payload = selection_payload(current, plan, components, credential_inventory, configuration_inventory)
     extend_policy(current, plan, payload)
+    modes = plan.stack_owners or {name: owner.owner for name, owner in current.effective_stack_ownership().items()}
+    wanted = {name for name, mode in modes.items() if mode == 'portainer'}
+    baseline = current.effective_stack_ownership()
+    observed = baseline if stack_ownership_inventory is None else stack_ownership_inventory
+    if any(name not in observed or not isinstance(observed[name], PortainerOwnership) for name in wanted):
+        raise LifecycleStateError('Portainer ownership requires verified IDs, saved definition and converged tasks before selection commit.')
+    if stack_ownership_inventory is not None:
+        if set(observed) != set(plan.resolved_services) - {'incus', 'portainer'} or any(observed[name] != value for name, value in baseline.items()):
+            raise LifecycleStateError('Verified ownership cannot adopt/rewrite existing stacks or omit selected services.')
+        migrated = migrate_manifest_v1(InstallationManifest.model_validate(payload))
+        payload = migrated.model_dump()
+        payload['stack_ownership'] = observed
     manifest = InstallationManifest.model_validate(payload)
     catalog.validate_manifest(manifest)
     return manifest

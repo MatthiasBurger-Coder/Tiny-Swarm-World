@@ -1,6 +1,7 @@
 """Public composed verification observes dedicated profiles with no write authority."""
 import json
 import os
+import shutil
 from pathlib import Path
 import tempfile
 import unittest
@@ -18,6 +19,7 @@ from tiny_swarm_world.domain.lifecycle.profile_lifecycle import ManagerCreateInt
 from tiny_swarm_world.domain.node_provider import ManagedLxcBackend
 from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.node_command import LxcNodeCommandResult
 from tiny_swarm_world.infrastructure.adapters.clients.lxc.profile.lifecycle import IncusProfileLifecycleRuntime
+from tiny_swarm_world.infrastructure.adapters.lifecycle.catalog import NativeComponentCatalog
 from tiny_swarm_world.infrastructure.adapters.lifecycle.installation_operation_lock import JsonInstallationOperationLock
 from tiny_swarm_world.infrastructure.adapters.lifecycle.manifest import JsonManifestRepository
 from tiny_swarm_world.infrastructure.adapters.lifecycle.profile_journal import JsonProfileLifecycleJournal
@@ -49,9 +51,12 @@ class OwnedFrameRunner(FrameRunner):
     async def run(self, args, timeout_seconds):
         if '/usr/bin/git' in args:
             self.calls.append(tuple(args))
-            if '--show-toplevel' in args: return LxcNodeCommandResult(0, str(self.root) + '\n')
-            if 'ls-files' in args: return LxcNodeCommandResult(0, 'H src/tracked.py\0')
-            if '--verify' in args: return LxcNodeCommandResult(0, 'c' * 40 + '\n')
+            if '--show-toplevel' in args:
+                return LxcNodeCommandResult(0, str(self.root) + '\n')
+            if 'ls-files' in args:
+                return LxcNodeCommandResult(0, 'H src/tracked.py\0')
+            if '--verify' in args:
+                return LxcNodeCommandResult(0, 'c' * 40 + '\n')
             return LxcNodeCommandResult(0, '')
         if args[0] == '/usr/bin/ss' and self.live:
             self.calls.append(tuple(args))
@@ -66,8 +71,14 @@ class PublicScopedVerificationTests(unittest.IsolatedAsyncioTestCase):
     async def test_actual_public_composed_node_and_exposure_verification_are_read_only_and_keep_unbound_writers_blocked(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
+            shutil.copytree(_ROOT / 'infra', root / 'infra')
+            for name in ('AGENTS.md', 'QUALITY.md'):
+                shutil.copy2(_ROOT / name, root / name)
+            package = root / 'src/tiny_swarm_world'
+            package.mkdir(parents=True)
+            shutil.copy2(_ROOT / 'src/tiny_swarm_world/__init__.py', package / '__init__.py')
             asset = root / 'infra/config/incus-profile-capabilities.json'
-            asset.parent.mkdir(parents=True)
+            asset.parent.mkdir(parents=True, exist_ok=True)
             asset.write_text(admitted_fixture().model_dump_json())
             runner = OwnedFrameRunner(root)
             runtime = IncusProfileLifecycleRuntime(runner)
@@ -79,7 +90,11 @@ class PublicScopedVerificationTests(unittest.IsolatedAsyncioTestCase):
             runner.activate(intent)
             manifest = migrate_manifest_v1(manifest_fixture()).model_copy(update={
                 'installation_id': intent.profile.installation_id, 'installation_profile': intent.profile.profile,
-                'checkpoint_reference': 'profile-' + intent.profile.operation_id})
+                'checkpoint_reference': 'profile-' + intent.profile.operation_id,
+                'components': tuple(component for service in NativeComponentCatalog(root).load().services
+                                    if service.service_id in intent.profile.resolved_services
+                                    for component in service.components)})
+            NativeComponentCatalog(root).load().validate_manifest(manifest)
             repository = JsonManifestRepository(root / '.tiny-swarm-world/installation/manifest.json')
             creation = JsonProfileLifecycleJournal(root)
             with JsonInstallationOperationLock(root).exclusive('profile-lifecycle') as lease:

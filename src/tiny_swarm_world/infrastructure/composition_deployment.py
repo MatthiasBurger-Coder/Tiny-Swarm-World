@@ -13,19 +13,17 @@ from tiny_swarm_world.domain.deployment.service_stack_contract import ServiceSta
 
 from .composition_selection import persisted_service_exposure, persisted_runtime_selection, selection_options, includes_service, selected_secret_entries, uses_infisical_setup
 from .composition_deployment_selection import minimal_apply_checks
-from .composition_internal_readiness import InternalSwaggerReadinessCheck
+from . import composition_deployment_policy as deployment_policy
+from .composition_deployment_policy import (
+    HostEnvironmentDetector, HostEnvironmentKind as HostEnvironmentKind, NativeLinuxHostPreparation, VerifyHostPrerequisites,
+    InternalSwaggerReadinessCheck,
+)
 
 from tiny_swarm_world.infrastructure.adapters.repositories.secret_manifest_yaml_repository import SecretManifestYamlRepository
 
 from collections.abc import Mapping
 from functools import partial
 
-from tiny_swarm_world.application.services.deployment.verify_host_prerequisites import (
-    VerifyHostPrerequisites,
-)
-from tiny_swarm_world.domain.host_environment import HostEnvironmentKind
-from tiny_swarm_world.infrastructure.adapters.host import NativeLinuxHostPreparation
-from tiny_swarm_world.infrastructure.adapters.host.host_environment_detector import HostEnvironmentDetector
 from tiny_swarm_world.infrastructure.adapters.clients.docker_swarm_runtime import DockerSwarmRuntime
 
 from tiny_swarm_world.application.services.deployment.ensure_external_swarm_secret import (
@@ -136,6 +134,7 @@ def build_deployment_services_for_provider(
     update_stack_name: str | None = None,
     resolved_services: tuple[str, ...] | None = None,
     service_exposure: Mapping[str, str] | None = None,
+    profile_operation=None,
 ) -> DeploymentServices:
     provider_request = node_provider_request or _default_node_provider_request()
     backend = _lxc_backend_for_provider_request(provider_request)
@@ -148,6 +147,7 @@ def build_deployment_services_for_provider(
             progress=progress,
             image_overrides=image_overrides,
             update_stack_name=update_stack_name,
+            **({"profile_operation": profile_operation} if profile_operation is not None else {}),
             **selection_options(resolved_services, service_exposure),
         )
     return locked_services(DeploymentServices(
@@ -174,7 +174,8 @@ def build_deployment_services_for_provider(
                 ),
             ),
         )
-    ), default_project_paths().repository_root, 'deployment')
+    ), default_project_paths().repository_root, 'deployment',
+       **({'profile_operation': profile_operation} if profile_operation is not None else {}))
 def build_lxc_deployment_services(
     *,
     backend: ManagedLxcBackend,
@@ -185,17 +186,13 @@ def build_lxc_deployment_services(
     update_stack_name: str | None = None,
     resolved_services: tuple[str, ...] | None = None,
     service_exposure: Mapping[str, str] | None = None,
+    profile_operation=None,
 ) -> DeploymentServices:
     service_profile, resolved_services = persisted_runtime_selection(service_profile, resolved_services)
     service_exposure = persisted_service_exposure(resolved_services, service_exposure)
     project_paths = default_project_paths()
-    host_environment = HostEnvironmentDetector().detect().environment
-    prerequisite_checks = () if host_environment is HostEnvironmentKind.WSL2 else (
-        VerifyHostPrerequisites(
-            NativeLinuxHostPreparation()
-            if host_environment is HostEnvironmentKind.NATIVE_LINUX else None
-        ),
-    )
+    prerequisite_checks = deployment_policy.host_prerequisites(
+        HostEnvironmentDetector, NativeLinuxHostPreparation, VerifyHostPrerequisites)
     local_file_storage = LocalFileStorage()
     selected_service_profile = ServiceStackProfile(service_profile)
     service_stack_contracts = service_stack_contracts_for_profile(selected_service_profile, resolved_services, service_exposure=service_exposure)
@@ -295,6 +292,9 @@ def build_lxc_deployment_services(
     )
     stack_steps = _build_stack_steps(service_stack_contracts, compose_repository, swarm_runtime,
                                     stack_environment, infisical_secret_sync_step, update_stack_name)
+    deployment_policy.managed_stack_steps(stack_steps, profile_operation,
+        root=project_paths.repository_root, client=portainer_client, runtime=lxc_swarm_runtime,
+        repository=compose_repository, backend=backend, swarm=swarm_runtime)
     bootstrap_steps = () if update_stack_name is not None else (
         stack_steps["portainer"],
         EnsurePortainerAdminAccess(
@@ -384,16 +384,8 @@ def build_lxc_deployment_services(
         infisical_seed_steps = tuple(
             _infisical_secret_seed_steps(selected_service_profile, **selection_options(resolved_services, service_exposure))
         )
-    readiness_checks = tuple(
-        InternalSwaggerReadinessCheck(contract, lxc_swarm_runtime.internal_swagger_ready)
-        if contract.stack_name == 'swagger' and service_exposure is not None and service_exposure.get('swagger') == 'internal'
-        else EndpointReadinessCheck(
-            service_stack=contract,
-            max_attempts=60,
-            wait_seconds=5,
-        )
-        for contract in service_stack_contracts
-    )
+    readiness_checks = deployment_policy.readiness_checks(service_stack_contracts,
+        lxc_swarm_runtime, service_exposure, EndpointReadinessCheck, InternalSwaggerReadinessCheck)
     pre_apply_steps: list[DeploymentPreApplyStep] = []
     if update_stack_name is None:
         pre_apply_steps.append(routing_evidence_step)
@@ -480,7 +472,8 @@ def build_lxc_deployment_services(
                 ),
             ),
         )
-    ), default_project_paths().repository_root, 'deployment')
+    ), default_project_paths().repository_root, 'deployment',
+       **({'profile_operation': profile_operation} if profile_operation is not None else {}))
 
 
 def _uses_ingress(profile: ServiceStackProfile, update_stack: str | None, selected: tuple[str, ...] | None) -> bool:

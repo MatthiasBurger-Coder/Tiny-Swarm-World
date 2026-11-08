@@ -20,7 +20,7 @@ class ServiceSelectionService:
         self, requested: tuple[str, ...] | None = None, configured: tuple[str, ...] | None = None,
         *, minimal: bool = False, preset: str | None = None, remove: tuple[str, ...] = (),
         add: bool = False, available_capabilities: tuple[str, ...] | None = None,
-        service_exposure: Mapping[str, str] | None = None,
+        service_exposure: Mapping[str, str] | None = None, stack_owner=None,
     ) -> SelectionPlan:
         catalog = self.catalog.load()
         snapshot = self.manifests.load()
@@ -32,24 +32,24 @@ class ServiceSelectionService:
         plan = plan_selection(
             catalog, requested, configured, persisted=snapshot.manifest, minimal=minimal,
             preset=preset, remove=remove, add=add, available_capabilities=available_capabilities,
-            service_exposure=service_exposure,
+            service_exposure=service_exposure, stack_owner=stack_owner,
         )
         return plan.model_copy(update={"manifest_token": snapshot.token, "diagnostics": snapshot.diagnostics})
 
     def persist(self, plan: SelectionPlan, *, approved: bool = False, component_inventory: tuple[ComponentState, ...] | None = None,
                 credential_inventory: tuple[CredentialReference, ...] | None = None,
                 configuration_inventory: tuple[ConfigurationReference, ...] | None = None,
-                operation_lease: InstallationLease | None = None, verified_migration: bool = False) -> ManifestSnapshot:
+                stack_ownership_inventory=None, operation_lease: InstallationLease | None = None, verified_migration: bool = False) -> ManifestSnapshot:
         if not approved:
             raise LifecycleStateError("Explicit local selection approval is required before persistence.")
         with installation_operation(self.operation_lock, 'selection', operation_lease):
             return self._persist(plan, approved=approved, component_inventory=component_inventory,
-                                 credential_inventory=credential_inventory, configuration_inventory=configuration_inventory,
+                                 credential_inventory=credential_inventory, configuration_inventory=configuration_inventory, stack_ownership_inventory=stack_ownership_inventory,
                                  verified_migration=verified_migration)
 
     def _persist(self, plan: SelectionPlan, *, approved: bool = False, component_inventory: tuple[ComponentState, ...] | None = None,
                 credential_inventory: tuple[CredentialReference, ...] | None = None,
-                configuration_inventory: tuple[ConfigurationReference, ...] | None = None, verified_migration: bool = False) -> ManifestSnapshot:
+                configuration_inventory: tuple[ConfigurationReference, ...] | None = None, stack_ownership_inventory=None, verified_migration: bool = False) -> ManifestSnapshot:
         """Save desired metadata only; this does not install or verify any service."""
         if not approved:
             raise LifecycleStateError("Explicit local selection approval is required before persistence.")
@@ -64,7 +64,7 @@ class ServiceSelectionService:
             raise LifecycleStateError('Internal exposure migration requires a verified runtime commit.')
         catalog = self.catalog.load()
         manifest = selection_candidate(catalog, snapshot.manifest, plan, component_inventory,
-                                       credential_inventory, configuration_inventory)
+                                       credential_inventory, configuration_inventory, stack_ownership_inventory)
         if manifest == snapshot.manifest:
             return snapshot
         if verified_migration:

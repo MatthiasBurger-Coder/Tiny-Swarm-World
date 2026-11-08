@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from . import composition_selection_options as selection_policy
+
 from .composition_selection import persisted_service_exposure, persisted_runtime_selection, selection_options, includes_service, selected_preflight, artifact_targets, scoped_stack_environment, needs_registry_images
 
 from tiny_swarm_world.domain.preflight.completeness import PreflightConstruction
@@ -999,39 +1001,14 @@ def _build_platform_services_for_request(
     allow_wsl_windows_filesystem: bool = False,
     resolved_services: tuple[str, ...] | None = None,
     service_exposure: Mapping[str, str] | None = None,
+    profile_operation=None,
 ) -> PlatformServices:
-    if node_provider_request is None:
-        if ui is None and trace_correlation_id is None:
-            return build_platform_services(
-                service_profile=service_profile,
-                **selection_options(resolved_services, service_exposure),
-                live_consent=live_consent,
-                allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
-            )
-        return build_platform_services(
-            service_profile=service_profile,
-                **selection_options(resolved_services, service_exposure),
-            live_consent=live_consent,
-            ui=ui,
-            trace_correlation_id=trace_correlation_id,
-            allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
-        )
-    if ui is None and trace_correlation_id is None:
-        return build_platform_services(
-            service_profile=service_profile,
-                **selection_options(resolved_services, service_exposure),
-            live_consent=live_consent,
-            node_provider_request=node_provider_request,
-            allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
-        )
     return build_platform_services(
         service_profile=service_profile,
-                **selection_options(resolved_services, service_exposure),
         live_consent=live_consent,
-        node_provider_request=node_provider_request,
-        ui=ui,
-        trace_correlation_id=trace_correlation_id,
         allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
+        **selection_policy.platform_request_options(selection_options(resolved_services, service_exposure),
+            node_provider_request, ui, trace_correlation_id, profile_operation),
     )
 
 
@@ -1042,33 +1019,13 @@ def _build_deployment_services_for_request(
     progress: PortWorkflowProgress | None = None,
     resolved_services: tuple[str, ...] | None = None,
     service_exposure: Mapping[str, str] | None = None,
+    profile_operation=None,
 ) -> DeploymentServices:
-    if ui is None:
-        if progress is None:
-            return build_deployment_services_for_provider(
-                service_profile=service_profile,
-                **selection_options(resolved_services, service_exposure),
-                node_provider_request=node_provider_request,
-            )
-        return build_deployment_services_for_provider(
-            service_profile=service_profile,
-                **selection_options(resolved_services, service_exposure),
-            node_provider_request=node_provider_request,
-            progress=progress,
-        )
-    if progress is None:
-        return build_deployment_services_for_provider(
-            service_profile=service_profile,
-                **selection_options(resolved_services, service_exposure),
-            node_provider_request=node_provider_request,
-            ui=ui,
-        )
     return build_deployment_services_for_provider(
         service_profile=service_profile,
-                **selection_options(resolved_services, service_exposure),
         node_provider_request=node_provider_request,
-        ui=ui,
-        progress=progress,
+        **selection_policy.deployment_request_options(selection_options(resolved_services, service_exposure),
+            ui, progress, profile_operation),
     )
 
 
@@ -1117,24 +1074,8 @@ def _project_port_registry(
     resolved_services: tuple[str, ...] | None,
     service_exposure: Mapping[str, str] | None = None,
 ) -> PortRegistry:
-    if resolved_services is None and service_exposure is None:
-        return port_registry
-    selected_port_ids = {
-        port_id
-        for contract in service_stack_contracts_for_profile(
-            ServiceStackProfile.SERVICE_ACCESS, resolved_services, service_exposure=service_exposure
-        )
-        for port_id in contract.port_ids
-    }
-    return PortRegistry(
-        ranges=port_registry.ranges,
-        mappings=tuple(
-            mapping
-            for mapping in port_registry.mappings
-            if mapping.port_id in selected_port_ids
-        ),
-        metadata=port_registry.metadata,
-    )
+    return selection_policy.project_port_registry(port_registry, resolved_services, service_exposure,
+        contracts=service_stack_contracts_for_profile, profile=ServiceStackProfile.SERVICE_ACCESS, registry=PortRegistry)
 
 
 def _build_post_install_preflight_service_for_request(
@@ -1437,18 +1378,8 @@ def _wsl_socat_forwarding_plans(
     resolved_services: tuple[str, ...] | None = None,
     service_exposure: Mapping[str, str] | None = None,
 ) -> tuple[PortForwardingPlan, ...]:
-    return tuple(
-        PortForwardingPlan(
-            strategy=ForwardingStrategy.WSL2_SOCAT,
-            service=requirement.service,
-            listen_port=requirement.port,
-            target_port=requirement.port,
-            remediation=("Start WSL socat forwarding after live consent.",),
-        )
-        for requirement in default_setup_manifest(
-            service_profile=service_profile, resolved_services=resolved_services, service_exposure=service_exposure
-        ).required_ports
-    )
+    return selection_policy.forwarding_plans(service_profile, resolved_services, service_exposure,
+        manifest=default_setup_manifest, plan=PortForwardingPlan, strategy=ForwardingStrategy.WSL2_SOCAT)
 
 
 def _wsl_socat_expose_message(status: VerificationStatus) -> str:

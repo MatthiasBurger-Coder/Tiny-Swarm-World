@@ -117,7 +117,8 @@ class SetupSelectionState:
         retained = () if existing is None else existing.credential_references
         keys = {item.key for item in retained}
         selected_keys = {item.name for item in default_setup_manifest(
-            service_profile=self.plan.service_preset, resolved_services=self.plan.resolved_services).required_secrets}
+            service_profile=self.plan.service_preset, resolved_services=self.plan.resolved_services,
+            service_exposure=self.plan.service_exposure).required_secrets}
         root = getattr(self.lifecycle.catalog, "root", self.root)
         entries = SecretManifestYamlRepository(root / "infra/config/secrets/infisical-secrets.yaml").load()
         return (*retained, *(CredentialReference.model_validate({"key": item.key, "source": item.source})

@@ -88,13 +88,20 @@ class Runtime:
                 'uuid': '22222222-2222-2222-2222-22222222222' + node[-1]}
         if action.startswith('worker-start:'):
             self.state['workers'][action.split(':')[1]]['state'] = 'running'
-        if action == 'profile-create': self.state['profile'] = 'exact'
-        if action == 'instance-init': self.state.update(instance='stopped', uuid='11111111-1111-1111-1111-111111111111')
-        if action == 'instance-start': self.state['instance'] = 'running'
-        if action == 'instance-delete': self.state.update(instance='absent', uuid=None)
-        if action == 'profile-delete': self.state['profile'] = 'absent'
-        if mode == 'unreadable': self.state['unreadable'] = True
-        if mode == 'lost': raise OSError('private-lost-response')
+        if action == 'profile-create':
+            self.state['profile'] = 'exact'
+        if action == 'instance-init':
+            self.state.update(instance='stopped', uuid='11111111-1111-1111-1111-111111111111')
+        if action == 'instance-start':
+            self.state['instance'] = 'running'
+        if action == 'instance-delete':
+            self.state.update(instance='absent', uuid=None)
+        if action == 'profile-delete':
+            self.state['profile'] = 'absent'
+        if mode == 'unreadable':
+            self.state['unreadable'] = True
+        if mode == 'lost':
+            raise OSError('private-lost-response')
 
     async def update_profile(self, intent, before):
         raise AssertionError('Creation runtime may not receive existing-profile updates')

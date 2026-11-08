@@ -57,6 +57,12 @@ class InstallationProfileService:
                     or manifest.checkpoint_reference != 'profile-' + intent.profile.operation_id
                     or not committed_stack_policy(checkpoint, manifest)):
                 raise LifecycleStateError('Installation completion is not bound to the original profile checkpoint.')
+            from tiny_swarm_world.domain.lifecycle.profile_lifecycle import installation_manifest_sha256
+            if (checkpoint.installation_manifest_sha256 is not None
+                    and installation_manifest_sha256(manifest) != checkpoint.installation_manifest_sha256):
+                raise LifecycleStateError('Original installation manifest commitment changed.')
+            if checkpoint.installation_committed:
+                return checkpoint
             return record(self, checkpoint, lease, installation_committed=True)
 
 

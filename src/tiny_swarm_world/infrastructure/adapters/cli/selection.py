@@ -47,12 +47,14 @@ def run_selection_preview(args: Namespace) -> None:
         # Explicit CLI selection wins without reading an unused config file.
         configured = None if args.services is not None else _configured_services(args.selection_config)
         plan = service.preview(
+            stack_owner=getattr(args, "stack_owner", None),
             requested=None if removal else args.selected_services,
             configured=configured,
             minimal=args.minimal,
             preset=args.service_profile if args.service_profile_explicit else None,
             remove=args.selected_services if removal else (),
             add=args.workflow_namespace == "services" and args.workflow_action == "add",
+            service_exposure=({"swagger": args.swagger_exposure} if getattr(args, "swagger_exposure", None) is not None else None),
         )
         routes = preview_installation_routes(lifecycle, plan)
     except LifecycleStateError as error:
@@ -68,15 +70,25 @@ def run_selection_preview(args: Namespace) -> None:
 
 def validate_selection_args(parser: ArgumentParser, args: Namespace) -> None:
     if args.component_update_command:
+        if getattr(args, "swagger_exposure", None) is not None:
+            parser.error("--swagger-exposure requires setup run or services add")
+        if getattr(args, "stack_owner", None) is not None:
+            parser.error("--stack-owner requires setup run or services add")
         args.selection_preview = False
         return
     command = (args.workflow_namespace, args.workflow_action)
     scoped_recovery = args.recover and command in {('setup', 'run'), ('services', 'add')}
     if scoped_recovery and (not args.live or args.preview or args.preflight):
         parser.error('setup/add recovery requires --live without --preview or --preflight')
-    selection_options = args.services is not None or args.minimal or args.selection_config is not None
+    selection_options = (args.services is not None or args.minimal or args.selection_config is not None
+                         or getattr(args, "swagger_exposure", None) is not None
+                         or getattr(args, "stack_owner", None) is not None)
+    if getattr(args, "stack_owner", None) is not None and (command not in {("setup", "run"), ("services", "add")} or args.minimal):
+        parser.error("--stack-owner requires optional-service setup run or services add")
     selection_command = command in {("services", "add"), ("services", "remove")}
     args.selection_preview = args.preview and (selection_command or command == ("setup", "run"))
+    if getattr(args, "swagger_exposure", None) is not None and command == ("services", "remove"):
+        parser.error("--swagger-exposure cannot be combined with service removal")
     if selection_options and not (selection_command or command == ("setup", "run")):
         parser.error("selection options require setup run or services add/remove")
     if selection_command or args.selection_preview or selection_options or scoped_recovery:

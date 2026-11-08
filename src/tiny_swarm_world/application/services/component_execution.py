@@ -25,7 +25,10 @@ class ComponentUpdateExecution:
 
             execution = copy(self)
             execution.runtime = self.runtime.for_operation(lease)
-            batch = self._admit(requested, target_id, recovery)
+            admission = getattr(execution.runtime, 'admit_runtime', None)
+            if callable(admission):
+                await admission(consent, recovery=recovery)
+            batch = execution._admit(requested, target_id, recovery)
             execution.runtime.validate(batch.stages)
             batch = batch.model_copy(update={'direction': 'recover' if recovery else 'apply'})
             self.journal.save(batch)
@@ -36,7 +39,11 @@ class ComponentUpdateExecution:
         previous = self.journal.load()
         if snapshot.manifest is None or snapshot.diagnostics:
             raise LifecycleStateError('Valid installation state required before execution.')
-        require_legacy_runtime_policy(snapshot.manifest)
+        admit_policy = getattr(self.runtime, 'validate_manifest', None)
+        if callable(admit_policy):
+            admit_policy(snapshot.manifest)
+        else:
+            require_legacy_runtime_policy(snapshot.manifest)
         if previous is not None:
             matching = (tuple(sorted(requested)) == previous.plan.requested_services
                         and (target_id is None or all(item.target and item.target.target_id == target_id
@@ -75,7 +82,8 @@ class ComponentUpdateExecution:
         stages = tuple(UpdateStage(service_id=item.service_id, component_id=change.component_id,
                                    source=change.desired, target=change.target)
                        for item in plan.services for change in item.components if change.target is not None)
-        return UpdateBatch(original=snapshot.manifest, plan=plan, stages=stages)
+        return UpdateBatch(original=snapshot.manifest, plan=plan, stages=stages,
+                           profile_intent=getattr(self.runtime, 'profile_intent', None))
 
 
 def _validate_manifest(batch, current):
@@ -95,7 +103,13 @@ def _validate_manifest(batch, current):
     original_refs = tuple(item for item in batch.original.configuration_references if item.key not in managed_keys)
     if retained != original_refs:
         raise LifecycleStateError('Unrelated configuration changed during update.')
-    ignored = {'components', 'configuration_references'}
+    old_owners = batch.original.effective_stack_ownership()
+    new_owners = current.effective_stack_ownership()
+    if set(old_owners) != set(new_owners) or any(
+            new_owners[name] not in (old, batch.verified_stack_ownership.get(name))
+            for name, old in old_owners.items()):
+        raise LifecycleStateError('Unrelated stack management ownership changed during update.')
+    ignored = {'components', 'configuration_references', 'stack_ownership'}
     if {key: value for key, value in comparable_manifest(current).items() if key not in ignored} != {key: value for key, value in comparable_manifest(batch.original).items() if key not in ignored}:
         raise LifecycleStateError('Installation selection or credentials changed; inspect before resuming.')
 
@@ -118,7 +132,11 @@ async def _execute(execution, batch, consent, recovery):
 def _record(execution, batch, index, outcome):
     stages = list(batch.stages)
     stages[index] = stages[index].model_copy(update={'outcome': outcome})
-    updated = batch.model_copy(update={'stages': tuple(stages)})
+    owners = dict(batch.verified_stack_ownership)
+    if outcome == 'runtime_verified':
+        verified = getattr(execution.runtime, 'verified_stack_ownership', {})
+        owners.update(verified)
+    updated = batch.model_copy(update={'stages': tuple(stages), 'verified_stack_ownership': owners})
     execution.journal.save(updated)
     return updated
 
@@ -139,7 +157,12 @@ def _commit(execution, batch, stage, recovery):
                        if item.key != 'component-update.' + stage.component_id)
     reference = ConfigurationReference(key='component-update.' + stage.component_id,
                                        source='managed_default', reference=stage.component_id)
-    updated = migrate_manifest_v1(snapshot.manifest).model_copy(update={'components': components, 'configuration_references': (*references, reference)})
+    migrated = migrate_manifest_v1(snapshot.manifest)
+    owners = migrated.effective_stack_ownership()
+    if stage.service_id in batch.verified_stack_ownership:
+        owners[stage.service_id] = batch.verified_stack_ownership[stage.service_id]
+    updated = migrated.model_copy(update={'components': components, 'configuration_references': (*references, reference),
+                                          'stack_ownership': owners})
     execution.manifests.save(updated, expected_token=snapshot.token)
 
 

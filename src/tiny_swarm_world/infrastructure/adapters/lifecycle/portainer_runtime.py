@@ -14,8 +14,8 @@ from tiny_swarm_world.infrastructure.adapters.lifecycle.portainer_manager import
 
 
 class ClassicPortainerUpgradeRuntime:
-    def __init__(self, shell, client, *, managed_stacks, timeout_seconds=300):
-        self.api = PortainerUpgradeApi(client, managed_stacks=managed_stacks)
+    def __init__(self, shell, client, *, managed_stacks, managed_ownership=None, timeout_seconds=300):
+        self.api = PortainerUpgradeApi(client, managed_stacks=managed_stacks, managed_ownership=managed_ownership)
         self.state = PortainerManagerState(shell, timeout_seconds=timeout_seconds)
         self.backups = PortainerColdBackup(self.state)
         self.inspection = PortainerInspection(self.state, self.api)

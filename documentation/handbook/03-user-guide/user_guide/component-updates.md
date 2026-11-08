@@ -299,3 +299,20 @@ setup/addition flow described in [selective setup](selective-setup.md#swagger-ex
 Private Incus profile admission still applies; the image-update command does
 not grant permission to adopt inherited legacy proxies or downgrade a v2
 manifest to a target release that only reads v1.
+
+### Persisted management writer
+
+For scoped installations, each selected stack retains its recorded `swarm` or
+`portainer` management authority throughout apply, retry and recovery. A
+Portainer-owned component transition updates the authenticated saved stack
+definition through that endpoint and stack ID, preserving its environment and
+ResourceControl. It never invokes the competing direct-Swarm deployment writer.
+Pruning remains disabled. The private operation journal records intent before
+the request and verified ownership before the installation manifest is updated.
+
+After an interrupted request, resume uses the original identities and target
+fingerprint. Explicit recovery retains the original source/target linkage and
+reverses only the admitted image transition. Unknown create outcomes and foreign
+saved-state changes remain blocked. Image rollback does not restore persistent
+data. These candidate paths require the separate scoped-profile capability and
+live qualification; they do not promote unqualified component catalog targets.

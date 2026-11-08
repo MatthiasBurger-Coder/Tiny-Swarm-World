@@ -63,6 +63,14 @@ class FakeInstallationLock:
             self.events.append('operation-release:' + operation)
 
 
+class RecordingCompositionLock(FakeInstallationLock):
+    """Record workflow leases while retaining actual private filesystem authority."""
+    def _directory(self, *, create: bool) -> int:
+        # This imported class is captured before the composition-only patches.
+        # Missing/unsafe/foreign state is decided by the real descriptor guard.
+        return JsonInstallationOperationLock(self.root)._directory(create=create)
+
+
 def _hold_operation(root, ready, release):
     with JsonInstallationOperationLock(Path(root)).exclusive('setup'):
         ready.set()
@@ -171,6 +179,26 @@ class InstallationOperationLockTests(unittest.IsolatedAsyncioTestCase):
                 if case == 'directory_mode':
                     self.assertEqual(state.stat().st_mode & 0o777, 0o755)
 
+    def test_recording_composition_port_preserves_actual_private_checkpoint_reads_and_refusals(self):
+        from tiny_swarm_world.infrastructure.adapters.lifecycle.profile_journal import read_checkpoint
+
+        use_fake_composition_locks(self)
+        directory = self.root / '.tiny-swarm-world/installation'
+        directory.parent.mkdir(mode=0o700)
+        directory.mkdir(mode=0o700)
+        checkpoint = directory / 'profile-operation.json'
+        checkpoint.write_bytes(b'actual retained checkpoint bytes')
+        checkpoint.chmod(0o600)
+        self.assertEqual(read_checkpoint(self.root), b'actual retained checkpoint bytes')
+        directory.chmod(0o755)
+        with self.assertRaises(OSError):
+            read_checkpoint(self.root)
+        directory.chmod(0o700)
+        checkpoint.chmod(0o644)
+        with self.assertRaises(ValueError):
+            read_checkpoint(self.root)
+        self.assertEqual(checkpoint.read_bytes(), b'actual retained checkpoint bytes')
+
     def test_replaced_lock_or_state_and_foreign_lease_fail_closed(self):
         with self.lock.exclusive('setup') as lease:
             self.lock.path.unlink()
@@ -205,7 +233,7 @@ def use_fake_composition_locks(test_case):
     for module in ('tiny_swarm_world.infrastructure.adapters.lifecycle.installation_operation_lock',
                    'tiny_swarm_world.infrastructure.composition_operation',
                    'tiny_swarm_world.infrastructure.composition_lifecycle'):
-        test_case.enterContext(patch(module + '.JsonInstallationOperationLock', FakeInstallationLock, create=True))
+        test_case.enterContext(patch(module + '.JsonInstallationOperationLock', RecordingCompositionLock, create=True))
 
 
 class ComposedOperationLockTests(unittest.IsolatedAsyncioTestCase):

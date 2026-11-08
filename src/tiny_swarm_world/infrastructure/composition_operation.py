@@ -73,7 +73,7 @@ def build_classic_workflow(facade, runtime, root_factory, service_profile, node_
         if backend is not None else None
     )
 
-    def deployment_workflow_for(plan, *, operation_lease=None):
+    def deployment_workflow_for(plan, *, operation_lease=None, profile_operation=None):
         image_environment = image_override_environment_name(
             plan.stack_name,
             plan.service_name,
@@ -83,6 +83,7 @@ def build_classic_workflow(facade, runtime, root_factory, service_profile, node_
             node_provider_request=node_provider_request,
             image_overrides={image_environment: plan.target_image},
             update_stack_name=plan.stack_name,
+            **({"profile_operation": profile_operation} if profile_operation is not None else {}),
         )
         delegated_services = private_services(services, operation_lease)
         return delegated_services.workflows.apply

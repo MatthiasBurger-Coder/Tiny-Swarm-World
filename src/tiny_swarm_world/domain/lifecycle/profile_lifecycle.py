@@ -1,9 +1,11 @@
 """Bounded installation-owned manager profile values; no runtime authority."""
 from __future__ import annotations
 
+import hashlib
+import json
 from typing import Annotated, Literal, Self
 
-from pydantic import Field, model_validator
+from pydantic import Field, SerializerFunctionWrapHandler, model_serializer, model_validator
 
 from tiny_swarm_world.domain.lifecycle.models import (
     Contract, Identifier, InstallationManifest, InstallationProfileIntent, PortainerOwnership, ProxyRoute, Revision,
@@ -130,12 +132,20 @@ class ProfileLifecycleCheckpoint(Contract):
     generation: Annotated[int, Field(ge=0)] = 0
     observation_sha256: SHA256
     installation_committed: bool = False
+    installation_manifest_sha256: SHA256 | None = None
     instance_uuid: Annotated[str, Field(pattern=r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')] | None = None
     pending_action: Literal['profile-create', 'instance-init', 'instance-start', 'instance-delete', 'profile-delete', 'worker-init', 'worker-start'] | None = None
     pending_node: Identifier | None = None
     worker_uuids: dict[Identifier, Annotated[str, Field(pattern=r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')]] = Field(default_factory=dict)
 
     verified_stack_ownership: dict[Identifier, PortainerOwnership] = Field(default_factory=dict)
+
+    @model_serializer(mode='wrap')
+    def original_checkpoint_fields(self, handler: SerializerFunctionWrapHandler) -> dict[str, object]:
+        result = handler(self)
+        if self.installation_manifest_sha256 is None:
+            result.pop('installation_manifest_sha256', None)
+        return result
 
     @property
     def settled(self) -> bool:
@@ -267,3 +277,9 @@ def preserve_verified_portainer_identity(previous: PortainerOwnership, current: 
     checked = PortainerOwnership.model_validate_json(current.model_dump_json())
     if checked.model_dump(exclude={'definition_fingerprint'}) != previous.model_dump(exclude={'definition_fingerprint'}):
         raise ValueError('Durably verified Portainer ownership identity must remain unchanged.')
+
+
+def installation_manifest_sha256(manifest: InstallationManifest) -> str:
+    """Bind complete validated metadata before its original adoption write."""
+    return hashlib.sha256(json.dumps(manifest.model_dump(mode='json'), sort_keys=True,
+        separators=(',', ':'), ensure_ascii=True).encode()).hexdigest()

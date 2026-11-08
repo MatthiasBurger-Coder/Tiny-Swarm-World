@@ -40,6 +40,7 @@ class SelectionPlan(Contract):
     resources: SelectionResources
     manifest_token: str | None = None
     diagnostics: tuple[str, ...] = Field(default_factory=tuple)
+    stack_owners: dict[str, Literal["swarm", "portainer"]] = Field(default_factory=dict)
 
 
     @model_validator(mode='after')
@@ -183,6 +184,7 @@ def plan_selection(
     minimal: bool = False, preset: str | None = None, remove: tuple[str, ...] = (),
     add: bool = False, available_capabilities: tuple[str, ...] | None = None,
     service_exposure: Mapping[str, str] | None = None,
+    stack_owner: Literal["swarm", "portainer"] | None = None,
 ) -> SelectionPlan:
     services = _catalog_services(catalog)
     removed = validate_ids(remove, services)
@@ -206,8 +208,16 @@ def plan_selection(
     exposure = service_exposure
     if exposure is None and persisted is not None and 'swagger' in ordered:
         exposure = {'swagger': persisted.effective_exposure().get('swagger', 'published')}
+    prior_owners = {} if persisted is None else persisted.effective_stack_ownership()
+    if stack_owner is not None and (removed or source not in {"explicit", "configuration", "add", "preset"}):
+        raise SelectionError("Stack owner applies only to explicitly installing optional services.")
+    owners: dict[str, Literal["swarm", "portainer"]] = {name: prior_owners[name].owner if name in prior_owners else (stack_owner or "swarm")
+              for name in ordered if name not in {"incus", "portainer"}}
+    if stack_owner is not None and source != 'add' and any(owner.owner != stack_owner for owner in prior_owners.values()):
+        raise SelectionError("Existing stack management ownership cannot be changed or adopted.")
     return SelectionPlan(
         service_exposure=service_exposure_for(ordered, exposure),
+        stack_owners=owners,
         requested_services=chosen, resolved_services=ordered, selection_reasons=reasons,
         service_preset=effective, source="remove" if removed else source,  # type: ignore[arg-type]
         additions=tuple(name for name in ordered if name not in previous),

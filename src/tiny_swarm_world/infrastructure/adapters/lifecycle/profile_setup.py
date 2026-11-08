@@ -191,5 +191,8 @@ def commit_fresh_selection(state):
             'service_exposure': intent.profile.service_exposure, 'stack_ownership': owners,
             'installation_profile': intent.profile.profile,
             'checkpoint_reference': 'profile-' + intent.profile.operation_id}).model_dump_json())
+    if state.profile_operation is not None:
+        from tiny_swarm_world.application.services.profile_completion import bind_manifest_commit
+        bind_manifest_commit(state.profile_operation, candidate)
     saved = state.lifecycle.adopt(candidate, approved=True, preview=False, operation_lease=state.operation_lease)
     state.fresh = saved.manifest

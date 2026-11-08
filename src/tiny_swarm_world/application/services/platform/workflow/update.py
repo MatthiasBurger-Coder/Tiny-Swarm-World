@@ -8,7 +8,7 @@ from tiny_swarm_world.application.services.platform.workflow.update_admission im
 from tiny_swarm_world.application.ports.operation_result import OperationError, OperationFailure, OperationOutcome, OperationResult
 from tiny_swarm_world.application.services.shared.operation_results import aggregate_operation, failure_from_exception
 from collections.abc import Callable, Mapping
-from typing import Protocol
+from typing import Any, Protocol
 
 from tiny_swarm_world.application.ports.repositories.port_compose_file_repository import (
     PortComposeFileRepository,
@@ -44,7 +44,7 @@ from tiny_swarm_world.domain.update import ClassicUpdatePlan, UpdateRuntimeObser
 
 
 class _DeploymentWorkflowFactory(Protocol):
-    def __call__(self, plan: ClassicUpdatePlan, *, operation_lease: InstallationLease | None = None) -> DeploymentApplyWorkflow: ...
+    def __call__(self, plan: ClassicUpdatePlan, *, operation_lease: InstallationLease | None = None, profile_operation: Any = None) -> DeploymentApplyWorkflow: ...
 
 
 class ClassicUpdateWorkflow:
@@ -65,6 +65,7 @@ class ClassicUpdateWorkflow:
         operation_lock: InstallationOperationLock | None = None,
         operation_lease: InstallationLease | None = None,
         mutation_policy_guard: Callable[[], None] | None = None,
+        profile_operation: Any = None,
     ):
         if (
             verification_attempts < 1
@@ -83,6 +84,7 @@ class ClassicUpdateWorkflow:
         self.observation_timeout_seconds = observation_timeout_seconds
         self.operation_lock, self.operation_lease = operation_lock, operation_lease
         self.mutation_policy_guard = mutation_policy_guard
+        self.profile_operation = profile_operation
 
     async def run(
         self,
@@ -92,7 +94,7 @@ class ClassicUpdateWorkflow:
         live_consent: LiveConsent | None,
     ) -> PlatformWorkflowResult:
         return await with_update_operation(self.operation_lock, self.operation_lease,
-            self.mutation_policy_guard, 'classic-update', preview, live_consent,
+            self.mutation_policy_guard if self.profile_operation is None else self.profile_operation.require_current_manifest, 'classic-update', preview, live_consent,
             lambda admitted: self._run(plan, preview=preview, live_consent=live_consent,
                                        recovery=False, operation_lease=admitted))
 
@@ -206,7 +208,8 @@ class ClassicUpdateWorkflow:
         operation_lease: InstallationLease | None = None,
     ) -> PlatformWorkflowResult:
         try:
-            deployment_result = await self.deployment_workflow_factory(plan, operation_lease=operation_lease).run()
+            deployment_result = await self.deployment_workflow_factory(plan, operation_lease=operation_lease,
+                **({"profile_operation": self.profile_operation} if self.profile_operation is not None else {})).run()
         except (OSError, ValueError, RuntimeError) as error:
             return self._runtime_failure(
                 plan, "deployment_failed", PlatformWorkflowStatus.FAILED_TO_APPLY,
@@ -388,7 +391,7 @@ class ClassicUpdateWorkflow:
     async def recover(self, stack_name: str, service_name: str, *, preview: bool,
                       live_consent: LiveConsent | None) -> PlatformWorkflowResult:
         return await with_update_operation(self.operation_lock, self.operation_lease,
-            self.mutation_policy_guard, 'recovery', preview, live_consent,
+            self.mutation_policy_guard if self.profile_operation is None else self.profile_operation.require_current_manifest, 'recovery', preview, live_consent,
             lambda admitted: self._recover(stack_name, service_name, preview=preview,
                                            live_consent=live_consent, operation_lease=admitted))
 

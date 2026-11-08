@@ -1,9 +1,9 @@
 """Durable update intent; original transition and installation remain immutable."""
 from typing import Literal, Self
 
-from pydantic import SerializerFunctionWrapHandler, model_serializer, model_validator
+from pydantic import Field, SerializerFunctionWrapHandler, model_serializer, model_validator
 
-from tiny_swarm_world.domain.lifecycle.models import InstallationProfileIntent, Contract, Identifier, InstallationManifest, VersionIdentity
+from tiny_swarm_world.domain.lifecycle.models import InstallationProfileIntent, Contract, Identifier, InstallationManifest, PortainerOwnership, VersionIdentity
 from tiny_swarm_world.domain.lifecycle.update_planning import ComponentUpdatePlan
 
 
@@ -22,12 +22,15 @@ class UpdateBatch(Contract):
     stages: tuple[UpdateStage, ...]
     direction: Literal['apply', 'recover'] = 'apply'
     profile_intent: InstallationProfileIntent | None = None
+    verified_stack_ownership: dict[str, PortainerOwnership] = Field(default_factory=dict)
 
     @model_serializer(mode='wrap')
     def legacy_serialization(self, handler: SerializerFunctionWrapHandler) -> dict[str, object]:
         result = handler(self)
         if self.profile_intent is None:
             result.pop('profile_intent', None)
+        if not self.verified_stack_ownership:
+            result.pop('verified_stack_ownership', None)
         return result
 
     @property
@@ -43,6 +46,12 @@ class UpdateBatch(Contract):
                     or self.profile_intent.product_target_revision is not None
                     or self.profile_intent.manifest_token != self.plan.manifest_token):
                 raise ValueError('Component intent differs from the original operation.')
+        original_owners = self.original.effective_stack_ownership()
+        for service_id, observed in self.verified_stack_ownership.items():
+            prior = original_owners.get(service_id)
+            if (not isinstance(prior, PortainerOwnership) or service_id not in self.plan.requested_services
+                    or observed.model_copy(update={'definition_fingerprint': prior.definition_fingerprint}) != prior):
+                raise ValueError('Verified update ownership differs from the original stack identity.')
         if self.plan.status == 'blocked' or not self.plan.services:
             raise ValueError('Batch requires an admitted nonempty plan.')
         if tuple(item.service_id for item in self.plan.services) != self.plan.dependency_order:

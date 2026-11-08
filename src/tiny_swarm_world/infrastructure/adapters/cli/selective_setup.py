@@ -31,16 +31,13 @@ async def _run_selective_setup(args: Namespace, consent: LiveConsent | None, lif
     try:
         if legacy_full_request(args) and composition.legacy_full_setup_available(lifecycle):
             return None
-        plan = ServiceSelectionService(lifecycle.manifests, lifecycle.catalog).preview(
-            requested=getattr(args, "selected_services", None),
-            configured=None if args.services is not None else _configured_services(args.selection_config),
-            minimal=args.minimal,
-            preset=args.service_profile if args.service_profile_explicit else None,
-            add=(args.workflow_namespace, args.workflow_action) == ("services", "add"),
-        )
-        request = _node_provider_request_from_args(args)
-        state = await composition.prepare_setup_selection_state(lifecycle, plan, request, operation_lease=operation_lease,
-            consent=consent, recovery=bool(getattr(args, 'recover', False)))
+        plan, request, state = await _prepare_selection(args, consent, lifecycle, operation_lease)
+        from tiny_swarm_world.application.services.profile_completion import CreationCompletionOperation
+        if isinstance(state.profile_operation, CreationCompletionOperation):
+            await state.profile_operation.commit_installation()
+            return SetupWorkflowResult(SetupWorkflowKind.RUN, SetupWorkflowStatus.COMPLETED,
+                'Original creation checkpoint completion recovered; runtime and manifest preserved.',
+                'creation_completion_recovered', executed=False)
     except (LifecycleStateError, ValueError) as error:
         return SetupWorkflowResult(SetupWorkflowKind.RUN, SetupWorkflowStatus.BLOCKED, str(error), "selection_admission_blocked")
     if not args.json:
@@ -85,3 +82,19 @@ def legacy_full_request(args):
         and args.services is None and not args.minimal and args.selection_config is None
         and getattr(args, 'swagger_exposure', None) != 'internal'
         and getattr(args, 'stack_owner', None) != 'portainer' and not getattr(args, 'recover', False))
+
+
+async def _prepare_selection(args, consent, lifecycle, operation_lease):
+    plan = ServiceSelectionService(lifecycle.manifests, lifecycle.catalog).preview(
+        stack_owner=getattr(args, "stack_owner", None),
+        requested=getattr(args, "selected_services", None),
+        configured=None if args.services is not None else _configured_services(args.selection_config),
+        minimal=args.minimal,
+        preset=args.service_profile if args.service_profile_explicit else None,
+        add=(args.workflow_namespace, args.workflow_action) == ("services", "add"),
+        service_exposure=({"swagger": args.swagger_exposure} if getattr(args, "swagger_exposure", None) is not None else None),
+    )
+    request = _node_provider_request_from_args(args)
+    state = await composition.prepare_setup_selection_state(lifecycle, plan, request, operation_lease=operation_lease,
+        consent=consent, recovery=bool(getattr(args, 'recover', False)))
+    return plan, request, state

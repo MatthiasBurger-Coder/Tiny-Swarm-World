@@ -207,18 +207,20 @@ class SwaggerInternalReadinessTests(unittest.IsolatedAsyncioTestCase):
     async def test_shared_profile_cannot_admit_desired_internal_even_from_published_state(self) -> None:
         plan = plan_selection(NativeComponentCatalog(ROOT).load(), ('swagger',), service_exposure=INTERNAL)
         state = SetupSelectionState(Mock(), plan, ROOT)
-        with self.assertRaisesRegex(LifecycleStateError, 'private Incus profile'):
+        with self.assertRaisesRegex(LifecycleStateError, 'private.*installation profile'):
             await state.admit_exposure()
         lock = FakeInstallationLock()
         with lock.exclusive('setup') as lease:
-            operation = SimpleNamespace(lease=lease, admit_desired=AsyncMock())
-            state.profile_operation = operation
-            await state.admit_exposure()
+            operation = SimpleNamespace(lease=lease, admit_desired=AsyncMock(
+                side_effect=lambda _: lease.require_active()))
+            with patch.object(state, 'profile_operation', operation):
+                await state.admit_exposure()
             operation.admit_desired.assert_awaited_once_with(plan)
         operation.admit_desired.reset_mock()
-        with self.assertRaises(LifecycleStateError):
-            await state.admit_exposure()
-        operation.admit_desired.assert_not_called()
+        with patch.object(state, 'profile_operation', operation):
+            with self.assertRaises(LifecycleStateError):
+                await state.admit_exposure()
+        operation.admit_desired.assert_awaited_once_with(plan)
 
     def test_fixed_probe_binds_all_services_and_only_returns_closed_success(self) -> None:
         run = Mock(return_value=subprocess.CompletedProcess([], 0, stdout='SWAGGER_INTERNAL_READY\n'))

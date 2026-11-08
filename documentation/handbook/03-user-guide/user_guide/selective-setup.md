@@ -149,3 +149,53 @@ against a previously published installation. No inherited or foreign proxy is
 removed or adopted to make the request pass. Incus version qualification and
 live-consent gates remain mandatory. Read-only previews and mocked tests do not
 establish a supported live capability.
+
+### Explicit optional-stack management
+
+`--stack-owner portainer` selects the Portainer API as the management writer for
+new optional stacks in `setup run` or `services add`. The preview lists
+`stack_owners` separately from verified installation ownership. Existing stacks
+retain their recorded writer; the flag never adopts a same-name Portainer
+object or changes a direct-Swarm stack's management owner. Incus and Portainer
+remain mandatory foundations.
+
+For example, the scoped-capability candidate accepts the following read-only
+plan:
+
+```bash
+tiny-swarm-world setup run --services swagger --stack-owner portainer --preview
+```
+
+Live execution additionally requires the admitted scoped Incus capability,
+explicit consent, exact profile/route checks and qualified host resources.
+The capability support matrix remains empty until its separate S02 live
+qualification and support decision; a preview does not imply live support.
+Combining this management mode with internal Swagger uses the separately
+implemented `--swagger-exposure internal` policy.
+
+A Portainer create receipt is not installation ownership. TSW records the
+returned stack and ResourceControl identities, reads back the complete saved
+stack definition and environment, and observes actual Swarm task convergence
+before committing verified ownership or the installation selection. Repeating a
+verified operation rechecks those observations without sending another update.
+A timeout with no returned create identity remains uncertain and requires
+operator recovery; TSW never guesses an object by its name. Keep the private
+management journal and original profile checkpoint when investigating a failure.
+
+Subsequent setup, selected updates and recovery use the persisted management
+writer. Portainer updates preserve the saved environment and set pruning off.
+A changed endpoint, ResourceControl, stack ID, saved definition or environment
+blocks the operation before overwrite. API response success alone does not
+establish successful deployment. Existing direct-Swarm installation records
+keep their writer and are not adopted by migration.
+
+
+If scoped setup stops after saving its installation manifest but before marking
+the original profile checkpoint complete, use `setup run --recover --live` with
+the usual live consent. Recovery requires the exact manifest digest committed
+before adoption, its original profile and verified stack-owner identities, and
+fresh read-only node, listener, saved-definition and task checks. It completes
+only the missing checkpoint mark; it does not adopt, initialize, redeploy or
+change the saved manifest. Unknown or changed state stays blocked. An older
+partial checkpoint without that commitment requires explicit inventory rather
+than inferred completion.

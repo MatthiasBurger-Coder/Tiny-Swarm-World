@@ -79,13 +79,15 @@ class PortainerHttpClient(PortPortainerClient, PortDeploymentGateway):
         payload = _response_payload(response)
         if not isinstance(payload, list) or any(not isinstance(stack, dict) for stack in payload):
             raise PortainerClientError(OperationFailure.for_cause("service.decode", "portainer", "request_failed")) from None
-        for stack in payload:
-            if stack.get("Name") == stack_name:
-                identifier = _endpoint_id(stack)
-                if identifier is None:
-                    raise PortainerClientError(OperationFailure.for_cause("service.decode", "portainer", "request_failed")) from None
-                return identifier
-        return None
+        matches = [stack for stack in payload if stack.get("Name") == stack_name]
+        if len(matches) > 1:
+            raise PortainerClientError(OperationFailure.for_cause("service.decode", "portainer", "request_failed")) from None
+        if not matches:
+            return None
+        identifier = _endpoint_id(matches[0])
+        if identifier is None:
+            raise PortainerClientError(OperationFailure.for_cause("service.decode", "portainer", "request_failed")) from None
+        return identifier
 
     def create_stack(
         self,
@@ -131,7 +133,7 @@ class PortainerHttpClient(PortPortainerClient, PortDeploymentGateway):
             timeout=self.stack_request_timeout_seconds,
             json={
                 "env": _portainer_environment(stack_environment),
-                "prune": True,
+                "prune": False,
                 "pullImage": False,
                 "stackFileContent": stack_definition.compose_content,
             },
@@ -150,13 +152,8 @@ class PortainerHttpClient(PortPortainerClient, PortDeploymentGateway):
             )
             self._applied_stack_snapshot = request.stack_definition.name
             return
-        self.update_stack(
-            stack_id,
-            request.stack_definition,
-            endpoint_id,
-            request.stack_environment,
-        )
-        self._applied_stack_snapshot = request.stack_definition.name
+        # A same-name API object is never authority to adopt or overwrite it.
+        raise PortainerClientError(OperationFailure.for_cause("service.request", "portainer", "request_failed"))
 
     def stack_registered(self, stack_name: str) -> bool:
         if self._applied_stack_snapshot == stack_name:

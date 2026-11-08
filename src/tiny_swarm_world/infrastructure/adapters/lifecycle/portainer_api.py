@@ -10,9 +10,10 @@ def fingerprint(value) -> str:
 
 
 class PortainerUpgradeApi:
-    def __init__(self, client, *, managed_stacks):
+    def __init__(self, client, *, managed_stacks, managed_ownership=None):
         self.client = client
         self.managed_stacks = managed_stacks
+        self.managed_ownership = dict(managed_ownership or {})
         self.swarm_id = None
         self.proof_stack = None
 
@@ -50,7 +51,22 @@ class PortainerUpgradeApi:
                       and item['Name'] in self.managed_stacks]
         if not candidates:
             raise LifecycleStateError('No installed managed stack belongs to the local Swarm; proof blocked.')
-        self.proof_stack = min(candidates, key=lambda item: item['Id'])
+        from tiny_swarm_world.domain.lifecycle.models import PortainerOwnership
+        from tiny_swarm_world.infrastructure.adapters.lifecycle.managed_stack_api import GuardedPortainerStackApi
+
+        verified = []
+        guard = GuardedPortainerStackApi(self.client, lambda: self.swarm_id)
+        for item in candidates:
+            owner = self.managed_ownership.get(item['Name'])
+            if not isinstance(owner, PortainerOwnership):
+                continue
+            observed = guard.inspect(item['Name'], owner.endpoint_id, owner.stack_id)
+            if observed.ownership != owner:
+                raise LifecycleStateError('Gateway proof ownership differs from persisted installation identity.')
+            verified.append(item)
+        if not verified:
+            raise LifecycleStateError('No verified Portainer-owned optional stack is installed; explicit creation is required.')
+        self.proof_stack = min(verified, key=lambda item: item['Id'])
         endpoint_state = tuple(sorted(fingerprint({key: item.get(key) for key in ('Id', 'Name', 'URL', 'Type')}) for item in endpoints))
         ownership = tuple(sorted(fingerprint({key: item.get(key) for key in ('Id', 'Name', 'EndpointId', 'Type', 'ResourceControl')}) for item in stacks))
         return version, endpoint_state, ownership
@@ -59,18 +75,28 @@ class PortainerUpgradeApi:
         stack = self.proof_stack
         if stack is None:
             raise LifecycleStateError('Managed Swarm proof stack was not admitted.')
-        identifier = stack['Id']
-        detail = self.get(f'/api/stacks/{identifier}')
-        content = self.get(f'/api/stacks/{identifier}/file')['StackFileContent']
-        if not isinstance(content, str) or not content.strip() or not isinstance(detail.get('Env'), list):
-            raise LifecycleStateError('Managed stack definition/environment unavailable; update proof blocked.')
-        return stack, content, detail['Env']
+        from tiny_swarm_world.infrastructure.adapters.lifecycle.managed_stack_api import GuardedPortainerStackApi
+
+        owner = self.managed_ownership.get(stack['Name'])
+        if owner is None:
+            raise LifecycleStateError('Managed proof requires persisted ownership.')
+        observed = GuardedPortainerStackApi(self.client, lambda: self.swarm_id).inspect(stack['Name'], owner.endpoint_id, owner.stack_id)
+        if observed.ownership != owner:
+            raise LifecycleStateError('Managed proof definition/Env or ownership changed.')
+        return stack, observed.definition.compose_content, [
+            {'name': key, 'value': value} for key, value in sorted(observed.environment.items())]
 
     def prove_update(self):
         stack, content, environment = self.proof_definition()
-        identifier, endpoint = stack['Id'], stack['EndpointId']
-        response = self.client._send('PUT', f'/api/stacks/{identifier}?endpointId={endpoint}',
-                                     timeout=self.client.stack_request_timeout_seconds,
-                                     json={'stackFileContent': content, 'env': environment, 'prune': False, 'pullImage': False})
-        self.client._ensure_success(response, 'Portainer managed update proof')
+        from tiny_swarm_world.infrastructure.adapters.lifecycle.managed_stack_api import GuardedPortainerStackApi
+
+        owner = self.managed_ownership[stack['Name']]
+        guard = GuardedPortainerStackApi(self.client, lambda: self.swarm_id)
+        snapshot = guard.inspect(stack['Name'], owner.endpoint_id, owner.stack_id)
+        if snapshot.ownership != owner:
+            raise LifecycleStateError('Managed proof changed immediately before request.')
+        guard.update(snapshot, snapshot.definition)
+        after = guard.inspect(stack['Name'], owner.endpoint_id, owner.stack_id)
+        if after.ownership != owner:
+            raise LifecycleStateError('Managed proof saved definition/Env changed after request.')
         return stack['Name']

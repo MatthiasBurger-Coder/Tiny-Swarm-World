@@ -53,6 +53,9 @@ class JsonProfileLifecycleJournal:
                 raise ValueError('Profile checkpoint changed.')
             if previous is not None and previous.intent != checked.intent:
                 raise ValueError('Profile operation intent changed.')
+            if (previous is not None and previous.installation_manifest_sha256 is not None
+                    and checked.installation_manifest_sha256 != previous.installation_manifest_sha256):
+                raise ValueError('Original installation manifest commitment changed.')
             expected_next = 0 if previous is None else previous.generation + 1
             if checked.generation != expected_next:
                 raise ValueError('Profile checkpoint generation changed.')
