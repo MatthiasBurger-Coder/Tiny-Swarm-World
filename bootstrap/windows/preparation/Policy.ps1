@@ -170,6 +170,9 @@ function New-PreparationPlan($Options, $Facts, $Source) {
     artifacts=(Get-PreparationArtifacts)}
     $boundFacts=ConvertTo-PreparationHashtable ($Facts | ConvertTo-Json -Depth 30 -Compress | ConvertFrom-Json)
     if($boundFacts.resource_facts){foreach($key in @('distro_free_bytes','swap_free_bytes','effective_disk_bytes')){$boundFacts.resource_facts.Remove($key)}}
+    # W05 changes only global resource config. W06 observations remain in raw
+    # facts/target, but cannot revoke this distinct single-action consent.
+    if($plan.actions.Count -eq 1 -and $plan.actions[0].id -ceq 'adapt_wsl_resources'){$boundFacts.Remove('bridge_facts')}
     $plan['plan_fingerprint']=Get-PreparationDigest @($boundFacts,$Source,$plan.selection,$plan.resources,$plan.actions,@($plan.blockers | Where-Object{$_.code -ne 'prerequisite_missing'}),$plan.artifacts)
     return $plan
 }

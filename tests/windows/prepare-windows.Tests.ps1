@@ -713,4 +713,72 @@ try {
     Assert ($persisted.status -ceq 'effect' -and $persisted.confirmed -and !$persisted.uncertain -and $persisted.restart -ceq 'distro') 'durable effect replaces pending state'
     Assert (@(Get-ChildItem -LiteralPath $stateStore -Force).Count -eq 1) 'atomic replacement leaves only the checkpoint'
 } finally {Remove-Item -LiteralPath $stateStore -Recurse -Force}
+
+# Actual W05 observation variants: unavailable W06 query versus owned bridge
+# with foreign-listener refusal. Neither is admitted as a healthy bridge.
+$resourceFingerprintModule=Get-Module Preparation
+$script:resourceBridgeVariants=@(
+    @{state='BLOCKED';blockers=@('bridge_inventory_unavailable')},
+    @{schema_version=1;ownership='owned';bridge_ready=$false;routing_ready=$false;agent_ready=$false;
+      login_state='UNVERIFIED';endpoint_state='UNVERIFIED';action=$null;blockers=@('foreign_or_unknown_listener');fingerprint='observed-w06'}
+)
+function ResourceFingerprintFacts($Bridge){
+    $value=Facts
+    $value.resource_facts.config_values.memory='25GB';$value.resource_facts.config_values.swap='4GB'
+    $value.bridge_facts=$Bridge
+    return $value
+}
+$script:source=@{verified=$true;clean=$true;revision=('a'*40)}
+$resourceFingerprintPorts=@{};foreach($key in $ports.Keys){$resourceFingerprintPorts[$key]=$ports[$key]}
+$resourceFingerprintPorts.ProtectEvidence={param($o) return 'protected-mocked-resource-store'}
+$resourceFingerprintPorts.WriteEvidence={param($store,$event)}
+$resourceFingerprintPorts.LockState={param($store) return [IO.MemoryStream]::new()}
+$resourceFingerprintPorts.ReadState={param($o,$identity) return $null}
+$resourceFingerprintPorts.WriteState={param($store,$state)}
+$script:resourceReinventories=0;$script:resourceEffects=0;$script:resourceDrift=$false
+$resourceFingerprintPorts.Inventory={
+    param($o)
+    $script:resourceReinventories++
+    $value=ResourceFingerprintFacts $script:resourceBridgeVariants[($script:resourceReinventories-1)%2]
+    if($script:resourceDrift -and $script:resourceReinventories -gt 1){$value.resource_facts.config_snapshot.hash='unexpected-config-change'}
+    return $value
+}
+$resourceFingerprintPorts.SourceIdentity={param($o) return $script:source}
+$resourceFingerprintPorts.Execute={param($action,$o,$facts,$store)
+    if($action.id -cne 'adapt_wsl_resources'){throw 'unexpected_resource_test_action'}
+    $script:resourceEffects++
+    return @{confirmed=$true;uncertain=$false;exit_code=0}
+}
+$o=Options
+$resourceFirst=Invoke-WindowsPreparation $o $resourceFingerprintPorts
+$resourceSecond=Invoke-WindowsPreparation $o $resourceFingerprintPorts
+Assert ($resourceFirst.actions.Count -eq 1 -and $resourceFirst.actions[0].id -ceq 'adapt_wsl_resources' -and
+    $resourceFirst.plan_fingerprint -ceq $resourceSecond.plan_fingerprint) 'resource_only_consent_excludes_unrelated_bridge_observation'
+Assert ($resourceFirst.target.bridge_facts.blockers[0] -ceq 'bridge_inventory_unavailable' -and
+    $resourceSecond.target.bridge_facts.blockers[0] -ceq 'foreign_or_unknown_listener' -and
+    $script:resourceBridgeVariants[0].ContainsKey('state') -and $script:resourceBridgeVariants[1].ContainsKey('fingerprint')) 'resource_projection_preserves_raw_target_and_input_bridge_evidence'
+$script:resourceReinventories=0
+$o.Mode='Apply';$o.ApproveApply=$true;$o.QualificationRun=$true;$o.ApprovedPlan=$resourceFirst.plan_fingerprint
+$resourceApplied=Invoke-WindowsPreparation $o $resourceFingerprintPorts
+Assert ($script:resourceReinventories -eq 3 -and $script:resourceEffects -eq 1 -and
+    $resourceApplied.result.exit_code -eq 3 -and $resourceApplied.result.completed_actions[0] -ceq 'adapt_wsl_resources') 'resource_apply_three_real_reinventories_allow_w06_observation_alternation_without_bridge_effect'
+$script:resourceReinventories=0;$script:resourceEffects=0;$script:resourceDrift=$true
+$resourceRefused=Invoke-WindowsPreparation $o $resourceFingerprintPorts
+Assert ($script:resourceEffects -eq 0 -and $resourceRefused.result.exit_code -eq 2 -and
+    $resourceRefused.blockers[-1].code -ceq 'consent_drift') 'resource_config_snapshot_drift_still_refuses_before_effect'
+$bridgeFingerprintPorts=@{};foreach($key in $resourceFingerprintPorts.Keys){$bridgeFingerprintPorts[$key]=$resourceFingerprintPorts[$key]}
+$script:bridgeFingerprint='first-observation'
+$bridgeFingerprintPorts.Inventory={param($o)
+    $value=Facts
+    $value.bridge_facts=@{schema_version=1;distro='Ubuntu-24.04';observed_address='172.20.0.2';ownership='owned';
+        bridge_ready=$false;routing_ready=$false;agent_ready=$false;action='refresh';blockers=@();fingerprint=$script:bridgeFingerprint}
+    return $value
+}
+$o=Options
+$bridgeFirst=Invoke-WindowsPreparation $o $bridgeFingerprintPorts
+$script:bridgeFingerprint='changed-observation'
+$bridgeSecond=Invoke-WindowsPreparation $o $bridgeFingerprintPorts
+Assert ($bridgeFirst.actions.Count -eq 1 -and $bridgeFirst.actions[0].id -ceq 'bridge_refresh' -and
+    $bridgeFirst.plan_fingerprint -cne $bridgeSecond.plan_fingerprint) 'bridge_mutation_retains_exact_bridge_fingerprint_binding'
+
 Write-Output 'PASS durable checkpoint filesystem contracts (mocked ACL boundaries)'
