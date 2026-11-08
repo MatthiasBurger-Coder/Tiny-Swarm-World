@@ -8,6 +8,7 @@ import json
 import os
 import signal
 import subprocess
+import stat
 import threading
 from types import SimpleNamespace
 from typing import Any
@@ -66,9 +67,11 @@ def _fixture_instance_dto(go, derived, properties, phase='init'):
               **{'image.' + key: value for key, value in properties.items()}}
     if phase != 'init':
         config.pop('volatile.apply_template')
-        config.update({'volatile.idmap.current': maps, 'volatile.last_state.idmap': maps,
+        config.update({'volatile.idmap.current': maps, 'volatile.last_state.idmap': '[]',
                        'volatile.last_state.power': 'RUNNING' if phase == 'running' else 'STOPPED',
                        'volatile.last_state.ready': 'false', 'volatile.cpu.nodes': '0'})
+        if phase == 'running':
+            config.pop('volatile.last_state.ready')
         if 'eth0' in derived['devices']:
             config['volatile.eth0.hwaddr'] = '10:66:6a:00:00:01'
             if phase == 'running':
@@ -133,6 +136,19 @@ class PrivateEvidenceFilesystemTests(unittest.TestCase):
                 with self.assertRaisesRegex(
                         fixture.FixtureError, 'PRIVATE_EVIDENCE_FILESYSTEM_UNVERIFIABLE'):
                     fixture._require_private_ext4(path, mountinfo)
+
+
+def _approved_test_go_raw(go):
+    raw = json.dumps(go, sort_keys=True, separators=(',', ':')).encode('utf-8')
+    assert fixture.strict_json(raw) == go
+    return raw
+
+
+def _run_approved_fixture(go, baseline):
+    # Existing effect tests isolate filesystem writes; separate new tests exercise
+    # the actual private writer before Start, including its failure boundaries.
+    with patch.object(fixture, '_write_initial_receipt', return_value='e' * 64):
+        return fixture._run_fixture(go, baseline, approved_go_sha256=fixture.digest(_approved_test_go_raw(go)))
 
 
 class _FixtureBehaviorTestCase(unittest.TestCase):
@@ -1723,7 +1739,7 @@ class FixtureLifecycleTests(_FixtureBehaviorTestCase):
                             'listener': 'AUTHORIZED_LISTENER_CHANGED',
                             'wsl': 'WINDOWS_RULES_CHANGED'}[drift]
                     with self.assertRaisesRegex(fixture.TargetDrift, code):
-                        fixture._run_fixture(go, baseline)
+                        _run_approved_fixture(go, baseline)
                 self.assertEqual(writes, [])
 
     def test_ambiguous_create_readback_requires_exact_run_owned_identity(self):
@@ -1914,7 +1930,7 @@ class FixtureLifecycleTests(_FixtureBehaviorTestCase):
             patch.object(fixture, 'command', side_effect=command),
             patch.object(fixture, '_incus_route_inventory', return_value=(['default'], [])),
         ):
-            result = fixture._run_fixture(go, baseline)
+            result = _run_approved_fixture(go, baseline)
         self.assertEqual(result['status'], 'PASS')
         self.assertEqual(result['http_response_sha256'], fixture.digest(run_id.encode('ascii')))
         execute = next(args for args in calls if args[:1] == ('exec',))
@@ -1934,7 +1950,7 @@ class FixtureLifecycleTests(_FixtureBehaviorTestCase):
             patch.object(fixture, '_incus_route_inventory', return_value=(['default'], [])),
         ):
             with self.assertRaisesRegex(fixture.TargetDrift, 'FIXTURE_HTTP_UNVERIFIED'):
-                fixture._run_fixture(go, baseline)
+                _run_approved_fixture(go, baseline)
         self.assertFalse(state['instance'])
         self.assertFalse(state['profile_exists'])
         self.assertFalse(state['base_exists'])
@@ -1953,7 +1969,7 @@ class FixtureLifecycleTests(_FixtureBehaviorTestCase):
             patch.object(fixture, '_incus_route_inventory', return_value=(['default'], [])),
         ):
             with self.assertRaises(fixture.TargetDrift):
-                fixture._run_fixture(go, {'listeners_10001': [listener.splitlines()[1]],
+                _run_approved_fixture(go, {'listeners_10001': [listener.splitlines()[1]],
                                           'incus_projects': ['default'],
                                           'incus_10001_routes': [], 'windows_rules_portproxy': b'',
                                           'approved_route_state_sha256': approved_route_state,
@@ -1987,7 +2003,7 @@ class FixtureLifecycleTests(_FixtureBehaviorTestCase):
             patch.object(fixture, '_incus_route_inventory', side_effect=route_drift_after_owned_instance),
         ):
             with self.assertRaisesRegex(fixture.TargetDrift, 'INCUS_10001_ROUTE_CHANGED'):
-                fixture._run_fixture(go, {
+                _run_approved_fixture(go, {
                     'listeners_10001': [listener.splitlines()[1]], 'incus_projects': ['default'],
                     'incus_10001_routes': [], 'windows_rules_portproxy': b'',
                     'approved_route_state_sha256': approved_route_state,
@@ -2019,7 +2035,7 @@ class FixtureLifecycleTests(_FixtureBehaviorTestCase):
                     patch.object(fixture, '_incus_route_inventory', return_value=(['default'], [])),
                 ):
                     with self.assertRaisesRegex(fixture.TargetDrift, 'JIT_COMMAND_FAILED'):
-                        fixture._run_fixture(go, {
+                        _run_approved_fixture(go, {
                             'listeners_10001': [listener.splitlines()[1]], 'incus_projects': ['default'],
                             'incus_10001_routes': [], 'windows_rules_portproxy': b'',
                             'approved_route_state_sha256': approved_route_state,
@@ -2060,7 +2076,7 @@ class FixtureLifecycleTests(_FixtureBehaviorTestCase):
                 patch.object(fixture, '_incus_route_inventory', return_value=(['default'], [])),
             ):
                 with self.assertRaisesRegex(fixture.TargetDrift, error_code):
-                    fixture._run_fixture(go, {
+                    _run_approved_fixture(go, {
                         'listeners_10001': [listener.splitlines()[1]], 'incus_projects': ['default'],
                         'incus_10001_routes': [], 'windows_rules_portproxy': b'',
                         'approved_route_state_sha256': approved_route_state,
@@ -3553,7 +3569,7 @@ class R3BudgetAndAtomicTransportTests(_FixtureBehaviorTestCase):
         with (patch.object(fixture.subprocess, 'Popen', side_effect=transport.popen),
               patch.object(fixture.subprocess, 'run', side_effect=transport.run)):
             baseline = fixture.jit(transport.go, '192.168.178.33')
-            result = fixture._run_fixture(transport.go, baseline)
+            result = _run_approved_fixture(transport.go, baseline)
             fixture._INVENTORY_CLEANUP_MODE = True
             # Exact main() post-cleanup proof reads, including both listener observations.
             self.assertFalse(fixture._listener_rows(fixture._listeners(), 61000))
@@ -3592,7 +3608,7 @@ class R3BudgetAndAtomicTransportTests(_FixtureBehaviorTestCase):
                       patch.object(fixture.subprocess, 'run', side_effect=transport.run)):
                     baseline = fixture.jit(transport.go, '192.168.178.33')
                     with self.assertRaisesRegex(fixture.TargetDrift, 'JIT_COMMAND_FAILED'):
-                        fixture._run_fixture(transport.go, baseline)
+                        _run_approved_fixture(transport.go, baseline)
                 self.assertEqual(sum(args == failures[stage] for args, _ in transport.effects), 1)
                 self.assertEqual(transport.current is not None, stage in {'stop', 'delete-instance'})
                 self.assertEqual(transport.profile in transport.profiles, stage != 'delete-base')
@@ -3609,7 +3625,7 @@ class R3BudgetAndAtomicTransportTests(_FixtureBehaviorTestCase):
             baseline = fixture.jit(transport.go, '192.168.178.33')
             fixture._COMMAND_AUDIT.extend({} for _ in range(146 - len(fixture._COMMAND_AUDIT)))
             with self.assertRaisesRegex(fixture.TargetDrift, 'INCUS_INVENTORY_COMMAND_LIMIT_EXCEEDED'):
-                fixture._run_fixture(transport.go, baseline)
+                _run_approved_fixture(transport.go, baseline)
         self.assertFalse(transport.effects)
         self.assertIsNone(transport.current)
         self.assertEqual(set(transport.profiles), {'default', 'legacy-base', 'legacy-route'})
@@ -3726,7 +3742,7 @@ class R3BudgetAndAtomicTransportTests(_FixtureBehaviorTestCase):
                       patch.object(fixture.subprocess, 'run', side_effect=transport.run)):
                     baseline = fixture.jit(transport.go, '192.168.178.33')
                     with self.assertRaisesRegex(fixture.TargetDrift, 'PROFILE_CREATE_UNCERTAIN'):
-                        fixture._run_fixture(transport.go, baseline)
+                        _run_approved_fixture(transport.go, baseline)
                 self.assertEqual(set(transport.profiles), {'default', 'legacy-base', 'legacy-route'})
                 self.assertIsNone(transport.current)
                 self.assertEqual(json.dumps(transport.foreign, sort_keys=True), transport.foreign_before)
@@ -3739,7 +3755,7 @@ class R3BudgetAndAtomicTransportTests(_FixtureBehaviorTestCase):
               patch.object(fixture.subprocess, 'run', side_effect=transport.run)):
             baseline = fixture.jit(transport.go, '192.168.178.33')
             with self.assertRaisesRegex(fixture.TargetDrift, 'INCUS_INVENTORY_COMMAND_LIMIT_EXCEEDED'):
-                fixture._run_fixture(transport.go, baseline)
+                _run_approved_fixture(transport.go, baseline)
         self.assertEqual(set(transport.profiles), {'default', 'legacy-base', 'legacy-route'})
         self.assertIsNone(transport.current)
         self.assertLessEqual(len(fixture._COMMAND_AUDIT), 256)
@@ -3948,7 +3964,7 @@ class FullListObservationTests(_FixtureBehaviorTestCase):
               patch.object(fixture.subprocess, 'run', side_effect=transport.run)):
             baseline = fixture.jit(transport.go, '192.168.178.58')
             self.assertEqual(sum(len(rows) for rows in transport.foreign_rows.values()), 4)
-            result = fixture._run_fixture(transport.go, baseline)
+            result = _run_approved_fixture(transport.go, baseline)
             fixture._INVENTORY_CLEANUP_MODE = True
             self.assertFalse(fixture._listener_rows(fixture._listeners(), 61000))
             self.assertEqual(fixture._listener_rows(fixture.command(['ss', '-H', '-ltnp']), 10001), baseline['listeners_10001'])
@@ -4011,7 +4027,7 @@ class FullListObservationTests(_FixtureBehaviorTestCase):
               patch.object(fixture.subprocess, 'run', side_effect=transport.run)):
             baseline = fixture.jit(transport.go, '192.168.178.33')
             with self.assertRaisesRegex(fixture.TargetDrift, 'INCUS_INSTANCE_INVENTORY_UNREADABLE'):
-                fixture._run_fixture(transport.go, baseline)
+                _run_approved_fixture(transport.go, baseline)
         self.assertFalse(any(args[:2] == ('profile', 'create') and args[2] == transport.profile
                              for args, _ in transport.effects))
         self.assertNotIn(transport.base, transport.profiles)
@@ -4061,7 +4077,7 @@ class FixtureInstanceReceiptTests(_FixtureBehaviorTestCase):
         running = _fixture_instance_dto(transport.go, baseline['derived_base_profile'], baseline['image_properties'], 'running')
         receipt.observe(running, 'running')
         invalid: tuple[dict[str, object], ...] = (
-            {'volatile.idmap.current': '[]'}, {'volatile.last_state.idmap': '[]'},
+            {'volatile.idmap.current': '[]'}, {'volatile.last_state.idmap': '[{"Isuid":true,"Isgid":false,"Hostid":2000000,"Nsid":0,"Maprange":65536}]'},
             {'volatile.idmap.next': '[{"Isuid":true}]'}, {'volatile.idmap.base': '9223372036854775808'},
             {'volatile.uuid': 'not-a-uuid'}, {'volatile.uuid': '00000000-0000-0000-0000-000000000000'},
             {'volatile.eth0.host_name': 'foreign-veth'}, {'volatile.eth0.hwaddr': '00:11:22:33:44:55'},
@@ -4087,7 +4103,7 @@ class FixtureInstanceReceiptTests(_FixtureBehaviorTestCase):
               patch.object(fixture.subprocess, 'run', side_effect=transport.run)):
             baseline = fixture.jit(transport.go, '192.168.178.33')
             with self.assertRaisesRegex(fixture.TargetDrift, 'JIT_COMMAND_FAILED'):
-                fixture._run_fixture(transport.go, baseline)
+                _run_approved_fixture(transport.go, baseline)
         self.assertIsNone(transport.current)
         self.assertEqual(set(transport.profiles), {'default', 'legacy-base', 'legacy-route'})
         self.assertEqual(json.dumps(transport.foreign_rows, sort_keys=True), transport.foreign_rows_before)
@@ -4101,7 +4117,7 @@ class FixtureInstanceReceiptTests(_FixtureBehaviorTestCase):
               patch.object(fixture.subprocess, 'run', side_effect=transport.run)):
             baseline = fixture.jit(transport.go, '192.168.178.33')
             with self.assertRaisesRegex(fixture.TargetDrift, 'INSTANCE_METADATA_DRIFT'):
-                fixture._run_fixture(transport.go, baseline)
+                _run_approved_fixture(transport.go, baseline)
         self.assertIsNotNone(transport.current)
         self.assertTrue(transport.running)
         self.assertIn(transport.base, transport.profiles)
@@ -4160,7 +4176,7 @@ class InstanceStateApiTests(_FixtureBehaviorTestCase):
               patch.object(fixture.subprocess, 'run', side_effect=transport.run)):
             baseline = fixture.jit(transport.go, '192.168.178.33')
             with self.assertRaises(fixture.TargetDrift):
-                fixture._run_fixture(transport.go, baseline)
+                _run_approved_fixture(transport.go, baseline)
         self.assertIsNone(transport.current)
         self.assertEqual(set(transport.profiles), {'default', 'legacy-base', 'legacy-route'})
         self.assertGreaterEqual(reads.count(['query', fixture._instance_api_path(transport.instance, 'default')]), 2)
@@ -4232,7 +4248,7 @@ class UsedByOrderingContractTests(_FixtureBehaviorTestCase):
               patch.object(fixture.subprocess, 'Popen', side_effect=transport.popen),
               patch.object(fixture.subprocess, 'run', side_effect=transport.run)):
             baseline = fixture.jit(transport.go, '192.168.178.33')
-            result = fixture._run_fixture(transport.go, baseline)
+            result = _run_approved_fixture(transport.go, baseline)
             # Match main's explicit post-cleanup verification within its reserved budget.
             with patch.object(fixture, '_INVENTORY_CLEANUP_MODE', True):
                 self.assertEqual(fixture._incus_route_inventory(), (baseline['incus_projects'], baseline['incus_10001_routes']))
@@ -4265,6 +4281,132 @@ class UsedByOrderingContractTests(_FixtureBehaviorTestCase):
                     self.assertRaisesRegex(fixture.TargetDrift, 'INCUS_PROJECT_INVENTORY_UNREADABLE'):
                 fixture._incus_route_inventory()
             self.assertEqual(transport.effects, [])
+
+
+class InitialIdentityDurabilityTests(_FixtureBehaviorTestCase):
+    def test_disk_map_empty_and_shifted_both_retain_independent_receipt_continuity(self):
+        transport = _FullGraphFixtureTransport(self)
+        base = {'derived_base_profile': fixture._derive_fixture_base(transport.profiles['default']),
+                'image_properties': {'os': 'Alpine', 'release': '3.21'}}
+        initial = _fixture_instance_dto(transport.go, base['derived_base_profile'], base['image_properties'])
+        for shifted in (False, True):
+            receipt = fixture._FixtureInstanceReceipt(transport.go, base, initial)
+            running = _fixture_instance_dto(transport.go, base['derived_base_profile'], base['image_properties'], 'running')
+            stopped = _fixture_instance_dto(transport.go, base['derived_base_profile'], base['image_properties'], 'stopped')
+            if shifted:
+                for row in (running, stopped):
+                    for field in ('config', 'expanded_config'):
+                        row[field]['volatile.last_state.idmap'] = row[field]['volatile.idmap.next']
+            with self.subTest(shifted=shifted):
+                receipt.observe(running, 'running')
+                receipt.observe(stopped, 'stopped')
+                for key in ('volatile.idmap.current', 'volatile.last_state.idmap'):
+                    missing = json.loads(json.dumps(stopped))
+                    for field in ('config', 'expanded_config'):
+                        missing[field].pop(key)
+                    with self.assertRaises(fixture.TargetDrift):
+                        receipt.observe(missing, 'stopped')
+                if shifted:
+                    rollback = json.loads(json.dumps(stopped))
+                    for field in ('config', 'expanded_config'):
+                        rollback[field]['volatile.last_state.idmap'] = '[]'
+                    with self.assertRaises(fixture.TargetDrift):
+                        receipt.observe(rollback, 'stopped')
+
+    def test_actual_private_sidecar_precedes_start_and_binds_exact_raw_approval(self):
+        transport = _FullGraphFixtureTransport(self)
+        raw = _approved_test_go_raw(transport.go)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            parent = root / fixture.PRIVATE_EVIDENCE_REL
+            parent.mkdir(parents=True, mode=0o700)
+            path = parent / ('listener-initial-' + transport.run_id + '.json')
+            original = transport._before_effect
+            observed: list[dict[str, Any]] = []
+            def before(args):
+                if args[:1] == ['start']:
+                    data = fixture.strict_json(path.read_bytes())
+                    self.assertEqual(data['go_sha256'], fixture.digest(raw))
+                    self.assertEqual(data['source_commit'], transport.go['source_commit'])
+                    self.assertEqual(data['initial_uuid_sha256'], fixture.digest(transport.current['config']['volatile.uuid'].encode()))
+                    self.assertEqual(data['profiles_sha256'], fixture.digest(json.dumps([transport.base, transport.profile], separators=(',', ':')).encode()))
+                    self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o600)
+                    self.assertEqual(len(data), 10)
+                    self.assertNotIn(transport.current['config']['volatile.uuid'], path.read_text())
+                    observed.append(data)
+                return original(args)
+            with (patch.object(fixture, 'ROOT', root), patch.object(transport, '_before_effect', side_effect=before),
+                  patch.object(fixture.subprocess, 'Popen', side_effect=transport.popen),
+                  patch.object(fixture.subprocess, 'run', side_effect=transport.run)):
+                baseline = fixture.jit(transport.go, '192.168.178.33')
+                result = fixture._run_fixture(transport.go, baseline, approved_go_sha256=fixture.digest(raw))
+            self.assertEqual(len(observed), 1)
+            self.assertEqual(result['initial_receipt_sha256'], fixture.digest(path.read_bytes()))
+            self.assertIsNone(transport.current)
+            self.assertEqual(set(transport.profiles), {'default', 'legacy-base', 'legacy-route'})
+
+    def test_sidecar_existing_unsafe_or_fsync_failure_prevents_start_and_cleans_only_stopped_own_objects(self):
+        for fault in ('exists', 'unsafe', 'file-fsync', 'directory-fsync'):
+            self.setUp()
+            transport = _FullGraphFixtureTransport(self)
+            raw = _approved_test_go_raw(transport.go)
+            with tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                parent = root / fixture.PRIVATE_EVIDENCE_REL
+                parent.mkdir(parents=True, mode=0o700)
+                path = parent / ('listener-initial-' + transport.run_id + '.json')
+                if fault == 'exists':
+                    path.write_bytes(b'EXISTING_NOT_ADOPTED')
+                    path.chmod(0o600)
+                if fault == 'unsafe':
+                    parent.chmod(0o755)
+                original = fixture.os.fsync
+                fsyncs = [0]
+                def fsync(fd):
+                    fsyncs[0] += 1
+                    if fsyncs[0] == (2 if fault == 'directory-fsync' else 1) and fault in {'file-fsync', 'directory-fsync'}:
+                        raise OSError('synthetic durability failure')
+                    return original(fd)
+                with (self.subTest(fault=fault), patch.object(fixture, 'ROOT', root),
+                      patch.object(fixture.os, 'fsync', side_effect=fsync),
+                      patch.object(fixture.subprocess, 'Popen', side_effect=transport.popen),
+                      patch.object(fixture.subprocess, 'run', side_effect=transport.run)):
+                    baseline = fixture.jit(transport.go, '192.168.178.33')
+                    with self.assertRaises((fixture.FixtureError, OSError)):
+                        fixture._run_fixture(transport.go, baseline, approved_go_sha256=fixture.digest(raw))
+                self.assertFalse(any(args[0] == 'start' for args, _ in transport.effects))
+                self.assertIsNone(transport.current)
+                self.assertEqual(set(transport.profiles), {'default', 'legacy-base', 'legacy-route'})
+                if fault == 'exists':
+                    self.assertEqual(path.read_bytes(), b'EXISTING_NOT_ADOPTED')
+
+    def test_invalid_raw_binding_refuses_before_any_create(self):
+        with patch.object(fixture, '_incus') as incus:
+            for value in ('', 'not-a-hash'):
+                with self.subTest(value=value), self.assertRaisesRegex(fixture.FixtureError, 'INITIAL_RECEIPT_BINDING_INVALID'):
+                    fixture._run_fixture({}, {}, approved_go_sha256=value)
+        incus.assert_not_called()
+
+    def test_main_passes_validated_noncanonical_approval_bytes_without_reencoding(self):
+        transport = _FullGraphFixtureTransport(self)
+        go = dict(transport.go)
+        for key in ('workflow_sha256', 'runner_sha256', 'test_sha256', 'resource_admission_sha256', 'issue447_inventory_sha256'):
+            go[key] = 'a' * 64
+        raw = json.dumps(go, indent=2).encode()
+        self.assertNotEqual(fixture.digest(raw), fixture.digest(_approved_test_go_raw(go)))
+        baseline = {'listeners_10001': [], 'incus_projects': ['default'], 'incus_10001_routes': []}
+        with tempfile.TemporaryFile() as output:
+            descriptor = os.dup(output.fileno())
+            with (patch.object(fixture, 'git_preflight', return_value=(go['source_commit'], b'w', b'r', b't')),
+                  patch.object(fixture, 'read_once', return_value=raw), patch.object(fixture, 'validate_go', return_value=go),
+                  patch.object(fixture, 'reserve_and_recheck', return_value=(descriptor, Path('/unused'))),
+                  patch.object(fixture, 'jit', return_value=baseline),
+                  patch.object(fixture, '_run_fixture', return_value={'status': 'PASS'}) as execute,
+                  patch.object(fixture, '_listeners', return_value=b''), patch.object(fixture, 'command', return_value=b''),
+                  patch.object(fixture, '_incus_route_inventory', return_value=(['default'], [])),
+                  patch.object(fixture, 'write_result')):
+                self.assertEqual(fixture.main(['--target-host', '192.168.178.33', '--expected-approval-sha256', fixture.digest(raw)]), 0)
+        self.assertEqual(execute.call_args.kwargs['approved_go_sha256'], fixture.digest(raw))
 
 if __name__ == '__main__':
     unittest.main()

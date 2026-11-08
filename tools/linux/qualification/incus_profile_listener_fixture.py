@@ -2000,9 +2000,11 @@ class _FixtureInstanceReceipt:
                     phase in {'starting', 'running', 'stopping'} and _fixture_idmap(old) == [] and parsed == next_map):
                 raise TargetDrift(code)
             maps[key] = config[key]
-        if phase in {'running', 'stopped'} and 'volatile.idmap.next' in config and any(
-                key not in config or _fixture_idmap(config[key]) != next_map
-                for key in ('volatile.idmap.current', 'volatile.last_state.idmap')):
+        if phase in {'running', 'stopped'} and 'volatile.idmap.next' in config and (
+                'volatile.idmap.current' not in config or _fixture_idmap(config['volatile.idmap.current']) != next_map
+                or 'volatile.last_state.idmap' not in config):
+            # DiskIdmap can remain [] with idmapped storage; the loop above still
+            # binds its typed []/next value and initial receipt continuity.
             raise TargetDrift(code)
         host = config.get('volatile.eth0.host_name')
         if host is not None:
@@ -2270,10 +2272,57 @@ exit 1
 '''.replace('RUN_NONCE', run_id)
 
 
-def _run_fixture(go: dict[str, Any], baseline: dict[str, Any]) -> dict[str, Any]:
+def _write_initial_receipt(go: dict[str, Any], receipt: _FixtureInstanceReceipt,
+                           approved_go_sha256: str) -> str:
+    """Durably bind the actual initial UUID before Start; no raw metadata leaves RAM."""
+    target = go['target']
+    if (not isinstance(approved_go_sha256, str) or HASH64.fullmatch(approved_go_sha256) is None
+            or not isinstance(go.get('source_commit'), str) or HASH40.fullmatch(go['source_commit']) is None
+            or not isinstance(target.get('run_id'), str) or RUN_ID.fullmatch(target['run_id']) is None
+            or receipt.target != target):
+        raise FixtureError('INITIAL_RECEIPT_BINDING_INVALID')
+    value = {'schema_version': 1, 'scope': 'Q449_INITIAL_INSTANCE_RECEIPT', 'run_id': target['run_id'],
+        'source_commit': go['source_commit'], 'go_sha256': approved_go_sha256,
+        'instance_name_sha256': digest(target['instance'].encode('ascii')),
+        'initial_uuid_sha256': digest(receipt.uuid.encode('ascii')), 'binding_sha256': receipt.binding_sha256,
+        'image_fingerprint': target['image_fingerprint'],
+        'profiles_sha256': digest(json.dumps([target['base_profile'], target['profile']], separators=(',', ':')).encode('ascii'))}
+    raw = json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=True).encode('ascii')
+    path = ROOT / PRIVATE_EVIDENCE_REL / ('listener-initial-' + target['run_id'] + '.json')
+    _require_private_evidence_dir(path)
+    directory = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC)
+    try:
+        info = os.fstat(directory)
+        if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) != 0o700:
+            raise FixtureError('INITIAL_RECEIPT_PARENT_UNSAFE')
+        descriptor = os.open(path.name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC,
+                             0o600, dir_fd=directory)
+        try:
+            info = os.fstat(descriptor)
+            if (not stat.S_ISREG(info.st_mode) or info.st_uid != os.geteuid()
+                    or stat.S_IMODE(info.st_mode) != 0o600 or info.st_nlink != 1):
+                raise FixtureError('INITIAL_RECEIPT_FILE_UNSAFE')
+            view = memoryview(raw)
+            while view:
+                written = os.write(descriptor, view)
+                if written <= 0:
+                    raise FixtureError('INITIAL_RECEIPT_WRITE_UNCERTAIN')
+                view = view[written:]
+            os.fsync(descriptor)
+        finally:
+            os.close(descriptor)
+        os.fsync(directory)
+    finally:
+        os.close(directory)
+    return digest(raw)
+
+
+def _run_fixture(go: dict[str, Any], baseline: dict[str, Any], *, approved_go_sha256: str) -> dict[str, Any]:
     """Execute the one-shot, uniquely named loopback fixture after JIT approval."""
     global _INVENTORY_CLEANUP_MODE
     _INVENTORY_CLEANUP_MODE = False
+    if not isinstance(approved_go_sha256, str) or HASH64.fullmatch(approved_go_sha256) is None:
+        raise FixtureError('INITIAL_RECEIPT_BINDING_INVALID')
     target, proxy = go['target'], go['proxy']
     responder_script = _fixture_responder_script(target['run_id'])
     instance, profile, base_profile = target['instance'], target['profile'], target['base_profile']
@@ -2433,6 +2482,7 @@ def _run_fixture(go: dict[str, Any], baseline: dict[str, Any]) -> dict[str, Any]
             raise TargetDrift('INSTANCE_RECEIPT_MISSING')
         evidence['instance_uuid_sha256'] = digest(instance_receipt.uuid.encode('ascii'))
         evidence['instance_receipt_sha256'] = instance_receipt.binding_sha256
+        evidence['initial_receipt_sha256'] = _write_initial_receipt(go, instance_receipt, approved_go_sha256)
         fixture_consumers = [f'/1.0/instances/{instance}']
         default_before_start = _read_default_profile(go, go['default_profile_used_by'])
         fixture_before_start = _assert_fixture_profile(
@@ -2648,7 +2698,7 @@ def main(argv: list[str] | None = None) -> int:
             write_result(evidence_fd, {'status': 'BLOCKED_TARGET_DRIFT', 'code': str(code), 'commands': _COMMAND_AUDIT, 'go_sha256': digest(raw), 'source_commit': head})
             return 2
         try:
-            result = _run_fixture(go, baseline)
+            result = _run_fixture(go, baseline, approved_go_sha256=digest(raw))
             _INVENTORY_CLEANUP_MODE = True
             port = go['proxy']['listen'].rsplit(':', 1)[1]
             final_listeners = _listeners()
