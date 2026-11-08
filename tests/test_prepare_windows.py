@@ -69,6 +69,7 @@ class TestWindowsPreparation(unittest.TestCase):
                     "infra/config/node-providers/provider_config.yaml", "infra/config/ports.yaml",
                     "tools/windows/build_wsl_resource_projection.py",
                     "tools/windows/qualification/windows_firewall_snapshot.ps1",
+                    "tools/windows/qualification/windows_firewall_certificate.ps1",
                 ):
                     destination = fixture / relative
                     destination.parent.mkdir(parents=True, exist_ok=True)

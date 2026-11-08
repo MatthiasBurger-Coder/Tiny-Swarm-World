@@ -2,16 +2,40 @@
 from __future__ import annotations
 
 import json
+import hashlib
 from pathlib import Path
 import subprocess
 import unittest
 
 from tests.test_prepare_windows import _powershell, _runtime_path
+from tools.linux.qualification import incus_profile_listener_fixture as listener_fixture
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
 class WslFirewallSnapshotTests(unittest.TestCase):
+    @unittest.skipUnless(_powershell(), "PowerShell test runtime unavailable")
+    def test_shared_producer_is_exactly_equal_complete_fresh_and_bounded_on_both_consumers(self) -> None:
+        executable = _powershell()
+        assert executable is not None
+        result = subprocess.run(
+            [executable, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File",
+             _runtime_path(ROOT / "tests/fixtures/wsl_firewall_snapshot.ps1", executable),
+             "-RepositoryRoot", _runtime_path(ROOT, executable), "-CertificateContract"],
+            check=False, capture_output=True, timeout=150,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr.decode("utf-8", errors="backslashreplace"))
+        self.assertEqual(result.stderr, b"")
+        report = json.loads(result.stdout.decode("utf-8", errors="strict"))
+        self.assertEqual(report["status"], "PASS")
+        self.assertGreaterEqual(report["cases"], 17)
+        self.assertEqual(report["command_sha256"], hashlib.sha256(listener_fixture._windows_snapshot_wrapper().encode()).hexdigest())
+        self.assertEqual(report["fresh_large_observations"], 8)
+        self.assertGreater(report["full_windows_ram_bytes"], 64 * 1024 * 1024)
+        self.assertLess(report["transport_bytes"], 32768)
+        self.assertEqual(report["runtime_mutations"], 0)
+        self.assertFalse(report["live_capability_claim"])
+
     @unittest.skipUnless(_powershell(), "PowerShell test runtime unavailable")
     def test_complete_snapshot_properties_failure_bounds_and_constant_calls(self) -> None:
         executable = _powershell()

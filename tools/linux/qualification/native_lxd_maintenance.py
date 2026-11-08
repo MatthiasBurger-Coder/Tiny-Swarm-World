@@ -56,6 +56,7 @@ FILES = (
     'src/tiny_swarm_world/domain/native_preparation.py',
     'src/tiny_swarm_world/infrastructure/adapters/host/native_preparation.py',
     'tools/windows/qualification/windows_firewall_snapshot.ps1',
+    'tools/windows/qualification/windows_firewall_certificate.ps1',
 )
 LIMIT = 8 * 1024 * 1024
 HOST_LOCK_PARENT = Path('/run/tsw-epic440-native-maintenance')

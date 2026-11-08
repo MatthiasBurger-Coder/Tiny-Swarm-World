@@ -139,6 +139,7 @@ class _FixtureBehaviorTestCase(unittest.TestCase):
     """Keep unrelated behavior tests independent of their temporary mount type."""
 
     def setUp(self):
+        fixture._INVENTORY_TARGET_HOST = '192.168.178.33'
         fixture._COMMAND_AUDIT.clear()
         fixture._INVENTORY_BYTES_CAPTURED = 0
         fixture._INVENTORY_ENTITIES_CAPTURED = 0
@@ -551,7 +552,7 @@ class RouteStateCaptureTests(_FixtureBehaviorTestCase):
                     with self.assertRaisesRegex(fixture.TargetDrift, 'DEFAULT_PROFILE_UNREADABLE'):
                         fixture._read_default_profile({
                             'default_profile_sha256': fixture.canonical_profile_sha256({}, {}),
-                            'windows_snapshot_sha256': _snapshot_asset_digest(), 'fixture_base_profile_sha256': fixture.canonical_profile_sha256(
+                            'windows_snapshot_sha256': _snapshot_asset_digest(), 'windows_certificate_sha256': fixture.WINDOWS_CERTIFICATE_SHA256, 'fixture_base_profile_sha256': fixture.canonical_profile_sha256(
                                 {'boot.autostart': 'false'}, {})}, [])
 
     def test_capture_executes_read_only_inventory_allowlist_and_binds_all_projects(self):
@@ -1339,7 +1340,7 @@ class GoValidationTests(_FixtureBehaviorTestCase):
             'reviews': {k: 'APPROVED' for k in fixture.REVIEW_KEYS},
             'windows_rules_unchanged': True, 'external_routes_enabled': False,
             'default_profile_sha256': fixture.canonical_profile_sha256({}, {}), 'default_profile_used_by': [],
-            'windows_snapshot_sha256': _snapshot_asset_digest(), 'fixture_base_profile_sha256': fixture.canonical_profile_sha256({'boot.autostart': 'false'}, {}),
+            'windows_snapshot_sha256': _snapshot_asset_digest(), 'windows_certificate_sha256': fixture.WINDOWS_CERTIFICATE_SHA256, 'fixture_base_profile_sha256': fixture.canonical_profile_sha256({'boot.autostart': 'false'}, {}),
             'approved_route_state_sha256': '0' * 64,
         }
 
@@ -1535,7 +1536,7 @@ class GoValidationMatrixTests(_FixtureBehaviorTestCase):
 
     def test_every_sha256_and_source_hash_rejects_bad_syntax(self):
         keys = ('workflow_sha256', 'runner_sha256', 'test_sha256', 'resource_admission_sha256',
-                'issue447_inventory_sha256', 'default_profile_sha256', 'fixture_base_profile_sha256', 'windows_snapshot_sha256',
+                'issue447_inventory_sha256', 'default_profile_sha256', 'fixture_base_profile_sha256', 'windows_snapshot_sha256', 'windows_certificate_sha256',
                 'approved_route_state_sha256')
         for key in keys:
             candidate = json.loads(json.dumps(self.base))
@@ -1679,7 +1680,7 @@ class FixtureLifecycleTests(_FixtureBehaviorTestCase):
                       'proxy': {'listen': 'tcp:127.0.0.1:61000',
                                 'connect': 'tcp:127.0.0.1:8080', 'bind': 'host'},
                       'default_profile_sha256': fixture.canonical_profile_sha256({}, {}),
-                      'windows_snapshot_sha256': _snapshot_asset_digest(), 'fixture_base_profile_sha256': fixture.canonical_profile_sha256(
+                      'windows_snapshot_sha256': _snapshot_asset_digest(), 'windows_certificate_sha256': fixture.WINDOWS_CERTIFICATE_SHA256, 'fixture_base_profile_sha256': fixture.canonical_profile_sha256(
                           {'boot.autostart': 'false'}, {}),
                       'default_profile_used_by': []}
                 windows = b'approved windows state' if drift == 'wsl' else b''
@@ -1779,7 +1780,7 @@ class FixtureLifecycleTests(_FixtureBehaviorTestCase):
                        'instance': f'tsw-q449-{run_id}-fixture'},
             'proxy': {'listen': 'tcp:127.0.0.1:61000', 'connect': 'tcp:127.0.0.1:8080', 'bind': 'host'},
             'default_profile_sha256': fixture.canonical_profile_sha256({}, {}), 'default_profile_used_by': [],
-            'windows_snapshot_sha256': _snapshot_asset_digest(), 'fixture_base_profile_sha256': fixture.canonical_profile_sha256({'boot.autostart': 'false'}, {}),
+            'windows_snapshot_sha256': _snapshot_asset_digest(), 'windows_certificate_sha256': fixture.WINDOWS_CERTIFICATE_SHA256, 'fixture_base_profile_sha256': fixture.canonical_profile_sha256({'boot.autostart': 'false'}, {}),
         }
         state = {'instance': False, 'profile_marker': False, 'instance_marker': False,
                  'status': 'stopped', 'foreign_consumer': False, 'base_exists': False,
@@ -2199,7 +2200,7 @@ class JitNoMutationTests(_FixtureBehaviorTestCase):
                          'image_fingerprint': fingerprint},
               'proxy': {'listen': 'tcp:127.0.0.1:61000'},
               'default_profile_sha256': '0' * 64, 'default_profile_used_by': [],
-              'windows_snapshot_sha256': _snapshot_asset_digest(), 'fixture_base_profile_sha256': fixture.canonical_profile_sha256({'boot.autostart': 'false'}, {})}
+              'windows_snapshot_sha256': _snapshot_asset_digest(), 'windows_certificate_sha256': fixture.WINDOWS_CERTIFICATE_SHA256, 'fixture_base_profile_sha256': fixture.canonical_profile_sha256({'boot.autostart': 'false'}, {})}
         outputs = [b'[{"addr_info":[{"local":"192.168.178.33"}]}]',
                    b'Client version: 6.0.5\nServer version: 6.0.5\n',
                    json.dumps([{'fingerprint': fingerprint}]).encode(),
@@ -2247,7 +2248,7 @@ class JitNoMutationTests(_FixtureBehaviorTestCase):
                          'base_profile': f'tsw-q449-{run_id}-base', 'image_fingerprint': fingerprint},
               'proxy': {'listen': 'tcp:127.0.0.1:61000'},
               'default_profile_sha256': fixture.canonical_profile_sha256(profile['config'], profile['devices']),
-              'windows_snapshot_sha256': _snapshot_asset_digest(), 'fixture_base_profile_sha256': fixture.canonical_profile_sha256({'boot.autostart': 'false'}, {}),
+              'windows_snapshot_sha256': _snapshot_asset_digest(), 'windows_certificate_sha256': fixture.WINDOWS_CERTIFICATE_SHA256, 'fixture_base_profile_sha256': fixture.canonical_profile_sha256({'boot.autostart': 'false'}, {}),
               'default_profile_used_by': []}
         with (patch.object(fixture, '_incus_10001_routes', return_value=[]),
               patch.object(fixture, 'command', side_effect=command) as command_mock,
@@ -2366,7 +2367,7 @@ class JitNoMutationTests(_FixtureBehaviorTestCase):
                          'image_fingerprint': fingerprint},
               'proxy': {'listen': 'tcp:127.0.0.1:61000'},
               'default_profile_sha256': fixture.canonical_profile_sha256({}, {}),
-              'windows_snapshot_sha256': _snapshot_asset_digest(), 'fixture_base_profile_sha256': fixture.canonical_profile_sha256({'boot.autostart': 'false'}, {}),
+              'windows_snapshot_sha256': _snapshot_asset_digest(), 'windows_certificate_sha256': fixture.WINDOWS_CERTIFICATE_SHA256, 'fixture_base_profile_sha256': fixture.canonical_profile_sha256({'boot.autostart': 'false'}, {}),
               'default_profile_used_by': []}
         go['approved_route_state_sha256'] = fixture.approved_route_state_sha256(
             [b'LISTEN 0 1 127.0.0.1:10001 0.0.0.0:* users:(("incusd",pid=77,fd=3))'],
@@ -2433,7 +2434,7 @@ class WslJitTests(_FixtureBehaviorTestCase):
                          'image_fingerprint': case.go['target']['image_fingerprint']},
               'proxy': {'listen': 'tcp:127.0.0.1:61000'},
               'default_profile_sha256': fixture.canonical_profile_sha256({}, {}),
-              'windows_snapshot_sha256': _snapshot_asset_digest(), 'fixture_base_profile_sha256': fixture.canonical_profile_sha256({'boot.autostart': 'false'}, {}),
+              'windows_snapshot_sha256': _snapshot_asset_digest(), 'windows_certificate_sha256': fixture.WINDOWS_CERTIFICATE_SHA256, 'fixture_base_profile_sha256': fixture.canonical_profile_sha256({'boot.autostart': 'false'}, {}),
               'default_profile_used_by': []}
         outputs = [b'[{"addr_info":[{"local":"192.168.178.33"}]}]',
                    b'Client version: 6.0.5\nServer version: 6.0.5\n',
@@ -2490,7 +2491,7 @@ class WslJitTests(_FixtureBehaviorTestCase):
                          'image_fingerprint': fingerprint},
               'proxy': {'listen': 'tcp:127.0.0.1:61000'},
               'default_profile_sha256': fixture.canonical_profile_sha256({}, {}),
-              'windows_snapshot_sha256': _snapshot_asset_digest(), 'fixture_base_profile_sha256': fixture.canonical_profile_sha256({'boot.autostart': 'false'}, {}),
+              'windows_snapshot_sha256': _snapshot_asset_digest(), 'windows_certificate_sha256': fixture.WINDOWS_CERTIFICATE_SHA256, 'fixture_base_profile_sha256': fixture.canonical_profile_sha256({'boot.autostart': 'false'}, {}),
               'default_profile_used_by': []}
         firewall_bytes = json.dumps(_certificate_fixture({'profiles': [], 'settings': [], 'rules': []}),
                                     sort_keys=True, separators=(',', ':')).encode()
@@ -3237,6 +3238,7 @@ class _FullGraphFixtureTransport:
         self.events: list[tuple[str, ...]] = []
         self.effects: list[tuple[tuple[str, ...], int]] = []
         self.active_peak = 0
+        self.windows_phases: list[bool] = []
         self.foreign_lists = 0
         self.fail_effect: tuple[str, ...] | None = None
         self.lost_create: str | None = None
@@ -3252,6 +3254,7 @@ class _FullGraphFixtureTransport:
                    'default_profile_used_by': []}
         default = self.profiles['default']
         self.go['windows_snapshot_sha256'] = _snapshot_asset_digest()
+        self.go['windows_certificate_sha256'] = fixture.WINDOWS_CERTIFICATE_SHA256
         self.go['default_profile_sha256'] = fixture.canonical_profile_sha256(default['config'], default['devices'])
         self.go['fixture_base_profile_sha256'] = fixture.canonical_profile_sha256(
             {'boot.autostart': 'false'}, default['devices'])
@@ -3383,6 +3386,8 @@ class _FullGraphFixtureTransport:
                             self.current['expanded_config'][field] = '33333333-3333-4333-8333-333333333333'
                 output = b''
         elif command_name == 'powershell.exe':
+            if 'tsw.windows-firewall-certificate.v1' in args[-1]:
+                self.windows_phases.append(fixture._INVENTORY_CLEANUP_MODE)
             output = (b'192.168.178.58\n' if 'Get-NetIPAddress' in args[-1]
                       else self._json(self.firewall))
         elif command_name == 'netsh.exe':
@@ -3406,11 +3411,105 @@ class _FullGraphFixtureTransport:
         return SimpleNamespace(returncode=1 if self.lost_init and command_name == 'incus' and args[:1] == ['init'] else 0, stdout=output)
 
 
+class HostScopedInventoryBudgetTests(_FixtureBehaviorTestCase):
+    def test_native_and_wsl_profiles_reset_every_quota_without_cleanup_reclaim(self):
+        for host, active, total in (('192.168.178.58', 350, 650), ('192.168.178.33', 240, 300)):
+            fixture._COMMAND_AUDIT.append({'old': True})
+            fixture._INVENTORY_BYTES_CAPTURED = 100
+            fixture._INVENTORY_ENTITIES_CAPTURED = 100
+            fixture._INVENTORY_ENTITY_SLOTS.add((('old',), ()))
+            fixture._INVENTORY_STARTED_AT = 12.0
+            fixture._WINDOWS_SNAPSHOT_METADATA = {'old': True}
+            fixture._begin_inventory(host, reserve_cleanup=True)
+            self.assertEqual(fixture._inventory_budgets(), (146, 8 * 1024 * 1024, 5000, active))
+            self.assertEqual(fixture._COMMAND_AUDIT, [])
+            self.assertEqual(fixture._INVENTORY_BYTES_CAPTURED, 0)
+            self.assertEqual(fixture._INVENTORY_ENTITIES_CAPTURED, 0)
+            self.assertEqual(fixture._INVENTORY_ENTITY_SLOTS, set())
+            self.assertIsNone(fixture._INVENTORY_STARTED_AT)
+            self.assertEqual(fixture._WINDOWS_SNAPSHOT_METADATA, {})
+            fixture._COMMAND_AUDIT.append({'consumed': True})
+            fixture._INVENTORY_BYTES_CAPTURED = 123
+            fixture._INVENTORY_STARTED_AT = 99.0
+            fixture._INVENTORY_CLEANUP_MODE = True
+            self.assertEqual(fixture._inventory_budgets(), (256, 16 * 1024 * 1024, 10000, total))
+            self.assertEqual(fixture._COMMAND_AUDIT, [{'consumed': True}])
+            self.assertEqual(fixture._INVENTORY_BYTES_CAPTURED, 123)
+            self.assertEqual(fixture._INVENTORY_STARTED_AT, 99.0)
+
+    def test_invalid_host_never_grants_wsl_time_or_resets_consumed_quota(self):
+        fixture._begin_inventory('192.168.178.33', reserve_cleanup=True)
+        fixture._INVENTORY_BYTES_CAPTURED = 37
+        with self.assertRaisesRegex(fixture.FixtureError, 'HOST_IDENTITY_DRIFT'):
+            fixture._begin_inventory('unbound', reserve_cleanup=True)
+        self.assertEqual(fixture._inventory_budgets()[-1], 240)
+        self.assertEqual(fixture._INVENTORY_BYTES_CAPTURED, 37)
+
+    def test_all_capture_entrypoints_reset_stale_host_and_time_before_queries(self):
+        for capture in (fixture.capture_route_state, fixture.capture_project_inventory):
+            for host, total in (('192.168.178.58', 650), ('192.168.178.33', 300)):
+                fixture._INVENTORY_STARTED_AT = -999.0
+                fixture._INVENTORY_BYTES_CAPTURED = 999
+                fixture._COMMAND_AUDIT.append({'stale': True})
+                with (patch.object(fixture, '_capture_output_path', side_effect=fixture.FixtureError('STOP_BEFORE_QUERY')),
+                      patch.object(fixture, '_require_private_evidence_dir'),
+                      patch.object(fixture, 'command') as query,
+                      self.assertRaisesRegex(fixture.FixtureError, 'STOP_BEFORE_QUERY')):
+                    capture(host, str(fixture.PRIVATE_EVIDENCE_REL / 'capture.json'))
+                self.assertEqual(fixture._inventory_budgets()[-1], total)
+                self.assertIsNone(fixture._INVENTORY_STARTED_AT)
+                self.assertEqual(fixture._INVENTORY_BYTES_CAPTURED, 0)
+                self.assertEqual(fixture._COMMAND_AUDIT, [])
+                query.assert_not_called()
+
+    def test_main_resets_host_scope_before_approval_or_effect(self):
+        import contextlib
+        import io
+        for host, active in (('192.168.178.58', 350), ('192.168.178.33', 240)):
+            fixture._INVENTORY_STARTED_AT = -999.0
+            fixture._INVENTORY_BYTES_CAPTURED = 999
+            with (contextlib.redirect_stderr(io.StringIO()), patch.object(fixture, 'git_preflight') as source):
+                status = fixture.main(['--target-host', host, '--expected-approval-sha256', 'invalid'])
+            self.assertEqual(status, 2)
+            self.assertEqual(fixture._inventory_budgets()[-1], active)
+            self.assertEqual(fixture._INVENTORY_BYTES_CAPTURED, 0)
+            self.assertIsNone(fixture._INVENTORY_STARTED_AT)
+            source.assert_not_called()
+
+    def test_shared_producer_asset_is_mandatory_and_not_an_inline_fallback(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / fixture.WINDOWS_CERTIFICATE_REL
+            path.parent.mkdir(parents=True)
+            good = (Path(__file__).resolve().parents[4] / fixture.WINDOWS_CERTIFICATE_REL).read_bytes()
+            for raw in (b'', b'\xff', b'\xef\xbb\xbf' + good, good + b'\n', b'x' * 65537):
+                path.write_bytes(raw)
+                with patch.object(fixture, 'ROOT', root), self.assertRaises(fixture.FixtureError):
+                    fixture._windows_certificate_source()
+            path.unlink()
+            target = root / 'other.ps1'
+            target.write_bytes(good)
+            path.symlink_to(target)
+            with patch.object(fixture, 'ROOT', root), self.assertRaises(fixture.FixtureError):
+                fixture._windows_certificate_source()
+            path.unlink()
+            with patch.object(fixture, 'ROOT', root), self.assertRaises(fixture.FixtureError):
+                fixture._windows_certificate_source()
+        with self.assertRaises(fixture.FixtureError):
+            fixture._windows_certificate_source('0' * 64)
+        with (patch.object(fixture, '_windows_certificate_source', return_value='missing placeholders'),
+              patch.object(fixture.subprocess, 'Popen') as spawn,
+              self.assertRaisesRegex(fixture.FixtureError, 'WINDOWS_SNAPSHOT_TEMPLATE_INVALID')):
+            fixture._windows_snapshot_wrapper()
+        spawn.assert_not_called()
+
 class R3BudgetAndAtomicTransportTests(_FixtureBehaviorTestCase):
     def test_incus_read_cannot_spend_active_or_cleanup_time_reserve(self):
-        for cleanup, total in ((False, 240), (True, 300)):
-            with self.subTest(cleanup=cleanup):
+        for host, cleanup, total in (('192.168.178.33', False, 240), ('192.168.178.33', True, 300),
+                                     ('192.168.178.58', False, 350), ('192.168.178.58', True, 650)):
+            with self.subTest(host=host, cleanup=cleanup):
                 self.setUp()
+                fixture._INVENTORY_TARGET_HOST = host
                 fixture._INVENTORY_STARTED_AT = 0.0
                 fixture._INVENTORY_RESERVE_CLEANUP = True
                 fixture._INVENTORY_CLEANUP_MODE = cleanup
@@ -3642,8 +3741,11 @@ class R3BudgetAndAtomicTransportTests(_FixtureBehaviorTestCase):
 
 class SharedWindowsSnapshotAssetTests(_FixtureBehaviorTestCase):
     def _asset(self, root, raw=b"$ErrorActionPreference = 'Stop'\n'fixed readonly snapshot'\n"):
+        certificate = root / fixture.WINDOWS_CERTIFICATE_REL
+        certificate.parent.mkdir(parents=True, exist_ok=True)
+        certificate.write_bytes((Path(__file__).resolve().parents[4] / fixture.WINDOWS_CERTIFICATE_REL).read_bytes())
         asset = root / fixture.WINDOWS_SNAPSHOT_REL
-        asset.parent.mkdir(parents=True)
+        asset.parent.mkdir(parents=True, exist_ok=True)
         asset.write_bytes(raw)
         return asset, raw
 
@@ -3661,14 +3763,15 @@ class SharedWindowsSnapshotAssetTests(_FixtureBehaviorTestCase):
                     args = argparse.Namespace(target_host=host)
                     self.assertEqual(fixture.validate_go(candidate, args, 'b' * 40,
                         template.workflow, template.runner, template.tests), candidate)
-                    for change in ('missing', 'wrong-hash', 'malformed-hash'):
-                        bad = dict(candidate)
-                        if change == 'missing':
-                            bad.pop('windows_snapshot_sha256')
-                        else:
-                            bad['windows_snapshot_sha256'] = '0' * 64 if change == 'wrong-hash' else True
-                        with self.subTest(host=host, change=change), self.assertRaises(fixture.FixtureError):
-                            fixture.validate_go(bad, args, 'b' * 40, template.workflow, template.runner, template.tests)
+                    for field in ('windows_snapshot_sha256', 'windows_certificate_sha256'):
+                        for change in ('missing', 'wrong-hash', 'malformed-hash'):
+                            bad = dict(candidate)
+                            if change == 'missing':
+                                bad.pop(field)
+                            else:
+                                bad[field] = '0' * 64 if change == 'wrong-hash' else True
+                            with self.subTest(host=host, field=field, change=change), self.assertRaises(fixture.FixtureError):
+                                fixture.validate_go(bad, args, 'b' * 40, template.workflow, template.runner, template.tests)
 
     def test_fixed_asset_loader_refuses_missing_symlink_directory_nonutf8_bom_nul_oversize_and_drift(self):
         invalid: tuple[bytes, ...] = (b'', b'\xff', b'\xef\xbb\xbfread', b'read\x00', b'x' * 65537)
@@ -3747,8 +3850,11 @@ class FirewallCertificateReaderTests(_FixtureBehaviorTestCase):
     def test_wrapper_is_exact_source_bound_and_rejects_encoded_commandline_overflow_before_spawn(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
+            certificate = root / fixture.WINDOWS_CERTIFICATE_REL
+            certificate.parent.mkdir(parents=True, exist_ok=True)
+            certificate.write_bytes((Path(__file__).resolve().parents[4] / fixture.WINDOWS_CERTIFICATE_REL).read_bytes())
             asset = root / fixture.WINDOWS_SNAPSHOT_REL
-            asset.parent.mkdir(parents=True)
+            asset.parent.mkdir(parents=True, exist_ok=True)
             raw = b"'fixed test query'\n"
             asset.write_bytes(raw)
             with patch.object(fixture, 'ROOT', root):
@@ -3773,8 +3879,11 @@ class FirewallCertificatePowerShellContractTests(_FixtureBehaviorTestCase):
     def _run_query(self, source):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
+            certificate = root / fixture.WINDOWS_CERTIFICATE_REL
+            certificate.parent.mkdir(parents=True, exist_ok=True)
+            certificate.write_bytes((Path(__file__).resolve().parents[4] / fixture.WINDOWS_CERTIFICATE_REL).read_bytes())
             asset = root / fixture.WINDOWS_SNAPSHOT_REL
-            asset.parent.mkdir(parents=True)
+            asset.parent.mkdir(parents=True, exist_ok=True)
             raw = source.encode('utf-8')
             asset.write_bytes(raw)
             with patch.object(fixture, 'ROOT', root):
@@ -3824,6 +3933,7 @@ class FirewallCertificatePowerShellContractTests(_FixtureBehaviorTestCase):
 
 class FullListObservationTests(_FixtureBehaviorTestCase):
     def test_wsl_two_project_four_full_foreign_rows_fit_real_counters_and_keep_all_fresh_checks(self):
+        fixture._begin_inventory('192.168.178.58', reserve_cleanup=True)
         transport = _FullGraphFixtureTransport(self, wsl=True)
         fixture._INVENTORY_RESERVE_CLEANUP = True
         with (patch.object(fixture.subprocess, 'Popen', side_effect=transport.popen),
@@ -3849,6 +3959,8 @@ class FullListObservationTests(_FixtureBehaviorTestCase):
         windows_observations = [args for args in transport.events if args[:1] == ('powershell.exe',)
                                 and 'tsw.windows-firewall-certificate.v1' in args[-1]]
         self.assertEqual(len(windows_observations), 13)
+        self.assertEqual(transport.windows_phases.count(False), 7)
+        self.assertEqual(transport.windows_phases.count(True), 6)
         self.assertGreaterEqual(transport.foreign_lists, 20)
         self.assertNotIn('xxxxxxxx', json.dumps(fixture._COMMAND_AUDIT))
 

@@ -36,6 +36,7 @@ ASSETS = (
     "infra/config/node-providers/provider_config.yaml",
     "tools/windows/build_wsl_resource_projection.py",
     "tools/windows/qualification/windows_firewall_snapshot.ps1",
+    "tools/windows/qualification/windows_firewall_certificate.ps1",
     "bootstrap/windows/preparation/Bridge.ps1",
     "bootstrap/windows/tws-wsl-bridge.ps1",
     "bootstrap/windows/tws-wsl-bridge-service.ps1",

@@ -122,6 +122,46 @@ if($NativeFixtureRoot){
     $ports=New-WslMaintenanceProductionPorts $s
     $adapter=$ports.Routes.Module.SessionState.PSVariable.GetValue('module')
     Assert ($null -ne $adapter) 'production_module_binding'
+    # Real production Run/Firewall reader with fake child transport only. The
+    # separate shared-producer contract executes the full8.9MB payload in RAM.
+    $certificateRaw=([ordered]@{schema_version='tsw.windows-firewall-certificate.v1';
+      query_sha256='a6a5aee14f32ada47cd14b58f59372fc0ba21ceaef64401d93b94822932c19e5';
+      snapshot_sha256=('c'*64);snapshot_bytes=8903516;snapshot_schema_version=2;store='ActiveStore';
+      association_model='PROVIDER_IDENTITY_ONE_TO_ONE';counts=[ordered]@{rules=543;profiles=3;settings=1;
+       address=543;application=543;interface=543;interface_type=543;port=543;security=543;service=543}} | ConvertTo-Json -Depth 4 -Compress)
+    $fakePreparation=New-Module -ArgumentList $certificateRaw -ScriptBlock {
+      param($raw)
+      $script:raw=$raw;$script:observations=0
+      function Get-PreparationExecutable([string]$Name){return 'C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe'}
+      function Invoke-PreparationProcess($File,$Arguments,$Timeout){
+       if($Arguments[-1] -notlike '*tsw.windows-firewall-certificate.v1*' -or $Timeout -gt 120){throw 'fake_transport_wrong_fixed_command'}
+       $script:observations++;return @{exit_code=0;stdout=$script:raw;stderr=''}
+      }
+    }
+    & $adapter {
+      param($transport)
+      $original=$script:preparation;$initialBytes=$script:outputBytes;$initialCommands=$script:commandCount
+      try{
+       $script:preparation=$transport
+       $first=$null
+       for($i=0;$i -lt 8;$i++){
+        $current=Get-WslMaintenanceDigest (Firewall)
+        if($null -ne $first -and $first -cne $current){throw 'fake_cert_unexpected_drift'}
+        $first=$current
+       }
+       if($script:commandCount-$initialCommands -ne 8 -or $script:outputBytes-$initialBytes -gt 32768){throw 'full_snapshot_transported'}
+       if((& $transport {$script:observations}) -ne 8){throw 'certificate_observation_cached'}
+       & $transport {$script:raw=$script:raw.Replace(('c'*64),('d'*64))}
+       if((Get-WslMaintenanceDigest (Firewall)) -ceq $first){throw 'changed_foreign_digest_lost'}
+       & $transport {$script:raw=$script:raw.Replace('"snapshot_bytes":8903516','"snapshot_bytes":true')}
+       $denied=$false;try{$null=Firewall}catch{if($_.Exception.Message -ceq 'FIREWALL_CERTIFICATE_INVALID'){$denied=$true}}
+       if(!$denied){throw 'malformed_certificate_admitted'}
+       & $transport {$script:raw='x'*5000}
+       $denied=$false;try{$null=Firewall}catch{if($_.Exception.Message -ceq 'HOST_COMMAND_FAILED'){$denied=$true}}
+       if(!$denied){throw 'parent_transport_bound_ignored'}
+      }finally{$script:preparation=$original}
+    } $fakePreparation
+    $cases+=5
     $goodProof=[ordered]@{schema_version=1;scope='WSL_GUEST_PRESERVATION_ONLY';decision='ALL_INSTANCES_STOPPED_GRAPH_COMPLETE';
         source_commit=('a'*40);graph_sha256=('b'*64);detail_sha256=('c'*64);
         instance_count=1;project_count=1;detail_count=3;command_count=10}

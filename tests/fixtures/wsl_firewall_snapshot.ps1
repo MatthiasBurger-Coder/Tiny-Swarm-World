@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$RepositoryRoot,[switch]$EmitUnicodeSnapshot,[switch]$NativeCimContract,[switch]$SourceGuardContract,[switch]$DynamicTargetContract)
+param([Parameter(Mandatory=$true)][string]$RepositoryRoot,[switch]$EmitUnicodeSnapshot,[switch]$NativeCimContract,[switch]$SourceGuardContract,[switch]$DynamicTargetContract,[switch]$CertificateContract)
 $ErrorActionPreference='Stop'
 $ProgressPreference='SilentlyContinue'
 # Load the installed CIM SDK through its shipped module; no provider command.
@@ -57,6 +57,59 @@ function MustFail([string]$Expected){
  $failed=$false
  try{$null=Capture}catch{Assert ($_.Exception.Message -ceq $Expected) 'wrong_refusal';$failed=$true}
  Assert $failed 'unexpected_capture_success'
+}
+if($CertificateContract){
+ $fullCommand=$command
+ $certificateCommand=Get-WslMaintenanceFirewallCertificateCommand
+ function CertificateCapture {
+  $writer=[IO.StringWriter]::new([Globalization.CultureInfo]::InvariantCulture);$previous=[Console]::Out
+  try{[Console]::SetOut($writer);& ([scriptblock]::Create($certificateCommand));return $writer.ToString()}
+  finally{[Console]::SetOut($previous);$writer.Dispose()}
+ }
+ $sha=[Security.Cryptography.SHA256]::Create()
+ try{$commandHash=([BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($certificateCommand)))).Replace('-','').ToLowerInvariant()}finally{$sha.Dispose()}
+ $script:ctx=Fixture;$full=Capture;$raw=CertificateCapture;$certificate=ConvertFrom-WslMaintenanceFirewallCertificate $raw
+ $sha=[Security.Cryptography.SHA256]::Create()
+ try{$fullHash=([BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($full)))).Replace('-','').ToLowerInvariant()}finally{$sha.Dispose()}
+ Assert ($certificate.snapshot_sha256 -ceq $fullHash -and $certificate.snapshot_bytes -eq [Text.Encoding]::UTF8.GetByteCount($full)) 'hash_entire_exact_current_snapshot'
+ Assert ($certificate.counts.rules -eq 3 -and @($certificate.counts.PSObject.Properties).Count -eq 10) 'closed_complete_counts'
+ Assert (!$raw.Contains('PRIVATE_CANARY') -and [Text.Encoding]::UTF8.GetByteCount($raw) -lt 4096) 'no_private_data_transport'
+ $before=$certificate.snapshot_sha256;$cases=3
+ foreach($family in @('address','application','interface','interface_type','port','security','service')){
+  $script:ctx=Fixture;$script:ctx.filters[$family][1].ForeignProperty='changed same-count foreign data'
+  $after=ConvertFrom-WslMaintenanceFirewallCertificate (CertificateCapture)
+  Assert ($after.snapshot_sha256 -cne $before -and $after.counts.rules -eq $certificate.counts.rules) 'count_preserving_change_not_lost';$cases++
+ }
+ foreach($fault in @('extra','wrong_query','bool_bytes','wrong_count','unknown_family','duplicate','array')){
+  $copy=ConvertFrom-Json -InputObject $raw
+  switch($fault){
+   'extra'{Add-Member -InputObject $copy -NotePropertyName unexpected -NotePropertyValue 'PRIVATE_CANARY'}
+   'wrong_query'{$copy.query_sha256=('0'*64)}
+   'bool_bytes'{$copy.snapshot_bytes=$true}
+   'wrong_count'{$copy.counts.port++}
+   'unknown_family'{Add-Member -InputObject $copy.counts -NotePropertyName unknown -NotePropertyValue 3}
+  }
+  $bad=ConvertTo-Json -InputObject $copy -Depth 8 -Compress
+  if($fault -ceq 'duplicate'){$bad=$bad.Replace('"store":"ActiveStore"','"store":"ActiveStore","store":"ActiveStore"')}
+  if($fault -ceq 'array'){$bad='['+$bad+']'}
+  $failed=$false;try{$null=ConvertFrom-WslMaintenanceFirewallCertificate $bad}catch{$failed=$true}
+  Assert $failed 'malformed_certificate_admitted';$cases++
+ }
+ # Eight full current Windows-RAM snapshots exceed the parent's old64MiB
+ # representation; certificates retain every byte's digest within its budget.
+ $script:ctx=Fixture
+ Add-Member -InputObject $script:ctx.profiles[0] -NotePropertyName LargeForeignData -NotePropertyValue ('x'*8903516)
+ $totalFull=0L;$totalTransport=0L;$largeDigest=$null
+ for($i=0;$i -lt 8;$i++){
+  $observation=CertificateCapture;$row=ConvertFrom-WslMaintenanceFirewallCertificate $observation
+  $totalFull+=$row.snapshot_bytes;$totalTransport+=[Text.Encoding]::UTF8.GetByteCount($observation)
+  if($null -ne $largeDigest){Assert ($row.snapshot_sha256 -ceq $largeDigest) 'fresh_large_snapshot_drift'}
+  $largeDigest=$row.snapshot_sha256
+ }
+ Assert ($totalFull -gt 67108864 -and $totalTransport -lt 32768 -and $script:ctx.calls.rules -eq 8) 'fresh_full_hash_not_cached_or_subset';$cases++
+ [ordered]@{status='PASS';cases=$cases;runtime_mutations=0;live_capability_claim=$false;
+  command_sha256=$commandHash;fresh_large_observations=8;full_windows_ram_bytes=$totalFull;transport_bytes=$totalTransport} | ConvertTo-Json -Compress
+ exit 0
 }
 if($SourceGuardContract){
  $scratch=Join-Path ([IO.Path]::GetTempPath()) ('epic440-firewall-source-'+[Guid]::NewGuid().ToString('N'))

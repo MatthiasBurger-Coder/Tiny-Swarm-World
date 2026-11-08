@@ -946,7 +946,8 @@ class SharedSnapshotIntentBindingTests(unittest.TestCase):
         self.assertEqual(maintenance.FILES[4], 'tools/linux/qualification/incus_profile_listener_fixture.py')
         self.assertEqual(maintenance.FILES[5], 'tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py')
         self.assertEqual(maintenance.FILES[6], 'documentation/handbook/05-development/workflow/issues/issue-449/workflow.md')
-        self.assertEqual(maintenance.FILES[-1], str(maintenance.fixture.WINDOWS_SNAPSHOT_REL))
+        self.assertEqual(maintenance.FILES[12], str(maintenance.fixture.WINDOWS_SNAPSHOT_REL))
+        self.assertEqual(maintenance.FILES[13], str(maintenance.fixture.WINDOWS_CERTIFICATE_REL))
         source = 'a' * 40
         run = 'b' * 32
         profile, base_profile, instance = (f'tsw-q449-{run}-{suffix}' for suffix in ('profile', 'base', 'fixture'))
@@ -955,7 +956,8 @@ class SharedSnapshotIntentBindingTests(unittest.TestCase):
             'workflow_sha256': maintenance.digest((maintenance.ROOT / maintenance.FILES[6]).read_bytes()),
             'runner_sha256': maintenance.digest((maintenance.ROOT / maintenance.FILES[4]).read_bytes()),
             'test_sha256': maintenance.digest((maintenance.ROOT / maintenance.FILES[5]).read_bytes()),
-            'windows_snapshot_sha256': maintenance.digest((maintenance.ROOT / maintenance.FILES[-1]).read_bytes()),
+            'windows_snapshot_sha256': maintenance.digest((maintenance.ROOT / maintenance.fixture.WINDOWS_SNAPSHOT_REL).read_bytes()),
+            'windows_certificate_sha256': maintenance.digest((maintenance.ROOT / maintenance.fixture.WINDOWS_CERTIFICATE_REL).read_bytes()),
             'issue447_inventory_sha256': 'c' * 64,
             'target': {'host': maintenance.HOST, 'endpoint': 'unix://', 'project': 'default', 'server_version': '6.0.5',
                        'run_id': run, 'profile': profile, 'base_profile': base_profile, 'instance': instance,
@@ -970,14 +972,15 @@ class SharedSnapshotIntentBindingTests(unittest.TestCase):
         intent: dict[str, Any] = {'schema_version': 1, 'decision': 'INTENT_ONLY', 'fixture': static,
                   'provider_config_sha256': '0' * 64}
         self.assertEqual(maintenance.validate_fixture_intent(intent, source), intent)
-        for field_value in (None, '0' * 64):
-            forged = copy.deepcopy(intent)
-            if field_value is None:
-                del forged['fixture']['windows_snapshot_sha256']
-            else:
-                forged['fixture']['windows_snapshot_sha256'] = field_value
-            with self.subTest(field_value=field_value), self.assertRaises((maintenance.MaintenanceError, maintenance.fixture.FixtureError)):
-                maintenance.validate_fixture_intent(forged, source)
+        for field in ('windows_snapshot_sha256', 'windows_certificate_sha256'):
+            for field_value in (None, '0' * 64):
+                forged = copy.deepcopy(intent)
+                if field_value is None:
+                    del forged['fixture'][field]
+                else:
+                    forged['fixture'][field] = field_value
+                with self.subTest(field=field, field_value=field_value), self.assertRaises((maintenance.MaintenanceError, maintenance.fixture.FixtureError)):
+                    maintenance.validate_fixture_intent(forged, source)
 
 
 

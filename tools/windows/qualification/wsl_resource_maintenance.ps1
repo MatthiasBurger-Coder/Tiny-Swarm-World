@@ -20,9 +20,11 @@ function Get-WslMaintenanceDigest($Value) {
     finally{$hash.Dispose()}
 }
 
-function Get-WslMaintenanceFirewallCommand {
+function Get-WslMaintenanceFirewallAsset([string]$Name) {
     # Fixed source-only asset; no dynamic path, arguments, imports or sourcing.
-    $path=Join-Path $PSScriptRoot 'windows_firewall_snapshot.ps1'
+    $pins=@{'windows_firewall_snapshot.ps1'='a6a5aee14f32ada47cd14b58f59372fc0ba21ceaef64401d93b94822932c19e5';'windows_firewall_certificate.ps1'='2ed11f507292e8abad5367856929e2698c26c4db11f8cf9d00c19fa2da34f458'}
+    if(!$pins.ContainsKey($Name)){throw 'FIREWALL_SOURCE_INVALID'}
+    $path=Join-Path $PSScriptRoot $Name
     $item=Get-Item -LiteralPath $path -Force
     if($item.PSIsContainer -or ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)){throw 'FIREWALL_SOURCE_INVALID'}
     $stream=[IO.FileStream]::new($path,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read)
@@ -33,11 +35,52 @@ function Get-WslMaintenanceFirewallCommand {
         if($length -ge 3 -and $bytes[0] -eq 239 -and $bytes[1] -eq 187 -and $bytes[2] -eq 191){throw 'FIREWALL_SOURCE_INVALID'}
         $hash=[Security.Cryptography.SHA256]::Create()
         try{$actual=([BitConverter]::ToString($hash.ComputeHash($bytes,0,$length))).Replace('-','').ToLowerInvariant()}finally{$hash.Dispose()}
-        if($actual -cne 'a6a5aee14f32ada47cd14b58f59372fc0ba21ceaef64401d93b94822932c19e5'){throw 'FIREWALL_SOURCE_MISMATCH'}
+        if($actual -cne $pins[$Name]){throw 'FIREWALL_SOURCE_MISMATCH'}
         $text=([Text.UTF8Encoding]::new($false,$true)).GetString($bytes,0,$length)
         if($text.Contains("`0")){throw 'FIREWALL_SOURCE_INVALID'}
         return $text
     }finally{$stream.Dispose()}
+}
+
+function Get-WslMaintenanceFirewallCommand {
+    return Get-WslMaintenanceFirewallAsset 'windows_firewall_snapshot.ps1'
+}
+
+function Get-WslMaintenanceFirewallCertificateCommand {
+    $query=Get-WslMaintenanceFirewallCommand
+    $producer=Get-WslMaintenanceFirewallAsset 'windows_firewall_certificate.ps1'
+    if([regex]::Matches($producer,'QUERY_BASE64').Count -ne 1 -or
+       [regex]::Matches($producer,'QUERY_SHA256').Count -ne 1){throw 'FIREWALL_SOURCE_INVALID'}
+    $script=$producer.Replace('QUERY_BASE64',[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($query))).Replace('QUERY_SHA256','a6a5aee14f32ada47cd14b58f59372fc0ba21ceaef64401d93b94822932c19e5')
+    if($script.Length+4096 -gt 30000){throw 'FIREWALL_COMMAND_BOUND'}
+    return $script
+}
+
+function ConvertFrom-WslMaintenanceFirewallCertificate([string]$Raw) {
+    if(!$Raw.Trim().StartsWith('{') -or !$Raw.Trim().EndsWith('}') -or
+       [Text.Encoding]::UTF8.GetByteCount($Raw) -gt 4096 -or $Raw.Contains([string][char]0xfffd)){throw 'FIREWALL_CERTIFICATE_INVALID'}
+    try{$value=ConvertFrom-Json -InputObject $Raw -ErrorAction Stop}catch{throw 'FIREWALL_CERTIFICATE_INVALID'}
+    $keys=@('schema_version','query_sha256','snapshot_sha256','snapshot_bytes','snapshot_schema_version','store','association_model','counts')
+    if($value -isnot [pscustomobject] -or @($value.PSObject.Properties).Count -ne $keys.Count){throw 'FIREWALL_CERTIFICATE_INVALID'}
+    foreach($key in $keys){if(@($value.PSObject.Properties | Where-Object{$_.Name -ceq $key}).Count -ne 1 -or
+       [regex]::Matches($Raw,('"'+[regex]::Escape($key)+'"\s*:')).Count -ne 1){throw 'FIREWALL_CERTIFICATE_INVALID'}}
+    if($value.schema_version -isnot [string] -or $value.schema_version -cne 'tsw.windows-firewall-certificate.v1' -or
+       $value.query_sha256 -isnot [string] -or $value.query_sha256 -cne 'a6a5aee14f32ada47cd14b58f59372fc0ba21ceaef64401d93b94822932c19e5' -or
+       $value.snapshot_sha256 -isnot [string] -or $value.snapshot_sha256 -cnotmatch '\A[0-9a-f]{64}\z' -or
+       ($value.snapshot_bytes -isnot [int] -and $value.snapshot_bytes -isnot [long]) -or $value.snapshot_bytes -lt 0 -or $value.snapshot_bytes -gt 14680064 -or
+       ($value.snapshot_schema_version -isnot [int] -and $value.snapshot_schema_version -isnot [long]) -or $value.snapshot_schema_version -ne 2 -or
+       $value.store -isnot [string] -or $value.store -cne 'ActiveStore' -or $value.association_model -isnot [string] -or
+       $value.association_model -cne 'PROVIDER_IDENTITY_ONE_TO_ONE' -or $value.counts -isnot [pscustomobject]){throw 'FIREWALL_CERTIFICATE_INVALID'}
+    $names=@('rules','profiles','settings','address','application','interface','interface_type','port','security','service')
+    if(@($value.counts.PSObject.Properties).Count -ne $names.Count){throw 'FIREWALL_CERTIFICATE_INVALID'}
+    foreach($name in $names){
+       if(@($value.counts.PSObject.Properties | Where-Object{$_.Name -ceq $name}).Count -ne 1 -or
+          [regex]::Matches($Raw,('"'+[regex]::Escape($name)+'"\s*:')).Count -ne 1){throw 'FIREWALL_CERTIFICATE_INVALID'}
+       $n=$value.counts.$name;$limit=if($name -ceq 'profiles'){16}elseif($name -ceq 'settings'){128}else{8192}
+       if(($n -isnot [int] -and $n -isnot [long]) -or $n -lt 0 -or $n -gt $limit -or
+          ($name -notin @('rules','profiles','settings') -and $n -ne $value.counts.rules)){throw 'FIREWALL_CERTIFICATE_INVALID'}
+    }
+    return $value
 }
 
 function Assert-WslMaintenanceScenario($Scenario) {
@@ -282,10 +325,12 @@ function New-WslMaintenanceProductionPorts {
     $registryFunction=${function:Get-WslMaintenanceRegistrySnapshot}
     $netshFunction=${function:ConvertFrom-WslMaintenanceNetshAll}
     $planValidator=${function:Assert-WslMaintenanceResourcePlan}
-    $firewallCommand=Get-WslMaintenanceFirewallCommand
-    $module=New-Module -Name Epic440WslMaintenance -ArgumentList $Scenario,$digestFunction,$registryFunction,$netshFunction,$planValidator,$firewallCommand -ScriptBlock {
-        param($Scenario,$digestFunction,$registryFunction,$netshFunction,$planValidator,$firewallCommand)
+    $firewallCommand=Get-WslMaintenanceFirewallCertificateCommand
+    $certificateValidator=${function:ConvertFrom-WslMaintenanceFirewallCertificate}
+    $module=New-Module -Name Epic440WslMaintenance -ArgumentList $Scenario,$digestFunction,$registryFunction,$netshFunction,$planValidator,$firewallCommand,$certificateValidator -ScriptBlock {
+        param($Scenario,$digestFunction,$registryFunction,$netshFunction,$planValidator,$firewallCommand,$certificateValidator)
         Set-Item Function:script:Get-WslMaintenanceDigest $digestFunction
+        Set-Item Function:script:ConvertFrom-WslMaintenanceFirewallCertificate $certificateValidator
         Set-Item Function:script:Get-WslMaintenanceRegistrySnapshot $registryFunction
         Set-Item Function:script:ConvertFrom-WslMaintenanceNetshAll $netshFunction
         Set-Item Function:script:Assert-WslMaintenanceResourcePlan $planValidator
@@ -446,7 +491,8 @@ function New-WslMaintenanceProductionPorts {
         }
         function Firewall {
             $exe=& $preparation {Get-PreparationExecutable 'powershell.exe'}
-            return Run $exe @('-NoProfile','-NonInteractive','-Command',$script:firewallCommand) 120 14680064
+            $raw=Run $exe @('-NoProfile','-NonInteractive','-Command',$script:firewallCommand) 120 4096
+            return ConvertFrom-WslMaintenanceFirewallCertificate $raw
         }
         function StableState($State){
             $stable=[ordered]@{}

@@ -25,9 +25,11 @@ TRUSTED_BIN = {'incus': '/usr/bin/incus', 'ip': '/usr/sbin/ip', 'ss': '/usr/bin/
 TRUSTED_PATH = '/usr/sbin:/usr/bin:/sbin:/bin'
 PRIVATE_EVIDENCE_REL = Path('.tiny-swarm/evidence/issue-449/s449-private-20261027')
 WINDOWS_SNAPSHOT_REL = Path('tools/windows/qualification/windows_firewall_snapshot.ps1')
+WINDOWS_CERTIFICATE_REL = Path('tools/windows/qualification/windows_firewall_certificate.ps1')
+WINDOWS_CERTIFICATE_SHA256 = '2ed11f507292e8abad5367856929e2698c26c4db11f8cf9d00c19fa2da34f458'
 GO_REL = PRIVATE_EVIDENCE_REL / 'three-amigos-s02-live-go.json'
 RESULT_REL = PRIVATE_EVIDENCE_REL / 'r67-incus-6.0.5-listener-fixture.json'
-GO_KEYS = {'decision','source_commit','workflow_sha256','runner_sha256','test_sha256','resource_admission_sha256','issue447_inventory_sha256','target','proxy','cleanup','reviews','windows_rules_unchanged','external_routes_enabled','default_profile_sha256','default_profile_used_by','approved_route_state_sha256','fixture_base_profile_sha256','windows_snapshot_sha256'}
+GO_KEYS = {'decision','source_commit','workflow_sha256','runner_sha256','test_sha256','resource_admission_sha256','issue447_inventory_sha256','target','proxy','cleanup','reviews','windows_rules_unchanged','external_routes_enabled','default_profile_sha256','default_profile_used_by','approved_route_state_sha256','fixture_base_profile_sha256','windows_snapshot_sha256','windows_certificate_sha256'}
 TARGET_KEYS = {'host','endpoint','project','server_version','run_id','profile','base_profile','instance','image_fingerprint'}
 PROXY_KEYS = {'listen','connect','bind'}
 REVIEW_KEYS = {'requirements','architecture','security','devops','test_evidence'}
@@ -50,6 +52,9 @@ _INVENTORY_MAX_COMMANDS = 256
 _INVENTORY_TOTAL_COMMAND_MAX_BYTES = 16 * 1024 * 1024
 _INVENTORY_HOST_COMMAND_TIMEOUT_SECONDS = 30
 _INVENTORY_TOTAL_TIMEOUT_SECONDS = 300
+_WSL_INVENTORY_TOTAL_TIMEOUT_SECONDS = 650
+_WSL_INVENTORY_CLEANUP_TIMEOUT_RESERVE_SECONDS = 300
+_INVENTORY_TARGET_HOST = '192.168.178.33'
 _INVENTORY_CLEANUP_COMMAND_RESERVE = 110
 _INVENTORY_CLEANUP_BYTE_RESERVE = 8 * 1024 * 1024
 _INVENTORY_CLEANUP_ENTITY_RESERVE = 5_000
@@ -71,11 +76,14 @@ _WINDOWS_SNAPSHOT_METADATA: dict[str, Any] = {}
 
 def _inventory_budgets() -> tuple[int, int, int, float]:
     reserve = _INVENTORY_RESERVE_CLEANUP and not _INVENTORY_CLEANUP_MODE
+    wsl = _INVENTORY_TARGET_HOST == '192.168.178.58'
+    total = _WSL_INVENTORY_TOTAL_TIMEOUT_SECONDS if wsl else _INVENTORY_TOTAL_TIMEOUT_SECONDS
+    cleanup = _WSL_INVENTORY_CLEANUP_TIMEOUT_RESERVE_SECONDS if wsl else _INVENTORY_CLEANUP_TIMEOUT_RESERVE_SECONDS
     return (
         _INVENTORY_MAX_COMMANDS - (_INVENTORY_CLEANUP_COMMAND_RESERVE if reserve else 0),
         _INVENTORY_TOTAL_COMMAND_MAX_BYTES - (_INVENTORY_CLEANUP_BYTE_RESERVE if reserve else 0),
         _INVENTORY_MAX_ENTITIES - (_INVENTORY_CLEANUP_ENTITY_RESERVE if reserve else 0),
-        _INVENTORY_TOTAL_TIMEOUT_SECONDS - (_INVENTORY_CLEANUP_TIMEOUT_RESERVE_SECONDS if reserve else 0),
+        total - (cleanup if reserve else 0),
     )
 
 class FixtureError(Exception):
@@ -92,6 +100,30 @@ class _BoundedCommandFailure(TargetDrift):
         super().__init__(code)
         self.stdout_bytes = stdout_bytes
         self.stderr_bytes = stderr_bytes
+
+
+def _inventory_budget_profile() -> dict[str, Any]:
+    wsl = _INVENTORY_TARGET_HOST == '192.168.178.58'
+    total = _WSL_INVENTORY_TOTAL_TIMEOUT_SECONDS if wsl else _INVENTORY_TOTAL_TIMEOUT_SECONDS
+    reserve = (_WSL_INVENTORY_CLEANUP_TIMEOUT_RESERVE_SECONDS if wsl else
+               _INVENTORY_CLEANUP_TIMEOUT_RESERVE_SECONDS) if _INVENTORY_RESERVE_CLEANUP else 0
+    return {'target_host': _INVENTORY_TARGET_HOST, 'total_seconds': total,
+            'cleanup_reserve_seconds': reserve, 'active_seconds': total - reserve}
+
+
+def _begin_inventory(host: str, *, reserve_cleanup: bool) -> None:
+    global _INVENTORY_TARGET_HOST, _INVENTORY_BYTES_CAPTURED, _INVENTORY_ENTITIES_CAPTURED
+    global _INVENTORY_STARTED_AT, _INVENTORY_RESERVE_CLEANUP, _INVENTORY_CLEANUP_MODE, _WINDOWS_SNAPSHOT_METADATA
+    if host not in {'192.168.178.33', '192.168.178.58'}:
+        raise FixtureError('HOST_IDENTITY_DRIFT')
+    _INVENTORY_TARGET_HOST = host
+    _COMMAND_AUDIT.clear()
+    _INVENTORY_BYTES_CAPTURED = _INVENTORY_ENTITIES_CAPTURED = 0
+    _INVENTORY_ENTITY_SLOTS.clear()
+    _INVENTORY_STARTED_AT = None
+    _INVENTORY_RESERVE_CLEANUP = reserve_cleanup
+    _INVENTORY_CLEANUP_MODE = False
+    _WINDOWS_SNAPSHOT_METADATA = {}
 
 
 def _pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -547,6 +579,7 @@ def validate_go(go: Any, args: argparse.Namespace, head: str, workflow: bytes, r
     if not isinstance(go['source_commit'], str) or not HASH40.fullmatch(go['source_commit']) or go['source_commit'] != head:
         raise FixtureError('SOURCE_HEAD_MISMATCH')
     _windows_snapshot_query(_hash(go['windows_snapshot_sha256'], HASH64, 'INVALID_GO_HASH'))
+    _windows_certificate_source(_hash(go['windows_certificate_sha256'], HASH64, 'INVALID_GO_HASH'))
     bindings = {'workflow_sha256': workflow, 'runner_sha256': runner, 'test_sha256': tests}
     for key, raw in bindings.items():
         expected = _hash(go[key], HASH64, 'INVALID_GO_HASH')
@@ -641,11 +674,15 @@ def command(argv: list[str]) -> bytes:
 
 
 def _windows_snapshot_query(expected_sha256: str | None = None) -> str:
-    """Load only the fixed committed snapshot asset; no imports or script sourcing."""
-    path = ROOT / WINDOWS_SNAPSHOT_REL
+    return _windows_source_asset(WINDOWS_SNAPSHOT_REL, expected_sha256)
+
+
+def _windows_source_asset(relative: Path, expected_sha256: str | None = None) -> str:
+    """Read only a fixed plain bounded source asset; retain no raw host data."""
+    path = ROOT / relative
     current = ROOT
     try:
-        for component in WINDOWS_SNAPSHOT_REL.parts[:-1]:
+        for component in relative.parts[:-1]:
             current = current / component
             if not stat.S_ISDIR(current.lstat().st_mode) or current.is_symlink():
                 raise FixtureError('WINDOWS_SNAPSHOT_ASSET_UNSAFE')
@@ -679,83 +716,18 @@ def _windows_snapshot_query(expected_sha256: str | None = None) -> str:
         raise FixtureError('WINDOWS_SNAPSHOT_ASSET_UNSAFE') from exc
 
 
-_WINDOWS_CERTIFICATE_TEMPLATE = r'''$ErrorActionPreference='Stop'
-[Console]::OutputEncoding=New-Object System.Text.UTF8Encoding($false)
-try {
-  $utf8=New-Object System.Text.UTF8Encoding($false,$true)
-  $sha=[System.Security.Cryptography.SHA256]::Create()
-  function Hash-Bytes([byte[]]$bytes) {
-    return [BitConverter]::ToString($sha.ComputeHash($bytes)).Replace('-','').ToLowerInvariant()
-  }
-  function Assert-Keys($value,[string[]]$keys) {
-    if ($value -isnot [pscustomobject]) { throw 'certificate' }
-    $names=@($value.PSObject.Properties | ForEach-Object { $_.Name })
-    if ($names.Count -ne $keys.Count) { throw 'certificate' }
-    foreach($key in $keys) { if (@($names | Where-Object { $_ -ceq $key }).Count -ne 1) { throw 'certificate' } }
-  }
-  function Assert-Strings($value,[string[]]$expected) {
-    if ($value -isnot [array] -or $value.Count -ne $expected.Count) { throw 'certificate' }
-    for($i=0;$i -lt $expected.Count;$i++) {
-      if ($value[$i] -isnot [string] -or $value[$i] -cne $expected[$i]) { throw 'certificate' }
-    }
-  }
-  function Get-Identities($rows,[int]$maximum) {
-    if ($rows -isnot [array] -or $rows.Count -gt $maximum) { throw 'certificate' }
-    $ids=[System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
-    foreach($row in $rows) {
-      Assert-Keys $row @('identity','value')
-      if ($row.identity -isnot [string] -or [string]::IsNullOrEmpty($row.identity) -or
-          $row.value -isnot [pscustomobject] -or -not $ids.Add($row.identity)) { throw 'certificate' }
-    }
-    return ,$ids
-  }
-  $queryBytes=[Convert]::FromBase64String('QUERY_BASE64')
-  $querySha=Hash-Bytes $queryBytes
-  if ($queryBytes.Length -gt 65536 -or $querySha -cne 'QUERY_SHA256') { throw 'certificate' }
-  $query=$utf8.GetString($queryBytes)
-  $outputs=@(& ([ScriptBlock]::Create($query)))
-  if ($outputs.Count -ne 1 -or $outputs[0] -isnot [string]) { throw 'certificate' }
-  $bytes=$utf8.GetBytes($outputs[0])
-  if ($bytes.Length -gt 14680064) { throw 'certificate' }
-  $full=ConvertFrom-Json -InputObject $outputs[0] -ErrorAction Stop
-  Assert-Keys $full @('schema_version','store','association_model','rules','profiles','settings','filters','cim_layout')
-  if (($full.schema_version -isnot [int] -and $full.schema_version -isnot [long]) -or
-      $full.schema_version -ne 2 -or $full.store -isnot [string] -or $full.store -cne 'ActiveStore' -or
-      $full.association_model -isnot [string] -or $full.association_model -cne 'PROVIDER_IDENTITY_ONE_TO_ONE') { throw 'certificate' }
-  $layout=$full.cim_layout
-  Assert-Keys $layout @('provider_identity','native_property','adapted_override','enum_view','equivalent_rule','alias_rule')
-  Assert-Strings $layout.provider_identity @('class_name','namespace','server','path')
-  Assert-Strings $layout.native_property @('cim_type','flags','value')
-  Assert-Strings $layout.adapted_override @('member_type','clr_type','alias_target','value')
-  Assert-Strings $layout.enum_view @('clr_type','name')
-  if ($layout.equivalent_rule -isnot [string] -or $layout.equivalent_rule -cne 'same-name exact CLR type/value' -or
-      $layout.alias_rule -isnot [string] -or $layout.alias_rule -cne 'native referenced-member exact CLR type/value') { throw 'certificate' }
-  $rules=Get-Identities $full.rules 8192
-  $profiles=Get-Identities $full.profiles 16
-  $settings=Get-Identities $full.settings 128
-  $filterKinds=@('address','application','interface','interface_type','port','security','service')
-  Assert-Keys $full.filters $filterKinds
-  $counts=[ordered]@{rules=$rules.Count;profiles=$profiles.Count;settings=$settings.Count}
-  foreach($kind in $filterKinds) {
-    $ids=Get-Identities $full.filters.$kind 8192
-    if (-not $rules.SetEquals($ids)) { throw 'certificate' }
-    $counts[$kind]=$ids.Count
-  }
-  $certificate=[ordered]@{
-    schema_version='tsw.windows-firewall-certificate.v1';query_sha256=$querySha
-    snapshot_sha256=(Hash-Bytes $bytes);snapshot_bytes=$bytes.Length;snapshot_schema_version=2
-    store='ActiveStore';association_model='PROVIDER_IDENTITY_ONE_TO_ONE';counts=$counts
-  }
-  [Console]::Out.WriteLine(($certificate | ConvertTo-Json -Depth 4 -Compress))
-} catch {
-  [Console]::Error.WriteLine('WINDOWS_FIREWALL_CERTIFICATE_FAILED')
-  exit 2
-}
-'''
+def _windows_certificate_source(expected_sha256: str | None = None) -> str:
+    if expected_sha256 is not None and expected_sha256 != WINDOWS_CERTIFICATE_SHA256:
+        raise FixtureError('WINDOWS_SNAPSHOT_ASSET_MISMATCH')
+    return _windows_source_asset(WINDOWS_CERTIFICATE_REL, WINDOWS_CERTIFICATE_SHA256)
 
-def _windows_snapshot_wrapper(expected_sha256: str | None = None) -> str:
+
+def _windows_snapshot_wrapper(expected_sha256: str | None = None, certificate_sha256: str | None = None) -> str:
     query = _windows_snapshot_query(expected_sha256).encode('utf-8')
-    wrapper = _WINDOWS_CERTIFICATE_TEMPLATE.replace('QUERY_BASE64', base64.b64encode(query).decode('ascii')).replace(
+    producer = _windows_certificate_source(certificate_sha256)
+    if producer.count('QUERY_BASE64') != 1 or producer.count('QUERY_SHA256') != 1:
+        raise FixtureError('WINDOWS_SNAPSHOT_TEMPLATE_INVALID')
+    wrapper = producer.replace('QUERY_BASE64', base64.b64encode(query).decode('ascii')).replace(
         'QUERY_SHA256', digest(query))
     # Conservative headroom for executable/argv quoting under CreateProcessW.
     if len(subprocess.list2cmdline(['powershell.exe', '-NoProfile', '-NonInteractive', '-Command', wrapper]).encode('utf-16-le')) // 2 > 30000:
@@ -989,10 +961,10 @@ def _windows_firewall_certificate(value: Any, expected_sha256: str) -> dict[str,
     return value
 
 
-def _windows_snapshot(expected_sha256: str | None = None) -> bytes:
+def _windows_snapshot(expected_sha256: str | None = None, certificate_sha256: str | None = None) -> bytes:
     exe = '/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe'
     query_sha256 = digest(_windows_snapshot_query(expected_sha256).encode('utf-8'))
-    raw_firewall = command([exe, '-NoProfile', '-NonInteractive', '-Command', _windows_snapshot_wrapper(query_sha256)])
+    raw_firewall = command([exe, '-NoProfile', '-NonInteractive', '-Command', _windows_snapshot_wrapper(query_sha256, certificate_sha256)])
     firewall_value = _windows_firewall_certificate(strict_json(raw_firewall), query_sha256)
     firewall = json.dumps(firewall_value, sort_keys=True, separators=(',', ':'),
                           ensure_ascii=False).encode('utf-8')
@@ -1001,7 +973,7 @@ def _windows_snapshot(expected_sha256: str | None = None) -> bytes:
     _WINDOWS_SNAPSHOT_METADATA = {
         'schema_version': 'tsw.windows-route-snapshot.v2',
         'firewall_bytes': firewall_value['snapshot_bytes'], 'firewall_sha256': firewall_value['snapshot_sha256'],
-        'query_sha256': query_sha256,
+        'query_sha256': query_sha256, 'certificate_sha256': WINDOWS_CERTIFICATE_SHA256,
         'portproxy_bytes': len(portproxy), 'portproxy_sha256': digest(portproxy),
         'profile_count': firewall_value['counts']['profiles'],
         'setting_count': firewall_value['counts']['settings'], 'rule_count': firewall_value['counts']['rules'],
@@ -1170,11 +1142,7 @@ def _serialize_route_state_artifact(payload: dict[str, Any]) -> bytes:
 
 
 def capture_route_state(host: str, output: str) -> None:
-    global _INVENTORY_RESERVE_CLEANUP, _INVENTORY_CLEANUP_MODE, _WINDOWS_SNAPSHOT_METADATA
-    _COMMAND_AUDIT.clear()
-    _INVENTORY_RESERVE_CLEANUP = False
-    _INVENTORY_CLEANUP_MODE = False
-    _WINDOWS_SNAPSHOT_METADATA = {}
+    _begin_inventory(host, reserve_cleanup=False)
     path = _capture_output_path(output)
     head, _, _, _ = git_preflight()
     state = _route_state(host)
@@ -1182,7 +1150,7 @@ def capture_route_state(host: str, output: str) -> None:
     windows_metadata = dict(globals().get('_WINDOWS_SNAPSHOT_METADATA', {}))
     payload = {'schema_version': 'tsw.route-state.v2', 'source_commit': head,
                'captured_at': datetime.now(timezone.utc).isoformat(),
-               'target_host': host, 'target_ip': host,
+               'target_host': host, 'target_ip': host, 'inventory_budget': _inventory_budget_profile(),
                'listeners_10001_count': len(safe_listeners),
                'listeners_10001': safe_listeners,
                'listeners_10001_sha256': digest(json.dumps(
@@ -1611,15 +1579,7 @@ def _capture_project_inventory(host: str) -> dict[str, Any]:
 
 
 def capture_project_inventory(host: str, output: str) -> None:
-    global _INVENTORY_STARTED_AT, _INVENTORY_BYTES_CAPTURED, _INVENTORY_ENTITIES_CAPTURED
-    global _INVENTORY_RESERVE_CLEANUP, _INVENTORY_CLEANUP_MODE
-    _COMMAND_AUDIT.clear()
-    _INVENTORY_RESERVE_CLEANUP = False
-    _INVENTORY_CLEANUP_MODE = False
-    _INVENTORY_STARTED_AT = None
-    _INVENTORY_BYTES_CAPTURED = 0
-    _INVENTORY_ENTITIES_CAPTURED = 0
-    _INVENTORY_ENTITY_SLOTS.clear()
+    _begin_inventory(host, reserve_cleanup=False)
     # Verify filesystem and path first, but defer directory creation until after source preflight.
     _require_private_ext4(ROOT)
     rel = Path(output)
@@ -2198,7 +2158,7 @@ def jit(go: dict[str, Any], host: str) -> dict[str, Any]:
         raise TargetDrift('INCUS_PROJECT_DRIFT')
     windows = b''
     if host == '192.168.178.58':
-        windows = _windows_snapshot(go['windows_snapshot_sha256'])
+        windows = _windows_snapshot(go['windows_snapshot_sha256'], go['windows_certificate_sha256'])
     _assert_approved_route_state(go, listener_rows, incus_routes, windows, incus_projects)
     return {'listeners_10001': listener_rows, 'incus_10001_routes': incus_routes,
             'incus_projects': incus_projects,
@@ -2351,7 +2311,7 @@ def _run_fixture(go: dict[str, Any], baseline: dict[str, Any]) -> dict[str, Any]
         if projects != baseline['incus_projects'] or routes != baseline['incus_10001_routes']:
             raise TargetDrift('INCUS_10001_ROUTE_CHANGED')
         if target['host'] == '192.168.178.58':
-            _assert_windows_unchanged(baseline['windows_rules_portproxy'], _windows_snapshot(go['windows_snapshot_sha256']))
+            _assert_windows_unchanged(baseline['windows_rules_portproxy'], _windows_snapshot(go['windows_snapshot_sha256'], go['windows_certificate_sha256']))
         _assert_approved_route_state(go, listeners, routes,
                                      baseline['windows_rules_portproxy'], projects)
         return listener_snapshot
@@ -2515,7 +2475,7 @@ def _run_fixture(go: dict[str, Any], baseline: dict[str, Any]) -> dict[str, Any]
             raise TargetDrift('INCUS_10001_ROUTE_CHANGED')
         after_windows = b''
         if target['host'] == '192.168.178.58':
-            after_windows = _windows_snapshot(go['windows_snapshot_sha256'])
+            after_windows = _windows_snapshot(go['windows_snapshot_sha256'], go['windows_certificate_sha256'])
             _assert_windows_unchanged(baseline['windows_rules_portproxy'], after_windows)
         after_route_state_sha256 = approved_route_state_sha256(
             after_10001, incus_routes_after, after_windows, incus_projects_after)
@@ -2636,6 +2596,7 @@ def _run_fixture(go: dict[str, Any], baseline: dict[str, Any]) -> dict[str, Any]
 
 
 def main(argv: list[str] | None = None) -> int:
+    global _INVENTORY_CLEANUP_MODE
     parser = argparse.ArgumentParser()
     parser.add_argument('--expected-approval-sha256')
     parser.add_argument('--target-host', required=True, choices=['192.168.178.33', '192.168.178.58'])
@@ -2667,14 +2628,7 @@ def main(argv: list[str] | None = None) -> int:
             return 2
     evidence_fd: int | None = None
     try:
-        global _INVENTORY_BYTES_CAPTURED, _INVENTORY_ENTITIES_CAPTURED, _INVENTORY_STARTED_AT
-        global _INVENTORY_RESERVE_CLEANUP, _INVENTORY_CLEANUP_MODE
-        _INVENTORY_BYTES_CAPTURED = 0
-        _INVENTORY_ENTITIES_CAPTURED = 0
-        _INVENTORY_ENTITY_SLOTS.clear()
-        _INVENTORY_STARTED_AT = None
-        _INVENTORY_RESERVE_CLEANUP = True
-        _INVENTORY_CLEANUP_MODE = False
+        _begin_inventory(args.target_host, reserve_cleanup=True)
         if not args.expected_approval_sha256 or not HASH64.fullmatch(args.expected_approval_sha256):
             raise FixtureError('INVALID_EXPECTED_SHA256')
         head, workflow, runner, tests = git_preflight()
@@ -2703,7 +2657,7 @@ def main(argv: list[str] | None = None) -> int:
             if final_projects != baseline['incus_projects'] or final_routes != baseline['incus_10001_routes']:
                 raise TargetDrift('INCUS_10001_ROUTE_CHANGED')
             if args.target_host == '192.168.178.58':
-                _assert_windows_unchanged(baseline['windows_rules_portproxy'], _windows_snapshot(go['windows_snapshot_sha256']))
+                _assert_windows_unchanged(baseline['windows_rules_portproxy'], _windows_snapshot(go['windows_snapshot_sha256'], go['windows_certificate_sha256']))
             result['listener_after_cleanup_sha256'] = _listener_digest(
                 final_listeners, int(port))[1]
             result['commands'] = _COMMAND_AUDIT
@@ -2713,7 +2667,7 @@ def main(argv: list[str] | None = None) -> int:
             code = exc.args[0] if isinstance(exc, FixtureError) else 'FIXTURE_FAILED'
             write_result(evidence_fd, {'status': 'BLOCKED_TARGET_DRIFT', 'code': str(code), 'commands': _COMMAND_AUDIT, 'go_sha256': digest(raw), 'source_commit': head})
             return 2
-        result.update({'go_sha256': digest(raw), 'workflow_sha256': go['workflow_sha256'], 'runner_sha256': go['runner_sha256'], 'test_sha256': go['test_sha256'], 'source_commit': head, 'issue447_inventory_sha256': go['issue447_inventory_sha256'], 'resource_admission_sha256': go['resource_admission_sha256']})
+        result.update({'inventory_budget': _inventory_budget_profile(), 'windows_certificate_sha256': go['windows_certificate_sha256'], 'go_sha256': digest(raw), 'workflow_sha256': go['workflow_sha256'], 'runner_sha256': go['runner_sha256'], 'test_sha256': go['test_sha256'], 'source_commit': head, 'issue447_inventory_sha256': go['issue447_inventory_sha256'], 'resource_admission_sha256': go['resource_admission_sha256']})
         write_result(evidence_fd, result)
         return 0
     except FixtureError as exc:
