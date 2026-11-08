@@ -18,7 +18,7 @@ class TestInstallHandoff(unittest.TestCase):
         self.addCleanup(self.temporary.cleanup)
         self.checkout = Path(self.temporary.name) / "checkout with spaces"
         self.checkout.mkdir()
-        for name in ("install.sh", "bootstrap/linux/prepare_linux.sh", "requirements.lock", "requirements.build.lock", "pyproject.toml", "src/tiny_swarm_world/prepare_linux.py"):
+        for name in ("host-bindings.json", "install.sh", "bootstrap/linux/prepare_linux.sh", "requirements.lock", "requirements.build.lock", "pyproject.toml", "src/tiny_swarm_world/prepare_linux.py"):
             path = self.checkout / name
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text("# fixture bytes\n")
@@ -54,6 +54,11 @@ class TestInstallHandoff(unittest.TestCase):
         result = self.probe()
         self.assertEqual(result.returncode, 2)
         self.assertNotIn("handoff_ready=true", result.stdout)
+
+    def test_edited_host_binding_is_refused_even_when_hidden_from_git_status(self):
+        self.git("update-index", "--assume-unchanged", "host-bindings.json")
+        (self.checkout / "host-bindings.json").write_text("edited executable routing\n")
+        self.assertEqual(self.probe().returncode, 2)
 
     def test_unreviewed_bootstrap_helper_is_refused(self):
         helper = self.checkout / "bootstrap/windows/preparation/unreviewed.sh"
@@ -92,7 +97,7 @@ class TestInstallHandoff(unittest.TestCase):
         path.write_text(json.dumps(manifest))
         result = self.probe()
         self.assertEqual(result.returncode, 0, result.stderr)
-        (self.checkout / "src/tiny_swarm_world/prepare_linux.py").write_text("tampered\n")
+        (self.checkout / "host-bindings.json").write_text("tampered routing\n")
         self.assertEqual(self.probe().returncode, 2)
 
     def test_preparation_failure_stops_install_and_shell_keeps_stdin_and_exit(self):

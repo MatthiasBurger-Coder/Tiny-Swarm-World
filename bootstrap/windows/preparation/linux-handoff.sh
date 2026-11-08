@@ -81,7 +81,7 @@ try:
                 raise ValueError("unsafe_entry")
             relative = prefix / name
             # The executable release surface, excluding documentation/governance.
-            if not prefix.parts and name not in ("src", "bootstrap", "tools", "infra", "install.sh", "requirements.lock", "requirements.build.lock", "pyproject.toml"):
+            if not prefix.parts and name not in ("src", "bootstrap", "tools", "infra", "install.sh", "requirements.lock", "requirements.build.lock", "pyproject.toml", "host-bindings.json"):
                 continue
             path = root / relative
             if path.is_symlink() or path.stat().st_uid != os.getuid():

@@ -13,7 +13,10 @@ from tiny_swarm_world.application.ports.host.port_windows_command_runner import 
 
 class WindowsNetworkPreparation:
     def __init__(self, runner: PortWindowsCommandRunner, root: Path, config_root: Path) -> None:
+        from tiny_swarm_world.infrastructure.host_bindings import windows_bridge_binding
+
         self.runner, self.root, self.config_root = runner, root, config_root
+        self.binding = windows_bridge_binding(root)
 
     async def inspect(self, links):
         distro = os.environ.get("WSL_DISTRO_NAME", "")
@@ -43,9 +46,13 @@ class WindowsNetworkPreparation:
         await self._run(state["action"], state["distro"], state["observed_address"], 180)
 
     async def _run(self, action, distro, address, timeout):
+        from tiny_swarm_world.infrastructure.host_bindings import windows_bridge_binding
+
+        if windows_bridge_binding(self.root) != self.binding:
+            raise NetworkPreparationFailure("Host integration binding changed; inspect a fresh network plan.")
         result = await asyncio.to_thread(self.runner.run, action,
-             script_path=self.root / "bootstrap/windows/tws-wsl-bridge.ps1",
-             config_path=self.root / "bootstrap/windows/tws-wsl-bridge.config.json",
+             script_path=self.binding.script,
+             config_path=self.binding.config,
              port_registry_path=self.config_root / "ports.yaml", timeout_seconds=timeout,
              distro=distro, observed_address=address)
         if result.timed_out:

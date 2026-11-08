@@ -1,0 +1,7 @@
+{
+  "windows_bridge": {
+    "script": "bootstrap/windows/tws-wsl-bridge.ps1",
+    "config": "bootstrap/windows/tws-wsl-bridge.config.json",
+    "identity_glob": "bootstrap/windows/**/*.ps1"
+  }
+}

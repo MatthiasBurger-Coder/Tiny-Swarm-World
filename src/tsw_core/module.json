@@ -1,0 +1,15 @@
+{
+  "name": "tsw_core",
+  "project_dependencies": [],
+  "source_root": "src",
+  "python_packages": ["tiny_swarm_world", "tsw_core"],
+  "infra_root": "infra",
+  "config_root": "infra/config",
+  "shared_bootstrap": [
+    "bootstrap/linux/prepare_linux.sh",
+    "bootstrap/linux/ubuntu_python_prerequisites.sh",
+    "bootstrap/linux/preflight.py",
+    "bootstrap/linux/install_debugger.py"
+  ],
+  "runtime_metadata": ["pyproject.toml", "setup.py", "requirements.txt", "requirements.lock", "requirements.build.lock"]
+}

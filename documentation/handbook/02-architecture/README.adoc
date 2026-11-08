@@ -125,3 +125,7 @@ Cross-references from other parts do not change that ownership.
 === arc42/11_migration
 
 * link:{handbook-root}handbook/02-architecture/arc42/11_migration/migration-plan.md[migration-plan.md]
+
+=== Shared core module
+
+* link:{handbook-root}handbook/02-architecture/core-module.md[Shared core module]

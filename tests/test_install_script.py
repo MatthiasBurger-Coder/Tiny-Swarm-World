@@ -524,14 +524,13 @@ class _InstallScriptFixture:
 
     def _prepare(self) -> None:
         shutil.copy2(INSTALL_SCRIPT, self.root / "install.sh")
-        package_source = REPOSITORY_ROOT / "src" / "tiny_swarm_world"
-        package_target = self.root / "src" / "tiny_swarm_world"
-        # Exercise the actual parser boundary with a complete isolated checkout.
+        # Exercise the actual parser with both core-owned runtime namespaces.
         # Lifecycle commands still terminate in the fake python/script runners.
-        shutil.copytree(
-            package_source, package_target,
-            ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "*.pyo"),
-        )
+        for package in ("tiny_swarm_world", "tsw_core"):
+            shutil.copytree(
+                REPOSITORY_ROOT / "src" / package, self.root / "src" / package,
+                ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "*.pyo"),
+            )
         shutil.copytree(
             REPOSITORY_ROOT / "infra" / "config", self.root / "infra" / "config",
             ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "*.pyo"),
