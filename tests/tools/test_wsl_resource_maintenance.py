@@ -2,6 +2,15 @@
 from __future__ import annotations
 
 import base64
+from contextlib import redirect_stdout
+import io
+import re
+import selectors
+import stat
+import sys
+import time
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
 import json
 import os
 from pathlib import Path
@@ -80,3 +89,93 @@ class WslResourceMaintenanceTests(unittest.TestCase):
             self.assertEqual(report["status"], "PASS")
             self.assertGreaterEqual(report["cases"], 31)
             self.assertEqual(report["runtime_mutations"], 0)
+
+
+class WslMaintenanceLifetimeProtocolTests(unittest.TestCase):
+    """Execute the fixed Linux child with actual pipes; no WSL/provider effects."""
+
+    def program(self, name: str) -> str:
+        text = (ROOT / "tools/windows/qualification/wsl_resource_maintenance.ps1").read_text()
+        match = re.search(r"function " + re.escape(name) + r" \{.*?return @'\n(.*?)\n'@", text, re.S)
+        self.assertIsNotNone(match)
+        assert match is not None
+        return match[1]
+
+    @staticmethod
+    def finish(process: subprocess.Popen[bytes]) -> None:
+        if process.stdin is not None:
+            process.stdin.close()
+            process.stdin = None
+        try:
+            process.communicate(timeout=3)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.communicate(timeout=2)
+
+    def lease(self, seconds: int) -> subprocess.Popen[bytes]:
+        process = subprocess.Popen([sys.executable, "-I", "-S", "-c",
+                                    self.program("Get-WslMaintenanceLeaseProgram"), str(seconds)],
+                                   stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        self.addCleanup(self.finish, process)
+        assert process.stdout is not None
+        with selectors.DefaultSelector() as selector:
+            selector.register(process.stdout, selectors.EVENT_READ)
+            self.assertTrue(selector.select(3), "fixed child never acknowledged READY")
+        self.assertEqual(process.stdout.readline(), b"READY\n")
+        return process
+
+    def test_real_child_eof_acknowledges_exit_without_input_payload(self) -> None:
+        process = self.lease(3)
+        self.assertIsNone(process.poll())
+        output, error = process.communicate(b"", timeout=3)
+        self.assertEqual((process.returncode, output, error), (0, b"CLOSED\n", b""))
+
+    def test_real_child_refuses_any_input_and_never_claims_closed(self) -> None:
+        process = self.lease(3)
+        output, error = process.communicate(b"x", timeout=3)
+        self.assertEqual((process.returncode, output, error), (4, b"", b""))
+
+    def test_real_child_expiry_is_finite_nonzero_and_cleanup_closes_pipes(self) -> None:
+        started = time.monotonic()
+        process = self.lease(1)
+        self.assertEqual(process.wait(timeout=3), 3)
+        self.assertGreaterEqual(time.monotonic() - started, 0.8)
+        output, error = process.communicate(b"", timeout=2)
+        self.assertEqual((output, error), (b"", b""))
+
+    def test_real_child_rejects_zero_negative_and_overbound_durations(self) -> None:
+        code = self.program("Get-WslMaintenanceLeaseProgram")
+        for seconds in (0, -1, 4801):
+            with self.subTest(seconds=seconds):
+                result = subprocess.run([sys.executable, "-I", "-S", "-c", code, str(seconds)],
+                                        input=b"", capture_output=True, timeout=3)
+                self.assertEqual((result.returncode, result.stdout, result.stderr), (4, b"", b""))
+
+    def test_ready_probe_keeps_activating_transient_and_denies_unknown_unit(self) -> None:
+        code = compile(self.program("Get-WslMaintenanceReadyProgram"), "fixed-ready-probe", "exec")
+        for active, substate, http_status, expected in (("activating", "start-post", 503, "WAIT"),
+                                                         ("active", "running", 200, "READY"),
+                                                         ("active", "running", 503, "WAIT"),
+                                                         ("active", "running", 403, "REFUSE"),
+                                                         ("failed", "failed", 503, "REFUSE"),
+                                                         ("active", "unknown", 200, "REFUSE")):
+            with self.subTest(active=active, substate=substate):
+                raw = f"LoadState=loaded\nActiveState={active}\nSubState={substate}\nMainPID=123\n".encode()
+                response = MagicMock()
+                response.status = http_status
+                response.read.return_value = b"{}"
+                client = MagicMock()
+                client.getresponse.return_value = response
+                output = io.StringIO()
+                with patch("subprocess.run", return_value=SimpleNamespace(returncode=0, stdout=raw, stderr=b"")), \
+                     patch("socket.socket"), patch("http.client.HTTPConnection", return_value=client), \
+                     patch("os.path.exists", side_effect=lambda path: path == "/var/lib/incus/unix.socket"), \
+                     patch("os.path.realpath", side_effect=lambda path: path), \
+                     patch("os.stat", return_value=SimpleNamespace(st_mode=stat.S_IFSOCK)), redirect_stdout(output):
+                    if expected == "REFUSE":
+                        with self.assertRaises(SystemExit) as caught:
+                            exec(code, {})
+                        self.assertEqual(caught.exception.code, 4)
+                    else:
+                        exec(code, {})
+                        self.assertEqual(output.getvalue().strip(), expected)

@@ -83,6 +83,68 @@ function ConvertFrom-WslMaintenanceFirewallCertificate([string]$Raw) {
     return $value
 }
 
+function Get-WslMaintenanceLeaseProgram {
+    # No input payload. EOF acknowledges Linux exit; the caller never writes stdin.
+    return @'
+import os, selectors, sys, time
+seconds = int(sys.argv[1])
+if not 1 <= seconds <= 4800:
+    raise SystemExit(4)
+selector = selectors.DefaultSelector()
+try:
+    selector.register(0, selectors.EVENT_READ)
+    end = time.monotonic() + seconds
+    print('READY', flush=True)
+    while True:
+        remaining = end - time.monotonic()
+        if remaining <= 0 or not selector.select(remaining):
+            raise SystemExit(3)
+        if os.read(0, 1):
+            raise SystemExit(4)
+        print('CLOSED', flush=True)
+        break
+finally:
+    selector.close()
+'@
+}
+
+function Get-WslMaintenanceReadyProgram {
+    # Readiness polling only; the existing full Guest proof remains authoritative.
+    return @'
+import http.client, json, os, socket, stat, subprocess
+p = subprocess.run(['/usr/bin/systemctl', 'show', 'incus.service', '--property=LoadState,ActiveState,SubState,MainPID', '--no-pager'], capture_output=True, timeout=3)
+rows = [line.split('=', 1) for line in p.stdout.decode('ascii').splitlines()]
+if p.returncode or p.stderr or len(rows) != 4 or any(len(row) != 2 for row in rows):
+    raise SystemExit(4)
+unit = dict(rows)
+if set(unit) != {'LoadState','ActiveState','SubState','MainPID'} or len(unit) != 4 or unit['LoadState'] != 'loaded':
+    raise SystemExit(4)
+if unit['ActiveState'] == 'activating' and unit['SubState'] in {'start','start-pre','start-post'}:
+    print('WAIT')
+elif unit['ActiveState'] == 'active' and unit['SubState'] == 'running' and unit['MainPID'].isdigit() and int(unit['MainPID']) > 0:
+    paths = [path for path in ['/var/lib/incus/unix.socket','/run/incus/unix.socket'] if os.path.exists(path)]
+    if len(paths) != 1 or os.path.realpath(paths[0]) != paths[0] or not stat.S_ISSOCK(os.stat(paths[0]).st_mode):
+        raise SystemExit(4)
+    connection = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    connection.settimeout(2)
+    try:
+        connection.connect(paths[0])
+        client = http.client.HTTPConnection('localhost', timeout=2)
+        client.sock = connection
+        client.request('GET', '/internal/ready')
+        response = client.getresponse()
+        data = response.read(65537)
+        if len(data) > 65536 or response.status not in {200,503}:
+            raise SystemExit(4)
+        print('READY' if response.status == 200 else 'WAIT')
+        client.close()
+    finally:
+        connection.close()
+else:
+    raise SystemExit(4)
+'@
+}
+
 function Assert-WslMaintenanceScenario($Scenario) {
     $fields=@('schema_version','source_commit','host','registration_sha256','repository_root',
         'guest_checkout','guest_helper_sha256','intent_sha256','recovery_reference','prestate_sha256',
@@ -127,14 +189,15 @@ function Invoke-WslResourceMaintenance {
         phase='ADMISSION';changed=$false;recovery_required=$false;resource_verified=$false;
         runtime_effect_attempted=$false;shutdown_attempted=$false;relaunch_attempted=$false;
         bridge_restored=$false;route_changes=0;services_verified=$false;error='NONE'}
-    $update=$null;$reconcile=$null;$before=$null;$stopped=$false;$effectAttempted=$false
+    $update=$null;$reconcile=$null;$before=$null;$stopped=$false;$effectAttempted=$false;$lifetimeAttempted=$false
     try {
         Assert-WslMaintenanceScenario $Scenario
         foreach($name in @('Observe','Lock','Unlock','StopBridge','Plan','Apply','CheckPreservation',
             'Shutdown','Relaunch','Effective','Address','Routes','SetRoute','CommitState',
-            'RestoreBridge','Final','Intent','BeginRecovery')){
+            'RestoreBridge','Final','Intent','BeginRecovery','BeginLifetime','EndLifetime','ReadLeaseStatus')){
             if(!$Ports.Contains($name) -or $Ports[$name] -isnot [scriptblock]){throw 'PORTS_INVALID'}
         }
+        $lifetimeAttempted=$true; & $Ports.BeginLifetime | Out-Null
         $before=& $Ports.Observe $Scenario
         if($before.admitted -isnot [bool] -or !$before.admitted -or
             $before.prestate_sha256 -cne $Scenario.prestate_sha256){throw 'PRESTATE_MISMATCH'}
@@ -194,6 +257,7 @@ function Invoke-WslResourceMaintenance {
             catch{$summary.recovery_required=$true;$summary.status='RECOVERY_REQUIRED'}
         }
         if($null -ne $update){try{& $Ports.Unlock $update | Out-Null}catch{$summary.recovery_required=$true;$summary.status='RECOVERY_REQUIRED'}}
+        if($lifetimeAttempted){try{& $Ports.EndLifetime | Out-Null}catch{$summary.recovery_required=$true;$summary.status='RECOVERY_REQUIRED'}}
         if($summary.recovery_required){$summary.status='RECOVERY_REQUIRED'}
     }
     return $summary
@@ -327,16 +391,18 @@ function New-WslMaintenanceProductionPorts {
     $planValidator=${function:Assert-WslMaintenanceResourcePlan}
     $firewallCommand=Get-WslMaintenanceFirewallCertificateCommand
     $certificateValidator=${function:ConvertFrom-WslMaintenanceFirewallCertificate}
-    $module=New-Module -Name Epic440WslMaintenance -ArgumentList $Scenario,$digestFunction,$registryFunction,$netshFunction,$planValidator,$firewallCommand,$certificateValidator -ScriptBlock {
-        param($Scenario,$digestFunction,$registryFunction,$netshFunction,$planValidator,$firewallCommand,$certificateValidator)
+    $leaseProgram=Get-WslMaintenanceLeaseProgram;$readyProgram=Get-WslMaintenanceReadyProgram
+    $module=New-Module -Name Epic440WslMaintenance -ArgumentList $Scenario,$digestFunction,$registryFunction,$netshFunction,$planValidator,$firewallCommand,$certificateValidator,$leaseProgram,$readyProgram -ScriptBlock {
+        param($Scenario,$digestFunction,$registryFunction,$netshFunction,$planValidator,$firewallCommand,$certificateValidator,$leaseProgram,$readyProgram)
         Set-Item Function:script:Get-WslMaintenanceDigest $digestFunction
         Set-Item Function:script:ConvertFrom-WslMaintenanceFirewallCertificate $certificateValidator
         Set-Item Function:script:Get-WslMaintenanceRegistrySnapshot $registryFunction
         Set-Item Function:script:ConvertFrom-WslMaintenanceNetshAll $netshFunction
         Set-Item Function:script:Assert-WslMaintenanceResourcePlan $planValidator
         $script:clock=[Diagnostics.Stopwatch]::StartNew();$script:commandCount=0;$script:outputBytes=0
-        $script:limits=@{seconds=1800;commands=256;bytes=67108864};$script:recoveryBegun=$false
+        $script:limits=@{seconds=4800;commands=512;bytes=67108864};$script:recoveryBegun=$false
         $script:firewallCommand=$firewallCommand
+        $script:leaseProgram=$leaseProgram;$script:readyProgram=$readyProgram
         $script:s=$Scenario
         $script:root=$s.repository_root
         Import-Module (Join-Path $root 'bootstrap/windows/preparation/Preparation.psm1') -Force -DisableNameChecking
@@ -350,8 +416,111 @@ function New-WslMaintenanceProductionPorts {
             -ConfigPath (Join-Path $root 'bootstrap/windows/tws-wsl-bridge.config.json') `
             -PortRegistryPath (Join-Path $root 'infra/config/ports.yaml')
         $script:resumedAt=$null;$script:expectedRegistry=$null;$script:stateOriginal=$null;$script:routeSets=0
+        $script:lease=$null;$script:retiredLeases=@()
+        function PhaseRemaining {
+            return $script:limits.seconds-[int][Math]::Ceiling($script:clock.Elapsed.TotalSeconds)-15
+        }
+        function AssertLease($Lease) {
+            if($null -eq $Lease -or $Lease.process.HasExited -or $Lease.process.Id -ne $Lease.pid -or
+               $Lease.process.StartTime.ToUniversalTime().Ticks -ne $Lease.start -or
+               ![StringComparer]::OrdinalIgnoreCase.Equals($Lease.process.MainModule.FileName,$Lease.exe) -or
+               $Lease.stderr.Length -gt 4096 -or $Lease.closed.IsCompleted){throw 'READ_LEASE_LOST'}
+        }
+        function ReadLeaseStatus {
+            if($null -eq $script:lease){return @{owned=$false;alive=$false}}
+            AssertLease $script:lease
+            return @{owned=$true;alive=$true;pid=$script:lease.pid;start_ticks=$script:lease.start;
+                remaining_seconds=[Math]::Max(0,$script:lease.seconds-$script:lease.clock.Elapsed.TotalSeconds)}
+        }
+        function CloseLease($Lease,[switch]$AllowExpired) {
+            if($null -eq $Lease){return}
+            $closed=$false
+            try{
+                if($AllowExpired -and $Lease.process.HasExited -and $Lease.process.ExitCode -eq 3 -and
+                   $Lease.clock.Elapsed.TotalSeconds -ge $Lease.seconds -and $Lease.closed.Wait(500) -and
+                   $null -eq $Lease.closed.Result -and $Lease.errorTask.Wait(500) -and $Lease.stderr.Length -eq 0 -and
+                   $Lease.process.StandardOutput.ReadToEnd().Length -eq 0){$closed=$true;return}
+                AssertLease $Lease
+                $Lease.process.StandardInput.Close()
+                if(!$Lease.process.WaitForExit(4000) -or !$Lease.closed.Wait(500) -or
+                   !$Lease.errorTask.Wait(500) -or $Lease.closed.Result -cne 'CLOSED' -or
+                   $Lease.process.ExitCode -ne 0 -or $Lease.stderr.Length -ne 0 -or
+                   $Lease.process.StandardOutput.ReadToEnd().Length -ne 0){throw 'READ_LEASE_CLOSE_UNVERIFIED'}
+                $closed=$true
+            }finally{
+                if(!$closed){
+                    # Kill only our still-bound Windows launcher, never infer Linux exit.
+                    try{if(!$Lease.process.HasExited -and $Lease.process.Id -eq $Lease.pid -and
+                        $Lease.process.StartTime.ToUniversalTime().Ticks -eq $Lease.start -and
+                        [StringComparer]::OrdinalIgnoreCase.Equals($Lease.process.MainModule.FileName,$Lease.exe)){
+                        $Lease.process.StandardInput.Close();$Lease.process.Kill();[void]$Lease.process.WaitForExit(500)}}catch{}
+                }
+                $Lease.process.Dispose();$Lease.stderr.Dispose()
+            }
+        }
+        function EndLifetime {
+            $leases=@($script:lease)+@($script:retiredLeases);$script:lease=$null;$script:retiredLeases=@();$failed=$false
+            foreach($lease in $leases){try{CloseLease $lease}catch{$failed=$true}}
+            if($failed){throw 'READ_LEASE_CLOSE_UNVERIFIED'}
+        }
+        function NewReadLease {
+            $seconds=ClaimCommand
+            $seconds=[Math]::Min($seconds,$script:limits.seconds)
+            if($seconds -lt 1){throw 'READ_LEASE_DEADLINE'}
+            $exe=& $preparation {Get-PreparationExecutable 'wsl.exe'}
+            $code="exec(__import__('base64').b64decode('"+[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($script:leaseProgram))+"'))"
+            $info=[Diagnostics.ProcessStartInfo]::new();$info.FileName=$exe
+            $info.WorkingDirectory=[Environment]::GetFolderPath('System');$info.UseShellExecute=$false;$info.CreateNoWindow=$true
+            $info.Arguments='--distribution Ubuntu --user root --exec /usr/bin/python3 -I -S -c "'+$code+'" '+$seconds
+            $info.RedirectStandardInput=$true;$info.RedirectStandardOutput=$true;$info.RedirectStandardError=$true
+            $process=[Diagnostics.Process]::new();$process.StartInfo=$info;$stream=[IO.MemoryStream]::new();$lease=$null
+            try{
+                if(!$process.Start()){throw 'READ_LEASE_START_FAILED'}
+                $lease=@{process=$process;pid=$process.Id;start=$process.StartTime.ToUniversalTime().Ticks;
+                    exe=$exe;stderr=$stream;clock=[Diagnostics.Stopwatch]::StartNew();seconds=$seconds}
+                if(![StringComparer]::OrdinalIgnoreCase.Equals($process.MainModule.FileName,$exe)){throw 'READ_LEASE_EXECUTABLE_DRIFT'}
+                $lease.errorTask=$process.StandardError.BaseStream.CopyToAsync($stream)
+                $ready=$process.StandardOutput.ReadLineAsync()
+                if(!$ready.Wait([Math]::Min(120,$seconds)*1000) -or $ready.Result -cne 'READY' -or $stream.Length -ne 0){throw 'READ_LEASE_START_FAILED'}
+                $lease.closed=$process.StandardOutput.ReadLineAsync()
+                AssertLease $lease
+                return $lease
+            }catch{
+                if($null -ne $lease){
+                    try{$process.StandardInput.Close();if(!$process.WaitForExit(4000)){
+                        if($process.Id -eq $lease.pid -and $process.StartTime.ToUniversalTime().Ticks -eq $lease.start -and
+                           [StringComparer]::OrdinalIgnoreCase.Equals($process.MainModule.FileName,$lease.exe)){
+                            $process.Kill();[void]$process.WaitForExit(500)
+                        }
+                    }}catch{}
+                }
+                $process.Dispose();$stream.Dispose()
+                throw 'READ_LEASE_START_FAILED'
+            }
+        }
+        function WaitIncusReady($Wait) {
+            $code="exec(__import__('base64').b64decode('"+[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($script:readyProgram))+"'))"
+            while($Wait.Elapsed.TotalSeconds -lt 120){
+                AssertLease $script:lease
+                $remaining=[Math]::Min((PhaseRemaining),(120-$Wait.Elapsed.TotalSeconds))
+                if($remaining -lt 1){throw 'READINESS_DEADLINE'}
+                $state=Wsl @('--distribution','Ubuntu','--user','root','--exec','/usr/bin/python3','-I','-S','-c',$code) ([Math]::Min(8,[int]$remaining))
+                if($state.Trim() -ceq 'READY'){return}
+                if($state.Trim() -cne 'WAIT'){throw 'READINESS_RESPONSE_INVALID'}
+                Start-Sleep -Milliseconds 500
+            }
+            throw 'READINESS_DEADLINE'
+        }
+        function BeginLifetime {
+            Source
+            if((@(Running) -join ',') -cne 'Ubuntu'){throw 'RUNNING_REGISTRATION_MISMATCH'}
+            if($null -ne $script:lease){AssertLease $script:lease;return}
+            $wait=[Diagnostics.Stopwatch]::StartNew();$script:lease=NewReadLease
+            WaitIncusReady $wait
+        }
+
         function ClaimCommand {
-            $remaining=$script:limits.seconds-[int][Math]::Ceiling($script:clock.Elapsed.TotalSeconds)
+            $remaining=PhaseRemaining
             if($remaining -le 0 -or $script:commandCount -ge $script:limits.commands){throw 'MAINTENANCE_DEADLINE'}
             $script:commandCount++
             return $remaining
@@ -360,7 +529,14 @@ function New-WslMaintenanceProductionPorts {
             if($script:recoveryBegun){throw 'RECOVERY_ALREADY_STARTED'}
             $script:recoveryBegun=$true
             $script:clock=[Diagnostics.Stopwatch]::StartNew();$script:commandCount=0;$script:outputBytes=0
-            $script:limits=@{seconds=600;commands=128;bytes=67108864}
+            $script:limits=@{seconds=3600;commands=384;bytes=67108864}
+            if($null -ne $script:lease){
+                $previous=$script:lease;$script:retiredLeases+=@($previous);$script:lease=$null
+                Source
+                if((@(Running) -join ',') -cne 'Ubuntu'){throw 'RUNNING_REGISTRATION_MISMATCH'}
+                $script:lease=NewReadLease
+                CloseLease $previous -AllowExpired;$script:retiredLeases=@()
+            }
         }
         function Run([string]$File,[string[]]$Arguments,[int]$Timeout=30,[int]$OutputLimit=8388608,[int[]]$ExpectedExits=@(0)){
             $remaining=ClaimCommand
@@ -538,10 +714,14 @@ function New-WslMaintenanceProductionPorts {
                 all=$all;state=(Get-ProtectedBridgeState);service_state=[string]$owner.Service.Status;
                 running=($owner.Service.Status -eq 'Running')}
         }
+        function AssertMappingCount($State) {
+            if(@($State.mappings).Count -gt 24){throw 'MAPPING_COUNT_BOUND'}
+        }
         function Observe {
             Source
             if((@(Running) -join ',') -cne 'Ubuntu'){throw 'RUNNING_REGISTRATION_MISMATCH'}
             $guest=Guest;$net=Snapshot
+            AssertMappingCount $net.state
             if($net.service_state -notin @('Running','Stopped')){throw 'BRIDGE_RUNTIME_DRIFT'}
             if($net.running -and !(Test-BridgeServiceReady)){throw 'BRIDGE_RUNTIME_CONTRACT_NOT_READY'}
             $facts=& $preparationPorts.Inventory $options
@@ -662,13 +842,16 @@ function New-WslMaintenanceProductionPorts {
         }
         function Shutdown {
             if((@(Running) -join ',') -cne 'Ubuntu'){throw 'RUNNING_REGISTRATION_MISMATCH'}
+            EndLifetime
             $null=Wsl @('--shutdown') 60
             if(@(Running).Count -ne 0){throw 'SHUTDOWN_UNVERIFIED'}
         }
         function Relaunch {
             $null=Registration
             if(@(Running).Count -ne 0){throw 'RUNNING_REGISTRATION_MISMATCH'}
-            $null=Wsl @('--distribution','Ubuntu','--exec','/usr/bin/true') 120
+            $wait=[Diagnostics.Stopwatch]::StartNew()
+            $script:lease=NewReadLease
+            WaitIncusReady $wait
             if((@(Running) -join ',') -cne 'Ubuntu'){throw 'RELAUNCH_UNVERIFIED'}
         }
         function Effective($Ignored,$Before){
@@ -904,12 +1087,15 @@ function New-WslMaintenanceProductionPorts {
                 route_changes=0;w05_replayed=$false;services_verified=$false}
             $update=$null;$reconcile=$null;$before=$null;$quiesced=$false
             try{
+                BeginRecovery
                 Source
                 $running=@(Running)
                 if($running.Count -eq 0){$result.reentry_attempted=$true;Relaunch}
                 elseif(($running -join ',') -cne 'Ubuntu'){throw 'RUNNING_REGISTRATION_MISMATCH'}
+                else{BeginLifetime}
                 $intent=ReadIntent
                 $guest=Guest;$facts=& $preparationPorts.Inventory $options;$net=Snapshot
+                AssertMappingCount $net.state
                 if(@($facts.bridge_facts.blockers | Where-Object{$_ -cne 'foreign_portproxy_rule'}).Count -ne 0){throw 'RECOVERY_LISTENER_UNPROVEN'}
                 $static=StableState $net.state;$static.Remove('wslIp')
                 if($net.service_state -notin @('Running','Stopped') -or
@@ -965,17 +1151,18 @@ function New-WslMaintenanceProductionPorts {
             }catch{$result.status='RECOVERY_REQUIRED'}finally{
                 if($null -ne $reconcile){try{Unlock $reconcile}catch{};$reconcile=$null}
                 if($quiesced -and $null -ne $before){
-                    try{BeginRecovery;CheckPreservation $before 'RECOVERY';RestoreBridge $before;Final $s $before;$result.bridge_restored=$true}catch{}
+                    try{if(!$script:recoveryBegun){BeginRecovery};CheckPreservation $before 'RECOVERY';RestoreBridge $before;Final $s $before;$result.bridge_restored=$true}catch{}
                 }
                 if($null -ne $update){try{Unlock $update}catch{$result.status='RECOVERY_REQUIRED'}}
+                try{EndLifetime}catch{$result.status='RECOVERY_REQUIRED'}
             }
             return $result
         }
-        Export-ModuleMember -Function Observe,Lock,Unlock,StopBridge,Plan,Apply,CheckPreservation,Shutdown,Relaunch,Effective,Address,Routes,SetRoute,CommitState,RestoreBridge,Final,Intent,BeginRecovery,Recover
+        Export-ModuleMember -Function Observe,Lock,Unlock,StopBridge,Plan,Apply,CheckPreservation,Shutdown,Relaunch,Effective,Address,Routes,SetRoute,CommitState,RestoreBridge,Final,Intent,BeginRecovery,Recover,BeginLifetime,EndLifetime,ReadLeaseStatus
     }
     $ports=@{}
     foreach($name in @('Observe','Lock','Unlock','StopBridge','Plan','Apply','CheckPreservation','Shutdown','Relaunch',
-        'Effective','Address','Routes','SetRoute','CommitState','RestoreBridge','Final','Intent','BeginRecovery','Recover')){
+        'Effective','Address','Routes','SetRoute','CommitState','RestoreBridge','Final','Intent','BeginRecovery','Recover','BeginLifetime','EndLifetime','ReadLeaseStatus')){
         $ports[$name]={& $module {param($command,$arguments) & $command @arguments} $name $args}.GetNewClosure()
     }
     return $ports

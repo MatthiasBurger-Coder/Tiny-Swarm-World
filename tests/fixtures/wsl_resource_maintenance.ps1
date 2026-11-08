@@ -41,6 +41,9 @@ function MockPorts([string]$Fault=''){
     $p.RestoreBridge={param($b) [void]$ctx.calls.Add('restore');$ctx.restores++
         if($ctx.fault -eq 'restore'){throw 'restore'}}.GetNewClosure()
     $p.Final={param($s,$b) [void]$ctx.calls.Add('final');if($ctx.fault -eq 'final'){throw 'final'}}.GetNewClosure()
+    $p.BeginLifetime={[void]$ctx.calls.Add('lease_begin');if($ctx.fault -eq 'lease_begin'){throw 'lease'}}.GetNewClosure()
+    $p.EndLifetime={[void]$ctx.calls.Add('lease_end');if($ctx.fault -eq 'lease_end'){throw 'lease'}}.GetNewClosure()
+    $p.ReadLeaseStatus={return @{owned=$true;alive=$true}}
     $p.BeginRecovery={[void]$ctx.calls.Add('begin_recovery')}.GetNewClosure()
     $p._context=$ctx
     return $p
@@ -51,17 +54,19 @@ $result=Invoke-WslResourceMaintenance (Scenario) $p
 Assert ($result.status -ceq 'MAINTENANCE_COMPLETE' -and $result.resource_verified -and !$result.services_verified) 'complete'
 Assert ($result.route_changes -eq 2 -and $p._context.sets -eq 2 -and $p._context.restores -eq 1) 'exact_changes'
 $calls=@($p._context.calls)
+Assert ([Array]::IndexOf($calls,'lease_begin') -lt [Array]::IndexOf($calls,'observe')) 'lease_precedes_observe'
+Assert ($calls[-1] -ceq 'lease_end') 'lease_closed_after_all_final_proofs'
 Assert ([Array]::IndexOf($calls,'stop') -lt [Array]::IndexOf($calls,'plan')) 'fresh_after_stop'
 Assert ([Array]::IndexOf($calls,'commit') -lt [Array]::IndexOf($calls,'restore')) 'commit_before_resume'
 Assert ([Array]::IndexOf($calls,'unlock:Global\TinySwarmWorldWslBridgeReconcile') -lt [Array]::IndexOf($calls,'restore')) 'unlock_before_resume'
 $cases++
 
-foreach($fault in @('observe','intent','lock2','stop','extra_action','extra_blocker','apply','uncertain',
+foreach($fault in @('lease_begin','lease_end','observe','intent','lock2','stop','extra_action','extra_blocker','apply','uncertain',
     'preserve','shutdown','relaunch','effective','set2','restore','final','recovery')){
     $p=MockPorts $fault;$result=Invoke-WslResourceMaintenance (Scenario) $p
     Assert ($result.status -cne 'MAINTENANCE_COMPLETE') ('fault_pass_'+$fault)
     Assert (($result | ConvertTo-Json -Compress) -notmatch 'PRIVATE_IP_ACL_SID_CANARY') 'redaction'
-    if($fault -in @('observe','intent','lock2','stop','extra_action','extra_blocker')){
+    if($fault -in @('lease_begin','observe','intent','lock2','stop','extra_action','extra_blocker')){
         Assert (@($p._context.calls | Where-Object{$_ -eq 'apply'}).Count -eq 0) ('unexpected_apply_'+$fault)
     }
     if($fault -in @('apply','uncertain','preserve')){
@@ -122,6 +127,84 @@ if($NativeFixtureRoot){
     $ports=New-WslMaintenanceProductionPorts $s
     $adapter=$ports.Routes.Module.SessionState.PSVariable.GetValue('module')
     Assert ($null -ne $adapter) 'production_module_binding'
+    # Host process effects remain mocked in this fixture; Python protocol tests
+    # separately execute the exact literal child and prove EOF/expiry semantics.
+    & $adapter {$script:realBeginLifetime=${function:BeginLifetime};$script:realEndLifetime=${function:EndLifetime};function script:BeginLifetime {};function script:EndLifetime {}}
+    & $adapter {
+        function script:FakeLease([string]$Fault='') {
+            $ctx=@{closed=$false;kills=0;disposed=$false}
+            $task=[pscustomobject]@{IsCompleted=$false;Result=$null}
+            $task | Add-Member ScriptMethod Wait {param($Milliseconds) return $true}
+            $done=[pscustomobject]@{}
+            $done | Add-Member ScriptMethod Wait {param($Milliseconds) return $true}
+            $stream=[IO.MemoryStream]::new()
+            $input=[pscustomobject]@{ctx=$ctx;task=$task;fault=$Fault}
+            $input | Add-Member ScriptMethod Close {
+                $this.ctx.closed=$true
+                if($this.fault -ne 'timeout'){$this.ctx.process.HasExited=$true}
+                $this.task.IsCompleted=$true;$this.task.Result=$(if($this.fault -eq 'bad_ack'){'OTHER'}else{'CLOSED'})
+            }
+            $output=[pscustomobject]@{}
+            $output | Add-Member ScriptMethod ReadToEnd {return ''}
+            $process=[pscustomobject]@{Id=77;StartTime=([datetime]'2026-01-01T00:00:00Z');
+                MainModule=[pscustomobject]@{FileName='C:/Windows/System32/wsl.exe'};
+                HasExited=$false;ExitCode=0;StandardInput=$input;StandardOutput=$output;ctx=$ctx}
+            $process | Add-Member ScriptMethod WaitForExit {param($Milliseconds) return $this.HasExited}
+            $process | Add-Member ScriptMethod Kill {$this.ctx.kills++;$this.HasExited=$true}
+            $process | Add-Member ScriptMethod Dispose {$this.ctx.disposed=$true}
+            $ctx.process=$process
+            $lease=@{process=$process;pid=77;start=$process.StartTime.ToUniversalTime().Ticks;
+                exe='C:/Windows/System32/wsl.exe';stderr=$stream;closed=$task;errorTask=$done;
+                clock=[pscustomobject]@{Elapsed=[TimeSpan]::Zero};seconds=10;context=$ctx}
+            if($Fault -eq 'identity'){$process.MainModule.FileName='C:/unknown.exe'}
+            if($Fault -eq 'expired'){$process.HasExited=$true;$process.ExitCode=3;$task.IsCompleted=$true;
+                $lease.clock=[pscustomobject]@{Elapsed=[TimeSpan]::FromSeconds(10)}}
+            return $lease
+        }
+        $good=FakeLease;CloseLease $good
+        if(!$good.context.closed -or !$good.context.disposed -or $good.context.kills -ne 0){throw 'lease_not_cleanly_closed'}
+        foreach($fault in @('identity','bad_ack','timeout')){
+            $lease=FakeLease $fault;$blocked=$false
+            try{CloseLease $lease}catch{$blocked=$true}
+            if(!$blocked -or !$lease.context.disposed){throw 'lease_failure_claimed_success'}
+            if($fault -eq 'identity' -and $lease.context.kills -ne 0){throw 'unknown_process_killed'}
+        }
+        $expired=FakeLease 'expired';CloseLease $expired -AllowExpired
+        if(!$expired.context.disposed -or $expired.context.kills -ne 0){throw 'finite_expired_child_not_settled'}
+        $early=FakeLease 'expired';$early.clock.Elapsed=[TimeSpan]::Zero;$blocked=$false
+        try{CloseLease $early -AllowExpired}catch{$blocked=$true}
+        if(!$blocked){throw 'early_nonzero_not_expiry'}
+        $originalSource=${function:Source};$originalRunning=${function:Running}
+        $originalNew=${function:NewReadLease};$originalWait=${function:WaitIncusReady}
+        try{
+            function script:Source {}
+            function script:Running {return 'Ubuntu'}
+            $script:lease=FakeLease;$same=$script:lease
+            & $script:realBeginLifetime;& $script:realBeginLifetime
+            if(![object]::ReferenceEquals($same,$script:lease) -or $script:lease.seconds -ne 10){throw 'idempotent_lease_was_replaced'}
+            foreach($names in @(@(),@('Ubuntu','FOREIGN'))){
+                $script:testRunning=$names
+                function script:Running {return $script:testRunning}
+                $blocked=$false;try{& $script:realBeginLifetime}catch{$blocked=$true}
+                if(!$blocked){throw 'stopped_or_foreign_lifetime_admitted'}
+            }
+            CloseLease $same;$script:lease=$null
+        }finally{
+            Set-Item Function:script:Source $originalSource;Set-Item Function:script:Running $originalRunning
+            Set-Item Function:script:NewReadLease $originalNew;Set-Item Function:script:WaitIncusReady $originalWait
+            $script:lease=$null
+        }
+        AssertMappingCount @{mappings=@(1..24)}
+        $blocked=$false;try{AssertMappingCount @{mappings=@(1..25)}}catch{$blocked=$true}
+        if(!$blocked){throw 'mapping25_admitted'}
+        $script:clock=[Diagnostics.Stopwatch]::StartNew();$script:limits=@{seconds=4800;commands=512;bytes=67108864}
+        $script:commandCount=511;$null=ClaimCommand;$blocked=$false
+        try{$null=ClaimCommand}catch{$blocked=$true};if(!$blocked){throw 'command513_admitted'}
+        $script:commandCount=0;$script:clock=[pscustomobject]@{Elapsed=[TimeSpan]::FromSeconds(4785)}
+        $blocked=$false;try{$null=ClaimCommand}catch{$blocked=$true};if(!$blocked){throw 'cleanup_reserve_consumed'}
+        $script:clock=[Diagnostics.Stopwatch]::StartNew();$script:commandCount=0
+    }
+    $cases+=13
     # Real production Run/Firewall reader with fake child transport only. The
     # separate shared-producer contract executes the full8.9MB payload in RAM.
     $certificateRaw=([ordered]@{schema_version='tsw.windows-firewall-certificate.v1';
@@ -305,7 +388,7 @@ if($NativeFixtureRoot){
         $script:serviceCalls.Clear();$script:fixture.address='192.0.2.5';$script:fixture.enforce_budget=$true
         $script:fixtureState.wslIp='192.0.2.5'
         $script:fixtureRegistry[0].value='192.0.2.5/2222';$script:fixtureRegistry[1].value='192.0.2.5/4444'
-        $script:clock=[Diagnostics.Stopwatch]::StartNew();$script:limits=@{seconds=1800;commands=256;bytes=67108864}
+        $script:clock=[Diagnostics.Stopwatch]::StartNew();$script:limits=@{seconds=4800;commands=512;bytes=67108864}
         $script:recoveryBegun=$false;$script:routeSets=0;$script:resumedAt=$null
         $script:expectedRegistry=@((Snapshot).registry)
         $script:stateOriginal=Get-WslMaintenanceDigest $script:fixtureState
@@ -320,7 +403,7 @@ if($NativeFixtureRoot){
         function script:Source {}
         function script:WaitHeartbeat {}
         function script:Plan {
-            $script:clock=[pscustomobject]@{Elapsed=([TimeSpan]::FromSeconds(1801))}
+            $script:clock=[pscustomobject]@{Elapsed=([TimeSpan]::FromSeconds(4801))}
             $null=ClaimCommand
             throw 'UNREACHABLE'
         }
@@ -328,7 +411,7 @@ if($NativeFixtureRoot){
     $recovered=Invoke-WslResourceMaintenance $s $ports
     Assert ($recovered.status -ceq 'BLOCKED' -and $recovered.bridge_restored -and !$recovered.recovery_required) 'deadline_reserve_restores_healthy_original_runtime'
     Assert ((& $adapter {$script:fixtureService.Status}) -ceq 'Running') 'deadline_bridge_not_left_stopped'
-    Assert ((& $adapter {$script:recoveryBegun -and $script:limits.seconds -eq 600 -and $script:commandCount -gt 0})) 'real_production_recovery_clock_used'
+    Assert ((& $adapter {$script:recoveryBegun -and $script:limits.seconds -eq 3600 -and $script:commandCount -gt 0})) 'real_production_recovery_clock_used'
     $resetDenied=$false;try{& $ports.BeginRecovery}catch{$resetDenied=$true}
     Assert $resetDenied 'recovery_budget_not_resettable'
     $cases++
@@ -362,7 +445,7 @@ if($NativeFixtureRoot){
             $script:fixtureService.Status='Stopped';$script:fixtureService.DependentServices=@();$script:fixtureService.ServicesDependedOn=@()
             $script:fixtureState.wslIp='192.0.2.5';$script:fixtureState.bundleId='PRESERVE_BUNDLE'
             $script:fixtureRegistry[0].value='192.0.2.5/2222';$script:fixtureRegistry[1].value='192.0.2.5/4444'
-            $script:clock=[Diagnostics.Stopwatch]::StartNew();$script:limits=@{seconds=1800;commands=256;bytes=67108864}
+            $script:clock=[Diagnostics.Stopwatch]::StartNew();$script:limits=@{seconds=4800;commands=512;bytes=67108864}
             $script:recoveryBegun=$false;$script:resumedAt=$null;$script:routeSets=0
             $script:recoveryFacts=@{linux_known=$true;running=$true;uid=1000;user='fixture';linux_id='ubuntu';release='26.04';
                 linux_architecture='x86_64';wsl_generation=2;config_hash='same';config_metadata='same';systemd_configured=$true;
