@@ -4,6 +4,31 @@ $ProgressPreference='SilentlyContinue'
 # Open-instance CLR accessors propagate getter failures; PowerShell's dynamic
 # property adapter can otherwise silently turn a failed getter into null.
 $script:firewallPsValue=[Delegate]::CreateDelegate([Func[Management.Automation.PSMemberInfo,object]],[Management.Automation.PSMemberInfo].GetProperty('Value').GetGetMethod())
+function DynamicTargetConversion($ErrorRecord,$Member,$Item,$Native,$Raw){
+ # Exactly the pinned derived enum view and its proven public alias.
+ if($Item.CimSystemProperties.ClassName -cne 'MSFT_NetProtocolPortFilter' -or
+    $Raw.ContainsKey('DynamicTarget') -or !$Raw.ContainsKey('DynamicTransport') -or
+    $Raw['DynamicTransport'] -isnot [uint32] -or
+    $Native['DynamicTransport'][0] -cne 'UInt32' -or $Native['DynamicTransport'][1] -ne 33554436){return $null}
+ $target=$Member
+ if($Member -is [Management.Automation.PSAliasProperty] -and $Member.Name -ceq 'DynamicTransport' -and
+    $Member.MemberType -eq [Management.Automation.PSMemberTypes]::AliasProperty -and
+    $Member.ReferencedMemberName -ceq 'DynamicTarget'){$target=$Item.PSObject.Properties['DynamicTarget']}
+ elseif($Member.Name -cne 'DynamicTarget'){return $null}
+ if($target -isnot [Management.Automation.PSScriptProperty] -or $target.Name -cne 'DynamicTarget' -or
+    $target.MemberType -ne [Management.Automation.PSMemberTypes]::ScriptProperty){return $null}
+ $expected=@('System.Management.Automation.MethodInvocationException',
+  'System.Management.Automation.GetValueInvocationException','System.Management.Automation.RuntimeException',
+  'System.Management.Automation.PSInvalidCastException')
+ $exception=$ErrorRecord.Exception
+ foreach($type in $expected){if($null -eq $exception -or $exception.GetType().FullName -cne $type){return $null};$exception=$exception.InnerException}
+ if($null -ne $exception){return $null}
+ $sha=[Security.Cryptography.SHA256]::Create()
+ try{$getter=([BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($target.GetterScript.ToString())))).Replace('-','').ToLowerInvariant()}finally{$sha.Dispose()}
+ if($getter -cne '4c13885350db45b07859f387cee1006382074f4271efead21fab12426b2c5bf6'){return $null}
+ return [ordered]@{representation='tsw.netsecurity.dynamic-target-conversion-error.v1';native_property='DynamicTransport';
+  member_clr=$Member.GetType().FullName;getter_sha256=$getter;exception_types=$expected}
+}
 function Canonical($Item,[int]$Depth=0){
  if($Depth -gt 90){throw 'FIREWALL_DEPTH_BOUND'}
  if($null -eq $Item -or $Item -is [string] -or $Item -is [ValueType]){return $Item}
@@ -38,7 +63,13 @@ function Canonical($Item,[int]$Depth=0){
    # These are SDK introspection wrappers, not firewall configuration. Native
    # data with a colliding name is still fully present in native_properties.
    if($p.MemberType -eq [Management.Automation.PSMemberTypes]::Property -and $p.Name -in @('CimClass','CimInstanceProperties','CimSystemProperties')){continue}
-   try{$value=$script:firewallPsValue.Invoke($p)}catch{throw 'FIREWALL_DATA_UNREADABLE'}
+   try{$value=$script:firewallPsValue.Invoke($p)}catch{
+    $conversion=DynamicTargetConversion $_ $p $Item $native $raw
+    if($null -eq $conversion){throw 'FIREWALL_DATA_UNREADABLE'}
+    $entry=[object[]]::new(4);$entry[0]=[string]$p.MemberType;$entry[1]=$null
+    $entry[2]=if($p -is [Management.Automation.PSAliasProperty]){$p.ReferencedMemberName}else{$null};$entry[3]=$conversion
+    $overrides[$p.Name]=$entry;continue
+   }
    $target=$null;$isAlias=$false
    if($p.MemberType -eq [Management.Automation.PSMemberTypes]::AliasProperty -and $raw.ContainsKey($p.ReferencedMemberName)){$target=$p.ReferencedMemberName;$isAlias=$true}
    elseif($p.MemberType -eq [Management.Automation.PSMemberTypes]::Property -and $raw.ContainsKey($p.Name)){$target=$p.Name}

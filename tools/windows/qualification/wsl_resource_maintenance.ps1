@@ -20,6 +20,26 @@ function Get-WslMaintenanceDigest($Value) {
     finally{$hash.Dispose()}
 }
 
+function Get-WslMaintenanceFirewallCommand {
+    # Fixed source-only asset; no dynamic path, arguments, imports or sourcing.
+    $path=Join-Path $PSScriptRoot 'windows_firewall_snapshot.ps1'
+    $item=Get-Item -LiteralPath $path -Force
+    if($item.PSIsContainer -or ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)){throw 'FIREWALL_SOURCE_INVALID'}
+    $stream=[IO.FileStream]::new($path,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read)
+    try{
+        $bytes=[byte[]]::new(65537);$length=0
+        while($length -lt $bytes.Length){$read=$stream.Read($bytes,$length,($bytes.Length-$length));if($read -eq 0){break};$length+=$read}
+        if($length -eq 0 -or $length -gt 65536){throw 'FIREWALL_SOURCE_BOUND'}
+        if($length -ge 3 -and $bytes[0] -eq 239 -and $bytes[1] -eq 187 -and $bytes[2] -eq 191){throw 'FIREWALL_SOURCE_INVALID'}
+        $hash=[Security.Cryptography.SHA256]::Create()
+        try{$actual=([BitConverter]::ToString($hash.ComputeHash($bytes,0,$length))).Replace('-','').ToLowerInvariant()}finally{$hash.Dispose()}
+        if($actual -cne 'a6a5aee14f32ada47cd14b58f59372fc0ba21ceaef64401d93b94822932c19e5'){throw 'FIREWALL_SOURCE_MISMATCH'}
+        $text=([Text.UTF8Encoding]::new($false,$true)).GetString($bytes,0,$length)
+        if($text.Contains("`0")){throw 'FIREWALL_SOURCE_INVALID'}
+        return $text
+    }finally{$stream.Dispose()}
+}
+
 function Assert-WslMaintenanceScenario($Scenario) {
     $fields=@('schema_version','source_commit','host','registration_sha256','repository_root',
         'guest_checkout','guest_helper_sha256','intent_sha256','recovery_reference','prestate_sha256',
@@ -262,14 +282,16 @@ function New-WslMaintenanceProductionPorts {
     $registryFunction=${function:Get-WslMaintenanceRegistrySnapshot}
     $netshFunction=${function:ConvertFrom-WslMaintenanceNetshAll}
     $planValidator=${function:Assert-WslMaintenanceResourcePlan}
-    $module=New-Module -Name Epic440WslMaintenance -ArgumentList $Scenario,$digestFunction,$registryFunction,$netshFunction,$planValidator -ScriptBlock {
-        param($Scenario,$digestFunction,$registryFunction,$netshFunction,$planValidator)
+    $firewallCommand=Get-WslMaintenanceFirewallCommand
+    $module=New-Module -Name Epic440WslMaintenance -ArgumentList $Scenario,$digestFunction,$registryFunction,$netshFunction,$planValidator,$firewallCommand -ScriptBlock {
+        param($Scenario,$digestFunction,$registryFunction,$netshFunction,$planValidator,$firewallCommand)
         Set-Item Function:script:Get-WslMaintenanceDigest $digestFunction
         Set-Item Function:script:Get-WslMaintenanceRegistrySnapshot $registryFunction
         Set-Item Function:script:ConvertFrom-WslMaintenanceNetshAll $netshFunction
         Set-Item Function:script:Assert-WslMaintenanceResourcePlan $planValidator
         $script:clock=[Diagnostics.Stopwatch]::StartNew();$script:commandCount=0;$script:outputBytes=0
         $script:limits=@{seconds=1800;commands=256;bytes=67108864};$script:recoveryBegun=$false
+        $script:firewallCommand=$firewallCommand
         $script:s=$Scenario
         $script:root=$s.repository_root
         Import-Module (Join-Path $root 'bootstrap/windows/preparation/Preparation.psm1') -Force -DisableNameChecking
@@ -423,25 +445,8 @@ function New-WslMaintenanceProductionPorts {
             return $proof
         }
         function Firewall {
-            $command=@'
-$ErrorActionPreference='Stop'
-$ProgressPreference='SilentlyContinue'
-$rules=@(Get-NetFirewallRule -PolicyStore ActiveStore | Sort-Object Name | ForEach-Object {
- $r=$_;[ordered]@{rule=($r | Select-Object *);
- profiles=@(Get-NetFirewallProfile -AssociatedNetFirewallRule $r -PolicyStore ActiveStore | Select-Object *);
- address=@(Get-NetFirewallAddressFilter -AssociatedNetFirewallRule $r -PolicyStore ActiveStore | Select-Object *);
- application=@(Get-NetFirewallApplicationFilter -AssociatedNetFirewallRule $r -PolicyStore ActiveStore | Select-Object *);
- interface=@(Get-NetFirewallInterfaceFilter -AssociatedNetFirewallRule $r -PolicyStore ActiveStore | Select-Object *);
- interface_type=@(Get-NetFirewallInterfaceTypeFilter -AssociatedNetFirewallRule $r -PolicyStore ActiveStore | Select-Object *);
- port=@(Get-NetFirewallPortFilter -AssociatedNetFirewallRule $r -PolicyStore ActiveStore | Select-Object *);
- security=@(Get-NetFirewallSecurityFilter -AssociatedNetFirewallRule $r -PolicyStore ActiveStore | Select-Object *);
- service=@(Get-NetFirewallServiceFilter -AssociatedNetFirewallRule $r -PolicyStore ActiveStore | Select-Object *)}
-})
-[ordered]@{profiles=@(Get-NetFirewallProfile -PolicyStore ActiveStore | Sort-Object Name | Select-Object *);
- settings=@(Get-NetFirewallSetting -PolicyStore ActiveStore | Select-Object *);rules=$rules} | ConvertTo-Json -Depth 100 -Compress
-'@
             $exe=& $preparation {Get-PreparationExecutable 'powershell.exe'}
-            return Run $exe @('-NoProfile','-NonInteractive','-Command',$command) 120 14680064
+            return Run $exe @('-NoProfile','-NonInteractive','-Command',$script:firewallCommand) 120 14680064
         }
         function StableState($State){
             $stable=[ordered]@{}
