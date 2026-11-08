@@ -10,12 +10,12 @@ resolved=$(readlink -e -- "$checkout") || exit 2
 [ "$(stat -c %u -- "$checkout")" = "$(id -u)" ] || exit 2
 filesystem=$(findmnt -n -o FSTYPE -T "$checkout") || exit 2
 case "$filesystem" in ext4|btrfs|xfs) ;; *) exit 2 ;; esac
-for asset in install.sh bootstrap/linux/prepare_linux.sh requirements.lock requirements.build.lock pyproject.toml src/tiny_swarm_world/prepare_linux.py; do
+for asset in bootstrap/linux/install.sh bootstrap/linux/prepare_linux.sh requirements.lock requirements.build.lock pyproject.toml src/tiny_swarm_world/prepare_linux.py; do
     path=$checkout/$asset
     [ -f "$path" ] && [ ! -L "$path" ] && [ "$(readlink -e -- "$path")" = "$path" ] || exit 2
     [ "$(stat -c %u -- "$path")" = "$(id -u)" ] || exit 2
 done
-[ -x "$checkout/install.sh" ] && [ -x "$checkout/bootstrap/linux/prepare_linux.sh" ] || exit 2
+[ -x "$checkout/bootstrap/linux/install.sh" ] && [ -x "$checkout/bootstrap/linux/prepare_linux.sh" ] || exit 2
 # Code below is supplied by the verified Windows source, never imported from checkout.
 /usr/bin/python3 -I -S -B - "$checkout" "$2" <<'TSW_HANDOFF_SOURCE'
 import base64
@@ -81,7 +81,10 @@ try:
                 raise ValueError("unsafe_entry")
             relative = prefix / name
             # The executable release surface, excluding documentation/governance.
-            if not prefix.parts and name not in ("src", "bootstrap", "tools", "infra", "install.sh", "requirements.lock", "requirements.build.lock", "pyproject.toml", "host-bindings.json"):
+            if not prefix.parts and name not in ("src", "bootstrap", "tools", "infra", "requirements.lock", "requirements.build.lock", "pyproject.toml", "host-bindings.json"):
+                continue
+            # Native entry points are outside the WSL executable source surface.
+            if relative.parts[:2] == ("src", "tsw_native_linux"):
                 continue
             path = root / relative
             if path.is_symlink() or path.stat().st_uid != os.getuid():
@@ -103,7 +106,8 @@ try:
     walk(match.group(1).decode(), Path())
     for directory in ("src", "bootstrap", "tools", "infra"):
         for current, dirs, files in os.walk(root / directory, followlinks=False):
-            dirs[:] = [name for name in dirs if name not in ("__pycache__", "logs")]
+            dirs[:] = [name for name in dirs if name not in ("__pycache__", "logs")
+                       and not (Path(current) == root / "src" and name == "tsw_native_linux")]
             if any((Path(current) / name).is_symlink() for name in dirs):
                 raise ValueError("local_directory_link")
             for name in files:

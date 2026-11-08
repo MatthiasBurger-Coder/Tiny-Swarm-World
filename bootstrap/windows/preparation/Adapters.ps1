@@ -50,7 +50,7 @@ function Invoke-PreparationProcess {
     } finally {$process.Dispose()}
 }
 function Get-PreparationSource($Options) {
-    $assets=@('install.sh','bootstrap/linux/prepare_linux.sh','bootstrap/windows/preparation/Handoff.ps1','bootstrap/windows/preparation/linux-handoff.sh','bootstrap/windows/prepare_windows.ps1','bootstrap/windows/preparation/Preparation.psm1','bootstrap/windows/preparation/Policy.ps1','bootstrap/windows/preparation/Application.ps1','bootstrap/windows/preparation/Adapters.ps1','bootstrap/windows/preparation/linux-config.sh','bootstrap/windows/preparation/Download.ps1','bootstrap/windows/preparation/SourceProof.ps1','bootstrap/windows/preparation/Resources.ps1','bootstrap/windows/preparation/ResourceAdapters.ps1','bootstrap/windows/preparation/ResourceHost.ps1','bootstrap/windows/preparation/linux-resources.sh','bootstrap/windows/preparation/resource-projection.json','src/tiny_swarm_world/domain/preflight/resources.py','src/tiny_swarm_world/domain/host_environment.py','infra/config/node-providers/provider_config.yaml','tools/windows/build_wsl_resource_projection.py','bootstrap/windows/preparation/Bridge.ps1','bootstrap/windows/tws-wsl-bridge.ps1','bootstrap/windows/tws-wsl-bridge-service.ps1','bootstrap/windows/tws-wsl-bridge.config.json','infra/config/ports.yaml')
+    $assets=@('bootstrap/linux/install.sh','bootstrap/linux/prepare_linux.sh','bootstrap/windows/preparation/Handoff.ps1','bootstrap/windows/preparation/linux-handoff.sh','bootstrap/windows/prepare_windows.ps1','bootstrap/windows/preparation/Preparation.psm1','bootstrap/windows/preparation/Policy.ps1','bootstrap/windows/preparation/Application.ps1','bootstrap/windows/preparation/Adapters.ps1','bootstrap/windows/preparation/linux-config.sh','bootstrap/windows/preparation/Download.ps1','bootstrap/windows/preparation/SourceProof.ps1','bootstrap/windows/preparation/Resources.ps1','bootstrap/windows/preparation/ResourceAdapters.ps1','bootstrap/windows/preparation/ResourceHost.ps1','bootstrap/windows/preparation/linux-resources.sh','bootstrap/windows/preparation/resource-projection.json','src/tiny_swarm_world/domain/preflight/resources.py','src/tiny_swarm_world/domain/host_environment.py','infra/config/node-providers/provider_config.yaml','tools/windows/build_wsl_resource_projection.py','bootstrap/windows/preparation/Bridge.ps1','bootstrap/windows/tws-wsl-bridge.ps1','bootstrap/windows/tws-wsl-bridge-service.ps1','bootstrap/windows/tws-wsl-bridge.config.json','infra/config/ports.yaml')
     $hashes=[ordered]@{}
     foreach($asset in $assets){$path=Join-Path $Options.RepositoryRoot $asset
     if(!(Test-Path -LiteralPath $path -PathType Leaf)){return @{verified=$false
@@ -84,7 +84,7 @@ function Get-PreparationSource($Options) {
             $value='';if($key -match '\.required$'){$value='false'}
             $safeGit+=@('-c',($key+'='+$value))
         }
-        $dirty=Invoke-PreparationProcess $git.Source ($safeGit+@('-C',$Options.RepositoryRoot,'status','--porcelain','--untracked-files=all','--ignore-submodules=all')) $Options.ProbeTimeoutSeconds
+        $dirty=Invoke-PreparationProcess $git.Source ($safeGit+@('-C',$Options.RepositoryRoot,'status','--porcelain','--untracked-files=all','--ignore-submodules=all','--','.',':(exclude)install.sh',':(exclude)tsw',':(exclude)src/tsw_native_linux')) $Options.ProbeTimeoutSeconds
         if($revision.exit_code -eq 0 -and $dirty.exit_code -eq 0){
             $assetsMatch=$true
             foreach($asset in $assets){

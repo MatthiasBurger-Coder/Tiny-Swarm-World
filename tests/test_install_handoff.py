@@ -18,11 +18,11 @@ class TestInstallHandoff(unittest.TestCase):
         self.addCleanup(self.temporary.cleanup)
         self.checkout = Path(self.temporary.name) / "checkout with spaces"
         self.checkout.mkdir()
-        for name in ("host-bindings.json", "install.sh", "bootstrap/linux/prepare_linux.sh", "requirements.lock", "requirements.build.lock", "pyproject.toml", "src/tiny_swarm_world/prepare_linux.py"):
+        for name in ("host-bindings.json", "bootstrap/linux/install.sh", "bootstrap/linux/prepare_linux.sh", "requirements.lock", "requirements.build.lock", "pyproject.toml", "src/tiny_swarm_world/prepare_linux.py"):
             path = self.checkout / name
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text("# fixture bytes\n")
-        (self.checkout / "install.sh").chmod(0o755)
+        (self.checkout / "bootstrap/linux/install.sh").chmod(0o755)
         (self.checkout / "bootstrap/linux/prepare_linux.sh").chmod(0o755)
         self.git("init", "--quiet")
         self.git("add", ".")
@@ -45,6 +45,22 @@ class TestInstallHandoff(unittest.TestCase):
         self.assertIn(str(self.checkout), result.stdout)
         after = {str(p.relative_to(self.checkout)): p.read_bytes() for p in self.checkout.rglob("*") if p.is_file()}
         self.assertEqual(before, after)
+
+    def test_native_edition_is_not_required_but_missing_core_installer_is_refused(self):
+        native = self.checkout / "src/tsw_native_linux/module.json"
+        native.parent.mkdir()
+        native.write_text('{"name":"tsw_native_linux"}\n')
+        public = self.checkout / "install.sh"
+        public.write_text("# native compatibility fixture\n")
+        self.git("add", ".")
+        self.git("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "--quiet", "-m", "native fixture")
+        self.revision = self.git("rev-parse", "HEAD").decode().strip()
+        native.unlink()
+        native.parent.rmdir()
+        public.unlink()
+        self.assertEqual(self.probe().returncode, 0)
+        (self.checkout / "bootstrap/linux/install.sh").unlink()
+        self.assertEqual(self.probe().returncode, 2)
 
     def test_mismatched_revision_and_edits_hidden_from_git_status_are_refused(self):
         self.assertEqual(self.probe(revision="a" * 40).returncode, 2)
@@ -75,9 +91,9 @@ class TestInstallHandoff(unittest.TestCase):
         link = self.checkout.parent / "linked"
         link.symlink_to(self.checkout)
         self.assertEqual(self.probe(path=link).returncode, 2)
-        (self.checkout / "install.sh").chmod(0o644)
+        (self.checkout / "bootstrap/linux/install.sh").chmod(0o644)
         self.assertEqual(self.probe().returncode, 2)
-        (self.checkout / "install.sh").chmod(0o755)
+        (self.checkout / "bootstrap/linux/install.sh").chmod(0o755)
         (self.checkout / "src/extra.py").write_text("untracked implementation\n")
         self.assertEqual(self.probe().returncode, 2)
 
@@ -106,8 +122,8 @@ class TestInstallHandoff(unittest.TestCase):
                 marker = self.checkout / "called"
                 marker.unlink(missing_ok=True)
                 (self.checkout / "bootstrap/linux/prepare_linux.sh").write_text(f"#!/bin/sh\nread answer\n[ \"$answer\" = yes ] || exit 2\nexit {prepare_exit}\n")
-                (self.checkout / "install.sh").write_text(f"#!/bin/sh\ntouch called\nexit {install_exit}\n")
-                chain = f"cd -- '{self.checkout}' && ./bootstrap/linux/prepare_linux.sh --service-profile default && exec ./install.sh --service-profile default"
+                (self.checkout / "bootstrap/linux/install.sh").write_text(f"#!/bin/sh\ntouch called\nexit {install_exit}\n")
+                chain = f"cd -- '{self.checkout}' && ./bootstrap/linux/prepare_linux.sh --service-profile default && exec ./bootstrap/linux/install.sh --service-profile default"
                 result = subprocess.run(["bash", "-lc", chain], input="yes\n", text=True, capture_output=True,
                                         env={**os.environ}, check=False, timeout=10)
                 self.assertEqual(result.returncode, prepare_exit or install_exit)

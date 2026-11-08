@@ -26,7 +26,8 @@ class TestInstallDebugger(unittest.TestCase):
     def test_diagnose_reports_install_script_contract_and_missing_execute_bit(self):
         with tempfile.TemporaryDirectory() as tempdir:
             root = _minimal_repo(Path(tempdir))
-            install_script = root / "install.sh"
+            install_script = root / "bootstrap/linux/install.sh"
+            install_script.parent.mkdir(parents=True, exist_ok=True)
             install_script.write_text(_install_script_text(), encoding="utf-8")
             install_script.chmod(0o644)
 
@@ -40,7 +41,8 @@ class TestInstallDebugger(unittest.TestCase):
     def test_live_fix_permissions_repairs_install_script_and_secret_mode(self):
         with tempfile.TemporaryDirectory() as tempdir:
             root = _minimal_repo(Path(tempdir))
-            install_script = root / "install.sh"
+            install_script = root / "bootstrap/linux/install.sh"
+            install_script.parent.mkdir(parents=True, exist_ok=True)
             install_script.write_text(_install_script_text(), encoding="utf-8")
             install_script.chmod(0o644)
             secret_file = root / ".tiny-swarm-world" / "local" / "live-installation.env"

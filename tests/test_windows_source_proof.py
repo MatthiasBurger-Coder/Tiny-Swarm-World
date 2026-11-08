@@ -88,7 +88,10 @@ class TestWindowsSourceProof(unittest.TestCase):
                         raw_tree = b"100644 bad\0" + b"\0" * 19
                     else:
                         mode = b"120000" if name == "symlink_mode" else b"160000"
-                        raw_tree = raw_tree.replace(b"100644 install.sh\0", mode + b" install.sh\0")
+                        # The installer now lives below bootstrap; reject unsafe ancestor modes.
+                        entry = b"40000 bootstrap\0"
+                        self.assertIn(entry, raw_tree)
+                        raw_tree = raw_tree.replace(entry, mode + b" bootstrap\0")
                     new_tree = hashlib.sha1(b"tree " + str(len(raw_tree)).encode() + b"\0" + raw_tree).hexdigest()
                     tree.update(id=new_tree, data=base64.b64encode(raw_tree).decode())
                     raw_commit = raw_commit.replace(root_identity.encode(), new_tree.encode(), 1)

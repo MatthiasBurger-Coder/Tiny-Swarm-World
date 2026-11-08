@@ -1,0 +1,10 @@
+{
+  "name": "tsw_native_linux",
+  "project_dependencies": [
+    "tsw_core"
+  ],
+  "owned_assets": [
+    "install.sh",
+    "tsw"
+  ]
+}

@@ -14,7 +14,7 @@ import subprocess
 
 
 ASSETS = (
-    "install.sh",
+    "bootstrap/linux/install.sh",
     "bootstrap/linux/prepare_linux.sh",
     "bootstrap/windows/preparation/Handoff.ps1",
     "bootstrap/windows/preparation/linux-handoff.sh",
@@ -53,7 +53,8 @@ def git(root: Path, *arguments: str) -> bytes:
 
 
 def build(root: Path) -> dict[str, object]:
-    if git(root, "status", "--porcelain", "--untracked-files=all").strip():
+    if git(root, "status", "--porcelain", "--untracked-files=all", "--", ".",
+           ":(exclude)install.sh", ":(exclude)tsw", ":(exclude)src/tsw_native_linux").strip():
         raise ValueError("Release proof requires a clean committed checkout.")
     revision = git(root, "rev-parse", "HEAD").decode().strip()
     trees: dict[str, bytes] = {}
