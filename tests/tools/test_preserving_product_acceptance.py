@@ -2,11 +2,13 @@
 from __future__ import annotations
 
 import copy
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from datetime import datetime, timedelta, timezone
 import json
 from pathlib import Path
 import signal
+import shlex
+import stat
 import sys
 import tempfile
 import time
@@ -40,6 +42,38 @@ def approval(now: datetime, paused: bool = False) -> dict[str, Any]:
     return go
 
 
+def capability_pair(capability_sha: str = '1' * 64) -> tuple[dict[str, Any], dict[str, bytes], bytes]:
+    code = b'fixed-real-fixture-source-for-unit-test'
+    artifacts: dict[str, bytes] = {}
+    receipts: dict[str, Any] = {}
+    for host, target in suite.CAPABILITY_HOSTS.items():
+        row = {'status': 'PASS', 'target_host': target, 'source_commit': 'b' * 40,
+               'runner_sha256': native.digest(code), 'server_version': '6.0.5', 'go_sha256': 'c' * 64}
+        artifacts[host] = native.canonical(row)
+        receipts[host] = {'decision': 'PASS', 'artifact_sha256': native.digest(artifacts[host]), 'source_commit': 'b' * 40}
+    return {'capability_sha256': capability_sha, 'client': '6.0.5', 'server': '6.0.5', 'hosts': receipts}, artifacts, code
+
+
+def altered_capability(kind: str, capability_sha: str) -> tuple[dict[str, Any], dict[str, bytes], bytes]:
+    proof, artifacts, code = capability_pair(capability_sha)
+    if kind == 'copied-native':
+        artifacts['wsl2'] = artifacts['native_linux']
+    elif kind in {'wrong-host', 'missing-host', 'source', 'fixture'}:
+        row = json.loads(artifacts['wsl2'])
+        if kind == 'wrong-host':
+            row['target_host'] = '192.168.178.33'
+        elif kind == 'missing-host':
+            del row['target_host']
+        elif kind == 'source':
+            row['source_commit'] = 'd' * 40
+        else:
+            row['runner_sha256'] = '0' * 64
+        artifacts['wsl2'] = native.canonical(row)
+    for host in artifacts:
+        proof['hosts'][host]['artifact_sha256'] = native.digest(artifacts[host])
+    return proof, artifacts, code
+
+
 class SuiteTransactionPort(FakePort):
     """Actual unchanged Transaction and actual disposal, only transport faked."""
     def __init__(self, fail: bool = False):
@@ -57,6 +91,108 @@ class SuiteTransactionPort(FakePort):
 
 
 class PreservingProductAcceptanceTests(unittest.TestCase):
+    def test_closed_credentials_equal_actual_active_catalog_and_contract_material(self) -> None:
+        from tiny_swarm_world.domain.configuration.internal_test_credentials import internal_test_catalog
+        from tiny_swarm_world.domain.configuration.configuration_contract import default_configuration_contract
+        active = {d.key for d in internal_test_catalog().definitions if d.active}
+        material = {r.key for r in default_configuration_contract().requirements
+                    if r.value_kind.value == 'secret_value'} | {'TSW_INFISICAL_LOGIN_EMAIL'}
+        self.assertEqual(suite.CREDENTIAL_KEYS, active)
+        self.assertEqual(suite.CREDENTIAL_KEYS, material)
+        values = {d.key: d.value for d in internal_test_catalog().definitions if d.active}
+        raw = '\n'.join(k + '=' + shlex.quote(v) for k, v in values.items()).encode()
+        with patch.object(Path, 'read_text', side_effect=AssertionError('second path read')):
+            self.assertEqual(suite.operator_credentials(raw), values)
+        self.assertEqual(suite.operator_credentials(b'TSW_PORTAINER_ADMIN_PASSWORD=only-for-test'),
+                         {'TSW_PORTAINER_ADMIN_PASSWORD': 'only-for-test'})
+
+    def test_reserved_operator_keys_and_invalid_htpasswd_refuse_without_secret_echo(self) -> None:
+        forbidden = ('TSW_REPOSITORY_ROOT', 'TSW_INFRA_ROOT', 'TSW_INSTALL_ENV_FILE', 'TSW_LIVE_EVIDENCE_ROOT',
+            'TSW_LOCAL_TLS_STATE_ROOT', 'TSW_INFISICAL_URL', 'TSW_INFISICAL_PROVIDER_MODE', 'TSW_SEED_INFISICAL_ITEMS',
+            'TSW_TRAEFIK_TLS_CERT_PATH', 'TSW_TRAEFIK_TLS_CA_KEY_PATH', 'TSW_TRAEFIK_TLS_CERT_SECRET_NAME',
+            'TSW_TRAEFIK_IMAGE', 'TSW_APPROVE_LIVE', 'TSW_SERVICE_PROFILE', 'TSW_SELECTION', 'TSW_UNKNOWN',
+            'TSW_REDIS_PASSWORD')
+        for key in forbidden:
+            with self.subTest(key=key), self.assertRaises(ValueError) as caught:
+                suite.operator_credentials((key + '=do-not-echo-this-value').encode())
+            self.assertNotIn('do-not-echo-this-value', str(caught.exception))
+        with self.assertRaises(ValueError):
+            suite.operator_credentials(b'TSW_TRAEFIK_GUI_USERS_HTPASSWD=admin:plaintext')
+
+    def test_native_operator_checksum_parses_same_verified_bytes_once(self) -> None:
+        raw = b'TSW_PORTAINER_ADMIN_PASSWORD=only-for-test'
+        current = replace(intent(), operator_config_sha256=native.digest(raw))
+        with patch.object(native, 'read_private', return_value=raw) as read:
+            self.assertEqual(suite.operator_values(current), {'TSW_PORTAINER_ADMIN_PASSWORD': 'only-for-test'})
+        read.assert_called_once_with(suite.OPERATOR)
+        with patch.object(native, 'read_private', return_value=raw + b'changed'), patch.object(suite, 'operator_credentials') as parse:
+            with self.assertRaisesRegex(native.MaintenanceError, 'SUITE_CONFIGURATION_DRIFT'):
+                suite.operator_values(current)
+        parse.assert_not_called()
+
+    def test_native_bad_operator_blocks_popen_and_fixed_tls_never_falls_back_to_home(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            root.chmod(0o700)
+            with patch.object(native, 'private_directory'):
+                journal = native.Journal(root)
+            port = suite.SuiteNativePort(intent(), journal)
+            with patch.object(suite, 'operator_values', side_effect=native.MaintenanceError('SUITE_OPERATOR_VALUES_INVALID')), patch.object(suite.subprocess, 'Popen') as popen:
+                with self.assertRaisesRegex(native.MaintenanceError, 'SUITE_OPERATOR_VALUES_INVALID'):
+                    port.child([sys.executable, '-c', 'pass'], 10)
+            popen.assert_not_called()
+            with patch.object(native, 'private_directory') as guard:
+                tls = suite.case_tls_root(journal)
+            guard.assert_called_once_with(root)
+            from tiny_swarm_world.infrastructure.adapters.ingress.tls_state import canonical_tls_state_root
+            with patch.object(Path, 'home', side_effect=AssertionError('original TLS fallback')):
+                self.assertEqual(canonical_tls_state_root({'TSW_LOCAL_TLS_STATE_ROOT': tls}), root / 'tls')
+            outside = root / 'outside'
+            outside.mkdir()
+            (root / 'tls').symlink_to(outside, target_is_directory=True)
+            with patch.object(native, 'private_directory'), self.assertRaisesRegex(native.MaintenanceError, 'SUITE_TLS_ROOT_UNSAFE'):
+                suite.case_tls_root(journal)
+
+    def test_paired_actual_target_hosts_not_just_platform_labels_and_distinct_artifacts(self) -> None:
+        proof, artifacts, code = capability_pair()
+        self.assertEqual(suite.validate_host_artifacts(proof, '1' * 64, native.digest(code), artifacts),
+                         {'native_linux': 'b' * 40, 'wsl2': 'b' * 40})
+        for kind in ('copied-native', 'wrong-host', 'missing-host', 'source', 'fixture'):
+            proof, artifacts, code = altered_capability(kind, '1' * 64)
+            with self.subTest(kind=kind), self.assertRaises(ValueError):
+                suite.validate_host_artifacts(proof, '1' * 64, native.digest(code), artifacts)
+
+    def test_actual_native_prerequisite_path_rejects_host_and_admission_source_mismatch(self) -> None:
+        for kind in ('valid', 'copied-native', 'wrong-host', 'missing-host', 'source', 'fixture', 'entry-code', 'artifact-code'):
+            current = replace(intent(), capability_sha256=native.digest(b'cap'), operator_config_sha256=native.digest(b'op'))
+            proof, artifacts, code = altered_capability(kind, current.capability_sha256)
+            entry = SimpleNamespace(fixture_sha256=native.digest(code), fixture_source_revision='e' * 40,
+                                    client_version='6.0.5', server_version='6.0.5')
+            admission = SimpleNamespace(admits=lambda *_: True, admitted_versions=(entry,))
+            repository = SimpleNamespace(IncusProfileCapabilityRepository=lambda _: SimpleNamespace(load=lambda: admission))
+            resources = SimpleNamespace(selection=Mock(), read_config=Mock(return_value=b'config'))
+            cap = Mock()
+            cap.lstat.return_value = SimpleNamespace(st_uid=0, st_mode=stat.S_IFREG | 0o600, st_size=3)
+            cap.is_file.return_value = True
+            cap.is_symlink.return_value = False
+            cap.read_bytes.return_value = b'cap'
+            def read(path: Path) -> bytes:
+                if path.name == 'both-host-profile-capability.json':
+                    return native.canonical(proof)
+                if path.name.startswith('profile-capability-'):
+                    return artifacts[path.name.removeprefix('profile-capability-').removesuffix('.json')]
+                return b'op'
+            def blob(argv: list[str], _timeout: int) -> bytes:
+                revision = argv[-1].split(':')[0]
+                return b'wrong' if kind == 'entry-code' and revision == 'e' * 40 or kind == 'artifact-code' and revision == 'b' * 40 else code
+            with self.subTest(kind=kind), patch.object(suite, 'CAPABILITY', cap), patch.object(native, 'read_private', side_effect=read), patch.object(suite.importlib, 'import_module', side_effect=lambda name: repository if name.endswith('incus_profile_capability_repository') else resources), patch.object(native, 'bounded', side_effect=blob), patch.object(suite, 'tree_digest', return_value=current.infra_sha256), patch.object(suite, 'operator_values', return_value={}):
+                if kind == 'valid':
+                    suite.check_prerequisites(current)
+                    resources.selection.assert_called_once()
+                else:
+                    with self.assertRaises(native.MaintenanceError):
+                        suite.check_prerequisites(current)
+
     def test_actual_maintenance_transaction_recovers_originals_after_pass_and_failed_case(self) -> None:
         for failure in (False, True):
             with self.subTest(failure=failure):
@@ -215,11 +351,20 @@ class PreservingProductAcceptanceTests(unittest.TestCase):
                 journal = native.Journal(root)
             check.assert_called_once_with(root)
             port = suite.SuiteNativePort(intent(), journal)
-            with patch.object(port, 'interpreter', return_value=sys.executable), patch.object(suite, 'operator_values', return_value={}):
-                code = ('from pathlib import Path;import sys;'
+            injected = {key: '/do-not-use/original' for key in ('TSW_REPOSITORY_ROOT', 'TSW_INFRA_ROOT',
+                'TSW_INSTALL_ENV_FILE', 'TSW_LIVE_EVIDENCE_ROOT', 'TSW_LOCAL_TLS_STATE_ROOT')}
+            injected['TSW_PORTAINER_ADMIN_PASSWORD'] = 'only-for-test'
+            with patch.object(port, 'interpreter', return_value=sys.executable), patch.object(suite, 'operator_values', return_value=injected), patch.object(suite, 'case_tls_root', return_value=str(root / 'tls')):
+                code = ('from pathlib import Path;import sys,os;'
                     'assert len(list(Path(sys.argv[1]).glob("child-*-pid.json")))==1;'
+                    'assert os.environ["TSW_REPOSITORY_ROOT"]==sys.argv[2];'
+                    'assert os.environ["TSW_INFRA_ROOT"]==sys.argv[3];'
+                    'assert os.environ["TSW_INSTALL_ENV_FILE"]==sys.argv[4];'
+                    'assert os.environ["TSW_LIVE_EVIDENCE_ROOT"]==sys.argv[1];'
+                    'assert os.environ["TSW_LOCAL_TLS_STATE_ROOT"]==str(Path(sys.argv[1])/"tls");'
+                    'assert os.environ["TSW_PORTAINER_ADMIN_PASSWORD"]=="only-for-test";'
                     'sys.stderr.write("private-not-exported");print("safe-child")')
-                output = port.child([sys.executable, '-c', code, str(root)], 10)
+                output = port.child([sys.executable, '-c', code, str(root), str(suite.ROOT), str(suite.INFRA), str(suite.OPERATOR)], 10)
             self.assertEqual(b'safe-child\n', output)
             self.assertTrue(port.worker_settled)
             intents = list(root.glob('child-*-intent.json'))

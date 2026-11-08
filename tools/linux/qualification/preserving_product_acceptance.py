@@ -25,7 +25,7 @@ import stat
 import subprocess
 import sys
 import time
-from typing import TYPE_CHECKING, Any, Iterator
+from typing import TYPE_CHECKING, Any, Iterator, cast
 from uuid import uuid4
 
 if TYPE_CHECKING:
@@ -172,14 +172,93 @@ def tree_digest(root: Path) -> str:
     return native.digest(native.canonical(rows))
 
 
+CREDENTIAL_KEYS = frozenset({
+    'TSW_PORTAINER_ADMIN_PASSWORD', 'TSW_NEXUS_ADMIN_PASSWORD', 'TSW_JENKINS_ADMIN_PASSWORD',
+    'TSW_SONARQUBE_ADMIN_PASSWORD', 'TSW_POSTGRES_PASSWORD', 'TSW_SONARQUBE_POSTGRES_PASSWORD',
+    'TSW_PULSAR_TOKEN_SECRET_KEY', 'TSW_PULSAR_ADMIN_TOKEN', 'TSW_PULSAR_MANAGER_ADMIN_PASSWORD',
+    'TSW_INFISICAL_LOGIN_EMAIL', 'TSW_INFISICAL_BOOTSTRAP_ADMIN_PASSWORD', 'TSW_INFISICAL_ENCRYPTION_KEY',
+    'TSW_INFISICAL_AUTH_SECRET', 'TSW_INFISICAL_POSTGRES_PASSWORD', 'TSW_INFISICAL_REDIS_PASSWORD',
+    'TSW_TRAEFIK_GUI_USERS_HTPASSWD',
+})
+CAPABILITY_HOSTS = {'native_linux': '192.168.178.33', 'wsl2': '192.168.178.58'}
+
+
+def operator_credentials(raw: bytes) -> dict[str, str]:
+    """Use the canonical parser on the same checksum-verified bytes, never reread."""
+    class CheckedBytes:
+        def exists(self) -> bool:
+            return True
+
+        def read_text(self, encoding: str) -> str:
+            return raw.decode(encoding)
+
+    try:
+        sources = importlib.import_module('tiny_swarm_world.infrastructure.adapters.configuration.configuration_sources')
+        # The canonical adapter only calls exists/read_text. This local read-only
+        # object binds both to already verified bytes instead of a second path IO.
+        values = dict(sources.ShellEnvFileConfigurationSource(cast(Any, CheckedBytes())).load())
+        if not all(type(k) is str and k in CREDENTIAL_KEYS and type(v) is str and 0 < len(v) <= 8192
+                   and not any(c in v for c in ('\x00', '\r')) for k, v in values.items()):
+            raise ValueError('SUITE_OPERATOR_VALUES_INVALID')
+        contracts = importlib.import_module('tiny_swarm_world.domain.configuration.configuration_contract')
+        supplied = tuple(r for r in contracts.default_configuration_contract().requirements if r.key in values)
+        if {r.key for r in supplied} != set(values) or not contracts.ConfigurationContract('1', supplied).validate(values).passed:
+            raise ValueError('SUITE_OPERATOR_VALUES_INVALID')
+        if 'TSW_TRAEFIK_GUI_USERS_HTPASSWD' in values:
+            contracts.validate_traefik_htpasswd(values['TSW_TRAEFIK_GUI_USERS_HTPASSWD'])
+        return values
+    except Exception:
+        raise ValueError('SUITE_OPERATOR_VALUES_INVALID') from None
+
+
 def operator_values(intent: SuiteIntent) -> dict[str, str]:
-    native.require(native.digest(native.read_private(OPERATOR)) == intent.operator_config_sha256,
-                   'SUITE_CONFIGURATION_DRIFT')
-    module = importlib.import_module('tiny_swarm_world.infrastructure.adapters.configuration.configuration_sources')
-    values = dict(module.ShellEnvFileConfigurationSource(OPERATOR).load())
-    native.require(all(type(key) is str and key.startswith('TSW_') and type(value) is str for key, value in values.items()),
-                   'SUITE_OPERATOR_VALUES_INVALID')
-    return values
+    raw = native.read_private(OPERATOR)
+    native.require(native.digest(raw) == intent.operator_config_sha256, 'SUITE_CONFIGURATION_DRIFT')
+    try:
+        return operator_credentials(raw)
+    except ValueError as exc:
+        raise native.MaintenanceError('SUITE_OPERATOR_VALUES_INVALID') from exc
+
+
+def validate_host_artifacts(proof: Any, capability_sha256: str, fixture_sha256: str,
+                            artifacts: dict[str, bytes]) -> dict[str, str]:
+    """Validate paired actual fixture bytes; never create admission or host labels."""
+    if not (isinstance(proof, dict) and set(proof) == {'capability_sha256', 'client', 'server', 'hosts'}
+            and proof['capability_sha256'] == capability_sha256 and proof['client'] == proof['server'] == '6.0.5'
+            and isinstance(proof['hosts'], dict) and set(proof['hosts']) == set(CAPABILITY_HOSTS)
+            and set(artifacts) == set(CAPABILITY_HOSTS)):
+        raise ValueError('BOTH_HOST_CAPABILITY_NOT_PROVEN')
+    if all(isinstance(r, dict) and type(r.get('artifact_sha256')) is str for r in proof['hosts'].values()):
+        if len({r['artifact_sha256'] for r in proof['hosts'].values()}) != 2:
+            raise ValueError('BOTH_HOST_CAPABILITY_ARTIFACTS_NOT_DISTINCT')
+    sources: dict[str, str] = {}
+    digests: set[str] = set()
+    for host, target in CAPABILITY_HOSTS.items():
+        receipt = proof['hosts'][host]
+        raw = artifacts[host]
+        actual = native.inventory.strict_json(raw)
+        if not (isinstance(receipt, dict) and set(receipt) == {'decision', 'artifact_sha256', 'source_commit'}
+                and receipt['decision'] == 'PASS' and type(receipt['artifact_sha256']) is str
+                and native.HEX.fullmatch(receipt['artifact_sha256']) and native.digest(raw) == receipt['artifact_sha256']
+                and type(receipt['source_commit']) is str and native.inventory.HEX40.fullmatch(receipt['source_commit'])
+                and isinstance(actual, dict) and actual.get('status') == 'PASS' and actual.get('target_host') == target
+                and actual.get('source_commit') == receipt['source_commit'] and actual.get('runner_sha256') == fixture_sha256
+                and actual.get('server_version') == '6.0.5' and type(actual.get('go_sha256')) is str
+                and native.HEX.fullmatch(actual['go_sha256'])):
+            raise ValueError('BOTH_HOST_CAPABILITY_ARTIFACT_MISMATCH')
+        digests.add(native.digest(raw)); sources[host] = receipt['source_commit']
+    if len(digests) != 2:
+        raise ValueError('BOTH_HOST_CAPABILITY_ARTIFACTS_NOT_DISTINCT')
+    return sources
+
+
+def case_tls_root(journal: native.Journal) -> str:
+    native.private_directory(journal.directory)
+    path = journal.directory / 'tls'
+    native.require(not path.is_symlink(), 'SUITE_TLS_ROOT_UNSAFE')
+    if path.exists():
+        native.private_directory(path)
+    return str(path)
 
 
 def check_prerequisites(intent: SuiteIntent) -> None:
@@ -198,25 +277,17 @@ def check_prerequisites(intent: SuiteIntent) -> None:
     # The immutable promotion record is required in addition to its public matrix
     # entry: both actual host listener observations must identify this admission.
     proof = native.inventory.strict_json(native.read_private(PRIVATE / 'both-host-profile-capability.json'))
-    native.require(isinstance(proof, dict) and set(proof) == {'capability_sha256', 'client', 'server', 'hosts'}
-        and proof['capability_sha256'] == intent.capability_sha256 and proof['client'] == proof['server'] == '6.0.5'
-        and isinstance(proof['hosts'], dict) and set(proof['hosts']) == {'native_linux', 'wsl2'}
-        and all(isinstance(row, dict) and set(row) == {'decision', 'artifact_sha256', 'source_commit'}
-            and row['decision'] == 'PASS' and type(row['artifact_sha256']) is str and native.HEX.fullmatch(row['artifact_sha256'])
-            and type(row['source_commit']) is str and native.inventory.HEX40.fullmatch(row['source_commit'])
-            for row in proof['hosts'].values()), 'BOTH_HOST_CAPABILITY_NOT_PROVEN')
-    for host, receipt in proof['hosts'].items():
-        raw = native.read_private(PRIVATE / ('profile-capability-' + host + '.json'))
-        actual = native.inventory.strict_json(raw)
-        native.require(native.digest(raw) == receipt['artifact_sha256'] and isinstance(actual, dict)
-            and actual.get('status') == 'PASS' and actual.get('source_commit') == receipt['source_commit']
-            and actual.get('runner_sha256') == entry.fixture_sha256
-            and actual.get('server_version') == '6.0.5' and type(actual.get('go_sha256')) is str
-            and native.HEX.fullmatch(actual['go_sha256']), 'BOTH_HOST_CAPABILITY_ARTIFACT_MISMATCH')
-        actual_blob = native.bounded(['/usr/bin/git', '--no-optional-locks', 'show', receipt['source_commit'] + ':' + native.FILES[4]], 10)
+    artifacts = {host: native.read_private(PRIVATE / ('profile-capability-' + host + '.json')) for host in CAPABILITY_HOSTS}
+    try:
+        sources = validate_host_artifacts(proof, intent.capability_sha256, entry.fixture_sha256, artifacts)
+    except ValueError as exc:
+        raise native.MaintenanceError(str(exc)) from exc
+    for source in sources.values():
+        actual_blob = native.bounded(['/usr/bin/git', '--no-optional-locks', 'show', source + ':' + native.FILES[4]], 10)
         native.require(native.digest(actual_blob) == entry.fixture_sha256, 'BOTH_HOST_CAPABILITY_SOURCE_MISMATCH')
     native.require(tree_digest(INFRA) == intent.infra_sha256
         and native.digest(native.read_private(OPERATOR)) == intent.operator_config_sha256, 'SUITE_CONFIGURATION_DRIFT')
+    operator_values(intent)
     resource = importlib.import_module((__package__ + '.' if __package__ else '') + 'native_resource_admission')
     resource.selection(resource.read_config(intent.provider_config_sha256))
 
@@ -588,7 +659,8 @@ class SuiteNativePort(native.NativePort):
         self.budget()
         native.require(self.deadline - time.monotonic() >= timeout + 10 and self.worker_settled, 'CASE_BUDGET_INSUFFICIENT')
         env = native.ENV | operator_values(self.intent) | {'TSW_REPOSITORY_ROOT': str(ROOT), 'TSW_INFRA_ROOT': str(INFRA),
-            'TSW_INSTALL_ENV_FILE': str(OPERATOR), 'TSW_LIVE_EVIDENCE_ROOT': str(self.journal.directory)}
+            'TSW_INSTALL_ENV_FILE': str(OPERATOR), 'TSW_LIVE_EVIDENCE_ROOT': str(self.journal.directory),
+            'TSW_LOCAL_TLS_STATE_ROOT': case_tls_root(self.journal)}
         self.worker_settled = False
         child_key = 'child-' + uuid4().hex
         self.journal.save(child_key + '-intent.json', {'argv_sha256': native.digest(native.canonical(argv)), 'timeout': timeout})
