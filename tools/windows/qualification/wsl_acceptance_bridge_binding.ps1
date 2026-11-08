@@ -710,6 +710,8 @@ public static class TswAcceptanceFileIdentity {
         $ports.Recover={param($before) RecoverStopped $before}
         $ports.Failure={param($code,$active) if(Test-Path $bindingDescriptorPath){$d=ReadDescriptor;$d.phase='recovery-required';SaveDescriptor $d}}
         $script:bindingPorts=$ports
+        # Ports invoke this module explicitly; never replace caller helpers.
+        Export-ModuleMember -Function @() -Alias @()
     }
     }finally{foreach($handle in $handles){$handle.Dispose()}}
     $result=@{}
