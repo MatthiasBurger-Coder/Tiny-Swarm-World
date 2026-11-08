@@ -52,6 +52,13 @@ foreach($status in @(0,17,124)) {
     Assert ($result.handoff_ready -eq ($status -eq 0)) 'WSL failure cannot report ready'
 }
 # Source admission ignores absent native edition files; core edits still block.
+# Linux PowerShell has no ProgramFiles special folder. Supply only that missing
+# host root through the fixture; all child process execution remains stubbed.
+function Join-Path {
+    param([AllowEmptyString()][string]$Path,[string]$ChildPath)
+    if([string]::IsNullOrEmpty($Path)){$Path=$RepositoryRoot}
+    return Microsoft.PowerShell.Management\Join-Path -Path $Path -ChildPath $ChildPath
+}
 function Test-Path {
     param([string]$LiteralPath,[string]$PathType)
     if($LiteralPath -match '[\\/]Git[\\/]cmd[\\/]git\.exe$'){return $true}
@@ -78,4 +85,5 @@ foreach($dirty in @('', ' M bootstrap/linux/install.sh')) {
     Assert ($result.clean -eq ($dirty -eq '')) 'Core edits still block admission'
 }
 Remove-Item Function:Test-Path
+Remove-Item Function:Join-Path
 Write-Output 'PASS module boundaries and stubbed public/WSL handoff'
