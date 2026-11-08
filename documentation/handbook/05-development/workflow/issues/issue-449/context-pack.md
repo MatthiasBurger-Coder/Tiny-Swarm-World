@@ -3,7 +3,8 @@
 ## Current continuation — v1.55, 2026-11-08
 
 v1.55 releases exact shared-certificate/WSL650-300-350 source engineering and
-names the protected bridge operational archive/descriptor exception. Native
+names the protected bridge operational archive/descriptor and exact minimal
+guest-switch.json operational bookmark exceptions. Native
 stays300-60. Full a6a5 raw query actual-repeat passed; new shared consumers still
 need exact gates/actual proof. Official26.04.1 WSL image and resolute6.0.5-8 index
 are signature-verified inputs only, not imported. Noble container image unchanged.

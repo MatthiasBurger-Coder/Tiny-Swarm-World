@@ -185,6 +185,13 @@
         "recovery": 300
       },
       "live_go": false
+    },
+    "guest_switch_operational_bookmark": {
+      "path": "CommonApplicationData/TinySwarmWorld/maintenance/acceptance-<runid>/guest-switch.json",
+      "classification": "minimal protected native operational intent/phase bookmark only; no raw preserve-set or workflow approval/evidence",
+      "fields": "schema/run/scenario/source hashes; original/new GUID and VHD identity digests; phase/intent/action ids; hashed receipt pointers",
+      "existing_unknown_owner_or_acl": "REFUSE_WITHOUT_REPAIR",
+      "live_go": false
     }
   },
   "workflow_path": "documentation/handbook/05-development/workflow/issues/issue-449/workflow.md",

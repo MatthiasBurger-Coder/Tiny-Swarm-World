@@ -77,6 +77,16 @@ remain private ext4 or already verified RAM; never wake a stopped guest just to
 read evidence. This exact exception extends the previous W05-only classification;
 it permits no general NTFS evidence store or arbitrary ProgramData writes.
 
+The guest-switch coordinator additionally owns ONLY
+`CommonApplicationData/TinySwarmWorld/maintenance/acceptance-<runid>/guest-switch.json`
+as a minimal native operational bookmark. It may contain schema/run/scenario/source
+hashes, original/new registration GUIDs and VHD identity digests, phase/intent/action
+identities and hashed receipt pointers. No raw inventory, firewall, ACL/SID,
+configuration, secrets or GO authority. Apply the existing canonical ACL only to
+its own new run directory; unknown existing namespace/maintenance ownership or ACL
+blocks without migration or repair. It is not a guest-state proof: every resume
+requires current source/registration/runtime/sole-Running observations.
+
 Bridge phases reuse existing owned payload transaction and actual heartbeat:
 Prepare/Archive/StopOriginal/StageRestore180s each; Bind/ResumeOriginal360s each;
 explicit recovery300s. Bind/Resume reserve two120s full certificate queries,
