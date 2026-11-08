@@ -5,6 +5,9 @@ import copy
 from datetime import datetime, timedelta, timezone
 import json
 import multiprocessing
+import subprocess
+import sys
+import time
 from pathlib import Path
 import tempfile
 import unittest
@@ -36,6 +39,9 @@ class FakePort:
 
     def begin_recovery(self) -> None:
         self.reserve = True
+
+    def recovery_state(self, *, transition_owned: bool, start_owned: bool) -> str:
+        return self.unit(maintenance.DAEMON)
 
     def snapshot(self) -> dict[str, Any]:
         self.snapshot_calls += 1
@@ -126,6 +132,9 @@ class Events:
 
     def stopped_nodes(self) -> set[str]:
         return {node for action, node in self.events if action == 'stop-node'}
+
+    def transition_intents(self) -> set[str]:
+        return {action for action, _ in self.events if action in maintenance.TRANSITION_INTENTS}
 
     def event(self, action: str, node: str = '') -> None:
         if self.fail:
@@ -969,6 +978,266 @@ class SharedSnapshotIntentBindingTests(unittest.TestCase):
                 forged['fixture']['windows_snapshot_sha256'] = field_value
             with self.subTest(field_value=field_value), self.assertRaises((maintenance.MaintenanceError, maintenance.fixture.FixtureError)):
                 maintenance.validate_fixture_intent(forged, source)
+
+
+
+class OwnedTransitionObservationTests(unittest.TestCase):
+    def port(self) -> maintenance.NativePort:
+        port = maintenance.NativePort('a' * 40, 'b' * 64, time.monotonic() + 600)
+        port.baseline = baseline()
+        return port
+
+    @staticmethod
+    def row(active: str, sub: str, pid: str = '0') -> bytes:
+        return (f'LoadState=loaded\nActiveState={active}\nSubState={sub}\n'
+                f'UnitFileState=enabled\nMainPID={pid}\n').encode()
+
+    def test_own_shutdown_real_runner_parser_waits_for_strict_inactive_and_full_binding(self) -> None:
+        port = self.port()
+        port._shutdown_attempted = True
+        rows = [self.row('deactivating', 'stop-sigterm', '17'), self.row('inactive', 'dead')]
+        processes: list[subprocess.Popen[bytes]] = []
+        original_popen = subprocess.Popen
+        original_runner = maintenance.inventory.Runner
+        def popen(argv: list[str], **kwargs: Any) -> subprocess.Popen[bytes]:
+            self.assertEqual(argv[:3], ['/usr/bin/systemctl', 'show', maintenance.DAEMON])
+            raw = rows.pop(0)
+            process = original_popen([sys.executable, '-c', 'import os; os.write(1, ' + repr(raw) + ')'], **kwargs)
+            processes.append(process)
+            assert process.stdout is not None and process.stderr is not None
+            self.addCleanup(process.stdout.close)
+            self.addCleanup(process.stderr.close)
+            return process
+        with (patch.object(port, '_stable_environment') as environment,
+              patch.object(port, 'check_binding') as binding,
+              patch.object(maintenance.inventory, 'Runner', side_effect=lambda: original_runner(popen=popen)),
+              patch.object(port, 'command') as effects):
+            port.wait_inactive()
+        self.assertEqual(environment.call_count, 2)
+        binding.assert_called_once_with(port.baseline, active=False)
+        effects.assert_not_called()
+        self.assertEqual(len(processes), 2)
+        self.assertTrue(all(process.poll() is not None for process in processes))
+        self.assertIsNone(port._read_deadline)
+
+    def test_no_shutdown_attempt_or_malformed_stable_state_is_never_pending_authority(self) -> None:
+        port = self.port()
+        with self.assertRaisesRegex(maintenance.MaintenanceError, 'SHUTDOWN_WAIT_NOT_ADMITTED'):
+            port.wait_inactive()
+        port._shutdown_attempted = True
+        for error in (maintenance.inventory.InventoryError('UNIT_SCHEMA_INVALID'),
+                      maintenance.inventory.InventoryError('UNIT_VALUE_INVALID'),
+                      maintenance.MaintenanceError('UNIT_LOAD_DRIFT'),
+                      maintenance.MaintenanceError('UNIT_TRANSITION_UNCERTAIN')):
+            with (self.subTest(reason=str(error)), patch.object(port, '_stable_environment'),
+                  patch.object(port, 'unit', side_effect=error) as unit,
+                  patch.object(port, 'check_binding') as binding, patch.object(port, 'command') as effects):
+                with self.assertRaises(type(error)):
+                    port.wait_inactive()
+                unit.assert_called_once_with(maintenance.DAEMON)
+                binding.assert_not_called()
+                effects.assert_not_called()
+
+    def test_forever_unknown_shutdown_times_out_without_classifying_inactive_or_effect(self) -> None:
+        port = self.port()
+        port.deadline = 600
+        port._shutdown_attempted = True
+        clock = {'now': 10.0}
+        def sleep(_seconds: float) -> None:
+            clock['now'] += 10
+        with (patch.object(maintenance.time, 'monotonic', side_effect=lambda: clock['now']),
+              patch.object(maintenance.time, 'sleep', side_effect=sleep),
+              patch.object(maintenance.signal, 'getitimer', return_value=(0.0, 0.0)),
+              patch.object(maintenance.signal, 'signal'), patch.object(maintenance.signal, 'setitimer') as timer,
+              patch.object(port, '_stable_environment') as environment,
+              patch.object(port, 'unit', side_effect=maintenance.inventory.InventoryError('UNIT_STATE_BLOCKED')),
+              patch.object(port, 'check_binding') as binding, patch.object(port, 'command') as effects):
+            with self.assertRaisesRegex(maintenance.MaintenanceError, 'SHUTDOWN_OUTCOME_UNCERTAIN'):
+                port.wait_inactive()
+        self.assertEqual(environment.call_count, 3)
+        binding.assert_not_called()
+        effects.assert_not_called()
+        self.assertEqual(timer.call_args_list[0].args, (maintenance.signal.ITIMER_REAL, 25))
+        self.assertEqual(timer.call_args_list[-1].args, (maintenance.signal.ITIMER_REAL, 0))
+        self.assertIsNone(port._read_deadline)
+
+    def test_recovery_first_state_reconciles_pending_shutdown_without_starting_anything(self) -> None:
+        port = self.port()
+        port.recovering = True
+        with (patch.object(port, '_stable_environment'),
+              patch.object(port, 'unit', side_effect=[maintenance.inventory.InventoryError('UNIT_STATE_BLOCKED'), 'inactive']),
+              patch.object(port, 'check_binding') as binding,
+              patch.object(port, 'ready_binding') as ready, patch.object(port, 'command') as effects):
+            self.assertEqual(port.recovery_state(transition_owned=True, start_owned=False), 'inactive')
+        binding.assert_called_once_with(port.baseline, active=False)
+        ready.assert_not_called()
+        effects.assert_not_called()
+        with (patch.object(port, '_stable_environment'),
+              patch.object(port, 'unit', side_effect=maintenance.inventory.InventoryError('UNIT_STATE_BLOCKED')) as unit):
+            with self.assertRaisesRegex(maintenance.inventory.InventoryError, 'UNIT_STATE_BLOCKED'):
+                port.recovery_state(transition_owned=False, start_owned=False)
+            unit.assert_called_once()
+
+    def test_own_start_provenance_classes_require_subsequent_full_proof_not_a_successful_exception(self) -> None:
+        for reason in ('SNAP_WRAPPER_FILE_UNVERIFIED', 'SNAP_WRAPPER_PROC_INVALID', 'SNAP_WRAPPER_CHILD_ABSENT'):
+            port = self.port()
+            port.recovering = True
+            with (self.subTest(reason=reason), patch.object(port, '_stable_environment'),
+                  patch.object(port, 'unit', return_value='active'),
+                  patch.object(port, 'ready_binding', side_effect=[maintenance.provenance.ProvenanceError(reason), None]) as ready,
+                  patch.object(port, 'command') as effects):
+                self.assertEqual(port.recovery_state(transition_owned=True, start_owned=True), 'active')
+                self.assertEqual(ready.call_count, 2)
+                effects.assert_not_called()
+            port = self.port()
+            port.recovering = True
+            with (patch.object(port, 'ready_binding', side_effect=maintenance.provenance.ProvenanceError(reason)) as ready,
+                  patch.object(port, 'command') as effects):
+                with self.assertRaises(maintenance.provenance.ProvenanceError):
+                    port.wait_ready()
+                ready.assert_called_once()
+                effects.assert_not_called()
+
+    def test_known_binding_mismatch_and_other_provenance_codes_are_fatal_even_after_own_start(self) -> None:
+        failures = (maintenance.MaintenanceError('INSTALLED_BINDING_DRIFT'),
+                    maintenance.MaintenanceError('INCUS_SOCKET_DRIFT'), maintenance.MaintenanceError('LXD_API_AUTHORITY_DRIFT'),
+                    maintenance.provenance.ProvenanceError('SNAP_WRAPPER_DRIFT'),
+                    maintenance.provenance.ProvenanceError('SNAP_WRAPPER_CONTEXT_BLOCKED'))
+        for failure in failures:
+            port = self.port()
+            port.recovering = port._owned_start = True
+            with (self.subTest(reason=str(failure)), patch.object(port, 'ready_binding', side_effect=failure) as ready,
+                  patch.object(port, 'command') as effects):
+                with self.assertRaises(type(failure)):
+                    port.wait_ready()
+                ready.assert_called_once()
+                effects.assert_not_called()
+
+    def test_persistent_file_unknown_cannot_pass_or_start_nodes_and_timer_restores(self) -> None:
+        port = self.port()
+        port.deadline = 600
+        port.recovering = port._owned_start = True
+        clock = {'now': 10.0}
+        def sleep(_seconds: float) -> None:
+            clock['now'] += 10
+        with (patch.object(maintenance.time, 'monotonic', side_effect=lambda: clock['now']),
+              patch.object(maintenance.time, 'sleep', side_effect=sleep),
+              patch.object(maintenance.signal, 'getitimer', return_value=(0.0, 0.0)),
+              patch.object(maintenance.signal, 'signal') as handler, patch.object(maintenance.signal, 'setitimer') as timer,
+              patch.object(port, 'ready_binding', side_effect=maintenance.provenance.ProvenanceError('SNAP_WRAPPER_FILE_UNVERIFIED')),
+              patch.object(port, 'start_node') as nodes):
+            with self.assertRaisesRegex(maintenance.MaintenanceError, 'LXD_READINESS_TIMEOUT'):
+                port.wait_ready()
+        nodes.assert_not_called()
+        self.assertEqual(timer.call_args_list[-1].args, (maintenance.signal.ITIMER_REAL, 0))
+        self.assertEqual(handler.call_args_list[-1].args[0], maintenance.signal.SIGALRM)
+        self.assertIsNone(port._read_deadline)
+
+    def test_actual_runner_hanging_unit_reader_is_reaped_before_shutdown_wait_returns(self) -> None:
+        port = self.port()
+        port._shutdown_attempted = True
+        original_popen = subprocess.Popen
+        original_runner = maintenance.inventory.Runner
+        original_selector = maintenance.inventory.selectors.DefaultSelector
+        processes: list[subprocess.Popen[bytes]] = []
+        handlers: list[Any] = []
+        test = self
+        class InterruptingSelector:
+            def __init__(self) -> None:
+                self.selector = original_selector()
+                test.addCleanup(self.selector.close)
+            def register(self, *args: Any, **kwargs: Any) -> Any:
+                return self.selector.register(*args, **kwargs)
+            def unregister(self, *args: Any, **kwargs: Any) -> Any:
+                return self.selector.unregister(*args, **kwargs)
+            def get_map(self) -> Any:
+                return self.selector.get_map()
+            def close(self) -> None:
+                self.selector.close()
+            def select(self, timeout: float | None = None) -> Any:
+                handlers[0](maintenance.signal.SIGALRM, None)
+                return []
+        def popen(_argv: list[str], **kwargs: Any) -> subprocess.Popen[bytes]:
+            process = original_popen([sys.executable, '-c', 'import time; time.sleep(60)'], **kwargs)
+            processes.append(process)
+            assert process.stdout is not None and process.stderr is not None
+            self.addCleanup(process.stdout.close)
+            self.addCleanup(process.stderr.close)
+            return process
+        started = time.monotonic()
+        with (patch.object(port, '_stable_environment'),
+              patch.object(maintenance.inventory, 'Runner', side_effect=lambda: original_runner(popen=popen)),
+              patch.object(maintenance.inventory.selectors, 'DefaultSelector', InterruptingSelector),
+              patch.object(maintenance.signal, 'getitimer', return_value=(0.0, 0.0)),
+              patch.object(maintenance.signal, 'signal', side_effect=lambda _s, handler: handlers.append(handler)),
+              patch.object(maintenance.signal, 'setitimer') as timer,
+              patch.object(port, 'command') as effects):
+            with self.assertRaisesRegex(maintenance.MaintenanceError, 'SHUTDOWN_OUTCOME_UNCERTAIN'):
+                port.wait_inactive()
+        self.assertEqual(len(processes), 1)
+        self.assertIsNotNone(processes[0].poll())
+        self.assertLess(time.monotonic() - started, 5)
+        self.assertEqual(timer.call_args_list[0].args, (maintenance.signal.ITIMER_REAL, 25))
+        self.assertEqual(timer.call_args_list[-1].args, (maintenance.signal.ITIMER_REAL, 0))
+        self.assertIsNone(port._read_deadline)
+        effects.assert_not_called()
+
+    def test_read_window_clips_only_fixed_read_command_and_cannot_reduce_effect_timeouts(self) -> None:
+        port = self.port()
+        port.deadline = 1000
+        port._read_deadline = 10.75
+        with patch.object(maintenance.time, 'monotonic', return_value=10), patch.object(maintenance, 'bounded', return_value=b'') as bounded:
+            port.command(list(maintenance.READ_STOP_METADATA), 10)
+            self.assertEqual(bounded.call_args.args[1], .75)
+            with self.assertRaisesRegex(maintenance.MaintenanceError, 'READ_WINDOW_EFFECT_BLOCKED'):
+                port.command(['/usr/bin/systemctl', 'start', maintenance.DAEMON], 90)
+            self.assertEqual(bounded.call_count, 1)
+            port._read_deadline = None
+            port.command(['/usr/bin/systemctl', 'start', maintenance.DAEMON], 90)
+            self.assertEqual(bounded.call_args.args[1], 90)
+
+    def test_transaction_waits_for_full_reconciliation_before_one_owned_start(self) -> None:
+        saved = baseline()
+        fake = FakePort(saved)
+        fake.daemon = 'inactive'
+        events = Events(fake)
+        events.event('shutdown')
+        observed = self.port()
+        observed.recovering = True
+        def reconcile(*, transition_owned: bool, start_owned: bool) -> str:
+            self.assertEqual(fake.calls, [])
+            self.assertTrue(transition_owned)
+            self.assertFalse(start_owned)
+            return observed.recovery_state(transition_owned=transition_owned, start_owned=start_owned)
+        with (patch.object(fake, 'recovery_state', side_effect=reconcile),
+              patch.object(observed, '_stable_environment'),
+              patch.object(observed, 'unit', side_effect=[maintenance.inventory.InventoryError('UNIT_STATE_BLOCKED'), 'inactive']),
+              patch.object(observed, 'check_binding') as binding):
+            maintenance.Transaction(fake, events, saved).recover()
+        binding.assert_called_once_with(observed.baseline, active=False)
+        self.assertEqual(fake.calls, [('start-daemon', '')])
+        self.assertEqual(events.transition_intents(), {'shutdown', 'start-daemon'})
+
+    def test_private_journal_derives_only_valid_owned_transition_intents(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            root.chmod(0o700)
+            with patch.object(maintenance, 'private_directory'):
+                journal = maintenance.Journal(root)
+            journal.event('stop-node', maintenance.NODES[0])
+            journal.event('shutdown')
+            journal.event('start-daemon')
+            self.assertEqual(journal.stopped_nodes(), {maintenance.NODES[0]})
+            self.assertEqual(journal.transition_intents(), {'shutdown', 'start-daemon'})
+            journal.save('event-foreign.json', {'intent': 'start-daemon', 'node': maintenance.NODES[0], 'utc': 'fixed'})
+            with self.assertRaisesRegex(maintenance.MaintenanceError, 'JOURNAL_EVENT_INVALID'):
+                journal.transition_intents()
+        self.assertEqual(maintenance.failure_reason(maintenance.provenance.ProvenanceError('SNAP_WRAPPER_FILE_UNVERIFIED')),
+                         'SNAP_WRAPPER_FILE_UNVERIFIED')
+        normalized = maintenance.provenance.ProvenanceError('private value/address')
+        self.assertEqual(maintenance.failure_reason(normalized), 'SNAP_WRAPPER_FILE_UNVERIFIED')
+        normalized.args = ('private value/address',)
+        self.assertEqual(maintenance.failure_reason(normalized), 'UNCLASSIFIED_FAILURE_REDACTED')
 
 
 if __name__ == '__main__':

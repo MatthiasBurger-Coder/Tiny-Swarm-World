@@ -62,6 +62,11 @@ HOST_LOCK_PARENT = Path('/run/tsw-epic440-native-maintenance')
 PHASE_SECONDS = {'preparation': 1200, 'capture': 360, 'approval': 180, 'fixture': 1025}
 MAINTENANCE_START_RESERVE = sum(PHASE_SECONDS[name] for name in ('preparation', 'capture', 'approval'))
 RECOVERY_SECONDS = 600
+TRANSITION_INTENTS = {'shutdown', 'start-daemon'}
+JOURNAL_ACTIONS = {'stop-node', 'stop-socket', 'shutdown', 'fixture', 'start-daemon',
+                   'restore-socket', 'start-node', 'qualification-failed', 'recovery-failed'}
+READ_STOP_METADATA = ('/usr/bin/systemctl', 'show', DAEMON,
+                      '--property=ExecStop,Restart,TimeoutStopUSec,KillMode,SendSIGKILL', '--no-pager')
 
 
 class MaintenanceError(Exception):
@@ -70,7 +75,7 @@ class MaintenanceError(Exception):
 
 def failure_reason(exc: BaseException) -> str:
     """Persist trusted symbolic codes only, never arbitrary exception text."""
-    if isinstance(exc, (MaintenanceError, inventory.InventoryError, fixture.FixtureError)):
+    if isinstance(exc, (MaintenanceError, inventory.InventoryError, provenance.ProvenanceError, fixture.FixtureError)):
         code = str(exc)
         if re.fullmatch(r'[A-Z][A-Z0-9_]{0,95}', code):
             return code
@@ -146,10 +151,10 @@ class Journal:
         self.save('failure-' + uuid4().hex + '.json', {'stage': stage, 'reason': reason,
                   'utc': datetime.now(timezone.utc).isoformat()})
 
-    def stopped_nodes(self) -> set[str]:
+    def _events(self) -> list[dict[str, str]]:
         paths = list(self.directory.glob('event-*.json'))
         require(len(paths) <= 1024, 'JOURNAL_EVENT_BOUND')
-        result: set[str] = set()
+        result: list[dict[str, str]] = []
         total = 0
         for path in paths:
             raw = read_private(path)
@@ -157,23 +162,30 @@ class Journal:
             require(total <= 256 * 1024, 'JOURNAL_EVENT_BOUND')
             value = inventory.strict_json(raw)
             require(isinstance(value, dict) and set(value) == {'intent', 'node', 'utc'}
-                    and value['node'] in ('', *NODES), 'JOURNAL_EVENT_INVALID')
-            if value['intent'] == 'stop-node':
-                require(value['node'] in NODES, 'JOURNAL_EVENT_INVALID')
-                result.add(value['node'])
+                    and isinstance(value['intent'], str) and value['intent'] in JOURNAL_ACTIONS
+                    and value['node'] in ('', *NODES) and isinstance(value['utc'], str), 'JOURNAL_EVENT_INVALID')
+            require((value['node'] in NODES) == (value['intent'] in {'stop-node', 'start-node'}),
+                    'JOURNAL_EVENT_INVALID')
+            result.append(value)
         return result
 
+    def stopped_nodes(self) -> set[str]:
+        return {row['node'] for row in self._events() if row['intent'] == 'stop-node'}
+
+    def transition_intents(self) -> set[str]:
+        return {row['intent'] for row in self._events() if row['intent'] in TRANSITION_INTENTS}
+
     def event(self, action: str, node: str = '') -> None:
-        require(action in {'stop-node', 'stop-socket', 'shutdown', 'fixture', 'start-daemon',
-                           'restore-socket', 'start-node', 'qualification-failed', 'recovery-failed'},
+        require(action in JOURNAL_ACTIONS,
                 'JOURNAL_ACTION_INVALID')
-        require(node in ('', *NODES), 'NODE_NOT_ALLOWED')
+        require(node in ('', *NODES) and ((node in NODES) == (action in {'stop-node', 'start-node'})), 'NODE_NOT_ALLOWED')
         self.save('event-' + uuid4().hex + '.json', {'intent': action, 'node': node,
                   'utc': datetime.now(timezone.utc).isoformat()})
 
 
 class Port(Protocol):
     def begin_recovery(self) -> None: ...
+    def recovery_state(self, *, transition_owned: bool, start_owned: bool) -> str: ...
     def snapshot(self) -> dict[str, Any]: ...
     def check_binding(self, baseline: dict[str, Any], *, active: bool) -> None: ...
     def node(self, name: str) -> dict[str, str]: ...
@@ -191,6 +203,7 @@ class Port(Protocol):
 class EventPort(Protocol):
     def failure(self, stage: str, reason: str) -> None: ...
     def stopped_nodes(self) -> set[str]: ...
+    def transition_intents(self) -> set[str]: ...
     def event(self, action: str, node: str = '') -> None: ...
 
 
@@ -294,7 +307,8 @@ class Transaction:
     def recover(self) -> None:
         self.port.begin_recovery()
         # Reconcile uncertain shutdown/start outcomes before the next effect.
-        state = self.port.unit(DAEMON)
+        intents = self.journal.transition_intents()
+        state = self.port.recovery_state(transition_owned=bool(intents), start_owned='start-daemon' in intents)
         require(state in {'active', 'inactive'}, 'DAEMON_TRANSITION_UNCERTAIN')
         self.port.check_binding(self.baseline, active=(state == 'active'))
         if state == 'inactive':
@@ -382,7 +396,7 @@ class Transaction:
         return {'status': 'QUALIFICATION_FAILED_RECOVERED' if failure else 'PASS'}
 
 
-def bounded(argv: list[str], timeout: int, *, lxd: bool = False, interrupt_grace: int = 0) -> bytes:
+def bounded(argv: list[str], timeout: float, *, lxd: bool = False, interrupt_grace: int = 0) -> bytes:
     """Only fixed internal callers; terminate owned client processes, never daemons."""
     child_env = ENV | ({'LXD_SOCKET': SOCKET_PATH} if lxd else {})
     if argv[0] == '/usr/bin/git':
@@ -465,6 +479,9 @@ class NativePort:
         self.recovering = False
         self.admission_directory: Path | None = None
         self.final_expiry: datetime | None = None
+        self._read_deadline: float | None = None
+        self._shutdown_attempted = False
+        self._owned_start = False
 
     def phase(self, name: str) -> None:
         require(name in PHASE_SECONDS, 'PHASE_INVALID')
@@ -473,8 +490,12 @@ class NativePort:
     def budget(self) -> None:
         require(time.monotonic() < self.deadline, 'MAINTENANCE_DEADLINE')
 
-    def command(self, argv: list[str], timeout: int, *, lxd: bool = False, interrupt_grace: int = 0) -> bytes:
+    def command(self, argv: list[str], timeout: float, *, lxd: bool = False, interrupt_grace: int = 0) -> bytes:
         self.budget()
+        if self._read_deadline is not None:
+            require(tuple(argv) == READ_STOP_METADATA and not lxd and interrupt_grace == 0, 'READ_WINDOW_EFFECT_BLOCKED')
+            timeout = min(timeout, self._read_deadline - time.monotonic())
+            require(timeout > 0, 'READ_WINDOW_EXPIRED')
         require(self.deadline - time.monotonic() >= timeout + interrupt_grace, 'MAINTENANCE_DEADLINE')
         return bounded(argv, timeout, lxd=lxd, interrupt_grace=interrupt_grace)
 
@@ -545,7 +566,7 @@ class NativePort:
         values['stop_properties'] = {key: value for key, value in props.items() if key != 'ExecStop'}
         return values
 
-    def check_binding(self, baseline: dict[str, Any], *, active: bool) -> None:
+    def _stable_environment(self, baseline: dict[str, Any]) -> inventory.Runner:
         self.budget()
         require(self.installed_binding() == baseline['binding']['installed'], 'INSTALLED_BINDING_DRIFT')
         runner = inventory.Runner()
@@ -554,6 +575,10 @@ class NativePort:
         incus = inventory._systemctl_show(runner, 'incus.service')
         require(incus == baseline['binding']['incus_unit'], 'INCUS_SERVICE_DRIFT')
         require(inventory._resolve_executable(runner, incus) == ('incus_system', 'system:incus'), 'INCUS_IDENTITY_DRIFT')
+        return runner
+
+    def check_binding(self, baseline: dict[str, Any], *, active: bool) -> None:
+        runner = self._stable_environment(baseline)
         row = inventory._systemctl_show(runner, DAEMON)
         require(row['active_state'] == ('active' if active else 'inactive'), 'DAEMON_STATE_DRIFT')
         if active:
@@ -656,37 +681,93 @@ class NativePort:
     def shutdown(self) -> None:
         require(self.baseline is not None, 'PRESTATE_MISSING')
         self.check_binding(cast(dict[str, Any], self.baseline), active=True)
+        self._shutdown_attempted = True
         self.command(['/snap/bin/lxd', 'shutdown', '--timeout', '60'], 75)
 
+    @contextmanager
+    def _read_window(self, reason: str, *, reserve: str, busy: str) -> Iterator[float]:
+        require(self._read_deadline is None, 'READ_WINDOW_NESTED')
+        require(self.deadline - time.monotonic() >= 30, reserve)
+        require(signal.getitimer(signal.ITIMER_REAL) == (0.0, 0.0), busy)
+        previous = signal.getsignal(signal.SIGALRM)
+        def expired(_signal: int, _frame: Any) -> None:
+            raise MaintenanceError(reason)
+        signal.signal(signal.SIGALRM, expired)
+        self._read_deadline = time.monotonic() + 25
+        try:
+            signal.setitimer(signal.ITIMER_REAL, 25)
+            yield self._read_deadline
+        finally:
+            signal.setitimer(signal.ITIMER_REAL, 0)
+            signal.signal(signal.SIGALRM, previous)
+            self._read_deadline = None
+
+    @staticmethod
+    def _pause_read(deadline: float) -> None:
+        time.sleep(min(.2, max(0, deadline - time.monotonic())))
+
     def wait_inactive(self) -> None:
-        deadline = min(self.deadline, time.monotonic() + 30)
-        while time.monotonic() < deadline:
-            if self.unit(DAEMON) == 'inactive':
-                return
-            time.sleep(.2)
-        raise MaintenanceError('SHUTDOWN_OUTCOME_UNCERTAIN')
+        require(self.baseline is not None and self._shutdown_attempted, 'SHUTDOWN_WAIT_NOT_ADMITTED')
+        baseline = cast(dict[str, Any], self.baseline)
+        with self._read_window('SHUTDOWN_OUTCOME_UNCERTAIN', reserve='SHUTDOWN_WAIT_RESERVE_MISSING',
+                               busy='SHUTDOWN_WAIT_TIMER_BUSY') as deadline:
+            while time.monotonic() < deadline:
+                self._stable_environment(baseline)
+                try:
+                    state = self.unit(DAEMON)
+                except inventory.InventoryError as exc:
+                    if str(exc) != 'UNIT_STATE_BLOCKED':
+                        raise
+                else:
+                    if state == 'inactive':
+                        self.check_binding(baseline, active=False)
+                        return
+                self._pause_read(deadline)
+            raise MaintenanceError('SHUTDOWN_OUTCOME_UNCERTAIN')
+
+    def recovery_state(self, *, transition_owned: bool, start_owned: bool) -> str:
+        require(self.baseline is not None and self.recovering and type(transition_owned) is bool
+                and type(start_owned) is bool and (not start_owned or transition_owned), 'RECOVERY_STATE_NOT_ADMITTED')
+        self._owned_start = self._owned_start or start_owned
+        baseline = cast(dict[str, Any], self.baseline)
+        with self._read_window('DAEMON_TRANSITION_UNCERTAIN', reserve='RECOVERY_STATE_RESERVE_MISSING',
+                               busy='RECOVERY_STATE_TIMER_BUSY') as deadline:
+            while time.monotonic() < deadline:
+                try:
+                    self._stable_environment(baseline)
+                    state = self.unit(DAEMON)
+                    if state == 'active':
+                        self.ready_binding()
+                    else:
+                        self.check_binding(baseline, active=False)
+                    return state
+                except inventory.InventoryError as exc:
+                    if not (transition_owned and str(exc) == 'UNIT_STATE_BLOCKED'):
+                        raise
+                except provenance.ProvenanceError as exc:
+                    if not self._retry_provenance(exc):
+                        raise
+                self._pause_read(deadline)
+            raise MaintenanceError('DAEMON_TRANSITION_UNCERTAIN')
 
     def start_daemon(self) -> None:
         require(self.baseline is not None, 'PRESTATE_MISSING')
         self.check_binding(cast(dict[str, Any], self.baseline), active=False)
+        self._owned_start = True
         self.command(['/usr/bin/systemctl', 'start', DAEMON], 90)
         self.wait_ready()
 
+    def _retry_provenance(self, exc: provenance.ProvenanceError) -> bool:
+        return self._owned_start and str(exc) in {'SNAP_WRAPPER_FILE_UNVERIFIED',
+                                                'SNAP_WRAPPER_PROC_INVALID', 'SNAP_WRAPPER_CHILD_ABSENT'}
+
     def wait_ready(self) -> None:
-        """Bound full read-only startup proof, including its running client, to 30s."""
+        """Only full original proof can finish the existing25+5s own read window."""
         require(self.baseline is not None and self.recovering, 'RECOVERY_READINESS_NOT_ADMITTED')
-        require(self.deadline - time.monotonic() >= 30, 'RECOVERY_READINESS_RESERVE_MISSING')
-        require(signal.getitimer(signal.ITIMER_REAL) == (0.0, 0.0), 'RECOVERY_READINESS_TIMER_BUSY')
-        previous = signal.getsignal(signal.SIGALRM)
-        def expired(_signal: int, _frame: Any) -> None:
-            raise MaintenanceError('LXD_READINESS_TIMEOUT')
-        signal.signal(signal.SIGALRM, expired)
-        # Reserve the existing owned-client kill/reap maximum of five seconds.
-        signal.setitimer(signal.ITIMER_REAL, 25)
-        deadline = time.monotonic() + 25
         transient = {'DAEMON_STATE_DRIFT', 'SNAP_WRAPPER_CHILD_ABSENT', 'LXD_ENDPOINT_DRIFT',
                      'LXD_API_NOT_READY', 'SNAP_WRAPPER_PROC_INVALID'}
-        try:
+        with self._read_window('LXD_READINESS_TIMEOUT', reserve='RECOVERY_READINESS_RESERVE_MISSING',
+                               busy='RECOVERY_READINESS_TIMER_BUSY') as deadline:
             while time.monotonic() < deadline:
                 try:
                     self.ready_binding()
@@ -694,11 +775,11 @@ class NativePort:
                 except (MaintenanceError, inventory.InventoryError) as exc:
                     if str(exc) not in transient:
                         raise
-                time.sleep(min(.2, max(0, deadline - time.monotonic())))
+                except provenance.ProvenanceError as exc:
+                    if not self._retry_provenance(exc):
+                        raise
+                self._pause_read(deadline)
             raise MaintenanceError('LXD_READINESS_TIMEOUT')
-        finally:
-            signal.setitimer(signal.ITIMER_REAL, 0)
-            signal.signal(signal.SIGALRM, previous)
 
     def ready_binding(self) -> None:
         require(self.baseline is not None, 'PRESTATE_MISSING')
