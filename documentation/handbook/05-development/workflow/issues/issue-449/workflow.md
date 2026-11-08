@@ -1,7 +1,7 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: ACTIVE_FOR_ISSUE_449 v1.56 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
+Status: ACTIVE_FOR_ISSUE_449 v1.57 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
@@ -17,6 +17,31 @@ checks passed. Exclusive installation/global-resource ownership remains unproven
 Current policy work enables temporary maintenance without asserting adoption.
 Execution/evidence remains in `.codex/evidence/epic440-20261107.md`; full S02–S09
 completion remains required.
+
+## Versioned original-runtime driver reader repin — v1.57
+
+Actual NativeR5 exposed the shared collector's missing selector/pipe closure.
+The independently reviewed narrow reader correction passed the actual PC
+RLIMIT64/GC-disabled96-reader regression and all7 gates (3626 tests). The old
+WSL runtime-window driver71d2 and its df30 checkout stay immutable historical
+artifacts; do not execute a writer knowingly depending on the defective reader.
+
+Authorize a NEW versioned original-runtime driver derived from exactly71d2 with
+ONLY its SOURCE, ROOT and three existing PINS repinned to a clean current
+foundation checkout containing the accepted handle cleanup. Preserve all exact
+four original UUID/name/state/autostart checks, two-manager stop/start ordering,
+650s child and300s observation caps, private locks, durable nonreplayable intents,
+independent restoration and complete graph/config proofs. No control-flow,
+command, target, policy or lifecycle expansion. Reexecute its14 fake contracts
+on PC/WSL, review the literal delta, then capture a fresh actual proposal and
+bind new per-scenario GO. Historical unused proposals/approvals never qualify
+this new driver.
+
+The guest-switch adapter may serially repin ONLY the corresponding fixed driver
+path/hash in its source/tests/record, retaining the separate immutable original
+runtime source and its exact actual binding. Do not update old files in place or
+invent successful quiescence/restore. Explicit new driver/reader/source hashes
+and actual new results remain required before original-runtime effects.
 
 ## All-stopped WSL utility-VM handoff — v1.56
 
