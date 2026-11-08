@@ -187,7 +187,7 @@ class ComponentExecutionTests(unittest.IsolatedAsyncioTestCase):
         from tiny_swarm_world.domain.lifecycle.selection import plan_selection
         await self.apply()
         manifest = self.manifests.load().manifest
-        paths = ProjectPaths.from_roots(self.root, ROOT / 'infra')
+        paths = ProjectPaths.from_roots(self.root, ROOT / 'modules/tsw_core/infra')
         with patch.dict('os.environ', {}, clear=True):
             repository = ComposeFileRepositoryYaml(project_paths=paths, write_logs=False)
             self.assertEqual(repository.get_services_of('nexus')[0].image_ref, self.images['nexus'])
@@ -262,11 +262,11 @@ class ComponentExecutionTests(unittest.IsolatedAsyncioTestCase):
         from tiny_swarm_world.infrastructure import composition
         from tiny_swarm_world.infrastructure.project_paths import ProjectPaths
         await self.apply()
-        (self.root / 'src/tiny_swarm_world').mkdir(parents=True)
-        (self.root / 'infra/config').mkdir(parents=True)
+        (self.root / 'modules/tsw_core/src/tiny_swarm_world').mkdir(parents=True)
+        (self.root / 'modules/tsw_core/infra/config').mkdir(parents=True)
         (self.root / 'AGENTS.md').touch()
         (self.root / 'QUALITY.md').touch()
-        paths = ProjectPaths.from_roots(self.root, ROOT / 'infra')
+        paths = ProjectPaths.from_roots(self.root, ROOT / 'modules/tsw_core/infra')
         environment = _required_infisical_bootstrap_env()
         with patch.dict('os.environ', environment, clear=True), patch.object(composition, 'default_project_paths', return_value=paths), patch.object(composition, 'LxcSwarmRuntime'), patch.object(composition, 'InfisicalCliClient', side_effect=AssertionError('Update cannot bootstrap Infisical')):
             services = composition.build_lxc_deployment_services(backend=composition.ManagedLxcBackend.INCUS,
@@ -346,11 +346,11 @@ class ComponentExecutionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((await self.apply(('pulsar',)))['status'], 'completed')
         self.assertEqual(len(self.calls), 3)
         self.assertTrue(all(s.outcome == 'committed' for s in self.journal.load().stages))
-        (self.root / 'src/tiny_swarm_world').mkdir(parents=True)
-        (self.root / 'infra/config').mkdir(parents=True)
+        (self.root / 'modules/tsw_core/src/tiny_swarm_world').mkdir(parents=True)
+        (self.root / 'modules/tsw_core/infra/config').mkdir(parents=True)
         (self.root / 'AGENTS.md').touch()
         (self.root / 'QUALITY.md').touch()
-        paths = ProjectPaths.from_roots(self.root, ROOT / 'infra')
+        paths = ProjectPaths.from_roots(self.root, ROOT / 'modules/tsw_core/infra')
         new_manager = 'registry.test/manager@sha256:' + 'c' * 64
         with patch.dict('os.environ', _required_infisical_bootstrap_env(), clear=True), patch.object(composition, 'default_project_paths', return_value=paths), patch.object(composition, 'LxcSwarmRuntime'):
             services = composition.build_lxc_deployment_services(backend=composition.ManagedLxcBackend.INCUS,

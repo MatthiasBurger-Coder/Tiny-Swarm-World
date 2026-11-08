@@ -107,7 +107,7 @@ Implemented or substantially present:
 - Command safety metadata, workflow allow-list checks, and destructive command
   safeguards.
 - Desired/observed inventory and verification evidence concepts.
-- Host-neutral desired inventory baseline under `infra/config/inventory`.
+- Host-neutral desired inventory baseline under `modules/tsw_core/infra/config/inventory`.
 - Verify-after-apply workflow foundation.
 - Console/status UI adapters.
 - Explicit blocked workflow contracts for Artifact and Deployment commands.
@@ -214,9 +214,9 @@ Out of scope:
 - Linux/WSL-only operation remains the baseline.
 - Documentation examples use POSIX paths and shell commands.
 - Tests do not execute live infrastructure commands.
-- `src/tiny_swarm_world/infrastructure/composition.py` remains the concrete
+- `modules/tsw_core/src/tiny_swarm_world/infrastructure/composition.py` remains the concrete
   wiring root.
-- `src/tiny_swarm_world/__main__.py` remains thin.
+- `modules/tsw_core/src/tiny_swarm_world/__main__.py` remains thin.
 - Local runtime artifacts stay under ignored local-state paths.
 
 ## Stop Conditions

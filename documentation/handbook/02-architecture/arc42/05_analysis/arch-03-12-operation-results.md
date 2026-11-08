@@ -6,7 +6,7 @@ Parent: [#313](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/3
 
 ## Implemented ownership
 
-Source paths below are relative to `src/tiny_swarm_world/`.
+Source paths below are relative to `modules/tsw_core/src/tiny_swarm_world/`.
 `application/ports/operation_result.py` owns immutable `OperationFailure` and
 `OperationResult`, the outcome/recoverability enums, and typed `OperationError`.
 Domain remains independent of application. Infrastructure translates expected

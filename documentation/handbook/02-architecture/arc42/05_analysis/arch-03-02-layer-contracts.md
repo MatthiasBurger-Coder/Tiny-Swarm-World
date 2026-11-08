@@ -39,7 +39,7 @@ architecture regression suite additionally checks that:
 The canonical local gate is:
 
 ```text
-python3 tools/linux/quality_gate.py quality
+python3 modules/tsw_core/tools/linux/quality_gate.py quality
 ```
 
 A forbidden import causes `arch-lint` or `arch-tests` to fail and therefore

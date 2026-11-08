@@ -87,5 +87,5 @@ verification. The security rules above continue to apply.
 * Affects: `documentation/handbook/02-architecture/arc42/06_runtime_view.adoc`
 * Affects: `documentation/handbook/02-architecture/arc42/07_deployment_view.adoc`
 * Affects: `documentation/handbook/02-architecture/arc42/08_concepts.adoc`
-* Related code: `infra/config/compose`
-* Related code: `src/tiny_swarm_world/application/services/deployment`
+* Related code: `modules/tsw_core/infra/config/compose`
+* Related code: `modules/tsw_core/src/tiny_swarm_world/application/services/deployment`

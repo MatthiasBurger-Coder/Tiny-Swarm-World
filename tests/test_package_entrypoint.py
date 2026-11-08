@@ -71,7 +71,7 @@ from tiny_swarm_world.domain.project_filesystem import (
 )
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
-ENTRYPOINT_PATH = REPOSITORY_ROOT / "src" / "tiny_swarm_world" / "__main__.py"
+ENTRYPOINT_PATH = REPOSITORY_ROOT / "modules/tsw_core/src" / "tiny_swarm_world" / "__main__.py"
 
 
 class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):

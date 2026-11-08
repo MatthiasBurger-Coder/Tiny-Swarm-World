@@ -14,13 +14,13 @@ Use the repository quality contract without replacing or weakening it.
 `QUALITY.md` is the source of truth. The default minimum Python test command is:
 
 ```bash
-python3 tools/linux/quality_gate.py test
+python3 modules/tsw_core/tools/linux/quality_gate.py test
 ```
 
 The full local gate is:
 
 ```bash
-python3 tools/linux/quality_gate.py quality
+python3 modules/tsw_core/tools/linux/quality_gate.py quality
 ```
 
 ## Practices

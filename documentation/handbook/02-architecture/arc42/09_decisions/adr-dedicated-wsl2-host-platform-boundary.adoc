@@ -67,9 +67,9 @@ The following boundary contract applies:
   platform verification, and hang diagnosis are read-only. Host preparation,
   repair, apply, and cleanup are mutating and require the existing explicit
   consent contract.
-* `infra/config/node-providers/provider_config.yaml` is the authoritative source
+* `modules/tsw_core/infra/config/node-providers/provider_config.yaml` is the authoritative source
   for CPU, memory, and disk limits actually applied to managed Incus instances.
-  `infra/config/inventory/desired_inventory.yaml` is a synchronized projection
+  `modules/tsw_core/infra/config/inventory/desired_inventory.yaml` is a synchronized projection
   using normalized equivalent units and must be protected by an equivalence
   test.
 * CPU and memory overcommit are disabled by default. Aggregate requested hard
@@ -152,9 +152,9 @@ CI-compatible proof.
 * Complements:
   `documentation/handbook/02-architecture/arc42/09_decisions/adr-windows-wsl-bridge-service-agent.adoc`
 * Provider limits:
-  `infra/config/node-providers/provider_config.yaml`
+  `modules/tsw_core/infra/config/node-providers/provider_config.yaml`
 * Inventory projection:
-  `infra/config/inventory/desired_inventory.yaml`
+  `modules/tsw_core/infra/config/inventory/desired_inventory.yaml`
 * Implementation root:
-  `src/tiny_swarm_world/infrastructure/composition.py`
+  `modules/tsw_core/src/tiny_swarm_world/infrastructure/composition.py`
 * Issue: GitHub Issue #218

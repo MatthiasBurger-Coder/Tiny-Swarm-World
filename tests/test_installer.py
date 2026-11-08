@@ -19,8 +19,8 @@ from tiny_swarm_world.infrastructure.adapters.installation import host, configur
 
 class TestInstaller(unittest.TestCase):
     def _isolated_install(self, root, *, environment=None, phase=None, runtime="native_linux"):
-        source = root / "infra"
-        shutil.copytree(Path("infra/config"), source / "config")
+        source = root / "modules/tsw_core/infra"
+        shutil.copytree(Path("modules/tsw_core/infra/config"), source / "config")
         env_file = root / "operator.env"
         env_file.write_text("TSW_SETUP_MAX_CONCURRENCY=2\n", encoding="utf-8")
         env_file.chmod(0o600)
@@ -100,8 +100,8 @@ class TestInstaller(unittest.TestCase):
     def test_native_read_only_validation_rejects_invalid_configuration_before_setup_probe(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            source = root / "infra"
-            shutil.copytree(Path("infra/config"), source / "config")
+            source = root / "modules/tsw_core/infra"
+            shutil.copytree(Path("modules/tsw_core/infra/config"), source / "config")
             operator_file = root / "operator.env"
             operator_file.write_text("TSW_SETUP_MAX_CONCURRENCY=2\n", encoding="utf-8")
             operator_file.chmod(0o600)
@@ -165,7 +165,7 @@ class TestInstaller(unittest.TestCase):
                 self.assertTrue((snapshot_root / "config/compose/jenkins/image/Dockerfile").is_file())
                 self.assertEqual(0o700, snapshot_root.stat().st_mode & 0o777)
                 self.assertEqual(0o600, Path(environment["TSW_INSTALL_ENV_FILE"]).stat().st_mode & 0o777)
-                (root / "infra/config/compose/swagger/docker-compose.yml").write_text("invalid: [", encoding="utf-8")
+                (root / "modules/tsw_core/infra/config/compose/swagger/docker-compose.yml").write_text("invalid: [", encoding="utf-8")
                 (root / "operator.env").write_text("TSW_SETUP_MAX_CONCURRENCY=0\n", encoding="utf-8")
                 return 0
 
@@ -231,7 +231,7 @@ class TestInstaller(unittest.TestCase):
             root = Path(directory)
             environment, _, _, _ = self._isolated_install(root)
             registry = root / "bridge-ports.yaml"
-            shutil.copyfile(Path("infra/config/ports.yaml"), registry)
+            shutil.copyfile(Path("modules/tsw_core/infra/config/ports.yaml"), registry)
             environment["TSW_WINDOWS_BRIDGE_PORT_REGISTRY_PATH"] = str(registry)
             options = presentation.parse_args(())
             with configuration._configuration_snapshot(options, environment, Path.cwd(), installer.HostRuntime("wsl2", "test")) as prepared:
@@ -250,7 +250,7 @@ class TestInstaller(unittest.TestCase):
             root = Path(directory)
             source = root / "source"
             source.mkdir()
-            (source / "link").symlink_to(Path("infra/config/ports.yaml").resolve())
+            (source / "link").symlink_to(Path("modules/tsw_core/infra/config/ports.yaml").resolve())
             with self.assertRaises(OSError):
                 configuration._copy_configuration_tree(source, root / "copy")
             (source / "link").unlink()
@@ -896,7 +896,7 @@ class TestInstaller(unittest.TestCase):
 
     def test_required_installer_secret_entries_come_from_manifest(self):
         entries = credentials._required_installer_secret_entries(
-            Path("infra/config/secrets/infisical-secrets.yaml")
+            Path("modules/tsw_core/infra/config/secrets/infisical-secrets.yaml")
         )
         keys = {entry.key for entry in entries}
 
@@ -997,7 +997,7 @@ class TestInstaller(unittest.TestCase):
             root = Path(tempdir)
             _write_ports_registry(root, (80, 10000))
             _write_windows_bridge_state(root, "172.20.0.2", (80, 10000))
-            state_path = root / "bootstrap" / "windows" / ".tws-wsl-bridge.state.json"
+            state_path = root / "modules/tsw_windows_wsl/bootstrap/windows" / ".tws-wsl-bridge.state.json"
             pending = json.loads(state_path.read_text(encoding="utf-8"))
             pending["agentStatus"] = "degraded"
             pending["driftReasons"] = ["reconcile_in_progress"]
@@ -1042,7 +1042,7 @@ class TestInstaller(unittest.TestCase):
             presentation._windows_wsl_bridge_suggested_commands("agent_not_ready"),
             (
                 'powershell.exe -NoProfile -Command "Restart-Service -Name TinySwarmWorldWslBridge"',
-                "powershell.exe -ExecutionPolicy Bypass -File bootstrap/windows/tws-wsl-bridge.ps1 -Action install",
+                "powershell.exe -ExecutionPolicy Bypass -File modules/tsw_windows_wsl/bootstrap/windows/tws-wsl-bridge.ps1 -Action install",
             ),
         )
 
@@ -1050,7 +1050,7 @@ class TestInstaller(unittest.TestCase):
         guard = installer.WindowsWslBridgeGuardResult(
             passed=False,
             reason="agent_not_ready",
-            state_path=Path("bootstrap/windows/.tws-wsl-bridge.state.json"),
+            state_path=Path("modules/tsw_windows_wsl/bootstrap/windows/.tws-wsl-bridge.state.json"),
         )
         stderr = io.StringIO()
 
@@ -1290,7 +1290,7 @@ class TestInstaller(unittest.TestCase):
                     result = subprocess.run(
                         [sys.executable, "-c", harness],
                         cwd=repository,
-                        env=dict(os.environ, PYTHONPATH=str(repository / "src")),
+                        env=dict(os.environ, PYTHONPATH=str(repository / "modules/tsw_core/src")),
                         input=answer,
                         capture_output=True,
                         text=True,
@@ -1364,7 +1364,7 @@ def _write_host_signal(root: Path, relative_path: str, text: str) -> None:
 
 
 def _write_ports_registry(root: Path, ports: tuple[int, ...]) -> None:
-    registry = root / "infra" / "config" / "ports.yaml"
+    registry = root / "modules/tsw_core/infra" / "config" / "ports.yaml"
     registry.parent.mkdir(parents=True, exist_ok=True)
     lines = [
         "ranges: []",
@@ -1391,13 +1391,13 @@ def _test_windows_wsl_bridge_guard(
 ) -> installer.WindowsWslBridgeGuardResult:
     with patch.dict(
         env,
-        {"TSW_WINDOWS_WSL_BRIDGE_STATE_PATH": "bootstrap/windows/.tws-wsl-bridge.state.json"},
+        {"TSW_WINDOWS_WSL_BRIDGE_STATE_PATH": "modules/tsw_windows_wsl/bootstrap/windows/.tws-wsl-bridge.state.json"},
     ):
         return host._windows_wsl_bridge_guard(host_runtime, env, root)
 
 
 def _write_windows_bridge_state(root: Path, wsl_ip: str, ports: tuple[int, ...]) -> None:
-    state_path = root / "bootstrap" / "windows" / ".tws-wsl-bridge.state.json"
+    state_path = root / "modules/tsw_windows_wsl/bootstrap/windows" / ".tws-wsl-bridge.state.json"
     state_path.parent.mkdir(parents=True, exist_ok=True)
     state = {
         "contractVersion": 2,
@@ -1429,7 +1429,7 @@ class TestInstallerPortConfigurationBoundary(unittest.TestCase):
     def test_bridge_ports_are_loaded_from_structured_yaml(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            path = root / "infra/config/ports.yaml"
+            path = root / "modules/tsw_core/infra/config/ports.yaml"
             path.parent.mkdir(parents=True)
             path.write_text(
                 "ranges: []\nports: [{external_port: 10080, protocol: tcp, id: web, service_id: web, internal_port: 80, exposure: diagnostic}, "
@@ -1441,7 +1441,7 @@ class TestInstallerPortConfigurationBoundary(unittest.TestCase):
     def test_bridge_ports_reject_malformed_registry_instead_of_partial_result(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            path = root / "infra/config/ports.yaml"
+            path = root / "modules/tsw_core/infra/config/ports.yaml"
             path.parent.mkdir(parents=True)
             path.write_text("ranges: []\nports: [{external_port: 10080}]", encoding="utf-8")
             with self.assertRaisesRegex(installer.InstallerError, "Port registry configuration is invalid"):

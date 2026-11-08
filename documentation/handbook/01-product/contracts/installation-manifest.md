@@ -12,8 +12,8 @@ selection persistence over these contracts.
 Run from the prepared checkout/environment:
 
 ```bash
-PYTHONPATH=src python3 -m tiny_swarm_world product version --json
-PYTHONPATH=src python3 -m tiny_swarm_world services list --json
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world product version --json
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world services list --json
 ```
 
 These commands read native catalog assets and

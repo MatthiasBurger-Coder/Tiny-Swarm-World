@@ -22,7 +22,7 @@ class TestInstallerConfigurationRepository(unittest.TestCase):
     def test_static_files_and_environment_are_validated_without_runtime(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            shutil.copytree(Path('infra/config'), root / 'config')
+            shutil.copytree(Path('modules/tsw_core/infra/config'), root / 'config')
             env_file = root / 'operator.env'
             env_file.write_text('TSW_SETUP_MAX_CONCURRENCY=1\n', encoding='utf-8')
             environment = {'TSW_SETUP_MAX_CONCURRENCY': '3'}
@@ -44,7 +44,7 @@ class TestInstallerConfigurationRepository(unittest.TestCase):
                          'ports.yaml', 'secrets/infisical-secrets.yaml'):
             with self.subTest(filename=filename), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
-                shutil.copytree(Path('infra/config'), root / 'config')
+                shutil.copytree(Path('modules/tsw_core/infra/config'), root / 'config')
                 (root / 'config' / filename).write_text('invalid: [private-marker', encoding='utf-8')
                 with self.assertRaises(ValueError) as raised:
                     InstallerConfigurationRepository(
@@ -56,7 +56,7 @@ class TestInstallerConfigurationRepository(unittest.TestCase):
     def test_unselected_infisical_compose_does_not_block_default_profile(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            shutil.copytree(Path('infra/config'), root / 'config')
+            shutil.copytree(Path('modules/tsw_core/infra/config'), root / 'config')
             (root / 'config/compose/infisical/docker-compose.yml').write_text('invalid: [', encoding='utf-8')
             InstallerConfigurationRepository(
                 repository_root=Path.cwd(), infra_root=root, operator_env_file=None,

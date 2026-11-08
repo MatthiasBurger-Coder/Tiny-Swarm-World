@@ -30,7 +30,7 @@ On native Ubuntu 24.04/26.04 x86_64, from that checkout:
 
 [source,bash]
 ----
-./bootstrap/linux/prepare_linux.sh
+./modules/tsw_core/bootstrap/linux/prepare_linux.sh
 ./install.sh
 ----
 
@@ -44,7 +44,7 @@ PowerShell:
 
 [source,powershell]
 ----
-./bootstrap/windows/prepare_windows.ps1 -Distro Ubuntu-26.04
+./modules/tsw_windows_wsl/bootstrap/windows/prepare_windows.ps1 -Distro Ubuntu-26.04
 ----
 
 The second command is the printed `handoff.operator_command`: copy it into the
@@ -62,7 +62,7 @@ is installed only during approved preparation. Complete first-launch ordinary
 account creation interactively. Place the matching checkout under that user's
 Linux home (`~/Tiny-Swarm-World` default); `-LinuxCheckout` selects another owned
 Linux-native path. Preparation does not copy the Windows checkout. If system
-Python is absent for the read-only source probe, run `bootstrap/linux/prepare_linux.sh` in that
+Python is absent for the read-only source probe, run `modules/tsw_core/bootstrap/linux/prepare_linux.sh` in that
 Linux checkout first, then rerun Windows preparation. This prerequisite can add
 a command to the short path; it is not hidden automatic Windows execution.
 
@@ -224,9 +224,9 @@ Use a complete trusted release/checkout. Preflight and dry-run are read-only:
 
 [source,powershell]
 ----
-./bootstrap/windows/prepare_windows.ps1 -Help
-./bootstrap/windows/prepare_windows.ps1 -Distro Ubuntu-24.04 -Preflight
-./bootstrap/windows/prepare_windows.ps1 -Distro Ubuntu-24.04 -DryRun -Json
+./modules/tsw_windows_wsl/bootstrap/windows/prepare_windows.ps1 -Help
+./modules/tsw_windows_wsl/bootstrap/windows/prepare_windows.ps1 -Distro Ubuntu-24.04 -Preflight
+./modules/tsw_windows_wsl/bootstrap/windows/prepare_windows.ps1 -Distro Ubuntu-24.04 -DryRun -Json
 ----
 
 Select the exact existing distro; for a non-canonical registration, provide the
@@ -246,9 +246,9 @@ selected Ubuntu checkout, the corresponding Linux stages are:
 
 [source,bash]
 ----
-./bootstrap/linux/prepare_linux.sh --dry-run
-./bootstrap/linux/prepare_linux.sh
-./bootstrap/linux/prepare_linux.sh --preflight
+./modules/tsw_core/bootstrap/linux/prepare_linux.sh --dry-run
+./modules/tsw_core/bootstrap/linux/prepare_linux.sh
+./modules/tsw_core/bootstrap/linux/prepare_linux.sh --preflight
 ./install.sh
 ----
 
@@ -283,13 +283,13 @@ for failures.
 |===
 | Stage | Owner/entry point | Success means
 | Windows prerequisites, WSL lifecycle and resource plan
-| `bootstrap/windows/prepare_windows.ps1`
+| `modules/tsw_windows_wsl/bootstrap/windows/prepare_windows.ps1`
 | Windows capability observed ready, **not** an installed TSW
 | Windows browser bridge
 | Owned Windows bridge, normally orchestrated by Windows preparation
 | Routing agent/configuration ready, **not** endpoint/login verification
 | Linux packages, Python, Incus access/resources and kernel/network preparation
-| `bootstrap/linux/prepare_linux.sh`
+| `modules/tsw_core/bootstrap/linux/prepare_linux.sh`
 | Linux stages observed ready for install
 | Runtime stack and managed Docker Swarm
 | `install.sh` / TSW setup
@@ -299,7 +299,7 @@ for failures.
 | Separately verified browser access and login
 |===
 
-The older manual `bootstrap/windows/tws-wsl-bridge.ps1` entry points documented
+The older manual `modules/tsw_windows_wsl/bootstrap/windows/tws-wsl-bridge.ps1` entry points documented
 under <<windows-wsl-prework>> are bridge-specific operational controls, not an
 alternative end-to-end first-install recipe. Use the canonical Windows
 preparation handoff unless the documented recovery or bridge procedure calls
@@ -313,7 +313,7 @@ It separates preparation from CA trust in Ubuntu/WSL and Windows browsers, and
 explains authentication, group refresh, LXD conflicts and restart boundaries.
 
 On native or WSL2 Ubuntu 24.04/26.04 x86_64, use a complete trusted release
-and run `bootstrap/linux/prepare_linux.sh` as an ordinary user from an owned Linux-native
+and run `modules/tsw_core/bootstrap/linux/prepare_linux.sh` as an ordinary user from an owned Linux-native
 directory. It bootstraps missing Python >=3.12/venv, Git, Incus and profile
 packages with consent, then hash-locked local Python dependencies and separately
 confirmed Incus daemon/access/resources. WSL2 must
@@ -395,7 +395,7 @@ classification:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world --preflight
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world --preflight
 ----
 
 The `HOST-FILESYSTEM` result reports only the filesystem classification,
@@ -521,7 +521,7 @@ isolated host; do not delete LXD state to make preflight pass.
 
 The default provider is `lxc_native` through the managed Incus backend. An
 Incus host management layer is therefore a hard prerequisite before a live
-Tiny Swarm World run. The separate `bootstrap/linux/prepare_linux.sh` step can install the
+Tiny Swarm World run. The separate `modules/tsw_core/bootstrap/linux/prepare_linux.sh` step can install the
 Ubuntu Incus package and its bridge dependency `dnsmasq-base` after operator
 confirmation. After package/Python readiness, it explicitly plans and separately
 confirms Incus daemon startup, current-user group access and missing resolved
@@ -532,7 +532,7 @@ interfaces or overlapping subnets block with remediation. Initial setup uses
 the declared resource names, a directory pool, and a collision-free private IPv4
 NAT/DHCP bridge. Existing compatible storage drivers and bridge subnets survive.
 
-Run `./bootstrap/linux/prepare_linux.sh --dry-run` to inspect the exact stage without writing host,
+Run `./modules/tsw_core/bootstrap/linux/prepare_linux.sh --dry-run` to inspect the exact stage without writing host,
 configuration, state or evidence. Apply prompts for exact `yes` at each newly
 observable stage; EOF/refusal stops it. Startup/group actions use narrow `sudo -n`
 commands: authenticate with `sudo -v` if required, then review and rerun preparation.
@@ -555,9 +555,9 @@ run the following commands in the same WSL terminal and keep that terminal open:
 [source,bash]
 ----
 sudo -v
-./bootstrap/linux/prepare_linux.sh --dry-run
-./bootstrap/linux/prepare_linux.sh
-./bootstrap/linux/prepare_linux.sh --preflight
+./modules/tsw_core/bootstrap/linux/prepare_linux.sh --dry-run
+./modules/tsw_core/bootstrap/linux/prepare_linux.sh
+./modules/tsw_core/bootstrap/linux/prepare_linux.sh --preflight
 ./install.sh --preflight --headless
 ----
 
@@ -567,7 +567,7 @@ remain unverified until the installation and applicable service checks complete.
 
 New persisted `incus-admin` membership returns RESTART_REQUIRED/3; log out and
 log back in (opening another shell in the same login may retain stale groups),
-then rerun `bootstrap/linux/prepare_linux.sh`. No resource mutations follow an access restart.
+then rerun `modules/tsw_core/bootstrap/linux/prepare_linux.sh`. No resource mutations follow an access restart.
 Version/info and every declared resource must be observed as the ordinary user
 without sudo before Incus READY/0. Pending/collision/refusal is BLOCKED/2; failures
 with confirmed or uncertain effects are PARTIAL/4, with transport timeout/124 or
@@ -597,7 +597,7 @@ provider boundary and optional target-specific smoke are maintained in
 
 Backend selection first honors an explicit `--lxc-backend incus` override,
 then `backend_selection.preferred_backend` in
-`infra/config/node-providers/provider_config.yaml`.
+`modules/tsw_core/infra/config/node-providers/provider_config.yaml`.
 
 Backend resource names are configured under
 `provider_resource_resolution.backends.<backend>`. The committed defaults map
@@ -618,8 +618,8 @@ Run the project preflight before live mutation:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world --preflight
-PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend incus --preflight
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world --preflight
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world --lxc-backend incus --preflight
 ----
 
 The live `setup run` sequence performs `host prepare` and read-only `host
@@ -648,9 +648,9 @@ operator approval; it is not part of the repository quality gate.
   runs `incus version` and `incus info` without `sudo`.
 * [ ] The selected Incus storage pool, network bridge, and required profile
   state are available to that same user.
-* [ ] Python dependencies are installed and `python3 tools/linux/quality_gate.py
+* [ ] Python dependencies are installed and `python3 modules/tsw_core/tools/linux/quality_gate.py
   quality` is green when local development verification is required.
-* [ ] `PYTHONPATH=src python3 -m tiny_swarm_world --preflight` passes its static
+* [ ] `PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world --preflight` passes its static
   checks before any live consent is supplied.
 * [ ] The standard internal-test catalog is selected, or intentional overrides
   are available from the protected source described below. The default path
@@ -736,9 +736,9 @@ Linux and WSL, including safe module/sysctl persistence and scoped forwarding:
 
 [source,bash]
 ----
-./bootstrap/linux/prepare_linux.sh --dry-run
-./bootstrap/linux/prepare_linux.sh
-./bootstrap/linux/prepare_linux.sh --preflight
+./modules/tsw_core/bootstrap/linux/prepare_linux.sh --dry-run
+./modules/tsw_core/bootstrap/linux/prepare_linux.sh
+./modules/tsw_core/bootstrap/linux/prepare_linux.sh --preflight
 ----
 
 Review each stage before approving it. W06 loads `br_netfilter` only when
@@ -786,8 +786,8 @@ separate preparation command before rerunning setup:
 
 [source,bash]
 ----
-./bootstrap/linux/prepare_linux.sh --dry-run
-./bootstrap/linux/prepare_linux.sh
+./modules/tsw_core/bootstrap/linux/prepare_linux.sh --dry-run
+./modules/tsw_core/bootstrap/linux/prepare_linux.sh
 ----
 
 Preparation resolves the declared provider bridge/subnet, preserves the host
@@ -811,8 +811,8 @@ values can be written once to a protected local file:
 ----
 export TSW_INSTALL_ENV_FILE="$HOME/.local/state/tiny-swarm-world/live-installation.env"
 install -d -m 700 "$(dirname "$TSW_INSTALL_ENV_FILE")"
-PYTHONPATH=src python3 tools/linux/create_internal_test_env_file.py "$TSW_INSTALL_ENV_FILE"
-PYTHONPATH=src python3 -m tiny_swarm_world --preflight
+PYTHONPATH=modules/tsw_core/src python3 modules/tsw_core/tools/linux/create_internal_test_env_file.py "$TSW_INSTALL_ENV_FILE"
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world --preflight
 ----
 
 The helper preserves an existing file. The catalog values are public test
@@ -912,7 +912,7 @@ wsl -d <DistributionName> --exec sh -lc "ps -p 1 -o comm="
 The second command must print `systemd`. Then open *PowerShell as
 Administrator* in the Tiny Swarm World repository root. If this is not the
 Windows default WSL distribution, first set its exact name in
-`bootstrap/windows/tws-wsl-bridge.config.json` instead of keeping the automatic
+`modules/tsw_windows_wsl/bootstrap/windows/tws-wsl-bridge.config.json` instead of keeping the automatic
 `"distro": "auto"` selection. Then run:
 
 [source,powershell]
@@ -973,14 +973,14 @@ confirmed backup, bridge reinstallation, and return to the WSL installer.
 The filesystem exception `--allow-wsl-windows-filesystem` does not bypass or
 repair bridge preparation.
 
-See `bootstrap/windows/README.windows-wsl-bridge.md` for distro selection, repair,
+See `modules/tsw_windows_wsl/bootstrap/windows/README.windows-wsl-bridge.md` for distro selection, repair,
 status, verification, and uninstall details.
 
 ==== Linux Shell Name Resolution
 
-The separately consented `bootstrap/linux/prepare_linux.sh` network stage maintains a
+The separately consented `modules/tsw_core/bootstrap/linux/prepare_linux.sh` network stage maintains a
 delimited Linux `/etc/hosts` block from the canonical port registry. Review with
-`./bootstrap/linux/prepare_linux.sh --dry-run`; existing unrelated entries and metadata are
+`./modules/tsw_core/bootstrap/linux/prepare_linux.sh --dry-run`; existing unrelated entries and metadata are
 preserved. Conflicting names outside the owned block stop preparation for owner
 review instead of creating duplicates. See
 link:network-preparation.md[Kernel and browser-access preparation].
@@ -1013,7 +1013,7 @@ Only an explicit WSL `--confirm-reset` request first runs:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world platform reset --live --confirm RESET_TINY_SWARM_PLATFORM --service-profile service-access
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world platform reset --live --confirm RESET_TINY_SWARM_PLATFORM --service-profile service-access
 ----
 
 Ordinary installation runs setup directly; explicit reset installation proceeds
@@ -1021,7 +1021,7 @@ to setup only after reset succeeds:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world setup run --live --service-profile service-access
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world setup run --live --service-profile service-access
 ----
 
 The run writes evidence under
@@ -1068,7 +1068,7 @@ Start with the non-mutating workflow, keeping the installed service profile:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world --service-profile service-access platform verify
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world --service-profile service-access platform verify
 ----
 
 Then verify the managed nodes and Swarm state:
@@ -1147,7 +1147,7 @@ use the governed reset path rather than deleting arbitrary Incus resources:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world platform reset --live --confirm RESET_TINY_SWARM_PLATFORM --service-profile service-access
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world platform reset --live --confirm RESET_TINY_SWARM_PLATFORM --service-profile service-access
 ----
 
 If direct `tsw-proxy-*` instance devices block reset or expose operations,
@@ -1155,7 +1155,7 @@ repair only the reviewed Tiny Swarm World proxy drift:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world platform repair-lxc-proxy-drift --live
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world platform repair-lxc-proxy-drift --live
 ----
 
 Do not commit `.tiny-swarm-world/`, `.tiny-swarm/`, `.venv/`, coverage files,
@@ -1163,7 +1163,7 @@ or any local secret file.
 
 == Repository Runtime Model
 
-Python source code lives under `src/tiny_swarm_world` and uses package imports
+Python source code lives under `modules/tsw_core/src/tiny_swarm_world` and uses package imports
 such as `tiny_swarm_world.application...`,
 `tiny_swarm_world.domain...`, and `tiny_swarm_world.infrastructure...`.
 Install the repository in editable mode from a Linux or WSL shell before
@@ -1178,14 +1178,14 @@ tiny-swarm-world
 ----
 
 Manual source-checkout commands can still use
-`PYTHONPATH=src python3 -m tiny_swarm_world`. `tools/linux/quality_gate.py` sets the
+`PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world`. `modules/tsw_core/tools/linux/quality_gate.py` sets the
 needed source path for repository checks.
 
 List supported workflow-level commands without building application services:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world --list-workflows
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world --list-workflows
 ----
 
 == IntelliJ Execution Context
@@ -1197,7 +1197,7 @@ preflight checks. The command remains:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world setup run --live
 ----
 
 The live confirmation prompt requires stdin. Run the command from an IntelliJ
@@ -1208,7 +1208,7 @@ The safe setup probe is:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world setup run
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world setup run
 ----
 
 Without the complete live-consent contract, `setup run` refuses before setup
@@ -1219,11 +1219,11 @@ The canonical live operator command uses `lxc_native` by default:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world setup run --live
 ----
 
 For native Ubuntu 24.04 or 26.04 LTS on x86_64, run host preparation separately before
-the installer. Review the read-only plan first. `bootstrap/linux/prepare_linux.sh` uses only
+the installer. Review the read-only plan first. `modules/tsw_core/bootstrap/linux/prepare_linux.sh` uses only
 Ubuntu host packages needed by the Incus profile; Docker Engine and Swarm are
 installed inside managed Incus nodes by the setup workflow.
 
@@ -1234,9 +1234,9 @@ already populated host proves reconciliation, not a first installation.
 
 [source,bash]
 ----
-./bootstrap/linux/prepare_linux.sh --preflight
-./bootstrap/linux/prepare_linux.sh --dry-run
-./bootstrap/linux/prepare_linux.sh
+./modules/tsw_core/bootstrap/linux/prepare_linux.sh --preflight
+./modules/tsw_core/bootstrap/linux/prepare_linux.sh --dry-run
+./modules/tsw_core/bootstrap/linux/prepare_linux.sh
 ./install.sh --preflight
 ./install.sh --dry-run
 ./install.sh
@@ -1245,9 +1245,9 @@ already populated host proves reconciliation, not a first installation.
 `install.sh --preflight` checks native host prerequisites, package inventory,
 configuration, credentials and setup readiness without writes. `--dry-run`
 performs the same checks and prints the planned installer stages. Run
-`bootstrap/linux/prepare_linux.sh` first when the local Python environment is missing.
+`modules/tsw_core/bootstrap/linux/prepare_linux.sh` first when the local Python environment is missing.
 
-`bootstrap/linux/prepare_linux.sh` asks the operator to type `yes` before changing packages or
+`modules/tsw_core/bootstrap/linux/prepare_linux.sh` asks the operator to type `yes` before changing packages or
 preparing the checkout-local Python environment from `requirements.lock`.
 Its read-only modes report that work without creating a virtual environment.
 After packages/Python, it separately plans and confirms Incus startup/access
@@ -1288,7 +1288,7 @@ APT changes are not transactional. A failed preparation records confirmed
 package state observed after the attempt and uncertain package state in protected
 local evidence. A protected operation-start record is written before APT.
 Inspect APT state and the printed evidence file, correct the cause, then rerun
-`./bootstrap/linux/prepare_linux.sh --preflight` and `bootstrap/linux/prepare_linux.sh`. The next run
+`./modules/tsw_core/bootstrap/linux/prepare_linux.sh --preflight` and `modules/tsw_core/bootstrap/linux/prepare_linux.sh`. The next run
 installs only packages still missing. Do not remove packages automatically:
 other applications may use them. For uninstall, first use the separately
 confirmed managed-platform destroy or reset operation as appropriate; review
@@ -1337,7 +1337,7 @@ the configured managed nodes separately before invoking the installer:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world platform reset --live --confirm RESET_TINY_SWARM_PLATFORM --service-profile service-access
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world platform reset --live --confirm RESET_TINY_SWARM_PLATFORM --service-profile service-access
 ./install.sh --headless --non-interactive-live-approval
 ----
 
@@ -1375,7 +1375,7 @@ deliberate non-interactive automation, pass an explicit live-approval flag:
 [source,bash]
 ----
 ./install.sh --non-interactive-live-approval
-PYTHONPATH=src python3 -m tiny_swarm_world setup run --live --approve-live
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world setup run --live --approve-live
 ----
 
 The automation flag is an approval source; it does not remove the `--live`
@@ -1411,7 +1411,7 @@ redacted evidence to `${XDG_STATE_HOME:-$HOME/.local/state}/tiny-swarm-world/evi
 It resolves catalog-backed `TSW_*` credentials and optional operator overrides
 without printing secret values. It does not generate a local credential file.
 Required local bootstrap values are derived from
-`infra/config/secrets/infisical-secrets.yaml`; installer code does not maintain
+`modules/tsw_core/infra/config/secrets/infisical-secrets.yaml`; installer code does not maintain
 a separate required-secret list.
 The default path requires no credential file. For intentional overrides, follow
 <<operator-credential-overrides>>; the process environment takes precedence
@@ -1436,8 +1436,8 @@ inspect the separately owned preparation plan:
 
 [source,bash]
 ----
-./bootstrap/linux/prepare_linux.sh --dry-run
-./bootstrap/linux/prepare_linux.sh
+./modules/tsw_core/bootstrap/linux/prepare_linux.sh --dry-run
+./modules/tsw_core/bootstrap/linux/prepare_linux.sh
 ----
 
 The scoped preparation path handles the supported iptables-nft/UFW owners and
@@ -1487,7 +1487,7 @@ governed destructive reset workflow:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world platform reset --live --confirm RESET_TINY_SWARM_PLATFORM
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world platform reset --live --confirm RESET_TINY_SWARM_PLATFORM
 ----
 
 The wrapper passes the selected service profile to reset and setup. The
@@ -1495,7 +1495,7 @@ default is `service-access`, so the effective reset command is:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world platform reset --live --confirm RESET_TINY_SWARM_PLATFORM --service-profile service-access
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world platform reset --live --confirm RESET_TINY_SWARM_PLATFORM --service-profile service-access
 ----
 
 Ordinary installation calls the canonical live setup workflow directly; an
@@ -1503,7 +1503,7 @@ explicit reset request reaches setup only after successful reset:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world setup run --live --service-profile service-access
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world setup run --live --service-profile service-access
 ----
 
 If reset is blocked or fails, setup is not started and the script exits with
@@ -1554,7 +1554,7 @@ stale direct project proxy can be repaired explicitly:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world platform repair-lxc-proxy-drift --live
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world platform repair-lxc-proxy-drift --live
 ----
 
 Answer `y` only when removing stale direct `tsw-proxy-*` devices from the
@@ -1570,7 +1570,7 @@ live-operation surface catalog:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world setup run --live
 ----
 
 When prompted, answer `y` only if changing the local Incus/LXC provider
@@ -1589,7 +1589,7 @@ The service-access setup profile exposes Traefik ingress ports `80` and `443`
 through the LXC/WSL exposure workflow. The service-access NGINX compose
 service publishes registry-backed dashboard port `10000` and explicit
 compatibility/rollback port `8086` as stack metadata parsed from
-`infra/config/compose/service-access/docker-compose.yml`. The Compose target
+`modules/tsw_core/infra/config/compose/service-access/docker-compose.yml`. The Compose target
 ports remain the image-compatible internal ports. WSL `localhost` forwarding
 is a separate host-network concern. Endpoint defaults are configuration hints,
 not service-health evidence, and local effective-port evidence is not live
@@ -1601,6 +1601,6 @@ service links, users and Infisical item references from the effective access
 model; password values are visible only through the configured
 secret-management surface. Preferred links use routed HTTPS URLs without the
 diagnostic ports `10080` or `10443`. Runtime renderer output is authoritative;
-the committed `infra/config/compose/service-access/dashboard/index.html` is a
+the committed `modules/tsw_core/infra/config/compose/service-access/dashboard/index.html` is a
 default-profile fallback/image asset guarded by a renderer drift test, and the
 dashboard Dockerfile packages it into the default `service-access` setup path.

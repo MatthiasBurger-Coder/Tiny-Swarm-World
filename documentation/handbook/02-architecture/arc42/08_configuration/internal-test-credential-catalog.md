@@ -14,7 +14,7 @@ managed credentials and must follow
 [`secret-handling-policy.md`](../../../06-quality-security/security/secret-handling-policy.md).
 
 The single authoritative implementation is
-`src/tiny_swarm_world/domain/configuration/internal_test_credentials.py`.
+`modules/tsw_core/src/tiny_swarm_world/domain/configuration/internal_test_credentials.py`.
 Consumers resolve values through `internal_test_credential(key)` or
 `internal_test_credentials()`; they do not maintain another internal-test
 default list. The catalog is the only default source for the normal installer;
@@ -22,7 +22,7 @@ operator overrides and ready secure-provider values are handled by the
 centralized lifecycle resolver.
 
 For standalone preflight on an isolated, disposable test system,
-`PYTHONPATH=src python3 tools/linux/create_internal_test_env_file.py "$TSW_INSTALL_ENV_FILE"`
+`PYTHONPATH=modules/tsw_core/src python3 modules/tsw_core/tools/linux/create_internal_test_env_file.py "$TSW_INSTALL_ENV_FILE"`
 materializes the active required catalog values in a protected local file only
 when it does not already exist. The helper does not run as part of the normal
 installer. Existing operator values remain unchanged. Production or shared

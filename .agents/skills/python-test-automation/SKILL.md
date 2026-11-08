@@ -48,4 +48,4 @@ dependencies.
 ## Quality expectations
 
 - Run the nearest focused unittest command first.
-- Run `python3 tools/linux/quality_gate.py test` for broader regression coverage.
+- Run `python3 modules/tsw_core/tools/linux/quality_gate.py test` for broader regression coverage.

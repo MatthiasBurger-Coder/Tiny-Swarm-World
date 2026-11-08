@@ -197,6 +197,6 @@ Future ADR coverage is required before:
 * Affects: `documentation/handbook/02-architecture/arc42/06_runtime_view.adoc`
 * Affects: `documentation/handbook/02-architecture/arc42/08_concepts.adoc`
 * Related concept: installation observability and safe trace metadata.
-* Related code: `src/tiny_swarm_world/application/ports`
-* Related code: `src/tiny_swarm_world/infrastructure/logging`
+* Related code: `modules/tsw_core/src/tiny_swarm_world/application/ports`
+* Related code: `modules/tsw_core/src/tiny_swarm_world/infrastructure/logging`
 * Related code: `tests/architecture/test_installation_method_trace_coverage.py`

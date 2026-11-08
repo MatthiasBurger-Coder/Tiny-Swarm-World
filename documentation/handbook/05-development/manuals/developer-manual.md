@@ -13,7 +13,7 @@ Start with [arc42](../../02-architecture/arc42.adoc), the
 [runtime view](../../02-architecture/arc42/06_runtime_view.adoc) and the
 [deployment view](../../02-architecture/arc42/07_deployment_view.adoc). Domain code stays
 independent of application and infrastructure; concrete adapters are wired in
-`src/tiny_swarm_world/infrastructure/composition.py`.
+`modules/tsw_core/src/tiny_swarm_world/infrastructure/composition.py`.
 
 Read the [resulting architecture and runtime extension guide](../../02-architecture/arc42/05_analysis/arch-03-21-resulting-architecture.md)
 for package ownership, dependency rules, Classic wiring, fitness functions and
@@ -30,7 +30,7 @@ rollback and verification-state semantics.
 
 ## Local Python environment
 
-Operators use `./bootstrap/linux/prepare_linux.sh` from the trusted checkout, followed by
+Operators use `./modules/tsw_core/bootstrap/linux/prepare_linux.sh` from the trusted checkout, followed by
 `./install.sh`. For manual development setup from the repository root:
 
 ```bash
@@ -44,19 +44,19 @@ python3 -m pip install -r requirements-dev.txt
 
 The runtime lock is installed before the editable project to avoid a second
 runtime dependency resolution. Development dependencies are for local checks.
-Run manual tests with `PYTHONPATH=src`; the quality wrapper sets it automatically.
+Run manual tests with `PYTHONPATH=modules/tsw_core/src`; the quality wrapper sets it automatically.
 These commands do not prepare Incus or verify installed services.
 
 ## Quality
 
 Locations follow the [bootstrap and developer-tool layout](tools-layout.md):
-installation prerequisites live in `bootstrap/windows` and `bootstrap/linux`;
+installation prerequisites live in `modules/tsw_windows_wsl/bootstrap/windows` and `modules/tsw_core/bootstrap/linux`;
 quality, audit, packaging and developer tools live in `tools`.
 
 `QUALITY.md` is the quality authority. The standard local command is:
 
 ```bash
-python3 tools/linux/quality_gate.py quality
+python3 modules/tsw_core/tools/linux/quality_gate.py quality
 ```
 
 Run focused tests first, then the required gate. Use WSL/Linux for project

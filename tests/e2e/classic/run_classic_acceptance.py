@@ -55,7 +55,7 @@ NON_SUCCESS_STATUSES = frozenset({
 })
 CLASSIC_E2E_COMMAND = (
     "env",
-    "PYTHONPATH=src",
+    "PYTHONPATH=modules/tsw_core/src",
     "TSW_RUN_POST_INSTALL_BROWSER_LIVE=1",
     "python3",
     "-m",
@@ -205,13 +205,13 @@ def main() -> int:
     environment["TSW_INSTALL_ENV_FILE"] = env_file.as_posix()
     environment["TSW_LIVE_INSTALLATION_ENV"] = env_file.as_posix()
     authenticated_command = (
-        "env", "PYTHONPATH=src", "python3", "-m",
+        "env", "PYTHONPATH=modules/tsw_core/src", "python3", "-m",
         "tests.e2e.classic.run_authenticated_acceptance_live",
         "--approve-live", "--phase", "baseline", "--env-file", env_file.as_posix(),
     )
     operations: list[CommandResult] = []
     commands = (
-        ("diagnostics", ("python3", "bootstrap/linux/install_debugger.py", "--live"), 120),
+        ("diagnostics", ("python3", "modules/tsw_core/bootstrap/linux/install_debugger.py", "--live"), 120),
         (
             "setup",
             (
@@ -702,13 +702,13 @@ def _resolve_env_file(value: Path | None) -> Path:
 def _safe_command_label(operation: str) -> str:
     if operation.endswith("_authenticated"):
         return (
-            "env PYTHONPATH=src python3 -m tests.e2e.classic.run_authenticated_acceptance_live "
+            "env PYTHONPATH=modules/tsw_core/src python3 -m tests.e2e.classic.run_authenticated_acceptance_live "
             "--approve-live --phase baseline --env-file <protected>"
         )
     if operation.endswith("_e2e"):
         return shlex.join(CLASSIC_E2E_COMMAND)
     return {
-        "diagnostics": "python3 bootstrap/linux/install_debugger.py --live",
+        "diagnostics": "python3 modules/tsw_core/bootstrap/linux/install_debugger.py --live",
         "setup": "bash tsw --live --approve-live --json setup run",
         "platform_verify": "bash tsw --json platform verify",
         "reconcile": "bash tsw --live --approve-live --json platform reconcile",

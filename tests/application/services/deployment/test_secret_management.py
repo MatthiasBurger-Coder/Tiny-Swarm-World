@@ -26,7 +26,7 @@ from tiny_swarm_world.infrastructure.adapters.repositories.secret_manifest_yaml_
 from tiny_swarm_world.application.ports.repositories.port_secret_manifest_repository import PortSecretManifestRepository
 from tiny_swarm_world.domain.configuration.secret_manifest import SecretManifestValidationError
 
-_PULSAR_COMPOSE_FIXTURE = Path("infra/config/compose/pulsar/docker-compose.yml")
+_PULSAR_COMPOSE_FIXTURE = Path("modules/tsw_core/infra/config/compose/pulsar/docker-compose.yml")
 _STORAGE = LocalFileStorage()
 
 

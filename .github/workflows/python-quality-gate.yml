@@ -56,11 +56,11 @@ jobs:
             "types-requests==2.33.0.20260712"
 
       - name: Run Canonical Quality Gate
-        run: python3 tools/linux/quality_gate.py quality
+        run: python3 modules/tsw_core/tools/linux/quality_gate.py quality
 
       - name: Generate Sonar Coverage Handoff
         run: |
-          PYTHONPATH=src python3 -m coverage run --branch -m unittest discover -s tests -t .
+          PYTHONPATH=modules/tsw_core/src python3 -m coverage run --branch -m unittest discover -s tests -t .
           python3 -m coverage xml -o coverage.xml
 
       - name: Upload Sonar Coverage Handoff

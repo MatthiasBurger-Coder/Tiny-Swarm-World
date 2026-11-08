@@ -2247,8 +2247,8 @@ class TestComposition(unittest.TestCase):
 
         with TemporaryDirectory() as directory:
             root = Path(directory)
-            shutil.copytree(Path("infra/config"), root / "infra/config")
-            (root / "infra/config/compose/swagger/docker-compose.yml").write_text("services: [private-marker", encoding="utf-8")
+            shutil.copytree(Path("modules/tsw_core/infra/config"), root / "modules/tsw_core/infra/config")
+            (root / "modules/tsw_core/infra/config/compose/swagger/docker-compose.yml").write_text("services: [private-marker", encoding="utf-8")
             host = Mock()
             platform = _platform_phase_bundle()
             artifacts = _artifact_phase_bundle()
@@ -2338,7 +2338,7 @@ class TestComposition(unittest.TestCase):
 
         with TemporaryDirectory() as directory:
             root = Path(directory)
-            shutil.copytree(Path("infra/config"), root / "config")
+            shutil.copytree(Path("modules/tsw_core/infra/config"), root / "config")
             runner = Mock()
             runner.run = AsyncMock(return_value=SimpleNamespace(returncode=0, timed_out=False, stdout="[]", stderr=""))
             with (
@@ -2363,13 +2363,13 @@ class TestComposition(unittest.TestCase):
 
         with TemporaryDirectory() as directory:
             root = Path(directory)
-            shutil.copytree(Path("infra/config"), root / "infra/config")
-            (root / "infra/config/compose/infisical/docker-compose.yml").write_text("invalid: [", encoding="utf-8")
-            (root / "infra/config/secrets/infisical-secrets.yaml").write_text("invalid: [", encoding="utf-8")
+            shutil.copytree(Path("modules/tsw_core/infra/config"), root / "modules/tsw_core/infra/config")
+            (root / "modules/tsw_core/infra/config/compose/infisical/docker-compose.yml").write_text("invalid: [", encoding="utf-8")
+            (root / "modules/tsw_core/infra/config/secrets/infisical-secrets.yaml").write_text("invalid: [", encoding="utf-8")
             configured_value = sample_text("initial", "-operator-value")
             with (
                 patch.dict(os.environ, {"TSW_JENKINS_ADMIN_PASSWORD": configured_value}, clear=True),
-                patch.object(composition, "default_project_paths", return_value=ProjectPaths.from_roots(Path.cwd(), root / "infra")),
+                patch.object(composition, "default_project_paths", return_value=ProjectPaths.from_roots(Path.cwd(), root / "modules/tsw_core/infra")),
                 patch.object(composition_deployment, "HostEnvironmentDetector") as detector,
                 patch.object(composition_deployment, "DockerSwarmRuntime") as runtime,
             ):
@@ -2378,7 +2378,7 @@ class TestComposition(unittest.TestCase):
                     backend=composition.ManagedLxcBackend.INCUS,
                     service_profile=ServiceStackProfile.DEFAULT, update_stack_name="jenkins",
                 )
-                (root / "infra/config/compose/jenkins/docker-compose.yml").write_text("services: [unchecked", encoding="utf-8")
+                (root / "modules/tsw_core/infra/config/compose/jenkins/docker-compose.yml").write_text("services: [unchecked", encoding="utf-8")
                 os.environ["TSW_JENKINS_ADMIN_PASSWORD"] = sample_text("changed", "-operator-value")
                 result = asyncio.run(services.workflows.apply.run())
                 self.assertEqual("completed", result.status.value)

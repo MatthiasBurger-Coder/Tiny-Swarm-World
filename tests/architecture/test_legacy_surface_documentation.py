@@ -3,7 +3,7 @@ from pathlib import Path
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
-INFRA_ROOT = REPOSITORY_ROOT / "infra"
+INFRA_ROOT = REPOSITORY_ROOT / "modules/tsw_core/infra"
 LIVE_SURFACE_CATALOG = (
     REPOSITORY_ROOT / "documentation/handbook/04-operations/system" / "live-operation-surfaces.adoc"
 )
@@ -32,14 +32,14 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
             "Former `create_dockerfiles.sh` helper": "Retired",
             "Former `upload_all_stacks.sh` helper": "Retired",
             "`tools/live/nexus-docker-cache.sh`": "Retired",
-            "`infra/config/compose/portainer/docker-compose.yml`": "Supported Asset",
-            "`infra/config/compose/nexus/docker-compose.yml`": "Supported Asset",
-            "`infra/config/compose/jenkins/docker-compose.yml`": "Supported Asset",
-            "`infra/config/compose/swagger/docker-compose.yml`": "Supported Asset",
-            "`infra/config/compose/swagger/nginx/default.conf`": "Supported Asset",
-            "`infra/config/compose/service-access/docker-compose.yml`": "Supported Asset",
-            "`infra/config/compose/service-access/dashboard/**`": "Supported Asset",
-            "`infra/config/compose/service-access/nginx/**`": "Supported Asset",
+            "`modules/tsw_core/infra/config/compose/portainer/docker-compose.yml`": "Supported Asset",
+            "`modules/tsw_core/infra/config/compose/nexus/docker-compose.yml`": "Supported Asset",
+            "`modules/tsw_core/infra/config/compose/jenkins/docker-compose.yml`": "Supported Asset",
+            "`modules/tsw_core/infra/config/compose/swagger/docker-compose.yml`": "Supported Asset",
+            "`modules/tsw_core/infra/config/compose/swagger/nginx/default.conf`": "Supported Asset",
+            "`modules/tsw_core/infra/config/compose/service-access/docker-compose.yml`": "Supported Asset",
+            "`modules/tsw_core/infra/config/compose/service-access/dashboard/**`": "Supported Asset",
+            "`modules/tsw_core/infra/config/compose/service-access/nginx/**`": "Supported Asset",
         }
 
         for path, status in expected_rows.items():
@@ -48,11 +48,11 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
 
     def test_compose_area_has_no_host_side_shell_orchestration(self):
         allowed_container_entrypoint_scripts = {
-            "infra/config/compose/service-access/nginx/generate-self-signed-cert.sh",
+            "modules/tsw_core/infra/config/compose/service-access/nginx/generate-self-signed-cert.sh",
         }
         shell_scripts = {
             path.relative_to(REPOSITORY_ROOT).as_posix()
-            for path in (REPOSITORY_ROOT / "infra" / "config" / "compose").rglob("*.sh")
+            for path in (REPOSITORY_ROOT / "modules/tsw_core/infra" / "config" / "compose").rglob("*.sh")
         }
 
         self.assertEqual(allowed_container_entrypoint_scripts, shell_scripts)
@@ -77,17 +77,17 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
 
     def test_swagger_nginx_uses_official_image_with_mounted_runtime_config(self):
         nginx_config = (
-            REPOSITORY_ROOT / "infra" / "config" / "compose" / "swagger" / "nginx" / "default.conf"
+            REPOSITORY_ROOT / "modules/tsw_core/infra" / "config" / "compose" / "swagger" / "nginx" / "default.conf"
         ).read_text(encoding="utf-8")
-        compose = (REPOSITORY_ROOT / "infra" / "config" / "compose" / "swagger" / "docker-compose.yml").read_text(
+        compose = (REPOSITORY_ROOT / "modules/tsw_core/infra" / "config" / "compose" / "swagger" / "docker-compose.yml").read_text(
             encoding="utf-8"
         )
 
         self.assertFalse(
-            (REPOSITORY_ROOT / "infra" / "config" / "compose" / "swagger" / "nginx" / "Dockerfile").exists()
+            (REPOSITORY_ROOT / "modules/tsw_core/infra" / "config" / "compose" / "swagger" / "nginx" / "Dockerfile").exists()
         )
         self.assertFalse(
-            (REPOSITORY_ROOT / "infra" / "config" / "compose" / "swagger" / "nginx" / "wait-for-it.sh").exists()
+            (REPOSITORY_ROOT / "modules/tsw_core/infra" / "config" / "compose" / "swagger" / "nginx" / "wait-for-it.sh").exists()
         )
         self.assertIn("image: ${TSW_SWAGGER_NGINX_IMAGE:-nginx:1.29.8-alpine}", compose)
         self.assertIn("/swagger/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro", compose)
@@ -97,7 +97,7 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
         self.assertIn("proxy_pass $swagger_api_upstream;", nginx_config)
 
     def test_compose_area_has_no_stack_definitions(self):
-        self.assertFalse((REPOSITORY_ROOT / "infra" / "compose").exists())
+        self.assertFalse((REPOSITORY_ROOT / "modules/tsw_core/infra" / "compose").exists())
 
     def test_service_access_assets_do_not_introduce_frontend_project_or_live_orchestration_surface(self):
         roots = [
@@ -192,8 +192,8 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
 
     def test_legacy_helper_areas_are_removed(self):
         removed_paths = (
-            REPOSITORY_ROOT / "infra" / "prepare",
-            REPOSITORY_ROOT / "infra" / "swarm",
+            REPOSITORY_ROOT / "modules/tsw_core/infra" / "prepare",
+            REPOSITORY_ROOT / "modules/tsw_core/infra" / "swarm",
             REPOSITORY_ROOT / "window-wsl-setup.ps1",
         )
         present_paths = [
@@ -207,7 +207,7 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
     def test_java_maven_project_surface_is_not_reintroduced(self):
         forbidden_paths = (
             REPOSITORY_ROOT / "pom.xml",
-            REPOSITORY_ROOT / "src" / "main" / "java",
+            REPOSITORY_ROOT / "modules/tsw_core/src" / "main" / "java",
         )
         present_paths = [
             path.relative_to(REPOSITORY_ROOT).as_posix()
@@ -237,7 +237,7 @@ class TestLegacySurfaceDocumentation(unittest.TestCase):
     def test_nexus_bootstrap_is_routed_through_setup_workflow(self):
         deployment_doc = _read_document(DEPLOYMENT_DOC)
 
-        self.assertIn("PYTHONPATH=src python3 -m tiny_swarm_world setup run --live", deployment_doc)
+        self.assertIn("PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world setup run --live", deployment_doc)
         self.assertIn("Nexus setup is owned by the Python setup workflow", deployment_doc)
         self.assertNotIn("python3 infra/prepare/nexus/setup.py", deployment_doc)
 

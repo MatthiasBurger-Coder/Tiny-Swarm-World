@@ -20,5 +20,5 @@ Define test coverage for small slices without weakening repository quality rules
 ## Verification
 
 - Run targeted tests first.
-- Run `python3 tools/linux/quality_gate.py test` for shared behavior, and the full gate from `QUALITY.md` for broader readiness.
+- Run `python3 modules/tsw_core/tools/linux/quality_gate.py test` for shared behavior, and the full gate from `QUALITY.md` for broader readiness.
 - Run the full gate from `QUALITY.md` for commit readiness.

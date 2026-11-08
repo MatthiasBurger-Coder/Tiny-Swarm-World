@@ -1,6 +1,6 @@
 param([Parameter(Mandatory=$true)][string]$RepositoryRoot,[switch]$VhdOnly)
 $ErrorActionPreference='Stop'
-Import-Module (Join-Path $RepositoryRoot 'bootstrap/windows/preparation/Preparation.psm1') -Force -DisableNameChecking
+Import-Module (Join-Path $RepositoryRoot 'modules/tsw_windows_wsl/bootstrap/windows/preparation/Preparation.psm1') -Force -DisableNameChecking
 $m=Get-Module Preparation
 if([Environment]::OSVersion.Platform -ne 'Win32NT'){throw 'Windows disposable ACL fixture required'}
 $count=0
@@ -46,7 +46,7 @@ try {
     Assert ($bounded.confirmed -and !$bounded.uncertain) 'bounded child performs and verifies disposable resource action'
     # Real bounded helper timeout, never an actual host target.
     $fixtureRoot=Join-Path $directory 'bounded-helper'
-    $helperDirectory=Join-Path $fixtureRoot 'bootstrap/windows/preparation';[void][IO.Directory]::CreateDirectory($helperDirectory)
+    $helperDirectory=Join-Path $fixtureRoot 'modules/tsw_windows_wsl/bootstrap/windows/preparation';[void][IO.Directory]::CreateDirectory($helperDirectory)
     [IO.File]::WriteAllText((Join-Path $helperDirectory 'ResourceHost.ps1'),"$([char]36)request=[Console]::In.ReadToEnd();Start-Sleep -Seconds 10")
     $approved=& $m {param($p) Get-PreparationConfigSnapshot $p} $path
     $before=[IO.File]::ReadAllBytes($path)
@@ -124,7 +124,7 @@ try {
     Assert $blocked 'actual reparse VHD rejected'
     [IO.Directory]::Delete($junction)
     # Only owner/metadata failure injection is mocked; private guards remain real.
-    $fresh=Import-Module (Join-Path $RepositoryRoot 'bootstrap/windows/preparation/Preparation.psm1') -Force -PassThru -DisableNameChecking
+    $fresh=Import-Module (Join-Path $RepositoryRoot 'modules/tsw_windows_wsl/bootstrap/windows/preparation/Preparation.psm1') -Force -PassThru -DisableNameChecking
     & $fresh {
         param($vhd)
         $script:fixtureVhdOwnerPath=$vhd

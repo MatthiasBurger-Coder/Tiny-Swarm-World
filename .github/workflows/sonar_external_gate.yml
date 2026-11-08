@@ -110,7 +110,7 @@ jobs:
             -Dsonar.host.url=https://sonarcloud.io
             -Dsonar.projectKey=MatthiasBurger-Coder_Tiny-Swarm-World
             -Dsonar.organization=matthiasburger-coder
-            -Dsonar.sources=src
+            -Dsonar.sources=modules/tsw_core/src
             -Dsonar.tests=tests
             -Dsonar.python.version=3.12,3.13,3.14
             -Dsonar.python.coverage.reportPaths=coverage.xml
@@ -132,7 +132,7 @@ jobs:
             -Dsonar.host.url=https://sonarcloud.io
             -Dsonar.projectKey=MatthiasBurger-Coder_Tiny-Swarm-World
             -Dsonar.organization=matthiasburger-coder
-            -Dsonar.sources=src
+            -Dsonar.sources=modules/tsw_core/src
             -Dsonar.tests=tests
             -Dsonar.python.version=3.12,3.13,3.14
             -Dsonar.python.coverage.reportPaths=coverage.xml

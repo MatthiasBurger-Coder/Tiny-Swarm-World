@@ -11,7 +11,7 @@ tiny-swarm-world services update --services swagger --to swagger-ui-5-32-7 --pre
 ```
 
 Run these commands from the prepared environment. Alternatively use
-`PYTHONPATH=src python3 -m tiny_swarm_world` in place of `tiny-swarm-world`.
+`PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world` in place of `tiny-swarm-world`.
 `services updates` defaults to the persisted installed selection. Update preview
 requires an explicit nonempty comma-separated selection; it never adds services
 or updates dependencies implicitly. `--to` selects a catalog **target ID** for one

@@ -330,7 +330,7 @@ class TestBootstrapNexus(unittest.TestCase):
 
     def test_committed_nexus_compose_matches_initial_password_path(self):
         compose_text = (
-            REPOSITORY_ROOT / "infra" / "config" / "compose" / "nexus" / "docker-compose.yml"
+            REPOSITORY_ROOT / "modules/tsw_core/infra" / "config" / "compose" / "nexus" / "docker-compose.yml"
         ).read_text(encoding="utf-8")
 
         self.assertIn("nexus-data:/nexus-data", compose_text)

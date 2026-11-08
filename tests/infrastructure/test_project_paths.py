@@ -28,7 +28,7 @@ class TestProjectPaths(unittest.TestCase):
     def test_derived_roots_follow_repository_and_infra_roots(self):
         with TemporaryDirectory() as temporary_directory:
             repository_root = Path(temporary_directory) / "repository"
-            infra_root = repository_root / "infra"
+            infra_root = repository_root / "modules/tsw_core/infra"
             infra_root.mkdir(parents=True)
 
             with patch.dict(
@@ -39,7 +39,7 @@ class TestProjectPaths(unittest.TestCase):
                 },
                 clear=True,
             ):
-                self.assertEqual(repository_root.resolve() / "src", project_paths.source_root())
+                self.assertEqual(repository_root.resolve() / "modules/tsw_core/src", project_paths.source_root())
                 self.assertEqual(infra_root.resolve() / "config", project_paths.config_root())
                 self.assertEqual(
                     repository_root.resolve() / ".tiny-swarm-world",
@@ -60,7 +60,7 @@ class TestProjectPaths(unittest.TestCase):
             paths = ProjectPaths.from_roots(repository_root, infra_root)
 
             self.assertEqual(repository_root.resolve(), paths.repository_root)
-            self.assertEqual(repository_root.resolve() / "src", paths.source_root)
+            self.assertEqual(repository_root.resolve() / "modules/tsw_core/src", paths.source_root)
             self.assertEqual(infra_root.resolve(), paths.infra_root)
             self.assertEqual(infra_root.resolve() / "config", paths.config_root)
             self.assertEqual(

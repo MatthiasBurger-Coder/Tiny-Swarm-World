@@ -30,7 +30,7 @@ no semantic duplication; ARCH-03.17 documents the reviewed duplicate paths.
 
 ## Metric method
 
-`python3 tools/linux/quality_gate.py complexity` parses Python ASTs without importing
+`python3 modules/tsw_core/tools/linux/quality_gate.py complexity` parses Python ASTs without importing
 or executing product modules. The function complexity indicator starts at one
 and counts `if`, loops, conditional expressions, exception handlers, assertions,
 boolean edges, comprehensions, and non-default `match` cases. It is a
@@ -42,7 +42,7 @@ fingerprints across modules for functions with complexity at least eight and
 span at least 12 lines; it catches literal copied flows and can miss equivalent
 flows expressed differently.
 
-Run `python3 tools/linux/check_complexity_guardrails.py --show-current` to inspect a
+Run `python3 modules/tsw_core/tools/linux/check_complexity_guardrails.py --show-current` to inspect a
 fresh snapshot. Baseline updates require a reviewed architecture change that
 explains why the new structure is acceptable. Do not regenerate the baseline
 solely to clear a failed check.

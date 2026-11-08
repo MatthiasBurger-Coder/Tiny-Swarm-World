@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
-SOURCE_ROOT = REPOSITORY_ROOT / "src" / "tiny_swarm_world"
+SOURCE_ROOT = REPOSITORY_ROOT / "modules/tsw_core/src" / "tiny_swarm_world"
 SPAWN_APIS = frozenset(
     {
         "subprocess.run",
@@ -28,11 +28,11 @@ SPAWN_APIS = frozenset(
 # Runtime process ownership is centralized by Issue #354. Adapter-specific
 # command construction and outcome mapping do not permit spawning a child.
 ALLOWED_DIRECT_PROCESS_BOUNDARIES = {
-    "src/tiny_swarm_world/infrastructure/process/runner.py": {"subprocess.run"},
-    "src/tiny_swarm_world/infrastructure/process/async_runner.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/process/runner.py": {"subprocess.run"},
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/process/async_runner.py": {
         "asyncio.create_subprocess_exec", "asyncio.create_subprocess_shell",
     },
-    "src/tiny_swarm_world/infrastructure/process/streaming.py": {"subprocess.Popen"},
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/process/streaming.py": {"subprocess.Popen"},
 }
 
 
@@ -57,7 +57,7 @@ class TestProcessSpawnBoundaries(unittest.TestCase):
             repository_root = Path(temporary_directory)
             source_file = (
                 repository_root
-                / "src"
+                / "modules/tsw_core/src"
                 / "tiny_swarm_world"
                 / "infrastructure"
                 / "adapters"
@@ -72,13 +72,13 @@ class TestProcessSpawnBoundaries(unittest.TestCase):
             violations = _find_unallowlisted_process_spawns(repository_root)
 
         self.assertEqual(
-            [("src/tiny_swarm_world/infrastructure/adapters/unapproved.py", 3, "subprocess.run")],
+            [("modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/unapproved.py", 3, "subprocess.run")],
             violations,
         )
 
 
 def _find_unallowlisted_process_spawns(repository_root: Path) -> list[tuple[str, int, str]]:
-    source_root = repository_root / "src" / "tiny_swarm_world"
+    source_root = repository_root / "modules/tsw_core/src" / "tiny_swarm_world"
     findings: list[tuple[str, int, str]] = []
     for source_file in sorted(source_root.rglob("*.py")):
         relative_path = source_file.relative_to(repository_root).as_posix()

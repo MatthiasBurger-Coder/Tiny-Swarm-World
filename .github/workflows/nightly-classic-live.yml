@@ -62,7 +62,7 @@ jobs:
           test -n "${TARGET_OWNER}"
           test -n "${TSW_INSTALL_ENV_FILE}"
           test -n "${TSW_LIVE_EVIDENCE_ROOT}"
-          python3 bootstrap/linux/install_debugger.py --live --env-file "${TSW_INSTALL_ENV_FILE}"
+          python3 modules/tsw_core/bootstrap/linux/install_debugger.py --live --env-file "${TSW_INSTALL_ENV_FILE}"
           python3 - <<'PY'
           import platform
           import sys

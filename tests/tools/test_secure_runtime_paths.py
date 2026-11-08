@@ -17,7 +17,7 @@ from tools.linux.live.secure_runtime_paths import (
 class TestSecureRuntimePaths(unittest.TestCase):
     def test_classic_e2e_command_exposes_source_package_to_python(self) -> None:
         self.assertEqual(
-            ("env", "PYTHONPATH=src", "TSW_RUN_POST_INSTALL_BROWSER_LIVE=1"),
+            ("env", "PYTHONPATH=modules/tsw_core/src", "TSW_RUN_POST_INSTALL_BROWSER_LIVE=1"),
             run_classic_acceptance.CLASSIC_E2E_COMMAND[:3],
         )
         self.assertEqual(

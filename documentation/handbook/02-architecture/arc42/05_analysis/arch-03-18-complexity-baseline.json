@@ -1,14 +1,14 @@
 {
   "duplicates": {},
   "modules": {
-    "src/tiny_swarm_world/__init__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/__init__.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 0,
       "functions": {},
       "lines": 0
     },
-    "src/tiny_swarm_world/__main__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/__main__.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 3,
@@ -24,21 +24,21 @@
       },
       "lines": 18
     },
-    "src/tiny_swarm_world/application/services/__init__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/__init__.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 0,
       "functions": {},
       "lines": 0
     },
-    "src/tiny_swarm_world/application/services/artifacts/__init__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/artifacts/__init__.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 9,
       "functions": {},
       "lines": 65
     },
-    "src/tiny_swarm_world/application/services/artifacts/ensure_container_image.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/artifacts/ensure_container_image.py": {
       "classes": {
         "EnsureContainerImage": {
           "complexity": 5,
@@ -67,7 +67,7 @@
       },
       "lines": 83
     },
-    "src/tiny_swarm_world/application/services/artifacts/readiness_gate.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/artifacts/readiness_gate.py": {
       "classes": {
         "ArtifactReadinessGate": {
           "complexity": 21,
@@ -108,7 +108,7 @@
       },
       "lines": 207
     },
-    "src/tiny_swarm_world/application/services/artifacts/static_contract_preflight.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/artifacts/static_contract_preflight.py": {
       "classes": {
         "StaticArtifactContractPreflight": {
           "complexity": 14,
@@ -129,7 +129,7 @@
       },
       "lines": 103
     },
-    "src/tiny_swarm_world/application/services/artifacts/workflows.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/artifacts/workflows.py": {
       "classes": {
         "ArtifactPrepareStep": {
           "complexity": 2,
@@ -258,7 +258,7 @@
       },
       "lines": 413
     },
-    "src/tiny_swarm_world/application/services/cli_dispatch.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/cli_dispatch.py": {
       "classes": {
         "ClassicUpdateAction": {
           "complexity": 2,
@@ -303,28 +303,28 @@
       },
       "lines": 121
     },
-    "src/tiny_swarm_world/application/services/commands/__init__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/commands/__init__.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 0,
       "functions": {},
       "lines": 0
     },
-    "src/tiny_swarm_world/application/services/commands/command_builder/__init__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/commands/command_builder/__init__.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 0,
       "functions": {},
       "lines": 0
     },
-    "src/tiny_swarm_world/application/services/commands/command_builder/vm_parameter/__init__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/commands/command_builder/vm_parameter/__init__.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 0,
       "functions": {},
       "lines": 0
     },
-    "src/tiny_swarm_world/application/services/commands/command_builder/vm_parameter/command_builder.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/commands/command_builder/vm_parameter/command_builder.py": {
       "classes": {
         "CommandBuilder": {
           "complexity": 6,
@@ -345,21 +345,21 @@
       },
       "lines": 59
     },
-    "src/tiny_swarm_world/application/services/commands/command_builder/vm_parameter/parameter_type.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/commands/command_builder/vm_parameter/parameter_type.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 1,
       "functions": {},
       "lines": 4
     },
-    "src/tiny_swarm_world/application/services/commands/command_builder/vm_parameter/strategies/__init__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/commands/command_builder/vm_parameter/strategies/__init__.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 0,
       "functions": {},
       "lines": 0
     },
-    "src/tiny_swarm_world/application/services/commands/command_builder/vm_parameter/strategies/command_builder_strategy.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/commands/command_builder/vm_parameter/strategies/command_builder_strategy.py": {
       "classes": {
         "CommandBuilderStrategy": {
           "complexity": 2,
@@ -380,7 +380,7 @@
       },
       "lines": 23
     },
-    "src/tiny_swarm_world/application/services/commands/command_builder/vm_parameter/strategies/command_parameter_builder.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/commands/command_builder/vm_parameter/strategies/command_parameter_builder.py": {
       "classes": {
         "CommandParameterBuilder": {
           "complexity": 11,
@@ -401,7 +401,7 @@
       },
       "lines": 60
     },
-    "src/tiny_swarm_world/application/services/commands/command_builder/vm_parameter/strategies/exception_strategy.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/commands/command_builder/vm_parameter/strategies/exception_strategy.py": {
       "classes": {
         "InvalidCommandBuilderStrategy": {
           "complexity": 2,
@@ -422,7 +422,7 @@
       },
       "lines": 15
     },
-    "src/tiny_swarm_world/application/services/commands/command_builder/vm_parameter/strategies/manager_strategy.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/commands/command_builder/vm_parameter/strategies/manager_strategy.py": {
       "classes": {
         "ManagerStrategy": {
           "complexity": 4,
@@ -443,7 +443,7 @@
       },
       "lines": 47
     },
-    "src/tiny_swarm_world/application/services/commands/command_builder/vm_parameter/strategies/none_strategy.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/commands/command_builder/vm_parameter/strategies/none_strategy.py": {
       "classes": {
         "NoneStrategy": {
           "complexity": 2,
@@ -464,7 +464,7 @@
       },
       "lines": 27
     },
-    "src/tiny_swarm_world/application/services/commands/command_builder/vm_parameter/strategies/worker_strategy.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/commands/command_builder/vm_parameter/strategies/worker_strategy.py": {
       "classes": {
         "WorkerStrategy": {
           "complexity": 5,
@@ -485,14 +485,14 @@
       },
       "lines": 44
     },
-    "src/tiny_swarm_world/application/services/commands/command_executer/__init__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/commands/command_executer/__init__.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 0,
       "functions": {},
       "lines": 0
     },
-    "src/tiny_swarm_world/application/services/commands/command_executer/command_executer.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/commands/command_executer/command_executer.py": {
       "classes": {
         "CommandExecuter": {
           "complexity": 9,
@@ -525,14 +525,14 @@
       },
       "lines": 88
     },
-    "src/tiny_swarm_world/application/services/commands/command_executer/excecuteable_commands.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/commands/command_executer/excecuteable_commands.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 1,
       "functions": {},
       "lines": 4
     },
-    "src/tiny_swarm_world/application/services/commands/tasks.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/commands/tasks.py": {
       "classes": {
         "Task": {
           "complexity": 1,
@@ -549,14 +549,14 @@
       },
       "lines": 10
     },
-    "src/tiny_swarm_world/application/services/configuration/__init__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/configuration/__init__.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 1,
       "functions": {},
       "lines": 5
     },
-    "src/tiny_swarm_world/application/services/configuration/configuration_validation_service.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/configuration/configuration_validation_service.py": {
       "classes": {
         "ConfigurationValidationService": {
           "complexity": 6,
@@ -581,7 +581,7 @@
       },
       "lines": 30
     },
-    "src/tiny_swarm_world/application/services/credential_resolution.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/credential_resolution.py": {
       "classes": {
         "CredentialResolutionComparison": {
           "complexity": 5,
@@ -654,14 +654,14 @@
       },
       "lines": 174
     },
-    "src/tiny_swarm_world/application/services/deployment/__init__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/deployment/__init__.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 18,
       "functions": {},
       "lines": 121
     },
-    "src/tiny_swarm_world/application/services/deployment/ensure_external_swarm_secret.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/deployment/ensure_external_swarm_secret.py": {
       "classes": {
         "EnsureExternalSwarmSecret": {
           "complexity": 5,
@@ -682,7 +682,7 @@
       },
       "lines": 29
     },
-    "src/tiny_swarm_world/application/services/deployment/ensure_infisical_bootstrap.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/deployment/ensure_infisical_bootstrap.py": {
       "classes": {
         "EnsureInfisicalBootstrap": {
           "complexity": 7,
@@ -711,7 +711,7 @@
       },
       "lines": 71
     },
-    "src/tiny_swarm_world/application/services/deployment/ensure_infisical_secret_items.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/deployment/ensure_infisical_secret_items.py": {
       "classes": {
         "EnsureInfisicalSecretItems": {
           "complexity": 17,
@@ -748,7 +748,7 @@
       },
       "lines": 118
     },
-    "src/tiny_swarm_world/application/services/deployment/ensure_nexus_stack.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/deployment/ensure_nexus_stack.py": {
       "classes": {
         "EnsureNexusStack": {
           "complexity": 2,
@@ -769,7 +769,7 @@
       },
       "lines": 30
     },
-    "src/tiny_swarm_world/application/services/deployment/ensure_portainer_admin_access.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/deployment/ensure_portainer_admin_access.py": {
       "classes": {
         "EnsurePortainerAdminAccess": {
           "complexity": 21,
@@ -810,7 +810,7 @@
       },
       "lines": 128
     },
-    "src/tiny_swarm_world/application/services/deployment/ensure_portainer_endpoint.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/deployment/ensure_portainer_endpoint.py": {
       "classes": {
         "EnsurePortainerEndpoint": {
           "complexity": 13,
@@ -835,7 +835,7 @@
       },
       "lines": 82
     },
-    "src/tiny_swarm_world/application/services/deployment/ensure_portainer_stack.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/deployment/ensure_portainer_stack.py": {
       "classes": {
         "EnsurePortainerStack": {
           "complexity": 2,
@@ -856,7 +856,7 @@
       },
       "lines": 36
     },
-    "src/tiny_swarm_world/application/services/deployment/ensure_service_stack.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/deployment/ensure_service_stack.py": {
       "classes": {
         "EnsureServiceStack": {
           "complexity": 15,
@@ -889,7 +889,7 @@
       },
       "lines": 148
     },
-    "src/tiny_swarm_world/application/services/deployment/ensure_sonarqube_admin_access.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/deployment/ensure_sonarqube_admin_access.py": {
       "classes": {
         "EnsureSonarqubeAdminAccess": {
           "complexity": 28,
@@ -942,7 +942,7 @@
       },
       "lines": 149
     },
-    "src/tiny_swarm_world/application/services/deployment/ensure_swarm_stack.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/deployment/ensure_swarm_stack.py": {
       "classes": {
         "EnsureSwarmStack": {
           "complexity": 23,
@@ -983,7 +983,7 @@
       },
       "lines": 175
     },
-    "src/tiny_swarm_world/application/services/deployment/infisical_silent_install.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/deployment/infisical_silent_install.py": {
       "classes": {
         "EnsureInfisicalSilentInstall": {
           "complexity": 30,
@@ -1060,7 +1060,7 @@
       },
       "lines": 325
     },
-    "src/tiny_swarm_world/application/services/deployment/secret_management.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/deployment/secret_management.py": {
       "classes": {
         "InfisicalBootstrapStep": {
           "complexity": 3,
@@ -1293,7 +1293,7 @@
       },
       "lines": 716
     },
-    "src/tiny_swarm_world/application/services/deployment/service_stack_plan.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/deployment/service_stack_plan.py": {
       "classes": {},
       "complexity": 5,
       "fanout": 6,
@@ -1309,7 +1309,7 @@
       },
       "lines": 55
     },
-    "src/tiny_swarm_world/application/services/deployment/verify_external_swarm_input.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/deployment/verify_external_swarm_input.py": {
       "classes": {
         "VerifyExternalSwarmInput": {
           "complexity": 6,
@@ -1338,7 +1338,7 @@
       },
       "lines": 71
     },
-    "src/tiny_swarm_world/application/services/deployment/verify_host_prerequisites.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/deployment/verify_host_prerequisites.py": {
       "classes": {
         "VerifyHostPrerequisites": {
           "complexity": 7,
@@ -1359,7 +1359,7 @@
       },
       "lines": 38
     },
-    "src/tiny_swarm_world/application/services/deployment/verify_swarm_service_readiness.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/deployment/verify_swarm_service_readiness.py": {
       "classes": {
         "EnsureSwarmServiceReadiness": {
           "complexity": 3,
@@ -1408,7 +1408,7 @@
       },
       "lines": 177
     },
-    "src/tiny_swarm_world/application/services/deployment/workflows.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/deployment/workflows.py": {
       "classes": {
         "ConfigurationPreparation": {
           "complexity": 1,
@@ -1581,7 +1581,7 @@
       },
       "lines": 697
     },
-    "src/tiny_swarm_world/application/services/deployment/write_effective_access_model_evidence.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/deployment/write_effective_access_model_evidence.py": {
       "classes": {
         "WriteEffectiveAccessModelEvidence": {
           "complexity": 3,
@@ -1626,7 +1626,7 @@
       },
       "lines": 230
     },
-    "src/tiny_swarm_world/application/services/installation.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/installation.py": {
       "classes": {
         "InstallationPhases": {
           "complexity": 9,
@@ -1683,7 +1683,7 @@
       },
       "lines": 419
     },
-    "src/tiny_swarm_world/application/services/native_preparation.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/native_preparation.py": {
       "classes": {
         "NativePreparationPlan": {
           "complexity": 1,
@@ -1716,14 +1716,14 @@
       },
       "lines": 80
     },
-    "src/tiny_swarm_world/application/services/network/__init__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/network/__init__.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 1,
       "functions": {},
       "lines": 21
     },
-    "src/tiny_swarm_world/application/services/network/host_integration.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/network/host_integration.py": {
       "classes": {
         "DiagnosticSeverity": {
           "complexity": 0,
@@ -1936,14 +1936,14 @@
       },
       "lines": 782
     },
-    "src/tiny_swarm_world/application/services/network/socat/__init__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/network/socat/__init__.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 0,
       "functions": {},
       "lines": 0
     },
-    "src/tiny_swarm_world/application/services/network/socat/socat_manager.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/network/socat/socat_manager.py": {
       "classes": {
         "SocatForwardingCommand": {
           "complexity": 3,
@@ -1980,14 +1980,14 @@
       },
       "lines": 61
     },
-    "src/tiny_swarm_world/application/services/nexus/__init__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/nexus/__init__.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 1,
       "functions": {},
       "lines": 13
     },
-    "src/tiny_swarm_world/application/services/nexus/bootstrap_nexus.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/nexus/bootstrap_nexus.py": {
       "classes": {
         "BootstrapNexus": {
           "complexity": 5,
@@ -2012,7 +2012,7 @@
       },
       "lines": 34
     },
-    "src/tiny_swarm_world/application/services/nexus/enable_nexus_anonymous_access.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/nexus/enable_nexus_anonymous_access.py": {
       "classes": {
         "EnableNexusAnonymousAccess": {
           "complexity": 2,
@@ -2033,7 +2033,7 @@
       },
       "lines": 15
     },
-    "src/tiny_swarm_world/application/services/nexus/ensure_nexus_admin_access.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/nexus/ensure_nexus_admin_access.py": {
       "classes": {
         "EnsureNexusAdminAccess": {
           "complexity": 32,
@@ -2098,7 +2098,7 @@
       },
       "lines": 243
     },
-    "src/tiny_swarm_world/application/services/nexus/ensure_nexus_repository.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/nexus/ensure_nexus_repository.py": {
       "classes": {
         "EnsureNexusDockerHostedRepository": {
           "complexity": 7,
@@ -2211,14 +2211,14 @@
       },
       "lines": 312
     },
-    "src/tiny_swarm_world/application/services/nexus/ensure_nexus_stack.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/nexus/ensure_nexus_stack.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 1,
       "functions": {},
       "lines": 3
     },
-    "src/tiny_swarm_world/application/services/nexus/nexus_bootstrap_configuration.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/nexus/nexus_bootstrap_configuration.py": {
       "classes": {
         "NexusBootstrapConfiguration": {
           "complexity": 0,
@@ -2230,7 +2230,7 @@
       "functions": {},
       "lines": 17
     },
-    "src/tiny_swarm_world/application/services/nexus/wait_for_nexus_ready.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/nexus/wait_for_nexus_ready.py": {
       "classes": {
         "NexusReadinessTimeout": {
           "complexity": 0,
@@ -2263,14 +2263,14 @@
       },
       "lines": 103
     },
-    "src/tiny_swarm_world/application/services/platform/__init__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/platform/__init__.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 15,
       "functions": {},
       "lines": 124
     },
-    "src/tiny_swarm_world/application/services/platform/command_verification.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/platform/command_verification.py": {
       "classes": {},
       "complexity": 8,
       "fanout": 6,
@@ -2286,7 +2286,7 @@
       },
       "lines": 86
     },
-    "src/tiny_swarm_world/application/services/platform/docker_swarm_lxc_contract.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/platform/docker_swarm_lxc_contract.py": {
       "classes": {
         "DockerSwarmInLxcContractService": {
           "complexity": 20,
@@ -2331,14 +2331,14 @@
       },
       "lines": 253
     },
-    "src/tiny_swarm_world/application/services/platform/host/__init__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/platform/host/__init__.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 4,
       "functions": {},
       "lines": 21
     },
-    "src/tiny_swarm_world/application/services/platform/host/authorize_project_filesystem.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/platform/host/authorize_project_filesystem.py": {
       "classes": {
         "AuthorizeProjectFilesystem": {
           "complexity": 4,
@@ -2359,7 +2359,7 @@
       },
       "lines": 48
     },
-    "src/tiny_swarm_world/application/services/platform/host/detect_host_environment.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/platform/host/detect_host_environment.py": {
       "classes": {
         "DetectHostEnvironment": {
           "complexity": 2,
@@ -2380,7 +2380,7 @@
       },
       "lines": 12
     },
-    "src/tiny_swarm_world/application/services/platform/host/evaluate_project_filesystem.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/platform/host/evaluate_project_filesystem.py": {
       "classes": {
         "EvaluateProjectFilesystem": {
           "complexity": 3,
@@ -2401,7 +2401,7 @@
       },
       "lines": 41
     },
-    "src/tiny_swarm_world/application/services/platform/host/prepare_host.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/platform/host/prepare_host.py": {
       "classes": {
         "HostPreparationAdapterFactory": {
           "complexity": 0,
@@ -2442,7 +2442,7 @@
       },
       "lines": 81
     },
-    "src/tiny_swarm_world/application/services/platform/host/prepare_with_preflight.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/platform/host/prepare_with_preflight.py": {
       "classes": {
         "HostPreparationOutcome": {
           "complexity": 0,
@@ -2467,14 +2467,14 @@
       },
       "lines": 39
     },
-    "src/tiny_swarm_world/application/services/platform/incus/__init__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/platform/incus/__init__.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 4,
       "functions": {},
       "lines": 33
     },
-    "src/tiny_swarm_world/application/services/platform/incus/lxc_docker_install.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/platform/incus/lxc_docker_install.py": {
       "classes": {
         "LxcDockerInstallService": {
           "complexity": 17,
@@ -2575,7 +2575,7 @@
       },
       "lines": 397
     },
-    "src/tiny_swarm_world/application/services/platform/incus/lxc_service_exposure.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/platform/incus/lxc_service_exposure.py": {
       "classes": {
         "LxcProxyDriftRepairService": {
           "complexity": 2,
@@ -2696,7 +2696,7 @@
       },
       "lines": 491
     },
-    "src/tiny_swarm_world/application/services/platform/incus/lxc_swarm_bootstrap.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/platform/incus/lxc_swarm_bootstrap.py": {
       "classes": {
         "LxcSwarmBootstrapService": {
           "complexity": 11,
@@ -2765,7 +2765,7 @@
       },
       "lines": 330
     },
-    "src/tiny_swarm_world/application/services/platform/lifecycle.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/platform/lifecycle.py": {
       "classes": {
         "PlatformLifecycleOrchestrator": {
           "complexity": 9,
@@ -2810,7 +2810,7 @@
       },
       "lines": 84
     },
-    "src/tiny_swarm_world/application/services/platform/node_provider_selection.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/platform/node_provider_selection.py": {
       "classes": {
         "NodeProviderDestroyManagedNodesStep": {
           "complexity": 2,
@@ -2931,7 +2931,7 @@
       },
       "lines": 415
     },
-    "src/tiny_swarm_world/application/services/platform/portainer_verify.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/platform/portainer_verify.py": {
       "classes": {
         "PortainerEndpointVerifyStep": {
           "complexity": 2,
@@ -2960,7 +2960,7 @@
       },
       "lines": 21
     },
-    "src/tiny_swarm_world/application/services/platform/preflight_service.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/platform/preflight_service.py": {
       "classes": {
         "PreflightService": {
           "complexity": 137,
@@ -3157,7 +3157,7 @@
       },
       "lines": 1138
     },
-    "src/tiny_swarm_world/application/services/platform/runtime_profile.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/platform/runtime_profile.py": {
       "classes": {
         "ResolvedRuntimeProfile": {
           "complexity": 1,
@@ -3202,21 +3202,21 @@
       },
       "lines": 150
     },
-    "src/tiny_swarm_world/application/services/platform/workflow/__init__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/platform/workflow/__init__.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 6,
       "functions": {},
       "lines": 47
     },
-    "src/tiny_swarm_world/application/services/platform/workflow/constants.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/platform/workflow/constants.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 1,
       "functions": {},
       "lines": 5
     },
-    "src/tiny_swarm_world/application/services/platform/workflow/destructive.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/platform/workflow/destructive.py": {
       "classes": {
         "PlatformDestroyWorkflow": {
           "complexity": 0,
@@ -3249,7 +3249,7 @@
       },
       "lines": 93
     },
-    "src/tiny_swarm_world/application/services/platform/workflow/init.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/platform/workflow/init.py": {
       "classes": {
         "PlatformInitWorkflow": {
           "complexity": 7,
@@ -3274,7 +3274,7 @@
       },
       "lines": 72
     },
-    "src/tiny_swarm_world/application/services/platform/workflow/mutating.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/platform/workflow/mutating.py": {
       "classes": {
         "PlatformExposeWorkflow": {
           "complexity": 0,
@@ -3311,7 +3311,7 @@
       },
       "lines": 72
     },
-    "src/tiny_swarm_world/application/services/platform/workflow/outcomes.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/platform/workflow/outcomes.py": {
       "classes": {
         "PlatformWorkflowOutcomeSource": {
           "complexity": 3,
@@ -3364,7 +3364,7 @@
       },
       "lines": 117
     },
-    "src/tiny_swarm_world/application/services/platform/workflow/results.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/platform/workflow/results.py": {
       "classes": {
         "PlatformWorkflowResult": {
           "complexity": 11,
@@ -3405,7 +3405,7 @@
       },
       "lines": 140
     },
-    "src/tiny_swarm_world/application/services/platform/workflow/runtime.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/platform/workflow/runtime.py": {
       "classes": {
         "_EvidenceWriteError": {
           "complexity": 0,
@@ -3594,7 +3594,7 @@
       },
       "lines": 1046
     },
-    "src/tiny_swarm_world/application/services/platform/workflow/semantics.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/platform/workflow/semantics.py": {
       "classes": {
         "PlatformWorkflowSemantics": {
           "complexity": 0,
@@ -3606,7 +3606,7 @@
       "functions": {},
       "lines": 81
     },
-    "src/tiny_swarm_world/application/services/platform/workflow/steps.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/platform/workflow/steps.py": {
       "classes": {
         "AsyncWorkflowStep": {
           "complexity": 1,
@@ -3631,14 +3631,14 @@
       },
       "lines": 19
     },
-    "src/tiny_swarm_world/application/services/platform/workflow/taxonomy.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/platform/workflow/taxonomy.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 5,
       "functions": {},
       "lines": 27
     },
-    "src/tiny_swarm_world/application/services/platform/workflow/types.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/platform/workflow/types.py": {
       "classes": {
         "PlatformWorkflowKind": {
           "complexity": 0,
@@ -3654,7 +3654,7 @@
       "functions": {},
       "lines": 22
     },
-    "src/tiny_swarm_world/application/services/platform/workflow/update.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/platform/workflow/update.py": {
       "classes": {
         "ClassicUpdateWorkflow": {
           "complexity": 80,
@@ -3727,7 +3727,7 @@
       },
       "lines": 516
     },
-    "src/tiny_swarm_world/application/services/platform/workflow/verify.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/platform/workflow/verify.py": {
       "classes": {
         "PlatformVerifyWorkflow": {
           "complexity": 46,
@@ -3760,35 +3760,35 @@
       },
       "lines": 207
     },
-    "src/tiny_swarm_world/application/services/platform/workflow/workflows.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/platform/workflow/workflows.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 7,
       "functions": {},
       "lines": 37
     },
-    "src/tiny_swarm_world/application/services/platform/workflow_taxonomy.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/platform/workflow_taxonomy.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 2,
       "functions": {},
       "lines": 21
     },
-    "src/tiny_swarm_world/application/services/platform/workflows.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/platform/workflows.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 2,
       "functions": {},
       "lines": 23
     },
-    "src/tiny_swarm_world/application/services/setup/__init__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/setup/__init__.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 1,
       "functions": {},
       "lines": 21
     },
-    "src/tiny_swarm_world/application/services/setup/installation_plan.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/setup/installation_plan.py": {
       "classes": {
         "SetupInstallationPlan": {
           "complexity": 0,
@@ -3809,7 +3809,7 @@
       },
       "lines": 76
     },
-    "src/tiny_swarm_world/application/services/setup/workflow.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/setup/workflow.py": {
       "classes": {
         "SetupPhase": {
           "complexity": 1,
@@ -3990,14 +3990,14 @@
       },
       "lines": 813
     },
-    "src/tiny_swarm_world/application/services/shared/__init__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/shared/__init__.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 2,
       "functions": {},
       "lines": 15
     },
-    "src/tiny_swarm_world/application/services/shared/method_trace_wrapper.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/shared/method_trace_wrapper.py": {
       "classes": {
         "MethodTraceWrapper": {
           "complexity": 13,
@@ -4086,7 +4086,7 @@
       },
       "lines": 217
     },
-    "src/tiny_swarm_world/application/services/shared/operation_results.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/shared/operation_results.py": {
       "classes": {},
       "complexity": 59,
       "fanout": 4,
@@ -4126,7 +4126,7 @@
       },
       "lines": 160
     },
-    "src/tiny_swarm_world/application/services/shared/readiness_wait.py": {
+    "modules/tsw_core/src/tiny_swarm_world/application/services/shared/readiness_wait.py": {
       "classes": {
         "ReadinessRetry": {
           "complexity": 5,
@@ -4147,28 +4147,28 @@
       },
       "lines": 40
     },
-    "src/tiny_swarm_world/cli_presentation.py": {
+    "modules/tsw_core/src/tiny_swarm_world/cli_presentation.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 1,
       "functions": {},
       "lines": 80
     },
-    "src/tiny_swarm_world/infrastructure/adapters/__init__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/__init__.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 0,
       "functions": {},
       "lines": 0
     },
-    "src/tiny_swarm_world/infrastructure/adapters/cli/__init__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/cli/__init__.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 0,
       "functions": {},
       "lines": 1
     },
-    "src/tiny_swarm_world/infrastructure/adapters/cli/commands.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/cli/commands.py": {
       "classes": {},
       "complexity": 23,
       "fanout": 10,
@@ -4208,7 +4208,7 @@
       },
       "lines": 183
     },
-    "src/tiny_swarm_world/infrastructure/adapters/cli/consent.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/cli/consent.py": {
       "classes": {},
       "complexity": 13,
       "fanout": 5,
@@ -4236,7 +4236,7 @@
       },
       "lines": 74
     },
-    "src/tiny_swarm_world/infrastructure/adapters/cli/dispatcher.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/cli/dispatcher.py": {
       "classes": {},
       "complexity": 15,
       "fanout": 16,
@@ -4256,7 +4256,7 @@
       },
       "lines": 172
     },
-    "src/tiny_swarm_world/infrastructure/adapters/cli/parser.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/cli/parser.py": {
       "classes": {},
       "complexity": 43,
       "fanout": 8,
@@ -4296,7 +4296,7 @@
       },
       "lines": 228
     },
-    "src/tiny_swarm_world/infrastructure/adapters/cli/presentation.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/cli/presentation.py": {
       "classes": {},
       "complexity": 68,
       "fanout": 15,
@@ -4404,7 +4404,7 @@
       },
       "lines": 358
     },
-    "src/tiny_swarm_world/infrastructure/adapters/cli/registry.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/cli/registry.py": {
       "classes": {
         "CliWorkflow": {
           "complexity": 3,
@@ -4425,14 +4425,14 @@
       },
       "lines": 74
     },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/__init__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/__init__.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 1,
       "functions": {},
       "lines": 11
     },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/docker_cli_runtime.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/docker_cli_runtime.py": {
       "classes": {
         "DockerCliRuntime": {
           "complexity": 14,
@@ -4465,7 +4465,7 @@
       },
       "lines": 58
     },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/docker_swarm_runtime.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/docker_swarm_runtime.py": {
       "classes": {
         "DockerSwarmRuntime": {
           "complexity": 7,
@@ -4506,7 +4506,7 @@
       },
       "lines": 47
     },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/infisical_bootstrap_http_client.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/infisical_bootstrap_http_client.py": {
       "classes": {
         "InfisicalBootstrapHttpClient": {
           "complexity": 26,
@@ -4563,7 +4563,7 @@
       },
       "lines": 186
     },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/infisical_cli_client.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/infisical_cli_client.py": {
       "classes": {
         "InfisicalCliClient": {
           "complexity": 58,
@@ -4672,7 +4672,7 @@
       },
       "lines": 368
     },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/infisical_playwright_client.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/infisical_playwright_client.py": {
       "classes": {
         "PlaywrightInfisicalClient": {
           "complexity": 9,
@@ -4733,14 +4733,14 @@
       },
       "lines": 136
     },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/command/__init__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/lxc/command/__init__.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 4,
       "functions": {},
       "lines": 31
     },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/command/args.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/lxc/command/args.py": {
       "classes": {},
       "complexity": 8,
       "fanout": 6,
@@ -4796,7 +4796,7 @@
       },
       "lines": 112
     },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/command/backend_cli.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/lxc/command/backend_cli.py": {
       "classes": {},
       "complexity": 2,
       "fanout": 4,
@@ -4808,7 +4808,7 @@
       },
       "lines": 25
     },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/command/diagnostics.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/lxc/command/diagnostics.py": {
       "classes": {},
       "complexity": 4,
       "fanout": 3,
@@ -4828,7 +4828,7 @@
       },
       "lines": 51
     },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/command/manager_shell_gateway.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/lxc/command/manager_shell_gateway.py": {
       "classes": {
         "LxcManagerShellGateway": {
           "complexity": 22,
@@ -4865,7 +4865,7 @@
       },
       "lines": 188
     },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/command/node_command.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/lxc/command/node_command.py": {
       "classes": {
         "AsyncLxcNodeCommandRunner": {
           "complexity": 1,
@@ -4898,14 +4898,14 @@
       },
       "lines": 52
     },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/docker/__init__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/lxc/docker/__init__.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 1,
       "functions": {},
       "lines": 7
     },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/docker/lxc_container_runtime.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/lxc/docker/lxc_container_runtime.py": {
       "classes": {
         "LxcContainerRuntime": {
           "complexity": 16,
@@ -4946,14 +4946,14 @@
       },
       "lines": 120
     },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/images/__init__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/lxc/images/__init__.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 2,
       "functions": {},
       "lines": 15
     },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/images/errors.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/lxc/images/errors.py": {
       "classes": {},
       "complexity": 18,
       "fanout": 3,
@@ -4973,7 +4973,7 @@
       },
       "lines": 77
     },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/images/lxc_container_image_publisher.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/lxc/images/lxc_container_image_publisher.py": {
       "classes": {
         "LxcContainerImagePublisher": {
           "complexity": 42,
@@ -5034,14 +5034,14 @@
       },
       "lines": 309
     },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/node/__init__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/lxc/node/__init__.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 1,
       "functions": {},
       "lines": 9
     },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/node/evidence.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/lxc/node/evidence.py": {
       "classes": {
         "EvidenceBuilder": {
           "complexity": 5,
@@ -5078,7 +5078,7 @@
       },
       "lines": 80
     },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/node/models.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/lxc/node/models.py": {
       "classes": {
         "NodeLookup": {
           "complexity": 4,
@@ -5119,7 +5119,7 @@
       },
       "lines": 86
     },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/node/safety.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/lxc/node/safety.py": {
       "classes": {},
       "complexity": 25,
       "fanout": 4,
@@ -5163,14 +5163,14 @@
       },
       "lines": 121
     },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/profile/__init__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/lxc/profile/__init__.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 1,
       "functions": {},
       "lines": 17
     },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/profile/policy.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/lxc/profile/policy.py": {
       "classes": {},
       "complexity": 22,
       "fanout": 7,
@@ -5206,14 +5206,14 @@
       },
       "lines": 113
     },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/resource/__init__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/lxc/resource/__init__.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 1,
       "functions": {},
       "lines": 23
     },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/resource/resolution.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/lxc/resource/resolution.py": {
       "classes": {},
       "complexity": 23,
       "fanout": 6,
@@ -5253,14 +5253,14 @@
       },
       "lines": 141
     },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/services/__init__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/lxc/services/__init__.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 3,
       "functions": {},
       "lines": 17
     },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/services/common.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/lxc/services/common.py": {
       "classes": {},
       "complexity": 13,
       "fanout": 12,
@@ -5280,7 +5280,7 @@
       },
       "lines": 81
     },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/services/lxc_nexus_http_client.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/lxc/services/lxc_nexus_http_client.py": {
       "classes": {
         "LxcNexusHttpClient": {
           "complexity": 14,
@@ -5349,7 +5349,7 @@
       },
       "lines": 127
     },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/services/lxc_portainer_admin_client.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/lxc/services/lxc_portainer_admin_client.py": {
       "classes": {
         "LxcPortainerAdminClient": {
           "complexity": 15,
@@ -5386,7 +5386,7 @@
       },
       "lines": 99
     },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/services/lxc_portainer_http_client.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/lxc/services/lxc_portainer_http_client.py": {
       "classes": {
         "LxcPortainerHttpClient": {
           "complexity": 25,
@@ -5447,14 +5447,14 @@
       },
       "lines": 180
     },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/swarm/__init__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/lxc/swarm/__init__.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 3,
       "functions": {},
       "lines": 17
     },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/swarm/stack_asset_transfer.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/lxc/swarm/stack_asset_transfer.py": {
       "classes": {
         "ServiceAccessAssetTransferStrategy": {
           "complexity": 2,
@@ -5535,7 +5535,7 @@
       },
       "lines": 153
     },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/swarm/stack_prerequisite_registry.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/lxc/swarm/stack_prerequisite_registry.py": {
       "classes": {
         "ExternalOverlayNetworkStrategy": {
           "complexity": 3,
@@ -5652,7 +5652,7 @@
       },
       "lines": 263
     },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/swarm/swarm_stack_runtime.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/lxc/swarm/swarm_stack_runtime.py": {
       "classes": {
         "LxcSwarmStackRuntime": {
           "complexity": 39,
@@ -5741,7 +5741,7 @@
       },
       "lines": 351
     },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc_container_docker_runtime.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/lxc_container_docker_runtime.py": {
       "classes": {
         "DockerAptMirrorConfiguration": {
           "complexity": 4,
@@ -5858,7 +5858,7 @@
       },
       "lines": 463
     },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc_container_swarm_bootstrap.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/lxc_container_swarm_bootstrap.py": {
       "classes": {
         "LxcContainerNetworkIdentity": {
           "complexity": 6,
@@ -5967,7 +5967,7 @@
       },
       "lines": 458
     },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc_node_provider.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/lxc_node_provider.py": {
       "classes": {
         "LxcNodeProvider": {
           "complexity": 129,
@@ -6244,7 +6244,7 @@
       },
       "lines": 1804
     },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc_proxy_device_runtime.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/lxc_proxy_device_runtime.py": {
       "classes": {
         "LxcProxyDeviceRuntime": {
           "complexity": 30,
@@ -6333,7 +6333,7 @@
       },
       "lines": 373
     },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/lxc_swarm_runtime.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/lxc_swarm_runtime.py": {
       "classes": {
         "LxcNexusHttpClient": {
           "complexity": 1,
@@ -6466,7 +6466,7 @@
       },
       "lines": 408
     },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/nexus_http_client.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/nexus_http_client.py": {
       "classes": {
         "NexusHttpClient": {
           "complexity": 30,
@@ -6547,7 +6547,7 @@
       },
       "lines": 255
     },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/portainer_http_client.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/portainer_http_client.py": {
       "classes": {
         "PortainerHttpClient": {
           "complexity": 42,
@@ -6656,7 +6656,7 @@
       },
       "lines": 338
     },
-    "src/tiny_swarm_world/infrastructure/adapters/clients/sonarqube_http_client.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/sonarqube_http_client.py": {
       "classes": {
         "SonarqubeHttpClient": {
           "complexity": 15,
@@ -6693,14 +6693,14 @@
       },
       "lines": 75
     },
-    "src/tiny_swarm_world/infrastructure/adapters/command_runner/__init__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/command_runner/__init__.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 0,
       "functions": {},
       "lines": 0
     },
-    "src/tiny_swarm_world/infrastructure/adapters/command_runner/ansible_runner.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/command_runner/ansible_runner.py": {
       "classes": {
         "AnsiblePortCommandRunner": {
           "complexity": 2,
@@ -6721,7 +6721,7 @@
       },
       "lines": 20
     },
-    "src/tiny_swarm_world/infrastructure/adapters/command_runner/async_command_runner.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/command_runner/async_command_runner.py": {
       "classes": {
         "AsyncPortCommandRunner": {
           "complexity": 13,
@@ -6742,7 +6742,7 @@
       },
       "lines": 54
     },
-    "src/tiny_swarm_world/infrastructure/adapters/command_runner/command_runner_factory.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/command_runner/command_runner_factory.py": {
       "classes": {
         "CommandRunnerFactory": {
           "complexity": 2,
@@ -6759,7 +6759,7 @@
       },
       "lines": 14
     },
-    "src/tiny_swarm_world/infrastructure/adapters/command_runner/command_workflow.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/command_runner/command_workflow.py": {
       "classes": {
         "CommandWorkflow": {
           "complexity": 21,
@@ -6844,7 +6844,7 @@
       },
       "lines": 296
     },
-    "src/tiny_swarm_world/infrastructure/adapters/command_runner/rest_api_runner.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/command_runner/rest_api_runner.py": {
       "classes": {
         "RestApiPortCommandRunner": {
           "complexity": 2,
@@ -6865,14 +6865,14 @@
       },
       "lines": 20
     },
-    "src/tiny_swarm_world/infrastructure/adapters/configuration/__init__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/configuration/__init__.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 1,
       "functions": {},
       "lines": 13
     },
-    "src/tiny_swarm_world/infrastructure/adapters/configuration/configuration_sources.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/configuration/configuration_sources.py": {
       "classes": {
         "CombinedConfigurationSource": {
           "complexity": 3,
@@ -6937,21 +6937,21 @@
       },
       "lines": 137
     },
-    "src/tiny_swarm_world/infrastructure/adapters/exceptions/__init__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/exceptions/__init__.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 0,
       "functions": {},
       "lines": 0
     },
-    "src/tiny_swarm_world/infrastructure/adapters/exceptions/exception_command_execution.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/exceptions/exception_command_execution.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 1,
       "functions": {},
       "lines": 5
     },
-    "src/tiny_swarm_world/infrastructure/adapters/exceptions/exception_yaml_handling.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/exceptions/exception_yaml_handling.py": {
       "classes": {
         "YAMLHandlingError": {
           "complexity": 6,
@@ -6972,7 +6972,7 @@
       },
       "lines": 56
     },
-    "src/tiny_swarm_world/infrastructure/adapters/exceptions/operation_failure_mapping.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/exceptions/operation_failure_mapping.py": {
       "classes": {},
       "complexity": 14,
       "fanout": 5,
@@ -6992,14 +6992,14 @@
       },
       "lines": 52
     },
-    "src/tiny_swarm_world/infrastructure/adapters/file_management/__init__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/file_management/__init__.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 0,
       "functions": {},
       "lines": 0
     },
-    "src/tiny_swarm_world/infrastructure/adapters/file_management/file_creator.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/file_management/file_creator.py": {
       "classes": {
         "FileCreator": {
           "complexity": 9,
@@ -7028,7 +7028,7 @@
       },
       "lines": 61
     },
-    "src/tiny_swarm_world/infrastructure/adapters/file_management/file_loader.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/file_management/file_loader.py": {
       "classes": {
         "FileLoader": {
           "complexity": 6,
@@ -7053,7 +7053,7 @@
       },
       "lines": 45
     },
-    "src/tiny_swarm_world/infrastructure/adapters/file_management/file_locator.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/file_management/file_locator.py": {
       "classes": {
         "FileLocator": {
           "complexity": 14,
@@ -7086,7 +7086,7 @@
       },
       "lines": 93
     },
-    "src/tiny_swarm_world/infrastructure/adapters/file_management/file_manager.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/file_management/file_manager.py": {
       "classes": {
         "FileManager": {
           "complexity": 9,
@@ -7119,7 +7119,7 @@
       },
       "lines": 102
     },
-    "src/tiny_swarm_world/infrastructure/adapters/file_management/file_saver.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/file_management/file_saver.py": {
       "classes": {
         "FileSaver": {
           "complexity": 5,
@@ -7144,7 +7144,7 @@
       },
       "lines": 46
     },
-    "src/tiny_swarm_world/infrastructure/adapters/file_management/local_file_storage.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/file_management/local_file_storage.py": {
       "classes": {
         "LocalFileStorage": {
           "complexity": 40,
@@ -7185,7 +7185,7 @@
       },
       "lines": 136
     },
-    "src/tiny_swarm_world/infrastructure/adapters/file_management/path_normalizer.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/file_management/path_normalizer.py": {
       "classes": {
         "PathNormalizer": {
           "complexity": 10,
@@ -7218,14 +7218,14 @@
       },
       "lines": 60
     },
-    "src/tiny_swarm_world/infrastructure/adapters/file_management/path_strategies/__init__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/file_management/path_strategies/__init__.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 0,
       "functions": {},
       "lines": 0
     },
-    "src/tiny_swarm_world/infrastructure/adapters/file_management/path_strategies/path_factory.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/file_management/path_strategies/path_factory.py": {
       "classes": {
         "PathFactory": {
           "complexity": 3,
@@ -7246,7 +7246,7 @@
       },
       "lines": 20
     },
-    "src/tiny_swarm_world/infrastructure/adapters/file_management/path_strategies/path_linux_strategy.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/file_management/path_strategies/path_linux_strategy.py": {
       "classes": {
         "PathLinuxStrategy": {
           "complexity": 1,
@@ -7263,7 +7263,7 @@
       },
       "lines": 8
     },
-    "src/tiny_swarm_world/infrastructure/adapters/file_management/path_strategies/path_strategy.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/file_management/path_strategies/path_strategy.py": {
       "classes": {
         "PathStrategy": {
           "complexity": 1,
@@ -7280,7 +7280,7 @@
       },
       "lines": 11
     },
-    "src/tiny_swarm_world/infrastructure/adapters/file_management/path_strategies/path_windows_strategy.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/file_management/path_strategies/path_windows_strategy.py": {
       "classes": {
         "PathWindowsStrategy": {
           "complexity": 2,
@@ -7297,7 +7297,7 @@
       },
       "lines": 14
     },
-    "src/tiny_swarm_world/infrastructure/adapters/host/__init__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/host/__init__.py": {
       "classes": {},
       "complexity": 2,
       "fanout": 3,
@@ -7309,7 +7309,7 @@
       },
       "lines": 59
     },
-    "src/tiny_swarm_world/infrastructure/adapters/host/hang_diagnostics.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/host/hang_diagnostics.py": {
       "classes": {
         "ReadOnlyHangDiagnostics": {
           "complexity": 5,
@@ -7342,7 +7342,7 @@
       },
       "lines": 103
     },
-    "src/tiny_swarm_world/infrastructure/adapters/host/host_environment_detector.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/host/host_environment_detector.py": {
       "classes": {
         "HostEnvironmentDetector": {
           "complexity": 5,
@@ -7363,7 +7363,7 @@
       },
       "lines": 57
     },
-    "src/tiny_swarm_world/infrastructure/adapters/host/linux_host_signal_reader.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/host/linux_host_signal_reader.py": {
       "classes": {
         "LinuxHostSignalReader": {
           "complexity": 14,
@@ -7412,7 +7412,7 @@
       },
       "lines": 115
     },
-    "src/tiny_swarm_world/infrastructure/adapters/host/native_linux_host_preparation.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/host/native_linux_host_preparation.py": {
       "classes": {
         "NativeLinuxHostPreparation": {
           "complexity": 13,
@@ -7449,7 +7449,7 @@
       },
       "lines": 67
     },
-    "src/tiny_swarm_world/infrastructure/adapters/host/native_preparation.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/host/native_preparation.py": {
       "classes": {
         "NativePreparationInspector": {
           "complexity": 6,
@@ -7502,7 +7502,7 @@
       },
       "lines": 139
     },
-    "src/tiny_swarm_world/infrastructure/adapters/host/preflight_evidence_writer.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/host/preflight_evidence_writer.py": {
       "classes": {
         "PreflightEvidenceWriter": {
           "complexity": 14,
@@ -7527,7 +7527,7 @@
       },
       "lines": 46
     },
-    "src/tiny_swarm_world/infrastructure/adapters/host/project_filesystem_inspector.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/host/project_filesystem_inspector.py": {
       "classes": {
         "ProjectFilesystemInspector": {
           "complexity": 16,
@@ -7580,7 +7580,7 @@
       },
       "lines": 153
     },
-    "src/tiny_swarm_world/infrastructure/adapters/host/windows_command_runner.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/host/windows_command_runner.py": {
       "classes": {
         "WindowsCommandRunner": {
           "complexity": 4,
@@ -7605,7 +7605,7 @@
       },
       "lines": 84
     },
-    "src/tiny_swarm_world/infrastructure/adapters/host/wsl_host_preparation.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/host/wsl_host_preparation.py": {
       "classes": {
         "WslHostPreparation": {
           "complexity": 17,
@@ -7650,7 +7650,7 @@
       },
       "lines": 128
     },
-    "src/tiny_swarm_world/infrastructure/adapters/host/wsl_host_signal_reader.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/host/wsl_host_signal_reader.py": {
       "classes": {
         "WslHostSignalReader": {
           "complexity": 6,
@@ -7679,7 +7679,7 @@
       },
       "lines": 45
     },
-    "src/tiny_swarm_world/infrastructure/adapters/host/wsl_resource_inspector.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/host/wsl_resource_inspector.py": {
       "classes": {
         "WslResourceInspector": {
           "complexity": 20,
@@ -7732,14 +7732,14 @@
       },
       "lines": 194
     },
-    "src/tiny_swarm_world/infrastructure/adapters/ingress/__init__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/ingress/__init__.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 1,
       "functions": {},
       "lines": 5
     },
-    "src/tiny_swarm_world/infrastructure/adapters/ingress/local_tls_contract_resolver.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/ingress/local_tls_contract_resolver.py": {
       "classes": {
         "LocalTlsContractResolver": {
           "complexity": 56,
@@ -7796,7 +7796,7 @@
       },
       "lines": 240
     },
-    "src/tiny_swarm_world/infrastructure/adapters/ingress/tls_state.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/ingress/tls_state.py": {
       "classes": {},
       "complexity": 4,
       "fanout": 4,
@@ -7808,14 +7808,14 @@
       },
       "lines": 15
     },
-    "src/tiny_swarm_world/infrastructure/adapters/installation/__init__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/installation/__init__.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 0,
       "functions": {},
       "lines": 1
     },
-    "src/tiny_swarm_world/infrastructure/adapters/installation/bootstrap.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/installation/bootstrap.py": {
       "classes": {},
       "complexity": 18,
       "fanout": 10,
@@ -7839,7 +7839,7 @@
       },
       "lines": 167
     },
-    "src/tiny_swarm_world/infrastructure/adapters/installation/bootstrap_configuration.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/installation/bootstrap_configuration.py": {
       "classes": {
         "SimpleInstallerError": {
           "complexity": 0,
@@ -7872,7 +7872,7 @@
       },
       "lines": 155
     },
-    "src/tiny_swarm_world/infrastructure/adapters/installation/configuration.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/installation/configuration.py": {
       "classes": {
         "ConfigurationPreparationAdapter": {
           "complexity": 3,
@@ -7941,7 +7941,7 @@
       },
       "lines": 352
     },
-    "src/tiny_swarm_world/infrastructure/adapters/installation/credentials.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/installation/credentials.py": {
       "classes": {
         "CredentialsPreparationAdapter": {
           "complexity": 4,
@@ -7982,7 +7982,7 @@
       },
       "lines": 193
     },
-    "src/tiny_swarm_world/infrastructure/adapters/installation/evidence.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/installation/evidence.py": {
       "classes": {
         "InstallationEvidenceAdapter": {
           "complexity": 10,
@@ -8079,7 +8079,7 @@
       },
       "lines": 270
     },
-    "src/tiny_swarm_world/infrastructure/adapters/installation/host.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/installation/host.py": {
       "classes": {
         "HostPreparationAdapter": {
           "complexity": 11,
@@ -8136,7 +8136,7 @@
       },
       "lines": 275
     },
-    "src/tiny_swarm_world/infrastructure/adapters/installation/presentation.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/installation/presentation.py": {
       "classes": {
         "InstallationPresentationAdapter": {
           "complexity": 14,
@@ -8305,7 +8305,7 @@
       },
       "lines": 517
     },
-    "src/tiny_swarm_world/infrastructure/adapters/installation/process.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/installation/process.py": {
       "classes": {
         "PhaseRunnerAdapter": {
           "complexity": 7,
@@ -8378,7 +8378,7 @@
       },
       "lines": 392
     },
-    "src/tiny_swarm_world/infrastructure/adapters/native_package_manager.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/native_package_manager.py": {
       "classes": {
         "AptHostPackageManager": {
           "complexity": 13,
@@ -8403,7 +8403,7 @@
       },
       "lines": 62
     },
-    "src/tiny_swarm_world/infrastructure/adapters/native_preparation_evidence.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/native_preparation_evidence.py": {
       "classes": {
         "NativePreparationEvidenceWriter": {
           "complexity": 9,
@@ -8424,14 +8424,14 @@
       },
       "lines": 67
     },
-    "src/tiny_swarm_world/infrastructure/adapters/network/__init__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/network/__init__.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 3,
       "functions": {},
       "lines": 15
     },
-    "src/tiny_swarm_world/infrastructure/adapters/network/host_network_probe.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/network/host_network_probe.py": {
       "classes": {
         "SubprocessNetworkProbe": {
           "complexity": 15,
@@ -8500,7 +8500,7 @@
       },
       "lines": 240
     },
-    "src/tiny_swarm_world/infrastructure/adapters/network/host_network_repair.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/network/host_network_repair.py": {
       "classes": {
         "SubprocessNetworkRepair": {
           "complexity": 30,
@@ -8605,7 +8605,7 @@
       },
       "lines": 470
     },
-    "src/tiny_swarm_world/infrastructure/adapters/network/wsl_socat_exposure.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/network/wsl_socat_exposure.py": {
       "classes": {
         "WslSocatExposureAdapter": {
           "complexity": 9,
@@ -8642,7 +8642,7 @@
       },
       "lines": 66
     },
-    "src/tiny_swarm_world/infrastructure/adapters/preflight/__init__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/preflight/__init__.py": {
       "classes": {},
       "complexity": 2,
       "fanout": 3,
@@ -8654,7 +8654,7 @@
       },
       "lines": 75
     },
-    "src/tiny_swarm_world/infrastructure/adapters/preflight/artifact_readiness.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/preflight/artifact_readiness.py": {
       "classes": {
         "BoundedArtifactReadinessAdapter": {
           "complexity": 12,
@@ -8771,7 +8771,7 @@
       },
       "lines": 351
     },
-    "src/tiny_swarm_world/infrastructure/adapters/preflight/artifact_source_readiness.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/preflight/artifact_source_readiness.py": {
       "classes": {
         "HttpArtifactSourceReadiness": {
           "complexity": 34,
@@ -8836,7 +8836,7 @@
       },
       "lines": 301
     },
-    "src/tiny_swarm_world/infrastructure/adapters/preflight/host_preflight_probe.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/preflight/host_preflight_probe.py": {
       "classes": {
         "HostPreflightProbe": {
           "complexity": 74,
@@ -8961,7 +8961,7 @@
       },
       "lines": 402
     },
-    "src/tiny_swarm_world/infrastructure/adapters/preflight/lxc_provider_preflight.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/preflight/lxc_provider_preflight.py": {
       "classes": {
         "AsyncLxcProviderProbeRunner": {
           "complexity": 2,
@@ -9094,7 +9094,7 @@
       },
       "lines": 504
     },
-    "src/tiny_swarm_world/infrastructure/adapters/preflight/secret_storage_probe.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/preflight/secret_storage_probe.py": {
       "classes": {
         "SecretStorageProbe": {
           "complexity": 12,
@@ -9127,14 +9127,14 @@
       },
       "lines": 67
     },
-    "src/tiny_swarm_world/infrastructure/adapters/preflight/service_probes/__init__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/preflight/service_probes/__init__.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 1,
       "functions": {},
       "lines": 17
     },
-    "src/tiny_swarm_world/infrastructure/adapters/preflight/service_probes/registry.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/preflight/service_probes/registry.py": {
       "classes": {
         "CallbackServiceProbe": {
           "complexity": 2,
@@ -9199,7 +9199,7 @@
       },
       "lines": 148
     },
-    "src/tiny_swarm_world/infrastructure/adapters/preflight/windows_wsl_bridge_state.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/preflight/windows_wsl_bridge_state.py": {
       "classes": {},
       "complexity": 51,
       "fanout": 11,
@@ -9251,14 +9251,14 @@
       },
       "lines": 281
     },
-    "src/tiny_swarm_world/infrastructure/adapters/repositories/__init__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/repositories/__init__.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 0,
       "functions": {},
       "lines": 0
     },
-    "src/tiny_swarm_world/infrastructure/adapters/repositories/command_repository_yaml.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/repositories/command_repository_yaml.py": {
       "classes": {
         "PortCommandRepositoryYaml": {
           "complexity": 12,
@@ -9283,7 +9283,7 @@
       },
       "lines": 102
     },
-    "src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py": {
       "classes": {
         "ComposeFileRepositoryYaml": {
           "complexity": 45,
@@ -9472,7 +9472,7 @@
       },
       "lines": 910
     },
-    "src/tiny_swarm_world/infrastructure/adapters/repositories/desired_inventory_yaml_repository.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/repositories/desired_inventory_yaml_repository.py": {
       "classes": {
         "DesiredInventoryYamlRepository": {
           "complexity": 8,
@@ -9493,7 +9493,7 @@
       },
       "lines": 40
     },
-    "src/tiny_swarm_world/infrastructure/adapters/repositories/installer_configuration_repository.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/repositories/installer_configuration_repository.py": {
       "classes": {
         "InstallerConfigurationRepository": {
           "complexity": 47,
@@ -9534,7 +9534,7 @@
       },
       "lines": 178
     },
-    "src/tiny_swarm_world/infrastructure/adapters/repositories/local_state_paths.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/repositories/local_state_paths.py": {
       "classes": {
         "LocalStatePathError": {
           "complexity": 0,
@@ -9567,7 +9567,7 @@
       },
       "lines": 72
     },
-    "src/tiny_swarm_world/infrastructure/adapters/repositories/node_provider_config_yaml_repository.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/repositories/node_provider_config_yaml_repository.py": {
       "classes": {
         "NodeProviderConfig": {
           "complexity": 2,
@@ -9712,7 +9712,7 @@
       },
       "lines": 665
     },
-    "src/tiny_swarm_world/infrastructure/adapters/repositories/observed_inventory_local_repository.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/repositories/observed_inventory_local_repository.py": {
       "classes": {
         "ObservedInventoryLocalRepository": {
           "complexity": 5,
@@ -9741,7 +9741,7 @@
       },
       "lines": 44
     },
-    "src/tiny_swarm_world/infrastructure/adapters/repositories/performance_evidence_local_repository.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/repositories/performance_evidence_local_repository.py": {
       "classes": {
         "PerformanceEvidenceLocalRepository": {
           "complexity": 3,
@@ -9774,7 +9774,7 @@
       },
       "lines": 100
     },
-    "src/tiny_swarm_world/infrastructure/adapters/repositories/port_registry_yaml_repository.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/repositories/port_registry_yaml_repository.py": {
       "classes": {
         "PortRegistryYamlRepository": {
           "complexity": 13,
@@ -9847,7 +9847,7 @@
       },
       "lines": 168
     },
-    "src/tiny_swarm_world/infrastructure/adapters/repositories/project_filesystem_evidence_local_repository.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/repositories/project_filesystem_evidence_local_repository.py": {
       "classes": {
         "ProjectFilesystemEvidenceLocalRepository": {
           "complexity": 14,
@@ -9880,7 +9880,7 @@
       },
       "lines": 151
     },
-    "src/tiny_swarm_world/infrastructure/adapters/repositories/routing_evidence_local_repository.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/repositories/routing_evidence_local_repository.py": {
       "classes": {
         "RoutingEvidenceLocalRepository": {
           "complexity": 7,
@@ -9905,7 +9905,7 @@
       },
       "lines": 86
     },
-    "src/tiny_swarm_world/infrastructure/adapters/repositories/secret_manifest_yaml_repository.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/repositories/secret_manifest_yaml_repository.py": {
       "classes": {
         "SecretManifestYamlRepository": {
           "complexity": 8,
@@ -9942,7 +9942,7 @@
       },
       "lines": 83
     },
-    "src/tiny_swarm_world/infrastructure/adapters/repositories/verification_evidence_local_repository.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/repositories/verification_evidence_local_repository.py": {
       "classes": {
         "VerificationEvidenceLocalRepository": {
           "complexity": 14,
@@ -9971,14 +9971,14 @@
       },
       "lines": 70
     },
-    "src/tiny_swarm_world/infrastructure/adapters/ui/__init__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/ui/__init__.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 0,
       "functions": {},
       "lines": 0
     },
-    "src/tiny_swarm_world/infrastructure/adapters/ui/command_async_runner_ui.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/ui/command_async_runner_ui.py": {
       "classes": {
         "AsyncCommandRunnerUI": {
           "complexity": 9,
@@ -10019,7 +10019,7 @@
       },
       "lines": 67
     },
-    "src/tiny_swarm_world/infrastructure/adapters/ui/command_runner_ui.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/ui/command_runner_ui.py": {
       "classes": {
         "CommandRunnerUi": {
           "complexity": 1,
@@ -10036,7 +10036,7 @@
       },
       "lines": 11
     },
-    "src/tiny_swarm_world/infrastructure/adapters/ui/command_sync_runner_ui.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/ui/command_sync_runner_ui.py": {
       "classes": {
         "SyncCommandRunnerUI": {
           "complexity": 9,
@@ -10077,7 +10077,7 @@
       },
       "lines": 67
     },
-    "src/tiny_swarm_world/infrastructure/adapters/ui/factory_ui.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/ui/factory_ui.py": {
       "classes": {
         "FactoryUI": {
           "complexity": 3,
@@ -10098,7 +10098,7 @@
       },
       "lines": 19
     },
-    "src/tiny_swarm_world/infrastructure/adapters/ui/install_reporter.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/ui/install_reporter.py": {
       "classes": {
         "NoopInstallReporter": {
           "complexity": 1,
@@ -10163,7 +10163,7 @@
       },
       "lines": 111
     },
-    "src/tiny_swarm_world/infrastructure/adapters/ui/linux_ui.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/ui/linux_ui.py": {
       "classes": {
         "LinuxUI": {
           "complexity": 39,
@@ -10236,7 +10236,7 @@
       },
       "lines": 150
     },
-    "src/tiny_swarm_world/infrastructure/adapters/ui/progress_trace_ui.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/ui/progress_trace_ui.py": {
       "classes": {
         "TerminalMethodTrace": {
           "complexity": 2,
@@ -10281,7 +10281,7 @@
       },
       "lines": 70
     },
-    "src/tiny_swarm_world/infrastructure/adapters/ui/windows_ui.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/ui/windows_ui.py": {
       "classes": {
         "WindowsUi": {
           "complexity": 15,
@@ -10310,14 +10310,14 @@
       },
       "lines": 76
     },
-    "src/tiny_swarm_world/infrastructure/adapters/update/__init__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/update/__init__.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 1,
       "functions": {},
       "lines": 5
     },
-    "src/tiny_swarm_world/infrastructure/adapters/update/json_state_store.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/update/json_state_store.py": {
       "classes": {
         "JsonUpdateStateStore": {
           "complexity": 20,
@@ -10354,7 +10354,7 @@
       },
       "lines": 122
     },
-    "src/tiny_swarm_world/infrastructure/adapters/update/lxc_runtime_observer.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/update/lxc_runtime_observer.py": {
       "classes": {
         "LxcUpdateRuntimeObserver": {
           "complexity": 17,
@@ -10407,14 +10407,14 @@
       },
       "lines": 179
     },
-    "src/tiny_swarm_world/infrastructure/adapters/yaml/__init__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/yaml/__init__.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 0,
       "functions": {},
       "lines": 0
     },
-    "src/tiny_swarm_world/infrastructure/adapters/yaml/yaml_builder.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/yaml/yaml_builder.py": {
       "classes": {
         "FluentYAMLBuilder": {
           "complexity": 19,
@@ -10479,14 +10479,14 @@
       },
       "lines": 78
     },
-    "src/tiny_swarm_world/infrastructure/adapters/yaml/yaml_builder_actions/__init__.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/yaml/yaml_builder_actions/__init__.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 0,
       "functions": {},
       "lines": 0
     },
-    "src/tiny_swarm_world/infrastructure/adapters/yaml/yaml_builder_actions/add_child_action.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/yaml/yaml_builder_actions/add_child_action.py": {
       "classes": {
         "AddChildAction": {
           "complexity": 4,
@@ -10507,7 +10507,7 @@
       },
       "lines": 32
     },
-    "src/tiny_swarm_world/infrastructure/adapters/yaml/yaml_builder_actions/delete_current_action.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/yaml/yaml_builder_actions/delete_current_action.py": {
       "classes": {
         "DeleteCurrentAction": {
           "complexity": 3,
@@ -10528,7 +10528,7 @@
       },
       "lines": 26
     },
-    "src/tiny_swarm_world/infrastructure/adapters/yaml/yaml_builder_actions/find_entry_action.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/yaml/yaml_builder_actions/find_entry_action.py": {
       "classes": {
         "FindEntryAction": {
           "complexity": 4,
@@ -10549,7 +10549,7 @@
       },
       "lines": 28
     },
-    "src/tiny_swarm_world/infrastructure/adapters/yaml/yaml_builder_actions/load_from_string_action.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/yaml/yaml_builder_actions/load_from_string_action.py": {
       "classes": {
         "LoadFromStringAction": {
           "complexity": 10,
@@ -10574,7 +10574,7 @@
       },
       "lines": 52
     },
-    "src/tiny_swarm_world/infrastructure/adapters/yaml/yaml_builder_actions/navigate_to_action.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/yaml/yaml_builder_actions/navigate_to_action.py": {
       "classes": {
         "NavigateToAction": {
           "complexity": 4,
@@ -10595,7 +10595,7 @@
       },
       "lines": 37
     },
-    "src/tiny_swarm_world/infrastructure/adapters/yaml/yaml_builder_actions/navigate_to_recursively_action.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/yaml/yaml_builder_actions/navigate_to_recursively_action.py": {
       "classes": {
         "NavigateToRecursivelyAction": {
           "complexity": 3,
@@ -10620,7 +10620,7 @@
       },
       "lines": 34
     },
-    "src/tiny_swarm_world/infrastructure/adapters/yaml/yaml_builder_actions/to_dict_action.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/yaml/yaml_builder_actions/to_dict_action.py": {
       "classes": {
         "ToDictAction": {
           "complexity": 11,
@@ -10641,7 +10641,7 @@
       },
       "lines": 47
     },
-    "src/tiny_swarm_world/infrastructure/adapters/yaml/yaml_builder_actions/to_yaml_action.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/yaml/yaml_builder_actions/to_yaml_action.py": {
       "classes": {
         "ToYAMLAction": {
           "complexity": 2,
@@ -10662,7 +10662,7 @@
       },
       "lines": 24
     },
-    "src/tiny_swarm_world/infrastructure/adapters/yaml/yaml_builder_actions/yaml_builder_action.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/yaml/yaml_builder_actions/yaml_builder_action.py": {
       "classes": {
         "YAMLBuilderAction": {
           "complexity": 1,
@@ -10679,7 +10679,7 @@
       },
       "lines": 6
     },
-    "src/tiny_swarm_world/infrastructure/adapters/yaml/yaml_node.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/yaml/yaml_node.py": {
       "classes": {
         "YAMLNode": {
           "complexity": 9,
@@ -10708,7 +10708,7 @@
       },
       "lines": 34
     },
-    "src/tiny_swarm_world/infrastructure/adapters/yaml/yaml_value.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/yaml/yaml_value.py": {
       "classes": {
         "YamlValue": {
           "complexity": 2,
@@ -10729,7 +10729,7 @@
       },
       "lines": 11
     },
-    "src/tiny_swarm_world/infrastructure/composition.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/composition.py": {
       "classes": {},
       "complexity": 12,
       "fanout": 9,
@@ -10873,7 +10873,7 @@
       },
       "lines": 271
     },
-    "src/tiny_swarm_world/infrastructure/composition_artifacts.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/composition_artifacts.py": {
       "classes": {},
       "complexity": 7,
       "fanout": 3,
@@ -10893,7 +10893,7 @@
       },
       "lines": 189
     },
-    "src/tiny_swarm_world/infrastructure/composition_blocked_workflows.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/composition_blocked_workflows.py": {
       "classes": {
         "BlockedArtifactWorkflow": {
           "complexity": 2,
@@ -10926,7 +10926,7 @@
       },
       "lines": 57
     },
-    "src/tiny_swarm_world/infrastructure/composition_cli.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/composition_cli.py": {
       "classes": {},
       "complexity": 6,
       "fanout": 8,
@@ -10950,7 +10950,7 @@
       },
       "lines": 109
     },
-    "src/tiny_swarm_world/infrastructure/composition_configuration.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/composition_configuration.py": {
       "classes": {},
       "complexity": 35,
       "fanout": 9,
@@ -11038,7 +11038,7 @@
       },
       "lines": 290
     },
-    "src/tiny_swarm_world/infrastructure/composition_deployment.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/composition_deployment.py": {
       "classes": {},
       "complexity": 54,
       "fanout": 18,
@@ -11062,7 +11062,7 @@
       },
       "lines": 486
     },
-    "src/tiny_swarm_world/infrastructure/composition_installation.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/composition_installation.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 12,
@@ -11082,7 +11082,7 @@
       },
       "lines": 147
     },
-    "src/tiny_swarm_world/infrastructure/composition_lxc_runtimes.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/composition_lxc_runtimes.py": {
       "classes": {
         "PrepareLxcStackAssets": {
           "complexity": 2,
@@ -11203,7 +11203,7 @@
       },
       "lines": 401
     },
-    "src/tiny_swarm_world/infrastructure/composition_models.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/composition_models.py": {
       "classes": {
         "ApplicationServices": {
           "complexity": 2,
@@ -11260,7 +11260,7 @@
       },
       "lines": 114
     },
-    "src/tiny_swarm_world/infrastructure/composition_native_preparation.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/composition_native_preparation.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 6,
@@ -11276,7 +11276,7 @@
       },
       "lines": 32
     },
-    "src/tiny_swarm_world/infrastructure/composition_network.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/composition_network.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 5,
@@ -11296,7 +11296,7 @@
       },
       "lines": 53
     },
-    "src/tiny_swarm_world/infrastructure/composition_operator_configuration.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/composition_operator_configuration.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 3,
@@ -11308,7 +11308,7 @@
       },
       "lines": 14
     },
-    "src/tiny_swarm_world/infrastructure/composition_platform.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/composition_platform.py": {
       "classes": {},
       "complexity": 10,
       "fanout": 5,
@@ -11328,7 +11328,7 @@
       },
       "lines": 420
     },
-    "src/tiny_swarm_world/infrastructure/composition_probes.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/composition_probes.py": {
       "classes": {
         "EndpointReadinessCheck": {
           "complexity": 25,
@@ -11397,7 +11397,7 @@
       },
       "lines": 250
     },
-    "src/tiny_swarm_world/infrastructure/composition_runtime.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/composition_runtime.py": {
       "classes": {
         "_BlockedPlatformProviderStep": {
           "complexity": 2,
@@ -11746,7 +11746,7 @@
       },
       "lines": 1774
     },
-    "src/tiny_swarm_world/infrastructure/composition_setup.py": {
+    "modules/tsw_core/src/tiny_swarm_world/infrastructure/composition_setup.py": {
       "classes": {},
       "complexity": 16,
       "fanout": 13,
@@ -11794,7 +11794,7 @@
       },
       "lines": 386
     },
-    "src/tiny_swarm_world/installer.py": {
+    "modules/tsw_core/src/tiny_swarm_world/installer.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 7,
@@ -11810,7 +11810,7 @@
       },
       "lines": 242
     },
-    "src/tiny_swarm_world/prepare_linux.py": {
+    "modules/tsw_core/src/tiny_swarm_world/prepare_linux.py": {
       "classes": {},
       "complexity": 36,
       "fanout": 8,
@@ -11826,7 +11826,7 @@
       },
       "lines": 180
     },
-    "src/tiny_swarm_world/simple_installer.py": {
+    "modules/tsw_core/src/tiny_swarm_world/simple_installer.py": {
       "classes": {},
       "complexity": 1,
       "fanout": 2,

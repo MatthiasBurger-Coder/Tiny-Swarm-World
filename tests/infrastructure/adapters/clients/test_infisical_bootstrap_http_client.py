@@ -10,7 +10,7 @@ from tests.support.sonar_safe_literals import sample_url
 
 MODULE_PATH = (
     Path(__file__).resolve().parents[4]
-    / "src"
+    / "modules/tsw_core/src"
     / "tiny_swarm_world"
     / "infrastructure"
     / "adapters"

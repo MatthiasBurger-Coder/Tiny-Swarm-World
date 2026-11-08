@@ -38,7 +38,7 @@ intentionally on a WSL Windows mount, the applicable commands also need
 | Inspect current platform | `platform verify` | Read-only checks; does not repair.
 | Reconcile managed platform | `platform reconcile --live` | Mutates managed platform state; does not constitute a full service update.
 | Run the broader setup again | `setup run --live` | Mutates infrastructure and services without the wrapper's preliminary reset.
-| Prepare a native Ubuntu 24.04 or 26.04 host | `bootstrap/linux/prepare_linux.sh` | Separately installs only missing approved host packages after confirmation.
+| Prepare a native Ubuntu 24.04 or 26.04 host | `modules/tsw_core/bootstrap/linux/prepare_linux.sh` | Separately installs only missing approved host packages after confirmation.
 | Install or reconcile on native Ubuntu 24.04 or 26.04 | `install.sh` | Checks preparation and runs setup without a reset.
 | Install or reconcile on supported WSL2 Ubuntu | `install.sh` | Checks preparation and runs setup without reset.
 | Recreate a disposable WSL2 environment | `./install.sh --confirm-reset` | Explicit deprecated destructive compatibility; live approval remains separate.
@@ -125,7 +125,7 @@ without mutation or runtime observation; it does not qualify the running image:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world platform update \
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world platform update \
   --stack jenkins --service jenkins \
   --from-image 127.0.0.1:13500/jenkins:0.2.0 \
   --to-image 127.0.0.1:13500/jenkins:0.3.0 --preview --json
@@ -279,22 +279,22 @@ and run the full gate before handing off changes:
 
 [source,bash]
 ----
-python3 tools/linux/quality_gate.py quality
+python3 modules/tsw_core/tools/linux/quality_gate.py quality
 ----
 
 Available subcommands:
 
 [source,bash]
 ----
-python3 tools/linux/quality_gate.py lint
-python3 tools/linux/quality_gate.py arch-lint
-python3 tools/linux/quality_gate.py arch-tests
-python3 tools/linux/quality_gate.py typecheck
-python3 tools/linux/quality_gate.py test
+python3 modules/tsw_core/tools/linux/quality_gate.py lint
+python3 modules/tsw_core/tools/linux/quality_gate.py arch-lint
+python3 modules/tsw_core/tools/linux/quality_gate.py arch-tests
+python3 modules/tsw_core/tools/linux/quality_gate.py typecheck
+python3 modules/tsw_core/tools/linux/quality_gate.py test
 ----
 
 The gate runs Ruff, import-linter, architecture tests, mypy, and unittest
-discovery against the `src/tiny_swarm_world` source tree and root `tests/`
+discovery against the `modules/tsw_core/src/tiny_swarm_world` source tree and root `tests/`
 directory.
 
 == Main Python Entrypoint
@@ -308,7 +308,7 @@ tiny-swarm-world
 ----
 
 For source-checkout diagnostics before installation, the equivalent module
-fallback remains `PYTHONPATH=src python3 -m tiny_swarm_world`.
+fallback remains `PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world`.
 
 Running without arguments does not execute infrastructure commands. List the
 workflow-level commands first:
@@ -461,7 +461,7 @@ adapter.
 
 Backend selection first honors an explicit `--lxc-backend incus` override,
 then `backend_selection.preferred_backend` in
-`infra/config/node-providers/provider_config.yaml`. Select the managed LXC
+`modules/tsw_core/infra/config/node-providers/provider_config.yaml`. Select the managed LXC
 backend explicitly when the configured default should be made visible:
 
 [source,bash]
@@ -496,7 +496,7 @@ phase evidence when live Nexus, registry, Portainer, Swarm, external-input, or
 observed-state prerequisites are unavailable.
 
 Optional live smoke validation is a separate operator action, not part of
-`python3 tools/linux/quality_gate.py quality`. Run `setup run --live` only on a
+`python3 modules/tsw_core/tools/linux/quality_gate.py quality`. Run `setup run --live` only on a
 disposable or recoverable local environment and only when Incus/LXC or
 provider state, Docker Swarm, networking, Portainer,
 Nexus, Jenkins, Apache Pulsar, SonarQube, Swagger/NGINX, image, and stack changes
@@ -538,9 +538,9 @@ The canonical classification is maintained in
 [options="header"]
 |===
 | Path | Status
-| `src/tiny_swarm_world/__main__.py` | Supported workflow-level entry point with live-consent and confirmation contracts.
-| `infra/config/compose/**/docker-compose.yml` | Supported stack assets, not standalone quality-gate commands.
-| `infra/config/compose/**/Dockerfile` | Supported image source assets used by the Python setup workflow.
+| `modules/tsw_core/src/tiny_swarm_world/__main__.py` | Supported workflow-level entry point with live-consent and confirmation contracts.
+| `modules/tsw_core/infra/config/compose/**/docker-compose.yml` | Supported stack assets, not standalone quality-gate commands.
+| `modules/tsw_core/infra/config/compose/**/Dockerfile` | Supported image source assets used by the Python setup workflow.
 |===
 
 Do not re-enable legacy or retired scripts without a dedicated cleanup slice,
@@ -596,7 +596,7 @@ nodes. Do not use `127.0.0.1`, because that would point at the node itself:
 [source,bash]
 ----
 export TSW_LXC_DOCKER_REGISTRY_MIRROR='http://<lxc-reachable-host-ip>:5001'
-PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world setup run --live
 ----
 
 The LXC Docker installation step writes this value into each node's
@@ -642,11 +642,11 @@ commands.
 
 Implemented repository assets:
 
-* `infra/config/compose/service-access/docker-compose.yml` defines the
+* `modules/tsw_core/infra/config/compose/service-access/docker-compose.yml` defines the
   service-access dashboard and service-access NGINX services.
-* `infra/config/compose/service-access/dashboard/**` contains the committed
+* `modules/tsw_core/infra/config/compose/service-access/dashboard/**` contains the committed
   dashboard image asset rendered from the effective service-access model.
-* `infra/config/compose/service-access/nginx/**` contains the image-packaged NGINX
+* `modules/tsw_core/infra/config/compose/service-access/nginx/**` contains the image-packaged NGINX
   route configuration.
 
 During LXC stack deployment, the dashboard HTML is rendered again from the

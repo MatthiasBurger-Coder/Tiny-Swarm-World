@@ -7,7 +7,7 @@ Tiny Swarm World now separates three repository roles explicitly.
 
 === Python Automation
 
-`src/tiny_swarm_world` contains the Python orchestration code.
+`modules/tsw_core/src/tiny_swarm_world` contains the Python orchestration code.
 
 * `domain` contains core command, node-provider, retained legacy command
   template naming, network, deployment, and Nexus concepts.
@@ -17,12 +17,12 @@ Tiny Swarm World now separates three repository roles explicitly.
   access.
 
 The canonical development import root is `src`, and commands that execute the
-Python package use `PYTHONPATH=src`.
+Python package use `PYTHONPATH=modules/tsw_core/src`.
 
-`src/tiny_swarm_world/infrastructure/composition.py` is the stable public
+`modules/tsw_core/src/tiny_swarm_world/infrastructure/composition.py` is the stable public
 composition facade for the Python automation. It routes construction to
 focused infrastructure composition modules and keeps
-`src/tiny_swarm_world/__main__.py` thin. Services are constructed with explicit
+`modules/tsw_core/src/tiny_swarm_world/__main__.py` thin. Services are constructed with explicit
 ports and repositories instead of creating infrastructure adapters inside the
 application layer.
 Repository-relative path configuration is centralized as the immutable
@@ -236,8 +236,8 @@ microservices:
   repository also exposes service names and published ports parsed from each
   stack's `docker-compose.yml`. Service-stack contracts now carry static
   phase IDs and port-registry IDs so they can be aligned with
-  `infra/config/services.yml`, `infra/config/installation-plan.yaml`, and
-  `infra/config/ports.yaml`. Stack mutation is owned by live-consent-gated
+  `modules/tsw_core/infra/config/services.yml`, `modules/tsw_core/infra/config/installation-plan.yaml`, and
+  `modules/tsw_core/infra/config/ports.yaml`. Stack mutation is owned by live-consent-gated
   workflow execution, not by service construction. `deployment apply` and
   `deployment verify` can evaluate configured stack, external-input, and
   readiness contracts, but live success still depends on observable registry,
@@ -285,7 +285,7 @@ private material are not serialized. The document's `result: generated`
 records successful model serialization only and is not service-readiness or
 live-reachability evidence.
 
-`infra/config/health-checks.yaml` and `infra/config/validation-plan.yaml`
+`modules/tsw_core/infra/config/health-checks.yaml` and `modules/tsw_core/infra/config/validation-plan.yaml`
 belong to the deployment boundary as static desired-state declarations. They
 are aligned by tests, not runtime-loaded by deployment verification yet. The
 application `ValidationPlan` can evaluate observed `VerificationResult`
@@ -293,8 +293,8 @@ evidence and fails closed when required runtime evidence is missing or only
 static stack-registration evidence is present.
 
 The service-access dashboard and NGINX assets are image-packaged under
-`infra/config/compose/service-access/**`, while the stack definition lives under
-`infra/config/compose/service-access/docker-compose.yml`. Static tests verify
+`modules/tsw_core/infra/config/compose/service-access/**`, while the stack definition lives under
+`modules/tsw_core/infra/config/compose/service-access/docker-compose.yml`. Static tests verify
 that the dashboard exposes a management table with central route links and
 Infisical item references, does not render password values, and does not
 introduce React/Vite files.
@@ -363,7 +363,7 @@ claim that the setup path installs a full runnable system.
 
 === Typed Command Catalog
 
-Command YAML files under `infra/config/**/command_*.yaml`, when present, are
+Command YAML files under `modules/tsw_core/infra/config/**/command_*.yaml`, when present, are
 product configuration and are loaded as typed command catalog entries. The
 current Multipass-removal baseline intentionally has no product command YAML
 files; retained VM-named command-builder helpers are dormant legacy
@@ -411,10 +411,10 @@ and verification evidence contracts. Infrastructure adapters own YAML parsing,
 JSON persistence, and path validation. Observed inventory and verification
 evidence use dedicated local-state adapters instead of the generic file
 manager so raw evidence is not logged and file lookup cannot drift into
-`infra/config`.
+`modules/tsw_core/infra/config`.
 
 The default desired inventory baseline is committed at
-`infra/config/inventory/desired_inventory.yaml`. It records host-neutral VM
+`modules/tsw_core/infra/config/inventory/desired_inventory.yaml`. It records host-neutral VM
 names, roles, resource sizes, expected stacks, and artifact registries. It must
 not contain host-specific IP addresses, gateway values, user names, tokens,
 passwords, or secrets.
@@ -424,9 +424,9 @@ passwords, or secrets.
 `infra` contains infrastructure and deployment assets that are not Python
 application code.
 
-* `infra/config` contains command, node-provider, network, and compose
+* `modules/tsw_core/infra/config` contains command, node-provider, network, and compose
   configuration.
-* `infra/config/compose` contains stack definitions and service image/runtime assets.
+* `modules/tsw_core/infra/config/compose` contains stack definitions and service image/runtime assets.
 * Removed direct setup and legacy Swarm helper material remains historical
   live-operation surface context, not a supported workflow entry point. It must
   not be reintroduced without an explicit cleanup or migration slice with tests

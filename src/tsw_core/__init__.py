@@ -1,31 +1,14 @@
-"""Core ownership and discovery for the existing Tiny Swarm World runtime.
-
-The distribution and tiny_swarm_world namespace remain public contracts. Module
-ownership is isolated in place so preparation's no-symlink guards remain valid.
-"""
-from __future__ import annotations
-
-from importlib.resources import files
-import json
-from pathlib import Path
-
-
-def module_descriptor() -> dict:
-    """Read the descriptor included in the core distribution."""
-    return json.loads(files(__package__).joinpath("module.json").read_text(encoding="utf-8"))
-
-
-def discover_root() -> Path:
-    """Locate core assets without probing either platform edition."""
-    descriptor = module_descriptor()
-    for candidate in Path(__file__).resolve().parents:
-        if all((candidate / descriptor[key]).is_dir() for key in ("source_root", "config_root")):
-            return candidate
-    raise RuntimeError("Could not locate the Tiny Swarm World core assets.")
-
-
-def resource_root(root: Path, name: str) -> Path:
-    """Resolve a declared core resource root relative to its deployment anchor."""
-    if name not in {"source_root", "infra_root", "config_root"}:
-        raise ValueError(f"Unknown core resource root: {name}")
-    return root / module_descriptor()[name]
+"""Compatibility import; implementation lives in the physical core module."""
+import importlib.util as _util
+from pathlib import Path as _Path
+import sys as _sys
+_impl = _Path(__file__).resolve().parents[2] / "modules/tsw_core/src" / __name__
+_spec = _util.spec_from_file_location(__name__, _impl / "__init__.py", submodule_search_locations=[str(_impl)])
+if _spec is None or _spec.loader is None:
+    raise ImportError("Physical Tiny Swarm World core package is unavailable.")
+_module = _sys.modules[__name__]
+_module.__file__ = str(_impl / "__init__.py")
+_module.__path__ = [str(_impl)]
+_module.__spec__ = _spec
+_module.__loader__ = _spec.loader
+_spec.loader.exec_module(_module)

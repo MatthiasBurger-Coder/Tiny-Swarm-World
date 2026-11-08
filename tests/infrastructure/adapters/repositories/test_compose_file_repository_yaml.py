@@ -84,7 +84,7 @@ class TestComposeFileRepositoryYaml(unittest.TestCase):
     def test_committed_installation_plan_matches_domain_plan(self):
         repository_root = Path(__file__).resolve().parents[4]
         yaml_plan = YAML(typ="safe").load(
-            (repository_root / "infra" / "config" / "installation-plan.yaml").read_text(
+            (repository_root / "modules/tsw_core/infra" / "config" / "installation-plan.yaml").read_text(
                 encoding="utf-8"
             )
         )
@@ -497,7 +497,7 @@ services:
 
     def test_committed_portainer_compose_uses_docker_socket_mount(self):
         repository_root = Path(__file__).resolve().parents[4]
-        compose_path = repository_root / "infra" / "config" / "compose" / "portainer" / "docker-compose.yml"
+        compose_path = repository_root / "modules/tsw_core/infra" / "config" / "compose" / "portainer" / "docker-compose.yml"
         compose_content = compose_path.read_text(encoding="utf-8")
 
         self.assertIn("/var/run/docker.sock:/var/run/docker.sock", compose_content)
@@ -505,7 +505,7 @@ services:
 
     def test_committed_portainer_compose_provisions_admin_password_before_api_bootstrap(self):
         repository_root = Path(__file__).resolve().parents[4]
-        compose_path = repository_root / "infra" / "config" / "compose" / "portainer" / "docker-compose.yml"
+        compose_path = repository_root / "modules/tsw_core/infra" / "config" / "compose" / "portainer" / "docker-compose.yml"
         compose_content = compose_path.read_text(encoding="utf-8")
 
         self.assertIn("--admin-password-file", compose_content)
@@ -575,14 +575,14 @@ services:
     def test_committed_service_registry_aligns_selected_stacks_with_phase_and_ports(self):
         repository_root = Path(__file__).resolve().parents[4]
         registry = YAML(typ="safe").load(
-            (repository_root / "infra" / "config" / "services.yml").read_text(
+            (repository_root / "modules/tsw_core/infra" / "config" / "services.yml").read_text(
                 encoding="utf-8"
             )
         )
         service_entries = registry["services"]
         expected_stacks = YAML(typ="safe").load(
             (
-                repository_root / "infra" / "config" / "inventory" / "desired_inventory.yaml"
+                repository_root / "modules/tsw_core/infra" / "config" / "inventory" / "desired_inventory.yaml"
             ).read_text(encoding="utf-8")
         )["expected_stacks"]
         plan_phase_ids = {phase.phase_id for phase in default_installation_plan().phases}
@@ -632,7 +632,7 @@ services:
         repository = ComposeFileRepositoryYaml()
         repository_root = Path(__file__).resolve().parents[4]
         service_entries = YAML(typ="safe").load(
-            (repository_root / "infra" / "config" / "services.yml").read_text(
+            (repository_root / "modules/tsw_core/infra" / "config" / "services.yml").read_text(
                 encoding="utf-8"
             )
         )["services"]
@@ -685,7 +685,7 @@ services:
             "rabbitmq",
             "\n".join(
                 path.read_text(encoding="utf-8").lower()
-                for path in (repository_root / "infra" / "config").rglob("*")
+                for path in (repository_root / "modules/tsw_core/infra" / "config").rglob("*")
                 if path.is_file()
             ),
         )
@@ -739,7 +739,7 @@ services:
                 self.assertEqual(mapping.internal_port, key[2])
                 self.assertEqual(mapping.external_port, published)
 
-        compose_root = repository_root / "infra" / "config" / "compose"
+        compose_root = repository_root / "modules/tsw_core/infra" / "config" / "compose"
         for absent_stack in ("prometheus", "grafana"):
             with self.subTest(absent_stack=absent_stack):
                 self.assertFalse((compose_root / absent_stack / "docker-compose.yml").exists())
@@ -751,12 +751,12 @@ services:
     def test_committed_health_checks_align_with_services_and_contracts(self):
         repository_root = Path(__file__).resolve().parents[4]
         health_checks = YAML(typ="safe").load(
-            (repository_root / "infra" / "config" / "health-checks.yaml").read_text(
+            (repository_root / "modules/tsw_core/infra" / "config" / "health-checks.yaml").read_text(
                 encoding="utf-8"
             )
         )["checks"]
         service_entries = YAML(typ="safe").load(
-            (repository_root / "infra" / "config" / "services.yml").read_text(
+            (repository_root / "modules/tsw_core/infra" / "config" / "services.yml").read_text(
                 encoding="utf-8"
             )
         )["services"]
@@ -790,12 +790,12 @@ services:
     def test_committed_validation_plan_covers_required_health_check_targets(self):
         repository_root = Path(__file__).resolve().parents[4]
         health_checks = YAML(typ="safe").load(
-            (repository_root / "infra" / "config" / "health-checks.yaml").read_text(
+            (repository_root / "modules/tsw_core/infra" / "config" / "health-checks.yaml").read_text(
                 encoding="utf-8"
             )
         )["checks"]
         validation_plan = YAML(typ="safe").load(
-            (repository_root / "infra" / "config" / "validation-plan.yaml").read_text(
+            (repository_root / "modules/tsw_core/infra" / "config" / "validation-plan.yaml").read_text(
                 encoding="utf-8"
             )
         )["plans"]["greenpath"]
@@ -810,7 +810,7 @@ services:
     def test_committed_jenkins_compose_uses_overridable_registry_image(self):
         repository_root = Path(__file__).resolve().parents[4]
         compose_path = (
-            repository_root / "infra" / "config" / "compose" / "jenkins" / "docker-compose.yml"
+            repository_root / "modules/tsw_core/infra" / "config" / "compose" / "jenkins" / "docker-compose.yml"
         )
         compose_data = YAML(typ="safe").load(compose_path.read_text(encoding="utf-8"))
 
@@ -843,7 +843,7 @@ services:
     def test_committed_nexus_compose_publishes_registry_ports_on_manager_host(self):
         repository_root = Path(__file__).resolve().parents[4]
         compose_path = (
-            repository_root / "infra" / "config" / "compose" / "nexus" / "docker-compose.yml"
+            repository_root / "modules/tsw_core/infra" / "config" / "compose" / "nexus" / "docker-compose.yml"
         )
         compose_data = YAML(typ="safe").load(compose_path.read_text(encoding="utf-8"))
         nexus = compose_data["services"]["nexus"]
@@ -1038,7 +1038,7 @@ services:
 
     def test_active_config_does_not_reintroduce_rabbitmq(self):
         repository_root = Path(__file__).resolve().parents[4]
-        config_root = repository_root / "infra" / "config"
+        config_root = repository_root / "modules/tsw_core/infra" / "config"
         for config_path in config_root.rglob("*"):
             if config_path.is_file():
                 with self.subTest(config_path=config_path):
@@ -1047,7 +1047,7 @@ services:
     def test_committed_pulsar_compose_uses_standalone_with_non_conflicting_admin_port(self):
         repository_root = Path(__file__).resolve().parents[4]
         compose_path = (
-            repository_root / "infra" / "config" / "compose" / "pulsar" / "docker-compose.yml"
+            repository_root / "modules/tsw_core/infra" / "config" / "compose" / "pulsar" / "docker-compose.yml"
         )
         compose_data = YAML(typ="safe").load(compose_path.read_text(encoding="utf-8"))
         pulsar = compose_data["services"]["pulsar"]
@@ -1178,7 +1178,7 @@ services:
 
     def test_committed_swagger_compose_uses_official_images_and_remote_openapi_bind(self):
         repository_root = Path(__file__).resolve().parents[4]
-        compose_path = repository_root / "infra" / "config" / "compose" / "swagger" / "docker-compose.yml"
+        compose_path = repository_root / "modules/tsw_core/infra" / "config" / "compose" / "swagger" / "docker-compose.yml"
         compose_content = compose_path.read_text(encoding="utf-8")
         yaml = YAML(typ="safe")
         compose_data = yaml.load(compose_content)
@@ -1208,7 +1208,7 @@ services:
     def test_committed_sonarqube_compose_waits_for_database_tcp_readiness(self):
         repository_root = Path(__file__).resolve().parents[4]
         compose_path = (
-            repository_root / "infra" / "config" / "compose" / "sonarqube" / "docker-compose.yml"
+            repository_root / "modules/tsw_core/infra" / "config" / "compose" / "sonarqube" / "docker-compose.yml"
         )
         compose_data = YAML(typ="safe").load(compose_path.read_text(encoding="utf-8"))
         entrypoint = compose_data["services"]["sonarqube"]["entrypoint"]
@@ -1239,7 +1239,7 @@ services:
     def test_committed_sonarqube_compose_uses_available_community_image(self):
         repository_root = Path(__file__).resolve().parents[4]
         compose_path = (
-            repository_root / "infra" / "config" / "compose" / "sonarqube" / "docker-compose.yml"
+            repository_root / "modules/tsw_core/infra" / "config" / "compose" / "sonarqube" / "docker-compose.yml"
         )
         compose_data = YAML(typ="safe").load(compose_path.read_text(encoding="utf-8"))
 
@@ -1254,7 +1254,7 @@ services:
 
     def test_committed_service_access_compose_declares_required_services(self):
         repository_root = Path(__file__).resolve().parents[4]
-        compose_path = repository_root / "infra" / "config" / "compose" / "service-access" / "docker-compose.yml"
+        compose_path = repository_root / "modules/tsw_core/infra" / "config" / "compose" / "service-access" / "docker-compose.yml"
         compose_content = compose_path.read_text(encoding="utf-8")
         compose_data = YAML(typ="safe").load(compose_content)
         services = compose_data["services"]
@@ -1301,7 +1301,7 @@ services:
 
     def test_committed_infisical_compose_declares_required_services_and_secret_boundary(self):
         repository_root = Path(__file__).resolve().parents[4]
-        compose_path = repository_root / "infra" / "config" / "compose" / "infisical" / "docker-compose.yml"
+        compose_path = repository_root / "modules/tsw_core/infra" / "config" / "compose" / "infisical" / "docker-compose.yml"
         compose_content = compose_path.read_text(encoding="utf-8")
         compose_data = YAML(typ="safe").load(compose_content)
         services = compose_data["services"]
@@ -1358,7 +1358,7 @@ services:
 
     def test_committed_traefik_compose_defines_secure_swarm_ingress(self):
         repository_root = Path(__file__).resolve().parents[4]
-        compose_path = repository_root / "infra" / "config" / "compose" / "traefik" / "docker-compose.yml"
+        compose_path = repository_root / "modules/tsw_core/infra" / "config" / "compose" / "traefik" / "docker-compose.yml"
         compose_content = compose_path.read_text(encoding="utf-8")
         compose_data = YAML(typ="safe").load(compose_content)
         traefik = compose_data["services"]["traefik"]
@@ -1425,7 +1425,7 @@ services:
 
     def test_committed_traefik_dynamic_tls_config_references_secret_mounts_only(self):
         repository_root = Path(__file__).resolve().parents[4]
-        tls_path = repository_root / "infra" / "config" / "compose" / "traefik" / "dynamic" / "tls.yml"
+        tls_path = repository_root / "modules/tsw_core/infra" / "config" / "compose" / "traefik" / "dynamic" / "tls.yml"
         tls_content = tls_path.read_text(encoding="utf-8")
         tls_data = YAML(typ="safe").load(tls_content)
 
@@ -1511,7 +1511,7 @@ services:
 
     def test_committed_service_stack_route_labels_are_renderer_owned(self):
         repository_root = Path(__file__).resolve().parents[4]
-        compose_root = repository_root / "infra" / "config" / "compose"
+        compose_root = repository_root / "modules/tsw_core/infra" / "config" / "compose"
 
         for compose_path in sorted(compose_root.glob("*/docker-compose.yml")):
             if compose_path.parent.name == "traefik":
@@ -1528,13 +1528,13 @@ services:
         repository_root = Path(__file__).resolve().parents[4]
         compose_data = YAML(typ="safe").load(
             (
-                repository_root / "infra" / "config" / "compose" / "service-access" / "docker-compose.yml"
+                repository_root / "modules/tsw_core/infra" / "config" / "compose" / "service-access" / "docker-compose.yml"
             ).read_text(encoding="utf-8")
         )
         packaged_services = {
             "service-access-dashboard": (
                 repository_root
-                / "infra"
+                / "modules/tsw_core/infra"
                 / "config"
                 / "compose"
                 / "service-access"
@@ -1545,7 +1545,7 @@ services:
             ),
             "service-access-nginx": (
                 repository_root
-                / "infra"
+                / "modules/tsw_core/infra"
                 / "config"
                 / "compose"
                 / "service-access"
@@ -1595,7 +1595,7 @@ services:
 
         jenkins_dockerfile = (
             repository_root
-            / "infra"
+            / "modules/tsw_core/infra"
             / "config"
             / "compose"
             / "jenkins"
@@ -1969,7 +1969,7 @@ def _committed_service_access_dashboard_html() -> str:
     repository_root = Path(__file__).resolve().parents[4]
     return (
         repository_root
-        / "infra"
+        / "modules/tsw_core/infra"
         / "config"
         / "compose"
         / "service-access"

@@ -1,0 +1,30 @@
+{
+  "name": "tsw_core",
+  "project_dependencies": [],
+  "source_root": "modules/tsw_core/src",
+  "python_packages": [
+    "tiny_swarm_world",
+    "tsw_core"
+  ],
+  "infra_root": "modules/tsw_core/infra",
+  "config_root": "modules/tsw_core/infra/config",
+  "shared_bootstrap": [
+    "modules/tsw_core/bootstrap/linux/prepare_linux.sh",
+    "modules/tsw_core/bootstrap/linux/ubuntu_python_prerequisites.sh",
+    "modules/tsw_core/bootstrap/linux/preflight.py",
+    "modules/tsw_core/bootstrap/linux/install_debugger.py",
+    "modules/tsw_core/bootstrap/linux/install.sh",
+    "modules/tsw_core/bootstrap/linux/run.sh"
+  ],
+  "runtime_metadata": [
+    "pyproject.toml",
+    "setup.py",
+    "requirements.txt",
+    "requirements.lock",
+    "requirements.build.lock"
+  ],
+  "module_root": "modules/tsw_core",
+  "tool_roots": [
+    "modules/tsw_core/tools/linux"
+  ]
+}

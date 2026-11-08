@@ -3,7 +3,7 @@
 [Product Handbook](../../../README.adoc) / [Part 5: Development](../README.adoc)
 
 Choose the directory by purpose, then by target system. Installation preparation
-belongs under `bootstrap/windows` for Windows/WSL and `bootstrap/linux` for native
+belongs under `modules/tsw_windows_wsl/bootstrap/windows` for Windows/WSL and `modules/tsw_core/bootstrap/linux` for native
 Linux and shared Linux/WSL prerequisites. Quality, audit, packaging, qualification
 and developer tools remain under `tools`. Product Python still executes on Linux
 or inside WSL; WSL-specific preparation belongs to the Windows installation path.
@@ -30,39 +30,39 @@ tests/
 
 ## Entry points and handoff
 
-- Native Linux: `./bootstrap/linux/prepare_linux.sh` invokes
-  `bootstrap/linux/ubuntu_python_prerequisites.sh`, then the Python preparation service.
-- Windows/WSL: `./bootstrap/windows/prepare_windows.ps1` loads PowerShell modules from
-  `bootstrap/windows/preparation`. These invoke `bootstrap/windows/preparation/linux-*.sh`
+- Native Linux: `./modules/tsw_core/bootstrap/linux/prepare_linux.sh` invokes
+  `modules/tsw_core/bootstrap/linux/ubuntu_python_prerequisites.sh`, then the Python preparation service.
+- Windows/WSL: `./modules/tsw_windows_wsl/bootstrap/windows/prepare_windows.ps1` loads PowerShell modules from
+  `modules/tsw_windows_wsl/bootstrap/windows/preparation`. These invoke `modules/tsw_windows_wsl/bootstrap/windows/preparation/linux-*.sh`
   inside the selected running WSL distribution. The installation handoff retains
   its selected Linux user, source identity, consent and readiness checks.
-- Quality: `python3 tools/linux/quality_gate.py quality` from the repository root.
-- Diagnostics: `python3 bootstrap/linux/install_debugger.py` on Linux/WSL.
+- Quality: `python3 modules/tsw_core/tools/linux/quality_gate.py quality` from the repository root.
+- Diagnostics: `python3 modules/tsw_core/bootstrap/linux/install_debugger.py` on Linux/WSL.
 - Live acceptance: `tests/e2e/classic/run_classic_acceptance.py` orchestrates the
   authorized Classic acceptance chain. It requires explicit live approval and
   can change the test system; ordinary test discovery does not execute it.
-- Packaging: `tools/windows/build_windows_preparation_manifest.py` and
-  `tools/windows/build_wsl_resource_projection.py` support Windows/WSL preparation.
+- Packaging: `modules/tsw_windows_wsl/tools/windows/build_windows_preparation_manifest.py` and
+  `modules/tsw_windows_wsl/tools/windows/build_wsl_resource_projection.py` support Windows/WSL preparation.
   Run them with Python on Linux/WSL; their directory does not authorize execution
   through Windows Python.
-- The optional DNS resolver under `bootstrap/windows/optional` belongs to the
+- The optional DNS resolver under `modules/tsw_windows_wsl/bootstrap/windows/optional` belongs to the
   Windows bridge; it does not execute product Python.
 
 ## Path migration
 
 | Previous location | Current location |
 | --- | --- |
-| Quality, audit and developer `tools/*.py` | `tools/linux/*.py` |
-| `tools/preflight.py`, `tools/install_debugger.py` | `bootstrap/linux/` |
-| Windows preparation and bridge under `tools/windows` | `bootstrap/windows/` |
-| `tools/build_windows_preparation_manifest.py` | `tools/windows/build_windows_preparation_manifest.py` |
-| `tools/build_wsl_resource_projection.py` | `tools/windows/build_wsl_resource_projection.py` |
-| `tools/ubuntu_python_prerequisites.sh` | `bootstrap/linux/ubuntu_python_prerequisites.sh` |
+| Quality, audit and developer `tools/*.py` | `modules/tsw_core/tools/linux/*.py` |
+| `tools/preflight.py`, `tools/install_debugger.py` | `modules/tsw_core/bootstrap/linux/` |
+| Windows preparation and bridge under `modules/tsw_windows_wsl/tools/windows` | `modules/tsw_windows_wsl/bootstrap/windows/` |
+| `tools/build_windows_preparation_manifest.py` | `modules/tsw_windows_wsl/tools/windows/build_windows_preparation_manifest.py` |
+| `tools/build_wsl_resource_projection.py` | `modules/tsw_windows_wsl/tools/windows/build_wsl_resource_projection.py` |
+| `tools/ubuntu_python_prerequisites.sh` | `modules/tsw_core/bootstrap/linux/ubuntu_python_prerequisites.sh` |
 | `tools/live/run_classic_acceptance.py` | `tests/e2e/classic/run_classic_acceptance.py` |
-| `tools/live/secure_runtime_paths.py` | `tools/linux/live/secure_runtime_paths.py` |
-| `tools/live/*.ps1` | `tools/windows/live/*.ps1` |
-| `tools/qualification/*.py` | `tools/linux/qualification/*.py` |
-| WSL preparation helpers | `bootstrap/windows/preparation/linux-*.sh` |
+| `tools/live/secure_runtime_paths.py` | `modules/tsw_core/tools/linux/live/secure_runtime_paths.py` |
+| `tools/live/*.ps1` | `modules/tsw_windows_wsl/tools/windows/live/*.ps1` |
+| `tools/qualification/*.py` | `modules/tsw_core/tools/linux/qualification/*.py` |
+| WSL preparation helpers | `modules/tsw_windows_wsl/bootstrap/windows/preparation/linux-*.sh` |
 
 Use the current paths for commands and Python imports (`tools.linux.*` for shared
 tools and `tools.windows.*` for Windows/WSL-specific packaging). Old
@@ -91,6 +91,6 @@ explicit verification request. Test-host credentials alone do not authorize a
 run. When verification is authorized, run the focused tests first:
 
 ```bash
-PYTHONPATH=src python3 -m unittest tests.tools.test_platform_layout tests.test_ci_workflow_contract tests.test_install_debugger tests.test_security_gate tests.test_ubuntu_prerequisites tests.test_prepare_windows tests.test_windows_source_proof tests.test_wsl_resource_projection tests.test_install_handoff tests.test_install_script tests.tools.test_secure_runtime_paths tests.tools.test_classic_live_runner tests.tools.test_native_runtime_inventory tests.tools.test_native_lxd_snap_provenance tests.infrastructure.adapters.clients.test_lxc_profile_listener_fixture
-python3 tools/linux/quality_gate.py quality
+PYTHONPATH=modules/tsw_core/src python3 -m unittest tests.tools.test_platform_layout tests.test_ci_workflow_contract tests.test_install_debugger tests.test_security_gate tests.test_ubuntu_prerequisites tests.test_prepare_windows tests.test_windows_source_proof tests.test_wsl_resource_projection tests.test_install_handoff tests.test_install_script tests.tools.test_secure_runtime_paths tests.tools.test_classic_live_runner tests.tools.test_native_runtime_inventory tests.tools.test_native_lxd_snap_provenance tests.infrastructure.adapters.clients.test_lxc_profile_listener_fixture
+python3 modules/tsw_core/tools/linux/quality_gate.py quality
 ```

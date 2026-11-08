@@ -1,71 +1,69 @@
-# Shared core module
+# Physical modules
 
-`tsw_core` isolates ownership in place. The existing `tiny-swarm-world` 0.2.0
-distribution, `tiny_swarm_world` Python namespace and CLI entry point remain
-unchanged. `src/tsw_core/module.json` declares the core source, configuration,
-shared Linux bootstrap and runtime metadata roots. `tsw_core.discover_root` and
-`resource_root` govern default infrastructure discovery. Both packaging
-entry points explicitly include only the core namespaces and package the
-descriptor. This keeps edition packages outside the core build boundary.
+The repository physically stores implementations and assets under three modules:
 
-The core owns all existing domain, application and infrastructure layers,
-Linux-side preparation and lifecycle workflows, and the single `infra/config`
-service catalog, compose tree and runtime helpers. Existing paths stay stable;
-no compatibility symlinks bypass prerequisite or source-identity checks.
-
-The three ownership descriptors live under `src/tsw_core`,
-`src/tsw_native_linux` and `src/tsw_windows_wsl`. Edition directories contain
-ownership metadata, not separately released Python distributions. Edition assets
-remain isolated in place, preserving public paths and source-identity guards.
-Only the core namespaces enter the existing Python distribution.
-
-`tsw_native_linux` owns the public `./install.sh` and `./tsw` entry points.
-They forward arguments, environment, stdin and process status to the single
-shared implementations at `bootstrap/linux/install.sh` and
-`bootstrap/linux/run.sh`. Native-host orchestration and Linux prerequisites
-remain core behavior, as they are also used inside WSL.
-
-`tsw_windows_wsl` owns `bootstrap/windows`, `tools/windows` and
-`host-bindings.json`: bootstrap, distribution selection, bridge, Linux guest
-probes and source proof. Its existing `prepare_windows.ps1` entry point retains
-flags and status handling. The selected distribution/account handoff invokes
-`bootstrap/linux/prepare_linux.sh` followed by `bootstrap/linux/install.sh`
-directly, without the native edition entry points. The read-only handoff proof
-requires and hashes the core installer at its new path. Its executable source
-surface excludes native entry points and their ownership descriptor; the core
-and WSL source, configuration, tools and bridge assets retain integrity checks.
-Windows Git admission and the offline proof builder exclude only the native
-entry points and ownership directory from their clean-source check; core or WSL
-edits still block admission. No edition imports or executes the other; the core
-imports neither.
-The repository-level `host-bindings.json` supplies Windows-owned bridge asset
-paths as compatibility composition outside core ownership. An edition entry
-point can supply `TSW_HOST_BINDINGS_PATH`. The existing script/config path
-overrides remain supported. Core adapters resolve the supplied binding only
-when Windows integration is requested; native core discovery and CLI loading
-need neither binding nor edition assets. WSL preparation still requires and
-hashes its host assets, including the binding, before mutation. Missing host
-assets fail closed. Core code never assumes a Windows bootstrap directory.
-
-The wheel retains the existing Python-runtime packaging scope and adds the
-core descriptor. Deployment still supplies the existing shared bootstrap and
-configuration trees; they are not newly embedded into the Python wheel.
-The module split introduces no release pipeline or product version change.
-
-Focused verification covers core-only imports/CLI loading, resource discovery,
-Python layer and module dependencies, external binding/source fingerprints,
-and offline wheel contents. #503 excludes full suites and live installation,
-update, recovery and infrastructure mutation from this work.
-
-The focused separation checks are:
-
-```sh
-PYTHONPATH=src python3 -m unittest tests.architecture.test_core_module tests.architecture.test_edition_modules tests.test_install_handoff
+```text
+modules/
+  tsw_core/
+    src/tiny_swarm_world/       # domain, application and infrastructure
+    src/tsw_core/               # core discovery and packaged descriptor
+    infra/config/              # one service catalog and runtime asset tree
+    bootstrap/linux/           # shared Linux/WSL preparation, install and CLI
+    tools/linux/               # common qualification and developer tooling
+  tsw_native_linux/
+    install.sh                 # native platform-to-core handoff
+    tsw
+    module.json
+  tsw_windows_wsl/
+    bootstrap/windows/         # bootstrap, distro selection, bridge and probes
+    tools/windows/
+    module.json
 ```
 
-Run on the repository-mandated WSL test host. The edition test invokes a
-PowerShell parser and public Windows entry point with a stub preparation module,
-then exercises selected distro/user arguments and failed WSL results with a stub
-process port. It never launches a distribution. Native fixtures contain only the
-public launchers, core shell scripts and a stub Python executable. Negative
-fixtures detect forbidden dependency edges/imports and missing shared assets.
+The Python namespace `tiny_swarm_world`, CLI `tiny-swarm-world`, distribution
+name and version 0.2.0 remain unchanged. Root packaging metadata locates actual
+Python implementations under `modules/tsw_core/src`; root import shims and
+editions are excluded from the wheel. No symlinks or duplicate implementations
+supply compatibility.
+
+The deployment root remains the repository/release root. It owns packaging and
+lock-file contracts, `.tiny-swarm-world` state, credentials and environment
+anchors. `tsw_core.discover_root()` returns that root; its descriptor resolves
+physical source/configuration paths beneath it without probing either edition.
+Explicit infrastructure overrides retain their original semantics. Historical
+release checkouts retain their old source/configuration topology; lifecycle
+adapters distinguish those from incomplete physical module deployments. A
+missing new core cannot be hidden by legacy directories.
+
+Public `./install.sh`, `./tsw`, documented `bootstrap/linux` commands and public
+Windows scripts are thin compatibility forwarders. Native implementation lives
+in its module and executes core. Windows runs its physical owner, whose bridge
+registration copies the actual bridge implementation and adjacent assets. Its
+selected distribution/account handoff invokes physical core preparation then
+installation directly. Flags, quoting, stdin, environment and status propagate
+through the forwarding entry points. `PYTHONPATH=modules/tsw_core/src` remains an import
+compatibility surface; both that path and `PYTHONPATH=modules/tsw_core/src`
+load the same physical implementation. Core execution does not need the shims.
+
+The root `host-bindings.json` is compatibility composition data pointing at
+Windows-owned physical assets. Core consumes injected host bindings when WSL
+integration is requested; it never constructs an edition root. Source proofs
+and fingerprints follow physical implementations/configuration and consumed
+compatibility entry points. Native edition assets are outside WSL execution
+admission; missing, modified or symlinked core/WSL assets remain blockers.
+
+Focused verification on the mandated Windows-host WSL target:
+
+```sh
+PYTHONPATH=modules/tsw_core/src python3 -m unittest tests.architecture.test_core_module tests.architecture.test_edition_modules tests.test_install_handoff tests.infrastructure.adapters.lifecycle.test_product_layout
+```
+
+Fixtures assert physical ownership and removal of old implementation trees,
+core-only deployment without shims/editions, compatibility/direct imports,
+public and physical native argv/environment/stdin/status, PowerShell parsing,
+public Windows wrappers and selected WSL handoff, package contents and denied
+source-integrity paths. These checks do not install or change infrastructure.
+
+The earlier MOD-01/MOD-02–04 delivery isolated ownership in place. That logical
+isolation did not satisfy the user's physical restructuring requirement; the
+physical correction is tracked separately in the Epic evidence.

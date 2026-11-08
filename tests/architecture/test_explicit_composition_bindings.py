@@ -7,7 +7,7 @@ from tiny_swarm_world.infrastructure import composition
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
-SOURCE_ROOT = REPOSITORY_ROOT / "src" / "tiny_swarm_world"
+SOURCE_ROOT = REPOSITORY_ROOT / "modules/tsw_core/src" / "tiny_swarm_world"
 FORBIDDEN_GLOBAL_DI_MARKERS = (
     "infra_core_container",
     "infra_core_di_",
@@ -26,7 +26,7 @@ class TestExplicitCompositionBindings(unittest.TestCase):
     def test_public_facade_contains_no_probe_or_environment_implementation(self) -> None:
         source_path = (
             Path(__file__).parents[2]
-            / "src"
+            / "modules/tsw_core/src"
             / "tiny_swarm_world"
             / "infrastructure"
             / "composition.py"

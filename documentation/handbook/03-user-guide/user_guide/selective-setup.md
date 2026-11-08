@@ -28,19 +28,19 @@ Inspect first; the following preview commands perform no runtime composition,
 secret generation or state writes:
 
 ```bash
-PYTHONPATH=src python3 -m tiny_swarm_world setup run --minimal --preview
-PYTHONPATH=src python3 -m tiny_swarm_world setup run --services swagger --preview
-PYTHONPATH=src python3 -m tiny_swarm_world setup run --services jenkins,sonarqube --preview
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world setup run --minimal --preview
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world setup run --services swagger --preview
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world setup run --services jenkins,sonarqube --preview
 ```
 
 Apply uses the existing explicit live-consent boundary. These are operator commands,
 not commands executed as development verification:
 
 ```bash
-PYTHONPATH=src python3 -m tiny_swarm_world setup run --minimal --live --approve-live
-PYTHONPATH=src python3 -m tiny_swarm_world services add --services swagger --preview
-PYTHONPATH=src python3 -m tiny_swarm_world services add --services swagger --live --approve-live
-PYTHONPATH=src python3 -m tiny_swarm_world deployment verify
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world setup run --minimal --live --approve-live
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world services add --services swagger --preview
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world services add --services swagger --live --approve-live
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world deployment verify
 ```
 
 `--services` takes precedence over `--selection-config`; an overridden file is not

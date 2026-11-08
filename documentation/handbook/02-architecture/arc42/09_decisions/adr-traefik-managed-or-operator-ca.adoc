@@ -95,7 +95,7 @@ required for local browser/runtime trust, but their corresponding private keys
 must never leave the protected secret/local-state boundary.
 
 The canonical managed state belongs below ignored Tiny Swarm World local state
-rather than below committed `infra/config`. Host-specific absolute paths must
+rather than below committed `modules/tsw_core/infra/config`. Host-specific absolute paths must
 not be persisted in committed evidence.
 
 === Traefik Boundary
@@ -174,7 +174,7 @@ or abandoning the E2E stabilization path.
 * Supersedes: `documentation/handbook/02-architecture/arc42/09_decisions/adr-traefik-https-ingress-existing-ca.adoc`
 * Affects: `documentation/handbook/02-architecture/arc42/08_configuration/operator-configuration-contract.md`
 * Affects: `documentation/handbook/02-architecture/arc42/08_configuration/config-contract-inventory.md`
-* Affects: `src/tiny_swarm_world/installer.py`
-* Affects: `src/tiny_swarm_world/infrastructure/composition_configuration.py`
-* Affects: `infra/config/compose/traefik/**`
+* Affects: `modules/tsw_core/src/tiny_swarm_world/installer.py`
+* Affects: `modules/tsw_core/src/tiny_swarm_world/infrastructure/composition_configuration.py`
+* Affects: `modules/tsw_core/infra/config/compose/traefik/**`
 * Affects: `tests/e2e/classic/test_post_install_browser_live.py`

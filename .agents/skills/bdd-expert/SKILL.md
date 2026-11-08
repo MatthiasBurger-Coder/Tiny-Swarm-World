@@ -49,4 +49,4 @@ inventing product behavior or live infrastructure evidence.
 
 - Record scenarios in the owning workflow or documentation.
 - Run `git diff --check` for scenario-only changes.
-- Use `python3 tools/linux/quality_gate.py test` when scenarios become tests.
+- Use `python3 modules/tsw_core/tools/linux/quality_gate.py test` when scenarios become tests.

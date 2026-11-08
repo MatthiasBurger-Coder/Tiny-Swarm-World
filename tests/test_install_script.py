@@ -25,7 +25,7 @@ class TestInstallScript(unittest.TestCase):
                 ),
             ],
             cwd=REPOSITORY_ROOT,
-            env={**os.environ, "PYTHONPATH": "src"},
+            env={**os.environ, "PYTHONPATH": "modules/tsw_core/src"},
             text=True,
             capture_output=True,
             check=False,
@@ -43,12 +43,12 @@ class TestInstallScript(unittest.TestCase):
                 fixture.recorded_commands(),
                 [
                     (
-                        "PYTHONPATH=src python3 -m tiny_swarm_world platform reset "
+                        "PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world platform reset "
                         "--live --confirm RESET_TINY_SWARM_PLATFORM "
                         "--service-profile service-access"
                     ),
                     (
-                        "PYTHONPATH=src python3 -m tiny_swarm_world setup run "
+                        "PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world setup run "
                         "--live --service-profile service-access"
                     ),
                 ],
@@ -83,7 +83,7 @@ class TestInstallScript(unittest.TestCase):
                 fixture.recorded_commands(),
                 [
                     (
-                        "PYTHONPATH=src python3 -m tiny_swarm_world platform reset "
+                        "PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world platform reset "
                         "--live --confirm RESET_TINY_SWARM_PLATFORM "
                         "--service-profile service-access"
                     ),
@@ -122,12 +122,12 @@ class TestInstallScript(unittest.TestCase):
                 fixture.recorded_commands(),
                 [
                     (
-                        "PYTHONPATH=src python3 -m tiny_swarm_world platform reset "
+                        "PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world platform reset "
                         "--live --confirm RESET_TINY_SWARM_PLATFORM "
                         "--service-profile default"
                     ),
                     (
-                        "PYTHONPATH=src python3 -m tiny_swarm_world setup run "
+                        "PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world setup run "
                         "--live --service-profile default"
                     ),
                 ],
@@ -144,13 +144,13 @@ class TestInstallScript(unittest.TestCase):
                 fixture.recorded_commands(),
                 [
                     (
-                        "PYTHONPATH=src python3 -m tiny_swarm_world platform reset "
+                        "PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world platform reset "
                         "--live --confirm RESET_TINY_SWARM_PLATFORM "
                         "--service-profile service-access "
                         "--allow-wsl-windows-filesystem"
                     ),
                     (
-                        "PYTHONPATH=src python3 -m tiny_swarm_world setup run "
+                        "PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world setup run "
                         "--live --service-profile service-access "
                         "--allow-wsl-windows-filesystem"
                     ),
@@ -223,12 +223,12 @@ class TestInstallScript(unittest.TestCase):
                 fixture.recorded_commands(),
                 [
                     (
-                        "PYTHONPATH=src python3 -m tiny_swarm_world platform reset "
+                        "PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world platform reset "
                         "--live --approve-live --confirm RESET_TINY_SWARM_PLATFORM "
                         "--service-profile service-access"
                     ),
                     (
-                        "PYTHONPATH=src python3 -m tiny_swarm_world setup run "
+                        "PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world setup run "
                         "--live --approve-live --service-profile service-access"
                     ),
                 ],
@@ -250,12 +250,12 @@ class TestInstallScript(unittest.TestCase):
                 fixture.recorded_commands(),
                 [
                     (
-                        "PYTHONPATH=src python3 -m tiny_swarm_world platform reset "
+                        "PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world platform reset "
                         "--live --approve-live --confirm RESET_TINY_SWARM_PLATFORM "
                         "--service-profile service-access"
                     ),
                     (
-                        "PYTHONPATH=src python3 -m tiny_swarm_world setup run "
+                        "PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world setup run "
                         "--live --approve-live --service-profile service-access"
                     ),
                 ],
@@ -356,7 +356,7 @@ class TestInstallScript(unittest.TestCase):
 
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertFalse((fixture.root / ".tiny-swarm-world" / "install-venv").exists())
-            self.assertIn("PYTHONPATH=src python3 -m tiny_swarm_world", fixture.recorded_commands()[0])
+            self.assertIn("PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world", fixture.recorded_commands()[0])
             evidence_dir = fixture.single_evidence_dir("wsl2")
             context = (evidence_dir / "context.txt").read_text()
             self.assertIn("host_runtime_type=wsl2", context)
@@ -455,9 +455,9 @@ class _InstallScriptFixture:
                 else self.secret_environment
             ),
             "PATH": f"{self.fake_bin}:{os.environ['PATH']}",
-            "PYTHONPATH": str(self.root / "src"),
+            "PYTHONPATH": str(self.root / "modules/tsw_core/src"),
             "TSW_REPOSITORY_ROOT": str(self.root),
-            "TSW_INFRA_ROOT": str(self.root / "infra"),
+            "TSW_INFRA_ROOT": str(self.root / "modules/tsw_core/infra"),
             "TSW_FAKE_SCRIPT_COMMANDS": str(self.commands_file),
             "TSW_FAKE_RESET_EXIT": str(self.reset_exit),
             "TSW_FAKE_SETUP_EXIT": str(self.setup_exit),
@@ -524,27 +524,24 @@ class _InstallScriptFixture:
 
     def _prepare(self) -> None:
         shutil.copy2(INSTALL_SCRIPT, self.root / "install.sh")
-        core_bootstrap = self.root / "bootstrap/linux"
+        native_root = self.root / "modules/tsw_native_linux"
+        native_root.mkdir(parents=True)
+        shutil.copy2(REPOSITORY_ROOT / "modules/tsw_native_linux/install.sh", native_root / "install.sh")
+        core_bootstrap = self.root / "modules/tsw_core/bootstrap/linux"
         core_bootstrap.mkdir(parents=True)
-        shutil.copy2(REPOSITORY_ROOT / "bootstrap/linux/install.sh", core_bootstrap / "install.sh")
+        shutil.copy2(REPOSITORY_ROOT / "modules/tsw_core/bootstrap/linux/install.sh", core_bootstrap / "install.sh")
         # Exercise the actual parser with both core-owned runtime namespaces.
         # Lifecycle commands still terminate in the fake python/script runners.
         for package in ("tiny_swarm_world", "tsw_core"):
             shutil.copytree(
-                REPOSITORY_ROOT / "src" / package, self.root / "src" / package,
+                REPOSITORY_ROOT / "modules/tsw_core/src" / package, self.root / "modules/tsw_core/src" / package,
                 ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "*.pyo"),
             )
         shutil.copytree(
-            REPOSITORY_ROOT / "infra" / "config", self.root / "infra" / "config",
+            REPOSITORY_ROOT / "modules/tsw_core/infra" / "config", self.root / "modules/tsw_core/infra" / "config",
             ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "*.pyo"),
         )
         self.fake_bin.mkdir()
-        tools_live_target = self.root / "tools" / "linux" / "live"
-        tools_live_target.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(
-            REPOSITORY_ROOT / "tools" / "linux" / "live" / "secure_runtime_paths.py",
-            tools_live_target / "secure_runtime_paths.py",
-        )
         _write_executable(self.fake_bin / "python3", _fake_python3())
         _write_executable(self.fake_bin / "grep", _fake_grep())
         _write_executable(self.fake_bin / "script", _fake_script())

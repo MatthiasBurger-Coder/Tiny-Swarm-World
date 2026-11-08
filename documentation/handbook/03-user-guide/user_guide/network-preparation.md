@@ -8,9 +8,9 @@ Run preparation from an ordinary account in the supported Ubuntu Linux/WSL
 checkout. Keep package, Incus and network consent separate:
 
 ```bash
-./bootstrap/linux/prepare_linux.sh --dry-run
-./bootstrap/linux/prepare_linux.sh
-./bootstrap/linux/prepare_linux.sh --preflight
+./modules/tsw_core/bootstrap/linux/prepare_linux.sh --dry-run
+./modules/tsw_core/bootstrap/linux/prepare_linux.sh
+./modules/tsw_core/bootstrap/linux/prepare_linux.sh --preflight
 ```
 
 Read-only modes never create host/configuration/state/evidence files or start a
@@ -21,7 +21,7 @@ Preparation does not deploy nodes or services, or authorize an installation rese
 Authenticate privileged stages in the same ordinary-user Ubuntu terminal:
 
 ```bash
-sudo -v && ./bootstrap/linux/prepare_linux.sh --service-profile service-access
+sudo -v && ./modules/tsw_core/bootstrap/linux/prepare_linux.sh --service-profile service-access
 ```
 
 Preparation retains this login session for its existing noninteractive sudo calls

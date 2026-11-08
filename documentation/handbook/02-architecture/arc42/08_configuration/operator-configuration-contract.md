@@ -47,7 +47,7 @@ WSL-native path documented in
 | Value group | Owner | Storage | Lifecycle |
 |---|---|---|---|
 | Operator runtime secrets | Operator | `.tiny-swarm-world/local/live-installation.env` or process environment; WSL2 live runs use the WSL-native `TSW_INSTALL_ENV_FILE` path | Created before install, reused across reruns, edited or rotated by the operator. |
-| Catalog defaults | CRED-01 catalog | Repository Python module | Resolved deterministically for the normal internal-test installer path. The opt-in `tools/linux/create_internal_test_env_file.py` helper may write them once to a protected local file for standalone preflight on an isolated test system. |
+| Catalog defaults | CRED-01 catalog | Repository Python module | Resolved deterministically for the normal internal-test installer path. The opt-in `modules/tsw_core/tools/linux/create_internal_test_env_file.py` helper may write them once to a protected local file for standalone preflight on an isolated test system. |
 | Explicit bootstrap override | Operator | Protected file selected by `TSW_BOOTSTRAP_SECRET_ENV_FILE` or its `TSW_BOOTSTRAP_STATE_DIR` alias | Optional input only; the installer never creates it. |
 | Infisical-managed values | Infisical sync service | Infisical project/environment | Used only after self-hosted readiness; existing values are retained when compatible, otherwise the resolver fails closed on conflict. |
 | Credential source metadata | Credential resolver | Protected run context and sanitized sync evidence | Records only `default`, `operator`, or `vault` by key; never stores raw values. |
@@ -55,7 +55,7 @@ WSL-native path documented in
 | Canonical TLS state | Python TLS resolver | `TSW_LOCAL_TLS_STATE_ROOT`, otherwise the XDG state directory below `tiny-swarm-world/tls/traefik` | Complete external material takes precedence. Otherwise managed CA and leaf material are created once and reused while valid; private keys require owner-only permissions. |
 
 The Python installer derives required local bootstrap values from
-`infra/config/secrets/infisical-secrets.yaml`. Installer code must not keep a
+`modules/tsw_core/infra/config/secrets/infisical-secrets.yaml`. Installer code must not keep a
 separate required-secret list. Required `internal_test_catalog` entries resolve
 from the CRED-01 catalog; `external_user_secret` entries identify resources
 that the operator must provide and are never invented by the installer.

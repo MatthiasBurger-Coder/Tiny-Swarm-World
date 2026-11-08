@@ -17,10 +17,10 @@ boundary coupling.
 
 The audit covers:
 
-- `src/tiny_swarm_world/__main__.py`
-- `src/tiny_swarm_world/installer.py`
-- `src/tiny_swarm_world/simple_installer.py`
-- `src/tiny_swarm_world/infrastructure/composition.py`
+- `modules/tsw_core/src/tiny_swarm_world/__main__.py`
+- `modules/tsw_core/src/tiny_swarm_world/installer.py`
+- `modules/tsw_core/src/tiny_swarm_world/simple_installer.py`
+- `modules/tsw_core/src/tiny_swarm_world/infrastructure/composition.py`
 - root-level modules that import both application/domain and concrete infrastructure
 - the focused `infrastructure/composition_*.py` modules that implement the facade
 

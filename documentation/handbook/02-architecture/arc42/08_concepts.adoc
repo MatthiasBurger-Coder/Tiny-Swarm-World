@@ -132,7 +132,7 @@ Tiny Swarm World separates intended state from runtime facts.
 Desired inventory is the operator-approved target view. It is represented by
 `DesiredInventory` and VM desired-state entries and may be loaded from
 committed product configuration. The committed default
-`infra/config/inventory/desired_inventory.yaml` is host-neutral and rejects
+`modules/tsw_core/infra/config/inventory/desired_inventory.yaml` is host-neutral and rejects
 unknown fields so IP addresses, gateways, user names, tokens, passwords, and
 secrets cannot be silently ignored.
 
@@ -163,7 +163,7 @@ runtime evidence.
 === Installation And Port Registries
 
 Installation order is declared separately from executable setup phases.
-`infra/config/installation-plan.yaml` mirrors the intended phase dependency
+`modules/tsw_core/infra/config/installation-plan.yaml` mirrors the intended phase dependency
 graph. Runtime wiring currently uses the typed `default_installation_plan()`;
 the YAML file is a committed contract and documentation surface until a later
 adapter loads it. The Python domain model rejects cycles, unknown
@@ -171,13 +171,13 @@ dependencies, missing required phase IDs, missing required services, duplicate
 setup workflow phases, and missing required workflow phases before setup can
 report success.
 
-`infra/config/ports.yaml` is the central port registry. It records port ranges,
+`modules/tsw_core/infra/config/ports.yaml` is the central port registry. It records port ranges,
 service port mappings, exposure class, route hosts, and whether a port is part
 of preflight. Traefik owns public ingress on `80` and `443`. Other published
 or desired service ports are direct, diagnostic, compatibility, or deferred
 allocations and must not be silently interpreted as public ingress.
 
-`infra/config/services.yml` statically links selected stacks to installation
+`modules/tsw_core/infra/config/services.yml` statically links selected stacks to installation
 phases, service-stack contracts, port-registry IDs, readiness targets, and
 explicit compatibility published ports. Runtime deployment selection still
 uses `ServiceStackContract` domain contracts. Current Apache Pulsar remains
@@ -210,7 +210,7 @@ failures represented by stable typed states.
 
 === Health And Validation Evidence
 
-`infra/config/health-checks.yaml` and `infra/config/validation-plan.yaml`
+`modules/tsw_core/infra/config/health-checks.yaml` and `modules/tsw_core/infra/config/validation-plan.yaml`
 declare desired observed-state evidence. They are not live probes and do not
 claim health. They are aligned by tests; default deployment verification does
 not yet load them as YAML. The application validation plan evaluates actual

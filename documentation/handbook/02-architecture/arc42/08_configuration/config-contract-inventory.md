@@ -25,30 +25,30 @@ inventory continues to describe operator configuration and source contracts.
 
 The current configuration surface is spread across these repository areas:
 
-- `src/tiny_swarm_world/installer.py`: installer-local override path, required
+- `modules/tsw_core/src/tiny_swarm_world/installer.py`: installer-local override path, required
   secret bootstrap derived from the secret manifest, default Traefik secret
   names, and setup invocation flags.
-- `src/tiny_swarm_world/infrastructure/composition_configuration.py`:
+- `modules/tsw_core/src/tiny_swarm_world/infrastructure/composition_configuration.py`:
   operator configuration keys, defaults, secret lookup, and typed validation
   helpers used by composition wiring. The public facade remains
   `infrastructure/composition.py`.
-- `src/tiny_swarm_world/domain/preflight/setup_manifest.py`: required setup
+- `modules/tsw_core/src/tiny_swarm_world/domain/preflight/setup_manifest.py`: required setup
   secret names by service profile.
-- `src/tiny_swarm_world/application/services/deployment/secret_management.py`:
+- `modules/tsw_core/src/tiny_swarm_world/application/services/deployment/secret_management.py`:
   typed secret-manifest consumption, redaction, catalog-backed synchronization,
   and tracked-file secret discovery. YAML loading and schema conversion belong
   to `infrastructure/adapters/repositories/secret_manifest_yaml_repository.py`.
-- `src/tiny_swarm_world/infrastructure/adapters/repositories/installer_configuration_repository.py`:
+- `modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/repositories/installer_configuration_repository.py`:
   selected installer/composition input validation and effective environment
   snapshot; private file staging remains in `installer.py`.
-- `src/tiny_swarm_world/infrastructure/project_paths.py`: immutable
+- `modules/tsw_core/src/tiny_swarm_world/infrastructure/project_paths.py`: immutable
   `ProjectPaths` construction plus repository and infra root overrides.
-- `src/tiny_swarm_world/infrastructure/adapters/clients/infisical_cli_client.py`:
+- `modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/infisical_cli_client.py`:
   Infisical URL, token, login email, and bootstrap password reads.
-- `infra/config/compose/**/docker-compose.yml`: compose-time environment
+- `modules/tsw_core/infra/config/compose/**/docker-compose.yml`: compose-time environment
   placeholders for service images, credentials, secret names, stack paths, and
   service-specific defaults.
-- `infra/config/compose/**`: image-context scripts and service configuration that
+- `modules/tsw_core/infra/config/compose/**`: image-context scripts and service configuration that
   consume environment values.
 - `documentation/deployment/**`, `documentation/handbook/03-user-guide/user_guide/**`, and
   `README.md`: partial override documentation.
@@ -61,7 +61,7 @@ The repository already validates several configuration-related contracts:
 
 | Area | Current validation | Scope / limit |
 |---|---|---|
-| Node-provider config | `NodeProviderConfigYamlRepository` validates schema version, allowed fields, provider/backend values, safety restrictions, profiles, nodes, resource mappings, and evidence policy. | Specific to `infra/config/node-providers/provider_config.yaml`; not a general operator override contract. |
+| Node-provider config | `NodeProviderConfigYamlRepository` validates schema version, allowed fields, provider/backend values, safety restrictions, profiles, nodes, resource mappings, and evidence policy. | Specific to `modules/tsw_core/infra/config/node-providers/provider_config.yaml`; not a general operator override contract. |
 | Command catalog YAML | `PortCommandRepositoryYaml` validates command catalog structure and typed command entities. | Product command YAML files are currently retired and this does not cover active env overrides. |
 | Desired inventory | `DesiredInventoryYamlRepository` loads host-neutral desired inventory through domain value objects. | Inventory validation is separate from env override validation. |
 | Setup manifest secrets | `default_setup_manifest` defines required secret names by service profile. | Required non-secret config values and many optional overrides are outside this contract. |
@@ -75,15 +75,15 @@ loading, schema checks, or explicit pass-through handling:
 
 | File | Current role | Current validation status |
 |---|---|---|
-| `infra/config/node-providers/provider_config.yaml` | Managed LXC provider selection, nodes, profiles, resource resolution, evidence metadata. | Strong typed repository validation exists. |
-| `infra/config/inventory/desired_inventory.yaml` | Host-neutral desired inventory. | Compatibility repository/domain loading validates scalar types, schema version and collection shapes; no production caller is introduced. |
-| `infra/config/installation-plan.yaml` | Declarative setup phase registry and dependency graph. | Mirrored by typed `InstallationPlan` domain tests for deterministic order, cycles, required phases, required services, and workflow phase coverage. |
-| `infra/config/ports.yaml` | Central external/internal port registry. | YAML repository and domain tests validate ranges, duplicate external ports, public-ingress ownership, metadata safety, and preflight port selection. |
-| `infra/config/services.yml` | Service catalogue for selected stacks, phases, port IDs, readiness targets, and compatibility published ports. | Production selection rejects malformed roots/members and nonboolean enabled flags. Cross-file tests additionally align the declarative stack/phase/port contracts. |
-| `infra/config/health-checks.yaml` | Desired service-readiness check registry. | Tests align stack, phase, target ID, required services, evidence kind, and `live_default: false` with service contracts and service registry. |
-| `infra/config/validation-plan.yaml` | Greenpath validation evidence target plan. | Tests prove required targets cover health checks and missing/static evidence fails closed through `ValidationPlan`. |
-| `infra/config/compose/*/docker-compose.yml` | Stack definitions and compose placeholders. | Production repository validates TSW-owned fields and atomically retains selected rendered definitions/metadata; compatible placeholders and extensions remain opaque where not consumed. |
-| `infra/config/secrets/infisical-secrets.yaml` | Managed secret manifest for Infisical synchronization. | `SecretManifestYamlRepository` validates schema and returns immutable entries through `PortSecretManifestRepository`; the application renderer delegates to the port. |
+| `modules/tsw_core/infra/config/node-providers/provider_config.yaml` | Managed LXC provider selection, nodes, profiles, resource resolution, evidence metadata. | Strong typed repository validation exists. |
+| `modules/tsw_core/infra/config/inventory/desired_inventory.yaml` | Host-neutral desired inventory. | Compatibility repository/domain loading validates scalar types, schema version and collection shapes; no production caller is introduced. |
+| `modules/tsw_core/infra/config/installation-plan.yaml` | Declarative setup phase registry and dependency graph. | Mirrored by typed `InstallationPlan` domain tests for deterministic order, cycles, required phases, required services, and workflow phase coverage. |
+| `modules/tsw_core/infra/config/ports.yaml` | Central external/internal port registry. | YAML repository and domain tests validate ranges, duplicate external ports, public-ingress ownership, metadata safety, and preflight port selection. |
+| `modules/tsw_core/infra/config/services.yml` | Service catalogue for selected stacks, phases, port IDs, readiness targets, and compatibility published ports. | Production selection rejects malformed roots/members and nonboolean enabled flags. Cross-file tests additionally align the declarative stack/phase/port contracts. |
+| `modules/tsw_core/infra/config/health-checks.yaml` | Desired service-readiness check registry. | Tests align stack, phase, target ID, required services, evidence kind, and `live_default: false` with service contracts and service registry. |
+| `modules/tsw_core/infra/config/validation-plan.yaml` | Greenpath validation evidence target plan. | Tests prove required targets cover health checks and missing/static evidence fails closed through `ValidationPlan`. |
+| `modules/tsw_core/infra/config/compose/*/docker-compose.yml` | Stack definitions and compose placeholders. | Production repository validates TSW-owned fields and atomically retains selected rendered definitions/metadata; compatible placeholders and extensions remain opaque where not consumed. |
+| `modules/tsw_core/infra/config/secrets/infisical-secrets.yaml` | Managed secret manifest for Infisical synchronization. | `SecretManifestYamlRepository` validates schema and returns immutable entries through `PortSecretManifestRepository`; the application renderer delegates to the port. |
 
 ## Parsing Boundary Classification (ARCH-03.09)
 

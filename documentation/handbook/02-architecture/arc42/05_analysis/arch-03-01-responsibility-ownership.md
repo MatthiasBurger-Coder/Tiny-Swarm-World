@@ -20,8 +20,8 @@ responsibilities.
 | Operator access summary | `simple_installer.py:218-235` | `PRESENTATION` | Installer CLI renderer | ARC-03 | Continue suppressing password values. |
 | Concrete adapter binding | `infrastructure/composition_runtime.py` and focused modules | `COMPOSITION` | Capability-specific composition modules | ARC-04 | Composition remains the only normal binding location. |
 | Compatibility facade and patch points | `infrastructure/composition.py` | `COMPOSITION` / `LEGACY_COMPATIBILITY` | Composition facade owner | ARC-04/06 | Keep compatibility imports working until consumers migrate; do not grow the facade surface. |
-| Domain rules and typed policies | `src/tiny_swarm_world/domain/**` | `DOMAIN_POLICY` | Domain | Preserve | No application/infrastructure imports. |
-| Use-case orchestration and ports | `src/tiny_swarm_world/application/**` | `APPLICATION_ORCHESTRATION` | Application | Preserve | No concrete infrastructure imports. |
+| Domain rules and typed policies | `modules/tsw_core/src/tiny_swarm_world/domain/**` | `DOMAIN_POLICY` | Domain | Preserve | No application/infrastructure imports. |
+| Use-case orchestration and ports | `modules/tsw_core/src/tiny_swarm_world/application/**` | `APPLICATION_ORCHESTRATION` | Application | Preserve | No concrete infrastructure imports. |
 
 ## Migration ordering
 

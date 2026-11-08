@@ -52,7 +52,7 @@ class TestEvidenceBuilderBoundary(unittest.TestCase):
     def test_builder_has_no_runtime_or_application_dependencies(self):
         source_path = (
             Path(__file__).parents[6]
-            / "src"
+            / "modules/tsw_core/src"
             / "tiny_swarm_world"
             / "infrastructure"
             / "adapters"

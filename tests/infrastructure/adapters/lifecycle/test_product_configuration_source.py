@@ -41,10 +41,10 @@ class BoundConfigurationTests(unittest.TestCase):
         self.external.mkdir(mode=0o700)
         self.installation = PreparedProductInstallation(self.root, Mock(), Mock(), Mock(), Mock())
         self.installation._host_and_resources = Mock()
-        official = self.root / 'infra'
+        official = self.root / 'modules/tsw_core/infra'
         (official / Path(PROVIDER).parent).mkdir(parents=True, mode=0o700)
         repository = Path(__file__).resolve().parents[4]
-        shutil.copyfile(repository / 'infra' / PROVIDER, official / PROVIDER)
+        shutil.copyfile(repository / 'modules/tsw_core/infra' / PROVIDER, official / PROVIDER)
         for name in ('config/ports.yaml', 'config/compose/portainer/docker-compose.yml'):
             path = official / name
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -60,7 +60,7 @@ class BoundConfigurationTests(unittest.TestCase):
         for name, content in tree.files.items():
             mode = '100755' if tree.members[name][3] & 0o111 else '100644'
             digest = hashlib.sha1(b'blob ' + str(len(content)).encode() + b'\0' + content, usedforsecurity=False).hexdigest()
-            listing.append(f'{mode} blob {digest}\tinfra/{name}')
+            listing.append(f'{mode} blob {digest}\tmodules/tsw_core/infra/{name}')
         self.installation._command = Mock(return_value='\n'.join(listing))
         def hash_object(_args, **kwargs):
             content = kwargs['input']
@@ -80,7 +80,7 @@ class BoundConfigurationTests(unittest.TestCase):
         self.host_detector.return_value.detect.return_value = SimpleNamespace(
             environment=HostEnvironmentKind.WSL2)
         self.plan = product_plan().model_copy(update={
-            'configuration_changes': ('infra/config/ports.yaml', 'infra/config/compose/portainer/docker-compose.yml')})
+            'configuration_changes': ('modules/tsw_core/infra/config/ports.yaml', 'modules/tsw_core/infra/config/compose/portainer/docker-compose.yml')})
 
     def prepare(self):
         binding = source_adapter.prepare(self.installation)
@@ -105,10 +105,10 @@ class BoundConfigurationTests(unittest.TestCase):
 
     def test_official_blob_identity_preserves_binary_payload_and_read_only_git_flags(self):
         payload = b'\x00\xff\r\ntrailing whitespace \n\n'
-        binary = self.root / 'infra' / 'binary.dat'
+        binary = self.root / 'modules/tsw_core/infra' / 'binary.dat'
         binary.write_bytes(payload)
         digest = hashlib.sha1(b'blob ' + str(len(payload)).encode() + b'\0' + payload, usedforsecurity=False).hexdigest()
-        self.installation._command.return_value += f'\n100644 blob {digest}\tinfra/binary.dat'
+        self.installation._command.return_value += f'\n100644 blob {digest}\tmodules/tsw_core/infra/binary.dat'
         tree = source_adapter._official(self.installation)
         self.assertEqual(tree.files['binary.dat'], payload)
         call = next(call for call in self.installation.runner.run_bytes.call_args_list if call.kwargs['input'] == payload)
@@ -155,7 +155,7 @@ class BoundConfigurationTests(unittest.TestCase):
         self.assertEqual(self.installation.runner.run_bytes.call_args.kwargs['timeout'], 29.0)
 
     def test_changed_anchor_bytes_and_execute_mode_still_refuse_official_source(self):
-        anchor = self.root / 'infra' / 'setup.sh'
+        anchor = self.root / 'modules/tsw_core/infra' / 'setup.sh'
         original = anchor.read_bytes()
         anchor.write_bytes(original + b'# changed\n')
         with self.assertRaises(LifecycleStateError):
@@ -206,7 +206,7 @@ class BoundConfigurationTests(unittest.TestCase):
 
     def test_explicit_repoint_and_legacy_ambient_retrofit_are_rejected(self):
         self.bind()
-        os.environ['TSW_INFRA_ROOT'] = str(self.root / 'infra')
+        os.environ['TSW_INFRA_ROOT'] = str(self.root / 'modules/tsw_core/infra')
         with self.assertRaises(LifecycleStateError):
             source_adapter.validate(self.installation, self.plan)
         os.environ['TSW_INFRA_ROOT'] = str(self.external)
@@ -415,9 +415,12 @@ class BoundConfigurationTests(unittest.TestCase):
     def test_competing_target_provider_change_blocks_three_way_migration(self):
         self.bind()
         source_adapter.capture_source(self.installation, self.plan)
-        self.plan = self.plan.model_copy(update={'configuration_changes': ('infra/' + PROVIDER,)})
-        target = self.installation.directory(self.plan) / 'infra'
-        shutil.copytree(self.root / 'infra', target)
+        self.plan = self.plan.model_copy(update={'configuration_changes': ('modules/tsw_core/infra/' + PROVIDER,)})
+        target = self.installation.directory(self.plan) / 'modules/tsw_core/infra'
+        physical_source = target.parent / 'src/tiny_swarm_world'
+        physical_source.mkdir(parents=True, exist_ok=True)
+        (physical_source / '__main__.py').write_text('# release fixture, never executed\n')
+        shutil.copytree(self.root / 'modules/tsw_core/infra', target)
         provider = target / PROVIDER
         provider.write_bytes(provider.read_bytes().replace(b'8GiB', b'7GiB'))
         with self.assertRaises(LifecycleStateError):
@@ -472,8 +475,11 @@ class BoundConfigurationTests(unittest.TestCase):
     def test_exact_changed_assets_migrate_while_17gib_and_executable_survive(self):
         self.bind()
         source_adapter.capture_source(self.installation, self.plan)
-        target = self.installation.directory(self.plan) / 'infra'
-        shutil.copytree(self.root / 'infra', target)
+        target = self.installation.directory(self.plan) / 'modules/tsw_core/infra'
+        physical_source = target.parent / 'src/tiny_swarm_world'
+        physical_source.mkdir(parents=True, exist_ok=True)
+        (physical_source / '__main__.py').write_text('# release fixture, never executed\n')
+        shutil.copytree(self.root / 'modules/tsw_core/infra', target)
         for relative in self.plan.configuration_changes:
             (self.installation.directory(self.plan) / relative).write_bytes(b'official-target\n')
         migrate_product_infra(self.installation, self.plan)
@@ -487,8 +493,11 @@ class BoundConfigurationTests(unittest.TestCase):
     def migrate_bound(self):
         self.bind()
         source_adapter.capture_source(self.installation, self.plan)
-        target = self.installation.directory(self.plan) / 'infra'
-        shutil.copytree(self.root / 'infra', target)
+        target = self.installation.directory(self.plan) / 'modules/tsw_core/infra'
+        physical_source = target.parent / 'src/tiny_swarm_world'
+        physical_source.mkdir(parents=True, exist_ok=True)
+        (physical_source / '__main__.py').write_text('# release fixture, never executed\n')
+        shutil.copytree(self.root / 'modules/tsw_core/infra', target)
         for relative in self.plan.configuration_changes:
             (self.installation.directory(self.plan) / relative).write_bytes(b'official-target\n')
         migrate_product_infra(self.installation, self.plan)
@@ -519,8 +528,11 @@ class BoundConfigurationTests(unittest.TestCase):
     def test_owned_interrupted_migration_is_retained_then_rebuilt_with_disk_guard(self):
         self.bind()
         source_adapter.capture_source(self.installation, self.plan)
-        target = self.installation.directory(self.plan) / 'infra'
-        shutil.copytree(self.root / 'infra', target)
+        target = self.installation.directory(self.plan) / 'modules/tsw_core/infra'
+        physical_source = target.parent / 'src/tiny_swarm_world'
+        physical_source.mkdir(parents=True, exist_ok=True)
+        (physical_source / '__main__.py').write_text('# release fixture, never executed\n')
+        shutil.copytree(self.root / 'modules/tsw_core/infra', target)
         for relative in self.plan.configuration_changes:
             (self.installation.directory(self.plan) / relative).write_bytes(b'official-target\n')
         with patch('tiny_swarm_world.infrastructure.adapters.lifecycle.product_migration._migrate_changed_assets',
@@ -596,7 +608,7 @@ class BoundConfigurationTests(unittest.TestCase):
         self.assertEqual(command.kwargs['env']['TSW_INFRA_ROOT'], str(effective))
         provider = YAML(typ='safe').load((effective / PROVIDER).read_text())
         self.assertEqual([node['resources']['memory'] for node in provider['nodes']], ['10GiB', '6GiB', '1GiB'])
-        os.environ['TSW_INFRA_ROOT'] = str(self.root / 'infra')
+        os.environ['TSW_INFRA_ROOT'] = str(self.root / 'modules/tsw_core/infra')
         with self.assertRaises(LifecycleStateError):
             self.installation.activate(self.plan)
 
@@ -623,8 +635,11 @@ class BoundConfigurationTests(unittest.TestCase):
         self.assertEqual(dict(os.environ), environment)
         source_adapter.bind(self.installation, self.plan)
         source_adapter.capture_source(self.installation, self.plan)
-        target = self.installation.directory(self.plan) / 'infra'
-        shutil.copytree(self.root / 'infra', target)
+        target = self.installation.directory(self.plan) / 'modules/tsw_core/infra'
+        physical_source = target.parent / 'src/tiny_swarm_world'
+        physical_source.mkdir(parents=True, exist_ok=True)
+        (physical_source / '__main__.py').write_text('# release fixture, never executed\n')
+        shutil.copytree(self.root / 'modules/tsw_core/infra', target)
         for relative in self.plan.configuration_changes:
             (self.installation.directory(self.plan) / relative).write_bytes(b'official-target\n')
         migrate_product_infra(self.installation, self.plan)
@@ -646,7 +661,7 @@ class BoundConfigurationTests(unittest.TestCase):
         directory = self.bind()
         checkpoint = ProductCheckpoint(plan=self.plan, stage='admitted', service_identities={})
         public = json.dumps(self.plan.preview()) + checkpoint.model_dump_json()
-        os.environ['TSW_INFRA_ROOT'] = str(self.root / 'infra')
+        os.environ['TSW_INFRA_ROOT'] = str(self.root / 'modules/tsw_core/infra')
         with self.assertRaises(LifecycleStateError) as caught:
             source_adapter.validate(self.installation, self.plan)
         public += ''.join(traceback.format_exception(caught.exception))
@@ -689,7 +704,7 @@ class BoundConfigurationTests(unittest.TestCase):
             self.prepare()
 
     def test_doubled_leading_slash_cannot_disguise_anchor_or_managed_source(self):
-        for source in (self.root / 'infra', self.installation.state / 'inputs', self.external):
+        for source in (self.root / 'modules/tsw_core/infra', self.installation.state / 'inputs', self.external):
             os.environ['TSW_INFRA_ROOT'] = '/' + str(source)
             with self.assertRaises(LifecycleStateError):
                 self.prepare()
@@ -723,7 +738,7 @@ class BoundConfigurationTests(unittest.TestCase):
         self.assertIsNone(restored.plan.configuration_source)
         del os.environ['TSW_INFRA_ROOT']
         source_adapter.validate(self.installation, restored.plan)
-        self.assertEqual(source_adapter.effective_source(self.installation, restored.plan), self.root / 'infra')
+        self.assertEqual(source_adapter.effective_source(self.installation, restored.plan), self.root / 'modules/tsw_core/infra')
 
 
 if __name__ == '__main__':

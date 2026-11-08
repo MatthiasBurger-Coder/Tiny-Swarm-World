@@ -10,7 +10,7 @@ decision makers were not recorded in this ADR.
 
 The original decision and status below preserve the earlier Vaultwarden
 requirement/security baseline. Its implementation inventory is historical:
-current `infra/config/services.yml`, the installation plan and service-access
+current `modules/tsw_core/infra/config/services.yml`, the installation plan and service-access
 compose use Infisical and generated credential references. See
 link:../08_configuration/credential-source-precedence.md[the current credential contract],
 link:../08_configuration/rc1-simple-secret-bootstrap.md[the installer credential lifecycle]
@@ -27,10 +27,10 @@ as proof for the default `lxc_native` provider.
 
 Implemented repository behavior:
 
-* `infra/config/compose/service-access/docker-compose.yml` defines the
+* `modules/tsw_core/infra/config/compose/service-access/docker-compose.yml` defines the
   service-access dashboard, Vaultwarden and service-access NGINX stack.
-* `infra/config/compose/service-access/dashboard/**` and
-  `infra/config/compose/service-access/nginx/**` provide image-packaged static
+* `modules/tsw_core/infra/config/compose/service-access/dashboard/**` and
+  `modules/tsw_core/infra/config/compose/service-access/nginx/**` provide image-packaged static
   dashboard and NGINX assets.
 * `ServiceStackProfile.SERVICE_ACCESS` and `SERVICE_ACCESS_STACK_CONTRACT`
   add service-access as the full guided setup profile. Operators can still
@@ -77,7 +77,7 @@ Repository constraints already require:
 * Docker Swarm-first deployment;
 * no React frontend project unless a separate workflow verifies such scope;
 * no Traefik routing implementation without architecture coverage;
-* `src/tiny_swarm_world/infrastructure/composition.py` as the concrete wiring
+* `modules/tsw_core/src/tiny_swarm_world/infrastructure/composition.py` as the concrete wiring
   root.
 
 == Decision
@@ -235,6 +235,6 @@ Open follow-up items:
 * Affects: `documentation/handbook/02-architecture/arc42/08_concepts.adoc`
 * Related concept: service-access management landing page and credential
   display safety.
-* Related code: `infra/config/compose/service-access`
-* Related code: `src/tiny_swarm_world/domain/deployment`
-* Related code: `src/tiny_swarm_world/application/services/deployment`
+* Related code: `modules/tsw_core/infra/config/compose/service-access`
+* Related code: `modules/tsw_core/src/tiny_swarm_world/domain/deployment`
+* Related code: `modules/tsw_core/src/tiny_swarm_world/application/services/deployment`

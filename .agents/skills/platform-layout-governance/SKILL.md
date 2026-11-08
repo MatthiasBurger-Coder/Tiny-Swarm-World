@@ -13,7 +13,7 @@ parallel legacy path structures.
 ## Responsibilities
 
 - Preserve `documentation/` as the canonical docs root.
-- Keep `infra/config`, `infra/prepare` and `infra/swarm` responsibilities
+- Keep `modules/tsw_core/infra/config`, `infra/prepare` and `infra/swarm` responsibilities
   distinct.
 - Prevent host-specific paths, generated caches and local environment files from
   entering committed configuration.

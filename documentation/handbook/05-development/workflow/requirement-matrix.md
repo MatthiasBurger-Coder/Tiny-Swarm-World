@@ -3,7 +3,7 @@
 Source: GitHub #355 goal, scope and five acceptance criteria; parent #313 and accepted ADR.
 Every requirement is retained. Product evidence and final S07 quality are verified (2259 tests; 18 exclusions).
 Independent completion audit PASS; all requirements are complete. See completion_audit.md in the issue evidence package.
-Implementation paths below are relative to src/tiny_swarm_world; service paths
+Implementation paths below are relative to modules/tsw_core/src/tiny_swarm_world; service paths
 are relative to application/services.
 
 | ID | Requirement from issue | Type | Files / slices | Implementation evidence | Test evidence | Status |

@@ -6,9 +6,9 @@ from ruamel.yaml import YAML
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
-CONFIG_ROOT = REPOSITORY_ROOT / "infra" / "config"
+CONFIG_ROOT = REPOSITORY_ROOT / "modules/tsw_core/infra" / "config"
 APPLICATION_SERVICES_ROOT = (
-    REPOSITORY_ROOT / "src" / "tiny_swarm_world" / "application" / "services"
+    REPOSITORY_ROOT / "modules/tsw_core/src" / "tiny_swarm_world" / "application" / "services"
 )
 
 DESTRUCTIVE_COMMAND_PATTERNS = (

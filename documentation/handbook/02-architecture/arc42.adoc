@@ -32,7 +32,7 @@ skinparam shadowing false
 actor Operator
 rectangle "Linux or WSL shell" as Shell
 component "Tiny Swarm World\nPython CLI" as CLI
-component "Configuration\ninfra/config" as Config
+component "Configuration\nmodules/tsw_core/infra/config" as Config
 database "Ignored local state\n.tiny-swarm-world\n.tiny-swarm" as LocalState
 cloud "Incus" as Provider
 node "Managed LXC nodes" as Nodes {

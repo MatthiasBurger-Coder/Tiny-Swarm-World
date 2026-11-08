@@ -146,8 +146,8 @@ class TestOptionalServiceRouting(unittest.TestCase):
 
     def test_temporary_fixtures_do_not_change_committed_configuration(self) -> None:
         repository_root = Path(__file__).resolve().parents[2]
-        committed_services = repository_root / "infra" / "config" / "services.yml"
-        committed_ports = repository_root / "infra" / "config" / "ports.yaml"
+        committed_services = repository_root / "modules/tsw_core/infra" / "config" / "services.yml"
+        committed_ports = repository_root / "modules/tsw_core/infra" / "config" / "ports.yaml"
         services_before = committed_services.read_bytes()
         ports_before = committed_ports.read_bytes()
 

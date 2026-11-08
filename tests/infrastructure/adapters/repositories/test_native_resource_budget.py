@@ -23,7 +23,7 @@ from tiny_swarm_world.infrastructure.project_paths import ProjectPaths
 
 ROOT = Path(__file__).resolve().parents[4]
 PROVIDER_RELATIVE_PATH = Path("config/node-providers/provider_config.yaml")
-SOURCE_CONFIG = ROOT / "infra" / PROVIDER_RELATIVE_PATH
+SOURCE_CONFIG = ROOT / "modules/tsw_core/infra" / PROVIDER_RELATIVE_PATH
 GIB = 1024**3
 NATIVE_MEMORY_BYTES = 20_111_052_800
 NATIVE_ALLOCATION = {

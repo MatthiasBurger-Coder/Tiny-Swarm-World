@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 class SelectiveFollowupTests(TestCase):
     def test_wsl_bridge_receives_only_selected_ports_and_original_is_unchanged(self):
-        original = ROOT / "infra/config/ports.yaml"
+        original = ROOT / "modules/tsw_core/infra/config/ports.yaml"
         before = original.read_bytes()
         seen = []
 

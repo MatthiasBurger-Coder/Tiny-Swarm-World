@@ -14,9 +14,9 @@ class TestWindowsTlsTrust(unittest.TestCase):
         command = (
             "$ErrorActionPreference='Stop'; "
             "$stage=Join-Path ([IO.Path]::GetTempPath()) ('tsw-trust-tests-'+[guid]::NewGuid()); "
-            "try { foreach ($dir in @('bootstrap/windows','tests/windows')) { "
+            "try { foreach ($dir in @('modules/tsw_windows_wsl/bootstrap/windows','tests/windows')) { "
             "New-Item -ItemType Directory -Path (Join-Path $stage $dir) -Force | Out-Null }; "
-            "foreach ($file in @('bootstrap/windows/tsw-tls-trust.ps1','tests/windows/tsw-tls-trust.Tests.ps1')) { "
+            "foreach ($file in @('modules/tsw_windows_wsl/bootstrap/windows/tsw-tls-trust.ps1','tests/windows/tsw-tls-trust.Tests.ps1')) { "
             f"Copy-Item -LiteralPath (Join-Path '{root}' $file) -Destination (Join-Path $stage $file) }}; "
             "Import-Module Pester; $result=Invoke-Pester -Script (Join-Path $stage 'tests/windows/tsw-tls-trust.Tests.ps1') -PassThru; "
             "if ($result.FailedCount -ne 0 -or $result.PassedCount -eq 0) { exit 1 } "

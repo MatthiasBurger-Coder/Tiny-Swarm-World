@@ -26,7 +26,7 @@ from tests.support.sonar_safe_literals import operator_credential, sample_http_u
 
 MODULE_PATH = (
     Path(__file__).resolve().parents[4]
-    / "src"
+    / "modules/tsw_core/src"
     / "tiny_swarm_world"
     / "application"
     / "services"

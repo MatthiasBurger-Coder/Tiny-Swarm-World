@@ -31,7 +31,7 @@ silently fall back to another provider.
 
 == Incus Installation
 
-On qualified Ubuntu 24.04/26.04 Linux/WSL2 hosts, `bootstrap/linux/prepare_linux.sh` prepares
+On qualified Ubuntu 24.04/26.04 Linux/WSL2 hosts, `modules/tsw_core/bootstrap/linux/prepare_linux.sh` prepares
 packages/Python, then separately plans and confirms Incus startup, current-user
 access and absent resolved pool/bridge/Swarm profiles. Read-only `--dry-run`
 never starts a daemon or writes host/configuration/state/evidence. Existing
@@ -55,18 +55,18 @@ incus info
 
 For `lxc_native`, the committed provider configuration selects Incus through
 `backend_selection.preferred_backend` and the single Incus candidate in
-`infra/config/node-providers/provider_config.yaml`:
+`modules/tsw_core/infra/config/node-providers/provider_config.yaml`:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend incus --preflight
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world --lxc-backend incus --preflight
 ----
 
 == Project Provider Checks
 
 The committed provider configuration lives at:
 
-* `infra/config/node-providers/provider_config.yaml`
+* `modules/tsw_core/infra/config/node-providers/provider_config.yaml`
 
 It declares:
 
@@ -79,7 +79,7 @@ It declares:
 * the `docker-swarm` profile requirements.
 
 Operators can override local network or storage names by editing the matching
-Incus section in `infra/config/node-providers/provider_config.yaml` before a
+Incus section in `modules/tsw_core/infra/config/node-providers/provider_config.yaml` before a
 live run. The old global
 `provider_resource_resolution.network_mappings/storage_pool` shape is no
 longer accepted; missing selected-backend mappings block before mutation.
@@ -88,8 +88,8 @@ Run the non-mutating project preflight before a live run:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world --preflight
-PYTHONPATH=src python3 -m tiny_swarm_world --lxc-backend incus --preflight
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world --preflight
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world --lxc-backend incus --preflight
 ----
 
 Preflight selection is provider-aware. Generic host, Python, Docker CLI,
@@ -102,7 +102,7 @@ network, storage, and Docker Swarm profile expectations that later read-only
 provider checks must verify. A missing backend candidate definition blocks
 configuration construction instead of falling back silently.
 
-Host-port preflight reads the typed port registry from `infra/config/ports.yaml`.
+Host-port preflight reads the typed port registry from `modules/tsw_core/infra/config/ports.yaml`.
 For the service-access profile, only Traefik public ingress ports `80` and
 `443` are required by default preflight. Diagnostic and compatibility
 allocations stay recorded in the registry and service catalogue, but they are
@@ -113,7 +113,7 @@ The default live setup command is:
 
 [source,bash]
 ----
-PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world setup run --live
 ----
 
 The command still requires the live confirmation prompt. It blocks rather than
@@ -211,8 +211,8 @@ target.
 [source,bash]
 ----
 export TSW_LIVE_INFRASTRUCTURE_CONSENT=I_UNDERSTAND_THIS_CHANGES_LOCAL_INFRASTRUCTURE
-PYTHONPATH=src python3 -m tiny_swarm_world --preflight
-PYTHONPATH=src python3 -m tiny_swarm_world setup run --live
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world --preflight
+PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world setup run --live
 ----
 
 When prompted, answer `y` only for an intentional local run. Classify the

@@ -35,7 +35,7 @@ class TestPackageMetadata(unittest.TestCase):
             pyproject["project"]["scripts"]["tiny-swarm-world"],
             "tiny_swarm_world.__main__:cli",
         )
-        self.assertEqual(pyproject["tool"]["setuptools"]["packages"]["find"]["where"], ["src"])
+        self.assertEqual(pyproject["tool"]["setuptools"]["packages"]["find"]["where"], ["modules/tsw_core/src"])
 
     def test_pyproject_dependencies_match_runtime_requirements(self):
         requirements = [

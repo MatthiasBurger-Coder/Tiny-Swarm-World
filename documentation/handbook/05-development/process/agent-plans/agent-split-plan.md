@@ -11,8 +11,8 @@ accepted.
 ## General Rules for All Agents
 
 - Work in WSL/Linux from the repository root.
-- Read `AGENTS.md`, `src/tiny_swarm_world/AGENTS.md`, `infra/AGENTS.md`,
-  `.importlinter`, `README.md`, and `tools/linux/quality_gate.py` before changing
+- Read `AGENTS.md`, `modules/tsw_core/src/tiny_swarm_world/AGENTS.md`, `infra/AGENTS.md`,
+  `.importlinter`, `README.md`, and `modules/tsw_core/tools/linux/quality_gate.py` before changing
   files.
 - Inspect `git status --short` before edits.
 - Do not overwrite unrelated user changes.
@@ -55,11 +55,11 @@ Forbidden files:
 Required reading:
 
 - `AGENTS.md`
-- `src/tiny_swarm_world/AGENTS.md`
+- `modules/tsw_core/src/tiny_swarm_world/AGENTS.md`
 - `infra/AGENTS.md`
 - `.importlinter`
 - `README.md`
-- `tools/linux/quality_gate.py`
+- `modules/tsw_core/tools/linux/quality_gate.py`
 - `documentation/handbook/02-architecture/arc42/05_analysis/responsibility-separation-analysis.md`
 - `documentation/handbook/02-architecture/arc42/09_decisions/adr-separate-platform-artifacts-deployment.adoc`
 
@@ -81,8 +81,8 @@ Output artifacts:
 
 Tests and quality gates:
 
-- `python3 tools/linux/quality_gate.py arch-lint`
-- `python3 tools/linux/quality_gate.py arch-tests`
+- `python3 modules/tsw_core/tools/linux/quality_gate.py arch-lint`
+- `python3 modules/tsw_core/tools/linux/quality_gate.py arch-tests`
 
 Stop-and-report conditions:
 
@@ -114,22 +114,22 @@ Scope:
 
 Allowed files after architecture approval:
 
-- former `src/tiny_swarm_world/domain/multipass` (superseded)
-- `src/tiny_swarm_world/domain/network`
-- former `src/tiny_swarm_world/application/services/multipass` (superseded)
-- `src/tiny_swarm_world/application/services/network`
-- `src/tiny_swarm_world/application/services/vm`
+- former `modules/tsw_core/src/tiny_swarm_world/domain/multipass` (superseded)
+- `modules/tsw_core/src/tiny_swarm_world/domain/network`
+- former `modules/tsw_core/src/tiny_swarm_world/application/services/multipass` (superseded)
+- `modules/tsw_core/src/tiny_swarm_world/application/services/network`
+- `modules/tsw_core/src/tiny_swarm_world/application/services/vm`
 - platform-related ports
 - platform-related infrastructure adapters
-- former `infra/config/multipass` (superseded)
-- `infra/config/docker` for daemon install and Swarm commands only
-- `infra/config/network`
-- `infra/config/vm`
+- former `modules/tsw_core/infra/config/multipass` (superseded)
+- `modules/tsw_core/infra/config/docker` for daemon install and Swarm commands only
+- `modules/tsw_core/infra/config/network`
+- `modules/tsw_core/infra/config/vm`
 - related tests and docs
 
 Forbidden files:
 
-- `infra/config/compose`
+- `modules/tsw_core/infra/config/compose`
 - service stack deployment logic
 - Portainer stack upload logic
 - Nexus repository bootstrap except as a documented platform dependency
@@ -161,10 +161,10 @@ Output artifacts:
 
 Tests and quality gates:
 
-- `python3 tools/linux/quality_gate.py arch-lint`
-- `python3 tools/linux/quality_gate.py arch-tests`
-- `python3 tools/linux/quality_gate.py test`
-- `python3 tools/linux/quality_gate.py quality` when production code changes
+- `python3 modules/tsw_core/tools/linux/quality_gate.py arch-lint`
+- `python3 modules/tsw_core/tools/linux/quality_gate.py arch-tests`
+- `python3 modules/tsw_core/tools/linux/quality_gate.py test`
+- `python3 modules/tsw_core/tools/linux/quality_gate.py quality` when production code changes
 
 Stop-and-report conditions:
 
@@ -195,11 +195,11 @@ Scope:
 
 Allowed files after architecture approval:
 
-- `src/tiny_swarm_world/domain/nexus`
-- `src/tiny_swarm_world/application/services/nexus`
-- `src/tiny_swarm_world/application/ports/clients/port_nexus_client.py`
+- `modules/tsw_core/src/tiny_swarm_world/domain/nexus`
+- `modules/tsw_core/src/tiny_swarm_world/application/services/nexus`
+- `modules/tsw_core/src/tiny_swarm_world/application/ports/clients/port_nexus_client.py`
 - artifact-related ports
-- `src/tiny_swarm_world/infrastructure/adapters/clients/nexus_http_client.py`
+- `modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/nexus_http_client.py`
 - artifact-related adapters
 - artifact-related docs and tests
 
@@ -238,10 +238,10 @@ Output artifacts:
 
 Tests and quality gates:
 
-- `python3 tools/linux/quality_gate.py arch-lint`
-- `python3 tools/linux/quality_gate.py arch-tests`
-- `python3 tools/linux/quality_gate.py test`
-- `python3 tools/linux/quality_gate.py quality` when production code changes
+- `python3 modules/tsw_core/tools/linux/quality_gate.py arch-lint`
+- `python3 modules/tsw_core/tools/linux/quality_gate.py arch-tests`
+- `python3 modules/tsw_core/tools/linux/quality_gate.py test`
+- `python3 modules/tsw_core/tools/linux/quality_gate.py quality` when production code changes
 
 Stop-and-report conditions:
 
@@ -274,14 +274,14 @@ Scope:
 
 Allowed files after architecture approval:
 
-- `src/tiny_swarm_world/domain/deployment`
-- `src/tiny_swarm_world/application/ports/clients/port_portainer_client.py`
-- `src/tiny_swarm_world/application/ports/repositories/port_compose_file_repository.py`
+- `modules/tsw_core/src/tiny_swarm_world/domain/deployment`
+- `modules/tsw_core/src/tiny_swarm_world/application/ports/clients/port_portainer_client.py`
+- `modules/tsw_core/src/tiny_swarm_world/application/ports/repositories/port_compose_file_repository.py`
 - deployment-related application services
-- `src/tiny_swarm_world/infrastructure/adapters/clients/portainer_http_client.py`
-- `src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py`
-- `infra/config/compose`
-- `infra/config/compose`
+- `modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/portainer_http_client.py`
+- `modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py`
+- `modules/tsw_core/infra/config/compose`
+- `modules/tsw_core/infra/config/compose`
 - deployment-related tests and docs
 
 Forbidden files:
@@ -317,10 +317,10 @@ Output artifacts:
 
 Tests and quality gates:
 
-- `python3 tools/linux/quality_gate.py arch-lint`
-- `python3 tools/linux/quality_gate.py arch-tests`
-- `python3 tools/linux/quality_gate.py test`
-- `python3 tools/linux/quality_gate.py quality` when production code changes
+- `python3 modules/tsw_core/tools/linux/quality_gate.py arch-lint`
+- `python3 modules/tsw_core/tools/linux/quality_gate.py arch-tests`
+- `python3 modules/tsw_core/tools/linux/quality_gate.py test`
+- `python3 modules/tsw_core/tools/linux/quality_gate.py quality` when production code changes
 
 Stop-and-report conditions:
 
@@ -342,15 +342,15 @@ Role:
 
 Scope:
 
-- `src/tiny_swarm_world/__main__.py`
-- `src/tiny_swarm_world/infrastructure/composition.py`
+- `modules/tsw_core/src/tiny_swarm_world/__main__.py`
+- `modules/tsw_core/src/tiny_swarm_world/infrastructure/composition.py`
 - workflow orchestration boundaries
 - CLI/service workflow naming
 
 Allowed files after architecture approval:
 
-- `src/tiny_swarm_world/__main__.py`
-- `src/tiny_swarm_world/infrastructure/composition.py`
+- `modules/tsw_core/src/tiny_swarm_world/__main__.py`
+- `modules/tsw_core/src/tiny_swarm_world/infrastructure/composition.py`
 - workflow orchestration objects
 - CLI-facing documentation
 - tests for composition and entry point behavior
@@ -366,8 +366,8 @@ Required reading:
 
 - all general required files
 - `documentation/handbook/02-architecture/arc42/09_decisions/adr-separate-platform-artifacts-deployment.adoc`
-- current `src/tiny_swarm_world/infrastructure/composition.py`
-- current `src/tiny_swarm_world/__main__.py`
+- current `modules/tsw_core/src/tiny_swarm_world/infrastructure/composition.py`
+- current `modules/tsw_core/src/tiny_swarm_world/__main__.py`
 
 Exact task steps:
 
@@ -386,10 +386,10 @@ Output artifacts:
 
 Tests and quality gates:
 
-- `python3 tools/linux/quality_gate.py arch-lint`
-- `python3 tools/linux/quality_gate.py arch-tests`
-- `python3 tools/linux/quality_gate.py test`
-- `python3 tools/linux/quality_gate.py quality` when production code changes
+- `python3 modules/tsw_core/tools/linux/quality_gate.py arch-lint`
+- `python3 modules/tsw_core/tools/linux/quality_gate.py arch-tests`
+- `python3 modules/tsw_core/tools/linux/quality_gate.py test`
+- `python3 modules/tsw_core/tools/linux/quality_gate.py quality` when production code changes
 
 Stop-and-report conditions:
 
@@ -421,7 +421,7 @@ Allowed files:
 
 - `tests`
 - `.importlinter`
-- `tools/linux/quality_gate.py` only if needed and justified
+- `modules/tsw_core/tools/linux/quality_gate.py` only if needed and justified
 - quality gate documentation
 - `documentation/handbook/02-architecture/arc42/05_analysis`
 - `documentation/handbook/02-architecture/arc42/11_migration`
@@ -456,9 +456,9 @@ Output artifacts:
 
 Tests and quality gates:
 
-- `python3 tools/linux/quality_gate.py arch-lint`
-- `python3 tools/linux/quality_gate.py arch-tests`
-- `python3 tools/linux/quality_gate.py quality` if safe and no live commands are
+- `python3 modules/tsw_core/tools/linux/quality_gate.py arch-lint`
+- `python3 modules/tsw_core/tools/linux/quality_gate.py arch-tests`
+- `python3 modules/tsw_core/tools/linux/quality_gate.py quality` if safe and no live commands are
   triggered
 
 Stop-and-report conditions:
@@ -534,8 +534,8 @@ Output artifacts:
 
 Tests and quality gates:
 
-- `python3 tools/linux/quality_gate.py arch-lint`
-- `python3 tools/linux/quality_gate.py arch-tests`
+- `python3 modules/tsw_core/tools/linux/quality_gate.py arch-lint`
+- `python3 modules/tsw_core/tools/linux/quality_gate.py arch-tests`
 
 Stop-and-report conditions:
 

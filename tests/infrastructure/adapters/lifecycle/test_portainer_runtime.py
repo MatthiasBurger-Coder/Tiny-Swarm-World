@@ -317,7 +317,7 @@ class PortainerRuntimeIntegrationTests(unittest.IsolatedAsyncioTestCase):
             environment = effective_image_environment({}, self.root)
             self.assertEqual(environment['TSW_PORTAINER_IMAGE'], images('2.45.1')['portainer'])
             self.assertEqual(environment['TSW_PORTAINER_AGENT_IMAGE'], images('2.45.1')['portainer-agent'])
-            compose = ComposeFileRepositoryYaml(project_paths=ProjectPaths.from_roots(self.root, ROOT / 'infra'), write_logs=False)
+            compose = ComposeFileRepositoryYaml(project_paths=ProjectPaths.from_roots(self.root, ROOT / 'modules/tsw_core/infra'), write_logs=False)
             self.assertEqual({item.name: item.image_ref for item in compose.get_services_of('portainer')},
                              {'portainer': images('2.45.1')['portainer'], 'agent': images('2.45.1')['portainer-agent']})
             contracts = _selected_image_contracts(None, self.root)

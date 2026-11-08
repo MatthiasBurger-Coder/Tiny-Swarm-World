@@ -49,6 +49,6 @@ direction drift and technology leakage.
 
 ## Quality expectations
 
-- Run `python3 tools/linux/quality_gate.py arch-lint` and `arch-tests` for boundary
+- Run `python3 modules/tsw_core/tools/linux/quality_gate.py arch-lint` and `arch-tests` for boundary
   sensitive changes.
 - Run the full quality gate before commit when practical.

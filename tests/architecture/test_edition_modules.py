@@ -18,10 +18,15 @@ ROOT = Path(__file__).resolve().parents[2]
 MODULES = ("tsw_core", "tsw_native_linux", "tsw_windows_wsl")
 
 
+def descriptor_path(root: Path, name: str) -> Path:
+    module = root / "modules" / name
+    return module / "src/tsw_core/module.json" if name == "tsw_core" else module / "module.json"
+
+
 def check_boundaries(root: Path) -> None:
     """Check declared edges, required assets and executable edition references."""
     for name in MODULES:
-        descriptor = json.loads((root / "src" / name / "module.json").read_text())
+        descriptor = json.loads(descriptor_path(root, name).read_text())
         expected = [] if name == "tsw_core" else ["tsw_core"]
         if descriptor["name"] != name or descriptor["project_dependencies"] != expected:
             raise AssertionError(f"Invalid dependency boundary: {name}")
@@ -32,8 +37,8 @@ def check_boundaries(root: Path) -> None:
                 raise AssertionError(f"Missing {name} asset: {asset}")
         sources: list[Path] = []
         if name == "tsw_core":
-            sources.extend((root / "src/tiny_swarm_world").rglob("*.py"))
-            sources.extend((root / "src/tsw_core").rglob("*.py"))
+            sources.extend((root / "modules/tsw_core/src/tiny_swarm_world").rglob("*.py"))
+            sources.extend((root / "modules/tsw_core/src/tsw_core").rglob("*.py"))
         for asset in assets:
             path = root / asset
             sources.extend(path.rglob("*") if path.is_dir() else [path])
@@ -44,11 +49,15 @@ def check_boundaries(root: Path) -> None:
             text = source.read_text()
             if source.suffix == ".py":
                 for node in ast.walk(ast.parse(text)):
+                    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Div):
+                        literals = [item.value for item in ast.walk(node) if isinstance(item, ast.Constant) and isinstance(item.value, str)]
+                        if any(owner in literal for owner in forbidden for literal in literals):
+                            raise AssertionError(f"Forbidden edition path construction: {source}")
                     names = ([item.name for item in node.names] if isinstance(node, ast.Import)
                              else [node.module or ""] if isinstance(node, ast.ImportFrom) else [])
-                    if any(item.split(".")[0] in forbidden for item in names):
+                    if any(forbidden.intersection(item.split(".")) for item in names):
                         raise AssertionError(f"Forbidden import: {source}")
-            if source.suffix != ".py" and name in ("tsw_native_linux", "tsw_core") and "bootstrap/windows/" in text:
+            if source.suffix != ".py" and name in ("tsw_native_linux", "tsw_core") and "modules/tsw_windows_wsl/bootstrap/windows/" in text:
                 raise AssertionError(f"Forbidden edition path: {source}")
             if name == "tsw_windows_wsl" and any(token in text for token in
                     ("exec ./install.sh", "'install.sh'", '"install.sh"', "exec ./tsw")):
@@ -59,13 +68,63 @@ class EditionModuleTests(unittest.TestCase):
     def test_declared_boundaries_and_assets(self):
         check_boundaries(ROOT)
 
+    def test_implementations_are_physically_owned_and_legacy_trees_only_forward(self):
+        core = ROOT / "modules/tsw_core"
+        self.assertTrue((core / "src/tiny_swarm_world/application/services").is_dir())
+        self.assertTrue((core / "infra/config/compose").is_dir())
+        self.assertGreater(len(list((core / "src/tiny_swarm_world").rglob("*.py"))), 100)
+        for old in ("infra/config", "src/tiny_swarm_world/domain", "src/tiny_swarm_world/application",
+                    "src/tiny_swarm_world/infrastructure", "bootstrap/windows/preparation"):
+            self.assertFalse((ROOT / old).exists(), old)
+        for name in ("install.sh", "tsw"):
+            self.assertIn("modules/tsw_native_linux/" + name, (ROOT / name).read_text())
+            self.assertIn("modules/tsw_core/bootstrap/linux/", (ROOT / "modules/tsw_native_linux" / name).read_text())
+        self.assertNotIn("function Invoke-", (ROOT / "bootstrap/windows/prepare_windows.ps1").read_text())
+        self.assertIn("Invoke-WindowsPreparation", (ROOT / "modules/tsw_windows_wsl/bootstrap/windows/prepare_windows.ps1").read_text())
+        for module in MODULES:
+            self.assertFalse((ROOT / "modules" / module).is_symlink())
+
+    def test_compatibility_imports_resolve_the_same_physical_core(self):
+        code = ("import json,tiny_swarm_world,tsw_core; "
+                "print(json.dumps([tiny_swarm_world.__file__,tsw_core.__file__,str(tsw_core.discover_root())]))")
+        observations = []
+        for source in ("src", "modules/tsw_core/src"):
+            result = subprocess.run([sys.executable, "-c", code], cwd=ROOT,
+                                    env={**os.environ, "PYTHONPATH": str(ROOT / source)},
+                                    capture_output=True, text=True, timeout=15)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            observations.append(json.loads(result.stdout))
+        self.assertEqual(observations[0], observations[1])
+        self.assertIn("modules/tsw_core/src", observations[0][0])
+        self.assertEqual(observations[0][2], str(ROOT))
+
+    def test_legacy_tool_alias_and_public_python_wrappers(self):
+        code = ("import importlib.util,sys; "
+                "from tools.linux.live import secure_runtime_paths as legacy; "
+                "from tiny_swarm_world.infrastructure.adapters import secure_runtime_paths as actual; "
+                "assert legacy is actual; "
+                "spec=importlib.util.spec_from_file_location('compat_secure', 'tools/linux/live/secure_runtime_paths.py'); "
+                "module=importlib.util.module_from_spec(spec); sys.modules['compat_secure']=module; "
+                "spec.loader.exec_module(module); assert sys.modules['compat_secure'] is actual")
+        result = subprocess.run([sys.executable, "-c", code], cwd=ROOT,
+                                env={**os.environ, "PYTHONPATH": str(ROOT / "modules/tsw_core/src")},
+                                capture_output=True, text=True, timeout=15)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        for entry in ("bootstrap/linux/install_debugger.py", "bootstrap/linux/preflight.py", "tools/linux/quality_gate.py"):
+            arguments = [sys.executable, str(ROOT / entry), "--help"]
+            # preflight preserves its documented --preflight prefix and forwards
+            # --help to the core CLI; every invocation remains read-only.
+            result = subprocess.run(arguments, cwd=ROOT, env={**os.environ, "PYTHONPATH": "src"},
+                                    capture_output=True, text=True, timeout=30)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_checker_detects_forbidden_edges_imports_and_missing_assets(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            (root / "src/tiny_swarm_world").mkdir(parents=True)
+            (root / "modules/tsw_core/src/tiny_swarm_world").mkdir(parents=True)
             for name in MODULES:
-                path = root / "src" / name
-                path.mkdir(exist_ok=True)
+                path = descriptor_path(root, name).parent
+                path.mkdir(parents=True, exist_ok=True)
                 descriptor = {"name": name, "project_dependencies": [] if name == "tsw_core" else ["tsw_core"],
                               "owned_assets": []}
                 (path / "module.json").write_text(json.dumps(descriptor))
@@ -73,7 +132,7 @@ class EditionModuleTests(unittest.TestCase):
             for owner, dependency in (("tsw_core", "tsw_windows_wsl"),
                                       ("tsw_windows_wsl", "tsw_native_linux"),
                                       ("tsw_native_linux", "tsw_windows_wsl")):
-                path = root / "src" / owner / "module.json"
+                path = descriptor_path(root, owner)
                 original = path.read_text()
                 descriptor = json.loads(original)
                 descriptor["project_dependencies"].append(dependency)
@@ -81,25 +140,27 @@ class EditionModuleTests(unittest.TestCase):
                 with self.assertRaises(AssertionError):
                     check_boundaries(root)
                 path.write_text(original)
-            injected = root / "src/tiny_swarm_world/invalid.py"
-            injected.write_text("import tsw_windows_wsl\n")
-            with self.assertRaises(AssertionError):
-                check_boundaries(root)
+            injected = root / "modules/tsw_core/src/tiny_swarm_world/invalid.py"
+            for content in ("import tsw_windows_wsl\n", "import modules.tsw_windows_wsl\n",
+                            'asset = root / "modules/tsw_windows_wsl/bootstrap/windows"\n'):
+                injected.write_text(content)
+                with self.assertRaises(AssertionError):
+                    check_boundaries(root)
             injected.unlink()
-            for owner, text in (("tsw_native_linux", 'exec "$ROOT/bootstrap/windows/prepare_windows.ps1"'),
+            for owner, text in (("tsw_native_linux", 'exec "$ROOT/modules/tsw_windows_wsl/bootstrap/windows/prepare_windows.ps1"'),
                                 ("tsw_windows_wsl", "exec ./install.sh")):
                 script = root / "bad.sh"
                 script.write_text(text)
-                descriptor_path = root / "src" / owner / "module.json"
-                original = descriptor_path.read_text()
+                descriptor_file = descriptor_path(root, owner)
+                original = descriptor_file.read_text()
                 descriptor = json.loads(original)
                 descriptor["owned_assets"] = ["bad.sh"]
-                descriptor_path.write_text(json.dumps(descriptor))
+                descriptor_file.write_text(json.dumps(descriptor))
                 with self.assertRaises(AssertionError):
                     check_boundaries(root)
-                descriptor_path.write_text(original)
+                descriptor_file.write_text(original)
                 script.unlink()
-            path = root / "src/tsw_core/module.json"
+            path = root / "modules/tsw_core/src/tsw_core/module.json"
             descriptor = json.loads(path.read_text())
             descriptor["owned_assets"] = ["missing-shared-script.sh"]
             path.write_text(json.dumps(descriptor))
@@ -109,43 +170,49 @@ class EditionModuleTests(unittest.TestCase):
     def test_native_public_entry_points_delegate_without_wsl_assets(self):
         with tempfile.TemporaryDirectory(prefix="tsw module ") as temporary:
             root = Path(temporary)
-            (root / "bootstrap/linux").mkdir(parents=True)
-            (root / "src/tiny_swarm_world").mkdir(parents=True)
+            (root / "modules/tsw_core/bootstrap/linux").mkdir(parents=True)
+            (root / "modules/tsw_native_linux").mkdir(parents=True)
+            (root / "modules/tsw_core/src/tiny_swarm_world").mkdir(parents=True)
             binary = root / "bin"
             binary.mkdir()
             python = binary / "python3"
             python.write_text('#!' + sys.executable + '\nimport json,os,sys\n'
                               'print(json.dumps({"argv":sys.argv[1:],"cwd":os.getcwd(),'
                               '"pythonpath":os.environ.get("PYTHONPATH"),'
-                              '"marker":os.environ.get("TSW_FIXTURE_MARKER")}))\n'
+                              '"marker":os.environ.get("TSW_FIXTURE_MARKER"),"stdin":sys.stdin.read()}))\n'
                               'raise SystemExit(int(os.environ["TSW_FIXTURE_EXIT"]))\n')
             python.chmod(0o755)
             for public, core, module in (("install.sh", "install.sh", "tiny_swarm_world.simple_installer"),
                                          ("tsw", "run.sh", "tiny_swarm_world")):
                 shutil.copy2(ROOT / public, root / public)
-                shutil.copy2(ROOT / "bootstrap/linux" / core, root / "bootstrap/linux" / core)
+                shutil.copy2(ROOT / "modules/tsw_native_linux" / public, root / "modules/tsw_native_linux" / public)
+                shutil.copy2(ROOT / "modules/tsw_core/bootstrap/linux" / core, root / "modules/tsw_core/bootstrap/linux" / core)
                 for status in (0, 17, 130):
                     arguments = ["--service-profile", "default", "space argument", "quote'\"$literal"]
                     env = {**os.environ, "PATH": str(binary) + os.pathsep + os.environ["PATH"],
                            "PYTHONPATH": "supplied", "TSW_FIXTURE_EXIT": str(status), "TSW_FIXTURE_MARKER": "preserved"}
-                    result = subprocess.run([str(root / public), *arguments], cwd="/", env=env,
+                    result = subprocess.run([str(root / public), *arguments], cwd="/", env=env, input="forwarded stdin",
                                             text=True, capture_output=True, timeout=15)
                     self.assertEqual(result.returncode, status, result.stderr)
                     observed = json.loads(result.stdout)
                     self.assertEqual(observed["argv"], ["-m", module, *arguments])
                     self.assertEqual(observed["cwd"], str(root))
-                    self.assertEqual(observed["pythonpath"], "supplied:src")
+                    self.assertEqual(observed["pythonpath"], "supplied:modules/tsw_core/src")
                     self.assertEqual(observed["marker"], "preserved")
+                    self.assertEqual(observed["stdin"], "forwarded stdin")
+                physical = subprocess.run([str(root / "modules/tsw_native_linux" / public), *arguments], input="physical stdin", cwd="/", env={**env, "TSW_FIXTURE_EXIT": "17"}, text=True, capture_output=True, timeout=15)
+                self.assertEqual(physical.returncode, 17, physical.stderr)
+                self.assertEqual(json.loads(physical.stdout)["stdin"], "physical stdin")
                 result = subprocess.run([str(root / public), "--help"], cwd="/", env={**env, "TSW_FIXTURE_EXIT": "0"},
                                         text=True, capture_output=True, timeout=15)
                 self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertFalse((root / "bootstrap/windows").exists())
+            self.assertFalse((root / "modules/tsw_windows_wsl/bootstrap/windows").exists())
 
     def test_windows_release_proof_needs_core_but_no_native_assets(self):
-        builder = runpy.run_path(str(ROOT / "tools/windows/build_windows_preparation_manifest.py"))
+        builder = runpy.run_path(str(ROOT / "modules/tsw_windows_wsl/tools/windows/build_windows_preparation_manifest.py"))
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            for relative in (*builder["ASSETS"], "install.sh", "tsw", "src/tsw_native_linux/module.json"):
+            for relative in (*builder["ASSETS"], "install.sh", "tsw", "modules/tsw_native_linux/module.json"):
                 path = root / relative
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text("fixture\n")
@@ -155,17 +222,17 @@ class EditionModuleTests(unittest.TestCase):
             git("init", "--quiet")
             git("add", ".")
             git("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "--quiet", "-m", "fixture")
-            for relative in ("install.sh", "tsw", "src/tsw_native_linux/module.json"):
+            for relative in ("install.sh", "tsw", "modules/tsw_native_linux/module.json"):
                 (root / relative).unlink()
             manifest = builder["build"](root)
             self.assertEqual(manifest["revision"], git("rev-parse", "HEAD").decode().strip())
-            (root / "bootstrap/linux/install.sh").write_text("edited core\n")
+            (root / "modules/tsw_core/bootstrap/linux/install.sh").write_text("edited core\n")
             with self.assertRaises(ValueError):
                 builder["build"](root)
 
     def test_touched_shell_syntax(self):
-        for relative in ("install.sh", "tsw", "bootstrap/linux/install.sh", "bootstrap/linux/run.sh",
-                         "bootstrap/windows/preparation/linux-handoff.sh"):
+        for relative in ("install.sh", "tsw", "modules/tsw_core/bootstrap/linux/install.sh", "modules/tsw_core/bootstrap/linux/run.sh",
+                         "modules/tsw_windows_wsl/bootstrap/windows/preparation/linux-handoff.sh"):
             result = subprocess.run(["bash", "-n", str(ROOT / relative)], capture_output=True, text=True, timeout=10)
             self.assertEqual(result.returncode, 0, result.stderr)
 

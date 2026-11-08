@@ -31,7 +31,7 @@ The combination of `--live` and answering `y` at the short interactive
 live-infrastructure confirmation prompt.
 
 Command catalog::
-Typed YAML configuration under `infra/config/**/command_*.yaml` that declares
+Typed YAML configuration under `modules/tsw_core/infra/config/**/command_*.yaml` that declares
 command identity, intent, safety class, workflow allow-list, parameters,
 effects, and verification metadata. The current product baseline intentionally
 contains no command catalog files after Multipass command removal.
@@ -43,7 +43,7 @@ used to claim current VM or Multipass runtime behavior.
 
 Desired inventory::
 Operator-approved target state. It may live in committed configuration under
-`infra/config`.
+`modules/tsw_core/infra/config`.
 
 Observed inventory::
 Runtime facts discovered from the local environment. It is stored only under

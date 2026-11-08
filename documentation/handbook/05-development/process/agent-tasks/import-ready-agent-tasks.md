@@ -29,8 +29,8 @@ avoiding production-code changes.
 ### Acceptance criteria
 - Current files are classified by responsibility.
 - Mixed-boundary findings include owner, risk, and follow-up agent.
-- `python3 tools/linux/quality_gate.py arch-lint` and
-  `python3 tools/linux/quality_gate.py arch-tests` pass or blockers are recorded.
+- `python3 modules/tsw_core/tools/linux/quality_gate.py arch-lint` and
+  `python3 modules/tsw_core/tools/linux/quality_gate.py arch-tests` pass or blockers are recorded.
 
 ### Dependencies
 - None
@@ -50,12 +50,12 @@ netplan handling, socat, Docker daemon installation, and Swarm init/join
 behavior.
 
 ### Evidence
-- former `src/tiny_swarm_world/application/services/multipass` (superseded)
-- `src/tiny_swarm_world/application/services/network`
-- `src/tiny_swarm_world/application/services/vm`
-- former `infra/config/multipass` (superseded)
-- `infra/config/docker`
-- `infra/config/network`
+- former `modules/tsw_core/src/tiny_swarm_world/application/services/multipass` (superseded)
+- `modules/tsw_core/src/tiny_swarm_world/application/services/network`
+- `modules/tsw_core/src/tiny_swarm_world/application/services/vm`
+- former `modules/tsw_core/infra/config/multipass` (superseded)
+- `modules/tsw_core/infra/config/docker`
+- `modules/tsw_core/infra/config/network`
 
 ### Recommended remediation
 Create small no-behavior-change slices that make platform ownership explicit and
@@ -82,11 +82,11 @@ Separate Dockerfile generation, image build/tag/push, Nexus registry setup, and
 Maven repository setup from platform provisioning and stack deployment.
 
 ### Evidence
-- `src/tiny_swarm_world/application/services/nexus`
-- `src/tiny_swarm_world/domain/nexus`
-- `src/tiny_swarm_world/application/ports/clients/port_nexus_client.py`
-- `src/tiny_swarm_world/infrastructure/adapters/clients/nexus_http_client.py`
-- `infra/config/compose/**/Dockerfile`
+- `modules/tsw_core/src/tiny_swarm_world/application/services/nexus`
+- `modules/tsw_core/src/tiny_swarm_world/domain/nexus`
+- `modules/tsw_core/src/tiny_swarm_world/application/ports/clients/port_nexus_client.py`
+- `modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/nexus_http_client.py`
+- `modules/tsw_core/infra/config/compose/**/Dockerfile`
 - Python artifact workflow contracts
 
 ### Recommended remediation
@@ -113,14 +113,14 @@ Separate compose stack definitions, Portainer stack upload, and service
 deployment lifecycle from platform provisioning and artifact publishing.
 
 ### Evidence
-- `src/tiny_swarm_world/domain/deployment`
-- `src/tiny_swarm_world/application/ports/clients/port_portainer_client.py`
-- `src/tiny_swarm_world/application/ports/repositories/port_compose_file_repository.py`
-- `src/tiny_swarm_world/infrastructure/adapters/clients/portainer_http_client.py`
-- `src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py`
-- `infra/config/compose`
-- image build contexts under `infra/config/compose`
-- `infra/config/compose`
+- `modules/tsw_core/src/tiny_swarm_world/domain/deployment`
+- `modules/tsw_core/src/tiny_swarm_world/application/ports/clients/port_portainer_client.py`
+- `modules/tsw_core/src/tiny_swarm_world/application/ports/repositories/port_compose_file_repository.py`
+- `modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/portainer_http_client.py`
+- `modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py`
+- `modules/tsw_core/infra/config/compose`
+- image build contexts under `modules/tsw_core/infra/config/compose`
+- `modules/tsw_core/infra/config/compose`
 - Python deployment workflow contracts
 
 ### Recommended remediation
@@ -147,8 +147,8 @@ Make `__main__.py` and `composition.py` reflect separated platform, artifact,
 and deployment workflows while preserving a thin entry point.
 
 ### Evidence
-- `src/tiny_swarm_world/__main__.py`
-- `src/tiny_swarm_world/infrastructure/composition.py`
+- `modules/tsw_core/src/tiny_swarm_world/__main__.py`
+- `modules/tsw_core/src/tiny_swarm_world/infrastructure/composition.py`
 
 ### Recommended remediation
 Add or prepare boundary-specific builder functions and keep concrete adapter
@@ -177,7 +177,7 @@ without executing live infrastructure.
 
 ### Evidence
 - `.importlinter`
-- `tools/linux/quality_gate.py`
+- `modules/tsw_core/tools/linux/quality_gate.py`
 - `tests/architecture/test_hexagonal_imports.py`
 
 ### Recommended remediation

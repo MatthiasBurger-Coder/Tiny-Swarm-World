@@ -427,7 +427,7 @@ def _valid_config_with_resource_resolution() -> dict[str, Any]:
 
 
 def _load_committed_config_data() -> object:
-    config_path = Path(__file__).resolve().parents[4] / "infra" / "config" / "node-providers" / "provider_config.yaml"
+    config_path = Path(__file__).resolve().parents[4] / "modules/tsw_core/infra/config" / "node-providers" / "provider_config.yaml"
     return YAML(typ="safe").load(config_path.read_text(encoding="utf-8"))
 
 

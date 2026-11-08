@@ -29,7 +29,7 @@ Use these statuses:
 | Linear history | Recommended | Current repository uses merge commits for workflow integration | Prefer linear history for product branches when the team adopts it; do not silently rewrite existing audit history. |
 | Signed commits | Recommended | No repository-wide signing configuration is verified here | Adopt when signer availability and verification policy are agreed; missing signature is not represented as currently enforced. |
 | Code scanning | Target state | Existing repository policies/workflows are reviewed separately | Require an observable configured check before making it a blocking GitHub rule. |
-| Code quality | Required now | `QUALITY.md` and `tools/linux/quality_gate.py quality` | Local quality evidence is mandatory; hosted enforcement remains an external setting to verify. |
+| Code quality | Required now | `QUALITY.md` and `modules/tsw_core/tools/linux/quality_gate.py quality` | Local quality evidence is mandatory; hosted enforcement remains an external setting to verify. |
 | Bypass permissions | Required now | This policy and PR review policy | Limit bypass to named administrators for documented emergencies; require issue, reason, evidence and follow-up review. |
 
 ## Merge relationship and evidence
@@ -37,7 +37,7 @@ Use these statuses:
 The canonical local gate is:
 
 ```text
-python3 tools/linux/quality_gate.py quality
+python3 modules/tsw_core/tools/linux/quality_gate.py quality
 ```
 
 It runs verification-policy consistency, complexity, lint, architecture lint,

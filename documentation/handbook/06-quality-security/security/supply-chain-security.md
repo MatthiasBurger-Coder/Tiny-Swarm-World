@@ -8,9 +8,9 @@ in `requirements.lock`.
 Local audit commands are:
 
 ```bash
-python3 tools/linux/security_gate.py dependencies
-python3 tools/linux/security_gate.py sbom
-python3 tools/linux/security_gate.py container-config
+python3 modules/tsw_core/tools/linux/security_gate.py dependencies
+python3 modules/tsw_core/tools/linux/security_gate.py sbom
+python3 modules/tsw_core/tools/linux/security_gate.py container-config
 ```
 
 The first two require the development tools in `requirements-dev.txt`. The

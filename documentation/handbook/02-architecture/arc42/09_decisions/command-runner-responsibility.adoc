@@ -84,5 +84,5 @@ and quality-gate coverage.
 * Affects: `documentation/handbook/02-architecture/arc42/06_runtime_view.adoc`
 * Affects: `documentation/handbook/02-architecture/arc42/08_concepts.adoc`
 * Related concept: command execution as infrastructure adapter responsibility.
-* Related code: `src/tiny_swarm_world/application/ports/commands`
-* Related code: `src/tiny_swarm_world/infrastructure/adapters/command_runner`
+* Related code: `modules/tsw_core/src/tiny_swarm_world/application/ports/commands`
+* Related code: `modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/command_runner`

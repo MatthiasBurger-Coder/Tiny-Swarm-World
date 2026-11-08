@@ -44,7 +44,7 @@ Files explicitly forbidden:
 - `infra`
 - `tests`
 - `.importlinter`
-- `tools/linux/quality_gate.py`
+- `modules/tsw_core/tools/linux/quality_gate.py`
 
 Expected behavior change:
 
@@ -60,8 +60,8 @@ Tests to add/update:
 
 Quality gate command:
 
-- `python3 tools/linux/quality_gate.py arch-lint`
-- `python3 tools/linux/quality_gate.py arch-tests`
+- `python3 modules/tsw_core/tools/linux/quality_gate.py arch-lint`
+- `python3 modules/tsw_core/tools/linux/quality_gate.py arch-tests`
 
 Rollback strategy:
 
@@ -90,10 +90,10 @@ Affected files/directories:
 
 Files explicitly forbidden:
 
-- former `src/tiny_swarm_world/application/services/multipass` (superseded)
-- `src/tiny_swarm_world/application/services/network`
-- `src/tiny_swarm_world/application/services/vm`
-- `src/tiny_swarm_world/application/services/nexus`
+- former `modules/tsw_core/src/tiny_swarm_world/application/services/multipass` (superseded)
+- `modules/tsw_core/src/tiny_swarm_world/application/services/network`
+- `modules/tsw_core/src/tiny_swarm_world/application/services/vm`
+- `modules/tsw_core/src/tiny_swarm_world/application/services/nexus`
 - `infra`
 
 Expected behavior change:
@@ -111,9 +111,9 @@ Tests to add/update:
 
 Quality gate command:
 
-- `python3 tools/linux/quality_gate.py arch-lint`
-- `python3 tools/linux/quality_gate.py arch-tests`
-- `python3 tools/linux/quality_gate.py test` if only static/unit tests are touched.
+- `python3 modules/tsw_core/tools/linux/quality_gate.py arch-lint`
+- `python3 modules/tsw_core/tools/linux/quality_gate.py arch-tests`
+- `python3 modules/tsw_core/tools/linux/quality_gate.py test` if only static/unit tests are touched.
 
 Rollback strategy:
 
@@ -135,18 +135,18 @@ Goal:
 
 Affected files/directories:
 
-- former `src/tiny_swarm_world/domain/multipass` (superseded)
-- `src/tiny_swarm_world/domain/network`
-- former `src/tiny_swarm_world/application/services/multipass` (superseded)
-- `src/tiny_swarm_world/application/services/network`
-- `src/tiny_swarm_world/application/services/vm`
+- former `modules/tsw_core/src/tiny_swarm_world/domain/multipass` (superseded)
+- `modules/tsw_core/src/tiny_swarm_world/domain/network`
+- former `modules/tsw_core/src/tiny_swarm_world/application/services/multipass` (superseded)
+- `modules/tsw_core/src/tiny_swarm_world/application/services/network`
+- `modules/tsw_core/src/tiny_swarm_world/application/services/vm`
 - platform-related ports and adapters
 - platform-related tests
 - platform sections in `documentation/handbook/02-architecture/arc42/05_analysis`
 
 Files explicitly forbidden:
 
-- `infra/config/compose`
+- `modules/tsw_core/infra/config/compose`
 - Nexus repository bootstrap logic
 - Portainer stack upload logic
 
@@ -166,7 +166,7 @@ Tests to add/update:
 
 Quality gate command:
 
-- `python3 tools/linux/quality_gate.py quality`
+- `python3 modules/tsw_core/tools/linux/quality_gate.py quality`
 
 Rollback strategy:
 
@@ -186,13 +186,13 @@ Goal:
 
 Affected files/directories:
 
-- `src/tiny_swarm_world/domain/deployment`
-- `src/tiny_swarm_world/application/ports/clients/port_portainer_client.py`
-- `src/tiny_swarm_world/application/ports/repositories/port_compose_file_repository.py`
-- `src/tiny_swarm_world/infrastructure/adapters/clients/portainer_http_client.py`
-- `src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py`
-- `infra/config/compose`
-- `infra/config/compose`
+- `modules/tsw_core/src/tiny_swarm_world/domain/deployment`
+- `modules/tsw_core/src/tiny_swarm_world/application/ports/clients/port_portainer_client.py`
+- `modules/tsw_core/src/tiny_swarm_world/application/ports/repositories/port_compose_file_repository.py`
+- `modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/portainer_http_client.py`
+- `modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/repositories/compose_file_repository_yaml.py`
+- `modules/tsw_core/infra/config/compose`
+- `modules/tsw_core/infra/config/compose`
 - deployment-related tests and docs
 
 Files explicitly forbidden:
@@ -218,7 +218,7 @@ Tests to add/update:
 
 Quality gate command:
 
-- `python3 tools/linux/quality_gate.py quality`
+- `python3 modules/tsw_core/tools/linux/quality_gate.py quality`
 
 Rollback strategy:
 
@@ -238,10 +238,10 @@ Goal:
 
 Affected files/directories:
 
-- `src/tiny_swarm_world/domain/nexus`
-- `src/tiny_swarm_world/application/services/nexus`
-- `src/tiny_swarm_world/application/ports/clients/port_nexus_client.py`
-- `src/tiny_swarm_world/infrastructure/adapters/clients/nexus_http_client.py`
+- `modules/tsw_core/src/tiny_swarm_world/domain/nexus`
+- `modules/tsw_core/src/tiny_swarm_world/application/services/nexus`
+- `modules/tsw_core/src/tiny_swarm_world/application/ports/clients/port_nexus_client.py`
+- `modules/tsw_core/src/tiny_swarm_world/infrastructure/adapters/clients/nexus_http_client.py`
 - artifact-related tests and docs
 
 Files explicitly forbidden:
@@ -266,7 +266,7 @@ Tests to add/update:
 
 Quality gate command:
 
-- `python3 tools/linux/quality_gate.py quality`
+- `python3 modules/tsw_core/tools/linux/quality_gate.py quality`
 
 Rollback strategy:
 
@@ -288,8 +288,8 @@ Goal:
 
 Affected files/directories:
 
-- `src/tiny_swarm_world/__main__.py`
-- `src/tiny_swarm_world/infrastructure/composition.py`
+- `modules/tsw_core/src/tiny_swarm_world/__main__.py`
+- `modules/tsw_core/src/tiny_swarm_world/infrastructure/composition.py`
 - CLI-facing documentation
 - workflow orchestration tests
 
@@ -313,7 +313,7 @@ Tests to add/update:
 
 Quality gate command:
 
-- `python3 tools/linux/quality_gate.py quality`
+- `python3 modules/tsw_core/tools/linux/quality_gate.py quality`
 
 Rollback strategy:
 
@@ -334,8 +334,8 @@ Goal:
 
 Affected files/directories:
 
-- `infra/config`
-- `infra/config/compose`
+- `modules/tsw_core/infra/config`
+- `modules/tsw_core/infra/config/compose`
 - `infra/utils.sh`
 - documentation and tests that reference these paths
 
@@ -359,7 +359,7 @@ Tests to add/update:
 
 Quality gate command:
 
-- `python3 tools/linux/quality_gate.py quality`
+- `python3 modules/tsw_core/tools/linux/quality_gate.py quality`
 
 Rollback strategy:
 
@@ -404,7 +404,7 @@ Tests to add/update:
 
 Quality gate command:
 
-- `python3 tools/linux/quality_gate.py quality`
+- `python3 modules/tsw_core/tools/linux/quality_gate.py quality`
 
 Rollback strategy:
 

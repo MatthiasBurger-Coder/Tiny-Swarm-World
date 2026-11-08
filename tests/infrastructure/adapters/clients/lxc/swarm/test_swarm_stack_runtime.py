@@ -46,7 +46,7 @@ class TestLxcSwarmStackRuntime(unittest.TestCase):
         self.addCleanup(temporary.cleanup)
         root = Path(temporary.name)
         for relative, content in (("swagger/openapi.json", "{}"), ("nginx/default.conf", "server {}")):
-            path = root / "infra/config/compose/swagger" / relative
+            path = root / "modules/tsw_core/infra/config/compose/swagger" / relative
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(content, encoding="utf-8")
         assets = StackAssetTransfer(

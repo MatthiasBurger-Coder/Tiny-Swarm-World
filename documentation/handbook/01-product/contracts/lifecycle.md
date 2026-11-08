@@ -46,7 +46,7 @@ Paths below are relative to the repository root and identify implementation auth
 
 | Surface | Verified behavior | Boundary / source |
 |---|---|---|
-| `bootstrap/linux/prepare_linux.sh` | Separate guarded prerequisite preparation; readiness is not service acceptance | `application/services/native_preparation.py`, `incus_preparation.py`, `network_preparation.py` and their infrastructure adapters under `src/tiny_swarm_world`; [bootstrap contract](bootstrap.md) |
+| `modules/tsw_core/bootstrap/linux/prepare_linux.sh` | Separate guarded prerequisite preparation; readiness is not service acceptance | `application/services/native_preparation.py`, `incus_preparation.py`, `network_preparation.py` and their infrastructure adapters under `modules/tsw_core/src/tiny_swarm_world`; [bootstrap contract](bootstrap.md) |
 | `install.sh` | Dependency-light wrapper selects simple installer; ordinary native/WSL installation reconciles after preparation | `install.sh`, `simple_installer.py`, `application/services/installation.py`, `infrastructure/adapters/installation/` |
 | Installer `--preflight`, `--dry-run` | Validate without installation mutation; dry-run describes reconciliation, not an exact release or selection transition | `InstallationService.run`; installer presentation/configuration adapters |
 | Installer reset | Explicit deprecated WSL `--confirm-reset`; native rejects it; separate exact reset intent and live consent | `_validate_install_mode`, [accepted reconciliation ADR](../../02-architecture/arc42/09_decisions/adr-wsl-install-reconciliation.adoc) |
@@ -96,10 +96,10 @@ explicitly because legacy updates leave configuration unchanged.
 | Upstream component version | Vendor software version, e.g. Jenkins upstream base; not the local Jenkins `0.2.0` image build version |
 | Image tag | Registry reference, potentially mutable; record separately from vendor version and TSW build/version |
 | Image digest | Immutable resolved content identity for applicable platform/manifest; record resolution and deployed task identity, never infer it from the tag |
-| Native service assets | `infra/config/compose/<stack>` packaging and Dockerfiles; `ContainerImageContract` owns artifact/build details; `ServiceStackContract` owns current deployment/readiness membership |
+| Native service assets | `modules/tsw_core/infra/config/compose/<stack>` packaging and Dockerfiles; `ContainerImageContract` owns artifact/build details; `ServiceStackContract` owns current deployment/readiness membership |
 | Logical catalog (#318 / W02) | One versioned service identity/version/dependency/lifecycle contract, incrementally implemented for Classic by W02. References native assets; includes capabilities/profile support, resources, migration/backup policy and supported targets. No copied second logical service schema |
 | Installation instance (W02) | Product/revision/install model, lock/schema identities, requested/resolved service IDs with dependency reasons, credential **references**, effective overrides, desired component/tag/digest/build identities, observed state and protected operation/checkpoint references |
-| Preflight / phase plan | Current `SetupManifest` is a fixed checklist, not persisted installation state. `default_installation_plan()` is typed executable phase authority; `infra/config/installation-plan.yaml` says its parser is future work, so YAML alone is not execution authority |
+| Preflight / phase plan | Current `SetupManifest` is a fixed checklist, not persisted installation state. `default_installation_plan()` is typed executable phase authority; `modules/tsw_core/infra/config/installation-plan.yaml` says its parser is future work, so YAML alone is not execution authority |
 
 #318 owns shared semantics; #314 owns capability vocabulary and future profile
 selection. #313's decomposition remains authoritative. W02 schema migrations
@@ -193,7 +193,7 @@ implicitly retry or compensate shared resources.
 ## 4. Service and dependency inventory
 
 This is an inventory of current coupling, **not a second machine-readable catalog**.
-All listed stack assets are under `infra/config/compose`; inspect contracts and
+All listed stack assets are under `modules/tsw_core/infra/config/compose`; inspect contracts and
 composition with them. No row asserts a new optionality or live qualification.
 
 | ID / layer | Current dependency and consequence for selection |
