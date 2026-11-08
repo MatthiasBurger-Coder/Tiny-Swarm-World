@@ -128,6 +128,27 @@ Refuses {Assert-WslBindingApproval $go $s 'Bind' ('9'*64)} 'BINDING_GO_EXPIRED'
 $tokens=$null;$parseErrors=$null
 $tree=[Management.Automation.Language.Parser]::ParseFile((Join-Path $RepositoryRoot 'tools/windows/qualification/wsl_acceptance_bridge_binding.ps1'),[ref]$tokens,[ref]$parseErrors)
 Check ($parseErrors.Count -eq 0) 'binding source parses'
+# Execute the actual nested module constructor, without the factory's provider
+# preflight or any port effect. Internal helpers must not replace the caller's
+# Source/Run, while explicit module invocation and captured ports remain usable.
+$constructors=@($tree.FindAll({param($a) $a -is [Management.Automation.Language.CommandAst] -and $a.GetCommandName() -ceq 'New-Module'},$true))
+Check ($constructors.Count -eq 1) 'one actual binding module constructor'
+$moduleSeam=New-Module -ArgumentList $RepositoryRoot,$constructors[0].Extent.Text -ScriptBlock {
+    param($root,$constructor)
+    function Source {return 'CALLER_SOURCE'}
+    function Run {return 'CALLER_RUN'}
+    $Scenario=@{source_root=$root;run_id=('7'*32)}
+    $nested=& ([scriptblock]::Create($constructor))
+    if($nested -isnot [Management.Automation.PSModuleInfo] -or $nested.ExportedFunctions.Count -ne 0){throw 'BINDING_HELPERS_EXPORTED'}
+    if((Source) -cne 'CALLER_SOURCE' -or (Run) -cne 'CALLER_RUN'){throw 'BINDING_CALLER_HELPERS_REPLACED'}
+    if((& $nested {Get-WslBindingPhaseSeconds 'Archive'}) -ne 180){throw 'BINDING_EXPLICIT_MODULE_CALL_BROKEN'}
+    if((& $nested {@($script:bindingPorts.Keys).Count}) -ne 18){throw 'BINDING_CAPTURED_PORTS_MISSING'}
+    $probe={& $nested {param($value) Get-WslBindingHash $value} @{proof='private-module'}}.GetNewClosure()
+    if((& $probe) -cnotmatch '\A[0-9a-f]{64}\z'){throw 'BINDING_MODULE_CLOSURE_BROKEN'}
+    Remove-Module $nested -Force
+    Export-ModuleMember -Function @() -Alias @()
+}
+Remove-Module $moduleSeam -Force;$script:cases++
 $definitions=@($tree.FindAll({param($a) $a -is [Management.Automation.Language.FunctionDefinitionAst] -and $a.Name -ceq 'StartOwned'},$true))
 Check ($definitions.Count -eq 1) 'one actual StartOwned body'
 $startModule=New-Module -ArgumentList $RepositoryRoot,$definitions[0].Extent.Text -ScriptBlock {
