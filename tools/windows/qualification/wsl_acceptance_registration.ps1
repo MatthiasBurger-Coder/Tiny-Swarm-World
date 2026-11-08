@@ -346,7 +346,7 @@ public static class Epic440RegistrationFile {
    try{& $script:prep {param($p) Set-PreparationPrivateAcl $p} $temporary
     $bytes=[Text.UTF8Encoding]::new($false).GetBytes($raw);$stream.Write($bytes,0,$bytes.Length);$stream.Flush($true)
    }finally{$stream.Dispose()}
-   if(Test-Path -LiteralPath $script:state){[IO.File]::Replace($temporary,$script:state,$null)}else{[IO.File]::Move($temporary,$script:state)}
+   if(Test-Path -LiteralPath $script:state){[IO.File]::Replace($temporary,$script:state,[System.Management.Automation.Language.NullString]::Value)}else{[IO.File]::Move($temporary,$script:state)}
    $script:loadedHash=Get-AcceptanceRegistrationDigest $raw
    return $state
   }

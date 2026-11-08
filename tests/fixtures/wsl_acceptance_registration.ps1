@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$RepositoryRoot,[switch]$CertificateTransportContract,[switch]$NativeExecutableContract,[switch]$BridgeLogContract)
+param([Parameter(Mandatory=$true)][string]$RepositoryRoot,[switch]$CertificateTransportContract,[switch]$NativeExecutableContract,[switch]$BridgeLogContract,[switch]$StateSaveContract)
 $ErrorActionPreference='Stop'
 . (Join-Path $RepositoryRoot 'tools/windows/qualification/wsl_acceptance_registration.ps1')
 function Assert($yes,[string]$code){if(!$yes){throw $code}}
@@ -58,6 +58,46 @@ function Ports([string]$fault=''){
   return $b
  }.GetNewClosure()
  $p._ctx=$ctx;return $p
+}
+if($StateSaveContract){
+ $s=Scenario (Baseline);$ports=New-WslAcceptanceRegistrationProductionPorts $s
+ $adapter=$ports.Save.Module.SessionState.PSVariable.GetValue('module')
+ Assert ($null -ne $adapter) 'actual_registration_save_module'
+ $temp=Join-Path ([IO.Path]::GetTempPath()) ('tsw-registration-state-'+[Guid]::NewGuid().ToString('N'))
+ [void][IO.Directory]::CreateDirectory($temp)
+ $actor=[Security.Principal.WindowsIdentity]::GetCurrent().User
+ $acl=[Security.AccessControl.DirectorySecurity]::new();$acl.SetOwner($actor);$acl.SetAccessRuleProtection($true,$false)
+ foreach($sid in @($actor,[Security.Principal.SecurityIdentifier]::new('S-1-5-18'),[Security.Principal.SecurityIdentifier]::new('S-1-5-32-544'))){
+  $acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($sid,'FullControl','ContainerInherit,ObjectInherit','None','Allow'))}
+ Set-Acl -LiteralPath $temp -AclObject $acl
+ try{
+  & $adapter {
+   param($temp)
+   $oldTask=$script:task;$oldState=$script:state;$oldHash=$script:loadedHash
+   try{
+    $script:task=$temp;$script:state=Join-Path $temp 'registration.json';$script:loadedHash=$null
+    $state=@{schema_version=1;stage='intent';receipt=$null;fixture='OWN_DUMMY_ONLY'}
+    $null=Save @{} $state
+    if((Load @{}).stage -cne 'intent'){throw 'FIRST_STATE_MOVE_FAILED'}
+    $state.stage='import_pending';$null=Save @{} $state
+    if((Load @{}).stage -cne 'import_pending'){throw 'PENDING_ATOMIC_REPLACE_FAILED'}
+    $state.stage='registered';$state.receipt=@{fixture='OWN_DUMMY_RECEIPT'};$null=Save @{} $state
+    $loaded=Load @{}
+    if($loaded.stage -cne 'registered' -or $loaded.receipt.fixture -cne 'OWN_DUMMY_RECEIPT'){throw 'RECEIPT_ATOMIC_REPLACE_FAILED'}
+    & $script:prep {param($p) Assert-PreparationEvidencePath $p} $script:state
+    $before=[IO.File]::ReadAllBytes($script:state)
+    $code='';try{$null=Save @{} @{oversized=('x'*131073)}}catch{$code=$_.Exception.Message}
+    if($code -cne 'STATE_BOUND' -or [Convert]::ToBase64String([IO.File]::ReadAllBytes($script:state)) -cne [Convert]::ToBase64String($before)){throw 'STATE_BOUND_WEAKENED'}
+    [IO.File]::WriteAllText($script:state,'{"fixture":"EXTERNAL_DUMMY_DRIFT"}',[Text.UTF8Encoding]::new($false))
+    $foreign=[IO.File]::ReadAllBytes($script:state)
+    $code='';try{$null=Save @{} $state}catch{$code=$_.Exception.Message}
+    if($code -cne 'STATE_CAS_DRIFT' -or [Convert]::ToBase64String([IO.File]::ReadAllBytes($script:state)) -cne [Convert]::ToBase64String($foreign)){throw 'CAS_DRIFT_OVERWRITTEN'}
+    if(@(Get-ChildItem -LiteralPath $temp -Filter '*.tmp').Count -ne 0){throw 'STATE_TEMP_LEAK'}
+   }finally{$script:task=$oldTask;$script:state=$oldState;$script:loadedHash=$oldHash}
+  } $temp
+ }finally{if([IO.Directory]::Exists($temp)){[IO.Directory]::Delete($temp,$true)}}
+ [ordered]@{status='PASS';cases=7;runtime_mutations=0;imports=0;test_files_only=$true}|ConvertTo-Json -Compress
+ exit 0
 }
 if($BridgeLogContract){
  $s=Scenario (Baseline);$ports=New-WslAcceptanceRegistrationProductionPorts $s

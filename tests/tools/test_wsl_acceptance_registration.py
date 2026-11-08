@@ -17,6 +17,27 @@ class WslAcceptanceRegistrationTests(unittest.TestCase):
         os.name == "nt" or (os.name == "posix" and WINDOWS_POWERSHELL.exists()),
         "Native Windows PowerShell runtime unavailable",
     )
+    def test_real_state_save_replaces_pending_and_receipt_and_retains_cas(self) -> None:
+        executable = "powershell.exe" if os.name == "nt" else str(WINDOWS_POWERSHELL)
+        result = subprocess.run(
+            [executable, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File",
+             _runtime_path(ROOT / "tests/fixtures/wsl_acceptance_registration.ps1", executable),
+             "-RepositoryRoot", _runtime_path(ROOT, executable), "-StateSaveContract"],
+            check=False, capture_output=True, timeout=60,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr.decode("utf-8", errors="backslashreplace"))
+        self.assertEqual(result.stderr, b"")
+        report = json.loads(result.stdout.decode("utf-8", errors="strict"))
+        self.assertEqual(report["status"], "PASS")
+        self.assertEqual(report["cases"], 7)
+        self.assertEqual(report["runtime_mutations"], 0)
+        self.assertEqual(report["imports"], 0)
+        self.assertTrue(report["test_files_only"])
+
+    @unittest.skipUnless(
+        os.name == "nt" or (os.name == "posix" and WINDOWS_POWERSHELL.exists()),
+        "Native Windows PowerShell runtime unavailable",
+    )
     def test_real_bridge_preservation_hashes_bounded_known_logs_in_full(self) -> None:
         executable = "powershell.exe" if os.name == "nt" else str(WINDOWS_POWERSHELL)
         result = subprocess.run(
