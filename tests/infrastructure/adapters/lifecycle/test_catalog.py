@@ -29,6 +29,22 @@ class NativeCatalogTests(unittest.TestCase):
         self.assertTrue(all(item.migration_policy == ("explicit-transitions" if item.service_id in {"portainer", "swagger", "traefik"} else "no-qualified-transition") for item in catalog.services))
         self.assertTrue(all(item.resources.qualification == "native-declarations-only" for item in catalog.services))
 
+    def test_injected_preview_text_reader_matches_legacy_catalog(self):
+        captured = []
+        def read(relative):
+            captured.append(relative)
+            return (ROOT / relative).read_text(encoding="utf-8")
+        self.assertEqual(NativeComponentCatalog(ROOT, text_reader=read).load(), NativeComponentCatalog(ROOT).load())
+        self.assertEqual(len(captured), 9)
+        self.assertEqual(len(set(captured)), 9)
+
+    def test_injected_reader_failure_is_sanitized(self):
+        def read(_relative):
+            raise PermissionError("SECRET /private")
+        with self.assertRaises(LifecycleStateError) as caught:
+            NativeComponentCatalog(ROOT, text_reader=read).load()
+        self.assertNotIn("SECRET", str(caught.exception))
+
     def test_mismatched_native_image_blocks_without_echoing_configuration(self):
         with patch("tiny_swarm_world.infrastructure.adapters.lifecycle.catalog.yaml.safe_load", return_value={"services": {"portainer": {"image": "SECRET_SENTINEL"}, "agent": {"image": "SECRET_SENTINEL"}}}):
             with self.assertRaises(LifecycleStateError) as caught:

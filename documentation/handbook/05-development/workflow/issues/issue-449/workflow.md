@@ -1,7 +1,7 @@
 # LCM-W09 — Selective installation and upgrades on native Linux and WSL2
 
 Workflow ID: `issue-449-lcm-w09`
-Status: ACTIVE_FOR_ISSUE_449 v1.61 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
+Status: ACTIVE_FOR_ISSUE_449 v1.71 — user-authorized issue execution; every slice requires fresh same-hash reviews and its own S3D EXECUTION_PLAN; live host mutations require scenario-specific GO
 Issue: [#449 LCM-W09](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449)
 Epic: [#440 LCM-04](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `feature/lcm-w09-issue449-implementation-20261027`
@@ -645,7 +645,7 @@ for UNC and drive roots. See
 aggregate PC-WSL verification. Source/resource authority remains unchanged;
 fresh actual host admission is still required.
 Baseline: `a0310224946b63e2152ff4086d22a450c3d0f214`
-ACTIVE_FOR_ISSUE_449 v1.42. The user explicitly authorized completion of issue #449 on the named test hosts. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
+ACTIVE_FOR_ISSUE_449 v1.71. The user explicitly authorized completion of issue #449 on the named test hosts and a bounded diagnosis of the latest native blocker. This permits issue execution to proceed, while each slice still requires fresh same-hash reviews and a phase-specific S3D EXECUTION_PLAN; every live host mutation still requires its applicable host/scenario admission and GO. The existing S449-02 pre-GO plan authorizes only its original exact read-only phase.
 Execution profile: `FULL_PATH — lifecycle/provider implementation, regression, documentation, native and WSL2 qualification`
 
 ## Executive Summary
@@ -1915,6 +1915,359 @@ documentation:
 stop_conditions: [missing exact-hash role GO or S3D, unsupported unit or process schema, unverified wrapper or child relation, raw-value leakage, expanded allowlist, changed F3 or artifact schema, host mutation, failed quality gate]
 ```
 
+##### Slice 02F5 — Classify the blocked Snap unit context without disclosure
+
+Historical authoring status: **PLANNED**. F5 has since been implemented and a bounded native F5 result is recorded in S449-02F6. A separately reviewed native S449-02F attempt from clean
+source `1ec15b3e9f7f943cdde85e43d00ec01ff9c7e9fd` exited 2 with
+`BLOCKED:SNAP_WRAPPER_CONTEXT_BLOCKED`; no inventory artifact or host mutation
+occurred. The reason is not known. The bounded F5 contract and D01–D08
+requirements are defined in `.codex/evidence/slice-449-02F5-design.md`.
+They explicitly extend the historical F4 no-diagnostic-CLI statement only
+for this separate diagnostic; normal F4 proof acceptance and errors remain
+unchanged. No existing result approves F5 implementation or native execution.
+
+The diagnostic uses exactly the existing fixed F4 systemctl queries and
+trusted allowed drop-in/environment reads; no additional command, socket,
+client, endpoint or resource query, arbitrary path, artifact or host mutation.
+The sole invocation is `python3 tools/qualification/native_runtime_inventory.py
+--diagnose-snap-context`. The flag must be the only argument; any combination,
+duplicate or value returns fixed `UNKNOWN` JSON and exit 2 without argparse
+usage, argument text or host access. The design specifies the initial fixed
+five-property unit snapshot followed by at most two identical F4 detailed
+systemctl queries, exact argv, collection/recheck/abort order and budgets.
+It performs in-memory bounded checks and emits exactly `status` and `reason`;
+status is always `BLOCKED_UNKNOWN`, exit 2. The closed reason priority is
+`EXECSTART_FORMAT_OR_TIME`, `CONTROL_GROUP`, `FRAGMENT_OR_HOOK`,
+`DROPIN_OR_ENV_SETTING`, `ENVIRONMENT_FILE_SPEC`, `DROPIN_CONTENT`,
+`ENVIRONMENT_FILE_CONTENT`, then `UNKNOWN`. Invalid/malformed, I/O, limit,
+drift, ambiguous prerequisite or no reproducible rejection yields `UNKNOWN`.
+Never emit raw values, paths, PIDs, arguments, environment, file content,
+exceptions or secret hashes. Recheck service/context/file identity and fail
+closed. Deadlines on local file operations remain cooperative.
+
+Same-hash Requirement, Architecture, Python Automation, Tester, Security and
+DevOps reviews and S3D are required before implementation. Run focused tests
+and the full required gate on exact bytes through the designated SSH PC WSL
+host. A native diagnostic requires a separate post-commit same-source plan,
+reviews and host GO; it is not an inventory, ownership proof or live support.
+An evidence-based correction and subsequent S449-02F retry each require their
+own separately authorized scope, review and GO. S449-02F remains BLOCKED until
+a fresh complete inventory succeeds; S449-02G requires that successful
+inventory and proof of exclusive ownership. S449-02H retains its YAML dependency
+on S449-02F and must not start before that prerequisite is satisfied. No later
+host mutation is authorized.
+
+```yaml
+slice_id: S449-02F5
+profile: BACKEND_AND_TESTS
+owner: Senior Python Automation Developer
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior DevOps Engineer, Senior Tester]
+affected_files: [tools/qualification/native_runtime_inventory.py, tools/qualification/native_lxd_snap_provenance.py, tests/tools/test_native_runtime_inventory.py, tests/tools/test_native_lxd_snap_provenance.py, documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, documentation/workflow/workflow.index.md, .codex/evidence/slice-449-02F5-design.md, .codex/evidence/slice-449-02F5-distribution.md, .codex/evidence/slice-449-02F5-consolidation.md]
+affected_modules: [native Snap context qualification diagnosis]
+affected_contracts: [closed symbolic diagnostic result, unchanged F4 fail-closed proof, no disclosure or host mutation]
+dependencies: [S449-02F4]
+parallel_group: sequential
+file_locks: [tools/qualification/native_runtime_inventory.py, tools/qualification/native_lxd_snap_provenance.py, tests/tools/test_native_runtime_inventory.py, tests/tools/test_native_lxd_snap_provenance.py, documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, documentation/workflow/workflow.index.md, .codex/evidence/slice-449-02F5-design.md, .codex/evidence/slice-449-02F5-distribution.md, .codex/evidence/slice-449-02F5-consolidation.md]
+module_locks: [native Snap proof and diagnostic]
+contract_locks: [closed reason enum, F4 acceptance and errors unchanged, no sensitive values or artifact]
+architecture_locks: [qualification only, no product or host mutation]
+quality_gates:
+  targeted: [PYTHONPATH=src python3 -m unittest tests.tools.test_native_runtime_inventory tests.tools.test_native_lxd_snap_provenance]
+  required: [python3 tools/quality_gate.py quality, git diff --check]
+documentation:
+  arc42: no change; qualification-only diagnostic
+  adr: no change; no ownership, version admission or runtime policy change
+stop_conditions: [unknown or drifting identities, unsafe path or disclosure, altered F4 acceptance, extra host command or resource call, output or deadline limit, missing independent review, mismatched source, any host mutation]
+```
+
+
+##### Slice 02F6 — Classify the rejected Snap drop-in form without disclosure
+
+Historical authoring status: PLANNED. F6 was implemented at 4f52873330b665ab013b607c26d7172194ff375b and a bounded native result is recorded in F7; that private result still needs independent review. A separately reviewed native F5 diagnosis on source
+04a0c3cf3b641775cad59da12a7951e0eb5035cc returned BLOCKED_UNKNOWN /
+DROPIN_CONTENT and exit 2. It did not disclose file values or admit inventory,
+identity, support or ownership. Private evidence must be independently reviewed
+for the later host phase. The user requested a separate bounded diagnosis.
+
+The sole F6 invocation is python3 tools/qualification/native_runtime_inventory.py
+--diagnose-snap-dropin. Any other argument, duplicate, combination or value
+returns fixed UNKNOWN JSON and exit 2 without argparse or host access. Every
+result is a closed JSON object containing status BLOCKED_UNKNOWN and reason
+SECTION_SHAPE, UNKNOWN_DIRECTIVE, DEPENDENCY_VARIANT or UNKNOWN; exit is 2.
+No raw content, values, paths, PIDs, arguments, exceptions or secret hashes.
+
+Only the F5 fixed initial five-property query and up to two existing detailed
+F4 unit queries are allowed, with the same order, state/PID checks, arguments
+and bounds. After unit-level F4 checks pass, use existing descriptor-bound
+no-follow trust checks to read only fixed F4 UNIT_FILE and, if its exact
+reference is admitted, DROP_IN. Never derive a path from unit data or read
+/etc/environment, even on a valid drop-in. Candidate categories require a
+reproducible F5 DROPIN_CONTENT rejection on the same trusted snapshot; before
+emission repeat the detailed query and re-observe each file actually read,
+requiring identical trusted descriptor identities and bytes. Unknown state,
+I/O or drift yields UNKNOWN; no extra commands, resource calls or mutation.
+
+After exact F4 blank/comment filtering, CR, NUL, any backslash escape or
+continuation, invalid UTF-8, ambiguous syntax, I/O, trust, limits or a
+non-reproducible rejection produce UNKNOWN. Otherwise use strict priority:
+SECTION_SHAPE if section structure is not exactly one first [Unit];
+UNKNOWN_DIRECTIVE if there is not exactly one subsequent After= line or an
+additional significant line or duplicate; DEPENDENCY_VARIANT only if section
+and directive shape pass but the complete After= line differs from F4's exact
+accepted line. Category is only a form observation, never a safety judgment or
+permission to broaden accepted grammar. Detailed D01–D10 and collection rules
+are in .codex/evidence/slice-449-02F6-design.md. F4/F5 behavior is unchanged.
+
+F6 explicitly extends the historical F5 sole-CLI contract, without changing
+the latter's behavior. Six same-hash Requirement, Architecture, Python, Tester,
+Security and DevOps reviews and S3D precede implementation. Run targeted tests,
+direct Ruff on the two qualification tools and full QUALITY on the designated
+SSH PC WSL host on exact bytes. A native diagnosis requires a separate
+post-commit exact-source six-role plan, S3D and host GO. It does not admit an
+automatic correction or inventory retry. S449-02F remains BLOCKED; 02G and 02H
+retain their explicit S449-02F dependencies and other gates.
+
+```yaml
+slice_id: S449-02F6
+profile: BACKEND_AND_TESTS
+owner: Senior Python Automation Developer
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior DevOps Engineer, Senior Tester]
+affected_files: [tools/qualification/native_runtime_inventory.py, tools/qualification/native_lxd_snap_provenance.py, tests/tools/test_native_runtime_inventory.py, tests/tools/test_native_lxd_snap_provenance.py, documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, documentation/workflow/workflow.index.md, .codex/evidence/slice-449-02F6-design.md, .codex/evidence/slice-449-02F6-distribution.md, .codex/evidence/slice-449-02F6-consolidation.md]
+affected_modules: [native Snap drop-in qualification diagnosis]
+affected_contracts: [closed structural reason enum, unchanged F4 and F5 acceptance, no disclosure or host mutation]
+dependencies: [S449-02F5]
+parallel_group: sequential
+file_locks: [tools/qualification/native_runtime_inventory.py, tools/qualification/native_lxd_snap_provenance.py, tests/tools/test_native_runtime_inventory.py, tests/tools/test_native_lxd_snap_provenance.py, documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, documentation/workflow/workflow.index.md, .codex/evidence/slice-449-02F6-design.md, .codex/evidence/slice-449-02F6-distribution.md, .codex/evidence/slice-449-02F6-consolidation.md]
+module_locks: [native Snap proof and diagnostic]
+contract_locks: [closed F6 reason enum, F4 and F5 acceptance unchanged, fixed trusted files, no sensitive values or artifact]
+architecture_locks: [qualification only, no product or host mutation]
+quality_gates:
+  targeted: [PYTHONPATH=src python3 -m unittest tests.tools.test_native_runtime_inventory tests.tools.test_native_lxd_snap_provenance, python3 -m ruff check tools/qualification/native_runtime_inventory.py tools/qualification/native_lxd_snap_provenance.py]
+  required: [python3 tools/quality_gate.py quality, git diff --check]
+documentation:
+  arc42: no change; qualification-only diagnosis
+  adr: no change; no ownership, version admission or runtime policy change
+stop_conditions: [unverified F5 result, unknown or drifting identity, unsafe path or disclosure, altered F4 or F5 behavior, environment read, extra host command or resource call, deadline or output limit, missing review, mismatched source, any host mutation]
+```
+
+##### Slice 02F7 — Compare a source-bound Snap generator form
+
+Historical authoring status: PLANNED. F7 was implemented at fd8dd1478329ee00a907822b4e43b19efc14a631 and its bounded native diagnosis returned BLOCKED_UNKNOWN / UNKNOWN, exit 2; private evidence requires independent review. Native F6 source 4f52873330b665ab013b607c26d7172194ff375b
+returned BLOCKED_UNKNOWN / DEPENDENCY_VARIANT, exit 2; private F6 evidence
+requires independent review before F7 host phase. The exact public source,
+digest, sixteen static tokens and bounded subset grammar are normative in
+`.codex/evidence/slice-449-02F7-design.md`; this is a read/contract lock.
+
+Only `--diagnose-snap-generator-form` alone is valid. Every result is a
+closed JSON status BLOCKED_UNKNOWN with reason MATCH or UNKNOWN and exit 2.
+Invalid CLI combinations produce UNKNOWN without host I/O. MATCH is only
+stable form correlation, never actual authorship, identity, safety or
+inventory admission. No raw data, path, PID, argv or secret hash is emitted.
+
+Use the existing fixed F5 initial unit query plus at most two F4 detailed
+queries. Reproduce F6 rejection on fixed trusted UNIT_FILE/DROP_IN. Bind the
+active fixed service/PID/cgroup and Snap revision 40958 through existing
+bounded `_Proof.process`, `_Proof.main_environment` and `_Proof.shell`.
+Use `_Proof.pair` to read only the fixed validated-revision script in host
+and PID-root views with no-follow, root/mode, read-only package device,
+identity/bytes equality, 1 MiB cap and exact pinned public SHA-256; never
+execute it. Process environment/argv stay in memory and are not emitted,
+retained or hashed. Do not read `/etc/environment`. Recheck unit, process,
+script and fixed drop-in descriptors/identity/bytes before output. Fixed
+closed grammar, deadlines and aggregate budgets are in the F7 design. Unknown,
+trust, I/O, malformed syntax, changed revision or drift => UNKNOWN. No
+additional systemctl, client, socket, resource, network or host mutation.
+
+This F7-only extension to F6's no-extra-file contract does not change normal
+F4/F5/F6 behavior or admit identity. Six same-hash role reviews, S3D,
+exact-source SSH PC WSL targeted tests, direct Ruff and full QUALITY are
+required. A separate post-commit native plan/S3D/JIT/GO is required before
+one host diagnostic; correction and S449-02F inventory each need separately
+reviewed phases. S449-02F remains BLOCKED; 02G and 02H retain prerequisites.
+
+```yaml
+slice_id: S449-02F7
+profile: BACKEND_AND_TESTS
+owner: Senior Python Automation Developer
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior DevOps Engineer, Senior Tester]
+affected_files: [tools/qualification/native_runtime_inventory.py, tools/qualification/native_lxd_snap_provenance.py, tests/tools/test_native_runtime_inventory.py, tests/tools/test_native_lxd_snap_provenance.py, documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, documentation/workflow/workflow.index.md, .codex/evidence/slice-449-02F7-design.md, .codex/evidence/slice-449-02F7-distribution.md, .codex/evidence/slice-449-02F7-consolidation.md]
+affected_modules: [native Snap source-bound generator-form diagnosis]
+affected_contracts: [pinned source and revision, closed symbolic result, unchanged F4 F5 F6 behavior, no disclosure or host mutation]
+dependencies: [S449-02F6]
+parallel_group: sequential
+file_locks: [tools/qualification/native_runtime_inventory.py, tools/qualification/native_lxd_snap_provenance.py, tests/tools/test_native_runtime_inventory.py, tests/tools/test_native_lxd_snap_provenance.py, documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, documentation/workflow/workflow.index.md, .codex/evidence/slice-449-02F7-design.md, .codex/evidence/slice-449-02F7-distribution.md, .codex/evidence/slice-449-02F7-consolidation.md]
+module_locks: [native Snap proof and diagnostics]
+contract_locks: [closed F7 result, fixed source grammar, F4 F5 F6 behavior unchanged, no sensitive output or artifact]
+architecture_locks: [qualification only, no product or host mutation]
+quality_gates:
+  targeted: [PYTHONPATH=src python3 -m unittest tests.tools.test_native_runtime_inventory tests.tools.test_native_lxd_snap_provenance, python3 -m ruff check tools/qualification/native_runtime_inventory.py tools/qualification/native_lxd_snap_provenance.py]
+  required: [python3 tools/quality_gate.py quality, git diff --check]
+documentation:
+  arc42: no change; qualification-only diagnosis
+  adr: no change; no ownership, support or runtime policy change
+stop_conditions: [unverified F6 result, unknown or drifting unit PID revision script or drop-in, unsafe path or disclosure, altered F4 F5 F6 behavior, environment-file read, extra host command or resource call, deadline or output limit, missing review, mismatched source, any host mutation]
+```
+
+
+##### Slice 02F8 — Diagnose the first reproducible F7 failure stage
+
+Historical authoring status: PLANNED. F8 was subsequently implemented at
+7615a29962b0fd3ae2d44e4246893335ad9fadd3 and its bounded native diagnosis
+returned BLOCKED_UNKNOWN / PROCESS_BINDING, exit 2; private evidence requires
+independent review. The separately reviewed native F7 diagnosis on source
+fd8dd1478329ee00a907822b4e43b19efc14a631 returned BLOCKED_UNKNOWN / UNKNOWN,
+exit 2; no failure cause or inventory admission follows. Private native records
+must be independently reviewed before the F8 host phase. The user requested
+continued investigation. The normative stage, stability, recheck, budget,
+disclosure and D01–D10 contract is .codex/evidence/slice-449-02F8-design.md.
+
+Only python3 tools/qualification/native_runtime_inventory.py
+--diagnose-snap-generator-stage with the flag alone is valid. Invalid, duplicate,
+combined, equals-value and help inputs return fixed UNKNOWN JSON/exit 2 without
+argparse leakage or host I/O. All outputs are two-field BLOCKED_UNKNOWN JSON and
+exit 2. Closed priority: UNIT_CONTEXT, DROPIN_TRUST_OR_FORM, PROCESS_BINDING,
+REVISION_BINDING, SHELL_BINDING, SCRIPT_PAIR_OR_DIGEST, RECHECK_DRIFT, UNKNOWN.
+
+Classify only explicit typed deterministic negative predicates, with previously
+acquired trusted observations independently and stably rechecked within the
+existing F7 limits. Never map arbitrary exception strings. I/O/permission,
+parse/schema, timeout/limits, ambiguity or incomplete/failed recheck returns
+UNKNOWN. A successful F7 path returns UNKNOWN. RECHECK_DRIFT requires two fully
+trusted semantically comparable successful observations which differ. Preserve
+the first F7-stage priority; do not access later unsafe stages to force a reason.
+No value, PID, argv, environment, secret hash, error text, path or traceback
+appears on either stream. No identity, ownership, safety or inventory admission.
+
+Only F7 fixed initial and up to two detailed systemctl queries and existing
+bounded trusted fixed unit/drop-in, validated PID/process/shell/revision, script
+pair and necessary in-memory proc reads are allowed. No extra subprocess,
+derived path, client/socket/network, /etc/environment, host mutation or
+inventory artifact. F4–F7 behavior remains unchanged. Six same-hash roles and
+S3D precede implementation. Exact-source SSH PC WSL targeted tests, direct
+Ruff and full QUALITY precede an independently reviewed post-commit host
+plan/S3D/JIT/GO. S449-02F remains BLOCKED; 02G/02H retain prerequisites.
+
+```yaml
+slice_id: S449-02F8
+profile: BACKEND_AND_TESTS
+owner: Senior Python Automation Developer
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior DevOps Engineer, Senior Tester]
+affected_files: [tools/qualification/native_runtime_inventory.py, tools/qualification/native_lxd_snap_provenance.py, tests/tools/test_native_runtime_inventory.py, tests/tools/test_native_lxd_snap_provenance.py, documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, documentation/workflow/workflow.index.md, .codex/evidence/slice-449-02F8-design.md, .codex/evidence/slice-449-02F8-distribution.md, .codex/evidence/slice-449-02F8-consolidation.md]
+affected_modules: [native Snap shared proof and stage diagnosis]
+affected_contracts: [closed typed failure-stage enum, trusted stable observations, unchanged F4 F5 F6 F7, no disclosure or host mutation]
+dependencies: [S449-02F7]
+parallel_group: sequential
+file_locks: [tools/qualification/native_runtime_inventory.py, tools/qualification/native_lxd_snap_provenance.py, tests/tools/test_native_runtime_inventory.py, tests/tools/test_native_lxd_snap_provenance.py, documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, documentation/workflow/workflow.index.md, .codex/evidence/slice-449-02F8-design.md, .codex/evidence/slice-449-02F8-distribution.md, .codex/evidence/slice-449-02F8-consolidation.md]
+module_locks: [native Snap proof and diagnostics]
+contract_locks: [closed typed stage enum, F4 F5 F6 F7 invariants, existing read and command budget, no sensitive output or artifact]
+architecture_locks: [qualification only, no product or host mutation]
+quality_gates:
+  targeted: [PYTHONPATH=src python3 -m unittest tests.tools.test_native_runtime_inventory tests.tools.test_native_lxd_snap_provenance, python3 -m ruff check tools/qualification/native_runtime_inventory.py tools/qualification/native_lxd_snap_provenance.py]
+  required: [python3 tools/quality_gate.py quality, git diff --check]
+documentation:
+  arc42: no change; qualification-only diagnostic
+  adr: no change; no ownership, support or runtime policy change
+stop_conditions: [unverified F7 result, missing exact-hash review or S3D, unstable or unsafe observations, disclosure, changed F4 F5 F6 F7 behavior, environment-file read, extra host command or resource call, deadline or output limit, any host mutation]
+```
+
+##### Slice 02F9 — Classify the rejected process cgroup relation
+
+Status: **HISTORICAL — implemented and executed**. Native F9 source `4adcdfe456afddd881820c9a060a53113a2febfd` returned `BLOCKED_UNKNOWN / PROC_ROOT`, exit 2; its private result requires independent review. This does not establish a cause, namespace identity, inventory success or host admission.
+
+Earlier F9 planning basis: Native F8 source
+`7615a29962b0fd3ae2d44e4246893335ad9fadd3` returned
+`BLOCKED_UNKNOWN / PROCESS_BINDING`, exit 2. Code links this bounded stage to
+a reproducible cgroup-v2 path mismatch, not its cause, namespace, process
+identity or ownership. The private result must be independently reviewed
+before an F9 host phase; no inventory or host mutation is claimed.
+
+The only F9 invocation is `python3 tools/qualification/native_runtime_inventory.py
+--diagnose-snap-cgroup-relation`. If this flag is mixed with any other argument
+or supplied as a duplicate or value, emit fixed UNKNOWN JSON and exit 2 without
+argparse or host I/O. Calls without the flag preserve F4–F8 behavior. The output
+is exactly two JSON keys, status `BLOCKED_UNKNOWN`, reason
+`PROC_ROOT|PROC_STRICT_ANCESTOR|PROC_STRICT_DESCENDANT|DISJOINT|UNKNOWN`,
+and exit 2. Never disclose raw values, paths, PID, arguments or sensitive
+hashes. The comparison is component-based; `/a` is not an ancestor of `/ab`.
+Its direction, root precedence, syntax, exact F8 input/recheck requirements,
+budget, D01–D10 and failure handling are normative in
+`.codex/evidence/slice-449-02F9-design.md` and are locked for this slice.
+
+No common cgroup namespace is assumed or proven. Unit ControlGroup root is
+rejected by the unchanged F8 context guard: a pure helper may test its
+mathematical relation, but the F9 diagnostic returns UNKNOWN and never admits
+that context. Only F8's already admitted
+fixed queries and trusted unit/drop-in/process snapshots may be consumed or
+rechecked under the same command, byte and cooperative deadline budgets. No
+additional file, systemd command, client, socket, network, /etc/environment,
+artifact or host mutation is authorized. F4–F8 acceptance and outputs remain
+unchanged. I/O, invalid input, drift, incomplete recheck or non-reproduced
+F8 mismatch returns UNKNOWN. Every relation is a bounded observation only.
+
+Six same-hash Requirement, Architecture, Python, Tester, Security and DevOps
+reviews plus S3D precede implementation. Exact-source targeted tests, direct
+Ruff and full QUALITY run on the designated SSH PC WSL host. A separate
+post-commit exact-source plan, independent reviews, S3D/JIT and host GO are
+required before at most one native diagnosis. A correction or new S449-02F
+inventory requires its own scope, evidence and review; S449-02F remains
+BLOCKED and 02G/02H retain successful-inventory prerequisites.
+
+```yaml
+slice_id: S449-02F9
+profile: BACKEND_AND_TESTS
+owner: Senior Python Automation Developer
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior DevOps Engineer, Senior Tester]
+affected_files: [tools/qualification/native_runtime_inventory.py, tools/qualification/native_lxd_snap_provenance.py, tests/tools/test_native_runtime_inventory.py, tests/tools/test_native_lxd_snap_provenance.py, documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, documentation/workflow/workflow.index.md, .codex/evidence/slice-449-02F9-design.md, .codex/evidence/slice-449-02F9-distribution.md, .codex/evidence/slice-449-02F9-consolidation.md]
+affected_modules: [native Snap process and cgroup relation diagnosis]
+affected_contracts: [closed componentwise reason enum, trusted stable F8 snapshots, unchanged F4 F5 F6 F7 F8, no disclosure or host mutation]
+dependencies: [S449-02F8]
+parallel_group: sequential
+file_locks: [tools/qualification/native_runtime_inventory.py, tools/qualification/native_lxd_snap_provenance.py, tests/tools/test_native_runtime_inventory.py, tests/tools/test_native_lxd_snap_provenance.py, documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, documentation/workflow/workflow.index.md, .codex/evidence/slice-449-02F9-design.md, .codex/evidence/slice-449-02F9-distribution.md, .codex/evidence/slice-449-02F9-consolidation.md]
+module_locks: [native Snap proof and diagnostics]
+contract_locks: [closed componentwise enum, F4 F5 F6 F7 F8 invariants, existing read and command budget, no sensitive output or artifact]
+architecture_locks: [qualification only, no product or host mutation]
+quality_gates:
+  targeted: [PYTHONPATH=src python3 -m unittest tests.tools.test_native_runtime_inventory tests.tools.test_native_lxd_snap_provenance, python3 -m ruff check tools/qualification/native_runtime_inventory.py tools/qualification/native_lxd_snap_provenance.py]
+  required: [python3 tools/quality_gate.py quality, git diff --check]
+documentation:
+  arc42: no change; qualification-only diagnostic
+  adr: no change; no ownership, namespace, support or runtime policy change
+stop_conditions: [unverified F8 result, missing exact-hash review or S3D, unstable or unsafe observations, namespace inference, disclosure, changed F4 F5 F6 F7 F8 behavior, additional file or host command, resource access, deadline or output limit, any host mutation]
+```
+
+##### Slice 02F10 — Compare the current reader and visible PID 1 cgroup namespaces
+
+Status: **PLANNED**. F9 native source `4adcdfe456afddd881820c9a060a53113a2febfd` returned `BLOCKED_UNKNOWN / PROC_ROOT`, exit 2; private result requires independent review. F9 made no namespace reads. The kernel documents that the reader's cgroup namespace controls the view of `/proc/<target>/cgroup`; this observation does not establish the F9 reader, target process or PID 1 namespace identity, nor a cause. See [kernel cgroup v2 namespace documentation](https://docs.kernel.org/admin-guide/cgroup-v2.html#namespace).
+
+The separate sole invocation `python3 tools/qualification/native_runtime_inventory.py --diagnose-snap-reader-namespace` emits exactly `status=BLOCKED_UNKNOWN` and `reason=SAME|DIFFERENT|UNKNOWN` as two JSON fields and exits 2. Invalid combinations, duplicate flags and flag values emit UNKNOWN without host I/O. Existing F4–F9 behavior stays unchanged. SAME or DIFFERENT describes only this F10 reader versus its visible PID 1, never host/initial namespace, target namespace, membership, safety, admission or the cause of F9. F10 is the sole narrow exception to F9's no-namespace-read boundary. The design and safety requirements in `.codex/evidence/slice-449-02F10-design.md` are mandatory; unsupported ABI, unverified filesystem provenance or unproven reader binding must fail UNKNOWN. Within the existing F4 trusted local-root boundary, fixed proc self readlink must equal getpid; pinned procfs traversal uses openat2 no-cross-mount/no-symlink resolution and statx mount IDs. Final fixed link descriptors are checked before namespace FDs are followed and rechecked; unavailable or uncertain checks have no fallback. No host or initial PID namespace is inferred. S449-02F remains BLOCKED, and 02G/02H retain successful-inventory prerequisites.
+
+```yaml
+slice_id: S449-02F10
+profile: BACKEND_AND_TESTS
+owner: Senior Python Automation Developer
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior DevOps Engineer, Senior Tester]
+affected_files: [tools/qualification/native_runtime_inventory.py, tools/qualification/native_lxd_snap_provenance.py, tests/tools/test_native_runtime_inventory.py, tests/tools/test_native_lxd_snap_provenance.py, documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, documentation/workflow/workflow.index.md, .codex/evidence/slice-449-02F10-design.md, .codex/evidence/slice-449-02F10-distribution.md, .codex/evidence/slice-449-02F10-consolidation.md]
+affected_modules: [native Snap diagnostic]
+affected_contracts: [fixed namespace comparison, F9 baseline, no disclosure, unchanged F4-F9]
+dependencies: [S449-02F9]
+parallel_group: sequential
+file_locks: [tools/qualification/native_runtime_inventory.py, tools/qualification/native_lxd_snap_provenance.py, tests/tools/test_native_runtime_inventory.py, tests/tools/test_native_lxd_snap_provenance.py, documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, documentation/workflow/workflow.index.md, .codex/evidence/slice-449-02F10-design.md, .codex/evidence/slice-449-02F10-distribution.md, .codex/evidence/slice-449-02F10-consolidation.md]
+module_locks: [native Snap proof and diagnostics]
+contract_locks: [standalone flag and closed output, trusted procfs and namespace type, pinned identities and F9 recheck, no disclosure]
+architecture_locks: [F10-only read exception, no runtime behavior change, bounded read-only, no new network or commands]
+quality_gates:
+  targeted: [PYTHONPATH=src python3 -m unittest tests.tools.test_native_runtime_inventory tests.tools.test_native_lxd_snap_provenance, python3 -m ruff check tools/qualification/native_runtime_inventory.py tools/qualification/native_lxd_snap_provenance.py]
+  required: [python3 tools/quality_gate.py quality, git diff --check]
+documentation:
+  arc42: no change; qualification-only diagnostic
+  adr: no change; existing F4 trust boundary and no runtime policy change
+stop_conditions: [unverified F9 evidence, unsupported ABI, unsafe procfs or namespace descriptor, identity drift, resource limit, missing six reviews or S3D, disclosure, F4-F9 regression, host mutation]
+```
+
+Six independent same-hash Requirement, Architecture, Python, Tester, Security and DevOps reviews plus S3D EXECUTION_PLAN precede implementation. A separate exact-source host plan, JIT checks, independent review and host GO follow implementation and successful SSH PC WSL quality; only one F10 diagnostic execution is authorized within that separate phase. Neither this plan nor quality results constitute host GO or successful inventory.
+
+##### Conditional Slice 02G — Native LXD maintenance for TSW replacement
+
 ##### Conditional Slice 02G — Preserving temporary native LXD maintenance
 
 Under v1.49, S02G may be authored for the preserving temporary-maintenance
@@ -2683,6 +3036,13 @@ GitHub #449 be closed. Otherwise status remains INCOMPLETE/BLOCKED/FAILED.
 S449-01 → S449-02C → S449-02D → S449-02E → S449-02F; S449-02F → S449-02G (conditional native maintenance) → S449-02 (native); S449-02F → S449-02H (verify Windows feature applicability); if feature is required, 02H → explicit Windows-host GO and restart/recovery → S449-02 (WSL); if authoritative evidence proves Store WSL exception applies, 02H → S449-02I (policy/tests) → fresh same-hash review/S3D → new read-only preflight → S449-02 (WSL); S449-02 (both hosts accepted) → S449-03 → S449-04 → S449-05 → S449-06 → S449-07 → S449-08 → S449-09
 ```
 
+The 2026-10-29 blocked native attempt adds the separate serial diagnostic
+`S449-02F4 → S449-02F5 → separately reviewed post-commit F5 diagnosis → S449-02F6 → separately reviewed post-commit F6 diagnosis → S449-02F7 → separately reviewed post-commit F7 diagnosis → S449-02F8 → separately reviewed post-commit F8 diagnosis → S449-02F9 → separately reviewed post-commit F9 diagnosis → S449-02F10 → separately reviewed post-commit F10 diagnosis`. Later correction and successful S449-02F inventory remain separate prerequisites.
+The diagnostic observation alone does not release the next inventory retry;
+any supported correction needs a separately governed decision, then a fresh
+post-commit S449-02F plan and GO. This phase-specific retry is not a new edge
+from S449-02F5 back to the already executed S449-02F slice.
+
 The version fixture precedes implementation because the new capability has no
 supported version. Exact-source quality precedes live JIT. Live validation is
 serialized per host/project.
@@ -2889,9 +3249,10 @@ only require `git diff --check`. Local quality is never live success.
 
 ## Documentation Governance and arc42 Check Status
 
-Status: `ACTIVE_FOR_ISSUE_449 v1.42 — issue execution authorized; slice-specific S3D and scenario GO gates remain mandatory`
-installation-owned profile decision is a draft awaiting canonical placement
-and accepted review; no Incus version is supported yet for this capability.
+Status: `ACTIVE_FOR_ISSUE_449 v1.43 — issue execution authorized; slice-specific S3D and scenario GO gates remain mandatory`
+The installation-owned profile decision is accepted design policy; no Incus
+version is supported yet for this capability. The uncommitted ADR amendment in
+the separate primary worktree is proposed and is not adopted by this workflow.
 S449-01 places the exact owner-approved R67j policy, effective-infrastructure-
 source decision, and selection/exposure/stack-ownership decision in
 `documentation/handbook/02-architecture/arc42/09_decisions/`, and adds all three includes to
@@ -3083,4 +3444,572 @@ documentation:
   arc42: verify existing ADR boundaries
   adr: no new architecture decision
 stop_conditions: [unrelated change, sensitive artifact, changed architecture, failed required check, live success or issue completion falsely claimed]
+```
+
+## Historical execution-phase amendment v1.46 — F7 failure-stage diagnosis
+
+The native F7 diagnostic on fd8dd1478329ee00a907822b4e43b19efc14a631 returned
+BLOCKED_UNKNOWN / UNKNOWN, exit 2. No cause, inventory or host admission follows.
+At authoring S449-02F8 was planned after F7; its subsequent implementation
+and bounded native result are recorded in the v1.47 amendment. Private
+evidence must be independently reviewed.
+Sequence: F7 checkpoint and native result -> F8 same-hash review/S3D ->
+implementation -> exact-source quality -> separately reviewed F8 host plan and
+one diagnostic -> independent correction decision. S449-02F remains BLOCKED;
+02G/02H retain successful-inventory prerequisites. Previous approvals do not
+authorize F8.
+
+## Execution-phase amendment v1.47 — F8 cgroup relation diagnosis
+
+Native F8 source `7615a29962b0fd3ae2d44e4246893335ad9fadd3` returned
+BLOCKED_UNKNOWN / PROCESS_BINDING, exit 2; this bounded observation is not
+inventory or ownership admission. F9 is planned after F8; private F8 evidence
+must be independently reviewed before F9 host execution. No namespace or
+cause is inferred. See the F9 design and metadata for the closed relation
+contract, separate reviews, gates and host phase. S449-02F remains BLOCKED.
+
+## Execution-phase amendment v1.49 — End-to-end host admission proposal
+
+`.codex/evidence/slice-449-02F11-host-admission-plan.md` records the Security decision NOT_FEASIBLE for strict endpoint binding in the current collector. A probe connection cannot bind later independent lxc connections; no host proof may execute under F11. It describes a proposed separately governed unit/process/endpoint proof and full inventory/host qualification route, scoped requirement traceability and independently reviewed alternative/parallel preparation. The proof extends prior read/socket boundaries and cannot be implemented or run until its concrete API/limits, safety model, file locks, six same-hash roles and S3D EXECUTION_PLAN are approved. No previous diagnostic, proposal or quality pass admits a host. Existing S449-02F/02G/02H and main graph dependencies remain unchanged; 02F stays BLOCKED. The uncommitted ADR proposal is not accepted by this amendment. User live-test consent remains valid; scenario JIT/GO and applicable host-operation scope remain mandatory.
+
+## Historical execution-phase amendment v1.50 — accepted sequencing and G1 authoring
+
+Historical authoring state follows; G1 was subsequently completed in commit `55c42029a7c1f0e7c219d1708060c4ed6b708dea`. Pending conditions and proposed wording in this v1.50 section describe the earlier state, not current status.
+
+Status: D0 decision ACCEPTED on the independent six-role pre-acceptance review tuple recorded in `.codex/evidence/slice-449-adr-sequencing-review.md`; R67k supersedes R67h only for implementation sequencing. Existing live fixture, host and support dependencies remain binding. At authoring, G1 required its own contract refinement, independent same-hash reviews and S3D EXECUTION_PLAN. Existing F11 and 02F host blockers remain. The user-owned Windows ADR draft is outside this checkout and must not be overwritten. Architecture review identifies no existing new scoped-capability caller: the foundation below cannot claim to protect nonexistent call sites. Existing `lxc_node_provider.ensure_node` and fixed Classic configuration remain unchanged.
+
+After decision acceptance, this proposed G1 may run while the separate listener fixture remains blocked. It only defines typed scoped intent and immutable empty version support; it does not wire a caller or claim runtime guard coverage. Every future G2/G3/G4 mutating caller must be separately planned and independently reviewed, use the typed scoped identity and enforce the capability decision before any external effect, and prove direct, recovery, cleanup and bypass cases. Until that integration is verified no new-capability host mutation, retry or cleanup is permitted. Legacy Classic remains separately supported. No external CI change or host admission follows.
+
+### Proposed decision slice D0 — R67k and workflow review
+
+D0 decision is complete: six independent role approvals on the pre-acceptance candidate tuple and accepted R67k are recorded in `.codex/evidence/slice-449-adr-sequencing-review.md`. Preserve the user-owned Windows ADR draft. At authoring, G1 required separate exact-source contract review and S3D EXECUTION_PLAN.
+
+```yaml
+slice_id: S449-ADR-SEQUENCE-D0
+profile: GOVERNANCE_AND_DOCUMENTATION
+owner: Senior Workflow Architect
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior Tester, Senior DevOps Engineer]
+affected_files: [documentation/arc42/09_decisions/adr-installation-scoped-incus-profile.adoc, documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, documentation/workflow/workflow.index.md, .codex/evidence/slice-449-adr-sequencing-workflow-proposal.md, .codex/evidence/slice-449-adr-sequencing-review.md, .codex/evidence/slice-449-capability-g1-contract.md]
+affected_modules: [ADR history, issue-449 workflow]
+affected_contracts: [R67h sequencing only, G1 design contract only, empty support, legacy Classic, unchanged host admission]
+dependencies: [S449-01]
+parallel_group: sequential
+file_locks: [documentation/arc42/09_decisions/adr-installation-scoped-incus-profile.adoc, documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, documentation/workflow/workflow.index.md, .codex/evidence/slice-449-adr-sequencing-workflow-proposal.md, .codex/evidence/slice-449-adr-sequencing-review.md, .codex/evidence/slice-449-capability-g1-contract.md]
+module_locks: [ADR history, issue-449 workflow graph]
+contract_locks: [sequencing-only supersession, immutable empty capability support, unchanged legacy and host gates]
+architecture_locks: [historical decisions preserved, no runtime effect]
+quality_gates:
+  targeted: [git diff --check, verify exact reviewed hashes and context artifact hashes]
+  required: [independent same-hash Requirement Architecture Security Tester DevOps review, S3D EXECUTION_PLAN]
+documentation:
+  arc42: accepted R67k appended preserving history
+  adr: R67k accepted on independent pre-acceptance review tuple
+stop_conditions: [conflicting decision authority, user-owned ADR draft overwritten, missing reviews or S3D, unsafe graph change, changed live support]
+```
+
+### Proposed typed capability foundation G1
+
+Traceability: R449-19 and R449-22, and parent #440 LCM-04/LCM-05; this narrow foundation alone does not satisfy those requirements. Normative proposed typed contract and test matrix: `.codex/evidence/slice-449-capability-g1-contract.md`, requiring independent same-hash review and S3D before implementation. Test typed scoped intent and version validation using an immutable, closed registry API with no external mutation: missing, malformed, unknown and `6.0.5` all deny; no operation can add support through this API. Exercise positive legacy Classic classification separately without granting new scoped support. Verify no imports or host calls and no change to legacy `ensure_node`; no caller or host protection is asserted.
+
+```yaml
+slice_id: S449-CAPABILITY-G1
+profile: DOMAIN_AND_TESTS
+owner: Senior Python Automation Developer
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior Tester, Senior DevOps Engineer]
+affected_files: [src/tiny_swarm_world/domain/lifecycle/incus_capability.py, tests/domain/lifecycle/test_incus_capability.py, .codex/evidence/slice-449-capability-g1-contract.md, .codex/evidence/slice-449-capability-g1-distribution.md, .codex/evidence/slice-449-capability-g1-consolidation.md]
+affected_modules: [domain lifecycle scoped capability]
+affected_contracts: [strict typed IntentKind and G1-only ASCII version syntax, immutable closed empty registry, deny missing malformed unknown and 6.0.5, positive explicit legacy Classic classification, R449-19 and R449-22, LCM-04 and LCM-05]
+dependencies: [S449-01, S449-ADR-SEQUENCE-D0]
+parallel_group: sequential
+file_locks: [src/tiny_swarm_world/domain/lifecycle/incus_capability.py, tests/domain/lifecycle/test_incus_capability.py, .codex/evidence/slice-449-capability-g1-contract.md, .codex/evidence/slice-449-capability-g1-distribution.md, .codex/evidence/slice-449-capability-g1-consolidation.md]
+module_locks: [domain lifecycle scoped capability]
+contract_locks: [typed intent and capability identity, immutable empty support, legacy separation, no claimed caller protection]
+architecture_locks: [domain independent of application and infrastructure, no runtime wiring or host effects]
+quality_gates:
+  targeted: [PYTHONPATH=src python3 -m unittest tests.domain.lifecycle.test_incus_capability, python3 -m ruff check src/tiny_swarm_world/domain/lifecycle/incus_capability.py tests/domain/lifecycle/test_incus_capability.py]
+  required: [python3 tools/quality_gate.py quality, git diff --check]
+documentation:
+  arc42: accepted R67k required before implementation
+  adr: no change in G1
+stop_conditions: [R67k acceptance or approved workflow unverifiable, G1 contract not refined and independently reviewed, missing same-hash reviews or S3D, support set not empty, mutable or extensible support, malformed or ambiguous typed intent, domain dependency violation, legacy modification, external host effect, claimed caller protection]
+```
+
+All Python tests, Ruff and full quality run on the designated SSH PC WSL host against exact source. At authoring, G1 was pending its own contract refinement, reviews and S3D; this decision does not itself authorize editing product code or automatically change existing S449-03/04 dependencies. Before G2/G3/G4, author their exact file/module/contract/architecture locks, host-effect guard integrations and targeted negative regression matrices, then obtain six same-hash reviews and S3D separately. Fixture, separate support decision, host admission and both-host scenarios remain prerequisites for live new-capability use.
+
+## Historical execution-phase amendment v1.51 — domain-only migration preview G2a
+
+G2a was subsequently completed in `81acdd5c512820b3f69ca193c11d232cb6761ef6`; planned status and pre-execution conditions below describe the earlier authoring state.
+
+Status: PLANNED; R67k sequencing accepted, D0 and G1 completed at baseline `55c42029a7c1f0e7c219d1708060c4ed6b708dea`. G2a is a strictly domain-only immutable `MigrationPreview` from validated v1 manifest and catalog; it is not a schema-v2 installation, runtime decoder change, adoption, host protection or live qualification. Normative behavior and tests: `.codex/evidence/slice-449-manifest-g2a-contract.md`. ADR defaults are policy only; actual project/profile/routes/owner identity remains UNKNOWN. Existing S449-03/04 and host/fixture dependencies remain in force for their original scopes. G2b/G2c require independently authored boundaries and gates.
+
+```yaml
+slice_id: S449-MANIFEST-G2A
+profile: DOMAIN_AND_TESTS
+owner: Senior Python Automation Developer
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior Tester, Senior DevOps Engineer]
+affected_files: [src/tiny_swarm_world/domain/lifecycle/manifest_v2.py, tests/domain/lifecycle/test_manifest_v2.py, .codex/evidence/slice-449-manifest-g2a-contract.md, .codex/evidence/slice-449-manifest-g2a-distribution.md, .codex/evidence/slice-449-manifest-g2a-consolidation.md]
+affected_modules: [domain lifecycle migration preview]
+affected_contracts: [strict revalidated v1 and catalog with unique service/component IDs and canonical foundation kinds, immutable detached preview, selected stack swarm policy, selected Swagger stack published or not applicable, unknown host identity, unchanged v1 runtime]
+dependencies: [S449-ADR-SEQUENCE-D0, S449-CAPABILITY-G1]
+parallel_group: sequential
+file_locks: [src/tiny_swarm_world/domain/lifecycle/manifest_v2.py, tests/domain/lifecycle/test_manifest_v2.py, .codex/evidence/slice-449-manifest-g2a-contract.md, .codex/evidence/slice-449-manifest-g2a-distribution.md, .codex/evidence/slice-449-manifest-g2a-consolidation.md]
+module_locks: [domain lifecycle manifest preview]
+contract_locks: [v1 preservation, catalog uniqueness and selection, immutable unknown identities, no runtime schema acceptance]
+architecture_locks: [domain-only, no I/O, no migration or adoption, no product runtime integration]
+quality_gates:
+  targeted: [PYTHONPATH=src python3 -m unittest tests.domain.lifecycle.test_manifest_v2 tests.domain.lifecycle.test_models, python3 -m ruff check src/tiny_swarm_world/domain/lifecycle/manifest_v2.py tests/domain/lifecycle/test_manifest_v2.py]
+  required: [python3 tools/quality_gate.py quality, git diff --check]
+documentation:
+  arc42: follow accepted selection exposure and ownership ADR
+  adr: no change
+stop_conditions: [missing same-hash reviews or S3D, invalid or ambiguous v1 or catalog, unknown identities inferred, mutable shared state, changed v1 decoder, runtime integration, any host I/O, live support claim]
+```
+
+Six independent Requirement, Architecture, Security, Python, Tester and DevOps reviews of identical workflow/contract/source hashes and S3D EXECUTION_PLAN precede G2a edits. Exact source targeted/direct Ruff/full quality run on SSH PC WSL. G2a does not complete S449-03 or release existing fixture/host gates.
+
+## Historical execution-phase amendment v1.52 — sanitized migration preview CLI G2b
+
+G2b completed at `d2fbc06e6f1cfce51bce557499427c9d8c548c9d`; the following planned status describes earlier authoring.
+
+Status PLANNED after G2a completion in `81acdd5c512820b3f69ca193c11d232cb6761ef6`. The early `services migration-preview` action loads only existing manifest/catalog ports and projects a closed safe DTO; no full v1 snapshot, credentials, host identity, paths, token or exception is exposed. It does not write, adopt, construct runtime services or prove schema-v2 support. Exact CLI/error/output semantics, tests and no-I/O boundary are specified by `.codex/evidence/slice-449-manifest-g2b-contract.md`. The existing generic lifecycle `inspect()` cannot supply this output. G2a is historical/completed; G2c and all host/fixture/version gates remain unchanged.
+
+```yaml
+slice_id: S449-MANIFEST-G2B
+profile: BACKEND_AND_TESTS
+owner: Senior Python Automation Developer
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior Tester, Senior DevOps Engineer]
+affected_files: [src/tiny_swarm_world/application/services/migration_preview.py, src/tiny_swarm_world/infrastructure/adapters/cli/migration_preview.py, src/tiny_swarm_world/infrastructure/adapters/cli/dispatcher.py, src/tiny_swarm_world/infrastructure/adapters/cli/parser.py, src/tiny_swarm_world/infrastructure/adapters/cli/registry.py, src/tiny_swarm_world/infrastructure/composition_lifecycle.py, src/tiny_swarm_world/infrastructure/composition.py, src/tiny_swarm_world/infrastructure/adapters/lifecycle/catalog.py, src/tiny_swarm_world/infrastructure/adapters/lifecycle/preview_file_reader.py, src/tiny_swarm_world/infrastructure/adapters/lifecycle/preview_manifest.py, tests/infrastructure/adapters/lifecycle/test_catalog.py, tests/infrastructure/adapters/lifecycle/test_preview_file_reader.py, tests/infrastructure/adapters/lifecycle/test_preview_manifest.py, tests/application/services/test_migration_preview.py, tests/test_migration_preview_cli.py, tests/test_package_entrypoint.py, documentation/user_guide/selective-setup.md, .codex/evidence/slice-449-manifest-g2b-contract.md, .codex/evidence/slice-449-manifest-g2b-distribution.md, .codex/evidence/slice-449-manifest-g2b-consolidation.md]
+affected_modules: [application migration preview, early CLI, local read-only composition, bounded preview FD readers]
+affected_contracts: [manifest and catalog load only, strict safe DTO, fixed sanitized errors, no runtime construction, unchanged legacy CLI]
+dependencies: [S449-MANIFEST-G2A]
+parallel_group: sequential
+file_locks: [src/tiny_swarm_world/application/services/migration_preview.py, src/tiny_swarm_world/infrastructure/adapters/cli/migration_preview.py, src/tiny_swarm_world/infrastructure/adapters/cli/dispatcher.py, src/tiny_swarm_world/infrastructure/adapters/cli/parser.py, src/tiny_swarm_world/infrastructure/adapters/cli/registry.py, src/tiny_swarm_world/infrastructure/composition_lifecycle.py, src/tiny_swarm_world/infrastructure/composition.py, src/tiny_swarm_world/infrastructure/adapters/lifecycle/catalog.py, src/tiny_swarm_world/infrastructure/adapters/lifecycle/preview_file_reader.py, src/tiny_swarm_world/infrastructure/adapters/lifecycle/preview_manifest.py, tests/infrastructure/adapters/lifecycle/test_catalog.py, tests/infrastructure/adapters/lifecycle/test_preview_file_reader.py, tests/infrastructure/adapters/lifecycle/test_preview_manifest.py, tests/application/services/test_migration_preview.py, tests/test_migration_preview_cli.py, tests/test_package_entrypoint.py, documentation/user_guide/selective-setup.md, .codex/evidence/slice-449-manifest-g2b-contract.md, .codex/evidence/slice-449-manifest-g2b-distribution.md, .codex/evidence/slice-449-manifest-g2b-consolidation.md]
+module_locks: [lifecycle preview ports and CLI routing, shared NativeComponentCatalog, bounded preview FD reader, preview manifest repository]
+contract_locks: [closed output whitelist and fixed stack-ID enum, operator-local unverified asset source, bounded no-follow FD asset handling without provenance or authority claim, no secret disclosure or argv reflection, reject flags before I/O, load only, legacy CLI parity]
+architecture_locks: [application depends on ports, infrastructure composes local adapters, no host runtime or writes]
+quality_gates:
+  targeted: [PYTHONPATH=src python3 -m unittest tests.application.services.test_migration_preview tests.infrastructure.adapters.lifecycle.test_catalog tests.infrastructure.adapters.lifecycle.test_preview_file_reader tests.infrastructure.adapters.lifecycle.test_preview_manifest tests.test_migration_preview_cli tests.test_service_selection_cli tests.test_package_entrypoint, python3 -m ruff check src/tiny_swarm_world/application/services/migration_preview.py src/tiny_swarm_world/infrastructure/adapters/cli/migration_preview.py src/tiny_swarm_world/infrastructure/adapters/cli/dispatcher.py src/tiny_swarm_world/infrastructure/adapters/cli/parser.py src/tiny_swarm_world/infrastructure/adapters/cli/registry.py src/tiny_swarm_world/infrastructure/composition_lifecycle.py src/tiny_swarm_world/infrastructure/composition.py src/tiny_swarm_world/infrastructure/adapters/lifecycle/catalog.py src/tiny_swarm_world/infrastructure/adapters/lifecycle/preview_file_reader.py src/tiny_swarm_world/infrastructure/adapters/lifecycle/preview_manifest.py tests/infrastructure/adapters/lifecycle/test_catalog.py tests/infrastructure/adapters/lifecycle/test_preview_file_reader.py tests/infrastructure/adapters/lifecycle/test_preview_manifest.py tests/application/services/test_migration_preview.py tests/test_migration_preview_cli.py tests/test_package_entrypoint.py]
+  required: [python3 tools/quality_gate.py quality, git diff --check]
+documentation:
+  user_guide: document real command and non-adoption after implementation
+  arc42: follow accepted selection exposure and ownership ADR
+  adr: no change
+stop_conditions: [missing same-hash reviews or S3D, unverified read-only loaders, disclosure, runtime construction, write or adoption, unsafe flags, changed legacy CLI, host operation]
+```
+
+Six independent Requirement, Architecture, Security, Python, Tester and DevOps reviews on identical workflow/contract/source hashes plus S3D EXECUTION_PLAN precede edits. SSH PC WSL targeted/direct Ruff/full quality uses exact source. No future G2c or live gate is discharged.
+
+## Execution-phase amendment v1.53 — G2b operator-local unverified source
+
+G2b is a bounded read-only operator preview. Every success and blocked output includes `source=operator_local_unverified`; `applied` and `qualified` remain false and host identities UNKNOWN. Local asset validity and no-write behavior must be checked, but their provenance, catalog authority, release identity, host safety and live admission are not established. No unverified asset or output can discharge a live or EPIC gate. Asset drift, missing/malformed/inconsistent files, symlink and permission failures follow the fixed fail-closed contract and reveal no sensitive content. The exact revised contract requires independent same-hash reviews and new S3D before code. Legacy CLI/parser regression remains mandatory.
+
+## Execution-phase amendment v1.54 — bounded preview-only local asset reader
+
+G2b uses an unverified operator-selected root pinned once and fixed relative no-follow FD traversal. Manifest `.tiny-swarm-world/installation/manifest.json` and each fixed Compose file are capped at 1 MiB; aggregate 16 MiB and 16 files. The current service-access catalog has nine Compose files, plus one manifest. Compose assets are read only under the selected local project root; `TSW_INFRA_ROOT` is not evaluated or represented, missing project-root assets block, and explicit alternate-infrastructure requests are rejected before loading. `NativeComponentCatalog` accepts a preview-only injected text reader while preserving the default legacy behavior; `PreviewManifestRepository` uses existing `decode_manifest` and rejects save. The contract explicitly excludes provenance, hostile privileged/hardlink/ABA guarantees and hard CPU deadline claims. New reader/catalog/test file locks are included in G2b; one serial implementation owner, six same-hash reviews and fresh S3D precede changes. No host admission or release follows.
+
+## Execution-phase amendment v1.55 — G2b workflow-list regression scope
+
+G2b may update only the fixed expected workflow list in `tests/test_package_entrypoint.py::test_every_declared_workflow_keeps_its_command_name` to include `services migration-preview`. Existing expectations and all other legacy CLI tests remain intact. Targeted execution reported one failure in this existing list assertion after adding the command; this amendment adds its file lock and does not claim that a revised test or full gate has passed. All other G2b and host safety gates remain unchanged.
+
+## Execution-phase amendment v1.56 — strict domain schema and conversion plan G2c
+
+Historical v1.56 G2c authoring had AUTHORITY_GAP and is superseded by v1.61 below; P0 has since completed. No former caller-supplied project/profile/routes contract is executable.
+
+```yaml
+slice_id: S449-MANIFEST-G2C
+profile: DOMAIN_AND_TESTS
+owner: Senior Python Automation Developer
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior Tester, Senior DevOps Engineer]
+affected_files: [src/tiny_swarm_world/domain/lifecycle/desired_manifest_v2.py, tests/domain/lifecycle/test_desired_manifest_v2.py, .codex/evidence/slice-449-manifest-g2c-contract.md, .codex/evidence/slice-449-manifest-g2c-distribution.md, .codex/evidence/slice-449-manifest-g2c-consolidation.md]
+affected_modules: [unadopted desired manifest and pure conversion]
+affected_contracts: [strict unadopted desired v2 value, canonical v1 preservation, internal P0 recomputation, UNKNOWN host/source, no adoption]
+dependencies: [S449-CAPABILITY-G1, S449-MANIFEST-G2A, S449-MANIFEST-G2B, S449-ROUTE-POLICY-P0]
+parallel_group: sequential
+file_locks: [src/tiny_swarm_world/domain/lifecycle/desired_manifest_v2.py, tests/domain/lifecycle/test_desired_manifest_v2.py, .codex/evidence/slice-449-manifest-g2c-contract.md, .codex/evidence/slice-449-manifest-g2c-distribution.md, .codex/evidence/slice-449-manifest-g2c-consolidation.md]
+module_locks: [desired manifest and P0 contract]
+contract_locks: [schema1 invariants and values, internally recomputed P0, immutable desired output and unknown actual identities]
+architecture_locks: [domain only, no I/O, no runtime decoder or persistence, no host mutation]
+quality_gates:
+  targeted: [PYTHONPATH=src python3 -m unittest tests.domain.lifecycle.test_desired_manifest_v2 tests.domain.lifecycle.test_manifest_v2 tests.domain.lifecycle.test_scoped_route_policy tests.domain.lifecycle.test_models tests.infrastructure.adapters.lifecycle.test_manifest tests.test_migration_preview_cli, python3 -m ruff check src/tiny_swarm_world/domain/lifecycle/desired_manifest_v2.py tests/domain/lifecycle/test_desired_manifest_v2.py]
+  required: [python3 tools/quality_gate.py quality, git diff --check]
+documentation:
+  arc42: follow accepted Classic selection exposure ownership and profile ADRs
+  adr: no change
+stop_conditions: [missing same-hash reviews or S3D, P0 authority gap bypassed, schema1 regression, shared mutable state, actual UNKNOWN identity claimed, host ownership inferred, runtime decoder or host operation]
+```
+
+The prior NO-GO and P0 authority gap were historical. P0 subsequently completed at `5e9f87c6b1dc1173b8d0a4609037d477eb0f5cca`; runtime-source, 8086 and internal-ingress gaps remain. Current G2c requires the new desired-only contract, fresh six-role reviews and S3D before edits; targeted/full quality runs on SSH PC WSL.
+
+## Historical execution-phase amendment v1.57 — route authority before G2c
+
+The following is the earlier blocked authoring state; P0 subsequently completed in `5e9f87c6b1dc1173b8d0a4609037d477eb0f5cca`, while actual source/host gaps remain.
+
+G2c remains BLOCKED / AUTHORITY_GAP and not done. A separately governed `S449-ROUTE-POLICY-P0` must establish a versioned typed selection/port snapshot with explicit provenance and deterministic complete route policy, including mandatory Portainer TCP/10001, nat and proxy_protocol. Inventory existing service-stack port IDs, PortRegistry, SetupManifest, ports configuration and accepted ADRs; missing authoritative values remain UNKNOWN/BLOCKED. Profile naming requires its own reviewed proposed ADR decision, not a guessed suffix. No product implementation or live outcome is implied.
+
+### P0 candidate decision inputs (not accepted)
+
+The G2c contract records a source-backed `RoutePolicyInputV1` candidate, exact unresolved binding inputs and a proposed versioned SHA-256/UUID profile-name decision. Current PortRegistry maps Portainer 9000 internal / 10001 external, while the legacy proxy target is `127.0.0.1:10001`; SetupManifest/preflight does not establish complete routes. Nexus 13501 maps to `nexus-docker-https` (internal 5001) and published Swagger IDs map to 16080/16081, suppressed for internal exposure. A caller-set REVIEWED_POLICY enum is not authority; a versioned immutable built-in policy or separately reviewed trust binding is required. Listen addresses and nat/proxy_protocol false remain proposals requiring explicit decisions. Missing reviewed bindings remain AUTHORITY_GAP; no two caller lists or operator-local unverified assets prove completeness. P0 and G2c remain BLOCKED pending independent decisions, concrete slice metadata/reviews and S3D.
+
+## Historical execution-phase amendment v1.58 — legacy published route candidate P0a
+
+P0a subsequently completed at `f5f0ea1520a1abdb6ee281bb700c8635c9ad4e93`; the planned status and requirements below describe the authoring state.
+
+P0a is PLANNED as an independently reviewable pure legacy-code candidate, not the still-blocked authoritative scoped P0 and not a G2c unblock. It uses all `default_setup_manifest` required ports, including compatibility ports, and returns `legacy_setup_code_unverified_runtime`, UNKNOWN nat/proxy_protocol, false applied/qualified and unknown identities. It does not infer internal Swagger, alternative infrastructure overrides, profile ownership or host state. Source conflict, exact contract and tests: `.codex/evidence/slice-449-route-p0a-contract.md`. The separate scoped profile-name decision and actual route authority remain pending.
+
+```yaml
+slice_id: S449-ROUTE-POLICY-P0A
+profile: DOMAIN_AND_TESTS
+owner: Senior Python Automation Developer
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior Tester, Senior DevOps Engineer]
+affected_files: [src/tiny_swarm_world/domain/lifecycle/legacy_route_candidate.py, tests/domain/lifecycle/test_legacy_route_candidate.py, .codex/evidence/slice-449-route-p0a-contract.md, .codex/evidence/slice-449-route-p0a-distribution.md, .codex/evidence/slice-449-route-p0a-consolidation.md]
+affected_modules: [domain-only legacy route candidate]
+affected_contracts: [validated explicit selection and preset, all legacy setup required ports, unverified-runtime marker, unknown flags and identities, no host authority]
+dependencies: [S449-CAPABILITY-G1, S449-MANIFEST-G2A, S449-MANIFEST-G2B]
+parallel_group: sequential
+file_locks: [src/tiny_swarm_world/domain/lifecycle/legacy_route_candidate.py, tests/domain/lifecycle/test_legacy_route_candidate.py, .codex/evidence/slice-449-route-p0a-contract.md, .codex/evidence/slice-449-route-p0a-distribution.md, .codex/evidence/slice-449-route-p0a-consolidation.md]
+module_locks: [domain legacy route candidate]
+contract_locks: [all required ports including compatibility, explicit stock applicability, published only, unknown flags and host identity]
+architecture_locks: [domain only, no I/O, no runtime wiring, no authoritative scoped policy]
+quality_gates:
+  targeted: [PYTHONPATH=src python3 -m unittest tests.domain.lifecycle.test_legacy_route_candidate tests.domain.lifecycle.test_manifest_v2 tests.application.services.platform.test_lxc_service_exposure, python3 -m ruff check src/tiny_swarm_world/domain/lifecycle/legacy_route_candidate.py tests/domain/lifecycle/test_legacy_route_candidate.py]
+  required: [python3 tools/quality_gate.py quality, git diff --check]
+documentation:
+  arc42: existing ADR unchanged; candidate is unverified runtime
+  adr: no change; scoped profile-name decision remains separate
+stop_conditions: [missing same-hash reviews or S3D, unknown stock applicability, inferred internal exposure or flags, missing 10001 or 7750, domain I/O, host ownership claim, G2c authority claim]
+```
+
+Six independent Requirement, Architecture, Security, Python, Tester and DevOps reviews of identical workflow/contract/source hashes plus S3D EXECUTION_PLAN precede code. Exact-source tests and quality run on SSH PC WSL. P0a completion cannot unblock G2c without a separate accepted scoped authority decision.
+
+## Historical execution-phase amendment v1.59 — accepted scoped route/profile design ADR D0
+
+P0 subsequently completed in `5e9f87c6b1dc1173b8d0a4609037d477eb0f5cca`; earlier implementation-pending text below is historical.
+
+`documentation/arc42/09_decisions/adr-scoped-route-policy-profile-identity.adoc` records ACCEPTED design policy on code-bound scoped-route-policy-v1 and UUID-byte/SHA-256 profile-name-v1; no existing ADR history or Windows user draft is modified. The candidate requires total-or-reject selection/preset semantics, explicit fixed proxy flags/listen address, published/internal Swagger behavior and empty supported-version set. The 8086 source conflict between SetupManifest Infisical and ports.yaml service-access is AUTHORITY_GAP for affected selections pending a separate decision. No actual host ownership, route, runtime version, live fixture or admission is claimed. Six independent Requirement, Architecture, Security, Python, Tester and DevOps roles approved the same pre-acceptance candidate tuple recorded in the decision evidence. Final checkpoint re-review and S3D remain required; the 8086 authority gap remains unresolved. P0a completed at `f5f0ea1520a1abdb6ee281bb700c8635c9ad4e93` but is unverified; P0/G2c remain BLOCKED until a separate accepted decision and reviewed implementation.
+
+```yaml
+slice_id: S449-SCOPED-ROUTE-ADR-D0
+profile: GOVERNANCE_AND_DOCUMENTATION
+owner: Senior Workflow Architect
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior Python Automation Developer, Senior Tester, Senior DevOps Engineer]
+affected_files: [documentation/arc42/09_decisions/adr-scoped-route-policy-profile-identity.adoc, documentation/arc42/09_architecture_decisions.adoc, documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, documentation/workflow/workflow.index.md, .codex/evidence/slice-449-scoped-route-decision.md]
+affected_modules: [scoped route policy decision, profile identity decision, issue-449 workflow]
+affected_contracts: [code-bound versioned selection route policy, strict explicit route flags, versioned UUID profile identity, no host claims]
+dependencies: [S449-ROUTE-POLICY-P0A]
+parallel_group: sequential
+file_locks: [documentation/arc42/09_decisions/adr-scoped-route-policy-profile-identity.adoc, documentation/arc42/09_architecture_decisions.adoc, documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, documentation/workflow/workflow.index.md, .codex/evidence/slice-449-scoped-route-decision.md]
+module_locks: [scoped route policy ADR, profile identity ADR, issue-449 workflow]
+contract_locks: [immutable policy authority, selection and exposure, profile naming, existing host and support gates]
+architecture_locks: [domain policy only, no host operations, preserve ADR history]
+quality_gates:
+  targeted: [git diff --check, verify ADR workflow and context hashes, verify reviewed source mapping]
+  required: [independent six-role same-hash decision review, S3D EXECUTION_PLAN]
+documentation:
+  arc42: separate accepted design decision with historical candidate retained
+  adr: accepted design policy; final checkpoint review and S3D pending
+stop_conditions: [unresolved authority or policy choice, missing review or S3D, unsupported route inferred, changed existing ADR or user draft, host mutation or support claim]
+```
+
+A later separately authored pure-domain policy slice needs exact product/test file locks, its own tests and SSH PC WSL full quality. G2c depends on an accepted decision and completed policy, not this draft.
+
+## Historical execution-phase amendment v1.60 — scoped route policy P0
+
+P0 completed in `5e9f87c6b1dc1173b8d0a4609037d477eb0f5cca`; planned status below is historical.
+
+Status PLANNED; accepted scoped route/profile ADR checkpoint `4886c84c92d7cb9ac628fe75e7a973829f36d713`. P0 introduces only code-bound immutable pure domain policy and deterministic profile identity, with explicit AUTHORITY_GAP for 8086-affected selections, default preset with Traefik and selected internal Swagger absent trustworthy shared-ingress proof. Detailed contract `.codex/evidence/slice-449-scoped-route-p0-contract.md`. It produces only an ideal code-policy reference with runtime_source=UNKNOWN; it cannot inspect environment or claim effective source/override applicability. A future separately reviewed pre-effect adapter must verify effective sources and block unknown. No public source self-attestation, host I/O, v1 runtime behavior change, ownership, capability support or live claim. G2c remains BLOCKED pending actual P0 completion and review.
+
+```yaml
+slice_id: S449-ROUTE-POLICY-P0
+profile: DOMAIN_AND_TESTS
+owner: Senior Python Automation Developer
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior Tester, Senior DevOps Engineer]
+affected_files: [src/tiny_swarm_world/domain/lifecycle/scoped_route_policy.py, tests/domain/lifecycle/test_scoped_route_policy.py, .codex/evidence/slice-449-scoped-route-p0-contract.md, .codex/evidence/slice-449-scoped-route-p0-distribution.md, .codex/evidence/slice-449-scoped-route-p0-consolidation.md]
+affected_modules: [code-bound scoped route policy and profile identity]
+affected_contracts: [immutable code-policy reference and pure tuple drift check, runtime_source UNKNOWN, explicit profile-name-v1, no caller authority, 8086 gap, no observed host claims]
+dependencies: [S449-SCOPED-ROUTE-ADR-D0, S449-ROUTE-POLICY-P0A]
+parallel_group: sequential
+file_locks: [src/tiny_swarm_world/domain/lifecycle/scoped_route_policy.py, tests/domain/lifecycle/test_scoped_route_policy.py, .codex/evidence/slice-449-scoped-route-p0-contract.md, .codex/evidence/slice-449-scoped-route-p0-distribution.md, .codex/evidence/slice-449-scoped-route-p0-consolidation.md]
+module_locks: [scoped route policy and profile identity]
+contract_locks: [immutable ideal code policy, runtime_source UNKNOWN, explicit selection and listen, 8086 and internal ingress gap, UUID version, unchanged legacy]
+architecture_locks: [domain only, no I/O or runtime integration, no source self-attestation]
+quality_gates:
+  targeted: [PYTHONPATH=src python3 -m unittest tests.domain.lifecycle.test_scoped_route_policy tests.domain.lifecycle.test_legacy_route_candidate tests.domain.lifecycle.test_manifest_v2 tests.domain.lifecycle.test_models, python3 -m ruff check src/tiny_swarm_world/domain/lifecycle/scoped_route_policy.py tests/domain/lifecycle/test_scoped_route_policy.py]
+  required: [python3 tools/quality_gate.py quality, git diff --check]
+documentation:
+  arc42: follow accepted scoped route profile ADR
+  adr: no change
+stop_conditions: [missing six reviews or S3D, source drift, fabricated source trust, 8086 or ingress ambiguity, unsupported selection, mutable policy, runtime or host effect, UUID or legacy regression]
+```
+
+Six independent Requirement, Architecture, Security, Python, Tester and DevOps reviews on identical workflow/contract/source hashes and S3D EXECUTION_PLAN precede changes. Targeted/direct Ruff/full quality run on designated SSH PC WSL with exact source. Existing host/fixture/version gates remain in force.
+
+## Historical execution-phase amendment v1.61 — unadopted desired manifest G2c
+
+G2c subsequently completed in `f45ca0b8ee3d3593eb02cd7f7a78e8a528440924`; planned status below describes the earlier state.
+
+Status PLANNED after completed P0 `5e9f87c6b1dc1173b8d0a4609037d477eb0f5cca`; exact current contract `.codex/evidence/slice-449-manifest-g2c-contract.md` supersedes earlier caller-supplied binding text. G2c creates only immutable desired-state conversion and internally recomputes P0; actual host, source and owner stay UNKNOWN and applied/qualified false. No schema-v2 persistence, runtime decoder, CLI, adoption, host or capability support is changed. Six independent role reviews and S3D are pending; current P0 8086/internal gaps remain.
+
+## Historical execution-phase amendment v1.62 — fail-closed migration admission G2d
+
+G2d subsequently completed in `ef1e863b755faa3f8127a364b7926244abc35329`; planned status below is historical.
+
+G2c completed at `f45ca0b8ee3d3593eb02cd7f7a78e8a528440924`. G2d is PLANNED as an internal application preparation step that loads V1/catalog, computes desired plan and returns only `BLOCKED_UNKNOWN` or `BLOCKED_UNSUPPORTED`, with scoped G1 classification concrete and non-injectable. The currently unconnected service does not affect existing operator paths; immediately following G2e must provide a separately reviewed CLI/composition/operator guide entrypoint. Snapshot token None, empty or non-string blocks; only a valid nonempty string reaches further checks. All valid scoped versions remain unsupported; there is no admission-positive branch, host/source/lock/checkpoint/writer call, CLI/runtime wiring, persistence or host access. Contract `.codex/evidence/slice-449-migration-g2d-contract.md` defines order and boundaries. Existing G2c/G2b/legacy and host/fixture/version gates stay unchanged.
+
+```yaml
+slice_id: S449-MIGRATION-G2D
+profile: BACKEND_AND_TESTS
+owner: Senior Python Automation Developer
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior Tester, Senior DevOps Engineer]
+affected_files: [src/tiny_swarm_world/application/ports/lifecycle/migration_admission.py, src/tiny_swarm_world/application/services/migration_admission.py, tests/application/services/test_migration_admission.py, .codex/evidence/slice-449-migration-g2d-contract.md, .codex/evidence/slice-449-migration-g2d-distribution.md, .codex/evidence/slice-449-migration-g2d-consolidation.md]
+affected_modules: [application migration admission and typed future port boundary]
+affected_contracts: [read-only v1 and catalog load, G2c desired plan, concrete fail-closed scoped capability, no positive admission or effects]
+dependencies: [S449-CAPABILITY-G1, S449-MANIFEST-G2A, S449-MANIFEST-G2B, S449-ROUTE-POLICY-P0, S449-MANIFEST-G2C]
+parallel_group: sequential
+file_locks: [src/tiny_swarm_world/application/ports/lifecycle/migration_admission.py, src/tiny_swarm_world/application/services/migration_admission.py, tests/application/services/test_migration_admission.py, .codex/evidence/slice-449-migration-g2d-contract.md, .codex/evidence/slice-449-migration-g2d-distribution.md, .codex/evidence/slice-449-migration-g2d-consolidation.md]
+module_locks: [application migration admission, future typed migration boundaries]
+contract_locks: [concrete scoped capability check, fixed blocked results, load only, no host or write, v1 and legacy parity]
+architecture_locks: [application uses domain and ports, no infrastructure, no runtime wiring, no positive admission]
+quality_gates:
+  targeted: [PYTHONPATH=src python3 -m unittest tests.application.services.test_migration_admission tests.domain.lifecycle.test_desired_manifest_v2 tests.domain.lifecycle.test_scoped_route_policy tests.test_migration_preview_cli tests.infrastructure.adapters.lifecycle.test_manifest, python3 -m ruff check src/tiny_swarm_world/application/ports/lifecycle/migration_admission.py src/tiny_swarm_world/application/services/migration_admission.py tests/application/services/test_migration_admission.py]
+  required: [python3 tools/quality_gate.py quality, git diff --check]
+documentation:
+  arc42: follow accepted Classic selection and profile decisions
+  adr: no change
+stop_conditions: [missing role review or S3D, positive admission path, spoofable scoped capability, host or write call, runtime wiring, v1 or legacy regression, sensitive disclosure]
+```
+
+Six independent Requirement, Architecture, Security, Python, Tester and DevOps reviews on identical workflow/contract/source hashes and S3D EXECUTION_PLAN precede edits. Tests and full quality run on designated SSH PC WSL with exact bytes. Host admission and version-support decision remain separate and unresolved.
+
+### Required next slice S449-MIGRATION-G2E — operator entrypoint
+
+Immediately after G2d, author concrete G2e metadata with dependency `S449-MIGRATION-G2D` and execute it under independent review/S3D. Scope is early safe CLI plus read-only composition, no live runtime or host construction, fixed sanitized blocked status/exit behavior, `documentation/` operator guide and CLI/parser/composition regression tests. Until G2e exists, G2d is internal and does not alter existing commands. G2e does not itself authorize mutation, persistence or positive admission.
+
+## Historical execution-phase amendment v1.63 — operator migration-check G2e
+
+G2e completed at `b9f2543f3fea21fd7565a6f6bf02c72e6dc8f448`; planned status below is historical.
+
+G2e is PLANNED after G2d commit `ef1e863b755faa3f8127a364b7926244abc35329`. It adds only a dedicated early `services migration-check` entry to expose G2d fixed blocked results using bounded local readers. Candidate version is operator supplied, never a host measurement; output is sanitized and unverified, no runtime/host mutation or admission. Exact grammar, result and no-write contract: `.codex/evidence/slice-449-migration-g2e-contract.md`.
+
+```yaml
+slice_id: S449-MIGRATION-G2E
+profile: BACKEND_AND_TESTS
+owner: Senior Python Automation Developer
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior Tester, Senior DevOps Engineer]
+affected_files: [src/tiny_swarm_world/infrastructure/adapters/cli/migration_admission.py, src/tiny_swarm_world/infrastructure/adapters/cli/parser.py, src/tiny_swarm_world/infrastructure/adapters/cli/registry.py, src/tiny_swarm_world/infrastructure/adapters/cli/dispatcher.py, src/tiny_swarm_world/infrastructure/composition_lifecycle.py, src/tiny_swarm_world/infrastructure/composition.py, tests/test_migration_admission_cli.py, tests/test_package_entrypoint.py, documentation/user_guide/selective-setup.md, .codex/evidence/slice-449-migration-g2e-contract.md, .codex/evidence/slice-449-migration-g2e-distribution.md, .codex/evidence/slice-449-migration-g2e-consolidation.md]
+affected_modules: [migration admission CLI, local read-only composition]
+affected_contracts: [strict action grammar, fixed non-admitting JSON, bounded load only, no version detection, legacy CLI parity]
+dependencies: [S449-MIGRATION-G2D]
+parallel_group: sequential
+file_locks: [src/tiny_swarm_world/infrastructure/adapters/cli/migration_admission.py, src/tiny_swarm_world/infrastructure/adapters/cli/parser.py, src/tiny_swarm_world/infrastructure/adapters/cli/registry.py, src/tiny_swarm_world/infrastructure/adapters/cli/dispatcher.py, src/tiny_swarm_world/infrastructure/composition_lifecycle.py, src/tiny_swarm_world/infrastructure/composition.py, tests/test_migration_admission_cli.py, tests/test_package_entrypoint.py, documentation/user_guide/selective-setup.md, .codex/evidence/slice-449-migration-g2e-contract.md, .codex/evidence/slice-449-migration-g2e-distribution.md, .codex/evidence/slice-449-migration-g2e-consolidation.md]
+module_locks: [migration CLI parser routing, bounded preview composition]
+contract_locks: [fixed safe output, early argument rejection, no host observation, legacy CLI behavior]
+architecture_locks: [infrastructure composes application ports, no runtime initialization or mutation]
+quality_gates:
+  targeted: [PYTHONPATH=src python3 -m unittest tests.test_migration_admission_cli tests.test_migration_preview_cli tests.test_package_entrypoint tests.application.services.test_migration_admission tests.infrastructure.adapters.lifecycle.test_preview_file_reader tests.infrastructure.adapters.lifecycle.test_preview_manifest tests.infrastructure.adapters.lifecycle.test_catalog, python3 -m ruff check src/tiny_swarm_world/infrastructure/adapters/cli/migration_admission.py src/tiny_swarm_world/infrastructure/adapters/cli/parser.py src/tiny_swarm_world/infrastructure/adapters/cli/registry.py src/tiny_swarm_world/infrastructure/adapters/cli/dispatcher.py src/tiny_swarm_world/infrastructure/composition_lifecycle.py src/tiny_swarm_world/infrastructure/composition.py tests/test_migration_admission_cli.py tests/test_package_entrypoint.py]
+  required: [python3 tools/quality_gate.py quality, git diff --check]
+documentation:
+  user_guide: document real command and unverified non-admitting meaning
+  arc42: no change
+  adr: no change
+stop_conditions: [missing role reviews or S3D, argument leak or legacy regression, unbounded reader or writes, host runtime, positive admission, unsupported capability, sensitive disclosure]
+```
+
+Six Requirement, Architecture, Security, Python, Tester and DevOps same-hash reviews and S3D EXECUTION_PLAN precede edits. Tests and full quality run on designated SSH PC WSL using exact source.
+
+### G2e narrow registry-loop test amendment
+
+Within the already locked `tests/test_package_entrypoint.py`, the existing registry loop may append valid `--version`, `--exposure` and `--listen-address` arguments only for `services migration-check`, in addition to its workflow-list entry. Preserve all existing registry/workflow assertions and all other entries; no skip. A separate negative CLI test must prove missing options return fixed blocked JSON/exit 2 before repository load. This changes test scope only and does not relax the required CLI grammar. Fresh review and S3D apply to this amendment.
+
+## Execution-phase amendment v1.64 — proposed 8086 scoped authority decision
+
+The scoped route/profile ADR contains an ACCEPTED desired-policy-only 8086 amendment, with source evidence in `.codex/evidence/slice-449-route-8086-decision.md`. It distinguishes service-access route owner and Infisical backend, requires full dependency closure for 8086 and preserves Infisical-only 17080. Exact legacy tuples must be validated before a narrowly versioned transformation; other drift blocks. Existing code retains 8086 AUTHORITY_GAP until separately reviewed pure-domain implementation and quality pass. No current runtime, source, host, version or live route claim follows.
+
+```yaml
+slice_id: S449-ROUTE-8086-ADR-D0
+profile: GOVERNANCE_AND_DOCUMENTATION
+owner: Senior Workflow Architect
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior Python Automation Developer, Senior Tester, Senior DevOps Engineer]
+affected_files: [documentation/arc42/09_decisions/adr-scoped-route-policy-profile-identity.adoc, documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, documentation/workflow/workflow.index.md, .codex/evidence/slice-449-route-8086-decision.md]
+affected_modules: [scoped route authority decision, issue-449 workflow]
+affected_contracts: [8086 selection ownership and backend, exact legacy source drift before versioned transformation, unchanged legacy and host gates]
+dependencies: [S449-SCOPED-ROUTE-ADR-D0, S449-ROUTE-POLICY-P0, S449-MIGRATION-G2E]
+parallel_group: sequential
+file_locks: [documentation/arc42/09_decisions/adr-scoped-route-policy-profile-identity.adoc, documentation/workflow/issues/issue-449/workflow.md, documentation/workflow/issues/issue-449/context-pack.md, documentation/workflow/issues/issue-449/context-pack.json, documentation/workflow/workflow.index.md, .codex/evidence/slice-449-route-8086-decision.md]
+module_locks: [scoped route ADR, issue-449 workflow]
+contract_locks: [8086 owner and backend, versioned source transformation, no host admission]
+architecture_locks: [preserve legacy behavior and accepted ADR history, no runtime effects]
+quality_gates:
+  targeted: [git diff --check, verify source evidence and review hashes]
+  required: [independent six-role same-hash decision review, S3D EXECUTION_PLAN]
+documentation:
+  arc42: append accepted desired-policy amendment retaining historical decisions
+  adr: accepted desired policy only; runtime implementation remains separate
+stop_conditions: [ambiguous source or selection closure, lost historical authority, missing reviews or S3D, claimed live or support outcome, host operation]
+```
+
+After independent decision acceptance, author a separate serial scoped-domain slice limited initially to `src/tiny_swarm_world/domain/lifecycle/scoped_route_policy.py` and its tests. Tests must prove Infisical-only 17080/no8086, full service-access closure 10000/8086/17080 exactly once, invalid dependency closure, exact legacy source validation before transformation, unrelated drift blocking, no changed legacy candidate/setup, and no host I/O. Its exact locks, versioned identity, six-role reviews, S3D and SSH PC WSL targeted/full quality are separate. G2c/G2e and host gates are not discharged by this proposal.
+
+### D0 decision accepted — implementation still pending
+
+S3/S3D EXECUTION_PLAN was reported for the clean base `ff9995913518fe7d268a64e367ef85b551794731` and six independent proposal reviews. The 8086 ADR decision is accepted as future desired policy; current scoped code continues to block until the separately reviewed implementation, exact-source quality and downstream G2c/G2d/G2e regressions pass. No legacy or host behavior changed.
+
+## Historical execution-phase amendment v1.65 — coupled scoped 8086 implementation P1
+
+P1 subsequently completed at `eacbdc418b6b7179e69441b718f7226609f96470`; planned status below is historical.
+
+Status PLANNED after accepted D0 `90b5665e7fe01f198e78c5d4a130c3b5babcb6ac`. P1 implements only versioned pure scoped desired-policy transformation, validating the exact ordered historic SetupManifest tuple sequence before narrowly reclassifying/removing 8086; G2c and G2d exact policy/version consumers are updated together and G2e fixed blocked output regressed. Normative contract `.codex/evidence/slice-449-route-8086-p1-contract.md`. Legacy runtime/P0a, actual host identities, source UNKNOWN, empty capability support, fixture and live gates remain unchanged.
+
+```yaml
+slice_id: S449-ROUTE-8086-P1
+profile: BACKEND_AND_TESTS
+owner: Senior Python Automation Developer
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior Tester, Senior DevOps Engineer]
+affected_files: [src/tiny_swarm_world/domain/lifecycle/scoped_route_policy.py, src/tiny_swarm_world/domain/lifecycle/desired_manifest_v2.py, src/tiny_swarm_world/application/services/migration_admission.py, tests/domain/lifecycle/test_scoped_route_policy.py, tests/domain/lifecycle/test_desired_manifest_v2.py, tests/application/services/test_migration_admission.py, tests/test_migration_admission_cli.py, .codex/evidence/slice-449-route-8086-p1-contract.md, .codex/evidence/slice-449-route-8086-p1-distribution.md, .codex/evidence/slice-449-route-8086-p1-consolidation.md]
+affected_modules: [scoped policy, desired v2 conversion, migration admission]
+affected_contracts: [exact ordered legacy tuple sequence before 8086 transform, scoped policy v2 identity, exact coupled consumers, fail-closed capability, unchanged legacy runtime]
+dependencies: [S449-ROUTE-8086-ADR-D0, S449-ROUTE-POLICY-P0, S449-MANIFEST-G2C, S449-MIGRATION-G2D, S449-MIGRATION-G2E]
+parallel_group: sequential
+file_locks: [src/tiny_swarm_world/domain/lifecycle/scoped_route_policy.py, src/tiny_swarm_world/domain/lifecycle/desired_manifest_v2.py, src/tiny_swarm_world/application/services/migration_admission.py, tests/domain/lifecycle/test_scoped_route_policy.py, tests/domain/lifecycle/test_desired_manifest_v2.py, tests/application/services/test_migration_admission.py, tests/test_migration_admission_cli.py, .codex/evidence/slice-449-route-8086-p1-contract.md, .codex/evidence/slice-449-route-8086-p1-distribution.md, .codex/evidence/slice-449-route-8086-p1-consolidation.md]
+module_locks: [scoped route policy, desired conversion, migration admission]
+contract_locks: [exact legacy source sequence validation including reorder drift, 8086 versioned transformation, strict consumer version and exact tuples, blocked scoped capability]
+architecture_locks: [domain and application boundaries, no runtime integration or host effects, no invented source authority]
+quality_gates:
+  targeted: [PYTHONPATH=src python3 -m unittest tests.domain.lifecycle.test_scoped_route_policy tests.domain.lifecycle.test_desired_manifest_v2 tests.domain.lifecycle.test_legacy_route_candidate tests.application.services.test_migration_admission tests.test_migration_admission_cli tests.test_migration_preview_cli, python3 -m ruff check src/tiny_swarm_world/domain/lifecycle/scoped_route_policy.py src/tiny_swarm_world/domain/lifecycle/desired_manifest_v2.py src/tiny_swarm_world/application/services/migration_admission.py tests/domain/lifecycle/test_scoped_route_policy.py tests/domain/lifecycle/test_desired_manifest_v2.py tests/application/services/test_migration_admission.py tests/test_migration_admission_cli.py]
+  required: [python3 tools/quality_gate.py quality, git diff --check]
+documentation:
+  arc42: follow accepted scoped 8086 amendment
+  adr: no change
+stop_conditions: [missing same-hash reviews or S3D, accepted decision mismatch, legacy source drift, version/consumer mismatch, unguarded capability, legacy/runtime regression, host or file I/O]
+```
+
+One serial worker and six independent Requirement, Architecture, Security, Python, Tester and DevOps same-hash reviews plus S3D EXECUTION_PLAN precede edits. Targeted/direct Ruff/full QUALITY run on designated SSH PC WSL with exact source; this slice proves no live success.
+
+## Execution-phase amendment v1.66 — versioned manifest record and isolated CAS
+
+S449-MANIFEST-V2-REPOSITORY is PLANNED after P1 `eacbdc418b6b7179e69441b718f7226609f96470`. It proposes a strict typed UNADOPTED v2 draft at fixed noncanonical `.tiny-swarm-world/staging/manifest-v2-draft.json` and dedicated dual-read/isolated CAS port and adapter, not a runtime or canonical-manifest migration. ADR does not define exact wire/provenance shape; reported ADR-owner GO covers the prior isolated UNADOPTED-draft candidate only. The revised contract `.codex/evidence/slice-449-manifest-v2-repository-contract.md` still needs fresh independent same-hash role review/S3D; versioned migration is required before later production use. V1 decoder/consumers remain unchanged and fail closed for v2; no host/support/adoption is claimed.
+
+```yaml
+slice_id: S449-MANIFEST-V2-REPOSITORY
+profile: BACKEND_AND_TESTS
+owner: Senior Python Automation Developer
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior Tester, Senior DevOps Engineer]
+affected_files: [src/tiny_swarm_world/domain/lifecycle/manifest_v2_record.py, src/tiny_swarm_world/application/ports/lifecycle/versioned_manifest.py, src/tiny_swarm_world/infrastructure/adapters/lifecycle/versioned_manifest_repository.py, src/tiny_swarm_world/infrastructure/adapters/lifecycle/versioned_manifest_json.py, src/tiny_swarm_world/infrastructure/adapters/lifecycle/versioned_manifest_fs.py, tests/domain/lifecycle/test_manifest_v2_record.py, tests/infrastructure/adapters/lifecycle/test_versioned_manifest_repository.py, .codex/evidence/slice-449-manifest-v2-repository-contract.md, .codex/evidence/slice-449-manifest-v2-repository-distribution.md, .codex/evidence/slice-449-manifest-v2-repository-consolidation.md]
+affected_modules: [domain unadopted v2 record, versioned repository port, isolated filesystem CAS adapter]
+affected_contracts: [closed strict wire, canonical v1 preservation, UNKNOWN provenance, dual read no migration, isolated CAS durability]
+dependencies: [S449-ROUTE-8086-P1, S449-MANIFEST-G2C, S449-MIGRATION-G2E]
+parallel_group: sequential
+file_locks: [src/tiny_swarm_world/domain/lifecycle/manifest_v2_record.py, src/tiny_swarm_world/application/ports/lifecycle/versioned_manifest.py, src/tiny_swarm_world/infrastructure/adapters/lifecycle/versioned_manifest_repository.py, src/tiny_swarm_world/infrastructure/adapters/lifecycle/versioned_manifest_json.py, src/tiny_swarm_world/infrastructure/adapters/lifecycle/versioned_manifest_fs.py, tests/domain/lifecycle/test_manifest_v2_record.py, tests/infrastructure/adapters/lifecycle/test_versioned_manifest_repository.py, .codex/evidence/slice-449-manifest-v2-repository-contract.md, .codex/evidence/slice-449-manifest-v2-repository-distribution.md, .codex/evidence/slice-449-manifest-v2-repository-consolidation.md]
+module_locks: [versioned manifest record, bounded JSON parser, isolated filesystem CAS and repository facade]
+contract_locks: [closed unadopted draft wire and persisted listen input, UNKNOWN provenance, fixed staging path, bounded JSON, redacted repr, cooperating lock inode, bytehash CAS ABA limitation, no admission, crash semantics]
+architecture_locks: [domain port adapter boundaries, no existing runtime wiring, no host mutation]
+quality_gates:
+  targeted: [PYTHONPATH=src python3 -m unittest tests.domain.lifecycle.test_manifest_v2_record tests.infrastructure.adapters.lifecycle.test_versioned_manifest_repository tests.infrastructure.adapters.lifecycle.test_manifest tests.test_migration_preview_cli, python3 -m ruff check src/tiny_swarm_world/domain/lifecycle/manifest_v2_record.py src/tiny_swarm_world/application/ports/lifecycle/versioned_manifest.py src/tiny_swarm_world/infrastructure/adapters/lifecycle/versioned_manifest_repository.py src/tiny_swarm_world/infrastructure/adapters/lifecycle/versioned_manifest_json.py src/tiny_swarm_world/infrastructure/adapters/lifecycle/versioned_manifest_fs.py tests/domain/lifecycle/test_manifest_v2_record.py tests/infrastructure/adapters/lifecycle/test_versioned_manifest_repository.py]
+  required: [python3 tools/quality_gate.py quality, git diff --check]
+documentation:
+  arc42: reconcile unadopted wire shape with accepted selection and profile ADRs before implementation
+  adr: separate decision if existing ADR forbids unadopted persisted records
+stop_conditions: [unresolved draft persistence ADR or provenance semantics, missing six reviews or S3D, V1 regression, host effect, admitted state inferred, uncertain CAS or durability, secret disclosure]
+```
+
+One serial implementation owner; role review/S3D before edits. All agent Python checks run in SSH PC WSL on exact source. Follow-on operator migration, canonical persistence and every V2 consumer require separate accepted scopes; live fixture, host admission and support gates remain unchanged.
+
+## Execution-phase amendment v1.67 — V2 repository complexity remediation
+
+Initial full QUALITY failed four complexity guardrails for the new module/class/CAS/JSON parser; no quality pass is claimed. The same serial slice may split bounded JSON parsing and pinned FD/CAS primitives into the two additionally locked modules while retaining the existing repository facade and all security/failure semantics. No quality threshold, baseline or exception is weakened. Contract `.codex/evidence/slice-449-manifest-v2-repository-contract.md` specifies the decomposition. Fresh same-hash six-role reviews and S3D are required before continuing implementation; repeat targeted and full gates on SSH PC WSL.
+
+## Historical execution-phase amendment v1.68 — Portainer shared update no-prune
+
+NoPrune subsequently completed in `c3443ea56c420184124cdf0c8de892b18d301ecf`; planned status below is historical.
+
+S449-PORTAINER-NO-PRUNE is PLANNED on baseline `29be9194c86a35f448f12f3b7905956dc7a430d2`: shared Portainer HTTP stack update sends `prune=False` for direct and LXC-delegated paths. Omitted services may remain; explicit removal and authenticated endpoint/stack/ResourceControl/definition ownership guard remain separately unresolved. No host/live outcome is claimed. Contract `.codex/evidence/slice-449-portainer-no-prune-contract.md`.
+
+```yaml
+slice_id: S449-PORTAINER-NO-PRUNE
+profile: BACKEND_AND_TESTS
+owner: Senior Python Automation Developer
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior Tester, Senior DevOps Engineer]
+affected_files: [src/tiny_swarm_world/infrastructure/adapters/clients/portainer_http_client.py, tests/infrastructure/adapters/clients/test_portainer_http_client.py, tests/infrastructure/adapters/clients/lxc/services/test_lxc_service_clients.py, documentation/user_guide/component-updates.md, .codex/evidence/slice-449-portainer-no-prune-contract.md, .codex/evidence/slice-449-portainer-no-prune-distribution.md, .codex/evidence/slice-449-portainer-no-prune-consolidation.md]
+affected_modules: [Portainer shared HTTP stack update, LXC wrapper regression]
+affected_contracts: [no automatic prune, omitted services may remain, unchanged create env auth timeout, ownership guard separately open]
+dependencies: [S449-01]
+parallel_group: sequential
+file_locks: [src/tiny_swarm_world/infrastructure/adapters/clients/portainer_http_client.py, tests/infrastructure/adapters/clients/test_portainer_http_client.py, tests/infrastructure/adapters/clients/lxc/services/test_lxc_service_clients.py, documentation/user_guide/component-updates.md, .codex/evidence/slice-449-portainer-no-prune-contract.md, .codex/evidence/slice-449-portainer-no-prune-distribution.md, .codex/evidence/slice-449-portainer-no-prune-consolidation.md]
+module_locks: [Portainer HTTP update and wrapper contract]
+contract_locks: [no prune, omitted service retention, unchanged request parameters, no ownership admission]
+architecture_locks: [infrastructure adapter boundary, no live operation]
+quality_gates:
+  targeted: [PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_portainer_http_client tests.infrastructure.adapters.clients.lxc.services.test_lxc_service_clients tests.infrastructure.adapters.lifecycle.test_portainer_runtime, python3 -m ruff check src/tiny_swarm_world/infrastructure/adapters/clients/portainer_http_client.py tests/infrastructure/adapters/clients/test_portainer_http_client.py tests/infrastructure/adapters/clients/lxc/services/test_lxc_service_clients.py]
+  required: [python3 tools/quality_gate.py quality, git diff --check]
+documentation:
+  user_guide: explain omitted-service retention and separate ownership/removal
+  arc42: accepted selection exposure ownership ADR unchanged
+  adr: no change
+stop_conditions: [missing reviews or S3D, unverified removal semantics, changed create auth env timeout, ownership or convergence claimed, live host action]
+```
+
+Six Requirement, Architecture, Security, Python, Tester and DevOps same-hash reviews and S3D EXECUTION_PLAN precede edits. Targeted/full quality runs on designated SSH PC WSL exact source.
+
+## Execution-phase amendment v1.69 — visible endpoint/stack conflicts
+
+Status PLANNED for the narrower visible-conflict rejection in both legacy apply paths, after NoPrune `c3443ea56c420184124cdf0c8de892b18d301ecf`; the former global-guard proposal is historical and blocked. Reject visible duplicates, foreign endpoint, malformed records and drift before stack or network mutations after two snapshots. Auth POST and inventory GET are allowed. Legacy create and 404/405 fallback remain unchanged with an operator warning; no new retries, global absence/uniqueness, ownership, atomicity, S449-05 admission or direct update coverage claim. Contract `.codex/evidence/slice-449-portainer-endpoint-stack-contract.md`; fresh six-role reviews and S3D required.
+
+```yaml
+slice_id: S449-PORTAINER-ENDPOINT-STACK
+profile: BACKEND_AND_TESTS
+owner: Senior Python Automation Developer
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior Tester, Senior DevOps Engineer]
+affected_files: [src/tiny_swarm_world/application/ports/clients/port_portainer_client.py, src/tiny_swarm_world/infrastructure/adapters/clients/portainer_http_client.py, src/tiny_swarm_world/infrastructure/adapters/clients/portainer_apply_resolution.py, tests/infrastructure/adapters/clients/test_portainer_apply_resolution.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc/services/lxc_portainer_http_client.py, tests/infrastructure/adapters/clients/test_portainer_http_client.py, tests/infrastructure/adapters/clients/lxc/services/test_lxc_service_clients.py, tests/infrastructure/adapters/clients/test_lxc_swarm_runtime.py, tests/application/services/deployment/test_ensure_portainer_endpoint.py, tests/infrastructure/adapters/exceptions/test_operation_failure_mapping.py, documentation/user_guide/component-updates.md, .codex/evidence/slice-449-portainer-endpoint-stack-contract.md, .codex/evidence/slice-449-portainer-endpoint-stack-distribution.md, .codex/evidence/slice-449-portainer-endpoint-stack-consolidation.md]
+affected_modules: [Portainer endpoint and stack resolution, direct and LXC apply]
+affected_contracts: [strict visible-conflict rejection, two snapshots before mutation, legacy create unchanged, no global uniqueness or ownership claim]
+dependencies: [S449-PORTAINER-NO-PRUNE]
+parallel_group: sequential
+file_locks: [src/tiny_swarm_world/application/ports/clients/port_portainer_client.py, src/tiny_swarm_world/infrastructure/adapters/clients/portainer_http_client.py, src/tiny_swarm_world/infrastructure/adapters/clients/portainer_apply_resolution.py, tests/infrastructure/adapters/clients/test_portainer_apply_resolution.py, src/tiny_swarm_world/infrastructure/adapters/clients/lxc/services/lxc_portainer_http_client.py, tests/infrastructure/adapters/clients/test_portainer_http_client.py, tests/infrastructure/adapters/clients/lxc/services/test_lxc_service_clients.py, tests/infrastructure/adapters/clients/test_lxc_swarm_runtime.py, tests/application/services/deployment/test_ensure_portainer_endpoint.py, tests/infrastructure/adapters/exceptions/test_operation_failure_mapping.py, documentation/user_guide/component-updates.md, .codex/evidence/slice-449-portainer-endpoint-stack-contract.md, .codex/evidence/slice-449-portainer-endpoint-stack-distribution.md, .codex/evidence/slice-449-portainer-endpoint-stack-consolidation.md]
+module_locks: [Portainer port, HTTP and LXC apply, shared fakes]
+contract_locks: [visible endpoint stack conflicts and recheck, unchanged legacy create, no prune, direct update bypass documented]
+architecture_locks: [application port infrastructure adapters, no host operations]
+quality_gates:
+  targeted:
+    - PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_portainer_http_client tests.infrastructure.adapters.clients.lxc.services.test_lxc_service_clients tests.infrastructure.adapters.clients.test_lxc_swarm_runtime tests.application.services.deployment.test_ensure_portainer_endpoint tests.infrastructure.adapters.exceptions.test_operation_failure_mapping
+    - python3 -m ruff check src/tiny_swarm_world/application/ports/clients/port_portainer_client.py src/tiny_swarm_world/infrastructure/adapters/clients/portainer_http_client.py src/tiny_swarm_world/infrastructure/adapters/clients/portainer_apply_resolution.py src/tiny_swarm_world/infrastructure/adapters/clients/lxc/services/lxc_portainer_http_client.py tests/infrastructure/adapters/clients/test_portainer_http_client.py tests/infrastructure/adapters/clients/lxc/services/test_lxc_service_clients.py tests/infrastructure/adapters/clients/test_lxc_swarm_runtime.py tests/application/services/deployment/test_ensure_portainer_endpoint.py tests/infrastructure/adapters/exceptions/test_operation_failure_mapping.py
+    - 'if [ -f tests/infrastructure/adapters/clients/test_portainer_apply_resolution.py ]; then PYTHONPATH=src python3 -m unittest tests.infrastructure.adapters.clients.test_portainer_apply_resolution && python3 -m ruff check tests/infrastructure/adapters/clients/test_portainer_apply_resolution.py; fi'
+  required: [python3 tools/quality_gate.py quality, git diff --check]
+documentation:
+  user_guide: document ambiguous identity refusal and ownership limitation
+  arc42: accepted ownership ADR unchanged
+  adr: no change
+stop_conditions: [missing role review or S3D, ambiguous visible endpoint or stack, malformed or failed snapshot, mutating stack POST/PUT or network/manager command before recheck, no-prune regression, ownership or atomicity claim, host action]
+```
+
+Six independent Requirement, Architecture, Security, Python, Tester and DevOps same-hash reviews and S3D EXECUTION_PLAN precede edits. Targeted and full quality run on designated SSH PC WSL with exact source.
+
+## Execution-phase amendment v1.70 — visible conflict complexity remediation
+
+The initial full QUALITY reported `grown-critical-class` for `PortainerHttpClient` and `grown-module-complexity` for its module. Do not weaken quality guardrails. Extend the existing S449-PORTAINER-ENDPOINT-STACK serial slice locks with `src/tiny_swarm_world/infrastructure/adapters/clients/portainer_apply_resolution.py` and optional `tests/infrastructure/adapters/clients/test_portainer_apply_resolution.py`. The contract specifies injection of the existing authenticated `_send`, two strict snapshots with exact 200 and no redirects, fingerprint/drift validation, sanitized errors, and unchanged effect ordering and legacy behavior. Preserve all existing regressions; run focused tests and full QUALITY on exact-source SSH PC WSL. Six fresh same-hash role reviews and S3D are required before implementing the amendment. No host action, ownership, completeness or admission follows.
+
+## Execution-phase amendment v1.71 — Portainer upgrade ownership and recovery
+
+PROPOSED, not executable pending ADR owner and six role decisions on `.codex/evidence/slice-449-portainer-upgrade-ownership-contract.md` and S3D. Missing ownership blocks new upgrade before checkpoint/backup; direct proof PUT also blocks. Recovery retains cancel/restore but must remain unsettled without proof; crash uncertainty and durable pending semantics need acceptance first: failed post-replace/fsync save may leave old or new complete checkpoint; read-only reopen, never report success or blindly retry. No V1 swarm setup block, host action or ownership admission.
+
+```yaml
+slice_id: S449-PORTAINER-UPGRADE-OWNERSHIP
+profile: BACKEND_AND_TESTS
+owner: Senior Python Automation Developer
+secondary_reviewers: [Senior Requirement Engineer, Senior System Architect, Security, Senior Tester, Senior DevOps Engineer]
+dependencies: [S449-PORTAINER-ENDPOINT-STACK]
+parallel_group: sequential
+affected_files: [src/tiny_swarm_world/application/services/portainer_upgrade.py, src/tiny_swarm_world/application/ports/lifecycle/portainer_upgrade.py, src/tiny_swarm_world/domain/lifecycle/portainer_upgrade.py, src/tiny_swarm_world/infrastructure/adapters/lifecycle/portainer_runtime.py, src/tiny_swarm_world/infrastructure/adapters/lifecycle/portainer_api.py, src/tiny_swarm_world/infrastructure/adapters/lifecycle/portainer_journal.py, src/tiny_swarm_world/infrastructure/adapters/lifecycle/update_journal.py, src/tiny_swarm_world/infrastructure/adapters/lifecycle/desired_images.py, tests/application/services/test_portainer_upgrade.py, tests/application/services/test_component_execution.py, tests/application/services/test_product_upgrade.py, tests/infrastructure/adapters/lifecycle/test_native_component_transitions.py, tests/infrastructure/adapters/lifecycle/test_portainer_runtime.py, documentation/user_guide/component-updates.md, .codex/evidence/slice-449-portainer-upgrade-ownership-contract.md, .codex/evidence/slice-449-portainer-upgrade-ownership-distribution.md, .codex/evidence/slice-449-portainer-upgrade-ownership-consolidation.md]
+file_locks: [src/tiny_swarm_world/application/services/portainer_upgrade.py, src/tiny_swarm_world/application/ports/lifecycle/portainer_upgrade.py, src/tiny_swarm_world/domain/lifecycle/portainer_upgrade.py, src/tiny_swarm_world/infrastructure/adapters/lifecycle/portainer_runtime.py, src/tiny_swarm_world/infrastructure/adapters/lifecycle/portainer_api.py, src/tiny_swarm_world/infrastructure/adapters/lifecycle/portainer_journal.py, src/tiny_swarm_world/infrastructure/adapters/lifecycle/update_journal.py, src/tiny_swarm_world/infrastructure/adapters/lifecycle/desired_images.py, tests/application/services/test_portainer_upgrade.py, tests/application/services/test_component_execution.py, tests/application/services/test_product_upgrade.py, tests/infrastructure/adapters/lifecycle/test_native_component_transitions.py, tests/infrastructure/adapters/lifecycle/test_portainer_runtime.py, documentation/user_guide/component-updates.md, .codex/evidence/slice-449-portainer-upgrade-ownership-contract.md, .codex/evidence/slice-449-portainer-upgrade-ownership-distribution.md, .codex/evidence/slice-449-portainer-upgrade-ownership-consolidation.md]
+affected_modules: [Portainer upgrade service and recovery, lifecycle checkpoints, Portainer API]
+module_locks: [Portainer upgrade lifecycle, read-only recovery runtime port, checkpoint consumers]
+affected_contracts: [pre-backup block, no unowned proof PUT, recovery pending and uncertain crash semantics]
+contract_locks: [upgrade ownership, recovery durability, checkpoint compatibility]
+architecture_locks: [domain application infrastructure separation, V1 swarm behavior, no host admission]
+quality_gates:
+  targeted: [PYTHONPATH=src python3 -m unittest tests.application.services.test_portainer_upgrade tests.infrastructure.adapters.lifecycle.test_portainer_runtime tests.application.services.test_component_execution tests.application.services.test_product_upgrade tests.infrastructure.adapters.lifecycle.test_native_component_transitions, python3 -m ruff check src/tiny_swarm_world/application/services/portainer_upgrade.py src/tiny_swarm_world/application/ports/lifecycle/portainer_upgrade.py src/tiny_swarm_world/domain/lifecycle/portainer_upgrade.py src/tiny_swarm_world/infrastructure/adapters/lifecycle/portainer_runtime.py src/tiny_swarm_world/infrastructure/adapters/lifecycle/portainer_api.py src/tiny_swarm_world/infrastructure/adapters/lifecycle/portainer_journal.py src/tiny_swarm_world/infrastructure/adapters/lifecycle/update_journal.py src/tiny_swarm_world/infrastructure/adapters/lifecycle/desired_images.py tests/application/services/test_portainer_upgrade.py tests/application/services/test_component_execution.py tests/application/services/test_product_upgrade.py tests/infrastructure/adapters/lifecycle/test_portainer_runtime.py tests/infrastructure/adapters/lifecycle/test_native_component_transitions.py]
+  required: [python3 tools/quality_gate.py quality, git diff --check]
+documentation:
+  user_guide: explain blocked upgrade and pending recovery
+  arc42: preserve existing ownership decision and document any accepted amendment
+  adr: owner decision on pending recovery and checkpoint semantics required
+stop_conditions: [missing ADR owner or six reviews or S3D, checkpoint uncertainty unaddressed, unowned PUT, false recovered or committed status, V1 regression, host operation]
 ```

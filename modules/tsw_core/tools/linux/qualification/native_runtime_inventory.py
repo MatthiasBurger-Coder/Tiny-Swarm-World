@@ -2293,8 +2293,132 @@ def _write_private(path: Path, raw: bytes) -> None:
         raise
 
 
+def diagnose_snap_context(*, runner: Runner | None = None) -> str:
+    """Return only a fixed context category; this never admits the service."""
+    try:
+        import importlib
+        runner = runner or Runner()
+        row = _systemctl_show(runner, "snap.lxd.daemon.service")
+        if (row["load_state"], row["active_state"], row["sub_state"]) != ("loaded", "active", "running") or row["main_pid"] <= 0:
+            return "UNKNOWN"
+        name = f"{__package__}.native_lxd_snap_provenance" if __package__ else "native_lxd_snap_provenance"
+        proof = importlib.import_module(name)
+        reason = proof.diagnose_context(runner, row)
+        allowed = {"EXECSTART_FORMAT_OR_TIME", "CONTROL_GROUP", "FRAGMENT_OR_HOOK", "DROPIN_OR_ENV_SETTING",
+                   "ENVIRONMENT_FILE_SPEC", "DROPIN_CONTENT", "ENVIRONMENT_FILE_CONTENT", "UNKNOWN"}
+        return reason if reason in allowed else "UNKNOWN"
+    except Exception:
+        return "UNKNOWN"
+
+
+def diagnose_snap_dropin(*, runner: Runner | None = None) -> str:
+    """Return a fixed structural category without admitting the service."""
+    try:
+        import importlib
+        runner = runner or Runner()
+        row = _systemctl_show(runner, "snap.lxd.daemon.service")
+        if (row["load_state"], row["active_state"], row["sub_state"]) != ("loaded", "active", "running") or row["main_pid"] <= 0:
+            return "UNKNOWN"
+        name = f"{__package__}.native_lxd_snap_provenance" if __package__ else "native_lxd_snap_provenance"
+        proof = importlib.import_module(name)
+        reason = proof.diagnose_dropin(runner, row)
+        allowed = {"SECTION_SHAPE", "UNKNOWN_DIRECTIVE", "DEPENDENCY_VARIANT", "UNKNOWN"}
+        return reason if reason in allowed else "UNKNOWN"
+    except Exception:
+        return "UNKNOWN"
+
+
+def diagnose_snap_generator_form(*, runner: Runner | None = None) -> str:
+    """Return a fixed generator-form category without admitting the service."""
+    try:
+        import importlib
+        runner = runner or Runner()
+        row = _systemctl_show(runner, "snap.lxd.daemon.service")
+        if (row["load_state"], row["active_state"], row["sub_state"]) != ("loaded", "active", "running") or row["main_pid"] <= 0:
+            return "UNKNOWN"
+        name = f"{__package__}.native_lxd_snap_provenance" if __package__ else "native_lxd_snap_provenance"
+        proof = importlib.import_module(name)
+        reason = proof.diagnose_generator_form(runner, row)
+        return reason if reason in {"MATCH", "UNKNOWN"} else "UNKNOWN"
+    except Exception:
+        return "UNKNOWN"
+
+
+def diagnose_snap_generator_stage(*, runner: Runner | None = None) -> str:
+    """Return only a fixed stable F7 failure stage without admitting identity."""
+    try:
+        import importlib
+        runner = runner or Runner()
+        row = _systemctl_show(runner, "snap.lxd.daemon.service")
+        if (row["load_state"], row["active_state"], row["sub_state"]) != ("loaded", "active", "running") or row["main_pid"] <= 0:
+            return "UNKNOWN"
+        name = f"{__package__}.native_lxd_snap_provenance" if __package__ else "native_lxd_snap_provenance"
+        proof = importlib.import_module(name)
+        reason = proof.diagnose_generator_stage(runner, row)
+        allowed = {"UNIT_CONTEXT", "DROPIN_TRUST_OR_FORM", "PROCESS_BINDING", "REVISION_BINDING",
+                   "SHELL_BINDING", "SCRIPT_PAIR_OR_DIGEST", "RECHECK_DRIFT", "UNKNOWN"}
+        return reason if reason in allowed else "UNKNOWN"
+    except Exception:
+        return "UNKNOWN"
+
+
+def diagnose_snap_cgroup_relation(*, runner: Runner | None = None) -> str:
+    """Report only a fixed cgroup relation without admitting the service."""
+    try:
+        import importlib
+        runner = runner or Runner()
+        row = _systemctl_show(runner, "snap.lxd.daemon.service")
+        if (row["load_state"], row["active_state"], row["sub_state"]) != ("loaded", "active", "running") or row["main_pid"] <= 0:
+            return "UNKNOWN"
+        name = f"{__package__}.native_lxd_snap_provenance" if __package__ else "native_lxd_snap_provenance"
+        proof = importlib.import_module(name)
+        reason = proof.diagnose_cgroup_relation(runner, row)
+        allowed = {"PROC_ROOT", "PROC_STRICT_ANCESTOR", "PROC_STRICT_DESCENDANT", "DISJOINT", "UNKNOWN"}
+        return reason if reason in allowed else "UNKNOWN"
+    except Exception:
+        return "UNKNOWN"
+
+def diagnose_snap_reader_namespace(*, runner: Runner | None = None) -> str:
+    """Compare only the current reader and visible PID 1 namespaces."""
+    try:
+        import importlib
+        runner = runner or Runner()
+        row = _systemctl_show(runner, "snap.lxd.daemon.service")
+        if (row["load_state"], row["active_state"], row["sub_state"]) != ("loaded", "active", "running") or row["main_pid"] <= 0:
+            return "UNKNOWN"
+        name = f"{__package__}.native_lxd_snap_provenance" if __package__ else "native_lxd_snap_provenance"
+        result = importlib.import_module(name).diagnose_reader_namespace(runner, row)
+        return result if result in {"SAME", "DIFFERENT"} else "UNKNOWN"
+    except Exception:
+        return "UNKNOWN"
+
+
 def main(argv: list[str] | None = None) -> int:
     arguments = list(sys.argv[1:] if argv is None else argv)
+    if any(arg == "--diagnose-snap-reader-namespace" or arg.startswith("--diagnose-snap-reader-namespace=") for arg in arguments):
+        reason = diagnose_snap_reader_namespace() if arguments == ["--diagnose-snap-reader-namespace"] else "UNKNOWN"
+        print(json.dumps({"status": "BLOCKED_UNKNOWN", "reason": reason}, separators=(",", ":"), ensure_ascii=True))
+        return 2
+    if any(arg == "--diagnose-snap-cgroup-relation" or arg.startswith("--diagnose-snap-cgroup-relation=") for arg in arguments):
+        reason = diagnose_snap_cgroup_relation() if arguments == ["--diagnose-snap-cgroup-relation"] else "UNKNOWN"
+        print(json.dumps({"status": "BLOCKED_UNKNOWN", "reason": reason}, separators=(",", ":"), ensure_ascii=True))
+        return 2
+    if any(arg == "--diagnose-snap-generator-stage" or arg.startswith("--diagnose-snap-generator-stage=") for arg in arguments):
+        reason = diagnose_snap_generator_stage() if arguments == ["--diagnose-snap-generator-stage"] else "UNKNOWN"
+        print(json.dumps({"status": "BLOCKED_UNKNOWN", "reason": reason}, separators=(",", ":"), ensure_ascii=True))
+        return 2
+    if any(arg == "--diagnose-snap-generator-form" or arg.startswith("--diagnose-snap-generator-form=") for arg in arguments):
+        reason = diagnose_snap_generator_form() if arguments == ["--diagnose-snap-generator-form"] else "UNKNOWN"
+        print(json.dumps({"status": "BLOCKED_UNKNOWN", "reason": reason}, separators=(",", ":"), ensure_ascii=True))
+        return 2
+    if any(arg == "--diagnose-snap-dropin" or arg.startswith("--diagnose-snap-dropin=") for arg in arguments):
+        reason = diagnose_snap_dropin() if arguments == ["--diagnose-snap-dropin"] else "UNKNOWN"
+        print(json.dumps({"status": "BLOCKED_UNKNOWN", "reason": reason}, separators=(",", ":"), ensure_ascii=True))
+        return 2
+    if any(arg == "--diagnose-snap-context" or arg.startswith("--diagnose-snap-context=") for arg in arguments):
+        reason = diagnose_snap_context() if arguments == ["--diagnose-snap-context"] else "UNKNOWN"
+        print(json.dumps({"status": "BLOCKED_UNKNOWN", "reason": reason}, separators=(",", ":"), ensure_ascii=True))
+        return 2
     if any(arg == "--diagnose-units" or arg.startswith("--diagnose-units=") for arg in arguments):
         if arguments != ["--diagnose-units"]:
             print("BLOCKED:DIAGNOSTIC_ARGUMENTS_INVALID", file=sys.stderr)

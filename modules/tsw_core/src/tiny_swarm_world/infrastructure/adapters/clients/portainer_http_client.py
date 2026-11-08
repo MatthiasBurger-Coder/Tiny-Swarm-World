@@ -12,6 +12,7 @@ from tiny_swarm_world.application.ports.clients.port_deployment_gateway import (
 )
 from tiny_swarm_world.application.ports.clients.port_portainer_client import PortPortainerClient
 from tiny_swarm_world.domain.deployment.stack_definition import StackDefinition
+from tiny_swarm_world.infrastructure.adapters.clients.portainer_apply_resolution import resolve_apply_target
 from tiny_swarm_world.infrastructure.logging.logger_factory import LoggerFactory
 
 
@@ -142,8 +143,9 @@ class PortainerHttpClient(PortPortainerClient, PortDeploymentGateway):
 
     def apply_stack(self, request: DeploymentStackRequest) -> None:
         self._applied_stack_snapshot = None
-        endpoint_id = self.get_endpoint_id_by_name(self.deployment_endpoint_name)
-        stack_id = self.find_stack_id_by_name(request.stack_definition.name)
+        endpoint_id, stack_id = self.resolve_apply_target(
+            self.deployment_endpoint_name, request.stack_definition.name
+        )
         if stack_id is None:
             self.create_stack(
                 request.stack_definition,
@@ -154,6 +156,9 @@ class PortainerHttpClient(PortPortainerClient, PortDeploymentGateway):
             return
         # A same-name API object is never authority to adopt or overwrite it.
         raise PortainerClientError(OperationFailure.for_cause("service.request", "portainer", "request_failed"))
+
+    def resolve_apply_target(self, endpoint_name: str, stack_name: str) -> tuple[int, int | None]:
+        return resolve_apply_target(self._send, endpoint_name, stack_name)
 
     def stack_registered(self, stack_name: str) -> bool:
         if self._applied_stack_snapshot == stack_name:

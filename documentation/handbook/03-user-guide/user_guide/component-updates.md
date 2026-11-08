@@ -10,6 +10,11 @@ tiny-swarm-world services update --services swagger,traefik --preview --json
 tiny-swarm-world services update --services swagger --to swagger-ui-5-32-7 --preview --json
 ```
 
+When an existing stack is updated through Portainer, the update request does
+not prune services omitted from the submitted stack definition. Such services
+can remain. Explicit service removal and ownership verification require
+separate reviewed workflows; this setting does not prove full convergence.
+
 Run these commands from the prepared environment. Alternatively use
 `PYTHONPATH=modules/tsw_core/src python3 -m tiny_swarm_world` in place of `tiny-swarm-world`.
 `services updates` defaults to the persisted installed selection. Update preview
@@ -316,3 +321,12 @@ reverses only the admitted image transition. Unknown create outcomes and foreign
 saved-state changes remain blocked. Image rollback does not restore persistent
 data. These candidate paths require the separate scoped-profile capability and
 live qualification; they do not promote unqualified component catalog targets.
+
+Portainer apply checks two visible endpoint and stack inventories and blocks visible
+ambiguity, conflicting endpoint identities, malformed records, and drift before
+stack or overlay-network changes. Portainer may omit stacks; a visible match is
+not proof of ownership and a missing name is not proof of global absence. Legacy
+creation and the 404/405 fallback remain in place; those responses do not prove
+that no mutation occurred. Concurrent changes can occur after the recheck. Direct
+`update_stack` calls bypass these apply checks.
+

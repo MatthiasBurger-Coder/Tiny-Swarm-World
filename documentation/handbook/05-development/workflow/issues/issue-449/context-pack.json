@@ -1,257 +1,14 @@
 {
   "workflow_id": "issue-449-lcm-w09",
-  "workflow_version": "1.61",
-  "continuation_20261107": {
-    "branch": "fix/epic440-completion-20261107",
-    "baseline": "b87fe5c96b4e8627c56f48d9a7b3c691076447fc",
-    "authorization": "User explicitly requests complete Epic 440 remediation using both named test hosts; historical code-only publication scope does not limit this request.",
-    "phase": "closed preserving product acceptance prerequisite source engineering; no new host GO",
-    "normative_contract": ".codex/evidence/slice-449-02F4-design.md",
-    "execution_record": ".codex/evidence/epic440-20261107.md",
-    "runtime_mutation_released": false,
-    "native_inventory_command_cap": 2048,
-    "native_inventory_schema": 5,
-    "native_network_contract": ".codex/evidence/epic440-network-inventory-20261107.md",
-    "native_inventory_budget_scope": "Native F4 only; repeated trust checks counted; all other hard limits and fixture budgets unchanged",
-    "s02i_record": ".codex/evidence/epic440-store-wsl2-20261107.md",
-    "wsl_checkpoint_record": ".codex/evidence/epic440-wsl-state-20261107.md",
-    "native_product_recovery_record": ".codex/evidence/epic440-product-recovery-classification-20261107.md",
-    "windows_source_path_record": ".codex/evidence/epic440-windows-source-path-20261107.md",
-    "s02i_paths": [
-      "bootstrap/windows/preparation/Policy.ps1",
-      "bootstrap/windows/preparation/Adapters.ps1",
-      "tests/windows/prepare-windows.Tests.ps1"
-    ],
-    "historical_artifact_map": "Existing artifact hashes below bind their historical phase, not this continuation. Current exact-byte hashes are recorded in the execution record.",
-    "native_volume_dto_contract": ".codex/evidence/epic440-volume-dto-20261107.md",
-    "native_storage_graph_contract": ".codex/evidence/epic440-storage-graph-20261107.md",
-    "native_server_root_gets_per_active_family": 2,
-    "native_server_root_query_scope": "Fixed raw local GET /1.0 initial/final, exact family DTO/noncluster admission; all provenance and global limits unchanged; no live GO",
-    "native_default_project_required_for_admitted_family": true,
-    "native_profile_inventory_contract": ".codex/evidence/epic440-profile-inventory-20261107.md",
-    "native_snapshot_inventory_contract": ".codex/evidence/epic440-snapshot-inventory-20261107.md",
-    "native_snapshot_detail_query_scope": "One fixed guarded raw storage-snapshot GET per validated flat-list leaf; no recursive list or historical-instance query; unchanged budgets and no live GO",
-    "maintenance_policy": {
-      "adr": "documentation/handbook/02-architecture/arc42/09_decisions/adr-preserving-host-maintenance-for-qualification.adoc",
-      "status": "ACCEPTED_ARCHITECTURE_AND_INDEPENDENT_TESTER_DEVOPS_REVIEW",
-      "native": "Temporary exact Snap LXD socket/daemon stop; preserve all objects/configuration; mandatory identity-bound finally recovery of captured runtime and previously Running allowlisted instances; no ownership/adoption inference or replacement",
-      "windows": "Necessary selected-Ubuntu resource restart with no other running distro; only existing product-bound PortProxy connectaddress may become same registration fresh IPv4; firewall/other fields/foreign rules unchanged; any explicit bridge runtime restart restores prior state",
-      "supersession": "Only preserving S02G exclusive-owner/replace requirement, prerequisite PortProxy absolute equality and manual-only W05 restart; later fixture baseline equality and all other guards remain",
-      "host_go": "Concrete source/host/recovery plan review required; no execution by this policy authoring",
-      "native_stop_escalation": "Observed unit timeout10min/SIGKILL: use verified finite graceful shutdown, confirm exit before unit-stop bookkeeping; no live-daemon systemctl stop or force fallback; graceful timeout enters recovery"
-    },
-    "pure_s03_scheduling": {
-      "status": "Code-plan review then isolated pure persistence implementation may proceed while S02 fixture pending",
-      "scope": "Manifest-v2 migration, installation lock, checkpoint/selection persistence; exact current canonical paths/locks named by code plan",
-      "integration_consumers": [
-        "component_execution.py",
-        "portainer_upgrade.py",
-        "portainer_journal.py",
-        "composition_lifecycle.py"
-      ],
-      "retained_gate": "Focused/full exact-source checks before integration; S02 still gates runtime enablement, supported Incus versions, profile capability, S04 provider wiring in composition_platform.py and live acceptance"
-    },
-    "fixture_image": {
-      "os": "Alpine",
-      "release": "3.21",
-      "architecture": "x86_64",
-      "variant": "default",
-      "build": "20261107_13:00",
-      "source": "https://images.linuxcontainers.org/images/alpine/3.21/amd64/default/20261107_13:00/",
-      "metadata_sha256": "3100ebd0999fb3adf9cf52724b4cf57c95a10fe437660614911aae5f6b236ea7",
-      "rootfs_sha256": "5f4503fbfa10e24634e972e2646e243648c66c3bb64ad48615eb60cb0c69cd6e",
-      "combined_fingerprint": "bb8bbef5b81dbbc7f665eb12172f06d54aef055327f1b4381767bf8c7b18fe66",
-      "capability_accepted": false
-    },
-    "source_parallel_scheduling": {
-      "scope": "Isolated capability-independent S04 profile lifecycle and S06 internal exposure implementation alongside S02",
-      "authority": "Renewed user request for complete remediation; root architecture routing decision",
-      "retained_gate": "Empty supported-version matrix and no runtime enablement until both-host S02 acceptance; focused/full exact PC WSL checks and independent source review before integration",
-      "integration_owner": "root; overlapping composition changes serialized"
-    },
-    "completed_runtime_maintenance": [
-      "Existing WSL generated forwarding script and exactly three missing configured-target rules; foreign firewall/NAT/hosts/service identity preserved"
-    ],
-    "native_maintenance_bootstrap": {
-      "contract": ".codex/evidence/epic440-native-bootstrap-contract-20261107.md",
-      "status": "ROOT_SOURCE_REVIEW_AND_PC_QUALITY_PASS",
-      "image_inventory_schema": 6,
-      "opt_in": true,
-      "default_inventory_schema": 5,
-      "final_fixture_admission": "Actual paused resource/route captures and finite final17-key GO; no predicted poststate",
-      "phase_seconds": {
-        "preparation": 1200,
-        "capture": 360,
-        "approval": 180,
-        "fixture": 1025,
-        "recovery": 600
-      },
-      "host_phase_released": false,
-      "capability_accepted": false
-    },
-    "product_acceptance_prerequisite_plan": {
-      "adr": "documentation/handbook/02-architecture/arc42/09_decisions/adr-preserving-product-acceptance-transactions.adoc",
-      "record": ".codex/evidence/epic440-preserving-acceptance-design-20261108.md",
-      "status": "ACCEPTED_SOURCE_PLAN_ONLY",
-      "independent_architecture_review": "exact amended design R2; SHA manifest6a219f3b0551997f50d8b6918989c19e5de2cc3c8ad1cebd81e1643e2626fcca",
-      "wsl_switch": "newStopped; original nodesquiesced/ownedBridgeStopped/onlyOriginalRunning; terminateOriginal/noRunning; startNew onlywithactualkernelnetworkabsence; reverseexactoriginalrestoration",
-      "source_scope": [
-        "closed qualification controllers",
-        "exact new-case disposal",
-        "new registration only",
-        "protected singleton bridge binding",
-        "matching tests and source asset pins"
-      ],
-      "runtime_mutation_released": false,
-      "epic_status": "INCOMPLETE"
-    },
-    "fixture_recovery_correction": {
-      "record": ".codex/evidence/epic440-native-r3-budget-recovery-20261108.md",
-      "scope": "SOURCE_CORRECTION_ONLY_PENDING_PC_AND_HOST_PROOF",
-      "structural_budget": "10000 unique read-scope/typed-field-index slots,5000 cleanup; every response fully parsed/validated <=10000nodes/depth32; repeated byte/command/time cost unchanged",
-      "limits": {
-        "commands": 256,
-        "cleanup_command_reserve": 110,
-        "bytes": 16777216,
-        "per_stream_bytes": 2097152,
-        "aggregate_seconds": 300,
-        "cleanup_seconds": 60
-      },
-      "approval_schema": 2,
-      "operation_minimum_remaining_seconds": {
-        "execute": 1740,
-        "recover": 600
-      },
-      "shared_windows_asset": "tools/windows/qualification/windows_firewall_snapshot.ps1",
-      "required_go_field": "windows_snapshot_sha256",
-      "actual_windows_getter": "c6cd provider-data getter refused; NOT_PASS; exact later revision requires fresh real proof",
-      "capability_accepted": false
-    },
-    "shared_windows_certificate": {
-      "plan_sha256": "470c141f4b6d63f7c38eb87dd5d9ffd716cf64ef5f5ec89284ed87327d1c1634",
-      "status": "SOURCE_ENGINEERING_ONLY_PENDING_EXACT_GATES_AND_REAL_CONSUMER_PROOF",
-      "certificate_root_fields": 8,
-      "count_fields": 10,
-      "raw_query_repeat_artifact_sha256": "ed8ed6e8b5a98c8a4c71c2609421d405ef1ecd356d89dcb5aa145c030b460294",
-      "required_go_fields": [
-        "windows_snapshot_sha256",
-        "windows_certificate_sha256"
-      ],
-      "host_seconds": {
-        "native_linux": {
-          "total": 300,
-          "cleanup": 60,
-          "active": 240
-        },
-        "wsl2": {
-          "total": 650,
-          "cleanup": 300,
-          "active": 350
-        }
-      },
-      "fresh_query_counts": {
-        "active": 7,
-        "cleanup": 6
-      },
-      "parent_bytes_unchanged": 67108864,
-      "child_full_snapshot_bytes_unchanged": 14680064
-    },
-    "acceptance_wsl_host_image": {
-      "release": "26.04.1",
-      "sha256": "48d56724b5c8e60f24893e83e73bbb58c60b3ca22fba3da977075420acd54104",
-      "bytes": 418495746,
-      "signer": "843938DF228D22F7B3742BC0D94AA3F0EFE21092",
-      "signature_verified": true,
-      "incus_packages": "6.0.5-8 from signature-verified resolute index",
-      "archive_signer": "F6ECB3762474EDA9D21B7022871920D1991BC93C",
-      "registration_name": "TSW-Q440-<runid>",
-      "imported": false,
-      "container_image_unchanged": true
-    },
-    "bridge_operational_recovery_exception": {
-      "root": "CommonApplicationData/TinySwarmWorld/WslBridge",
-      "archive": ".staging-acceptance-<runid>-original",
-      "descriptor": "descriptor.json",
-      "max_members": 4096,
-      "max_bytes": 33554432,
-      "classification": "protected native product recovery only; raw payload/ACL/SID stay native; no workflow evidence or GO authority",
-      "phase_seconds": {
-        "prepare": 180,
-        "archive": 180,
-        "stop_original": 180,
-        "bind": 360,
-        "stage_restore": 180,
-        "resume_original": 360,
-        "recovery": 300
-      },
-      "live_go": false
-    },
-    "guest_switch_operational_bookmark": {
-      "path": "CommonApplicationData/TinySwarmWorld/maintenance/acceptance-<runid>/guest-switch.json",
-      "classification": "minimal protected native operational intent/phase bookmark only; no raw preserve-set or workflow approval/evidence",
-      "fields": "schema/run/scenario/source hashes; original/new GUID and VHD identity digests; phase/intent/action ids; hashed receipt pointers",
-      "existing_unknown_owner_or_acl": "REFUSE_WITHOUT_REPAIR",
-      "live_go": false
-    },
-    "upgrade_acceptance_source": {
-      "record": ".codex/evidence/epic440-upgrade-implementation-plan-20261108.md",
-      "record_sha256": "698cbdfc9560a882f628c4a5f49c6096d9f2d39ec3f8fe2c6106b04066baf2b4",
-      "status": "SOURCE_PLAN_APPROVED_ONLY",
-      "source_slices": [
-        "S-U1",
-        "S-U2"
-      ],
-      "ledger_schema": 2,
-      "closed_cases": 24,
-      "component_forward_seconds": {
-        "wsl": 10500,
-        "native": 12480
-      },
-      "official_v1_forward_seconds": {
-        "wsl": 19500,
-        "native": 21480
-      },
-      "component_engine_recovery_seconds": {
-        "wsl": 4800,
-        "native": 6780
-      },
-      "official_v1_engine_recovery_seconds": {
-        "wsl": 12300,
-        "native": 14280
-      },
-      "disposal_only_recovery_seconds": 900,
-      "public_promotion": "Requires every declared host/preset/owner/exposure tuple and remaining closed-case evidence plus independent acceptance; private qualification input is not released compatibility",
-      "runtime_mutation_released": false
-    },
-    "closed_portainer_image_cache": {
-      "record": ".codex/evidence/epic440-upgrade-cache-prerequisite-20261108.md",
-      "record_sha256": "a8e358e592c7b992383827bbf33f0151fb28f74d060df5f9a8a9f38a996a3bcf",
-      "status": "SOURCE_AUTHORITY_ONLY",
-      "pairs": 12,
-      "aggregate_seconds": 900,
-      "containing_phase": "exercise3600",
-      "maximum_actual_pulls_per_pair": 1,
-      "public_scoped_artifacts_guard": "UNCHANGED_REFUSED",
-      "runtime_mutation_released": false
-    },
-    "original_runtime_r3": {
-      "record": ".codex/evidence/epic440-original-runtime-r3-plan-20261108.md",
-      "record_sha256": "b9c6d079899e7a91c550514d4294a877e22f43c3ff65a6ae5f16a7166a5d5d65",
-      "status": "SOURCE_ENGINEERING_ONLY",
-      "source_commit": "cb8c0e27c5890c39c03c45502423f2b8bf372ecc",
-      "root": "/root/tsw440-wsl-r5-20261108",
-      "old_zero_effect_attempt": "REJECTED_STALE_DETAIL_DIGEST_CAUSE_UNPROVEN",
-      "budgets": {
-        "child_seconds": 75,
-        "invocation_seconds": 1800,
-        "own_command_claims": 128,
-        "capture_seconds": 300,
-        "settlement_seconds": 25,
-        "settlement_cleanup_seconds": 5,
-        "outer_guestswitch_seconds": 650
-      },
-      "host_effects_released": false
-    }
+  "workflow_version": "1.71",
+  "workflow_amendment_v1_43": {
+    "slice_id": "S449-02F5",
+    "status": "HISTORICAL: F5 implemented and bounded native diagnosis executed",
+    "observation": "The native S449-02F inventory at source 1ec15b3e9f7f943cdde85e43d00ec01ff9c7e9fd exited 2 with BLOCKED:SNAP_WRAPPER_CONTEXT_BLOCKED; no inventory artifact or host mutation occurred. Cause unknown.",
+    "dependency": "S449-02F4",
+    "contract": ".codex/evidence/slice-449-02F5-design.md",
+    "sequence": "Six-role same-hash review and S3D, F5 implementation and exact-source PC WSL quality, separate post-commit native diagnosis plan and GO, independently reviewed result, separately governed correction if warranted, fresh S449-02F inventory plan and GO.",
+    "boundary": "Sole standalone --diagnose-snap-context mode; invalid combinations produce fixed UNKNOWN JSON and exit 2 without argparse leakage. Fixed symbolic reason only; always BLOCKED_UNKNOWN and exit 2; no identity admission, artifact, new host commands, disclosure or mutation. F4 normal proof remains unchanged. S449-02F remains BLOCKED until a new complete inventory succeeds; S449-02H retains its S449-02F dependency. Existing 02G and fixture gates remain applicable."
   },
   "workflow_path": "documentation/handbook/05-development/workflow/issues/issue-449/workflow.md",
   "workflow_index_path": "documentation/handbook/05-development/workflow/workflow.index.md",
@@ -330,7 +87,7 @@
     },
     "conditional_native_maintenance": "Superseded for the preserving v1.49 path by maintenance_policy: service maintenance does not require exclusive object ownership; all objects remain untouched and recovery is mandatory. No adoption or replacement authority follows.",
     "conditional_wsl_policy_compatibility": "S449-02I is limited to verified Store package identity and supported version, exact selected distro generation 2, and enabled VirtualMachinePlatform. Unknown/inbox/WSL1/unknown generation/missing VMP remain blocked. Official references: https://learn.microsoft.com/en-us/windows/wsl/faq ; https://learn.microsoft.com/en-us/windows/wsl/reference ; https://learn.microsoft.com/en-us/windows/wsl/install-manual.",
-    "device_isolation": "02D keeps the full source default profile memory-only. Its source digest is SHA-256 over UTF-8 bytes from compact JSON using separators (\",\", \":\"), lexically sorted object keys and ensure_ascii=false, exactly {config: complete source config, devices: complete source devices}; reject NaN/Infinity, invalid Unicode and unsupported/non-JSON values before serialization. Fixed vectors: {\"config\":{},\"devices\":{}} -> 079aa36c8373b157f411a389cd569d038a5da42dfcb380ba625a366cc95205c3; {\"config\":{\"user.note\":\"München\"},\"devices\":{}} -> cc7a06da6878973e8431910042d01f3ff1a8a7bafb972917a3ee329436fddd2c. Equivalent key insertion orders yield identical bytes/hash. Bind source digest, exact sorted used_by and allowlisted identity metadata in GO; never persist raw source config/device values or arbitrary paths. Recheck in memory before every write; any drift blocks with zero writes. Per official Incus instance options (https://linuxcontainers.org/incus/docs/main/reference/instance_options/), these config values are strings only: limits.cpu and limits.memory use Python 3.12 re.fullmatch semantics with patterns `[1-9][0-9]*` and `[1-9][0-9]*(KiB|MiB|GiB)?`; official Python docs: https://docs.python.org/3.12/library/re.html. Fullmatch rejects a trailing newline. Source boot.autostart, when present, is exactly lowercase string true/false. Always set derived boot.autostart to string false whether source is true, false, or absent, preventing daemon restart/autostart. Reject JSON numeric/bool values, coercion and lexical variants. Reject privileged/nesting, raw.lxc, linux.kernel_modules/all linux.*, idmap.*, unknown keys/fields/values before writes. Exact root disk shape: {type: disk, path: /, pool: approved pool} under map key root. Exact bridge NIC shape: {type: nic, name: eth0, network: approved bridge} under approved map key; no optional keys. Reject proxy/host-bind devices and any unknown/unapproved shapes before writes. fixture_base_profile_sha256 hashes canonical compact sorted-key UTF-8 ensure_ascii=false JSON with only allowlisted sanitized config/devices. Tests prove repeated deterministic hash, source drift/consumer drift zero writes, true/false/absent autostart all become false, Python 3.12 fullmatch rejects trailing newlines, and no raw profile leakage. Strict-parse source Incus profile JSON with duplicate-key rejection at every depth before canonical hashing; duplicate config/devices or nested keys fail with zero writes.",
+    "device_isolation": "02D keeps the full source default profile memory-only. Its source digest is SHA-256 over UTF-8 bytes from compact JSON using separators (\",\", \":\"), lexically sorted object keys and ensure_ascii=false, exactly {config: complete source config, devices: complete source devices}; reject NaN/Infinity, invalid Unicode and unsupported/non-JSON values before serialization. Fixed vectors: {\"config\":{},\"devices\":{}} -> 079aa36c8373b157f411a389cd569d038a5da42dfcb380ba625a366cc95205c3; {\"config\":{\"user.note\":\"M\u00fcnchen\"},\"devices\":{}} -> cc7a06da6878973e8431910042d01f3ff1a8a7bafb972917a3ee329436fddd2c. Equivalent key insertion orders yield identical bytes/hash. Bind source digest, exact sorted used_by and allowlisted identity metadata in GO; never persist raw source config/device values or arbitrary paths. Recheck in memory before every write; any drift blocks with zero writes. Per official Incus instance options (https://linuxcontainers.org/incus/docs/main/reference/instance_options/), these config values are strings only: limits.cpu and limits.memory use Python 3.12 re.fullmatch semantics with patterns `[1-9][0-9]*` and `[1-9][0-9]*(KiB|MiB|GiB)?`; official Python docs: https://docs.python.org/3.12/library/re.html. Fullmatch rejects a trailing newline. Source boot.autostart, when present, is exactly lowercase string true/false. Always set derived boot.autostart to string false whether source is true, false, or absent, preventing daemon restart/autostart. Reject JSON numeric/bool values, coercion and lexical variants. Reject privileged/nesting, raw.lxc, linux.kernel_modules/all linux.*, idmap.*, unknown keys/fields/values before writes. Exact root disk shape: {type: disk, path: /, pool: approved pool} under map key root. Exact bridge NIC shape: {type: nic, name: eth0, network: approved bridge} under approved map key; no optional keys. Reject proxy/host-bind devices and any unknown/unapproved shapes before writes. fixture_base_profile_sha256 hashes canonical compact sorted-key UTF-8 ensure_ascii=false JSON with only allowlisted sanitized config/devices. Tests prove repeated deterministic hash, source drift/consumer drift zero writes, true/false/absent autostart all become false, Python 3.12 fullmatch rejects trailing newlines, and no raw profile leakage. Strict-parse source Incus profile JSON with duplicate-key rejection at every depth before canonical hashing; duplicate config/devices or nested keys fail with zero writes.",
     "local_lxd_endpoint": "02F uses --force-local, fixed identity-mapped client argv[0] paths and a controlled environment that ignores caller endpoint overrides and sets only a validated per-command LXD_SOCKET or INCUS_SOCKET. Query only when the matching LXD or Incus systemd service is already active with unchanged PID and allowlisted executable identity; recheck service and socket unit/listen/canonical endpoint immediately before every query so a listening socket cannot activate an inactive service. Bind the CLI local socket to the matching active service and socket unit; ambiguity blocks without a query. Incus uses the exact LXD subcommands with incus replacing lxc; no duplicate executable prefixes.",
     "wsl_snapshot_redaction": "02E and the S02 route artifact retain only canonical snapshot digest and allowlisted metadata. Complete firewall and PortProxy snapshots remain memory-only and compare exact canonical bytes at run/JIT checkpoints. No raw/base64 snapshot, PortProxy bytes, ACLs, SIDs or PowerShell output in artifacts/logs. Route capture parses ss output in memory and persists only safe listener tuples/count/digest; no raw rows, PIDs, process names or paths. Tests verify redaction. Firewall and PortProxy are separate subprocesses: PowerShell only receives the 120s/14MiB+2MiB exception; netsh remains 30s/2MiB per stream; both count against combined output, command and wall-clock budgets.",
     "native_inventory_limits": "02F allows only fixed LXD/Incus units, endpoints, executable identities, packages and fixed client argv[0] paths. Full-project visibility requires root or membership in the matching lxd/incus-admin socket group and is rechecked before queries and artifact creation; restricted Incus project access blocks. lxd_units and incus_units separately contain exact unit rows. Service/socket states use enumerated tuples; known inactive/not-found units are recorded without executable rows, but no CLI query runs unless its matching service is already active. Commands use shell=False, separate validated argv, LC_ALL=C and no inherited caller endpoint variables; each CLI gets exactly one validated local LXD_SOCKET or INCUS_SOCKET. Read profiles, instances, networks, pools, and each pool's storage volumes with bounded list/show calls. Require list/detail agreement and reciprocal profile, network, pool-volume and volume-consumer edges; resolve every typed consumer across the complete project inventory. Unknown volume types, project used_by mismatches or unsupported resource kinds, unresolved/asymmetric references or incomplete visibility block with no artifact. A volume list or detail owner that differs from the project-scoped query is an unsupported inherited/shared-volume case and blocks with no artifact. v1.37 additionally permits omitted or explicit zero MainPID only for the two fixed socket units, normalizes it to 0, and accepts loaded/active/running only for incus.socket coupled to the active stable allowlisted Incus service, exact endpoint and full rechecks; all other unit tuples fail closed. Pool used_by must reciprocally include profile and instance disk-device consumers. test -e/-S status 0/1 means true/false; other statuses fail. Recheck all unit fields, MainPID, executable identity, Listen, socket type and canonical endpoints before each query and artifact creation; drift blocks with no artifact. Total capture <=300 seconds and <=256 commands. Every LXD/Incus response is strict-parsed with duplicate-key rejection at every depth. Command records persist fixed command_id, validated safe_args, exit/byte counts only; raw argv, socket/proc/executable paths, URLs and endpoint addresses remain memory-only. Artifacts/logs assert no raw paths or argv. Config and device values are validation-only. Any limit, schema or duplicate-key failure yields no artifact.",
@@ -900,5 +657,671 @@
         "tests": []
       }
     ]
+  },
+  "workflow_amendment_v1_44": {
+    "slice_id": "S449-02F6",
+    "status": "HISTORICAL: F6 implemented and bounded native diagnosis executed; private evidence awaiting independent review",
+    "observation": "Native F5 at source 04a0c3cf3b641775cad59da12a7951e0eb5035cc returned BLOCKED_UNKNOWN / DROPIN_CONTENT, exit 2.",
+    "dependency": "S449-02F5",
+    "contract": ".codex/evidence/slice-449-02F6-design.md",
+    "sequence": "Six same-hash role reviews and S3D, implementation and exact-source PC WSL quality, separate post-commit native plan/GO; separately governed correction and new inventory if warranted.",
+    "boundary": "Sole --diagnose-snap-dropin, fixed closed structural results only, always BLOCKED_UNKNOWN/2, no environment reads, disclosure, identity admission, extra commands or mutation. F4/F5 unchanged. S449-02F BLOCKED; 02G/02H retain prerequisites."
+  },
+  "workflow_amendment_v1_45": {
+    "slice_id": "S449-02F7",
+    "status": "HISTORICAL: F7 implemented and native diagnostic returned UNKNOWN; private evidence awaiting independent review",
+    "observation": "Native F6 at source 4f52873330b665ab013b607c26d7172194ff375b returned BLOCKED_UNKNOWN / DEPENDENCY_VARIANT, exit 2; no host mutation or inventory pass.",
+    "dependency": "S449-02F6",
+    "contract": ".codex/evidence/slice-449-02F7-design.md",
+    "sequence": "Six same-hash reviews and S3D, F7 implementation and exact-source PC WSL quality, separate post-commit native plan/JIT/GO; correction and inventory require separately reviewed phases.",
+    "boundary": "Sole --diagnose-snap-generator-form; pinned revision and source digest; only MATCH or UNKNOWN with BLOCKED_UNKNOWN/2; no disclosure, environment file, identity admission, extra commands or mutation; F4/F5/F6 unchanged; S449-02F BLOCKED, 02G/02H retain prerequisites."
+  },
+  "workflow_amendment_v1_46": {
+    "slice_id": "S449-02F8",
+    "status": "HISTORICAL: F8 implemented; bounded native PROCESS_BINDING diagnosis requires independent review",
+    "observation": "Native F7 at source fd8dd1478329ee00a907822b4e43b19efc14a631 returned BLOCKED_UNKNOWN / UNKNOWN, exit 2; no cause, inventory or host mutation established.",
+    "dependency": "S449-02F7",
+    "contract": ".codex/evidence/slice-449-02F8-design.md",
+    "sequence": "Six same-hash roles/S3D, F8 implementation and SSH PC WSL quality, separate post-commit native plan/JIT/GO; later correction/inventory require separate reviewed phases.",
+    "boundary": "Sole --diagnose-snap-generator-stage; typed reproducible failure-stage enum only, always BLOCKED_UNKNOWN/2; no disclosure, environment-file, extra command, identity admission or mutation; F4\u2013F7 unchanged; S449-02F BLOCKED, 02G/02H retain prerequisites."
+  },
+  "workflow_amendment_v1_47": {
+    "slice_id": "S449-02F9",
+    "status": "HISTORICAL: F9 implemented and native diagnostic returned PROC_ROOT; private evidence awaiting independent review",
+    "observation": "Native F8 at source 7615a29962b0fd3ae2d44e4246893335ad9fadd3 returned BLOCKED_UNKNOWN / PROCESS_BINDING, exit 2; no cause, namespace, inventory or host mutation established.",
+    "dependency": "S449-02F8",
+    "contract": ".codex/evidence/slice-449-02F9-design.md",
+    "sequence": "Six same-hash roles and S3D, F9 implementation and exact-source SSH PC WSL quality, separate post-commit native plan/JIT/GO; later correction and inventory require separate reviewed phases.",
+    "boundary": "Sole --diagnose-snap-cgroup-relation; closed componentwise reason enum, always BLOCKED_UNKNOWN/2; no namespace inference, disclosure, environment-file, extra host command, identity admission or mutation; F4-F8 unchanged; S449-02F BLOCKED and 02G/02H retain prerequisites."
+  },
+  "workflow_amendment_v1_48": {
+    "slice_id": "S449-02F10",
+    "status": "PLANNED; no implementation, F10 quality or host GO",
+    "observation": "Native F9 source 4adcdfe456afddd881820c9a060a53113a2febfd returned BLOCKED_UNKNOWN / PROC_ROOT, exit 2; private evidence requires independent review.",
+    "dependency": "S449-02F9",
+    "contract": ".codex/evidence/slice-449-02F10-design.md",
+    "boundary": "Standalone bounded current reader versus visible PID 1 only, SAME/DIFFERENT/UNKNOWN, BLOCKED_UNKNOWN/2; F4\u2013F9 unchanged, S449-02F BLOCKED. F4 trusted-root boundary, fixed self-link/getpid binding, openat2/statx mount checks and pinned final links; uncertain trust or observations return UNKNOWN.",
+    "sequence": "Six same-hash reviews and S3D, exact-source SSH PC WSL quality, then separate host plan/JIT/GO and at most one execution."
+  },
+  "workflow_amendment_v1_49": {
+    "slice_id": "S449-02F11",
+    "status": "NOT_FEASIBLE for current collector; no implementation, host GO or admission",
+    "dependency": "S449-02F10; existing 02F and main graph dependencies unchanged",
+    "contract": ".codex/evidence/slice-449-02F11-host-admission-plan.md",
+    "boundary": "Reviewed fixed unit/process/endpoint proof is not inventory or host admission; unknown blocks, no unapproved host mutations or acceptance of proposed ADR. Probe connection cannot bind independent lxc connections; alternative isolated VM availability is unverified and WSL remains separate.",
+    "sequence": "Concrete contract and six same-hash role reviews, S3D, exact-source SSH PC WSL quality, separate host JIT and GO, full inventory and existing scenario graph."
+  },
+  "workflow_amendment_v1_50": {
+    "slice_id": "S449-CAPABILITY-G1",
+    "status": "HISTORICAL: R67k accepted and G1 completed at 55c42029a7c1f0e7c219d1708060c4ed6b708dea",
+    "dependency": "G1 completed after S449-01 and S449-ADR-SEQUENCE-D0",
+    "boundary": "Typed intent and validated version via immutable closed empty registry; missing malformed unknown and 6.0.5 denied, legacy Classic separately classified, no caller or host protection claim.",
+    "sequence": "Historical G1 authoring and execution; future callers separately guarded and reviewed.",
+    "decision_evidence": ".codex/evidence/slice-449-adr-sequencing-review.md",
+    "contract": ".codex/evidence/slice-449-capability-g1-contract.md",
+    "review_provenance": "Pre-acceptance proposal bytes not separately retained; original review hash and decisions conveyed in reviewer/coordinator messages; see decision evidence."
+  },
+  "workflow_amendment_v1_51": {
+    "slice_id": "S449-MANIFEST-G2A",
+    "status": "HISTORICAL: G2a completed in 81acdd5c512820b3f69ca193c11d232cb6761ef6",
+    "baseline": "55c42029a7c1f0e7c219d1708060c4ed6b708dea",
+    "dependencies": [
+      "S449-ADR-SEQUENCE-D0",
+      "S449-CAPABILITY-G1"
+    ],
+    "contract": ".codex/evidence/slice-449-manifest-g2a-contract.md",
+    "contract_sha256": "d13b093914e258436a829447f3305f16c055399a9660c16ea734beb780f6bf8f",
+    "boundary": "Domain-only immutable detached preview; no valid schema2 persistence, host adoption or runtime integration. Existing live gates unchanged.",
+    "baseline_source_sha256": {
+      "src/tiny_swarm_world/domain/lifecycle/models.py": "7c7f7d9ddae7b2805a0e4374801cd822d0fe1d5bd753d1acde2098d819db22a2",
+      "src/tiny_swarm_world/domain/lifecycle/incus_capability.py": "235e03236ab1d46fa058ed852d8a21db551621aaa49dd9e26f2c96e4125debf1",
+      "src/tiny_swarm_world/infrastructure/adapters/lifecycle/manifest.py": "e1695c9da9e291f44b4d603ad236619ed92a69c1d91a49464d08e6502cfdbca2",
+      "documentation/arc42/09_decisions/adr-classic-selection-exposure-stack-ownership.adoc": "06a003fc35775854653c5985db84fabdb15bd096b75c9611a9868901d2534da0",
+      "src/tiny_swarm_world/infrastructure/adapters/lifecycle/catalog.py": "94db11c63556806f22203fb2bc736e57342b861f429c3b03836be289a738f3c3"
+    }
+  },
+  "workflow_amendment_v1_52": {
+    "slice_id": "S449-MANIFEST-G2B",
+    "status": "HISTORICAL: G2b completed in d2fbc06e6f1cfce51bce557499427c9d8c548c9d",
+    "baseline": "81acdd5c512820b3f69ca193c11d232cb6761ef6",
+    "dependencies": [
+      "S449-MANIFEST-G2A"
+    ],
+    "contract": ".codex/evidence/slice-449-manifest-g2b-contract.md",
+    "contract_sha256": "87f3a7c70b3c06c62a617366b0a43cc18c2a590b5c100791fde7dbaba4ca7a2d",
+    "baseline_source_sha256": {
+      "src/tiny_swarm_world/domain/lifecycle/manifest_v2.py": "f99c93ea7be2734eacc410c513443be02aaba6fc4d8b3ff04292a994d79f6640",
+      "src/tiny_swarm_world/application/ports/lifecycle/__init__.py": "b237f5a8eebf37926d3163faef036f0cf47fb271b8037f5cfd5b810e8e2c0630",
+      "src/tiny_swarm_world/infrastructure/adapters/cli/dispatcher.py": "013cfc77ac193118ac6954b600f45418edaddf43522773df6ebd8f178b7ebaca",
+      "src/tiny_swarm_world/infrastructure/adapters/cli/parser.py": "5941cdcb53df4e4f67d4a76ce366ef7139045a419d3bd802630be4cb0d0ad8e2",
+      "src/tiny_swarm_world/infrastructure/adapters/cli/registry.py": "3668717ca203daa1ec1a68aec31557348c0430b8b01c0fcaea27de3082ce3697",
+      "src/tiny_swarm_world/infrastructure/composition_lifecycle.py": "44eb505e7c67888616fd62c98c3258901f0e79cda3fd2e770f9d0bc4a264bf65",
+      "src/tiny_swarm_world/infrastructure/adapters/lifecycle/manifest.py": "e1695c9da9e291f44b4d603ad236619ed92a69c1d91a49464d08e6502cfdbca2"
+    },
+    "boundary": "Early load-only sanitized operator_local_unverified CLI preview; no catalog provenance or authority, snapshot disclosure, host runtime, adoption, write or version support."
+  },
+  "workflow_amendment_v1_53": {
+    "slice_id": "S449-MANIFEST-G2B",
+    "status": "PLANNED; revised contract requires same-hash reviews and S3D",
+    "source": "operator_local_unverified",
+    "contract": ".codex/evidence/slice-449-manifest-g2b-contract.md",
+    "contract_sha256": "87f3a7c70b3c06c62a617366b0a43cc18c2a590b5c100791fde7dbaba4ca7a2d",
+    "boundary": "Valid local unverified assets only; fail closed, no provenance, host safety, live admission or EPIC completion claim."
+  },
+  "workflow_amendment_v1_54": {
+    "slice_id": "S449-MANIFEST-G2B",
+    "status": "PLANNED; fresh same-hash reviews and S3D pending",
+    "baseline": "dfe6e29324012f081ddb6ea8cce46c77fb276478",
+    "contract": ".codex/evidence/slice-449-manifest-g2b-contract.md",
+    "contract_sha256": "87f3a7c70b3c06c62a617366b0a43cc18c2a590b5c100791fde7dbaba4ca7a2d",
+    "limits": "1 MiB/file, 16 MiB total, 16 files; current 9 Compose + 1 manifest",
+    "boundary": "Preview-only no-follow FD reader, unverified root, no host/admission/provenance or ABA/hard CPU guarantees; legacy catalog default unchanged. Only project-root Compose assets; alternate TSW_INFRA_ROOT is not evaluated; missing project assets or explicit alternate requests block."
+  },
+  "workflow_amendment_v1_55": {
+    "slice_id": "S449-MANIFEST-G2B",
+    "status": "PLANNED; scope amendment and separate review/S3D required",
+    "baseline": "8b6017098f949b7a119d43a248f2211288c9b74e",
+    "boundary": "Add only services migration-preview to the existing fixed workflow-list expectation; preserve all existing legacy expectations.",
+    "contract_sha256": "87f3a7c70b3c06c62a617366b0a43cc18c2a590b5c100791fde7dbaba4ca7a2d"
+  },
+  "workflow_amendment_v1_56": {
+    "slice_id": "S449-MANIFEST-G2C",
+    "status": "HISTORICAL: earlier caller-binding G2c proposal superseded by v1.61",
+    "baseline": "d2fbc06e6f1cfce51bce557499427c9d8c548c9d",
+    "dependencies": [
+      "S449-CAPABILITY-G1",
+      "S449-MANIFEST-G2A",
+      "S449-MANIFEST-G2B",
+      "S449-ROUTE-POLICY-P0"
+    ],
+    "contract": ".codex/evidence/slice-449-manifest-g2c-contract.md",
+    "contract_sha256": "2c80a466aad5717ed958693f6ae55b203eabd56342f535c63c57d0f6e277a9e8",
+    "boundary": "Strict domain v2 and pure explicit conversion, no I/O, persistence, host ownership inference or runtime schema acceptance.",
+    "baseline_source_sha256": {
+      "src/tiny_swarm_world/domain/lifecycle/models.py": "7c7f7d9ddae7b2805a0e4374801cd822d0fe1d5bd753d1acde2098d819db22a2",
+      "src/tiny_swarm_world/domain/lifecycle/manifest_v2.py": "f99c93ea7be2734eacc410c513443be02aaba6fc4d8b3ff04292a994d79f6640",
+      "src/tiny_swarm_world/domain/network/lxc_proxy_device_plan.py": "e26e9e869b48d6a09c643bf66064f5e4ddcd6d4773855e2ca0ec045414dbd21f",
+      "documentation/arc42/09_decisions/adr-classic-selection-exposure-stack-ownership.adoc": "06a003fc35775854653c5985db84fabdb15bd096b75c9611a9868901d2534da0",
+      "documentation/arc42/09_decisions/adr-installation-scoped-incus-profile.adoc": "1fb3b9700635f797456c8a87ff0d6d8d6e394e25a775583aee6b2134f73dcf23"
+    }
+  },
+  "workflow_amendment_v1_57": {
+    "slice_id": "S449-ROUTE-POLICY-P0",
+    "status": "HISTORICAL: P0 completed in 5e9f87c6b1dc1173b8d0a4609037d477eb0f5cca; runtime source and host gaps remain",
+    "contract": ".codex/evidence/slice-449-manifest-g2c-contract.md",
+    "contract_sha256": "2c80a466aad5717ed958693f6ae55b203eabd56342f535c63c57d0f6e277a9e8",
+    "boundary": "Pure typed versioned selection and port authority; required TCP/10001, complete nat/proxy_protocol; missing evidence remains UNKNOWN/BLOCKED. No host admission.",
+    "candidate": "Versioned immutable built-in policy or separately trust-bound typed snapshot; UUID-byte/SHA-256 profile-name candidate; listen addresses and nat/proxy_protocol decisions remain open."
+  },
+  "workflow_amendment_v1_58": {
+    "slice_id": "S449-ROUTE-POLICY-P0A",
+    "status": "HISTORICAL: P0a completed at f5f0ea1520a1abdb6ee281bb700c8635c9ad4e93; legacy candidate remains unverified",
+    "baseline": "d2fbc06e6f1cfce51bce557499427c9d8c548c9d",
+    "dependencies": [
+      "S449-CAPABILITY-G1",
+      "S449-MANIFEST-G2A",
+      "S449-MANIFEST-G2B"
+    ],
+    "contract": ".codex/evidence/slice-449-route-p0a-contract.md",
+    "contract_sha256": "a4afb02761adf81300b2bb2f69b55d7734258c530dd71faac03157f64a2aff3a",
+    "boundary": "Pure legacy published candidate only, source legacy_setup_code_unverified_runtime, unknown flags/identities; no scoped route authority or G2c unblock.",
+    "baseline_source_sha256": {
+      "src/tiny_swarm_world/domain/preflight/setup_manifest.py": "f9f2a8927aa3c9ee7b35bead87a7fef1119b7453703ea218da61fecd470da46a",
+      "src/tiny_swarm_world/application/services/platform/incus/lxc_service_exposure.py": "560a4866dd49f2a1af2cc9083a8c01e7fb6e72c24f18e61cd1f14b4faf0ad2e5",
+      "src/tiny_swarm_world/domain/network/lxc_proxy_device_plan.py": "e26e9e869b48d6a09c643bf66064f5e4ddcd6d4773855e2ca0ec045414dbd21f",
+      "src/tiny_swarm_world/domain/deployment/service_stack_contract.py": "bebd811519f4223edc2091af5678bbf85c8c20775513f4fdd4de82a92d668a21"
+    }
+  },
+  "workflow_amendment_v1_59": {
+    "slice_id": "S449-SCOPED-ROUTE-ADR-D0",
+    "status": "ACCEPTED design on six-role pre-acceptance tuple; final checkpoint re-review and S3D pending",
+    "baseline": "f5f0ea1520a1abdb6ee281bb700c8635c9ad4e93",
+    "dependencies": [
+      "S449-ROUTE-POLICY-P0A"
+    ],
+    "adr": "documentation/arc42/09_decisions/adr-scoped-route-policy-profile-identity.adoc",
+    "adr_sha256": "2c006bd531cda09a37c8d5fe78182c8a482408dd11847fe4793a1d3f816c1f7a",
+    "evidence": ".codex/evidence/slice-449-scoped-route-decision.md",
+    "evidence_sha256": "c0c74960b585cfca31945bc31759602e315043b45ccdf7f0d97ba0fe3bc091bf",
+    "boundary": "Accepted design only; 8086 affected selections remain AUTHORITY_GAP; no P0/G2c implementation, host admission or capability support."
+  },
+  "workflow_amendment_v1_60": {
+    "slice_id": "S449-ROUTE-POLICY-P0",
+    "status": "HISTORICAL: P0 completed at 5e9f87c6b1dc1173b8d0a4609037d477eb0f5cca",
+    "baseline": "4886c84c92d7cb9ac628fe75e7a973829f36d713",
+    "dependencies": [
+      "S449-SCOPED-ROUTE-ADR-D0",
+      "S449-ROUTE-POLICY-P0A"
+    ],
+    "contract": ".codex/evidence/slice-449-scoped-route-p0-contract.md",
+    "contract_sha256": "4105710fc65079b96cfb2350226fed7da0acee646927e868cd37da5bdf77f82c",
+    "baseline_source_sha256": {
+      "documentation/arc42/09_decisions/adr-scoped-route-policy-profile-identity.adoc": "2c006bd531cda09a37c8d5fe78182c8a482408dd11847fe4793a1d3f816c1f7a",
+      "src/tiny_swarm_world/domain/preflight/setup_manifest.py": "f9f2a8927aa3c9ee7b35bead87a7fef1119b7453703ea218da61fecd470da46a",
+      "src/tiny_swarm_world/domain/lifecycle/legacy_route_candidate.py": "0681d3814663eeab7f702252b7816bd2d7aafc809a6bde2fba92aae98a390ac0",
+      "src/tiny_swarm_world/domain/lifecycle/manifest_v2.py": "f99c93ea7be2734eacc410c513443be02aaba6fc4d8b3ff04292a994d79f6640",
+      "src/tiny_swarm_world/domain/lifecycle/models.py": "7c7f7d9ddae7b2805a0e4374801cd822d0fe1d5bd753d1acde2098d819db22a2"
+    },
+    "boundary": "Pure ideal code-bound policy reference only; runtime_source always UNKNOWN, no environment/source applicability or host support claim; 8086/internal ingress gaps remain."
+  },
+  "workflow_amendment_v1_61": {
+    "slice_id": "S449-MANIFEST-G2C",
+    "status": "HISTORICAL: G2c completed in f45ca0b8ee3d3593eb02cd7f7a78e8a528440924",
+    "baseline": "5e9f87c6b1dc1173b8d0a4609037d477eb0f5cca",
+    "dependencies": [
+      "S449-CAPABILITY-G1",
+      "S449-MANIFEST-G2A",
+      "S449-MANIFEST-G2B",
+      "S449-ROUTE-POLICY-P0"
+    ],
+    "contract": ".codex/evidence/slice-449-manifest-g2c-contract.md",
+    "contract_sha256": "2c80a466aad5717ed958693f6ae55b203eabd56342f535c63c57d0f6e277a9e8",
+    "distribution": ".codex/evidence/slice-449-manifest-g2c-distribution.md",
+    "distribution_sha256": "1be727560207e08937e640be6b721837c4bfb0b87b19e896891083a6f1ab9a9e",
+    "baseline_source_sha256": {
+      "src/tiny_swarm_world/domain/lifecycle/models.py": "7c7f7d9ddae7b2805a0e4374801cd822d0fe1d5bd753d1acde2098d819db22a2",
+      "src/tiny_swarm_world/domain/lifecycle/manifest_v2.py": "f99c93ea7be2734eacc410c513443be02aaba6fc4d8b3ff04292a994d79f6640",
+      "src/tiny_swarm_world/domain/lifecycle/scoped_route_policy.py": "99f26ef7591c34ec40ebf23ce1ecb74f72f9381f8bc7ac0823baf8184c27301b",
+      "documentation/arc42/09_decisions/adr-scoped-route-policy-profile-identity.adoc": "2c006bd531cda09a37c8d5fe78182c8a482408dd11847fe4793a1d3f816c1f7a"
+    },
+    "boundary": "Desired-only domain conversion, P0 recomputed internally; actual host/source/owner UNKNOWN, no runtime schema2, adoption, persistence or live claim."
+  },
+  "workflow_amendment_v1_62": {
+    "slice_id": "S449-MIGRATION-G2D",
+    "status": "HISTORICAL: G2d completed in ef1e863b755faa3f8127a364b7926244abc35329",
+    "baseline": "f45ca0b8ee3d3593eb02cd7f7a78e8a528440924",
+    "dependencies": [
+      "S449-CAPABILITY-G1",
+      "S449-MANIFEST-G2A",
+      "S449-MANIFEST-G2B",
+      "S449-ROUTE-POLICY-P0",
+      "S449-MANIFEST-G2C"
+    ],
+    "contract": ".codex/evidence/slice-449-migration-g2d-contract.md",
+    "contract_sha256": "efb2faf034c5ec06d78a019341812ecde597343f8e40d956c953de8f555b6cc6",
+    "distribution": ".codex/evidence/slice-449-migration-g2d-distribution.md",
+    "distribution_sha256": "f74ce9db16b0adbdd619affe49b874a3c410f7b0e49670ce7a28a541234f4d3e",
+    "baseline_source_sha256": {
+      "src/tiny_swarm_world/domain/lifecycle/desired_manifest_v2.py": "8037cd36222fa14f2cf1243aedf7c765b1dc9cfba157277d531fe453e62a9c23",
+      "src/tiny_swarm_world/domain/lifecycle/incus_capability.py": "235e03236ab1d46fa058ed852d8a21db551621aaa49dd9e26f2c96e4125debf1",
+      "src/tiny_swarm_world/application/ports/lifecycle/__init__.py": "b237f5a8eebf37926d3163faef036f0cf47fb271b8037f5cfd5b810e8e2c0630"
+    },
+    "boundary": "Internal preparation only; no current path affected; token must be nonempty string; immediately followed by separately reviewed G2e CLI/composition/operator guide.",
+    "next_slice": "S449-MIGRATION-G2E"
+  },
+  "workflow_amendment_v1_63": {
+    "slice_id": "S449-MIGRATION-G2E",
+    "status": "HISTORICAL: G2e completed in b9f2543f3fea21fd7565a6f6bf02c72e6dc8f448",
+    "baseline": "ef1e863b755faa3f8127a364b7926244abc35329",
+    "dependencies": [
+      "S449-MIGRATION-G2D"
+    ],
+    "contract": ".codex/evidence/slice-449-migration-g2e-contract.md",
+    "contract_sha256": "fa3054c745d20aef3095e98120dac0db5745add8268974eb57e90bb494602ee9",
+    "distribution": ".codex/evidence/slice-449-migration-g2e-distribution.md",
+    "distribution_sha256": "b30bb1664947639b83067229df9d58ba4c332edf09c25515dc51671576d4bbc9",
+    "baseline_source_sha256": {
+      "src/tiny_swarm_world/application/services/migration_admission.py": "a497747bb7e1b3b989ad99c2950840e074b1a699e0b32ff94ccc76b0a2b3070f",
+      "src/tiny_swarm_world/application/ports/lifecycle/migration_admission.py": "b45da8d1cd31a7197a827bb13a9fa9a3289aee51f88dbb0f0e1916fec7712342",
+      "src/tiny_swarm_world/infrastructure/adapters/cli/migration_preview.py": "5736ff6ca42b3e4aa161cf728203181995de4931dd1bf41633f592a736912ddc",
+      "src/tiny_swarm_world/infrastructure/composition_lifecycle.py": "2288df3ceadf8906542961a1e14a25a3e7f57d46ad778ec78296c6082d99bfd4",
+      "src/tiny_swarm_world/infrastructure/adapters/lifecycle/preview_file_reader.py": "33a356d02a6f9d2849a5e5b2a61bc1315101a22b9e956d636e22e19b77a78e54"
+    },
+    "boundary": "Early bounded local CLI, operator-provided candidate only, fixed blocked JSON/exit 2, no host or mutation."
+  },
+  "workflow_amendment_v1_64": {
+    "slice_id": "S449-ROUTE-8086-ADR-D0",
+    "status": "ACCEPTED desired policy only; S3D decision reported, final checkpoint review pending; implementation remains blocked",
+    "baseline": "b9f2543f3fea21fd7565a6f6bf02c72e6dc8f448",
+    "dependencies": [
+      "S449-SCOPED-ROUTE-ADR-D0",
+      "S449-ROUTE-POLICY-P0",
+      "S449-MIGRATION-G2E"
+    ],
+    "adr": "documentation/arc42/09_decisions/adr-scoped-route-policy-profile-identity.adoc",
+    "adr_sha256": "165a21f8521827a1a1c8ac85405babedd69da637c807be0fc0491a992c4dc44b",
+    "evidence": ".codex/evidence/slice-449-route-8086-decision.md",
+    "evidence_sha256": "cfb3fe38a60c151d516c03d3af882016a42041407c3c247fbd3389581d2591be",
+    "source_sha256": {
+      "src/tiny_swarm_world/domain/preflight/setup_manifest.py": "f9f2a8927aa3c9ee7b35bead87a7fef1119b7453703ea218da61fecd470da46a",
+      "src/tiny_swarm_world/domain/deployment/service_stack_contract.py": "bebd811519f4223edc2091af5678bbf85c8c20775513f4fdd4de82a92d668a21",
+      "src/tiny_swarm_world/domain/lifecycle/scoped_route_policy.py": "99f26ef7591c34ec40ebf23ce1ecb74f72f9381f8bc7ac0823baf8184c27301b",
+      "infra/config/ports.yaml": "80df9f74d029110c4464ffe73bdfeca3d7ae4a38f152ba7f7502ffae2aa8c9c1",
+      "infra/config/compose/service-access/docker-compose.yml": "aa020178c3df48a2aff56fae72726c680bf91eef8cf891fc2ee895eff897f40f",
+      "infra/config/compose/service-access/nginx/default.conf": "7c5175da8caba1cd4a046dbb3105812c369b39bafdc20ed8c7cc1a561c43c11c",
+      "infra/config/compose/infisical/docker-compose.yml": "f2db7fd5e95f3bded6997b3cc0f7a4d15212ffe730dd15081b42ef5b7ffffa21",
+      "documentation/user_guide/usage.adoc": "96921abc81d29e110ed5ec19c9f4411438d8ac7b5a335d396fc4bb0402b1e4ff"
+    },
+    "boundary": "Accepted desired policy only; current code retains 8086 gap until separate implementation/quality; no runtime or host claim.",
+    "review_provenance": "ADR/workflow proposal bytes retained in base; pre-review evidence 9cb3 hash conveyed by reviewers, not separately retained; committed evidence blob 9d8460."
+  },
+  "workflow_amendment_v1_65": {
+    "slice_id": "S449-ROUTE-8086-P1",
+    "status": "HISTORICAL: P1 completed at eacbdc418b6b7179e69441b718f7226609f96470",
+    "baseline": "90b5665e7fe01f198e78c5d4a130c3b5babcb6ac",
+    "dependencies": [
+      "S449-ROUTE-8086-ADR-D0",
+      "S449-ROUTE-POLICY-P0",
+      "S449-MANIFEST-G2C",
+      "S449-MIGRATION-G2D",
+      "S449-MIGRATION-G2E"
+    ],
+    "contract": ".codex/evidence/slice-449-route-8086-p1-contract.md",
+    "contract_sha256": "895209e7ea50cbec4466311979a1c9c5f92f834407ba12c34230690f0302d533",
+    "distribution": ".codex/evidence/slice-449-route-8086-p1-distribution.md",
+    "distribution_sha256": "91174b8b779bfdb3ec0d0fc9e457168312bdc488799a92bb11a6ea387aa878ac",
+    "baseline_source_sha256": {
+      "src/tiny_swarm_world/domain/lifecycle/scoped_route_policy.py": "99f26ef7591c34ec40ebf23ce1ecb74f72f9381f8bc7ac0823baf8184c27301b",
+      "src/tiny_swarm_world/domain/lifecycle/desired_manifest_v2.py": "8037cd36222fa14f2cf1243aedf7c765b1dc9cfba157277d531fe453e62a9c23",
+      "src/tiny_swarm_world/application/services/migration_admission.py": "a497747bb7e1b3b989ad99c2950840e074b1a699e0b32ff94ccc76b0a2b3070f",
+      "src/tiny_swarm_world/domain/preflight/setup_manifest.py": "f9f2a8927aa3c9ee7b35bead87a7fef1119b7453703ea218da61fecd470da46a",
+      "documentation/arc42/09_decisions/adr-scoped-route-policy-profile-identity.adoc": "165a21f8521827a1a1c8ac85405babedd69da637c807be0fc0491a992c4dc44b"
+    },
+    "boundary": "Pure scoped versioned 8086 transformation only after exact ordered legacy tuple-sequence comparison; pure reorder fails closed. No host/runtime/legacy mutation."
+  },
+  "workflow_amendment_v1_66": {
+    "slice_id": "S449-MANIFEST-V2-REPOSITORY",
+    "status": "PLANNED; six-role and ADR-owner GO reported on revised tuple; S3D and implementation pending",
+    "baseline": "eacbdc418b6b7179e69441b718f7226609f96470",
+    "dependencies": [
+      "S449-ROUTE-8086-P1",
+      "S449-MANIFEST-G2C",
+      "S449-MIGRATION-G2E"
+    ],
+    "contract": ".codex/evidence/slice-449-manifest-v2-repository-contract.md",
+    "contract_sha256": "307e8b2ee45e8dd3f12dbc66e510e0ec05ed433ebfe6883c550e29c91147f36a",
+    "distribution": ".codex/evidence/slice-449-manifest-v2-repository-distribution.md",
+    "distribution_sha256": "69a4ee0f5b6910926b6b19f2187eb853e6dbc47b6b49c0b3f0e09a3dc6d22dae",
+    "baseline_source_sha256": {
+      "src/tiny_swarm_world/domain/lifecycle/models.py": "7c7f7d9ddae7b2805a0e4374801cd822d0fe1d5bd753d1acde2098d819db22a2",
+      "src/tiny_swarm_world/domain/lifecycle/desired_manifest_v2.py": "b7de6c2b9cf06abbbfd5feb0eb9aad79a61cf4b61c172973fed53b6870426b3c",
+      "src/tiny_swarm_world/infrastructure/adapters/lifecycle/manifest.py": "e1695c9da9e291f44b4d603ad236619ed92a69c1d91a49464d08e6502cfdbca2",
+      "src/tiny_swarm_world/application/ports/lifecycle/__init__.py": "b237f5a8eebf37926d3163faef036f0cf47fb271b8037f5cfd5b810e8e2c0630",
+      "documentation/arc42/09_decisions/adr-classic-selection-exposure-stack-ownership.adoc": "06a003fc35775854653c5985db84fabdb15bd096b75c9611a9868901d2534da0"
+    },
+    "boundary": "Noncanonical fixed UNADOPTED draft and isolated dual-read/CAS; cooperating-only bytehash token with ABA limitation, no runtime admission."
+  },
+  "workflow_amendment_v1_67": {
+    "slice_id": "S449-MANIFEST-V2-REPOSITORY",
+    "status": "PLANNED; six-role revised-contract GO reported; fresh S3D and quality rerun pending",
+    "contract": ".codex/evidence/slice-449-manifest-v2-repository-contract.md",
+    "contract_sha256": "307e8b2ee45e8dd3f12dbc66e510e0ec05ed433ebfe6883c550e29c91147f36a",
+    "boundary": "Split bounded JSON and pinned filesystem CAS without weakened guardrails, security checks or write uncertainty semantics."
+  },
+  "workflow_amendment_v1_68": {
+    "slice_id": "S449-PORTAINER-NO-PRUNE",
+    "status": "HISTORICAL: NoPrune completed in c3443ea56c420184124cdf0c8de892b18d301ecf",
+    "baseline": "29be9194c86a35f448f12f3b7905956dc7a430d2",
+    "dependencies": [
+      "S449-01"
+    ],
+    "contract": ".codex/evidence/slice-449-portainer-no-prune-contract.md",
+    "contract_sha256": "5e3f2e195a81c540749e0158b4a4292c6398d278b3b101f775540f6a02b11100",
+    "distribution": ".codex/evidence/slice-449-portainer-no-prune-distribution.md",
+    "distribution_sha256": "2ceb8f4e129a95bf41c2b0dd907a1fb0f6d1bb8ef81a47155845d8b7de195069",
+    "baseline_source_sha256": {
+      "src/tiny_swarm_world/infrastructure/adapters/clients/portainer_http_client.py": "bd26459fef88f3ae6b0539881464cab7c688fa7c0862584e3a81d7efb4589c56",
+      "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/services/lxc_portainer_http_client.py": "50742f7ac930abbd9f62d990454df1ac020b693c668c1938906b4d387b9c7c77",
+      "tests/infrastructure/adapters/clients/test_portainer_http_client.py": "0645aa0443fb3211dd3945338491fe741bd33e6402af5911eaecb702fd9470a2",
+      "documentation/arc42/09_decisions/adr-classic-selection-exposure-stack-ownership.adoc": "06a003fc35775854653c5985db84fabdb15bd096b75c9611a9868901d2534da0"
+    },
+    "boundary": "Shared update prune false; omitted services may remain; no ownership or live claim."
+  },
+  "workflow_amendment_v1_69": {
+    "slice_id": "S449-PORTAINER-ENDPOINT-STACK",
+    "status": "HISTORICAL reviewed pre-v1.70; fresh v1.70 reviews and S3D pending",
+    "baseline": "c3443ea56c420184124cdf0c8de892b18d301ecf",
+    "dependencies": [
+      "S449-PORTAINER-NO-PRUNE"
+    ],
+    "contract": ".codex/evidence/slice-449-portainer-endpoint-stack-contract.md",
+    "contract_sha256": "9a7113b6bbbeba4f0baf5d9caa90bbf9fd9fd120e317db79c275184571c4d027",
+    "distribution": ".codex/evidence/slice-449-portainer-endpoint-stack-distribution.md",
+    "distribution_sha256": "fd7835762d36b0bf0a6ebf2efb3b803bb124d3b297a39df7f88f2ab7d180d079",
+    "baseline_source_sha256": {
+      "src/tiny_swarm_world/application/ports/clients/port_portainer_client.py": "56054074e3650b03c591b7341e0c9513ed2f2e76c849dd13627a34f366d6d70b",
+      "src/tiny_swarm_world/infrastructure/adapters/clients/portainer_http_client.py": "7b9f8670662dcd8ed405b55c9b136668507b6cbca0b2822f06d9f5af6ccde038",
+      "src/tiny_swarm_world/infrastructure/adapters/clients/lxc/services/lxc_portainer_http_client.py": "50742f7ac930abbd9f62d990454df1ac020b693c668c1938906b4d387b9c7c77",
+      "documentation/arc42/09_decisions/adr-classic-selection-exposure-stack-ownership.adoc": "06a003fc35775854653c5985db84fabdb15bd096b75c9611a9868901d2534da0"
+    },
+    "boundary": "Two visible snapshots reject conflicts before mutation; legacy create and 404/405 fallback unchanged; no global uniqueness, ownership, admission or atomicity claim.",
+    "reviewed_contract_sha256": "a4dbc3abf6beb6707c99f5f9e3ab6e43522f1f7965cbef97fc483afff94f262e",
+    "reviewed_workflow_sha256": "bb1c3f6117a94c8cd812415d3f0eb40cd95b93d24ca3376b1e8d3d4b3c89e194"
+  },
+  "workflow_amendment_v1_70": {
+    "slice_id": "S449-PORTAINER-ENDPOINT-STACK",
+    "status": "PLANNED; six role GO rebind on current contract/workflow reported; S3D and quality evidence separately required",
+    "quality_failure": "grown-critical-class and grown-module-complexity",
+    "added_file_locks": [
+      "src/tiny_swarm_world/infrastructure/adapters/clients/portainer_apply_resolution.py",
+      "tests/infrastructure/adapters/clients/test_portainer_apply_resolution.py"
+    ],
+    "boundary": "Preserve strict two snapshots, sanitized errors and effect ordering, existing legacy semantics, all guardrails and no ownership or host admission.",
+    "reviewed_contract_sha256": "9a7113b6bbbeba4f0baf5d9caa90bbf9fd9fd120e317db79c275184571c4d027",
+    "reviewed_workflow_sha256": "f65943e5b3bd6c2662e83976f2db1b3b535fda0bb0b6b9f8eb7e375dab10febc"
+  },
+  "workflow_amendment_v1_71": {
+    "slice_id": "S449-PORTAINER-UPGRADE-OWNERSHIP",
+    "status": "PROPOSED; six roles and ADR owner GO rebind current workflow/contract; S3D and implementation pending",
+    "baseline": "e882888486a817b9552f47a115ed000e340eb93d",
+    "contract": ".codex/evidence/slice-449-portainer-upgrade-ownership-contract.md",
+    "contract_sha256": "ebbd10a3f3333d5d93253a982d4350e37a9c7254a233cf91f18339a2ed8a60a1",
+    "distribution": ".codex/evidence/slice-449-portainer-upgrade-ownership-distribution.md",
+    "distribution_sha256": "89aa49ee92ccf60a43d59ea48a31745fa19796ff3336d89318ce1e8c817fba07",
+    "boundary": "Block new upgrade and unowned PUT; recovery pending/uncertain requires decision; no false recovered or host admission.",
+    "reviewed_contract_sha256": "ebbd10a3f3333d5d93253a982d4350e37a9c7254a233cf91f18339a2ed8a60a1",
+    "reviewed_workflow_sha256": "04287aa16b55123be93e607450b33a5f98d3466cccf75ad0375bb20c56770c1d"
+  },
+  "continuation_20261107": {
+    "branch": "fix/epic440-completion-20261107",
+    "baseline": "b87fe5c96b4e8627c56f48d9a7b3c691076447fc",
+    "authorization": "User explicitly requests complete Epic 440 remediation using both named test hosts; historical code-only publication scope does not limit this request.",
+    "phase": "closed preserving product acceptance prerequisite source engineering; no new host GO",
+    "normative_contract": ".codex/evidence/slice-449-02F4-design.md",
+    "execution_record": ".codex/evidence/epic440-20261107.md",
+    "runtime_mutation_released": false,
+    "native_inventory_command_cap": 2048,
+    "native_inventory_schema": 5,
+    "native_network_contract": ".codex/evidence/epic440-network-inventory-20261107.md",
+    "native_inventory_budget_scope": "Native F4 only; repeated trust checks counted; all other hard limits and fixture budgets unchanged",
+    "s02i_record": ".codex/evidence/epic440-store-wsl2-20261107.md",
+    "wsl_checkpoint_record": ".codex/evidence/epic440-wsl-state-20261107.md",
+    "native_product_recovery_record": ".codex/evidence/epic440-product-recovery-classification-20261107.md",
+    "windows_source_path_record": ".codex/evidence/epic440-windows-source-path-20261107.md",
+    "s02i_paths": [
+      "bootstrap/windows/preparation/Policy.ps1",
+      "bootstrap/windows/preparation/Adapters.ps1",
+      "tests/windows/prepare-windows.Tests.ps1"
+    ],
+    "historical_artifact_map": "Existing artifact hashes below bind their historical phase, not this continuation. Current exact-byte hashes are recorded in the execution record.",
+    "native_volume_dto_contract": ".codex/evidence/epic440-volume-dto-20261107.md",
+    "native_storage_graph_contract": ".codex/evidence/epic440-storage-graph-20261107.md",
+    "native_server_root_gets_per_active_family": 2,
+    "native_server_root_query_scope": "Fixed raw local GET /1.0 initial/final, exact family DTO/noncluster admission; all provenance and global limits unchanged; no live GO",
+    "native_default_project_required_for_admitted_family": true,
+    "native_profile_inventory_contract": ".codex/evidence/epic440-profile-inventory-20261107.md",
+    "native_snapshot_inventory_contract": ".codex/evidence/epic440-snapshot-inventory-20261107.md",
+    "native_snapshot_detail_query_scope": "One fixed guarded raw storage-snapshot GET per validated flat-list leaf; no recursive list or historical-instance query; unchanged budgets and no live GO",
+    "maintenance_policy": {
+      "adr": "documentation/handbook/02-architecture/arc42/09_decisions/adr-preserving-host-maintenance-for-qualification.adoc",
+      "status": "ACCEPTED_ARCHITECTURE_AND_INDEPENDENT_TESTER_DEVOPS_REVIEW",
+      "native": "Temporary exact Snap LXD socket/daemon stop; preserve all objects/configuration; mandatory identity-bound finally recovery of captured runtime and previously Running allowlisted instances; no ownership/adoption inference or replacement",
+      "windows": "Necessary selected-Ubuntu resource restart with no other running distro; only existing product-bound PortProxy connectaddress may become same registration fresh IPv4; firewall/other fields/foreign rules unchanged; any explicit bridge runtime restart restores prior state",
+      "supersession": "Only preserving S02G exclusive-owner/replace requirement, prerequisite PortProxy absolute equality and manual-only W05 restart; later fixture baseline equality and all other guards remain",
+      "host_go": "Concrete source/host/recovery plan review required; no execution by this policy authoring",
+      "native_stop_escalation": "Observed unit timeout10min/SIGKILL: use verified finite graceful shutdown, confirm exit before unit-stop bookkeeping; no live-daemon systemctl stop or force fallback; graceful timeout enters recovery"
+    },
+    "pure_s03_scheduling": {
+      "status": "Code-plan review then isolated pure persistence implementation may proceed while S02 fixture pending",
+      "scope": "Manifest-v2 migration, installation lock, checkpoint/selection persistence; exact current canonical paths/locks named by code plan",
+      "integration_consumers": [
+        "component_execution.py",
+        "portainer_upgrade.py",
+        "portainer_journal.py",
+        "composition_lifecycle.py"
+      ],
+      "retained_gate": "Focused/full exact-source checks before integration; S02 still gates runtime enablement, supported Incus versions, profile capability, S04 provider wiring in composition_platform.py and live acceptance"
+    },
+    "fixture_image": {
+      "os": "Alpine",
+      "release": "3.21",
+      "architecture": "x86_64",
+      "variant": "default",
+      "build": "20261107_13:00",
+      "source": "https://images.linuxcontainers.org/images/alpine/3.21/amd64/default/20261107_13:00/",
+      "metadata_sha256": "3100ebd0999fb3adf9cf52724b4cf57c95a10fe437660614911aae5f6b236ea7",
+      "rootfs_sha256": "5f4503fbfa10e24634e972e2646e243648c66c3bb64ad48615eb60cb0c69cd6e",
+      "combined_fingerprint": "bb8bbef5b81dbbc7f665eb12172f06d54aef055327f1b4381767bf8c7b18fe66",
+      "capability_accepted": false
+    },
+    "source_parallel_scheduling": {
+      "scope": "Isolated capability-independent S04 profile lifecycle and S06 internal exposure implementation alongside S02",
+      "authority": "Renewed user request for complete remediation; root architecture routing decision",
+      "retained_gate": "Empty supported-version matrix and no runtime enablement until both-host S02 acceptance; focused/full exact PC WSL checks and independent source review before integration",
+      "integration_owner": "root; overlapping composition changes serialized"
+    },
+    "completed_runtime_maintenance": [
+      "Existing WSL generated forwarding script and exactly three missing configured-target rules; foreign firewall/NAT/hosts/service identity preserved"
+    ],
+    "native_maintenance_bootstrap": {
+      "contract": ".codex/evidence/epic440-native-bootstrap-contract-20261107.md",
+      "status": "ROOT_SOURCE_REVIEW_AND_PC_QUALITY_PASS",
+      "image_inventory_schema": 6,
+      "opt_in": true,
+      "default_inventory_schema": 5,
+      "final_fixture_admission": "Actual paused resource/route captures and finite final17-key GO; no predicted poststate",
+      "phase_seconds": {
+        "preparation": 1200,
+        "capture": 360,
+        "approval": 180,
+        "fixture": 1025,
+        "recovery": 600
+      },
+      "host_phase_released": false,
+      "capability_accepted": false
+    },
+    "product_acceptance_prerequisite_plan": {
+      "adr": "documentation/handbook/02-architecture/arc42/09_decisions/adr-preserving-product-acceptance-transactions.adoc",
+      "record": ".codex/evidence/epic440-preserving-acceptance-design-20261108.md",
+      "status": "ACCEPTED_SOURCE_PLAN_ONLY",
+      "independent_architecture_review": "exact amended design R2; SHA manifest6a219f3b0551997f50d8b6918989c19e5de2cc3c8ad1cebd81e1643e2626fcca",
+      "wsl_switch": "newStopped; original nodesquiesced/ownedBridgeStopped/onlyOriginalRunning; terminateOriginal/noRunning; startNew onlywithactualkernelnetworkabsence; reverseexactoriginalrestoration",
+      "source_scope": [
+        "closed qualification controllers",
+        "exact new-case disposal",
+        "new registration only",
+        "protected singleton bridge binding",
+        "matching tests and source asset pins"
+      ],
+      "runtime_mutation_released": false,
+      "epic_status": "INCOMPLETE"
+    },
+    "fixture_recovery_correction": {
+      "record": ".codex/evidence/epic440-native-r3-budget-recovery-20261108.md",
+      "scope": "SOURCE_CORRECTION_ONLY_PENDING_PC_AND_HOST_PROOF",
+      "structural_budget": "10000 unique read-scope/typed-field-index slots,5000 cleanup; every response fully parsed/validated <=10000nodes/depth32; repeated byte/command/time cost unchanged",
+      "limits": {
+        "commands": 256,
+        "cleanup_command_reserve": 110,
+        "bytes": 16777216,
+        "per_stream_bytes": 2097152,
+        "aggregate_seconds": 300,
+        "cleanup_seconds": 60
+      },
+      "approval_schema": 2,
+      "operation_minimum_remaining_seconds": {
+        "execute": 1740,
+        "recover": 600
+      },
+      "shared_windows_asset": "tools/windows/qualification/windows_firewall_snapshot.ps1",
+      "required_go_field": "windows_snapshot_sha256",
+      "actual_windows_getter": "c6cd provider-data getter refused; NOT_PASS; exact later revision requires fresh real proof",
+      "capability_accepted": false
+    },
+    "shared_windows_certificate": {
+      "plan_sha256": "470c141f4b6d63f7c38eb87dd5d9ffd716cf64ef5f5ec89284ed87327d1c1634",
+      "status": "SOURCE_ENGINEERING_ONLY_PENDING_EXACT_GATES_AND_REAL_CONSUMER_PROOF",
+      "certificate_root_fields": 8,
+      "count_fields": 10,
+      "raw_query_repeat_artifact_sha256": "ed8ed6e8b5a98c8a4c71c2609421d405ef1ecd356d89dcb5aa145c030b460294",
+      "required_go_fields": [
+        "windows_snapshot_sha256",
+        "windows_certificate_sha256"
+      ],
+      "host_seconds": {
+        "native_linux": {
+          "total": 300,
+          "cleanup": 60,
+          "active": 240
+        },
+        "wsl2": {
+          "total": 650,
+          "cleanup": 300,
+          "active": 350
+        }
+      },
+      "fresh_query_counts": {
+        "active": 7,
+        "cleanup": 6
+      },
+      "parent_bytes_unchanged": 67108864,
+      "child_full_snapshot_bytes_unchanged": 14680064
+    },
+    "acceptance_wsl_host_image": {
+      "release": "26.04.1",
+      "sha256": "48d56724b5c8e60f24893e83e73bbb58c60b3ca22fba3da977075420acd54104",
+      "bytes": 418495746,
+      "signer": "843938DF228D22F7B3742BC0D94AA3F0EFE21092",
+      "signature_verified": true,
+      "incus_packages": "6.0.5-8 from signature-verified resolute index",
+      "archive_signer": "F6ECB3762474EDA9D21B7022871920D1991BC93C",
+      "registration_name": "TSW-Q440-<runid>",
+      "imported": false,
+      "container_image_unchanged": true
+    },
+    "bridge_operational_recovery_exception": {
+      "root": "CommonApplicationData/TinySwarmWorld/WslBridge",
+      "archive": ".staging-acceptance-<runid>-original",
+      "descriptor": "descriptor.json",
+      "max_members": 4096,
+      "max_bytes": 33554432,
+      "classification": "protected native product recovery only; raw payload/ACL/SID stay native; no workflow evidence or GO authority",
+      "phase_seconds": {
+        "prepare": 180,
+        "archive": 180,
+        "stop_original": 180,
+        "bind": 360,
+        "stage_restore": 180,
+        "resume_original": 360,
+        "recovery": 300
+      },
+      "live_go": false
+    },
+    "guest_switch_operational_bookmark": {
+      "path": "CommonApplicationData/TinySwarmWorld/maintenance/acceptance-<runid>/guest-switch.json",
+      "classification": "minimal protected native operational intent/phase bookmark only; no raw preserve-set or workflow approval/evidence",
+      "fields": "schema/run/scenario/source hashes; original/new GUID and VHD identity digests; phase/intent/action ids; hashed receipt pointers",
+      "existing_unknown_owner_or_acl": "REFUSE_WITHOUT_REPAIR",
+      "live_go": false
+    },
+    "upgrade_acceptance_source": {
+      "record": ".codex/evidence/epic440-upgrade-implementation-plan-20261108.md",
+      "record_sha256": "698cbdfc9560a882f628c4a5f49c6096d9f2d39ec3f8fe2c6106b04066baf2b4",
+      "status": "SOURCE_PLAN_APPROVED_ONLY",
+      "source_slices": [
+        "S-U1",
+        "S-U2"
+      ],
+      "ledger_schema": 2,
+      "closed_cases": 24,
+      "component_forward_seconds": {
+        "wsl": 10500,
+        "native": 12480
+      },
+      "official_v1_forward_seconds": {
+        "wsl": 19500,
+        "native": 21480
+      },
+      "component_engine_recovery_seconds": {
+        "wsl": 4800,
+        "native": 6780
+      },
+      "official_v1_engine_recovery_seconds": {
+        "wsl": 12300,
+        "native": 14280
+      },
+      "disposal_only_recovery_seconds": 900,
+      "public_promotion": "Requires every declared host/preset/owner/exposure tuple and remaining closed-case evidence plus independent acceptance; private qualification input is not released compatibility",
+      "runtime_mutation_released": false
+    },
+    "closed_portainer_image_cache": {
+      "record": ".codex/evidence/epic440-upgrade-cache-prerequisite-20261108.md",
+      "record_sha256": "a8e358e592c7b992383827bbf33f0151fb28f74d060df5f9a8a9f38a996a3bcf",
+      "status": "SOURCE_AUTHORITY_ONLY",
+      "pairs": 12,
+      "aggregate_seconds": 900,
+      "containing_phase": "exercise3600",
+      "maximum_actual_pulls_per_pair": 1,
+      "public_scoped_artifacts_guard": "UNCHANGED_REFUSED",
+      "runtime_mutation_released": false
+    },
+    "original_runtime_r3": {
+      "record": ".codex/evidence/epic440-original-runtime-r3-plan-20261108.md",
+      "record_sha256": "b9c6d079899e7a91c550514d4294a877e22f43c3ff65a6ae5f16a7166a5d5d65",
+      "status": "SOURCE_ENGINEERING_ONLY",
+      "source_commit": "cb8c0e27c5890c39c03c45502423f2b8bf372ecc",
+      "root": "/root/tsw440-wsl-r5-20261108",
+      "old_zero_effect_attempt": "REJECTED_STALE_DETAIL_DIGEST_CAUSE_UNPROVEN",
+      "budgets": {
+        "child_seconds": 75,
+        "invocation_seconds": 1800,
+        "own_command_claims": 128,
+        "capture_seconds": 300,
+        "settlement_seconds": 25,
+        "settlement_cleanup_seconds": 5,
+        "outer_guestswitch_seconds": 650
+      },
+      "host_effects_released": false
+    }
   }
 }

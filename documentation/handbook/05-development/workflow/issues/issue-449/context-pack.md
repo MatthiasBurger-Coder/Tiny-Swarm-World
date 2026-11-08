@@ -1,3 +1,125 @@
+## Amendment v1.71 — Portainer upgrade ownership and recovery
+
+Proposed pre-backup fail-closed guard and recovery pending/uncertain states require ADR owner and independent review before implementation. No V1 swarm setup change or host admission.
+
+## Amendment v1.70 — visible conflict complexity remediation
+
+Full QUALITY failed grown critical class and module complexity; remediation adds a focused resolution helper and optional tests to serial locks, preserving strict snapshot/effect ordering, legacy behavior and guardrails. Fresh six-role reviews, S3D, targeted tests and full SSH PC WSL QUALITY remain required. No host admission follows.
+
+## Historical amendment v1.69 — visible endpoint/stack conflicts
+
+The global uniqueness proposal was blocked and superseded by a visibility-limited conflict check; it does not establish absence or ownership and preserves legacy create.
+
+## Historical amendment v1.68 — shared Portainer no-prune
+
+NoPrune subsequently completed at `c3443ea56c420184124cdf0c8de892b18d301ecf`; planned status below is historical.
+
+S449-PORTAINER-NO-PRUNE is PLANNED at `29be9194c86a35f448f12f3b7905956dc7a430d2`: the shared HTTP stack update changes to prune false for direct and LXC-delegated paths. Omitted services may remain; authenticated ownership guard and explicit deletion are separate. No live action or full issue completion follows. Six reviews/S3D pending. Contract `.codex/evidence/slice-449-portainer-no-prune-contract.md`.
+
+## Amendment v1.67 — V2 repository complexity remediation
+
+Initial full QUALITY failed four complexity guardrails. Proposed serial decomposition adds bounded JSON and filesystem/CAS modules to the slice locks without changing thresholds or safety semantics. Fresh reviews/S3D and rerun targeted/full SSH PC WSL quality remain required.
+
+## Amendment v1.66 — unadopted v2 record and isolated CAS
+
+S449-MANIFEST-V2-REPOSITORY is PLANNED at `eacbdc418b6b7179e69441b718f7226609f96470`. It proposes a strict typed UNADOPTED v2 draft at fixed noncanonical staging path and separate dual-read/isolated CAS port and adapter. Locking assumes cooperating clients and no hostile same-UID writer; bytehash CAS cannot detect byte-identical ABA. Post-replace crash or directory-fsync failure is UNCERTAIN; read-only reconciliation may find the complete old or new file. ADR-owner GO was reported for the earlier isolated UNADOPTED draft; the current revision needs fresh same-hash review and S3D, and versioned draft migration is mandatory before production use; V1 runtime decoder, consumers and host remain unchanged. Six role reviews/S3D and SSH PC WSL quality are pending. Contract `.codex/evidence/slice-449-manifest-v2-repository-contract.md`.
+
+## Historical amendment v1.65 — coupled scoped 8086 P1
+
+P1 subsequently completed at `eacbdc418b6b7179e69441b718f7226609f96470`; planned status below is historical.
+
+P1 is PLANNED after desired-policy ADR acceptance at `90b5665e7fe01f198e78c5d4a130c3b5babcb6ac`: exact ordered legacy tuple-sequence validation, including reorder rejection, precedes a narrow versioned scoped 8086 transformation, and G2c/G2d version and tuple consumers change together with G2e regression. Legacy runtime, support, source UNKNOWN and host/live gates remain unchanged. Six reviews/S3D pending; contract `.codex/evidence/slice-449-route-8086-p1-contract.md`.
+
+## Amendment v1.64 — proposed scoped 8086 decision
+
+G2e completed at `b9f2543f3fea21fd7565a6f6bf02c72e6dc8f448`. An ACCEPTED desired-policy-only ADR amendment assigns desired 8086 compatibility route to service-access with Infisical backend under complete dependency closure, validates exact legacy tuples before a narrow versioned transformation, and leaves legacy unchanged. Existing 8086 code AUTHORITY_GAP continues until separate implementation and quality; no host/live/support claim.
+
+## G2e registry-loop test scope amendment
+
+The locked package-entrypoint test may supply the three valid required options for `services migration-check` in its existing registry loop, without skips or weakening any assertions; a separate missing-options test must block before load. Fresh review/S3D apply.
+
+## Historical amendment v1.63 — G2e operator migration-check
+
+G2e subsequently completed at `b9f2543f3fea21fd7565a6f6bf02c72e6dc8f448`; planned state below is historical.
+
+G2d completed at `ef1e863b755faa3f8127a364b7926244abc35329`. G2e is PLANNED: an early bounded local `services migration-check` exposes only sanitized blocked G2d outcomes; candidate version is operator-supplied and not measured. No host, migration, support or admission follows. Six-role reviews/S3D pending. Contract `.codex/evidence/slice-449-migration-g2e-contract.md`.
+
+## Historical amendment v1.62 — fail-closed migration admission G2d
+
+G2d completed at `ef1e863b755faa3f8127a364b7926244abc35329`; planned status below is historical.
+
+G2c completed at `f45ca0b8ee3d3593eb02cd7f7a78e8a528440924`. G2d is PLANNED as internal application-only v1/catalog inspection and desired-plan/scoped-capability check; it does not affect existing paths. Immediately following G2e must add a separately reviewed safe operator CLI/composition entrypoint, tests and guide; a nonempty string snapshot token is required and the empty support set ensures blocked results, no positive admission, host calls, writes or runtime wiring. Six same-hash reviews and S3D are pending. Contract `.codex/evidence/slice-449-migration-g2d-contract.md`.
+
+## Historical amendment v1.61 — unadopted desired manifest G2c
+
+G2c completed at `f45ca0b8ee3d3593eb02cd7f7a78e8a528440924`; planned status below is historical.
+
+P0 completed at `5e9f87c6b1dc1173b8d0a4609037d477eb0f5cca`. G2c is PLANNED as immutable domain-only `DesiredManifestV2`/`ConversionPlan`; it internally recomputes P0 from v1/catalog, preserves v1 data and leaves actual host/source/owner UNKNOWN. Previous caller-supplied binding contract is superseded; no schema2 runtime/persistence, adoption or live claim. Six independent reviews and S3D remain pending.
+
+## Historical amendment v1.60 — scoped domain route policy P0
+
+P0 subsequently completed at `5e9f87c6b1dc1173b8d0a4609037d477eb0f5cca`; planned state below is historical.
+
+P0 is PLANNED after accepted ADR checkpoint `4886c84c92d7cb9ac628fe75e7a973829f36d713`: pure immutable ideal scoped route/profile reference, runtime_source always UNKNOWN and no actual source/override attestation; a future pre-effect adapter verifies effective sources and blocks unknown; 8086 and unproven internal ingress remain AUTHORITY_GAP. G2c stays BLOCKED until P0 is implemented and independently reviewed. Contract `.codex/evidence/slice-449-scoped-route-p0-contract.md`; six reviews/S3D and SSH PC WSL quality are pending.
+
+## Amendment v1.59 — accepted scoped route/profile design
+
+P0a completed at `f5f0ea1520a1abdb6ee281bb700c8635c9ad4e93` as unverified legacy candidate. Separate ADR D0 accepted code-bound scoped-route-policy-v1 and profile-name-v1 on six independent pre-acceptance same-hash role decisions; 8086 Infisical versus service-access ownership remains AUTHORITY_GAP for affected selections. Final checkpoint re-review and S3D remain pending. It does not qualify a version, route, owner or host; G2c/P0 remain blocked pending acceptance and separate implementation.
+
+## Historical amendment v1.58 — P0a unverified legacy candidate
+
+P0a subsequently completed at `f5f0ea1520a1abdb6ee281bb700c8635c9ad4e93`; the planned status below is historical.
+
+P0a is PLANNED as a separate pure domain representation of every legacy FULL setup required port, including compatibility 7750, with unverified-runtime marker and UNKNOWN flags/identities. Internal Swagger and custom/alternate infrastructure remain blocked. It does not establish scoped authority or unblock G2c; same-hash reviews and S3D remain required. Contract `.codex/evidence/slice-449-route-p0a-contract.md`.
+
+## Historical amendment v1.57 — G2c route authority gap
+
+P0 subsequently completed in `5e9f87c6b1dc1173b8d0a4609037d477eb0f5cca`; the earlier blocked state below is historical; host/source gaps remain.
+
+G2c is BLOCKED / AUTHORITY_GAP, not execution-ready. Separate route policy P0 must first inventory authoritative stack ports, PortRegistry, SetupManifest and ADRs, establish an immutable versioned selection/port snapshot and full deterministic tuples including TCP/10001, nat and proxy_protocol, with explicit provenance/UNKNOWN. A concrete versioned UUID/SHA-256 candidate and typed route-policy input are documented for independent decision; Portainer legacy proxy target and Nexus 13501 mapping are known; trusted policy binding, listen addresses and nat/proxy_protocol decisions remain blocked. Profile naming needs its own accepted decision. Missing authority blocks; no two caller-provided sets establish completeness.
+
+## Amendment v1.56 — domain schema G2c
+
+G2b completed at `d2fbc06e6f1cfce51bce557499427c9d8c548c9d`. G2c was initially proposed and is now BLOCKED / AUTHORITY_GAP: strict canonical domain v2 and pure plan require explicitly supplied structurally validated project/profile/routes; UNKNOWN blocks and no actual host ownership is inferred. V1 fields and G2b operator-local unverified preview remain intact. Runtime decode/persistence, version support and host/fixture gates remain unchanged. Contract: `.codex/evidence/slice-449-manifest-g2c-contract.md`.
+
+## Amendment v1.55 — G2b workflow-list test lock
+
+G2b may add `services migration-preview` to the existing expected workflow list in `tests/test_package_entrypoint.py::test_every_declared_workflow_keeps_its_command_name`, preserving all existing expectations. The previously reported targeted failure is not a pass.
+
+## Amendment v1.54 — bounded preview-only FD reader
+
+G2b uses pinned unverified root, fixed no-follow relative FD traversal, regular file checks and before/after drift rechecks; 1 MiB per file, 16 MiB aggregate, 16 files. Current catalog has nine Compose files plus one manifest at `.tiny-swarm-world/installation/manifest.json`. Compose reads use only project-root assets; `TSW_INFRA_ROOT` is not evaluated, missing project-root assets block, and explicit alternate-infrastructure requests are rejected before loading. Catalog injection is preview-only and legacy default unchanged; preview manifest save always rejects. Privileged ABA/hardlink or hard CPU limits are not claimed. Fresh reviews/S3D remain necessary.
+
+## Amendment v1.53 — G2b operator-local unverified preview
+
+Every G2b result uses `source=operator_local_unverified`; applied/qualified are false and identities UNKNOWN. Local assets are checked for structural validity and read-only use, not provenance or authority; missing, malformed, inconsistent, unsafe symlink or permission failures block without disclosure. No preview is live-admission, release or EPIC evidence. Revised contract requires fresh same-hash reviews and S3D.
+
+## Historical amendment v1.52 — G2b CLI preview
+
+G2b completed at `d2fbc06e6f1cfce51bce557499427c9d8c548c9d`; the following planned status is historical.
+
+G2a completed at `81acdd5c512820b3f69ca193c11d232cb6761ef6`. G2b is PLANNED: `services migration-preview` uses only validated manifest/catalog loads, early routing and an allowlisted safe DTO, with fixed Classic stack-ID whitelist, verified read-only handling of operator-local unverified assets, no host runtime, write, adoption, secrets or version-support claim; the implementation slice updates the selective-setup operator guide. Reviews and S3D remain required. Contract: `.codex/evidence/slice-449-manifest-g2b-contract.md`.
+
+## Historical amendment v1.51 — G2a migration preview
+
+G2a completed in `81acdd5c512820b3f69ca193c11d232cb6761ef6`; its planned status below is historical.
+
+G2a is PLANNED after D0/G1 at `55c42029a7c1f0e7c219d1708060c4ed6b708dea`: domain-only immutable detached `MigrationPreview`, strict revalidation and unique service/component IDs, canonical incus/portainer foundation kinds, selected-stack swarm policy and Swagger stack published/not-applicable, host ownership identities UNKNOWN. It is neither valid persisted schema 2 nor runtime integration. Independent same-hash reviews and S3D precede implementation; G2b/c and live gates remain unchanged. Contract: `.codex/evidence/slice-449-manifest-g2a-contract.md`.
+
+## Historical amendment v1.50 — accepted sequencing and G1 authoring
+
+The following is historical authoring context; G1 was completed in `55c42029a7c1f0e7c219d1708060c4ed6b708dea`.
+
+R67k is ACCEPTED based on six independently conveyed pre-acceptance review decisions, narrowly superseding R67h sequencing only; the reviewed proposal bytes are not separately retained for rehash and that evidence limitation is recorded; `.codex/evidence/slice-449-adr-sequencing-review.md` binds the reviewed candidate hashes. G1 depends on S449-01 and S449-ADR-SEQUENCE-D0; accepted R67k is recorded; G1 contract refinement, separate reviews and S3D were prerequisites at authoring. G1 defines strict enum intent and a G1-specific canonical ASCII version grammar in `.codex/evidence/slice-449-capability-g1-contract.md`, with an immutable closed empty registry; malformed/missing/unknown and 6.0.5 are denied, and explicit legacy classification is tested without callers, wiring or claims of runtime protection. Legacy `ensure_node` remains unchanged. Current host/fixture blocks remain authoritative; G1 required its own contract review and S3D at authoring. Future G2/G3/G4 need separately reviewed guards at every new-capability host-effect caller, including direct/recovery/cleanup.
+
+## Amendment v1.49 — Host admission end-to-end proposal
+
+S449-02F11 is NOT_FEASIBLE for the current collector: a probe connection cannot bind later independent lxc connections. The retained proof-and-qualification draft in `.codex/evidence/slice-449-02F11-host-admission-plan.md`: fixed unit, pidfd, manager mapping and socket peer require new reviewed read/socket scope; binding is not inventory or admission. Six same-hash role reviews, S3D and distinct host JIT/GO remain required. S449-02F is BLOCKED; existing dependencies, target scope and proposed/unaccepted ADR remain unchanged.
+
+## Amendment v1.48 — S449-02F10 planned
+
+F9 native source `4adcdfe456afddd881820c9a060a53113a2febfd` returned `BLOCKED_UNKNOWN / PROC_ROOT`, exit 2; private evidence requires independent review. F10 plans a separate, read-only comparison of the current diagnostic reader and visible PID 1 cgroup namespace only. It cannot establish the F9 reader, target, host or initial namespace, cause, safety or admission. It requires six same-hash reviews, S3D, exact-source SSH PC WSL quality, and a separate host plan/JIT/GO; no implementation or F10 host execution is implied. F10 uses the existing F4 trusted local-root boundary, fixed self-link/getpid binding, pinned openat2/statx mount checks and validated fixed final link descriptors; uncertain trust or observations return UNKNOWN. F10 depends on F9; S449-02F remains BLOCKED and 02G/02H retain inventory prerequisites. Normative details: `.codex/evidence/slice-449-02F10-design.md` and `workflow.md`.
+
 # Context pack — issue-449-lcm-w09
 
 ## Current original-runtime source authority — v1.61
@@ -167,6 +289,92 @@ is passed to native Source/Resource adapters with existing guards retained.
 Only local verification is complete; fresh read-only host admission is pending.
 
 - Workflow document version: 1.42; status `ACTIVE_FOR_ISSUE_449`. The user authorized completing #449 on the named test hosts. Every slice still requires fresh same-hash reviews and its own S3D `EXECUTION_PLAN`; live host changes still require exact host/scenario admission and GO. S449-02D is committed at `6a687bddab9893d29c081bc8b8cdd0aa489c16ab`; S449-02E is committed at `6c48b1d0ef90ec0316769257e8a821946b2200c8`. S02D runner/test hashes `4d1bef40aa2be3f3f477d33c98db173bf43290cf23a71f33f9937e0fd089221f` / `deb5a79c706b8f277df55e36e040e2ca0c33289a4b7b1debe58a7f260822b1bc`; S02E runner/test hashes `6982861d785cdfa97f4de14e4f7b2cac8cd355eaff7e2478004c2619b1db72fd` / `86e874528a62664c2d2c6c452a733178cb9c0b6d63fc29f1e19a18a7e6ef413b`. On approved PC WSL, S02E focused suite passed 121 tests and full quality gate passed (43 architecture tests; 2,995 total, 18 skipped). S02F implementation and PC WSL quality verification are complete under v1.37. The v1.36 read-only attempt returned UNIT_SCHEMA_INVALID, produced no artifact, and made no host changes. The v1.37 native retry returned BLOCKED:EXECUTABLE_IDENTITY_BLOCKED with no artifact. S449-02F2 commit 9c311145 ran the bounded symbolic diagnostic, which returned BLOCKED_UNKNOWN for snap.lxd.daemon.service; no artifact or runtime mutation occurred. S449-02F3 is planned to classify only the already-read rejected value into a fixed symbolic reason. Its read-only queries must bind to already-active full-access service identities and cannot trigger service/socket activation. Version 1.36 reconciles project used_by membership without treating storage pools as project consumers, checks pool-level profile/instance disk reciprocity, includes exact storage-volume list/show argv, and blocks inherited/shared volume owner mismatches at both list and detail stages. The v1.36 S02F attempt contacted only the native test host for a bounded read-only inventory; it returned UNIT_SCHEMA_INVALID and produced no artifact. Native service-access preflight remains blocked by active snap.lxd.daemon.service; the previous WSL route capture failed with JIT_COMMAND_FAILED; no normalized admission or host/scenario GO exists.
+
+## Current v1.47 process-cgroup relation diagnostic amendment
+
+Native F8 at 7615a29962b0fd3ae2d44e4246893335ad9fadd3 returned
+BLOCKED_UNKNOWN / PROCESS_BINDING, exit 2. This is a bounded cgroup mismatch
+stage, not process identity, safety, namespace or inventory admission.
+Private F8 evidence requires independent review. S449-02F9 is PLANNED after
+F8; its sole CLI, closed componentwise relation enum, trusted stable F8
+observations, budgets and D01–D10 are in
+.codex/evidence/slice-449-02F9-design.md. Six same-hash reviews and S3D,
+exact-source SSH PC WSL quality, and a separate post-commit host plan/JIT/GO
+are required. F4–F8 remain unchanged; S449-02F remains BLOCKED and 02G/02H
+retain successful-inventory prerequisites. No F9 implementation or host GO
+is claimed. The unrelated user-owned ADR amendment remains untouched.
+
+
+## Historical v1.46 failure-stage diagnostic amendment
+
+Native F7 at fd8dd1478329ee00a907822b4e43b19efc14a631 returned
+BLOCKED_UNKNOWN / UNKNOWN, exit 2; its private record requires independent
+review. S449-02F8 is PLANNED, depends on F7 and emits only closed typed
+failure stages or UNKNOWN while always remaining BLOCKED_UNKNOWN/2. Its exact
+contract is .codex/evidence/slice-449-02F8-design.md. Six same-hash role
+reviews and S3D precede implementation; exact-source PC WSL quality and a
+separate post-commit host plan/JIT/GO precede a native diagnostic.
+F4–F7 remain unchanged. S449-02F remains BLOCKED; 02G/02H retain prerequisites.
+The unrelated user-owned ADR amendment is neither changed nor accepted.
+
+## Historical v1.45 source-bound generator-form amendment
+
+The bounded native F6 diagnosis from commit 4f52873330b665ab013b607c26d7172194ff375b
+returned BLOCKED_UNKNOWN / DEPENDENCY_VARIANT with exit 2. It established no
+inventory, safety or producer claim. Private F6 records must be independently
+reviewed before any later host phase.
+
+S449-02F7 is PLANNED, depends on F6, and compares a narrowly source-pinned
+16-token generator form using trusted stable unit, process, revision, script
+pair and drop-in observations. The full source, digest, grammar, limits and
+requirements are in `.codex/evidence/slice-449-02F7-design.md`. F7 does not
+implement a guard change or admit F4. Six same-hash reviews and S3D precede
+implementation; focused/full PC WSL quality and a separate post-commit native
+plan/JIT/GO precede one host diagnosis. S449-02F remains BLOCKED; 02G/02H
+retain their successful-inventory prerequisites.
+
+## Historical v1.44 drop-in diagnostic amendment
+
+The separately reviewed native F5 diagnosis at source
+04a0c3cf3b641775cad59da12a7951e0eb5035cc returned BLOCKED_UNKNOWN /
+DROPIN_CONTENT and exit 2. It is an observation only: no contents, safety,
+ownership, inventory admission or host mutation. The protected F5 plan, GO
+and result remain on native ext4 and need review before any F6 host GO.
+
+S449-02F6 is PLANNED; no implementation, F6 quality pass or F6 host GO is
+claimed. Its only CLI, closed structural reason enum, trusted path, no
+environment read, rechecks and F4/F5 invariants are specified in
+.codex/evidence/slice-449-02F6-design.md. Six same-hash reviews, S3D, PC WSL
+exact-source quality, and a separate post-commit native plan and host GO
+remain required. F6 does not release a guard change or inventory rerun.
+S449-02F remains BLOCKED; 02G/02H retain their existing prerequisites.
+The user-owned proposed ADR amendment in another worktree is not changed
+or accepted here.
+
+## Historical v1.43 diagnostic amendment
+
+The 2026-10-29 separately reviewed native S449-02F attempt on source
+`1ec15b3e9f7f943cdde85e43d00ec01ff9c7e9fd` exited 2 with
+`BLOCKED:SNAP_WRAPPER_CONTEXT_BLOCKED`; no inventory artifact or host mutation
+occurred. Private plan, host GO and result remain on the native ext4 test
+checkout. The cause is unknown. The user requested a bounded diagnostic
+extension; S449-02F5 and its D01–D08 contract are **planned**, not implemented
+at that historical authoring point. F5 has since been implemented and diagnosed as recorded below. Review the finalized workflow/context/design tuple anew;
+all six specialist roles and a slice-specific S3D plan are required before
+implementation. Exact-byte targeted/full PC WSL quality and a separate
+post-commit native diagnosis plan/GO follow. An observation cannot establish
+ownership, host admission, capability support or issue completion. Any
+correction and new S449-02F inventory need independent scope and review.
+S449-02F remains BLOCKED until a new complete inventory succeeds. S449-02H
+retains its YAML dependency on S449-02F and cannot start before it succeeds.
+The only F5 invocation is the sole flag `--diagnose-snap-context`; invalid
+combinations return fixed UNKNOWN JSON and exit 2 without argparse output.
+The design defines the fixed initial snapshot, up to two detailed F4 queries,
+trusted-file rechecks, stop order and exact budgets.
+The pending user-owned ADR amendment in the separate primary worktree is not
+part of this contract and is not accepted by this workflow amendment.
+
+- Workflow document version: 1.45; status `ACTIVE_FOR_ISSUE_449`. Historical v1.42 detail: the user authorized completing #449 on the named test hosts. Every slice still requires fresh same-hash reviews and its own S3D `EXECUTION_PLAN`; live host changes still require exact host/scenario admission and GO. S449-02D is committed at `6a687bddab9893d29c081bc8b8cdd0aa489c16ab`; S449-02E is committed at `6c48b1d0ef90ec0316769257e8a821946b2200c8`. S02D runner/test hashes `4d1bef40aa2be3f3f477d33c98db173bf43290cf23a71f33f9937e0fd089221f` / `deb5a79c706b8f277df55e36e040e2ca0c33289a4b7b1debe58a7f260822b1bc`; S02E runner/test hashes `6982861d785cdfa97f4de14e4f7b2cac8cd355eaff7e2478004c2619b1db72fd` / `86e874528a62664c2d2c6c452a733178cb9c0b6d63fc29f1e19a18a7e6ef413b`. On approved PC WSL, S02E focused suite passed 121 tests and full quality gate passed (43 architecture tests; 2,995 total, 18 skipped). S02F implementation and PC WSL quality verification are complete under v1.37. The v1.36 read-only attempt returned UNIT_SCHEMA_INVALID, produced no artifact, and made no host changes. The v1.37 native retry returned BLOCKED:EXECUTABLE_IDENTITY_BLOCKED with no artifact. S449-02F2 commit 9c311145 ran the bounded symbolic diagnostic, which returned BLOCKED_UNKNOWN for snap.lxd.daemon.service; no artifact or runtime mutation occurred. S449-02F3 is planned to classify only the already-read rejected value into a fixed symbolic reason. Its read-only queries must bind to already-active full-access service identities and cannot trigger service/socket activation. Version 1.36 reconciles project used_by membership without treating storage pools as project consumers, checks pool-level profile/instance disk reciprocity, includes exact storage-volume list/show argv, and blocks inherited/shared volume owner mismatches at both list and detail stages. The v1.36 S02F attempt contacted only the native test host for a bounded read-only inventory; it returned UNIT_SCHEMA_INVALID and produced no artifact. Native service-access preflight remains blocked by active snap.lxd.daemon.service; the previous WSL route capture failed with JIT_COMMAND_FAILED; no normalized admission or host/scenario GO exists.
 - Issue: #449, parent EPIC #440, bounded coordination with #318
 - Workflow: `documentation/handbook/05-development/workflow/issues/issue-449/workflow.md`
 - Index: `documentation/handbook/05-development/workflow/workflow.index.md`

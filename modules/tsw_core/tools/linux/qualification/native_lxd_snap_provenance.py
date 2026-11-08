@@ -65,6 +65,15 @@ class ProvenanceError(Exception):
         super().__init__(code if code in allowed else "SNAP_WRAPPER_FILE_UNVERIFIED")
 
 
+class _StageNegative(ProvenanceError):
+    """An explicit comparison failure; sensitive snapshots remain in memory."""
+
+    def __init__(self, stage: str, code: str, snapshots: tuple[Any, ...]):
+        super().__init__(code)
+        self.stage = stage
+        self.snapshots = snapshots
+
+
 class RunnerPort(Protocol):
     def run(self, argv: list[str], *, command_id: str, safe_args: list[str]) -> tuple[int, bytes, bytes]: ...
 
@@ -231,7 +240,7 @@ def _valid_time(value: str) -> bool:
         return False
 
 
-def _unit(raw: bytes, expected: dict[str, Any]) -> dict[str, str]:
+def _unit_fields(raw: bytes, expected: dict[str, Any]) -> dict[str, str]:
     if len(raw) > PROC_LIMIT:
         raise ProvenanceError("SNAP_WRAPPER_LIMIT_EXCEEDED")
     values: dict[str, str] = {}
@@ -250,17 +259,28 @@ def _unit(raw: bytes, expected: dict[str, Any]) -> dict[str, str]:
     if tuple(values[key] for key in BASE_PROPERTIES) != supplied or supplied[:3] != ("loaded", "active", "running"):
         raise ProvenanceError("SNAP_WRAPPER_UNIT_INVALID")
     _positive(values["MainPID"])
+    return values
+
+
+def _context_reason(values: dict[str, str]) -> str | None:
     match = _EXEC_START.fullmatch(values["ExecStart"])
     if match is None or not all(_valid_time(value) for value in match.group(1, 2)):
-        raise ProvenanceError("SNAP_WRAPPER_CONTEXT_BLOCKED")
+        return "EXECSTART_FORMAT_OR_TIME"
     if not _normal_path(values["ControlGroup"]) or values["ControlGroup"] == "/":
-        raise ProvenanceError("SNAP_WRAPPER_CONTEXT_BLOCKED")
+        return "CONTROL_GROUP"
     if values["FragmentPath"] != UNIT_FILE or any(values[key] for key in (
             "ExecCondition", "ExecStartPre", "ExecStartPost", "RootDirectory", "RootImage", "BindPaths", "BindReadOnlyPaths")):
-        raise ProvenanceError("SNAP_WRAPPER_CONTEXT_BLOCKED")
+        return "FRAGMENT_OR_HOOK"
     if values["DropInPaths"] not in {"", DROP_IN} or values["Environment"] not in {"", "SNAPD_DEBUG=0"}:
-        raise ProvenanceError("SNAP_WRAPPER_CONTEXT_BLOCKED")
+        return "DROPIN_OR_ENV_SETTING"
     if values["EnvironmentFiles"] not in {"", "/etc/environment (ignore_errors=yes)"}:
+        return "ENVIRONMENT_FILE_SPEC"
+    return None
+
+
+def _unit(raw: bytes, expected: dict[str, Any]) -> dict[str, str]:
+    values = _unit_fields(raw, expected)
+    if _context_reason(values) is not None:
         raise ProvenanceError("SNAP_WRAPPER_CONTEXT_BLOCKED")
     return {**values, "ExecStart": "snap-run-lxd-daemon"}
 
@@ -356,20 +376,73 @@ class _Proof:
                 result.append(environment)
         return tuple(result)
 
+    def diagnostic_unit(self, expected: dict[str, Any]) -> dict[str, str]:
+        self.check_time()
+        _, raw, _ = self.runner.run(list(UNIT_ARGV), command_id="systemctl_show_unit", safe_args=[UNIT])
+        self.check_time()
+        self.total += len(raw)
+        if self.total > TOTAL_LIMIT:
+            raise ProvenanceError("SNAP_WRAPPER_LIMIT_EXCEEDED")
+        return _unit_fields(raw, expected)
+
+    def diagnostic_files(self, unit: dict[str, str]) -> tuple[str | None, tuple[tuple[str, Observation | None], ...]]:
+        observed: list[tuple[str, Observation | None]] = []
+        observed.append((UNIT_FILE, self.trusted(self.observe(UNIT_FILE))))
+        if unit["DropInPaths"]:
+            drop = self.trusted(self.observe(DROP_IN, limit=PROC_LIMIT))
+            observed.append((DROP_IN, drop))
+            text = drop.data.decode("utf-8", "strict")
+            significant = [line for line in text.split("\n") if line.strip() and not line.lstrip().startswith("#")]
+            if "\r" in text or "\x00" in text or significant != ["[Unit]", "After=snap.microceph.daemon.service snap.microovn.daemon.service"]:
+                return "DROPIN_CONTENT", tuple(observed)
+        if unit["EnvironmentFiles"]:
+            try:
+                environment = self.trusted(self.observe("/etc/environment", limit=PROC_LIMIT))
+            except FileNotFoundError:
+                environment = None
+            observed.append(("/etc/environment", environment))
+            if environment is not None:
+                text = environment.data.decode("utf-8", "strict")
+                assignments = [line for line in text.split("\n") if line.strip() and not line.lstrip().startswith("#")]
+                if ("\x00" in text or "\r" in text or len(assignments) > 1
+                        or any(line not in {"PATH=" + CANONICAL_PATH, 'PATH="' + CANONICAL_PATH + '"'} for line in assignments)):
+                    return "ENVIRONMENT_FILE_CONTENT", tuple(observed)
+        return None, tuple(observed)
+
+    def diagnostic_reobserve(self, observed: tuple[tuple[str, Observation | None], ...]) -> bool:
+        for path, original in observed:
+            try:
+                current = self.trusted(self.observe(path, limit=None if path == UNIT_FILE else PROC_LIMIT))
+            except FileNotFoundError:
+                current = None
+            if current != original:
+                return False
+        return True
+
     def process(self, pid: int, group: str) -> Process:
         root = f"/proc/{pid}"
-        text = _text(self.observe(root + "/stat", limit=PROC_LIMIT).data, "SNAP_WRAPPER_PROC_INVALID")
+        stat_observation = self.observe(root + "/stat", limit=PROC_LIMIT)
+        text = _text(stat_observation.data, "SNAP_WRAPPER_PROC_INVALID")
         close = text.rfind(")")
         prefix, fields = text[:close + 1], text[close + 1:].split()
         if close < 0 or not prefix.startswith(f"{pid} (") or len(fields) < 20 or not re.fullmatch(r"[0-9]+", fields[1], re.ASCII):
             raise ProvenanceError("SNAP_WRAPPER_PROC_INVALID")
         parent, started = int(fields[1]), _positive(fields[19])
-        status = _text(self.observe(root + "/status", limit=PROC_LIMIT).data, "SNAP_WRAPPER_PROC_INVALID")
+        status_observation = self.observe(root + "/status", limit=PROC_LIMIT)
+        status = _text(status_observation.data, "SNAP_WRAPPER_PROC_INVALID")
         uid = [line for line in status.splitlines() if line.startswith("Uid:")]
         if len(uid) != 1 or not re.fullmatch(r"Uid:[ \t]+0[ \t]+0[ \t]+0[ \t]+0[ \t]*", uid[0], re.ASCII):
             raise ProvenanceError("SNAP_WRAPPER_PROC_INVALID")
-        cgroup = self.observe(root + "/cgroup", limit=PROC_LIMIT).data
+        cgroup_observation = self.observe(root + "/cgroup", limit=PROC_LIMIT)
+        cgroup = cgroup_observation.data
         if cgroup not in {f"0::{group}".encode(), f"0::{group}\n".encode(), b"0::/", b"0::/\n"}:
+            try:
+                observed_group = cgroup.decode("utf-8", "strict").removesuffix("\n")
+            except UnicodeError as exc:
+                raise ProvenanceError("SNAP_WRAPPER_PROC_INVALID") from exc
+            if observed_group.startswith("0::") and _normal_path(observed_group[3:]):
+                raise _StageNegative("PROCESS_BINDING", "SNAP_WRAPPER_PROC_INVALID",
+                                     (stat_observation, status_observation, cgroup_observation))
             raise ProvenanceError("SNAP_WRAPPER_PROC_INVALID")
         executable = self.trusted(self.observe(root + "/exe", follow=True), executable=True)
         return Process(pid, parent, started, executable, cgroup)
@@ -406,14 +479,14 @@ class _Proof:
         values = tuple(self.trusted(self.observe(path, follow=True), executable=True) for path in (
             f"/proc/{pid}/root{shell}", f"/proc/{pid}/root/bin/sh"))
         if any(value.identity != process.executable.identity for value in values):
-            raise ProvenanceError("SNAP_WRAPPER_FILE_UNVERIFIED")
+            raise _StageNegative("SHELL_BINDING", "SNAP_WRAPPER_FILE_UNVERIFIED", values)
         return values[0], values[1]
 
     def pair(self, pid: int, path: str, *, limit: int | None = None, executable: bool = False) -> tuple[Observation, Observation]:
         values = tuple(self.trusted(self.observe(view, limit=limit), executable=executable, readonly=True)
                        for view in (path, f"/proc/{pid}/root{path}"))
         if values[0].identity != values[1].identity or values[0].data != values[1].data:
-            raise ProvenanceError("SNAP_WRAPPER_FILE_UNVERIFIED")
+            raise _StageNegative("SCRIPT_PAIR_OR_DIGEST", "SNAP_WRAPPER_FILE_UNVERIFIED", values)
         return values[0], values[1]
 
     def package(self, pid: int, base: str, *, root_mode: bool = False) -> tuple[tuple[Any, ...], tuple[int, int]]:
@@ -507,3 +580,495 @@ def prove_snap_wrapper(runner: RunnerPort, row: dict[str, Any], *, fs: ReadOnlyF
         raise
     except (OSError, ValueError, TypeError, IndexError, OverflowError, RecursionError) as exc:
         raise ProvenanceError("SNAP_WRAPPER_FILE_UNVERIFIED") from exc
+
+
+def diagnose_context(runner: RunnerPort, expected: dict[str, Any], *, fs: ReadOnlyFS | None = None,
+                     clock: Callable[[], float] = time.monotonic) -> str:
+    """Classify one stable rejection without admitting an identity or exposing inputs."""
+    try:
+        proof = _Proof(runner, fs or LocalReadOnlyFS(), clock)
+        before = proof.diagnostic_unit(expected)
+        reason = _context_reason(before)
+        observed: tuple[tuple[str, Observation | None], ...] = ()
+        if reason is None:
+            reason, observed = proof.diagnostic_files(before)
+        after = proof.diagnostic_unit(expected)
+        before_compare, after_compare = dict(before), dict(after)
+        # Valid ExecStart records carry systemd runtime counters that F4 intentionally normalizes.
+        if (_context_reason(before) != "EXECSTART_FORMAT_OR_TIME"
+                and _context_reason(after) != "EXECSTART_FORMAT_OR_TIME"):
+            before_compare["ExecStart"] = after_compare["ExecStart"] = "snap-run-lxd-daemon"
+        if before_compare != after_compare or not proof.diagnostic_reobserve(observed):
+            return "UNKNOWN"
+        return reason or "UNKNOWN"
+    except Exception:
+        return "UNKNOWN"
+
+
+def _dropin_form(raw: bytes) -> str:
+    """Classify only unambiguous text without returning any observed values."""
+    text = raw.decode("utf-8", "strict")
+    if any(ord(char) < 32 and char not in "\n\t" or ord(char) > 126 for char in text) or "\\" in text:
+        return "UNKNOWN"
+    lines = [line for line in text.split("\n") if line.strip() and not line.lstrip().startswith("#")]
+    expected = ["[Unit]", "After=snap.microceph.daemon.service snap.microovn.daemon.service"]
+    if lines == expected:
+        return "UNKNOWN"
+    if any('"' in line or "'" in line for line in lines):
+        return "UNKNOWN"
+    if any(re.fullmatch(r"\[[A-Za-z][A-Za-z0-9]*\]", line, re.ASCII) is None
+           and re.fullmatch(r"[A-Za-z][A-Za-z0-9]*=[ -~]*", line, re.ASCII) is None
+           for line in lines):
+        return "UNKNOWN"
+    sections = [index for index, line in enumerate(lines) if line.startswith("[") and line.endswith("]")]
+    if not lines or lines[0] != "[Unit]" or sections != [0]:
+        return "SECTION_SHAPE"
+    if len(lines) != 2 or not lines[1].startswith("After="):
+        return "UNKNOWN_DIRECTIVE"
+    return "DEPENDENCY_VARIANT"
+
+
+def diagnose_dropin(runner: RunnerPort, expected: dict[str, Any], *, fs: ReadOnlyFS | None = None,
+                    clock: Callable[[], float] = time.monotonic) -> str:
+    """Classify a stable rejected fixed drop-in without admitting an identity."""
+    try:
+        proof = _Proof(runner, fs or LocalReadOnlyFS(), clock)
+        before = proof.diagnostic_unit(expected)
+        if _context_reason(before) is not None or before["DropInPaths"] != DROP_IN:
+            return "UNKNOWN"
+        unit_file = proof.trusted(proof.observe(UNIT_FILE))
+        drop = proof.trusted(proof.observe(DROP_IN, limit=PROC_LIMIT))
+        reason = _dropin_form(drop.data)
+        after = proof.diagnostic_unit(expected)
+        if _context_reason(after) is not None:
+            return "UNKNOWN"
+        before_compare, after_compare = dict(before), dict(after)
+        before_compare["ExecStart"] = after_compare["ExecStart"] = "snap-run-lxd-daemon"
+        observed = ((UNIT_FILE, unit_file), (DROP_IN, drop))
+        if before_compare != after_compare or not proof.diagnostic_reobserve(observed):
+            return "UNKNOWN"
+        return reason
+    except Exception:
+        return "UNKNOWN"
+
+
+# A deliberately narrow subset of Canonical LXD 3a06799's generator form.
+_GENERATOR_DIGEST = "7ecbe39a07dc02666af544327dbaf5cfbe9967868bfb9d7c627061f14916b562"
+_GENERATOR_REVISION = "40958"
+_GENERATOR_TOKENS = (
+    "snap.microceph.daemon.service", "snap.microceph.mds.service", "snap.microceph.mgr.service",
+    "snap.microceph.mon.service", "snap.microceph.nfs.service", "snap.microceph.osd.service",
+    "snap.microceph.rgw.service", "snap.microceph.rbd-mirror.service", "snap.microceph.cephfs-mirror.service",
+    "snap.microovn.daemon.service", "snap.microovn.ovn-ovsdb-server-nb.service",
+    "snap.microovn.ovn-ovsdb-server-sb.service", "snap.microovn.ovn-northd.service",
+    "snap.microovn.chassis.service", "snap.microovn.switch.service", "snap.microovn.bird.service",
+)
+_GENERATOR_PREFIX = ("[Unit]\nAfter=" + " ".join(_GENERATOR_TOKENS) + " ").encode("ascii")
+
+
+def _generator_form(raw: bytes) -> bool:
+    """Match a bounded subset of the pinned public generator; never expose input."""
+    if len(raw) > PROC_LIMIT or not raw.startswith(_GENERATOR_PREFIX) or not raw.endswith(b"\n"):
+        return False
+    suffix = raw[len(_GENERATOR_PREFIX):-1]
+    if not suffix:
+        return True
+    if suffix.startswith(b" ") or not suffix.endswith(b" "):
+        return False
+    parts = suffix.split(b" ")
+    tokens = [part for part in parts if part]
+    allowed = {token.encode("ascii") for token in _GENERATOR_TOKENS}
+    return len(tokens) <= 256 and all(part in allowed for part in tokens)
+
+
+def _same_diagnostic_unit(before: dict[str, str], after: dict[str, str]) -> bool:
+    """Compare only F7's validated, semantically stable unit fields."""
+    left, right = dict(before), dict(after)
+    if (_context_reason(before) != "EXECSTART_FORMAT_OR_TIME"
+            and _context_reason(after) != "EXECSTART_FORMAT_OR_TIME"):
+        left["ExecStart"] = right["ExecStart"] = "snap-run-lxd-daemon"
+    return left == right
+
+
+def _stage_reobserve(proof: _Proof, observed: list[tuple[str, Observation | None]]) -> bool:
+    """Compare only successful trusted reads; unavailable data is never drift."""
+    current: list[Observation] = []
+    for path, original in observed:
+        if original is None:
+            raise ProvenanceError("SNAP_WRAPPER_FILE_UNVERIFIED")
+        current.append(proof.trusted(proof.observe(path, limit=None if path == UNIT_FILE else PROC_LIMIT)))
+    return all(item == original for item, (_, original) in zip(current, observed))
+
+
+def _negative_again(call: Callable[[], Any], original: _StageNegative) -> bool:
+    """Confirm the same explicit failure with the same private observations."""
+    try:
+        call()
+    except _StageNegative as current:
+        return current.stage == original.stage and current.snapshots == original.snapshots
+    return False
+
+
+def _cgroup_relation(unit_group: str, raw: bytes) -> str:
+    """Classify canonical cgroup paths without exposing either path."""
+    try:
+        text = raw.decode("utf-8", "strict")
+        if text.endswith("\n"):
+            text = text[:-1]
+        if not text.startswith("0::"):
+            return "UNKNOWN"
+        process_group = text[3:]
+        for value in (unit_group, process_group):
+            if not _normal_path(value) or any(char in value for char in "\r\n\x00"):
+                return "UNKNOWN"
+        if unit_group == process_group:
+            return "UNKNOWN"
+        if process_group == "/":
+            return "PROC_ROOT"
+        unit_parts = PurePosixPath(unit_group).parts
+        process_parts = PurePosixPath(process_group).parts
+        if len(process_parts) < len(unit_parts) and unit_parts[:len(process_parts)] == process_parts:
+            return "PROC_STRICT_ANCESTOR"
+        if len(unit_parts) < len(process_parts) and process_parts[:len(unit_parts)] == unit_parts:
+            return "PROC_STRICT_DESCENDANT"
+        return "DISJOINT"
+    except (UnicodeError, ValueError):
+        return "UNKNOWN"
+
+
+def _probe_generator_form(runner: RunnerPort, expected: dict[str, Any], *, fs: ReadOnlyFS | None,
+                          clock: Callable[[], float], stages: bool, relation: bool = False,
+                          namespace: bool = False) -> str:
+    """One shared F7/F8 probe; failed/ambiguous observations never establish identity."""
+    try:
+        proof = _Proof(runner, fs or LocalReadOnlyFS(), clock)
+        before = proof.diagnostic_unit(expected)
+        visited: list[tuple[str, Observation | None]] = []
+        process: Process | None = None
+        environment: tuple[str, tuple[bytes, ...], tuple[tuple[bytes, bytes], ...]] | None = None
+        shell: tuple[Observation, Observation] | None = None
+        script: tuple[Observation, Observation] | None = None
+        pid, group = _positive(before["MainPID"]), before["ControlGroup"]
+
+        def stable_prior() -> bool:
+            after = proof.diagnostic_unit(expected)
+            if not _same_diagnostic_unit(before, after):
+                return False
+            if not _stage_reobserve(proof, visited):
+                return False
+            if process is not None and proof.process(pid, group) != process:
+                return False
+            if environment is not None and proof.main_environment(pid) != environment:
+                return False
+            if shell is not None and environment is not None and process is not None:
+                if proof.shell(pid, environment[1], process) != shell:
+                    return False
+            if script is not None and environment is not None:
+                if proof.pair(pid, environment[0] + "/commands/daemon.start", limit=METADATA_LIMIT) != script:
+                    return False
+            return True
+
+        def rejected(reason: str) -> str:
+            if not stages:
+                return "UNKNOWN"
+            if relation:
+                return "UNKNOWN"
+            return reason if stable_prior() else "UNKNOWN"
+
+        context_reason = _context_reason(before)
+        if context_reason in {"EXECSTART_FORMAT_OR_TIME", "CONTROL_GROUP"}:
+            return "UNKNOWN"
+        if context_reason is not None or before["DropInPaths"] != DROP_IN:
+            return rejected("UNIT_CONTEXT")
+        visited.append((UNIT_FILE, proof.trusted(proof.observe(UNIT_FILE))))
+        drop = proof.trusted(proof.observe(DROP_IN, limit=PROC_LIMIT))
+        visited.append((DROP_IN, drop))
+        dropin_form = _dropin_form(drop.data)
+        if dropin_form == "UNKNOWN":
+            return "UNKNOWN"
+        if dropin_form != "DEPENDENCY_VARIANT" or not _generator_form(drop.data):
+            return rejected("DROPIN_TRUST_OR_FORM")
+        try:
+            process = proof.process(pid, group)
+        except _StageNegative as failure:
+            if not stages:
+                return "UNKNOWN"
+            if namespace:
+                if not relation or failure.stage != "PROCESS_BINDING" or len(failure.snapshots) != 3:
+                    return "UNKNOWN"
+                observation = failure.snapshots[2]
+                if not isinstance(observation, Observation) or _cgroup_relation(group, observation.data) != "PROC_ROOT":
+                    return "UNKNOWN"
+                def revalidate(failure: _StageNegative = failure) -> bool:
+                    return stable_prior() and _negative_again(lambda: proof.process(pid, group), failure)
+
+                result = _compare_reader_namespace(proof, revalidate)
+                return result if result in {"SAME", "DIFFERENT"} else "UNKNOWN"
+            if not stable_prior() or not _negative_again(lambda: proof.process(pid, group), failure):
+                return "UNKNOWN"
+            if relation:
+                if failure.stage != "PROCESS_BINDING" or len(failure.snapshots) != 3:
+                    return "UNKNOWN"
+                observation = failure.snapshots[2]
+                if not isinstance(observation, Observation):
+                    return "UNKNOWN"
+                return _cgroup_relation(group, observation.data)
+            return failure.stage
+        if relation:
+            return "UNKNOWN"
+        environment = proof.main_environment(pid)
+        base, argv, _ = environment
+        if base != "/snap/lxd/" + _GENERATOR_REVISION:
+            return rejected("REVISION_BINDING")
+        try:
+            shell = proof.shell(pid, argv, process)
+        except _StageNegative as failure:
+            if not stages or not stable_prior():
+                return "UNKNOWN"
+            return failure.stage if _negative_again(lambda: proof.shell(pid, argv, process), failure) else "UNKNOWN"
+        try:
+            script = proof.pair(pid, base + "/commands/daemon.start", limit=METADATA_LIMIT)
+        except _StageNegative as failure:
+            if not stages or not stable_prior():
+                return "UNKNOWN"
+            return failure.stage if _negative_again(
+                lambda: proof.pair(pid, base + "/commands/daemon.start", limit=METADATA_LIMIT), failure) else "UNKNOWN"
+        if hashlib.sha256(script[0].data).hexdigest() != _GENERATOR_DIGEST:
+            return rejected("SCRIPT_PAIR_OR_DIGEST")
+        after = proof.diagnostic_unit(expected)
+        if _context_reason(after) is not None:
+            return "UNKNOWN"
+        unit_equal = _same_diagnostic_unit(before, after)
+        if not stages:
+            if (not unit_equal or proof.process(pid, group) != process
+                    or proof.main_environment(pid) != environment or proof.shell(pid, argv, process) != shell
+                    or proof.pair(pid, base + "/commands/daemon.start", limit=METADATA_LIMIT) != script
+                    or not proof.diagnostic_reobserve(tuple(visited))):
+                return "UNKNOWN"
+            return "MATCH"
+        current_process = proof.process(pid, group)
+        current_environment = proof.main_environment(pid)
+        current_shell = proof.shell(pid, argv, process)
+        current_script = proof.pair(pid, base + "/commands/daemon.start", limit=METADATA_LIMIT)
+        files_equal = _stage_reobserve(proof, visited)
+        if (not unit_equal or current_process != process or current_environment != environment
+                or current_shell != shell or current_script != script or not files_equal):
+            return "RECHECK_DRIFT" if stages else "UNKNOWN"
+        return "UNKNOWN" if stages else "MATCH"
+    except Exception:
+        return "UNKNOWN"
+
+
+def diagnose_generator_form(runner: RunnerPort, expected: dict[str, Any], *, fs: ReadOnlyFS | None = None,
+                            clock: Callable[[], float] = time.monotonic) -> str:
+    """Compare a fixed, stable package and drop-in without admitting an identity."""
+    return _probe_generator_form(runner, expected, fs=fs, clock=clock, stages=False)
+
+
+def diagnose_generator_stage(runner: RunnerPort, expected: dict[str, Any], *, fs: ReadOnlyFS | None = None,
+                             clock: Callable[[], float] = time.monotonic) -> str:
+    """Report a stable fixed failure stage without admitting an identity."""
+    return _probe_generator_form(runner, expected, fs=fs, clock=clock, stages=True)
+
+
+def diagnose_cgroup_relation(runner: RunnerPort, expected: dict[str, Any], *, fs: ReadOnlyFS | None = None,
+                             clock: Callable[[], float] = time.monotonic) -> str:
+    """Report a stable path relation without admitting an identity."""
+    return _probe_generator_form(runner, expected, fs=fs, clock=clock, stages=True, relation=True)
+
+
+def diagnose_reader_namespace(runner: RunnerPort, expected: dict[str, Any], *,
+                              fs: ReadOnlyFS | None = None,
+                              clock: Callable[[], float] = time.monotonic) -> str:
+    """Compare current reader with visible PID 1; never admit the service."""
+    return _probe_generator_form(runner, expected, fs=fs, clock=clock,
+                                 stages=True, relation=True, namespace=True)
+
+
+def _compare_reader_namespace(proof: _Proof, revalidate: Callable[[], bool]) -> str:
+    """Inspect two fixed namespace links under the trusted procfs boundary."""
+    import ctypes
+    import fcntl
+    import platform
+    import sys
+    from contextlib import ExitStack
+
+    class OpenHow(ctypes.Structure):
+        _fields_ = [("flags", ctypes.c_uint64), ("mode", ctypes.c_uint64),
+                    ("resolve", ctypes.c_uint64)]
+
+    class Statx(ctypes.Structure):
+        _fields_ = [("mask", ctypes.c_uint32), ("prefix", ctypes.c_ubyte * 140),
+                    ("mount_id", ctypes.c_uint64), ("suffix", ctypes.c_ubyte * 104)]
+
+    class Statfs(ctypes.Structure):
+        _fields_ = [("kind", ctypes.c_long), ("rest", ctypes.c_ubyte * 112)]
+
+    if (sys.platform != "linux" or platform.machine() != "x86_64"
+            or sys.byteorder != "little" or ctypes.sizeof(ctypes.c_long) != 8
+            or ctypes.sizeof(ctypes.c_void_p) != 8 or ctypes.sizeof(OpenHow) != 24
+            or ctypes.sizeof(Statx) != 256 or Statx.mount_id.offset != 144
+            or ctypes.sizeof(Statfs) != 120):
+        return "UNKNOWN"
+    libc = ctypes.CDLL(None, use_errno=True)
+    libc.syscall.restype = ctypes.c_long
+    libc.fstatfs.argtypes = [ctypes.c_int, ctypes.POINTER(Statfs)]
+    libc.fstatfs.restype = ctypes.c_int
+
+    def timed() -> None:
+        proof.check_time()
+
+    def fs_type(fd: int) -> int:
+        timed()
+        value = Statfs()
+        if libc.fstatfs(fd, ctypes.byref(value)) != 0:
+            raise OSError("fstatfs")
+        timed()
+        return value.kind
+
+    def mount(fd: int) -> int:
+        timed()
+        value = Statx()
+        result = libc.syscall(ctypes.c_long(332), ctypes.c_int(fd), ctypes.c_char_p(b""),
+                              ctypes.c_int(0x1000), ctypes.c_uint(0x1000), ctypes.byref(value))
+        if result != 0 or not value.mask & 0x1000 or not value.mount_id:
+            raise OSError("statx")
+        timed()
+        return value.mount_id
+
+    def identity(fd: int) -> tuple[int, int, int, int]:
+        info = os.fstat(fd)
+        return info.st_dev, info.st_ino, info.st_mode, info.st_uid
+
+    def open_fixed(parent: int, name: bytes, flags: int) -> int:
+        timed()
+        how = OpenHow(flags | os.O_CLOEXEC, 0, 0x01 | 0x04 | 0x08)
+        fd = libc.syscall(ctypes.c_long(437), ctypes.c_int(parent), ctypes.c_char_p(name),
+                          ctypes.byref(how), ctypes.c_size_t(ctypes.sizeof(how)))
+        if fd < 0:
+            raise OSError("openat2")
+        return int(fd)
+
+    def open_dir(parent: int, name: bytes) -> int:
+        return open_fixed(parent, name, os.O_PATH | os.O_DIRECTORY)
+
+    def start_time(fd: int, pid: int, root_mount: int) -> int:
+        timed()
+        child = open_fixed(fd, b"stat", os.O_RDONLY | os.O_NOFOLLOW)
+        try:
+            original = identity(child)
+            if (not stat.S_ISREG(original[2]) or fs_type(child) != 0x9FA0
+                    or mount(child) != root_mount):
+                raise OSError("stat trust")
+            raw = bytearray()
+            while len(raw) <= PROC_LIMIT:
+                chunk = os.read(child, min(65536, PROC_LIMIT + 1 - len(raw)))
+                if not chunk:
+                    break
+                raw.extend(chunk)
+            proof.total += len(raw)
+            if len(raw) > PROC_LIMIT or proof.total > TOTAL_LIMIT:
+                raise OSError("budget")
+            text = bytes(raw).decode("utf-8", "strict")
+            close = text.rfind(")")
+            fields = text[close + 1:].split()
+            if close < 0 or not text.startswith(f"{pid} (") or len(fields) < 20:
+                raise OSError("stat")
+            value = _positive(fields[19])
+            replacement = open_fixed(fd, b"stat", os.O_RDONLY | os.O_NOFOLLOW)
+            try:
+                if (identity(child) != original or identity(replacement) != original
+                        or fs_type(child) != 0x9FA0 or fs_type(replacement) != 0x9FA0
+                        or mount(child) != root_mount or mount(replacement) != root_mount):
+                    raise OSError("stat drift")
+            finally:
+                os.close(replacement)
+            timed()
+            return value
+        finally:
+            os.close(child)
+
+    def self_id(root: int) -> int:
+        timed()
+        value = os.readlink("self", dir_fd=root)
+        proof.total += len(value.encode("utf-8", "strict"))
+        if (proof.total > TOTAL_LIMIT or not _DECIMAL.fullmatch(value)
+                or int(value) != os.getpid()):
+            raise OSError("self")
+        timed()
+        return int(value)
+
+    def ns_type(fd: int) -> tuple[int, int, int, int]:
+        timed()
+        if fs_type(fd) != 0x6E736673 or fcntl.ioctl(fd, 0xB703) != 0x02000000:
+            raise OSError("namespace")
+        return identity(fd)
+
+    try:
+        with ExitStack() as stack:
+            def hold(fd: int) -> int:
+                stack.callback(os.close, fd)
+                return fd
+
+            root = hold(os.open("/proc", os.O_PATH | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC))
+            if fs_type(root) != 0x9FA0:
+                return "UNKNOWN"
+            root_mount = mount(root)
+            own_pid = self_id(root)
+            dirs = [root]
+            process_dirs = []
+            namespace_dirs = []
+            for pid in (own_pid, 1):
+                process_fd = hold(open_dir(root, str(pid).encode("ascii")))
+                ns_fd = hold(open_dir(process_fd, b"ns"))
+                dirs.extend((process_fd, ns_fd))
+                process_dirs.append(process_fd)
+                namespace_dirs.append(ns_fd)
+            dir_info = []
+            for fd in dirs:
+                value = identity(fd)
+                if not stat.S_ISDIR(value[2]) or fs_type(fd) != 0x9FA0 or mount(fd) != root_mount:
+                    return "UNKNOWN"
+                dir_info.append(value)
+            starts = [start_time(fd, pid, root_mount) for fd, pid in zip(process_dirs, (own_pid, 1))]
+            links = []
+            namespaces = []
+            for fd in namespace_dirs:
+                link = hold(os.open("cgroup", os.O_PATH | os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=fd))
+                link_info = identity(link)
+                if not stat.S_ISLNK(link_info[2]) or mount(link) != root_mount:
+                    return "UNKNOWN"
+                links.append((link, link_info))
+                namespace_fd = hold(os.open("cgroup", os.O_RDONLY | os.O_CLOEXEC, dir_fd=fd))
+                namespaces.append((namespace_fd, ns_type(namespace_fd)))
+            for fd, (link, link_info), (ns_fd, ns_info) in zip(namespace_dirs, links, namespaces):
+                new_link = hold(os.open("cgroup", os.O_PATH | os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=fd))
+                if (identity(link) != link_info or identity(new_link) != link_info
+                        or mount(link) != root_mount or mount(new_link) != root_mount):
+                    return "UNKNOWN"
+                new_ns = hold(os.open("cgroup", os.O_RDONLY | os.O_CLOEXEC, dir_fd=fd))
+                if ns_type(ns_fd) != ns_info or ns_type(new_ns) != ns_info:
+                    return "UNKNOWN"
+            if (self_id(root) != own_pid
+                    or [start_time(fd, pid, root_mount) for fd, pid in zip(process_dirs, (own_pid, 1))] != starts):
+                return "UNKNOWN"
+            for fd, original in zip(dirs, dir_info):
+                if identity(fd) != original or fs_type(fd) != 0x9FA0 or mount(fd) != root_mount:
+                    return "UNKNOWN"
+            current_root = hold(os.open("/proc", os.O_PATH | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC))
+            if (identity(current_root) != dir_info[0] or fs_type(current_root) != 0x9FA0
+                    or mount(current_root) != root_mount or self_id(current_root) != own_pid):
+                return "UNKNOWN"
+            for index, pid in enumerate((own_pid, 1)):
+                current_process = hold(open_dir(current_root, str(pid).encode("ascii")))
+                current_ns = hold(open_dir(current_process, b"ns"))
+                for fd, original in ((current_process, dir_info[1 + index * 2]),
+                                     (current_ns, dir_info[2 + index * 2])):
+                    if identity(fd) != original or fs_type(fd) != 0x9FA0 or mount(fd) != root_mount:
+                        return "UNKNOWN"
+            if not revalidate():
+                return "UNKNOWN"
+            timed()
+            return "SAME" if namespaces[0][1][:2] == namespaces[1][1][:2] else "DIFFERENT"
+    except Exception:
+        return "UNKNOWN"

@@ -3618,4 +3618,198 @@ class ImageAwareInventoryTests(unittest.TestCase):
 
 
 if __name__ == '__main__':
+
+class SnapContextCliTests(unittest.TestCase):
+    def test_invalid_diagnostic_combinations_have_no_host_io_or_leaks(self) -> None:
+        cases = (["--diagnose-snap-context=secret"], ["--diagnose-snap-context", "secret"],
+                 ["--diagnose-snap-context", "--help"], ["--diagnose-snap-context", "--diagnose-units"],
+                 ["--diagnose-snap-context", "--diagnose-snap-context"])
+        for argv in cases:
+            with self.subTest(argv=argv), patch.object(inventory, "diagnose_snap_context") as diagnose:
+                out, err = StringIO(), StringIO()
+                with redirect_stdout(out), redirect_stderr(err):
+                    self.assertEqual(inventory.main(argv), 2)
+                self.assertEqual(out.getvalue(), '{"status":"BLOCKED_UNKNOWN","reason":"UNKNOWN"}\n')
+                self.assertEqual(err.getvalue(), "")
+                diagnose.assert_not_called()
+
+    def test_valid_mode_returns_only_fixed_json(self) -> None:
+        out, err = StringIO(), StringIO()
+        with patch.object(inventory, "diagnose_snap_context", return_value="CONTROL_GROUP"), \
+                redirect_stdout(out), redirect_stderr(err):
+            self.assertEqual(inventory.main(["--diagnose-snap-context"]), 2)
+        self.assertEqual(out.getvalue(), '{"status":"BLOCKED_UNKNOWN","reason":"CONTROL_GROUP"}\n')
+        self.assertEqual(err.getvalue(), "")
+
+    def test_initial_snapshot_failure_and_exceptions_are_sanitized(self) -> None:
+        runner = Mock()
+        runner.run.side_effect = RuntimeError("secret-token /private/path")
+        out, err = StringIO(), StringIO()
+        with patch.object(inventory, "Runner", return_value=runner), redirect_stdout(out), redirect_stderr(err):
+            self.assertEqual(inventory.main(["--diagnose-snap-context"]), 2)
+        self.assertEqual(out.getvalue(), '{"status":"BLOCKED_UNKNOWN","reason":"UNKNOWN"}\n')
+        self.assertEqual(err.getvalue(), "")
+        self.assertEqual(runner.run.call_count, 1)
+        self.assertEqual(runner.run.call_args.args[0][:3], ["/usr/bin/systemctl", "show", "snap.lxd.daemon.service"])
+
+    def test_inactive_snapshot_stops_before_helper(self) -> None:
+        row = {"load_state": "loaded", "active_state": "inactive", "sub_state": "dead", "main_pid": 0}
+        with patch.object(inventory, "_systemctl_show", return_value=row), \
+                patch("importlib.import_module") as importer:
+            self.assertEqual(inventory.diagnose_snap_context(runner=Mock()), "UNKNOWN")
+        importer.assert_not_called()
+
+    def test_dropin_invalid_cli_is_constant_and_has_no_host_io(self) -> None:
+        cases = (["--diagnose-snap-dropin=secret"], ["--diagnose-snap-dropin", "secret"],
+                 ["--diagnose-snap-dropin", "--help"], ["--diagnose-snap-dropin", "--diagnose-units"],
+                 ["--diagnose-snap-dropin", "--diagnose-snap-context"],
+                 ["--diagnose-snap-dropin", "--diagnose-snap-dropin"])
+        for argv in cases:
+            with self.subTest(argv=argv), patch.object(inventory, "diagnose_snap_dropin") as diagnose:
+                out, err = StringIO(), StringIO()
+                with redirect_stdout(out), redirect_stderr(err):
+                    self.assertEqual(inventory.main(argv), 2)
+                self.assertEqual(out.getvalue(), '{"status":"BLOCKED_UNKNOWN","reason":"UNKNOWN"}\n')
+                self.assertEqual(err.getvalue(), "")
+                diagnose.assert_not_called()
+
+    def test_dropin_valid_cli_is_symbolic_and_fail_closed(self) -> None:
+        out, err = StringIO(), StringIO()
+        with patch.object(inventory, "diagnose_snap_dropin", return_value="DEPENDENCY_VARIANT"), \
+                redirect_stdout(out), redirect_stderr(err):
+            self.assertEqual(inventory.main(["--diagnose-snap-dropin"]), 2)
+        self.assertEqual(out.getvalue(), '{"status":"BLOCKED_UNKNOWN","reason":"DEPENDENCY_VARIANT"}\n')
+        self.assertEqual(err.getvalue(), "")
+        runner = Mock()
+        runner.run.side_effect = RuntimeError("secret-token /private/path")
+        self.assertEqual(inventory.diagnose_snap_dropin(runner=runner), "UNKNOWN")
+        self.assertEqual(runner.run.call_count, 1)
+
+    def test_dropin_inactive_snapshot_stops_before_helper(self) -> None:
+        row = {"load_state": "loaded", "active_state": "inactive", "sub_state": "dead", "main_pid": 0}
+        with patch.object(inventory, "_systemctl_show", return_value=row), \
+                patch("importlib.import_module") as importer:
+            self.assertEqual(inventory.diagnose_snap_dropin(runner=Mock()), "UNKNOWN")
+        importer.assert_not_called()
+
+
+class SnapGeneratorCliTests(unittest.TestCase):
+    def test_invalid_combinations_do_not_access_host_or_leak(self) -> None:
+        cases = (["--diagnose-snap-generator-form=secret"], ["--diagnose-snap-generator-form", "secret"],
+                 ["--diagnose-snap-generator-form", "--help"], ["--diagnose-snap-generator-form", "--diagnose-units"],
+                 ["--diagnose-snap-generator-form", "--diagnose-snap-context"],
+                 ["--diagnose-snap-generator-form", "--diagnose-snap-dropin"],
+                 ["--diagnose-snap-generator-form", "--diagnose-snap-generator-form"])
+        for argv in cases:
+            with self.subTest(argv=argv), patch.object(inventory, "diagnose_snap_generator_form") as diagnose:
+                out, err = StringIO(), StringIO()
+                with redirect_stdout(out), redirect_stderr(err):
+                    self.assertEqual(inventory.main(argv), 2)
+                self.assertEqual(out.getvalue(), '{"status":"BLOCKED_UNKNOWN","reason":"UNKNOWN"}\n')
+                self.assertEqual(err.getvalue(), "")
+                diagnose.assert_not_called()
+
+    def test_valid_mode_and_internal_exceptions_are_redacted(self) -> None:
+        out, err = StringIO(), StringIO()
+        with patch.object(inventory, "diagnose_snap_generator_form", return_value="MATCH"), \
+                redirect_stdout(out), redirect_stderr(err):
+            self.assertEqual(inventory.main(["--diagnose-snap-generator-form"]), 2)
+        self.assertEqual(out.getvalue(), '{"status":"BLOCKED_UNKNOWN","reason":"MATCH"}\n')
+        self.assertEqual(err.getvalue(), "")
+        runner = Mock()
+        runner.run.side_effect = RuntimeError("secret-token /private/path")
+        self.assertEqual(inventory.diagnose_snap_generator_form(runner=runner), "UNKNOWN")
+        self.assertEqual(runner.run.call_count, 1)
+
+    def test_inactive_snapshot_stops_before_helper(self) -> None:
+        row = {"load_state": "loaded", "active_state": "inactive", "sub_state": "dead", "main_pid": 0}
+        with patch.object(inventory, "_systemctl_show", return_value=row), \
+                patch("importlib.import_module") as importer:
+            self.assertEqual(inventory.diagnose_snap_generator_form(runner=Mock()), "UNKNOWN")
+        importer.assert_not_called()
+
+
+class SnapGeneratorStageCliTests(unittest.TestCase):
+    def test_invalid_combinations_never_access_host_or_leak(self) -> None:
+        cases = (["--diagnose-snap-generator-stage=secret"], ["--diagnose-snap-generator-stage", "secret"],
+                 ["--diagnose-snap-generator-stage", "--help"],
+                 ["--diagnose-snap-generator-stage", "--diagnose-snap-generator-form"],
+                 ["--diagnose-snap-generator-form", "--diagnose-snap-generator-stage"],
+                 ["--diagnose-snap-generator-stage", "--diagnose-snap-generator-stage"])
+        for argv in cases:
+            with self.subTest(argv=argv), patch.object(inventory, "diagnose_snap_generator_stage") as diagnose:
+                out, err = StringIO(), StringIO()
+                with redirect_stdout(out), redirect_stderr(err):
+                    self.assertEqual(inventory.main(argv), 2)
+                self.assertEqual(out.getvalue(), '{"status":"BLOCKED_UNKNOWN","reason":"UNKNOWN"}\n')
+                self.assertEqual(err.getvalue(), "")
+                diagnose.assert_not_called()
+
+    def test_valid_mode_returns_fixed_stage_and_internal_failures_are_redacted(self) -> None:
+        out, err = StringIO(), StringIO()
+        with patch.object(inventory, "diagnose_snap_generator_stage", return_value="DROPIN_TRUST_OR_FORM"), \
+                redirect_stdout(out), redirect_stderr(err):
+            self.assertEqual(inventory.main(["--diagnose-snap-generator-stage"]), 2)
+        self.assertEqual(out.getvalue(), '{"status":"BLOCKED_UNKNOWN","reason":"DROPIN_TRUST_OR_FORM"}\n')
+        self.assertEqual(err.getvalue(), "")
+        runner = Mock()
+        runner.run.side_effect = PermissionError("secret-token /private/path")
+        self.assertEqual(inventory.diagnose_snap_generator_stage(runner=runner), "UNKNOWN")
+        self.assertEqual(runner.run.call_count, 1)
+
+
+class SnapCgroupRelationCliTests(unittest.TestCase):
+    def test_invalid_combinations_never_access_host_or_leak(self) -> None:
+        flag = "--diagnose-snap-cgroup-relation"
+        for argv in ([flag + "=secret"], [flag, "secret"], [flag, "--help"],
+                     [flag, flag], [flag, "--diagnose-snap-generator-stage"],
+                     ["--diagnose-snap-generator-stage", flag]):
+            with self.subTest(argv=argv), patch.object(inventory, "diagnose_snap_cgroup_relation") as diagnose:
+                out, err = StringIO(), StringIO()
+                with redirect_stdout(out), redirect_stderr(err):
+                    self.assertEqual(inventory.main(argv), 2)
+                self.assertEqual(out.getvalue(), '{"status":"BLOCKED_UNKNOWN","reason":"UNKNOWN"}\n')
+                self.assertEqual(err.getvalue(), "")
+                diagnose.assert_not_called()
+
+    def test_valid_mode_and_failure_are_redacted(self) -> None:
+        out, err = StringIO(), StringIO()
+        with patch.object(inventory, "diagnose_snap_cgroup_relation", return_value="PROC_ROOT"), \
+                redirect_stdout(out), redirect_stderr(err):
+            self.assertEqual(inventory.main(["--diagnose-snap-cgroup-relation"]), 2)
+        self.assertEqual(out.getvalue(), '{"status":"BLOCKED_UNKNOWN","reason":"PROC_ROOT"}\n')
+        self.assertEqual(err.getvalue(), "")
+        runner = Mock()
+        runner.run.side_effect = PermissionError("secret /private/path")
+        self.assertEqual(inventory.diagnose_snap_cgroup_relation(runner=runner), "UNKNOWN")
+        self.assertEqual(runner.run.call_count, 1)
+
+
+class SnapReaderNamespaceCliTests(unittest.TestCase):
+    def test_invalid_combinations_do_not_access_host(self) -> None:
+        flag = "--diagnose-snap-reader-namespace"
+        for argv in ([flag + "=secret"], [flag, "secret"], [flag, "--help"],
+                     [flag, flag], [flag, "--diagnose-snap-cgroup-relation"],
+                     ["--diagnose-snap-cgroup-relation", flag]):
+            with self.subTest(argv=argv), patch.object(inventory, "diagnose_snap_reader_namespace") as diagnose:
+                out, err = StringIO(), StringIO()
+                with redirect_stdout(out), redirect_stderr(err):
+                    self.assertEqual(inventory.main(argv), 2)
+                self.assertEqual(out.getvalue(), '{"status":"BLOCKED_UNKNOWN","reason":"UNKNOWN"}\n')
+                self.assertEqual(err.getvalue(), "")
+                diagnose.assert_not_called()
+
+    def test_fixed_outputs_and_failure_redaction(self) -> None:
+        for result in ("SAME", "DIFFERENT", "UNKNOWN"):
+            with self.subTest(result=result), patch.object(inventory, "diagnose_snap_reader_namespace", return_value=result):
+                out, err = StringIO(), StringIO()
+                with redirect_stdout(out), redirect_stderr(err):
+                    self.assertEqual(inventory.main(["--diagnose-snap-reader-namespace"]), 2)
+                self.assertEqual(out.getvalue(), '{"status":"BLOCKED_UNKNOWN","reason":"' + result + '"}\n')
+                self.assertEqual(err.getvalue(), "")
+        runner = Mock()
+        runner.run.side_effect = PermissionError("private secret")
+        self.assertEqual(inventory.diagnose_snap_reader_namespace(runner=runner), "UNKNOWN")
+
+if __name__ == "__main__":
     unittest.main()
