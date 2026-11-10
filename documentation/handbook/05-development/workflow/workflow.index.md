@@ -2,7 +2,9 @@
 
 Exactly one active #440 workflow is selected by issue or by the explicit root
 path. Historical #355/#449 plans remain accessible in Git at `ca6902579f51c2c6d9439bf9c58dec02bfb45a93`;
-they are not active executable workflows on this branch.
+they are not active executable workflows on this branch. The exact historical
+#449 workflow file is temporarily retained as a pinned fixture input (SHA-256
+`dcc35dfde66417bbee7263cfc233fca68855ef66b3001dab2831ba1dc294b395`), not an indexed active workflow or a live GO. S440-05 removes it after rebinding both consumers/tests.
 
 | Issue | Workflow ID | Workflow path | Context pack | Branch | State | Dependencies | Blockers / order |
 |---|---|---|---|---|---|---|---|

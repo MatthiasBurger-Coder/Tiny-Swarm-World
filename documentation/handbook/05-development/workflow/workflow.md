@@ -66,8 +66,12 @@ binding must be repaired and tested before new live qualification.
 This workflow replaces the old root #355 plan and indexed #449 planning tree;
 their exact historical content remains in Git at `ca6902579f51c2c6d9439bf9c58dec02bfb45a93`. Existing issue/live
 evidence outside the workflow directory is retained. Old #449 commands/plans are
-not automatically selected or authorized. The old fixture fails closed on the
-new workflow tree until S440-05 supplies an independently reviewed exact binding.
+not automatically selected or authorized. The exact historical #449 workflow blob is retained only as a pinned fixture input
+at its original path until S440-05 migrates both consumers and tests. It is not an
+active workflow, does not select the old branch or reuse any GO, and does not
+qualify this campaign. The existing current-commit, approval and hash guards
+remain mandatory. S440-01 independently reviewed this compatibility repair after
+the unchanged canonical suite exposed the missing static-intent fixture input.
 
 ## Scope and Architecture Constraints
 
@@ -191,7 +195,9 @@ Allowed files, locks, owners, dependencies and verified commands:
   "affected_files": [
     "documentation/handbook/05-development/workflow/requirement-matrix.md",
     "documentation/handbook/05-development/workflow/prerequisite-ledger.md",
-    "documentation/handbook/05-development/workflow/scenario-plan.md"
+    "documentation/handbook/05-development/workflow/scenario-plan.md",
+    "documentation/handbook/05-development/workflow/issues/issue-449/workflow.md",
+    "documentation/handbook/05-development/README.adoc"
   ],
   "affected_modules": [
     "governance",
@@ -210,7 +216,9 @@ Allowed files, locks, owners, dependencies and verified commands:
     "documentation/handbook/05-development/workflow/requirement-matrix.md",
     "documentation/handbook/05-development/workflow/prerequisite-ledger.md",
     "documentation/handbook/05-development/workflow/scenario-plan.md",
-    ".tiny-swarm/evidence/issue-440/slice-01/**"
+    ".tiny-swarm/evidence/issue-440/slice-01/**",
+    "documentation/handbook/05-development/workflow/issues/issue-449/workflow.md",
+    "documentation/handbook/05-development/README.adoc"
   ],
   "contract_locks": [
     "P01-P15",
@@ -232,7 +240,9 @@ Allowed files, locks, owners, dependencies and verified commands:
     "documentation/handbook/05-development/workflow/scenario-plan.md",
     ".tiny-swarm/evidence/issue-440/slice-01/**",
     ".codex/evidence/slice-01-distribution.md",
-    ".codex/evidence/slice-01-consolidation.md"
+    ".codex/evidence/slice-01-consolidation.md",
+    "documentation/handbook/05-development/workflow/issues/issue-449/workflow.md",
+    "documentation/handbook/05-development/README.adoc"
   ],
   "requirement_ids": [
     "P05",
@@ -292,7 +302,8 @@ Allowed files, locks, owners, dependencies and verified commands:
   ],
   "affected_files": [
     "modules/tsw_core/src/infrastructure/adapters/network/host_network_repair.py",
-    "modules/tsw_core/tests/infrastructure/adapters/network/test_host_network_repair.py"
+    "modules/tsw_core/tests/infrastructure/adapters/network/test_host_network_repair.py",
+    "modules/tsw_core/src/infrastructure/adapters/network/wslconfig_files.py"
   ],
   "affected_modules": [
     "core network adapter"
@@ -311,7 +322,8 @@ Allowed files, locks, owners, dependencies and verified commands:
   "file_locks": [
     "modules/tsw_core/src/infrastructure/adapters/network/host_network_repair.py",
     "modules/tsw_core/tests/infrastructure/adapters/network/test_host_network_repair.py",
-    ".tiny-swarm/evidence/issue-440/slice-02/**"
+    ".tiny-swarm/evidence/issue-440/slice-02/**",
+    "modules/tsw_core/src/infrastructure/adapters/network/wslconfig_files.py"
   ],
   "contract_locks": [
     "host config path confinement",
@@ -332,7 +344,8 @@ Allowed files, locks, owners, dependencies and verified commands:
     "modules/tsw_core/tests/infrastructure/adapters/network/test_host_network_repair.py",
     ".tiny-swarm/evidence/issue-440/slice-02/**",
     ".codex/evidence/slice-02-distribution.md",
-    ".codex/evidence/slice-02-consolidation.md"
+    ".codex/evidence/slice-02-consolidation.md",
+    "modules/tsw_core/src/infrastructure/adapters/network/wslconfig_files.py"
   ],
   "requirement_ids": [
     "P11",
@@ -356,6 +369,14 @@ Allowed files, locks, owners, dependencies and verified commands:
   ]
 }
 ```
+
+Reviewed S440-02 scope refinement (S440-01 discovery): the unchanged complexity
+gate found grown-module-complexity and grown-module-coupling in host_network_repair.py
+after the descriptor transaction was added. Extract only that cohesive filesystem
+transaction into proposed sibling `modules/tsw_core/src/infrastructure/adapters/network/wslconfig_files.py`. Keep lexical mapping and NAT text
+policy in the existing adapter, passed through a callable; no port, architecture
+boundary, effect semantics, threshold or test assertion changes. Independent
+scope review ACCEPT, refreshed file locks remain disjoint from S440-03.
 
 ### Slice 03 — Resolve cancellation and strict-type reliability findings
 
@@ -670,7 +691,11 @@ Allowed files, locks, owners, dependencies and verified commands:
     "modules/tsw_core/tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py",
     "modules/tsw_native_linux/tests/tools/test_native_lxd_maintenance.py",
     "modules/tsw_core/tests/e2e/classic/run_lcm_acceptance.py",
-    "modules/tsw_core/tests/tools/test_lcm_acceptance.py"
+    "modules/tsw_core/tests/tools/test_lcm_acceptance.py",
+    "documentation/handbook/05-development/workflow/issues/issue-449/workflow.md",
+    "documentation/handbook/05-development/README.adoc",
+    "documentation/handbook/05-development/workflow/workflow.index.md",
+    "documentation/handbook/05-development/workflow/scenario-plan.md"
   ],
   "affected_modules": [
     "core qualification tooling",
@@ -698,7 +723,11 @@ Allowed files, locks, owners, dependencies and verified commands:
     "modules/tsw_native_linux/tests/tools/test_native_lxd_maintenance.py",
     "modules/tsw_core/tests/e2e/classic/run_lcm_acceptance.py",
     "modules/tsw_core/tests/tools/test_lcm_acceptance.py",
-    ".tiny-swarm/evidence/issue-440/slice-05/**"
+    ".tiny-swarm/evidence/issue-440/slice-05/**",
+    "documentation/handbook/05-development/workflow/issues/issue-449/workflow.md",
+    "documentation/handbook/05-development/README.adoc",
+    "documentation/handbook/05-development/workflow/workflow.index.md",
+    "documentation/handbook/05-development/workflow/scenario-plan.md"
   ],
   "contract_locks": [
     "workflow/source approval identity",
@@ -728,7 +757,11 @@ Allowed files, locks, owners, dependencies and verified commands:
     "modules/tsw_core/tests/tools/test_lcm_acceptance.py",
     ".tiny-swarm/evidence/issue-440/slice-05/**",
     ".codex/evidence/slice-05-distribution.md",
-    ".codex/evidence/slice-05-consolidation.md"
+    ".codex/evidence/slice-05-consolidation.md",
+    "documentation/handbook/05-development/workflow/issues/issue-449/workflow.md",
+    "documentation/handbook/05-development/README.adoc",
+    "documentation/handbook/05-development/workflow/workflow.index.md",
+    "documentation/handbook/05-development/workflow/scenario-plan.md"
   ],
   "requirement_ids": [
     "P02",
@@ -756,6 +789,10 @@ Allowed files, locks, owners, dependencies and verified commands:
   ]
 }
 ```
+
+After both production consumers and their unchanged-strength tests bind the active
+workflow, S440-05 removes the retained historical fixture blob and its navigation
+entries. A byte-for-byte historical input is not a current approval source.
 
 ### Slice 06 — Qualify paired exact-version Incus listener fixtures
 

@@ -72,8 +72,10 @@ installation/browser passes do not fill missing update/selection cells.
 ## Listener/helper binding prerequisite
 
 The current fixture reads HEAD:documentation/handbook/05-development/workflow/issues/issue-449/workflow.md.
-The previous source is preserved in Git at the workflow baseline; the active tree
-is regenerated. Do not attempt a GO under an old path/hash or create a dummy
+The previous source remains in Git at the workflow baseline. S440-01 temporarily
+retains the exact historical workflow blob at that path because the unchanged
+native static-intent test pins and reads it. The active index still selects only
+#440; preserving the fixture bytes does not restore the old workflow or its GO. Do not attempt a GO under an old path/hash or create a dummy
 compatibility document to bypass approval. S440-05 must implement/review the
 active-workflow binding and tests, verify all capture/maintenance consumers and
 freeze the new approval schema/hash. Existing expected-approval-sha256 and target
