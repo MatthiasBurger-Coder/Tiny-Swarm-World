@@ -6,15 +6,15 @@ from pathlib import Path
 import subprocess
 import unittest
 
-from modules.tsw_windows_wsl.tests.test_prepare_windows import _powershell, _runtime_path
+from modules.tsw_windows_wsl.tests.test_prepare_windows import _windows_powershell, _runtime_path
 
 ROOT = Path(__file__).resolve().parents[4]
 
 
 class WslAcceptanceBridgeBindingTests(unittest.TestCase):
-    @unittest.skipUnless(_powershell(), "PowerShell test runtime unavailable")
+    @unittest.skipUnless(_windows_powershell(), "Windows CIM/Win32 contract requires the Windows/WSL test host")
     def test_phase_go_cas_and_actual_payload_rollback_preserve_original_archive(self) -> None:
-        executable = _powershell()
+        executable = _windows_powershell()
         assert executable is not None
         result = subprocess.run(
             [executable, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File",

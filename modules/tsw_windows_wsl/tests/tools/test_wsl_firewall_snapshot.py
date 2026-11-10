@@ -7,16 +7,16 @@ from pathlib import Path
 import subprocess
 import unittest
 
-from modules.tsw_windows_wsl.tests.test_prepare_windows import _powershell, _runtime_path
+from modules.tsw_windows_wsl.tests.test_prepare_windows import _windows_powershell, _runtime_path
 from modules.tsw_native_linux.tools.qualification import incus_profile_listener_fixture as listener_fixture
 
 ROOT = Path(__file__).resolve().parents[4]
 
 
 class WslFirewallSnapshotTests(unittest.TestCase):
-    @unittest.skipUnless(_powershell(), "PowerShell test runtime unavailable")
+    @unittest.skipUnless(_windows_powershell(), "Windows CIM/Win32 contract requires the Windows/WSL test host")
     def test_shared_producer_is_exactly_equal_complete_fresh_and_bounded_on_both_consumers(self) -> None:
-        executable = _powershell()
+        executable = _windows_powershell()
         assert executable is not None
         result = subprocess.run(
             [executable, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File",
@@ -36,9 +36,9 @@ class WslFirewallSnapshotTests(unittest.TestCase):
         self.assertEqual(report["runtime_mutations"], 0)
         self.assertFalse(report["live_capability_claim"])
 
-    @unittest.skipUnless(_powershell(), "PowerShell test runtime unavailable")
+    @unittest.skipUnless(_windows_powershell(), "Windows CIM/Win32 contract requires the Windows/WSL test host")
     def test_complete_snapshot_properties_failure_bounds_and_constant_calls(self) -> None:
-        executable = _powershell()
+        executable = _windows_powershell()
         assert executable is not None
         result = subprocess.run(
             [executable, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File",
@@ -55,9 +55,9 @@ class WslFirewallSnapshotTests(unittest.TestCase):
         self.assertFalse(report["live_capability_claim"])
         self.assertTrue(report["provider_calls_independent_of_rule_count"])
 
-    @unittest.skipUnless(_powershell(), "PowerShell test runtime unavailable")
+    @unittest.skipUnless(_windows_powershell(), "Windows CIM/Win32 contract requires the Windows/WSL test host")
     def test_real_child_unicode_snapshot_stdout_is_strict_utf8(self) -> None:
-        executable = _powershell()
+        executable = _windows_powershell()
         assert executable is not None
         result = subprocess.run(
             [executable, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File",
@@ -75,9 +75,9 @@ class WslFirewallSnapshotTests(unittest.TestCase):
         self.assertEqual(value["filters"]["address"][0]["value"]["ForeignProperty"], "\u00fc\u2603\u4e2d")
         self.assertEqual(value["store"], "ActiveStore")
 
-    @unittest.skipUnless(_powershell(), "PowerShell test runtime unavailable")
+    @unittest.skipUnless(_windows_powershell(), "Windows CIM/Win32 contract requires the Windows/WSL test host")
     def test_real_cim_data_flags_alias_equivalence_and_identity_without_host_queries(self) -> None:
-        executable = _powershell()
+        executable = _windows_powershell()
         assert executable is not None
         result = subprocess.run(
             [executable, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File",
@@ -94,9 +94,9 @@ class WslFirewallSnapshotTests(unittest.TestCase):
         self.assertEqual(report["runtime_mutations"], 0)
         self.assertFalse(report["live_capability_claim"])
 
-    @unittest.skipUnless(_powershell(), "PowerShell test runtime unavailable")
+    @unittest.skipUnless(_windows_powershell(), "Windows CIM/Win32 contract requires the Windows/WSL test host")
     def test_real_cim_exact_installed_dynamic_target_conversion_retains_native_data(self) -> None:
-        executable = _powershell()
+        executable = _windows_powershell()
         assert executable is not None
         result = subprocess.run(
             [executable, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File",
@@ -114,9 +114,9 @@ class WslFirewallSnapshotTests(unittest.TestCase):
         self.assertEqual(report["runtime_mutations"], 0)
         self.assertFalse(report["live_capability_claim"])
 
-    @unittest.skipUnless(_powershell(), "PowerShell test runtime unavailable")
+    @unittest.skipUnless(_windows_powershell(), "Windows CIM/Win32 contract requires the Windows/WSL test host")
     def test_shared_source_getter_requires_exact_fixed_bounded_asset(self) -> None:
-        executable = _powershell()
+        executable = _windows_powershell()
         assert executable is not None
         result = subprocess.run(
             [executable, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File",

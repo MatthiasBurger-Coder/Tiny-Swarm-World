@@ -325,8 +325,10 @@ class TestWslWindowsPathTranslation(unittest.TestCase):
                         _as_windows_path(Path("/home/test/bridge.Tests.ps1"))
 
     def test_pester_keeps_apostrophes_literal_and_failed_checks_nonzero(self):
-        command = _pester_command("\\\\wsl.localhost\\Ubuntu\\home\\test user's folder\\bridge.Tests.ps1")
+        with patch(f"{__name__}._as_windows_path", return_value="C:\\test user's folder\\source"):
+            command = _pester_command("\\\\wsl.localhost\\Ubuntu\\home\\test user's folder\\bridge.Tests.ps1")
 
+        self.assertIn("$sourceRoot = 'C:\\test user''s folder\\source'", command)
         self.assertIn("$testScript = '\\\\wsl.localhost\\Ubuntu\\home\\test user''s folder\\bridge.Tests.ps1'", command)
         self.assertIn("if ($result.FailedCount -ne 0 -or $result.PassedCount -eq 0) { exit 1 }", command)
         self.assertIn("[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding", command)

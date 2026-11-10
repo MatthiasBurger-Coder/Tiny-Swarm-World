@@ -7,7 +7,7 @@ from pathlib import Path
 import subprocess
 import unittest
 
-from modules.tsw_windows_wsl.tests.test_prepare_windows import WINDOWS_POWERSHELL, _powershell, _runtime_path
+from modules.tsw_windows_wsl.tests.test_prepare_windows import WINDOWS_POWERSHELL, _windows_powershell, _runtime_path
 
 ROOT = Path(__file__).resolve().parents[4]
 
@@ -76,9 +76,9 @@ class WslAcceptanceRegistrationTests(unittest.TestCase):
         self.assertEqual(report["runtime_mutations"], 0)
         self.assertEqual(report["imports"], 0)
 
-    @unittest.skipUnless(_powershell(), "PowerShell test runtime unavailable")
+    @unittest.skipUnless(_windows_powershell(), "Windows CIM/Win32 contract requires the Windows/WSL test host")
     def test_real_certificate_consumer_is_fresh_complete_bound_and_preserves_changed_hashes(self) -> None:
-        executable = _powershell()
+        executable = _windows_powershell()
         assert executable is not None
         result = subprocess.run(
             [executable, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File",
@@ -95,9 +95,9 @@ class WslAcceptanceRegistrationTests(unittest.TestCase):
         self.assertEqual(report["provider_queries"], 0)
         self.assertFalse(report["live_capability_claim"])
 
-    @unittest.skipUnless(_powershell(), "PowerShell test runtime unavailable")
+    @unittest.skipUnless(_windows_powershell(), "Windows CIM/Win32 contract requires the Windows/WSL test host")
     def test_import_is_write_ahead_nonreplayable_and_preserves_originals(self) -> None:
-        executable = _powershell()
+        executable = _windows_powershell()
         assert executable is not None
         result = subprocess.run(
             [executable, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File",

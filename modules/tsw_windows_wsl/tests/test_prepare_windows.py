@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -26,6 +27,13 @@ def _powershell() -> str | None:
     return str(WINDOWS_POWERSHELL) if WINDOWS_POWERSHELL.exists() else None
 
 
+def _windows_powershell() -> str | None:
+    """Select the Windows engine for CIM, Win32 and Windows adapter contracts."""
+    if os.name == "nt":
+        return shutil.which("powershell.exe")
+    return str(WINDOWS_POWERSHELL) if WINDOWS_POWERSHELL.exists() else None
+
+
 def _runtime_path(path: Path, executable: str) -> str:
     if os.name != "nt" and executable.lower().endswith(".exe"):
         translated = subprocess.run(
@@ -37,6 +45,16 @@ def _runtime_path(path: Path, executable: str) -> str:
         )
         return translated.stdout.strip()
     return str(path)
+
+
+class PowerShellRuntimeSelectionTests(unittest.TestCase):
+    def test_linux_pwsh_does_not_satisfy_windows_native_contract(self) -> None:
+        with (patch(f"{__name__}.WINDOWS_POWERSHELL") as native,
+              patch.object(os, "name", "posix"),
+              patch.object(shutil, "which", return_value="/usr/bin/pwsh")):
+            native.exists.return_value = False
+            self.assertEqual(_powershell(), "/usr/bin/pwsh")
+            self.assertIsNone(_windows_powershell())
 
 
 class TestWindowsPreparation(unittest.TestCase):
@@ -130,11 +148,11 @@ class TestWindowsPreparation(unittest.TestCase):
         self.assertIn("PASS", completed.stdout)
 
     @unittest.skipUnless(
-        _powershell(),
-        "PowerShell runtime unavailable: W04 core behavior remains unverified.",
+        _windows_powershell(),
+        "Windows PowerShell adapter contract requires the Windows/WSL test host.",
     )
     def test_mocked_pre_linux_lifecycle_and_preservation_contract(self) -> None:
-        executable = _powershell()
+        executable = _windows_powershell()
         assert executable is not None
         completed = subprocess.run(
             [
