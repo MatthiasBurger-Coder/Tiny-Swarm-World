@@ -20,13 +20,13 @@ forbidden_modules =
     tiny_swarm_world.application
 allow_indirect_imports = True
 
-[importlinter:contract:domain_no_interfaces_imports]
+[importlinter:contract:domain_no_adapter_imports]
 name = Domain layer does not import interface adapters
 type = forbidden
 source_modules =
     tiny_swarm_world.domain
 forbidden_modules =
-    tiny_swarm_world.interfaces
+    tiny_swarm_world.infrastructure.adapters
 allow_indirect_imports = True
 
 [importlinter:contract:application_no_infrastructure_imports]

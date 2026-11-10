@@ -86,14 +86,14 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         self.addCleanup(directory.cleanup)
         root = Path(directory.name)
         source = Path(__file__).resolve().parents[3]
-        shutil.copytree(source / 'modules/tsw_core/infra', root / 'infra')
+        shutil.copytree(source / 'modules/tsw_core/infra', root / 'modules/tsw_core/infra')
         for name in ('AGENTS.md', 'QUALITY.md'):
             shutil.copy2(source / name, root / name)
-        package = root / 'src/tiny_swarm_world'
+        package = root / 'modules/tsw_core/src'
         package.mkdir(parents=True)
         shutil.copy2(source / 'modules/tsw_core/src/__init__.py', package / '__init__.py')
         self.enterContext(patch.dict(os.environ, {'TSW_REPOSITORY_ROOT': str(root),
-                                                'TSW_INFRA_ROOT': str(root / 'infra')}))
+                                                'TSW_INFRA_ROOT': str(root / 'modules/tsw_core/infra')}))
         return root
 
     async def test_package_main_delegates_argv_to_canonical_cli_adapter(self):

@@ -7,7 +7,7 @@ import unittest
 
 
 PACKAGE = "tiny_swarm_world"
-SOURCE_ROOT = Path(__file__).resolve().parents[4] / "modules/tsw_core/src" / PACKAGE
+SOURCE_ROOT = Path(__file__).resolve().parents[4] / "modules/tsw_core/src"
 ROOT_ENTRYPOINTS = {
     "prepare_network": frozenset({"tiny_swarm_world.infrastructure.composition_native_preparation"}),
     "prepare_incus": frozenset({

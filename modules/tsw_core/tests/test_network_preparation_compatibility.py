@@ -172,7 +172,7 @@ class PreservedManagedBridgeTests(unittest.IsolatedAsyncioTestCase):
             host.networks, host.links = owner_observations()
             host.links.append({"ifname": "eth0", "addr_info": [{"family": "inet", "local": "172.20.1.2", "prefixlen": 20}]})
             host.nft = two_bridge_fixture(legacy=True)
-            adapter = LocalNetworkPreparation(ROOT, ROOT / "infra/config", release="24.04", profile="service-access",
+            adapter = LocalNetworkPreparation(ROOT, ROOT / "modules/tsw_core/infra/config", release="24.04", profile="service-access",
                         proc_root=host.proc, target_snapshot=lambda: (host.source,), evidence=Mock())
             with host.patches():
                 plan = await adapter.inspect()

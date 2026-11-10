@@ -192,7 +192,7 @@ class ManagedStackDeliveryTests(unittest.IsolatedAsyncioTestCase):
         self.directory = TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
         self.root = Path(self.directory.name)
-        shutil.copytree(ROOT / 'modules/tsw_core/infra', self.root / 'infra')
+        shutil.copytree(ROOT / 'modules/tsw_core/infra', self.root / 'modules/tsw_core/infra')
         self.catalog = NativeComponentCatalog(ROOT)
         self.plan = plan_selection(self.catalog.load(), ('swagger',), stack_owner='portainer',
                                    service_exposure={'swagger': 'internal'})
@@ -359,7 +359,7 @@ class ManagedStackDeliveryTests(unittest.IsolatedAsyncioTestCase):
                                   for_operation=self.runtime.for_operation)
         args = parse_args(['setup', 'run', '--recover', '--live', '--approve-live', '--json'])
         with patch.dict(os.environ, {'TSW_REPOSITORY_ROOT': str(self.root),
-                'TSW_INFRA_ROOT': str(self.root / 'infra'), 'TSW_PORTAINER_ADMIN_PASSWORD': RAM_VALUE}), \
+                'TSW_INFRA_ROOT': str(self.root / 'modules/tsw_core/infra'), 'TSW_PORTAINER_ADMIN_PASSWORD': RAM_VALUE}), \
                 patch('tiny_swarm_world.infrastructure.adapters.cli.selective_setup.composition.build_installation_lifecycle_service', return_value=self.lifecycle), \
                 patch('tiny_swarm_world.infrastructure.composition._runtime.resolve_runtime_profile', return_value=SimpleNamespace(backend=ManagedLxcBackend.INCUS)), \
                 patch('tiny_swarm_world.infrastructure.adapters.host.host_environment_detector.HostEnvironmentDetector.detect', return_value=SimpleNamespace(environment=HostEnvironmentKind.NATIVE_LINUX)), \
@@ -437,7 +437,7 @@ class ManagedStackDeliveryTests(unittest.IsolatedAsyncioTestCase):
         from tiny_swarm_world.application.services.profile_completion import CreationCompletionOperation
         from tiny_swarm_world.infrastructure.adapters.lifecycle.completion_runtime import verify_selected_runtime
         self.plan, self.fresh = self.selected_manifest(requested)
-        repository = ComposeFileRepositoryYaml(project_paths=ProjectPaths.from_roots(self.root, self.root / 'infra'),
+        repository = ComposeFileRepositoryYaml(project_paths=ProjectPaths.from_roots(self.root, self.root / 'modules/tsw_core/infra'),
             resolved_services=self.plan.resolved_services, service_exposure=self.plan.service_exposure, write_logs=False)
         for stack in set(self.plan.resolved_services) - {'incus'}:
             self.server.deployment_images[stack] = {item.name: item.image_ref for item in repository.get_services_of(stack)}
@@ -478,7 +478,7 @@ class ManagedStackDeliveryTests(unittest.IsolatedAsyncioTestCase):
     def test_global_agent_covers_admitted_workers_and_completed_pulsar_job_is_valid(self):
         from tiny_swarm_world.infrastructure.adapters.lifecycle.completion_runtime import verify_selected_runtime
         plan, manifest = self.selected_manifest(('pulsar',))
-        repository = ComposeFileRepositoryYaml(project_paths=ProjectPaths.from_roots(self.root, self.root / 'infra'),
+        repository = ComposeFileRepositoryYaml(project_paths=ProjectPaths.from_roots(self.root, self.root / 'modules/tsw_core/infra'),
             resolved_services=plan.resolved_services, service_exposure=plan.service_exposure, write_logs=False)
         for stack in set(plan.resolved_services) - {'incus'}:
             self.server.deployment_images[stack] = {item.name: item.image_ref for item in repository.get_services_of(stack)}

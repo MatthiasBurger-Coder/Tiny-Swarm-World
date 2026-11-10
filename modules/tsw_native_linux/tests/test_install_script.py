@@ -5,6 +5,7 @@ import sys
 import tempfile
 import textwrap
 import unittest
+from modules.tsw_core.tests.support.module_fixture import copy_core_source
 from pathlib import Path
 
 
@@ -20,12 +21,12 @@ class TestInstallScript(unittest.TestCase):
                 "-S",
                 "-c",
                 (
-                    "import sys; import tiny_swarm_world.installer; "
+                    "import sys; import modules.tsw_core.src; import tiny_swarm_world.installer; "
                     "assert 'pydantic' not in sys.modules"
                 ),
             ],
             cwd=REPOSITORY_ROOT,
-            env={**os.environ, "PYTHONPATH": "modules/tsw_core/src"},
+            env={**os.environ, "PYTHONPATH": str(REPOSITORY_ROOT)},
             text=True,
             capture_output=True,
             check=False,
@@ -455,7 +456,7 @@ class _InstallScriptFixture:
                 else self.secret_environment
             ),
             "PATH": f"{self.fake_bin}:{os.environ['PATH']}",
-            "PYTHONPATH": str(self.root / "modules/tsw_core/src"),
+            "PYTHONPATH": str(self.root),
             "TSW_REPOSITORY_ROOT": str(self.root),
             "TSW_INFRA_ROOT": str(self.root / "modules/tsw_core/infra"),
             "TSW_FAKE_SCRIPT_COMMANDS": str(self.commands_file),
@@ -532,11 +533,7 @@ class _InstallScriptFixture:
         shutil.copy2(REPOSITORY_ROOT / "modules/tsw_native_linux/boostrap/install.sh", core_bootstrap / "install.sh")
         # Exercise the actual parser with both core-owned runtime namespaces.
         # Lifecycle commands still terminate in the fake python/script runners.
-        for package in ("tiny_swarm_world", "tsw_core"):
-            shutil.copytree(
-                REPOSITORY_ROOT / "modules/tsw_core/src" / package, self.root / "modules/tsw_core/src" / package,
-                ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "*.pyo"),
-            )
+        copy_core_source(REPOSITORY_ROOT, self.root)
         shutil.copytree(
             REPOSITORY_ROOT / "modules/tsw_core/infra" / "config", self.root / "modules/tsw_core/infra" / "config",
             ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "*.pyo"),
@@ -657,7 +654,7 @@ SH
         if [[ "${1:-}" == "-m" && "${2:-}" == "tiny_swarm_world.installer" ]]; then
           exec "${TSW_TEST_REAL_PYTHON:-/usr/bin/python3}" "$@"
         fi
-        if [[ "${1:-}" == "-m" && "${2:-}" == "tiny_swarm_world.simple_installer" ]]; then
+        if [[ "${1:-}" == "-m" && ( "${2:-}" == "tiny_swarm_world.simple_installer" || "${2:-}" == "modules.tsw_core.src.simple_installer" ) ]]; then
           exec "${TSW_TEST_REAL_PYTHON:-/usr/bin/python3}" "$@"
         fi
         if [[ "${1:-}" == "-m" && "${2:-}" == "tiny_swarm_world" ]]; then

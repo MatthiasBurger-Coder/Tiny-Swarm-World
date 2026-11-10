@@ -192,7 +192,7 @@ class ProductFilesystemTests(unittest.TestCase):
         self.installation.verify_target_runtime(self.plan)
         call = self.installation._command.call_args
         self.assertEqual(call.args[0][0], str(self.code / '.venv/bin/python'))
-        self.assertEqual(call.kwargs['env']['PYTHONPATH'], str(self.code / 'modules/tsw_core/src'))
+        self.assertEqual(call.kwargs['env']['PYTHONPATH'], str(self.code))
         self.assertEqual(call.kwargs['env']['TSW_REPOSITORY_ROOT'], str(self.root))
         self.assertEqual(call.kwargs['env']['TSW_INFRA_ROOT'], str(self.installation.state / 'infra' / TARGET_REVISION))
         self.assertEqual(json.loads(call.kwargs['input'])['resolved_services'], list(self.plan.manifest.resolved_services))

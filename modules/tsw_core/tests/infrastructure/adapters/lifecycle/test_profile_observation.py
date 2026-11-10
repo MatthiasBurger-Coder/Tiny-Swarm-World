@@ -71,10 +71,10 @@ class PublicScopedVerificationTests(unittest.IsolatedAsyncioTestCase):
     async def test_actual_public_composed_node_and_exposure_verification_are_read_only_and_keep_unbound_writers_blocked(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            shutil.copytree(_ROOT / 'modules/tsw_core/infra', root / 'infra')
+            shutil.copytree(_ROOT / 'modules/tsw_core/infra', root / 'modules/tsw_core/infra')
             for name in ('AGENTS.md', 'QUALITY.md'):
                 shutil.copy2(_ROOT / name, root / name)
-            package = root / 'src/tiny_swarm_world'
+            package = root / 'modules/tsw_core/src'
             package.mkdir(parents=True)
             shutil.copy2(_ROOT / 'modules/tsw_core/src/__init__.py', package / '__init__.py')
             asset = root / 'modules/tsw_core/infra/config/incus-profile-capabilities.json'

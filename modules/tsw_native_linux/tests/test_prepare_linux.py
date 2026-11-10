@@ -403,8 +403,8 @@ class NativePreparationCliTests(unittest.TestCase):
 
     def test_entrypoint_imports_without_third_party_dependencies(self) -> None:
         result = subprocess.run(
-            [sys.executable, "-S", "-c", "import tiny_swarm_world.prepare_linux"],
-            env={**os.environ, "PYTHONPATH": "modules/tsw_core/src"},
+            [sys.executable, "-S", "-c", "import modules.tsw_core.src.prepare_linux"],
+            env={**os.environ, "PYTHONPATH": str(Path(__file__).resolve().parents[3])},
             text=True,
             capture_output=True,
             check=False,

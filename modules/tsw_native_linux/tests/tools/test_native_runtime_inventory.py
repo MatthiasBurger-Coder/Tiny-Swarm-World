@@ -3617,8 +3617,6 @@ class ImageAwareInventoryTests(unittest.TestCase):
                 inventory._validate_artifact(value)
 
 
-if __name__ == '__main__':
-
 class SnapContextCliTests(unittest.TestCase):
     def test_invalid_diagnostic_combinations_have_no_host_io_or_leaks(self) -> None:
         cases = (["--diagnose-snap-context=secret"], ["--diagnose-snap-context", "secret"],

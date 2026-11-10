@@ -3,7 +3,7 @@
 $ErrorActionPreference='Stop'
 . $PSScriptRoot/ResourceAdapters.ps1
 . $PSScriptRoot/Adapters.ps1
-$script:expectedNativeRoot=[IO.Path]::GetFullPath((Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../../..')).ProviderPath)
+$script:expectedNativeRoot=[IO.Path]::GetFullPath((Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../../../..')).ProviderPath)
 $script:nativeGitCalls=0
 $script:resourceHostCalls=0
 $script:mockGitPath=$null

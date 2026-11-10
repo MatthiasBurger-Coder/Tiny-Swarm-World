@@ -25,6 +25,10 @@ model, and live-infrastructure restrictions.
 - Install the project with `python3 -m pip install --no-deps -e .` before development checks.
   Packaging maps `tiny_swarm_world` to `modules/tsw_core/src` and `tsw_core` to
   `modules/tsw_core`; no source-directory aliases are required.
+- Type checking builds an offline wheel with the installed build tools, verifies
+  that every production Python file is included byte-for-byte, and checks its
+  declared package namespaces plus all three test trees in a fresh mypy cache.
+  Install `requirements-dev.txt` before running the gate.
 - Test discovery uses `modules` with the repository as its top-level directory,
   covering all three module test trees.
 

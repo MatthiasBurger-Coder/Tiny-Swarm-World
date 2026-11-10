@@ -8,6 +8,8 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+from modules.tsw_core.tests.support.module_fixture import copy_core_source
+
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest.mock import Mock, patch
@@ -34,7 +36,7 @@ class UbuntuJoinedBootstrapTests(unittest.TestCase):
     def test_ac1_real_package_and_locked_runtime_owners_fresh_then_rerun(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            shutil.copytree(ROOT / "modules/tsw_core/src", root / "modules/tsw_core/src", ignore=shutil.ignore_patterns("__pycache__"))
+            copy_core_source(ROOT, root)
             shutil.copytree(ROOT / "modules/tsw_core/infra/config", root / "modules/tsw_core/infra/config")
             for name in ("requirements.lock", "requirements.build.lock", "pyproject.toml"):
                 shutil.copyfile(ROOT / name, root / name)

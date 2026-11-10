@@ -1,5 +1,5 @@
 # Pester 4-compatible syntax; all certificate-store access is mocked.
-$repositoryRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+$repositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../..'))
 . (Join-Path $repositoryRoot 'modules/tsw_windows_wsl/bootstrap/tsw-tls-trust.ps1')
 
 function New-TswTestCa {

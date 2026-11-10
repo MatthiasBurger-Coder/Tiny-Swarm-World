@@ -12,7 +12,7 @@ BLOCKED = {"status": "BLOCKED_UNKNOWN", "source": "operator_local_unverified", "
 _VALUE_OPTIONS = frozenset({
     "--confirm", "--service-profile", "--node-provider", "--lxc-backend", "--runtime",
     "--stack", "--service", "--from-image", "--to-image", "--services", "--to",
-    "--adoption-manifest", "--selection-config",
+    "--adoption-manifest", "--selection-config", "--swagger-exposure", "--stack-owner",
 })
 _FLAG_OPTIONS = frozenset({
     "--list-workflows", "--preflight", "--live", "--approve-live", "--json",

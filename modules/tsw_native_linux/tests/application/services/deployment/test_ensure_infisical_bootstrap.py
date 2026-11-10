@@ -12,8 +12,7 @@ from tiny_swarm_world.domain.inventory import VerificationStatus
 MODULE_PATH = (
     Path(__file__).resolve().parents[6]
     / "modules/tsw_core/src"
-    / "tiny_swarm_world"
-    / "application"
+        / "application"
     / "services"
     / "deployment"
     / "ensure_infisical_bootstrap.py"

@@ -126,7 +126,7 @@ class TestWindowsSourceProof(unittest.TestCase):
             self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
             self.assertIn("PASS 22", completed.stdout)
             (source / ASSETS[0]).write_text("dirty")
-            with self.assertRaisesRegex(ValueError, "clean committed"):
+            with self.assertRaisesRegex(ValueError, "Asset bytes differ from HEAD: modules/tsw_native_linux/boostrap/install.sh"):
                 build(source)
             git(source, "update-index", "--assume-unchanged", ASSETS[0])
             with self.assertRaisesRegex(ValueError, "Asset bytes differ"):

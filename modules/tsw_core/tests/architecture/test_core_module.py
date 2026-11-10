@@ -13,6 +13,7 @@ import tomllib
 import unittest
 from unittest.mock import Mock, patch
 import asyncio
+from modules.tsw_core.tests.support.module_fixture import copy_core_source
 
 from tsw_core import discover_root, module_descriptor, resource_root
 from tiny_swarm_world.infrastructure.host_bindings import windows_bridge_binding
@@ -41,14 +42,14 @@ class CoreModuleTests(unittest.TestCase):
         self.assertEqual(metadata["project"]["name"], "tiny-swarm-world")
         self.assertEqual(metadata["project"]["version"], "0.2.0")
         self.assertEqual(metadata["project"]["scripts"], {"tiny-swarm-world": "tiny_swarm_world.__main__:cli"})
-        self.assertEqual(metadata["tool"]["setuptools"]["packages"]["find"]["where"], ["modules/tsw_core/src"])
-        included = metadata["tool"]["setuptools"]["packages"]["find"]["include"]
-        self.assertEqual(set(included), {"tiny_swarm_world", "tiny_swarm_world.*", "tsw_core"})
+        self.assertEqual(metadata["tool"]["setuptools"]["package-dir"], {
+            "tiny_swarm_world": "modules/tsw_core/src", "tsw_core": "modules/tsw_core",
+        })
         self.assertEqual(set(module_descriptor()["python_packages"]), {"tiny_swarm_world", "tsw_core"})
 
     def test_core_never_imports_editions_or_constructs_edition_paths(self):
-        for package in module_descriptor()["python_packages"]:
-            for source in (ROOT / "modules/tsw_core/src" / package).rglob("*.py"):
+        for package in (ROOT / "modules/tsw_core/src",):
+            for source in package.rglob("*.py"):
                 for node in ast.walk(ast.parse(source.read_text())):
                     names = []
                     if isinstance(node, ast.Import):
@@ -68,21 +69,19 @@ class CoreModuleTests(unittest.TestCase):
     def test_cli_loads_with_only_core_owned_runtime_and_assets(self):
         with tempfile.TemporaryDirectory() as directory:
             isolated = Path(directory)
-            for package in module_descriptor()["python_packages"]:
-                shutil.copytree(ROOT / "modules/tsw_core/src" / package, isolated / "modules/tsw_core/src" / package,
-                                ignore=shutil.ignore_patterns("__pycache__"))
+            copy_core_source(ROOT, isolated)
             shutil.copytree(ROOT / "modules/tsw_core/infra", isolated / "modules/tsw_core/infra")
             env = {key: value for key, value in os.environ.items()
                    if not key.startswith("TSW_") and key != "PYTHONPATH"}
-            env.update(PYTHONPATH=str(isolated / "modules/tsw_core/src"), PYTHONDONTWRITEBYTECODE="1")
-            code = ('from tsw_core import discover_root; '
+            env.update(PYTHONPATH=str(isolated), PYTHONDONTWRITEBYTECODE="1")
+            code = ('import modules.tsw_core.src; from tsw_core import discover_root; '
                     'from tiny_swarm_world.__main__ import cli; '
                     'from tiny_swarm_world.infrastructure.project_paths import default_project_paths; '
                     'from tiny_swarm_world.infrastructure.adapters.lifecycle.catalog import NativeComponentCatalog; '
                     'assert NativeComponentCatalog(discover_root()).load().services; '
                     'assert callable(cli); assert default_project_paths().config_root.is_dir(); '
                     'assert discover_root().name == ' + repr(isolated.name))
-            for arguments in (("-c", code), ("-m", "tiny_swarm_world", "--help")):
+            for arguments in (("-c", code), ("-m", "modules.tsw_core.src", "--help")):
                 result = subprocess.run((sys.executable, *arguments), cwd=isolated, env=env,
                                         capture_output=True, text=True, timeout=45)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

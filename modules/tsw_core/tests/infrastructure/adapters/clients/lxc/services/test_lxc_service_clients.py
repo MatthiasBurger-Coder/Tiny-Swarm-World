@@ -39,16 +39,10 @@ class TestLxcServiceClients(unittest.TestCase):
         self.assertIs(session, delegate.session)
         resolver.assert_not_called()
 
-    def test_existing_stack_update_delegates_actual_put_without_pruning(self):
+    def test_explicit_stack_update_delegates_actual_put_without_pruning(self):
         session = Mock()
         session.post.return_value = Mock(status_code=200, json=Mock(return_value={"jwt": "jwt-token"}))
-        session.request.side_effect = [
-            Mock(status_code=200, json=Mock(return_value=[{"Name": "local", "Id": 7}])),
-            Mock(status_code=200, json=Mock(return_value=[{"Name": "swagger", "Id": 42, "EndpointId": 7}])),
-            Mock(status_code=200, json=Mock(return_value=[{"Name": "local", "Id": 7}])),
-            Mock(status_code=200, json=Mock(return_value=[{"Name": "swagger", "Id": 42, "EndpointId": 7}])),
-            Mock(status_code=200, json=Mock(return_value={})),
-        ]
+        session.request.return_value = Mock(status_code=200, json=Mock(return_value={}))
         client = LxcPortainerHttpClient(
             backend=ManagedLxcBackend.LXD, username="admin", password="secret",
             api_url="https://portainer.example", session=session,
@@ -58,10 +52,10 @@ class TestLxcServiceClients(unittest.TestCase):
             stack_environment={"TSW_JENKINS_IMAGE": "jenkins:latest"},
         )
         with patch.object(client, "_run_manager_shell", side_effect=AssertionError("unexpected host command")) as shell:
-            client.apply_stack(request)
+            client.update_stack(42, request.stack_definition, 7, request.stack_environment)
         shell.assert_not_called()
         self.assertEqual(session.post.call_count, 1)
-        self.assertEqual(session.request.call_count, 5)
+        self.assertEqual(session.request.call_count, 1)
         args, kwargs = session.request.call_args
         self.assertEqual(args, ("PUT", "https://portainer.example/api/stacks/42?endpointId=7"))
         self.assertEqual(kwargs["json"], {
@@ -70,6 +64,25 @@ class TestLxcServiceClients(unittest.TestCase):
         })
         self.assertEqual(kwargs["headers"]["Authorization"], "Bearer jwt-token")
         self.assertEqual(kwargs["timeout"], 180)
+
+    def test_existing_same_name_stack_does_not_authorize_implicit_update(self):
+        session = Mock()
+        session.post.return_value = Mock(status_code=200, json=Mock(return_value={"jwt": "fixture-token"}))
+        session.request.side_effect = [
+            Mock(status_code=200, json=Mock(return_value=[{"Name": "local", "Id": 7}])),
+            Mock(status_code=200, json=Mock(return_value=[{"Name": "swagger", "Id": 42, "EndpointId": 7}])),
+        ] * 2
+        client = LxcPortainerHttpClient(
+            backend=ManagedLxcBackend.INCUS, username="admin", password="fixture-credential",
+            api_url="https://portainer.example", session=session,
+        )
+        request = DeploymentStackRequest(
+            target_stack="swagger", stack_definition=StackDefinition(name="swagger", compose_content="services: {}"),
+        )
+        with self.assertRaises(PortainerClientError), patch.object(client, "_run_manager_shell") as shell:
+            client.apply_stack(request)
+        shell.assert_not_called()
+        self.assertEqual([call.args[0] for call in session.request.call_args_list], ["GET"] * 4)
 
     def test_both_apply_paths_reject_visible_conflicts_and_drift_before_effects(self):
         endpoint = [{"Name": "local", "Id": 7}]

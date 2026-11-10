@@ -7,6 +7,9 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
+import tomllib
+import zipfile
 from pathlib import Path
 
 PYTHON = sys.executable
@@ -79,14 +82,6 @@ COMMANDS: dict[str, list[str]] = {
         "modules.tsw_core.tests.architecture.test_hexagonal_imports",
         "modules.tsw_core.tests.architecture.test_architecture_regressions",
     ],
-    "typecheck": [
-        PYTHON,
-        "-m",
-        "mypy",
-        "--explicit-package-bases",
-        *map(str, SOURCE_TARGETS),
-        *map(str, TEST_ROOTS),
-    ],
     "test": [
         PYTHON,
         "-m",
@@ -138,6 +133,9 @@ def main() -> None:
 
 
 def _run_named_command(command_name: str) -> None:
+    if command_name == "typecheck":
+        _run_typecheck()
+        return
     command = _command_for_name(command_name)
     print(f"[quality] Running {command_name}: {' '.join(command)}", flush=True)
     completed = subprocess.run(
@@ -145,9 +143,67 @@ def _run_named_command(command_name: str) -> None:
         check=False,
         cwd=REPOSITORY_ROOT,
         env=_python_environment(),
+        stdin=subprocess.DEVNULL,
     )
     if completed.returncode != 0:
         raise SystemExit(completed.returncode)
+
+
+def _run_typecheck() -> None:
+    """Check the declared package layout, which mypy cannot infer from PEP 660."""
+    metadata = tomllib.loads((REPOSITORY_ROOT / "pyproject.toml").read_text())
+    packages = metadata["tool"]["setuptools"]["package-dir"]
+    with tempfile.TemporaryDirectory(prefix="tsw-typecheck-") as directory:
+        staging = Path(directory)
+        built = subprocess.run(
+            [PYTHON, "-m", "pip", "wheel", "--no-deps", "--no-build-isolation",
+             "--no-index", "--wheel-dir", str(staging), str(REPOSITORY_ROOT)],
+            cwd=REPOSITORY_ROOT, env=_python_environment(),
+            stdin=subprocess.DEVNULL, capture_output=True, text=True,
+        )
+        if built.returncode:
+            print(built.stdout + built.stderr, end="")
+            raise SystemExit(built.returncode)
+        wheels = list(staging.glob("*.whl"))
+        if len(wheels) != 1:
+            raise RuntimeError("Typecheck requires exactly one locally built project wheel.")
+        package_root = staging / "packages"
+        with zipfile.ZipFile(wheels[0]) as archive:
+            archive.extractall(package_root)
+        targets = []
+        for name, source in packages.items():
+            target = package_root.joinpath(*name.split("."))
+            if not (target / "__init__.py").is_file():
+                raise RuntimeError(f"Built wheel is missing declared package {name}.")
+            targets.append(str(target))
+            if REPOSITORY_ROOT / source == SOURCE_ROOT:
+                for path in SOURCE_ROOT.rglob("*.py"):
+                    relative = path.relative_to(SOURCE_ROOT)
+                    packaged = target / relative
+                    if not packaged.is_file() or packaged.read_bytes() != path.read_bytes():
+                        raise RuntimeError(f"Typecheck wheel omits or changes source {relative}.")
+        environment = _python_environment()
+        environment["MYPYPATH"] = _prepend_environment_path(
+            str(package_root), environment.get("MYPYPATH"),
+        )
+        command = [
+            PYTHON, "-m", "mypy", "--no-incremental", "--explicit-package-bases",
+            "--cache-dir", str(staging / "cache"), *targets, *map(str, TEST_ROOTS),
+        ]
+        print(f"[quality] Running typecheck against current built packages: {' '.join(packages)}", flush=True)
+        checked = subprocess.run(
+            command, cwd=REPOSITORY_ROOT, env=environment,
+            stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT, text=True,
+        )
+        output = checked.stdout
+        for name, source in packages.items():
+            output = output.replace(
+                str(package_root.joinpath(*name.split("."))), str(REPOSITORY_ROOT / source),
+            )
+        print(output, end="")
+        if checked.returncode:
+            raise SystemExit(checked.returncode)
 
 
 def _command_for_name(command_name: str) -> list[str]:

@@ -167,8 +167,8 @@ def _install_script_text() -> str:
         (
             "#!/usr/bin/env bash",
             "set -Eeuo pipefail",
-            "installer_module=\"tiny_swarm_world.simple_installer\"",
-            "export PYTHONPATH=\"${PYTHONPATH:+$PYTHONPATH:}src\"",
+            "installer_module=\"modules.tsw_core.src.simple_installer\"",
+            "export PYTHONPATH=\"${PYTHONPATH:+$PYTHONPATH:}.\"",
             "exec python3 -m \"$installer_module\" \"$@\"",
         )
     )

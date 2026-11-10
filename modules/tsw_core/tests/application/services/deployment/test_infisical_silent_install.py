@@ -27,8 +27,7 @@ from modules.tsw_core.tests.support.sonar_safe_literals import operator_credenti
 MODULE_PATH = (
     Path(__file__).resolve().parents[6]
     / "modules/tsw_core/src"
-    / "tiny_swarm_world"
-    / "application"
+        / "application"
     / "services"
     / "deployment"
     / "infisical_silent_install.py"

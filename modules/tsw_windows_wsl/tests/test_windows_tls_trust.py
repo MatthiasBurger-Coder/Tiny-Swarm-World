@@ -14,7 +14,7 @@ class TestWindowsTlsTrust(unittest.TestCase):
         command = (
             "$ErrorActionPreference='Stop'; "
             "$stage=Join-Path ([IO.Path]::GetTempPath()) ('tsw-trust-tests-'+[guid]::NewGuid()); "
-            "try { foreach ($dir in @('modules/tsw_windows_wsl/bootstrap','tests/windows')) { "
+            "try { foreach ($dir in @('modules/tsw_windows_wsl/bootstrap','modules/tsw_windows_wsl/tests/windows')) { "
             "New-Item -ItemType Directory -Path (Join-Path $stage $dir) -Force | Out-Null }; "
             "foreach ($file in @('modules/tsw_windows_wsl/bootstrap/tsw-tls-trust.ps1','modules/tsw_windows_wsl/tests/windows/tsw-tls-trust.Tests.ps1')) { "
             f"Copy-Item -LiteralPath (Join-Path '{root}' $file) -Destination (Join-Path $stage $file) }}; "
