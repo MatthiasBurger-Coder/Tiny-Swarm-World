@@ -69,13 +69,9 @@ Cross-references from other parts do not change that ownership.
 * link:{handbook-root}handbook/05-development/workflow/authoring-review.md[authoring-review.md]
 * link:{handbook-root}handbook/05-development/workflow/context-pack.json[context-pack.json]
 * link:{handbook-root}handbook/05-development/workflow/context-pack.md[context-pack.md]
-* link:{handbook-root}handbook/05-development/workflow/lifecycle-failure-inventory.md[lifecycle-failure-inventory.md]
+* link:{handbook-root}handbook/05-development/workflow/prerequisite-ledger.md[prerequisite-ledger.md]
 * link:{handbook-root}handbook/05-development/workflow/requirement-matrix.md[requirement-matrix.md]
+* link:{handbook-root}handbook/05-development/workflow/requirements.json[requirements.json]
+* link:{handbook-root}handbook/05-development/workflow/scenario-plan.md[scenario-plan.md]
 * link:{handbook-root}handbook/05-development/workflow/workflow.index.md[workflow.index.md]
 * link:{handbook-root}handbook/05-development/workflow/workflow.md[workflow.md]
-
-=== workflow/issues/issue-449
-
-* link:{handbook-root}handbook/05-development/workflow/issues/issue-449/context-pack.json[context-pack.json]
-* link:{handbook-root}handbook/05-development/workflow/issues/issue-449/context-pack.md[context-pack.md]
-* link:{handbook-root}handbook/05-development/workflow/issues/issue-449/workflow.md[workflow.md]

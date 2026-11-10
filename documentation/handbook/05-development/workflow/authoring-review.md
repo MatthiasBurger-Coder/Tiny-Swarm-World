@@ -1,60 +1,50 @@
-# ARCH-03.12 authoring review
+# Workflow authoring review
 
-## Four-role requirement gate
+Decision: READY_FOR_WORKFLOW for planning; all runtime slices PLANNED.
+Profile: FULL_PATH. Process: workflow create. Branch: `docs/workflow-issue440-acceptance-20261110`.
+Baseline: `ca6902579f51c2c6d9439bf9c58dec02bfb45a93`. Clarification attempt 1/3; scope readiness 94%, not product assurance.
 
-- Senior Requirement Engineer: READY_FOR_WORKFLOW; issue #355 and parent #313 verified; fifteen requirements and all lifecycle families represented; #356 owns new resilience behavior.
-- Senior System Architect: ready for authoring; shared port contract avoids ports-to-services imports; proposed ADR requires acceptance before product implementation.
-- Senior Python Automation Developer: feasible at verified seams; preserve adapter failure classification, update recovery convergence and existing result/exit contracts.
-- Senior Tester: ready for authoring; mocked failure mapping, partial/recovery, cancellation and compatibility tests required.
-- Console/status UI reviewer: human-readable default and explicit JSON opt-in; preserve statuses, safe guidance, installer child/124/130 exits and setup summary data.
+## Four-role review
 
-Dependency/deadlock review: linear seven-slice chain, no cycle. Shared contracts and
-aggregate evidence make default implementation serial. No write agents were used.
+| Role | Inspected concern | Decision and constraint |
+|---|---|---|
+| Senior Requirement Engineer | Complete current #440, 47 LCM obligations, 15 parent criteria, final-acceptance additions and accepted history | Ready to plan; retain historical P01 and bounded native evidence; do not silently downgrade cross-host/live acceptance |
+| Senior System Architect | Actual profile/service/composition paths, empty capability asset, scoped/legacy boundaries, accepted ADRs and historical helper binding | Ready with prerequisite gates; repair existing integration only; separate fixture proof, version admission, candidate policy and product acceptance |
+| Senior Python Automation Developer | Four Sonar-bearing files, current CLI/tests, qualification helpers and their old #449 git binding | Ready for the proposed slices; no blanket validation changes or alternative orchestrator; proposed new helper commands must be implemented/reviewed before use |
+| Senior Tester | Current unit/quality/coverage evidence versus W09/W10 live gaps, recovery attribution, independent review and exact source | Ready with concrete system observations and no-pass states; historical/full-install smoke cannot fill unexecuted current lifecycle cells |
 
-## Baseline verification
+All four passes were performed by the same authoring agent; no independent
+review, completion PASS, live GO or security acceptance is invented. During
+execution S3D must re-evaluate actual files/locks and specialist distribution.
+Independent requirements/architecture/security/runtime/evidence reviews remain
+explicit execution gates and P15 remains open.
 
-Senior Tester executed:
-`PYTHONPATH=. python3 -m unittest modules.tsw_core.tests.test_classic_update_cli modules.tsw_core.tests.infrastructure.adapters.ui.test_command_runner_ui_failure_semantics modules.tsw_core.tests.application.services.platform.test_classic_update_workflow`
-Result: PASS, 47 tests. Expected negative-fixture errors/logs were emitted.
-These tests establish baseline compatibility only, not #355 implementation.
+## Routing and boundaries
 
-## Authoring validation
+FULL_PATH because the planned work crosses lifecycle state, runtime effects,
+security and exact-source live qualification. Console/status UI review is
+conditional on actual output/help/progress changes; no browser frontend work.
+Only 02/03 have potentially disjoint source/test scopes; all shared host/live
+state, policy promotions and coordinator status writes serialize. The dependency
+graph includes the missing helper-binding prerequisite before listener use.
 
-Final draft review: PASS from all four required roles. Review corrections applied:
+## Authoring validation and publication
 
-- A legacy blocked result may follow mutation; preserve confirmed and uncertain effects.
-- Slice 01 requires static inventory evidence, not out-of-scope new tests.
-- Configuration adapter/port and platform preflight seams are explicitly scoped.
-- Adapter migration preserves old exception catches at every intermediate checkpoint.
-- Cancellation propagation retains existing entrypoint exit mappings.
+Validate JSON/YAML metadata, dependencies/DAG, all source/test paths (except
+explicit proposed harness paths), complete parent/LCM mappings, governance hashes,
+relative navigation and Part-5 catalogue. Run git diff --check and inspect actual
+diffs. No new runtime tests/full gate: this change regenerates planning files
+and catalogue links only. Existing baseline results retain their prior scope.
+The stale `src` import-root wording in the arc42 building-block view is aligned
+with the existing `tiny_swarm_world` package mapping and QUALITY.md. No ADR,
+quality policy, production code, tests, CI, host config or GitHub issue is
+changed. Publish a reviewed planning commit to this branch only, as required by
+workflow-authoring; no PR creation/merge or branch cleanup. Final commit/push
+identity is recorded in local authoring evidence and the user handoff.
 
-Metadata validation: PASS for seven complete slice schemas, acyclic dependencies,
-all existing/proposed paths, targeted test module paths and local document links.
-`git diff --check`: PASS. Full local quality rerun: PASS (exit 0).
+## arc42 review
 
-The first `python3 tools/quality_gate.py quality` attempt exited 120 while writing
-its log because `/tmp` was full (100 percent). Classified BUILD_FAILURE due to
-host temporary storage, not an observed product assertion failure. Retry 1 uses
-`TMPDIR=/home/micro/.cache/issue355-tmp python3 tools/quality_gate.py quality` on an
-available filesystem; no product, test or quality-policy changes were made.
-
-The completed #352 arc42 matrix link is pinned to the baseline commit to preserve
-historical traceability after full active-workflow regeneration.
-
-Product implementation NOT STARTED. Live installation, browser and external
-results are not claimed. Publication is the workflow-authoring commit and branch
-push only, as authorized by root AGENTS.md and workflow-authoring.
-
-## Final local quality result
-
-`TMPDIR=/home/micro/.cache/issue355-tmp python3 tools/quality_gate.py quality`: PASS.
-Verification-policy, lint, arch-lint, 26 architecture tests, typecheck (693 source
-files) and full test suite all passed. Full suite: 2179 tests in 247.407 seconds,
-18 skipped. Skipped cases are not claimed as verified. The local log is
-`/home/micro/.cache/issue355-quality.log` (not committed). Installer completion
-messages in this log are synthetic test fixtures, not live installation evidence.
-
-Commit scope review: only regenerated workflow documents, proposed ADR, planned
-arc42 analysis and historical #352 link correction. No product/test/config change.
-Publication target: `origin/architecture/workflow-355-operation-results-20260926`.
-The final response records the actual publication SHA and remote-ref verification.
+Building blocks, runtime/deployment views, accepted Classic lifecycle and scoped
+profile ADRs are checked and hashed in context-pack.json. Their existing ownership
+and safety decisions remain unchanged. Proposed implementation/admission changes
+must re-open the appropriate architecture review before effects.

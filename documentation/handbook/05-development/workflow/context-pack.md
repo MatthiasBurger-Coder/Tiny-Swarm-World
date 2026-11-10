@@ -1,17 +1,17 @@
-# ARCH-03.12 workflow context
+# #440 workflow context pack
 
-Workflow issue-355-operation-results, version 1.0; process strand workflow execute;
-profile FULL_PATH. Branch `recovery/issue-355-20260926`; baseline `3487ce322bb2b251a45695fc88a70ffa8132b0de`.
-Status DONE locally; all seven slices accepted and independent audit PASS. Final checkpoint publication follows.
+Workflow: [workflow.md](workflow.md), version 1.0, FULL_PATH.
+Branch: `docs/workflow-issue440-acceptance-20261110`. Runtime baseline: `ca6902579f51c2c6d9439bf9c58dec02bfb45a93`.
+Process: workflow create; READY_FOR_WORKFLOW; implementation not started.
 
-Read [workflow](workflow.md), [requirements](requirement-matrix.md),
-[authoring review](authoring-review.md) and [machine context](context-pack.json).
-The JSON records required/conditional roles, affected/forbidden areas, quality
-commands and SHA-256 governing-file hashes. Recompute every hash at execution;
-any change makes this context stale. No context pack replaces AGENTS.md, QUALITY.md,
-ADRs, routing or skills. S355-01 accepted the ADR and inventory; later slices must preserve that contract.
+Read [requirements](requirement-matrix.md), [machine-readable requirement inventory](requirements.json),
+[prerequisites](prerequisite-ledger.md), [scenario/evidence contract](scenario-plan.md),
+[authoring role review](authoring-review.md) and [index](workflow.index.md).
+The governing file hashes, roles, affected/forbidden areas, source/issue binding,
+proposed files and quality commands are in [context-pack.json](context-pack.json).
 
-Execution requires an isolated worktree and declared branch; specialist write
-streams require distinct branches/worktrees and disjoint reviewed scopes. Reviews
-are read-only. Product slices require targeted tests plus full local quality.
-Authoring publication is commit and branch push only. No PR or merge is requested.
+Root AGENTS.md/QUALITY.md, current issue, accepted ADRs, routing and checked workflow
+remain authority. Any hash mismatch, acceptance change, governance edit or conflict
+invalidates this navigation cache. Authoring validation is doc/static only;
+execution uses exact-source SSH/WSL quality and separate system/external gates.
+Planning publication targets origin/docs/workflow-issue440-acceptance-20261110; no PR/merge or live GO follows.

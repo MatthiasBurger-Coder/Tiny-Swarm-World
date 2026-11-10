@@ -1,63 +1,95 @@
 {
-  "workflowId": "issue-355-operation-results",
-  "workflowVersion": "1.0",
-  "branch": "recovery/issue-355-20260926",
-  "baseline": "3487ce322bb2b251a45695fc88a70ffa8132b0de",
-  "processStrand": "workflow execute",
-  "executionProfile": "FULL_PATH",
-  "status": "DONE",
-  "implementationStatus": "ALL_REQUIREMENTS_VERIFIED_AUDIT_PASS",
-  "affectedAreas": [
-    "application result contracts",
-    "lifecycle adapters",
-    "platform/artifacts/deployment/setup",
-    "CLI/installer compatibility"
+  "workflow_id": "issue-440-final-acceptance",
+  "workflow_version": "1.0",
+  "workflow_path": "documentation/handbook/05-development/workflow/workflow.md",
+  "branch": "docs/workflow-issue440-acceptance-20261110",
+  "baseline": "ca6902579f51c2c6d9439bf9c58dec02bfb45a93",
+  "status": "READY_FOR_WORKFLOW",
+  "process_strand": "workflow create; execution not started",
+  "execution_profile": "FULL_PATH",
+  "affected_areas": [
+    "core lifecycle",
+    "network repair",
+    "manifest/CLI admission",
+    "qualification tooling",
+    "Incus/Portainer/Swarm fixtures",
+    "component catalog",
+    "selection/product workflows",
+    "handbook/evidence"
   ],
-  "forbiddenAreas": [
-    "live infrastructure",
-    "new retry/rollback/idempotency policy",
-    "provider/process replacement",
-    "persistence redesign",
-    "Java/React/Kubernetes expansion"
+  "forbidden_areas": [
+    "new orchestration engine",
+    "new runtime profile",
+    "unapproved host/network effects",
+    "new external CI",
+    "threshold/rule weakening",
+    "destructive state reset",
+    "authoring issue closure"
   ],
-  "requiredRoles": [
+  "required_roles": [
     "Senior Requirement Engineer",
     "Senior System Architect",
     "Senior Python Automation Developer",
-    "Senior Tester",
-    "Console/status UI reviewer"
+    "Senior Tester"
   ],
-  "conditionalRoles": [
-    "Senior DevOps",
+  "conditional_roles": [
     "Senior Security Sandbox Engineer",
-    "Senior Documentation Engineer"
+    "Senior DevOps",
+    "Senior Documentation Engineer",
+    "Console/status UI reviewer",
+    "independent Issue Completion Auditor"
   ],
-  "qualityCommands": [
-    "git diff --check",
-    "python3 tools/quality_gate.py quality"
-  ],
-  "governingFileHashes": {
-    "AGENTS.md": "bc0e6e0c09ac3d61a450a7fe16c3e4de9e6fbb8bdc688aad58f10a3d18b31041",
-    "QUALITY.md": "7097ff31c68f178fe685c1d7d5cbc18c257a7cf5d2f727979fb2b5ab9c029c7e",
-    ".importlinter": "84889a873b58e60f24d3e9eb2a574f20c41e7a926f22eab8dfce73b51dd401e1",
+  "quality_commands": {
+    "authoring": [
+      "git diff --check"
+    ],
+    "execution": [
+      "python3 modules/tsw_core/tools/linux/quality_gate.py quality"
+    ]
+  },
+  "authoring_full_quality": "NOT_RUN_DOC_ONLY: no production/tests/CI/ADR behavior changes",
+  "governing_file_sha256": {
+    "AGENTS.md": "7ef531da1ca1473e85f19f6cc83c20cb08d50e3cc03f2d4f97b486dd184b81d2",
+    "QUALITY.md": "563dd204682f8bcacdd51a1b7316bf21b72d01b8d3cfc1a57221a6a3dea23395",
+    ".agents/skills/workflow-authoring/SKILL.md": "16db196cebd38d278422394ae3681db347e8fb9f5dd7520c43b983d667e1ae48",
+    ".agents/skills/workflow-executor/SKILL.md": "74189be9b216d9839ba5037dd5da25f9cc6507b0cd4215c65e0dc35327801aaf",
+    ".agents/skills/execution-profile-router/SKILL.md": "da3897d5757483d991a4151f166cd760174a29b539418ee252e1776fd4ff83e8",
+    ".agents/orchestrator/routing-rules.md": "13c5329d075227a16dcfba7ccfaba236bd1faa419dc697cbd3817e7074324caa",
+    "documentation/handbook/05-development/process/workflow-create.md": "fd3d6fc1aa6ffb34d5383f457059311da7789ffa954b9e16b73072cfefc947f1",
+    "documentation/handbook/05-development/process/workflow-execute.md": "16c383eb9f3d5011302b7f3ca0746b2f558a69b9ce520d3c2444d778b95ac94e",
     "documentation/handbook/05-development/process/issue-completion-discipline.md": "3db2d080b7cfbbc3737907a61c67ce6a361485c8993cf4a20c1c5fe2dc743bc3",
-    "documentation/handbook/05-development/process/verification-state-policy.md": "5b6e2eefde66a1b8492afafc2976e59ac40f16e7100f79f730b97b254febdcfd",
-    "documentation/handbook/05-development/process/workflow-create.md": "5df5fb70ddc25ef2d8ad2129590e780bfee610521860fb0991e57c38dab3542f",
-    "documentation/handbook/05-development/process/branch-governance.md": "1472428b96f84aacb988d55a06c310dca38b64dc12c146c4f5d81dafb1e8375c",
-    ".agents/orchestrator/routing-rules.md": "3accea3112bc207eda96e02b3fe4831b79669f7c8f6a5668f577fca7d0fed050",
-    ".agents/skills/workflow-authoring/SKILL.md": "5733f64086f113d578544b4d2d0297554237296adf0dc2df5ebe641e50dec9e5",
-    ".agents/skills/execution-profile-router/SKILL.md": "45cf509082e3d9036379228a4c1a195cb22a05f11487e10a5c4000e8aad9608e",
-    ".agents/skills/three-amigos-requirement-gatekeeper/SKILL.md": "76659e618cb706e8990cdf44441aeaed219465044175826adca5357ae8acc5b4",
-    "documentation/handbook/02-architecture/arc42/05_analysis/arch-03-02-layer-contracts.md": "c5d197593c44a06fc6310f7209be7d22352c679380f7964e4ca6ddf04facee3a",
-    "documentation/handbook/02-architecture/arc42/05_analysis/arch-03-08-platform-lifecycle-orchestrator.md": "e4494f2f5ac312a1d464b1dada96bc298fd982a1d13e137f21ca41cb29f6b37f",
-    "documentation/handbook/02-architecture/arc42/05_analysis/arch-03-11-process-execution.md": "9fe907db4b9c420e49539f8348dd3463179de1d273db12060f966e06c0392b77",
-    "documentation/handbook/02-architecture/arc42/09_decisions/adr-classic-update-contract.adoc": "50fab597b07c8eb15bc839df7283214d7dc72e01f096f0e18fba021772a841d2",
-    "documentation/handbook/02-architecture/arc42/09_decisions/adr-installer-console-reporting-policy.adoc": "f510c8470d57b7b763496db5ddef93b167276adf9c78958394c8b0a75a8bdf8c",
-    "documentation/handbook/02-architecture/arc42/09_decisions/adr-explicit-operation-results.adoc": "cf4f969e59f176ebee038d857edf49507e418ccf17ff6bbda2f2515721c54bd9",
-    "documentation/handbook/02-architecture/arc42/05_analysis/arch-03-12-operation-results.md": "a64120ddebaf15531e55724338205b43ff95c7b01a11458151bff63104898a22",
-    "documentation/handbook/05-development/workflow/workflow.md": "801dae75157413714a418e15c3f62aa07105639befae304d987863b0f0695707",
-    "documentation/handbook/05-development/workflow/requirement-matrix.md": "f8848259109f6845d970a8502f5074138af2588a1344a59a95bff5216cc34c76",
-    "documentation/handbook/05-development/workflow/authoring-review.md": "21a9b5aa5635e080e41be82643cb22f67ce47713d6f51b5febec0904f44f5080",
-    "documentation/handbook/05-development/workflow/lifecycle-failure-inventory.md": "50db2c0767d30e8bf75939035f0a09dfe0fdb4553432f2751a746f9ed5e22ee8"
-  }
+    "documentation/handbook/05-development/process/verification-state-policy.md": "9824bbb923173d9498a2fd28fc24222cde5e752e86b9899380f288a7a31cce3d",
+    "documentation/handbook/02-architecture/arc42/05_building_blocks.adoc": "c14248deef0c0ed35eedb15e39b48df09c30ada5c150ee4a7911cd1bd09aa18e",
+    "documentation/handbook/02-architecture/arc42/06_runtime_view.adoc": "96b814c30fd15551949590722bf53df875059060fe9a96a69792e4cb54a95722",
+    "documentation/handbook/02-architecture/arc42/07_deployment_view.adoc": "1ab37114288bf3f37fdf6507639804496fde9f8daa5e93622dfa2f40106e42ac",
+    "documentation/handbook/02-architecture/arc42/09_decisions/adr-installation-scoped-incus-profile.adoc": "23c45b5e89584e9754a3ad0787a8d9f9a6db2c162a3de7dabb11e17b97ae1d08",
+    "documentation/handbook/02-architecture/arc42/09_decisions/adr-classic-product-component-lifecycle.adoc": "92e2e2695f6254b43b73cc4e30f688b7932dcdc138c8a6e1592a16bc0bd506cd",
+    "documentation/handbook/05-development/workflow/workflow.md": "6a964c576138d37bf5b90425b14631f30a7e49eac36e38f1d3ddee194bcd4e0c",
+    "documentation/handbook/05-development/workflow/requirement-matrix.md": "76dd3d94daf14803e62e695fc601673518549f058274a3cd2498b9f7fdacbbaa",
+    "documentation/handbook/05-development/workflow/requirements.json": "e9931f6b6da88900008a0772c8d26465a8d54cfa1ff4efced3af34b13bac9c4a",
+    "documentation/handbook/05-development/workflow/scenario-plan.md": "dca9528a37e6900d4e89308422871350cf6ba0337bb534f91500e15d59963875",
+    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "6e7cf3c3fcb774a9e26bee0f3bc0476db29d2a8b8aed6ee6f6da76b4f8a30c99",
+    "documentation/handbook/05-development/workflow/workflow.index.md": "7f3264e2cb46371be4f05851706e4a9f02fa30b5591428d6edce339d93a79ea4"
+  },
+  "issue_body_sha256": "2436a9769bc3fb02fef646ad8a867a2183d5f8822c3b6a8b7c93bfdb14abced0",
+  "staleness_rule": "Refresh on any governing hash mismatch, governance edit, issue acceptance change or detected conflict. This pack is navigation, never source of authority.",
+  "slice_ids": [
+    "S440-01",
+    "S440-02",
+    "S440-03",
+    "S440-04",
+    "S440-05",
+    "S440-06",
+    "S440-07",
+    "S440-08",
+    "S440-09",
+    "S440-10",
+    "S440-11",
+    "S440-12"
+  ],
+  "proposed_new_source_files": [
+    "modules/tsw_core/tests/e2e/classic/run_lcm_acceptance.py",
+    "modules/tsw_core/tests/tools/test_lcm_acceptance.py"
+  ],
+  "publication_rule": "Commit and push planning branch only; final SHA/push verification in authoring evidence/handoff, no PR/merge."
 }

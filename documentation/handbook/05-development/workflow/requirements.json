@@ -1,0 +1,948 @@
+{
+  "workflow_id": "issue-440-final-acceptance",
+  "version": "1.0",
+  "issue_url": "https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440",
+  "issue_updated_at": "2026-11-08T14:31:54Z",
+  "issue_body_sha256": "2436a9769bc3fb02fef646ad8a867a2183d5f8822c3b6a8b7c93bfdb14abced0",
+  "source_baseline": "ca6902579f51c2c6d9439bf9c58dec02bfb45a93",
+  "requirements": [
+    {
+      "id": "LCM-01-01",
+      "text": "Inspect the installed TSW release/revision, effective configuration and managed runtime state.",
+      "parent_group": "LCM-01",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-05",
+        "S440-10",
+        "S440-11",
+        "S440-12"
+      ]
+    },
+    {
+      "id": "LCM-01-02",
+      "text": "Resolve an explicit target release using a defined release source and supported upgrade matrix.",
+      "parent_group": "LCM-01",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-05",
+        "S440-10",
+        "S440-11",
+        "S440-12"
+      ]
+    },
+    {
+      "id": "LCM-01-03",
+      "text": "Distinguish the TSW product version from upstream component versions and locally built image versions.",
+      "parent_group": "LCM-01",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-05",
+        "S440-10",
+        "S440-11",
+        "S440-12"
+      ]
+    },
+    {
+      "id": "LCM-01-04",
+      "text": "Validate source and target state, dependency compatibility, host support and required resources before mutation.",
+      "parent_group": "LCM-01",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-05",
+        "S440-10",
+        "S440-11",
+        "S440-12"
+      ]
+    },
+    {
+      "id": "LCM-01-05",
+      "text": "Upgrade product code/package and locked Python dependencies through the supported installation model.",
+      "parent_group": "LCM-01",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-05",
+        "S440-10",
+        "S440-11",
+        "S440-12"
+      ]
+    },
+    {
+      "id": "LCM-01-06",
+      "text": "Apply versioned configuration/state migrations in an explicit order.",
+      "parent_group": "LCM-01",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-05",
+        "S440-10",
+        "S440-11",
+        "S440-12"
+      ]
+    },
+    {
+      "id": "LCM-01-07",
+      "text": "Preserve local overrides, credential-source references, installation identity and persistent service data.",
+      "parent_group": "LCM-01",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-05",
+        "S440-10",
+        "S440-11",
+        "S440-12"
+      ]
+    },
+    {
+      "id": "LCM-01-08",
+      "text": "Keep runtime credentials out of source-control operations, logs and upgrade evidence.",
+      "parent_group": "LCM-01",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-05",
+        "S440-10",
+        "S440-11",
+        "S440-12"
+      ]
+    },
+    {
+      "id": "LCM-01-09",
+      "text": "Use a controlled checkout/package switch; do not overwrite an operator's uncommitted changes or perform an implicit reset.",
+      "parent_group": "LCM-01",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-05",
+        "S440-10",
+        "S440-11",
+        "S440-12"
+      ]
+    },
+    {
+      "id": "LCM-01-10",
+      "text": "Define interruption handling, resumability and recovery for each supported transition.",
+      "parent_group": "LCM-01",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-05",
+        "S440-10",
+        "S440-11",
+        "S440-12"
+      ]
+    },
+    {
+      "id": "LCM-01-11",
+      "text": "Record the actual resulting version and verify the complete installed service selection.",
+      "parent_group": "LCM-01",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-05",
+        "S440-10",
+        "S440-11",
+        "S440-12"
+      ]
+    },
+    {
+      "id": "LCM-02-01",
+      "text": "Report installed and desired component versions, available supported targets and compatibility restrictions.",
+      "parent_group": "LCM-02",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-05",
+        "S440-09",
+        "S440-11",
+        "S440-12"
+      ]
+    },
+    {
+      "id": "LCM-02-02",
+      "text": "Separate upstream versions, image tags and resolved image digests.",
+      "parent_group": "LCM-02",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-05",
+        "S440-09",
+        "S440-11",
+        "S440-12"
+      ]
+    },
+    {
+      "id": "LCM-02-03",
+      "text": "Support one selected service and an explicitly selected batch of installed services.",
+      "parent_group": "LCM-02",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-05",
+        "S440-09",
+        "S440-11",
+        "S440-12"
+      ]
+    },
+    {
+      "id": "LCM-02-04",
+      "text": "Resolve updates through an authoritative component catalog and profile support policy.",
+      "parent_group": "LCM-02",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-05",
+        "S440-09",
+        "S440-11",
+        "S440-12"
+      ]
+    },
+    {
+      "id": "LCM-02-05",
+      "text": "Preview the exact changes, dependency order, restart/availability impact and required migrations.",
+      "parent_group": "LCM-02",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-05",
+        "S440-09",
+        "S440-11",
+        "S440-12"
+      ]
+    },
+    {
+      "id": "LCM-02-06",
+      "text": "Reuse #297 for supported stack-service image transitions.",
+      "parent_group": "LCM-02",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-05",
+        "S440-09",
+        "S440-11",
+        "S440-12"
+      ]
+    },
+    {
+      "id": "LCM-02-07",
+      "text": "Verify deployed task-image convergence and authenticated service behavior after an update.",
+      "parent_group": "LCM-02",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-05",
+        "S440-09",
+        "S440-11",
+        "S440-12"
+      ]
+    },
+    {
+      "id": "LCM-02-08",
+      "text": "Update the persisted desired configuration after a successfully verified transition so later setup/deployment does not silently restore the old image.",
+      "parent_group": "LCM-02",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-05",
+        "S440-09",
+        "S440-11",
+        "S440-12"
+      ]
+    },
+    {
+      "id": "LCM-02-09",
+      "text": "Represent no-op, unsupported, blocked, failed, partial and recovered outcomes explicitly.",
+      "parent_group": "LCM-02",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-05",
+        "S440-09",
+        "S440-11",
+        "S440-12"
+      ]
+    },
+    {
+      "id": "LCM-02-10",
+      "text": "Do not update uninstalled or unselected services implicitly.",
+      "parent_group": "LCM-02",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-05",
+        "S440-09",
+        "S440-11",
+        "S440-12"
+      ]
+    },
+    {
+      "id": "LCM-02-11",
+      "text": "Document stateful-service migration, backup and downgrade restrictions; an image rollback is not a persistent-data restore.",
+      "parent_group": "LCM-02",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-05",
+        "S440-09",
+        "S440-11",
+        "S440-12"
+      ]
+    },
+    {
+      "id": "LCM-03-01",
+      "text": "Inspect the current Portainer version, deployment mode, persistent state and endpoint connectivity.",
+      "parent_group": "LCM-03",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-04",
+        "S440-05",
+        "S440-06",
+        "S440-07",
+        "S440-08",
+        "S440-11",
+        "S440-12"
+      ]
+    },
+    {
+      "id": "LCM-03-02",
+      "text": "Define and test at least one supported source-to-target upgrade.",
+      "parent_group": "LCM-03",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-04",
+        "S440-05",
+        "S440-06",
+        "S440-07",
+        "S440-08",
+        "S440-11",
+        "S440-12"
+      ]
+    },
+    {
+      "id": "LCM-03-03",
+      "text": "Back up the required Portainer state and document compatible recovery boundaries.",
+      "parent_group": "LCM-03",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-04",
+        "S440-05",
+        "S440-06",
+        "S440-07",
+        "S440-08",
+        "S440-11",
+        "S440-12"
+      ]
+    },
+    {
+      "id": "LCM-03-04",
+      "text": "Preserve administrative access, endpoint registration and managed stack ownership.",
+      "parent_group": "LCM-03",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-04",
+        "S440-05",
+        "S440-06",
+        "S440-07",
+        "S440-08",
+        "S440-11",
+        "S440-12"
+      ]
+    },
+    {
+      "id": "LCM-03-05",
+      "text": "Verify the Portainer API and authenticated access, then prove that a managed deployment/update still works.",
+      "parent_group": "LCM-03",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-04",
+        "S440-05",
+        "S440-06",
+        "S440-07",
+        "S440-08",
+        "S440-11",
+        "S440-12"
+      ]
+    },
+    {
+      "id": "LCM-03-06",
+      "text": "Recover without depending exclusively on an unavailable Portainer API.",
+      "parent_group": "LCM-03",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-04",
+        "S440-05",
+        "S440-06",
+        "S440-07",
+        "S440-08",
+        "S440-11",
+        "S440-12"
+      ]
+    },
+    {
+      "id": "LCM-03-07",
+      "text": "Keep Incus host-package upgrades separate from service-image updates; define their ownership and reject unsupported requests explicitly.",
+      "parent_group": "LCM-03",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-04",
+        "S440-05",
+        "S440-06",
+        "S440-07",
+        "S440-08",
+        "S440-11",
+        "S440-12"
+      ]
+    },
+    {
+      "id": "LCM-04-01",
+      "text": "Provide a canonical catalog of service IDs with versions, dependencies, resource requirements and profile support.",
+      "parent_group": "LCM-04",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-04",
+        "S440-06",
+        "S440-07",
+        "S440-10",
+        "S440-11",
+        "S440-12"
+      ]
+    },
+    {
+      "id": "LCM-04-02",
+      "text": "Let operators select optional services through CLI/configuration and persist the resolved selection.",
+      "parent_group": "LCM-04",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-04",
+        "S440-06",
+        "S440-07",
+        "S440-10",
+        "S440-11",
+        "S440-12"
+      ]
+    },
+    {
+      "id": "LCM-04-03",
+      "text": "Keep **Incus/LXC and Portainer mandatory for Classic**; attempts to disable either must fail before mutation with an actionable explanation.",
+      "parent_group": "LCM-04",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-04",
+        "S440-06",
+        "S440-07",
+        "S440-10",
+        "S440-11",
+        "S440-12"
+      ]
+    },
+    {
+      "id": "LCM-04-04",
+      "text": "Treat Incus as a host/provider prerequisite and Portainer as a managed foundation; mandatory status does not imply that the installer already provisions the host Incus daemon.",
+      "parent_group": "LCM-04",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-04",
+        "S440-06",
+        "S440-07",
+        "S440-10",
+        "S440-11",
+        "S440-12"
+      ]
+    },
+    {
+      "id": "LCM-04-05",
+      "text": "Resolve transitive dependencies deterministically. Show dependencies added to the requested selection and the reason for each.",
+      "parent_group": "LCM-04",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-04",
+        "S440-06",
+        "S440-07",
+        "S440-10",
+        "S440-11",
+        "S440-12"
+      ]
+    },
+    {
+      "id": "LCM-04-06",
+      "text": "Document any additional unavoidable dependencies in the current implementation rather than claiming that every remaining service can already be omitted.",
+      "parent_group": "LCM-04",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-04",
+        "S440-06",
+        "S440-07",
+        "S440-10",
+        "S440-11",
+        "S440-12"
+      ]
+    },
+    {
+      "id": "LCM-04-07",
+      "text": "Preflight only the resources, credentials, artifacts and capabilities needed for the resolved service set and mandatory foundations.",
+      "parent_group": "LCM-04",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-04",
+        "S440-06",
+        "S440-07",
+        "S440-10",
+        "S440-11",
+        "S440-12"
+      ]
+    },
+    {
+      "id": "LCM-04-08",
+      "text": "Install, route, display and verify only the resolved services.",
+      "parent_group": "LCM-04",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-04",
+        "S440-06",
+        "S440-07",
+        "S440-10",
+        "S440-11",
+        "S440-12"
+      ]
+    },
+    {
+      "id": "LCM-04-09",
+      "text": "Support a subsequent request to add optional services to an existing installation.",
+      "parent_group": "LCM-04",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-04",
+        "S440-06",
+        "S440-07",
+        "S440-10",
+        "S440-11",
+        "S440-12"
+      ]
+    },
+    {
+      "id": "LCM-04-10",
+      "text": "Preview removals separately; deselection must not silently delete deployed services or persistent data.",
+      "parent_group": "LCM-04",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-04",
+        "S440-06",
+        "S440-07",
+        "S440-10",
+        "S440-11",
+        "S440-12"
+      ]
+    },
+    {
+      "id": "LCM-04-11",
+      "text": "Use the same persisted selection for setup, reconcile, update and verification.",
+      "parent_group": "LCM-04",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-04",
+        "S440-06",
+        "S440-07",
+        "S440-10",
+        "S440-11",
+        "S440-12"
+      ]
+    },
+    {
+      "id": "LCM-04-12",
+      "text": "Do not conflate service selection with runtime/orchestrator selection.",
+      "parent_group": "LCM-04",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-04",
+        "S440-06",
+        "S440-07",
+        "S440-10",
+        "S440-11",
+        "S440-12"
+      ]
+    },
+    {
+      "id": "LCM-05-01",
+      "text": "Current-state inspection and supported-transition validation.",
+      "parent_group": "LCM-05",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-03",
+        "S440-04",
+        "S440-05",
+        "S440-08",
+        "S440-09",
+        "S440-10",
+        "S440-11",
+        "S440-12"
+      ]
+    },
+    {
+      "id": "LCM-05-02",
+      "text": "A read-only preview with exact targets and planned changes.",
+      "parent_group": "LCM-05",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-03",
+        "S440-04",
+        "S440-05",
+        "S440-08",
+        "S440-09",
+        "S440-10",
+        "S440-11",
+        "S440-12"
+      ]
+    },
+    {
+      "id": "LCM-05-03",
+      "text": "Explicit live-operation intent through existing consent boundaries.",
+      "parent_group": "LCM-05",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-03",
+        "S440-04",
+        "S440-05",
+        "S440-08",
+        "S440-09",
+        "S440-10",
+        "S440-11",
+        "S440-12"
+      ]
+    },
+    {
+      "id": "LCM-05-04",
+      "text": "Ordered execution with bounded waits and per-stage results.",
+      "parent_group": "LCM-05",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-03",
+        "S440-04",
+        "S440-05",
+        "S440-08",
+        "S440-09",
+        "S440-10",
+        "S440-11",
+        "S440-12"
+      ]
+    },
+    {
+      "id": "LCM-05-05",
+      "text": "Post-operation verification tied to the actual deployed state.",
+      "parent_group": "LCM-05",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-03",
+        "S440-04",
+        "S440-05",
+        "S440-08",
+        "S440-09",
+        "S440-10",
+        "S440-11",
+        "S440-12"
+      ]
+    },
+    {
+      "id": "LCM-05-06",
+      "text": "A documented failure/recovery path and redacted evidence.",
+      "parent_group": "LCM-05",
+      "status": "TO_RECONCILE",
+      "verification": "Map to exact implementation/test/system artifacts in S440-01; no success inferred from this plan.",
+      "slices": [
+        "S440-01",
+        "S440-03",
+        "S440-04",
+        "S440-05",
+        "S440-08",
+        "S440-09",
+        "S440-10",
+        "S440-11",
+        "S440-12"
+      ]
+    }
+  ],
+  "parent_criteria": [
+    {
+      "id": "P01",
+      "text": "Historical product release 0.4.0 → 0.5.0",
+      "baseline_status": "VERIFIED (historical bounded scope)",
+      "slices": [
+        "S440-10",
+        "S440-12"
+      ],
+      "evidence_gap": "Retain accepted Q14/Q15; only remaining current-candidate variants need qualification."
+    },
+    {
+      "id": "P02",
+      "text": "Single and selected-batch component updates",
+      "baseline_status": "OPEN",
+      "slices": [
+        "S440-05",
+        "S440-09",
+        "S440-11",
+        "S440-12"
+      ],
+      "evidence_gap": "Current Swagger/Traefik targets are candidates; live convergence and persisted desired pins required."
+    },
+    {
+      "id": "P03",
+      "text": "Real Portainer upgrade and subsequent managed deployment",
+      "baseline_status": "OPEN",
+      "slices": [
+        "S440-04",
+        "S440-06",
+        "S440-07",
+        "S440-08",
+        "S440-12"
+      ],
+      "evidence_gap": "Native history retained; attributable WSL upgrade, cold backup and API-down recovery required."
+    },
+    {
+      "id": "P04",
+      "text": "Minimal and two distinct optional resolved selections",
+      "baseline_status": "PARTIAL",
+      "slices": [
+        "S440-04",
+        "S440-06",
+        "S440-07",
+        "S440-10",
+        "S440-12"
+      ],
+      "evidence_gap": "Reconcile historical cases; qualify missing exact-current-source selections."
+    },
+    {
+      "id": "P05",
+      "text": "Mandatory foundation and unsupported-combination refusal",
+      "baseline_status": "PARTIAL",
+      "slices": [
+        "S440-01",
+        "S440-04",
+        "S440-10",
+        "S440-12"
+      ],
+      "evidence_gap": "W03 regression acceptance retained; remaining entrypoint/host cases required."
+    },
+    {
+      "id": "P06",
+      "text": "Optional-service add preserves identity, data and credentials",
+      "baseline_status": "PARTIAL",
+      "slices": [
+        "S440-04",
+        "S440-10",
+        "S440-12"
+      ],
+      "evidence_gap": "Exact WSL preservation and retention evidence remains incomplete."
+    },
+    {
+      "id": "P07",
+      "text": "Routes, access output and verification match persisted selection",
+      "baseline_status": "PARTIAL",
+      "slices": [
+        "S440-04",
+        "S440-10",
+        "S440-11",
+        "S440-12"
+      ],
+      "evidence_gap": "Full-service browser checks are bounded evidence; omitted-service cases remain."
+    },
+    {
+      "id": "P08",
+      "text": "Every mutating entrypoint help, syntax, preview and consent",
+      "baseline_status": "PARTIAL",
+      "slices": [
+        "S440-01",
+        "S440-03",
+        "S440-04",
+        "S440-05",
+        "S440-10",
+        "S440-11",
+        "S440-12"
+      ],
+      "evidence_gap": "Complete public CLI/recovery/checkpoint matrix; no direct-adapter substitute."
+    },
+    {
+      "id": "P09",
+      "text": "No-op, interruption, partial failure and recovery",
+      "baseline_status": "PARTIAL",
+      "slices": [
+        "S440-03",
+        "S440-04",
+        "S440-05",
+        "S440-08",
+        "S440-09",
+        "S440-10",
+        "S440-12"
+      ],
+      "evidence_gap": "Historical product Q15 retained; component and attributable WSL Portainer gaps remain."
+    },
+    {
+      "id": "P10",
+      "text": "Explicit unsupported downgrade/migration rejection",
+      "baseline_status": "PARTIAL",
+      "slices": [
+        "S440-01",
+        "S440-08",
+        "S440-09",
+        "S440-10",
+        "S440-11",
+        "S440-12"
+      ],
+      "evidence_gap": "No image rollback presented as data restore."
+    },
+    {
+      "id": "P11",
+      "text": "Visible configuration/runtime drift; no false success",
+      "baseline_status": "PARTIAL",
+      "slices": [
+        "S440-02",
+        "S440-03",
+        "S440-04",
+        "S440-08",
+        "S440-09",
+        "S440-10",
+        "S440-12"
+      ],
+      "evidence_gap": "Wrong/mixed tasks, dirty/moved/unknown sources and stale checkpoints require attributable results."
+    },
+    {
+      "id": "P12",
+      "text": "Exact cross-host versions, source, selection and redacted evidence",
+      "baseline_status": "PARTIAL",
+      "slices": [
+        "S440-01",
+        "S440-05",
+        "S440-06",
+        "S440-07",
+        "S440-08",
+        "S440-09",
+        "S440-10",
+        "S440-11",
+        "S440-12"
+      ],
+      "evidence_gap": "Native and WSL deployments remain separate; historical source bindings preserved."
+    },
+    {
+      "id": "P13",
+      "text": "Architecture, targeted tests and applicable quality/security gates",
+      "baseline_status": "BLOCKED",
+      "slices": [
+        "S440-02",
+        "S440-03",
+        "S440-04",
+        "S440-05",
+        "S440-07",
+        "S440-09",
+        "S440-11",
+        "S440-12"
+      ],
+      "evidence_gap": "Main Python/coverage gates pass; actual Sonar security/reliability ratings E remain."
+    },
+    {
+      "id": "P14",
+      "text": "Verified operator documentation and truthful support limits",
+      "baseline_status": "PARTIAL",
+      "slices": [
+        "S440-01",
+        "S440-09",
+        "S440-11",
+        "S440-12"
+      ],
+      "evidence_gap": "Candidate wording corrected in #518; complete example verification/reconciliation pending."
+    },
+    {
+      "id": "P15",
+      "text": "Independent final requirement/architecture/evidence review",
+      "baseline_status": "OPEN",
+      "slices": [
+        "S440-12"
+      ],
+      "evidence_gap": "No independent parent PASS; authoring role reviews do not close the Epic."
+    }
+  ],
+  "late_additions": [
+    "A440-01",
+    "A440-02",
+    "A440-03",
+    "A440-04"
+  ],
+  "global_obligations": [
+    "G440-01",
+    "G440-02",
+    "G440-03",
+    "G440-04",
+    "G440-05"
+  ]
+}
