@@ -209,7 +209,7 @@ repeat/recovery evidence is required in the corresponding Q rows.
 | G440-02 | Initial Classic only; #297 reuse, existing #313/#314/#318 ownership and contracts; no competing catalog/orchestration model or unrelated runtime expansion | S440-01,04,05,12 | Architecture boundary and owner review |
 | G440-03 | Product/package, upstream version, local image/tag and resolved digest remain distinct; real task/authenticated service state establishes success | S440-08,09,10,11 | Exact source-to-target and observed-state evidence |
 | G440-04 | Proposed one-token commands in the parent are not shipped promises; use accepted two-token CLI and preserve platform update compatibility | S440-01,05,11 | Inspect actual parser/entrypoint/tests; no invented command claims |
-| G440-05 | Scenario-specific live authorization, qualified recoverable targets, source-bound results; missing/stale/simulated evidence is non-pass | All live slices | Separate consent, prerequisite, result and retention states |
+| G440-05 | Scenario-specific live authorization, qualified recoverable targets, source-bound results; missing/stale/simulated evidence must never count as verified | All live slices | Separate consent, prerequisite, result and retention states |
 
 ## Implementation and verification evidence to fill before completion
 

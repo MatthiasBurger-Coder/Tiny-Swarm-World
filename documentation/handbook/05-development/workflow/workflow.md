@@ -117,7 +117,7 @@ against a native host do not qualify a deployment inside WSL.
 Run meaningful targeted regressions first, then the canonical gate for changed
 runtime source. Use fake effects/temp files by default. Live/scenario evidence
 requires separately admitted, recoverable targets and explicit applicable consent.
-Record missing consent/prerequisites as the exact non-pass verification state;
+Missing consent or prerequisites must never count as verification; record the applicable blocked verification state.
 do not reinterpret workflow create as live approval. Preserve existing explicit
 authorization only when its exact target, action and scenario still apply.
 

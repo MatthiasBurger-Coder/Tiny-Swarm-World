@@ -10,3 +10,5 @@ Tests: five targeted CLI suites on isolated SSH PC Ubuntu WSL 07cc4115 checkout,
 Sonar: source baseline has actual path traversal, cancellation and two probable strict-type false-positive findings; remediation/adjudication remains S02/S03 work. No scanner rule, gate or external issue state changed here.
 Independent checkpoint audit: s01_requirement_review ACCEPT after inspecting the final inventory; all 47 LCM IDs, 15 P rows and 45 exact child AC texts verified, current hashes confirmed, supported-reader and PARTIAL/live limitation retained.
 Final integration decision: ACCEPT bounded PARTIAL inventory checkpoint. Parent #440 INCOMPLETE; approved-live-fixture requirement remains open. Continue S440-02/03 deterministic work under the explicit existing continuation rule, then preserve downstream live admission gates.
+
+Policy follow-up: S03 full gate exposed DOC_GOVERNANCE_FAILURE in two S01 workflow phrases using non-pass. Clarified explicit never-count-as-verified wording without changing checker, thresholds or semantics. Dedicated SSH/WSL verification-policy rerun PASS, retry 1/3. This follow-up remains scoped to S440-01 documentation.
