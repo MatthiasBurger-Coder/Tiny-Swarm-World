@@ -1,0 +1,580 @@
+= Native Linux E2E on 9 and 10 November 2026
+
+Service acceptance: `LIVE_VERIFIED` on 10 November 2026, with 17 live tests
+passing and no failures, errors or skips. Target: native Ubuntu 26.04 at
+`192.168.178.33`, using its existing LXD workloads.
+The current Incus installation path remains blocked; this run does not qualify
+that installation path or a clean installation.
+The operator selected the existing native target for a complete service E2E.
+
+== Candidate and execution boundary
+
+* Source: `eaf38a1d6df23e5a7a2fedf173b08d439dee5792`.
+* Source archive SHA-256: `ee6bd0107eedd79d216e94856773ecdfb487bfb3da62542e7ceabebeef1b2113`.
+* Product correction: executable Git modes for
+  `modules/tsw_native_linux/boostrap/prepare_linux.sh` and
+  `modules/tsw_native_linux/boostrap/install.sh`; file contents are unchanged.
+* Corrected archive SHA-256: `dac3ed9bbd1ffa5605542102d4971670ecd4fbfae59a1af6a0d4680cf78b922a`.
+  This archive predates the subsequent E2E checker corrections below.
+* Follow-up checker changes preserve the selected Pulsar Manager HTTP authority
+  and recognize the services' explicit unknown-user rejection messages.
+  Tested file SHA-256 values:
+  `browser_e2e_contract.py`: `846cbf2e750f78ea81f74608a0fbb5d356b87003ff05939d720ccc4b5291e2b2`;
+  `test_post_install_browser_live.py`: `439613ea87cd8f2fc9d2a5e9bdf294b84d8fbd9f4444ac049f946d06a32e18f5`.
+* Browser/API execution: SSH to `pc@192.168.178.58`, Ubuntu WSL,
+  Python 3.12, installed candidate package, Selenium and Firefox 158.
+* Deployment inventory, read-only preparation preflight and the bounded TLS
+  repair execute on the selected native target.
+* Cross-host test adapter: process-local DNS for `*.tsw.local`, isolated Firefox
+  NSS profiles, explicit native HTTPS API endpoints and an authenticated SSH
+  tunnel to the native manager's real diagnostic dashboard. Global WSL DNS and trust
+  are unchanged. This is an adapted execution of existing test methods, not an
+  unchanged invocation of the default local post-install suite.
+
+== Requirement and evidence matrix
+
+[cols="1,3,4,2",options="header"]
+|===
+|ID |Required outcome |Observed evidence |State
+|N01 |Shipped native entrypoints execute from a fresh Linux archive
+|Original archive returned exit 126 for preparation. Corrected archive on
+WSL passes executable-mode checks, byte comparisons and both public help commands.
+|VERIFIED for the mode correction
+|N02 |Current native preparation and installation complete
+|Preparation returns exit 1 because LXD is active. No host packages are changed
+by preparation. Existing workloads have not been migrated to Incus.
+|BLOCKED
+|N03 |Service HTTPS works without disabling certificate verification
+|Traefik now uses the existing CA-signed server certificate and matching key.
+Native system-trust request to Service Access returns HTTP 200. Browser/API
+attempt 5 passes the existing HTTPS route assertions for all nine configured routes.
+|VERIFIED for HTTPS route responses
+|N04 |Required browser and API authentication succeeds
+|The 10 November run passes all nine browser routes and all eight canonical
+post-install checks. All seven credential-backed APIs reject an invalid login
+and verify an authenticated protected read. Required Infisical items are complete.
+|VERIFIED for the existing service installation
+|N05 |Existing workload state is preserved
+|No provider instance, application volume, account or existing Swarm secret was removed.
+Individual Docker tasks were restarted as documented; recovery helpers were ephemeral.
+All three existing LXD Swarm nodes remain Ready/Active. This is not a full
+application-data-integrity or restart-persistence qualification.
+|PARTIAL
+|N06 |Service Access is available on the native desktop
+|CA installed in the system trust store and the user's Chrome NSS store;
+Chrome launched the Service Access URL in the active GNOME session and remains
+running. Native HTTPS returns 200. Desktop pixels were not independently captured.
+|PARTIAL
+|===
+
+The requirement, architecture, automation and evidence review used role passes
+in one execution thread; no independent reviewer or issue closure is claimed.
+
+== Existing provider and migration boundary
+
+The existing workloads use LXD 5.21.9 and its ZFS pool. Incus 6.0.5 is installed,
+but the default project has no workload instances. Incus also has existing
+profiles, a storage pool, networks and qualification projects; an empty
+default-project instance listing is not an empty-server proof.
+The all-projects inventory includes a stopped `swarm-manager` in
+`issue447-20261024`; this qualification instance was not modified.
+
+Observed LXD node limits are 4 GiB / 2 CPU for the manager, 8 GiB / 2 CPU for
+worker 1, and 2 GiB / 1 CPU for worker 2. These differ from the current shipped
+node configuration. Migration must explicitly resolve provider ownership,
+network/storage mapping, node-resource selection, backups and rollback.
+No LXD shutdown, migration or Incus-resource deletion was performed.
+
+Provider-transition review: `REQUIRES_REFINEMENT`. Before a cutover, identify
+ownership of every existing Incus project/resource, capture consistent LXD and
+application backups with a verified restoration procedure, select explicit
+network/storage and resource mappings, and establish a maintenance window.
+Keep the old runtime and original data recoverable until Incus node identity,
+Swarm membership, persistent volumes and authenticated service checks pass.
+The next installer run must reconcile the reviewed resources rather than create
+a second independent Swarm alongside the existing one.
+
+== Bounded TLS repair and rollback
+
+Traefik originally served a self-signed wildcard certificate with `CA:TRUE`.
+The protected state directory instead contained a valid server certificate
+with `CA:FALSE`, signed by the local TSW CA. Its public key matches the existing
+private key. The initial test runs retain the certificate failures.
+
+Only the Traefik service's two TLS secret references were changed to new,
+versioned secrets. Their mount targets remain `tsw_traefik_tls_cert` and
+`tsw_traefik_tls_key`. The update completed; the original secrets remain present.
+The public CA was installed in native system trust and Chrome NSS. The NSS
+database files were backed up before import. `libnss3-tools` was installed for
+that import. No application password was reset.
+
+Protected native rollback files are under
+`~/tsw-native-e2e-eaf38a1-20261109/private/traefik-tls-before/` and
+`~/tsw-native-e2e-eaf38a1-20261109/private/chrome-nss-before/`.
+Restore the original Traefik secret sources with their original mount targets
+to reverse the service change. Remove only the added named CA entries to reverse
+trust changes; do not replace a subsequently modified browser database blindly.
+
+== Swagger redirect repair
+
+The deployed Swagger NGINX configuration lacked the current source's
+`absolute_redirect off;`. Its root response redirected browsers to
+`http://swagger.tsw.local:8084/status`, an internal HTTP port. The deployed file
+was compared with the candidate and differed only by that directive.
+
+The previous file was retained at
+`~/tsw-native-e2e-eaf38a1-20261109/private/swagger-default-before.conf`.
+The exact candidate configuration was copied to the existing bind-mount source.
+NGINX validation and reload succeeded. This restores the existing Swagger API
+`/status` contract; it does not turn that empty API response into Swagger UI.
+Restore the retained configuration and reload NGINX to reverse this repair.
+
+== Initial bounded test results
+
+[cols="3,1,4",options="header"]
+|===
+|Check |Result |Evidence scope
+|All nine HTTPS routes |PASS |Attempt 5, existing post-install HTTPS route test
+|Jenkins browser login |PASS |Attempt 4, negative login, positive login and same-browser identity
+|Service Access browser |PASS |Attempt 4, routed page navigation
+|Swagger browser |PASS |Attempt 5, corrected HTTPS navigation to the API status endpoint
+|Pulsar admin API |PASS |Attempt 3, configured token required and accepted
+|Nexus, Portainer and SonarQube browser login |FAIL |Attempt 4, application login assertions
+|Infisical and Pulsar Manager browser login |FAIL |Attempt 3, explicit negative-login rejection was not established
+|Infisical inventory/bootstrap, SonarQube and Pulsar Manager managed credentials
+|FAIL |Attempt 3, existing authenticated API assertions
+|Unchanged local-dashboard API test |BLOCKED |The cross-host adapter supplied a routed URL where the default suite requires localhost; this adapter error is not evidence of an application failure
+|===
+
+The custom adapter originally appended temporary profile arguments to a reused
+Firefox options object. That caused session creation failures in attempt 3.
+The adapter was corrected to create fresh options per browser; attempt 4 reran
+the affected browser checks. Those adapter failures are not product regressions.
+Attempt 5 runs only the repaired Swagger browser check and the nine-route HTTPS
+check: two tests, zero failures, zero errors and zero skips. Its success label
+is restricted to those two checks, not the overall environment.
+
+== Follow-up using the supplied SSH access
+
+`~/.access` supplies native and Windows SSH access. Its native password does
+not authenticate to the service admin APIs. SSH access was used to inspect
+the real application state instead of asking for another SSH credential.
+No credential values were written to commands, output or repository artifacts.
+
+Infisical's bound PostgreSQL database contained zero users, and its public
+configuration reported `initialized=false`. The first admin and organization
+were created through the existing bootstrap client. Nexus still had its
+generated initial admin password, and SonarQube still accepted its vendor
+initial admin password. Their existing initialization paths were completed
+with the protected Operator configuration. Jenkins and Pulsar Manager kept
+their existing credentials. Portainer was not reset.
+
+Consistent PostgreSQL dumps were taken before initialization. The native
+protected directory is
+`~/.local/state/tiny-swarm-world/private-backups/native-e2e-20261109/`.
+It also contains a full Portainer data archive, captured while its process was
+briefly paused and then unpaused, and its previous service specification.
+The archive includes 26 entries, uses mode 0600 and has SHA-256
+`f9a863356622aacdc3ee95ecb9e9216cce19cf266d9b042a0ab938c8cf4de1f4`.
+
+The six verified service credentials were synchronized into Infisical's
+`tiny-swarm-world` project and `local` environment. The unverified Portainer
+credential was deliberately excluded. Existing vault items are preserved.
+The subsequent runtime/configuration sync verifies 13 items; its only pending
+key is `TSW_PORTAINER_ADMIN_PASSWORD`. Infisical's encryption/auth settings and
+the two application database passwords were read from the running containers,
+without changing them or exposing their values.
+
+=== Checker corrections and validation
+
+The Pulsar Manager checker previously forced `Host: localhost:14081` even
+for a routed HTTPS URL or a selected non-default port. This produced a routing
+failure rather than an authentication result. A deterministic authority-routing
+regression test failed for both cases before the correction and passes afterward.
+
+The browser rejection checker omitted the explicit Infisical and Pulsar
+unknown-user messages. The added cases failed before adding those markers and
+pass afterward. A visible form or transport failure still does not establish
+credential rejection.
+
+The two affected static suites pass 56 tests. Ruff passes on both changed
+Python files. The broader test gate ran 3,807 tests and failed with 22 failures,
+56 errors and 37 skips; that archive-environment result is retained rather than
+reported as green. The repository-wide lint gate also encounters a syntax error
+at `modules/tsw_native_linux/tests/tools/test_native_runtime_inventory.py:3622`:
+an empty `if __name__ == '__main__':` precedes a class. The same text is present
+in the inspected HEAD; this file was not modified by this task.
+
+=== 9 November live checkpoint
+
+Attempt 6 passes 14 tests with zero failures, errors or skips: eight browser
+routes and six post-install checks. This includes Infisical, Jenkins, Nexus,
+Pulsar Manager and SonarQube browser logins, Pulsar API authentication, Service
+Access, Swagger and all nine HTTPS response assertions. The localhost dashboard
+check now uses an SSH tunnel to the actual native manager's published port,
+without substituting responses or bypassing its assertions.
+
+Portainer browser authentication and the two complete Infisical-inventory
+checks are outside that passing checkpoint. The overall state remains
+`LIVE_PARTIAL`; passing 14 selected checks is not a full-suite pass.
+
+=== 9 November Portainer recovery plan
+
+Portainer uses internal authentication and has an existing admin account.
+Its configured Operator, legacy, historical test, documented default and
+native SSH passwords did not authenticate. Existing data is retained.
+
+`portainer-recovery-plan.json` in the protected backup directory records the
+actual service, replica count, `portainer_portainer_data` volume, pinned server
+image, backup and rollback. The proposed official helper is pinned to the
+Linux amd64 manifest
+`portainer/helper-reset-password@sha256:a0c91552c33b4a5e923158c93a02a8b8aa87e80bcb99ef20b765618701f7f27b`.
+The plan temporarily stops only Portainer, captures the helper-generated
+credential privately, restarts Portainer and uses the authenticated password
+API to apply the selected Operator credential. It does not put plaintext
+passwords in process arguments. At this checkpoint, the existing-password
+change awaited explicit confirmation and had not executed.
+
+The procedure follows
+https://docs.portainer.io/advanced/reset-admin[Portainer's official recovery instructions]
+and the
+https://api-docs.portainer.io/?edition=ce&version=2.39.0[Portainer password-update API].
+
+== Approved recovery and complete service acceptance on 10 November
+
+The operator explicitly approved the prepared existing-password recovery.
+The running service image, replica count, internal authentication method and
+data-volume binding were revalidated. The approved helper image was pulled by
+digest before stopping Portainer. A fresh full data archive was captured after
+stopping the single Portainer task; the other services were not stopped.
+
+The first two attempts ended with their fresh backups restored and Portainer
+restarted. The second attempt confirmed the helper-generated login and admin
+identity and narrowed the failure to HTTP 403 during password update.
+Portainer's cookie-authenticated mutation
+requires the returned CSRF token and matching request origin. The final
+client supplies those values through the supported protocol. CSRF protection
+was not disabled, and no password-strength policy was changed.
+
+The third attempt completed at `2026-11-10T06:49:11Z`. It authenticated admin
+ID 1 with administrator role, set the existing Operator password through
+`PUT /api/users/1/passwd` with HTTP 204, and verified a fresh login using that
+password. The one existing environment and six stack identity records remained
+present across the password update. The server image stayed pinned to 2.39.2,
+and the service returned to one replica.
+
+Recovery artifacts are protected under
+`~/.local/state/tiny-swarm-world/private-backups/native-e2e-20261110/`.
+The successful attempt's full data archive contains 26 entries, is 1,085,440
+bytes and has SHA-256
+`628a002c36e9c9efd1de5c35b206d856a191f574ddd38b258f07ace9b5bbe9db`.
+The failed attempts and rollback records are retained separately. The helper
+ran with Docker logging disabled; its temporary credential remained in memory
+and was not written to process arguments, tool output or logs.
+
+The verified Portainer password was added to Infisical. Its required inventory
+now reports no missing service items, 11 present password/token entries and
+zero missing entries. The two previously excluded complete Infisical checks
+pass in the complete run below.
+
+=== Complete live result
+
+`evidence-20261110-full/summary.json` records `LIVE_VERIFIED`:
+
+* Nine browser routes: Infisical, Jenkins, Nexus, Portainer, Pulsar admin API,
+  Pulsar Manager, Service Access, SonarQube and Swagger.
+* All eight canonical post-install checks, including HTTPS routing, required
+  Infisical items, managed-secret bootstrap and configured service authentication.
+* 17 tests, zero failures, zero errors and zero skips.
+* Start: `2026-11-10T06:52:50Z`; finish: `2026-11-10T06:54:57Z`.
+* Execution: Python 3.12.15 and Firefox 158.0 inside Ubuntu WSL on the required
+  Windows SSH test host; actual service target is the native Linux machine.
+* Strict browser TLS, an isolated CA/DNS profile and the authenticated diagnostic
+  dashboard tunnel; no synthetic service responses.
+* Runner SHA-256: `195c7ad7c49304f398fdbdc1ff5147cf7c951810e2b7f48bb88257fab41c1af7`.
+  The summary also binds the two checker file digests listed above.
+
+All three Swarm nodes remain Ready/Active. Application services are at their
+desired replica counts. The completed Pulsar Manager bootstrap task remains
+`0/1`, with the completion classification described above.
+
+This completes the service-level E2E acceptance of the existing native LXD
+installation. It does not turn the earlier repository-wide test/lint failures
+into passes or establish Incus installation, clean-host or reboot qualification.
+
+== Evidence and remaining work
+
+Protected WSL evidence is under
+`~/tsw-native-e2e-eaf38a1-20261109/private/`.
+Separate attempt directories retain failed runs; later results do not overwrite
+them. Browser screenshots and exception details remain protected. Credential
+values, application responses containing tokens, TLS keys and service specifications
+are excluded from repository evidence.
+
+The approved Portainer recovery and complete service/secret-inventory checks
+are finished. The later Incus rebuild described below supersedes migration of
+the existing LXD data. A completed bootstrap task reported
+as `0/1` is not itself a failed application replica; the observed Pulsar Manager
+bootstrap history reports completion.
+
+The full quality gate and an unchanged end-to-end installer run are not claimed.
+
+== Incus rebuild authorized on 10 November
+
+The operator explicitly requested complete removal of native LXD and a fresh
+Incus installation, replacing the earlier request to transfer existing data.
+At approximately `2026-11-10T07:41Z`, `snap remove --purge lxd` completed on the
+native Linux host. Its three Swarm instances and service data were removed.
+Protected inventory records are retained under
+`/var/backups/tsw-lxd-removal-20261110/`; these are metadata, not data backups.
+The pre-existing stopped Incus qualification instance in its separate project
+was preserved. The earlier 17-test result describes the removed LXD deployment
+and is historical evidence only.
+
+The checked Ubuntu WSL distribution on the Windows SSH test host uses Incus.
+Neither an `lxc` command nor an installed LXD snap was found there. Its Incus
+Swarm instances were stopped at the observation time. This observation does
+not claim inspection of every WSL distribution.
+
+The native rebuild uses a private configuration copy. The initial 4/8/2 GiB
+memory plan matched the removed installation, but the current Compose contracts
+place the application services on the manager. The first run was therefore
+interrupted deliberately after node and Swarm creation, before application
+deployment completed. Limits were adjusted to 10/4/2 GiB, leaving host headroom;
+the corresponding local desired configuration was updated before restarting
+non-destructive reconciliation at `2026-11-10T07:50:37Z`. Repository defaults
+remain unchanged. All three new Incus nodes are Ready/Active with Docker
+28.5.2; Portainer and its agents are running, and Nexus status returns HTTP 200.
+The completed installer and subsequent post-install result are recorded below.
+
+=== Reconciliation defects found during the rebuild
+
+Reapplying an already matching Docker hosted repository configuration caused
+the Nexus connector to fail with `Address already in use`; the API request
+timed out, leaving registry publication unavailable. The HTTP adapter now reads
+the current configuration and omits the update only when all managed fields
+match. Authentication, read failures and actual configuration drift still
+require their normal handling. The existing Nexus service was restarted once
+without removing its volume; status and registry endpoints then returned
+HTTP 200 and HTTP 401 respectively.
+
+A separate interrupted-publication defect appeared next: an image present in
+the manager's build cache caused publication to return without pushing it to
+the new registry. Build cache hits now skip rebuilding but still authenticate
+and push, allowing reconciliation to repair a missing registry manifest.
+
+The two adapters and their focused tests were transferred to the required
+Ubuntu WSL test checkout. All 32 tests across the Nexus HTTP adapter, Nexus
+repository contracts and LXC image publisher passed. Targeted Ruff checks
+passed. Implementation SHA-256 values deployed to native Linux match WSL:
+
+* Nexus HTTP adapter: `35bd44cdc22b5ed4584f85ace8f972d507d44e6533d89ca8b9a43aa5c9b39145`.
+* LXC image publisher: `fd454b4ac237305f3375a8861001828d49eca3a7f59bde6d6733267e06ba6165`.
+
+Each unsuccessful run retains its own protected installer evidence. The next
+non-destructive reconciliation started at `2026-11-10T07:56:59Z`.
+
+=== Native kernel / AppArmor compatibility repair
+
+PostgreSQL initially remained at its `gosu` entry point, while the Infisical
+application repeatedly reported database connection refusal. Native kernel
+audit records showed `signal` denials for `gosu` and Traefik in the new Incus
+namespaces: profile `docker-default`, peer `docker-default//&unconfined`.
+The host runs Ubuntu kernel `7.0.0-42-generic` with
+`kernel.apparmor_restrict_unprivileged_unconfined=1`.
+The observed failure matches the upstream report at
+https://github.com/containerd/containerd/issues/14485[containerd issue 14485].
+
+The Docker 28.5.2 default profile was reconstructed from its
+https://github.com/moby/moby/blob/v28.5.2/vendor/github.com/moby/profiles/apparmor/template.go[vendor template],
+retaining its existing rules and adding exactly one observed peer:
+`signal (send,receive) peer="docker-default//&unconfined",`.
+The canary was worker 1. After profile replacement and a targeted restart of
+the Infisical database service, `pg_isready` changed from no response to
+accepting connections, and Infisical became running. The same profile was then
+loaded on the manager and worker 2. AppArmor remains enforcing; neither host
+AppArmor restriction sysctl was disabled and no privileged Incus instance was
+introduced.
+
+Each node retains its baseline under `/var/backups/tsw-apparmor-20261110/`.
+The policy is stored in `/etc/apparmor.d/docker-default`; a node-local
+`tsw-docker-apparmor.service` and Docker unit dependency load it before Docker.
+This is a persistent operational compatibility exception on these three nodes,
+not an automatic installer feature or an upstream fix. Reboot behavior is not
+claimed without a reboot qualification run.
+
+* Baseline SHA-256: `e2ea03cf9654777effe014c23c057be710176deb88b44be9918acecfa2ddb56f`.
+* Repaired profile SHA-256: `8bb21c646ad3182015f7386542ca59ec87b88f9b51a620c468d39c926c931bc0`.
+* Protected operational record: `private/incus-apparmor-repair.json` in the
+  native candidate directory.
+
+=== Final operator configuration and completed Incus acceptance
+
+The managed-config scan identified one blocker in a legacy root `.env` file
+dated 8 November: a direct Traefik htpasswd assignment. That file was preserved
+as a mode-0600 file under `.tiny-swarm-world/local/`, outside the scanned source
+tree. The secret scan was not bypassed. The active default Operator file is now
+the protected `.tiny-swarm-world/local/live-installation.env` in the native
+candidate checkout. It preserves the supplied service credentials and selects
+the local 10/4/2 GiB provider configuration.
+
+SonarQube was already `UP`, but its bootstrap client defaulted to
+`localhost:12000`, which is not a published native host ingress endpoint. The
+local Operator override now selects the actual Incus manager's internal HTTP
+endpoint for that bootstrap call. User-facing SonarQube access remains routed
+HTTPS. No host-specific address was added to committed product configuration.
+
+The final native installer reconciliation returned exit code 0 at
+`2026-11-10T08:27:08Z`; deployment apply, deployment verify and platform verify
+all completed. All three Incus Swarm nodes are Ready/Active with Docker 28.5.2.
+The application services have their desired replica counts; the one-shot
+Pulsar Manager bootstrap task is `Complete`, not a failed service. The manager
+reports zero OOM events and zero OOM kills during this acceptance. The native
+desktop's existing Chrome session was used to open
+`https://service-access.tsw.local`.
+
+`evidence-20261110-incus-fresh/summary.json` records `LIVE_VERIFIED` against the
+new native Incus deployment:
+
+* Nine browser routes and all eight canonical post-install API checks passed.
+* 17 tests, zero failures, zero errors and zero skips.
+* Start: `2026-11-10T08:27:50Z`; finish: `2026-11-10T08:29:54Z`.
+* Execution: Python 3.12.15 / Firefox 158.0 in Ubuntu WSL on the required
+  Windows SSH test host, targeting the actual native services.
+* Strict browser TLS and the retained native CA; no synthetic responses.
+* Both checker digests and both repaired adapter digests are bound in the
+  summary. Runner SHA-256:
+  `7ac083803b0a96717ade95b6a84a16288cebba770e146c541ebc8c9b70adfa2e`.
+
+This result supersedes the earlier LXD service acceptance for the live target.
+It establishes the repaired native Incus deployment and its configured service
+access, including authenticated browser/API and secret-inventory checks.
+The documented AppArmor policy exception remains part of the host's operational
+state. A pristine-host run, reboot qualification and a green repository-wide
+quality gate are not claimed; the earlier broad-gate failures remain recorded.
+
+The full quality gate was rerun on the required WSL host after the adapter
+changes. Verification-policy consistency and complexity passed (413 orchestration
+modules); lint then stopped at the previously recorded empty `if __name__`
+block in `modules/tsw_native_linux/tests/tools/test_native_runtime_inventory.py`
+at line 3620. That syntax defect is present in the baseline revision and was
+not introduced by these changes. Later full-gate stages did not run. The new
+32-test focused result and the 17-test native Incus live result are independent
+executed passes; they do not make the broad gate green. The retained log is
+`private/quality-20261110-incus.log` in the WSL candidate checkout.
+
+=== Syntax repair follow-up
+
+The operator subsequently requested correction of the syntax errors. The empty,
+duplicate `if __name__ == '__main__':` before `SnapContextCliTests` was removed;
+the complete `unittest.main()` entry point at the end of the file remains.
+The repaired file's SHA-256 is
+`b295be26ceda83ff3e3e0a90b82c4b40db165b9a98f04a4f2ee03613fae5fd7e`.
+
+Executed in the required Ubuntu WSL checkout with Python 3.12.15:
+
+* AST parsing of all 1,101 versioned Python files: no syntax errors.
+* All 157 tests in `test_native_runtime_inventory`: passed in 2.135 seconds.
+* Verification-policy consistency, complexity and full lint: passed.
+
+Missing development quality tools were installed from `requirements-dev.txt`.
+The repeated full quality gate now reaches architecture lint and stops because
+its configuration refers to the nonexistent module `tiny_swarm_world.interfaces`.
+This is a separate architecture-configuration failure; the syntax blocker is
+resolved. Subsequent full-gate stages have not run in this attempt. The earlier
+17-test live Incus acceptance remains a separate executed result.
+
+Protected WSL records are `private/syntax-check-20261110.json`,
+`private/syntax-targeted-tests-20261110.log` and
+`private/quality-20261110-syntax-fix-with-tools.log`.
+
+=== Architecture configuration repair follow-up
+
+The obsolete `tiny_swarm_world.interfaces` import-linter target was replaced
+with the actual adapter package, `tiny_swarm_world.infrastructure.adapters`.
+All seven architecture contracts remain enabled. A regression test now checks
+that the configured root, source and forbidden modules exist in the current
+package layout. The responsibility-separation analysis also names the concrete
+Nexus bootstrap and composition facade files required by its documentation
+contract; that check was retained.
+
+Executed on the required Ubuntu WSL host:
+
+* New configuration-reference regression: passed.
+* Architecture lint: 612 files / 2,030 dependencies, seven contracts kept,
+  zero broken.
+* All 44 architecture tests: passed in 4.997 seconds.
+* Verification-policy consistency, complexity and full lint: passed.
+
+The full quality gate now reaches type checking. It reports 4,156 diagnostics
+across 768 files, including failures to resolve canonical `tiny_swarm_world`
+imports in the editable package layout. These are a separate unresolved
+typecheck/package-resolution result, not a remaining architecture-lint failure.
+No type diagnostic was reported for the new configuration-reference test.
+The broad test stage did not run after the failed typecheck. Protected records
+are `private/arch-lint-20261110-config-fix.log` and
+`private/quality-20261110-architecture-final.log`.
+
+
+=== Complete repair and final re-verification
+
+The operator expanded the request to fix all remaining quality-gate failures.
+The final result supersedes the earlier unresolved broad-gate statuses above.
+
+The quality runner now builds the declared package layout offline, verifies
+byte-identical inclusion of every production Python file, and checks canonical
+package imports plus all three test trees using a fresh mypy cache. Compatibility
+entry points expose their actual exports to static analysis. No type suppressions
+or reduced architecture contracts were introduced. A regression exercises real
+mypy import resolution and verifies rejection of invalid producer and consumer
+types.
+
+All stale test fixtures now use the physical module source and asset layout,
+including the native installation and Windows/WSL compatibility harnesses.
+Native install, preparation and run entry points retain executable Git modes.
+The migration-preview scanner recognizes both current value options. The LXD
+read-only diagnostic now requires the exact unit cgroup for its process-binding
+comparison; the complete Snap-wrapper proof retains its separate guarded root
+cgroup handling. Collector provenance hashes and governance hashes match their
+current source files. Existing same-name Portainer stacks still require explicit
+update authority; a dedicated regression verifies rejection without writes.
+
+Executed on `192.168.178.58` inside Ubuntu WSL:
+
+* `python modules/tsw_core/tools/linux/quality_gate.py quality`: exit 0.
+* Start: `2026-11-10T16:03:58Z`; finish: `2026-11-10T16:09:13.360740+00:00`.
+* Verification-policy consistency, complexity and lint: passed.
+* Import architecture: seven contracts kept, zero broken.
+* Architecture tests: 44 passed.
+* Typecheck: no issues in 1,051 source files.
+* Complete test discovery: 4,004 tests, zero failures, zero errors, 37 skips.
+  Those skips comprise 17 opt-in browser/API checks executed separately below,
+  18 private R46 driver cases whose artifact is absent from a source checkout,
+  one opt-in Vaultwarden integration and one unavailable cgroup namespace probe.
+* The last corrected installer contract: all 29 focused tests passed.
+
+The final live run against the native Incus installation also passed again:
+17 tests, zero failures, zero errors and zero skips. It covers all nine browser
+routes and eight authenticated API/post-install checks, with strict browser TLS.
+Start: `2026-11-10T15:59:19.749745+00:00`; finish: `2026-11-10T16:01:32.859217+00:00`.
+Runner SHA-256: `3e1d07e09864be554f79451d94979a95441d7397c13e1a3d6ebcb3ff61c8530c`.
+
+A subsequent native inventory confirmed Incus 6.0.5, no installed LXD Snap,
+three Ready/Active Swarm nodes on Docker 28.5.2, and the desired replica counts
+for all running services. The Pulsar Manager bootstrap remains `Complete`.
+All 67 changed task files and executable entry-point modes were matched against
+the local workspace on both the native candidate and the WSL test checkout.
+The final report itself is updated after testing and checked separately.
+
+Protected evidence in the WSL candidate:
+
+* `private/all-fixes-quality-final.log` and `.json`;
+  log SHA-256: `bed995cd26e54714df5f53bc3a9f1d9be249b8b5c7034c84fb86e8ce8321e1c7`.
+* `private/all-fixes-source-file-sha256.json`: exact tested task-file snapshot.
+* `private/all-fixes-declared-skips.json`.
+* `private/evidence-20261110-incus-all-fixes/summary.json`.
+
+Native operational inventory is retained as
+`private/all-fixes-native-runtime-state.json` in the native candidate.
+The exported records are retained under the operator's
+`Downloads/tsw-native-e2e-20261110/all-fixes` directory.
