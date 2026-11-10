@@ -22,7 +22,7 @@ def _identity(repository: str, digest: str) -> VersionIdentity:
 
 
 def with_stack_transition(service: ServiceDefinition) -> ServiceDefinition:
-    """Admit only the two reviewed stateless transitions; preserve all native defaults."""
+    """Expose pinned candidates until the current runner is live-qualified."""
     if service.service_id == "traefik":
         target_id = "traefik-3-7-5"
         sources = {"traefik": _identity("traefik", _TRAEFIK_SOURCE)}
@@ -35,7 +35,7 @@ def with_stack_transition(service: ServiceDefinition) -> ServiceDefinition:
     else:
         return service
     target = ComponentUpdateTarget(
-        target_id=target_id, versions=targets, qualification="qualified-transition",
+        target_id=target_id, versions=targets, qualification="candidate-transition",
         metadata_source="w09-pinned-release-policy", presets=service.presets,
     )
     transition = ComponentUpdateTransition(

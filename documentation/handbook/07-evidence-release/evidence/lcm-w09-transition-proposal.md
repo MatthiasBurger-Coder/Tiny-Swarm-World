@@ -4,8 +4,8 @@ Status: implementation candidate; historical bounded native single, batch, recov
 
 The historical live source identity recorded for `component_transitions.py` is
 SHA-256 `5648db46fcb5159e6279d1d6dd3ebf6da0bb905a5e9e61cd5074e1a35cd80246`.
-The current source snapshot has a different hash and was not run live in this
-publication. Its current SHA-256 is
+The source snapshot at that publication had a different hash and was not run
+live in that publication. Its recorded SHA-256 was
 `0437fd613ada57f71fae2f2829275214ad8a12a2cbd553a2f85686ef0ff63c9a`.
 Historical results are retained as historical evidence; they do
 not establish live qualification for the current source snapshot. No new live
@@ -17,6 +17,24 @@ qualification promotes them. No alternate catalog, orchestrator or arbitrary-tag
 Independent architecture review found that the original baseline lacked Classic
 image override mappings. Consequently this is a catalog **and bounded adapter
 extension** proposal; the earlier baseline rejected Swagger before mutation.
+
+## Admission correction — 2026-11-10
+
+The later workspace policy had marked these two targets `qualified-transition`
+despite the outstanding current-runner qualification. The shipped catalog now
+marks both `candidate-transition`. Discovery retains their pinned catalog
+references but exposes no supported generic update target; single and batch
+previews remain blocked, including explicit target IDs and matching target
+pins. The existing execution guard also rejects forward resume when current
+qualification is absent, while preserving checked original-transition recovery.
+Qualified-policy execution in regression tests is an explicit test-only fixture.
+
+The corrected `component_transitions.py` SHA-256 is
+`9f75a1986717c223f0a3bbc07a588d70346f5f8f2500e3346d421c924da3e3ed`.
+The 10 November native and WSL installation/browser results establish service
+operation; they do not qualify the component-update transitions. The parent
+acceptance criteria and historical evidence remain unchanged. Promotion requires
+the outstanding attributable current-runner update/recovery evidence and review.
 
 ## Bounded candidates
 

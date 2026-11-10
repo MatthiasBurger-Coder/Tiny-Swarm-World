@@ -1,4 +1,4 @@
-"""Real native policy through Classic update, persistence and recovery; runtime is mocked."""
+"""Shipped candidate admission and test-only qualified execution; runtime is mocked."""
 from modules.tsw_core.tests.infrastructure.adapters.lifecycle.test_installation_operation_lock import FakeInstallationLock
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, Mock
 from modules.tsw_core.tests.domain.lifecycle.test_models import manifest_fixture
 from tiny_swarm_world.application.services.component_execution import ComponentUpdateExecution
 from tiny_swarm_world.application.services.component_updates import ComponentUpdateService
-from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
+from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError, ManifestSnapshot
 from tiny_swarm_world.application.services.deployment.workflows import DeploymentWorkflowStatus
 from tiny_swarm_world.application.services.platform.workflow.update import ClassicUpdateWorkflow
 from tiny_swarm_world.domain.artifacts import DEFAULT_CONTAINER_IMAGE_CONTRACTS
@@ -33,12 +33,13 @@ ROOT = Path(__file__).resolve().parents[6]
 CONSENT = LiveConsent(True, confirmed=True)
 
 
-def native_installation(*, promote_candidates=True):
+def native_installation(*, promote_candidates=False):
     catalog = NativeComponentCatalog(ROOT).load()
-    if not promote_candidates:
+    if promote_candidates:
+        # Exercise qualified execution without promoting the shipped policy.
         catalog = catalog.model_copy(update={"services": tuple(
             service.model_copy(update={"update_targets": tuple(
-                target.model_copy(update={"qualification": "candidate-transition"})
+                target.model_copy(update={"qualification": "qualified-transition"})
                 if target.target_id in {"traefik-3-7-5", "swagger-ui-5-32-7"} else target
                 for target in service.update_targets
             )}) for service in catalog.services
@@ -62,18 +63,47 @@ def native_installation(*, promote_candidates=True):
 
 class NativeTransitionPlanningTests(unittest.TestCase):
     def test_unqualified_catalog_candidates_cannot_be_planned(self):
-        catalog, manifest = native_installation(promote_candidates=False)
-        service = next(item for item in catalog.services if item.service_id == "traefik")
-        target = next(item for item in service.update_targets if item.target_id == "traefik-3-7-5")
-        self.assertEqual(target.qualification, "candidate-transition")
-        for target_id in (None, "traefik-3-7-5"):
-            with self.subTest(target_id=target_id):
-                result = plan_component_updates(catalog, manifest, ("traefik",), target_id)
-                self.assertEqual(result.status, "blocked")
-                self.assertEqual(result.services[0].status, "unsupported")
+        catalog, manifest = native_installation()
+        for host in ("native-linux", "wsl2"):
+            installation = manifest.model_copy(update={"host": host})
+            for service_id in ("swagger", "traefik"):
+                service = next(item for item in catalog.services if item.service_id == service_id)
+                target = next(item for item in service.update_targets
+                              if item.target_id == service.update_transitions[0].target_id)
+                self.assertEqual(target.qualification, "candidate-transition")
+                for target_id in (None, target.target_id):
+                    with self.subTest(host=host, service=service_id, target_id=target_id):
+                        result = plan_component_updates(catalog, installation, (service_id,), target_id)
+                        self.assertEqual(result.status, "blocked")
+                        self.assertEqual(result.services[0].status, "unsupported")
+                        self.assertIn("qualification", result.services[0].reason)
+            batch = plan_component_updates(catalog, installation, ("swagger", "traefik"))
+            self.assertEqual(batch.status, "blocked")
+            self.assertTrue(all(item.status == "unsupported" for item in batch.services))
+
+    def test_shipped_candidates_remain_visible_but_are_not_supported_even_at_target(self):
+        catalog, manifest = native_installation()
+        targets = {component: identity for service in catalog.services
+                   for target in service.update_targets if target.qualification == "candidate-transition"
+                   for component, identity in target.versions.items()}
+        for host in ("native-linux", "wsl2"):
+            for at_target in (False, True):
+                with self.subTest(host=host, at_target=at_target):
+                    components = tuple(item.model_copy(update={"desired": targets[item.component_id],
+                                                               "observed": targets[item.component_id]})
+                                       if at_target and item.component_id in targets else item
+                                       for item in manifest.components)
+                    installation = manifest.model_copy(update={"host": host, "components": components})
+                    manifests = Mock(load=Mock(return_value=ManifestSnapshot(installation, "unchanged")))
+                    service = ComponentUpdateService(manifests, Mock(load=Mock(return_value=catalog)))
+                    for item in service.discover(("swagger", "traefik"))["services"]:
+                        self.assertEqual(item["available_supported_targets"], [])
+                        self.assertIn("candidate-transition", [ref["qualification"] for ref in item["catalog_references"]])
+                    self.assertEqual(service.preview(("swagger", "traefik")).status, "blocked")
+                    manifests.save.assert_not_called()
 
     def test_catalog_pins_are_exact_child_manifests_not_indexes(self):
-        catalog, manifest = native_installation()
+        catalog, manifest = native_installation(promote_candidates=True)
         service = next(s for s in catalog.services if s.service_id == "traefik")
         transition = service.update_transitions[0]
         self.assertEqual(transition.source_versions["traefik"].image_digest,
@@ -91,7 +121,7 @@ class NativeTransitionPlanningTests(unittest.TestCase):
         self.assertEqual(plan_component_updates(catalog, manifest.model_copy(update={"components": components}), ("traefik",)).status, "blocked")
 
     def test_exact_native_bundle_and_only_changed_images_for_both_hosts(self):
-        catalog, manifest = native_installation()
+        catalog, manifest = native_installation(promote_candidates=True)
         for host in ("native-linux", "wsl2"):
             plan = plan_component_updates(catalog, manifest.model_copy(update={"host": host}), ("traefik", "swagger"))
             self.assertEqual(plan.status, "preview")
@@ -103,7 +133,7 @@ class NativeTransitionPlanningTests(unittest.TestCase):
             self.assertTrue(all(c.target.image_digest for s in plan.services for c in s.components))
 
     def test_native_digest_drift_unknown_source_and_retained_sibling_drift_block(self):
-        catalog, manifest = native_installation()
+        catalog, manifest = native_installation(promote_candidates=True)
         for name, field in (("swagger-ui", "desired"), ("swagger-ui", "observed"), ("swagger-api", "observed")):
             components = tuple(c.model_copy(update={field: c.desired.model_copy(update={"image_digest": "sha256:" + "f" * 64})})
                                if c.component_id == name else c for c in manifest.components)
@@ -119,7 +149,7 @@ class NativeTransitionExecutionTests(unittest.IsolatedAsyncioTestCase):
         temporary = TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         self.root = Path(temporary.name)
-        catalog, self.original = native_installation()
+        catalog, self.original = native_installation(promote_candidates=True)
         self.catalog = Mock(load=Mock(return_value=catalog))
         self.manifests = JsonManifestRepository(self.root / ".tiny-swarm-world/installation/manifest.json")
         self.manifests.save(self.original, expected_token=None)
@@ -157,6 +187,16 @@ class NativeTransitionExecutionTests(unittest.IsolatedAsyncioTestCase):
 
     async def apply(self, services=("swagger", "traefik"), *, recovery=False):
         return await self.executor.run(services, consent=CONSENT, recovery=recovery)
+
+    async def test_shipped_candidates_refuse_apply_without_deployment_or_state_changes(self):
+        self.catalog.load.return_value = NativeComponentCatalog(ROOT).load()
+        before = self.manifests.path.read_bytes()
+        for services in (("swagger",), ("traefik",), ("swagger", "traefik")):
+            with self.subTest(services=services), self.assertRaises(LifecycleStateError):
+                await self.apply(services)
+            self.assertEqual(self.calls, [])
+            self.assertEqual(self.manifests.path.read_bytes(), before)
+            self.assertIsNone(self.journal.load())
 
     async def test_batch_persistence_real_compose_artifacts_noop_and_original_recovery(self):
         self.assertEqual((await self.apply())["status"], "completed")
