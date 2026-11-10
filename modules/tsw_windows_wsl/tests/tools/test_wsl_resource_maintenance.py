@@ -152,7 +152,7 @@ class WslMaintenanceLifetimeProtocolTests(unittest.TestCase):
                 self.assertEqual((result.returncode, result.stdout, result.stderr), (4, b"", b""))
 
     def test_ready_probe_keeps_activating_transient_and_denies_unknown_unit(self) -> None:
-        code = compile(self.program("Get-WslMaintenanceReadyProgram"), "fixed-ready-probe", "exec")
+        code = compile(self.program("Get-WslMaintenanceReadyProgram"), "<fixed-ready-probe>", "exec")
         for active, substate, http_status, expected in (("activating", "start-post", 503, "WAIT"),
                                                          ("active", "running", 200, "READY"),
                                                          ("active", "running", 503, "WAIT"),
