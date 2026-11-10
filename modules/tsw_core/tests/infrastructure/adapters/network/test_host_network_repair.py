@@ -1,4 +1,5 @@
 import os
+import stat
 import subprocess
 import tempfile
 import unittest
@@ -6,7 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from tiny_swarm_world.application.ports.network import CommandObservation
-from tiny_swarm_world.infrastructure.adapters.network import host_network_repair
+from tiny_swarm_world.infrastructure.adapters.network import host_network_repair, wslconfig_files
 from tiny_swarm_world.infrastructure.adapters.network.host_network_repair import (
     SubprocessNetworkRepair,
 )
@@ -288,6 +289,296 @@ class TestHostNetworkRepair(unittest.TestCase):
             self.assertIn("modules/tsw_core/infra/config/ports.yaml", text)
             self.assertIn("Get-TswBridgePorts", text)
             self.assertNotIn("$ports = @(", text)
+
+
+class TestWslConfigConfinement(unittest.TestCase):
+    def setUp(self):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        self.root = Path(directory.name)
+        self.profile = self.root / "Users" / "test user"
+        self.profile.mkdir(parents=True)
+        self.config = self.profile / ".wslconfig"
+        self.original = "[wsl2]\nmemory=8GB\nnetworkingMode=mirrored\n"
+        clock = patch.object(wslconfig_files, "datetime")
+        self.clock = clock.start()
+        self.addCleanup(clock.stop)
+        self.clock.now.return_value.strftime.return_value = "20261110220000"
+        self.backup = self.profile / ".wslconfig.bak-20261110220000"
+
+    def repair(self, path=None):
+        executor = _SequenceExecutor((
+            _ok("profile", "C:\\Users\\test user"),
+            _ok("mapped profile", "/mnt/c/Users/test user"),
+        ))
+        with patch.object(host_network_repair, "_wslconfig_path_from_mapped_profile",
+                          return_value=self.config if path is None else path):
+            return SubprocessNetworkRepair(executor=executor)._apply_wsl2_nat_runtime()
+
+    def assert_refused(self, result):
+        self.assertFalse(result.success)
+        self.assertFalse(result.applied)
+
+    def test_parent_name_cannot_escape_windows_users_directory(self):
+        for mapped in ("/mnt/c/Users/..", "/mnt/c/Users/../Windows"):
+            with self.subTest(mapped=mapped):
+                self.assertIsNone(host_network_repair._wslconfig_path_from_mapped_profile(mapped))
+        for name in ("test user", "micro.admin", "_micro"):
+            with self.subTest(name=name):
+                self.assertEqual(host_network_repair._wslconfig_path_from_mapped_profile(
+                    f"/mnt/c/Users/{name}"), Path(f"/mnt/c/Users/{name}/.wslconfig"))
+
+    def test_windows_trailing_aliases_and_unexpected_path_whitespace_are_refused(self):
+        for mapped in ("/mnt/c/Users/demo.", "/mnt/c/Users/demo ", "/mnt/c/Users/demo /",
+                       "/mnt/c/Users/.. .", " /mnt/c/Users/demo", "/mnt/c/Users/demo\t"):
+            with self.subTest(mapped=mapped):
+                self.assertIsNone(host_network_repair._wslconfig_path_from_mapped_profile(mapped))
+        for name in ("test user", "micro.admin"):
+            self.assertEqual(host_network_repair._wslconfig_path_from_mapped_profile(
+                f"/mnt/c/Users/{name}\r\n"), Path(f"/mnt/c/Users/{name}/.wslconfig"))
+
+    def test_supported_existing_config_retains_exact_backup_and_other_settings(self):
+        self.config.write_text(self.original)
+        before = self.config.stat()
+        result = self.repair()
+        self.assertTrue(result.success)
+        self.assertTrue(result.applied)
+        self.assertEqual(self.backup.read_text(), self.original)
+        self.assertEqual(self.config.read_text(), self.original.replace("mirrored", "nat"))
+        self.assertEqual((self.config.stat().st_ino, self.config.stat().st_mode),
+                         (before.st_ino, before.st_mode))
+
+    def test_supported_missing_config_does_not_invent_a_backup(self):
+        result = self.repair()
+        self.assertTrue(result.success)
+        self.assertIn("networkingMode=nat", self.config.read_text())
+        self.assertFalse(self.backup.exists())
+
+    def test_existing_and_dangling_config_symlinks_preserve_outside_target(self):
+        outside = self.root / "outside.ini"
+        for present in (True, False):
+            with self.subTest(present=present):
+                if present:
+                    outside.write_text(self.original)
+                self.config.symlink_to(outside)
+                try:
+                    self.assert_refused(self.repair())
+                    self.assertTrue(self.config.is_symlink())
+                    self.assertEqual(outside.read_text() if present else None,
+                                     self.original if present else None)
+                    self.assertEqual(outside.exists(), present)
+                    self.assertFalse(self.backup.exists())
+                finally:
+                    self.config.unlink(missing_ok=True)
+                    outside.unlink(missing_ok=True)
+                    self.backup.unlink(missing_ok=True)
+
+    def test_symlinked_profile_directory_is_never_followed(self):
+        outside = self.root / "other profile"
+        outside.mkdir()
+        target = outside / ".wslconfig"
+        target.write_text(self.original)
+        alias = self.profile.parent / "profile alias"
+        alias.symlink_to(outside, target_is_directory=True)
+        self.assert_refused(self.repair(alias / ".wslconfig"))
+        self.assertEqual(target.read_text(), self.original)
+        self.assertEqual(sorted(p.name for p in outside.iterdir()), [".wslconfig"])
+
+    def test_existing_backup_entries_are_not_overwritten_or_followed(self):
+        self.config.write_text(self.original)
+        outside = self.root / "backup target"
+        outside.write_text("retained external backup")
+        for linked in (False, True):
+            with self.subTest(linked=linked):
+                if linked:
+                    self.backup.symlink_to(outside)
+                else:
+                    self.backup.write_text("retained existing backup")
+                try:
+                    self.assert_refused(self.repair())
+                    self.assertEqual(self.config.read_text(), self.original)
+                    self.assertEqual(outside.read_text(), "retained external backup")
+                    self.assertEqual(self.backup.is_symlink(), linked)
+                    self.assertEqual(self.backup.read_text(),
+                                     "retained external backup" if linked else "retained existing backup")
+                finally:
+                    self.backup.unlink(missing_ok=True)
+
+    def test_nonregular_or_oversize_config_is_refused_without_backup_or_write(self):
+        for kind in ("directory", "fifo", "oversize", "hardlink"):
+            with self.subTest(kind=kind):
+                outside = self.root / "unrelated hardlink target"
+                if kind == "directory":
+                    self.config.mkdir()
+                elif kind == "fifo":
+                    os.mkfifo(self.config)
+                elif kind == "oversize":
+                    self.config.write_bytes(b"x" * 65537)
+                else:
+                    outside.write_text(self.original)
+                    os.link(outside, self.config)
+                before = self.config.lstat()
+                try:
+                    self.assert_refused(self.repair())
+                    self.assertFalse(self.backup.exists())
+                    after = self.config.lstat()
+                    self.assertEqual((after.st_ino, after.st_mode, after.st_size, after.st_mtime_ns),
+                                     (before.st_ino, before.st_mode, before.st_size, before.st_mtime_ns))
+                    if kind == "oversize":
+                        self.assertEqual(self.config.read_bytes(), b"x" * 65537)
+                    if kind == "hardlink":
+                        self.assertEqual(outside.read_text(), self.original)
+                finally:
+                    if kind == "directory":
+                        self.config.rmdir()
+                    else:
+                        self.config.unlink(missing_ok=True)
+                    outside.unlink(missing_ok=True)
+
+    def test_config_replacement_after_read_is_not_modified(self):
+        self.config.write_text(self.original)
+        outside = self.root / "replacement target"
+        outside.write_text("unrelated external state")
+        transform = host_network_repair._set_wsl_networking_mode
+
+        def replace(content, mode):
+            self.config.unlink()
+            self.config.symlink_to(outside)
+            return transform(content, mode)
+
+        with patch.object(host_network_repair, "_set_wsl_networking_mode", side_effect=replace):
+            self.assert_refused(self.repair())
+        self.assertEqual(outside.read_text(), "unrelated external state")
+        self.assertTrue(self.config.is_symlink())
+
+    def test_backup_replacement_blocks_config_write_and_reports_the_created_effect(self):
+        self.config.write_text(self.original)
+        outside = self.root / "replacement backup"
+        outside.write_text("unrelated external backup")
+        sync = os.fsync
+
+        def replace(descriptor):
+            sync(descriptor)
+            self.backup.unlink()
+            self.backup.symlink_to(outside)
+
+        with patch.object(wslconfig_files.os, "fsync", side_effect=replace):
+            result = self.repair()
+        self.assertFalse(result.success)
+        self.assertTrue(result.applied)
+        self.assertEqual(self.config.read_text(), self.original)
+        self.assertEqual(outside.read_text(), "unrelated external backup")
+        self.assertTrue(self.backup.is_symlink())
+
+    def test_same_inode_backup_tamper_blocks_config_write(self):
+        self.config.write_text(self.original)
+        tampered = self.original.encode().replace(b"mirrored", b"external")
+        sync = os.fsync
+
+        def tamper_backup(descriptor):
+            sync(descriptor)
+            opened = os.fstat(descriptor)
+            backup = self.backup.stat()
+            if (opened.st_dev, opened.st_ino) == (backup.st_dev, backup.st_ino):
+                self.backup.write_bytes(tampered)
+
+        with patch.object(wslconfig_files.os, "fsync", side_effect=tamper_backup):
+            result = self.repair()
+        self.assertFalse(result.success)
+        self.assertTrue(result.applied)
+        self.assertEqual(self.config.read_text(), self.original)
+        self.assertEqual(self.backup.read_bytes(), tampered)
+
+    def test_failed_config_sync_retains_exact_backup_and_reports_partial_effect(self):
+        self.config.write_text(self.original)
+        sync = os.fsync
+        identity = (self.config.stat().st_dev, self.config.stat().st_ino)
+
+        def fail_config_sync(descriptor):
+            observed = os.fstat(descriptor)
+            if (observed.st_dev, observed.st_ino) == identity:
+                raise OSError("synthetic config sync failure")
+            sync(descriptor)
+
+        with patch.object(wslconfig_files.os, "fsync", side_effect=fail_config_sync):
+            result = self.repair()
+        self.assertFalse(result.success)
+        self.assertTrue(result.applied)
+        self.assertEqual(self.backup.read_text(), self.original)
+        self.assertIn("networkingMode=nat", self.config.read_text())
+
+    def test_backup_directory_sync_failure_preserves_config_and_reports_created_backup(self):
+        self.config.write_text(self.original)
+        sync = os.fsync
+        directories = []
+
+        def fail_directory_sync(descriptor):
+            if stat.S_ISDIR(os.fstat(descriptor).st_mode):
+                directories.append(descriptor)
+                raise OSError("synthetic directory sync failure")
+            sync(descriptor)
+
+        with patch.object(wslconfig_files.os, "fsync", side_effect=fail_directory_sync):
+            result = self.repair()
+        self.assertFalse(result.success)
+        self.assertTrue(result.applied)
+        self.assertTrue(directories)
+        self.assertEqual(self.config.read_text(), self.original)
+        self.assertEqual(self.backup.read_text(), self.original)
+
+    def tamper_after_config_sync(self, change):
+        sync = os.fsync
+        identity = (self.config.stat().st_dev, self.config.stat().st_ino)
+
+        def tamper(descriptor):
+            sync(descriptor)
+            observed = os.fstat(descriptor)
+            if (observed.st_dev, observed.st_ino) == identity:
+                change(descriptor)
+
+        return patch.object(wslconfig_files.os, "fsync", side_effect=tamper)
+
+    def test_same_inode_content_change_after_write_is_not_reported_success(self):
+        self.config.write_text(self.original)
+        before = self.config.stat().st_ino
+        tampered = "[wsl2]\nnetworkingMode=mirrored\n"
+        with self.tamper_after_config_sync(lambda _descriptor: self.config.write_text(tampered)):
+            result = self.repair()
+        self.assertFalse(result.success)
+        self.assertTrue(result.applied)
+        self.assertEqual(self.config.stat().st_ino, before)
+        self.assertEqual(self.config.read_text(), tampered)
+        self.assertEqual(self.backup.read_text(), self.original)
+
+    def test_file_metadata_change_after_write_is_not_reported_success(self):
+        self.config.write_text(self.original)
+        before = self.config.stat().st_mode
+        with self.tamper_after_config_sync(lambda descriptor: os.fchmod(descriptor, before ^ 0o100)):
+            result = self.repair()
+        self.assertFalse(result.success)
+        self.assertTrue(result.applied)
+        self.assertNotEqual(self.config.stat().st_mode, before)
+        self.assertIn("networkingMode=nat", self.config.read_text())
+        self.assertEqual(self.backup.read_text(), self.original)
+
+    def test_parent_replacement_after_read_cannot_redirect_the_write(self):
+        self.config.write_text(self.original)
+        outside = self.root / "replacement profile"
+        outside.mkdir()
+        target = outside / ".wslconfig"
+        target.write_text("unrelated external state")
+        retained = self.root / "retained profile"
+        transform = host_network_repair._set_wsl_networking_mode
+
+        def replace(content, mode):
+            self.profile.rename(retained)
+            self.profile.symlink_to(outside, target_is_directory=True)
+            return transform(content, mode)
+
+        with patch.object(host_network_repair, "_set_wsl_networking_mode", side_effect=replace):
+            self.assert_refused(self.repair())
+        self.assertEqual(target.read_text(), "unrelated external state")
+        self.assertEqual((retained / ".wslconfig").read_text(), self.original)
 
 
 class _SequenceExecutor:
