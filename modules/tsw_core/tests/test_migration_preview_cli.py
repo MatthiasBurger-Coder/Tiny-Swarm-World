@@ -142,7 +142,7 @@ class MigrationPreviewCliTests(unittest.IsolatedAsyncioTestCase):
         logger.assert_not_called()
 
     def test_documented_command_and_fixed_result_match_contract(self) -> None:
-        guide = (ROOT / "documentation/user_guide/selective-setup.md").read_text(encoding="utf-8")
+        guide = (ROOT / "documentation/handbook/03-user-guide/user_guide/selective-setup.md").read_text(encoding="utf-8")
         self.assertIn("python3 -m tiny_swarm_world services migration-preview", guide)
         self.assertIn('{"status":"BLOCKED_UNKNOWN","source":"operator_local_unverified","applied":false,"qualified":false}', guide)
 
@@ -207,7 +207,7 @@ class ReadOnlyLoaderTests(unittest.TestCase):
     def test_locally_changed_valid_assets_are_explicitly_unverified(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            destination = root / "infra" / "config" / "compose"
+            destination = root / "modules/tsw_core/infra" / "config" / "compose"
             destination.parent.mkdir(parents=True)
             shutil.copytree(ROOT / "modules/tsw_core/infra" / "config" / "compose", destination)
             asset = next(destination.rglob("docker-compose.yml"))
@@ -233,7 +233,7 @@ class ReadOnlyLoaderTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / "project"
-            destination = root / "infra" / "config" / "compose"
+            destination = root / "modules/tsw_core/infra" / "config" / "compose"
             destination.parent.mkdir(parents=True)
             shutil.copytree(ROOT / "modules/tsw_core/infra" / "config" / "compose", destination)
             catalog = NativeComponentCatalog(root).load()
@@ -272,7 +272,7 @@ class ReadOnlyLoaderTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            destination = root / "infra" / "config" / "compose"
+            destination = root / "modules/tsw_core/infra" / "config" / "compose"
             destination.parent.mkdir(parents=True)
             shutil.copytree(ROOT / "modules/tsw_core/infra" / "config" / "compose", destination)
             manifest, _ = fixtures()
@@ -288,7 +288,7 @@ class ReadOnlyLoaderTests(unittest.TestCase):
     def test_native_catalog_reads_assets_without_writes(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            destination = root / "infra" / "config" / "compose"
+            destination = root / "modules/tsw_core/infra" / "config" / "compose"
             destination.parent.mkdir(parents=True)
             shutil.copytree(ROOT / "modules/tsw_core/infra" / "config" / "compose", destination)
             before = {str(path.relative_to(root)): path.read_bytes()

@@ -325,8 +325,10 @@ class TestWslWindowsPathTranslation(unittest.TestCase):
                         _as_windows_path(Path("/home/test/bridge.Tests.ps1"))
 
     def test_pester_keeps_apostrophes_literal_and_failed_checks_nonzero(self):
-        command = _pester_command("\\\\wsl.localhost\\Ubuntu\\home\\test user's folder\\bridge.Tests.ps1")
+        with patch(f"{__name__}._as_windows_path", return_value="C:\\test user's folder\\source"):
+            command = _pester_command("\\\\wsl.localhost\\Ubuntu\\home\\test user's folder\\bridge.Tests.ps1")
 
+        self.assertIn("$sourceRoot = 'C:\\test user''s folder\\source'", command)
         self.assertIn("$testScript = '\\\\wsl.localhost\\Ubuntu\\home\\test user''s folder\\bridge.Tests.ps1'", command)
         self.assertIn("if ($result.FailedCount -ne 0 -or $result.PassedCount -eq 0) { exit 1 }", command)
         self.assertIn("[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding", command)
@@ -389,15 +391,15 @@ def _pester_command(script_path: str) -> str:
         f"$testScript = '{literal_path}'; $stagingRoot = $null; "
         "try { "
         "if ($testScript.StartsWith('\\\\')) { "
-        "$sourceRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $testScript)); "
+        f"$sourceRoot = '{_as_windows_path(REPOSITORY_ROOT).replace(chr(39), chr(39) * 2)}'; "
         "$stagingRoot = Join-Path ([IO.Path]::GetTempPath()) ('tsw-pester-' + [guid]::NewGuid()); "
-        "foreach ($directory in @('tests\\windows', 'modules/tsw_windows_wsl/bootstrap', 'modules/tsw_core/infra/config')) { "
+        "foreach ($directory in @('modules/tsw_windows_wsl/tests/windows', 'modules/tsw_windows_wsl/bootstrap', 'modules/tsw_core/infra/config')) { "
         "New-Item -ItemType Directory -Path (Join-Path $stagingRoot $directory) -Force | Out-Null }; "
-        "foreach ($asset in @('tests\\windows\\tws-wsl-bridge.Tests.ps1', "
+        "foreach ($asset in @('modules/tsw_windows_wsl/tests/windows/tws-wsl-bridge.Tests.ps1', "
         "'modules/tsw_windows_wsl/bootstrap/tws-wsl-bridge.ps1', 'modules/tsw_windows_wsl/bootstrap/tws-wsl-bridge-service.ps1', "
         "'modules/tsw_windows_wsl/bootstrap/tws-wsl-bridge.config.json', 'modules/tsw_core/infra/config/ports.yaml')) { "
         "Copy-Item -LiteralPath (Join-Path $sourceRoot $asset) -Destination (Join-Path $stagingRoot $asset) }; "
-        "$testScript = Join-Path $stagingRoot 'tests\\windows\\tws-wsl-bridge.Tests.ps1' }; "
+        "$testScript = Join-Path $stagingRoot 'modules/tsw_windows_wsl/tests/windows/tws-wsl-bridge.Tests.ps1' }; "
         "Import-Module Pester; "
         "$result = Invoke-Pester -Script $testScript -PassThru "
         "} finally { if ($null -ne $stagingRoot) { "

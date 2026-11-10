@@ -263,6 +263,26 @@ class LivePostInstallConfig:
 
 
 class StaticPostInstallLiveSuiteTest(unittest.TestCase):
+    def test_pulsar_manager_login_preserves_the_selected_request_authority(self) -> None:
+        def routed_response(url: str, **kwargs: Any) -> Mock:
+            authority = urlparse(url).netloc
+            headers = kwargs.get("headers", {})
+            routed = headers.get("Host", authority) == authority
+            response = Mock(status_code=200 if routed else 404, text="csrf-fixture")
+            response.json.return_value = {"login": "success"} if routed else {}
+            return response
+
+        for base_url in ("https://pulsar.tsw.local", "http://localhost:24081"):
+            with self.subTest(base_url=base_url):
+                session = Mock()
+                session.get.side_effect = routed_response
+                session.post.side_effect = routed_response
+                with patch.object(requests, "Session", return_value=session):
+                    status = _pulsar_manager_auth_status(
+                        base_url, sample_text("fixture", "-credential"), 1,
+                    )
+                self.assertTrue(status["passed"])
+
     def test_dashboard_declares_expected_infisical_item_references(self) -> None:
         references = _dashboard_references(SERVICE_ACCESS_DASHBOARD)
 
@@ -1778,7 +1798,6 @@ def _pulsar_manager_auth_status(
     try:
         csrf_response = session.get(
             csrf_url,
-            headers={"Host": "localhost:14081"},
             timeout=timeout_seconds,
         )
     except requests.RequestException as exc:
@@ -1791,7 +1810,6 @@ def _pulsar_manager_auth_status(
     csrf_available = csrf_response.status_code == 200 and bool(csrf_response.text.strip())
     headers = {
         "Content-Type": "application/json",
-        "Host": "localhost:14081",
     }
     if csrf_available:
         csrf_token = csrf_response.text.strip()

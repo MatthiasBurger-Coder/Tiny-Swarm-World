@@ -7,6 +7,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 from modules.tsw_core.tests.domain.lifecycle.test_update_planning import update_fixture
+from modules.tsw_core.tests.infrastructure.adapters.lifecycle.test_native_component_transitions import native_installation
 from tiny_swarm_world.__main__ import main
 from tiny_swarm_world.application.services.lifecycle import InstallationLifecycleService
 from tiny_swarm_world.infrastructure.adapters.cli.parser import parse_args
@@ -53,6 +54,27 @@ class ComponentUpdateCliTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["execution"], "not performed (read-only preview)")
         result = await self.run_command(["services", "update", "--services", "jenkins", "--to", "test-next", "--preview"])
         self.assertEqual(result["services"][0]["target"]["target_id"], "test-next")
+
+    async def test_shipped_candidates_are_visible_but_cli_previews_are_blocked(self):
+        catalog, manifest = native_installation()
+        self.repository.save(manifest, expected_token=self.repository.load().token)
+        self.lifecycle.catalog.load.return_value = catalog
+        for host in ("native-linux", "wsl2"):
+            self.repository.save(manifest.model_copy(update={"host": host}), expected_token=self.repository.load().token)
+            found = await self.run_command(["services", "updates", "--services", "swagger,traefik", "--json"])
+            for item in found["services"]:
+                self.assertEqual(item["available_supported_targets"], [])
+                self.assertIn("candidate-transition", [ref["qualification"] for ref in item["catalog_references"]])
+            for services, target in (("swagger", None), ("swagger", "swagger-ui-5-32-7"),
+                                     ("traefik", None), ("traefik", "traefik-3-7-5"),
+                                     ("swagger,traefik", None)):
+                command = ["services", "update", "--services", services, "--preview", "--json"]
+                if target is not None:
+                    command.extend(["--to", target])
+                with self.subTest(host=host, services=services, target=target):
+                    result = await self.run_command(command, expected_exit=1)
+                    self.assertEqual(result["status"], "blocked")
+                    self.assertTrue(all(item["status"] == "unsupported" for item in result["services"]))
 
     async def test_failures_uninstalled_unknown_unsupported_and_dedicated(self):
         for command, code in ((["services", "updates", "--services", "swagger"], 1),

@@ -242,7 +242,7 @@ class MigrationCheckCliTests(unittest.IsolatedAsyncioTestCase):
     async def test_real_bounded_local_load_yields_unsupported_without_writes(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            destination = root / "infra" / "config" / "compose"
+            destination = root / "modules/tsw_core/infra" / "config" / "compose"
             destination.parent.mkdir(parents=True)
             shutil.copytree(ROOT / "modules/tsw_core/infra" / "config" / "compose", destination)
             catalog = NativeComponentCatalog(root).load()
@@ -266,7 +266,7 @@ class MigrationCheckCliTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(before, after)
 
     def test_user_guide_documents_exact_invocation_and_limit(self) -> None:
-        guide = (ROOT / "documentation/user_guide/selective-setup.md").read_text(encoding="utf-8")
+        guide = (ROOT / "documentation/handbook/03-user-guide/user_guide/selective-setup.md").read_text(encoding="utf-8")
         self.assertIn("services migration-check --version 6.0.5 --exposure published --listen-address 127.0.0.1", guide)
         self.assertIn("not a detected host version", " ".join(guide.split()))
         self.assertIn("operator_local_unverified", guide)

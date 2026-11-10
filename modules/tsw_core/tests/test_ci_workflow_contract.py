@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import re
 import unittest
 
 
@@ -9,6 +10,19 @@ WORKFLOW_ROOT = REPOSITORY_ROOT / ".github" / "workflows"
 
 
 class CiWorkflowContractTests(unittest.TestCase):
+    def test_sonar_scan_test_paths_match_existing_declared_test_roots(self) -> None:
+        properties = dict(line.split("=", 1) for line in
+                          (REPOSITORY_ROOT / "sonar-project.properties").read_text().splitlines()
+                          if line.strip() and not line.startswith("#"))
+        expected = set(properties["sonar.tests"].split(","))
+        self.assertTrue(expected)
+        for path in expected:
+            self.assertTrue((REPOSITORY_ROOT / path).is_dir(), path)
+        overrides = re.findall(r"-Dsonar.tests=(\S+)", self._workflow("sonar_external_gate.yml"))
+        self.assertEqual(len(overrides), 2)
+        for override in overrides:
+            self.assertEqual(set(override.split(",")), expected)
+
     def test_python_quality_gate_runs_the_canonical_gate_on_push_and_pull_request(self) -> None:
         workflow = self._workflow("python-quality-gate.yml")
 

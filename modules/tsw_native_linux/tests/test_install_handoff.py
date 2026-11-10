@@ -48,7 +48,7 @@ class TestInstallHandoff(unittest.TestCase):
 
     def test_native_edition_is_not_required_but_missing_core_installer_is_refused(self):
         native = self.checkout / "modules/tsw_native_linux/module.json"
-        native.parent.mkdir(parents=True)
+        native.parent.mkdir(parents=True, exist_ok=True)
         native.write_text('{"name":"tsw_native_linux"}\n')
         public = self.checkout / "install.sh"
         public.write_text("# native compatibility fixture\n")
@@ -56,7 +56,6 @@ class TestInstallHandoff(unittest.TestCase):
         self.git("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "--quiet", "-m", "native fixture")
         self.revision = self.git("rev-parse", "HEAD").decode().strip()
         native.unlink()
-        native.parent.rmdir()
         public.unlink()
         self.assertEqual(self.probe().returncode, 0)
         (self.checkout / "modules/tsw_native_linux/boostrap/install.sh").unlink()

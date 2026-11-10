@@ -1,5 +1,6 @@
 """Compatibility entry point for the physical tsw_core module."""
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from modules.tsw_core.tools.linux.qualification.native_lxd_snap_provenance import (
         Any as Any,
@@ -29,20 +30,45 @@ if TYPE_CHECKING:
         UNIT_ARGV as UNIT_ARGV,
         UNIT_FILE as UNIT_FILE,
         _DECIMAL as _DECIMAL,
+        _ESCAPED_ROOT_WRAPPER_SHA256 as _ESCAPED_ROOT_WRAPPER_SHA256,
         _EXEC_START as _EXEC_START,
+        _GENERATOR_DIGEST as _GENERATOR_DIGEST,
+        _GENERATOR_PREFIX as _GENERATOR_PREFIX,
+        _GENERATOR_REVISION as _GENERATOR_REVISION,
+        _GENERATOR_TOKENS as _GENERATOR_TOKENS,
         _PACKAGE_PATH as _PACKAGE_PATH,
         _Proof as _Proof,
+        _SHUTDOWN_STATIC_UNITS as _SHUTDOWN_STATIC_UNITS,
+        _StageNegative as _StageNegative,
         _TIME as _TIME,
         _UniqueLoader as _UniqueLoader,
+        _cgroup_relation as _cgroup_relation,
+        _compare_reader_namespace as _compare_reader_namespace,
+        _context_reason as _context_reason,
+        _dropin_form as _dropin_form,
+        _generator_form as _generator_form,
         _mapping as _mapping,
+        _negative_again as _negative_again,
         _normal_path as _normal_path,
         _positive as _positive,
+        _probe_generator_form as _probe_generator_form,
+        _same_diagnostic_unit as _same_diagnostic_unit,
+        _shutdown_dependencies_supported as _shutdown_dependencies_supported,
+        _stage_reobserve as _stage_reobserve,
         _text as _text,
         _unit as _unit,
+        _unit_fields as _unit_fields,
         _valid_time as _valid_time,
         contextmanager as contextmanager,
         dataclass as dataclass,
         datetime as datetime,
+        diagnose_cgroup_relation as diagnose_cgroup_relation,
+        diagnose_context as diagnose_context,
+        diagnose_dropin as diagnose_dropin,
+        diagnose_generator_form as diagnose_generator_form,
+        diagnose_generator_stage as diagnose_generator_stage,
+        diagnose_reader_namespace as diagnose_reader_namespace,
+        hashlib as hashlib,
         os as os,
         prove_snap_wrapper as prove_snap_wrapper,
         re as re,
@@ -51,6 +77,7 @@ if TYPE_CHECKING:
         time as time,
         yaml as yaml,
     )
+
 from pathlib import Path
 _impl = Path(__file__).resolve().parents[4] / 'modules/tsw_core/tools/linux/qualification/native_lxd_snap_provenance.py'
 __file__ = str(_impl)

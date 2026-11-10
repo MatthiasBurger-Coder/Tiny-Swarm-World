@@ -131,7 +131,10 @@ class TestNexusHttpClient(unittest.TestCase):
         self.assertEqual(request["json"]["storage"]["writePolicy"], "ALLOW")
 
     def test_update_docker_hosted_repository_uses_repository_contract_payload(self):
-        session = _FakeSession(put_responses=[_FakeResponse(204, {})])
+        session = _FakeSession(
+            get_responses=[_FakeResponse(200, {"docker": {"httpPort": 5002}})],
+            put_responses=[_FakeResponse(204, {})],
+        )
         client = NexusHttpClient("https://nexus.local", session=session)
 
         client.update_docker_hosted_repository("admin", OPERATOR_CREDENTIAL, "docker-hosted", 5000)
@@ -144,6 +147,31 @@ class TestNexusHttpClient(unittest.TestCase):
         self.assertEqual(request["json"]["name"], "docker-hosted")
         self.assertEqual(request["json"]["docker"]["httpPort"], 5000)
         self.assertEqual(request["json"]["storage"]["writePolicy"], "ALLOW")
+
+    def test_matching_docker_hosted_repository_does_not_restart_its_connector(self):
+        actual = {
+            "name": "docker-hosted", "online": True,
+            "storage": {"blobStoreName": "default", "strictContentTypeValidation": True,
+                        "writePolicy": "ALLOW"},
+            "docker": {"v1Enabled": False, "forceBasicAuth": True,
+                       "httpPort": 5000, "httpsPort": None},
+        }
+        session = _FakeSession(get_responses=[_FakeResponse(200, actual)])
+        client = NexusHttpClient("https://nexus.local", session=session)
+
+        client.update_docker_hosted_repository("admin", OPERATOR_CREDENTIAL, "docker-hosted", 5000)
+
+        self.assertEqual(session.put_calls, [])
+        self.assertEqual(session.get_calls[0]["auth"], ("admin", OPERATOR_CREDENTIAL))
+
+    def test_docker_hosted_repository_read_failure_prevents_update(self):
+        session = _FakeSession(get_responses=[_FakeResponse(403, {})])
+        client = NexusHttpClient("https://nexus.local", session=session)
+
+        with self.assertRaises(RuntimeError):
+            client.update_docker_hosted_repository("admin", OPERATOR_CREDENTIAL, "docker-hosted", 5000)
+
+        self.assertEqual(session.put_calls, [])
 
     def test_create_docker_proxy_repository_uses_repository_contract_payload(self):
         session = _FakeSession(post_responses=[_FakeResponse(201, {})])

@@ -167,8 +167,8 @@ class ScopedRoutePolicyTests(unittest.TestCase):
     def test_real_catalog_semantics_align_and_dependency_closure_is_required(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            source = Path(__file__).resolve().parents[5] / "infra" / "config" / "compose"
-            destination = root / "infra" / "config" / "compose"
+            source = Path(__file__).resolve().parents[5] / "modules/tsw_core/infra" / "config" / "compose"
+            destination = root / "modules/tsw_core/infra" / "config" / "compose"
             destination.parent.mkdir(parents=True)
             shutil.copytree(source, destination)
             catalog = NativeComponentCatalog(root).load()

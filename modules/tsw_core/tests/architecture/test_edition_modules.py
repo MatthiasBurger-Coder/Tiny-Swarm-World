@@ -171,7 +171,7 @@ class EditionModuleTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="tsw module ") as temporary:
             root = Path(temporary)
             (root / "modules/tsw_native_linux/boostrap").mkdir(parents=True)
-            (root / "modules/tsw_native_linux").mkdir(parents=True)
+            (root / "modules/tsw_native_linux").mkdir(parents=True, exist_ok=True)
             (root / "modules/tsw_core/src").mkdir(parents=True)
             binary = root / "bin"
             binary.mkdir()

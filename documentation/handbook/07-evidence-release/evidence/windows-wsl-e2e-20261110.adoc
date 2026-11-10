@@ -1,0 +1,189 @@
+= Windows PC / Ubuntu WSL2 live acceptance on 10 November 2026
+
+Installation and service acceptance: `LIVE_VERIFIED` on the Windows PC at
+`192.168.178.58`, inside its `Ubuntu` WSL2 distribution. The installer returned
+exit 0. All 17 browser/API checks passed, with no failures, errors or skips.
+Nine additional Windows HTTPS probes passed with Windows certificate validation.
+This acceptance targets the services running on that PC, independently of the
+earlier native Linux acceptance.
+
+== Candidate and scope
+
+* Operator request: make the existing installation work on the Windows PC,
+  preserving its data, and test that PC's WSL deployment.
+* Local source: `/mnt/d/Projects/Tiny-Swarm-World`, branch
+  `fix/native-linux-e2e-entrypoints`, revision
+  `eaf38a1d6df23e5a7a2fedf173b08d439dee5792` plus existing workspace corrections.
+* Remote candidate: `/home/pc/tsw-native-e2e-eaf38a1-20261109`.
+  Its directory name is historical; this run deploys to local WSL Incus.
+* Before acceptance, 1,256 module and configuration files were compared against
+  the local workspace by SHA-256; no mismatches were found.
+* Runtime: Ubuntu 26.04.1, WSL2 kernel
+  `6.18.58.1-microsoft-standard-WSL2`, Python 3.12.15, Firefox 158.0.
+* No production Python or PowerShell source was changed for this acceptance.
+  Operational configuration is private and specific to the selected PC.
+* This is reconciliation of an existing installation, not pristine-host,
+  Windows reboot, disaster recovery or global release qualification.
+
+== Requirement and evidence matrix
+
+[cols="1,3,4,1",options="header"]
+|===
+|ID |Outcome |Executed evidence |State
+|W01 |Install the current candidate on the Windows PC's WSL runtime
+|Ordinary installer reconciliation, no reset; exit 0; deployment apply,
+deployment verify and platform verify completed.
+|VERIFIED
+|W02 |Restore the three managed Swarm nodes
+|Manager and both workers Ready/Active; configured resources 10/4/2 GiB.
+All steady services have their desired replicas. The one-shot Pulsar Manager
+bootstrap is Complete.
+|VERIFIED
+|W03 |Open all nine service routes with browser TLS validation
+|Nine existing Selenium route tests passed using isolated Firefox trust for
+the actual WSL CA. No insecure-certificate acceptance, DNS override to native
+Linux, SSH tunnel to native Linux or synthetic response was used.
+|VERIFIED
+|W04 |Verify authentication and managed credentials
+|All eight canonical post-install API checks passed, including Infisical
+inventory/bootstrap, SonarQube admin access and Pulsar authentication.
+Browser tests also exercise the configured login flows.
+|VERIFIED
+|W05 |Reach the WSL services through Windows networking and trust
+|All nine routes passed Windows Invoke-WebRequest probes with default
+certificate validation and the installed canonical WSL CA. Anonymous Jenkins
+403 and Pulsar API 401 are expected by the existing service contract;
+authenticated acceptance is provided separately by W03/W04.
+|VERIFIED
+|W06 |Retain existing data and credentials
+|No instance, application volume or existing account was reset or deleted.
+Existing Portainer credentials were authenticated and retained. Configuration
+backups were captured before operational changes. Full application-data
+integrity and restoration were not independently tested.
+|PARTIAL
+|===
+
+The requirement, architecture, automation and evidence assessment was performed
+in one execution thread. No independent reviewer or issue closure is claimed.
+
+== Operational repairs
+
+The starting WSL installation had two stopped workers, a stopped Windows
+bridge service, an obsolete completed bootstrap checkpoint and an inconsistent
+local credential source. Only Portainer and Nexus were deployed initially.
+
+* Retained the completed old checkpoint for review; its source and Python
+  identities differ from the current candidate. No checkpoint was forged.
+* Restored the workers and selected the previously exercised 10/4/2 GiB node
+  allocation within the PC's 21 GB WSL allocation and eight CPU threads.
+  The operator-specific infrastructure copy is under
+  `.tiny-swarm-world/local/wsl-infra` in the remote candidate.
+* Restored and upgraded the owned `TinySwarmWorldWslBridge` service through
+  its shipped installation action, preserving its existing service account.
+  Fresh inventory reported bridge, routing and agent ready with no blockers.
+* Disabled WSL's additional `localhostForwarding` in the PC's `.wslconfig`.
+  Windows access uses the explicit managed portproxy bridge. The previous
+  configuration was retained and WSL was restarted.
+* Added the interactive logon task `TinySwarmWorld-Ubuntu-KeepAlive` to hold an
+  ordinary-user `sleep infinity` session in the selected distribution.
+  Without a retained session, WSL stopped between short invocations despite
+  its systemd services. The task is running; startup before user logon and
+  complete Windows reboot persistence were not qualified.
+* Enabled `boot.autostart` for the three owned Incus nodes. Restarted Incus
+  after the WSL transition and observed the three nodes running.
+* Configured `generateHosts=false` in `/etc/wsl.conf` to retain the managed
+  hosts file on future distribution starts. This setting's next-start effect
+  is not separately qualified by a subsequent restart.
+  The reviewed hosts payload, SHA-256
+  `cdccd998ed7dcc8271fca1e5f87db0d2f59bdb944d9ae2ff2184518eb4dcda93`,
+  was installed through the existing protected-file helper after backing up
+  the previous file. The aggregate preparation path had refused earlier
+  changing snapshots; its guards were not changed. Final shipped preparation
+  `--preflight` returned exit 0 with Linux networking and the Windows bridge
+  ready. Its log is `preparation-final.log`.
+* Installed the canonical WSL CA in the Windows machine root trust store.
+  Browser/API verification uses that same WSL CA.
+* Preserved and removed the candidate's legacy `.env` from its temporary Git
+  index and public source scan. Private copies reside under
+  `.tiny-swarm-world/local`; secret checks were retained.
+* Selected the existing working Portainer credential in the private
+  `.tiny-swarm-world/local/wsl-installation.env` operator file.
+
+Windows IP Helper was restarted during routing diagnosis. Its previously
+running Tailscale dependency was restarted and observed running afterward.
+No Windows reboot was performed.
+
+== Execution results and retained evidence
+
+The successful command was:
+
+[source,bash]
+----
+./install.sh --headless --non-interactive-live-approval
+----
+
+It used the private WSL operator file and evidence root. The successful
+installer evidence directory is:
+
+`private/wsl-20261110/install-evidence/wsl2/20261110T184151285483Z`.
+
+The 17-check browser/API run started at
+`2026-11-10T18:46:39.323403+00:00` and finished at
+`2026-11-10T18:49:06.996606+00:00`. The runner only adapts browser binary,
+trust and actual WSL endpoint selection around the existing test methods.
+
+* Runner SHA-256:
+  `5ff7cd42b59fd2d9890c59554aeb404c45bea4711ec450ea391973b8d429cbd7`.
+* Browser/API summary SHA-256:
+  `2f63c8bb2554df9dde2a69cc0897841bf34c9944d653137e9d065c14629ec606`.
+* Windows HTTPS result SHA-256:
+  `66c8214e09d7be1faf6e59053796f677fac2d8bd8573f96246308e32cf0437e2`.
+* Successful installer log SHA-256:
+  `815664a1c35ae6216837d857ff24f42539841614604c0ddbcfdd85d11d0994fd`.
+
+Protected candidate records are under `private/wsl-20261110`, including
+`acceptance-summary.json`, `source-comparison.json`, `browser-evidence`,
+`windows-https-results.json`, node/service inventory and installer attempts.
+Windows-side backups and diagnostics are in the PC user's
+`tsw-wsl-20261110` directory.
+
+The PC user's `Downloads/tsw-wsl-e2e-20261110` contains the acceptance summary,
+Windows HTTPS results and `acceptance-evidence.tar.gz`. The archive includes
+redacted results, source hashes and final inventory; it excludes credentials.
+Archive SHA-256:
+`cd6abbea3142079248d9bf93bcd963ed0c289913111aabbc0bd5b9ecbb87f7de`.
+
+Earlier attempts remain recorded: the first stopped on an obsolete Portainer
+credential; the second encountered a backed-up legacy credential file in the
+source scan and was interrupted before retry. The final installer and live
+tests above passed after those configuration repairs.
+
+The complete source quality gate was not rerun for these operational changes.
+The earlier broad-gate pass retains its original evidence and scope; this
+report records a separate executed WSL installation and service acceptance.
+
+== Follow-up: actual Windows browser outage and session repair
+
+The operator subsequently reported a browser 404 and then an unreachable page.
+Fresh observation found all three Incus nodes stopped and the interactive
+keepalive task in `Ready` state, with last result `3221225786` (`0xC000013A`).
+The original successful tests did not establish continuous WSL availability.
+
+The nodes and Incus were restored. The existing keepalive task now runs a
+hidden PowerShell supervisor, launching the selected Ubuntu `sleep infinity`
+process in a hidden window and restarting that child after exit with a ten-second
+delay. Its prior task definition was exported before modification. This is a
+PC-specific operational repair; it is not a new shipped bootstrap feature.
+
+The installed Windows Chrome was exercised in headless mode with a fresh profile
+and no certificate bypass. At `2026-11-10T19:04:59.2928150Z`, its actual DOM
+contained `<title>Tiny Swarm World Service Access</title>` for
+`https://service-access.tsw.local`. Windows HTTP also redirected to HTTPS and
+returned 200. The PC's `tsw-wsl-20261110/chrome-verification` directory retains
+`result.json`, the DOM, Chrome diagnostics and follow-up route observations.
+
+After the repair, the three Swarm nodes were again Ready/Active and the steady
+services had their desired replicas. Configured Portainer authentication through
+its routed HTTPS API returned 200 with canonical CA validation. These are new
+post-outage observations; a Windows reboot and before-logon startup remain
+unqualified. The hidden task retains its interactive logon trigger.

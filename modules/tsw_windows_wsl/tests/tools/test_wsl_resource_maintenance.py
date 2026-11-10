@@ -61,14 +61,14 @@ class WslResourceMaintenanceTests(unittest.TestCase):
                 "$ErrorActionPreference='Stop';"
                 f"$root='{native_root}';$source='{native_source}';"
                 "[IO.Directory]::CreateDirectory($root) | Out-Null;"
-                "[IO.Directory]::CreateDirectory((Join-Path $root '.git')) | Out-Null;"
-                "[IO.Directory]::CreateDirectory((Join-Path $root 'infra/config')) | Out-Null;"
+                "[IO.Directory]::CreateDirectory((Join-Path $root '.git')) | Out-Null;[IO.Directory]::CreateDirectory((Join-Path $root 'modules/tsw_windows_wsl')) | Out-Null;"
+                "[IO.Directory]::CreateDirectory((Join-Path $root 'modules/tsw_core/infra/config')) | Out-Null;"
                 "$actor=[Security.Principal.WindowsIdentity]::GetCurrent().User;"
                 "foreach($path in @($root,(Join-Path $root '.git'))){"
                 "$acl=Get-Acl -LiteralPath $path;$acl.SetOwner($actor);"
                 "Set-Acl -LiteralPath $path -AclObject $acl};"
-                "Copy-Item -LiteralPath (Join-Path $source 'bootstrap') "
-                "-Destination (Join-Path $root 'bootstrap') -Recurse;"
+                "Copy-Item -LiteralPath (Join-Path $source 'modules/tsw_windows_wsl/bootstrap') "
+                "-Destination (Join-Path $root 'modules/tsw_windows_wsl/bootstrap') -Recurse;"
                 "Copy-Item -LiteralPath (Join-Path $source 'modules/tsw_core/infra/config/ports.yaml') "
                 "-Destination (Join-Path $root 'modules/tsw_core/infra/config/ports.yaml')"
             )
@@ -152,7 +152,7 @@ class WslMaintenanceLifetimeProtocolTests(unittest.TestCase):
                 self.assertEqual((result.returncode, result.stdout, result.stderr), (4, b"", b""))
 
     def test_ready_probe_keeps_activating_transient_and_denies_unknown_unit(self) -> None:
-        code = compile(self.program("Get-WslMaintenanceReadyProgram"), "fixed-ready-probe", "exec")
+        code = compile(self.program("Get-WslMaintenanceReadyProgram"), "<fixed-ready-probe>", "exec")
         for active, substate, http_status, expected in (("activating", "start-post", 503, "WAIT"),
                                                          ("active", "running", 200, "READY"),
                                                          ("active", "running", 503, "WAIT"),

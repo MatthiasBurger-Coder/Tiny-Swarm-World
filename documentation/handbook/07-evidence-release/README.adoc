@@ -74,12 +74,14 @@ Cross-references from other parts do not change that ownership.
 * link:{handbook-root}handbook/07-evidence-release/evidence/live-run-template.md[live-run-template.md]
 * link:{handbook-root}handbook/07-evidence-release/evidence/live-smoke-checklist.md[live-smoke-checklist.md]
 * link:{handbook-root}handbook/07-evidence-release/evidence/native-linux-cold-start-recovery.md[native-linux-cold-start-recovery.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/native-linux-e2e-20261109.adoc[Native Linux E2E on 9 and 10 November 2026]
 * link:{handbook-root}handbook/07-evidence-release/evidence/nightly-classic-runner-recovery-20261018.md[nightly-classic-runner-recovery-20261018.md]
 * link:{handbook-root}handbook/07-evidence-release/evidence/rc1-wsl-planned-restart-20260913.md[rc1-wsl-planned-restart-20260913.md]
 * link:{handbook-root}handbook/07-evidence-release/evidence/redaction-rules.md[redaction-rules.md]
 * link:{handbook-root}handbook/07-evidence-release/evidence/user-documentation-review-20260909.md[user-documentation-review-20260909.md]
 * link:{handbook-root}handbook/07-evidence-release/evidence/user-documentation-review-20260912.md[user-documentation-review-20260912.md]
 * link:{handbook-root}handbook/07-evidence-release/evidence/wsl2-secure-live-path.md[wsl2-secure-live-path.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/windows-wsl-e2e-20261110.adoc[Windows PC / Ubuntu WSL2 live acceptance on 10 November 2026]
 
 === evidence/issue-443
 

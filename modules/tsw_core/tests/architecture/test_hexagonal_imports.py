@@ -1,5 +1,6 @@
 import ast
 import asyncio
+from configparser import ConfigParser
 from collections.abc import Mapping
 from dataclasses import fields, is_dataclass
 import json
@@ -100,6 +101,23 @@ DIRECT_FILESYSTEM_METHODS = {
 
 
 class TestHexagonalImports(unittest.TestCase):
+    def test_import_linter_contracts_reference_existing_modules(self):
+        configuration = ConfigParser()
+        path = REPOSITORY_ROOT / ".importlinter"
+        self.assertEqual(configuration.read(path, encoding="utf-8"), [str(path)])
+        self.assertTrue(configuration.sections())
+        for section in configuration.sections():
+            for option in ("root_packages", "source_modules", "forbidden_modules"):
+                for module in configuration.get(section, option, fallback="").split():
+                    with self.subTest(section=section, option=option, module=module):
+                        self.assertEqual(module.split(".")[0], PACKAGE_NAME)
+                        target = SOURCE_ROOT.joinpath(*module.split(".")[1:])
+                        self.assertTrue(
+                            target.with_suffix(".py").is_file()
+                            or (target / "__init__.py").is_file(),
+                            f"{section}: {option} references missing module {module}",
+                        )
+
     def test_operation_contract_depends_only_on_standard_library(self):
         source = (APPLICATION_PORTS_ROOT / "operation_result.py").read_text(encoding="utf-8")
         self.assertEqual([], _non_stdlib_imports(source))

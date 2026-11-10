@@ -25,7 +25,7 @@ class TestExplicitCompositionBindings(unittest.TestCase):
 
     def test_public_facade_contains_no_probe_or_environment_implementation(self) -> None:
         source_path = (
-            Path(__file__).parents[2]
+            Path(__file__).resolve().parents[4]
             / "modules/tsw_core/src"
             
             / "infrastructure"

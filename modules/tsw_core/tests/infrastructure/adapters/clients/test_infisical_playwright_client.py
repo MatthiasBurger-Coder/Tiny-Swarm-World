@@ -10,8 +10,7 @@ from tiny_swarm_world.application.ports.clients.port_infisical_client import Inf
 MODULE_PATH = (
     Path(__file__).resolve().parents[6]
     / "modules/tsw_core/src"
-    / "tiny_swarm_world"
-    / "infrastructure"
+        / "infrastructure"
     / "adapters"
     / "clients"
     / "infisical_playwright_client.py"

@@ -22,7 +22,7 @@ class TestLxcRuntimeBoundaries(unittest.TestCase):
 
     def test_backend_cli_mapping_has_one_infrastructure_source(self):
         infrastructure_root = (
-            Path(__file__).parents[2]
+            Path(__file__).resolve().parents[4]
             / "modules/tsw_core/src"
             
             / "infrastructure"
@@ -63,7 +63,7 @@ class TestLxcRuntimeBoundaries(unittest.TestCase):
 
     def test_legacy_module_exposes_only_approved_runtime_facades_as_classes(self):
         source_path = (
-            Path(__file__).parents[2]
+            Path(__file__).resolve().parents[4]
             / "modules/tsw_core/src"
             
             / "infrastructure"
@@ -90,7 +90,7 @@ class TestLxcRuntimeBoundaries(unittest.TestCase):
 
     def test_node_provider_legacy_module_keeps_command_types_as_compatibility_imports(self):
         source_path = (
-            Path(__file__).parents[2]
+            Path(__file__).resolve().parents[4]
             / "modules/tsw_core/src"
             
             / "infrastructure"
@@ -111,7 +111,7 @@ class TestLxcRuntimeBoundaries(unittest.TestCase):
 
     def test_host_preflight_delegates_service_matching_to_registry(self):
         source_path = (
-            Path(__file__).parents[2]
+            Path(__file__).resolve().parents[4]
             / "modules/tsw_core/src"
             
             / "infrastructure"
@@ -138,7 +138,7 @@ class TestLxcRuntimeBoundaries(unittest.TestCase):
 
     def test_lxc_swarm_runtime_does_not_select_asset_behavior_by_stack_name(self):
         source_path = (
-            Path(__file__).parents[2]
+            Path(__file__).resolve().parents[4]
             / "modules/tsw_core/src"
             
             / "infrastructure"
@@ -158,7 +158,7 @@ class TestLxcRuntimeBoundaries(unittest.TestCase):
 
     def test_lxc_swarm_runtime_contains_no_http_request_policy(self):
         source_path = (
-            Path(__file__).parents[2]
+            Path(__file__).resolve().parents[4]
             / "modules/tsw_core/src"
             
             / "infrastructure"

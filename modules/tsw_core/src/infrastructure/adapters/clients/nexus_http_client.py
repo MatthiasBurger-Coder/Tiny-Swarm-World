@@ -126,10 +126,25 @@ class NexusHttpClient(PortNexusClient):
         repository_name: str,
         http_port: int,
     ) -> None:
+        url = f"{self.base_url}/service/rest/v1/repositories/docker/hosted/{repository_name}"
+        desired = _docker_hosted_repository_payload(repository_name, http_port)
+        observed = self._request("get", url, auth=(username, password), timeout=30)
+        self._ensure_success(observed, f"read Nexus Docker hosted repository '{repository_name}'")
+        actual = _response_payload(observed)
+        if (
+            isinstance(actual, dict)
+            and actual.get("name") == repository_name
+            and actual.get("online") is True
+            and all(
+                _matches_repository_section(actual.get(section), desired[section])
+                for section in ("storage", "docker")
+            )
+        ):
+            return
         response = self._request("put",
-            f"{self.base_url}/service/rest/v1/repositories/docker/hosted/{repository_name}",
+            url,
             auth=(username, password),
-            json=_docker_hosted_repository_payload(repository_name, http_port),
+            json=desired,
             timeout=30,
         )
         self._ensure_success(response, f"update Nexus Docker hosted repository '{repository_name}'")
@@ -193,6 +208,14 @@ class NexusHttpClient(PortNexusClient):
     def _ensure_success(response: requests.Response, action: str) -> None:
         if response.status_code >= 400:
             raise NexusClientError(OperationFailure.for_cause("service.request", "nexus", "request_failed"), status_code=response.status_code) from None
+
+
+def _matches_repository_section(actual: object, desired: object) -> bool:
+    return (
+        isinstance(actual, dict)
+        and isinstance(desired, dict)
+        and all(actual.get(key) == value for key, value in desired.items())
+    )
 
 
 def _docker_hosted_repository_payload(repository_name: str, http_port: int) -> dict[str, object]:

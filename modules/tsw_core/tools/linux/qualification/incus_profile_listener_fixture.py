@@ -2211,6 +2211,26 @@ def _incus(*args: str, profile_data: dict[str, Any] | None = None) -> bytes:
     return command(['incus', *args])
 
 
+def _profile_input_fd() -> int:
+    """Keep profile input in anonymous RAM on Linux Python builds without memfd."""
+    native = getattr(os, 'memfd_create', None)
+    if native is not None:
+        return int(native('tsw-owned-profile', getattr(os, 'MFD_CLOEXEC', 1)))
+    import ctypes
+    import errno
+
+    try:
+        create = ctypes.CDLL(None, use_errno=True).memfd_create
+    except AttributeError:
+        raise OSError(errno.ENOSYS, 'Anonymous profile input unavailable.') from None
+    create.argtypes = (ctypes.c_char_p, ctypes.c_uint)
+    create.restype = ctypes.c_int
+    descriptor = create(b'tsw-owned-profile', 1)  # Linux MFD_CLOEXEC.
+    if descriptor < 0:
+        raise OSError(ctypes.get_errno(), 'Anonymous profile input unavailable.')
+    return int(descriptor)
+
+
 def _create_profile_command(args: list[str], profile_data: Any) -> bytes:
     """Send only the canonical run-owned profile body through a bounded RAM fd."""
     global _INVENTORY_BYTES_CAPTURED, _INVENTORY_STARTED_AT
@@ -2233,7 +2253,7 @@ def _create_profile_command(args: list[str], profile_data: Any) -> bytes:
         raise TargetDrift('INCUS_INVENTORY_TOTAL_TIMEOUT')
     if byte_limit - _INVENTORY_BYTES_CAPTURED < 2:
         raise TargetDrift('INCUS_INVENTORY_OUTPUT_TOO_LARGE')
-    fd = os.memfd_create('tsw-owned-profile', os.MFD_CLOEXEC)
+    fd = _profile_input_fd()
     argv = [TRUSTED_BIN['incus'], *args]
     try:
         view = memoryview(raw)

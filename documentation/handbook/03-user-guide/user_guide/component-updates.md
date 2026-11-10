@@ -100,8 +100,14 @@ See the [lifecycle contract](../../01-product/contracts/lifecycle.md),
 
 The component executor supports explicit live apply and recovery through the
 existing Classic image-update adapters. Jenkins/Nexus examples below still fail
-admission; the only generic policies currently admitted are the pinned Swagger
-and Traefik transitions above. Synthetic test policies are not live qualification.
+admission. The pinned Swagger and Traefik transitions above also remain candidates
+until current-source live qualification is complete; no generic component target
+is currently admitted. Discovery lists them as catalog references, while
+`available_supported_targets` remains empty and update previews return blocked
+(exit 1), including explicit target IDs and selected batches. Recovery of an
+existing interrupted update retains its checked original-image path; revoking
+forward admission does not remove that recovery. Synthetic qualified test
+policies exercise the executor and are not live qualification.
 There is no arbitrary image/tag execution escape hatch.
 
 For an installation with independently verified complete source pins, preview

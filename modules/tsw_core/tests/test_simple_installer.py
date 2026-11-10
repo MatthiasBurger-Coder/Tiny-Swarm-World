@@ -482,9 +482,9 @@ class TestSimpleInstallerSecretBootstrap(unittest.TestCase):
         compatibility_script = (REPOSITORY_ROOT / "install.sh").read_text(encoding="utf-8")
         self.assertIn('exec "$SCRIPT_DIR/modules/tsw_native_linux/install.sh" "$@"', compatibility_script)
         native_script = (REPOSITORY_ROOT / "modules/tsw_native_linux/install.sh").read_text(encoding="utf-8")
-        self.assertIn('modules/tsw_native_linux/boostrap/install.sh', native_script)
+        self.assertIn('exec "$SCRIPT_DIR/boostrap/install.sh" "$@"', native_script)
         install_script = (REPOSITORY_ROOT / "modules/tsw_native_linux/boostrap/install.sh").read_text(encoding="utf-8")
-        self.assertIn("tiny_swarm_world.simple_installer", install_script)
+        self.assertIn('installer_module="modules.tsw_core.src.simple_installer"', install_script)
         self.assertNotIn("tiny_swarm_world.installer", install_script)
         simple_source = (
             REPOSITORY_ROOT / "modules/tsw_core/src/simple_installer.py"

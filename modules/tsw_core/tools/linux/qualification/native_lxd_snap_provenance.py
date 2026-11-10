@@ -419,7 +419,7 @@ class _Proof:
                 return False
         return True
 
-    def process(self, pid: int, group: str) -> Process:
+    def process(self, pid: int, group: str, *, allow_root: bool = True) -> Process:
         root = f"/proc/{pid}"
         stat_observation = self.observe(root + "/stat", limit=PROC_LIMIT)
         text = _text(stat_observation.data, "SNAP_WRAPPER_PROC_INVALID")
@@ -435,7 +435,10 @@ class _Proof:
             raise ProvenanceError("SNAP_WRAPPER_PROC_INVALID")
         cgroup_observation = self.observe(root + "/cgroup", limit=PROC_LIMIT)
         cgroup = cgroup_observation.data
-        if cgroup not in {f"0::{group}".encode(), f"0::{group}\n".encode(), b"0::/", b"0::/\n"}:
+        accepted = {f"0::{group}".encode(), f"0::{group}\n".encode()}
+        if allow_root:
+            accepted.update((b"0::/", b"0::/\n"))
+        if cgroup not in accepted:
             try:
                 observed_group = cgroup.decode("utf-8", "strict").removesuffix("\n")
             except UnicodeError as exc:
@@ -756,7 +759,7 @@ def _probe_generator_form(runner: RunnerPort, expected: dict[str, Any], *, fs: R
                 return False
             if not _stage_reobserve(proof, visited):
                 return False
-            if process is not None and proof.process(pid, group) != process:
+            if process is not None and proof.process(pid, group, allow_root=False) != process:
                 return False
             if environment is not None and proof.main_environment(pid) != environment:
                 return False
@@ -789,7 +792,7 @@ def _probe_generator_form(runner: RunnerPort, expected: dict[str, Any], *, fs: R
         if dropin_form != "DEPENDENCY_VARIANT" or not _generator_form(drop.data):
             return rejected("DROPIN_TRUST_OR_FORM")
         try:
-            process = proof.process(pid, group)
+            process = proof.process(pid, group, allow_root=False)
         except _StageNegative as failure:
             if not stages:
                 return "UNKNOWN"
@@ -800,11 +803,11 @@ def _probe_generator_form(runner: RunnerPort, expected: dict[str, Any], *, fs: R
                 if not isinstance(observation, Observation) or _cgroup_relation(group, observation.data) != "PROC_ROOT":
                     return "UNKNOWN"
                 def revalidate(failure: _StageNegative = failure) -> bool:
-                    return stable_prior() and _negative_again(lambda: proof.process(pid, group), failure)
+                    return stable_prior() and _negative_again(lambda: proof.process(pid, group, allow_root=False), failure)
 
                 result = _compare_reader_namespace(proof, revalidate)
                 return result if result in {"SAME", "DIFFERENT"} else "UNKNOWN"
-            if not stable_prior() or not _negative_again(lambda: proof.process(pid, group), failure):
+            if not stable_prior() or not _negative_again(lambda: proof.process(pid, group, allow_root=False), failure):
                 return "UNKNOWN"
             if relation:
                 if failure.stage != "PROCESS_BINDING" or len(failure.snapshots) != 3:
@@ -840,13 +843,13 @@ def _probe_generator_form(runner: RunnerPort, expected: dict[str, Any], *, fs: R
             return "UNKNOWN"
         unit_equal = _same_diagnostic_unit(before, after)
         if not stages:
-            if (not unit_equal or proof.process(pid, group) != process
+            if (not unit_equal or proof.process(pid, group, allow_root=False) != process
                     or proof.main_environment(pid) != environment or proof.shell(pid, argv, process) != shell
                     or proof.pair(pid, base + "/commands/daemon.start", limit=METADATA_LIMIT) != script
                     or not proof.diagnostic_reobserve(tuple(visited))):
                 return "UNKNOWN"
             return "MATCH"
-        current_process = proof.process(pid, group)
+        current_process = proof.process(pid, group, allow_root=False)
         current_environment = proof.main_environment(pid)
         current_shell = proof.shell(pid, argv, process)
         current_script = proof.pair(pid, base + "/commands/daemon.start", limit=METADATA_LIMIT)
