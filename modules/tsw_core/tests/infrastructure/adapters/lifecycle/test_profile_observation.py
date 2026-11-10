@@ -54,7 +54,9 @@ class OwnedFrameRunner(FrameRunner):
             if '--show-toplevel' in args:
                 return LxcNodeCommandResult(0, str(self.root) + '\n')
             if 'ls-files' in args:
-                return LxcNodeCommandResult(0, 'H src/tracked.py\0')
+                if '--stage' not in args:
+                    raise AssertionError('Expected staged Git file metadata.')
+                return LxcNodeCommandResult(0, f'H 100644 {"a" * 40} 0\tsrc/tracked.py\0')
             if '--verify' in args:
                 return LxcNodeCommandResult(0, 'c' * 40 + '\n')
             return LxcNodeCommandResult(0, '')

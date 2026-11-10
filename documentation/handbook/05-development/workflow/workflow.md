@@ -2,7 +2,7 @@
 
 Workflow ID: issue-440-final-acceptance
 workflowVersion: 1.0
-Status: EXECUTING; S440-01 PARTIAL (inventory accepted, live readiness NOT_VERIFIED); S440-02/03 VERIFIED_LOCAL; no live GO granted
+Status: EXECUTING; S440-01 PARTIAL (inventory accepted, live readiness NOT_VERIFIED); S440-02/03/04 VERIFIED_LOCAL; no live GO granted
 Issue: [#440](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `docs/workflow-issue440-acceptance-20261110`
 Baseline: `ca6902579f51c2c6d9439bf9c58dec02bfb45a93`
@@ -514,7 +514,7 @@ Allowed files, locks, owners, dependencies and verified commands:
 {
   "slice_id": "S440-04",
   "profile": "FULL_PATH",
-  "status": "PLANNED",
+  "status": "VERIFIED_LOCAL",
   "owner": "Senior Python Automation Developer",
   "secondary_reviewers": [
     "Senior Requirement Engineer",
@@ -541,6 +541,8 @@ Allowed files, locks, owners, dependencies and verified commands:
     "modules/tsw_core/tests/application/services/test_installation_profile.py",
     "modules/tsw_core/tests/infrastructure/adapters/clients/test_lxc_profile_lifecycle.py",
     "modules/tsw_core/tests/infrastructure/adapters/lifecycle/test_installation_operation_lock.py",
+    "modules/tsw_core/tests/infrastructure/adapters/lifecycle/test_managed_stack_delivery.py",
+    "modules/tsw_core/tests/infrastructure/adapters/lifecycle/test_profile_observation.py",
     "modules/tsw_core/tests/test_profile_recovery_cli.py",
     "modules/tsw_core/tests/test_profile_legacy_compatibility.py"
   ],
@@ -578,6 +580,8 @@ Allowed files, locks, owners, dependencies and verified commands:
     "modules/tsw_core/tests/application/services/test_installation_profile.py",
     "modules/tsw_core/tests/infrastructure/adapters/clients/test_lxc_profile_lifecycle.py",
     "modules/tsw_core/tests/infrastructure/adapters/lifecycle/test_installation_operation_lock.py",
+    "modules/tsw_core/tests/infrastructure/adapters/lifecycle/test_managed_stack_delivery.py",
+    "modules/tsw_core/tests/infrastructure/adapters/lifecycle/test_profile_observation.py",
     "modules/tsw_core/tests/test_profile_recovery_cli.py",
     "modules/tsw_core/tests/test_profile_legacy_compatibility.py",
     ".tiny-swarm/evidence/issue-440/slice-04/**"
@@ -616,6 +620,8 @@ Allowed files, locks, owners, dependencies and verified commands:
     "modules/tsw_core/tests/application/services/test_installation_profile.py",
     "modules/tsw_core/tests/infrastructure/adapters/clients/test_lxc_profile_lifecycle.py",
     "modules/tsw_core/tests/infrastructure/adapters/lifecycle/test_installation_operation_lock.py",
+    "modules/tsw_core/tests/infrastructure/adapters/lifecycle/test_managed_stack_delivery.py",
+    "modules/tsw_core/tests/infrastructure/adapters/lifecycle/test_profile_observation.py",
     "modules/tsw_core/tests/test_profile_recovery_cli.py",
     "modules/tsw_core/tests/test_profile_legacy_compatibility.py",
     ".tiny-swarm/evidence/issue-440/slice-04/**",
@@ -651,6 +657,11 @@ Allowed files, locks, owners, dependencies and verified commands:
   ]
 }
 ```
+
+Reviewed S440-04 scope refinement. The canonical suite identified two existing Git
+test transports that still used the old source-observation command and row format.
+The independently accepted amendment covers only the two exact test files above.
+Keep the real source check and all existing recovery and read-only assertions.
 
 ### Slice 05 — Bind qualification helpers to this workflow and complete evidence capture
 

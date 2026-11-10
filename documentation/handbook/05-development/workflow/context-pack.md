@@ -19,3 +19,5 @@ Planning publication targets origin/docs/workflow-issue440-acceptance-20261110; 
 S440-03 local D8 verified; external Sonar reanalysis remains a later gate.
 
 S440-02 local D8 verified; S440-04 deterministic integration may proceed. No live GO or external Sonar result is implied.
+
+S440-04 local D8 verified. S440-05 may bind the qualification helpers to the active workflow. No live GO.
