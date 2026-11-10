@@ -16,3 +16,24 @@ Ranges overlap the slice estimates; do not sum this diagnostic ledger separately
 Workflow total: 11–24 engineer-days, including prerequisite implementation and
 qualification effort, excluding calendar waiting. No host readiness, unused port,
 backup, registry availability or reviewer is assumed from an issue's closed state.
+
+## S440-01 runtime readiness boundary
+
+The local execution branch/ref and clean initial source 07cc4115 were verified.
+A separate designated Windows-PC Ubuntu WSL checkout was cloned at that exact
+revision, with its own package environment. Its installed tiny_swarm_world resolves
+inside that checkout; the previous live-install checkout was not modified.
+
+| Prerequisite fact | Current evidence | Status / owning gate |
+|---|---|---|
+| Unit/quality host and isolated installed source | SSH/WSL Python 3.12.15; exact 07cc4115 clone and package path checked; 96 CLI tests pass | VERIFIED for deterministic tests only |
+| Native/WSL fixture ownership and absence of foreign writers | Historical records identify bounded targets; no fresh operational inventory or maintenance approval in this slice | NOT_VERIFIED; S440-06 JIT/GO |
+| Current exact Incus client/server 6.0.5 and isolated listener port | Historical native result is not paired current-source WSL qualification | NOT_VERIFIED; S440-06 before effects |
+| Recoverable Portainer-managed stack and cold /data backup | Required by existing dedicated runtime; no usable current fixture backup was asserted | NOT_VERIFIED; S440-08 admission |
+| Current Windows firewall/PortProxy/routes/issue447 baseline | Historical preservation evidence exists; fresh snapshots remain required | NOT_VERIFIED; S440-06/08 scoped preservation |
+| Current consent for an exact destructive/interruption/restore scenario | workflow execute authorizes configured workflow/testing; no blanket live host mutation is inferred | LIVE_CONSENT_MISSING unless an existing exact-scope approval is separately verified |
+
+S440-01 is PARTIAL overall because its approved-live-fixture clause has no fresh
+runtime evidence. Its deterministic inventory is accepted for S440-02/03 under
+the explicit instruction to continue independent deterministic fixes; the live
+dependency is retained, not silently marked DONE or moved out of parent scope.

@@ -79,3 +79,34 @@ active-workflow binding and tests, verify all capture/maintenance consumers and
 freeze the new approval schema/hash. Existing expected-approval-sha256 and target
 identity checks remain mandatory. New harness commands become executable only
 after their implementation/help/tests are accepted and the plan is refreshed.
+
+## S440-01 inspected executable and effect ownership
+
+| Delivered entrypoint | Actual production path and authority |
+|---|---|
+| Root tsw | modules/tsw_native_linux/tsw → boostrap/run.sh → python3 -m modules.tsw_core.src → core __main__ → CLI dispatcher |
+| Installed tiny-swarm-world | pyproject console script → tiny_swarm_world.__main__:cli → dispatcher.main/parser.parse_args; verify installed package is the campaign source |
+| product version / services list | lifecycle.run_lifecycle_inspection → composed InstallationLifecycleService.inspect; persisted catalog/manifest observations, not a fresh runtime claim |
+| product upgrade | ProductUpgradeService + PreparedProductInstallation/OfficialProductSource/JsonProductJournal + ClassicProductRuntime; protected code/env/config staging and full-selection verification |
+| services updates/update | ComponentUpdateService → domain admission → ComponentUpdateExecution → Classic/ManagedComponentRuntime → #297/Portainer; desired pins only after observed success |
+| Portainer-only update | Dedicated preview/consent/no-batch guard → PortainerUpgradeService → ClassicPortainerUpgradeRuntime and JsonPortainerJournal; cold backup/manager-shell restore and managed-stack identity |
+| setup/add | Selection planner → installation lease → SetupSelectionState.admit → scoped preparation/existing SetupWorkflow → observations and manifest commitment |
+| removal/selection preview | Pure persisted plan and route projection; removal apply unsupported |
+| scoped runtime/recovery | ProfileRuntimeOperation and InstallationProfileService invoke JSON capability authority and checkpoint/lease-bound runtime; exact devices/consumers/client/server rechecked before effects |
+
+The runtime support authority is the reviewed JSON capability asset, currently
+empty, not the separate unsupported data-only intent classifier. Old workflow
+binding remains a genuine S440-05 prerequisite. No caller bypass or production
+candidate promotion was performed during this inventory.
+
+### Current deterministic verification
+
+The five CLI suites in S440-01 ran on the isolated designated SSH/WSL test source:
+96 tests PASS, zero skips. Initial retry was BUILD_FAILURE (DevOps, retry 1/3):
+the new test log directory had 0755 instead of required owner-private 0700.
+Corrected only the newly owned test-state directories; no application guard,
+test assertion or live installation was changed. Retry command was the same
+five-suite PYTHONPATH=. python3 -m unittest command in slice metadata.
+
+These tests substitute host/runtime effects and prove CLI contracts only.
+No live fixture, backup, service update or native/WSL system acceptance follows.

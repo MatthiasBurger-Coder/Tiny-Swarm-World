@@ -2,7 +2,7 @@
 
 Workflow ID: issue-440-final-acceptance
 workflowVersion: 1.0
-Status: READY_FOR_WORKFLOW; all execution slices PLANNED, no live GO granted
+Status: EXECUTING; S440-01 PARTIAL (inventory accepted, live readiness NOT_VERIFIED); no live GO granted
 Issue: [#440](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `docs/workflow-issue440-acceptance-20261110`
 Baseline: `ca6902579f51c2c6d9439bf9c58dec02bfb45a93`
@@ -180,7 +180,7 @@ Allowed files, locks, owners, dependencies and verified commands:
 {
   "slice_id": "S440-01",
   "profile": "FULL_PATH",
-  "status": "PLANNED",
+  "status": "PARTIAL_INVENTORY_ACCEPTED_LIVE_READINESS_PENDING",
   "owner": "Senior Requirement Engineer",
   "secondary_reviewers": [
     "Senior Requirement Engineer",

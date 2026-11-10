@@ -2,7 +2,7 @@
 
 Workflow: [workflow.md](workflow.md), version 1.0, FULL_PATH.
 Branch: `docs/workflow-issue440-acceptance-20261110`. Runtime baseline: `ca6902579f51c2c6d9439bf9c58dec02bfb45a93`.
-Process: workflow create; READY_FOR_WORKFLOW; implementation not started.
+Process: workflow execute; S440-01 inventory accepted, live-readiness clause PARTIAL/NOT_VERIFIED. Independent deterministic S440-02/03 may proceed under the documented continuation rule.
 
 Read [requirements](requirement-matrix.md), [machine-readable requirement inventory](requirements.json),
 [prerequisites](prerequisite-ledger.md), [scenario/evidence contract](scenario-plan.md),
