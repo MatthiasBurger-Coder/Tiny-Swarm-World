@@ -79,6 +79,7 @@ if TYPE_CHECKING:
         _capture_output_path as _capture_output_path,
         _capture_project_inventory as _capture_project_inventory,
         _create_profile_command as _create_profile_command,
+        _profile_input_fd as _profile_input_fd,
         _decode_mountinfo_field as _decode_mountinfo_field,
         _derive_fixture_base as _derive_fixture_base,
         _exact_keys as _exact_keys,

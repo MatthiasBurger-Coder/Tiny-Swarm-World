@@ -3725,6 +3725,30 @@ class R3BudgetAndAtomicTransportTests(_FixtureBehaviorTestCase):
             fixture._create_profile_command(['profile', 'create', name, '--project', 'other'], data)
         process.assert_not_called()
 
+    def test_profile_input_remains_anonymous_ram_without_python_memfd_binding(self):
+        with patch.object(fixture.os, 'memfd_create', None, create=True):
+            descriptor = fixture._profile_input_fd()
+        try:
+            os.write(descriptor, b'bounded-profile-fixture')
+            os.lseek(descriptor, 0, os.SEEK_SET)
+            self.assertEqual(os.read(descriptor, 64), b'bounded-profile-fixture')
+            self.assertFalse(os.get_inheritable(descriptor))
+            self.assertIn('memfd:tsw-owned-profile', os.readlink(f'/proc/self/fd/{descriptor}'))
+        finally:
+            os.close(descriptor)
+
+    def test_unavailable_anonymous_ram_never_falls_back_to_a_disk_file(self):
+        import ctypes
+
+        for library in (SimpleNamespace(), SimpleNamespace(memfd_create=Mock(return_value=-1))):
+            with (self.subTest(available=hasattr(library, 'memfd_create')),
+                  patch.object(fixture.os, 'memfd_create', None, create=True),
+                  patch.object(ctypes, 'CDLL', return_value=library),
+                  patch('tempfile.NamedTemporaryFile') as disk,
+                  self.assertRaises(OSError)):
+                fixture._profile_input_fd()
+            disk.assert_not_called()
+
 
 
     def test_lost_atomic_create_ack_requires_exact_full_body_readback_before_cleanup(self):
