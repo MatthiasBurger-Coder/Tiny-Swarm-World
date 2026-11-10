@@ -533,8 +533,12 @@ class BrowserRouteE2EContractStaticTest(unittest.TestCase):
                 self.assertFalse(_wait_for_login_rejection(Mock(), Mock(), attempts=1))
 
     def test_explicit_invalid_credentials_are_rejected_without_retrying_login(self) -> None:
-        with patch(f"{__name__}._page_text_and_title", return_value=("Invalid credentials", "Login")):
-            self.assertTrue(_wait_for_login_rejection(Mock(), Mock(), attempts=1))
+        for message in (
+            "Invalid credentials", "Invalid username or email", "The user is not exist",
+        ):
+            with self.subTest(message=message):
+                with patch(f"{__name__}._page_text_and_title", return_value=(message, "Login")):
+                    self.assertTrue(_wait_for_login_rejection(Mock(), Mock(), attempts=1))
 
     def test_live_e2e_evidence_target_is_local_and_ignored(self) -> None:
         _assert_evidence_target(self)
@@ -938,6 +942,7 @@ def _wait_for_login_rejection(
     """A failed transport or a still-visible form alone never proves rejection."""
     markers = (
         "invalid credentials", "invalid username or password", "incorrect username or password",
+        "invalid username or email", "the user is not exist",
         "incorrect email or password", "invalid email or password", "authentication failed",
         "login failed", "sign in failed", "login failure",
         "unable to login", "wrong email or password", "wrong password",
