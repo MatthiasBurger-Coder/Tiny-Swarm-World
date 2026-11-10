@@ -69,18 +69,62 @@ optional requests resolve to the same service set, select another actually
 supported distinct set before claiming two selections. Existing full-service
 installation/browser passes do not fill missing update/selection cells.
 
-## Listener/helper binding prerequisite
+## Listener and helper binding
 
-The current fixture reads HEAD:documentation/handbook/05-development/workflow/issues/issue-449/workflow.md.
-The previous source remains in Git at the workflow baseline. S440-01 temporarily
-retains the exact historical workflow blob at that path because the unchanged
-native static-intent test pins and reads it. The active index still selects only
-#440; preserving the fixture bytes does not restore the old workflow or its GO. Do not attempt a GO under an old path/hash or create a dummy
-compatibility document to bypass approval. S440-05 must implement/review the
-active-workflow binding and tests, verify all capture/maintenance consumers and
-freeze the new approval schema/hash. Existing expected-approval-sha256 and target
-identity checks remain mandatory. New harness commands become executable only
-after their implementation/help/tests are accepted and the plan is refreshed.
+The listener fixture and native maintenance use the fixed active #440 root
+workflow path. The WSL product supervisor also pins that path in its source
+approval. Fixture input blobs come from one checked commit, followed by another
+HEAD and cleanliness check. Target identity, expected approval SHA-256 and
+workflow/runner/test hashes still govern admission. Old approvals fail these
+bindings. The historical fixture input remains in Git at the workflow baseline.
+
+### Read-only case attribution report
+
+After a supported fixed recipe has produced its protected receipts, run the
+report from the repository with the matching approval digest.
+
+```bash
+python3 -m modules.tsw_core.tests.e2e.classic.run_lcm_acceptance report \
+  --platform wsl --run-id RUN_ID --case minimal --expected-go-sha256 GO_SHA256
+```
+
+Use `native` for the native journal. The report checks approval, source,
+fixed CLI sequence, process identity, release and settlement, observed
+selection and version, and the private before/after bindings. It returns
+`ATTRIBUTED` for a complete recorded chain and `INCOMPLETE` for unavailable
+or ambiguous evidence. Output contains digest summaries; the private files
+stay on the qualification host. The available fault recipe records SIGTERM.
+The separate SIGINT and API-down requirements remain with S440-08, and the
+product-v1 recipe remains with S440-10.
+
+### Private component qualification candidate
+
+For S440-09, apply a single literal change to
+`modules/tsw_core/src/infrastructure/adapters/lifecycle/component_transitions.py`
+in an isolated private qualification source. Change
+`qualification="candidate-transition"` to
+`qualification="qualified-transition"` for the shared definition of
+`swagger-ui-5-32-7` and `traefik-3-7-5`. With the reviewed S440-05 base
+the original policy file SHA-256 is
+`9f75a1986717c223f0a3bbc07a588d70346f5f8f2500e3346d421c924da3e3ed`
+and the single-literal candidate file SHA-256 is
+`02c3e30c473818d5332d5d47000002082a5b56c56aa0a2909d3ae1afdaae2f5e`.
+The exact pinned Linux/amd64 source, target and retained Swagger components
+come from that file. Retain the public planner, executor and recovery guards.
+
+Record the exact candidate commit, policy delta and file digest, host and
+platform, case, owner/preset/exposure, allowed target IDs, image digests and
+applicable capability proof in the independently reviewed GO. Both product
+supervisors pin the policy file. Recheck those inputs and actual source
+identities before effects. Run the applicable fixed single, batch and recovery
+recipes through public CLI admission. Reserve the shipped catalog promotion for
+the exact independently accepted candidate after attributable S440-09 results.
+
+WSL qualification preparation must already use the isolated policy candidate
+source, with the separately reviewed capability-only commit following it.
+`qualification_revision()` binds that single allowed delta. Any alternate
+source sequence requires independent equivalence review before preparing the
+candidate or relying on an earlier receipt.
 
 ## S440-01 inspected executable and effect ownership
 
@@ -97,9 +141,8 @@ after their implementation/help/tests are accepted and the plan is refreshed.
 | scoped runtime/recovery | ProfileRuntimeOperation and InstallationProfileService invoke JSON capability authority and checkpoint/lease-bound runtime; exact devices/consumers/client/server rechecked before effects |
 
 The runtime support authority is the reviewed JSON capability asset, currently
-empty, not the separate unsupported data-only intent classifier. Old workflow
-binding remains a genuine S440-05 prerequisite. No caller bypass or production
-candidate promotion was performed during this inventory.
+empty, not the separate unsupported data-only intent classifier. S440-01 recorded the historical
+workflow binding as a prerequisite for S440-05 and left the production candidate unchanged.
 
 ### Current deterministic verification
 

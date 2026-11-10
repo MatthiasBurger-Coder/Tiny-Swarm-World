@@ -29,12 +29,14 @@ from typing import TYPE_CHECKING, Any, Iterator, Protocol, cast
 from uuid import UUID, uuid4
 
 if TYPE_CHECKING:
+    from .incus_profile_listener_fixture import ACTIVE_WORKFLOW
     from . import native_runtime_inventory as inventory
     from . import owned_case_disposal as disposal
     from . import product_upgrade_cases as upgrades
     from .preserving_product_acceptance import RECIPES, validate_preview, operator_credentials, validate_host_artifacts, CAPABILITY_HOSTS
 else:
     prefix = __package__ + '.' if __package__ else ''
+    ACTIVE_WORKFLOW = importlib.import_module(prefix + 'incus_profile_listener_fixture').ACTIVE_WORKFLOW
     inventory = importlib.import_module(prefix + 'native_runtime_inventory')
     disposal = importlib.import_module(prefix + 'owned_case_disposal')
     upgrades = importlib.import_module(prefix + 'product_upgrade_cases')
@@ -50,7 +52,8 @@ FILES = (SCRIPT, 'modules/tsw_core/tools/linux/qualification/owned_case_disposal
          'modules/tsw_core/tools/linux/qualification/preserving_product_acceptance.py',
          'modules/tsw_core/tools/linux/qualification/native_runtime_inventory.py',
          'modules/tsw_core/tools/linux/qualification/native_lxd_snap_provenance.py', CAPABILITY, upgrades.SCRIPT,
-         upgrades.CATALOG, 'modules/tsw_core/src/infrastructure/adapters/lifecycle/catalog.py')
+         upgrades.CATALOG, 'modules/tsw_core/src/infrastructure/adapters/lifecycle/catalog.py',
+         ACTIVE_WORKFLOW, upgrades.CLI_MAIN, upgrades.CLI_RELEASE)
 CASE_RECIPES = RECIPES | upgrades.RECIPES
 LIMIT = 8 * 1024 * 1024
 HEX = re.compile(r'[0-9a-f]{64}\Z')
@@ -60,7 +63,7 @@ REVIEWS = {'requirements', 'architecture', 'security', 'devops', 'test_evidence'
 FUTURE = {'prepare': 0, 'admit': 6600, 'case': 1200, 'disposal': 300, 'final': 0, 'recover': 0}
 ENV = {'LC_ALL': 'C', 'PATH': '/usr/sbin:/usr/bin:/sbin:/bin', 'HOME': '/root',
        'GIT_CONFIG_NOSYSTEM': '1', 'GIT_CONFIG_GLOBAL': '/dev/null', 'GIT_OPTIONAL_LOCKS': '0'}
-BOOTSTRAP = "import runpy,sys;sys.path.insert(0,'src');runpy.run_module('tiny_swarm_world',run_name='__main__')"
+BOOTSTRAP = upgrades.CLI_BOOTSTRAP
 GATE = "import os,sys;f=int(sys.argv[1]);p=os.read(f,1);os.close(f);os.execvpe(sys.argv[2],sys.argv[2:],os.environ) if p==b'G' else sys.exit(125)"
 
 
@@ -166,7 +169,8 @@ class Intent:
         return self.home / 'cases' / self.case / 'checkout'
 
 
-def approval(value: Any, intent: Intent, proposal: dict[str, Any], raw_sha: str, *, recover: bool = False, engine_recovery: bool = False) -> datetime:
+def approval(value: Any, intent: Intent, proposal: dict[str, Any], raw_sha: str, *, recover: bool = False,
+             engine_recovery: bool = False, now: datetime | None = None) -> datetime:
     fields = {'schema_version', 'decision', 'phase', 'intent_sha256', 'proposal_sha256', 'source_commit', 'pins', 'budgets',
               'expires_at_utc', 'reviews'}
     selected_budgets = upgrades.budgets(intent.case, 'wsl', engine_recovery=engine_recovery)
@@ -182,7 +186,7 @@ def approval(value: Any, intent: Intent, proposal: dict[str, Any], raw_sha: str,
          and all(v == 'APPROVED' for v in value['reviews'].values()), 'CASE_GO_REVIEWS')
     try:
         expiry = datetime.fromisoformat(value['expires_at_utc'])
-        seconds = (expiry - datetime.now(timezone.utc)).total_seconds()
+        seconds = (expiry - (now if now is not None else datetime.now(timezone.utc))).total_seconds()
     except (TypeError, ValueError) as exc:
         raise CaseError('CASE_GO_EXPIRY') from exc
     minimum = BUDGETS['recover'] if recover else sum(selected_budgets[k] for k in ('admit', 'case', 'disposal', 'final'))
@@ -341,6 +345,12 @@ class WslCasePort:
         self.artifact: dict[str, Any] = {}
         self.details: dict[Any, Any] = {}
         self.proposal: dict[str, Any] | None = None
+        self.cli_pins: dict[str, str] = {}
+        self.cli_approval: dict[str, str] | None = None
+        self.cli_activation = None
+        self.cli_versions: tuple[str, str] | None = None
+        self.cli_final: dict[str, Any] | None = None
+        self.cli_selection: dict[str, Any] | None = None
 
     def phase(self, name: str) -> None:
         need(name in self.purpose_budgets, 'CASE_PHASE')
@@ -391,26 +401,38 @@ class WslCasePort:
                 'TSW_INSTALL_ENV_FILE': str(self.intent.home / 'infra/operator.env'),
                 'TSW_LIVE_EVIDENCE_ROOT': str(self.journal.directory), 'TSW_LOCAL_TLS_STATE_ROOT': self.tls_root()}
         key = 'child-' + uuid4().hex
+        args = upgrades.cli_args(argv) if public else None
+        receipt = None if args is None else upgrades.CliReceipt(self.journal, key,
+            upgrades.cli_binding(self, 'wsl', ACTIVE_WORKFLOW), argv, args)
+        if receipt is not None:
+            receipt.require_approval()
         self.journal.save(key + '-intent.json', {'argv_sha256': sha(canonical(argv)), 'timeout': timeout, 'public': public})
         if argv[0].endswith('.exe'):
             need(len(subprocess.list2cmdline(argv).encode('utf-16-le')) // 2 + 1 <= 30000, 'CASE_WINDOWS_COMMAND_BOUND')
         reader, writer = os.pipe(); child = None; released = False
         selector = selectors.DefaultSelector(); output = bytearray(); error = bytearray()
+        output_complete = False
         self.worker_settled = False
         try:
             child = subprocess.Popen([self.interpreter(), '-E', '-s', '-B', '-c', GATE, str(reader), *argv],
                 cwd=ROOT, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 start_new_session=True, pass_fds=(reader,))
             os.close(reader); reader = -1
-            self.journal.save(key + '-pid.json', {'pid': child.pid, 'start_time': start_time(child.pid)})
+            identity = {'pid': child.pid, 'start_time': start_time(child.pid)}
+            self.journal.save(key + '-pid.json', identity)
+            if receipt is not None:
+                receipt.start(identity, start_time(os.getpid()))
             if child.stdout is None or child.stderr is None:
                 raise CaseError('CASE_PIPE_MISSING')
             os.write(writer, b'G'); released = True; os.close(writer); writer = -1
+            if receipt is not None:
+                receipt.release()
             selector.register(child.stdout, selectors.EVENT_READ, output)
             selector.register(child.stderr, selectors.EVENT_READ, error)
             end = time.monotonic() + timeout
             while selector.get_map():
-                upgrades.poll_fault(self, child)
+                if receipt is not None and upgrades.cli_fault_candidate(self, receipt):
+                    upgrades.poll_fault(self, child, before_signal=receipt.prepare_fault)
                 need(time.monotonic() < end, 'CASE_COMMAND_TIMEOUT')
                 for selected, _event in selector.select(.2):
                     chunk = os.read(selected.fd, 65536)
@@ -419,10 +441,15 @@ class WslCasePort:
                     if not chunk:
                         selector.unregister(selected.fileobj)
             status = child.wait(timeout=max(.01, end - time.monotonic()))
+            output_complete = True
             self.journal.save(key + '-outcome.json', {'return_code': status,
                 'stdout_sha256': sha(bytes(output)), 'stderr_sha256': sha(bytes(error))})
             need(status == 0, 'CASE_COMMAND_FAILED')
             return bytes(output)
+        except upgrades.FaultObserved as exc:
+            if receipt is not None:
+                receipt.fault = exc.receipt
+            raise
         finally:
             selector.close()
             if reader >= 0:
@@ -434,7 +461,8 @@ class WslCasePort:
                 self.journal.save(key + '-launch-refused.json', {'released': False})
             else:
                 if child.poll() is None:
-                    os.killpg(child.pid, signal.SIGTERM)
+                    if receipt is None or receipt.fault is None:
+                        os.killpg(child.pid, signal.SIGTERM)
                     try:
                         child.wait(timeout=5)
                     except subprocess.TimeoutExpired:
@@ -445,6 +473,10 @@ class WslCasePort:
                 for stream in (child.stdout, child.stderr):
                     if stream is not None:
                         stream.close()
+                if receipt is not None and self.worker_settled and child.returncode is not None:
+                    if receipt.fault is not None and child.returncode != -receipt.fault['signal']:
+                        self.upgrade_fault_observed = False
+                    receipt.settle(child.pid, child.returncode, output_complete, sha(bytes(output)), sha(bytes(error)))
 
     def settled(self) -> bool:
         if not self.worker_settled:
@@ -490,6 +522,8 @@ class WslCasePort:
             raw = path.read_bytes(); need(len(raw) <= 2 * 1024 * 1024, 'CASE_SOURCE_BOUND')
             need(raw == self.command(git + ['show', self.intent.source_commit + ':' + relative], 10), 'CASE_SOURCE_BLOB')
             pins[relative] = sha(raw)
+        need(self.command(git + ['rev-parse', 'HEAD'], 10).decode().strip() == self.intent.source_commit, 'CASE_SOURCE_HEAD')
+        need(not self.command(git + ['status', '--porcelain=v1', '--untracked-files=all'], 10), 'CASE_SOURCE_DIRTY')
         return pins
 
     def identity(self) -> dict[str, str]:
@@ -712,6 +746,17 @@ class WslCasePort:
         if not helper and self.intent.case in upgrades.RECIPES:
             upgrades.require_cache_settled(self)
         self.identity()
+        if not helper:
+            self.cli_pins = self.source()
+            if self.proposal is not None:
+                need(self.cli_pins == self.proposal['pins'], 'CASE_SOURCE_DRIFT')
+            self.reserve(35)
+            env = self.incus_env()
+            status, raw, error = inventory.Runner().run(['/usr/bin/incus', '--force-local', 'version'],
+                command_id='wsl_cli_incus_version', env=env, safe_args=[])
+            need(status == 0 and not error and self.incus_env() == env, 'CASE_CLI_INCUS_VERSION_DRIFT')
+            self.cli_versions = upgrades.cli_incus_versions(raw)
+            need(self.cli_versions == ('6.0.5', '6.0.5'), 'CASE_CLI_INCUS_VERSION_DRIFT')
         argv = [self.interpreter(), '-E', '-s', '-B']
         argv += [str(ROOT / SCRIPT), *args] if helper else ['-c', BOOTSTRAP, *args]
         return self.command(argv, timeout, public=True)
@@ -742,11 +787,13 @@ class WslCasePort:
             self.public(recipe.args(add=True), timeout=600)
         self.public(['observe'], helper=True, timeout=180)
         model = importlib.import_module('tiny_swarm_world.infrastructure.adapters.lifecycle.manifest')
-        manifest = model.decode_manifest(private(ROOT / '.tiny-swarm-world/installation/manifest.json'))
+        manifest_raw = private(ROOT / '.tiny-swarm-world/installation/manifest.json')
+        manifest = model.decode_manifest(manifest_raw)
         wanted = set(recipe.services) | ({'traefik'} if recipe.add_traefik else set())
         need(manifest.schema_version == 2 and set(manifest.requested_services) == wanted
              and manifest.effective_exposure().get('swagger') == (recipe.exposure if 'swagger' in wanted else None)
              and all(o.owner == recipe.owner for o in manifest.effective_stack_ownership().values()), 'CASE_MANIFEST_DRIFT')
+        self.cli_selection = upgrades.selection_evidence(manifest, sha(manifest_raw))
 
     @contextmanager
     def installation_lease(self) -> Iterator[None]:
@@ -878,7 +925,9 @@ class WslCasePort:
         need(not project['instances'] and not any(p['volumes'] or p['snapshots'] for p in project['pools'])
              and not any(p['name'].startswith('tsw-manager-') for p in project['profiles']), 'CASE_NODES_REMAIN')
         self.cache_receipt(baseline, record=False)
-        need(projection(self.artifact, self.details, self.owned, self.intent.ubuntu_fingerprint, baseline) == baseline, 'CASE_FINAL_PRESERVATION_DRIFT')
+        observed = projection(self.artifact, self.details, self.owned, self.intent.ubuntu_fingerprint, baseline)
+        need(observed == baseline, 'CASE_FINAL_PRESERVATION_DRIFT')
+        self.cli_final = observed
 
 
 def start_time(pid: int) -> int:
@@ -1031,7 +1080,11 @@ def main(argv: list[str] | None = None) -> int:
             proposal_raw = private(journal.directory / 'proposal.json'); proposal = inventory.strict_json(proposal_raw)
             go_raw = private(home / ('engine-recovery-go.json' if args.mode == 'engine-recovery' else 'recovery-go.json' if args.mode in {'recover', 'finish'} else 'run-go.json'))
             need(sha(go_raw) == args.go_sha256, 'CASE_GO_HASH')
-            expiry = approval(inventory.strict_json(go_raw), intent, proposal, sha(proposal_raw), recover=args.mode in {'recover', 'finish'}, engine_recovery=args.mode == 'engine-recovery')
+            accepted_at = datetime.now(timezone.utc)
+            go = inventory.strict_json(go_raw)
+            expiry = approval(go, intent, proposal, sha(proposal_raw), recover=args.mode in {'recover', 'finish'},
+                              engine_recovery=args.mode == 'engine-recovery', now=accepted_at)
+            port.cli_approval = upgrades.approval_receipt(go_raw, go, accepted_at.isoformat())
             port.authorized_until = time.monotonic() + (expiry - datetime.now(timezone.utc)).total_seconds()
             port.proposal = proposal
             if args.mode not in {'recover', 'finish'}:
@@ -1065,6 +1118,9 @@ def main(argv: list[str] | None = None) -> int:
                         port.event('outcome', result)
                     else:
                         result = execute(port, proposal, recover=args.mode == 'recover')
+            if result['status'] == 'CASE_PASS_DISPOSED' or args.mode == 'engine-recovery' and result['status'] == 'CASE_RECOVERED':
+                upgrades.save_cli_case_result(port, result | {'run_id': intent.run_id,
+                    'case': intent.case, 'source_commit': intent.source_commit})
             print(json.dumps(result)); return 0 if result.get('status') not in {'CASE_FAILED_DISPOSED', 'CASE_NOT_EXERCISED', 'CASE_NOT_IMPLEMENTED'} else 2
         finally:
             os.close(fd)

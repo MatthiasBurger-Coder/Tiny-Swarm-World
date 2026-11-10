@@ -21,6 +21,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[5]
+ACTIVE_WORKFLOW = 'documentation/handbook/05-development/workflow/workflow.md'
 TRUSTED_BIN = {'incus': '/usr/bin/incus', 'ip': '/usr/sbin/ip', 'ss': '/usr/bin/ss', 'uname': '/usr/bin/uname', 'free': '/usr/bin/free', 'df': '/usr/bin/df', 'curl': '/usr/bin/curl', 'git': '/usr/bin/git'}
 TRUSTED_PATH = '/usr/sbin:/usr/bin:/sbin:/bin'
 PRIVATE_EVIDENCE_REL = Path('.tiny-swarm/evidence/issue-449/s449-private-20261027')
@@ -884,7 +885,7 @@ def _kill_and_reap(process: subprocess.Popen[bytes], error_code: str) -> None:
 def git_preflight() -> tuple[str, bytes, bytes, bytes]:
     def git(*args: str) -> bytes:
         try:
-            r = subprocess.run([TRUSTED_BIN['git'], *args], cwd=ROOT, env={'PATH': TRUSTED_PATH, 'LANG': 'C.UTF-8'}, check=False, stdout=subprocess.PIPE,
+            r = subprocess.run([TRUSTED_BIN['git'], '--no-optional-locks', *args], cwd=ROOT, env={'PATH': TRUSTED_PATH, 'LANG': 'C.UTF-8'}, check=False, stdout=subprocess.PIPE,
                                stderr=subprocess.DEVNULL, timeout=10)
         except (OSError, subprocess.TimeoutExpired) as exc:
             raise FixtureError('GIT_INSPECTION_FAILED') from exc
@@ -894,9 +895,11 @@ def git_preflight() -> tuple[str, bytes, bytes, bytes]:
     head = git('rev-parse', '--verify', 'HEAD').decode('ascii').strip()
     if not HASH40.fullmatch(head) or git('status', '--porcelain', '--untracked-files=all'):
         raise FixtureError('CHECKOUT_NOT_CLEAN')
-    wf = git('show', 'HEAD:documentation/handbook/05-development/workflow/issues/issue-449/workflow.md')
-    runner = git('show', 'HEAD:modules/tsw_core/tools/linux/qualification/incus_profile_listener_fixture.py')
-    tests = git('show', 'HEAD:modules/tsw_core/tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py')
+    wf = git('show', head + ':' + ACTIVE_WORKFLOW)
+    runner = git('show', head + ':modules/tsw_core/tools/linux/qualification/incus_profile_listener_fixture.py')
+    tests = git('show', head + ':modules/tsw_core/tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py')
+    if git('rev-parse', '--verify', 'HEAD').decode('ascii').strip() != head or git('status', '--porcelain', '--untracked-files=all'):
+        raise FixtureError('CHECKOUT_NOT_CLEAN')
     return head, wf, runner, tests
 
 

@@ -8,9 +8,12 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import datetime, timezone
 import hashlib
 import importlib
+from importlib.metadata import version
 import json
 import os
 from pathlib import Path
@@ -24,6 +27,23 @@ from uuid import uuid4
 
 SCRIPT = 'modules/tsw_core/tools/linux/qualification/product_upgrade_cases.py'
 CATALOG = 'modules/tsw_core/src/infrastructure/adapters/lifecycle/component_transitions.py'
+CLI_MAIN = 'modules/tsw_core/src/__main__.py'
+CLI_RELEASE = 'pyproject.toml'
+CLI_BOOTSTRAP = (
+    "import importlib.metadata, importlib.util, pathlib, runpy, tomllib\n"
+    "spec = importlib.util.find_spec('tiny_swarm_world')\n"
+    "expected = pathlib.Path('modules/tsw_core/src/__init__.py').resolve(strict=True)\n"
+    "if not spec or not spec.origin or pathlib.Path(spec.origin).resolve(strict=True) != expected:\n"
+    "    raise SystemExit('CASE_CLI_ORIGIN')\n"
+    "main = importlib.util.find_spec('tiny_swarm_world.__main__')\n"
+    "if not main or not main.origin or pathlib.Path(main.origin).resolve(strict=True) != expected.with_name('__main__.py'):\n"
+    "    raise SystemExit('CASE_CLI_ENTRYPOINT')\n"
+    "release = tomllib.loads(pathlib.Path('pyproject.toml').read_text())['project']['version']\n"
+    "if importlib.metadata.version('tiny-swarm-world') != release:\n"
+    "    raise SystemExit('CASE_CLI_PACKAGE_VERSION')\n"
+    "runpy.run_module('tiny_swarm_world', run_name='__main__')"
+)
+VERSION_TEXT = re.compile(r'[A-Za-z0-9][A-Za-z0-9_.+-]{0,99}\Z')
 ROOT = Path(__file__).resolve().parents[5]
 FRESH_NAMES = ('minimal', 'swagger-internal', 'swagger-published', 'swagger-traefik-swarm',
                'swagger-traefik-portainer', 'swagger-add-traefik', 'full-swarm', 'full-portainer')
@@ -35,6 +55,10 @@ class UpgradeError(Exception):
 
 class FaultObserved(UpgradeError):
     """A real durable checkpoint was observed before signaling our own child."""
+
+    def __init__(self, reason: str, receipt: dict[str, Any] | None = None):
+        super().__init__(reason)
+        self.receipt = receipt
 
 
 def require(value: Any, code: str) -> None:
@@ -56,6 +80,134 @@ def outcome(failure: str | None, *, recovered: bool = False) -> str:
 def digest(value: Any) -> str:
     return hashlib.sha256(canonical(value)).hexdigest()
 
+
+def utc_stamp() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def cli_args(argv: list[str]) -> list[str] | None:
+    return argv[6:] if argv[1:6] == ['-E', '-s', '-B', '-c', CLI_BOOTSTRAP] else None
+
+
+def cli_is_effect(args: list[str]) -> bool:
+    return '--live' in args and '--approve-live' in args
+
+
+def approval_receipt(raw: bytes, value: dict[str, Any], accepted_at: str) -> dict[str, str]:
+    return {'phase': value['phase'], 'sha256': hashlib.sha256(raw).hexdigest(), 'accepted_at': accepted_at}
+
+
+def cli_incus_versions(raw: bytes) -> tuple[str, str]:
+    value = raw.decode('ascii')
+    client = re.findall(r'^Client version: ([0-9.]+)$', value, re.M)
+    server = re.findall(r'^Server version: ([0-9.]+)$', value, re.M)
+    require(len(client) == len(server) == 1, 'CASE_CLI_INCUS_VERSION_INVALID')
+    return client[0], server[0]
+
+
+def cli_binding(port: Any, platform: str, workflow: str) -> dict[str, Any]:
+    proposal = port.proposal
+    pins = proposal['pins'] if proposal is not None else port.cli_pins
+    host = None if proposal is None else proposal['host_id_sha256'] if platform == 'native' else digest(proposal['identity'])
+    client, server = port.cli_versions
+    package_version = version('tiny-swarm-world')
+    require(VERSION_TEXT.fullmatch(package_version), 'CASE_CLI_PACKAGE_VERSION')
+    return {'platform': platform, 'run_id': port.intent.run_id, 'case': port.intent.case,
+            'source_commit': port.intent.source_commit, 'workflow_sha256': pins[workflow],
+            'entrypoint_sha256': pins[CLI_MAIN], 'release_sha256': pins[CLI_RELEASE],
+            'proposal_sha256': digest(proposal) if proposal is not None else None,
+            'before_sha256': digest(proposal['baseline']) if proposal is not None else None,
+            'host_sha256': host, 'approval': port.cli_approval, 'activation': port.cli_activation,
+            'incus_client': client, 'incus_server': server, 'package_version': package_version}
+
+
+def selection_evidence(manifest: Any, manifest_sha: str) -> dict[str, Any]:
+    return {'requested': sorted(manifest.requested_services), 'resolved': sorted(manifest.resolved_services),
+            'product_release': manifest.product.release, 'product_revision': manifest.product.revision,
+            'manifest_sha256': manifest_sha}
+
+
+def save_cli_case_result(port: Any, result: dict[str, Any]) -> None:
+    require(port.cli_approval is not None and port.cli_final is not None and port.cli_selection is not None,
+            'CASE_CLI_FINAL_UNAVAILABLE')
+    go_sha = port.cli_approval['sha256']
+    port.journal.save('cli-after-' + go_sha + '.json', port.cli_final)
+    port.journal.save('cli-result-' + go_sha + '.json', {
+        'schema_version': 1, 'case': port.intent.case, 'run_id': port.intent.run_id,
+        'source_commit': port.intent.source_commit, 'approval_sha256': go_sha,
+        'before_sha256': digest(port.proposal['baseline']), 'after_sha256': digest(port.cli_final),
+        'result_sha256': digest(result), 'selection': port.cli_selection, 'finished_at': utc_stamp(),
+        'finished_monotonic_ns': time.monotonic_ns(),
+    })
+
+
+@dataclass
+class CliReceipt:
+    journal: Any
+    key: str
+    binding: dict[str, Any]
+    argv: list[str]
+    args: list[str]
+    released: bool = False
+    fault: dict[str, Any] | None = None
+    process: dict[str, int] | None = None
+
+    def require_approval(self) -> None:
+        if not cli_is_effect(self.args):
+            return
+        approval = self.binding['approval']
+        activation = self.binding['activation']
+        require(self.binding['proposal_sha256'] is not None and approval is not None, 'CASE_CLI_GO_REQUIRED')
+        if self.binding['platform'] == 'native':
+            require((approval['phase'] == 'native-product-maintenance' and activation is not None
+                     and activation['phase'] == 'paused-product-case')
+                    or (approval['phase'] == 'native-product-engine-recovery' and activation is None),
+                    'CASE_CLI_GO_REQUIRED')
+        else:
+            require(approval['phase'] in {'wsl-case-run', 'wsl-engine-recovery'} and activation is None,
+                    'CASE_CLI_GO_REQUIRED')
+
+    def start(self, process: dict[str, int], parent_start: int) -> None:
+        executable = Path(self.argv[0]).resolve(strict=True)
+        with executable.open('rb') as stream:
+            info = os.fstat(stream.fileno())
+            require(stat.S_ISREG(info.st_mode) and info.st_uid == 0 and not info.st_mode & 0o022
+                    and 0 < info.st_size <= 64 * 1024 * 1024, 'CASE_CLI_EXECUTABLE_BOUND')
+            raw = stream.read(info.st_size + 1)
+            after = os.fstat(stream.fileno())
+            require(len(raw) == info.st_size and (info.st_dev, info.st_ino, info.st_mtime_ns, info.st_ctime_ns)
+                    == (after.st_dev, after.st_ino, after.st_mtime_ns, after.st_ctime_ns), 'CASE_CLI_EXECUTABLE_DRIFT')
+            executable_sha = hashlib.sha256(raw).hexdigest()
+        self.journal.save(self.key + '-cli-start.json', self.binding | {
+            'schema_version': 1, 'argv_sha256': digest(self.argv), 'args': self.args,
+            'effect': cli_is_effect(self.args), 'executable': self.argv[0], 'executable_sha256': executable_sha,
+            'parent': {'pid': os.getpid(), 'start_time': parent_start}, 'child': process,
+            'started_at': utc_stamp(), 'started_monotonic_ns': time.monotonic_ns(),
+        })
+        self.process = process
+
+    def release(self) -> None:
+        self.released = True
+        self.journal.save(self.key + '-cli-released.json', {
+            'released_at': utc_stamp(), 'released_monotonic_ns': time.monotonic_ns(),
+        })
+
+    def prepare_fault(self, intent: dict[str, Any]) -> None:
+        self.journal.save(self.key + '-cli-fault-intent.json', intent | {'process': self.process})
+
+    def settle(self, pid: int, return_code: int, output_complete: bool, output_sha: str, error_sha: str) -> None:
+        self.journal.save(self.key + '-cli-settled.json', {
+            'pid': pid, 'return_code': return_code, 'released': self.released, 'group_absent': True,
+            'output_complete': output_complete, 'stdout_sha256': output_sha, 'stderr_sha256': error_sha,
+            'fault': self.fault, 'settled_at': utc_stamp(), 'settled_monotonic_ns': time.monotonic_ns(),
+        })
+
+
+def cli_fault_candidate(port: Any, receipt: CliReceipt | None) -> bool:
+    if receipt is None or not port.upgrade_fault_armed:
+        return False
+    selected = RECIPES.get(port.intent.case)
+    return selected is not None and selected.kind != 'product' and selected.fault and receipt.args == selected.update()
 
 @dataclass(frozen=True)
 class UpgradeRecipe:
@@ -313,7 +465,7 @@ def private_json_bytes(path: Path) -> bytes:
     return canonical(private_json(path))
 
 
-def poll_fault(port: Any, child: subprocess.Popen) -> None:
+def poll_fault(port: Any, child: subprocess.Popen, *, before_signal: Callable[[dict[str, Any]], None] | None = None) -> None:
     """Called only by the existing owning supervisor, before its next wait."""
     if not getattr(port, 'upgrade_fault_armed', False) or child.poll() is not None:
         return
@@ -331,17 +483,25 @@ def poll_fault(port: Any, child: subprocess.Popen) -> None:
              else current.direction == 'apply' and any(stage.outcome == 'committed' and stage.source != stage.target for stage in current.stages)
              and any(stage.outcome == 'applying' and stage.source != stage.target for stage in current.stages))
     if ready:
-        event(port, 'upgrade-fault-intent', {'checkpoint_sha256': digest(current.model_dump(mode='json')),
-             'installation_id': baseline['installation_id'], 'predicate': 'CHECKED_BACKUP' if value.kind == 'portainer' else 'PARTIAL_BATCH'})
+        checkpoint_sha = digest(current.model_dump(mode='json'))
+        predicate = 'CHECKED_BACKUP' if value.kind == 'portainer' else 'PARTIAL_BATCH'
+        event(port, 'upgrade-fault-intent', {'checkpoint_sha256': checkpoint_sha,
+             'installation_id': baseline['installation_id'], 'predicate': predicate})
+        identity = {'checkpoint_sha256': checkpoint_sha, 'predicate': predicate, 'process_group': child.pid,
+                    'signal': int(signal.SIGTERM)}
+        if before_signal is not None:
+            before_signal(identity | {'prepared_at': utc_stamp(), 'prepared_monotonic_ns': time.monotonic_ns()})
         port.upgrade_fault_armed = False
-        port.upgrade_fault_observed = True
         os.killpg(child.pid, signal.SIGTERM)
-        raise FaultObserved('UPGRADE_ACTUAL_FAULT_OBSERVED')
+        port.upgrade_fault_observed = True
+        raise FaultObserved('UPGRADE_ACTUAL_FAULT_OBSERVED', identity | {
+            'sent_at': utc_stamp(), 'sent_monotonic_ns': time.monotonic_ns()})
 
 
 def observe(port: Any, stage: str) -> dict[str, Any]:
     value = port.upgrade_helper(stage)
     require(isinstance(value, dict) and value.get('status') == 'UPGRADE_RUNTIME_VERIFIED', 'UPGRADE_PROOF_UNAVAILABLE')
+    port.cli_selection = value.get('selection')
     event(port, 'upgrade-proof-' + stage, value)
     return value
 
@@ -918,7 +1078,8 @@ def read_runtime(case: str, stage: str) -> dict[str, Any]:
         managed = {path.name: digest(private_json(path)) for path in state.glob('managed-stack-*.json')}
         backup = state / 'portainer-upgrade.json'
         manifest_hash = private_file_hash(state / 'manifest.json')
-        require(manifest_hash == snapshot.token, 'UPGRADE_MANIFEST_CHANGED_DURING_PROOF')
+        if manifest_hash is None or manifest_hash != snapshot.token:
+            raise UpgradeError('UPGRADE_MANIFEST_CHANGED_DURING_PROOF')
         component_hash = private_file_hash(state / 'component-update.json', optional=True)
         return {'status': 'UPGRADE_RUNTIME_VERIFIED', 'installation_id': str(manifest.installation_id),
             'preset': manifest.service_preset, 'exposure': manifest.effective_exposure(),
@@ -926,7 +1087,8 @@ def read_runtime(case: str, stage: str) -> dict[str, Any]:
             'service_versions': service_versions, 'mounts': mounts, 'tasks': tasks, 'data': data,
             'owner_ids': owners, 'stack_updates': stack_updates, 'managed_journals': managed,
             'backup_journal': digest(private_json(backup)) if backup.exists() else None,
-            'manifest_sha256': manifest_hash, 'manifest_token': snapshot.token, 'component_journal_sha256': component_hash}
+            'manifest_sha256': manifest_hash, 'manifest_token': snapshot.token, 'component_journal_sha256': component_hash,
+            'selection': selection_evidence(manifest, manifest_hash)}
     return asyncio.run(verify())
 
 

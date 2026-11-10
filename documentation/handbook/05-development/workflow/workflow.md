@@ -2,7 +2,7 @@
 
 Workflow ID: issue-440-final-acceptance
 workflowVersion: 1.0
-Status: EXECUTING; S440-01 PARTIAL (inventory accepted, live readiness NOT_VERIFIED); S440-02/03/04 VERIFIED_LOCAL; no live GO granted
+Status: EXECUTING; S440-01 PARTIAL (inventory accepted, live readiness NOT_VERIFIED); S440-02/03/04/05 VERIFIED_LOCAL; no live GO granted
 Issue: [#440](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `docs/workflow-issue440-acceptance-20261110`
 Baseline: `ca6902579f51c2c6d9439bf9c58dec02bfb45a93`
@@ -59,19 +59,16 @@ S7497/S3403 findings are in files unchanged by #518; they remain in scope here.
 `incus-profile-capabilities.json` has an empty admitted_versions list. Scoped
 composition/services/runtime callers exist and must be traced rather than
 recreated. The separate data-only incus_capability classifier remains unsupported.
-Swagger/Traefik entries are candidate-transition. Listener fixture git_preflight
-and native_lxd_maintenance still reference the old indexed #449 workflow; that
-binding must be repaired and tested before new live qualification.
+Swagger/Traefik entries are candidate-transition. At the baseline, the listener
+fixture and native maintenance pinned the historical #449 workflow. S440-05
+rebinds both to this active root file and retains exact current-commit, approval
+and hash checks.
 
-This workflow replaces the old root #355 plan and indexed #449 planning tree;
-their exact historical content remains in Git at `ca6902579f51c2c6d9439bf9c58dec02bfb45a93`. Existing issue/live
-evidence outside the workflow directory is retained. Old #449 commands/plans are
-not automatically selected or authorized. The exact historical #449 workflow blob is retained only as a pinned fixture input
-at its original path until S440-05 migrates both consumers and tests. It is not an
-active workflow, does not select the old branch or reuse any GO, and does not
-qualify this campaign. The existing current-commit, approval and hash guards
-remain mandatory. S440-01 independently reviewed this compatibility repair after
-the unchanged canonical suite exposed the missing static-intent fixture input.
+The old #355 and #449 workflow content remains available in Git at
+`ca6902579f51c2c6d9439bf9c58dec02bfb45a93`. The canonical suite exposed a static
+native test dependency on the exact #449 blob, so S440-01 restored those bytes
+until S440-05 re-bound both consumers and their tests. Prior source-bound
+approvals expire with their exact approved source and workflow binding.
 
 ## Scope and Architecture Constraints
 
@@ -683,7 +680,7 @@ Allowed files, locks, owners, dependencies and verified commands:
 {
   "slice_id": "S440-05",
   "profile": "FULL_PATH",
-  "status": "PLANNED",
+  "status": "VERIFIED_LOCAL",
   "owner": "Senior Python Automation Developer",
   "secondary_reviewers": [
     "Senior Requirement Engineer",
@@ -1681,8 +1678,9 @@ GitHub state is changed only by an authorized publication step after this decisi
 
 Select exactly `documentation/handbook/05-development/workflow/workflow.md`
 (the sole ACTIVE_FOR_ISSUE_440 row), verify `docs/workflow-issue440-acceptance-20261110`, context hashes,
-publication baseline and S3/S3D. Begin S440-01; no implementation has run. S440-02
-and S440-03 can follow its accepted inventory independently. Before each live
+publication baseline and S3/S3D. The S440-01 inventory and S440-02 through
+S440-05 local checkpoints are recorded. Resume at S440-06 once the reviewed
+WSL restoration path, source pins and host prerequisites are available. Before each live
 slice establish applicable existing consent or obtain the specific missing
 scenario approval, backup/ownership/JIT and independent GO; elapsed time is never
 approval. This plan does not grant a live GO or waive any acceptance criterion.

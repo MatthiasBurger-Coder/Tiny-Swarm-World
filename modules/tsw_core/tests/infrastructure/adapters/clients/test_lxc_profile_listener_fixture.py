@@ -168,6 +168,30 @@ class _FixtureBehaviorTestCase(unittest.TestCase):
         self.addCleanup(patcher.stop)
 
 
+class WorkflowSourceBindingTests(unittest.TestCase):
+    def test_preflight_reads_three_blobs_at_the_initial_commit(self):
+        head = 'a' * 40
+        outputs = (head.encode(), b'', b'workflow', b'runner', b'tests', head.encode(), b'')
+        with patch.object(fixture.subprocess, 'run', side_effect=[
+                SimpleNamespace(returncode=0, stdout=output) for output in outputs]) as run:
+            self.assertEqual(fixture.git_preflight(), (head, b'workflow', b'runner', b'tests'))
+        commands = [call.args[0][2:] for call in run.call_args_list]
+        self.assertEqual(commands[2:5], [
+            ['show', head + ':documentation/handbook/05-development/workflow/workflow.md'],
+            ['show', head + ':modules/tsw_core/tools/linux/qualification/incus_profile_listener_fixture.py'],
+            ['show', head + ':modules/tsw_core/tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py'],
+        ])
+
+    def test_preflight_rejects_changed_head_or_dirty_checkout_after_blob_reads(self):
+        head = b'a' * 40
+        initial = (head, b'', b'workflow', b'runner', b'tests')
+        for final in ((b'b' * 40,), (head, b' M workflow.md\n')):
+            with self.subTest(final=final), patch.object(fixture.subprocess, 'run', side_effect=[
+                    SimpleNamespace(returncode=0, stdout=output) for output in (*initial, *final)]):
+                with self.assertRaisesRegex(fixture.FixtureError, 'CHECKOUT_NOT_CLEAN'):
+                    fixture.git_preflight()
+
+
 class PrivateEvidenceEntrypointTests(unittest.TestCase):
     def test_capture_stops_before_commands_or_evidence_directory_creation(self):
         with tempfile.TemporaryDirectory() as directory:

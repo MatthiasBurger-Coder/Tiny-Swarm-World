@@ -75,7 +75,3 @@ Cross-references from other parts do not change that ownership.
 * link:{handbook-root}handbook/05-development/workflow/scenario-plan.md[scenario-plan.md]
 * link:{handbook-root}handbook/05-development/workflow/workflow.index.md[workflow.index.md]
 * link:{handbook-root}handbook/05-development/workflow/workflow.md[workflow.md]
-
-=== Historical fixture binding input
-
-* link:{handbook-root}handbook/05-development/workflow/issues/issue-449/workflow.md[Exact historical #449 workflow blob; inactive, retained only until the S440-05 binding migration]
