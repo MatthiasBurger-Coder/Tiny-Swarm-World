@@ -1,0 +1,12 @@
+# S440-01 consolidation
+
+Workflow issue-440-final-acceptance v1.0; branch docs/workflow-issue440-acceptance-20261110; rollback/source reference 07cc411520da4b2be6e0108af33faf779de7b82c.
+
+Streams: real read-only requirement, architecture/automation and test/security subagents completed; root integrated only the three slice-owned inventories plus coordinator status/context. No worker changed production or host state.
+Accepted findings: all 47 LCM and 15 parent criteria need a real public-path/test/system map; all 45 original child AC IDs must be retained; manifest-v2→historical reader-v1 product target is intentionally refused; JSON capability authority differs from the non-admitting legacy intent classifier; old #449 helper binding remains a prerequisite; current live fixture ownership/backups/GO remain NOT_VERIFIED.
+Rejected claims: no full S01 DONE, no Epic PASS, no invented live readiness, no classification of all historical update/selection cases as never run, no false-negative v2 upgrade gap.
+Files changed: requirement-matrix.md, prerequisite-ledger.md, scenario-plan.md; root-owned workflow status/context; distribution/consolidation and ignored issue evidence. No overlapping worker writes/conflicts; shared documentation handled sequentially.
+Tests: five targeted CLI suites on isolated SSH PC Ubuntu WSL 07cc4115 checkout, installed package path verified: 96 PASS, zero skips. Initial BUILD_FAILURE (DevOps retry 1/3) was new state-directory permissions; corrected only newly owned test directories to private modes, then identical command passed. No test/guard weakened and no live installation touched. Full suite not rerun for documentation-only inventory.
+Sonar: source baseline has actual path traversal, cancellation and two probable strict-type false-positive findings; remediation/adjudication remains S02/S03 work. No scanner rule, gate or external issue state changed here.
+Independent checkpoint audit: s01_requirement_review ACCEPT after inspecting the final inventory; all 47 LCM IDs, 15 P rows and 45 exact child AC texts verified, current hashes confirmed, supported-reader and PARTIAL/live limitation retained.
+Final integration decision: ACCEPT bounded PARTIAL inventory checkpoint. Parent #440 INCOMPLETE; approved-live-fixture requirement remains open. Continue S440-02/03 deterministic work under the explicit existing continuation rule, then preserve downstream live admission gates.
