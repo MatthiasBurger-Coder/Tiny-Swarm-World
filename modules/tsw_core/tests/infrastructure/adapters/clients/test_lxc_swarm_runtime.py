@@ -1037,12 +1037,12 @@ networks:
                 publisher.publish_image(contract)
 
         transfer_context.assert_not_called()
-        run_manager_shell.assert_called_once_with(
-            "docker image inspect 127.0.0.1:13500/jenkins:0.2.0",
-            check=False,
-            operation="inspect_cached_build_image",
-            timeout_seconds=60,
-        )
+        self.assertEqual(run_manager_shell.call_count, 3)
+        self.assertEqual(run_manager_shell.call_args_list[0].args,
+                         ("docker image inspect 127.0.0.1:13500/jenkins:0.2.0",))
+        self.assertEqual(run_manager_shell.call_args_list[1].kwargs["operation"], "registry_login")
+        self.assertEqual(run_manager_shell.call_args_list[2].args,
+                         ("docker push 127.0.0.1:13500/jenkins:0.2.0",))
 
     def test_image_publisher_treats_missing_host_docker_cache_as_cache_miss(self):
         publisher = LxcContainerImagePublisher(

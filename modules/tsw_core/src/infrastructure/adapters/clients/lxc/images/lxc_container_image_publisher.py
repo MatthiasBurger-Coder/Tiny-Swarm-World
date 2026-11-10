@@ -81,19 +81,19 @@ class LxcContainerImagePublisher(PortContainerImagePublisher):
                 "lxc_image_publisher build_cache_hit image=%s",
                 contract.image_ref,
             )
-            return
-        context_path = self._context_path(contract)
-        remote_context_path = f"{self.remote_image_root}/{contract.build_context}"
-        self._transfer_context(context_path, remote_context_path)
-        build_script = (
-            f"docker build -t {shlex.quote(contract.image_ref)} "
-            f"{_quote_remote_path(remote_context_path)}"
-        )
-        self._run_manager_shell(
-            build_script,
-            operation="build_image",
-            timeout_seconds=self.timeout_seconds,
-        )
+        else:
+            context_path = self._context_path(contract)
+            remote_context_path = f"{self.remote_image_root}/{contract.build_context}"
+            self._transfer_context(context_path, remote_context_path)
+            build_script = (
+                f"docker build -t {shlex.quote(contract.image_ref)} "
+                f"{_quote_remote_path(remote_context_path)}"
+            )
+            self._run_manager_shell(
+                build_script,
+                operation="build_image",
+                timeout_seconds=self.timeout_seconds,
+            )
         self._docker_login()
         self._run_manager_shell(
             f"docker push {shlex.quote(contract.image_ref)}",

@@ -84,6 +84,21 @@ class TestLxcContainerImagePublisher(unittest.TestCase):
 
         self.publisher._pull_public_image.assert_not_called()
 
+    def test_cached_build_is_published_when_resuming_after_interrupted_push(self):
+        contract = ContainerImageContract("example/image", "1", "jenkins")
+        self.publisher._manager_build_image_available = Mock(return_value=True)
+        self.publisher._transfer_context = Mock()
+        self.publisher._docker_login = Mock()
+        self.publisher._run_manager_shell = Mock()
+
+        self.publisher.publish_image(contract)
+
+        self.publisher._transfer_context.assert_not_called()
+        self.publisher._docker_login.assert_called_once_with()
+        self.publisher._run_manager_shell.assert_called_once_with(
+            "docker push example/image:1", operation="push_image", timeout_seconds=30,
+        )
+
     def test_image_availability_and_pull_cover_cache_and_failure_paths(self):
         build_contract = ContainerImageContract("example/image", "1", "jenkins")
         pull_contract = ContainerImageContract("redis", "7", "redis", source="pull")
