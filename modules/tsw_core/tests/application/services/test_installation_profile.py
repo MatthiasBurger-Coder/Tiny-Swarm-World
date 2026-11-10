@@ -80,6 +80,8 @@ class Runtime:
         if self.wait is not None:
             self.wait[0].set()
             await self.wait[1].wait()
+        if isinstance(mode, BaseException):
+            raise mode
         if mode == 'not-applied':
             raise RuntimeError('private-not-applied')
         if action.startswith('worker-init:'):
@@ -223,6 +225,46 @@ class ProfileLifecycleTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.journal.current.pending_action, 'profile-create')
         self.runtime.wait = None
         self.assertEqual((await self.run_profile(recovery=True)).stage, 'completed')
+
+    async def test_caller_cancellation_survives_child_failure_or_cancellation_after_settlement(self):
+        for failure in (KeyError('private-child-key'), AssertionError('private-child-assertion'),
+                        asyncio.CancelledError('private-child-cancellation')):
+            with self.subTest(failure=type(failure).__name__):
+                self.setUp()
+                entered, release = asyncio.Event(), asyncio.Event()
+                self.runtime.wait = (entered, release)
+                self.runtime.faults['profile-create'] = failure
+                task = asyncio.create_task(self.run_profile())
+                try:
+                    await entered.wait()
+                    task.cancel('original-operator-cancellation')
+                    await asyncio.sleep(0)
+                    task.cancel('repeated-operator-cancellation')
+                    await asyncio.sleep(0)
+                    self.assertTrue(self.lock.held)
+                    self.assertFalse(task.done())
+                    self.assertEqual(self.journal.current.pending_action, 'profile-create')
+                finally:
+                    release.set()
+                with self.assertRaises(asyncio.CancelledError) as cancelled:
+                    await task
+                self.assertEqual(str(cancelled.exception), 'original-operator-cancellation')
+                self.assertFalse(self.lock.held)
+                self.assertEqual(self.runtime.state['profile'], 'absent')
+                self.assertEqual(self.runtime.calls, ['profile-create'])
+                self.assertEqual(self.journal.current.pending_action, 'profile-create')
+                self.runtime.wait = None
+                self.runtime.faults.clear()
+                self.assertEqual((await self.run_profile(recovery=True)).stage, 'completed')
+
+    async def test_unexpected_child_failure_without_caller_cancellation_propagates(self):
+        failure = KeyError('private-child-key')
+        self.runtime.faults['profile-create'] = failure
+        with self.assertRaises(KeyError) as caught:
+            await self.run_profile()
+        self.assertIs(caught.exception, failure)
+        self.assertFalse(self.lock.held)
+        self.assertEqual(self.journal.current.pending_action, 'profile-create')
 
     async def test_installation_commit_requires_actual_bound_manifest_not_profile_completion(self):
         result = await self.run_profile()

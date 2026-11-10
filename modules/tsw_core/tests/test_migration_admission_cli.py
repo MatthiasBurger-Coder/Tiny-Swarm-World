@@ -78,6 +78,37 @@ class MigrationCheckCliTests(unittest.IsolatedAsyncioTestCase):
                 service.evaluate.assert_called_once_with(
                     MigrationAdmissionRequest("6.0.5", SwaggerMode.NOT_APPLICABLE, "127.0.0.1"))
 
+    async def test_result_subclass_and_forged_class_identity_remain_redacted_unknown(self) -> None:
+        class ResultSubclass(MigrationAdmissionResult):
+            pass
+
+        class ResultLookalike:
+            status = MigrationAdmissionStatus.BLOCKED_UNSUPPORTED
+            applied = False
+            qualified = False
+
+            def __getattribute__(self, name: str) -> object:
+                if name == '__class__':
+                    return MigrationAdmissionResult
+                return super().__getattribute__(name)
+
+        arguments = ACTION + ['--version', '6.0.5', '--exposure', 'not_applicable',
+                              '--listen-address', '127.0.0.1']
+        for result in (ResultSubclass(MigrationAdmissionStatus.BLOCKED_UNSUPPORTED), ResultLookalike()):
+            with self.subTest(actual_type=type(result).__name__):
+                service = Mock()
+                service.evaluate.return_value = result
+                out, err = StringIO(), StringIO()
+                with patch('tiny_swarm_world.infrastructure.adapters.cli.migration_admission.build_migration_admission_service',
+                           return_value=nullcontext(service)), redirect_stdout(out), redirect_stderr(err), \
+                        self.assertRaises(SystemExit) as stopped:
+                    await dispatcher.main(arguments)
+                self.assertEqual(stopped.exception.code, 2)
+                self.assertEqual(json.loads(out.getvalue()), BLOCKED_UNKNOWN)
+                self.assertEqual(err.getvalue(), "")
+                service.evaluate.assert_called_once_with(
+                    MigrationAdmissionRequest("6.0.5", SwaggerMode.NOT_APPLICABLE, "127.0.0.1"))
+
     async def test_invalid_grammar_is_redacted_before_load_or_runtime(self) -> None:
         good = ["--version", "6.0.5", "--exposure", "published", "--listen-address", "127.0.0.1"]
         cases = (ACTION, ACTION + good[:-2], ACTION + good + ["--version", "SECRET"],

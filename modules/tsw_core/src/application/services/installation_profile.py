@@ -261,18 +261,18 @@ async def settle_effect(effect: Awaitable[None]) -> None:
     worker = asyncio.ensure_future(effect)
     try:
         await asyncio.shield(worker)
-    except asyncio.CancelledError:
+    except asyncio.CancelledError as cancellation:
         while not worker.done():
             try:
                 await asyncio.shield(worker)
             except asyncio.CancelledError:
                 continue
-            except (OSError, ValueError, RuntimeError, TimeoutError):
+            except Exception:
                 break
         # Consume the child exception without changing cancellation ownership.
         if worker.done() and not worker.cancelled():
             worker.exception()
-        raise
+        raise cancellation
 
 
 async def observe_checkpoint(service, checkpoint, matrix):

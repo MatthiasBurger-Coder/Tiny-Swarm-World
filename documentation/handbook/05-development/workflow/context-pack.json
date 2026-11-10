@@ -4,7 +4,7 @@
   "workflow_path": "documentation/handbook/05-development/workflow/workflow.md",
   "branch": "docs/workflow-issue440-acceptance-20261110",
   "baseline": "ca6902579f51c2c6d9439bf9c58dec02bfb45a93",
-  "status": "EXECUTING_S440_01_PARTIAL_INVENTORY_ACCEPTED",
+  "status": "EXECUTING_S440_03_VERIFIED_LOCAL",
   "process_strand": "workflow execute",
   "execution_profile": "FULL_PATH",
   "affected_areas": [
@@ -64,7 +64,7 @@
     "documentation/handbook/02-architecture/arc42/07_deployment_view.adoc": "1ab37114288bf3f37fdf6507639804496fde9f8daa5e93622dfa2f40106e42ac",
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-installation-scoped-incus-profile.adoc": "23c45b5e89584e9754a3ad0787a8d9f9a6db2c162a3de7dabb11e17b97ae1d08",
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-classic-product-component-lifecycle.adoc": "92e2e2695f6254b43b73cc4e30f688b7932dcdc138c8a6e1592a16bc0bd506cd",
-    "documentation/handbook/05-development/workflow/workflow.md": "a17d3efbffcc70eb245908c0942a2fab3e7965694ababd55b6f961cfd5529615",
+    "documentation/handbook/05-development/workflow/workflow.md": "41ab21c0a0c64c1dc1dd01ff49574df124ab9792fc1b69b2b390040b26ae2fe0",
     "documentation/handbook/05-development/workflow/requirement-matrix.md": "bca574bc99e160f979974936a2cbd275532cfb4eea49e23d4cb065b8576e6a53",
     "documentation/handbook/05-development/workflow/requirements.json": "e9931f6b6da88900008a0772c8d26465a8d54cfa1ff4efced3af34b13bac9c4a",
     "documentation/handbook/05-development/workflow/scenario-plan.md": "6b35da740c542e4f5ebafa98e9ed691a0565a4bd3b260bd92bab3991690350f5",
