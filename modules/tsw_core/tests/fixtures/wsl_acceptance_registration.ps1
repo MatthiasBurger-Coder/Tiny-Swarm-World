@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$RepositoryRoot,[switch]$CertificateTransportContract,[switch]$NativeExecutableContract,[switch]$BridgeLogContract,[switch]$StateSaveContract)
+param([Parameter(Mandatory=$true)][string]$RepositoryRoot,[switch]$CertificateTransportContract,[switch]$NativeExecutableContract,[switch]$BridgeLogContract,[switch]$StateSaveContract,[switch]$SourceViewContract)
 $ErrorActionPreference='Stop'
 . (Join-Path $RepositoryRoot 'modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_registration.ps1')
 function Assert($yes,[string]$code){if(!$yes){throw $code}}
@@ -9,6 +9,32 @@ function ConvertTo-PreparationHashtable($x){
  if($x -is [Collections.IDictionary]){$o=@{};foreach($k in $x.Keys){$o[$k]=ConvertTo-PreparationHashtable $x[$k]};return $o}
  if($x -is [Collections.IEnumerable]){return ,@($x|ForEach-Object{ConvertTo-PreparationHashtable $_})}
  $o=@{};foreach($p in $x.PSObject.Properties){$o[$p.Name]=ConvertTo-PreparationHashtable $p.Value};return $o
+}
+if($SourceViewContract){
+ $old=@{run_id=('a'*32);source_commit=('b'*40);expires_utc='2000-01-01T00:00:00Z'}
+ $state=@{stage='registered';scenario_sha256=(Get-AcceptanceRegistrationDigest $old);
+  baseline=@{registrations=@(@{name='Ubuntu';id='{00000000-0000-0000-0000-000000000001}';vhd_identity='original'})};
+  receipt=@{name=('TSW-Q440-'+$old.run_id);id='{00000000-0000-0000-0000-000000000002}';vhd_identity='retained'}}
+ $raw=[Text.Encoding]::UTF8.GetBytes(($state|ConvertTo-Json -Depth 30 -Compress))
+ $sha=[Security.Cryptography.SHA256]::Create();try{$digest=([BitConverter]::ToString($sha.ComputeHash($raw))).Replace('-','').ToLowerInvariant()}finally{$sha.Dispose()}
+ $view=@{schema_version=1;run_id=$old.run_id;source_commit=('c'*40);registered_source_commit=$old.source_commit;
+  registration_scenario_sha256=$state.scenario_sha256;registration_state_sha256=$digest;
+  original_guid=$state.baseline.registrations[0].id;new_guid=$state.receipt.id;
+  original_vhd_sha256=(Get-AcceptanceRegistrationDigest 'original');new_vhd_sha256=(Get-AcceptanceRegistrationDigest 'retained')}
+ $unchanged=[Convert]::ToBase64String($raw)
+ $null=Assert-AcceptanceRegistrationSourceView $view $old $state $raw
+ $cases=1
+ foreach($key in @('registration_state_sha256','registration_scenario_sha256','registered_source_commit','original_guid','new_guid','new_vhd_sha256')){
+  $bad=Copy-RegistrationFixtureValue $view;$bad[$key]='foreign';$blocked=$false
+  try{$null=Assert-AcceptanceRegistrationSourceView $bad $old $state $raw}catch{$blocked=$true}
+  Assert $blocked ('source_view_'+$key);$cases++
+ }
+ $wrong=Copy-RegistrationFixtureValue $state;$wrong.receipt.name='foreign'
+ $blocked=$false;try{$null=Assert-AcceptanceRegistrationSourceView $view $old $wrong $raw}catch{$blocked=$_.Exception.Message -ceq 'REGISTRATION_VIEW_PARSED_BINDING'}
+ Assert $blocked 'raw_parsed_mismatch';$cases++
+ Assert ([Convert]::ToBase64String($raw) -ceq $unchanged) 'source_view_mutated_receipt'
+ @{status='PASS';cases=$cases;imports=0;runtime_mutations=0;historical_expiry_readonly=$true}|ConvertTo-Json -Compress
+ exit 0
 }
 function Baseline {
  return @{default='{00000000-0000-0000-0000-000000000001}';global_sha256=('g'*64);running_sha256=('r'*64);

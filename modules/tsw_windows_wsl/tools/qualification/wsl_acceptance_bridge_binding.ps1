@@ -40,9 +40,18 @@ function Read-WslBindingWire([string]$Base64,[string]$Expected) {
     return $value
 }
 function Assert-WslBindingScenario($s) {
-    Assert-WslBindingFields $s @('schema_version','run_id','source_commit','source_root','host','original_distro','new_distro',
-        'original_guid','new_guid','original_vhd_sha256','new_vhd_sha256','firewall_query_sha256','pins','exposure_sha256') 'BINDING_SCENARIO'
-    if($s.schema_version -isnot [int] -or $s.schema_version -ne 1 -or $s.run_id -isnot [string] -or $s.run_id -cnotmatch '\A[0-9a-f]{32}\z' -or
+    $fields=@('schema_version','run_id','source_commit','source_root','host','original_distro','new_distro',
+        'original_guid','new_guid','original_vhd_sha256','new_vhd_sha256','firewall_query_sha256','pins','exposure_sha256')
+    if($s.schema_version -ceq 2){$fields+=@('window','parent_bridge_sha256','parent_switch_sha256','registration_sha256','registration_state_sha256','parent_scenario_sha256')}
+    Assert-WslBindingFields $s $fields 'BINDING_SCENARIO'
+    if($s.schema_version -ceq 2){
+        if($s.window -cnotin @('fixture','product')){throw 'BINDING_WINDOW'}
+        foreach($k in @('parent_bridge_sha256','parent_switch_sha256','registration_sha256','registration_state_sha256','parent_scenario_sha256')){if($s.$k -cnotmatch '\A[0-9a-f]{64}\z'){throw 'BINDING_WINDOW'}}
+        $empty='0'*64
+        if($s.window -ceq 'fixture' -and ($s.parent_bridge_sha256 -cne $empty -or $s.parent_switch_sha256 -cne $empty)){throw 'BINDING_WINDOW'}
+        if($s.window -ceq 'product' -and ($s.parent_bridge_sha256 -ceq $empty -or $s.parent_switch_sha256 -ceq $empty)){throw 'BINDING_WINDOW'}
+    }
+    if($s.schema_version -isnot [int] -or $s.schema_version -notin @(1,2) -or $s.run_id -isnot [string] -or $s.run_id -cnotmatch '\A[0-9a-f]{32}\z' -or
         $s.source_commit -isnot [string] -or $s.source_commit -cnotmatch '\A[0-9a-f]{40}\z' -or
         $s.source_root -isnot [string] -or $s.source_root -cnotmatch '\A[A-Za-z]:[\\/][^\x00-\x1f]{1,220}\z' -or
         $s.host -isnot [string] -or $s.host -cnotmatch '\A[A-Za-z0-9][A-Za-z0-9.-]{0,62}\z' -or
@@ -72,7 +81,7 @@ function Assert-WslBindingCertificate($c,[string]$Query) {
     }
 }
 function Get-WslBindingPhaseSeconds([string]$Phase) {
-    switch -CaseSensitive ($Phase){'Prepare'{180};'FixtureBoundary'{180};'FixtureOriginalBoundary'{180};'Archive'{180};'StopOriginal'{180};'Bind'{360};'StageRestore'{180};'ResumeOriginal'{360};'Recover'{300};default{throw 'BINDING_PHASE'}}
+    switch -CaseSensitive ($Phase){'Prepare'{180};'FixtureBoundary'{180};'FixtureOriginalBoundary'{180};'OriginalRestoredBoundary'{180};'BoundBoundary'{180};'Archive'{180};'StopOriginal'{180};'Bind'{360};'StageRestore'{180};'ResumeOriginal'{360};'Recover'{300};default{throw 'BINDING_PHASE'}}
 }
 function Assert-WslBindingApproval($g,$s,[string]$Phase,[string]$Before) {
     $fields=@('schema_version','decision','phase','scenario_sha256','source_commit','proposal_sha256','expires_at_utc','reviews')
@@ -114,6 +123,8 @@ function Invoke-WslAcceptanceBridgeBinding {
         $before=& $Ports.Observe $Phase
         if($before.fingerprint -cne $Approval.proposal_sha256){throw 'BINDING_PRESTATE_DRIFT'}
         $fresh=$before
+        # Intent itself is a durable write; a failed/uncertain call is recovery work.
+        $activeIntent=$true
         & $Ports.Intent $Phase $fresh $Approval | Out-Null
         if($Phase -ceq 'Archive'){
             & $Ports.Archive $fresh | Out-Null
@@ -163,7 +174,7 @@ function Invoke-WslAcceptanceBridgeBinding {
         $code='BINDING_FAILURE_REDACTED'
         if($_.Exception.Message -cmatch '\ABINDING_[A-Z0-9_]{1,80}\z'){$code=$_.Exception.Message}
         $summary.error=$code;$summary.recovery_required=$activeIntent
-        try{& $Ports.Failure $code $activeIntent | Out-Null}catch{}
+        if($activeIntent){try{& $Ports.Failure $code $activeIntent | Out-Null}catch{}}
         # Never start an original-bound service as automatic rollback while the
         # new guest runs. Explicit Recover/Resume have their own fresh phase GO.
         return $summary
@@ -254,7 +265,8 @@ function New-WslAcceptanceBridgeProductionPorts($Scenario) {
         . (Join-Path $spec.source_root 'modules/tsw_windows_wsl/bootstrap/tws-wsl-bridge.ps1') -Action inventory
         $script:bindingSpec=$spec;$script:bindingClock=$null;$script:bindingDeadline=0;$script:bindingCommands=0;$script:bindingBytes=0
         $script:bindingPhase='';$script:bindingTransaction=$null;$script:bindingDescriptor=$null
-        $script:bindingArchive=Join-Path $ServiceRoot ('.staging-acceptance-'+$spec.run_id+'-original')
+        $suffix=if($spec.schema_version -ceq 2){'-'+$spec.window}else{''}
+        $script:bindingArchive=Join-Path $ServiceRoot ('.staging-acceptance-'+$spec.run_id+$suffix+'-original')
         $script:bindingDescriptorPath=Join-Path $bindingArchive 'descriptor.json'
         $script:bindingPayload=Join-Path $bindingArchive 'payload'
         $script:bindingOld=$null;$script:bindingLast=$null;$script:bindingCertificateCommand=$null
@@ -531,25 +543,35 @@ public static class TswAcceptanceFileIdentity {
             }else{
                 $d=ReadDescriptor
                 if($regs.hash -cne $d.original.registration_sha256){throw 'BINDING_REGISTRATION_DRIFT'}
-                $only=if($phase -cin @('StopOriginal','ResumeOriginal')){$bindingSpec.original_distro}else{$bindingSpec.new_distro}
+                $only=if($phase -cin @('StopOriginal','ResumeOriginal','OriginalRestoredBoundary')){$bindingSpec.original_distro}else{$bindingSpec.new_distro}
                 if($phase -cnotin @('Recover','FixtureBoundary','FixtureOriginalBoundary') -and ($running.Count -ne 1 -or $running[0] -cne $only)){throw 'BINDING_RUNNING_SCOPE'}
                 if($phase -ceq 'Recover' -and ($running.Count -gt 1 -or @($running | Where-Object{$_ -cnotin @($bindingSpec.original_distro,$bindingSpec.new_distro)}).Count)){throw 'BINDING_RUNNING_SCOPE'}
                 if($phase -cin @('Bind','ResumeOriginal') -and $p.status -cne 'Stopped'){throw 'BINDING_SERVICE_NOT_STOPPED'}
                 if($phase -ceq 'StopOriginal' -and $p.status -cne 'Running'){throw 'BINDING_ORIGINAL_PRESTATE'}
                 if($phase -cne 'Recover' -and $p.policy_sha256 -cne $d.original.policy_sha256){throw 'BINDING_SERVICE_POLICY_DRIFT'}
                 if($phase -cin @('Bind','StopOriginal') -and (Get-WslBindingHash $p.hashes) -cne (Get-WslBindingHash $d.archive_hashes)){throw 'BINDING_ACTIVE_CAS'}
-                if($phase -ceq 'Bind' -and $d.phase -cne 'original-stopped'){throw 'BINDING_STOP_RECEIPT_REQUIRED'}
+                if($phase -ceq 'Bind' -and $d.phase -cne 'original-stopped' -and !($bindingSpec.schema_version -ceq 2 -and $bindingSpec.window -ceq 'product' -and $d.phase -ceq 'recovered-stopped' -and !$d.phase_intent -and !$d.transaction_id -and !(Test-Path $TransactionJournalPath))){throw 'BINDING_STOP_RECEIPT_REQUIRED'}
                 if($phase -ceq 'StageRestore' -and ($d.phase -cne 'bound' -or (Get-WslBindingHash $p.hashes) -cne (Get-WslBindingHash $d.bound_hashes))){throw 'BINDING_BOUND_PAYLOAD_DRIFT'}
                 if((EffectiveDistro $d.original.config) -cin @('','auto') -and $regs.default_guid -cne $bindingSpec.original_guid){throw 'BINDING_ORIGINAL_DEFAULT_GUID'}
             }
             if($phase -cin @('FixtureBoundary','FixtureOriginalBoundary')){
                 $expectedDescriptor=if($phase -ceq 'FixtureOriginalBoundary'){'archived'}else{'original-stopped'}
                 $expectedService=if($phase -ceq 'FixtureOriginalBoundary'){'Running'}else{'Stopped'}
-                if($d.phase -cne $expectedDescriptor -or $d.phase_intent -or $d.transaction_id -or
+                if(($d.phase -cne $expectedDescriptor -and !($phase -ceq 'FixtureBoundary' -and $d.phase -ceq 'recovered-stopped')) -or $d.phase_intent -or $d.transaction_id -or
                     (Test-Path $TransactionJournalPath) -or $p.status -cne $expectedService -or
                     (Get-WslBindingHash $p.hashes) -cne (Get-WslBindingHash $d.archive_hashes)){throw 'BINDING_FIXTURE_BOUNDARY'}
                 if($phase -ceq 'FixtureOriginalBoundary' -and ($running.Count -ne 1 -or $running[0] -cne $bindingSpec.original_distro)){throw 'BINDING_RUNNING_SCOPE'}
                 if($running.Count -gt 1 -or @($running | Where-Object{$_ -cnotin @($bindingSpec.original_distro,$bindingSpec.new_distro)}).Count){throw 'BINDING_RUNNING_SCOPE'}
+            }
+            if($phase -ceq 'OriginalRestoredBoundary'){
+                if($d.phase -cne 'restored' -or $d.phase_intent -or $d.transaction_id -or (Test-Path $TransactionJournalPath) -or
+                    $p.status -cne 'Running' -or (Get-WslBindingHash $p.hashes) -cne (Get-WslBindingHash $d.archive_hashes) -or
+                    (Get-WslBindingHash $p.config) -cne (Get-WslBindingHash $d.original.config)){throw 'BINDING_ORIGINAL_RESTORED_BOUNDARY'}
+            }
+            if($phase -ceq 'BoundBoundary'){
+                if($d.phase -cne 'bound' -or $d.phase_intent -or $d.transaction_id -or (Test-Path $TransactionJournalPath) -or
+                    $p.status -cne 'Running' -or (Get-WslBindingHash $p.hashes) -cne (Get-WslBindingHash $d.bound_hashes) -or
+                    (EffectiveDistro $p.config) -cne $bindingSpec.new_distro){throw 'BINDING_BOUND_BOUNDARY'}
             }
             $routes=Routes $p;$hosts=Hosts
             $certificate=Certificate
@@ -567,9 +589,65 @@ public static class TswAcceptanceFileIdentity {
             $result.observed_address=if($running.Count -eq 1){Address $running[0]}else{''}
             if($phase -cnotin @('Prepare','Archive')){$result.original_bundle_id=$bindingDescriptor.original.payload.bundle_id}
             $result.fingerprint=Get-WslBindingHash $result
+            if($phase -ceq 'OriginalRestoredBoundary'){CheckFinal 'ResumeOriginal' $result $d.original.payload.bundle_id}
+            if($phase -ceq 'BoundBoundary'){CheckFinal 'Bind' $result $p.bundle_id}
             $script:bindingLast=$result;return $result
         }
+        function ParentCapsule {
+            if($bindingSpec.schema_version -ne 2){throw 'BINDING_WINDOW_REQUIRED'}
+            $archive=Join-Path $ServiceRoot ('.staging-acceptance-'+$bindingSpec.run_id+'-fixture-original')
+            $descriptor=Join-Path $archive 'descriptor.json'
+            Assert-BridgePayloadPathSafety $descriptor
+            if((Get-Item -LiteralPath $descriptor -Force).Length -gt 131072){throw 'BINDING_PARENT_BOUND'}
+            $raw=[IO.File]::ReadAllBytes($descriptor)
+            if($raw.Length -gt 131072){throw 'BINDING_PARENT_BOUND'}
+            $parent=([Text.UTF8Encoding]::new($false,$true)).GetString($raw)|ConvertFrom-Json -ErrorAction Stop
+            Assert-WslBindingFields $parent @('schema_version','scenario_sha256','original','archive_hashes','phase','phase_intent','transaction_id','bound_hashes','approval_sha256','guest_quiesce_sha256','staging_root','bound_address','rollback_root','transaction_before_hashes','transaction_staged_hashes') 'BINDING_PARENT_DESCRIPTOR'
+            $scenarioPath=Join-Path $archive 'scenario.json';Assert-BridgePayloadPathSafety $scenarioPath
+            if((Get-Item $scenarioPath -Force).Length -gt 65536){throw 'BINDING_PARENT_BOUND'}
+            $originalSpec=Get-Content -LiteralPath $scenarioPath -Raw -Encoding UTF8|ConvertFrom-Json -ErrorAction Stop
+            Assert-WslBindingScenario $originalSpec
+            if($originalSpec.schema_version -ne 2 -or $originalSpec.window -cne 'fixture' -or
+                $parent.scenario_sha256 -cne (Get-WslBindingHash $originalSpec) -or $originalSpec.source_commit -cne $bindingSpec.source_commit){throw 'BINDING_PARENT_SOURCE'}
+            foreach($k in @('run_id','original_guid','new_guid','original_vhd_sha256','new_vhd_sha256','registration_sha256','registration_state_sha256','exposure_sha256','firewall_query_sha256')){if($originalSpec.$k -cne $bindingSpec.$k){throw 'BINDING_PARENT_IDENTITY'}}
+            if($bindingSpec.window -ceq 'product' -and $parent.scenario_sha256 -cne $bindingSpec.parent_scenario_sha256){throw 'BINDING_PARENT_SOURCE'}
+            if($parent.schema_version -ne 1 -or $parent.phase -cne 'restored' -or $parent.phase_intent -or
+                $parent.transaction_id -or (Test-Path $TransactionJournalPath)){throw 'BINDING_PARENT_UNSETTLED'}
+            $payload=Payload;$regs=Registrations;$names=@(Running)
+            if($names.Count -ne 1 -or $names[0] -cne $bindingSpec.original_distro -or $payload.status -cne 'Running' -or
+                $regs.hash -cne $parent.original.registration_sha256 -or $regs.hash -cne $bindingSpec.registration_sha256 -or
+                (Get-WslBindingHash $payload.hashes) -cne (Get-WslBindingHash $parent.archive_hashes)){throw 'BINDING_PARENT_IDENTITY'}
+            foreach($name in @('bundle',($ServiceName+'.exe'),($ServiceName+'.xml'),'installation-manifest.json')){
+                if((Get-BridgePayloadFingerprint (Join-Path (Join-Path $archive 'payload') $name)) -cne $parent.archive_hashes.$name){throw 'BINDING_PARENT_ARCHIVE'}
+            }
+            $certificate=Certificate;$routes=Routes $payload
+            if($certificate.snapshot_sha256 -cne $parent.original.certificate.snapshot_sha256 -or
+                $routes.foreign_sha256 -cne $parent.original.routes.foreign_sha256 -or (Hosts) -cne $parent.original.hosts_sha256){throw 'BINDING_PARENT_PRESERVATION'}
+            $capsule=[ordered]@{schema_version=1;window='fixture';run_id=$bindingSpec.run_id;source_commit=$originalSpec.source_commit;scenario_sha256=$parent.scenario_sha256;
+                descriptor_sha256=(Get-WslBindingRawHash $raw);archive_sha256=(Get-WslBindingHash $parent.archive_hashes);
+                registration_sha256=$regs.hash;registration_state_sha256=$bindingSpec.registration_state_sha256;phase='restored';phase_intent='';transaction_id=''}
+            if($bindingSpec.window -ceq 'product' -and (Get-WslBindingHash $capsule) -cne $bindingSpec.parent_bridge_sha256){throw 'BINDING_PARENT_HASH'}
+            return $capsule
+        }
+        function SaveFailure([string]$code){
+            # Preserve the exact old descriptor and intent instead of overwriting
+            # uncertainty with a generic phase. Explicit Recover owns reconciliation.
+            if(!(Test-Path $bindingDescriptorPath)){return}
+            Assert-BridgePayloadPathSafety $bindingDescriptorPath
+            if((Get-Item $bindingDescriptorPath -Force).Length -gt 131072){throw 'BINDING_FAILURE_BOUND'}
+            $raw=[IO.File]::ReadAllBytes($bindingDescriptorPath)
+            if($raw.Length -gt 131072 -or $code -cnotmatch '\ABINDING_[A-Z0-9_]{1,80}\z'){throw 'BINDING_FAILURE_BOUND'}
+            $old=([Text.UTF8Encoding]::new($false,$true)).GetString($raw)|ConvertFrom-Json -ErrorAction Stop
+            $row=[ordered]@{schema_version=1;scenario_sha256=(Get-WslBindingHash $bindingSpec);descriptor_sha256=(Get-WslBindingRawHash $raw);descriptor=$old;error=$code}
+            $bytes=Get-WslBindingBytes $row
+            $path=Join-Path $bindingArchive ('failure-'+(Get-WslBindingRawHash $bytes)+'.json')
+            if(Test-Path $path){if((Get-Item $path).Length -ne $bytes.Length -or [Convert]::ToBase64String([IO.File]::ReadAllBytes($path)) -cne [Convert]::ToBase64String($bytes)){throw 'BINDING_FAILURE_CAS'};return}
+            if(@(Get-ChildItem -LiteralPath $bindingArchive -Filter 'failure-*.json').Count -ge 64){throw 'BINDING_FAILURE_BOUND'}
+            $file=[IO.FileStream]::new($path,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)
+            try{Set-BridgeExactAcl $path;$file.Write($bytes,0,$bytes.Length);$file.Flush($true)}finally{$file.Dispose()}
+        }
         function OriginalArchive($before){
+            if($bindingSpec.schema_version -ceq 2 -and $bindingSpec.window -ceq 'product'){[void](ParentCapsule)}
             if(Test-Path $bindingArchive){throw 'BINDING_ARCHIVE_EXISTS'}
             [void](Claim 30);New-Item -ItemType Directory -Path $bindingPayload -Force | Out-Null
             Set-BridgeExactAcl $bindingArchive;Set-BridgeExactAcl $bindingPayload
@@ -578,6 +656,11 @@ public static class TswAcceptanceFileIdentity {
                 approval_sha256=$script:bindingApprovalSha;guest_quiesce_sha256='';staging_root='';bound_address='';
                 rollback_root='';transaction_before_hashes=$null;transaction_staged_hashes=$null}
             SaveDescriptor $d
+            if($bindingSpec.schema_version -ceq 2){
+                $scenarioPath=Join-Path $bindingArchive 'scenario.json';$bytes=Get-WslBindingBytes $bindingSpec
+                $file=[IO.FileStream]::new($scenarioPath,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)
+                try{Set-BridgeExactAcl $scenarioPath;$file.Write($bytes,0,$bytes.Length);$file.Flush($true)}finally{$file.Dispose()}
+            }
             $items=@($ServiceBundleRoot,$ServiceWrapperPath,$ServiceDefinitionPath,$InstallationManifestPath)
             $total=0;$count=0
             foreach($path in $items){
@@ -694,14 +777,15 @@ public static class TswAcceptanceFileIdentity {
                 Activate $stage (@{payload=$current})
             }
             if((Payload).status -cne 'Stopped'){throw 'BINDING_RECOVERY_NOT_STOPPED'}
-            $d=ReadDescriptor;$d.phase=if($null -ne (Read-BridgeTransactionJournal)){'restore-pending'}else{'recovered-stopped'}
-            $d.phase_intent='';SaveDescriptor $d
+            $d=ReadDescriptor;$d.phase=if($null -ne (Read-BridgeTransactionJournal)){'restore-pending'}else{'recovered-stopped'};$d.phase_intent='';if(!(Test-Path $TransactionJournalPath)){$d.transaction_id=''};SaveDescriptor $d
         }
         $ports=@{}
         $ports.Begin={param($phase) $script:bindingClock=[Diagnostics.Stopwatch]::StartNew();$script:bindingDeadline=Get-WslBindingPhaseSeconds $phase
             $script:bindingPhase=$phase;InitializeFileIdentity;Assert-Administrator
             if($env:COMPUTERNAME -ine $bindingSpec.host){throw 'BINDING_HOST'};Source}
         $ports.Observe={param($phase) Snapshot $phase}
+        $ports.Parent={ParentCapsule}
+        $ports.Outcome={$d=ReadDescriptor;if($d.phase -ceq 'bound' -and !$d.phase_intent -and !$d.transaction_id -and !(Test-Path $TransactionJournalPath)){return @{status='BOUND';proof=(Snapshot 'BoundBoundary')}};return @{status='RECOVERY_REQUIRED';proof=(Snapshot 'Recover')}}
         $ports.Intent={param($phase,$before,$go) [void](Claim 1);$script:bindingApprovalSha=Get-WslBindingHash $go
             if($phase -cne 'Archive'){$d=ReadDescriptor;$d.phase_intent=$phase;$d.approval_sha256=$bindingApprovalSha
                 if($phase -cin @('StopOriginal','StageRestore')){$d.guest_quiesce_sha256=$go.guest_quiesce_sha256};SaveDescriptor $d}}
@@ -718,10 +802,10 @@ public static class TswAcceptanceFileIdentity {
         $ports.Heartbeat={param($when,$bundle) [void](Claim 165);Wait-BridgeServiceHeartbeat -TransitionStartedAt $when -ExpectedBundleId $bundle -TimeoutSeconds 45}
         $ports.Final={param($phase,$before,$bundle) CheckFinal $phase $before $bundle}
         $ports.Complete={param($phase) if($null -ne $bindingTransaction){Complete-BridgePayloadTransaction $bindingTransaction}
-            $d=ReadDescriptor;$d.phase=if($phase -ceq 'Bind'){'bound'}else{'restored'};$d.transaction_id='';SaveDescriptor $d}
+            $d=ReadDescriptor;$d.phase=if($phase -ceq 'Bind'){'bound'}else{'restored'};$d.transaction_id='';$d.phase_intent='';SaveDescriptor $d}
         $ports.Pending={param($before) Pending $before}
         $ports.Recover={param($before) RecoverStopped $before}
-        $ports.Failure={param($code,$active) if(Test-Path $bindingDescriptorPath){$d=ReadDescriptor;$d.phase='recovery-required';SaveDescriptor $d}}
+        $ports.Failure={param($code,$active) if($active){SaveFailure $code}}
         $script:bindingPorts=$ports
         # Ports invoke this module explicitly; never replace caller helpers.
         Export-ModuleMember -Function @() -Alias @()
@@ -730,7 +814,7 @@ public static class TswAcceptanceFileIdentity {
     }
     }finally{foreach($handle in $handles){$handle.Dispose()}}
     $result=@{}
-    foreach($name in @('Begin','Observe','Intent','Lock','Unlock','Archive','Stage','Switch','Protect','Stop','Stopped','Start','Heartbeat','Final','Complete','Pending','Recover','Failure')){
+    foreach($name in @('Begin','Observe','Intent','Lock','Unlock','Archive','Stage','Switch','Protect','Stop','Stopped','Start','Heartbeat','Final','Complete','Pending','Recover','Failure','Parent','Outcome')){
         $result[$name]={& $module {param($operation,$arguments) & ($script:bindingPorts[$operation]) @arguments} $name $args}.GetNewClosure()
     }
     return $result

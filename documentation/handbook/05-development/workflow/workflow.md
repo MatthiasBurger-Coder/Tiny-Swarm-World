@@ -301,6 +301,36 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-01/` with the six issue-com
 
 ### Slice 02 — Reconcile gaps and make cold restoration admissible
 
+Reviewed execution amendment: Architecture, Security, DevOps and Requirement
+owners accept the two explicitly proposed source/test paths below as necessary
+implementation of this slice's existing re-entry requirement. No new ADR or
+user permission is required for code work; no live operation is admitted.
+The actual immutable legacy driver/API and existing lock were inspected only
+read-only on the designated host: driver SHAfcf16059dced9a3ed07ea54e1d346e7b67726cfe873de2849b58a202519962bd;
+exported dependency closure is journal-parametric (PRIVATE referenced only by
+legacy main); existing lock is root-owned0600single-link on ext4. These observed
+facts are not future lock ownership, original-state restoration or live GO.
+
+Implement fixed fixture/product window identities and derived create-only inner
+journals, with immutable prior-final/registration/switch/bridge archive links.
+Never retarget legacy globals or alter its old files; chain metadata stays
+outside the closed inner journal. Preserve legacy main's umask, ext4/source/
+signal/deadline/settlement checks. Acquire the exact existing legacy lock
+read-only/no-follow with exclusive flock and path/inode CAS, then fixed machine/
+window locks; no create/truncate/rotation of the old lock. All legacy delegation
+occurs under those guards. Outer phase GO binds window/source/adapter/backup/
+parent and exact nested legacy quiesce GO; restore requires its own outer GO.
+Read-only predecessor verification must reject writes via a Journal proxy.
+Source staging accepts only the committed fixed helper blob/hash under a
+separate metadata mutation approval; no arbitrary path/code selector. Version
+registration/source views without changing original receipts or importing a
+third distro. Failed read-only bridge previews never write Failure state;
+mutation uncertainty tracking must begin before Intent/Archive writes, preserve
+old descriptor/intent/transaction in linked evidence, and never clear unknown
+outcomes generically. Freeze all adapters/tests before C. Missing or mismatched
+legacy API/lock/runtime evidence blocks effects. Unit gates use mocks, not the
+private host driver.
+
 Purpose: Reconcile every remaining matrix cell and every reachable cold-switch pending state. Preserve SealFixtureReturn/ReturnFixture and original ReturnOriginal separation. Prove an owned recovery/reconciliation route for early preparation failure, unknown reset, unapplied/uncertain bridge stop, and ambiguous resume/restore BEFORE any downtime. Safe refusal alone is not restoration proof. Implement only a reviewed narrow missing coordinator path within existing cold-kernel policy; no general pending clearing, guessed PID signaling, resource deletion or relaxed listener rule. Rehearse actual PowerShell with mocked host ports. Also implement and test an explicitly approved re-entry from completed fixture restoration to a later product window: the current switch cannot leave stage restored, and a new run/registration collides with its exact two-distro scope. Define a guarded transition preserving immutable prior receipts, exact GUID/VHD/source identity, fresh original quiescence/backup/boot, fresh phase GO and a new chained journal; no hand-edited bookmark, stage reset, unowned retirement or assumed parallel distro. Architecture/Security/DevOps must accept that concrete transition before source freeze; if it cannot be proven within current policy, stop before all downtime for the required decision.
 
 Prerequisites: S440O-01. Mode: LOCAL.
@@ -320,7 +350,8 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-02/` with the six issue-com
     "Senior System Architect",
     "Senior Tester",
     "Senior Security Sandbox Engineer",
-    "Senior DevOps"
+    "Senior DevOps",
+    "Senior Python Automation Developer"
   ],
   "affected_files": [
     "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_guest_switch.ps1",
@@ -331,14 +362,20 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-02/` with the six issue-com
     "modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_registration.py",
     "modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_bridge_binding.py",
     "modules/tsw_core/tests/fixtures/wsl_acceptance_registration.ps1",
-    "modules/tsw_core/tests/fixtures/wsl_acceptance_bridge_binding.ps1"
+    "modules/tsw_core/tests/fixtures/wsl_acceptance_bridge_binding.ps1",
+    "modules/tsw_core/tools/linux/qualification/wsl_original_runtime_window.py",
+    "modules/tsw_windows_wsl/tests/tools/test_wsl_original_runtime_window.py",
+    "documentation/handbook/05-development/workflow/workflow.md",
+    "documentation/handbook/05-development/workflow/context-pack.json"
   ],
   "affected_modules": [
     "existing qualification/lifecycle and evidence"
   ],
   "affected_contracts": [
     "public CLI/evidence/source ownership",
-    "frozen C/K campaign provenance"
+    "frozen C/K campaign provenance",
+    "fixed fixture/product window approvals and immutable parent chains",
+    "shared existing legacy lock and journal-parametric immutable API"
   ],
   "dependencies": [
     "S440O-01"
@@ -357,7 +394,11 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-02/` with the six issue-com
     "modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_registration.py",
     "modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_bridge_binding.py",
     "modules/tsw_core/tests/fixtures/wsl_acceptance_registration.ps1",
-    "modules/tsw_core/tests/fixtures/wsl_acceptance_bridge_binding.ps1"
+    "modules/tsw_core/tests/fixtures/wsl_acceptance_bridge_binding.ps1",
+    "modules/tsw_core/tools/linux/qualification/wsl_original_runtime_window.py",
+    "modules/tsw_windows_wsl/tests/tools/test_wsl_original_runtime_window.py",
+    "documentation/handbook/05-development/workflow/workflow.md",
+    "documentation/handbook/05-development/workflow/context-pack.json"
   ],
   "contract_locks": [
     "frozen C/K source and exact approval"
@@ -375,7 +416,11 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-02/` with the six issue-com
     "modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_registration.py",
     "modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_bridge_binding.py",
     "modules/tsw_core/tests/fixtures/wsl_acceptance_registration.ps1",
-    "modules/tsw_core/tests/fixtures/wsl_acceptance_bridge_binding.ps1"
+    "modules/tsw_core/tests/fixtures/wsl_acceptance_bridge_binding.ps1",
+    "modules/tsw_core/tools/linux/qualification/wsl_original_runtime_window.py",
+    "modules/tsw_windows_wsl/tests/tools/test_wsl_original_runtime_window.py",
+    "documentation/handbook/05-development/workflow/workflow.md",
+    "documentation/handbook/05-development/workflow/context-pack.json"
   ],
   "shared_infrastructure": [
     "designated SSH/WSL quality host",
@@ -396,7 +441,11 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-02/` with the six issue-com
     "modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_registration.py",
     "modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_bridge_binding.py",
     "modules/tsw_core/tests/fixtures/wsl_acceptance_registration.ps1",
-    "modules/tsw_core/tests/fixtures/wsl_acceptance_bridge_binding.ps1"
+    "modules/tsw_core/tests/fixtures/wsl_acceptance_bridge_binding.ps1",
+    "modules/tsw_core/tools/linux/qualification/wsl_original_runtime_window.py",
+    "modules/tsw_windows_wsl/tests/tools/test_wsl_original_runtime_window.py",
+    "documentation/handbook/05-development/workflow/workflow.md",
+    "documentation/handbook/05-development/workflow/context-pack.json"
   ],
   "requirement_ids": [
     "P03",
@@ -409,7 +458,8 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-02/` with the six issue-com
   "quality_gates": {
     "targeted": [
       "PYTHONPATH=. python3 -m unittest modules.tsw_windows_wsl.tests.tools.test_wsl_acceptance_guest_switch",
-      "PYTHONPATH=. python3 -m unittest modules.tsw_windows_wsl.tests.tools.test_wsl_acceptance_registration modules.tsw_windows_wsl.tests.tools.test_wsl_acceptance_bridge_binding"
+      "PYTHONPATH=. python3 -m unittest modules.tsw_windows_wsl.tests.tools.test_wsl_acceptance_registration modules.tsw_windows_wsl.tests.tools.test_wsl_acceptance_bridge_binding",
+      "PYTHONPATH=. python3 -m unittest modules.tsw_windows_wsl.tests.tools.test_wsl_original_runtime_window"
     ],
     "required": [
       "python3 modules/tsw_core/tools/linux/quality_gate.py quality"
@@ -422,6 +472,10 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-02/` with the six issue-com
   "stop_conditions": [
     "Missing exact source, ownership, required verification, recovery proof or approval; no guard weakening.",
     "Unknown/dirty campaign source, C/K topology mismatch, unsafe pending state or unavailable required external result."
+  ],
+  "proposed_files": [
+    "modules/tsw_core/tools/linux/qualification/wsl_original_runtime_window.py",
+    "modules/tsw_windows_wsl/tests/tools/test_wsl_original_runtime_window.py"
   ]
 }
 ```

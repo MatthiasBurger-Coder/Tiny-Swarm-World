@@ -192,6 +192,9 @@ class ClosedGuestSwitchTests(unittest.TestCase):
         self.assertFalse(report["actual_preparation"])
         self.assertFalse(report["originals_touched"])
         self.assertFalse(report["application_ready"])
+        self.assertTrue(report["versioned_windows"])
+        self.assertEqual(report["pending_reconciliation_cases"], 13)
+        self.assertEqual(report["pending_reconciliation_denials"], 1)
 
 
 class NetfilterReadParserTests(unittest.TestCase):

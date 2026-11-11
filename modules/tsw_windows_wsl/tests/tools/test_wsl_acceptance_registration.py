@@ -13,6 +13,23 @@ ROOT = Path(__file__).resolve().parents[4]
 
 
 class WslAcceptanceRegistrationTests(unittest.TestCase):
+    @unittest.skipUnless(_windows_powershell(), "Windows/WSL source-view fixture")
+    def test_source_view_preserves_historical_receipt_and_binds_actual_raw_state(self) -> None:
+        executable = _windows_powershell()
+        assert executable is not None
+        result = subprocess.run(
+            [executable, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File",
+             _runtime_path(ROOT / "modules/tsw_core/tests/fixtures/wsl_acceptance_registration.ps1", executable),
+             "-RepositoryRoot", _runtime_path(ROOT, executable), "-SourceViewContract"],
+            check=False, capture_output=True, text=True, timeout=60,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        report = json.loads(result.stdout)
+        self.assertEqual(report["cases"], 8)
+        self.assertEqual(report["imports"], 0)
+        self.assertEqual(report["runtime_mutations"], 0)
+        self.assertTrue(report["historical_expiry_readonly"])
+
     @unittest.skipUnless(
         os.name == "nt" or (os.name == "posix" and WINDOWS_POWERSHELL.exists()),
         "Native Windows PowerShell runtime unavailable",

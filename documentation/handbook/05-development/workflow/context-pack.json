@@ -64,7 +64,7 @@
     "documentation/handbook/05-development/workflow/requirements.json": "70e9beda2f7a7bb1b3f5bce74d37f458727e9cc7f04fe58451f9be33138bea9f",
     "documentation/handbook/05-development/workflow/scenario-plan.md": "41b413c19a8a808203c76df8acdaacbb1e3b5bbc64f169d1072f9653b4289c19",
     "documentation/handbook/05-development/workflow/workflow.index.md": "f12c50ebe16bec52872f71951627ac0a58590d926da27e31d7383b026d99ca1e",
-    "documentation/handbook/05-development/workflow/workflow.md": "75bd92fbeae43b3c5c2db689de1f36073a57f2e0cec4d66d7be1d4567d74ec81"
+    "documentation/handbook/05-development/workflow/workflow.md": "8be1056ab07f43d6072c634f104e27803d68050ea2e91c5db2ff9fb50dd5f4fb"
   },
   "slices": [
     "S440O-01",
@@ -89,5 +89,9 @@
     "modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_guest_switch.py": "9403a59164cc6c3429caf423ca55bc6559ad18859f20ba4b90ac23b1fe86b262",
     "modules/tsw_core/tests/fixtures/wsl_acceptance_guest_switch.ps1": "b423c4900b81750a52af03f2e46440a6f015cda18d8105dc318bf3989067dbde"
   },
-  "verified_repair_present_in_this_branch": false
+  "verified_repair_present_in_this_branch": false,
+  "proposed_files": [
+    "modules/tsw_core/tools/linux/qualification/wsl_original_runtime_window.py",
+    "modules/tsw_windows_wsl/tests/tools/test_wsl_original_runtime_window.py"
+  ]
 }

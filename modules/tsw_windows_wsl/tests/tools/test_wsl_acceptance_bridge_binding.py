@@ -20,12 +20,15 @@ class WslAcceptanceBridgeBindingTests(unittest.TestCase):
             [executable, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File",
              _runtime_path(ROOT / "modules/tsw_core/tests/fixtures/wsl_acceptance_bridge_binding.ps1", executable),
              "-RepositoryRoot", _runtime_path(ROOT, executable)],
-            check=False, capture_output=True, text=True, timeout=90,
+            check=False, capture_output=True, timeout=90,
         )
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(result.returncode, 0, (result.stdout + result.stderr).decode("utf-8", errors="backslashreplace"))
         report = json.loads(result.stdout)
         self.assertEqual(report["status"], "PASS")
         self.assertGreaterEqual(report["cases"], 55)
         self.assertEqual(report["runtime_mutations"], 0)
         self.assertTrue(report["real_payload_primitives"])
         self.assertFalse(report["live_capability_claim"])
+        self.assertTrue(report["readonly_failures_preserved"])
+        self.assertTrue(report["actual_failure_receipts"])
+        self.assertTrue(report["actual_parent_capsule"])

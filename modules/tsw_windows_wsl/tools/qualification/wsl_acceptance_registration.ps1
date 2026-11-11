@@ -53,6 +53,30 @@ function Assert-AcceptanceRegistrationInventory($Before,$After,[string]$Name,[bo
     $new[0].rootfs_sha256 -isnot [string] -or $new[0].rootfs_sha256 -cnotmatch '\A[0-9a-f]{64}\z'){throw 'NEW_REGISTRATION_UNPROVEN'}
  return $new[0]
 }
+function Assert-AcceptanceRegistrationSourceView($View,$Scenario,$State,[byte[]]$Raw){
+ if($Raw.Length -gt 131072){throw 'REGISTRATION_VIEW_BOUND'}
+ $decoded=([Text.UTF8Encoding]::new($false,$true)).GetString($Raw)|ConvertFrom-Json -ErrorAction Stop
+ if((Get-AcceptanceRegistrationDigest $decoded) -cne (Get-AcceptanceRegistrationDigest $State)){throw 'REGISTRATION_VIEW_PARSED_BINDING'}
+ $fields=@('schema_version','run_id','source_commit','registered_source_commit','registration_scenario_sha256',
+ 'registration_state_sha256','original_guid','new_guid','original_vhd_sha256','new_vhd_sha256')
+ $keys=if($View -is [Collections.IDictionary]){@($View.Keys)}else{@($View.PSObject.Properties.Name)}
+ if($null -eq $View -or $keys.Count -ne $fields.Count -or @($keys|Where-Object{$_ -cnotin $fields}).Count){throw 'REGISTRATION_VIEW_FIELDS'}
+ if($View.schema_version -isnot [int] -or $View.schema_version -ne 1 -or $View.run_id -cne $Scenario.run_id -or
+ $View.source_commit -cnotmatch '\A[0-9a-f]{40}\z' -or $View.registered_source_commit -cne $Scenario.source_commit -or
+ $View.registration_scenario_sha256 -cne (Get-AcceptanceRegistrationDigest $Scenario) -or $State.stage -cne 'registered' -or
+ $State.scenario_sha256 -cne $View.registration_scenario_sha256){throw 'REGISTRATION_VIEW_BINDING'}
+ $hash=[Security.Cryptography.SHA256]::Create()
+ try{$digest=([BitConverter]::ToString($hash.ComputeHash($Raw))).Replace('-','').ToLowerInvariant()}finally{$hash.Dispose()}
+ if($digest -cne $View.registration_state_sha256){throw 'REGISTRATION_VIEW_RECEIPT'}
+ $original=@($State.baseline.registrations)
+ if($original.Count -ne 1 -or $original[0].name -cne 'Ubuntu' -or $original[0].id.ToLowerInvariant() -cne $View.original_guid -or
+ $State.receipt.name -cne ('TSW-Q440-'+$View.run_id) -or $State.receipt.id.ToLowerInvariant() -cne $View.new_guid -or
+ (Get-AcceptanceRegistrationDigest $original[0].vhd_identity) -cne $View.original_vhd_sha256 -or
+ (Get-AcceptanceRegistrationDigest $State.receipt.vhd_identity) -cne $View.new_vhd_sha256){throw 'REGISTRATION_VIEW_IDENTITY'}
+ # This is a read-only source view over the original immutable import receipt.
+ # It neither republishes that receipt nor admits another distribution.
+ return $View
+}
 function Invoke-WslAcceptanceRegistration($s,[string]$Mode,[Collections.IDictionary]$Ports){
  $result=[ordered]@{schema_version=1;scope='WSL_ACCEPTANCE_REGISTRATION';status='BLOCKED';
   import_attempted=$false;registration_verified=$false;recovery_required=$false;services_verified=$false;error='NONE'}
