@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import copy
+from collections.abc import Callable
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
@@ -267,6 +268,62 @@ def validate_host_artifacts(proof: Any, capability_sha256: str, fixture_sha256: 
     return sources
 
 
+def qualification_git(root: Path, read: Callable[[list[str]], bytes], args: list[str]) -> bytes:
+    return read(['/usr/bin/git', '--no-replace-objects', '--no-optional-locks',
+        '-c', 'core.fsmonitor=false', '-c', 'core.untrackedCache=false', '-c', 'core.hooksPath=/dev/null', '-c', 'core.fileMode=true',
+        '-C', str(root), *args])
+
+
+def clean_qualification_source(root: Path, product: str, read: Callable[[list[str]], bytes]) -> None:
+    """A context check, including the historical equal-source preparation sentinel."""
+    if not isinstance(product, str) or native.inventory.HEX40.fullmatch(product) is None:
+        raise ValueError('QUALIFICATION_SOURCE_INVALID')
+    if qualification_git(root, read, ['rev-parse', '--verify', 'HEAD']).strip() != product.encode():
+        raise ValueError('QUALIFICATION_HEAD_MISMATCH')
+    if qualification_git(root, read, ['status', '--porcelain=v1', '--untracked-files=all', '--ignore-submodules=none']):
+        raise ValueError('QUALIFICATION_SOURCE_DIRTY')
+    flags = qualification_git(root, read, ['ls-files', '-v', '-z']).split(b'\0')
+    if flags[-1] != b'' or not flags[:-1] or any(not row.startswith(b'H ') for row in flags[:-1]):
+        raise ValueError('QUALIFICATION_INDEX_UNPROVEN')
+
+
+def qualification_promotion(root: Path, qualification: str, product: str, capability_sha: str,
+                            read: Callable[[list[str]], bytes]) -> None:
+    """Read actual objects: K is one cap-only child of the empty-matrix C."""
+    clean_qualification_source(root, product, read)
+    if (not isinstance(qualification, str) or native.inventory.HEX40.fullmatch(qualification) is None
+            or qualification == product or not isinstance(capability_sha, str) or native.HEX.fullmatch(capability_sha) is None):
+        raise ValueError('QUALIFICATION_PROMOTION_INVALID')
+    commits = {}
+    for revision in (qualification, product):
+        raw = qualification_git(root, read, ['cat-file', 'commit', revision])
+        actual = hashlib.sha1(b'commit ' + str(len(raw)).encode() + b'\0' + raw, usedforsecurity=False).hexdigest()
+        if actual != revision or len(raw) > 131072:
+            raise ValueError('QUALIFICATION_COMMIT_INVALID')
+        commits[revision] = raw.split(b'\n\n', 1)[0].splitlines()
+    parents = [line for line in commits[product] if line.startswith(b'parent ')]
+    if parents != [b'parent ' + qualification.encode()]:
+        raise ValueError('QUALIFICATION_PARENT_INVALID')
+    capability = 'modules/tsw_core/infra/config/incus-profile-capabilities.json'
+    changes = qualification_git(root, read, ['diff-tree', '--no-ext-diff', '--no-textconv', '--raw',
+        '--no-abbrev', '--no-commit-id', '--no-renames', '-r', '-z', qualification, product, '--'])
+    if re.fullmatch(rb':100644 100644 [0-9a-f]{40} [0-9a-f]{40} M\x00' + re.escape(capability.encode()) + rb'\x00', changes) is None:
+        raise ValueError('QUALIFICATION_TREE_DELTA_INVALID')
+    before = native.inventory.strict_json(qualification_git(root, read, ['cat-file', 'blob', qualification + ':' + capability]))
+    if (before != {'schema_version': 1, 'capability': 'installation-scoped-incus-manager-profile', 'admitted_versions': []}
+            or type(before['schema_version']) is not int):
+        raise ValueError('QUALIFICATION_C_MATRIX_NOT_EMPTY')
+    after = qualification_git(root, read, ['cat-file', 'blob', product + ':' + capability])
+    if native.digest(after) != capability_sha:
+        raise ValueError('QUALIFICATION_K_MATRIX_MISMATCH')
+    clean_qualification_source(root, product, read)
+
+
+def qualification_receipt_sources(sources: dict[str, str], qualification: str) -> None:
+    if set(sources) != set(CAPABILITY_HOSTS) or set(sources.values()) != {qualification}:
+        raise ValueError('BOTH_HOST_QUALIFICATION_SOURCE_MISMATCH')
+
+
 def case_tls_root(journal: native.Journal) -> str:
     native.private_directory(journal.directory)
     path = journal.directory / 'tls'
@@ -287,7 +344,7 @@ def check_prerequisites(intent: SuiteIntent) -> None:
     admission = matrix.IncusProfileCapabilityRepository(ROOT).load()
     native.require(admission.admits('6.0.5', '6.0.5'), 'BOTH_HOST_CAPABILITY_NOT_ADMITTED')
     entry = next(row for row in admission.admitted_versions if (row.client_version, row.server_version) == ('6.0.5', '6.0.5'))
-    reference = native.bounded(['/usr/bin/git', '--no-optional-locks', 'show', entry.fixture_source_revision + ':' + native.FILES[4]], 10)
+    reference = qualification_git(ROOT, lambda args: native.bounded(args, 10), ['cat-file', 'blob', entry.fixture_source_revision + ':' + native.FILES[4]])
     native.require(native.digest(reference) == entry.fixture_sha256, 'SUITE_CAPABILITY_SOURCE_MISMATCH')
     # The immutable promotion record is required in addition to its public matrix
     # entry: both actual host listener observations must identify this admission.
@@ -295,10 +352,13 @@ def check_prerequisites(intent: SuiteIntent) -> None:
     artifacts = {host: native.read_private(PRIVATE / ('profile-capability-' + host + '.json')) for host in CAPABILITY_HOSTS}
     try:
         sources = validate_host_artifacts(proof, intent.capability_sha256, entry.fixture_sha256, artifacts)
+        qualification_receipt_sources(sources, entry.fixture_source_revision)
+        qualification_promotion(ROOT, entry.fixture_source_revision, intent.source_commit, intent.capability_sha256,
+            lambda args: native.bounded(args, 10))
     except ValueError as exc:
         raise native.MaintenanceError(str(exc)) from exc
     for source in sources.values():
-        actual_blob = native.bounded(['/usr/bin/git', '--no-optional-locks', 'show', source + ':' + native.FILES[4]], 10)
+        actual_blob = qualification_git(ROOT, lambda args: native.bounded(args, 10), ['cat-file', 'blob', source + ':' + native.FILES[4]])
         native.require(native.digest(actual_blob) == entry.fixture_sha256, 'BOTH_HOST_CAPABILITY_SOURCE_MISMATCH')
     native.require(tree_digest(INFRA) == intent.infra_sha256
         and native.digest(native.read_private(OPERATOR)) == intent.operator_config_sha256, 'SUITE_CONFIGURATION_DRIFT')

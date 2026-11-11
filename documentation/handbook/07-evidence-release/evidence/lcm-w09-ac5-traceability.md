@@ -32,6 +32,29 @@ requirements; the parent checklist and W10 owner acceptance remain open. The
 external issues were not edited, and no parent acceptance item was marked
 complete by this document.
 
+## S440O-05 source handoff under review (2026-11-12)
+
+The current common I05 changes address P02/P08/P12/P13/P14 source and evidence
+preconditions; they do not complete those parent rows or W09/W10. Shipping
+component candidates and the empty capability asset remain unchanged. The
+[qualification source/budget contract](lcm-w09-qualification.md#new-campaign-source-contract--s440o-05-2026-11-12)
+separates I05, the independently gated private C, the sole capability-only child
+K, and later actual scenario admission. No C/K, image availability, new live run
+or I05 gate pass is asserted here.
+
+| Obligation | I05 verification design | Remaining evidence |
+|---|---|---|
+| P02 exact single/batch policy | Fixed candidate refusal/no state change for both hosts; separate exact private positives for Swagger/Traefik and retained images | Exact private policy delta review and both private-C quality gates; actual later component scenarios |
+| P08/P12 source and fault provenance | Actual Git C-empty/K-populated fixtures reject merge, intervening/extra/mode/dirty/untracked/replacement and substituted-source cases; paired receipt/fixture/preparation identities bind C | Frozen clean C, actual paired host receipts, sole reviewed K and fresh scenario GO |
+| P13 evidence authority | Common tests preserve historical readers, refusal/unavailable shapes and the clean equal-source context sentinel without treating it as runtime admission | Source-matched prescribed-host targeted/full results and independent owner acceptance |
+| P14 repeatability | Existing argv, package/source/workflow/runner/test/policy/input hashes and numeric budget capture; exact K tree/parent checks | Immutable C/K and external private evidence, registry byte/platform proof, actual exercise and restoration |
+
+Historical Q01–Q20 and product schema1 evidence below retain their original
+sources and limits. Current schema2 negative/helper fixtures are not a historical
+release-reader compatibility result; unavailable helpers remain unexecuted with
+no product result. Local synthetic resources/Git histories do not qualify a live
+host, change the admitted matrix, or close an open acceptance row.
+
 ## Trace obligations
 
 Every parent acceptance row carries the shared W01 obligations: W01-REQ06

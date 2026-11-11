@@ -36,6 +36,69 @@ The generic component transition runner has changed since its historical live
 run; see the transition proposal for both source hashes and the applicability
 limits. #449 remains incomplete.
 
+## New campaign source contract — S440O-05 (2026-11-12)
+
+This section defines the current I05 candidate under review, based on verified
+prerequisite checkpoint `437ca3a84b6ab6dcf22ce7f966bac2bd10537df2`. It records no
+I05 quality-gate result, frozen C, admitted K, registry availability or new live
+scenario. All executed rows below retain their historical source/host limits.
+The shipped Swagger/Traefik catalog remains `candidate-transition`; the shipped
+capability matrix remains empty. Local fixtures cannot grant live capability.
+
+I05 contains the common guards and tests. A separate private C must contain
+exact I05 plus the independently reviewed finite qualification change for
+`swagger-ui-5-32-7` and `traefik-3-7-5` and its explicit shipped-catalog test
+expectation. Fixed candidate-denial fixtures remain unconditional on both hosts
+for singles and the selected batch; private positive fixtures assert the exact
+bundles and retained siblings. No runtime, environment or JSON policy override
+is introduced. The private delta needs targeted/full verification and D8 review
+before its unpublished artifact commit; the resulting clean exact C needs a
+second targeted/full gate before freeze or preparation. Integration bookkeeping
+and private campaign evidence stay outside the immutable C/K commit chain.
+
+Both actual host fixture receipts and the matrix fixture reference must name C.
+K must be one direct single-parent child of C, changing only the regular
+`incus-profile-capabilities.json` asset from the closed empty C matrix to the
+exact reviewed K bytes. Read-only guards disable replacement objects, inspect
+literal commit parents and the complete tree delta, and reject dirty/untracked
+source, ignored index flags, changed modes, merges, intervening commits and
+same-fixture-byte source substitution. The clean C==K context sentinel grants
+no product/capability admission. An actual admitted WSL preparation must name C,
+even when its K preparation receipt has an otherwise matching envelope/hash.
+Unknown client/server pairs remain denied.
+
+Before C is frozen, capture clean source/package origin, workflow/helper/runner/
+test/policy/input hashes, exact command arguments, and the existing budgets.
+The seven component child manifests/configs and six declared tag roots need
+independent bounded RegistryV2 read-only verification for linux/amd64; this
+section makes no current availability claim. Actual paired admission, fresh
+scenario GO, ownership, usable backup, exercise and restoration remain later
+workflow gates.
+
+### Existing budget capture (seconds, source inspection only)
+
+| Existing supervisor | Base phase budgets | Recipe-specific case budget |
+|---|---|---|
+| Native `preserving_product_acceptance.py` | prepare1200, pause600, approval180, case5400, teardown900, restore600 | implemented upgrade/refusal9000; engine recovery3300 |
+| WSL `wsl_product_acceptance.py` | prepare1200, admit300, case5400, disposal900, final300, recover900 | implemented upgrade/refusal9000; engine recovery3300 |
+
+`product_upgrade_cases.budgets` supplies those recipe overrides. Historical
+product-v1 helper budgets18000/10800 do not make those unavailable helpers
+executable. Native normal GO covers the sum of the selected phases; paused GO
+covers case+teardown+restore; original-recovery GO covers1500. WSL run/engine GO
+covers admit+case+disposal+final; case-recovery GO covers900. Each existing GO
+validator permits at most300 seconds beyond its required coverage. These are
+existing bounds, not extensions granted by this document.
+
+The listener fixture's existing inventory totals are native300 with60 cleanup
+reserve and WSL650 with300 cleanup reserve. Global ceilings remain256 commands,
+16MiB aggregate command output,10000 entities,2MiB per stdout/stderr stream
+(subject to the shared aggregate cap),8MiB per artifact,
+and30 seconds per host command; cleanup reserves110 commands,8MiB and5000
+entities. `_inventory_budgets` and `_inventory_budget_profile` in the frozen
+fixture are the authority for active/cleanup accounting. Qualification Git reads
+retain the existing10-second per-command bound within the owning phase.
+
 ## Executed native boundary
 
 Classic Linux → Incus/LXC → Docker Engine → Docker Swarm. The measured native

@@ -29,7 +29,7 @@ class ComponentUpdateCliTests(unittest.IsolatedAsyncioTestCase):
     async def run_command(self, command, expected_exit=0):
         before = {item.name: (item.read_bytes(), item.stat().st_mtime_ns) for item in self.path.parent.iterdir()}
         output = io.StringIO()
-        with patch("tiny_swarm_world.infrastructure.adapters.cli.component_updates.build_installation_lifecycle_service", return_value=self.lifecycle), patch("tiny_swarm_world.infrastructure.adapters.cli.dispatcher.ensure_common_executable_paths") as paths, patch("tiny_swarm_world.infrastructure.adapters.cli.dispatcher.build_application_logger") as logger, patch("subprocess.run") as subprocess, contextlib.redirect_stdout(output):
+        with patch("tiny_swarm_world.infrastructure.adapters.cli.component_updates.build_installation_lifecycle_service", return_value=self.lifecycle), patch("tiny_swarm_world.infrastructure.adapters.cli.component_updates.build_component_update_execution") as execute, patch("tiny_swarm_world.infrastructure.adapters.cli.dispatcher.ensure_common_executable_paths") as paths, patch("tiny_swarm_world.infrastructure.adapters.cli.dispatcher.build_application_logger") as logger, patch("subprocess.run") as subprocess, contextlib.redirect_stdout(output):
             if expected_exit:
                 with self.assertRaises(SystemExit) as caught:
                     await main(command)
@@ -39,6 +39,7 @@ class ComponentUpdateCliTests(unittest.IsolatedAsyncioTestCase):
         paths.assert_not_called()
         logger.assert_not_called()
         subprocess.assert_not_called()
+        execute.assert_not_called()
         self.assertEqual(before, {item.name: (item.read_bytes(), item.stat().st_mtime_ns) for item in self.path.parent.iterdir()})
         return json.loads(output.getvalue())
 
@@ -55,7 +56,7 @@ class ComponentUpdateCliTests(unittest.IsolatedAsyncioTestCase):
         result = await self.run_command(["services", "update", "--services", "jenkins", "--to", "test-next", "--preview"])
         self.assertEqual(result["services"][0]["target"]["target_id"], "test-next")
 
-    async def test_shipped_candidates_are_visible_but_cli_previews_are_blocked(self):
+    async def test_independent_fixed_candidates_are_visible_but_cli_previews_are_blocked(self):
         catalog, manifest = native_installation()
         self.repository.save(manifest, expected_token=self.repository.load().token)
         self.lifecycle.catalog.load.return_value = catalog
@@ -75,6 +76,20 @@ class ComponentUpdateCliTests(unittest.IsolatedAsyncioTestCase):
                     result = await self.run_command(command, expected_exit=1)
                     self.assertEqual(result["status"], "blocked")
                     self.assertTrue(all(item["status"] == "unsupported" for item in result["services"]))
+                    live = [part if part != '--preview' else '--live' for part in command] + ['--approve-live']
+                    refused = await self.run_command(live, expected_exit=1)
+                    self.assertEqual(refused['status'], 'blocked')
+
+    async def test_exact_private_qualified_fixture_has_single_and_two_changing_member_previews(self):
+        catalog, manifest = native_installation(promote_candidates=True)
+        self.lifecycle.catalog.load.return_value = catalog
+        for host in ('native-linux', 'wsl2'):
+            self.repository.save(manifest.model_copy(update={'host': host}), expected_token=self.repository.load().token)
+            for services, changed in (('swagger', {'swagger-ui'}), ('traefik', {'traefik'}), ('swagger,traefik', {'swagger-ui', 'traefik'})):
+                with self.subTest(host=host, services=services):
+                    result = await self.run_command(['services', 'update', '--services', services, '--preview', '--json'])
+                    self.assertEqual(result['status'], 'preview')
+                    self.assertEqual({item['component_id'] for service in result['services'] for item in service['components'] if item['desired_change']}, changed)
 
     async def test_failures_uninstalled_unknown_unsupported_and_dedicated(self):
         for command, code in ((["services", "updates", "--services", "swagger"], 1),

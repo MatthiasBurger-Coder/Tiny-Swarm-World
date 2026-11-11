@@ -15,7 +15,7 @@ from unittest.mock import Mock, PropertyMock, patch
 
 from modules.tsw_native_linux.tools.qualification import wsl_product_acceptance as suite
 from modules.tsw_native_linux.tests.tools.test_owned_case_disposal import Port, case
-from modules.tsw_native_linux.tests.tools.test_preserving_product_acceptance import altered_capability, fault_journal
+from modules.tsw_native_linux.tests.tools.test_preserving_product_acceptance import fault_journal, QualificationRepository
 
 
 def intent() -> suite.Intent:
@@ -69,6 +69,56 @@ class CasePort:
 
 
 class WslProductAcceptanceTests(unittest.TestCase):
+    def test_actual_identity_binds_admitted_preparation_c_but_keeps_empty_equal_context(self) -> None:
+        import importlib
+        for kind in ('prepared-c', 'prepared-k', 'empty-equal', 'capability-drift'):
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                fixture = QualificationRepository(root)
+                product = fixture.k
+                cap_sha = fixture.cap_sha
+                if kind == 'empty-equal':
+                    fixture.git('checkout', '--quiet', '--detach', fixture.c)
+                    product, cap_sha = fixture.c, suite.sha(fixture.cap.read_bytes())
+                prepared_source = product if kind == 'prepared-k' else fixture.c
+                prep = {'schema_version': 1, 'run_id': intent().run_id, 'source_commit': prepared_source,
+                    'kind': 'NEW_GUEST_PREPARATION', 'package_versions': {}, 'python_version': '3.12.15'}
+                bridge = {'schema_version': 1, 'scope': 'PRESERVING_ACCEPTANCE_BRIDGE', 'phase': 'Bind',
+                    'status': 'NEW_BINDING_READY', 'changed': True, 'recovery_required': False,
+                    'application_ready': False, 'error': 'NONE'}
+                machine, boot = b'a' * 32, b'11111111-1111-4111-8111-111111111111'
+                current = replace(intent(), source_commit=product, capability_sha256=('0' * 64 if kind == 'capability-drift' else cap_sha),
+                    machine_id_sha256=suite.sha(machine), boot_id_sha256=suite.sha(boot),
+                    prepared_sha256=suite.sha(suite.canonical(prep)), bound_sha256=suite.sha(suite.canonical(bridge)))
+                port = suite.WslCasePort(current, Mock())
+                actual_text, actual_bytes = Path.read_text, Path.read_bytes
+                def read_text(path, *args, **kwargs):
+                    return 'microsoft WSL2' if str(path) == '/proc/sys/kernel/osrelease' else actual_text(path, *args, **kwargs)
+                def read_bytes(path):
+                    return {'/etc/machine-id': machine, '/proc/sys/kernel/random/boot_id': boot}.get(str(path), actual_bytes(path))
+                def command(argv, timeout):
+                    if argv[0] == '/usr/bin/git':
+                        return fixture.read(argv, timeout)
+                    if argv[0] == '/usr/bin/findmnt':
+                        return b'ext4\n'
+                    return suite.canonical({'guid': current.new_guid, 'vhd_sha256': current.new_vhd_sha256,
+                        'name': 'TSW-Q440-' + current.run_id, 'host': current.windows_host,
+                        'bundle_id': current.bridge_bundle_id, 'sole_running': True})
+                original_import = importlib.import_module
+                platform = SimpleNamespace(freedesktop_os_release=lambda: {'ID': 'ubuntu', 'VERSION_ID': '26.04', 'VERSION': '26.04.1'})
+                with patch.object(suite, 'ROOT', root), patch.object(suite, 'trusted'), \
+                        patch.object(Path, 'read_text', read_text), patch.object(Path, 'read_bytes', read_bytes), \
+                        patch.object(suite.os, 'uname', return_value=SimpleNamespace(machine='x86_64')), \
+                        patch.dict(suite.os.environ, {'WSL_DISTRO_NAME': 'TSW-Q440-' + current.run_id}), \
+                        patch.object(suite.importlib, 'import_module', side_effect=lambda name: platform if name == 'platform' else original_import(name)), \
+                        patch.object(suite, 'private', side_effect=lambda path: suite.canonical(prep if path.name == 'preparation.json' else bridge)), \
+                        patch.object(port, 'command', side_effect=command):
+                    if kind in {'prepared-c', 'empty-equal'}:
+                        self.assertEqual(port.identity()['qualification_source_commit'], fixture.c)
+                    else:
+                        with self.assertRaises(suite.CaseError):
+                            port.identity()
+
     def test_settlement_classifies_fault_intents_and_rejects_unknown_names_before_pid_probe(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -127,35 +177,23 @@ class WslProductAcceptanceTests(unittest.TestCase):
                         public.assert_called_once_with(suite.CASE_RECIPES['minimal'].args(preview=True), timeout=120)
                         preview.assert_called_once_with(b'actual-preview-transport', suite.CASE_RECIPES['minimal'])
 
-    def test_qualification_receipt_allows_only_one_matrix_only_child(self) -> None:
-        port = suite.WslCasePort(intent(), Mock())
-        qualification, product = 'a' * 40, intent().source_commit
-        command = Mock()
-        with patch.object(port, 'command', command):
-            self.assertEqual(port.qualification_revision(product), product)
-            command.assert_not_called()
-            variants: tuple[tuple[bytes, bytes, bool], ...] = (
-                (f'{product} {qualification}\n'.encode(), (suite.CAPABILITY + '\n').encode(), True),
-                (f'{product} {qualification} {"c" * 40}\n'.encode(), (suite.CAPABILITY + '\n').encode(), False),
-                (f'{product} {"c" * 40}\n'.encode(), (suite.CAPABILITY + '\n').encode(), False),
-                (f'{product} {qualification}\n'.encode(), b'', False),
-                (f'{product} {qualification}\n'.encode(), (suite.CAPABILITY + '\ntools/code.py\n').encode(), False),
-                (f'{product} {qualification}\n'.encode(), b'modules/tsw_core/infra/config/other.json\n', False),
-            )
-            for parents, changes, allowed in variants:
-                with self.subTest(parents=parents, changes=changes):
-                    command.reset_mock(side_effect=True)
-                    command.side_effect = [parents, changes]
-                    if allowed:
-                        self.assertEqual(port.qualification_revision(qualification), qualification)
+    def test_qualification_receipt_uses_actual_git_and_keeps_clean_equal_context_only(self) -> None:
+        for kind in ('valid', 'extra', 'mode', 'cap-mode', 'mode-dirty', 'intervening', 'merge', 'replace', 'dirty', 'untracked', 'assume', 'substitution', 'wrong-path'):
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                fixture = QualificationRepository(root, kind)
+                current = replace(intent(), source_commit=fixture.k, capability_sha256=fixture.cap_sha)
+                port = suite.WslCasePort(current, Mock())
+                with patch.object(suite, 'ROOT', root), patch.object(port, 'command', side_effect=fixture.read):
+                    if kind == 'valid':
+                        self.assertEqual(port.qualification_revision(fixture.c), fixture.c)
+                        self.assertEqual(port.qualification_revision(fixture.k), fixture.k)
                     else:
-                        with self.assertRaisesRegex(suite.CaseError, 'CASE_QUALIFICATION_PROMOTION'):
-                            port.qualification_revision(qualification)
-                    self.assertEqual(command.call_args_list[0].args[0][-5:], ['rev-list', '--parents', '-n', '1', product])
-                    self.assertEqual(command.call_args_list[1].args[0][-6:], ['diff', '--name-only', '--no-renames', qualification, product, '--'])
-            for invalid in (None, True, '', 'main', 'a' * 39):
-                with self.subTest(invalid=invalid), self.assertRaisesRegex(suite.CaseError, 'CASE_QUALIFICATION_SOURCE'):
-                    port.qualification_revision(invalid)
+                        with self.assertRaises(suite.CaseError):
+                            port.qualification_revision(fixture.fixture_source)
+                    for invalid in (None, True, '', 'main', 'a' * 39):
+                        with self.subTest(invalid=invalid), self.assertRaisesRegex(suite.CaseError, 'CASE_QUALIFICATION_SOURCE'):
+                            port.qualification_revision(invalid)
 
     def test_upgrade_and_engine_recovery_have_distinct_fixed_go_phases(self) -> None:
         current = replace(intent(), case='upgrade-batch-service-access-portainer-published')
@@ -258,39 +296,41 @@ class WslProductAcceptanceTests(unittest.TestCase):
             with patch.object(suite, 'trusted'), self.assertRaisesRegex(suite.CaseError, 'CASE_TLS_ROOT_UNSAFE'):
                 port.tls_root()
 
-    def test_actual_wsl_prerequisite_path_requires_two_literal_hosts_and_all_source_blobs(self) -> None:
-        for kind in ('valid', 'copied-native', 'wrong-host', 'missing-host', 'source', 'fixture', 'entry-code', 'artifact-code'):
+    def test_actual_wsl_prerequisites_use_real_git_matrix_and_paired_sources(self) -> None:
+        from tiny_swarm_world.infrastructure.adapters.repositories.incus_profile_capability_repository import IncusProfileCapabilityRepository
+        for kind in ('valid', 'extra', 'mode', 'cap-mode', 'mode-dirty', 'intervening', 'merge', 'replace', 'dirty', 'untracked', 'assume', 'substitution', 'receipt-source'):
             with self.subTest(kind=kind), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
-                cap = root / suite.CAPABILITY
-                cap.parent.mkdir(parents=True)
-                cap.write_bytes(b'cap')
-                current = replace(intent(), capability_sha256=suite.sha(b'cap'))
-                proof, artifacts, code = altered_capability(kind, current.capability_sha256)
-                entry = SimpleNamespace(client_version='6.0.5', server_version='6.0.5', fixture_sha256=suite.sha(code), fixture_source_revision='e' * 40)
-                admission = SimpleNamespace(admits=lambda *_: True, admitted_versions=(entry,))
-                repository = SimpleNamespace(IncusProfileCapabilityRepository=lambda _: SimpleNamespace(load=lambda: admission))
+                fixture = QualificationRepository(root, kind)
+                current = replace(intent(), source_commit=fixture.k, capability_sha256=fixture.cap_sha)
+                proof, artifacts = fixture.pair(fixture.fixture_source)
+                if kind == 'receipt-source':
+                    row = json.loads(artifacts['wsl2'])
+                    row['source_commit'] = fixture.k
+                    artifacts['wsl2'] = suite.canonical(row)
+                    proof['hosts']['wsl2'].update(source_commit=fixture.k, artifact_sha256=suite.sha(artifacts['wsl2']))
+                repository = SimpleNamespace(IncusProfileCapabilityRepository=IncusProfileCapabilityRepository)
                 resources = SimpleNamespace(selection=Mock())
                 configuration = SimpleNamespace(load_requirements=lambda _: SimpleNamespace(storage='default'))
                 def read(path: Path) -> bytes:
                     if path.name == 'both-host-profile-capability.json':
                         return suite.canonical(proof)
                     return artifacts[path.name.removeprefix('profile-capability-').removesuffix('.json')] if path.name.startswith('profile-capability-') else b'config'
-                def blob(argv: list[str], timeout: int) -> bytes:
-                    revision = argv[-1].split(':')[0]
-                    return b'wrong' if kind == 'entry-code' and revision == 'e' * 40 or kind == 'artifact-code' and revision == 'b' * 40 else code
                 port = suite.WslCasePort(current, Mock())
                 modules = {'tiny_swarm_world.infrastructure.adapters.repositories.incus_profile_capability_repository': repository,
                     (suite.__package__ + '.native_resource_admission'): resources,
                     'tiny_swarm_world.infrastructure.adapters.incus_preparation.configuration': configuration}
-                with patch.object(suite, 'ROOT', root), patch.object(suite, 'trusted'), patch.object(suite, 'private', side_effect=read), patch.object(suite.importlib, 'import_module', side_effect=lambda name: modules[name]), patch.object(port, 'command', side_effect=blob) as command, patch.object(port, 'operator_values', return_value={}):
+                with patch.object(suite, 'ROOT', root), patch.object(suite, 'trusted'), \
+                        patch.object(suite, 'private', side_effect=read), \
+                        patch.object(suite.importlib, 'import_module', side_effect=lambda name: modules[name]), \
+                        patch.object(port, 'command', side_effect=fixture.read), patch.object(port, 'operator_values', return_value={}):
                     if kind == 'valid':
                         port.prerequisites()
-                        self.assertEqual(command.call_count, 3)
                         resources.selection.assert_called_once()
                     else:
                         with self.assertRaises(suite.CaseError):
                             port.prerequisites()
+                        resources.selection.assert_not_called()
 
     def test_strict_identity_and_closed_eight_actual_public_recipes(self) -> None:
         self.assertEqual(suite.Intent.parse(asdict(intent())), intent())

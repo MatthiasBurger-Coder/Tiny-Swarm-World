@@ -9,6 +9,7 @@ from pathlib import Path
 import signal
 import shlex
 import stat
+import subprocess
 import sys
 import tempfile
 import time
@@ -19,6 +20,7 @@ from unittest.mock import AsyncMock, Mock, patch
 
 from modules.tsw_native_linux.tools.qualification import native_lxd_maintenance as native
 from modules.tsw_native_linux.tools.qualification import preserving_product_acceptance as suite
+from modules.tsw_core.tools.linux.qualification import preserving_product_acceptance as provenance
 from modules.tsw_native_linux.tests.tools.test_native_lxd_maintenance import FakePort, Events, baseline
 from modules.tsw_native_linux.tests.tools.test_owned_case_disposal import case, Port
 
@@ -69,6 +71,95 @@ def capability_pair(capability_sha: str = '1' * 64) -> tuple[dict[str, Any], dic
         artifacts[host] = native.canonical(row)
         receipts[host] = {'decision': 'PASS', 'artifact_sha256': native.digest(artifacts[host]), 'source_commit': 'b' * 40}
     return {'capability_sha256': capability_sha, 'client': '6.0.5', 'server': '6.0.5', 'hosts': receipts}, artifacts, code
+
+
+class QualificationRepository:
+    """Actual isolated Git objects; never a host checkout or transport transcript."""
+    capability = 'modules/tsw_core/infra/config/incus-profile-capabilities.json'
+
+    def __init__(self, root: Path, kind: str = 'valid') -> None:
+        from modules.tsw_core.tests.domain.lifecycle.test_profile_lifecycle import admitted_fixture
+        self.root = root
+        self.env = {'PATH': '/usr/bin:/bin', 'LC_ALL': 'C', 'GIT_CONFIG_GLOBAL': '/dev/null',
+            'GIT_CONFIG_SYSTEM': '/dev/null', 'GIT_TERMINAL_PROMPT': '0',
+            'GIT_AUTHOR_DATE': '2026-11-12T00:00:00+00:00', 'GIT_COMMITTER_DATE': '2026-11-12T00:00:00+00:00'}
+        self.git('init', '--quiet', '--initial-branch=fixture-main')
+        self.code = capability_pair()[2]
+        self.cap = root / self.capability
+        self.cap.parent.mkdir(parents=True)
+        self.cap.write_bytes(native.canonical({'schema_version': 1,
+            'capability': 'installation-scoped-incus-manager-profile', 'admitted_versions': []}))
+        listener = root / native.FILES[4]
+        listener.parent.mkdir(parents=True, exist_ok=True)
+        listener.write_bytes(self.code)
+        (root / 'unchanged.py').write_text('# fixed source\n')
+        self.commit('candidate C')
+        self.c = self.git('rev-parse', 'HEAD').decode().strip()
+        matrix = admitted_fixture().model_dump(mode='json')
+        matrix['admitted_versions'][0].update(fixture_source_revision=self.c, fixture_sha256=native.digest(self.code))
+        if kind == 'substitution':
+            tree = self.git('rev-parse', 'HEAD^{tree}').decode().strip()
+            substitute = self.git('commit-tree', tree, '-p', self.c, input=b'same fixture, different source\n').decode().strip()
+            matrix['admitted_versions'][0]['fixture_source_revision'] = substitute
+        self.fixture_source = matrix['admitted_versions'][0]['fixture_source_revision']
+        self.cap.write_bytes(native.canonical(matrix))
+        self.commit('capability K')
+        self.k = self.git('rev-parse', 'HEAD').decode().strip()
+        if kind in {'extra', 'mode', 'cap-mode', 'wrong-path'}:
+            if kind == 'extra':
+                (root / 'unchanged.py').write_text('# changed source\n')
+            elif kind == 'mode':
+                (root / 'unchanged.py').chmod(0o755)
+            elif kind == 'cap-mode':
+                self.cap.chmod(0o755)
+            else:
+                self.cap.rename(self.cap.with_name('incus-profile-capabilitiesXjson'))
+            self.git('add', '-A')
+            self.git('commit', '--amend', '--no-edit', '--quiet')
+        elif kind in {'intervening', 'replace'}:
+            good = self.k
+            self.git('commit', '--allow-empty', '--quiet', '-m', 'intervening metadata')
+            if kind == 'replace':
+                self.git('replace', self.git('rev-parse', 'HEAD').decode().strip(), good)
+        elif kind == 'merge':
+            tree = self.git('rev-parse', 'HEAD^{tree}').decode().strip()
+            side = self.git('commit-tree', tree, '-p', self.c, input=b'side parent\n').decode().strip()
+            merged = self.git('commit-tree', tree, '-p', self.c, '-p', side, input=b'merge K\n').decode().strip()
+            self.git('checkout', '--quiet', '--detach', merged)
+        self.k = self.git('rev-parse', 'HEAD').decode().strip()
+        if kind == 'dirty':
+            (root / 'unchanged.py').write_text('# dirty source\n')
+        elif kind == 'untracked':
+            (root / 'unexpected.py').write_text('# untracked source\n')
+        elif kind == 'assume':
+            self.git('update-index', '--assume-unchanged', 'unchanged.py')
+        elif kind == 'mode-dirty':
+            self.git('config', 'core.fileMode', 'false')
+            (root / 'unchanged.py').chmod(0o755)
+        self.cap_sha = native.digest(native.canonical(matrix))
+
+    def read(self, argv: list[str], timeout: int = 10) -> bytes:
+        return subprocess.run(argv, cwd=self.root, env=self.env, input=None, capture_output=True,
+            check=True, timeout=timeout).stdout
+
+    def git(self, *args: str, input: bytes | None = None) -> bytes:
+        return subprocess.run(['/usr/bin/git', '--no-replace-objects', '-c', 'user.name=Qualification Fixture',
+            '-c', 'user.email=fixture@example.invalid', '-c', 'commit.gpgSign=false',
+            '-c', 'core.hooksPath=/dev/null', '-c', 'core.autocrlf=false', '-c', 'core.fileMode=true', *args],
+            cwd=self.root, env=self.env, input=input, capture_output=True, check=True, timeout=10).stdout
+
+    def commit(self, message: str) -> None:
+        self.git('add', '-A')
+        self.git('commit', '--quiet', '-m', message)
+
+    def pair(self, source: str | None = None) -> tuple[dict[str, Any], dict[str, bytes]]:
+        proof, artifacts, _ = capability_pair(self.cap_sha)
+        for host, raw in artifacts.items():
+            row = json.loads(raw)
+            row['source_commit'] = self.c if source is None else source
+            artifacts[host] = native.canonical(row)
+            proof['hosts'][host].update(source_commit=row['source_commit'], artifact_sha256=native.digest(artifacts[host]))
+        return proof, artifacts
 
 
 def altered_capability(kind: str, capability_sha: str) -> tuple[dict[str, Any], dict[str, bytes], bytes]:
@@ -215,36 +306,60 @@ class PreservingProductAcceptanceTests(unittest.TestCase):
             with self.subTest(kind=kind), self.assertRaises(ValueError):
                 suite.validate_host_artifacts(proof, '1' * 64, native.digest(code), artifacts)
 
-    def test_actual_native_prerequisite_path_rejects_host_and_admission_source_mismatch(self) -> None:
-        for kind in ('valid', 'copied-native', 'wrong-host', 'missing-host', 'source', 'fixture', 'entry-code', 'artifact-code'):
-            current = replace(intent(), capability_sha256=native.digest(b'cap'), operator_config_sha256=native.digest(b'op'))
-            proof, artifacts, code = altered_capability(kind, current.capability_sha256)
-            entry = SimpleNamespace(fixture_sha256=native.digest(code), fixture_source_revision='e' * 40,
-                                    client_version='6.0.5', server_version='6.0.5')
-            admission = SimpleNamespace(admits=lambda *_: True, admitted_versions=(entry,))
-            repository = SimpleNamespace(IncusProfileCapabilityRepository=lambda _: SimpleNamespace(load=lambda: admission))
-            resources = SimpleNamespace(selection=Mock(), read_config=Mock(return_value=b'config'))
-            cap = Mock()
-            cap.lstat.return_value = SimpleNamespace(st_uid=0, st_mode=stat.S_IFREG | 0o600, st_size=3)
-            cap.is_file.return_value = True
-            cap.is_symlink.return_value = False
-            cap.read_bytes.return_value = b'cap'
-            def read(path: Path) -> bytes:
-                if path.name == 'both-host-profile-capability.json':
-                    return native.canonical(proof)
-                if path.name.startswith('profile-capability-'):
-                    return artifacts[path.name.removeprefix('profile-capability-').removesuffix('.json')]
-                return b'op'
-            def blob(argv: list[str], _timeout: int) -> bytes:
-                revision = argv[-1].split(':')[0]
-                return b'wrong' if kind == 'entry-code' and revision == 'e' * 40 or kind == 'artifact-code' and revision == 'b' * 40 else code
-            with self.subTest(kind=kind), patch.object(suite, 'CAPABILITY', cap), patch.object(native, 'read_private', side_effect=read), patch.object(suite.importlib, 'import_module', side_effect=lambda name: repository if name.endswith('incus_profile_capability_repository') else resources), patch.object(native, 'bounded', side_effect=blob), patch.object(suite, 'tree_digest', return_value=current.infra_sha256), patch.object(suite, 'operator_values', return_value={}):
-                if kind == 'valid':
-                    suite.check_prerequisites(current)
-                    resources.selection.assert_called_once()
-                else:
-                    with self.assertRaises(native.MaintenanceError):
+    def test_actual_native_prerequisites_use_real_git_paired_sources_and_matrix(self) -> None:
+        from tiny_swarm_world.infrastructure.adapters.repositories.incus_profile_capability_repository import IncusProfileCapabilityRepository
+        for kind in ('valid', 'extra', 'mode', 'cap-mode', 'mode-dirty', 'intervening', 'merge', 'replace', 'dirty', 'untracked', 'assume', 'substitution', 'receipt-source', 'wrong-host'):
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                fixture = QualificationRepository(root, kind)
+                current = replace(intent(), source_commit=fixture.k, capability_sha256=fixture.cap_sha,
+                    operator_config_sha256=native.digest(b'op'))
+                proof, artifacts = fixture.pair(fixture.fixture_source)
+                if kind in {'receipt-source', 'wrong-host'}:
+                    row = json.loads(artifacts['wsl2'])
+                    if kind == 'receipt-source':
+                        row['source_commit'] = fixture.k
+                        proof['hosts']['wsl2']['source_commit'] = fixture.k
+                    else:
+                        row['target_host'] = suite.CAPABILITY_HOSTS['native_linux']
+                    artifacts['wsl2'] = native.canonical(row)
+                    proof['hosts']['wsl2']['artifact_sha256'] = native.digest(artifacts['wsl2'])
+                repository = SimpleNamespace(IncusProfileCapabilityRepository=IncusProfileCapabilityRepository)
+                resources = SimpleNamespace(selection=Mock(), read_config=Mock(return_value=b'config'))
+                cap = Mock()
+                cap.lstat.return_value = SimpleNamespace(st_uid=0, st_mode=stat.S_IFREG | 0o600, st_size=len(fixture.cap.read_bytes()))
+                cap.is_file.return_value = True
+                cap.is_symlink.return_value = False
+                cap.read_bytes.side_effect = fixture.cap.read_bytes
+                def read(path: Path) -> bytes:
+                    if path.name == 'both-host-profile-capability.json':
+                        return native.canonical(proof)
+                    if path.name.startswith('profile-capability-'):
+                        return artifacts[path.name.removeprefix('profile-capability-').removesuffix('.json')]
+                    return b'op'
+                with patch.object(suite, 'ROOT', root), patch.object(suite, 'CAPABILITY', cap), \
+                        patch.object(native, 'read_private', side_effect=read), \
+                        patch.object(suite.importlib, 'import_module', side_effect=lambda name: repository if name.endswith('incus_profile_capability_repository') else resources), \
+                        patch.object(native, 'bounded', side_effect=fixture.read), \
+                        patch.object(suite, 'tree_digest', return_value=current.infra_sha256), \
+                        patch.object(suite, 'operator_values', return_value={}):
+                    if kind == 'valid':
                         suite.check_prerequisites(current)
+                        resources.selection.assert_called_once()
+                    else:
+                        with self.assertRaises(native.MaintenanceError):
+                            suite.check_prerequisites(current)
+                        resources.selection.assert_not_called()
+
+    def test_equal_source_is_clean_context_only_and_never_capability_promotion(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            fixture = QualificationRepository(Path(temp))
+            provenance.clean_qualification_source(fixture.root, fixture.k, fixture.read)
+            with self.assertRaises(ValueError):
+                provenance.qualification_promotion(fixture.root, fixture.k, fixture.k, fixture.cap_sha, fixture.read)
+            (fixture.root / 'untracked').write_text('context must remain clean')
+            with self.assertRaises(ValueError):
+                provenance.clean_qualification_source(fixture.root, fixture.k, fixture.read)
 
     def test_actual_maintenance_transaction_recovers_originals_after_pass_and_failed_case(self) -> None:
         for failure in (False, True):

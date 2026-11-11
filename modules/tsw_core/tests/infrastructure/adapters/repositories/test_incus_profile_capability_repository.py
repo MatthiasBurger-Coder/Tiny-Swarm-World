@@ -10,6 +10,21 @@ from tiny_swarm_world.infrastructure.adapters.repositories.incus_profile_capabil
 
 
 class CapabilityRepositoryTests(unittest.TestCase):
+    def test_c_empty_k_populated_are_read_only_exact_pair_assets(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / 'modules/tsw_core/infra/config/incus-profile-capabilities.json'
+            path.parent.mkdir(parents=True)
+            empty = {'schema_version': 1, 'capability': 'installation-scoped-incus-manager-profile', 'admitted_versions': []}
+            for payload, expected in ((empty, False), (admitted_fixture().model_dump(mode='json'), True)):
+                path.write_text(json.dumps(payload))
+                before = path.read_bytes(), path.stat().st_mtime_ns
+                matrix = IncusProfileCapabilityRepository(root).load()
+                self.assertEqual(matrix.admits('6.0.5', '6.0.5'), expected)
+                for client, server in (('6.0.5', '6.0.6'), ('6.0.6', '6.0.5'), ('6.0.5-8', '6.0.5'), ('unknown', 'unknown')):
+                    self.assertFalse(matrix.admits(client, server))
+                self.assertEqual((path.read_bytes(), path.stat().st_mtime_ns), before)
+
     def test_empty_asset_refuses_every_version_and_qualified_provenance_is_retained(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

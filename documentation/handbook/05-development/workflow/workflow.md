@@ -816,6 +816,11 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-04/` with the six issue-com
 
 Purpose: Finish all helper, runner, workflow and required policy changes before preparation. In a private isolated campaign candidate, review the exact Swagger/Traefik qualification policy delta while production remains candidate-only. Freeze C with clean HEAD, package origin, workflow/runner/test/image hashes and exact budgets. C must already contain the component candidate if that campaign claims components. Prepare exact policy-contract regression coverage before freeze: retain fixed candidate-denial/no-state-change fixtures and add precise reviewed-admission assertions; never skip guards or use blanket conditional success. Prepare capability admission tests before C so K never needs test changes. Keep the active workflow bytes unchanged during live execution. A separate campaign requires new source/preparation/GO/receipts; no implicit reuse.
 
+
+Reviewed S3_DOC execution clarification: I05 is the fully gated integration checkpoint; shipping Swagger/Traefik policy remains candidate-only. After I05 is pushed, create a separate isolated private campaign branch from exact I05. Commit only the reviewed finite existing two-target policy and exact private-catalog test delta as C; run the targeted and full required SSH/WSL gate on exact clean C before preparation/freeze. Keep fixed independent candidate-denial/no-state-change fixtures unconditional on both hosts for single and batch; separate positives assert only the exact private policy, pins and presets. No runtime override, blanket admission or support claim. Registry availability must verify the seven actual pinned child manifests/configs and declared tag mapping independently before qualified C acceptance/use; no digest substitution.
+
+C and later K remain immutable private campaign refs; K must be exactly one direct single-parent child of C changing only modules/tsw_core/infra/config/incus-profile-capabilities.json, with all remaining tracked bytes/modes identical. Both host preparation receipts and the capability fixture source must identify C; actual Git fixtures reject substituted sources, merges, intervening commits, extra changes and dirty checkout. All capability tests must exist before C. No helper/test/evidence/metadata commit may intervene between C and K. The single integration Slice05 checkpoint is distinct from the private C source-artifact commit; checkpoint push never publishes private C/K. Evidence stays outside frozen worktrees. The strict fourteen-slice DAG and Slice12 independent acceptance before production policy consolidation remain unchanged. Shared native/WSL guards and four existing regression/supervisor paths are required provenance completion within Slice05; no new ADR.
+
 Prerequisites: S440O-04. Mode: LOCAL.
 
 Done criteria: all stated observations and required checks have attributable evidence; independent owner review accepts the exact slice. No planned result counts as executed.
@@ -842,14 +847,21 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-05/` with the six issue-com
     "modules/tsw_core/tests/infrastructure/adapters/lifecycle/test_native_component_transitions.py",
     "modules/tsw_core/tests/test_component_updates_cli.py",
     "modules/tsw_core/tests/infrastructure/adapters/repositories/test_incus_profile_capability_repository.py",
-    "modules/tsw_core/tests/domain/lifecycle/test_profile_lifecycle.py"
+    "modules/tsw_core/tests/domain/lifecycle/test_profile_lifecycle.py",
+    "modules/tsw_core/tools/linux/qualification/preserving_product_acceptance.py",
+    "modules/tsw_core/tools/linux/qualification/wsl_product_acceptance.py",
+    "modules/tsw_native_linux/tests/tools/test_preserving_product_acceptance.py",
+    "modules/tsw_native_linux/tests/tools/test_wsl_product_acceptance.py",
+    "documentation/handbook/05-development/workflow/workflow.md",
+    "documentation/handbook/05-development/workflow/context-pack.json"
   ],
   "affected_modules": [
     "existing qualification/lifecycle and evidence"
   ],
   "affected_contracts": [
     "public CLI/evidence/source ownership",
-    "frozen C/K campaign provenance"
+    "frozen C/K campaign provenance",
+    "both host receipts source C, direct single-parent K, sole capability-file change and unchanged remaining tree"
   ],
   "dependencies": [
     "S440O-04"
@@ -866,10 +878,17 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-05/` with the six issue-com
     "modules/tsw_core/tests/infrastructure/adapters/lifecycle/test_native_component_transitions.py",
     "modules/tsw_core/tests/test_component_updates_cli.py",
     "modules/tsw_core/tests/infrastructure/adapters/repositories/test_incus_profile_capability_repository.py",
-    "modules/tsw_core/tests/domain/lifecycle/test_profile_lifecycle.py"
+    "modules/tsw_core/tests/domain/lifecycle/test_profile_lifecycle.py",
+    "modules/tsw_core/tools/linux/qualification/preserving_product_acceptance.py",
+    "modules/tsw_core/tools/linux/qualification/wsl_product_acceptance.py",
+    "modules/tsw_native_linux/tests/tools/test_preserving_product_acceptance.py",
+    "modules/tsw_native_linux/tests/tools/test_wsl_product_acceptance.py",
+    "documentation/handbook/05-development/workflow/workflow.md",
+    "documentation/handbook/05-development/workflow/context-pack.json"
   ],
   "contract_locks": [
-    "frozen C/K source and exact approval"
+    "frozen C/K source and exact approval",
+    "paired preparation source C and strict capability-only direct-child provenance"
   ],
   "architecture_locks": [
     "Classic cold-kernel and scoped capability policy"
@@ -882,7 +901,13 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-05/` with the six issue-com
     "modules/tsw_core/tests/infrastructure/adapters/lifecycle/test_native_component_transitions.py",
     "modules/tsw_core/tests/test_component_updates_cli.py",
     "modules/tsw_core/tests/infrastructure/adapters/repositories/test_incus_profile_capability_repository.py",
-    "modules/tsw_core/tests/domain/lifecycle/test_profile_lifecycle.py"
+    "modules/tsw_core/tests/domain/lifecycle/test_profile_lifecycle.py",
+    "modules/tsw_core/tools/linux/qualification/preserving_product_acceptance.py",
+    "modules/tsw_core/tools/linux/qualification/wsl_product_acceptance.py",
+    "modules/tsw_native_linux/tests/tools/test_preserving_product_acceptance.py",
+    "modules/tsw_native_linux/tests/tools/test_wsl_product_acceptance.py",
+    "documentation/handbook/05-development/workflow/workflow.md",
+    "documentation/handbook/05-development/workflow/context-pack.json"
   ],
   "shared_infrastructure": [
     "designated SSH/WSL quality host",
@@ -901,7 +926,13 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-05/` with the six issue-com
     "modules/tsw_core/tests/infrastructure/adapters/lifecycle/test_native_component_transitions.py",
     "modules/tsw_core/tests/test_component_updates_cli.py",
     "modules/tsw_core/tests/infrastructure/adapters/repositories/test_incus_profile_capability_repository.py",
-    "modules/tsw_core/tests/domain/lifecycle/test_profile_lifecycle.py"
+    "modules/tsw_core/tests/domain/lifecycle/test_profile_lifecycle.py",
+    "modules/tsw_core/tools/linux/qualification/preserving_product_acceptance.py",
+    "modules/tsw_core/tools/linux/qualification/wsl_product_acceptance.py",
+    "modules/tsw_native_linux/tests/tools/test_preserving_product_acceptance.py",
+    "modules/tsw_native_linux/tests/tools/test_wsl_product_acceptance.py",
+    "documentation/handbook/05-development/workflow/workflow.md",
+    "documentation/handbook/05-development/workflow/context-pack.json"
   ],
   "requirement_ids": [
     "P02",
@@ -912,6 +943,7 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-05/` with the six issue-com
   ],
   "quality_gates": {
     "targeted": [
+      "PYTHONPATH=. python3 -m unittest modules.tsw_native_linux.tests.tools.test_preserving_product_acceptance modules.tsw_native_linux.tests.tools.test_wsl_product_acceptance",
       "PYTHONPATH=. python3 -m unittest modules.tsw_core.tests.infrastructure.adapters.lifecycle.test_native_component_transitions modules.tsw_core.tests.test_component_updates_cli",
       "PYTHONPATH=. python3 -m unittest modules.tsw_core.tests.infrastructure.adapters.repositories.test_incus_profile_capability_repository modules.tsw_core.tests.domain.lifecycle.test_profile_lifecycle"
     ],
@@ -925,7 +957,8 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-05/` with the six issue-com
   },
   "stop_conditions": [
     "Missing exact source, ownership, required verification, recovery proof or approval; no guard weakening.",
-    "Unknown/dirty campaign source, C/K topology mismatch, unsafe pending state or unavailable required external result."
+    "Unknown/dirty campaign source, C/K topology mismatch, unsafe pending state or unavailable required external result.",
+    "Private C policy/test delta must never enter shipping I05 or be publicly pushed; immutable C/K cannot receive evidence or metadata commits."
   ]
 }
 ```

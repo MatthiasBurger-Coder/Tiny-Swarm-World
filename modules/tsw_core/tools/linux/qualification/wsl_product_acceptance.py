@@ -34,6 +34,7 @@ if TYPE_CHECKING:
     from . import owned_case_disposal as disposal
     from . import product_upgrade_cases as upgrades
     from .preserving_product_acceptance import RECIPES, validate_preview, operator_credentials, validate_host_artifacts, CAPABILITY_HOSTS
+    from .preserving_product_acceptance import clean_qualification_source, qualification_promotion, qualification_receipt_sources, qualification_git
 else:
     prefix = __package__ + '.' if __package__ else ''
     ACTIVE_WORKFLOW = importlib.import_module(prefix + 'incus_profile_listener_fixture').ACTIVE_WORKFLOW
@@ -43,6 +44,8 @@ else:
     recipes = importlib.import_module(prefix + 'preserving_product_acceptance')
     RECIPES, validate_preview = recipes.RECIPES, recipes.validate_preview
     operator_credentials, validate_host_artifacts, CAPABILITY_HOSTS = recipes.operator_credentials, recipes.validate_host_artifacts, recipes.CAPABILITY_HOSTS
+    clean_qualification_source, qualification_promotion = recipes.clean_qualification_source, recipes.qualification_promotion
+    qualification_receipt_sources, qualification_git = recipes.qualification_receipt_sources, recipes.qualification_git
 
 ROOT = Path(__file__).resolve().parents[5]
 BASE = Path('/root/tsw440-acceptance')
@@ -581,6 +584,14 @@ class WslCasePort:
              and bridge['status'] == 'NEW_BINDING_READY'
              and bridge['application_ready'] is False, 'CASE_COORDINATOR_NOT_READY')
         qualification = self.qualification_revision(prep['source_commit'])
+        capability = ROOT / CAPABILITY
+        trusted(capability)
+        need(sha(capability.read_bytes()) == self.intent.capability_sha256, 'CASE_CAPABILITY_DRIFT')
+        matrix = importlib.import_module('tiny_swarm_world.infrastructure.adapters.repositories.incus_profile_capability_repository')
+        admission = matrix.IncusProfileCapabilityRepository(ROOT).load()
+        if admission.admits('6.0.5', '6.0.5'):
+            entry = next(row for row in admission.admitted_versions if row.client_version == row.server_version == '6.0.5')
+            need(qualification == entry.fixture_source_revision, 'CASE_PREPARATION_QUALIFICATION_SOURCE')
         windows = windows_scope(self.intent)
         observed = inventory.strict_json(self.command(['/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe',
             '-NoProfile', '-NonInteractive', '-Command', windows], 30))
@@ -595,11 +606,14 @@ class WslCasePort:
         """Keep the original receipt; only one data-only admission commit may follow it."""
         need(isinstance(qualification, str) and bool(inventory.HEX40.fullmatch(qualification)), 'CASE_QUALIFICATION_SOURCE')
         product = self.intent.source_commit
-        if qualification != product:
-            git = ['/usr/bin/git', '--no-optional-locks', '-C', str(ROOT)]
-            parents = self.command(git + ['rev-list', '--parents', '-n', '1', product], 10).decode('ascii').split()
-            changes = self.command(git + ['diff', '--name-only', '--no-renames', qualification, product, '--'], 10).decode('ascii').splitlines()
-            need(parents == [product, qualification] and changes == [CAPABILITY], 'CASE_QUALIFICATION_PROMOTION')
+        try:
+            if qualification == product:
+                clean_qualification_source(ROOT, product, lambda args: self.command(args, 10))
+            else:
+                qualification_promotion(ROOT, qualification, product, self.intent.capability_sha256,
+                    lambda args: self.command(args, 10))
+        except ValueError as exc:
+            raise CaseError(str(exc)) from exc
         return qualification
 
     def prerequisites(self) -> None:
@@ -613,12 +627,15 @@ class WslCasePort:
         artifacts = {host: private(self.intent.home / ('profile-capability-' + host + '.json')) for host in CAPABILITY_HOSTS}
         try:
             sources = validate_host_artifacts(record, self.intent.capability_sha256, entry.fixture_sha256, artifacts)
+            qualification_receipt_sources(sources, entry.fixture_source_revision)
+            qualification_promotion(ROOT, entry.fixture_source_revision, self.intent.source_commit, self.intent.capability_sha256,
+                lambda args: self.command(args, 10))
         except ValueError as exc:
             raise CaseError(str(exc)) from exc
         revisions = (entry.fixture_source_revision, *sources.values())
         for revision in revisions:
-            blob = self.command(['/usr/bin/git', '--no-optional-locks', 'show', revision +
-                ':modules/tsw_core/tools/linux/qualification/incus_profile_listener_fixture.py'], 10)
+            blob = qualification_git(ROOT, lambda args: self.command(args, 10), ['cat-file', 'blob', revision +
+                ':modules/tsw_core/tools/linux/qualification/incus_profile_listener_fixture.py'])
             need(sha(blob) == entry.fixture_sha256, 'CASE_CAPABILITY_SOURCE_DRIFT')
         self.operator_values()
         infra = self.intent.home / 'infra'
