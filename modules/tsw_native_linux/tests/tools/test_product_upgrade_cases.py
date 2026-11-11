@@ -116,7 +116,7 @@ class ClosedRecipeTests(unittest.TestCase):
         rows = [(r.preset, r.owner, r.exposure) for name, r in cases.RECIPES.items() if name.startswith('upgrade-batch-')]
         self.assertEqual(set(rows), {(p, o, e) for p in ('default', 'service-access')
             for o in ('swarm', 'portainer') for e in ('published', 'internal')})
-        self.assertEqual(len(cases.ALL_NAMES), 32)
+        self.assertEqual(len(cases.ALL_NAMES), 36)
         for name in cases.RECIPES:
             if cases.RECIPES[name].kind == 'product':
                 with self.assertRaisesRegex(cases.UpgradeError, 'NOT_IMPLEMENTED'):
@@ -183,6 +183,60 @@ class ClosedRecipeTests(unittest.TestCase):
             signal.assert_called_once_with(child.pid, cases.signal.SIGTERM)
         self.assertEqual(port.records[-1][0], 'upgrade-fault-intent')
         self.assertFalse(port.upgrade_fault_armed)
+
+    def test_four_closed_fault_cases_preserve_old_sigterm_and_bind_distinct_sigint(self):
+        new = ('recover-batch-swarm-sigint', 'recover-batch-portainer-sigint',
+               'recover-portainer-sigint', 'recover-portainer-api-down')
+        self.assertEqual(cases.ALL_NAMES[-4:], new)
+        self.assertTrue(all(cases.recipe(name).interrupt for name in new))
+        self.assertTrue(cases.recipe(new[-1]).api_down)
+        self.assertFalse(any(cases.recipe(name).interrupt for name in ('recover-batch-swarm', 'recover-batch-portainer', 'recover-portainer')))
+        for fault in ('valid', 'checkpoint', 'process', 'expired', 'source'):
+            with self.subTest(fault=fault):
+                port = Transport('recover-portainer-sigint')
+                port.upgrade_before = proof()
+                port.upgrade_fault_armed = True
+                port.deadline = 0 if fault == 'expired' else time.monotonic() + 120
+                port.proposal = {'pins': {'actual': 'source'}, 'identity': {'actual': 'guest'}}
+                port.source = Mock(return_value={} if fault == 'source' else port.proposal['pins'])
+                port.identity = Mock(return_value=port.proposal['identity'])
+                port.reserve = Mock()
+                journal = Mock()
+                binding = {'platform': 'wsl', 'proposal_sha256': 'a' * 64, 'approval': {'phase': 'wsl-case-run'}, 'activation': None}
+                args = cases.recipe(port.intent.case).update()
+                receipt = cases.CliReceipt(journal, 'child-' + 'a' * 32, binding, [], args,
+                    released=True, process={'pid': 12345, 'start_time': 99})
+                state = SimpleNamespace(installation_id='actual-installation', stage='upgrading',
+                    operation_id='a' * 32, backup_digest='sha256:' + 'b' * 64,
+                    model_dump=Mock(return_value={'actual': 'checkpoint'}))
+                changed = SimpleNamespace(model_dump=lambda **_: {'changed': 'checkpoint'})
+                states = [state, changed] if fault == 'checkpoint' else [state, state, state]
+                identity = {'pid': 12345, 'start_time': 100 if fault == 'process' else 99}
+                with patch.object(cases, 'checkpoint', side_effect=states), \
+                        patch.object(cases, 'process_identity', return_value=identity), \
+                        patch.object(cases.os, 'getpgid', return_value=12345), \
+                        patch.object(cases.os, 'getsid', return_value=12345), patch.object(cases.os, 'killpg') as sent:
+                    if fault == 'valid':
+                        with self.assertRaises(cases.FaultObserved) as observed:
+                            cases.poll_fault(port, Mock(pid=12345, poll=Mock(return_value=None)),
+                                before_signal=receipt.prepare_fault, receipt=receipt)
+                        fault_receipt = observed.exception.receipt
+                        assert fault_receipt is not None
+                        self.assertEqual(fault_receipt['signal'], 2)
+                        self.assertEqual(fault_receipt['operation_id'], 'a' * 32)
+                        sent.assert_called_once_with(12345, 2)
+                        journal.save.assert_called_once()
+                    elif fault == 'checkpoint':
+                        cases.poll_fault(port, Mock(pid=12345, poll=Mock(return_value=None)),
+                            before_signal=receipt.prepare_fault, receipt=receipt)
+                        sent.assert_not_called()
+                        journal.save.assert_not_called()
+                    else:
+                        with self.assertRaises(cases.UpgradeError):
+                            cases.poll_fault(port, Mock(pid=12345, poll=Mock(return_value=None)),
+                                before_signal=receipt.prepare_fault, receipt=receipt)
+                        sent.assert_not_called()
+                        journal.save.assert_not_called()
 
     def test_noop_and_preservation_check_actual_runtime_counters(self):
         before = proof()

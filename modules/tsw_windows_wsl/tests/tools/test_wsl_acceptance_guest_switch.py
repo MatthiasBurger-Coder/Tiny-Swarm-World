@@ -413,6 +413,34 @@ class FixtureReturnProofTests(unittest.TestCase):
 
 
 class ProductRefusalConsumerTests(unittest.TestCase):
+    def test_actual_fault_intent_classifier_keeps_ordinary_pid_and_source_bound_fault_separate(self):
+        import hashlib
+        from modules.tsw_native_linux.tests.tools.test_preserving_product_acceptance import fault_journal
+        from modules.tsw_native_linux.tools.qualification import product_upgrade_cases as upgrades
+        _, namespace = self.namespace()
+        namespace.update(json=json, hashlib=hashlib, strict=json.loads, private=lambda path: path.read_bytes())
+        classify = namespace['case_process_intents']
+        for case in ('recover-portainer', 'recover-portainer-sigint', 'recover-portainer-api-down'):
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                key, rows = fault_journal(root)
+                start = rows[key + '-cli-start.json']
+                start['case'] = case
+                prepared = rows[key + '-cli-fault-intent.json']
+                if case != 'recover-portainer':
+                    start.update({name: None for name in upgrades.CLI_BINDING_KEYS if name not in start})
+                    prepared.update(signal=2, authority_sha256=upgrades.digest({name: start[name] for name in upgrades.CLI_BINDING_KEYS}),
+                        operation_id='a' * 32, phase='upgrading', backup_digest='sha256:' + 'b' * 64)
+                for name, value in rows.items():
+                    (root / name).write_text(json.dumps(value))
+                self.assertEqual([path.name for path in classify(root, case, 'a' * 32, 'b' * 40)], [key + '-intent.json'])
+                (root / (key + '-pid.json')).write_text('{"pid":4243,"start_time":1234}')
+                with self.assertRaises(ValueError):
+                    classify(root, case, 'a' * 32, 'b' * 40)
+                (root / 'child-unknown-intent.json').write_text('{}')
+                with self.assertRaises(ValueError):
+                    classify(root, case, 'a' * 32, 'b' * 40)
+
     def namespace(self):
         source = CONTROLLER.read_text()
         start = source.index('def case_ledger_names(')

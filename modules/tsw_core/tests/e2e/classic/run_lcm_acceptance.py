@@ -263,14 +263,15 @@ def verify_outcome(directory: Path, key: str, start: dict[str, Any], release: di
         require(type(outcome.get('return_code')) is int and outcome == {
             name: settled[name] for name in ('return_code', 'stdout_sha256', 'stderr_sha256')})
         return
-    fault = fields(settled['fault'], {'checkpoint_sha256', 'predicate', 'process_group', 'signal',
-                                      'sent_at', 'sent_monotonic_ns'})
+    selected = upgrades.recipe(start['case'])
+    extra = upgrades.INTERRUPT_KEYS if selected.interrupt else set()
+    fault = fields(settled['fault'], upgrades.FAULT_KEYS | extra | {'sent_at', 'sent_monotonic_ns'})
     require(fault['predicate'] == predicate and fault['process_group'] == start['child']['pid']
-            and type(fault['process_group']) is int and type(fault['signal']) is int and fault['signal'] == 15
-            and settled['return_code'] == -fault['signal'] and settled['output_complete'] is False)
+            and type(fault['process_group']) is int and type(fault['signal']) is int and fault['signal'] == (2 if selected.interrupt else 15)
+            and settled['return_code'] == -fault['signal'] and settled['output_complete'] is selected.interrupt)
     sha(fault['checkpoint_sha256'])
     prepared, _ = record(directory / (key + '-cli-fault-intent.json'))
-    keys = {'checkpoint_sha256', 'predicate', 'process_group', 'signal'}
+    keys = upgrades.FAULT_KEYS | extra
     fields(prepared, keys | {'process', 'prepared_at', 'prepared_monotonic_ns'})
     require(process(prepared['process']) == start['child'] and all(prepared[k] == fault[k] for k in keys))
     require(monotonic(release, 'released_monotonic_ns') <= monotonic(prepared, 'prepared_monotonic_ns')
@@ -281,12 +282,103 @@ def verify_outcome(directory: Path, key: str, start: dict[str, Any], release: di
     require(any(row.get('checkpoint_sha256') == fault['checkpoint_sha256'] and row.get('predicate') == predicate
                 and all(row.get(name) == start[name] for name in ('run_id', 'case', 'source_commit'))
                 for _, (row, _) in records(directory, re.compile(r'upgrade-fault-intent-[0-9a-f]{32}\.json'))))
+    if selected.interrupt:
+        require(fault['process'] == start['child'] and fault['authority_sha256'] == upgrades.digest(
+            {key: start[key] for key in upgrades.CLI_BINDING_KEYS}))
+        require(type(fault['operation_id']) is str and re.fullmatch('[0-9a-f]{32}', fault['operation_id']))
+        events = [row for _, (row, _) in records(directory, re.compile(r'upgrade-fault-intent-[0-9a-f]{32}\.json'))
+                  if row.get('checkpoint_sha256') == fault['checkpoint_sha256']]
+        require(len(events) == 1 and upgrades.digest(events[0]['checkpoint']) == fault['checkpoint_sha256'])
+        raw = events[0]['checkpoint']
+        sources = [row for _, (row, _) in records(directory, re.compile(r'upgrade-proof-source-[0-9a-f]{32}\.json'))]
+        require(len(sources) == 1 and all(sources[0][key] == start[key] for key in ('case', 'run_id', 'source_commit')))
+        if selected.kind == 'portainer':
+            from tiny_swarm_world.domain.lifecycle.portainer_upgrade import PortainerCheckpoint
+            current = PortainerCheckpoint.model_validate_json(upgrades.canonical(raw))
+            require(events[0]['installation_id'] == sources[0]['installation_id'] == str(current.installation_id))
+            require(current.stage == fault['phase'] and current.stage in {'backed_up', 'upgrading'}
+                    and current.operation_id == fault['operation_id'] and current.backup_digest == fault['backup_digest'])
+            require(type(fault['backup_digest']) is str and re.fullmatch('sha256:[0-9a-f]{64}', fault['backup_digest']))
+        else:
+            from tiny_swarm_world.domain.lifecycle.update_execution import UpdateBatch
+            batch = UpdateBatch.model_validate_json(upgrades.canonical(raw))
+            require(events[0]['installation_id'] == sources[0]['installation_id'] == str(batch.original.installation_id))
+            require(batch.profile_intent is not None and batch.profile_intent.operation_id == fault['operation_id']
+                    and fault['phase'] == batch.direction == 'apply' and fault['backup_digest'] is None
+                    and any(row.outcome == 'committed' and row.source != row.target for row in batch.stages)
+                    and any(row.outcome == 'applying' and row.source != row.target for row in batch.stages))
 
 
 def approval_time(row: Any, digest: str, phase: str) -> datetime:
     value = fields(row, {'phase', 'sha256', 'accepted_at'})
     require(value['sha256'] == digest and value['phase'] == phase)
     return time_value(value['accepted_at'])
+
+
+def verify_api_fault(directory: Path, proof: list[dict[str, Any]]) -> None:
+    require(len(proof) == 4)
+    start, interrupted = proof[1]['start'], proof[1]['settled']
+    intent, intent_sha = record(directory / 'api-down-intent.json')
+    fields(intent, {'binding', 'checkpoint_sha256', 'source_proof_sha256', 'deadline_monotonic_ns', 'boot_id_sha256'})
+    require(intent['binding'] == {key: start[key] for key in upgrades.CLI_BINDING_KEYS}
+            and intent['checkpoint_sha256'] == interrupted['fault']['checkpoint_sha256'])
+    sha(intent['source_proof_sha256'])
+    sha(intent['boot_id_sha256'])
+    source = [row for _, (row, _) in records(directory, re.compile(r'upgrade-proof-source-[0-9a-f]{32}\.json'))]
+    require(len(source) == 1 and upgrades.digest(source[0]) == intent['source_proof_sha256'])
+    prepared, _ = record(directory / 'api-down-prepared.json')
+    fields(prepared, {'action', 'api_up', 'observation_sha256', 'backup_digest', 'prepared_monotonic_ns',
+                      'intent_sha256', 'checkpoint_sha256', 'binding_sha256'})
+    require(prepared['intent_sha256'] == intent_sha and prepared['checkpoint_sha256'] == intent['checkpoint_sha256']
+            and prepared['binding_sha256'] == upgrades.digest(intent['binding'])
+            and prepared['action'] == 'STOP_OWNED_SERVER' and prepared['api_up'] is True
+            and prepared['backup_digest'] == interrupted['fault']['backup_digest'])
+    sha(prepared['observation_sha256'])
+    previous = monotonic(prepared, 'prepared_monotonic_ns')
+    require(previous > monotonic(interrupted, 'settled_monotonic_ns'))
+    for name, read_only in (('api-down-applied.json', False), ('api-down-observed.json', True)):
+        observed, _ = record(directory / name)
+        fields(observed, {'status', 'api_down', 'read_only', 'server_id', 'agent_id', 'swarm_id', 'volume',
+                          'backup_digest', 'observed_monotonic_ns', 'intent_sha256'})
+        require(observed['status'] == 'UPGRADE_API_DOWN_VERIFIED' and observed['api_down'] is True
+                and observed['read_only'] is read_only and observed['intent_sha256'] == intent_sha
+                and observed['backup_digest'] == prepared['backup_digest']
+                and observed['swarm_id'] == source[0]['swarm_id']
+                and observed['server_id'] == source[0]['service_ids']['portainer_portainer']
+                and observed['agent_id'] == source[0]['service_ids']['portainer_agent'])
+        next_time = monotonic(observed, 'observed_monotonic_ns')
+        require(previous < next_time < monotonic(intent, 'deadline_monotonic_ns'))
+        previous = next_time
+    require(previous < monotonic(proof[2]['start'], 'started_monotonic_ns'))
+    recovered = [row for _, (row, _) in records(directory, re.compile(r'upgrade-proof-recovered-[0-9a-f]{32}\.json'))]
+    noop = [row for _, (row, _) in records(directory, re.compile(r'upgrade-proof-noop-[0-9a-f]{32}\.json'))]
+    require(len(recovered) == len(noop) == 1)
+    upgrades.preserve(source[0], recovered[0])
+    upgrades.preserve(recovered[0], noop[0], no_op=True)
+    backup = recovered[0]['backup_evidence']
+    require(backup['operation_id'] == interrupted['fault']['operation_id'] and backup['backup_digest'] == prepared['backup_digest']
+            and backup['admin_reauthenticated'] is True and 0 < len(backup['failed_data']) <= 32)
+    for name, value in backup['failed_data'].items():
+        require(re.fullmatch(r'failed-state\.[A-Za-z0-9]{6}', name))
+        sha(value)
+
+
+def verify_recovery_proofs(directory: Path, proof: list[dict[str, Any]], case: str) -> None:
+    observations = []
+    for stage in ('source', 'recovered', 'noop'):
+        rows = [row for _, (row, _) in records(directory, re.compile('upgrade-proof-' + stage + r'-[0-9a-f]{32}\.json'))]
+        require(len(rows) == 1 and rows[0]['status'] == 'UPGRADE_RUNTIME_VERIFIED'
+                and all(rows[0][key] == proof[0]['start'][key] for key in ('case', 'run_id', 'source_commit')))
+        observations.append(rows[0])
+    source, recovered, noop = observations
+    require(case == source['case'] and len(proof) == 4
+            and monotonic(proof[0]['settled'], 'settled_monotonic_ns') < monotonic(source, 'captured_monotonic_ns')
+            < monotonic(proof[1]['start'], 'started_monotonic_ns')
+            and monotonic(proof[2]['settled'], 'settled_monotonic_ns') < monotonic(recovered, 'captured_monotonic_ns')
+            < monotonic(proof[3]['start'], 'started_monotonic_ns')
+            and monotonic(proof[3]['settled'], 'settled_monotonic_ns') < monotonic(noop, 'captured_monotonic_ns'))
+    upgrades.preserve(source, recovered)
+    upgrades.preserve(recovered, noop, no_op=True)
 
 
 def native_activation(directory: Path, proposal: dict[str, Any], proposal_sha: str, case: str,
@@ -412,6 +504,10 @@ def report(platform: str, run_id: str, case: str, expected_go: str) -> dict[str,
             refusal_summary = verify_refusal_child(directory, key, start, release, settled)
     status = ('ENGINE_RECOVERED_DISPOSED' if engine else 'PASS') if platform == 'native' else (
         'CASE_RECOVERED' if engine else 'CASE_PASS_DISPOSED')
+    if case == 'recover-portainer-api-down' and not engine:
+        verify_api_fault(directory, proof)
+    if case in upgrades.RECIPES and upgrades.RECIPES[case].interrupt and not engine:
+        verify_recovery_proofs(directory, proof, case)
     require(any(digest == result_sha and row.get('status') == status
                 and (platform == 'native' or all(row.get(k) == binding[k] for k in ('run_id', 'case', 'source_commit')))
                 for _, (row, digest) in records(directory, RESULT_FILE[platform])))
@@ -424,6 +520,11 @@ def report(platform: str, run_id: str, case: str, expected_go: str) -> dict[str,
         result.update(verification_kind='PUBLIC_REFUSAL_PRESERVED', command_executed=True, positive_upgrade=False,
                       recovery_performed=False, refusal_case=case, stdin_mode=upgrades.REFUSALS[case].stdin_mode,
                       product_result=refusal_summary, commands=len(proof))
+    elif case in upgrades.RECIPES and upgrades.RECIPES[case].interrupt and not engine:
+        selected = upgrades.RECIPES[case]
+        result.update(verification_kind='API_DOWN_PUBLIC_RECOVERY' if selected.api_down else 'SIGNAL_PUBLIC_RECOVERY',
+                      fault_signal=2 if selected.interrupt else 15, api_down_observed=selected.api_down,
+                      public_recovery_reverified=True, repeat_preserved=True, publication_qualified=False)
     return result
 
 

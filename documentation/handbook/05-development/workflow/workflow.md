@@ -644,6 +644,23 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-03/` with the six issue-com
 
 ### Slice 04 — Implement SIGINT and API-down qualification contracts
 
+Reviewed execution amendment: all five owners and Senior Workflow Architect
+accept five existing source/test paths plus root workflow/context metadata as
+necessary to this slice's interruption/return safety. ClassicPortainerUpgradeRuntime
+currently awaits bare asyncio.to_thread and can release the installation/journal
+lease while a started manager mutation thread still runs after cancellation.
+Reuse tiny_swarm_world.application.services.shared.settled_blocking unchanged;
+retain lease and checkpoint authority until that bounded worker settles, then
+propagate cancellation, including repeated cancellation and worker failure.
+No claim that cancellation itself aborts the thread. Add actual service/lock
+regressions and reject overlapping mutation. Existing ordinary child-intent
+wildcards also match cli-fault-intent; classify only exact 32hex ordinary stems,
+validate fault receipts separately and retain unknown/identity/disposal guards.
+Add only the four closed SIGINT/API-down IDs; preserve all historical SIGTERM
+and Slice03 refusal/input/fixture contracts. No new source file, product policy,
+provider, reader, public CLI operation or ADR is admitted. These existing-correctness
+repairs remain local/mock-only; actual faults require later exact scenario GO.
+
 Purpose: Existing producer and reporter accept SIGTERM/signal15 only. Add distinct, phase/child/source-bound SIGINT and Portainer API-down scenarios through the existing public CLI and manager-shell recovery path. Match actual signal, checkpoint, process, settlement and resulting exit; never relabel SIGTERM or infer API-down from a missing reply. Add wrong-signal/stale-child/absent-backup/refusal/second-recovery tests; keep private credentials redacted. Shared producer/reporter/supervisor files serialize with Slice03. No live fault is executed by implementation.
 
 Prerequisites: S440O-03. Mode: LOCAL.
@@ -673,14 +690,23 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-04/` with the six issue-com
     "modules/tsw_native_linux/tests/tools/test_product_upgrade_cases.py",
     "modules/tsw_native_linux/tests/tools/test_preserving_product_acceptance.py",
     "modules/tsw_native_linux/tests/tools/test_wsl_product_acceptance.py",
-    "modules/tsw_core/tests/tools/test_lcm_acceptance.py"
+    "modules/tsw_core/tests/tools/test_lcm_acceptance.py",
+    "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_guest_switch.ps1",
+    "modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_guest_switch.py",
+    "modules/tsw_core/tests/fixtures/wsl_acceptance_guest_switch.ps1",
+    "modules/tsw_core/src/infrastructure/adapters/lifecycle/portainer_runtime.py",
+    "modules/tsw_core/tests/infrastructure/adapters/lifecycle/test_portainer_runtime.py",
+    "documentation/handbook/05-development/workflow/workflow.md",
+    "documentation/handbook/05-development/workflow/context-pack.json"
   ],
   "affected_modules": [
-    "existing qualification/lifecycle and evidence"
+    "existing qualification/lifecycle and evidence",
+    "core Portainer runtime adapter"
   ],
   "affected_contracts": [
     "public CLI/evidence/source ownership",
-    "frozen C/K campaign provenance"
+    "frozen C/K campaign provenance",
+    "Portainer blocking-stage cancellation and installation/journal lease lifetime"
   ],
   "dependencies": [
     "S440O-03"
@@ -698,10 +724,18 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-04/` with the six issue-com
     "modules/tsw_native_linux/tests/tools/test_preserving_product_acceptance.py",
     "modules/tsw_native_linux/tests/tools/test_wsl_product_acceptance.py",
     "modules/tsw_core/tests/tools/test_lcm_acceptance.py",
-    ".tiny-swarm/evidence/issue-440-open/slice-04/**"
+    ".tiny-swarm/evidence/issue-440-open/slice-04/**",
+    "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_guest_switch.ps1",
+    "modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_guest_switch.py",
+    "modules/tsw_core/tests/fixtures/wsl_acceptance_guest_switch.ps1",
+    "modules/tsw_core/src/infrastructure/adapters/lifecycle/portainer_runtime.py",
+    "modules/tsw_core/tests/infrastructure/adapters/lifecycle/test_portainer_runtime.py",
+    "documentation/handbook/05-development/workflow/workflow.md",
+    "documentation/handbook/05-development/workflow/context-pack.json"
   ],
   "contract_locks": [
-    "frozen C/K source and exact approval"
+    "frozen C/K source and exact approval",
+    "Portainer stage settlement and installation/journal lease"
   ],
   "architecture_locks": [
     "Classic cold-kernel and scoped capability policy"
@@ -715,7 +749,14 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-04/` with the six issue-com
     "modules/tsw_native_linux/tests/tools/test_product_upgrade_cases.py",
     "modules/tsw_native_linux/tests/tools/test_preserving_product_acceptance.py",
     "modules/tsw_native_linux/tests/tools/test_wsl_product_acceptance.py",
-    "modules/tsw_core/tests/tools/test_lcm_acceptance.py"
+    "modules/tsw_core/tests/tools/test_lcm_acceptance.py",
+    "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_guest_switch.ps1",
+    "modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_guest_switch.py",
+    "modules/tsw_core/tests/fixtures/wsl_acceptance_guest_switch.ps1",
+    "modules/tsw_core/src/infrastructure/adapters/lifecycle/portainer_runtime.py",
+    "modules/tsw_core/tests/infrastructure/adapters/lifecycle/test_portainer_runtime.py",
+    "documentation/handbook/05-development/workflow/workflow.md",
+    "documentation/handbook/05-development/workflow/context-pack.json"
   ],
   "shared_infrastructure": [
     "designated SSH/WSL quality host",
@@ -735,7 +776,14 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-04/` with the six issue-com
     "modules/tsw_core/tests/tools/test_lcm_acceptance.py",
     ".tiny-swarm/evidence/issue-440-open/slice-04/**",
     ".codex/evidence/slice-04-distribution.md",
-    ".codex/evidence/slice-04-consolidation.md"
+    ".codex/evidence/slice-04-consolidation.md",
+    "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_guest_switch.ps1",
+    "modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_guest_switch.py",
+    "modules/tsw_core/tests/fixtures/wsl_acceptance_guest_switch.ps1",
+    "modules/tsw_core/src/infrastructure/adapters/lifecycle/portainer_runtime.py",
+    "modules/tsw_core/tests/infrastructure/adapters/lifecycle/test_portainer_runtime.py",
+    "documentation/handbook/05-development/workflow/workflow.md",
+    "documentation/handbook/05-development/workflow/context-pack.json"
   ],
   "requirement_ids": [
     "P03",
@@ -747,7 +795,7 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-04/` with the six issue-com
   ],
   "quality_gates": {
     "targeted": [
-      "PYTHONPATH=. python3 -m unittest modules.tsw_native_linux.tests.tools.test_product_upgrade_cases modules.tsw_native_linux.tests.tools.test_wsl_product_acceptance modules.tsw_core.tests.tools.test_lcm_acceptance"
+      "PYTHONPATH=. python3 -m unittest modules.tsw_core.tests.infrastructure.adapters.lifecycle.test_portainer_runtime modules.tsw_native_linux.tests.tools.test_product_upgrade_cases modules.tsw_native_linux.tests.tools.test_preserving_product_acceptance modules.tsw_native_linux.tests.tools.test_wsl_product_acceptance modules.tsw_core.tests.tools.test_lcm_acceptance modules.tsw_windows_wsl.tests.tools.test_wsl_acceptance_guest_switch"
     ],
     "required": [
       "python3 modules/tsw_core/tools/linux/quality_gate.py quality"

@@ -797,7 +797,7 @@ class SuiteNativePort(native.NativePort):
             selector.register(child.stderr, selectors.EVENT_READ)
             while selector.get_map():
                 if receipt is not None and upgrades.cli_fault_candidate(self, receipt):
-                    upgrades.poll_fault(self, child, before_signal=receipt.prepare_fault)
+                    upgrades.poll_fault(self, child, before_signal=receipt.prepare_fault, receipt=receipt)
                 native.require(time.monotonic() < deadline, 'CASE_WORKER_TIMEOUT')
                 for selected, _event in selector.select(.2):
                     chunk = os.read(selected.fd, 65536)
@@ -826,6 +826,15 @@ class SuiteNativePort(native.NativePort):
             raise
         finally:
             selector.close()
+            if receipt is not None and receipt.fault is not None and receipt.fault['signal'] == int(signal.SIGINT):
+                try:
+                    extra, errors = upgrades.settle_interrupt(child, min(deadline, self.deadline,
+                        self.authorized_until if self.authorized_until is not None else self.deadline))
+                    output.extend(extra); error_digest.update(errors)
+                    native.require(total + len(extra) + len(errors) <= native.LIMIT, 'CASE_OUTPUT_BOUND')
+                    output_complete = True
+                except (upgrades.UpgradeError, subprocess.TimeoutExpired, OSError, native.MaintenanceError):
+                    self.upgrade_fault_observed = False
             if child.poll() is None:
                 if receipt is None or receipt.fault is None:
                     os.killpg(child.pid, signal.SIGTERM)
@@ -1093,7 +1102,7 @@ def process_start(pid: int) -> int:
 
 
 def previous_children_settled(journal: native.Journal) -> bool:
-    intents = list(journal.directory.glob('child-*-intent.json'))
+    intents = upgrades.ordinary_intents(journal.directory, 64)
     native.require(len(intents) <= 32, 'CASE_CHILD_EVENT_BOUND')
     for path in intents:
         key = path.name.removesuffix('-intent.json')

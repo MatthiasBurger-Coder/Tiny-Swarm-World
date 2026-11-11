@@ -27,6 +27,23 @@ def intent() -> suite.SuiteIntent:
     return suite.SuiteIntent('a' * 32, 'b' * 40, 'minimal', 'c' * 64, 'd' * 64, 'e' * 64, 'f' * 64, '1' * 64)
 
 
+def fault_journal(directory: Path) -> tuple[str, dict[str, Any]]:
+    key = 'child-' + 'a' * 32
+    child = {'pid': 4242, 'start_time': 1234}
+    rows = {key + '-intent.json': {'argv_sha256': 'b' * 64, 'timeout': 10, 'public': True},
+        key + '-pid.json': child,
+        key + '-cli-start.json': {'case': 'recover-portainer', 'run_id': 'a' * 32, 'source_commit': 'b' * 40,
+            'child': child, 'args': suite.upgrades.recipe('recover-portainer').update(), 'effect': True},
+        key + '-cli-fault-intent.json': {'checkpoint_sha256': 'b' * 64, 'predicate': 'CHECKED_BACKUP',
+            'process_group': 4242, 'signal': 15, 'process': child, 'prepared_at': '2026-11-11T00:00:00+00:00',
+            'prepared_monotonic_ns': 10},
+        key + '-settled.json': {'pid': 4242, 'released': True, 'group_absent': True},
+        key + '-cli-settled.json': {'pid': 4242, 'released': True, 'group_absent': True}}
+    for name, row in rows.items():
+        (directory / name).write_bytes(native.canonical(row))
+    return key, rows
+
+
 def proposal() -> dict[str, Any]:
     return {'source_commit': 'b' * 40, 'intent_sha256': '2' * 64, 'host_id_sha256': '3' * 64,
             'pins': {'source': '4' * 64}, 'baseline': baseline()}
@@ -489,6 +506,26 @@ class PreservingProductAcceptanceTests(unittest.TestCase):
             with patch.object(suite.os, 'killpg') as probe:
                 self.assertFalse(suite.previous_children_settled(journal))
                 probe.assert_called_once_with(4242, 0)
+
+    def test_fault_intent_is_not_a_phantom_child_and_unknown_or_substituted_intents_refuse(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            with patch.object(native, 'private_directory'):
+                journal = native.Journal(root)
+            key, rows = fault_journal(root)
+            with patch.object(suite.upgrades, 'private_json', side_effect=lambda path: rows[path.name]), \
+                    patch.object(native, 'read_private', side_effect=lambda path: path.read_bytes()), \
+                    patch.object(suite.os, 'killpg', side_effect=ProcessLookupError) as probe:
+                self.assertTrue(suite.previous_children_settled(journal))
+                probe.assert_called_once_with(4242, 0)
+                probe.reset_mock()
+                rows[key + '-cli-fault-intent.json']['process'] = {'pid': 4243, 'start_time': 1234}
+                with self.assertRaises(suite.upgrades.UpgradeError):
+                    suite.previous_children_settled(journal)
+                probe.assert_not_called()
+                (root / 'child-unknown-intent.json').write_text('{}')
+                with self.assertRaises(suite.upgrades.UpgradeError):
+                    suite.previous_children_settled(journal)
 
     def test_disposal_intent_json_cannot_inject_names_or_change_checkpoint_schema(self) -> None:
         original, _graph = case()

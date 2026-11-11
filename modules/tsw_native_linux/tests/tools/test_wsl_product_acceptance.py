@@ -15,7 +15,7 @@ from unittest.mock import Mock, PropertyMock, patch
 
 from modules.tsw_native_linux.tools.qualification import wsl_product_acceptance as suite
 from modules.tsw_native_linux.tests.tools.test_owned_case_disposal import Port, case
-from modules.tsw_native_linux.tests.tools.test_preserving_product_acceptance import altered_capability
+from modules.tsw_native_linux.tests.tools.test_preserving_product_acceptance import altered_capability, fault_journal
 
 
 def intent() -> suite.Intent:
@@ -69,6 +69,24 @@ class CasePort:
 
 
 class WslProductAcceptanceTests(unittest.TestCase):
+    def test_settlement_classifies_fault_intents_and_rejects_unknown_names_before_pid_probe(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            with patch.object(suite, 'trusted'):
+                journal = suite.Journal(root)
+            key, rows = fault_journal(root)
+            port = suite.WslCasePort(intent(), journal)
+            with patch.object(suite.upgrades, 'private_json', side_effect=lambda path: rows[path.name]), \
+                    patch.object(suite, 'private', side_effect=lambda path: path.read_bytes()), \
+                    patch.object(suite, 'group_absent', return_value=True) as absent:
+                self.assertTrue(port.settled())
+                absent.assert_called_once_with(4242)
+                absent.reset_mock()
+                (root / (key + '-unknown-intent.json')).write_text('{}')
+                with self.assertRaises(suite.upgrades.UpgradeError):
+                    port.settled()
+                absent.assert_not_called()
+
     def test_closed_root_prepare_keeps_real_admission_and_preview_not_bootstrap_facade(self) -> None:
         for fault in ('valid', 'capability', 'alias', 'preview'):
             with self.subTest(fault=fault), tempfile.TemporaryDirectory() as directory:

@@ -961,7 +961,7 @@ need(metadata['server_version']=='6.0.5')
 def case_ledger_names(ledger,run,source):
     need(isinstance(ledger,dict) and set(ledger)=={'schema_version','run_id','source_commit','cases'} and type(ledger['schema_version']) is int and ledger['schema_version'] in (1,2) and ledger['run_id']==run and ledger['source_commit']==source and isinstance(ledger['cases'],list))
     recipes=('minimal', 'swagger-internal', 'swagger-published', 'swagger-traefik-swarm', 'swagger-traefik-portainer', 'swagger-add-traefik', 'full-swarm', 'full-portainer', 'upgrade-swagger-swarm', 'upgrade-traefik-swarm', 'upgrade-batch-default-swarm-published', 'upgrade-batch-default-swarm-internal', 'upgrade-batch-default-portainer-published', 'upgrade-batch-default-portainer-internal', 'upgrade-batch-service-access-swarm-published', 'upgrade-batch-service-access-swarm-internal', 'upgrade-batch-service-access-portainer-published', 'upgrade-batch-service-access-portainer-internal', 'recover-batch-swarm', 'recover-batch-portainer', 'upgrade-portainer', 'recover-portainer', 'upgrade-product-v1', 'recover-product-v1')
-    recipes=recipes[:8] if ledger['schema_version']==1 else recipes+('refuse-product-target','refuse-product-syntax','refuse-product-source','refuse-product-checkpoint','refuse-product-consent-eof','refuse-product-consent-n','refuse-product-recovery-consent-eof','refuse-product-recovery-consent-n')
+    recipes=recipes[:8] if ledger['schema_version']==1 else recipes+('refuse-product-target','refuse-product-syntax','refuse-product-source','refuse-product-checkpoint','refuse-product-consent-eof','refuse-product-consent-n','refuse-product-recovery-consent-eof','refuse-product-recovery-consent-n','recover-batch-swarm-sigint','recover-batch-portainer-sigint','recover-portainer-sigint','recover-portainer-api-down')
     need(0<len(ledger['cases'])<=len(recipes))
     seen=[]
     for row in ledger['cases']:
@@ -979,6 +979,35 @@ def verify_case_checkout(case_name,capraw):
     cap=casecheckout/'modules/tsw_core/infra/config/incus-profile-capabilities.json';trusted(cap);need(cap.read_bytes()==capraw)
 def negative_case(case):
     return case in ('refuse-product-target','refuse-product-syntax','refuse-product-source','refuse-product-checkpoint','refuse-product-consent-eof','refuse-product-consent-n','refuse-product-recovery-consent-eof','refuse-product-recovery-consent-n')
+def case_process_intents(journal,case,run,source):
+    intents=[];faults=[]
+    for path in journal.glob('child-*-intent.json'):
+        need(len(intents)+len(faults)<1024)
+        if re.fullmatch(r'child-[0-9a-f]{32}-intent\.json',path.name):intents.append(path)
+        else:
+            need(re.fullmatch(r'child-[0-9a-f]{32}-cli-fault-intent\.json',path.name));faults.append(path)
+    for path in faults:
+        stem=path.name.removesuffix('-cli-fault-intent.json');need(journal/(stem+'-intent.json') in intents)
+        prepared=strict(private(path));start=strict(private(journal/(stem+'-cli-start.json')));pid=strict(private(journal/(stem+'-pid.json')))
+        new=case in ('recover-batch-swarm-sigint','recover-batch-portainer-sigint','recover-portainer-sigint','recover-portainer-api-down')
+        need(case in ('recover-batch-swarm','recover-batch-portainer','recover-portainer') or new)
+        keys={'checkpoint_sha256','predicate','process_group','signal','process','prepared_at','prepared_monotonic_ns'}
+        if new:keys|={'authority_sha256','operation_id','phase','backup_digest'}
+        need(set(prepared)==keys and all(start[k]==v for k,v in (('case',case),('run_id',run),('source_commit',source))))
+        need(start['child']==pid==prepared['process'] and prepared['process_group']==pid['pid'] and type(prepared['signal']) is int and prepared['signal']==(2 if new else 15))
+        gateway=case in ('recover-portainer','recover-portainer-sigint','recover-portainer-api-down')
+        services='portainer' if gateway else 'swagger,traefik'
+        args=['services','update','--services',services]+(['--to','portainer-ce-2.45.1'] if gateway else [])+['--live','--approve-live','--json']
+        need(start['args']==args and start['effect'] is True and prepared['predicate']==('CHECKED_BACKUP' if gateway else 'PARTIAL_BATCH') and re.fullmatch('[0-9a-f]{64}',prepared['checkpoint_sha256']))
+        if new:
+            names=('platform','run_id','case','source_commit','workflow_sha256','entrypoint_sha256','release_sha256','proposal_sha256','before_sha256','host_sha256','approval','activation','incus_client','incus_server','package_version')
+            raw=json.dumps({k:start[k] for k in names},sort_keys=True,separators=(',',':')).encode()
+            need(prepared['authority_sha256']==hashlib.sha256(raw).hexdigest() and re.fullmatch('[0-9a-f]{32}',prepared['operation_id']))
+            need(prepared['phase'] in (('backed_up','upgrading') if gateway else ('apply',)))
+            need(re.fullmatch('sha256:[0-9a-f]{64}',prepared['backup_digest']) if gateway else prepared['backup_digest'] is None)
+        settled=strict(private(journal/(stem+'-cli-settled.json')));legacy=strict(private(journal/(stem+'-settled.json')))
+        need(settled['pid']==pid['pid'] and settled['group_absent'] is True and settled['released'] is True and legacy=={'pid':pid['pid'],'released':True,'group_absent':True})
+    return intents
 def validate_case_settlement(journal,stem,child):
     settled=strict(private(journal/(stem+'-settled.json')))
     need(isinstance(settled,dict) and set(settled)=={'pid','released','group_absent'} and type(settled['pid']) is int and settled['pid']==child['pid'] and settled['released'] is True and settled['group_absent'] is True)
@@ -1045,7 +1074,7 @@ else:
                 validate_case_outcome(actual,run,product_source,case['case'])
                 matches+=1;matched=actual
         need(matches==1 and matched is not None)
-        intents=list(journal.glob('child-*-intent.json'));need(len(intents)<=1024)
+        intents=case_process_intents(journal,case['case'],run,product_source)
         for intent in intents:
             stem=intent.name.removesuffix('-intent.json');pidfile=journal/(stem+'-pid.json')
             if not pidfile.exists():

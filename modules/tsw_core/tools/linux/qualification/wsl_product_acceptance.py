@@ -444,7 +444,7 @@ class WslCasePort:
             end = time.monotonic() + timeout
             while selector.get_map():
                 if receipt is not None and upgrades.cli_fault_candidate(self, receipt):
-                    upgrades.poll_fault(self, child, before_signal=receipt.prepare_fault)
+                    upgrades.poll_fault(self, child, before_signal=receipt.prepare_fault, receipt=receipt)
                 need(time.monotonic() < end, 'CASE_COMMAND_TIMEOUT')
                 for selected, _event in selector.select(.2):
                     chunk = os.read(selected.fd, 65536)
@@ -475,6 +475,15 @@ class WslCasePort:
                 self.worker_settled = True
                 self.journal.save(key + '-launch-refused.json', {'released': False})
             else:
+                if receipt is not None and receipt.fault is not None and receipt.fault['signal'] == int(signal.SIGINT):
+                    try:
+                        extra, errors = upgrades.settle_interrupt(child, min(end, self.deadline,
+                            self.authorized_until if self.authorized_until is not None else self.deadline))
+                        output.extend(extra); error.extend(errors)
+                        need(len(output) + len(error) <= LIMIT, 'CASE_COMMAND_OUTPUT_BOUND')
+                        output_complete = True
+                    except (upgrades.UpgradeError, subprocess.TimeoutExpired, OSError, CaseError):
+                        self.upgrade_fault_observed = False
                 if child.poll() is None:
                     if receipt is None or receipt.fault is None:
                         os.killpg(child.pid, signal.SIGTERM)
@@ -498,7 +507,7 @@ class WslCasePort:
     def settled(self) -> bool:
         if not self.worker_settled:
             return False
-        paths = list(self.journal.directory.glob('child-*-intent.json'))
+        paths = upgrades.ordinary_intents(self.journal.directory, 1024)
         need(len(paths) <= 1024, 'CASE_CHILD_EVENT_BOUND')
         for path in paths:
             stem = path.name.removesuffix('-intent.json')

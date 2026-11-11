@@ -5,6 +5,7 @@ from contextlib import redirect_stdout
 from dataclasses import asdict, replace
 from datetime import datetime, timedelta, timezone
 import io
+import json
 import os
 from pathlib import Path
 import subprocess
@@ -135,7 +136,107 @@ class Campaign:
         return result, out.getvalue()
 
 
+class FaultCampaign(Campaign):
+    """Whole reader records; resources remain explicitly synthetic."""
+    def __init__(self, case='recover-portainer-api-down'):
+        import copy
+        from modules.tsw_core.tests.domain.lifecycle.test_update_planning import update_fixture
+        from modules.tsw_native_linux.tests.tools.test_product_upgrade_cases import proof
+        from tiny_swarm_world.domain.lifecycle.portainer_upgrade import PortainerCheckpoint, PortainerObservation, images
+        super().__init__(case)
+        _, manifest = update_fixture()
+        selected = upgrades.recipe(case)
+        before = PortainerObservation(version='2.45.0', server_image=images('2.45.0')['portainer'],
+            agent_image=images('2.45.0')['portainer-agent'], volume='own-volume', server_id='own-server',
+            agent_id='own-agent', swarm_id='own-swarm', endpoints=(), ownership=())
+        current = PortainerCheckpoint(operation_id='f' * 32, installation_id=str(manifest.installation_id),
+            original=manifest, before=before, manifest_token=DIGEST, stage='upgrading', backup_digest='sha256:' + DIGEST)
+        source = proof() | {'case': case, 'run_id': RUN, 'source_commit': SOURCE,
+            'installation_id': str(manifest.installation_id), 'swarm_id': 'own-swarm',
+            'service_ids': {'portainer_portainer': 'own-server', 'portainer_agent': 'own-agent'},
+            'backup_evidence': None, 'unrelated_resources': {'all': DIGEST}, 'captured_monotonic_ns': 350}
+        self.put('upgrade-proof-source-' + 'a' * 32 + '.json', source)
+        self.finished['selection'].update(requested=sorted(selected.services), resolved=sorted({'incus', *selected.services}))
+        baseline = copy.deepcopy(self.start)
+        checkpoint_sha = upgrades.digest(current.model_dump(mode='json'))
+        self.proof_rows: list[dict[str, Any]] = []
+        for index, (args, predicate) in enumerate(report.expected_effects(case, engine=False)):
+            self.key = 'child-' + str(index + 1) * 32
+            start = copy.deepcopy(baseline)
+            start.update(args=args, argv_sha256=upgrades.digest([start['executable'], '-E', '-s', '-B', '-c', upgrades.CLI_BOOTSTRAP, *args]),
+                child={'pid': 200 + index, 'start_time': 220 + index}, started_at=self.at(5 + 5 * index), started_monotonic_ns=100 + 400 * index)
+            self.child('cli-start', start)
+            self.child('pid', start['child'])
+            self.child('intent', {'argv_sha256': start['argv_sha256'], 'timeout': 900, 'public': True})
+            self.child('cli-released', {'released_at': self.at(5 + 5 * index), 'released_monotonic_ns': 110 + 400 * index})
+            self.child('settled', {'pid': start['child']['pid'], 'released': True, 'group_absent': True})
+            settled = copy.deepcopy(self.settled)
+            settled.update(pid=start['child']['pid'], settled_at=self.at(8 + 5 * index), settled_monotonic_ns=300 + 400 * index)
+            if predicate is not None:
+                fault = {'checkpoint_sha256': checkpoint_sha, 'predicate': predicate,
+                    'process_group': start['child']['pid'], 'signal': 2,
+                    'authority_sha256': upgrades.digest({key: start[key] for key in upgrades.CLI_BINDING_KEYS}),
+                    'process': start['child'], 'operation_id': current.operation_id, 'phase': current.stage,
+                    'backup_digest': current.backup_digest}
+                self.child('cli-fault-intent', fault | {'prepared_at': self.at(6 + 5 * index), 'prepared_monotonic_ns': 130 + 400 * index})
+                settled.update(return_code=-2, output_complete=True, fault=fault | {
+                    'sent_at': self.at(6 + 5 * index), 'sent_monotonic_ns': 150 + 400 * index})
+                self.put('upgrade-fault-intent-' + 'b' * 32 + '.json', {'checkpoint_sha256': checkpoint_sha,
+                    'predicate': predicate, 'checkpoint': current.model_dump(mode='json'), 'case': case, 'run_id': RUN,
+                    'source_commit': SOURCE, 'installation_id': str(manifest.installation_id)})
+            else:
+                self.child('outcome', {key: settled[key] for key in ('return_code', 'stdout_sha256', 'stderr_sha256')})
+            self.child('cli-settled', settled)
+            self.proof_rows.append({'start': start, 'settled': settled})
+        for path in list(self.data):
+            if path.name.startswith('child-' + 'e' * 32):
+                del self.data[path]
+        self.finished.update(finished_at=self.at(30), finished_monotonic_ns=2000)
+        intent = {'binding': {key: self.proof_rows[1]['start'][key] for key in upgrades.CLI_BINDING_KEYS},
+            'checkpoint_sha256': checkpoint_sha, 'source_proof_sha256': upgrades.digest(source),
+            'deadline_monotonic_ns': 2000, 'boot_id_sha256': DIGEST}
+        self.put('api-down-intent.json', intent)
+        self.put('api-down-prepared.json', {'action': 'STOP_OWNED_SERVER', 'api_up': True, 'observation_sha256': DIGEST,
+            'backup_digest': current.backup_digest, 'prepared_monotonic_ns': 710,
+            'intent_sha256': upgrades.digest(intent), 'checkpoint_sha256': checkpoint_sha,
+            'binding_sha256': upgrades.digest(intent['binding'])})
+        for index, (name, read_only) in enumerate((('api-down-applied.json', False), ('api-down-observed.json', True))):
+            self.put(name, {'status': 'UPGRADE_API_DOWN_VERIFIED', 'api_down': True, 'read_only': read_only,
+                'server_id': 'own-server', 'agent_id': 'own-agent', 'swarm_id': 'own-swarm', 'volume': 'own-volume',
+                'backup_digest': current.backup_digest, 'observed_monotonic_ns': 720 + index,
+                'intent_sha256': upgrades.digest(intent)})
+        recovered = source | {'captured_monotonic_ns': 1150, 'backup_evidence': {'operation_id': current.operation_id, 'backup_digest': current.backup_digest,
+            'failed_data': {'failed-state.ABC123': DIGEST}, 'source_version': '2.45.0', 'admin_reauthenticated': True}}
+        self.put('upgrade-proof-recovered-' + 'c' * 32 + '.json', recovered)
+        self.put('upgrade-proof-noop-' + 'd' * 32 + '.json', copy.deepcopy(recovered) | {'captured_monotonic_ns': 1550})
+
+
 class AttributionTests(unittest.TestCase):
+    def test_whole_fault_report_needs_source_delivery_settlement_outage_backup_and_true_noop(self):
+        campaign = FaultCampaign()
+        self.assertEqual(campaign.invoke()[0], 0)
+        for fault in ('signal', 'settled', 'backup', 'up', 'down', 'source', 'repeat', 'missing'):
+            with self.subTest(fault=fault):
+                campaign = FaultCampaign()
+                if fault == 'signal':
+                    campaign.proof_rows[1]['settled']['fault']['signal'] = 15
+                elif fault == 'settled':
+                    campaign.proof_rows[1]['settled']['return_code'] = -9
+                elif fault == 'backup':
+                    campaign.data[campaign.journal / 'api-down-prepared.json']['backup_digest'] = 'sha256:' + 'd' * 64
+                elif fault == 'up':
+                    campaign.data[campaign.journal / 'api-down-prepared.json']['api_up'] = False
+                elif fault == 'down':
+                    campaign.data[campaign.journal / 'api-down-observed.json']['api_down'] = False
+                elif fault == 'source':
+                    campaign.data[campaign.journal / 'api-down-intent.json']['binding']['source_commit'] = 'd' * 40
+                elif fault == 'repeat':
+                    campaign.data[campaign.journal / ('upgrade-proof-noop-' + 'd' * 32 + '.json')]['stack_updates'] = {'replayed': True}
+                else:
+                    del campaign.data[campaign.journal / 'api-down-observed.json']
+                code, raw = campaign.invoke()
+                self.assertEqual(code, 2)
+                self.assertEqual(json.loads(raw)['status'], 'INCOMPLETE')
     def test_historical_valid_go_uses_acceptance_time_and_reports_digests_only(self):
         result, out = Campaign().invoke()
         self.assertEqual(result, 0)
@@ -197,13 +298,13 @@ class AttributionTests(unittest.TestCase):
         receipt.require_approval()
 
     def test_fault_requires_the_owned_child_and_protected_checkpoint_receipt(self):
-        campaign = Campaign()
+        campaign = Campaign('recover-batch-swarm')
         campaign.settled.update(return_code=-15, output_complete=False, fault={
             'checkpoint_sha256': DIGEST, 'predicate': 'PARTIAL_BATCH', 'process_group': 200, 'signal': 15,
             'sent_at': campaign.at(6), 'sent_monotonic_ns': 250,
         })
         campaign.put('upgrade-fault-intent-' + 'f' * 32 + '.json', {'checkpoint_sha256': DIGEST,
-            'predicate': 'PARTIAL_BATCH', 'run_id': RUN, 'case': CASE, 'source_commit': SOURCE})
+            'predicate': 'PARTIAL_BATCH', 'run_id': RUN, 'case': campaign.intent.case, 'source_commit': SOURCE})
         campaign.child('cli-fault-intent', {'checkpoint_sha256': DIGEST, 'predicate': 'PARTIAL_BATCH',
             'process_group': 200, 'signal': 15, 'process': campaign.start['child'],
             'prepared_at': campaign.at(6), 'prepared_monotonic_ns': 230})
@@ -317,6 +418,82 @@ class ProducerTests(unittest.TestCase):
                 patch.dict(os.environ, {}, clear=True):
             self.assertEqual(port.command([self.executable, '-c', 'pass'], 3), b'')
         poll.assert_not_called()
+
+    def test_sigint_real_owned_children_settle_beyond_five_seconds_with_actual_raw_exit(self):
+        import tempfile
+        from contextlib import ExitStack
+        from modules.tsw_core.tests.domain.lifecycle.test_update_planning import update_fixture
+        from tiny_swarm_world.domain.lifecycle.portainer_upgrade import PortainerCheckpoint, PortainerObservation, images
+        for platform in ('native', 'wsl'):
+            with self.subTest(platform=platform), tempfile.TemporaryDirectory() as directory, ExitStack() as stack:
+                case = 'recover-portainer-sigint'
+                campaign = Campaign(case)
+                campaign.data.clear()
+                journal = SimpleNamespace(directory=campaign.journal, save=campaign.put)
+                proposal = campaign.proposal | {'host_id_sha256': DIGEST}
+                _, manifest = update_fixture()
+                before = PortainerObservation(version='2.45.0', server_image=images('2.45.0')['portainer'],
+                    agent_image=images('2.45.0')['portainer-agent'], volume='own-volume', server_id='own-server',
+                    agent_id='own-agent', swarm_id='own-swarm', endpoints=(), ownership=())
+                current = PortainerCheckpoint(operation_id='f' * 32, installation_id=str(manifest.installation_id),
+                    original=manifest, before=before, manifest_token=DIGEST, stage='upgrading', backup_digest='sha256:' + DIGEST)
+                campaign.put('upgrade-proof-source-' + 'a' * 32 + '.json', {'case': case, 'run_id': RUN,
+                    'source_commit': SOURCE, 'installation_id': str(manifest.installation_id)})
+                ready = Path(directory) / 'ready'
+                body = ('import asyncio,time,pathlib\n'
+                    'def worker():\n pathlib.Path(' + repr(str(ready)) + ').write_text("ready");time.sleep(6)\n'
+                    'async def main():\n await asyncio.to_thread(worker)\n'
+                    'asyncio.run(main())\n')
+                if platform == 'native':
+                    intent = report.suite.SuiteIntent(RUN, SOURCE, case, DIGEST, DIGEST, DIGEST, DIGEST, DIGEST)
+                    port = cast(Any, report.suite.SuiteNativePort(intent, journal, proposal))
+                    port.cli_approval = {'phase': 'native-product-maintenance'}
+                    port.cli_activation = {'phase': 'paused-product-case'}
+                    stack.enter_context(patch.object(port, 'fresh_source'))
+                    stack.enter_context(patch.object(report.suite, 'operator_values', return_value={}))
+                    stack.enter_context(patch.object(report.suite, 'tree_digest', return_value=DIGEST))
+                    stack.enter_context(patch.object(report.suite, 'case_tls_root', return_value='/tmp'))
+                else:
+                    port = cast(Any, wsl.WslCasePort(campaign.intent, journal))
+                    port.proposal = proposal
+                    port.cli_approval = {'phase': 'wsl-case-run'}
+                    stack.enter_context(patch.object(port, 'operator_values', return_value={}))
+                    stack.enter_context(patch.object(port, 'tls_root', return_value='/tmp'))
+                    stack.enter_context(patch.object(port, 'source', return_value=proposal['pins']))
+                    stack.enter_context(patch.object(port, 'identity', return_value=proposal['identity']))
+                port.deadline = time.monotonic() + 30
+                port.cli_versions = ('6.0.5', '6.0.5')
+                port.upgrade_before = {'installation_id': str(manifest.installation_id)}
+                port.upgrade_fault_armed = True
+                def observed_checkpoint(_port):
+                    if not ready.exists():
+                        raise FileNotFoundError
+                    return current
+                stack.enter_context(patch.object(upgrades, 'checkpoint', side_effect=observed_checkpoint))
+                stack.enter_context(patch.object(upgrades, 'CLI_BOOTSTRAP', body))
+                stack.enter_context(patch.object(port, 'interpreter', return_value=self.executable))
+                stack.enter_context(patch.dict(os.environ, {}, clear=True))
+                args = upgrades.recipe(case).update()
+                argv = [self.executable, '-E', '-s', '-B', '-c', body, *args]
+                began = time.monotonic()
+                with self.assertRaises(upgrades.FaultObserved):
+                    if platform == 'native':
+                        port.child(argv, 10)
+                    else:
+                        port.command(argv, 10, public=True)
+                self.assertGreater(time.monotonic() - began, 5)
+                self.assertTrue(port.worker_settled)
+                self.assertTrue(port.upgrade_fault_observed)
+                [(match, (start, _))] = campaign.records(campaign.journal, report.START_FILE)
+                key = match.group(1)
+                settled, _ = campaign.read(campaign.journal / (key + '-cli-settled.json'))
+                self.assertEqual(settled['return_code'], -2)
+                release, _ = campaign.read(campaign.journal / (key + '-cli-released.json'))
+                with patch.object(report, 'record', campaign.read), patch.object(report, 'records', campaign.records):
+                    report.verify_outcome(campaign.journal, key, start, release, settled, 'CHECKED_BACKUP')
+                    for code in (-15, -9, 0):
+                        with self.subTest(rejected_exit=code), self.assertRaises(ValueError):
+                            report.verify_outcome(campaign.journal, key, start, release, settled | {'return_code': code}, 'CHECKED_BACKUP')
 
 
 
