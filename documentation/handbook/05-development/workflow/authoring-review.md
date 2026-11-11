@@ -1,50 +1,41 @@
-# Workflow authoring review
+# Four-role authoring gate
 
-Decision: READY_FOR_WORKFLOW for planning; all runtime slices PLANNED.
-Profile: FULL_PATH. Process: workflow create. Branch: `docs/workflow-issue440-acceptance-20261110`.
-Baseline: `ca6902579f51c2c6d9439bf9c58dec02bfb45a93`. Clarification attempt 1/3; scope readiness 94%, not product assurance.
+Decision: READY_FOR_WORKFLOW; confidence95percent; FULL_PATH.
+Process: workflow create. Branch: docs/workflow-issue440-open-20261111. Baseline: c40d87ed81101dd582a112fe8b427d84372f36e2.
+Original request: create a workflow for the remaining #440 points.
 
-## Four-role review
+Four real read-only Codex subagents contributed; no same-author role fiction:
 
-| Role | Inspected concern | Decision and constraint |
+| Role | Agent | Decision / required refinement |
 |---|---|---|
-| Senior Requirement Engineer | Complete current #440, 47 LCM obligations, 15 parent criteria, final-acceptance additions and accepted history | Ready to plan; retain historical P01 and bounded native evidence; do not silently downgrade cross-host/live acceptance |
-| Senior System Architect | Actual profile/service/composition paths, empty capability asset, scoped/legacy boundaries, accepted ADRs and historical helper binding | Ready with prerequisite gates; repair existing integration only; separate fixture proof, version admission, candidate policy and product acceptance |
-| Senior Python Automation Developer | Four Sonar-bearing files, current CLI/tests, qualification helpers and their old #449 git binding | Ready for the proposed slices; no blanket validation changes or alternative orchestrator; proposed new helper commands must be implemented/reviewed before use |
-| Senior Tester | Current unit/quality/coverage evidence versus W09/W10 live gaps, recovery attribution, independent review and exact source | Ready with concrete system observations and no-pass states; historical/full-install smoke cannot fill unexecuted current lifecycle cells |
+| Senior Requirement Engineer | open_requirements | READY; preserve47LCM/15parent/45childAC/late/global and historicalP01; source acquisition first; no live consent inferred |
+| Senior System Architect | open_architecture | READY; no new ADR under existing policy; all helper/policy edits before C/preparation; only capability-only childK; real restoration before downtime |
+| Senior Python Automation Developer | open_python | READY; add explicit product and SIGINT/API-down producer/reporter implementation locks; canonical core source, native wrappers only |
+| Senior Tester | open_testing | READY; historical18/4058not a new-branch/live PASS; designated SSH/WSL, exact source; PR authorization before actual Sonar |
 
-All four passes were performed by the same authoring agent; no independent
-review, completion PASS, live GO or security acceptance is invented. During
-execution S3D must re-evaluate actual files/locks and specialist distribution.
-Independent requirements/architecture/security/runtime/evidence reviews remain
-explicit execution gates and P15 remains open.
+Root integrated those constraints in14 ordered slices. No product code,
+configuration, CI, ADR or live state changes occur during authoring. Original
+uncommitted repair and its evidence stay in the original workspace. The clean
+new branch publishes only the regenerated planning files, not runtime fixes.
 
-## Routing and boundaries
+arc42 checked: existing building blocks, runtime/deployment and accepted Classic
+lifecycle/scoped profile ADRs. No decision change; actual implementation deltas
+reopen appropriate review. Console review only if future CLI output changes;
+no browser frontend scope. Same-host writes/effects serialize, independent
+read-only role reviews may run concurrently.
 
-FULL_PATH because the planned work crosses lifecycle state, runtime effects,
-security and exact-source live qualification. Console/status UI review is
-conditional on actual output/help/progress changes; no browser frontend work.
-Only 02/03 have potentially disjoint source/test scopes; all shared host/live
-state, policy promotions and coordinator status writes serialize. The dependency
-graph includes the missing helper-binding prerequisite before listener use.
+Authoring checks: complete metadata/DAG/locks, paths, all requirement IDs, source
+hashes, catalogue links and git diff --check. Full Python quality NOT_RUN_DOC_ONLY
+for this plan. Historical repair evidence is explicitly bounded. Published
+commit/push identity is recorded after reviewed authoring publication; no PR,
+merge, issue mutation or cleanup is authorized.
 
-## Authoring validation and publication
+Final specialist corrections incorporated: late/global owner remapping and
+historical Sonar wording;05/12 policy-contract test locks preserving fixed
+candidate-denial assertions;02 explicit tested fixture-restored→product-window
+re-entry before freeze;09 admitted K rather than structurally accepted C.
 
-Validate JSON/YAML metadata, dependencies/DAG, all source/test paths (except
-explicit proposed harness paths), complete parent/LCM mappings, governance hashes,
-relative navigation and Part-5 catalogue. Run git diff --check and inspect actual
-diffs. No new runtime tests/full gate: this change regenerates planning files
-and catalogue links only. Existing baseline results retain their prior scope.
-The stale `src` import-root wording in the arc42 building-block view is aligned
-with the existing `tiny_swarm_world` package mapping and QUALITY.md. No ADR,
-quality policy, production code, tests, CI, host config or GitHub issue is
-changed. Publish a reviewed planning commit to this branch only, as required by
-workflow-authoring; no PR creation/merge or branch cleanup. Final commit/push
-identity is recorded in local authoring evidence and the user handoff.
-
-## arc42 review
-
-Building blocks, runtime/deployment views, accepted Classic lifecycle and scoped
-profile ADRs are checked and hashed in context-pack.json. Their existing ownership
-and safety decisions remain unchanged. Proposed implementation/admission changes
-must re-open the appropriate architecture review before effects.
+Final read-back: open_requirements ACCEPT (47LCM/15parent/45child plus late/global
+owners); open_architecture ACCEPT (re-entry/C-preparation/K-admission sequence);
+open_python ACCEPT (policy/capability test scope and canonical source paths).
+These verdicts accept authoring only, not execution or Epic completion.

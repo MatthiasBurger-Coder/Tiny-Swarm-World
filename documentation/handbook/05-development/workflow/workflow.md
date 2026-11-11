@@ -1,1261 +1,799 @@
-# #440 — Complete lifecycle qualification and parent acceptance
+# #440 — Remaining lifecycle acceptance
 
-Workflow ID: issue-440-final-acceptance
-workflowVersion: 1.0
-Status: EXECUTING; S440-01 PARTIAL (inventory accepted, live readiness NOT_VERIFIED); S440-02/03/04/05 VERIFIED_LOCAL; no live GO granted
+Workflow ID: issue-440-open-acceptance
+workflowVersion: 2.0
+Status: READY_FOR_WORKFLOW; all execution slices PLANNED, no live GO
 Issue: [#440](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
-Branch: `docs/workflow-issue440-acceptance-20261110`
-Baseline: `ca6902579f51c2c6d9439bf9c58dec02bfb45a93`
+Branch: `docs/workflow-issue440-open-20261111`
+Committed authoring baseline: `c40d87ed81101dd582a112fe8b427d84372f36e2`
 Execution profile: FULL_PATH
-Process strand: workflow create; implementation requires workflow execute
+Process strand: workflow create; execution requires separately invoked workflow execute.
 
 ## Executive Summary
 
-Close the actual #440 acceptance gaps through existing Classic lifecycle paths:
-repair the four observed Sonar findings without weakening validation, finish any
-proven scoped-profile integration gaps, bind qualification tooling to the new
-workflow, qualify exact Incus prerequisites, execute attributable Portainer,
-component and selective-installation scenarios, and obtain independent final
-acceptance. Work-package closure, installation success and reachable login pages
-do not establish this parent acceptance.
+Complete the actual remaining #440 acceptance after the verified local repair:
+checkpoint its exact source, close proven recipe/recovery gaps, freeze a valid
+qualification campaign, establish recoverable hosts, qualify native/WSL listeners,
+admit the precise capability, exercise Portainer/components/selection/product
+cases, observe applicable final gates and obtain independent parent acceptance.
+This new documentation-only branch does not contain the uncommitted repair.
+Slice01 must acquire and verify it; absent source is a hard STOP.
 
-## Target Picture
+## Verified Baseline and Target Picture
 
-The delivered Linux/WSL → Incus/LXC → Docker Engine/Swarm operator path performs
-supported product and component updates and selective setup/add without losing
-configuration, credential references, installation/service identities or data.
-Inspect/preview/consent/apply/verify/recover remain coherent. Supported targets
-have attributable exact-source evidence; unqualified targets remain blocked.
-The final parent matrix has no open requirement and all applicable gates pass.
+Original repair remains preserved in the original workspace. Its independent
+bounded audit accepted 18 targeted tests without skips and full quality4058run/
+37declared skips, including corrected premature preview readiness. Those facts
+apply only to the recorded five-file source, not this authoring branch, a new
+workflow binding, current host readiness, Sonar or live restoration. Completed
+S440-02/03/04/05 checkpoints stay historical; do not re-plan their fixes as absent.
+P01 historical official0.4.0→0.5.0 remains accepted within its actual scope.
+
+Target: Linux/WSL→Incus/LXC→Docker Engine/Swarm operator paths preserve local
+configuration, credential references, installation/service identities and data.
+Each required update/selection/recovery is tied to exact source and host evidence.
+Parent #440 remains INCOMPLETE until all acceptance and applicable gates pass.
 
 ## Requirement Clarification Gate
 
-- Original Request: “Dann müssen diese behoben werden => erslle einen workflow”.
-- Interpreted Intent: create and publish the complete workflow for the open #440 criteria; do not execute it during authoring.
-- Change Type: planned bug remediation, prerequisite completion and cross-host lifecycle qualification.
-- Affected Process Strand: workflow create now; separately invoked workflow execute later.
-- Affected Architecture Area: existing lifecycle services/ports, profile ownership, Incus/Portainer adapters, catalogs, checkpoints, evidence and CLI wiring.
-- Explicit Requirements: 47 LCM-01–05 items, 15 parent criteria P01–P15 and four late acceptance groups, recorded in requirement-matrix.md and requirements.json.
-- Implicit Requirements: exact-source/host attribution, preservation, denied-path checks, trustworthy qualification-to-admission ordering, independent reviews and no silent scope reduction.
-- Assumptions: preserve the accepted historical 0.4.0→0.5.0 transition; use the existing native and WSL fixture design; investigate missing implementation inside the named foundational slices.
-- Non-Goals: Kubernetes/Podman, another orchestration engine, generic Incus package upgrades, clean Windows one-command setup (#488), arbitrary component versions, unattended updates, destructive reuse of existing installations, new external CI, rule/threshold weakening or issue closure during authoring.
-- Risks: missing backups, shared-host effects, stale workflow/source hashes, ambiguous checkpoints, unsafe qualification promotion, false-positive remediation that weakens type/path/cancellation guards.
-- Open Questions: exact private fixture ownership, resource capacity and preservation receipts are runtime preflight inputs; S440-01 must resolve the scenario ledger before live work. Any required API/contract expansion needs review in its owning slice.
-- Blocking Questions: none for this authoring scope. Missing live consent or capability admission blocks its dependent live slice, not deterministic implementation.
-- Confidence Level: 94% in requirement/scope readiness; this is not runtime evidence. Clarification attempt 1 of maxRetries 3.
-- Decision: READY_FOR_WORKFLOW, with explicit prerequisite, review and scenario-specific consent gates.
-- Four mandatory authoring roles: Requirement, System Architecture, Python Automation and Tester, performed as recorded role passes by one agent. These are not independent completion approvals.
-
-## Verified Baseline
-
-PR #518 is merged as `ca6902579f51c2c6d9439bf9c58dec02bfb45a93` and its nine commits remain in history. The
-working tree was clean before this dedicated branch was created. Existing WSL
-full quality passed 4,011 tests with 37 explicit skips. Main hosted quality,
-coverage export and Python 3.12/3.13/3.14 passed. Sonar run 42900701586 completed
-analysis of this merge; its actual security and reliability gates failed (both
-E). New coverage 86.6% passed the 80% threshold. One S2083 finding and three
-S7497/S3403 findings are in files unchanged by #518; they remain in scope here.
-
-`incus-profile-capabilities.json` has an empty admitted_versions list. Scoped
-composition/services/runtime callers exist and must be traced rather than
-recreated. The separate data-only incus_capability classifier remains unsupported.
-Swagger/Traefik entries are candidate-transition. At the baseline, the listener
-fixture and native maintenance pinned the historical #449 workflow. S440-05
-rebinds both to this active root file and retains exact current-commit, approval
-and hash checks.
-
-The old #355 and #449 workflow content remains available in Git at
-`ca6902579f51c2c6d9439bf9c58dec02bfb45a93`. The canonical suite exposed a static
-native test dependency on the exact #449 blob, so S440-01 restored those bytes
-until S440-05 re-bound both consumers and their tests. Prior source-bound
-approvals expire with their exact approved source and workflow binding.
+- Original Request: “Erstelle ein worklow für die offenen punkte”.
+- Interpreted Intent: author the complete remaining-work plan; do not execute live changes.
+- Change Type: workflow regeneration and traceable remaining acceptance.
+- Affected Process Strand: workflow create now; workflow execute later.
+- Affected Architecture Area: existing Python lifecycle/CLI, qualification tooling, Windows/WSL cold coordination, Incus capability, evidence and release checks.
+- Explicit Requirements: remaining points in the conversation and unchanged47LCM/15parent/45childAC plus late/global obligations.
+- Implicit Requirements: preserve uncommitted changes, exact source acquisition, recoverable targets, no false live/Sonar claims, independent reviews and bounded failure recovery.
+- Assumptions: original repair source remains owner-retained; missing source blocks execution, not planning. Host, backup, approvals and image availability are not assumed.
+- Non-Goals: no new runtime/orchestrator, Kubernetes, browser frontend, Java/Maven/Spring, external CI, automatic PR/merge/release or GitHub issue writes.
+- Risks: live interruption, source-chain invalidation, unsupported product targets, incomplete recipe attribution and unavailable Sonar.
+- Open Questions: actual host/backup/source/approval/PR access are execution admission conditions with owners in prerequisite-ledger.md.
+- Blocking Questions for authoring: none; do not infer answers for execution.
+- Confidence Level:95percent, requirement confidence only.
+- Decision: READY_FOR_WORKFLOW, four real specialist reviews recorded in authoring-review.md.
 
 ## Scope and Architecture Constraints
 
-Use the canonical catalog and installation manifest, existing lifecycle services,
-ports and #297-backed update executor. Domain remains free of host/process/HTTP
-dependencies; application owns orchestration via ports; infrastructure owns
-filesystem, process, Git/package, Incus and Portainer effects. CLI stays thin.
-Do not add an alternate runner that bypasses these boundaries. Preserve public
-commands and explicit failures, credential-source references, state schema and
-legacy full Classic behavior unless a reviewed requirement requires a change.
+Preserve hexagonal Python boundaries and canonical core implementations. Native
+qualification files remain compatibility delegates; do not create a second
+orchestrator/catalog or put shell/filesystem details into application services.
+Accepted Classic lifecycle and installation-scoped-profile ADRs remain authority.
+No new ADR is needed for this plan; any changed ownership/support/recovery policy
+stops its slice for an explicit decision. Keep unsupported/unknown versions,
+source/consent drift and uncertain effects fail-closed. Incus is a provider
+prerequisite; Portainer remains a mandatory managed Classic foundation.
 
-Follow the accepted lifecycle, selection/stack ownership, scoped-route and
-installation-scoped-profile ADRs. R67k permits mock-only implementation before
-listener qualification; it does not admit a version or grant a host-effect GO.
-Every mutating scoped caller, recovery and cleanup must pass pre-effect capability
-admission, exact ownership and durable checkpoint rules. A fixture result,
-capability admission, candidate qualification and product acceptance are separate
-decisions. Unknown version/source/consumer or uncertain acknowledgement fails closed.
+## Python Automation Assessment and Frontend Assessment
 
-## Python Automation Assessment
+Actual product/component/Portainer public CLI exists. Both product supervisors
+still refuse product-v1 cases; reporter supports SIGTERM rather than SIGINT or
+API-down. Slices03/04 own concrete source/test repairs before live campaigns.
+The existing reporter is modules/tsw_core/tests/e2e/classic/run_lcm_acceptance.py.
+No browser frontend exists in this scope. CLI/help changes use console/status
+review only when actually changed; no React work is authorized.
 
-Use the shipped Python 3.12+ package and verified Linux/WSL launchers. The trace is
-`tiny-swarm-world`/`tsw` → core __main__/CLI dispatch → existing installation,
-component/product/Portainer/profile services → ports → concrete adapters and
-manifest/journal writes. Verify this exact trace and its flags in S440-01.
-Source maps and existing tests are listed per slice. Proposed new harness files
-are explicitly identified in S440-05; no unimplemented helper is an executable
-verification command. No tests or infrastructure are run during workflow authoring.
+## Test Strategy and Quality Gates
 
-## Frontend Assessment
+Authoring is documentation-only: static metadata/DAG/path/requirement/link/hash
+inspection and git diff --check on the designated SSH/WSL host. Full project
+quality is NOT_RUN_DOC_ONLY for this plan; prior repair results are historical.
+Implementation slices require nearest regressions then the unchanged QUALITY.md
+full gate. No tests begin during ongoing development without the applicable
+explicit verification or PR-creation authorization; authoring grants no live GO.
 
-No new browser frontend exists or is proposed. Existing Selenium/service-browser
-checks are live evidence only. Console/status UI review is conditional for any
-change to human/JSON status, progress, help or actionable error output; preserve
-exit/JSON contracts. No React/Java/Maven scope is introduced.
+All agent-run tests/gates use SSH pc@192.168.178.58 inside Ubuntu WSL. Read
+credentials privately from ~/.access; never log/pass them in command arguments
+or repository files. Verify remote repository, Python3.12 editable package origin
+and exact changed-file equivalence first. Unavailable credentials/SSH/WSL block;
+no alternate host fallback. Native deployment qualification remains a separately
+approved target; running its mocked tests still uses the mandated test host.
 
-## Test Strategy and Resilience Requirements
+Use actual commands from QUALITY.md: python3 modules/tsw_core/tools/linux/quality_gate.py quality, lint,
+arch-lint, arch-tests, typecheck, test and verification-policy. Live/external
+pseudo-actions in metadata identify review/evidence obligations, not invented
+executables; exact admitted argv must be checked from --help before GO.
 
-All agent-run deterministic tests and quality gates execute via SSH to the
-Windows PC identified in AGENTS.md, inside its Ubuntu WSL. Read credentials from
-~/.access without printing or putting them in argv/logs/Git. Verify source hashes,
-repository root and installed package before each relevant check. SSH/WSL outage
-is BLOCKED; never silently test elsewhere. Native deployment qualification is a
-separate admitted target/scenario controlled from that WSL session; browser tests
-against a native host do not qualify a deployment inside WSL.
+## Resilience Requirements
 
-Run meaningful targeted regressions first, then the canonical gate for changed
-runtime source. Use fake effects/temp files by default. Live/scenario evidence
-requires separately admitted, recoverable targets and explicit applicable consent.
-Missing consent or prerequisites must never count as verification; record the applicable blocked verification state.
-do not reinterpret workflow create as live approval. Preserve existing explicit
-authorization only when its exact target, action and scenario still apply.
+Every live effect requires bounded waits/retries, exact lease/ownership and
+fresh source/JIT/GO, usable cold backups and a proven return path BEFORE downtime.
+No replay or blanket clearing of uncertain intent. Prove each reachable reset/
+bridge/restore failure route; safe refusal is not recoverability. Preserve full
+Windows state within the fixture window and separate any later owned destination
+refresh during actual original restoration. Record actual process identity,
+checkpoint/signal, exit/settlement, no-op, partial failure and repeat recovery.
 
-Before each live scenario bind the reviewed candidate, executable/arguments,
-host/client/server versions, resource/route/consumer state, selection, cold backup,
-rollback/recovery boundaries and no-external-writer window. Serialize writers and
-shared hosts. Capture signals against actual process/checkpoint identities,
-lost acknowledgements and post-state readback; retain uncertain state rather than
-blindly retrying or deleting. Preserve unrelated issue447 assets, Windows rules,
-PortProxy and route baselines. Fixture loopback ports are not customer routes.
+## Campaign Source Graph and Checkpoint Separation
 
-Authoring: static/doc checks APPLICABLE_LOCAL, live LIVE_NOT_APPLICABLE and
-external gate EXTERNAL_GATE_NOT_APPLICABLE to branch-only planning publication.
-Execution: deterministic gates APPLICABLE_LOCAL, required host/service/browser
-scenarios APPLICABLE_LIVE, configured hosted/Sonar checks APPLICABLE_EXTERNAL.
-Actual per-scenario applicability, consent and result remain separately recorded.
+Complete all helper/workflow/policy changes before freezing clean source C.
+The component qualification candidate policy must already be in C before WSL
+preparation. After paired fixtures, K is exactly ONE direct child of C changing
+ONLY incus-profile-capabilities.json. qualification_revision() permits C or K;
+helper, policy or documentation commits cannot be appended to this chain.
+No source-binding bypass or unreviewed equivalence exception is authorized.
+
+Keep C and K in dedicated campaign worktrees/refs. Integration-branch slice
+checkpoints and progress records must not move their HEAD or dirty their tracked
+files. During live slices raw/progress evidence stays in ignored/private external
+journals; publish redacted summaries on the integration branch, not into C/K.
+Never edit the frozen active workflow merely to mark progress. If a helper or
+runtime delta becomes necessary, stop affected cases, create/review a new source
+campaign and renew preparation/GO/qualification. Final integrated source needs
+explicit independently reviewed equivalence or requalification of affected cases.
+
+## Parallel Execution
+
+- Can this workflow run in parallel? Serial writes/effects by default; independent read-only reviews may run concurrently.
+- Conflicting workflows: old #440/#449 campaigns and any writer of the same installation, source, approval or shared host.
+- Shared files: qualification producer/reporter/supervisors, active workflow, capability/policy, W09/W10 and coordination evidence.
+- Shared infrastructure: designated SSH/WSL test host and separately admitted native/WSL live targets.
+- Requires isolated worktree: yes, per workflow/approved stream/campaign.
+- Requires serialized live validation: yes; host-wide WSL/network/Incus effects cannot overlap.
+- Merge-order constraints:01→02→03→04→05→06→07→08→09→10→11→12→13→14; C/K topology is independent of integration progress commits.
+
+## Automatic Work Distribution Policy
+
+workflow execute automatically inspects each slice for safe specialist stream
+splitting. Use real Codex subagents; if unavailable, record explicit role-based
+fallback. Before writes create .codex/evidence/slice-<number>-distribution.md;
+after consolidation create .codex/evidence/slice-<number>-consolidation.md.
+Each record must name this workflow/version, source and slice; old files are
+historical, never proof of current acceptance. Codex remains final integration,
+verification and PR-readiness owner. Stream workers never merge directly.
+
+Stream map: backend/automation→Senior Python Automation Developer; frontend→
+conditional console/status reviewer only; tests/quality→Senior Tester;
+runtime→Senior DevOps; documentation→Senior Documentation Engineer;
+architecture→Senior System Architect; security→Senior Security Sandbox Engineer.
+No parallel writers for overlapping files, unclear architecture/requirements,
+mandatory ordering, shared migrations/schemas/generated files, unknown secrets,
+unsafe guards or a Three-Amigos not-safely-parallelizable decision. S3D must
+revalidate actual locks before every write-capable slice; no automatic widening.
+
+## Git Worktree Execution Rule
+
+Authoring uses its own clean dedicated worktree/branch. Original user repair
+changes remain untouched. Execution/stream/campaign branches have explicit owners;
+only root consolidates. One slice per checkpoint commit; checkpoint push is not
+PR creation, merge or push auto. C/K campaign refs retain frozen source identity.
+Do not delete any worktree/branch or stash/reset user changes during authoring.
 
 ## Ordered Slices and Dependency Graph
 
 ```mermaid
 flowchart TD
-  S01[S440-01 Requirements and provenance] --> S02[S440-02 Path confinement]
-  S01 --> S03[S440-03 Reliability semantics]
-  S02 --> S04[S440-04 Scoped integration]
-  S03 --> S04
-  S04 --> S05[S440-05 Qualification binding and evidence]
-  S05 --> S06[S440-06 Native and WSL listener fixtures]
-  S06 --> S07[S440-07 Independent capability admission]
-  S07 --> S08[S440-08 Portainer upgrade and recovery]
-  S08 --> S09[S440-09 Single and batch component qualification]
-  S09 --> S10[S440-10 Selection and remaining product variants]
-  S10 --> S11[S440-11 Final source, documentation and gates]
-  S11 --> S12[S440-12 Independent parent audit]
+  O01["S440O-01 Adopt and checkpoint the verified repair"]
+  O02["S440O-02 Reconcile gaps and make cold restoration admissible"]
+  O03["S440O-03 Close supported product-recipe and attribution gaps"]
+  O04["S440O-04 Implement SIGINT and API-down qualification contracts"]
+  O05["S440O-05 Freeze reviewed qualification candidate C"]
+  O06["S440O-06 Admit recoverable hosts and phase-specific approvals"]
+  O07["S440O-07 Qualify same-runner native/WSL listeners and restore"]
+  O08["S440O-08 Independently admit capability-only child K"]
+  O09["S440O-09 Qualify Portainer upgrade and API-down recovery"]
+  O10["S440O-10 Qualify single/batch components before promotion"]
+  O11["S440O-11 Close selection, product and shared-control live gaps"]
+  O12["S440O-12 Consolidate exact accepted source, docs and local gates"]
+  O13["S440O-13 Obtain PR authorization and observe required CI/Sonar"]
+  O14["S440O-14 Independent parent completion audit and handoff"]
+  O01 --> O02 --> O03 --> O04 --> O05 --> O06 --> O07 --> O08 --> O09 --> O10 --> O11 --> O12 --> O13 --> O14
 ```
 
-Only S440-02 and S440-03 may run concurrently after disjoint-lock confirmation;
-everything else follows the graph. Scenario source changes invalidate affected
-downstream evidence. Expected effort is 11–24 engineer-days including prerequisite
-implementation, qualification and review effort; host access, image transfer,
-external CI and reviewer waiting add calendar time. Estimate confidence is medium
-to low until S440-01 inventories actual fixtures and implementation deltas.
+### Slice 01 — Adopt and checkpoint the verified repair
 
-### Slice 01 — Freeze requirements, provenance and qualification scope
+Purpose: Acquire the exact five reviewed files from the preserved original workspace or an independently verified immutable repair revision. Verify every SHA in requirements.json, provenance and the retained 18/4058-test logs; do not copy unrelated workflow edits. Import only those files, rerun applicable targeted/full checks with proper authorization against the new workflow source, independently review and create one repair-only checkpoint. Missing source, a hash mismatch or absent review blocks before writes. This authoring branch starts at c40d87ed and DOES NOT ship the repair.
 
-Purpose: Re-extract the complete parent, late additions and child requirements. Assign every normative statement to implementation, current tests and historical/live evidence; classify reused, stale, missing and failed results. Inspect the installed launcher and every public command through composition to actual effects.
+Prerequisites: branch/source/provenance admission. Mode: LOCAL.
 
-Prerequisites: Verified dedicated branch, complete context and S3/S3D preflight.
+Done criteria: all stated observations and required checks have attributable evidence; independent owner review accepts the exact slice. No planned result counts as executed.
 
-Requirement mapping: P05, P08, P10, P12, P14. Read the corresponding LCM and late-addition rows in requirement-matrix.md.
-
-Done criteria: A complete requirement-to-command/evidence inventory, approved fixture ownership and recovery plan, exact test/deployment host distinction, source/archive binding and per-scenario gaps exist. No missing foundation is treated as supplied by a closed issue.
-
-Stop conditions: Unclear host ownership, ambiguous product/selection semantics, unexpected local changes or an unbound evidence source blocks the affected scenario; continue independent deterministic fixes.
-
-Evidence: `.tiny-swarm/evidence/issue-440/slice-01/`; retain exact commands/results and before/after source/state bindings. Effort: 0.5–1 engineer-day.
-
-Allowed files, locks, owners, dependencies and verified commands:
+Evidence: `.tiny-swarm/evidence/issue-440-open/slice-01/` with the six issue-completion files. Requirement mapping: P08, P09, P11, P12, P13.
 
 ```yaml
 {
-  "slice_id": "S440-01",
+  "slice_id": "S440O-01",
   "profile": "FULL_PATH",
-  "status": "PARTIAL_INVENTORY_ACCEPTED_LIVE_READINESS_PENDING",
-  "owner": "Senior Requirement Engineer",
+  "status": "PLANNED",
+  "owner": "Senior Python Automation Developer",
   "secondary_reviewers": [
     "Senior Requirement Engineer",
     "Senior System Architect",
-    "Senior Python Automation Developer",
-    "Senior Tester"
+    "Senior Tester",
+    "Senior Security Sandbox Engineer",
+    "Senior DevOps"
   ],
   "affected_files": [
-    "documentation/handbook/05-development/workflow/requirement-matrix.md",
-    "documentation/handbook/05-development/workflow/prerequisite-ledger.md",
-    "documentation/handbook/05-development/workflow/scenario-plan.md",
-    "documentation/handbook/05-development/workflow/issues/issue-449/workflow.md",
-    "documentation/handbook/05-development/README.adoc"
+    "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_guest_switch.ps1",
+    "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_registration.ps1",
+    "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_bridge_binding.ps1",
+    "modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_guest_switch.py",
+    "modules/tsw_core/tests/fixtures/wsl_acceptance_guest_switch.ps1"
   ],
   "affected_modules": [
-    "governance",
-    "lifecycle acceptance"
+    "existing qualification/lifecycle and evidence"
   ],
   "affected_contracts": [
-    "P01-P15",
-    "LCM-01-LCM-05"
+    "public CLI/evidence/source ownership",
+    "frozen C/K campaign provenance"
   ],
   "dependencies": [],
   "parallel_group": "serial-01",
   "parallel_execution_eligible": false,
   "requires_isolated_worktree": true,
-  "requires_serialized_live_validation": true,
+  "requires_serialized_live_validation": false,
   "file_locks": [
-    "documentation/handbook/05-development/workflow/requirement-matrix.md",
-    "documentation/handbook/05-development/workflow/prerequisite-ledger.md",
-    "documentation/handbook/05-development/workflow/scenario-plan.md",
-    ".tiny-swarm/evidence/issue-440/slice-01/**",
-    "documentation/handbook/05-development/workflow/issues/issue-449/workflow.md",
-    "documentation/handbook/05-development/README.adoc"
+    "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_guest_switch.ps1",
+    "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_registration.ps1",
+    "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_bridge_binding.ps1",
+    "modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_guest_switch.py",
+    "modules/tsw_core/tests/fixtures/wsl_acceptance_guest_switch.ps1",
+    ".tiny-swarm/evidence/issue-440-open/slice-01/**"
   ],
   "contract_locks": [
-    "P01-P15",
-    "LCM-01-LCM-05"
+    "frozen C/K source and exact approval"
   ],
-  "architecture_locks": [],
+  "architecture_locks": [
+    "Classic cold-kernel and scoped capability policy"
+  ],
   "module_locks": [],
-  "shared_files": [],
+  "shared_files": [
+    "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_guest_switch.ps1",
+    "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_registration.ps1",
+    "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_bridge_binding.ps1",
+    "modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_guest_switch.py",
+    "modules/tsw_core/tests/fixtures/wsl_acceptance_guest_switch.ps1"
+  ],
   "shared_infrastructure": [
-    "designated SSH/WSL quality host"
+    "designated SSH/WSL quality host",
+    "approved live campaign only when admitted"
   ],
   "conflicting_workflows": [
-    "historical issue-449 qualification",
-    "any writer on the same installation/host"
+    "historical #440/#449 and same-host/source writers"
   ],
   "allowed_write_scope": [
-    "documentation/handbook/05-development/workflow/requirement-matrix.md",
-    "documentation/handbook/05-development/workflow/prerequisite-ledger.md",
-    "documentation/handbook/05-development/workflow/scenario-plan.md",
-    ".tiny-swarm/evidence/issue-440/slice-01/**",
+    "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_guest_switch.ps1",
+    "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_registration.ps1",
+    "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_bridge_binding.ps1",
+    "modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_guest_switch.py",
+    "modules/tsw_core/tests/fixtures/wsl_acceptance_guest_switch.ps1",
+    ".tiny-swarm/evidence/issue-440-open/slice-01/**",
     ".codex/evidence/slice-01-distribution.md",
-    ".codex/evidence/slice-01-consolidation.md",
-    "documentation/handbook/05-development/workflow/issues/issue-449/workflow.md",
-    "documentation/handbook/05-development/README.adoc"
-  ],
-  "requirement_ids": [
-    "P05",
-    "P08",
-    "P10",
-    "P12",
-    "P14"
-  ],
-  "quality_gates": {
-    "targeted": [
-      "PYTHONPATH=. python3 -m unittest modules.tsw_core.tests.test_package_entrypoint modules.tsw_core.tests.test_selective_setup_cli modules.tsw_core.tests.test_portainer_upgrade_cli modules.tsw_core.tests.test_component_updates_cli modules.tsw_core.tests.test_product_upgrade_cli"
-    ],
-    "required": [
-      "git diff --check"
-    ]
-  },
-  "documentation": {
-    "arc42": "Review existing relevant boundaries/ADRs; update only if an approved delta requires it.",
-    "adr": "Accepted installation-scoped-profile and Classic lifecycle decisions remain authoritative."
-  },
-  "stop_conditions": [
-    "Unclear host ownership, ambiguous product/selection semantics, unexpected local changes or an unbound evidence source blocks the affected scenario; continue independent deterministic fixes.",
-    "No guard/rule/threshold weakening; no unapproved live or external writes."
-  ]
-}
-```
-
-### Slice 02 — Resolve the WSL path-traversal finding
-
-Purpose: Reproduce Sonar pythonsecurity:S2083 at the actual file-effect boundary. Preserve legitimate WSL user-profile handling while proving confinement, symlink/reparse refusal, validation of external command output and safe backup/write ownership; preserve contents on refusal.
-
-Prerequisites: S440-01.
-
-Requirement mapping: P11, P13. Read the corresponding LCM and late-addition rows in requirement-matrix.md.
-
-Done criteria: Adversarial traversal, malformed/multiline paths, symlink/redirect and replacement cases cannot read or write outside the explicitly admitted profile/config target. Existing supported-path and backup behavior remain verified. Resolve the specific Sonar finding through code or a separately reviewed, evidence-backed false-positive decision; never suppress the rule or broaden exclusions.
-
-Stop conditions: Unknown filesystem identity, TOCTOU gap or a required network/Windows mutation without scenario consent blocks live checks; no WSL shutdown or host repair is run during deterministic regression work.
-
-Evidence: `.tiny-swarm/evidence/issue-440/slice-02/`; retain exact commands/results and before/after source/state bindings. Effort: 1–2 engineer-days.
-
-Allowed files, locks, owners, dependencies and verified commands:
-
-```yaml
-{
-  "slice_id": "S440-02",
-  "profile": "FULL_PATH",
-  "status": "VERIFIED_LOCAL_EXTERNAL_REANALYSIS_PENDING",
-  "owner": "Senior Security Sandbox Engineer",
-  "secondary_reviewers": [
-    "Senior Requirement Engineer",
-    "Senior System Architect",
-    "Senior Python Automation Developer",
-    "Senior Tester",
-    "Senior Security Sandbox Engineer",
-    "Senior DevOps"
-  ],
-  "affected_files": [
-    "modules/tsw_core/src/infrastructure/adapters/network/host_network_repair.py",
-    "modules/tsw_core/tests/infrastructure/adapters/network/test_host_network_repair.py",
-    "modules/tsw_core/src/infrastructure/adapters/network/wslconfig_files.py"
-  ],
-  "affected_modules": [
-    "core network adapter"
-  ],
-  "affected_contracts": [
-    "host config path confinement",
-    "secret-safe repair results"
-  ],
-  "dependencies": [
-    "S440-01"
-  ],
-  "parallel_group": "independent-fixes",
-  "parallel_execution_eligible": true,
-  "requires_isolated_worktree": true,
-  "requires_serialized_live_validation": true,
-  "file_locks": [
-    "modules/tsw_core/src/infrastructure/adapters/network/host_network_repair.py",
-    "modules/tsw_core/tests/infrastructure/adapters/network/test_host_network_repair.py",
-    ".tiny-swarm/evidence/issue-440/slice-02/**",
-    "modules/tsw_core/src/infrastructure/adapters/network/wslconfig_files.py"
-  ],
-  "contract_locks": [
-    "host config path confinement",
-    "secret-safe repair results"
-  ],
-  "architecture_locks": [],
-  "module_locks": [],
-  "shared_files": [],
-  "shared_infrastructure": [
-    "designated SSH/WSL quality host"
-  ],
-  "conflicting_workflows": [
-    "historical issue-449 qualification",
-    "any writer on the same installation/host"
-  ],
-  "allowed_write_scope": [
-    "modules/tsw_core/src/infrastructure/adapters/network/host_network_repair.py",
-    "modules/tsw_core/tests/infrastructure/adapters/network/test_host_network_repair.py",
-    ".tiny-swarm/evidence/issue-440/slice-02/**",
-    ".codex/evidence/slice-02-distribution.md",
-    ".codex/evidence/slice-02-consolidation.md",
-    "modules/tsw_core/src/infrastructure/adapters/network/wslconfig_files.py"
-  ],
-  "requirement_ids": [
-    "P11",
-    "P13"
-  ],
-  "quality_gates": {
-    "targeted": [
-      "PYTHONPATH=. python3 -m unittest modules.tsw_core.tests.infrastructure.adapters.network.test_host_network_repair"
-    ],
-    "required": [
-      "python3 modules/tsw_core/tools/linux/quality_gate.py quality"
-    ]
-  },
-  "documentation": {
-    "arc42": "Review existing relevant boundaries/ADRs; update only if an approved delta requires it.",
-    "adr": "Accepted installation-scoped-profile and Classic lifecycle decisions remain authoritative."
-  },
-  "stop_conditions": [
-    "Unknown filesystem identity, TOCTOU gap or a required network/Windows mutation without scenario consent blocks live checks; no WSL shutdown or host repair is run during deterministic regression work.",
-    "No guard/rule/threshold weakening; no unapproved live or external writes."
-  ]
-}
-```
-
-Reviewed S440-02 scope refinement (S440-01 discovery): the unchanged complexity
-gate found grown-module-complexity and grown-module-coupling in host_network_repair.py
-after the descriptor transaction was added. Extract only that cohesive filesystem
-transaction into proposed sibling `modules/tsw_core/src/infrastructure/adapters/network/wslconfig_files.py`. Keep lexical mapping and NAT text
-policy in the existing adapter, passed through a callable; no port, architecture
-boundary, effect semantics, threshold or test assertion changes. Independent
-scope review ACCEPT, refreshed file locks remain disjoint from S440-03.
-
-### Slice 03 — Resolve cancellation and strict-type reliability findings
-
-Purpose: Review python:S7497 and both python:S3403 findings semantically before editing. Preserve exact-type rejection, bool/int distinctions, malformed-input refusals and CAS behavior. Preserve durable operation-lock ownership while an admitted child settles and always propagate caller cancellation.
-
-Prerequisites: S440-01.
-
-Requirement mapping: P08, P09, P11, P13. Read the corresponding LCM and late-addition rows in requirement-matrix.md.
-
-Done criteria: Tests prove single/repeated cancellation, child failure and cancellation, ownership until settlement, cancellation propagation, strict input types and unchanged no-mutation refusal semantics. Findings are fixed or individually adjudicated with independent evidence; do not mechanically weaken exact-type checks to satisfy static analysis.
-
-Stop conditions: A proposed change can release ownership before effects settle, swallow cancellation, accept wrong types or change denial exits; return to architecture/test review.
-
-Evidence: `.tiny-swarm/evidence/issue-440/slice-03/`; retain exact commands/results and before/after source/state bindings. Effort: 1–2 engineer-days.
-
-Allowed files, locks, owners, dependencies and verified commands:
-
-```yaml
-{
-  "slice_id": "S440-03",
-  "profile": "FULL_PATH",
-  "status": "VERIFIED_LOCAL_EXTERNAL_REANALYSIS_PENDING",
-  "owner": "Senior Python Automation Developer",
-  "secondary_reviewers": [
-    "Senior Requirement Engineer",
-    "Senior System Architect",
-    "Senior Python Automation Developer",
-    "Senior Tester"
-  ],
-  "affected_files": [
-    "modules/tsw_core/src/application/services/installation_profile.py",
-    "modules/tsw_core/src/infrastructure/adapters/lifecycle/versioned_manifest_repository.py",
-    "modules/tsw_core/src/infrastructure/adapters/cli/migration_admission.py",
-    "modules/tsw_core/tests/application/services/test_installation_profile.py",
-    "modules/tsw_core/tests/infrastructure/adapters/lifecycle/test_versioned_manifest_repository.py",
-    "modules/tsw_core/tests/test_migration_admission_cli.py",
-    "modules/tsw_core/tests/application/services/test_migration_admission.py"
-  ],
-  "affected_modules": [
-    "core application",
-    "manifest repository",
-    "CLI admission"
-  ],
-  "affected_contracts": [
-    "cancellation ownership",
-    "exact-type validation",
-    "CAS safety"
-  ],
-  "dependencies": [
-    "S440-01"
-  ],
-  "parallel_group": "independent-fixes",
-  "parallel_execution_eligible": true,
-  "requires_isolated_worktree": true,
-  "requires_serialized_live_validation": true,
-  "file_locks": [
-    "modules/tsw_core/src/application/services/installation_profile.py",
-    "modules/tsw_core/src/infrastructure/adapters/lifecycle/versioned_manifest_repository.py",
-    "modules/tsw_core/src/infrastructure/adapters/cli/migration_admission.py",
-    "modules/tsw_core/tests/application/services/test_installation_profile.py",
-    "modules/tsw_core/tests/infrastructure/adapters/lifecycle/test_versioned_manifest_repository.py",
-    "modules/tsw_core/tests/test_migration_admission_cli.py",
-    "modules/tsw_core/tests/application/services/test_migration_admission.py",
-    ".tiny-swarm/evidence/issue-440/slice-03/**"
-  ],
-  "contract_locks": [
-    "cancellation ownership",
-    "exact-type validation",
-    "CAS safety"
-  ],
-  "architecture_locks": [],
-  "module_locks": [],
-  "shared_files": [],
-  "shared_infrastructure": [
-    "designated SSH/WSL quality host"
-  ],
-  "conflicting_workflows": [
-    "historical issue-449 qualification",
-    "any writer on the same installation/host"
-  ],
-  "allowed_write_scope": [
-    "modules/tsw_core/src/application/services/installation_profile.py",
-    "modules/tsw_core/src/infrastructure/adapters/lifecycle/versioned_manifest_repository.py",
-    "modules/tsw_core/src/infrastructure/adapters/cli/migration_admission.py",
-    "modules/tsw_core/tests/application/services/test_installation_profile.py",
-    "modules/tsw_core/tests/infrastructure/adapters/lifecycle/test_versioned_manifest_repository.py",
-    "modules/tsw_core/tests/test_migration_admission_cli.py",
-    "modules/tsw_core/tests/application/services/test_migration_admission.py",
-    ".tiny-swarm/evidence/issue-440/slice-03/**",
-    ".codex/evidence/slice-03-distribution.md",
-    ".codex/evidence/slice-03-consolidation.md"
+    ".codex/evidence/slice-01-consolidation.md"
   ],
   "requirement_ids": [
     "P08",
     "P09",
     "P11",
-    "P13"
-  ],
-  "quality_gates": {
-    "targeted": [
-      "PYTHONPATH=. python3 -m unittest modules.tsw_core.tests.application.services.test_installation_profile modules.tsw_core.tests.infrastructure.adapters.lifecycle.test_versioned_manifest_repository modules.tsw_core.tests.test_migration_admission_cli modules.tsw_core.tests.application.services.test_migration_admission"
-    ],
-    "required": [
-      "python3 modules/tsw_core/tools/linux/quality_gate.py quality"
-    ]
-  },
-  "documentation": {
-    "arc42": "Review existing relevant boundaries/ADRs; update only if an approved delta requires it.",
-    "adr": "Accepted installation-scoped-profile and Classic lifecycle decisions remain authoritative."
-  },
-  "stop_conditions": [
-    "A proposed change can release ownership before effects settle, swallow cancellation, accept wrong types or change denial exits; return to architecture/test review.",
-    "No guard/rule/threshold weakening; no unapproved live or external writes."
-  ]
-}
-```
-
-### Slice 04 — Complete and prove the scoped lifecycle integration
-
-Purpose: Trace the existing integrated implementation rather than rebuilding it. Repair only proven gaps in pre-effect capability admission, stopped-manager init/route readback/start ordering, effective inherited devices, consumer drift, durable checkpoints and lost-ack handling for setup/add/update/recovery/cleanup.
-
-Prerequisites: S440-02, S440-03.
-
-Requirement mapping: P03, P04, P05, P06, P07, P08, P09, P11, P13. Read the corresponding LCM and late-addition rows in requirement-matrix.md.
-
-Done criteria: Every delivered caller, including recovery and cleanup, is fail-closed with an empty/unknown capability matrix; legacy full Classic behavior remains separate. Exact route sets derive from persisted post-operation selection; changed or uncertain observations retain recoverable state. Installation lock ordering and safe ownership are tested. New application/port/domain files require an explicitly reviewed scope amendment before writing.
-
-Stop conditions: A new unguarded effect route, ambiguous legacy migration or necessary contract expansion requires a reviewed plan/ADR amendment before that path changes.
-
-Evidence: `.tiny-swarm/evidence/issue-440/slice-04/`; retain exact commands/results and before/after source/state bindings. Effort: 1–3 engineer-days, depending on the proven delta.
-
-Allowed files, locks, owners, dependencies and verified commands:
-
-```yaml
-{
-  "slice_id": "S440-04",
-  "profile": "FULL_PATH",
-  "status": "VERIFIED_LOCAL",
-  "owner": "Senior Python Automation Developer",
-  "secondary_reviewers": [
-    "Senior Requirement Engineer",
-    "Senior System Architect",
-    "Senior Python Automation Developer",
-    "Senior Tester",
-    "Senior Security Sandbox Engineer",
-    "Senior DevOps"
-  ],
-  "affected_files": [
-    "modules/tsw_core/src/application/services/profile_setup.py",
-    "modules/tsw_core/src/application/services/installation_profile.py",
-    "modules/tsw_core/src/application/services/profile_change.py",
-    "modules/tsw_core/src/application/services/profile_completion.py",
-    "modules/tsw_core/src/infrastructure/composition_profile.py",
-    "modules/tsw_core/src/infrastructure/composition_profile_runtime.py",
-    "modules/tsw_core/src/infrastructure/adapters/lifecycle/profile_setup.py",
-    "modules/tsw_core/src/infrastructure/adapters/lifecycle/profile_change.py",
-    "modules/tsw_core/src/infrastructure/adapters/lifecycle/profile_completion.py",
-    "modules/tsw_core/src/infrastructure/adapters/lifecycle/installation_operation_lock.py",
-    "modules/tsw_core/src/infrastructure/adapters/clients/lxc/profile/**",
-    "modules/tsw_core/src/infrastructure/adapters/clients/lxc/node/scoped.py",
-    "modules/tsw_core/tests/application/services/test_profile_change.py",
-    "modules/tsw_core/tests/application/services/test_installation_profile.py",
-    "modules/tsw_core/tests/infrastructure/adapters/clients/test_lxc_profile_lifecycle.py",
-    "modules/tsw_core/tests/infrastructure/adapters/lifecycle/test_installation_operation_lock.py",
-    "modules/tsw_core/tests/infrastructure/adapters/lifecycle/test_managed_stack_delivery.py",
-    "modules/tsw_core/tests/infrastructure/adapters/lifecycle/test_profile_observation.py",
-    "modules/tsw_core/tests/test_profile_recovery_cli.py",
-    "modules/tsw_core/tests/test_profile_legacy_compatibility.py"
-  ],
-  "affected_modules": [
-    "core profile application ports/adapters",
-    "Incus scoped runtime"
-  ],
-  "affected_contracts": [
-    "installation lock",
-    "checkpoint-bound profile/routes",
-    "selection and recovery"
-  ],
-  "dependencies": [
-    "S440-02",
-    "S440-03"
-  ],
-  "parallel_group": "serial-04",
-  "parallel_execution_eligible": false,
-  "requires_isolated_worktree": true,
-  "requires_serialized_live_validation": true,
-  "file_locks": [
-    "modules/tsw_core/src/application/services/profile_setup.py",
-    "modules/tsw_core/src/application/services/installation_profile.py",
-    "modules/tsw_core/src/application/services/profile_change.py",
-    "modules/tsw_core/src/application/services/profile_completion.py",
-    "modules/tsw_core/src/infrastructure/composition_profile.py",
-    "modules/tsw_core/src/infrastructure/composition_profile_runtime.py",
-    "modules/tsw_core/src/infrastructure/adapters/lifecycle/profile_setup.py",
-    "modules/tsw_core/src/infrastructure/adapters/lifecycle/profile_change.py",
-    "modules/tsw_core/src/infrastructure/adapters/lifecycle/profile_completion.py",
-    "modules/tsw_core/src/infrastructure/adapters/lifecycle/installation_operation_lock.py",
-    "modules/tsw_core/src/infrastructure/adapters/clients/lxc/profile/**",
-    "modules/tsw_core/src/infrastructure/adapters/clients/lxc/node/scoped.py",
-    "modules/tsw_core/tests/application/services/test_profile_change.py",
-    "modules/tsw_core/tests/application/services/test_installation_profile.py",
-    "modules/tsw_core/tests/infrastructure/adapters/clients/test_lxc_profile_lifecycle.py",
-    "modules/tsw_core/tests/infrastructure/adapters/lifecycle/test_installation_operation_lock.py",
-    "modules/tsw_core/tests/infrastructure/adapters/lifecycle/test_managed_stack_delivery.py",
-    "modules/tsw_core/tests/infrastructure/adapters/lifecycle/test_profile_observation.py",
-    "modules/tsw_core/tests/test_profile_recovery_cli.py",
-    "modules/tsw_core/tests/test_profile_legacy_compatibility.py",
-    ".tiny-swarm/evidence/issue-440/slice-04/**"
-  ],
-  "contract_locks": [
-    "installation lock",
-    "checkpoint-bound profile/routes",
-    "selection and recovery"
-  ],
-  "architecture_locks": [
-    "scoped-profile-boundary"
-  ],
-  "module_locks": [],
-  "shared_files": [],
-  "shared_infrastructure": [
-    "designated SSH/WSL quality host"
-  ],
-  "conflicting_workflows": [
-    "historical issue-449 qualification",
-    "any writer on the same installation/host"
-  ],
-  "allowed_write_scope": [
-    "modules/tsw_core/src/application/services/profile_setup.py",
-    "modules/tsw_core/src/application/services/installation_profile.py",
-    "modules/tsw_core/src/application/services/profile_change.py",
-    "modules/tsw_core/src/application/services/profile_completion.py",
-    "modules/tsw_core/src/infrastructure/composition_profile.py",
-    "modules/tsw_core/src/infrastructure/composition_profile_runtime.py",
-    "modules/tsw_core/src/infrastructure/adapters/lifecycle/profile_setup.py",
-    "modules/tsw_core/src/infrastructure/adapters/lifecycle/profile_change.py",
-    "modules/tsw_core/src/infrastructure/adapters/lifecycle/profile_completion.py",
-    "modules/tsw_core/src/infrastructure/adapters/lifecycle/installation_operation_lock.py",
-    "modules/tsw_core/src/infrastructure/adapters/clients/lxc/profile/**",
-    "modules/tsw_core/src/infrastructure/adapters/clients/lxc/node/scoped.py",
-    "modules/tsw_core/tests/application/services/test_profile_change.py",
-    "modules/tsw_core/tests/application/services/test_installation_profile.py",
-    "modules/tsw_core/tests/infrastructure/adapters/clients/test_lxc_profile_lifecycle.py",
-    "modules/tsw_core/tests/infrastructure/adapters/lifecycle/test_installation_operation_lock.py",
-    "modules/tsw_core/tests/infrastructure/adapters/lifecycle/test_managed_stack_delivery.py",
-    "modules/tsw_core/tests/infrastructure/adapters/lifecycle/test_profile_observation.py",
-    "modules/tsw_core/tests/test_profile_recovery_cli.py",
-    "modules/tsw_core/tests/test_profile_legacy_compatibility.py",
-    ".tiny-swarm/evidence/issue-440/slice-04/**",
-    ".codex/evidence/slice-04-distribution.md",
-    ".codex/evidence/slice-04-consolidation.md"
-  ],
-  "requirement_ids": [
-    "P03",
-    "P04",
-    "P05",
-    "P06",
-    "P07",
-    "P08",
-    "P09",
-    "P11",
-    "P13"
-  ],
-  "quality_gates": {
-    "targeted": [
-      "PYTHONPATH=. python3 -m unittest modules.tsw_core.tests.application.services.test_installation_profile modules.tsw_core.tests.application.services.test_profile_change modules.tsw_core.tests.infrastructure.adapters.clients.test_lxc_profile_lifecycle modules.tsw_core.tests.infrastructure.adapters.lifecycle.test_installation_operation_lock modules.tsw_core.tests.test_profile_recovery_cli modules.tsw_core.tests.test_profile_legacy_compatibility"
-    ],
-    "required": [
-      "python3 modules/tsw_core/tools/linux/quality_gate.py quality"
-    ]
-  },
-  "documentation": {
-    "arc42": "Review existing relevant boundaries/ADRs; update only if an approved delta requires it.",
-    "adr": "Accepted installation-scoped-profile and Classic lifecycle decisions remain authoritative."
-  },
-  "stop_conditions": [
-    "A new unguarded effect route, ambiguous legacy migration or necessary contract expansion requires a reviewed plan/ADR amendment before that path changes.",
-    "No guard/rule/threshold weakening; no unapproved live or external writes."
-  ]
-}
-```
-
-Reviewed S440-04 scope refinement. The canonical suite identified two existing Git
-test transports that still used the old source-observation command and row format.
-The independently accepted amendment covers only the two exact test files above.
-Keep the real source check and all existing recovery and read-only assertions.
-
-### Slice 05 — Bind qualification helpers to this workflow and complete evidence capture
-
-Purpose: Replace the hardcoded historical issue-449 workflow binding with an explicit reviewed binding to the checked active workflow, retaining clean-HEAD, exact hash, target and GO validation. Complete missing bounded scenario capture around the real public CLI, not a second lifecycle engine. The two run_lcm_acceptance/test_lcm_acceptance files are explicitly proposed new files, not existing executable commands.
-
-Prerequisites: S440-04.
-
-Requirement mapping: P02, P08, P09, P12, P13. Read the corresponding LCM and late-addition rows in requirement-matrix.md.
-
-Done criteria: Old/stale/foreign workflow approvals fail before mutation. Each scenario records exact source, executable/argv, host/version/selection, parent/child process, timestamps, exits, durable stage and private before/after checksums. Capture lost acknowledgements, signal attribution, output limits and redaction. New harness CLI/help is specified and reviewed in S440-01, implemented/tested here and only then entered as executable commands in scenario-plan.md. No fabricated checkpoint, runtime observation or generic force flag.
-
-Stop conditions: The current fixture cannot consume a reviewed active-workflow binding, an evidence read is ambiguous, or a proposed helper bypasses public CLI admission. The historical helper is not usable for this campaign until this slice passes.
-
-Evidence: `.tiny-swarm/evidence/issue-440/slice-05/`; retain exact commands/results and before/after source/state bindings. Effort: 1–2 engineer-days.
-
-Allowed files, locks, owners, dependencies and verified commands:
-
-```yaml
-{
-  "slice_id": "S440-05",
-  "profile": "FULL_PATH",
-  "status": "VERIFIED_LOCAL",
-  "owner": "Senior Python Automation Developer",
-  "secondary_reviewers": [
-    "Senior Requirement Engineer",
-    "Senior System Architect",
-    "Senior Python Automation Developer",
-    "Senior Tester",
-    "Senior Security Sandbox Engineer",
-    "Senior DevOps"
-  ],
-  "affected_files": [
-    "modules/tsw_core/tools/linux/qualification/incus_profile_listener_fixture.py",
-    "modules/tsw_core/tools/linux/qualification/native_lxd_maintenance.py",
-    "modules/tsw_core/tools/linux/qualification/preserving_product_acceptance.py",
-    "modules/tsw_core/tools/linux/qualification/product_upgrade_cases.py",
-    "modules/tsw_core/tools/linux/qualification/wsl_product_acceptance.py",
-    "modules/tsw_core/tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py",
-    "modules/tsw_native_linux/tests/tools/test_native_lxd_maintenance.py",
-    "modules/tsw_core/tests/e2e/classic/run_lcm_acceptance.py",
-    "modules/tsw_core/tests/tools/test_lcm_acceptance.py",
-    "documentation/handbook/05-development/workflow/issues/issue-449/workflow.md",
-    "documentation/handbook/05-development/README.adoc",
-    "documentation/handbook/05-development/workflow/workflow.index.md",
-    "documentation/handbook/05-development/workflow/scenario-plan.md"
-  ],
-  "affected_modules": [
-    "core qualification tooling",
-    "native delegates",
-    "existing lifecycle CLI"
-  ],
-  "affected_contracts": [
-    "workflow/source approval identity",
-    "attributable scenario evidence"
-  ],
-  "dependencies": [
-    "S440-04"
-  ],
-  "parallel_group": "serial-05",
-  "parallel_execution_eligible": false,
-  "requires_isolated_worktree": true,
-  "requires_serialized_live_validation": true,
-  "file_locks": [
-    "modules/tsw_core/tools/linux/qualification/incus_profile_listener_fixture.py",
-    "modules/tsw_core/tools/linux/qualification/native_lxd_maintenance.py",
-    "modules/tsw_core/tools/linux/qualification/preserving_product_acceptance.py",
-    "modules/tsw_core/tools/linux/qualification/product_upgrade_cases.py",
-    "modules/tsw_core/tools/linux/qualification/wsl_product_acceptance.py",
-    "modules/tsw_core/tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py",
-    "modules/tsw_native_linux/tests/tools/test_native_lxd_maintenance.py",
-    "modules/tsw_core/tests/e2e/classic/run_lcm_acceptance.py",
-    "modules/tsw_core/tests/tools/test_lcm_acceptance.py",
-    ".tiny-swarm/evidence/issue-440/slice-05/**",
-    "documentation/handbook/05-development/workflow/issues/issue-449/workflow.md",
-    "documentation/handbook/05-development/README.adoc",
-    "documentation/handbook/05-development/workflow/workflow.index.md",
-    "documentation/handbook/05-development/workflow/scenario-plan.md"
-  ],
-  "contract_locks": [
-    "workflow/source approval identity",
-    "attributable scenario evidence"
-  ],
-  "architecture_locks": [
-    "qualification-approval-boundary"
-  ],
-  "module_locks": [],
-  "shared_files": [],
-  "shared_infrastructure": [
-    "designated SSH/WSL quality host"
-  ],
-  "conflicting_workflows": [
-    "historical issue-449 qualification",
-    "any writer on the same installation/host"
-  ],
-  "allowed_write_scope": [
-    "modules/tsw_core/tools/linux/qualification/incus_profile_listener_fixture.py",
-    "modules/tsw_core/tools/linux/qualification/native_lxd_maintenance.py",
-    "modules/tsw_core/tools/linux/qualification/preserving_product_acceptance.py",
-    "modules/tsw_core/tools/linux/qualification/product_upgrade_cases.py",
-    "modules/tsw_core/tools/linux/qualification/wsl_product_acceptance.py",
-    "modules/tsw_core/tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py",
-    "modules/tsw_native_linux/tests/tools/test_native_lxd_maintenance.py",
-    "modules/tsw_core/tests/e2e/classic/run_lcm_acceptance.py",
-    "modules/tsw_core/tests/tools/test_lcm_acceptance.py",
-    ".tiny-swarm/evidence/issue-440/slice-05/**",
-    ".codex/evidence/slice-05-distribution.md",
-    ".codex/evidence/slice-05-consolidation.md",
-    "documentation/handbook/05-development/workflow/issues/issue-449/workflow.md",
-    "documentation/handbook/05-development/README.adoc",
-    "documentation/handbook/05-development/workflow/workflow.index.md",
-    "documentation/handbook/05-development/workflow/scenario-plan.md"
-  ],
-  "requirement_ids": [
-    "P02",
-    "P08",
-    "P09",
     "P12",
     "P13"
   ],
   "quality_gates": {
     "targeted": [
-      "PYTHONPATH=. python3 -m unittest modules.tsw_core.tests.infrastructure.adapters.clients.test_lxc_profile_listener_fixture",
-      "PYTHONPATH=. python3 -m unittest modules.tsw_native_linux.tests.tools.test_native_lxd_maintenance"
+      "PYTHONPATH=. python3 -m unittest modules.tsw_windows_wsl.tests.tools.test_wsl_acceptance_guest_switch modules.tsw_windows_wsl.tests.tools.test_wsl_acceptance_registration"
     ],
     "required": [
       "python3 modules/tsw_core/tools/linux/quality_gate.py quality"
     ]
   },
   "documentation": {
-    "arc42": "Review existing relevant boundaries/ADRs; update only if an approved delta requires it.",
-    "adr": "Accepted installation-scoped-profile and Classic lifecycle decisions remain authoritative."
+    "arc42": "Recheck existing ownership/ADR; record N/A or actual approved delta.",
+    "adr": "No new decision planned; STOP for unapproved policy change."
   },
   "stop_conditions": [
-    "The current fixture cannot consume a reviewed active-workflow binding, an evidence read is ambiguous, or a proposed helper bypasses public CLI admission. The historical helper is not usable for this campaign until this slice passes.",
-    "No guard/rule/threshold weakening; no unapproved live or external writes."
+    "Missing exact source, ownership, required verification, recovery proof or approval; no guard weakening.",
+    "Unknown/dirty campaign source, C/K topology mismatch, unsafe pending state or unavailable required external result."
   ]
 }
 ```
 
-After both production consumers and their unchanged-strength tests bind the active
-workflow, S440-05 removes the retained historical fixture blob and its navigation
-entries. A byte-for-byte historical input is not a current approval source.
+### Slice 02 — Reconcile gaps and make cold restoration admissible
 
-### Slice 06 — Qualify paired exact-version Incus listener fixtures
+Purpose: Reconcile every remaining matrix cell and every reachable cold-switch pending state. Preserve SealFixtureReturn/ReturnFixture and original ReturnOriginal separation. Prove an owned recovery/reconciliation route for early preparation failure, unknown reset, unapplied/uncertain bridge stop, and ambiguous resume/restore BEFORE any downtime. Safe refusal alone is not restoration proof. Implement only a reviewed narrow missing coordinator path within existing cold-kernel policy; no general pending clearing, guessed PID signaling, resource deletion or relaxed listener rule. Rehearse actual PowerShell with mocked host ports. Also implement and test an explicitly approved re-entry from completed fixture restoration to a later product window: the current switch cannot leave stage restored, and a new run/registration collides with its exact two-distro scope. Define a guarded transition preserving immutable prior receipts, exact GUID/VHD/source identity, fresh original quiescence/backup/boot, fresh phase GO and a new chained journal; no hand-edited bookmark, stage reset, unowned retirement or assumed parallel distro. Architecture/Security/DevOps must accept that concrete transition before source freeze; if it cannot be proven within current policy, stop before all downtime for the required decision.
 
-Purpose: After exact-source deterministic quality and independent same-hash review, obtain/verify scenario consent and JIT inventory for each independent host. Qualify Incus client/server 6.0.5 with the bounded isolated loopback proxy fixture. Historical native PASS is reusable only with an explicit source/evidence equivalence review.
+Prerequisites: S440O-01. Mode: LOCAL.
 
-Prerequisites: S440-05.
+Done criteria: all stated observations and required checks have attributable evidence; independent owner review accepts the exact slice. No planned result counts as executed.
 
-Requirement mapping: P03, P04, P12. Read the corresponding LCM and late-addition rows in requirement-matrix.md.
-
-Done criteria: Each claimed host has attributable listener/HTTP timing, exact process/device/profile/consumer identity and cleanup proof. Preserve existing Portainer route tuples, Windows firewall/PortProxy and foreign instances/projects. No fixture wildcard listener or customer-route expansion. A fixture PASS does not admit production capability or qualify a service upgrade.
-
-Stop conditions: Missing scenario consent, non-6.0.5 client/server identity, external writers, listener drift, unsafe preservation/restoration or missing source/GO binding blocks before the next mutation. No host-package upgrade is authorized implicitly.
-
-Evidence: `.tiny-swarm/evidence/issue-440/slice-06/`; retain exact commands/results and before/after source/state bindings. Effort: 1–2 engineer-days excluding host access/review waiting.
-
-Allowed files, locks, owners, dependencies and verified commands:
+Evidence: `.tiny-swarm/evidence/issue-440-open/slice-02/` with the six issue-completion files. Requirement mapping: P03, P04, P09, P11, P12, P13.
 
 ```yaml
 {
-  "slice_id": "S440-06",
+  "slice_id": "S440O-02",
   "profile": "FULL_PATH",
   "status": "PLANNED",
   "owner": "Senior DevOps",
   "secondary_reviewers": [
     "Senior Requirement Engineer",
     "Senior System Architect",
-    "Senior Python Automation Developer",
     "Senior Tester",
     "Senior Security Sandbox Engineer",
     "Senior DevOps"
   ],
   "affected_files": [
-    "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md"
+    "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_guest_switch.ps1",
+    "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_registration.ps1",
+    "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_bridge_binding.ps1",
+    "modules/tsw_core/tests/fixtures/wsl_acceptance_guest_switch.ps1",
+    "modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_guest_switch.py",
+    "modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_registration.py",
+    "modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_bridge_binding.py",
+    "modules/tsw_core/tests/fixtures/wsl_acceptance_registration.ps1",
+    "modules/tsw_core/tests/fixtures/wsl_acceptance_bridge_binding.ps1"
   ],
   "affected_modules": [
-    "native Incus fixture",
-    "WSL Incus fixture"
+    "existing qualification/lifecycle and evidence"
   ],
   "affected_contracts": [
-    "ADR installation-scoped profile fixture",
-    "pre-existing route preservation"
+    "public CLI/evidence/source ownership",
+    "frozen C/K campaign provenance"
   ],
   "dependencies": [
-    "S440-05"
+    "S440O-01"
   ],
-  "parallel_group": "serial-06",
+  "parallel_group": "serial-02",
   "parallel_execution_eligible": false,
   "requires_isolated_worktree": true,
-  "requires_serialized_live_validation": true,
+  "requires_serialized_live_validation": false,
   "file_locks": [
-    "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
-    ".tiny-swarm/evidence/issue-440/slice-06/**"
+    "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_guest_switch.ps1",
+    "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_registration.ps1",
+    "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_bridge_binding.ps1",
+    "modules/tsw_core/tests/fixtures/wsl_acceptance_guest_switch.ps1",
+    "modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_guest_switch.py",
+    ".tiny-swarm/evidence/issue-440-open/slice-02/**",
+    "modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_registration.py",
+    "modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_bridge_binding.py",
+    "modules/tsw_core/tests/fixtures/wsl_acceptance_registration.ps1",
+    "modules/tsw_core/tests/fixtures/wsl_acceptance_bridge_binding.ps1"
   ],
   "contract_locks": [
-    "ADR installation-scoped profile fixture",
-    "pre-existing route preservation"
+    "frozen C/K source and exact approval"
   ],
-  "architecture_locks": [],
+  "architecture_locks": [
+    "Classic cold-kernel and scoped capability policy"
+  ],
   "module_locks": [],
-  "shared_files": [],
+  "shared_files": [
+    "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_guest_switch.ps1",
+    "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_registration.ps1",
+    "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_bridge_binding.ps1",
+    "modules/tsw_core/tests/fixtures/wsl_acceptance_guest_switch.ps1",
+    "modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_guest_switch.py",
+    "modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_registration.py",
+    "modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_bridge_binding.py",
+    "modules/tsw_core/tests/fixtures/wsl_acceptance_registration.ps1",
+    "modules/tsw_core/tests/fixtures/wsl_acceptance_bridge_binding.ps1"
+  ],
   "shared_infrastructure": [
     "designated SSH/WSL quality host",
-    "approved native/WSL fixture resources"
+    "approved live campaign only when admitted"
   ],
   "conflicting_workflows": [
-    "historical issue-449 qualification",
-    "any writer on the same installation/host"
+    "historical #440/#449 and same-host/source writers"
   ],
   "allowed_write_scope": [
-    "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
-    ".tiny-swarm/evidence/issue-440/slice-06/**",
-    ".codex/evidence/slice-06-distribution.md",
-    ".codex/evidence/slice-06-consolidation.md"
+    "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_guest_switch.ps1",
+    "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_registration.ps1",
+    "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_bridge_binding.ps1",
+    "modules/tsw_core/tests/fixtures/wsl_acceptance_guest_switch.ps1",
+    "modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_guest_switch.py",
+    ".tiny-swarm/evidence/issue-440-open/slice-02/**",
+    ".codex/evidence/slice-02-distribution.md",
+    ".codex/evidence/slice-02-consolidation.md",
+    "modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_registration.py",
+    "modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_bridge_binding.py",
+    "modules/tsw_core/tests/fixtures/wsl_acceptance_registration.ps1",
+    "modules/tsw_core/tests/fixtures/wsl_acceptance_bridge_binding.ps1"
   ],
   "requirement_ids": [
     "P03",
     "P04",
-    "P12"
+    "P09",
+    "P11",
+    "P12",
+    "P13"
   ],
   "quality_gates": {
     "targeted": [
-      "PYTHONPATH=. python3 -m unittest modules.tsw_core.tests.infrastructure.adapters.clients.test_lxc_profile_listener_fixture"
+      "PYTHONPATH=. python3 -m unittest modules.tsw_windows_wsl.tests.tools.test_wsl_acceptance_guest_switch",
+      "PYTHONPATH=. python3 -m unittest modules.tsw_windows_wsl.tests.tools.test_wsl_acceptance_registration modules.tsw_windows_wsl.tests.tools.test_wsl_acceptance_bridge_binding"
     ],
     "required": [
-      "git diff --check"
+      "python3 modules/tsw_core/tools/linux/quality_gate.py quality"
     ]
   },
   "documentation": {
-    "arc42": "Review existing relevant boundaries/ADRs; update only if an approved delta requires it.",
-    "adr": "Accepted installation-scoped-profile and Classic lifecycle decisions remain authoritative."
+    "arc42": "Recheck existing ownership/ADR; record N/A or actual approved delta.",
+    "adr": "No new decision planned; STOP for unapproved policy change."
   },
   "stop_conditions": [
-    "Missing scenario consent, non-6.0.5 client/server identity, external writers, listener drift, unsafe preservation/restoration or missing source/GO binding blocks before the next mutation. No host-package upgrade is authorized implicitly.",
-    "No guard/rule/threshold weakening; no unapproved live or external writes."
+    "Missing exact source, ownership, required verification, recovery proof or approval; no guard weakening.",
+    "Unknown/dirty campaign source, C/K topology mismatch, unsafe pending state or unavailable required external result."
   ]
 }
 ```
 
-### Slice 07 — Independently review and admit the precise profile capability
+### Slice 03 — Close supported product-recipe and attribution gaps
 
-Purpose: Requirements, Architecture, Security, DevOps and Test/Evidence independently assess the paired fixtures, runtime callers and exact version. Amend the capability asset only after that acceptance; verify unknown versions still refuse. Treat the data-only incus_capability.py legacy classifier as its existing separate contract, not a second mutable support registry.
+Purpose: Inspect product_upgrade_cases and both canonical core supervisors: product kind currently refuses and upgrade-product-v1/recover-product-v1 return NOT_IMPLEMENTED. Implement attributable recipes/reporter coverage for actually supported remaining product transitions using public CLI, or independently prove the proposed positive cell is outside the accepted supported matrix and retain its explicit refusal. Preserve accepted official 0.4.0→0.5.0 historical P01/Q14/Q15. Never enable manifest-v2→legacy-reader-v1 or invent an upgrade target to fill a cell. Every parent requirement must remain mapped; any required positive recipe left unimplemented blocks the slice.
 
-Prerequisites: S440-06.
+Prerequisites: S440O-02. Mode: LOCAL.
 
-Requirement mapping: P03, P04, P12, P13. Read the corresponding LCM and late-addition rows in requirement-matrix.md.
+Done criteria: all stated observations and required checks have attributable evidence; independent owner review accepts the exact slice. No planned result counts as executed.
 
-Done criteria: A separately recorded support decision binds precise client/server versions, host/platform and capability to accepted evidence. Denial, direct caller, recovery/cleanup and asset-integrity tests pass. No automatic qualification from a successful fixture, version string or closed issue.
-
-Stop conditions: Independent review rejects or cannot bind evidence, consumers disagree about the authority, or another version would be admitted transitively.
-
-Evidence: `.tiny-swarm/evidence/issue-440/slice-07/`; retain exact commands/results and before/after source/state bindings. Effort: 0.5–1 engineer-day plus independent review.
-
-Allowed files, locks, owners, dependencies and verified commands:
+Evidence: `.tiny-swarm/evidence/issue-440-open/slice-03/` with the six issue-completion files. Requirement mapping: P01, P08, P09, P10, P11, P12, P13.
 
 ```yaml
 {
-  "slice_id": "S440-07",
+  "slice_id": "S440O-03",
+  "profile": "FULL_PATH",
+  "status": "PLANNED",
+  "owner": "Senior Python Automation Developer",
+  "secondary_reviewers": [
+    "Senior Requirement Engineer",
+    "Senior System Architect",
+    "Senior Tester",
+    "Senior Security Sandbox Engineer",
+    "Senior DevOps"
+  ],
+  "affected_files": [
+    "modules/tsw_core/tools/linux/qualification/product_upgrade_cases.py",
+    "modules/tsw_core/tools/linux/qualification/preserving_product_acceptance.py",
+    "modules/tsw_core/tools/linux/qualification/wsl_product_acceptance.py",
+    "modules/tsw_core/tests/e2e/classic/run_lcm_acceptance.py",
+    "modules/tsw_native_linux/tests/tools/test_product_upgrade_cases.py",
+    "modules/tsw_native_linux/tests/tools/test_preserving_product_acceptance.py",
+    "modules/tsw_native_linux/tests/tools/test_wsl_product_acceptance.py",
+    "modules/tsw_core/tests/tools/test_lcm_acceptance.py"
+  ],
+  "affected_modules": [
+    "existing qualification/lifecycle and evidence"
+  ],
+  "affected_contracts": [
+    "public CLI/evidence/source ownership",
+    "frozen C/K campaign provenance"
+  ],
+  "dependencies": [
+    "S440O-02"
+  ],
+  "parallel_group": "serial-03",
+  "parallel_execution_eligible": false,
+  "requires_isolated_worktree": true,
+  "requires_serialized_live_validation": false,
+  "file_locks": [
+    "modules/tsw_core/tools/linux/qualification/product_upgrade_cases.py",
+    "modules/tsw_core/tools/linux/qualification/preserving_product_acceptance.py",
+    "modules/tsw_core/tools/linux/qualification/wsl_product_acceptance.py",
+    "modules/tsw_core/tests/e2e/classic/run_lcm_acceptance.py",
+    "modules/tsw_native_linux/tests/tools/test_product_upgrade_cases.py",
+    "modules/tsw_native_linux/tests/tools/test_preserving_product_acceptance.py",
+    "modules/tsw_native_linux/tests/tools/test_wsl_product_acceptance.py",
+    "modules/tsw_core/tests/tools/test_lcm_acceptance.py",
+    ".tiny-swarm/evidence/issue-440-open/slice-03/**"
+  ],
+  "contract_locks": [
+    "frozen C/K source and exact approval"
+  ],
+  "architecture_locks": [
+    "Classic cold-kernel and scoped capability policy"
+  ],
+  "module_locks": [],
+  "shared_files": [
+    "modules/tsw_core/tools/linux/qualification/product_upgrade_cases.py",
+    "modules/tsw_core/tools/linux/qualification/preserving_product_acceptance.py",
+    "modules/tsw_core/tools/linux/qualification/wsl_product_acceptance.py",
+    "modules/tsw_core/tests/e2e/classic/run_lcm_acceptance.py",
+    "modules/tsw_native_linux/tests/tools/test_product_upgrade_cases.py",
+    "modules/tsw_native_linux/tests/tools/test_preserving_product_acceptance.py",
+    "modules/tsw_native_linux/tests/tools/test_wsl_product_acceptance.py",
+    "modules/tsw_core/tests/tools/test_lcm_acceptance.py"
+  ],
+  "shared_infrastructure": [
+    "designated SSH/WSL quality host",
+    "approved live campaign only when admitted"
+  ],
+  "conflicting_workflows": [
+    "historical #440/#449 and same-host/source writers"
+  ],
+  "allowed_write_scope": [
+    "modules/tsw_core/tools/linux/qualification/product_upgrade_cases.py",
+    "modules/tsw_core/tools/linux/qualification/preserving_product_acceptance.py",
+    "modules/tsw_core/tools/linux/qualification/wsl_product_acceptance.py",
+    "modules/tsw_core/tests/e2e/classic/run_lcm_acceptance.py",
+    "modules/tsw_native_linux/tests/tools/test_product_upgrade_cases.py",
+    "modules/tsw_native_linux/tests/tools/test_preserving_product_acceptance.py",
+    "modules/tsw_native_linux/tests/tools/test_wsl_product_acceptance.py",
+    "modules/tsw_core/tests/tools/test_lcm_acceptance.py",
+    ".tiny-swarm/evidence/issue-440-open/slice-03/**",
+    ".codex/evidence/slice-03-distribution.md",
+    ".codex/evidence/slice-03-consolidation.md"
+  ],
+  "requirement_ids": [
+    "P01",
+    "P08",
+    "P09",
+    "P10",
+    "P11",
+    "P12",
+    "P13"
+  ],
+  "quality_gates": {
+    "targeted": [
+      "PYTHONPATH=. python3 -m unittest modules.tsw_native_linux.tests.tools.test_product_upgrade_cases modules.tsw_native_linux.tests.tools.test_preserving_product_acceptance modules.tsw_native_linux.tests.tools.test_wsl_product_acceptance modules.tsw_core.tests.tools.test_lcm_acceptance"
+    ],
+    "required": [
+      "python3 modules/tsw_core/tools/linux/quality_gate.py quality"
+    ]
+  },
+  "documentation": {
+    "arc42": "Recheck existing ownership/ADR; record N/A or actual approved delta.",
+    "adr": "No new decision planned; STOP for unapproved policy change."
+  },
+  "stop_conditions": [
+    "Missing exact source, ownership, required verification, recovery proof or approval; no guard weakening.",
+    "Unknown/dirty campaign source, C/K topology mismatch, unsafe pending state or unavailable required external result."
+  ]
+}
+```
+
+### Slice 04 — Implement SIGINT and API-down qualification contracts
+
+Purpose: Existing producer and reporter accept SIGTERM/signal15 only. Add distinct, phase/child/source-bound SIGINT and Portainer API-down scenarios through the existing public CLI and manager-shell recovery path. Match actual signal, checkpoint, process, settlement and resulting exit; never relabel SIGTERM or infer API-down from a missing reply. Add wrong-signal/stale-child/absent-backup/refusal/second-recovery tests; keep private credentials redacted. Shared producer/reporter/supervisor files serialize with Slice03. No live fault is executed by implementation.
+
+Prerequisites: S440O-03. Mode: LOCAL.
+
+Done criteria: all stated observations and required checks have attributable evidence; independent owner review accepts the exact slice. No planned result counts as executed.
+
+Evidence: `.tiny-swarm/evidence/issue-440-open/slice-04/` with the six issue-completion files. Requirement mapping: P03, P08, P09, P11, P12, P13.
+
+```yaml
+{
+  "slice_id": "S440O-04",
+  "profile": "FULL_PATH",
+  "status": "PLANNED",
+  "owner": "Senior Python Automation Developer",
+  "secondary_reviewers": [
+    "Senior Requirement Engineer",
+    "Senior System Architect",
+    "Senior Tester",
+    "Senior Security Sandbox Engineer",
+    "Senior DevOps"
+  ],
+  "affected_files": [
+    "modules/tsw_core/tools/linux/qualification/product_upgrade_cases.py",
+    "modules/tsw_core/tools/linux/qualification/preserving_product_acceptance.py",
+    "modules/tsw_core/tools/linux/qualification/wsl_product_acceptance.py",
+    "modules/tsw_core/tests/e2e/classic/run_lcm_acceptance.py",
+    "modules/tsw_native_linux/tests/tools/test_product_upgrade_cases.py",
+    "modules/tsw_native_linux/tests/tools/test_preserving_product_acceptance.py",
+    "modules/tsw_native_linux/tests/tools/test_wsl_product_acceptance.py",
+    "modules/tsw_core/tests/tools/test_lcm_acceptance.py"
+  ],
+  "affected_modules": [
+    "existing qualification/lifecycle and evidence"
+  ],
+  "affected_contracts": [
+    "public CLI/evidence/source ownership",
+    "frozen C/K campaign provenance"
+  ],
+  "dependencies": [
+    "S440O-03"
+  ],
+  "parallel_group": "serial-04",
+  "parallel_execution_eligible": false,
+  "requires_isolated_worktree": true,
+  "requires_serialized_live_validation": false,
+  "file_locks": [
+    "modules/tsw_core/tools/linux/qualification/product_upgrade_cases.py",
+    "modules/tsw_core/tools/linux/qualification/preserving_product_acceptance.py",
+    "modules/tsw_core/tools/linux/qualification/wsl_product_acceptance.py",
+    "modules/tsw_core/tests/e2e/classic/run_lcm_acceptance.py",
+    "modules/tsw_native_linux/tests/tools/test_product_upgrade_cases.py",
+    "modules/tsw_native_linux/tests/tools/test_preserving_product_acceptance.py",
+    "modules/tsw_native_linux/tests/tools/test_wsl_product_acceptance.py",
+    "modules/tsw_core/tests/tools/test_lcm_acceptance.py",
+    ".tiny-swarm/evidence/issue-440-open/slice-04/**"
+  ],
+  "contract_locks": [
+    "frozen C/K source and exact approval"
+  ],
+  "architecture_locks": [
+    "Classic cold-kernel and scoped capability policy"
+  ],
+  "module_locks": [],
+  "shared_files": [
+    "modules/tsw_core/tools/linux/qualification/product_upgrade_cases.py",
+    "modules/tsw_core/tools/linux/qualification/preserving_product_acceptance.py",
+    "modules/tsw_core/tools/linux/qualification/wsl_product_acceptance.py",
+    "modules/tsw_core/tests/e2e/classic/run_lcm_acceptance.py",
+    "modules/tsw_native_linux/tests/tools/test_product_upgrade_cases.py",
+    "modules/tsw_native_linux/tests/tools/test_preserving_product_acceptance.py",
+    "modules/tsw_native_linux/tests/tools/test_wsl_product_acceptance.py",
+    "modules/tsw_core/tests/tools/test_lcm_acceptance.py"
+  ],
+  "shared_infrastructure": [
+    "designated SSH/WSL quality host",
+    "approved live campaign only when admitted"
+  ],
+  "conflicting_workflows": [
+    "historical #440/#449 and same-host/source writers"
+  ],
+  "allowed_write_scope": [
+    "modules/tsw_core/tools/linux/qualification/product_upgrade_cases.py",
+    "modules/tsw_core/tools/linux/qualification/preserving_product_acceptance.py",
+    "modules/tsw_core/tools/linux/qualification/wsl_product_acceptance.py",
+    "modules/tsw_core/tests/e2e/classic/run_lcm_acceptance.py",
+    "modules/tsw_native_linux/tests/tools/test_product_upgrade_cases.py",
+    "modules/tsw_native_linux/tests/tools/test_preserving_product_acceptance.py",
+    "modules/tsw_native_linux/tests/tools/test_wsl_product_acceptance.py",
+    "modules/tsw_core/tests/tools/test_lcm_acceptance.py",
+    ".tiny-swarm/evidence/issue-440-open/slice-04/**",
+    ".codex/evidence/slice-04-distribution.md",
+    ".codex/evidence/slice-04-consolidation.md"
+  ],
+  "requirement_ids": [
+    "P03",
+    "P08",
+    "P09",
+    "P11",
+    "P12",
+    "P13"
+  ],
+  "quality_gates": {
+    "targeted": [
+      "PYTHONPATH=. python3 -m unittest modules.tsw_native_linux.tests.tools.test_product_upgrade_cases modules.tsw_native_linux.tests.tools.test_wsl_product_acceptance modules.tsw_core.tests.tools.test_lcm_acceptance"
+    ],
+    "required": [
+      "python3 modules/tsw_core/tools/linux/quality_gate.py quality"
+    ]
+  },
+  "documentation": {
+    "arc42": "Recheck existing ownership/ADR; record N/A or actual approved delta.",
+    "adr": "No new decision planned; STOP for unapproved policy change."
+  },
+  "stop_conditions": [
+    "Missing exact source, ownership, required verification, recovery proof or approval; no guard weakening.",
+    "Unknown/dirty campaign source, C/K topology mismatch, unsafe pending state or unavailable required external result."
+  ]
+}
+```
+
+### Slice 05 — Freeze reviewed qualification candidate C
+
+Purpose: Finish all helper, runner, workflow and required policy changes before preparation. In a private isolated campaign candidate, review the exact Swagger/Traefik qualification policy delta while production remains candidate-only. Freeze C with clean HEAD, package origin, workflow/runner/test/image hashes and exact budgets. C must already contain the component candidate if that campaign claims components. Prepare exact policy-contract regression coverage before freeze: retain fixed candidate-denial/no-state-change fixtures and add precise reviewed-admission assertions; never skip guards or use blanket conditional success. Prepare capability admission tests before C so K never needs test changes. Keep the active workflow bytes unchanged during live execution. A separate campaign requires new source/preparation/GO/receipts; no implicit reuse.
+
+Prerequisites: S440O-04. Mode: LOCAL.
+
+Done criteria: all stated observations and required checks have attributable evidence; independent owner review accepts the exact slice. No planned result counts as executed.
+
+Evidence: `.tiny-swarm/evidence/issue-440-open/slice-05/` with the six issue-completion files. Requirement mapping: P02, P08, P12, P13, P14.
+
+```yaml
+{
+  "slice_id": "S440O-05",
   "profile": "FULL_PATH",
   "status": "PLANNED",
   "owner": "Senior System Architect",
   "secondary_reviewers": [
     "Senior Requirement Engineer",
     "Senior System Architect",
-    "Senior Python Automation Developer",
     "Senior Tester",
     "Senior Security Sandbox Engineer",
     "Senior DevOps"
   ],
   "affected_files": [
-    "modules/tsw_core/infra/config/incus-profile-capabilities.json",
-    "modules/tsw_core/src/infrastructure/adapters/repositories/incus_profile_capability_repository.py",
-    "modules/tsw_core/src/domain/lifecycle/profile_lifecycle.py",
+    "modules/tsw_core/src/infrastructure/adapters/lifecycle/component_transitions.py",
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-ac5-traceability.md",
+    "modules/tsw_core/tests/infrastructure/adapters/lifecycle/test_native_component_transitions.py",
+    "modules/tsw_core/tests/test_component_updates_cli.py",
     "modules/tsw_core/tests/infrastructure/adapters/repositories/test_incus_profile_capability_repository.py",
-    "modules/tsw_core/tests/domain/lifecycle/test_profile_lifecycle.py",
-    "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md"
+    "modules/tsw_core/tests/domain/lifecycle/test_profile_lifecycle.py"
   ],
   "affected_modules": [
-    "profile capability policy"
+    "existing qualification/lifecycle and evidence"
   ],
   "affected_contracts": [
-    "exact reviewed version admission",
-    "legacy versus scoped intent"
+    "public CLI/evidence/source ownership",
+    "frozen C/K campaign provenance"
   ],
   "dependencies": [
-    "S440-06"
+    "S440O-04"
   ],
-  "parallel_group": "serial-07",
+  "parallel_group": "serial-05",
   "parallel_execution_eligible": false,
   "requires_isolated_worktree": true,
-  "requires_serialized_live_validation": true,
+  "requires_serialized_live_validation": false,
   "file_locks": [
-    "modules/tsw_core/infra/config/incus-profile-capabilities.json",
-    "modules/tsw_core/src/infrastructure/adapters/repositories/incus_profile_capability_repository.py",
-    "modules/tsw_core/src/domain/lifecycle/profile_lifecycle.py",
-    "modules/tsw_core/tests/infrastructure/adapters/repositories/test_incus_profile_capability_repository.py",
-    "modules/tsw_core/tests/domain/lifecycle/test_profile_lifecycle.py",
+    "modules/tsw_core/src/infrastructure/adapters/lifecycle/component_transitions.py",
     "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
-    ".tiny-swarm/evidence/issue-440/slice-07/**"
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-ac5-traceability.md",
+    ".tiny-swarm/evidence/issue-440-open/slice-05/**",
+    "modules/tsw_core/tests/infrastructure/adapters/lifecycle/test_native_component_transitions.py",
+    "modules/tsw_core/tests/test_component_updates_cli.py",
+    "modules/tsw_core/tests/infrastructure/adapters/repositories/test_incus_profile_capability_repository.py",
+    "modules/tsw_core/tests/domain/lifecycle/test_profile_lifecycle.py"
   ],
   "contract_locks": [
-    "exact reviewed version admission",
-    "legacy versus scoped intent"
+    "frozen C/K source and exact approval"
   ],
-  "architecture_locks": [],
+  "architecture_locks": [
+    "Classic cold-kernel and scoped capability policy"
+  ],
   "module_locks": [],
-  "shared_files": [],
-  "shared_infrastructure": [
-    "designated SSH/WSL quality host"
-  ],
-  "conflicting_workflows": [
-    "historical issue-449 qualification",
-    "any writer on the same installation/host"
-  ],
-  "allowed_write_scope": [
-    "modules/tsw_core/infra/config/incus-profile-capabilities.json",
-    "modules/tsw_core/src/infrastructure/adapters/repositories/incus_profile_capability_repository.py",
-    "modules/tsw_core/src/domain/lifecycle/profile_lifecycle.py",
+  "shared_files": [
+    "modules/tsw_core/src/infrastructure/adapters/lifecycle/component_transitions.py",
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-ac5-traceability.md",
+    "modules/tsw_core/tests/infrastructure/adapters/lifecycle/test_native_component_transitions.py",
+    "modules/tsw_core/tests/test_component_updates_cli.py",
     "modules/tsw_core/tests/infrastructure/adapters/repositories/test_incus_profile_capability_repository.py",
-    "modules/tsw_core/tests/domain/lifecycle/test_profile_lifecycle.py",
-    "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
-    ".tiny-swarm/evidence/issue-440/slice-07/**",
-    ".codex/evidence/slice-07-distribution.md",
-    ".codex/evidence/slice-07-consolidation.md"
+    "modules/tsw_core/tests/domain/lifecycle/test_profile_lifecycle.py"
   ],
-  "requirement_ids": [
-    "P03",
-    "P04",
-    "P12",
-    "P13"
-  ],
-  "quality_gates": {
-    "targeted": [
-      "PYTHONPATH=. python3 -m unittest modules.tsw_core.tests.infrastructure.adapters.repositories.test_incus_profile_capability_repository modules.tsw_core.tests.domain.lifecycle.test_profile_lifecycle modules.tsw_core.tests.application.services.test_installation_profile"
-    ],
-    "required": [
-      "python3 modules/tsw_core/tools/linux/quality_gate.py quality"
-    ]
-  },
-  "documentation": {
-    "arc42": "Review existing relevant boundaries/ADRs; update only if an approved delta requires it.",
-    "adr": "Accepted installation-scoped-profile and Classic lifecycle decisions remain authoritative."
-  },
-  "stop_conditions": [
-    "Independent review rejects or cannot bind evidence, consumers disagree about the authority, or another version would be admitted transitively.",
-    "No guard/rule/threshold weakening; no unapproved live or external writes."
-  ]
-}
-```
-
-### Slice 08 — Qualify Portainer upgrade, managed deployment and API-down recovery
-
-Purpose: Reconcile bounded native history and execute missing current-source cases, particularly WSL, on admitted recoverable fixtures with an already TSW-selected Portainer-managed stack. Use the dedicated Portainer public CLI path and real cold /data backup, not the generic image updater.
-
-Prerequisites: S440-07.
-
-Requirement mapping: P03, P09, P10, P11, P12. Read the corresponding LCM and late-addition rows in requirement-matrix.md.
-
-Done criteria: Record source/target Server and Agent pins, actual upgrade, authenticated API access, unchanged admin/endpoint/data/stack identities, a subsequent managed stack update and converged Swarm tasks. Record literal repeat no-op plus separately attributed interruption and API-down cold recovery to the supported source, verified retained failed data and repeat recovery/no-op. Prove unrelated service/route preservation.
-
-Stop conditions: Missing verified cold backup/restore path, unmanaged-only stack, lost API-down process attribution, unknown endpoint identity or unsafe checkpoint recovery. Installation/login success is not upgrade success.
-
-Evidence: `.tiny-swarm/evidence/issue-440/slice-08/`; retain exact commands/results and before/after source/state bindings. Effort: 1–2 engineer-days plus runtime execution.
-
-Allowed files, locks, owners, dependencies and verified commands:
-
-```yaml
-{
-  "slice_id": "S440-08",
-  "profile": "FULL_PATH",
-  "status": "PLANNED",
-  "owner": "Senior Tester",
-  "secondary_reviewers": [
-    "Senior Requirement Engineer",
-    "Senior System Architect",
-    "Senior Python Automation Developer",
-    "Senior Tester",
-    "Senior Security Sandbox Engineer",
-    "Senior DevOps"
-  ],
-  "affected_files": [
-    "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
-    "documentation/handbook/07-evidence-release/evidence/lcm-w09-q12-design-proposal.md"
-  ],
-  "affected_modules": [
-    "Portainer lifecycle",
-    "recoverable owned Swarm fixture"
-  ],
-  "affected_contracts": [
-    "CE Server/Agent 2.45.0→2.45.1",
-    "cold data backup",
-    "managed stack ownership"
-  ],
-  "dependencies": [
-    "S440-07"
-  ],
-  "parallel_group": "serial-08",
-  "parallel_execution_eligible": false,
-  "requires_isolated_worktree": true,
-  "requires_serialized_live_validation": true,
-  "file_locks": [
-    "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
-    "documentation/handbook/07-evidence-release/evidence/lcm-w09-q12-design-proposal.md",
-    ".tiny-swarm/evidence/issue-440/slice-08/**"
-  ],
-  "contract_locks": [
-    "CE Server/Agent 2.45.0→2.45.1",
-    "cold data backup",
-    "managed stack ownership"
-  ],
-  "architecture_locks": [],
-  "module_locks": [],
-  "shared_files": [],
   "shared_infrastructure": [
     "designated SSH/WSL quality host",
-    "approved native/WSL fixture resources"
+    "approved live campaign only when admitted"
   ],
   "conflicting_workflows": [
-    "historical issue-449 qualification",
-    "any writer on the same installation/host"
-  ],
-  "allowed_write_scope": [
-    "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
-    "documentation/handbook/07-evidence-release/evidence/lcm-w09-q12-design-proposal.md",
-    ".tiny-swarm/evidence/issue-440/slice-08/**",
-    ".codex/evidence/slice-08-distribution.md",
-    ".codex/evidence/slice-08-consolidation.md"
-  ],
-  "requirement_ids": [
-    "P03",
-    "P09",
-    "P10",
-    "P11",
-    "P12"
-  ],
-  "quality_gates": {
-    "targeted": [
-      "PYTHONPATH=. python3 -m unittest modules.tsw_core.tests.application.services.test_portainer_upgrade modules.tsw_core.tests.test_portainer_upgrade_cli modules.tsw_core.tests.infrastructure.adapters.lifecycle.test_portainer_runtime"
-    ],
-    "required": [
-      "git diff --check"
-    ]
-  },
-  "documentation": {
-    "arc42": "Review existing relevant boundaries/ADRs; update only if an approved delta requires it.",
-    "adr": "Accepted installation-scoped-profile and Classic lifecycle decisions remain authoritative."
-  },
-  "stop_conditions": [
-    "Missing verified cold backup/restore path, unmanaged-only stack, lost API-down process attribution, unknown endpoint identity or unsafe checkpoint recovery. Installation/login success is not upgrade success.",
-    "No guard/rule/threshold weakening; no unapproved live or external writes."
-  ]
-}
-```
-
-### Slice 09 — Qualify and admit real single and two-service component updates
-
-Purpose: Re-resolve and review the pinned Swagger UI 5.32.6→5.32.7 and Traefik 3.7.4→3.7.5 bundles/platform identities. Qualify single Swagger and a selected Swagger+Traefik batch where both change on each claimed host using the real CLI and existing #297-backed execution.
-
-Prerequisites: S440-08.
-
-Requirement mapping: P02, P09, P10, P11, P12, P13, P14. Read the corresponding LCM and late-addition rows in requirement-matrix.md.
-
-Done criteria: Prove actual task-digest convergence, authenticated behavior, unrelated bundle identity, persisted desired pins, repeat no-op and later ordinary setup retaining targets. Inject attributable interruption/partial batch failure; verify supported resume/original-plan recovery and drift refusal. Production discovery advertises supported targets only after attributable exact-candidate evidence and independent policy acceptance. Retain denial tests for unsupported targets.
-
-Stop conditions: No reviewed way to test the proposed policy through the real admission path, tag/digest/platform mismatch, only one member of the claimed batch changes, healthy old tasks, ambiguous interrupted process or production promotion without evidence. See the qualification/admission sequencing contract in scenario-plan.md.
-
-Evidence: `.tiny-swarm/evidence/issue-440/slice-09/`; retain exact commands/results and before/after source/state bindings. Effort: 1–2 engineer-days plus both-host execution.
-
-Allowed files, locks, owners, dependencies and verified commands:
-
-```yaml
-{
-  "slice_id": "S440-09",
-  "profile": "FULL_PATH",
-  "status": "PLANNED",
-  "owner": "Senior Tester",
-  "secondary_reviewers": [
-    "Senior Requirement Engineer",
-    "Senior System Architect",
-    "Senior Python Automation Developer",
-    "Senior Tester",
-    "Senior Security Sandbox Engineer",
-    "Senior DevOps"
-  ],
-  "affected_files": [
-    "modules/tsw_core/src/infrastructure/adapters/lifecycle/component_transitions.py",
-    "modules/tsw_core/tests/infrastructure/adapters/lifecycle/test_native_component_transitions.py",
-    "modules/tsw_core/tests/test_component_updates_cli.py",
-    "documentation/handbook/07-evidence-release/evidence/lcm-w09-transition-proposal.md",
-    "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md"
-  ],
-  "affected_modules": [
-    "component catalog/executor",
-    "Swagger",
-    "Traefik"
-  ],
-  "affected_contracts": [
-    "immutable source/target bundle",
-    "candidate admission",
-    "verified desired pin persistence"
-  ],
-  "dependencies": [
-    "S440-08"
-  ],
-  "parallel_group": "serial-09",
-  "parallel_execution_eligible": false,
-  "requires_isolated_worktree": true,
-  "requires_serialized_live_validation": true,
-  "file_locks": [
-    "modules/tsw_core/src/infrastructure/adapters/lifecycle/component_transitions.py",
-    "modules/tsw_core/tests/infrastructure/adapters/lifecycle/test_native_component_transitions.py",
-    "modules/tsw_core/tests/test_component_updates_cli.py",
-    "documentation/handbook/07-evidence-release/evidence/lcm-w09-transition-proposal.md",
-    "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
-    ".tiny-swarm/evidence/issue-440/slice-09/**"
-  ],
-  "contract_locks": [
-    "immutable source/target bundle",
-    "candidate admission",
-    "verified desired pin persistence"
-  ],
-  "architecture_locks": [],
-  "module_locks": [],
-  "shared_files": [],
-  "shared_infrastructure": [
-    "designated SSH/WSL quality host",
-    "approved native/WSL fixture resources"
-  ],
-  "conflicting_workflows": [
-    "historical issue-449 qualification",
-    "any writer on the same installation/host"
+    "historical #440/#449 and same-host/source writers"
   ],
   "allowed_write_scope": [
     "modules/tsw_core/src/infrastructure/adapters/lifecycle/component_transitions.py",
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-ac5-traceability.md",
+    ".tiny-swarm/evidence/issue-440-open/slice-05/**",
+    ".codex/evidence/slice-05-distribution.md",
+    ".codex/evidence/slice-05-consolidation.md",
     "modules/tsw_core/tests/infrastructure/adapters/lifecycle/test_native_component_transitions.py",
     "modules/tsw_core/tests/test_component_updates_cli.py",
-    "documentation/handbook/07-evidence-release/evidence/lcm-w09-transition-proposal.md",
-    "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
-    ".tiny-swarm/evidence/issue-440/slice-09/**",
-    ".codex/evidence/slice-09-distribution.md",
-    ".codex/evidence/slice-09-consolidation.md"
+    "modules/tsw_core/tests/infrastructure/adapters/repositories/test_incus_profile_capability_repository.py",
+    "modules/tsw_core/tests/domain/lifecycle/test_profile_lifecycle.py"
   ],
   "requirement_ids": [
     "P02",
-    "P09",
-    "P10",
-    "P11",
+    "P08",
     "P12",
     "P13",
     "P14"
   ],
   "quality_gates": {
     "targeted": [
-      "PYTHONPATH=. python3 -m unittest modules.tsw_core.tests.infrastructure.adapters.lifecycle.test_native_component_transitions modules.tsw_core.tests.test_component_updates_cli modules.tsw_core.tests.application.services.test_component_updates modules.tsw_core.tests.application.services.test_component_execution"
+      "PYTHONPATH=. python3 -m unittest modules.tsw_core.tests.infrastructure.adapters.lifecycle.test_native_component_transitions modules.tsw_core.tests.test_component_updates_cli",
+      "PYTHONPATH=. python3 -m unittest modules.tsw_core.tests.infrastructure.adapters.repositories.test_incus_profile_capability_repository modules.tsw_core.tests.domain.lifecycle.test_profile_lifecycle"
     ],
     "required": [
       "python3 modules/tsw_core/tools/linux/quality_gate.py quality"
     ]
   },
   "documentation": {
-    "arc42": "Review existing relevant boundaries/ADRs; update only if an approved delta requires it.",
-    "adr": "Accepted installation-scoped-profile and Classic lifecycle decisions remain authoritative."
+    "arc42": "Recheck existing ownership/ADR; record N/A or actual approved delta.",
+    "adr": "No new decision planned; STOP for unapproved policy change."
   },
   "stop_conditions": [
-    "No reviewed way to test the proposed policy through the real admission path, tag/digest/platform mismatch, only one member of the claimed batch changes, healthy old tasks, ambiguous interrupted process or production promotion without evidence. See the qualification/admission sequencing contract in scenario-plan.md.",
-    "No guard/rule/threshold weakening; no unapproved live or external writes."
+    "Missing exact source, ownership, required verification, recovery proof or approval; no guard weakening.",
+    "Unknown/dirty campaign source, C/K topology mismatch, unsafe pending state or unavailable required external result."
   ]
 }
 ```
 
-### Slice 10 — Close selective-installation, product and shared-control gaps
+### Slice 06 — Admit recoverable hosts and phase-specific approvals
 
-Purpose: Run only gaps after explicit historical evidence reconciliation: fresh minimal plus two genuinely distinct resolved optional sets, add-service preservation, exact selected routes/access/output and omitted-service handling. Retain accepted historical product 0.4.0→0.5.0 results and qualify only missing current-candidate/source/recovery variants.
+Purpose: Freshly inspect native and WSL owners, exact Incus client/server6.0.5, all-project resources, machine/boot/GUID/VHD, root-owned installed source and original runtime driver. Verify actual usable backups, original running/stopped states, Windows firewall/PortProxy/hosts/archive and an independently rehearsed restore route for all reachable failures. Reserve approved loopback high port61000–65535 and preserve10001. Existing80/443/16080/16081 listeners block the fixture; use separately approved cold isolated guest, never kill active-install listeners or assume two WSL distros are isolated. Record exact outage/fixture/return GO and independent same-hash reviews. Earlier deterministic test consent grants no live operation.
 
-Prerequisites: S440-09.
+Prerequisites: S440O-05. Mode: LIVE_PREREQUISITES.
 
-Requirement mapping: P01, P04, P05, P06, P07, P08, P09, P10, P11, P12. Read the corresponding LCM and late-addition rows in requirement-matrix.md.
+Done criteria: all stated observations and required checks have attributable evidence; independent owner review accepts the exact slice. No planned result counts as executed.
 
-Done criteria: Selection is persisted and reused by setup/reconcile/update/verification; service/data/credential and override fingerprints prove preservation without exposing values. Include foundation/unknown-ID/cycle/unsupported-combination refusals, preview-only removals, downgrade/migration refusal, dirty/unofficial/moved-source semantics, mixed/old tasks, stale checkpoints, consent declines and interruption/no-op/recovery variants. Every Q row states the exact exercised scope and remaining gap.
-
-Stop conditions: Two requests resolve to the same set, omitted services are reported as installed/failed, source state is guessed, test credentials are rotated, or a selection requires destructive reuse of an unrelated installation.
-
-Evidence: `.tiny-swarm/evidence/issue-440/slice-10/`; retain exact commands/results and before/after source/state bindings. Effort: 2–4 engineer-days plus fixture provisioning.
-
-Allowed files, locks, owners, dependencies and verified commands:
+Evidence: `.tiny-swarm/evidence/issue-440-open/slice-06/` with the six issue-completion files. Requirement mapping: P03, P04, P09, P12.
 
 ```yaml
 {
-  "slice_id": "S440-10",
+  "slice_id": "S440O-06",
   "profile": "FULL_PATH",
   "status": "PLANNED",
-  "owner": "Senior Tester",
+  "owner": "Senior DevOps",
   "secondary_reviewers": [
     "Senior Requirement Engineer",
     "Senior System Architect",
-    "Senior Python Automation Developer",
     "Senior Tester",
     "Senior Security Sandbox Engineer",
     "Senior DevOps"
@@ -1265,16 +803,396 @@ Allowed files, locks, owners, dependencies and verified commands:
     "documentation/handbook/07-evidence-release/evidence/lcm-w09-ac5-traceability.md"
   ],
   "affected_modules": [
-    "selection/setup/add",
-    "product lifecycle",
-    "shared admission/recovery"
+    "existing qualification/lifecycle and evidence"
   ],
   "affected_contracts": [
-    "P01/P04-P12",
-    "Q01-Q20"
+    "public CLI/evidence/source ownership",
+    "frozen C/K campaign provenance"
   ],
   "dependencies": [
-    "S440-09"
+    "S440O-05"
+  ],
+  "parallel_group": "serial-06",
+  "parallel_execution_eligible": false,
+  "requires_isolated_worktree": true,
+  "requires_serialized_live_validation": true,
+  "file_locks": [
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-ac5-traceability.md",
+    ".tiny-swarm/evidence/issue-440-open/slice-06/**"
+  ],
+  "contract_locks": [
+    "frozen C/K source and exact approval"
+  ],
+  "architecture_locks": [
+    "Classic cold-kernel and scoped capability policy"
+  ],
+  "module_locks": [],
+  "shared_files": [
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-ac5-traceability.md"
+  ],
+  "shared_infrastructure": [
+    "designated SSH/WSL quality host",
+    "approved live campaign only when admitted"
+  ],
+  "conflicting_workflows": [
+    "historical #440/#449 and same-host/source writers"
+  ],
+  "allowed_write_scope": [
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-ac5-traceability.md",
+    ".tiny-swarm/evidence/issue-440-open/slice-06/**",
+    ".codex/evidence/slice-06-distribution.md",
+    ".codex/evidence/slice-06-consolidation.md"
+  ],
+  "requirement_ids": [
+    "P03",
+    "P04",
+    "P09",
+    "P12"
+  ],
+  "quality_gates": {
+    "targeted": [
+      "READ_ONLY_HOST_INVENTORY_AND_PROTECTED_BACKUP_REVIEW"
+    ],
+    "required": [
+      "git diff --check"
+    ]
+  },
+  "documentation": {
+    "arc42": "Recheck existing ownership/ADR; record N/A or actual approved delta.",
+    "adr": "No new decision planned; STOP for unapproved policy change."
+  },
+  "stop_conditions": [
+    "Missing exact source, ownership, required verification, recovery proof or approval; no guard weakening.",
+    "Unknown/dirty campaign source, C/K topology mismatch, unsafe pending state or unavailable required external result."
+  ]
+}
+```
+
+### Slice 07 — Qualify same-runner native/WSL listeners and restore
+
+Purpose: Execute only admitted exact-source loopback fixtures on both hosts under their own GO. Keep Windows bridge original-stopped and unbound during fixture; no BindNew/product action. Prove no prestart listener, attributable127.0.0.1 HTTP after start, no wildcard/forbidden listener, unchanged10001 and full fixture-window Windows/foreign state, exact cleanup and settled workers. Seal and return via fixture-only route; verify actual original resources, service/bridge/payload, routes and data restored. Original owned destination refresh is its own approved maintenance boundary. Retain source-specific native history without treating it as the fresh pair; unknown outcomes stay recovery-required.
+
+Prerequisites: S440O-06. Mode: LIVE.
+
+Done criteria: all stated observations and required checks have attributable evidence; independent owner review accepts the exact slice. No planned result counts as executed.
+
+Evidence: `.tiny-swarm/evidence/issue-440-open/slice-07/` with the six issue-completion files. Requirement mapping: P03, P04, P09, P12.
+
+```yaml
+{
+  "slice_id": "S440O-07",
+  "profile": "FULL_PATH",
+  "status": "PLANNED",
+  "owner": "Senior DevOps",
+  "secondary_reviewers": [
+    "Senior Requirement Engineer",
+    "Senior System Architect",
+    "Senior Tester",
+    "Senior Security Sandbox Engineer",
+    "Senior DevOps"
+  ],
+  "affected_files": [
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-ac5-traceability.md"
+  ],
+  "affected_modules": [
+    "existing qualification/lifecycle and evidence"
+  ],
+  "affected_contracts": [
+    "public CLI/evidence/source ownership",
+    "frozen C/K campaign provenance"
+  ],
+  "dependencies": [
+    "S440O-06"
+  ],
+  "parallel_group": "serial-07",
+  "parallel_execution_eligible": false,
+  "requires_isolated_worktree": true,
+  "requires_serialized_live_validation": true,
+  "file_locks": [
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-ac5-traceability.md",
+    ".tiny-swarm/evidence/issue-440-open/slice-07/**"
+  ],
+  "contract_locks": [
+    "frozen C/K source and exact approval"
+  ],
+  "architecture_locks": [
+    "Classic cold-kernel and scoped capability policy"
+  ],
+  "module_locks": [],
+  "shared_files": [
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-ac5-traceability.md"
+  ],
+  "shared_infrastructure": [
+    "designated SSH/WSL quality host",
+    "approved live campaign only when admitted"
+  ],
+  "conflicting_workflows": [
+    "historical #440/#449 and same-host/source writers"
+  ],
+  "allowed_write_scope": [
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-ac5-traceability.md",
+    ".tiny-swarm/evidence/issue-440-open/slice-07/**",
+    ".codex/evidence/slice-07-distribution.md",
+    ".codex/evidence/slice-07-consolidation.md"
+  ],
+  "requirement_ids": [
+    "P03",
+    "P04",
+    "P09",
+    "P12"
+  ],
+  "quality_gates": {
+    "targeted": [
+      "EXACT_SOURCE_FIXTURE_TRANSCRIPT_AND_INDEPENDENT_EVIDENCE_REVIEW"
+    ],
+    "required": [
+      "git diff --check"
+    ]
+  },
+  "documentation": {
+    "arc42": "Recheck existing ownership/ADR; record N/A or actual approved delta.",
+    "adr": "No new decision planned; STOP for unapproved policy change."
+  },
+  "stop_conditions": [
+    "Missing exact source, ownership, required verification, recovery proof or approval; no guard weakening.",
+    "Unknown/dirty campaign source, C/K topology mismatch, unsafe pending state or unavailable required external result."
+  ]
+}
+```
+
+### Slice 08 — Independently admit capability-only child K
+
+Purpose: Five-perspective Requirements/Architecture/Security/DevOps/Evidence review must accept paired exact runner results. Construct K as ONE direct child of frozen C with ONLY incus-profile-capabilities.json changed. No documentation, evidence, helper or policy edit may enter K. This is the sole allowed post-preparation source delta in qualification_revision. Verify unknown versions and direct/recovery callers still refuse. Keep campaign evidence outside clean C/K worktrees; checkpoint bookkeeping on the integration branch must not be inserted into the C→K parent chain. Fixture success alone never admits capability.
+
+Prerequisites: S440O-07. Mode: LOCAL_AND_ADMISSION.
+
+Done criteria: all stated observations and required checks have attributable evidence; independent owner review accepts the exact slice. No planned result counts as executed.
+
+Evidence: `.tiny-swarm/evidence/issue-440-open/slice-08/` with the six issue-completion files. Requirement mapping: P03, P04, P12, P13.
+
+```yaml
+{
+  "slice_id": "S440O-08",
+  "profile": "FULL_PATH",
+  "status": "PLANNED",
+  "owner": "Senior System Architect",
+  "secondary_reviewers": [
+    "Senior Requirement Engineer",
+    "Senior System Architect",
+    "Senior Tester",
+    "Senior Security Sandbox Engineer",
+    "Senior DevOps"
+  ],
+  "affected_files": [
+    "modules/tsw_core/infra/config/incus-profile-capabilities.json"
+  ],
+  "affected_modules": [
+    "existing qualification/lifecycle and evidence"
+  ],
+  "affected_contracts": [
+    "public CLI/evidence/source ownership",
+    "frozen C/K campaign provenance"
+  ],
+  "dependencies": [
+    "S440O-07"
+  ],
+  "parallel_group": "serial-08",
+  "parallel_execution_eligible": false,
+  "requires_isolated_worktree": true,
+  "requires_serialized_live_validation": false,
+  "file_locks": [
+    "modules/tsw_core/infra/config/incus-profile-capabilities.json",
+    ".tiny-swarm/evidence/issue-440-open/slice-08/**"
+  ],
+  "contract_locks": [
+    "frozen C/K source and exact approval"
+  ],
+  "architecture_locks": [
+    "Classic cold-kernel and scoped capability policy"
+  ],
+  "module_locks": [],
+  "shared_files": [
+    "modules/tsw_core/infra/config/incus-profile-capabilities.json"
+  ],
+  "shared_infrastructure": [
+    "designated SSH/WSL quality host",
+    "approved live campaign only when admitted"
+  ],
+  "conflicting_workflows": [
+    "historical #440/#449 and same-host/source writers"
+  ],
+  "allowed_write_scope": [
+    "modules/tsw_core/infra/config/incus-profile-capabilities.json",
+    ".tiny-swarm/evidence/issue-440-open/slice-08/**",
+    ".codex/evidence/slice-08-distribution.md",
+    ".codex/evidence/slice-08-consolidation.md"
+  ],
+  "requirement_ids": [
+    "P03",
+    "P04",
+    "P12",
+    "P13"
+  ],
+  "quality_gates": {
+    "targeted": [
+      "PYTHONPATH=. python3 -m unittest modules.tsw_core.tests.infrastructure.adapters.repositories.test_incus_profile_capability_repository modules.tsw_core.tests.domain.lifecycle.test_profile_lifecycle"
+    ],
+    "required": [
+      "python3 modules/tsw_core/tools/linux/quality_gate.py quality"
+    ]
+  },
+  "documentation": {
+    "arc42": "Recheck existing ownership/ADR; record N/A or actual approved delta.",
+    "adr": "No new decision planned; STOP for unapproved policy change."
+  },
+  "stop_conditions": [
+    "Missing exact source, ownership, required verification, recovery proof or approval; no guard weakening.",
+    "Unknown/dirty campaign source, C/K topology mismatch, unsafe pending state or unavailable required external result."
+  ]
+}
+```
+
+### Slice 09 — Qualify Portainer upgrade and API-down recovery
+
+Purpose: Use preparation receipts pinned to C and execute on admitted K with fresh scenario GO and owned Portainer-managed pre-existing stack. After Slice07 restored the original and retained the stopped fixture guest, reopen the product window ONLY through the Slice02 implemented/reviewed re-entry, rechecking registrations, source, backup, current boot, quiescence, boundary and new GO; otherwise stop. Structural qualification_revision acceptance of C does not admit an empty capability matrix. Validate usable cold /data backup; perform CE Server/Agent2.45.0→2.45.1, authenticated API/admin, unchanged endpoint/data/stack ownership, subsequent managed update and converged tasks. Record repeat no-op, separately attributable SIGINT and actual API-down recovery without exclusive dependence on unavailable API, repeat recovery and final restoration. SIGTERM evidence and reachable login alone do not satisfy these cases.
+
+Prerequisites: S440O-08. Mode: LIVE.
+
+Done criteria: all stated observations and required checks have attributable evidence; independent owner review accepts the exact slice. No planned result counts as executed.
+
+Evidence: `.tiny-swarm/evidence/issue-440-open/slice-09/` with the six issue-completion files. Requirement mapping: P03, P08, P09, P10, P11, P12.
+
+```yaml
+{
+  "slice_id": "S440O-09",
+  "profile": "FULL_PATH",
+  "status": "PLANNED",
+  "owner": "Senior DevOps",
+  "secondary_reviewers": [
+    "Senior Requirement Engineer",
+    "Senior System Architect",
+    "Senior Tester",
+    "Senior Security Sandbox Engineer",
+    "Senior DevOps"
+  ],
+  "affected_files": [
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-ac5-traceability.md"
+  ],
+  "affected_modules": [
+    "existing qualification/lifecycle and evidence"
+  ],
+  "affected_contracts": [
+    "public CLI/evidence/source ownership",
+    "frozen C/K campaign provenance"
+  ],
+  "dependencies": [
+    "S440O-08"
+  ],
+  "parallel_group": "serial-09",
+  "parallel_execution_eligible": false,
+  "requires_isolated_worktree": true,
+  "requires_serialized_live_validation": true,
+  "file_locks": [
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-ac5-traceability.md",
+    ".tiny-swarm/evidence/issue-440-open/slice-09/**"
+  ],
+  "contract_locks": [
+    "frozen C/K source and exact approval"
+  ],
+  "architecture_locks": [
+    "Classic cold-kernel and scoped capability policy"
+  ],
+  "module_locks": [],
+  "shared_files": [
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-ac5-traceability.md"
+  ],
+  "shared_infrastructure": [
+    "designated SSH/WSL quality host",
+    "approved live campaign only when admitted"
+  ],
+  "conflicting_workflows": [
+    "historical #440/#449 and same-host/source writers"
+  ],
+  "allowed_write_scope": [
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-ac5-traceability.md",
+    ".tiny-swarm/evidence/issue-440-open/slice-09/**",
+    ".codex/evidence/slice-09-distribution.md",
+    ".codex/evidence/slice-09-consolidation.md"
+  ],
+  "requirement_ids": [
+    "P03",
+    "P08",
+    "P09",
+    "P10",
+    "P11",
+    "P12"
+  ],
+  "quality_gates": {
+    "targeted": [
+      "PUBLIC_CLI_PORTAINER_AND_CHILD_ATTRIBUTION_REPORT"
+    ],
+    "required": [
+      "git diff --check"
+    ]
+  },
+  "documentation": {
+    "arc42": "Recheck existing ownership/ADR; record N/A or actual approved delta.",
+    "adr": "No new decision planned; STOP for unapproved policy change."
+  },
+  "stop_conditions": [
+    "Missing exact source, ownership, required verification, recovery proof or approval; no guard weakening.",
+    "Unknown/dirty campaign source, C/K topology mismatch, unsafe pending state or unavailable required external result."
+  ]
+}
+```
+
+### Slice 10 — Qualify single/batch components before promotion
+
+Purpose: On the already prepared reviewed private candidate, exercise Swagger single and Swagger+Traefik batch with BOTH members changing through public CLI. Prove actual task digest convergence, authenticated behavior, desired pin persistence and retention after ordinary setup, no-op, partial failure/interruption/recovery, stale/mixed task and drift refusal. Mainline policy remains candidate-only until independent acceptance; then consolidate exactly the accepted policy bytes in Slice12. No monkeypatch, general force flag or direct-adapter bypass. Recheck actual image/tag/platform/digest availability and qualification approval scope.
+
+Prerequisites: S440O-09. Mode: LIVE.
+
+Done criteria: all stated observations and required checks have attributable evidence; independent owner review accepts the exact slice. No planned result counts as executed.
+
+Evidence: `.tiny-swarm/evidence/issue-440-open/slice-10/` with the six issue-completion files. Requirement mapping: P02, P08, P09, P10, P11, P12, P14.
+
+```yaml
+{
+  "slice_id": "S440O-10",
+  "profile": "FULL_PATH",
+  "status": "PLANNED",
+  "owner": "Senior DevOps",
+  "secondary_reviewers": [
+    "Senior Requirement Engineer",
+    "Senior System Architect",
+    "Senior Tester",
+    "Senior Security Sandbox Engineer",
+    "Senior DevOps"
+  ],
+  "affected_files": [
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-ac5-traceability.md"
+  ],
+  "affected_modules": [
+    "existing qualification/lifecycle and evidence"
+  ],
+  "affected_contracts": [
+    "public CLI/evidence/source ownership",
+    "frozen C/K campaign provenance"
+  ],
+  "dependencies": [
+    "S440O-09"
   ],
   "parallel_group": "serial-10",
   "parallel_execution_eligible": false,
@@ -1283,29 +1201,131 @@ Allowed files, locks, owners, dependencies and verified commands:
   "file_locks": [
     "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
     "documentation/handbook/07-evidence-release/evidence/lcm-w09-ac5-traceability.md",
-    ".tiny-swarm/evidence/issue-440/slice-10/**"
+    ".tiny-swarm/evidence/issue-440-open/slice-10/**"
   ],
   "contract_locks": [
-    "P01/P04-P12",
-    "Q01-Q20"
+    "frozen C/K source and exact approval"
   ],
-  "architecture_locks": [],
+  "architecture_locks": [
+    "Classic cold-kernel and scoped capability policy"
+  ],
   "module_locks": [],
-  "shared_files": [],
+  "shared_files": [
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-ac5-traceability.md"
+  ],
   "shared_infrastructure": [
     "designated SSH/WSL quality host",
-    "approved native/WSL fixture resources"
+    "approved live campaign only when admitted"
   ],
   "conflicting_workflows": [
-    "historical issue-449 qualification",
-    "any writer on the same installation/host"
+    "historical #440/#449 and same-host/source writers"
   ],
   "allowed_write_scope": [
     "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
     "documentation/handbook/07-evidence-release/evidence/lcm-w09-ac5-traceability.md",
-    ".tiny-swarm/evidence/issue-440/slice-10/**",
+    ".tiny-swarm/evidence/issue-440-open/slice-10/**",
     ".codex/evidence/slice-10-distribution.md",
     ".codex/evidence/slice-10-consolidation.md"
+  ],
+  "requirement_ids": [
+    "P02",
+    "P08",
+    "P09",
+    "P10",
+    "P11",
+    "P12",
+    "P14"
+  ],
+  "quality_gates": {
+    "targeted": [
+      "PUBLIC_CLI_SINGLE_BATCH_RECOVERY_AND_PIN_RETENTION_REPORT"
+    ],
+    "required": [
+      "git diff --check"
+    ]
+  },
+  "documentation": {
+    "arc42": "Recheck existing ownership/ADR; record N/A or actual approved delta.",
+    "adr": "No new decision planned; STOP for unapproved policy change."
+  },
+  "stop_conditions": [
+    "Missing exact source, ownership, required verification, recovery proof or approval; no guard weakening.",
+    "Unknown/dirty campaign source, C/K topology mismatch, unsafe pending state or unavailable required external result."
+  ]
+}
+```
+
+### Slice 11 — Close selection, product and shared-control live gaps
+
+Purpose: Run only remaining matrix cells on each claimed host/source: minimal plus TWO distinct resolved optional service sets, add-service identity/data/credential/override preservation, retention, selected-only routes/output/checks and preview-only removal. Execute required supported product cases after Slice03, preserving historical P01 and unsupported v2→legacy refusal. Record no-op, actual checkpoint-bound interruption/recovery, refused consent/input/downgrade, dirty/unofficial/moved sources, stale journals, mixed tasks and runtime/config drift. Full installation/browser smoke never fills these lifecycle gaps.
+
+Prerequisites: S440O-10. Mode: LIVE.
+
+Done criteria: all stated observations and required checks have attributable evidence; independent owner review accepts the exact slice. No planned result counts as executed.
+
+Evidence: `.tiny-swarm/evidence/issue-440-open/slice-11/` with the six issue-completion files. Requirement mapping: P01, P04, P05, P06, P07, P08, P09, P10, P11, P12.
+
+```yaml
+{
+  "slice_id": "S440O-11",
+  "profile": "FULL_PATH",
+  "status": "PLANNED",
+  "owner": "Senior DevOps",
+  "secondary_reviewers": [
+    "Senior Requirement Engineer",
+    "Senior System Architect",
+    "Senior Tester",
+    "Senior Security Sandbox Engineer",
+    "Senior DevOps"
+  ],
+  "affected_files": [
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-ac5-traceability.md"
+  ],
+  "affected_modules": [
+    "existing qualification/lifecycle and evidence"
+  ],
+  "affected_contracts": [
+    "public CLI/evidence/source ownership",
+    "frozen C/K campaign provenance"
+  ],
+  "dependencies": [
+    "S440O-10"
+  ],
+  "parallel_group": "serial-11",
+  "parallel_execution_eligible": false,
+  "requires_isolated_worktree": true,
+  "requires_serialized_live_validation": true,
+  "file_locks": [
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-ac5-traceability.md",
+    ".tiny-swarm/evidence/issue-440-open/slice-11/**"
+  ],
+  "contract_locks": [
+    "frozen C/K source and exact approval"
+  ],
+  "architecture_locks": [
+    "Classic cold-kernel and scoped capability policy"
+  ],
+  "module_locks": [],
+  "shared_files": [
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-ac5-traceability.md"
+  ],
+  "shared_infrastructure": [
+    "designated SSH/WSL quality host",
+    "approved live campaign only when admitted"
+  ],
+  "conflicting_workflows": [
+    "historical #440/#449 and same-host/source writers"
+  ],
+  "allowed_write_scope": [
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-ac5-traceability.md",
+    ".tiny-swarm/evidence/issue-440-open/slice-11/**",
+    ".codex/evidence/slice-11-distribution.md",
+    ".codex/evidence/slice-11-consolidation.md"
   ],
   "requirement_ids": [
     "P01",
@@ -1321,208 +1341,337 @@ Allowed files, locks, owners, dependencies and verified commands:
   ],
   "quality_gates": {
     "targeted": [
-      "PYTHONPATH=. python3 -m unittest modules.tsw_core.tests.test_selective_setup_cli modules.tsw_core.tests.infrastructure.test_selective_setup modules.tsw_core.tests.infrastructure.test_selective_followups modules.tsw_core.tests.test_product_upgrade_cli modules.tsw_core.tests.test_profile_route_preview modules.tsw_core.tests.test_profile_recovery_cli"
+      "PUBLIC_CLI_SELECTION_PRODUCT_AND_REFUSAL_MATRIX_REPORT"
     ],
     "required": [
       "git diff --check"
     ]
   },
   "documentation": {
-    "arc42": "Review existing relevant boundaries/ADRs; update only if an approved delta requires it.",
-    "adr": "Accepted installation-scoped-profile and Classic lifecycle decisions remain authoritative."
+    "arc42": "Recheck existing ownership/ADR; record N/A or actual approved delta.",
+    "adr": "No new decision planned; STOP for unapproved policy change."
   },
   "stop_conditions": [
-    "Two requests resolve to the same set, omitted services are reported as installed/failed, source state is guessed, test credentials are rotated, or a selection requires destructive reuse of an unrelated installation.",
-    "No guard/rule/threshold weakening; no unapproved live or external writes."
+    "Missing exact source, ownership, required verification, recovery proof or approval; no guard weakening.",
+    "Unknown/dirty campaign source, C/K topology mismatch, unsafe pending state or unavailable required external result."
   ]
 }
 ```
 
-### Slice 11 — Verify final candidate, documentation and required external gates
+### Slice 12 — Consolidate exact accepted source, docs and local gates
 
-Purpose: Freeze the integrated runtime candidate and validate every documented command/example with its actual help/preview/refusal or separately authorized live result. Reconcile P01-P15 and Q01-Q20, preservation and recovery limits, support admission and post-operation retention.
+Purpose: Only after independent scenario acceptance consolidate exact accepted candidate policy/capability/source bytes. Reconcile final integrated source with each captured C/K scenario; evidence-only changes require explicit equivalence review, runtime changes requalify affected cases. Verify actual installed CLI help/examples and truthful support/data-restore limits; update W09/W10 and all47LCM/15parent/45childAC/late/global mappings. Run applicable targeted checks then full quality on exact final source. Verify final admitted-policy expectations while retaining independent fixed candidate/unknown-target refusal fixtures; no weakened or skipped policy tests. No closed child or old local PASS closes an open live row.
 
-Prerequisites: S440-10.
+Prerequisites: S440O-11. Mode: LOCAL.
 
-Requirement mapping: P02, P07, P08, P10, P12, P13, P14. Read the corresponding LCM and late-addition rows in requirement-matrix.md.
+Done criteria: all stated observations and required checks have attributable evidence; independent owner review accepts the exact slice. No planned result counts as executed.
 
-Done criteria: Full exact-source SSH/WSL quality passes; all Python compatibility entries and actual SonarCloud analysis/gate are observable and green. Coverage/source scopes and thresholds remain intact. Any post-qualification code/asset/entrypoint change invalidates affected live rows until requalified. Evidence-only deltas need explicit independent equivalence review, not an assumed same-SHA claim.
-
-Stop conditions: Any failed/unavailable required check, unsupported example, stale qualification hash, concealed caveat or unreviewed source equivalence. The old configuration-only merge exception cannot be reused.
-
-Evidence: `.tiny-swarm/evidence/issue-440/slice-11/`; retain exact commands/results and before/after source/state bindings. Effort: 0.5–1.5 engineer-days.
-
-Allowed files, locks, owners, dependencies and verified commands:
+Evidence: `.tiny-swarm/evidence/issue-440-open/slice-12/` with the six issue-completion files. Requirement mapping: P01, P02, P03, P04, P05, P06, P07, P08, P09, P10, P11, P12, P13, P14.
 
 ```yaml
 {
-  "slice_id": "S440-11",
+  "slice_id": "S440O-12",
   "profile": "FULL_PATH",
   "status": "PLANNED",
-  "owner": "Senior Documentation Engineer",
+  "owner": "Senior Python Automation Developer",
   "secondary_reviewers": [
     "Senior Requirement Engineer",
     "Senior System Architect",
-    "Senior Python Automation Developer",
-    "Senior Tester"
+    "Senior Tester",
+    "Senior Security Sandbox Engineer",
+    "Senior DevOps",
+    "Senior Documentation Engineer"
   ],
   "affected_files": [
+    "modules/tsw_core/src/infrastructure/adapters/lifecycle/component_transitions.py",
+    "modules/tsw_core/infra/config/incus-profile-capabilities.json",
+    "documentation/handbook/07-evidence-release/evidence/issue-450-epic-audit.md",
     "documentation/handbook/03-user-guide/user_guide/component-updates.md",
     "documentation/handbook/03-user-guide/user_guide/product-upgrades.md",
-    "documentation/handbook/03-user-guide/user_guide/selective-setup.md",
     "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
-    "documentation/handbook/07-evidence-release/evidence/issue-450-epic-audit.md",
-    "documentation/handbook/07-evidence-release/evidence/lcm-w09-ac5-traceability.md"
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-ac5-traceability.md",
+    "modules/tsw_core/tests/infrastructure/adapters/lifecycle/test_native_component_transitions.py",
+    "modules/tsw_core/tests/test_component_updates_cli.py"
   ],
   "affected_modules": [
-    "handbook",
-    "quality/evidence reconciliation"
+    "existing qualification/lifecycle and evidence"
   ],
   "affected_contracts": [
-    "exact final source evidence",
-    "operator command truth"
+    "public CLI/evidence/source ownership",
+    "frozen C/K campaign provenance"
   ],
   "dependencies": [
-    "S440-10"
+    "S440O-11"
   ],
-  "parallel_group": "serial-11",
+  "parallel_group": "serial-12",
   "parallel_execution_eligible": false,
   "requires_isolated_worktree": true,
-  "requires_serialized_live_validation": true,
+  "requires_serialized_live_validation": false,
   "file_locks": [
+    "modules/tsw_core/src/infrastructure/adapters/lifecycle/component_transitions.py",
+    "modules/tsw_core/infra/config/incus-profile-capabilities.json",
+    "documentation/handbook/07-evidence-release/evidence/issue-450-epic-audit.md",
     "documentation/handbook/03-user-guide/user_guide/component-updates.md",
     "documentation/handbook/03-user-guide/user_guide/product-upgrades.md",
-    "documentation/handbook/03-user-guide/user_guide/selective-setup.md",
     "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
-    "documentation/handbook/07-evidence-release/evidence/issue-450-epic-audit.md",
     "documentation/handbook/07-evidence-release/evidence/lcm-w09-ac5-traceability.md",
-    ".tiny-swarm/evidence/issue-440/slice-11/**"
+    ".tiny-swarm/evidence/issue-440-open/slice-12/**",
+    "modules/tsw_core/tests/infrastructure/adapters/lifecycle/test_native_component_transitions.py",
+    "modules/tsw_core/tests/test_component_updates_cli.py"
   ],
   "contract_locks": [
-    "exact final source evidence",
-    "operator command truth"
+    "frozen C/K source and exact approval"
   ],
-  "architecture_locks": [],
+  "architecture_locks": [
+    "Classic cold-kernel and scoped capability policy"
+  ],
   "module_locks": [],
-  "shared_files": [],
-  "shared_infrastructure": [
-    "designated SSH/WSL quality host"
-  ],
-  "conflicting_workflows": [
-    "historical issue-449 qualification",
-    "any writer on the same installation/host"
-  ],
-  "allowed_write_scope": [
+  "shared_files": [
+    "modules/tsw_core/src/infrastructure/adapters/lifecycle/component_transitions.py",
+    "modules/tsw_core/infra/config/incus-profile-capabilities.json",
+    "documentation/handbook/07-evidence-release/evidence/issue-450-epic-audit.md",
     "documentation/handbook/03-user-guide/user_guide/component-updates.md",
     "documentation/handbook/03-user-guide/user_guide/product-upgrades.md",
-    "documentation/handbook/03-user-guide/user_guide/selective-setup.md",
     "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
-    "documentation/handbook/07-evidence-release/evidence/issue-450-epic-audit.md",
     "documentation/handbook/07-evidence-release/evidence/lcm-w09-ac5-traceability.md",
-    ".tiny-swarm/evidence/issue-440/slice-11/**",
-    ".codex/evidence/slice-11-distribution.md",
-    ".codex/evidence/slice-11-consolidation.md"
+    "modules/tsw_core/tests/infrastructure/adapters/lifecycle/test_native_component_transitions.py",
+    "modules/tsw_core/tests/test_component_updates_cli.py"
+  ],
+  "shared_infrastructure": [
+    "designated SSH/WSL quality host",
+    "approved live campaign only when admitted"
+  ],
+  "conflicting_workflows": [
+    "historical #440/#449 and same-host/source writers"
+  ],
+  "allowed_write_scope": [
+    "modules/tsw_core/src/infrastructure/adapters/lifecycle/component_transitions.py",
+    "modules/tsw_core/infra/config/incus-profile-capabilities.json",
+    "documentation/handbook/07-evidence-release/evidence/issue-450-epic-audit.md",
+    "documentation/handbook/03-user-guide/user_guide/component-updates.md",
+    "documentation/handbook/03-user-guide/user_guide/product-upgrades.md",
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-ac5-traceability.md",
+    ".tiny-swarm/evidence/issue-440-open/slice-12/**",
+    ".codex/evidence/slice-12-distribution.md",
+    ".codex/evidence/slice-12-consolidation.md",
+    "modules/tsw_core/tests/infrastructure/adapters/lifecycle/test_native_component_transitions.py",
+    "modules/tsw_core/tests/test_component_updates_cli.py"
   ],
   "requirement_ids": [
+    "P01",
     "P02",
+    "P03",
+    "P04",
+    "P05",
+    "P06",
     "P07",
     "P08",
+    "P09",
     "P10",
+    "P11",
     "P12",
     "P13",
     "P14"
   ],
   "quality_gates": {
     "targeted": [
-      "python3 modules/tsw_core/tools/linux/quality_gate.py quality",
-      "git diff --check"
+      "PYTHONPATH=. python3 -m unittest modules.tsw_core.tests.tools.test_lcm_acceptance",
+      "PYTHONPATH=. python3 -m unittest modules.tsw_core.tests.infrastructure.adapters.lifecycle.test_native_component_transitions modules.tsw_core.tests.test_component_updates_cli"
     ],
     "required": [
       "python3 modules/tsw_core/tools/linux/quality_gate.py quality"
     ]
   },
   "documentation": {
-    "arc42": "Review existing relevant boundaries/ADRs; update only if an approved delta requires it.",
-    "adr": "Accepted installation-scoped-profile and Classic lifecycle decisions remain authoritative."
+    "arc42": "Recheck existing ownership/ADR; record N/A or actual approved delta.",
+    "adr": "No new decision planned; STOP for unapproved policy change."
   },
   "stop_conditions": [
-    "Any failed/unavailable required check, unsupported example, stale qualification hash, concealed caveat or unreviewed source equivalence. The old configuration-only merge exception cannot be reused.",
-    "No guard/rule/threshold weakening; no unapproved live or external writes."
+    "Missing exact source, ownership, required verification, recovery proof or approval; no guard weakening.",
+    "Unknown/dirty campaign source, C/K topology mismatch, unsafe pending state or unavailable required external result."
   ]
 }
 ```
 
-### Slice 12 — Independent parent completion audit and governed handoff
+### Slice 13 — Obtain PR authorization and observe required CI/Sonar
 
-Purpose: A reviewer who did not implement the affected scope audits all parent and child/late requirements, actual installed paths, exact-source live records and all quality/security results. Check historical acceptance without silently reducing the original criteria.
+Purpose: Workflow-create publication and execution checkpoint pushes do not create a PR or trigger the trusted Sonar workflow. Obtain/reuse explicit implementation-PR publication authorization, run commit readiness, create/reuse PR against main only when authorized, and observe actual required CI and configured Sonar analysis for the exact head. Existing sonar_external_gate.yml runs trusted PR workflow_run or push main; ordinary feature push is insufficient. Missing permission/access/result is EXTERNAL_GATE_UNAVAILABLE/BLOCKED, never green. Do not add CI, bypass findings, merge, force-push or clean branches under this slice.
 
-Prerequisites: S440-11.
+Prerequisites: S440O-12. Mode: EXTERNAL.
 
-Requirement mapping: P01, P02, P03, P04, P05, P06, P07, P08, P09, P10, P11, P12, P13, P14, P15. Read the corresponding LCM and late-addition rows in requirement-matrix.md.
+Done criteria: all stated observations and required checks have attributable evidence; independent owner review accepts the exact slice. No planned result counts as executed.
 
-Done criteria: PASS only if every normative requirement and P01-P15 criterion has implementation and accepted verification at the required level. Otherwise return INCOMPLETE/BLOCKED/REJECTED with exact gaps. Record retained state, rollback/recovery boundaries and the final source. Epic checkbox/closure and implementation PR merge occur only under the applicable explicit publication authorization and current green checks.
-
-Stop conditions: Open requirements, missing independent reviewer, unsupported host/component claim, incomplete evidence, failed security gate or unapproved external publication. No issue is closed merely because implementation children are closed.
-
-Evidence: `.tiny-swarm/evidence/issue-440/slice-12/`; retain exact commands/results and before/after source/state bindings. Effort: 0.5–1 engineer-day plus review availability.
-
-Allowed files, locks, owners, dependencies and verified commands:
+Evidence: `.tiny-swarm/evidence/issue-440-open/slice-13/` with the six issue-completion files. Requirement mapping: P12, P13, P14.
 
 ```yaml
 {
-  "slice_id": "S440-12",
+  "slice_id": "S440O-13",
   "profile": "FULL_PATH",
   "status": "PLANNED",
-  "owner": "Issue Completion Auditor",
+  "owner": "Senior DevOps",
   "secondary_reviewers": [
     "Senior Requirement Engineer",
     "Senior System Architect",
-    "Senior Python Automation Developer",
-    "Senior Tester"
+    "Senior Tester",
+    "Senior Security Sandbox Engineer",
+    "Senior DevOps"
   ],
   "affected_files": [
-    "documentation/handbook/07-evidence-release/evidence/issue-450-epic-audit.md",
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
     "documentation/handbook/07-evidence-release/evidence/lcm-w09-ac5-traceability.md"
   ],
   "affected_modules": [
-    "independent completion audit"
+    "existing qualification/lifecycle and evidence"
   ],
   "affected_contracts": [
-    "complete parent requirements",
-    "publication/closure authority"
+    "public CLI/evidence/source ownership",
+    "frozen C/K campaign provenance"
   ],
   "dependencies": [
-    "S440-11"
+    "S440O-12"
   ],
-  "parallel_group": "serial-12",
+  "parallel_group": "serial-13",
   "parallel_execution_eligible": false,
   "requires_isolated_worktree": true,
-  "requires_serialized_live_validation": true,
+  "requires_serialized_live_validation": false,
   "file_locks": [
-    "documentation/handbook/07-evidence-release/evidence/issue-450-epic-audit.md",
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
     "documentation/handbook/07-evidence-release/evidence/lcm-w09-ac5-traceability.md",
-    ".tiny-swarm/evidence/issue-440/slice-12/**"
+    ".tiny-swarm/evidence/issue-440-open/slice-13/**"
   ],
   "contract_locks": [
-    "complete parent requirements",
-    "publication/closure authority"
+    "frozen C/K source and exact approval"
   ],
-  "architecture_locks": [],
+  "architecture_locks": [
+    "Classic cold-kernel and scoped capability policy"
+  ],
   "module_locks": [],
-  "shared_files": [],
+  "shared_files": [
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-ac5-traceability.md"
+  ],
   "shared_infrastructure": [
-    "designated SSH/WSL quality host"
+    "designated SSH/WSL quality host",
+    "approved live campaign only when admitted"
   ],
   "conflicting_workflows": [
-    "historical issue-449 qualification",
-    "any writer on the same installation/host"
+    "historical #440/#449 and same-host/source writers"
+  ],
+  "allowed_write_scope": [
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-ac5-traceability.md",
+    ".tiny-swarm/evidence/issue-440-open/slice-13/**",
+    ".codex/evidence/slice-13-distribution.md",
+    ".codex/evidence/slice-13-consolidation.md"
+  ],
+  "requirement_ids": [
+    "P12",
+    "P13",
+    "P14"
+  ],
+  "quality_gates": {
+    "targeted": [
+      "OBSERVE_EXISTING_REQUIRED_CI_AND_SONAR_FOR_EXACT_PR_HEAD"
+    ],
+    "required": [
+      "git diff --check",
+      "OBSERVED_REQUIRED_PR_CHECKS_AND_SONAR"
+    ]
+  },
+  "documentation": {
+    "arc42": "Recheck existing ownership/ADR; record N/A or actual approved delta.",
+    "adr": "No new decision planned; STOP for unapproved policy change."
+  },
+  "stop_conditions": [
+    "Missing exact source, ownership, required verification, recovery proof or approval; no guard weakening.",
+    "Unknown/dirty campaign source, C/K topology mismatch, unsafe pending state or unavailable required external result."
+  ]
+}
+```
+
+### Slice 14 — Independent parent completion audit and handoff
+
+Purpose: Independent Requirement, Architecture and Test/Evidence reviewers plus issue-completion-auditor evaluate every row against actual final source, commands, exit/state/process evidence, host versions and preservation/recovery results. PASS only with no open/unverified acceptance, required actual external results and approved source equivalence. Otherwise INCOMPLETE/BLOCKED with owner and next action. Workflow authoring, fixture PASS, local quality and child closures are not Epic completion. GitHub comments/closure, merge and release require their separate explicit authorization.
+
+Prerequisites: S440O-13. Mode: AUDIT.
+
+Done criteria: all stated observations and required checks have attributable evidence; independent owner review accepts the exact slice. No planned result counts as executed.
+
+Evidence: `.tiny-swarm/evidence/issue-440-open/slice-14/` with the six issue-completion files. Requirement mapping: P01, P02, P03, P04, P05, P06, P07, P08, P09, P10, P11, P12, P13, P14, P15.
+
+```yaml
+{
+  "slice_id": "S440O-14",
+  "profile": "FULL_PATH",
+  "status": "PLANNED",
+  "owner": "Senior Requirement Engineer",
+  "secondary_reviewers": [
+    "Senior Requirement Engineer",
+    "Senior System Architect",
+    "Senior Tester",
+    "Senior Security Sandbox Engineer",
+    "Senior DevOps"
+  ],
+  "affected_files": [
+    "documentation/handbook/07-evidence-release/evidence/issue-450-epic-audit.md",
+    "documentation/handbook/03-user-guide/user_guide/component-updates.md",
+    "documentation/handbook/03-user-guide/user_guide/product-upgrades.md",
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-ac5-traceability.md"
+  ],
+  "affected_modules": [
+    "existing qualification/lifecycle and evidence"
+  ],
+  "affected_contracts": [
+    "public CLI/evidence/source ownership",
+    "frozen C/K campaign provenance"
+  ],
+  "dependencies": [
+    "S440O-13"
+  ],
+  "parallel_group": "serial-14",
+  "parallel_execution_eligible": false,
+  "requires_isolated_worktree": true,
+  "requires_serialized_live_validation": false,
+  "file_locks": [
+    "documentation/handbook/07-evidence-release/evidence/issue-450-epic-audit.md",
+    "documentation/handbook/03-user-guide/user_guide/component-updates.md",
+    "documentation/handbook/03-user-guide/user_guide/product-upgrades.md",
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-ac5-traceability.md",
+    ".tiny-swarm/evidence/issue-440-open/slice-14/**"
+  ],
+  "contract_locks": [
+    "frozen C/K source and exact approval"
+  ],
+  "architecture_locks": [
+    "Classic cold-kernel and scoped capability policy"
+  ],
+  "module_locks": [],
+  "shared_files": [
+    "documentation/handbook/07-evidence-release/evidence/issue-450-epic-audit.md",
+    "documentation/handbook/03-user-guide/user_guide/component-updates.md",
+    "documentation/handbook/03-user-guide/user_guide/product-upgrades.md",
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-ac5-traceability.md"
+  ],
+  "shared_infrastructure": [
+    "designated SSH/WSL quality host",
+    "approved live campaign only when admitted"
+  ],
+  "conflicting_workflows": [
+    "historical #440/#449 and same-host/source writers"
   ],
   "allowed_write_scope": [
     "documentation/handbook/07-evidence-release/evidence/issue-450-epic-audit.md",
+    "documentation/handbook/03-user-guide/user_guide/component-updates.md",
+    "documentation/handbook/03-user-guide/user_guide/product-upgrades.md",
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
     "documentation/handbook/07-evidence-release/evidence/lcm-w09-ac5-traceability.md",
-    ".tiny-swarm/evidence/issue-440/slice-12/**",
-    ".codex/evidence/slice-12-distribution.md",
-    ".codex/evidence/slice-12-consolidation.md"
+    ".tiny-swarm/evidence/issue-440-open/slice-14/**",
+    ".codex/evidence/slice-14-distribution.md",
+    ".codex/evidence/slice-14-consolidation.md"
   ],
   "requirement_ids": [
     "P01",
@@ -1543,144 +1692,77 @@ Allowed files, locks, owners, dependencies and verified commands:
   ],
   "quality_gates": {
     "targeted": [
-      "git diff --check"
+      "INDEPENDENT_REQUIREMENT_ARCHITECTURE_EVIDENCE_AUDIT"
     ],
     "required": [
       "git diff --check"
     ]
   },
   "documentation": {
-    "arc42": "Review existing relevant boundaries/ADRs; update only if an approved delta requires it.",
-    "adr": "Accepted installation-scoped-profile and Classic lifecycle decisions remain authoritative."
+    "arc42": "Recheck existing ownership/ADR; record N/A or actual approved delta.",
+    "adr": "No new decision planned; STOP for unapproved policy change."
   },
   "stop_conditions": [
-    "Open requirements, missing independent reviewer, unsupported host/component claim, incomplete evidence, failed security gate or unapproved external publication. No issue is closed merely because implementation children are closed.",
-    "No guard/rule/threshold weakening; no unapproved live or external writes."
+    "Missing exact source, ownership, required verification, recovery proof or approval; no guard weakening.",
+    "Unknown/dirty campaign source, C/K topology mismatch, unsafe pending state or unavailable required external result."
   ]
 }
 ```
 
-## Parallel Execution
-
-- Can this workflow run in parallel? Only disjoint S440-02/S440-03 implementation streams after Three Amigos/S3D accept actual locks; otherwise serial.
-- Conflicting workflows: historical #449 qualification and any host, installation, shared policy, profile, journal or manifest writer.
-- Shared files: workflow status/context/evidence indexes are integration-owner writes only; serialize them outside worker scopes. Source policy/checkpoints require the explicit graph order.
-- Shared infrastructure: designated SSH/WSL quality host, native/WSL fixtures, Incus profiles/ports, Swarm and Portainer ownership. Serialize full quality runs and live resource use.
-- Requires isolated worktree: yes for this workflow and every parallel stream; use a workflow worktree verified before execution without force-resetting this authoring worktree.
-- Requires serialized live validation: yes; no shared-host live parallelism even when artifact filenames differ.
-- Merge-order constraints: consolidate 02/03 into the workflow branch before 04; then 04→05→06→07→08→09→10→11→12. No direct stream merge to main.
-
-## Automatic Work Distribution Policy
-
-On workflow execute automatically inspect each slice for safe specialist streams.
-Use real Codex subagents where supported and authorized by that execution command;
-otherwise record explicit role-pass fallback without claiming independence.
-Before implementation write `.codex/evidence/slice-<number>-distribution.md`;
-after accepted implementation write `.codex/evidence/slice-<number>-consolidation.md`.
-Codex remains final integration owner. A true independent final reviewer is still
-required for P15; fallback role passes by the implementer cannot provide it.
-
-Stream map: backend → Senior Python Automation Developer; frontend → conditional
-Console/status UI reviewer only; tests → Senior Tester; runtime → Senior DevOps;
-documentation → Senior Documentation Engineer; quality → Senior Tester/quality-gate
-skills; architecture → Senior System Architect; security → Senior Security Sandbox
-Engineer. No browser frontend stream is planned.
-
-Do not split overlapping files, unstable contracts, architecture ambiguity,
-contradictory requirements, ordered migrations/state transitions, generated-file
-conflicts, unclear secret handling or any plan rejected by Three Amigos. Never
-weaken guards to unlock parallel execution. Coordinator-owned shared documentation
-and final test-host access are serialized.
-
-## Git Worktree Execution Rule
-
-Verify `git status`, local ref, branch, scope and locks before any write. The
-checked workflow branch is `docs/workflow-issue440-acceptance-20261110`; workflow execute must not invent a
-replacement branch. Attach this branch to a dedicated execution worktree safely
-or verify that the current isolated worktree belongs solely to this workflow.
-Parallel stream branches are `<workflow-branch>-slice-<number>-<stream>` in their
-own worktrees. Workers verify their branch and never integrate directly into the
-workflow branch. Codex reviews and consolidates accepted changes in graph order.
-
 ## Issue Completion Discipline
 
-- Requirement matrix path: `documentation/handbook/05-development/workflow/requirement-matrix.md`; initialize the full runtime trace/evidence mapping in S440-01.
-- Required evidence path: `.tiny-swarm/evidence/issue-440/` and per-slice subdirectories; retain historical issue-449 evidence separately.
+- Requirement matrix path: requirement-matrix.md; machine inventory requirements.json.
+- Required evidence path: .tiny-swarm/evidence/issue-440-open/slice-<number>/ and final parent package.
 - Required evidence files: requirement_matrix.md, implementation_summary.md, changed_files.md, test_results.md, remaining_risks.md, acceptance_checklist.md.
-- Requirement Lead review: every original/late parent requirement plus child acceptance and the full operator outcome.
-- System Architect Reviewer review: real public path, correct ownership/ports/locks/state, capability boundaries and no alternate engine.
-- Test / Evidence Reviewer review: exact-source system results, preservation, negative cases, meaningful failure/recovery and truthful non-pass states.
-- Issue Completion Auditor review: independent final reviewer in S440-12; this authoring review is not completion authority.
-- DONE blocking rule: any open, unverified or failed requirement forces INCOMPLETE, BLOCKED or FAILED; no parent PASS/closure on partial scope.
-
-## Quality Gates, Checkpoints and Publication
-
-Execution source changes require targeted regressions and `python3 modules/tsw_core/tools/linux/quality_gate.py quality` on the
-designated SSH/WSL host. Reuse an already valid exact-source result for pure
-review/evidence-only steps; do not rerun broad suites without a new source delta
-or unresolved verification concern. Record explicit skips and applicability.
-No architecture import contract, coverage scope/threshold, test assertion,
-Sonar rule or trusted workflow boundary may be weakened.
-
-Commit each accepted executable slice separately with its issue/slice, actual
-behavior and verification. Follow governed workflow checkpoint pushes only to
-the current branch; no force-push, direct main push, PR creation/merge or branch
-cleanup is authorized by this planning publication. Later implementation PR
-publication requires the active explicit authorization and observed required
-checks, including SonarCloud. The one-time #518 stale-path exception is exhausted
-and does not waive actual analysis findings or future gates.
-
-Authoring validation is doc/static only: reviewed diff, `git diff --check`, parsed
-slice metadata/dependency DAG, source/test path existence, requirement coverage,
-context hashes and handbook links. Full Python quality is not rerun for this
-planning-only delta; no product, tests, CI or ADR semantics changed. Existing
-baseline test results are historical evidence, not a test of this new plan.
-The workflow-authoring skill requires committing and pushing this dedicated
-planning branch. Publication SHA/result are recorded in the authoring evidence
-and handoff; do not create/merge a PR during workflow create.
+- Requirement Lead review: all47LCM/15parent/45childAC/late/global rows, no hidden reduction.
+- System Architect Reviewer review: source topology, capability boundary, lifecycle and actual restoration.
+- Test / Evidence Reviewer review: exact source/host/command/process/result and executed applicable checks.
+- Issue Completion Auditor review: independent from implementation, after required evidence/gates.
+- DONE blocking rule: every open/unverified required row forces INCOMPLETE, BLOCKED or FAILED; never parent PASS from bounded repair/mock/fixture success alone.
 
 ## Documentation Synchronization and arc42 Check Status
 
-CHECKED: existing arc42 building blocks, runtime/deployment views, accepted Classic
-lifecycle and installation-scoped-profile ADRs; governing SHA-256 values are in
-context-pack.json. No architecture decision is changed by authoring. S440-04 and
-S440-07 must revisit ownership/admission before any semantic amendment. The
-operator component/product/selection guides and W09/W10 evidence update alongside
-the relevant slice, with final example reconciliation in S440-11. This plan has
-one source-catalogue assignment in handbook Part 5.
+Checked existing building-block, runtime/deployment views and accepted Classic
+lifecycle/installation-scoped-profile ADRs. No architecture policy changed by
+planning; hashes are in context-pack.json. New sources remain in handbook Part5;
+all nine existing catalogue links remain valid. Actual operator/evidence changes
+belong to Slice12, independent parent audit Slice14. No planned behavior is
+presented as delivered. Version/status progress cannot edit a frozen campaign.
+
+## Commit and Push Plan
+
+workflow-authoring publishes only regenerated documentation to the dedicated
+branch after governance validation and independent commit review. No runtime
+repair, private logs/configuration or original working-tree edits are staged.
+No PR, merge, release, issue write or branch cleanup is authorized by authoring.
+During execution each checkpoint represents exactly one slice with Slice-ID,
+workflowVersion, source/rollback, checks and CP_RECORD. External Sonar requires
+the separately authorized implementation PR in Slice13; checkpoint pushes do
+not trigger it. Publication/merge permissions must not be inferred from time.
 
 ## Stop Conditions and Uncertainty Escalation
 
-Wrong/dirty branch, stale governing hashes, unknown paths or command spellings,
-cyclic dependencies, overlapping ownership, unavailable required quality/security
-results, ambiguous runtime observations, missing cold backups, unknown consumers,
-unapproved host changes or unsupported semantics block the affected action.
-Route architecture/security/requirement issues to their named owners; ordinary
-implementation defects are repaired within the owning slice. Bounded discovery
-may refine slice scope only through a reviewed workflow/context refresh. Stop
-after three unresolved requirement clarification attempts; do not keep cycling or
-silently shrink acceptance. Do not implement a different architecture to evade a
-host prerequisite. Continue independent safe work when a downstream live gate is
-blocked.
+Unknown/missing baseline repair, source hash/GO mismatch, incomplete recovery,
+foreign/unknown resources, unreviewed capabilities or drift stop the affected
+action before effects. Retry ordinary defects via Typed Error Router:
+TEST_FAILURE→Tester+owner; BUILD_FAILURE→Python/DevOps; ARCH_VIOLATION→Architect;
+DOC_GOVERNANCE_FAILURE→Documentation/Requirement; LOCK_CONFLICT→S3D;
+UNKNOWN_FAILURE→Root Architect. Max3 unresolved retries; do not lower gates.
+Missing live consent/prerequisites and unavailable Sonar are explicit canonical
+non-success states, not reasons to fabricate acceptance. Continue only proven
+independent safe work. A new architectural/support policy requires its own review.
 
-## Definition of Done
+## Definition of Done and Handoff to workflow execute
 
-All 47 LCM requirements, 15 parent criteria and late additions are traced to the
-delivered candidate and accepted evidence at the required level. Actual supported
-component/Portainer/product transitions, distinct selections, preservation,
-interruption/recovery, refusal and drift behavior are verified on each claimed
-host. Applicable local/hosted/security gates pass and docs match supported behavior.
-Independent P15 acceptance is present; no unverified requirement is hidden by a
-closed child, fixture PASS, full-install smoke or historical result. Parent/child
-GitHub state is changed only by an authorized publication step after this decision.
+Use exactly this worktree/branch and root workflow, version2.0; check index,
+context hashes, branch/ref/status, four-role review and S3/S3D first. Start with
+S440O-01: the published docs branch DOES NOT contain the owner-retained repair.
+Its source files must match the manifest and be independently checkpointed.
+The plan can be READY while source/host/backup/live/PR access remain execution
+conditions. Do not execute authoring backwards from workflow execute.
 
-## Handoff to workflow execute
-
-Select exactly `documentation/handbook/05-development/workflow/workflow.md`
-(the sole ACTIVE_FOR_ISSUE_440 row), verify `docs/workflow-issue440-acceptance-20261110`, context hashes,
-publication baseline and S3/S3D. The S440-01 inventory and S440-02 through
-S440-05 local checkpoints are recorded. Resume at S440-06 once the reviewed
-WSL restoration path, source pins and host prerequisites are available. Before each live
-slice establish applicable existing consent or obtain the specific missing
-scenario approval, backup/ownership/JIT and independent GO; elapsed time is never
-approval. This plan does not grant a live GO or waive any acceptance criterion.
+The Epic is complete only when all mapped requirements have implementation and
+actual applicable verification, preserved historical acceptance, accepted source
+equivalence, current host lifecycle results, required CI/Sonar and independent
+P15 acceptance. Native/WSL/live/local/external states remain distinct. No issue
+closure, PR merge, cleanup or release is performed by this plan's publication.

@@ -1,30 +1,25 @@
 {
-  "workflow_id": "issue-440-final-acceptance",
-  "workflow_version": "1.0",
+  "workflow_id": "issue-440-open-acceptance",
+  "workflow_version": "2.0",
   "workflow_path": "documentation/handbook/05-development/workflow/workflow.md",
-  "branch": "docs/workflow-issue440-acceptance-20261110",
-  "baseline": "ca6902579f51c2c6d9439bf9c58dec02bfb45a93",
-  "status": "EXECUTING_S440_02_03_04_05_VERIFIED_LOCAL",
-  "process_strand": "workflow execute",
+  "branch": "docs/workflow-issue440-open-20261111",
+  "baseline": "c40d87ed81101dd582a112fe8b427d84372f36e2",
+  "status": "READY_FOR_WORKFLOW_PLANNED_NOT_EXECUTED",
+  "process_strand": "workflow create",
   "execution_profile": "FULL_PATH",
   "affected_areas": [
-    "core lifecycle",
-    "network repair",
-    "manifest/CLI admission",
-    "qualification tooling",
-    "Incus/Portainer/Swarm fixtures",
-    "component catalog",
-    "selection/product workflows",
-    "handbook/evidence"
+    "lifecycle qualification",
+    "cold WSL recovery",
+    "source/approval provenance",
+    "component/capability support",
+    "local/live/external acceptance"
   ],
   "forbidden_areas": [
-    "new orchestration engine",
-    "new runtime profile",
-    "unapproved host/network effects",
-    "new external CI",
-    "threshold/rule weakening",
-    "destructive state reset",
-    "authoring issue closure"
+    "new orchestrator/runtime",
+    "guard weakening",
+    "unapproved host effects",
+    "new CI",
+    "PR/merge/issue writes during authoring"
   ],
   "required_roles": [
     "Senior Requirement Engineer",
@@ -33,11 +28,11 @@
     "Senior Tester"
   ],
   "conditional_roles": [
-    "Senior Security Sandbox Engineer",
     "Senior DevOps",
+    "Senior Security Sandbox Engineer",
     "Senior Documentation Engineer",
     "Console/status UI reviewer",
-    "independent Issue Completion Auditor"
+    "independent issue-completion-auditor"
   ],
   "quality_commands": {
     "authoring": [
@@ -47,7 +42,7 @@
       "python3 modules/tsw_core/tools/linux/quality_gate.py quality"
     ]
   },
-  "authoring_full_quality": "NOT_RUN_DOC_ONLY: no production/tests/CI/ADR behavior changes",
+  "authoring_full_quality": "NOT_RUN_DOC_ONLY: regenerated workflow, no runtime/test/CI/ADR change",
   "governing_file_sha256": {
     "AGENTS.md": "7ef531da1ca1473e85f19f6cc83c20cb08d50e3cc03f2d4f97b486dd184b81d2",
     "QUALITY.md": "563dd204682f8bcacdd51a1b7316bf21b72d01b8d3cfc1a57221a6a3dea23395",
@@ -55,8 +50,6 @@
     ".agents/skills/workflow-executor/SKILL.md": "74189be9b216d9839ba5037dd5da25f9cc6507b0cd4215c65e0dc35327801aaf",
     ".agents/skills/execution-profile-router/SKILL.md": "da3897d5757483d991a4151f166cd760174a29b539418ee252e1776fd4ff83e8",
     ".agents/orchestrator/routing-rules.md": "13c5329d075227a16dcfba7ccfaba236bd1faa419dc697cbd3817e7074324caa",
-    "documentation/handbook/05-development/process/workflow-create.md": "fd3d6fc1aa6ffb34d5383f457059311da7789ffa954b9e16b73072cfefc947f1",
-    "documentation/handbook/05-development/process/workflow-execute.md": "16c383eb9f3d5011302b7f3ca0746b2f558a69b9ce520d3c2444d778b95ac94e",
     "documentation/handbook/05-development/process/issue-completion-discipline.md": "3db2d080b7cfbbc3737907a61c67ce6a361485c8993cf4a20c1c5fe2dc743bc3",
     "documentation/handbook/05-development/process/verification-state-policy.md": "9824bbb923173d9498a2fd28fc24222cde5e752e86b9899380f288a7a31cce3d",
     "documentation/handbook/02-architecture/arc42/05_building_blocks.adoc": "c14248deef0c0ed35eedb15e39b48df09c30ada5c150ee4a7911cd1bd09aa18e",
@@ -64,33 +57,37 @@
     "documentation/handbook/02-architecture/arc42/07_deployment_view.adoc": "1ab37114288bf3f37fdf6507639804496fde9f8daa5e93622dfa2f40106e42ac",
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-installation-scoped-incus-profile.adoc": "23c45b5e89584e9754a3ad0787a8d9f9a6db2c162a3de7dabb11e17b97ae1d08",
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-classic-product-component-lifecycle.adoc": "92e2e2695f6254b43b73cc4e30f688b7932dcdc138c8a6e1592a16bc0bd506cd",
-    "documentation/handbook/05-development/workflow/workflow.md": "4e1fe21e294f5677dba89a4812fd4e8c4be2e8ef988209c7cdf50769e476833a",
-    "documentation/handbook/05-development/workflow/requirement-matrix.md": "bca574bc99e160f979974936a2cbd275532cfb4eea49e23d4cb065b8576e6a53",
-    "documentation/handbook/05-development/workflow/requirements.json": "e9931f6b6da88900008a0772c8d26465a8d54cfa1ff4efced3af34b13bac9c4a",
-    "documentation/handbook/05-development/workflow/scenario-plan.md": "1be78dc64d3e0c5c4462a0f640d6e00fe520068f0fd1ec9cc8f0f8fbde88db83",
-    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "3db93cd627838303426f29102ca325dd56e64b745e8c8e8757dbeba9f821dfd5",
-    "documentation/handbook/05-development/workflow/workflow.index.md": "539a395e1bce505e4116371968d34adfe3a0c0824b9c7cd571b48cdb01810277"
+    "documentation/handbook/05-development/workflow/authoring-review.md": "f60a8d9443d96ecb1ab4d2b74813cdb2a31946e7291094a4db09c7aaca75720c",
+    "documentation/handbook/05-development/workflow/context-pack.md": "6c30d7174e2cff752b1b064ef8b59eee3acc9d6958c79f902da0f77feb1b60db",
+    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "4c4a59a7e2f5d9b3c7d5e9dc91a4e7e57b4ddfb68c92be527b007fef5094bb77",
+    "documentation/handbook/05-development/workflow/requirement-matrix.md": "7d57dbe1e16f23417a5b8d72be55d4acb38b109ad4bba776bcb20de90efd1e8d",
+    "documentation/handbook/05-development/workflow/requirements.json": "70e9beda2f7a7bb1b3f5bce74d37f458727e9cc7f04fe58451f9be33138bea9f",
+    "documentation/handbook/05-development/workflow/scenario-plan.md": "41b413c19a8a808203c76df8acdaacbb1e3b5bbc64f169d1072f9653b4289c19",
+    "documentation/handbook/05-development/workflow/workflow.index.md": "f12c50ebe16bec52872f71951627ac0a58590d926da27e31d7383b026d99ca1e",
+    "documentation/handbook/05-development/workflow/workflow.md": "140823169e4a958d97c61c7caa05efcf4cd5acff045b204f11d9c6235ab18c96"
   },
-  "issue_body_sha256": "2436a9769bc3fb02fef646ad8a867a2183d5f8822c3b6a8b7c93bfdb14abced0",
-  "staleness_rule": "Refresh on any governing hash mismatch, governance edit, issue acceptance change or detected conflict. This pack is navigation, never source of authority.",
-  "slice_ids": [
-    "S440-01",
-    "S440-02",
-    "S440-03",
-    "S440-04",
-    "S440-05",
-    "S440-06",
-    "S440-07",
-    "S440-08",
-    "S440-09",
-    "S440-10",
-    "S440-11",
-    "S440-12"
+  "slices": [
+    "S440O-01",
+    "S440O-02",
+    "S440O-03",
+    "S440O-04",
+    "S440O-05",
+    "S440O-06",
+    "S440O-07",
+    "S440O-08",
+    "S440O-09",
+    "S440O-10",
+    "S440O-11",
+    "S440O-12",
+    "S440O-13",
+    "S440O-14"
   ],
-  "proposed_new_source_files": [
-    "modules/tsw_core/tests/e2e/classic/run_lcm_acceptance.py",
-    "modules/tsw_core/tests/tools/test_lcm_acceptance.py",
-    "modules/tsw_core/src/infrastructure/adapters/network/wslconfig_files.py"
-  ],
-  "publication_rule": "Commit and push planning branch only; final SHA/push verification in authoring evidence/handoff, no PR/merge."
+  "verified_repair_manifest": {
+    "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_guest_switch.ps1": "e42834dbdb7eef4c292074c932a724a10c65798373606f04583d40009a4f962b",
+    "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_registration.ps1": "2c9fbe29da139eb8e489d6b818104eb9e016bedd21fc49223c94c89c2b85bcbc",
+    "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_bridge_binding.ps1": "c535d3b4f576f4ddca248c316c30328e94cb5ee7bfc8a5adb03fcf4d46f011a9",
+    "modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_guest_switch.py": "9403a59164cc6c3429caf423ca55bc6559ad18859f20ba4b90ac23b1fe86b262",
+    "modules/tsw_core/tests/fixtures/wsl_acceptance_guest_switch.ps1": "b423c4900b81750a52af03f2e46440a6f015cda18d8105dc318bf3989067dbde"
+  },
+  "verified_repair_present_in_this_branch": false
 }
