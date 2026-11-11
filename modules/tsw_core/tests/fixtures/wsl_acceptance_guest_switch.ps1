@@ -59,6 +59,18 @@ function Ports([string]$fault=''){
   $c.changed++;$c.running=@($(if($who -ceq 'original'){'Ubuntu'}else{'TSW-Q440-'+$s.run_id}));if($c.fault -ceq 'start-timeout'){throw 'UNCERTAIN'}
  }.GetNewClosure()
  $p.Network={param($s) [void]$c.events.Add('network');return @{status=$(if($c.fault -ceq 'network'){ 'KERNEL_NETWORK_RESIDUE'}elseif($c.fault -ceq 'module'){ 'KERNEL_NETWORK_UNKNOWN_PREREQUISITE_REQUIRED'}else{'KERNEL_NETWORK_ABSENT'})}}.GetNewClosure()
+ $p.FixtureBoundary={param($s,[bool]$active=$false)
+  [void]$c.events.Add('fixture-boundary')
+  Assert ($active -eq !$c.bridgeStopped) 'fixture_bridge_state'
+  if($c.fault -ceq 'fixture-boundary'){throw 'SWITCH_FIXTURE_BOUNDARY'}
+  return @{fingerprint=('5'*64)}
+ }.GetNewClosure()
+ $p.FixtureProof={param($s)
+  [void]$c.events.Add('fixture-proof')
+  if($c.fault -cin @('fixture-residue','fixture-worker','fixture-product')){throw 'SWITCH_FIXTURE_PROOF'}
+  return @{status='FIXTURE_RETURN_EMPTY';run_id=$s.run_id;source_commit=$s.source_commit;boot_id_sha256=$c.boot;
+   machine_id_sha256=('8'*64);resources_sha256=$(if($c.fault -ceq 'fixture-drift'){'7'*64}else{'4'*64});daemon='EXACT_INCUS_EMPTY';workers=0;product_started=$false}
+ }.GetNewClosure()
  $p.Prepared={param($s,$hash) [void]$c.events.Add('prepared');if($c.fault -ceq 'prepared'){throw 'BAD_PREPARATION'};return @{status='NEW_GUEST_PREPARED'}}.GetNewClosure()
  $p.Stopped={param($s,$hash) [void]$c.events.Add('stopped');if($c.fault -ceq 'stopped'){throw 'FOREIGN_OR_RUNNING_NODE'};if($c.fault -ceq 'unknown-upgrade-ledger'){throw 'UNKNOWN_CASE_LEDGER'};return @{status=$(if($c.fault -ceq 'old-stopped-variant'){'NEW_OWNED_NODES_STOPPED'}else{'OWNED_CASES_DISPOSED'});boot_id_sha256=$c.boot;machine_id_sha256=('8'*64)}}.GetNewClosure()
  $p.Boot={param($who,$s)
@@ -68,7 +80,10 @@ function Ports([string]$fault=''){
  $p.Reset={param($direction,$s,$state)
   [void]$c.events.Add('reset:'+ $direction)
   Assert ($c.running.Count -eq 0 -and $c.bridgeStopped -and $state.pending -ceq ('reset-to-'+$direction) -and
-   $c.state.pending -ceq $state.pending -and $state.resets[$direction].previous_boot_sha256 -ceq $c.boot) 'reset_without_proof_or_intent'
+   $c.state.pending -ceq $state.pending -and
+   ($state.resets[$direction].previous_boot_sha256 -ceq $c.boot -or
+    ($direction -ceq 'original' -and $state.receipts.fixture_seal -ceq (Get-WslSwitchHash @($s.source_commit,$state.receipts.fixture_boundary,'NEW_NOT_STARTED')) -and
+     $state.resets.original.previous_boot_sha256 -ceq $state.resets.new.previous_boot_sha256))) 'reset_without_proof_or_intent'
   $c.resets++;$c.changed++;$c.boot=$(if($direction -ceq 'new'){'b'*64}else{'c'*64})
   $state.resets[$direction].outcome='command-returned';$c.state=Copy-SwitchFixtureValue $state
   if($c.fault -ceq 'reset-timeout'){throw 'UNCERTAIN'}
@@ -81,6 +96,7 @@ function Run($p,$s,[string]$phase,[string]$evidence=''){
  $p._ctx.observations=0
  $prepared=Invoke-WslAcceptanceGuestSwitch $s Prepare $null $null $evidence $p $phase
  Assert ($prepared.status -ceq 'PREPARED_READ_ONLY') 'prepare_missing'
+ if($phase -cin @('SealFixtureReturn','ReturnFixture') -and $prepared.Contains('evidence_sha256')){$evidence=$prepared.evidence_sha256}
  $p._ctx.observations=0
  $g=@{schema_version=1;decision='GO';phase=$phase;scenario_sha256=(Get-WslSwitchHash $s);source_commit=$s.source_commit;
  proposal_sha256=$prepared.proposal_sha256;expires_at_utc=([DateTimeOffset]::UtcNow.AddSeconds((Get-WslSwitchSeconds $phase)+120).ToString('yyyy-MM-ddTHH:mm:ssZ'));evidence_sha256=$evidence}
@@ -194,6 +210,72 @@ foreach($fault in @('running','third-registration','registry','bridge','client',
  $denied=$false;try{$null=Assert-WslSwitchResetBoundary $s $v $o new $bridge $children}catch{$denied=$true}
  Assert $denied ('reset_boundary_'+$fault);$cases++
 }
+# Fixture return is independent from preparation, product cases and admission.
+foreach($stage in @('new_running','safe','prepared')){
+ $p=Ports;$null=Run $p $s QuiesceOriginal;$null=Run $p $s EnterNew
+ $p._ctx.state.stage=$stage
+ $before=$p._ctx.changed;$r=Run $p $s SealFixtureReturn
+ Assert ($r.status -ceq 'FIXTURE_RETURN_SEALED' -and $p._ctx.changed -eq $before) ('seal_'+$stage)
+ $r=Run $p $s ReturnFixture
+ Assert ($r.status -ceq 'ORIGINAL_READY_FOR_BRIDGE_RESUME' -and $p._ctx.state.stage -ceq 'original_running') ('fixture_return_'+$stage+'_'+$r.error)
+ Assert (@($p._ctx.events | Where-Object{$_ -cin @('stopped','prepared','bridge:Bind','bridge:StageRestore')}).Count -eq 0) 'fixture_product_dependency'
+ $r=Run $p $s RestoreOriginal
+ Assert ($r.status -ceq 'ORIGINAL_RESTORED_NEW_RETAINED_STOPPED' -and !$r.application_ready) 'fixture_restore';$cases++
+}
+foreach($fault in @('fixture-residue','fixture-worker','fixture-product','fixture-drift','fixture-boundary')){
+ $p=Ports;$null=Run $p $s QuiesceOriginal;$null=Run $p $s EnterNew;$null=Run $p $s SealFixtureReturn
+ $before=$p._ctx.changed;$bookmark=Get-WslSwitchHash $p._ctx.state;$p._ctx.fault=$fault
+ if($fault -cin @('fixture-residue','fixture-worker','fixture-product','fixture-boundary')){
+  $r=Invoke-WslAcceptanceGuestSwitch $s Prepare $null $null '' $p ReturnFixture
+ }else{$r=Run $p $s ReturnFixture}
+ Assert ($r.status -ceq 'BLOCKED' -and $p._ctx.changed -eq $before -and (Get-WslSwitchHash $p._ctx.state) -ceq $bookmark) ('fixture_refusal_'+$fault);$cases++
+}
+$p=Ports;$null=Run $p $s QuiesceOriginal;$r=Run $p $s ReturnFixture
+Assert ($r.status -ceq 'ORIGINAL_RESTORED_NEW_RETAINED_STOPPED' -and $p._ctx.resets -eq 0) 'fixture_early_original';$cases++
+# Early stopped states return via their own cold original-direction reset.
+foreach($stage in @('original_bridge_stopped','original_stopped','reset_for_new')){
+ $p=Ports;$null=Run $p $s QuiesceOriginal;$null=Run $p $s EnterNew
+ $p._ctx.state.stage=$stage;$p._ctx.state.receipts.Remove('network')
+ $p._ctx.state.resets.new=@{action='reset-to-new';previous_boot_sha256=('a'*64);next_boot_sha256='';machine_sha256=$s.original_machine_sha256;outcome='captured'}
+ if($stage -ceq 'original_bridge_stopped'){$p._ctx.running=@('Ubuntu');$p._ctx.boot='a'*64}else{
+  $p._ctx.running=@();$p._ctx.boot='a'*64
+  if($stage -ceq 'reset_for_new'){$p._ctx.state.resets.new.outcome='all-stopped';$p._ctx.boot='b'*64}
+ }
+ $r=Run $p $s ReturnFixture
+ Assert ($r.status -ceq 'ORIGINAL_READY_FOR_BRIDGE_RESUME') ('fixture_early_'+$stage+'_'+$r.error)
+ $r=Run $p $s RestoreOriginal;Assert ($r.status -ceq 'ORIGINAL_RESTORED_NEW_RETAINED_STOPPED') ('fixture_early_restored_'+$stage);$cases++
+}
+foreach($fault in @('original-timeout','bridge-timeout','terminate-timeout','reset-timeout','start-timeout')){
+ $p=Ports
+ if($fault -ceq 'original-timeout'){$p._ctx.fault=$fault;$null=Run $p $s QuiesceOriginal}else{
+  $null=Run $p $s QuiesceOriginal;$p._ctx.fault=$fault;$null=Run $p $s EnterNew}
+ $p._ctx.fault=''
+ if($fault -ceq 'start-timeout'){$r=Run $p $s SealFixtureReturn;Assert ($r.status -ceq 'FIXTURE_RETURN_SEALED') 'fixture_pending_start_seal'}
+ $r=Run $p $s ReturnFixture
+ Assert ($r.status -cin @('ORIGINAL_READY_FOR_BRIDGE_RESUME','ORIGINAL_RESTORED_NEW_RETAINED_STOPPED')) ('fixture_pending_'+$fault+'_'+$r.error);$cases++
+}
+foreach($pending in @('bind-new','stage-original','resume-original-bridge','restore-original')){
+ $p=Ports;$null=Run $p $s QuiesceOriginal;$null=Run $p $s EnterNew;$null=Run $p $s SealFixtureReturn
+ $p._ctx.state.pending=$pending;$before=$p._ctx.changed;$bookmark=Get-WslSwitchHash $p._ctx.state
+ $r=Run $p $s ReturnFixture
+ Assert ($r.status -ceq 'RECOVERY_REQUIRED' -and $p._ctx.changed -eq $before -and (Get-WslSwitchHash $p._ctx.state) -ceq $bookmark) ('fixture_unresolved_'+$pending);$cases++
+}
+foreach($fault in @('terminate-timeout','start-timeout','reset-timeout')){
+ $p=Ports;$null=Run $p $s QuiesceOriginal;$null=Run $p $s EnterNew;$null=Run $p $s SealFixtureReturn
+ $p._ctx.fault=$fault;$r=Run $p $s ReturnFixture
+ Assert ($r.status -ceq 'RECOVERY_REQUIRED' -and $p._ctx.state.receipts.Contains('fixture_seal')) ('fixture_return_uncertain_'+$fault)
+ $p._ctx.fault=''
+ if($fault -ceq 'reset-timeout'){
+  $before=$p._ctx.changed;$bookmark=Get-WslSwitchHash $p._ctx.state;$r=Run $p $s ReturnFixture
+  Assert ($r.status -ceq 'RECOVERY_REQUIRED' -and $p._ctx.changed -eq $before -and (Get-WslSwitchHash $p._ctx.state) -ceq $bookmark) 'fixture_reset_unknown_retained'
+ }else{
+  $r=Run $p $s ReturnFixture;Assert ($r.status -ceq 'ORIGINAL_READY_FOR_BRIDGE_RESUME') ('fixture_return_reconciled_'+$fault+'_'+$r.error)
+ };$cases++
+}
+$p=Ports;$null=Run $p $s QuiesceOriginal;$null=Run $p $s EnterNew;$null=Run $p $s SealFixtureReturn
+$p._ctx.state.stage='fixture_new_stopped';$p._ctx.running=@();$before=$p._ctx.changed
+$r=Run $p $s ReturnOriginal ('9'*64)
+Assert ($r.status -ceq 'BLOCKED' -and $p._ctx.changed -eq $before) 'fixture_stage_not_product_return';$cases++
 # Execute the actual Save body on new private fixture files. The second save
 # reaches File.Replace, including Windows PowerShell's explicit null binding.
 $tokens=$null;$parseErrors=$null

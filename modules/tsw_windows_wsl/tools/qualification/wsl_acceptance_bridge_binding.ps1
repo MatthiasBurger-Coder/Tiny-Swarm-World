@@ -2,7 +2,7 @@
 <# Qualification-only binding of an existing protected bridge; no guest lifecycle. #>
 [CmdletBinding()]
 param([ValidateSet('Prepare','Archive','StopOriginal','Bind','StageRestore','ResumeOriginal','Recover')][string]$Mode='Prepare',
-      [ValidateSet('Archive','StopOriginal','Bind','StageRestore','ResumeOriginal','Recover')][string]$PrepareFor='Archive',
+      [ValidateSet('Archive','StopOriginal','Bind','StageRestore','ResumeOriginal','Recover','FixtureBoundary','FixtureOriginalBoundary')][string]$PrepareFor='Archive',
       [string]$ScenarioBase64='',[string]$ExpectedScenarioSha256='',
       [string]$ApprovalBase64='',[string]$ExpectedApprovalSha256='')
 $ErrorActionPreference='Stop'
@@ -72,7 +72,7 @@ function Assert-WslBindingCertificate($c,[string]$Query) {
     }
 }
 function Get-WslBindingPhaseSeconds([string]$Phase) {
-    switch -CaseSensitive ($Phase){'Prepare'{180};'Archive'{180};'StopOriginal'{180};'Bind'{360};'StageRestore'{180};'ResumeOriginal'{360};'Recover'{300};default{throw 'BINDING_PHASE'}}
+    switch -CaseSensitive ($Phase){'Prepare'{180};'FixtureBoundary'{180};'FixtureOriginalBoundary'{180};'Archive'{180};'StopOriginal'{180};'Bind'{360};'StageRestore'{180};'ResumeOriginal'{360};'Recover'{300};default{throw 'BINDING_PHASE'}}
 }
 function Assert-WslBindingApproval($g,$s,[string]$Phase,[string]$Before) {
     $fields=@('schema_version','decision','phase','scenario_sha256','source_commit','proposal_sha256','expires_at_utc','reviews')
@@ -102,7 +102,7 @@ function Invoke-WslAcceptanceBridgeBinding {
         }
         & $Ports.Begin $Phase | Out-Null
         if($Phase -ceq 'Prepare'){
-            if($PrepareFor -cnotin @('Archive','StopOriginal','Bind','StageRestore','ResumeOriginal','Recover')){throw 'BINDING_PHASE'}
+            if($PrepareFor -cnotin @('Archive','StopOriginal','Bind','StageRestore','ResumeOriginal','Recover','FixtureBoundary','FixtureOriginalBoundary')){throw 'BINDING_PHASE'}
             $before=& $Ports.Observe $PrepareFor
             $summary.status='PREPARED_READ_ONLY';$summary.proposal_sha256=$before.fingerprint
             $summary.target_phase=$PrepareFor
@@ -532,7 +532,7 @@ public static class TswAcceptanceFileIdentity {
                 $d=ReadDescriptor
                 if($regs.hash -cne $d.original.registration_sha256){throw 'BINDING_REGISTRATION_DRIFT'}
                 $only=if($phase -cin @('StopOriginal','ResumeOriginal')){$bindingSpec.original_distro}else{$bindingSpec.new_distro}
-                if($phase -cne 'Recover' -and ($running.Count -ne 1 -or $running[0] -cne $only)){throw 'BINDING_RUNNING_SCOPE'}
+                if($phase -cnotin @('Recover','FixtureBoundary','FixtureOriginalBoundary') -and ($running.Count -ne 1 -or $running[0] -cne $only)){throw 'BINDING_RUNNING_SCOPE'}
                 if($phase -ceq 'Recover' -and ($running.Count -gt 1 -or @($running | Where-Object{$_ -cnotin @($bindingSpec.original_distro,$bindingSpec.new_distro)}).Count)){throw 'BINDING_RUNNING_SCOPE'}
                 if($phase -cin @('Bind','ResumeOriginal') -and $p.status -cne 'Stopped'){throw 'BINDING_SERVICE_NOT_STOPPED'}
                 if($phase -ceq 'StopOriginal' -and $p.status -cne 'Running'){throw 'BINDING_ORIGINAL_PRESTATE'}
@@ -541,6 +541,15 @@ public static class TswAcceptanceFileIdentity {
                 if($phase -ceq 'Bind' -and $d.phase -cne 'original-stopped'){throw 'BINDING_STOP_RECEIPT_REQUIRED'}
                 if($phase -ceq 'StageRestore' -and ($d.phase -cne 'bound' -or (Get-WslBindingHash $p.hashes) -cne (Get-WslBindingHash $d.bound_hashes))){throw 'BINDING_BOUND_PAYLOAD_DRIFT'}
                 if((EffectiveDistro $d.original.config) -cin @('','auto') -and $regs.default_guid -cne $bindingSpec.original_guid){throw 'BINDING_ORIGINAL_DEFAULT_GUID'}
+            }
+            if($phase -cin @('FixtureBoundary','FixtureOriginalBoundary')){
+                $expectedDescriptor=if($phase -ceq 'FixtureOriginalBoundary'){'archived'}else{'original-stopped'}
+                $expectedService=if($phase -ceq 'FixtureOriginalBoundary'){'Running'}else{'Stopped'}
+                if($d.phase -cne $expectedDescriptor -or $d.phase_intent -or $d.transaction_id -or
+                    (Test-Path $TransactionJournalPath) -or $p.status -cne $expectedService -or
+                    (Get-WslBindingHash $p.hashes) -cne (Get-WslBindingHash $d.archive_hashes)){throw 'BINDING_FIXTURE_BOUNDARY'}
+                if($phase -ceq 'FixtureOriginalBoundary' -and ($running.Count -ne 1 -or $running[0] -cne $bindingSpec.original_distro)){throw 'BINDING_RUNNING_SCOPE'}
+                if($running.Count -gt 1 -or @($running | Where-Object{$_ -cnotin @($bindingSpec.original_distro,$bindingSpec.new_distro)}).Count){throw 'BINDING_RUNNING_SCOPE'}
             }
             $routes=Routes $p;$hosts=Hosts
             $certificate=Certificate
@@ -551,6 +560,10 @@ public static class TswAcceptanceFileIdentity {
             }
             $result=[ordered]@{registration_sha256=$regs.hash;payload=$p;routes=$routes;hosts_sha256=$hosts;certificate=$certificate;
                 policy_sha256=$p.policy_sha256;config=$p.config;original_bundle_id=$p.bundle_id}
+            if($phase -cin @('FixtureBoundary','FixtureOriginalBoundary')){
+                if((Get-WslBindingHash $routes) -cne (Get-WslBindingHash $d.original.routes)){throw 'BINDING_FIXTURE_ROUTE_DRIFT'}
+                $result.fingerprint=Get-WslBindingHash $result;return $result
+            }
             $result.observed_address=if($running.Count -eq 1){Address $running[0]}else{''}
             if($phase -cnotin @('Prepare','Archive')){$result.original_bundle_id=$bindingDescriptor.original.payload.bundle_id}
             $result.fingerprint=Get-WslBindingHash $result

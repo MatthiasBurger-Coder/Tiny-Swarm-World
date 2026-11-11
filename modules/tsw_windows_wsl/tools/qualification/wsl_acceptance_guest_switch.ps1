@@ -1,8 +1,8 @@
 #requires -Version 5.1
 <# Qualification-only closed guest handoff. Dot sourcing is inert. #>
 [CmdletBinding()]
-param([ValidateSet('Prepare','QuiesceOriginal','EnterNew','VerifyPrepared','BindNew','ReturnOriginal','RestoreOriginal','Reconcile')][string]$Mode='Prepare',
-      [ValidateSet('QuiesceOriginal','EnterNew','VerifyPrepared','BindNew','ReturnOriginal','RestoreOriginal')][string]$PrepareFor='QuiesceOriginal',
+param([ValidateSet('Prepare','QuiesceOriginal','EnterNew','VerifyPrepared','BindNew','ReturnOriginal','SealFixtureReturn','ReturnFixture','RestoreOriginal','Reconcile')][string]$Mode='Prepare',
+      [ValidateSet('QuiesceOriginal','EnterNew','VerifyPrepared','BindNew','ReturnOriginal','SealFixtureReturn','ReturnFixture','RestoreOriginal')][string]$PrepareFor='QuiesceOriginal',
       [string]$ScenarioBase64='',[string]$ExpectedScenarioSha256='',
       [string]$ApprovalBase64='',[string]$ExpectedApprovalSha256='',
       [string]$BridgeApprovalBase64='',[string]$ExpectedBridgeApprovalSha256='',
@@ -33,8 +33,8 @@ function Read-WslSwitchWire([string]$Wire,[string]$Hash){
  return $value
 }
 function Get-WslSwitchAssets {
- return @('modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_guest_switch.ps1','tests/fixtures/wsl_acceptance_guest_switch.ps1',
- 'tests/tools/test_wsl_acceptance_guest_switch.py','modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_registration.ps1',
+ return @('modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_guest_switch.ps1','modules/tsw_core/tests/fixtures/wsl_acceptance_guest_switch.ps1',
+ 'modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_guest_switch.py','modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_registration.ps1',
  'modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_bridge_binding.ps1','modules/tsw_windows_wsl/tools/qualification/wsl_resource_maintenance.ps1',
  'modules/tsw_windows_wsl/tools/qualification/windows_firewall_snapshot.ps1','modules/tsw_windows_wsl/tools/qualification/windows_firewall_certificate.ps1',
  'modules/tsw_windows_wsl/bootstrap/tws-wsl-bridge.ps1','modules/tsw_windows_wsl/bootstrap/tws-wsl-bridge-service.ps1','modules/tsw_windows_wsl/bootstrap/preparation/Preparation.psm1',
@@ -61,7 +61,7 @@ function Assert-WslSwitchScenario($s){
  foreach($k in @('original_vhd_sha256','new_vhd_sha256')){Assert-WslSwitch ($b.$k -cmatch '\A[0-9a-f]{64}\z') 'SWITCH_REGISTRATION'}
 }
 function Get-WslSwitchSeconds([string]$Phase){switch -CaseSensitive ($Phase){
- 'Prepare'{180};'QuiesceOriginal'{1500};'EnterNew'{2400};'VerifyPrepared'{600};'BindNew'{960};'ReturnOriginal'{2400};'RestoreOriginal'{2200};'Reconcile'{300};default{throw 'SWITCH_PHASE'}}}
+ 'Prepare'{180};'QuiesceOriginal'{1500};'EnterNew'{2400};'VerifyPrepared'{600};'BindNew'{960};'ReturnOriginal'{2400};'SealFixtureReturn'{600};'ReturnFixture'{2400};'RestoreOriginal'{2200};'Reconcile'{300};default{throw 'SWITCH_PHASE'}}}
 function Assert-WslSwitchRunning($Observation,$s,[string]$Wanted){
  $names=@($Observation.running)
  $expected=@(switch -CaseSensitive ($Wanted){'original'{@('Ubuntu')};'new'{@('TSW-Q440-'+$s.run_id)};'none'{@()};default{throw 'SWITCH_RUNNING_PREDICATE'}})
@@ -85,10 +85,10 @@ function Assert-WslSwitchBookmark($v,$s){
  $expected=New-WslSwitchBookmark $s
  foreach($k in @('schema_version','scenario_sha256','run_id','source_commit','original_guid','new_guid','original_vhd_sha256','new_vhd_sha256')){Assert-WslSwitch ($v.$k -ceq $expected.$k) 'SWITCH_BOOKMARK_BINDING'}
  Assert-WslSwitch ($v.stage -cin @('registered','quiesced','original_bridge_stopped','original_stopped','reset_for_new','new_running','safe','prepared','bound',
- 'original_payload_staged','new_stopped','reset_for_original','original_running','original_bridge_ready','restored') -and $v.pending -cin @('','quiesce-original','stop-original-bridge',
+ 'fixture_new_stopped','fixture_reset_for_original','original_payload_staged','new_stopped','reset_for_original','original_running','original_bridge_ready','restored') -and $v.pending -cin @('','quiesce-original','stop-original-bridge',
  'terminate-original','reset-to-new','start-new','bind-new','stage-original','terminate-new','reset-to-original','start-original','resume-original-bridge','restore-original')) 'SWITCH_BOOKMARK_STATE'
  Assert-WslSwitch ($v.receipts -is [Collections.IDictionary] -and $v.receipts.Count -le 16) 'SWITCH_BOOKMARK_RECEIPTS'
- foreach($k in $v.receipts.Keys){Assert-WslSwitch ($k -cin @('registration','quiesce','network','prepared','stopped','bridge','restore') -and $v.receipts[$k] -cmatch '\A[0-9a-f]{64}\z') 'SWITCH_BOOKMARK_RECEIPTS'}
+ foreach($k in $v.receipts.Keys){Assert-WslSwitch ($k -cin @('registration','quiesce','network','prepared','stopped','bridge','restore','fixture_boundary','fixture_seal','fixture_original_boot') -and $v.receipts[$k] -cmatch '\A[0-9a-f]{64}\z') 'SWITCH_BOOKMARK_RECEIPTS'}
  Assert-WslSwitch ($v.resets -is [Collections.IDictionary] -and $v.resets.Count -le 2) 'SWITCH_RESET_FIELDS'
  foreach($direction in $v.resets.Keys){
   Assert-WslSwitch ($direction -cin @('new','original')) 'SWITCH_RESET_FIELDS'
@@ -113,14 +113,30 @@ function Invoke-WslAcceptanceGuestSwitch($s,[string]$Phase,$go,$bridgeGo,[string
  $lock=$null;$state=$null;$control=@{intent=$false}
  try{
   Assert-WslSwitchScenario $s
-  foreach($name in @('Begin','Clock','Source','Observe','Load','Save','Lock','Unlock','Original','Bridge','Terminate','Start','Network','Prepared','Stopped','Registration','Reset','Boot')){
+  foreach($name in @('Begin','Clock','Source','Observe','Load','Save','Lock','Unlock','Original','Bridge','Terminate','Start','Network','Prepared','Stopped','Registration','Reset','Boot','FixtureBoundary','FixtureProof')){
    Assert-WslSwitch ($Ports.Contains($name) -and $Ports[$name] -is [scriptblock]) 'SWITCH_PORTS'}
   & $Ports.Begin $Phase | Out-Null;& $Ports.Source $s | Out-Null
   $state=& $Ports.Load $s;$before=& $Ports.Observe $s
   if($null -eq $state){Assert-WslSwitch ($before.receipt_matches -eq $true) 'SWITCH_REGISTRATION_DRIFT';$state=New-WslSwitchBookmark $s;$state.receipts.registration=$before.registrations_sha256}else{Assert-WslSwitchBookmark $state $s}
   Assert-WslSwitch ($before.registration_count -eq 2 -and $before.registrations_sha256 -ceq $state.receipts.registration) 'SWITCH_REGISTRATION_DRIFT'
   $proposal=Get-WslSwitchHash @($before,$state)
-  if($Phase -ceq 'Prepare'){$result.status='PREPARED_READ_ONLY';$result.target_phase=$Target;$result.proposal_sha256=$proposal;return $result}
+  function FixtureEvidence {
+   $boundary=& $Ports.FixtureBoundary $s
+   Assert-WslSwitch ($boundary.fingerprint -ceq $state.receipts.fixture_boundary) 'SWITCH_FIXTURE_BOUNDARY'
+   $proof=& $Ports.FixtureProof $s
+   Assert-WslSwitchFields $proof @('status','run_id','source_commit','boot_id_sha256','machine_id_sha256','resources_sha256','daemon','workers','product_started')
+   Assert-WslSwitch ($proof.status -ceq 'FIXTURE_RETURN_EMPTY' -and $proof.run_id -ceq $s.run_id -and $proof.source_commit -ceq $s.source_commit -and
+    $proof.workers -is [int] -and $proof.workers -eq 0 -and $proof.product_started -is [bool] -and !$proof.product_started -and
+    $proof.daemon -cin @('EXACT_INCUS_EMPTY','POSITIVELY_ABSENT')) 'SWITCH_FIXTURE_PROOF'
+   foreach($key in @('boot_id_sha256','machine_id_sha256','resources_sha256')){Assert-WslSwitch ($proof.$key -cmatch '\A[0-9a-f]{64}\z') 'SWITCH_FIXTURE_PROOF'}
+   return @{proof=$proof;digest=(Get-WslSwitchHash @($proof,$boundary.fingerprint,(Get-WslSwitchHash $s)))}
+  }
+  if($Phase -ceq 'Prepare'){
+   $result.target_phase=$Target;$result.proposal_sha256=$proposal
+   if($Target -cin @('SealFixtureReturn','ReturnFixture') -and @($before.running).Count -eq 1 -and $before.running[0] -ceq ('TSW-Q440-'+$s.run_id)){$result.evidence_sha256=(FixtureEvidence).digest}
+   if($Target -ceq 'ReturnFixture' -and !$result.Contains('evidence_sha256') -and $state.receipts.Contains('fixture_seal')){$result.evidence_sha256=$state.receipts.fixture_seal}
+   $result.status='PREPARED_READ_ONLY';return $result
+  }
   if($Phase -ceq 'Reconcile'){
    $result.status=if($state.pending){'RECOVERY_REQUIRED'}else{'OBSERVED_READ_ONLY'};$result.recovery_required=[bool]$state.pending
    $result.stage=$state.stage;$result.pending=$state.pending;return $result
@@ -131,10 +147,13 @@ function Invoke-WslAcceptanceGuestSwitch($s,[string]$Phase,$go,$bridgeGo,[string
   $fresh=& $Ports.Observe $s;$loaded=& $Ports.Load $s
   if($null -eq $loaded){Assert-WslSwitch ($fresh.receipt_matches -eq $true) 'SWITCH_REGISTRATION_DRIFT';$loaded=New-WslSwitchBookmark $s;$loaded.receipts.registration=$fresh.registrations_sha256}
   Assert-WslSwitch ((Get-WslSwitchHash @($fresh,$loaded)) -ceq $proposal) 'SWITCH_PRESTATE_DRIFT'
-  Assert-WslSwitch (!$state.pending) 'SWITCH_UNCERTAIN_NOT_REPLAYABLE'
+  Assert-WslSwitch (!$state.pending -or $Phase -cin @('SealFixtureReturn','ReturnFixture')) 'SWITCH_UNCERTAIN_NOT_REPLAYABLE'
   function Check([string]$Wanted){& $Ports.Source $s | Out-Null;$actual=& $Ports.Observe $s;Assert-WslSwitch ($actual.registration_count -eq 2 -and $actual.registrations_sha256 -ceq $state.receipts.registration) 'SWITCH_REGISTRATION_DRIFT';Assert-WslSwitchRunning $actual $s $Wanted;return $actual}
   function CurrentBoot([string]$Who){
    $boot=& $Ports.Boot $Who $s
+   if($Who -ceq 'original' -and $state.receipts.Contains('fixture_original_boot')){
+    Assert-WslSwitch ($boot.machine_id_sha256 -ceq $s.original_machine_sha256 -and $boot.boot_id_sha256 -ceq $state.receipts.fixture_original_boot) 'SWITCH_BOOT_BINDING_DRIFT';return
+   }
    $row=$state.resets[$Who]
    Assert-WslSwitch ($null -ne $row -and $row.outcome -ceq 'changed-boot' -and $boot.boot_id_sha256 -ceq $row.next_boot_sha256 -and
     $boot.machine_id_sha256 -ceq $(if($Who -ceq 'original'){$s.original_machine_sha256}else{$row.machine_sha256})) 'SWITCH_BOOT_BINDING_DRIFT'
@@ -151,10 +170,13 @@ function Invoke-WslAcceptanceGuestSwitch($s,[string]$Phase,$go,$bridgeGo,[string
   }elseif($Phase -ceq 'EnterNew'){
    Assert-WslSwitch ($state.stage -cin @('quiesced','original_bridge_stopped','original_stopped','reset_for_new','new_running')) 'SWITCH_STAGE'
    if($state.stage -ceq 'quiesced'){
+    $activeBoundary=& $Ports.FixtureBoundary $s $true
     Check original | Out-Null;& $Ports.Original 'quiescent' $s | Out-Null
     Assert-WslSwitch ($bridgeGo.guest_quiesce_sha256 -ceq $state.receipts.quiesce) 'SWITCH_BRIDGE_QUIESCE_BINDING'
     Intent 'stop-original-bridge';$b=& $Ports.Bridge 'StopOriginal' $s $bridgeGo
-    Assert-WslSwitch ($b.status -ceq 'ORIGINAL_BRIDGE_STOPPED') 'SWITCH_BRIDGE_RESULT';SaveStage 'original_bridge_stopped'
+    Assert-WslSwitch ($b.status -ceq 'ORIGINAL_BRIDGE_STOPPED') 'SWITCH_BRIDGE_RESULT'
+    $boundary=& $Ports.FixtureBoundary $s
+    $state.receipts.fixture_boundary=$boundary.fingerprint;SaveStage 'original_bridge_stopped'
    }
    if($state.stage -ceq 'original_bridge_stopped'){
     Check original | Out-Null;$last=& $Ports.Original 'quiescent' $s
@@ -206,6 +228,130 @@ function Invoke-WslAcceptanceGuestSwitch($s,[string]$Phase,$go,$bridgeGo,[string
    Assert-WslSwitch ($boot.boot_id_sha256 -cmatch '\A[0-9a-f]{64}\z' -and $boot.boot_id_sha256 -cne $state.resets.original.previous_boot_sha256 -and $boot.machine_id_sha256 -ceq $s.original_machine_sha256) 'SWITCH_BOOT_UNCHANGED'
    $state.resets.original.next_boot_sha256=$boot.boot_id_sha256;$state.resets.original.machine_sha256=$boot.machine_id_sha256;$state.resets.original.outcome='changed-boot'
    & $Ports.Original 'quiescent' $s | Out-Null;SaveStage 'original_running';$result.status='ORIGINAL_READY_FOR_BRIDGE_RESUME'
+  }elseif($Phase -cin @('SealFixtureReturn','ReturnFixture')){
+   # This route never binds a bridge to the fixture or accepts a product ledger.
+   Assert-WslSwitch ($state.stage -cin @('registered','quiesced','original_bridge_stopped','original_stopped','reset_for_new','new_running','safe','prepared','fixture_new_stopped','fixture_reset_for_original','original_running')) 'SWITCH_FIXTURE_STAGE'
+   Assert-WslSwitch ($state.stage -cne 'registered' -or $state.pending -ceq 'quiesce-original') 'SWITCH_FIXTURE_STAGE'
+   Assert-WslSwitch (!$state.receipts.Contains('bridge') -and !$state.receipts.Contains('stopped')) 'SWITCH_FIXTURE_PRODUCT_STARTED'
+   $running=@((Check $(if(@($before.running).Count){if($before.running[0] -ceq 'Ubuntu'){'original'}else{'new'}}else{'none'})).running)
+   $originalRunning=$running.Count -eq 1 -and $running[0] -ceq 'Ubuntu'
+   $newRunning=$running.Count -eq 1 -and $running[0] -ceq ('TSW-Q440-'+$s.run_id)
+   $proof=$null
+   if($newRunning){
+    $observation=FixtureEvidence
+    $proof=$observation.proof
+    Assert-WslSwitch ($state.receipts.Contains('fixture_boundary') -and $Evidence -ceq $observation.digest) 'SWITCH_FIXTURE_EVIDENCE'
+   }
+   if(!$newRunning -and $state.receipts.Contains('fixture_boundary')){
+    $boundary=& $Ports.FixtureBoundary $s
+    Assert-WslSwitch ($boundary.fingerprint -ceq $state.receipts.fixture_boundary) 'SWITCH_FIXTURE_BOUNDARY'
+   }
+   if($state.pending){
+    # A fresh phase GO binds the exact uncertain bookmark. Only positively
+    # observed outcomes below may be reconciled; unknown outcomes stay retained.
+    switch -CaseSensitive ($state.pending){
+     'quiesce-original'{
+      Assert-WslSwitch ($originalRunning -and $Phase -ceq 'ReturnFixture') 'SWITCH_FIXTURE_PENDING'
+      & $Ports.Original 'quiescent' $s | Out-Null;& $Ports.FixtureBoundary $s $true | Out-Null;SaveStage 'quiesced'
+     }
+     'stop-original-bridge'{
+      Assert-WslSwitch ($originalRunning -and $Phase -ceq 'ReturnFixture') 'SWITCH_FIXTURE_PENDING'
+      & $Ports.Original 'quiescent' $s | Out-Null;$boundary=& $Ports.FixtureBoundary $s
+      $state.receipts.fixture_boundary=$boundary.fingerprint;SaveStage 'original_bridge_stopped'
+     }
+     'terminate-original'{
+      Assert-WslSwitch (!$newRunning -and $Phase -ceq 'ReturnFixture') 'SWITCH_FIXTURE_PENDING'
+      $boundary=& $Ports.FixtureBoundary $s
+      Assert-WslSwitch ($boundary.fingerprint -ceq $state.receipts.fixture_boundary) 'SWITCH_FIXTURE_BOUNDARY'
+      if($originalRunning){& $Ports.Original 'quiescent' $s | Out-Null;SaveStage 'original_bridge_stopped'}else{
+       Assert-WslSwitch ($null -ne $state.resets.new -and $state.resets.new.outcome -ceq 'captured') 'SWITCH_FIXTURE_PENDING';SaveStage 'original_stopped'
+      }
+     }
+     'reset-to-new'{
+      Assert-WslSwitch (!$running.Count -and $Phase -ceq 'ReturnFixture' -and $state.resets.new.outcome -cin @('intent','command-returned','all-stopped')) 'SWITCH_FIXTURE_PENDING'
+      # Return performs a separate, freshly approved original-direction reset.
+      SaveStage 'original_stopped'
+     }
+     'start-new'{
+      Assert-WslSwitch ($newRunning -and $Phase -ceq 'SealFixtureReturn' -and $state.resets.new.outcome -ceq 'all-stopped' -and
+       $proof.boot_id_sha256 -cne $state.resets.new.previous_boot_sha256 -and $proof.machine_id_sha256 -cne $s.original_machine_sha256) 'SWITCH_FIXTURE_PENDING'
+      $state.resets.new.next_boot_sha256=$proof.boot_id_sha256;$state.resets.new.machine_sha256=$proof.machine_id_sha256;$state.resets.new.outcome='changed-boot';SaveStage 'new_running'
+     }
+     'terminate-new'{
+      Assert-WslSwitch ($Phase -ceq 'ReturnFixture' -and $state.receipts.Contains('fixture_seal') -and $state.stage -cin @('new_running','safe','prepared')) 'SWITCH_FIXTURE_PENDING'
+      if($newRunning){Assert-WslSwitch ($observation.digest -ceq $state.receipts.fixture_seal) 'SWITCH_FIXTURE_SEAL';SaveStage $state.stage}else{
+       Assert-WslSwitch (!$running.Count -and $Evidence -ceq $state.receipts.fixture_seal -and $null -ne $state.resets.original) 'SWITCH_FIXTURE_PENDING';SaveStage 'fixture_new_stopped'
+      }
+     }
+     'reset-to-original'{
+      Assert-WslSwitch ($Phase -ceq 'ReturnFixture' -and !$running.Count -and $state.receipts.Contains('fixture_seal') -and
+       $state.stage -ceq 'fixture_new_stopped' -and $state.resets.original.outcome -ceq 'all-stopped') 'SWITCH_FIXTURE_PENDING';SaveStage 'fixture_reset_for_original'
+     }
+     'start-original'{
+      Assert-WslSwitch ($Phase -ceq 'ReturnFixture' -and $state.stage -ceq 'fixture_reset_for_original' -and $state.receipts.Contains('fixture_seal')) 'SWITCH_FIXTURE_PENDING'
+      if($originalRunning){
+       $boot=& $Ports.Boot 'original' $s
+       Assert-WslSwitch ($boot.machine_id_sha256 -ceq $s.original_machine_sha256 -and $boot.boot_id_sha256 -cne $state.resets.original.previous_boot_sha256) 'SWITCH_BOOT_UNCHANGED'
+       & $Ports.Original 'quiescent' $s | Out-Null
+       $state.resets.original.next_boot_sha256=$boot.boot_id_sha256;$state.resets.original.machine_sha256=$s.original_machine_sha256;$state.resets.original.outcome='changed-boot';SaveStage 'original_running'
+      }else{Assert-WslSwitch (!$running.Count -and $state.resets.original.outcome -ceq 'all-stopped') 'SWITCH_FIXTURE_PENDING';SaveStage 'fixture_reset_for_original'}
+     }
+     default{throw 'SWITCH_FIXTURE_PENDING_UNRESOLVED'}
+    }
+   }
+   if($Phase -ceq 'SealFixtureReturn'){
+    Assert-WslSwitch ($newRunning -and $state.stage -cin @('new_running','safe','prepared')) 'SWITCH_FIXTURE_STAGE'
+    CurrentBoot new
+    $state.receipts.fixture_seal=$observation.digest;SaveStage $state.stage
+    $result.status='FIXTURE_RETURN_SEALED';$result.evidence_sha256=$observation.digest;return $result
+   }
+   if($state.stage -ceq 'quiesced'){
+    $activeBoundary=& $Ports.FixtureBoundary $s $true
+    Check original | Out-Null;& $Ports.Original 'quiescent' $s | Out-Null
+    Intent 'restore-original';$q=& $Ports.Original 'restore' $s
+    Assert-WslSwitch ($q.decision -ceq 'RESTORED' -and $q.proposal_sha256 -ceq $s.original_proposal_sha256) 'SWITCH_RESTORE_RESULT'
+    & $Ports.Original 'restored' $s | Out-Null
+    $finalBoundary=& $Ports.FixtureBoundary $s $true
+    Assert-WslSwitch ($finalBoundary.fingerprint -ceq $activeBoundary.fingerprint) 'SWITCH_FIXTURE_BOUNDARY'
+    $state.receipts.restore=Get-WslSwitchHash $q;SaveStage 'restored'
+    $result.status='ORIGINAL_RESTORED_NEW_RETAINED_STOPPED';return $result
+   }
+   $boundary=& $Ports.FixtureBoundary $s
+   Assert-WslSwitch ($boundary.fingerprint -ceq $state.receipts.fixture_boundary) 'SWITCH_FIXTURE_BOUNDARY'
+   if($state.stage -ceq 'original_bridge_stopped'){
+    Check original | Out-Null;$boot=& $Ports.Boot 'original' $s
+    Assert-WslSwitch ($boot.machine_id_sha256 -ceq $s.original_machine_sha256) 'SWITCH_BOOT_BINDING_DRIFT'
+    & $Ports.Original 'quiescent' $s | Out-Null
+    $state.receipts.fixture_original_boot=$boot.boot_id_sha256;SaveStage 'original_running'
+   }
+   if($state.stage -cin @('new_running','safe','prepared')){
+    Check new | Out-Null;CurrentBoot new
+    Assert-WslSwitch ($state.receipts.fixture_seal -ceq $observation.digest) 'SWITCH_FIXTURE_SEAL'
+    $state.resets.original=@{action='reset-to-original';previous_boot_sha256=$proof.boot_id_sha256;next_boot_sha256='';machine_sha256=$proof.machine_id_sha256;outcome='captured'}
+    Intent 'terminate-new';& $Ports.Terminate 'new' $s | Out-Null;Check none | Out-Null;SaveStage 'fixture_new_stopped'
+   }
+   if($state.stage -cin @('original_stopped','reset_for_new')){
+    Check none | Out-Null
+    Assert-WslSwitch ($null -ne $state.resets.new -and $state.resets.new.previous_boot_sha256 -cmatch '\A[0-9a-f]{64}\z') 'SWITCH_FIXTURE_ORIGINAL_BOOT'
+    $state.resets.original=@{action='reset-to-original';previous_boot_sha256=$state.resets.new.previous_boot_sha256;next_boot_sha256='';machine_sha256=$s.original_machine_sha256;outcome='captured'}
+    # Separate marker prevents a later fixture intent from being mistaken for a
+    # product return. No fixture guest was ever started on this branch.
+    $state.receipts.fixture_seal=Get-WslSwitchHash @($s.source_commit,$state.receipts.fixture_boundary,'NEW_NOT_STARTED');SaveStage 'fixture_new_stopped'
+   }
+   if($state.stage -ceq 'fixture_new_stopped'){
+    Check none | Out-Null;$state.resets.original.outcome='intent';Intent 'reset-to-original'
+    $reset=& $Ports.Reset 'original' $s $state
+    Assert-WslSwitch ($reset.status -ceq 'VM_RESET_ALL_STOPPED' -and $state.resets.original.outcome -ceq 'all-stopped') 'SWITCH_RESET_OUTCOME';SaveStage 'fixture_reset_for_original'
+   }
+   if($state.stage -ceq 'fixture_reset_for_original'){
+    Check none | Out-Null;Intent 'start-original';& $Ports.Start 'original' $s | Out-Null;Check original | Out-Null
+    $boot=& $Ports.Boot 'original' $s
+    Assert-WslSwitch ($boot.machine_id_sha256 -ceq $s.original_machine_sha256 -and $boot.boot_id_sha256 -cne $state.resets.original.previous_boot_sha256) 'SWITCH_BOOT_UNCHANGED'
+    $state.resets.original.next_boot_sha256=$boot.boot_id_sha256;$state.resets.original.machine_sha256=$s.original_machine_sha256;$state.resets.original.outcome='changed-boot'
+    & $Ports.Original 'quiescent' $s | Out-Null;SaveStage 'original_running'
+   }
+   Assert-WslSwitch ($state.stage -ceq 'original_running') 'SWITCH_FIXTURE_STAGE';Check original | Out-Null;CurrentBoot original
+   $result.status='ORIGINAL_READY_FOR_BRIDGE_RESUME'
   }elseif($Phase -ceq 'RestoreOriginal'){
    Assert-WslSwitch ($state.stage -cin @('original_running','original_bridge_ready')) 'SWITCH_STAGE';Check original | Out-Null;CurrentBoot original
    & $Ports.Original 'quiescent' $s | Out-Null
@@ -336,6 +482,110 @@ if __name__=='__main__':
     except Exception:print('{"status":"KERNEL_NETWORK_UNKNOWN_PREREQUISITE_REQUIRED"}');sys.exit(2)
 '@
 }
+function Get-WslSwitchFixtureProof {
+ # Fixed stdlib-only read probe: no package, preparation or capability admission.
+ return @'
+import sys,os,stat,json,hashlib,re,socket,http.client,time,struct
+from pathlib import Path
+from uuid import UUID
+run,source=sys.argv[1:]
+def need(value):
+    if not value:raise ValueError('fixture_return_unproven')
+def digest(value):return hashlib.sha256(json.dumps(value,sort_keys=True,separators=(',',':'),ensure_ascii=True,allow_nan=False).encode()).hexdigest()
+def trusted(path):
+    for item in (path,*path.parents):
+        info=item.lstat();need(info.st_uid==0 and not stat.S_ISLNK(info.st_mode) and not info.st_mode&0o022)
+def read(path,limit=65536):
+    with path.open('rb') as stream:raw=stream.read(limit+1)
+    need(len(raw)<=limit);return raw
+need(os.geteuid()==0 and re.fullmatch('[0-9a-f]{32}',run) and re.fullmatch('[0-9a-f]{40}',source))
+need('microsoft' in read(Path('/proc/sys/kernel/osrelease')).decode().lower())
+boot=read(Path('/proc/sys/kernel/random/boot_id')).decode().strip();need(str(UUID(boot))==boot)
+machine=read(Path('/etc/machine-id')).strip();need(re.fullmatch(b'[0-9a-f]{32}',machine))
+root=Path('/root/tsw440-acceptance')/run
+if os.path.lexists(root):
+    trusted(root);need(root.is_dir())
+    for name in ('cases','product-case-ledger.json','new-case-stop.json'):
+        need(not os.path.lexists(root/name))
+    # Known preparation/fixture child intents cannot be ignored after a crash.
+    rows=list(root.iterdir());need(len(rows)<=128)
+    for row in rows:
+        need(not row.is_symlink())
+        if row.is_file() and ('intent' in row.name or 'journal' in row.name or 'pid' in row.name):need(False)
+for path in ('/var/lib/lxd','/var/snap/lxd','/var/snap/incus','/run/lxd','/run/incus/unix.socket','/run/docker.sock','/var/lib/docker'):
+    need(not os.path.lexists(path))
+workers=('wsl_product_acceptance.py','product_upgrade_cases.py','incus_profile_listener_fixture.py','native_lxd_maintenance.py','native_runtime_inventory.py','pytest','unittest','tiny_swarm_world')
+programs={'apt','apt-get','dpkg','snap','git','pip','pip3','incus','lxc','lxd','dockerd','containerd','lxc-start','lxc-monitord','forkproxy'}
+def process_snapshot():
+    pids=list(Path('/proc').iterdir());need(len(pids)<=8192);daemons=[]
+    for pid in pids:
+        if not pid.name.isdigit() or int(pid.name)==os.getpid():continue
+        try:
+            raw=read(pid/'cmdline');args=[part.decode('utf-8','strict') for part in raw.split(b'\0') if part]
+            if not args:continue
+            binary=Path(args[0]).name
+            need(not re.fullmatch(r'(?:python|pypy)[0-9.]*|bash|dash|sh|zsh|fish|busybox|make|cmake|gcc|g[+][+]|cc|ninja|node|npm|curl|wget|sudo|timeout|setsid',binary))
+            need(binary not in programs and not any(any(word in arg for word in workers) for arg in args))
+            need(not any(str(root) in arg for arg in args))
+            if binary=='incusd':
+                executable=(pid/'exe').resolve(strict=True);trusted(executable)
+                need(str(executable) in {'/usr/libexec/incus/incusd','/usr/lib/incus/incusd','/opt/incus/bin/incusd'} and pid.stat().st_uid==0)
+                daemons.append(int(pid.name))
+        except FileNotFoundError:
+            need(not pid.exists())
+    need(len(daemons)<=1);return daemons
+daemons=process_snapshot()
+def check_resources(query):
+    projects=query('/1.0/projects?recursion=1');need(isinstance(projects,list) and len(projects)==1 and projects[0].get('name')=='default')
+    need(query('/1.0/instances?recursion=1&project=default')==[])
+    profiles=query('/1.0/profiles?recursion=1&project=default')
+    need(isinstance(profiles,list) and len(profiles)==1 and profiles[0].get('name')=='default' and profiles[0].get('used_by')==[])
+    devices=profiles[0].get('devices');need(isinstance(devices,dict) and all(isinstance(v,dict) and v.get('type') in {'disk','nic'} for v in devices.values()))
+    pools=query('/1.0/storage-pools?recursion=1');need(isinstance(pools,list) and len(pools)<=16)
+    names=[];storage=[]
+    for pool in pools:
+        name=pool.get('name');need(isinstance(name,str) and re.fullmatch('[A-Za-z0-9][A-Za-z0-9_.+-]{0,62}',name) and name not in names);names.append(name)
+        volumes=query('/1.0/storage-pools/'+name+'/volumes?recursion=1&project=default')
+        need(isinstance(volumes,list) and len(volumes)<=2048 and all(isinstance(v,dict) and v.get('type')=='image' and re.fullmatch('[0-9a-f]{64}',v.get('name','')) for v in volumes))
+        storage.append({'pool':pool,'volumes':sorted(volumes,key=lambda item:item['name'])})
+    operations=query('/1.0/operations?recursion=1&all-projects=true');need(isinstance(operations,dict) and all(isinstance(v,list) and not v for v in operations.values()))
+    return digest({'projects':projects,'instances':[],'profiles':profiles,'storage':sorted(storage,key=lambda item:item['pool']['name']),'operations':operations})
+sock=Path('/var/lib/incus/unix.socket')
+if os.path.lexists(sock):
+    trusted(sock.parent);info=sock.lstat()
+    need(stat.S_ISSOCK(info.st_mode) and info.st_uid==0 and not info.st_mode&0o007 and len(daemons)==1)
+    started=time.monotonic();calls=0
+    def unique(pairs):
+        value={}
+        for key,item in pairs:need(key not in value);value[key]=item
+        return value
+    def query(uri):
+        global calls
+        calls+=1;need(calls<=64 and time.monotonic()-started<120)
+        connection=http.client.HTTPConnection('localhost',timeout=3)
+        channel=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM);channel.settimeout(3)
+        try:
+            channel.connect(str(sock));peer,uid,_=struct.unpack('3i',channel.getsockopt(socket.SOL_SOCKET,socket.SO_PEERCRED,struct.calcsize('3i')))
+            need(uid==0 and peer in daemons)
+            connection.sock=channel;connection.request('GET',uri,headers={'Host':'localhost','Connection':'close'})
+            reply=connection.getresponse();need(reply.status==200)
+            raw=reply.read(1048577);need(len(raw)<=1048576)
+            row=json.loads(raw,object_pairs_hook=unique,parse_constant=lambda _:need(False))
+            need(isinstance(row,dict) and row.get('type')=='sync' and row.get('status_code')==200 and row.get('error_code')==0 and row.get('error')=='' and row.get('operation')=='')
+            return row['metadata']
+        finally:connection.close();channel.close()
+    server=query('/1.0');need(server.get('environment',{}).get('server_version')=='6.0.5')
+    resources=check_resources(query);daemon='EXACT_INCUS_EMPTY'
+else:
+    need(not daemons)
+    for path in ('/var/lib/incus','/run/incus','/usr/bin/incus','/usr/sbin/incusd','/usr/libexec/incus/incusd','/usr/lib/incus/incusd','/opt/incus'):
+        need(not os.path.lexists(path))
+    resources=digest({'daemon':'POSITIVELY_ABSENT','resources':[]});daemon='POSITIVELY_ABSENT'
+need(process_snapshot()==daemons)
+print(json.dumps({'status':'FIXTURE_RETURN_EMPTY','run_id':run,'source_commit':source,'boot_id_sha256':hashlib.sha256(boot.encode()).hexdigest(),'machine_id_sha256':hashlib.sha256(machine).hexdigest(),'resources_sha256':resources,'daemon':daemon,'workers':0,'product_started':False},sort_keys=True,separators=(',',':')))
+'@
+}
+
 function Get-WslSwitchNewProof {
  return @'
 import sys,os,stat,json,hashlib,subprocess,importlib.util,re,socket,struct
@@ -366,6 +616,13 @@ def git(args,exits=(0,),directory=checkout):
     p=subprocess.run(['/usr/bin/git','--no-optional-locks','-C',str(directory),'-c','core.fsmonitor=false','-c','core.hooksPath=/dev/null','-c','core.untrackedCache=false',*args],env=env,stdin=subprocess.DEVNULL,capture_output=True,timeout=10)
     need(p.returncode in exits and not p.stderr and len(p.stdout)<=1048576);return p.stdout
 need(git(['config','--local','--includes','--null','--get-regexp',r'^filter\.'],(0,1))==b'')
+def verify_qualification_helpers():
+    # Verify every executable helper before its transitive imports execute.
+    directory=checkout/'modules/tsw_core/tools/linux/qualification';trusted(directory,True)
+    helpers=list(directory.glob('*.py'));need(0<len(helpers)<=128)
+    for helper in helpers:
+        trusted(helper);content=helper.read_bytes();need(len(content)<=1048576 and content==git(['show',source+':modules/tsw_core/tools/linux/qualification/'+helper.name]))
+    sys.path.insert(0,str(directory))
 def admitted_product_revision(qualification,product,parents,changes):
     need(re.fullmatch('[0-9a-f]{40}',qualification) and re.fullmatch('[0-9a-f]{40}',product))
     if product!=qualification:need(parents==[product,qualification] and changes==['modules/tsw_core/infra/config/incus-profile-capabilities.json'])
@@ -374,6 +631,7 @@ def validate_promoted_capability():
     capraw=git(['show',product_source+':modules/tsw_core/infra/config/incus-profile-capabilities.json']);need(len(capraw)<=65536)
     matrix=strict(capraw);need(isinstance(matrix,dict) and set(matrix)=={'schema_version','capability','admitted_versions'} and type(matrix['schema_version']) is int and matrix['schema_version']==1 and matrix['capability']=='installation-scoped-incus-manager-profile' and isinstance(matrix['admitted_versions'],list) and len(matrix['admitted_versions'])==1)
     entry=matrix['admitted_versions'][0];need(isinstance(entry,dict) and set(entry)=={'client_version','server_version','fixture_source_revision','fixture_sha256'} and entry['client_version']==entry['server_version']=='6.0.5' and re.fullmatch('[0-9a-f]{40}',entry['fixture_source_revision']) and re.fullmatch('[0-9a-f]{64}',entry['fixture_sha256']))
+    verify_qualification_helpers()
     from preserving_product_acceptance import validate_host_artifacts
     proof=strict(private(root/'both-host-profile-capability.json'))
     artifacts={host:private(root/('profile-capability-'+host+'.json'),8388608) for host in ('native_linux','wsl2')}
@@ -391,8 +649,8 @@ admitted_product_revision(source,product_source,parents,changes)
 import base64
 pins=strict(base64.b64decode(encoded));need(set(pins)=={'native_runtime_inventory.py','native_lxd_snap_provenance.py'})
 for name,sha in pins.items():
-    p=checkout/'tools/linux/qualification'/name;trusted(p);raw=p.read_bytes();need(len(raw)<=1048576 and hashlib.sha256(raw).hexdigest()==sha and raw==git(['show',source+':modules/tsw_core/tools/linux/qualification/'+name]))
-sys.path.insert(0,str(checkout/'tools/linux/qualification'));import native_runtime_inventory as n
+    p=checkout/'modules/tsw_core/tools/linux/qualification'/name;trusted(p);raw=p.read_bytes();need(len(raw)<=1048576 and hashlib.sha256(raw).hexdigest()==sha and raw==git(['show',source+':modules/tsw_core/tools/linux/qualification/'+name]))
+sys.path.insert(0,str(checkout/'modules/tsw_core/tools/linux/qualification'));import native_runtime_inventory as n
 r=n.Runner()
 def binding():
     row=n._systemctl_show(n.Runner(),'incus.service');need(row['load_state']=='loaded' and row['active_state']=='active' and row['sub_state']=='running')
@@ -545,7 +803,7 @@ function New-WslAcceptanceGuestSwitchProductionPorts($Scenario){
  $defs=@{}
  foreach($name in @('Get-WslSwitchCanonical','Get-WslSwitchBytes','Get-WslSwitchRawHash','Get-WslSwitchHash','Assert-WslSwitch','Assert-WslSwitchFields',
  'Assert-WslSwitchRunning','Assert-WslSwitchResetBoundary','Get-WslSwitchAssets','Get-WslSwitchSeconds','Assert-WslSwitchBookmark','New-WslSwitchBookmark',
- 'Get-WslSwitchOriginalProbe','Get-WslSwitchBootProbe','Get-WslSwitchNetworkProbe','Get-WslSwitchNewProof','Get-WslBindingCanonical','Get-WslBindingBytes','Get-WslBindingRawHash',
+ 'Get-WslSwitchOriginalProbe','Get-WslSwitchBootProbe','Get-WslSwitchNetworkProbe','Get-WslSwitchNewProof','Get-WslSwitchFixtureProof','Get-WslBindingCanonical','Get-WslBindingBytes','Get-WslBindingRawHash',
  'Get-WslBindingHash','Assert-WslBindingFields','Assert-WslBindingScenario','Assert-WslBindingCertificate','Get-WslBindingPhaseSeconds','Assert-WslBindingApproval',
  'Invoke-WslAcceptanceBridgeBinding','New-WslAcceptanceBridgeProductionPorts')){$defs[$name]=(Get-Item ('Function:'+ $name)).ScriptBlock}
  $module=New-Module -Name ('Epic440GuestSwitch'+$Scenario.run_id) -ArgumentList $root,$Scenario,$prep,$defs -ScriptBlock {
@@ -773,6 +1031,20 @@ print('{"status":"IMMUTABLE_DRIVER_VERIFIED"}')
    $text=Run (Wsl) @('--distribution',('TSW-Q440-'+$s.run_id),'--user','root','--exec','/usr/bin/python3','-I','-c',(Get-WslSwitchNetworkProbe)) 15 131072 @(0,2)
    return $text|ConvertFrom-Json -ErrorAction Stop
   }
+  $ports.FixtureBoundary={param($s,[bool]$active=$false)
+   $owner=New-WslAcceptanceBridgeProductionPorts $s.bridge_scenario;$update=$null;$reconcile=$null
+   try{
+    $phase=if($active){'FixtureOriginalBoundary'}else{'FixtureBoundary'}
+    & $owner.Begin $phase | Out-Null
+    $update=& $owner.Lock 'Global\TinySwarmWorldWslBridgeServiceUpdate'
+    $reconcile=& $owner.Lock 'Global\TinySwarmWorldWslBridgeReconcile'
+    return & $owner.Observe $phase
+   }finally{if($null -ne $reconcile){& $owner.Unlock $reconcile | Out-Null};if($null -ne $update){& $owner.Unlock $update | Out-Null}}
+  }
+  $ports.FixtureProof={param($s)
+   Assert-WslSwitchRunning (Observe $s) $s new
+   return Linux new (Get-WslSwitchFixtureProof) @($s.run_id,$s.source_commit) 180
+  }
   $ports.Prepared={param($s,$hash) NewProof prepared $hash}
   $ports.Stopped={param($s,$hash) NewProof stopped $hash}
   $ports.Boot={param($who,$s)
@@ -786,19 +1058,20 @@ print('{"status":"IMMUTABLE_DRIVER_VERIFIED"}')
    # saved PID, and makes no visibility/exclusivity claim about other users.
    $query=@'
 $ErrorActionPreference='Stop';$sid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value
-$rows=@(Get-CimInstance -ClassName Win32_Process -Filter "Name='wsl.exe' OR Name='powershell.exe' OR Name='pwsh.exe' OR Name='python.exe' OR Name='python3.exe'" -OperationTimeoutSec 5)
+$rows=@(Get-CimInstance -ClassName Win32_Process -Filter "Name='wsl.exe' OR Name='powershell.exe' OR Name='pwsh.exe' OR Name='python.exe' OR Name='python3.exe' OR Name='bash.exe' OR Name='sh.exe'" -OperationTimeoutSec 5)
 if($rows.Count -gt 256){throw 'process_bound'}
 $clients=0;$workers=0
 foreach($p in $rows){
  $owner=Invoke-CimMethod -InputObject $p -MethodName GetOwnerSid -OperationTimeoutSec 5
  if($owner.ReturnValue -ne 0 -or !$owner.Sid){throw 'owner_unknown'}
- if($owner.Sid -ceq $sid){
+ if($owner.Sid -ceq $sid -and $p.ProcessId -ne $PID -and $p.ProcessId -ne @COORDINATOR@){
   if($p.Name -ieq 'wsl.exe'){$clients++}
-  if($p.CommandLine -match '(?i)([\/]tests[\/]|-m[ ]+(unittest|pytest)|check_(complexity|architecture))'){$workers++}
+  if($p.Name -imatch '\A(?:powershell|pwsh|python3?|bash|sh)\.exe\z' -or $p.CommandLine -match '(?i)([\/]tests[\/]|-m[ ]+(unittest|pytest)|check_(complexity|architecture)|incus_profile_listener_fixture|wsl_resource_maintenance|prepare-windows)'){$workers++}
  }
 }
 @{clients=$clients;workers=$workers}|ConvertTo-Json -Compress
 '@
+   $query=$query.Replace('@COORDINATOR@',[string]$PID)
    $ps=NativeExecutable 'powershell.exe'
    $text=Run $ps @('-NoProfile','-NonInteractive','-EncodedCommand',([Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($query)))) 10 65536
    $r=$text|ConvertFrom-Json -ErrorAction Stop
@@ -848,7 +1121,7 @@ foreach($p in $rows){
   $script:ports=$ports
  }
  $result=@{}
- foreach($name in @('Begin','Clock','Source','Observe','Load','Save','Lock','Unlock','Original','Bridge','Terminate','Start','Network','Prepared','Stopped','Registration','Reset','Boot')){
+ foreach($name in @('Begin','Clock','Source','Observe','Load','Save','Lock','Unlock','Original','Bridge','Terminate','Start','Network','Prepared','Stopped','Registration','Reset','Boot','FixtureBoundary','FixtureProof')){
   $result[$name]={& $module {param($op,$a) & ($script:ports[$op]) @a} $name $args}.GetNewClosure()
  }
  return $result
@@ -857,11 +1130,11 @@ if($MyInvocation.InvocationName -ne '.'){
  try{
   $s=Read-WslSwitchWire $ScenarioBase64 $ExpectedScenarioSha256
   $go=if($Mode -cin @('Prepare','Reconcile')){$null}else{Read-WslSwitchWire $ApprovalBase64 $ExpectedApprovalSha256}
-  $bridgeGo=if($BridgeApprovalBase64 -and $Mode -cin @('EnterNew','BindNew','ReturnOriginal','RestoreOriginal')){Read-WslSwitchWire $BridgeApprovalBase64 $ExpectedBridgeApprovalSha256}else{$null}
+  $bridgeGo=if($BridgeApprovalBase64 -and $Mode -cin @('EnterNew','BindNew','ReturnOriginal','SealFixtureReturn','ReturnFixture','RestoreOriginal')){Read-WslSwitchWire $BridgeApprovalBase64 $ExpectedBridgeApprovalSha256}else{$null}
   $ports=New-WslAcceptanceGuestSwitchProductionPorts $s
   $r=Invoke-WslAcceptanceGuestSwitch $s $Mode $go $bridgeGo $EvidenceSha256 $ports $PrepareFor
   $r|ConvertTo-Json -Depth 8 -Compress
   if($r.status -cin @('PREPARED_READ_ONLY','OBSERVED_READ_ONLY','ORIGINAL_QUIESCED','NEW_GUEST_SAFE_FOR_PREPARATION',
-   'NEW_GUEST_NETWORK_PREREQUISITE_REQUIRED','NEW_GUEST_PREPARED','NEW_BINDING_READY','ORIGINAL_READY_FOR_BRIDGE_RESUME','ORIGINAL_RESTORED_NEW_RETAINED_STOPPED')){exit 0};exit 2
+   'FIXTURE_RETURN_SEALED','NEW_GUEST_NETWORK_PREREQUISITE_REQUIRED','NEW_GUEST_PREPARED','NEW_BINDING_READY','ORIGINAL_READY_FOR_BRIDGE_RESUME','ORIGINAL_RESTORED_NEW_RETAINED_STOPPED')){exit 0};exit 2
  }catch{[Console]::Error.WriteLine('{"status":"SWITCH_ADMISSION_FAILED"}');exit 2}
 }

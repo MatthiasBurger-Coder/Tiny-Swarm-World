@@ -1,14 +1,29 @@
-# S440-01 distribution
+# S440O-01 distribution
 
-Workflow: issue-440-final-acceptance v1.0. Slice: S440-01 — requirements, provenance and qualification scope.
-Branch/ref/status and governing hashes verified at 07cc4115; S3_STATUS/BRANCH/SCOPE/CLASSIFY passed (S3_DOC, FULL_PATH).
-S3D: all 12 complete metadata blocks parsed, dependencies known, DAG acyclic; only future S440-02/03 have disjoint source/test locks. S440-01 owns the requirement/scenario/prerequisite documentation and its evidence; no runtime effect lock acquired.
+Workflow: issue-440-open-acceptance; workflowVersion2.0; Slice-ID S440O-01.
+Title: Adopt and checkpoint the verified repair. Rollback2e2f80ee.
+S3/status/branch/scope/context and S3D14node serialDAG PASS by execute_preflight.
+Actual five source hashes and patch match published manifest. Open_python
+adoption ACCEPT; open_testing admission READY. Real subagents, no fallback.
 
-Affected areas: requirements, architecture, automation trace, tests/evidence and host prerequisites.
-Chosen mode: sequential integration with parallel read-only specialist review.
-Selected review streams: requirements (s01_requirement_review), architecture/automation (s01_architecture_review), test/security (s01_test_review).
-Real Codex subagents: yes, all read-only and without tests/host effects. Role fallback: no. Git worktrees: current repository verified as dedicated workflow worktree; no parallel write streams in this slice.
-Expected writes: requirement-matrix.md, prerequisite-ledger.md, scenario-plan.md; coordinator status/context; slice-01 distribution/consolidation and ignored issue evidence only.
-Conflict risks: shared workflow status/context serialized by root; historical evidence remains unchanged. Runtime ownership/backups are NOT_VERIFIED and do not become approved from source review.
-Quality: targeted five-CLI suite on separate SSH PC/WSL test checkout, static path/mapping checks and git diff --check. No new full suite for documentation-only inventory.
-Consolidation: root integrates source-backed findings, current/legacy reader semantics and child AC crosswalk; independent slice review before a scope-limited checkpoint. Parent Epic remains INCOMPLETE.
+Affected streams: qualification/runtime source, tests, security and evidence;
+no UI/domain/application change. Mode sequential: exact prior five-file delta
+and shared receipt/test boundaries cannot be split safely. Root owns deterministic
+hash-guarded integration and evidence; specialist agents independently review.
+Dedicated workflow worktree/branch docs/workflow-issue440-open-20261111; original
+workspace remains untouched. No other write-capable stream or live actor.
+
+Expected files: exactly five published repair paths plus this distribution,
+slice01consolidation and private sixfile evidence. All writes stay within01locks.
+Nearest targeted guest_switch/registration suites then QUALITY.md full quality
+through SSHpcUbuntuWSL, freshexactsource and independent package environment;
+private ~/.access only. Prior test authorization and currentexecute authorize
+these configured local/mock checks, never live. Root consolidates after new
+checks, independent finalaudit and D8; single-slice checkpoint push only.
+No PR, merge, production capability or host effect is authorized.
+
+Reviewed D8 governance follow-up: authored Mode label rejected by unchanged
+verification-policy gate. execute_governance_fix and open_requirements ACCEPT
+exactworkflow/context amendment and neutral read-only admission wording. No
+workflow-create backwards or productscope change. Retry1/3: verification-policy
+first then fullquality against refreshed source; five repair hashes unchanged.

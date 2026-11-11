@@ -73,6 +73,12 @@ review only when actually changed; no React work is authorized.
 
 ## Test Strategy and Quality Gates
 
+Reviewed execution follow-up S440O-01: the first full gate found an authored
+noncanonical mode label. Senior Workflow Architect and Requirement Lead approve
+this exact wording correction plus workflow/context hash maintenance inside01.
+No dependency, requirement, product scope, checker or quality threshold changes.
+This is S3_DOC remediation during execution, not workflow regeneration.
+
 Authoring is documentation-only: static metadata/DAG/path/requirement/link/hash
 inspection and git diff --check on the designated SSH/WSL host. Full project
 quality is NOT_RUN_DOC_ONLY for this plan; prior repair results are historical.
@@ -206,7 +212,9 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-01/` with the six issue-com
     "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_registration.ps1",
     "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_bridge_binding.ps1",
     "modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_guest_switch.py",
-    "modules/tsw_core/tests/fixtures/wsl_acceptance_guest_switch.ps1"
+    "modules/tsw_core/tests/fixtures/wsl_acceptance_guest_switch.ps1",
+    "documentation/handbook/05-development/workflow/workflow.md",
+    "documentation/handbook/05-development/workflow/context-pack.json"
   ],
   "affected_modules": [
     "existing qualification/lifecycle and evidence"
@@ -226,7 +234,9 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-01/` with the six issue-com
     "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_bridge_binding.ps1",
     "modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_guest_switch.py",
     "modules/tsw_core/tests/fixtures/wsl_acceptance_guest_switch.ps1",
-    ".tiny-swarm/evidence/issue-440-open/slice-01/**"
+    ".tiny-swarm/evidence/issue-440-open/slice-01/**",
+    "documentation/handbook/05-development/workflow/workflow.md",
+    "documentation/handbook/05-development/workflow/context-pack.json"
   ],
   "contract_locks": [
     "frozen C/K source and exact approval"
@@ -240,7 +250,9 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-01/` with the six issue-com
     "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_registration.ps1",
     "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_bridge_binding.ps1",
     "modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_guest_switch.py",
-    "modules/tsw_core/tests/fixtures/wsl_acceptance_guest_switch.ps1"
+    "modules/tsw_core/tests/fixtures/wsl_acceptance_guest_switch.ps1",
+    "documentation/handbook/05-development/workflow/workflow.md",
+    "documentation/handbook/05-development/workflow/context-pack.json"
   ],
   "shared_infrastructure": [
     "designated SSH/WSL quality host",
@@ -257,7 +269,9 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-01/` with the six issue-com
     "modules/tsw_core/tests/fixtures/wsl_acceptance_guest_switch.ps1",
     ".tiny-swarm/evidence/issue-440-open/slice-01/**",
     ".codex/evidence/slice-01-distribution.md",
-    ".codex/evidence/slice-01-consolidation.md"
+    ".codex/evidence/slice-01-consolidation.md",
+    "documentation/handbook/05-development/workflow/workflow.md",
+    "documentation/handbook/05-development/workflow/context-pack.json"
   ],
   "requirement_ids": [
     "P08",
@@ -779,7 +793,7 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-05/` with the six issue-com
 
 Purpose: Freshly inspect native and WSL owners, exact Incus client/server6.0.5, all-project resources, machine/boot/GUID/VHD, root-owned installed source and original runtime driver. Verify actual usable backups, original running/stopped states, Windows firewall/PortProxy/hosts/archive and an independently rehearsed restore route for all reachable failures. Reserve approved loopback high port61000–65535 and preserve10001. Existing80/443/16080/16081 listeners block the fixture; use separately approved cold isolated guest, never kill active-install listeners or assume two WSL distros are isolated. Record exact outage/fixture/return GO and independent same-hash reviews. Earlier deterministic test consent grants no live operation.
 
-Prerequisites: S440O-05. Mode: LIVE_PREREQUISITES.
+Prerequisites: S440O-05. Mode: live prerequisite admission (read-only before scenario consent).
 
 Done criteria: all stated observations and required checks have attributable evidence; independent owner review accepts the exact slice. No planned result counts as executed.
 

@@ -1,18 +1,36 @@
-# S440-01 consolidation
+# S440O-01 consolidation
 
-Workflow issue-440-final-acceptance v1.0; branch docs/workflow-issue440-acceptance-20261110; rollback/source reference 07cc411520da4b2be6e0108af33faf779de7b82c.
+Workflow issue-440-open-acceptance; workflowVersion2.0; Slice-ID S440O-01.
+Rollback2e2f80eeb40cad216800e52d079f973c203e822f. Sequential rootexactcopy after
+execute_preflight S3/S3D, open_python adoptionACCEPT and open_testing READY.
+Five owner-retained repaired source/test paths matched everySHA and five-file
+patchf0a36b7c...; originalworkspace remains unchanged. No code logic invented
+in adoption; only exactreviewed priorbytes integrated.
 
-Streams: real read-only requirement, architecture/automation and test/security subagents completed; root integrated only the three slice-owned inventories plus coordinator status/context. No worker changed production or host state.
-Accepted findings: all 47 LCM and 15 parent criteria need a real public-path/test/system map; all 45 original child AC IDs must be retained; manifest-v2→historical reader-v1 product target is intentionally refused; JSON capability authority differs from the non-admitting legacy intent classifier; old #449 helper binding remains a prerequisite; current live fixture ownership/backups/GO remain NOT_VERIFIED.
-Rejected claims: no full S01 DONE, no Epic PASS, no invented live readiness, no classification of all historical update/selection cases as never run, no false-negative v2 upgrade gap.
-Files changed: requirement-matrix.md, prerequisite-ledger.md, scenario-plan.md; root-owned workflow status/context; distribution/consolidation and ignored issue evidence. No overlapping worker writes/conflicts; shared documentation handled sequentially.
-Tests: five targeted CLI suites on isolated SSH PC Ubuntu WSL 07cc4115 checkout, installed package path verified: 96 PASS, zero skips. Initial BUILD_FAILURE (DevOps retry 1/3) was new state-directory permissions; corrected only newly owned test directories to private modes, then identical command passed. No test/guard weakened and no live installation touched. Full suite not rerun for documentation-only inventory.
-Sonar: source baseline has actual path traversal, cancellation and two probable strict-type false-positive findings; remediation/adjudication remains S02/S03 work. No scanner rule, gate or external issue state changed here.
-Independent checkpoint audit: s01_requirement_review ACCEPT after inspecting the final inventory; all 47 LCM IDs, 15 P rows and 45 exact child AC texts verified, current hashes confirmed, supported-reader and PARTIAL/live limitation retained.
-Final integration decision: ACCEPT bounded PARTIAL inventory checkpoint. Parent #440 INCOMPLETE; approved-live-fixture requirement remains open. Continue S440-02/03 deterministic work under the explicit existing continuation rule, then preserve downstream live admission gates.
+Newworkflowbinding verification on SSHpc@192.168.178.58 UbuntuWSL isolated
+checkout /home/pc/tsw-440-open-slice01-20261111, Python3.12.15, offlineeditable
+packageorigin verified.1809sourceentries matched0differences. Targeted18PASS
+zero skips31.370s. Initialfullgate found DOC_GOVERNANCE_FAILURE in authored
+mode label. SeniorWorkflowArchitect+RequirementLead approvedexact01scope
+follow-up toworkflow/context only, descriptive read-only admission label and
+sourcehash refresh. No checker, threshold, dependency, consent or requirement
+change. Five imported sourcehashes remain exact. Retry1/3 targetedverification
+policyPASS; fullqualityPASS exit0:4058run,37declaredskips,zero failures/errors
+330.350s; complexity415/lint/import7/arch44/type1055PASS.
 
-Policy follow-up: S03 full gate exposed DOC_GOVERNANCE_FAILURE in two S01 workflow phrases using non-pass. Clarified explicit never-count-as-verified wording without changing checker, thresholds or semantics. Dedicated SSH/WSL verification-policy rerun PASS, retry 1/3. This follow-up remains scoped to S440-01 documentation.
+Accepted findings: sourceprovenance, newbindingtest evidence and narrow reviewed
+governance correction. Rejected: none. Parallelwrites rejected because all
+qualification/test/approval boundaries shared. No source/worktree conflict.
+arc42Updated=false; adrUpdated=false: no architecturedecision, checked existing
+Classic/coldkernel/profile ADRs. Sonar remains externalunverified; no liveGO.
 
-Prerequisite reconciliation follow-up: canonical S03 suite ran 4015 tests with 37 skips and exactly one pre-existing workflow-input error, native_lxd_maintenance static-intent test missing FILES[6]. Independent review ACCEPT: restore byte-identical historical input from ca6902579f51c2c6d9439bf9c58dec02bfb45a93, SHA-256 dcc35dfde66417bbee7263cfc233fca68855ef66b3001dab2831ba1dc294b395, sole active #440 index unchanged; no old GO transfer or runtime mutation. S05 rebinds/removes it. Also record reviewed S02 sibling-file extraction after the unchanged complexity gate rejected coupling/growth; no new behavioral scope. D8 requires verification of the restored input and final canonical source.
+Private sixfile issue evidence and actual logs under
+.tiny-swarm/evidence/issue-440-open/slice-01/. Independentcompletion/D8review
+and one-slicecheckpoint pending finalreview. NoPR/merge/issuewrite.
 
-Restoration validation: unchanged targeted SharedSnapshotIntentBindingTests PASS; canonical SSH/WSL quality on the final runtime+fixture candidate PASS (4015 tests, 37 skips). The 1797-file comparison found zero differences excluding the protected operator .env. No live operation ran. Historical bytes and sole active #440 index verified.
+CP_RECORD: workflowVersion2.0; sliceIdS440O-01; rollback2e2f80ee; changedfiles
+exactfivequalification/testpaths plusworkflow.md/contextpack.json and two01
+coordinationrecords. Commands: targetedguest_switch/registration unittest,
+verification-policy and fullquality. Result18PASS0skip/full4058run37skip0fail.
+arc42Updated=false;adrUpdated=false; reviewedexistingdecisionsunchanged. Actual
+CP_COMMIT and pushref will be recorded privately after successful D8 publication.
