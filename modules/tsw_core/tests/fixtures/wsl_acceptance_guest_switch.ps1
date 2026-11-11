@@ -424,4 +424,14 @@ $rp._ctx.state=$v;$rp._ctx.running=@('TSW-Q440-'+$ws.run_id);$rp._ctx.fault='bou
 $r=Run $rp $ws ReconcileEffects
 Assert ($r.status -ceq 'PENDING_EFFECT_RECONCILED' -and $rp._ctx.state.stage -ceq 'bound' -and $rp._ctx.changed -eq 0 -and $rp._ctx.state.receipts.Contains('bridge')) 'applied_bind_replayed';$cases++
 
-@{status='PASS';cases=$cases;actual_guest_effects=0;actual_preparation=$false;originals_touched=$false;application_ready=$false;versioned_windows=$true;pending_reconciliation_cases=13;pending_reconciliation_denials=1}|ConvertTo-Json -Compress
+# A public refusal is product work even though it changed no service. The
+# actual coordinator must reject a positively observed product_started flag.
+$p=Ports;$null=Run $p $s QuiesceOriginal;$null=Run $p $s EnterNew
+$p.FixtureProof={param($spec) return @{status='FIXTURE_RETURN_EMPTY';run_id=$spec.run_id;source_commit=$spec.source_commit;
+ boot_id_sha256=('b'*64);machine_id_sha256=('8'*64);resources_sha256=('4'*64);daemon='EXACT_INCUS_EMPTY';workers=0;product_started=$true}}
+$before=Get-WslSwitchHash $p._ctx.state;$changed=$p._ctx.changed;$resets=$p._ctx.resets
+$r=Invoke-WslAcceptanceGuestSwitch $s Prepare $null $null '' $p ReturnFixture
+Assert ($r.status -ceq 'BLOCKED' -and !$r.application_ready -and $p._ctx.changed -eq $changed -and $p._ctx.resets -eq $resets -and
+ (Get-WslSwitchHash $p._ctx.state) -ceq $before) 'public_refusal_mistaken_for_empty_fixture';$cases++
+
+@{status='PASS';cases=$cases;actual_guest_effects=0;actual_preparation=$false;originals_touched=$false;application_ready=$false;versioned_windows=$true;pending_reconciliation_cases=13;pending_reconciliation_denials=1;public_refusal_fixture_denied=$true}|ConvertTo-Json -Compress

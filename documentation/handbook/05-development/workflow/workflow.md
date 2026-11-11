@@ -482,6 +482,23 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-02/` with the six issue-com
 
 ### Slice 03 — Close supported product-recipe and attribution gaps
 
+Reviewed execution amendment: Architecture, Security, DevOps, Requirements and
+Senior Workflow Architect accept the three existing WSL consumer/regression
+paths below, plus workflow/context metadata, as required producer-consumer
+compatibility within this slice. The previous stopped-proof reader knows only
+24 case IDs and old outcome shapes; the new eight closed refusal cases and
+truthful helper-unavailable records would otherwise prevent safe ReturnOriginal.
+Accept only the exact fixed new IDs and explicitly bounded old/new schemas.
+Unavailable status is restricted to the two v1 helper IDs with exact identity,
+command_executed=false, product_result=null, epic_complete=false, no effect or
+execution/recovery/disposal intent and no public child launch, including when
+C equals K. Executed negative cases retain normal checkout/source/settlement and
+disposal proof. They remain product work even when preview or effect=false;
+ReturnFixture must still reject product ledgers. No generic reader relaxation,
+new file, product policy, target, reader, ADR or dependency change is admitted.
+Existing implementation authorization covers this reviewed compatibility fix;
+all original quality and consent guards remain authoritative.
+
 Purpose: Inspect product_upgrade_cases and both canonical core supervisors: product kind currently refuses and upgrade-product-v1/recover-product-v1 return NOT_IMPLEMENTED. Implement attributable recipes/reporter coverage for actually supported remaining product transitions using public CLI, or independently prove the proposed positive cell is outside the accepted supported matrix and retain its explicit refusal. Preserve accepted official 0.4.0→0.5.0 historical P01/Q14/Q15. Never enable manifest-v2→legacy-reader-v1 or invent an upgrade target to fill a cell. Every parent requirement must remain mapped; any required positive recipe left unimplemented blocks the slice.
 
 Prerequisites: S440O-02. Mode: LOCAL.
@@ -511,14 +528,21 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-03/` with the six issue-com
     "modules/tsw_native_linux/tests/tools/test_product_upgrade_cases.py",
     "modules/tsw_native_linux/tests/tools/test_preserving_product_acceptance.py",
     "modules/tsw_native_linux/tests/tools/test_wsl_product_acceptance.py",
-    "modules/tsw_core/tests/tools/test_lcm_acceptance.py"
+    "modules/tsw_core/tests/tools/test_lcm_acceptance.py",
+    "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_guest_switch.ps1",
+    "modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_guest_switch.py",
+    "modules/tsw_core/tests/fixtures/wsl_acceptance_guest_switch.ps1",
+    "documentation/handbook/05-development/workflow/workflow.md",
+    "documentation/handbook/05-development/workflow/context-pack.json"
   ],
   "affected_modules": [
-    "existing qualification/lifecycle and evidence"
+    "existing qualification/lifecycle and evidence",
+    "WSL qualification return-proof consumer"
   ],
   "affected_contracts": [
     "public CLI/evidence/source ownership",
-    "frozen C/K campaign provenance"
+    "frozen C/K campaign provenance",
+    "Closed case ledger and helper-unavailable compatibility before safe original return"
   ],
   "dependencies": [
     "S440O-02"
@@ -536,7 +560,12 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-03/` with the six issue-com
     "modules/tsw_native_linux/tests/tools/test_preserving_product_acceptance.py",
     "modules/tsw_native_linux/tests/tools/test_wsl_product_acceptance.py",
     "modules/tsw_core/tests/tools/test_lcm_acceptance.py",
-    ".tiny-swarm/evidence/issue-440-open/slice-03/**"
+    ".tiny-swarm/evidence/issue-440-open/slice-03/**",
+    "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_guest_switch.ps1",
+    "modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_guest_switch.py",
+    "modules/tsw_core/tests/fixtures/wsl_acceptance_guest_switch.ps1",
+    "documentation/handbook/05-development/workflow/workflow.md",
+    "documentation/handbook/05-development/workflow/context-pack.json"
   ],
   "contract_locks": [
     "frozen C/K source and exact approval"
@@ -553,7 +582,12 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-03/` with the six issue-com
     "modules/tsw_native_linux/tests/tools/test_product_upgrade_cases.py",
     "modules/tsw_native_linux/tests/tools/test_preserving_product_acceptance.py",
     "modules/tsw_native_linux/tests/tools/test_wsl_product_acceptance.py",
-    "modules/tsw_core/tests/tools/test_lcm_acceptance.py"
+    "modules/tsw_core/tests/tools/test_lcm_acceptance.py",
+    "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_guest_switch.ps1",
+    "modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_guest_switch.py",
+    "modules/tsw_core/tests/fixtures/wsl_acceptance_guest_switch.ps1",
+    "documentation/handbook/05-development/workflow/workflow.md",
+    "documentation/handbook/05-development/workflow/context-pack.json"
   ],
   "shared_infrastructure": [
     "designated SSH/WSL quality host",
@@ -573,7 +607,12 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-03/` with the six issue-com
     "modules/tsw_core/tests/tools/test_lcm_acceptance.py",
     ".tiny-swarm/evidence/issue-440-open/slice-03/**",
     ".codex/evidence/slice-03-distribution.md",
-    ".codex/evidence/slice-03-consolidation.md"
+    ".codex/evidence/slice-03-consolidation.md",
+    "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_guest_switch.ps1",
+    "modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_guest_switch.py",
+    "modules/tsw_core/tests/fixtures/wsl_acceptance_guest_switch.ps1",
+    "documentation/handbook/05-development/workflow/workflow.md",
+    "documentation/handbook/05-development/workflow/context-pack.json"
   ],
   "requirement_ids": [
     "P01",
@@ -586,7 +625,7 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-03/` with the six issue-com
   ],
   "quality_gates": {
     "targeted": [
-      "PYTHONPATH=. python3 -m unittest modules.tsw_native_linux.tests.tools.test_product_upgrade_cases modules.tsw_native_linux.tests.tools.test_preserving_product_acceptance modules.tsw_native_linux.tests.tools.test_wsl_product_acceptance modules.tsw_core.tests.tools.test_lcm_acceptance"
+      "PYTHONPATH=. python3 -m unittest modules.tsw_native_linux.tests.tools.test_product_upgrade_cases modules.tsw_native_linux.tests.tools.test_preserving_product_acceptance modules.tsw_native_linux.tests.tools.test_wsl_product_acceptance modules.tsw_core.tests.tools.test_lcm_acceptance modules.tsw_windows_wsl.tests.tools.test_wsl_acceptance_guest_switch"
     ],
     "required": [
       "python3 modules/tsw_core/tools/linux/quality_gate.py quality"

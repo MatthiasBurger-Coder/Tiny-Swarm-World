@@ -565,5 +565,170 @@ class PreservingProductAcceptanceTests(unittest.TestCase):
         self.assertFalse(before['preserve']['incus_projects'][0]['pools'][0]['image_cache'])
 
 
+
+
+
+class ActualProductRefusalEntryTests(unittest.IsolatedAsyncioTestCase):
+    async def test_real_public_consent_stops_before_composition_for_eof_and_literal_n(self):
+        from contextlib import redirect_stdout
+        import io
+        from tiny_swarm_world.infrastructure.adapters.cli.dispatcher import main
+        for name, spec in suite.upgrades.REFUSALS.items():
+            if spec.cause != 'CONSENT':
+                continue
+            output = io.StringIO()
+            def decline(prompt):
+                print(prompt, end='')
+                if spec.stdin_mode == 'EOF':
+                    raise EOFError
+                return 'n'
+            with self.subTest(case=name), redirect_stdout(output), patch('builtins.input', side_effect=decline), \
+                    patch('tiny_swarm_world.infrastructure.composition.build_product_upgrade') as build:
+                with self.assertRaises(SystemExit) as stopped:
+                    await main(list(spec.args))
+                self.assertEqual(stopped.exception.code, 2)
+                build.assert_not_called()
+            actual = suite.upgrades.validate_refusal(name, list(spec.args), 2, output.getvalue().encode(), b'')
+            self.assertEqual(actual['cause'], 'CONSENT_EOF' if spec.stdin_mode == 'EOF' else 'CONSENT_DECLINED_N')
+
+    async def test_real_preview_checkpoint_guard_does_not_call_source_plan_or_recover(self):
+        from contextlib import redirect_stdout
+        import io
+        from tiny_swarm_world.application.services.product_upgrade_preview import preview_product_upgrade
+        from tiny_swarm_world.infrastructure.adapters.cli.dispatcher import main
+        journal = Mock()
+        journal.load.return_value = None
+        installation = Mock()
+        service = SimpleNamespace(journal=journal,
+            preview=lambda target, recovery=False: preview_product_upgrade(installation, journal, target, recovery=recovery))
+        spec = suite.upgrades.REFUSALS['refuse-product-checkpoint']
+        output = io.StringIO()
+        with redirect_stdout(output), patch('tiny_swarm_world.infrastructure.composition.build_product_upgrade', return_value=service):
+            with self.assertRaises(SystemExit) as stopped:
+                await main(list(spec.args))
+        self.assertEqual(stopped.exception.code, 1)
+        installation.plan.assert_not_called()
+        result = suite.upgrades.validate_refusal('refuse-product-checkpoint', list(spec.args), 1, output.getvalue().encode(), b'')
+        self.assertEqual(result, {'status': 'blocked', 'cause': 'CHECKPOINT_ABSENT'})
+        # A completed/matching checkpoint is preview metadata, never a proof of
+        # recovery execution, runtime drift checks or a no-op.
+        journal.load.return_value = SimpleNamespace(stage='completed', plan=SimpleNamespace(
+            target=SimpleNamespace(product=SimpleNamespace(release='0.5.0')), preview=lambda: {'status': 'preview'}))
+        self.assertEqual((await preview_product_upgrade(installation, journal, '0.5.0'))['status'], 'verification_required')
+        with self.assertRaises(suite.upgrades.UpgradeError):
+            suite.upgrades.validate_refusal('refuse-product-checkpoint', list(spec.args), 0,
+                b'{"status":"verification_required"}\n', b'')
+
+    async def test_real_source_guards_preserve_distinct_dirty_origin_and_root_causes(self):
+        from contextlib import redirect_stdout
+        import io
+        from tiny_swarm_world.application.services.product_upgrade_preview import preview_product_upgrade
+        from tiny_swarm_world.infrastructure.adapters.lifecycle.product_admission import _clean_source
+        from tiny_swarm_world.infrastructure.adapters.lifecycle.product_source import OFFICIAL_REPOSITORY
+        from tiny_swarm_world.infrastructure.adapters.cli.dispatcher import main
+        name = 'refuse-product-source'
+        args = list(suite.upgrades.REFUSALS[name].args)
+        for fault, expected in (('dirty', 'SOURCE_DIRTY'), ('origin', 'SOURCE_ORIGIN'), ('root', 'SOURCE_ROOT')):
+            root = Path('/synthetic-owned-source')
+            def command(command):
+                if command[:2] == ('git', 'status'):
+                    return ' M changed.py' if fault == 'dirty' else ''
+                if command[:3] == ('git', 'rev-parse', '--show-toplevel'):
+                    return '/different-root' if fault == 'root' else str(root)
+                return 'https://unofficial.invalid/repository' if fault == 'origin' else OFFICIAL_REPOSITORY
+            installation = SimpleNamespace(root=root, _command=command)
+            installation.plan = lambda target: _clean_source(installation, allow_external=True)
+            journal = Mock()
+            journal.load.return_value = None
+            service = SimpleNamespace(journal=journal,
+                preview=lambda target, recovery=False: preview_product_upgrade(installation, journal, target, recovery=recovery))
+            output = io.StringIO()
+            with self.subTest(fault=fault), redirect_stdout(output), \
+                    patch('tiny_swarm_world.infrastructure.composition.build_product_upgrade', return_value=service):
+                with self.assertRaises(SystemExit) as stopped:
+                    await main(args)
+            self.assertEqual(stopped.exception.code, 1)
+            self.assertEqual(suite.upgrades.validate_refusal(name, args, 1, output.getvalue().encode(), b'')['cause'], expected)
+
+    async def test_actual_config_refusal_precedes_source_until_fixed_official_preview_mode(self):
+        from contextlib import redirect_stdout
+        import hashlib
+        import io
+        import os
+        from tiny_swarm_world.application.services.product_upgrade import ProductUpgradeService
+        from tiny_swarm_world.infrastructure.adapters.cli.dispatcher import main
+        from tiny_swarm_world.infrastructure.adapters.lifecycle.product_installation import PreparedProductInstallation
+        from tiny_swarm_world.infrastructure.adapters.lifecycle import product_configuration_source as configuration
+        from tiny_swarm_world.infrastructure.adapters.lifecycle.product_configuration_validation import validate_policy
+        from tiny_swarm_world.infrastructure.adapters.lifecycle.product_source import OFFICIAL_REPOSITORY
+        from modules.tsw_core.tests.domain.lifecycle.test_models import manifest_fixture
+        from tiny_swarm_world.domain.lifecycle.models import ProductIdentity, migrate_manifest_v1
+        name = 'refuse-product-source'
+        args = list(suite.upgrades.REFUSALS[name].args)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'pyproject.toml').write_text('[project]\nversion="0.2.0"\n')
+            (root / 'requirements.lock').write_bytes(b'synthetic-source-lock')
+            infra = root.parent / (root.name + '-private-infra')
+            operator = infra / 'operator.env'
+            manifest = migrate_manifest_v1(manifest_fixture()).model_copy(update={'product': ProductIdentity(
+                release='0.2.0', revision='e' * 40, dependency_lock='sha256:' + hashlib.sha256(b'synthetic-source-lock').hexdigest())})
+            manifests = Mock()
+            manifests.load.return_value = SimpleNamespace(manifest=manifest, token='a' * 64, diagnostics=())
+            releases, runtime, journal = Mock(), Mock(), Mock()
+            journal.load.return_value = None
+            installation = PreparedProductInstallation(root, manifests, Mock(), releases, Mock())
+            def command(command):
+                if command[:2] == ('git', 'status'):
+                    return ''
+                if command[:3] == ('git', 'rev-parse', '--show-toplevel'):
+                    return str(root)
+                if command[:3] == ('git', 'remote', 'get-url'):
+                    return OFFICIAL_REPOSITORY
+                return 'e' * 40
+            official = SimpleNamespace(files={'config/provider.yaml': b'official'}, members={})
+            effective = SimpleNamespace(files={'config/provider.yaml': b'official', 'operator.env': b'PRIVATE_CANARY'}, members={})
+            def external_inputs(_installation, path):
+                self.assertEqual(path, infra)
+                return validate_policy(official, effective)
+            service = ProductUpgradeService(manifests, installation, journal, runtime)
+            inherited = {'TSW_REPOSITORY_ROOT': str(root), 'TSW_INFRA_ROOT': str(infra), 'TSW_INSTALL_ENV_FILE': str(operator)}
+            for mode in ('inherited-private', 'fixed-official'):
+                env = dict(inherited)
+                if mode == 'fixed-official':
+                    selected = suite.upgrades.select_refusal_environment(name, args, env, root, infra, operator)
+                    self.assertEqual(selected['infra_mode'], 'OFFICIAL_INFRA_READ_ONLY')
+                    self.assertEqual(env['TSW_INSTALL_ENV_FILE'], str(operator))
+                output = io.StringIO()
+                with self.subTest(mode=mode), redirect_stdout(output), patch.dict(os.environ, env), \
+                        patch.object(installation, '_command', side_effect=command), \
+                        patch.object(configuration, '_source_tree', side_effect=external_inputs), \
+                        patch('tiny_swarm_world.infrastructure.composition.build_product_upgrade', return_value=service):
+                    with self.assertRaises(SystemExit) as stopped:
+                        await main(args)
+                self.assertEqual(stopped.exception.code, 1)
+                if mode == 'inherited-private':
+                    self.assertIn('Effective infrastructure is unsafe', output.getvalue())
+                    with self.assertRaises(suite.upgrades.UpgradeError):
+                        suite.upgrades.validate_refusal(name, args, 1, output.getvalue().encode(), b'')
+                else:
+                    self.assertEqual(suite.upgrades.validate_refusal(name, args, 1, output.getvalue().encode(), b'')['cause'], 'SOURCE_INVENTORY')
+                releases.resolve.assert_not_called()
+                self.assertEqual(runtime.mock_calls, [])
+            self.assertFalse((root / '.tiny-swarm-world').exists())
+            self.assertEqual(inherited['TSW_INFRA_ROOT'], str(infra))
+
+    def test_native_public_refusal_routes_only_closed_case_to_the_existing_transport(self):
+        case_name = 'refuse-product-consent-n'
+        port = suite.SuiteNativePort(replace(intent(), case=case_name), Mock(), None)
+        args = list(suite.upgrades.REFUSALS[case_name].args)
+        with patch.object(port, 'public', return_value=b'bounded') as public:
+            self.assertEqual(port.public_refusal(args, timeout=120), b'bounded')
+            public.assert_called_once_with(args, 120, refusal_case=case_name)
+            with self.assertRaises(suite.upgrades.UpgradeError):
+                port.public_refusal([*args, '--approve-live'], timeout=120)
+            self.assertEqual(public.call_count, 1)
+
+
 if __name__ == '__main__':
     unittest.main()

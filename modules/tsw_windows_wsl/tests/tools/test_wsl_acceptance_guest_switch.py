@@ -195,6 +195,7 @@ class ClosedGuestSwitchTests(unittest.TestCase):
         self.assertTrue(report["versioned_windows"])
         self.assertEqual(report["pending_reconciliation_cases"], 13)
         self.assertEqual(report["pending_reconciliation_denials"], 1)
+        self.assertTrue(report["public_refusal_fixture_denied"])
 
 
 class NetfilterReadParserTests(unittest.TestCase):
@@ -409,3 +410,126 @@ class FixtureReturnProofTests(unittest.TestCase):
         registration = (ROOT / 'modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_registration.ps1').read_text()
         self.assertIn("'modules/tsw_core/tests/fixtures/wsl_acceptance_registration.ps1'", registration)
         self.assertIn("'modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_registration.py'", registration)
+
+
+class ProductRefusalConsumerTests(unittest.TestCase):
+    def namespace(self):
+        source = CONTROLLER.read_text()
+        start = source.index('def case_ledger_names(')
+        end = source.index("if kind=='prepared':", start)
+        def need(value):
+            if not value:
+                raise ValueError('DISPOSAL_UNPROVEN')
+        namespace: dict[str, Any] = {'need': need, 're': re}
+        exec(compile(ast.parse(source[start:end]), str(CONTROLLER), 'exec'), namespace)
+        return source, namespace
+
+    def execute_stopped(self, case, outcome_changes=None, *, promoted=False, marker=None, public=False,
+                        cli_start=False, unsettled=False, replaced_source=False, unknown=False, missing_checkout=False):
+        import hashlib
+        import textwrap
+        from types import SimpleNamespace
+        source, namespace = self.namespace()
+        start = source.index('    recipes=case_ledger_names(ledger,run,product_source)')
+        end = source.index("    projects=query('/1.0/projects?recursion=1')", start)
+        code = compile(ast.parse(textwrap.dedent(source[start:end])), str(CONTROLLER), 'exec')
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            run, candidate, product = 'a' * 32, 'b' * 40, 'c' * 40 if promoted else 'b' * 40
+            home = root / 'cases' / case
+            journal = home / 'journal'
+            journal.mkdir(parents=True)
+            unavailable = case in {'upgrade-product-v1', 'recover-product-v1'}
+            value = {'status': 'QUALIFICATION_HELPER_UNAVAILABLE' if unavailable else 'CASE_PASS_DISPOSED',
+                     'run_id': run, 'source_commit': product, 'case': case, 'epic_complete': False}
+            if unavailable:
+                value.update(command_executed=False, product_result=None)
+            value.update(outcome_changes or {})
+            if replaced_source:
+                value['source_commit'] = 'f' * 40
+            raw = json.dumps(value).encode()
+            (journal / ('outcome-' + 'd' * 32 + '.json')).write_bytes(raw)
+            ledger = {'schema_version': 2, 'run_id': run, 'source_commit': product,
+                      'cases': [{'case': case, 'outcome_sha256': hashlib.sha256(raw).hexdigest()}]}
+            if unknown:
+                ledger['cases'][0]['case'] = 'refuse-product-arbitrary'
+            if marker:
+                (journal / marker).write_text('{}')
+            stem = 'child-' + 'e' * 32
+            if public or unsettled:
+                (journal / (stem + '-intent.json')).write_text(json.dumps({'argv_sha256': 'f' * 64, 'timeout': 10, 'public': public}))
+                (journal / (stem + '-pid.json')).write_text('{"pid":4242,"start_time":10}')
+                (journal / (stem + '-settled.json')).write_text(json.dumps({'pid': 4242, 'released': True, 'group_absent': not unsettled}))
+                (journal / (stem + '-outcome.json')).write_text(json.dumps({'return_code': 2, 'stdout_sha256': 'f' * 64, 'stderr_sha256': 'e' * 64}))
+            if cli_start:
+                (journal / (stem + '-cli-start.json')).write_text('{}')
+            checkout = home / 'checkout'
+            if not unavailable and not missing_checkout:
+                (checkout / '.git').mkdir(parents=True)
+                cap = checkout / 'modules/tsw_core/infra/config/incus-profile-capabilities.json'
+                cap.parent.mkdir(parents=True)
+                cap.write_bytes(b'approved-matrix')
+            def trusted(path, *args):
+                if not path.exists():
+                    raise FileNotFoundError(path)
+            def git(args, exits=(0,), directory=None):
+                del exits, directory
+                if args[0] == 'rev-parse':
+                    return product.encode()
+                return b'approved-matrix' if args[0] == 'show' else b''
+            def absent_group(pid, number):
+                del pid, number
+                raise ProcessLookupError
+            namespace.update(root=root, run=run, source=candidate, product_source=product,
+                ledger=ledger, capraw=b'approved-matrix', private=lambda path: path.read_bytes(), strict=json.loads,
+                trusted=trusted, git=git, hashlib=hashlib, os=SimpleNamespace(killpg=absent_group))
+            exec(code, namespace)
+            return namespace['needs_checkout']
+
+    def test_actual_stopped_reader_rejects_forged_unavailability_even_when_c_equals_k(self):
+        for promoted in (False, True):
+            self.assertFalse(self.execute_stopped('upgrade-product-v1', promoted=promoted))
+            for change in ({'command_executed': True}, {'product_result': {}}, {'epic_complete': True}, {'extra': 1}):
+                with self.subTest(promoted=promoted, change=change), self.assertRaises(ValueError):
+                    self.execute_stopped('upgrade-product-v1', change, promoted=promoted)
+            for options in ({'public': True}, {'cli_start': True}, {'marker': 'execution-intent-a.json'},
+                            {'marker': 'engine-recovery-proposal.json'}, {'marker': 'disposal-intent.json'},
+                            {'replaced_source': True}, {'unknown': True}):
+                with self.subTest(promoted=promoted, options=options), self.assertRaises(ValueError):
+                    self.execute_stopped('upgrade-product-v1', promoted=promoted, **options)
+        with self.assertRaises(ValueError):
+            self.execute_stopped('refuse-product-consent-n', {'status': 'QUALIFICATION_HELPER_UNAVAILABLE',
+                'command_executed': False, 'product_result': None})
+
+    def test_actual_negative_stopped_reader_requires_normal_checkout_and_settlement(self):
+        self.assertTrue(self.execute_stopped('refuse-product-consent-n', public=True))
+        self.assertTrue(self.execute_stopped('refuse-product-recovery-consent-eof', public=True, promoted=True))
+        with self.assertRaises(ValueError):
+            self.execute_stopped('refuse-product-consent-n', public=True, unsettled=True)
+        with self.assertRaises(FileNotFoundError):
+            self.execute_stopped('refuse-product-consent-n', public=True, missing_checkout=True)
+        _, namespace = self.namespace()
+        old = {'status': 'CASE_NOT_EXECUTED', 'run_id': 'a' * 32, 'source_commit': 'b' * 40,
+               'case': 'minimal', 'epic_complete': False}
+        self.assertFalse(namespace['case_requires_checkout'](old, [], []))
+        self.assertFalse(namespace['case_requires_checkout'](old | {'command_executed': False, 'product_result': None}, [], []))
+        with self.assertRaises(ValueError):
+            namespace['case_requires_checkout'](old | {'command_executed': 0, 'product_result': None}, [], [])
+
+    def test_actual_fixture_probe_still_refuses_any_product_case_or_ledger(self):
+        import os
+        source = CONTROLLER.read_text()
+        start = source.index('if os.path.lexists(root):', source.index('function Get-WslSwitchFixtureProof'))
+        end = source.index('    # Known preparation/fixture child intents', start)
+        body = compile(ast.parse(source[start:end]), str(CONTROLLER), 'exec')
+        def need(value):
+            if not value:
+                raise ValueError('FIXTURE_PRODUCT_STARTED')
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for name in ('cases', 'product-case-ledger.json', 'new-case-stop.json'):
+                path = root / name
+                path.write_bytes(b'closed-refusal-even-without-mutation')
+                with self.subTest(path=name), self.assertRaises(ValueError):
+                    exec(body, {'root': root, 'os': os, 'need': need, 'trusted': lambda path: None})
+                path.unlink()

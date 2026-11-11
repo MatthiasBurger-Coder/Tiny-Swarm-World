@@ -116,11 +116,16 @@ class ClosedRecipeTests(unittest.TestCase):
         rows = [(r.preset, r.owner, r.exposure) for name, r in cases.RECIPES.items() if name.startswith('upgrade-batch-')]
         self.assertEqual(set(rows), {(p, o, e) for p in ('default', 'service-access')
             for o in ('swarm', 'portainer') for e in ('published', 'internal')})
-        self.assertEqual(len(cases.ALL_NAMES), 24)
+        self.assertEqual(len(cases.ALL_NAMES), 32)
         for name in cases.RECIPES:
             if cases.RECIPES[name].kind == 'product':
                 with self.assertRaisesRegex(cases.UpgradeError, 'NOT_IMPLEMENTED'):
                     cases.recipe(name)
+                continue
+            if name in cases.REFUSALS:
+                self.assertEqual(cases.recipe(name).kind, 'refusal')
+                self.assertIn('--minimal', cases.recipe(name).args())
+                self.assertNotIn('--approve-live', cases.REFUSALS[name].args)
                 continue
             value = cases.recipe(name)
             setup = value.args()
@@ -438,3 +443,229 @@ class RealCacheDeliveryTests(unittest.TestCase):
             with self.assertRaisesRegex(cases.UpgradeError, 'RECOVERY_REQUIRED'):
                 cases.require_cache_settled(port)
             self.assertFalse((directory / 'image-cache-complete.json').exists())
+
+
+class ProductRefusalContractTests(unittest.TestCase):
+    @staticmethod
+    def output(status='refused', diagnostic='missing live confirmation'):
+        value = {'status': status, 'diagnostics': [diagnostic]}
+        if status == 'blocked':
+            value['recovery'] = 'preserve source/checkpoint; use product upgrade --to 0.5.0 --recover --preview from management checkout'
+        return json.dumps(value, sort_keys=True).encode() + b'\n'
+
+    def test_closed_public_parser_refusals_and_no_generic_nonzero_acceptance(self):
+        for name in ('refuse-product-target', 'refuse-product-syntax'):
+            spec = cases.REFUSALS[name]
+            raw = cases.parser_refusal(list(spec.args))
+            self.assertEqual(cases.validate_refusal(name, list(spec.args), 2, b'', raw),
+                             {'status': 'parser_refused', 'cause': 'TARGET_SYNTAX'})
+            for output, error, code in ((b'', b'arbitrary failure', 2), (b'', raw + b'extra', 2), (b'', raw, 0)):
+                with self.subTest(name=name), self.assertRaises(cases.UpgradeError):
+                    cases.validate_refusal(name, list(spec.args), code, output, error)
+
+    def test_source_and_checkpoint_cause_are_exact_and_never_schema_or_recovery_success(self):
+        name = 'refuse-product-source'
+        args = list(cases.REFUSALS[name].args)
+        for diagnostic, cause in cases.SOURCE_REFUSALS.items():
+            result = cases.validate_refusal(name, args, 1, self.output('blocked', diagnostic), b'')
+            self.assertEqual(result, {'status': 'blocked', 'cause': cause})
+        for diagnostic in ('Product operation blocked; preserve source and checkpoint. Inspect release, inventory, host/resources and --recover --preview.',
+                           'unrelated bootstrap failure', 'Target reader cannot preserve the admitted manifest schema.'):
+            with self.assertRaises(cases.UpgradeError):
+                cases.validate_refusal(name, args, 1, self.output('blocked', diagnostic), b'')
+        name = 'refuse-product-checkpoint'
+        result = cases.validate_refusal(name, list(cases.REFUSALS[name].args), 1,
+            self.output('blocked', 'No matching product checkpoint; inspect the original target.'), b'')
+        self.assertEqual(result['cause'], 'CHECKPOINT_ABSENT')
+        with self.assertRaises(cases.UpgradeError):
+            cases.validate_refusal(name, list(cases.REFUSALS[name].args), 0, b'{"status":"preview"}\n', b'')
+
+    def test_consent_framing_and_recipe_input_modes_are_not_interchangeable(self):
+        from tiny_swarm_world.domain.preflight import LIVE_CONSENT_PROMPT
+        output = (LIVE_CONSENT_PROMPT + ' ').encode() + self.output()
+        for name, spec in cases.REFUSALS.items():
+            if spec.cause != 'CONSENT':
+                continue
+            result = cases.validate_refusal(name, list(spec.args), 2, output, b'')
+            self.assertEqual(result['cause'], 'CONSENT_DECLINED_N' if spec.stdin_mode == 'DECLINE_N' else 'CONSENT_EOF')
+            for wrong in (self.output(), b'prefix' + output, output + b'{}', output + b'\n',
+                          (LIVE_CONSENT_PROMPT + ' ').encode() + b'{"status":"refused","status":"refused"}\n'):
+                with self.subTest(name=name), self.assertRaises(cases.UpgradeError):
+                    cases.validate_refusal(name, list(spec.args), 2, wrong, b'')
+            with self.assertRaises(cases.UpgradeError):
+                cases.refusal_spec(name, [*spec.args, '--approve-live'])
+
+    def test_fixed_input_binds_actual_child_and_cannot_send_arbitrary_bytes(self):
+        import io
+        records = {}
+        class Captured(io.BytesIO):
+            sent = b''
+            def close(self):
+                self.sent = self.getvalue()
+                super().close()
+        for name in ('refuse-product-consent-eof', 'refuse-product-consent-n'):
+            args = list(cases.REFUSALS[name].args)
+            receipt = SimpleNamespace(args=args, binding={'case': name}, process={'pid': 42, 'start_time': 2},
+                released=True, journal=SimpleNamespace(save=lambda key, value: records.update({key: value})), key='owned',
+                environment=cases.expected_refusal_environment(name, Path('/source'), Path('/private'), Path('/private/operator.env')), inputs_sha256='a' * 64)
+            stream = None if name.endswith('eof') else Captured()
+            child = SimpleNamespace(pid=42, stdin=stream)
+            cases.fixed_stdin(name, args, child, receipt)
+            self.assertEqual(records['owned-cli-stdin.json']['delivered_bytes'], 0 if stream is None else 2)
+            self.assertTrue(records['owned-cli-stdin.json']['writer_closed'])
+            if stream is not None:
+                self.assertEqual(stream.sent, b'n\n')
+                self.assertTrue(stream.closed)
+            child.pid = 99
+            with self.assertRaises(cases.UpgradeError):
+                cases.fixed_stdin(name, args, child, receipt)
+        self.assertEqual(set(cases.REFUSALS[name].stdin_mode for name in cases.REFUSALS), {'EOF', 'DECLINE_N'})
+
+    def test_fixed_official_infra_mode_is_source_only_and_preserves_private_operator(self):
+        root, infra = Path('/owned/source'), Path('/owned/private-infra')
+        operator = infra / 'operator.env'
+        original = {'TSW_REPOSITORY_ROOT': str(root), 'TSW_INFRA_ROOT': str(infra), 'TSW_INSTALL_ENV_FILE': str(operator)}
+        for case, spec in cases.REFUSALS.items():
+            env = original.copy()
+            selected = cases.select_refusal_environment(case, list(spec.args), env, root, infra, operator)
+            self.assertEqual(selected['infra_mode'], 'OFFICIAL_INFRA_READ_ONLY' if case == 'refuse-product-source' else 'CAMPAIGN_INFRA')
+            self.assertEqual(env['TSW_INFRA_ROOT'], str(root / 'modules/tsw_core/infra') if case == 'refuse-product-source' else str(infra))
+            self.assertEqual(env['TSW_INSTALL_ENV_FILE'], str(operator))
+            self.assertEqual(original['TSW_INFRA_ROOT'], str(infra))
+        for key in ('TSW_REPOSITORY_ROOT', 'TSW_INFRA_ROOT', 'TSW_INSTALL_ENV_FILE'):
+            env = original | {key: '/foreign'}
+            with self.subTest(key=key), self.assertRaises(cases.UpgradeError):
+                cases.select_refusal_environment('refuse-product-source', list(cases.REFUSALS['refuse-product-source'].args), env, root, infra, operator)
+
+    def test_unavailable_historical_helpers_have_no_executed_product_result(self):
+        for name in ('upgrade-product-v1', 'recover-product-v1'):
+            value = cases.unavailable_product(name)
+            self.assertEqual(value['status'], 'QUALIFICATION_HELPER_UNAVAILABLE')
+            self.assertFalse(value['command_executed'])
+            self.assertIsNone(value['product_result'])
+            with self.assertRaises(cases.UpgradeError):
+                cases.recipe(name)
+        with self.assertRaises(cases.UpgradeError):
+            cases.budgets('refuse-product-checkpoint', 'native', engine_recovery=True)
+
+
+class PrivateInputCaptureTests(unittest.TestCase):
+    def test_capture_compares_both_official_and_private_inputs_without_raw_credentials(self):
+        import tempfile
+        import hashlib
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / 'source'
+            official = root / 'modules/tsw_core/infra'
+            official.mkdir(parents=True)
+            (official / 'config.yaml').write_bytes(b'official')
+            infra = Path(directory) / 'private-infra'
+            infra.mkdir(mode=0o700)
+            (infra / 'config.yaml').write_bytes(b'private')
+            operator = infra / 'operator.env'
+            operator.write_bytes(b'PRIVATE_INPUT_CANARY')
+            operator.chmod(0o600)
+            operator_sha = hashlib.sha256(operator.read_bytes()).hexdigest()
+            rows = [('config.yaml', hashlib.sha256(b'private').hexdigest()), ('operator.env', operator_sha)]
+            pin = cases.digest(rows)
+            before = cases.capture_refusal_inputs(root, infra, operator, pin, operator_sha)
+            self.assertNotIn('PRIVATE_INPUT_CANARY', str(before))
+            self.assertEqual(before, cases.capture_refusal_inputs(root, infra, operator, pin, operator_sha))
+            (official / 'config.yaml').write_bytes(b'changed official')
+            self.assertNotEqual(before, cases.capture_refusal_inputs(root, infra, operator, pin, operator_sha))
+            operator.write_bytes(b'changed private')
+            with self.assertRaises(cases.UpgradeError):
+                cases.capture_refusal_inputs(root, infra, operator, pin, operator_sha)
+
+
+class RefusalPreservationOrchestrationTests(unittest.TestCase):
+    def test_failed_preservation_or_unsettled_child_never_records_verified_refusal(self):
+        for fault in ('changed', 'unsettled'):
+            port = Transport('refuse-product-consent-n')
+            saved = {}
+            port.journal = SimpleNamespace(save=lambda key, value: saved.update({key: value}))
+            def refuse(args, *, timeout):
+                del args, timeout
+                if fault == 'unsettled':
+                    port.worker_settled = False
+                return b'owned-child-result'
+            port.public_refusal = refuse
+            port.refusal_inputs = lambda: {'fixture': 'private-inputs'}
+            original = {'schema_version': 1, 'paths': {name: {'kind': 'absent'} for name in cases.PROTECTED_PATHS}}
+            changed = copy.deepcopy(original)
+            changed['paths']['product/staging'] = {'kind': 'changed'}
+            with self.subTest(fault=fault), patch.object(cases, 'observe', return_value=proof()), \
+                    patch.object(cases, 'protected_state', side_effect=[original, changed]):
+                with self.assertRaises(cases.UpgradeError):
+                    cases.run(port)
+            self.assertFalse(any(name == 'product-refusal-verified' for name, _ in port.records))
+            self.assertIn('product-refusal-before.json', saved)
+            self.assertNotIn('product-refusal-after.json', saved)
+
+
+class ProtectedRefusalStateTests(unittest.TestCase):
+    def setUp(self):
+        import tempfile
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.state = self.root / '.tiny-swarm-world'
+        (self.state / 'installation').mkdir(parents=True, mode=0o700)
+        self.manifest = self.state / 'installation/manifest.json'
+        self.manifest.write_bytes(b'{"fixture":"PRIVATE_CANARY"}')
+        self.manifest.chmod(0o600)
+        original_lstat = Path.lstat
+        original_fstat = cases.os.fstat
+        def owned(info):
+            names = ('st_dev', 'st_ino', 'st_mode', 'st_nlink', 'st_size', 'st_mtime_ns', 'st_ctime_ns')
+            return SimpleNamespace(**{name: getattr(info, name) for name in names}, st_uid=0)
+        self.stack = ExitStack()
+        self.addCleanup(self.stack.close)
+        self.stack.enter_context(patch.object(Path, 'lstat', lambda path: owned(original_lstat(path))))
+        self.stack.enter_context(patch.object(cases.os, 'fstat', lambda fd: owned(original_fstat(fd))))
+
+    def test_absence_present_bytes_and_moved_inode_are_distinct_private_observations(self):
+        before = cases.protected_state(self.root)
+        self.assertEqual(before['paths']['installation/product-upgrade.json'], {'kind': 'absent'})
+        self.assertNotIn('PRIVATE_CANARY', str(before))
+        self.assertEqual(cases.protected_state(self.root), before)
+        old = self.manifest.with_name('old-manifest')
+        self.manifest.rename(old)
+        self.manifest.write_bytes(old.read_bytes())
+        self.manifest.chmod(0o600)
+        self.assertNotEqual(cases.protected_state(self.root), before)
+        self.manifest.write_bytes(b'{"changed":true}')
+        self.assertNotEqual(cases.protected_state(self.root), before)
+
+    def test_unreadable_and_unapproved_symlink_never_become_empty_or_preserved(self):
+        original_open = cases.os.open
+        def unreadable(path, *args, **kwargs):
+            if Path(path) == self.manifest:
+                raise PermissionError('PRIVATE_CANARY')
+            return original_open(path, *args, **kwargs)
+        with patch.object(cases.os, 'open', side_effect=unreadable), self.assertRaisesRegex(cases.UpgradeError, 'UNREADABLE'):
+            cases.protected_state(self.root)
+        self.manifest.unlink()
+        self.manifest.symlink_to(self.root / 'foreign-secret')
+        with self.assertRaises(cases.UpgradeError):
+            cases.protected_state(self.root)
+
+    def test_actual_staging_and_infra_and_fixed_activation_links_are_compared_without_following(self):
+        product = self.state / 'product'
+        (product / 'releases/revision').mkdir(parents=True, mode=0o700)
+        (product / 'infra/revision').mkdir(parents=True, mode=0o700)
+        code = product / 'releases/revision/code.py'
+        code.write_bytes(b'original')
+        code.chmod(0o644)
+        (product / 'active').symlink_to(product / 'activations/revision')
+        before = cases.protected_state(self.root)
+        self.assertEqual(before['paths']['product/active']['kind'], 'symlink')
+        code.write_bytes(b'changed')
+        self.assertNotEqual(cases.protected_state(self.root), before)
+        changed = copy.deepcopy(before)
+        changed['paths']['product/inputs'] = {'kind': 'unreadable'}
+        with self.assertRaises(cases.UpgradeError):
+            cases.validate_protected(changed)
+
+
+if __name__ == '__main__':
+    unittest.main()

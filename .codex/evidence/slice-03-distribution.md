@@ -1,11 +1,17 @@
-# S440-03 distribution
+# S440O-03 distribution
 
-Workflow issue-440-final-acceptance v1.0; slice S440-03 — Cancellation and strict-type reliability.
-S3/S3D baseline a68c873c; branch/ref and clean worker worktree required before writes. S440-01 deterministic inventory independently ACCEPTED while live readiness remains PARTIAL/NOT_VERIFIED; explicit continuation rule permits these independent deterministic fixes.
-Affected areas: backend, tests, security/quality and architecture review. Owner: Senior Python Automation Developer.
-Mode: parallel isolated implementation relative to the other independent fix slice; tests/production edits inside each stream are sequential under one worker to avoid overlap.
-Real Codex subagents: yes. Fallback: no. Worktree: ../Tiny-Swarm-World-worktrees/issue440-slice-03-reliability, branch <workflow-branch>-slice-03-reliability.
-Expected touched files: S440-03 metadata's installation_profile, versioned_manifest_repository, migration_admission and their exact targeted tests. Root owns shared workflow status/context/distribution/consolidation only; workers must not edit those.
-Locks: source/test sets and contract locks for 02 versus 03 are disjoint; no shared schema, module move or architecture mutation. Each remote test environment is separately source-bound and root-controlled; full gates are serialized.
-Quality: regression tests first (root executes on designated SSH PC WSL, reproducing RED before worker fix), then targeted suite, current-source full canonical quality, diff check and independent review. No live effects, host configuration or Sonar issue-state write is authorized.
-Consolidation: root reviews isolated worker diff, accepts stream-specific test evidence, integrates only this slice, runs its required gate and records per-slice checkpoint. No worker commit/push/merge to workflow/main. No guard/type/path/cancellation/coverage weakening or blanket analysis suppression.
+Workflow issue-440-open-acceptance v2.0, sliceS440O-03, Close supported product-recipe and attribution gaps. Predecessor431bbaf0287ea8cf17cd670a62aa92609e562bc4. Prior historical workflow evidence remains in Git history. Status: IMPLEMENTATION_IN_PROGRESS; all five owner design reviews and final S3D ACCEPT; open_python admitted as sole eleven-file code/test writer after expanded S3D ACCEPT.
+
+- Areas: Python qualification helpers, public CLI evidence/expected refusal transport, reporter, tests, source/preservation/security contracts and documentation/evidence.
+- Mode: sequential; one runtime/helper/test writer open_python, root owns two coordination files, private evidence, integration, SSH checks and checkpoint. Real read-only Requirement/Architecture/Tester/Security/DevOps roles; no fallback.
+- Isolation: worker worktree issue440-open-slice03-runtime; branch docs/workflow-issue440-open-20261111-slice-03-runtime from checkpoint431bbaf. Root remains integration owner.
+- Scope: four helper/reporter files and four tests, plus the reviewed existing WSL guest-switch consumer and two regression paths; private03 evidence, two coordination records and root workflow/context metadata. No public CLI/domain/policy/release implementation edits or new source files.
+- Parallel code rejected: producer/reporter/supervisors share result/source/GO/child contracts and common tests; ordering is mandatory. No other code writer. Read-only reviews may overlap.
+- Accepted applicability: preserve supported official schema1 historical0.4→0.5 positives; current schema2→reader1 positive is outside admitted support. Unavailable v1 harness helper remains explicit non-execution, never product failure/success evidence.
+- Proposed work: closed attributable CLI refusal recipes/reporter with fixed expected exits/actual typed cause, source/process/settlement binding and bounded before/after manifest/checkpoint/activation snapshots. Missing output/launch failure/refused execution cannot count as proven product refusal. EOF is not literal n; a closed DECLINE_N mode may send only fixed n\n for exact ordinary/recovery decline recipes without --approve-live. Actual input delivery/close must bind the child/receipt/reporter. Source guard is not reader guard.
+- Risks: exact negative-result/consent/snapshot contract has owning design acceptance in private refusal-contract.md; final isolated-worktree S3D passed and root admitted exactly one source writer. No general nonzero-child acceptance or arbitrary stdin.
+- Consumer amendment: five owners/Senior Workflow Architect accept exact eight new IDs and strict unavailable false/null/no-intent/no-public-child shapes even at C==K; preserve product/fixture boundary. Expanded S3D passed before the three consumer paths were admitted.
+- Checks after freeze: four original suites plus the declared WSL guest-switch suite, then full QUALITY, only on prescribed SSH/Ubuntu WSL after exact source match; current authorization covers deterministic checks, no live effects.
+- Consolidation: root copies only approved frozen eleven-file delta, runs required checks, obtains independent issue-completion and D8 review, then one Slice03 checkpoint push; no PR/merge/live/parentcompletion.
+
+- Fixed SOURCE input refinement: five-owner ACCEPT within existing eleven paths. Only exact readonly source-refusal child may select actual admitted official infra; private operator and parent/observer environment remain unchanged. Mode/actual inputs bind GO/child/settlement/report and both private input proofs; actual earliest typed reason controls. No new source lock or S3D scope.

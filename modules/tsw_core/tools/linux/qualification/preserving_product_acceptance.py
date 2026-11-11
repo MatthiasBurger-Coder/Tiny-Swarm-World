@@ -711,7 +711,15 @@ class SuiteNativePort(native.NativePort):
     def listeners_clear(self, before: dict[str, Any]) -> bool:
         return self.worker_settled and self.route_capture() == before
 
-    def public(self, args: list[str], timeout: int) -> bytes:
+    def refusal_inputs(self) -> dict[str, Any]:
+        return upgrades.capture_refusal_inputs(ROOT, INFRA, OPERATOR,
+            self.intent.infra_sha256, self.intent.operator_config_sha256)
+
+    def public_refusal(self, args: list[str], *, timeout: int) -> bytes:
+        upgrades.refusal_spec(self.intent.case, args)
+        return self.public(args, timeout, refusal_case=self.intent.case)
+
+    def public(self, args: list[str], timeout: int, *, refusal_case: str | None = None) -> bytes:
         if self.intent.case in upgrades.RECIPES:
             upgrades.require_cache_settled(self)
         self.fresh_source()
@@ -724,9 +732,9 @@ class SuiteNativePort(native.NativePort):
         self.cli_versions = upgrades.cli_incus_versions(raw)
         native.require(self.cli_versions == ('6.0.5', '6.0.5'), 'SUITE_VERSION_DRIFT')
         self.check_binding(self.prestate(), active=False)
-        return self.child([self.interpreter(), '-E', '-s', '-B', '-c', BOOTSTRAP, *args], timeout)
+        return self.child([self.interpreter(), '-E', '-s', '-B', '-c', BOOTSTRAP, *args], timeout, refusal_case=refusal_case)
 
-    def child(self, argv: list[str], timeout: int) -> bytes:
+    def child(self, argv: list[str], timeout: int, *, refusal_case: str | None = None) -> bytes:
         self.budget()
         native.require(self.deadline - time.monotonic() >= timeout + 10 and self.worker_settled, 'CASE_BUDGET_INSUFFICIENT')
         if self.intent.case in upgrades.RECIPES:
@@ -741,12 +749,21 @@ class SuiteNativePort(native.NativePort):
             upgrades.cli_binding(self, 'native', native.fixture.ACTIVE_WORKFLOW), argv, args)
         if receipt is not None:
             receipt.require_approval()
+        refusal = None
+        if refusal_case is not None:
+            native.require(refusal_case == self.intent.case and args is not None and receipt is not None, 'REFUSAL_COMMAND_NOT_ADMITTED')
+            refusal = upgrades.refusal_spec(refusal_case, args if args is not None else [])
+            upgrades.require_refusal_binding(receipt, refusal_case)
+            if receipt is None:
+                raise native.MaintenanceError('REFUSAL_CHILD_MISSING')
+            receipt.environment = upgrades.select_refusal_environment(refusal_case, receipt.args, env, ROOT, INFRA, OPERATOR)
+            receipt.inputs_sha256 = upgrades.digest(self.refusal_inputs())
         self.worker_settled = False
         self.journal.save(child_key + '-intent.json', {'argv_sha256': native.digest(native.canonical(argv)), 'timeout': timeout})
         gate_read, gate_write = os.pipe()
         try:
             child = subprocess.Popen([self.interpreter(), '-E', '-s', '-B', '-c', GATED_CHILD,
-                str(gate_read), *argv], cwd=ROOT, env=env, stdin=subprocess.DEVNULL,
+                str(gate_read), *argv], cwd=ROOT, env=env, stdin=(subprocess.PIPE if refusal is not None and refusal.stdin_mode == 'DECLINE_N' else subprocess.DEVNULL),
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True, pass_fds=(gate_read,))
         except OSError:
             os.close(gate_write)
@@ -758,6 +775,7 @@ class SuiteNativePort(native.NativePort):
         selector = selectors.DefaultSelector()
         output = bytearray()
         error_digest = hashlib.sha256()
+        refusal_error = bytearray()
         total = 0
         output_complete = False
         deadline = time.monotonic() + timeout
@@ -771,6 +789,8 @@ class SuiteNativePort(native.NativePort):
                 receipt.release()
             os.close(gate_write)
             gate_write = -1
+            if refusal_case is not None:
+                upgrades.fixed_stdin(refusal_case, list(upgrades.REFUSALS[refusal_case].args), child, receipt)
             if child.stdout is None or child.stderr is None:
                 raise native.MaintenanceError('CASE_PIPE_UNAVAILABLE')
             selector.register(child.stdout, selectors.EVENT_READ)
@@ -789,11 +809,16 @@ class SuiteNativePort(native.NativePort):
                         output.extend(chunk)
                     else:
                         error_digest.update(chunk)
+                        if refusal_case is not None:
+                            refusal_error.extend(chunk)
             status = child.wait(timeout=max(.01, deadline - time.monotonic()))
             output_complete = True
             self.journal.save(child_key + '-outcome.json', {'return_code': status,
                 'stdout_sha256': native.digest(bytes(output)), 'stderr_sha256': error_digest.hexdigest()})
-            native.require(status == 0, 'CASE_CLI_FAILED')
+            if refusal_case is None:
+                native.require(status == 0, 'CASE_CLI_FAILED')
+            else:
+                upgrades.save_refusal(receipt, refusal_case, status, bytes(output), bytes(refusal_error))
             return bytes(output)
         except upgrades.FaultObserved as exc:
             if receipt is not None:
@@ -814,6 +839,8 @@ class SuiteNativePort(native.NativePort):
                 self.journal.save(child_key + '-settled.json', {'pid': child.pid, 'group_absent': True})
             if gate_write >= 0:
                 os.close(gate_write)
+            if refusal_case is not None and child.stdin is not None and not child.stdin.closed:
+                child.stdin.close()
             if child.stdout is not None:
                 child.stdout.close()
             if child.stderr is not None:
@@ -1213,7 +1240,7 @@ def main(argv: list[str] | None = None) -> int:
         intent = SuiteIntent.parse(native.inventory.strict_json(raw), source)
         native.require(intent.run_id == args.run_id, 'SUITE_RUN_ID_DRIFT')
         if intent.case in upgrades.RECIPES and upgrades.RECIPES[intent.case].kind == 'product':
-            print(native.canonical({'status': 'NOT_IMPLEMENTED', 'case': intent.case, 'requires': 'S-U2', 'epic_complete': False}).decode())
+            print(native.canonical(upgrades.unavailable_product(intent.case) | {'run_id': intent.run_id, 'source_commit': intent.source_commit}).decode())
             return 2
         check_prerequisites(intent)
         if intent.case in upgrades.RECIPES:

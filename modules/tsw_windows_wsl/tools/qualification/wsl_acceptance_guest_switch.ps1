@@ -961,7 +961,7 @@ need(metadata['server_version']=='6.0.5')
 def case_ledger_names(ledger,run,source):
     need(isinstance(ledger,dict) and set(ledger)=={'schema_version','run_id','source_commit','cases'} and type(ledger['schema_version']) is int and ledger['schema_version'] in (1,2) and ledger['run_id']==run and ledger['source_commit']==source and isinstance(ledger['cases'],list))
     recipes=('minimal', 'swagger-internal', 'swagger-published', 'swagger-traefik-swarm', 'swagger-traefik-portainer', 'swagger-add-traefik', 'full-swarm', 'full-portainer', 'upgrade-swagger-swarm', 'upgrade-traefik-swarm', 'upgrade-batch-default-swarm-published', 'upgrade-batch-default-swarm-internal', 'upgrade-batch-default-portainer-published', 'upgrade-batch-default-portainer-internal', 'upgrade-batch-service-access-swarm-published', 'upgrade-batch-service-access-swarm-internal', 'upgrade-batch-service-access-portainer-published', 'upgrade-batch-service-access-portainer-internal', 'recover-batch-swarm', 'recover-batch-portainer', 'upgrade-portainer', 'recover-portainer', 'upgrade-product-v1', 'recover-product-v1')
-    recipes=recipes[:8] if ledger['schema_version']==1 else recipes
+    recipes=recipes[:8] if ledger['schema_version']==1 else recipes+('refuse-product-target','refuse-product-syntax','refuse-product-source','refuse-product-checkpoint','refuse-product-consent-eof','refuse-product-consent-n','refuse-product-recovery-consent-eof','refuse-product-recovery-consent-n')
     need(0<len(ledger['cases'])<=len(recipes))
     seen=[]
     for row in ledger['cases']:
@@ -977,14 +977,35 @@ def verify_case_checkout(case_name,capraw):
     need(git(['config','--local','--includes','--null','--get-regexp',r'^filter\.'],(0,1),casecheckout)==b'')
     need(git(['rev-parse','HEAD'],directory=casecheckout).decode().strip()==product_source and git(['status','--porcelain=v1','--untracked-files=all'],directory=casecheckout)==b'')
     cap=casecheckout/'modules/tsw_core/infra/config/incus-profile-capabilities.json';trusted(cap);need(cap.read_bytes()==capraw)
-def case_requires_checkout(outcome,effect_markers,child_intents):
-    if outcome['status'] not in ('CASE_NOT_EXECUTED','CASE_NOT_IMPLEMENTED'):return True
-    need(set(outcome)=={'status','run_id','source_commit','case','epic_complete'} and outcome['epic_complete'] is False and not effect_markers)
+def negative_case(case):
+    return case in ('refuse-product-target','refuse-product-syntax','refuse-product-source','refuse-product-checkpoint','refuse-product-consent-eof','refuse-product-consent-n','refuse-product-recovery-consent-eof','refuse-product-recovery-consent-n')
+def validate_case_settlement(journal,stem,child):
+    settled=strict(private(journal/(stem+'-settled.json')))
+    need(isinstance(settled,dict) and set(settled)=={'pid','released','group_absent'} and type(settled['pid']) is int and settled['pid']==child['pid'] and settled['released'] is True and settled['group_absent'] is True)
+    outcome=strict(private(journal/(stem+'-outcome.json')))
+    need(isinstance(outcome,dict) and set(outcome)=={'return_code','stdout_sha256','stderr_sha256'} and type(outcome['return_code']) is int and -255<=outcome['return_code']<=255 and all(type(outcome[k]) is str and re.fullmatch('[0-9a-f]{64}',outcome[k]) for k in ('stdout_sha256','stderr_sha256')))
+def validate_case_outcome(outcome,run,source,case):
+    need(isinstance(outcome,dict) and outcome.get('run_id')==run and outcome.get('source_commit')==source and outcome.get('case')==case)
+    need(outcome.get('status') in ('CASE_PASS_DISPOSED','CASE_FAILED_DISPOSED','CASE_RECOVERED','CASE_NOT_EXECUTED','CASE_NOT_EXERCISED','CASE_NOT_IMPLEMENTED','QUALIFICATION_HELPER_UNAVAILABLE'))
+    if outcome['status'] in ('CASE_NOT_EXECUTED','CASE_NOT_IMPLEMENTED','QUALIFICATION_HELPER_UNAVAILABLE'):
+        old={'status','run_id','source_commit','case','epic_complete'};new=old|{'command_executed','product_result'}
+        need(set(outcome) in (old,new) and outcome['epic_complete'] is False)
+        if set(outcome)==new:need(outcome['command_executed'] is False and outcome['product_result'] is None)
+        if outcome['status']=='QUALIFICATION_HELPER_UNAVAILABLE':
+            need(set(outcome)==new and case in ('upgrade-product-v1','recover-product-v1'))
+def case_requires_checkout(outcome,effect_markers,child_intents,cli_starts=()):
+    if outcome['status'] not in ('CASE_NOT_EXECUTED','CASE_NOT_IMPLEMENTED','QUALIFICATION_HELPER_UNAVAILABLE'):return True
+    validate_case_outcome(outcome,outcome['run_id'],outcome['source_commit'],outcome['case'])
+    need(not effect_markers)
     for row in child_intents:
         need(isinstance(row,dict) and set(row)=={'argv_sha256','timeout','public'} and type(row['public']) is bool and isinstance(row['argv_sha256'],str) and re.fullmatch('[0-9a-f]{64}',row['argv_sha256']) and type(row['timeout']) is int and row['timeout']>0)
-    # A successful prepare can already run the real public --preview. That is
-    # a source claim requiring the normal clean checkout, not the absent-source exception.
-    return any(row['public'] for row in child_intents)
+    public=any(row['public'] for row in child_intents)
+    if outcome['status']=='QUALIFICATION_HELPER_UNAVAILABLE':
+        need(not public and not cli_starts)
+        return False
+    # Public previews need their normal source checkout. Old source-bounded
+    # outcomes retain both explicitly known shapes; absence is never execution.
+    return public or bool(cli_starts)
 if kind=='prepared':
     need(set(receipt)=={'schema_version','run_id','source_commit','kind','package_versions','python_version'} and receipt['kind']=='NEW_GUEST_PREPARATION')
     versions=subprocess.run(['/usr/bin/dpkg-query','--show','--showformat=${Package}=${Version}\n','incus','incus-base','incus-client'],env=env,stdin=subprocess.DEVNULL,capture_output=True,timeout=10)
@@ -1021,7 +1042,7 @@ else:
             need(re.fullmatch(r'outcome-[0-9a-f]{32}\.json',file.name));content=private(file)
             if hashlib.sha256(content).hexdigest()==case['outcome_sha256']:
                 actual=strict(content)
-                need(actual.get('run_id')==run and actual.get('source_commit')==product_source and actual.get('case')==case['case'] and actual.get('status') in ('CASE_PASS_DISPOSED','CASE_FAILED_DISPOSED','CASE_RECOVERED','CASE_NOT_EXECUTED','CASE_NOT_EXERCISED','CASE_NOT_IMPLEMENTED'))
+                validate_case_outcome(actual,run,product_source,case['case'])
                 matches+=1;matched=actual
         need(matches==1 and matched is not None)
         intents=list(journal.glob('child-*-intent.json'));need(len(intents)<=1024)
@@ -1033,12 +1054,17 @@ else:
             try:os.killpg(child['pid'],0)
             except ProcessLookupError:pass
             else:need(False)
-        if product_source!=source:
-            effects=list(journal.glob('execution-intent-*.json'))+list(journal.glob('engine-recovery-started.json'))+list(journal.glob('disposal-intent.json'))
-            unexecuted=matched['status'] in ('CASE_NOT_EXECUTED','CASE_NOT_IMPLEMENTED')
-            child_rows=[strict(private(p)) for p in intents] if unexecuted else []
-            if case_requires_checkout(matched,effects,child_rows):
-                verify_case_checkout(case['case'],capraw)
+            if negative_case(case['case']):validate_case_settlement(journal,stem,child)
+        effects=list(journal.glob('execution-intent-*.json'))+list(journal.glob('engine-recovery-*.json'))+list(journal.glob('disposal-*.json'))
+        unexecuted=matched['status'] in ('CASE_NOT_EXECUTED','CASE_NOT_IMPLEMENTED','QUALIFICATION_HELPER_UNAVAILABLE')
+        child_rows=[strict(private(p)) for p in intents] if unexecuted else []
+        cli_starts=list(journal.glob('child-*-cli-start.json')) if unexecuted else []
+        needs_checkout=case_requires_checkout(matched,effects,child_rows,cli_starts)
+        negative=negative_case(case['case'])
+        if needs_checkout and (product_source!=source or negative):
+            if product_source==source:
+                capraw=git(['show',source+':modules/tsw_core/infra/config/incus-profile-capabilities.json']);need(0<len(capraw)<=65536)
+            verify_case_checkout(case['case'],capraw)
     need(seen==sorted(set(seen)))
     projects=query('/1.0/projects?recursion=1');need(isinstance(projects,list) and len(projects)==1 and projects[0]['name']=='default')
     need(query('/1.0/instances?recursion=1&project=default')==[])

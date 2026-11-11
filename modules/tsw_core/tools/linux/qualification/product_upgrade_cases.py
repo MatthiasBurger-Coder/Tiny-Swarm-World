@@ -1,8 +1,9 @@
 """Closed, unpublished upgrade qualification recipes using the actual public CLI.
 
 This module never promotes compatibility, creates a catalog, or accepts commands
-from JSON. Host adapters retain the maintenance/identity/lease authority. Official
-legacy product cases are deliberately unavailable until the separate S-U2 slice.
+from JSON. Host adapters retain the maintenance/identity/lease authority. Historical schema1 product cases retain their original supported scope; the
+legacy live helpers remain unavailable. Current negatives prove only their actual
+public refusal and preservation contract.
 """
 from __future__ import annotations
 
@@ -141,6 +142,386 @@ def save_cli_case_result(port: Any, result: dict[str, Any]) -> None:
     })
 
 
+@dataclass(frozen=True)
+class RefusalSpec:
+    """Closed public commands; never an operator-provided expected-error policy."""
+    args: tuple[str, ...]
+    exit_code: int
+    cause: str
+    stdin_mode: str = 'EOF'
+
+
+_PRODUCT = ('product', 'upgrade', '--to', '0.5.0')
+REFUSALS = {
+    'refuse-product-target': RefusalSpec(('product', 'upgrade', '--to', '0.4.0', '--preview', '--json'), 2, 'TARGET_SYNTAX'),
+    'refuse-product-syntax': RefusalSpec((*_PRODUCT, '--preview', '--live', '--json'), 2, 'TARGET_SYNTAX'),
+    'refuse-product-source': RefusalSpec((*_PRODUCT, '--preview', '--json'), 1, 'SOURCE'),
+    'refuse-product-checkpoint': RefusalSpec((*_PRODUCT, '--recover', '--preview', '--json'), 1, 'CHECKPOINT_ABSENT'),
+    'refuse-product-consent-eof': RefusalSpec((*_PRODUCT, '--live', '--json'), 2, 'CONSENT'),
+    'refuse-product-consent-n': RefusalSpec((*_PRODUCT, '--live', '--json'), 2, 'CONSENT', 'DECLINE_N'),
+    'refuse-product-recovery-consent-eof': RefusalSpec((*_PRODUCT, '--recover', '--live', '--json'), 2, 'CONSENT'),
+    'refuse-product-recovery-consent-n': RefusalSpec((*_PRODUCT, '--recover', '--live', '--json'), 2, 'CONSENT', 'DECLINE_N'),
+}
+SOURCE_REFUSALS = {
+    'Dirty checkout or unrelated untracked files; preserve operator work and commit or move it before upgrading.': 'SOURCE_DIRTY',
+    'Product anchor must be the actual prepared checkout root.': 'SOURCE_ROOT',
+    'Source checkout must identify the official product repository without embedded credentials.': 'SOURCE_ORIGIN',
+    'Installation inventory differs from actual source revision/lock/release; inspect explicit adoption.': 'SOURCE_INVENTORY',
+}
+PROTECTED_PATHS = ('installation/manifest.json', 'installation/product-upgrade.json', 'product',
+                   'product/active', 'product/.active-next', 'product/tiny-swarm-world',
+                   'product/activations', 'product/staging', 'product/inputs', 'product/releases', 'product/infra')
+
+
+def unavailable_product(case: str) -> dict[str, Any]:
+    require(case in RECIPES and RECIPES[case].kind == 'product', 'UPGRADE_CASE_UNKNOWN')
+    return {'status': 'QUALIFICATION_HELPER_UNAVAILABLE', 'case': case, 'requires': 'S-U2',
+            'command_executed': False, 'product_result': None, 'epic_complete': False,
+            'historical_scope': 'OFFICIAL_SCHEMA1_0.4.0_TO_0.5.0_UNCHANGED'}
+
+
+def validate_unexecuted(value: Any, case: str, run: str, source: str) -> None:
+    old = {'status', 'case', 'run_id', 'source_commit', 'epic_complete'}
+    new = old | {'command_executed', 'product_result'}
+    require(type(value) is dict and set(value) in (old, new) and value['case'] == case
+            and value['run_id'] == run and value['source_commit'] == source and value['epic_complete'] is False,
+            'UPGRADE_UNEXECUTED_UNPROVEN')
+    if set(value) == new:
+        require(value['command_executed'] is False and value['product_result'] is None, 'UPGRADE_UNEXECUTED_UNPROVEN')
+    if value['status'] == 'QUALIFICATION_HELPER_UNAVAILABLE':
+        require(case in {'upgrade-product-v1', 'recover-product-v1'} and set(value) == new, 'UPGRADE_UNEXECUTED_UNPROVEN')
+    elif value['status'] == 'CASE_NOT_IMPLEMENTED':
+        require(case in ALL_NAMES, 'UPGRADE_UNEXECUTED_UNPROVEN')
+    else:
+        require(value['status'] == 'CASE_NOT_EXECUTED' and case in ALL_NAMES, 'UPGRADE_UNEXECUTED_UNPROVEN')
+
+
+def refusal_spec(case: str, args: list[str]) -> RefusalSpec:
+    require(case in REFUSALS and tuple(args) == REFUSALS[case].args and '--approve-live' not in args,
+            'REFUSAL_COMMAND_NOT_ADMITTED')
+    return REFUSALS[case]
+
+
+def parser_refusal(args: list[str]) -> bytes:
+    """Exact current public parser output, with the actual -c CLI program name."""
+    from contextlib import redirect_stderr
+    import io
+    import sys
+    from tiny_swarm_world.infrastructure.adapters.cli.parser import parse_args
+    stream = io.StringIO()
+    previous = sys.argv
+    try:
+        sys.argv = ['-c']
+        with redirect_stderr(stream):
+            try:
+                parse_args(args)
+            except SystemExit as exc:
+                require(exc.code == 2, 'REFUSAL_PARSER_CONTRACT')
+            else:
+                raise UpgradeError('REFUSAL_PARSER_CONTRACT')
+    finally:
+        sys.argv = previous
+    raw = stream.getvalue().encode()
+    require(raw.startswith(b'usage: -c ') and raw.endswith(
+        b'-c: error: product upgrade requires --to 0.5.0 and exactly one of --preview or --live\n'),
+        'REFUSAL_PARSER_CONTRACT')
+    return raw
+
+
+def validate_refusal(case: str, args: list[str], code: int, output: bytes, error: bytes) -> dict[str, Any]:
+    spec = refusal_spec(case, args)
+    require(type(code) is int and code == spec.exit_code and len(output) + len(error) <= 65536,
+            'REFUSAL_RESULT_UNPROVEN')
+    if spec.cause == 'TARGET_SYNTAX':
+        require(output == b'' and error == parser_refusal(args), 'REFUSAL_PARSER_OUTPUT')
+        return {'status': 'parser_refused', 'cause': spec.cause}
+    require(not error, 'REFUSAL_UNEXPECTED_STDERR')
+    body = output
+    if spec.cause == 'CONSENT':
+        from tiny_swarm_world.domain.preflight import LIVE_CONSENT_PROMPT
+        prefix = (LIVE_CONSENT_PROMPT + ' ').encode()
+        require(body.startswith(prefix), 'REFUSAL_PROMPT_UNPROVEN')
+        body = body[len(prefix):]
+    try:
+        value = json.loads(body)
+        require(type(value) is dict and body == json.dumps(value, sort_keys=True).encode() + b'\n',
+                'REFUSAL_OUTPUT_FRAMING')
+    except (ValueError, UnicodeError):
+        raise UpgradeError('REFUSAL_OUTPUT_FRAMING') from None
+    if spec.cause == 'CONSENT':
+        require(value == {'status': 'refused', 'diagnostics': ['missing live confirmation']}, 'REFUSAL_CONSENT_UNPROVEN')
+        cause = 'CONSENT_DECLINED_N' if spec.stdin_mode == 'DECLINE_N' else 'CONSENT_EOF'
+    else:
+        require(set(value) == {'status', 'diagnostics', 'recovery'} and value['status'] == 'blocked'
+                and value['recovery'] == 'preserve source/checkpoint; use product upgrade --to 0.5.0 --recover --preview from management checkout'
+                and type(value['diagnostics']) is list and len(value['diagnostics']) == 1,
+                'REFUSAL_CAUSE_UNPROVEN')
+        diagnostic = value['diagnostics'][0]
+        if spec.cause == 'CHECKPOINT_ABSENT':
+            require(diagnostic == 'No matching product checkpoint; inspect the original target.', 'REFUSAL_CHECKPOINT_UNPROVEN')
+            cause = 'CHECKPOINT_ABSENT'
+        else:
+            require(type(diagnostic) is str and diagnostic in SOURCE_REFUSALS, 'REFUSAL_SOURCE_UNPROVEN')
+            cause = SOURCE_REFUSALS[diagnostic]
+    return {'status': value['status'], 'cause': cause}
+
+
+def require_refusal_binding(receipt: Any, case: str) -> None:
+    binding = receipt.binding
+    require(binding['case'] == case and binding['proposal_sha256'] is not None
+            and type(binding['approval']) is dict, 'REFUSAL_GO_REQUIRED')
+    if binding['platform'] == 'native':
+        require(binding['approval']['phase'] == 'native-product-maintenance'
+                and type(binding['activation']) is dict and binding['activation']['phase'] == 'paused-product-case',
+                'REFUSAL_GO_REQUIRED')
+    else:
+        require(binding['platform'] == 'wsl' and binding['approval']['phase'] == 'wsl-case-run'
+                and binding['activation'] is None, 'REFUSAL_GO_REQUIRED')
+
+
+def expected_refusal_environment(case: str, root: Path, infra: Path, operator: Path) -> dict[str, str]:
+    require(case in REFUSALS and root.is_absolute() and infra.is_absolute() and operator == infra / 'operator.env',
+            'REFUSAL_ENVIRONMENT_UNPROVEN')
+    official = case == 'refuse-product-source'
+    return {'infra_mode': 'OFFICIAL_INFRA_READ_ONLY' if official else 'CAMPAIGN_INFRA',
+            'repository_root': str(root), 'campaign_infra_root': str(infra), 'operator_file': str(operator),
+            'infra_root': str(root / 'modules/tsw_core/infra') if official else str(infra)}
+
+
+def select_refusal_environment(case: str, args: list[str], env: dict[str, str], root: Path,
+                               infra: Path, operator: Path) -> dict[str, str]:
+    refusal_spec(case, args)
+    require(env.get('TSW_REPOSITORY_ROOT') == str(root) and env.get('TSW_INFRA_ROOT') == str(infra)
+            and env.get('TSW_INSTALL_ENV_FILE') == str(operator), 'REFUSAL_ENVIRONMENT_SUBSTITUTED')
+    expected = expected_refusal_environment(case, root, infra, operator)
+    # This dictionary belongs to one validated public child. The parent,
+    # operator source, baseline and observer environments remain unchanged.
+    env['TSW_INFRA_ROOT'] = expected['infra_root']
+    return expected
+
+
+def capture_refusal_inputs(root: Path, infra: Path, operator: Path, pinned_infra: str,
+                           pinned_operator: str) -> dict[str, Any]:
+    from tiny_swarm_world.infrastructure.adapters.lifecycle.product_configuration_validation import read_tree
+    require(operator == infra / 'operator.env', 'REFUSAL_OPERATOR_REFERENCE')
+    def capture(path: Path, *, private: bool) -> dict[str, Any]:
+        tree = read_tree(path, private=private)
+        return {'path': str(path), 'metadata': tree.metadata(),
+                'files': {name: hashlib.sha256(raw).hexdigest() for name, raw in sorted(tree.files.items())}}
+    official = capture(root / 'modules/tsw_core/infra', private=False)
+    campaign = capture(infra, private=True)
+    files = campaign['files']
+    require(digest(list(files.items())) == pinned_infra and files.get('operator.env') == pinned_operator,
+            'REFUSAL_PRIVATE_INPUT_DRIFT')
+    operator_identity = campaign['metadata']['members'].get('operator.env')
+    require(type(operator_identity) is list and len(operator_identity) == 8
+            and stat.S_IMODE(operator_identity[3]) == 0o600, 'REFUSAL_OPERATOR_UNSAFE')
+    return {'schema_version': 1, 'official': official, 'campaign': campaign,
+            'operator': {'path': str(operator), 'identity': operator_identity, 'sha256': pinned_operator}}
+
+
+def validate_refusal_inputs(value: Any, root: Path, infra: Path, operator: Path,
+                            pinned_infra: str, pinned_operator: str | None = None) -> None:
+    require(type(value) is dict and set(value) == {'schema_version', 'official', 'campaign', 'operator'}
+            and type(value['schema_version']) is int and value['schema_version'] == 1, 'REFUSAL_INPUT_RECEIPT')
+    for name, path in (('official', root / 'modules/tsw_core/infra'), ('campaign', infra)):
+        row = value[name]
+        require(type(row) is dict and set(row) == {'path', 'metadata', 'files'} and row['path'] == str(path)
+                and type(row['metadata']) is dict and set(row['metadata']) == {'root', 'members'}
+                and type(row['files']) is dict and type(row['metadata']['members']) is dict
+                and 0 < len(row['metadata']['members']) <= 4096, 'REFUSAL_INPUT_RECEIPT')
+        entries = row['metadata']['members']
+        for member, identity in [('', row['metadata']['root']), *entries.items()]:
+            require(type(member) is str and not Path(member).is_absolute() and '..' not in Path(member).parts
+                    and len(Path(member).parts) <= 16 and type(identity) is list and len(identity) == 8
+                    and all(type(item) is int and item >= 0 for item in identity) and identity[1] > 0
+                    and identity[2] == 0 and not identity[3] & 0o022
+                    and (stat.S_ISREG(identity[3]) or stat.S_ISDIR(identity[3])), 'REFUSAL_INPUT_RECEIPT')
+        require(stat.S_ISDIR(row['metadata']['root'][3]), 'REFUSAL_INPUT_RECEIPT')
+        require(all(identity[7] == 1 and identity[4] <= 16 * 1024 * 1024 for identity in entries.values() if stat.S_ISREG(identity[3]))
+                and sum(identity[4] for identity in entries.values() if stat.S_ISREG(identity[3])) <= 64 * 1024 * 1024, 'REFUSAL_INPUT_RECEIPT')
+        files = {member for member, identity in entries.items() if stat.S_ISREG(identity[3])}
+        require(set(row['files']) == files and all(type(sha) is str and re.fullmatch('[0-9a-f]{64}', sha)
+                for sha in row['files'].values()), 'REFUSAL_INPUT_RECEIPT')
+    campaign = value['campaign']
+    require(digest(sorted(campaign['files'].items())) == pinned_infra, 'REFUSAL_PRIVATE_INPUT_DRIFT')
+    row = value['operator']
+    require(type(row) is dict and set(row) == {'path', 'identity', 'sha256'} and row['path'] == str(operator)
+            and operator == infra / 'operator.env' and row['identity'] == campaign['metadata']['members'].get('operator.env')
+            and row['sha256'] == campaign['files'].get('operator.env') and (pinned_operator is None or row['sha256'] == pinned_operator)
+            and type(row['identity']) is list and stat.S_IMODE(row['identity'][3]) == 0o600,
+            'REFUSAL_OPERATOR_UNSAFE')
+
+
+def fixed_stdin(case: str, args: list[str], child: Any, receipt: Any) -> None:
+    """Deliver only the reviewed literal decline, after releasing our own child."""
+    spec = refusal_spec(case, args)
+    require(receipt is not None and receipt.released and receipt.process is not None
+            and child.pid == receipt.process['pid'] and receipt.args == args
+            and receipt.binding['case'] == case and type(receipt.environment) is dict
+            and type(receipt.inputs_sha256) is str and re.fullmatch('[0-9a-f]{64}', receipt.inputs_sha256), 'REFUSAL_INPUT_NOT_RELEASED')
+    delivered = 0
+    if spec.stdin_mode == 'DECLINE_N':
+        require(child.stdin is not None, 'REFUSAL_INPUT_PIPE_MISSING')
+        delivered = child.stdin.write(b'n\n')
+        require(delivered == 2, 'REFUSAL_INPUT_INCOMPLETE')
+        delivered_at = time.monotonic_ns()
+        child.stdin.flush()
+        child.stdin.close()
+    else:
+        require(spec.stdin_mode == 'EOF' and child.stdin is None, 'REFUSAL_INPUT_MODE')
+        delivered_at = time.monotonic_ns()
+    closed_at = time.monotonic_ns()
+    receipt.journal.save(receipt.key + '-cli-stdin.json', {
+        'schema_version': 1, 'case': case, 'binding_sha256': digest(receipt.binding),
+        'args_sha256': digest(args), 'child': receipt.process, 'mode': spec.stdin_mode,
+        'delivered_bytes': delivered, 'writer_closed': True, 'released': True,
+        'delivered_monotonic_ns': delivered_at, 'closed_monotonic_ns': closed_at,
+        'environment': receipt.environment, 'inputs_sha256': receipt.inputs_sha256,
+    })
+
+
+def save_refusal(receipt: Any, case: str, code: int, output: bytes, error: bytes) -> None:
+    import base64
+    require(receipt is not None and receipt.released and receipt.process is not None, 'REFUSAL_CHILD_MISSING')
+    result = validate_refusal(case, receipt.args, code, output, error)
+    receipt.journal.save(receipt.key + '-cli-refusal.json', {
+        'schema_version': 1, 'case': case, 'binding_sha256': digest(receipt.binding),
+        'args_sha256': digest(receipt.args), 'child': receipt.process, 'return_code': code,
+        'stdout_base64': base64.b64encode(output).decode(), 'stderr_base64': base64.b64encode(error).decode(),
+        'stdout_sha256': hashlib.sha256(output).hexdigest(), 'stderr_sha256': hashlib.sha256(error).hexdigest(),
+        'product_result': result, 'command_executed': True, 'positive_upgrade': False,
+    })
+
+
+def protected_state(root: Path) -> dict[str, Any]:
+    """Private, bounded, no-follow byte comparison; never exported as public input hashes."""
+    root = root / '.tiny-swarm-world'
+    rows: dict[str, Any] = {}
+    total = 0
+    def identity(info: os.stat_result) -> tuple[int, ...]:
+        return (info.st_dev, info.st_ino, info.st_mode, info.st_uid, info.st_nlink,
+                info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+    def visit(path: Path, *, recursive: bool) -> None:
+        nonlocal total
+        name = path.relative_to(root).as_posix()
+        require(len(rows) < 1024, 'REFUSAL_STATE_ENTRY_BOUND')
+        # Prove every existing ancestor rather than treating an escaping or
+        # unreadable parent as an absent leaf.
+        for parent in reversed((path.parent, *path.parent.parents)):
+            if parent == root or root in parent.parents:
+                try:
+                    parent_info = parent.lstat()
+                except FileNotFoundError:
+                    continue
+                require(stat.S_ISDIR(parent_info.st_mode) and parent_info.st_uid == 0
+                        and not parent_info.st_mode & 0o022, 'REFUSAL_STATE_PARENT')
+        try:
+            before = path.lstat()
+        except FileNotFoundError:
+            rows[name] = {'kind': 'absent'}
+            return
+        require(before.st_uid == 0 and (stat.S_ISLNK(before.st_mode) or not before.st_mode & 0o022), 'REFUSAL_STATE_TYPE')
+        if name in {'installation/manifest.json', 'installation/product-upgrade.json'}:
+            require(not before.st_mode & 0o077, 'REFUSAL_STATE_PRIVATE')
+        if stat.S_ISLNK(before.st_mode):
+            target = Path(os.readlink(path))
+            allowed = name in {'product/active', 'product/.active-next'} or (name.startswith('product/activations/') and path.name in {'code', 'infra'})
+            require(allowed and target.is_absolute() and '..' not in target.parts and target.is_relative_to(root / 'product'), 'REFUSAL_STATE_LINK')
+            rows[name] = {'kind': 'symlink', 'identity': list(identity(before)), 'target_sha256': hashlib.sha256(os.fsencode(target)).hexdigest()}
+        elif stat.S_ISDIR(before.st_mode):
+            rows[name] = {'kind': 'directory', 'identity': list(identity(before))}
+            if recursive:
+                children = []
+                with os.scandir(path) as entries:
+                    for child in entries:
+                        require(len(children) < 1024 - len(rows), 'REFUSAL_STATE_ENTRY_BOUND')
+                        children.append(child)
+                children.sort(key=lambda item: item.name)
+                for child in children:
+                    visit(path / child.name, recursive=True)
+        else:
+            require(stat.S_ISREG(before.st_mode) and before.st_nlink == 1 and before.st_size <= 1024 * 1024,
+                    'REFUSAL_STATE_TYPE')
+            fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+            try:
+                require(identity(os.fstat(fd)) == identity(before), 'REFUSAL_STATE_CAS')
+                raw = os.read(fd, before.st_size + 1)
+                total += len(raw)
+                require(total <= 8 * 1024 * 1024 and len(raw) == before.st_size
+                        and identity(os.fstat(fd)) == identity(before), 'REFUSAL_STATE_CAS')
+            finally:
+                os.close(fd)
+            rows[name] = {'kind': 'regular', 'identity': list(identity(before)), 'sha256': hashlib.sha256(raw).hexdigest()}
+        require(identity(path.lstat()) == identity(before), 'REFUSAL_STATE_CAS')
+    try:
+        for name in PROTECTED_PATHS:
+            visit(root / name, recursive=name in {'product/activations', 'product/staging', 'product/inputs', 'product/releases', 'product/infra'})
+    except OSError:
+        raise UpgradeError('REFUSAL_STATE_UNREADABLE') from None
+    value = {'schema_version': 1, 'paths': rows}
+    validate_protected(value)
+    return value
+
+
+def validate_protected(value: Any) -> None:
+    require(type(value) is dict and set(value) == {'schema_version', 'paths'} and type(value['schema_version']) is int
+            and value['schema_version'] == 1 and type(value['paths']) is dict
+            and set(PROTECTED_PATHS) <= set(value['paths']) and len(value['paths']) <= 1024, 'REFUSAL_STATE_RECEIPT')
+    recursive = ('product/activations/', 'product/staging/', 'product/inputs/', 'product/releases/', 'product/infra/')
+    for name, row in value['paths'].items():
+        require(type(name) is str and len(name) <= 2048 and not Path(name).is_absolute() and '..' not in Path(name).parts
+                and (name in PROTECTED_PATHS or name.startswith(recursive)) and type(row) is dict, 'REFUSAL_STATE_RECEIPT')
+        kind = row.get('kind')
+        if kind == 'absent':
+            require(name in PROTECTED_PATHS and row == {'kind': 'absent'}, 'REFUSAL_STATE_RECEIPT')
+            continue
+        keys = {'kind', 'identity'} | ({'sha256'} if kind == 'regular' else {'target_sha256'} if kind == 'symlink' else set())
+        require(kind in {'regular', 'directory', 'symlink'} and set(row) == keys, 'REFUSAL_STATE_RECEIPT')
+        info = row['identity']
+        require(type(info) is list and len(info) == 8 and all(type(item) is int and item >= 0 for item in info)
+                and info[1] > 0 and info[3] == 0 and info[4] > 0, 'REFUSAL_STATE_RECEIPT')
+        if kind == 'symlink':
+            require(stat.S_ISLNK(info[2]) and (name in {'product/active', 'product/.active-next'}
+                or name.startswith('product/activations/') and Path(name).name in {'code', 'infra'}), 'REFUSAL_STATE_RECEIPT')
+        else:
+            require(not info[2] & 0o022 and (stat.S_ISREG(info[2]) if kind == 'regular' else stat.S_ISDIR(info[2])),
+                    'REFUSAL_STATE_RECEIPT')
+        if kind == 'regular':
+            require(info[4] == 1 and info[5] <= 1024 * 1024, 'REFUSAL_STATE_RECEIPT')
+        for key in keys - {'kind', 'identity'}:
+            require(type(row[key]) is str and re.fullmatch('[0-9a-f]{64}', row[key]), 'REFUSAL_STATE_RECEIPT')
+
+
+def run_refusal(port: Any, value: Any) -> None:
+    require(not getattr(port, 'engine_recovery', False), 'REFUSAL_NOT_ENGINE_RECOVERY')
+    port.upgrade_validate_inputs()
+    # Current schema2 baseline only; historical schema1 acceptance is untouched.
+    port.public(value.args(), timeout=5250)
+    before = observe(port, 'source')
+    protected = protected_state(ROOT)
+    inputs = port.refusal_inputs()
+    if REFUSALS[port.intent.case].cause == 'CHECKPOINT_ABSENT':
+        require(protected['paths']['installation/product-upgrade.json'] == {'kind': 'absent'}, 'REFUSAL_CHECKPOINT_PRESENT')
+    binding = {'schema_version': 1, 'case': port.intent.case, 'run_id': port.intent.run_id,
+               'source_commit': port.intent.source_commit, 'root': str(ROOT)}
+    port.journal.save('product-refusal-before.json', binding | {'protected': protected,
+        'runtime': before, 'inputs': inputs, 'captured_monotonic_ns': time.monotonic_ns()})
+    port.public_refusal(list(REFUSALS[port.intent.case].args), timeout=120)
+    require(port.worker_settled, 'REFUSAL_CHILD_UNSETTLED')
+    after = observe(port, 'noop')
+    preserve(before, after, no_op=True)
+    current = protected_state(ROOT)
+    require(current == protected, 'REFUSAL_PROTECTED_STATE_CHANGED')
+    current_inputs = port.refusal_inputs()
+    require(current_inputs == inputs, 'REFUSAL_INPUTS_CHANGED')
+    port.journal.save('product-refusal-after.json', binding | {'protected': current,
+        'runtime': after, 'inputs': current_inputs, 'captured_monotonic_ns': time.monotonic_ns()})
+    event(port, 'product-refusal-verified', {'status': 'REFUSAL_PRESERVED', 'case': port.intent.case,
+        'command_executed': True, 'positive_upgrade': False, 'historical_scope': 'UNCHANGED',
+        'recovery_performed': False, 'epic_complete': False})
+
+
 @dataclass
 class CliReceipt:
     journal: Any
@@ -151,6 +532,8 @@ class CliReceipt:
     released: bool = False
     fault: dict[str, Any] | None = None
     process: dict[str, int] | None = None
+    environment: dict[str, str] | None = None
+    inputs_sha256: str | None = None
 
     def require_approval(self) -> None:
         if not cli_is_effect(self.args):
@@ -221,12 +604,16 @@ class UpgradeRecipe:
 
     def args(self, *, preview: bool = False, add: bool = False) -> list[str]:
         require(not add and self.kind != 'product', 'UPGRADE_PRODUCT_NOT_IMPLEMENTED')
+        if self.kind == 'refusal':
+            return ['setup', 'run', '--minimal', *(('--preview', '--json') if preview else ('--live', '--approve-live', '--json')),
+                    '--node-provider', 'lxc_native', '--lxc-backend', 'incus']
         return ['setup', 'run', '--services', ','.join(self.services), '--service-profile', self.preset,
                 '--stack-owner', self.owner, *(['--swagger-exposure', self.exposure] if 'swagger' in self.services else []),
                 *(('--preview', '--json') if preview else ('--live', '--approve-live', '--json')),
                 '--node-provider', 'lxc_native', '--lxc-backend', 'incus']
 
     def update(self, *, preview: bool = False, recover: bool = False) -> list[str]:
+        require(self.kind != 'refusal', 'REFUSAL_COMMAND_NOT_ADMITTED')
         services = ('portainer',) if self.kind == 'portainer' else self.services
         args = ['services', 'update', '--services', ','.join(services)]
         if recover:
@@ -254,6 +641,7 @@ RECIPES |= {
     'upgrade-product-v1': UpgradeRecipe((), preset='service-access', kind='product'),
     'recover-product-v1': UpgradeRecipe((), preset='service-access', kind='product', fault=True),
 }
+RECIPES |= {name: UpgradeRecipe((), kind='refusal') for name in REFUSALS}
 ALL_NAMES = (*FRESH_NAMES, *RECIPES)
 
 
@@ -265,6 +653,7 @@ def recipe(case: str) -> UpgradeRecipe:
 
 
 def budgets(case: str, host: str, *, engine_recovery: bool = False) -> dict[str, int]:
+    require(not engine_recovery or case not in REFUSALS, 'REFUSAL_NOT_ENGINE_RECOVERY')
     if case not in RECIPES:
         require(not engine_recovery, 'UPGRADE_ENGINE_RECOVERY_CASE')
         return ({'prepare': 1200, 'pause': 600, 'approval': 180, 'case': 5400, 'teardown': 900, 'restore': 600}
@@ -278,6 +667,8 @@ def budgets(case: str, host: str, *, engine_recovery: bool = False) -> dict[str,
 
 def baseline_environment(case: str) -> dict[str, str]:
     value = recipe(case)
+    if value.kind == 'refusal':
+        return {}
     module = importlib.import_module('tiny_swarm_world.infrastructure.adapters.lifecycle.catalog')
     catalog = module.NativeComponentCatalog(ROOT).load()
     names = importlib.import_module('tiny_swarm_world.infrastructure.adapters.repositories.compose_file_repository_yaml').IMAGE_OVERRIDE_ENVIRONMENT_BY_CONTEXT
@@ -875,6 +1266,10 @@ def reconcile_cache(port: Any) -> None:
 
 def run(port: Any, *, engine_recovery: bool = False) -> None:
     value = recipe(port.intent.case)
+    if value.kind == 'refusal':
+        require(not engine_recovery, 'REFUSAL_NOT_ENGINE_RECOVERY')
+        run_refusal(port, value)
+        return
     port.upgrade_validate_inputs()
     if engine_recovery:
         require(port.worker_settled, 'UPGRADE_CHILD_UNSETTLED')
@@ -1087,7 +1482,7 @@ def read_runtime(case: str, stage: str) -> dict[str, Any]:
             'service_versions': service_versions, 'mounts': mounts, 'tasks': tasks, 'data': data,
             'owner_ids': owners, 'stack_updates': stack_updates, 'managed_journals': managed,
             'backup_journal': digest(private_json(backup)) if backup.exists() else None,
-            'manifest_sha256': manifest_hash, 'manifest_token': snapshot.token, 'component_journal_sha256': component_hash,
+            'manifest_sha256': manifest_hash, 'manifest_token': snapshot.token, 'manifest_schema': manifest.schema_version, 'component_journal_sha256': component_hash,
             'selection': selection_evidence(manifest, manifest_hash)}
     return asyncio.run(verify())
 

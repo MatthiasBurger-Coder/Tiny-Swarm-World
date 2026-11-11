@@ -503,5 +503,42 @@ class WslProductAcceptanceTests(unittest.TestCase):
         self.assertNotIsInstance(port, suite.disposal.native.NativePort)
 
 
+
+
+
+class WslRefusalRoutingTests(unittest.TestCase):
+    def test_public_refusal_keeps_source_identity_and_exact_public_argv(self):
+        name = 'refuse-product-recovery-consent-n'
+        port = suite.WslCasePort(replace(intent(), case=name), Mock())
+        pins = {suite.SCRIPT: 'a' * 64}
+        port.proposal = {'pins': pins}
+        args = list(suite.upgrades.REFUSALS[name].args)
+        version = (0, b'Client version: 6.0.5\nServer version: 6.0.5\n', b'')
+        with patch.object(port, 'identity') as identity, patch.object(port, 'source', return_value=pins) as source, \
+                patch.object(port, 'reserve'), patch.object(port, 'incus_env', return_value={'INCUS_SOCKET': '/run/incus/unix.socket'}), \
+                patch.object(port, 'interpreter', return_value='/fixed/owned/python'), \
+                patch.object(suite.inventory.Runner, 'run', return_value=version), \
+                patch.object(suite.upgrades, 'require_cache_settled'), patch.object(port, 'command', return_value=b'bounded') as command:
+            self.assertEqual(port.public_refusal(args, timeout=120), b'bounded')
+            command.assert_called_once_with(['/fixed/owned/python', '-E', '-s', '-B', '-c', suite.BOOTSTRAP, *args],
+                                            120, public=True, refusal_case=name)
+            identity.assert_called_once()
+            source.assert_called_once()
+            with self.assertRaises(suite.upgrades.UpgradeError):
+                port.public_refusal([*args, '--approve-live'], timeout=120)
+            self.assertEqual(command.call_count, 1)
+            source.return_value = {suite.SCRIPT: 'f' * 64}
+            with self.assertRaises(suite.CaseError):
+                port.public_refusal(args, timeout=120)
+            self.assertEqual(command.call_count, 1)
+
+    def test_unavailable_helpers_never_become_case_or_product_success(self):
+        for name in ('upgrade-product-v1', 'recover-product-v1'):
+            value = suite.upgrades.unavailable_product(name)
+            self.assertFalse(value['command_executed'])
+            self.assertIsNone(value['product_result'])
+            self.assertNotIn(value['status'], {'CASE_PASS_DISPOSED', 'CASE_RECOVERED', 'refused', 'blocked'})
+
+
 if __name__ == '__main__':
     unittest.main()

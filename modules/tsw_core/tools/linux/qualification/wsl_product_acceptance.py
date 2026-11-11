@@ -379,7 +379,7 @@ class WslCasePort:
         self.journal.save(stage + '-' + uuid4().hex + '.json', value | {'run_id': self.intent.run_id,
             'source_commit': self.intent.source_commit, 'case': self.intent.case})
 
-    def command(self, argv: list[str], timeout: int, *, public: bool = False, extra_env: dict[str, str] | None = None) -> bytes:
+    def command(self, argv: list[str], timeout: int, *, public: bool = False, extra_env: dict[str, str] | None = None, refusal_case: str | None = None) -> bytes:
         """Gate every mutation worker until its PID/starttime intent is durable."""
         self.reserve(timeout + 10)
         need(self.worker_settled, 'CASE_WORKER_UNSETTLED')
@@ -406,6 +406,16 @@ class WslCasePort:
             upgrades.cli_binding(self, 'wsl', ACTIVE_WORKFLOW), argv, args)
         if receipt is not None:
             receipt.require_approval()
+        refusal = None
+        if refusal_case is not None:
+            need(public and refusal_case == self.intent.case and args is not None and receipt is not None, 'REFUSAL_COMMAND_NOT_ADMITTED')
+            refusal = upgrades.refusal_spec(refusal_case, args if args is not None else [])
+            upgrades.require_refusal_binding(receipt, refusal_case)
+            if receipt is None:
+                raise CaseError('REFUSAL_CHILD_MISSING')
+            infra = self.intent.home / 'infra'
+            receipt.environment = upgrades.select_refusal_environment(refusal_case, receipt.args, env, ROOT, infra, infra / 'operator.env')
+            receipt.inputs_sha256 = upgrades.digest(self.refusal_inputs())
         self.journal.save(key + '-intent.json', {'argv_sha256': sha(canonical(argv)), 'timeout': timeout, 'public': public})
         if argv[0].endswith('.exe'):
             need(len(subprocess.list2cmdline(argv).encode('utf-16-le')) // 2 + 1 <= 30000, 'CASE_WINDOWS_COMMAND_BOUND')
@@ -415,7 +425,7 @@ class WslCasePort:
         self.worker_settled = False
         try:
             child = subprocess.Popen([self.interpreter(), '-E', '-s', '-B', '-c', GATE, str(reader), *argv],
-                cwd=ROOT, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                cwd=ROOT, env=env, stdin=(subprocess.PIPE if refusal is not None and refusal.stdin_mode == 'DECLINE_N' else subprocess.DEVNULL), stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 start_new_session=True, pass_fds=(reader,))
             os.close(reader); reader = -1
             identity = {'pid': child.pid, 'start_time': start_time(child.pid)}
@@ -427,6 +437,8 @@ class WslCasePort:
             os.write(writer, b'G'); released = True; os.close(writer); writer = -1
             if receipt is not None:
                 receipt.release()
+            if refusal_case is not None:
+                upgrades.fixed_stdin(refusal_case, list(upgrades.REFUSALS[refusal_case].args), child, receipt)
             selector.register(child.stdout, selectors.EVENT_READ, output)
             selector.register(child.stderr, selectors.EVENT_READ, error)
             end = time.monotonic() + timeout
@@ -444,7 +456,10 @@ class WslCasePort:
             output_complete = True
             self.journal.save(key + '-outcome.json', {'return_code': status,
                 'stdout_sha256': sha(bytes(output)), 'stderr_sha256': sha(bytes(error))})
-            need(status == 0, 'CASE_COMMAND_FAILED')
+            if refusal_case is None:
+                need(status == 0, 'CASE_COMMAND_FAILED')
+            else:
+                upgrades.save_refusal(receipt, refusal_case, status, bytes(output), bytes(error))
             return bytes(output)
         except upgrades.FaultObserved as exc:
             if receipt is not None:
@@ -470,6 +485,8 @@ class WslCasePort:
                 self.worker_settled = group_absent(child.pid)
                 if self.worker_settled:
                     self.journal.save(key + '-settled.json', {'pid': child.pid, 'released': released, 'group_absent': True})
+                if refusal_case is not None and child.stdin is not None and not child.stdin.closed:
+                    child.stdin.close()
                 for stream in (child.stdout, child.stderr):
                     if stream is not None:
                         stream.close()
@@ -742,7 +759,17 @@ class WslCasePort:
         need(sha(canonical(value)) == proposal['preview_sha256'], 'CASE_PREVIEW_DRIFT')
         self.proposal = proposal
 
-    def public(self, args: list[str], *, timeout: int, helper: bool = False) -> bytes:
+    def refusal_inputs(self) -> dict[str, Any]:
+        infra = self.intent.home / 'infra'
+        return upgrades.capture_refusal_inputs(ROOT, infra, infra / 'operator.env',
+            self.intent.configuration_sha256, sha(self.configuration_bytes()))
+
+    def public_refusal(self, args: list[str], *, timeout: int) -> bytes:
+        upgrades.refusal_spec(self.intent.case, args)
+        return self.public(args, timeout=timeout, refusal_case=self.intent.case)
+
+    def public(self, args: list[str], *, timeout: int, helper: bool = False, refusal_case: str | None = None) -> bytes:
+        need(refusal_case is None or not helper, 'REFUSAL_COMMAND_NOT_ADMITTED')
         if not helper and self.intent.case in upgrades.RECIPES:
             upgrades.require_cache_settled(self)
         self.identity()
@@ -759,7 +786,7 @@ class WslCasePort:
             need(self.cli_versions == ('6.0.5', '6.0.5'), 'CASE_CLI_INCUS_VERSION_DRIFT')
         argv = [self.interpreter(), '-E', '-s', '-B']
         argv += [str(ROOT / SCRIPT), *args] if helper else ['-c', BOOTSTRAP, *args]
-        return self.command(argv, timeout, public=True)
+        return self.command(argv, timeout, public=True, refusal_case=refusal_case)
 
     def upgrade_validate_inputs(self) -> None:
         values = self.operator_values()
@@ -991,6 +1018,19 @@ def helper(kind: str) -> None:
     print('{"status":"READ_ONLY_VERIFIED"}')
 
 
+def no_public_execution(directory: Path) -> None:
+    rows = []
+    for path in directory.iterdir():
+        need(len(rows) < 8192, 'CASE_UNAVAILABLE_RECORD_BOUND')
+        rows.append(path)
+    need(not any(path.name.startswith(('execution-intent-', 'engine-recovery-', 'disposal-'))
+                 or path.name.endswith('-cli-start.json') for path in rows), 'CASE_UNAVAILABLE_EXECUTED')
+    for path in rows:
+        if re.fullmatch('child-[0-9a-f]{32}-intent.json', path.name):
+            value = inventory.strict_json(private(path))
+            need(type(value) is dict and value.get('public') is False, 'CASE_UNAVAILABLE_EXECUTED')
+
+
 def finish(port: WslCasePort) -> dict[str, Any]:
     """All original/current case metadata stays retained for coordinator reset."""
     port.phase('recover'); port.source(); port.prerequisites(); identity = port.identity(); port.operations(); port.capture()
@@ -1020,13 +1060,19 @@ def finish(port: WslCasePort) -> dict[str, Any]:
             unexecuted = Intent.parse(raw_intent)
             need(unexecuted.run_id == port.intent.run_id and unexecuted.source_commit == port.intent.source_commit
                  and unexecuted.case == case, 'CASE_FINISH_OUTCOME_UNCERTAIN')
-            journal.save('outcome-' + uuid4().hex + '.json', {'status': 'CASE_NOT_IMPLEMENTED' if case in upgrades.RECIPES and upgrades.RECIPES[case].kind == 'product' else 'CASE_NOT_EXECUTED', 'run_id': port.intent.run_id,
+            if case in {'upgrade-product-v1', 'recover-product-v1'}:
+                no_public_execution(directory)
+            journal.save('outcome-' + uuid4().hex + '.json', {'status': 'QUALIFICATION_HELPER_UNAVAILABLE' if case in upgrades.RECIPES and upgrades.RECIPES[case].kind == 'product' else 'CASE_NOT_EXECUTED', 'command_executed': False, 'product_result': None, 'run_id': port.intent.run_id,
                 'source_commit': port.intent.source_commit, 'case': case, 'epic_complete': False})
             outcomes = list(directory.glob('outcome-*.json'))
         need(len(outcomes) == 1, 'CASE_FINISH_OUTCOME_UNCERTAIN')
         raw = private(outcomes[0]); value = inventory.strict_json(raw)
-        need(value['status'] in {'CASE_PASS_DISPOSED', 'CASE_FAILED_DISPOSED', 'CASE_RECOVERED', 'CASE_NOT_EXECUTED', 'CASE_NOT_EXERCISED', 'CASE_NOT_IMPLEMENTED'} and value['run_id'] == port.intent.run_id
+        need(value['status'] in {'CASE_PASS_DISPOSED', 'CASE_FAILED_DISPOSED', 'CASE_RECOVERED', 'CASE_NOT_EXECUTED', 'CASE_NOT_EXERCISED', 'CASE_NOT_IMPLEMENTED', 'QUALIFICATION_HELPER_UNAVAILABLE'} and value['run_id'] == port.intent.run_id
              and value['source_commit'] == port.intent.source_commit and value['case'] == case, 'CASE_FINISH_OUTCOME_UNCERTAIN')
+        if value['status'] in {'CASE_NOT_EXECUTED', 'CASE_NOT_IMPLEMENTED', 'QUALIFICATION_HELPER_UNAVAILABLE'}:
+            upgrades.validate_unexecuted(value, case, port.intent.run_id, port.intent.source_commit)
+            if value['status'] == 'QUALIFICATION_HELPER_UNAVAILABLE':
+                no_public_execution(directory)
         ledger.append({'case': case, 'outcome_sha256': sha(raw)})
     need(bool(ledger), 'CASE_FINISH_NO_CASES')
     raw = canonical({'schema_version': 2 if any(row['case'] in upgrades.RECIPES for row in ledger) else 1, 'run_id': port.intent.run_id, 'source_commit': port.intent.source_commit, 'cases': ledger})
@@ -1060,7 +1106,7 @@ def main(argv: list[str] | None = None) -> int:
         intent = Intent.parse(inventory.strict_json(raw))
         need(intent.run_id == args.run_id and intent.case == args.case, 'CASE_INTENT_BINDING')
         if intent.case in upgrades.RECIPES and upgrades.RECIPES[intent.case].kind == 'product':
-            print(json.dumps({'status': 'NOT_IMPLEMENTED', 'case': intent.case, 'requires': 'S-U2', 'epic_complete': False})); return 2
+            print(json.dumps(upgrades.unavailable_product(intent.case) | {'run_id': intent.run_id, 'source_commit': intent.source_commit})); return 2
         journal = Journal(home / 'journal'); port = WslCasePort(intent, journal)
         import fcntl
         fd = os.open(intent.home / 'product-acceptance.lock', os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
@@ -1121,7 +1167,7 @@ def main(argv: list[str] | None = None) -> int:
             if result['status'] == 'CASE_PASS_DISPOSED' or args.mode == 'engine-recovery' and result['status'] == 'CASE_RECOVERED':
                 upgrades.save_cli_case_result(port, result | {'run_id': intent.run_id,
                     'case': intent.case, 'source_commit': intent.source_commit})
-            print(json.dumps(result)); return 0 if result.get('status') not in {'CASE_FAILED_DISPOSED', 'CASE_NOT_EXERCISED', 'CASE_NOT_IMPLEMENTED'} else 2
+            print(json.dumps(result)); return 0 if result.get('status') not in {'CASE_FAILED_DISPOSED', 'CASE_NOT_EXERCISED', 'CASE_NOT_IMPLEMENTED', 'QUALIFICATION_HELPER_UNAVAILABLE'} else 2
         finally:
             os.close(fd)
     except BaseException as exc:

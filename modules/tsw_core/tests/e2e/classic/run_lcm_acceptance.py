@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 from dataclasses import asdict
 from datetime import datetime
 import os
@@ -102,6 +103,9 @@ def expected_effects(case: str, *, engine: bool) -> list[tuple[list[str], str | 
             result.append((recipe.args(add=True), None))
         return result
     upgrade = upgrades.recipe(case)
+    if case in upgrades.REFUSALS:
+        require(not engine)
+        return [(upgrade.args(), None), (list(upgrades.REFUSALS[case].args), 'EXPECTED_REFUSAL')]
     require(upgrade.kind != 'product')
     if engine:
         return [(upgrade.update(recover=True), None)]
@@ -124,7 +128,7 @@ def validate_child(directory: Path, key: str, start: dict[str, Any], expected: l
                    finished: dict[str, Any]) -> dict[str, Any]:
     child = process(start['child'])
     require(child != process(start['parent']))
-    require(start['args'] == expected and start['effect'] is True)
+    require(start['args'] == expected and (start['effect'] is False if predicate == 'EXPECTED_REFUSAL' else start['effect'] is True))
     executable = start['executable']
     require(type(executable) is str and 0 < len(executable) < 4096 and Path(executable).is_absolute())
     sha(start['executable_sha256'])
@@ -163,8 +167,96 @@ def validate_child(directory: Path, key: str, start: dict[str, Any], expected: l
     return settled
 
 
+def verify_refusal_child(directory: Path, key: str, start: dict[str, Any], release: dict[str, Any],
+                         settled: dict[str, Any]) -> dict[str, Any]:
+    case = start['case']
+    spec = upgrades.refusal_spec(case, start['args'])
+    require(settled['fault'] is None and settled['output_complete'] is True and settled['return_code'] == spec.exit_code)
+    outcome, _ = record(directory / (key + '-outcome.json'))
+    require(outcome == {name: settled[name] for name in ('return_code', 'stdout_sha256', 'stderr_sha256')})
+    metadata = {'schema_version', 'argv_sha256', 'args', 'effect', 'executable', 'executable_sha256',
+                'parent', 'child', 'started_at', 'started_monotonic_ns'}
+    binding = {name: start[name] for name in START_KEYS - metadata}
+    row, _ = record(directory / (key + '-cli-refusal.json'))
+    fields(row, {'schema_version', 'case', 'binding_sha256', 'args_sha256', 'child', 'return_code',
+                 'stdout_base64', 'stderr_base64', 'stdout_sha256', 'stderr_sha256', 'product_result',
+                 'command_executed', 'positive_upgrade'})
+    require(type(row['schema_version']) is int and row['schema_version'] == 1 and row['case'] == case
+            and row['binding_sha256'] == upgrades.digest(binding) and row['args_sha256'] == upgrades.digest(start['args'])
+            and row['child'] == start['child'] and row['return_code'] == settled['return_code']
+            and row['command_executed'] is True and row['positive_upgrade'] is False)
+    require(type(row['stdout_base64']) is str and type(row['stderr_base64']) is str
+            and len(row['stdout_base64']) + len(row['stderr_base64']) <= 90000)
+    output = base64.b64decode(row['stdout_base64'], validate=True)
+    error = base64.b64decode(row['stderr_base64'], validate=True)
+    require(native.digest(output) == row['stdout_sha256'] == settled['stdout_sha256']
+            and native.digest(error) == row['stderr_sha256'] == settled['stderr_sha256'])
+    actual = upgrades.validate_refusal(case, start['args'], row['return_code'], output, error)
+    require(row['product_result'] == actual)
+    stdin, _ = record(directory / (key + '-cli-stdin.json'))
+    fields(stdin, {'schema_version', 'case', 'binding_sha256', 'args_sha256', 'child', 'mode',
+                   'delivered_bytes', 'writer_closed', 'released', 'delivered_monotonic_ns', 'closed_monotonic_ns', 'environment', 'inputs_sha256'})
+    require(type(stdin['schema_version']) is int and stdin['schema_version'] == 1 and stdin['case'] == case
+            and stdin['binding_sha256'] == row['binding_sha256'] and stdin['args_sha256'] == row['args_sha256']
+            and stdin['child'] == start['child'] and stdin['mode'] == spec.stdin_mode
+            and type(stdin['delivered_bytes']) is int and stdin['delivered_bytes'] == (2 if spec.stdin_mode == 'DECLINE_N' else 0)
+            and stdin['writer_closed'] is True and stdin['released'] is True
+            and monotonic(release, 'released_monotonic_ns') <= monotonic(stdin, 'delivered_monotonic_ns')
+            <= monotonic(stdin, 'closed_monotonic_ns') <= monotonic(settled, 'settled_monotonic_ns'))
+    environment = fields(stdin['environment'], {'infra_mode', 'repository_root', 'campaign_infra_root', 'operator_file', 'infra_root'})
+    require(all(type(value) is str and 0 < len(value) <= 4096 for value in environment.values()))
+    require(environment == upgrades.expected_refusal_environment(case, Path(environment['repository_root']),
+        Path(environment['campaign_infra_root']), Path(environment['operator_file'])))
+    sha(stdin['inputs_sha256'])
+    return actual | {'stdin_mode': spec.stdin_mode, 'infra_mode': environment['infra_mode'],
+                     'command_executed': True, 'positive_upgrade': False}
+
+
+def verify_refusal_preservation(directory: Path, start: dict[str, Any], settled: dict[str, Any], platform: str, intent: Any, selection: dict[str, Any], key: str) -> None:
+    before, _ = record(directory / 'product-refusal-before.json')
+    after, _ = record(directory / 'product-refusal-after.json')
+    keys = {'schema_version', 'case', 'run_id', 'source_commit', 'root', 'protected', 'runtime', 'inputs', 'captured_monotonic_ns'}
+    fields(before, keys)
+    fields(after, keys)
+    root = str(suite.ROOT) if platform == 'native' else str(intent.checkout)
+    infra = suite.INFRA if platform == 'native' else intent.home / 'infra'
+    operator = infra / 'operator.env'
+    pinned_infra = intent.infra_sha256 if platform == 'native' else intent.configuration_sha256
+    pinned_operator = intent.operator_config_sha256 if platform == 'native' else None
+    for row in (before, after):
+        require(type(row['schema_version']) is int and row['schema_version'] == 1
+                and row['case'] == intent.case and row['run_id'] == intent.run_id
+                and row['source_commit'] == intent.source_commit and row['root'] == root)
+        fields(row['protected'], {'schema_version', 'paths'})
+        require(type(row['protected']['schema_version']) is int and row['protected']['schema_version'] == 1
+                and type(row['protected']['paths']) is dict and len(row['protected']['paths']) <= 1024
+                and set(upgrades.PROTECTED_PATHS) <= set(row['protected']['paths']))
+        upgrades.validate_protected(row['protected'])
+        upgrades.validate_refusal_inputs(row['inputs'], Path(root), infra, operator, pinned_infra, pinned_operator)
+        runtime = row['runtime']
+        require(type(runtime) is dict and runtime.get('status') == 'UPGRADE_RUNTIME_VERIFIED'
+                and type(runtime.get('manifest_schema')) is int and runtime['manifest_schema'] == 2
+                and runtime.get('selection') == selection)
+        manifest = row['protected']['paths']['installation/manifest.json']
+        require(manifest['kind'] == 'regular' and manifest['sha256'] == runtime.get('manifest_sha256')
+                == runtime.get('manifest_token') == selection['manifest_sha256'])
+    require(before['protected'] == after['protected']
+            and monotonic(before, 'captured_monotonic_ns') < monotonic(start, 'started_monotonic_ns')
+            < monotonic(settled, 'settled_monotonic_ns') < monotonic(after, 'captured_monotonic_ns'))
+    upgrades.preserve(before['runtime'], after['runtime'], no_op=True)
+    require(before['inputs'] == after['inputs'])
+    stdin, _ = record(directory / (key + '-cli-stdin.json'))
+    require(stdin['environment'] == upgrades.expected_refusal_environment(intent.case, Path(root), infra, operator)
+            and stdin['inputs_sha256'] == upgrades.digest(before['inputs']))
+    if upgrades.REFUSALS[intent.case].cause == 'CHECKPOINT_ABSENT':
+        require(before['protected']['paths']['installation/product-upgrade.json'] == {'kind': 'absent'})
+
+
 def verify_outcome(directory: Path, key: str, start: dict[str, Any], release: dict[str, Any],
                    settled: dict[str, Any], predicate: str | None) -> None:
+    if predicate == 'EXPECTED_REFUSAL':
+        verify_refusal_child(directory, key, start, release, settled)
+        return
     if predicate is None:
         require(settled['fault'] is None and settled['return_code'] == 0 and settled['output_complete'] is True)
         outcome, _ = record(directory / (key + '-outcome.json'))
@@ -260,7 +352,7 @@ def report(platform: str, run_id: str, case: str, expected_go: str) -> dict[str,
     for match, (start, _) in records(directory, START_FILE):
         fields(start, START_KEYS)
         approval = start['approval']
-        if start['effect'] is True and type(approval) is dict and approval.get('sha256') == expected_go:
+        if (start['effect'] is True or case in upgrades.REFUSALS and start['args'] == list(upgrades.REFUSALS[case].args)) and type(approval) is dict and approval.get('sha256') == expected_go:
             effects.append((match.group(1), start))
     require(bool(effects))
     effects.sort(key=lambda item: monotonic(item[1], 'started_monotonic_ns'))
@@ -304,6 +396,7 @@ def report(platform: str, run_id: str, case: str, expected_go: str) -> dict[str,
                 'package_version': package_version}
     previous = 0
     proof = []
+    refusal_summary = None
     for (key, start), (args, predicate) in zip(effects, expected, strict=True):
         require(type(start['schema_version']) is int and start['schema_version'] == 1
                 and all(start[k] == value for k, value in binding.items())
@@ -313,16 +406,25 @@ def report(platform: str, run_id: str, case: str, expected_go: str) -> dict[str,
         settled = validate_child(directory, key, start, args, predicate, accepted_at, expiry, finished)
         previous = settled['settled_monotonic_ns']
         proof.append({'start': start, 'settled': settled})
+        if predicate == 'EXPECTED_REFUSAL':
+            verify_refusal_preservation(directory, start, settled, platform, intent, selection, key)
+            release, _ = record(directory / (key + '-cli-released.json'))
+            refusal_summary = verify_refusal_child(directory, key, start, release, settled)
     status = ('ENGINE_RECOVERED_DISPOSED' if engine else 'PASS') if platform == 'native' else (
         'CASE_RECOVERED' if engine else 'CASE_PASS_DISPOSED')
     require(any(digest == result_sha and row.get('status') == status
                 and (platform == 'native' or all(row.get(k) == binding[k] for k in ('run_id', 'case', 'source_commit')))
                 for _, (row, digest) in records(directory, RESULT_FILE[platform])))
-    return {'status': 'ATTRIBUTED', 'platform': platform, 'case': case, 'run_id': run_id,
+    result = {'status': 'ATTRIBUTED', 'platform': platform, 'case': case, 'run_id': run_id,
             'source_commit': intent.source_commit, 'workflow_sha256': binding['workflow_sha256'],
             'result_sha256': result_sha, 'execution_sha256': upgrades.digest(proof),
             'before_sha256': finished['before_sha256'], 'after_sha256': finished['after_sha256'],
-            'package_version': package_version, 'selection': selection, 'effects': len(effects), 'epic_complete': False}
+            'package_version': package_version, 'selection': selection, 'effects': sum(start['effect'] is True for _, start in effects), 'epic_complete': False}
+    if case in upgrades.REFUSALS:
+        result.update(verification_kind='PUBLIC_REFUSAL_PRESERVED', command_executed=True, positive_upgrade=False,
+                      recovery_performed=False, refusal_case=case, stdin_mode=upgrades.REFUSALS[case].stdin_mode,
+                      product_result=refusal_summary, commands=len(proof))
+    return result
 
 
 class Parser(argparse.ArgumentParser):
