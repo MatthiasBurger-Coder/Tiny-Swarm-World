@@ -140,3 +140,9 @@ audit accepted. DevOps prepares private exact script; effectreview pending. New
 owned Alpine/derivedbase only, no hostproxy/original-manager/default/network
 change; source-faithful responder first before probes/sleep. Instrumented branch
 separate; UUID/spec/marker cleanup and original proof required. No effects admitted.
+
+TA07 exact-effects gate: allsix actual roles APPROVED fixeddriver/context/
+diagnostic; root0600receipt installed and inspect passed. No effects. Exact Root
+docreceipt/checkpoint publication required first.600effects+240cleanup;2trials
+sequential/maxonealive, no hostproxy/originalmutations; UUID/spec/marker cleanup.
+Independent oldsnapshot before-observation2refs retained; after-proof required.

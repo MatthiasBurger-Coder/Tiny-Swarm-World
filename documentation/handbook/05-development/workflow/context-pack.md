@@ -2,7 +2,7 @@
 
 Workflow: [workflow.md](workflow.md), issue-440-open-acceptance, version2.0, FULL_PATH.
 Branch: docs/workflow-issue440-open-20261111. Committed baseline: c40d87ed81101dd582a112fe8b427d84372f36e2.
-Status: EXECUTING; TA06 failed/restored audit accepted; TA07 four-role diagnostic PLAN accepted, exact effects review pending; cause unproven; no effects/source edit admitted; WSL PASS retained.
+Status: EXECUTING; TA07 all six exact effects approvals complete; bounded diagnostic admission conditional on exact Root receipt/publication; no effects; cause unproven; WSL PASS retained.
 
 Read [requirements](requirement-matrix.md), [inventory](requirements.json),
 [prerequisites](prerequisite-ledger.md), [scenario/source contract](scenario-plan.md),
@@ -181,3 +181,9 @@ probes/sleep; instrumented probes explicitly separate, no inferred cause/PASS.
 UUID/spec/marker cleanup + original-state proof required. DevOps private script
 preparation only; exact script/context/effectsGO review and guarded publication
 precede effects. TA06 actual-result audit accepted; C/WSLPASS retained.
+
+TA07 exact-effects phase: allsixAPPROVED; actualroot0600install/readonlyinspect
+passed, no effects/journal. Driverf11d1c47/contextce47bd7c/diagnostic5110b5f0
+fixed;600effects+240cleanup, maxoneof2trialsalive, UUID/spec/marker recovery only.
+Both oldsnapshotrefs independently observed before (2retained); afterproof
+required. Root exactdocreceipt/publication precede effects; no cause/fix/nativePASS.

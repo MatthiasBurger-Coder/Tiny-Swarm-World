@@ -2,7 +2,7 @@
 
 Workflow ID: issue-440-open-acceptance
 workflowVersion: 2.0
-Status: EXECUTING; TA06 FAILED_RESTORED audit accepted; TA07 four-role diagnostic PLAN accepted, exact effects review pending; root cause unproven; no diagnostic effects/source edit admitted; WSL PASS retained
+Status: EXECUTING; TA07 six exact diagnostic effects approvals complete, READY_FOR_BOUNDED_DIAGNOSTIC_ATTEMPT conditioned on exact Root receipt/publication; no effects yet; cause unproven; WSL PASS retained
 Issue: [#440](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `docs/workflow-issue440-open-20261111`
 Committed authoring baseline: `c40d87ed81101dd582a112fe8b427d84372f36e2`
@@ -429,11 +429,30 @@ instrumented diagnostics are explicitly different and cannot establish fixture
 success or a cause without evidence. Cleanup binds UUID/spec/marker and proves
 all original state unchanged.
 
-DevOps is preparing only the private exact diagnostic script. Exact script/
-context/effects-GO review remains pending; no effects, source edit or new fixture
-attempt is admitted by plan acceptance. Preserve C, prior outcomes and WSL PASS;
-native/pairK/product/global/parent remain OPEN. Exact designated SSH/WSL receipt
-is required before checkpoint, with guarded publication before admitted effects.
+The distinct exact-effects phase STARTED before six-role consultation; all six
+actual Requirements/Architecture/Automation/Test-Evidence/Security/DevOps roles
+APPROVED. Root0600 installation and read-only `--inspect` passed; no effects or
+journal yet. Exact bindings:
+
+| Artifact | SHA-256 |
+|---|---|
+| Diagnostic driver | `f11d1c4736cc140f3e38e6ca79989ef91fff210f28a57f04608ec45c57c38d4a` |
+| Canonical context | `ce47bd7c70c4f9ab2b92cb6bf8f9abd08db8fe8fe73f4b7dc6ee475e8384ae81` |
+| Canonical diagnostic | `5110b5f0866c4983f83fef89cfb4e21ca9ba310189864a47ff78fe77fc405b32` |
+| Installed six-review receipt | `3e056125df8db0e6f4a24cfc06405dedc87c43a2d624fd73b2ade70c5269590f` |
+
+READY_FOR_BOUNDED_DIAGNOSTIC_ATTEMPT requires the exact designated SSH/WSL
+receipt before checkpoint and guarded publication before effects. Two declared
+fresh trials execute sequentially, at most one alive;600s effects+240s cleanup,
+UUID/spec/marker FINALLY cleanup and cleanup-only recover without trial replay.
+Trusted TA06 helper utilities are fixed; old manager mutators are not called.
+No hostproxy/manager/default-profile/network or frozen-C change. Both original
+snapshot refs must be observed read-only before/after independently of driver
+comparisons; actual before-observation retained both (private proofSHA
+`5f338a57dccd7347a0a0abb9ccf6ad7d2d5a4363afc24f91df14968af8b44d50`). After-proof remains required.
+Outcomes are bounded REPRODUCED/NOT_REPRODUCED/INCONCLUSIVE; nonzero reproduction
+or instrumented behavior alone proves no root cause, fix or native fixture PASS.
+Preserve prior failed-fixture result, C and WSL PASS; paired K/product/parent OPEN.
 
 ## Verified Baseline and Target Picture
 

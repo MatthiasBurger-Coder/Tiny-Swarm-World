@@ -4,7 +4,7 @@
   "workflow_path": "documentation/handbook/05-development/workflow/workflow.md",
   "branch": "docs/workflow-issue440-open-20261111",
   "baseline": "c40d87ed81101dd582a112fe8b427d84372f36e2",
-  "status": "EXECUTING_TA07_DIAGNOSTIC_PLAN_ACCEPTED_EFFECT_REVIEW_PENDING",
+  "status": "EXECUTING_TA07_EXACT_DIAGNOSTIC_EFFECTS_READY",
   "process_strand": "workflow execute",
   "execution_profile": "FULL_PATH",
   "affected_areas": [
@@ -58,13 +58,13 @@
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-installation-scoped-incus-profile.adoc": "23c45b5e89584e9754a3ad0787a8d9f9a6db2c162a3de7dabb11e17b97ae1d08",
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-classic-product-component-lifecycle.adoc": "92e2e2695f6254b43b73cc4e30f688b7932dcdc138c8a6e1592a16bc0bd506cd",
     "documentation/handbook/05-development/workflow/authoring-review.md": "f60a8d9443d96ecb1ab4d2b74813cdb2a31946e7291094a4db09c7aaca75720c",
-    "documentation/handbook/05-development/workflow/context-pack.md": "b6f1f72f25a4424e3f008f2320f98b4fb5bddde2e9f97dc1d216fde83041d5b1",
-    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "b357b221a074d1aee1a3dbd028f5a15ca4d6d67033bd7982544b3327896cf17f",
+    "documentation/handbook/05-development/workflow/context-pack.md": "fc1a56c318566dd6b2feb3c227ccc4d29469c210718618194e4b3b2b6d773f85",
+    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "c3ab087de928ead3dea33aabffb4dbf70501cffe7d5ed578c15db0bfbccd610d",
     "documentation/handbook/05-development/workflow/requirement-matrix.md": "7d57dbe1e16f23417a5b8d72be55d4acb38b109ad4bba776bcb20de90efd1e8d",
     "documentation/handbook/05-development/workflow/requirements.json": "70e9beda2f7a7bb1b3f5bce74d37f458727e9cc7f04fe58451f9be33138bea9f",
     "documentation/handbook/05-development/workflow/scenario-plan.md": "db2d095401c3f3c8348369f213d99b2a9106ba970f7aae95b1896bb56808648f",
     "documentation/handbook/05-development/workflow/workflow.index.md": "f12c50ebe16bec52872f71951627ac0a58590d926da27e31d7383b026d99ca1e",
-    "documentation/handbook/05-development/workflow/workflow.md": "0f7a944d8c8aa5f3e729e540c051890682f1391992e42af9ad83b030785a8ce8"
+    "documentation/handbook/05-development/workflow/workflow.md": "879db6047d1fa641bb46e7655a812d4fcf8030587a45846c92ff985733a7b44e"
   },
   "slices": [
     "S440O-01",
@@ -356,11 +356,11 @@
   },
   "current_consultation": {
     "id": "TA440-20261112-07",
-    "state": "READY_FOR_BOUNDED_DIAGNOSTIC_PLAN_EFFECT_REVIEW_PENDING",
+    "state": "READY_FOR_BOUNDED_DIAGNOSTIC_ATTEMPT",
     "slice_id": "S440O-07",
     "cause": "NOT_YET_PROVEN",
-    "new_exact_review": "PENDING_EXACT_SCRIPT_CONTEXT_EFFECTS_GO",
-    "new_live_attempt_admitted": false,
+    "new_exact_review": "ALL_SIX_ACTUAL_APPROVED",
+    "new_live_attempt_admitted": "CONDITIONED_ON_EXACT_ROOT_DOCUMENTATION_RECEIPT_AND_GUARDED_PUBLICATION",
     "source_edit_admitted": false,
     "scope": "new owned Alpine and derived no-host-proxy base; original Running/Stopped states unchanged; no manager/default/network changes",
     "documentation_gate": "EXACT_DESIGNATED_SSH_WSL_RECEIPT_REQUIRED_BEFORE_CHECKPOINT",
@@ -387,6 +387,50 @@
     },
     "diagnostic_order": "exact source-C-faithful responder before guest probes/sleep, then explicitly separate instrumented diagnostics",
     "cleanup": "UUID/spec/marker bound plus all original-state proof",
-    "DevOps_preparation": "PRIVATE_EXACT_SCRIPT_ONLY_NO_EFFECTS"
+    "DevOps_preparation": "EXACT_EFFECTS_ARTIFACTS_INSTALLED_REVIEWED_NO_EXECUTION",
+    "effects_review_status": {
+      "requirements": "APPROVED",
+      "architecture": "APPROVED",
+      "automation": "APPROVED",
+      "test_evidence": "APPROVED",
+      "security": "APPROVED",
+      "devops": "APPROVED"
+    },
+    "artifact_sha256": {
+      "driver": "f11d1c4736cc140f3e38e6ca79989ef91fff210f28a57f04608ec45c57c38d4a",
+      "context": "ce47bd7c70c4f9ab2b92cb6bf8f9abd08db8fe8fe73f4b7dc6ee475e8384ae81",
+      "canonical_diagnostic": "5110b5f0866c4983f83fef89cfb4e21ca9ba310189864a47ff78fe77fc405b32",
+      "actual_review_receipt": "3e056125df8db0e6f4a24cfc06405dedc87c43a2d624fd73b2ade70c5269590f"
+    },
+    "native_preparation": {
+      "installed_owner": "root",
+      "mode": "0600",
+      "readonly_inspect": "PASS",
+      "driver_hash": "UNCHANGED",
+      "effect_journal": "ABSENT",
+      "effects": "NOT_RUN"
+    },
+    "bounded_scope": {
+      "trial_count": 2,
+      "max_alive": 1,
+      "effects_seconds": 600,
+      "cleanup_seconds": 240,
+      "no_host_proxy": true,
+      "original_mutations": false,
+      "faithful_first_before_probes": true,
+      "instrumented_branch": "EXPLICITLY_DIFFERENT",
+      "cleanup": "UUID/spec/marker FINALLY; recover cleanup-only no replay"
+    },
+    "retained_snapshot_proof": {
+      "before_refs_observed": 2,
+      "before_sha256": "5f338a57dccd7347a0a0abb9ccf6ad7d2d5a4363afc24f91df14968af8b44d50",
+      "after_observation": "REQUIRED_SEPARATE_READONLY_ARTIFACT",
+      "driver_compares_snapshot_list": false
+    },
+    "permitted_result_classifications": [
+      "REPRODUCED",
+      "NOT_REPRODUCED",
+      "INCONCLUSIVE"
+    ]
   }
 }
