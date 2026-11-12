@@ -59,7 +59,7 @@ _INVENTORY_TARGET_HOST = '192.168.178.33'
 _INVENTORY_CLEANUP_COMMAND_RESERVE = 110
 _INVENTORY_CLEANUP_BYTE_RESERVE = 8 * 1024 * 1024
 _INVENTORY_CLEANUP_ENTITY_RESERVE = 5_000
-_INVENTORY_CLEANUP_TIMEOUT_RESERVE_SECONDS = 60
+_INVENTORY_CLEANUP_TIMEOUT_RESERVE_SECONDS = 120
 _INVENTORY_BYTES_CAPTURED = 0
 _INVENTORY_ENTITIES_CAPTURED = 0
 _JSON_SLOT_PATH = tuple[tuple[str, str | int], ...]
@@ -659,8 +659,12 @@ def command(argv: list[str]) -> bytes:
         raise TargetDrift('INCUS_INVENTORY_TOTAL_TIMEOUT')
     if byte_limit - _INVENTORY_BYTES_CAPTURED < 2:
         raise TargetDrift('INCUS_INVENTORY_OUTPUT_TOO_LARGE')
+    graceful_fixture_stop = (len(argv) == 7 and argv[:2] == ['/usr/bin/incus', 'stop']
+        and argv[3:] == ['--project', 'default', '--timeout', '30']
+        and re.fullmatch(r'tsw-q449-[0-9a-f]{32}-fixture', argv[2]) is not None)
+    command_timeout = 45 if graceful_fixture_stop else 20
     try:
-        stdout, stderr, status = _bounded_process_output(argv, min(20, remaining),
+        stdout, stderr, status = _bounded_process_output(argv, min(command_timeout, remaining),
             min(_INVENTORY_COMMAND_MAX_BYTES, (byte_limit - _INVENTORY_BYTES_CAPTURED) // 2),
             error_code='JIT_COMMAND_FAILED')
     except _BoundedCommandFailure as exc:

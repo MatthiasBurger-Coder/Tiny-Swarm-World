@@ -3527,9 +3527,112 @@ class _FullGraphFixtureTransport:
         return SimpleNamespace(returncode=1 if self.lost_init and command_name == 'incus' and args[:1] == ['init'] else 0, stdout=output)
 
 
+class GracefulFixtureStopBudgetTests(_FixtureBehaviorTestCase):
+    _NAME = 'tsw-q449-' + 'a' * 32 + '-fixture'
+
+    def _stop(self):
+        return ['incus', 'stop', self._NAME, '--project', 'default', '--timeout', '30']
+
+    def test_fixture_stop_waits_for_graceful_reply_beyond_generic_deadline(self):
+        clock = [100.0]
+        fixture._INVENTORY_STARTED_AT = clock[0]
+        fixture._INVENTORY_RESERVE_CLEANUP = True
+        fixture._INVENTORY_CLEANUP_MODE = True
+
+        def graceful_reply(argv, timeout, *_args, **_kwargs):
+            if timeout < 35:
+                raise fixture._BoundedCommandFailure('JIT_COMMAND_FAILED', 0, 0)
+            clock[0] += 35
+            return b'', b'', 0
+
+        with (patch.object(fixture.time, 'monotonic', side_effect=lambda: clock[0]),
+              patch.object(fixture, '_bounded_process_output', side_effect=graceful_reply) as process):
+            self.assertEqual(fixture.command(self._stop()), b'')
+        self.assertEqual(process.call_args.args[0], ['/usr/bin/incus', *self._stop()[1:]])
+        self.assertEqual(process.call_args.args[1], 45)
+        self.assertNotIn('--force', process.call_args.args[0])
+        self.assertEqual(fixture._COMMAND_AUDIT[-1]['exit_status'], 0)
+        self.assertEqual(fixture._INVENTORY_STARTED_AT, 100.0)
+
+    def test_only_exact_trusted_nonce_fixture_stop_gets_45_seconds(self):
+        stop = self._stop()
+        cases = [(stop, 45), (['/usr/bin/incus', *stop[1:]], 45),
+                 (['/tmp/incus', *stop[1:]], 20),
+                 ([*stop[:2], 'swarm-manager', *stop[3:]], 20),
+                 ([*stop[:2], 'tsw-q449-' + 'A' * 32 + '-fixture', *stop[3:]], 20),
+                 ([*stop[:2], 'tsw-q449-' + 'a' * 31 + '-fixture', *stop[3:]], 20),
+                 ([*stop[:4], 'foreign', *stop[5:]], 20),
+                 ([*stop[:-1], '60'], 20), (stop[:-2], 20),
+                 ([*stop, '--force'], 20),
+                 (['incus', 'stop', '--project', 'default', self._NAME, '--timeout', '30'], 20),
+                 (['ss', '-H', '-ltnp'], 20)]
+        for argv, limit in cases:
+            with self.subTest(argv=argv):
+                fixture._INVENTORY_STARTED_AT = 100.0
+                with (patch.object(fixture.time, 'monotonic', return_value=100.0),
+                      patch.object(fixture, '_bounded_process_output', return_value=(b'', b'', 0)) as process):
+                    fixture.command(argv)
+                self.assertEqual(process.call_args.args[1], limit)
+                self.assertEqual(process.call_args.args[0][1:], argv[1:])
+
+    def test_remaining_active_and_cleanup_time_caps_stop_without_resetting_clock(self):
+        for host, active, reserve, total in (('192.168.178.33', 180, 120, 300),
+                                             ('192.168.178.58', 350, 300, 650)):
+            for cleanup, horizon in ((False, active), (True, total)):
+                with self.subTest(host=host, cleanup=cleanup):
+                    fixture._begin_inventory(host, reserve_cleanup=True)
+                    fixture._INVENTORY_STARTED_AT = 100.0
+                    fixture._INVENTORY_CLEANUP_MODE = cleanup
+                    self.assertEqual(fixture._inventory_budget_profile(), {
+                        'target_host': host, 'total_seconds': total,
+                        'cleanup_reserve_seconds': reserve, 'active_seconds': active})
+                    with (patch.object(fixture.time, 'monotonic', return_value=100.0 + horizon - 17),
+                          patch.object(fixture, '_bounded_process_output', return_value=(b'', b'', 0)) as process):
+                        fixture.command(self._stop())
+                    self.assertEqual(process.call_args.args[1], 17)
+                    self.assertEqual(fixture._INVENTORY_STARTED_AT, 100.0)
+
+    def test_exhausted_phase_deadline_never_spawns_a_stop_client(self):
+        for host, active, total in (('192.168.178.33', 180, 300), ('192.168.178.58', 350, 650)):
+            for cleanup, horizon in ((False, active), (True, total)):
+                with self.subTest(host=host, cleanup=cleanup):
+                    fixture._begin_inventory(host, reserve_cleanup=True)
+                    fixture._INVENTORY_STARTED_AT = 100.0
+                    fixture._INVENTORY_CLEANUP_MODE = cleanup
+                    with (patch.object(fixture.time, 'monotonic', return_value=100.0 + horizon),
+                          patch.object(fixture.subprocess, 'Popen') as spawn,
+                          patch.object(fixture, '_bounded_process_output') as process,
+                          self.assertRaisesRegex(fixture.TargetDrift, 'INCUS_INVENTORY_TOTAL_TIMEOUT')):
+                        fixture.command(self._stop())
+                    process.assert_not_called()
+                    spawn.assert_not_called()
+                    self.assertEqual(fixture._COMMAND_AUDIT, [])
+                    self.assertEqual(fixture._INVENTORY_STARTED_AT, 100.0)
+
+    def test_cleanup_preserves_clock_and_charged_usage_after_active_phase(self):
+        fixture._begin_inventory('192.168.178.33', reserve_cleanup=True)
+        fixture._INVENTORY_STARTED_AT = 100.0
+        fixture._INVENTORY_BYTES_CAPTURED = 7
+        fixture._COMMAND_AUDIT.append({'prior': True})
+        clock = [279.0]
+        with (patch.object(fixture.time, 'monotonic', side_effect=lambda: clock[0]),
+              patch.object(fixture, '_bounded_process_output', return_value=(b'ab', b'', 0)) as process):
+            fixture.command(['ss', '-H', '-ltnp'])
+            self.assertEqual(process.call_args.args[1], 1)
+            clock[0] = 280.0
+            fixture._INVENTORY_CLEANUP_MODE = True
+            fixture.command(self._stop())
+            self.assertEqual(process.call_args.args[1], 45)
+        self.assertEqual(fixture._INVENTORY_STARTED_AT, 100.0)
+        self.assertEqual(fixture._INVENTORY_BYTES_CAPTURED, 11)
+        self.assertEqual(len(fixture._COMMAND_AUDIT), 3)
+        self.assertEqual(fixture._COMMAND_AUDIT[0], {'prior': True})
+        self.assertEqual(fixture._inventory_budgets()[-1], 300)
+
+
 class HostScopedInventoryBudgetTests(_FixtureBehaviorTestCase):
     def test_native_and_wsl_profiles_reset_every_quota_without_cleanup_reclaim(self):
-        for host, active, total in (('192.168.178.58', 350, 650), ('192.168.178.33', 240, 300)):
+        for host, active, total in (('192.168.178.58', 350, 650), ('192.168.178.33', 180, 300)):
             fixture._COMMAND_AUDIT.append({'old': True})
             fixture._INVENTORY_BYTES_CAPTURED = 100
             fixture._INVENTORY_ENTITIES_CAPTURED = 100
@@ -3558,7 +3661,7 @@ class HostScopedInventoryBudgetTests(_FixtureBehaviorTestCase):
         fixture._INVENTORY_BYTES_CAPTURED = 37
         with self.assertRaisesRegex(fixture.FixtureError, 'HOST_IDENTITY_DRIFT'):
             fixture._begin_inventory('unbound', reserve_cleanup=True)
-        self.assertEqual(fixture._inventory_budgets()[-1], 240)
+        self.assertEqual(fixture._inventory_budgets()[-1], 180)
         self.assertEqual(fixture._INVENTORY_BYTES_CAPTURED, 37)
 
     def test_all_capture_entrypoints_reset_stale_host_and_time_before_queries(self):
@@ -3581,7 +3684,7 @@ class HostScopedInventoryBudgetTests(_FixtureBehaviorTestCase):
     def test_main_resets_host_scope_before_approval_or_effect(self):
         import contextlib
         import io
-        for host, active in (('192.168.178.58', 350), ('192.168.178.33', 240)):
+        for host, active in (('192.168.178.58', 350), ('192.168.178.33', 180)):
             fixture._INVENTORY_STARTED_AT = -999.0
             fixture._INVENTORY_BYTES_CAPTURED = 999
             with (contextlib.redirect_stderr(io.StringIO()), patch.object(fixture, 'git_preflight') as source):
@@ -3621,7 +3724,7 @@ class HostScopedInventoryBudgetTests(_FixtureBehaviorTestCase):
 
 class R3BudgetAndAtomicTransportTests(_FixtureBehaviorTestCase):
     def test_incus_read_cannot_spend_active_or_cleanup_time_reserve(self):
-        for host, cleanup, total in (('192.168.178.33', False, 240), ('192.168.178.33', True, 300),
+        for host, cleanup, total in (('192.168.178.33', False, 180), ('192.168.178.33', True, 300),
                                      ('192.168.178.58', False, 350), ('192.168.178.58', True, 650)):
             with self.subTest(host=host, cleanup=cleanup):
                 self.setUp()
