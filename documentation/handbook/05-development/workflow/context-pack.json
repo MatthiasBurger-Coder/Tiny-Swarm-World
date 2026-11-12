@@ -4,7 +4,7 @@
   "workflow_path": "documentation/handbook/05-development/workflow/workflow.md",
   "branch": "docs/workflow-issue440-open-20261111",
   "baseline": "c40d87ed81101dd582a112fe8b427d84372f36e2",
-  "status": "EXECUTING_TA08_LOCAL_SOURCE_FIX_IN_PROGRESS",
+  "status": "EXECUTING_TA09_READY_FOR_BOUNDED_WSL_ATTEMPT",
   "process_strand": "workflow execute",
   "execution_profile": "FULL_PATH",
   "affected_areas": [
@@ -58,13 +58,13 @@
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-installation-scoped-incus-profile.adoc": "23c45b5e89584e9754a3ad0787a8d9f9a6db2c162a3de7dabb11e17b97ae1d08",
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-classic-product-component-lifecycle.adoc": "92e2e2695f6254b43b73cc4e30f688b7932dcdc138c8a6e1592a16bc0bd506cd",
     "documentation/handbook/05-development/workflow/authoring-review.md": "f60a8d9443d96ecb1ab4d2b74813cdb2a31946e7291094a4db09c7aaca75720c",
-    "documentation/handbook/05-development/workflow/context-pack.md": "6320583c08c17609b99c9a45b64e41e4ae0c818da2a538709a14338aa8b7f118",
-    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "30fc014a85545da6757dc3cedfe637beb43f866f58dcfd1069daf6ed9ad264a1",
+    "documentation/handbook/05-development/workflow/context-pack.md": "395772ba7c61ab8e9c2ffd22fbadad2c1279ecdb57f893f7b7b2ac123b02629d",
+    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "4a911a7cccacf85fa9e043bc95dc58f789163c91aec12c825ecdd41dcba7d8fa",
     "documentation/handbook/05-development/workflow/requirement-matrix.md": "7d57dbe1e16f23417a5b8d72be55d4acb38b109ad4bba776bcb20de90efd1e8d",
     "documentation/handbook/05-development/workflow/requirements.json": "70e9beda2f7a7bb1b3f5bce74d37f458727e9cc7f04fe58451f9be33138bea9f",
     "documentation/handbook/05-development/workflow/scenario-plan.md": "db2d095401c3f3c8348369f213d99b2a9106ba970f7aae95b1896bb56808648f",
     "documentation/handbook/05-development/workflow/workflow.index.md": "f12c50ebe16bec52872f71951627ac0a58590d926da27e31d7383b026d99ca1e",
-    "documentation/handbook/05-development/workflow/workflow.md": "718f676e55d88158df3eb981e20a746ce064a2b1f21bdda824e6d653e594ac84"
+    "documentation/handbook/05-development/workflow/workflow.md": "ddeca8c97c4f8c9b54ec43bb1394e8f6136ef1bb830d42ba5b5b9c955febaf18"
   },
   "slices": [
     "S440O-01",
@@ -195,7 +195,7 @@
       "fixture_stub": "NOT_RUN"
     }
   },
-  "current_workflow_run": "TA440-20261112-08",
+  "current_workflow_run": "TA440-20261112-09",
   "active_native_attempt": {
     "id": "TA440-20261112-05",
     "state": "FAILED_RESTORED",
@@ -355,56 +355,75 @@
     "independent_result_audit": "ACCEPTED_FAILED_RESTORED_FIXTURE_NOT_RUN_LATE_SNAPSHOT_RETAINED"
   },
   "current_consultation": {
-    "id": "TA440-20261112-08",
-    "state": "LOCAL_SOURCE_FIX_IN_PROGRESS",
-    "slice_id": "S440O-02",
-    "scope": "LOCAL ordinary fixture process-liveness probe repair; two exact existing paths only",
-    "exact_review": "ALL_SIX_PLAN_ALIGNED_POSITIVE_PID_IDENTITY",
-    "shell_kill0_errno": "NOT_DIRECTLY_CAPTURED",
-    "cause": "NOT_FULLY_PROVEN; permission-as-livenessguard inference",
-    "host_versions": {
-      "OS": "Ubuntu26.04.1",
-      "kernel": "7.0.0-42",
-      "AppArmor": "5.0.2",
-      "restrict_unprivileged_unconfined": 1,
-      "userns_restriction": 1
+    "id": "TA440-20261112-09",
+    "state": "READY_FOR_BOUNDED_WSL_ATTEMPT",
+    "slice_id": "S440O-06",
+    "source_campaign": "22435e96cef1504ff7f6117c1ae105eb617fecbf",
+    "runtime_copies": {
+      "native": "1811matches0; proofprivateb497a3fb\u2026",
+      "WSL": "1811matches0; proofprivate0adad98d\u2026",
+      "mode": "READ_COPY_ONLY_NO_INFRA_EFFECTS",
+      "python": "3.14.4 standalone only"
     },
-    "source_edit_admitted": "ROOT_PREFLIGHT_AND_ISOLATED_TWO_FILE_WORKER_ADMISSION_COMPLETE",
-    "host_changes_admitted": false,
-    "global_AppArmor_disable_admitted": false,
-    "guard_weakening_admitted": false,
-    "new_live_attempt_admitted": false,
-    "original_manager": "RUNNING",
-    "source_C": "UNCHANGED",
-    "WSL_result": "PASS_RETAINED",
-    "native_fixture_result": "NO_PASS",
-    "parent_status": "INCOMPLETE",
+    "fresh_WSL_packet": "READY_EXACT_NEW_CPRIME",
+    "exact_new_reviews": {
+      "requirements": "APPROVED",
+      "architecture": "APPROVED",
+      "automation": "APPROVED",
+      "test_evidence": "APPROVED",
+      "security": "APPROVED",
+      "devops": "APPROVED"
+    },
+    "new_live_effects": "CONDITIONED_ON_EXACT_ROOT_RECEIPT_AND_GUARDED_PUBLICATION",
+    "sequence": "renewed WSL fixture and acceptance first, native sameUUIDpause/ownedbackup/FINALLY after",
+    "existing_user_live_consent": "RETAINED_NO_NEW_QUESTION",
+    "host_security_provider_changes": false,
+    "new_reset_or_native_install": false,
+    "old_C_WSL_result": "IMMUTABLE_HISTORICAL",
+    "original_signal_errno": "UNPROVEN",
+    "pairK_product_parent": "OPEN",
     "documentation_gate": "EXACT_DESIGNATED_SSH_WSL_RECEIPT_REQUIRED_BEFORE_CHECKPOINT",
-    "publication": "GUARDED_CHECKPOINT_REQUIRED_BEFORE_ANY_REVIEWED_EFFECTS",
-    "S3_S3D_gate": "ROOT_EXECUTION_PLAN_PASS",
-    "implementation": "IN_PROGRESS_SINGLE_TWO_FILE_WORKER",
-    "tests": "NOT_RUN_TESTER_ENVIRONMENT_PREPARATION_ONLY",
-    "added_source_test_paths": [
-      "modules/tsw_core/tools/linux/qualification/incus_profile_listener_fixture.py",
-      "modules/tsw_core/tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py"
-    ],
-    "targeted_gate": "PYTHONPATH=. python3 -m unittest modules.tsw_core.tests.infrastructure.adapters.clients.test_lxc_profile_listener_fixture",
-    "retained_graph": "14 nodes and dependency edges unchanged",
-    "planned_identity_contract": "bounded procstat comm parentheses/starttime22/expectedparent/nonZ_X_x; samePID nonconnecting netstat and nonceHTTP; unknown fails closed",
-    "superseded_plan": "blanket liveness-guard removal",
-    "campaign_policy": "C77/WSLproof immutable historical; S05newCprime freeze then fresh both-host proofs",
-    "isolated_implementation": {
-      "worktree": "issue440-responder-fix-ta08",
-      "branch": "private/issue440-cprime-ta08",
-      "source_base": "77a3356075925edee037bfe009a1f3dfb94cf5d8",
-      "created_verified_clean": true,
-      "worker": "reset_automation",
-      "control_workflow": "active integration authoritative",
-      "scope": "exact two approved source/test files only"
+    "publication": "GUARDED_CHECKPOINT_REQUIRED_BEFORE_EFFECTS",
+    "reviewed_packet_sha256": {
+      "GO_draft": "2c6aac6beeee1d3201d23960613ea60e6ebb77243e337c1f6976e770e74f3c54",
+      "resource_draft": "2d6e2fa318415f1b8734e03004211c5d79cd13bb678c06645e0c4f7c39379cec",
+      "archive": "a60b99cefb2561527493bef564a9ccf9d8b37d012a1c48ba511faa1a5a7bf7e3"
     },
-    "preflight_evidence": "private TA08 s3d-execution-plan.json and ta08-distribution.json",
-    "source_checkpoint": "SEPARATE_LATER_TWO_FILE_CHECKPOINT",
-    "source_freeze": "NOT_YET_FROZEN"
+    "fresh_captures": {
+      "route_cli_exit": 0,
+      "projects_cli_exit": 0,
+      "all_project_instances": 0,
+      "default_profile_config": {},
+      "default_root_disk_pool": "default",
+      "default_profile_used_by": 0,
+      "linux_10001": "EMPTY",
+      "loopback_61080": "FREE",
+      "Incus_client_server": "6.0.5",
+      "local_Alpine": "PINNED_bb8",
+      "Windows_baseline": "CAPTURED_PRESERVE_EXACT"
+    },
+    "WSL_runtime": {
+      "source_proof_sha256": "0adad98d8158c7caa65324716f4d343ba0402b2cab30ffbe51cbd26b58f1dc93",
+      "source_entries": 1811,
+      "mismatches": 0,
+      "tree_correct": true,
+      "owner": "root",
+      "mode": "0700",
+      "filesystem": "ext4",
+      "standalone_python": "3.14.4",
+      "local_quality_python": "3.12_SEPARATELY_VERIFIED"
+    },
+    "native_helper_preparation": "PREPARED_ONLY_NO_ADMISSION",
+    "allowed_finalization": "actual review statuses/resource APPROVED and dependent hash references only",
+    "execution_contract": "caller resource TTL before existing expected-SHA core CLI; sourceJIT/nonce/UUID/Windows/default/routes/ownedcleanup",
+    "outer_budget_seconds": 1100,
+    "effect_state": {
+      "fixed_GO": "ABSENT",
+      "reservation": "ABSENT",
+      "stub": "NOT_RUN",
+      "renewed_fixture": "NOT_RUN"
+    },
+    "old_proof_transfer": false
   },
   "diagnostic_TA07_outcome": {
     "classification": "REPRODUCED",
@@ -419,5 +438,32 @@
     "raw_reference": "private native-ta07-result/raw; archive prefix90d47c99",
     "kernel_supplement_reference": "private supplement prefix2f873883;23ownedrun AppArmor stacking/signal/ptrace denials",
     "cause": "INFERENCE_ONLY; shellkill0errno NOT_DIRECTLY_CAPTURED"
+  },
+  "source_closure_TA08": {
+    "state": "LOCAL_VERIFIED_AND_PUBLIC_SOURCE_PUBLISHED",
+    "public_commit": "3d1c513b9bab320f7540e64302eabf792dba50e2",
+    "public_tree": "9f4c8a8f0b516eee4f4da7830e7d22b70bbedac6",
+    "exact_source_files": 2,
+    "source_gate": {
+      "targeted": 176,
+      "full_run": 4124,
+      "skips": 37,
+      "result": "PASS"
+    },
+    "separate_integration_gate": {
+      "manifest_entries": 1815,
+      "manifest_reference": "private715c\u2026",
+      "targeted": 176,
+      "full_run": 4124,
+      "skips": 37,
+      "result": "PASS"
+    },
+    "private_C_prime": "22435e96cef1504ff7f6117c1ae105eb617fecbf",
+    "private_tree": "de97c7f7ce06d476fad55134ebb8e164fcf78534",
+    "private_frozen_clean_not_pushed": true,
+    "freeze_receipt_sha256": "9ade6cbae94b35076f9a6a5a7be127fd60fb066856553aac342ea1d9fdb6b647",
+    "source_bundle_sha256": "d7bc56f82e782af1097d5bad38f013804504cbf94bc8d3935d25c1ab9ba15aae",
+    "runtime_manifest_reference": "private026a2a\u2026/1811",
+    "S05_source_closure_inputs": "ACCEPTED_NOT_HOST_QUALIFICATION"
   }
 }

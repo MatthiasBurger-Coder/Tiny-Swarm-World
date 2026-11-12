@@ -2,7 +2,7 @@
 
 Workflow: [workflow.md](workflow.md), issue-440-open-acceptance, version2.0, FULL_PATH.
 Branch: docs/workflow-issue440-open-20261111. Committed baseline: c40d87ed81101dd582a112fe8b427d84372f36e2.
-Status: EXECUTING; TA08 LOCAL_SOURCE_FIX_IN_PROGRESS; Root S3/S3D and isolated two-file worker admission passed; tests NOT_RUN; C77/WSL proof historical, new freeze/both-host proof required.
+Status: EXECUTING; TA09 all six fresh C-prime WSL approvals complete; READY_FOR_BOUNDED_WSL_ATTEMPT requires Root receipt/publication; renewed fixture NOT_RUN, native/K/product/parent OPEN.
 
 Read [requirements](requirement-matrix.md), [inventory](requirements.json),
 [prerequisites](prerequisite-ledger.md), [scenario/source contract](scenario-plan.md),
@@ -207,3 +207,17 @@ and no overlap. Isolated C-based branch/worktree admitted; single worker owns
 exact2files, controlworkflow authoritative. Sourcefix IN_PROGRESS, testsNOT_RUN
 (Tester envprep only), no newfreeze/fixPASS/liveclaim. Root exact docreceipt/
 guarded publication applies; later two-file source checkpoint separate.
+
+TA09: publicsource3d1c513b exact2files verified; privateCprime22435e96 frozen
+(notpushed). Source+separateintegration each176targeted/4124full37skipsPASS.
+Both runtimeclones1811match/0, no effects; fresh WSL6GO/fixture first, native
+managerpause/backup/FINALLY only after WSLacceptance. OldC/WSLPASS historical;
+new host/PairsK/product/parentOPEN; static Root receipt/publication required.
+
+TA09 exact new-Cprime packet allsixAPPROVED: GOdraft2c6aac6b/resource2d6e2fa3/
+archivea60b99ce. Fresh route+project captures0, instances0/defaultrootdiskused0/
+10001empty61080free; rootext4runtime1811match0. Standalone3.14.4 vs localgate3.12
+kept separate. Only status/dependenthash finalization; callerTTL+expectedSHA
+coreCLI1100s, full ownership/nonce/Windows/default/routes cleanup proof. Exact
+Root receipt/publication before effects; fixedGOabsent/stubNOT_RUN. Native only
+after renewedWSLacceptance; no new qualification/K/productPASS.

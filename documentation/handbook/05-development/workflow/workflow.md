@@ -2,7 +2,7 @@
 
 Workflow ID: issue-440-open-acceptance
 workflowVersion: 2.0
-Status: EXECUTING; TA08 LOCAL_SOURCE_FIX_IN_PROGRESS after actual Root S3/S3D EXECUTION_PLAN and isolated two-file worker admission; tests NOT_RUN; C77/WSL PASS immutable historical; no live operation
+Status: EXECUTING; TA09 all six exact new-C-prime WSL approvals complete, READY_FOR_BOUNDED_WSL_ATTEMPT conditioned on Root receipt/publication; renewed fixture NOT_RUN; native/K/product/parent OPEN
 Issue: [#440](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `docs/workflow-issue440-open-20261111`
 Committed authoring baseline: `c40d87ed81101dd582a112fe8b427d84372f36e2`
@@ -478,6 +478,40 @@ needed for this boundary; global AppArmor disable/guard weakening are excluded.
 C77 and WSL PASS remain immutable historical evidence. S05 must freeze a new
 corrected C-prime, followed by fresh both-host proofs. Root exact receipt and
 guarded checkpoint requirements apply; native/K/product/parent stay OPEN.
+
+## Execution run TA440-20261112-09 — renewed C-prime host admission
+
+STARTED privately before consultation; source publication is now complete at
+`3d1c513b9bab320f7540e64302eabf792dba50e2`, exactly two tested source files.
+Source C-prime and the separate1815-file integration preview each passed176
+targeted tests and full4124tests/37skips. Private C-prime
+`22435e96cef1504ff7f6117c1ae105eb617fecbf` is frozen/clean and not pushed;
+its S05 source-closure inputs are accepted, not host qualification.
+
+All six actual Requirements/Architecture/Automation/Test-Evidence/Security/
+DevOps roles APPROVED the fresh C-prime WSL packet, without old-proof transfer:
+
+| Reviewed artifact | SHA-256 |
+|---|---|
+| GO draft | `2c6aac6beeee1d3201d23960613ea60e6ebb77243e337c1f6976e770e74f3c54` |
+| Resource draft | `2d6e2fa318415f1b8734e03004211c5d79cd13bb678c06645e0c4f7c39379cec` |
+| Packet archive | `a60b99cefb2561527493bef564a9ccf9d8b37d012a1c48ba511faa1a5a7bf7e3` |
+
+Fresh route/project CLI captures exited0: all-project instances0, default config
+{}/prepared rootdisk pooldefault/consumers0, Linux10001empty and61080free. The
+root-owned0700 ext4 runtime matched1811files/tree; standalonePython3.14.4 is
+separate from the verified Python3.12 local gates. Actual Incusclient/server6.0.5,
+pinned local Alpine and Windows preservation baseline are newly bound.
+
+READY_FOR_BOUNDED_WSL_ATTEMPT requires exact Root docreceipt/guarded publication
+before effects. Only actual review/resource-status/dependent-hash finalization
+is allowed. Caller checks resource TTL before the existing expected-SHA core
+CLI with1100s outer budget; source JIT, nonce HTTP, UUID/marker cleanup and exact
+Windows/default/routes preservation remain. NOT_RUN slot exists; fixedGO and
+reservation are absent. No reset/security/provider/newsource change or renewed
+fixture result is claimed. Native follows actual independently accepted new WSL
+result under retained pause/backup/FINALLY consent; any prepared native helper
+alone is not admission. OldC/WSLPASS remain historical; newK/product/parent OPEN.
 
 ## Verified Baseline and Target Picture
 

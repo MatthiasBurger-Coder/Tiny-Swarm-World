@@ -166,3 +166,16 @@ C-based worktree/branch verified, one two-file worker admitted. Sourcefix local
 inprogress; testsNOT_RUN/Tester environmentprep only.14DAG/locks/gates preserved.
 No completed fix/newfreeze/liveproof; C77/WSLPASS historical unchanged, S05Cprime
 and freshbothhostproof mandatory. Docscope/source checkpoints remain separate.
+
+TA09 source-closure inputs accepted: exact2file public3d1c513b, private clean
+Cprime22435e96/notpushed; separate source/integration176targeted+4124/37PASS.
+Both rootruntimecopies1811matches0 are preparation, not freshGO/qualification.
+Root prepares WSL packet/sixreviews→renewed WSLacceptance→native pause/backup/
+FINALLY. No new security/provider/reset/install changes; static receipts required.
+
+TA09 WSL admission ready: six actual exactpacket approvals, fresh route/project
+captures0 and currentempty resources/defaultrootdiskused0/requiredports baseline.
+SourceCprime224/runtime1811match0;1100s expectedSHA coreCLI after callerTTL/source
+JIT and exact Root receipt/publication. Only approved status/hash finalization;
+NOT_RUN/fixedGOabsent. Nativehelper preparation not admission; native follows
+actual renewedWSL acceptance. NewK/product/parentOPEN, oldproofhistorical.
