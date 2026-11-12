@@ -1,29 +1,30 @@
-# S440O-06 admission-progress distribution — 2026-11-12
+# S440O-06 full-reset preparation distribution — 2026-11-12
 
-Workflow issue-440-open-acceptance v2.0; execution run TA440-20261112-01.
-Resume S440O-06 after the operator supplied bounded WSL test reset/live consent.
-Mode: serialized operations and documentation. Real Requirement, Architecture,
-Python Automation and Tester reviewers accepted disposable-fixture preparation;
-Root owns integration, operational execution, verification and publication.
+Workflow issue-440-open-acceptance v2.0; same TA440-20261112-02 YES path after
+explicit complete-old-TSW-installation reset confirmation. Root owns serial
+host effects, final verification and publication; documentation worker updates
+only the two W09 documents, this coordination pair and private slice06 evidence.
+Existing four-role requirements/architecture/automation/test review is retained;
+no new consultation or repeated target question is started.
 
-The existing isolated runtime branch owns only the two W09 evidence documents,
-this distribution/consolidation pair and private slice evidence. Frozen C/K,
-workflow/context and product source remain outside its write scope. No parallel
-host operations or source worker are used; ownership and restoration share state.
+Actual full reset completed: four TSW instances/data, two profiles and the owned
+network/project removed. Independent after-checks show zero instances, unused
+default profile only, no default-pool volumes and required ports all free;
+remaining TCP listeners are DNS helpers/resolvers, not applications. Incus
+provider, WSL distribution, source/evidence and foreign assets remain protected.
+No parallel host activity or source worker is used because resources and source
+admission share state. Frozen C/K and integration workflow are outside this lock.
 
-The actual stopped disposable-test unregister operation is complete. Only that
-admitted target was removed; original/foreign registration and running inventory
-were preserved. No process kills were needed. Fresh read-only provider/driver/
-source observations advance admission, not live fixture or product acceptance.
+Next Root action: prepare/verify source-identical root-owned runtime clone, then
+exact direct listener admission and execution; later product cases retain real
+supported identity/coordinator and dependent baselines. No fixture/product PASS
+from reset. Required designated SSH/WSL `git diff --check`: PASS for the
+exact new four-document snapshot. Full quality: NOT_RUN_DOC_ONLY; no product/test/
+campaign source change. Commit/push this accepted preparation progress separately
+after checks/review; S440O-06 remains incomplete.
 
-Next: fresh registration planning, all-project/Windows/backup/restore admission,
-then exact phase-bound serial qualification under the existing campaign policy.
-Required check: designated SSH/WSL `git diff --check` PASS; exact four-document
-snapshot matched the isolated designated-host checkout.
-No new full tests are needed for these evidence-only changes; earlier source
-quality results do not qualify current live operations. Commit/push this bounded
-progress separately only after its required check and review, without claiming
-S440O-06 DONE. Do not reset within dependent product-case observations.
+Earlier TA01 separate-distribution reset and passive capture remain historical
+preparation. Their old no-live/target/occupied-port conditions are not current.
 
 ## Historical passive-only distribution (before renewed consent)
 

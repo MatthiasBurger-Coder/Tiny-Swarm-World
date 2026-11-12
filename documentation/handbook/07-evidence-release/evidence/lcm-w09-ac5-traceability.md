@@ -34,27 +34,27 @@ complete by this document.
 
 ## S440O-06 admission progress (2026-11-12)
 
-Source C `77a3356075925edee037bfe009a1f3dfb94cf5d8` retains bounded source-only
-acceptance. TA440-20261112-01 records renewed operator consent, four-role review
-and actual cleanup of the stopped disposable WSL test distribution. The reset
-exited 0; the test VHD was absent afterward, original/foreign registration and
-running-state inventory were unchanged, and no process kills were needed.
-The [qualification progress](lcm-w09-qualification.md#current-source-freeze-and-host-admission--s440o-06-2026-11-12)
-records the exact bounded result and retained operational-script digest.
+TA440-20261112-02 has a resolved complete-reset target and an actual
+`TSW_INSTALLATION_RESET_COMPLETE` preparation result at
+2026-11-12T06:06:40.626653+00:00. Four TSW instances with data, two installation
+profiles and the owned network/project were deleted. Independent after-checks
+found zero instances, only an unused default profile, no default-pool volumes
+and no application listeners; ports 80/443/10001/16080/16081 were free.
+Provider, WSL distribution, source and evidence were retained. Exact resource
+identities and the journal remain private; the
+[qualification progress](lcm-w09-qualification.md#current-source-freeze-and-host-admission--s440o-06-2026-11-12)
+records the operational-script digest and bounded result.
 
-Fresh native and WSL Incus client/server 6.0.5, WSL original-driver identity and
-a clean test-host campaign checkout were observed. Original-installation
-listeners remain on 80/443/10001/16080/16081 and were not killed. These facts
-advance prerequisite attribution only; they are not ownership, usable-backup,
-cold-isolation, listener-fixture or restoration acceptance.
+This completes clean-test preparation only. Old target-question, occupied-port
+and preservation-only stops are historical for the explicitly deleted workload.
+Root is preparing a source-identical root-owned runtime clone for direct fixture
+admission without changing frozen C. Real supported product identity/coordinator,
+update/preservation/recovery cases and independent acceptance remain required.
 
-P03/P04/P09/P12 remain OPEN/PARTIAL under
-`ADMISSION_IN_PROGRESS / LIVE_PREREQUISITE_MISSING`. The earlier
-`LIVE_CONSENT_MISSING` stop is historical for the newly authorized WSL test
-scope. Fresh registration, protected-state/backup/restore and exact phase-GO
-admission, K, actual product cases and independent parent acceptance remain
-pending. The designated SSH/WSL `git diff --check` passed for this documentation
-checkpoint. No parent checkbox is completed.
+P03/P04/P09/P12 remain OPEN/PARTIAL; S440O-06 is
+`ADMISSION_IN_PROGRESS / LIVE_PREREQUISITE_MISSING`, not DONE. The designated
+SSH/WSL `git diff --check` passed for this exact changed snapshot. No fixture, K, product,
+recovery, external-gate or parent completion follows from resetting the fixture.
 
 ## S440O-05 source handoff under review (2026-11-12)
 

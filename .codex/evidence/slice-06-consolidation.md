@@ -1,49 +1,58 @@
-# S440O-06 admission-progress consolidation — 2026-11-12
+# S440O-06 full-reset preparation consolidation — 2026-11-12
 
-Workflow issue-440-open-acceptance v2.0; TA440-20261112-01. Root integrated
-four-role accepted bounded WSL test reset authority. The prior missing-consent
-stop is historical for this test scope; current state is ADMISSION_IN_PROGRESS /
-LIVE_PREREQUISITE_MISSING, and S440O-06 remains incomplete.
+Workflow issue-440-open-acceptance v2.0; TA440-20261112-02 reviewed YES path.
+The user resolved complete old-TSW installation reset; no target question remains.
+Actual Root result at 2026-11-12T06:06:40.626653+00:00: TSW_INSTALLATION_RESET_COMPLETE.
+Four instances/data, two installation profiles, one network and its project
+were deleted. Independent after-checks: zero instances, unused default profile
+only, no default-pool volumes; ports80/443/10001/16080/16081 free. TCP listeners
+remaining are DNS helpers/resolvers, with no application listeners. Provider,
+WSL distribution, source/evidence retained. Exact target/resource details are private.
 
-Actual reset: stopped disposable test registration unregistered; exit 0; test VHD
-verified absent; original/foreign registration and running-state inventory
-unchanged; process kills 0. Private reset script SHA-256
-0c5f032ee937060289a309822c8fa732bc97d13b7736ce76c10b30bbc92ce98a.
-Retained script/stdout/stderr hashes match receipt.json. No source, fixture,
-product, capability, restoration, Sonar or parent PASS is inferred.
+Approved operational script SHA256:
+66960fb46a4d8c836d1cfaad28b5ddb170796ace90e1a3e699f427c727f33c27.
+Root retained the private root-owned0700 remote journal; local journal fetch is
+Root-owned follow-up. Worker records parent-observed results, not an additional
+live run or independent script execution. No fabricated old-workload restoration
+or product identity. Clean preparation is complete; actual fixture/product/
+capability/recovery/Sonar/parent acceptance remains open.
 
-Fresh Root observations: native and WSL Incus client/server 6.0.5; original
-listeners still present on 80/443/10001/16080/16081; original WSL runtime driver
-root-owned mode 0600 with its expected digest; clean Windows-host checkout at
-frozen C. Exact host/registration/driver details remain in private evidence.
-Registration planning and the remaining ownership/Windows/backup/restore/GO
-admission are ongoing. No killed original-install listener or new fixture result.
+Frozen C remains unchanged; Root is preparing a source-identical root-owned
+runtime clone for the actual fixture. Scope here is two W09 evidence documents,
+two coordination files and private slice06 evidence. No source/test/integration
+workflow change. Prior separate-distribution reset and passive evidence remain
+historical; current canonical state ADMISSION_IN_PROGRESS / LIVE_PREREQUISITE_MISSING.
 
-Changed surfaces: two existing W09 evidence documents, this coordination pair
-and private slice06 state/evidence. Existing edits preserved and passive-only
-history retained below. Frozen C/K and integration workflow remain unchanged.
-Designated-host diff verification passed on 2026-11-12 in the isolated SSH/WSL
-checkout; all four document hashes match this snapshot. Independent checkpoint
-review remains pending; no new tests/full quality are claimed for documentation-only progress.
-
-## CP_RECORD — bounded progress, not slice completion
+## CP_RECORD — complete reset preparation, not slice completion
 
 - Slice-ID: S440O-06
 - workflowVersion: 2.0
 - Slice title: Admit recoverable hosts and phase-specific approvals.
-- Owner: Root integration; Senior DevOps serial host operations; four-role review.
+- Owner: Root integration/serial DevOps; four-role same-TA02 YES review retained.
 - Changed files: lcm-w09-qualification.md, lcm-w09-ac5-traceability.md,
   .codex/evidence/slice-06-distribution.md and slice-06-consolidation.md.
-- Required command: `git diff --check` on the designated SSH/WSL host — PASS.
-- Full quality: NOT_RUN_DOC_ONLY; no product/test/campaign source changed.
-- Operational result: bounded disposable-test reset exit 0; hash-bound receipt.
-- D8: required diff verification PASS; final independent checkpoint review pending.
-- Rollback reference: 5a800f8b2d4cedab2e7dcea9edf2ec04011064a8 for documentation;
-  the explicitly disposable test deletion is not a recoverable product update.
-- arc42Updated: false; existing cold-kernel/preservation policy unchanged.
-- adrUpdated: false; bounded fixture cleanup does not change architecture.
-- Publication: separate operator-authorized progress commit/push after D8;
-  no PR, merge, capability admission or parent completion.
+- Required command: `git diff --check` on designated SSH/WSL — PASS
+  for this final changed snapshot; remote file hashes matched.
+- Full quality: NOT_RUN_DOC_ONLY; no production/test/campaign source changed.
+- Operational result: TSW_INSTALLATION_RESET_COMPLETE; actual empty resource
+  inventory and free required ports, not a fixture/product acceptance.
+- D8: required final-snapshot diff check PASS; independent checkpoint review pending.
+- Documentation rollback: f5ecdf21678c58fd368d3a617eed99131833bb1d; original integration
+  baseline 5a800f8b2d4cedab2e7dcea9edf2ec04011064a8. Intentional disposable
+  installation deletion is not claimed to be an automatically reversible upgrade.
+- arc42Updated: false; no source or architecture-policy change.
+- adrUpdated: false; user-confirmed test cleanup requires no new decision.
+- Publication: separate authorized progress commit/push after checks; no PR,
+  merge, capability promotion or parent completion.
+
+## Earlier preparation history
+
+TA01 separate test-distribution unregister completed at2026-11-12T05:35:28.5676553Z,
+with VHD absence, preserved then-original/foreign registration/running inventory,
+process_kills0. Its scriptSHA0c5f032ee937060289a309822c8fa732bc97d13b7736ce76c10b30bbc92ce98a
+and receipt remain private. Occupied original ports and original-preservation
+constraints applied then; the later exact complete-reset YES supersedes those
+constraints for the four old TSW nodes and installation-owned state only.
 
 ## Historical passive-only consolidation (before renewed consent)
 

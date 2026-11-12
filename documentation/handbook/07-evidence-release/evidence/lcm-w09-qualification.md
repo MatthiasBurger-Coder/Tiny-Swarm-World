@@ -46,35 +46,49 @@ independent source acceptance. Each private run passed 89 targeted tests and
 4120 full-suite tests with 37 declared skips. This is source acceptance, not
 current-host or live qualification; the capability asset remains empty.
 
-Workflow execution run TA440-20261112-01 records the operator's new WSL test
-reset/live consent and four-role review. The former `LIVE_CONSENT_MISSING`
-stop is historical for this bounded scope. Slice06 is now
-`ADMISSION_IN_PROGRESS / LIVE_PREREQUISITE_MISSING`; it is not complete.
+TA440-20261112-02 continues the same four-role reviewed YES path after the
+operator explicitly confirmed complete reset of the old TSW test installation.
+The earlier target question is resolved. At 2026-11-12T06:06:40.626653+00:00,
+Root recorded `TSW_INSTALLATION_RESET_COMPLETE`: all four TSW instances and
+associated data were deleted, followed by two installation-owned profiles and
+one installation-owned network/project. Source checkouts, evidence, the WSL
+distribution and the Incus prerequisite/provider were retained.
 
-The stopped disposable WSL test distribution was unregistered at
-2026-11-12T05:35:28.5676553Z. The operation exited 0, verified the test VHD
-absent and confirmed unchanged original/foreign registration and running-state
-inventory. No process was killed because the disposable distribution was already
-stopped. The private operational script SHA-256 is
-`0c5f032ee937060289a309822c8fa732bc97d13b7736ce76c10b30bbc92ce98a`;
-its exit, output and script hashes match the retained reset receipt. This is
-bounded test-fixture cleanup, not listener, installation, upgrade or recovery
-qualification.
+Independent post-reset checks found zero remaining instances, only the default
+profile with no consumers and no storage volumes in the provider's default pool.
+Required ports 80/443/10001/16080/16081 were free. Remaining TCP listeners were
+DNS helpers/resolvers, with no application listeners. The approved operational
+script SHA-256 is `66960fb46a4d8c836d1cfaad28b5ddb170796ace90e1a3e699f427c727f33c27`;
+the private root-owned journal and detailed resource identities are retained
+separately. This is actual clean-test preparation, not fixture, product or
+restoration qualification.
 
-Fresh read-only observations report Incus client/server 6.0.5 on both the native
-and WSL targets. The original installations still own listeners on
-80/443/10001/16080/16081; those processes were not killed. The WSL original
-runtime driver was observed root-owned with mode 0600 and the expected digest;
-the campaign checkout on the Windows test host was observed clean at C. Raw
-host, registration and driver details remain private. These observations do not
-prove all-project ownership, a usable backup, isolation or restoration.
+The old-installation preservation restriction is superseded for that expressly
+disposable workload. It does not protect those deleted TSW resources from the
+confirmed reset or require a fabricated historical restoration receipt. Foreign
+resources, source/evidence, provider and Windows boundaries remain protected.
+The former `LIVE_CONSENT_MISSING` and target-clarification stops are historical;
+Slice06 remains `ADMISSION_IN_PROGRESS / LIVE_PREREQUISITE_MISSING` pending
+exact fixture admission, not another reset-target answer.
 
-Fresh test registration planning, machine/boot/source admission, full Windows
-boundary and backup usability, independently accepted restore proof, an isolated
-cold guest, high-port reservation and exact outage/fixture/return GO remain
-pending. The required designated SSH/WSL `git diff --check` passed on the
-exact four-document snapshot; no local or Windows fallback was used. No paired fixture, K admission, product result,
-Sonar success or parent acceptance follows from this progress checkpoint.
+Root is preparing a source-identical root-owned runtime clone for direct
+listener qualification while preserving frozen C unchanged. Fresh runtime-source,
+listener/ownership and current fixture-GO checks precede that run. Later product
+cases still require their real supported identity/coordinator and data/recovery
+baselines. No identity spoof or clean-reset result can fill those acceptance cells.
+
+Historical preparation: the earlier separate stopped test-distribution reset at
+2026-11-12T05:35:28.5676553Z completed without process kills and preserved the
+then-existing workload. Its receipt remains valid for that earlier scope; the
+later explicit full-reset grant supersedes preservation of the old TSW workload.
+Earlier read-only Incus client/server 6.0.5 and driver/source observations retain
+their captured scope. Occupied-port observations before the full reset are
+historical; current required-port observations are empty as recorded above.
+
+The required designated SSH/WSL `git diff --check` passed for this new final
+snapshot; file hashes matched the remote checkout. Full quality is
+`NOT_RUN_DOC_ONLY`: no production, test or frozen campaign source changed.
+No paired fixture, K, product/recovery, Sonar or parent PASS is claimed.
 
 ## New campaign source contract — S440O-05 (2026-11-12)
 
