@@ -1,5 +1,12 @@
 {
   "schema_version": 1,
   "capability": "installation-scoped-incus-manager-profile",
-  "admitted_versions": []
+  "admitted_versions": [
+    {
+      "client_version": "6.0.5",
+      "server_version": "6.0.5",
+      "fixture_source_revision": "a56661915fd640d5574897e86847826b5b574c45",
+      "fixture_sha256": "a90c3d0d42a055a3a7734ed82868cffbb155a5b6219d84079612336d8b6b2f1f"
+    }
+  ]
 }
