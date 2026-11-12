@@ -2,7 +2,7 @@
 
 Workflow: [workflow.md](workflow.md), issue-440-open-acceptance, version2.0, FULL_PATH.
 Branch: docs/workflow-issue440-open-20261111. Committed baseline: c40d87ed81101dd582a112fe8b427d84372f36e2.
-Status: EXECUTING; TA440-20261112-04 STARTED; six-role exact WSL admission APPROVED; actual standalone attempt IN_PROGRESS/no result; parent INCOMPLETE.
+Status: EXECUTING; TA440-20261112-05 STARTED; native manager stop/test/restart consent RESOLVED; native preparation/review NOT_RUN; bounded WSL PASS retained; parent INCOMPLETE.
 
 Read [requirements](requirement-matrix.md), [inventory](requirements.json),
 [prerequisites](prerequisite-ledger.md), [scenario/source contract](scenario-plan.md),
@@ -90,3 +90,19 @@ in workflow.md and privateS07 artifacts. Postcleanup0instances/0volumes, default
 used0, DNS-onlyTCP; baseline/Windows/routes unchanged. This WSL-only result
 leaves native/pairK/product/recovery/global/parent gates open. TA03 draft remains withdrawn; no spoofed identity or fake receipt.
 Current changed-document verification/publication remain Root-owned.
+
+## Current TA05 native maintenance admission
+
+Operator answered ja to exact native temporary manager stop/test/restart scope.
+Consent RESOLVED; no native outage/preparation yet. Fresh native readonly facts:
+Incusclient/server6.0.5/nativeext4/Python3.14.4; three default nodes Running and
+historical manager Stopped; current ports owned by Incus proxies. Default profile
+has existing rootdisk/network and only stopped historical manager as consumer.
+
+Existing maintenancehelper is LXD-only/lxcabsent, not an Incus controller. Root
+will prepare exact four-UUID/config/state/source artifacts and verified root-owned
+C runtimeclone, then six exact native reviews before finite graceful managerstop,
+owned cold snapshot, paused baseline/fixture and FINALLY restart/allfour-state/
+config/routes/porttuple/liveness verification. Workers/foreign/stoppedmanager
+unchanged; no native deletion/reset/permanentprofilechange. WSLPASS retained;
+C frozen, perhostsplit unchanged, native/pairK/product/global/parent OPEN.

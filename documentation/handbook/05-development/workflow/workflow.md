@@ -2,7 +2,7 @@
 
 Workflow ID: issue-440-open-acceptance
 workflowVersion: 2.0
-Status: EXECUTING; TA440-20261112-04 bounded WSL listener PASS; native live permission and paired qualification remain pending
+Status: EXECUTING; TA440-20261112-05 STARTED; native temporary manager stop/test/restart consent RESOLVED; exact preparation/reviews NOT_RUN; bounded WSL PASS retained
 Issue: [#440](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `docs/workflow-issue440-open-20261111`
 Committed authoring baseline: `c40d87ed81101dd582a112fe8b427d84372f36e2`
@@ -233,6 +233,54 @@ verification and a separate accepted-change commit/push. This run records six
 real approvals and an independently accepted WSL-only fixture PASS. Native
 qualification needs separate live-pause authority; no native mutation was made.
 Paired K and remaining product/component acceptance remain gated.
+
+## Execution run TA440-20261112-05 — native consent resolved, exact plan pending
+
+STARTED after the operator answered “ja” to the exact native temporary TSW
+manager stop/test/restart question. Consent is RESOLVED; do not ask it again.
+No native outage or operational preparation has occurred in this record. Root
+is preparing artifacts through reads/copies only; six exact native reviews
+must follow before the admitted maintenance/fixture effects.
+
+Fresh native read-only facts: Incus client/server 6.0.5, native ext4 and Python
+3.14.4; the default profile has empty config, its existing default-pool root disk
+and network device, and only a stopped historical TSW manager as consumer. Three
+current default-project TSW nodes are Running; that fourth historical manager
+is Stopped. Current required-port occupants are Incus proxies. Exact host,
+project/UUID/config/state and route/port details remain private.
+
+The existing `native_lxd_maintenance.py` helper is LXD-only and `lxc` is absent.
+Do not invoke it or claim it implements this actual Incus maintenance. The plan
+uses existing generic C fixture code with a finite reviewed operator preparation:
+
+1. Capture and pin all four instances' exact UUID/project/config/running state,
+   current routes/port tuples/liveness and the source/provider baseline.
+2. After exact native source/GO and all six real Requirements, Architecture,
+   Python Automation, Test/Evidence, Security and DevOps approvals, gracefully
+   stop only the verified default-project TSW manager within reviewed deadlines.
+3. Capture an owned cold manager snapshot for recovery and the actual paused
+   baseline. Leave workers, stopped historical manager and foreign resources
+   unchanged; no native deletion/reset or permanent profile change is planned.
+4. Run the unchanged exact C standalone listener fixture on a verified
+   source-identical root-owned runtime clone. Retain actual HTTP, PID/device/
+   timing, per-effect ownership, cleanup and paused-baseline preservation proof.
+5. In FINALLY recovery after success, failure or interruption, restart that same
+   manager and verify all four original states/configs, route/port tuples and
+   service liveness. Account for the approved owned recovery snapshot explicitly;
+   do not fabricate recovery from a command exit or healthy old task alone.
+
+Exact artifacts, finite budgets, cold-snapshot/recovery identity and native
+fixture GO remain pending; user consent alone is not their acceptance. Python
+3.14.4 attribution applies to the standalone fixture, not product/full-quality
+qualification. Source C stays frozen and unchanged; no new helper/orchestrator
+or source/ADR change is introduced by this plan.
+
+Actual independently accepted WSL TA04 listener PASS is retained. Native result,
+paired K, component/product/recovery cases, global S06/S07 and parent acceptance
+remain OPEN. Per-host sequencing already accepted elsewhere is unchanged. Root
+owns serial host execution, actual outcome/recovery evidence and a separate
+checked commit/push for each accepted change. This run is STARTED, with native
+preparation/review/fixture NOT_RUN, not an inferred native or EPIC PASS.
 
 ## Verified Baseline and Target Picture
 

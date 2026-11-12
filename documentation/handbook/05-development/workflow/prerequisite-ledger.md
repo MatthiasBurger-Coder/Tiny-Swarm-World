@@ -75,3 +75,17 @@ was pending; the independently accepted actual TA04 result follows below.
 
 No source/ADR/C modification, old-GO reuse, identity spoof or fake cold receipt.
 Root owns actual results and separate checked commit/push.
+
+## TA440-20261112-05 native maintenance consent resolved
+
+| Owner | Actual scope or read-only fact | Required next gate |
+|---|---|---|
+| Requirement / Root | Explicit ja to temporary native TSW manager stop/test/restart; no repeated consent question | New TA05 matrix/plan before effects; preparation and review NOT_RUN |
+| Native owner / DevOps | Incusclient/server6.0.5/nativeext4/Python3.14.4; three current nodes Running, historical manager Stopped; Incus proxies occupy required ports | Exact four-node UUID/config/state/routes/port/liveness and source/runtime clone artifacts, finite reviewed deadlines |
+| Architecture / Automation | Existing native_lxd_maintenance helper is LXD-only; lxc absent | Use actual direct Incus operator prep plus unchanged genericC fixture, no pretend helper invocation or new orchestrator |
+| Six native reviewers | User scope known; exact maintenance/source/snapshot/fixture GO not reviewed yet | Requirements/Architecture/Automation/Test-Evidence/Security/DevOps approvals before outage |
+| Root / FINALLY recovery | Plan graceful stop only default manager, owned cold snapshot and paused baseline/fixture | Restore same manager Running and verify allfour original states/config/routes/porttuples/liveness after every outcome; leave workers/historicalStopped/foreign unchanged |
+| Capability / product owners | Actual independently accepted WSL listener PASS retained | Native actual result, pairK, product/recovery/global/parent acceptance remain separately OPEN |
+
+No native reset/deletion or permanent profile change planned. C unchanged.
+Standalone interpreter attribution is not a full-quality/product result.
