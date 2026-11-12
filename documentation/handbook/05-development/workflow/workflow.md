@@ -2,7 +2,7 @@
 
 Workflow ID: issue-440-open-acceptance
 workflowVersion: 2.0
-Status: EXECUTING; TA440-20261112-04 STARTED; six-role exact WSL host admission APPROVED; standalone fixture attempt IN_PROGRESS with no result yet
+Status: EXECUTING; TA440-20261112-04 bounded WSL listener PASS; native live permission and paired qualification remain pending
 Issue: [#440](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `docs/workflow-issue440-open-20261111`
 Committed authoring baseline: `c40d87ed81101dd582a112fe8b427d84372f36e2`
@@ -208,8 +208,18 @@ and corresponding hash reference. The existing fixture's `validate_go` accepted
 the final GO, which was created exclusively at its fixed private path with
 mode 0600. Root then launched the actual existing C standalone-fixture CLI on
 the root-owned source-identical runtime clone using Python 3.14.4. The attempt
-is IN_PROGRESS; no listener, HTTP, preservation or cleanup result is available
-in this record. Admission READY applies to this WSL attempt only.
+was recorded IN_PROGRESS at launch and then completed with actual exit0/PASS.
+All155commands exited0; actual nonce HTTP, Incus listener attribution and owned
+cleanup were independently reviewed. Result SHA-256:
+`e976a194df2691117aa31323d82c166f6c4d3303f8c5db1e65f40cbd56e2dd22`.
+Final GO SHA-256:
+`0c21df1670190d394650040e2ee678f702c1947da0d67ac17c5be271bac5d10b`.
+Raw archive SHA-256:
+`20ad74cf26de2a1c68783d05829edb9da2e7327fe4aa84c788cc8a2d8bc48617`.
+Default/profile consumers, routes/port10001 and Windows before/after hashes
+match; post-run inspection found zero instances/volumes, default used_by0 and
+DNS-only TCP listeners. Independent reviewer reset_test_evidence accepted only
+BOUNDED_WSL_LISTENER_FIXTURE_PASS. This is no native, paired K or product PASS.
 
 Scope and per-host sequencing are unchanged: the exact loopback fixture owns
 only its three run objects; default-profile, Windows, route and foreign-state
@@ -220,7 +230,9 @@ recovery cases, global S06/S07 completion and parent acceptance remain gated.
 
 Root owns actual completion, result attribution, designated-host documentation
 verification and a separate accepted-change commit/push. This run records six
-real approvals and a started attempt, not a fixture/product/native/global PASS.
+real approvals and an independently accepted WSL-only fixture PASS. Native
+qualification needs separate live-pause authority; no native mutation was made.
+Paired K and remaining product/component acceptance remain gated.
 
 ## Verified Baseline and Target Picture
 

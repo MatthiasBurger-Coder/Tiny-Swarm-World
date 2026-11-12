@@ -72,7 +72,7 @@ After all required reviews and JIT checks, per-host WSL S06 admission may releas
 only its standalone WSL S07 fixture, without implying native admission/global
 completion. PairK still needs both accepted same-runner receipts. Plan only
 loopback61080->8080, three new owned fixture objects, full default-profile/foreign/
-Windows preservation and exact cleanup. Actual fixture/product result NOT_RUN.
+Windows preservation and exact cleanup. Under superseded TA03: actual fixture/product result NOT_RUN.
 C unchanged; embedded workflow hash is provenance, new user/reset authority
 recorded outside C. Real downstream product identity/coordinator remains required.
 
@@ -84,7 +84,9 @@ and resource draftSHA8aed9adada6066c022e20159d2e42d88c3be093e3fdb884eb136fd29db5
 Root finalized only permitted approval/status/hash-reference fields, validated
 the GO with existing validate_go and created its fixed private path exclusively
 mode0600. Actual unchanged-C CLI launched on root-owned source-identical runtime
-clone using Python3.14.4: IN_PROGRESS, no result yet. WSL-host admission READY
-is limited to that attempt; native/pairK/product/recovery/global/parent gates
-remain open. TA03 draft remains withdrawn; no spoofed identity or fake receipt.
+clone using Python3.14.4: actual exit0/PASS,155commandsall0. Independent result
+audit accepts boundedWSLlistenerPASS; exact result/GO/archive hashes are recorded
+in workflow.md and privateS07 artifacts. Postcleanup0instances/0volumes, default
+used0, DNS-onlyTCP; baseline/Windows/routes unchanged. This WSL-only result
+leaves native/pairK/product/recovery/global/parent gates open. TA03 draft remains withdrawn; no spoofed identity or fake receipt.
 Current changed-document verification/publication remain Root-owned.
