@@ -2,7 +2,7 @@
 
 Workflow: [workflow.md](workflow.md), issue-440-open-acceptance, version2.0, FULL_PATH.
 Branch: docs/workflow-issue440-open-20261111. Committed baseline: c40d87ed81101dd582a112fe8b427d84372f36e2.
-Status: EXECUTING; TA14 fresh C-double-prime separate six-role native/WSL admissions READY; native→postcheck→WSL serialized, no effects; Root receipt/checkpoint before outage.
+Status: EXECUTING; TA14 failed/recovered accepted, WSL NOT_RUN; TA15 refined LOCAL stop45/shared-budget plan approved, code/tests pending handoff; no completion.
 
 Read [requirements](requirement-matrix.md), [inventory](requirements.json),
 [prerequisites](prerequisite-ledger.md), [scenario/source contract](scenario-plan.md),
@@ -271,3 +271,11 @@ Both runtime1811match0; separate native/WSLsix exactapprovals, nativeinspectPASS
 Allfour natives/allthree priorbackups preserved; WSLresourcesempty/defaultroot
 only/portsabsent/Windowscaptured. Nativefirst→postcheck→WSL, immediate JIT/TTL;
 no K/productPASS. Static exact Root receipt/guardedcheckpoint beforeoutage.
+
+TA15 v2reserve120 six-role approval supersedes oldallocation. Trustedstopclient45
+vs unchangedgrace30, generic20; nativeforward180/reserveminimum120 within total300, WSLtotal650/reserve300.
+Cleanup uses actualremaining/originaldeadline, not a fresh120s timer.
+TA14 recovered all4originals/all4backups; DOCKERerror was NOT_RUN sentinel masking
+POOL_CONSUMER_DRIFT, not changedIDs. Isolated2file test-first C3 source/gates/
+integration/freeze/freshpair/K3 pending; no liveGO or incidentDONE. Root static
+exactdocreceipt/separatecheckpoint required;14metadata/source frozen history kept.

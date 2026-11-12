@@ -225,3 +225,11 @@ exact native+WSL packets; RootS3/S3D EXECUTION_PLAN, rootcopies1811match0. No
 effects: nativefirst managerpause/backup/FINALLY+allthree backups→independent
 postcheck→WSLownedfixture/cleanup→resultaudit. Source/context/hash/deadline JIT
 and exact Root SSHreceipt/guardedpreoutagecheckpoint required; no product/KPASS.
+
+TA15 refined six-role plan+RootEXECUTION_PLAN: only existingfixture/test paths,
+trustedstop45/minremaining (servergrace30), generic20; nativeforward180/reserveminimum120 within total300; WSL
+total650/reserve300 unchanged. Cleanup actualremaining/originaldeadline, no fresh
+timer or completion SLA; no-force. ActualTA14failed→ownedstoppedcleanup→RECOVERED/
+allfour originals+snapshots preserved independently accepted; WSLunconsumed.
+Source handoff/REDGREEN/fullsource+integration/freeze/freshpair/K3 pending, no
+completedrepair or liveGO. Exact Root docreceipt/DOC_ONLY checkpoint required.

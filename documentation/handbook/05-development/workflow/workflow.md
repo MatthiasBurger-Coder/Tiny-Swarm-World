@@ -2,7 +2,7 @@
 
 Workflow ID: issue-440-open-acceptance
 workflowVersion: 2.0
-Status: EXECUTING; TA14 new C-double-prime host-specific six-role admissions READY, serialized native→postcheck→WSL; no effects or K/product PASS; exact Root receipt/guarded pre-outage checkpoint required
+Status: EXECUTING; TA14 native failed-then-recovered audit accepted, WSL NOT_RUN; TA15 refined LOCAL stop-budget/reserve plan six-role approved; source handoff/gates pending, no fix or EPIC completion
 Issue: [#440](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `docs/workflow-issue440-open-20261111`
 Committed authoring baseline: `c40d87ed81101dd582a112fe8b427d84372f36e2`
@@ -633,6 +633,34 @@ Only declared source/path/run/draft/review bindings/status finalization is allow
 contexts/source fixed, embedded frozen workflow remains provenance, not edited
 integration bytes. Exact Root SSHreceipt and guarded pre-outage checkpoint are
 required. No K/product/backup-restoration/EPIC PASS or product-health claim.
+
+## Execution run TA440-20261112-15 — LOCAL trusted-stop budget repair
+
+STARTED before consultation; all six actual reviewers approved refined proposal
+`920796668768c24dba3927aea3f3ab03d44906132e6299218b7ed69e38c4093d`, superseding v1 reserve allocation.
+Root S3/S3D EXECUTION_PLAN confines one isolated C3 worker to the already scoped
+fixture+fixture-test files; no14metadata change. Code/tests NOT_RUN until handoff.
+
+TA14 native raw89a9… failed BLOCKED_TARGET_DRIFT/JIT_COMMAND_FAILED after121commands;
+last trusted stop had null exit: generic20s client was shorter than explicit30s
+grace. Original manager restarted. Exact originalUUID/receipt/profile/image/GO-
+guarded stopped-temp cleanup (no force), then standard RECOVERED and independent
+allfour original/Docker/four-snapshot postcheck passed. Tester accepts failed-
+then-recovered, not fixture PASS. Initial DOCKER mismatch was a NOT_RUN sentinel
+masking POOL_CONSUMER_DRIFT, not proven changed identities. Archivebfd2d37f…
+retains actual evidence. WSLTA14 remains NOT_RUN/unconsumed; no K/product PASS.
+
+Repair only the exact trusted owned stop shape: client45s capped by remaining
+shared budget, servergrace30 unchanged; all other generic clients20 unchanged.
+Native forward180 protects cleanup reserve minimum120 within original total300;
+WSL total650/reserve300 unchanged. Cleanup uses actual remaining on that same
+original deadline (possibly more than reserve), never a fresh120s timer. Same clock origin,
+source/ownership/nonce/security/no-force guards retained. Require meaningful old-
+RED/newGREEN, nearest/full source and separate integration gates before immutable
+C3 freeze/publication/fresh same-source both-host proofs/cap-only K3. Old artifacts
+stay immutable; no waiver. Optional private-wrapper sentinel-reporting correction
+requires its own exact review. No host effects or completed repair/incident/EPIC
+claim. Exact Root SSHreceipt/separate DOC_ONLY checkpoint requirements apply.
 
 ## Verified Baseline and Target Picture
 
