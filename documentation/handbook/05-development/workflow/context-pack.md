@@ -2,7 +2,7 @@
 
 Workflow: [workflow.md](workflow.md), issue-440-open-acceptance, version2.0, FULL_PATH.
 Branch: docs/workflow-issue440-open-20261111. Committed baseline: c40d87ed81101dd582a112fe8b427d84372f36e2.
-Status: EXECUTING; TA11 targeted67 PASS/full K-prime gate FAIL (4124/37skip/1failure2errors); K-prime uncommitted/unadmitted; narrow TA13 review proposed; host PASS scopes retained; TA12 public HOLD.
+Status: EXECUTING; TA11 failing gate preserved/checkpointed; TA13 LOCAL one-test-file scope approved, Root source preflight before code; tests NOT_RUN; TA12 public HOLD.
 
 Read [requirements](requirement-matrix.md), [inventory](requirements.json),
 [prerequisites](prerequisite-ledger.md), [scenario/source contract](scenario-plan.md),
@@ -250,3 +250,9 @@ no productbug/waiver proven. Narrow fixture review pendingTA13, no patch here.
 KprimeUNCOMMITTED/NOTADMITTED/Cprimeunchanged/integrationcapgateNOT_RUN. Exact
 Root docreceipt required for four-doc failure checkpoint; this report's fullgate
 NOT_RUN_DOC_ONLY is not a KprimePASS. TA12 public remainsHOLD until checkpoint.
+
+TA13 exact one existing testpath appended to S02four arrays plus two-module
+targetedgate; allother14metadata unchanged/PLANNED. Five actual plan approvals
+and Root S3_DOCpreflight accepted; source-executionS3/S3D/isolatedworker pending.
+No code yet; nearest EMPTY+ADMITTED disposable tests/fullgate required. Clean
+test-only Cdoubleprime/freshactualbothhosts/cap-onlyKdoubleprime required, no waiver.

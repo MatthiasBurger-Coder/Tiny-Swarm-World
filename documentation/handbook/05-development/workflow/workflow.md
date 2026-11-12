@@ -2,7 +2,7 @@
 
 Workflow ID: issue-440-open-acceptance
 workflowVersion: 2.0
-Status: EXECUTING; TA11 K-prime preview targeted67 PASS but full quality FAIL (4124run/37skip/1failure/2errors); K-prime UNCOMMITTED/NOT_ADMITTED; narrow fixture review pending TA13; both host PASS scopes retained; TA12 public HOLD
+Status: EXECUTING; TA11 failure checkpoint415c7dbb retained; TA13 approved LOCAL one-test-file S3_DOC scope, Root source-execution preflight required before implementation; no code/tests yet; TA12 public HOLD
 Issue: [#440](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `docs/workflow-issue440-open-20261111`
 Committed authoring baseline: `c40d87ed81101dd582a112fe8b427d84372f36e2`
@@ -579,6 +579,18 @@ before this four-doc-only checkpoint; report full quality NOT_RUN_DOC_ONLY is
 separate from the executed failing K-prime gate. No source patch, host change,
 product/EPIC PASS or TA12 public application is included.
 
+## Execution run TA440-20261112-13 — LOCAL legacy-test isolation scope
+
+STARTED/proposal before five actual Requirement/Architecture/Automation/Test-
+Evidence/DevOps-owner approvals. After TA11 failure checkpoint415c7dbb, Root's
+S3_DOC preflight permits the exact S02 one-test-file scope/gate append above.
+Source-execution S3/S3D and isolated C-prime-based worker admission are still
+required before code. Tests NOT_RUN; no productbug waiver or K-prime admission.
+Exact Root docreceipt/checkpoint requirements apply; source/test publication is
+separate. C-double-prime/fresh both-host/K-double-prime plan is mandatory, not
+old-evidence relabeling. TA12 public route amendment remains HOLD until this
+scope checkpoint. No host effects or production/config/helper changes admitted.
+
 ## Verified Baseline and Target Picture
 
 Original repair remains preserved in the original workspace. Its independent
@@ -861,6 +873,18 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-01/` with the six issue-com
 
 ### Slice 02 — Reconcile gaps and make cold restoration admissible
 
+TA13 reviewed S3_DOC amendment (LOCAL test-only): append only the existing
+package-entrypoint test file to the four scope/lock arrays and the nearest two-
+module gate. Explicitly empty its TEMPORARY copied capability matrix (~5–7lines)
+to isolate legacy cases; preserve every assertion and admitted-state guard test.
+Root source S3/S3D/isolated-worktree admission precedes implementation. Prove
+corrected nearest tests under both EMPTY and ADMITTED shipped-matrix disposable
+snapshots before freeze/live, plus full required gates. No source/config/helper
+change or waiver. TA11 actual full FAIL remains; immutable C-prime and old
+uncommitted K-prime stay unchanged. Freeze clean test-only C-double-prime, renew
+actual same-source both-host proofs, then cap-only100644 direct-child K-double-
+prime with all gates.14DAG/owners/dependencies/required full gate unchanged.
+
 TA08 execution update: Root S3/S3D returned EXECUTION_PLAN/PASS, confirmed the
 unchanged14-node DAG, exact two-file locks/gate, clean C and no overlap. A clean
 isolated C-based implementation branch/worktree was created and verified; one
@@ -950,7 +974,8 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-02/` with the six issue-com
     "documentation/handbook/05-development/workflow/workflow.md",
     "documentation/handbook/05-development/workflow/context-pack.json",
     "modules/tsw_core/tools/linux/qualification/incus_profile_listener_fixture.py",
-    "modules/tsw_core/tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py"
+    "modules/tsw_core/tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py",
+    "modules/tsw_core/tests/test_package_entrypoint.py"
   ],
   "affected_modules": [
     "existing qualification/lifecycle and evidence"
@@ -984,7 +1009,8 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-02/` with the six issue-com
     "documentation/handbook/05-development/workflow/workflow.md",
     "documentation/handbook/05-development/workflow/context-pack.json",
     "modules/tsw_core/tools/linux/qualification/incus_profile_listener_fixture.py",
-    "modules/tsw_core/tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py"
+    "modules/tsw_core/tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py",
+    "modules/tsw_core/tests/test_package_entrypoint.py"
   ],
   "contract_locks": [
     "frozen C/K source and exact approval"
@@ -1008,7 +1034,8 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-02/` with the six issue-com
     "documentation/handbook/05-development/workflow/workflow.md",
     "documentation/handbook/05-development/workflow/context-pack.json",
     "modules/tsw_core/tools/linux/qualification/incus_profile_listener_fixture.py",
-    "modules/tsw_core/tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py"
+    "modules/tsw_core/tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py",
+    "modules/tsw_core/tests/test_package_entrypoint.py"
   ],
   "shared_infrastructure": [
     "designated SSH/WSL quality host",
@@ -1035,7 +1062,8 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-02/` with the six issue-com
     "documentation/handbook/05-development/workflow/workflow.md",
     "documentation/handbook/05-development/workflow/context-pack.json",
     "modules/tsw_core/tools/linux/qualification/incus_profile_listener_fixture.py",
-    "modules/tsw_core/tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py"
+    "modules/tsw_core/tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py",
+    "modules/tsw_core/tests/test_package_entrypoint.py"
   ],
   "requirement_ids": [
     "P03",
@@ -1050,7 +1078,8 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-02/` with the six issue-com
       "PYTHONPATH=. python3 -m unittest modules.tsw_windows_wsl.tests.tools.test_wsl_acceptance_guest_switch",
       "PYTHONPATH=. python3 -m unittest modules.tsw_windows_wsl.tests.tools.test_wsl_acceptance_registration modules.tsw_windows_wsl.tests.tools.test_wsl_acceptance_bridge_binding",
       "PYTHONPATH=. python3 -m unittest modules.tsw_windows_wsl.tests.tools.test_wsl_original_runtime_window",
-      "PYTHONPATH=. python3 -m unittest modules.tsw_core.tests.infrastructure.adapters.clients.test_lxc_profile_listener_fixture"
+      "PYTHONPATH=. python3 -m unittest modules.tsw_core.tests.infrastructure.adapters.clients.test_lxc_profile_listener_fixture",
+      "PYTHONPATH=. python3 -m unittest modules.tsw_core.tests.test_package_entrypoint modules.tsw_core.tests.test_profile_legacy_compatibility"
     ],
     "required": [
       "python3 modules/tsw_core/tools/linux/quality_gate.py quality"

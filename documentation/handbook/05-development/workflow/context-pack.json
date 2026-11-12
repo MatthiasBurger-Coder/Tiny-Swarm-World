@@ -4,7 +4,7 @@
   "workflow_path": "documentation/handbook/05-development/workflow/workflow.md",
   "branch": "docs/workflow-issue440-open-20261111",
   "baseline": "c40d87ed81101dd582a112fe8b427d84372f36e2",
-  "status": "EXECUTING_TA11_KPRIME_FULL_GATE_FAILED_UNCOMMITTED",
+  "status": "EXECUTING_TA13_LOCAL_TEST_SCOPE_APPROVED_SOURCE_PREFLIGHT_REQUIRED",
   "process_strand": "workflow execute",
   "execution_profile": "FULL_PATH",
   "affected_areas": [
@@ -58,13 +58,13 @@
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-installation-scoped-incus-profile.adoc": "23c45b5e89584e9754a3ad0787a8d9f9a6db2c162a3de7dabb11e17b97ae1d08",
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-classic-product-component-lifecycle.adoc": "92e2e2695f6254b43b73cc4e30f688b7932dcdc138c8a6e1592a16bc0bd506cd",
     "documentation/handbook/05-development/workflow/authoring-review.md": "f60a8d9443d96ecb1ab4d2b74813cdb2a31946e7291094a4db09c7aaca75720c",
-    "documentation/handbook/05-development/workflow/context-pack.md": "675f97c9d7a8de91c7b3e920e030468c0ea035d3f147eb3c2cfed34c05d6b8de",
-    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "42d393a4f605990851693fd9474ed49d7062d87a968c217db47699d17f238387",
+    "documentation/handbook/05-development/workflow/context-pack.md": "70f57919be04599ff385578f9ac09c688151c334964b41012273b2bc7fe241bb",
+    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "cc298cc54fd83df1e45dad6b57166e7aca8b8a90a92a503d44bc79d842392f98",
     "documentation/handbook/05-development/workflow/requirement-matrix.md": "7d57dbe1e16f23417a5b8d72be55d4acb38b109ad4bba776bcb20de90efd1e8d",
     "documentation/handbook/05-development/workflow/requirements.json": "70e9beda2f7a7bb1b3f5bce74d37f458727e9cc7f04fe58451f9be33138bea9f",
     "documentation/handbook/05-development/workflow/scenario-plan.md": "db2d095401c3f3c8348369f213d99b2a9106ba970f7aae95b1896bb56808648f",
     "documentation/handbook/05-development/workflow/workflow.index.md": "f12c50ebe16bec52872f71951627ac0a58590d926da27e31d7383b026d99ca1e",
-    "documentation/handbook/05-development/workflow/workflow.md": "9702fc1788340fd4d37adf840d809a4846f7bd670edd3c833fb0c11d3f0cb508"
+    "documentation/handbook/05-development/workflow/workflow.md": "9b916bb08e286d7d541e78cd146f158ba4d33700885e616188521ef8d0bca499"
   },
   "slices": [
     "S440O-01",
@@ -195,7 +195,7 @@
       "fixture_stub": "NOT_RUN"
     }
   },
-  "current_workflow_run": "TA440-20261112-11",
+  "current_workflow_run": "TA440-20261112-13",
   "active_native_attempt": {
     "id": "TA440-20261112-05",
     "state": "FAILED_RESTORED",
@@ -355,51 +355,37 @@
     "independent_result_audit": "ACCEPTED_FAILED_RESTORED_FIXTURE_NOT_RUN_LATE_SNAPSHOT_RETAINED"
   },
   "current_consultation": {
-    "id": "TA440-20261112-11",
-    "state": "KPRIME_PREVIEW_FULL_QUALITY_FAIL_UNCOMMITTED",
-    "slice_id": "S440O-08",
-    "paired_source": "22435e96cef1504ff7f6117c1ae105eb617fecbf",
-    "fixture_runner": "de623e56",
-    "fixture_test": "fce9aff2",
-    "actual_tuple": "Incus client6.0.5/server6.0.5",
-    "exact_external_proposal_and_manifest": "SIX_ACTUAL_ACCEPTED",
-    "independent_policy_review": "ACCEPT_PAIRED_EVIDENCE_AND_CAPABILITY_PROPOSAL_ALL_SIX",
-    "K_prime": "PREVIEW_CONSTRUCTED_UNCOMMITTED_NOT_ADMITTED",
-    "required_topology": "sole direct single-parent child of clean immutable private Cprime",
-    "only_changed_path": "modules/tsw_core/infra/config/incus-profile-capabilities.json",
-    "required_file_mode": "100644",
-    "targeted_full_quality": {
-      "targeted": {
-        "result": "PASS",
-        "tests": 67,
-        "skips": 0,
-        "exit_code": 0,
-        "log_sha256": "29efe0dadf53c19e5e8e0ff2b325eb4ac205241cbd57554bf1c396fe35b62b9f"
-      },
-      "full": {
-        "result": "FAIL",
-        "run": 4124,
-        "skips": 37,
-        "failures": 1,
-        "errors": 2,
-        "exit_code": 1,
-        "log_sha256": "ed458dee297d017bdccce99b43970d703c6ee4d5792b865c1f86c1dbea8034e6",
-        "receipt_sha256": "1bbba48fc34ff09a6217578e7f5fd083a1ccdc27224e2fd23fb788d4450b8dea"
-      }
-    },
-    "source_C_prime": "CLEAN_IMMUTABLE_PRIVATE",
-    "host_changes": false,
-    "product_EPIC_PASS": false,
-    "full_product_health_backup_restoration": "UNVERIFIED",
+    "id": "TA440-20261112-13",
+    "state": "APPROVED_LOCAL_TEST_SCOPE_ROOT_EXECUTION_PREFLIGHT_REQUIRED",
+    "slice_id": "S440O-02",
+    "approved_proposal_sha256": "fbf424cf0884b5bf0699207cf1771f0196aed66c2c9a0279b270443bbc29fe6e",
+    "actual_approving_roles": [
+      "Requirement",
+      "Architecture",
+      "Automation",
+      "TestEvidence",
+      "DevOps owner"
+    ],
+    "S3_DOC_preflight": "ROOT_EXECUTION_PLAN_AFTER_TA11_CHECKPOINT",
+    "TA11_checkpoint": "415c7dbba06109a9ecc04cec4a1f6d6373b33383",
+    "only_test_path": "modules/tsw_core/tests/test_package_entrypoint.py",
+    "targeted_gate_append": "PYTHONPATH=. python3 -m unittest modules.tsw_core.tests.test_package_entrypoint modules.tsw_core.tests.test_profile_legacy_compatibility",
+    "root_source_S3_S3D_isolated_admission": "REQUIRED_BEFORE_CODE",
+    "implementation": "NOT_WRITTEN",
+    "tests": "NOT_RUN",
+    "required_pre_freeze_test_states": [
+      "EMPTY shipped matrix disposable snapshot",
+      "ADMITTED shipped matrix disposable snapshot"
+    ],
+    "required_full_quality": "UNCHANGED",
+    "source_plan": "immutable test-only Cdoubleprime; renewed actual same-source both-host fixtures; sole directchild cap-only100644 Kdoubleprime",
+    "old_Cprime_and_Kprime_preview": "UNCHANGED; failed Kprime uncommitted/unadmitted",
+    "product_source_config_helper_change": false,
+    "host_effects": false,
+    "TA12_public_apply": "HOLD_UNTIL_TA13_SCOPE_CHECKPOINT",
     "documentation_gate": "EXACT_DESIGNATED_SSH_WSL_RECEIPT_REQUIRED_BEFORE_CHECKPOINT",
-    "publication": "EXACT_DOCUMENTATION_RECEIPT_REQUIRED_FOUR_DOC_FAILURE_CHECKPOINT_ONLY",
-    "preflight": "ROOT_S3_S3D_EXECUTION_PLAN_14DAG_SERIAL08_ONE_FILE_LOCKS",
-    "diagnosis": "test_package_entrypoint fresh helper copies filled shipped capability; intended legacy fixture enters selective refusal before mocked legacy dispatcher; separate legacy compatibility suite covers empty/admitted",
-    "product_bug_or_gate_waiver": "NOT_ESTABLISHED",
-    "proposed_remediation": "TA13 narrow test-fixture isolation review pending; no source patch in this checkpoint",
-    "integration_capability_gate": "NOT_RUN",
-    "report_full_quality": "NOT_RUN_DOC_ONLY",
-    "TA12_public_apply": "HOLD_UNTIL_TA11_SEPARATE_CHECKPOINT"
+    "publication": "GUARDED_SCOPE_CHECKPOINT_REQUIRED_SOURCE_CHECKPOINT_SEPARATE",
+    "parent_status": "INCOMPLETE"
   },
   "diagnostic_TA07_outcome": {
     "classification": "REPRODUCED",

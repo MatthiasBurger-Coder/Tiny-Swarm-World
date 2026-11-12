@@ -204,3 +204,10 @@ then intended selective refusal precedes mocked legacydispatch. No productbug/
 gatewaiver established; proposed TA13 narrow fixture review only. Kprime remains
 uncommitted/unadmitted; Cprime+hostPASS unchanged; no capabilityintegrationgate.
 Exact Root docreceipt/four-doc-only publication first; TA12 publicHOLD retained.
+
+TA13 scope after415c7dbb: five actual approvals+RootS3_DOCpreflight admit only
+package-entrypoint testpath in S02fourarrays and nearesttwo-modulegate. Root
+sourcepreflight/isolatedworker beforewrites; code/testsNOT_RUN. Temporarylegacy
+matrix isolation only, assertions/admittedguards preserved; EMPTY+ADMITTED
+disposable tests/fullgates before Cdoubleprime/freshbothhosts/Kdoubleprime.
+ActualTA11FAIL remains, no waiver; TA12public waits for this scope checkpoint.
