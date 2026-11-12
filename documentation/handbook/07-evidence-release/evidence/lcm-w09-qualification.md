@@ -36,6 +36,46 @@ The generic component transition runner has changed since its historical live
 run; see the transition proposal for both source hashes and the applicability
 limits. #449 remains incomplete.
 
+## Current source freeze and host admission — S440O-06 (2026-11-12)
+
+Common integration I05 `5a800f8b2d4cedab2e7dcea9edf2ec04011064a8` remains
+candidate-only. The isolated unpublished source C
+`77a3356075925edee037bfe009a1f3dfb94cf5d8` is frozen after both prescribed
+precommit and clean-commit targeted/full gates, Registry metadata evidence and
+independent source acceptance. Each private run passed 89 targeted tests and
+4120 full-suite tests with 37 declared skips. This is source acceptance, not
+current-host or live qualification; the capability asset remains empty.
+
+Workflow execution run TA440-20261112-01 records the operator's new WSL test
+reset/live consent and four-role review. The former `LIVE_CONSENT_MISSING`
+stop is historical for this bounded scope. Slice06 is now
+`ADMISSION_IN_PROGRESS / LIVE_PREREQUISITE_MISSING`; it is not complete.
+
+The stopped disposable WSL test distribution was unregistered at
+2026-11-12T05:35:28.5676553Z. The operation exited 0, verified the test VHD
+absent and confirmed unchanged original/foreign registration and running-state
+inventory. No process was killed because the disposable distribution was already
+stopped. The private operational script SHA-256 is
+`0c5f032ee937060289a309822c8fa732bc97d13b7736ce76c10b30bbc92ce98a`;
+its exit, output and script hashes match the retained reset receipt. This is
+bounded test-fixture cleanup, not listener, installation, upgrade or recovery
+qualification.
+
+Fresh read-only observations report Incus client/server 6.0.5 on both the native
+and WSL targets. The original installations still own listeners on
+80/443/10001/16080/16081; those processes were not killed. The WSL original
+runtime driver was observed root-owned with mode 0600 and the expected digest;
+the campaign checkout on the Windows test host was observed clean at C. Raw
+host, registration and driver details remain private. These observations do not
+prove all-project ownership, a usable backup, isolation or restoration.
+
+Fresh test registration planning, machine/boot/source admission, full Windows
+boundary and backup usability, independently accepted restore proof, an isolated
+cold guest, high-port reservation and exact outage/fixture/return GO remain
+pending. The required designated SSH/WSL `git diff --check` passed on the
+exact four-document snapshot; no local or Windows fallback was used. No paired fixture, K admission, product result,
+Sonar success or parent acceptance follows from this progress checkpoint.
+
 ## New campaign source contract — S440O-05 (2026-11-12)
 
 This section defines the current I05 candidate under review, based on verified
