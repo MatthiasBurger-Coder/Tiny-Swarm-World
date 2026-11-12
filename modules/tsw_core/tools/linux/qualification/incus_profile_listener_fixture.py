@@ -2313,10 +2313,26 @@ def _fixture_responder_script(run_id: str) -> str:
 (printf 'HTTP/1.1 200 OK\r\nContent-Length: 32\r\nConnection: close\r\nContent-Type: text/plain\r\n\r\n%s' 'RUN_NONCE' |
  busybox nc -l -s 127.0.0.1 -p 8080 -w 15) </dev/null >/dev/null 2>&1 &
 responder=$!
+# Signal permission is not process existence; bind the child without signalling it.
+responder_identity() {
+  IFS= read -r process_stat 2>/dev/null < "/proc/$responder/stat" || return 1
+  case "$process_stat" in "$responder ("*") "*) ;; *) return 1 ;; esac
+  process_fields=${process_stat##*) }
+  set -f
+  set -- $process_fields
+  [ "$#" -ge 20 ] || return 1
+  case "$1" in R|S|D|T|t|I|P|W) ;; *) return 1 ;; esac
+  [ "$2" = "$$" ] || return 1
+  shift 19
+  case "$1" in ''|*[!0-9]*) return 1 ;; esac
+  printf '%s\n' "$1"
+}
+responder_start=$(responder_identity) || exit 1
 attempt=0
 while [ "$attempt" -lt 25 ]; do
-  kill -0 "$responder" 2>/dev/null || exit 1
+  [ "$(responder_identity)" = "$responder_start" ] || exit 1
   if busybox netstat -ltn 2>/dev/null | busybox awk '$1 == "tcp" && $4 == "127.0.0.1:8080" && $6 == "LISTEN" { ready=1 } END { exit !ready }'; then
+    [ "$(responder_identity)" = "$responder_start" ] || exit 1
     exit 0
   fi
   attempt=$((attempt + 1))

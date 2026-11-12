@@ -2118,8 +2118,7 @@ class FixtureLifecycleTests(_FixtureBehaviorTestCase):
 
 
 class ResponderShellTests(unittest.TestCase):
-    def test_responder_uses_fixed_nonce_http_and_nonconnecting_listener_readiness(self):
-        fake = r"""#!/usr/bin/python3
+    _BUSYBOX = r"""#!/usr/bin/python3
 import json,os,sys,time
 from pathlib import Path
 args=sys.argv[1:]
@@ -2130,14 +2129,14 @@ if args==['nc','-l','-s','127.0.0.1','-p','8080','-w','15']:
  data=sys.stdin.buffer.read()
  (root/'response.bin').write_bytes(data)
  (root/'ready').write_text('listener')
+ if mode=='dead':sys.exit(0)
  deadline=time.monotonic()+3
  while not (root/'finished').exists() and time.monotonic()<deadline:time.sleep(0.01)
  sys.exit(0)
 if args==['netstat','-ltn']:
- if (root/'ready').exists():
-  address='0.0.0.0:8080' if mode=='foreign' else '127.0.0.1:8080'
+ if mode=='dead' or ((root/'ready').exists() and mode!='absent'):
+  address={'foreign':'0.0.0.0:8080','wrong-port':'127.0.0.1:8081'}.get(mode,'127.0.0.1:8080')
   print('tcp 0 0 '+address+' 0.0.0.0:* LISTEN')
-  if mode=='ready':(root/'finished').write_text('readiness observed without connecting')
  sys.exit(0)
 if args[0]=='awk':
  assert args[1]=='$1 == "tcp" && $4 == "127.0.0.1:8080" && $6 == "LISTEN" { ready=1 } END { exit !ready }'
@@ -2146,42 +2145,111 @@ if args[0]=='awk':
 if args==['sleep','0.2']:sys.exit(0)
 sys.exit(2)
 """
+    _STAT_FAULT = r'''fake_stat() {
+  process_stat="$responder (nc) $1 $2"
+  fields=0
+  while [ "$fields" -lt 17 ]; do
+    process_stat="$process_stat 0"
+    fields=$((fields + 1))
+  done
+  process_stat="$process_stat $3"
+}
+read() {
+  command read "$@" || return 1
+  if [ -e "$RESPONDER_FIXTURE/stat-seen" ]; then
+    case "$RESPONDER_STAT_FAULT" in
+      changed-start) fake_stat S "$$" 999999999999999999999 ;;
+      changed-parent) fake_stat S 999999999999999999999 1 ;;
+      changed-pid) process_stat="999999999999999999999 (nc) S $$ 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1" ;;
+    esac
+  fi
+  : > "$RESPONDER_FIXTURE/stat-seen"
+  case "$RESPONDER_STAT_FAULT" in
+    unreadable|missing) return 1 ;;
+    malformed) process_stat="not a process stat" ;;
+    truncated) process_stat="$responder (nc) S $$" ;;
+    zombie|dead-state|dead-lower|unknown-state)
+      case "$RESPONDER_STAT_FAULT" in zombie) state=Z ;; dead-state) state=X ;; dead-lower) state=x ;; *) state='?' ;; esac
+      fake_stat "$state" "$$" 1 ;;
+    malformed-start) fake_stat S "$$" unknown ;;
+    spaced-comm) process_stat="$responder (name with ) and ( spaces) ${process_stat##*) }" ;;
+  esac
+}
+'''
+
+    def _run_responder(self, mode='ready', *, prefix='', stat_fault=''):
         nonce = '0123456789abcdef' * 2
-        script = fixture._fixture_responder_script(nonce)
-        for mode in ('ready', 'foreign'):
-            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
-                root = Path(directory)
-                busybox = root / 'busybox'
-                busybox.write_text(fake)
-                busybox.chmod(0o700)
-                process = subprocess.Popen(['/bin/sh', '-c', script], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                    env={'PATH': str(root) + ':/usr/bin:/bin', 'RESPONDER_FIXTURE': str(root), 'RESPONDER_MODE': mode},
-                    start_new_session=True)
+        script = prefix + fixture._fixture_responder_script(nonce)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            busybox = root / 'busybox'
+            busybox.write_text(self._BUSYBOX)
+            busybox.chmod(0o700)
+            process = subprocess.Popen(['/bin/sh', '-c', script], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                env={'PATH': str(root) + ':/usr/bin:/bin', 'RESPONDER_FIXTURE': str(root),
+                     'RESPONDER_MODE': mode, 'RESPONDER_STAT_FAULT': stat_fault}, start_new_session=True)
+            try:
+                stdout, stderr = process.communicate(timeout=8)
+            finally:
                 try:
-                    stdout, stderr = process.communicate(timeout=8)
-                finally:
-                    try:
-                        os.killpg(process.pid, signal.SIGKILL)
-                    except ProcessLookupError:
-                        pass
-                    if process.poll() is None:
-                        process.wait(timeout=3)
+                    os.killpg(process.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                if process.poll() is None:
+                    process.wait(timeout=3)
+            calls_file = root / 'calls.jsonl'
+            calls = [json.loads(line) for line in calls_file.read_text().splitlines()] if calls_file.exists() else []
+            response = root / 'response.bin'
+            return process.returncode, stdout, stderr, calls, response.read_bytes() if response.exists() else None
+
+    def test_responder_uses_fixed_nonce_http_and_nonconnecting_listener_readiness(self):
+        nonce = '0123456789abcdef' * 2
+        for mode in ('ready', 'foreign', 'wrong-port', 'absent'):
+            with self.subTest(mode=mode):
+                code, stdout, stderr, calls, response = self._run_responder(mode)
                 self.assertEqual((stdout, stderr), (b'', b''))
                 if mode == 'ready':
-                    self.assertEqual(process.returncode, 0)
+                    self.assertEqual(code, 0)
                 else:
-                    self.assertNotEqual(process.returncode, 0)
-                response = (root / 'response.bin').read_bytes()
+                    self.assertNotEqual(code, 0)
+                self.assertIsNotNone(response)
                 headers, body = response.split(b'\r\n\r\n', 1)
                 self.assertEqual(headers, b'HTTP/1.1 200 OK\r\nContent-Length: 32\r\nConnection: close\r\nContent-Type: text/plain')
                 self.assertEqual(body, nonce.encode('ascii'))
-                calls = [json.loads(line) for line in (root / 'calls.jsonl').read_text().splitlines()]
                 self.assertEqual(sum(call[0] == 'nc' for call in calls), 1)
                 self.assertTrue(any(call == ['netstat', '-ltn'] for call in calls))
+                self.assertLessEqual(sum(call == ['sleep', '0.2'] for call in calls), 25)
                 self.assertTrue(all(call[0] in {'nc', 'netstat', 'awk', 'sleep'} for call in calls))
         for invalid in ('', 'A' * 32, 'a' * 31, 'a' * 33, 'a' * 31 + "'", 'a' * 32 + '\n'):
             with self.subTest(invalid=invalid), self.assertRaises(fixture.FixtureError):
                 fixture._fixture_responder_script(invalid)
+
+    def test_live_responder_is_ready_when_signal_probe_is_denied(self):
+        code, stdout, stderr, calls, response = self._run_responder(prefix='kill() { return 1; }\n')
+        self.assertEqual((code, stdout, stderr), (0, b'', b''))
+        self.assertEqual(sum(call[0] == 'nc' for call in calls), 1)
+        self.assertTrue(any(call == ['netstat', '-ltn'] for call in calls))
+        self.assertTrue(response.endswith(('0123456789abcdef' * 2).encode('ascii')))
+
+    def test_responder_rejects_unknown_or_replaced_process_identity_with_ready_socket(self):
+        faults = ('unreadable', 'missing', 'malformed', 'truncated', 'zombie', 'dead-state',
+                  'dead-lower', 'unknown-state', 'malformed-start', 'changed-start',
+                  'changed-parent', 'changed-pid')
+        for fault in faults:
+            with self.subTest(fault=fault):
+                code, stdout, stderr, calls, _ = self._run_responder(prefix=self._STAT_FAULT, stat_fault=fault)
+                self.assertNotEqual(code, 0)
+                self.assertEqual((stdout, stderr), (b'', b''))
+                self.assertFalse(any(call[0] in {'curl', 'wget'} for call in calls))
+
+    def test_dead_responder_cannot_be_replaced_by_stale_ready_socket(self):
+        code, stdout, stderr, _, _ = self._run_responder('dead')
+        self.assertNotEqual(code, 0)
+        self.assertEqual((stdout, stderr), (b'', b''))
+
+    def test_responder_identity_parses_parenthesized_process_names(self):
+        code, stdout, stderr, _, _ = self._run_responder(prefix=self._STAT_FAULT, stat_fault='spaced-comm')
+        self.assertEqual((code, stdout, stderr), (0, b'', b''))
 
 
 class JitNoMutationTests(_FixtureBehaviorTestCase):
