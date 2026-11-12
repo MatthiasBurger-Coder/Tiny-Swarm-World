@@ -2,7 +2,7 @@
 
 Workflow ID: issue-440-open-acceptance
 workflowVersion: 2.0
-Status: EXECUTING; TA440-20261112-03 old draft withdrawn; root-disk prerequisite prepared; fresh post-preparation baseline and distinct review pending
+Status: EXECUTING; TA440-20261112-04 STARTED; six-role exact WSL host admission APPROVED; standalone fixture attempt IN_PROGRESS with no result yet
 Issue: [#440](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `docs/workflow-issue440-open-20261111`
 Committed authoring baseline: `c40d87ed81101dd582a112fe8b427d84372f36e2`
@@ -191,6 +191,36 @@ prerequisite has been prepared, but the per-host dependency split does not waive
 a new exact post-preparation baseline and review. Root next captures the
 corrected draft and starts its distinct review run. No old GO execution, fixture,
 S06/S07/global completion, K, product, recovery, Sonar or parent PASS is claimed.
+
+## Execution run TA440-20261112-04 — approved fresh WSL fixture attempt
+
+STARTED with fresh post-root-disk route and all-project captures, both exit 0.
+The six real Requirements, Architecture, Python Automation, Test/Evidence,
+Security and DevOps reviewers APPROVED the exact corrected draft:
+`85d4171c107613df3b0024c4be83bd97222b4268d29fc638328d64e04a5ac2aa`.
+The reviewed resource draft SHA-256 is
+`8aed9adada6066c022e20159d2e42d88c3be093e3fdb884eb136fd29db5e08c8`.
+TA03's old draft remains withdrawn; this distinct consultation supplies no
+retroactive approval to it.
+
+Root finalized only the reviewed actual approval fields, resource review status
+and corresponding hash reference. The existing fixture's `validate_go` accepted
+the final GO, which was created exclusively at its fixed private path with
+mode 0600. Root then launched the actual existing C standalone-fixture CLI on
+the root-owned source-identical runtime clone using Python 3.14.4. The attempt
+is IN_PROGRESS; no listener, HTTP, preservation or cleanup result is available
+in this record. Admission READY applies to this WSL attempt only.
+
+Scope and per-host sequencing are unchanged: the exact loopback fixture owns
+only its three run objects; default-profile, Windows, route and foreign-state
+preservation/cleanup must be observed. Source C and embedded workflow provenance
+remain frozen and unchanged. No identity spoof, fake cold-return receipt or new
+source/ADR is introduced. Native host qualification, paired K, actual product/
+recovery cases, global S06/S07 completion and parent acceptance remain gated.
+
+Root owns actual completion, result attribution, designated-host documentation
+verification and a separate accepted-change commit/push. This run records six
+real approvals and a started attempt, not a fixture/product/native/global PASS.
 
 ## Verified Baseline and Target Picture
 

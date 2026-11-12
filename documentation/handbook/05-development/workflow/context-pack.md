@@ -2,7 +2,7 @@
 
 Workflow: [workflow.md](workflow.md), issue-440-open-acceptance, version2.0, FULL_PATH.
 Branch: docs/workflow-issue440-open-20261111. Committed baseline: c40d87ed81101dd582a112fe8b427d84372f36e2.
-Status: EXECUTING; TA440-20261112-03 old draft withdrawn; root disk prepared; new post-preparation baseline/review pending; parent INCOMPLETE.
+Status: EXECUTING; TA440-20261112-04 STARTED; six-role exact WSL admission APPROVED; actual standalone attempt IN_PROGRESS/no result; parent INCOMPLETE.
 
 Read [requirements](requirement-matrix.md), [inventory](requirements.json),
 [prerequisites](prerequisite-ledger.md), [scenario/source contract](scenario-plan.md),
@@ -75,3 +75,16 @@ loopback61080->8080, three new owned fixture objects, full default-profile/forei
 Windows preservation and exact cleanup. Actual fixture/product result NOT_RUN.
 C unchanged; embedded workflow hash is provenance, new user/reset authority
 recorded outside C. Real downstream product identity/coordinator remains required.
+
+## Current TA04 approved WSL fixture attempt
+
+New post-root-disk route/all-project captures exited0. All six real reviewers
+APPROVED corrected GOdraftSHA85d4171c107613df3b0024c4be83bd97222b4268d29fc638328d64e04a5ac2aa
+and resource draftSHA8aed9adada6066c022e20159d2e42d88c3be093e3fdb884eb136fd29db5e08c8.
+Root finalized only permitted approval/status/hash-reference fields, validated
+the GO with existing validate_go and created its fixed private path exclusively
+mode0600. Actual unchanged-C CLI launched on root-owned source-identical runtime
+clone using Python3.14.4: IN_PROGRESS, no result yet. WSL-host admission READY
+is limited to that attempt; native/pairK/product/recovery/global/parent gates
+remain open. TA03 draft remains withdrawn; no spoofed identity or fake receipt.
+Current changed-document verification/publication remain Root-owned.

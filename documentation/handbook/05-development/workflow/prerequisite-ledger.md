@@ -63,3 +63,14 @@ This is the resolved scope, not a deletion, qualification or parent-success rece
 Source/resource/GO drafts and exact identities remain private. The source proof
 and embedded C workflow hashes are immutable provenance; new reset/target
 authority stays in integration evidence outside C. Actual fixture result pending.
+
+## TA440-20261112-04 admitted WSL attempt
+
+| Owner | Actual admission/action | Remaining evidence |
+|---|---|---|
+| Six real reviewers | Requirements/Architecture/Automation/Test-Evidence/Security/DevOps APPROVED exact corrected draftSHA85d4171c107613df3b0024c4be83bd97222b4268d29fc638328d64e04a5ac2aa; resource draftSHA8aed9adada6066c022e20159d2e42d88c3be093e3fdb884eb136fd29db5e08c8 | Retain exact final approval/status/hash delta; no substantive change admitted |
+| Root / fixture | Fresh post-root-disk route/project captures exit0; existing validate_go accepted final GO; exclusive fixed private file mode0600; actual C CLI launched on source-identical root-owned clone/Python3.14.4 | Attempt IN_PROGRESS; actual listener/HTTP/timing/preservation/cleanup result not yet available |
+| Capability/product/release | WSL-host admission READY for this unchanged bounded standalone fixture only | Native and pairK, true product/recovery identity, global S06/S07 and parent acceptance remain separately gated |
+
+No source/ADR/C modification, old-GO reuse, identity spoof or fake cold receipt.
+Root owns actual results and separate checked commit/push.
